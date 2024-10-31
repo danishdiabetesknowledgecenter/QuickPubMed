@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="da">
+  <head>
+    <meta charset="utf-8" />
+    <title>NemPubMed | Videncenter for Diabetes</title>
+    <link
+      rel="alternate"
+      hreflang="da"
+      href="https://videncenterfordiabetes.dk/forskning/find-forskning/nempubmed"
+    />
+    <meta
+      name="viewport"
+      content="initial-scale=1.0, maximum-scale=5.0, minimum-scale=1.0, width=device-width"
+    />
+    <script
+      src="https://code.jquery.com/jquery-3.5.1.min.js"
+      crossorigin="anonymous"
+    ></script>
+
+    <link
+      href="https://videncenterfordiabetes.dk/assets/css/icons.css"
+      rel="stylesheet"
+      media="all"
+    />
+    <link
+      href="https://videncenterfordiabetes.dk/assets/css/module-styles.css"
+      rel="stylesheet"
+      media="all"
+      data-style="module style"
+    />
+    <link
+      href="https://videncenterfordiabetes.dk/assets/css/identity-videncenter-for-diabetes.css"
+      rel="stylesheet"
+      media="all"
+      data-style="identity-videncenter-for-diabetes"
+    />
+    <link
+      href="https://videncenterfordiabetes.dk/assets/css/sleeve-default.css"
+      rel="stylesheet"
+      media="all"
+      data-style="sleeve-default"
+    />
+    <link
+      href="https://videncenterfordiabetes.dk/assets/css/print.css"
+      rel="stylesheet"
+      media="print"
+    />
+    <script
+      src="https://code.jquery.com/jquery-3.6.1.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script src="https://cdn.polyfill.io/v2/polyfill.min.js?features=Array.from,Array.prototype.includes,Object.values,es5,es6,fetch,matchMedia,viewport,CustomEvent"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=Array.prototype.find,Promise,Object.assign"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/1000hz-bootstrap-validator/0.11.9/validator.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/js/bootstrap.bundle.min.js"></script>
+    <script src="https://ajax.aspnetcdn.com/ajax/jquery.validate/1.16.0/jquery.validate.min.js"></script>
+    <script src="https://ajax.aspnetcdn.com/ajax/mvc/5.2.3/jquery.validate.unobtrusive.min.js"></script>
+    <script src="https://videncenterfordiabetes.dk/Scripts/picturefill.min.js"></script>
+    <script src="https://videncenterfordiabetes.dk/Scripts/lazysizes.min.js"></script>
+    <script src="https://videncenterfordiabetes.dk/Scripts/ls.unveilhooks.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/css-vars-ponyfill@2"></script>
+    <script src="https://videncenterfordiabetes.dk/assets/js/vendor.js"></script>
+    <script src="https://videncenterfordiabetes.dk/assets/js/app.js"></script>
+
+    <style>
+      :root {
+        --color-primary: #3d5068;
+        --color-primary-text: #ffffff;
+        --color-secondary: #9ac5d5;
+        --color-secondary-text: #000000;
+        --color-tertiary: #4d6687;
+        --color-tertiary-text: #ffffff;
+        --color-primary-decorative: #bcd9e3;
+        --color-primary-decorative-text: #000000;
+        --color-secondary-decorative: #b01a00;
+        --color-secondary-decorative-text: #ffffff;
+        --color-footer: #43484f;
+        --color-footer-text: #ffffff;
+        --color-link: #0300d1;
+        --color-tag: #323c75;
+        --color-black: #000;
+        --color-white: #fff;
+        --color-grey-light: #f4f4f4;
+        --color-grey-medium: #cfd1d3;
+        --color-grey-dark: #43484f;
+        --color-body: #f4f4f4;
+        --color-body-text: var(--color-black);
+      }
+    </style>
+
+    <script src="https://polyfill.io/v3/polyfill.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <!-- FOR PRODUCTION USE THIS !!! <script src="https://cdn.jsdelivr.net/npm/vue@2.6.11"></script> -->
+    <script src="https://unpkg.com/showdown@1.x/dist/showdown.min.js"></script>
+    <script src="https://unpkg.com/vue-showdown@2.x/dist/vue-showdown.min.js"></script>
+    <script src="https://unpkg.com/vue-multiselect@2.1.6"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@riophae/vue-treeselect@^0.4.0/dist/vue-treeselect.umd.min.js"></script>
+
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/v-tooltip@2.0.2"></script>
+
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/boxicons@2.0.5/css/boxicons.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/vue-multiselect@2.1.6/dist/vue-multiselect.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@riophae/vue-treeselect@^0.4.0/dist/vue-treeselect.min.css"
+    />
+
+    <!--IMPORTS OF CSS, TRANSLATIONS AND DROPDOWN CONTENT-->
+    <script src="settings.js"></script>
+    <script src="settings.local.js"></script>
+    <script src="qpm-components.js"></script>
+    <script src="qpm-content.js"></script>
+    <script src="qpm-content-diabetes-new.js"></script>
+    <script src="qpm-content-diabetes.js"></script>
+    <script src="qpm-translations.js"></script>
+    <script src="qpm-openAiPrompts.js"></script>
+    <link rel="stylesheet" href="qpm-style.css" />
+    <link rel="stylesheet" href="qpm-style-strings.css" />
+
+    <!-- Production -->
+    <!--
+    <script src="//videncenterfordiabetes.dk/media/2zvn1t2f/qpm-components.js"></script>
+    <script src="//videncenterfordiabetes.dk/media/o5shy55c/qpm-content.js"></script>
+    <script src="//videncenterfordiabetes.dk/media/repnbnej/qpm-translations.js"></script>
+    <link rel="stylesheet" href="//videncenterfordiabetes.dk/media/kffnaoqv/qpm-style.css" />
+    <link rel="stylesheet" href="//videncenterfordiabetes.dk/media/ge3hhf4k/qpm-style-strings.css" />
+    -->
+  </head>
+
+  <body>
+    <div id="main-content">
+      <template>
+        <main-wrapper language="dk" :hide-topics="[]"></main-wrapper>
+        <search-gallery language="en" :hide-topics="[]"></search-gallery>
+      </template>
+    </div>
+    <script>
+      sectionedAbstract = {
+        "Section 1":
+          "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas venenatis purus eu justo ultricies porttitor. Vivamus bibendum tellus eu auctor mollis. In fermentum at tortor sit amet dictum. In nec bibendum nibh. Aliquam erat volutpat. Aenean est metus, suscipit quis tellus vel, finibus dapibus mauris. Integer convallis aliquam libero, ut vestibulum augue suscipit eu. Sed vehicula laoreet ullamcorper.",
+        "Section 2":
+          "Duis dignissim nunc odio, faucibus sodales lacus accumsan id. Nunc at tincidunt turpis. Nullam nunc mi, accumsan non justo sit amet, tristique aliquam nisl. Curabitur vitae fermentum elit. In hac habitasse platea dictumst. Pellentesque risus nisl, sagittis in metus quis, sagittis bibendum urna. Cras pellentesque aliquet lacinia. Quisque cursus, mi a congue laoreet, dolor justo elementum nulla, sit amet efficitur nunc mauris facilisis magna. Quisque tempus iaculis nisi, eget condimentum lacus elementum sed.",
+      };
+      const vueApp = new Vue({
+        el: "#main-content",
+      });
+    </script>
+    <div class="qpm_vapp" id="qpm_vappX">
+      <specific-articles ids="36360447"> </specific-articles>
+    </div>
+
+    <script>
+      var vueAppX = new Vue({
+        el: "#qpm_vappX",
+      });
+    </script>
+  </body>
+</html>
