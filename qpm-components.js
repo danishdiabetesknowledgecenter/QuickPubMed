@@ -2319,11 +2319,7 @@ Vue.component("DropDownWrapper", {
     return {
       shownItems: {},
       maintopicToggledMap: {},
-      currentExpandedGroup: "",
-      currentExpandedGroupItems: [],
-      previousExpandedGroupItems: [],
-      hiddenElements: [],
-      shownElements: [],
+      expandedOptionGroupName: "",
       tempList: [],
       focusedButtonIndex: -1,
       focusByHover: true,
@@ -2405,8 +2401,8 @@ Vue.component("DropDownWrapper", {
 
       headers.forEach((header) => {
         // Stop existing mousedown events
-        parent.removeEventListener("mousedown", self.stopEvent, true);
-        parent.addEventListener("mousedown", self.stopEvent, true);
+        parent.removeEventListener("mousedown", self.handleStopEvent, true);
+        parent.addEventListener("mousedown", self.handleStopEvent, true);
 
         // Add click handler for category groups
         header.removeEventListener("click", self.handleCategoryGroupClick);
@@ -2436,7 +2432,7 @@ Vue.component("DropDownWrapper", {
       }
     },
     clearShownItems: function () {
-      this.currentExpandedGroup = "";
+      this.expandedOptionGroupName = "";
       this.updateExpandedGroupHighlighting();
       this.shownItems = {}; // Tags currently selected / shown in drop down bar
       this.$refs.multiselect.pointer = 0; // Set highlight to first item to prevent exceptions.
@@ -2461,7 +2457,7 @@ Vue.component("DropDownWrapper", {
           ...this.maintopicToggledMap,
           [elem.name]: !this.maintopicToggledMap[elem.name],
         };
-        console.log("Elem.name", elem.name);
+
         value.pop();
       }
 
@@ -2496,10 +2492,345 @@ Vue.component("DropDownWrapper", {
       this.$refs.multiselect.pointer = -1; // Remove highlight of non hovered items
     },
     /**
-     * Called when clicking the scope buttons in the ui
+     * Added for sanity, since we hide elements by adding qpm_shown
      */
-    buttonClick: function (item, state, event) {
-      console.log("buttonClick: item: ", item);
+    hideElement(element) {
+      element.classList.add("qpm_shown");
+    },
+    /**
+     * Added for sanity, since we show elements by removing qpm_shown
+     */
+    showElement(element) {
+      element.classList.remove("qpm_shown");
+    },
+    /**
+     * Resets the maintopicToggledMap.
+     */
+    resetMaintopicToggledMap() {
+      for (let key in this.maintopicToggledMap) {
+        this.maintopicToggledMap[key] = false;
+      }
+    },
+    /**
+     * Hides all items in the specified group.
+     *
+     * @param {string} groupName - The name of the group to hide.
+     */
+    hideItems(groupName) {
+      if (!groupName) return;
+      const itemsToRemove = document.querySelectorAll(
+        `[data-name="${groupName}"]`
+      );
+      this.shownItems[groupName] = false;
+      itemsToRemove.forEach((item) => {
+        this.hideElement(item.parentNode.parentNode);
+      });
+    },
+    /**
+     * Adds or removes tag either by clicking on "x" or clicking already selected item in dropdown
+     */
+    showOrHideElements: function () {
+      const element = this.$refs.selectWrapper;
+      if (!this.isGroup) return;
+
+      const entries = element.querySelectorAll("[data-name]");
+      entries.forEach((entry) => {
+        const groupName = entry.getAttribute("data-name");
+        const parent = entry.parentNode.parentNode;
+
+        const parentId = entry.getAttribute("parent-id");
+        const grandParentId = entry.getAttribute("grand-parent-id");
+
+        const shouldShow =
+          this.expandedOptionGroupName !== groupName ||
+          (parentId && !this.maintopicToggledMap[parentId]) ||
+          (grandParentId && !this.maintopicToggledMap[grandParentId]);
+
+        parent.classList.toggle("qpm_shown", shouldShow);
+      });
+    },
+    /**
+     * Updates visibility of options contained in an optiongroup.
+     * uses the property "selected" to determine which options are tagged.
+     * @param {Array} optionIds - The list of option IDs in the group.
+     * @param {Array} optionsInOptionGroup - The list of options in the group.
+     */
+    updateOptionGroupVisibility: function (optionIds, optionsInOptionGroup) {
+      console.log(
+        `${optionsInOptionGroup.length} options in this option group: `
+      );
+      this.showOrHideElements();
+      this.updateExpandedGroupHighlighting();
+
+      // Sets to keep track of depths and parent IDs
+      const taggedDepths = new Set();
+      const parentIdsToShow = new Set();
+      const grandParentIdsToShow = new Set();
+
+      const optionsInGroupIds = new Set(
+        optionsInOptionGroup.map((option) => option.id)
+      );
+
+      optionIds.forEach((id) => {
+        const option = optionsInOptionGroup.find((option) => option.id === id);
+        if (option) {
+          taggedDepths.add(option.depth);
+          if (option.parentId) parentIdsToShow.add(option.parentId);
+          if (option.grandParentId)
+            grandParentIdsToShow.add(option.grandParentId);
+        }
+      });
+
+      this.showElementsByOptionIds(optionIds, optionsInGroupIds);
+      this.showElementsByDepths(taggedDepths, optionsInGroupIds);
+      this.showElementsByOptionIds(
+        Array.from(parentIdsToShow),
+        optionsInGroupIds
+      );
+      this.showElementsByOptionIds(
+        Array.from(grandParentIdsToShow),
+        optionsInGroupIds
+      );
+    },
+    /**
+     * Utility method to show elements by option IDs
+     * @param {Array} optionIds - The list of option IDs to show.
+     * @param {Set} optionsInGroupIds - The set of option IDs in the group.
+     */
+    showElementsByOptionIds: function (optionIds, optionsInGroupIds) {
+      optionIds.forEach((id) => {
+        if (optionsInGroupIds.has(id)) {
+          const elements = document.querySelectorAll(`span[option-id="${id}"]`);
+          elements.forEach((element) => {
+            const liElement = element.closest("li.multiselect__element");
+            if (liElement) {
+              this.showElement(liElement);
+            }
+          });
+        }
+      });
+    },
+    /**
+     * Utility method to show elements by option depth
+     * @param {Array} depths - The list of depths to show.
+     * @param {Set} optionsInGroupIds - The set of option IDs in the group.
+     */
+    showElementsByDepths: function (depths, optionsInGroupIds) {
+      depths.forEach((depth) => {
+        const depthElements = document.querySelectorAll(
+          `span[option-depth="${depth}"]`
+        );
+        depthElements.forEach((element) => {
+          const optionId = element.getAttribute("option-id");
+          if (optionsInGroupIds.has(optionId)) {
+            const liElement = element.closest("li.multiselect__element");
+            if (liElement) {
+              this.showElement(liElement);
+            }
+          }
+        });
+      });
+    },
+    /**
+     * Utility method to get the options for a specific optiongroup
+     * @param {String} groupName Name of the option--group
+     * @returns list of options in the group
+     */
+    getOptionsFromOptionsGroupName: function (groupName) {
+      const result = [];
+      topics.forEach((topic) => {
+        if (topic.groupname === groupName) {
+          topic.groups.forEach((group) => {
+            result.push({
+              id: group.id,
+              name: group.name,
+              isBranch: group.maintopic || null,
+              depth: group.subtopiclevel || 0, // is a base topic if 0
+              parentId: group.maintopicIdLevel1 || null,
+              grandParentId: group.maintopicIdLevel2 || null,
+            });
+          });
+        }
+      });
+      return result;
+    },
+    /**
+     * Handles the event when clicking the optiongroup/category
+     * Updates the visibility of expanded optiongroup and selected options, using updateOptionGroupVisibility
+     * @param {HTMLElement} target - The target element.
+     */
+    handleCategoryGroupClick(event) {
+      let target = event.target;
+
+      // Check if the click is on the optiongroup name or elsewhere within the multiselect__option__option--group element
+      if (target.classList.contains("qpm_groupLabel")) {
+        target = target.parentElement;
+      }
+
+      const optionGroupName =
+        target.getElementsByClassName("qpm_groupLabel")[0].textContent;
+
+      if (target.classList.contains("multiselect__option--group")) {
+        if (this.expandedOptionGroupName === optionGroupName) {
+          console.log("Collapsing");
+          this.expandedOptionGroupName = "";
+          this.resetMaintopicToggledMap();
+          this.updateExpandedGroupHighlighting();
+          this.hideItems(this.expandedOptionGroupName);
+        } else {
+          this.expandedOptionGroupName = optionGroupName;
+          console.log("Expanding: ", this.expandedOptionGroupName);
+
+          const optionGroupId = this.getOptionGroupId(optionGroupName);
+          const options = this.getOptionsByOptionGroupId(optionGroupId);
+          const optionIds = options.map((o) => o.id);
+          const optionsInOptionGroup =
+            this.getOptionsFromOptionsGroupName(optionGroupName);
+
+          console.log(
+            `${options.length} options selected in ${optionGroupName}: `
+          );
+
+          if (optionIds.length <= 0) {
+            this.showOrHideElements();
+            this.updateExpandedGroupHighlighting();
+          } else {
+            // Only show the tags in the clicked group
+            this.updateOptionGroupVisibility(optionIds, optionsInOptionGroup);
+          }
+        }
+      } else {
+        // This is when we are adding a new tag
+        console.log("New tag added");
+      }
+    },
+    /**
+     * Handles the click event on a tag (an option that has been selected),
+     * Updates the visibility of expanded optiongroup and selected options, using updateOptionGroupVisibility
+     *
+     * @param {Event} event - The click event.
+     */
+    handleTagClick: function (event) {
+      const target = event.target;
+      const targetLabel = target.textContent.trim();
+
+      const optionGroupName = this.getOptionGroupName(
+        this.data,
+        targetLabel,
+        this.language
+      );
+
+      const optionGroupId = this.getOptionGroupId(optionGroupName);
+      const options = this.getOptionsByOptionGroupId(optionGroupId);
+      const optionIds = options.map((o) => o.id);
+      const optionsInOptionGroup =
+        this.getOptionsFromOptionsGroupName(optionGroupName);
+
+      if (optionIds.length <= 0) {
+        console.log(
+          "No options selected in optiongroup: ",
+          optionIds.length,
+          optionGroupName
+        );
+        this.showOrHideElements();
+        this.updateExpandedGroupHighlighting();
+      } else {
+        // Only show the tags in the clicked group
+        this.updateOptionGroupVisibility(optionIds, optionsInOptionGroup);
+      }
+    },
+    handleSearchInput: function (event) {
+      if (!this.isGroup) return;
+      const target = event.target;
+      const element = this.$refs.selectWrapper;
+
+      if (target.value) {
+        //search input, save current state of shown element, and show all elements
+        const entries = element.querySelectorAll(
+          ".multiselect__element.qpm_shown"
+        );
+        for (i = 0; i < entries.length; i++) {
+          this.showElement(entries[i]);
+        }
+      } else {
+        //restore current state of shown elements
+        this.showOrHideElements();
+        this.initialSetup();
+      }
+
+      target.removeEventListener("blur", this.handleOnBlur);
+      target.addEventListener("blur", this.handleOnBlur);
+    },
+    handleStopEnterOnGroups: function (event) {
+      if (this.$refs.multiselect.pointer < 0) {
+        // If there is no hovered element then highlight the first on as with old behavior
+        this.$refs.multiselect.pointer = 0;
+      }
+      if (event.charCode == 13) {
+        if (event.target.classList.contains("multiselect__input")) {
+          const element = this.$refs.selectWrapper;
+          target = element.getElementsByClassName(
+            "multiselect__option--highlight"
+          )[0];
+          if (
+            target == null ||
+            target.classList.contains("multiselect__option--group")
+          ) {
+            event.stopPropagation();
+
+            if (target == null) return;
+
+            var focusedGroup =
+              target.querySelector(".qpm_groupLabel").textContent;
+
+            if (focusedGroup == this.expandedOptionGroupName) {
+              this.expandedOptionGroupName = "";
+            } else {
+              this.expandedOptionGroupName = focusedGroup;
+            }
+          } else if (!this.focusByHover && this.focusedButtonIndex >= 0) {
+            var dropdownRef = this.$refs.multiselect;
+
+            // Nothing currently in focus, and therefore nothing left to do.
+            if (dropdownRef.pointer < 0) {
+              event.stopPropagation();
+              return;
+            }
+
+            // Find the button corresponding to the one in focus
+            var target = dropdownRef.$refs.list.getElementsByClassName(
+              "multiselect__option--highlight"
+            )[0];
+            var button = target.getElementsByClassName(
+              "qpm_ButtonColumnFocused"
+            )[0];
+
+            // If no scope buttons exists or none are currently in focus
+            // then let the default handeling occur via the input method.
+            if (!button) return;
+
+            event.stopPropagation();
+            button.click();
+          }
+        }
+      }
+    },
+    handleOpenMenuOnClick: function (event) {
+      //FIX FOR IE!
+      var tagText = event.target.textContent;
+
+      if (
+        tagText.startsWith(this.getString("manualInputTerm")) ||
+        tagText.startsWith(this.getString("manualInputTermTranslated"))
+      ) {
+        this.expandedOptionGroupName = "";
+        this.updateExpandedGroupHighlighting();
+      }
+
+      event.stopPropagation();
+      this.$refs.multiselect.$refs.search.focus();
+    },
+    handleScopeButtonClick: function (item, state, event) {
       this.$emit("updateScope", item, state, this.index);
       item.scope = state;
 
@@ -2521,24 +2852,18 @@ Vue.component("DropDownWrapper", {
         }
       }
     },
-    getHeader: function (name) {
-      for (i = 0; i < this.data.length; i++) {
-        if (!this.data[i].groups) {
-          //Not group
-          return "single";
-        }
-        for (j = 0; j < this.data[i].groups.length; j++) {
-          if (this.data[i].groups[j].name == name) {
-            return this.customGroupLabel(this.data[i]);
-          }
-        }
+    handleOnButtonMouseover: function (index, event) {
+      // Prevent mouse from focusing new subject. Used for auto scroll.
+      if (this.ignoreHover) {
+        event.stopPropagation();
+        event.preventDefault();
+        return;
       }
-      return "unknown";
+
+      this.focusedButtonIndex = index;
+      this.focusByHover = true;
     },
-    /**
-     * Called when adding a custom tag through the input field
-     */
-    addTag: async function (newTag) {
+    handleAddTag: async function (newTag) {
       var tag;
       if (this.searchWithAI) {
         this.isLoading = true;
@@ -2583,26 +2908,16 @@ Vue.component("DropDownWrapper", {
       this.input(this.selected, -1);
       this.clearShownItems();
     },
-    getOptionClassName: function (option) {
-      // Return the 'cssClass' if it exists, otherwise return an empty string
-      return option.cssClass ? `qpm_${option.cssClass}` : "";
+    handleEditTag: function (tag) {
+      console.log("editTag");
     },
-    updateCustomTag: function (oldTag, newTag) {
-      // console.log("updateCustomTag");
-      //newTag.preString = this.getString("manualInputTerm") + ": ";
-
+    handleUpdateCustomTag: function (oldTag, newTag) {
       var tagIndex = this.selected.findIndex(function (e) {
         return oldTag == e;
       });
       this.selected.splice(tagIndex, 1, newTag);
       this.clearShownItems();
       this.input(this.selected, -1);
-    },
-    /**
-     * Called when editing a custom tag
-     */
-    editTag: function (tag) {
-      console.log("editTag");
     },
     /**
      * Stops the propagation and default action of an event under certain conditions.
@@ -2614,7 +2929,7 @@ Vue.component("DropDownWrapper", {
      * @param {Event} event - The event object to be stopped.
      * @returns {boolean} Always returns false to indicate the event has been handled.
      */
-    stopEvent: function (event) {
+    handleStopEvent: function (event) {
       // Click event was on the parent multiselect group
       if (event.target.classList.contains("multiselect__option--group")) {
         event.stopPropagation();
@@ -2636,827 +2951,28 @@ Vue.component("DropDownWrapper", {
       }
     },
     /**
-     * Translates the given words using the azure function translation endpoint.
-     *
-     * @param {string} wordsToTranslate - The words that need to be translated.
-     * @returns {Promise<string>} The translated text.
+     * Blur handler needed to force groups to close if search is aborted
      */
-    translateSearch: async function (wordsToTranslate) {
-      const openAiServiceUrl =
-        this.appSettings.openAi.baseUrl + "/api/TranslateTitle";
-      var localePrompt = getPromptForLocale(searchTranslationPrompt, "dk");
-
-      try {
-        let answer = "";
-        const response = await fetch(openAiServiceUrl, {
-          method: "POST",
-          body: JSON.stringify({
-            prompt: localePrompt,
-            title: wordsToTranslate,
-            client: self.appSettings.client,
-          }),
-        });
-
-        if (!response.ok) {
-          const data = await response.json();
-          throw Error(JSON.stringify(data));
-        }
-
-        const reader = response.body
-          .pipeThrough(new TextDecoderStream())
-          .getReader();
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done || self.stopGeneration) {
-            break;
-          }
-          answer += value;
-        }
-
-        return answer;
-      } catch (error) {
-        self.text = "An unknown error occurred: \n" + error.toString();
-      }
-    },
-    /**
-     * Gets the group name for a given item.
-     *
-     * @param {Object} item - The item to get the group name for.
-     * @returns {string|null} The group name or null if not found.
-     */
-    getGroupName: function (item) {
-      if (item.groups !== undefined) return "groups";
-      if (item.choices !== undefined) return "choices";
-      return null;
-    },
-    /**
-     * Cleans the label by removing leading special characters.
-     *
-     * @param {string} label - The label to clean.
-     * @returns {string} The cleaned label.
-     */
-    cleanLabel: function (label) {
-      return label.startsWith("⤷") ? label.slice(1).trim() : label.trim();
-    },
-    /**
-     * Finds the name of the group that contains the target label.
-     *
-     * @param {Array} data - The data array to search through.
-     * @param {string} targetLabel - The target label to find.
-     * @param {string} language - The current language.
-     * @returns {string} The name of the group containing the target label.
-     */
-    findGroupName: function (data, targetLabel, language) {
-      let name = "";
-      data.some((category) => {
-        const groupName = this.getGroupName(category);
-        if (!groupName) return false;
-        return category[groupName].some((tag) => {
-          const currentLabel = this.cleanLabel(tag.translations[language]);
-          if (currentLabel === targetLabel) {
-            name = this.customNameLabel(category);
-            this.currentExpandedGroup = name;
-            return true;
-          }
-          return false;
-        });
-      });
-      return name;
-    },
-    /**
-     * Extracts the IDs from the selected tags.
-     *
-     * @returns {Array} The array of selected tag IDs.
-     */
-    getSelectedIds: function () {
-      return this.selected
-        .filter((tag) => tag.id !== undefined)
-        .map((tag) => tag.id);
-    },
-    /**
-     * Gets tags by group ID.
-     *
-     * @param {string} groupId - The ID of the group.
-     * @returns {Array} An array of tags that belong to the specified group.
-     */
-    getTagsByGroupId: function (groupId) {
-      return this.selected.filter(
-        (tag) => tag.id && tag.id.startsWith(groupId)
-      );
-    },
-
-    /**
-     * Gets the ID of a topic by its group name.
-     *
-     * @param {string} groupname - The name of the group.
-     * @returns {string|null} The ID of the topic if found, otherwise null.
-     */
-    getTopicIdByGroupName: function (groupname) {
-      for (const topic of topics) {
-        if (topic.groupname === groupname) {
-          return topic.id;
-        }
-      }
-      return null;
-    },
-    /**
-     * Gets the group name by matching the first three characters of the option ID.
-     *
-     * @param {string} optionId - The ID of the option.
-     * @returns {string|null} The group name if found, otherwise null.
-     */
-    getGroupNameByOptionId: function (optionId) {
-      const prefix = optionId.substring(0, 3);
-      for (const topic of topics) {
-        if (topic.id.startsWith(prefix)) {
-          return topic.groupname;
-        }
-      }
-      return null;
-    },
-    /**
-     * Updates the visibility of elements based on their tagging status and hierarchy.
-     *
-     * @param {Array} items - The list of items to process.
-     * @param {Array} selectedIds - The list of selected item IDs.
-     * @param {boolean} [debugging=false] - Flag to enable debugging logs.
-     */
-    updateTaggedElements: function (items, selectedIds, debugging = false) {
-      // First pass: Collect all tagged topics and their topicDepth
-      const taggedTopicDepths = new Set();
-      const taggedParentIds = new Set();
-      const taggedGrandParentIds = new Set();
-
-      for (let j = 0; j < items.length; j++) {
-        const item = items[j];
-        const isTagged = selectedIds.includes(item.getAttribute("option-id"));
-        const topicDepth = item.getAttribute("subtopiclevel");
-        const parentId = item.getAttribute("parent-id");
-        const grandParentId = item.getAttribute("grand-parent-id");
-
-        if (isTagged) {
-          taggedTopicDepths.add(topicDepth);
-          if (parentId) taggedParentIds.add(parentId);
-          if (grandParentId) taggedGrandParentIds.add(grandParentId);
-        }
-      }
-
-      // Second pass: Show elements based on collected topicDepths
-      for (let j = 0; j < items.length; j++) {
-        const item = items[j];
-        const itemId = item.getAttribute("option-id");
-        const isTagged = selectedIds.includes(item.getAttribute("option-id"));
-
-        // Maintopic is an option branch that cannot be tagged but which has children
-        const isMaintopic = item.getAttribute("maintopic");
-        const isSubtopic = item.getAttribute("subtopiclevel") == 1;
-        const isSubSubTopic = item.getAttribute("subtopiclevel") == 2;
-        // The level of the option can be 1 or 2 (has parent or has parent and grandparent)
-        const topicDepth = item.getAttribute("subtopiclevel");
-        const parentId = item.getAttribute("parent-id");
-        const grandParentId = item.getAttribute("grand-parent-id");
-
-        // Base topic is the top level option eg. topic 1, 2 and 3.
-        const isBaseTopic =
-          (isMaintopic || isMaintopic === null) &&
-          !isSubtopic &&
-          !isSubSubTopic;
-
-        const element = item.parentNode.parentNode;
-
-        // If not tagged hide the item
-        if (!isTagged) {
-          this.hideElement(element);
-        }
-
-        // If the item is a base topic, on the same topicDepth as any tagged topic,
-        // or is a parent/grandparent of a tagged item, show it
-        if (
-          isBaseTopic ||
-          taggedTopicDepths.has(topicDepth) ||
-          taggedParentIds.has(itemId) ||
-          taggedGrandParentIds.has(itemId)
-        ) {
-          this.showElement(element);
-        }
-        if (taggedGrandParentIds.has(parentId)) {
-          this.showElement(element);
-        }
-
-        // Log the item info for debugging
-        if (true) {
-          console.log(
-            "|",
-            isTagged ? "🏷️" : "❌",
-            "|",
-            !element.classList.contains("qpm_shown") ? "👁️" : "❌",
-            "| BT:",
-            isBaseTopic ? "✅" : "❌",
-            "| MT:",
-            isMaintopic ? "✅" : "❌",
-            "| ST:",
-            isSubtopic ? "✅" : "❌",
-            "| SST:",
-            isSubSubTopic ? "✅" : "❌",
-            "| id:",
-            itemId,
-            "| pId:",
-            parentId ? parentId : "------",
-            "| gpId:",
-            grandParentId ? grandParentId : "------",
-            "| ⇅:",
-            topicDepth ? topicDepth : "0"
-          );
-        }
-
-        // If the element contains qpm_shown it is hidden
-        if (element.classList.contains("qpm_shown")) {
-          this.updateElementLists(element, false);
-        } else {
-          this.updateElementLists(element, true);
-        }
-      }
-    },
-    /**
-     * Updates the shownElements and hiddenElements arrays based on the visibility of the element.
-     * @param {HTMLElement} element - The DOM element to add or remove.
-     * @param {Boolean} isShown - Indicates whether the element is shown or hidden.
-     */
-    updateElementLists(element, isShown) {
-      if (isShown) {
-        // Add to shownElements if not already present
-        if (!this.shownElements.includes(element)) {
-          this.shownElements.push(element);
-        }
-        // Remove from hiddenElements if present
-        const index = this.hiddenElements.indexOf(element);
-        if (index !== -1) {
-          this.hiddenElements.splice(index, 1);
-        }
-      } else {
-        // Add to hiddenElements if not already present
-        if (!this.hiddenElements.includes(element)) {
-          this.hiddenElements.push(element);
-        }
-        // Remove from shownElements if present
-        const index = this.shownElements.indexOf(element);
-        if (index !== -1) {
-          this.shownElements.splice(index, 1);
-        }
-      }
-    },
-    /**
-     * Added for sanity, since we hide elements by adding qpm_shown
-     */
-    hideElement(element) {
-      element.classList.add("qpm_shown");
-    },
-    /**
-     * Added for sanity, since we show elements by removing qpm_shown
-     */
-    showElement(element) {
-      element.classList.remove("qpm_shown");
-    },
-    /**
-     * Resets the maintopicToggledMap.
-     */
-    resetMaintopicToggledMap() {
-      for (let key in this.maintopicToggledMap) {
-        this.maintopicToggledMap[key] = false;
-      }
-    },
-    /**
-     * Updates the maintopicToggledMap for the new group.
-     *
-     * @param {string} id - The id of the new group.
-     */
-    updateMaintopicToggledMap(name) {
-      for (let key in this.maintopicToggledMap) {
-        this.maintopicToggledMap[key] = key === name;
-      }
-    },
-    /**
-     * Hides all items in the specified group.
-     *
-     * @param {string} groupName - The name of the group to hide.
-     */
-    hideItems(groupName) {
-      if (!groupName) return;
-      const itemsToRemove = document.querySelectorAll(
-        `[data-name="${groupName}"]`
-      );
-      this.shownItems[groupName] = false;
-      itemsToRemove.forEach((item) => {
-        this.hideElement(item.parentNode.parentNode);
-      });
-    },
-    /**
-     * Shows all items in the specified group.
-     *
-     * @param {string} groupName - The name of the group to show.
-     */
-    showItems(groupName) {
-      const items = document.querySelectorAll(`[data-name="${groupName}"]`);
-      this.shownItems[groupName] = !this.shownItems[groupName];
-      items.forEach((item) => {
-        if (item.getAttribute("parent-id") === null) {
-          item.parentNode.parentNode.classList.toggle("qpm_shown");
-        } else {
-          this.hideElement(item.parentNode.parentNode);
-        }
-      });
-    },
-    /**
-     * Adds or removes tag either by clicking on "x" or clicking already selected item in dropdown
-     */
-    showOrHideElements: function () {
-      const element = this.$refs.selectWrapper;
-      if (!this.isGroup) return;
-
-      const entries = element.querySelectorAll("[data-name]");
-      entries.forEach((entry) => {
-        const groupName = entry.getAttribute("data-name");
-        const parent = entry.parentNode.parentNode;
-
-        const parentId = entry.getAttribute("parent-id");
-        const grandParentId = entry.getAttribute("grand-parent-id");
-
-        const shouldShow =
-          this.currentExpandedGroup !== groupName ||
-          (parentId && !this.maintopicToggledMap[parentId]) ||
-          (grandParentId && !this.maintopicToggledMap[grandParentId]);
-
-        parent.classList.toggle("qpm_shown", shouldShow);
-      });
-    },
-    /**
-     * Determine if the buttons for the scopes (narrow, normal or broad) should be shown.
-     *
-     * @param {string} name - The name of the group.
-     * @returns {boolean} True if the scope buttons should be shown, false otherwise.
-     */
-    showScope: function (name) {
-      return !(this.currentExpandedGroup === name);
-    },
-    containedInList: function (props) {
-      if (props.option && props.option.name && this.selected) {
-        for (i = 0; i < this.selected.length; i++) {
-          if (this.selected[i].name == props.option.name) {
-            return true;
-          }
-        }
-      }
-      return false;
-    },
-    isSelected: function (option) {
-      return this.selected.some(
-        (selectedOption) => selectedOption.id === option.id
-      );
-    },
-    getButtonColor: function (props, scope, index) {
-      classes = [];
-      if (scope == "narrow") {
-        classes.push(this.qpm_buttonColor1);
-      }
-      if (!scope || scope == "normal") {
-        classes.push(this.qpm_buttonColor2);
-      }
-      if (scope == "broad") {
-        classes.push(this.qpm_buttonColor3);
-      }
-
-      // Set class to distinguish the collum currently in 'focus' for
-      // selection via keyboard. This class together with the
-      // multiselect__option--highlight class defines the highlighted button.
-      if (!this.focusByHover && index === this.focusedButtonIndex) {
-        classes.push("qpm_ButtonColumnFocused");
-      }
-
-      if (props.option && props.option.name && this.selected) {
-        for (i = 0; i < this.selected.length; i++) {
-          if (this.selected[i].name == props.option.name) {
-            if (this.selected[i].scope == scope) classes.push("selectedButton");
-            break;
-          }
-        }
-      }
-      return classes;
-    },
-    setWidthToPlaceholderWidth: function (input) {
-      // Create a temporary span element and set its text to the placeholder text
-      let tempSpan = document.createElement("span");
-      tempSpan.innerHTML = input.getAttribute("placeholder");
-
-      // Apply the same styles to the span as the input
-      let inputStyle = window.getComputedStyle(input);
-      tempSpan.style.fontFamily = inputStyle.fontFamily;
-      tempSpan.style.fontSize = inputStyle.fontSize;
-      tempSpan.style.fontWeight = inputStyle.fontWeight;
-      tempSpan.style.letterSpacing = inputStyle.letterSpacing;
-      tempSpan.style.whiteSpace = "nowrap"; // Ensure text stays on one line
-
-      // Add the span to the body (it won't be visible)
-      document.body.appendChild(tempSpan);
-
-      // Get the width of the area
-      let placeholderWidth = tempSpan.getBoundingClientRect().width + 27;
-
-      // Remove the span from the body
-      document.body.removeChild(tempSpan);
-
-      input.style.width = placeholderWidth + "px";
-      // input.setAttribute(
-      // 	"size",
-      // 	placeholderWidth/7
-      // )
-    },
-    /**
-     * Handles the click event on a tag, updating the visibility of expanded group and tagged elements.
-     *
-     * @param {Event} event - The click event.
-     */
-    handleTagClick: function (event) {
-      const target = event.target;
-      const targetLabel = target.textContent.trim();
-
-      const name = this.findGroupName(this.data, targetLabel, this.language);
-      // Select the items for the group (category) of the clicked tag
-      const items =
-        target.parentNode.parentNode.parentNode.parentNode.parentNode.querySelectorAll(
-          '[data-name="' + name + '"]'
-        );
-
-      this.currentExpandedGroupItems = items;
-      this.currentExpandedGroup = name;
-
-      if (this.previousExpandedGroupItems.length > 0) {
-        // hide elements from the last open tag
-        this.previousExpandedGroupItems.forEach((item) => {
-          this.hideElement(item.parentNode.parentNode);
-        });
-      }
-      this.updateTaggedElements(
-        this.currentExpandedGroupItems,
-        this.getSelectedIds()
-      );
-
-      this.updateExpandedGroupHighlighting();
-
-      this.previousExpandedGroupItems = items;
-    },
-    /**
-     * Added for sanity.
-     *
-     * @param {String} groupName Name of the option--group
-     * @returns list of options in the group
-     */
-    getOptionsFromOptionsGroupName: function (groupName) {
-      const result = [];
-      topics.forEach((topic) => {
-        if (topic.groupname === groupName) {
-          topic.groups.forEach((group) => {
-            result.push({
-              id: group.id,
-              name: group.name,
-              isBranch: group.maintopic || null,
-              depth: group.subtopiclevel || 0, // is a base topic if 0
-              parentId: group.maintopicIdLevel1 || null,
-              grandParentId: group.maintopicIdLevel2 || null,
-            });
-          });
-        }
-      });
-      return result;
-    },
-    // Extracted helper method to show elements by option IDs
-    showElementsByOptionIds: function (optionIds, optionsInGroupIds) {
-      optionIds.forEach((id) => {
-        if (optionsInGroupIds.has(id)) {
-          const elements = document.querySelectorAll(`span[option-id="${id}"]`);
-          elements.forEach((element) => {
-            const liElement = element.closest("li.multiselect__element");
-            if (liElement) {
-              this.showElement(liElement);
-            }
-          });
-        }
-      });
-    },
-    // Extracted helper method to show elements by depth
-    showElementsByDepths: function (depths, optionsInGroupIds) {
-      depths.forEach((depth) => {
-        const depthElements = document.querySelectorAll(
-          `span[option-depth="${depth}"]`
-        );
-        depthElements.forEach((element) => {
-          const optionId = element.getAttribute("option-id");
-          if (optionsInGroupIds.has(optionId)) {
-            const liElement = element.closest("li.multiselect__element");
-            if (liElement) {
-              this.showElement(liElement);
-            }
-          }
-        });
-      });
-    },
-    /**
-     * Toggles the visibility of a group, when the category name is pressed
-     *
-     * @param {HTMLElement} target - The target element.
-     */
-    handleCategoryGroupClick(event) {
-      let target = event.target;
-
-      // Check if the click is on the group name or elsewhere within the multiselect__option__option--group element
-      if (target.classList.contains("qpm_groupLabel")) {
-        target = target.parentElement;
-      }
-
-      // The option group name
-      const name =
-        target.getElementsByClassName("qpm_groupLabel")[0].textContent;
-
-      if (target.classList.contains("multiselect__option--group")) {
-        if (this.currentExpandedGroup === name) {
-          console.log("Collapsing");
-          this.currentExpandedGroup = "";
-          this.resetMaintopicToggledMap();
-          this.updateExpandedGroupHighlighting();
-          this.hideItems(this.currentExpandedGroup);
-        } else {
-          this.currentExpandedGroup = name;
-          console.log("Expanding: ", this.currentExpandedGroup);
-
-          const clickedGroupTag = this.getTopicIdByGroupName(name);
-          const tagsInGroup = this.getTagsByGroupId(clickedGroupTag);
-          const groupTagIds = tagsInGroup.map((tag) => tag.id);
-          const optionsInGroup = this.getOptionsFromOptionsGroupName(name);
-
-          if (groupTagIds.length <= 0) {
-            // No tags for this group so just show the groups baseTopics
-            console.log("Tags in dis group: ", tagsInGroup.length);
-            this.showOrHideElements();
-            this.updateExpandedGroupHighlighting();
-          }
-
-          if (groupTagIds.length > 0) {
-            // Only show the tags in the clicked group
-            console.log("Tags in dis group: ", tagsInGroup.length);
-            this.showOrHideElements();
-            this.updateExpandedGroupHighlighting();
-
-            // Sets to keep track of depths and parent IDs
-            const taggedDepths = new Set();
-            const parentIdsToShow = new Set();
-            const grandParentIdsToShow = new Set();
-
-            // Create a Set of option IDs in the current group for quick lookup
-            const optionsInGroupIds = new Set(
-              optionsInGroup.map((option) => option.id)
-            );
-
-            groupTagIds.forEach((id) => {
-              const elements = document.querySelectorAll(
-                `span[option-id="${id}"]`
-              );
-
-              elements.forEach((element) => {
-                const liElement = element.closest("li.multiselect__element");
-                if (liElement) {
-                  this.showElement(liElement);
-                }
-              });
-
-              const option = optionsInGroup.find((option) => option.id === id);
-              if (option) {
-                taggedDepths.add(option.depth);
-
-                // Add parent and grandparent IDs to the sets
-                if (option.parentId) {
-                  parentIdsToShow.add(option.parentId);
-                }
-                if (option.grandParentId) {
-                  grandParentIdsToShow.add(option.grandParentId);
-                }
-              }
-            });
-
-            // Show elements that are on the same depth as tagged elements and belong to optionsInGroup
-            taggedDepths.forEach((depth) => {
-              const depthElements = document.querySelectorAll(
-                `span[option-depth="${depth}"]`
-              );
-              depthElements.forEach((element) => {
-                const optionId = element.getAttribute("option-id");
-                if (optionsInGroupIds.has(optionId)) {
-                  // Ensure the element is within the current group
-                  const liElement = element.closest("li.multiselect__element");
-                  if (liElement) {
-                    this.showElement(liElement);
-                  }
-                }
-              });
-            });
-
-            // Show parent elements that belong to optionsInGroup
-            parentIdsToShow.forEach((parentId) => {
-              if (optionsInGroupIds.has(parentId)) {
-                // Ensure the parent is within the current group
-                const parentElements = document.querySelectorAll(
-                  `span[option-id="${parentId}"]`
-                );
-                parentElements.forEach((element) => {
-                  const liElement = element.closest("li.multiselect__element");
-                  if (liElement) {
-                    this.showElement(liElement);
-                  }
-                });
-              }
-            });
-
-            // Show grandparent elements that belong to optionsInGroup
-            grandParentIdsToShow.forEach((grandParentId) => {
-              if (optionsInGroupIds.has(grandParentId)) {
-                // Ensure the grandparent is within the current group
-                const grandParentElements = document.querySelectorAll(
-                  `span[option-id="${grandParentId}"]`
-                );
-                grandParentElements.forEach((element) => {
-                  const liElement = element.closest("li.multiselect__element");
-                  if (liElement) {
-                    this.showElement(liElement);
-                  }
-                });
-              }
-            });
-          }
-        }
-      } else {
-        // This is when we are adding a new tag
-        console.log("New tag added");
-      }
-    },
-    // Blur handler needed to force groups to close if search is aborted
-    blurHandler(event) {
+    handleOnBlur(event) {
       console.log("BLUR EVENT TRIGGERED");
       this.showOrHideElements();
       this.initialSetup();
     },
-    handleSearchInput: function (event) {
-      if (!this.isGroup) return;
-      const target = event.target;
-      const element = this.$refs.selectWrapper;
-
-      if (target.value) {
-        //search input, save current state of shown element, and show all elements
-        const entries = element.querySelectorAll(
-          ".multiselect__element.qpm_shown"
-        );
-        for (i = 0; i < entries.length; i++) {
-          this.showElement(entries[i]);
-        }
-      } else {
-        //restore current state of shown elements
-        this.showOrHideElements();
-        this.initialSetup();
-      }
-
-      // Remove the existing blur event listener
-      target.removeEventListener("blur", this.blurHandler);
-      // Add the blur event listener with a consistent reference
-      target.addEventListener("blur", this.blurHandler);
-    },
-    handleStopEnterOnGroups: function (event) {
-      if (this.$refs.multiselect.pointer < 0) {
-        // If there is no hovered element then highlight the first on as with old behavior
-        this.$refs.multiselect.pointer = 0;
-      }
-      if (event.charCode == 13) {
-        if (event.target.classList.contains("multiselect__input")) {
-          const element = this.$refs.selectWrapper;
-          target = element.getElementsByClassName(
-            "multiselect__option--highlight"
-          )[0];
-          if (
-            target == null ||
-            target.classList.contains("multiselect__option--group")
-          ) {
-            event.stopPropagation();
-
-            if (target == null) return;
-
-            var focusedGroup =
-              target.querySelector(".qpm_groupLabel").textContent;
-
-            if (focusedGroup == this.currentExpandedGroup) {
-              this.currentExpandedGroup = "";
-            } else {
-              this.currentExpandedGroup = focusedGroup;
-            }
-          } else if (!this.focusByHover && this.focusedButtonIndex >= 0) {
-            var dropdownRef = this.$refs.multiselect;
-
-            // Nothing currently in focus, and therefore nothing left to do.
-            if (dropdownRef.pointer < 0) {
-              event.stopPropagation();
-              return;
-            }
-
-            // Find the button corresponding to the one in focus
-            var target = dropdownRef.$refs.list.getElementsByClassName(
-              "multiselect__option--highlight"
-            )[0];
-            var button = target.getElementsByClassName(
-              "qpm_ButtonColumnFocused"
-            )[0];
-
-            // If no scope buttons exists or none are currently in focus
-            // then let the default handeling occur via the input method.
-            if (!button) return;
-
-            event.stopPropagation();
-            button.click();
-          }
-        }
-      }
-    },
-    handleOpenMenuOnClick: function (event) {
-      //FIX FOR IE!
-      var tagText = event.target.textContent;
-
-      if (
-        tagText.startsWith(this.getString("manualInputTerm")) ||
-        tagText.startsWith(this.getString("manualInputTermTranslated"))
-      ) {
-        this.currentExpandedGroup = "";
-        this.updateExpandedGroupHighlighting();
-      }
-
-      event.stopPropagation();
-      this.$refs.multiselect.$refs.search.focus();
-    },
-    getString: function (string) {
-      lg = this.language;
-      constant = messages[string][lg];
-      return constant != undefined ? constant : messages[string]["dk"];
-    },
-    customNameLabel: function (option) {
-      if (!option.name && !option.groupname) return;
-      if (option.translations) {
-        lg = this.language;
-        constant =
-          option.translations[lg] != undefined
-            ? option.translations[lg]
-            : option.translations["dk"];
-      } else {
-        constant = option.name;
-      }
-      return constant;
-    },
-    customGroupLabel: function (option) {
-      if (!option.translations) return;
-      lg = this.language;
-      constant = option.translations[lg];
-      return constant != undefined ? constant : option.translations["dk"];
-    },
-    customGroupLabelById: function (id) {
-      var data = this.getIdToDataMap[id];
-      return this.customGroupLabel(data);
-    },
-    isHiddenTopic: function (topicId) {
-      return this.hideTopics.indexOf(topicId) != -1;
-    },
-    updateExpandedGroupHighlighting: function () {
-      var listItems = this.$refs.multiselect.$refs.list;
-
-      // Remove highlighting due to group being open from all groups
-      itemsToUnHighlight = listItems.querySelectorAll(".qpm_groupExpanded");
-
-      for (var i = 0; i < itemsToUnHighlight.length; i++) {
-        itemsToUnHighlight[i].classList.remove("qpm_groupExpanded");
-      }
-
-      if (this.currentExpandedGroup == "") return;
-
-      // Add highlighting due to group being open
-      var expandedElement = listItems.querySelector(
-        'li.multiselect__element span.multiselect__option--group span[group-name="' +
-          this.currentExpandedGroup +
-          '"]'
+    scrollToFocusedSubject: function () {
+      var subject = this.$refs.multiselect.$refs.list.querySelector(
+        ".multiselect__option--highlight"
       );
-      expandedElement.parentElement.parentElement.classList.add(
-        "qpm_groupExpanded"
-      );
-    },
-    getGroupPropertyName: function (group) {
-      if (group.groups != undefined) {
-        return "groups";
-      } else if (group.choices != undefined) {
-        return "choices";
-      }
+      if (!subject) return;
 
-      return null;
+      var isFocusVissible = this.isSubjectVissible(subject);
+      if (!isFocusVissible) {
+        this.ignoreHover = true;
+        subject.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+          inline: "nearest",
+        });
+      }
     },
     navDown: function () {
       var dropdownRef = this.$refs.multiselect;
@@ -3485,7 +3001,7 @@ Vue.component("DropDownWrapper", {
         subject = this.getSortedSubjectOptions.find(function (e) {
           return e.id === currentSubject.$groupLabel;
         });
-        isCurrentExpandedGroup = label !== this.currentExpandedGroup;
+        isCurrentExpandedGroup = label !== this.expandedOptionGroupName;
       } else {
         subject = currentSubject;
       }
@@ -3555,7 +3071,7 @@ Vue.component("DropDownWrapper", {
           var groupAbove = this.getSortedSubjectOptions[groupIndex - 1];
           var groupAboveLabel = this.customGroupLabel(groupAbove);
 
-          if (groupAboveLabel !== this.currentExpandedGroup) {
+          if (groupAboveLabel !== this.expandedOptionGroupName) {
             var groupPropertyName = this.getGroupPropertyName(groupAbove);
             navDistance = groupAbove[groupPropertyName].length + 1;
           }
@@ -3590,16 +3106,23 @@ Vue.component("DropDownWrapper", {
       this.focusedButtonIndex = Math.min(2, this.focusedButtonIndex + 1); // Stop navRight at right most element (currently assumed to be index 2)
       event.preventDefault();
     },
-    onButtonMouseover: function (index, event) {
-      // Prevent mouse from focusing new subject. Used for auto scroll.
-      if (this.ignoreHover) {
-        event.stopPropagation();
-        event.preventDefault();
-        return;
+    isContainedInList: function (props) {
+      if (props.option && props.option.name && this.selected) {
+        for (i = 0; i < this.selected.length; i++) {
+          if (this.selected[i].name == props.option.name) {
+            return true;
+          }
+        }
       }
-
-      this.focusedButtonIndex = index;
-      this.focusByHover = true;
+      return false;
+    },
+    isSelected: function (option) {
+      return this.selected.some(
+        (selectedOption) => selectedOption.id === option.id
+      );
+    },
+    isHiddenTopic: function (topicId) {
+      return this.hideTopics.indexOf(topicId) != -1;
     },
     isSubjectVissible: function (subject) {
       var subjectRect = subject.getBoundingClientRect();
@@ -3611,21 +3134,162 @@ Vue.component("DropDownWrapper", {
         subjectRect.top >= 0 && subjectRect.bottom <= viewHeight;
       return isSubjectVissible;
     },
-    scrollToFocusedSubject: function () {
-      var subject = this.$refs.multiselect.$refs.list.querySelector(
-        ".multiselect__option--highlight"
-      );
-      if (!subject) return;
+    updateExpandedGroupHighlighting: function () {
+      var listItems = this.$refs.multiselect.$refs.list;
 
-      var isFocusVissible = this.isSubjectVissible(subject);
-      if (!isFocusVissible) {
-        this.ignoreHover = true;
-        subject.scrollIntoView({
-          behavior: "smooth",
-          block: "nearest",
-          inline: "nearest",
-        });
+      // Remove highlighting due to group being open from all groups
+      itemsToUnHighlight = listItems.querySelectorAll(".qpm_groupExpanded");
+
+      for (var i = 0; i < itemsToUnHighlight.length; i++) {
+        itemsToUnHighlight[i].classList.remove("qpm_groupExpanded");
       }
+
+      if (this.expandedOptionGroupName == "") return;
+
+      // Add highlighting due to group being open
+      var expandedElement = listItems.querySelector(
+        'li.multiselect__element span.multiselect__option--group span[group-name="' +
+          this.expandedOptionGroupName +
+          '"]'
+      );
+      expandedElement.parentElement.parentElement.classList.add(
+        "qpm_groupExpanded"
+      );
+    },
+    updateSortedSubjectOptions() {
+      this.showOrHideElements();
+    },
+    /**
+     * Determine if the buttons for the scopes (narrow, normal or broad) should be shown.
+     *
+     * @param {string} name - The name of the group.
+     * @returns {boolean} True if the scope buttons should be shown, false otherwise.
+     */
+    showScope: function (name) {
+      return !(this.expandedOptionGroupName === name);
+    },
+    /**
+     * Translates the given words using the function endpoint for translation.
+     *
+     * @param {string} wordsToTranslate - The words that need to be translated.
+     * @returns {Promise<string>} The translated text.
+     */
+    translateSearch: async function (wordsToTranslate) {
+      const openAiServiceUrl =
+        this.appSettings.openAi.baseUrl + "/api/TranslateTitle";
+      var localePrompt = getPromptForLocale(searchTranslationPrompt, "dk");
+
+      try {
+        let answer = "";
+        const response = await fetch(openAiServiceUrl, {
+          method: "POST",
+          body: JSON.stringify({
+            prompt: localePrompt,
+            title: wordsToTranslate,
+            client: self.appSettings.client,
+          }),
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          throw Error(JSON.stringify(data));
+        }
+
+        const reader = response.body
+          .pipeThrough(new TextDecoderStream())
+          .getReader();
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done || self.stopGeneration) {
+            break;
+          }
+          answer += value;
+        }
+
+        return answer;
+      } catch (error) {
+        self.text = "An unknown error occurred: \n" + error.toString();
+      }
+    },
+    /**
+     * Get options by option group id.
+     * @param {string} groupId - The ID of the option group.
+     * @returns {Array} An array of options that belong to the specified option group.
+     */
+    getOptionsByOptionGroupId: function (groupId) {
+      return this.selected.filter(
+        (selectedOption) =>
+          selectedOption.id && selectedOption.id.startsWith(groupId)
+      );
+    },
+    /**
+     * Gets the ID of an option group by its option group name.
+     * (OptionGroups are the topics from qpm-content-diabetes.js)
+     * @param {string} groupname - The name of the group.
+     * @returns {string|null} The ID of the group if found, otherwise null.
+     */
+    getOptionGroupId: function (groupname) {
+      for (const topic of topics) {
+        if (topic.groupname === groupname) {
+          return topic.id;
+        }
+      }
+      return null;
+    },
+    /**
+     * Gets the group name for a given item.
+     *
+     * @param {Object} item - The item to get the group name for.
+     * @returns {string|null} The group name or null if not found.
+     */
+    getGroupName: function (item) {
+      if (item.groups !== undefined) return "groups";
+      if (item.choices !== undefined) return "choices";
+      return null;
+    },
+    /**
+     * Finds the name of the group that contains the target label.
+     *
+     * @param {Array} data - The data array to search through.
+     * @param {string} targetLabel - The target label to find.
+     * @param {string} language - The current language.
+     * @returns {string} The name of the group containing the target label.
+     */
+    getOptionGroupName: function (data, targetLabel, language) {
+      let name = "";
+      data.some((category) => {
+        const groupName = this.getGroupName(category);
+        if (!groupName) return false;
+        return category[groupName].some((tag) => {
+          const currentLabel = this.cleanLabel(tag.translations[language]);
+          if (currentLabel === targetLabel) {
+            name = this.customNameLabel(category);
+            this.expandedOptionGroupName = name;
+            return true;
+          }
+          return false;
+        });
+      });
+      return name;
+    },
+    getHeader: function (name) {
+      for (i = 0; i < this.data.length; i++) {
+        if (!this.data[i].groups) {
+          //Not group
+          return "single";
+        }
+        for (j = 0; j < this.data[i].groups.length; j++) {
+          if (this.data[i].groups[j].name == name) {
+            return this.customGroupLabel(this.data[i]);
+          }
+        }
+      }
+      return "unknown";
+    },
+    getOptionClassName: function (option) {
+      // Return the 'cssClass' if it exists, otherwise return an empty string
+      return option.cssClass ? `qpm_${option.cssClass}` : "";
     },
     getShouldPreventLeftRightDefault: function () {
       var dropdownRef = this.$refs.multiselect;
@@ -3637,6 +3301,96 @@ Vue.component("DropDownWrapper", {
 
       return hasFocusedSubject && !this.focusByHover;
     },
+    getButtonColor: function (props, scope, index) {
+      classes = [];
+      if (scope == "narrow") {
+        classes.push(this.qpm_buttonColor1);
+      }
+      if (!scope || scope == "normal") {
+        classes.push(this.qpm_buttonColor2);
+      }
+      if (scope == "broad") {
+        classes.push(this.qpm_buttonColor3);
+      }
+
+      // Set class to distinguish the collum currently in 'focus' for
+      // selection via keyboard. This class together with the
+      // multiselect__option--highlight class defines the highlighted button.
+      if (!this.focusByHover && index === this.focusedButtonIndex) {
+        classes.push("qpm_ButtonColumnFocused");
+      }
+
+      if (props.option && props.option.name && this.selected) {
+        for (i = 0; i < this.selected.length; i++) {
+          if (this.selected[i].name == props.option.name) {
+            if (this.selected[i].scope == scope) classes.push("selectedButton");
+            break;
+          }
+        }
+      }
+      return classes;
+    },
+    getString: function (string) {
+      lg = this.language;
+      constant = messages[string][lg];
+      return constant != undefined ? constant : messages[string]["dk"];
+    },
+    getGroupPropertyName: function (group) {
+      if (group.groups != undefined) {
+        return "groups";
+      } else if (group.choices != undefined) {
+        return "choices";
+      }
+
+      return null;
+    },
+    setWidthToPlaceholderWidth: function (input) {
+      // Create a temporary span element and set its text to the placeholder text
+      let tempSpan = document.createElement("span");
+      tempSpan.innerHTML = input.getAttribute("placeholder");
+
+      // Apply the same styles to the span as the input
+      let inputStyle = window.getComputedStyle(input);
+      tempSpan.style.fontFamily = inputStyle.fontFamily;
+      tempSpan.style.fontSize = inputStyle.fontSize;
+      tempSpan.style.fontWeight = inputStyle.fontWeight;
+      tempSpan.style.letterSpacing = inputStyle.letterSpacing;
+      tempSpan.style.whiteSpace = "nowrap"; // Ensure text stays on one line
+
+      // Add the span to the body (it won't be visible)
+      document.body.appendChild(tempSpan);
+
+      // Get the width of the area
+      let placeholderWidth = tempSpan.getBoundingClientRect().width + 27;
+
+      // Remove the span from the body
+      document.body.removeChild(tempSpan);
+
+      input.style.width = placeholderWidth + "px";
+    },
+    customNameLabel: function (option) {
+      if (!option.name && !option.groupname) return;
+      if (option.translations) {
+        lg = this.language;
+        constant =
+          option.translations[lg] != undefined
+            ? option.translations[lg]
+            : option.translations["dk"];
+      } else {
+        constant = option.name;
+      }
+      return constant;
+    },
+    customGroupLabel: function (option) {
+      if (!option.translations) return;
+      lg = this.language;
+      constant = option.translations[lg];
+      return constant != undefined ? constant : option.translations["dk"];
+    },
+    customGroupLabelById: function (id) {
+      var data = this.getIdToDataMap[id];
+      return this.customGroupLabel(data);
+    },
     customGroupTooltipById: function (id) {
       const data = this.getIdToDataMap[id];
       const content = data.tooltip && data.tooltip[this.language];
@@ -3647,8 +3401,14 @@ Vue.component("DropDownWrapper", {
       };
       return tooltip;
     },
-    updateSortedSubjectOptions() {
-      this.showOrHideElements();
+    /**
+     * Cleans the label by removing leading special characters.
+     *
+     * @param {string} label - The label to clean.
+     * @returns {string} The cleaned label.
+     */
+    cleanLabel: function (label) {
+      return label.startsWith("⤷") ? label.slice(1).trim() : label.trim();
     },
   },
   computed: {
@@ -3767,19 +3527,19 @@ Vue.component("DropDownWrapper", {
       handler: "updateSortedSubjectOptions",
       deep: true,
     },
-    currentExpandedGroup(newVal, oldVal) {
+    expandedOptionGroupName(newVal, oldVal) {
       const fixedLength = 30; // Adjust this length as needed
 
       const formattedOldVal = (
-        oldVal === "" ? "No group expanded" : oldVal
+        oldVal === "" ? "No optiongroup expanded" : oldVal
       ).padEnd(fixedLength, " ");
 
       const formattedNewVal = (
-        newVal === "" ? "No group expanded" : newVal
+        newVal === "" ? "No optiongroup expanded" : newVal
       ).padEnd(fixedLength, "");
 
       console.log(
-        "CurrentExpandedGroup |",
+        "ExpandedOptionGroupName |",
         formattedOldVal,
         "|➡️|",
         formattedNewVal
@@ -3827,7 +3587,7 @@ Vue.component("DropDownWrapper", {
     @keyup.down.capture.prevent.stop \
     @keyup.left.capture.prevent.stop \
     @keyup.right.capture.prevent.stop \
-    @mouseenter.capture="onButtonMouseover(-1, $event)" \
+    @mouseenter.capture="handleOnButtonMouseover(-1, $event)" \
     @mousemove.capture.passive="ignoreHover = false" \ > 
     
     <multiselect class="qpm_dropDownMenu" ref="multiselect" v-model="getStateCopy"  \
@@ -3853,7 +3613,7 @@ Vue.component("DropDownWrapper", {
       :taggable=taggable \
 	    :loading="isLoading" \
       :searchable="true" \
-      @tag="addTag" \
+      @tag="handleAddTag" \
       @input="input" \
       @close="close" \
       @open="open"> \
@@ -3861,13 +3621,13 @@ Vue.component("DropDownWrapper", {
         <DropdownTag \
           :triple="triple" \
           :customNameLabel="customNameLabel" \
-          :updateTag="function (newTag) { return updateCustomTag(triple.option, newTag); }" \
+          :updateTag="function (newTag) { return handleUpdateCustomTag(triple.option, newTag); }" \
           :operator="operator" \
           :qpm_buttonColor1="qpm_buttonColor1" \
           :qpm_buttonColor2="qpm_buttonColor2" \
           :qpm_buttonColor3="qpm_buttonColor3" \
           :language="language" \
-		      @edit="editTag" > \
+		      @edit="handleEditTag" > \
         </DropdownTag> 
       </template> 
       
@@ -3893,7 +3653,7 @@ Vue.component("DropDownWrapper", {
 
         <span v-if="!props.option.maintopic " \
               v-bind:class="{ 
-                qpm_hidden: !containedInList(props), 
+                qpm_hidden: !isContainedInList(props), 
                 qpm_shown: props.option.$groupLabel, 
                 qpm_maintopicDropdown: props.option.maintopic === true, 
                 qpm_subtopicDropdown: props.option.subtopiclevel === 1, 
@@ -3917,19 +3677,19 @@ Vue.component("DropDownWrapper", {
        
         <div class="qpm_dropdownButtons qpm_forceRight" v-if="!props.option.$groupLabel && props.option.buttons && !props.option.isTag && !props.option.maintopic"> \
           <button class="qpm_button" :class="getButtonColor(props, \'narrow\', 0)" tabindex="-1" 
-            @click="buttonClick(props.option, \'narrow\', $event)" 
+            @click="handleScopeButtonClick(props.option, \'narrow\', $event)" 
             v-tooltip="{content: getString(\'tooltipNarrow\'), offset: 5, delay:$helpTextDelay, hideOnTargetClick: false}">
             {{getString(\'narrow\')}}
           </button>
 
           <button class="qpm_button" :class="getButtonColor(props, \'normal\', 1)" tabindex="-1" 
-            @click="buttonClick(props.option, \'normal\', $event)"
+            @click="handleScopeButtonClick(props.option, \'normal\', $event)"
             v-tooltip="{content: getString(\'tooltipNormal\'), offset: 5, delay:$helpTextDelay, hideOnTargetClick: false}">
             {{getString(\'normal\')}}
           </button> 
 
           <button class="qpm_button" :class="getButtonColor(props, \'broad\', 2)" tabindex="-1" 
-            @click="buttonClick(props.option, \'broad\', $event)"
+            @click="handleScopeButtonClick(props.option, \'broad\', $event)"
             v-tooltip="{content: getString(\'tooltipBroad\'), offset: 5, delay:$helpTextDelay, hideOnTargetClick: false}">
             {{getString(\'broad\')}}
           </button> 
