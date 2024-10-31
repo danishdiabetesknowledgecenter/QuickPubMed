@@ -2454,17 +2454,17 @@ Vue.component("DropDownWrapper", {
       // Klone det sidste element for at undgå at ændre det direkte i datakilden
       let elem = { ...value[value.length - 1] };
       let lg = this.language; // Bruger this.language til at få den aktuelle sprogkode
-      /*
+
       if (elem.maintopic) {
         //toggle the maintopic
         this.maintopicToggledMap = {
           ...this.maintopicToggledMap,
-          [elem.name]: !this.maintopicToggledMap[elem.id],
+          [elem.name]: !this.maintopicToggledMap[elem.name],
         };
         console.log("Elem.name", elem.name);
         value.pop();
       }
-        */
+
       // Tjek kun for '-' i det aktuelle sprog
       if (
         !elem.isCustom &&
@@ -2931,9 +2931,9 @@ Vue.component("DropDownWrapper", {
      *
      * @param {string} id - The id of the new group.
      */
-    updateMaintopicToggledMap(id) {
+    updateMaintopicToggledMap(name) {
       for (let key in this.maintopicToggledMap) {
-        this.maintopicToggledMap[key] = key === id;
+        this.maintopicToggledMap[key] = key === name;
       }
     },
     /**
@@ -3106,6 +3106,61 @@ Vue.component("DropDownWrapper", {
       this.previousExpandedGroupItems = items;
     },
     /**
+     * Added for sanity.
+     *
+     * @param {String} groupName Name of the option--group
+     * @returns list of options in the group
+     */
+    getOptionsFromOptionsGroupName: function (groupName) {
+      const result = [];
+      topics.forEach((topic) => {
+        if (topic.groupname === groupName) {
+          topic.groups.forEach((group) => {
+            result.push({
+              id: group.id,
+              name: group.name,
+              isBranch: group.maintopic || null,
+              depth: group.subtopiclevel || 0, // is a base topic if 0
+              parentId: group.maintopicIdLevel1 || null,
+              grandParentId: group.maintopicIdLevel2 || null,
+            });
+          });
+        }
+      });
+      return result;
+    },
+    // Extracted helper method to show elements by option IDs
+    showElementsByOptionIds: function (optionIds, optionsInGroupIds) {
+      optionIds.forEach((id) => {
+        if (optionsInGroupIds.has(id)) {
+          const elements = document.querySelectorAll(`span[option-id="${id}"]`);
+          elements.forEach((element) => {
+            const liElement = element.closest("li.multiselect__element");
+            if (liElement) {
+              this.showElement(liElement);
+            }
+          });
+        }
+      });
+    },
+    // Extracted helper method to show elements by depth
+    showElementsByDepths: function (depths, optionsInGroupIds) {
+      depths.forEach((depth) => {
+        const depthElements = document.querySelectorAll(
+          `span[option-depth="${depth}"]`
+        );
+        depthElements.forEach((element) => {
+          const optionId = element.getAttribute("option-id");
+          if (optionsInGroupIds.has(optionId)) {
+            const liElement = element.closest("li.multiselect__element");
+            if (liElement) {
+              this.showElement(liElement);
+            }
+          }
+        });
+      });
+    },
+    /**
      * Toggles the visibility of a group, when the category name is pressed
      *
      * @param {HTMLElement} target - The target element.
@@ -3113,13 +3168,14 @@ Vue.component("DropDownWrapper", {
     handleCategoryGroupClick(event) {
       let target = event.target;
 
-      // Check if the click is on the group name or elsewhere within the group element
+      // Check if the click is on the group name or elsewhere within the multiselect__option__option--group element
       if (target.classList.contains("qpm_groupLabel")) {
         target = target.parentElement;
       }
 
+      // The option group name
       const name =
-        target.getElementsByClassName("qpm_groupLabel")[0].textContent; // Gets text on label
+        target.getElementsByClassName("qpm_groupLabel")[0].textContent;
 
       if (target.classList.contains("multiselect__option--group")) {
         if (this.currentExpandedGroup === name) {
@@ -3132,34 +3188,108 @@ Vue.component("DropDownWrapper", {
           this.currentExpandedGroup = name;
           console.log("Expanding: ", this.currentExpandedGroup);
 
-          const selectedTagsIds = this.getSelectedIds();
           const clickedGroupTag = this.getTopicIdByGroupName(name);
           const tagsInGroup = this.getTagsByGroupId(clickedGroupTag);
-          const tagInGroupIds = tagsInGroup.map((tag) => tag.id);
+          const groupTagIds = tagsInGroup.map((tag) => tag.id);
+          const optionsInGroup = this.getOptionsFromOptionsGroupName(name);
 
-          console.log(
-            "|GrpName|",
-            name,
-            "|GrpId|",
-            clickedGroupTag,
-            "|GroupTagIds|",
-            tagInGroupIds,
-            "|TagIds|",
-            selectedTagsIds
-          );
-
-          if (tagsInGroup.length <= 0) {
+          if (groupTagIds.length <= 0) {
             // No tags for this group so just show the groups baseTopics
             console.log("Tags in dis group: ", tagsInGroup.length);
             this.showOrHideElements();
             this.updateExpandedGroupHighlighting();
           }
 
-          if (tagsInGroup.length > 0) {
+          if (groupTagIds.length > 0) {
             // Only show the tags in the clicked group
+            console.log("Tags in dis group: ", tagsInGroup.length);
             this.showOrHideElements();
             this.updateExpandedGroupHighlighting();
-            console.log("Tags in dis group: ", tagsInGroup.length);
+
+            // Sets to keep track of depths and parent IDs
+            const taggedDepths = new Set();
+            const parentIdsToShow = new Set();
+            const grandParentIdsToShow = new Set();
+
+            // Create a Set of option IDs in the current group for quick lookup
+            const optionsInGroupIds = new Set(
+              optionsInGroup.map((option) => option.id)
+            );
+
+            groupTagIds.forEach((id) => {
+              const elements = document.querySelectorAll(
+                `span[option-id="${id}"]`
+              );
+
+              elements.forEach((element) => {
+                const liElement = element.closest("li.multiselect__element");
+                if (liElement) {
+                  this.showElement(liElement);
+                }
+              });
+
+              const option = optionsInGroup.find((option) => option.id === id);
+              if (option) {
+                taggedDepths.add(option.depth);
+
+                // Add parent and grandparent IDs to the sets
+                if (option.parentId) {
+                  parentIdsToShow.add(option.parentId);
+                }
+                if (option.grandParentId) {
+                  grandParentIdsToShow.add(option.grandParentId);
+                }
+              }
+            });
+
+            // Show elements that are on the same depth as tagged elements and belong to optionsInGroup
+            taggedDepths.forEach((depth) => {
+              const depthElements = document.querySelectorAll(
+                `span[option-depth="${depth}"]`
+              );
+              depthElements.forEach((element) => {
+                const optionId = element.getAttribute("option-id");
+                if (optionsInGroupIds.has(optionId)) {
+                  // Ensure the element is within the current group
+                  const liElement = element.closest("li.multiselect__element");
+                  if (liElement) {
+                    this.showElement(liElement);
+                  }
+                }
+              });
+            });
+
+            // Show parent elements that belong to optionsInGroup
+            parentIdsToShow.forEach((parentId) => {
+              if (optionsInGroupIds.has(parentId)) {
+                // Ensure the parent is within the current group
+                const parentElements = document.querySelectorAll(
+                  `span[option-id="${parentId}"]`
+                );
+                parentElements.forEach((element) => {
+                  const liElement = element.closest("li.multiselect__element");
+                  if (liElement) {
+                    this.showElement(liElement);
+                  }
+                });
+              }
+            });
+
+            // Show grandparent elements that belong to optionsInGroup
+            grandParentIdsToShow.forEach((grandParentId) => {
+              if (optionsInGroupIds.has(grandParentId)) {
+                // Ensure the grandparent is within the current group
+                const grandParentElements = document.querySelectorAll(
+                  `span[option-id="${grandParentId}"]`
+                );
+                grandParentElements.forEach((element) => {
+                  const liElement = element.closest("li.multiselect__element");
+                  if (liElement) {
+                    this.showElement(liElement);
+                  }
+                });
+              }
+            });
           }
         }
       } else {
@@ -3668,8 +3798,8 @@ Vue.component("DropDownWrapper", {
         if (group.groups && Array.isArray(group.groups)) {
           group.groups.forEach((item) => {
             if (item.maintopic) {
-              if (!this.maintopicToggledMap.hasOwnProperty(item.id)) {
-                this.maintopicToggledMap[item.id] = false;
+              if (!this.maintopicToggledMap.hasOwnProperty(item.name)) {
+                this.maintopicToggledMap[item.name] = false;
               }
             }
           });
@@ -3745,6 +3875,7 @@ Vue.component("DropDownWrapper", {
         <span v-if="!props.option.$groupLabel"
           :data-name="getHeader(props.option.name)" 
           :option-id="props.option.id"
+          :option-depth="props.option.subtopiclevel || 0"
           :maintopic="props.option.maintopic"
           :parent-id="props.option.maintopicIdLevel1"
           :grand-parent-id="props.option.maintopicIdLevel2"
@@ -3756,7 +3887,7 @@ Vue.component("DropDownWrapper", {
                 qpm_maintopicDropdown: props.option.maintopic === true, 
                 qpm_subtopicDropdown: props.option.subtopiclevel === 1 
               }">
-          <i v-if="maintopicToggledMap[props.option.id]" class="bx bx-chevron-down"></i> \
+          <i v-if="maintopicToggledMap[props.option.name]" class="bx bx-chevron-down"></i> \
           <i v-else class="bx bx-chevron-right"></i> \
 	  	  </span> \
 
