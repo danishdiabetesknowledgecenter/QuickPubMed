@@ -2317,7 +2317,6 @@ Vue.component("DropDownWrapper", {
   },
   data: function () {
     return {
-      shownItems: {},
       maintopicToggledMap: {},
       expandedOptionGroupName: "",
       tempList: [],
@@ -2434,7 +2433,7 @@ Vue.component("DropDownWrapper", {
     clearShownItems: function () {
       this.expandedOptionGroupName = "";
       this.updateExpandedGroupHighlighting();
-      this.shownItems = {}; // Tags currently selected / shown in drop down bar
+
       this.$refs.multiselect.pointer = 0; // Set highlight to first item to prevent exceptions.
       for (let key in this.maintopicToggledMap) {
         this.maintopicToggledMap[key] = false;
@@ -2521,7 +2520,7 @@ Vue.component("DropDownWrapper", {
       const itemsToRemove = document.querySelectorAll(
         `[data-name="${groupName}"]`
       );
-      this.shownItems[groupName] = false;
+
       itemsToRemove.forEach((item) => {
         this.hideElement(item.parentNode.parentNode);
       });
@@ -3531,19 +3530,14 @@ Vue.component("DropDownWrapper", {
       const fixedLength = 30; // Adjust this length as needed
 
       const formattedOldVal = (
-        oldVal === "" ? "No optiongroup expanded" : oldVal
+        oldVal === "" ? "No option group expanded" : oldVal
       ).padEnd(fixedLength, " ");
 
       const formattedNewVal = (
-        newVal === "" ? "No optiongroup expanded" : newVal
+        newVal === "" ? "No option group expanded" : newVal
       ).padEnd(fixedLength, "");
 
-      console.log(
-        "ExpandedOptionGroupName |",
-        formattedOldVal,
-        "|➡️|",
-        formattedNewVal
-      );
+      console.log(`${formattedOldVal} ➡️ ${formattedNewVal}`);
 
       if (oldVal !== "") {
         this.hideItems(oldVal);
@@ -3570,10 +3564,6 @@ Vue.component("DropDownWrapper", {
     }
     this.$emit("mounted", this);
   },
-  // Finds all headers which are defined by a specific class
-  // Add listener on headers parent event to intercept all clicks and deny them. Only way to make sure we cannot click them
-  // Add a new listener to the header, finding all child of that header (which I manually added a class on that tells which header they belong to)
-  // Toggle hide all elements of a header when clicked
   updated: function (s) {
     this.initialSetup();
   },
