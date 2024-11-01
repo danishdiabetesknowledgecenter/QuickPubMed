@@ -1023,6 +1023,8 @@ Vue.component("MainWrapper", {
         this.sort.method +
         "&term=";
       let query = decodeURIComponent(str);
+      console.log(`Search query: ${query}`);
+
       if (query.trim() == "" || query.trim() == "()") {
         this.searchLoading = false;
         return;
@@ -2372,26 +2374,19 @@ Vue.component("DropDownWrapper", {
       dropdown.addEventListener("mousedown", this.handleOpenMenuOnClick);
 
       // Set placeholder to correct length
-      input = element.getElementsByClassName("multiselect__input")[0];
-      // Adjust placeholder width based on input (Added by Ole 20240203)
-      input.addEventListener("input", function () {
-        // Calculate new width
-        var newWidth = (this.value.length + 1) * 1 + "ch";
-
-        // Set new width with !important to overrule existing width
-        this.style.setProperty("width", newWidth, "important");
-      });
+      const input = element.getElementsByClassName("multiselect__input")[0];
+      input.addEventListener("input", this.handleInputEvent.bind(this));
 
       // Hide last operator (Changed by Ole on 20231210)
-      operators = element.getElementsByClassName("qpm_operator");
-      for (i = 0; i < operators.length; i++) {
-        if (i == operators.length - 1) {
-          operators[i].style.color = "darkgrey";
+      const operators = element.getElementsByClassName("qpm_operator");
+      Array.from(operators).forEach((operator, index) => {
+        if (index === operators.length - 1) {
+          operator.style.color = "darkgrey";
         } else {
-          operators[i].style.color = "";
-          operators[i].style.display = "inline-block";
+          operator.style.color = "";
+          operator.style.display = "inline-block";
         }
-      }
+      });
 
       const headers = Array.from(
         element.getElementsByClassName("multiselect__element")
@@ -2400,8 +2395,8 @@ Vue.component("DropDownWrapper", {
 
       headers.forEach((header) => {
         // Stop existing mousedown events
-        parent.removeEventListener("mousedown", self.handleStopEvent, true);
-        parent.addEventListener("mousedown", self.handleStopEvent, true);
+        header.removeEventListener("mousedown", self.handleStopEvent, true);
+        header.addEventListener("mousedown", self.handleStopEvent, true);
 
         // Add click handler for category groups
         header.removeEventListener("click", self.handleCategoryGroupClick);
@@ -2416,19 +2411,18 @@ Vue.component("DropDownWrapper", {
       );
       element.addEventListener("keypress", self.handleStopEnterOnGroups, true);
 
-      input = element.getElementsByClassName("multiselect__input")[0];
       input.removeEventListener("keyup", self.handleSearchInput);
       input.addEventListener("keyup", self.handleSearchInput);
       if (!input.value) {
-        //Hide what needs to be hidden Only if groups and only if we are not currently doing a search
+        // Hide what needs to be hidden only if groups and only if we are not currently doing a search
         this.showOrHideElements();
       }
 
-      labels = element.getElementsByClassName("multiselect__tag");
-      for (i = 0; i < labels.length; i++) {
-        labels[i].removeEventListener("click", self.handleTagClick);
-        labels[i].addEventListener("click", self.handleTagClick);
-      }
+      const labels = element.getElementsByClassName("multiselect__tag");
+      Array.from(labels).forEach((label) => {
+        label.removeEventListener("click", self.handleTagClick);
+        label.addEventListener("click", self.handleTagClick);
+      });
     },
     clearShownItems: function () {
       this.expandedOptionGroupName = "";
@@ -2440,7 +2434,6 @@ Vue.component("DropDownWrapper", {
       }
     },
     input: function (value) {
-      console.log("Value | Input", value);
       if (!value || value.length === 0) {
         this.clearShownItems();
         this.$emit("input", value, this.index);
@@ -2454,9 +2447,9 @@ Vue.component("DropDownWrapper", {
         //toggle the maintopic
         this.maintopicToggledMap = {
           ...this.maintopicToggledMap,
-          [elem.name]: !this.maintopicToggledMap[elem.name],
+          [elem.id]: !this.maintopicToggledMap[elem.id],
         };
-
+        console.log("we tooglin maintopic");
         value.pop();
       }
 
@@ -2504,6 +2497,7 @@ Vue.component("DropDownWrapper", {
     },
     /**
      * Resets the maintopicToggledMap.
+     * Used to close all the options that are branches
      */
     resetMaintopicToggledMap() {
       for (let key in this.maintopicToggledMap) {
@@ -2550,11 +2544,14 @@ Vue.component("DropDownWrapper", {
     },
     /**
      * Updates visibility of options contained in an optiongroup.
-     * uses the property "selected" to determine which options are tagged.
-     * @param {Array} optionIds - The list of option IDs in the group.
+     *
+     * @param {Array} selectedOptionIds - The list of option IDs that are selected.
      * @param {Array} optionsInOptionGroup - The list of options in the group.
      */
-    updateOptionGroupVisibility: function (optionIds, optionsInOptionGroup) {
+    updateOptionGroupVisibility: function (
+      selectedOptionIds,
+      optionsInOptionGroup
+    ) {
       console.log(
         `${optionsInOptionGroup.length} options in this option group: `
       );
@@ -2562,7 +2559,7 @@ Vue.component("DropDownWrapper", {
       this.updateExpandedGroupHighlighting();
 
       // Sets to keep track of depths and parent IDs
-      const taggedDepths = new Set();
+      const selectedDepths = new Set(); // Contains the depth levels that have a selected option
       const parentIdsToShow = new Set();
       const grandParentIdsToShow = new Set();
 
@@ -2570,18 +2567,26 @@ Vue.component("DropDownWrapper", {
         optionsInOptionGroup.map((option) => option.id)
       );
 
-      optionIds.forEach((id) => {
+      selectedOptionIds.forEach((id) => {
+        // Check if the selected option is in the optiongroup
         const option = optionsInOptionGroup.find((option) => option.id === id);
         if (option) {
-          taggedDepths.add(option.depth);
-          if (option.parentId) parentIdsToShow.add(option.parentId);
-          if (option.grandParentId)
+          selectedDepths.add(option.depth);
+          if (option.parentId) {
+            parentIdsToShow.add(option.parentId);
+            // Expand the parent maintopic
+            this.maintopicToggledMap[option.parentId] = true;
+          }
+          if (option.grandParentId) {
+            // Expand the grandparent maintopic
             grandParentIdsToShow.add(option.grandParentId);
+            this.maintopicToggledMap[option.grandParentId] = true;
+          }
         }
       });
 
-      this.showElementsByOptionIds(optionIds, optionsInGroupIds);
-      this.showElementsByDepths(taggedDepths, optionsInGroupIds);
+      this.showElementsByOptionIds(selectedOptionIds, optionsInGroupIds);
+      this.showElementsByDepths(selectedDepths, optionsInGroupIds);
       this.showElementsByOptionIds(
         Array.from(parentIdsToShow),
         optionsInGroupIds
@@ -2671,31 +2676,36 @@ Vue.component("DropDownWrapper", {
 
       if (target.classList.contains("multiselect__option--group")) {
         if (this.expandedOptionGroupName === optionGroupName) {
-          console.log("Collapsing");
-          this.expandedOptionGroupName = "";
-          this.resetMaintopicToggledMap();
-          this.updateExpandedGroupHighlighting();
+          console.log("Collapsing: ", this.expandedOptionGroupName);
           this.hideItems(this.expandedOptionGroupName);
+          this.expandedOptionGroupName = "";
+          this.updateExpandedGroupHighlighting();
+          this.resetMaintopicToggledMap();
         } else {
           this.expandedOptionGroupName = optionGroupName;
           console.log("Expanding: ", this.expandedOptionGroupName);
 
           const optionGroupId = this.getOptionGroupId(optionGroupName);
-          const options = this.getOptionsByOptionGroupId(optionGroupId);
-          const optionIds = options.map((o) => o.id);
+          const selectedOptions =
+            this.getSelectedOptionsByOptionGroupId(optionGroupId);
+
+          const selectedOptionIds = selectedOptions.map((o) => o.id);
           const optionsInOptionGroup =
             this.getOptionsFromOptionsGroupName(optionGroupName);
 
           console.log(
-            `${options.length} options selected in ${optionGroupName}: `
+            `${selectedOptions.length} options selected in ${optionGroupName}: `
           );
 
-          if (optionIds.length <= 0) {
+          if (selectedOptionIds.length <= 0) {
             this.showOrHideElements();
             this.updateExpandedGroupHighlighting();
           } else {
             // Only show the tags in the clicked group
-            this.updateOptionGroupVisibility(optionIds, optionsInOptionGroup);
+            this.updateOptionGroupVisibility(
+              selectedOptionIds,
+              optionsInOptionGroup
+            );
           }
         }
       } else {
@@ -2720,22 +2730,26 @@ Vue.component("DropDownWrapper", {
       );
 
       const optionGroupId = this.getOptionGroupId(optionGroupName);
-      const options = this.getOptionsByOptionGroupId(optionGroupId);
-      const optionIds = options.map((o) => o.id);
+      const selectedOptions =
+        this.getSelectedOptionsByOptionGroupId(optionGroupId);
+
+      const selectedOptionIds = selectedOptions.map((o) => o.id);
       const optionsInOptionGroup =
         this.getOptionsFromOptionsGroupName(optionGroupName);
 
-      if (optionIds.length <= 0) {
-        console.log(
-          "No options selected in optiongroup: ",
-          optionIds.length,
-          optionGroupName
-        );
+      console.log(
+        `${selectedOptions.length} options selected in ${optionGroupName}: `
+      );
+
+      if (selectedOptionIds.length <= 0) {
         this.showOrHideElements();
         this.updateExpandedGroupHighlighting();
       } else {
         // Only show the tags in the clicked group
-        this.updateOptionGroupVisibility(optionIds, optionsInOptionGroup);
+        this.updateOptionGroupVisibility(
+          selectedOptionIds,
+          optionsInOptionGroup
+        );
       }
     },
     handleSearchInput: function (event) {
@@ -2759,6 +2773,15 @@ Vue.component("DropDownWrapper", {
 
       target.removeEventListener("blur", this.handleOnBlur);
       target.addEventListener("blur", this.handleOnBlur);
+    },
+    /**
+     * Adjusts the input field's width based on its value length.
+     *
+     * @param {Event} event - The input event object.
+     */
+    handleInputEvent: function (event) {
+      const newWidth = `${event.target.value.length + 1}ch`;
+      event.target.style.setProperty("width", newWidth, "important");
     },
     handleStopEnterOnGroups: function (event) {
       if (this.$refs.multiselect.pointer < 0) {
@@ -2954,7 +2977,6 @@ Vue.component("DropDownWrapper", {
      */
     handleOnBlur(event) {
       console.log("BLUR EVENT TRIGGERED");
-      this.showOrHideElements();
       this.initialSetup();
     },
     scrollToFocusedSubject: function () {
@@ -3159,6 +3181,24 @@ Vue.component("DropDownWrapper", {
       this.showOrHideElements();
     },
     /**
+     * Handles changes to maintopicToggledMap by logging and updating sorted subject options.
+     *
+     * @param {Object} newVal - The new value of maintopicToggledMap.
+     * @param {Object} oldVal - The previous value of maintopicToggledMap.
+     */
+    onMaintainTopicToggledMapChange(newVal, oldVal) {
+      console.log("maintopicToggledMap changed:");
+
+      Object.entries(newVal).forEach(([key, value]) => {
+        if (key !== "__ob__") {
+          // Exclude Vue's internal observer property
+          console.log(`Key: ${key}, Value: ${value}`);
+        }
+      });
+
+      this.updateSortedSubjectOptions();
+    },
+    /**
      * Determine if the buttons for the scopes (narrow, normal or broad) should be shown.
      *
      * @param {string} name - The name of the group.
@@ -3212,11 +3252,11 @@ Vue.component("DropDownWrapper", {
       }
     },
     /**
-     * Get options by option group id.
+     * Get selected options for an optiongroup by optiongroup id.
      * @param {string} groupId - The ID of the option group.
      * @returns {Array} An array of options that belong to the specified option group.
      */
-    getOptionsByOptionGroupId: function (groupId) {
+    getSelectedOptionsByOptionGroupId: function (groupId) {
       return this.selected.filter(
         (selectedOption) =>
           selectedOption.id && selectedOption.id.startsWith(groupId)
@@ -3523,7 +3563,7 @@ Vue.component("DropDownWrapper", {
   },
   watch: {
     maintopicToggledMap: {
-      handler: "updateSortedSubjectOptions",
+      handler: "onMaintainTopicToggledMapChange",
       deep: true,
     },
     expandedOptionGroupName(newVal, oldVal) {
@@ -3538,10 +3578,6 @@ Vue.component("DropDownWrapper", {
       ).padEnd(fixedLength, "");
 
       console.log(`${formattedOldVal} ➡️ ${formattedNewVal}`);
-
-      if (oldVal !== "") {
-        this.hideItems(oldVal);
-      }
     },
   },
   mounted: function () {
@@ -3552,8 +3588,8 @@ Vue.component("DropDownWrapper", {
         if (group.groups && Array.isArray(group.groups)) {
           group.groups.forEach((item) => {
             if (item.maintopic) {
-              if (!this.maintopicToggledMap.hasOwnProperty(item.name)) {
-                this.maintopicToggledMap[item.name] = false;
+              if (!this.maintopicToggledMap.hasOwnProperty(item.id)) {
+                this.maintopicToggledMap[item.id] = false;
               }
             }
           });
@@ -3637,7 +3673,7 @@ Vue.component("DropDownWrapper", {
                 qpm_maintopicDropdown: props.option.maintopic === true, 
                 qpm_subtopicDropdown: props.option.subtopiclevel === 1 
               }">
-          <i v-if="maintopicToggledMap[props.option.name]" class="bx bx-chevron-down"></i> \
+          <i v-if="maintopicToggledMap[props.option.id]" class="bx bx-chevron-down"></i> \
           <i v-else class="bx bx-chevron-right"></i> \
 	  	  </span> \
 
