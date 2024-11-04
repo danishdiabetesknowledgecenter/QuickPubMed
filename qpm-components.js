@@ -2521,10 +2521,26 @@ Vue.component("DropDownWrapper", {
     },
     /**
      * Adds or removes tag either by clicking on "x" or clicking already selected item in dropdown
+     * Updated 04/11/2024 handles hidding or showing elements based on the maintopicToggledMap (handles state for the chevron that a maintopic has)
      */
     showOrHideElements: function () {
       const element = this.$refs.selectWrapper;
-      if (!this.isGroup) return;
+      if (!this.isGroup) {
+        // Here we are dealing with filters so we omit the check on groupname
+        const entries = element.querySelectorAll("[data-name]");
+        entries.forEach((entry) => {
+          const parent = entry.parentNode.parentNode;
+          const parentId = entry.getAttribute("parent-id");
+          const grandParentId = entry.getAttribute("grand-parent-id");
+
+          const shouldShow =
+            (parentId && !this.maintopicToggledMap[parentId]) ||
+            (grandParentId && !this.maintopicToggledMap[grandParentId]);
+
+          parent.classList.toggle("qpm_shown", shouldShow);
+        });
+        return;
+      }
 
       const entries = element.querySelectorAll("[data-name]");
       entries.forEach((entry) => {
@@ -2642,20 +2658,38 @@ Vue.component("DropDownWrapper", {
      */
     getOptionsFromOptionsGroupName: function (groupName) {
       const result = [];
-      topics.forEach((topic) => {
-        if (topic.groupname === groupName) {
-          topic.groups.forEach((group) => {
-            result.push({
-              id: group.id,
-              name: group.name,
-              isBranch: group.maintopic || null,
-              depth: group.subtopiclevel || 0, // is a base topic if 0
-              parentId: group.maintopicIdLevel1 || null,
-              grandParentId: group.maintopicIdLevel2 || null,
+      if (this.isGroup) {
+        topics.forEach((topic) => {
+          if (topic.groupname === groupName) {
+            topic.groups.forEach((group) => {
+              result.push({
+                id: group.id,
+                name: group.name,
+                isBranch: group.maintopic || null,
+                depth: group.subtopiclevel || 0, // is a base topic if 0
+                parentId: group.maintopicIdLevel1 || null,
+                grandParentId: group.maintopicIdLevel2 || null,
+              });
             });
-          });
-        }
-      });
+          }
+        });
+      } else {
+        // For the filters the naming is different so we need to handle it differently
+        filtrer.forEach((filter) => {
+          if (filter.name === groupName) {
+            filter.choices.forEach((choice) => {
+              result.push({
+                id: choice.id,
+                name: choice.name,
+                isBranch: choice.maintopic || null,
+                depth: choice.subtopiclevel || 0, // is a base topic if 0
+                parentId: choice.maintopicIdLevel1 || null,
+                grandParentId: choice.maintopicIdLevel2 || null,
+              });
+            });
+          }
+        });
+      }
       return result;
     },
     /**
@@ -2736,10 +2770,6 @@ Vue.component("DropDownWrapper", {
       const selectedOptionIds = selectedOptions.map((o) => o.id);
       const optionsInOptionGroup =
         this.getOptionsFromOptionsGroupName(optionGroupName);
-
-      console.log(
-        `${selectedOptions.length} options selected in ${optionGroupName}: `
-      );
 
       if (selectedOptionIds.length <= 0) {
         this.showOrHideElements();
@@ -3278,6 +3308,8 @@ Vue.component("DropDownWrapper", {
     },
     /**
      * Gets the group name for a given item.
+     * Needed since we operate with two different sets of naming.
+     * For filters we have 'choices' and for topics we have 'groups'.
      *
      * @param {Object} item - The item to get the group name for.
      * @returns {string|null} The group name or null if not found.
@@ -3297,13 +3329,19 @@ Vue.component("DropDownWrapper", {
      */
     getOptionGroupName: function (data, targetLabel, language) {
       let name = "";
-      data.some((category) => {
-        const groupName = this.getGroupName(category);
+      console.log(`targetLabel | ${targetLabel}`);
+      data.some((item) => {
+        const groupName = this.getGroupName(item);
+        console.log(
+          `data contains ${groupName === "groups" ? "groups" : "choices"}`
+        );
+
         if (!groupName) return false;
-        return category[groupName].some((tag) => {
-          const currentLabel = this.cleanLabel(tag.translations[language]);
+
+        return item[groupName].some((i) => {
+          const currentLabel = this.cleanLabel(i.translations[language]);
           if (currentLabel === targetLabel) {
-            name = this.customNameLabel(category);
+            name = this.customNameLabel(item);
             this.expandedOptionGroupName = name;
             return true;
           }
