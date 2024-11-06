@@ -966,12 +966,7 @@ Vue.component("MainWrapper", {
           scripts[is].parentNode.removeChild(scripts[is]);
         }
       }
-      /* while (il--) {
-		if (links[il].href === 'https://badge.dimensions.ai/badge.css') {
-		  links[il].parentNode.removeChild(links[il])
-		  
-			}
-			} */
+
       //Remove divs and scripts from body so they wont affect performance
       scripts = document.body.getElementsByTagName("script");
       var scriptArray = Array.from(scripts);
@@ -991,7 +986,7 @@ Vue.component("MainWrapper", {
         "altmetric-embed altmetric-popover altmetric-left"
       );
       var containerArray = Array.from(containers);
-      //containerArray.splice(0, 1)
+
       (is = containerArray.length), (ial = is);
       console.log("reloadScripts: is: " + is);
       while (is--) {
@@ -1094,7 +1089,6 @@ Vue.component("MainWrapper", {
       document
         .getElementById("qpm_topofsearch")
         .scrollIntoView({ block: "start", behavior: "smooth" });
-      //  alert(baseUrl + query);
     },
     searchMore: function () {
       let targetResultLength = Math.min(
