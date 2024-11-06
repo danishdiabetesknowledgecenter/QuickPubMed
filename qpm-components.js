@@ -225,8 +225,8 @@ Vue.component("MainWrapper", {
       deep: true,
       immediate: true,
     },
-    advanced() {
-      console.log("advanced changed");
+    advanced(newVal) {
+      console.log(`advanced search | ${newVal}`);
       // Trigger an update for all the DropDownWrapper placeholders
       this.$refs.subjectDropdown.forEach((dropdown, index) => {
         dropdown.placeholder = this.getDropdownPlaceholder(index);
@@ -966,12 +966,7 @@ Vue.component("MainWrapper", {
           scripts[is].parentNode.removeChild(scripts[is]);
         }
       }
-      /* while (il--) {
-		if (links[il].href === 'https://badge.dimensions.ai/badge.css') {
-		  links[il].parentNode.removeChild(links[il])
-		  
-			}
-			} */
+
       //Remove divs and scripts from body so they wont affect performance
       scripts = document.body.getElementsByTagName("script");
       var scriptArray = Array.from(scripts);
@@ -991,7 +986,7 @@ Vue.component("MainWrapper", {
         "altmetric-embed altmetric-popover altmetric-left"
       );
       var containerArray = Array.from(containers);
-      //containerArray.splice(0, 1)
+
       (is = containerArray.length), (ial = is);
       console.log("reloadScripts: is: " + is);
       while (is--) {
@@ -1094,7 +1089,6 @@ Vue.component("MainWrapper", {
       document
         .getElementById("qpm_topofsearch")
         .scrollIntoView({ block: "start", behavior: "smooth" });
-      //  alert(baseUrl + query);
     },
     searchMore: function () {
       let targetResultLength = Math.min(
@@ -1607,7 +1601,7 @@ Vue.component("MainWrapper", {
             </button> 
           </span> 
         </div> 
-
+      <!-- The dropdown for selecting subjects to be included in the search -->
       <div class="qpm_searchFormula" v-show="!isCollapsed"> 
         <div class="qpm_subjects" v-for="(item, n) in subjects" v-bind:key="n"> 
           <div class="qpm_flex"> 
@@ -1658,6 +1652,7 @@ Vue.component("MainWrapper", {
           </button> 
         </div> 
 
+        <!-- The dropdown for selecting limits to be included in the advanced search -->
         <div style="margin-bottom:10px" v-if="(advanced) && showFilter && !noSubjects"> 
           <h4 role="heading" aria-level="3" class="h4">
             {{getString(\'AdvancedFiltersHeader\')}}
@@ -1699,6 +1694,7 @@ Vue.component("MainWrapper", {
           </div> 
         </div> 
 
+         <!-- The radio buttons for limits to be included in the simple search -->
         <div v-else-if="(!advanced) && !noSubjects"> 
           <h4 role="heading" aria-level="3" class="h4">
             {{getString(\'SimpleFiltersHeader\')}}
@@ -1795,7 +1791,9 @@ Vue.component("MainWrapper", {
   </div> \
   `,
 });
-
+/**
+ * Displays the selected topics and limits as a string of text beneath the search form.
+ */
 Vue.component("WordedSearchString", {
   mixins: [appSettings],
   props: {
@@ -1834,7 +1832,6 @@ Vue.component("WordedSearchString", {
       }
     },
     getString: function (string) {
-      //console.log(string);
       lg = this.language;
       constant = messages[string][lg];
       return constant != undefined ? constant : messages[string]["dk"];
