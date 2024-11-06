@@ -1792,7 +1792,7 @@ Vue.component("MainWrapper", {
   `,
 });
 /**
- * Displays the selected topics and limits as a string of text
+ * Displays the selected topics and limits as a string of text beneath the search form.
  */
 Vue.component("WordedSearchString", {
   mixins: [appSettings],
