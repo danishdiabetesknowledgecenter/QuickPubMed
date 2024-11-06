@@ -1601,7 +1601,7 @@ Vue.component("MainWrapper", {
             </button> 
           </span> 
         </div> 
-
+      <!-- The dropdown for selecting subjects to be included in the search -->
       <div class="qpm_searchFormula" v-show="!isCollapsed"> 
         <div class="qpm_subjects" v-for="(item, n) in subjects" v-bind:key="n"> 
           <div class="qpm_flex"> 
@@ -1652,6 +1652,8 @@ Vue.component("MainWrapper", {
           </button> 
         </div> 
 
+        <!-- The dropdown for selecting limits to be included in the advanced search -->
+        <!-- The dropdown for selecting limits to be included in the advanced search -->
         <div style="margin-bottom:10px" v-if="(advanced) && showFilter && !noSubjects"> 
           <h4 role="heading" aria-level="3" class="h4">
             {{getString(\'AdvancedFiltersHeader\')}}
@@ -1693,6 +1695,7 @@ Vue.component("MainWrapper", {
           </div> 
         </div> 
 
+         <!-- The radio buttons for limits to be included in the simple search -->
         <div v-else-if="(!advanced) && !noSubjects"> 
           <h4 role="heading" aria-level="3" class="h4">
             {{getString(\'SimpleFiltersHeader\')}}

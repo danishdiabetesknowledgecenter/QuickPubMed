@@ -310,8 +310,8 @@ const filtrer = [
     },
   },
   {
-    name: "Reviewtype",
     id: "L10",
+    name: "Reviewtype",
     translations: {
       dk: "Reviewtype",
       en: "Review type",
@@ -446,8 +446,8 @@ const filtrer = [
     },
   },
   {
-    name: "Studietype",
     id: "L20",
+    name: "Studietype",
     translations: {
       dk: "Studietype",
       en: "Study type",
@@ -636,8 +636,8 @@ const filtrer = [
     },
   },
   {
-    name: "Sprog",
     id: "L30",
+    name: "Sprog",
     translations: {
       dk: "Sprog",
       en: "Language",
@@ -748,8 +748,8 @@ const filtrer = [
     },
   },
   {
-    name: "Geografi",
     id: "L40",
+    name: "Geografi",
     translations: {
       dk: "Geografi",
       en: "Geography",
@@ -932,8 +932,8 @@ const filtrer = [
     },
   },
   {
-    name: "Køn",
     id: "L50",
+    name: "Køn",
     translations: {
       dk: "Køn",
       en: "Sex",
@@ -996,8 +996,8 @@ const filtrer = [
     },
   },
   {
-    name: "Aldersgruppe",
     id: "L60",
+    name: "Aldersgruppe",
     translations: {
       dk: "Aldersgruppe",
       en: "Age group",
@@ -1201,8 +1201,8 @@ const filtrer = [
     },
   },
   {
-    name: "Publiceringsdato",
     id: "L80",
+    name: "Publiceringsdato",
     translations: {
       dk: "Publiceringsdato",
       en: "Publication date",
@@ -1280,8 +1280,8 @@ const filtrer = [
     },
   },
   {
-    name: "Andre afgrænsninger",
     id: "L70",
+    name: "Andre afgrænsninger",
     translations: {
       dk: "Andre afgrænsninger",
       en: "Other limits",
