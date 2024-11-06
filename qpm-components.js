@@ -225,8 +225,8 @@ Vue.component("MainWrapper", {
       deep: true,
       immediate: true,
     },
-    advanced() {
-      console.log("advanced changed");
+    advanced(newVal) {
+      console.log(`advanced search | ${newVal}`);
       // Trigger an update for all the DropDownWrapper placeholders
       this.$refs.subjectDropdown.forEach((dropdown, index) => {
         dropdown.placeholder = this.getDropdownPlaceholder(index);
@@ -1653,7 +1653,6 @@ Vue.component("MainWrapper", {
         </div> 
 
         <!-- The dropdown for selecting limits to be included in the advanced search -->
-        <!-- The dropdown for selecting limits to be included in the advanced search -->
         <div style="margin-bottom:10px" v-if="(advanced) && showFilter && !noSubjects"> 
           <h4 role="heading" aria-level="3" class="h4">
             {{getString(\'AdvancedFiltersHeader\')}}
@@ -1792,7 +1791,9 @@ Vue.component("MainWrapper", {
   </div> \
   `,
 });
-
+/**
+ * Displays the selected topics and limits as a string of text
+ */
 Vue.component("WordedSearchString", {
   mixins: [appSettings],
   props: {
@@ -1831,7 +1832,6 @@ Vue.component("WordedSearchString", {
       }
     },
     getString: function (string) {
-      //console.log(string);
       lg = this.language;
       constant = messages[string][lg];
       return constant != undefined ? constant : messages[string]["dk"];
