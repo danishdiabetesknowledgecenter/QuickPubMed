@@ -1,8 +1,9 @@
 /**
 
 Explanation of properties for groups:
+
  * maintopic - indicates that this is a branch node and has children element 
- * subtopiclevel - indicates the depth of the element in the tree 
+ * subtopiclevel - indicates the depth of the element in the tree only used if a child node
  * maintopicIdLevel1 - the id of the parent element
  * maintopicIdLevel2 - the id of the grandparent element
  *
@@ -11,7 +12,7 @@ Explanation of properties for groups:
  * 
  * The remaing properties are self-explanatory
 **/
-const topics = [
+export const topics = [
   {
     groupname: "Skabelonkategori",
     id: "S00",

@@ -1,0 +1,980 @@
+<template>
+  <div class="qpm_SearchResult" ref="searchResult">
+    <div v-if="results && results.length > 0" class="qpm_accordions">
+      <Accordion
+        v-if="results && results.length > 0 && appSettings.openAi.useAi"
+        class="qpm_ai_hide"
+        @expanded-changed="onAiSummariesAccordionStateChange"
+      >
+        <template v-slot:header="accordionProps">
+          <div class="qpm_aiAccordionHeader">
+            <div style="display: inline-flex">
+              <i
+                v-if="accordionProps.expanded"
+                class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
+              ></i>
+              <i
+                v-else
+                class="bx bx-chevron-right qpm_aiAccordionHeaderArrows"
+              ></i>
+              <i
+                class="bx bx-detail"
+                style="
+                  font-size: 22px;
+                  vertical-align: text-bottom;
+                  margin-left: 3px;
+                  margin-right: 5px;
+                "
+              ></i>
+              <div>
+                <strong>{{
+                  getString("selectedResultsAccordionHeader")
+                }}</strong>
+                <button
+                  class="bx bx-info-circle"
+                  style="cursor: help; margin-left: -5px"
+                  v-tooltip="{
+                    content: getString('hoverselectedResultsAccordionHeader'),
+                    offset: 5,
+                    delay: $helpTextDelay,
+                    hideOnTargetClick: false,
+                  }"
+                ></button>
+              </div>
+            </div>
+          </div>
+        </template>
+        <template>
+          <div>
+            <keep-alive>
+              <div
+                v-if="!hasAcceptedAi"
+                class="qpm_searchSummaryText qpm_searchSummaryTextBackground"
+              >
+                <p>{{ getString("aiSearchSummaryConsentHeader") }}</p>
+                <p
+                  v-if="selectedEntries == null || selectedEntries.length == 0"
+                  v-html="getString('aiSearchSummaryConsentHeaderText')"
+                ></p>
+                <p v-if="selectedEntries.length > 0">
+                  {{ getString("aiSearchSummarySelectedArticlesBefore") }}
+                  <strong>{{ selectedEntries.length }}</strong>
+                  <span v-if="selectedEntries.length == 1">
+                    <strong>{{
+                      getString("aiSearchSummarySelectedArticlesAfterSingular")
+                    }}</strong>
+                  </span>
+                  <span v-if="selectedEntries.length > 1">
+                    <strong>{{
+                      getString("aiSearchSummarySelectedArticlesAfterPlural")
+                    }}</strong>
+                  </span>
+                  {{ getString("aiSearchSummarySelectedArticlesAfter") }}
+                </p>
+                <p>
+                  <strong>{{
+                    getString("aiSummarizeSearchResultButton")
+                  }}</strong>
+                </p>
+                <button
+                  v-for="prompt in getSearchSummaryPrompts()"
+                  :key="prompt"
+                  class="qpm_button qpm_summaryButton"
+                  @click="clickAcceptAi(prompt)"
+                  v-tooltip="{
+                    content: getString('hoverSummarizeSearchResultButton'),
+                    offset: 5,
+                    delay: $helpTextDelay,
+                    hideOnTargetClick: false,
+                  }"
+                >
+                  <i
+                    class="bx bx-detail"
+                    style="
+                      font-size: 22px;
+                      line-height: 0;
+                      margin: -4px 2px 0 0;
+                    "
+                  ></i>
+                  {{ getTranslation(prompt) }}
+                </button>
+                <p
+                  class="qpm_summaryDisclaimer"
+                  v-html="getString('aiSummaryConsentText')"
+                ></p>
+              </div>
+              <!-- AI summaries of abstracts from multiple search results -->
+              <ai-summaries
+                v-else
+                :showSummarizeArticle="false"
+                :language="language"
+                :prompts="getSearchSummaryPrompts()"
+                :successHeader="getSummarySuccessHeader()"
+                :isMarkedArticles="getHasSelectedArticles"
+                :summaryConsentHeader="
+                  getString('aiSearchSummaryConsentHeader')
+                "
+                :summarySearchSummaryConsentText="
+                  getString('aiSearchSummaryConsentHeaderText')
+                "
+                :errorHeader="getString('aiSummarizeSearchErrorHeader')"
+                :hasAcceptedAi="hasAcceptedAi"
+                :initialTabPrompt="initialAiTab"
+                :getSelectedArticles="getSelectedArticles"
+                @close="closeSummaries"
+                @ai-summaries-click-retry="onAiSummariesClickRetry"
+              />
+            </keep-alive>
+          </div>
+        </template>
+      </Accordion>
+      <!-- TODO: Remember to set "openByDefault" to false if Ole responds that it is no longer desired behavior -->
+      <Accordion
+        v-if="results && results.length > 0"
+        ref="articlesAccordion"
+        :isExpanded="articleAcordionExpanded"
+        :models="selectedEntries"
+        :openByDefault="
+          preselectedEntries != null && preselectedEntries.length > 0
+        "
+        :onlyUpdateModelWhenVisible="true"
+        @changed:items="loadSelectedArticleBadges"
+        @open="onArticleAccordionStateChange(true)"
+        @close="onArticleAccordionStateChange(false)"
+      >
+        <template v-slot:header="accordionProps">
+          <div class="qpm_aiAccordionHeader">
+            <div style="display: inline-flex; width: 100%">
+              <i
+                v-if="accordionProps.expanded"
+                class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
+              ></i>
+              <i
+                v-else
+                class="bx bx-chevron-right qpm_aiAccordionHeaderArrows"
+              ></i>
+              <i
+                class="bx bx-check-square"
+                style="
+                  font-size: 22px;
+                  vertical-align: text-bottom;
+                  margin-left: 3px;
+                  margin-right: 5px;
+                "
+              ></i>
+              <div
+                style="
+                  display: inline-flex;
+                  width: 100%;
+                  justify-content: space-between;
+                  flex-wrap: wrap;
+                "
+              >
+                <div style="margin-bottom: 5px">
+                  <strong>{{ getString("selectedResultTitle") }}</strong>
+                  <button
+                    v-if="!appSettings.openAi.useAi"
+                    class="bx bx-info-circle"
+                    style="cursor: help; margin-left: -5px"
+                    v-tooltip="{
+                      content: getString('hoverselectedResultTitle'),
+                      offset: 5,
+                      delay: $helpTextDelay,
+                      hideOnTargetClick: false,
+                    }"
+                  ></button>
+                  <button
+                    v-if="appSettings.openAi.useAi"
+                    class="bx bx-info-circle"
+                    style="cursor: help; margin-left: -5px"
+                    v-tooltip="{
+                      content: getString('hoverselectedResultTitleAI'),
+                      offset: 5,
+                      delay: $helpTextDelay,
+                      hideOnTargetClick: false,
+                    }"
+                  ></button>
+                </div>
+                <div>
+                  <button
+                    class="qpm_button qpm_markedArticleCounter"
+                    @click.stop
+                    v-tooltip="{
+                      content: getString('hovermarkedArticleCounter'),
+                      offset: 5,
+                      delay: $helpTextDelay,
+                      hideOnTargetClick: false,
+                    }"
+                  >
+                    {{ selectedEntries.length }}
+                    <span v-if="selectedEntries.length == 1">
+                      {{
+                        getString(
+                          "aiSearchSummarySelectedArticlesAfterSingular"
+                        )
+                      }}
+                    </span>
+                    <span
+                      v-if="
+                        selectedEntries.length > 1 ||
+                        selectedEntries.length == 0
+                      "
+                    >
+                      {{
+                        getString("aiSearchSummarySelectedArticlesAfterPlural")
+                      }}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+        <template v-slot:default>
+          <div
+            class="list-fade-item"
+            name="transition-item-0"
+            style="
+              padding: 5px 0 5px 10px;
+              background-color: var(--color-grey-light);
+              border-bottom: solid 1px lightgrey;
+              font-size: 0.96em;
+            "
+            @click="onDeselectAllArticles"
+          >
+            <button
+              id="qpm_selectedResultDeselectAll"
+              style="padding-left: 0"
+              :disabled="selectedEntries == null || selectedEntries.length <= 0"
+            >
+              <i
+                class="bx bxs-minus-square qpm_selectArticleCheckbox"
+                style="font-size: 22px; line-height: 0; margin: -4px 4px 0 0"
+              ></i>
+              <button
+                v-tooltip="{
+                  content: getString('hoverselectedResultDeselectAllText'),
+                  offset: 5,
+                  delay: $helpTextDelay,
+                  hideOnTargetClick: false,
+                }"
+                class="qpm_button qpm_selectArticleCheckbox list-fade-item"
+              >
+                {{ getString("selectedResultDeselectAllText") }}
+              </button>
+            </button>
+          </div>
+          <div class="qpm_searchSummaryText qpm_searchSummaryTextBackground">
+            <div
+              v-if="selectedEntries == null || selectedEntries.length == 0"
+              v-html="getString('selectedResultEmptyText')"
+            ></div>
+          </div>
+        </template>
+        <template v-slot:listItem="value">
+          <ResultEntry
+            :id="value.model.uid"
+            :pmid="value.model.uid"
+            :pubDate="value.model.pubdate"
+            :volume="value.model.volume"
+            :issue="value.model.issue"
+            :pages="value.model.pages"
+            :doi="getDoi(value.model.articleids)"
+            :title="value.model.title"
+            :pubType="value.pubtype"
+            :booktitle="value.model.booktitle"
+            :vernaculartitle="value.model.vernaculartitle"
+            :date="getDate(value.model.history)"
+            :source="getSource(value.model)"
+            :hasAbstract="getHasAbstract(value.model.attributes)"
+            :author="getAuthor(value.model.authors)"
+            :language="language"
+            :parentWidth="getComponentWidth()"
+            :abstractSummaryPrompts="getAbstractSummaryPrompts()"
+            :modelValue="selectedEntries"
+            :selectable="entriesAlwaysSelectable || hasAcceptedAi"
+            :abstract="getAbstract(value.model.uid)"
+            :text="getText(value.model.uid)"
+            @change="changeResultEntryModel"
+            @change:abstractLoad="onAbstractLoad"
+            @loadAbstract="addIdToLoadAbstract"
+            ref="resultEntries"
+          >
+          </ResultEntry>
+        </template>
+      </Accordion>
+    </div>
+    <div
+      role="heading"
+      aria-level="2"
+      class="h3"
+      style="padding-top: 30px"
+      v-if="results && results.length > 0 && total > 0"
+    >
+      {{ getString("searchresult") }}
+    </div>
+    <div
+      class="qpm_searchHeader qpm_spaceEvenly"
+      v-if="results && results.length > 0 && total > 0"
+    >
+      <p class="qpm_nomargin">
+        {{ getString("showing") }} {{ low + 1 }}-{{ high }}
+        {{ getString("of") }}
+        <span
+          ><strong>{{ getPrettyTotal }}</strong>
+          {{ getString("searchMatches") }}</span
+        >
+      </p>
+      <div
+        class="qpm_searchHeaderSort qpm_spaceEvenly"
+        v-if="results && results.length != 0"
+      >
+        <div class="qpm_sortSelect" style="padding-right: 7px">
+          <select @change="newSortMethod" v-model="sort">
+            <option
+              v-for="sorter in getOrderMethods"
+              :key="sorter.method"
+              :value="sorter.method"
+              :selected="isSelected(sorter)"
+            >
+              {{ getTranslation(sorter) }}
+            </option>
+          </select>
+        </div>
+        <div style="border-left: 1px solid #e7e7e7"></div>
+        <div
+          role="heading"
+          aria-level="2"
+          class="qpm_sortSelect qpm_spaceEvenly"
+        >
+          <select @change="changePageNumber($event)">
+            <option
+              v-for="size in getPageSizeProps"
+              :key="size"
+              :value="size"
+              :selected="isSelectedPageSize(size)"
+            >
+              {{ size }} {{ getString("pagesizePerPage") }}
+            </option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div v-if="results && results.length == 0">
+      <div class="h3"><br />{{ getString("noResult") }}</div>
+      <p>{{ getString("noResultTip") }}</p>
+    </div>
+    <div style="z-index: 0">
+      <div
+        v-if="results.length > 0 || !loading"
+        v-for="(value, name) in getShownSearchResults"
+        :key="value.uid"
+        class="qpm_ResultEntryWrapper"
+      >
+        <ResultEntry
+          :id="value.uid"
+          :pmid="value.uid"
+          :pubDate="value.pubdate"
+          :volume="value.volume"
+          :issue="value.issue"
+          :pages="value.pages"
+          :doi="getDoi(value.articleids)"
+          :title="value.title"
+          :pubType="value.pubtype"
+          :booktitle="value.booktitle"
+          :vernaculartitle="value.vernaculartitle"
+          :date="getDate(value.history)"
+          :source="getSource(value)"
+          :hasAbstract="getHasAbstract(value.attributes)"
+          :author="getAuthor(value.authors)"
+          :language="language"
+          :parentWidth="getComponentWidth()"
+          :abstractSummaryPrompts="getAbstractSummaryPrompts()"
+          :modelValue="selectedEntries"
+          :selectable="entriesAlwaysSelectable || hasAcceptedAi"
+          :abstract="getAbstract(value.uid)"
+          :text="getText(value.uid)"
+          :value="value"
+          @change="changeResultEntryModel"
+          @change:abstractLoad="onAbstractLoad"
+          @articleUpdated="addArticle"
+          @loadAbstract="addIdToLoadAbstract"
+          ref="resultEntries"
+        >
+        </ResultEntry>
+      </div>
+      <Spinner :loading="loading" class="qpm_searchMore"></Spinner>
+      <div v-if="error != null" class="qpm_flex">
+        <div class="qpm_errorBox">{{ error.message ?? error.toString() }}</div>
+      </div>
+    </div>
+    <div
+      v-if="total > 0"
+      class="qpm_flex"
+      style="justify-content: center; margin-top: 25px; flex-direction: column"
+    >
+      <button
+        v-if="!loading && results && results.length < total"
+        :disabled="highDisabled"
+        :class="{ qpm_disabled: highDisabled }"
+        class="qpm_button qpm_dark"
+        @click="next"
+      >
+        <span class="qpm_hideonmobile">{{ getString("next") }}</span>
+        {{ pagesize }}
+      </button>
+      <p
+        v-if="!loading || (results && high && total)"
+        class="qpm_nomargin qpm_shownumber"
+      >
+        {{ getString("showing") }} 1-{{ high }} {{ getString("of") }}
+        <span
+          ><strong>{{ getPrettyTotal }}</strong>
+          {{ getString("searchMatches") }}</span
+        >
+      </p>
+    </div>
+  </div>
+</template>
+
+<script>
+import Accordion from "@/components/Accordion.vue";
+import ResultEntry from "@/components/ResultEntry.vue";
+import Spinner from "@/components/Spinner.vue";
+import AiSummaries from "@/components/AiSummaries.vue";
+
+export default {
+  name: "QpmSearchResult",
+  mixins: [appSettings],
+  components: {
+    Accordion,
+    ResultEntry,
+    Spinner,
+    AiSummaries,
+  },
+  props: {
+    results: Array,
+    total: Number,
+    pagesize: {
+      type: Number,
+      default: 25,
+    },
+    low: Number,
+    high: Number,
+    loading: Boolean,
+    sort: Object,
+    language: {
+      type: String,
+      default: "dk",
+    },
+    preselectedEntries: {
+      type: Array,
+      default: [],
+    },
+    error: {
+      type: Error,
+      default: null,
+    },
+    entriesAlwaysSelectable: {
+      type: Boolean,
+      default: true,
+    },
+  },
+  data: function () {
+    return {
+      hasAcceptedAi: false,
+      initialAiTab: null,
+      selectedEntries: this.preselectedEntries,
+      badgesAdded: false,
+      altmetricsAdded: false,
+      idswithAbstractsToLoad: [],
+      abstractRecords: {}, // id, abstract
+      articles: {},
+      articleAcordionExpanded: undefined,
+    };
+  },
+  methods: {
+    next: function () {
+      this.$emit("high");
+
+      this.badgesAdded = false;
+      this.altmetricsAdded = false;
+    },
+    previous: function () {
+      this.$emit("low");
+    },
+    reloadScripts: function () {
+      //Remove divs and scripts from body so they wont affect performance
+      scripts = document.body.getElementsByTagName("script");
+      var scriptArray = Array.from(scripts);
+      scriptArray.splice(0, 1);
+      (is = scriptArray.length), (ial = is);
+      //console.log(is)
+      while (is--) {
+        //console.log(scriptArray[is])
+        if (
+          scriptArray[is].src.startsWith("https://api.altmetric.com/v1/pmid") ||
+          scriptArray[is].src.startsWith("https://api.altmetric.com/v1/doi")
+        ) {
+          scriptArray[is].parentNode.removeChild(scriptArray[is]);
+        }
+      }
+      var containers = document.body.getElementsByClassName(
+        "altmetric-embed altmetric-popover altmetric-left"
+      );
+      var containerArray = Array.from(containers);
+      //containerArray.splice(0, 1)
+      (is = containerArray.length), (ial = is);
+      //console.log(is)
+      while (is--) {
+        //console.log(containerArray[is])
+        containerArray[is].parentNode.removeChild(containerArray[is]);
+      }
+    },
+    getAbstract: function (id) {
+      if (this.abstractRecords[id] != undefined) {
+        if (typeof this.abstractRecords[id] !== "string") {
+          return "";
+        }
+        return this.abstractRecords[id];
+      }
+      return "";
+    },
+    getAuthor: function (authors) {
+      str = "";
+      for (i = 0; i < authors.length; i++) {
+        if (i > 0) str += ",";
+        str += " " + authors[i].name;
+      }
+      return str;
+    },
+    getHasAbstract: function (attributes) {
+      if (!attributes) {
+        return false;
+      }
+      found = false;
+      Object.keys(attributes).forEach(function (key) {
+        value = attributes[key];
+        if (key == "Has Abstract" || value == "Has Abstract") {
+          found = true;
+          return;
+        }
+      });
+      return found;
+    },
+    getDate: function (history) {
+      for (i = 0; i < history.length; i++) {
+        if (history[i].pubstatus == "entrez") {
+          date = new Date(history[i].date);
+          formattedDate = date.toLocaleDateString(
+            languageFormat[this.language],
+            dateOptions
+          );
+          return formattedDate;
+        }
+      }
+      return "";
+    },
+    // getDoi ændret af Ole
+    getDoi: function (articleids) {
+      for (i = 0; i < articleids.length; i++) {
+        if (articleids[i].idtype == "doi") {
+          doi = articleids[i].value;
+          return doi;
+        }
+      }
+      return "";
+    },
+    getText: function (id) {
+      if (id != undefined) {
+        if (
+          this.abstractRecords[id] != undefined &&
+          typeof this.abstractRecords[id] === "object"
+        ) {
+          return this.abstractRecords[id];
+        }
+      }
+      return {};
+    },
+    getSource: function (value) {
+      try {
+        if (this.source != undefined) {
+          if (value != undefined) {
+            if (value.volume != undefined) value.volume = undefined;
+            if (value.issue != undefined) value.issue = undefined;
+            if (value.pages != undefined) value.pages = undefined;
+            if (value.pubdate != undefined) value.pubdate = undefined;
+          }
+          return this.source;
+        }
+        if (value.booktitle) return value.booktitle;
+        return value.source;
+      } catch (error) {
+        return "";
+      }
+    },
+    newSortMethod: function (event) {
+      obj = {};
+      for (j = 0; j < order.length; j++) {
+        if (order[j].method == event.target.value) {
+          obj = order[j];
+          break;
+        }
+      }
+      this.$emit("newSortMethod", obj);
+    },
+    isSelected: function (model) {
+      return model == this.sort;
+    },
+    isSelectedPageSize: function (model) {
+      return model == this.pagesize;
+    },
+    getString: function (string) {
+      lg = this.language;
+      constant = messages[string][lg];
+      return constant != undefined ? constant : messages[string]["dk"];
+    },
+    getTranslation: function (value) {
+      lg = this.language;
+      constant = value.translations[lg];
+      return constant != undefined ? constant : value.translations["dk"];
+    },
+    changePageNumber: function (event) {
+      newPageSize = pageSizes[parseInt(event.target.options.selectedIndex)];
+      // console.log(newPageSize);
+      this.$emit("newPageSize", newPageSize);
+    },
+    getComponentWidth: function () {
+      container = this.$refs.searchResult;
+      if (!container.innerHTML) return;
+      // console.log("thing", container, container.offsetWidth);
+      return parseInt(container.offsetWidth);
+    },
+    addArticle: function (article) {
+      if (this.articles.hasOwnProperty(article.pmid)) {
+        delete this.articles[article.pmid];
+      }
+
+      this.$set(this.articles, article.pmid, article);
+    },
+    getSelectedArticles: function () {
+      var resultEntries = this.$refs.resultEntries;
+      var selectedArticles = [];
+      var entriesForSummary =
+        this.selectedEntries.length > 0
+          ? this.selectedEntries
+          : resultEntries
+              .filter((e) => e.hasAbstract)
+              .slice(0, 5)
+              .map((e) => {
+                return {
+                  uid: e.id,
+                };
+              });
+      for (let i = 0; i < entriesForSummary.length; i++) {
+        let selected = entriesForSummary[i];
+        selectedArticles[i] = this.articles[selected.uid];
+      }
+      return selectedArticles;
+    },
+    getArticleDtoProvider: function () {
+      return this.getArticleDtos;
+    },
+    getSearchSummaryPrompts: function () {
+      return searchSummaryPrompts;
+    },
+    getAbstractSummaryPrompts: function () {
+      return abstractSummaryPrompts;
+    },
+    getAskQuestionsPrompts: function () {
+      return summarizeArticlePrompt;
+    },
+    getSummarySuccessHeader: function () {
+      const self = this;
+
+      return function (selected, isMarkedArticlesSearch) {
+        if (!isMarkedArticlesSearch) {
+          let selectedWithAbstracts = selected.filter(
+            (e) => e.abstract != null && e.abstract.trim() != ""
+          );
+          let before = self.getString(
+            "aiSummarizeFirstFewSearchResultHeaderBeforeCount"
+          );
+          let after = self.getString(
+            "aiSummarizeFirstFewSearchResultHeaderAfterCount"
+          );
+          return before + selectedWithAbstracts.length + after;
+        }
+
+        let before = self.getString(
+          "aiSummarizeSelectedSearchResultHeaderBeforeCount"
+        );
+        let after = self.getString(
+          "aiSummarizeSelectedSearchResultHeaderAfterCount"
+        );
+        return before + selected.length + after;
+      };
+    },
+    clickAcceptAi: function (initialTab = null) {
+      this.hasAcceptedAi = true;
+      this.initialAiTab = initialTab;
+    },
+    closeSummaries: function () {
+      this.hasAcceptedAi = false;
+    },
+    changeResultEntryModel: function (value, isChecked) {
+      let newValue = [...this.selectedEntries];
+      let valueIndex = newValue.findIndex(function (e) {
+        return e === value || e.uid == value.uid;
+      });
+
+      if (isChecked && valueIndex === -1) {
+        newValue.push(value);
+      } else if (valueIndex > -1) {
+        newValue.splice(valueIndex, 1);
+      } else {
+        console.warn(
+          "changeResultEntryModel: change requested but could not be performed",
+          isChecked,
+          valueIndex,
+          value,
+          newValue
+        );
+        return;
+      }
+      this.selectedEntries = newValue;
+      this.$emit("change:selectedEntries", newValue);
+    },
+    onAbstractLoad: function (id, abstract) {
+      Vue.set(this.abstractRecords, id, abstract);
+    },
+    onAiSummariesClickRetry: function () {
+      this.$el.parentElement
+        .querySelector("#qpm_topofsearchbar")
+        .scrollIntoView({ behavior: "smooth" });
+    },
+    onAiSummariesAccordionStateChange: function (expanded) {
+      this.articleAcordionExpanded = expanded;
+    },
+    openArticlesAccordion: function ({ $el }) {
+      const articlesAccordion = this.$refs.articlesAccordion;
+      if (
+        !this.articleAcordionExpanded &&
+        articlesAccordion != null &&
+        !articlesAccordion.expanded
+      ) {
+        articlesAccordion.$once("afterOpen", function () {
+          $el.scrollIntoView({
+            block: "start",
+            behavior: "smooth",
+          });
+        });
+        this.onAiSummariesAccordionStateChange(true);
+      }
+    },
+    onArticleAccordionStateChange: function (expanded) {
+      this.articleAcordionExpanded = expanded;
+    },
+    onDeselectAllArticles: function () {
+      this.selectedEntries = [];
+      this.$emit("change:selectedEntries", this.selectedEntries);
+    },
+    loadSelectedArticleBadges: function (article) {
+      if (window.__dimensions_embed) {
+        window.__dimensions_embed.addBadges();
+      }
+
+      let articleBody = article
+        ? article
+        : this.$refs?.articlesAccordion?.$refs?.body;
+      if (articleBody && window._altmetric_embed_init) {
+        window._altmetric_embed_init(articleBody);
+      }
+    },
+    shouldResultArticlePreloadAbstract: function (article) {
+      const isInFirstFive = this.firstFiveArticlesWithAbstracts.some(function (
+        value
+      ) {
+        return value.uid == article.uid;
+      });
+      return isInFirstFive;
+    },
+    addIdToLoadAbstract: function (id) {
+      this.idswithAbstractsToLoad.push(id);
+      if (this.results[this.results.length - 1].uid == id) {
+        this.loadAbstracts();
+      }
+    },
+    loadAbstracts: async function () {
+      const self = this;
+      let nlm = this.appSettings.nlm;
+      baseurl =
+        "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&tool=QuickPubMed" +
+        "&email=" +
+        nlm.email +
+        "&api_key=" +
+        nlm.key +
+        "&retmode=xml&id=";
+
+      url = baseurl + self.idswithAbstractsToLoad.join(",");
+      let axiosInstance = axios.create({
+        headers: { Accept: "application/json, text/plain, */*" },
+      });
+      axiosInstance.interceptors.response.use(undefined, (err) => {
+        const { config, message } = err;
+
+        if (!config || !config.retry) {
+          console.log("request retried too many times", config.url);
+          return Promise.reject(err);
+        }
+
+        // retry while Network timeout or Network Error
+        if (
+          !(message.includes("timeout") || message.includes("Network Error"))
+        ) {
+          return Promise.reject(err);
+        }
+
+        config.retry -= 1;
+
+        const retryDelay = 2000;
+
+        const delayRetryRequest = new Promise((resolve) => {
+          setTimeout(() => {
+            resolve();
+          }, retryDelay);
+        });
+
+        return delayRetryRequest.then(() =>
+          axiosInstance.get(config.url, { retry: config.retry })
+        );
+      });
+
+      let loadData = axiosInstance
+        .get(url, { retry: 10 })
+        .then(function (resp) {
+          data = resp.data;
+          if (window.DOMParser) {
+            parser = new DOMParser();
+            xmlDoc = parser.parseFromString(data, "text/xml");
+          } else {
+            xmlDoc = new ActiveXObject("Microsoft.XMLDOM");
+            xmlDoc.async = false;
+            xmlDoc.loadXML(data);
+          }
+
+          let articles = Array.from(
+            xmlDoc.getElementsByTagName("PubmedArticle")
+          );
+          let articleData = articles.map((article) => {
+            let pmid = article.getElementsByTagName("PMID")[0].textContent;
+            sections = article.getElementsByTagName("AbstractText");
+            if (sections.length == 1) {
+              let abstractText = sections[0].textContent;
+              return [pmid, abstractText];
+            } else {
+              let text = {};
+              for (i = 0; i < sections.length; i++) {
+                sectionName = sections[i].getAttribute("Label");
+                sectionText = sections[i].textContent;
+                text[sectionName] = sectionText;
+              }
+              return [pmid, text];
+            }
+          });
+
+          return articleData;
+        })
+        .catch(function (err) {
+          console.log("Error in fetch from pubMed:", err);
+        });
+
+      loadData.then((v) => {
+        for (let item of v) {
+          this.onAbstractLoad(item[0], item[1]);
+        }
+      });
+    },
+  },
+  computed: {
+    lowDisabled: function () {
+      return this.low == 0 || this.loading;
+    },
+    highDisabled: function () {
+      return this.high >= this.total || this.loading;
+    },
+    getPrettyTotal: function () {
+      format = languageFormat[this.language];
+      return this.total.toLocaleString(format);
+    },
+    getOrderMethods: function () {
+      return order;
+    },
+    getPageSizeProps: function () {
+      return pageSizes;
+    },
+    getShownSearchResults: function () {
+      if (this.results == null) return null;
+      return this.results.slice(0, this.high);
+    },
+    getHasSelectedArticles: function () {
+      return this.selectedEntries.length > 0;
+    },
+    firstFiveArticlesWithAbstracts: function () {
+      const self = this;
+      const resultsWithAbstract = this.getShownSearchResults.filter(function (
+        result
+      ) {
+        return self.getHasAbstract(result.attributes);
+      });
+      const first5ResultsWithAbstract = resultsWithAbstract.slice(0, 5);
+      return first5ResultsWithAbstract;
+    },
+  },
+  watch: {
+    preselectedEntries: function (newVal) {
+      if (this.selectedEntries != null && this.selectedEntries.length > 0)
+        return;
+
+      this.selectedEntries = newVal;
+    },
+  },
+  updated: function () {
+    // Guards to avoid badges re-rendering on select/deselect
+    if (!this.$refs.resultEntries || this.$refs.resultEntries.length == 0) {
+      this.hasAcceptedAi = false;
+      this.badgesAdded = false;
+      this.altmetricsAdded = false;
+      this.articleAcordionExpanded = false;
+      this.reloadScripts();
+      return;
+    }
+    if (!this.badgesAdded && !this.loading) {
+      if (window.__dimensions_embed) {
+        window.__dimensions_embed.addBadges();
+        this.badgesAdded = true;
+      }
+    }
+    if (!this.altmetricsAdded && !this.loading) {
+      const searchResult = this.$refs.searchResult;
+      const articleAccordionBody = this.$refs?.articlesAccordion?.$refs?.body;
+      if (window._altmetric_embed_init) {
+        searchResult && window._altmetric_embed_init(searchResult);
+        articleAccordionBody &&
+          window._altmetric_embed_init(articleAccordionBody);
+        this.altmetricsAdded = true;
+      }
+    }
+  },
+  mounted: function () {
+    eventBus.$on("result-entry-show-abstract", this.openArticlesAccordion);
+  },
+  beforeDestroy: function () {
+    eventBus.$off("result-entry-show-abstract", this.openArticlesAccordion);
+  },
+};
+</script>
+
+<style scoped>
+/* Component-specific styles (optional) */
+</style>

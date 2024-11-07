@@ -79,6 +79,7 @@ var appSettingsStore = {
 
 const eventBus = new Vue();
 
+// MOVED TO AppSettings.js
 const appSettings = {
   data: function () {
     return {
@@ -87,7 +88,7 @@ const appSettings = {
   },
 };
 
-/**
+/** MOVED TO Utilities.js
  * Mixin for utility functions that are reusable across components.
  *
  * @mixin
@@ -143,6 +144,7 @@ const utilities = {
   },
 };
 
+// MOVED TO MainWrapper.vue
 Vue.component("MainWrapper", {
   mixins: [appSettings],
   props: {
@@ -1791,7 +1793,7 @@ Vue.component("MainWrapper", {
   </div> \
   `,
 });
-/**
+/** MOVED TO WordedSearchString.vue
  * Displays the selected topics and limits as a string of text beneath the search form.
  */
 Vue.component("WordedSearchString", {
@@ -2059,6 +2061,7 @@ Vue.component("WordedSearchString", {
   `,
 });
 
+// MOVED TO FilterEntry.vue
 Vue.component("FilterEntry", {
   data: function () {
     return {
@@ -2167,6 +2170,7 @@ Vue.component("FilterEntry", {
     `,
 });
 
+// MOVED TO DropdownTag.vue
 Vue.component("DropdownTag", {
   data: function () {
     return {
@@ -2309,6 +2313,7 @@ Vue.component("DropdownTag", {
 });
 
 //Skud ud til vedligeholdese Top down data management
+// MOVED TO DropDownWrapper.vue
 Vue.component("DropDownWrapper", {
   mixins: [appSettings],
   components: {
@@ -3766,7 +3771,7 @@ Vue.component("DropDownWrapper", {
   `,
 });
 
-/**
+/** MOVED TO SearchResult.vue
  * Søge resultater
  */
 Vue.component("SearchResult", {
@@ -4516,6 +4521,7 @@ Vue.component("SearchResult", {
 	`,
 });
 
+// MOVED TO AiSummaries
 Vue.component("ai-summaries", {
   mixins: [appSettings],
   data: function () {
@@ -5103,6 +5109,7 @@ Vue.component("ai-summaries", {
   `,
 });
 
+// MOVED TO ResultEntry.vue
 Vue.component("ResultEntry", {
   mixins: [appSettings],
   data: function () {
@@ -6086,6 +6093,7 @@ Vue.component("ResultEntry", {
 });
 
 /**
+ * MOVE TO Spinner.vue
  * Loading spinner with icon
  */
 Vue.component("Spinner", {
@@ -6127,7 +6135,7 @@ Vue.component("Spinner", {
   ',
 });
 
-/**
+/** MOVED TO SearchGallery.vue
  * Tree structrue of all searchable terms.
  * Could be a candidate for refactoring using vue-treeselect // 25-10-2024
  */
@@ -6449,7 +6457,7 @@ Vue.component("search-gallery", {
   `,
 });
 
-/**
+/** MOVED TO SpecificArticles.vue
  * Enkeltstående artikler
  */
 Vue.component("specific-articles", {
@@ -6983,6 +6991,7 @@ Vue.component("specific-articles", {
     `,
 });
 
+// MOVED TO Translation.vue
 Vue.component("Translation", {
   mixins: [appSettings],
   data: function () {
@@ -7131,6 +7140,7 @@ Vue.component("Translation", {
 	`,
 });
 
+// MOVED TO Accordion.vue
 const Accordion = Vue.component("Accordion", {
   props: {
     title: {
@@ -7385,8 +7395,8 @@ const Accordion = Vue.component("Accordion", {
 });
 
 /**
+ * MOVED TO questionsToTitleMap.js
  * Mixin for the default question-to-title mappings in Danish and English.
- *
  * @mixin
  */
 const questionsToTitleMap = {
@@ -7426,6 +7436,7 @@ const questionsToTitleMap = {
 };
 
 /**
+ * MOVED TO summarizeArticleService.js
  * Mixin for common methods used in both summarize-article and summarize-article-no-abstract components.
  * @mixin
  */
@@ -7608,6 +7619,7 @@ const summarizeArticleService = {
   },
 };
 
+// MOVED TO questionHeaderHeightWatcherMixin.js
 /**
  * Mixin that watches the height of header elements to conditionally apply a left margin to corresponding answer elements.
  *
@@ -7677,6 +7689,7 @@ const questionHeaderHeightWatcherMixin = {
 };
 
 /**
+ * MOVED TO SummarizeArticle.vue
  * Component for summarizing an article and generating questions based on its content.
  * Used for search results WITH an abstract
  * @component
@@ -7825,6 +7838,7 @@ Vue.component("summarize-article", {
 });
 
 /**
+ * MOVED TO SummarizeArticleNoAbstract.vue
  * Component for summarizing an article and generating questions based on its content.
  * Used for search results WITHOUT an abstract
  * @component
@@ -7957,6 +7971,7 @@ Vue.component("summarize-article-no-abstract", {
 });
 
 /**
+ * MOVED TO QuestionArticle.vue
  * Component for enabling users to question an article and generating questions based on its content.
  * Used for search results with and wihtout an abstract.
  * @component

@@ -1,4 +1,4 @@
-function getPromptForLocale(prompt, locale) {
+export function getPromptForLocale(prompt, locale) {
   var localePrompt = {
     ...prompt,
     translations: null,
@@ -18,7 +18,7 @@ function getPromptForLocale(prompt, locale) {
  * @param {*} prompt an object containing the prompt for different languages
  * @returns the same object with prompts treated to make them more token friendly
  */
-function sanitizePrompt(prompt) {
+export function sanitizePrompt(prompt) {
   var langs = Object.keys(prompt);
   for (k = 0; k < langs.length; k++) {
     var lg = langs[k];
@@ -45,7 +45,7 @@ function sanitizePrompt(prompt) {
  * @param {*} messages an object containing the message history for different languages
  * @returns the same object with messages treated to make them more token friendly
  */
-function sanitizeMessages(messages) {
+export function sanitizeMessages(messages) {
   const langs = Object.keys(messages);
   for (k = 0; k < langs.length; k++) {
     var lg = langs[k];
@@ -84,7 +84,7 @@ function sanitizeMessages(messages) {
   return messages;
 }
 
-const searchSummaryPrompts = [
+export const searchSummaryPrompts = [
   {
     name: "Hverdagssprog",
     translations: {
@@ -224,7 +224,7 @@ const searchSummaryPrompts = [
 ];
 
 // Used to summarize from a list of summaries. Used when the abstracts themselves are too long.
-const summarizeSummaryPrompts = [
+export const summarizeSummaryPrompts = [
   {
     name: "Hverdagssprog",
     translations: {
@@ -328,7 +328,7 @@ const summarizeSummaryPrompts = [
   },
 ];
 
-const shortenAbstractPrompts = [
+export const shortenAbstractPrompts = [
   {
     name: "Hverdagssprog",
     translations: {
@@ -376,7 +376,7 @@ const shortenAbstractPrompts = [
   },
 ];
 
-const abstractSummaryPrompts = [
+export const abstractSummaryPrompts = [
   {
     name: "Hverdagssprog",
     translations: {
@@ -466,7 +466,7 @@ const abstractSummaryPrompts = [
   },
 ];
 
-const titleTranslationPrompt = {
+export const titleTranslationPrompt = {
   name: "translate",
   translations: {
     dk: "dansk",
@@ -498,7 +498,7 @@ const titleTranslationPrompt = {
   }),
 };
 
-const searchTranslationPrompt = {
+export const searchTranslationPrompt = {
   name: "translate",
   translations: {
     dk: "dansk",
@@ -531,7 +531,7 @@ const searchTranslationPrompt = {
 /**
  * Setup text for the prompt to start the summarization of an article
  */
-const promptStartText = {
+export const promptStartText = {
   dk: `Du skal svare i JSON-format. Der skal være 3 key-value pairs i dit svar. 
   Den første key skal hedde isArticle og kan enten være true eller false. 
   Den anden key skal hedde questions, og value skal være et array. 
@@ -553,7 +553,7 @@ const promptStartText = {
  * Includes standard questions that are mapped to short titles,
  * and one to three article specific generated questions that use the question as the title
  */
-const promptQuestions = {
+export const promptQuestions = {
   dk: `Lav en kort opsummering baseret på artiklens samlede tekst. 
   Hvad er formålet med denne artikel? 
   Hvilke metoder blev anvendt? 
@@ -575,7 +575,7 @@ const promptQuestions = {
 /**
  * Plain language text for use in prompting targeting a general audience
  */
-const promptEndTextPlainLanguage = {
+export const promptEndTextPlainLanguage = {
   dk: "Du skal generere svar til disse spørgsmål, og disse svar skal bestå af maksimalt 100 ord og skal skrives i et sprog, som nemt kan læses og forstås af en 15-årig uden forhåndskendskab til emnet, og tilføje svarende til array'et, der er value for answers key'en. \
       Du skal ikke svare med andent end json formatet. Du skal derfor ikke bruge tegnet ` eller skrive json i starten eller slutningen af svaret. Her er teksten:",
   en: "You must then generate answers to these questions, and these answers must consist of 100 words and must be written in a language that can be easily read and understood by a 15-year-old without prior knowledge of the subject, and add corresponding to the array that is the value for answers key'en. \
@@ -585,7 +585,7 @@ const promptEndTextPlainLanguage = {
 /**
  * Professional language text for use in prompting targeting a professional audience
  */
-const promptEndTextProfessionelLanguage = {
+export const promptEndTextProfessionelLanguage = {
   dk: "Du skal generere svar til alle spørgsmål, og disse svar skal bestå af maksimalt 100 ord og skal skrives på fagsprog som let kan forstås af et sundhedsfagligt publikum eller personer med solid baggrund inden for emnet, og tilføje svarende til array'et, der er value for answers key'en.\
       Du må ikke svare med andent end json formatet. Du skal derfor ikke bruge tegnet ` eller skrive json i starten eller slutningen af svaret. Her er teksten:",
   en: "You must then generate answers to these questions, and these answers must consist of 100 words and must be written in professional language that can be easily understood by a healthcare audience or people with a solid background in the subject, and add corresponding to the array that is the value for answers key'en. \
@@ -595,7 +595,7 @@ const promptEndTextProfessionelLanguage = {
 /**
  * Prompt text for only allowing answers that are specific to the content of the article
  */
-const promptArticleSpecificAnswersOnly = {
+export const promptArticleSpecificAnswersOnly = {
   dk: `Det er ekstremt vigtigt at du kun besvarer spørgsmål, hvis det er relevant for tekstens indhold. Hvis spørgsmålet omhandler andet end tekstens indhold, svar altid med "Ikke relevant for denne artikel". `,
   en: `It is very important that you only answer the questions asked if they are relevant to this article, and that you do not answer questions that are not relevant to this article. `,
 };
@@ -603,7 +603,7 @@ const promptArticleSpecificAnswersOnly = {
 /**
  * Prompt text for use in prompting to adhere to specific domain rules for diabetes
  */
-const diabetesSpecificPromptRules = {
+export const diabetesSpecificPromptRules = {
   dk: `Følg altid disse skriveregler: \
   Skriv altid 'type 1-diabetes', men skriv aldrig 'type 1 diabetes', 'diabetes 1', 'diabetes type 1' e.l. 
   Skriv altid 'type 2-diabetes', men skriv aldrig 'type 2 diabetes', 'diabetes 2', 'diabetes type 2' e.l. 
@@ -629,7 +629,7 @@ const diabetesSpecificPromptRules = {
  * Use it in the domainSpecificPromptingRules object
  * Prompt text for use in prompting to adhere to specific domain rules for dementia
  */
-const dementiaSpecificPromptRules = {
+export const dementiaSpecificPromptRules = {
   dk: `Følg altid disse skriveregler: 
   Skriv domæne specifikke regler her
   Du vil blive straffet meget hårdt, hvis du ikke følger alle de instruktioner, som du har fået.`,
@@ -642,7 +642,7 @@ const dementiaSpecificPromptRules = {
  * Contains different writting rules specific for a domain, to be used when prompting the ai model.
  * Will be found based on the string set in appSettings.openAi.domain (eg "diabetes" or "dementia")
  */
-const domainSpecificPromptingRules = {
+export const domainSpecificPromptingRules = {
   diabetes: diabetesSpecificPromptRules,
   dementia: dementiaSpecificPromptRules,
 };
@@ -651,7 +651,7 @@ const domainSpecificPromptingRules = {
  * Basic Prompt for summarizing an article in plain language and professional language.
  * The prompt field should be composed in the code for better maintaning, scalling and readability.
  */
-const summarizeArticlePrompt = [
+export const summarizeArticlePrompt = [
   {
     name: "Hverdagssprog",
     translations: {

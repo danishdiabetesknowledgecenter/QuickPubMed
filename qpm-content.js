@@ -1,7 +1,7 @@
 // IT IS VERY IMPORTANT THAT GROUPNAME AND NAME ACROSS ALL GROUPS ARE UNIQUE!
-const dateOptions = { year: "numeric", month: "long", day: "numeric" };
+export const dateOptions = { year: "numeric", month: "long", day: "numeric" };
 
-const languageFormat = {
+export const languageFormat = {
   da: "da-DK",
   en: "en-GB",
   de: "de-DR",
@@ -10,12 +10,12 @@ const languageFormat = {
 Vue.prototype.$helpTextDelay = { show: 500, hide: 100 };
 Vue.prototype.$alwaysShowFilter = true;
 
-const customInputTagTooltip = {
+export const customInputTagTooltip = {
   dk: "Klik for at redigere",
   en: "Click to edit",
 };
 
-const order = [
+export const order = [
   {
     id: "O01",
     method: "relevance",
@@ -42,9 +42,9 @@ const order = [
   },
 ];
 
-const pageSizes = [10, 25, 50];
+export const pageSizes = [10, 25, 50];
 
-const scopeIds = {
+export const scopeIds = {
   n: "narrow", //narrow
   s: "normal", //standard
   b: "broad", //broad
@@ -56,7 +56,7 @@ const scopeIds = {
  *                          OBS: simpleSearch SKAL også være true for at dette kan lade sig gøre.
  * stringSearchComment: string - en kommentar om hvad filteret gør.
  */
-const filtrer = [
+export const filtrer = [
   {
     id: "L00",
     name: "Skabelonkategori",
