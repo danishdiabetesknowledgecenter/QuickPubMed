@@ -80,17 +80,17 @@
 </template>
 
 <script>
-import appSettings from "@/mixins/appSettings";
+import { appSettingsMixin } from "@/mixins/appSettings";
 import utilities from "@/mixins/utilities";
-import summarizeArticleService from "@/services/summarizeArticleService";
+import summarizeArticleService from "@/mixins/summarizeArticleService";
 import questionHeaderHeightWatcherMixin from "@/mixins/questionHeaderHeightWatcherMixin";
 import Accordion from "@/components/Accordion.vue";
 import Spinner from "@/components/Spinner.vue";
 
 export default {
-  name: "QuestionArticle",
+  name: "QuestionForArticle",
   mixins: [
-    appSettings,
+    appSettingsMixin,
     utilities,
     summarizeArticleService,
     questionHeaderHeightWatcherMixin,

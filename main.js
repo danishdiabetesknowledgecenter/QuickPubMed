@@ -2,7 +2,7 @@ import Vue from "vue";
 import App from "./App.vue";
 
 // Import of existing global styles
-import "./assets/styles/qpm-global.css";
+import "@/assets/styles/qpm-global.css";
 
 // Import of static content modules
 import * as qpmContent from "./qpm-content.js";

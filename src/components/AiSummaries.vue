@@ -213,15 +213,15 @@ import summarizeSummaryPrompts from "@/path/to/summarizeSummaryPrompts";
 import shortenAbstractPrompts from "@/path/to/shortenAbstractPrompts";
 import { getPromptForLocale } from "@/path/to/helpers";
 import eventBus from "@/path/to/eventBus";
-import appSettings from "@/mixins/appSettings";
+import { appSettingsMixin } from "@/mixins/appSettings";
 
 export default {
   name: "AiSummaries",
-  mixins: [appSettings],
+  mixins: [appSettingsMixin],
   components: {
     Spinner,
     VueShowdown,
-    summarizeArticle: () => import("@/components/SummarizeArticle.vue"), // Lazy load if needed
+    summarizeArticle: () => import("@/components/SummarizeArticle.vue"),
   },
   props: {
     pubType: {

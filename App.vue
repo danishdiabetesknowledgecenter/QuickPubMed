@@ -9,9 +9,9 @@
 </template>
 
 <script>
-import MainWrapper from "@components/MainWrapper.vue";
-import SearchGallery from "@components/SearchGallery.vue";
-import SpecificArticles from "@components/SpecificArticles.vue";
+import MainWrapper from "@/components/MainWrapper.vue";
+import SearchGallery from "@/components/SearchGallery.vue";
+import SpecificArticles from "@/components/SpecificArticles.vue";
 
 export default {
   name: "App",

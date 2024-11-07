@@ -2,7 +2,7 @@
 import Vue from "vue";
 
 // App Settings Store
-const appSettingsStore = {
+export const appSettingsStore = {
   /**
    * **!!Meant for internal use only!!**
    * The internal representation of the store's state.
@@ -74,10 +74,10 @@ const appSettingsStore = {
 };
 
 // Event Bus
-const eventBus = new Vue();
+export const eventBus = new Vue();
 
 // Mixin Definition
-const appSettingsMixin = {
+export const appSettingsMixin = {
   data() {
     return {
       appSettings: appSettingsStore.getAppSettings(),
@@ -87,5 +87,3 @@ const appSettingsMixin = {
     // You can add shared methods here if needed
   },
 };
-
-export { appSettingsMixin, eventBus };
