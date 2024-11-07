@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [vue()],
   resolve: {
     alias: {
-      vue: path.resolve(__dirname, "node_modules/vue/dist/vue.runtime.esm.js"),
+      vue: require.resolve("vue/dist/vue.runtime.esm.js"),
       "@": path.resolve(__dirname, "./src"),
     },
   },

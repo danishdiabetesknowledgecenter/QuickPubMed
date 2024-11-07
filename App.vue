@@ -3,9 +3,6 @@
     <main-wrapper language="dk" :hide-topics="[]"></main-wrapper>
     <search-gallery language="en" :hide-topics="[]"></search-gallery>
   </div>
-  <div class="qpm_vapp" id="qpm_vappX">
-    <specific-articles ids="36360447"></specific-articles>
-  </div>
 </template>
 
 <script>
