@@ -1,5 +1,5 @@
-// mixins/appSettingsMixin.js
 import Vue from "vue";
+import { settings } from "@/config/settings.js";
 
 // App Settings Store
 export const appSettingsStore = {
@@ -30,17 +30,9 @@ export const appSettingsStore = {
    * Initializes the state of this store.
    */
   _initState() {
-    // Prevent undefined reference errors if settings do not exist
-    if (typeof localSettings === "undefined") {
-      localSettings = {};
-    }
-    // If settings do not exist the site will be severely
-    // lacking in functionality but should be able to load
-    if (typeof settings === "undefined") {
-      settings = {};
-    }
-    const mergedSettings = this._mergeSettings(settings, localSettings);
-    this._state.appSettings = mergedSettings;
+    //const mergedSettings = this._mergeSettings(settings, localSettings);
+    //this._state.appSettings = mergedSettings;
+    this._state.appSettings = settings;
   },
 
   /**

@@ -3,7 +3,7 @@
  *
  * @mixin
  */
-const questionsToTitleMap = {
+export const questionsToTitleMapMixin = {
   data() {
     return {
       /**

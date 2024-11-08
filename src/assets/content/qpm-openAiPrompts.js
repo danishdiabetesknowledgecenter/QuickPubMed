@@ -20,7 +20,7 @@ export function getPromptForLocale(prompt, locale) {
  */
 export function sanitizePrompt(prompt) {
   var langs = Object.keys(prompt);
-  for (k = 0; k < langs.length; k++) {
+  for (let k = 0; k < langs.length; k++) {
     var lg = langs[k];
     // Remove suplurflous whitespace to reduce token count
     var sanitizedPrompt = prompt[lg]
@@ -47,7 +47,7 @@ export function sanitizePrompt(prompt) {
  */
 export function sanitizeMessages(messages) {
   const langs = Object.keys(messages);
-  for (k = 0; k < langs.length; k++) {
+  for (let k = 0; k < langs.length; k++) {
     var lg = langs[k];
     var sanitizedMessages = messages[lg]
       .map((message) => {

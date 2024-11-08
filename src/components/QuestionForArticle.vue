@@ -80,19 +80,20 @@
 </template>
 
 <script>
-import { appSettingsMixin } from "@/mixins/appSettings";
-import utilities from "@/mixins/utilities";
-import summarizeArticleService from "@/mixins/summarizeArticleService";
-import questionHeaderHeightWatcherMixin from "@/mixins/questionHeaderHeightWatcherMixin";
 import Accordion from "@/components/Accordion.vue";
 import Spinner from "@/components/Spinner.vue";
+
+import { appSettingsMixin } from "@/mixins/appSettings";
+import { utilitiesMixin } from "@/mixins/utilities";
+import { summarizeArticleMixin } from "@/mixins/summarizeArticle";
+import { questionHeaderHeightWatcherMixin } from "@/mixins/questionHeaderHeightWatcher";
 
 export default {
   name: "QuestionForArticle",
   mixins: [
     appSettingsMixin,
-    utilities,
-    summarizeArticleService,
+    utilitiesMixin,
+    summarizeArticleMixin,
     questionHeaderHeightWatcherMixin,
   ],
   components: {

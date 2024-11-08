@@ -328,11 +328,14 @@
 </template>
 
 <script>
-import { appSettings } from "@/mixins";
+import { appSettingsMixin } from "@/mixins/appSettings";
+import { messages } from "@/assets/content/qpm-translations.js";
+import { order, filtrer } from "@/assets/content/qpm-content.js";
+import { topics } from "@/assets/content/qpm-content-diabetes";
 
 export default {
   name: "SearchGallery",
-  mixins: [appSettings],
+  mixins: [appSettingsMixin],
   props: {
     hideTopics: {
       type: Array,

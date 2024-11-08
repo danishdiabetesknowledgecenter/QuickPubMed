@@ -46,7 +46,6 @@
           </p>
         </div>
         <ResultEntry
-          v-else
           v-for="(value, index) in searchresult"
           :key="value.uid"
           :id="value.uid"
@@ -91,13 +90,13 @@
 <script>
 import Spinner from "@/components/Spinner.vue";
 import ResultEntry from "@/components/ResultEntry.vue";
-import { appSettings } from "@/mixins";
+import { appSettingsMixin } from "@/mixins/appSettings";
 import axios from "axios";
 import Vue from "vue";
 
 export default {
   name: "SpecificArticles",
-  mixins: [appSettings],
+  mixins: [appSettingsMixin],
   components: {
     Spinner,
     ResultEntry,

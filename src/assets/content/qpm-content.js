@@ -6,9 +6,6 @@ export const languageFormat = {
   en: "en-GB",
   de: "de-DR",
 };
-//Vue.prototype.$dateFormat = "da-DK"; //or en-US for US, or en-GB for British or de-DR for German and so on. Full list https://stackoverflow.com/questions/3191664/list-of-all-locales-and-their-short-codes
-Vue.prototype.$helpTextDelay = { show: 500, hide: 100 };
-Vue.prototype.$alwaysShowFilter = true;
 
 export const customInputTagTooltip = {
   dk: "Klik for at redigere",

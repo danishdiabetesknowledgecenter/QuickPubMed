@@ -734,6 +734,9 @@ import Accordion from "@/components/Accordion.vue";
 import AiSummaries from "@/components/AiSummaries.vue";
 import SummarizeArticleNoAbstract from "@/components/SummarizeArticleNoAbstract.vue";
 import Translation from "@/components/Translation.vue";
+
+import { appSettingsMixin } from "@/mixins/appSettings";
+
 export default {
   name: "ResultEntry",
   components: {
@@ -743,7 +746,7 @@ export default {
     SummarizeArticleNoAbstract,
     Translation,
   },
-  mixins: [appSettings],
+  mixins: [appSettingsMixin],
   props: {
     abstract: String,
     text: Object,

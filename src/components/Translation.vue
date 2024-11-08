@@ -65,11 +65,11 @@
 <script>
 import Spinner from "@/components/Spinner.vue";
 import VueShowdown from "vue-showdown";
-import { appSettings } from "@/mixins";
+import { appSettingsMixin } from "@/mixins/appSettings";
 
 export default {
   name: "Translation",
-  mixins: [appSettings],
+  mixins: [appSettingsMixin],
   components: {
     Spinner,
     VueShowdown,

@@ -27,12 +27,8 @@ export default {
       },
     };
   },
-  mounted() {
-    // Any additional initialization if needed
-  },
+  mounted() {},
 };
 </script>
 
-<style>
-/* Your existing styles */
-</style>
+<style></style>

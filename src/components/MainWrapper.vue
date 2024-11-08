@@ -435,9 +435,14 @@ import SearchResult from "@/components/SearchResult.vue";
 import Spinner from "@/components/Spinner.vue";
 import Accordion from "@/components/Accordion.vue";
 
+import { order, filtrer } from "@/assets/content/qpm-content.js";
+import { topics } from "@/assets/content/qpm-content-diabetes";
+import { messages } from "@/assets/content/qpm-translations.js";
+import { appSettingsMixin } from "@/mixins/appSettings";
+
 export default {
   name: "MainWrapper",
-  mixins: [appSettings],
+  mixins: [appSettingsMixin],
   components: {
     DropDownWrapper,
     FilterEntry,
@@ -542,7 +547,7 @@ export default {
       return "";
     },
     noSubjects: function () {
-      for (i = 0; i < this.subjects.length; i++) {
+      for (let i = 0; i < this.subjects.length; i++) {
         if (this.subjects[i].length > 0) {
           return false;
         }
@@ -550,13 +555,13 @@ export default {
       return true;
     },
     getSearchString: function () {
-      str = "";
-      for (i = 0; i < this.subjects.length; i++) {
-        hasOperators = false;
-        subjectsToIterate = this.subjects[i].length;
-        for (j = 0; j < subjectsToIterate; j++) {
-          scope = this.subjects[i][j].scope;
-          tmp = this.subjects[i][j].searchStrings[scope][0];
+      let str = "";
+      for (let i = 0; i < this.subjects.length; i++) {
+        let hasOperators = false;
+        let subjectsToIterate = this.subjects[i].length;
+        for (let j = 0; j < subjectsToIterate; j++) {
+          let scope = this.subjects[i][j].scope;
+          let tmp = this.subjects[i][j].searchStrings[scope][0];
           if (
             tmp.indexOf("AND") >= 0 ||
             tmp.indexOf("NOT") >= 0 ||
@@ -566,7 +571,7 @@ export default {
             break;
           }
         }
-        substring = "";
+        let substring = "";
         if (i > 0 && str != "") substring += " AND ";
         if (
           (hasOperators &&
@@ -574,10 +579,10 @@ export default {
           subjectsToIterate > 1
         )
           substring += "(";
-        for (j = 0; j < subjectsToIterate; j++) {
-          scope = this.subjects[i][j].scope;
+        for (let j = 0; j < subjectsToIterate; j++) {
+          let scope = this.subjects[i][j].scope;
           if (j > 0) substring += " OR ";
-          tmp = this.subjects[i][j].searchStrings[scope][0];
+          let tmp = this.subjects[i][j].searchStrings[scope][0];
           if (
             (tmp.indexOf("AND") >= 0 ||
               tmp.indexOf("NOT") >= 0 ||
@@ -615,7 +620,7 @@ export default {
         substring = "";
         value = self.filterData[key];
         hasOperators = false;
-        for (i = 0; i < value.length; i++) {
+        for (let i = 0; i < value.length; i++) {
           scope = value[i].scope;
           //console.log(value[i].searchStrings[scope]);
           if (
@@ -629,7 +634,7 @@ export default {
         }
         substring += " AND ";
         if (hasOperators || value.length > 1) substring += "(";
-        for (i = 0; i < value.length; i++) {
+        for (let i = 0; i < value.length; i++) {
           const val = value[i];
           if (i > 0) substring += " OR ";
           scope = val.scope;
@@ -699,10 +704,10 @@ export default {
         this.filters = [];
       }
 
-      filterCopy = JSON.parse(JSON.stringify(filtrer));
-      for (i = 0; i < filterCopy.length; i++) {
+      let filterCopy = JSON.parse(JSON.stringify(filtrer));
+      for (let i = 0; i < filterCopy.length; i++) {
         if (!this.advanced) {
-          for (j = 0; j < filterCopy[i].choices.length; j++) {
+          for (let j = 0; j < filterCopy[i].choices.length; j++) {
             filterCopy[i].choices[j].buttons = false;
             if (
               (!this.isUrlParsed ||
@@ -717,10 +722,10 @@ export default {
         }
       }
 
-      subjectCopy = JSON.parse(JSON.stringify(topics));
-      for (i = 0; i < subjectCopy.length; i++) {
+      let subjectCopy = JSON.parse(JSON.stringify(topics));
+      for (let i = 0; i < subjectCopy.length; i++) {
         if (!this.advanced) {
-          for (j = 0; j < subjectCopy[i].groups.length; j++) {
+          for (let j = 0; j < subjectCopy[i].groups.length; j++) {
             subjectCopy[i].groups[j].buttons = false;
           }
         }
@@ -730,19 +735,19 @@ export default {
 
       //reset selected subjects's scope to normal
       if (!this.advanced) {
-        for (i = 0; i < this.subjects.length; i++) {
-          for (j = 0; j < this.subjects[i].length; j++) {
+        for (let i = 0; i < this.subjects.length; i++) {
+          for (let j = 0; j < this.subjects[i].length; j++) {
             this.subjects[i][j].scope = "normal";
           }
         }
       }
 
-      filters = [];
-      for (i = 0; i < self.filters.length; i++) {
-        for (j = 0; j < self.filterOptions.length; j++) {
+      let filters = [];
+      for (let i = 0; i < self.filters.length; i++) {
+        for (let j = 0; j < self.filterOptions.length; j++) {
           if (self.filterOptions[j].name == self.filters[i].name) {
             if (self.isUrlParsed && !self.advanced) {
-              for (k = 0; k < self.filters[i].choices.length; k++) {
+              for (let k = 0; k < self.filters[i].choices.length; k++) {
                 if (
                   (self.filters[i].choices[k].simpleSearch ||
                     self.filters[i].choices[k].standardSimple) &&
@@ -761,10 +766,10 @@ export default {
         }
       }
       this.filters = filters;
-      filterDataCopy = JSON.parse(JSON.stringify(this.filterData));
+      let filterDataCopy = JSON.parse(JSON.stringify(this.filterData));
       Object.keys(filterDataCopy).forEach(function (key) {
         value = filterDataCopy[key];
-        for (i = 0; i < value.length; i++) {
+        for (let i = 0; i < value.length; i++) {
           if (!self.advanced) value[i].scope = "normal";
           if (
             self.isUrlParsed &&
@@ -786,25 +791,25 @@ export default {
     parseUrl: function () {
       //?subject=alkohol1#normal,alkohol2#narrow,alkohol3#broad&subject=diabetes1#normal,astma#normal1&sprog=norsk#broad,svensk#normal
       this.subjects = [];
-      url = window.location.href;
-      parser = document.createElement("a");
+      let url = window.location.href;
+      let parser = document.createElement("a");
       parser.href = url;
-      query = parser.search.substring(1);
-      vars = query.split("&");
+      let query = parser.search.substring(1);
+      let vars = query.split("&");
 
       if (!query) {
         this.subjects = [[]];
         return;
       }
       //console.log('hashtag', query.lastIndexOf("#"), query.substring(query.lastIndexOf("#")), vars);
-      for (i = 0; i < vars.length; i++) {
+      for (let i = 0; i < vars.length; i++) {
         pair = vars[i].split("=");
         key = decodeURIComponent(pair[0]);
         value = decodeURIComponent(pair[1]).split(";;");
         if (key == "subject") {
           selected = [];
           // All values from the URI in 1 subject field
-          for (j = 0; j < value.length; j++) {
+          for (let j = 0; j < value.length; j++) {
             hashtagIndex = value[j].indexOf("#");
             id = value[j].substring(0, hashtagIndex);
             scope = value[j].substring(hashtagIndex + 1, value[j].length);
@@ -842,8 +847,8 @@ export default {
               }
             }
 
-            for (k = 0; k < this.subjectOptions.length; k++) {
-              for (l = 0; l < this.subjectOptions[k].groups.length; l++) {
+            for (let k = 0; k < this.subjectOptions.length; k++) {
+              for (let l = 0; l < this.subjectOptions[k].groups.length; l++) {
                 if (this.subjectOptions[k].groups[l].id == id) {
                   tmp = JSON.parse(
                     JSON.stringify(this.subjectOptions[k].groups[l])
@@ -863,7 +868,7 @@ export default {
         } else if (key == "advanced") {
           this.advanced = value[0] == "true";
         } else if (key == "sort") {
-          for (j = 0; j < order.length; j++) {
+          for (let j = 0; j < order.length; j++) {
             if (order[j].method == value[0]) {
               this.sort = order[j];
             }
@@ -881,7 +886,7 @@ export default {
         } else {
           //add filters
           groupId = "";
-          for (k = 0; k < this.filterOptions.length; k++) {
+          for (let k = 0; k < this.filterOptions.length; k++) {
             if (this.filterOptions[k].id == key) {
               //set filter
               groupId = this.filterOptions[k].id;
@@ -892,7 +897,7 @@ export default {
           if (this.filters.length > 0) this.showFilter = true;
 
           //Find entries in filters
-          for (j = 0; j < value.length; j++) {
+          for (let j = 0; j < value.length; j++) {
             hashtagIndex = value[j].indexOf("#");
 
             // Skip values when they fail to define a scope.
@@ -961,8 +966,8 @@ export default {
               tmp = null;
             }
 
-            for (k = 0; k < this.filterOptions.length; k++) {
-              for (l = 0; l < this.filterOptions[k].choices.length; l++) {
+            for (let k = 0; k < this.filterOptions.length; k++) {
+              for (let l = 0; l < this.filterOptions[k].choices.length; l++) {
                 var choice = this.filterOptions[k].choices[l];
                 if (JSON.stringify(choice.id) == JSON.stringify(id)) {
                   tmp = JSON.parse(JSON.stringify(choice));
@@ -993,7 +998,7 @@ export default {
     },
     setUrl: function () {
       if (history.replaceState) {
-        urlLink = this.getUrl();
+        let urlLink = this.getUrl();
         this.stateHistory.push(this.oldState);
         window.history.replaceState(this.stateHistory, urlLink, urlLink);
         this.oldState = urlLink;
@@ -1005,14 +1010,14 @@ export default {
         origin = window.location.origin;
       }
 
-      baseUrl = origin + window.location.pathname;
+      let baseUrl = origin + window.location.pathname;
 
       if (this.noSubjects) {
         return baseUrl;
       }
       subjectsStr = "";
       notEmptySubjects = 0;
-      for (i = 0; i < this.subjects.length; i++) {
+      for (let i = 0; i < this.subjects.length; i++) {
         if (this.subjects[i].length == 0) {
           continue;
         }
@@ -1020,7 +1025,7 @@ export default {
           subjectsStr += "&";
         }
         subject = "subject=";
-        for (j = 0; j < this.subjects[i].length; j++) {
+        for (let j = 0; j < this.subjects[i].length; j++) {
           scope =
             Object.keys(scopeIds)[Object.values(scopeIds).indexOf("normal")];
           if (this.advanced) {
@@ -1062,7 +1067,7 @@ export default {
             return;
           }
           filterStr += "&" + encodeURIComponent(key) + "=";
-          for (i = 0; i < value.length; i++) {
+          for (let i = 0; i < value.length; i++) {
             var valueUrlId = value[i].isCustom
               ? "{{" + value[i].name + "}}"
               : value[i].id;
@@ -1698,7 +1703,7 @@ export default {
       this.search();
     },
     toggleCollapsedSearch: function () {
-      coll = document.getElementsByClassName(
+      let coll = document.getElementsByClassName(
         "qpm_toggleSearchFormBtn bx bx-hide"
       )[0];
       if (this.isCollapsed == true) {
@@ -1713,14 +1718,14 @@ export default {
       this.setUrl();
     },
     getString: function (string) {
-      lg = this.language;
-      constant = messages[string][lg];
+      let constant = messages[string][this.language];
       return constant != undefined ? constant : messages[string]["dk"];
     },
     customNameLabel: function (option) {
+      let constant = "";
       if (!option.name && !option.groupname) return;
       if (option.translations) {
-        lg = this.language;
+        let lg = this.language;
         constant =
           option.translations[lg] != undefined
             ? option.translations[lg]
@@ -1732,11 +1737,11 @@ export default {
       return constant;
     },
     customGroupLabel: function (option) {
+      let constant = "";
       if (!option.groupName) return;
       try {
         if (option.translations) {
-          lg = this.language;
-          constant = option.translations[lg];
+          constant = option.translations[this.language];
         } else {
           constant = option.name;
         }
@@ -1753,7 +1758,7 @@ export default {
       this.searchMore();
     },
     updateSubjectDropdownWidth: function () {
-      dropdown = this.$refs.subjectDropdown[0].$refs.selectWrapper;
+      let dropdown = this.$refs.subjectDropdown[0].$refs.selectWrapper;
       if (!dropdown.innerHTML) return;
       this.subjectDropdownWidth = parseInt(dropdown.offsetWidth);
     },

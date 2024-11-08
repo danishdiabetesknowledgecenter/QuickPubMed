@@ -2,7 +2,7 @@
  * Mixin for common methods used in both summarize-article and summarize-article-no-abstract components.
  * @mixin
  */
-const summarizeArticleService = {
+export const summarizeArticleMixin = {
   methods: {
     /**
      * Retrieves a prompt based on the specified language and prompt language type.

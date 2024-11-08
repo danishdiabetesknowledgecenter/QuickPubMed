@@ -135,16 +135,14 @@
 </template>
 
 <script>
-import {
-  appSettingsMixin,
-  utilitiesMixin,
-  questionsToTitleMapMixin,
-  summarizeArticleServiceMixin,
-  questionHeaderHeightWatcherMixin,
-} from "@/mixins";
 import Accordion from "@/components/Accordion.vue";
 import Spinner from "@/components/Spinner.vue";
 import QuestionForArticle from "@/components/QuestionForArticle.vue";
+import { appSettingsMixin } from "@/mixins/appSettings";
+import { utilitiesMixin } from "@/mixins/utilities";
+import { questionsToTitleMapMixin } from "@/mixins/questionsToTitleMap";
+import { summarizeArticleMixin } from "@/mixins/summarizeArticle";
+import { questionHeaderHeightWatcherMixin } from "@/mixins/questionHeaderHeightWatcher";
 
 export default {
   name: "SummarizeArticle",
@@ -152,7 +150,7 @@ export default {
     appSettingsMixin,
     utilitiesMixin,
     questionsToTitleMapMixin,
-    summarizeArticleServiceMixin,
+    summarizeArticleMixin,
     questionHeaderHeightWatcherMixin,
   ],
   components: {

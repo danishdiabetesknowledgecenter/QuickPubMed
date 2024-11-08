@@ -28,7 +28,7 @@
  * **Description:**
  * This mixin tracks the heights of specified header elements and applies a left margin to the corresponding answer elements if the header's height exceeds a certain threshold (default is 45 pixels). This is useful when you want to adjust the layout dynamically based on content size, such as when headers wrap onto multiple lines.
  */
-const questionHeaderHeightWatcherMixin = {
+export const questionHeaderHeightWatcherMixin = {
   data() {
     return {
       headerHeights: [],

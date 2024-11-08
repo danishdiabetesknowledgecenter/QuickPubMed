@@ -209,11 +209,11 @@
 import Vue from "vue";
 import Spinner from "@/components/Spinner.vue";
 import VueShowdown from "vue-showdown";
-import summarizeSummaryPrompts from "@/path/to/summarizeSummaryPrompts";
-import shortenAbstractPrompts from "@/path/to/shortenAbstractPrompts";
-import { getPromptForLocale } from "@/path/to/helpers";
-import eventBus from "@/path/to/eventBus";
+import { summarizeSummaryPrompts } from "@/assets/content/qpm-openAiPrompts";
+import { shortenAbstractPrompts } from "@/assets/content/qpm-openAiPrompts";
+import { getPromptForLocale } from "@/assets/content/qpm-openAiPrompts";
 import { appSettingsMixin } from "@/mixins/appSettings";
+import { eventBus } from "@/mixins/appSettings";
 
 export default {
   name: "AiSummaries",

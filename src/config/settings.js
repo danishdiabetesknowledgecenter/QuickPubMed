@@ -2,9 +2,9 @@
  * @typedef {settings} Settings
  */
 
-const aiURL = "https://nempubmed.dk/om-nempubmed";
+export const aiURL = "https://nempubmed.dk/om-nempubmed";
 
-const settings = {
+export const settings = {
   client: "videncenterfordiabetes",
   nlm: {
     email: "admin@videncenterfordiabetes.dk",

@@ -1,18 +1,21 @@
 import Vue from "vue";
 import App from "./App.vue";
+import VueShowdown from "vue-showdown";
+import { VTooltip } from "v-tooltip";
 
 // Import of existing global styles
 import "@/assets/styles/qpm-global.css";
 
-// Import of static content modules
-import * as qpmContent from "./qpm-content.js";
-import * as qpmContentDiabetes from "./qpm-content-diabetes.js";
-import * as qpmTranslations from "./qpm-translations.js";
+/**
+ * Vue.prototype.$dateFormat = "da-DK";
+ * en-US for American, en-GB for British, de-DR for German and so on.
+ * Full list https://stackoverflow.com/questions/3191664/list-of-all-locales-and-their-short-codes
+ */
+Vue.prototype.$helpTextDelay = { show: 500, hide: 100 };
+Vue.prototype.$alwaysShowFilter = true;
 
-// Attach to the window object to make them globally accessible
-window.qpmContent = qpmContent;
-window.qpmContentDiabetes = qpmContentDiabetes;
-window.qpmTranslations = qpmTranslations;
+Vue.use(VueShowdown);
+Vue.directive("tooltip", VTooltip);
 
 new Vue({
   render: (h) => h(App),

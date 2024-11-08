@@ -206,11 +206,12 @@
 </template>
 
 <script>
-import { appSettings } from "@/mixins";
+import { appSettingsMixin } from "@/mixins/appSettings";
+import { messages } from "@/assets/content/qpm-translations.js";
 
 export default {
   name: "WordedSearchString",
-  mixins: [appSettings],
+  mixins: [appSettingsMixin],
   props: {
     subjects: {
       type: Array,

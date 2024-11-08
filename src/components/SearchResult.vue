@@ -443,9 +443,11 @@ import ResultEntry from "@/components/ResultEntry.vue";
 import Spinner from "@/components/Spinner.vue";
 import AiSummaries from "@/components/AiSummaries.vue";
 
+import { appSettingsMixin, eventBus } from "@/mixins/appSettings";
+
 export default {
   name: "QpmSearchResult",
-  mixins: [appSettings],
+  mixins: [appSettingsMixin],
   components: {
     Accordion,
     ResultEntry,

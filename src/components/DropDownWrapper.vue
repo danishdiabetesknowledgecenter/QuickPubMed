@@ -217,11 +217,16 @@
 </template>
 
 <script>
+import Multiselect from "vue-multiselect";
+
+import { appSettingsMixin } from "@/mixins/appSettings";
+import { messages } from "@/assets/content/qpm-translations.js";
+
 export default {
   name: "DropDownWrapper",
-  mixins: [appSettings],
+  mixins: [appSettingsMixin],
   components: {
-    Multiselect: window.VueMultiselect.default,
+    Multiselect,
   },
   props: {
     isMultiple: Boolean,
@@ -698,7 +703,7 @@ export default {
         const entries = element.querySelectorAll(
           ".multiselect__element.qpm_shown"
         );
-        for (i = 0; i < entries.length; i++) {
+        for (let i = 0; i < entries.length; i++) {
           this.showElement(entries[i]);
         }
       } else {
@@ -803,7 +808,7 @@ export default {
         return;
       }
       //Check if added previously
-      for (i = 0; i < this.selected.length; i++) {
+      for (let i = 0; i < this.selected.length; i++) {
         if (this.selected[i].name == item.name) {
           event.stopPropagation();
           return;
@@ -1065,7 +1070,7 @@ export default {
     },
     isContainedInList: function (props) {
       if (props.option && props.option.name && this.selected) {
-        for (i = 0; i < this.selected.length; i++) {
+        for (let i = 0; i < this.selected.length; i++) {
           if (this.selected[i].name == props.option.name) {
             return true;
           }
@@ -1097,7 +1102,7 @@ export default {
       // Remove highlighting due to group being open from all groups
       itemsToUnHighlight = listItems.querySelectorAll(".qpm_groupExpanded");
 
-      for (var i = 0; i < itemsToUnHighlight.length; i++) {
+      for (let i = 0; i < itemsToUnHighlight.length; i++) {
         itemsToUnHighlight[i].classList.remove("qpm_groupExpanded");
       }
 
@@ -1257,7 +1262,7 @@ export default {
       return name;
     },
     getHeader: function (name) {
-      for (i = 0; i < this.data.length; i++) {
+      for (let i = 0; i < this.data.length; i++) {
         if (!this.data[i].groups) {
           //Not group
           return "single";
@@ -1304,7 +1309,7 @@ export default {
       }
 
       if (props.option && props.option.name && this.selected) {
-        for (i = 0; i < this.selected.length; i++) {
+        for (let i = 0; i < this.selected.length; i++) {
           if (this.selected[i].name == props.option.name) {
             if (this.selected[i].scope == scope) classes.push("selectedButton");
             break;
@@ -1314,8 +1319,8 @@ export default {
       return classes;
     },
     getString: function (string) {
-      lg = this.language;
-      constant = messages[string][lg];
+      const lg = this.language;
+      let constant = messages[string][lg];
       return constant != undefined ? constant : messages[string]["dk"];
     },
     getGroupPropertyName: function (group) {
@@ -1353,8 +1358,9 @@ export default {
     },
     customNameLabel: function (option) {
       if (!option.name && !option.groupname) return;
+      let constant;
       if (option.translations) {
-        lg = this.language;
+        const lg = this.language;
         constant =
           option.translations[lg] != undefined
             ? option.translations[lg]
@@ -1366,8 +1372,8 @@ export default {
     },
     customGroupLabel: function (option) {
       if (!option.translations) return;
-      lg = this.language;
-      constant = option.translations[lg];
+      const lg = this.language;
+      let constant = option.translations[lg];
       return constant != undefined ? constant : option.translations["dk"];
     },
     customGroupLabelById: function (id) {
@@ -1435,9 +1441,12 @@ export default {
       return shown;
     },
     getSortedSubjectOptions: function () {
-      self = this;
-      lang = this.language;
+      let self = this;
+      let lang = this.language;
+
       function sortByPriorityOrName(a, b) {
+        let aSort, bSort;
+
         if (a.ordering[lang] != null && b.ordering[lang] == null) {
           return -1; // a is ordered and b is not -> a first
         }
@@ -1465,10 +1474,10 @@ export default {
         }
       }
 
-      data = JSON.parse(JSON.stringify(this.shownSubjects));
+      let data = JSON.parse(JSON.stringify(this.shownSubjects));
 
-      for (i = 0; i < data.length; i++) {
-        groupName = null;
+      for (let i = 0; i < data.length; i++) {
+        let groupName = null;
         if (data[i]["groups"] != null) {
           groupName = "groups";
         } else if (data[i]["choices"] != null) {

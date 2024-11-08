@@ -3,7 +3,7 @@
  *
  * @mixin
  */
-const utilities = {
+export const utilitiesMixin = {
   methods: {
     getDomainSpecificPromptRules(domain, locale = "dk") {
       if (
