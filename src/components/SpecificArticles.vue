@@ -46,7 +46,7 @@
           </p>
         </div>
         <ResultEntry
-          v-for="(value, index) in searchresult"
+          v-for="value in searchresult"
           :key="value.uid"
           :id="value.uid"
           :pmid="value.uid"
@@ -88,11 +88,18 @@
 </template>
 
 <script>
+import Vue from "vue";
+import axios from "axios";
 import Spinner from "@/components/Spinner.vue";
 import ResultEntry from "@/components/ResultEntry.vue";
 import { appSettingsMixin } from "@/mixins/appSettings";
-import axios from "axios";
-import Vue from "vue";
+import { messages } from "@/assets/content/qpm-translations";
+import { abstractSummaryPrompts } from "@/assets/content/qpm-openAiPrompts.js";
+import {
+  order,
+  dateOptions,
+  languageFormat,
+} from "@/assets/content/qpm-content";
 
 export default {
   name: "SpecificArticles",
@@ -265,7 +272,7 @@ export default {
         }
         return str;
       } catch (error) {
-        return "";
+        return error;
       }
     },
     getHasAbstract(attributes) {
@@ -297,7 +304,7 @@ export default {
         }
         return "";
       } catch (error) {
-        return "";
+        return error;
       }
     },
     getTitle(std) {
@@ -324,6 +331,7 @@ export default {
         }
         return "";
       } catch (err) {
+        console.error(err);
         return undefined;
       }
     },
@@ -341,7 +349,7 @@ export default {
         if (value.booktitle) return value.booktitle;
         return value.source;
       } catch (error) {
-        return "";
+        return error;
       }
     },
     getString(string) {
@@ -377,7 +385,7 @@ export default {
           const obj = resp2.data.result;
 
           if (!obj) {
-            console.log("Error: Search was no success", err, resp2);
+            console.log("Error: Search was no success", resp2);
             this.searchLoading = false;
             return;
           }

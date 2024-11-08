@@ -367,7 +367,7 @@
     <div style="z-index: 0">
       <div
         v-if="results.length > 0 || !loading"
-        v-for="(value, name) in getShownSearchResults"
+        v-for="value in getShownSearchResults"
         :key="value.uid"
         class="qpm_ResultEntryWrapper"
       >
@@ -444,6 +444,20 @@ import Spinner from "@/components/Spinner.vue";
 import AiSummaries from "@/components/AiSummaries.vue";
 
 import { appSettingsMixin, eventBus } from "@/mixins/appSettings";
+import { messages } from "@/assets/content/qpm-translations";
+import Vue from "vue";
+import axios from "axios";
+import {
+  searchSummaryPrompts,
+  abstractSummaryPrompts,
+  summarizeArticlePrompt,
+} from "@/assets/content/qpm-openAiPrompts";
+import {
+  languageFormat,
+  dateOptions,
+  pageSizes,
+  order,
+} from "@/assets/content/qpm-content";
 
 export default {
   name: "QpmSearchResult",
@@ -471,6 +485,7 @@ export default {
     },
     preselectedEntries: {
       type: Array,
+      // eslint-disable-next-line vue/require-valid-default-prop
       default: [],
     },
     error: {
@@ -507,13 +522,12 @@ export default {
     },
     reloadScripts: function () {
       //Remove divs and scripts from body so they wont affect performance
-      scripts = document.body.getElementsByTagName("script");
+      let scripts = document.body.getElementsByTagName("script");
       var scriptArray = Array.from(scripts);
       scriptArray.splice(0, 1);
-      (is = scriptArray.length), (ial = is);
-      //console.log(is)
+      let is = scriptArray.length;
+      //ial = is; Unused variable
       while (is--) {
-        //console.log(scriptArray[is])
         if (
           scriptArray[is].src.startsWith("https://api.altmetric.com/v1/pmid") ||
           scriptArray[is].src.startsWith("https://api.altmetric.com/v1/doi")
@@ -525,11 +539,10 @@ export default {
         "altmetric-embed altmetric-popover altmetric-left"
       );
       var containerArray = Array.from(containers);
-      //containerArray.splice(0, 1)
-      (is = containerArray.length), (ial = is);
-      //console.log(is)
+      is = containerArray.length;
+      //(ial = is); Unused variable
+
       while (is--) {
-        //console.log(containerArray[is])
         containerArray[is].parentNode.removeChild(containerArray[is]);
       }
     },
@@ -543,8 +556,8 @@ export default {
       return "";
     },
     getAuthor: function (authors) {
-      str = "";
-      for (i = 0; i < authors.length; i++) {
+      let str = "";
+      for (let i = 0; i < authors.length; i++) {
         if (i > 0) str += ",";
         str += " " + authors[i].name;
       }
@@ -554,9 +567,9 @@ export default {
       if (!attributes) {
         return false;
       }
-      found = false;
+      let found = false;
       Object.keys(attributes).forEach(function (key) {
-        value = attributes[key];
+        let value = attributes[key];
         if (key == "Has Abstract" || value == "Has Abstract") {
           found = true;
           return;
@@ -565,10 +578,10 @@ export default {
       return found;
     },
     getDate: function (history) {
-      for (i = 0; i < history.length; i++) {
+      for (let i = 0; i < history.length; i++) {
         if (history[i].pubstatus == "entrez") {
-          date = new Date(history[i].date);
-          formattedDate = date.toLocaleDateString(
+          let date = new Date(history[i].date);
+          let formattedDate = date.toLocaleDateString(
             languageFormat[this.language],
             dateOptions
           );
@@ -579,9 +592,9 @@ export default {
     },
     // getDoi ændret af Ole
     getDoi: function (articleids) {
-      for (i = 0; i < articleids.length; i++) {
+      for (let i = 0; i < articleids.length; i++) {
         if (articleids[i].idtype == "doi") {
-          doi = articleids[i].value;
+          let doi = articleids[i].value;
           return doi;
         }
       }
@@ -612,12 +625,12 @@ export default {
         if (value.booktitle) return value.booktitle;
         return value.source;
       } catch (error) {
-        return "";
+        return error;
       }
     },
     newSortMethod: function (event) {
-      obj = {};
-      for (j = 0; j < order.length; j++) {
+      let obj = {};
+      for (let j = 0; j < order.length; j++) {
         if (order[j].method == event.target.value) {
           obj = order[j];
           break;
@@ -632,28 +645,29 @@ export default {
       return model == this.pagesize;
     },
     getString: function (string) {
-      lg = this.language;
-      constant = messages[string][lg];
+      const lg = this.language;
+      let constant = messages[string][lg];
       return constant != undefined ? constant : messages[string]["dk"];
     },
     getTranslation: function (value) {
-      lg = this.language;
-      constant = value.translations[lg];
+      const lg = this.language;
+      let constant = value.translations[lg];
       return constant != undefined ? constant : value.translations["dk"];
     },
     changePageNumber: function (event) {
-      newPageSize = pageSizes[parseInt(event.target.options.selectedIndex)];
+      const newPageSize =
+        pageSizes[parseInt(event.target.options.selectedIndex)];
       // console.log(newPageSize);
       this.$emit("newPageSize", newPageSize);
     },
     getComponentWidth: function () {
-      container = this.$refs.searchResult;
+      let container = this.$refs.searchResult;
       if (!container.innerHTML) return;
       // console.log("thing", container, container.offsetWidth);
       return parseInt(container.offsetWidth);
     },
     addArticle: function (article) {
-      if (this.articles.hasOwnProperty(article.pmid)) {
+      if (Object.prototype.hasOwnProperty.call(this.articles, article.pmid)) {
         delete this.articles[article.pmid];
       }
 
@@ -810,7 +824,7 @@ export default {
     loadAbstracts: async function () {
       const self = this;
       let nlm = this.appSettings.nlm;
-      baseurl =
+      let baseurl =
         "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&tool=QuickPubMed" +
         "&email=" +
         nlm.email +
@@ -818,7 +832,7 @@ export default {
         nlm.key +
         "&retmode=xml&id=";
 
-      url = baseurl + self.idswithAbstractsToLoad.join(",");
+      let url = baseurl + self.idswithAbstractsToLoad.join(",");
       let axiosInstance = axios.create({
         headers: { Accept: "application/json, text/plain, */*" },
       });
@@ -855,11 +869,13 @@ export default {
       let loadData = axiosInstance
         .get(url, { retry: 10 })
         .then(function (resp) {
-          data = resp.data;
+          let data = resp.data;
+          let xmlDoc;
           if (window.DOMParser) {
-            parser = new DOMParser();
+            let parser = new DOMParser();
             xmlDoc = parser.parseFromString(data, "text/xml");
           } else {
+            // eslint-disable-next-line no-undef
             xmlDoc = new ActiveXObject("Microsoft.XMLDOM");
             xmlDoc.async = false;
             xmlDoc.loadXML(data);
@@ -870,15 +886,15 @@ export default {
           );
           let articleData = articles.map((article) => {
             let pmid = article.getElementsByTagName("PMID")[0].textContent;
-            sections = article.getElementsByTagName("AbstractText");
+            let sections = article.getElementsByTagName("AbstractText");
             if (sections.length == 1) {
               let abstractText = sections[0].textContent;
               return [pmid, abstractText];
             } else {
               let text = {};
-              for (i = 0; i < sections.length; i++) {
-                sectionName = sections[i].getAttribute("Label");
-                sectionText = sections[i].textContent;
+              for (let i = 0; i < sections.length; i++) {
+                let sectionName = sections[i].getAttribute("Label");
+                let sectionText = sections[i].textContent;
                 text[sectionName] = sectionText;
               }
               return [pmid, text];
@@ -906,7 +922,7 @@ export default {
       return this.high >= this.total || this.loading;
     },
     getPrettyTotal: function () {
-      format = languageFormat[this.language];
+      let format = languageFormat[this.language];
       return this.total.toLocaleString(format);
     },
     getOrderMethods: function () {
@@ -971,7 +987,7 @@ export default {
   mounted: function () {
     eventBus.$on("result-entry-show-abstract", this.openArticlesAccordion);
   },
-  beforeDestroy: function () {
+  beforeUnmount: function () {
     eventBus.$off("result-entry-show-abstract", this.openArticlesAccordion);
   },
 };

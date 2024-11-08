@@ -46,6 +46,7 @@ export const scopeIds = {
   s: "normal", //standard
   b: "broad", //broad
 };
+
 /**
  * Lille parameterforklaring til properties i denne liste:
  * simpleSearch: boolean - angiver om et givent filter skal kunne bruges ved en simpel søgning.

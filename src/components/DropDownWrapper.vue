@@ -221,6 +221,12 @@ import Multiselect from "vue-multiselect";
 
 import { appSettingsMixin } from "@/mixins/appSettings";
 import { messages } from "@/assets/content/qpm-translations.js";
+import { topics } from "@/assets/content/qpm-content-diabetes";
+import { filtrer, customInputTagTooltip } from "@/assets/content/qpm-content";
+import {
+  getPromptForLocale,
+  searchTranslationPrompt,
+} from "@/assets/content/qpm-openAiPrompts";
 
 export default {
   name: "DropDownWrapper",
@@ -384,14 +390,14 @@ export default {
         this.$refs.multiselect.deactivate();
       }
     },
-    close: function (value, id) {
+    close: function () {
       if (this.tempList.length > 0) return; //Check if any items have been clicked
 
       let input = this.$el.getElementsByClassName("multiselect__input")[0];
 
       this.setWidthToPlaceholderWidth(input);
     },
-    open: function (id) {
+    open: function () {
       this.$refs.multiselect.pointer = -1; // Remove highlight of non hovered items
     },
     /**
@@ -871,7 +877,7 @@ export default {
       this.input(this.selected, -1);
       this.clearShownItems();
     },
-    handleEditTag: function (tag) {
+    handleEditTag: function () {
       console.log("editTag");
     },
     handleUpdateCustomTag: function (oldTag, newTag) {
@@ -916,7 +922,7 @@ export default {
     /**
      * Blur handler needed to force groups to close if search is aborted
      */
-    handleOnBlur(event) {
+    handleOnBlur() {
       console.log("BLUR EVENT TRIGGERED");
       this.initialSetup();
     },
@@ -1100,7 +1106,7 @@ export default {
       var listItems = this.$refs.multiselect.$refs.list;
 
       // Remove highlighting due to group being open from all groups
-      itemsToUnHighlight = listItems.querySelectorAll(".qpm_groupExpanded");
+      let itemsToUnHighlight = listItems.querySelectorAll(".qpm_groupExpanded");
 
       for (let i = 0; i < itemsToUnHighlight.length; i++) {
         itemsToUnHighlight[i].classList.remove("qpm_groupExpanded");
@@ -1127,7 +1133,7 @@ export default {
      * @param {Object} newVal - The new value of maintopicToggledMap.
      * @param {Object} oldVal - The previous value of maintopicToggledMap.
      */
-    onMaintainTopicToggledMapChange(newVal, oldVal) {
+    onMaintainTopicToggledMapChange(newVal) {
       console.log("maintopicToggledMap changed:");
 
       Object.entries(newVal).forEach(([key, value]) => {
@@ -1267,7 +1273,7 @@ export default {
           //Not group
           return "single";
         }
-        for (j = 0; j < this.data[i].groups.length; j++) {
+        for (let j = 0; j < this.data[i].groups.length; j++) {
           if (this.data[i].groups[j].name == name) {
             return this.customGroupLabel(this.data[i]);
           }
@@ -1290,7 +1296,7 @@ export default {
       return hasFocusedSubject && !this.focusByHover;
     },
     getButtonColor: function (props, scope, index) {
-      classes = [];
+      let classes = [];
       if (scope == "narrow") {
         classes.push(this.qpm_buttonColor1);
       }
@@ -1423,13 +1429,13 @@ export default {
       if (this.hideTopics == null || this.hideTopics.length === 0) {
         return this.data;
       }
-      self = this;
+      let self = this;
       function isNotHidden(e) {
         return !self.isHiddenTopic(e.id);
       }
 
-      shown = this.data.filter(isNotHidden).map(function (e) {
-        copy = JSON.parse(JSON.stringify(e));
+      let shown = this.data.filter(isNotHidden).map(function (e) {
+        let copy = JSON.parse(JSON.stringify(e));
         if (copy.groups != undefined) {
           copy.groups = copy.groups.filter(isNotHidden);
         } else if (copy.choices != undefined) {
@@ -1522,7 +1528,12 @@ export default {
         if (group.groups && Array.isArray(group.groups)) {
           group.groups.forEach((item) => {
             if (item.maintopic) {
-              if (!this.maintopicToggledMap.hasOwnProperty(item.id)) {
+              if (
+                !Object.prototype.hasOwnProperty.call(
+                  this.maintopicToggledMap,
+                  item.id
+                )
+              ) {
                 this.maintopicToggledMap[item.id] = false;
               }
             }
@@ -1534,7 +1545,7 @@ export default {
     }
     this.$emit("mounted", this);
   },
-  updated: function (s) {
+  updated: function () {
     this.initialSetup();
   },
   watch: {

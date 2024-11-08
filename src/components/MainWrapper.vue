@@ -263,7 +263,7 @@
                   :class="{ qpm_shown: filters.length === 0 }"
                 >
                   <FilterEntry
-                    v-for="(selected, id, n) in filterData"
+                    v-for="(selected, id) in filterData"
                     :key="id"
                     :language="language"
                     :filterItem="getFilters(id)"
@@ -289,11 +289,15 @@
                   class="qpm_simpleFilters"
                 >
                   <template v-if="hasVisibleSimpleFilterOption(option.choices)">
-                    <b class="qpm_simpleFiltersHeader">
+                    <b
+                      v-bind:key="option.choice"
+                      class="qpm_simpleFiltersHeader"
+                    >
                       {{ customNameLabel(option) }}:
                     </b>
                     <div
                       v-for="(choice, index) in option.choices"
+                      v-bind:key="index"
                       v-if="choice.simpleSearch"
                       class="qpm_simpleFilters"
                       :id="'qpm_topic_' + choice.name"
@@ -432,13 +436,17 @@ import DropDownWrapper from "@/components/DropDownWrapper.vue";
 import FilterEntry from "@/components/FilterEntry.vue";
 import WordedSearchString from "@/components/WordedSearchString.vue";
 import SearchResult from "@/components/SearchResult.vue";
-import Spinner from "@/components/Spinner.vue";
-import Accordion from "@/components/Accordion.vue";
 
-import { order, filtrer } from "@/assets/content/qpm-content.js";
+import {
+  order,
+  filtrer,
+  scopeIds,
+  customInputTagTooltip,
+} from "@/assets/content/qpm-content.js";
 import { topics } from "@/assets/content/qpm-content-diabetes";
 import { messages } from "@/assets/content/qpm-translations.js";
 import { appSettingsMixin } from "@/mixins/appSettings";
+import axios from "axios";
 
 export default {
   name: "MainWrapper",
@@ -448,8 +456,6 @@ export default {
     FilterEntry,
     WordedSearchString,
     SearchResult,
-    Spinner,
-    Accordion,
   },
   props: {
     hideTopics: {
@@ -520,12 +526,12 @@ export default {
   created: function () {
     this.updatePlaceholder();
   },
-  beforeDestroy: function () {
+  beforeMount: function () {
     window.removeEventListener("resize", this.updateSubjectDropdownWidth);
   },
   watch: {
     subjectDropdown: {
-      handler(newVal) {
+      handler() {
         this.updatePlaceholders();
       },
       deep: true,
@@ -617,11 +623,11 @@ export default {
 
       const self = this;
       Object.keys(self.filterData).forEach(function (key) {
-        substring = "";
-        value = self.filterData[key];
-        hasOperators = false;
+        let substring = "";
+        let value = self.filterData[key];
+        let hasOperators = false;
         for (let i = 0; i < value.length; i++) {
-          scope = value[i].scope;
+          let scope = value[i].scope;
           //console.log(value[i].searchStrings[scope]);
           if (
             value[i].searchStrings[scope][0].indexOf("AND") >= 0 ||
@@ -637,7 +643,7 @@ export default {
         for (let i = 0; i < value.length; i++) {
           const val = value[i];
           if (i > 0) substring += " OR ";
-          scope = val.scope;
+          let scope = val.scope;
           if (
             (value[i].searchStrings[scope][0].indexOf("AND") >= 0 ||
               value[i].searchStrings[scope][0].indexOf("NOT") >= 0 ||
@@ -676,7 +682,7 @@ export default {
       return Math.min(this.pageSize * this.page + this.pageSize, this.count);
     },
     alwaysShowFilter: function () {
-      return Vue.prototype.$alwaysShowFilter;
+      return this.$alwaysShowFilter;
     },
     //20210216: Ole kan ikke få dette til at virke - har i stedet tilføjet ekstra div i linje 1707 (good fucking luck finding that line lol)
     searchHeaderShown: function () {
@@ -768,7 +774,7 @@ export default {
       this.filters = filters;
       let filterDataCopy = JSON.parse(JSON.stringify(this.filterData));
       Object.keys(filterDataCopy).forEach(function (key) {
-        value = filterDataCopy[key];
+        let value = filterDataCopy[key];
         for (let i = 0; i < value.length; i++) {
           if (!self.advanced) value[i].scope = "normal";
           if (
@@ -803,21 +809,21 @@ export default {
       }
       //console.log('hashtag', query.lastIndexOf("#"), query.substring(query.lastIndexOf("#")), vars);
       for (let i = 0; i < vars.length; i++) {
-        pair = vars[i].split("=");
-        key = decodeURIComponent(pair[0]);
-        value = decodeURIComponent(pair[1]).split(";;");
+        let pair = vars[i].split("=");
+        let key = decodeURIComponent(pair[0]);
+        let value = decodeURIComponent(pair[1]).split(";;");
         if (key == "subject") {
-          selected = [];
+          let selected = [];
           // All values from the URI in 1 subject field
           for (let j = 0; j < value.length; j++) {
-            hashtagIndex = value[j].indexOf("#");
-            id = value[j].substring(0, hashtagIndex);
-            scope = value[j].substring(hashtagIndex + 1, value[j].length);
+            let hashtagIndex = value[j].indexOf("#");
+            let id = value[j].substring(0, hashtagIndex);
+            let scope = value[j].substring(hashtagIndex + 1, value[j].length);
             //find subject
-            found = false;
-            group = id[1];
-            elem = id.slice(-2);
-            isId = !(id.startsWith("{{") && id.endsWith("}}"));
+            //let found = false; Unused variable
+            //let group = id[1]; Unused variable
+            //let elem = id.slice(-2); Unused variable
+            let isId = !(id.startsWith("{{") && id.endsWith("}}"));
 
             if (!isId) {
               var name = id.slice(2, -3);
@@ -850,7 +856,7 @@ export default {
             for (let k = 0; k < this.subjectOptions.length; k++) {
               for (let l = 0; l < this.subjectOptions[k].groups.length; l++) {
                 if (this.subjectOptions[k].groups[l].id == id) {
-                  tmp = JSON.parse(
+                  let tmp = JSON.parse(
                     JSON.stringify(this.subjectOptions[k].groups[l])
                   );
                   tmp.scope = scopeIds[scope];
@@ -859,7 +865,7 @@ export default {
                     tmp.translations[lg] = tmp.translations[lg].slice(1);
                   }
                   selected.push(tmp);
-                  found = true;
+                  // found = true; Unused variable
                 }
               }
             }
@@ -885,12 +891,12 @@ export default {
           this.preselectedPmidai = value ?? [];
         } else {
           //add filters
-          groupId = "";
+          let groupId = "";
           for (let k = 0; k < this.filterOptions.length; k++) {
             if (this.filterOptions[k].id == key) {
               //set filter
               groupId = this.filterOptions[k].id;
-              filter = JSON.parse(JSON.stringify(this.filterOptions[k]));
+              let filter = JSON.parse(JSON.stringify(this.filterOptions[k]));
               this.filters.push(filter);
             }
           }
@@ -898,7 +904,7 @@ export default {
 
           //Find entries in filters
           for (let j = 0; j < value.length; j++) {
-            hashtagIndex = value[j].indexOf("#");
+            let hashtagIndex = value[j].indexOf("#");
 
             // Skip values when they fail to define a scope.
             // Most often this happens when a null or undefined value is encountered.
@@ -912,18 +918,18 @@ export default {
               continue;
             }
 
-            id = value[j].substring(0, hashtagIndex);
-            scope = value[j].substring(hashtagIndex + 1, value[j].length);
+            let id = value[j].substring(0, hashtagIndex);
+            let scope = value[j].substring(hashtagIndex + 1, value[j].length);
             //Find filter
-            filterFound = false; //name=S101
-            group = Number.parseInt(id[1]);
+            //let filterFound = false; //name=S101 Unused variable
+            let group = Number.parseInt(id[1]);
             if (group <= 0) group = 1;
-            elem = Number.parseInt(id.slice(-2));
-            isId = !(id.startsWith("{{") && id.endsWith("}}")); // Check if this is a filter id or if it is a
+            //let elem = Number.parseInt(id.slice(-2)); Unused variable
+            let isId = !(id.startsWith("{{") && id.endsWith("}}")); // Check if this is a filter id or if it is a
 
             if (!isId) {
-              var name = id.slice(2, -3);
-              var translated = id.slice(-3, -2);
+              name = id.slice(2, -3);
+              translated = id.slice(-3, -2);
               if (Number(translated)) {
                 const tag = {
                   name: name,
@@ -948,6 +954,7 @@ export default {
                 continue;
               }
             }
+            let tmp;
             try {
               var groupIndex = parseInt(group) - 1;
               let choice = this.filterOptions[groupIndex].choices.find(
@@ -959,7 +966,7 @@ export default {
               if (choice != null) {
                 tmp = JSON.parse(JSON.stringify(choice));
               } else {
-                temp = null;
+                tmp = null;
               }
             } catch (error) {
               console.warn("parseUrl: Couldn't create tmp. Reason:\n", error);
@@ -970,11 +977,11 @@ export default {
               for (let l = 0; l < this.filterOptions[k].choices.length; l++) {
                 var choice = this.filterOptions[k].choices[l];
                 if (JSON.stringify(choice.id) == JSON.stringify(id)) {
-                  tmp = JSON.parse(JSON.stringify(choice));
+                  let tmp = JSON.parse(JSON.stringify(choice));
                   if (this.isUrlParsed && !this.advanced && !tmp.simpleSearch)
                     continue;
                   tmp.scope = scopeIds[scope];
-                  found = true;
+                  //let found = true; Unused variable
                 }
               }
             }
@@ -987,7 +994,7 @@ export default {
                 this.filterData[groupId] = [];
               }
               this.filterData[groupId].push(tmp);
-              filterFound = true;
+              //let filterFound = true; Unused variable
             }
           }
         }
@@ -1015,8 +1022,8 @@ export default {
       if (this.noSubjects) {
         return baseUrl;
       }
-      subjectsStr = "";
-      notEmptySubjects = 0;
+      let subjectsStr = "";
+      let notEmptySubjects = 0;
       for (let i = 0; i < this.subjects.length; i++) {
         if (this.subjects[i].length == 0) {
           continue;
@@ -1024,9 +1031,9 @@ export default {
         if (notEmptySubjects > 0) {
           subjectsStr += "&";
         }
-        subject = "subject=";
+        let subject = "subject=";
         for (let j = 0; j < this.subjects[i].length; j++) {
-          scope =
+          let scope =
             Object.keys(scopeIds)[Object.values(scopeIds).indexOf("normal")];
           if (this.advanced) {
             scope =
@@ -1034,7 +1041,7 @@ export default {
                 Object.values(scopeIds).indexOf(this.subjects[i][j].scope)
               ];
           }
-          tmp = this.subjects[i][j].id;
+          let tmp = this.subjects[i][j].id;
           if (tmp)
             subject += encodeURIComponent(this.subjects[i][j].id + "#" + scope);
           //Custom tag is surrounded by "{{ }}" to distinguish it
@@ -1058,11 +1065,11 @@ export default {
         subjectsStr += subject;
         notEmptySubjects++;
       }
-      filterStr = "";
-      if (this.advanced || Vue.prototype.$alwaysShowFilter) {
+      let filterStr = "";
+      if (this.advanced || this.$alwaysShowFilter) {
         const self = this;
         Object.keys(self.filterData).forEach(function (key) {
-          value = self.filterData[key];
+          let value = self.filterData[key];
           if (value.length == 0) {
             return;
           }
@@ -1084,17 +1091,17 @@ export default {
           }
         });
       }
-      advancedStr = "&advanced=" + this.advanced;
-      sorter = "&sort=" + encodeURIComponent(this.sort.method);
-      collapsedStr = "&collapsed=" + this.isCollapsed;
-      scrolltoStr = ""; // Added by Ole
+      let advancedStr = "&advanced=" + this.advanced;
+      let sorter = "&sort=" + encodeURIComponent(this.sort.method);
+      let collapsedStr = "&collapsed=" + this.isCollapsed;
+      let scrolltoStr = ""; // Added by Ole
       if (this.scrollToID != undefined) {
         // Added by Ole
         scrolltoStr = this.scrollToID; // Added by Ole
       } // Added by Ole
       let pageSize = "&pageSize=" + this.pageSize;
       let pmidai = "&pmidai=" + (this.preselectedPmidai ?? []).join(";;");
-      urlLink =
+      let urlLink =
         baseUrl +
         "?" +
         subjectsStr +
@@ -1109,7 +1116,7 @@ export default {
       return urlLink;
     },
     copyUrl: function () {
-      urlLink = this.getUrl(true);
+      let urlLink = this.getUrl(true);
 
       //Copy link to clipboard
       var dummy = document.createElement("textarea");
@@ -1176,12 +1183,12 @@ export default {
       }
     },
     updateSubjects: function (value, index) {
-      for (i = 0; i < value.length; i++) {
+      for (let i = 0; i < value.length; i++) {
         if (i > 0) this.isFirstFill = false;
         if (!value[i].scope) value[i].scope = "normal";
       }
       if (this.subjects.length > 1) this.isFirstFill = false;
-      sel = JSON.parse(JSON.stringify(this.subjects));
+      let sel = JSON.parse(JSON.stringify(this.subjects));
       sel[index] = value;
       this.subjects = sel;
 
@@ -1212,7 +1219,7 @@ export default {
         " }"
       );
       let sel = JSON.parse(JSON.stringify(this.subjects));
-      for (i = 0; i < sel[index].length; i++) {
+      for (let i = 0; i < sel[index].length; i++) {
         if (sel[index][i].name == item.name) {
           sel[index][i].scope = state;
           break;
@@ -1223,11 +1230,12 @@ export default {
       this.editForm();
     },
     updateFilters: function (value, index) {
+      console.log(`index|${index}`);
       console.log("updateFilters");
       this.filters = JSON.parse(JSON.stringify(value));
       //Update selected filters
-      newOb = {};
-      for (i = 0; i < this.filters.length; i++) {
+      let newOb = {};
+      for (let i = 0; i < this.filters.length; i++) {
         const item = this.filters[i].id;
         if (this.filterData[item]) {
           newOb[item] = this.filterData[item];
@@ -1240,10 +1248,10 @@ export default {
       this.editForm();
     },
     updateFilterAdvanced: function (value, index) {
-      for (i = 0; i < value.length; i++) {
+      for (let i = 0; i < value.length; i++) {
         if (!value[i].scope) value[i].scope = "normal";
       }
-      temp = JSON.parse(JSON.stringify(this.filterData));
+      let temp = JSON.parse(JSON.stringify(this.filterData));
       temp[index] = value;
       this.filterData = temp;
       this.setUrl();
@@ -1252,15 +1260,15 @@ export default {
     updateFilterSimple: function (filterType, selectedValue) {
       selectedValue.scope = "normal";
       var test = document.getElementById(selectedValue.name);
-      temp = JSON.parse(JSON.stringify(this.filterData));
+      let temp = JSON.parse(JSON.stringify(this.filterData));
       const self = this;
-      filter = undefined;
+      let filter = undefined;
       if (!temp[filterType]) {
         temp[filterType] = [];
         if (temp[filterType].includes(selectedValue)) return;
         temp[filterType].push(selectedValue);
         //Apply to this.filters
-        for (i = 0; i < self.filterOptions.length; i++) {
+        for (let i = 0; i < self.filterOptions.length; i++) {
           if (self.filterOptions[i].id === filterType)
             self.filters.push(self.filterOptions[i]);
         }
@@ -1269,28 +1277,28 @@ export default {
           if (temp[filterType].includes(selectedValue)) return;
           temp[filterType].push(selectedValue);
           //Apply to this.filters
-          for (i = 0; i < self.filters.length; i++) {
+          for (let i = 0; i < self.filters.length; i++) {
             if (self.filters[i].id == filterType) {
               filter = self.filters[i];
               break;
             }
           }
           if (!filter) {
-            for (i = 0; i < self.filterOptions; i++) {
+            for (let i = 0; i < self.filterOptions; i++) {
               if (self.filterOptions[i].id === filterType)
                 self.filters.push(self.filterOptions[i]);
               break;
             }
           }
         } else {
-          for (i = 0; i < temp[filterType].length; i++) {
+          for (let i = 0; i < temp[filterType].length; i++) {
             if (temp[filterType][i].name === selectedValue.name) {
               temp[filterType].splice(i, 1);
               if (temp[filterType].length === 0) {
                 delete temp[filterType];
 
                 //Remove from this.filters
-                for (i = 0; i < self.filters.length; i++) {
+                for (let i = 0; i < self.filters.length; i++) {
                   if (
                     JSON.stringify(self.filters[i].id) ==
                     JSON.stringify(filterType)
@@ -1321,9 +1329,9 @@ export default {
     selectStandardSimple: function () {
       const self = this;
       const filtersToSelect = [];
-      for (i = 0; i < self.filterOptions.length; i++) {
+      for (let i = 0; i < self.filterOptions.length; i++) {
         const option = self.filterOptions[i];
-        for (j = 0; j < option.choices.length; j++) {
+        for (let j = 0; j < option.choices.length; j++) {
           const choice = option.choices[j];
           if (choice.standardSimple) {
             const filterValue = Object.assign({ scope: "normal" }, choice);
@@ -1337,7 +1345,7 @@ export default {
 
       const tempFilters = JSON.parse(JSON.stringify(this.filterData));
       // Update selected filters here.
-      for (i = 0; i < filtersToSelect.length; i++) {
+      for (let i = 0; i < filtersToSelect.length; i++) {
         const filterToSelect = filtersToSelect[i];
         const filterType = filterToSelect.option.id;
         const filtervalue = filterToSelect.value;
@@ -1354,7 +1362,7 @@ export default {
     },
     updateScopeFilter: function (item, state, index) {
       let sel = JSON.parse(JSON.stringify(this.filterData));
-      for (i = 0; i < sel[index].length; i++) {
+      for (let i = 0; i < sel[index].length; i++) {
         if (sel[index][i].name == item.name) {
           sel[index][i].scope = state;
           break;
@@ -1365,7 +1373,7 @@ export default {
       this.editForm();
     },
     getFilters: function (name) {
-      for (i = 0; i < this.filters.length; i++) {
+      for (let i = 0; i < this.filters.length; i++) {
         if (this.filters[i].id == name) {
           return this.filters[i];
         }
@@ -1374,7 +1382,7 @@ export default {
     },
     isFilterUsed: function (option, name) {
       if (!option) return false;
-      for (i = 0; i < option.length; i++) {
+      for (let i = 0; i < option.length; i++) {
         if (option[i].name === name) return true;
       }
       return false;
@@ -1416,10 +1424,10 @@ export default {
     reloadScripts: function () {
       //Remove scripts from header
       var scripts = document.head.getElementsByTagName("script");
-      var links = document.getElementsByTagName("link");
-      var il = links.length;
-      var is = scripts.length,
-        ial = is;
+      //var links = document.getElementsByTagName("link"); Unused variable
+      //var il = links.length; Unused variable
+      var is = scripts.length;
+      //ial = is; Unused variable
       while (is--) {
         //console.log(scripts[is].parentNode)
         if (scripts[is].id === "dimension" || scripts[is].id === "altmetric") {
@@ -1431,10 +1439,10 @@ export default {
       scripts = document.body.getElementsByTagName("script");
       var scriptArray = Array.from(scripts);
       scriptArray.splice(0, 1);
-      (is = scriptArray.length), (ial = is);
-      //console.log(is)
+      is = scriptArray.length;
+      // ial = is; Unused variable
+
       while (is--) {
-        //console.log(scriptArray[is])
         if (
           scriptArray[is].src.startsWith("https://api.altmetric.com/v1/pmid") ||
           scriptArray[is].src.startsWith("https://api.altmetric.com/v1/doi")
@@ -1447,7 +1455,8 @@ export default {
       );
       var containerArray = Array.from(containers);
 
-      (is = containerArray.length), (ial = is);
+      is = containerArray.length;
+      //ial = is; Unused variable
       console.log("reloadScripts: is: " + is);
       while (is--) {
         containerArray[is].parentNode.removeChild(containerArray[is]);
@@ -1514,11 +1523,11 @@ export default {
               let data = [];
               let obj = resp2.data.result;
               if (!obj) {
-                console.log("Error: Search was no success", err, resp2);
+                console.log("Error: Search was no success", resp2);
                 self.searchLoading = false;
                 return;
               }
-              for (i = 0; i < obj.uids.length; i++) {
+              for (let i = 0; i < obj.uids.length; i++) {
                 data.push(obj[obj.uids[i]]);
               }
               self.count = parseInt(resp.data.esearchresult.count);
@@ -1614,11 +1623,11 @@ export default {
               let data = [];
               let obj = resp2.data.result;
               if (!obj) {
-                console.log("Error: Search was no success", err, resp2);
+                console.log("Error: Search was no success", resp2);
                 self.searchLoading = false;
                 return;
               }
-              for (i = 0; i < obj.uids.length; i++) {
+              for (let i = 0; i < obj.uids.length; i++) {
                 data.push(obj[obj.uids[i]]);
               }
               self.count = parseInt(resp.data.esearchresult.count);
@@ -1657,7 +1666,7 @@ export default {
         if (!obj) {
           throw Error("Search failed", resp);
         }
-        for (i = 0; i < obj.uids.length; i++) {
+        for (let i = 0; i < obj.uids.length; i++) {
           data.push(obj[obj.uids[i]]);
         }
 
@@ -1676,7 +1685,8 @@ export default {
     },
     showSearchError: function (err) {
       let message = this.getString("searchErrorGeneric");
-      this.searchError = Error(message, (options = { cause: err }));
+      let option = { cause: err };
+      this.searchError = Error(message, option);
     },
     nextPage: function () {
       this.page++;
@@ -1769,7 +1779,7 @@ export default {
           /(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino/i.test(
             a
           ) ||
-          /1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i.test(
+          /1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw-(n|u)|c55\/|capi|ccwa|cdm-|cell|chtm|cldc|cmd-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc-s|devi|dica|dmob|do(c|p)o|ds(12|-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(-|_)|g1 u|g560|gene|gf-5|g-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd-(m|p|t)|hei-|hi(pt|ta)|hp( i|ip)|hs-c|ht(c(-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i-(20|go|ma)|i230|iac( |-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|-[a-w])|libw|lynx|m1-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|-([1-8]|c))|phil|pire|pl(ay|uc)|pn-2|po(ck|rt|se)|prox|psio|pt-g|qa-a|qc(07|12|21|32|60|-[2-7]|i-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h-|oo|p-)|sdk\/|se(c(-|0|1)|47|mc|nd|ri)|sgh-|shar|sie(-|m)|sk-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h-|v-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl-|tdg-|tel(i|m)|tim-|t-mo|to(pl|sh)|ts(70|m-|m3|m5)|tx-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas-|your|zeto|zte-/i.test(
             a.substr(0, 4)
           )
         )
@@ -1807,7 +1817,7 @@ export default {
         return this.getString("translatingPlaceholder");
       }
       if (this.advanced) {
-        width = this.subjectDropdownWidth;
+        let width = this.subjectDropdownWidth;
         if (this.checkIfMobile() || (width < 520 && width != 0)) {
           return this.getString("subjectadvancedplaceholder_mobile");
         } else {
@@ -1833,6 +1843,7 @@ export default {
       }
     },
     updatePlaceholders(index) {
+      console.log(`Index|${index}`);
       if (this.$refs.subjectDropdown && this.$refs.subjectDropdown.length > 0) {
         this.$refs.subjectDropdown.forEach((_, index) => {
           this.updatePlaceholder(false, index);

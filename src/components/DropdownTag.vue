@@ -45,6 +45,8 @@
 </template>
 
 <script>
+import { messages } from "@/assets/content/qpm-translations";
+import { customInputTagTooltip } from "@/assets/content/qpm-content.js";
 export default {
   name: "DropdownTag",
   props: {
@@ -166,6 +168,4 @@ export default {
 };
 </script>
 
-<style scoped>
-/* Component-specific styles (optional) */
-</style>
+<style scoped></style>

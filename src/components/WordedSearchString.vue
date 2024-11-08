@@ -208,6 +208,8 @@
 <script>
 import { appSettingsMixin } from "@/mixins/appSettings";
 import { messages } from "@/assets/content/qpm-translations.js";
+import { filtrer, order } from "@/assets/content/qpm-content.js";
+import { topics } from "@/assets/content/qpm-content-diabetes.js";
 
 export default {
   name: "WordedSearchString",
@@ -371,7 +373,7 @@ export default {
       textarea.setSelectionRange(0, 99999);
       document.execCommand("copy");
     },
-    selectAndCopy(event) {
+    selectAndCopy() {
       this.copyTextfieldFunction();
     },
   },
@@ -414,6 +416,7 @@ export default {
         try {
           if (this.subjects[i].length > 0) return i;
         } catch (error) {
+          console.error(error);
           continue;
         }
       }
@@ -425,6 +428,7 @@ export default {
         try {
           if (this.filters[filter[i]][0].name) return i;
         } catch (error) {
+          console.error(error);
           continue;
         }
       }
@@ -434,6 +438,4 @@ export default {
 };
 </script>
 
-<style scoped>
-/* Component-specific styles (optional) */
-</style>
+<style scoped></style>

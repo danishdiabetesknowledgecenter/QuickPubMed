@@ -734,8 +734,15 @@ import Accordion from "@/components/Accordion.vue";
 import AiSummaries from "@/components/AiSummaries.vue";
 import SummarizeArticleNoAbstract from "@/components/SummarizeArticleNoAbstract.vue";
 import Translation from "@/components/Translation.vue";
+import axios from "axios";
 
 import { appSettingsMixin } from "@/mixins/appSettings";
+import { eventBus } from "@/mixins/appSettings";
+import { messages } from "@/assets/content/qpm-translations";
+import {
+  abstractSummaryPrompts,
+  summarizeArticlePrompt,
+} from "@/assets/content/qpm-openAiPrompts";
 
 export default {
   name: "ResultEntry",
@@ -799,6 +806,7 @@ export default {
       type: Array,
       required: true,
     },
+    // eslint-disable-next-line vue/require-prop-type-constructor
     selectable: false,
     modelValue: { type: [Array, Boolean] },
     value: { type: [Array, Boolean, Object] },
@@ -890,7 +898,7 @@ export default {
     getDoiLink: function () {
       if (this.doi) {
         return "https://doi.org/" + this.doi;
-      }
+      } else return "";
     },
     getPubmedRelated: function () {
       return (
@@ -922,7 +930,7 @@ export default {
     getUnpaywall: function () {
       if (this.doi) {
         return "https://unpaywall.org/" + this.doi;
-      }
+      } else return "";
     },
     /**
      * Check api response for the url for the pdf version of the article
@@ -967,12 +975,12 @@ export default {
     getOaHtml: function () {
       if (this.getHasOaHtml) {
         return this.unpaywallResponse.best_oa_location.url_for_landing_page;
-      }
+      } else return "";
     },
     getOaPdf: function () {
       if (this.getHasOaPdf) {
         return this.unpaywallResponse.best_oa_location.url;
-      }
+      } else return "";
     },
     getGoogleScholar: function () {
       if (this.pmid != null) {
@@ -1001,14 +1009,14 @@ export default {
         div.innerHTML = this.vernaculartitle;
         var text = div.textContent || div.innerText || "";
         return text.replace(/<\/?[^>]+(>|$)/g, "");
-      }
+      } else return "";
     },
     //
     calculateAuthors: function () {
-      authorArray = this.author.split(",");
+      let authorArray = this.author.split(",");
       if (!this.shownSixAuthors || authorArray.length <= 6) return this.author;
-      shownAuthors = "";
-      for (i = 0; i < 6; i++) {
+      let shownAuthors = "";
+      for (let i = 0; i < 6; i++) {
         if (i > 0) shownAuthors += ",";
         shownAuthors += " " + authorArray[i];
       }
@@ -1021,11 +1029,11 @@ export default {
         document.documentElement.clientWidth ||
         document.body.clientWidth;
 
-      var heigth =
+      /* var heigth =
         window.innerHeight ||
         document.documentElement.clientHeight ||
         document.body.clientHeight;
-
+      Unused variable */
       return width;
     },
     checkIfMobile: function () {
@@ -1035,7 +1043,7 @@ export default {
           /(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino/i.test(
             a
           ) ||
-          /1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i.test(
+          /1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw-(n|u)|c55\/|capi|ccwa|cdm-|cell|chtm|cldc|cmd-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc-s|devi|dica|dmob|do(c|p)o|ds(12|-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(-|_)|g1 u|g560|gene|gf-5|g-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd-(m|p|t)|hei-|hi(pt|ta)|hp( i|ip)|hs-c|ht(c(-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i-(20|go|ma)|i230|iac( |-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|-[a-w])|libw|lynx|m1-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|-([1-8]|c))|phil|pire|pl(ay|uc)|pn-2|po(ck|rt|se)|prox|psio|pt-g|qa-a|qc(07|12|21|32|60|-[2-7]|i-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h-|oo|p-)|sdk\/|se(c(-|0|1)|47|mc|nd|ri)|sgh-|shar|sie(-|m)|sk-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h-|v-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl-|tdg-|tel(i|m)|tim-|t-mo|to(pl|sh)|ts(70|m-|m3|m5)|tx-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas-|your|zeto|zte-/i.test(
             a.substr(0, 4)
           )
         )
@@ -1045,6 +1053,7 @@ export default {
     },
     mobileResult: function () {
       if (this.getDoiLink) return { "flex-direction": "row" };
+      else return "";
     },
     showArticleButtons: function () {
       return this.showButtons;
@@ -1054,7 +1063,7 @@ export default {
       return false;
     },
     getAbstractId: function () {
-      divName = this.getAbstractDivName;
+      let divName = this.getAbstractDivName;
       return divName + "_" + this._uid;
     },
     getHyperLink: function () {
@@ -1113,8 +1122,10 @@ export default {
       }
       return this.modelValue;
     },
+    // eslint-disable-next-line vue/no-async-in-computed-properties
     getArticlesPromise: async function () {
       var articles = [this.getArticle];
+      // eslint-disable-next-line vue/no-async-in-computed-properties
       return Promise.resolve(articles);
     },
   },
@@ -1230,7 +1241,7 @@ export default {
       // on the next frame (as soon as the previous style change has taken effect),
       // explicitly set the element's height to its current pixel height, so we
       // aren't transitioning out of 'auto'
-      element.addEventListener("transitionend", function (e) {
+      element.addEventListener("transitionend", function () {
         // remove this event listener so it only gets triggered once
         element.removeEventListener("transitionend", arguments.callee);
 
@@ -1249,7 +1260,7 @@ export default {
       element.style.height = sectionHeight + "px";
 
       // when the next css transition finishes (which should be the one we just triggered)
-      element.addEventListener("transitionend", function (e) {
+      element.addEventListener("transitionend", function () {
         // remove this event listener so it only gets triggered once
         element.removeEventListener("transitionend", arguments.callee);
 
@@ -1260,8 +1271,10 @@ export default {
       // mark the section as "currently not collapsed"
       element.setAttribute("data-collapsed", "false");
     },
-    handleClickEvent: function (event) {
-      eventClass = this.abstractLoaded ? "qpm_shadow" : "qpm_abstractContainer";
+    handleClickEvent: function () {
+      let eventClass = this.abstractLoaded
+        ? "qpm_shadow"
+        : "qpm_abstractContainer";
       var section = document.querySelector(eventClass);
       var isCollapsed = section.getAttribute("data-collapsed") === "true";
 
@@ -1273,19 +1286,20 @@ export default {
       }
     },
     getString: function (string) {
-      lg = this.language;
-      constant = messages[string][lg];
+      const lg = this.language;
+      let constant = messages[string][lg];
       return constant != undefined ? constant : messages[string]["dk"];
     },
     getTranslation: function (value) {
-      lg = this.language;
-      constant = value.translations[lg];
+      const lg = this.language;
+      let constant = value.translations[lg];
       return constant != undefined ? constant : value.translations["dk"];
     },
     customNameLabel: function (option) {
       if (!option.name && !option.groupname) return;
+      let constant;
       if (option.id) {
-        lg = this.language;
+        const lg = this.language;
         constant =
           option.translations[lg] != undefined
             ? option.translations[lg]
@@ -1297,19 +1311,19 @@ export default {
     },
     customGroupLabel: function (option) {
       if (!option) return;
-      lg = this.language;
-      constant = option.translations[lg];
+      const lg = this.language;
+      let constant = option.translations[lg];
       return constant != undefined ? constant : option.translations["dk"];
     },
     loadUnpaywallApiResponse: async function () {
       if (!this.doi) return undefined;
 
-      self = this;
-      url =
+      let self = this;
+      let url =
         "https://api.unpaywall.org/v2/" +
         this.doi +
         "?email=admin@videncenterfordiabetes.dk";
-      timeout = 15 * 1000; //15 second timeout
+      let timeout = 15 * 1000; //15 second timeout
       await axios
         .get(url, { timeout: timeout })
         .then(function (resp) {
@@ -1442,7 +1456,7 @@ export default {
     // This is to ensure all badges to be loaded properly
     // given there are multiple occurrences of <specific-articles/>
 
-    self = this;
+    this.self = this;
     if (this.id != null) {
       this.abstractId = `abstract${this.id}`;
     } else {
@@ -1459,7 +1473,7 @@ export default {
   beforeUpdate: function () {
     this.checkPreload();
   },
-  beforeDestroy: function () {
+  beforeUnmount: function () {
     eventBus.$off(
       "result-entry-show-abstract",
       this.onEventBusShowAbstractEvent
