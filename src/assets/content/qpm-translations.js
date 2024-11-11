@@ -1,4 +1,6 @@
-const messages = {
+import { aiURL } from "@/config/settings";
+
+export const messages = {
   standardString: {
     dk: "test",
     en: "test",
