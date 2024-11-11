@@ -1,4 +1,1 @@
-For better dx use the extension es6-string-html
-and comment /*html*/ infront of the string literals for the template 
-
-TODO Update README
+[<img alt="Deployed with FTP Deploy Action" src="https://img.shields.io/badge/Deployed With-FTP DEPLOY ACTION-%3CCOLOR%3E?style=for-the-badge&color=2b9348">](https://github.com/SamKirkland/FTP-Deploy-Action)
