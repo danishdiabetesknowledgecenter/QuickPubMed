@@ -34,12 +34,11 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: dist
-          server-dir: ./  # Replace with your server's directory
-          protocol: ftp  # Use 'ftps' if applicable
-          # Optional: Exclude certain files or folders
-          # exclude: |
-          #   .git*
-          #   node_modules
-          #   *.map
-          #   *.env
+          local-dir: ./dist/ # Only move the build folder
+          server-dir: ./  # Deploy to the root of the server (is also the default)
+          protocol: ftp  
+          exclude: |
+             .git*
+             node_modules
+             *.map
+             *.env
