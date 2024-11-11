@@ -35,7 +35,7 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./dist/ # Only move the build folder
-          server-dir: ./  # Deploy to the root of the server (is also the default)
+          server-dir: ./qpm/dev/latest/test/  
           protocol: ftp  
           exclude: |
              .git*
