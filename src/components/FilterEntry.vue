@@ -1,30 +1,33 @@
 <template>
-  <div class="qpm_filterEntry" style="width: 110.7%">
+  <div
+    class="qpm_filterEntry"
+    style="width: 110.7%"
+  >
     <p>{{ customNameLabel(filterItem) }}</p>
     <DropDownWrapper
-      :isMultiple="true"
+      ref="dropdown"
+      :is-multiple="true"
       :data="filterItem.choices"
-      :hideTopics="hideTopics"
-      :isGroup="false"
+      :hide-topics="hideTopics"
+      :is-group="false"
       :placeholder="placeholderText"
       :operator="calcOrOperator"
       :taggable="filterItem.allowCustomInput"
       :selected="selected"
       :index="idx"
-      :closeOnInput="false"
+      :close-on-input="false"
       :language="language"
       qpm_buttonColor1="qpm_buttonColor4"
       qpm_buttonColor2="qpm_buttonColor5"
       qpm_buttonColor3="qpm_buttonColor6"
       v-on="$listeners"
-      ref="dropdown"
     />
   </div>
 </template>
 
 <script>
 import DropDownWrapper from "@/components/DropDownWrapper.vue";
-
+import { messages } from "@/assets/content/qpm-translations";
 export default {
   name: "FilterEntry",
   components: {
@@ -59,6 +62,36 @@ export default {
       dropdownWidth: 0,
     };
   },
+  computed: {
+    placeholderText() {
+      if (this.filterItem.allowCustomInput) {
+        const isMobileWidth =
+          this.dropdownWidth < 520 && this.dropdownWidth !== 0;
+        let manualInputText = "manualInput";
+
+        if (isMobileWidth) {
+          manualInputText += "_mobile";
+        }
+
+        return (
+          this.getString("select") +
+          " " +
+          this.customNameLabel(this.filterItem).toLowerCase() +
+          (isMobileWidth ? "" : " ") +
+          this.getString(manualInputText)
+        );
+      } else {
+        return (
+          this.getString("select") +
+          " " +
+          this.customNameLabel(this.filterItem).toLowerCase()
+        );
+      }
+    },
+    calcOrOperator() {
+      return this.getString("orOperator");
+    },
+  },
   mounted() {
     this.updateDropdownWidth();
     window.addEventListener("resize", this.updateDropdownWidth);
@@ -90,36 +123,6 @@ export default {
       const dropdown = this.$refs.dropdown.$refs.selectWrapper;
       if (!dropdown.innerHTML) return;
       this.dropdownWidth = parseInt(dropdown.offsetWidth);
-    },
-  },
-  computed: {
-    placeholderText() {
-      if (this.filterItem.allowCustomInput) {
-        const isMobileWidth =
-          this.dropdownWidth < 520 && this.dropdownWidth !== 0;
-        let manualInputText = "manualInput";
-
-        if (isMobileWidth) {
-          manualInputText += "_mobile";
-        }
-
-        return (
-          this.getString("select") +
-          " " +
-          this.customNameLabel(this.filterItem).toLowerCase() +
-          (isMobileWidth ? "" : " ") +
-          this.getString(manualInputText)
-        );
-      } else {
-        return (
-          this.getString("select") +
-          " " +
-          this.customNameLabel(this.filterItem).toLowerCase()
-        );
-      }
-    },
-    calcOrOperator() {
-      return this.getString("orOperator");
     },
   },
 };

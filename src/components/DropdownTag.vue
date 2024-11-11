@@ -7,8 +7,8 @@
     @focus.capture.stop
   >
     <span
-      class="multiselect__tag"
       v-tooltip="{ content: getTooltip, offset: 5, delay: helpTextDelay }"
+      class="multiselect__tag"
       :class="getTagColor(triple.option.scope)"
       @click.stop="startEdit"
     >
@@ -19,16 +19,16 @@
         </p>
         <input
           v-show="isEditMode"
+          ref="editInput"
+          v-model="getCustomNameLabel"
           type="text"
           minlength="1"
-          v-model="getCustomNameLabel"
           @keydown.left.stop
           @keydown.right.stop
           @focus.stop
           @blur.stop="endEdit"
           @keyup.enter.stop="endEdit"
-          ref="editInput"
-        />
+        >
       </span>
       <span v-else>
         {{ triple.option.preString }}{{ getCustomNameLabel }}
@@ -38,7 +38,7 @@
         tabindex="-1"
         class="multiselect__tag-icon"
         @click.stop="triple.remove(triple.option)"
-      ></i>
+      />
     </span>
     <span class="qpm_operator">{{ operator }}</span>
   </div>
@@ -90,6 +90,30 @@ export default {
       helpTextDelay: 300,
     };
   },
+  computed: {
+    getCustomNameLabel: {
+      get() {
+        const label = this.customNameLabel(this.tag);
+        return label ? label : " ";
+      },
+      set(newName) {
+        this.tag.name = newName;
+        this.tag.searchStrings.normal = [newName];
+      },
+    },
+    getTooltip() {
+      let tooltip = null;
+      if (this.tag.tooltip) {
+        tooltip = this.tag.tooltip[this.language];
+      }
+      return tooltip;
+    },
+  },
+  watch: {
+    triple(newTriple) {
+      this.tag = newTriple.option;
+    },
+  },
   methods: {
     getString(string) {
       const lg = this.language;
@@ -139,30 +163,6 @@ export default {
         return this.qpm_buttonColor3;
       }
       return "";
-    },
-  },
-  computed: {
-    getCustomNameLabel: {
-      get() {
-        const label = this.customNameLabel(this.tag);
-        return label ? label : " ";
-      },
-      set(newName) {
-        this.tag.name = newName;
-        this.tag.searchStrings.normal = [newName];
-      },
-    },
-    getTooltip() {
-      let tooltip = null;
-      if (this.tag.tooltip) {
-        tooltip = this.tag.tooltip[this.language];
-      }
-      return tooltip;
-    },
-  },
-  watch: {
-    triple(newTriple) {
-      this.tag = newTriple.option;
     },
   },
 };

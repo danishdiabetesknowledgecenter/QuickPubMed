@@ -8,17 +8,21 @@
       v-for="(question, index) in questions"
       :key="index"
       :title="question"
-      :openByDefault="true"
+      :open-by-default="true"
     >
-      <template v-slot:header="accordionProps">
-        <div ref="headerText" class="qpm_aiAccordionHeader">
+      <template #header="accordionProps">
+        <div
+          ref="headerText"
+          class="qpm_aiAccordionHeader"
+        >
           <i
             v-if="accordionProps.expanded"
             class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
-          >
-          </i>
-          <i v-else class="bx bx-chevron-right qpm_aiAccordionHeaderArrows">
-          </i>
+          />
+          <i
+            v-else
+            class="bx bx-chevron-right qpm_aiAccordionHeaderArrows"
+          />
           <i
             class="bx bx-help-circle"
             style="
@@ -27,42 +31,43 @@
               margin-left: 3px;
               margin-right: 5px;
             "
-          >
-          </i>
+          />
           {{ question }}
         </div>
       </template>
-      <template v-slot:default>
-        <div :style="getAnswerStyle(index)" class="answer-text">
+      <template #default>
+        <div
+          :style="getAnswerStyle(index)"
+          class="answer-text"
+        >
           {{ answers[index] }}
         </div>
       </template>
     </Accordion>
 
     <Spinner
-      class="qpm_searchMore"
       v-if="isLoadingResponse"
+      class="qpm_searchMore"
       :loading="true"
-      :waitText="getString('aiSummaryWaitText')"
+      :wait-text="getString('aiSummaryWaitText')"
       :size="35"
-    >
-    </Spinner>
+    />
 
     <div style="display: flex">
       <input
-        class="question-input"
         v-model="userQuestionInput"
-        :disabled="isLoadingResponse"
-        :placeholder="getString('userQuestionInputPlaceholder')"
-        :title="getString('userQuestionInputHoverText')"
         v-tooltip="{
           content: getString('userQuestionInputHoverText'),
           offset: 5,
           delay: $helpTextDelay,
           hideOnTargetClick: false,
         }"
+        class="question-input"
+        :disabled="isLoadingResponse"
+        :placeholder="getString('userQuestionInputPlaceholder')"
+        :title="getString('userQuestionInputHoverText')"
         @keyup.enter="handleQuestionForArticle"
-      />
+      >
       <button
         class="qpm_button"
         style="margin: 10px"
@@ -73,7 +78,10 @@
       </button>
     </div>
 
-    <p v-if="errorMessage" class="error-message">
+    <p
+      v-if="errorMessage"
+      class="error-message"
+    >
       {{ errorMessage }}
     </p>
   </div>
@@ -90,33 +98,25 @@ import { questionHeaderHeightWatcherMixin } from "@/mixins/questionHeaderHeightW
 
 export default {
   name: "QuestionForArticle",
+  components: {
+    Accordion,
+    Spinner,
+  },
   mixins: [
     appSettingsMixin,
     utilitiesMixin,
     summarizeArticleMixin,
     questionHeaderHeightWatcherMixin,
   ],
-  components: {
-    Accordion,
-    Spinner,
-  },
-  data() {
-    return {
-      questions: [],
-      answers: [],
-      errorMessage: "",
-      isError: false,
-      isLoadingResponse: false,
-      userQuestionInput: null,
-    };
-  },
   props: {
     htmlUrl: {
       type: String,
+      default: "",
       required: false,
     },
     pdfUrl: {
       type: String,
+      default: "",
       required: false,
     },
     promptLanguageType: {
@@ -127,6 +127,16 @@ export default {
       type: String,
       default: "dk",
     },
+  },
+  data() {
+    return {
+      questions: [],
+      answers: [],
+      errorMessage: "",
+      isError: false,
+      isLoadingResponse: false,
+      userQuestionInput: null,
+    };
   },
   methods: {
     async handleQuestionForArticle() {
@@ -204,14 +214,6 @@ export default {
       this.questions = [...this.questions, ...response.questions];
       this.answers = [...this.answers, ...response.answers];
       return response;
-    },
-    getString(key) {
-      // Implement your localization logic here
-      return key;
-    },
-    getAnswerStyle(index) {
-      // Implement your dynamic styling logic here
-      return {};
     },
   },
 };

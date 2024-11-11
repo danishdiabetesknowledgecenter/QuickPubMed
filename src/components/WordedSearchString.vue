@@ -1,14 +1,20 @@
 <template>
-  <div class="qpm_wordedSearchString" v-if="!details || details">
-    <div v-if="!isCollapsed" class="qpm_toggleDetails">
+  <div
+    v-if="!details || details"
+    class="qpm_wordedSearchString"
+  >
+    <div
+      v-if="!isCollapsed"
+      class="qpm_toggleDetails"
+    >
       <p
         v-if="subjects !== ''"
-        tabindex="0"
         v-tooltip="{
           content: details && getString('hoverDetailsText'),
           offset: 5,
           delay: helpTextDelay,
         }"
+        tabindex="0"
         data-html="true"
         class="qpm_advancedSearch"
         style="float: none"
@@ -19,15 +25,18 @@
         <a v-else>{{ getString("hideDetails") }}</a>
       </p>
     </div>
-    <div v-if="subjects !== '' && (!details || isCollapsed)" class="qpm_middle">
+    <div
+      v-if="subjects !== '' && (!details || isCollapsed)"
+      class="qpm_middle"
+    >
       <p
         v-if="!advancedString"
-        tabindex="0"
         v-tooltip="{
           content: getString('hoverShowSearchStringText'),
           offset: 5,
           delay: helpTextDelay,
         }"
+        tabindex="0"
         class="qpm_advancedSearch"
         style="margin: -5px 0 5px 30px"
         @click="toggleAdvanced"
@@ -37,12 +46,12 @@
       </p>
       <p
         v-else
-        tabindex="0"
         v-tooltip="{
           content: getString('hoverShowPrettyStringText'),
           offset: 5,
           delay: helpTextDelay,
         }"
+        tabindex="0"
         class="qpm_advancedSearch"
         style="margin: -5px 0 5px 30px"
         @click="toggleAdvanced"
@@ -62,10 +71,10 @@
       <div v-if="!advancedString">
         <span>{{ getSearchPreString }}</span>
         <div
-          class="qpm_searchStringSubjectGroup"
-          v-if="group.length > 0"
           v-for="(group, idx) in subjects"
+          v-if="group.length > 0"
           :key="idx"
+          class="qpm_searchStringSubjectGroup"
         >
           <span
             v-if="
@@ -81,15 +90,15 @@
           >
             <div
               v-for="(subjectObj, idx2) in group"
-              class="qpm_searchStringWordGroupWrapper"
               :key="idx2"
+              class="qpm_searchStringWordGroupWrapper"
             >
               <span class="qpm_wordedStringSubject">
                 {{ getWordedSubjectString(subjectObj) }}
               </span>
               <span
-                class="qpm_wordedStringOperator"
                 v-if="!subjectObj.preString"
+                class="qpm_wordedStringOperator"
               >
                 {{ getScope(subjectObj) }}
               </span>
@@ -100,31 +109,43 @@
                 {{ getString("orOperator").toLowerCase() }}
               </span>
             </div>
-            <div v-if="group.length > 0" class="qpm_halfBorder"></div>
+            <div
+              v-if="group.length > 0"
+              class="qpm_halfBorder"
+            />
           </div>
         </div>
-        <br />
+        <br>
         <span v-if="!filterIsEmpty">
-          <div class="qpm_hideonmobile" style="padding-top: 10px"></div>
+          <div
+            class="qpm_hideonmobile"
+            style="padding-top: 10px"
+          />
           {{ getString("where") }}
         </span>
         <div
-          v-if="Object.keys(filters).length > 0"
           v-for="(value, name, idx) in filters"
-          class="qpm_searchStringFilterGroup"
+          v-if="Object.keys(filters).length > 0"
           :key="name"
+          class="qpm_searchStringFilterGroup"
         >
-          <span v-if="idx > 0" class="qpm_searchStringGroupOperator">
+          <span
+            v-if="idx > 0"
+            class="qpm_searchStringGroupOperator"
+          >
             {{ getString("andOperator").toLowerCase() }}
           </span>
           <span class="qpm_searchStringGroupWhere">
             {{ getWordedFilterString(name) }} {{ getString("is") }}
           </span>
-          <div v-if="value.length !== 0" class="qpm_searchStringWordGroup">
+          <div
+            v-if="value.length !== 0"
+            class="qpm_searchStringWordGroup"
+          >
             <div
               v-for="(filterObj, idx2) in value"
-              class="qpm_searchStringWordGroupWrapper"
               :key="idx2"
+              class="qpm_searchStringWordGroupWrapper"
             >
               <span class="qpm_wordedStringSubject">
                 {{ getWordedFilterString(filterObj) }}
@@ -139,13 +160,19 @@
                 {{ getString("orOperator").toLowerCase() }}
               </span>
             </div>
-            <div class="qpm_halfBorder"></div>
+            <div class="qpm_halfBorder" />
           </div>
         </div>
       </div>
       <div v-else>
         <textarea
           ref="searchStringTextarea"
+          v-model="searchstring"
+          v-tooltip.bottom="{
+            content: getString('hoverSearchString'),
+            offset: 5,
+            delay: helpTextDelay,
+          }"
           style="
             width: 100%;
             resize: vertical;
@@ -154,48 +181,42 @@
             padding: 10px;
             margin-bottom: 4px;
           "
-          @keyup.enter="copyTextfieldFunction()"
-          @click="selectAndCopy"
-          v-tooltip.bottom="{
-            content: getString('hoverSearchString'),
-            offset: 5,
-            delay: helpTextDelay,
-          }"
           readonly
           name="searchstring"
-          v-model="searchstring"
           rows="6"
-        ></textarea>
+          @keyup.enter="copyTextfieldFunction()"
+          @click="selectAndCopy"
+        />
       </div>
       <div v-if="!isCollapsed || (isCollapsed && advancedString)">
         <div
           v-if="!advancedString"
           style="border-top: solid 1px #e7e7e7; margin: 15px 0"
-        ></div>
+        />
         <p class="intext-arrow-link onHoverJS qpm_pubmedLink">
           <a
-            target="_blank"
-            :href="getPubMedLink"
             v-tooltip="{
               content: getString('hoverShowPubMedLinkText'),
               offset: 5,
               delay: helpTextDelay,
               trigger: 'hover',
             }"
+            target="_blank"
+            :href="getPubMedLink"
           >
             {{ getString("showPubMedLink") }}
           </a>
         </p>
         <p class="intext-arrow-link onHoverJS qpm_pubmedLink">
           <a
-            target="_blank"
-            :href="getPubMedLinkCreateAlert"
             v-tooltip="{
               content: getString('hoverShowPubMedLinkCreateAlertText'),
               offset: 5,
               delay: helpTextDelay,
               trigger: 'hover',
             }"
+            target="_blank"
+            :href="getPubMedLinkCreateAlert"
           >
             {{ getString("createPubMedAlert") }}
           </a>
@@ -256,6 +277,64 @@ export default {
     return {
       helpTextDelay: 300, // Define helpTextDelay or fetch from mixin
     };
+  },
+  computed: {
+    filterIsEmpty() {
+      if (this.filters) {
+        let count = 0;
+        Object.keys(this.filters).forEach((key) => {
+          count += this.filters[key].length;
+        });
+        return count === 0;
+      }
+      return true;
+    },
+    getPubMedLink() {
+      return `https://pubmed.ncbi.nlm.nih.gov/?myncbishare=${
+        this.appSettings.nlm.myncbishare
+      }&term=${encodeURIComponent(this.searchstring)}`;
+    },
+    getPubMedLinkCreateAlert() {
+      return `https://account.ncbi.nlm.nih.gov/?back_url=${encodeURIComponent(
+        "https://pubmed.ncbi.nlm.nih.gov/?&term="
+      )}${encodeURIComponent(this.searchstring)}${encodeURIComponent(
+        "#open-saved-search-panel"
+      )}`;
+    },
+    getSearchPreString() {
+      let count = 0;
+      for (let i = 0; i < this.subjects.length; i++) {
+        count += this.subjects[i].length;
+      }
+      if (count > 1) {
+        return this.getString("searchPreStringPlural");
+      } else {
+        return this.getString("searchPreStringSingular");
+      }
+    },
+    checkFirstSubjectRender() {
+      for (let i = 0; i < this.subjects.length; i++) {
+        try {
+          if (this.subjects[i].length > 0) return i;
+        } catch (error) {
+          console.error(error);
+          continue;
+        }
+      }
+      return -1;
+    },
+    checkFirstFilterRender() {
+      const filter = Object.keys(this.filters);
+      for (let i = 0; i < filter.length; i++) {
+        try {
+          if (this.filters[filter[i]][0].name) return i;
+        } catch (error) {
+          console.error(error);
+          continue;
+        }
+      }
+      return -1;
+    },
   },
   methods: {
     toggleAdvanced() {
@@ -375,64 +454,6 @@ export default {
     },
     selectAndCopy() {
       this.copyTextfieldFunction();
-    },
-  },
-  computed: {
-    filterIsEmpty() {
-      if (this.filters) {
-        let count = 0;
-        Object.keys(this.filters).forEach((key) => {
-          count += this.filters[key].length;
-        });
-        return count === 0;
-      }
-      return true;
-    },
-    getPubMedLink() {
-      return `https://pubmed.ncbi.nlm.nih.gov/?myncbishare=${
-        this.appSettings.nlm.myncbishare
-      }&term=${encodeURIComponent(this.searchstring)}`;
-    },
-    getPubMedLinkCreateAlert() {
-      return `https://account.ncbi.nlm.nih.gov/?back_url=${encodeURIComponent(
-        "https://pubmed.ncbi.nlm.nih.gov/?&term="
-      )}${encodeURIComponent(this.searchstring)}${encodeURIComponent(
-        "#open-saved-search-panel"
-      )}`;
-    },
-    getSearchPreString() {
-      let count = 0;
-      for (let i = 0; i < this.subjects.length; i++) {
-        count += this.subjects[i].length;
-      }
-      if (count > 1) {
-        return this.getString("searchPreStringPlural");
-      } else {
-        return this.getString("searchPreStringSingular");
-      }
-    },
-    checkFirstSubjectRender() {
-      for (let i = 0; i < this.subjects.length; i++) {
-        try {
-          if (this.subjects[i].length > 0) return i;
-        } catch (error) {
-          console.error(error);
-          continue;
-        }
-      }
-      return -1;
-    },
-    checkFirstFilterRender() {
-      const filter = Object.keys(this.filters);
-      for (let i = 0; i < filter.length; i++) {
-        try {
-          if (this.filters[filter[i]][0].name) return i;
-        } catch (error) {
-          console.error(error);
-          continue;
-        }
-      }
-      return -1;
     },
   },
 };

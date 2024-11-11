@@ -1,35 +1,38 @@
 <template>
-  <div ref="container" style="margin-top: 20px">
+  <div
+    ref="container"
+    style="margin-top: 20px"
+  >
     <!-- TITLE Notice the entire article can be summarized -->
     <p style="margin-bottom: 20px">
       <strong>{{ getString("summarizeArticleNotice") }}</strong>
     </p>
 
     <button
-      class="qpm_button"
-      :disabled="isSummaryLoading || isLoadingQuestions || isError"
-      @click="handleSummarizeArticle"
       v-tooltip="{
         content: getString('hoverAskQuestionText'),
         offset: 5,
         delay: helpTextDelay,
         hideOnTargetClick: false,
       }"
+      class="qpm_button"
+      :disabled="isSummaryLoading || isLoadingQuestions || isError"
+      @click="handleSummarizeArticle"
     >
       <i
         class="bx bx-file"
         style="vertical-align: baseline; font-size: 1em"
-      ></i>
+      />
       {{ getString("generatePdfQuestionsButtonText") }}
     </button>
 
     <Spinner
-      class="qpm_searchMore"
       v-if="isLoadingQuestions"
+      class="qpm_searchMore"
       :loading="true"
-      :waitText="getString('aiSummaryWaitText')"
+      :wait-text="getString('aiSummaryWaitText')"
       :size="35"
-    ></Spinner>
+    />
 
     <div v-if="isArticle">
       <!-- TITLE summarize entire article -->
@@ -42,18 +45,18 @@
         v-for="(question, index) in questions.slice(0, 7)"
         :key="index"
         :title="questionShortenMapDanish[question] || question"
-        :openByDefault="false"
+        :open-by-default="false"
       >
-        <template v-slot:header="accordionProps">
+        <template #header="accordionProps">
           <div class="qpm_aiAccordionHeader">
             <i
               v-if="accordionProps.expanded"
               class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
-            ></i>
+            />
             <i
               v-else
               class="bx bx-chevron-right qpm_aiAccordionHeaderArrows"
-            ></i>
+            />
             <i
               class="bx bx-credit-card-front"
               style="
@@ -62,11 +65,11 @@
                 margin-left: 3px;
                 margin-right: 5px;
               "
-            ></i>
+            />
             {{ questionShortenMapDanish[question] || question }}
           </div>
         </template>
-        <template v-slot:default>
+        <template #default>
           <div class="answer-text">
             {{ answers[index] }}
           </div>
@@ -83,18 +86,21 @@
         v-for="(question, index) in questions.slice(7)"
         :key="index + 7"
         :title="questionShortenMapDanish[question] || question"
-        :openByDefault="false"
+        :open-by-default="false"
       >
-        <template v-slot:header="accordionProps">
-          <div ref="headerText" class="qpm_aiAccordionHeader">
+        <template #header="accordionProps">
+          <div
+            ref="headerText"
+            class="qpm_aiAccordionHeader"
+          >
             <i
               v-if="accordionProps.expanded"
               class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
-            ></i>
+            />
             <i
               v-else
               class="bx bx-chevron-right qpm_aiAccordionHeaderArrows"
-            ></i>
+            />
             <i
               class="bx bx-help-circle"
               style="
@@ -103,13 +109,16 @@
                 margin-left: 3px;
                 margin-right: 5px;
               "
-            ></i>
+            />
             {{ question }}
           </div>
         </template>
 
-        <template v-slot:default>
-          <div :style="getAnswerStyle(index)" class="answer-text">
+        <template #default>
+          <div
+            :style="getAnswerStyle(index)"
+            class="answer-text"
+          >
             {{ answers[index + 7] }}
           </div>
         </template>
@@ -118,17 +127,20 @@
       <!-- User input for asking questions for an article -->
       <QuestionForArticle
         v-if="!isLoadingQuestions"
-        :pdfUrl="pdfUrl"
-        :htmlUrl="htmlUrl"
+        :pdf-url="pdfUrl"
+        :html-url="htmlUrl"
         :language="language"
-        :promptLanguageType="promptLanguageType"
-      ></QuestionForArticle>
+        :prompt-language-type="promptLanguageType"
+      />
     </div>
 
     <p v-if="scrapingError">
       {{ getString("scrapingError") }}
     </p>
-    <p v-if="errorMessage" class="error-message">
+    <p
+      v-if="errorMessage"
+      class="error-message"
+    >
       {{ errorMessage }}
     </p>
   </div>
@@ -146,6 +158,11 @@ import { questionHeaderHeightWatcherMixin } from "@/mixins/questionHeaderHeightW
 
 export default {
   name: "SummarizeArticle",
+  components: {
+    Accordion,
+    Spinner,
+    QuestionForArticle,
+  },
   mixins: [
     appSettingsMixin,
     utilitiesMixin,
@@ -153,24 +170,6 @@ export default {
     summarizeArticleMixin,
     questionHeaderHeightWatcherMixin,
   ],
-  components: {
-    Accordion,
-    Spinner,
-    QuestionForArticle,
-  },
-  data() {
-    return {
-      isArticle: false,
-      questions: [],
-      answers: [],
-      isLoadingQuestions: false,
-      isError: false,
-      errorMessage: "",
-      scrapingError: false,
-      promptLanguageType: "",
-      helpTextDelay: 300, // Define helpTextDelay or fetch from mixin
-    };
-  },
   props: {
     htmlUrl: {
       type: String,
@@ -195,25 +194,16 @@ export default {
       required: false,
     },
   },
-  methods: {
-    handleSummarizeArticle() {
-      // Implement the method logic based on your mixin
-      console.log("Summarize Article button clicked");
-      // Example: Call a method from summarizeArticleServiceMixin
-      this.fetchSummarizeArticle();
-    },
-    getString(key) {
-      // Implement your localization logic here
-      return key;
-    },
-    getAnswerStyle(index) {
-      // Implement your dynamic styling logic here
-      return {};
-    },
-  },
-  created() {
-    console.log("SummarizeArticle component created");
-    // You can add event listeners if needed
+  data() {
+    return {
+      isArticle: false,
+      questions: [],
+      answers: [],
+      isLoadingQuestions: false,
+      isError: false,
+      errorMessage: "",
+      scrapingError: false,
+    };
   },
 };
 </script>

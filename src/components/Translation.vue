@@ -3,54 +3,65 @@
     v-if="showingTranslation"
     class="qpm_searchSummaryText qpm_searchSummaryTextBackground qpm_searchTranslatedTitle"
   >
-    <Spinner :loading="loading" style="display: inline-block" />
+    <Spinner
+      :loading="loading"
+      style="display: inline-block"
+    />
     <div v-if="useMarkdown && canRenderMarkdown">
-      <VueShowdown :options="{ smoothLivePreview: true }" :markdown="text" />
+      <VueShowdown
+        :options="{ smoothLivePreview: true }"
+        :markdown="text"
+      />
     </div>
-    <p v-else>{{ text }}</p>
+    <p v-else>
+      {{ text }}
+    </p>
     <div style="margin-top: 20px; margin-left: 5px">
       <button
         v-if="writing"
-        class="qpm_button"
-        @click="clickStop"
         v-tooltip="{
           content: getString('hoverretryText'),
           offset: 5,
           delay: helpTextDelay,
           hideOnTargetClick: false,
         }"
+        class="qpm_button"
+        @click="clickStop"
       >
-        <i class="bx bx-stop-circle"></i> {{ getString("stopText") }}
+        <i class="bx bx-stop-circle" /> {{ getString("stopText") }}
       </button>
       <button
         v-if="translationLoaded"
-        class="qpm_button"
-        @click="clickRetry"
         v-tooltip="{
           content: getString('hoverretryText'),
           offset: 5,
           delay: helpTextDelay,
           hideOnTargetClick: false,
         }"
+        class="qpm_button"
+        @click="clickRetry"
       >
         <i
           class="bx bx-refresh"
           style="vertical-align: baseline; font-size: 1em"
-        ></i>
+        />
         {{ getString("retryText") }}
       </button>
       <button
-        class="qpm_button"
-        :disabled="loading"
-        @click="clickCopy"
         v-tooltip="{
           content: getString('hovercopyText'),
           offset: 5,
           delay: helpTextDelay,
           hideOnTargetClick: false,
         }"
+        class="qpm_button"
+        :disabled="loading"
+        @click="clickCopy"
       >
-        <i class="bx bx-copy" style="vertical-align: baseline"></i>
+        <i
+          class="bx bx-copy"
+          style="vertical-align: baseline"
+        />
         {{ getString("copyText") }}
       </button>
     </div>
@@ -58,22 +69,27 @@
       v-if="!loading"
       class="qpm_translationDisclaimer"
       v-html="getString('translationDisclaimer')"
-    ></p>
+    />
   </div>
 </template>
 
 <script>
-import Spinner from "@/components/Spinner.vue";
 import VueShowdown from "vue-showdown";
-import { appSettingsMixin } from "@/mixins/appSettings";
+import Spinner from "@/components/Spinner.vue";
+import { appSettingsMixin } from "@/mixins/appSettings.js";
+import { messages } from "@/assets/content/qpm-translations.js";
+import {
+  getPromptForLocale,
+  titleTranslationPrompt,
+} from "@/assets/content/qpm-openAiPrompts.js";
 
 export default {
   name: "Translation",
-  mixins: [appSettingsMixin],
   components: {
     Spinner,
     VueShowdown,
   },
+  mixins: [appSettingsMixin],
   props: {
     showingTranslation: {
       type: Boolean,

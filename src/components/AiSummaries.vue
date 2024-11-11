@@ -5,13 +5,14 @@
         <button
           v-for="prompt in prompts"
           :id="prompt.name"
-          class="qpm_tab"
+          :key="prompt.name"
           v-tooltip="{
             content: getTabTooltipContent(prompt),
             delay: $helpTextDelay,
           }"
-          @click="clickSummaryTab(prompt)"
+          class="qpm_tab"
           :class="{ qpm_tab_active: prompt.name == currentSummary }"
+          @click="clickSummaryTab(prompt)"
         >
           {{ getTranslation(prompt) }}
         </button>
@@ -30,39 +31,44 @@
               style="margin-right: -12px; margin-top: -3px; border: 0"
               :disabled="getCurrentIndex + 1 >= getCurrentSummaryHistory.length"
               @click="clickHistoryItem(getCurrentIndex + 1)"
-            ></button>
+            />
             {{ getCurrentSummaryHistory.length - getCurrentIndex
-            }}<span style="padding: 0 3px">/</span
-            >{{ getCurrentSummaryHistory.length }}
+            }}<span style="padding: 0 3px">/</span>{{ getCurrentSummaryHistory.length }}
             <button
               class="qpm_summary_icon bx bx-chevron-right"
               style="margin-left: -12px; margin-top: -3px; border: 0"
               :disabled="getCurrentIndex <= 0"
               @click="clickHistoryItem(getCurrentIndex - 1)"
-            ></button>
+            />
           </template>
 
           <button
             class="qpm_summary_icon bx bx-x"
-            @click="clickCloseSummary"
             style="
               margin-left: 20px;
               margin-top: -5px;
               border: 1px solid #e7e7e7;
             "
-          ></button>
+            @click="clickCloseSummary"
+          />
         </div>
-        <div v-if="!getCurrentSummary" class="qpm_searchSummaryText">
+        <div
+          v-if="!getCurrentSummary"
+          class="qpm_searchSummaryText"
+        >
           <p>
             <strong>{{ summaryConsentHeader }}</strong>
           </p>
           <p v-if="summarySearchSummaryConsentText != null">
             {{ summarySearchSummaryConsentText }}
           </p>
-          <p v-html="getString('aiSummaryConsentText')"></p>
-          <p v-html="getString('readAboutAiSummaryText')"></p>
+          <p v-html="getString('aiSummaryConsentText')" />
+          <p v-html="getString('readAboutAiSummaryText')" />
         </div>
-        <div v-else class="qpm_searchSummaryResponseBox">
+        <div
+          v-else
+          class="qpm_searchSummaryResponseBox"
+        >
           <div
             v-if="getDidCurrentSummaryError"
             class="qpm_searchSummaryText qpm_searchSummaryErrorText"
@@ -72,7 +78,7 @@
                 <i
                   class="bx bx-error"
                   style="font-size: 30px; line-height: 0; margin: -4px 4px 0 0"
-                ></i>
+                />
                 <strong>{{ errorHeader }}</strong>
               </p>
               <p>{{ getCurrentSummary?.body }}</p>
@@ -110,92 +116,102 @@
                         'aiSummarizeFirstFewSearchResultHeaderAfterCountWarning'
                       )
                     "
-                  ></p>
-                </div>
-                <div v-if="useMarkdown && canRenderMarkdown" ref="summary">
-                  <VueShowdown
-                    :options="{ smoothLivePreview: true }"
-                    @click.native.capture="onMarkdownClick"
-                    :markdown="getCurrentSummary.body"
                   />
                 </div>
-                <p v-else ref="summary">{{ getCurrentSummary?.body }}</p>
+                <div
+                  v-if="useMarkdown && canRenderMarkdown"
+                  ref="summary"
+                >
+                  <VueShowdown
+                    :options="{ smoothLivePreview: true }"
+                    :markdown="getCurrentSummary.body"
+                    @click.native.capture="onMarkdownClick"
+                  />
+                </div>
+                <p
+                  v-else
+                  ref="summary"
+                >
+                  {{ getCurrentSummary?.body }}
+                </p>
                 <div style="margin: 20px 5px">
                   <button
                     v-if="getIsSummaryLoading"
-                    class="qpm_button"
-                    @click="clickStop"
                     v-tooltip="{
                       content: getString('hoverretryText'),
                       offset: 5,
                       delay: $helpTextDelay,
                       hideOnTargetClick: false,
                     }"
+                    class="qpm_button"
+                    @click="clickStop"
                   >
-                    <i class="bx bx-stop-circle"></i>
+                    <i class="bx bx-stop-circle" />
                     {{ getString("stopText") }}
                   </button>
 
                   <button
                     v-if="!getIsSummaryLoading"
-                    class="qpm_button"
-                    @click="clickRetry"
                     v-tooltip="{
                       content: getString('hoverretryText'),
                       offset: 5,
                       delay: $helpTextDelay,
                       hideOnTargetClick: false,
                     }"
+                    class="qpm_button"
+                    @click="clickRetry"
                   >
                     <i
                       class="bx bx-refresh"
                       style="vertical-align: baseline; font-size: 1em"
-                    ></i>
+                    />
                     {{ getString("retryText") }}
                   </button>
 
                   <button
-                    class="qpm_button"
-                    :disabled="getIsSummaryLoading"
-                    @click="clickCopy"
                     v-tooltip="{
                       content: getString('hovercopyText'),
                       offset: 5,
                       delay: $helpTextDelay,
                       hideOnTargetClick: false,
                     }"
+                    class="qpm_button"
+                    :disabled="getIsSummaryLoading"
+                    @click="clickCopy"
                   >
-                    <i class="bx bx-copy" style="vertical-align: baseline"></i>
+                    <i
+                      class="bx bx-copy"
+                      style="vertical-align: baseline"
+                    />
                     {{ getString("copyText") }}
                   </button>
 
                   <summarize-article
                     v-if="
                       getUsePDFsummaryFlag &&
-                      showSummarizeArticle &&
-                      isLicenseAllowed &&
-                      isResourceAllowed &&
-                      isPubTypeAllowed
+                        showSummarizeArticle &&
+                        isLicenseAllowed &&
+                        isResourceAllowed &&
+                        isPubTypeAllowed
                     "
-                    :pdfUrl="pdfUrl"
-                    :htmlUrl="htmlUrl"
+                    :pdf-url="pdfUrl"
+                    :html-url="htmlUrl"
                     :language="language"
-                    :promptLanguageType="this.currentSummary"
-                    :isSummaryLoading="getIsSummaryLoading"
-                  >
-                  </summarize-article>
+                    :prompt-language-type="currentSummary"
+                    :is-summary-loading="getIsSummaryLoading"
+                  />
                 </div>
                 <p
                   class="qpm_summaryDisclaimer"
                   v-html="getString('aiSummaryDisclaimer')"
-                ></p>
+                />
               </div>
             </div>
           </template>
           <Spinner
             class="qpm_searchSummaryText"
-            :waitText="getString('aiSummaryWaitText')"
-            :waitDurationDisclaimer="getWaitTimeString"
+            :wait-text="getString('aiSummaryWaitText')"
+            :wait-duration-disclaimer="getWaitTimeString"
             :loading="isCurrentSummaryWaitingForResponse"
             style="align-self: center"
           />
@@ -209,26 +225,34 @@
 import Vue from "vue";
 import Spinner from "@/components/Spinner.vue";
 import VueShowdown from "vue-showdown";
-import { summarizeSummaryPrompts } from "@/assets/content/qpm-openAiPrompts";
-import { shortenAbstractPrompts } from "@/assets/content/qpm-openAiPrompts";
-import { getPromptForLocale } from "@/assets/content/qpm-openAiPrompts";
-import { appSettingsMixin } from "@/mixins/appSettings";
-import { eventBus } from "@/mixins/appSettings";
+import { appSettingsMixin, eventBus } from "@/mixins/appSettings.js";
+import { messages } from "@/assets/content/qpm-translations.js";
+import { languageFormat, dateOptions } from "@/assets/content/qpm-content.js";
+import {
+  summarizeSummaryPrompts,
+  shortenAbstractPrompts,
+  getPromptForLocale,
+} from "@/assets/content/qpm-openAiPrompts";
 
 export default {
   name: "AiSummaries",
-  mixins: [appSettingsMixin],
   components: {
     Spinner,
     VueShowdown,
     summarizeArticle: () => import("@/components/SummarizeArticle.vue"),
   },
+  mixins: [appSettingsMixin],
   props: {
     pubType: {
       type: Array,
+      default: () => [],
       required: false,
     },
-    license: String,
+    license: {
+      type: String, 
+      default: "", 
+      required: false
+    },
     isLicenseAllowed: {
       type: Boolean,
       default: false,
@@ -241,13 +265,25 @@ export default {
       type: Boolean,
       default: false,
     },
-    htmlUrl: String,
-    pdfUrl: String,
+    htmlUrl: {
+      type: String,
+      default: "",
+      required: false
+    },
+    pdfUrl: {
+      type: String, 
+      default: "", 
+      required: false
+    },
     showSummarizeArticle: {
       type: Boolean,
       default: false,
     },
-    articles: Array,
+    articles: {
+      type: Array,
+      default: () => [],
+      required: false,
+    },
     language: {
       type: String,
       default: "dk",
@@ -258,11 +294,13 @@ export default {
     },
     summaryConsentHeader: {
       type: String,
-      required: false, // Adjusted to false as SVGComponentTransferFunctionElement is invalid
+      default: "",
+      required: SVGComponentTransferFunctionElement, 
     },
     summarySearchSummaryConsentText: {
       type: String,
-      required: false, // Adjusted to false as SVGComponentTransferFunctionElement is invalid
+      default: null,
+      required: SVGComponentTransferFunctionElement, 
     },
     successHeader: {
       type: [String, Function],
@@ -314,6 +352,121 @@ export default {
       articleName: "",
       $helpTextDelay: 300, // Assuming a default value
     };
+  },
+  computed: {
+    getUsePDFsummaryFlag() {
+      return this.appSettings.openAi.usePDFsummary;
+    },
+    getIsSummaryLoading() {
+      return this.loadingSummaries.includes(this.currentSummary);
+    },
+    getCurrentSummaryHistory() {
+      if (!this.currentSummary) return null;
+
+      let currentSummaries = this.aiSearchSummaries[this.currentSummary];
+      return currentSummaries;
+    },
+    getCurrentIndex() {
+      let tabState = this.tabStates[this.currentSummary];
+      let index = tabState?.currentIndex ?? 0;
+      return index;
+    },
+    getCurrentSummary() {
+      let summaries = this.getCurrentSummaryHistory;
+
+      if (!summaries || summaries.length == 0) return undefined;
+
+      let index = this.getCurrentIndex;
+      return summaries[index];
+    },
+    getDidCurrentSummaryError() {
+      const summary = this.getCurrentSummary;
+      return summary?.status == "error";
+    },
+    isCurrentSummaryWaitingForResponse() {
+      const summary = this.getCurrentSummary;
+      return (
+        summary?.status == "loading" &&
+        (!summary?.body || summary.body.length == 0)
+      );
+    },
+    getWaitTimeString() {
+      const currentSummary = this.getCurrentSummary;
+      if (currentSummary == undefined || !currentSummary.showWaitDisclaimer)
+        return "";
+
+      const longAbstractLengthLimit =
+        this.appSettings.openAi.longAbstractLengthLimit ?? 5000;
+
+      const totalAbstractLength =
+        currentSummary?.articles?.reduce((acc, article) => {
+          return acc + article.abstract.length;
+        }, 0) ?? 0;
+
+      if (totalAbstractLength > longAbstractLengthLimit) {
+        return this.getString("aiLongWaitTimeDisclaimer");
+      } else {
+        return this.getString("aiShortWaitTimeDisclaimer");
+      }
+    },
+    getTabNames() {
+      return this.prompts.map((e) => e.name);
+    },
+    getSuccessHeader() {
+      if (typeof this.successHeader === "function") {
+        const currentSummary = this.getCurrentSummary;
+        let articles = currentSummary?.articles;
+        return (
+          articles &&
+          this.successHeader(articles, currentSummary.isMarkedArticlesSearch)
+        );
+      }
+      return this.successHeader;
+    },
+    canRenderMarkdown() {
+      const isVueShowdownRegistered =
+        !!this.$options.components["VueShowdown"] ||
+        !!this.$options.components["vue-showdown"];
+      return isVueShowdownRegistered;
+    },
+    languageFormat() {
+      // Define language formats as needed
+      return {
+        dk: {
+          /* date options */
+        },
+        // other languages
+      };
+    },
+    dateOptions() {
+      // Define date options as needed
+      return {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      };
+    },
+  },
+  watch: {
+    isLicenseAllowed(newVal) {
+      console.log("isLicenseAllowed changed:", newVal);
+    },
+    isResourceAllowed(newVal) {
+      console.log("isResourceAllowed changed:", newVal);
+    },
+    isPubTypeAllowed(newVal) {
+      console.log("isPubTypeAllowed changed:", newVal);
+    },
+  },
+  created() {
+    if (this.checkForPdf) {
+      this.articleName = this.getSelectedArticles()[0].title;
+    }
+  },
+  activated() {
+    if (this.initialTabPrompt != null) {
+      this.clickSummaryTab(this.initialTabPrompt);
+    }
   },
   methods: {
     getTranslation(value) {
@@ -451,7 +604,7 @@ export default {
       }
       this.generateAiSummary(tab);
     },
-    clickStop(event, moveFocus = false) {
+    clickStop() {
       this.stopGeneration = true;
     },
     clickRetry(event, moveFocus = false) {
@@ -525,121 +678,6 @@ export default {
       if (!tooltip) return null;
 
       return tooltip[this.language];
-    },
-  },
-  computed: {
-    getUsePDFsummaryFlag() {
-      return this.appSettings.openAi.usePDFsummary;
-    },
-    getIsSummaryLoading() {
-      return this.loadingSummaries.includes(this.currentSummary);
-    },
-    getCurrentSummaryHistory() {
-      if (!this.currentSummary) return null;
-
-      let currentSummaries = this.aiSearchSummaries[this.currentSummary];
-      return currentSummaries;
-    },
-    getCurrentIndex() {
-      let tabState = this.tabStates[this.currentSummary];
-      let index = tabState?.currentIndex ?? 0;
-      return index;
-    },
-    getCurrentSummary() {
-      let summaries = this.getCurrentSummaryHistory;
-
-      if (!summaries || summaries.length == 0) return undefined;
-
-      let index = this.getCurrentIndex;
-      return summaries[index];
-    },
-    getDidCurrentSummaryError() {
-      const summary = this.getCurrentSummary;
-      return summary?.status == "error";
-    },
-    isCurrentSummaryWaitingForResponse() {
-      const summary = this.getCurrentSummary;
-      return (
-        summary?.status == "loading" &&
-        (!summary?.body || summary.body.length == 0)
-      );
-    },
-    getWaitTimeString() {
-      const currentSummary = this.getCurrentSummary;
-      if (currentSummary == undefined || !currentSummary.showWaitDisclaimer)
-        return "";
-
-      const longAbstractLengthLimit =
-        this.appSettings.openAi.longAbstractLengthLimit ?? 5000;
-
-      const totalAbstractLength =
-        currentSummary?.articles?.reduce((acc, article) => {
-          return acc + article.abstract.length;
-        }, 0) ?? 0;
-
-      if (totalAbstractLength > longAbstractLengthLimit) {
-        return this.getString("aiLongWaitTimeDisclaimer");
-      } else {
-        return this.getString("aiShortWaitTimeDisclaimer");
-      }
-    },
-    getTabNames() {
-      return this.prompts.map((e) => e.name);
-    },
-    getSuccessHeader() {
-      if (typeof this.successHeader === "function") {
-        const currentSummary = this.getCurrentSummary;
-        let articles = currentSummary?.articles;
-        return (
-          articles &&
-          this.successHeader(articles, currentSummary.isMarkedArticlesSearch)
-        );
-      }
-      return this.successHeader;
-    },
-    canRenderMarkdown() {
-      const isVueShowdownRegistered =
-        !!this.$options.components["VueShowdown"] ||
-        !!this.$options.components["vue-showdown"];
-      return isVueShowdownRegistered;
-    },
-    languageFormat() {
-      // Define language formats as needed
-      return {
-        dk: {
-          /* date options */
-        },
-        // other languages
-      };
-    },
-    dateOptions() {
-      // Define date options as needed
-      return {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      };
-    },
-  },
-  created() {
-    if (this.checkForPdf) {
-      this.articleName = this.getSelectedArticles()[0].title;
-    }
-  },
-  activated() {
-    if (this.initialTabPrompt != null) {
-      this.clickSummaryTab(this.initialTabPrompt);
-    }
-  },
-  watch: {
-    isLicenseAllowed(newVal) {
-      console.log("isLicenseAllowed changed:", newVal);
-    },
-    isResourceAllowed(newVal) {
-      console.log("isResourceAllowed changed:", newVal);
-    },
-    isPubTypeAllowed(newVal) {
-      console.log("isPubTypeAllowed changed:", newVal);
     },
   },
 };

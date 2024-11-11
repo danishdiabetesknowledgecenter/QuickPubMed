@@ -1,22 +1,31 @@
 <template>
-  <div class="qpm_ResultEntry" :name="id" ref="result">
-    <Spinner :loading="loading"></Spinner>
-    <p class="qpm_resultentryDate" v-if="showDate">{{ date }}</p>
+  <div
+    ref="result"
+    class="qpm_ResultEntry"
+    :name="id"
+  >
+    <Spinner :loading="loading" />
+    <p
+      v-if="showDate"
+      class="qpm_resultentryDate"
+    >
+      {{ date }}
+    </p>
     <div lang="en">
       <div class="qpm_resultChangeOrder">
         <div class="d-flex">
           <input
             v-if="selectable && hasAbstract"
+            :id="'qpm_selectArticleCheckbox_' + id"
             type="checkbox"
             class="qpm_selectArticleCheckbox"
             style="margin-left: -30px"
-            :id="'qpm_selectArticleCheckbox_' + id"
             :name="'qpm_selectArticleCheckbox_' + id"
             :checked="isChecked"
             :value="value"
             @change="updateInput"
             @keyup.enter="changeOnEnter"
-          />
+          >
           <div style="margin-bottom: 10px">
             <label
               :for="
@@ -26,22 +35,22 @@
               "
             >
               <p
+                v-if="showArticleButtons || !hasAbstract"
                 style="display: inline"
                 class="qpm_resultTitle"
-                v-if="showArticleButtons || !hasAbstract"
               >
                 {{ getTitle }}<span v-if="!getTitle">{{ getBookTitle }}</span>
               </p>
               <p
+                v-if="!showArticleButtons && hasAbstract"
                 style="display: inline"
                 class="qpm_resultTitle qpm_resultTitleHover"
-                v-if="!showArticleButtons && hasAbstract"
                 @click="showAbstract"
               >
                 <span
                   v-if="getVernacularTitle && getVernacularTitle != getTitle"
                 >
-                  {{ getVernacularTitle }}<br />
+                  {{ getVernacularTitle }}<br>
                 </span>
                 {{ getTitle }}<span v-if="!getTitle">{{ getBookTitle }}</span>
               </p>
@@ -65,22 +74,20 @@
           </div>
         </div>
         <Translation
-          :showingTranslation="translationShowing"
+          :showing-translation="translationShowing"
           :title="
             getTitle
               ? getTitle
               : getBookTitle
-              ? getBookTitle
-              : getVernacularTitle
+                ? getBookTitle
+                : getVernacularTitle
           "
-        ></Translation>
+        />
         <div style="line-height: 1.5em">
           <p class="qpm_resultAuthors">
             <span v-if="calculateAuthors">{{ calculateAuthors }}.</span>
-            <span v-if="!calculateAuthors"
-              ><i>{{ getString("noAuthorsListed") }}</i></span
-            >
-            <br />
+            <span v-if="!calculateAuthors"><i>{{ getString("noAuthorsListed") }}</i></span>
+            <br>
           </p>
         </div>
       </div>
@@ -91,8 +98,7 @@
           <span v-if="pubDate">{{ pubDate }}</span>
           <span v-if="volume">;{{ volume }}</span>
           <span v-if="issue">({{ issue }})</span>
-          <span v-if="pages">:{{ pages }}</span
-          >.
+          <span v-if="pages">:{{ pages }}</span>.
         </p>
       </div>
     </div>
@@ -149,8 +155,14 @@
           {{ getString("openDoi") }}
         </button>
       </div>
-      <div v-if="id !== ''" class="qpm_badges_mobile rs_skip">
-        <div v-if="usePubMed" class="qpm_badges_mobile_grid">
+      <div
+        v-if="id !== ''"
+        class="qpm_badges_mobile rs_skip"
+      >
+        <div
+          v-if="usePubMed"
+          class="qpm_badges_mobile_grid"
+        >
           <span
             v-if="showAltmetricBadge"
             class="altmetric-embed qpm_altmetrics"
@@ -159,7 +171,7 @@
             data-link-target="_blank"
             :data-doi="doi"
             :data-pmid="pmid"
-          ></span>
+          />
           <span
             v-if="showDimensionsBadge"
             class="__dimensions_badge_embed__ qpm_dimensions"
@@ -168,7 +180,7 @@
             data-legend="never"
             :data-doi="doi"
             :data-pmid="pmid"
-          ></span>
+          />
         </div>
         <div v-else>
           <span
@@ -178,7 +190,7 @@
             data-hide-no-mentions="true"
             data-link-target="_blank"
             :data-doi="doi"
-          ></span>
+          />
           <span
             v-if="showDimensionsBadge"
             class="__dimensions_badge_embed__ qpm_dimensions"
@@ -186,12 +198,15 @@
             data-hide-zero-citations="true"
             data-legend="never"
             :data-doi="doi"
-          ></span>
+          />
         </div>
       </div>
     </div>
     <div v-else>
-      <div v-if="showArticleButtons" class="qpm_resultButtons">
+      <div
+        v-if="showArticleButtons"
+        class="qpm_resultButtons"
+      >
         <button
           v-if="hasAbstract || pmid || doi"
           v-tooltip="{
@@ -236,7 +251,10 @@
           {{ getString("openDoi") }}
         </button>
       </div>
-      <div v-if="id !== null" class="qpm_badges rs_skip">
+      <div
+        v-if="id !== null"
+        class="qpm_badges rs_skip"
+      >
         <div v-if="usePubMed">
           <span
             v-if="showAltmetricBadge"
@@ -247,7 +265,7 @@
             data-link-target="_blank"
             :data-doi="doi"
             :data-pmid="pmid"
-          ></span>
+          />
           <span
             v-if="showDimensionsBadge"
             class="__dimensions_badge_embed__ qpm_dimensions"
@@ -256,7 +274,7 @@
             data-legend="hover-top"
             :data-doi="doi"
             :data-pmid="pmid"
-          ></span>
+          />
         </div>
         <div v-else>
           <span
@@ -267,7 +285,7 @@
             data-hide-no-mentions="true"
             data-link-target="_blank"
             :data-doi="doi"
-          ></span>
+          />
           <span
             v-if="showDimensionsBadge"
             class="__dimensions_badge_embed__ qpm_dimensions"
@@ -275,7 +293,7 @@
             data-hide-zero-citations="true"
             data-legend="hover-top"
             :data-doi="doi"
-          ></span>
+          />
         </div>
       </div>
     </div>
@@ -283,27 +301,30 @@
       v-if="hyperLink != null && hyperLink.length > 0"
       class="intext-arrow-link onHoverJS qpm_pubmedLink"
     >
-      <a target="_blank" :href="getHyperLink">
+      <a
+        target="_blank"
+        :href="getHyperLink"
+      >
         {{ hyperLinkText !== undefined ? hyperLinkText : hyperLink }}
       </a>
     </p>
     <div
+      :id="getAbstractId"
       class="qpm_abstract qpm_abstractContainer"
       :name="getAbstractDivName"
-      :id="getAbstractId"
       :class="{ qpm_toggleAbstract: showingAbstract }"
     >
       <div>
         <div
-          lang="en"
           v-show="showingAbstract"
+          lang="en"
           style="position: relative; margin-top: 0"
         >
           <Accordion
             v-if="appSettings.openAi.useAi && hasAbstract"
             class="qpm_ai_hide qpm_accordions"
           >
-            <template v-slot:header="accordionProps">
+            <template #header="accordionProps">
               <div
                 class="qpm_aiAccordionHeader"
                 style="padding-left: 15px; display: inline-flex"
@@ -311,11 +332,11 @@
                 <i
                   v-if="accordionProps.expanded"
                   class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
-                ></i>
+                />
                 <i
                   v-else
                   class="bx bx-chevron-right qpm_aiAccordionHeaderArrows"
-                ></i>
+                />
                 <i
                   class="bx bx-detail"
                   style="
@@ -324,97 +345,97 @@
                     margin-left: 3px;
                     margin-right: 5px;
                   "
-                ></i>
+                />
                 <div>
                   <strong>{{
                     getString("selectedResultAccordionHeader")
                   }}</strong>
                   <button
-                    class="bx bx-info-circle"
-                    style="cursor: help; margin-left: -5px; vertical-align: top"
                     v-tooltip="{
                       content: getString('hoverselectedResultAccordionHeader'),
                       offset: 5,
                       delay: $helpTextDelay,
                       hideOnTargetClick: false,
                     }"
-                  ></button>
+                    class="bx bx-info-circle"
+                    style="cursor: help; margin-left: -5px; vertical-align: top"
+                  />
                 </div>
               </div>
             </template>
-            <template>
-              <div class="qpm_ai_hide">
-                <keep-alive>
-                  <div
-                    v-if="!hasAcceptedAi && hasAbstract"
-                    class="qpm_searchSummaryText qpm_searchSummaryTextBackground"
+           
+            <div class="qpm_ai_hide">
+              <keep-alive>
+                <div
+                  v-if="!hasAcceptedAi && hasAbstract"
+                  class="qpm_searchSummaryText qpm_searchSummaryTextBackground"
+                >
+                  <p>{{ getString("aiSummarizeAbstractButton") }}</p>
+                  <p>
+                    <strong>{{
+                      getString("aiSummarizeSearchResultButton")
+                    }}</strong>
+                  </p>
+                  <button
+                    v-for="prompt in getAbstractSummaryPrompts()"
+                    :key="prompt.name"
+                    v-tooltip="{
+                      content: getString('hoverSummarizeSearchResultButton'),
+                      offset: 5,
+                      delay: $helpTextDelay,
+                      hideOnTargetClick: false,
+                    }"
+                    class="qpm_button qpm_summaryButton"
+                    @click="clickAcceptAi(prompt)"
                   >
-                    <p>{{ getString("aiSummarizeAbstractButton") }}</p>
-                    <p>
-                      <strong>{{
-                        getString("aiSummarizeSearchResultButton")
-                      }}</strong>
-                    </p>
-                    <button
-                      v-for="prompt in getAbstractSummaryPrompts()"
-                      class="qpm_button qpm_summaryButton"
-                      @click="clickAcceptAi(prompt)"
-                      v-tooltip="{
-                        content: getString('hoverSummarizeSearchResultButton'),
-                        offset: 5,
-                        delay: $helpTextDelay,
-                        hideOnTargetClick: false,
-                      }"
-                    >
-                      <i
-                        class="bx bx-detail"
-                        style="
+                    <i
+                      class="bx bx-detail"
+                      style="
                           font-size: 22px;
                           line-height: 0;
                           margin: -4px 2px 0 0;
                         "
-                      ></i>
-                      {{ getTranslation(prompt) }}
-                    </button>
-                    <p
-                      class="qpm_summaryDisclaimer"
-                      v-html="getString('aiSummaryConsentText')"
-                    ></p>
-                  </div>
-
-                  <!-- AI Summaries of abstract -->
-                  <ai-summaries
-                    v-else-if="hasAcceptedAi"
-                    :license="license"
-                    :isLicenseAllowed="getIsLicenseAllowed"
-                    :isResourceAllowed="getIsResourceAllowed"
-                    :isPubTypeAllowed="getIsPubTypeAllowed"
-                    :showSummarizeArticle="true"
-                    :pubType="pubType"
-                    :pdfUrl="pdfUrl"
-                    :htmlUrl="htmlUrl"
-                    :language="language"
-                    :prompts="getAllPrompts()"
-                    :summarySearchSummaryConsentText="
-                      getString('aiSearchSummaryConsentHeader')
-                    "
-                    :summaryConsentHeader="
-                      getString('aiAbstractSummaryConsentHeader')
-                    "
-                    :successHeader="
-                      getString('aiSummarizeAbstractResultHeader')
-                    "
-                    :errorHeader="getString('aiSummarizeAbstractErrorHeader')"
-                    :hasAcceptedAi="hasAcceptedAi"
-                    :initialTabPrompt="initialAiTab"
-                    :getSelectedArticles="getArticleAsArray"
-                    :checkForPdf="true"
-                    @close="closeSummaries"
-                    @ai-summaries-click-retry="onAiSummariesClickRetry"
+                    />
+                    {{ getTranslation(prompt) }}
+                  </button>
+                  <p
+                    class="qpm_summaryDisclaimer"
+                    v-html="getString('aiSummaryConsentText')"
                   />
-                </keep-alive>
-              </div>
-            </template>
+                </div>
+
+                <!-- AI Summaries of abstract -->
+                <ai-summaries
+                  v-else-if="hasAcceptedAi"
+                  :license="license"
+                  :is-license-allowed="getIsLicenseAllowed"
+                  :is-resource-allowed="getIsResourceAllowed"
+                  :is-pub-type-allowed="getIsPubTypeAllowed"
+                  :show-summarize-article="true"
+                  :pub-type="pubType"
+                  :pdf-url="pdfUrl"
+                  :html-url="htmlUrl"
+                  :language="language"
+                  :prompts="getAllPrompts()"
+                  :summary-search-summary-consent-text="
+                    getString('aiSearchSummaryConsentHeader')
+                  "
+                  :summary-consent-header="
+                    getString('aiAbstractSummaryConsentHeader')
+                  "
+                  :success-header="
+                    getString('aiSummarizeAbstractResultHeader')
+                  "
+                  :error-header="getString('aiSummarizeAbstractErrorHeader')"
+                  :has-accepted-ai="hasAcceptedAi"
+                  :initial-tab-prompt="initialAiTab"
+                  :get-selected-articles="getArticleAsArray"
+                  :check-for-pdf="true"
+                  @close="closeSummaries"
+                  @ai-summaries-click-retry="onAiSummariesClickRetry"
+                />
+              </keep-alive>
+            </div>
           </Accordion>
           <p
             v-if="isResourceAllowed === undefined && !hasAbstract"
@@ -456,14 +477,14 @@
           <Accordion
             v-else-if="
               appSettings.openAi.useAi &&
-              !hasAbstract &&
-              getIsPubTypeAllowed &&
-              isLicenseAllowed &&
-              isResourceAllowed
+                !hasAbstract &&
+                getIsPubTypeAllowed &&
+                isLicenseAllowed &&
+                isResourceAllowed
             "
             class="qpm_ai_hide qpm_accordions"
           >
-            <template v-slot:header="accordionProps">
+            <template #header="accordionProps">
               <div
                 class="qpm_aiAccordionHeader"
                 style="padding-left: 15px; display: inline-flex"
@@ -471,11 +492,11 @@
                 <i
                   v-if="accordionProps.expanded"
                   class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
-                ></i>
+                />
                 <i
                   v-else
                   class="bx bx-chevron-right qpm_aiAccordionHeaderArrows"
-                ></i>
+                />
                 <i
                   class="bx bx-detail"
                   style="
@@ -484,14 +505,12 @@
                     margin-left: 3px;
                     margin-right: 5px;
                   "
-                ></i>
+                />
                 <div>
                   <strong>{{
                     getString("selectedResultAccordionHeaderNoAbstract")
                   }}</strong>
                   <button
-                    class="bx bx-info-circle"
-                    style="cursor: help; margin-left: -5px; vertical-align: top"
                     v-tooltip="{
                       content: getString(
                         'hoverselectedResultAccordionHeaderNoAbstract'
@@ -500,7 +519,9 @@
                       delay: $helpTextDelay,
                       hideOnTargetClick: false,
                     }"
-                  ></button>
+                    class="bx bx-info-circle"
+                    style="cursor: help; margin-left: -5px; vertical-align: top"
+                  />
                 </div>
               </div>
             </template>
@@ -517,14 +538,15 @@
                     <p>{{ getString("aiSummarizeArticleButton") }}</p>
                     <button
                       v-for="prompt in getSummarizeArticlePrompt()"
-                      class="qpm_button qpm_summaryButton"
-                      @click="clickAcceptAiNoAbstract(prompt)"
+                      :key="prompt.name"
                       v-tooltip="{
                         content: getString('hoverSummarizeSearchResultButton'),
                         offset: 5,
                         delay: $helpTextDelay,
                         hideOnTargetClick: false,
                       }"
+                      class="qpm_button qpm_summaryButton"
+                      @click="clickAcceptAiNoAbstract(prompt)"
                     >
                       <i
                         class="bx bx-detail"
@@ -533,20 +555,19 @@
                           line-height: 0;
                           margin: -4px 2px 0 0;
                         "
-                      ></i>
+                      />
                       {{ getTranslation(prompt) }}
                     </button>
                     <!-- AI Summary of an article when no abstract present -->
                     <summarize-article-no-abstract
                       ref="SummarizeArticleNoAbstractComponent"
-                      :pdfUrl="pdfUrl"
-                      :htmlUrl="htmlUrl"
-                    >
-                    </summarize-article-no-abstract>
+                      :pdf-url="pdfUrl"
+                      :html-url="htmlUrl"
+                    />
                     <p
                       class="qpm_summaryDisclaimer"
                       v-html="getString('aiSummaryConsentText')"
-                    ></p>
+                    />
                   </div>
                 </keep-alive>
               </div>
@@ -561,16 +582,16 @@
                     :loading="true"
                     :size="15"
                     style="display: inline-block !important; margin-right: 5px"
-                  ></spinner>
+                  />
                   <a
-                    target="_blank"
-                    :href="getUnpaywall"
                     v-tooltip="{
                       content: getString('hoverUnpaywall_loading'),
                       offset: 5,
                       delay: $helpTextDelay,
                       trigger: 'hover',
                     }"
+                    target="_blank"
+                    :href="getUnpaywall"
                   >
                     {{ getString("UnpaywallLoading") }}
                   </a>
@@ -580,17 +601,17 @@
                   <i
                     class="bx bxs-file-pdf qpm_pdf-icon"
                     style="color: #d20a0a"
-                  ></i>
+                  />
                   <a
-                    target="_blank"
-                    :href="getOaPdf"
-                    download
                     v-tooltip="{
                       content: getString('hoverUnpaywall_pdf'),
                       offset: 5,
                       delay: $helpTextDelay,
                       trigger: 'hover',
                     }"
+                    target="_blank"
+                    :href="getOaPdf"
+                    download
                   >
                     {{ getString("UnpaywallWithPdf") }}
                   </a>
@@ -600,17 +621,17 @@
                   <i
                     class="bx bxs-file-html qpm_pdf-icon"
                     style="color: #a8a8a8"
-                  ></i>
+                  />
                   <a
-                    target="_blank"
-                    :href="getOaHtml"
-                    download
                     v-tooltip="{
                       content: getString('hoverUnpaywall_html'),
                       offset: 5,
                       delay: $helpTextDelay,
                       trigger: 'hover',
                     }"
+                    target="_blank"
+                    :href="getOaHtml"
+                    download
                   >
                     {{ getString("UnpaywallWithHtml") }}
                   </a>
@@ -620,16 +641,16 @@
                   <i
                     class="bx bxs-file-pdf qpm_pdf-icon"
                     style="color: #a8a8a8"
-                  ></i>
+                  />
                   <a
-                    target="_blank"
-                    :href="getUnpaywall"
                     v-tooltip="{
                       content: getString('hoverUnpaywall_noPdf'),
                       offset: 5,
                       delay: $helpTextDelay,
                       trigger: 'hover',
                     }"
+                    target="_blank"
+                    :href="getUnpaywall"
                   >
                     {{ getString("UnpaywallNoPdf") }}
                   </a>
@@ -638,16 +659,28 @@
             </template>
           </div>
 
-          <div class="qpm_abstractWrapper" v-if="abstract === ''">
+          <div
+            v-if="abstract === ''"
+            class="qpm_abstractWrapper"
+          >
             <template v-if="hasAbstract">
-              <div v-for="(value, name) in text">
-                <p v-if="name !== 'UNLABELLED' && name !== 'null'">
+              <div
+                v-for="(abstractValue, name) in text"
+                :key="name"
+              >
+                <p
+                  v-if="name !== 'UNLABELLED' && name !== 'null'"
+                >
                   <strong>{{ name }}</strong>
                 </p>
-                <p v-else>
+                <p
+                  v-else
+                >
                   <strong>Abstract</strong>
                 </p>
-                <p>{{ value }}</p>
+                <p>
+                  {{ abstractValue }}
+                </p>
               </div>
             </template>
             <template v-if="!hasAbstract">
@@ -657,7 +690,10 @@
             </template>
           </div>
 
-          <div class="qpm_abstractWrapper" v-else>
+          <div
+            v-else
+            class="qpm_abstractWrapper"
+          >
             <div>
               <p><strong>Abstract</strong></p>
             </div>
@@ -665,59 +701,59 @@
           </div>
         </div>
         <div
-          class="qpm_relatedLinks"
           v-if="(pmid !== undefined || doi) && showingAbstract"
+          class="qpm_relatedLinks"
         >
           <p
-            class="intext-arrow-link onHoverJS qpm_pubmedLink"
             v-if="pmid !== undefined"
+            class="intext-arrow-link onHoverJS qpm_pubmedLink"
           >
             <a
               v-if="pmid !== undefined"
-              target="_blank"
-              :href="getPubmedRelated"
               v-tooltip="{
                 content: getString('hoverrelatedPubmed'),
                 offset: 5,
                 delay: $helpTextDelay,
                 trigger: 'hover',
               }"
+              target="_blank"
+              :href="getPubmedRelated"
             >
               {{ getString("relatedPubmed") }}
             </a>
           </p>
           <p
-            class="intext-arrow-link onHoverJS qpm_pubmedLink"
             v-if="pmid !== undefined"
+            class="intext-arrow-link onHoverJS qpm_pubmedLink"
           >
             <a
               v-if="pmid !== undefined"
-              target="_blank"
-              :href="getPubmedRelatedReviews"
               v-tooltip="{
                 content: getString('hoverrelatedPubmedReviews'),
                 offset: 5,
                 delay: $helpTextDelay,
                 trigger: 'hover',
               }"
+              target="_blank"
+              :href="getPubmedRelatedReviews"
             >
               {{ getString("relatedPubmedReviews") }}
             </a>
           </p>
           <p
-            class="intext-arrow-link onHoverJS qpm_pubmedLink"
             v-if="(pmid || doi) !== undefined"
+            class="intext-arrow-link onHoverJS qpm_pubmedLink"
           >
             <a
               v-if="(pmid || doi) !== undefined"
-              target="_blank"
-              :href="getGoogleScholar"
               v-tooltip="{
                 content: getString('hoverGoogleScholar'),
                 offset: 5,
                 delay: $helpTextDelay,
                 trigger: 'hover',
               }"
+              target="_blank"
+              :href="getGoogleScholar"
             >
               {{ getString("GoogleScholar") }}
             </a>
@@ -754,28 +790,78 @@ export default {
     Translation,
   },
   mixins: [appSettingsMixin],
+  model: {
+    prop: "modelValue",
+    event: "change",
+  },
   props: {
-    abstract: String,
-    text: Object,
-    id: String,
-    pmid: String,
-    title: String,
-    booktitle: String,
-    vernaculartitle: String,
-    date: String,
-    source: String,
-    author: String,
-    pubDate: String,
-    volume: String,
-    issue: String,
-    pages: String,
+    abstract: {
+      type: String, 
+      default: ""
+    },
+    text: {
+      type: Object,
+      default: () => {},
+    },
+    id: {
+      type: String,
+      default: ""
+    },
+    pmid: {
+      type: String,
+      default: ""
+    },
+    title: {
+      type: String,
+      default: ""
+    },
+    booktitle: {
+      type: String,
+      default: ""
+    },
+    vernaculartitle: {
+      type: String,
+      default: ""
+    },
+    date: {
+      type: String,
+      default: ""
+    },
+    source: {
+      type: String,
+      default: ""
+    },
+    author: {
+      type: String,
+      default: ""
+    },
+    pubDate: {
+      type: String,
+      default: ""
+    },
+    volume: {
+      type: String,
+      default: ""
+    },
+    issue: {
+      type: String,
+      default: ""
+    },
+    pages: {
+      type: String,
+      default: ""
+    },
     hasAbstract: Boolean,
-    doi: String,
+    doi: {
+      type: String,
+      default: ""
+    },
     showButtons: {
       type: Boolean,
       default: true,
     },
     pubType: {
+      default: () => [],
       type: Array,
       required: false,
     },
@@ -784,15 +870,30 @@ export default {
       default: true,
     },
     singleArticle: Boolean,
-    customAbstract: String,
+    customAbstract: {
+      type: String,
+      default: ""
+    },
     language: {
       type: String,
       default: "dk",
     },
-    hyperLink: String,
-    hyperLinkText: String,
-    sectionedAbstract: Object,
-    parentWidth: Number,
+    hyperLink: {
+      type: String,
+      default: ""
+    },
+    hyperLinkText: {
+      type: String,
+      default: ""
+    },
+    sectionedAbstract: {
+      type: Object,
+      default: () => {}
+    },
+    parentWidth: {
+      type: Number,
+      default: 0
+    },
     shownSixAuthors: Boolean,
     showAltmetricBadge: {
       type: Boolean,
@@ -806,10 +907,18 @@ export default {
       type: Array,
       required: true,
     },
-    // eslint-disable-next-line vue/require-prop-type-constructor
-    selectable: false,
-    modelValue: { type: [Array, Boolean] },
-    value: { type: [Array, Boolean, Object] },
+    selectable: {
+      type: Boolean, 
+      default: false
+    },
+    modelValue: { 
+      type: [Array, Boolean],
+      default: false,
+    },
+    value: { 
+      type: [Array, Boolean, Object],
+      default: false,
+    },
     preLoadAbstract: {
       type: Boolean,
       default: false,
@@ -845,10 +954,7 @@ export default {
       showExtendedPrompts: false, // Show extended prompts for summarizing the article
     };
   },
-  model: {
-    prop: "modelValue",
-    event: "change",
-  },
+
   computed: {
     getIsPubTypeAllowed: function () {
       return this.isPubTypeAllowed;
@@ -1011,7 +1117,6 @@ export default {
         return text.replace(/<\/?[^>]+(>|$)/g, "");
       } else return "";
     },
-    //
     calculateAuthors: function () {
       let authorArray = this.author.split(",");
       if (!this.shownSixAuthors || authorArray.length <= 6) return this.author;
@@ -1128,6 +1233,101 @@ export default {
       // eslint-disable-next-line vue/no-async-in-computed-properties
       return Promise.resolve(articles);
     },
+  },
+  watch: {
+    abstract: function () {
+      this.$emit("articleUpdated", this.getArticle);
+    },
+    text: function () {
+      this.$emit("articleUpdated", this.getArticle);
+    },
+    async unpaywallResponseLoaded(newVal) {
+      if (newVal) {
+        const isLicenseAllowed = this.checkLicense();
+        if (isLicenseAllowed) {
+          await this.checkRessource();
+          this.checkPubType();
+        }
+      }
+    },
+  },
+  created: function () {
+    this.$parent.$on("abstractLoaded", this.setAbstract);
+
+    var list = document.getElementsByTagName("script");
+    var j = list.length,
+      i = j;
+    var altmetric = false,
+      dimension = false;
+    while (i--) {
+      if (list[i].id === "dimension") {
+        dimension = true;
+        break;
+      }
+    }
+    while (j--) {
+      if (list[j].id === "altmetric") {
+        altmetric = true;
+        break;
+      }
+    }
+    var altmetricJsScript = list.namedItem("altmetric-embed-js");
+
+    // if we didn't already find it on the page, add it
+    if (!dimension) {
+      let script = document.createElement("script");
+      script.setAttribute("src", "https://badge.dimensions.ai/badge.js");
+      script.setAttribute("id", "dimension");
+      script.setAttribute("data-cookieconsent", "statistics");
+      script.async = true;
+      document.head.appendChild(script);
+      let link = document.createElement("link");
+      link.setAttribute("rel", "stylesheet");
+      link.setAttribute("href", "https://badge.dimensions.ai/badge.css");
+      document.head.appendChild(link);
+    } /**/
+    if (!altmetric) {
+      let script = document.createElement("script");
+      script.setAttribute("type", "text/javascript");
+      script.setAttribute(
+        "src",
+        "https://d1bxh8uas1mnw7.cloudfront.net/assets/embed.js"
+      );
+      script.setAttribute("id", "altmetric");
+      script.setAttribute("data-cookieconsent", "statistics");
+      document.head.appendChild(script);
+    }
+    if (altmetricJsScript) {
+      altmetricJsScript.setAttribute("data-cookieconsent", "statistics");
+    }
+  },
+  mounted: function () {
+    // This is to ensure all badges to be loaded properly
+    // given there are multiple occurrences of <specific-articles/>
+
+    this.self = this;
+    if (this.id != null) {
+      this.abstractId = `abstract${this.id}`;
+    } else {
+      this.abstractId = "custom";
+    }
+    this.checkPreload();
+    this.$emit("loadAbstract", this.id);
+
+    eventBus.$on(
+      "result-entry-show-abstract",
+      this.onEventBusShowAbstractEvent
+    );
+  },
+  beforeUpdate: function () {
+    this.checkPreload();
+  },
+  beforeUnmount: function () {
+    eventBus.$off(
+      "result-entry-show-abstract",
+      this.onEventBusShowAbstractEvent
+    );
+    this.$parent.$off("abstractLoadeds", this.setAbstract);
   },
   methods: {
     toggleExtendedPrompts() {
@@ -1388,7 +1588,8 @@ export default {
     },
     checkPreload: function () {
       if (!this.abstractLoaded && this.preLoadAbstract && !this.loading) {
-        this.loadAbstract((showSpinner = false));
+        let showSpinner = false;
+        this.loadAbstract((showSpinner));
       }
     },
     onEventBusShowAbstractEvent: function (args) {
@@ -1400,101 +1601,6 @@ export default {
     },
     changeOnEnter: function (event) {
       event.target.click();
-    },
-  },
-  created: function () {
-    this.$parent.$on("abstractLoaded", this.setAbstract);
-
-    var list = document.getElementsByTagName("script");
-    var j = list.length,
-      i = j;
-    var altmetric = false,
-      dimension = false;
-    while (i--) {
-      if (list[i].id === "dimension") {
-        dimension = true;
-        break;
-      }
-    }
-    while (j--) {
-      if (list[j].id === "altmetric") {
-        altmetric = true;
-        break;
-      }
-    }
-    var altmetricJsScript = list.namedItem("altmetric-embed-js");
-
-    // if we didn't already find it on the page, add it
-    if (!dimension) {
-      let script = document.createElement("script");
-      script.setAttribute("src", "https://badge.dimensions.ai/badge.js");
-      script.setAttribute("id", "dimension");
-      script.setAttribute("data-cookieconsent", "statistics");
-      script.async = true;
-      document.head.appendChild(script);
-      let link = document.createElement("link");
-      link.setAttribute("rel", "stylesheet");
-      link.setAttribute("href", "https://badge.dimensions.ai/badge.css");
-      document.head.appendChild(link);
-    } /**/
-    if (!altmetric) {
-      let script = document.createElement("script");
-      script.setAttribute("type", "text/javascript");
-      script.setAttribute(
-        "src",
-        "https://d1bxh8uas1mnw7.cloudfront.net/assets/embed.js"
-      );
-      script.setAttribute("id", "altmetric");
-      script.setAttribute("data-cookieconsent", "statistics");
-      document.head.appendChild(script);
-    }
-    if (altmetricJsScript) {
-      altmetricJsScript.setAttribute("data-cookieconsent", "statistics");
-    }
-  },
-  mounted: function () {
-    // This is to ensure all badges to be loaded properly
-    // given there are multiple occurrences of <specific-articles/>
-
-    this.self = this;
-    if (this.id != null) {
-      this.abstractId = `abstract${this.id}`;
-    } else {
-      this.abstractId = "custom";
-    }
-    this.checkPreload();
-    this.$emit("loadAbstract", this.id);
-
-    eventBus.$on(
-      "result-entry-show-abstract",
-      this.onEventBusShowAbstractEvent
-    );
-  },
-  beforeUpdate: function () {
-    this.checkPreload();
-  },
-  beforeUnmount: function () {
-    eventBus.$off(
-      "result-entry-show-abstract",
-      this.onEventBusShowAbstractEvent
-    );
-    this.$parent.$off("abstractLoadeds", this.setAbstract);
-  },
-  watch: {
-    abstract: function () {
-      this.$emit("articleUpdated", this.getArticle);
-    },
-    text: function () {
-      this.$emit("articleUpdated", this.getArticle);
-    },
-    async unpaywallResponseLoaded(newVal) {
-      if (newVal) {
-        const isLicenseAllowed = this.checkLicense();
-        if (isLicenseAllowed) {
-          await this.checkRessource();
-          this.checkPubType();
-        }
-      }
     },
   },
 };

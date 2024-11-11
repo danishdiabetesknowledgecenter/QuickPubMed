@@ -1,12 +1,15 @@
 <template>
   <div style="margin-top: 20px">
-    <div v-if="isLoadingQuestions" style="height: 250px">
+    <div
+      v-if="isLoadingQuestions"
+      style="height: 250px"
+    >
       <Spinner
         class="qpm_searchMore"
         :loading="true"
-        :waitText="getString('aiSummaryWaitText')"
+        :wait-text="getString('aiSummaryWaitText')"
         :size="35"
-      ></Spinner>
+      />
     </div>
 
     <p v-if="questions.length > 1 && !isLoadingQuestions">
@@ -18,15 +21,18 @@
       v-for="(question, index) in questions.slice(0, 7)"
       :key="index"
       :title="questionShortenMapDanish[question] || question"
-      :openByDefault="false"
+      :open-by-default="false"
     >
-      <template v-slot:header="accordionProps">
+      <template #header="accordionProps">
         <div class="qpm_aiAccordionHeader">
           <i
             v-if="accordionProps.expanded"
             class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
-          ></i>
-          <i v-else class="bx bx-chevron-right qpm_aiAccordionHeaderArrows"></i>
+          />
+          <i
+            v-else
+            class="bx bx-chevron-right qpm_aiAccordionHeaderArrows"
+          />
           <i
             class="bx bx-credit-card-front"
             style="
@@ -35,11 +41,11 @@
               margin-left: 3px;
               margin-right: 5px;
             "
-          ></i>
+          />
           {{ questionShortenMapDanish[question] || question }}
         </div>
       </template>
-      <template v-slot:default>
+      <template #default>
         <div class="answer-text">
           {{ answers[index] }}
         </div>
@@ -56,15 +62,21 @@
       v-for="(question, index) in questions.slice(7)"
       :key="index + 7"
       :title="questionShortenMapDanish[question] || question"
-      :openByDefault="false"
+      :open-by-default="false"
     >
-      <template v-slot:header="accordionProps">
-        <div ref="headerText" class="qpm_aiAccordionHeader">
+      <template #header="accordionProps">
+        <div
+          ref="headerText"
+          class="qpm_aiAccordionHeader"
+        >
           <i
             v-if="accordionProps.expanded"
             class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
-          ></i>
-          <i v-else class="bx bx-chevron-right qpm_aiAccordionHeaderArrows"></i>
+          />
+          <i
+            v-else
+            class="bx bx-chevron-right qpm_aiAccordionHeaderArrows"
+          />
           <i
             class="bx bx-help-circle"
             style="
@@ -73,12 +85,15 @@
               margin-left: 3px;
               margin-right: 5px;
             "
-          ></i>
+          />
           {{ questionShortenMapDanish[question] || question }}
         </div>
       </template>
-      <template v-slot:default>
-        <div :style="getAnswerStyle(index)" class="answer-text">
+      <template #default>
+        <div
+          :style="getAnswerStyle(index)"
+          class="answer-text"
+        >
           {{ answers[index + 7] }}
         </div>
       </template>
@@ -86,13 +101,16 @@
 
     <question-for-article
       v-if="isArticle && !isLoadingQuestions"
-      :pdfUrl="pdfUrl"
-      :htmlUrl="htmlUrl"
+      :pdf-url="pdfUrl"
+      :html-url="htmlUrl"
       :language="language"
-      :promptLanguageType="promptLanguageType"
-    ></question-for-article>
+      :prompt-language-type="promptLanguageType"
+    />
 
-    <p v-if="errorMessage" class="error-message">
+    <p
+      v-if="errorMessage"
+      class="error-message"
+    >
       {{ errorMessage }}
     </p>
   </div>
@@ -111,6 +129,11 @@ import { questionHeaderHeightWatcherMixin } from "@/mixins/questionHeaderHeightW
 
 export default {
   name: "SummarizeArticleNoAbstract",
+  components: {
+    Accordion,
+    Spinner,
+    QuestionForArticle,
+  },
   mixins: [
     appSettingsMixin,
     utilitiesMixin,
@@ -118,23 +141,6 @@ export default {
     summarizeArticleMixin,
     questionHeaderHeightWatcherMixin,
   ],
-  components: {
-    Accordion,
-    Spinner,
-    QuestionForArticle,
-  },
-  data() {
-    return {
-      isArticle: false,
-      questions: [],
-      answers: [],
-      isLoadingQuestions: false,
-      isError: false,
-      errorMessage: "",
-      scrapingError: false,
-      promptLanguageType: "",
-    };
-  },
   props: {
     htmlUrl: {
       type: String,
@@ -149,12 +155,17 @@ export default {
       default: "dk",
     },
   },
-  methods: {
-    handleOnSummarizeArticleNoAbstract(prompt) {
-      console.log("HandleOnSummarizeArticleNoAbstract", prompt);
-      this.promptLanguageType = prompt.name;
-      this.handleSummarizeArticle();
-    },
+  data() {
+    return {
+      isArticle: false,
+      questions: [],
+      answers: [],
+      isLoadingQuestions: false,
+      isError: false,
+      errorMessage: "",
+      scrapingError: false,
+      promptLanguageType: "",
+    };
   },
   created() {
     console.log("Attaching event listener for SummarizeArticleNoAbstract");
@@ -162,6 +173,13 @@ export default {
       "SummarizeArticleNoAbstract",
       this.handleOnSummarizeArticleNoAbstract
     );
+  },
+  methods: {
+    handleOnSummarizeArticleNoAbstract(prompt) {
+      console.log("HandleOnSummarizeArticleNoAbstract", prompt);
+      this.promptLanguageType = prompt.name;
+      this.handleSummarizeArticle();
+    },
   },
 };
 </script>

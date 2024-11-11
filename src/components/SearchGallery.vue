@@ -3,26 +3,26 @@
     <p
       v-if="isAllToggled"
       class="qpm_advancedSearch qpm_showHideAll"
+      style="display: flex; justify-content: flex-end"
       @keyup.enter="toggleAll()"
       @click="toggleAll()"
-      style="display: flex; justify-content: flex-end"
     >
       <a tabindex="0">{{ getString("showAllSearchstrings") }}</a>
     </p>
     <p
       v-if="!isAllToggled"
       class="qpm_advancedSearch qpm_showHideAll"
+      style="display: flex; justify-content: flex-end"
       @keyup.enter="toggleAll()"
       @click="toggleAll()"
-      style="display: flex; justify-content: flex-end"
     >
       <a tabindex="0">{{ getString("hideAllSearchstrings") }}</a>
     </p>
     <div class="qpm_searchStringStringsContainer rich-text">
       <div style="padding-top: 5px">
         <h2
-          @click="hideOrCollapse('qpm_subjectSearchStrings')"
           class="qpm_heading intext-arrow-link"
+          @click="hideOrCollapse('qpm_subjectSearchStrings')"
         >
           {{ getString("subjects") }}
         </h2>
@@ -33,14 +33,14 @@
         class="qpm_subjectSearchStrings qpm_collapsedSection"
       >
         <h3
-          @click="hideOrCollapse(toClassName(subject.groupname))"
           class="qpm_heading intext-arrow-link"
+          @click="hideOrCollapse(toClassName(subject.groupname))"
         >
           {{ customNameLabel(subject) }}
         </h3>
         <div
           v-for="(group, index) in subject.groups"
-          :key="group.name"
+          :key="group.id + index"
           class="qpm_searchGroups qpm_collapsedSection"
           :class="[
             toClassName(subject.groupname),
@@ -52,16 +52,16 @@
           ]"
         >
           <h4
-            @click="hideOrCollapse(toClassName(group.name))"
             class="qpm_heading"
             :class="{ 'intext-arrow-link': !group.maintopic }"
+            @click="hideOrCollapse(toClassName(group.name))"
           >
             {{ customNameLabel(group) }}
           </h4>
           <div
+            v-if="!group.maintopic"
             class="qpm_searchGroups qpm_collapsedSection qpm_searchSubject"
             :class="toClassName(group.name)"
-            v-if="!group.maintopic"
           >
             <table class="qpm_table">
               <tr>
@@ -71,13 +71,13 @@
               <tr v-if="group.searchStrings.narrow">
                 <td>
                   <button
-                    class="qpm_button qpm_buttonColor1"
                     v-tooltip="{
                       content: getString('tooltipNarrow'),
                       offset: 5,
                       delay: $helpTextDelay,
                       hideOnTargetClick: false,
                     }"
+                    class="qpm_button qpm_buttonColor1"
                   >
                     {{ getString("narrow") }}
                   </button>
@@ -85,14 +85,14 @@
                 <td lang="en">
                   <p class="qpm_table_p">
                     <a
-                      target="_blank"
-                      :href="getPubMedLink(group.searchStrings.narrow)"
                       v-tooltip="{
                         content: getString('showPubMedLink'),
                         offset: 5,
                         delay: $helpTextDelay,
                         hideOnTargetClick: false,
                       }"
+                      target="_blank"
+                      :href="getPubMedLink(group.searchStrings.narrow)"
                     >
                       {{ trimSearchString(group.searchStrings.narrow) }}
                     </a>
@@ -102,13 +102,13 @@
               <tr v-if="group.searchStrings.normal">
                 <td>
                   <button
-                    class="qpm_button qpm_buttonColor2"
                     v-tooltip="{
                       content: getString('tooltipNormal'),
                       offset: 5,
                       delay: $helpTextDelay,
                       hideOnTargetClick: false,
                     }"
+                    class="qpm_button qpm_buttonColor2"
                   >
                     {{ getString("normal") }}
                   </button>
@@ -116,14 +116,14 @@
                 <td lang="en">
                   <p class="qpm_table_p">
                     <a
-                      target="_blank"
-                      :href="getPubMedLink(group.searchStrings.normal)"
                       v-tooltip="{
                         content: getString('showPubMedLink'),
                         offset: 5,
                         delay: $helpTextDelay,
                         hideOnTargetClick: false,
                       }"
+                      target="_blank"
+                      :href="getPubMedLink(group.searchStrings.normal)"
                     >
                       {{ trimSearchString(group.searchStrings.normal) }}
                     </a>
@@ -133,13 +133,13 @@
               <tr v-if="group.searchStrings.broad">
                 <td>
                   <button
-                    class="qpm_button qpm_buttonColor3"
                     v-tooltip="{
                       content: getString('tooltipBroad'),
                       offset: 5,
                       delay: $helpTextDelay,
                       hideOnTargetClick: false,
                     }"
+                    class="qpm_button qpm_buttonColor3"
                   >
                     {{ getString("broad") }}
                   </button>
@@ -147,14 +147,14 @@
                 <td lang="en">
                   <p class="qpm_table_p">
                     <a
-                      target="_blank"
-                      :href="getPubMedLink(group.searchStrings.broad)"
                       v-tooltip="{
                         content: getString('showPubMedLink'),
                         offset: 5,
                         delay: $helpTextDelay,
                         hideOnTargetClick: false,
                       }"
+                      target="_blank"
+                      :href="getPubMedLink(group.searchStrings.broad)"
                     >
                       {{ trimSearchString(group.searchStrings.broad) }}
                     </a>
@@ -162,10 +162,14 @@
                 </td>
               </tr>
               <tr v-if="blockHasComment(group)">
-                <th colspan="2">{{ getString("comment") }}</th>
+                <th colspan="2">
+                  {{ getString("comment") }}
+                </th>
               </tr>
               <tr v-if="blockHasComment(group)">
-                <td colspan="2">{{ group.searchStringComment[language] }}</td>
+                <td colspan="2">
+                  {{ group.searchStringComment[language] }}
+                </td>
               </tr>
             </table>
           </div>
@@ -173,8 +177,8 @@
       </div>
       <div class="qpm_heading_limits">
         <h2
-          @click="hideOrCollapse('qpm_filterSearchStrings')"
           class="qpm_heading intext-arrow-link"
+          @click="hideOrCollapse('qpm_filterSearchStrings')"
         >
           {{ getString("filters") }}
         </h2>
@@ -185,14 +189,14 @@
         class="qpm_filterSearchStrings qpm_collapsedSection"
       >
         <h3
-          @click="hideOrCollapse(toClassName(filter.name))"
           class="qpm_heading intext-arrow-link"
+          @click="hideOrCollapse(toClassName(filter.name))"
         >
           {{ customNameLabel(filter) }}
         </h3>
         <div
-          v-for="(choice, index) in filter.choices"
-          :key="choice.name"
+          v-for="choice in filter.choices"
+          :key="choice.id"
           class="qpm_filterGroups qpm_collapsedSection"
           :class="[
             toClassName(filter.name),
@@ -204,16 +208,16 @@
           ]"
         >
           <h4
-            @click="hideOrCollapse(toClassName(choice.name))"
             class="qpm_heading"
             :class="{ 'intext-arrow-link': !choice.maintopic }"
+            @click="hideOrCollapse(toClassName(choice.name))"
           >
             {{ customNameLabel(choice) }}
           </h4>
           <div
+            v-if="!choice.maintopic"
             class="qpm_filterGroup qpm_collapsedSection qpm_searchFilter"
             :class="toClassName(choice.name)"
-            v-if="!choice.maintopic"
           >
             <table class="qpm_table">
               <tr>
@@ -223,13 +227,13 @@
               <tr v-if="choice.searchStrings.narrow">
                 <td>
                   <button
-                    class="qpm_button qpm_buttonColor1"
                     v-tooltip="{
                       content: getString('tooltipNarrow'),
                       offset: 5,
                       delay: $helpTextDelay,
                       hideOnTargetClick: false,
                     }"
+                    class="qpm_button qpm_buttonColor1"
                   >
                     {{ getString("narrow") }}
                   </button>
@@ -237,14 +241,14 @@
                 <td lang="en">
                   <p class="qpm_table_p">
                     <a
-                      target="_blank"
-                      :href="getPubMedLink(choice.searchStrings.narrow)"
                       v-tooltip="{
                         content: getString('showPubMedLink'),
                         offset: 5,
                         delay: $helpTextDelay,
                         hideOnTargetClick: false,
                       }"
+                      target="_blank"
+                      :href="getPubMedLink(choice.searchStrings.narrow)"
                     >
                       {{ trimSearchString(choice.searchStrings.narrow) }}
                     </a>
@@ -254,13 +258,13 @@
               <tr v-if="choice.searchStrings.normal">
                 <td>
                   <button
-                    class="qpm_button qpm_buttonColor2"
                     v-tooltip="{
                       content: getString('tooltipNormal'),
                       offset: 5,
                       delay: $helpTextDelay,
                       hideOnTargetClick: false,
                     }"
+                    class="qpm_button qpm_buttonColor2"
                   >
                     {{ getString("normal") }}
                   </button>
@@ -268,14 +272,14 @@
                 <td lang="en">
                   <p class="qpm_table_p">
                     <a
-                      target="_blank"
-                      :href="getPubMedLink(choice.searchStrings.normal)"
                       v-tooltip="{
                         content: getString('showPubMedLink'),
                         offset: 5,
                         delay: $helpTextDelay,
                         hideOnTargetClick: false,
                       }"
+                      target="_blank"
+                      :href="getPubMedLink(choice.searchStrings.normal)"
                     >
                       {{ trimSearchString(choice.searchStrings.normal) }}
                     </a>
@@ -285,13 +289,13 @@
               <tr v-if="choice.searchStrings.broad">
                 <td>
                   <button
-                    class="qpm_button qpm_buttonColor3"
                     v-tooltip="{
                       content: getString('tooltipBroad'),
                       offset: 5,
                       delay: $helpTextDelay,
                       hideOnTargetClick: false,
                     }"
+                    class="qpm_button qpm_buttonColor3"
                   >
                     {{ getString("broad") }}
                   </button>
@@ -299,14 +303,14 @@
                 <td lang="en">
                   <p class="qpm_table_p">
                     <a
-                      target="_blank"
-                      :href="getPubMedLink(choice.searchStrings.broad)"
                       v-tooltip="{
                         content: getString('showPubMedLink'),
                         offset: 5,
                         delay: $helpTextDelay,
                         hideOnTargetClick: false,
                       }"
+                      target="_blank"
+                      :href="getPubMedLink(choice.searchStrings.broad)"
                     >
                       {{ trimSearchString(choice.searchStrings.broad) }}
                     </a>
@@ -314,10 +318,14 @@
                 </td>
               </tr>
               <tr v-if="blockHasComment(choice)">
-                <th colspan="2">{{ getString("comment") }}</th>
+                <th colspan="2">
+                  {{ getString("comment") }}
+                </th>
               </tr>
               <tr v-if="blockHasComment(choice)">
-                <td colspan="2">{{ choice.searchStringComment[language] }}</td>
+                <td colspan="2">
+                  {{ choice.searchStringComment[language] }}
+                </td>
               </tr>
             </table>
           </div>
@@ -355,6 +363,16 @@ export default {
       orders: [],
       isAllToggled: true,
     };
+  },
+  computed: {
+    getSortedSubjects() {
+      let shownSubjects = this.getShownData(this.subjects, "groups");
+      return this.sortData(shownSubjects);
+    },
+    getSortedFilters() {
+      let shownFilters = this.getShownData(this.filters, "choices");
+      return this.sortData(shownFilters);
+    },
   },
   created() {
     this.filters = filtrer;
@@ -539,16 +557,6 @@ export default {
       return shown;
     },
     // Added by Ole
-  },
-  computed: {
-    getSortedSubjects() {
-      let shownSubjects = this.getShownData(this.subjects, "groups");
-      return this.sortData(shownSubjects);
-    },
-    getSortedFilters() {
-      let shownFilters = this.getShownData(this.filters, "choices");
-      return this.sortData(shownFilters);
-    },
   },
 };
 </script>

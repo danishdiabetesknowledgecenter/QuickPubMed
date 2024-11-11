@@ -1,37 +1,41 @@
 <template>
   <div>
-    <div :id="getComponentId" ref="singleComponent" class="qpm_SpecificArticle">
-      <Spinner :loadingComponent="loadingComponent" />
+    <div
+      :id="getComponentId"
+      ref="singleComponent"
+      class="qpm_SpecificArticle"
+    >
+      <Spinner :loading-component="loadingComponent" />
       <div v-if="isCustom">
         <ResultEntry
           :id="getKey"
+          :key="getKey"
           :pmid="getId"
           :doi="getDoi(searchresult)"
           :title="getTitle()"
-          :pubType="getPubType()"
+          :pub-type="getPubType()"
           :booktitle="getBookTitle()"
           :vernaculartitle="getVernacularTitle()"
           :date="getDate()"
           :source="getSource()"
-          :hasAbstract="getHasAbstract()"
-          :customAbstract="abstract"
-          :sectionedAbstract="sectionedAbstract"
+          :has-abstract="getHasAbstract()"
+          :custom-abstract="abstract"
+          :sectioned-abstract="sectionedAbstract"
           :author="getAuthor()"
-          :key="getKey"
-          @netFail="UnsuccessfullCall"
-          :showButtons="showArticleButtons"
-          :showDate="showDate"
-          :singleArticle="true"
+          :show-buttons="showArticleButtons"
+          :show-date="showDate"
+          :single-article="true"
           :language="language"
-          :hyperLink="getHyperLink()"
-          :hyperLinkText="getHyperLinkText()"
-          :parentWidth="getComponentWidth()"
-          :shownSixAuthors="shownSixAuthors"
-          :showAltmetricBadge="showAltmetricBadge"
-          :showDimensionsBadge="showDimensionsBadge"
+          :hyper-link="getHyperLink()"
+          :hyper-link-text="getHyperLinkText()"
+          :parent-width="getComponentWidth()"
+          :shown-six-authors="shownSixAuthors"
+          :show-altmetric-badge="showAltmetricBadge"
+          :show-dimensions-badge="showDimensionsBadge"
           :abstract="getAbstract(enteredIds)"
           :text="getText(enteredIds)"
-          :abstractSummaryPrompts="getAbstractSummaryPrompts()"
+          :abstract-summary-prompts="getAbstractSummaryPrompts()"
+          @netFail="UnsuccessfullCall"
           @change:abstractLoad="onAbstractLoad"
           @loadAbstract="addIdToLoadAbstract"
         />
@@ -47,38 +51,38 @@
         </div>
         <ResultEntry
           v-for="value in searchresult"
-          :key="value.uid"
           :id="value.uid"
+          :key="value.uid"
           :pmid="value.uid"
-          :pubDate="value.pubdate"
-          :customAbstract="abstract"
-          :sectionedAbstract="sectionedAbstract"
+          :pub-date="value.pubdate"
+          :custom-abstract="abstract"
+          :sectioned-abstract="sectionedAbstract"
           :volume="value.volume"
           :issue="value.issue"
           :pages="value.pages"
           :doi="getDoi(value)"
           :title="getTitle(value.title)"
-          :pubType="value.pubtype"
+          :pub-type="value.pubtype"
           :booktitle="getBookTitle(value.booktitle)"
           :vernaculartitle="getVernacularTitle(value.vernaculartitle)"
           :date="getDate(value.history)"
           :source="getSource(value)"
-          :hasAbstract="getHasAbstract(value.attributes)"
+          :has-abstract="getHasAbstract(value.attributes)"
           :author="getAuthor(value.authors)"
-          @netFail="UnsuccessfullCall"
-          :showButtons="showArticleButtons"
-          :showDate="showDate"
-          :singleArticle="true"
+          :show-buttons="showArticleButtons"
+          :show-date="showDate"
+          :single-article="true"
           :language="language"
-          :hyperLink="customLink"
-          :hyperLinkText="hyperLinkText"
-          :parentWidth="getComponentWidth()"
-          :shownSixAuthors="shownSixAuthors"
-          :showAltmetricBadge="showAltmetricBadge"
-          :showDimensionsBadge="showDimensionsBadge"
-          :abstractSummaryPrompts="getAbstractSummaryPrompts()"
+          :hyper-link="customLink"
+          :hyper-link-text="hyperLinkText"
+          :parent-width="getComponentWidth()"
+          :shown-six-authors="shownSixAuthors"
+          :show-altmetric-badge="showAltmetricBadge"
+          :show-dimensions-badge="showDimensionsBadge"
+          :abstract-summary-prompts="getAbstractSummaryPrompts()"
           :abstract="getAbstract(enteredIds)"
           :text="getText(enteredIds)"
+          @netFail="UnsuccessfullCall"
           @change:abstractLoad="onAbstractLoad"
           @loadAbstract="addIdToLoadAbstract"
         />
@@ -103,11 +107,11 @@ import {
 
 export default {
   name: "SpecificArticles",
-  mixins: [appSettingsMixin],
   components: {
     Spinner,
     ResultEntry,
   },
+  mixins: [appSettingsMixin],
   props: {
     ids: {
       type: String,
@@ -248,6 +252,89 @@ export default {
     getComponentId() {
       return `qpm_SpecificArticle_${this.componentId}`;
     },
+  },
+  watch: {
+    showingTranslation: {
+      handler: async function (newValue) {
+        if (!newValue) {
+          await this.showTranslation();
+        }
+      },
+      immediate: true,
+    },
+    models(newModelState, oldModelState) {
+      const oldIds = oldModelState.map((model) => model.uid);
+      const newModels = newModelState
+        .map((model) => model.uid)
+        .filter((uid) => oldIds.includes(uid));
+      this.modelsChangesPending.splice(this.models.length, 0, ...newModels);
+
+      if (this.onlyUpdateModelWhenVisible) {
+        this.updateModelsIfOnScreen();
+      } else {
+        this.shownModels = newModelState;
+      }
+    },
+  },
+  async created() {
+    this.loadingComponent = true;
+    if (this.queryResults) this.pageSize = parseInt(this.queryResults);
+    this.setOrder(this.sortMethod);
+    const baseUrl =
+      "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&tool=QuickPubMed&email=admin@videncenterfordiabetes.dk&api_key=258a604944c9858b96739c730cd6a579c908&retmode=json&retmax=" +
+      this.pageSize +
+      "&retstart=" +
+      this.page * this.pageSize +
+      "&sort=" +
+      this.sort.method +
+      "&term=";
+
+    if (this.ids) {
+      let idArray = this.ids.split(",");
+      for (let i = 0; i < idArray.length; i++) {
+        idArray[i] = idArray[i].trim();
+        this.enteredIds.push(idArray[i]);
+      }
+    }
+
+    if (this.interpretQuery === "") {
+      this.loadWithIds();
+      this.customLink = this.hyperLink;
+      return;
+    }
+
+    axios.get(baseUrl + this.interpretQuery).then((resp) => {
+      let ids = resp.data.esearchresult.idlist;
+      if (ids && ids.length !== 0) {
+        for (let i = 0; i < ids.length; i++) {
+          if (!this.enteredIds.includes(ids[i])) this.enteredIds.push(ids[i]);
+        }
+      }
+
+      this.count = parseInt(resp.data.esearchresult.count);
+      this.loadWithIds();
+    });
+
+    this.customLink = this.hyperLink;
+  },
+  mounted() {
+    if (this.componentNo == null) {
+      this.componentId = this._uid;
+    } else {
+      this.componentId = this.componentNo;
+    }
+  },
+  updated() {
+    if (this.loadingComponent) return;
+
+    if (window.__dimensions_embed) {
+      window.__dimensions_embed.addBadges();
+    }
+
+    const component = this.$refs.singleComponent;
+    if (component && window._altmetric_embed_init) {
+      window._altmetric_embed_init(component);
+    }
   },
   methods: {
     UnsuccessfullCall(value) {
@@ -521,89 +608,6 @@ export default {
     onAbstractLoad(id, abstract) {
       Vue.set(this.abstractRecords, id, abstract);
     },
-  },
-  watch: {
-    showingTranslation: {
-      handler: async function (newValue) {
-        if (!newValue) {
-          await this.showTranslation();
-        }
-      },
-      immediate: true,
-    },
-    models(newModelState, oldModelState) {
-      const oldIds = oldModelState.map((model) => model.uid);
-      const newModels = newModelState
-        .map((model) => model.uid)
-        .filter((uid) => oldIds.includes(uid));
-      this.modelsChangesPending.splice(this.models.length, 0, ...newModels);
-
-      if (this.onlyUpdateModelWhenVisible) {
-        this.updateModelsIfOnScreen();
-      } else {
-        this.shownModels = newModelState;
-      }
-    },
-  },
-  async created() {
-    this.loadingComponent = true;
-    if (this.queryResults) this.pageSize = parseInt(this.queryResults);
-    this.setOrder(this.sortMethod);
-    const baseUrl =
-      "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&tool=QuickPubMed&email=admin@videncenterfordiabetes.dk&api_key=258a604944c9858b96739c730cd6a579c908&retmode=json&retmax=" +
-      this.pageSize +
-      "&retstart=" +
-      this.page * this.pageSize +
-      "&sort=" +
-      this.sort.method +
-      "&term=";
-
-    if (this.ids) {
-      let idArray = this.ids.split(",");
-      for (let i = 0; i < idArray.length; i++) {
-        idArray[i] = idArray[i].trim();
-        this.enteredIds.push(idArray[i]);
-      }
-    }
-
-    if (this.interpretQuery === "") {
-      this.loadWithIds();
-      this.customLink = this.hyperLink;
-      return;
-    }
-
-    axios.get(baseUrl + this.interpretQuery).then((resp) => {
-      let ids = resp.data.esearchresult.idlist;
-      if (ids && ids.length !== 0) {
-        for (let i = 0; i < ids.length; i++) {
-          if (!this.enteredIds.includes(ids[i])) this.enteredIds.push(ids[i]);
-        }
-      }
-
-      this.count = parseInt(resp.data.esearchresult.count);
-      this.loadWithIds();
-    });
-
-    this.customLink = this.hyperLink;
-  },
-  mounted() {
-    if (this.componentNo == null) {
-      this.componentId = this._uid;
-    } else {
-      this.componentId = this.componentNo;
-    }
-  },
-  updated() {
-    if (this.loadingComponent) return;
-
-    if (window.__dimensions_embed) {
-      window.__dimensions_embed.addBadges();
-    }
-
-    const component = this.$refs.singleComponent;
-    if (component && window._altmetric_embed_init) {
-      window._altmetric_embed_init(component);
-    }
   },
 };
 </script>

@@ -1,15 +1,18 @@
 <template>
   <div class="column is-half">
-    <div class="qpm_accordion" :class="{ 'not-expanded': !getIsExpanded }">
+    <div
+      class="qpm_accordion"
+      :class="{ 'not-expanded': !getIsExpanded }"
+    >
       <div
+        tabindex="0"
         @click="toggleAccordionState"
         @keypress.enter="toggleAccordionState"
-        tabindex="0"
       >
         <slot
           name="header"
           :expanded="getIsExpanded"
-          :toggleAccordionState="toggleAccordionState"
+          :toggle-accordion-state="toggleAccordionState"
           :close="close"
         >
           <header class="qpm_accordion-header">
@@ -18,7 +21,7 @@
             </p>
             <a class="qpm_accordion-header-icon">
               <span class="icon">
-                <i class="fa fa-angle-up"></i>
+                <i class="fa fa-angle-up" />
               </span>
             </a>
           </header>
@@ -32,12 +35,16 @@
         @after-enter="afterEnterContent"
         @leave="leaveContent"
       >
-        <div v-show="getIsExpanded" class="qpm_accordion-content" ref="body">
+        <div
+          v-show="getIsExpanded"
+          ref="body"
+          class="qpm_accordion-content"
+        >
           <div class="content">
-            <slot></slot>
+            <slot />
             <transition-group
-              appear
               v-if="shownModels !== null && shownModels.length !== 0"
+              appear
               name="list-fade"
               tag="div"
               class="qpm_box"
@@ -50,14 +57,17 @@
               @after-enter="afterEnterListItem"
             >
               <div
-                v-if="shownModels.length > 0"
                 v-for="item in shownModels"
-                class="list-fade-item"
+                v-if="shownModels.length > 0"
                 :key="item.uid"
-                :name="'transition-item-' + item.uid"
                 ref="listItems"
+                class="list-fade-item"
+                :name="'transition-item-' + item.uid"
               >
-                <slot name="listItem" :model="item"></slot>
+                <slot
+                  name="listItem"
+                  :model="item"
+                />
               </div>
             </transition-group>
           </div>
@@ -73,10 +83,12 @@ export default {
   props: {
     title: {
       type: String,
+      default: "",
       required: false,
     },
     models: {
       type: Array,
+      default: () => [],
       required: false,
     },
     openByDefault: {
@@ -99,6 +111,48 @@ export default {
       shownModels: [],
       modelsChangesPending: [],
     };
+  },
+  computed: {
+    getTitle() {
+      return this.title || (this.expanded ? "close" : "open");
+    },
+    getIsExpanded() {
+      const newState = this.isExpanded ?? this.expanded;
+      this.$emit("expanded-changed", newState);
+      return newState;
+    },
+  },
+  watch: {
+    models(newModelState, oldModelState) {
+      const oldIds = oldModelState.map((model) => model.uid);
+      const newModels = newModelState
+        .map((model) => model.uid)
+        .filter((uid) => oldIds.includes(uid));
+      this.modelsChangesPending.splice(this.models.length, 0, ...newModels);
+
+      if (this.onlyUpdateModelWhenVisible) {
+        this.updateModelsIfOnScreen();
+      } else {
+        this.shownModels = newModelState;
+      }
+    },
+  },
+  mounted() {
+    if (this.onlyUpdateModelWhenVisible) {
+      window.addEventListener("scroll", this.updateModelsIfOnScreen, {
+        passive: true,
+      });
+      if (this.openByDefault) {
+        this.updateModelsIfOnScreen();
+      }
+    }
+  },
+  beforeUnmount() {
+    if (this.onlyUpdateModelWhenVisible) {
+      window.removeEventListener("scroll", this.updateModelsIfOnScreen, {
+        passive: true,
+      });
+    }
   },
   methods: {
     toggleAccordionState() {
@@ -138,7 +192,7 @@ export default {
       const newHeight = body.scrollHeight - el.scrollHeight;
       body.style.height = `${newHeight}px`;
     },
-    beforeLeaveListItem(el) {
+    beforeLeaveListItem() {
       if (!this.expanded) return;
       this.setFixedHeight();
     },
@@ -147,11 +201,11 @@ export default {
       this.setFixedHeight();
       el.addEventListener("transitionend", done, { once: true });
     },
-    afterLeaveListItem(el) {
+    afterLeaveListItem() {
       if (!this.expanded) return;
       this.removeFixedHeight();
     },
-    beforeEnterListItem(el) {
+    beforeEnterListItem() {
       if (!this.expanded) return;
       this.setFixedHeight();
     },
@@ -168,7 +222,7 @@ export default {
       if (!this.expanded) return;
       this.removeFixedHeight();
     },
-    beforeLeaveContent(el) {
+    beforeLeaveContent() {
       this.setFixedHeight();
     },
     leaveContent(el, done) {
@@ -179,11 +233,11 @@ export default {
       this.setFixedHeight();
       el.addEventListener("transitionend", done, { once: true });
     },
-    afterEnterContent(el) {
+    afterEnterContent() {
       this.removeFixedHeight();
       this.$emit("afterOpen", this);
     },
-    afterLeaveContent(el) {
+    afterLeaveContent() {
       this.$emit("afterClose", this);
     },
     isAccordionOnScreen() {
@@ -208,48 +262,6 @@ export default {
         this.modelsChangesPending.splice(index, 1);
       }
     },
-  },
-  computed: {
-    getTitle() {
-      return this.title || (this.expanded ? "close" : "open");
-    },
-    getIsExpanded() {
-      const newState = this.isExpanded ?? this.expanded;
-      this.$emit("expanded-changed", newState);
-      return newState;
-    },
-  },
-  watch: {
-    models(newModelState, oldModelState) {
-      const oldIds = oldModelState.map((model) => model.uid);
-      const newModels = newModelState
-        .map((model) => model.uid)
-        .filter((uid) => oldIds.includes(uid));
-      this.modelsChangesPending.splice(this.models.length, 0, ...newModels);
-
-      if (this.onlyUpdateModelWhenVisible) {
-        this.updateModelsIfOnScreen();
-      } else {
-        this.shownModels = newModelState;
-      }
-    },
-  },
-  mounted() {
-    if (this.onlyUpdateModelWhenVisible) {
-      window.addEventListener("scroll", this.updateModelsIfOnScreen, {
-        passive: true,
-      });
-      if (this.openByDefault) {
-        this.updateModelsIfOnScreen();
-      }
-    }
-  },
-  beforeDestroy() {
-    if (this.onlyUpdateModelWhenVisible) {
-      window.removeEventListener("scroll", this.updateModelsIfOnScreen, {
-        passive: true,
-      });
-    }
   },
 };
 </script>

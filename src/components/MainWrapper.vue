@@ -2,18 +2,21 @@
   <div>
     <div :id="getComponentId">
       <div class="qpm_searchform">
-        <div v-if="!isCollapsed" class="qpm_tabs">
+        <div
+          v-if="!isCollapsed"
+          class="qpm_tabs"
+        >
           <p
-            tabindex="0"
             v-if="!advanced"
-            class="qpm_tab"
-            @click="advancedClick()"
-            @keyup.enter="advancedClick()"
             v-tooltip="{
               content: getString('hoverAdvancedText'),
               offset: 5,
               delay: $helpTextDelay,
             }"
+            tabindex="0"
+            class="qpm_tab"
+            @click="advancedClick()"
+            @keyup.enter="advancedClick()"
           >
             {{ getString("advancedSearch") }}
             <span class="qpm_hideonmobile">
@@ -21,7 +24,10 @@
             </span>
           </p>
 
-          <p v-if="advanced" class="qpm_tab qpm_tab_active">
+          <p
+            v-if="advanced"
+            class="qpm_tab qpm_tab_active"
+          >
             {{ getString("advancedSearch") }}
             <span class="qpm_hideonmobile">
               {{ getString("searchMode") }}
@@ -29,16 +35,16 @@
           </p>
 
           <p
-            tabindex="0"
             v-if="advanced"
-            class="qpm_tab"
-            @click="advancedClick()"
-            @keyup.enter="advancedClick()"
             v-tooltip="{
               content: getString('hoverBasicText'),
               offset: 5,
               delay: $helpTextDelay,
             }"
+            tabindex="0"
+            class="qpm_tab"
+            @click="advancedClick()"
+            @keyup.enter="advancedClick()"
           >
             {{ getString("simpleSearch") }}
             <span class="qpm_hideonmobile">
@@ -46,7 +52,10 @@
             </span>
           </p>
 
-          <p v-if="!advanced" class="qpm_tab qpm_tab_active">
+          <p
+            v-if="!advanced"
+            class="qpm_tab qpm_tab_active"
+          >
             {{ getString("simpleSearch") }}
             <span class="qpm_hideonmobile">
               {{ getString("searchMode") }}
@@ -77,27 +86,27 @@
 
             <div
               v-show="subjects !== ''"
-              @click="toggleCollapsedController()"
               class="qpm_toggleSearchForm"
+              @click="toggleCollapsedController()"
             >
               <div
                 v-show="!isCollapsed"
-                class="qpm_toggleSearchFormBtn bx bx-hide"
                 v-tooltip="{
                   content: getString('hideForm'),
                   offset: 5,
                   delay: $helpTextDelay,
                 }"
-              ></div>
+                class="qpm_toggleSearchFormBtn bx bx-hide"
+              />
               <div
                 v-show="isCollapsed"
-                class="qpm_toggleSearchFormBtn bx bx-show"
                 v-tooltip="{
                   content: getString('showForm'),
                   offset: 5,
                   delay: $helpTextDelay,
                 }"
-              ></div>
+                class="qpm_toggleSearchFormBtn bx bx-show"
+              />
             </div>
           </div>
 
@@ -107,76 +116,87 @@
           >
             <label class="qpm_switch">
               <input
+                v-model="searchWithAI"
                 type="checkbox"
                 title="titleSearchWithAI"
-                v-model="searchWithAI"
-              />
-              <span class="qpm_slider qpm_round"></span>
+              >
+              <span class="qpm_slider qpm_round" />
             </label>
-            <span v-if="searchWithAI" class="qpm_simpleFiltersHeader">
+            <span
+              v-if="searchWithAI"
+              class="qpm_simpleFiltersHeader"
+            >
               {{ getString("searchToggleWithAI") }}
               <button
-                class="bx bx-info-circle"
-                style="cursor: help"
                 v-tooltip="{
                   content: getString('hoversearchToggleWithAI'),
                   offset: 5,
                   delay: $helpTextDelay,
                   hideOnTargetClick: false,
                 }"
-              ></button>
-            </span>
-            <span v-else class="qpm_simpleFiltersHeader">
-              {{ getString("searchToggleWithoutAI") }}
-              <button
                 class="bx bx-info-circle"
                 style="cursor: help"
+              />
+            </span>
+            <span
+              v-else
+              class="qpm_simpleFiltersHeader"
+            >
+              {{ getString("searchToggleWithoutAI") }}
+              <button
                 v-tooltip="{
                   content: getString('hoversearchToggleWithoutAI'),
                   offset: 5,
                   delay: $helpTextDelay,
                   hideOnTargetClick: false,
                 }"
-              ></button>
+                class="bx bx-info-circle"
+                style="cursor: help"
+              />
             </span>
           </div>
 
           <!-- The dropdown for selecting subjects to be included in the search -->
-          <div class="qpm_searchFormula" v-show="!isCollapsed">
-            <div class="qpm_subjects" v-for="(item, n) in subjects" :key="n">
+          <div
+            v-show="!isCollapsed"
+            class="qpm_searchFormula"
+          >
+            <div
+              v-for="(item, n) in subjects"
+              :key="n"
+              class="qpm_subjects"
+            >
               <div class="qpm_flex">
                 <DropDownWrapper
-                  :isMultiple="true"
+                  ref="subjectDropdown"
+                  :is-multiple="true"
                   :data="subjectOptions"
-                  :hideTopics="hideTopics"
-                  :isGroup="true"
+                  :hide-topics="hideTopics"
+                  :is-group="true"
                   :placeholder="dropdownPlaceholders[n]"
                   :operator="calcOrOperator"
                   :taggable="true"
                   :selected="item"
-                  :closeOnInput="false"
+                  :close-on-input="false"
                   :language="language"
-                  :searchWithAI="searchWithAI"
-                  :showScopeLabel="advanced"
-                  :noResultString="getString('noTopicDropdownContent')"
+                  :search-with-a-i="searchWithAI"
+                  :show-scope-label="advanced"
+                  :no-result-string="getString('noTopicDropdownContent')"
+                  :index="n"
                   @input="updateSubjects"
                   @updateScope="updateScope"
-                  :index="n"
                   @mounted="shouldFocusNextDropdownOnMount"
                   @translating="updatePlaceholder"
-                  ref="subjectDropdown"
-                >
-                </DropDownWrapper>
+                />
                 <i
                   v-if="subjects.length > 1"
-                  @click="removeSubject(n)"
                   class="qpm_removeSubject bx bx-x"
-                >
-                </i>
+                  @click="removeSubject(n)"
+                />
               </div>
               <p
-                class="qpm_subjectOperator"
                 v-if="n >= 0 && !noSubjects"
+                class="qpm_subjectOperator"
                 :style="{
                   color: n < subjects.length - 1 ? '#000000' : 'darkgrey',
                 }"
@@ -207,8 +227,8 @@
               </button>
             </div>
             <div
-              style="margin-bottom: 15px"
               v-if="advanced && !showFilter && !noSubjects"
+              style="margin-bottom: 15px"
             >
               <button
                 v-tooltip="{
@@ -218,9 +238,9 @@
                 }"
                 class="qpm_slim multiselect__input"
                 style="padding: 4px 12px 4px 11px !important; height: 38px"
-                @click="toggle"
                 type="button"
                 :class="{ qpm_shown: showFilter }"
+                @click="toggle"
               >
                 {{ getString("addsubjectlimit") }} {{ getString("addlimit") }}
               </button>
@@ -228,34 +248,40 @@
 
             <!-- The dropdown for selecting limits to be included in the advanced search -->
             <div
-              style="margin-bottom: 10px"
               v-if="advanced && showFilter && !noSubjects"
+              style="margin-bottom: 10px"
             >
-              <h4 role="heading" aria-level="3" class="h4">
+              <h4
+                role="heading"
+                aria-level="3"
+                class="h4"
+              >
                 {{ getString("AdvancedFiltersHeader") }}
               </h4>
-              <div id="qpm_topofsearchbar" class="qpm_flex">
+              <div
+                id="qpm_topofsearchbar"
+                class="qpm_flex"
+              >
                 <DropDownWrapper
+                  ref="filterDropdown"
                   :class="{ qpm_shown: !showFilter }"
-                  :isMultiple="true"
+                  :is-multiple="true"
                   :data="filterOptions"
-                  :hideTopics="hideTopics"
-                  :isGroup="false"
+                  :hide-topics="hideTopics"
+                  :is-group="false"
                   :placeholder="showTitle"
                   :operator="calcAndOperator"
-                  :closeOnInput="false"
+                  :close-on-input="false"
                   :language="language"
                   :taggable="false"
                   :selected="filters"
-                  :searchWithAI="searchWithAI"
-                  :showScopeLabel="advanced"
-                  :noResultString="getString('noLimitDropdownContent')"
+                  :search-with-a-i="searchWithAI"
+                  :show-scope-label="advanced"
+                  :no-result-string="getString('noLimitDropdownContent')"
                   :index="0"
-                  @input="updateFilters"
                   qpm_buttonColor2="qpm_buttonColor7"
-                  ref="filterDropdown"
-                >
-                </DropDownWrapper>
+                  @input="updateFilters"
+                />
               </div>
               <div class="qpm_flex">
                 <div
@@ -266,60 +292,64 @@
                     v-for="(selected, id) in filterData"
                     :key="id"
                     :language="language"
-                    :filterItem="getFilters(id)"
+                    :filter-item="getFilters(id)"
                     :idx="id"
-                    :hideTopics="hideTopics"
+                    :hide-topics="hideTopics"
                     :selected="selected"
                     @input="updateFilterAdvanced"
                     @updateScope="updateScopeFilter"
-                  >
-                  </FilterEntry>
+                  />
                 </div>
               </div>
             </div>
 
             <!-- The radio buttons for limits to be included in the simple search -->
             <div v-else-if="!advanced && !noSubjects">
-              <h4 role="heading" aria-level="3" class="h4">
+              <h4
+                role="heading"
+                aria-level="3"
+                class="h4"
+              >
                 {{ getString("SimpleFiltersHeader") }}
               </h4>
-              <div id="qpm_topofsearchbar" class="qpm_simpleFiltersContainer">
+              <div
+                id="qpm_topofsearchbar"
+                class="qpm_simpleFiltersContainer"
+              >
                 <template
                   v-for="option in filterOptions"
                   class="qpm_simpleFilters"
                 >
                   <template v-if="hasVisibleSimpleFilterOption(option.choices)">
                     <b
-                      v-bind:key="option.choice"
+                      :key="option.choice"
                       class="qpm_simpleFiltersHeader"
                     >
                       {{ customNameLabel(option) }}:
                     </b>
                     <div
                       v-for="(choice, index) in option.choices"
-                      v-bind:key="index"
                       v-if="choice.simpleSearch"
-                      class="qpm_simpleFilters"
                       :id="'qpm_topic_' + choice.name"
+                      :key="index"
+                      class="qpm_simpleFilters"
                     >
                       <input
+                        :id="choice.name"
                         type="checkbox"
                         title="titleCheckBoxTranslate"
-                        :id="choice.name"
                         :value="choice.name"
                         :checked="
                           isFilterUsed(filterData[option.id], choice.name)
                         "
+                        style="cursor: pointer"
                         @change="updateFilterSimple(option.id, choice)"
                         @keyup.enter="updateFilterSimpleOnEnter(choice)"
-                        style="cursor: pointer"
-                      />
+                      >
                       <label :for="choice.name">
                         {{ customNameLabel(choice) }}
                       </label>
                       <button
-                        class="bx bx-info-circle"
-                        style="cursor: help"
                         v-if="getSimpleTooltip(choice)"
                         v-tooltip="{
                           content: getSimpleTooltip(choice),
@@ -327,9 +357,14 @@
                           delay: $helpTextDelay,
                           hideOnTargetClick: false,
                         }"
-                      ></button>
+                        class="bx bx-info-circle"
+                        style="cursor: help"
+                      />
                     </div>
-                    <div class="qpm_simpleFiltersSpacer"></div>
+                    <div
+                      :key="option.choice"
+                      class="qpm_simpleFiltersSpacer"
+                    />
                   </template>
                 </template>
               </div>
@@ -337,26 +372,28 @@
           </div>
         </div>
 
-        <div id="qpm_topofsearch" class="qpm_flex">
+        <div
+          id="qpm_topofsearch"
+          class="qpm_flex"
+        >
           <WordedSearchString
             :subjects="subjects"
             :filters="filterData"
             :searchstring="getSearchString"
-            :isCollapsed="isCollapsed"
+            :is-collapsed="isCollapsed"
             :details="details"
-            :advancedString="advancedString"
-            :advancedSearch="advanced"
-            :showHeader="!isCollapsed"
+            :advanced-string="advancedString"
+            :advanced-search="advanced"
+            :show-header="!isCollapsed"
             :language="language"
             @toggleDetailsBox="toggleDetailsBox"
             @toggleAdvancedString="toggleAdvancedString"
-          >
-          </WordedSearchString>
+          />
         </div>
 
         <div
-          class="qpm_flex qpm_bottom"
           v-show="subjects !== '' && !isCollapsed"
+          class="qpm_flex qpm_bottom"
           style="justify-content: space-between"
         >
           <div style="position: relative">
@@ -369,7 +406,10 @@
               class="qpm_button"
               @click="clear"
             >
-              <i class="bx bx-reset" style="vertical-align: baseline"></i>
+              <i
+                class="bx bx-reset"
+                style="vertical-align: baseline"
+              />
               {{ getString("reset") }}
             </button>
 
@@ -385,7 +425,7 @@
               <i
                 class="bx bx-link"
                 style="margin-right: 5px; vertical-align: baseline"
-              ></i>
+              />
               {{ getString("getUrl") }}
             </button>
           </div>
@@ -404,7 +444,7 @@
             <i
               class="bx bx-search bx-flip-horizontal"
               style="position: relative; bottom: 1px"
-            ></i>
+            />
             {{ getString("search") }}
           </button>
         </div>
@@ -418,15 +458,14 @@
         :pagesize="getPageSize"
         :low="getLow"
         :high="getHigh"
+        :preselected-entries="preselectedEntries"
+        :error="searchError"
         @newPageSize="setPageSize"
         @newSortMethod="newSortMethod"
         @high="nextPage"
         @low="previousPage"
         @change:selectedEntries="updatePreselectedPmidai"
-        :preselectedEntries="preselectedEntries"
-        :error="searchError"
-      >
-      </SearchResult>
+      />
     </div>
   </div>
 </template>
@@ -450,13 +489,13 @@ import axios from "axios";
 
 export default {
   name: "MainWrapper",
-  mixins: [appSettingsMixin],
   components: {
     DropDownWrapper,
     FilterEntry,
     WordedSearchString,
     SearchResult,
   },
+  mixins: [appSettingsMixin],
   props: {
     hideTopics: {
       type: Array,
@@ -507,43 +546,6 @@ export default {
       translating: false,
       dropdownPlaceholders: [],
     };
-  },
-  mounted: function () {
-    this.updatePlaceholders();
-
-    //Spørg Adam
-    this.advanced = !this.advanced;
-    this.advancedClick(true);
-    this.parseUrl();
-    this.isUrlParsed = true;
-    this.updateSubjectDropdownWidth();
-    window.addEventListener("resize", this.updateSubjectDropdownWidth);
-    this.advanced = !this.advanced;
-    this.advancedClick();
-    this.searchPreselectedPmidai();
-    this.search();
-  },
-  created: function () {
-    this.updatePlaceholder();
-  },
-  beforeMount: function () {
-    window.removeEventListener("resize", this.updateSubjectDropdownWidth);
-  },
-  watch: {
-    subjectDropdown: {
-      handler() {
-        this.updatePlaceholders();
-      },
-      deep: true,
-      immediate: true,
-    },
-    advanced(newVal) {
-      console.log(`advanced search | ${newVal}`);
-      // Trigger an update for all the DropDownWrapper placeholders
-      this.$refs.subjectDropdown.forEach((dropdown, index) => {
-        dropdown.placeholder = this.getDropdownPlaceholder(index);
-      });
-    },
   },
   computed: {
     showTitle: function () {
@@ -698,6 +700,43 @@ export default {
     getComponentId: function () {
       return "MainWrapper_" + this.componentNo.toString();
     },
+  },
+  watch: {
+    subjectDropdown: {
+      handler() {
+        this.updatePlaceholders();
+      },
+      deep: true,
+      immediate: true,
+    },
+    advanced(newVal) {
+      console.log(`advanced search | ${newVal}`);
+      // Trigger an update for all the DropDownWrapper placeholders
+      this.$refs.subjectDropdown.forEach((dropdown, index) => {
+        dropdown.placeholder = this.getDropdownPlaceholder(index);
+      });
+    },
+  },
+  mounted: function () {
+    this.updatePlaceholders();
+
+    //Spørg Adam
+    this.advanced = !this.advanced;
+    this.advancedClick(true);
+    this.parseUrl();
+    this.isUrlParsed = true;
+    this.updateSubjectDropdownWidth();
+    window.addEventListener("resize", this.updateSubjectDropdownWidth);
+    this.advanced = !this.advanced;
+    this.advancedClick();
+    this.searchPreselectedPmidai();
+    this.search();
+  },
+  created: function () {
+    this.updatePlaceholder();
+  },
+  beforeMount: function () {
+    window.removeEventListener("resize", this.updateSubjectDropdownWidth);
   },
   methods: {
     advancedClick: function (skip) {
@@ -905,7 +944,7 @@ export default {
           //Find entries in filters
           for (let j = 0; j < value.length; j++) {
             let hashtagIndex = value[j].indexOf("#");
-
+            let selected = [];
             // Skip values when they fail to define a scope.
             // Most often this happens when a null or undefined value is encountered.
             if (hashtagIndex < 0) {

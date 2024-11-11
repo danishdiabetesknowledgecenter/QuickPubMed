@@ -5,6 +5,7 @@ import { VTooltip } from "v-tooltip";
 
 // Import of existing global styles
 import "@/assets/styles/qpm-global.css";
+import "@/assets/styles/qpm-global-strings.css";
 
 /**
  * Vue.prototype.$dateFormat = "da-DK";

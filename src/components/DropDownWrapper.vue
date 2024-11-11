@@ -1,7 +1,7 @@
 <template>
   <div
-    class="qpm_dropdown"
     ref="selectWrapper"
+    class="qpm_dropdown"
     keydown.up.capture.prevent.stop="navUp"
     @keydown.down.capture.prevent.stop="navDown"
     @keydown.left.stop="navLeft"
@@ -14,15 +14,15 @@
     @mousemove.capture.passive="ignoreHover = false"
   >
     <multiselect
-      class="qpm_dropDownMenu"
       ref="multiselect"
       v-model="getStateCopy"
+      class="qpm_dropDownMenu"
       open-direction="bottom"
       track-by="name"
       label="name"
-      selectLabel=""
-      deselectLabel=""
-      selectedLabel=""
+      select-label=""
+      deselect-label=""
+      selected-label=""
       :options="getSortedSubjectOptions"
       :multiple="isMultiple"
       :group-select="true"
@@ -33,9 +33,9 @@
       :close-on-select="false"
       :clear-on-select="false"
       :custom-label="customNameLabel"
-      :selectGroupLabel="getSelectGroupLabel"
-      :deselectGroupLabel="getSelectGroupLabel"
-      :tagPlaceholder="getTagPlaceHolder"
+      :select-group-label="getSelectGroupLabel"
+      :deselect-group-label="getSelectGroupLabel"
+      :tag-placeholder="getTagPlaceHolder"
       :taggable="taggable"
       :loading="isLoading"
       :searchable="true"
@@ -44,11 +44,14 @@
       @close="close"
       @open="open"
     >
-      <template slot="tag" slot-scope="triple">
+      <template
+        slot="tag"
+        slot-scope="triple"
+      >
         <DropdownTag
           :triple="triple"
-          :customNameLabel="customNameLabel"
-          :updateTag="
+          :custom-name-label="customNameLabel"
+          :update-tag="
             function (newTag) {
               return handleUpdateCustomTag(triple.option, newTag);
             }
@@ -59,11 +62,13 @@
           :qpm_buttonColor3="qpm_buttonColor3"
           :language="language"
           @edit="handleEditTag"
-        >
-        </DropdownTag>
+        />
       </template>
 
-      <template slot="option" slot-scope="props">
+      <template
+        slot="option"
+        slot-scope="props"
+      >
         <span
           v-if="!props.option.$groupLabel"
           :data-name="getHeader(props.option.name)"
@@ -73,15 +78,14 @@
           :parent-id="props.option.maintopicIdLevel1"
           :grand-parent-id="props.option.maintopicIdLevel2"
           :subtopiclevel="props.option.subtopiclevel"
-        >
-        </span>
+        />
 
         <span
           v-if="
             props.option.maintopic ||
-            (props.option.maintopic && props.option.subtopiclevel !== null)
+              (props.option.maintopic && props.option.subtopiclevel !== null)
           "
-          v-bind:class="{
+          :class="{
             qpm_maintopicDropdown: props.option.maintopic === true,
             qpm_subtopicDropdown: props.option.subtopiclevel === 1,
           }"
@@ -89,13 +93,16 @@
           <i
             v-if="maintopicToggledMap[props.option.id]"
             class="bx bx-chevron-down"
-          ></i>
-          <i v-else class="bx bx-chevron-right"></i>
+          />
+          <i
+            v-else
+            class="bx bx-chevron-right"
+          />
         </span>
 
         <span
           v-if="!props.option.maintopic"
-          v-bind:class="{
+          :class="{
             qpm_hidden: !isContainedInList(props),
             qpm_shown: props.option.$groupLabel,
             qpm_maintopicDropdown: props.option.maintopic === true,
@@ -108,36 +115,32 @@
         </span>
 
         <span
+          v-if="props.option.$groupLabel"
           class="qpm_groupLabel"
           :group-name="customGroupLabelById(props.option.$groupLabel)"
-          v-if="props.option.$groupLabel"
-          >{{ customGroupLabelById(props.option.$groupLabel) }}</span
-        >
+        >{{ customGroupLabelById(props.option.$groupLabel) }}</span>
 
         <i
-          class="bx bx-info-circle qpm_groupLabel"
-          style="cursor: help; font-weight: 200; margin-left: 10px"
           v-if="
             props.option.$groupLabel &&
-            customGroupTooltipById(props.option.$groupLabel).content &&
-            customGroupTooltipById(props.option.$groupLabel).content.trim() !==
+              customGroupTooltipById(props.option.$groupLabel).content &&
+              customGroupTooltipById(props.option.$groupLabel).content.trim() !==
               ''
           "
           v-tooltip.right="customGroupTooltipById(props.option.$groupLabel)"
-        ></i>
+          class="bx bx-info-circle qpm_groupLabel"
+          style="cursor: help; font-weight: 200; margin-left: 10px"
+        />
 
         <span
-          class="qpm_scopeLabel qpm_forceRight"
           v-if="props.option.$groupLabel && showScopeLabel"
+          class="qpm_scopeLabel qpm_forceRight"
           :class="{ qpm_shown: showScope(props.option.$groupLabel) }"
-          >{{ getString("scope") }}</span
-        >
+        >{{ getString("scope") }}</span>
 
         <span class="qpm_entryName">{{ customNameLabel(props.option) }} </span>
 
         <i
-          class="bx bx-info-circle qpm_entryName"
-          style="cursor: help; font-weight: 200; margin-left: -5px"
           v-if="props.option.tooltip && props.option.tooltip[language]"
           v-tooltip.right="{
             content: props.option.tooltip && props.option.tooltip[language],
@@ -145,64 +148,67 @@
             delay: $helpTextDelay,
             hideOnTargetClick: false,
           }"
-        >
-        </i>
+          class="bx bx-info-circle qpm_entryName"
+          style="cursor: help; font-weight: 200; margin-left: -5px"
+        />
         \
 
-        <span class="qpm_entryManual" v-if="props.option.isTag"
-          >{{ getString("manualadd") }}: {{ props.option.label }}
+        <span
+          v-if="props.option.isTag"
+          class="qpm_entryManual"
+        >{{ getString("manualadd") }}: {{ props.option.label }}
         </span>
 
         <div
-          class="qpm_dropdownButtons qpm_forceRight"
           v-if="
             !props.option.$groupLabel &&
-            props.option.buttons &&
-            !props.option.isTag &&
-            !props.option.maintopic
+              props.option.buttons &&
+              !props.option.isTag &&
+              !props.option.maintopic
           "
+          class="qpm_dropdownButtons qpm_forceRight"
         >
           <button
-            class="qpm_button"
-            :class="getButtonColor(props, 'narrow', 0)"
-            tabindex="-1"
-            @click="handleScopeButtonClick(props.option, 'narrow', $event)"
             v-tooltip="{
               content: getString('tooltipNarrow'),
               offset: 5,
               delay: $helpTextDelay,
               hideOnTargetClick: false,
             }"
+            class="qpm_button"
+            :class="getButtonColor(props, 'narrow', 0)"
+            tabindex="-1"
+            @click="handleScopeButtonClick(props.option, 'narrow', $event)"
           >
             {{ getString("narrow") }}
           </button>
 
           <button
-            class="qpm_button"
-            :class="getButtonColor(props, 'normal', 1)"
-            tabindex="-1"
-            @click="handleScopeButtonClick(props.option, 'normal', $event)"
             v-tooltip="{
               content: getString('tooltipNormal'),
               offset: 5,
               delay: $helpTextDelay,
               hideOnTargetClick: false,
             }"
+            class="qpm_button"
+            :class="getButtonColor(props, 'normal', 1)"
+            tabindex="-1"
+            @click="handleScopeButtonClick(props.option, 'normal', $event)"
           >
             {{ getString("normal") }}
           </button>
 
           <button
-            class="qpm_button"
-            :class="getButtonColor(props, 'broad', 2)"
-            tabindex="-1"
-            @click="handleScopeButtonClick(props.option, 'broad', $event)"
             v-tooltip="{
               content: getString('tooltipBroad'),
               offset: 5,
               delay: $helpTextDelay,
               hideOnTargetClick: false,
             }"
+            class="qpm_button"
+            :class="getButtonColor(props, 'broad', 2)"
+            tabindex="-1"
+            @click="handleScopeButtonClick(props.option, 'broad', $event)"
           >
             {{ getString("broad") }}
           </button>
@@ -218,7 +224,7 @@
 
 <script>
 import Multiselect from "vue-multiselect";
-
+import DropdownTag from "@/components/DropdownTag.vue";
 import { appSettingsMixin } from "@/mixins/appSettings";
 import { messages } from "@/assets/content/qpm-translations.js";
 import { topics } from "@/assets/content/qpm-content-diabetes";
@@ -230,10 +236,11 @@ import {
 
 export default {
   name: "DropDownWrapper",
-  mixins: [appSettingsMixin],
   components: {
     Multiselect,
+    DropdownTag,
   },
+  mixins: [appSettingsMixin],
   props: {
     isMultiple: Boolean,
     data: Array,
@@ -280,6 +287,167 @@ export default {
       ignoreHover: false,
       isLoading: false,
     };
+  },
+  computed: {
+    getStateCopy: {
+      get: function () {
+        if (!this.selected) {
+          return [];
+        }
+        return this.selected;
+      },
+      set: function (newValue) {
+        //temp list because the this.selected is only updated after methods in this component is called
+        this.tempList = newValue;
+      },
+    },
+    getSelectGroupLabel: function () {
+      return this.getString("selectGroupLabel");
+    },
+    getTagPlaceHolder: function () {
+      return this.getString("tagplaceholder");
+    },
+    shownSubjects: function () {
+      if (this.hideTopics == null || this.hideTopics.length === 0) {
+        return this.data;
+      }
+      let self = this;
+      function isNotHidden(e) {
+        return !self.isHiddenTopic(e.id);
+      }
+
+      let shown = this.data.filter(isNotHidden).map(function (e) {
+        let copy = JSON.parse(JSON.stringify(e));
+        if (copy.groups != undefined) {
+          copy.groups = copy.groups.filter(isNotHidden);
+        } else if (copy.choices != undefined) {
+          copy.choices = copy.choices.filter(isNotHidden);
+        }
+        return copy;
+      });
+
+      return shown;
+    },
+    getSortedSubjectOptions: function () {
+      let self = this;
+      let lang = this.language;
+
+      function sortByPriorityOrName(a, b) {
+        let aSort, bSort;
+
+        if (a.ordering[lang] != null && b.ordering[lang] == null) {
+          return -1; // a is ordered and b is not -> a first
+        }
+        if (b.ordering[lang] != null && a.ordering[lang] == null) {
+          return 1; // b is ordered and a is not -> b first
+        }
+
+        if (a.ordering[lang] != null) {
+          // We know both are non null due to earlier check
+          aSort = a.ordering[lang];
+          bSort = b.ordering[lang];
+        } else {
+          // Both are unordered
+          aSort = self.customGroupLabel(a);
+          bSort = self.customGroupLabel(b);
+        }
+
+        if (aSort === bSort) {
+          return 0;
+        }
+        if (aSort > bSort) {
+          return 1;
+        } else {
+          return -1;
+        }
+      }
+
+      let data = JSON.parse(JSON.stringify(this.shownSubjects));
+
+      for (let i = 0; i < data.length; i++) {
+        let groupName = null;
+        if (data[i]["groups"] != null) {
+          groupName = "groups";
+        } else if (data[i]["choices"] != null) {
+          groupName = "choices";
+        } else {
+          continue;
+        }
+
+        data[i][groupName].sort(sortByPriorityOrName); // Sort categories in groups
+      }
+
+      return data;
+    },
+    getIdToDataMap: function () {
+      var dataMap = {};
+      for (let i = 0; i < this.data.length; i++) {
+        const group = this.data[i];
+        dataMap[group.id] = group;
+
+        var groupName = this.getGroupPropertyName(group);
+        for (let j = 0; j < group[groupName].length; j++) {
+          const element = group[groupName][j];
+          dataMap[element.id] = element;
+        }
+      }
+      return dataMap;
+    },
+    getNoResultString: function () {
+      return this.noResultString
+        ? this.noResultString
+        : this.getString("noDropdownContent");
+    },
+    getShouldCloseOnInput: function () {
+      return this.closeOnInput && this.focusByHover;
+    },
+  },
+  watch: {
+    maintopicToggledMap: {
+      handler: "onMaintainTopicToggledMapChange",
+      deep: true,
+    },
+    expandedOptionGroupName(newVal, oldVal) {
+      const fixedLength = 30; // Adjust this length as needed
+
+      const formattedOldVal = (
+        oldVal === "" ? "No option group expanded" : oldVal
+      ).padEnd(fixedLength, " ");
+
+      const formattedNewVal = (
+        newVal === "" ? "No option group expanded" : newVal
+      ).padEnd(fixedLength, "");
+
+      console.log(`${formattedOldVal} ➡️ ${formattedNewVal}`);
+    },
+  },
+  mounted: function () {
+    this.initialSetup();
+
+    if (Array.isArray(this.data)) {
+      this.data.forEach((group) => {
+        if (group.groups && Array.isArray(group.groups)) {
+          group.groups.forEach((item) => {
+            if (item.maintopic) {
+              if (
+                !Object.prototype.hasOwnProperty.call(
+                  this.maintopicToggledMap,
+                  item.id
+                )
+              ) {
+                this.maintopicToggledMap[item.id] = false;
+              }
+            }
+          });
+        }
+      });
+    } else {
+      console.warn("this.data is not an array or is undefined");
+    }
+    this.$emit("mounted", this);
+  },
+  updated: function () {
+    this.initialSetup();
   },
   methods: {
     initialSetup: function () {
@@ -1404,167 +1572,6 @@ export default {
      */
     cleanLabel: function (label) {
       return label.startsWith("⤷") ? label.slice(1).trim() : label.trim();
-    },
-  },
-  computed: {
-    getStateCopy: {
-      get: function () {
-        if (!this.selected) {
-          return [];
-        }
-        return this.selected;
-      },
-      set: function (newValue) {
-        //temp list because the this.selected is only updated after methods in this component is called
-        this.tempList = newValue;
-      },
-    },
-    getSelectGroupLabel: function () {
-      return this.getString("selectGroupLabel");
-    },
-    getTagPlaceHolder: function () {
-      return this.getString("tagplaceholder");
-    },
-    shownSubjects: function () {
-      if (this.hideTopics == null || this.hideTopics.length === 0) {
-        return this.data;
-      }
-      let self = this;
-      function isNotHidden(e) {
-        return !self.isHiddenTopic(e.id);
-      }
-
-      let shown = this.data.filter(isNotHidden).map(function (e) {
-        let copy = JSON.parse(JSON.stringify(e));
-        if (copy.groups != undefined) {
-          copy.groups = copy.groups.filter(isNotHidden);
-        } else if (copy.choices != undefined) {
-          copy.choices = copy.choices.filter(isNotHidden);
-        }
-        return copy;
-      });
-
-      return shown;
-    },
-    getSortedSubjectOptions: function () {
-      let self = this;
-      let lang = this.language;
-
-      function sortByPriorityOrName(a, b) {
-        let aSort, bSort;
-
-        if (a.ordering[lang] != null && b.ordering[lang] == null) {
-          return -1; // a is ordered and b is not -> a first
-        }
-        if (b.ordering[lang] != null && a.ordering[lang] == null) {
-          return 1; // b is ordered and a is not -> b first
-        }
-
-        if (a.ordering[lang] != null) {
-          // We know both are non null due to earlier check
-          aSort = a.ordering[lang];
-          bSort = b.ordering[lang];
-        } else {
-          // Both are unordered
-          aSort = self.customGroupLabel(a);
-          bSort = self.customGroupLabel(b);
-        }
-
-        if (aSort === bSort) {
-          return 0;
-        }
-        if (aSort > bSort) {
-          return 1;
-        } else {
-          return -1;
-        }
-      }
-
-      let data = JSON.parse(JSON.stringify(this.shownSubjects));
-
-      for (let i = 0; i < data.length; i++) {
-        let groupName = null;
-        if (data[i]["groups"] != null) {
-          groupName = "groups";
-        } else if (data[i]["choices"] != null) {
-          groupName = "choices";
-        } else {
-          continue;
-        }
-
-        data[i][groupName].sort(sortByPriorityOrName); // Sort categories in groups
-      }
-
-      return data;
-    },
-    getIdToDataMap: function () {
-      var dataMap = {};
-      for (let i = 0; i < this.data.length; i++) {
-        const group = this.data[i];
-        dataMap[group.id] = group;
-
-        var groupName = this.getGroupPropertyName(group);
-        for (let j = 0; j < group[groupName].length; j++) {
-          const element = group[groupName][j];
-          dataMap[element.id] = element;
-        }
-      }
-      return dataMap;
-    },
-    getNoResultString: function () {
-      return this.noResultString
-        ? this.noResultString
-        : this.getString("noDropdownContent");
-    },
-    getShouldCloseOnInput: function () {
-      return this.closeOnInput && this.focusByHover;
-    },
-  },
-  mounted: function () {
-    this.initialSetup();
-
-    if (Array.isArray(this.data)) {
-      this.data.forEach((group) => {
-        if (group.groups && Array.isArray(group.groups)) {
-          group.groups.forEach((item) => {
-            if (item.maintopic) {
-              if (
-                !Object.prototype.hasOwnProperty.call(
-                  this.maintopicToggledMap,
-                  item.id
-                )
-              ) {
-                this.maintopicToggledMap[item.id] = false;
-              }
-            }
-          });
-        }
-      });
-    } else {
-      console.warn("this.data is not an array or is undefined");
-    }
-    this.$emit("mounted", this);
-  },
-  updated: function () {
-    this.initialSetup();
-  },
-  watch: {
-    maintopicToggledMap: {
-      handler: "onMaintainTopicToggledMapChange",
-      deep: true,
-    },
-    expandedOptionGroupName(newVal, oldVal) {
-      const fixedLength = 30; // Adjust this length as needed
-
-      const formattedOldVal = (
-        oldVal === "" ? "No option group expanded" : oldVal
-      ).padEnd(fixedLength, " ");
-
-      const formattedNewVal = (
-        newVal === "" ? "No option group expanded" : newVal
-      ).padEnd(fixedLength, "");
-
-      console.log(`${formattedOldVal} ➡️ ${formattedNewVal}`);
     },
   },
 };
