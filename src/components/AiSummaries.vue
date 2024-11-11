@@ -208,7 +208,7 @@
               </div>
             </div>
           </template>
-          <Spinner
+          <loading-spinner
             class="qpm_searchSummaryText"
             :wait-text="getString('aiSummaryWaitText')"
             :wait-duration-disclaimer="getWaitTimeString"
@@ -223,7 +223,7 @@
 
 <script>
 import Vue from "vue";
-import Spinner from "@/components/Spinner.vue";
+import LoadingSpinner from "@/components/LoadingSpinner.vue";
 import VueShowdown from "vue-showdown";
 import { appSettingsMixin, eventBus } from "@/mixins/appSettings.js";
 import { messages } from "@/assets/content/qpm-translations.js";
@@ -237,7 +237,7 @@ import {
 export default {
   name: "AiSummaries",
   components: {
-    Spinner,
+    LoadingSpinner,
     VueShowdown,
     summarizeArticle: () => import("@/components/SummarizeArticle.vue"),
   },

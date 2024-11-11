@@ -7,7 +7,7 @@
       v-if="results && results.length > 0"
       class="qpm_accordions"
     >
-      <Accordion
+      <accordion-menu
         v-if="results && results.length > 0 && appSettings.openAi.useAi"
         class="qpm_ai_hide"
         @expanded-changed="onAiSummariesAccordionStateChange"
@@ -133,9 +133,9 @@
             </keep-alive>
           </div>
         </template>
-      </Accordion>
+      </accordion-menu>
       <!-- TODO: Remember to set "openByDefault" to false if Ole responds that it is no longer desired behavior -->
-      <Accordion
+      <accordion-menu
         v-if="results && results.length > 0"
         ref="articlesAccordion"
         :is-expanded="articleAcordionExpanded"
@@ -307,7 +307,7 @@
             @loadAbstract="addIdToLoadAbstract"
           />
         </template>
-      </Accordion>
+      </accordion-menu>
     </div>
     <div
       v-if="results && results.length > 0 && total > 0"
@@ -413,7 +413,7 @@
           @loadAbstract="addIdToLoadAbstract"
         />
       </div>
-      <Spinner
+      <loading-spinner
         :loading="loading"
         class="qpm_searchMore"
       />
@@ -454,9 +454,9 @@
 </template>
 
 <script>
-import Accordion from "@/components/Accordion.vue";
+import AccordionMenu from "@/components/Accordion.vue";
 import ResultEntry from "@/components/ResultEntry.vue";
-import Spinner from "@/components/Spinner.vue";
+import LoadingSpinner from "@/components/LoadingSpinner.vue";
 import AiSummaries from "@/components/AiSummaries.vue";
 import Vue from "vue";
 import axios from "axios";
@@ -478,9 +478,9 @@ import {
 export default {
   name: "QpmSearchResult",
   components: {
-    Accordion,
+    AccordionMenu,
     ResultEntry,
-    Spinner,
+    LoadingSpinner,
     AiSummaries,
   },
   mixins: [appSettingsMixin],
@@ -981,6 +981,7 @@ export default {
             let parser = new DOMParser();
             xmlDoc = parser.parseFromString(data, "text/xml");
           } else {
+            // https://www.npmjs.com/package/winax?activeTab=readme 13 yo package for ActiveXObject
             // eslint-disable-next-line no-undef
             xmlDoc = new ActiveXObject("Microsoft.XMLDOM");
             xmlDoc.async = false;

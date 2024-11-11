@@ -4,7 +4,7 @@
       <strong>{{ getString("userQuestionsHeader") }}</strong>
     </p>
 
-    <Accordion
+    <accordion-menu
       v-for="(question, index) in questions"
       :key="index"
       :title="question"
@@ -43,9 +43,9 @@
           {{ answers[index] }}
         </div>
       </template>
-    </Accordion>
+    </accordion-menu>
 
-    <Spinner
+    <loading-spinner
       v-if="isLoadingResponse"
       class="qpm_searchMore"
       :loading="true"
@@ -88,8 +88,8 @@
 </template>
 
 <script>
-import Accordion from "@/components/Accordion.vue";
-import Spinner from "@/components/Spinner.vue";
+import AccordionMenu from "@/components/Accordion.vue";
+import LoadingSpinner from "@/components/LoadingSpinner.vue";
 
 import { appSettingsMixin } from "@/mixins/appSettings";
 import { utilitiesMixin } from "@/mixins/utilities";
@@ -99,8 +99,8 @@ import { questionHeaderHeightWatcherMixin } from "@/mixins/questionHeaderHeightW
 export default {
   name: "QuestionForArticle",
   components: {
-    Accordion,
-    Spinner,
+    AccordionMenu,
+    LoadingSpinner,
   },
   mixins: [
     appSettingsMixin,

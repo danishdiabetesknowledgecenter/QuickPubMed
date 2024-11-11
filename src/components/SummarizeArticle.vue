@@ -26,7 +26,7 @@
       {{ getString("generatePdfQuestionsButtonText") }}
     </button>
 
-    <Spinner
+    <loading-spinner
       v-if="isLoadingQuestions"
       class="qpm_searchMore"
       :loading="true"
@@ -41,7 +41,7 @@
       </p>
 
       <!-- Default questions to summarize an article section -->
-      <Accordion
+      <accordion-menu
         v-for="(question, index) in questions.slice(0, 7)"
         :key="index"
         :title="questionShortenMapDanish[question] || question"
@@ -74,7 +74,7 @@
             {{ answers[index] }}
           </div>
         </template>
-      </Accordion>
+      </accordion-menu>
 
       <!-- TITLE for generated article specific questions -->
       <p v-if="questions.length > 7">
@@ -82,7 +82,7 @@
       </p>
 
       <!-- Generated article specific questions section -->
-      <Accordion
+      <accordion-menu
         v-for="(question, index) in questions.slice(7)"
         :key="index + 7"
         :title="questionShortenMapDanish[question] || question"
@@ -122,7 +122,7 @@
             {{ answers[index + 7] }}
           </div>
         </template>
-      </Accordion>
+      </accordion-menu>
 
       <!-- User input for asking questions for an article -->
       <QuestionForArticle
@@ -147,8 +147,8 @@
 </template>
 
 <script>
-import Accordion from "@/components/Accordion.vue";
-import Spinner from "@/components/Spinner.vue";
+import AccordionMenu from "@/components/Accordion.vue";
+import LoadingSpinner from "@/components/LoadingSpinner.vue";
 import QuestionForArticle from "@/components/QuestionForArticle.vue";
 import { appSettingsMixin } from "@/mixins/appSettings";
 import { utilitiesMixin } from "@/mixins/utilities";
@@ -159,8 +159,8 @@ import { questionHeaderHeightWatcherMixin } from "@/mixins/questionHeaderHeightW
 export default {
   name: "SummarizeArticle",
   components: {
-    Accordion,
-    Spinner,
+    AccordionMenu,
+    LoadingSpinner,
     QuestionForArticle,
   },
   mixins: [

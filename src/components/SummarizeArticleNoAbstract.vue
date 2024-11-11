@@ -4,7 +4,7 @@
       v-if="isLoadingQuestions"
       style="height: 250px"
     >
-      <Spinner
+      <loading-spinner
         class="qpm_searchMore"
         :loading="true"
         :wait-text="getString('aiSummaryWaitText')"
@@ -17,7 +17,7 @@
     </p>
 
     <!-- Render the first 7 questions -->
-    <Accordion
+    <accordion-menu
       v-for="(question, index) in questions.slice(0, 7)"
       :key="index"
       :title="questionShortenMapDanish[question] || question"
@@ -50,7 +50,7 @@
           {{ answers[index] }}
         </div>
       </template>
-    </Accordion>
+    </accordion-menu>
 
     <!-- Render the title after the first 7 questions -->
     <p v-if="questions.length > 7">
@@ -58,7 +58,7 @@
     </p>
 
     <!-- Render the remaining questions -->
-    <Accordion
+    <accordion-menu
       v-for="(question, index) in questions.slice(7)"
       :key="index + 7"
       :title="questionShortenMapDanish[question] || question"
@@ -97,7 +97,7 @@
           {{ answers[index + 7] }}
         </div>
       </template>
-    </Accordion>
+    </accordion-menu>
 
     <question-for-article
       v-if="isArticle && !isLoadingQuestions"
@@ -117,8 +117,8 @@
 </template>
 
 <script>
-import Accordion from "@/components/Accordion.vue";
-import Spinner from "@/components/Spinner.vue";
+import AccordionMenu from "@/components/Accordion.vue";
+import LoadingSpinner from "@/components/LoadingSpinner.vue";
 import QuestionForArticle from "@/components/QuestionForArticle.vue";
 
 import { appSettingsMixin } from "@/mixins/appSettings";
@@ -130,8 +130,8 @@ import { questionHeaderHeightWatcherMixin } from "@/mixins/questionHeaderHeightW
 export default {
   name: "SummarizeArticleNoAbstract",
   components: {
-    Accordion,
-    Spinner,
+    AccordionMenu,
+    LoadingSpinner,
     QuestionForArticle,
   },
   mixins: [

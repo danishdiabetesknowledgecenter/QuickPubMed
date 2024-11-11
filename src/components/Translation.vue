@@ -3,7 +3,7 @@
     v-if="showingTranslation"
     class="qpm_searchSummaryText qpm_searchSummaryTextBackground qpm_searchTranslatedTitle"
   >
-    <Spinner
+    <loading-spinner
       :loading="loading"
       style="display: inline-block"
     />
@@ -75,7 +75,7 @@
 
 <script>
 import VueShowdown from "vue-showdown";
-import Spinner from "@/components/Spinner.vue";
+import LoadingSpinner from "@/components/LoadingSpinner.vue";
 import { appSettingsMixin } from "@/mixins/appSettings.js";
 import { messages } from "@/assets/content/qpm-translations.js";
 import {
@@ -86,7 +86,7 @@ import {
 export default {
   name: "Translation",
   components: {
-    Spinner,
+    LoadingSpinner,
     VueShowdown,
   },
   mixins: [appSettingsMixin],

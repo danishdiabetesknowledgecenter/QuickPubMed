@@ -5,7 +5,7 @@
       ref="singleComponent"
       class="qpm_SpecificArticle"
     >
-      <Spinner :loading-component="loadingComponent" />
+      <loading-spinner :loading-component="loadingComponent" />
       <div v-if="isCustom">
         <ResultEntry
           :id="getKey"
@@ -94,7 +94,7 @@
 <script>
 import Vue from "vue";
 import axios from "axios";
-import Spinner from "@/components/Spinner.vue";
+import LoadingSpinner from "@/components/LoadingSpinner.vue";
 import ResultEntry from "@/components/ResultEntry.vue";
 import { appSettingsMixin } from "@/mixins/appSettings";
 import { messages } from "@/assets/content/qpm-translations";
@@ -108,7 +108,7 @@ import {
 export default {
   name: "SpecificArticles",
   components: {
-    Spinner,
+    LoadingSpinner,
     ResultEntry,
   },
   mixins: [appSettingsMixin],
@@ -559,6 +559,7 @@ export default {
             let parser = new DOMParser();
             xmlDoc = parser.parseFromString(data, "text/xml");
           } else {
+            // eslint-disable-next-line no-undef
             xmlDoc = new ActiveXObject("Microsoft.XMLDOM");
             xmlDoc.async = false;
             xmlDoc.loadXML(data);

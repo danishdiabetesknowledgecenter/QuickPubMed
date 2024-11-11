@@ -4,7 +4,7 @@
     class="qpm_ResultEntry"
     :name="id"
   >
-    <Spinner :loading="loading" />
+    <loading-spinner :loading="loading" />
     <p
       v-if="showDate"
       class="qpm_resultentryDate"
@@ -320,7 +320,7 @@
           lang="en"
           style="position: relative; margin-top: 0"
         >
-          <Accordion
+          <accordion-menu
             v-if="appSettings.openAi.useAi && hasAbstract"
             class="qpm_ai_hide qpm_accordions"
           >
@@ -436,7 +436,7 @@
                 />
               </keep-alive>
             </div>
-          </Accordion>
+          </accordion-menu>
           <p
             v-if="isResourceAllowed === undefined && !hasAbstract"
             style="margin-left: 20px; margin-top: 15px"
@@ -474,7 +474,7 @@
             {{ getString("summarizeArticleNotAvailable") }}
           </p>
 
-          <Accordion
+          <accordion-menu
             v-else-if="
               appSettings.openAi.useAi &&
                 !hasAbstract &&
@@ -572,7 +572,7 @@
                 </keep-alive>
               </div>
             </template>
-          </Accordion>
+          </accordion-menu>
 
           <div class="qpm_unpaywall">
             <template v-if="doi">
@@ -765,8 +765,8 @@
 </template>
 
 <script>
-import Spinner from "@/components/Spinner.vue";
-import Accordion from "@/components/Accordion.vue";
+import LoadingSpinner from "@/components/LoadingSpinner.vue";
+import AccordionMenu from "@/components/Accordion.vue";
 import AiSummaries from "@/components/AiSummaries.vue";
 import SummarizeArticleNoAbstract from "@/components/SummarizeArticleNoAbstract.vue";
 import Translation from "@/components/Translation.vue";
@@ -783,8 +783,8 @@ import {
 export default {
   name: "ResultEntry",
   components: {
-    Spinner,
-    Accordion,
+    LoadingSpinner,
+    AccordionMenu,
     AiSummaries,
     SummarizeArticleNoAbstract,
     Translation,
