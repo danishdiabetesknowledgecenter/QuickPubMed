@@ -84,7 +84,7 @@ import {
 } from "@/assets/content/qpm-openAiPrompts.js";
 
 export default {
-  name: "Translation",
+  name: "AiTranslation",
   components: {
     LoadingSpinner,
     VueShowdown,

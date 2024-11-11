@@ -223,8 +223,10 @@
 
 <script>
 import Vue from "vue";
-import LoadingSpinner from "@/components/LoadingSpinner.vue";
 import VueShowdown from "vue-showdown";
+import LoadingSpinner from "@/components/LoadingSpinner.vue";
+import SummarizeArticle from "@/components/SummarizeArticle.vue";
+
 import { appSettingsMixin, eventBus } from "@/mixins/appSettings.js";
 import { messages } from "@/assets/content/qpm-translations.js";
 import { languageFormat, dateOptions } from "@/assets/content/qpm-content.js";
@@ -237,9 +239,9 @@ import {
 export default {
   name: "AiSummaries",
   components: {
-    LoadingSpinner,
     VueShowdown,
-    summarizeArticle: () => import("@/components/SummarizeArticle.vue"),
+    LoadingSpinner,
+    SummarizeArticle,
   },
   mixins: [appSettingsMixin],
   props: {

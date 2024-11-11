@@ -1,3 +1,12 @@
+import {
+  summarizeArticlePrompt, 
+  promptEndTextPlainLanguage, 
+  promptEndTextProfessionelLanguage, 
+  promptStartText,
+  promptQuestions, 
+  promptArticleSpecificAnswersOnly,
+  sanitizePrompt} from "@/assets/content/qpm-openAiPrompts";
+
 /**
  * Mixin for common methods used in both summarize-article and summarize-article-no-abstract components.
  * @mixin

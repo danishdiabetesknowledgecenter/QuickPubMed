@@ -79,7 +79,7 @@
 
 <script>
 export default {
-  name: "Accordion",
+  name: "AccordionMenu",
   props: {
     title: {
       type: String,

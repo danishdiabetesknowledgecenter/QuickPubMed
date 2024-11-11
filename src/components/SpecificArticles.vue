@@ -96,6 +96,7 @@ import Vue from "vue";
 import axios from "axios";
 import LoadingSpinner from "@/components/LoadingSpinner.vue";
 import ResultEntry from "@/components/ResultEntry.vue";
+
 import { appSettingsMixin } from "@/mixins/appSettings";
 import { messages } from "@/assets/content/qpm-translations";
 import { abstractSummaryPrompts } from "@/assets/content/qpm-openAiPrompts.js";
@@ -115,18 +116,22 @@ export default {
   props: {
     ids: {
       type: String,
+      default: "",
       required: false,
     },
     query: {
       type: String,
+      default: "",
       required: false,
     },
     queryResults: {
       type: Number,
+      default: 2,
       required: false,
     },
     sortMethod: {
       type: String,
+      default: "",
       required: false,
     },
     hideButtons: {
@@ -139,34 +144,42 @@ export default {
     },
     date: {
       type: String,
+      default: "",
       required: false,
     },
     title: {
       type: String,
+      default: "",
       required: false,
     },
     booktitle: {
       type: String,
+      default: "",
       required: false,
     },
     vernaculartitle: {
       type: String,
+      default: "",
       required: false,
     },
     authors: {
       type: String,
+      default: "",
       required: false,
     },
     source: {
       type: String,
+      default: "",
       required: false,
     },
     abstract: {
       type: String,
+      default: "",
       required: false,
     },
     doi: {
       type: String,
+      default: "",
       required: false,
     },
     isCustomDoi: {
@@ -183,14 +196,17 @@ export default {
     },
     hyperLinkText: {
       type: String,
+      default: "",
       required: false,
     },
     sectionedAbstract: {
       type: Object,
+      default: () => {},
       required: false,
     },
     componentNo: {
       type: Number,
+      default: null,
       required: false,
     },
     shownSixAuthors: {

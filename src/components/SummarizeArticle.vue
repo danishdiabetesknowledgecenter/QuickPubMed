@@ -150,6 +150,7 @@
 import AccordionMenu from "@/components/Accordion.vue";
 import LoadingSpinner from "@/components/LoadingSpinner.vue";
 import QuestionForArticle from "@/components/QuestionForArticle.vue";
+
 import { appSettingsMixin } from "@/mixins/appSettings";
 import { utilitiesMixin } from "@/mixins/utilities";
 import { questionsToTitleMapMixin } from "@/mixins/questionsToTitleMap";
@@ -173,10 +174,12 @@ export default {
   props: {
     htmlUrl: {
       type: String,
+      default: "",
       required: false,
     },
     pdfUrl: {
       type: String,
+      default: "",
       required: false,
     },
     language: {
@@ -209,5 +212,4 @@ export default {
 </script>
 
 <style scoped>
-/* Component-specific styles (optional) */
 </style>

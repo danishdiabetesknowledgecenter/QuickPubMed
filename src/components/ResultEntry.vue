@@ -73,7 +73,7 @@
             </p>
           </div>
         </div>
-        <Translation
+        <ai-translation
           :showing-translation="translationShowing"
           :title="
             getTitle
@@ -525,7 +525,7 @@
                 </div>
               </div>
             </template>
-            <template>
+            <div>
               <div class="qpm_ai_hide">
                 <keep-alive>
                   <div
@@ -571,7 +571,7 @@
                   </div>
                 </keep-alive>
               </div>
-            </template>
+            </div>
           </accordion-menu>
 
           <div class="qpm_unpaywall">
@@ -769,7 +769,7 @@ import LoadingSpinner from "@/components/LoadingSpinner.vue";
 import AccordionMenu from "@/components/Accordion.vue";
 import AiSummaries from "@/components/AiSummaries.vue";
 import SummarizeArticleNoAbstract from "@/components/SummarizeArticleNoAbstract.vue";
-import Translation from "@/components/Translation.vue";
+import AiTranslation from "@/components/AiTranslation.vue";
 import axios from "axios";
 
 import { appSettingsMixin } from "@/mixins/appSettings";
@@ -786,8 +786,8 @@ export default {
     LoadingSpinner,
     AccordionMenu,
     AiSummaries,
+    AiTranslation,
     SummarizeArticleNoAbstract,
-    Translation,
   },
   mixins: [appSettingsMixin],
   model: {

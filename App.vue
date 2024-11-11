@@ -1,7 +1,13 @@
 <template>
   <div id="main-content">
-    <main-wrapper language="dk" :hide-topics="[]"></main-wrapper>
-    <search-gallery language="en" :hide-topics="[]"></search-gallery>
+    <main-wrapper
+      language="dk"
+      :hide-topics="[]"
+    />
+    <search-gallery
+      language="en"
+      :hide-topics="[]"
+    />
   </div>
 </template>
 
