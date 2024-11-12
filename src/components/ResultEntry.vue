@@ -578,7 +578,7 @@
             <template v-if="doi">
               <p class="intext-arrow-link onHoverJS qpm_pubmedLink">
                 <template v-if="!unpaywallResponseLoaded">
-                  <spinner
+                  <loading-spinner
                     :loading="true"
                     :size="15"
                     style="display: inline-block !important; margin-right: 5px"

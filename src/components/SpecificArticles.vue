@@ -49,7 +49,7 @@
             <strong>{{ getString("tryAgainLater") }}</strong>
           </p>
         </div>
-        <ResultEntry
+        <result-entry
           v-for="value in searchresult"
           :id="value.uid"
           :key="value.uid"
@@ -234,9 +234,6 @@ export default {
       searchresult: undefined,
       loadingComponent: false,
       componentId: null,
-      customLink: "",
-      searchLoading: false,
-      count: 0,
     };
   },
   computed: {
@@ -269,30 +266,7 @@ export default {
       return `qpm_SpecificArticle_${this.componentId}`;
     },
   },
-  watch: {
-    showingTranslation: {
-      handler: async function (newValue) {
-        if (!newValue) {
-          await this.showTranslation();
-        }
-      },
-      immediate: true,
-    },
-    models(newModelState, oldModelState) {
-      const oldIds = oldModelState.map((model) => model.uid);
-      const newModels = newModelState
-        .map((model) => model.uid)
-        .filter((uid) => oldIds.includes(uid));
-      this.modelsChangesPending.splice(this.models.length, 0, ...newModels);
-
-      if (this.onlyUpdateModelWhenVisible) {
-        this.updateModelsIfOnScreen();
-      } else {
-        this.shownModels = newModelState;
-      }
-    },
-  },
-  async created() {
+  created() {
     this.loadingComponent = true;
     if (this.queryResults) this.pageSize = parseInt(this.queryResults);
     this.setOrder(this.sortMethod);
@@ -630,5 +604,4 @@ export default {
 </script>
 
 <style scoped>
-/* Component-specific styles (optional) */
 </style>
