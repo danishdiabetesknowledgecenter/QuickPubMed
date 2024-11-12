@@ -1,21 +1,18 @@
 // IT IS VERY IMPORTANT THAT GROUPNAME AND NAME ACROSS ALL GROUPS ARE UNIQUE!
-const dateOptions = { year: "numeric", month: "long", day: "numeric" };
+export const dateOptions = { year: "numeric", month: "long", day: "numeric" };
 
-const languageFormat = {
+export const languageFormat = {
   da: "da-DK",
   en: "en-GB",
   de: "de-DR",
 };
-//Vue.prototype.$dateFormat = "da-DK"; //or en-US for US, or en-GB for British or de-DR for German and so on. Full list https://stackoverflow.com/questions/3191664/list-of-all-locales-and-their-short-codes
-Vue.prototype.$helpTextDelay = { show: 500, hide: 100 };
-Vue.prototype.$alwaysShowFilter = true;
 
-const customInputTagTooltip = {
+export const customInputTagTooltip = {
   dk: "Klik for at redigere",
   en: "Click to edit",
 };
 
-const order = [
+export const order = [
   {
     id: "O01",
     method: "relevance",
@@ -42,13 +39,14 @@ const order = [
   },
 ];
 
-const pageSizes = [10, 25, 50];
+export const pageSizes = [10, 25, 50];
 
-const scopeIds = {
+export const scopeIds = {
   n: "narrow", //narrow
   s: "normal", //standard
   b: "broad", //broad
 };
+
 /**
  * Lille parameterforklaring til properties i denne liste:
  * simpleSearch: boolean - angiver om et givent filter skal kunne bruges ved en simpel søgning.
@@ -56,7 +54,7 @@ const scopeIds = {
  *                          OBS: simpleSearch SKAL også være true for at dette kan lade sig gøre.
  * stringSearchComment: string - en kommentar om hvad filteret gør.
  */
-const filtrer = [
+export const filtrer = [
   {
     id: "L00",
     name: "Skabelonkategori",
