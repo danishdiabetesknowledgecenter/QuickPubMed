@@ -29,7 +29,7 @@
       </div>
       <div
         v-for="subject in getSortedSubjects"
-        :key="subject.groupname"
+        :key="`subject-${subject.id}`"
         class="qpm_subjectSearchStrings qpm_collapsedSection"
       >
         <h3
@@ -40,7 +40,7 @@
         </h3>
         <div
           v-for="(group, index) in subject.groups"
-          :key="group.id + index"
+          :key="`group-${group.id}-${index}`"
           class="qpm_searchGroups qpm_collapsedSection"
           :class="[
             toClassName(subject.groupname),

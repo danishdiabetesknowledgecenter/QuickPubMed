@@ -163,11 +163,11 @@
           >
             <div
               v-for="(item, n) in subjects"
-              :key="n"
+              :key="`item-${item.id}-${n}`"
               class="qpm_subjects"
             >
               <div class="qpm_flex">
-                <DropDownWrapper
+                <dropdown-wrapper
                   ref="subjectDropdown"
                   :is-multiple="true"
                   :data="subjectOptions"
@@ -262,7 +262,7 @@
                 id="qpm_topofsearchbar"
                 class="qpm_flex"
               >
-                <DropDownWrapper
+                <dropdown-wrapper
                   ref="filterDropdown"
                   :class="{ qpm_shown: !showFilter }"
                   :is-multiple="true"
@@ -288,7 +288,7 @@
                   class="qpm_filters"
                   :class="{ qpm_shown: filters.length === 0 }"
                 >
-                  <FilterEntry
+                  <filter-entry
                     v-for="(selected, id) in filterData"
                     :key="id"
                     :language="language"
@@ -331,7 +331,7 @@
                       v-for="(choice, index) in option.choices"
                       v-if="choice.simpleSearch"
                       :id="'qpm_topic_' + choice.name"
-                      :key="index"
+                      :key="`choice-${choice.id}-${index}`"
                       class="qpm_simpleFilters"
                     >
                       <input
@@ -449,7 +449,7 @@
           </button>
         </div>
       </div>
-      <SearchResult
+      <search-result
         :language="language"
         :total="count"
         :sort="sort"
@@ -471,7 +471,7 @@
 </template>
 
 <script>
-import DropDownWrapper from "@/components/DropDownWrapper.vue";
+import DropdownWrapper from "@/components/DropdownWrapper.vue";
 import FilterEntry from "@/components/FilterEntry.vue";
 import WordedSearchString from "@/components/WordedSearchString.vue";
 import SearchResult from "@/components/SearchResult.vue";
@@ -490,7 +490,7 @@ import axios from "axios";
 export default {
   name: "MainWrapper",
   components: {
-    DropDownWrapper,
+    DropdownWrapper,
     FilterEntry,
     WordedSearchString,
     SearchResult,
@@ -711,7 +711,7 @@ export default {
     },
     advanced(newVal) {
       console.log(`advanced search | ${newVal}`);
-      // Trigger an update for all the DropDownWrapper placeholders
+      // Trigger an update for all the DropdownWrapper placeholders
       this.$refs.subjectDropdown.forEach((dropdown, index) => {
         dropdown.placeholder = this.getDropdownPlaceholder(index);
       });

@@ -50,7 +50,7 @@
             </div>
           </div>
         </template>
-        <template>
+        <div>
           <div>
             <keep-alive>
               <div
@@ -83,8 +83,8 @@
                   }}</strong>
                 </p>
                 <button
-                  v-for="prompt in getSearchSummaryPrompts()"
-                  :key="prompt"
+                  v-for="(prompt, index) in getSearchSummaryPrompts()"
+                  :key="`prompt-${prompt.name}-${index}`"
                   v-tooltip="{
                     content: getString('hoverSummarizeSearchResultButton'),
                     offset: 5,
@@ -132,9 +132,9 @@
               />
             </keep-alive>
           </div>
-        </template>
+        </div>
       </accordion-menu>
-      <!-- TODO: Remember to set "openByDefault" to false if Ole responds that it is no longer desired behavior -->
+
       <accordion-menu
         v-if="results && results.length > 0"
         ref="articlesAccordion"
@@ -278,7 +278,7 @@
           </div>
         </template>
         <template #listItem="value">
-          <ResultEntry
+          <result-entry
             :id="value.model.uid"
             ref="resultEntries"
             :pmid="value.model.uid"
@@ -342,7 +342,7 @@
           >
             <option
               v-for="sorter in getOrderMethods"
-              :key="sorter.method"
+              :key="sorter.id"
               :value="sorter.method"
               :selected="isSelected(sorter)"
             >
@@ -377,12 +377,12 @@
     </div>
     <div style="z-index: 0">
       <div
-        v-for="value in getShownSearchResults"
+        v-for="(value, index) in getShownSearchResults"
         v-if="results.length > 0 || !loading"
-        :key="value.uid"
+        :key="value.uid || `result-${index}`"
         class="qpm_ResultEntryWrapper"
       >
-        <ResultEntry
+        <result-entry
           :id="value.uid"
           ref="resultEntries"
           :pmid="value.uid"
@@ -476,7 +476,7 @@ import {
 } from "@/assets/content/qpm-content";
 
 export default {
-  name: "QpmSearchResult",
+  name: "SearchResult",
   components: {
     AccordionMenu,
     ResultEntry,

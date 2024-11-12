@@ -8,7 +8,7 @@
       style="display: inline-block"
     />
     <div v-if="useMarkdown && canRenderMarkdown">
-      <VueShowdown
+      <vue-showdown
         :options="{ smoothLivePreview: true }"
         :markdown="text"
       />
@@ -111,7 +111,6 @@ export default {
       writing: false,
       stopGeneration: false,
       text: this.getString("aiTranslationWaitText"),
-      helpTextDelay: 300, // Define helpTextDelay or fetch from mixin
     };
   },
   watch: {

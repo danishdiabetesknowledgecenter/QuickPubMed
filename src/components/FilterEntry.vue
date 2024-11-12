@@ -4,7 +4,7 @@
     style="width: 110.7%"
   >
     <p>{{ customNameLabel(filterItem) }}</p>
-    <DropDownWrapper
+    <dropdown-wrapper
       ref="dropdown"
       :is-multiple="true"
       :data="filterItem.choices"
@@ -26,12 +26,14 @@
 </template>
 
 <script>
-import DropDownWrapper from "@/components/DropDownWrapper.vue";
+import DropdownWrapper from "@/components/DropdownWrapper.vue";
+
 import { messages } from "@/assets/content/qpm-translations";
+
 export default {
   name: "FilterEntry",
   components: {
-    DropDownWrapper,
+    DropdownWrapper,
   },
   props: {
     filterItem: {
