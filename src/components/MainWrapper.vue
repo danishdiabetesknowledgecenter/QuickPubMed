@@ -613,7 +613,7 @@ export default {
           subjectsToIterate > 1
         )
           substring += ")";
-        //console.log("SUBSTRING: " + substring);
+        
         if (
           substring != "()" &&
           substring != " AND ()" &&
@@ -630,7 +630,7 @@ export default {
         let hasOperators = false;
         for (let i = 0; i < value.length; i++) {
           let scope = value[i].scope;
-          //console.log(value[i].searchStrings[scope]);
+          
           if (
             value[i].searchStrings[scope][0].indexOf("AND") >= 0 ||
             value[i].searchStrings[scope][0].indexOf("NOT") >= 0 ||
@@ -834,7 +834,6 @@ export default {
       this.showFilter = this.advanced && this.filters;
     },
     parseUrl: function () {
-      //?subject=alkohol1#normal,alkohol2#narrow,alkohol3#broad&subject=diabetes1#normal,astma#normal1&sprog=norsk#broad,svensk#normal
       this.subjects = [];
       let url = window.location.href;
       let parser = document.createElement("a");
@@ -846,7 +845,7 @@ export default {
         this.subjects = [[]];
         return;
       }
-      //console.log('hashtag', query.lastIndexOf("#"), query.substring(query.lastIndexOf("#")), vars);
+      
       for (let i = 0; i < vars.length; i++) {
         let pair = vars[i].split("=");
         let key = decodeURIComponent(pair[0]);
@@ -858,10 +857,6 @@ export default {
             let hashtagIndex = value[j].indexOf("#");
             let id = value[j].substring(0, hashtagIndex);
             let scope = value[j].substring(hashtagIndex + 1, value[j].length);
-            //find subject
-            //let found = false; Unused variable
-            //let group = id[1]; Unused variable
-            //let elem = id.slice(-2); Unused variable
             let isId = !(id.startsWith("{{") && id.endsWith("}}"));
 
             if (!isId) {

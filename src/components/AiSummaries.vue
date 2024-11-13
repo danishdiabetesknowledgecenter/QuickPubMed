@@ -122,7 +122,7 @@
                   v-if="useMarkdown && canRenderMarkdown"
                   ref="summary"
                 >
-                  <VueShowdown
+                  <vue-showdown
                     :options="{ smoothLivePreview: true }"
                     :markdown="getCurrentSummary.body"
                     @click.native.capture="onMarkdownClick"
@@ -223,7 +223,6 @@
 
 <script>
 import Vue from "vue";
-import VueShowdown from "vue-showdown";
 import LoadingSpinner from "@/components/LoadingSpinner.vue";
 import SummarizeArticle from "@/components/SummarizeArticle.vue";
 
@@ -239,7 +238,6 @@ import {
 export default {
   name: "AiSummaries",
   components: {
-    VueShowdown,
     LoadingSpinner,
     SummarizeArticle,
   },
@@ -510,10 +508,12 @@ export default {
         this.language
       );
 
-      const openAiServiceUrl = `${this.appSettings.openAi.baseUrl}/api/SummarizeSearch`;
+      const endpoint = "/api/SummarizeSearch";
+      const openAiServiceUrl = `${this.appSettings.openAi.baseUrl}${endpoint}`;
 
       const readData = async (url, body) => {
         let answer = "";
+        console.log("READDATA | URL", url);
         const response = await fetch(url, {
           method: "POST",
           body: JSON.stringify(body),

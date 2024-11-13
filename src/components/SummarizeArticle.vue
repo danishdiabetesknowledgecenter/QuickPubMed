@@ -12,7 +12,7 @@
       v-tooltip="{
         content: getString('hoverAskQuestionText'),
         offset: 5,
-        delay: helpTextDelay,
+        delay: $helpTextDelay,
         hideOnTargetClick: false,
       }"
       class="qpm_button"
@@ -125,7 +125,7 @@
       </accordion-menu>
 
       <!-- User input for asking questions for an article -->
-      <QuestionForArticle
+      <question-for-article
         v-if="!isLoadingQuestions"
         :pdf-url="pdfUrl"
         :html-url="htmlUrl"

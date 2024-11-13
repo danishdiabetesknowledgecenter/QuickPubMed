@@ -1,3 +1,6 @@
+import { messages } from "@/assets/content/qpm-translations.js"
+import {domainSpecificPromptingRules } from "@/assets/content/qpm-openAiPrompts.js"
+
 /**
  * Mixin for utility functions that are reusable across components.
  *
@@ -43,7 +46,7 @@ export const utilitiesMixin = {
           body: JSON.stringify(body),
         });
         if (!response.ok) {
-          throw Error(JSON.stringify(data));
+          throw Error(JSON.stringify(this.data));
         }
         return response;
       } catch (error) {

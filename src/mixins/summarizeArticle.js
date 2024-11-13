@@ -124,7 +124,7 @@ export const summarizeArticleMixin = {
       let response = await this.handleFetch(openAiServiceUrl, {
         prompt: localePrompt,
         htmlurl: this.htmlUrl,
-        client: self.appSettings.client,
+        client: this.appSettings.client,
       }).catch(function (error) {
         this.isArticle = false;
         return error;
@@ -163,7 +163,7 @@ export const summarizeArticleMixin = {
       let response = await this.handleFetch(openAiServiceUrl, {
         prompt: localePrompt,
         pdfurl: this.pdfUrl,
-        client: self.appSettings.client,
+        client: this.appSettings.client,
       }).catch(function (error) {
         this.isArticle = false;
         return error;
