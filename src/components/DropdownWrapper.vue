@@ -151,7 +151,7 @@
           class="bx bx-info-circle qpm_entryName"
           style="cursor: help; font-weight: 200; margin-left: -5px"
         />
-        \
+        
   
         <span
           v-if="props.option.isTag"
