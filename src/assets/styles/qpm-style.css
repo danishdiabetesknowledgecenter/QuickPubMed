@@ -420,6 +420,7 @@ p.qpm_shownumber {
   transition: all 0.2s ease !important;
   cursor: pointer;
   display: inline !important;
+  margin-right: 5px;
 }
 
 .qpm_button:hover,

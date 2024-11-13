@@ -392,7 +392,7 @@
         </div>
 
         <div
-          v-show="subjects !== '' && !isCollapsed"
+          v-show="!noSubjects && !isCollapsed"
           class="qpm_flex qpm_bottom"
           style="justify-content: space-between"
         >
@@ -545,6 +545,7 @@ export default {
       subjects: [[]],
       translating: false,
       dropdownPlaceholders: [],
+      
     };
   },
   computed: {
@@ -554,13 +555,9 @@ export default {
       }
       return "";
     },
-    noSubjects: function () {
-      for (let i = 0; i < this.subjects.length; i++) {
-        if (this.subjects[i].length > 0) {
-          return false;
-        }
-      }
-      return true;
+    noSubjects() {
+      const result = this.subjects.every(subjectArray => subjectArray.length === 0);
+      return result;
     },
     getSearchString: function () {
       let str = "";
