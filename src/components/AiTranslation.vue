@@ -22,7 +22,7 @@
         v-tooltip="{
           content: getString('hoverretryText'),
           offset: 5,
-          delay: helpTextDelay,
+          delay: $helpTextDelay,
           hideOnTargetClick: false,
         }"
         class="qpm_button"
@@ -35,7 +35,7 @@
         v-tooltip="{
           content: getString('hoverretryText'),
           offset: 5,
-          delay: helpTextDelay,
+          delay: $helpTextDelay,
           hideOnTargetClick: false,
         }"
         class="qpm_button"
@@ -51,7 +51,7 @@
         v-tooltip="{
           content: getString('hovercopyText'),
           offset: 5,
-          delay: helpTextDelay,
+          delay: $helpTextDelay,
           hideOnTargetClick: false,
         }"
         class="qpm_button"
@@ -74,7 +74,7 @@
 </template>
 
 <script>
-import VueShowdown from "vue-showdown";
+
 import LoadingSpinner from "@/components/LoadingSpinner.vue";
 import { appSettingsMixin } from "@/mixins/appSettings.js";
 import { messages } from "@/assets/content/qpm-translations.js";
@@ -87,7 +87,6 @@ export default {
   name: "AiTranslation",
   components: {
     LoadingSpinner,
-    VueShowdown,
   },
   mixins: [appSettingsMixin],
   props: {
@@ -116,18 +115,26 @@ export default {
   watch: {
     showingTranslation: {
       handler: async function (newValue) {
-        if (!newValue) {
+        if (newValue) { // Trigger when showingTranslation is true
           await this.showTranslation();
         }
       },
-      immediate: true,
+      immediate: false, // Usually, immediate: true triggers on component creation
     },
   },
   methods: {
     async showTranslation() {
-      if (this.showingTranslation) {
-        if (!this.translationLoaded && !this.loading) {
+      console.log(`Translation Loaded: ${this.translationLoaded}, Loading: ${this.loading}`);
+      
+      if (!this.translationLoaded && !this.loading) {
+        this.loading = true; // Set loading state
+        try {
           await this.translateTitle();
+          this.translationLoaded = true;
+        } catch (error) {
+          console.error("Translation failed:", error);
+        } finally {
+          this.loading = false; // Reset loading state
         }
       }
     },
@@ -137,6 +144,7 @@ export default {
       return constant !== undefined ? constant : messages[string]["dk"];
     },
     async translateTitle(showSpinner = true) {
+      console.log("Translating title", this.title);
       this.loading = showSpinner;
       this.stopGeneration = false;
       const openAiServiceUrl = `${this.appSettings.openAi.baseUrl}/api/TranslateTitle`;
