@@ -26,6 +26,9 @@ jobs:
           npm install
 
       - name: 🏗️ Build Project
+        env:
+            VITE_NLM_KEY: ${{ secrets.VITE_NLM_KEY }}
+            VITE_BASE_URL: ${{ secrets.VITE_BASE_URL }}
         run: npm run build
 
       - name: 📂 Deploy to FTP Server
