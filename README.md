@@ -6,7 +6,7 @@
 1. **Clone the repository:**
    ```bash
    git clone [repository-url]
-   cd QuickPubMed
+   cd [folder-name]
    ```
 
 2. **Install dependencies:**
@@ -19,6 +19,23 @@
    npm run dev
    ```
    This will start the Vite development server at `http://localhost:5173`
+
+### Run Azure function Locally to avoid CORS issues
+1. **Close the azure functions repository**
+   ```bash
+   git clone [repository-url]
+   cd [folder-name]/[project-name]
+   ```
+
+2. **Start the API**
+Make sure you have the azure function runtime installed locally
+  ```bash
+   func start
+   ```
+
+3. **Check the baseUrl in config/settings in frontend project** 
+
+   (TODO introduce local.settings again) 
 
 ### Branch Strategy
 
