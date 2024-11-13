@@ -62,7 +62,7 @@
             >
               <a
                 v-if="language != 'en'"
-                @click="translationShowing = !translationShowing"
+                @click="toggleTranslation"
               >
                 {{
                   translationShowing
@@ -75,13 +75,7 @@
         </div>
         <ai-translation
           :showing-translation="translationShowing"
-          :title="
-            getTitle
-              ? getTitle
-              : getBookTitle
-                ? getBookTitle
-                : getVernacularTitle
-          "
+          :title="computedTitle"
         />
         <div style="line-height: 1.5em">
           <p class="qpm_resultAuthors">
@@ -956,6 +950,9 @@ export default {
   },
 
   computed: {
+    computedTitle() {
+      return this.getTitle || this.getBookTitle || this.getVernacularTitle || '';
+    },
     getIsPubTypeAllowed: function () {
       return this.isPubTypeAllowed;
     },
@@ -1330,6 +1327,9 @@ export default {
     this.$parent.$off("abstractLoadeds", this.setAbstract);
   },
   methods: {
+    toggleTranslation() {
+      this.translationShowing = !this.translationShowing;
+    },
     toggleExtendedPrompts() {
       this.showExtendedPrompts = !this.showExtendedPrompts;
     },

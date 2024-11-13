@@ -243,21 +243,47 @@
     mixins: [appSettingsMixin],
     props: {
       isMultiple: Boolean,
-      data: Array,
       isGroup: Boolean,
-      placeholder: String,
-      operator: String,
       taggable: Boolean,
       closeOnInput: Boolean,
-      selected: Array,
       searchWithAI: Boolean,
+      showScopeLabel: Boolean,
+      index: undefined, //sometimes a string, sometimes an integer. You gotta love javascript for this
+      data: {
+        type: Array,
+        default: () => [],
+        required: true,
+      },
+      placeholder: {
+        type: String,
+        default: "",
+        required: true,
+      },
+      operator: {
+        type: String,
+        default: "",
+        required: true,
+      },
+      selected: {
+        type: Array,
+        default: () => [],
+        required: true,
+      },
       hideTopics: {
         type: Array,
         default: function () {
           return [];
         },
       },
-      noResultString: String,
+      noResultString: {
+        type: String,
+        default: "",
+        required: true,
+      },
+      language: {
+        type: String,
+        default: "dk",
+      },
       qpm_buttonColor1: {
         type: String,
         default: "qpm_buttonColor1",
@@ -269,12 +295,6 @@
       qpm_buttonColor3: {
         type: String,
         default: "qpm_buttonColor3",
-      },
-      index: undefined, //sometimes a string, sometimes an integer. You gotta love javascript for this
-      showScopeLabel: Boolean,
-      language: {
-        type: String,
-        default: "dk",
       },
     },
     data: function () {
@@ -1009,8 +1029,9 @@
           // close the multiselect dropdown
           this.$refs.multiselect.deactivate();
           //setTimeout is to resolve the tag placeholder before starting to translate
-          setTimeout(1);
+          await new Promise(resolve => setTimeout(resolve, 10));
           let translated = await this.translateSearch(newTag);
+          console.log(`${translated} - ${newTag}`);
           tag = {
             name: translated,
             searchStrings: { normal: [translated] },
@@ -1332,7 +1353,7 @@
         const openAiServiceUrl =
           this.appSettings.openAi.baseUrl + "/api/TranslateTitle";
         var localePrompt = getPromptForLocale(searchTranslationPrompt, "dk");
-  
+       
         try {
           let answer = "";
           const response = await fetch(openAiServiceUrl, {
@@ -1340,7 +1361,7 @@
             body: JSON.stringify({
               prompt: localePrompt,
               title: wordsToTranslate,
-              client: self.appSettings.client,
+              client: this.appSettings.client,
             }),
           });
   
@@ -1355,15 +1376,16 @@
   
           while (true) {
             const { done, value } = await reader.read();
-            if (done || self.stopGeneration) {
+            if (done || this.stopGeneration) {
               break;
             }
             answer += value;
           }
-  
+          console.log("Translated: ", answer);
           return answer;
         } catch (error) {
-          self.text = "An unknown error occurred: \n" + error.toString();
+          this.text = "An unknown error occurred: \n" + error.toString();
+          return wordsToTranslate;
         }
       },
       /**
