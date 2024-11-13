@@ -46,7 +46,7 @@
         </div>
       </template>
       <template #default>
-        <div class="answer-text">
+        <div class="qpm_answer-text">
           {{ answers[index] }}
         </div>
       </template>
@@ -92,7 +92,7 @@
       <template #default>
         <div
           :style="getAnswerStyle(index)"
-          class="answer-text"
+          class="qpm_answer-text"
         >
           {{ answers[index + 7] }}
         </div>
@@ -109,7 +109,7 @@
 
     <p
       v-if="errorMessage"
-      class="error-message"
+      class="qpm_error-message"
     >
       {{ errorMessage }}
     </p>

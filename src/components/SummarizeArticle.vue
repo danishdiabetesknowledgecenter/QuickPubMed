@@ -12,7 +12,7 @@
       v-tooltip="{
         content: getString('hoverAskQuestionText'),
         offset: 5,
-        delay: helpTextDelay,
+        delay: $helpTextDelay,
         hideOnTargetClick: false,
       }"
       class="qpm_button"
@@ -70,7 +70,7 @@
           </div>
         </template>
         <template #default>
-          <div class="answer-text">
+          <div class="qpm_answer-text">
             {{ answers[index] }}
           </div>
         </template>
@@ -117,7 +117,7 @@
         <template #default>
           <div
             :style="getAnswerStyle(index)"
-            class="answer-text"
+            class="qpm_answer-text"
           >
             {{ answers[index + 7] }}
           </div>
@@ -125,7 +125,7 @@
       </accordion-menu>
 
       <!-- User input for asking questions for an article -->
-      <QuestionForArticle
+      <question-for-article
         v-if="!isLoadingQuestions"
         :pdf-url="pdfUrl"
         :html-url="htmlUrl"
@@ -139,7 +139,7 @@
     </p>
     <p
       v-if="errorMessage"
-      class="error-message"
+      class="qpm_error-message"
     >
       {{ errorMessage }}
     </p>

@@ -2104,49 +2104,24 @@ input:checked + .qpm_slider:before {
   
   .qpm_slider.qpm_round:before {
 	border-radius: 50%;
-  } */
+  } 
+*/
 
-.question-container {
-  display: flex;
-  flex-direction: column; /* Align items vertically */
-  margin-top: 10px;
-}
-
-.question-container > button {
-  display: flex;
-  align-items: center;
-}
-
-.button-content {
-  display: flex;
-  align-items: center;
-  justify-content: left;
-}
-
-.title-custom {
-  padding-top: 20px; /* Adjust the value as needed */
-  padding-bottom: 20px; /* Adjust the value as needed */
-}
-
-.loading-answer {
-  color: rgba(0, 0, 0, 0.5); /* More opaque text color */
-}
-
-.answer-text {
+.qpm_answer-text {
   word-wrap: break-word; /* Break long words */
   font-family: inherit; /* Use the inherited font family */
   padding-top: 10px;
   text-align: start;
 }
 
-.error-message {
+.qpm_error-message {
   color: red; /* Red color to indicate an error */
   font-weight: bold; /* Bold text to make it more noticeable */
   margin-top: 10px; /* Space above the error message */
   padding: 10px; /* Padding around the error message */
 }
 
-.question-input {
+.qpm_question-input {
   width: 100%;
   padding: 10px;
   margin-top: 10px;
@@ -2157,7 +2132,7 @@ input:checked + .qpm_slider:before {
   font-size: 16px;
 }
 
-.question-input:focus {
+.qpm_question-input:focus {
   border-color: #66afe9;
   outline: none;
   box-shadow: 0 0 8px rgba(102, 175, 233, 0.6);

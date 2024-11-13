@@ -1369,8 +1369,8 @@ export default {
      * Returns true if not forbidden, false if forbidden
      */
     async checkRessource() {
-      const url =
-        "https://qpm-openai-service.azurewebsites.net/api/CheckIfResourceIsForbidden";
+      const endpoint = "/api/CheckIfResourceIsForbidden";
+      const openAiServiceUrl = `${this.appSettings.openAi.baseUrl}${endpoint}`;
       const options = {
         method: "POST",
         body: JSON.stringify({
@@ -1379,7 +1379,7 @@ export default {
       };
 
       try {
-        const pdfresponse = await fetch(url, options);
+        const pdfresponse = await fetch(openAiServiceUrl, options);
         const isAllowed = pdfresponse.status !== 403;
         this.isResourceAllowed = isAllowed;
         console.log("isResourceAllowed:", this.isResourceAllowed);

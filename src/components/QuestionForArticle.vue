@@ -38,7 +38,7 @@
       <template #default>
         <div
           :style="getAnswerStyle(index)"
-          class="answer-text"
+          class="qpm_answer-text"
         >
           {{ answers[index] }}
         </div>
@@ -62,7 +62,7 @@
           delay: $helpTextDelay,
           hideOnTargetClick: false,
         }"
-        class="question-input"
+        class="qpm_question-input"
         :disabled="isLoadingResponse"
         :placeholder="getString('userQuestionInputPlaceholder')"
         :title="getString('userQuestionInputHoverText')"
@@ -80,7 +80,7 @@
 
     <p
       v-if="errorMessage"
-      class="error-message"
+      class="qpm_error-message"
     >
       {{ errorMessage }}
     </p>
