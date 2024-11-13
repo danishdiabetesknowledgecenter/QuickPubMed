@@ -92,7 +92,7 @@
           <span v-if="pubDate">{{ pubDate }}</span>
           <span v-if="volume">;{{ volume }}</span>
           <span v-if="issue">({{ issue }})</span>
-          <span v-if="pages">:{{ pages }}</span>.
+          <span v-if="pages">:{{ pages }}</span>
         </p>
       </div>
     </div>
@@ -1181,7 +1181,6 @@ export default {
       var volume = ";" + this.volume || "";
       var issue = "(" + this.issue + ")" || "";
       var pages = ":" + this.pages || "";
-
       return source + sourceDateSeperator + pubDate + volume + issue + pages;
     },
     getAbstract: function () {

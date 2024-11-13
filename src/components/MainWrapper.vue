@@ -545,6 +545,7 @@ export default {
       subjects: [[]],
       translating: false,
       dropdownPlaceholders: [],
+      
     };
   },
   computed: {

@@ -7,7 +7,7 @@
     >
       <loading-spinner :loading-component="loadingComponent" />
       <div v-if="isCustom">
-        <ResultEntry
+        <result-entry
           :id="getKey"
           :key="getKey"
           :pmid="getId"
@@ -414,6 +414,7 @@ export default {
     },
     getSource(value) {
       try {
+        console.log(`Value: ${value}`);
         if (this.source !== undefined) {
           if (value !== undefined) {
             if (value.volume !== undefined) value.volume = undefined;

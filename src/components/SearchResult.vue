@@ -369,7 +369,7 @@
         </div>
       </div>
     </div>
-    <div v-if="results && results.length == 0">
+    <div v-if="results && results.length === 0">
       <div class="h3">
         <br>{{ getString("noResult") }}
       </div>
@@ -487,8 +487,9 @@ export default {
   props: {
     results: {
       type: Array, 
-      default: () => [],
+      default: () => undefined,
     },
+
     total: {
       type: Number, 
       default: 0
