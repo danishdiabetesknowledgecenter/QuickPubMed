@@ -13,8 +13,13 @@
    ```bash
    npm install
    ```
+    
+3. **Fill in values for .env file**
+   
+   check the .env.example file to see which are needed
+           
 
-3. **Start development server:**
+4. **Start development server:**
    ```bash
    npm run dev
    ```
@@ -77,6 +82,8 @@ main (production) ←← dev ←← feature branches
 ### GitHub Actions Workflow
 The project uses GitHub Actions for automated deployment. The workflow is defined in `.github/workflows/main.yml`.
 
+The deployed app can be viewed at [qpm.videncenterfordiabetes.dk/dev/latest/](https://qpm.videncenterfordiabetes.dk/dev/latest/)
+
 ### GitHub Secrets
 The workflow uses the following secrets for secure deployment:
 - `FTP_SERVER`: FTP server address
@@ -95,7 +102,7 @@ To add/update secrets:
 3. GitHub Actions automatically:
    - Builds the application
    - Deploys to FTP server
-   - Only the `dist` folder is deployed
+   - Only the `dist` folder is deployed which contains the bundled code 
 
 ## Build Commands
 

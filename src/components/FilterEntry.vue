@@ -13,6 +13,7 @@
       :placeholder="placeholderText"
       :operator="calcOrOperator"
       :taggable="filterItem.allowCustomInput"
+      :no-result-string="getString('noLimitDropdownContent')"
       :selected="selected"
       :index="idx"
       :close-on-input="false"
