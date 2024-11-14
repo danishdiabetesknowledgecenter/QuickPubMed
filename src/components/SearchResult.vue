@@ -489,7 +489,6 @@ export default {
       type: Array, 
       default: () => undefined,
     },
-
     total: {
       type: Number, 
       default: 0
@@ -764,13 +763,12 @@ export default {
     changePageNumber: function (event) {
       const newPageSize =
         pageSizes[parseInt(event.target.options.selectedIndex)];
-      // console.log(newPageSize);
       this.$emit("newPageSize", newPageSize);
     },
     getComponentWidth: function () {
       let container = this.$refs.searchResult;
-      if (!container.innerHTML) return;
-      // console.log("thing", container, container.offsetWidth);
+      if (!container) return
+
       return parseInt(container.offsetWidth);
     },
     addArticle: function (article) {
