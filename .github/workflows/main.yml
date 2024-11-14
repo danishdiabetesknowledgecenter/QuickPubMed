@@ -27,8 +27,24 @@ jobs:
 
       - name: 🏗️ Build Project
         env:
+            ### General Environment Variables
+            VITE_NEMPUBMED_URL: ${{ secrets.VITE_NEMPUBMED_URL }}
+            VITE_CLIENT_NAME: ${{ secrets.VITE_CLIENT_NAME }}
+            ### NLM Environment Variables
+            VITE_NLM_EMAIL: ${{ secrets.VITE_NLM_EMAIL }}
             VITE_NLM_KEY: ${{ secrets.VITE_NLM_KEY }}
-            VITE_BASE_URL: ${{ secrets.VITE_BASE_URL }}
+            VITE_MY_NCBI_SHARE: ${{ secrets.VITE_MY_NCBI_SHARE }}
+            ### OpenAI Environment Variables
+            VITE_DOMAIN: ${{ secrets.VITE_DOMAIN }}
+            VITE_OPENAI_BASE_URL: ${{ secrets.VITE_OPENAI_BASE_URL }}
+            VITE_USE_AI: ${{ secrets.VITE_USE_AI }}
+            VITE_USE_AI_SUMMARIZER: ${{ secrets.VITE_USE_AI_SUMMARIZER }}
+            VITE_LONG_ABSTRACT_LENGTH_LIMIT: ${{ secrets.VITE_LONG_ABSTRACT_LENGTH_LIMIT }}
+            VITE_WAIT_TIME_DISCLAIMER_DELAY: ${{ secrets.VITE_WAIT_TIME_DISCLAIMER_DELAY }}
+            ### Unpaywall Environment Variables
+            VITE_UNPAYWALL_URL: ${{ secrets.VITE_UNPAYWALL_URL }}
+            VITE_UNPAYWALL_EMAIL: ${{ secrets.VITE_UNPAYWALL_EMAIL }}
+
         run: npm run build
 
       - name: 📂 Deploy to FTP Server
