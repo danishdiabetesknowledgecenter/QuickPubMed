@@ -318,7 +318,6 @@
               >
                 <template
                   v-for="option in filterOptions"
-                  class="qpm_simpleFilters"
                 >
                   <template v-if="hasVisibleSimpleFilterOption(option.choices)">
                     <b
