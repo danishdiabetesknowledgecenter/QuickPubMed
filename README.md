@@ -1,5 +1,7 @@
 # QuickPubMed Vue 2 Application
 
+![example workflow](https://github.com/danishdiabetesknowledgecenter/QuickPubMed/actions/workflows/main.yml/badge.svg)
+
 ## Development Workflow
 
 ### Local Development
