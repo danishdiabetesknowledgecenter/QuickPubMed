@@ -337,14 +337,13 @@
           style="padding-right: 7px"
         >
           <select
-            v-model="sort"
+            v-model="currentSortMethod"
             @change="newSortMethod"
           >
             <option
               v-for="sorter in getOrderMethods"
               :key="sorter.id"
               :value="sorter.method"
-              :selected="isSelected(sorter)"
             >
               {{ getTranslation(sorter) }}
             </option>
@@ -541,6 +540,19 @@ export default {
     };
   },
   computed: {
+    currentSortMethod: {
+      get() {
+        return this.sort.method;
+      },
+      set(value) {
+        const selectedSorter = this.getOrderMethods.find(
+          (sorter) => sorter.method === value
+        );
+        if (selectedSorter) {
+          this.$emit("newSortMethod", selectedSorter);
+        }
+      },
+    },
     lowDisabled: function () {
       return this.low == 0 || this.loading;
     },
