@@ -19,49 +19,49 @@ This project contains the source code for the product QuickPubMed hosted on
 
 ## Setup for local development
 
-1. **Frontend project**
+### Frontend project
    
-   The **frontend** project can be cloned as such using ssh 
+The **frontend** project can be cloned as such using ssh 
+
+```bash
+git clone git@github.com:danishdiabetesknowledgecenter/QuickPubMed.git
+cd QuickPubMed
+```
+
+**Install dependencies**
+   ```bash
+npm install
+```
+
+**Create and fill in values for .env**
+- check the .env.example file to see which are needed
+
+**Start development server:**
+```bash
+npm run dev
+```
+This will start the Vite development server at `http://localhost:5173`
+
+### Backend project
    
-   ```bash
-   git clone git@github.com:danishdiabetesknowledgecenter/QuickPubMed.git
-   cd QuickPubMed
-   ```
+The **backend** project can be cloned as such using ssh 
 
-   **Install dependencies**
-    ```bash
-   npm install
-   ```
+```bash
+git clone git@github.com:danishdiabetesknowledgecenter/QuickPubMed-AzureFunctions.git
+cd QuickPubMed-AzureFunctions/qpm_api
+```
 
-   **Create and fill in values for .env**
-   - check the .env.example file to see which are needed
+**Create and fill in values for local.settings.json**
+- check the .local.settings.example.json file to see which are needed
 
-   **Start development server:**
-   ```bash
-   npm run dev
-   ```
-   This will start the Vite development server at `http://localhost:5173`
+**Start development server:**
+```bash
+func start
+```
+This will start the azure function server at `http://localhost:7071`
 
-2. **Backend project**
-   
-   The **backend** project can be cloned as such using ssh 
-   
-   ```bash
-   git clone git@github.com:danishdiabetesknowledgecenter/QuickPubMed-AzureFunctions.git
-   cd QuickPubMed-AzureFunctions/qpm_api
-   ```
-
-   **Create and fill in values for local.settings.json**
-   - check the .local.settings.example.json file to see which are needed
-
-   **Start development server:**
-   ```bash
-   func start
-   ```
-   This will start the azure function server at `http://localhost:7071`
-
-3. **Start developing**
-   - You're ready to start creating features👌
+### Start developing
+- You're ready to start creating features👌
   
 ## Branching Strategy
 
@@ -72,7 +72,7 @@ main (deployment branch) ←← dev(consolidate features) ←← feature/<name-o
 *Notice: Avoid pushing directly to the main branch, this is currently not enforced by rules since the repository is private*
 
 
-**Naming conventions for shortlived branches:** 
+### Naming conventions for shortlived branches 
 
 - *Bug fixes*
   - bug/name-of-bug (or github issue id)
@@ -133,9 +133,15 @@ To add/update secrets:
 
 Furthermore make sure that the enviroment varibels defined in the main.yml are created as [Secrets in GitHub](https://github.com/danishdiabetesknowledgecenter/QuickPubMed/settings/secrets/actions)
 
+
 ## Notes
 - The application is built using Vue 2 and Vite 5
 - Deployment is configured for static hosting
 - Build artifacts are optimized for production
 
   [<img alt="Deployed with FTP Deploy Action" src="https://img.shields.io/badge/Deployed With-FTP DEPLOY ACTION-%3CCOLOR%3E?style=for-the-badge&color=0077b6">](https://github.com/SamKirkland/FTP-Deploy-Action)
+
+### Managing tasks for open-source or internal work 
+All GitHub repositories have a tab for creating and managing [issues](https://github.com/danishdiabetesknowledgecenter/QuickPubMed/issues)
+
+Use this to report bugs or request new feature. These issues can be directly linked to a branch and resolved when a branch is merged into dev. 
