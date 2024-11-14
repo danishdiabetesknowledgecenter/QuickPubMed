@@ -13,8 +13,13 @@
    ```bash
    npm install
    ```
+    
+3. **Fill in values for .env file**
+   
+   check the .env.example file to see which are needed
+           
 
-3. **Start development server:**
+4. **Start development server:**
    ```bash
    npm run dev
    ```
