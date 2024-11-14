@@ -1,65 +1,88 @@
-# QuickPubMed Vue 2 Application
+# QuickPubMed Web application
 
-![example workflow](https://github.com/danishdiabetesknowledgecenter/QuickPubMed/actions/workflows/main.yml/badge.svg)
+This project contains the source code for the product QuickPubMed hosted on 
+[videncenterfordiabetes.dk](https://videncenterfordiabetes.dk/)
 
-## Development Workflow
+![Latest deployment status](https://github.com/danishdiabetesknowledgecenter/QuickPubMed/actions/workflows/main.yml/badge.svg)
 
-### Local Development
-1. **Clone the repository:**
+## Prerequisites
+
+**SSH key for cloning**
+   - [Generate SSH key locally and add it to your github profile](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account)
+
+**Backend**
+- .NET SDK and the runtime for azure functions installed locally 
+
+**Frontend**
+- Node.Js and NPM installed locally
+
+
+## Setup for local development
+
+1. **Frontend project**
+   
+   The **frontend** project can be cloned as such using ssh 
+   
    ```bash
-   git clone [repository-url]
-   cd [folder-name]
+   git clone git@github.com:danishdiabetesknowledgecenter/QuickPubMed.git
+   cd QuickPubMed
    ```
 
-2. **Install dependencies:**
-   ```bash
+   **Install dependencies**
+    ```bash
    npm install
    ```
-    
-3. **Fill in values for .env file**
-   
-   check the .env.example file to see which are needed
-           
 
-4. **Start development server:**
+   **Create and fill in values for .env**
+   - check the .env.example file to see which are needed
+
+   **Start development server:**
    ```bash
    npm run dev
    ```
    This will start the Vite development server at `http://localhost:5173`
 
-### Run Azure function Locally to avoid CORS issues
-1. **Close the azure functions repository**
+2. **Backend project**
+   
+   The **backend** project can be cloned as such using ssh 
+   
    ```bash
-   git clone [repository-url]
-   cd [folder-name]/[project-name]
+   git clone git@github.com:danishdiabetesknowledgecenter/QuickPubMed-AzureFunctions.git
+   cd QuickPubMed-AzureFunctions/qpm_api
    ```
 
-2. **Start the API**
-Make sure you have the azure function runtime installed locally
-  ```bash
+   **Create and fill in values for local.settings.json**
+   - check the .local.settings.example.json file to see which are needed
+
+   **Start development server:**
+   ```bash
    func start
    ```
+   This will start the azure function server at `http://localhost:7071`
 
-3. **Check the baseUrl in config/settings in frontend project** 
+3. **Start developing**
+   - You're ready to start creating features👌
+  
+## Branching Strategy
 
-   (TODO introduce local.settings again) 
-
-### Branch Strategy
-
+Follow the feature branch strategy for adding new features.
 ```
-main (production) ←← dev ←← feature branches
+main (deployment branch) ←← dev(consolidate features) ←← feature/<name-of-feature>
 ```
+*Notice: Avoid pushing directly to the main branch, this is currently not enforced by rules since the repository is private*
 
-- **Feature Branches:** Create for new features/fixes
-  ```bash
-  git checkout -b feature/your-feature-name
-  ```
-- **Development Branch (`dev`):** Merge completed features here
-- **Main Branch (`main`):** Production code only
 
-## Pull Requests (PR)
+**Naming conventions for shortlived branches:** 
 
-### Creating a Pull Request
+- *Bug fixes*
+  - bug/name-of-bug (or github issue id)
+- *Features*
+  - feature/name-of-feature
+
+
+### Creating a Pull Request (PR)
+When multiple people are working on a project it is common practice to consolidate features on the dev branch before a deployment is triggered.
+
 1. Push your feature branch to GitHub
 2. Go to repository on GitHub
 3. Click "Pull requests" → "New pull request"
@@ -69,22 +92,32 @@ main (production) ←← dev ←← feature branches
 5. Fill in:
    - Title: Brief description of changes
    - Description: Detailed explanation of changes
-   - Reviewers: Assign team members
-   - Labels: Add relevant labels
+   - (*optional*) Reviewers: Assign team members for review
+   
 
-### PR Best Practices
+#### PR Best Practices
 - Keep changes focused and atomic
 - Include tests if applicable
 - Reference related issues
 - Update documentation if needed
-- Ensure CI checks pass
 
-## Deployment
+
+## Deployment and release of new version
 
 ### GitHub Actions Workflow
 The project uses GitHub Actions for automated deployment. The workflow is defined in `.github/workflows/main.yml`.
 
-The deployed app can be viewed at [qpm.videncenterfordiabetes.dk/dev/latest/](https://qpm.videncenterfordiabetes.dk/dev/latest/)
+When a feature (or multiple consolidated features) should be deployed:
+
+1. Create PR from `dev` to `main`
+2. Review and merge PR (include relevant info in title and description)
+3. [Create a new release, with a new tag](https://github.com/danishdiabetesknowledgecenter/QuickPubMed/releases)
+4. The new release will trigger the GitHub Actions automatically which will:
+   - Build the application
+   - Deploy to the FTP server
+   - Only the `dist` folder is deployed which contains the bundled code 
+
+[The deployed app can be viewed here](https://qpm.videncenterfordiabetes.dk/dev/latest/)
 
 ### GitHub Secrets
 The workflow uses the following secrets for secure deployment:
@@ -98,30 +131,11 @@ To add/update secrets:
 3. Click "New repository secret"
 4. Add required secrets
 
-### Deployment Process
-1. Create PR from `dev` to `main`
-2. Review and merge PR
-3. GitHub Actions automatically:
-   - Builds the application
-   - Deploys to FTP server
-   - Only the `dist` folder is deployed which contains the bundled code 
-
-## Build Commands
-
-```bash
-# Development server
-npm run dev
-
-# Production build
-npm run build
-
-# Preview production build
-npm run serve
-```
+Furthermore make sure that the enviroment varibels defined in the main.yml are created as [Secrets in GitHub](https://github.com/danishdiabetesknowledgecenter/QuickPubMed/settings/secrets/actions)
 
 ## Notes
-- The application is built using Vue 2 and Vite
+- The application is built using Vue 2 and Vite 5
 - Deployment is configured for static hosting
 - Build artifacts are optimized for production
 
-[<img alt="Deployed with FTP Deploy Action" src="https://img.shields.io/badge/Deployed With-FTP DEPLOY ACTION-%3CCOLOR%3E?style=for-the-badge&color=0077b6">](https://github.com/SamKirkland/FTP-Deploy-Action)
+  [<img alt="Deployed with FTP Deploy Action" src="https://img.shields.io/badge/Deployed With-FTP DEPLOY ACTION-%3CCOLOR%3E?style=for-the-badge&color=0077b6">](https://github.com/SamKirkland/FTP-Deploy-Action)
