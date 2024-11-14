@@ -3,7 +3,7 @@ name: 🚀 Deploy Website on Push
 on:
   push:
     branches:
-      - main  # Update if your default branch is different
+      - main  
 
 jobs:
   build-and-deploy:
