@@ -279,7 +279,7 @@
                   :show-scope-label="advanced"
                   :no-result-string="getString('noLimitDropdownContent')"
                   :index="0"
-                  qpm_buttonColor2="qpm_buttonColor7"
+                  qpm-button-color2="qpm_buttonColor7"
                   @input="updateFilters"
                 />
               </div>
@@ -316,9 +316,7 @@
                 id="qpm_topofsearchbar"
                 class="qpm_simpleFiltersContainer"
               >
-                <template
-                  v-for="option in filterOptions"
-                >
+                <template v-for="option in filteredChoices">
                   <template v-if="hasVisibleSimpleFilterOption(option.choices)">
                     <b
                       :key="option.choice"
@@ -328,7 +326,6 @@
                     </b>
                     <div
                       v-for="(choice, index) in option.choices"
-                      v-if="choice.simpleSearch"
                       :id="'qpm_topic_' + choice.name"
                       :key="`choice-${choice.id}-${index}`"
                       class="qpm_simpleFilters"
@@ -548,6 +545,12 @@ export default {
     };
   },
   computed: {
+    filteredChoices() {
+      return this.filterOptions.map(option => ({
+        ...option,
+        choices: option.choices.filter(choice => choice.simpleSearch),
+      }));
+    },
     showTitle: function () {
       if (this.filters.length < this.filterOptions.length) {
         return this.getString("choselimits");
@@ -1239,15 +1242,6 @@ export default {
       this.editForm();
     },
     updateScope: function (item, state, index) {
-      console.log(
-        "updateScope: { item: ",
-        item,
-        ", state: ",
-        state,
-        ", index: ",
-        index,
-        " }"
-      );
       let sel = JSON.parse(JSON.stringify(this.subjects));
       for (let i = 0; i < sel[index].length; i++) {
         if (sel[index][i].name == item.name) {
@@ -1259,9 +1253,7 @@ export default {
       this.setUrl();
       this.editForm();
     },
-    updateFilters: function (value, index) {
-      console.log(`index|${index}`);
-      console.log("updateFilters");
+    updateFilters: function (value) {
       this.filters = JSON.parse(JSON.stringify(value));
       //Update selected filters
       let newOb = {};
@@ -1487,7 +1479,6 @@ export default {
 
       is = containerArray.length;
       //ial = is; Unused variable
-      console.log("reloadScripts: is: " + is);
       while (is--) {
         containerArray[is].parentNode.removeChild(containerArray[is]);
       }
@@ -1881,8 +1872,7 @@ export default {
         );
       }
     },
-    updatePlaceholders(index) {
-      console.log(`Index|${index}`);
+    updatePlaceholders() {
       if (this.$refs.subjectDropdown && this.$refs.subjectDropdown.length > 0) {
         this.$refs.subjectDropdown.forEach((_, index) => {
           this.updatePlaceholder(false, index);

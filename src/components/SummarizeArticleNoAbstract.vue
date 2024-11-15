@@ -144,10 +144,12 @@ export default {
   props: {
     htmlUrl: {
       type: String,
+      default: "",
       required: false,
     },
     pdfUrl: {
       type: String,
+      default: "",
       required: false,
     },
     language: {
@@ -185,5 +187,4 @@ export default {
 </script>
 
 <style scoped>
-/* Component-specific styles (optional) */
 </style>

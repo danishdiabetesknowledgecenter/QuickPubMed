@@ -18,9 +18,9 @@
       :index="idx"
       :close-on-input="false"
       :language="language"
-      qpm_buttonColor1="qpm_buttonColor4"
-      qpm_buttonColor2="qpm_buttonColor5"
-      qpm_buttonColor3="qpm_buttonColor6"
+      qpm-button-color1="qpm_buttonColor4"
+      qpm-button-color2="qpm_buttonColor5"
+      qpm-button-color3="qpm_buttonColor6"
       v-on="$listeners"
     />
   </div>

@@ -1046,11 +1046,11 @@ export default {
         this.unpaywallResponse["best_oa_location"]["url_for_pdf"];
 
       if (!url_for_pdf) {
-        this.pdfUrl = undefined;
+        this.setPdfUrl(undefined);
         return false;
       }
 
-      this.pdfUrl = url_for_pdf;
+      this.setPdfUrl(url_for_pdf);
       console.log("url_for_pdf:", this.pdfUrl);
 
       return true;
@@ -1066,11 +1066,11 @@ export default {
         this.unpaywallResponse["best_oa_location"]["url_for_landing_page"];
 
       if (!url_for_landing_page) {
-        this.htmlUrl = undefined;
+        this.setHtmlUrl(undefined);
         return false;
       }
 
-      this.htmlUrl = url_for_landing_page;
+      this.setHtmlUrl(url_for_landing_page);
       console.log("url_for_landing_page", this.htmlUrl);
       return true;
     },
@@ -1390,6 +1390,12 @@ export default {
         return false;
       }
     },
+    setPdfUrl(url) {
+      this.pdfUrl = url;
+    },
+    setHtmlUrl(url) {
+      this.htmlUrl = url;
+    },
     setAbstract() {
       console.log(`my id is: ${this.id}`);
     },
@@ -1560,7 +1566,6 @@ export default {
       let temp = this.getAbstractSummaryPrompts().concat(
         this.getPdfQuestionPrompts()
       );
-      console.log("getAllPrompts: ", temp);
       return temp;
     },
     updateInput: function (event) {
