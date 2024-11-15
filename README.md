@@ -145,3 +145,4 @@ Furthermore make sure that the enviroment varibels defined in the main.yml are c
 All GitHub repositories have a tab for creating and managing [issues](https://github.com/danishdiabetesknowledgecenter/QuickPubMed/issues)
 
 Use this to report bugs or request new feature. These issues can be directly linked to a branch and resolved when a branch is merged into dev. 
+Hej
