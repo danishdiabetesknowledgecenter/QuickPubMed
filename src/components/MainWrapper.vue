@@ -279,7 +279,7 @@
                   :show-scope-label="advanced"
                   :no-result-string="getString('noLimitDropdownContent')"
                   :index="0"
-                  qpm_buttonColor2="qpm_buttonColor7"
+                  qpm-button-color2="qpm_buttonColor7"
                   @input="updateFilters"
                 />
               </div>
