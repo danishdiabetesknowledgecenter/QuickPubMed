@@ -154,13 +154,13 @@ export default {
     },
     getTagColor(scope) {
       if (scope === "narrow") {
-        return this.qpm_buttonColor1;
+        return this.qpmButtonColor1;
       }
       if (!scope || scope === "normal") {
-        return this.qpm_buttonColor2;
+        return this.qpmButtonColor2;
       }
       if (scope === "broad") {
-        return this.qpm_buttonColor3;
+        return this.qpmButtonColor3;
       }
       return "";
     },

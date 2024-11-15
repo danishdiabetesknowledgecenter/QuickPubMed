@@ -57,9 +57,9 @@
             }
           "
           :operator="operator"
-          :qpm-button-color1="qpmButtonColor1"
-          :qpm-button-color2="qpmButtonColor2"
-          :qpm-button-color3="qpmButtonColor3"
+          :qpm-button-color-1="qpmButtonColor1"
+          :qpm-button-color-2="qpmButtonColor2"
+          :qpm-button-color-3="qpmButtonColor3"
           :language="language"
           @edit="handleEditTag"
         />
