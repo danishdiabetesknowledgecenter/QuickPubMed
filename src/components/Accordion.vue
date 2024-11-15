@@ -58,7 +58,6 @@
             >
               <div
                 v-for="item in shownModels"
-                v-if="shownModels.length > 0"
                 :key="item.uid"
                 ref="listItems"
                 class="list-fade-item"
