@@ -414,7 +414,6 @@ export default {
     },
     getSource(value) {
       try {
-        console.log(`Value: ${value}`);
         if (this.source !== undefined) {
           if (value !== undefined) {
             if (value.volume !== undefined) value.volume = undefined;

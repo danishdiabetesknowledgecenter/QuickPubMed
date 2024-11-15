@@ -318,7 +318,6 @@
               >
                 <template
                   v-for="option in filterOptions"
-                  class="qpm_simpleFilters"
                 >
                   <template v-if="hasVisibleSimpleFilterOption(option.choices)">
                     <b
@@ -1518,7 +1517,6 @@ export default {
         this.sort.method +
         "&term=";
       let query = decodeURIComponent(str);
-      console.log(`Search query: ${query}`);
 
       if (query.trim() == "" || query.trim() == "()") {
         this.searchLoading = false;
