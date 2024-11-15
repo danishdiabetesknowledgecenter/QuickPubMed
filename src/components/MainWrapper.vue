@@ -1242,15 +1242,6 @@ export default {
       this.editForm();
     },
     updateScope: function (item, state, index) {
-      console.log(
-        "updateScope: { item: ",
-        item,
-        ", state: ",
-        state,
-        ", index: ",
-        index,
-        " }"
-      );
       let sel = JSON.parse(JSON.stringify(this.subjects));
       for (let i = 0; i < sel[index].length; i++) {
         if (sel[index][i].name == item.name) {
