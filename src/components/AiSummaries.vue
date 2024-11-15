@@ -513,7 +513,6 @@ export default {
 
       const readData = async (url, body) => {
         let answer = "";
-        console.log("READDATA | URL", url);
         const response = await fetch(url, {
           method: "POST",
           body: JSON.stringify(body),

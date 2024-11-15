@@ -1259,9 +1259,7 @@ export default {
       this.setUrl();
       this.editForm();
     },
-    updateFilters: function (value, index) {
-      console.log(`index|${index}`);
-      console.log("updateFilters");
+    updateFilters: function (value) {
       this.filters = JSON.parse(JSON.stringify(value));
       //Update selected filters
       let newOb = {};
@@ -1487,7 +1485,6 @@ export default {
 
       is = containerArray.length;
       //ial = is; Unused variable
-      console.log("reloadScripts: is: " + is);
       while (is--) {
         containerArray[is].parentNode.removeChild(containerArray[is]);
       }
@@ -1881,8 +1878,7 @@ export default {
         );
       }
     },
-    updatePlaceholders(index) {
-      console.log(`Index|${index}`);
+    updatePlaceholders() {
       if (this.$refs.subjectDropdown && this.$refs.subjectDropdown.length > 0) {
         this.$refs.subjectDropdown.forEach((_, index) => {
           this.updatePlaceholder(false, index);

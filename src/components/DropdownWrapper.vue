@@ -427,19 +427,6 @@
         handler: "onMaintainTopicToggledMapChange",
         deep: true,
       },
-      expandedOptionGroupName(newVal, oldVal) {
-        const fixedLength = 30; // Adjust this length as needed
-  
-        const formattedOldVal = (
-          oldVal === "" ? "No option group expanded" : oldVal
-        ).padEnd(fixedLength, " ");
-  
-        const formattedNewVal = (
-          newVal === "" ? "No option group expanded" : newVal
-        ).padEnd(fixedLength, "");
-  
-        console.log(`${formattedOldVal} ➡️ ${formattedNewVal}`);
-      },
     },
     mounted: function () {
       this.initialSetup();
@@ -1112,7 +1099,6 @@
        * Blur handler needed to force groups to close if search is aborted
        */
       handleOnBlur() {
-        console.log("BLUR EVENT TRIGGERED");
         this.initialSetup();
       },
       scrollToFocusedSubject: function () {

@@ -1560,7 +1560,6 @@ export default {
       let temp = this.getAbstractSummaryPrompts().concat(
         this.getPdfQuestionPrompts()
       );
-      console.log("getAllPrompts: ", temp);
       return temp;
     },
     updateInput: function (event) {
