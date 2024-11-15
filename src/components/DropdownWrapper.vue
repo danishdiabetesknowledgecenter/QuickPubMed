@@ -57,9 +57,9 @@
             }
           "
           :operator="operator"
-          :qpm_buttonColor1="qpm_buttonColor1"
-          :qpm_buttonColor2="qpm_buttonColor2"
-          :qpm_buttonColor3="qpm_buttonColor3"
+          :qpm-button-color1="qpmButtonColor1"
+          :qpm-button-color2="qpmButtonColor2"
+          :qpm-button-color3="qpmButtonColor3"
           :language="language"
           @edit="handleEditTag"
         />
@@ -284,15 +284,15 @@
         type: String,
         default: "dk",
       },
-      qpm_buttonColor1: {
+      qpmButtonColor1: {
         type: String,
         default: "qpm_buttonColor1",
       },
-      qpm_buttonColor2: {
+      qpmButtonColor2: {
         type: String,
         default: "qpm_buttonColor2",
       },
-      qpm_buttonColor3: {
+      qpmButtonColor3: {
         type: String,
         default: "qpm_buttonColor3",
       },
@@ -1433,13 +1433,13 @@
       getButtonColor: function (props, scope, index) {
         let classes = [];
         if (scope == "narrow") {
-          classes.push(this.qpm_buttonColor1);
+          classes.push(this.qpmButtonColor1);
         }
         if (!scope || scope == "normal") {
-          classes.push(this.qpm_buttonColor2);
+          classes.push(this.qpmButtonColor2);
         }
         if (scope == "broad") {
-          classes.push(this.qpm_buttonColor3);
+          classes.push(this.qpmButtonColor3);
         }
   
         // Set class to distinguish the collum currently in 'focus' for
