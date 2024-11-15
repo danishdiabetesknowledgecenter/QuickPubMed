@@ -541,7 +541,6 @@
             ...this.maintopicToggledMap,
             [elem.id]: !this.maintopicToggledMap[elem.id],
           };
-          console.log("we tooglin maintopic");
           value.pop();
         }
   
@@ -660,9 +659,7 @@
         selectedOptionIds,
         optionsInOptionGroup
       ) {
-        console.log(
-          `${optionsInOptionGroup.length} options in this option group: `
-        );
+        
         this.showOrHideElements();
         this.updateExpandedGroupHighlighting();
   
@@ -802,14 +799,12 @@
   
         if (target.classList.contains("multiselect__option--group")) {
           if (this.expandedOptionGroupName === optionGroupName) {
-            console.log("Collapsing: ", this.expandedOptionGroupName);
             this.hideItems(this.expandedOptionGroupName);
             this.expandedOptionGroupName = "";
             this.updateExpandedGroupHighlighting();
             this.resetMaintopicToggledMap();
           } else {
             this.expandedOptionGroupName = optionGroupName;
-            console.log("Expanding: ", this.expandedOptionGroupName);
   
             const optionGroupId = this.getOptionGroupId(optionGroupName);
             const selectedOptions =
@@ -818,10 +813,6 @@
             const selectedOptionIds = selectedOptions.map((o) => o.id);
             const optionsInOptionGroup =
               this.getOptionsFromOptionsGroupName(optionGroupName);
-  
-            console.log(
-              `${selectedOptions.length} options selected in ${optionGroupName}: `
-            );
   
             if (selectedOptionIds.length <= 0) {
               this.showOrHideElements();
@@ -836,7 +827,6 @@
           }
         } else {
           // This is when we are adding a new tag
-          console.log("New tag added");
         }
       },
       /**
@@ -1018,7 +1008,6 @@
           //setTimeout is to resolve the tag placeholder before starting to translate
           await new Promise(resolve => setTimeout(resolve, 10));
           let translated = await this.translateSearch(newTag);
-          console.log(`${translated} - ${newTag}`);
           tag = {
             name: translated,
             searchStrings: { normal: [translated] },
@@ -1164,12 +1153,6 @@
           return;
         }
   
-        console.log(
-          "currentPos: ",
-          dropdownRef.pointer,
-          ", navDistance: ",
-          navDistance
-        );
         dropdownRef.pointer += navDistance;
   
         // Scroll to see element if needed
@@ -1179,7 +1162,6 @@
         });
       },
       navUp: function () {
-        console.log("navUp");
         var dropdownRef = this.$refs.multiselect;
   
         // Set focused column to normal if not set
@@ -1220,13 +1202,7 @@
             }
           }
         }
-  
-        console.log(
-          "currentPos: ",
-          dropdownRef.pointer,
-          ", navDistance: ",
-          -navDistance
-        );
+
         dropdownRef.pointer -= navDistance;
   
         // Scroll to see element if needed
@@ -1303,21 +1279,9 @@
         this.showOrHideElements();
       },
       /**
-       * Handles changes to maintopicToggledMap by logging and updating sorted subject options.
-       *
-       * @param {Object} newVal - The new value of maintopicToggledMap.
-       * @param {Object} oldVal - The previous value of maintopicToggledMap.
+       * Handles changes to maintopicToggledMap by updating sorted subject options.
        */
-      onMaintainTopicToggledMapChange(newVal) {
-        console.log("maintopicToggledMap changed:");
-  
-        Object.entries(newVal).forEach(([key, value]) => {
-          if (key !== "__ob__") {
-            // Exclude Vue's internal observer property
-            console.log(`Key: ${key}, Value: ${value}`);
-          }
-        });
-  
+      onMaintainTopicToggledMapChange() {
         this.updateSortedSubjectOptions();
       },
       /**
@@ -1367,7 +1331,6 @@
             }
             answer += value;
           }
-          console.log("Translated: ", answer);
           return answer;
         } catch (error) {
           this.text = "An unknown error occurred: \n" + error.toString();
@@ -1422,13 +1385,9 @@
        */
       getOptionGroupName: function (data, targetLabel, language) {
         let name = "";
-        console.log(`targetLabel | ${targetLabel}`);
         data.some((item) => {
           const groupName = this.getGroupName(item);
-          console.log(
-            `data contains ${groupName === "groups" ? "groups" : "choices"}`
-          );
-  
+         
           if (!groupName) return false;
   
           return item[groupName].some((i) => {
