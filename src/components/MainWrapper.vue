@@ -316,9 +316,7 @@
                 id="qpm_topofsearchbar"
                 class="qpm_simpleFiltersContainer"
               >
-                <template
-                  v-for="option in filterOptions"
-                >
+                <template v-for="option in filteredChoices">
                   <template v-if="hasVisibleSimpleFilterOption(option.choices)">
                     <b
                       :key="option.choice"
@@ -328,7 +326,6 @@
                     </b>
                     <div
                       v-for="(choice, index) in option.choices"
-                      v-if="choice.simpleSearch"
                       :id="'qpm_topic_' + choice.name"
                       :key="`choice-${choice.id}-${index}`"
                       class="qpm_simpleFilters"
@@ -548,6 +545,12 @@ export default {
     };
   },
   computed: {
+    filteredChoices() {
+      return this.filterOptions.map(option => ({
+        ...option,
+        choices: option.choices.filter(choice => choice.simpleSearch),
+      }));
+    },
     showTitle: function () {
       if (this.filters.length < this.filterOptions.length) {
         return this.getString("choselimits");
