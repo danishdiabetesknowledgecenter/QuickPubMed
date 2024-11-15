@@ -72,7 +72,6 @@
         <span>{{ getSearchPreString }}</span>
         <div
           v-for="(group, idx) in subjects"
-          v-if="group.length > 0"
           :key="idx"
           class="qpm_searchStringSubjectGroup"
         >
