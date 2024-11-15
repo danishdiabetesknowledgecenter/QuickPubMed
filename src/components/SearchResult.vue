@@ -377,7 +377,6 @@
     <div style="z-index: 0">
       <div
         v-for="(value, index) in getShownSearchResults"
-        v-if="results.length > 0 || !loading"
         :key="value.uid || `result-${index}`"
         class="qpm_ResultEntryWrapper"
       >
