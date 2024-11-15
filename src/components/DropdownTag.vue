@@ -66,15 +66,15 @@ export default {
       type: String,
       required: true,
     },
-    qpm_buttonColor1: {
+    qpmButtonColor1: {
       type: String,
       default: "qpm_buttonColor1",
     },
-    qpm_buttonColor2: {
+    qpmButtonColor2: {
       type: String,
       default: "qpm_buttonColor2",
     },
-    qpm_buttonColor3: {
+    qpmButtonColor3: {
       type: String,
       default: "qpm_buttonColor3",
     },
