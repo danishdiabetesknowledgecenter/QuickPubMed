@@ -318,7 +318,6 @@
               >
                 <template
                   v-for="option in filterOptions"
-                  class="qpm_simpleFilters"
                 >
                   <template v-if="hasVisibleSimpleFilterOption(option.choices)">
                     <b
@@ -1499,97 +1498,99 @@ export default {
       this.search();
     },
     search: function () {
-      const self = this;
-      this.searchLoading = true;
-      this.searchError = null;
-      let str = this.getSearchString;
-      let nlm = this.appSettings.nlm;
-      let baseUrl =
-        "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&tool=QuickPubMed" +
-        "&email=" +
-        nlm.email +
-        "&api_key=" +
-        nlm.key +
-        "&retmode=json&retmax=" +
-        this.pageSize +
-        "&retstart=" +
-        this.page * this.pageSize +
-        "&sort=" +
-        this.sort.method +
-        "&term=";
-      let query = decodeURIComponent(str);
-      console.log(`Search query: ${query}`);
+  const self = this;
+  this.searchLoading = true;
+  this.searchError = null;
+  let str = this.getSearchString;
+  let nlm = this.appSettings.nlm;
+  let baseUrl =
+    "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi";
+  let query = decodeURIComponent(str);
 
-      if (query.trim() == "" || query.trim() == "()") {
-        this.searchLoading = false;
+  if (query.trim() == "" || query.trim() == "()") {
+    this.searchLoading = false;
+    return;
+  }
+
+  this.reloadScripts();
+
+  const params = new URLSearchParams();
+  params.append("db", "pubmed");
+  params.append("tool", "QuickPubMed");
+  params.append("email", nlm.email);
+  params.append("api_key", nlm.key);
+  params.append("retmode", "json");
+  params.append("retmax", this.pageSize);
+  params.append("retstart", this.page * this.pageSize);
+  params.append("sort", this.sort.method);
+  params.append("term", query);
+
+  axios
+    .post(baseUrl, params)
+    .then(function (resp) {
+      // Search after idlist
+      let ids = resp.data.esearchresult.idlist;
+      ids = ids.filter((id) => id != null && id.trim() != "");
+      if (ids.length == 0) {
+        self.count = 0;
+        self.searchresult = [];
+        self.searchLoading = false;
         return;
       }
-
-      this.reloadScripts();
+      let baseUrl2 =
+        "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi";
+      
+      const params2 = new URLSearchParams();
+      params2.append("db", "pubmed");
+      params2.append("tool", "QuickPubMed");
+      params2.append("email", nlm.email);
+      params2.append("api_key", nlm.key);
+      params2.append("retmode", "json");
+      params2.append("id", ids.join(","));
 
       axios
-        .get(baseUrl + query)
-        .then(function (resp) {
-          //Search after idlist
-          let ids = resp.data.esearchresult.idlist;
-          ids = ids.filter((id) => id != null && id.trim() != "");
-          if (ids.length == 0) {
-            self.count = 0;
-            self.searchresult = [];
+        .post(baseUrl2, params2)
+        .then(function (resp2) {
+          // Create list of returned data
+          let data = [];
+          let obj = resp2.data.result;
+          if (!obj) {
+            console.log("Error: Search was not successful", resp2);
             self.searchLoading = false;
             return;
           }
-          let baseUrl2 =
-            "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&tool=QuickPubMed" +
-            "&email=" +
-            nlm.email +
-            "&api_key=" +
-            nlm.key +
-            "&retmode=json&id=";
+          for (let i = 0; i < obj.uids.length; i++) {
+            data.push(obj[obj.uids[i]]);
+          }
+          self.count = parseInt(resp.data.esearchresult.count);
+          self.searchresult = data;
+          self.searchPreselectedPmidai();
+          self.searchLoading = false;
+          document.getElementById("qpm_topofsearch").scrollIntoView({
+            block: "start",
+            behavior: "smooth",
+          });
 
-          axios
-            .get(baseUrl2 + ids.join(","))
-            .then(function (resp2) {
-              //Create list of returned data
-              let data = [];
-              let obj = resp2.data.result;
-              if (!obj) {
-                console.log("Error: Search was no success", resp2);
-                self.searchLoading = false;
-                return;
-              }
-              for (let i = 0; i < obj.uids.length; i++) {
-                data.push(obj[obj.uids[i]]);
-              }
-              self.count = parseInt(resp.data.esearchresult.count);
-              self.searchresult = data;
-              self.searchPreselectedPmidai();
-              self.searchLoading = false;
-              document.getElementById("qpm_topofsearch").scrollIntoView({
-                block: "start",
-                behavior: "smooth",
-              });
-
-              // Make sure that the search button will have focus to produce expected behavior when pressing 'tab'.
-              var searchButton = self.$el.querySelector(".qpm_search");
-              self.$nextTick(function () {
-                searchButton.focus();
-              }); // Delayed to let button switch to enabled state again.
-            })
-            .catch(function (err) {
-              self.showSearchError(err);
-              self.searchLoading = false;
-            });
+          // Make sure that the search button will have focus to produce expected behavior when pressing 'tab'.
+          var searchButton = self.$el.querySelector(".qpm_search");
+          self.$nextTick(function () {
+            searchButton.focus();
+          }); // Delayed to let button switch to enabled state again.
         })
         .catch(function (err) {
           self.showSearchError(err);
           self.searchLoading = false;
-          // ERROR HANDLING??
         });
-      document
-        .getElementById("qpm_topofsearch")
-        .scrollIntoView({ block: "start", behavior: "smooth" });
-    },
+    })
+    .catch(function (err) {
+      self.showSearchError(err);
+      self.searchLoading = false;
+      // ERROR HANDLING??
+    });
+  document
+    .getElementById("qpm_topofsearch")
+    .scrollIntoView({ block: "start", behavior: "smooth" });
+},
     searchMore: function () {
       let targetResultLength = Math.min(
         (this.page + 1) * this.pageSize,
