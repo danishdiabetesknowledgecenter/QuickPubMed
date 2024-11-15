@@ -1193,7 +1193,6 @@ export default {
 
       this.updatePlaceholders();
       this.subjects = [...this.subjects, []];
-      console.log("Subjects: ", this.subjects);
 
       this.$nextTick(function () {
         const subjectDropdown = self.$refs.subjectDropdown;
