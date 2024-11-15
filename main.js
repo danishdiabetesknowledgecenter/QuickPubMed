@@ -18,7 +18,16 @@ Vue.prototype.$alwaysShowFilter = true;
 Vue.use(VueShowdown, {
   flavor: 'github', // Set default flavor of showdown
   options: {
-    emoji: false, // Set default options of showdown
+    emoji: false, // Disable emoji support
+    tables: true, // Enable table support
+    strikethrough: true, // Enable strikethrough
+    simpleLineBreaks: true, // Enable simple line breaks
+    tasklists: true, // Enable task lists
+    smartIndentationFix: true, // Fix indentation issues
+    smartypants: true, // Enable smart punctuation
+    ghMentions: true, // Enable GitHub mentions
+    underline: true, // Enable underline
+    completeHTMLDocument: false, // Render only HTML fragments
   },
 });
 
