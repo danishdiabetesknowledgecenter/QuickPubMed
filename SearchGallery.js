@@ -34,6 +34,16 @@ Vue.use(VueShowdown, {
 
 Vue.directive("tooltip", VTooltip);
 
+const searchGalleryDiv = document.getElementById("searchgallery");
+
+const hideTopics = searchGalleryDiv.dataset.hideTopics || undefined;
+const language = searchGalleryDiv.dataset.language || undefined;
+
 new Vue({
-  render: (h) => h(SearchGallery),
+  render: (h) => h(SearchGallery, {
+    props: {
+      hideTopics: hideTopics,
+      language: language,
+    },  
+  }),
 }).$mount("#searchgallery");
