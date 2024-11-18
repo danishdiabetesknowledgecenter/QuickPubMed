@@ -1,11 +1,11 @@
-import Vue from "vue";
-import VueShowdown from "vue-showdown";
-import { VTooltip } from "v-tooltip";
-import App from "./App.vue";
-
 // Import of existing global styles
 import "@/assets/styles/qpm-style.css";
 import "@/assets/styles/qpm-style-strings.css";
+
+import Vue from "vue";
+import VueShowdown from "vue-showdown";
+import { VTooltip } from "v-tooltip";
+import SpecificArticles from "@/components/SpecificArticles.vue";
 
 /**
  * Vue.prototype.$dateFormat = "da-DK";
@@ -33,6 +33,9 @@ Vue.use(VueShowdown, {
 
 Vue.directive("tooltip", VTooltip);
 
+const specificArticleDiv = document.getElementById('specificarticles');
+const ids = specificArticleDiv.getAttribute('ids');
+
 new Vue({
-  render: (h) => h(App),
-}).$mount("#app");
+  render: (h) => h(SpecificArticles, { props: { ids } }),
+}).$mount("#specificarticles");

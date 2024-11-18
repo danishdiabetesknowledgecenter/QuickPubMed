@@ -3,10 +3,8 @@ import vue from "@vitejs/plugin-vue2";
 import path from "path";
 import { fileURLToPath } from "url";
 
-// Convert import.meta.url to __filename and __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
 
 export default defineConfig({
   base: "./",
@@ -17,8 +15,19 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  root: "./",
   build: {
     outDir: "dist",
+    rollupOptions: {
+      input: {
+        MainWrapper: path.resolve(__dirname, "main-wrapper.html"),
+        SearchGallery: path.resolve(__dirname, "search-gallery.html"),
+        SpecificArticles: path.resolve(__dirname, "specific-articles.html"),
+      },
+      output: {
+        entryFileNames: 'assets/[name].js',
+        chunkFileNames: 'assets/[name].js',
+        assetFileNames: 'assets/[name].[ext]',
+      },
+    },
   },
 });
