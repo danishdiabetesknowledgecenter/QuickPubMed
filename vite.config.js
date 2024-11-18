@@ -1,6 +1,6 @@
-import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue2";
 import path from "path";
+import { defineConfig } from "vite";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
