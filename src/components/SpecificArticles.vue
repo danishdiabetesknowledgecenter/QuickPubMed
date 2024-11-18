@@ -13,7 +13,6 @@
           :pmid="getId"
           :doi="getDoi(searchresult)"
           :title="getTitle()"
-          :pub-type="getPubType()"
           :booktitle="getBookTitle()"
           :vernaculartitle="getVernacularTitle()"
           :date="getDate()"

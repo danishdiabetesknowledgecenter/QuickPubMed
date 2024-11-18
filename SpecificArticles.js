@@ -34,8 +34,69 @@ Vue.use(VueShowdown, {
 Vue.directive("tooltip", VTooltip);
 
 const specificArticleDiv = document.getElementById('specificarticles');
-const ids = specificArticleDiv.getAttribute('ids');
 
+function parseJSON(value) {
+  try {
+    return value ? JSON.parse(value) : undefined;
+  } catch (e) {
+    console.error('JSON parse error:', e);
+    return undefined;
+  }
+}
+
+// Manually assign each prop with appropriate type conversions
+const ids = specificArticleDiv.dataset.ids || undefined;
+const query = specificArticleDiv.dataset.query || undefined;
+const queryResults = specificArticleDiv.dataset.queryResults || undefined;
+const sortMethod = specificArticleDiv.dataset.sortMethod || undefined;
+const hideButtons = specificArticleDiv.dataset.hideButtons === 'true';
+const showDate = specificArticleDiv.dataset.showDate === 'true';
+const date = specificArticleDiv.dataset.date || undefined;
+const title = specificArticleDiv.dataset.title || undefined;
+const booktitle = specificArticleDiv.dataset.booktitle || undefined;
+const vernaculartitle = specificArticleDiv.dataset.vernaculartitle || undefined;
+const authors = specificArticleDiv.dataset.authors || undefined;
+const source = specificArticleDiv.dataset.source || undefined;
+const abstract = specificArticleDiv.dataset.abstract || undefined;
+const doi = specificArticleDiv.dataset.doi || undefined;
+const isCustomDoi = specificArticleDiv.dataset.isCustomDoi === 'true';
+const language = specificArticleDiv.dataset.language || 'dk';
+const hyperLink = specificArticleDiv.dataset.hyperLink || undefined;
+const hyperLinkText = specificArticleDiv.dataset.hyperLinkText || undefined;
+const sectionedAbstract = parseJSON(specificArticleDiv.dataset.sectionedAbstract);
+const componentNo = specificArticleDiv.dataset.componentNo || undefined;
+const shownSixAuthors = specificArticleDiv.dataset.shownSixAuthors === 'true';
+const showAltmetricBadge = specificArticleDiv.dataset.showAltmetricBadge === 'true';
+const showDimensionsBadge = specificArticleDiv.dataset.showDimensionsBadge === 'true';
+
+// Initialize Vue with hardcoded props
 new Vue({
-  render: (h) => h(SpecificArticles, { props: { ids } }),
+  render: (h) =>
+    h(SpecificArticles, {
+      props: {
+        ids,
+        query,
+        queryResults,
+        sortMethod,
+        hideButtons,
+        showDate,
+        date,
+        title,
+        booktitle,
+        vernaculartitle,
+        authors,
+        source,
+        abstract,
+        doi,
+        isCustomDoi,
+        language,
+        hyperLink,
+        hyperLinkText,
+        sectionedAbstract,
+        componentNo,
+        shownSixAuthors,
+        showAltmetricBadge,
+        showDimensionsBadge,
+      },
+    }),
 }).$mount("#specificarticles");
