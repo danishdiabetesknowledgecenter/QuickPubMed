@@ -74,7 +74,6 @@
 </template>
 
 <script>
-
 import LoadingSpinner from "@/components/LoadingSpinner.vue";
 import { appSettingsMixin } from "@/mixins/appSettings.js";
 import { messages } from "@/assets/content/qpm-translations.js";
@@ -217,7 +216,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-/* Component-specific styles (optional) */
-</style>

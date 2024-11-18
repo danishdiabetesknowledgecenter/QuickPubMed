@@ -265,6 +265,3 @@ export default {
 };
 </script>
 
-<style scoped>
-/* Component-specific styles (optional) */
-</style>

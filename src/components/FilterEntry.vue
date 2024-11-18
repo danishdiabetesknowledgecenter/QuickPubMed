@@ -28,7 +28,6 @@
 
 <script>
 import DropdownWrapper from "@/components/DropdownWrapper.vue";
-
 import { messages } from "@/assets/content/qpm-translations";
 
 export default {
@@ -130,7 +129,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-/* Component-specific styles (optional) */
-</style>
