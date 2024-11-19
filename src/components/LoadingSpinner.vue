@@ -3,10 +3,7 @@
     v-if="loading || condition"
     class="qpm_loading d-flex flex-column align-items-center justify-items-center"
   >
-    <p
-      v-if="waitText"
-      style="margin-bottom: 15px"
-    >
+    <p v-if="waitText" style="margin-bottom: 15px">
       {{ waitText }}
     </p>
     <svg
@@ -19,13 +16,7 @@
       role="presentation"
       aria-labelledby="titlelogo"
     >
-      <circle
-        cx="63"
-        cy="63"
-        r="63"
-        class="circle5"
-        fill="transparent"
-      />
+      <circle cx="63" cy="63" r="63" class="circle5" fill="transparent" />
       <path
         class="path11"
         d="M70.7 62.2c-.4-4.2-4.2-7.3-8.4-6.9-4.7.5-8 5.1-6.6 9.9.9 2.9 3.5 5.1 6.6 5.4 4.9.5 8.9-3.7 8.4-8.4z"
@@ -84,38 +75,38 @@
 </template>
 
 <script>
-export default {
-  name: "LoadingSpinner",
-  props: {
-    loading: {
-      type: Boolean,
-      default: false,
+  export default {
+    name: 'LoadingSpinner',
+    props: {
+      loading: {
+        type: Boolean,
+        default: false,
+      },
+      loadingComponent: {
+        type: Boolean,
+        default: false,
+      },
+      loadingAbstract: {
+        type: Boolean,
+        default: false,
+      },
+      waitText: {
+        type: String,
+        default: '',
+      },
+      waitDurationDisclaimer: {
+        type: String,
+        default: '',
+      },
+      size: {
+        type: Number,
+        default: 50,
+      },
     },
-    loadingComponent: {
-      type: Boolean,
-      default: false,
+    computed: {
+      condition() {
+        return this.loadingAbstract || this.loadingComponent
+      },
     },
-    loadingAbstract: {
-      type: Boolean,
-      default: false,
-    },
-    waitText: {
-      type: String,
-      default: "",
-    },
-    waitDurationDisclaimer: {
-      type: String,
-      default: "",
-    },
-    size: {
-      type: Number,
-      default: 50,
-    },
-  },
-  computed: {
-    condition() {
-      return this.loadingAbstract || this.loadingComponent;
-    },
-  },
-};
+  }
 </script>

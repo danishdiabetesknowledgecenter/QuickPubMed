@@ -1,11 +1,8 @@
 <template>
-  <div
-    ref="container"
-    style="margin-top: 20px"
-  >
+  <div ref="container" style="margin-top: 20px">
     <!-- TITLE Notice the entire article can be summarized -->
     <p style="margin-bottom: 20px">
-      <strong>{{ getString("summarizeArticleNotice") }}</strong>
+      <strong>{{ getString('summarizeArticleNotice') }}</strong>
     </p>
 
     <button
@@ -19,11 +16,8 @@
       :disabled="isSummaryLoading || isLoadingQuestions || isError"
       @click="handleSummarizeArticle"
     >
-      <i
-        class="bx bx-file"
-        style="vertical-align: baseline; font-size: 1em"
-      />
-      {{ getString("generatePdfQuestionsButtonText") }}
+      <i class="bx bx-file" style="vertical-align: baseline; font-size: 1em" />
+      {{ getString('generatePdfQuestionsButtonText') }}
     </button>
 
     <loading-spinner
@@ -37,7 +31,7 @@
     <div v-if="isArticle">
       <!-- TITLE summarize entire article -->
       <p v-if="questions.length > 1 && !isLoadingQuestions">
-        <strong>{{ getString("summarizeArticleHeader") }}</strong>
+        <strong>{{ getString('summarizeArticleHeader') }}</strong>
       </p>
 
       <!-- Default questions to summarize an article section -->
@@ -53,10 +47,7 @@
               v-if="accordionProps.expanded"
               class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
             />
-            <i
-              v-else
-              class="bx bx-chevron-right qpm_aiAccordionHeaderArrows"
-            />
+            <i v-else class="bx bx-chevron-right qpm_aiAccordionHeaderArrows" />
             <i
               class="bx bx-credit-card-front"
               style="
@@ -78,7 +69,7 @@
 
       <!-- TITLE for generated article specific questions -->
       <p v-if="questions.length > 7">
-        <strong>{{ getString("generateQuestionsHeader") }}</strong>
+        <strong>{{ getString('generateQuestionsHeader') }}</strong>
       </p>
 
       <!-- Generated article specific questions section -->
@@ -89,18 +80,12 @@
         :open-by-default="false"
       >
         <template #header="accordionProps">
-          <div
-            ref="headerText"
-            class="qpm_aiAccordionHeader"
-          >
+          <div ref="headerText" class="qpm_aiAccordionHeader">
             <i
               v-if="accordionProps.expanded"
               class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
             />
-            <i
-              v-else
-              class="bx bx-chevron-right qpm_aiAccordionHeaderArrows"
-            />
+            <i v-else class="bx bx-chevron-right qpm_aiAccordionHeaderArrows" />
             <i
               class="bx bx-help-circle"
               style="
@@ -115,10 +100,7 @@
         </template>
 
         <template #default>
-          <div
-            :style="getAnswerStyle(index)"
-            class="qpm_answer-text"
-          >
+          <div :style="getAnswerStyle(index)" class="qpm_answer-text">
             {{ answers[index + 7] }}
           </div>
         </template>
@@ -135,78 +117,75 @@
     </div>
 
     <p v-if="scrapingError">
-      {{ getString("scrapingError") }}
+      {{ getString('scrapingError') }}
     </p>
-    <p
-      v-if="errorMessage"
-      class="qpm_error-message"
-    >
+    <p v-if="errorMessage" class="qpm_error-message">
       {{ errorMessage }}
     </p>
   </div>
 </template>
 
 <script>
-import AccordionMenu from "@/components/Accordion.vue";
-import LoadingSpinner from "@/components/LoadingSpinner.vue";
-import QuestionForArticle from "@/components/QuestionForArticle.vue";
+  import AccordionMenu from '@/components/Accordion.vue'
+  import LoadingSpinner from '@/components/LoadingSpinner.vue'
+  import QuestionForArticle from '@/components/QuestionForArticle.vue'
 
-import { appSettingsMixin } from "@/mixins/appSettings";
-import { utilitiesMixin } from "@/mixins/utilities";
-import { questionsToTitleMapMixin } from "@/mixins/questionsToTitleMap";
-import { summarizeArticleMixin } from "@/mixins/summarizeArticle";
-import { questionHeaderHeightWatcherMixin } from "@/mixins/questionHeaderHeightWatcher";
+  import { appSettingsMixin } from '@/mixins/appSettings'
+  import { utilitiesMixin } from '@/mixins/utilities'
+  import { questionsToTitleMapMixin } from '@/mixins/questionsToTitleMap'
+  import { summarizeArticleMixin } from '@/mixins/summarizeArticle'
+  import { questionHeaderHeightWatcherMixin } from '@/mixins/questionHeaderHeightWatcher'
 
-export default {
-  name: "SummarizeArticle",
-  components: {
-    AccordionMenu,
-    LoadingSpinner,
-    QuestionForArticle,
-  },
-  mixins: [
-    appSettingsMixin,
-    utilitiesMixin,
-    questionsToTitleMapMixin,
-    summarizeArticleMixin,
-    questionHeaderHeightWatcherMixin,
-  ],
-  props: {
-    htmlUrl: {
-      type: String,
-      default: "",
-      required: false,
+  export default {
+    name: 'SummarizeArticle',
+    components: {
+      AccordionMenu,
+      LoadingSpinner,
+      QuestionForArticle,
     },
-    pdfUrl: {
-      type: String,
-      default: "",
-      required: false,
+    mixins: [
+      appSettingsMixin,
+      utilitiesMixin,
+      questionsToTitleMapMixin,
+      summarizeArticleMixin,
+      questionHeaderHeightWatcherMixin,
+    ],
+    props: {
+      htmlUrl: {
+        type: String,
+        default: '',
+        required: false,
+      },
+      pdfUrl: {
+        type: String,
+        default: '',
+        required: false,
+      },
+      language: {
+        type: String,
+        default: 'dk',
+      },
+      isSummaryLoading: {
+        type: Boolean,
+        required: false,
+        default: false,
+      },
+      promptLanguageType: {
+        type: String,
+        default: 'Hverdagssprog',
+        required: false,
+      },
     },
-    language: {
-      type: String,
-      default: "dk",
+    data() {
+      return {
+        isArticle: false,
+        questions: [],
+        answers: [],
+        isLoadingQuestions: false,
+        isError: false,
+        errorMessage: '',
+        scrapingError: false,
+      }
     },
-    isSummaryLoading: {
-      type: Boolean,
-      required: false,
-      default: false,
-    },
-    promptLanguageType: {
-      type: String,
-      default: "Hverdagssprog",
-      required: false,
-    },
-  },
-  data() {
-    return {
-      isArticle: false,
-      questions: [],
-      answers: [],
-      isLoadingQuestions: false,
-      isError: false,
-      errorMessage: "",
-      scrapingError: false,
-    };
-  },
-};
+  }
 </script>

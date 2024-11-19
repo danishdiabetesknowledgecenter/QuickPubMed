@@ -28,7 +28,7 @@
           @focus.stop
           @blur.stop="endEdit"
           @keyup.enter.stop="endEdit"
-        >
+        />
       </span>
       <span v-else>
         {{ triple.option.preString }}{{ getCustomNameLabel }}
@@ -45,125 +45,125 @@
 </template>
 
 <script>
-import { messages } from "@/assets/content/qpm-translations";
-import { customInputTagTooltip } from "@/assets/content/qpm-content.js";
-export default {
-  name: "DropdownTag",
-  props: {
-    triple: {
-      type: Object,
-      required: true,
-    },
-    customNameLabel: {
-      type: Function,
-      required: true,
-    },
-    updateTag: {
-      type: Function,
-      required: true,
-    },
-    operator: {
-      type: String,
-      required: true,
-    },
-    qpmButtonColor1: {
-      type: String,
-      default: "qpm_buttonColor1",
-    },
-    qpmButtonColor2: {
-      type: String,
-      default: "qpm_buttonColor2",
-    },
-    qpmButtonColor3: {
-      type: String,
-      default: "qpm_buttonColor3",
-    },
-    language: {
-      type: String,
-      default: "dk",
-    },
-  },
-  data() {
-    return {
-      isEditMode: false,
-      tag: JSON.parse(JSON.stringify(this.triple.option)),
-      helpTextDelay: 300,
-    };
-  },
-  computed: {
-    getCustomNameLabel: {
-      get() {
-        const label = this.customNameLabel(this.tag);
-        return label ? label : " ";
+  import { messages } from '@/assets/content/qpm-translations'
+  import { customInputTagTooltip } from '@/assets/content/qpm-content.js'
+  export default {
+    name: 'DropdownTag',
+    props: {
+      triple: {
+        type: Object,
+        required: true,
       },
-      set(newName) {
-        this.tag.name = newName;
-        this.tag.searchStrings.normal = [newName];
+      customNameLabel: {
+        type: Function,
+        required: true,
+      },
+      updateTag: {
+        type: Function,
+        required: true,
+      },
+      operator: {
+        type: String,
+        required: true,
+      },
+      qpmButtonColor1: {
+        type: String,
+        default: 'qpm_buttonColor1',
+      },
+      qpmButtonColor2: {
+        type: String,
+        default: 'qpm_buttonColor2',
+      },
+      qpmButtonColor3: {
+        type: String,
+        default: 'qpm_buttonColor3',
+      },
+      language: {
+        type: String,
+        default: 'dk',
       },
     },
-    getTooltip() {
-      let tooltip = null;
-      if (this.tag.tooltip) {
-        tooltip = this.tag.tooltip[this.language];
+    data() {
+      return {
+        isEditMode: false,
+        tag: JSON.parse(JSON.stringify(this.triple.option)),
+        helpTextDelay: 300,
       }
-      return tooltip;
     },
-  },
-  watch: {
-    triple(newTriple) {
-      this.tag = newTriple.option;
+    computed: {
+      getCustomNameLabel: {
+        get() {
+          const label = this.customNameLabel(this.tag)
+          return label ? label : ' '
+        },
+        set(newName) {
+          this.tag.name = newName
+          this.tag.searchStrings.normal = [newName]
+        },
+      },
+      getTooltip() {
+        let tooltip = null
+        if (this.tag.tooltip) {
+          tooltip = this.tag.tooltip[this.language]
+        }
+        return tooltip
+      },
     },
-  },
-  methods: {
-    getString(string) {
-      const lg = this.language;
-      const constant = messages[string][lg];
-      return constant !== undefined ? constant : messages[string]["dk"];
+    watch: {
+      triple(newTriple) {
+        this.tag = newTriple.option
+      },
     },
-    startEdit() {
-      if (!this.triple.option.isCustom || this.isEditMode) return;
-      this.isEditMode = true;
-      this.tag.preString = this.getString("manualInputTerm") + ": ";
-      this.tag.isTranslated = false;
-      this.tag.tooltip = customInputTagTooltip;
+    methods: {
+      getString(string) {
+        const lg = this.language
+        const constant = messages[string][lg]
+        return constant !== undefined ? constant : messages[string]['dk']
+      },
+      startEdit() {
+        if (!this.triple.option.isCustom || this.isEditMode) return
+        this.isEditMode = true
+        this.tag.preString = this.getString('manualInputTerm') + ': '
+        this.tag.isTranslated = false
+        this.tag.tooltip = customInputTagTooltip
 
-      const editInput = this.$refs.editInput;
-      console.log("StartEDIT");
-      this.$nextTick(() => {
-        editInput.focus();
-      });
-    },
-    endEdit(triggerEvent) {
-      if (!this.triple.option.isCustom || !this.isEditMode) return;
-      if (
-        triggerEvent &&
-        triggerEvent.type === "blur" &&
-        triggerEvent.relatedTarget &&
-        triggerEvent.relatedTarget.classList.contains("multiselect__tag-icon")
-      ) {
-        return;
-      }
+        const editInput = this.$refs.editInput
+        console.log('StartEDIT')
+        this.$nextTick(() => {
+          editInput.focus()
+        })
+      },
+      endEdit(triggerEvent) {
+        if (!this.triple.option.isCustom || !this.isEditMode) return
+        if (
+          triggerEvent &&
+          triggerEvent.type === 'blur' &&
+          triggerEvent.relatedTarget &&
+          triggerEvent.relatedTarget.classList.contains('multiselect__tag-icon')
+        ) {
+          return
+        }
 
-      this.isEditMode = false;
+        this.isEditMode = false
 
-      const editInput = this.$refs.editInput;
-      editInput.blur();
+        const editInput = this.$refs.editInput
+        editInput.blur()
 
-      if (!this.tag.name.trim()) return;
-      this.updateTag(this.tag);
+        if (!this.tag.name.trim()) return
+        this.updateTag(this.tag)
+      },
+      getTagColor(scope) {
+        if (scope === 'narrow') {
+          return this.qpmButtonColor1
+        }
+        if (!scope || scope === 'normal') {
+          return this.qpmButtonColor2
+        }
+        if (scope === 'broad') {
+          return this.qpmButtonColor3
+        }
+        return ''
+      },
     },
-    getTagColor(scope) {
-      if (scope === "narrow") {
-        return this.qpmButtonColor1;
-      }
-      if (!scope || scope === "normal") {
-        return this.qpmButtonColor2;
-      }
-      if (scope === "broad") {
-        return this.qpmButtonColor3;
-      }
-      return "";
-    },
-  },
-};
+  }
 </script>

@@ -1,12 +1,6 @@
 <template>
-  <div
-    v-if="!details || details"
-    class="qpm_wordedSearchString"
-  >
-    <div
-      v-if="!isCollapsed"
-      class="qpm_toggleDetails"
-    >
+  <div v-if="!details || details" class="qpm_wordedSearchString">
+    <div v-if="!isCollapsed" class="qpm_toggleDetails">
       <p
         v-if="subjects !== ''"
         v-tooltip="{
@@ -21,14 +15,11 @@
         @click="toggleDetails"
         @keyup.enter="toggleDetails"
       >
-        <a v-if="details">{{ getString("showDetails") }}</a>
-        <a v-else>{{ getString("hideDetails") }}</a>
+        <a v-if="details">{{ getString('showDetails') }}</a>
+        <a v-else>{{ getString('hideDetails') }}</a>
       </p>
     </div>
-    <div
-      v-if="subjects !== '' && (!details || isCollapsed)"
-      class="qpm_middle"
-    >
+    <div v-if="subjects !== '' && (!details || isCollapsed)" class="qpm_middle">
       <p
         v-if="!advancedString"
         v-tooltip="{
@@ -42,7 +33,7 @@
         @click="toggleAdvanced"
         @keyup.enter="toggleAdvanced"
       >
-        <a>{{ getString("showSearchString") }}</a>
+        <a>{{ getString('showSearchString') }}</a>
       </p>
       <p
         v-else
@@ -57,7 +48,7 @@
         @click="toggleAdvanced"
         @keyup.enter="toggleAdvanced"
       >
-        <a>{{ getString("hideSearchString") }}</a>
+        <a>{{ getString('hideSearchString') }}</a>
       </p>
       <div
         v-if="showHeader"
@@ -66,7 +57,7 @@
         class="h3"
         style="display: inline-block"
       >
-        {{ getString("youAreSearchingFor") }}
+        {{ getString('youAreSearchingFor') }}
       </div>
       <div v-if="!advancedString">
         <span>{{ getSearchPreString }}</span>
@@ -81,7 +72,7 @@
             "
             class="qpm_searchStringGroupOperator"
           >
-            {{ getString("youAreSearchingForAnd") }}
+            {{ getString('youAreSearchingForAnd') }}
           </span>
           <div
             v-if="Object.keys(group).length !== 0"
@@ -105,22 +96,16 @@
                 v-if="idx2 < group.length - 1"
                 class="qpm_searchStringOperator"
               >
-                {{ getString("orOperator").toLowerCase() }}
+                {{ getString('orOperator').toLowerCase() }}
               </span>
             </div>
-            <div
-              v-if="group.length > 0"
-              class="qpm_halfBorder"
-            />
+            <div v-if="group.length > 0" class="qpm_halfBorder" />
           </div>
         </div>
-        <br>
+        <br />
         <span v-if="!filterIsEmpty">
-          <div
-            class="qpm_hideonmobile"
-            style="padding-top: 10px"
-          />
-          {{ getString("where") }}
+          <div class="qpm_hideonmobile" style="padding-top: 10px" />
+          {{ getString('where') }}
         </span>
         <div
           v-for="(value, name, idx) in filters"
@@ -128,19 +113,13 @@
           :key="name"
           class="qpm_searchStringFilterGroup"
         >
-          <span
-            v-if="idx > 0"
-            class="qpm_searchStringGroupOperator"
-          >
-            {{ getString("andOperator").toLowerCase() }}
+          <span v-if="idx > 0" class="qpm_searchStringGroupOperator">
+            {{ getString('andOperator').toLowerCase() }}
           </span>
           <span class="qpm_searchStringGroupWhere">
-            {{ getWordedFilterString(name) }} {{ getString("is") }}
+            {{ getWordedFilterString(name) }} {{ getString('is') }}
           </span>
-          <div
-            v-if="value.length !== 0"
-            class="qpm_searchStringWordGroup"
-          >
+          <div v-if="value.length !== 0" class="qpm_searchStringWordGroup">
             <div
               v-for="(filterObj, idx2) in value"
               :key="idx2"
@@ -156,7 +135,7 @@
                 v-if="idx2 < value.length - 1"
                 class="qpm_searchStringOperator"
               >
-                {{ getString("orOperator").toLowerCase() }}
+                {{ getString('orOperator').toLowerCase() }}
               </span>
             </div>
             <div class="qpm_halfBorder" />
@@ -203,7 +182,7 @@
             target="_blank"
             :href="getPubMedLink"
           >
-            {{ getString("showPubMedLink") }}
+            {{ getString('showPubMedLink') }}
           </a>
         </p>
         <p class="intext-arrow-link onHoverJS qpm_pubmedLink">
@@ -217,7 +196,7 @@
             target="_blank"
             :href="getPubMedLinkCreateAlert"
           >
-            {{ getString("createPubMedAlert") }}
+            {{ getString('createPubMedAlert') }}
           </a>
         </p>
       </div>
@@ -226,234 +205,234 @@
 </template>
 
 <script>
-import { appSettingsMixin } from "@/mixins/appSettings";
-import { messages } from "@/assets/content/qpm-translations.js";
-import { filtrer, order } from "@/assets/content/qpm-content.js";
-import { topics } from "@/assets/content/qpm-content-diabetes.js";
+  import { appSettingsMixin } from '@/mixins/appSettings'
+  import { messages } from '@/assets/content/qpm-translations.js'
+  import { filtrer, order } from '@/assets/content/qpm-content.js'
+  import { topics } from '@/assets/content/qpm-content-diabetes.js'
 
-export default {
-  name: "WordedSearchString",
-  mixins: [appSettingsMixin],
-  props: {
-    subjects: {
-      type: Array,
-      required: true,
+  export default {
+    name: 'WordedSearchString',
+    mixins: [appSettingsMixin],
+    props: {
+      subjects: {
+        type: Array,
+        required: true,
+      },
+      filters: {
+        type: Object,
+        required: true,
+      },
+      searchstring: {
+        type: String,
+        required: true,
+      },
+      isCollapsed: {
+        type: Boolean,
+        default: false,
+      },
+      details: {
+        type: Boolean,
+        default: false,
+      },
+      advancedString: {
+        type: Boolean,
+        default: false,
+      },
+      advancedSearch: {
+        type: Boolean,
+        default: false,
+      },
+      showHeader: {
+        type: Boolean,
+        default: false,
+      },
+      language: {
+        type: String,
+        default: 'dk',
+      },
     },
-    filters: {
-      type: Object,
-      required: true,
-    },
-    searchstring: {
-      type: String,
-      required: true,
-    },
-    isCollapsed: {
-      type: Boolean,
-      default: false,
-    },
-    details: {
-      type: Boolean,
-      default: false,
-    },
-    advancedString: {
-      type: Boolean,
-      default: false,
-    },
-    advancedSearch: {
-      type: Boolean,
-      default: false,
-    },
-    showHeader: {
-      type: Boolean,
-      default: false,
-    },
-    language: {
-      type: String,
-      default: "dk",
-    },
-  },
-  data() {
-    return {
-      helpTextDelay: 300, // Define helpTextDelay or fetch from mixin
-    };
-  },
-  computed: {
-    filterIsEmpty() {
-      if (this.filters) {
-        let count = 0;
-        Object.keys(this.filters).forEach((key) => {
-          count += this.filters[key].length;
-        });
-        return count === 0;
-      }
-      return true;
-    },
-    getPubMedLink() {
-      return `https://pubmed.ncbi.nlm.nih.gov/?myncbishare=${
-        this.appSettings.nlm.myncbishare
-      }&term=${encodeURIComponent(this.searchstring)}`;
-    },
-    getPubMedLinkCreateAlert() {
-      return `https://account.ncbi.nlm.nih.gov/?back_url=${encodeURIComponent(
-        "https://pubmed.ncbi.nlm.nih.gov/?&term="
-      )}${encodeURIComponent(this.searchstring)}${encodeURIComponent(
-        "#open-saved-search-panel"
-      )}`;
-    },
-    getSearchPreString() {
-      let count = 0;
-      for (let i = 0; i < this.subjects.length; i++) {
-        count += this.subjects[i].length;
-      }
-      if (count > 1) {
-        return this.getString("searchPreStringPlural");
-      } else {
-        return this.getString("searchPreStringSingular");
+    data() {
+      return {
+        helpTextDelay: 300, // Define helpTextDelay or fetch from mixin
       }
     },
-    checkFirstSubjectRender() {
-      for (let i = 0; i < this.subjects.length; i++) {
+    computed: {
+      filterIsEmpty() {
+        if (this.filters) {
+          let count = 0
+          Object.keys(this.filters).forEach((key) => {
+            count += this.filters[key].length
+          })
+          return count === 0
+        }
+        return true
+      },
+      getPubMedLink() {
+        return `https://pubmed.ncbi.nlm.nih.gov/?myncbishare=${
+          this.appSettings.nlm.myncbishare
+        }&term=${encodeURIComponent(this.searchstring)}`
+      },
+      getPubMedLinkCreateAlert() {
+        return `https://account.ncbi.nlm.nih.gov/?back_url=${encodeURIComponent(
+          'https://pubmed.ncbi.nlm.nih.gov/?&term='
+        )}${encodeURIComponent(this.searchstring)}${encodeURIComponent(
+          '#open-saved-search-panel'
+        )}`
+      },
+      getSearchPreString() {
+        let count = 0
+        for (let i = 0; i < this.subjects.length; i++) {
+          count += this.subjects[i].length
+        }
+        if (count > 1) {
+          return this.getString('searchPreStringPlural')
+        } else {
+          return this.getString('searchPreStringSingular')
+        }
+      },
+      checkFirstSubjectRender() {
+        for (let i = 0; i < this.subjects.length; i++) {
+          try {
+            if (this.subjects[i].length > 0) return i
+          } catch (error) {
+            console.error(error)
+            continue
+          }
+        }
+        return -1
+      },
+      checkFirstFilterRender() {
+        const filter = Object.keys(this.filters)
+        for (let i = 0; i < filter.length; i++) {
+          try {
+            if (this.filters[filter[i]][0].name) return i
+          } catch (error) {
+            console.error(error)
+            continue
+          }
+        }
+        return -1
+      },
+    },
+    methods: {
+      toggleAdvanced() {
+        this.$emit('toggleAdvancedString')
+      },
+      toggleDetails() {
+        this.$emit('toggleDetailsBox')
+      },
+      getScope(obj) {
+        if (!this.advancedSearch || this.isSingleScoped(obj)) {
+          return ''
+        }
+
+        if (obj.scope === 'broad') {
+          return `(${this.getString('broad')})`
+        } else if (obj.scope === 'narrow') {
+          return `(${this.getString('narrow')})`
+        } else {
+          return `(${this.getString('normal')})`
+        }
+      },
+      getString(string) {
+        const lg = this.language
+        const constant = messages[string][lg]
+        return constant !== undefined ? constant : messages[string]['dk']
+      },
+      getWordedSubjectString(string) {
         try {
-          if (this.subjects[i].length > 0) return i;
-        } catch (error) {
-          console.error(error);
-          continue;
+          let constant
+          if (string.id) {
+            constant = string.translations[this.language]
+          }
+          if (string.translations && string.translations[this.language]) {
+            constant = string.translations[this.language]
+          } else if (string.isTranslated && string.preTranslation) {
+            constant =
+              string.preTranslation +
+              ' (' +
+              this.getString('manualInputTermTranslated') +
+              ': ' +
+              string.name +
+              ')'
+          } else {
+            constant = string.name
+          }
+          return constant
+        } catch (e) {
+          console.log(string, e)
+          return string.translations['dk']
         }
-      }
-      return -1;
-    },
-    checkFirstFilterRender() {
-      const filter = Object.keys(this.filters);
-      for (let i = 0; i < filter.length; i++) {
+      },
+      getWordedFilterString(filter) {
         try {
-          if (this.filters[filter[i]][0].name) return i;
-        } catch (error) {
-          console.error(error);
-          continue;
+          let constant
+          if (filter.translations) {
+            constant = filter.translations[this.language]
+          } else if (filter.id) {
+            constant = this.getWordedFilterStringById(filter.id)
+          } else if (typeof filter === 'string' || filter instanceof String) {
+            constant = this.getWordedFilterStringById(filter)
+          } else {
+            constant = filter.name
+          }
+          return constant
+        } catch (e) {
+          console.error(filter, e)
+          return filter
         }
-      }
-      return -1;
-    },
-  },
-  methods: {
-    toggleAdvanced() {
-      this.$emit("toggleAdvancedString");
-    },
-    toggleDetails() {
-      this.$emit("toggleDetailsBox");
-    },
-    getScope(obj) {
-      if (!this.advancedSearch || this.isSingleScoped(obj)) {
-        return "";
-      }
+      },
+      getWordedFilterStringById(id) {
+        const type = id.substr(0, 1).toLowerCase()
+        const groupId = id.substr(0, 3)
+        const lg = this.language
 
-      if (obj.scope === "broad") {
-        return `(${this.getString("broad")})`;
-      } else if (obj.scope === "narrow") {
-        return `(${this.getString("narrow")})`;
-      } else {
-        return `(${this.getString("normal")})`;
-      }
-    },
-    getString(string) {
-      const lg = this.language;
-      const constant = messages[string][lg];
-      return constant !== undefined ? constant : messages[string]["dk"];
-    },
-    getWordedSubjectString(string) {
-      try {
-        let constant;
-        if (string.id) {
-          constant = string.translations[this.language];
-        }
-        if (string.translations && string.translations[this.language]) {
-          constant = string.translations[this.language];
-        } else if (string.isTranslated && string.preTranslation) {
-          constant =
-            string.preTranslation +
-            " (" +
-            this.getString("manualInputTermTranslated") +
-            ": " +
-            string.name +
-            ")";
+        const byId = (e) => e.id === id
+        const byGroupId = (e) => e.id === groupId
+
+        if (type === 'o') {
+          return order.find(byId).translations[lg]
+        } else if (type === 's') {
+          const group = topics.find(byGroupId)
+          if (id.length === 3) {
+            return group.translations[lg]
+          } else {
+            const topic = group.groups.find(byId)
+            return topic.translations[lg]
+          }
+        } else if (type === 'l') {
+          const group = filtrer.find(byGroupId)
+          if (id.length === 3) {
+            return group.translations[lg]
+          } else {
+            const choice = group.choices.find(byId)
+            return choice.translations[lg]
+          }
         } else {
-          constant = string.name;
+          throw new Error(
+            'Id not handled by getWordedFilterStringById. id: ' + id
+          )
         }
-        return constant;
-      } catch (e) {
-        console.log(string, e);
-        return string.translations["dk"];
-      }
-    },
-    getWordedFilterString(filter) {
-      try {
-        let constant;
-        if (filter.translations) {
-          constant = filter.translations[this.language];
-        } else if (filter.id) {
-          constant = this.getWordedFilterStringById(filter.id);
-        } else if (typeof filter === "string" || filter instanceof String) {
-          constant = this.getWordedFilterStringById(filter);
-        } else {
-          constant = filter.name;
-        }
-        return constant;
-      } catch (e) {
-        console.error(filter, e);
-        return filter;
-      }
-    },
-    getWordedFilterStringById(id) {
-      const type = id.substr(0, 1).toLowerCase();
-      const groupId = id.substr(0, 3);
-      const lg = this.language;
+      },
+      isSingleScoped(obj) {
+        if (!obj.searchStrings) return false
 
-      const byId = (e) => e.id === id;
-      const byGroupId = (e) => e.id === groupId;
+        let count = 0
+        if (obj.searchStrings['broad']) count++
+        if (obj.searchStrings['narrow']) count++
+        if (obj.searchStrings['normal']) count++
 
-      if (type === "o") {
-        return order.find(byId).translations[lg];
-      } else if (type === "s") {
-        const group = topics.find(byGroupId);
-        if (id.length === 3) {
-          return group.translations[lg];
-        } else {
-          const topic = group.groups.find(byId);
-          return topic.translations[lg];
-        }
-      } else if (type === "l") {
-        const group = filtrer.find(byGroupId);
-        if (id.length === 3) {
-          return group.translations[lg];
-        } else {
-          const choice = group.choices.find(byId);
-          return choice.translations[lg];
-        }
-      } else {
-        throw new Error(
-          "Id not handled by getWordedFilterStringById. id: " + id
-        );
-      }
+        return count === 1
+      },
+      copyTextfieldFunction() {
+        const textarea = this.$refs.searchStringTextarea
+        textarea.select()
+        textarea.setSelectionRange(0, 99999)
+        document.execCommand('copy')
+      },
+      selectAndCopy() {
+        this.copyTextfieldFunction()
+      },
     },
-    isSingleScoped(obj) {
-      if (!obj.searchStrings) return false;
-
-      let count = 0;
-      if (obj.searchStrings["broad"]) count++;
-      if (obj.searchStrings["narrow"]) count++;
-      if (obj.searchStrings["normal"]) count++;
-
-      return count === 1;
-    },
-    copyTextfieldFunction() {
-      const textarea = this.$refs.searchStringTextarea;
-      textarea.select();
-      textarea.setSelectionRange(0, 99999);
-      document.execCommand("copy");
-    },
-    selectAndCopy() {
-      this.copyTextfieldFunction();
-    },
-  },
-};
+  }
 </script>
