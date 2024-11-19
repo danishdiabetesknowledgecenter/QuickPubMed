@@ -177,7 +177,7 @@
                 />
               </div>
               <p
-                v-if="n >= 0 && !noSubjects"
+                v-if="n >= 0 && hasSubjects"
                 class="qpm_subjectOperator"
                 :style="{
                   color: n < subjects.length - 1 ? '#000000' : 'darkgrey',
@@ -187,7 +187,7 @@
               </p>
             </div>
             <div
-              v-if="!noSubjects"
+              v-if="hasSubjects"
               style="margin: 5px 0 20px 0"
               @keydown.enter.capture.passive="focusNextDropdownOnMount = true"
             >
@@ -209,7 +209,7 @@
               </button>
             </div>
             <div
-              v-if="advanced && !showFilter && !noSubjects"
+              v-if="advanced && !showFilter && hasSubjects"
               style="margin-bottom: 15px"
             >
               <button
@@ -230,7 +230,7 @@
 
             <!-- The dropdown for selecting limits to be included in the advanced search -->
             <div
-              v-if="advanced && showFilter && !noSubjects"
+              v-if="advanced && showFilter && hasSubjects"
               style="margin-bottom: 10px"
             >
               <h4 role="heading" aria-level="3" class="h4">
@@ -279,7 +279,7 @@
             </div>
 
             <!-- The radio buttons for limits to be included in the simple search -->
-            <div v-else-if="!advanced && !noSubjects">
+            <div v-else-if="!advanced && hasSubjects">
               <h4 role="heading" aria-level="3" class="h4">
                 {{ getString('SimpleFiltersHeader') }}
               </h4>
@@ -347,7 +347,7 @@
         </div>
 
         <div
-          v-show="!noSubjects && !isCollapsed"
+          v-show="hasSubjects && !isCollapsed"
           class="qpm_flex qpm_bottom"
           style="justify-content: space-between"
         >
@@ -512,11 +512,8 @@
         }
         return ''
       },
-      noSubjects() {
-        const result = this.subjects.every(
-          (subjectArray) => subjectArray.length === 0
-        )
-        return result
+      hasSubjects() {
+        return this.subjects.some((subjectArray) => subjectArray.length > 0)
       },
       getSearchString: function () {
         let str = ''
@@ -1010,7 +1007,7 @@
 
         let baseUrl = origin + window.location.pathname
 
-        if (this.noSubjects) {
+        if (!this.hasSubjects) {
           return baseUrl
         }
         let subjectsStr = ''
@@ -1189,7 +1186,7 @@
         this.isFirstFill = false
 
         //Check if empty, then clear and hide filters if so
-        if (this.noSubjects) {
+        if (!this.hasSubjects) {
           this.filters = []
           this.filterData = {}
           this.showFilter = false
