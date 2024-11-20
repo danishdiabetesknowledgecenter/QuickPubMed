@@ -56,8 +56,8 @@
               <a v-if="language != 'en'" @click="toggleTranslation">
                 {{
                   translationShowing
-                    ? getString('hideTranslatedTitle')
-                    : getString('showTranslatedTitle')
+                    ? getString("hideTranslatedTitle")
+                    : getString("showTranslatedTitle")
                 }}
               </a>
             </p>
@@ -71,7 +71,7 @@
           <p class="qpm_resultAuthors">
             <span v-if="calculateAuthors">{{ calculateAuthors }}.</span>
             <span v-if="!calculateAuthors"
-              ><i>{{ getString('noAuthorsListed') }}</i></span
+              ><i>{{ getString("noAuthorsListed") }}</i></span
             >
             <br />
           </p>
@@ -125,7 +125,7 @@
           class="qpm_button qpm_slim"
           @click="gotosite(getPubMedLink)"
         >
-          {{ getString('openInPubMed') }}
+          {{ getString("openInPubMed") }}
         </button>
         <button
           v-if="getDoiLink"
@@ -138,7 +138,7 @@
           class="qpm_button qpm_slim"
           @click="gotosite(getDoiLink)"
         >
-          {{ getString('openDoi') }}
+          {{ getString("openDoi") }}
         </button>
       </div>
       <div v-if="id !== ''" class="qpm_badges_mobile rs_skip">
@@ -212,7 +212,7 @@
           class="qpm_button qpm_slim"
           @click="gotosite(getPubMedLink)"
         >
-          {{ getString('openInPubMed') }}
+          {{ getString("openInPubMed") }}
         </button>
         <button
           v-if="getDoiLink"
@@ -225,7 +225,7 @@
           class="qpm_button qpm_slim"
           @click="gotosite(getDoiLink)"
         >
-          {{ getString('openDoi') }}
+          {{ getString("openDoi") }}
         </button>
       </div>
       <div v-if="id !== null" class="qpm_badges rs_skip">
@@ -319,7 +319,7 @@
                 />
                 <div>
                   <strong>{{
-                    getString('selectedResultAccordionHeader')
+                    getString("selectedResultAccordionHeader")
                   }}</strong>
                   <button
                     v-tooltip="{
@@ -341,10 +341,10 @@
                   v-if="!hasAcceptedAi && hasAbstract"
                   class="qpm_searchSummaryText qpm_searchSummaryTextBackground"
                 >
-                  <p>{{ getString('aiSummarizeAbstractButton') }}</p>
+                  <p>{{ getString("aiSummarizeAbstractButton") }}</p>
                   <p>
                     <strong>{{
-                      getString('aiSummarizeSearchResultButton')
+                      getString("aiSummarizeSearchResultButton")
                     }}</strong>
                   </p>
                   <button
@@ -410,37 +410,37 @@
             v-if="isResourceAllowed === undefined && !hasAbstract"
             style="margin-left: 20px; margin-top: 15px"
           >
-            {{ getString('loadingText') }}
+            {{ getString("loadingText") }}
           </p>
           <p
             v-else-if="!appSettings.openAi.useAi && !hasAbstract"
             style="margin-left: 20px; margin-top: 15px"
           >
-            {{ getString('summarizeArticleNotAvailable') }}
+            {{ getString("summarizeArticleNotAvailable") }}
           </p>
           <p
             v-else-if="!isPubTypeAllowed && !hasAbstract"
             style="margin-left: 20px; margin-top: 15px"
           >
-            {{ getString('summarizeArticleNotAvailable') }}
+            {{ getString("summarizeArticleNotAvailable") }}
           </p>
           <p
             v-else-if="!isLicenseAllowed && !hasAbstract"
             style="margin-left: 20px; margin-top: 15px"
           >
-            {{ getString('summarizeArticleNotAvailable') }}
+            {{ getString("summarizeArticleNotAvailable") }}
           </p>
           <p
             v-else-if="!isResourceAllowed && !hasAbstract"
             style="margin-left: 20px; margin-top: 15px"
           >
-            {{ getString('summarizeArticleNotAvailable') }}
+            {{ getString("summarizeArticleNotAvailable") }}
           </p>
           <p
             v-else-if="isLicenseAllowed === undefined && !hasAbstract"
             style="margin-left: 20px; margin-top: 15px"
           >
-            {{ getString('summarizeArticleNotAvailable') }}
+            {{ getString("summarizeArticleNotAvailable") }}
           </p>
 
           <accordion-menu
@@ -477,7 +477,7 @@
                 />
                 <div>
                   <strong>{{
-                    getString('selectedResultAccordionHeaderNoAbstract')
+                    getString("selectedResultAccordionHeaderNoAbstract")
                   }}</strong>
                   <button
                     v-tooltip="{
@@ -502,9 +502,9 @@
                     class="qpm_searchSummaryText qpm_searchSummaryTextBackground"
                   >
                     <p>
-                      <strong>{{ getString('summarizeArticleNotice') }}</strong>
+                      <strong>{{ getString("summarizeArticleNotice") }}</strong>
                     </p>
-                    <p>{{ getString('aiSummarizeArticleButton') }}</p>
+                    <p>{{ getString("aiSummarizeArticleButton") }}</p>
                     <button
                       v-for="prompt in getSummarizeArticlePrompt()"
                       :key="prompt.name"
@@ -562,7 +562,7 @@
                     target="_blank"
                     :href="getUnpaywall"
                   >
-                    {{ getString('UnpaywallLoading') }}
+                    {{ getString("UnpaywallLoading") }}
                   </a>
                 </template>
 
@@ -582,7 +582,7 @@
                     :href="getOaPdf"
                     download
                   >
-                    {{ getString('UnpaywallWithPdf') }}
+                    {{ getString("UnpaywallWithPdf") }}
                   </a>
                 </template>
 
@@ -602,7 +602,7 @@
                     :href="getOaHtml"
                     download
                   >
-                    {{ getString('UnpaywallWithHtml') }}
+                    {{ getString("UnpaywallWithHtml") }}
                   </a>
                 </template>
 
@@ -621,7 +621,7 @@
                     target="_blank"
                     :href="getUnpaywall"
                   >
-                    {{ getString('UnpaywallNoPdf') }}
+                    {{ getString("UnpaywallNoPdf") }}
                   </a>
                 </template>
               </p>
@@ -644,7 +644,7 @@
             </template>
             <template v-if="!hasAbstract">
               <p style="padding-bottom: 10px">
-                {{ getString('noAbstract') }}
+                {{ getString("noAbstract") }}
               </p>
             </template>
           </div>
@@ -675,7 +675,7 @@
               target="_blank"
               :href="getPubmedRelated"
             >
-              {{ getString('relatedPubmed') }}
+              {{ getString("relatedPubmed") }}
             </a>
           </p>
           <p
@@ -693,7 +693,7 @@
               target="_blank"
               :href="getPubmedRelatedReviews"
             >
-              {{ getString('relatedPubmedReviews') }}
+              {{ getString("relatedPubmedReviews") }}
             </a>
           </p>
           <p
@@ -711,7 +711,7 @@
               target="_blank"
               :href="getGoogleScholar"
             >
-              {{ getString('GoogleScholar') }}
+              {{ getString("GoogleScholar") }}
             </a>
           </p>
         </div>
@@ -721,23 +721,23 @@
 </template>
 
 <script>
-  import LoadingSpinner from '@/components/LoadingSpinner.vue'
-  import AccordionMenu from '@/components/Accordion.vue'
-  import AiSummaries from '@/components/AiSummaries.vue'
-  import SummarizeArticleNoAbstract from '@/components/SummarizeArticleNoAbstract.vue'
-  import AiTranslation from '@/components/AiTranslation.vue'
-  import axios from 'axios'
+  import LoadingSpinner from "@/components/LoadingSpinner.vue";
+  import AccordionMenu from "@/components/Accordion.vue";
+  import AiSummaries from "@/components/AiSummaries.vue";
+  import SummarizeArticleNoAbstract from "@/components/SummarizeArticleNoAbstract.vue";
+  import AiTranslation from "@/components/AiTranslation.vue";
+  import axios from "axios";
 
-  import { appSettingsMixin } from '@/mixins/appSettings'
-  import { eventBus } from '@/mixins/appSettings'
-  import { messages } from '@/assets/content/qpm-translations'
+  import { appSettingsMixin } from "@/mixins/appSettings";
+  import { eventBus } from "@/mixins/appSettings";
+  import { messages } from "@/assets/content/qpm-translations";
   import {
     abstractSummaryPrompts,
     summarizeArticlePrompt,
-  } from '@/assets/content/qpm-openAiPrompts'
+  } from "@/assets/content/qpm-openAiPrompts";
 
   export default {
-    name: 'ResultEntry',
+    name: "ResultEntry",
     components: {
       LoadingSpinner,
       AccordionMenu,
@@ -747,13 +747,13 @@
     },
     mixins: [appSettingsMixin],
     model: {
-      prop: 'modelValue',
-      event: 'change',
+      prop: "modelValue",
+      event: "change",
     },
     props: {
       abstract: {
         type: String,
-        default: '',
+        default: "",
       },
       text: {
         type: Object,
@@ -761,56 +761,56 @@
       },
       id: {
         type: String,
-        default: '',
+        default: "",
       },
       pmid: {
         type: String,
-        default: '',
+        default: "",
       },
       title: {
         type: String,
-        default: '',
+        default: "",
       },
       booktitle: {
         type: String,
-        default: '',
+        default: "",
       },
       vernaculartitle: {
         type: String,
-        default: '',
+        default: "",
       },
       date: {
         type: String,
-        default: '',
+        default: "",
       },
       source: {
         type: String,
-        default: '',
+        default: "",
       },
       author: {
         type: String,
-        default: '',
+        default: "",
       },
       pubDate: {
         type: String,
-        default: '',
+        default: "",
       },
       volume: {
         type: String,
-        default: '',
+        default: "",
       },
       issue: {
         type: String,
-        default: '',
+        default: "",
       },
       pages: {
         type: String,
-        default: '',
+        default: "",
       },
       hasAbstract: Boolean,
       doi: {
         type: String,
-        default: '',
+        default: "",
       },
       showButtons: {
         type: Boolean,
@@ -828,19 +828,19 @@
       singleArticle: Boolean,
       customAbstract: {
         type: String,
-        default: '',
+        default: "",
       },
       language: {
         type: String,
-        default: 'dk',
+        default: "dk",
       },
       hyperLink: {
         type: String,
-        default: '',
+        default: "",
       },
       hyperLinkText: {
         type: String,
-        default: '',
+        default: "",
       },
       sectionedAbstract: {
         type: Object,
@@ -882,68 +882,67 @@
     },
     data: function () {
       // Added by Ole
-      if (document.getElementById('qpm_start') != null) {
+      if (document.getElementById("qpm_start") != null) {
         document
-          .getElementById('qpm_start')
-          .scrollIntoView({ behavior: 'smooth' })
+          .getElementById("qpm_start")
+          .scrollIntoView({ behavior: "smooth" });
       }
       return {
         showingAbstract: false,
         abstractLoaded: false,
         loading: false,
         translationShowing: false,
-        abstractId: '',
+        abstractId: "",
         mostOuterWidth: 0,
         shouldNotUpdate: false,
         unpaywallResponse: undefined,
         unpaywallResponseLoaded: this.doi == null,
         hasAcceptedAi: false,
-        initialAiTab: '',
+        initialAiTab: "",
         pdfQuestions: [],
         isLicenseAllowed: false,
         isResourceAllowed: undefined,
         isPubTypeAllowed: false,
-        pdfUrl: '',
-        htmlUrl: '',
-        defaultUrl: '',
-        license: '',
+        pdfUrl: "",
+        htmlUrl: "",
+        defaultUrl: "",
+        license: "",
         showExtendedPrompts: false, // Show extended prompts for summarizing the article
-      }
+      };
     },
-
     computed: {
       computedTitle() {
         return (
-          this.getTitle || this.getBookTitle || this.getVernacularTitle || ''
-        )
+          this.getTitle || this.getBookTitle || this.getVernacularTitle || ""
+        );
       },
       getIsPubTypeAllowed: function () {
-        return this.isPubTypeAllowed
+        return this.isPubTypeAllowed;
       },
       getPromptLanguageType: function () {
-        return this.initialAiTab.name
+        return this.initialAiTab.name;
       },
       getIsLicenseAllowed() {
-        return this.isLicenseAllowed
+        return this.isLicenseAllowed;
       },
       getIsResourceAllowed() {
-        return this.isResourceAllowed
+        return this.isResourceAllowed;
       },
       getUsePDFsummaryFlag: function () {
-        return this.appSettings.openAi.usePDFsummary
+        return this.appSettings.openAi.usePDFsummary;
       },
       getButtonText: function () {
         if (this.hasAbstract) {
           if (this.showingAbstract) {
-            return this.getString('hideAbstract')
+            return this.getString("hideAbstract");
           } else {
-            return this.getString('showAbstract')
+            return this.getString("showAbstract");
           }
         } else {
           if (this.showingAbstract) {
-            return this.getString('hideInfo')
+            return this.getString("hideInfo");
           } else {
-            return this.getString('showInfo')
+            return this.getString("showInfo");
           }
         }
       },
@@ -951,161 +950,162 @@
         return (
           this.checkIfMobile ||
           (this.parentWidth < 520 && this.parentWidth != 0)
-        )
+        );
       },
       getPubMedLink: function () {
         return (
-          'https://pubmed.ncbi.nlm.nih.gov/' +
+          "https://pubmed.ncbi.nlm.nih.gov/" +
           this.pmid +
-          '/?' +
-          'myncbishare=' +
+          "/?" +
+          "myncbishare=" +
           this.appSettings.nlm.myncbishare +
-          ''
-        )
+          ""
+        );
       },
       getDoiLink: function () {
         if (this.doi) {
-          return 'https://doi.org/' + this.doi
-        } else return ''
+          return "https://doi.org/" + this.doi;
+        } else return "";
       },
       getPubmedRelated: function () {
         return (
-          'https://pubmed.ncbi.nlm.nih.gov/?' +
-          'myncbishare=' +
+          "https://pubmed.ncbi.nlm.nih.gov/?" +
+          "myncbishare=" +
           this.appSettings.nlm.myncbishare +
-          '&linkname=pubmed_pubmed&sort=relevance&from_uid=' +
+          "&linkname=pubmed_pubmed&sort=relevance&from_uid=" +
           this.pmid
-        )
+        );
       },
       getPubmedRelatedReviews: function () {
         return (
-          'https://pubmed.ncbi.nlm.nih.gov/?' +
-          'myncbishare=' +
+          "https://pubmed.ncbi.nlm.nih.gov/?" +
+          "myncbishare=" +
           this.appSettings.nlm.myncbishare +
-          '&filter=pubt.systematicreview&linkname=pubmed_pubmed&sort=relevance&from_uid=' +
+          "&filter=pubt.systematicreview&linkname=pubmed_pubmed&sort=relevance&from_uid=" +
           this.pmid
-        )
+        );
       },
       getPubmedAlsoViewed: function () {
         return (
-          'https://pubmed.ncbi.nlm.nih.gov/?' +
-          'myncbishare=' +
+          "https://pubmed.ncbi.nlm.nih.gov/?" +
+          "myncbishare=" +
           this.appSettings.nlm.myncbishare +
-          '&linkname=pubmed_pubmed_alsoviewed&sort=relevance&from_uid=' +
+          "&linkname=pubmed_pubmed_alsoviewed&sort=relevance&from_uid=" +
           this.pmid
-        )
+        );
       },
       getUnpaywall: function () {
         if (this.doi) {
-          return 'https://unpaywall.org/' + this.doi
-        } else return ''
+          return "https://unpaywall.org/" + this.doi;
+        } else return "";
       },
       /**
        * Check api response for the url for the pdf version of the article
        */
       getHasOaPdf: function () {
-        if (!this.unpaywallResponse) return false
-        if (!this.unpaywallResponse['best_oa_location']) return false
+        if (!this.unpaywallResponse) return false;
+        if (!this.unpaywallResponse["best_oa_location"]) return false;
 
         const url_for_pdf =
-          this.unpaywallResponse['best_oa_location']['url_for_pdf']
+          this.unpaywallResponse["best_oa_location"]["url_for_pdf"];
 
         if (!url_for_pdf) {
-          this.setPdfUrl(undefined)
-          return false
+          this.setPdfUrl(undefined);
+          return false;
         }
 
-        this.setPdfUrl(url_for_pdf)
-        console.log('url_for_pdf:', this.pdfUrl)
+        this.setPdfUrl(url_for_pdf);
+        console.log("url_for_pdf:", this.pdfUrl);
 
-        return true
+        return true;
       },
       /**
        * Check api response for the url for the html version of the article
        */
       getHasOaHtml: function () {
-        if (!this.unpaywallResponse) return false
-        if (!this.unpaywallResponse['best_oa_location']) return false
+        if (!this.unpaywallResponse) return false;
+        if (!this.unpaywallResponse["best_oa_location"]) return false;
 
         const url_for_landing_page =
-          this.unpaywallResponse['best_oa_location']['url_for_landing_page']
+          this.unpaywallResponse["best_oa_location"]["url_for_landing_page"];
 
         if (!url_for_landing_page) {
-          this.setHtmlUrl(undefined)
-          return false
+          this.setHtmlUrl(undefined);
+          return false;
         }
 
-        this.setHtmlUrl(url_for_landing_page)
-        console.log('url_for_landing_page', this.htmlUrl)
-        return true
+        this.setHtmlUrl(url_for_landing_page);
+        console.log("url_for_landing_page", this.htmlUrl);
+        return true;
       },
 
       getOaHtml: function () {
         if (this.getHasOaHtml) {
-          return this.unpaywallResponse.best_oa_location.url_for_landing_page
-        } else return ''
+          return this.unpaywallResponse.best_oa_location.url_for_landing_page;
+        } else return "";
       },
       getOaPdf: function () {
         if (this.getHasOaPdf) {
-          return this.unpaywallResponse.best_oa_location.url
-        } else return ''
+          return this.unpaywallResponse.best_oa_location.url;
+        } else return "";
       },
       getGoogleScholar: function () {
         if (this.pmid != null) {
-          return 'https://scholar.google.com/scholar_lookup?pmid=' + this.pmid
+          return "https://scholar.google.com/scholar_lookup?pmid=" + this.pmid;
         } else {
-          return 'https://scholar.google.com/scholar_lookup?doi=' + this.doi
+          return "https://scholar.google.com/scholar_lookup?doi=" + this.doi;
         }
       },
       getTitle: function () {
-        var div = document.createElement('div')
-        div.innerHTML = this.title
-        var text = div.textContent || div.innerText || ''
+        var div = document.createElement("div");
+        div.innerHTML = this.title;
+        var text = div.textContent || div.innerText || "";
 
-        return text.replace(/<\/?[^>]+(>|$)/g, '')
+        return text.replace(/<\/?[^>]+(>|$)/g, "");
       },
       // Added by Ole (getBookTitle and getVernacularTitle also added in template)
       getBookTitle: function () {
-        var div = document.createElement('div')
-        div.innerHTML = this.booktitle
-        var text = div.textContent || div.innerText || ''
-        return text.replace(/<\/?[^>]+(>|$)/g, '')
+        var div = document.createElement("div");
+        div.innerHTML = this.booktitle;
+        var text = div.textContent || div.innerText || "";
+        return text.replace(/<\/?[^>]+(>|$)/g, "");
       },
       getVernacularTitle: function () {
         if (this.vernaculartitle) {
-          var div = document.createElement('div')
-          div.innerHTML = this.vernaculartitle
-          var text = div.textContent || div.innerText || ''
-          return text.replace(/<\/?[^>]+(>|$)/g, '')
-        } else return ''
+          var div = document.createElement("div");
+          div.innerHTML = this.vernaculartitle;
+          var text = div.textContent || div.innerText || "";
+          return text.replace(/<\/?[^>]+(>|$)/g, "");
+        } else return "";
       },
       calculateAuthors: function () {
-        let authorArray = this.author.split(',')
-        if (!this.shownSixAuthors || authorArray.length <= 6) return this.author
-        let shownAuthors = ''
+        let authorArray = this.author.split(",");
+        if (!this.shownSixAuthors || authorArray.length <= 6)
+          return this.author;
+        let shownAuthors = "";
         for (let i = 0; i < 6; i++) {
-          if (i > 0) shownAuthors += ','
-          shownAuthors += ' ' + authorArray[i]
+          if (i > 0) shownAuthors += ",";
+          shownAuthors += " " + authorArray[i];
         }
-        shownAuthors += ', et al'
-        return shownAuthors
+        shownAuthors += ", et al";
+        return shownAuthors;
       },
       getScreenWidth: function () {
         var width =
           window.innerWidth ||
           document.documentElement.clientWidth ||
-          document.body.clientWidth
+          document.body.clientWidth;
 
         /* var heigth =
         window.innerHeight ||
         document.documentElement.clientHeight ||
         document.body.clientHeight;
       Unused variable */
-        return width
+        return width;
       },
       checkIfMobile: function () {
-        let check = false
-        ;(function (a) {
+        let check = false;
+        (function (a) {
           if (
             /(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino/i.test(
               a
@@ -1114,58 +1114,58 @@
               a.substr(0, 4)
             )
           )
-            check = true
-        })(navigator.userAgent || navigator.vendor || window.opera)
-        return check
+            check = true;
+        })(navigator.userAgent || navigator.vendor || window.opera);
+        return check;
       },
       mobileResult: function () {
-        if (this.getDoiLink) return { 'flex-direction': 'row' }
-        else return ''
+        if (this.getDoiLink) return { "flex-direction": "row" };
+        else return "";
       },
       showArticleButtons: function () {
-        return this.showButtons
+        return this.showButtons;
       },
       usePubMed: function () {
-        if (this.id == this.pmid) return true
-        return false
+        if (this.id == this.pmid) return true;
+        return false;
       },
       getAbstractId: function () {
-        let divName = this.getAbstractDivName
-        return divName + '_' + this._uid
+        let divName = this.getAbstractDivName;
+        return divName + "_" + this._uid;
       },
       getHyperLink: function () {
-        return this.hyperLink
+        return this.hyperLink;
       },
       getAbstractDivName: function () {
-        return this.id != null ? 'abstract_' + this.id : 'custom'
+        return this.id != null ? "abstract_" + this.id : "custom";
       },
       getSource: function () {
-        var source = this.source || ''
-        var pubDate = this.pubDate || ''
-        var sourceDateSeperator = source && pubDate ? '. ' : ''
-        var volume = ';' + this.volume || ''
-        var issue = '(' + this.issue + ')' || ''
-        var pages = ':' + this.pages || ''
-        return source + sourceDateSeperator + pubDate + volume + issue + pages
+        var source = this.source || "";
+        var pubDate = this.pubDate || "";
+        var sourceDateSeperator = source && pubDate ? ". " : "";
+        var volume = ";" + this.volume || "";
+        var issue = "(" + this.issue + ")" || "";
+        var pages = ":" + this.pages || "";
+        return source + sourceDateSeperator + pubDate + volume + issue + pages;
       },
       getAbstract: function () {
-        var abstract = ''
+        var abstract = "";
 
         if (this.abstract) {
-          abstract = this.abstract
+          abstract = this.abstract;
         } else {
           for (var section in this.text) {
             var header =
-              section !== 'UNLABELLED' && section !== 'null'
+              section !== "UNLABELLED" && section !== "null"
                 ? section[0].toUpperCase() + section.slice(1).toLowerCase()
-                : 'Abstract'
-            var body = this.text[section]
+                : "Abstract";
+            var body = this.text[section];
 
-            abstract = abstract + '\n\n' + header + '\n' + body
+            abstract = abstract + "\n\n" + header + "\n" + body;
           }
         }
 
-        return abstract.trim()
+        return abstract.trim();
       },
       getArticle: function () {
         var article = JSON.parse(
@@ -1176,200 +1176,267 @@
             pmid: this.pmid,
             abstract: this.getAbstract,
           })
-        )
-        return article
+        );
+        return article;
       },
       isChecked() {
         if (this.modelValue instanceof Array) {
-          let self = this
+          let self = this;
           return this.modelValue.some(function (e) {
-            return e == self.value || e.uid == self.pmid
-          })
+            return e == self.value || e.uid == self.pmid;
+          });
         }
-        return this.modelValue
+        return this.modelValue;
       },
       // eslint-disable-next-line vue/no-async-in-computed-properties
       getArticlesPromise: async function () {
-        var articles = [this.getArticle]
+        var articles = [this.getArticle];
         // eslint-disable-next-line vue/no-async-in-computed-properties
-        return Promise.resolve(articles)
+        return Promise.resolve(articles);
       },
     },
     watch: {
       abstract: function () {
-        this.$emit('articleUpdated', this.getArticle)
+        this.$emit("articleUpdated", this.getArticle);
       },
       text: function () {
-        this.$emit('articleUpdated', this.getArticle)
+        this.$emit("articleUpdated", this.getArticle);
       },
       async unpaywallResponseLoaded(newVal) {
         if (newVal) {
-          const isLicenseAllowed = this.checkLicense()
+          const isLicenseAllowed = this.checkLicense();
           if (isLicenseAllowed) {
-            await this.checkRessource()
-            this.checkPubType()
+            await this.checkRessource();
+            this.checkPubType();
           }
         }
       },
     },
-    created: function () {
-      this.$parent.$on('abstractLoaded', this.setAbstract)
+    /**
+     * Lifecycle hook that is called after the instance has been created.
+     * Sets up event listeners and ensures that necessary third-party scripts
+     * (Dimension and Altmetric) are loaded into the document.
+     */
+    created() {
+      // Listen for the 'abstractLoaded' event from the parent component
+      this.$parent.$on("abstractLoaded", this.setAbstract);
 
-      var list = document.getElementsByTagName('script')
-      var j = list.length,
-        i = j
-      var altmetric = false,
-        dimension = false
-      while (i--) {
-        if (list[i].id === 'dimension') {
-          dimension = true
-          break
-        }
-      }
-      while (j--) {
-        if (list[j].id === 'altmetric') {
-          altmetric = true
-          break
-        }
-      }
-      var altmetricJsScript = list.namedItem('altmetric-embed-js')
-
-      // if we didn't already find it on the page, add it
-      if (!dimension) {
-        let script = document.createElement('script')
-        script.setAttribute('src', 'https://badge.dimensions.ai/badge.js')
-        script.setAttribute('id', 'dimension')
-        script.setAttribute('data-cookieconsent', 'statistics')
-        script.async = true
-        document.head.appendChild(script)
-        let link = document.createElement('link')
-        link.setAttribute('rel', 'stylesheet')
-        link.setAttribute('href', 'https://badge.dimensions.ai/badge.css')
-        document.head.appendChild(link)
-      } /**/
-      if (!altmetric) {
-        let script = document.createElement('script')
-        script.setAttribute('type', 'text/javascript')
-        script.setAttribute(
-          'src',
-          'https://d1bxh8uas1mnw7.cloudfront.net/assets/embed.js'
-        )
-        script.setAttribute('id', 'altmetric')
-        script.setAttribute('data-cookieconsent', 'statistics')
-        document.head.appendChild(script)
-      }
-      if (altmetricJsScript) {
-        altmetricJsScript.setAttribute('data-cookieconsent', 'statistics')
-      }
+      // Inject Dimension and Altmetric scripts if they are not already present
+      this.ensureThirdPartyScripts();
     },
     mounted: function () {
       // This is to ensure all badges to be loaded properly
       // given there are multiple occurrences of <specific-articles/>
 
-      this.self = this
+      this.self = this;
       if (this.id != null) {
-        this.abstractId = `abstract${this.id}`
+        this.abstractId = `abstract${this.id}`;
       } else {
-        this.abstractId = 'custom'
+        this.abstractId = "custom";
       }
-      this.checkPreload()
-      this.$emit('loadAbstract', this.id)
+      this.checkPreload();
+      this.$emit("loadAbstract", this.id);
 
       eventBus.$on(
-        'result-entry-show-abstract',
+        "result-entry-show-abstract",
         this.onEventBusShowAbstractEvent
-      )
+      );
     },
     beforeUpdate: function () {
-      this.checkPreload()
+      this.checkPreload();
     },
     beforeUnmount: function () {
       eventBus.$off(
-        'result-entry-show-abstract',
+        "result-entry-show-abstract",
         this.onEventBusShowAbstractEvent
-      )
-      this.$parent.$off('abstractLoadeds', this.setAbstract)
+      );
+      this.$parent.$off("abstractLoadeds", this.setAbstract);
     },
     methods: {
+      /**
+       * Ensures that the Dimension and Altmetric third-party scripts are loaded.
+       * If the scripts are not present, they are dynamically injected into the document.
+       */
+      ensureThirdPartyScripts() {
+        const scriptList = Array.from(document.getElementsByTagName("script"));
+
+        const isDimensionLoaded = scriptList.some(
+          (script) => script.id === "dimension"
+        );
+        const isAltmetricLoaded = scriptList.some(
+          (script) => script.id === "altmetric"
+        );
+
+        // Inject Dimension script and stylesheet if not loaded
+        if (!isDimensionLoaded) {
+          this.injectScript({
+            src: "https://badge.dimensions.ai/badge.js",
+            id: "dimension",
+            attributes: {
+              "data-cookieconsent": "statistics",
+              async: true,
+            },
+            onError: () => {
+              console.error("Failed to load Dimension script.");
+            },
+          });
+
+          this.injectStylesheet({
+            href: "https://badge.dimensions.ai/badge.css",
+          });
+        }
+
+        // Inject Altmetric script if not loaded
+        if (!isAltmetricLoaded) {
+          this.injectScript({
+            src: "https://d1bxh8uas1mnw7.cloudfront.net/assets/embed.js",
+            id: "altmetric",
+            type: "text/javascript",
+            attributes: {
+              "data-cookieconsent": "statistics",
+            },
+            onError: () => {
+              console.error("Failed to load Altmetric script.");
+            },
+          });
+        }
+
+        // Update the 'data-cookieconsent' attribute if 'altmetric-embed-js' script exists
+        const altmetricJsScript = document.getElementById("altmetric-embed-js");
+        if (altmetricJsScript) {
+          altmetricJsScript.setAttribute("data-cookieconsent", "statistics");
+        }
+      },
+
+      /**
+       * Dynamically injects a script into the document head.
+       *
+       * @param {Object} options - Configuration options for the script.
+       * @param {string} options.src - The source URL of the script.
+       * @param {string} [options.id] - The ID to assign to the script element.
+       * @param {string} [options.type] - The type attribute of the script.
+       * @param {Object} [options.attributes] - Additional attributes to set on the script.
+       * @param {Function} [options.onError] - Callback function to handle load errors.
+       */
+      injectScript({
+        src,
+        id,
+        type = "text/javascript",
+        attributes = {},
+        onError,
+      }) {
+        const script = document.createElement("script");
+        script.src = src;
+        script.type = type;
+
+        if (id) {
+          script.id = id;
+        }
+
+        // Set additional attributes
+        Object.entries(attributes).forEach(([key, value]) => {
+          script.setAttribute(key, value);
+        });
+
+        // Attach error handler if provided
+        if (onError && typeof onError === "function") {
+          script.addEventListener("error", onError);
+        }
+
+        document.head.appendChild(script);
+      },
+
+      /**
+       * Dynamically injects a stylesheet into the document head.
+       *
+       * @param {Object} options - Configuration options for the stylesheet.
+       * @param {string} options.href - The href URL of the stylesheet.
+       */
+      injectStylesheet({ href }) {
+        const link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.href = href;
+        document.head.appendChild(link);
+      },
       toggleTranslation() {
-        this.translationShowing = !this.translationShowing
+        this.translationShowing = !this.translationShowing;
       },
       toggleExtendedPrompts() {
-        this.showExtendedPrompts = !this.showExtendedPrompts
+        this.showExtendedPrompts = !this.showExtendedPrompts;
       },
       /**
        * Check if pubType contains editorial and therefore is not a full article
        */
       checkPubType() {
         if (this.pubType === undefined) {
-          console.error('Pubtype undefined, NLM call might have failed')
-          return false
+          console.error("Pubtype undefined, NLM call might have failed");
+          return false;
         }
-        this.isPubTypeAllowed = !this.pubType.includes('Editorial')
-        console.log('pubtype: ', this.pubType)
-        console.log('isPubTypeAllowed: ', this.isPubTypeAllowed)
-        return this.isPubTypeAllowed
+        this.isPubTypeAllowed = !this.pubType.includes("Editorial");
+        console.log("pubtype: ", this.pubType);
+        console.log("isPubTypeAllowed: ", this.isPubTypeAllowed);
+        return this.isPubTypeAllowed;
       },
       /**
        * Check if license from unpaywall is allowed for summarization
        * The array contains the licenses that are allowed - add or remove licenses if needed
        */
       checkLicense() {
-        const license = this.unpaywallResponse?.best_oa_location?.license
+        const license = this.unpaywallResponse?.best_oa_location?.license;
         this.isLicenseAllowed = [
-          'cc-by',
-          'cc-by-sa',
-          'cc-by-nc',
-          'cc-by-nc-sa',
-          'cc0',
-          'public-domain',
-        ].includes(license)
-        console.log('license: ', this.license)
-        console.log('isLicenseAllowed: ', this.isLicenseAllowed)
-        return this.isLicenseAllowed
+          "cc-by",
+          "cc-by-sa",
+          "cc-by-nc",
+          "cc-by-nc-sa",
+          "cc0",
+          "public-domain",
+        ].includes(license);
+        console.log("license: ", this.license);
+        console.log("isLicenseAllowed: ", this.isLicenseAllowed);
+        return this.isLicenseAllowed;
       },
       /**
        * Used to check if a pdf resource will allow the azure function to download the resource
        * Returns true if not forbidden, false if forbidden
        */
       async checkRessource() {
-        const endpoint = '/api/CheckIfResourceIsForbidden'
-        const openAiServiceUrl = `${this.appSettings.openAi.baseUrl}${endpoint}`
+        const endpoint = "/api/CheckIfResourceIsForbidden";
+        const openAiServiceUrl = `${this.appSettings.openAi.baseUrl}${endpoint}`;
         const options = {
-          method: 'POST',
+          method: "POST",
           body: JSON.stringify({
             url: this.defaultUrl,
           }),
-        }
+        };
 
         try {
-          const pdfresponse = await fetch(openAiServiceUrl, options)
-          const isAllowed = pdfresponse.status !== 403
-          this.isResourceAllowed = isAllowed
-          console.log('isResourceAllowed:', this.isResourceAllowed)
-          return isAllowed
+          const pdfresponse = await fetch(openAiServiceUrl, options);
+          const isAllowed = pdfresponse.status !== 403;
+          this.isResourceAllowed = isAllowed;
+          console.log("isResourceAllowed:", this.isResourceAllowed);
+          return isAllowed;
         } catch (error) {
-          console.error('Error checking resource:', error)
+          console.error("Error checking resource:", error);
           // Default to false in case of error
-          this.isResourceAllowed = false
-          return false
+          this.isResourceAllowed = false;
+          return false;
         }
       },
       setPdfUrl(url) {
-        this.pdfUrl = url
+        this.pdfUrl = url;
       },
       setHtmlUrl(url) {
-        this.htmlUrl = url
+        this.htmlUrl = url;
       },
       setAbstract() {
-        console.log(`my id is: ${this.id}`)
+        console.log(`my id is: ${this.id}`);
       },
       //This is needed because AI-summaries expects a function to get the article and it gets stuck in a loop if you pass the articles directly
       getArticleAsArray: function () {
-        return [this.getArticle]
+        return [this.getArticle];
       },
       showAbstract: async function (ignoreToggle = false) {
-        this.showingAbstract = ignoreToggle === true || !this.showingAbstract
+        this.showingAbstract = ignoreToggle === true || !this.showingAbstract;
 
         //scroll up to header if closing
         if (!this.showingAbstract && this.abstractLoaded && this.id) {
@@ -1378,9 +1445,9 @@
           document
             .getElementById(this.getAbstractId)
             .parentElement.scrollIntoView({
-              block: 'nearest',
-              behavior: 'smooth',
-            })
+              block: "nearest",
+              behavior: "smooth",
+            });
         } else {
           if (this.getAbstractId) {
             // Get the div containing the abstract and then select
@@ -1388,189 +1455,189 @@
             document
               .getElementById(this.getAbstractId)
               .parentElement.scrollIntoView({
-                block: 'start',
-                behavior: 'smooth',
-              })
+                block: "start",
+                behavior: "smooth",
+              });
           }
         }
 
         if (!this.unpaywallResponseLoaded) {
-          await this.loadUnpaywallApiResponse()
+          await this.loadUnpaywallApiResponse();
         }
       },
       gotosite: function (url) {
-        window.open(url, '_blank')
+        window.open(url, "_blank");
       },
       collapseSection: function (element) {
         // get the height of the element's inner content, regardless of its actual size
         //var sectionHeight = element.scrollHeight;
 
         // temporarily disable all css transitions
-        element.style.height = 0 + 'px'
+        element.style.height = 0 + "px";
 
         // on the next frame (as soon as the previous style change has taken effect),
         // explicitly set the element's height to its current pixel height, so we
         // aren't transitioning out of 'auto'
-        element.addEventListener('transitionend', function () {
+        element.addEventListener("transitionend", function () {
           // remove this event listener so it only gets triggered once
-          element.removeEventListener('transitionend', arguments.callee)
+          element.removeEventListener("transitionend", arguments.callee);
 
           // remove "height" from the element's inline styles, so it can return to its initial value
-          element.style.height = null
-        })
+          element.style.height = null;
+        });
 
         // mark the section as "currently collapsed"
-        element.setAttribute('data-collapsed', 'true')
+        element.setAttribute("data-collapsed", "true");
       },
       expandSection: function (element) {
         // get the height of the element's inner content, regardless of its actual size
-        var sectionHeight = element.scrollHeight
+        var sectionHeight = element.scrollHeight;
 
         // have the element transition to the height of its inner content
-        element.style.height = sectionHeight + 'px'
+        element.style.height = sectionHeight + "px";
 
         // when the next css transition finishes (which should be the one we just triggered)
-        element.addEventListener('transitionend', function () {
+        element.addEventListener("transitionend", function () {
           // remove this event listener so it only gets triggered once
-          element.removeEventListener('transitionend', arguments.callee)
+          element.removeEventListener("transitionend", arguments.callee);
 
           // remove "height" from the element's inline styles, so it can return to its initial value
-          element.style.height = null
-        })
+          element.style.height = null;
+        });
 
         // mark the section as "currently not collapsed"
-        element.setAttribute('data-collapsed', 'false')
+        element.setAttribute("data-collapsed", "false");
       },
       handleClickEvent: function () {
         let eventClass = this.abstractLoaded
-          ? 'qpm_shadow'
-          : 'qpm_abstractContainer'
-        var section = document.querySelector(eventClass)
-        var isCollapsed = section.getAttribute('data-collapsed') === 'true'
+          ? "qpm_shadow"
+          : "qpm_abstractContainer";
+        var section = document.querySelector(eventClass);
+        var isCollapsed = section.getAttribute("data-collapsed") === "true";
 
         if (isCollapsed) {
-          this.expandSection(section)
-          section.setAttribute('data-collapsed', 'false')
+          this.expandSection(section);
+          section.setAttribute("data-collapsed", "false");
         } else {
-          this.collapseSection(section)
+          this.collapseSection(section);
         }
       },
       getString: function (string) {
-        const lg = this.language
-        let constant = messages[string][lg]
-        return constant != undefined ? constant : messages[string]['dk']
+        const lg = this.language;
+        let constant = messages[string][lg];
+        return constant != undefined ? constant : messages[string]["dk"];
       },
       getTranslation: function (value) {
-        const lg = this.language
-        let constant = value.translations[lg]
-        return constant != undefined ? constant : value.translations['dk']
+        const lg = this.language;
+        let constant = value.translations[lg];
+        return constant != undefined ? constant : value.translations["dk"];
       },
       customNameLabel: function (option) {
-        if (!option.name && !option.groupname) return
-        let constant
+        if (!option.name && !option.groupname) return;
+        let constant;
         if (option.id) {
-          const lg = this.language
+          const lg = this.language;
           constant =
             option.translations[lg] != undefined
               ? option.translations[lg]
-              : option.translations['dk']
+              : option.translations["dk"];
         } else {
-          constant = option.name
+          constant = option.name;
         }
-        return constant
+        return constant;
       },
       customGroupLabel: function (option) {
-        if (!option) return
-        const lg = this.language
-        let constant = option.translations[lg]
-        return constant != undefined ? constant : option.translations['dk']
+        if (!option) return;
+        const lg = this.language;
+        let constant = option.translations[lg];
+        return constant != undefined ? constant : option.translations["dk"];
       },
       loadUnpaywallApiResponse: async function () {
-        if (!this.doi) return undefined
+        if (!this.doi) return undefined;
 
-        let self = this
+        let self = this;
         let url =
-          'https://api.unpaywall.org/v2/' +
+          "https://api.unpaywall.org/v2/" +
           this.doi +
-          '?email=admin@videncenterfordiabetes.dk'
-        let timeout = 15 * 1000 //15 second timeout
+          "?email=admin@videncenterfordiabetes.dk";
+        let timeout = 15 * 1000; //15 second timeout
         await axios
           .get(url, { timeout: timeout })
           .then(function (resp) {
-            self.unpaywallResponse = resp.data
-            self.unpaywallResponseLoaded = true
+            self.unpaywallResponse = resp.data;
+            self.unpaywallResponseLoaded = true;
             if (resp.data?.best_oa_location?.url) {
-              self.defaultUrl = resp.data.best_oa_location.url
-              self.pdfUrl = resp.data.best_oa_location.url_for_pdf
-              self.htmlUrl = resp.data.best_oa_location.url_for_landing_page
-              self.license = resp.data.best_oa_location.license
+              self.defaultUrl = resp.data.best_oa_location.url;
+              self.pdfUrl = resp.data.best_oa_location.url_for_pdf;
+              self.htmlUrl = resp.data.best_oa_location.url_for_landing_page;
+              self.license = resp.data.best_oa_location.license;
             }
           })
           .catch(function (err) {
-            self.unpaywallResponseLoaded = true
-            console.debug(err)
-          })
+            self.unpaywallResponseLoaded = true;
+            console.debug(err);
+          });
       },
       getAbstractSummaryPrompts: function () {
-        return abstractSummaryPrompts
+        return abstractSummaryPrompts;
       },
       getPdfQuestionPrompts: function () {
-        let pdfPrompts = []
+        let pdfPrompts = [];
         for (let i = 0; i < this.pdfQuestions.length; i++) {
-          let prompt = JSON.parse(JSON.stringify(summarizeArticlePrompt))
-          prompt.prompt.dk += this.pdfQuestions[i]
-          prompt.name = 'pdf' + i
-          pdfPrompts.push(prompt)
+          let prompt = JSON.parse(JSON.stringify(summarizeArticlePrompt));
+          prompt.prompt.dk += this.pdfQuestions[i];
+          prompt.name = "pdf" + i;
+          pdfPrompts.push(prompt);
         }
-        return pdfPrompts
+        return pdfPrompts;
       },
       getSummarizeArticlePrompt: function () {
-        return summarizeArticlePrompt
+        return summarizeArticlePrompt;
       },
       getAllPrompts: function () {
         let temp = this.getAbstractSummaryPrompts().concat(
           this.getPdfQuestionPrompts()
-        )
-        return temp
+        );
+        return temp;
       },
       updateInput: function (event) {
-        let isChecked = event.target.checked
-        this.$emit('change', this.value, isChecked)
+        let isChecked = event.target.checked;
+        this.$emit("change", this.value, isChecked);
       },
       clickAcceptAi: function (initialTab = null) {
-        this.hasAcceptedAi = true
-        this.getArticlesPromise // Start loading article abstracts now if not already loaded
-        this.initialAiTab = initialTab
-        console.log(this.initialAiTab.name)
+        this.hasAcceptedAi = true;
+        this.getArticlesPromise; // Start loading article abstracts now if not already loaded
+        this.initialAiTab = initialTab;
+        console.log(this.initialAiTab.name);
       },
       clickAcceptAiNoAbstract: function (prompt) {
-        this.hasAcceptedAi = true
+        this.hasAcceptedAi = true;
         this.$refs.SummarizeArticleNoAbstractComponent.$emit(
-          'SummarizeArticleNoAbstract',
+          "SummarizeArticleNoAbstract",
           prompt
-        )
-        console.log('emitting SummarizeArticleNoAbstract', prompt)
-        console.log('Prompt name: ', prompt.name)
+        );
+        console.log("emitting SummarizeArticleNoAbstract", prompt);
+        console.log("Prompt name: ", prompt.name);
       },
       closeSummaries: function () {
-        this.hasAcceptedAi = false
+        this.hasAcceptedAi = false;
       },
       checkPreload: function () {
         if (!this.abstractLoaded && this.preLoadAbstract && !this.loading) {
-          let showSpinner = false
-          this.loadAbstract(showSpinner)
+          let showSpinner = false;
+          this.loadAbstract(showSpinner);
         }
       },
       onEventBusShowAbstractEvent: function (args) {
-        if (args.$el != this.$el) return
-        this.showAbstract(true)
+        if (args.$el != this.$el) return;
+        this.showAbstract(true);
       },
       onAiSummariesClickRetry: function () {
-        this.$el.scrollIntoView({ behavior: 'smooth' })
+        this.$el.scrollIntoView({ behavior: "smooth" });
       },
       changeOnEnter: function (event) {
-        event.target.click()
+        event.target.click();
       },
     },
-  }
+  };
 </script>

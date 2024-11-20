@@ -670,7 +670,10 @@
         });
       },
     },
-    mounted: function () {
+    beforeMount: function () {
+      window.removeEventListener("resize", this.updateSubjectDropdownWidth);
+    },
+    mounted: async function () {
       this.updatePlaceholders();
       //Spørg Adam
       this.advanced = !this.advanced;
@@ -682,314 +685,309 @@
       this.advanced = !this.advanced;
       this.advancedClick();
       this.searchPreselectedPmidai();
-      this.search();
+      await this.search();
     },
     created: function () {
       this.updatePlaceholder();
     },
-    beforeMount: function () {
-      window.removeEventListener("resize", this.updateSubjectDropdownWidth);
-    },
     methods: {
-      advancedClick: function (skip) {
+      advancedClick(skip = false) {
+        // Toggle the 'advanced' mode
         this.advanced = !this.advanced;
+
+        // Reset options
         this.subjectOptions = [];
         this.filterOptions = [];
-        const self = this;
+
+        // Reset filters if necessary
         if (!this.alwaysShowFilter) {
           this.filterData = {};
           this.filters = [];
         }
 
-        let filterCopy = JSON.parse(JSON.stringify(filtrer));
-        for (let i = 0; i < filterCopy.length; i++) {
+        // Prepare options
+        this.prepareFilterOptions();
+        this.prepareSubjectOptions();
+
+        // Reset subject scopes in non-advanced mode
+        if (!this.advanced) {
+          this.resetSubjectScopes();
+        }
+
+        // Update filters
+        this.updateFiltersBasedOnSelection();
+
+        // Clean filter data
+        this.cleanFilterData();
+
+        // Reset filters if 'filterData' is empty in advanced mode
+        if (this.advanced && Object.keys(this.filterData).length === 0) {
+          this.filters = [];
+        }
+
+        // Update URL
+        if (!skip) this.setUrl();
+
+        // Set 'showFilter' flag
+        this.showFilter = this.advanced && this.filters.length > 0;
+      },
+      prepareFilterOptions() {
+        const filterCopy = JSON.parse(JSON.stringify(filtrer));
+        filterCopy.forEach((filterItem) => {
           if (!this.advanced) {
-            for (let j = 0; j < filterCopy[i].choices.length; j++) {
-              filterCopy[i].choices[j].buttons = false;
+            filterItem.choices.forEach((choice) => {
+              choice.buttons = false;
               if (
                 (!this.isUrlParsed ||
-                  filterCopy[i].choices[j].simpleSearch ||
-                  filterCopy[i].choices[j].standardSimple) &&
-                !this.filterOptions.includes(filterCopy[i])
-              )
-                this.filterOptions.push(filterCopy[i]);
-            }
-          } else {
-            this.filterOptions.push(filterCopy[i]);
-          }
-        }
-
-        let subjectCopy = JSON.parse(JSON.stringify(topics));
-        for (let i = 0; i < subjectCopy.length; i++) {
-          if (!this.advanced) {
-            for (let j = 0; j < subjectCopy[i].groups.length; j++) {
-              subjectCopy[i].groups[j].buttons = false;
-            }
-          }
-
-          this.subjectOptions.push(subjectCopy[i]);
-        }
-
-        //reset selected subjects's scope to normal
-        if (!this.advanced) {
-          for (let i = 0; i < this.subjects.length; i++) {
-            for (let j = 0; j < this.subjects[i].length; j++) {
-              this.subjects[i][j].scope = "normal";
-            }
-          }
-        }
-
-        let filters = [];
-        for (let i = 0; i < self.filters.length; i++) {
-          for (let j = 0; j < self.filterOptions.length; j++) {
-            if (self.filterOptions[j].name == self.filters[i].name) {
-              if (self.isUrlParsed && !self.advanced) {
-                for (let k = 0; k < self.filters[i].choices.length; k++) {
-                  if (
-                    (self.filters[i].choices[k].simpleSearch ||
-                      self.filters[i].choices[k].standardSimple) &&
-                    self.filterData[self.filters[i].id] &&
-                    !filters.includes(self.filterOptions[j])
-                  ) {
-                    filters.push(self.filterOptions[j]);
-                  }
-                }
-              } else {
-                if (self.filterData[self.filters[i].id])
-                  filters.push(self.filterOptions[j]);
-                break;
+                  choice.simpleSearch ||
+                  choice.standardSimple) &&
+                !this.filterOptions.includes(filterItem)
+              ) {
+                this.filterOptions.push(filterItem);
               }
-            }
+            });
+          } else {
+            this.filterOptions.push(filterItem);
           }
-        }
-        this.filters = filters;
-        let filterDataCopy = JSON.parse(JSON.stringify(this.filterData));
-        Object.keys(filterDataCopy).forEach(function (key) {
-          let value = filterDataCopy[key];
-          for (let i = 0; i < value.length; i++) {
-            if (!self.advanced) value[i].scope = "normal";
+        });
+      },
+      prepareSubjectOptions() {
+        const subjectCopy = JSON.parse(JSON.stringify(topics));
+        subjectCopy.forEach((subjectItem) => {
+          if (!this.advanced) {
+            subjectItem.groups.forEach((group) => {
+              group.buttons = false;
+            });
+          }
+          this.subjectOptions.push(subjectItem);
+        });
+      },
+      resetSubjectScopes() {
+        this.subjects.forEach((subjectGroup) => {
+          subjectGroup.forEach((subject) => {
+            subject.scope = "normal";
+          });
+        });
+      },
+      updateFiltersBasedOnSelection() {
+        const updatedFilters = [];
+        this.filters.forEach((filter) => {
+          const matchingFilter = this.filterOptions.find(
+            (option) => option.name === filter.name
+          );
+          if (matchingFilter) {
+            const shouldIncludeFilter =
+              this.isUrlParsed && !this.advanced
+                ? filter.choices.some(
+                    (choice) =>
+                      (choice.simpleSearch || choice.standardSimple) &&
+                      this.filterData[filter.id]
+                  )
+                : this.filterData[filter.id];
             if (
-              self.isUrlParsed &&
-              !self.advanced &&
-              !value[i].simpleSearch &&
-              !value[i].standardSimple
+              shouldIncludeFilter &&
+              !updatedFilters.includes(matchingFilter)
             ) {
-              value.splice(i, 1);
+              updatedFilters.push(matchingFilter);
             }
           }
-          if (value.length == 0) delete filterDataCopy[key];
+        });
+        this.filters = updatedFilters;
+      },
+      cleanFilterData() {
+        const filterDataCopy = { ...this.filterData };
+        Object.keys(filterDataCopy).forEach((key) => {
+          let values = filterDataCopy[key];
+          values = values.filter((value) => {
+            if (!this.advanced) value.scope = "normal";
+            return !(
+              this.isUrlParsed &&
+              !this.advanced &&
+              !value.simpleSearch &&
+              !value.standardSimple
+            );
+          });
+          if (values.length > 0) {
+            filterDataCopy[key] = values;
+          } else {
+            delete filterDataCopy[key];
+          }
         });
         this.filterData = filterDataCopy;
-        if (this.advanced && this.filterData == {})
-          this.filters = JSON.parse(JSON.stringify([]));
-        if (!skip) this.setUrl();
-        this.showFilter = this.advanced && this.filters;
       },
-      parseUrl: function () {
+      /**
+       * Parses the current URL's query parameters and updates the component's state accordingly.
+       * Handles subjects, filters, advanced mode, sorting, collapsed state, page size,
+       * preselected PMIDs, and scroll position.
+       */
+      parseUrl() {
+        // Initialize subjects
         this.subjects = [];
-        let url = window.location.href;
-        let parser = document.createElement("a");
-        parser.href = url;
-        let query = parser.search.substring(1);
-        let vars = query.split("&");
 
-        if (!query) {
+        // Parse the current URL
+        const urlParams = new URLSearchParams(window.location.search);
+
+        // Check if there are query parameters
+        if (![...urlParams.keys()].length) {
           this.subjects = [[]];
           return;
         }
 
-        for (let i = 0; i < vars.length; i++) {
-          let pair = vars[i].split("=");
-          let key = decodeURIComponent(pair[0]);
-          let value = decodeURIComponent(pair[1]).split(";;");
-          if (key == "subject") {
-            let selected = [];
-            // All values from the URI in 1 subject field
-            for (let j = 0; j < value.length; j++) {
-              let hashtagIndex = value[j].indexOf("#");
-              let id = value[j].substring(0, hashtagIndex);
-              let scope = value[j].substring(hashtagIndex + 1, value[j].length);
-              let isId = !(id.startsWith("{{") && id.endsWith("}}"));
+        // Process each parameter
+        urlParams.forEach((value, key) => {
+          // Split multiple values separated by ';;'
+          const values = value.split(";;");
 
-              if (!isId) {
-                var name = id.slice(2, -3);
-                var translated = id.slice(-3, -2);
-                if (Number(translated)) {
-                  const tag = {
-                    name: name,
-                    searchStrings: { normal: [name] },
-                    preString:
-                      this.getString("manualInputTermTranslated") + ": ",
-                    scope: "normal",
-                    isCustom: true,
-                    tooltip: customInputTagTooltip,
-                  };
-                  selected.push(tag);
-                  continue;
-                } else {
-                  const tag = {
-                    name: name,
-                    searchStrings: { normal: [name] },
-                    preString: this.getString("manualInputTerm") + ": ",
-                    scope: "normal",
-                    isCustom: true,
-                    tooltip: customInputTagTooltip,
-                  };
-                  selected.push(tag);
-                  continue;
-                }
-              }
+          switch (key) {
+            case "subject":
+              this.processSubjects(values);
+              break;
 
-              for (let k = 0; k < this.subjectOptions.length; k++) {
-                for (let l = 0; l < this.subjectOptions[k].groups.length; l++) {
-                  if (this.subjectOptions[k].groups[l].id == id) {
-                    let tmp = JSON.parse(
-                      JSON.stringify(this.subjectOptions[k].groups[l])
-                    );
-                    tmp.scope = scopeIds[scope];
-                    let lg = this.language;
-                    if (tmp.translations[lg].startsWith("-")) {
-                      tmp.translations[lg] = tmp.translations[lg].slice(1);
-                    }
-                    selected.push(tmp);
-                    // found = true; Unused variable
-                  }
-                }
-              }
-            }
-            if (selected.length > 0) this.subjects.push(selected);
-          } else if (key == "advanced") {
-            this.advanced = value[0] == "true";
-          } else if (key == "sort") {
-            for (let j = 0; j < order.length; j++) {
-              if (order[j].method == value[0]) {
-                this.sort = order[j];
-              }
-            }
-          } else if (key == "collapsed") {
-            this.isCollapsed = value[0] == "true";
-            this.toggleCollapsedSearch();
-          } else if (key == "scrollto") {
-            // Added by Ole
-            this.scrollToID = "#" + value[0]; // Added by Ole
-          } else if (key == "pageSize") {
-            this.pageSize = Number.parseInt(value[0]);
-          } else if (key == "pmidai") {
-            this.preselectedPmidai = value ?? [];
-          } else {
-            //add filters
-            let groupId = "";
-            for (let k = 0; k < this.filterOptions.length; k++) {
-              if (this.filterOptions[k].id == key) {
-                //set filter
-                groupId = this.filterOptions[k].id;
-                let filter = JSON.parse(JSON.stringify(this.filterOptions[k]));
-                this.filters.push(filter);
-              }
-            }
-            if (this.filters.length > 0) this.showFilter = true;
+            case "advanced":
+              this.advanced = value === "true";
+              break;
 
-            //Find entries in filters
-            for (let j = 0; j < value.length; j++) {
-              let hashtagIndex = value[j].indexOf("#");
-              let selected = [];
-              // Skip values when they fail to define a scope.
-              // Most often this happens when a null or undefined value is encountered.
-              if (hashtagIndex < 0) {
-                console.warn(
-                  "parseUrl: Skipped value because no hashTagIndex was found for value[" +
-                    j +
-                    "]:\n",
-                  value[j]
-                );
-                continue;
-              }
+            case "sort":
+              this.sort = order.find((o) => o.method === value) || this.sort;
+              break;
 
-              let id = value[j].substring(0, hashtagIndex);
-              let scope = value[j].substring(hashtagIndex + 1, value[j].length);
-              //Find filter
-              //let filterFound = false; //name=S101 Unused variable
-              let group = Number.parseInt(id[1]);
-              if (group <= 0) group = 1;
-              //let elem = Number.parseInt(id.slice(-2)); Unused variable
-              let isId = !(id.startsWith("{{") && id.endsWith("}}")); // Check if this is a filter id or if it is a
+            case "collapsed":
+              this.isCollapsed = value === "true";
+              this.toggleCollapsedSearch();
+              break;
 
-              if (!isId) {
-                name = id.slice(2, -3);
-                translated = id.slice(-3, -2);
-                if (Number(translated)) {
-                  const tag = {
-                    name: name,
-                    searchStrings: { normal: [name] },
-                    preString:
-                      this.getString("manualInputTermTranslated") + ": ",
-                    scope: "normal",
-                    isCustom: true,
-                    tooltip: customInputTagTooltip,
-                  };
-                  selected.push(tag);
-                  continue;
-                } else {
-                  const tag = {
-                    name: name,
-                    searchStrings: { normal: [name] },
-                    preString: this.getString("manualInputTerm") + ": ",
-                    scope: "normal",
-                    isCustom: true,
-                    tooltip: customInputTagTooltip,
-                  };
-                  selected.push(tag);
-                  continue;
-                }
-              }
-              let tmp;
-              try {
-                var groupIndex = parseInt(group) - 1;
-                let choice = this.filterOptions[groupIndex].choices.find(
-                  function (e) {
-                    return e.id && e.id === id;
-                  }
-                );
+            case "scrollto":
+              this.scrollToID = `#${value}`;
+              break;
 
-                if (choice != null) {
-                  tmp = JSON.parse(JSON.stringify(choice));
-                } else {
-                  tmp = null;
-                }
-              } catch (error) {
-                console.warn("parseUrl: Couldn't create tmp. Reason:\n", error);
-                tmp = null;
-              }
+            case "pageSize":
+              this.pageSize = parseInt(value, 10);
+              break;
 
-              for (let k = 0; k < this.filterOptions.length; k++) {
-                for (let l = 0; l < this.filterOptions[k].choices.length; l++) {
-                  var choice = this.filterOptions[k].choices[l];
-                  if (JSON.stringify(choice.id) == JSON.stringify(id)) {
-                    let tmp = JSON.parse(JSON.stringify(choice));
-                    if (this.isUrlParsed && !this.advanced && !tmp.simpleSearch)
-                      continue;
-                    tmp.scope = scopeIds[scope];
-                    //let found = true; Unused variable
-                  }
-                }
-              }
-              if (tmp) {
-                if (this.isUrlParsed && !this.advanced && !tmp.simpleSearch)
-                  continue;
-                tmp.scope = scopeIds[scope];
-                //not already added, is empty and should be initialized
-                if (!this.filterData[groupId]) {
-                  this.filterData[groupId] = [];
-                }
-                this.filterData[groupId].push(tmp);
-                //let filterFound = true; Unused variable
-              }
-            }
+            case "pmidai":
+              this.preselectedPmidai = values;
+              break;
+
+            default:
+              this.processFilter(key, values);
+              break;
           }
-        }
-        if (this.subjects.length == 0) {
+        });
+
+        // Ensure subjects is not empty
+        if (this.subjects.length === 0) {
           this.subjects = [[]];
         }
+      },
+      /**
+       * Processes the 'subject' parameters from the URL and populates the subjects array.
+       *
+       * @param {string[]} values - An array of subject values extracted from the URL.
+       */
+      processSubjects(values) {
+        const selected = [];
+
+        values.forEach((val) => {
+          const [id, scope] = val.split("#");
+          const isCustomInput = id.startsWith("{{") && id.endsWith("}}");
+
+          if (isCustomInput) {
+            const name = id.slice(2, -2);
+            const isTranslated = !isNaN(parseInt(name.slice(-1), 10));
+            const tag = {
+              name: name,
+              searchStrings: { normal: [name] },
+              preString: isTranslated
+                ? `${this.getString("manualInputTermTranslated")}: `
+                : `${this.getString("manualInputTerm")}: `,
+              scope: "normal",
+              isCustom: true,
+              tooltip: customInputTagTooltip,
+            };
+            selected.push(tag);
+            return;
+          }
+
+          // Find the subject in subjectOptions
+          this.subjectOptions.forEach((subjectOption) => {
+            subjectOption.groups.forEach((group) => {
+              if (group.id === id) {
+                const tmp = { ...group, scope: scopeIds[scope] };
+                const lg = this.language;
+                if (tmp.translations[lg]?.startsWith("-")) {
+                  tmp.translations[lg] = tmp.translations[lg].slice(1);
+                }
+                selected.push(tmp);
+              }
+            });
+          });
+        });
+
+        if (selected.length > 0) {
+          this.subjects.push(selected);
+        }
+      },
+      /**
+       * Processes filter parameters from the URL and updates the filterData object.
+       *
+       * @param {string} key - The filter group ID extracted from the URL parameter key.
+       * @param {string[]} values - An array of filter values extracted from the URL.
+       */
+      processFilter(key, values) {
+        // Find the filter group
+        const filterGroup = this.filterOptions.find(
+          (filter) => filter.id === key
+        );
+        if (!filterGroup) return;
+
+        if (!this.filters.includes(filterGroup)) {
+          this.filters.push({ ...filterGroup });
+          this.showFilter = true;
+        }
+
+        values.forEach((val) => {
+          const [id, scope] = val.split("#");
+          if (!scope) {
+            console.warn(`parseUrl: Missing scope in value "${val}"`);
+            return;
+          }
+
+          const isCustomInput = id.startsWith("{{") && id.endsWith("}}");
+          const groupId = filterGroup.id;
+
+          if (isCustomInput) {
+            const name = id.slice(2, -2);
+            const isTranslated = !isNaN(parseInt(name.slice(-1), 10));
+            const tag = {
+              name: name,
+              searchStrings: { normal: [name] },
+              preString: isTranslated
+                ? `${this.getString("manualInputTermTranslated")}: `
+                : `${this.getString("manualInputTerm")}: `,
+              scope: "normal",
+              isCustom: true,
+              tooltip: customInputTagTooltip,
+            };
+            if (!this.filterData[groupId]) this.filterData[groupId] = [];
+            this.filterData[groupId].push(tag);
+            return;
+          }
+
+          // Find the filter choice
+          const choice = filterGroup.choices.find((item) => item.id === id);
+          if (!choice) {
+            console.warn(`parseUrl: Choice with id "${id}" not found.`);
+            return;
+          }
+
+          if (this.isUrlParsed && !this.advanced && !choice.simpleSearch)
+            return;
+
+          const tmp = { ...choice, scope: scopeIds[scope] };
+
+          if (!this.filterData[groupId]) this.filterData[groupId] = [];
+          this.filterData[groupId].push(tmp);
+        });
       },
       setUrl: function () {
         if (history.replaceState) {
@@ -999,111 +997,119 @@
           this.oldState = urlLink;
         }
       },
-      getUrl: function () {
-        var origin = "";
-        if (window.location.origin && window.location.origin != "null") {
-          origin = window.location.origin;
-        }
+      /**
+       * Constructs the full URL based on the current application state.
+       * Includes parameters for subjects, filters, advanced mode, sorting,
+       * collapsed state, page size, preselected PMIDs, and scroll position.
+       *
+       * @returns {string} The constructed URL reflecting the current state.
+       */
+      getUrl() {
+        const origin =
+          window.location.origin && window.location.origin !== "null"
+            ? window.location.origin
+            : "";
 
-        let baseUrl = origin + window.location.pathname;
+        const baseUrl = `${origin}${window.location.pathname}`;
+
+        // If there are no subjects selected, return the base URL without parameters
 
         if (!this.hasSubjects) {
           return baseUrl;
         }
-        let subjectsStr = "";
-        let notEmptySubjects = 0;
-        for (let i = 0; i < this.subjects.length; i++) {
-          if (this.subjects[i].length == 0) {
-            continue;
-          }
-          if (notEmptySubjects > 0) {
-            subjectsStr += "&";
-          }
-          let subject = "subject=";
-          for (let j = 0; j < this.subjects[i].length; j++) {
-            let scope =
-              Object.keys(scopeIds)[Object.values(scopeIds).indexOf("normal")];
-            if (this.advanced) {
-              scope =
-                Object.keys(scopeIds)[
-                  Object.values(scopeIds).indexOf(this.subjects[i][j].scope)
-                ];
-            }
-            let tmp = this.subjects[i][j].id;
-            if (tmp)
-              subject += encodeURIComponent(
-                this.subjects[i][j].id + "#" + scope
-              );
-            //Custom tag is surrounded by "{{ }}" to distinguish it
-            // the 1 and 0 is used to distinguish between ai translated and non ai translated searches
-            else if (
-              this.subjects[i][j].isCustom &&
-              this.subjects[i][j].isTranslated
-            )
-              subject += encodeURIComponent(
-                "{{" + this.subjects[i][j].name + "1}}#" + scope
-              );
-            else
-              subject += encodeURIComponent(
-                "{{" + this.subjects[i][j].name + "0}}#" + scope
-              );
 
-            if (j < this.subjects[i].length - 1) {
-              subject += ";;";
-            }
-          }
-          subjectsStr += subject;
-          notEmptySubjects++;
-        }
-        let filterStr = "";
-        if (this.advanced || this.$alwaysShowFilter) {
-          const self = this;
-          Object.keys(self.filterData).forEach(function (key) {
-            let value = self.filterData[key];
-            if (value.length == 0) {
-              return;
-            }
-            filterStr += "&" + encodeURIComponent(key) + "=";
-            for (let i = 0; i < value.length; i++) {
-              var valueUrlId = value[i].isCustom
-                ? "{{" + value[i].name + "}}"
-                : value[i].id;
-              filterStr += encodeURIComponent(
-                valueUrlId +
-                  "#" +
-                  Object.keys(scopeIds)[
-                    Object.values(scopeIds).indexOf(value[i].scope)
-                  ]
-              );
-              if (i < value.length - 1) {
-                filterStr += ";;";
-              }
-            }
-          });
-        }
-        let advancedStr = "&advanced=" + this.advanced;
-        let sorter = "&sort=" + encodeURIComponent(this.sort.method);
-        let collapsedStr = "&collapsed=" + this.isCollapsed;
-        let scrolltoStr = ""; // Added by Ole
-        if (this.scrollToID != undefined) {
-          // Added by Ole
-          scrolltoStr = this.scrollToID; // Added by Ole
-        } // Added by Ole
-        let pageSize = "&pageSize=" + this.pageSize;
-        let pmidai = "&pmidai=" + (this.preselectedPmidai ?? []).join(";;");
-        let urlLink =
-          baseUrl +
-          "?" +
-          subjectsStr +
-          filterStr +
-          advancedStr +
-          pmidai +
-          sorter +
-          collapsedStr +
-          pageSize +
-          scrolltoStr; // Added by Ole
-        //?subject=alkohol1#normal,alkohol2#narrow,alkohol3#broad&subject=diabetes1#normal,astma#normal1&sprog=norsk#broad,svensk#normal
+        // Build query parameters
+        const subjectsStr = this.constructSubjectsQuery();
+        const filterStr = this.constructFiltersQuery();
+        const advancedStr = `&advanced=${this.advanced}`;
+        const sorter = `&sort=${encodeURIComponent(this.sort.method)}`;
+        const collapsedStr = `&collapsed=${this.isCollapsed}`;
+        const pageSizeStr = `&pageSize=${this.pageSize}`;
+        const pmidaiStr = `&pmidai=${(this.preselectedPmidai ?? []).join(
+          ";;"
+        )}`;
+        const scrolltoStr = this.scrollToID
+          ? `&scrollto=${encodeURIComponent(this.scrollToID)}`
+          : "";
+
+        // Assemble the full URL with all query parameters
+        const urlLink = `${baseUrl}?${subjectsStr}${filterStr}${advancedStr}${pmidaiStr}${sorter}${collapsedStr}${pageSizeStr}${scrolltoStr}`;
+
         return urlLink;
+      },
+      /**
+       * Constructs the query string for subjects based on selected subjects.
+       *
+       * @returns {string} The encoded subjects query string.
+       */
+      constructSubjectsQuery() {
+        if (!this.subjects || this.subjects.length === 0) {
+          return "";
+        }
+
+        const subjectQueries = this.subjects
+          .filter((group) => group.length > 0)
+          .map((group) => {
+            const subjectValues = group.map((subject) => {
+              const scope = this.getScopeKey(
+                this.advanced ? subject.scope : "normal"
+              );
+              let subjectId = "";
+
+              if (subject.id) {
+                subjectId = `${subject.id}#${scope}`;
+              } else if (subject.isCustom) {
+                const translationFlag = subject.isTranslated ? "1" : "0";
+                subjectId = `{{${subject.name}${translationFlag}}}#${scope}`;
+              }
+
+              return encodeURIComponent(subjectId);
+            });
+
+            return `subject=${subjectValues.join(";;")}`;
+          });
+
+        return subjectQueries.join("&");
+      },
+      /**
+       * Constructs the query string for filters based on selected filters.
+       *
+       * @returns {string} The encoded filters query string.
+       */
+      constructFiltersQuery() {
+        if (!this.advanced && !this.$alwaysShowFilter) {
+          return "";
+        }
+
+        if (!this.filterData || Object.keys(this.filterData).length === 0) {
+          return "";
+        }
+
+        const filterQueries = Object.entries(this.filterData)
+          .filter(([, values]) => values.length > 0)
+          .map(([key, values]) => {
+            const filterValues = values.map((value) => {
+              const scope = this.getScopeKey(value.scope);
+              const valueId = value.isCustom ? `{{${value.name}}}` : value.id;
+              const filterId = `${valueId}#${scope}`;
+              return encodeURIComponent(filterId);
+            });
+
+            return `&${encodeURIComponent(key)}=${filterValues.join(";;")}`;
+          });
+
+        return filterQueries.join("");
+      },
+      /**
+       * Retrieves the scope key corresponding to the given scope value.
+       * @param {string} scopeValue - The scope value (e.g., 'normal', 'broad').
+       * @returns {string} The scope key used in the URL.
+       */
+      getScopeKey(scopeValue) {
+        return (
+          Object.keys(scopeIds).find((key) => scopeIds[key] === scopeValue) ||
+          "normal"
+        );
       },
       copyUrl: function () {
         let urlLink = this.getUrl(true);
@@ -1236,63 +1242,82 @@
         this.setUrl();
         this.editForm();
       },
-      updateFilterSimple: function (filterType, selectedValue) {
+      /**
+       * Updates the filter data when a user selects or deselects a simple filter option.
+       * Manages the filterData and filters arrays based on the user's interaction.
+       * Also updates the URL and form accordingly.
+       *
+       * @param {string} filterType - The ID of the filter group being updated.
+       * @param {Object} selectedValue - The filter option that was selected or deselected.
+       * @param {string} selectedValue.name - The name of the selected filter option.
+       * @param {boolean} selectedValue.checked - The current checked state of the filter option.
+       */
+      updateFilterSimple(filterType, selectedValue) {
+        if (!filterType || !selectedValue) {
+          console.warn(
+            "updateFilterSimple: Missing filterType or selectedValue"
+          );
+          return;
+        }
+
+        // Set the scope of the selected value
         selectedValue.scope = "normal";
-        var test = document.getElementById(selectedValue.name);
-        let temp = JSON.parse(JSON.stringify(this.filterData));
-        const self = this;
-        let filter = undefined;
-        if (!temp[filterType]) {
-          temp[filterType] = [];
-          if (temp[filterType].includes(selectedValue)) return;
-          temp[filterType].push(selectedValue);
-          //Apply to this.filters
-          for (let i = 0; i < self.filterOptions.length; i++) {
-            if (self.filterOptions[i].id === filterType)
-              self.filters.push(self.filterOptions[i]);
+
+        // Clone the current filter data
+        const tempFilterData = { ...this.filterData };
+
+        // Initialize the filter type array if it doesn't exist
+        if (!tempFilterData[filterType]) {
+          tempFilterData[filterType] = [];
+        }
+
+        // Check if the selected value is already in the filter data
+        const exists = tempFilterData[filterType].some(
+          (item) => item.name === selectedValue.name
+        );
+
+        // Determine if the option is checked or not
+        const isChecked = selectedValue.checked; // Ensure 'checked' is a property
+
+        if (isChecked) {
+          if (exists) return; // Already added
+          tempFilterData[filterType].push(selectedValue);
+
+          // Add the filter to this.filters if not already present
+          const filterExists = this.filters.some(
+            (filter) => filter.id === filterType
+          );
+          if (!filterExists) {
+            const filterOption = this.filterOptions.find(
+              (option) => option.id === filterType
+            );
+            if (filterOption) {
+              this.filters.push({ ...filterOption });
+            } else {
+              console.warn(
+                `updateFilterSimple: Filter option with id "${filterType}" not found.`
+              );
+            }
           }
         } else {
-          if (test.checked) {
-            if (temp[filterType].includes(selectedValue)) return;
-            temp[filterType].push(selectedValue);
-            //Apply to this.filters
-            for (let i = 0; i < self.filters.length; i++) {
-              if (self.filters[i].id == filterType) {
-                filter = self.filters[i];
-                break;
-              }
-            }
-            if (!filter) {
-              for (let i = 0; i < self.filterOptions; i++) {
-                if (self.filterOptions[i].id === filterType)
-                  self.filters.push(self.filterOptions[i]);
-                break;
-              }
-            }
-          } else {
-            for (let i = 0; i < temp[filterType].length; i++) {
-              if (temp[filterType][i].name === selectedValue.name) {
-                temp[filterType].splice(i, 1);
-                if (temp[filterType].length === 0) {
-                  delete temp[filterType];
-
-                  //Remove from this.filters
-                  for (let i = 0; i < self.filters.length; i++) {
-                    if (
-                      JSON.stringify(self.filters[i].id) ==
-                      JSON.stringify(filterType)
-                    ) {
-                      self.filters.splice(i, 1);
-                      break;
-                    }
-                  }
-                }
-                break;
-              }
-            }
+          if (!exists) return; // Nothing to remove
+          // Remove the selected value from the filter data
+          tempFilterData[filterType] = tempFilterData[filterType].filter(
+            (item) => item.name !== selectedValue.name
+          );
+          // If the filter type array is empty, remove it and the filter from this.filters
+          if (tempFilterData[filterType].length === 0) {
+            delete tempFilterData[filterType];
+            this.filters = this.filters.filter(
+              (filter) => filter.id !== filterType
+            );
           }
         }
-        this.filterData = temp;
+
+        // Update the filter data
+        this.filterData = tempFilterData;
+
+        // Update the URL and the form
         this.setUrl();
         this.editForm();
       },
@@ -1400,155 +1425,176 @@
           .getElementById(this.scrollToID)
           .scrollIntoView({ block: "start", behavior: "smooth" });
       },
-      reloadScripts: function () {
-        //Remove scripts from header
-        var scripts = document.head.getElementsByTagName("script");
-        //var links = document.getElementsByTagName("link"); Unused variable
-        //var il = links.length; Unused variable
-        var is = scripts.length;
-        //ial = is; Unused variable
-        while (is--) {
-          //console.log(scripts[is].parentNode)
-          if (
-            scripts[is].id === "dimension" ||
-            scripts[is].id === "altmetric"
-          ) {
-            scripts[is].parentNode.removeChild(scripts[is]);
-          }
-        }
+      /**
+       * Reloads certain scripts and removes specific script and div elements from the DOM.
+       * This method cleans up third-party scripts and their associated elements to prevent
+       * performance issues or conflicts, especially with Altmetric and Dimension scripts.
+       */
+      reloadScripts() {
+        /**
+         * Remove specific scripts from the <head> element.
+         * Scripts with IDs 'dimension' or 'altmetric' are removed.
+         */
+        const headScripts = document.head.getElementsByTagName("script");
+        const headScriptsArray = Array.from(headScripts);
 
-        //Remove divs and scripts from body so they wont affect performance
-        scripts = document.body.getElementsByTagName("script");
-        var scriptArray = Array.from(scripts);
-        scriptArray.splice(0, 1);
-        is = scriptArray.length;
-        // ial = is; Unused variable
-
-        while (is--) {
-          if (
-            scriptArray[is].src.startsWith(
-              "https://api.altmetric.com/v1/pmid"
-            ) ||
-            scriptArray[is].src.startsWith("https://api.altmetric.com/v1/doi")
-          ) {
-            scriptArray[is].parentNode.removeChild(scriptArray[is]);
+        headScriptsArray.forEach((script) => {
+          if (script.id === "dimension" || script.id === "altmetric") {
+            script.parentNode.removeChild(script);
           }
-        }
-        var containers = document.body.getElementsByClassName(
+        });
+
+        /**
+         * Remove specific scripts from the <body> element.
+         * Scripts whose 'src' attribute starts with Altmetric API URLs are removed.
+         */
+        const bodyScripts = document.body.getElementsByTagName("script");
+        const bodyScriptsArray = Array.from(bodyScripts);
+
+        bodyScriptsArray.forEach((script) => {
+          const src = script.src || "";
+          if (
+            src.startsWith("https://api.altmetric.com/v1/pmid") ||
+            src.startsWith("https://api.altmetric.com/v1/doi")
+          ) {
+            script.parentNode.removeChild(script);
+          }
+        });
+
+        /**
+         * Remove Altmetric embed containers from the <body> element.
+         * Div elements with class 'altmetric-embed altmetric-popover altmetric-left' are removed.
+         */
+        const altmetricContainers = document.body.getElementsByClassName(
           "altmetric-embed altmetric-popover altmetric-left"
         );
-        var containerArray = Array.from(containers);
+        const containerArray = Array.from(altmetricContainers);
 
-        is = containerArray.length;
-        //ial = is; Unused variable
-        while (is--) {
-          containerArray[is].parentNode.removeChild(containerArray[is]);
-        }
+        containerArray.forEach((container) => {
+          container.parentNode.removeChild(container);
+        });
       },
       searchsetLowStart: function () {
         this.count = 0;
         this.page = 0;
         this.search();
       },
-      search: function () {
-        const self = this;
+      /**
+       * Initiates a PubMed search using NCBI's Entrez API.
+       * Performs an esearch followed by an esummary to retrieve search results.
+       * Updates component state with the results and handles UI updates.
+       */
+      async search() {
         this.searchLoading = true;
         this.searchError = null;
-        let str = this.getSearchString;
-        let nlm = this.appSettings.nlm;
-        let baseUrl =
-          "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi";
-        let query = decodeURIComponent(str);
 
-        if (query.trim() == "" || query.trim() == "()") {
+        const query = decodeURIComponent(this.getSearchString).trim();
+        const { nlm } = this.appSettings;
+
+        if (!query || query === "()") {
           this.searchLoading = false;
           return;
         }
 
         this.reloadScripts();
 
-        const params = new URLSearchParams();
-        params.append("db", "pubmed");
-        params.append("tool", "QuickPubMed");
-        params.append("email", nlm.email);
-        params.append("api_key", nlm.key);
-        params.append("retmode", "json");
-        params.append("retmax", this.pageSize);
-        params.append("retstart", this.page * this.pageSize);
-        params.append("sort", this.sort.method);
-        params.append("term", query);
-
-        axios
-          .post(baseUrl, params)
-          .then(function (resp) {
-            // Search after idlist
-            let ids = resp.data.esearchresult.idlist;
-            ids = ids.filter((id) => id != null && id.trim() != "");
-            if (ids.length == 0) {
-              self.count = 0;
-              self.searchresult = [];
-              self.searchLoading = false;
-              return;
-            }
-            let baseUrl2 =
-              "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi";
-
-            const params2 = new URLSearchParams();
-            params2.append("db", "pubmed");
-            params2.append("tool", "QuickPubMed");
-            params2.append("email", nlm.email);
-            params2.append("api_key", nlm.key);
-            params2.append("retmode", "json");
-            params2.append("id", ids.join(","));
-
-            axios
-              .post(baseUrl2, params2)
-              .then(function (resp2) {
-                // Create list of returned data
-                let data = [];
-                let obj = resp2.data.result;
-                if (!obj) {
-                  console.log("Error: Search was not successful", resp2);
-                  self.searchLoading = false;
-                  return;
-                }
-                for (let i = 0; i < obj.uids.length; i++) {
-                  data.push(obj[obj.uids[i]]);
-                }
-                self.count = parseInt(resp.data.esearchresult.count);
-                self.searchresult = data;
-                self.searchPreselectedPmidai();
-                self.searchLoading = false;
-                document.getElementById("qpm_topofsearch").scrollIntoView({
-                  block: "start",
-                  behavior: "smooth",
-                });
-
-                // Make sure that the search button will have focus to produce expected behavior when pressing 'tab'.
-                var searchButton = self.$el.querySelector(".qpm_search");
-                self.$nextTick(function () {
-                  searchButton.focus();
-                }); // Delayed to let button switch to enabled state again.
-              })
-              .catch(function (err) {
-                self.showSearchError(err);
-                self.searchLoading = false;
-              });
-          })
-          .catch(function (err) {
-            self.showSearchError(err);
-            self.searchLoading = false;
-            // ERROR HANDLING??
+        try {
+          // ESearch request to get list of IDs
+          const esearchParams = new URLSearchParams({
+            db: "pubmed",
+            tool: "QuickPubMed",
+            email: nlm.email,
+            api_key: nlm.key,
+            retmode: "json",
+            retmax: this.pageSize,
+            retstart: this.page * this.pageSize,
+            sort: this.sort.method,
+            term: query,
           });
-        document
-          .getElementById("qpm_topofsearch")
-          .scrollIntoView({ block: "start", behavior: "smooth" });
+
+          const esearchResponse = await axios.post(
+            "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
+            esearchParams
+          );
+
+          const idList =
+            esearchResponse.data.esearchresult.idlist.filter(Boolean);
+
+          if (idList.length === 0) {
+            this.count = 0;
+            this.searchresult = [];
+            this.searchLoading = false;
+            return;
+          }
+
+          // ESummary request to get details for each ID
+          const esummaryParams = new URLSearchParams({
+            db: "pubmed",
+            tool: "QuickPubMed",
+            email: nlm.email,
+            api_key: nlm.key,
+            retmode: "json",
+            id: idList.join(","),
+          });
+
+          const esummaryResponse = await axios.post(
+            "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi",
+            esummaryParams
+          );
+
+          const esummaryResult = esummaryResponse.data.result;
+
+          if (!esummaryResult) {
+            console.error("Error: Search was not successful", esummaryResponse);
+            this.searchLoading = false;
+            return;
+          }
+
+          const data = esummaryResult.uids.map((uid) => esummaryResult[uid]);
+
+          this.count = parseInt(esearchResponse.data.esearchresult.count, 10);
+          this.searchresult = data;
+          this.searchPreselectedPmidai();
+          this.searchLoading = false;
+
+          // Update UI and focus
+          this.$nextTick(() => {
+            const searchButton = this.$el.querySelector(".qpm_search");
+            if (searchButton) searchButton.focus();
+
+            const topOfSearch = document.getElementById("qpm_topofsearch");
+            if (topOfSearch) {
+              topOfSearch.scrollIntoView({
+                block: "start",
+                behavior: "smooth",
+              });
+            }
+          });
+        } catch (error) {
+          this.showSearchError(error);
+          this.searchLoading = false;
+        }
       },
-      searchMore: function () {
-        let targetResultLength = Math.min(
+      /**
+       * Fetches additional PubMed search results based on the current search query and pagination.
+       * Utilizes NCBI's Entrez API to perform an ESearch followed by an ESummary to retrieve
+       * detailed information for each PubMed ID. Updates the component's state with the new results
+       * and handles UI updates accordingly without altering the current scroll position.
+       *
+       * @async
+       * @function searchMore
+       * @returns {Promise<void>} A promise that resolves when the additional search results are fetched and processed.
+       *
+       * @throws Will throw an error if the API requests fail.
+       */
+      async searchMore() {
+        // Calculate the target number of results based on the next page
+        const targetResultLength = Math.min(
           (this.page + 1) * this.pageSize,
           this.count
         );
+
+        // If current results already meet or exceed the target, no need to fetch more
         if (
           this.searchresult &&
           this.searchresult.length >= targetResultLength
@@ -1556,93 +1602,107 @@
           return;
         }
 
-        const self = this;
+        // Set loading state and reset any existing errors
         this.searchLoading = true;
         this.searchError = null;
-        let str = this.getSearchString;
 
-        let pageSize = Math.min(
-          this.pageSize,
-          targetResultLength - this.searchresult.length
-        );
-        let start = Math.max(
-          this.searchresult.length,
-          this.page * this.pageSize
-        );
+        // Decode and trim the search query string
+        const query = decodeURIComponent(this.getSearchString).trim();
+        const { nlm } = this.appSettings;
 
-        let nlm = this.appSettings.nlm;
-        let baseUrl =
-          "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi";
-
-        let query = decodeURIComponent(str);
-        if (query.trim() == "" || query.trim() == "()") {
+        // Validate the query string
+        if (!query || query === "()") {
           this.searchLoading = false;
           return;
         }
 
+        // Reload necessary scripts to ensure a clean environment
         this.reloadScripts();
 
-        const params = new URLSearchParams();
-        params.append("db", "pubmed");
-        params.append("tool", "QuickPubMed");
-        params.append("email", nlm.email);
-        params.append("api_key", nlm.key);
-        params.append("retmode", "json");
-        params.append("retmax", pageSize);
-        params.append("retstart", start);
-        params.append("sort", this.sort.method);
-        params.append("term", query);
-
-        axios
-          .post(baseUrl, params)
-          .then(function (resp) {
-            // Search after idlist
-            let ids = resp.data.esearchresult.idlist;
-            ids = ids.filter((id) => id != null && id.trim() != "");
-            if (ids.length == 0) {
-              self.searchLoading = false;
-              return;
-            }
-            let baseUrl2 =
-              "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi";
-
-            const params2 = new URLSearchParams();
-            params2.append("db", "pubmed");
-            params2.append("tool", "QuickPubMed");
-            params2.append("email", nlm.email);
-            params2.append("api_key", nlm.key);
-            params2.append("retmode", "json");
-            params2.append("id", ids.join(","));
-
-            axios
-              .post(baseUrl2, params2)
-              .then(function (resp2) {
-                // Create list of returned data
-                let data = [];
-                let obj = resp2.data.result;
-                if (!obj) {
-                  console.log("Error: Search was not successful", resp2);
-                  self.searchLoading = false;
-                  return;
-                }
-                for (let i = 0; i < obj.uids.length; i++) {
-                  data.push(obj[obj.uids[i]]);
-                }
-                self.count = parseInt(resp.data.esearchresult.count);
-                self.searchresult = self.searchresult.concat(data);
-                self.searchLoading = false;
-              })
-              .catch(function (err) {
-                console.error(err);
-                self.showSearchError(err);
-                self.searchLoading = false;
-              });
-          })
-          .catch(function (err) {
-            console.error(err);
-            self.showSearchError(err);
-            self.searchLoading = false;
+        try {
+          // Prepare parameters for the ESearch API request
+          const esearchParams = new URLSearchParams({
+            db: "pubmed",
+            tool: "QuickPubMed",
+            email: nlm.email,
+            api_key: nlm.key,
+            retmode: "json",
+            retmax: Math.min(
+              this.pageSize,
+              targetResultLength - (this.searchresult.length || 0)
+            ),
+            retstart: Math.max(
+              this.searchresult.length || 0,
+              this.page * this.pageSize
+            ),
+            sort: this.sort.method,
+            term: query,
           });
+
+          // Perform the ESearch API request to retrieve PubMed IDs
+          const esearchResponse = await axios.post(
+            "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
+            esearchParams
+          );
+
+          // Extract and filter the list of PubMed IDs
+          const idList = esearchResponse.data.esearchresult.idlist.filter(
+            (id) => id && id.trim() !== ""
+          );
+
+          // If no IDs are returned, update the state and exit
+          if (idList.length === 0) {
+            this.count = 0;
+            this.searchresult = [];
+            this.searchLoading = false;
+            return;
+          }
+
+          // Prepare parameters for the ESummary API request
+          const esummaryParams = new URLSearchParams({
+            db: "pubmed",
+            tool: "QuickPubMed",
+            email: nlm.email,
+            api_key: nlm.key,
+            retmode: "json",
+            id: idList.join(","),
+          });
+
+          // Perform the ESummary API request to retrieve detailed information
+          const esummaryResponse = await axios.post(
+            "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi",
+            esummaryParams
+          );
+
+          const esummaryResult = esummaryResponse.data.result;
+
+          // Validate the ESummary response
+          if (!esummaryResult) {
+            console.error("Error: Search was not successful", esummaryResponse);
+            this.searchLoading = false;
+            return;
+          }
+
+          // Extract the detailed data for each PubMed ID
+          const data = esummaryResult.uids.map((uid) => esummaryResult[uid]);
+
+          // Update the total count and append the new data to existing search results
+          this.count = parseInt(esearchResponse.data.esearchresult.count, 10);
+          this.searchresult = [...(this.searchresult || []), ...data];
+
+          // Handle any preselected PMIDs (if applicable)
+          this.searchPreselectedPmidai();
+
+          // Reset the loading state
+          this.searchLoading = false;
+
+          // Note: Removed scrolling and focus updates to maintain current scroll position
+        } catch (error) {
+          // Handle and log any errors that occur during the API requests
+          console.error(error);
+          this.showSearchError(error);
+          this.searchLoading = false;
+        }
       },
       searchByIds: async function (ids) {
         ids = ids.filter((id) => id && id.trim() != "");

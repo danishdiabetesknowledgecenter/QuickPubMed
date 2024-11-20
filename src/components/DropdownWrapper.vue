@@ -2,7 +2,7 @@
   <div
     ref="selectWrapper"
     class="qpm_dropdown"
-    keydown.up.capture.prevent.stop="navUp"
+    @keydown.up.capture.prevent.stop="navUp"
     @keydown.down.capture.prevent.stop="navDown"
     @keydown.left.stop="navLeft"
     @keydown.right.stop="navRight"
@@ -895,7 +895,7 @@
       handleStopEnterOnGroups: function (event) {
         if (this.$refs.multiselect.pointer < 0) {
           // If there is no hovered element then highlight the first on as with old behavior
-          this.$refs.multiselect.pointer = 0;
+          this.$refs.multiselect.pointer = 1;
         }
         if (event.charCode == 13) {
           if (event.target.classList.contains("multiselect__input")) {
