@@ -86,7 +86,7 @@
                   @keydown.enter="clickRetry($event, true)"
                   @click="clickRetry"
                 >
-                  {{ getString('retryText') }}
+                  {{ getString("retryText") }}
                 </button>
               </div>
             </div>
@@ -136,7 +136,7 @@
                     @click="clickStop"
                   >
                     <i class="bx bx-stop-circle" />
-                    {{ getString('stopText') }}
+                    {{ getString("stopText") }}
                   </button>
 
                   <button
@@ -154,7 +154,7 @@
                       class="bx bx-refresh"
                       style="vertical-align: baseline; font-size: 1em"
                     />
-                    {{ getString('retryText') }}
+                    {{ getString("retryText") }}
                   </button>
 
                   <button
@@ -169,7 +169,7 @@
                     @click="clickCopy"
                   >
                     <i class="bx bx-copy" style="vertical-align: baseline" />
-                    {{ getString('copyText') }}
+                    {{ getString("copyText") }}
                   </button>
 
                   <summarize-article
@@ -208,21 +208,21 @@
 </template>
 
 <script>
-  import Vue from 'vue'
-  import LoadingSpinner from '@/components/LoadingSpinner.vue'
-  import SummarizeArticle from '@/components/SummarizeArticle.vue'
+  import Vue from "vue";
+  import LoadingSpinner from "@/components/LoadingSpinner.vue";
+  import SummarizeArticle from "@/components/SummarizeArticle.vue";
 
-  import { appSettingsMixin, eventBus } from '@/mixins/appSettings.js'
-  import { messages } from '@/assets/content/qpm-translations.js'
-  import { languageFormat, dateOptions } from '@/assets/content/qpm-content.js'
+  import { appSettingsMixin, eventBus } from "@/mixins/appSettings.js";
+  import { messages } from "@/assets/content/qpm-translations.js";
+  import { languageFormat, dateOptions } from "@/assets/content/qpm-content.js";
   import {
     summarizeSummaryPrompts,
     shortenAbstractPrompts,
     getPromptForLocale,
-  } from '@/assets/content/qpm-openAiPrompts'
+  } from "@/assets/content/qpm-openAiPrompts";
 
   export default {
-    name: 'AiSummaries',
+    name: "AiSummaries",
     components: {
       LoadingSpinner,
       SummarizeArticle,
@@ -236,7 +236,7 @@
       },
       license: {
         type: String,
-        default: '',
+        default: "",
         required: false,
       },
       isLicenseAllowed: {
@@ -253,12 +253,12 @@
       },
       htmlUrl: {
         type: String,
-        default: '',
+        default: "",
         required: false,
       },
       pdfUrl: {
         type: String,
-        default: '',
+        default: "",
         required: false,
       },
       showSummarizeArticle: {
@@ -272,7 +272,7 @@
       },
       language: {
         type: String,
-        default: 'dk',
+        default: "dk",
       },
       prompts: {
         type: Array,
@@ -280,7 +280,7 @@
       },
       summaryConsentHeader: {
         type: String,
-        default: '',
+        default: "",
         required: SVGComponentTransferFunctionElement,
       },
       summarySearchSummaryConsentText: {
@@ -321,99 +321,99 @@
 
     data() {
       return {
-        currentSummary: '',
+        currentSummary: "",
         tabStates: this.prompts.reduce((acc, prompt) => {
-          acc[prompt.name] = { currentIndex: 0 }
-          return acc
+          acc[prompt.name] = { currentIndex: 0 };
+          return acc;
         }, {}),
         loadingSummaries: [],
         aiSearchSummaries: this.prompts.reduce((acc, prompt) => {
-          acc[prompt.name] = []
-          return acc
+          acc[prompt.name] = [];
+          return acc;
         }, {}),
         articleCount: 0,
         showHistory: false,
         stopGeneration: false,
         pdfFound: false,
-        articleName: '',
+        articleName: "",
         $helpTextDelay: 300, // Assuming a default value
-      }
+      };
     },
     computed: {
       getUsePDFsummaryFlag() {
-        return this.appSettings.openAi.usePDFsummary
+        return this.appSettings.openAi.usePDFsummary;
       },
       getIsSummaryLoading() {
-        return this.loadingSummaries.includes(this.currentSummary)
+        return this.loadingSummaries.includes(this.currentSummary);
       },
       getCurrentSummaryHistory() {
-        if (!this.currentSummary) return null
+        if (!this.currentSummary) return null;
 
-        let currentSummaries = this.aiSearchSummaries[this.currentSummary]
-        return currentSummaries
+        let currentSummaries = this.aiSearchSummaries[this.currentSummary];
+        return currentSummaries;
       },
       getCurrentIndex() {
-        let tabState = this.tabStates[this.currentSummary]
-        let index = tabState?.currentIndex ?? 0
-        return index
+        let tabState = this.tabStates[this.currentSummary];
+        let index = tabState?.currentIndex ?? 0;
+        return index;
       },
       getCurrentSummary() {
-        let summaries = this.getCurrentSummaryHistory
+        let summaries = this.getCurrentSummaryHistory;
 
-        if (!summaries || summaries.length == 0) return undefined
+        if (!summaries || summaries.length == 0) return undefined;
 
-        let index = this.getCurrentIndex
-        return summaries[index]
+        let index = this.getCurrentIndex;
+        return summaries[index];
       },
       getDidCurrentSummaryError() {
-        const summary = this.getCurrentSummary
-        return summary?.status == 'error'
+        const summary = this.getCurrentSummary;
+        return summary?.status == "error";
       },
       isCurrentSummaryWaitingForResponse() {
-        const summary = this.getCurrentSummary
+        const summary = this.getCurrentSummary;
         return (
-          summary?.status == 'loading' &&
+          summary?.status == "loading" &&
           (!summary?.body || summary.body.length == 0)
-        )
+        );
       },
       getWaitTimeString() {
-        const currentSummary = this.getCurrentSummary
+        const currentSummary = this.getCurrentSummary;
         if (currentSummary == undefined || !currentSummary.showWaitDisclaimer)
-          return ''
+          return "";
 
         const longAbstractLengthLimit =
-          this.appSettings.openAi.longAbstractLengthLimit ?? 5000
+          this.appSettings.openAi.longAbstractLengthLimit ?? 5000;
 
         const totalAbstractLength =
           currentSummary?.articles?.reduce((acc, article) => {
-            return acc + article.abstract.length
-          }, 0) ?? 0
+            return acc + article.abstract.length;
+          }, 0) ?? 0;
 
         if (totalAbstractLength > longAbstractLengthLimit) {
-          return this.getString('aiLongWaitTimeDisclaimer')
+          return this.getString("aiLongWaitTimeDisclaimer");
         } else {
-          return this.getString('aiShortWaitTimeDisclaimer')
+          return this.getString("aiShortWaitTimeDisclaimer");
         }
       },
       getTabNames() {
-        return this.prompts.map((e) => e.name)
+        return this.prompts.map((e) => e.name);
       },
       getSuccessHeader() {
-        if (typeof this.successHeader === 'function') {
-          const currentSummary = this.getCurrentSummary
-          let articles = currentSummary?.articles
+        if (typeof this.successHeader === "function") {
+          const currentSummary = this.getCurrentSummary;
+          let articles = currentSummary?.articles;
           return (
             articles &&
             this.successHeader(articles, currentSummary.isMarkedArticlesSearch)
-          )
+          );
         }
-        return this.successHeader
+        return this.successHeader;
       },
       canRenderMarkdown() {
         const isVueShowdownRegistered =
-          !!this.$options.components['VueShowdown'] ||
-          !!this.$options.components['vue-showdown']
-        return isVueShowdownRegistered
+          !!this.$options.components["VueShowdown"] ||
+          !!this.$options.components["vue-showdown"];
+        return isVueShowdownRegistered;
       },
       languageFormat() {
         // Define language formats as needed
@@ -422,135 +422,135 @@
             /* date options */
           },
           // other languages
-        }
+        };
       },
       dateOptions() {
         // Define date options as needed
         return {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-        }
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        };
       },
     },
     watch: {
       isLicenseAllowed(newVal) {
-        console.log('isLicenseAllowed changed:', newVal)
+        console.log("isLicenseAllowed changed:", newVal);
       },
       isResourceAllowed(newVal) {
-        console.log('isResourceAllowed changed:', newVal)
+        console.log("isResourceAllowed changed:", newVal);
       },
       isPubTypeAllowed(newVal) {
-        console.log('isPubTypeAllowed changed:', newVal)
+        console.log("isPubTypeAllowed changed:", newVal);
       },
     },
     created() {
       if (this.checkForPdf) {
-        this.articleName = this.getSelectedArticles()[0].title
+        this.articleName = this.getSelectedArticles()[0].title;
       }
     },
     activated() {
       if (this.initialTabPrompt != null) {
-        this.clickSummaryTab(this.initialTabPrompt)
+        this.clickSummaryTab(this.initialTabPrompt);
       }
     },
     methods: {
       getTranslation(value) {
-        const lg = this.language
-        const constant = value.translations[lg]
-        return constant !== undefined ? constant : value.translations['dk']
+        const lg = this.language;
+        const constant = value.translations[lg];
+        return constant !== undefined ? constant : value.translations["dk"];
       },
       getString(string) {
-        const lg = this.language
-        const constant = messages[string][lg]
-        return constant !== undefined ? constant : messages[string]['dk']
+        const lg = this.language;
+        const constant = messages[string][lg];
+        return constant !== undefined ? constant : messages[string]["dk"];
       },
       getSummaryPromptByName(name) {
         return this.prompts.find(function (prompt) {
-          return prompt.name == name
-        })
+          return prompt.name == name;
+        });
       },
       getErrorTranslation(error) {
-        const lg = this.language
+        const lg = this.language;
         try {
-          const constant = messages[error][lg]
+          const constant = messages[error][lg];
           return constant !== undefined
             ? constant
-            : messages['unknownError'][lg]
+            : messages["unknownError"][lg];
         } catch {
-          return messages['unknownError'][lg]
+          return messages["unknownError"][lg];
         }
       },
       async generateAiSummary(prompt) {
-        this.stopGeneration = false
+        this.stopGeneration = false;
         const waitTimeDisclaimerDelay =
-          this.appSettings.openAi.waitTimeDisclaimerDelay ?? 0
-        this.loadingSummaries.push(prompt.name)
-        const localePrompt = getPromptForLocale(prompt, this.language)
+          this.appSettings.openAi.waitTimeDisclaimerDelay ?? 0;
+        this.loadingSummaries.push(prompt.name);
+        const localePrompt = getPromptForLocale(prompt, this.language);
         const summarizePrompt = getPromptForLocale(
           summarizeSummaryPrompts.find((p) => prompt.name == p.name),
           this.language
-        )
+        );
         const shortenAbstractPrompt = getPromptForLocale(
           shortenAbstractPrompts.find((p) => prompt.name == p.name),
           this.language
-        )
+        );
 
-        const endpoint = '/api/SummarizeSearch'
-        const openAiServiceUrl = `${this.appSettings.openAi.baseUrl}${endpoint}`
+        const endpoint = "/api/SummarizeSearch";
+        const openAiServiceUrl = `${this.appSettings.openAi.baseUrl}${endpoint}`;
 
         const readData = async (url, body) => {
-          let answer = ''
+          let answer = "";
           const response = await fetch(url, {
-            method: 'POST',
+            method: "POST",
             body: JSON.stringify(body),
-          })
+          });
           if (!response.ok) {
-            throw { data: await response.json() }
+            throw { data: await response.json() };
           }
           const reader = response.body
             .pipeThrough(new TextDecoderStream())
-            .getReader()
+            .getReader();
           while (true) {
-            const { done, value } = await reader.read()
+            const { done, value } = await reader.read();
             if (done || this.stopGeneration) {
-              break
+              break;
             }
-            answer += value
-            this.updateAiSearchSummariesEntry(prompt.name, { body: answer })
+            answer += value;
+            this.updateAiSearchSummariesEntry(prompt.name, { body: answer });
           }
           this.updateAiSearchSummariesEntry(prompt.name, {
             responseTime: new Date(),
-            status: 'success',
-          })
-        }
+            status: "success",
+          });
+        };
 
-        const articles = this.getSelectedArticles()
+        const articles = this.getSelectedArticles();
         if (!articles || articles.length == 0) {
           this.pushToAiSearchSummaries(prompt.name, {
             responseTime: new Date(),
-            status: 'error',
+            status: "error",
             articles: articles,
             isMarkedArticlesSearch: this.isMarkedArticles,
-            body: this.getErrorTranslation('noAbstractsError'),
-          })
-          return
+            body: this.getErrorTranslation("noAbstractsError"),
+          });
+          return;
         }
 
         this.pushToAiSearchSummaries(prompt.name, {
           requestTime: new Date(),
-          status: 'loading',
+          status: "loading",
           articles: articles,
-          body: '',
+          body: "",
           isMarkedArticlesSearch: this.isMarkedArticles,
-        })
+        });
 
         setTimeout(() => {
           this.updateAiSearchSummariesEntry(prompt.name, {
             showWaitDisclaimer: true,
-          })
-        }, waitTimeDisclaimerDelay)
-        this.articleCount = articles.length
+          });
+        }, waitTimeDisclaimerDelay);
+        this.articleCount = articles.length;
 
         try {
           await readData(openAiServiceUrl, {
@@ -559,115 +559,115 @@
             summarizeAbstractPrompt: summarizePrompt,
             shortenAbstractPrompt: shortenAbstractPrompt,
             client: this.appSettings.client,
-          })
+          });
         } catch (error) {
           if (error.data) {
             this.updateAiSearchSummariesEntry(prompt.name, {
               responseTime: new Date(),
-              status: 'error',
-              body: this.getErrorTranslation('unknownError'),
+              status: "error",
+              body: this.getErrorTranslation("unknownError"),
               error: error.data,
-            })
+            });
           } else {
             this.updateAiSearchSummariesEntry(prompt.name, {
               responseTime: new Date(),
-              status: 'error',
-              body: this.getErrorTranslation('unknownError'),
+              status: "error",
+              body: this.getErrorTranslation("unknownError"),
               error: error,
-            })
+            });
           }
         } finally {
-          const tabIndex = this.loadingSummaries.indexOf(prompt.name)
-          this.loadingSummaries.splice(tabIndex, 1)
-          Vue.set(this.tabStates[prompt.name], 'currentIndex', 0)
+          const tabIndex = this.loadingSummaries.indexOf(prompt.name);
+          this.loadingSummaries.splice(tabIndex, 1);
+          Vue.set(this.tabStates[prompt.name], "currentIndex", 0);
         }
       },
       clickSummaryTab(tab) {
-        this.currentSummary = tab.name
-        let currentSummaries = this.aiSearchSummaries[tab.name]
+        this.currentSummary = tab.name;
+        let currentSummaries = this.aiSearchSummaries[tab.name];
         if (
           this.getIsSummaryLoading ||
           (currentSummaries && currentSummaries.length > 0)
         ) {
-          return
+          return;
         }
-        this.generateAiSummary(tab)
+        this.generateAiSummary(tab);
       },
       clickStop() {
-        this.stopGeneration = true
+        this.stopGeneration = true;
       },
       clickRetry(event, moveFocus = false) {
-        this.$emit('ai-summaries-click-retry', this)
+        this.$emit("ai-summaries-click-retry", this);
 
-        const tab = this.getSummaryPromptByName(this.currentSummary)
+        const tab = this.getSummaryPromptByName(this.currentSummary);
         if (moveFocus) {
-          this.$el.querySelector(`#${tab.name}`).focus()
+          this.$el.querySelector(`#${tab.name}`).focus();
         }
-        this.generateAiSummary(tab)
+        this.generateAiSummary(tab);
       },
       clickCopy() {
-        const summary = this.$refs.summary
-        navigator.clipboard.writeText(summary.innerText)
+        const summary = this.$refs.summary;
+        navigator.clipboard.writeText(summary.innerText);
       },
       clickCloseSummary() {
-        this.$emit('close')
+        this.$emit("close");
       },
       pushToAiSearchSummaries(key, value) {
-        const oldSummaries = this.aiSearchSummaries[key] ?? []
-        const newSummaries = [...oldSummaries, value]
-        Vue.set(this.aiSearchSummaries, key, newSummaries)
+        const oldSummaries = this.aiSearchSummaries[key] ?? [];
+        const newSummaries = [...oldSummaries, value];
+        Vue.set(this.aiSearchSummaries, key, newSummaries);
       },
       updateAiSearchSummariesEntry(summaryName, newValues, index = 0) {
         for (const [key, value] of Object.entries(newValues)) {
-          this.$set(this.aiSearchSummaries[summaryName][index], key, value)
+          this.$set(this.aiSearchSummaries[summaryName][index], key, value);
         }
       },
       toggleHistory() {
-        this.showHistory = !this.showHistory
+        this.showHistory = !this.showHistory;
       },
       clickHistoryItem(index) {
-        Vue.set(this.tabStates[this.currentSummary], 'currentIndex', index)
+        Vue.set(this.tabStates[this.currentSummary], "currentIndex", index);
       },
       formatDate(date) {
         const formattedDate = date.toLocaleDateString(
           languageFormat[this.language],
           dateOptions
-        )
-        return formattedDate
+        );
+        return formattedDate;
       },
       onMarkdownClick(event) {
-        const target = event.target
+        const target = event.target;
 
-        if (target.tagName !== 'A') return
+        if (target.tagName !== "A") return;
 
-        const hrefValue = target.getAttribute('href')
-        const hrefNumber = Number.parseInt(hrefValue.slice(1))
+        const hrefValue = target.getAttribute("href");
+        const hrefNumber = Number.parseInt(hrefValue.slice(1));
 
-        if (!hrefValue.startsWith('#') || !Number.isInteger(hrefNumber)) return
+        if (!hrefValue.startsWith("#") || !Number.isInteger(hrefNumber)) return;
 
-        const selectedArticlesSelectorString = `.qpm_accordion *:where(#${hrefNumber}, [name="${hrefNumber}"])`
-        const searchResultSelectorString = `.qpm_SearchResult *:where(#${hrefNumber}, [name="${hrefNumber}"])`
+        const selectedArticlesSelectorString = `.qpm_accordion *:where(#${hrefNumber}, [name="${hrefNumber}"])`;
+        const searchResultSelectorString = `.qpm_SearchResult *:where(#${hrefNumber}, [name="${hrefNumber}"])`;
         let resultEntry =
           document.querySelector(selectedArticlesSelectorString) ??
-          document.querySelector(searchResultSelectorString)
+          document.querySelector(searchResultSelectorString);
         if (resultEntry == null) {
           console.debug(
             `onMarkdownClick: no article with the name or id '${hrefNumber}' could be found. ref: '${hrefValue}'.`
-          )
-          return
+          );
+          return;
         }
 
-        event.preventDefault()
-        event.stopPropagation()
+        event.preventDefault();
+        event.stopPropagation();
 
-        eventBus.$emit('result-entry-show-abstract', { $el: resultEntry })
+        eventBus.$emit("result-entry-show-abstract", { $el: resultEntry });
       },
       getTabTooltipContent(prompt) {
-        const tooltip = prompt?.tooltip
-        if (!tooltip) return null
+        const tooltip = prompt?.tooltip;
+        if (!tooltip) return null;
 
-        return tooltip[this.language]
+        return tooltip[this.language];
       },
     },
-  }
+  };
 </script>

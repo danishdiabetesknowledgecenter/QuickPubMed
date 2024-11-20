@@ -10,7 +10,7 @@
     </div>
 
     <p v-if="questions.length > 1 && !isLoadingQuestions">
-      <strong>{{ getString('summarizeArticleHeader') }}</strong>
+      <strong>{{ getString("summarizeArticleHeader") }}</strong>
     </p>
 
     <!-- Render the first 7 questions -->
@@ -48,7 +48,7 @@
 
     <!-- Render the title after the first 7 questions -->
     <p v-if="questions.length > 7">
-      <strong>{{ getString('generateQuestionsHeader') }}</strong>
+      <strong>{{ getString("generateQuestionsHeader") }}</strong>
     </p>
 
     <!-- Render the remaining questions -->
@@ -99,18 +99,18 @@
 </template>
 
 <script>
-  import AccordionMenu from '@/components/Accordion.vue'
-  import LoadingSpinner from '@/components/LoadingSpinner.vue'
-  import QuestionForArticle from '@/components/QuestionForArticle.vue'
+  import AccordionMenu from "@/components/Accordion.vue";
+  import LoadingSpinner from "@/components/LoadingSpinner.vue";
+  import QuestionForArticle from "@/components/QuestionForArticle.vue";
 
-  import { appSettingsMixin } from '@/mixins/appSettings'
-  import { utilitiesMixin } from '@/mixins/utilities'
-  import { questionsToTitleMapMixin } from '@/mixins/questionsToTitleMap'
-  import { summarizeArticleMixin } from '@/mixins/summarizeArticle'
-  import { questionHeaderHeightWatcherMixin } from '@/mixins/questionHeaderHeightWatcher'
+  import { appSettingsMixin } from "@/mixins/appSettings";
+  import { utilitiesMixin } from "@/mixins/utilities";
+  import { questionsToTitleMapMixin } from "@/mixins/questionsToTitleMap";
+  import { summarizeArticleMixin } from "@/mixins/summarizeArticle";
+  import { questionHeaderHeightWatcherMixin } from "@/mixins/questionHeaderHeightWatcher";
 
   export default {
-    name: 'SummarizeArticleNoAbstract',
+    name: "SummarizeArticleNoAbstract",
     components: {
       AccordionMenu,
       LoadingSpinner,
@@ -126,17 +126,17 @@
     props: {
       htmlUrl: {
         type: String,
-        default: '',
+        default: "",
         required: false,
       },
       pdfUrl: {
         type: String,
-        default: '',
+        default: "",
         required: false,
       },
       language: {
         type: String,
-        default: 'dk',
+        default: "dk",
       },
     },
     data() {
@@ -146,24 +146,24 @@
         answers: [],
         isLoadingQuestions: false,
         isError: false,
-        errorMessage: '',
+        errorMessage: "",
         scrapingError: false,
-        promptLanguageType: '',
-      }
+        promptLanguageType: "",
+      };
     },
     created() {
-      console.log('Attaching event listener for SummarizeArticleNoAbstract')
+      console.log("Attaching event listener for SummarizeArticleNoAbstract");
       this.$on(
-        'SummarizeArticleNoAbstract',
+        "SummarizeArticleNoAbstract",
         this.handleOnSummarizeArticleNoAbstract
-      )
+      );
     },
     methods: {
       handleOnSummarizeArticleNoAbstract(prompt) {
-        console.log('HandleOnSummarizeArticleNoAbstract', prompt)
-        this.promptLanguageType = prompt.name
-        this.handleSummarizeArticle()
+        console.log("HandleOnSummarizeArticleNoAbstract", prompt);
+        this.promptLanguageType = prompt.name;
+        this.handleSummarizeArticle();
       },
     },
-  }
+  };
 </script>

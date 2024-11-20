@@ -24,11 +24,11 @@
 </template>
 
 <script>
-  import DropdownWrapper from '@/components/DropdownWrapper.vue'
-  import { messages } from '@/assets/content/qpm-translations'
+  import DropdownWrapper from "@/components/DropdownWrapper.vue";
+  import { messages } from "@/assets/content/qpm-translations";
 
   export default {
-    name: 'FilterEntry',
+    name: "FilterEntry",
     components: {
       DropdownWrapper,
     },
@@ -47,82 +47,82 @@
       },
       language: {
         type: String,
-        default: 'dk',
+        default: "dk",
       },
       hideTopics: {
         type: Array,
         default: function () {
-          return []
+          return [];
         },
       },
     },
     data() {
       return {
         dropdownWidth: 0,
-      }
+      };
     },
     computed: {
       placeholderText() {
         if (this.filterItem.allowCustomInput) {
           const isMobileWidth =
-            this.dropdownWidth < 520 && this.dropdownWidth !== 0
-          let manualInputText = 'manualInput'
+            this.dropdownWidth < 520 && this.dropdownWidth !== 0;
+          let manualInputText = "manualInput";
 
           if (isMobileWidth) {
-            manualInputText += '_mobile'
+            manualInputText += "_mobile";
           }
 
           return (
-            this.getString('select') +
-            ' ' +
+            this.getString("select") +
+            " " +
             this.customNameLabel(this.filterItem).toLowerCase() +
-            (isMobileWidth ? '' : ' ') +
+            (isMobileWidth ? "" : " ") +
             this.getString(manualInputText)
-          )
+          );
         } else {
           return (
-            this.getString('select') +
-            ' ' +
+            this.getString("select") +
+            " " +
             this.customNameLabel(this.filterItem).toLowerCase()
-          )
+          );
         }
       },
       calcOrOperator() {
-        return this.getString('orOperator')
+        return this.getString("orOperator");
       },
     },
     mounted() {
-      this.updateDropdownWidth()
-      window.addEventListener('resize', this.updateDropdownWidth)
+      this.updateDropdownWidth();
+      window.addEventListener("resize", this.updateDropdownWidth);
     },
     beforeDestroy() {
-      window.removeEventListener('resize', this.updateDropdownWidth)
+      window.removeEventListener("resize", this.updateDropdownWidth);
     },
     methods: {
       getString(string) {
-        const lg = this.language
-        const constant = messages[string][lg]
-        return constant !== undefined ? constant : messages[string]['dk']
+        const lg = this.language;
+        const constant = messages[string][lg];
+        return constant !== undefined ? constant : messages[string]["dk"];
       },
       customNameLabel(option) {
-        if (!option.name && !option.groupname) return
-        let constant
+        if (!option.name && !option.groupname) return;
+        let constant;
         if (option.id) {
-          const lg = this.language
+          const lg = this.language;
           constant =
             option.translations[lg] !== undefined
               ? option.translations[lg]
-              : option.translations['dk']
+              : option.translations["dk"];
         } else {
-          constant = option.name
+          constant = option.name;
         }
-        return constant
+        return constant;
       },
       updateDropdownWidth() {
-        const dropdown = this.$refs.dropdown.$refs.selectWrapper
-        if (!dropdown.innerHTML) return
-        this.dropdownWidth = parseInt(dropdown.offsetWidth)
+        const dropdown = this.$refs.dropdown.$refs.selectWrapper;
+        if (!dropdown.innerHTML) return;
+        this.dropdownWidth = parseInt(dropdown.offsetWidth);
       },
     },
-  }
+  };
 </script>

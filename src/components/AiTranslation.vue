@@ -22,7 +22,7 @@
         class="qpm_button"
         @click="clickStop"
       >
-        <i class="bx bx-stop-circle" /> {{ getString('stopText') }}
+        <i class="bx bx-stop-circle" /> {{ getString("stopText") }}
       </button>
       <button
         v-if="translationLoaded"
@@ -39,7 +39,7 @@
           class="bx bx-refresh"
           style="vertical-align: baseline; font-size: 1em"
         />
-        {{ getString('retryText') }}
+        {{ getString("retryText") }}
       </button>
       <button
         v-tooltip="{
@@ -53,7 +53,7 @@
         @click="clickCopy"
       >
         <i class="bx bx-copy" style="vertical-align: baseline" />
-        {{ getString('copyText') }}
+        {{ getString("copyText") }}
       </button>
     </div>
     <p
@@ -65,16 +65,16 @@
 </template>
 
 <script>
-  import LoadingSpinner from '@/components/LoadingSpinner.vue'
-  import { appSettingsMixin } from '@/mixins/appSettings.js'
-  import { messages } from '@/assets/content/qpm-translations.js'
+  import LoadingSpinner from "@/components/LoadingSpinner.vue";
+  import { appSettingsMixin } from "@/mixins/appSettings.js";
+  import { messages } from "@/assets/content/qpm-translations.js";
   import {
     getPromptForLocale,
     titleTranslationPrompt,
-  } from '@/assets/content/qpm-openAiPrompts.js'
+  } from "@/assets/content/qpm-openAiPrompts.js";
 
   export default {
-    name: 'AiTranslation',
+    name: "AiTranslation",
     components: {
       LoadingSpinner,
     },
@@ -99,15 +99,15 @@
         loading: false,
         writing: false,
         stopGeneration: false,
-        text: this.getString('aiTranslationWaitText'),
-      }
+        text: this.getString("aiTranslationWaitText"),
+      };
     },
     watch: {
       showingTranslation: {
         handler: async function (newValue) {
           if (newValue) {
             // Trigger when showingTranslation is true
-            await this.showTranslation()
+            await this.showTranslation();
           }
         },
         immediate: false, // Usually, immediate: true triggers on component creation
@@ -117,96 +117,96 @@
       async showTranslation() {
         console.log(
           `Translation Loaded: ${this.translationLoaded}, Loading: ${this.loading}`
-        )
+        );
 
         if (!this.translationLoaded && !this.loading) {
-          this.loading = true // Set loading state
+          this.loading = true; // Set loading state
           try {
-            await this.translateTitle()
-            this.translationLoaded = true
+            await this.translateTitle();
+            this.translationLoaded = true;
           } catch (error) {
-            console.error('Translation failed:', error)
+            console.error("Translation failed:", error);
           } finally {
-            this.loading = false // Reset loading state
+            this.loading = false; // Reset loading state
           }
         }
       },
       getString(string) {
-        const lg = this.language
-        const constant = messages[string][lg]
-        return constant !== undefined ? constant : messages[string]['dk']
+        const lg = this.language;
+        const constant = messages[string][lg];
+        return constant !== undefined ? constant : messages[string]["dk"];
       },
       async translateTitle(showSpinner = true) {
-        console.log('Translating title', this.title)
-        this.loading = showSpinner
-        this.stopGeneration = false
-        const openAiServiceUrl = `${this.appSettings.openAi.baseUrl}/api/TranslateTitle`
-        const localePrompt = getPromptForLocale(titleTranslationPrompt, 'dk')
+        console.log("Translating title", this.title);
+        this.loading = showSpinner;
+        this.stopGeneration = false;
+        const openAiServiceUrl = `${this.appSettings.openAi.baseUrl}/api/TranslateTitle`;
+        const localePrompt = getPromptForLocale(titleTranslationPrompt, "dk");
 
         const readData = async (url, body) => {
-          let answer = ''
+          let answer = "";
           try {
             const response = await fetch(url, {
-              method: 'POST',
+              method: "POST",
               body: JSON.stringify(body),
-            })
+            });
             if (!response.ok) {
-              const data = await response.json()
-              throw new Error(JSON.stringify(data))
+              const data = await response.json();
+              throw new Error(JSON.stringify(data));
             }
             const reader = response.body
               .pipeThrough(new TextDecoderStream())
-              .getReader()
+              .getReader();
 
-            this.loading = false
-            this.writing = true
+            this.loading = false;
+            this.writing = true;
             while (true) {
-              const { done, value } = await reader.read()
+              const { done, value } = await reader.read();
               if (done || this.stopGeneration) {
-                break
+                break;
               }
-              answer += value
-              this.text = answer
+              answer += value;
+              this.text = answer;
             }
-            this.writing = false
+            this.writing = false;
           } catch (error) {
-            this.text = `An unknown error occurred: \n${error.toString()}`
+            this.text = `An unknown error occurred: \n${error.toString()}`;
           } finally {
-            this.loading = false
-            this.writing = false
-            this.translationLoaded = true
+            this.loading = false;
+            this.writing = false;
+            this.translationLoaded = true;
           }
-        }
+        };
 
         await readData(openAiServiceUrl, {
           prompt: localePrompt,
           title: this.title,
           client: this.appSettings.client,
-        })
+        });
       },
       clickCopy() {
-        navigator.clipboard.writeText(this.text)
+        navigator.clipboard.writeText(this.text);
       },
       clickStop() {
-        this.stopGeneration = true
+        this.stopGeneration = true;
       },
       clickRetry() {
         if (!this.translationLoaded || this.loading) {
           console.debug(
-            'Attempted to retry translation, but refused due to loading state',
+            "Attempted to retry translation, but refused due to loading state",
             this
-          )
-          return
+          );
+          return;
         }
-        this.translationLoaded = false
-        this.showTranslation()
+        this.translationLoaded = false;
+        this.showTranslation();
       },
       canRenderMarkdown() {
         return (
-          !!this.$options.components['VueShowdown'] ||
-          !!this.$options.components['vue-showdown']
-        )
+          !!this.$options.components["VueShowdown"] ||
+          !!this.$options.components["vue-showdown"]
+        );
       },
     },
-  }
+  };
 </script>

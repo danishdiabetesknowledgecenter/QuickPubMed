@@ -76,7 +76,7 @@
 
 <script>
   export default {
-    name: 'LoadingSpinner',
+    name: "LoadingSpinner",
     props: {
       loading: {
         type: Boolean,
@@ -92,11 +92,11 @@
       },
       waitText: {
         type: String,
-        default: '',
+        default: "",
       },
       waitDurationDisclaimer: {
         type: String,
-        default: '',
+        default: "",
       },
       size: {
         type: Number,
@@ -105,8 +105,8 @@
     },
     computed: {
       condition() {
-        return this.loadingAbstract || this.loadingComponent
+        return this.loadingAbstract || this.loadingComponent;
       },
     },
-  }
+  };
 </script>

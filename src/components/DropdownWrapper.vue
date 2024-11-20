@@ -50,7 +50,7 @@
           :custom-name-label="customNameLabel"
           :update-tag="
             function (newTag) {
-              return handleUpdateCustomTag(triple.option, newTag)
+              return handleUpdateCustomTag(triple.option, newTag);
             }
           "
           :operator="operator"
@@ -128,7 +128,7 @@
           v-if="props.option.$groupLabel && showScopeLabel"
           class="qpm_scopeLabel qpm_forceRight"
           :class="{ qpm_shown: showScope(props.option.$groupLabel) }"
-          >{{ getString('scope') }}</span
+          >{{ getString("scope") }}</span
         >
 
         <span class="qpm_entryName">{{ customNameLabel(props.option) }} </span>
@@ -146,7 +146,7 @@
         />
 
         <span v-if="props.option.isTag" class="qpm_entryManual"
-          >{{ getString('manualadd') }}: {{ props.option.label }}
+          >{{ getString("manualadd") }}: {{ props.option.label }}
         </span>
 
         <div
@@ -170,7 +170,7 @@
             tabindex="-1"
             @click="handleScopeButtonClick(props.option, 'narrow', $event)"
           >
-            {{ getString('narrow') }}
+            {{ getString("narrow") }}
           </button>
 
           <button
@@ -185,7 +185,7 @@
             tabindex="-1"
             @click="handleScopeButtonClick(props.option, 'normal', $event)"
           >
-            {{ getString('normal') }}
+            {{ getString("normal") }}
           </button>
 
           <button
@@ -200,7 +200,7 @@
             tabindex="-1"
             @click="handleScopeButtonClick(props.option, 'broad', $event)"
           >
-            {{ getString('broad') }}
+            {{ getString("broad") }}
           </button>
         </div>
       </template>
@@ -213,19 +213,19 @@
 </template>
 
 <script>
-  import Multiselect from 'vue-multiselect'
-  import DropdownTag from '@/components/DropdownTag.vue'
-  import { appSettingsMixin } from '@/mixins/appSettings'
-  import { messages } from '@/assets/content/qpm-translations.js'
-  import { topics } from '@/assets/content/qpm-content-diabetes'
-  import { filtrer, customInputTagTooltip } from '@/assets/content/qpm-content'
+  import Multiselect from "vue-multiselect";
+  import DropdownTag from "@/components/DropdownTag.vue";
+  import { appSettingsMixin } from "@/mixins/appSettings";
+  import { messages } from "@/assets/content/qpm-translations.js";
+  import { topics } from "@/assets/content/qpm-content-diabetes";
+  import { filtrer, customInputTagTooltip } from "@/assets/content/qpm-content";
   import {
     getPromptForLocale,
     searchTranslationPrompt,
-  } from '@/assets/content/qpm-openAiPrompts'
+  } from "@/assets/content/qpm-openAiPrompts";
 
   export default {
-    name: 'DropdownWrapper',
+    name: "DropdownWrapper",
     components: {
       Multiselect,
       DropdownTag,
@@ -246,12 +246,12 @@
       },
       placeholder: {
         type: String,
-        default: '',
+        default: "",
         required: true,
       },
       operator: {
         type: String,
-        default: '',
+        default: "",
         required: true,
       },
       selected: {
@@ -262,164 +262,164 @@
       hideTopics: {
         type: Array,
         default: function () {
-          return []
+          return [];
         },
       },
       noResultString: {
         type: String,
-        default: '',
+        default: "",
         required: true,
       },
       language: {
         type: String,
-        default: 'dk',
+        default: "dk",
       },
       qpmButtonColor1: {
         type: String,
-        default: 'qpm_buttonColor1',
+        default: "qpm_buttonColor1",
       },
       qpmButtonColor2: {
         type: String,
-        default: 'qpm_buttonColor2',
+        default: "qpm_buttonColor2",
       },
       qpmButtonColor3: {
         type: String,
-        default: 'qpm_buttonColor3',
+        default: "qpm_buttonColor3",
       },
     },
     data: function () {
       return {
         maintopicToggledMap: {},
-        expandedOptionGroupName: '',
+        expandedOptionGroupName: "",
         tempList: [],
         focusedButtonIndex: -1,
         focusByHover: true,
         ignoreHover: false,
         isLoading: false,
-      }
+      };
     },
     computed: {
       getStateCopy: {
         get: function () {
           if (!this.selected) {
-            return []
+            return [];
           }
-          return this.selected
+          return this.selected;
         },
         set: function (newValue) {
           //temp list because the this.selected is only updated after methods in this component is called
-          this.tempList = newValue
+          this.tempList = newValue;
         },
       },
       getSelectGroupLabel: function () {
-        return this.getString('selectGroupLabel')
+        return this.getString("selectGroupLabel");
       },
       getTagPlaceHolder: function () {
-        return this.getString('tagplaceholder')
+        return this.getString("tagplaceholder");
       },
       shownSubjects: function () {
         if (this.hideTopics == null || this.hideTopics.length === 0) {
-          return this.data
+          return this.data;
         }
-        let self = this
+        let self = this;
         function isNotHidden(e) {
-          return !self.isHiddenTopic(e.id)
+          return !self.isHiddenTopic(e.id);
         }
 
         let shown = this.data.filter(isNotHidden).map(function (e) {
-          let copy = JSON.parse(JSON.stringify(e))
+          let copy = JSON.parse(JSON.stringify(e));
           if (copy.groups != undefined) {
-            copy.groups = copy.groups.filter(isNotHidden)
+            copy.groups = copy.groups.filter(isNotHidden);
           } else if (copy.choices != undefined) {
-            copy.choices = copy.choices.filter(isNotHidden)
+            copy.choices = copy.choices.filter(isNotHidden);
           }
-          return copy
-        })
+          return copy;
+        });
 
-        return shown
+        return shown;
       },
       getSortedSubjectOptions: function () {
-        let self = this
-        let lang = this.language
+        let self = this;
+        let lang = this.language;
 
         function sortByPriorityOrName(a, b) {
-          let aSort, bSort
+          let aSort, bSort;
 
           if (a.ordering[lang] != null && b.ordering[lang] == null) {
-            return -1 // a is ordered and b is not -> a first
+            return -1; // a is ordered and b is not -> a first
           }
           if (b.ordering[lang] != null && a.ordering[lang] == null) {
-            return 1 // b is ordered and a is not -> b first
+            return 1; // b is ordered and a is not -> b first
           }
 
           if (a.ordering[lang] != null) {
             // We know both are non null due to earlier check
-            aSort = a.ordering[lang]
-            bSort = b.ordering[lang]
+            aSort = a.ordering[lang];
+            bSort = b.ordering[lang];
           } else {
             // Both are unordered
-            aSort = self.customGroupLabel(a)
-            bSort = self.customGroupLabel(b)
+            aSort = self.customGroupLabel(a);
+            bSort = self.customGroupLabel(b);
           }
 
           if (aSort === bSort) {
-            return 0
+            return 0;
           }
           if (aSort > bSort) {
-            return 1
+            return 1;
           } else {
-            return -1
+            return -1;
           }
         }
 
-        let data = JSON.parse(JSON.stringify(this.shownSubjects))
+        let data = JSON.parse(JSON.stringify(this.shownSubjects));
 
         for (let i = 0; i < data.length; i++) {
-          let groupName = null
-          if (data[i]['groups'] != null) {
-            groupName = 'groups'
-          } else if (data[i]['choices'] != null) {
-            groupName = 'choices'
+          let groupName = null;
+          if (data[i]["groups"] != null) {
+            groupName = "groups";
+          } else if (data[i]["choices"] != null) {
+            groupName = "choices";
           } else {
-            continue
+            continue;
           }
 
-          data[i][groupName].sort(sortByPriorityOrName) // Sort categories in groups
+          data[i][groupName].sort(sortByPriorityOrName); // Sort categories in groups
         }
 
-        return data
+        return data;
       },
       getIdToDataMap: function () {
-        var dataMap = {}
+        var dataMap = {};
         for (let i = 0; i < this.data.length; i++) {
-          const group = this.data[i]
-          dataMap[group.id] = group
+          const group = this.data[i];
+          dataMap[group.id] = group;
 
-          var groupName = this.getGroupPropertyName(group)
+          var groupName = this.getGroupPropertyName(group);
           for (let j = 0; j < group[groupName].length; j++) {
-            const element = group[groupName][j]
-            dataMap[element.id] = element
+            const element = group[groupName][j];
+            dataMap[element.id] = element;
           }
         }
-        return dataMap
+        return dataMap;
       },
       getNoResultString: function () {
         return this.noResultString
           ? this.noResultString
-          : this.getString('noDropdownContent')
+          : this.getString("noDropdownContent");
       },
       getShouldCloseOnInput: function () {
-        return this.closeOnInput && this.focusByHover
+        return this.closeOnInput && this.focusByHover;
       },
     },
     watch: {
       maintopicToggledMap: {
-        handler: 'onMaintainTopicToggledMapChange',
+        handler: "onMaintainTopicToggledMapChange",
         deep: true,
       },
     },
     mounted: function () {
-      this.initialSetup()
+      this.initialSetup();
 
       if (Array.isArray(this.data)) {
         this.data.forEach((group) => {
@@ -432,149 +432,153 @@
                     item.id
                   )
                 ) {
-                  this.maintopicToggledMap[item.id] = false
+                  this.maintopicToggledMap[item.id] = false;
                 }
               }
-            })
+            });
           }
-        })
+        });
       } else {
-        console.warn('this.data is not an array or is undefined')
+        console.warn("this.data is not an array or is undefined");
       }
-      this.$emit('mounted', this)
+      this.$emit("mounted", this);
     },
     updated: function () {
-      this.initialSetup()
+      this.initialSetup();
     },
     methods: {
       initialSetup: function () {
-        const element = this.$refs.selectWrapper
+        const element = this.$refs.selectWrapper;
 
         // Click on anywhere on dropdown opens (fix for IE)
-        const dropdown = element.getElementsByClassName('qpm_dropDownMenu')[0]
-        dropdown.removeEventListener('mousedown', this.handleOpenMenuOnClick)
-        dropdown.addEventListener('mousedown', this.handleOpenMenuOnClick)
+        const dropdown = element.getElementsByClassName("qpm_dropDownMenu")[0];
+        dropdown.removeEventListener("mousedown", this.handleOpenMenuOnClick);
+        dropdown.addEventListener("mousedown", this.handleOpenMenuOnClick);
 
         // Set placeholder to correct length
-        const input = element.getElementsByClassName('multiselect__input')[0]
-        input.addEventListener('input', this.handleInputEvent.bind(this))
+        const input = element.getElementsByClassName("multiselect__input")[0];
+        input.addEventListener("input", this.handleInputEvent.bind(this));
 
         // Hide last operator (Changed by Ole on 20231210)
-        const operators = element.getElementsByClassName('qpm_operator')
+        const operators = element.getElementsByClassName("qpm_operator");
         Array.from(operators).forEach((operator, index) => {
           if (index === operators.length - 1) {
-            operator.style.color = 'darkgrey'
+            operator.style.color = "darkgrey";
           } else {
-            operator.style.color = ''
-            operator.style.display = 'inline-block'
+            operator.style.color = "";
+            operator.style.display = "inline-block";
           }
-        })
+        });
 
         const headers = Array.from(
-          element.getElementsByClassName('multiselect__element')
-        )
-        const self = this
+          element.getElementsByClassName("multiselect__element")
+        );
+        const self = this;
 
         headers.forEach((header) => {
           // Stop existing mousedown events
-          header.removeEventListener('mousedown', self.handleStopEvent, true)
-          header.addEventListener('mousedown', self.handleStopEvent, true)
+          header.removeEventListener("mousedown", self.handleStopEvent, true);
+          header.addEventListener("mousedown", self.handleStopEvent, true);
 
           // Add click handler for category groups
-          header.removeEventListener('click', self.handleCategoryGroupClick)
-          header.addEventListener('click', self.handleCategoryGroupClick)
-        })
+          header.removeEventListener("click", self.handleCategoryGroupClick);
+          header.addEventListener("click", self.handleCategoryGroupClick);
+        });
 
         // Stop selecting group when pressing enter during search
         element.removeEventListener(
-          'keypress',
+          "keypress",
           self.handleStopEnterOnGroups,
           true
-        )
-        element.addEventListener('keypress', self.handleStopEnterOnGroups, true)
+        );
+        element.addEventListener(
+          "keypress",
+          self.handleStopEnterOnGroups,
+          true
+        );
 
-        input.removeEventListener('keyup', self.handleSearchInput)
-        input.addEventListener('keyup', self.handleSearchInput)
+        input.removeEventListener("keyup", self.handleSearchInput);
+        input.addEventListener("keyup", self.handleSearchInput);
         if (!input.value) {
           // Hide what needs to be hidden only if groups and only if we are not currently doing a search
-          this.showOrHideElements()
+          this.showOrHideElements();
         }
 
-        const labels = element.getElementsByClassName('multiselect__tag')
+        const labels = element.getElementsByClassName("multiselect__tag");
         Array.from(labels).forEach((label) => {
-          label.removeEventListener('click', self.handleTagClick)
-          label.addEventListener('click', self.handleTagClick)
-        })
+          label.removeEventListener("click", self.handleTagClick);
+          label.addEventListener("click", self.handleTagClick);
+        });
       },
       clearShownItems: function () {
-        this.expandedOptionGroupName = ''
-        this.updateExpandedGroupHighlighting()
+        this.expandedOptionGroupName = "";
+        this.updateExpandedGroupHighlighting();
 
-        this.$refs.multiselect.pointer = 0 // Set highlight to first item to prevent exceptions.
+        this.$refs.multiselect.pointer = 0; // Set highlight to first item to prevent exceptions.
         for (let key in this.maintopicToggledMap) {
-          this.maintopicToggledMap[key] = false
+          this.maintopicToggledMap[key] = false;
         }
       },
       input: function (value) {
         if (!value || value.length === 0) {
-          this.clearShownItems()
-          this.$emit('input', value, this.index)
-          return
+          this.clearShownItems();
+          this.$emit("input", value, this.index);
+          return;
         }
         // Klone det sidste element for at undgå at ændre det direkte i datakilden
-        let elem = { ...value[value.length - 1] }
-        let lg = this.language // Bruger this.language til at få den aktuelle sprogkode
+        let elem = { ...value[value.length - 1] };
+        let lg = this.language; // Bruger this.language til at få den aktuelle sprogkode
 
         if (elem.maintopic) {
           //toggle the maintopic
           this.maintopicToggledMap = {
             ...this.maintopicToggledMap,
             [elem.id]: !this.maintopicToggledMap[elem.id],
-          }
-          value.pop()
+          };
+          value.pop();
         }
 
         // Tjek kun for '-' i det aktuelle sprog
         if (
           !elem.isCustom &&
           elem.translations[lg] &&
-          elem.translations[lg].startsWith('-')
+          elem.translations[lg].startsWith("-")
         ) {
           // Ændre kun translations for det aktuelle sprog
-          let updatedTranslations = { ...elem.translations }
-          updatedTranslations[lg] = elem.translations[lg].slice(1)
+          let updatedTranslations = { ...elem.translations };
+          updatedTranslations[lg] = elem.translations[lg].slice(1);
 
           // Opdater elem med de nye translations, så ændringen kun påvirker det valgte sprog
-          elem.translations = updatedTranslations
+          elem.translations = updatedTranslations;
           // Erstat det oprindelige element med den ændrede klon i værdi-arrayet
-          value[value.length - 1] = elem
+          value[value.length - 1] = elem;
         }
-        this.$emit('input', value, this.index)
+        this.$emit("input", value, this.index);
         if (!elem.maintopic) {
-          this.$refs.multiselect.deactivate()
+          this.$refs.multiselect.deactivate();
         }
       },
       close: function () {
-        if (this.tempList.length > 0) return //Check if any items have been clicked
+        if (this.tempList.length > 0) return; //Check if any items have been clicked
 
-        let input = this.$el.getElementsByClassName('multiselect__input')[0]
+        let input = this.$el.getElementsByClassName("multiselect__input")[0];
 
-        this.setWidthToPlaceholderWidth(input)
+        this.setWidthToPlaceholderWidth(input);
       },
       open: function () {
-        this.$refs.multiselect.pointer = -1 // Remove highlight of non hovered items
+        this.$refs.multiselect.pointer = -1; // Remove highlight of non hovered items
       },
       /**
        * Added for sanity, since we hide elements by adding qpm_shown
        */
       hideElement(element) {
-        element.classList.add('qpm_shown')
+        element.classList.add("qpm_shown");
       },
       /**
        * Added for sanity, since we show elements by removing qpm_shown
        */
       showElement(element) {
-        element.classList.remove('qpm_shown')
+        element.classList.remove("qpm_shown");
       },
       /**
        * Resets the maintopicToggledMap.
@@ -582,7 +586,7 @@
        */
       resetMaintopicToggledMap() {
         for (let key in this.maintopicToggledMap) {
-          this.maintopicToggledMap[key] = false
+          this.maintopicToggledMap[key] = false;
         }
       },
       /**
@@ -591,53 +595,53 @@
        * @param {string} groupName - The name of the group to hide.
        */
       hideItems(groupName) {
-        if (!groupName) return
+        if (!groupName) return;
         const itemsToRemove = document.querySelectorAll(
           `[data-name="${groupName}"]`
-        )
+        );
 
         itemsToRemove.forEach((item) => {
-          this.hideElement(item.parentNode.parentNode)
-        })
+          this.hideElement(item.parentNode.parentNode);
+        });
       },
       /**
        * Adds or removes tag either by clicking on "x" or clicking already selected item in dropdown
        * Updated 04/11/2024 handles hidding or showing elements based on the maintopicToggledMap (handles state for the chevron that a maintopic has)
        */
       showOrHideElements: function () {
-        const element = this.$refs.selectWrapper
+        const element = this.$refs.selectWrapper;
         if (!this.isGroup) {
           // Here we are dealing with filters so we omit the check on groupname
-          const entries = element.querySelectorAll('[data-name]')
+          const entries = element.querySelectorAll("[data-name]");
           entries.forEach((entry) => {
-            const parent = entry.parentNode.parentNode
-            const parentId = entry.getAttribute('parent-id')
-            const grandParentId = entry.getAttribute('grand-parent-id')
+            const parent = entry.parentNode.parentNode;
+            const parentId = entry.getAttribute("parent-id");
+            const grandParentId = entry.getAttribute("grand-parent-id");
 
             const shouldShow =
               (parentId && !this.maintopicToggledMap[parentId]) ||
-              (grandParentId && !this.maintopicToggledMap[grandParentId])
+              (grandParentId && !this.maintopicToggledMap[grandParentId]);
 
-            parent.classList.toggle('qpm_shown', shouldShow)
-          })
-          return
+            parent.classList.toggle("qpm_shown", shouldShow);
+          });
+          return;
         }
 
-        const entries = element.querySelectorAll('[data-name]')
+        const entries = element.querySelectorAll("[data-name]");
         entries.forEach((entry) => {
-          const groupName = entry.getAttribute('data-name')
-          const parent = entry.parentNode.parentNode
+          const groupName = entry.getAttribute("data-name");
+          const parent = entry.parentNode.parentNode;
 
-          const parentId = entry.getAttribute('parent-id')
-          const grandParentId = entry.getAttribute('grand-parent-id')
+          const parentId = entry.getAttribute("parent-id");
+          const grandParentId = entry.getAttribute("grand-parent-id");
 
           const shouldShow =
             this.expandedOptionGroupName !== groupName ||
             (parentId && !this.maintopicToggledMap[parentId]) ||
-            (grandParentId && !this.maintopicToggledMap[grandParentId])
+            (grandParentId && !this.maintopicToggledMap[grandParentId]);
 
-          parent.classList.toggle('qpm_shown', shouldShow)
-        })
+          parent.classList.toggle("qpm_shown", shouldShow);
+        });
       },
       /**
        * Updates visibility of options contained in an optiongroup.
@@ -649,46 +653,48 @@
         selectedOptionIds,
         optionsInOptionGroup
       ) {
-        this.showOrHideElements()
-        this.updateExpandedGroupHighlighting()
+        this.showOrHideElements();
+        this.updateExpandedGroupHighlighting();
 
         // Sets to keep track of depths and parent IDs
-        const selectedDepths = new Set() // Contains the depth levels that have a selected option
-        const parentIdsToShow = new Set()
-        const grandParentIdsToShow = new Set()
+        const selectedDepths = new Set(); // Contains the depth levels that have a selected option
+        const parentIdsToShow = new Set();
+        const grandParentIdsToShow = new Set();
 
         const optionsInGroupIds = new Set(
           optionsInOptionGroup.map((option) => option.id)
-        )
+        );
 
         selectedOptionIds.forEach((id) => {
           // Check if the selected option is in the optiongroup
-          const option = optionsInOptionGroup.find((option) => option.id === id)
+          const option = optionsInOptionGroup.find(
+            (option) => option.id === id
+          );
           if (option) {
-            selectedDepths.add(option.depth)
+            selectedDepths.add(option.depth);
             if (option.parentId) {
-              parentIdsToShow.add(option.parentId)
+              parentIdsToShow.add(option.parentId);
               // Expand the parent maintopic
-              this.maintopicToggledMap[option.parentId] = true
+              this.maintopicToggledMap[option.parentId] = true;
             }
             if (option.grandParentId) {
               // Expand the grandparent maintopic
-              grandParentIdsToShow.add(option.grandParentId)
-              this.maintopicToggledMap[option.grandParentId] = true
+              grandParentIdsToShow.add(option.grandParentId);
+              this.maintopicToggledMap[option.grandParentId] = true;
             }
           }
-        })
+        });
 
-        this.showElementsByOptionIds(selectedOptionIds, optionsInGroupIds)
-        this.showElementsByDepths(selectedDepths, optionsInGroupIds)
+        this.showElementsByOptionIds(selectedOptionIds, optionsInGroupIds);
+        this.showElementsByDepths(selectedDepths, optionsInGroupIds);
         this.showElementsByOptionIds(
           Array.from(parentIdsToShow),
           optionsInGroupIds
-        )
+        );
         this.showElementsByOptionIds(
           Array.from(grandParentIdsToShow),
           optionsInGroupIds
-        )
+        );
       },
       /**
        * Utility method to show elements by option IDs
@@ -700,15 +706,15 @@
           if (optionsInGroupIds.has(id)) {
             const elements = document.querySelectorAll(
               `span[option-id="${id}"]`
-            )
+            );
             elements.forEach((element) => {
-              const liElement = element.closest('li.multiselect__element')
+              const liElement = element.closest("li.multiselect__element");
               if (liElement) {
-                this.showElement(liElement)
+                this.showElement(liElement);
               }
-            })
+            });
           }
-        })
+        });
       },
       /**
        * Utility method to show elements by option depth
@@ -719,17 +725,17 @@
         depths.forEach((depth) => {
           const depthElements = document.querySelectorAll(
             `span[option-depth="${depth}"]`
-          )
+          );
           depthElements.forEach((element) => {
-            const optionId = element.getAttribute('option-id')
+            const optionId = element.getAttribute("option-id");
             if (optionsInGroupIds.has(optionId)) {
-              const liElement = element.closest('li.multiselect__element')
+              const liElement = element.closest("li.multiselect__element");
               if (liElement) {
-                this.showElement(liElement)
+                this.showElement(liElement);
               }
             }
-          })
-        })
+          });
+        });
       },
       /**
        * Utility method to get the options for a specific optiongroup
@@ -737,7 +743,7 @@
        * @returns list of options in the group
        */
       getOptionsFromOptionsGroupName: function (groupName) {
-        const result = []
+        const result = [];
         if (this.isGroup) {
           topics.forEach((topic) => {
             if (topic.groupname === groupName) {
@@ -749,10 +755,10 @@
                   depth: group.subtopiclevel || 0, // is a base topic if 0
                   parentId: group.maintopicIdLevel1 || null,
                   grandParentId: group.maintopicIdLevel2 || null,
-                })
-              })
+                });
+              });
             }
-          })
+          });
         } else {
           // For the filters the naming is different so we need to handle it differently
           filtrer.forEach((filter) => {
@@ -765,12 +771,12 @@
                   depth: choice.subtopiclevel || 0, // is a base topic if 0
                   parentId: choice.maintopicIdLevel1 || null,
                   grandParentId: choice.maintopicIdLevel2 || null,
-                })
-              })
+                });
+              });
             }
-          })
+          });
         }
-        return result
+        return result;
       },
       /**
        * Handles the event when clicking the optiongroup/category
@@ -778,42 +784,42 @@
        * @param {HTMLElement} target - The target element.
        */
       handleCategoryGroupClick(event) {
-        let target = event.target
+        let target = event.target;
 
         // Check if the click is on the optiongroup name or elsewhere within the multiselect__option__option--group element
-        if (target.classList.contains('qpm_groupLabel')) {
-          target = target.parentElement
+        if (target.classList.contains("qpm_groupLabel")) {
+          target = target.parentElement;
         }
 
         const optionGroupName =
-          target.getElementsByClassName('qpm_groupLabel')[0].textContent
+          target.getElementsByClassName("qpm_groupLabel")[0].textContent;
 
-        if (target.classList.contains('multiselect__option--group')) {
+        if (target.classList.contains("multiselect__option--group")) {
           if (this.expandedOptionGroupName === optionGroupName) {
-            this.hideItems(this.expandedOptionGroupName)
-            this.expandedOptionGroupName = ''
-            this.updateExpandedGroupHighlighting()
-            this.resetMaintopicToggledMap()
+            this.hideItems(this.expandedOptionGroupName);
+            this.expandedOptionGroupName = "";
+            this.updateExpandedGroupHighlighting();
+            this.resetMaintopicToggledMap();
           } else {
-            this.expandedOptionGroupName = optionGroupName
+            this.expandedOptionGroupName = optionGroupName;
 
-            const optionGroupId = this.getOptionGroupId(optionGroupName)
+            const optionGroupId = this.getOptionGroupId(optionGroupName);
             const selectedOptions =
-              this.getSelectedOptionsByOptionGroupId(optionGroupId)
+              this.getSelectedOptionsByOptionGroupId(optionGroupId);
 
-            const selectedOptionIds = selectedOptions.map((o) => o.id)
+            const selectedOptionIds = selectedOptions.map((o) => o.id);
             const optionsInOptionGroup =
-              this.getOptionsFromOptionsGroupName(optionGroupName)
+              this.getOptionsFromOptionsGroupName(optionGroupName);
 
             if (selectedOptionIds.length <= 0) {
-              this.showOrHideElements()
-              this.updateExpandedGroupHighlighting()
+              this.showOrHideElements();
+              this.updateExpandedGroupHighlighting();
             } else {
               // Only show the tags in the clicked group
               this.updateOptionGroupVisibility(
                 selectedOptionIds,
                 optionsInOptionGroup
-              )
+              );
             }
           }
         } else {
@@ -827,55 +833,55 @@
        * @param {Event} event - The click event.
        */
       handleTagClick: function (event) {
-        const target = event.target
-        const targetLabel = target.textContent.trim()
+        const target = event.target;
+        const targetLabel = target.textContent.trim();
 
         const optionGroupName = this.getOptionGroupName(
           this.data,
           targetLabel,
           this.language
-        )
+        );
 
-        const optionGroupId = this.getOptionGroupId(optionGroupName)
+        const optionGroupId = this.getOptionGroupId(optionGroupName);
         const selectedOptions =
-          this.getSelectedOptionsByOptionGroupId(optionGroupId)
+          this.getSelectedOptionsByOptionGroupId(optionGroupId);
 
-        const selectedOptionIds = selectedOptions.map((o) => o.id)
+        const selectedOptionIds = selectedOptions.map((o) => o.id);
         const optionsInOptionGroup =
-          this.getOptionsFromOptionsGroupName(optionGroupName)
+          this.getOptionsFromOptionsGroupName(optionGroupName);
 
         if (selectedOptionIds.length <= 0) {
-          this.showOrHideElements()
-          this.updateExpandedGroupHighlighting()
+          this.showOrHideElements();
+          this.updateExpandedGroupHighlighting();
         } else {
           // Only show the tags in the clicked group
           this.updateOptionGroupVisibility(
             selectedOptionIds,
             optionsInOptionGroup
-          )
+          );
         }
       },
       handleSearchInput: function (event) {
-        if (!this.isGroup) return
-        const target = event.target
-        const element = this.$refs.selectWrapper
+        if (!this.isGroup) return;
+        const target = event.target;
+        const element = this.$refs.selectWrapper;
 
         if (target.value) {
           //search input, save current state of shown element, and show all elements
           const entries = element.querySelectorAll(
-            '.multiselect__element.qpm_shown'
-          )
+            ".multiselect__element.qpm_shown"
+          );
           for (let i = 0; i < entries.length; i++) {
-            this.showElement(entries[i])
+            this.showElement(entries[i]);
           }
         } else {
           //restore current state of shown elements
-          this.showOrHideElements()
-          this.initialSetup()
+          this.showOrHideElements();
+          this.initialSetup();
         }
 
-        target.removeEventListener('blur', this.handleOnBlur)
-        target.addEventListener('blur', this.handleOnBlur)
+        target.removeEventListener("blur", this.handleOnBlur);
+        target.addEventListener("blur", this.handleOnBlur);
       },
       /**
        * Adjusts the input field's width based on its value length.
@@ -883,126 +889,126 @@
        * @param {Event} event - The input event object.
        */
       handleInputEvent: function (event) {
-        const newWidth = `${event.target.value.length + 1}ch`
-        event.target.style.setProperty('width', newWidth, 'important')
+        const newWidth = `${event.target.value.length + 1}ch`;
+        event.target.style.setProperty("width", newWidth, "important");
       },
       handleStopEnterOnGroups: function (event) {
         if (this.$refs.multiselect.pointer < 0) {
           // If there is no hovered element then highlight the first on as with old behavior
-          this.$refs.multiselect.pointer = 0
+          this.$refs.multiselect.pointer = 0;
         }
         if (event.charCode == 13) {
-          if (event.target.classList.contains('multiselect__input')) {
-            const element = this.$refs.selectWrapper
+          if (event.target.classList.contains("multiselect__input")) {
+            const element = this.$refs.selectWrapper;
             target = element.getElementsByClassName(
-              'multiselect__option--highlight'
-            )[0]
+              "multiselect__option--highlight"
+            )[0];
             if (
               target == null ||
-              target.classList.contains('multiselect__option--group')
+              target.classList.contains("multiselect__option--group")
             ) {
-              event.stopPropagation()
+              event.stopPropagation();
 
-              if (target == null) return
+              if (target == null) return;
 
               var focusedGroup =
-                target.querySelector('.qpm_groupLabel').textContent
+                target.querySelector(".qpm_groupLabel").textContent;
 
               if (focusedGroup == this.expandedOptionGroupName) {
-                this.expandedOptionGroupName = ''
+                this.expandedOptionGroupName = "";
               } else {
-                this.expandedOptionGroupName = focusedGroup
+                this.expandedOptionGroupName = focusedGroup;
               }
             } else if (!this.focusByHover && this.focusedButtonIndex >= 0) {
-              var dropdownRef = this.$refs.multiselect
+              var dropdownRef = this.$refs.multiselect;
 
               // Nothing currently in focus, and therefore nothing left to do.
               if (dropdownRef.pointer < 0) {
-                event.stopPropagation()
-                return
+                event.stopPropagation();
+                return;
               }
 
               // Find the button corresponding to the one in focus
               var target = dropdownRef.$refs.list.getElementsByClassName(
-                'multiselect__option--highlight'
-              )[0]
+                "multiselect__option--highlight"
+              )[0];
               var button = target.getElementsByClassName(
-                'qpm_ButtonColumnFocused'
-              )[0]
+                "qpm_ButtonColumnFocused"
+              )[0];
 
               // If no scope buttons exists or none are currently in focus
               // then let the default handeling occur via the input method.
-              if (!button) return
+              if (!button) return;
 
-              event.stopPropagation()
-              button.click()
+              event.stopPropagation();
+              button.click();
             }
           }
         }
       },
       handleOpenMenuOnClick: function (event) {
         //FIX FOR IE!
-        var tagText = event.target.textContent
+        var tagText = event.target.textContent;
 
         if (
-          tagText.startsWith(this.getString('manualInputTerm')) ||
-          tagText.startsWith(this.getString('manualInputTermTranslated'))
+          tagText.startsWith(this.getString("manualInputTerm")) ||
+          tagText.startsWith(this.getString("manualInputTermTranslated"))
         ) {
-          this.expandedOptionGroupName = ''
-          this.updateExpandedGroupHighlighting()
+          this.expandedOptionGroupName = "";
+          this.updateExpandedGroupHighlighting();
         }
 
-        event.stopPropagation()
-        this.$refs.multiselect.$refs.search.focus()
+        event.stopPropagation();
+        this.$refs.multiselect.$refs.search.focus();
       },
       handleScopeButtonClick: function (item, state, event) {
-        this.$emit('updateScope', item, state, this.index)
-        item.scope = state
+        this.$emit("updateScope", item, state, this.index);
+        item.scope = state;
 
         //close
         if (this.getShouldCloseOnInput) {
-          this.$refs.multiselect.$refs.search.blur()
+          this.$refs.multiselect.$refs.search.blur();
         }
 
         //Check if just added
         if (this.tempList.indexOf(item) >= 0) {
-          event.stopPropagation()
-          return
+          event.stopPropagation();
+          return;
         }
         //Check if added previously
         for (let i = 0; i < this.selected.length; i++) {
           if (this.selected[i].name == item.name) {
-            event.stopPropagation()
-            return
+            event.stopPropagation();
+            return;
           }
         }
       },
       handleOnButtonMouseover: function (index, event) {
         // Prevent mouse from focusing new subject. Used for auto scroll.
         if (this.ignoreHover) {
-          event.stopPropagation()
-          event.preventDefault()
-          return
+          event.stopPropagation();
+          event.preventDefault();
+          return;
         }
 
-        this.focusedButtonIndex = index
-        this.focusByHover = true
+        this.focusedButtonIndex = index;
+        this.focusByHover = true;
       },
       handleAddTag: async function (newTag) {
-        var tag
+        var tag;
         if (this.searchWithAI) {
-          this.isLoading = true
-          this.$emit('translating', true, this.index)
+          this.isLoading = true;
+          this.$emit("translating", true, this.index);
 
           // close the multiselect dropdown
-          this.$refs.multiselect.deactivate()
+          this.$refs.multiselect.deactivate();
           //setTimeout is to resolve the tag placeholder before starting to translate
-          await new Promise((resolve) => setTimeout(resolve, 10))
-          let translated = await this.translateSearch(newTag)
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          let translated = await this.translateSearch(newTag);
           tag = {
             name: translated,
             searchStrings: { normal: [translated] },
-            preString: this.getString('manualInputTermTranslated') + ': ',
+            preString: this.getString("manualInputTermTranslated") + ": ",
             isCustom: true,
             //IsTranslated er true når det er en unedited oversættelse
             isTranslated: true,
@@ -1010,39 +1016,39 @@
             tooltip: {
               dk:
                 customInputTagTooltip.dk +
-                ' - denne søgning er oversat fra: ' +
+                " - denne søgning er oversat fra: " +
                 newTag,
               en:
                 customInputTagTooltip.en +
-                ' - this search is translated from: ' +
+                " - this search is translated from: " +
                 newTag,
             },
-          }
-          this.isLoading = false
+          };
+          this.isLoading = false;
         } else {
           tag = {
             name: newTag,
             searchStrings: { normal: [newTag] },
-            preString: this.getString('manualInputTerm') + ': ',
+            preString: this.getString("manualInputTerm") + ": ",
             isCustom: true,
             tooltip: customInputTagTooltip,
-          }
+          };
         }
-        this.$emit('translating', false, this.index)
-        this.selected.push(tag)
-        this.input(this.selected, -1)
-        this.clearShownItems()
+        this.$emit("translating", false, this.index);
+        this.selected.push(tag);
+        this.input(this.selected, -1);
+        this.clearShownItems();
       },
       handleEditTag: function () {
-        console.log('editTag')
+        console.log("editTag");
       },
       handleUpdateCustomTag: function (oldTag, newTag) {
         var tagIndex = this.selected.findIndex(function (e) {
-          return oldTag == e
-        })
-        this.selected.splice(tagIndex, 1, newTag)
-        this.clearShownItems()
-        this.input(this.selected, -1)
+          return oldTag == e;
+        });
+        this.selected.splice(tagIndex, 1, newTag);
+        this.clearShownItems();
+        this.input(this.selected, -1);
       },
       /**
        * Stops the propagation and default action of an event under certain conditions.
@@ -1056,225 +1062,225 @@
        */
       handleStopEvent: function (event) {
         // Click event was on the parent multiselect group
-        if (event.target.classList.contains('multiselect__option--group')) {
-          event.stopPropagation()
-          event.preventDefault()
-          return false
+        if (event.target.classList.contains("multiselect__option--group")) {
+          event.stopPropagation();
+          event.preventDefault();
+          return false;
         }
         // Click event was on the category name (left aligned)
-        if (event.target.classList.contains('qpm_groupLabel')) {
-          event.stopPropagation()
-          event.preventDefault()
-          return false
+        if (event.target.classList.contains("qpm_groupLabel")) {
+          event.stopPropagation();
+          event.preventDefault();
+          return false;
         }
         // click event was on either of the scope labels (right aligned in advanced search)
-        if (event.target.classList.contains('qpm_scopeLabel')) {
-          event.stopPropagation()
-          event.preventDefault()
-          event.target.parentNode.click()
-          return false
+        if (event.target.classList.contains("qpm_scopeLabel")) {
+          event.stopPropagation();
+          event.preventDefault();
+          event.target.parentNode.click();
+          return false;
         }
       },
       /**
        * Blur handler needed to force groups to close if search is aborted
        */
       handleOnBlur() {
-        this.initialSetup()
+        this.initialSetup();
       },
       scrollToFocusedSubject: function () {
         var subject = this.$refs.multiselect.$refs.list.querySelector(
-          '.multiselect__option--highlight'
-        )
-        if (!subject) return
+          ".multiselect__option--highlight"
+        );
+        if (!subject) return;
 
-        var isFocusVissible = this.isSubjectVissible(subject)
+        var isFocusVissible = this.isSubjectVissible(subject);
         if (!isFocusVissible) {
-          this.ignoreHover = true
+          this.ignoreHover = true;
           subject.scrollIntoView({
-            behavior: 'smooth',
-            block: 'nearest',
-            inline: 'nearest',
-          })
+            behavior: "smooth",
+            block: "nearest",
+            inline: "nearest",
+          });
         }
       },
       navDown: function () {
-        var dropdownRef = this.$refs.multiselect
+        var dropdownRef = this.$refs.multiselect;
 
         // Set focused column to normal if not set
         if (this.focusedButtonIndex < 0 || this.focusByHover) {
-          this.focusedButtonIndex = 1 // index 1 is assumed to be the middle/default index
-          this.focusByHover = false
+          this.focusedButtonIndex = 1; // index 1 is assumed to be the middle/default index
+          this.focusByHover = false;
         }
 
         // No element selected, just select first
         if (dropdownRef.pointer < 0) {
-          dropdownRef.pointer = 0
-          return
+          dropdownRef.pointer = 0;
+          return;
         }
 
-        var currentSubject = dropdownRef.filteredOptions[dropdownRef.pointer]
+        var currentSubject = dropdownRef.filteredOptions[dropdownRef.pointer];
 
-        var isGroup = currentSubject['$groupLabel'] != null
+        var isGroup = currentSubject["$groupLabel"] != null;
 
-        var isCurrentExpandedGroup = false
-        var subject
+        var isCurrentExpandedGroup = false;
+        var subject;
 
         if (isGroup) {
-          var label = this.customGroupLabelById(currentSubject.$groupLabel)
+          var label = this.customGroupLabelById(currentSubject.$groupLabel);
           subject = this.getSortedSubjectOptions.find(function (e) {
-            return e.id === currentSubject.$groupLabel
-          })
-          isCurrentExpandedGroup = label !== this.expandedOptionGroupName
+            return e.id === currentSubject.$groupLabel;
+          });
+          isCurrentExpandedGroup = label !== this.expandedOptionGroupName;
         } else {
-          subject = currentSubject
+          subject = currentSubject;
         }
 
-        var navDistance
+        var navDistance;
         if (isGroup && isCurrentExpandedGroup) {
-          var groupPropertyName = this.getGroupPropertyName(subject)
-          navDistance = subject[groupPropertyName].length + 1
+          var groupPropertyName = this.getGroupPropertyName(subject);
+          navDistance = subject[groupPropertyName].length + 1;
         } else {
-          navDistance = 1
+          navDistance = 1;
         }
 
         if (
           dropdownRef.pointer + navDistance >=
           dropdownRef.filteredOptions.length
         ) {
-          return
+          return;
         }
 
-        dropdownRef.pointer += navDistance
+        dropdownRef.pointer += navDistance;
 
         // Scroll to see element if needed
-        var self = this
+        var self = this;
         this.$nextTick(function () {
-          self.scrollToFocusedSubject()
-        })
+          self.scrollToFocusedSubject();
+        });
       },
       navUp: function () {
-        var dropdownRef = this.$refs.multiselect
+        var dropdownRef = this.$refs.multiselect;
 
         // Set focused column to normal if not set
         if (this.focusedButtonIndex < 0 || this.focusByHover) {
-          this.focusedButtonIndex = 1 // index 1 is assumed to be the middle/default index
-          this.focusByHover = false
+          this.focusedButtonIndex = 1; // index 1 is assumed to be the middle/default index
+          this.focusByHover = false;
         }
 
         // End of list reached, do nothing
         if (dropdownRef.pointer <= 0) {
-          dropdownRef.pointer = -1
+          dropdownRef.pointer = -1;
           dropdownRef.$el.scrollIntoView({
-            behavior: 'smooth',
-            block: 'nearest',
-            inline: 'nearest',
-          })
-          return
+            behavior: "smooth",
+            block: "nearest",
+            inline: "nearest",
+          });
+          return;
         }
 
-        var currentSubject = dropdownRef.filteredOptions[dropdownRef.pointer]
+        var currentSubject = dropdownRef.filteredOptions[dropdownRef.pointer];
 
-        var isGroup = currentSubject['$groupLabel'] != null
+        var isGroup = currentSubject["$groupLabel"] != null;
 
-        var navDistance = 1
+        var navDistance = 1;
 
         if (isGroup) {
           var groupIndex = this.getSortedSubjectOptions.findIndex(function (e) {
-            return e.id === currentSubject.$groupLabel
-          })
+            return e.id === currentSubject.$groupLabel;
+          });
 
           if (groupIndex > 0) {
-            var groupAbove = this.getSortedSubjectOptions[groupIndex - 1]
-            var groupAboveLabel = this.customGroupLabel(groupAbove)
+            var groupAbove = this.getSortedSubjectOptions[groupIndex - 1];
+            var groupAboveLabel = this.customGroupLabel(groupAbove);
 
             if (groupAboveLabel !== this.expandedOptionGroupName) {
-              var groupPropertyName = this.getGroupPropertyName(groupAbove)
-              navDistance = groupAbove[groupPropertyName].length + 1
+              var groupPropertyName = this.getGroupPropertyName(groupAbove);
+              navDistance = groupAbove[groupPropertyName].length + 1;
             }
           }
         }
 
-        dropdownRef.pointer -= navDistance
+        dropdownRef.pointer -= navDistance;
 
         // Scroll to see element if needed
-        var self = this
+        var self = this;
         this.$nextTick(function () {
-          self.scrollToFocusedSubject()
-        })
+          self.scrollToFocusedSubject();
+        });
       },
       navLeft: function (event) {
-        if (!this.getShouldPreventLeftRightDefault()) return
+        if (!this.getShouldPreventLeftRightDefault()) return;
 
-        this.focusByHover = false
-        this.focusedButtonIndex = Math.max(0, this.focusedButtonIndex - 1) // Stop navLeft at left most element
-        event.preventDefault()
+        this.focusByHover = false;
+        this.focusedButtonIndex = Math.max(0, this.focusedButtonIndex - 1); // Stop navLeft at left most element
+        event.preventDefault();
       },
       navRight: function (event) {
-        if (!this.getShouldPreventLeftRightDefault()) return
+        if (!this.getShouldPreventLeftRightDefault()) return;
 
-        this.focusByHover = false
-        this.focusedButtonIndex = Math.min(2, this.focusedButtonIndex + 1) // Stop navRight at right most element (currently assumed to be index 2)
-        event.preventDefault()
+        this.focusByHover = false;
+        this.focusedButtonIndex = Math.min(2, this.focusedButtonIndex + 1); // Stop navRight at right most element (currently assumed to be index 2)
+        event.preventDefault();
       },
       isContainedInList: function (props) {
         if (props.option && props.option.name && this.selected) {
           for (let i = 0; i < this.selected.length; i++) {
             if (this.selected[i].name == props.option.name) {
-              return true
+              return true;
             }
           }
         }
-        return false
+        return false;
       },
       isSelected: function (option) {
         return this.selected.some(
           (selectedOption) => selectedOption.id === option.id
-        )
+        );
       },
       isHiddenTopic: function (topicId) {
-        return this.hideTopics.indexOf(topicId) != -1
+        return this.hideTopics.indexOf(topicId) != -1;
       },
       isSubjectVissible: function (subject) {
-        var subjectRect = subject.getBoundingClientRect()
+        var subjectRect = subject.getBoundingClientRect();
 
         var viewHeight =
-          window.innerHeight || document.documentElement.clientHeight
+          window.innerHeight || document.documentElement.clientHeight;
 
         var isSubjectVissible =
-          subjectRect.top >= 0 && subjectRect.bottom <= viewHeight
-        return isSubjectVissible
+          subjectRect.top >= 0 && subjectRect.bottom <= viewHeight;
+        return isSubjectVissible;
       },
       updateExpandedGroupHighlighting: function () {
-        var listItems = this.$refs.multiselect.$refs.list
+        var listItems = this.$refs.multiselect.$refs.list;
 
         // Remove highlighting due to group being open from all groups
         let itemsToUnHighlight =
-          listItems.querySelectorAll('.qpm_groupExpanded')
+          listItems.querySelectorAll(".qpm_groupExpanded");
 
         for (let i = 0; i < itemsToUnHighlight.length; i++) {
-          itemsToUnHighlight[i].classList.remove('qpm_groupExpanded')
+          itemsToUnHighlight[i].classList.remove("qpm_groupExpanded");
         }
 
-        if (this.expandedOptionGroupName == '') return
+        if (this.expandedOptionGroupName == "") return;
 
         // Add highlighting due to group being open
         var expandedElement = listItems.querySelector(
           'li.multiselect__element span.multiselect__option--group span[group-name="' +
             this.expandedOptionGroupName +
             '"]'
-        )
+        );
         expandedElement.parentElement.parentElement.classList.add(
-          'qpm_groupExpanded'
-        )
+          "qpm_groupExpanded"
+        );
       },
       updateSortedSubjectOptions() {
-        this.showOrHideElements()
+        this.showOrHideElements();
       },
       /**
        * Handles changes to maintopicToggledMap by updating sorted subject options.
        */
       onMaintainTopicToggledMapChange() {
-        this.updateSortedSubjectOptions()
+        this.updateSortedSubjectOptions();
       },
       /**
        * Determine if the buttons for the scopes (narrow, normal or broad) should be shown.
@@ -1283,7 +1289,7 @@
        * @returns {boolean} True if the scope buttons should be shown, false otherwise.
        */
       showScope: function (name) {
-        return !(this.expandedOptionGroupName === name)
+        return !(this.expandedOptionGroupName === name);
       },
       /**
        * Translates the given words using the function endpoint for translation.
@@ -1293,40 +1299,40 @@
        */
       translateSearch: async function (wordsToTranslate) {
         const openAiServiceUrl =
-          this.appSettings.openAi.baseUrl + '/api/TranslateTitle'
-        var localePrompt = getPromptForLocale(searchTranslationPrompt, 'dk')
+          this.appSettings.openAi.baseUrl + "/api/TranslateTitle";
+        var localePrompt = getPromptForLocale(searchTranslationPrompt, "dk");
 
         try {
-          let answer = ''
+          let answer = "";
           const response = await fetch(openAiServiceUrl, {
-            method: 'POST',
+            method: "POST",
             body: JSON.stringify({
               prompt: localePrompt,
               title: wordsToTranslate,
               client: this.appSettings.client,
             }),
-          })
+          });
 
           if (!response.ok) {
-            const data = await response.json()
-            throw Error(JSON.stringify(data))
+            const data = await response.json();
+            throw Error(JSON.stringify(data));
           }
 
           const reader = response.body
             .pipeThrough(new TextDecoderStream())
-            .getReader()
+            .getReader();
 
           while (true) {
-            const { done, value } = await reader.read()
+            const { done, value } = await reader.read();
             if (done || this.stopGeneration) {
-              break
+              break;
             }
-            answer += value
+            answer += value;
           }
-          return answer
+          return answer;
         } catch (error) {
-          this.text = 'An unknown error occurred: \n' + error.toString()
-          return wordsToTranslate
+          this.text = "An unknown error occurred: \n" + error.toString();
+          return wordsToTranslate;
         }
       },
       /**
@@ -1338,7 +1344,7 @@
         return this.selected.filter(
           (selectedOption) =>
             selectedOption.id && selectedOption.id.startsWith(groupId)
-        )
+        );
       },
       /**
        * Gets the ID of an option group by its option group name.
@@ -1349,10 +1355,10 @@
       getOptionGroupId: function (groupname) {
         for (const topic of topics) {
           if (topic.groupname === groupname) {
-            return topic.id
+            return topic.id;
           }
         }
-        return null
+        return null;
       },
       /**
        * Gets the group name for a given item.
@@ -1363,9 +1369,9 @@
        * @returns {string|null} The group name or null if not found.
        */
       getGroupName: function (item) {
-        if (item.groups !== undefined) return 'groups'
-        if (item.choices !== undefined) return 'choices'
-        return null
+        if (item.groups !== undefined) return "groups";
+        if (item.choices !== undefined) return "choices";
+        return null;
       },
       /**
        * Finds the name of the group that contains the target label.
@@ -1376,153 +1382,153 @@
        * @returns {string} The name of the group containing the target label.
        */
       getOptionGroupName: function (data, targetLabel, language) {
-        let name = ''
+        let name = "";
         data.some((item) => {
-          const groupName = this.getGroupName(item)
+          const groupName = this.getGroupName(item);
 
-          if (!groupName) return false
+          if (!groupName) return false;
 
           return item[groupName].some((i) => {
-            const currentLabel = this.cleanLabel(i.translations[language])
+            const currentLabel = this.cleanLabel(i.translations[language]);
             if (currentLabel === targetLabel) {
-              name = this.customNameLabel(item)
-              this.expandedOptionGroupName = name
-              return true
+              name = this.customNameLabel(item);
+              this.expandedOptionGroupName = name;
+              return true;
             }
-            return false
-          })
-        })
-        return name
+            return false;
+          });
+        });
+        return name;
       },
       getHeader: function (name) {
         for (let i = 0; i < this.data.length; i++) {
           if (!this.data[i].groups) {
             //Not group
-            return 'single'
+            return "single";
           }
           for (let j = 0; j < this.data[i].groups.length; j++) {
             if (this.data[i].groups[j].name == name) {
-              return this.customGroupLabel(this.data[i])
+              return this.customGroupLabel(this.data[i]);
             }
           }
         }
-        return 'unknown'
+        return "unknown";
       },
       getOptionClassName: function (option) {
         // Return the 'cssClass' if it exists, otherwise return an empty string
-        return option.cssClass ? `qpm_${option.cssClass}` : ''
+        return option.cssClass ? `qpm_${option.cssClass}` : "";
       },
       getShouldPreventLeftRightDefault: function () {
-        var dropdownRef = this.$refs.multiselect
-        var isWritingSearch = dropdownRef.search.length > 0
+        var dropdownRef = this.$refs.multiselect;
+        var isWritingSearch = dropdownRef.search.length > 0;
 
         var hasFocusedSubject = isWritingSearch
           ? dropdownRef.pointer >= 1
-          : dropdownRef.pointer >= 0
+          : dropdownRef.pointer >= 0;
 
-        return hasFocusedSubject && !this.focusByHover
+        return hasFocusedSubject && !this.focusByHover;
       },
       getButtonColor: function (props, scope, index) {
-        let classes = []
-        if (scope == 'narrow') {
-          classes.push(this.qpmButtonColor1)
+        let classes = [];
+        if (scope == "narrow") {
+          classes.push(this.qpmButtonColor1);
         }
-        if (!scope || scope == 'normal') {
-          classes.push(this.qpmButtonColor2)
+        if (!scope || scope == "normal") {
+          classes.push(this.qpmButtonColor2);
         }
-        if (scope == 'broad') {
-          classes.push(this.qpmButtonColor3)
+        if (scope == "broad") {
+          classes.push(this.qpmButtonColor3);
         }
 
         // Set class to distinguish the collum currently in 'focus' for
         // selection via keyboard. This class together with the
         // multiselect__option--highlight class defines the highlighted button.
         if (!this.focusByHover && index === this.focusedButtonIndex) {
-          classes.push('qpm_ButtonColumnFocused')
+          classes.push("qpm_ButtonColumnFocused");
         }
 
         if (props.option && props.option.name && this.selected) {
           for (let i = 0; i < this.selected.length; i++) {
             if (this.selected[i].name == props.option.name) {
               if (this.selected[i].scope == scope)
-                classes.push('selectedButton')
-              break
+                classes.push("selectedButton");
+              break;
             }
           }
         }
-        return classes
+        return classes;
       },
       getString: function (string) {
-        const lg = this.language
-        let constant = messages[string][lg]
-        return constant != undefined ? constant : messages[string]['dk']
+        const lg = this.language;
+        let constant = messages[string][lg];
+        return constant != undefined ? constant : messages[string]["dk"];
       },
       getGroupPropertyName: function (group) {
         if (group.groups != undefined) {
-          return 'groups'
+          return "groups";
         } else if (group.choices != undefined) {
-          return 'choices'
+          return "choices";
         }
 
-        return null
+        return null;
       },
       setWidthToPlaceholderWidth: function (input) {
         // Create a temporary span element and set its text to the placeholder text
-        let tempSpan = document.createElement('span')
-        tempSpan.innerHTML = input.getAttribute('placeholder')
+        let tempSpan = document.createElement("span");
+        tempSpan.innerHTML = input.getAttribute("placeholder");
 
         // Apply the same styles to the span as the input
-        let inputStyle = window.getComputedStyle(input)
-        tempSpan.style.fontFamily = inputStyle.fontFamily
-        tempSpan.style.fontSize = inputStyle.fontSize
-        tempSpan.style.fontWeight = inputStyle.fontWeight
-        tempSpan.style.letterSpacing = inputStyle.letterSpacing
-        tempSpan.style.whiteSpace = 'nowrap' // Ensure text stays on one line
+        let inputStyle = window.getComputedStyle(input);
+        tempSpan.style.fontFamily = inputStyle.fontFamily;
+        tempSpan.style.fontSize = inputStyle.fontSize;
+        tempSpan.style.fontWeight = inputStyle.fontWeight;
+        tempSpan.style.letterSpacing = inputStyle.letterSpacing;
+        tempSpan.style.whiteSpace = "nowrap"; // Ensure text stays on one line
 
         // Add the span to the body (it won't be visible)
-        document.body.appendChild(tempSpan)
+        document.body.appendChild(tempSpan);
 
         // Get the width of the area
-        let placeholderWidth = tempSpan.getBoundingClientRect().width + 27
+        let placeholderWidth = tempSpan.getBoundingClientRect().width + 27;
 
         // Remove the span from the body
-        document.body.removeChild(tempSpan)
+        document.body.removeChild(tempSpan);
 
-        input.style.width = placeholderWidth + 'px'
+        input.style.width = placeholderWidth + "px";
       },
       customNameLabel: function (option) {
-        if (!option.name && !option.groupname) return
-        let constant
+        if (!option.name && !option.groupname) return;
+        let constant;
         if (option.translations) {
-          const lg = this.language
+          const lg = this.language;
           constant =
             option.translations[lg] != undefined
               ? option.translations[lg]
-              : option.translations['dk']
+              : option.translations["dk"];
         } else {
-          constant = option.name
+          constant = option.name;
         }
-        return constant
+        return constant;
       },
       customGroupLabel: function (option) {
-        if (!option.translations) return
-        const lg = this.language
-        let constant = option.translations[lg]
-        return constant != undefined ? constant : option.translations['dk']
+        if (!option.translations) return;
+        const lg = this.language;
+        let constant = option.translations[lg];
+        return constant != undefined ? constant : option.translations["dk"];
       },
       customGroupLabelById: function (id) {
-        var data = this.getIdToDataMap[id]
-        return this.customGroupLabel(data)
+        var data = this.getIdToDataMap[id];
+        return this.customGroupLabel(data);
       },
       customGroupTooltipById: function (id) {
-        const data = this.getIdToDataMap[id]
-        const content = data.tooltip && data.tooltip[this.language]
+        const data = this.getIdToDataMap[id];
+        const content = data.tooltip && data.tooltip[this.language];
         const tooltip = {
           content: content,
           offset: 5,
           delay: this.$helpTextDelay,
-        }
-        return tooltip
+        };
+        return tooltip;
       },
       /**
        * Cleans the label by removing leading special characters.
@@ -1531,8 +1537,8 @@
        * @returns {string} The cleaned label.
        */
       cleanLabel: function (label) {
-        return label.startsWith('⤷') ? label.slice(1).trim() : label.trim()
+        return label.startsWith("⤷") ? label.slice(1).trim() : label.trim();
       },
     },
-  }
+  };
 </script>

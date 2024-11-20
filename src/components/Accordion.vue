@@ -68,11 +68,11 @@
 
 <script>
   export default {
-    name: 'AccordionMenu',
+    name: "AccordionMenu",
     props: {
       title: {
         type: String,
-        default: '',
+        default: "",
         required: false,
       },
       models: {
@@ -99,158 +99,158 @@
         expanded: this.openByDefault,
         shownModels: [],
         modelsChangesPending: [],
-      }
+      };
     },
     computed: {
       getTitle() {
-        return this.title || (this.expanded ? 'close' : 'open')
+        return this.title || (this.expanded ? "close" : "open");
       },
       getIsExpanded() {
-        const newState = this.isExpanded ?? this.expanded
-        this.$emit('expanded-changed', newState)
-        return newState
+        const newState = this.isExpanded ?? this.expanded;
+        this.$emit("expanded-changed", newState);
+        return newState;
       },
     },
     watch: {
       models(newModelState, oldModelState) {
-        const oldIds = oldModelState.map((model) => model.uid)
+        const oldIds = oldModelState.map((model) => model.uid);
         const newModels = newModelState
           .map((model) => model.uid)
-          .filter((uid) => oldIds.includes(uid))
-        this.modelsChangesPending.splice(this.models.length, 0, ...newModels)
+          .filter((uid) => oldIds.includes(uid));
+        this.modelsChangesPending.splice(this.models.length, 0, ...newModels);
 
         if (this.onlyUpdateModelWhenVisible) {
-          this.updateModelsIfOnScreen()
+          this.updateModelsIfOnScreen();
         } else {
-          this.shownModels = newModelState
+          this.shownModels = newModelState;
         }
       },
     },
     mounted() {
       if (this.onlyUpdateModelWhenVisible) {
-        window.addEventListener('scroll', this.updateModelsIfOnScreen, {
+        window.addEventListener("scroll", this.updateModelsIfOnScreen, {
           passive: true,
-        })
+        });
         if (this.openByDefault) {
-          this.updateModelsIfOnScreen()
+          this.updateModelsIfOnScreen();
         }
       }
     },
     beforeUnmount() {
       if (this.onlyUpdateModelWhenVisible) {
-        window.removeEventListener('scroll', this.updateModelsIfOnScreen, {
+        window.removeEventListener("scroll", this.updateModelsIfOnScreen, {
           passive: true,
-        })
+        });
       }
     },
     methods: {
       toggleAccordionState() {
         if (this.getIsExpanded) {
-          this.close()
+          this.close();
         } else {
-          this.open()
+          this.open();
         }
       },
       close() {
-        this.expanded = false
-        this.$emit('close')
+        this.expanded = false;
+        this.$emit("close");
       },
       open() {
-        this.expanded = true
-        this.$emit('open')
+        this.expanded = true;
+        this.$emit("open");
 
         if (this.onlyUpdateModelWhenVisible) {
-          this.updateModelsIfOnScreen()
+          this.updateModelsIfOnScreen();
         }
       },
       calcHeight() {
-        const content = this.$refs.body.firstElementChild
-        const height = content.scrollHeight
-        return height
+        const content = this.$refs.body.firstElementChild;
+        const height = content.scrollHeight;
+        return height;
       },
       setFixedHeight() {
-        const body = this.$refs.body
-        body.style.height = `${this.calcHeight()}px`
+        const body = this.$refs.body;
+        body.style.height = `${this.calcHeight()}px`;
       },
       removeFixedHeight() {
-        const body = this.$refs.body
-        body.style.height = null
+        const body = this.$refs.body;
+        body.style.height = null;
       },
       subtractElementHeight(el) {
-        const body = this.$refs.body
-        const newHeight = body.scrollHeight - el.scrollHeight
-        body.style.height = `${newHeight}px`
+        const body = this.$refs.body;
+        const newHeight = body.scrollHeight - el.scrollHeight;
+        body.style.height = `${newHeight}px`;
       },
       beforeLeaveListItem() {
-        if (!this.expanded) return
-        this.setFixedHeight()
+        if (!this.expanded) return;
+        this.setFixedHeight();
       },
       leaveListItem(el, done) {
-        if (!this.expanded) return
-        this.setFixedHeight()
-        el.addEventListener('transitionend', done, { once: true })
+        if (!this.expanded) return;
+        this.setFixedHeight();
+        el.addEventListener("transitionend", done, { once: true });
       },
       afterLeaveListItem() {
-        if (!this.expanded) return
-        this.removeFixedHeight()
+        if (!this.expanded) return;
+        this.removeFixedHeight();
       },
       beforeEnterListItem() {
-        if (!this.expanded) return
-        this.setFixedHeight()
+        if (!this.expanded) return;
+        this.setFixedHeight();
       },
       enterListItem(el, done) {
-        if (!this.expanded) return
-        this.setFixedHeight()
-        el.addEventListener('transitionend', done, { once: true })
+        if (!this.expanded) return;
+        this.setFixedHeight();
+        el.addEventListener("transitionend", done, { once: true });
       },
       afterEnterListItem(el) {
-        const elUid = el.getAttribute('name')
-        this.removePendingModelChange(elUid)
-        this.$emit('changed:items', el)
+        const elUid = el.getAttribute("name");
+        this.removePendingModelChange(elUid);
+        this.$emit("changed:items", el);
 
-        if (!this.expanded) return
-        this.removeFixedHeight()
+        if (!this.expanded) return;
+        this.removeFixedHeight();
       },
       beforeLeaveContent() {
-        this.setFixedHeight()
+        this.setFixedHeight();
       },
       leaveContent(el, done) {
-        this.subtractElementHeight(el)
-        el.addEventListener('transitionend', done, { once: true })
+        this.subtractElementHeight(el);
+        el.addEventListener("transitionend", done, { once: true });
       },
       enterContent(el, done) {
-        this.setFixedHeight()
-        el.addEventListener('transitionend', done, { once: true })
+        this.setFixedHeight();
+        el.addEventListener("transitionend", done, { once: true });
       },
       afterEnterContent() {
-        this.removeFixedHeight()
-        this.$emit('afterOpen', this)
+        this.removeFixedHeight();
+        this.$emit("afterOpen", this);
       },
       afterLeaveContent() {
-        this.$emit('afterClose', this)
+        this.$emit("afterClose", this);
       },
       isAccordionOnScreen() {
-        const subject = this.$el
-        const subjectRect = subject?.getBoundingClientRect()
+        const subject = this.$el;
+        const subjectRect = subject?.getBoundingClientRect();
         const viewHeight =
-          window.innerHeight || document.documentElement.clientHeight
+          window.innerHeight || document.documentElement.clientHeight;
 
         const isSubjectVisible =
-          subjectRect?.top <= viewHeight && subjectRect?.bottom >= 0
+          subjectRect?.top <= viewHeight && subjectRect?.bottom >= 0;
 
-        return isSubjectVisible
+        return isSubjectVisible;
       },
       updateModelsIfOnScreen() {
         if (this.models !== this.shownModels && this.isAccordionOnScreen()) {
-          this.$set(this, 'shownModels', this.models)
+          this.$set(this, "shownModels", this.models);
         }
       },
       removePendingModelChange(uid) {
-        const index = this.modelsChangesPending.indexOf(uid)
+        const index = this.modelsChangesPending.indexOf(uid);
         if (index !== -1) {
-          this.modelsChangesPending.splice(index, 1)
+          this.modelsChangesPending.splice(index, 1);
         }
       },
     },
-  }
+  };
 </script>

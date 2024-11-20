@@ -2,7 +2,7 @@
   <div ref="container" style="margin-top: 20px">
     <!-- TITLE Notice the entire article can be summarized -->
     <p style="margin-bottom: 20px">
-      <strong>{{ getString('summarizeArticleNotice') }}</strong>
+      <strong>{{ getString("summarizeArticleNotice") }}</strong>
     </p>
 
     <button
@@ -17,7 +17,7 @@
       @click="handleSummarizeArticle"
     >
       <i class="bx bx-file" style="vertical-align: baseline; font-size: 1em" />
-      {{ getString('generatePdfQuestionsButtonText') }}
+      {{ getString("generatePdfQuestionsButtonText") }}
     </button>
 
     <loading-spinner
@@ -31,7 +31,7 @@
     <div v-if="isArticle">
       <!-- TITLE summarize entire article -->
       <p v-if="questions.length > 1 && !isLoadingQuestions">
-        <strong>{{ getString('summarizeArticleHeader') }}</strong>
+        <strong>{{ getString("summarizeArticleHeader") }}</strong>
       </p>
 
       <!-- Default questions to summarize an article section -->
@@ -69,7 +69,7 @@
 
       <!-- TITLE for generated article specific questions -->
       <p v-if="questions.length > 7">
-        <strong>{{ getString('generateQuestionsHeader') }}</strong>
+        <strong>{{ getString("generateQuestionsHeader") }}</strong>
       </p>
 
       <!-- Generated article specific questions section -->
@@ -117,7 +117,7 @@
     </div>
 
     <p v-if="scrapingError">
-      {{ getString('scrapingError') }}
+      {{ getString("scrapingError") }}
     </p>
     <p v-if="errorMessage" class="qpm_error-message">
       {{ errorMessage }}
@@ -126,18 +126,18 @@
 </template>
 
 <script>
-  import AccordionMenu from '@/components/Accordion.vue'
-  import LoadingSpinner from '@/components/LoadingSpinner.vue'
-  import QuestionForArticle from '@/components/QuestionForArticle.vue'
+  import AccordionMenu from "@/components/Accordion.vue";
+  import LoadingSpinner from "@/components/LoadingSpinner.vue";
+  import QuestionForArticle from "@/components/QuestionForArticle.vue";
 
-  import { appSettingsMixin } from '@/mixins/appSettings'
-  import { utilitiesMixin } from '@/mixins/utilities'
-  import { questionsToTitleMapMixin } from '@/mixins/questionsToTitleMap'
-  import { summarizeArticleMixin } from '@/mixins/summarizeArticle'
-  import { questionHeaderHeightWatcherMixin } from '@/mixins/questionHeaderHeightWatcher'
+  import { appSettingsMixin } from "@/mixins/appSettings";
+  import { utilitiesMixin } from "@/mixins/utilities";
+  import { questionsToTitleMapMixin } from "@/mixins/questionsToTitleMap";
+  import { summarizeArticleMixin } from "@/mixins/summarizeArticle";
+  import { questionHeaderHeightWatcherMixin } from "@/mixins/questionHeaderHeightWatcher";
 
   export default {
-    name: 'SummarizeArticle',
+    name: "SummarizeArticle",
     components: {
       AccordionMenu,
       LoadingSpinner,
@@ -153,17 +153,17 @@
     props: {
       htmlUrl: {
         type: String,
-        default: '',
+        default: "",
         required: false,
       },
       pdfUrl: {
         type: String,
-        default: '',
+        default: "",
         required: false,
       },
       language: {
         type: String,
-        default: 'dk',
+        default: "dk",
       },
       isSummaryLoading: {
         type: Boolean,
@@ -172,7 +172,7 @@
       },
       promptLanguageType: {
         type: String,
-        default: 'Hverdagssprog',
+        default: "Hverdagssprog",
         required: false,
       },
     },
@@ -183,9 +183,9 @@
         answers: [],
         isLoadingQuestions: false,
         isError: false,
-        errorMessage: '',
+        errorMessage: "",
         scrapingError: false,
-      }
+      };
     },
-  }
+  };
 </script>

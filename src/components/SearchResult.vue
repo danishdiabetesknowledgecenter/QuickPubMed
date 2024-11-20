@@ -28,7 +28,7 @@
               />
               <div>
                 <strong>{{
-                  getString('selectedResultsAccordionHeader')
+                  getString("selectedResultsAccordionHeader")
                 }}</strong>
                 <button
                   v-tooltip="{
@@ -51,29 +51,29 @@
                 v-if="!hasAcceptedAi"
                 class="qpm_searchSummaryText qpm_searchSummaryTextBackground"
               >
-                <p>{{ getString('aiSearchSummaryConsentHeader') }}</p>
+                <p>{{ getString("aiSearchSummaryConsentHeader") }}</p>
                 <p
                   v-if="selectedEntries == null || selectedEntries.length == 0"
                   v-html="getString('aiSearchSummaryConsentHeaderText')"
                 />
                 <p v-if="selectedEntries.length > 0">
-                  {{ getString('aiSearchSummarySelectedArticlesBefore') }}
+                  {{ getString("aiSearchSummarySelectedArticlesBefore") }}
                   <strong>{{ selectedEntries.length }}</strong>
                   <span v-if="selectedEntries.length == 1">
                     <strong>{{
-                      getString('aiSearchSummarySelectedArticlesAfterSingular')
+                      getString("aiSearchSummarySelectedArticlesAfterSingular")
                     }}</strong>
                   </span>
                   <span v-if="selectedEntries.length > 1">
                     <strong>{{
-                      getString('aiSearchSummarySelectedArticlesAfterPlural')
+                      getString("aiSearchSummarySelectedArticlesAfterPlural")
                     }}</strong>
                   </span>
-                  {{ getString('aiSearchSummarySelectedArticlesAfter') }}
+                  {{ getString("aiSearchSummarySelectedArticlesAfter") }}
                 </p>
                 <p>
                   <strong>{{
-                    getString('aiSummarizeSearchResultButton')
+                    getString("aiSummarizeSearchResultButton")
                   }}</strong>
                 </p>
                 <button
@@ -171,7 +171,7 @@
                 "
               >
                 <div style="margin-bottom: 5px">
-                  <strong>{{ getString('selectedResultTitle') }}</strong>
+                  <strong>{{ getString("selectedResultTitle") }}</strong>
                   <button
                     v-if="!appSettings.openAi.useAi"
                     v-tooltip="{
@@ -210,7 +210,7 @@
                     <span v-if="selectedEntries.length == 1">
                       {{
                         getString(
-                          'aiSearchSummarySelectedArticlesAfterSingular'
+                          "aiSearchSummarySelectedArticlesAfterSingular"
                         )
                       }}
                     </span>
@@ -221,7 +221,7 @@
                       "
                     >
                       {{
-                        getString('aiSearchSummarySelectedArticlesAfterPlural')
+                        getString("aiSearchSummarySelectedArticlesAfterPlural")
                       }}
                     </span>
                   </button>
@@ -260,7 +260,7 @@
                 }"
                 class="qpm_button qpm_selectArticleCheckbox list-fade-item"
               >
-                {{ getString('selectedResultDeselectAllText') }}
+                {{ getString("selectedResultDeselectAllText") }}
               </button>
             </button>
           </div>
@@ -310,18 +310,18 @@
       class="h3"
       style="padding-top: 30px"
     >
-      {{ getString('searchresult') }}
+      {{ getString("searchresult") }}
     </div>
     <div
       v-if="results && results.length > 0 && total > 0"
       class="qpm_searchHeader qpm_spaceEvenly"
     >
       <p class="qpm_nomargin">
-        {{ getString('showing') }} {{ low + 1 }}-{{ high }}
-        {{ getString('of') }}
+        {{ getString("showing") }} {{ low + 1 }}-{{ high }}
+        {{ getString("of") }}
         <span
           ><strong>{{ getPrettyTotal }}</strong>
-          {{ getString('searchMatches') }}</span
+          {{ getString("searchMatches") }}</span
         >
       </p>
       <div
@@ -352,15 +352,15 @@
               :value="size"
               :selected="isSelectedPageSize(size)"
             >
-              {{ size }} {{ getString('pagesizePerPage') }}
+              {{ size }} {{ getString("pagesizePerPage") }}
             </option>
           </select>
         </div>
       </div>
     </div>
     <div v-if="results && results.length === 0">
-      <div class="h3"><br />{{ getString('noResult') }}</div>
-      <p>{{ getString('noResultTip') }}</p>
+      <div class="h3"><br />{{ getString("noResult") }}</div>
+      <p>{{ getString("noResultTip") }}</p>
     </div>
     <div style="z-index: 0">
       <div
@@ -418,17 +418,17 @@
         class="qpm_button qpm_dark"
         @click="next"
       >
-        <span class="qpm_hideonmobile">{{ getString('next') }}</span>
+        <span class="qpm_hideonmobile">{{ getString("next") }}</span>
         {{ pagesize }}
       </button>
       <p
         v-if="!loading || (results && high && total)"
         class="qpm_nomargin qpm_shownumber"
       >
-        {{ getString('showing') }} 1-{{ high }} {{ getString('of') }}
+        {{ getString("showing") }} 1-{{ high }} {{ getString("of") }}
         <span
           ><strong>{{ getPrettyTotal }}</strong>
-          {{ getString('searchMatches') }}</span
+          {{ getString("searchMatches") }}</span
         >
       </p>
     </div>
@@ -436,29 +436,29 @@
 </template>
 
 <script>
-  import AccordionMenu from '@/components/Accordion.vue'
-  import ResultEntry from '@/components/ResultEntry.vue'
-  import LoadingSpinner from '@/components/LoadingSpinner.vue'
-  import AiSummaries from '@/components/AiSummaries.vue'
-  import Vue from 'vue'
-  import axios from 'axios'
+  import AccordionMenu from "@/components/Accordion.vue";
+  import ResultEntry from "@/components/ResultEntry.vue";
+  import LoadingSpinner from "@/components/LoadingSpinner.vue";
+  import AiSummaries from "@/components/AiSummaries.vue";
+  import Vue from "vue";
+  import axios from "axios";
 
-  import { appSettingsMixin, eventBus } from '@/mixins/appSettings'
-  import { messages } from '@/assets/content/qpm-translations'
+  import { appSettingsMixin, eventBus } from "@/mixins/appSettings";
+  import { messages } from "@/assets/content/qpm-translations";
   import {
     searchSummaryPrompts,
     abstractSummaryPrompts,
     summarizeArticlePrompt,
-  } from '@/assets/content/qpm-openAiPrompts'
+  } from "@/assets/content/qpm-openAiPrompts";
   import {
     languageFormat,
     dateOptions,
     pageSizes,
     order,
-  } from '@/assets/content/qpm-content'
+  } from "@/assets/content/qpm-content";
 
   export default {
-    name: 'SearchResult',
+    name: "SearchResult",
     components: {
       AccordionMenu,
       ResultEntry,
@@ -494,7 +494,7 @@
       },
       language: {
         type: String,
-        default: 'dk',
+        default: "dk",
       },
       preselectedEntries: {
         type: Array,
@@ -520,264 +520,264 @@
         abstractRecords: {}, // id, abstract
         articles: {},
         articleAcordionExpanded: undefined,
-      }
+      };
     },
     computed: {
       currentSortMethod: {
         get() {
-          return this.sort.method
+          return this.sort.method;
         },
         set(value) {
           const selectedSorter = this.getOrderMethods.find(
             (sorter) => sorter.method === value
-          )
+          );
           if (selectedSorter) {
-            this.$emit('newSortMethod', selectedSorter)
+            this.$emit("newSortMethod", selectedSorter);
           }
         },
       },
       lowDisabled: function () {
-        return this.low == 0 || this.loading
+        return this.low == 0 || this.loading;
       },
       highDisabled: function () {
-        return this.high >= this.total || this.loading
+        return this.high >= this.total || this.loading;
       },
       getPrettyTotal: function () {
-        let format = languageFormat[this.language]
-        return this.total.toLocaleString(format)
+        let format = languageFormat[this.language];
+        return this.total.toLocaleString(format);
       },
       getOrderMethods: function () {
-        return order
+        return order;
       },
       getPageSizeProps: function () {
-        return pageSizes
+        return pageSizes;
       },
       getShownSearchResults: function () {
-        if (this.results == null) return null
-        return this.results.slice(0, this.high)
+        if (this.results == null) return null;
+        return this.results.slice(0, this.high);
       },
       getHasSelectedArticles: function () {
-        return this.selectedEntries.length > 0
+        return this.selectedEntries.length > 0;
       },
       firstFiveArticlesWithAbstracts: function () {
-        const self = this
+        const self = this;
         const resultsWithAbstract = this.getShownSearchResults.filter(function (
           result
         ) {
-          return self.getHasAbstract(result.attributes)
-        })
-        const first5ResultsWithAbstract = resultsWithAbstract.slice(0, 5)
-        return first5ResultsWithAbstract
+          return self.getHasAbstract(result.attributes);
+        });
+        const first5ResultsWithAbstract = resultsWithAbstract.slice(0, 5);
+        return first5ResultsWithAbstract;
       },
     },
     watch: {
       preselectedEntries: function (newVal) {
         if (this.selectedEntries != null && this.selectedEntries.length > 0)
-          return
+          return;
 
-        this.selectedEntries = newVal
+        this.selectedEntries = newVal;
       },
     },
     updated: function () {
       // Guards to avoid badges re-rendering on select/deselect
       if (!this.$refs.resultEntries || this.$refs.resultEntries.length == 0) {
-        this.hasAcceptedAi = false
-        this.badgesAdded = false
-        this.altmetricsAdded = false
-        this.articleAcordionExpanded = false
-        this.reloadScripts()
-        return
+        this.hasAcceptedAi = false;
+        this.badgesAdded = false;
+        this.altmetricsAdded = false;
+        this.articleAcordionExpanded = false;
+        this.reloadScripts();
+        return;
       }
       if (!this.badgesAdded && !this.loading) {
         if (window.__dimensions_embed) {
-          window.__dimensions_embed.addBadges()
-          this.badgesAdded = true
+          window.__dimensions_embed.addBadges();
+          this.badgesAdded = true;
         }
       }
       if (!this.altmetricsAdded && !this.loading) {
-        const searchResult = this.$refs.searchResult
-        const articleAccordionBody = this.$refs?.articlesAccordion?.$refs?.body
+        const searchResult = this.$refs.searchResult;
+        const articleAccordionBody = this.$refs?.articlesAccordion?.$refs?.body;
         if (window._altmetric_embed_init) {
-          searchResult && window._altmetric_embed_init(searchResult)
+          searchResult && window._altmetric_embed_init(searchResult);
           articleAccordionBody &&
-            window._altmetric_embed_init(articleAccordionBody)
-          this.altmetricsAdded = true
+            window._altmetric_embed_init(articleAccordionBody);
+          this.altmetricsAdded = true;
         }
       }
     },
     mounted: function () {
-      eventBus.$on('result-entry-show-abstract', this.openArticlesAccordion)
+      eventBus.$on("result-entry-show-abstract", this.openArticlesAccordion);
     },
     beforeUnmount: function () {
-      eventBus.$off('result-entry-show-abstract', this.openArticlesAccordion)
+      eventBus.$off("result-entry-show-abstract", this.openArticlesAccordion);
     },
     methods: {
       next: function () {
-        this.$emit('high')
+        this.$emit("high");
 
-        this.badgesAdded = false
-        this.altmetricsAdded = false
+        this.badgesAdded = false;
+        this.altmetricsAdded = false;
       },
       previous: function () {
-        this.$emit('low')
+        this.$emit("low");
       },
       reloadScripts: function () {
         //Remove divs and scripts from body so they wont affect performance
-        let scripts = document.body.getElementsByTagName('script')
-        var scriptArray = Array.from(scripts)
-        scriptArray.splice(0, 1)
-        let is = scriptArray.length
+        let scripts = document.body.getElementsByTagName("script");
+        var scriptArray = Array.from(scripts);
+        scriptArray.splice(0, 1);
+        let is = scriptArray.length;
         //ial = is; Unused variable
         while (is--) {
           if (
             scriptArray[is].src.startsWith(
-              'https://api.altmetric.com/v1/pmid'
+              "https://api.altmetric.com/v1/pmid"
             ) ||
-            scriptArray[is].src.startsWith('https://api.altmetric.com/v1/doi')
+            scriptArray[is].src.startsWith("https://api.altmetric.com/v1/doi")
           ) {
-            scriptArray[is].parentNode.removeChild(scriptArray[is])
+            scriptArray[is].parentNode.removeChild(scriptArray[is]);
           }
         }
         var containers = document.body.getElementsByClassName(
-          'altmetric-embed altmetric-popover altmetric-left'
-        )
-        var containerArray = Array.from(containers)
-        is = containerArray.length
+          "altmetric-embed altmetric-popover altmetric-left"
+        );
+        var containerArray = Array.from(containers);
+        is = containerArray.length;
         //(ial = is); Unused variable
 
         while (is--) {
-          containerArray[is].parentNode.removeChild(containerArray[is])
+          containerArray[is].parentNode.removeChild(containerArray[is]);
         }
       },
       getAbstract: function (id) {
         if (this.abstractRecords[id] != undefined) {
-          if (typeof this.abstractRecords[id] !== 'string') {
-            return ''
+          if (typeof this.abstractRecords[id] !== "string") {
+            return "";
           }
-          return this.abstractRecords[id]
+          return this.abstractRecords[id];
         }
-        return ''
+        return "";
       },
       getAuthor: function (authors) {
-        let str = ''
+        let str = "";
         for (let i = 0; i < authors.length; i++) {
-          if (i > 0) str += ','
-          str += ' ' + authors[i].name
+          if (i > 0) str += ",";
+          str += " " + authors[i].name;
         }
-        return str
+        return str;
       },
       getHasAbstract: function (attributes) {
         if (!attributes) {
-          return false
+          return false;
         }
-        let found = false
+        let found = false;
         Object.keys(attributes).forEach(function (key) {
-          let value = attributes[key]
-          if (key == 'Has Abstract' || value == 'Has Abstract') {
-            found = true
-            return
+          let value = attributes[key];
+          if (key == "Has Abstract" || value == "Has Abstract") {
+            found = true;
+            return;
           }
-        })
-        return found
+        });
+        return found;
       },
       getDate: function (history) {
         for (let i = 0; i < history.length; i++) {
-          if (history[i].pubstatus == 'entrez') {
-            let date = new Date(history[i].date)
+          if (history[i].pubstatus == "entrez") {
+            let date = new Date(history[i].date);
             let formattedDate = date.toLocaleDateString(
               languageFormat[this.language],
               dateOptions
-            )
-            return formattedDate
+            );
+            return formattedDate;
           }
         }
-        return ''
+        return "";
       },
       // getDoi ændret af Ole
       getDoi: function (articleids) {
         for (let i = 0; i < articleids.length; i++) {
-          if (articleids[i].idtype == 'doi') {
-            let doi = articleids[i].value
-            return doi
+          if (articleids[i].idtype == "doi") {
+            let doi = articleids[i].value;
+            return doi;
           }
         }
-        return ''
+        return "";
       },
       getText: function (id) {
         if (id != undefined) {
           if (
             this.abstractRecords[id] != undefined &&
-            typeof this.abstractRecords[id] === 'object'
+            typeof this.abstractRecords[id] === "object"
           ) {
-            return this.abstractRecords[id]
+            return this.abstractRecords[id];
           }
         }
-        return {}
+        return {};
       },
       getSource: function (value) {
         try {
           if (this.source != undefined) {
             if (value != undefined) {
-              if (value.volume != undefined) value.volume = undefined
-              if (value.issue != undefined) value.issue = undefined
-              if (value.pages != undefined) value.pages = undefined
-              if (value.pubdate != undefined) value.pubdate = undefined
+              if (value.volume != undefined) value.volume = undefined;
+              if (value.issue != undefined) value.issue = undefined;
+              if (value.pages != undefined) value.pages = undefined;
+              if (value.pubdate != undefined) value.pubdate = undefined;
             }
-            return this.source
+            return this.source;
           }
-          if (value.booktitle) return value.booktitle
-          return value.source
+          if (value.booktitle) return value.booktitle;
+          return value.source;
         } catch (error) {
-          return error
+          return error;
         }
       },
       newSortMethod: function (event) {
-        let obj = {}
+        let obj = {};
         for (let j = 0; j < order.length; j++) {
           if (order[j].method == event.target.value) {
-            obj = order[j]
-            break
+            obj = order[j];
+            break;
           }
         }
-        this.$emit('newSortMethod', obj)
+        this.$emit("newSortMethod", obj);
       },
       isSelected: function (model) {
-        return model == this.sort
+        return model == this.sort;
       },
       isSelectedPageSize: function (model) {
-        return model == this.pagesize
+        return model == this.pagesize;
       },
       getString: function (string) {
-        const lg = this.language
-        let constant = messages[string][lg]
-        return constant != undefined ? constant : messages[string]['dk']
+        const lg = this.language;
+        let constant = messages[string][lg];
+        return constant != undefined ? constant : messages[string]["dk"];
       },
       getTranslation: function (value) {
-        const lg = this.language
-        let constant = value.translations[lg]
-        return constant != undefined ? constant : value.translations['dk']
+        const lg = this.language;
+        let constant = value.translations[lg];
+        return constant != undefined ? constant : value.translations["dk"];
       },
       changePageNumber: function (event) {
         const newPageSize =
-          pageSizes[parseInt(event.target.options.selectedIndex)]
-        this.$emit('newPageSize', newPageSize)
+          pageSizes[parseInt(event.target.options.selectedIndex)];
+        this.$emit("newPageSize", newPageSize);
       },
       getComponentWidth: function () {
-        let container = this.$refs.searchResult
-        if (!container) return
+        let container = this.$refs.searchResult;
+        if (!container) return;
 
-        return parseInt(container.offsetWidth)
+        return parseInt(container.offsetWidth);
       },
       addArticle: function (article) {
         if (Object.prototype.hasOwnProperty.call(this.articles, article.pmid)) {
-          delete this.articles[article.pmid]
+          delete this.articles[article.pmid];
         }
 
-        this.$set(this.articles, article.pmid, article)
+        this.$set(this.articles, article.pmid, article);
       },
       getSelectedArticles: function () {
-        var resultEntries = this.$refs.resultEntries
-        var selectedArticles = []
+        var resultEntries = this.$refs.resultEntries;
+        var selectedArticles = [];
         var entriesForSummary =
           this.selectedEntries.length > 0
             ? this.selectedEntries
@@ -787,235 +787,235 @@
                 .map((e) => {
                   return {
                     uid: e.id,
-                  }
-                })
+                  };
+                });
         for (let i = 0; i < entriesForSummary.length; i++) {
-          let selected = entriesForSummary[i]
-          selectedArticles[i] = this.articles[selected.uid]
+          let selected = entriesForSummary[i];
+          selectedArticles[i] = this.articles[selected.uid];
         }
-        return selectedArticles
+        return selectedArticles;
       },
       getArticleDtoProvider: function () {
-        return this.getArticleDtos
+        return this.getArticleDtos;
       },
       getSearchSummaryPrompts: function () {
-        return searchSummaryPrompts
+        return searchSummaryPrompts;
       },
       getAbstractSummaryPrompts: function () {
-        return abstractSummaryPrompts
+        return abstractSummaryPrompts;
       },
       getAskQuestionsPrompts: function () {
-        return summarizeArticlePrompt
+        return summarizeArticlePrompt;
       },
       getSummarySuccessHeader: function () {
-        const self = this
+        const self = this;
 
         return function (selected, isMarkedArticlesSearch) {
           if (!isMarkedArticlesSearch) {
             let selectedWithAbstracts = selected.filter(
-              (e) => e.abstract != null && e.abstract.trim() != ''
-            )
+              (e) => e.abstract != null && e.abstract.trim() != ""
+            );
             let before = self.getString(
-              'aiSummarizeFirstFewSearchResultHeaderBeforeCount'
-            )
+              "aiSummarizeFirstFewSearchResultHeaderBeforeCount"
+            );
             let after = self.getString(
-              'aiSummarizeFirstFewSearchResultHeaderAfterCount'
-            )
-            return before + selectedWithAbstracts.length + after
+              "aiSummarizeFirstFewSearchResultHeaderAfterCount"
+            );
+            return before + selectedWithAbstracts.length + after;
           }
 
           let before = self.getString(
-            'aiSummarizeSelectedSearchResultHeaderBeforeCount'
-          )
+            "aiSummarizeSelectedSearchResultHeaderBeforeCount"
+          );
           let after = self.getString(
-            'aiSummarizeSelectedSearchResultHeaderAfterCount'
-          )
-          return before + selected.length + after
-        }
+            "aiSummarizeSelectedSearchResultHeaderAfterCount"
+          );
+          return before + selected.length + after;
+        };
       },
       clickAcceptAi: function (initialTab = null) {
-        this.hasAcceptedAi = true
-        this.initialAiTab = initialTab
+        this.hasAcceptedAi = true;
+        this.initialAiTab = initialTab;
       },
       closeSummaries: function () {
-        this.hasAcceptedAi = false
+        this.hasAcceptedAi = false;
       },
       changeResultEntryModel: function (value, isChecked) {
-        let newValue = [...this.selectedEntries]
+        let newValue = [...this.selectedEntries];
         let valueIndex = newValue.findIndex(function (e) {
-          return e === value || e.uid == value.uid
-        })
+          return e === value || e.uid == value.uid;
+        });
 
         if (isChecked && valueIndex === -1) {
-          newValue.push(value)
+          newValue.push(value);
         } else if (valueIndex > -1) {
-          newValue.splice(valueIndex, 1)
+          newValue.splice(valueIndex, 1);
         } else {
           console.warn(
-            'changeResultEntryModel: change requested but could not be performed',
+            "changeResultEntryModel: change requested but could not be performed",
             isChecked,
             valueIndex,
             value,
             newValue
-          )
-          return
+          );
+          return;
         }
-        this.selectedEntries = newValue
-        this.$emit('change:selectedEntries', newValue)
+        this.selectedEntries = newValue;
+        this.$emit("change:selectedEntries", newValue);
       },
       onAbstractLoad: function (id, abstract) {
-        Vue.set(this.abstractRecords, id, abstract)
+        Vue.set(this.abstractRecords, id, abstract);
       },
       onAiSummariesClickRetry: function () {
         this.$el.parentElement
-          .querySelector('#qpm_topofsearchbar')
-          .scrollIntoView({ behavior: 'smooth' })
+          .querySelector("#qpm_topofsearchbar")
+          .scrollIntoView({ behavior: "smooth" });
       },
       onAiSummariesAccordionStateChange: function (expanded) {
-        this.articleAcordionExpanded = expanded
+        this.articleAcordionExpanded = expanded;
       },
       openArticlesAccordion: function ({ $el }) {
-        const articlesAccordion = this.$refs.articlesAccordion
+        const articlesAccordion = this.$refs.articlesAccordion;
         if (
           !this.articleAcordionExpanded &&
           articlesAccordion != null &&
           !articlesAccordion.expanded
         ) {
-          articlesAccordion.$once('afterOpen', function () {
+          articlesAccordion.$once("afterOpen", function () {
             $el.scrollIntoView({
-              block: 'start',
-              behavior: 'smooth',
-            })
-          })
-          this.onAiSummariesAccordionStateChange(true)
+              block: "start",
+              behavior: "smooth",
+            });
+          });
+          this.onAiSummariesAccordionStateChange(true);
         }
       },
       onArticleAccordionStateChange: function (expanded) {
-        this.articleAcordionExpanded = expanded
+        this.articleAcordionExpanded = expanded;
       },
       onDeselectAllArticles: function () {
-        this.selectedEntries = []
-        this.$emit('change:selectedEntries', this.selectedEntries)
+        this.selectedEntries = [];
+        this.$emit("change:selectedEntries", this.selectedEntries);
       },
       loadSelectedArticleBadges: function (article) {
         if (window.__dimensions_embed) {
-          window.__dimensions_embed.addBadges()
+          window.__dimensions_embed.addBadges();
         }
 
         let articleBody = article
           ? article
-          : this.$refs?.articlesAccordion?.$refs?.body
+          : this.$refs?.articlesAccordion?.$refs?.body;
         if (articleBody && window._altmetric_embed_init) {
-          window._altmetric_embed_init(articleBody)
+          window._altmetric_embed_init(articleBody);
         }
       },
       shouldResultArticlePreloadAbstract: function (article) {
         const isInFirstFive = this.firstFiveArticlesWithAbstracts.some(
           function (value) {
-            return value.uid == article.uid
+            return value.uid == article.uid;
           }
-        )
-        return isInFirstFive
+        );
+        return isInFirstFive;
       },
       addIdToLoadAbstract: function (id) {
-        this.idswithAbstractsToLoad.push(id)
+        this.idswithAbstractsToLoad.push(id);
         if (this.results[this.results.length - 1].uid == id) {
-          this.loadAbstracts()
+          this.loadAbstracts();
         }
       },
       loadAbstracts: async function () {
-        const self = this
-        let nlm = this.appSettings.nlm
+        const self = this;
+        let nlm = this.appSettings.nlm;
         let baseurl =
-          'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&tool=QuickPubMed' +
-          '&email=' +
+          "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&tool=QuickPubMed" +
+          "&email=" +
           nlm.email +
-          '&api_key=' +
+          "&api_key=" +
           nlm.key +
-          '&retmode=xml&id='
+          "&retmode=xml&id=";
 
-        let url = baseurl + self.idswithAbstractsToLoad.join(',')
+        let url = baseurl + self.idswithAbstractsToLoad.join(",");
         let axiosInstance = axios.create({
-          headers: { Accept: 'application/json, text/plain, */*' },
-        })
+          headers: { Accept: "application/json, text/plain, */*" },
+        });
         axiosInstance.interceptors.response.use(undefined, (err) => {
-          const { config, message } = err
+          const { config, message } = err;
 
           if (!config || !config.retry) {
-            console.log('request retried too many times', config.url)
-            return Promise.reject(err)
+            console.log("request retried too many times", config.url);
+            return Promise.reject(err);
           }
 
           // retry while Network timeout or Network Error
           if (
-            !(message.includes('timeout') || message.includes('Network Error'))
+            !(message.includes("timeout") || message.includes("Network Error"))
           ) {
-            return Promise.reject(err)
+            return Promise.reject(err);
           }
 
-          config.retry -= 1
+          config.retry -= 1;
 
-          const retryDelay = 2000
+          const retryDelay = 2000;
 
           const delayRetryRequest = new Promise((resolve) => {
             setTimeout(() => {
-              resolve()
-            }, retryDelay)
-          })
+              resolve();
+            }, retryDelay);
+          });
 
           return delayRetryRequest.then(() =>
             axiosInstance.get(config.url, { retry: config.retry })
-          )
-        })
+          );
+        });
 
         let loadData = axiosInstance
           .get(url, { retry: 10 })
           .then(function (resp) {
-            let data = resp.data
-            let xmlDoc
+            let data = resp.data;
+            let xmlDoc;
             if (window.DOMParser) {
-              let parser = new DOMParser()
-              xmlDoc = parser.parseFromString(data, 'text/xml')
+              let parser = new DOMParser();
+              xmlDoc = parser.parseFromString(data, "text/xml");
             } else {
               // https://www.npmjs.com/package/winax?activeTab=readme 13 yo package for ActiveXObject
               // eslint-disable-next-line no-undef
-              xmlDoc = new ActiveXObject('Microsoft.XMLDOM')
-              xmlDoc.async = false
-              xmlDoc.loadXML(data)
+              xmlDoc = new ActiveXObject("Microsoft.XMLDOM");
+              xmlDoc.async = false;
+              xmlDoc.loadXML(data);
             }
 
             let articles = Array.from(
-              xmlDoc.getElementsByTagName('PubmedArticle')
-            )
+              xmlDoc.getElementsByTagName("PubmedArticle")
+            );
             let articleData = articles.map((article) => {
-              let pmid = article.getElementsByTagName('PMID')[0].textContent
-              let sections = article.getElementsByTagName('AbstractText')
+              let pmid = article.getElementsByTagName("PMID")[0].textContent;
+              let sections = article.getElementsByTagName("AbstractText");
               if (sections.length == 1) {
-                let abstractText = sections[0].textContent
-                return [pmid, abstractText]
+                let abstractText = sections[0].textContent;
+                return [pmid, abstractText];
               } else {
-                let text = {}
+                let text = {};
                 for (let i = 0; i < sections.length; i++) {
-                  let sectionName = sections[i].getAttribute('Label')
-                  let sectionText = sections[i].textContent
-                  text[sectionName] = sectionText
+                  let sectionName = sections[i].getAttribute("Label");
+                  let sectionText = sections[i].textContent;
+                  text[sectionName] = sectionText;
                 }
-                return [pmid, text]
+                return [pmid, text];
               }
-            })
+            });
 
-            return articleData
+            return articleData;
           })
           .catch(function (err) {
-            console.log('Error in fetch from pubMed:', err)
-          })
+            console.log("Error in fetch from pubMed:", err);
+          });
 
         loadData.then((v) => {
           for (let item of v) {
-            this.onAbstractLoad(item[0], item[1])
+            this.onAbstractLoad(item[0], item[1]);
           }
-        })
+        });
       },
     },
-  }
+  };
 </script>
