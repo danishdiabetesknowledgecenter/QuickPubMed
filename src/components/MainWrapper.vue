@@ -2,57 +2,13 @@
   <div>
     <div :id="getComponentId">
       <div class="qpm_searchform">
-        <div v-if="!isCollapsed" class="qpm_tabs">
-          <p
-            v-if="!advanced"
-            v-tooltip="{
-              content: getString('hoverAdvancedText'),
-              offset: 5,
-              delay: $helpTextDelay,
-            }"
-            tabindex="0"
-            class="qpm_tab"
-            @click="advancedClick()"
-            @keyup.enter="advancedClick()"
-          >
-            {{ getString("advancedSearch") }}
-            <span class="qpm_hideonmobile">
-              {{ getString("searchMode") }}
-            </span>
-          </p>
-
-          <p v-if="advanced" class="qpm_tab qpm_tab_active">
-            {{ getString("advancedSearch") }}
-            <span class="qpm_hideonmobile">
-              {{ getString("searchMode") }}
-            </span>
-          </p>
-
-          <p
-            v-if="advanced"
-            v-tooltip="{
-              content: getString('hoverBasicText'),
-              offset: 5,
-              delay: $helpTextDelay,
-            }"
-            tabindex="0"
-            class="qpm_tab"
-            @click="advancedClick()"
-            @keyup.enter="advancedClick()"
-          >
-            {{ getString("simpleSearch") }}
-            <span class="qpm_hideonmobile">
-              {{ getString("searchMode") }}
-            </span>
-          </p>
-
-          <p v-if="!advanced" class="qpm_tab qpm_tab_active">
-            {{ getString("simpleSearch") }}
-            <span class="qpm_hideonmobile">
-              {{ getString("searchMode") }}
-            </span>
-          </p>
-        </div>
+        <advanced-search-toggle
+          :advanced="advanced"
+          :is-collapsed="isCollapsed"
+          :get-string="getString"
+          :$help-text-delay="$helpTextDelay"
+          @toggle-advanced="advancedClick"
+        />
 
         <div class="qpm_top">
           <search-form-toggle
@@ -121,7 +77,7 @@
               style="margin: 5px 0 20px 0"
               @keydown.enter.capture.passive="focusNextDropdownOnMount = true"
             >
-              <!-- Button for adding limit -->
+              <!-- Button for adding subject -->
               <button
                 v-tooltip="{
                   content: getString('hoverAddSubject'),
@@ -315,6 +271,7 @@
   import ActionButtons from "@/components/ActionButtons.vue";
   import AiTranslationToggle from "@/components/AiTranslationToggle.vue";
   import SearchFormToggle from "@/components/SearchFormToggle.vue";
+  import AdvancedSearchToggle from "@/components/AdvancedSearchToggle.vue";
   import FilterEntry from "@/components/FilterEntry.vue";
   import WordedSearchString from "@/components/WordedSearchString.vue";
   import SearchResult from "@/components/SearchResult.vue";
@@ -336,6 +293,7 @@
       ActionButtons,
       AiTranslationToggle,
       SearchFormToggle,
+      AdvancedSearchToggle,
       FilterEntry,
       WordedSearchString,
       SearchResult,
