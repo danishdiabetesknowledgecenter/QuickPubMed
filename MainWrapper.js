@@ -7,7 +7,6 @@ import VueShowdown from "vue-showdown";
 import { VTooltip } from "v-tooltip";
 import MainWrapper from "@/components/MainWrapper.vue";
 
-
 /**
  * Vue.prototype.$dateFormat = "da-DK";
  * en-US for American, en-GB for British, de-DR for German and so on.
@@ -17,7 +16,7 @@ Vue.prototype.$helpTextDelay = { show: 500, hide: 100 };
 Vue.prototype.$alwaysShowFilter = true;
 
 Vue.use(VueShowdown, {
-  flavor: 'github', // Set default flavor of showdown
+  flavor: "github", // Set default flavor of showdown
   options: {
     emoji: false, // Disable emoji support
     tables: true, // Enable table support
@@ -41,12 +40,12 @@ const language = mainWrapperDiv.dataset.language || undefined;
 const componentNo = mainWrapperDiv.dataset.componentNo || undefined;
 
 new Vue({
-  render: (h) => 
+  render: (h) =>
     h(MainWrapper, {
       props: {
         hideTopics: hideTopics,
         language: language,
         componentNo: componentNo,
-      },  
+      },
     }),
 }).$mount("#mainwrapper");

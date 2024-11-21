@@ -5,5 +5,11 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src/**/*.js", "src/**/*.vue", "SpecificArticles.js", "SearchGallery.js", "MainWrapper.js"]
+  "include": [
+    "src/**/*.js",
+    "src/**/*.vue",
+    "SpecificArticles.js",
+    "SearchGallery.js",
+    "MainWrapper.js"
+  ]
 }
