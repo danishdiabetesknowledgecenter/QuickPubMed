@@ -346,59 +346,15 @@
           />
         </div>
 
-        <div
-          v-show="hasSubjects && !isCollapsed"
-          class="qpm_flex qpm_bottom"
-          style="justify-content: space-between"
-        >
-          <div style="position: relative">
-            <button
-              v-tooltip="{
-                content: getString('hoverResetButton'),
-                offset: 5,
-                delay: $helpTextDelay,
-              }"
-              class="qpm_button"
-              @click="clear"
-            >
-              <i class="bx bx-reset" style="vertical-align: baseline" />
-              {{ getString("reset") }}
-            </button>
-
-            <button
-              v-tooltip="{
-                content: getString('hoverShareButton'),
-                offset: 5,
-                delay: $helpTextDelay,
-              }"
-              class="qpm_button"
-              @click="copyUrl"
-            >
-              <i
-                class="bx bx-link"
-                style="margin-right: 5px; vertical-align: baseline"
-              />
-              {{ getString("getUrl") }}
-            </button>
-          </div>
-
-          <button
-            v-tooltip="{
-              content: getString('hoverSearchButton'),
-              offset: 5,
-              delay: $helpTextDelay,
-            }"
-            :disabled="searchLoading"
-            :class="{ qpm_disabled: searchLoading }"
-            class="qpm_button qpm_search"
-            @click="searchsetLowStart"
-          >
-            <i
-              class="bx bx-search bx-flip-horizontal"
-              style="position: relative; bottom: 1px"
-            />
-            {{ getString("search") }}
-          </button>
+        <div v-show="hasSubjects && !isCollapsed">
+          <action-buttons
+            :search-loading="searchLoading"
+            :get-string="getString"
+            :$help-text-delay="$helpTextDelay"
+            @clear="clear"
+            @copyUrl="copyUrl"
+            @searchsetLowStart="searchsetLowStart"
+          />
         </div>
       </div>
       <search-result
@@ -424,6 +380,7 @@
 
 <script>
   import DropdownWrapper from "@/components/DropdownWrapper.vue";
+  import ActionButtons from "./ActionButtons.vue";
   import FilterEntry from "@/components/FilterEntry.vue";
   import WordedSearchString from "@/components/WordedSearchString.vue";
   import SearchResult from "@/components/SearchResult.vue";
@@ -443,6 +400,7 @@
     name: "MainWrapper",
     components: {
       DropdownWrapper,
+      ActionButtons,
       FilterEntry,
       WordedSearchString,
       SearchResult,
