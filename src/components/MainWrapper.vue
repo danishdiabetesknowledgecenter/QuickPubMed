@@ -995,7 +995,6 @@
        * 4. Sets a timeout to focus on the search input of the newly added subject dropdown.
        */
       addSubject: function () {
-        const self = this;
         var hasEmptySubject = this.subjects.some(function (e) {
           return e.length === 0;
         });
@@ -1009,13 +1008,13 @@
         this.subjects = [...this.subjects, []];
 
         this.$nextTick(function () {
-          const subjectDropdown = self.$refs.subjectDropdown;
+          const subjectDropdown = this.$refs.subjectDropdown;
           subjectDropdown[
             subjectDropdown.length - 1
           ].$refs.multiselect.$refs.search.focus();
 
           // Update placeholders after DOM update
-          self.updatePlaceholders();
+          this.updatePlaceholders();
         });
       },
       removeSubject: function (id) {
@@ -1438,7 +1437,7 @@
        *
        * @throws Will throw an error if the API requests fail.
        */
-      async searchMore() {
+      searchMore: async function () {
         // Calculate the target number of results based on the next page
         const targetResultLength = Math.min(
           (this.page + 1) * this.pageSize,
@@ -1555,6 +1554,14 @@
           this.searchLoading = false;
         }
       },
+      /**
+       * Searches for articles by their PubMed IDs (PMIDs).
+       *
+       * @async
+       * @function
+       * @param {string[]} ids - An array of PubMed IDs to search for.
+       * @returns {Promise<Object[]>} A promise that resolves to an array of article data objects.
+       */
       searchByIds: async function (ids) {
         ids = ids.filter((id) => id && id.trim() != "");
         if (ids.length == 0) {
@@ -1582,6 +1589,11 @@
           return data;
         });
       },
+      /**
+       * Searches for preselected articles using PMIDs with AI assistance.
+       *
+       * @function
+       */
       searchPreselectedPmidai: function () {
         let self = this;
         this.searchByIds(this.preselectedPmidai)
@@ -1592,6 +1604,12 @@
             console.error(err);
           });
       },
+      /**
+       * Displays a generic search error message to the user.
+       *
+       * @function
+       * @param {Error} err - The error object representing the cause of the search failure.
+       */
       showSearchError: function (err) {
         let message = this.getString("searchErrorGeneric");
         let option = { cause: err };
