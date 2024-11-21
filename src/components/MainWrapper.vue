@@ -42,7 +42,7 @@
                   :hide-topics="hideTopics"
                   :is-group="true"
                   :placeholder="dropdownPlaceholders[n]"
-                  :operator="calcOrOperator"
+                  :operator="getOrOperator"
                   :taggable="true"
                   :selected="item"
                   :close-on-input="false"
@@ -133,7 +133,7 @@
                   :hide-topics="hideTopics"
                   :is-group="false"
                   :placeholder="showTitle"
-                  :operator="calcAndOperator"
+                  :operator="getAndOperator"
                   :close-on-input="false"
                   :language="language"
                   :taggable="false"
@@ -175,7 +175,7 @@
                 <template v-for="option in filteredChoices">
                   <template v-if="hasVisibleSimpleFilterOption(option.choices)">
                     <b :key="option.choice" class="qpm_simpleFiltersHeader">
-                      {{ customNameLabel(option) }}:
+                      {{ getCustomNameLabel(option) }}:
                     </b>
                     <div
                       v-for="(choice, index) in option.choices"
@@ -196,7 +196,7 @@
                         @keyup.enter="updateFilterSimpleOnEnter(choice)"
                       />
                       <label :for="choice.name">
-                        {{ customNameLabel(choice) }}
+                        {{ getCustomNameLabel(choice) }}
                       </label>
                       <button
                         v-if="getSimpleTooltip(choice)"
@@ -357,7 +357,7 @@
           choices: option.choices.filter((choice) => choice.simpleSearch),
         }));
       },
-      showTitle: function () {
+      showTitle() {
         if (this.filters.length < this.filterOptions.length) {
           return this.getString("choselimits");
         }
@@ -366,7 +366,7 @@
       hasSubjects() {
         return this.subjects.some((subjectArray) => subjectArray.length > 0);
       },
-      getSearchString: function () {
+      getSearchString() {
         let str = "";
         for (let i = 0; i < this.subjects.length; i++) {
           let hasOperators = false;
@@ -478,30 +478,25 @@
         });
         return str;
       },
-      getPageSize: function () {
+      getPageSize() {
         return this.pageSize;
       },
-      getLow: function () {
+      getLow() {
         return this.pageSize * this.page;
       },
-      getHigh: function () {
+      getHigh() {
         return Math.min(this.pageSize * this.page + this.pageSize, this.count);
       },
-      alwaysShowFilter: function () {
+      alwaysShowFilter() {
         return this.$alwaysShowFilter;
       },
-      //20210216: Ole kan ikke få dette til at virke - har i stedet tilføjet ekstra div i linje 1707 (good fucking luck finding that line lol)
-      searchHeaderShown: function () {
-        if (this.isCollapsed) return this.getString("searchHeaderHidden");
-        return this.getString("searchHeaderShown");
-      },
-      calcOrOperator: function () {
+      getOrOperator() {
         return this.getString("orOperator");
       },
-      calcAndOperator: function () {
+      getAndOperator() {
         return this.getString("andOperator");
       },
-      getComponentId: function () {
+      getComponentId() {
         return "MainWrapper_" + this.componentNo.toString();
       },
     },
@@ -521,10 +516,10 @@
         });
       },
     },
-    beforeMount: function () {
+    beforeMount() {
       window.removeEventListener("resize", this.updateSubjectDropdownWidth);
     },
-    mounted: async function () {
+    async mounted() {
       this.updatePlaceholders();
       //Spørg Adam
       this.advanced = !this.advanced;
@@ -538,7 +533,7 @@
       this.searchPreselectedPmidai();
       await this.search();
     },
-    created: function () {
+    created() {
       this.updatePlaceholder();
     },
     methods: {
@@ -840,7 +835,7 @@
           this.filterData[groupId].push(tmp);
         });
       },
-      setUrl: function () {
+      setUrl() {
         if (history.replaceState) {
           let urlLink = this.getUrl();
           this.stateHistory.push(this.oldState);
@@ -962,26 +957,36 @@
           "normal"
         );
       },
-      copyUrl: function () {
-        let urlLink = this.getUrl(true);
-
-        //Copy link to clipboard
-        var dummy = document.createElement("textarea");
-        document.body.appendChild(dummy);
-        dummy.value = urlLink;
-        dummy.select();
-        dummy.setSelectionRange(0, 99999);
-        document.execCommand("copy");
-        document.body.removeChild(dummy);
+      /**
+       * Copies the current URL to the clipboard.
+       *
+       * @returns {void}
+       */
+      copyUrl() {
+        const urlLink = this.getUrl(true);
+        navigator.clipboard
+          .writeText(urlLink)
+          .then(() => {
+            console.log("URL copied to clipboard");
+          })
+          .catch((err) => {
+            console.error("Failed to copy URL: ", err);
+          });
       },
-      toggle: function () {
+      /**
+       * Toggles the visibility of the filter dropdown.
+       *
+       * @returns {void}
+       */
+      toggle() {
         this.showFilter =
           !this.showFilter || this.filters.length > 0 || !this.advanced;
-        //Open dropdown. Needs delay
-        const self = this;
-        setTimeout(function () {
-          if (self.advanced)
-            self.$refs.filterDropdown.$refs.multiselect.$refs.search.focus();
+
+        // Open dropdown with a delay
+        setTimeout(() => {
+          if (this.advanced) {
+            this.$refs.filterDropdown.$refs.multiselect.$refs.search.focus();
+          }
         }, 50);
       },
       /**
@@ -994,7 +999,7 @@
        * 3. Adds a new empty subject to the subjects array.
        * 4. Sets a timeout to focus on the search input of the newly added subject dropdown.
        */
-      addSubject: function () {
+      addSubject() {
         var hasEmptySubject = this.subjects.some(function (e) {
           return e.length === 0;
         });
@@ -1017,7 +1022,7 @@
           this.updatePlaceholders();
         });
       },
-      removeSubject: function (id) {
+      removeSubject(id) {
         var isEmptySubject =
           this.subjects[id] && this.subjects[id].length === 0;
 
@@ -1028,7 +1033,7 @@
           this.editForm();
         }
       },
-      updateSubjects: function (value, index) {
+      updateSubjects(value, index) {
         for (let i = 0; i < value.length; i++) {
           if (i > 0) this.isFirstFill = false;
           if (!value[i].scope) value[i].scope = "normal";
@@ -1054,7 +1059,7 @@
         this.setUrl();
         this.editForm();
       },
-      updateScope: function (item, state, index) {
+      updateScope(item, state, index) {
         let sel = JSON.parse(JSON.stringify(this.subjects));
         for (let i = 0; i < sel[index].length; i++) {
           if (sel[index][i].name == item.name) {
@@ -1066,7 +1071,7 @@
         this.setUrl();
         this.editForm();
       },
-      updateFilters: function (value) {
+      updateFilters(value) {
         this.filters = JSON.parse(JSON.stringify(value));
         //Update selected filters
         let newOb = {};
@@ -1082,7 +1087,7 @@
         this.setUrl();
         this.editForm();
       },
-      updateFilterAdvanced: function (value, index) {
+      updateFilterAdvanced(value, index) {
         for (let i = 0; i < value.length; i++) {
           if (!value[i].scope) value[i].scope = "normal";
         }
@@ -1171,7 +1176,7 @@
         this.setUrl();
         this.editForm();
       },
-      updateFilterSimpleOnEnter: function (selectedValue) {
+      updateFilterSimpleOnEnter(selectedValue) {
         var checkboxId = selectedValue.name.replaceAll(" ", "\\ "); // Handle ids with whitespace
         var checkbox = this.$el.querySelector("#" + checkboxId);
         checkbox.click();
@@ -1180,7 +1185,7 @@
        * This methods can only be called once.
        * It prefills some of the filter options in simple search.
        */
-      selectStandardSimple: function () {
+      selectStandardSimple() {
         const self = this;
         const filtersToSelect = [];
         for (let i = 0; i < self.filterOptions.length; i++) {
@@ -1214,63 +1219,85 @@
         }
         this.filterData = tempFilters;
       },
-      updateScopeFilter: function (item, state, index) {
-        let sel = JSON.parse(JSON.stringify(this.filterData));
-        for (let i = 0; i < sel[index].length; i++) {
-          if (sel[index][i].name == item.name) {
-            sel[index][i].scope = state;
-            break;
-          }
+      /**
+       * Updates the scope filter for a given item.
+       *
+       * @param {Object} item - The item to update.
+       * @param {string} state - The new state to set.
+       * @param {number} index - The index of the item in the filter data.
+       * @returns {void}
+       */
+      updateScopeFilter(item, state, index) {
+        // Create a deep copy of the filter data
+        const sel = JSON.parse(JSON.stringify(this.filterData));
+
+        // Find the item in the filter data and update its scope
+        const targetItem = sel[index].find(
+          (filterItem) => filterItem.name === item.name
+        );
+        if (targetItem) {
+          targetItem.scope = state;
         }
+
+        // Update the filter data and other states
         this.filterData = sel;
         this.setUrl();
         this.editForm();
       },
-      getFilters: function (name) {
-        for (let i = 0; i < this.filters.length; i++) {
-          if (this.filters[i].id == name) {
-            return this.filters[i];
-          }
-        }
-        return {};
+      /**
+       * Retrieves the filter with the given name.
+       *
+       * @param {string} name - The name of the filter to retrieve.
+       * @returns {Object} The filter object, or an empty object if not found.
+       */
+      getFilters(name) {
+        return this.filters.find((filter) => filter.id === name) || {};
       },
-      isFilterUsed: function (option, name) {
-        if (!option) return false;
-        for (let i = 0; i < option.length; i++) {
-          if (option[i].name === name) return true;
-        }
-        return false;
+      /**
+       * Checks if a filter with the given name is used in the provided options.
+       *
+       * @param {Array} option - The array of filter options.
+       * @param {string} name - The name of the filter to check.
+       * @returns {boolean} True if the filter is used, false otherwise.
+       */
+      isFilterUsed(option, name) {
+        return option ? option.some((opt) => opt.name === name) : false;
       },
-      clear: function () {
-        for (var i = 0; i < 2; i++) {
-          this.reloadScripts();
-          this.subjects = [[]];
-          this.filters = [];
-          this.filterData = {};
-          this.searchresult = undefined;
-          this.count = 0;
-          this.page = 0;
-          this.showFilter = false;
-          this.details = true;
-          //hack to force all elements back to normal
-          this.advanced = true;
-          this.advancedClick();
-          this.advancedString = false;
-          this.isFirstFill = true;
-          this.sort = order[0];
+      /**
+       * Clears the current search state and resets all relevant data.
+       *
+       * @returns {void}
+       */
+      clear() {
+        this.reloadScripts();
+        this.subjects = [[]];
+        this.filters = [];
+        this.filterData = {};
+        this.searchresult = undefined;
+        this.count = 0;
+        this.page = 0;
+        this.showFilter = false;
+        this.details = true;
+        // Hack to force all elements back to normal
+        this.advanced = true;
+        this.advancedClick();
+        this.advancedString = false;
+        this.isFirstFill = true;
+        this.sort = order[0];
 
-          //Reset expanded groups in dropdown. Only need to do first as the other dropdowns are deleted
+        // Reset expanded groups in dropdown. Only need to do first as the other dropdowns are deleted
+        if (this.$refs.subjectDropdown && this.$refs.subjectDropdown[0]) {
           this.$refs.subjectDropdown[0].clearShownItems();
-          this.setUrl();
         }
+        this.setUrl();
       },
-      editForm: function () {
+      editForm() {
         this.searchresult = undefined;
         this.count = 0;
         this.page = 0;
         return true;
       },
-      scrollToTop: function () {
+      scrollToTop() {
         document
           .getElementById(this.scrollToID)
           .scrollIntoView({ block: "start", behavior: "smooth" });
@@ -1324,7 +1351,7 @@
           container.parentNode.removeChild(container);
         });
       },
-      searchsetLowStart: function () {
+      searchsetLowStart() {
         this.count = 0;
         this.page = 0;
         this.search();
@@ -1437,7 +1464,7 @@
        *
        * @throws Will throw an error if the API requests fail.
        */
-      searchMore: async function () {
+      async searchMore() {
         // Calculate the target number of results based on the next page
         const targetResultLength = Math.min(
           (this.page + 1) * this.pageSize,
@@ -1562,7 +1589,7 @@
        * @param {string[]} ids - An array of PubMed IDs to search for.
        * @returns {Promise<Object[]>} A promise that resolves to an array of article data objects.
        */
-      searchByIds: async function (ids) {
+      async searchByIds(ids) {
         ids = ids.filter((id) => id && id.trim() != "");
         if (ids.length == 0) {
           return [];
@@ -1594,7 +1621,7 @@
        *
        * @function
        */
-      searchPreselectedPmidai: function () {
+      searchPreselectedPmidai() {
         let self = this;
         this.searchByIds(this.preselectedPmidai)
           .then(function (entries) {
@@ -1610,96 +1637,94 @@
        * @function
        * @param {Error} err - The error object representing the cause of the search failure.
        */
-      showSearchError: function (err) {
+      showSearchError(err) {
         let message = this.getString("searchErrorGeneric");
         let option = { cause: err };
         this.searchError = Error(message, option);
       },
-      setPageSize: function (pageSize) {
+      setPageSize(pageSize) {
         this.pageSize = pageSize;
         this.page = 0;
         this.setUrl();
         this.searchMore();
       },
-      nextPage: function () {
+      nextPage() {
         this.page++;
         this.setUrl();
         this.searchMore();
       },
-      previousPage: function () {
+      previousPage() {
         this.page--;
         this.setUrl();
         this.search();
       },
-      toggleDetailsBox: function () {
+      toggleDetailsBox() {
         // added by Ole
         this.details = !this.details; // added by Ole
       }, // added by Ole
-      toggleAdvancedString: function () {
+      toggleAdvancedString() {
         this.advancedString = !this.advancedString;
       },
-      newSortMethod: function (newVal) {
+      newSortMethod(newVal) {
         this.sort = newVal;
         this.page = 0;
         this.setUrl();
         this.count = 0;
         this.search();
       },
-      toggleCollapsedSearch: function () {
-        let coll = document.getElementsByClassName(
+      /**
+       * Toggles the collapsed state of the search form.
+       *
+       * @returns {void}
+       */
+      toggleCollapsedSearch() {
+        const coll = document.getElementsByClassName(
           "qpm_toggleSearchFormBtn bx bx-hide"
         )[0];
-        if (this.isCollapsed == true) {
+
+        if (!coll) {
+          console.warn(
+            "Element with class 'qpm_toggleSearchFormBtn bx bx-hide' not found."
+          );
+          return;
+        }
+
+        if (this.isCollapsed) {
           coll.classList.add("bx-show");
         } else {
           coll.classList.remove("bx-show");
         }
       },
-      toggleCollapsedController: function () {
+      toggleCollapsedController() {
         this.isCollapsed = !this.isCollapsed;
         this.toggleCollapsedSearch();
         this.setUrl();
       },
-      getString: function (string) {
+      getString(string) {
         let constant = messages[string][this.language];
         return constant != undefined ? constant : messages[string]["dk"];
       },
-      customNameLabel: function (option) {
-        let constant = "";
-        if (!option.name && !option.groupname) return;
-        if (option.translations) {
-          let lg = this.language;
-          constant =
-            option.translations[lg] != undefined
-              ? option.translations[lg]
-              : option.translations["dk"];
-        } else {
-          constant = option.name;
-        }
+      /**
+       * Returns the custom name label for the given option.
+       *
+       * @param {Object} option - The option object containing name and translations.
+       * @returns {string} The custom name label.
+       */
+      getCustomNameLabel(option) {
+        if (!option.name && !option.groupname) return "";
 
+        const constant =
+          option.translations?.[this.language] ??
+          option.translations?.["dk"] ??
+          option.name;
         return constant;
       },
-      customGroupLabel: function (option) {
-        let constant = "";
-        if (!option.groupName) return;
-        try {
-          if (option.translations) {
-            constant = option.translations[this.language];
-          } else {
-            constant = option.name;
-          }
-          return constant;
-        } catch (e) {
-          console.log(option, e);
-          return option.translations["dk"];
-        }
-      },
-      updateSubjectDropdownWidth: function () {
+      updateSubjectDropdownWidth() {
         let dropdown = this.$refs.subjectDropdown[0].$refs.selectWrapper;
         if (!dropdown.innerHTML) return;
         this.subjectDropdownWidth = parseInt(dropdown.offsetWidth);
       },
-      checkIfMobile: function () {
+      checkIfMobile() {
         let check = false;
         (function (a) {
           if (
@@ -1714,12 +1739,12 @@
         })(navigator.userAgent || navigator.vendor || window.opera);
         return check;
       },
-      shouldFocusNextDropdownOnMount: function (source) {
+      shouldFocusNextDropdownOnMount(source) {
         if (!this.focusNextDropdownOnMount) return;
         this.focusNextDropdownOnMount = false;
         source.$refs.multiselect.activate();
       },
-      hasVisibleSimpleFilterOption: function (filters) {
+      hasVisibleSimpleFilterOption(filters) {
         if (!filters) return false;
 
         var hasVisibleFilter = filters.some(function (e) {
@@ -1727,11 +1752,11 @@
         });
         return hasVisibleFilter;
       },
-      getSimpleTooltip: function (choice) {
+      getSimpleTooltip(choice) {
         if (!choice.tooltip_simple) return null;
         return choice.tooltip_simple[this.language];
       },
-      updatePreselectedPmidai: function (newValue) {
+      updatePreselectedPmidai(newValue) {
         this.preselectedPmidai = (newValue ?? []).map(function (e) {
           return e.uid;
         });
@@ -1739,7 +1764,7 @@
       },
       // passing along the index seemingly makes vue understand that
       // the dropdownwrappers can have seperate placeholders so keep it even though it is unused
-      getDropdownPlaceholder: function (index, translating = false) {
+      getDropdownPlaceholder(index, translating = false) {
         if (translating) {
           return this.getString("translatingPlaceholder");
         }
