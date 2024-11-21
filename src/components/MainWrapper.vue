@@ -953,7 +953,7 @@
       },
       /**
        * Retrieves the scope key corresponding to the given scope value.
-       * @param {string} scopeValue - The scope value (e.g., 'normal', 'broad').
+       * @param {string} scopeValue - The scope value (e.g., 'narrow', 'normal' or 'broad').
        * @returns {string} The scope key used in the URL.
        */
       getScopeKey(scopeValue) {
@@ -1615,6 +1615,12 @@
         let option = { cause: err };
         this.searchError = Error(message, option);
       },
+      setPageSize: function (pageSize) {
+        this.pageSize = pageSize;
+        this.page = 0;
+        this.setUrl();
+        this.searchMore();
+      },
       nextPage: function () {
         this.page++;
         this.setUrl();
@@ -1687,12 +1693,6 @@
           console.log(option, e);
           return option.translations["dk"];
         }
-      },
-      setPageSize: function (pageSize) {
-        this.pageSize = pageSize;
-        this.page = 0;
-        this.setUrl();
-        this.searchMore();
       },
       updateSubjectDropdownWidth: function () {
         let dropdown = this.$refs.subjectDropdown[0].$refs.selectWrapper;
