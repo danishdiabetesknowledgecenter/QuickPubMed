@@ -55,51 +55,13 @@
         </div>
 
         <div class="qpm_top">
-          <div class="qpm_spaceEvenly qpm_headerText">
-            <div
-              v-show="!isCollapsed"
-              role="heading"
-              aria-level="2"
-              class="h3"
-              style="margin-top: 5px"
-            >
-              {{ getString("searchHeaderShown") }}
-            </div>
-            <div
-              v-show="isCollapsed"
-              role="heading"
-              aria-level="2"
-              class="h3"
-              style="margin-top: 5px"
-            >
-              {{ getString("searchHeaderHidden") }}
-            </div>
-
-            <div
-              v-show="subjects !== ''"
-              class="qpm_toggleSearchForm"
-              @click="toggleCollapsedController()"
-            >
-              <div
-                v-show="!isCollapsed"
-                v-tooltip="{
-                  content: getString('hideForm'),
-                  offset: 5,
-                  delay: $helpTextDelay,
-                }"
-                class="qpm_toggleSearchFormBtn bx bx-hide"
-              />
-              <div
-                v-show="isCollapsed"
-                v-tooltip="{
-                  content: getString('showForm'),
-                  offset: 5,
-                  delay: $helpTextDelay,
-                }"
-                class="qpm_toggleSearchFormBtn bx bx-show"
-              />
-            </div>
-          </div>
+          <search-form-toggle
+            :is-collapsed="isCollapsed"
+            :subjects="subjects"
+            :get-string="getString"
+            :$help-text-delay="$helpTextDelay"
+            @toggle-collapsed="toggleCollapsedController"
+          />
 
           <ai-translation-toggle
             v-model="searchWithAI"
@@ -109,8 +71,8 @@
             :$help-text-delay="$helpTextDelay"
           />
 
-          <!-- The dropdown for selecting subjects to be included in the search -->
           <div v-show="!isCollapsed" class="qpm_searchFormula">
+            <!-- The dropdown for selecting subjects to be included in the search -->
             <div
               v-for="(item, n) in subjects"
               :key="`item-${item.id}-${n}`"
@@ -159,6 +121,7 @@
               style="margin: 5px 0 20px 0"
               @keydown.enter.capture.passive="focusNextDropdownOnMount = true"
             >
+              <!-- Button for adding limit -->
               <button
                 v-tooltip="{
                   content: getString('hoverAddSubject'),
@@ -180,6 +143,7 @@
               v-if="advanced && !showFilter && hasSubjects"
               style="margin-bottom: 15px"
             >
+              <!-- Button for adding limit -->
               <button
                 v-tooltip="{
                   content: getString('hoverLimitButton'),
@@ -350,10 +314,11 @@
   import DropdownWrapper from "@/components/DropdownWrapper.vue";
   import ActionButtons from "@/components/ActionButtons.vue";
   import AiTranslationToggle from "@/components/AiTranslationToggle.vue";
+  import SearchFormToggle from "@/components/SearchFormToggle.vue";
   import FilterEntry from "@/components/FilterEntry.vue";
   import WordedSearchString from "@/components/WordedSearchString.vue";
   import SearchResult from "@/components/SearchResult.vue";
-
+  import axios from "axios";
   import {
     order,
     filtrer,
@@ -363,7 +328,6 @@
   import { topics } from "@/assets/content/qpm-content-diabetes";
   import { messages } from "@/assets/content/qpm-translations.js";
   import { appSettingsMixin } from "@/mixins/appSettings";
-  import axios from "axios";
 
   export default {
     name: "MainWrapper",
@@ -371,6 +335,7 @@
       DropdownWrapper,
       ActionButtons,
       AiTranslationToggle,
+      SearchFormToggle,
       FilterEntry,
       WordedSearchString,
       SearchResult,
