@@ -29,11 +29,7 @@
 
           <div v-show="!isCollapsed" class="qpm_searchFormula">
             <!-- The dropdown for selecting subjects to be included in the search -->
-            <div
-              v-for="(item, n) in subjects"
-              :key="`item-${item.id}-${n}`"
-              class="qpm_subjects"
-            >
+            <div v-for="(item, n) in subjects" :key="`item-${item.id}-${n}`" class="qpm_subjects">
               <div class="qpm_flex">
                 <dropdown-wrapper
                   ref="subjectDropdown"
@@ -42,7 +38,7 @@
                   :hide-topics="hideTopics"
                   :is-group="true"
                   :placeholder="dropdownPlaceholders[n]"
-                  :operator="calcOrOperator"
+                  :operator="getOrOperator"
                   :taggable="true"
                   :selected="item"
                   :close-on-input="false"
@@ -85,20 +81,13 @@
                   delay: $helpTextDelay,
                 }"
                 class="qpm_slim multiselect__input"
-                style="
-                  width: 120px;
-                  padding: 4px 12px 4px 11px !important;
-                  height: 38px;
-                "
+                style="width: 120px; padding: 4px 12px 4px 11px !important; height: 38px"
                 @click="addSubject"
               >
                 {{ getString("addsubjectlimit") }} {{ getString("addsubject") }}
               </button>
             </div>
-            <div
-              v-if="advanced && !showFilter && hasSubjects"
-              style="margin-bottom: 15px"
-            >
+            <div v-if="advanced && !showFilter && hasSubjects" style="margin-bottom: 15px">
               <!-- Button for adding limit -->
               <button
                 v-tooltip="{
@@ -117,10 +106,7 @@
             </div>
 
             <!-- The dropdown for selecting limits to be included in the advanced search -->
-            <div
-              v-if="advanced && showFilter && hasSubjects"
-              style="margin-bottom: 10px"
-            >
+            <div v-if="advanced && showFilter && hasSubjects" style="margin-bottom: 10px">
               <h4 role="heading" aria-level="3" class="h4">
                 {{ getString("AdvancedFiltersHeader") }}
               </h4>
@@ -133,7 +119,7 @@
                   :hide-topics="hideTopics"
                   :is-group="false"
                   :placeholder="showTitle"
-                  :operator="calcAndOperator"
+                  :operator="getAndOperator"
                   :close-on-input="false"
                   :language="language"
                   :taggable="false"
@@ -147,10 +133,7 @@
                 />
               </div>
               <div class="qpm_flex">
-                <div
-                  class="qpm_filters"
-                  :class="{ qpm_shown: filters.length === 0 }"
-                >
+                <div class="qpm_filters" :class="{ qpm_shown: filters.length === 0 }">
                   <filter-entry
                     v-for="(selected, id) in filterData"
                     :key="id"
@@ -175,7 +158,7 @@
                 <template v-for="option in filteredChoices">
                   <template v-if="hasVisibleSimpleFilterOption(option.choices)">
                     <b :key="option.choice" class="qpm_simpleFiltersHeader">
-                      {{ customNameLabel(option) }}:
+                      {{ getCustomNameLabel(option) }}:
                     </b>
                     <div
                       v-for="(choice, index) in option.choices"
@@ -188,15 +171,13 @@
                         type="checkbox"
                         title="titleCheckBoxTranslate"
                         :value="choice.name"
-                        :checked="
-                          isFilterUsed(filterData[option.id], choice.name)
-                        "
+                        :checked="isFilterUsed(filterData[option.id], choice.name)"
                         style="cursor: pointer"
                         @change="updateFilterSimple(option.id, choice)"
                         @keyup.enter="updateFilterSimpleOnEnter(choice)"
                       />
                       <label :for="choice.name">
-                        {{ customNameLabel(choice) }}
+                        {{ getCustomNameLabel(choice) }}
                       </label>
                       <button
                         v-if="getSimpleTooltip(choice)"
@@ -276,12 +257,7 @@
   import WordedSearchString from "@/components/WordedSearchString.vue";
   import SearchResult from "@/components/SearchResult.vue";
   import axios from "axios";
-  import {
-    order,
-    filtrer,
-    scopeIds,
-    customInputTagTooltip,
-  } from "@/assets/content/qpm-content.js";
+  import { order, filtrer, scopeIds, customInputTagTooltip } from "@/assets/content/qpm-content.js";
   import { topics } from "@/assets/content/qpm-content-diabetes";
   import { messages } from "@/assets/content/qpm-translations.js";
   import { appSettingsMixin } from "@/mixins/appSettings";
@@ -302,7 +278,7 @@
     props: {
       hideTopics: {
         type: Array,
-        default: function () {
+        default() {
           return [];
         },
       },
@@ -315,7 +291,7 @@
         default: 1,
       },
     },
-    data: function () {
+    data() {
       return {
         advanced: false,
         advancedString: false,
@@ -328,7 +304,6 @@
         isFirstFill: true,
         isCollapsed: false,
         isUrlParsed: false,
-        loadedId: "",
         oldState: "",
         page: 0,
         pageSize: 25,
@@ -340,7 +315,6 @@
         searchWithAI: true,
         searchresult: undefined,
         showFilter: false,
-        simpleFilterOptions: [],
         sort: order[0],
         stateHistory: [],
         subjectDropdownWidth: 0,
@@ -357,7 +331,7 @@
           choices: option.choices.filter((choice) => choice.simpleSearch),
         }));
       },
-      showTitle: function () {
+      showTitle() {
         if (this.filters.length < this.filterOptions.length) {
           return this.getString("choselimits");
         }
@@ -366,142 +340,91 @@
       hasSubjects() {
         return this.subjects.some((subjectArray) => subjectArray.length > 0);
       },
-      getSearchString: function () {
-        let str = "";
-        for (let i = 0; i < this.subjects.length; i++) {
-          let hasOperators = false;
-          let subjectsToIterate = this.subjects[i].length;
-          for (let j = 0; j < subjectsToIterate; j++) {
-            let scope = this.subjects[i][j].scope;
-            let tmp = this.subjects[i][j].searchStrings[scope][0];
-            if (
-              tmp.indexOf("AND") >= 0 ||
-              tmp.indexOf("NOT") >= 0 ||
-              tmp.indexOf("OR") >= 0
-            ) {
-              hasOperators = true;
-              break;
-            }
-          }
-          let substring = "";
-          if (i > 0 && str != "") substring += " AND ";
+      getSearchString() {
+        const hasLogicalOperators = (searchStrings) =>
+          ["AND", "OR", "NOT"].some((op) => searchStrings.includes(op));
+
+        const buildSubstring = (items, connector = " OR ") => {
+          return items
+            .map((item) => {
+              const { scope, searchStrings } = item;
+              const combined = searchStrings[scope].join(connector);
+              return hasLogicalOperators(searchStrings[scope][0]) && items.length > 1
+                ? `(${combined})`
+                : combined;
+            })
+            .join(connector);
+        };
+
+        let substrings = [];
+
+        this.subjects.forEach((subjectGroup, index) => {
+          const subjectsToIterate = subjectGroup.length;
+          const hasOperators = subjectGroup.some((item) =>
+            hasLogicalOperators(item.searchStrings[item.scope][0])
+          );
+
+          let substring = index > 0 ? " AND " : "";
           if (
-            (hasOperators &&
-              (this.subjects.length > 1 || this.filters.length > 0)) ||
+            (hasOperators && (this.subjects.length > 1 || this.filters.length > 0)) ||
             subjectsToIterate > 1
-          )
+          ) {
             substring += "(";
-          for (let j = 0; j < subjectsToIterate; j++) {
-            let scope = this.subjects[i][j].scope;
-            if (j > 0) substring += " OR ";
-            let tmp = this.subjects[i][j].searchStrings[scope][0];
-            if (
-              (tmp.indexOf("AND") >= 0 ||
-                tmp.indexOf("NOT") >= 0 ||
-                tmp.indexOf("OR") >= 0) &&
-              subjectsToIterate > 1
-            )
-              substring += "(";
-            substring += this.subjects[i][j].searchStrings[scope].join(" OR ");
-            if (
-              (tmp.indexOf("AND") >= 0 ||
-                tmp.indexOf("NOT") >= 0 ||
-                tmp.indexOf("OR") >= 0) &&
-              subjectsToIterate > 1
-            )
-              substring += ")";
           }
+
+          substring += buildSubstring(subjectGroup);
+
           if (
-            (hasOperators &&
-              (this.subjects.length > 1 || this.filters.length > 0)) ||
+            (hasOperators && (this.subjects.length > 1 || this.filters.length > 0)) ||
             subjectsToIterate > 1
-          )
+          ) {
             substring += ")";
-
-          if (
-            substring != "()" &&
-            substring != " AND ()" &&
-            substring != " AND "
-          ) {
-            str += substring;
           }
-        }
 
-        const self = this;
-        Object.keys(self.filterData).forEach(function (key) {
-          let substring = "";
-          let value = self.filterData[key];
-          let hasOperators = false;
-          for (let i = 0; i < value.length; i++) {
-            let scope = value[i].scope;
-
-            if (
-              value[i].searchStrings[scope][0].indexOf("AND") >= 0 ||
-              value[i].searchStrings[scope][0].indexOf("NOT") >= 0 ||
-              value[i].searchStrings[scope][0].indexOf("OR") >= 0
-            ) {
-              hasOperators = true;
-              break;
-            }
-          }
-          substring += " AND ";
-          if (hasOperators || value.length > 1) substring += "(";
-          for (let i = 0; i < value.length; i++) {
-            const val = value[i];
-            if (i > 0) substring += " OR ";
-            let scope = val.scope;
-            if (
-              (value[i].searchStrings[scope][0].indexOf("AND") >= 0 ||
-                value[i].searchStrings[scope][0].indexOf("NOT") >= 0 ||
-                value[i].searchStrings[scope][0].indexOf("OR") >= 0) &&
-              value.length > 1
-            )
-              substring += "(";
-            substring += val.searchStrings[scope].join(" OR ");
-            if (
-              (value[i].searchStrings[scope][0].indexOf("AND") >= 0 ||
-                value[i].searchStrings[scope][0].indexOf("NOT") >= 0 ||
-                value[i].searchStrings[scope][0].indexOf("OR") >= 0) &&
-              value.length > 1
-            )
-              substring += ")";
-          }
-          if (hasOperators || value.length > 1) substring += ")";
-
-          if (
-            substring != "()" &&
-            substring != " AND ()" &&
-            substring != " AND "
-          ) {
-            str += substring;
+          if (substring !== "()" && substring !== " AND ()" && substring !== " AND ") {
+            substrings.push(substring);
           }
         });
-        return str;
+
+        Object.keys(this.filterData).forEach((key) => {
+          const filterGroup = this.filterData[key];
+          const hasOperators = filterGroup.some((item) =>
+            hasLogicalOperators(item.searchStrings[item.scope][0])
+          );
+
+          let substring = " AND ";
+          if (hasOperators || filterGroup.length > 1) substring += "(";
+
+          substring += buildSubstring(filterGroup);
+
+          if (hasOperators || filterGroup.length > 1) substring += ")";
+
+          if (substring !== " AND ()" && substring !== " AND ") {
+            substrings.push(substring);
+          }
+        });
+
+        return substrings.join("");
       },
-      getPageSize: function () {
+      getPageSize() {
         return this.pageSize;
       },
-      getLow: function () {
+      getLow() {
         return this.pageSize * this.page;
       },
-      getHigh: function () {
+      getHigh() {
         return Math.min(this.pageSize * this.page + this.pageSize, this.count);
       },
-      alwaysShowFilter: function () {
+      alwaysShowFilter() {
         return this.$alwaysShowFilter;
       },
-      //20210216: Ole kan ikke få dette til at virke - har i stedet tilføjet ekstra div i linje 1707 (good fucking luck finding that line lol)
-      searchHeaderShown: function () {
-        if (this.isCollapsed) return this.getString("searchHeaderHidden");
-        return this.getString("searchHeaderShown");
-      },
-      calcOrOperator: function () {
+      getOrOperator() {
         return this.getString("orOperator");
       },
-      calcAndOperator: function () {
+      getAndOperator() {
         return this.getString("andOperator");
       },
-      getComponentId: function () {
+      getComponentId() {
         return "MainWrapper_" + this.componentNo.toString();
       },
     },
@@ -521,12 +444,11 @@
         });
       },
     },
-    beforeMount: function () {
+    beforeMount() {
       window.removeEventListener("resize", this.updateSubjectDropdownWidth);
     },
-    mounted: async function () {
+    async mounted() {
       this.updatePlaceholders();
-      //Spørg Adam
       this.advanced = !this.advanced;
       this.advancedClick(true);
       this.parseUrl();
@@ -538,7 +460,7 @@
       this.searchPreselectedPmidai();
       await this.search();
     },
-    created: function () {
+    created() {
       this.updatePlaceholder();
     },
     methods: {
@@ -589,9 +511,7 @@
             filterItem.choices.forEach((choice) => {
               choice.buttons = false;
               if (
-                (!this.isUrlParsed ||
-                  choice.simpleSearch ||
-                  choice.standardSimple) &&
+                (!this.isUrlParsed || choice.simpleSearch || choice.standardSimple) &&
                 !this.filterOptions.includes(filterItem)
               ) {
                 this.filterOptions.push(filterItem);
@@ -623,22 +543,16 @@
       updateFiltersBasedOnSelection() {
         const updatedFilters = [];
         this.filters.forEach((filter) => {
-          const matchingFilter = this.filterOptions.find(
-            (option) => option.name === filter.name
-          );
+          const matchingFilter = this.filterOptions.find((option) => option.name === filter.name);
           if (matchingFilter) {
             const shouldIncludeFilter =
               this.isUrlParsed && !this.advanced
                 ? filter.choices.some(
                     (choice) =>
-                      (choice.simpleSearch || choice.standardSimple) &&
-                      this.filterData[filter.id]
+                      (choice.simpleSearch || choice.standardSimple) && this.filterData[filter.id]
                   )
                 : this.filterData[filter.id];
-            if (
-              shouldIncludeFilter &&
-              !updatedFilters.includes(matchingFilter)
-            ) {
+            if (shouldIncludeFilter && !updatedFilters.includes(matchingFilter)) {
               updatedFilters.push(matchingFilter);
             }
           }
@@ -786,9 +700,7 @@
        */
       processFilter(key, values) {
         // Find the filter group
-        const filterGroup = this.filterOptions.find(
-          (filter) => filter.id === key
-        );
+        const filterGroup = this.filterOptions.find((filter) => filter.id === key);
         if (!filterGroup) return;
 
         if (!this.filters.includes(filterGroup)) {
@@ -831,8 +743,7 @@
             return;
           }
 
-          if (this.isUrlParsed && !this.advanced && !choice.simpleSearch)
-            return;
+          if (this.isUrlParsed && !this.advanced && !choice.simpleSearch) return;
 
           const tmp = { ...choice, scope: scopeIds[scope] };
 
@@ -840,7 +751,7 @@
           this.filterData[groupId].push(tmp);
         });
       },
-      setUrl: function () {
+      setUrl() {
         if (history.replaceState) {
           let urlLink = this.getUrl();
           this.stateHistory.push(this.oldState);
@@ -857,9 +768,7 @@
        */
       getUrl() {
         const origin =
-          window.location.origin && window.location.origin !== "null"
-            ? window.location.origin
-            : "";
+          window.location.origin && window.location.origin !== "null" ? window.location.origin : "";
 
         const baseUrl = `${origin}${window.location.pathname}`;
 
@@ -876,9 +785,7 @@
         const sorter = `&sort=${encodeURIComponent(this.sort.method)}`;
         const collapsedStr = `&collapsed=${this.isCollapsed}`;
         const pageSizeStr = `&pageSize=${this.pageSize}`;
-        const pmidaiStr = `&pmidai=${(this.preselectedPmidai ?? []).join(
-          ";;"
-        )}`;
+        const pmidaiStr = `&pmidai=${(this.preselectedPmidai ?? []).join(";;")}`;
         const scrolltoStr = this.scrollToID
           ? `&scrollto=${encodeURIComponent(this.scrollToID)}`
           : "";
@@ -902,9 +809,7 @@
           .filter((group) => group.length > 0)
           .map((group) => {
             const subjectValues = group.map((subject) => {
-              const scope = this.getScopeKey(
-                this.advanced ? subject.scope : "normal"
-              );
+              const scope = this.getScopeKey(this.advanced ? subject.scope : "normal");
               let subjectId = "";
 
               if (subject.id) {
@@ -953,35 +858,41 @@
       },
       /**
        * Retrieves the scope key corresponding to the given scope value.
-       * @param {string} scopeValue - The scope value (e.g., 'normal', 'broad').
+       * @param {string} scopeValue - The scope value (e.g., 'narrow', 'normal' or 'broad').
        * @returns {string} The scope key used in the URL.
        */
       getScopeKey(scopeValue) {
-        return (
-          Object.keys(scopeIds).find((key) => scopeIds[key] === scopeValue) ||
-          "normal"
-        );
+        return Object.keys(scopeIds).find((key) => scopeIds[key] === scopeValue) || "normal";
       },
-      copyUrl: function () {
-        let urlLink = this.getUrl(true);
+      /**
+       * Copies the current URL to the clipboard.
+       *
+       * @returns {void}
+       */
+      copyUrl() {
+        const urlLink = this.getUrl(true);
+        navigator.clipboard
+          .writeText(urlLink)
+          .then(() => {
+            console.log("URL copied to clipboard");
+          })
+          .catch((err) => {
+            console.error("Failed to copy URL: ", err);
+          });
+      },
+      /**
+       * Toggles the visibility of the filter dropdown.
+       *
+       * @returns {void}
+       */
+      toggle() {
+        this.showFilter = !this.showFilter || this.filters.length > 0 || !this.advanced;
 
-        //Copy link to clipboard
-        var dummy = document.createElement("textarea");
-        document.body.appendChild(dummy);
-        dummy.value = urlLink;
-        dummy.select();
-        dummy.setSelectionRange(0, 99999);
-        document.execCommand("copy");
-        document.body.removeChild(dummy);
-      },
-      toggle: function () {
-        this.showFilter =
-          !this.showFilter || this.filters.length > 0 || !this.advanced;
-        //Open dropdown. Needs delay
-        const self = this;
-        setTimeout(function () {
-          if (self.advanced)
-            self.$refs.filterDropdown.$refs.multiselect.$refs.search.focus();
+        // Open dropdown with a delay
+        setTimeout(() => {
+          if (this.advanced) {
+            this.$refs.filterDropdown.$refs.multiselect.$refs.search.focus();
+          }
         }, 50);
       },
       /**
@@ -994,7 +905,7 @@
        * 3. Adds a new empty subject to the subjects array.
        * 4. Sets a timeout to focus on the search input of the newly added subject dropdown.
        */
-      addSubject: function () {
+      addSubject() {
         var hasEmptySubject = this.subjects.some(function (e) {
           return e.length === 0;
         });
@@ -1009,17 +920,14 @@
 
         this.$nextTick(function () {
           const subjectDropdown = this.$refs.subjectDropdown;
-          subjectDropdown[
-            subjectDropdown.length - 1
-          ].$refs.multiselect.$refs.search.focus();
+          subjectDropdown[subjectDropdown.length - 1].$refs.multiselect.$refs.search.focus();
 
           // Update placeholders after DOM update
           this.updatePlaceholders();
         });
       },
-      removeSubject: function (id) {
-        var isEmptySubject =
-          this.subjects[id] && this.subjects[id].length === 0;
+      removeSubject(id) {
+        var isEmptySubject = this.subjects[id] && this.subjects[id].length === 0;
 
         this.subjects.splice(id, 1);
         this.setUrl();
@@ -1028,21 +936,29 @@
           this.editForm();
         }
       },
-      updateSubjects: function (value, index) {
-        for (let i = 0; i < value.length; i++) {
+      /**
+       * Updates the subjects array and manages related state.
+       *
+       * @param {Array<Object>} value - The list of subject items to update.
+       * @param {number} index - The index of the subjects array to update.
+       */
+      updateSubjects(value, index) {
+        value.forEach((item, i) => {
           if (i > 0) this.isFirstFill = false;
-          if (!value[i].scope) value[i].scope = "normal";
-        }
+          if (!item.scope) item.scope = "normal";
+        });
+
         if (this.subjects.length > 1) this.isFirstFill = false;
-        let sel = JSON.parse(JSON.stringify(this.subjects));
-        sel[index] = value;
-        this.subjects = sel;
 
-        //Fills out standard filters, if they are necessary
-        if (!this.advanced && this.isFirstFill) this.selectStandardSimple();
-        this.isFirstFill = false;
+        const updatedSubjects = JSON.parse(JSON.stringify(this.subjects));
+        updatedSubjects[index] = value;
+        this.subjects = updatedSubjects;
 
-        //Check if empty, then clear and hide filters if so
+        if (!this.advanced && this.isFirstFill) {
+          this.selectStandardSimple();
+          this.isFirstFill = false;
+        }
+
         if (!this.hasSubjects) {
           this.filters = [];
           this.filterData = {};
@@ -1054,41 +970,54 @@
         this.setUrl();
         this.editForm();
       },
-      updateScope: function (item, state, index) {
-        let sel = JSON.parse(JSON.stringify(this.subjects));
-        for (let i = 0; i < sel[index].length; i++) {
-          if (sel[index][i].name == item.name) {
-            sel[index][i].scope = state;
-            break;
-          }
+      /**
+       * Updates the scope of a specific subject item.
+       *
+       * @param {Object} item - The subject item to update.
+       * @param {string} state - The new scope state.
+       * @param {number} index - The index of the subjects array where the item resides.
+       */
+      updateScope(item, state, index) {
+        const updatedSubjects = JSON.parse(JSON.stringify(this.subjects));
+        const subject = updatedSubjects[index].find((sub) => sub.name === item.name);
+        if (subject) {
+          subject.scope = state;
         }
-        this.subjects = sel;
+        this.subjects = updatedSubjects;
         this.setUrl();
         this.editForm();
       },
-      updateFilters: function (value) {
+      /**
+       * Updates the filters array and initializes filter data.
+       *
+       * @param {Array<Object>} value - The list of filter items to update.
+       */
+      updateFilters(value) {
         this.filters = JSON.parse(JSON.stringify(value));
-        //Update selected filters
-        let newOb = {};
-        for (let i = 0; i < this.filters.length; i++) {
-          const item = this.filters[i].id;
-          if (this.filterData[item]) {
-            newOb[item] = this.filterData[item];
-          } else {
-            newOb[item] = [];
-          }
-        }
-        this.filterData = newOb;
+
+        this.filterData = this.filters.reduce((acc, filter) => {
+          acc[filter.id] = this.filterData[filter.id] || [];
+          return acc;
+        }, {});
+
         this.setUrl();
         this.editForm();
       },
-      updateFilterAdvanced: function (value, index) {
-        for (let i = 0; i < value.length; i++) {
-          if (!value[i].scope) value[i].scope = "normal";
-        }
-        let temp = JSON.parse(JSON.stringify(this.filterData));
-        temp[index] = value;
-        this.filterData = temp;
+      /**
+       * Updates advanced filter data for a specific filter group.
+       *
+       * @param {Array<Object>} value - The list of advanced filter items to update.
+       * @param {number} index - The index of the filter group to update.
+       */
+      updateFilterAdvanced(value, index) {
+        value.forEach((item) => {
+          if (!item.scope) item.scope = "normal";
+        });
+
+        const updatedFilterData = JSON.parse(JSON.stringify(this.filterData));
+        updatedFilterData[index] = value;
+        this.filterData = updatedFilterData;
+
         this.setUrl();
         this.editForm();
       },
@@ -1104,9 +1033,7 @@
        */
       updateFilterSimple(filterType, selectedValue) {
         if (!filterType || !selectedValue) {
-          console.warn(
-            "updateFilterSimple: Missing filterType or selectedValue"
-          );
+          console.warn("updateFilterSimple: Missing filterType or selectedValue");
           return;
         }
 
@@ -1122,9 +1049,7 @@
         }
 
         // Check if the selected value is already in the filter data
-        const exists = tempFilterData[filterType].some(
-          (item) => item.name === selectedValue.name
-        );
+        const exists = tempFilterData[filterType].some((item) => item.name === selectedValue.name);
 
         // Determine if the option is checked or not
         const isChecked = selectedValue.checked; // Ensure 'checked' is a property
@@ -1134,19 +1059,13 @@
           tempFilterData[filterType].push(selectedValue);
 
           // Add the filter to this.filters if not already present
-          const filterExists = this.filters.some(
-            (filter) => filter.id === filterType
-          );
+          const filterExists = this.filters.some((filter) => filter.id === filterType);
           if (!filterExists) {
-            const filterOption = this.filterOptions.find(
-              (option) => option.id === filterType
-            );
+            const filterOption = this.filterOptions.find((option) => option.id === filterType);
             if (filterOption) {
               this.filters.push({ ...filterOption });
             } else {
-              console.warn(
-                `updateFilterSimple: Filter option with id "${filterType}" not found.`
-              );
+              console.warn(`updateFilterSimple: Filter option with id "${filterType}" not found.`);
             }
           }
         } else {
@@ -1158,9 +1077,7 @@
           // If the filter type array is empty, remove it and the filter from this.filters
           if (tempFilterData[filterType].length === 0) {
             delete tempFilterData[filterType];
-            this.filters = this.filters.filter(
-              (filter) => filter.id !== filterType
-            );
+            this.filters = this.filters.filter((filter) => filter.id !== filterType);
           }
         }
 
@@ -1171,7 +1088,7 @@
         this.setUrl();
         this.editForm();
       },
-      updateFilterSimpleOnEnter: function (selectedValue) {
+      updateFilterSimpleOnEnter(selectedValue) {
         var checkboxId = selectedValue.name.replaceAll(" ", "\\ "); // Handle ids with whitespace
         var checkbox = this.$el.querySelector("#" + checkboxId);
         checkbox.click();
@@ -1180,7 +1097,7 @@
        * This methods can only be called once.
        * It prefills some of the filter options in simple search.
        */
-      selectStandardSimple: function () {
+      selectStandardSimple() {
         const self = this;
         const filtersToSelect = [];
         for (let i = 0; i < self.filterOptions.length; i++) {
@@ -1214,63 +1131,83 @@
         }
         this.filterData = tempFilters;
       },
-      updateScopeFilter: function (item, state, index) {
-        let sel = JSON.parse(JSON.stringify(this.filterData));
-        for (let i = 0; i < sel[index].length; i++) {
-          if (sel[index][i].name == item.name) {
-            sel[index][i].scope = state;
-            break;
-          }
+      /**
+       * Updates the scope filter for a given item.
+       *
+       * @param {Object} item - The item to update.
+       * @param {string} state - The new state to set.
+       * @param {number} index - The index of the item in the filter data.
+       * @returns {void}
+       */
+      updateScopeFilter(item, state, index) {
+        // Create a deep copy of the filter data
+        const sel = JSON.parse(JSON.stringify(this.filterData));
+
+        // Find the item in the filter data and update its scope
+        const targetItem = sel[index].find((filterItem) => filterItem.name === item.name);
+        if (targetItem) {
+          targetItem.scope = state;
         }
+
+        // Update the filter data and other states
         this.filterData = sel;
         this.setUrl();
         this.editForm();
       },
-      getFilters: function (name) {
-        for (let i = 0; i < this.filters.length; i++) {
-          if (this.filters[i].id == name) {
-            return this.filters[i];
-          }
-        }
-        return {};
+      /**
+       * Retrieves the filter with the given name.
+       *
+       * @param {string} name - The name of the filter to retrieve.
+       * @returns {Object} The filter object, or an empty object if not found.
+       */
+      getFilters(name) {
+        return this.filters.find((filter) => filter.id === name) || {};
       },
-      isFilterUsed: function (option, name) {
-        if (!option) return false;
-        for (let i = 0; i < option.length; i++) {
-          if (option[i].name === name) return true;
-        }
-        return false;
+      /**
+       * Checks if a filter with the given name is used in the provided options.
+       *
+       * @param {Array} option - The array of filter options.
+       * @param {string} name - The name of the filter to check.
+       * @returns {boolean} True if the filter is used, false otherwise.
+       */
+      isFilterUsed(option, name) {
+        return option ? option.some((opt) => opt.name === name) : false;
       },
-      clear: function () {
-        for (var i = 0; i < 2; i++) {
-          this.reloadScripts();
-          this.subjects = [[]];
-          this.filters = [];
-          this.filterData = {};
-          this.searchresult = undefined;
-          this.count = 0;
-          this.page = 0;
-          this.showFilter = false;
-          this.details = true;
-          //hack to force all elements back to normal
-          this.advanced = true;
-          this.advancedClick();
-          this.advancedString = false;
-          this.isFirstFill = true;
-          this.sort = order[0];
+      /**
+       * Clears the current search state and resets all relevant data.
+       *
+       * @returns {void}
+       */
+      clear() {
+        this.reloadScripts();
+        this.subjects = [[]];
+        this.filters = [];
+        this.filterData = {};
+        this.searchresult = undefined;
+        this.count = 0;
+        this.page = 0;
+        this.showFilter = false;
+        this.details = true;
+        // Hack to force all elements back to normal
+        this.advanced = true;
+        this.advancedClick();
+        this.advancedString = false;
+        this.isFirstFill = true;
+        this.sort = order[0];
 
-          //Reset expanded groups in dropdown. Only need to do first as the other dropdowns are deleted
+        // Reset expanded groups in dropdown. Only need to do first as the other dropdowns are deleted
+        if (this.$refs.subjectDropdown && this.$refs.subjectDropdown[0]) {
           this.$refs.subjectDropdown[0].clearShownItems();
-          this.setUrl();
         }
+        this.setUrl();
       },
-      editForm: function () {
+      editForm() {
         this.searchresult = undefined;
         this.count = 0;
         this.page = 0;
         return true;
       },
-      scrollToTop: function () {
+      scrollToTop() {
         document
           .getElementById(this.scrollToID)
           .scrollIntoView({ block: "start", behavior: "smooth" });
@@ -1324,7 +1261,7 @@
           container.parentNode.removeChild(container);
         });
       },
-      searchsetLowStart: function () {
+      searchsetLowStart() {
         this.count = 0;
         this.page = 0;
         this.search();
@@ -1367,8 +1304,7 @@
             esearchParams
           );
 
-          const idList =
-            esearchResponse.data.esearchresult.idlist.filter(Boolean);
+          const idList = esearchResponse.data.esearchresult.idlist.filter(Boolean);
 
           if (idList.length === 0) {
             this.count = 0;
@@ -1439,16 +1375,10 @@
        */
       searchMore: async function () {
         // Calculate the target number of results based on the next page
-        const targetResultLength = Math.min(
-          (this.page + 1) * this.pageSize,
-          this.count
-        );
+        const targetResultLength = Math.min((this.page + 1) * this.pageSize, this.count);
 
         // If current results already meet or exceed the target, no need to fetch more
-        if (
-          this.searchresult &&
-          this.searchresult.length >= targetResultLength
-        ) {
+        if (this.searchresult && this.searchresult.length >= targetResultLength) {
           return;
         }
 
@@ -1477,14 +1407,8 @@
             email: nlm.email,
             api_key: nlm.key,
             retmode: "json",
-            retmax: Math.min(
-              this.pageSize,
-              targetResultLength - (this.searchresult.length || 0)
-            ),
-            retstart: Math.max(
-              this.searchresult.length || 0,
-              this.page * this.pageSize
-            ),
+            retmax: Math.min(this.pageSize, targetResultLength - (this.searchresult.length || 0)),
+            retstart: Math.max(this.searchresult.length || 0, this.page * this.pageSize),
             sort: this.sort.method,
             term: query,
           });
@@ -1562,7 +1486,7 @@
        * @param {string[]} ids - An array of PubMed IDs to search for.
        * @returns {Promise<Object[]>} A promise that resolves to an array of article data objects.
        */
-      searchByIds: async function (ids) {
+      async searchByIds(ids) {
         ids = ids.filter((id) => id && id.trim() != "");
         if (ids.length == 0) {
           return [];
@@ -1594,7 +1518,7 @@
        *
        * @function
        */
-      searchPreselectedPmidai: function () {
+      searchPreselectedPmidai() {
         let self = this;
         this.searchByIds(this.preselectedPmidai)
           .then(function (entries) {
@@ -1610,96 +1534,88 @@
        * @function
        * @param {Error} err - The error object representing the cause of the search failure.
        */
-      showSearchError: function (err) {
+      showSearchError(err) {
         let message = this.getString("searchErrorGeneric");
         let option = { cause: err };
         this.searchError = Error(message, option);
       },
-      nextPage: function () {
+      setPageSize(pageSize) {
+        this.pageSize = pageSize;
+        this.page = 0;
+        this.setUrl();
+        this.searchMore();
+      },
+      nextPage() {
         this.page++;
         this.setUrl();
         this.searchMore();
       },
-      previousPage: function () {
+      previousPage() {
         this.page--;
         this.setUrl();
         this.search();
       },
-      toggleDetailsBox: function () {
+      toggleDetailsBox() {
         // added by Ole
         this.details = !this.details; // added by Ole
       }, // added by Ole
-      toggleAdvancedString: function () {
+      toggleAdvancedString() {
         this.advancedString = !this.advancedString;
       },
-      newSortMethod: function (newVal) {
+      newSortMethod(newVal) {
         this.sort = newVal;
         this.page = 0;
         this.setUrl();
         this.count = 0;
         this.search();
       },
-      toggleCollapsedSearch: function () {
-        let coll = document.getElementsByClassName(
-          "qpm_toggleSearchFormBtn bx bx-hide"
-        )[0];
-        if (this.isCollapsed == true) {
+      /**
+       * Toggles the collapsed state of the search form.
+       *
+       * @returns {void}
+       */
+      toggleCollapsedSearch() {
+        const coll = document.getElementsByClassName("qpm_toggleSearchFormBtn bx bx-hide")[0];
+
+        if (!coll) {
+          console.warn("Element with class 'qpm_toggleSearchFormBtn bx bx-hide' not found.");
+          return;
+        }
+
+        if (this.isCollapsed) {
           coll.classList.add("bx-show");
         } else {
           coll.classList.remove("bx-show");
         }
       },
-      toggleCollapsedController: function () {
+      toggleCollapsedController() {
         this.isCollapsed = !this.isCollapsed;
         this.toggleCollapsedSearch();
         this.setUrl();
       },
-      getString: function (string) {
+      getString(string) {
         let constant = messages[string][this.language];
         return constant != undefined ? constant : messages[string]["dk"];
       },
-      customNameLabel: function (option) {
-        let constant = "";
-        if (!option.name && !option.groupname) return;
-        if (option.translations) {
-          let lg = this.language;
-          constant =
-            option.translations[lg] != undefined
-              ? option.translations[lg]
-              : option.translations["dk"];
-        } else {
-          constant = option.name;
-        }
+      /**
+       * Returns the custom name label for the given option.
+       *
+       * @param {Object} option - The option object containing name and translations.
+       * @returns {string} The custom name label.
+       */
+      getCustomNameLabel(option) {
+        if (!option.name && !option.groupname) return "";
 
+        const constant =
+          option.translations?.[this.language] ?? option.translations?.["dk"] ?? option.name;
         return constant;
       },
-      customGroupLabel: function (option) {
-        let constant = "";
-        if (!option.groupName) return;
-        try {
-          if (option.translations) {
-            constant = option.translations[this.language];
-          } else {
-            constant = option.name;
-          }
-          return constant;
-        } catch (e) {
-          console.log(option, e);
-          return option.translations["dk"];
-        }
-      },
-      setPageSize: function (pageSize) {
-        this.pageSize = pageSize;
-        this.page = 0;
-        this.setUrl();
-        this.searchMore();
-      },
-      updateSubjectDropdownWidth: function () {
+      updateSubjectDropdownWidth() {
         let dropdown = this.$refs.subjectDropdown[0].$refs.selectWrapper;
         if (!dropdown.innerHTML) return;
         this.subjectDropdownWidth = parseInt(dropdown.offsetWidth);
       },
-      checkIfMobile: function () {
+      checkIfMobile() {
         let check = false;
         (function (a) {
           if (
@@ -1714,12 +1630,12 @@
         })(navigator.userAgent || navigator.vendor || window.opera);
         return check;
       },
-      shouldFocusNextDropdownOnMount: function (source) {
+      shouldFocusNextDropdownOnMount(source) {
         if (!this.focusNextDropdownOnMount) return;
         this.focusNextDropdownOnMount = false;
         source.$refs.multiselect.activate();
       },
-      hasVisibleSimpleFilterOption: function (filters) {
+      hasVisibleSimpleFilterOption(filters) {
         if (!filters) return false;
 
         var hasVisibleFilter = filters.some(function (e) {
@@ -1727,11 +1643,11 @@
         });
         return hasVisibleFilter;
       },
-      getSimpleTooltip: function (choice) {
+      getSimpleTooltip(choice) {
         if (!choice.tooltip_simple) return null;
         return choice.tooltip_simple[this.language];
       },
-      updatePreselectedPmidai: function (newValue) {
+      updatePreselectedPmidai(newValue) {
         this.preselectedPmidai = (newValue ?? []).map(function (e) {
           return e.uid;
         });
@@ -1739,7 +1655,7 @@
       },
       // passing along the index seemingly makes vue understand that
       // the dropdownwrappers can have seperate placeholders so keep it even though it is unused
-      getDropdownPlaceholder: function (index, translating = false) {
+      getDropdownPlaceholder(index, translating = false) {
         if (translating) {
           return this.getString("translatingPlaceholder");
         }
@@ -1756,24 +1672,13 @@
       },
       updatePlaceholder(isTranslating, index) {
         if (isTranslating) {
-          this.$set(
-            this.dropdownPlaceholders,
-            index,
-            this.getDropdownPlaceholder(index, true)
-          );
+          this.$set(this.dropdownPlaceholders, index, this.getDropdownPlaceholder(index, true));
         } else {
-          this.$set(
-            this.dropdownPlaceholders,
-            index,
-            this.getDropdownPlaceholder(index)
-          );
+          this.$set(this.dropdownPlaceholders, index, this.getDropdownPlaceholder(index));
         }
       },
       updatePlaceholders() {
-        if (
-          this.$refs.subjectDropdown &&
-          this.$refs.subjectDropdown.length > 0
-        ) {
+        if (this.$refs.subjectDropdown && this.$refs.subjectDropdown.length > 0) {
           this.$refs.subjectDropdown.forEach((_, index) => {
             this.updatePlaceholder(false, index);
           });
