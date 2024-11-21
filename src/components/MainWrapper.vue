@@ -101,45 +101,13 @@
             </div>
           </div>
 
-          <div
-            v-show="!isCollapsed && appSettings.openAi.useAi"
-            class="qpm_switch_wrap qpm_ai_hide"
-          >
-            <label class="qpm_switch">
-              <input
-                v-model="searchWithAI"
-                type="checkbox"
-                title="titleSearchWithAI"
-              />
-              <span class="qpm_slider qpm_round" />
-            </label>
-            <span v-if="searchWithAI" class="qpm_simpleFiltersHeader">
-              {{ getString("searchToggleWithAI") }}
-              <button
-                v-tooltip="{
-                  content: getString('hoversearchToggleWithAI'),
-                  offset: 5,
-                  delay: $helpTextDelay,
-                  hideOnTargetClick: false,
-                }"
-                class="bx bx-info-circle"
-                style="cursor: help"
-              />
-            </span>
-            <span v-else class="qpm_simpleFiltersHeader">
-              {{ getString("searchToggleWithoutAI") }}
-              <button
-                v-tooltip="{
-                  content: getString('hoversearchToggleWithoutAI'),
-                  offset: 5,
-                  delay: $helpTextDelay,
-                  hideOnTargetClick: false,
-                }"
-                class="bx bx-info-circle"
-                style="cursor: help"
-              />
-            </span>
-          </div>
+          <ai-translation-toggle
+            v-model="searchWithAI"
+            :is-collapsed="isCollapsed"
+            :app-settings="appSettings"
+            :get-string="getString"
+            :$help-text-delay="$helpTextDelay"
+          />
 
           <!-- The dropdown for selecting subjects to be included in the search -->
           <div v-show="!isCollapsed" class="qpm_searchFormula">
@@ -380,7 +348,8 @@
 
 <script>
   import DropdownWrapper from "@/components/DropdownWrapper.vue";
-  import ActionButtons from "./ActionButtons.vue";
+  import ActionButtons from "@/components/ActionButtons.vue";
+  import AiTranslationToggle from "@/components/AiTranslationToggle.vue";
   import FilterEntry from "@/components/FilterEntry.vue";
   import WordedSearchString from "@/components/WordedSearchString.vue";
   import SearchResult from "@/components/SearchResult.vue";
@@ -401,6 +370,7 @@
     components: {
       DropdownWrapper,
       ActionButtons,
+      AiTranslationToggle,
       FilterEntry,
       WordedSearchString,
       SearchResult,

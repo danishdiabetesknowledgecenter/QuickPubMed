@@ -56,6 +56,7 @@
 
 <script>
   export default {
+    name: "ActionButtons",
     props: {
       searchLoading: {
         type: Boolean,
