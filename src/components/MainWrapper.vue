@@ -2,147 +2,33 @@
   <div>
     <div :id="getComponentId">
       <div class="qpm_searchform">
-        <div v-if="!isCollapsed" class="qpm_tabs">
-          <p
-            v-if="!advanced"
-            v-tooltip="{
-              content: getString('hoverAdvancedText'),
-              offset: 5,
-              delay: $helpTextDelay,
-            }"
-            tabindex="0"
-            class="qpm_tab"
-            @click="advancedClick()"
-            @keyup.enter="advancedClick()"
-          >
-            {{ getString("advancedSearch") }}
-            <span class="qpm_hideonmobile">
-              {{ getString("searchMode") }}
-            </span>
-          </p>
-
-          <p v-if="advanced" class="qpm_tab qpm_tab_active">
-            {{ getString("advancedSearch") }}
-            <span class="qpm_hideonmobile">
-              {{ getString("searchMode") }}
-            </span>
-          </p>
-
-          <p
-            v-if="advanced"
-            v-tooltip="{
-              content: getString('hoverBasicText'),
-              offset: 5,
-              delay: $helpTextDelay,
-            }"
-            tabindex="0"
-            class="qpm_tab"
-            @click="advancedClick()"
-            @keyup.enter="advancedClick()"
-          >
-            {{ getString("simpleSearch") }}
-            <span class="qpm_hideonmobile">
-              {{ getString("searchMode") }}
-            </span>
-          </p>
-
-          <p v-if="!advanced" class="qpm_tab qpm_tab_active">
-            {{ getString("simpleSearch") }}
-            <span class="qpm_hideonmobile">
-              {{ getString("searchMode") }}
-            </span>
-          </p>
-        </div>
+        <advanced-search-toggle
+          :advanced="advanced"
+          :is-collapsed="isCollapsed"
+          :get-string="getString"
+          :$help-text-delay="$helpTextDelay"
+          @toggle-advanced="advancedClick"
+        />
 
         <div class="qpm_top">
-          <div class="qpm_spaceEvenly qpm_headerText">
-            <div
-              v-show="!isCollapsed"
-              role="heading"
-              aria-level="2"
-              class="h3"
-              style="margin-top: 5px"
-            >
-              {{ getString("searchHeaderShown") }}
-            </div>
-            <div
-              v-show="isCollapsed"
-              role="heading"
-              aria-level="2"
-              class="h3"
-              style="margin-top: 5px"
-            >
-              {{ getString("searchHeaderHidden") }}
-            </div>
+          <search-form-toggle
+            :is-collapsed="isCollapsed"
+            :subjects="subjects"
+            :get-string="getString"
+            :$help-text-delay="$helpTextDelay"
+            @toggle-collapsed="toggleCollapsedController"
+          />
 
-            <div
-              v-show="subjects !== ''"
-              class="qpm_toggleSearchForm"
-              @click="toggleCollapsedController()"
-            >
-              <div
-                v-show="!isCollapsed"
-                v-tooltip="{
-                  content: getString('hideForm'),
-                  offset: 5,
-                  delay: $helpTextDelay,
-                }"
-                class="qpm_toggleSearchFormBtn bx bx-hide"
-              />
-              <div
-                v-show="isCollapsed"
-                v-tooltip="{
-                  content: getString('showForm'),
-                  offset: 5,
-                  delay: $helpTextDelay,
-                }"
-                class="qpm_toggleSearchFormBtn bx bx-show"
-              />
-            </div>
-          </div>
+          <ai-translation-toggle
+            v-model="searchWithAI"
+            :is-collapsed="isCollapsed"
+            :app-settings="appSettings"
+            :get-string="getString"
+            :$help-text-delay="$helpTextDelay"
+          />
 
-          <div
-            v-show="!isCollapsed && appSettings.openAi.useAi"
-            class="qpm_switch_wrap qpm_ai_hide"
-          >
-            <label class="qpm_switch">
-              <input
-                v-model="searchWithAI"
-                type="checkbox"
-                title="titleSearchWithAI"
-              />
-              <span class="qpm_slider qpm_round" />
-            </label>
-            <span v-if="searchWithAI" class="qpm_simpleFiltersHeader">
-              {{ getString("searchToggleWithAI") }}
-              <button
-                v-tooltip="{
-                  content: getString('hoversearchToggleWithAI'),
-                  offset: 5,
-                  delay: $helpTextDelay,
-                  hideOnTargetClick: false,
-                }"
-                class="bx bx-info-circle"
-                style="cursor: help"
-              />
-            </span>
-            <span v-else class="qpm_simpleFiltersHeader">
-              {{ getString("searchToggleWithoutAI") }}
-              <button
-                v-tooltip="{
-                  content: getString('hoversearchToggleWithoutAI'),
-                  offset: 5,
-                  delay: $helpTextDelay,
-                  hideOnTargetClick: false,
-                }"
-                class="bx bx-info-circle"
-                style="cursor: help"
-              />
-            </span>
-          </div>
-
-          <!-- The dropdown for selecting subjects to be included in the search -->
           <div v-show="!isCollapsed" class="qpm_searchFormula">
+            <!-- The dropdown for selecting subjects to be included in the search -->
             <div
               v-for="(item, n) in subjects"
               :key="`item-${item.id}-${n}`"
@@ -191,6 +77,7 @@
               style="margin: 5px 0 20px 0"
               @keydown.enter.capture.passive="focusNextDropdownOnMount = true"
             >
+              <!-- Button for adding subject -->
               <button
                 v-tooltip="{
                   content: getString('hoverAddSubject'),
@@ -212,6 +99,7 @@
               v-if="advanced && !showFilter && hasSubjects"
               style="margin-bottom: 15px"
             >
+              <!-- Button for adding limit -->
               <button
                 v-tooltip="{
                   content: getString('hoverLimitButton'),
@@ -346,59 +234,15 @@
           />
         </div>
 
-        <div
-          v-show="hasSubjects && !isCollapsed"
-          class="qpm_flex qpm_bottom"
-          style="justify-content: space-between"
-        >
-          <div style="position: relative">
-            <button
-              v-tooltip="{
-                content: getString('hoverResetButton'),
-                offset: 5,
-                delay: $helpTextDelay,
-              }"
-              class="qpm_button"
-              @click="clear"
-            >
-              <i class="bx bx-reset" style="vertical-align: baseline" />
-              {{ getString("reset") }}
-            </button>
-
-            <button
-              v-tooltip="{
-                content: getString('hoverShareButton'),
-                offset: 5,
-                delay: $helpTextDelay,
-              }"
-              class="qpm_button"
-              @click="copyUrl"
-            >
-              <i
-                class="bx bx-link"
-                style="margin-right: 5px; vertical-align: baseline"
-              />
-              {{ getString("getUrl") }}
-            </button>
-          </div>
-
-          <button
-            v-tooltip="{
-              content: getString('hoverSearchButton'),
-              offset: 5,
-              delay: $helpTextDelay,
-            }"
-            :disabled="searchLoading"
-            :class="{ qpm_disabled: searchLoading }"
-            class="qpm_button qpm_search"
-            @click="searchsetLowStart"
-          >
-            <i
-              class="bx bx-search bx-flip-horizontal"
-              style="position: relative; bottom: 1px"
-            />
-            {{ getString("search") }}
-          </button>
+        <div v-show="hasSubjects && !isCollapsed">
+          <action-buttons
+            :search-loading="searchLoading"
+            :get-string="getString"
+            :$help-text-delay="$helpTextDelay"
+            @clear="clear"
+            @copyUrl="copyUrl"
+            @searchsetLowStart="searchsetLowStart"
+          />
         </div>
       </div>
       <search-result
@@ -424,10 +268,14 @@
 
 <script>
   import DropdownWrapper from "@/components/DropdownWrapper.vue";
+  import ActionButtons from "@/components/ActionButtons.vue";
+  import AiTranslationToggle from "@/components/AiTranslationToggle.vue";
+  import SearchFormToggle from "@/components/SearchFormToggle.vue";
+  import AdvancedSearchToggle from "@/components/AdvancedSearchToggle.vue";
   import FilterEntry from "@/components/FilterEntry.vue";
   import WordedSearchString from "@/components/WordedSearchString.vue";
   import SearchResult from "@/components/SearchResult.vue";
-
+  import axios from "axios";
   import {
     order,
     filtrer,
@@ -437,12 +285,15 @@
   import { topics } from "@/assets/content/qpm-content-diabetes";
   import { messages } from "@/assets/content/qpm-translations.js";
   import { appSettingsMixin } from "@/mixins/appSettings";
-  import axios from "axios";
 
   export default {
     name: "MainWrapper",
     components: {
       DropdownWrapper,
+      ActionButtons,
+      AiTranslationToggle,
+      SearchFormToggle,
+      AdvancedSearchToggle,
       FilterEntry,
       WordedSearchString,
       SearchResult,
@@ -1144,7 +995,6 @@
        * 4. Sets a timeout to focus on the search input of the newly added subject dropdown.
        */
       addSubject: function () {
-        const self = this;
         var hasEmptySubject = this.subjects.some(function (e) {
           return e.length === 0;
         });
@@ -1158,13 +1008,13 @@
         this.subjects = [...this.subjects, []];
 
         this.$nextTick(function () {
-          const subjectDropdown = self.$refs.subjectDropdown;
+          const subjectDropdown = this.$refs.subjectDropdown;
           subjectDropdown[
             subjectDropdown.length - 1
           ].$refs.multiselect.$refs.search.focus();
 
           // Update placeholders after DOM update
-          self.updatePlaceholders();
+          this.updatePlaceholders();
         });
       },
       removeSubject: function (id) {
@@ -1587,7 +1437,7 @@
        *
        * @throws Will throw an error if the API requests fail.
        */
-      async searchMore() {
+      searchMore: async function () {
         // Calculate the target number of results based on the next page
         const targetResultLength = Math.min(
           (this.page + 1) * this.pageSize,
@@ -1704,6 +1554,14 @@
           this.searchLoading = false;
         }
       },
+      /**
+       * Searches for articles by their PubMed IDs (PMIDs).
+       *
+       * @async
+       * @function
+       * @param {string[]} ids - An array of PubMed IDs to search for.
+       * @returns {Promise<Object[]>} A promise that resolves to an array of article data objects.
+       */
       searchByIds: async function (ids) {
         ids = ids.filter((id) => id && id.trim() != "");
         if (ids.length == 0) {
@@ -1731,6 +1589,11 @@
           return data;
         });
       },
+      /**
+       * Searches for preselected articles using PMIDs with AI assistance.
+       *
+       * @function
+       */
       searchPreselectedPmidai: function () {
         let self = this;
         this.searchByIds(this.preselectedPmidai)
@@ -1741,6 +1604,12 @@
             console.error(err);
           });
       },
+      /**
+       * Displays a generic search error message to the user.
+       *
+       * @function
+       * @param {Error} err - The error object representing the cause of the search failure.
+       */
       showSearchError: function (err) {
         let message = this.getString("searchErrorGeneric");
         let option = { cause: err };
