@@ -7,7 +7,6 @@ import VueShowdown from "vue-showdown";
 import { VTooltip } from "v-tooltip";
 import SearchGallery from "@/components/SearchGallery.vue";
 
-
 /**
  * Vue.prototype.$dateFormat = "da-DK";
  * en-US for American, en-GB for British, de-DR for German and so on.
@@ -17,7 +16,7 @@ Vue.prototype.$helpTextDelay = { show: 500, hide: 100 };
 Vue.prototype.$alwaysShowFilter = true;
 
 Vue.use(VueShowdown, {
-  flavor: 'github', // Set default flavor of showdown
+  flavor: "github", // Set default flavor of showdown
   options: {
     emoji: false, // Disable emoji support
     tables: true, // Enable table support
@@ -34,16 +33,17 @@ Vue.use(VueShowdown, {
 
 Vue.directive("tooltip", VTooltip);
 
-const searchGalleryDiv = document.getElementById("searchgallery");
+const searchGalleryDiv = document.getElementById("search-gallery");
 
 const hideTopics = searchGalleryDiv.dataset.hideTopics || undefined;
 const language = searchGalleryDiv.dataset.language || undefined;
 
 new Vue({
-  render: (h) => h(SearchGallery, {
-    props: {
-      hideTopics: hideTopics,
-      language: language,
-    },  
-  }),
-}).$mount("#searchgallery");
+  render: (h) =>
+    h(SearchGallery, {
+      props: {
+        hideTopics: hideTopics,
+        language: language,
+      },
+    }),
+}).$mount("#search-gallery");

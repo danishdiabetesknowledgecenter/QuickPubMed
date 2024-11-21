@@ -8,8 +8,8 @@
   "include": [
     "src/**/*.js",
     "src/**/*.vue",
-    "SpecificArticles.js",
-    "SearchGallery.js",
-    "MainWrapper.js"
+    "views/SpecificArticles.js",
+    "views/SearchGallery.js",
+    "views/MainWrapper.js"
   ]
 }

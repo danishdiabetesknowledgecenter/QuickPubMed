@@ -33,7 +33,7 @@ Vue.use(VueShowdown, {
 
 Vue.directive("tooltip", VTooltip);
 
-const mainWrapperDiv = document.getElementById("mainwrapper");
+const mainWrapperDiv = document.getElementById("main-wrapper");
 
 const hideTopics = mainWrapperDiv.dataset.hideTopics || undefined;
 const language = mainWrapperDiv.dataset.language || undefined;
@@ -48,4 +48,4 @@ new Vue({
         componentNo: componentNo,
       },
     }),
-}).$mount("#mainwrapper");
+}).$mount("#main-wrapper");

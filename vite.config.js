@@ -19,14 +19,17 @@ export default defineConfig({
     outDir: "dist",
     rollupOptions: {
       input: {
-        MainWrapper: path.resolve(__dirname, "main-wrapper.html"),
-        SearchGallery: path.resolve(__dirname, "search-gallery.html"),
-        SpecificArticles: path.resolve(__dirname, "specific-articles.html"),
+        MainWrapper: path.resolve(__dirname, "views/main-wrapper.html"),
+        SearchGallery: path.resolve(__dirname, "views/search-gallery.html"),
+        SpecificArticles: path.resolve(
+          __dirname,
+          "views/specific-articles.html"
+        ),
       },
       output: {
-        entryFileNames: 'assets/[name].js',
-        chunkFileNames: 'assets/[name].js',
-        assetFileNames: 'assets/[name].[ext]',
+        entryFileNames: "assets/[name].js",
+        chunkFileNames: "assets/[name].js",
+        assetFileNames: "assets/[name].[ext]",
       },
     },
   },
