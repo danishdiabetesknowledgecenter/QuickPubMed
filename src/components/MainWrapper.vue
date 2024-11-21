@@ -29,11 +29,7 @@
 
           <div v-show="!isCollapsed" class="qpm_searchFormula">
             <!-- The dropdown for selecting subjects to be included in the search -->
-            <div
-              v-for="(item, n) in subjects"
-              :key="`item-${item.id}-${n}`"
-              class="qpm_subjects"
-            >
+            <div v-for="(item, n) in subjects" :key="`item-${item.id}-${n}`" class="qpm_subjects">
               <div class="qpm_flex">
                 <dropdown-wrapper
                   ref="subjectDropdown"
@@ -85,20 +81,13 @@
                   delay: $helpTextDelay,
                 }"
                 class="qpm_slim multiselect__input"
-                style="
-                  width: 120px;
-                  padding: 4px 12px 4px 11px !important;
-                  height: 38px;
-                "
+                style="width: 120px; padding: 4px 12px 4px 11px !important; height: 38px"
                 @click="addSubject"
               >
                 {{ getString("addsubjectlimit") }} {{ getString("addsubject") }}
               </button>
             </div>
-            <div
-              v-if="advanced && !showFilter && hasSubjects"
-              style="margin-bottom: 15px"
-            >
+            <div v-if="advanced && !showFilter && hasSubjects" style="margin-bottom: 15px">
               <!-- Button for adding limit -->
               <button
                 v-tooltip="{
@@ -117,10 +106,7 @@
             </div>
 
             <!-- The dropdown for selecting limits to be included in the advanced search -->
-            <div
-              v-if="advanced && showFilter && hasSubjects"
-              style="margin-bottom: 10px"
-            >
+            <div v-if="advanced && showFilter && hasSubjects" style="margin-bottom: 10px">
               <h4 role="heading" aria-level="3" class="h4">
                 {{ getString("AdvancedFiltersHeader") }}
               </h4>
@@ -147,10 +133,7 @@
                 />
               </div>
               <div class="qpm_flex">
-                <div
-                  class="qpm_filters"
-                  :class="{ qpm_shown: filters.length === 0 }"
-                >
+                <div class="qpm_filters" :class="{ qpm_shown: filters.length === 0 }">
                   <filter-entry
                     v-for="(selected, id) in filterData"
                     :key="id"
@@ -188,9 +171,7 @@
                         type="checkbox"
                         title="titleCheckBoxTranslate"
                         :value="choice.name"
-                        :checked="
-                          isFilterUsed(filterData[option.id], choice.name)
-                        "
+                        :checked="isFilterUsed(filterData[option.id], choice.name)"
                         style="cursor: pointer"
                         @change="updateFilterSimple(option.id, choice)"
                         @keyup.enter="updateFilterSimpleOnEnter(choice)"
@@ -276,12 +257,7 @@
   import WordedSearchString from "@/components/WordedSearchString.vue";
   import SearchResult from "@/components/SearchResult.vue";
   import axios from "axios";
-  import {
-    order,
-    filtrer,
-    scopeIds,
-    customInputTagTooltip,
-  } from "@/assets/content/qpm-content.js";
+  import { order, filtrer, scopeIds, customInputTagTooltip } from "@/assets/content/qpm-content.js";
   import { topics } from "@/assets/content/qpm-content-diabetes";
   import { messages } from "@/assets/content/qpm-translations.js";
   import { appSettingsMixin } from "@/mixins/appSettings";
@@ -374,11 +350,7 @@
           for (let j = 0; j < subjectsToIterate; j++) {
             let scope = this.subjects[i][j].scope;
             let tmp = this.subjects[i][j].searchStrings[scope][0];
-            if (
-              tmp.indexOf("AND") >= 0 ||
-              tmp.indexOf("NOT") >= 0 ||
-              tmp.indexOf("OR") >= 0
-            ) {
+            if (tmp.indexOf("AND") >= 0 || tmp.indexOf("NOT") >= 0 || tmp.indexOf("OR") >= 0) {
               hasOperators = true;
               break;
             }
@@ -386,8 +358,7 @@
           let substring = "";
           if (i > 0 && str != "") substring += " AND ";
           if (
-            (hasOperators &&
-              (this.subjects.length > 1 || this.filters.length > 0)) ||
+            (hasOperators && (this.subjects.length > 1 || this.filters.length > 0)) ||
             subjectsToIterate > 1
           )
             substring += "(";
@@ -396,33 +367,24 @@
             if (j > 0) substring += " OR ";
             let tmp = this.subjects[i][j].searchStrings[scope][0];
             if (
-              (tmp.indexOf("AND") >= 0 ||
-                tmp.indexOf("NOT") >= 0 ||
-                tmp.indexOf("OR") >= 0) &&
+              (tmp.indexOf("AND") >= 0 || tmp.indexOf("NOT") >= 0 || tmp.indexOf("OR") >= 0) &&
               subjectsToIterate > 1
             )
               substring += "(";
             substring += this.subjects[i][j].searchStrings[scope].join(" OR ");
             if (
-              (tmp.indexOf("AND") >= 0 ||
-                tmp.indexOf("NOT") >= 0 ||
-                tmp.indexOf("OR") >= 0) &&
+              (tmp.indexOf("AND") >= 0 || tmp.indexOf("NOT") >= 0 || tmp.indexOf("OR") >= 0) &&
               subjectsToIterate > 1
             )
               substring += ")";
           }
           if (
-            (hasOperators &&
-              (this.subjects.length > 1 || this.filters.length > 0)) ||
+            (hasOperators && (this.subjects.length > 1 || this.filters.length > 0)) ||
             subjectsToIterate > 1
           )
             substring += ")";
 
-          if (
-            substring != "()" &&
-            substring != " AND ()" &&
-            substring != " AND "
-          ) {
+          if (substring != "()" && substring != " AND ()" && substring != " AND ") {
             str += substring;
           }
         }
@@ -468,11 +430,7 @@
           }
           if (hasOperators || value.length > 1) substring += ")";
 
-          if (
-            substring != "()" &&
-            substring != " AND ()" &&
-            substring != " AND "
-          ) {
+          if (substring != "()" && substring != " AND ()" && substring != " AND ") {
             str += substring;
           }
         });
@@ -584,9 +542,7 @@
             filterItem.choices.forEach((choice) => {
               choice.buttons = false;
               if (
-                (!this.isUrlParsed ||
-                  choice.simpleSearch ||
-                  choice.standardSimple) &&
+                (!this.isUrlParsed || choice.simpleSearch || choice.standardSimple) &&
                 !this.filterOptions.includes(filterItem)
               ) {
                 this.filterOptions.push(filterItem);
@@ -618,22 +574,16 @@
       updateFiltersBasedOnSelection() {
         const updatedFilters = [];
         this.filters.forEach((filter) => {
-          const matchingFilter = this.filterOptions.find(
-            (option) => option.name === filter.name
-          );
+          const matchingFilter = this.filterOptions.find((option) => option.name === filter.name);
           if (matchingFilter) {
             const shouldIncludeFilter =
               this.isUrlParsed && !this.advanced
                 ? filter.choices.some(
                     (choice) =>
-                      (choice.simpleSearch || choice.standardSimple) &&
-                      this.filterData[filter.id]
+                      (choice.simpleSearch || choice.standardSimple) && this.filterData[filter.id]
                   )
                 : this.filterData[filter.id];
-            if (
-              shouldIncludeFilter &&
-              !updatedFilters.includes(matchingFilter)
-            ) {
+            if (shouldIncludeFilter && !updatedFilters.includes(matchingFilter)) {
               updatedFilters.push(matchingFilter);
             }
           }
@@ -781,9 +731,7 @@
        */
       processFilter(key, values) {
         // Find the filter group
-        const filterGroup = this.filterOptions.find(
-          (filter) => filter.id === key
-        );
+        const filterGroup = this.filterOptions.find((filter) => filter.id === key);
         if (!filterGroup) return;
 
         if (!this.filters.includes(filterGroup)) {
@@ -826,8 +774,7 @@
             return;
           }
 
-          if (this.isUrlParsed && !this.advanced && !choice.simpleSearch)
-            return;
+          if (this.isUrlParsed && !this.advanced && !choice.simpleSearch) return;
 
           const tmp = { ...choice, scope: scopeIds[scope] };
 
@@ -852,9 +799,7 @@
        */
       getUrl() {
         const origin =
-          window.location.origin && window.location.origin !== "null"
-            ? window.location.origin
-            : "";
+          window.location.origin && window.location.origin !== "null" ? window.location.origin : "";
 
         const baseUrl = `${origin}${window.location.pathname}`;
 
@@ -871,9 +816,7 @@
         const sorter = `&sort=${encodeURIComponent(this.sort.method)}`;
         const collapsedStr = `&collapsed=${this.isCollapsed}`;
         const pageSizeStr = `&pageSize=${this.pageSize}`;
-        const pmidaiStr = `&pmidai=${(this.preselectedPmidai ?? []).join(
-          ";;"
-        )}`;
+        const pmidaiStr = `&pmidai=${(this.preselectedPmidai ?? []).join(";;")}`;
         const scrolltoStr = this.scrollToID
           ? `&scrollto=${encodeURIComponent(this.scrollToID)}`
           : "";
@@ -897,9 +840,7 @@
           .filter((group) => group.length > 0)
           .map((group) => {
             const subjectValues = group.map((subject) => {
-              const scope = this.getScopeKey(
-                this.advanced ? subject.scope : "normal"
-              );
+              const scope = this.getScopeKey(this.advanced ? subject.scope : "normal");
               let subjectId = "";
 
               if (subject.id) {
@@ -952,10 +893,7 @@
        * @returns {string} The scope key used in the URL.
        */
       getScopeKey(scopeValue) {
-        return (
-          Object.keys(scopeIds).find((key) => scopeIds[key] === scopeValue) ||
-          "normal"
-        );
+        return Object.keys(scopeIds).find((key) => scopeIds[key] === scopeValue) || "normal";
       },
       /**
        * Copies the current URL to the clipboard.
@@ -979,8 +917,7 @@
        * @returns {void}
        */
       toggle() {
-        this.showFilter =
-          !this.showFilter || this.filters.length > 0 || !this.advanced;
+        this.showFilter = !this.showFilter || this.filters.length > 0 || !this.advanced;
 
         // Open dropdown with a delay
         setTimeout(() => {
@@ -1014,17 +951,14 @@
 
         this.$nextTick(function () {
           const subjectDropdown = this.$refs.subjectDropdown;
-          subjectDropdown[
-            subjectDropdown.length - 1
-          ].$refs.multiselect.$refs.search.focus();
+          subjectDropdown[subjectDropdown.length - 1].$refs.multiselect.$refs.search.focus();
 
           // Update placeholders after DOM update
           this.updatePlaceholders();
         });
       },
       removeSubject(id) {
-        var isEmptySubject =
-          this.subjects[id] && this.subjects[id].length === 0;
+        var isEmptySubject = this.subjects[id] && this.subjects[id].length === 0;
 
         this.subjects.splice(id, 1);
         this.setUrl();
@@ -1109,9 +1043,7 @@
        */
       updateFilterSimple(filterType, selectedValue) {
         if (!filterType || !selectedValue) {
-          console.warn(
-            "updateFilterSimple: Missing filterType or selectedValue"
-          );
+          console.warn("updateFilterSimple: Missing filterType or selectedValue");
           return;
         }
 
@@ -1127,9 +1059,7 @@
         }
 
         // Check if the selected value is already in the filter data
-        const exists = tempFilterData[filterType].some(
-          (item) => item.name === selectedValue.name
-        );
+        const exists = tempFilterData[filterType].some((item) => item.name === selectedValue.name);
 
         // Determine if the option is checked or not
         const isChecked = selectedValue.checked; // Ensure 'checked' is a property
@@ -1139,19 +1069,13 @@
           tempFilterData[filterType].push(selectedValue);
 
           // Add the filter to this.filters if not already present
-          const filterExists = this.filters.some(
-            (filter) => filter.id === filterType
-          );
+          const filterExists = this.filters.some((filter) => filter.id === filterType);
           if (!filterExists) {
-            const filterOption = this.filterOptions.find(
-              (option) => option.id === filterType
-            );
+            const filterOption = this.filterOptions.find((option) => option.id === filterType);
             if (filterOption) {
               this.filters.push({ ...filterOption });
             } else {
-              console.warn(
-                `updateFilterSimple: Filter option with id "${filterType}" not found.`
-              );
+              console.warn(`updateFilterSimple: Filter option with id "${filterType}" not found.`);
             }
           }
         } else {
@@ -1163,9 +1087,7 @@
           // If the filter type array is empty, remove it and the filter from this.filters
           if (tempFilterData[filterType].length === 0) {
             delete tempFilterData[filterType];
-            this.filters = this.filters.filter(
-              (filter) => filter.id !== filterType
-            );
+            this.filters = this.filters.filter((filter) => filter.id !== filterType);
           }
         }
 
@@ -1232,9 +1154,7 @@
         const sel = JSON.parse(JSON.stringify(this.filterData));
 
         // Find the item in the filter data and update its scope
-        const targetItem = sel[index].find(
-          (filterItem) => filterItem.name === item.name
-        );
+        const targetItem = sel[index].find((filterItem) => filterItem.name === item.name);
         if (targetItem) {
           targetItem.scope = state;
         }
@@ -1394,8 +1314,7 @@
             esearchParams
           );
 
-          const idList =
-            esearchResponse.data.esearchresult.idlist.filter(Boolean);
+          const idList = esearchResponse.data.esearchresult.idlist.filter(Boolean);
 
           if (idList.length === 0) {
             this.count = 0;
@@ -1466,16 +1385,10 @@
        */
       async searchMore() {
         // Calculate the target number of results based on the next page
-        const targetResultLength = Math.min(
-          (this.page + 1) * this.pageSize,
-          this.count
-        );
+        const targetResultLength = Math.min((this.page + 1) * this.pageSize, this.count);
 
         // If current results already meet or exceed the target, no need to fetch more
-        if (
-          this.searchresult &&
-          this.searchresult.length >= targetResultLength
-        ) {
+        if (this.searchresult && this.searchresult.length >= targetResultLength) {
           return;
         }
 
@@ -1504,14 +1417,8 @@
             email: nlm.email,
             api_key: nlm.key,
             retmode: "json",
-            retmax: Math.min(
-              this.pageSize,
-              targetResultLength - (this.searchresult.length || 0)
-            ),
-            retstart: Math.max(
-              this.searchresult.length || 0,
-              this.page * this.pageSize
-            ),
+            retmax: Math.min(this.pageSize, targetResultLength - (this.searchresult.length || 0)),
+            retstart: Math.max(this.searchresult.length || 0, this.page * this.pageSize),
             sort: this.sort.method,
             term: query,
           });
@@ -1678,14 +1585,10 @@
        * @returns {void}
        */
       toggleCollapsedSearch() {
-        const coll = document.getElementsByClassName(
-          "qpm_toggleSearchFormBtn bx bx-hide"
-        )[0];
+        const coll = document.getElementsByClassName("qpm_toggleSearchFormBtn bx bx-hide")[0];
 
         if (!coll) {
-          console.warn(
-            "Element with class 'qpm_toggleSearchFormBtn bx bx-hide' not found."
-          );
+          console.warn("Element with class 'qpm_toggleSearchFormBtn bx bx-hide' not found.");
           return;
         }
 
@@ -1714,9 +1617,7 @@
         if (!option.name && !option.groupname) return "";
 
         const constant =
-          option.translations?.[this.language] ??
-          option.translations?.["dk"] ??
-          option.name;
+          option.translations?.[this.language] ?? option.translations?.["dk"] ?? option.name;
         return constant;
       },
       updateSubjectDropdownWidth() {
@@ -1781,24 +1682,13 @@
       },
       updatePlaceholder(isTranslating, index) {
         if (isTranslating) {
-          this.$set(
-            this.dropdownPlaceholders,
-            index,
-            this.getDropdownPlaceholder(index, true)
-          );
+          this.$set(this.dropdownPlaceholders, index, this.getDropdownPlaceholder(index, true));
         } else {
-          this.$set(
-            this.dropdownPlaceholders,
-            index,
-            this.getDropdownPlaceholder(index)
-          );
+          this.$set(this.dropdownPlaceholders, index, this.getDropdownPlaceholder(index));
         }
       },
       updatePlaceholders() {
-        if (
-          this.$refs.subjectDropdown &&
-          this.$refs.subjectDropdown.length > 0
-        ) {
+        if (this.$refs.subjectDropdown && this.$refs.subjectDropdown.length > 0) {
           this.$refs.subjectDropdown.forEach((_, index) => {
             this.updatePlaceholder(false, index);
           });
