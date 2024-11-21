@@ -278,7 +278,7 @@
     props: {
       hideTopics: {
         type: Array,
-        default: function () {
+        default() {
           return [];
         },
       },
@@ -291,7 +291,7 @@
         default: 1,
       },
     },
-    data: function () {
+    data() {
       return {
         advanced: false,
         advancedString: false,
@@ -304,7 +304,6 @@
         isFirstFill: true,
         isCollapsed: false,
         isUrlParsed: false,
-        loadedId: "",
         oldState: "",
         page: 0,
         pageSize: 25,
@@ -316,7 +315,6 @@
         searchWithAI: true,
         searchresult: undefined,
         showFilter: false,
-        simpleFilterOptions: [],
         sort: order[0],
         stateHistory: [],
         subjectDropdownWidth: 0,
@@ -343,98 +341,70 @@
         return this.subjects.some((subjectArray) => subjectArray.length > 0);
       },
       getSearchString() {
-        let str = "";
-        for (let i = 0; i < this.subjects.length; i++) {
-          let hasOperators = false;
-          let subjectsToIterate = this.subjects[i].length;
-          for (let j = 0; j < subjectsToIterate; j++) {
-            let scope = this.subjects[i][j].scope;
-            let tmp = this.subjects[i][j].searchStrings[scope][0];
-            if (tmp.indexOf("AND") >= 0 || tmp.indexOf("NOT") >= 0 || tmp.indexOf("OR") >= 0) {
-              hasOperators = true;
-              break;
-            }
-          }
-          let substring = "";
-          if (i > 0 && str != "") substring += " AND ";
+        const hasLogicalOperators = (searchStrings) =>
+          ["AND", "OR", "NOT"].some((op) => searchStrings.includes(op));
+
+        const buildSubstring = (items, connector = " OR ") => {
+          return items
+            .map((item) => {
+              const { scope, searchStrings } = item;
+              const combined = searchStrings[scope].join(connector);
+              return hasLogicalOperators(searchStrings[scope][0]) && items.length > 1
+                ? `(${combined})`
+                : combined;
+            })
+            .join(connector);
+        };
+
+        let substrings = [];
+
+        this.subjects.forEach((subjectGroup, index) => {
+          const subjectsToIterate = subjectGroup.length;
+          const hasOperators = subjectGroup.some((item) =>
+            hasLogicalOperators(item.searchStrings[item.scope][0])
+          );
+
+          let substring = index > 0 ? " AND " : "";
           if (
             (hasOperators && (this.subjects.length > 1 || this.filters.length > 0)) ||
             subjectsToIterate > 1
-          )
+          ) {
             substring += "(";
-          for (let j = 0; j < subjectsToIterate; j++) {
-            let scope = this.subjects[i][j].scope;
-            if (j > 0) substring += " OR ";
-            let tmp = this.subjects[i][j].searchStrings[scope][0];
-            if (
-              (tmp.indexOf("AND") >= 0 || tmp.indexOf("NOT") >= 0 || tmp.indexOf("OR") >= 0) &&
-              subjectsToIterate > 1
-            )
-              substring += "(";
-            substring += this.subjects[i][j].searchStrings[scope].join(" OR ");
-            if (
-              (tmp.indexOf("AND") >= 0 || tmp.indexOf("NOT") >= 0 || tmp.indexOf("OR") >= 0) &&
-              subjectsToIterate > 1
-            )
-              substring += ")";
           }
+
+          substring += buildSubstring(subjectGroup);
+
           if (
             (hasOperators && (this.subjects.length > 1 || this.filters.length > 0)) ||
             subjectsToIterate > 1
-          )
+          ) {
             substring += ")";
-
-          if (substring != "()" && substring != " AND ()" && substring != " AND ") {
-            str += substring;
           }
-        }
 
-        const self = this;
-        Object.keys(self.filterData).forEach(function (key) {
-          let substring = "";
-          let value = self.filterData[key];
-          let hasOperators = false;
-          for (let i = 0; i < value.length; i++) {
-            let scope = value[i].scope;
-
-            if (
-              value[i].searchStrings[scope][0].indexOf("AND") >= 0 ||
-              value[i].searchStrings[scope][0].indexOf("NOT") >= 0 ||
-              value[i].searchStrings[scope][0].indexOf("OR") >= 0
-            ) {
-              hasOperators = true;
-              break;
-            }
-          }
-          substring += " AND ";
-          if (hasOperators || value.length > 1) substring += "(";
-          for (let i = 0; i < value.length; i++) {
-            const val = value[i];
-            if (i > 0) substring += " OR ";
-            let scope = val.scope;
-            if (
-              (value[i].searchStrings[scope][0].indexOf("AND") >= 0 ||
-                value[i].searchStrings[scope][0].indexOf("NOT") >= 0 ||
-                value[i].searchStrings[scope][0].indexOf("OR") >= 0) &&
-              value.length > 1
-            )
-              substring += "(";
-            substring += val.searchStrings[scope].join(" OR ");
-            if (
-              (value[i].searchStrings[scope][0].indexOf("AND") >= 0 ||
-                value[i].searchStrings[scope][0].indexOf("NOT") >= 0 ||
-                value[i].searchStrings[scope][0].indexOf("OR") >= 0) &&
-              value.length > 1
-            )
-              substring += ")";
-          }
-          if (hasOperators || value.length > 1) substring += ")";
-
-          if (substring != "()" && substring != " AND ()" && substring != " AND ") {
-            str += substring;
+          if (substring !== "()" && substring !== " AND ()" && substring !== " AND ") {
+            substrings.push(substring);
           }
         });
-        return str;
+
+        Object.keys(this.filterData).forEach((key) => {
+          const filterGroup = this.filterData[key];
+          const hasOperators = filterGroup.some((item) =>
+            hasLogicalOperators(item.searchStrings[item.scope][0])
+          );
+
+          let substring = " AND ";
+          if (hasOperators || filterGroup.length > 1) substring += "(";
+
+          substring += buildSubstring(filterGroup);
+
+          if (hasOperators || filterGroup.length > 1) substring += ")";
+
+          if (substring !== " AND ()" && substring !== " AND ") {
+            substrings.push(substring);
+          }
+        });
+
+        return substrings.join("");
       },
       getPageSize() {
         return this.pageSize;
@@ -479,7 +449,6 @@
     },
     async mounted() {
       this.updatePlaceholders();
-      //Spørg Adam
       this.advanced = !this.advanced;
       this.advancedClick(true);
       this.parseUrl();
@@ -967,21 +936,29 @@
           this.editForm();
         }
       },
+      /**
+       * Updates the subjects array and manages related state.
+       *
+       * @param {Array<Object>} value - The list of subject items to update.
+       * @param {number} index - The index of the subjects array to update.
+       */
       updateSubjects(value, index) {
-        for (let i = 0; i < value.length; i++) {
+        value.forEach((item, i) => {
           if (i > 0) this.isFirstFill = false;
-          if (!value[i].scope) value[i].scope = "normal";
-        }
+          if (!item.scope) item.scope = "normal";
+        });
+
         if (this.subjects.length > 1) this.isFirstFill = false;
-        let sel = JSON.parse(JSON.stringify(this.subjects));
-        sel[index] = value;
-        this.subjects = sel;
 
-        //Fills out standard filters, if they are necessary
-        if (!this.advanced && this.isFirstFill) this.selectStandardSimple();
-        this.isFirstFill = false;
+        const updatedSubjects = JSON.parse(JSON.stringify(this.subjects));
+        updatedSubjects[index] = value;
+        this.subjects = updatedSubjects;
 
-        //Check if empty, then clear and hide filters if so
+        if (!this.advanced && this.isFirstFill) {
+          this.selectStandardSimple();
+          this.isFirstFill = false;
+        }
+
         if (!this.hasSubjects) {
           this.filters = [];
           this.filterData = {};
@@ -993,41 +970,54 @@
         this.setUrl();
         this.editForm();
       },
+      /**
+       * Updates the scope of a specific subject item.
+       *
+       * @param {Object} item - The subject item to update.
+       * @param {string} state - The new scope state.
+       * @param {number} index - The index of the subjects array where the item resides.
+       */
       updateScope(item, state, index) {
-        let sel = JSON.parse(JSON.stringify(this.subjects));
-        for (let i = 0; i < sel[index].length; i++) {
-          if (sel[index][i].name == item.name) {
-            sel[index][i].scope = state;
-            break;
-          }
+        const updatedSubjects = JSON.parse(JSON.stringify(this.subjects));
+        const subject = updatedSubjects[index].find((sub) => sub.name === item.name);
+        if (subject) {
+          subject.scope = state;
         }
-        this.subjects = sel;
+        this.subjects = updatedSubjects;
         this.setUrl();
         this.editForm();
       },
+      /**
+       * Updates the filters array and initializes filter data.
+       *
+       * @param {Array<Object>} value - The list of filter items to update.
+       */
       updateFilters(value) {
         this.filters = JSON.parse(JSON.stringify(value));
-        //Update selected filters
-        let newOb = {};
-        for (let i = 0; i < this.filters.length; i++) {
-          const item = this.filters[i].id;
-          if (this.filterData[item]) {
-            newOb[item] = this.filterData[item];
-          } else {
-            newOb[item] = [];
-          }
-        }
-        this.filterData = newOb;
+
+        this.filterData = this.filters.reduce((acc, filter) => {
+          acc[filter.id] = this.filterData[filter.id] || [];
+          return acc;
+        }, {});
+
         this.setUrl();
         this.editForm();
       },
+      /**
+       * Updates advanced filter data for a specific filter group.
+       *
+       * @param {Array<Object>} value - The list of advanced filter items to update.
+       * @param {number} index - The index of the filter group to update.
+       */
       updateFilterAdvanced(value, index) {
-        for (let i = 0; i < value.length; i++) {
-          if (!value[i].scope) value[i].scope = "normal";
-        }
-        let temp = JSON.parse(JSON.stringify(this.filterData));
-        temp[index] = value;
-        this.filterData = temp;
+        value.forEach((item) => {
+          if (!item.scope) item.scope = "normal";
+        });
+
+        const updatedFilterData = JSON.parse(JSON.stringify(this.filterData));
+        updatedFilterData[index] = value;
+        this.filterData = updatedFilterData;
+
         this.setUrl();
         this.editForm();
       },
