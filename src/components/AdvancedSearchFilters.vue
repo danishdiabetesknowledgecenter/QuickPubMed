@@ -1,0 +1,146 @@
+<template>
+  <!-- The dropdown for selecting limits to be included in the advanced search -->
+  <div style="margin-bottom: 10px">
+    <h4 role="heading" aria-level="3" class="h4">
+      {{ getString("AdvancedFiltersHeader") }}
+    </h4>
+    <div id="qpm_topofsearchbar" class="qpm_flex">
+      <dropdown-wrapper
+        ref="filterDropdown"
+        :class="{ qpm_shown: !showFilter }"
+        :is-multiple="true"
+        :data="filterOptions"
+        :hide-topics="hideTopics"
+        :is-group="false"
+        :placeholder="showTitle"
+        :operator="getAndOperator"
+        :close-on-input="false"
+        :language="language"
+        :taggable="false"
+        :selected="filters"
+        :search-with-a-i="searchWithAI"
+        :show-scope-label="advanced"
+        :no-result-string="getString('noLimitDropdownContent')"
+        :index="0"
+        qpm-button-color2="qpm_buttonColor7"
+        @input="handleFilterUpdate"
+      />
+    </div>
+    <div class="qpm_flex">
+      <div class="qpm_filters" :class="{ qpm_shown: filters.length === 0 }">
+        <filter-entry
+          v-for="(selected, id, index) in filterData"
+          :key="id"
+          :language="language"
+          :filter-item="getFilters(id)"
+          :idx="id"
+          :hide-topics="hideTopics"
+          :selected="selected"
+          @input="handleAdvancedFilterUpdate"
+          @updateScope="handleScopeUpdate"
+        />
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+  import DropdownWrapper from "@/components/DropdownWrapper.vue";
+  import FilterEntry from "@/components/FilterEntry.vue";
+
+  export default {
+    name: "AdvancedSearchFilters",
+    components: {
+      DropdownWrapper,
+      FilterEntry,
+    },
+    props: {
+      advanced: {
+        type: Boolean,
+        required: true,
+      },
+      showFilter: {
+        type: Boolean,
+        required: true,
+      },
+      filterOptions: {
+        type: Array,
+        required: true,
+      },
+      hideTopics: {
+        type: Array,
+        default: () => [],
+        required: true,
+      },
+      showTitle: {
+        type: String,
+        required: true,
+      },
+      getAndOperator: {
+        type: String,
+        required: true,
+      },
+      language: {
+        type: String,
+        required: true,
+      },
+      searchWithAI: {
+        type: Boolean,
+        required: true,
+      },
+      getString: {
+        type: Function,
+        required: true,
+      },
+      filterData: {
+        type: Object,
+        required: true,
+      },
+      filters: {
+        type: Array,
+        required: true,
+      },
+    },
+    methods: {
+      /**
+       * Retrieves the filter with the given name.
+       *
+       * @param {string} name - The name of the filter to retrieve.
+       * @returns {Object} The filter object, or an empty object if not found.
+       */
+      getFilters(name) {
+        return this.filters.find((filter) => filter.id === name) || {};
+      },
+      /**
+       * Handles filter updates from dropdown-wrapper.
+       * Emits 'update-advanced-filter' event with updated filters.
+       * @param {Array} updatedFilters - The updated filters array.
+       */
+      handleFilterUpdate(updatedFilters) {
+        this.$emit("update-advanced-filter", updatedFilters);
+      },
+
+      /**
+       * Handles updates from filter-entry components.
+       * Emits 'update-advanced-filter-entry' with necessary data.
+       * @param {String} filterType - The ID of the filter group being updated.
+       * @param {Object} selectedValue - The filter option that was selected or deselected.
+       */
+      handleAdvancedFilterUpdate(filterType, selectedValue) {
+        this.$emit("update-advanced-filter-entry", filterType, selectedValue);
+      },
+
+      /**
+       * Handles scope updates from filter-entry components.
+       * Emits 'update-advanced-filter-scope'.
+       * @param {Object} item - The item to update.
+       * @param {String} state - The new state to set.
+       * @param {String} id - The identifier of the filter.
+       */
+      handleScopeUpdate(item, state, id) {
+        console.log("handleScopeUpdate", id, item, state);
+        this.$emit("update-advanced-filter-scope", item, state, id);
+      },
+    },
+  };
+</script>

@@ -105,97 +105,39 @@
               </button>
             </div>
 
-            <!-- The dropdown for selecting limits to be included in the advanced search -->
-            <div v-if="advanced && showFilter && hasSubjects" style="margin-bottom: 10px">
-              <h4 role="heading" aria-level="3" class="h4">
-                {{ getString("AdvancedFiltersHeader") }}
-              </h4>
-              <div id="qpm_topofsearchbar" class="qpm_flex">
-                <dropdown-wrapper
-                  ref="filterDropdown"
-                  :class="{ qpm_shown: !showFilter }"
-                  :is-multiple="true"
-                  :data="filterOptions"
-                  :hide-topics="hideTopics"
-                  :is-group="false"
-                  :placeholder="showTitle"
-                  :operator="getAndOperator"
-                  :close-on-input="false"
-                  :language="language"
-                  :taggable="false"
-                  :selected="filters"
-                  :search-with-a-i="searchWithAI"
-                  :show-scope-label="advanced"
-                  :no-result-string="getString('noLimitDropdownContent')"
-                  :index="0"
-                  qpm-button-color2="qpm_buttonColor7"
-                  @input="updateFilters"
-                />
-              </div>
-              <div class="qpm_flex">
-                <div class="qpm_filters" :class="{ qpm_shown: filters.length === 0 }">
-                  <filter-entry
-                    v-for="(selected, id) in filterData"
-                    :key="id"
-                    :language="language"
-                    :filter-item="getFilters(id)"
-                    :idx="id"
-                    :hide-topics="hideTopics"
-                    :selected="selected"
-                    @input="updateFilterAdvanced"
-                    @updateScope="updateScopeFilter"
-                  />
-                </div>
-              </div>
-            </div>
+            <!-- The dropdown for selecting filters to be included in the advanced search -->
+            <advanced-search-filters
+              v-if="advanced && showFilter && hasSubjects"
+              ref="advancedSearchFilters"
+              :advanced="advanced"
+              :showFilter="showFilter"
+              :filterOptions="filterOptions"
+              :hideTopics="hideTopics"
+              :showTitle="showTitle"
+              :getAndOperator="getAndOperator"
+              :language="language"
+              :searchWithAI="searchWithAI"
+              :getString="getString"
+              :filterData="filterData"
+              :filters="filters"
+              @update-advanced-filter="updateFilters"
+              @update-advanced-filter-entry="updateFilterAdvanced"
+              @update-advanced-filter-scope="updateAdvancedFilterScope"
+            />
 
-            <!-- The radio buttons for limits to be included in the simple search -->
-            <div v-else-if="!advanced && hasSubjects">
-              <h4 role="heading" aria-level="3" class="h4">
-                {{ getString("SimpleFiltersHeader") }}
-              </h4>
-              <div id="qpm_topofsearchbar" class="qpm_simpleFiltersContainer">
-                <template v-for="option in filteredChoices">
-                  <template v-if="hasVisibleSimpleFilterOption(option.choices)">
-                    <b :key="option.choice" class="qpm_simpleFiltersHeader">
-                      {{ getCustomNameLabel(option) }}:
-                    </b>
-                    <div
-                      v-for="(choice, index) in option.choices"
-                      :id="'qpm_topic_' + choice.name"
-                      :key="`choice-${choice.id}-${index}`"
-                      class="qpm_simpleFilters"
-                    >
-                      <input
-                        :id="choice.name"
-                        type="checkbox"
-                        title="titleCheckBoxTranslate"
-                        :value="choice.name"
-                        :checked="isFilterUsed(filterData[option.id], choice.name)"
-                        style="cursor: pointer"
-                        @change="updateFilterSimple(option.id, choice)"
-                        @keyup.enter="updateFilterSimpleOnEnter(choice)"
-                      />
-                      <label :for="choice.name">
-                        {{ getCustomNameLabel(choice) }}
-                      </label>
-                      <button
-                        v-if="getSimpleTooltip(choice)"
-                        v-tooltip="{
-                          content: getSimpleTooltip(choice),
-                          offset: 5,
-                          delay: $helpTextDelay,
-                          hideOnTargetClick: false,
-                        }"
-                        class="bx bx-info-circle"
-                        style="cursor: help"
-                      />
-                    </div>
-                    <div :key="option.choice" class="qpm_simpleFiltersSpacer" />
-                  </template>
-                </template>
-              </div>
-            </div>
+            <!-- The radio buttons for filters to be included in the simple search -->
+            <simple-search-filters
+              v-if="!advanced && hasSubjects"
+              :advanced="advanced"
+              :filteredChoices="filteredChoices"
+              :filterData="filterData"
+              :helpTextDelay="300"
+              :getString="getString"
+              :getCustomNameLabel="getCustomNameLabel"
+              :getSimpleTooltip="getSimpleTooltip"
+              @update-filter="updateFilterSimple"
+              @update-filter-enter="updateFilterSimpleOnEnter"
+            />
           </div>
         </div>
 
@@ -253,11 +195,13 @@
   import AiTranslationToggle from "@/components/AiTranslationToggle.vue";
   import SearchFormToggle from "@/components/SearchFormToggle.vue";
   import AdvancedSearchToggle from "@/components/AdvancedSearchToggle.vue";
-  import FilterEntry from "@/components/FilterEntry.vue";
+  import SimpleSearchFilters from "@/components/SimpleSearchFilters.vue";
+  import AdvancedSearchFilters from "./AdvancedSearchFilters.vue";
   import WordedSearchString from "@/components/WordedSearchString.vue";
   import SearchResult from "@/components/SearchResult.vue";
   import axios from "axios";
   import { order, filtrer, scopeIds, customInputTagTooltip } from "@/assets/content/qpm-content.js";
+  import { filters } from "@/assets/content/qpm-search-filters.js";
   import { topics } from "@/assets/content/qpm-content-diabetes";
   import { messages } from "@/assets/content/qpm-translations.js";
   import { appSettingsMixin } from "@/mixins/appSettings";
@@ -270,7 +214,8 @@
       AiTranslationToggle,
       SearchFormToggle,
       AdvancedSearchToggle,
-      FilterEntry,
+      SimpleSearchFilters,
+      AdvancedSearchFilters,
       WordedSearchString,
       SearchResult,
     },
@@ -891,7 +836,7 @@
         // Open dropdown with a delay
         setTimeout(() => {
           if (this.advanced) {
-            this.$refs.filterDropdown.$refs.multiselect.$refs.search.focus();
+            this.$refs.advancedSearchFilters.$refs.filterDropdown.$refs.multiselect.$refs.search.focus();
           }
         }, 50);
       },
@@ -1139,14 +1084,29 @@
        * @param {number} index - The index of the item in the filter data.
        * @returns {void}
        */
-      updateScopeFilter(item, state, index) {
+      updateAdvancedFilterScope(item, state, index) {
         // Create a deep copy of the filter data
         const sel = JSON.parse(JSON.stringify(this.filterData));
+        console.log("Item|", item);
+        console.log("Index|", index);
+        console.log("Selected Filter Data|", sel);
 
-        // Find the item in the filter data and update its scope
-        const targetItem = sel[index].find((filterItem) => filterItem.name === item.name);
-        if (targetItem) {
-          targetItem.scope = state;
+        // Check if sel[index] exists and is an array
+        if (sel[index] && Array.isArray(sel[index])) {
+          if (!item.name) {
+            console.error("Item does not have a 'name' property:", item);
+            return;
+          }
+          // Find the item in the filter data and update its scope
+          const targetItem = sel[index].find((filterItem) => filterItem.name === item.name);
+          if (targetItem) {
+            targetItem.scope = state;
+          } else {
+            console.warn(`Item with name ${item.name} not found in sel[${index}]`);
+          }
+        } else {
+          console.error(`sel[${index}] is undefined or not an array`, sel[index]);
+          return;
         }
 
         // Update the filter data and other states
@@ -1154,25 +1114,7 @@
         this.setUrl();
         this.editForm();
       },
-      /**
-       * Retrieves the filter with the given name.
-       *
-       * @param {string} name - The name of the filter to retrieve.
-       * @returns {Object} The filter object, or an empty object if not found.
-       */
-      getFilters(name) {
-        return this.filters.find((filter) => filter.id === name) || {};
-      },
-      /**
-       * Checks if a filter with the given name is used in the provided options.
-       *
-       * @param {Array} option - The array of filter options.
-       * @param {string} name - The name of the filter to check.
-       * @returns {boolean} True if the filter is used, false otherwise.
-       */
-      isFilterUsed(option, name) {
-        return option ? option.some((opt) => opt.name === name) : false;
-      },
+
       /**
        * Clears the current search state and resets all relevant data.
        *
@@ -1634,14 +1576,6 @@
         if (!this.focusNextDropdownOnMount) return;
         this.focusNextDropdownOnMount = false;
         source.$refs.multiselect.activate();
-      },
-      hasVisibleSimpleFilterOption(filters) {
-        if (!filters) return false;
-
-        var hasVisibleFilter = filters.some(function (e) {
-          return e.simpleSearch;
-        });
-        return hasVisibleFilter;
       },
       getSimpleTooltip(choice) {
         if (!choice.tooltip_simple) return null;

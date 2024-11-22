@@ -64,8 +64,7 @@
     computed: {
       placeholderText() {
         if (this.filterItem.allowCustomInput) {
-          const isMobileWidth =
-            this.dropdownWidth < 520 && this.dropdownWidth !== 0;
+          const isMobileWidth = this.dropdownWidth < 520 && this.dropdownWidth !== 0;
           let manualInputText = "manualInput";
 
           if (isMobileWidth) {
@@ -81,9 +80,7 @@
           );
         } else {
           return (
-            this.getString("select") +
-            " " +
-            this.customNameLabel(this.filterItem).toLowerCase()
+            this.getString("select") + " " + this.customNameLabel(this.filterItem).toLowerCase()
           );
         }
       },
@@ -122,6 +119,21 @@
         const dropdown = this.$refs.dropdown.$refs.selectWrapper;
         if (!dropdown.innerHTML) return;
         this.dropdownWidth = parseInt(dropdown.offsetWidth);
+      },
+      /**
+       * Emits the input event with updated filters.
+       * @param {Array} updatedFilters
+       */
+      handleInput(updatedFilters) {
+        this.$emit("input", updatedFilters);
+      },
+      /**
+       * Emits the updateScope event with item, state, and id.
+       * @param {Object} item
+       * @param {String} state
+       */
+      handleUpdateScope(item, state) {
+        this.$emit("updateScope", item, state, this.idx);
       },
     },
   };
