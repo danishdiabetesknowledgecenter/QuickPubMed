@@ -13,7 +13,7 @@
         :hide-topics="hideTopics"
         :is-group="false"
         :placeholder="showTitle"
-        :operator="getAndOperator"
+        :operator="getString('andOperator')"
         :close-on-input="false"
         :language="language"
         :taggable="false"
@@ -73,10 +73,6 @@
         required: true,
       },
       showTitle: {
-        type: String,
-        required: true,
-      },
-      getAndOperator: {
         type: String,
         required: true,
       },

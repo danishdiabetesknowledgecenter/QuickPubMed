@@ -46,10 +46,6 @@
         type: Function,
         default: () => () => "",
       },
-      $helpTextDelay: {
-        type: Object,
-        default: () => ({ show: 500, hide: 100 }),
-      },
     },
   };
 </script>

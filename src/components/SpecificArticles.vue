@@ -2,6 +2,8 @@
   <div>
     <div :id="getComponentId" ref="singleComponent" class="qpm_SpecificArticle">
       <loading-spinner :loading-component="loadingComponent" />
+
+      <!-- Custom Case: Single Article or Custom Data -->
       <div v-if="isCustom">
         <result-entry
           :id="getKey"
@@ -27,14 +29,16 @@
           :shown-six-authors="shownSixAuthors"
           :show-altmetric-badge="showAltmetricBadge"
           :show-dimensions-badge="showDimensionsBadge"
-          :abstract="getAbstract(enteredIds)"
-          :text="getText(enteredIds)"
           :abstract-summary-prompts="getAbstractSummaryPrompts()"
+          :abstract="getAbstract(getId)"
+          :text="getText(getId)"
           @netFail="UnsuccessfullCall"
           @change:abstractLoad="onAbstractLoad"
           @loadAbstract="addIdToLoadAbstract"
         />
       </div>
+
+      <!-- Default Case: Multiple Articles -->
       <div v-else-if="enteredIds.length > 0">
         <div v-if="!loadingComponent && !searchresult">
           <p>
@@ -75,8 +79,8 @@
           :show-altmetric-badge="showAltmetricBadge"
           :show-dimensions-badge="showDimensionsBadge"
           :abstract-summary-prompts="getAbstractSummaryPrompts()"
-          :abstract="getAbstract(enteredIds)"
-          :text="getText(enteredIds)"
+          :abstract="getAbstract(value.uid)"
+          :text="getText(value.uid)"
           @netFail="UnsuccessfullCall"
           @change:abstractLoad="onAbstractLoad"
           @loadAbstract="addIdToLoadAbstract"
@@ -259,44 +263,12 @@
     },
     created() {
       this.loadingComponent = true;
-      if (this.queryResults) this.pageSize = parseInt(this.queryResults);
-      this.setOrder(this.sortMethod);
-      const baseUrl =
-        "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&tool=QuickPubMed&email=admin@videncenterfordiabetes.dk&api_key=258a604944c9858b96739c730cd6a579c908&retmode=json&retmax=" +
-        this.pageSize +
-        "&retstart=" +
-        this.page * this.pageSize +
-        "&sort=" +
-        this.sort.method +
-        "&term=";
-
-      if (this.ids) {
-        let idArray = this.ids.split(",");
-        for (let i = 0; i < idArray.length; i++) {
-          idArray[i] = idArray[i].trim();
-          this.enteredIds.push(idArray[i]);
-        }
-      }
-
-      if (this.interpretQuery === "") {
+      this.parseIds();
+      if (this.enteredIds.length > 0) {
         this.loadWithIds();
-        this.customLink = this.hyperLink;
-        return;
+      } else {
+        this.loadingComponent = false;
       }
-
-      axios.get(baseUrl + this.interpretQuery).then((resp) => {
-        let ids = resp.data.esearchresult.idlist;
-        if (ids && ids.length !== 0) {
-          for (let i = 0; i < ids.length; i++) {
-            if (!this.enteredIds.includes(ids[i])) this.enteredIds.push(ids[i]);
-          }
-        }
-
-        this.count = parseInt(resp.data.esearchresult.count);
-        this.loadWithIds();
-      });
-
-      this.customLink = this.hyperLink;
     },
     mounted() {
       console.log(`Mounted with ids: ${this.ids}`);
@@ -319,6 +291,12 @@
       }
     },
     methods: {
+      parseIds() {
+        if (this.ids) {
+          // Split the comma-separated IDs and trim any whitespace
+          this.enteredIds = this.ids.split(",").map((id) => id.trim());
+        }
+      },
       UnsuccessfullCall(value) {
         console.log(value);
         this.faltedIds.push(value);
@@ -438,35 +416,32 @@
         return parseInt(container.offsetWidth);
       },
       loadWithIds() {
-        if (!this.enteredIds || this.enteredIds.length === 0) {
-          this.customLink = this.hyperLink;
-          this.searchLoading = false;
+        if (!this.enteredIds.length) {
           this.loadingComponent = false;
           return;
         }
 
-        const baseUrl =
-          "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&tool=QuickPubMed&email=admin@videncenterfordiabetes.dk&api_key=258a604944c9858b96739c730cd6a579c908&retmode=json&id=";
+        const baseUrl = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi";
         axios
-          .get(baseUrl + this.enteredIds.join(","))
-          .then((resp2) => {
-            const data = [];
-            const obj = resp2.data.result;
-
-            if (!obj) {
-              console.log("Error: Search was no success", resp2);
-              this.searchLoading = false;
-              return;
-            }
-            for (let i = 0; i < obj.uids.length; i++) {
-              data.push(obj[obj.uids[i]]);
-            }
-            this.searchresult = data;
+          .get(baseUrl, {
+            params: {
+              db: "pubmed",
+              tool: "QuickPubMed",
+              email: "admin@videncenterfordiabetes.dk",
+              api_key: "258a604944c9858b96739c730cd6a579c908",
+              retmode: "json",
+              id: this.enteredIds.join(","),
+            },
+          })
+          .then((resp) => {
+            const data = resp.data.result;
+            this.searchresult = data.uids.map((uid) => data[uid]);
+            this.loadAbstracts();
           })
           .catch((err) => {
-            console.error("There was an error with the network call\n", err);
+            console.error("Error fetching summaries:", err);
           })
-          .then(() => {
+          .finally(() => {
             this.loadingComponent = false;
           });
       },
@@ -491,14 +466,7 @@
         return {};
       },
       async loadAbstracts() {
-        const baseurl =
-          "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&tool=QuickPubMed" +
-          "&email=" +
-          this.appSettings.nlm.email +
-          "&api_key=" +
-          this.appSettings.nlm.key +
-          "&retmode=xml&id=" +
-          this.enteredIds.join(",");
+        const baseurl = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi";
 
         let axiosInstance = axios.create({
           headers: { Accept: "application/json, text/plain, */*" },
@@ -530,50 +498,55 @@
           );
         });
 
-        let loadData = axiosInstance
-          .get(baseurl, { retry: 10 })
-          .then((resp) => {
-            let data = resp.data;
-            let xmlDoc;
-            if (window.DOMParser) {
-              let parser = new DOMParser();
-              xmlDoc = parser.parseFromString(data, "text/xml");
-            } else {
-              // eslint-disable-next-line no-undef
-              xmlDoc = new ActiveXObject("Microsoft.XMLDOM");
-              xmlDoc.async = false;
-              xmlDoc.loadXML(data);
-            }
-
-            let articles = Array.from(xmlDoc.getElementsByTagName("PubmedArticle"));
-            let articleData = articles.map((article) => {
-              let pmid = article.getElementsByTagName("PMID")[0].textContent;
-              let sections = article.getElementsByTagName("AbstractText");
-              if (sections.length === 1) {
-                let abstractText = sections[0].textContent;
-                return [pmid, abstractText];
-              } else {
-                let text = {};
-                for (let i = 0; i < sections.length; i++) {
-                  let sectionName = sections[i].getAttribute("Label");
-                  let sectionText = sections[i].textContent;
-                  text[sectionName] = sectionText;
-                }
-                return [pmid, text];
-              }
-            });
-
-            return articleData;
-          })
-          .catch((err) => {
-            console.log("Error in fetch from pubMed:", err);
+        try {
+          const response = await axiosInstance.get(baseurl, {
+            params: {
+              db: "pubmed",
+              tool: "QuickPubMed",
+              email: this.appSettings.nlm.email,
+              api_key: this.appSettings.nlm.key,
+              retmode: "xml",
+              id: this.enteredIds.join(","),
+            },
+            retry: 10,
           });
 
-        loadData.then((v) => {
-          for (let item of v) {
+          let data = response.data;
+          let xmlDoc;
+          if (window.DOMParser) {
+            let parser = new DOMParser();
+            xmlDoc = parser.parseFromString(data, "text/xml");
+          } else {
+            // eslint-disable-next-line no-undef
+            xmlDoc = new ActiveXObject("Microsoft.XMLDOM");
+            xmlDoc.async = false;
+            xmlDoc.loadXML(data);
+          }
+
+          let articles = Array.from(xmlDoc.getElementsByTagName("PubmedArticle"));
+          let articleData = articles.map((article) => {
+            let pmid = article.getElementsByTagName("PMID")[0].textContent;
+            let sections = article.getElementsByTagName("AbstractText");
+            if (sections.length === 1) {
+              let abstractText = sections[0].textContent;
+              return [pmid, abstractText];
+            } else {
+              let text = {};
+              for (let i = 0; i < sections.length; i++) {
+                let sectionName = sections[i].getAttribute("Label");
+                let sectionText = sections[i].textContent;
+                text[sectionName] = sectionText;
+              }
+              return [pmid, text];
+            }
+          });
+
+          for (let item of articleData) {
             this.onAbstractLoad(item[0], item[1]);
           }
-        });
+        } catch (err) {
+          console.log("Error in fetch from pubMed:", err);
+        }
       },
       getAbstractSummaryPrompts() {
         return abstractSummaryPrompts;

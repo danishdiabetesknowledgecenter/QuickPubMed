@@ -52,6 +52,7 @@
       </button>
     </div>
     <div v-if="advanced && !showFilter && hasSubjects" style="margin-bottom: 15px">
+      <!-- Button for adding limit -->
       <button
         v-tooltip="{
           content: getString('hoverLimitButton'),
@@ -80,26 +81,21 @@
     },
     props: {
       subjects: Array,
-      subjectOptions: Array,
       hideTopics: Array,
+      subjectOptions: Array,
       dropdownPlaceholders: Array,
       language: String,
-      searchWithAI: Boolean,
       advanced: Boolean,
       showFilter: Boolean,
       hasSubjects: Boolean,
+      searchWithAI: Boolean,
       getString: {
         type: Function,
         required: true,
         default: () => "",
       },
-      $helpTextDelay: Object,
     },
     methods: {
-      getSubjectDropdownRefs() {
-        // Returns an array of dropdown-wrapper refs
-        return this.$refs.subjectDropdown;
-      },
       handleUpdateSubjects(payload) {
         this.$emit("update-subjects", payload);
       },

@@ -7,7 +7,6 @@
           :advanced="advanced"
           :is-collapsed="isCollapsed"
           :get-string="getString"
-          :$help-text-delay="$helpTextDelay"
           @toggle-advanced="advancedClick"
         />
 
@@ -17,7 +16,6 @@
             :is-collapsed="isCollapsed"
             :subjects="subjects"
             :get-string="getString"
-            :$help-text-delay="$helpTextDelay"
             @toggle-collapsed="toggleCollapsedController"
           />
 
@@ -27,29 +25,85 @@
             :is-collapsed="isCollapsed"
             :app-settings="appSettings"
             :get-string="getString"
-            :$help-text-delay="$helpTextDelay"
           />
 
           <div v-show="!isCollapsed" class="qpm_searchFormula">
             <!-- The dropdown for selecting subjects to be included in the search -->
-            <subject-selection
-              ref="subjectSelectionDropdown"
-              :subjects="subjects"
-              :subject-options="subjectOptions"
-              :hide-topics="hideTopics"
-              :dropdown-placeholders="dropdownPlaceholders"
-              :language="language"
-              :advanced="advanced"
-              :search-with-a-i="searchWithAI"
-              :get-string="getString"
-              @update-subjects="updateSubjects"
-              @update-scope="updateScope"
-              @should-focus-next-dropdown-on-mount="shouldFocusNextDropdownOnMount"
-              @update-placeholder="updatePlaceholder"
-              @add-subject="addSubject"
-              @remove-subject="removeSubject"
-              @toggle-filter="toggle"
-            />
+            <div v-for="(item, n) in subjects" :key="`item-${item.id}-${n}`" class="qpm_subjects">
+              <div class="qpm_flex">
+                <dropdown-wrapper
+                  ref="subjectDropdown"
+                  :is-multiple="true"
+                  :data="subjectOptions"
+                  :hide-topics="hideTopics"
+                  :is-group="true"
+                  :placeholder="dropdownPlaceholders[n]"
+                  :operator="getString('orOperator')"
+                  :taggable="true"
+                  :selected="item"
+                  :close-on-input="false"
+                  :language="language"
+                  :search-with-a-i="searchWithAI"
+                  :show-scope-label="advanced"
+                  :no-result-string="getString('noTopicDropdownContent')"
+                  :index="n"
+                  @input="updateSubjects"
+                  @updateScope="updateScope"
+                  @mounted="shouldFocusNextDropdownOnMount"
+                  @translating="updatePlaceholder"
+                />
+                <i
+                  v-if="subjects.length > 1"
+                  class="qpm_removeSubject bx bx-x"
+                  @click="removeSubject(n)"
+                />
+              </div>
+              <p
+                v-if="n >= 0 && hasSubjects"
+                class="qpm_subjectOperator"
+                :style="{
+                  color: n < subjects.length - 1 ? '#000000' : 'darkgrey',
+                }"
+              >
+                {{ getString("andOperator") }}
+              </p>
+            </div>
+            <div
+              v-if="hasSubjects"
+              style="margin: 5px 0 20px 0"
+              @keydown.enter.capture.passive="focusNextDropdownOnMount = true"
+            >
+              <!-- Button for adding subject -->
+              <button
+                v-tooltip="{
+                  content: getString('hoverAddSubject'),
+                  offset: 5,
+                  delay: $helpTextDelay,
+                }"
+                class="qpm_slim multiselect__input"
+                style="width: 120px; padding: 4px 12px 4px 11px !important; height: 38px"
+                @click="addSubject"
+              >
+                {{ getString("addsubjectlimit") }} {{ getString("addsubject") }}
+              </button>
+            </div>
+            <div v-if="advanced && !showFilter && hasSubjects" style="margin-bottom: 15px">
+              <!-- Button for adding limit -->
+              <button
+                v-tooltip="{
+                  content: getString('hoverLimitButton'),
+                  offset: 5,
+                  delay: $helpTextDelay,
+                }"
+                class="qpm_slim multiselect__input"
+                style="padding: 4px 12px 4px 11px !important; height: 38px"
+                type="button"
+                :class="{ qpm_shown: showFilter }"
+                @click="toggle"
+              >
+                {{ getString("addsubjectlimit") }} {{ getString("addlimit") }}
+              </button>
+            </div>
 
             <!-- The dropdown for selecting filters to be included in the advanced search -->
             <advanced-search-filters
@@ -60,7 +114,6 @@
               :filter-options="filterOptions"
               :hide-topics="hideTopics"
               :show-title="showTitle"
-              :get-and-operator="getAndOperator"
               :language="language"
               :search-with-a-i="searchWithAI"
               :get-string="getString"
@@ -109,7 +162,6 @@
           <action-buttons
             :search-loading="searchLoading"
             :get-string="getString"
-            :$help-text-delay="$helpTextDelay"
             @clear="clear"
             @copyUrl="copyUrl"
             @searchsetLowStart="searchsetLowStart"
@@ -148,6 +200,7 @@
   import AdvancedSearchFilters from "@/components/AdvancedSearchFilters.vue";
   import WordedSearchString from "@/components/WordedSearchString.vue";
   import SubjectSelection from "@/components/SubjectSelection.vue";
+  import DropdownWrapper from "@/components/DropdownWrapper.vue";
   import SearchResult from "@/components/SearchResult.vue";
   import axios from "axios";
   import { order, filtrer, scopeIds, customInputTagTooltip } from "@/assets/content/qpm-content.js";
@@ -166,6 +219,7 @@
       SimpleSearchFilters,
       AdvancedSearchFilters,
       SubjectSelection,
+      DropdownWrapper,
       WordedSearchString,
       SearchResult,
     },
