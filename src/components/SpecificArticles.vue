@@ -230,6 +230,7 @@
         loadingComponent: false,
         componentId: null,
         customLink: "",
+
       };
     },
     computed: {

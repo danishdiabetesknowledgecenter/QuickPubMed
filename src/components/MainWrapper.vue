@@ -49,7 +49,7 @@
               @remove-subject="removeSubject"
               @toggle-filter="toggle"
             />
-
+            
             <!-- The dropdown for selecting filters to be included in the advanced search -->
             <advanced-search-filters
               v-if="advanced && showFilter && hasSubjects"

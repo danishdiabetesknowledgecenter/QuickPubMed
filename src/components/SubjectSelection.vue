@@ -23,6 +23,7 @@
           @mounted="handleShouldFocusNextDropdownOnMount"
           @translating="handleTranslating"
         />
+        
         <i v-if="subjects.length > 1" class="qpm_removeSubject bx bx-x" @click="removeSubject(n)" />
       </div>
       <p
