@@ -29,81 +29,26 @@
 
           <div v-show="!isCollapsed" class="qpm_searchFormula">
             <!-- The dropdown for selecting subjects to be included in the search -->
-            <div v-for="(item, n) in subjects" :key="`item-${item.id}-${n}`" class="qpm_subjects">
-              <div class="qpm_flex">
-                <dropdown-wrapper
-                  ref="subjectDropdown"
-                  :is-multiple="true"
-                  :data="subjectOptions"
-                  :hide-topics="hideTopics"
-                  :is-group="true"
-                  :placeholder="dropdownPlaceholders[n]"
-                  :operator="getString('orOperator')"
-                  :taggable="true"
-                  :selected="item"
-                  :close-on-input="false"
-                  :language="language"
-                  :search-with-a-i="searchWithAI"
-                  :show-scope-label="advanced"
-                  :no-result-string="getString('noTopicDropdownContent')"
-                  :index="n"
-                  @input="updateSubjects"
-                  @updateScope="updateScope"
-                  @mounted="shouldFocusNextDropdownOnMount"
-                  @translating="updatePlaceholder"
-                />
-                <i
-                  v-if="subjects.length > 1"
-                  class="qpm_removeSubject bx bx-x"
-                  @click="removeSubject(n)"
-                />
-              </div>
-              <p
-                v-if="n >= 0 && hasSubjects"
-                class="qpm_subjectOperator"
-                :style="{
-                  color: n < subjects.length - 1 ? '#000000' : 'darkgrey',
-                }"
-              >
-                {{ getString("andOperator") }}
-              </p>
-            </div>
-            <div
-              v-if="hasSubjects"
-              style="margin: 5px 0 20px 0"
-              @keydown.enter.capture.passive="focusNextDropdownOnMount = true"
-            >
-              <!-- Button for adding subject -->
-              <button
-                v-tooltip="{
-                  content: getString('hoverAddSubject'),
-                  offset: 5,
-                  delay: $helpTextDelay,
-                }"
-                class="qpm_slim multiselect__input"
-                style="width: 120px; padding: 4px 12px 4px 11px !important; height: 38px"
-                @click="addSubject"
-              >
-                {{ getString("addsubjectlimit") }} {{ getString("addsubject") }}
-              </button>
-            </div>
-            <div v-if="advanced && !showFilter && hasSubjects" style="margin-bottom: 15px">
-              <!-- Button for adding limit -->
-              <button
-                v-tooltip="{
-                  content: getString('hoverLimitButton'),
-                  offset: 5,
-                  delay: $helpTextDelay,
-                }"
-                class="qpm_slim multiselect__input"
-                style="padding: 4px 12px 4px 11px !important; height: 38px"
-                type="button"
-                :class="{ qpm_shown: showFilter }"
-                @click="toggle"
-              >
-                {{ getString("addsubjectlimit") }} {{ getString("addlimit") }}
-              </button>
-            </div>
+            <subject-selection
+              ref="subjectSelection"
+              :subjects="subjects"
+              :hide-topics="hideTopics"
+              :subject-options="subjectOptions"
+              :dropdown-placeholders="dropdownPlaceholders"
+              :language="language"
+              :advanced="advanced"
+              :show-filter="showFilter"
+              :has-subjects="hasSubjects"
+              :search-with-a-i="searchWithAI"
+              :get-string="getString"
+              @update-subjects="updateSubjects"
+              @update-scope="updateScope"
+              @should-focus-next-dropdown="shouldFocusNextDropdownOnMount"
+              @update-placeholder="updatePlaceholder"
+              @add-subject="addSubject"
+              @remove-subject="removeSubject"
+              @toggle-filter="toggle"
+            />
 
             <!-- The dropdown for selecting filters to be included in the advanced search -->
             <advanced-search-filters
@@ -372,7 +317,7 @@
       },
     },
     watch: {
-      subjectDropdown: {
+      subjectSelection: {
         handler() {
           this.updatePlaceholders();
         },
@@ -382,7 +327,7 @@
       advanced(newVal) {
         console.log(`advanced search | ${newVal}`);
         // Trigger an update for all the DropdownWrapper placeholders
-        this.$refs.subjectDropdown.forEach((dropdown, index) => {
+        this.$refs.subjectSelection.$refs.subjectDropdown.forEach((dropdown, index) => {
           dropdown.placeholder = this.getDropdownPlaceholder(index);
         });
       },
@@ -862,7 +807,7 @@
         this.subjects = [...this.subjects, []];
 
         this.$nextTick(function () {
-          const subjectDropdown = this.$refs.subjectDropdown;
+          const subjectDropdown = this.$refs.subjectSelection.$refs.subjectDropdown;
           subjectDropdown[subjectDropdown.length - 1].$refs.multiselect.$refs.search.focus();
 
           // Update placeholders after DOM update
@@ -886,6 +831,7 @@
        * @param {number} index - The index of the subjects array to update.
        */
       updateSubjects(value, index) {
+        console.log(`value and index`, value ,index);	
         value.forEach((item, i) => {
           if (i > 0) this.isFirstFill = false;
           if (!item.scope) item.scope = "normal";
@@ -922,13 +868,18 @@
        */
       updateScope(item, state, index) {
         const updatedSubjects = JSON.parse(JSON.stringify(this.subjects));
-        const subject = updatedSubjects[index].find((sub) => sub.name === item.name);
-        if (subject) {
-          subject.scope = state;
+
+        if (Array.isArray(updatedSubjects) && updatedSubjects[index]) {
+          const subject = updatedSubjects[index].find((sub) => sub.name === item.name);
+          if (subject) {
+            subject.scope = state;
+          }
+          this.subjects = updatedSubjects;
+          this.setUrl();
+          this.editForm();
+        } else {
+          console.error(`updateScope: subjects[${index}] is undefined or not an array.`);
         }
-        this.subjects = updatedSubjects;
-        this.setUrl();
-        this.editForm();
       },
       /**
        * Updates the filters array and initializes filter data.
@@ -1137,8 +1088,9 @@
         this.sort = order[0];
 
         // Reset expanded groups in dropdown. Only need to do first as the other dropdowns are deleted
-        if (this.$refs.subjectDropdown && this.$refs.subjectDropdown[0]) {
-          this.$refs.subjectDropdown[0].clearShownItems();
+        const subjectDropdown = this.$refs.subjectSelection.$refs.subjectDropdown;
+        if (subjectDropdown && subjectDropdown[0]) {
+          subjectDropdown[0].clearShownItems();
         }
         this.setUrl();
       },
@@ -1552,7 +1504,7 @@
         return constant;
       },
       updateSubjectDropdownWidth() {
-        let dropdown = this.$refs.subjectDropdown[0].$refs.selectWrapper;
+        let dropdown = this.$refs.subjectSelection.$refs.subjectDropdown[0].$refs.selectWrapper;
         if (!dropdown.innerHTML) return;
         this.subjectDropdownWidth = parseInt(dropdown.offsetWidth);
       },
@@ -1611,11 +1563,20 @@
         }
       },
       updatePlaceholders() {
-        if (this.$refs.subjectDropdown && this.$refs.subjectDropdown.length > 0) {
-          this.$refs.subjectDropdown.forEach((_, index) => {
-            this.updatePlaceholder(false, index);
-          });
-        }
+        this.$nextTick(() => {
+          const subjectSelectionRef = this.$refs.subjectSelection;
+          if (subjectSelectionRef && subjectSelectionRef.$refs.subjectDropdown) {
+            const subjectDropdowns = subjectSelectionRef.$refs.subjectDropdown;
+            if (Array.isArray(subjectDropdowns)) {
+              subjectDropdowns.forEach((_, index) => {
+                this.updatePlaceholder(false, index);
+              });
+            } else {
+              // If it's a single ref
+              this.updatePlaceholder(true, 0);
+            }
+          }
+        });
       },
     },
   };
