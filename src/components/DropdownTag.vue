@@ -30,9 +30,7 @@
           @keyup.enter.stop="endEdit"
         />
       </span>
-      <span v-else>
-        {{ triple.option.preString }}{{ getCustomNameLabel }}
-      </span>
+      <span v-else> {{ triple.option.preString }}{{ getCustomNameLabel }} </span>
       <i
         aria-hidden="true"
         tabindex="-1"

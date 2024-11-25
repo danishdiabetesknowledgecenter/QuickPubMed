@@ -20,13 +20,7 @@
             @keyup.enter="changeOnEnter"
           />
           <div style="margin-bottom: 10px">
-            <label
-              :for="
-                selectable && hasAbstract
-                  ? 'qpm_selectArticleCheckbox_' + id
-                  : null
-              "
-            >
+            <label :for="selectable && hasAbstract ? 'qpm_selectArticleCheckbox_' + id : null">
               <p
                 v-if="showArticleButtons || !hasAbstract"
                 style="display: inline"
@@ -40,9 +34,7 @@
                 class="qpm_resultTitle qpm_resultTitleHover"
                 @click="showAbstract"
               >
-                <span
-                  v-if="getVernacularTitle && getVernacularTitle != getTitle"
-                >
+                <span v-if="getVernacularTitle && getVernacularTitle != getTitle">
                   {{ getVernacularTitle }}<br />
                 </span>
                 {{ getTitle }}<span v-if="!getTitle">{{ getBookTitle }}</span>
@@ -63,10 +55,7 @@
             </p>
           </div>
         </div>
-        <ai-translation
-          :showing-translation="translationShowing"
-          :title="computedTitle"
-        />
+        <ai-translation :showing-translation="translationShowing" :title="computedTitle" />
         <div style="line-height: 1.5em">
           <p class="qpm_resultAuthors">
             <span v-if="calculateAuthors">{{ calculateAuthors }}.</span>
@@ -88,15 +77,8 @@
         </p>
       </div>
     </div>
-    <div
-      v-if="getComponentWidth"
-      style="display: flex; flex-direction: column-reverse"
-    >
-      <div
-        v-if="showArticleButtons"
-        class="qpm_resultButtons_mobile"
-        :style="mobileResult"
-      >
+    <div v-if="getComponentWidth" style="display: flex; flex-direction: column-reverse">
+      <div v-if="showArticleButtons" class="qpm_resultButtons_mobile" :style="mobileResult">
         <button
           v-if="hasAbstract || pmid || doi"
           v-tooltip="{
@@ -286,28 +268,18 @@
       :class="{ qpm_toggleAbstract: showingAbstract }"
     >
       <div>
-        <div
-          v-show="showingAbstract"
-          lang="en"
-          style="position: relative; margin-top: 0"
-        >
+        <div v-show="showingAbstract" lang="en" style="position: relative; margin-top: 0">
           <accordion-menu
             v-if="appSettings.openAi.useAi && hasAbstract"
             class="qpm_ai_hide qpm_accordions"
           >
             <template #header="accordionProps">
-              <div
-                class="qpm_aiAccordionHeader"
-                style="padding-left: 15px; display: inline-flex"
-              >
+              <div class="qpm_aiAccordionHeader" style="padding-left: 15px; display: inline-flex">
                 <i
                   v-if="accordionProps.expanded"
                   class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
                 />
-                <i
-                  v-else
-                  class="bx bx-chevron-right qpm_aiAccordionHeaderArrows"
-                />
+                <i v-else class="bx bx-chevron-right qpm_aiAccordionHeaderArrows" />
                 <i
                   class="bx bx-detail"
                   style="
@@ -318,9 +290,7 @@
                   "
                 />
                 <div>
-                  <strong>{{
-                    getString("selectedResultAccordionHeader")
-                  }}</strong>
+                  <strong>{{ getString("selectedResultAccordionHeader") }}</strong>
                   <button
                     v-tooltip="{
                       content: getString('hoverselectedResultAccordionHeader'),
@@ -343,9 +313,7 @@
                 >
                   <p>{{ getString("aiSummarizeAbstractButton") }}</p>
                   <p>
-                    <strong>{{
-                      getString("aiSummarizeSearchResultButton")
-                    }}</strong>
+                    <strong>{{ getString("aiSummarizeSearchResultButton") }}</strong>
                   </p>
                   <button
                     v-for="prompt in getAbstractSummaryPrompts()"
@@ -361,18 +329,11 @@
                   >
                     <i
                       class="bx bx-detail"
-                      style="
-                        font-size: 22px;
-                        line-height: 0;
-                        margin: -4px 2px 0 0;
-                      "
+                      style="font-size: 22px; line-height: 0; margin: -4px 2px 0 0"
                     />
                     {{ getTranslation(prompt) }}
                   </button>
-                  <p
-                    class="qpm_summaryDisclaimer"
-                    v-html="getString('aiSummaryConsentText')"
-                  />
+                  <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryConsentText')" />
                 </div>
 
                 <!-- AI Summaries of abstract -->
@@ -388,12 +349,8 @@
                   :html-url="htmlUrl"
                   :language="language"
                   :prompts="getAllPrompts()"
-                  :summary-search-summary-consent-text="
-                    getString('aiSearchSummaryConsentHeader')
-                  "
-                  :summary-consent-header="
-                    getString('aiAbstractSummaryConsentHeader')
-                  "
+                  :summary-search-summary-consent-text="getString('aiSearchSummaryConsentHeader')"
+                  :summary-consent-header="getString('aiAbstractSummaryConsentHeader')"
                   :success-header="getString('aiSummarizeAbstractResultHeader')"
                   :error-header="getString('aiSummarizeAbstractErrorHeader')"
                   :has-accepted-ai="hasAcceptedAi"
@@ -454,18 +411,12 @@
             class="qpm_ai_hide qpm_accordions"
           >
             <template #header="accordionProps">
-              <div
-                class="qpm_aiAccordionHeader"
-                style="padding-left: 15px; display: inline-flex"
-              >
+              <div class="qpm_aiAccordionHeader" style="padding-left: 15px; display: inline-flex">
                 <i
                   v-if="accordionProps.expanded"
                   class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
                 />
-                <i
-                  v-else
-                  class="bx bx-chevron-right qpm_aiAccordionHeaderArrows"
-                />
+                <i v-else class="bx bx-chevron-right qpm_aiAccordionHeaderArrows" />
                 <i
                   class="bx bx-detail"
                   style="
@@ -476,14 +427,10 @@
                   "
                 />
                 <div>
-                  <strong>{{
-                    getString("selectedResultAccordionHeaderNoAbstract")
-                  }}</strong>
+                  <strong>{{ getString("selectedResultAccordionHeaderNoAbstract") }}</strong>
                   <button
                     v-tooltip="{
-                      content: getString(
-                        'hoverselectedResultAccordionHeaderNoAbstract'
-                      ),
+                      content: getString('hoverselectedResultAccordionHeaderNoAbstract'),
                       offset: 5,
                       delay: $helpTextDelay,
                       hideOnTargetClick: false,
@@ -519,11 +466,7 @@
                     >
                       <i
                         class="bx bx-detail"
-                        style="
-                          font-size: 22px;
-                          line-height: 0;
-                          margin: -4px 2px 0 0;
-                        "
+                        style="font-size: 22px; line-height: 0; margin: -4px 2px 0 0"
                       />
                       {{ getTranslation(prompt) }}
                     </button>
@@ -533,10 +476,7 @@
                       :pdf-url="pdfUrl"
                       :html-url="htmlUrl"
                     />
-                    <p
-                      class="qpm_summaryDisclaimer"
-                      v-html="getString('aiSummaryConsentText')"
-                    />
+                    <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryConsentText')" />
                   </div>
                 </keep-alive>
               </div>
@@ -567,10 +507,7 @@
                 </template>
 
                 <template v-else-if="getHasOaPdf">
-                  <i
-                    class="bx bxs-file-pdf qpm_pdf-icon"
-                    style="color: #d20a0a"
-                  />
+                  <i class="bx bxs-file-pdf qpm_pdf-icon" style="color: #d20a0a" />
                   <a
                     v-tooltip="{
                       content: getString('hoverUnpaywall_pdf'),
@@ -587,10 +524,7 @@
                 </template>
 
                 <template v-else-if="getHasOaHtml">
-                  <i
-                    class="bx bxs-file-html qpm_pdf-icon"
-                    style="color: #a8a8a8"
-                  />
+                  <i class="bx bxs-file-html qpm_pdf-icon" style="color: #a8a8a8" />
                   <a
                     v-tooltip="{
                       content: getString('hoverUnpaywall_html'),
@@ -607,10 +541,7 @@
                 </template>
 
                 <template v-else>
-                  <i
-                    class="bx bxs-file-pdf qpm_pdf-icon"
-                    style="color: #a8a8a8"
-                  />
+                  <i class="bx bxs-file-pdf qpm_pdf-icon" style="color: #a8a8a8" />
                   <a
                     v-tooltip="{
                       content: getString('hoverUnpaywall_noPdf'),
@@ -656,14 +587,8 @@
             <p>{{ abstract }}</p>
           </div>
         </div>
-        <div
-          v-if="(pmid !== undefined || doi) && showingAbstract"
-          class="qpm_relatedLinks"
-        >
-          <p
-            v-if="pmid !== undefined"
-            class="intext-arrow-link onHoverJS qpm_pubmedLink"
-          >
+        <div v-if="(pmid !== undefined || doi) && showingAbstract" class="qpm_relatedLinks">
+          <p v-if="pmid !== undefined" class="intext-arrow-link onHoverJS qpm_pubmedLink">
             <a
               v-if="pmid !== undefined"
               v-tooltip="{
@@ -678,10 +603,7 @@
               {{ getString("relatedPubmed") }}
             </a>
           </p>
-          <p
-            v-if="pmid !== undefined"
-            class="intext-arrow-link onHoverJS qpm_pubmedLink"
-          >
+          <p v-if="pmid !== undefined" class="intext-arrow-link onHoverJS qpm_pubmedLink">
             <a
               v-if="pmid !== undefined"
               v-tooltip="{
@@ -696,10 +618,7 @@
               {{ getString("relatedPubmedReviews") }}
             </a>
           </p>
-          <p
-            v-if="(pmid || doi) !== undefined"
-            class="intext-arrow-link onHoverJS qpm_pubmedLink"
-          >
+          <p v-if="(pmid || doi) !== undefined" class="intext-arrow-link onHoverJS qpm_pubmedLink">
             <a
               v-if="(pmid || doi) !== undefined"
               v-tooltip="{
@@ -883,9 +802,7 @@
     data: function () {
       // Added by Ole
       if (document.getElementById("qpm_start") != null) {
-        document
-          .getElementById("qpm_start")
-          .scrollIntoView({ behavior: "smooth" });
+        document.getElementById("qpm_start").scrollIntoView({ behavior: "smooth" });
       }
       return {
         showingAbstract: false,
@@ -912,9 +829,7 @@
     },
     computed: {
       computedTitle() {
-        return (
-          this.getTitle || this.getBookTitle || this.getVernacularTitle || ""
-        );
+        return this.getTitle || this.getBookTitle || this.getVernacularTitle || "";
       },
       getIsPubTypeAllowed: function () {
         return this.isPubTypeAllowed;
@@ -947,10 +862,7 @@
         }
       },
       getComponentWidth: function () {
-        return (
-          this.checkIfMobile ||
-          (this.parentWidth < 520 && this.parentWidth != 0)
-        );
+        return this.checkIfMobile || (this.parentWidth < 520 && this.parentWidth != 0);
       },
       getPubMedLink: function () {
         return (
@@ -1006,8 +918,7 @@
         if (!this.unpaywallResponse) return false;
         if (!this.unpaywallResponse["best_oa_location"]) return false;
 
-        const url_for_pdf =
-          this.unpaywallResponse["best_oa_location"]["url_for_pdf"];
+        const url_for_pdf = this.unpaywallResponse["best_oa_location"]["url_for_pdf"];
 
         if (!url_for_pdf) {
           this.setPdfUrl(undefined);
@@ -1080,8 +991,7 @@
       },
       calculateAuthors: function () {
         let authorArray = this.author.split(",");
-        if (!this.shownSixAuthors || authorArray.length <= 6)
-          return this.author;
+        if (!this.shownSixAuthors || authorArray.length <= 6) return this.author;
         let shownAuthors = "";
         for (let i = 0; i < 6; i++) {
           if (i > 0) shownAuthors += ",";
@@ -1092,9 +1002,7 @@
       },
       getScreenWidth: function () {
         var width =
-          window.innerWidth ||
-          document.documentElement.clientWidth ||
-          document.body.clientWidth;
+          window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
 
         /* var heigth =
         window.innerHeight ||
@@ -1237,19 +1145,13 @@
       this.checkPreload();
       this.$emit("loadAbstract", this.id);
 
-      eventBus.$on(
-        "result-entry-show-abstract",
-        this.onEventBusShowAbstractEvent
-      );
+      eventBus.$on("result-entry-show-abstract", this.onEventBusShowAbstractEvent);
     },
     beforeUpdate: function () {
       this.checkPreload();
     },
     beforeUnmount: function () {
-      eventBus.$off(
-        "result-entry-show-abstract",
-        this.onEventBusShowAbstractEvent
-      );
+      eventBus.$off("result-entry-show-abstract", this.onEventBusShowAbstractEvent);
       this.$parent.$off("abstractLoadeds", this.setAbstract);
     },
     methods: {
@@ -1260,12 +1162,8 @@
       ensureThirdPartyScripts() {
         const scriptList = Array.from(document.getElementsByTagName("script"));
 
-        const isDimensionLoaded = scriptList.some(
-          (script) => script.id === "dimension"
-        );
-        const isAltmetricLoaded = scriptList.some(
-          (script) => script.id === "altmetric"
-        );
+        const isDimensionLoaded = scriptList.some((script) => script.id === "dimension");
+        const isAltmetricLoaded = scriptList.some((script) => script.id === "altmetric");
 
         // Inject Dimension script and stylesheet if not loaded
         if (!isDimensionLoaded) {
@@ -1318,13 +1216,7 @@
        * @param {Object} [options.attributes] - Additional attributes to set on the script.
        * @param {Function} [options.onError] - Callback function to handle load errors.
        */
-      injectScript({
-        src,
-        id,
-        type = "text/javascript",
-        attributes = {},
-        onError,
-      }) {
+      injectScript({ src, id, type = "text/javascript", attributes = {}, onError }) {
         const script = document.createElement("script");
         script.src = src;
         script.type = type;
@@ -1442,22 +1334,18 @@
         if (!this.showingAbstract && this.abstractLoaded && this.id) {
           // Get the div containing the abstract and then select
           // the <specific-article> containing it.
-          document
-            .getElementById(this.getAbstractId)
-            .parentElement.scrollIntoView({
-              block: "nearest",
-              behavior: "smooth",
-            });
+          document.getElementById(this.getAbstractId).parentElement.scrollIntoView({
+            block: "nearest",
+            behavior: "smooth",
+          });
         } else {
           if (this.getAbstractId) {
             // Get the div containing the abstract and then select
             // the <specific-article> containing it.
-            document
-              .getElementById(this.getAbstractId)
-              .parentElement.scrollIntoView({
-                block: "start",
-                behavior: "smooth",
-              });
+            document.getElementById(this.getAbstractId).parentElement.scrollIntoView({
+              block: "start",
+              behavior: "smooth",
+            });
           }
         }
 
@@ -1509,9 +1397,7 @@
         element.setAttribute("data-collapsed", "false");
       },
       handleClickEvent: function () {
-        let eventClass = this.abstractLoaded
-          ? "qpm_shadow"
-          : "qpm_abstractContainer";
+        let eventClass = this.abstractLoaded ? "qpm_shadow" : "qpm_abstractContainer";
         var section = document.querySelector(eventClass);
         var isCollapsed = section.getAttribute("data-collapsed") === "true";
 
@@ -1557,9 +1443,7 @@
 
         let self = this;
         let url =
-          "https://api.unpaywall.org/v2/" +
-          this.doi +
-          "?email=admin@videncenterfordiabetes.dk";
+          "https://api.unpaywall.org/v2/" + this.doi + "?email=admin@videncenterfordiabetes.dk";
         let timeout = 15 * 1000; //15 second timeout
         await axios
           .get(url, { timeout: timeout })
@@ -1595,9 +1479,7 @@
         return summarizeArticlePrompt;
       },
       getAllPrompts: function () {
-        let temp = this.getAbstractSummaryPrompts().concat(
-          this.getPdfQuestionPrompts()
-        );
+        let temp = this.getAbstractSummaryPrompts().concat(this.getPdfQuestionPrompts());
         return temp;
       },
       updateInput: function (event) {
@@ -1612,10 +1494,7 @@
       },
       clickAcceptAiNoAbstract: function (prompt) {
         this.hasAcceptedAi = true;
-        this.$refs.SummarizeArticleNoAbstractComponent.$emit(
-          "SummarizeArticleNoAbstract",
-          prompt
-        );
+        this.$refs.SummarizeArticleNoAbstractComponent.$emit("SummarizeArticleNoAbstract", prompt);
         console.log("emitting SummarizeArticleNoAbstract", prompt);
         console.log("Prompt name: ", prompt.name);
       },

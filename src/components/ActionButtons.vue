@@ -25,10 +25,7 @@
         class="qpm_button"
         @click="copyUrl"
       >
-        <i
-          class="bx bx-link"
-          style="margin-right: 5px; vertical-align: baseline"
-        />
+        <i class="bx bx-link" style="margin-right: 5px; vertical-align: baseline" />
         {{ getString("getUrl") }}
       </button>
     </div>
@@ -45,10 +42,7 @@
       class="qpm_button qpm_search"
       @click="searchsetLowStart"
     >
-      <i
-        class="bx bx-search bx-flip-horizontal"
-        style="position: relative; bottom: 1px"
-      />
+      <i class="bx bx-search bx-flip-horizontal" style="position: relative; bottom: 1px" />
       {{ getString("search") }}
     </button>
   </div>

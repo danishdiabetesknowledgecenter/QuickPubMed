@@ -21,11 +21,7 @@
     <div class="qpm_searchSummaryTextBackground">
       <template v-if="hasAcceptedAi">
         <div class="qpm_summary_icon_row">
-          <template
-            v-if="
-              getCurrentSummary != null && getCurrentSummaryHistory.length > 1
-            "
-          >
+          <template v-if="getCurrentSummary != null && getCurrentSummaryHistory.length > 1">
             <button
               class="qpm_summary_icon bx bx-chevron-left"
               style="margin-right: -12px; margin-top: -3px; border: 0"
@@ -33,8 +29,7 @@
               @click="clickHistoryItem(getCurrentIndex + 1)"
             />
             {{ getCurrentSummaryHistory.length - getCurrentIndex
-            }}<span style="padding: 0 3px">/</span
-            >{{ getCurrentSummaryHistory.length }}
+            }}<span style="padding: 0 3px">/</span>{{ getCurrentSummaryHistory.length }}
             <button
               class="qpm_summary_icon bx bx-chevron-right"
               style="margin-left: -12px; margin-top: -3px; border: 0"
@@ -45,11 +40,7 @@
 
           <button
             class="qpm_summary_icon bx bx-x"
-            style="
-              margin-left: 20px;
-              margin-top: -5px;
-              border: 1px solid #e7e7e7;
-            "
+            style="margin-left: 20px; margin-top: -5px; border: 1px solid #e7e7e7"
             @click="clickCloseSummary"
           />
         </div>
@@ -105,13 +96,7 @@
                     font-size: 0.9em;
                   "
                 >
-                  <p
-                    v-html="
-                      getString(
-                        'aiSummarizeFirstFewSearchResultHeaderAfterCountWarning'
-                      )
-                    "
-                  />
+                  <p v-html="getString('aiSummarizeFirstFewSearchResultHeaderAfterCountWarning')" />
                 </div>
                 <div v-if="useMarkdown && canRenderMarkdown" ref="summary">
                   <vue-showdown
@@ -150,10 +135,7 @@
                     class="qpm_button"
                     @click="clickRetry"
                   >
-                    <i
-                      class="bx bx-refresh"
-                      style="vertical-align: baseline; font-size: 1em"
-                    />
+                    <i class="bx bx-refresh" style="vertical-align: baseline; font-size: 1em" />
                     {{ getString("retryText") }}
                   </button>
 
@@ -187,10 +169,7 @@
                     :is-summary-loading="getIsSummaryLoading"
                   />
                 </div>
-                <p
-                  class="qpm_summaryDisclaimer"
-                  v-html="getString('aiSummaryDisclaimer')"
-                />
+                <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryDisclaimer')" />
               </div>
             </div>
           </template>
@@ -371,18 +350,13 @@
       },
       isCurrentSummaryWaitingForResponse() {
         const summary = this.getCurrentSummary;
-        return (
-          summary?.status == "loading" &&
-          (!summary?.body || summary.body.length == 0)
-        );
+        return summary?.status == "loading" && (!summary?.body || summary.body.length == 0);
       },
       getWaitTimeString() {
         const currentSummary = this.getCurrentSummary;
-        if (currentSummary == undefined || !currentSummary.showWaitDisclaimer)
-          return "";
+        if (currentSummary == undefined || !currentSummary.showWaitDisclaimer) return "";
 
-        const longAbstractLengthLimit =
-          this.appSettings.openAi.longAbstractLengthLimit ?? 5000;
+        const longAbstractLengthLimit = this.appSettings.openAi.longAbstractLengthLimit ?? 5000;
 
         const totalAbstractLength =
           currentSummary?.articles?.reduce((acc, article) => {
@@ -402,17 +376,13 @@
         if (typeof this.successHeader === "function") {
           const currentSummary = this.getCurrentSummary;
           let articles = currentSummary?.articles;
-          return (
-            articles &&
-            this.successHeader(articles, currentSummary.isMarkedArticlesSearch)
-          );
+          return articles && this.successHeader(articles, currentSummary.isMarkedArticlesSearch);
         }
         return this.successHeader;
       },
       canRenderMarkdown() {
         const isVueShowdownRegistered =
-          !!this.$options.components["VueShowdown"] ||
-          !!this.$options.components["vue-showdown"];
+          !!this.$options.components["VueShowdown"] || !!this.$options.components["vue-showdown"];
         return isVueShowdownRegistered;
       },
       languageFormat() {
@@ -474,25 +444,23 @@
         const lg = this.language;
         try {
           const constant = messages[error][lg];
-          return constant !== undefined
-            ? constant
-            : messages["unknownError"][lg];
+          return constant !== undefined ? constant : messages["unknownError"][lg];
         } catch {
           return messages["unknownError"][lg];
         }
       },
       async generateAiSummary(prompt) {
         this.stopGeneration = false;
-        const waitTimeDisclaimerDelay =
-          this.appSettings.openAi.waitTimeDisclaimerDelay ?? 0;
+        const waitTimeDisclaimerDelay = this.appSettings.openAi.waitTimeDisclaimerDelay ?? 0;
         this.loadingSummaries.push(prompt.name);
+
         const localePrompt = getPromptForLocale(prompt, this.language);
         const summarizePrompt = getPromptForLocale(
-          summarizeSummaryPrompts.find((p) => prompt.name == p.name),
+          summarizeSummaryPrompts.find((p) => prompt.name === p.name),
           this.language
         );
         const shortenAbstractPrompt = getPromptForLocale(
-          shortenAbstractPrompts.find((p) => prompt.name == p.name),
+          shortenAbstractPrompts.find((p) => prompt.name === p.name),
           this.language
         );
 
@@ -503,30 +471,41 @@
           let answer = "";
           const response = await fetch(url, {
             method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
             body: JSON.stringify(body),
           });
+
           if (!response.ok) {
             throw { data: await response.json() };
           }
-          const reader = response.body
-            .pipeThrough(new TextDecoderStream())
-            .getReader();
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done || this.stopGeneration) {
-              break;
+
+          const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+
+          let done = false;
+
+          while (!done && !this.stopGeneration) {
+            const { done: doneReading, value } = await reader.read();
+            done = doneReading;
+
+            if (!done && !this.stopGeneration) {
+              answer += value;
+              this.updateAiSearchSummariesEntry(prompt.name, { body: answer });
             }
-            answer += value;
-            this.updateAiSearchSummariesEntry(prompt.name, { body: answer });
           }
-          this.updateAiSearchSummariesEntry(prompt.name, {
-            responseTime: new Date(),
-            status: "success",
-          });
+
+          // If generation was stopped, you might want to handle partial data
+          if (!this.stopGeneration) {
+            this.updateAiSearchSummariesEntry(prompt.name, {
+              responseTime: new Date(),
+              status: "success",
+            });
+          }
         };
 
         const articles = this.getSelectedArticles();
-        if (!articles || articles.length == 0) {
+        if (!articles || articles.length === 0) {
           this.pushToAiSearchSummaries(prompt.name, {
             responseTime: new Date(),
             status: "error",
@@ -550,6 +529,7 @@
             showWaitDisclaimer: true,
           });
         }, waitTimeDisclaimerDelay);
+
         this.articleCount = articles.length;
 
         try {
@@ -578,17 +558,16 @@
           }
         } finally {
           const tabIndex = this.loadingSummaries.indexOf(prompt.name);
-          this.loadingSummaries.splice(tabIndex, 1);
+          if (tabIndex !== -1) {
+            this.loadingSummaries.splice(tabIndex, 1);
+          }
           Vue.set(this.tabStates[prompt.name], "currentIndex", 0);
         }
       },
       clickSummaryTab(tab) {
         this.currentSummary = tab.name;
         let currentSummaries = this.aiSearchSummaries[tab.name];
-        if (
-          this.getIsSummaryLoading ||
-          (currentSummaries && currentSummaries.length > 0)
-        ) {
+        if (this.getIsSummaryLoading || (currentSummaries && currentSummaries.length > 0)) {
           return;
         }
         this.generateAiSummary(tab);
@@ -629,10 +608,7 @@
         Vue.set(this.tabStates[this.currentSummary], "currentIndex", index);
       },
       formatDate(date) {
-        const formattedDate = date.toLocaleDateString(
-          languageFormat[this.language],
-          dateOptions
-        );
+        const formattedDate = date.toLocaleDateString(languageFormat[this.language], dateOptions);
         return formattedDate;
       },
       onMarkdownClick(event) {

@@ -29,7 +29,7 @@
     <div class="qpm_flex">
       <div class="qpm_filters" :class="{ qpm_shown: filters.length === 0 }">
         <filter-entry
-          v-for="(selected, id, index) in filterData"
+          v-for="(selected, id) in filterData"
           :key="id"
           :language="language"
           :filter-item="getFilters(id)"

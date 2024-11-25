@@ -1,11 +1,7 @@
 <template>
   <div class="column is-half">
     <div class="qpm_accordion" :class="{ 'not-expanded': !getIsExpanded }">
-      <div
-        tabindex="0"
-        @click="toggleAccordionState"
-        @keypress.enter="toggleAccordionState"
-      >
+      <div tabindex="0" @click="toggleAccordionState" @keypress.enter="toggleAccordionState">
         <slot
           name="header"
           :expanded="getIsExpanded"
@@ -232,11 +228,9 @@
       isAccordionOnScreen() {
         const subject = this.$el;
         const subjectRect = subject?.getBoundingClientRect();
-        const viewHeight =
-          window.innerHeight || document.documentElement.clientHeight;
+        const viewHeight = window.innerHeight || document.documentElement.clientHeight;
 
-        const isSubjectVisible =
-          subjectRect?.top <= viewHeight && subjectRect?.bottom >= 0;
+        const isSubjectVisible = subjectRect?.top <= viewHeight && subjectRect?.bottom >= 0;
 
         return isSubjectVisible;
       },

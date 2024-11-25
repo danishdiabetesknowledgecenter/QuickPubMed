@@ -157,13 +157,9 @@
         }
       },
       async getQuestionHTMLArticle() {
-        const openAiServiceUrl =
-          this.appSettings.openAi.baseUrl + "/api/SummarizeHTMLArticle";
+        const openAiServiceUrl = this.appSettings.openAi.baseUrl + "/api/SummarizeHTMLArticle";
 
-        const localePrompt = this.getComposablePrompt(
-          this.language,
-          this.promptLanguageType
-        );
+        const localePrompt = this.getComposablePrompt(this.language, this.promptLanguageType);
 
         let response = await this.handleFetch(openAiServiceUrl, {
           prompt: localePrompt,
@@ -180,13 +176,9 @@
         return response;
       },
       async getQuestionPDFArticle() {
-        const openAiServiceUrl =
-          this.appSettings.openAi.baseUrl + "/api/SummarizePDFArticle";
+        const openAiServiceUrl = this.appSettings.openAi.baseUrl + "/api/SummarizePDFArticle";
 
-        const userQuestionPrompt = this.getComposablePrompt(
-          this.language,
-          this.promptLanguageType
-        );
+        const userQuestionPrompt = this.getComposablePrompt(this.language, this.promptLanguageType);
 
         let response = await this.handleFetch(openAiServiceUrl, {
           prompt: userQuestionPrompt,

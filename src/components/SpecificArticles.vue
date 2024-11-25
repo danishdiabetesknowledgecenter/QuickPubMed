@@ -38,10 +38,10 @@
       <div v-else-if="enteredIds.length > 0">
         <div v-if="!loadingComponent && !searchresult">
           <p>
-            <strong>{{ getString('noArticleAvailable') }}</strong>
+            <strong>{{ getString("noArticleAvailable") }}</strong>
           </p>
           <p>
-            <strong>{{ getString('tryAgainLater') }}</strong>
+            <strong>{{ getString("tryAgainLater") }}</strong>
           </p>
         </div>
         <result-entry
@@ -87,22 +87,18 @@
 </template>
 
 <script>
-  import Vue from 'vue'
-  import axios from 'axios'
-  import LoadingSpinner from '@/components/LoadingSpinner.vue'
-  import ResultEntry from '@/components/ResultEntry.vue'
+  import Vue from "vue";
+  import axios from "axios";
+  import LoadingSpinner from "@/components/LoadingSpinner.vue";
+  import ResultEntry from "@/components/ResultEntry.vue";
 
-  import { appSettingsMixin } from '@/mixins/appSettings'
-  import { messages } from '@/assets/content/qpm-translations'
-  import { abstractSummaryPrompts } from '@/assets/content/qpm-openAiPrompts.js'
-  import {
-    order,
-    dateOptions,
-    languageFormat,
-  } from '@/assets/content/qpm-content'
+  import { appSettingsMixin } from "@/mixins/appSettings";
+  import { messages } from "@/assets/content/qpm-translations";
+  import { abstractSummaryPrompts } from "@/assets/content/qpm-openAiPrompts.js";
+  import { order, dateOptions, languageFormat } from "@/assets/content/qpm-content";
 
   export default {
-    name: 'SpecificArticles',
+    name: "SpecificArticles",
     components: {
       LoadingSpinner,
       ResultEntry,
@@ -111,12 +107,12 @@
     props: {
       ids: {
         type: String,
-        default: '',
+        default: "",
         required: false,
       },
       query: {
         type: String,
-        default: '',
+        default: "",
         required: false,
       },
       queryResults: {
@@ -126,7 +122,7 @@
       },
       sortMethod: {
         type: String,
-        default: '',
+        default: "",
         required: false,
       },
       hideButtons: {
@@ -139,42 +135,42 @@
       },
       date: {
         type: String,
-        default: '',
+        default: "",
         required: false,
       },
       title: {
         type: String,
-        default: '',
+        default: "",
         required: false,
       },
       booktitle: {
         type: String,
-        default: '',
+        default: "",
         required: false,
       },
       vernaculartitle: {
         type: String,
-        default: '',
+        default: "",
         required: false,
       },
       authors: {
         type: String,
-        default: '',
+        default: "",
         required: false,
       },
       source: {
         type: String,
-        default: '',
+        default: "",
         required: false,
       },
       abstract: {
         type: String,
-        default: '',
+        default: "",
         required: false,
       },
       doi: {
         type: String,
-        default: '',
+        default: "",
         required: false,
       },
       isCustomDoi: {
@@ -183,15 +179,15 @@
       },
       language: {
         type: String,
-        default: 'dk',
+        default: "dk",
       },
       hyperLink: {
         type: String,
-        default: '',
+        default: "",
       },
       hyperLinkText: {
         type: String,
-        default: '',
+        default: "",
         required: false,
       },
       sectionedAbstract: {
@@ -229,372 +225,368 @@
         searchresult: undefined,
         loadingComponent: false,
         componentId: null,
-      }
+      };
     },
     computed: {
       getPubMedLink() {
         return (
-          'https://pubmed.ncbi.nlm.nih.gov/?' +
-          'myncbishare=' +
+          "https://pubmed.ncbi.nlm.nih.gov/?" +
+          "myncbishare=" +
           this.appSettings.nlm.myncbishare +
-          '&term=' +
+          "&term=" +
           encodeURIComponent(this.interpretQuery)
-        )
+        );
       },
       interpretQuery() {
-        if (!this.query) return ''
-        return this.query
+        if (!this.query) return "";
+        return this.query;
       },
       showArticleButtons() {
-        return !this.hideButtons
+        return !this.hideButtons;
       },
       isCustom() {
-        return !this.loadingComponent && this.enteredIds.length === 0
+        return !this.loadingComponent && this.enteredIds.length === 0;
       },
       getKey() {
-        return this.doi ? this.doi : null
+        return this.doi ? this.doi : null;
       },
       getId() {
-        return this.ids ? this.ids : null
+        return this.ids ? this.ids : null;
       },
       getComponentId() {
-        return `qpm_SpecificArticle_${this.componentId}`
+        return `qpm_SpecificArticle_${this.componentId}`;
       },
     },
     created() {
-      this.loadingComponent = true
-      if (this.queryResults) this.pageSize = parseInt(this.queryResults)
-      this.setOrder(this.sortMethod)
+      this.loadingComponent = true;
+      if (this.queryResults) this.pageSize = parseInt(this.queryResults);
+      this.setOrder(this.sortMethod);
       const baseUrl =
-        'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&tool=QuickPubMed&email=admin@videncenterfordiabetes.dk&api_key=258a604944c9858b96739c730cd6a579c908&retmode=json&retmax=' +
+        "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&tool=QuickPubMed&email=admin@videncenterfordiabetes.dk&api_key=258a604944c9858b96739c730cd6a579c908&retmode=json&retmax=" +
         this.pageSize +
-        '&retstart=' +
+        "&retstart=" +
         this.page * this.pageSize +
-        '&sort=' +
+        "&sort=" +
         this.sort.method +
-        '&term='
+        "&term=";
 
       if (this.ids) {
-        let idArray = this.ids.split(',')
+        let idArray = this.ids.split(",");
         for (let i = 0; i < idArray.length; i++) {
-          idArray[i] = idArray[i].trim()
-          this.enteredIds.push(idArray[i])
+          idArray[i] = idArray[i].trim();
+          this.enteredIds.push(idArray[i]);
         }
       }
 
-      if (this.interpretQuery === '') {
-        this.loadWithIds()
-        this.customLink = this.hyperLink
-        return
+      if (this.interpretQuery === "") {
+        this.loadWithIds();
+        this.customLink = this.hyperLink;
+        return;
       }
 
       axios.get(baseUrl + this.interpretQuery).then((resp) => {
-        let ids = resp.data.esearchresult.idlist
+        let ids = resp.data.esearchresult.idlist;
         if (ids && ids.length !== 0) {
           for (let i = 0; i < ids.length; i++) {
-            if (!this.enteredIds.includes(ids[i])) this.enteredIds.push(ids[i])
+            if (!this.enteredIds.includes(ids[i])) this.enteredIds.push(ids[i]);
           }
         }
 
-        this.count = parseInt(resp.data.esearchresult.count)
-        this.loadWithIds()
-      })
+        this.count = parseInt(resp.data.esearchresult.count);
+        this.loadWithIds();
+      });
 
-      this.customLink = this.hyperLink
+      this.customLink = this.hyperLink;
     },
     mounted() {
-      console.log(`Mounted with ids: ${this.ids}`)
+      console.log(`Mounted with ids: ${this.ids}`);
       if (this.componentNo == null) {
-        this.componentId = this._uid
+        this.componentId = this._uid;
       } else {
-        this.componentId = this.componentNo
+        this.componentId = this.componentNo;
       }
     },
     updated() {
-      if (this.loadingComponent) return
+      if (this.loadingComponent) return;
 
       if (window.__dimensions_embed) {
-        window.__dimensions_embed.addBadges()
+        window.__dimensions_embed.addBadges();
       }
 
-      const component = this.$refs.singleComponent
+      const component = this.$refs.singleComponent;
       if (component && window._altmetric_embed_init) {
-        window._altmetric_embed_init(component)
+        window._altmetric_embed_init(component);
       }
     },
     methods: {
       UnsuccessfullCall(value) {
-        console.log(value)
-        this.faltedIds.push(value)
+        console.log(value);
+        this.faltedIds.push(value);
       },
       setOrder(input) {
         for (let i = 0; i < order.length; i++) {
           if (order[i].method === input) {
-            this.sort = order[i]
-            return
+            this.sort = order[i];
+            return;
           }
         }
       },
       getAuthor(authors) {
         try {
-          if (this.authors) return this.authors
-          let str = ''
+          if (this.authors) return this.authors;
+          let str = "";
           for (let i = 0; i < authors.length; i++) {
-            if (i > 0) str += ','
-            str += ' ' + authors[i].name
+            if (i > 0) str += ",";
+            str += " " + authors[i].name;
           }
-          return str
+          return str;
         } catch (error) {
-          return error
+          return error;
         }
       },
       getHasAbstract(attributes) {
-        if (this.abstract || this.sectionedAbstract) return true
+        if (this.abstract || this.sectionedAbstract) return true;
         if (!attributes) {
-          return false
+          return false;
         }
-        let found = false
+        let found = false;
         Object.keys(attributes).forEach((key) => {
-          let value = attributes[key]
-          if (key === 'Has Abstract' || value === 'Has Abstract') {
-            found = true
+          let value = attributes[key];
+          if (key === "Has Abstract" || value === "Has Abstract") {
+            found = true;
           }
-        })
-        return found
+        });
+        return found;
       },
       getDate(history) {
         try {
-          if (this.date) return this.date
+          if (this.date) return this.date;
           for (let i = 0; i < history.length; i++) {
-            if (history[i].pubstatus === 'entrez') {
-              let date = new Date(history[i].date)
+            if (history[i].pubstatus === "entrez") {
+              let date = new Date(history[i].date);
               let formattedDate = date.toLocaleDateString(
                 languageFormat[this.language],
                 dateOptions
-              )
-              return formattedDate
+              );
+              return formattedDate;
             }
           }
-          return ''
+          return "";
         } catch (error) {
-          return error
+          return error;
         }
       },
       getTitle(std) {
-        if (this.title) return this.title
-        return std
+        if (this.title) return this.title;
+        return std;
       },
       getBookTitle(std) {
-        if (this.booktitle) return this.booktitle
-        return std
+        if (this.booktitle) return this.booktitle;
+        return std;
       },
       getVernacularTitle(std) {
-        if (this.vernaculartitle) return this.vernaculartitle
-        return std
+        if (this.vernaculartitle) return this.vernaculartitle;
+        return std;
       },
       getDoi(searchResult) {
         try {
-          if (this.doi || this.isCustomDoi) return this.doi
-          let articleids = searchResult.articleids
+          if (this.doi || this.isCustomDoi) return this.doi;
+          let articleids = searchResult.articleids;
           for (let i = 0; i < articleids.length; i++) {
-            if (articleids[i].idtype === 'doi') {
-              let doi = articleids[i].value
-              return doi
+            if (articleids[i].idtype === "doi") {
+              let doi = articleids[i].value;
+              return doi;
             }
           }
-          return ''
+          return "";
         } catch (err) {
-          console.error(err)
-          return undefined
+          console.error(err);
+          return undefined;
         }
       },
       getSource(value) {
         try {
           if (this.source !== undefined) {
             if (value !== undefined) {
-              if (value.volume !== undefined) value.volume = undefined
-              if (value.issue !== undefined) value.issue = undefined
-              if (value.pages !== undefined) value.pages = undefined
-              if (value.pubdate !== undefined) value.pubdate = undefined
+              if (value.volume !== undefined) value.volume = undefined;
+              if (value.issue !== undefined) value.issue = undefined;
+              if (value.pages !== undefined) value.pages = undefined;
+              if (value.pubdate !== undefined) value.pubdate = undefined;
             }
-            return this.source
+            return this.source;
           }
-          if (value.booktitle) return value.booktitle
-          return value.source
+          if (value.booktitle) return value.booktitle;
+          return value.source;
         } catch (error) {
-          return error
+          return error;
         }
       },
       getString(string) {
-        let lg = this.language
-        let constant = messages[string][lg]
-        return constant !== undefined ? constant : messages[string]['dk']
+        let lg = this.language;
+        let constant = messages[string][lg];
+        return constant !== undefined ? constant : messages[string]["dk"];
       },
       getHyperLink() {
-        return this.hyperLink
+        return this.hyperLink;
       },
       getHyperLinkText() {
-        return this.hyperLinkText
+        return this.hyperLinkText;
       },
       getComponentWidth() {
-        let container = this.$refs.singleComponent
-        if (!container?.innerHTML) return
-        return parseInt(container.offsetWidth)
+        let container = this.$refs.singleComponent;
+        if (!container?.innerHTML) return;
+        return parseInt(container.offsetWidth);
       },
       loadWithIds() {
         if (!this.enteredIds || this.enteredIds.length === 0) {
-          this.customLink = this.hyperLink
-          this.searchLoading = false
-          this.loadingComponent = false
-          return
+          this.customLink = this.hyperLink;
+          this.searchLoading = false;
+          this.loadingComponent = false;
+          return;
         }
 
         const baseUrl =
-          'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&tool=QuickPubMed&email=admin@videncenterfordiabetes.dk&api_key=258a604944c9858b96739c730cd6a579c908&retmode=json&id='
+          "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&tool=QuickPubMed&email=admin@videncenterfordiabetes.dk&api_key=258a604944c9858b96739c730cd6a579c908&retmode=json&id=";
         axios
-          .get(baseUrl + this.enteredIds.join(','))
+          .get(baseUrl + this.enteredIds.join(","))
           .then((resp2) => {
-            const data = []
-            const obj = resp2.data.result
+            const data = [];
+            const obj = resp2.data.result;
 
             if (!obj) {
-              console.log('Error: Search was no success', resp2)
-              this.searchLoading = false
-              return
+              console.log("Error: Search was no success", resp2);
+              this.searchLoading = false;
+              return;
             }
             for (let i = 0; i < obj.uids.length; i++) {
-              data.push(obj[obj.uids[i]])
+              data.push(obj[obj.uids[i]]);
             }
-            this.searchresult = data
+            this.searchresult = data;
           })
           .catch((err) => {
-            console.error('There was an error with the network call\n', err)
+            console.error("There was an error with the network call\n", err);
           })
           .then(() => {
-            this.loadingComponent = false
-          })
+            this.loadingComponent = false;
+          });
       },
       getAbstract(id) {
         if (this.abstractRecords[id] !== undefined) {
-          if (typeof this.abstractRecords[id] !== 'string') {
-            return ''
+          if (typeof this.abstractRecords[id] !== "string") {
+            return "";
           }
-          return this.abstractRecords[id]
+          return this.abstractRecords[id];
         }
-        return ''
+        return "";
       },
       getText(id) {
         if (id !== undefined) {
           if (
             this.abstractRecords[id] !== undefined &&
-            typeof this.abstractRecords[id] === 'object'
+            typeof this.abstractRecords[id] === "object"
           ) {
-            return this.abstractRecords[id]
+            return this.abstractRecords[id];
           }
         }
-        return {}
+        return {};
       },
       async loadAbstracts() {
         const baseurl =
-          'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&tool=QuickPubMed' +
-          '&email=' +
+          "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&tool=QuickPubMed" +
+          "&email=" +
           this.appSettings.nlm.email +
-          '&api_key=' +
+          "&api_key=" +
           this.appSettings.nlm.key +
-          '&retmode=xml&id=' +
-          this.enteredIds.join(',')
+          "&retmode=xml&id=" +
+          this.enteredIds.join(",");
 
         let axiosInstance = axios.create({
-          headers: { Accept: 'application/json, text/plain, */*' },
-        })
+          headers: { Accept: "application/json, text/plain, */*" },
+        });
         axiosInstance.interceptors.response.use(undefined, (err) => {
-          const { config, message } = err
+          const { config, message } = err;
 
           if (!config || !config.retry) {
-            console.log('request retried too many times', config.url)
-            return Promise.reject(err)
+            console.log("request retried too many times", config.url);
+            return Promise.reject(err);
           }
 
-          if (
-            !(message.includes('timeout') || message.includes('Network Error'))
-          ) {
-            return Promise.reject(err)
+          if (!(message.includes("timeout") || message.includes("Network Error"))) {
+            return Promise.reject(err);
           }
 
-          config.retry -= 1
+          config.retry -= 1;
 
-          const retryDelay = 2000
+          const retryDelay = 2000;
 
           const delayRetryRequest = new Promise((resolve) => {
             setTimeout(() => {
-              resolve()
-            }, retryDelay)
-          })
+              resolve();
+            }, retryDelay);
+          });
 
           return delayRetryRequest.then(() =>
             axiosInstance.get(config.url, { retry: config.retry })
-          )
-        })
+          );
+        });
 
         let loadData = axiosInstance
           .get(baseurl, { retry: 10 })
           .then((resp) => {
-            let data = resp.data
-            let xmlDoc
+            let data = resp.data;
+            let xmlDoc;
             if (window.DOMParser) {
-              let parser = new DOMParser()
-              xmlDoc = parser.parseFromString(data, 'text/xml')
+              let parser = new DOMParser();
+              xmlDoc = parser.parseFromString(data, "text/xml");
             } else {
               // eslint-disable-next-line no-undef
-              xmlDoc = new ActiveXObject('Microsoft.XMLDOM')
-              xmlDoc.async = false
-              xmlDoc.loadXML(data)
+              xmlDoc = new ActiveXObject("Microsoft.XMLDOM");
+              xmlDoc.async = false;
+              xmlDoc.loadXML(data);
             }
 
-            let articles = Array.from(
-              xmlDoc.getElementsByTagName('PubmedArticle')
-            )
+            let articles = Array.from(xmlDoc.getElementsByTagName("PubmedArticle"));
             let articleData = articles.map((article) => {
-              let pmid = article.getElementsByTagName('PMID')[0].textContent
-              let sections = article.getElementsByTagName('AbstractText')
+              let pmid = article.getElementsByTagName("PMID")[0].textContent;
+              let sections = article.getElementsByTagName("AbstractText");
               if (sections.length === 1) {
-                let abstractText = sections[0].textContent
-                return [pmid, abstractText]
+                let abstractText = sections[0].textContent;
+                return [pmid, abstractText];
               } else {
-                let text = {}
+                let text = {};
                 for (let i = 0; i < sections.length; i++) {
-                  let sectionName = sections[i].getAttribute('Label')
-                  let sectionText = sections[i].textContent
-                  text[sectionName] = sectionText
+                  let sectionName = sections[i].getAttribute("Label");
+                  let sectionText = sections[i].textContent;
+                  text[sectionName] = sectionText;
                 }
-                return [pmid, text]
+                return [pmid, text];
               }
-            })
+            });
 
-            return articleData
+            return articleData;
           })
           .catch((err) => {
-            console.log('Error in fetch from pubMed:', err)
-          })
+            console.log("Error in fetch from pubMed:", err);
+          });
 
         loadData.then((v) => {
           for (let item of v) {
-            this.onAbstractLoad(item[0], item[1])
+            this.onAbstractLoad(item[0], item[1]);
           }
-        })
+        });
       },
       getAbstractSummaryPrompts() {
-        return abstractSummaryPrompts
+        return abstractSummaryPrompts;
       },
       addIdToLoadAbstract(id) {
-        this.idswithAbstractsToLoad.push(id)
+        this.idswithAbstractsToLoad.push(id);
         if (this.enteredIds[this.enteredIds.length - 1] === id) {
-          this.loadAbstracts()
+          this.loadAbstracts();
         }
       },
       onAbstractLoad(id, abstract) {
-        Vue.set(this.abstractRecords, id, abstract)
+        Vue.set(this.abstractRecords, id, abstract);
       },
     },
-  }
+  };
 </script>

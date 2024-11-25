@@ -188,10 +188,7 @@
         :key="filter.name"
         class="qpm_filterSearchStrings qpm_collapsedSection"
       >
-        <h3
-          class="qpm_heading intext-arrow-link"
-          @click="hideOrCollapse(toClassName(filter.name))"
-        >
+        <h3 class="qpm_heading intext-arrow-link" @click="hideOrCollapse(toClassName(filter.name))">
           {{ customNameLabel(filter) }}
         </h3>
         <div
@@ -392,61 +389,47 @@
       },
       toggleAll() {
         if (this.isAllToggled) {
-          let subjectSections = document.getElementsByClassName(
-            "qpm_subjectSearchStrings"
-          );
+          let subjectSections = document.getElementsByClassName("qpm_subjectSearchStrings");
           for (let i = 0; i < subjectSections.length; i++) {
             subjectSections[i].classList.remove("qpm_collapsedSection");
           }
-          let searchGroups =
-            document.getElementsByClassName("qpm_searchGroups");
+          let searchGroups = document.getElementsByClassName("qpm_searchGroups");
           for (let j = 0; j < searchGroups.length; j++) {
             searchGroups[j].classList.remove("qpm_collapsedSection");
           }
-          let searchSubjects =
-            document.getElementsByClassName("qpm_searchSubject");
+          let searchSubjects = document.getElementsByClassName("qpm_searchSubject");
           for (let k = 0; k < searchSubjects.length; k++) {
             searchSubjects[k].classList.remove("qpm_collapsedSection");
           }
 
-          let filterSections = document.getElementsByClassName(
-            "qpm_filterSearchStrings"
-          );
+          let filterSections = document.getElementsByClassName("qpm_filterSearchStrings");
           for (let i = 0; i < filterSections.length; i++) {
             filterSections[i].classList.remove("qpm_collapsedSection");
           }
-          let filterGroups =
-            document.getElementsByClassName("qpm_filterGroups");
+          let filterGroups = document.getElementsByClassName("qpm_filterGroups");
           for (let j = 0; j < filterGroups.length; j++) {
             filterGroups[j].classList.remove("qpm_collapsedSection");
           }
-          let searchFilters =
-            document.getElementsByClassName("qpm_searchFilter");
+          let searchFilters = document.getElementsByClassName("qpm_searchFilter");
           for (let k = 0; k < searchFilters.length; k++) {
             searchFilters[k].classList.remove("qpm_collapsedSection");
           }
           this.isAllToggled = false;
         } else {
-          let subjectSections = document.getElementsByClassName(
-            "qpm_subjectSearchStrings"
-          );
+          let subjectSections = document.getElementsByClassName("qpm_subjectSearchStrings");
           for (let i = 0; i < subjectSections.length; i++) {
             subjectSections[i].classList.add("qpm_collapsedSection");
           }
-          let searchGroups =
-            document.getElementsByClassName("qpm_searchGroups");
+          let searchGroups = document.getElementsByClassName("qpm_searchGroups");
           for (let j = 0; j < searchGroups.length; j++) {
             searchGroups[j].classList.add("qpm_collapsedSection");
           }
-          let searchSubjects =
-            document.getElementsByClassName("qpm_searchSubject");
+          let searchSubjects = document.getElementsByClassName("qpm_searchSubject");
           for (let k = 0; k < searchSubjects.length; k++) {
             searchSubjects[k].classList.add("qpm_collapsedSection");
           }
 
-          let filterSections = document.getElementsByClassName(
-            "qpm_filterSearchStrings"
-          );
+          let filterSections = document.getElementsByClassName("qpm_filterSearchStrings");
           for (let i = 0; i < filterSections.length; i++) {
             filterSections[i].classList.add("qpm_collapsedSection");
           }
@@ -454,8 +437,7 @@
           for (let j = 0; j < filters.length; j++) {
             filters[j].classList.add("qpm_collapsedSection");
           }
-          let searchFilters =
-            document.getElementsByClassName("qpm_searchFilter");
+          let searchFilters = document.getElementsByClassName("qpm_searchFilter");
           for (let k = 0; k < searchFilters.length; k++) {
             searchFilters[k].classList.add("qpm_collapsedSection");
           }

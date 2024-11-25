@@ -13,10 +13,7 @@
                 v-if="accordionProps.expanded"
                 class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
               />
-              <i
-                v-else
-                class="bx bx-chevron-right qpm_aiAccordionHeaderArrows"
-              />
+              <i v-else class="bx bx-chevron-right qpm_aiAccordionHeaderArrows" />
               <i
                 class="bx bx-detail"
                 style="
@@ -27,9 +24,7 @@
                 "
               />
               <div>
-                <strong>{{
-                  getString("selectedResultsAccordionHeader")
-                }}</strong>
+                <strong>{{ getString("selectedResultsAccordionHeader") }}</strong>
                 <button
                   v-tooltip="{
                     content: getString('hoverselectedResultsAccordionHeader'),
@@ -60,21 +55,15 @@
                   {{ getString("aiSearchSummarySelectedArticlesBefore") }}
                   <strong>{{ selectedEntries.length }}</strong>
                   <span v-if="selectedEntries.length == 1">
-                    <strong>{{
-                      getString("aiSearchSummarySelectedArticlesAfterSingular")
-                    }}</strong>
+                    <strong>{{ getString("aiSearchSummarySelectedArticlesAfterSingular") }}</strong>
                   </span>
                   <span v-if="selectedEntries.length > 1">
-                    <strong>{{
-                      getString("aiSearchSummarySelectedArticlesAfterPlural")
-                    }}</strong>
+                    <strong>{{ getString("aiSearchSummarySelectedArticlesAfterPlural") }}</strong>
                   </span>
                   {{ getString("aiSearchSummarySelectedArticlesAfter") }}
                 </p>
                 <p>
-                  <strong>{{
-                    getString("aiSummarizeSearchResultButton")
-                  }}</strong>
+                  <strong>{{ getString("aiSummarizeSearchResultButton") }}</strong>
                 </p>
                 <button
                   v-for="(prompt, index) in getSearchSummaryPrompts()"
@@ -90,18 +79,11 @@
                 >
                   <i
                     class="bx bx-detail"
-                    style="
-                      font-size: 22px;
-                      line-height: 0;
-                      margin: -4px 2px 0 0;
-                    "
+                    style="font-size: 22px; line-height: 0; margin: -4px 2px 0 0"
                   />
                   {{ getTranslation(prompt) }}
                 </button>
-                <p
-                  class="qpm_summaryDisclaimer"
-                  v-html="getString('aiSummaryConsentText')"
-                />
+                <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryConsentText')" />
               </div>
               <!-- AI summaries of abstracts from multiple search results -->
               <ai-summaries
@@ -111,12 +93,8 @@
                 :prompts="getSearchSummaryPrompts()"
                 :success-header="getSummarySuccessHeader()"
                 :is-marked-articles="getHasSelectedArticles"
-                :summary-consent-header="
-                  getString('aiSearchSummaryConsentHeader')
-                "
-                :summary-search-summary-consent-text="
-                  getString('aiSearchSummaryConsentHeaderText')
-                "
+                :summary-consent-header="getString('aiSearchSummaryConsentHeader')"
+                :summary-search-summary-consent-text="getString('aiSearchSummaryConsentHeaderText')"
                 :error-header="getString('aiSummarizeSearchErrorHeader')"
                 :has-accepted-ai="hasAcceptedAi"
                 :initial-tab-prompt="initialAiTab"
@@ -134,9 +112,7 @@
         ref="articlesAccordion"
         :is-expanded="articleAcordionExpanded"
         :models="selectedEntries"
-        :open-by-default="
-          preselectedEntries != null && preselectedEntries.length > 0
-        "
+        :open-by-default="preselectedEntries != null && preselectedEntries.length > 0"
         :only-update-model-when-visible="true"
         @changed:items="loadSelectedArticleBadges"
         @open="onArticleAccordionStateChange(true)"
@@ -149,10 +125,7 @@
                 v-if="accordionProps.expanded"
                 class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
               />
-              <i
-                v-else
-                class="bx bx-chevron-right qpm_aiAccordionHeaderArrows"
-              />
+              <i v-else class="bx bx-chevron-right qpm_aiAccordionHeaderArrows" />
               <i
                 class="bx bx-check-square"
                 style="
@@ -208,21 +181,10 @@
                   >
                     {{ selectedEntries.length }}
                     <span v-if="selectedEntries.length == 1">
-                      {{
-                        getString(
-                          "aiSearchSummarySelectedArticlesAfterSingular"
-                        )
-                      }}
+                      {{ getString("aiSearchSummarySelectedArticlesAfterSingular") }}
                     </span>
-                    <span
-                      v-if="
-                        selectedEntries.length > 1 ||
-                        selectedEntries.length == 0
-                      "
-                    >
-                      {{
-                        getString("aiSearchSummarySelectedArticlesAfterPlural")
-                      }}
+                    <span v-if="selectedEntries.length > 1 || selectedEntries.length == 0">
+                      {{ getString("aiSearchSummarySelectedArticlesAfterPlural") }}
                     </span>
                   </button>
                 </div>
@@ -312,39 +274,24 @@
     >
       {{ getString("searchresult") }}
     </div>
-    <div
-      v-if="results && results.length > 0 && total > 0"
-      class="qpm_searchHeader qpm_spaceEvenly"
-    >
+    <div v-if="results && results.length > 0 && total > 0" class="qpm_searchHeader qpm_spaceEvenly">
       <p class="qpm_nomargin">
         {{ getString("showing") }} {{ low + 1 }}-{{ high }}
         {{ getString("of") }}
         <span
-          ><strong>{{ getPrettyTotal }}</strong>
-          {{ getString("searchMatches") }}</span
+          ><strong>{{ getPrettyTotal }}</strong> {{ getString("searchMatches") }}</span
         >
       </p>
-      <div
-        v-if="results && results.length != 0"
-        class="qpm_searchHeaderSort qpm_spaceEvenly"
-      >
+      <div v-if="results && results.length != 0" class="qpm_searchHeaderSort qpm_spaceEvenly">
         <div class="qpm_sortSelect" style="padding-right: 7px">
           <select v-model="currentSortMethod" @change="newSortMethod">
-            <option
-              v-for="sorter in getOrderMethods"
-              :key="sorter.id"
-              :value="sorter.method"
-            >
+            <option v-for="sorter in getOrderMethods" :key="sorter.id" :value="sorter.method">
               {{ getTranslation(sorter) }}
             </option>
           </select>
         </div>
         <div style="border-left: 1px solid #e7e7e7" />
-        <div
-          role="heading"
-          aria-level="2"
-          class="qpm_sortSelect qpm_spaceEvenly"
-        >
+        <div role="heading" aria-level="2" class="qpm_sortSelect qpm_spaceEvenly">
           <select @change="changePageNumber($event)">
             <option
               v-for="size in getPageSizeProps"
@@ -421,14 +368,10 @@
         <span class="qpm_hideonmobile">{{ getString("next") }}</span>
         {{ pagesize }}
       </button>
-      <p
-        v-if="!loading || (results && high && total)"
-        class="qpm_nomargin qpm_shownumber"
-      >
+      <p v-if="!loading || (results && high && total)" class="qpm_nomargin qpm_shownumber">
         {{ getString("showing") }} 1-{{ high }} {{ getString("of") }}
         <span
-          ><strong>{{ getPrettyTotal }}</strong>
-          {{ getString("searchMatches") }}</span
+          ><strong>{{ getPrettyTotal }}</strong> {{ getString("searchMatches") }}</span
         >
       </p>
     </div>
@@ -450,12 +393,7 @@
     abstractSummaryPrompts,
     summarizeArticlePrompt,
   } from "@/assets/content/qpm-openAiPrompts";
-  import {
-    languageFormat,
-    dateOptions,
-    pageSizes,
-    order,
-  } from "@/assets/content/qpm-content";
+  import { languageFormat, dateOptions, pageSizes, order } from "@/assets/content/qpm-content";
 
   export default {
     name: "SearchResult",
@@ -528,9 +466,7 @@
           return this.sort.method;
         },
         set(value) {
-          const selectedSorter = this.getOrderMethods.find(
-            (sorter) => sorter.method === value
-          );
+          const selectedSorter = this.getOrderMethods.find((sorter) => sorter.method === value);
           if (selectedSorter) {
             this.$emit("newSortMethod", selectedSorter);
           }
@@ -561,9 +497,7 @@
       },
       firstFiveArticlesWithAbstracts: function () {
         const self = this;
-        const resultsWithAbstract = this.getShownSearchResults.filter(function (
-          result
-        ) {
+        const resultsWithAbstract = this.getShownSearchResults.filter(function (result) {
           return self.getHasAbstract(result.attributes);
         });
         const first5ResultsWithAbstract = resultsWithAbstract.slice(0, 5);
@@ -572,8 +506,7 @@
     },
     watch: {
       preselectedEntries: function (newVal) {
-        if (this.selectedEntries != null && this.selectedEntries.length > 0)
-          return;
+        if (this.selectedEntries != null && this.selectedEntries.length > 0) return;
 
         this.selectedEntries = newVal;
       },
@@ -599,8 +532,7 @@
         const articleAccordionBody = this.$refs?.articlesAccordion?.$refs?.body;
         if (window._altmetric_embed_init) {
           searchResult && window._altmetric_embed_init(searchResult);
-          articleAccordionBody &&
-            window._altmetric_embed_init(articleAccordionBody);
+          articleAccordionBody && window._altmetric_embed_init(articleAccordionBody);
           this.altmetricsAdded = true;
         }
       }
@@ -630,9 +562,7 @@
         //ial = is; Unused variable
         while (is--) {
           if (
-            scriptArray[is].src.startsWith(
-              "https://api.altmetric.com/v1/pmid"
-            ) ||
+            scriptArray[is].src.startsWith("https://api.altmetric.com/v1/pmid") ||
             scriptArray[is].src.startsWith("https://api.altmetric.com/v1/doi")
           ) {
             scriptArray[is].parentNode.removeChild(scriptArray[is]);
@@ -684,10 +614,7 @@
         for (let i = 0; i < history.length; i++) {
           if (history[i].pubstatus == "entrez") {
             let date = new Date(history[i].date);
-            let formattedDate = date.toLocaleDateString(
-              languageFormat[this.language],
-              dateOptions
-            );
+            let formattedDate = date.toLocaleDateString(languageFormat[this.language], dateOptions);
             return formattedDate;
           }
         }
@@ -758,8 +685,7 @@
         return constant != undefined ? constant : value.translations["dk"];
       },
       changePageNumber: function (event) {
-        const newPageSize =
-          pageSizes[parseInt(event.target.options.selectedIndex)];
+        const newPageSize = pageSizes[parseInt(event.target.options.selectedIndex)];
         this.$emit("newPageSize", newPageSize);
       },
       getComponentWidth: function () {
@@ -815,21 +741,13 @@
             let selectedWithAbstracts = selected.filter(
               (e) => e.abstract != null && e.abstract.trim() != ""
             );
-            let before = self.getString(
-              "aiSummarizeFirstFewSearchResultHeaderBeforeCount"
-            );
-            let after = self.getString(
-              "aiSummarizeFirstFewSearchResultHeaderAfterCount"
-            );
+            let before = self.getString("aiSummarizeFirstFewSearchResultHeaderBeforeCount");
+            let after = self.getString("aiSummarizeFirstFewSearchResultHeaderAfterCount");
             return before + selectedWithAbstracts.length + after;
           }
 
-          let before = self.getString(
-            "aiSummarizeSelectedSearchResultHeaderBeforeCount"
-          );
-          let after = self.getString(
-            "aiSummarizeSelectedSearchResultHeaderAfterCount"
-          );
+          let before = self.getString("aiSummarizeSelectedSearchResultHeaderBeforeCount");
+          let after = self.getString("aiSummarizeSelectedSearchResultHeaderAfterCount");
           return before + selected.length + after;
         };
       },
@@ -902,19 +820,15 @@
           window.__dimensions_embed.addBadges();
         }
 
-        let articleBody = article
-          ? article
-          : this.$refs?.articlesAccordion?.$refs?.body;
+        let articleBody = article ? article : this.$refs?.articlesAccordion?.$refs?.body;
         if (articleBody && window._altmetric_embed_init) {
           window._altmetric_embed_init(articleBody);
         }
       },
       shouldResultArticlePreloadAbstract: function (article) {
-        const isInFirstFive = this.firstFiveArticlesWithAbstracts.some(
-          function (value) {
-            return value.uid == article.uid;
-          }
-        );
+        const isInFirstFive = this.firstFiveArticlesWithAbstracts.some(function (value) {
+          return value.uid == article.uid;
+        });
         return isInFirstFive;
       },
       addIdToLoadAbstract: function (id) {
@@ -947,9 +861,7 @@
           }
 
           // retry while Network timeout or Network Error
-          if (
-            !(message.includes("timeout") || message.includes("Network Error"))
-          ) {
+          if (!(message.includes("timeout") || message.includes("Network Error"))) {
             return Promise.reject(err);
           }
 
@@ -984,9 +896,7 @@
               xmlDoc.loadXML(data);
             }
 
-            let articles = Array.from(
-              xmlDoc.getElementsByTagName("PubmedArticle")
-            );
+            let articles = Array.from(xmlDoc.getElementsByTagName("PubmedArticle"));
             let articleData = articles.map((article) => {
               let pmid = article.getElementsByTagName("PMID")[0].textContent;
               let sections = article.getElementsByTagName("AbstractText");

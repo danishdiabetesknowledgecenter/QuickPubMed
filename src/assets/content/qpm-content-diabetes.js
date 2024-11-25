@@ -397,12 +397,8 @@ export const topics = [
         ordering: { dk: 5, en: 5 },
         searchStrings: {
           narrow: ['"Prediabetic State"[majr]'],
-          normal: [
-            '"Prediabetic State"[mh] OR pre-diabet*[ti] OR prediabet*[ti]',
-          ],
-          broad: [
-            '"Prediabetic State"[mh] OR pre-diabet*[tiab] OR prediabet*[tiab]',
-          ],
+          normal: ['"Prediabetic State"[mh] OR pre-diabet*[ti] OR prediabet*[ti]'],
+          broad: ['"Prediabetic State"[mh] OR pre-diabet*[tiab] OR prediabet*[tiab]'],
         },
         searchStringComment: {
           dk: "",
@@ -978,12 +974,8 @@ export const topics = [
         },
         ordering: { dk: 1, en: 1 },
         searchStrings: {
-          narrow: [
-            '"Diabetes Mellitus/drug therapy"[majr] OR "Hypoglycemic Agents"[majr]',
-          ],
-          normal: [
-            '"Diabetes Mellitus/drug therapy"[mh] OR "Hypoglycemic Agents"[mh]',
-          ],
+          narrow: ['"Diabetes Mellitus/drug therapy"[majr] OR "Hypoglycemic Agents"[majr]'],
+          normal: ['"Diabetes Mellitus/drug therapy"[mh] OR "Hypoglycemic Agents"[mh]'],
           broad: [
             '"Diabetes Mellitus/drug therapy"[mh] OR "Hypoglycemic Agents"[mh] OR "Hypoglycemic Agents"[pa]',
           ],
@@ -1007,9 +999,7 @@ export const topics = [
         },
         ordering: { dk: null, en: null },
         searchStrings: {
-          narrow: [
-            '"Dipeptidyl-Peptidase IV Inhibitors"[majr] AND "Diabetes Mellitus"[majr]',
-          ],
+          narrow: ['"Dipeptidyl-Peptidase IV Inhibitors"[majr] AND "Diabetes Mellitus"[majr]'],
           normal: [
             '("Dipeptidyl-Peptidase IV Inhibitors"[mh] OR dpp[ti] OR dipeptyl*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
           ],
@@ -1093,9 +1083,7 @@ export const topics = [
         ordering: { dk: null, en: null },
         searchStrings: {
           narrow: ['"Insulins"[majr] AND "Diabetes Mellitus"[majr]'],
-          normal: [
-            '("Insulins"[mh] OR insulin*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
-          ],
+          normal: ['("Insulins"[mh] OR insulin*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])'],
           broad: [
             '("Insulins"[mh] OR insulin*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
           ],
@@ -1146,9 +1134,7 @@ export const topics = [
         },
         ordering: { dk: null, en: null },
         searchStrings: {
-          narrow: [
-            '"Sodium-Glucose Transporter 2 Inhibitors"[majr] AND "Diabetes Mellitus"[majr]',
-          ],
+          narrow: ['"Sodium-Glucose Transporter 2 Inhibitors"[majr] AND "Diabetes Mellitus"[majr]'],
           normal: [
             '("Sodium-Glucose Transporter 2 Inhibitors"[mh] OR sglt*[ti] OR sodium-glucose*[ti] OR sodiumglucose*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
           ],
@@ -1175,9 +1161,7 @@ export const topics = [
         },
         ordering: { dk: null, en: null },
         searchStrings: {
-          narrow: [
-            '"Sulfonylurea Compounds"[majr] AND "Diabetes Mellitus"[majr]',
-          ],
+          narrow: ['"Sulfonylurea Compounds"[majr] AND "Diabetes Mellitus"[majr]'],
           normal: [
             '("Sulfonylurea Compounds"[mh] OR sulfonyl*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
           ],
@@ -1275,9 +1259,7 @@ export const topics = [
         },
         ordering: { dk: null, en: null },
         searchStrings: {
-          narrow: [
-            '("Fatty Acids"[majr] OR "Fats"[majr]) AND "Diabetes Mellitus"[majr]',
-          ],
+          narrow: ['("Fatty Acids"[majr] OR "Fats"[majr]) AND "Diabetes Mellitus"[majr]'],
           normal: [
             '("Fatty Acids"[mh] OR "Fats"[mh] OR fat[ti] OR fats[ti] OR fatty[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
           ],
@@ -1404,9 +1386,7 @@ export const topics = [
         },
         ordering: { dk: null, en: null },
         searchStrings: {
-          narrow: [
-            '"Blood Glucose Self-Monitoring"[majr] AND "Diabetes Mellitus"[majr]',
-          ],
+          narrow: ['"Blood Glucose Self-Monitoring"[majr] AND "Diabetes Mellitus"[majr]'],
           normal: [
             '("Blood Glucose Self-Monitoring"[mh] OR ((blood-glucose*[ti] OR blood-sugar*[ti] OR hba1c[ti]) AND (cgm[ti] OR bgm[ti] OR flash[ti] OR libre[ti] OR measur*[ti] OR monitor*[ti] OR iscgm[ti]))) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
           ],
@@ -1434,9 +1414,7 @@ export const topics = [
         ordering: { dk: null, en: null },
         searchStrings: {
           narrow: ['"Insulin Infusion Systems"[majr]'],
-          normal: [
-            '"Insulin Infusion Systems"[mh] OR insulin-infusion*[ti] OR insulin-pump*[ti]',
-          ],
+          normal: ['"Insulin Infusion Systems"[mh] OR insulin-infusion*[ti] OR insulin-pump*[ti]'],
           broad: [
             '"Insulin Infusion Systems"[mh] OR insulin-infusion*[tiab] OR insulin-pump*[tiab]',
           ],
@@ -1460,9 +1438,7 @@ export const topics = [
         },
         ordering: { dk: null, en: null },
         searchStrings: {
-          narrow: [
-            '"Artificial Intelligence"[majr] AND "Diabetes Mellitus"[majr]',
-          ],
+          narrow: ['"Artificial Intelligence"[majr] AND "Diabetes Mellitus"[majr]'],
           normal: [
             '("Artificial Intelligence"[mh] OR artificial-intelligence*[ti] OR chatgpt*[ti] OR machine-learn*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
           ],
@@ -1635,9 +1611,7 @@ export const topics = [
         ordering: { dk: null, en: null },
         buttons: true,
         searchStrings: {
-          narrow: [
-            '"Glomerular Filtration Rate"[majr] AND "Diabetes Mellitus"[majr]',
-          ],
+          narrow: ['"Glomerular Filtration Rate"[majr] AND "Diabetes Mellitus"[majr]'],
           normal: [
             '("Glomerular Filtration Rate"[mh] OR glomerular-filtration[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
           ],
@@ -1665,12 +1639,8 @@ export const topics = [
         buttons: true,
         searchStrings: {
           narrow: ['"Glucose Tolerance Test"[majr]'],
-          normal: [
-            '"Glucose Tolerance Test"[mh] OR glucose-tolerance[ti] OR ogtt[ti]',
-          ],
-          broad: [
-            '"Glucose Tolerance Test"[mh] OR glucose-tolerance[tiab] OR ogtt[tiab]',
-          ],
+          normal: ['"Glucose Tolerance Test"[mh] OR glucose-tolerance[ti] OR ogtt[ti]'],
+          broad: ['"Glucose Tolerance Test"[mh] OR glucose-tolerance[tiab] OR ogtt[tiab]'],
         },
         searchStringComment: {
           dk: "",
@@ -1719,12 +1689,8 @@ export const topics = [
         buttons: true,
         searchStrings: {
           narrow: ['"Ketones"[majr] AND "Diabetes Mellitus"[majr]'],
-          normal: [
-            '("Ketones"[mh] OR keton*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
-          ],
-          broad: [
-            '("Ketones"[mh] OR keton*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
-          ],
+          normal: ['("Ketones"[mh] OR keton*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])'],
+          broad: ['("Ketones"[mh] OR keton*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])'],
         },
         searchStringComment: {
           dk: "",
@@ -1814,9 +1780,7 @@ export const topics = [
         ordering: { dk: null, en: null },
         buttons: true,
         searchStrings: {
-          narrow: [
-            '("Bulimia"[majr] OR "Diabulimia"[majr]) AND "Diabetes Mellitus"[majr]',
-          ],
+          narrow: ['("Bulimia"[majr] OR "Diabulimia"[majr]) AND "Diabetes Mellitus"[majr]'],
           normal: [
             '("Bulimia"[mh] OR "Diabulimia"[mh] OR bulimi*[ti] OR diabulim*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
           ],
@@ -1901,9 +1865,7 @@ export const topics = [
         ordering: { dk: null, en: null },
         buttons: true,
         searchStrings: {
-          narrow: [
-            '"Feeding and Eating Disorders"[majr] AND "Diabetes Mellitus"[majr]',
-          ],
+          narrow: ['"Feeding and Eating Disorders"[majr] AND "Diabetes Mellitus"[majr]'],
           normal: [
             '("Feeding and Eating Disorders"[mh] OR bulimi*[ti] OR diabulimi*[ti] OR binge-eating*[ti] OR bingeeat*[ti] OR eating-disorder*[ti] OR hyperphagi*[ti] OR overeat*[ti] OR polyphagi*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
           ],
@@ -2244,9 +2206,7 @@ export const topics = [
         },
         ordering: { dk: null, en: null },
         searchStrings: {
-          narrow: [
-            '("Family"[majr] OR "Family Health"[majr]) AND "Diabetes Mellitus"[majr]',
-          ],
+          narrow: ['("Family"[majr] OR "Family Health"[majr]) AND "Diabetes Mellitus"[majr]'],
           normal: [
             '("Family"[mh] OR "Family Health"[mh] OR family-based*[ti] OR familybased*[ti] OR family-orient*[ti] OR familyorient*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
           ],
@@ -2433,9 +2393,7 @@ export const topics = [
         ordering: { dk: null, en: null },
         buttons: true,
         searchStrings: {
-          narrow: [
-            '("COVID-19"[majr] OR "SARS-CoV-2"[majr]) AND "Diabetes Mellitus"[majr]',
-          ],
+          narrow: ['("COVID-19"[majr] OR "SARS-CoV-2"[majr]) AND "Diabetes Mellitus"[majr]'],
           normal: [
             '("COVID-19"[mh] OR "SARS-CoV-2"[mh]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
           ],
@@ -2518,9 +2476,7 @@ export const topics = [
         ordering: { dk: null, en: null },
         buttons: true,
         searchStrings: {
-          narrow: [
-            '"Patient Education as Topic"[majr] AND "Diabetes Mellitus"[majr]',
-          ],
+          narrow: ['"Patient Education as Topic"[majr] AND "Diabetes Mellitus"[majr]'],
           normal: [
             '("Patient Education as Topic"[mh] OR patient-education[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
           ],
@@ -2578,9 +2534,7 @@ export const topics = [
         searchStrings: {
           narrow: ['"ramadan"[ti] AND "Diabetes Mellitus"[majr]'],
           normal: ['ramadan[ti] AND ("Diabetes Mellitus"[mh] OR diabet*[ti])'],
-          broad: [
-            'ramadan[tiab] AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
-          ],
+          broad: ['ramadan[tiab] AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])'],
         },
         searchStringComment: {
           dk: "Fritekstord vil blive tilføjet.",
@@ -2601,15 +2555,9 @@ export const topics = [
         ordering: { dk: null, en: null },
         buttons: true,
         searchStrings: {
-          narrow: [
-            '"Education, Professional"[majr] AND "Diabetes Mellitus"[majr]',
-          ],
-          normal: [
-            '"Education, Professional"[mh] AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
-          ],
-          broad: [
-            '"Education, Professional"[mh] AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
-          ],
+          narrow: ['"Education, Professional"[majr] AND "Diabetes Mellitus"[majr]'],
+          normal: ['"Education, Professional"[mh] AND ("Diabetes Mellitus"[mh] OR diabet*[ti])'],
+          broad: ['"Education, Professional"[mh] AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])'],
         },
         searchStringComment: {
           dk: "Fritekstord vil blive tilføjet.",
