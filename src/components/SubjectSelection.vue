@@ -21,8 +21,9 @@
           @input="handleUpdateSubjects"
           @updateScope="handleUpdateScope"
           @mounted="handleShouldFocusNextDropdownOnMount"
-          @translating="handleUpdatePlaceholder"
+          @translating="handleTranslating"
         />
+        
         <i v-if="subjects.length > 1" class="qpm_removeSubject bx bx-x" @click="removeSubject(n)" />
       </div>
       <p
@@ -96,17 +97,17 @@
       },
     },
     methods: {
-      handleUpdateSubjects(payload) {
-        this.$emit("update-subjects", payload);
+      handleUpdateSubjects(value, index) {
+        this.$emit("update-subjects", value, index);
       },
-      handleUpdateScope(payload) {
-        this.$emit("update-scope", payload);
+      handleUpdateScope(item, state, index) {
+        this.$emit("update-scope", item, state, index);
       },
       handleShouldFocusNextDropdownOnMount(payload) {
         this.$emit("should-focus-next-dropdown", payload);
       },
-      handleUpdatePlaceholder(payload) {
-        this.$emit("update-placeholder", payload);
+      handleTranslating(isTranslating, index) {
+        this.$emit("update-placeholder", isTranslating, index);
       },
       addSubject() {
         this.$emit("add-subject");
