@@ -2,29 +2,29 @@
   <div>
     <div :id="getComponentId">
       <div class="qpm_searchform">
+        <!-- The tabs for toggling between advanced or simple search -->
         <advanced-search-toggle
           :advanced="advanced"
           :is-collapsed="isCollapsed"
           :get-string="getString"
-          :$help-text-delay="$helpTextDelay"
           @toggle-advanced="advancedClick"
         />
 
         <div class="qpm_top">
+          <!-- Show or hide the search form -->
           <search-form-toggle
             :is-collapsed="isCollapsed"
             :subjects="subjects"
             :get-string="getString"
-            :$help-text-delay="$helpTextDelay"
             @toggle-collapsed="toggleCollapsedController"
           />
 
+          <!-- The toggle for AI translation -->
           <ai-translation-toggle
             v-model="searchWithAI"
             :is-collapsed="isCollapsed"
             :app-settings="appSettings"
             :get-string="getString"
-            :$help-text-delay="$helpTextDelay"
           />
 
           <div v-show="!isCollapsed" class="qpm_searchFormula">
@@ -38,7 +38,7 @@
                   :hide-topics="hideTopics"
                   :is-group="true"
                   :placeholder="dropdownPlaceholders[n]"
-                  :operator="getOrOperator"
+                  :operator="getString('orOperator')"
                   :taggable="true"
                   :selected="item"
                   :close-on-input="false"
@@ -110,15 +110,14 @@
               v-if="advanced && showFilter && hasSubjects"
               ref="advancedSearchFilters"
               :advanced="advanced"
-              :showFilter="showFilter"
-              :filterOptions="filterOptions"
-              :hideTopics="hideTopics"
-              :showTitle="showTitle"
-              :getAndOperator="getAndOperator"
+              :show-filter="showFilter"
+              :filter-options="filterOptions"
+              :hide-topics="hideTopics"
+              :show-title="showTitle"
               :language="language"
-              :searchWithAI="searchWithAI"
-              :getString="getString"
-              :filterData="filterData"
+              :search-with-a-i="searchWithAI"
+              :get-string="getString"
+              :filter-data="filterData"
               :filters="filters"
               @update-advanced-filter="updateFilters"
               @update-advanced-filter-entry="updateFilterAdvanced"
@@ -129,12 +128,12 @@
             <simple-search-filters
               v-if="!advanced && hasSubjects"
               :advanced="advanced"
-              :filteredChoices="filteredChoices"
-              :filterData="filterData"
-              :helpTextDelay="300"
-              :getString="getString"
-              :getCustomNameLabel="getCustomNameLabel"
-              :getSimpleTooltip="getSimpleTooltip"
+              :filtered-choices="filteredChoices"
+              :filter-data="filterData"
+              :help-text-delay="300"
+              :get-string="getString"
+              :get-custom-name-label="getCustomNameLabel"
+              :get-simple-tooltip="getSimpleTooltip"
               @update-filter="updateFilterSimple"
               @update-filter-enter="updateFilterSimpleOnEnter"
             />
@@ -142,6 +141,7 @@
         </div>
 
         <div id="qpm_topofsearch" class="qpm_flex">
+          <!-- The search query written out as human readable text-->
           <worded-search-string
             :subjects="subjects"
             :filters="filterData"
@@ -158,16 +158,18 @@
         </div>
 
         <div v-show="hasSubjects && !isCollapsed">
+          <!-- Buttons for reset, copy url and search -->
           <action-buttons
             :search-loading="searchLoading"
             :get-string="getString"
-            :$help-text-delay="$helpTextDelay"
             @clear="clear"
             @copyUrl="copyUrl"
             @searchsetLowStart="searchsetLowStart"
           />
         </div>
       </div>
+
+      <!-- The list of results from searching -->
       <search-result
         :language="language"
         :total="count"
@@ -190,14 +192,15 @@
 </template>
 
 <script>
-  import DropdownWrapper from "@/components/DropdownWrapper.vue";
   import ActionButtons from "@/components/ActionButtons.vue";
   import AiTranslationToggle from "@/components/AiTranslationToggle.vue";
   import SearchFormToggle from "@/components/SearchFormToggle.vue";
   import AdvancedSearchToggle from "@/components/AdvancedSearchToggle.vue";
   import SimpleSearchFilters from "@/components/SimpleSearchFilters.vue";
-  import AdvancedSearchFilters from "./AdvancedSearchFilters.vue";
+  import AdvancedSearchFilters from "@/components/AdvancedSearchFilters.vue";
   import WordedSearchString from "@/components/WordedSearchString.vue";
+  import SubjectSelection from "@/components/SubjectSelection.vue";
+  import DropdownWrapper from "@/components/DropdownWrapper.vue";
   import SearchResult from "@/components/SearchResult.vue";
   import axios from "axios";
   import { order, filtrer, scopeIds, customInputTagTooltip } from "@/assets/content/qpm-content.js";
@@ -209,13 +212,14 @@
   export default {
     name: "MainWrapper",
     components: {
-      DropdownWrapper,
       ActionButtons,
       AiTranslationToggle,
       SearchFormToggle,
       AdvancedSearchToggle,
       SimpleSearchFilters,
       AdvancedSearchFilters,
+      SubjectSelection,
+      DropdownWrapper,
       WordedSearchString,
       SearchResult,
     },
@@ -362,12 +366,6 @@
       },
       alwaysShowFilter() {
         return this.$alwaysShowFilter;
-      },
-      getOrOperator() {
-        return this.getString("orOperator");
-      },
-      getAndOperator() {
-        return this.getString("andOperator");
       },
       getComponentId() {
         return "MainWrapper_" + this.componentNo.toString();
@@ -1099,6 +1097,7 @@
           }
           // Find the item in the filter data and update its scope
           const targetItem = sel[index].find((filterItem) => filterItem.name === item.name);
+          console.log("Target Item|", targetItem);
           if (targetItem) {
             targetItem.scope = state;
           } else {

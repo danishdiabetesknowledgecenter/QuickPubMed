@@ -1,14 +1,7 @@
 <template>
-  <div
-    v-show="!isCollapsed && appSettings.openAi.useAi"
-    class="qpm_switch_wrap qpm_ai_hide"
-  >
+  <div v-show="!isCollapsed && appSettings.openAi.useAi" class="qpm_switch_wrap qpm_ai_hide">
     <label class="qpm_switch">
-      <input
-        v-model="localSearchWithAI"
-        type="checkbox"
-        :title="titleSearchWithAI"
-      />
+      <input v-model="localSearchWithAI" type="checkbox" :title="titleSearchWithAI" />
       <span class="qpm_slider qpm_round" />
     </label>
     <span v-if="localSearchWithAI" class="qpm_simpleFiltersHeader">
@@ -56,10 +49,6 @@
       getString: {
         type: Function,
         default: () => () => "",
-      },
-      $helpTextDelay: {
-        type: Object,
-        default: () => ({ show: 500, hide: 100 }),
       },
     },
     data: function () {

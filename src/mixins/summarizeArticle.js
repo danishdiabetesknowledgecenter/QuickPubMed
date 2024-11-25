@@ -1,11 +1,12 @@
 import {
-  summarizeArticlePrompt, 
-  promptEndTextPlainLanguage, 
-  promptEndTextProfessionelLanguage, 
+  summarizeArticlePrompt,
+  promptEndTextPlainLanguage,
+  promptEndTextProfessionelLanguage,
   promptStartText,
-  promptQuestions, 
+  promptQuestions,
   promptArticleSpecificAnswersOnly,
-  sanitizePrompt} from "@/assets/content/qpm-openAiPrompts";
+  sanitizePrompt,
+} from "@/assets/content/qpm-openAiPrompts";
 
 /**
  * Mixin for common methods used in both summarize-article and summarize-article-no-abstract components.
@@ -34,10 +35,7 @@ export const summarizeArticleMixin = {
       } else if (promptLanguageType == "Fagsprog") {
         promptEndText = promptEndTextProfessionelLanguage[language];
       }
-      console.log(
-        "Using prompt rules for domain: ",
-        this.appSettings.openAi.domain
-      );
+      console.log("Using prompt rules for domain: ", this.appSettings.openAi.domain);
 
       // Load the domain specific rules for the language
       let domainSpecificRules = this.getDomainSpecificPromptRules(
@@ -113,13 +111,9 @@ export const summarizeArticleMixin = {
      * @throws {Error} Throws an error if the fetch request fails.
      */
     async getSummarizeHTMLArticle() {
-      const openAiServiceUrl =
-        this.appSettings.openAi.baseUrl + "/api/SummarizeHTMLArticle";
+      const openAiServiceUrl = this.appSettings.openAi.baseUrl + "/api/SummarizeHTMLArticle";
 
-      const localePrompt = this.getComposablePrompt(
-        this.language,
-        this.promptLanguageType
-      );
+      const localePrompt = this.getComposablePrompt(this.language, this.promptLanguageType);
 
       let response = await this.handleFetch(openAiServiceUrl, {
         prompt: localePrompt,
@@ -152,13 +146,9 @@ export const summarizeArticleMixin = {
      * @throws {Error} Throws an error if the fetch request fails.
      */
     async getSummarizePDFArticle() {
-      const openAiServiceUrl =
-        this.appSettings.openAi.baseUrl + "/api/SummarizePDFArticle";
+      const openAiServiceUrl = this.appSettings.openAi.baseUrl + "/api/SummarizePDFArticle";
 
-      const localePrompt = this.getComposablePrompt(
-        this.language,
-        this.promptLanguageType
-      );
+      const localePrompt = this.getComposablePrompt(this.language, this.promptLanguageType);
 
       let response = await this.handleFetch(openAiServiceUrl, {
         prompt: localePrompt,

@@ -17,8 +17,7 @@ export const questionsToTitleMapMixin = {
         "Hvad er resultaterne?": "Resultater",
         "Hvilke konklusioner drages i artiklen?": "Konklusioner",
         "Hvilke styrker og svagheder er der i studiet?": "Styrker og svagheder",
-        "Hvilke mulige interessekonflikter har forfatterne til studiet?":
-          "Interessekonflikter",
+        "Hvilke mulige interessekonflikter har forfatterne til studiet?": "Interessekonflikter",
       },
       /**
        * Map of English questions to their shortened titles.
@@ -30,8 +29,7 @@ export const questionsToTitleMapMixin = {
         "What methods were used?": "Methods",
         "What are the results?": "Results",
         "What conclusions are drawn in the article?": "Conclusions",
-        "What are the strengths and weaknesses of the study?":
-          "Strengths and weaknesses",
+        "What are the strengths and weaknesses of the study?": "Strengths and weaknesses",
         "What possible conflicts of interest do the authors of the study have?":
           "Conflicts of interest",
       },

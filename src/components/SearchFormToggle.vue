@@ -1,29 +1,13 @@
 <template>
   <div class="qpm_spaceEvenly qpm_headerText">
-    <div
-      v-show="!isCollapsed"
-      role="heading"
-      aria-level="2"
-      class="h3"
-      style="margin-top: 5px"
-    >
+    <div v-show="!isCollapsed" role="heading" aria-level="2" class="h3" style="margin-top: 5px">
       {{ getString("searchHeaderShown") }}
     </div>
-    <div
-      v-show="isCollapsed"
-      role="heading"
-      aria-level="2"
-      class="h3"
-      style="margin-top: 5px"
-    >
+    <div v-show="isCollapsed" role="heading" aria-level="2" class="h3" style="margin-top: 5px">
       {{ getString("searchHeaderHidden") }}
     </div>
 
-    <div
-      v-show="subjects.length"
-      class="qpm_toggleSearchForm"
-      @click="$emit('toggle-collapsed')"
-    >
+    <div v-show="subjects.length" class="qpm_toggleSearchForm" @click="$emit('toggle-collapsed')">
       <div
         v-show="!isCollapsed"
         v-tooltip="{
@@ -61,10 +45,6 @@
       getString: {
         type: Function,
         default: () => () => "",
-      },
-      $helpTextDelay: {
-        type: Object,
-        default: () => ({ show: 500, hide: 100 }),
       },
     },
   };

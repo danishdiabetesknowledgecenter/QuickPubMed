@@ -153,10 +153,7 @@
     },
     created() {
       console.log("Attaching event listener for SummarizeArticleNoAbstract");
-      this.$on(
-        "SummarizeArticleNoAbstract",
-        this.handleOnSummarizeArticleNoAbstract
-      );
+      this.$on("SummarizeArticleNoAbstract", this.handleOnSummarizeArticleNoAbstract);
     },
     methods: {
       handleOnSummarizeArticleNoAbstract(prompt) {

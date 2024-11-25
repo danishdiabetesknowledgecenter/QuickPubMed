@@ -13,7 +13,7 @@
         :hide-topics="hideTopics"
         :is-group="false"
         :placeholder="showTitle"
-        :operator="getAndOperator"
+        :operator="getString('andOperator')"
         :close-on-input="false"
         :language="language"
         :taggable="false"
@@ -29,7 +29,7 @@
     <div class="qpm_flex">
       <div class="qpm_filters" :class="{ qpm_shown: filters.length === 0 }">
         <filter-entry
-          v-for="(selected, id, index) in filterData"
+          v-for="(selected, id) in filterData"
           :key="id"
           :language="language"
           :filter-item="getFilters(id)"
@@ -73,10 +73,6 @@
         required: true,
       },
       showTitle: {
-        type: String,
-        required: true,
-      },
-      getAndOperator: {
         type: String,
         required: true,
       },

@@ -494,15 +494,9 @@ export const filtrer = [
           en: "",
         },
         searchStrings: {
-          narrow: [
-            '"Incidence"[majr] OR "Prevalence"[majr] OR prevalence[ti] OR incidence[ti]',
-          ],
-          normal: [
-            '"Incidence"[mh] OR "Prevalence"[mh] OR prevalence[ti] OR incidence[ti]',
-          ],
-          broad: [
-            '"Incidence"[mh] OR "Prevalence"[mh] OR prevalence[tiab] OR incidence[tiab]',
-          ],
+          narrow: ['"Incidence"[majr] OR "Prevalence"[majr] OR prevalence[ti] OR incidence[ti]'],
+          normal: ['"Incidence"[mh] OR "Prevalence"[mh] OR prevalence[ti] OR incidence[ti]'],
+          broad: ['"Incidence"[mh] OR "Prevalence"[mh] OR prevalence[tiab] OR incidence[tiab]'],
         },
         searchStringComment: {
           dk: "",
@@ -611,12 +605,8 @@ export const filtrer = [
         standardSimple: false,
         searchStrings: {
           narrow: ['"Costs and Cost Analysis"[majr]'],
-          normal: [
-            '"Costs and Cost Analysis"[mh] OR cost*[ti] OR ecomomic*[ti]',
-          ],
-          broad: [
-            '"Costs and Cost Analysis"[mh] OR cost*[tiab] OR ecomomic*[tiab]',
-          ],
+          normal: ['"Costs and Cost Analysis"[mh] OR cost*[ti] OR ecomomic*[ti]'],
+          broad: ['"Costs and Cost Analysis"[mh] OR cost*[tiab] OR ecomomic*[tiab]'],
         },
         searchStringComment: {
           dk: "",
@@ -863,9 +853,7 @@ export const filtrer = [
         standardSimple: false,
         searchStrings: {
           narrow: ['"Denmark"[mh] OR denmark*[ti] OR danish*[ti] OR dane*[ti]'],
-          normal: [
-            '"Denmark"[mh] OR denmark*[tiab] OR danish*[tiab] OR dane*[tiab]',
-          ],
+          normal: ['"Denmark"[mh] OR denmark*[tiab] OR danish*[tiab] OR dane*[tiab]'],
           broad: ['"Denmark"[mh] OR denmark[all] OR danish[all] OR dane*[all]'],
         },
         searchStringComment: {
@@ -951,9 +939,7 @@ export const filtrer = [
         searchStrings: {
           narrow: ['"Female"[mh] OR "Women"[majr]'],
           normal: ['"Female"[mh] OR "Women"[mh]'],
-          broad: [
-            '"Female"[mh] OR "Women"[mh] OR female*[tiab] OR woman*[tiab] OR women*[tiab]',
-          ],
+          broad: ['"Female"[mh] OR "Women"[mh] OR female*[tiab] OR woman*[tiab] OR women*[tiab]'],
         },
         searchStringComment: {
           dk: "",
@@ -1327,9 +1313,7 @@ export const filtrer = [
         ordering: { dk: 2, en: 2 },
         searchStrings: {
           narrow: ['"Animals"[mh] NOT "Humans"[mh]'],
-          normal: [
-            '("Animals"[mh] NOT "Humans"[mh]) OR ("Animals"[mh:noexp] AND "Humans"[mh])',
-          ],
+          normal: ['("Animals"[mh] NOT "Humans"[mh]) OR ("Animals"[mh:noexp] AND "Humans"[mh])'],
           broad: [
             '(all[sb] NOT ("Humans"[mh] NOT "Animals"[mh:noexp])) OR ("Animals"[mh:noexp] AND "Humans"[mh])',
           ],

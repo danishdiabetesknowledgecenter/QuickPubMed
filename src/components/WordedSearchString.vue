@@ -50,34 +50,19 @@
       >
         <a>{{ getString("hideSearchString") }}</a>
       </p>
-      <div
-        v-if="showHeader"
-        role="heading"
-        aria-level="2"
-        class="h3"
-        style="display: inline-block"
-      >
+      <div v-if="showHeader" role="heading" aria-level="2" class="h3" style="display: inline-block">
         {{ getString("youAreSearchingFor") }}
       </div>
       <div v-if="!advancedString">
         <span>{{ getSearchPreString }}</span>
-        <div
-          v-for="(group, idx) in subjects"
-          :key="idx"
-          class="qpm_searchStringSubjectGroup"
-        >
+        <div v-for="(group, idx) in subjects" :key="idx" class="qpm_searchStringSubjectGroup">
           <span
-            v-if="
-              idx > 0 && group.length !== 0 && idx !== checkFirstSubjectRender
-            "
+            v-if="idx > 0 && group.length !== 0 && idx !== checkFirstSubjectRender"
             class="qpm_searchStringGroupOperator"
           >
             {{ getString("youAreSearchingForAnd") }}
           </span>
-          <div
-            v-if="Object.keys(group).length !== 0"
-            class="qpm_searchStringWordGroup"
-          >
+          <div v-if="Object.keys(group).length !== 0" class="qpm_searchStringWordGroup">
             <div
               v-for="(subjectObj, idx2) in group"
               :key="idx2"
@@ -86,16 +71,10 @@
               <span class="qpm_wordedStringSubject">
                 {{ getWordedSubjectString(subjectObj) }}
               </span>
-              <span
-                v-if="!subjectObj.preString"
-                class="qpm_wordedStringOperator"
-              >
+              <span v-if="!subjectObj.preString" class="qpm_wordedStringOperator">
                 {{ getScope(subjectObj) }}
               </span>
-              <span
-                v-if="idx2 < group.length - 1"
-                class="qpm_searchStringOperator"
-              >
+              <span v-if="idx2 < group.length - 1" class="qpm_searchStringOperator">
                 {{ getString("orOperator").toLowerCase() }}
               </span>
             </div>
@@ -131,10 +110,7 @@
               <span class="qpm_wordedStringOperator">
                 {{ getScope(filterObj) }}
               </span>
-              <span
-                v-if="idx2 < value.length - 1"
-                class="qpm_searchStringOperator"
-              >
+              <span v-if="idx2 < value.length - 1" class="qpm_searchStringOperator">
                 {{ getString("orOperator").toLowerCase() }}
               </span>
             </div>
@@ -167,10 +143,7 @@
         />
       </div>
       <div v-if="!isCollapsed || (isCollapsed && advancedString)">
-        <div
-          v-if="!advancedString"
-          style="border-top: solid 1px #e7e7e7; margin: 15px 0"
-        />
+        <div v-if="!advancedString" style="border-top: solid 1px #e7e7e7; margin: 15px 0" />
         <p class="intext-arrow-link onHoverJS qpm_pubmedLink">
           <a
             v-tooltip="{
@@ -409,9 +382,7 @@
             return choice.translations[lg];
           }
         } else {
-          throw new Error(
-            "Id not handled by getWordedFilterStringById. id: " + id
-          );
+          throw new Error("Id not handled by getWordedFilterStringById. id: " + id);
         }
       },
       isSingleScoped(obj) {

@@ -84,10 +84,7 @@
             qpm_subtopicDropdown: props.option.subtopiclevel === 1,
           }"
         >
-          <i
-            v-if="maintopicToggledMap[props.option.id]"
-            class="bx bx-chevron-down"
-          />
+          <i v-if="maintopicToggledMap[props.option.id]" class="bx bx-chevron-down" />
           <i v-else class="bx bx-chevron-right" />
         </span>
 
@@ -116,8 +113,7 @@
           v-if="
             props.option.$groupLabel &&
             customGroupTooltipById(props.option.$groupLabel).content &&
-            customGroupTooltipById(props.option.$groupLabel).content.trim() !==
-              ''
+            customGroupTooltipById(props.option.$groupLabel).content.trim() !== ''
           "
           v-tooltip.right="customGroupTooltipById(props.option.$groupLabel)"
           class="bx bx-info-circle qpm_groupLabel"
@@ -219,10 +215,7 @@
   import { messages } from "@/assets/content/qpm-translations.js";
   import { topics } from "@/assets/content/qpm-content-diabetes";
   import { filtrer, customInputTagTooltip } from "@/assets/content/qpm-content";
-  import {
-    getPromptForLocale,
-    searchTranslationPrompt,
-  } from "@/assets/content/qpm-openAiPrompts";
+  import { getPromptForLocale, searchTranslationPrompt } from "@/assets/content/qpm-openAiPrompts";
 
   export default {
     name: "DropdownWrapper",
@@ -404,9 +397,7 @@
         return dataMap;
       },
       getNoResultString: function () {
-        return this.noResultString
-          ? this.noResultString
-          : this.getString("noDropdownContent");
+        return this.noResultString ? this.noResultString : this.getString("noDropdownContent");
       },
       getShouldCloseOnInput: function () {
         return this.closeOnInput && this.focusByHover;
@@ -426,12 +417,7 @@
           if (group.groups && Array.isArray(group.groups)) {
             group.groups.forEach((item) => {
               if (item.maintopic) {
-                if (
-                  !Object.prototype.hasOwnProperty.call(
-                    this.maintopicToggledMap,
-                    item.id
-                  )
-                ) {
+                if (!Object.prototype.hasOwnProperty.call(this.maintopicToggledMap, item.id)) {
                   this.maintopicToggledMap[item.id] = false;
                 }
               }
@@ -470,9 +456,7 @@
           }
         });
 
-        const headers = Array.from(
-          element.getElementsByClassName("multiselect__element")
-        );
+        const headers = Array.from(element.getElementsByClassName("multiselect__element"));
         const self = this;
 
         headers.forEach((header) => {
@@ -486,16 +470,8 @@
         });
 
         // Stop selecting group when pressing enter during search
-        element.removeEventListener(
-          "keypress",
-          self.handleStopEnterOnGroups,
-          true
-        );
-        element.addEventListener(
-          "keypress",
-          self.handleStopEnterOnGroups,
-          true
-        );
+        element.removeEventListener("keypress", self.handleStopEnterOnGroups, true);
+        element.addEventListener("keypress", self.handleStopEnterOnGroups, true);
 
         input.removeEventListener("keyup", self.handleSearchInput);
         input.addEventListener("keyup", self.handleSearchInput);
@@ -539,11 +515,7 @@
         }
 
         // Tjek kun for '-' i det aktuelle sprog
-        if (
-          !elem.isCustom &&
-          elem.translations[lg] &&
-          elem.translations[lg].startsWith("-")
-        ) {
+        if (!elem.isCustom && elem.translations[lg] && elem.translations[lg].startsWith("-")) {
           // Ændre kun translations for det aktuelle sprog
           let updatedTranslations = { ...elem.translations };
           updatedTranslations[lg] = elem.translations[lg].slice(1);
@@ -596,9 +568,7 @@
        */
       hideItems(groupName) {
         if (!groupName) return;
-        const itemsToRemove = document.querySelectorAll(
-          `[data-name="${groupName}"]`
-        );
+        const itemsToRemove = document.querySelectorAll(`[data-name="${groupName}"]`);
 
         itemsToRemove.forEach((item) => {
           this.hideElement(item.parentNode.parentNode);
@@ -649,10 +619,7 @@
        * @param {Array} selectedOptionIds - The list of option IDs that are selected.
        * @param {Array} optionsInOptionGroup - The list of options in the group.
        */
-      updateOptionGroupVisibility: function (
-        selectedOptionIds,
-        optionsInOptionGroup
-      ) {
+      updateOptionGroupVisibility: function (selectedOptionIds, optionsInOptionGroup) {
         this.showOrHideElements();
         this.updateExpandedGroupHighlighting();
 
@@ -661,15 +628,11 @@
         const parentIdsToShow = new Set();
         const grandParentIdsToShow = new Set();
 
-        const optionsInGroupIds = new Set(
-          optionsInOptionGroup.map((option) => option.id)
-        );
+        const optionsInGroupIds = new Set(optionsInOptionGroup.map((option) => option.id));
 
         selectedOptionIds.forEach((id) => {
           // Check if the selected option is in the optiongroup
-          const option = optionsInOptionGroup.find(
-            (option) => option.id === id
-          );
+          const option = optionsInOptionGroup.find((option) => option.id === id);
           if (option) {
             selectedDepths.add(option.depth);
             if (option.parentId) {
@@ -687,14 +650,8 @@
 
         this.showElementsByOptionIds(selectedOptionIds, optionsInGroupIds);
         this.showElementsByDepths(selectedDepths, optionsInGroupIds);
-        this.showElementsByOptionIds(
-          Array.from(parentIdsToShow),
-          optionsInGroupIds
-        );
-        this.showElementsByOptionIds(
-          Array.from(grandParentIdsToShow),
-          optionsInGroupIds
-        );
+        this.showElementsByOptionIds(Array.from(parentIdsToShow), optionsInGroupIds);
+        this.showElementsByOptionIds(Array.from(grandParentIdsToShow), optionsInGroupIds);
       },
       /**
        * Utility method to show elements by option IDs
@@ -704,9 +661,7 @@
       showElementsByOptionIds: function (optionIds, optionsInGroupIds) {
         optionIds.forEach((id) => {
           if (optionsInGroupIds.has(id)) {
-            const elements = document.querySelectorAll(
-              `span[option-id="${id}"]`
-            );
+            const elements = document.querySelectorAll(`span[option-id="${id}"]`);
             elements.forEach((element) => {
               const liElement = element.closest("li.multiselect__element");
               if (liElement) {
@@ -723,9 +678,7 @@
        */
       showElementsByDepths: function (depths, optionsInGroupIds) {
         depths.forEach((depth) => {
-          const depthElements = document.querySelectorAll(
-            `span[option-depth="${depth}"]`
-          );
+          const depthElements = document.querySelectorAll(`span[option-depth="${depth}"]`);
           depthElements.forEach((element) => {
             const optionId = element.getAttribute("option-id");
             if (optionsInGroupIds.has(optionId)) {
@@ -791,8 +744,7 @@
           target = target.parentElement;
         }
 
-        const optionGroupName =
-          target.getElementsByClassName("qpm_groupLabel")[0].textContent;
+        const optionGroupName = target.getElementsByClassName("qpm_groupLabel")[0].textContent;
 
         if (target.classList.contains("multiselect__option--group")) {
           if (this.expandedOptionGroupName === optionGroupName) {
@@ -804,22 +756,17 @@
             this.expandedOptionGroupName = optionGroupName;
 
             const optionGroupId = this.getOptionGroupId(optionGroupName);
-            const selectedOptions =
-              this.getSelectedOptionsByOptionGroupId(optionGroupId);
+            const selectedOptions = this.getSelectedOptionsByOptionGroupId(optionGroupId);
 
             const selectedOptionIds = selectedOptions.map((o) => o.id);
-            const optionsInOptionGroup =
-              this.getOptionsFromOptionsGroupName(optionGroupName);
+            const optionsInOptionGroup = this.getOptionsFromOptionsGroupName(optionGroupName);
 
             if (selectedOptionIds.length <= 0) {
               this.showOrHideElements();
               this.updateExpandedGroupHighlighting();
             } else {
               // Only show the tags in the clicked group
-              this.updateOptionGroupVisibility(
-                selectedOptionIds,
-                optionsInOptionGroup
-              );
+              this.updateOptionGroupVisibility(selectedOptionIds, optionsInOptionGroup);
             }
           }
         } else {
@@ -836,29 +783,20 @@
         const target = event.target;
         const targetLabel = target.textContent.trim();
 
-        const optionGroupName = this.getOptionGroupName(
-          this.data,
-          targetLabel,
-          this.language
-        );
+        const optionGroupName = this.getOptionGroupName(this.data, targetLabel, this.language);
 
         const optionGroupId = this.getOptionGroupId(optionGroupName);
-        const selectedOptions =
-          this.getSelectedOptionsByOptionGroupId(optionGroupId);
+        const selectedOptions = this.getSelectedOptionsByOptionGroupId(optionGroupId);
 
         const selectedOptionIds = selectedOptions.map((o) => o.id);
-        const optionsInOptionGroup =
-          this.getOptionsFromOptionsGroupName(optionGroupName);
+        const optionsInOptionGroup = this.getOptionsFromOptionsGroupName(optionGroupName);
 
         if (selectedOptionIds.length <= 0) {
           this.showOrHideElements();
           this.updateExpandedGroupHighlighting();
         } else {
           // Only show the tags in the clicked group
-          this.updateOptionGroupVisibility(
-            selectedOptionIds,
-            optionsInOptionGroup
-          );
+          this.updateOptionGroupVisibility(selectedOptionIds, optionsInOptionGroup);
         }
       },
       handleSearchInput: function (event) {
@@ -868,9 +806,7 @@
 
         if (target.value) {
           //search input, save current state of shown element, and show all elements
-          const entries = element.querySelectorAll(
-            ".multiselect__element.qpm_shown"
-          );
+          const entries = element.querySelectorAll(".multiselect__element.qpm_shown");
           for (let i = 0; i < entries.length; i++) {
             this.showElement(entries[i]);
           }
@@ -900,19 +836,13 @@
         if (event.charCode == 13) {
           if (event.target.classList.contains("multiselect__input")) {
             const element = this.$refs.selectWrapper;
-            target = element.getElementsByClassName(
-              "multiselect__option--highlight"
-            )[0];
-            if (
-              target == null ||
-              target.classList.contains("multiselect__option--group")
-            ) {
+            target = element.getElementsByClassName("multiselect__option--highlight")[0];
+            if (target == null || target.classList.contains("multiselect__option--group")) {
               event.stopPropagation();
 
               if (target == null) return;
 
-              var focusedGroup =
-                target.querySelector(".qpm_groupLabel").textContent;
+              var focusedGroup = target.querySelector(".qpm_groupLabel").textContent;
 
               if (focusedGroup == this.expandedOptionGroupName) {
                 this.expandedOptionGroupName = "";
@@ -932,9 +862,7 @@
               var target = dropdownRef.$refs.list.getElementsByClassName(
                 "multiselect__option--highlight"
               )[0];
-              var button = target.getElementsByClassName(
-                "qpm_ButtonColumnFocused"
-              )[0];
+              var button = target.getElementsByClassName("qpm_ButtonColumnFocused")[0];
 
               // If no scope buttons exists or none are currently in focus
               // then let the default handeling occur via the input method.
@@ -1014,14 +942,8 @@
             isTranslated: true,
             preTranslation: newTag,
             tooltip: {
-              dk:
-                customInputTagTooltip.dk +
-                " - denne søgning er oversat fra: " +
-                newTag,
-              en:
-                customInputTagTooltip.en +
-                " - this search is translated from: " +
-                newTag,
+              dk: customInputTagTooltip.dk + " - denne søgning er oversat fra: " + newTag,
+              en: customInputTagTooltip.en + " - this search is translated from: " + newTag,
             },
           };
           this.isLoading = false;
@@ -1143,10 +1065,7 @@
           navDistance = 1;
         }
 
-        if (
-          dropdownRef.pointer + navDistance >=
-          dropdownRef.filteredOptions.length
-        ) {
+        if (dropdownRef.pointer + navDistance >= dropdownRef.filteredOptions.length) {
           return;
         }
 
@@ -1233,9 +1152,7 @@
         return false;
       },
       isSelected: function (option) {
-        return this.selected.some(
-          (selectedOption) => selectedOption.id === option.id
-        );
+        return this.selected.some((selectedOption) => selectedOption.id === option.id);
       },
       isHiddenTopic: function (topicId) {
         return this.hideTopics.indexOf(topicId) != -1;
@@ -1243,19 +1160,16 @@
       isSubjectVissible: function (subject) {
         var subjectRect = subject.getBoundingClientRect();
 
-        var viewHeight =
-          window.innerHeight || document.documentElement.clientHeight;
+        var viewHeight = window.innerHeight || document.documentElement.clientHeight;
 
-        var isSubjectVissible =
-          subjectRect.top >= 0 && subjectRect.bottom <= viewHeight;
+        var isSubjectVissible = subjectRect.top >= 0 && subjectRect.bottom <= viewHeight;
         return isSubjectVissible;
       },
       updateExpandedGroupHighlighting: function () {
         var listItems = this.$refs.multiselect.$refs.list;
 
         // Remove highlighting due to group being open from all groups
-        let itemsToUnHighlight =
-          listItems.querySelectorAll(".qpm_groupExpanded");
+        let itemsToUnHighlight = listItems.querySelectorAll(".qpm_groupExpanded");
 
         for (let i = 0; i < itemsToUnHighlight.length; i++) {
           itemsToUnHighlight[i].classList.remove("qpm_groupExpanded");
@@ -1269,9 +1183,7 @@
             this.expandedOptionGroupName +
             '"]'
         );
-        expandedElement.parentElement.parentElement.classList.add(
-          "qpm_groupExpanded"
-        );
+        expandedElement.parentElement.parentElement.classList.add("qpm_groupExpanded");
       },
       updateSortedSubjectOptions() {
         this.showOrHideElements();
@@ -1298,8 +1210,7 @@
        * @returns {Promise<string>} The translated text.
        */
       translateSearch: async function (wordsToTranslate) {
-        const openAiServiceUrl =
-          this.appSettings.openAi.baseUrl + "/api/TranslateTitle";
+        const openAiServiceUrl = this.appSettings.openAi.baseUrl + "/api/TranslateTitle";
         var localePrompt = getPromptForLocale(searchTranslationPrompt, "dk");
 
         try {
@@ -1318,9 +1229,7 @@
             throw Error(JSON.stringify(data));
           }
 
-          const reader = response.body
-            .pipeThrough(new TextDecoderStream())
-            .getReader();
+          const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
 
           while (true) {
             const { done, value } = await reader.read();
@@ -1342,8 +1251,7 @@
        */
       getSelectedOptionsByOptionGroupId: function (groupId) {
         return this.selected.filter(
-          (selectedOption) =>
-            selectedOption.id && selectedOption.id.startsWith(groupId)
+          (selectedOption) => selectedOption.id && selectedOption.id.startsWith(groupId)
         );
       },
       /**
@@ -1450,8 +1358,7 @@
         if (props.option && props.option.name && this.selected) {
           for (let i = 0; i < this.selected.length; i++) {
             if (this.selected[i].name == props.option.name) {
-              if (this.selected[i].scope == scope)
-                classes.push("selectedButton");
+              if (this.selected[i].scope == scope) classes.push("selectedButton");
               break;
             }
           }

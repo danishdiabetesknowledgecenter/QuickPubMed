@@ -35,10 +35,7 @@
         class="qpm_button"
         @click="clickRetry"
       >
-        <i
-          class="bx bx-refresh"
-          style="vertical-align: baseline; font-size: 1em"
-        />
+        <i class="bx bx-refresh" style="vertical-align: baseline; font-size: 1em" />
         {{ getString("retryText") }}
       </button>
       <button
@@ -115,9 +112,7 @@
     },
     methods: {
       async showTranslation() {
-        console.log(
-          `Translation Loaded: ${this.translationLoaded}, Loading: ${this.loading}`
-        );
+        console.log(`Translation Loaded: ${this.translationLoaded}, Loading: ${this.loading}`);
 
         if (!this.translationLoaded && !this.loading) {
           this.loading = true; // Set loading state
@@ -154,9 +149,7 @@
               const data = await response.json();
               throw new Error(JSON.stringify(data));
             }
-            const reader = response.body
-              .pipeThrough(new TextDecoderStream())
-              .getReader();
+            const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
 
             this.loading = false;
             this.writing = true;
@@ -192,10 +185,7 @@
       },
       clickRetry() {
         if (!this.translationLoaded || this.loading) {
-          console.debug(
-            "Attempted to retry translation, but refused due to loading state",
-            this
-          );
+          console.debug("Attempted to retry translation, but refused due to loading state", this);
           return;
         }
         this.translationLoaded = false;
@@ -203,8 +193,7 @@
       },
       canRenderMarkdown() {
         return (
-          !!this.$options.components["VueShowdown"] ||
-          !!this.$options.components["vue-showdown"]
+          !!this.$options.components["VueShowdown"] || !!this.$options.components["vue-showdown"]
         );
       },
     },
