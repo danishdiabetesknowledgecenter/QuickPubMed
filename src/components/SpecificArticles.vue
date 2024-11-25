@@ -229,6 +229,7 @@
         searchresult: undefined,
         loadingComponent: false,
         componentId: null,
+        customLink: "",
       };
     },
     computed: {
