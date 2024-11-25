@@ -145,12 +145,11 @@
   import AdvancedSearchFilters from "@/components/AdvancedSearchFilters.vue";
   import WordedSearchString from "@/components/WordedSearchString.vue";
   import SubjectSelection from "@/components/SubjectSelection.vue";
-  import DropdownWrapper from "@/components/DropdownWrapper.vue";
   import SearchResult from "@/components/SearchResult.vue";
   import axios from "axios";
 
   import { order, filtrer, scopeIds, customInputTagTooltip } from "@/assets/content/qpm-content.js";
-  import { filters } from "@/assets/content/qpm-search-filters.js";
+  //import { filters } from "@/assets/content/qpm-search-filters.js";
   import { topics } from "@/assets/content/qpm-content-diabetes";
   import { messages } from "@/assets/content/qpm-translations.js";
   import { appSettingsMixin } from "@/mixins/appSettings";
@@ -165,7 +164,6 @@
       SimpleSearchFilters,
       AdvancedSearchFilters,
       SubjectSelection,
-      DropdownWrapper,
       WordedSearchString,
       SearchResult,
     },
@@ -835,7 +833,6 @@
        * @param {number} index - The index of the subjects array to update.
        */
       updateSubjects(value, index) {
-        console.log(`value and index`, value ,index);	
         value.forEach((item, i) => {
           if (i > 0) this.isFirstFill = false;
           if (!item.scope) item.scope = "normal";
