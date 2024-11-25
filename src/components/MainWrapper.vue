@@ -833,6 +833,7 @@
        * @param {number} index - The index of the subjects array to update.
        */
       updateSubjects(value, index) {
+        console.log(`value and index`, value ,index);	
         value.forEach((item, i) => {
           if (i > 0) this.isFirstFill = false;
           if (!item.scope) item.scope = "normal";
