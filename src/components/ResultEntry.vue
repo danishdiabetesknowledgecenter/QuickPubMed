@@ -80,7 +80,7 @@
     <div v-if="getComponentWidth" style="display: flex; flex-direction: column-reverse">
       <div v-if="showArticleButtons" class="qpm_resultButtons_mobile" :style="mobileResult">
         <button
-          v-if="hasAbstract || pmid || doi"
+          v-if="hasValidAbstract"
           v-tooltip="{
             content: getString('hoverShowAbstractButton'),
             offset: 5,
@@ -90,7 +90,7 @@
           class="qpm_button qpm_slim"
           :class="[
             showingAbstract ? 'qpm_active' : '',
-            hasAbstract ? 'qpm_abstract' : 'qpm_noAbstract',
+            hasValidAbstract ? 'qpm_abstract' : 'qpm_noAbstract',
           ]"
           @click="showAbstract"
         >
@@ -167,7 +167,7 @@
     <div v-else>
       <div v-if="showArticleButtons" class="qpm_resultButtons">
         <button
-          v-if="hasAbstract || pmid || doi"
+          v-if="hasAbstract"
           v-tooltip="{
             content: getString('hoverShowAbstractButton'),
             offset: 5,
@@ -177,7 +177,7 @@
           class="qpm_button qpm_slim"
           :class="[
             showingAbstract ? 'qpm_active' : '',
-            hasAbstract ? 'qpm_abstract' : 'qpm_noAbstract',
+            hasValidAbstract ? 'qpm_abstract' : 'qpm_noAbstract',
           ]"
           @click="showAbstract"
         >
@@ -270,7 +270,7 @@
       <div>
         <div v-show="showingAbstract" lang="en" style="position: relative; margin-top: 0">
           <accordion-menu
-            v-if="appSettings.openAi.useAi && hasAbstract"
+            v-if="appSettings.openAi.useAi && hasValidAbstract"
             class="qpm_ai_hide qpm_accordions"
           >
             <template #header="accordionProps">
@@ -726,7 +726,10 @@
         type: String,
         default: "",
       },
-      hasAbstract: Boolean,
+      hasAbstract: {
+        type: Boolean,
+        default: false,
+      },
       doi: {
         type: String,
         default: "",
@@ -828,6 +831,9 @@
       };
     },
     computed: {
+      hasValidAbstract() {
+        return this.hasAbstract && this.abstract.trim() !== "";
+      },
       computedTitle() {
         return this.getTitle || this.getBookTitle || this.getVernacularTitle || "";
       },
@@ -846,19 +852,13 @@
       getUsePDFsummaryFlag: function () {
         return this.appSettings.openAi.usePDFsummary;
       },
-      getButtonText: function () {
-        if (this.hasAbstract) {
-          if (this.showingAbstract) {
-            return this.getString("hideAbstract");
-          } else {
-            return this.getString("showAbstract");
-          }
+      getButtonText() {
+        if (this.hasValidAbstract) {
+          return this.showingAbstract
+            ? this.getString("hideAbstract")
+            : this.getString("showAbstract");
         } else {
-          if (this.showingAbstract) {
-            return this.getString("hideInfo");
-          } else {
-            return this.getString("showInfo");
-          }
+          return this.showingAbstract ? this.getString("hideInfo") : this.getString("showInfo");
         }
       },
       getComponentWidth: function () {

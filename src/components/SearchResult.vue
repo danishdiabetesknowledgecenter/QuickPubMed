@@ -605,6 +605,7 @@
           let value = attributes[key];
           if (key == "Has Abstract" || value == "Has Abstract") {
             found = true;
+            console.log(`has abstract: ${value}`);
             return;
           }
         });
