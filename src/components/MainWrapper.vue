@@ -49,7 +49,7 @@
               @remove-subject="removeSubject"
               @toggle-filter="toggle"
             />
-            
+
             <!-- The dropdown for selecting filters to be included in the advanced search -->
             <advanced-search-filters
               v-if="advanced && showFilter && hasSubjects"
@@ -148,6 +148,7 @@
   import DropdownWrapper from "@/components/DropdownWrapper.vue";
   import SearchResult from "@/components/SearchResult.vue";
   import axios from "axios";
+
   import { order, filtrer, scopeIds, customInputTagTooltip } from "@/assets/content/qpm-content.js";
   import { filters } from "@/assets/content/qpm-search-filters.js";
   import { topics } from "@/assets/content/qpm-content-diabetes";
@@ -336,20 +337,22 @@
       window.removeEventListener("resize", this.updateSubjectDropdownWidth);
     },
     async mounted() {
-      this.updatePlaceholders();
+      /*
       this.advanced = !this.advanced;
       this.advancedClick(true);
       this.parseUrl();
-      this.isUrlParsed = true;
+      this.advancedClick();
+      */
+      this.updatePlaceholders();
       this.updateSubjectDropdownWidth();
       window.addEventListener("resize", this.updateSubjectDropdownWidth);
       this.advanced = !this.advanced;
-      this.advancedClick();
+      this.prepareFilterOptions();
+      this.prepareSubjectOptions();
+      this.parseUrl();
+      this.isUrlParsed = true;
       this.searchPreselectedPmidai();
       await this.search();
-    },
-    created() {
-      this.updatePlaceholder();
     },
     methods: {
       advancedClick(skip = false) {
@@ -545,8 +548,9 @@
           const isCustomInput = id.startsWith("{{") && id.endsWith("}}");
 
           if (isCustomInput) {
-            const name = id.slice(2, -2);
-            const isTranslated = !isNaN(parseInt(name.slice(-1), 10));
+            const rawName = id.slice(2, -2);
+            const isTranslated = !isNaN(parseInt(rawName.slice(-1), 10));
+            const name = isTranslated ? rawName.slice(0, -1) : rawName;
             const tag = {
               name: name,
               searchStrings: { normal: [name] },
@@ -706,7 +710,7 @@
                 const translationFlag = subject.isTranslated ? "1" : "0";
                 subjectId = `{{${subject.name}${translationFlag}}}#${scope}`;
               }
-
+              console.log(subjectId);
               return encodeURIComponent(subjectId);
             });
 
@@ -1501,6 +1505,7 @@
 
         const constant =
           option.translations?.[this.language] ?? option.translations?.["dk"] ?? option.name;
+
         return constant;
       },
       updateSubjectDropdownWidth() {
