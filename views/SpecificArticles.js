@@ -66,7 +66,7 @@ specificArticleDivs.forEach((specificArticleDiv) => {
   const hyperLink = specificArticleDiv.dataset.hyperLink || undefined;
   const hyperLinkText = specificArticleDiv.dataset.hyperLinkText || undefined;
   const sectionedAbstract = parseJSON(specificArticleDiv.dataset.sectionedAbstract);
-  const componentNo = specificArticleDiv.dataset.componentNo || undefined;
+  const componentNo = Number(specificArticleDiv.dataset.componentNo) || undefined;
   const shownSixAuthors = specificArticleDiv.dataset.shownSixAuthors === "true";
   const showAltmetricBadge = specificArticleDiv.dataset.showAltmetricBadge === "true";
   const showDimensionsBadge = specificArticleDiv.dataset.showDimensionsBadge === "true";

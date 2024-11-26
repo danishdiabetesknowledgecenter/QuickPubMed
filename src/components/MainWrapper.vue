@@ -148,6 +148,7 @@
   import DropdownWrapper from "@/components/DropdownWrapper.vue";
   import SearchResult from "@/components/SearchResult.vue";
   import axios from "axios";
+  
   import { order, filtrer, scopeIds, customInputTagTooltip } from "@/assets/content/qpm-content.js";
   import { filters } from "@/assets/content/qpm-search-filters.js";
   import { topics } from "@/assets/content/qpm-content-diabetes";
@@ -831,7 +832,6 @@
        * @param {number} index - The index of the subjects array to update.
        */
       updateSubjects(value, index) {
-        console.log(`value and index`, value ,index);	
         value.forEach((item, i) => {
           if (i > 0) this.isFirstFill = false;
           if (!item.scope) item.scope = "normal";
