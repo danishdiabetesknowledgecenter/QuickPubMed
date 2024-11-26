@@ -832,7 +832,9 @@
     },
     computed: {
       hasValidAbstract() {
-        return this.hasAbstract && this.abstract.trim() !== "";
+        return (
+          this.hasAbstract && (this.abstract.trim() !== "" || Object.keys(this.text).length > 0)
+        );
       },
       computedTitle() {
         return this.getTitle || this.getBookTitle || this.getVernacularTitle || "";
