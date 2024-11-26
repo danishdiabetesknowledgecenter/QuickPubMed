@@ -936,7 +936,7 @@
           tag = {
             name: translated,
             searchStrings: { normal: [translated] },
-            preString: this.getString("manualInputTermTranslated") + ": ",
+            preString: this.getString("manualInputTermTranslated") + ":\u00A0",
             isCustom: true,
             //IsTranslated er true når det er en unedited oversættelse
             isTranslated: true,
@@ -951,7 +951,7 @@
           tag = {
             name: newTag,
             searchStrings: { normal: [newTag] },
-            preString: this.getString("manualInputTerm") + ": ",
+            preString: this.getString("manualInputTerm") + ":\u00A0",
             isCustom: true,
             tooltip: customInputTagTooltip,
           };
