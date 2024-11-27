@@ -121,7 +121,7 @@
       startEdit() {
         if (!this.triple.option.isCustom || this.isEditMode) return;
         this.isEditMode = true;
-        this.tag.preString = this.getString("manualInputTerm") + ": ";
+        this.tag.preString = this.getString("manualInputTerm") + ":\u00A0 ";
         this.tag.isTranslated = false;
         this.tag.tooltip = customInputTagTooltip;
 
