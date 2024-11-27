@@ -547,18 +547,22 @@
 
           if (isCustomInput) {
             const rawName = id.slice(2, -2);
-            const isTranslated = !isNaN(parseInt(rawName.slice(-1), 10));
-            const name = isTranslated ? rawName.slice(0, -1) : rawName;
+            const translationFlag = rawName.slice(-1);
+            const isTranslated = translationFlag === "1";
+            const name = isTranslated || translationFlag === "0" ? rawName.slice(0, -1) : rawName;
+            console.log(`isTranslated: ${isTranslated}, name: ${name}`);
+
             const tag = {
               name: name,
               searchStrings: { normal: [name] },
               preString: isTranslated
-                ? `${this.getString("manualInputTermTranslated")}: `
-                : `${this.getString("manualInputTerm")}: `,
+                ? `${this.getString("manualInputTermTranslated")}:\u00A0 `
+                : `${this.getString("manualInputTerm")}:\u00A0 `,
               scope: "normal",
               isCustom: true,
               tooltip: customInputTagTooltip,
             };
+            console.log(`Parsed custom input: ${tag.name}`, tag);
             selected.push(tag);
             return;
           }
@@ -615,8 +619,8 @@
               name: name,
               searchStrings: { normal: [name] },
               preString: isTranslated
-                ? `${this.getString("manualInputTermTranslated")}: `
-                : `${this.getString("manualInputTerm")}: `,
+                ? `${this.getString("manualInputTermTranslated")}:\u00A0 `
+                : `${this.getString("manualInputTerm")}:\u00A0 `,
               scope: "normal",
               isCustom: true,
               tooltip: customInputTagTooltip,
