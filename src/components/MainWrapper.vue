@@ -743,7 +743,6 @@
                 const translationFlag = subject.isTranslated ? "1" : "0";
                 subjectId = `{{${subject.name}${translationFlag}}}#${scope}`;
               }
-              console.log(subjectId);
               return encodeURIComponent(subjectId);
             });
 
