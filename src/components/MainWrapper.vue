@@ -42,7 +42,7 @@
               :search-with-a-i="searchWithAI"
               :get-string="getString"
               @update-subjects="updateSubjects"
-              @update-scope="updateScope"
+              @update-scope="updateSubjectScope"
               @should-focus-next-dropdown="shouldFocusNextDropdownOnMount"
               @update-placeholder="updatePlaceholder"
               @add-subject="addSubject"
@@ -68,6 +68,26 @@
               @update-advanced-filter-entry="updateFilterAdvanced"
               @update-advanced-filter-scope="updateAdvancedFilterScope"
             />
+
+            <!--
+              <filter-selection
+              v-if="advanced && showFilter && hasSubjects"
+              ref="filterSelection"
+              :hide-filters="hideFilters"
+              :filters="filters"
+              :filter-options="filterOptions"
+              :dropdown-placeholders="dropdownPlaceholders"
+              :language="language"
+              :advanced="advanced"
+              :has-filters="hasFilters"
+              :get-string="getString"
+              @update-filters="updateFilters"
+              @update-filter-scope="updateFilterScope"
+              @should-focus-next-dropdown="shouldFocusNextDropdownOnMount"
+              @add-filter="addFilter"
+              @remove-filter="removeFilter"
+              />
+            -->
 
             <!-- The radio buttons for filters to be included in the simple search -->
             <simple-search-filters
@@ -145,11 +165,12 @@
   import AdvancedSearchFilters from "@/components/AdvancedSearchFilters.vue";
   import WordedSearchString from "@/components/WordedSearchString.vue";
   import SubjectSelection from "@/components/SubjectSelection.vue";
+  import FilterSelection from "@/components/FilterSelection.vue";
   import SearchResult from "@/components/SearchResult.vue";
   import axios from "axios";
 
   import { order, filtrer, scopeIds, customInputTagTooltip } from "@/assets/content/qpm-content.js";
-  //import { filters } from "@/assets/content/qpm-search-filters.js";
+  import { filters } from "@/assets/content/qpm-search-filters.js";
   import { topics } from "@/assets/content/qpm-content-diabetes";
   import { messages } from "@/assets/content/qpm-translations.js";
   import { appSettingsMixin } from "@/mixins/appSettings";
@@ -164,12 +185,19 @@
       SimpleSearchFilters,
       AdvancedSearchFilters,
       SubjectSelection,
+      FilterSelection,
       WordedSearchString,
       SearchResult,
     },
     mixins: [appSettingsMixin],
     props: {
       hideTopics: {
+        type: Array,
+        default() {
+          return [];
+        },
+      },
+      hideFilters: {
         type: Array,
         default() {
           return [];
@@ -232,6 +260,9 @@
       },
       hasSubjects() {
         return this.subjects.some((subjectArray) => subjectArray.length > 0);
+      },
+      hasFilters() {
+        return this.filters.some((filterArray) => filterArray.length > 0);
       },
       getSearchString() {
         const hasLogicalOperators = (searchStrings) =>
@@ -820,6 +851,30 @@
           this.updatePlaceholders();
         });
       },
+      /**
+       * Adds a new filter to the filters array and updates the UI accordingly.
+       */
+      addFilter() {
+        var hasEmptyFilter = this.filters.some(function (e) {
+          return e.length === 0;
+        });
+        if (hasEmptyFilter) {
+          var message = this.getString("fillEmptyDropdownFirstAlert");
+          alert(message);
+          return;
+        }
+
+        this.updatePlaceholders();
+        this.filters = [...this.filters, []];
+
+        this.$nextTick(function () {
+          const filterDropdown = this.$refs.filterSelection.$refs.filterDropdown;
+          filterDropdown[filterDropdown.length - 1].$refs.multiselect.$refs.search.focus();
+
+          // Update placeholders after DOM update
+          this.updatePlaceholders();
+        });
+      },
       removeSubject(id) {
         var isEmptySubject = this.subjects[id] && this.subjects[id].length === 0;
 
@@ -827,6 +882,16 @@
         this.setUrl();
 
         if (!isEmptySubject) {
+          this.editForm();
+        }
+      },
+      removeFilter(id) {
+        var isEmptyFilter = this.filters[id] && this.filters[id].length === 0;
+
+        this.filters.splice(id, 1);
+        this.setUrl();
+
+        if (!isEmptyFilter) {
           this.editForm();
         }
       },
@@ -865,13 +930,46 @@
         this.editForm();
       },
       /**
+       * Updates the filters array and manages related state.
+       *
+       * @param {Array<Object>} value - The list of filter items to update.
+       * @param {number} index - The index of the filters array to update.
+       */
+      updateFiltersNew(value, index) {
+        value.forEach((item, i) => {
+          if (i > 0) this.isFirstFill = false;
+          if (!item.scope) item.scope = "normal";
+        });
+
+        if (this.filters.length > 1) this.isFirstFill = false;
+
+        const updatedFilters = JSON.parse(JSON.stringify(this.filters));
+        updatedFilters[index] = value;
+        this.subjects = updatedFilters;
+
+        if (!this.advanced && this.isFirstFill) {
+          this.selectStandardSimple();
+          this.isFirstFill = false;
+        }
+
+        if (!this.hasFilters) {
+          this.filterData = {};
+          this.showFilter = false;
+          this.filters = [[]];
+          this.isFirstFill = true;
+        }
+
+        this.setUrl();
+        this.editForm();
+      },
+      /**
        * Updates the scope of a specific subject item.
        *
        * @param {Object} item - The subject item to update.
        * @param {string} state - The new scope state.
        * @param {number} index - The index of the subjects array where the item resides.
        */
-      updateScope(item, state, index) {
+      updateSubjectScope(item, state, index) {
         const updatedSubjects = JSON.parse(JSON.stringify(this.subjects));
 
         if (Array.isArray(updatedSubjects) && updatedSubjects[index]) {
@@ -883,7 +981,29 @@
           this.setUrl();
           this.editForm();
         } else {
-          console.error(`updateScope: subjects[${index}] is undefined or not an array.`);
+          console.error(`updateSubjectScope: subjects[${index}] is undefined or not an array.`);
+        }
+      },
+      /**
+       * Updates the scope of a specific filter item.
+       *
+       * @param {Object} item - The filter item to update.
+       * @param {string} state - The new scope state.
+       * @param {number} index - The index of the filters array where the item resides.
+       */
+      updateFilterScope(item, state, index) {
+        const updatedFilters = JSON.parse(JSON.stringify(this.filters));
+
+        if (Array.isArray(updatedFilters) && updatedFilters[index]) {
+          const filter = updatedFilters[index].find((sub) => sub.name === item.name);
+          if (filter) {
+            filter.scope = state;
+          }
+          this.subjects = updatedFilters;
+          this.setUrl();
+          this.editForm();
+        } else {
+          console.error(`updateFilterScope: filters[${index}] is undefined or not an array.`);
         }
       },
       /**
