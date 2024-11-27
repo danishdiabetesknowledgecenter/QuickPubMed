@@ -167,7 +167,7 @@
     <div v-else>
       <div v-if="showArticleButtons" class="qpm_resultButtons">
         <button
-          v-if="hasAbstract"
+          v-if="hasAbstract || pmid || doi"
           v-tooltip="{
             content: getString('hoverShowAbstractButton'),
             offset: 5,
@@ -364,7 +364,7 @@
             </div>
           </accordion-menu>
           <p
-            v-if="isResourceAllowed === undefined && !hasAbstract"
+            v-if="!hasAbstract && isResourceAllowed === undefined"
             style="margin-left: 20px; margin-top: 15px"
           >
             {{ getString("loadingText") }}
@@ -821,7 +821,7 @@
         initialAiTab: "",
         pdfQuestions: [],
         isLicenseAllowed: false,
-        isResourceAllowed: undefined,
+        isResourceAllowed: false,
         isPubTypeAllowed: false,
         pdfUrl: "",
         htmlUrl: "",
