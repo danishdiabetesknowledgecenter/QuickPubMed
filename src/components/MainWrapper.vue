@@ -69,14 +69,13 @@
               @update-advanced-filter-scope="updateAdvancedFilterScope"
             />
 
-            <!--
-              <filter-selection
+            <filter-selection
               v-if="advanced && showFilter && hasSubjects"
               ref="filterSelection"
               :hide-filters="hideFilters"
-              :filters="filters"
+              :filters="filtersNew"
               :filter-options="filterOptions"
-              :dropdown-placeholders="dropdownPlaceholders"
+              :show-title="showTitle"
               :language="language"
               :advanced="advanced"
               :has-filters="hasFilters"
@@ -86,8 +85,7 @@
               @should-focus-next-dropdown="shouldFocusNextDropdownOnMount"
               @add-filter="addFilter"
               @remove-filter="removeFilter"
-              />
-            -->
+            />
 
             <!-- The radio buttons for filters to be included in the simple search -->
             <simple-search-filters
@@ -170,7 +168,7 @@
   import axios from "axios";
 
   import { order, filtrer, scopeIds, customInputTagTooltip } from "@/assets/content/qpm-content.js";
-  import { filters } from "@/assets/content/qpm-search-filters.js";
+  import { filters as filtersNew } from "@/assets/content/qpm-search-filters.js";
   import { topics } from "@/assets/content/qpm-content-diabetes";
   import { messages } from "@/assets/content/qpm-translations.js";
   import { appSettingsMixin } from "@/mixins/appSettings";
@@ -221,6 +219,9 @@
         filterData: {},
         filterOptions: [],
         filters: [],
+        filterDropdownWidth: 0,
+        filterOptionsNew: [],
+        filtersNew: [[]],
         focusNextDropdownOnMount: false,
         isFirstFill: true,
         isCollapsed: false,
@@ -310,6 +311,34 @@
           }
         });
 
+        this.filtersNew.forEach((subjectGroup, index) => {
+          const subjectsToIterate = subjectGroup.length;
+          const hasOperators = subjectGroup.some((item) =>
+            hasLogicalOperators(item.searchStrings[item.scope][0])
+          );
+
+          let substring = index > 0 ? " AND " : "";
+          if (
+            (hasOperators && (this.subjects.length > 1 || this.filters.length > 0)) ||
+            subjectsToIterate > 1
+          ) {
+            substring += "(";
+          }
+
+          substring += buildSubstring(subjectGroup);
+
+          if (
+            (hasOperators && (this.subjects.length > 1 || this.filters.length > 0)) ||
+            subjectsToIterate > 1
+          ) {
+            substring += ")";
+          }
+
+          if (substring !== "()" && substring !== " AND ()" && substring !== " AND ") {
+            substrings.push(substring);
+          }
+        });
+
         Object.keys(this.filterData).forEach((key) => {
           const filterGroup = this.filterData[key];
           const hasOperators = filterGroup.some((item) =>
@@ -364,6 +393,7 @@
     },
     beforeMount() {
       window.removeEventListener("resize", this.updateSubjectDropdownWidth);
+      window.removeEventListener("resize-filters", this.updateFilterDropdownWidth);
     },
     async mounted() {
       /*
@@ -374,7 +404,9 @@
       */
       this.updatePlaceholders();
       this.updateSubjectDropdownWidth();
+      this.updateFilterDropdownWidth();
       window.addEventListener("resize", this.updateSubjectDropdownWidth);
+      window.addEventListener("resize-filters", this.updateFilterDropdownWidth);
       this.advanced = !this.advanced;
       this.prepareFilterOptions();
       this.prepareSubjectOptions();
@@ -1629,9 +1661,14 @@
         return constant;
       },
       updateSubjectDropdownWidth() {
-        let dropdown = this.$refs.subjectSelection.$refs.subjectDropdown[0].$refs.selectWrapper;
+        const dropdown = this.$refs.subjectSelection.$refs.subjectDropdown[0].$refs.selectWrapper;
         if (!dropdown.innerHTML) return;
         this.subjectDropdownWidth = parseInt(dropdown.offsetWidth);
+      },
+      updateFilterDropdownWidth() {
+        const dropdown = this.$refs.filterSelection?.$refs.filterDropdown?.[0]?.$refs.selectWrapper;
+        if (!dropdown?.innerHTML) return;
+        this.filterDropdownWidth = parseInt(dropdown.offsetWidth);
       },
       checkIfMobile() {
         let check = false;

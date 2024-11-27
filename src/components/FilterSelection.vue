@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div v-for="(item, n) in filters" :key="`item-${item.id}-${n}`" class="qpm_filters">
+    <div v-for="(item, n) in filters" :key="`item-${item.id}-${n}`" class="qpm_filters_new">
       <div class="qpm_flex">
         <dropdown-wrapper
           ref="filterDropdown"
@@ -8,7 +8,7 @@
           :data="filterOptions"
           :hide-topics="hideFilters"
           :is-group="true"
-          :placeholder="dropdownPlaceholders[n]"
+          :placeholder="showTitle"
           :operator="getString('orOperator')"
           :taggable="true"
           :selected="item"
@@ -67,6 +67,7 @@
       filterOptions: { type: Array, required: true, default: () => [] },
       dropdownPlaceholders: { type: Array, required: true, default: () => [] },
       language: { type: String, default: "dk" },
+      showTitle: { type: String, required: true, default: "" },
       getString: {
         type: Function,
         required: true,
