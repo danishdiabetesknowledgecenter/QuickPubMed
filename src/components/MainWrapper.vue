@@ -69,24 +69,6 @@
               @update-advanced-filter-scope="updateAdvancedFilterScope"
             />
 
-            <filter-selection
-              v-if="advanced && showFilter && hasSubjects"
-              ref="filterSelection"
-              :hide-filters="hideFilters"
-              :filters="filtersNew"
-              :filter-options="filterOptions"
-              :show-title="showTitle"
-              :language="language"
-              :advanced="advanced"
-              :has-filters="hasFilters"
-              :get-string="getString"
-              @update-filters="updateFilters"
-              @update-filter-scope="updateFilterScope"
-              @should-focus-next-dropdown="shouldFocusNextDropdownOnMount"
-              @add-filter="addFilter"
-              @remove-filter="removeFilter"
-            />
-
             <!-- The radio buttons for filters to be included in the simple search -->
             <simple-search-filters
               v-if="!advanced && hasSubjects"
@@ -168,7 +150,7 @@
   import axios from "axios";
 
   import { order, filtrer, scopeIds, customInputTagTooltip } from "@/assets/content/qpm-content.js";
-  import { filters as filtersNew } from "@/assets/content/qpm-search-filters.js";
+  import { filters } from "@/assets/content/qpm-search-filters.js";
   import { topics } from "@/assets/content/qpm-content-diabetes";
   import { messages } from "@/assets/content/qpm-translations.js";
   import { appSettingsMixin } from "@/mixins/appSettings";
@@ -219,9 +201,6 @@
         filterData: {},
         filterOptions: [],
         filters: [],
-        filterDropdownWidth: 0,
-        filterOptionsNew: [],
-        filtersNew: [[]],
         focusNextDropdownOnMount: false,
         isFirstFill: true,
         isCollapsed: false,
@@ -311,34 +290,6 @@
           }
         });
 
-        this.filtersNew.forEach((subjectGroup, index) => {
-          const subjectsToIterate = subjectGroup.length;
-          const hasOperators = subjectGroup.some((item) =>
-            hasLogicalOperators(item.searchStrings[item.scope][0])
-          );
-
-          let substring = index > 0 ? " AND " : "";
-          if (
-            (hasOperators && (this.subjects.length > 1 || this.filters.length > 0)) ||
-            subjectsToIterate > 1
-          ) {
-            substring += "(";
-          }
-
-          substring += buildSubstring(subjectGroup);
-
-          if (
-            (hasOperators && (this.subjects.length > 1 || this.filters.length > 0)) ||
-            subjectsToIterate > 1
-          ) {
-            substring += ")";
-          }
-
-          if (substring !== "()" && substring !== " AND ()" && substring !== " AND ") {
-            substrings.push(substring);
-          }
-        });
-
         Object.keys(this.filterData).forEach((key) => {
           const filterGroup = this.filterData[key];
           const hasOperators = filterGroup.some((item) =>
@@ -393,7 +344,6 @@
     },
     beforeMount() {
       window.removeEventListener("resize", this.updateSubjectDropdownWidth);
-      window.removeEventListener("resize-filters", this.updateFilterDropdownWidth);
     },
     async mounted() {
       /*
@@ -404,9 +354,7 @@
       */
       this.updatePlaceholders();
       this.updateSubjectDropdownWidth();
-      this.updateFilterDropdownWidth();
       window.addEventListener("resize", this.updateSubjectDropdownWidth);
-      window.addEventListener("resize-filters", this.updateFilterDropdownWidth);
       this.advanced = !this.advanced;
       this.prepareFilterOptions();
       this.prepareSubjectOptions();

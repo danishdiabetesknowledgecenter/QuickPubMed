@@ -19,7 +19,6 @@
           :index="n"
           @input="handleUpdateFilters"
           @updateScope="handleUpdateScope"
-          @mounted="handleShouldFocusNextDropdownOnMount"
         />
 
         <i v-if="filters.length > 1" class="qpm_removeFilter bx bx-x" @click="removeFilter(n)" />
@@ -65,7 +64,6 @@
       filters: { type: Array, required: true, default: () => [] },
       hideFilters: { type: Array, required: false, default: () => [] },
       filterOptions: { type: Array, required: true, default: () => [] },
-      dropdownPlaceholders: { type: Array, required: true, default: () => [] },
       language: { type: String, default: "dk" },
       showTitle: { type: String, required: true, default: "" },
       getString: {
@@ -82,9 +80,6 @@
       },
       handleUpdateScope(item, state, index) {
         this.$emit("update-filter-scope", item, state, index);
-      },
-      handleShouldFocusNextDropdownOnMount(payload) {
-        this.$emit("should-focus-next-dropdown", payload);
       },
       addFilter() {
         this.$emit("add-filter");
