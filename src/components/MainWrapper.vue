@@ -145,12 +145,10 @@
   import AdvancedSearchFilters from "@/components/AdvancedSearchFilters.vue";
   import WordedSearchString from "@/components/WordedSearchString.vue";
   import SubjectSelection from "@/components/SubjectSelection.vue";
-  import FilterSelection from "@/components/FilterSelection.vue";
   import SearchResult from "@/components/SearchResult.vue";
   import axios from "axios";
 
   import { order, filtrer, scopeIds, customInputTagTooltip } from "@/assets/content/qpm-content.js";
-  import { filters } from "@/assets/content/qpm-search-filters.js";
   import { topics } from "@/assets/content/qpm-content-diabetes";
   import { messages } from "@/assets/content/qpm-translations.js";
   import { appSettingsMixin } from "@/mixins/appSettings";
@@ -165,7 +163,6 @@
       SimpleSearchFilters,
       AdvancedSearchFilters,
       SubjectSelection,
-      FilterSelection,
       WordedSearchString,
       SearchResult,
     },
@@ -902,39 +899,6 @@
           this.filterData = {};
           this.showFilter = false;
           this.subjects = [[]];
-          this.isFirstFill = true;
-        }
-
-        this.setUrl();
-        this.editForm();
-      },
-      /**
-       * Updates the filters array and manages related state.
-       *
-       * @param {Array<Object>} value - The list of filter items to update.
-       * @param {number} index - The index of the filters array to update.
-       */
-      updateFiltersNew(value, index) {
-        value.forEach((item, i) => {
-          if (i > 0) this.isFirstFill = false;
-          if (!item.scope) item.scope = "normal";
-        });
-
-        if (this.filters.length > 1) this.isFirstFill = false;
-
-        const updatedFilters = JSON.parse(JSON.stringify(this.filters));
-        updatedFilters[index] = value;
-        this.subjects = updatedFilters;
-
-        if (!this.advanced && this.isFirstFill) {
-          this.selectStandardSimple();
-          this.isFirstFill = false;
-        }
-
-        if (!this.hasFilters) {
-          this.filterData = {};
-          this.showFilter = false;
-          this.filters = [[]];
           this.isFirstFill = true;
         }
 
