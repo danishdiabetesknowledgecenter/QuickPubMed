@@ -238,9 +238,6 @@
       hasSubjects() {
         return this.subjects.some((subjectArray) => subjectArray.length > 0);
       },
-      hasFilters() {
-        return this.filters.some((filterArray) => filterArray.length > 0);
-      },
       getSearchString() {
         const hasLogicalOperators = (searchStrings) =>
           ["AND", "OR", "NOT"].some((op) => searchStrings.includes(op));
@@ -343,12 +340,6 @@
       window.removeEventListener("resize", this.updateSubjectDropdownWidth);
     },
     async mounted() {
-      /*
-      this.advanced = !this.advanced;
-      this.advancedClick(true);
-      this.parseUrl();
-      this.advancedClick();
-      */
       this.updatePlaceholders();
       this.updateSubjectDropdownWidth();
       window.addEventListener("resize", this.updateSubjectDropdownWidth);
@@ -828,29 +819,10 @@
         });
       },
       /**
-       * Adds a new filter to the filters array and updates the UI accordingly.
+       * Removes a subject from the subjects array and updates the UI accordingly.
+       *
+       * @param {number} id - The index of the subject to remove.
        */
-      addFilter() {
-        var hasEmptyFilter = this.filters.some(function (e) {
-          return e.length === 0;
-        });
-        if (hasEmptyFilter) {
-          var message = this.getString("fillEmptyDropdownFirstAlert");
-          alert(message);
-          return;
-        }
-
-        this.updatePlaceholders();
-        this.filters = [...this.filters, []];
-
-        this.$nextTick(function () {
-          const filterDropdown = this.$refs.filterSelection.$refs.filterDropdown;
-          filterDropdown[filterDropdown.length - 1].$refs.multiselect.$refs.search.focus();
-
-          // Update placeholders after DOM update
-          this.updatePlaceholders();
-        });
-      },
       removeSubject(id) {
         var isEmptySubject = this.subjects[id] && this.subjects[id].length === 0;
 
@@ -858,16 +830,6 @@
         this.setUrl();
 
         if (!isEmptySubject) {
-          this.editForm();
-        }
-      },
-      removeFilter(id) {
-        var isEmptyFilter = this.filters[id] && this.filters[id].length === 0;
-
-        this.filters.splice(id, 1);
-        this.setUrl();
-
-        if (!isEmptyFilter) {
           this.editForm();
         }
       },
@@ -1576,11 +1538,6 @@
         const dropdown = this.$refs.subjectSelection.$refs.subjectDropdown[0].$refs.selectWrapper;
         if (!dropdown.innerHTML) return;
         this.subjectDropdownWidth = parseInt(dropdown.offsetWidth);
-      },
-      updateFilterDropdownWidth() {
-        const dropdown = this.$refs.filterSelection?.$refs.filterDropdown?.[0]?.$refs.selectWrapper;
-        if (!dropdown?.innerHTML) return;
-        this.filterDropdownWidth = parseInt(dropdown.offsetWidth);
       },
       checkIfMobile() {
         let check = false;
