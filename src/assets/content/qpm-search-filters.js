@@ -264,7 +264,6 @@ export const filters = [
         id: "L10010",
         name: "Systematiske reviews",
         buttons: true,
-        maintopic: true, // Angiver at dette element er en branch og har children elementer
         translations: {
           dk: "Systematiske reviews",
           en: "Systematic reviews",
@@ -300,9 +299,6 @@ export const filters = [
         id: "L10020",
         name: "Cochrane Reviews",
         buttons: false,
-        maintopic: true, // Angiver at dette element er en branch og har children elementer
-        subtopiclevel: 1, // Angiver at dette punkt ligger på 1. niveau (miderste niveau)
-        maintopicIdLevel1: "L10010", // Angiver at dette element har et parent med dette id. (Systematiske reviews)
         translations: {
           dk: "Cochrane Reviews",
           en: "Cochrane Reviews",
@@ -330,9 +326,6 @@ export const filters = [
         id: "L10030",
         name: "L10030",
         buttons: false,
-        subtopiclevel: 2,
-        maintopicIdLevel1: "L10020", // Angiver at dette element har et parent med dette id. (Systematiske reviews)
-        maintopicIdLevel2: "L10010", // Angiver at dette element har et grandparent med dette id (Reviewtype)
         translations: {
           dk: "Guidelines",
           en: "Guidelines",

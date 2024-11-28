@@ -42,7 +42,7 @@
               :search-with-a-i="searchWithAI"
               :get-string="getString"
               @update-subjects="updateSubjects"
-              @update-scope="updateScope"
+              @update-scope="updateSubjectScope"
               @should-focus-next-dropdown="shouldFocusNextDropdownOnMount"
               @update-placeholder="updatePlaceholder"
               @add-subject="addSubject"
@@ -149,7 +149,6 @@
   import axios from "axios";
 
   import { order, filtrer, scopeIds, customInputTagTooltip } from "@/assets/content/qpm-content.js";
-  //import { filters } from "@/assets/content/qpm-search-filters.js";
   import { topics } from "@/assets/content/qpm-content-diabetes";
   import { messages } from "@/assets/content/qpm-translations.js";
   import { appSettingsMixin } from "@/mixins/appSettings";
@@ -170,6 +169,12 @@
     mixins: [appSettingsMixin],
     props: {
       hideTopics: {
+        type: Array,
+        default() {
+          return [];
+        },
+      },
+      hideFilters: {
         type: Array,
         default() {
           return [];
@@ -335,12 +340,6 @@
       window.removeEventListener("resize", this.updateSubjectDropdownWidth);
     },
     async mounted() {
-      /*
-      this.advanced = !this.advanced;
-      this.advancedClick(true);
-      this.parseUrl();
-      this.advancedClick();
-      */
       this.updatePlaceholders();
       this.updateSubjectDropdownWidth();
       window.addEventListener("resize", this.updateSubjectDropdownWidth);
@@ -712,7 +711,6 @@
                 const translationFlag = subject.isTranslated ? "1" : "0";
                 subjectId = `{{${subject.name}${translationFlag}}}#${scope}`;
               }
-              console.log(subjectId);
               return encodeURIComponent(subjectId);
             });
 
@@ -820,6 +818,11 @@
           this.updatePlaceholders();
         });
       },
+      /**
+       * Removes a subject from the subjects array and updates the UI accordingly.
+       *
+       * @param {number} id - The index of the subject to remove.
+       */
       removeSubject(id) {
         var isEmptySubject = this.subjects[id] && this.subjects[id].length === 0;
 
@@ -871,7 +874,7 @@
        * @param {string} state - The new scope state.
        * @param {number} index - The index of the subjects array where the item resides.
        */
-      updateScope(item, state, index) {
+      updateSubjectScope(item, state, index) {
         const updatedSubjects = JSON.parse(JSON.stringify(this.subjects));
 
         if (Array.isArray(updatedSubjects) && updatedSubjects[index]) {
@@ -883,7 +886,7 @@
           this.setUrl();
           this.editForm();
         } else {
-          console.error(`updateScope: subjects[${index}] is undefined or not an array.`);
+          console.error(`updateSubjectScope: subjects[${index}] is undefined or not an array.`);
         }
       },
       /**
@@ -1510,7 +1513,7 @@
         return constant;
       },
       updateSubjectDropdownWidth() {
-        let dropdown = this.$refs.subjectSelection.$refs.subjectDropdown[0].$refs.selectWrapper;
+        const dropdown = this.$refs.subjectSelection.$refs.subjectDropdown[0].$refs.selectWrapper;
         if (!dropdown.innerHTML) return;
         this.subjectDropdownWidth = parseInt(dropdown.offsetWidth);
       },

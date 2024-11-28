@@ -167,7 +167,7 @@
     <div v-else>
       <div v-if="showArticleButtons" class="qpm_resultButtons">
         <button
-          v-if="hasAbstract || pmid || doi"
+          v-if="hasValidAbstract || pmid || doi"
           v-tooltip="{
             content: getString('hoverShowAbstractButton'),
             offset: 5,
@@ -370,31 +370,31 @@
             {{ getString("loadingText") }}
           </p>
           <p
-            v-else-if="!appSettings.openAi.useAi && !hasAbstract"
+            v-else-if="!appSettings.openAi.useAi && !hasValidAbstract"
             style="margin-left: 20px; margin-top: 15px"
           >
             {{ getString("summarizeArticleNotAvailable") }}
           </p>
           <p
-            v-else-if="!isPubTypeAllowed && !hasAbstract"
+            v-else-if="!isPubTypeAllowed && !hasValidAbstract"
             style="margin-left: 20px; margin-top: 15px"
           >
             {{ getString("summarizeArticleNotAvailable") }}
           </p>
           <p
-            v-else-if="!isLicenseAllowed && !hasAbstract"
+            v-else-if="!isLicenseAllowed && !hasValidAbstract"
             style="margin-left: 20px; margin-top: 15px"
           >
             {{ getString("summarizeArticleNotAvailable") }}
           </p>
           <p
-            v-else-if="!isResourceAllowed && !hasAbstract"
+            v-else-if="!isResourceAllowed && !hasValidAbstract"
             style="margin-left: 20px; margin-top: 15px"
           >
             {{ getString("summarizeArticleNotAvailable") }}
           </p>
           <p
-            v-else-if="isLicenseAllowed === undefined && !hasAbstract"
+            v-else-if="isLicenseAllowed === undefined && !hasValidAbstract"
             style="margin-left: 20px; margin-top: 15px"
           >
             {{ getString("summarizeArticleNotAvailable") }}
