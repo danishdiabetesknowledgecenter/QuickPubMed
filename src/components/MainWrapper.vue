@@ -890,28 +890,6 @@
         }
       },
       /**
-       * Updates the scope of a specific filter item.
-       *
-       * @param {Object} item - The filter item to update.
-       * @param {string} state - The new scope state.
-       * @param {number} index - The index of the filters array where the item resides.
-       */
-      updateFilterScope(item, state, index) {
-        const updatedFilters = JSON.parse(JSON.stringify(this.filters));
-
-        if (Array.isArray(updatedFilters) && updatedFilters[index]) {
-          const filter = updatedFilters[index].find((sub) => sub.name === item.name);
-          if (filter) {
-            filter.scope = state;
-          }
-          this.subjects = updatedFilters;
-          this.setUrl();
-          this.editForm();
-        } else {
-          console.error(`updateFilterScope: filters[${index}] is undefined or not an array.`);
-        }
-      },
-      /**
        * Updates the filters array and initializes filter data.
        *
        * @param {Array<Object>} value - The list of filter items to update.
