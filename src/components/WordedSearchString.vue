@@ -86,42 +86,43 @@
           <div class="qpm_hideonmobile" style="padding-top: 10px" />
           {{ getString("where") }}
         </span>
-        <div
-          v-for="(value, name, idx) in filters"
-          v-if="Object.keys(filters).length > 0"
-          :key="name"
-          class="qpm_searchStringFilterGroup"
-        >
-          <span v-if="idx > 0" class="qpm_searchStringGroupOperator">
-            {{ getString("andOperator").toLowerCase() }}
-          </span>
-          <span class="qpm_searchStringGroupWhere">
-            {{ getWordedFilterString(name) }} {{ getString("is") }}
-          </span>
-          <div v-if="value.length !== 0" class="qpm_searchStringWordGroup">
-            <div
-              v-for="(filterObj, idx2) in value"
-              :key="idx2"
-              class="qpm_searchStringWordGroupWrapper"
-            >
-              <span class="qpm_wordedStringSubject">
-                {{ getWordedFilterString(filterObj) }}
-              </span>
-              <span class="qpm_wordedStringOperator">
-                {{ getScope(filterObj) }}
-              </span>
-              <span v-if="idx2 < value.length - 1" class="qpm_searchStringOperator">
-                {{ getString("orOperator").toLowerCase() }}
-              </span>
+        <template v-if="Object.keys(filters).length > 0">
+          <div
+            v-for="(value, name, idx) in filters"
+            :key="name"
+            class="qpm_searchStringFilterGroup"
+          >
+            <span v-if="idx > 0" class="qpm_searchStringGroupOperator">
+              {{ getString("andOperator").toLowerCase() }}
+            </span>
+            <span class="qpm_searchStringGroupWhere">
+              {{ getWordedFilterString(name) }} {{ getString("is") }}
+            </span>
+            <div v-if="value.length !== 0" class="qpm_searchStringWordGroup">
+              <div
+                v-for="(filterObj, idx2) in value"
+                :key="idx2"
+                class="qpm_searchStringWordGroupWrapper"
+              >
+                <span class="qpm_wordedStringSubject">
+                  {{ getWordedFilterString(filterObj) }}
+                </span>
+                <span class="qpm_wordedStringOperator">
+                  {{ getScope(filterObj) }}
+                </span>
+                <span v-if="idx2 < value.length - 1" class="qpm_searchStringOperator">
+                  {{ getString("orOperator").toLowerCase() }}
+                </span>
+              </div>
+              <div class="qpm_halfBorder" />
             </div>
-            <div class="qpm_halfBorder" />
           </div>
-        </div>
+        </template>
       </div>
       <div v-else>
         <textarea
           ref="searchStringTextarea"
-          v-model="searchstring"
+          v-value="searchstring"
           v-tooltip.bottom="{
             content: getString('hoverSearchString'),
             offset: 5,
