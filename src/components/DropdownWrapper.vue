@@ -1232,12 +1232,13 @@
 
           const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
 
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done || this.stopGeneration) {
-              break;
+          let done = false;
+          while (!done && !this.stopGeneration) {
+            const { done: readerDone, value } = await reader.read();
+            done = readerDone;
+            if (value) {
+              answer += value;
             }
-            answer += value;
           }
           return answer;
         } catch (error) {
