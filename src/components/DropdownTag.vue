@@ -44,7 +44,7 @@
 
 <script>
   import { messages } from "@/assets/content/qpm-translations";
-  import { customInputTagTooltip } from "@/assets/content/qpm-content.js";
+  import { customInputTagTooltip } from "@/assets/content/qpm-content-utils.js";
   export default {
     name: "DropdownTag",
     props: {

@@ -1,17 +1,29 @@
 /**
+ * Represents a topic in the application.
+ * @typedef {Object} Topic
+ * @property {string} id - The unique identifier of the topic.
+ * @property {string} groupname - The name of the topic group.
+ * @property {Object} translations - The translations for different languages.
+ * @property {Object} ordering - The ascending sorting order, starting at 0.
+ * @property {Array<SubGroup>} groups - The subgroups associated with the topic.
+ */
 
-Explanation of properties for groups:
-
- * maintopic - indicates that this is a branch node and has children element 
- * subtopiclevel - indicates the depth of the element in the tree only used if a child node
- * maintopicIdLevel1 - the id of the parent element
- * maintopicIdLevel2 - the id of the grandparent element
- *
- * If an element is a child it has to refer to the parent element using the maintopicIdLevel1 property
- * If an element is a grandchild it has to refer to botht the parent and grandparent element using the maintopicIdLevel1 and maintopicIdLevel2  
- * 
- * The remaing properties are self-explanatory
-**/
+/**
+ * Represents a subject group within a topic.
+ * @typedef {Object} SubGroup
+ * @property {string} id - The unique identifier of the subject group.
+ * @property {string} name - The name of the subject group.
+ * @property {boolean} buttons - Indicates if buttons are used.
+ * @property {boolean} [maintopic] - Indicates if this is branch topic with children.
+ * @property {number} [subtopiclevel] - The level of nesting for the child toppic.
+ * @property {string} [maintopicIdLevel1] - The ID of the parent topic.
+ * @property {string} [maintopicIdLevel2] - The ID of the grand parent topic.
+ * @property {Object} translations - The translations for different languages.
+ * @property {Object} ordering - The ascending sorting order, starting at 0.
+ * @property {Object} [searchStrings] - Search strings for different scopes.
+ * @property {Object} [searchStringComment] - Comments about the search strings.
+ */
+/** @type {Array<Topic>} */
 export const topics = [
   {
     id: "S00",
@@ -20,10 +32,6 @@ export const topics = [
       dk: "Skabelonkategori",
       en: "Template category",
     },
-    // use null to mean unordered or any positive number to order this
-    // element using the number as a priority with lower number being
-    // higher priority (being shown earlier in the list).
-    //? Maybe use negative values to represent elements always sorted last
     ordering: { dk: 0, en: 0 },
     groups: [
       {

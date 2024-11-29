@@ -335,8 +335,9 @@
 <script>
   import { appSettingsMixin } from "@/mixins/appSettings";
   import { messages } from "@/assets/content/qpm-translations.js";
-  import { order, filtrer } from "@/assets/content/qpm-content.js";
+  import { filtrer } from "@/assets/content/qpm-content-filters.js";
   import { topics } from "@/assets/content/qpm-content-diabetes";
+  import { order } from "@/assets/content/qpm-content-order.js";
 
   export default {
     name: "SearchGallery",

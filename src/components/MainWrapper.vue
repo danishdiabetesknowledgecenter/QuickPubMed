@@ -148,7 +148,8 @@
   import SearchResult from "@/components/SearchResult.vue";
   import axios from "axios";
 
-  import { order, filtrer, scopeIds, customInputTagTooltip } from "@/assets/content/qpm-content.js";
+  import { filtrer } from "@/assets/content/qpm-content-filters.js";
+  import { order, scopeIds, customInputTagTooltip } from "@/assets/content/qpm-content-utils.js";
   import { topics } from "@/assets/content/qpm-content-diabetes";
   import { messages } from "@/assets/content/qpm-translations.js";
   import { appSettingsMixin } from "@/mixins/appSettings";

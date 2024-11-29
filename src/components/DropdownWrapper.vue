@@ -214,7 +214,8 @@
   import { appSettingsMixin } from "@/mixins/appSettings";
   import { messages } from "@/assets/content/qpm-translations.js";
   import { topics } from "@/assets/content/qpm-content-diabetes";
-  import { filtrer, customInputTagTooltip } from "@/assets/content/qpm-content";
+  import { filtrer } from "@/assets/content/qpm-content-filters";
+  import { customInputTagTooltip } from "@/assets/content/qpm-content-utils";
   import { getPromptForLocale, searchTranslationPrompt } from "@/assets/content/qpm-openAiPrompts";
 
   export default {

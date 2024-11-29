@@ -1,59 +1,35 @@
-// IT IS VERY IMPORTANT THAT GROUPNAME AND NAME ACROSS ALL GROUPS ARE UNIQUE!
-export const dateOptions = { year: "numeric", month: "long", day: "numeric" };
-
-export const languageFormat = {
-  da: "da-DK",
-  en: "en-GB",
-  de: "de-DR",
-};
-
-export const customInputTagTooltip = {
-  dk: "Klik for at redigere",
-  en: "Click to edit",
-};
-
-export const order = [
-  {
-    id: "O01",
-    method: "relevance",
-    translations: {
-      dk: "Sorter efter relevans",
-      en: "Sort by relevance",
-    },
-  },
-  {
-    id: "O02",
-    method: "date_desc",
-    translations: {
-      dk: "Vis nyeste først",
-      en: "Show newest first",
-    },
-  },
-  {
-    id: "O03",
-    method: "date_asc",
-    translations: {
-      dk: "Vis ældste først",
-      en: "Show oldest first",
-    },
-  },
-];
-
-export const pageSizes = [10, 25, 50];
-
-export const scopeIds = {
-  n: "narrow", //narrow
-  s: "normal", //standard
-  b: "broad", //broad
-};
+/**
+ * Represents a filter in the application.
+ * @typedef {Object} Filter
+ * @property {string} id - The unique identifier of the filter.
+ * @property {string} groupname - The name of the filter group.
+ * @property {Object} translations - The translations for different languages.
+ * @property {Object} ordering - The ordering information for different languages.
+ * @property {Array<Choice>} choices - The choices associated with the filter.
+ * @property {Object} tooltip - Tooltip information for different languages.
+ */
 
 /**
- * Lille parameterforklaring til properties i denne liste:
- * simpleSearch: boolean - angiver om et givent filter skal kunne bruges ved en simpel søgning.
- * standardSimple: boolean - angiver om et givent filter skal være præ-markeret ved en simpel søgning.
- *                          OBS: simpleSearch SKAL også være true for at dette kan lade sig gøre.
- * stringSearchComment: string - en kommentar om hvad filteret gør.
+ * Represents a group within a filter.
+ * @typedef {Object} Choice
+ * @property {string} id - The unique identifier of the filter choice.
+ * @property {string} name - The name of the filter choice.
+ * @property {boolean} buttons - Indicates if buttons are used.
+ * @property {boolean} [maintopic] - Indicates if this is a branch which has children.
+ * @property {number} [subtopiclevel] - The nested level of the filter.
+ * @property {string} [maintopicIdLevel1] - The ID of the parent.
+ * @property {string} [maintopicIdLevel2] - The ID of the grand parent.
+ * @property {Object} translations - The translations for different languages.
+ * @property {Object} ordering - The ordering information for different languages.
+ * @property {Object} [searchStrings] - Search strings for different scopes.
+ * @property {Object} [searchStringComment] - Comments about the search strings.
+ * @property {Object} tooltip - Tooltip information for different languages.
+ * @property {boolean} [simpleSearch] - Indicates if simple search is enabled.
+ * @property {boolean} [standardSimple] - Indicates if standard simple search is used.
+ * @property {Object} [tooltip_simple] - Simple tooltip information.
  */
+
+/** @type {Array<Filter>} */
 export const filtrer = [
   {
     id: "L00",
