@@ -789,7 +789,7 @@
         }, 50);
       },
       /**
-       * Adds a new subject to the subjects array and updates the UI accordingly.
+       * Adds a new subject to the subjects array and updates the UI accordingly by rendering another dropdown wrapper.
        *
        * This function performs the following steps:
        * 1. Checks if there is any empty subject in the subjects array.
