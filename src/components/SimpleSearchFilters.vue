@@ -6,7 +6,9 @@
     <div id="qpm_topofsearchbar" class="qpm_simpleFiltersContainer">
       <template v-for="option in filteredChoices">
         <template v-if="hasVisibleSimpleFilterOption(option.choices)">
-          <b class="qpm_simpleFiltersHeader"> {{ getCustomNameLabel(option) }}: </b>
+          <b :key="`label-${option.id}`" class="qpm_simpleFiltersHeader">
+            {{ getCustomNameLabel(option) }}:
+          </b>
           <div
             v-for="(choice, index) in option.choices"
             :id="'qpm_topic_' + choice.name"
@@ -38,7 +40,7 @@
               style="cursor: help"
             />
           </div>
-          <div class="qpm_simpleFiltersSpacer" />
+          <div :key="`spacer-${option.id}`" class="qpm_simpleFiltersSpacer" />
         </template>
       </template>
     </div>
