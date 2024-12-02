@@ -15,21 +15,27 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  css: {
+    // Disable CSS code splitting to bundle all CSS into one file
+    codeSplit: false,
+  },
   build: {
     outDir: "dist",
     rollupOptions: {
       input: {
         MainWrapper: path.resolve(__dirname, "views/main-wrapper.html"),
         SearchGallery: path.resolve(__dirname, "views/search-gallery.html"),
-        SpecificArticles: path.resolve(
-          __dirname,
-          "views/specific-articles.html"
-        ),
+        SpecificArticles: path.resolve(__dirname, "views/specific-articles.html"),
       },
       output: {
         entryFileNames: "assets/[name].js",
         chunkFileNames: "assets/[name].js",
-        assetFileNames: "assets/[name].[ext]",
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name && assetInfo.name.endsWith(".css")) {
+            return "assets/appSettings.css"; // Rename all CSS to appSettings.css
+          }
+          return "assets/[name].[ext]";
+        },
       },
     },
   },

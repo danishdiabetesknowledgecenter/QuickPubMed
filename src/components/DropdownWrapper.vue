@@ -2,7 +2,7 @@
   <div
     ref="selectWrapper"
     class="qpm_dropdown"
-    :class="{ 'hide-tags-wrap': hideTagsWrap }"
+    :class="{ 'qpm_hide-tags-wrap': hideTagsWrap }"
     @keydown.up.capture.prevent.stop="navUp"
     @keydown.down.capture.prevent.stop="navDown"
     @keydown.left.stop="navLeft"
@@ -1458,8 +1458,3 @@
     },
   };
 </script>
-<style scoped>
-  .hide-tags-wrap .multiselect__tags-wrap {
-    display: none;
-  }
-</style>

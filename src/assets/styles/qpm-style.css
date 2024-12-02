@@ -329,6 +329,10 @@ p.qpm_shownumber {
   flex-direction: column-reverse;
 }
 
+.qpm_hide-tags-wrap .multiselect__tags-wrap {
+  display: none;
+}
+
 .qpm_abstract {
   background-color: white;
   margin-top: 10px;
