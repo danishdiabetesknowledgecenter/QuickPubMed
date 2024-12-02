@@ -128,8 +128,16 @@ When a feature (or multiple consolidated features) should be deployed:
    - Deploy to the FTP server
    - Only the `dist` folder is deployed which contains the bundled code
 
-[The deployed app can be viewed here](https://qpm.videncenterfordiabetes.dk/dev/latest/)
+[The deployed app can be viewed here](https://pro.videncenterfordiabetes.dk/nempubmed/it-minds)
 
+If there are updates that should also be included in the same release, then simply create the new tag locally and push it to main branch
+
+```
+git checkout main
+git tag (to view all prior tags)
+git tag <tagname with bump to major, minor or patch number>
+git push origin --tags
+```
 ### GitHub Secrets
 
 The workflow uses the following secrets for secure deployment:
