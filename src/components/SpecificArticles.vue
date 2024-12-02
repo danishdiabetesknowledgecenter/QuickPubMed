@@ -100,7 +100,7 @@
   import { messages } from "@/assets/content/qpm-translations";
   import { abstractSummaryPrompts } from "@/assets/content/qpm-openAiPrompts.js";
   import { dateOptions, languageFormat } from "@/assets/content/qpm-content-utils";
-  import { order } from "@/assets/content/qpm-content-utils";
+  import { order } from "@/assets/content/qpm-content-order";
 
   export default {
     name: "SpecificArticles",
