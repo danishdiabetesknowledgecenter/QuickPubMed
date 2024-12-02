@@ -201,6 +201,14 @@ export const messages = {
     dk: "Skjul søgestreng",
     en: "Hide search string",
   },
+  showFilterCategory: {
+    dk: "Vis valgmuligheder",
+    en: "Show options",
+  },
+  hideFilterCategory: {
+    dk: "Skjul valgmuligheder",
+    en: "Hide options",
+  },
   is: {
     dk: "er",
     en: "is",
@@ -424,6 +432,10 @@ export const messages = {
   hoverDetailsText: {
     dk: "<div style='text-align: left; font-size: 0.9em; margin: 10px 0 0 0'><p>Her kan du:<ul style='list-style-position: outside; padding: 0 15px;'><li>få vist en læsevenlig udgave af din søgning</li><li>få vist PubMed-søgestrengen</li><li>gennemføre søgningen direkte i PubMed</li><li>oprette en overvågning.</li></ul></p></div>",
     en: "<div style='text-align: left; font-size: 0.9em; margin: 10px 0 0 0'><p>Options i 'Details':<ul style='list-style-position: outside; padding: 0 15px;'><li>show an easy-to-read version of your search;</li><li>show your PubMed search string;</li><li>run your search in PubMed; and</li><li>create an alert in PubMed.</li></ul></p></div>",
+  },
+  hoverShowFilterCategoryText: {
+    dk: "Klik her for at se og vælge afgrænsnings kategorier til søgning",
+    en: "Click to show categories for selecting filters for searching",
   },
   hoverShowSearchStringText: {
     dk: "Vis den søgestreng, som sendes til PubMed",

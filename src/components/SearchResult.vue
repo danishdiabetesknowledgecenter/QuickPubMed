@@ -393,7 +393,8 @@
     abstractSummaryPrompts,
     summarizeArticlePrompt,
   } from "@/assets/content/qpm-openAiPrompts";
-  import { languageFormat, dateOptions, pageSizes, order } from "@/assets/content/qpm-content";
+  import { languageFormat, dateOptions, pageSizes } from "@/assets/content/qpm-content-utils";
+  import { order } from "@/assets/content/qpm-content-order";
 
   export default {
     name: "SearchResult",

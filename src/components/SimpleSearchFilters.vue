@@ -6,7 +6,9 @@
     <div id="qpm_topofsearchbar" class="qpm_simpleFiltersContainer">
       <template v-for="option in filteredChoices">
         <template v-if="hasVisibleSimpleFilterOption(option.choices)">
-          <b class="qpm_simpleFiltersHeader"> {{ getCustomNameLabel(option) }}: </b>
+          <b :key="`label-${option.id}`" class="qpm_simpleFiltersHeader">
+            {{ getCustomNameLabel(option) }}:
+          </b>
           <div
             v-for="(choice, index) in option.choices"
             :id="'qpm_topic_' + choice.name"
@@ -21,7 +23,7 @@
               :checked="isFilterUsed(filterData[option.id], choice.name)"
               style="cursor: pointer"
               @change="onFilterChange(option.id, choice, $event)"
-              @keyup.enter="onFilterEnter(choice.name)"
+              @keyup.enter="onFilterEnter(option.id, choice, $event)"
             />
             <label :for="choice.name">
               {{ getCustomNameLabel(choice) }}
@@ -38,7 +40,7 @@
               style="cursor: help"
             />
           </div>
-          <div class="qpm_simpleFiltersSpacer" />
+          <div :key="`spacer-${option.id}`" class="qpm_simpleFiltersSpacer" />
         </template>
       </template>
     </div>
@@ -100,7 +102,9 @@
        * Emits the 'update-filter-enter' event with the selectedValue.
        * @param {String} selectedValue - The selected value within the filter.
        */
-      onFilterEnter(selectedValue) {
+      onFilterEnter(filterType, selectedValue, event) {
+        const isChecked = event.target.checked;
+        console.log("onFilterEnter", filterType, selectedValue, isChecked);
         this.$emit("update-filter-enter", selectedValue);
       },
       hasVisibleSimpleFilterOption(filters) {

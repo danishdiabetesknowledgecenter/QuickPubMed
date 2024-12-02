@@ -68,7 +68,8 @@
       },
       getString: {
         type: Function,
-        default: () => () => "",
+        required: true,
+        default: () => "",
       },
     },
     methods: {

@@ -193,7 +193,7 @@
 
   import { appSettingsMixin, eventBus } from "@/mixins/appSettings.js";
   import { messages } from "@/assets/content/qpm-translations.js";
-  import { languageFormat, dateOptions } from "@/assets/content/qpm-content.js";
+  import { languageFormat, dateOptions } from "@/assets/content/qpm-content-utils.js";
   import {
     summarizeSummaryPrompts,
     shortenAbstractPrompts,

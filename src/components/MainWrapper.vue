@@ -52,7 +52,7 @@
 
             <!-- The dropdown for selecting filters to be included in the advanced search -->
             <advanced-search-filters
-              v-if="advanced && showFilter && hasSubjects"
+              v-if="advanced && hasSubjects"
               ref="advancedSearchFilters"
               :advanced="advanced"
               :show-filter="showFilter"
@@ -148,8 +148,10 @@
   import SearchResult from "@/components/SearchResult.vue";
   import axios from "axios";
 
-  import { order, filtrer, scopeIds, customInputTagTooltip } from "@/assets/content/qpm-content.js";
+  import { scopeIds, customInputTagTooltip } from "@/assets/content/qpm-content-utils.js";
+  import { filtrer } from "@/assets/content/qpm-content-filters.js";
   import { topics } from "@/assets/content/qpm-content-diabetes";
+  import { order } from "@/assets/content/qpm-content-order.js";
   import { messages } from "@/assets/content/qpm-translations.js";
   import { appSettingsMixin } from "@/mixins/appSettings";
 
@@ -343,7 +345,6 @@
       this.updatePlaceholders();
       this.updateSubjectDropdownWidth();
       window.addEventListener("resize", this.updateSubjectDropdownWidth);
-      this.advanced = !this.advanced;
       this.prepareFilterOptions();
       this.prepareSubjectOptions();
       this.parseUrl();
@@ -788,7 +789,7 @@
         }, 50);
       },
       /**
-       * Adds a new subject to the subjects array and updates the UI accordingly.
+       * Adds a new subject to the subjects array and updates the UI accordingly by rendering another dropdown wrapper.
        *
        * This function performs the following steps:
        * 1. Checks if there is any empty subject in the subjects array.

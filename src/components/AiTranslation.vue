@@ -152,14 +152,15 @@
             const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
 
             this.loading = false;
-            this.writing = true;
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done || this.stopGeneration) {
-                break;
+            let done = false;
+
+            while (!done && !this.stopGeneration) {
+              const { done: readerDone, value } = await reader.read();
+              done = readerDone;
+              if (value) {
+                answer += value;
+                this.text = answer;
               }
-              answer += value;
-              this.text = answer;
             }
             this.writing = false;
           } catch (error) {

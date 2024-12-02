@@ -7,7 +7,6 @@
     <div id="qpm_topofsearchbar" class="qpm_flex">
       <dropdown-wrapper
         ref="filterDropdown"
-        :class="{ qpm_shown: !showFilter }"
         :is-multiple="true"
         :data="filterOptions"
         :hide-topics="hideTopics"
@@ -23,6 +22,7 @@
         :no-result-string="getString('noLimitDropdownContent')"
         :index="0"
         qpm-button-color2="qpm_buttonColor7"
+        :hide-tags-wrap="true"
         @input="handleFilterUpdate"
       />
     </div>
@@ -97,6 +97,12 @@
         required: true,
       },
     },
+    data() {
+      return {
+        showFilterCategory: false,
+      };
+    },
+
     methods: {
       /**
        * Retrieves the filter with the given name.
@@ -107,6 +113,7 @@
       getFilters(name) {
         return this.filters.find((filter) => filter.id === name) || {};
       },
+
       /**
        * Handles filter updates from dropdown-wrapper.
        * Emits 'update-advanced-filter' event with updated filters.

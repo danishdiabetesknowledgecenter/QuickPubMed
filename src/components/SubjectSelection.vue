@@ -52,23 +52,6 @@
         {{ getString("addsubjectlimit") }} {{ getString("addsubject") }}
       </button>
     </div>
-    <div v-if="advanced && !showFilter && hasSubjects" style="margin-bottom: 15px">
-      <!-- Button for adding limit -->
-      <button
-        v-tooltip="{
-          content: getString('hoverLimitButton'),
-          offset: 5,
-          delay: $helpTextDelay,
-        }"
-        class="qpm_slim multiselect__input"
-        style="padding: 4px 12px 4px 11px !important; height: 38px"
-        type="button"
-        :class="{ qpm_shown: showFilter }"
-        @click="toggle"
-      >
-        {{ getString("addsubjectlimit") }} {{ getString("addlimit") }}
-      </button>
-    </div>
   </div>
 </template>
 
