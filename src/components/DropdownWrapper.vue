@@ -2,6 +2,7 @@
   <div
     ref="selectWrapper"
     class="qpm_dropdown"
+    :class="{ 'hide-tags-wrap': hideTagsWrap }"
     @keydown.up.capture.prevent.stop="navUp"
     @keydown.down.capture.prevent.stop="navDown"
     @keydown.left.stop="navLeft"
@@ -232,6 +233,10 @@
       closeOnInput: Boolean,
       searchWithAI: Boolean,
       showScopeLabel: Boolean,
+      hideTagsWrap: {
+        type: Boolean,
+        default: false,
+      },
       index: undefined, //sometimes a string, sometimes an integer. You gotta love javascript for this
       data: {
         type: Array,
@@ -1453,3 +1458,8 @@
     },
   };
 </script>
+<style scoped>
+  .hide-tags-wrap .multiselect__tags-wrap {
+    display: none;
+  }
+</style>

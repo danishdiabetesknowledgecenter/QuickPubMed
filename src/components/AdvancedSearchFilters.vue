@@ -22,6 +22,7 @@
         :no-result-string="getString('noLimitDropdownContent')"
         :index="0"
         qpm-button-color2="qpm_buttonColor7"
+        :hide-tags-wrap="true"
         @input="handleFilterUpdate"
       />
     </div>
@@ -101,15 +102,7 @@
         showFilterCategory: false,
       };
     },
-    mounted() {
-      // Find the filters that are marked as isDefault and return them
-      const defaultFilters = this.filters.filter((filter) => filter.isDefault);
-      // Populate the filterData object with the default filters
-      defaultFilters.forEach((filter) => {
-        this.$set(this.filterData, filter.id, filter.selected);
-      });
-      console.log("defaultFilters", defaultFilters);
-    },
+
     methods: {
       /**
        * Retrieves the filter with the given name.
