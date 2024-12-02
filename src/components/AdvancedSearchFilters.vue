@@ -104,14 +104,12 @@
     },
     computed: {
       selectedCount() {
-        console.log(Object.keys(this.filterData).length);
         return Object.keys(this.filterData).length;
       },
       totalFilters() {
         return this.filterOptions.length;
       },
       placeholderWithCount() {
-        console.log(`${this.selectedCount}/${this.totalFilters} selected`);
         return `${this.showTitle} (${this.selectedCount}/${this.totalFilters})`;
       },
     },
@@ -154,7 +152,6 @@
        * @param {String} id - The identifier of the filter.
        */
       handleScopeUpdate(item, state, id) {
-        console.log("handleScopeUpdate", id, item, state);
         this.$emit("update-advanced-filter-scope", item, state, id);
       },
     },

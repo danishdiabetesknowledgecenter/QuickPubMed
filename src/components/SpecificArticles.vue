@@ -273,7 +273,6 @@
       }
     },
     mounted() {
-      console.log(`Mounted with ids: ${this.ids}`);
       if (this.componentNo == null) {
         this.componentId = this._uid;
       } else {

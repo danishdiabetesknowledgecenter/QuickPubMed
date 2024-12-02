@@ -1,3 +1,4 @@
+<!-- eslint-disable vue/no-v-html -->
 <template>
   <div ref="searchResult" class="qpm_SearchResult">
     <div v-if="results && results.length > 0" class="qpm_accordions">

@@ -152,12 +152,10 @@
       };
     },
     created() {
-      console.log("Attaching event listener for SummarizeArticleNoAbstract");
       this.$on("SummarizeArticleNoAbstract", this.handleOnSummarizeArticleNoAbstract);
     },
     methods: {
       handleOnSummarizeArticleNoAbstract(prompt) {
-        console.log("HandleOnSummarizeArticleNoAbstract", prompt);
         this.promptLanguageType = prompt.name;
         this.handleSummarizeArticle();
       },

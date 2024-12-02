@@ -1,3 +1,4 @@
+<!-- eslint-disable vue/no-v-html -->
 <template>
   <div ref="result" class="qpm_ResultEntry" :name="id">
     <loading-spinner :loading="loading" />
