@@ -38,7 +38,7 @@ export const messages = {
     en: "Add",
   },
   choselimits: {
-    dk: "Tilføj afgrænsning",
+    dk: "Vælg afgrænsning",
     en: "Add limit",
   },
   search: {

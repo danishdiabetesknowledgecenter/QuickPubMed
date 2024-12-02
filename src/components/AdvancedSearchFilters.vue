@@ -11,7 +11,7 @@
         :data="filterOptions"
         :hide-topics="hideTopics"
         :is-group="false"
-        :placeholder="showTitle"
+        :placeholder="placeholderWithCount"
         :operator="getString('andOperator')"
         :close-on-input="false"
         :language="language"
@@ -101,6 +101,19 @@
       return {
         showFilterCategory: false,
       };
+    },
+    computed: {
+      selectedCount() {
+        console.log(Object.keys(this.filterData).length);
+        return Object.keys(this.filterData).length;
+      },
+      totalFilters() {
+        return this.filterOptions.length;
+      },
+      placeholderWithCount() {
+        console.log(`${this.selectedCount}/${this.totalFilters} selected`);
+        return `${this.showTitle} (${this.selectedCount}/${this.totalFilters})`;
+      },
     },
 
     methods: {
