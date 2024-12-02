@@ -1,12 +1,12 @@
 <template>
   <div v-if="!details || details" class="qpm_wordedSearchString">
-    <div v-if="!isCollapsed" class="qpm_toggleDetails">
+    <div v-if="!isCollapsed" class="qpm_toggleDetails" style="box-shadow: inset 0 -1px 0 0 #e0e0e0">
       <p
         v-if="subjects !== ''"
         v-tooltip="{
           content: details && getString('hoverDetailsText'),
           offset: 5,
-          delay: helpTextDelay,
+          delay: $helpTextDelay,
         }"
         tabindex="0"
         data-html="true"
@@ -25,7 +25,7 @@
         v-tooltip="{
           content: getString('hoverShowSearchStringText'),
           offset: 5,
-          delay: helpTextDelay,
+          delay: $helpTextDelay,
         }"
         tabindex="0"
         class="qpm_advancedSearch"
@@ -40,7 +40,7 @@
         v-tooltip="{
           content: getString('hoverShowPrettyStringText'),
           offset: 5,
-          delay: helpTextDelay,
+          delay: $helpTextDelay,
         }"
         tabindex="0"
         class="qpm_advancedSearch"
@@ -122,12 +122,12 @@
       <div v-else>
         <textarea
           ref="searchStringTextarea"
-          v-value="searchstring"
           v-tooltip.bottom="{
             content: getString('hoverSearchString'),
             offset: 5,
-            delay: helpTextDelay,
+            delay: $helpTextDelay,
           }"
+          :value="searchstring"
           style="
             width: 100%;
             resize: vertical;
@@ -150,7 +150,7 @@
             v-tooltip="{
               content: getString('hoverShowPubMedLinkText'),
               offset: 5,
-              delay: helpTextDelay,
+              delay: $helpTextDelay,
               trigger: 'hover',
             }"
             target="_blank"
@@ -164,7 +164,7 @@
             v-tooltip="{
               content: getString('hoverShowPubMedLinkCreateAlertText'),
               offset: 5,
-              delay: helpTextDelay,
+              delay: $helpTextDelay,
               trigger: 'hover',
             }"
             target="_blank"
@@ -225,11 +225,6 @@
         type: String,
         default: "dk",
       },
-    },
-    data() {
-      return {
-        helpTextDelay: 300, // Define helpTextDelay or fetch from mixin
-      };
     },
     computed: {
       filterIsEmpty() {

@@ -286,6 +286,7 @@ export const filtrer = [
   {
     id: "L10",
     name: "Reviewtype",
+    isDefault: true,
     translations: {
       dk: "Reviewtype",
       en: "Review type",
@@ -595,6 +596,7 @@ export const filtrer = [
   {
     id: "L30",
     name: "Sprog",
+    isDefault: true,
     translations: {
       dk: "Sprog",
       en: "Language",
@@ -707,6 +709,7 @@ export const filtrer = [
   {
     id: "L40",
     name: "Geografi",
+    isDefault: true,
     translations: {
       dk: "Geografi",
       en: "Geography",
@@ -1235,6 +1238,7 @@ export const filtrer = [
   {
     id: "L70",
     name: "Andre afgrænsninger",
+    isDefault: true,
     translations: {
       dk: "Andre afgrænsninger",
       en: "Other limits",

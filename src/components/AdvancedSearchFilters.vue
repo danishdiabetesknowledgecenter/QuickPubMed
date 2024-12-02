@@ -7,7 +7,6 @@
     <div id="qpm_topofsearchbar" class="qpm_flex">
       <dropdown-wrapper
         ref="filterDropdown"
-        :class="{ qpm_shown: !showFilter }"
         :is-multiple="true"
         :data="filterOptions"
         :hide-topics="hideTopics"
@@ -97,6 +96,20 @@
         required: true,
       },
     },
+    data() {
+      return {
+        showFilterCategory: false,
+      };
+    },
+    mounted() {
+      // Find the filters that are marked as isDefault and return them
+      const defaultFilters = this.filters.filter((filter) => filter.isDefault);
+      // Populate the filterData object with the default filters
+      defaultFilters.forEach((filter) => {
+        this.$set(this.filterData, filter.id, filter.selected);
+      });
+      console.log("defaultFilters", defaultFilters);
+    },
     methods: {
       /**
        * Retrieves the filter with the given name.
@@ -107,6 +120,7 @@
       getFilters(name) {
         return this.filters.find((filter) => filter.id === name) || {};
       },
+
       /**
        * Handles filter updates from dropdown-wrapper.
        * Emits 'update-advanced-filter' event with updated filters.

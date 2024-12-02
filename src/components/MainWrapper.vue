@@ -52,7 +52,7 @@
 
             <!-- The dropdown for selecting filters to be included in the advanced search -->
             <advanced-search-filters
-              v-if="advanced && showFilter && hasSubjects"
+              v-if="advanced && hasSubjects"
               ref="advancedSearchFilters"
               :advanced="advanced"
               :show-filter="showFilter"
@@ -345,7 +345,6 @@
       this.updatePlaceholders();
       this.updateSubjectDropdownWidth();
       window.addEventListener("resize", this.updateSubjectDropdownWidth);
-      this.advanced = !this.advanced;
       this.prepareFilterOptions();
       this.prepareSubjectOptions();
       this.parseUrl();
