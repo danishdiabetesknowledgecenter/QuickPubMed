@@ -54,7 +54,7 @@
         {{ getString("youAreSearchingFor") }}
       </div>
       <div v-if="!advancedString">
-        <span>{{ getSearchPreString }}</span>
+        <span>{{ getSearchPreString }} </span>
         <div v-for="(group, idx) in subjects" :key="idx" class="qpm_searchStringSubjectGroup">
           <span
             v-if="idx > 0 && group.length !== 0 && idx !== checkFirstSubjectRender"

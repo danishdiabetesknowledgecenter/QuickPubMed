@@ -1,6 +1,6 @@
 <template>
   <div class="qpm_filterEntry" style="width: 110.7%">
-    <p>{{ customNameLabel(filterItem) }}</p>
+    <p>{{ customNameLabelWithCount }}</p>
     <dropdown-wrapper
       ref="dropdown"
       :is-multiple="true"
@@ -86,6 +86,11 @@
       },
       calcOrOperator() {
         return this.getString("orOperator");
+      },
+      customNameLabelWithCount() {
+        return `${this.customNameLabel(this.filterItem)} (${this.selected.length}/${
+          this.filterItem.choices.length
+        })`;
       },
     },
     mounted() {
