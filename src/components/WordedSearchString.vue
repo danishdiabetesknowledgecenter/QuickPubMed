@@ -58,7 +58,7 @@
         <div v-for="(group, idx) in subjects" :key="idx" class="qpm_searchStringSubjectGroup">
           <span
             v-if="idx > 0 && group.length !== 0 && idx !== checkFirstSubjectRender"
-            class="qpm_searchStringGroupOperator"
+            class="qpm_searchStringGroupOperator_NotApplied"
           >
             {{ getString("youAreSearchingForAnd") }}
           </span>
