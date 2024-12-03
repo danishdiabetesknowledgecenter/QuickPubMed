@@ -86,9 +86,9 @@
           <div class="qpm_hideonmobile" style="padding-top: 10px" />
           {{ getString("where") }}
         </span>
-        <template v-if="Object.keys(filters).length > 0">
+        <template v-if="activeFilters.length > 0">
           <div
-            v-for="(value, name, idx) in filters"
+            v-for="([name, value], idx) in activeFilters"
             :key="name"
             class="qpm_searchStringFilterGroup"
           >
@@ -227,6 +227,15 @@
       },
     },
     computed: {
+      /**
+       * Returns an array of [key, value] pairs from the filters object
+       * where the value array is not empty.
+       */
+      activeFilters() {
+        return Object.entries(this.filters).filter(
+          ([, value]) => Array.isArray(value) && value.length > 0
+        );
+      },
       filterIsEmpty() {
         if (this.filters) {
           let count = 0;
