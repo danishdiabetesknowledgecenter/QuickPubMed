@@ -21,7 +21,9 @@
   padding-left: 0 !important;
 }
 
-
+.qpm_visibilityHidden {
+  visibility: hidden;
+}
 
 .qpm_vapp button {
   min-width: min-content;

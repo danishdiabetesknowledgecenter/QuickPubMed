@@ -27,7 +27,7 @@
       />
     </div>
     <div class="qpm_flex">
-      <div class="qpm_filters" :class="{ qpm_shown: filters.length === 0 }">
+      <div class="qpm_filters" :class="{ qpm_visibilityHidden: Object.keys(filters).length === 0 }">
         <filter-entry
           v-for="(selected, id, index) in filterData"
           :key="id"
