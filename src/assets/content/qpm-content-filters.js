@@ -361,7 +361,7 @@ export const filtrer = [
       },
       {
         id: "L10030",
-        name: "L10030",
+        name: "Guidelines",
         buttons: false,
         translations: {
           dk: "Guidelines",

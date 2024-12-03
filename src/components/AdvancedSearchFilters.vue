@@ -29,13 +29,14 @@
     <div class="qpm_flex">
       <div class="qpm_filters" :class="{ qpm_shown: filters.length === 0 }">
         <filter-entry
-          v-for="(selected, id) in filterData"
+          v-for="(selected, id, index) in filterData"
           :key="id"
           :language="language"
           :filter-item="getFilters(id)"
           :idx="id"
           :hide-topics="hideTopics"
           :selected="selected"
+          :is-last="index === selectedCount - 1"
           @input="handleAdvancedFilterUpdate"
           @updateScope="handleScopeUpdate"
         />

@@ -695,6 +695,11 @@ input.multiselect__input[placeholder="Tilføj andre afgrænsninger"] {
   font-weight: 700;
 }
 
+.qpm_filterOperator {
+  font-size: 0.8em;
+  font-weight: 700;
+}
+
 .multiselect__input {
   display: inline-block !important;
   /*Show placeholder all the time*/

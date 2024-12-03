@@ -342,13 +342,19 @@
       window.removeEventListener("resize", this.updateSubjectDropdownWidth);
     },
     async mounted() {
+      this.advanced = !this.advanced;
+      this.advancedClick(true);
+      this.parseUrl();
+      this.isUrlParsed = true;
+
       this.updatePlaceholders();
       this.updateSubjectDropdownWidth();
       window.addEventListener("resize", this.updateSubjectDropdownWidth);
+
       this.prepareFilterOptions();
       this.prepareSubjectOptions();
-      this.parseUrl();
-      this.isUrlParsed = true;
+      this.advanced = !this.advanced;
+      this.advancedClick();
       this.searchPreselectedPmidai();
       await this.search();
     },

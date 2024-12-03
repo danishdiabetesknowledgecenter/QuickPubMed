@@ -1,6 +1,9 @@
 <template>
   <div class="qpm_filterEntry" style="width: 110.7%">
-    <p>{{ customNameLabelWithCount }}</p>
+    <p v-if="!isLast" class="qpm_filterOperator">
+      {{ getString("andOperator") }}
+    </p>
+    <p style="font-size: 0.9em">{{ customNameLabelWithCount }}</p>
     <dropdown-wrapper
       ref="dropdown"
       :is-multiple="true"
@@ -54,6 +57,10 @@
         default: function () {
           return [];
         },
+      },
+      isLast: {
+        type: Boolean,
+        default: false,
       },
     },
     data() {
