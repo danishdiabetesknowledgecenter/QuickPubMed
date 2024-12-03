@@ -322,7 +322,7 @@ p.qpm_shownumber {
   -webkit-box-shadow: inset 0 0 4px 0 rgba(0, 0, 0, 0.2);
   -moz-box-shadow: inset 0 0 4px 0 rgba(0, 0, 0, 0.2);
   box-shadow: inset 0 0 4px 0 rgba(0, 0, 0, 0.2);
-  padding: 10px 20px 20px 20px;
+  padding: 20px 10px 20px 10px;
   flex: 1;
   max-width: 100%;
   display: flex;
@@ -860,6 +860,12 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   padding-left: 7px;
   cursor: pointer;
   width: 30px;
+}
+
+.qpm_removeFilter {
+  font-size: 25px;
+  padding-left: 7px;
+  cursor: pointer;
 }
 
 .qpm_emptySpace {

@@ -1,31 +1,33 @@
 <template>
   <div class="qpm_flex">
-    <div class="qpm_filterEntry" style="width: 110.7%">
+    <div class="qpm_filterEntry" style="width: 100%">
       <p v-if="!isLast" class="qpm_filterOperator">
         {{ getString("andOperator") }}
       </p>
       <p style="font-size: 0.9em">{{ customNameLabelWithCount }}</p>
-      <dropdown-wrapper
-        ref="dropdown"
-        :is-multiple="true"
-        :data="filterItem.choices"
-        :hide-topics="hideTopics"
-        :is-group="false"
-        :placeholder="placeholderText"
-        :operator="calcOrOperator"
-        :taggable="filterItem.allowCustomInput"
-        :no-result-string="getString('noLimitDropdownContent')"
-        :selected="selected"
-        :index="idx"
-        :close-on-input="false"
-        :language="language"
-        qpm-button-color1="qpm_buttonColor4"
-        qpm-button-color2="qpm_buttonColor5"
-        qpm-button-color3="qpm_buttonColor6"
-        v-on="$listeners"
-      />
+      <div class="qpm_flex">
+        <dropdown-wrapper
+          ref="dropdown"
+          :is-multiple="true"
+          :data="filterItem.choices"
+          :hide-topics="hideTopics"
+          :is-group="false"
+          :placeholder="placeholderText"
+          :operator="calcOrOperator"
+          :taggable="filterItem.allowCustomInput"
+          :no-result-string="getString('noLimitDropdownContent')"
+          :selected="selected"
+          :index="idx"
+          :close-on-input="false"
+          :language="language"
+          qpm-button-color1="qpm_buttonColor4"
+          qpm-button-color2="qpm_buttonColor5"
+          qpm-button-color3="qpm_buttonColor6"
+          v-on="$listeners"
+        />
+        <i class="qpm_removeFilter bx bx-x" @click="removeFilterItem(filterItem.id)" />
+      </div>
     </div>
-    <i class="qpm_removeSubject bx bx-x" @click="removeFilterItem(filterItem.id)" />
   </div>
 </template>
 
