@@ -67,6 +67,7 @@
               @update-advanced-filter="updateFilters"
               @update-advanced-filter-entry="updateFilterAdvanced"
               @update-advanced-filter-scope="updateAdvancedFilterScope"
+              @remove-filter-item="removeFilterItem"
             />
 
             <!-- The radio buttons for filters to be included in the simple search -->
@@ -1051,23 +1052,20 @@
       updateAdvancedFilterScope(item, state, index) {
         // Create a deep copy of the filter data
         const sel = JSON.parse(JSON.stringify(this.filterData));
-        console.log("Item|", item);
-        console.log("Index|", index);
-        console.log("Selected Filter Data|", sel);
 
         // Check if sel[index] exists and is an array
         if (sel[index] && Array.isArray(sel[index])) {
-          if (!item.name) {
-            console.error("Item does not have a 'name' property:", item);
+          if (!item.id) {
+            console.error("Item does not have a 'id' property:", item);
             return;
           }
           // Find the item in the filter data and update its scope
-          const targetItem = sel[index].find((filterItem) => filterItem.name === item.name);
-          console.log("Target Item|", targetItem);
+          const targetItem = sel[index].find((filterItem) => filterItem.id === item.id);
+
           if (targetItem) {
             targetItem.scope = state;
           } else {
-            console.warn(`Item with name ${item.name} not found in sel[${index}]`);
+            console.warn(`Item with id ${item.id} not found in sel[${index}]`);
           }
         } else {
           console.error(`sel[${index}] is undefined or not an array`, sel[index]);
@@ -1078,6 +1076,49 @@
         this.filterData = sel;
         this.setUrl();
         this.editForm();
+      },
+
+      /**
+       * Removes a filter item from filterData based on the provided filterItemId.
+       *
+       * @param {String} filterItemId - The ID of the filter item to remove.
+       */
+      removeFilterItem(filterItemId) {
+        console.log("MainWrapper removeFilterItem", filterItemId);
+
+        // Create a shallow copy of filterData to avoid direct mutations
+        const updatedFilterData = { ...this.filterData };
+
+        // Iterate through each key in filterData
+        Object.keys(updatedFilterData).forEach((key) => {
+          // Filter out the item with the matching filterItemId
+          if (key === filterItemId)
+            // remove the key-value pair
+            delete updatedFilterData[key];
+        });
+
+        // Update the filterData with the filtered results
+        this.filterData = updatedFilterData;
+
+        // Create a shallow copy of filters to avoid direct mutations
+        const updatedFilters = [...this.filters];
+
+        // Iterate through each index of updatedFilters
+        updatedFilters.forEach((filter, index) => {
+          // Filter out the item with the matching filterItemId
+          if (filter.id === filterItemId)
+            // remove the item at the index
+            updatedFilters.splice(index, 1);
+        });
+
+        // Update the filters with the filtered results
+        this.filters = updatedFilters;
+
+        // Update the URL and form based on the new filterData
+        this.setUrl();
+        this.editForm();
+
+        console.log("Updated filterData:", this.filterData);
       },
 
       /**

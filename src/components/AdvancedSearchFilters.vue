@@ -39,6 +39,7 @@
           :is-last="index === selectedCount - 1"
           @input="handleAdvancedFilterUpdate"
           @updateScope="handleScopeUpdate"
+          @remove-filter-item="handleRemoveFilterItem"
         />
       </div>
     </div>
@@ -124,6 +125,11 @@
        */
       getFilters(name) {
         return this.filters.find((filter) => filter.id === name) || {};
+      },
+
+      handleRemoveFilterItem(filterItemId) {
+        console.log("AdvancedSearchFilters handleRemoveFilterItem", filterItemId);
+        this.$emit("remove-filter-item", filterItemId);
       },
 
       /**
