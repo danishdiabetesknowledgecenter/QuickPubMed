@@ -92,7 +92,7 @@
             :key="name"
             class="qpm_searchStringFilterGroup"
           >
-            <span v-if="idx > 0" class="qpm_searchStringGroupOperator">
+            <span v-if="idx > 0" class="qpm_searchStringGroupOperator_NotApplied">
               {{ getString("andOperator").toLowerCase() }}
             </span>
             <span class="qpm_searchStringGroupWhere">
