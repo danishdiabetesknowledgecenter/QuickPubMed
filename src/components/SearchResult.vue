@@ -6,7 +6,7 @@
       <accordion-menu
         v-if="appSettings.openAi.useAi"
         class="qpm_ai_hide"
-        @expanded-changed="onAiSummariesAccordionStateChange"
+        @expanded-changed="onAiSummariesAccordionStateChange(expanded)"
       >
         <template #header="accordionProps">
           <div class="qpm_aiAccordionHeader">
@@ -772,9 +772,7 @@
         this.hasAcceptedAi = false;
       },
       changeResultEntryModel(value, isChecked) {
-        console.log("changeResultEntryModel", value);
         let newValue = [...this.selectedEntries];
-        console.log("newValue", newValue);
         let valueIndex = newValue.findIndex(function (e) {
           return e === value || e.uid == value.uid;
         });

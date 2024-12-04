@@ -1588,7 +1588,6 @@
         return choice.tooltip_simple[this.language];
       },
       updatePreselectedPmidai(newValue) {
-        console.log("updatePreselectedPmidai", newValue);
         this.preselectedPmidai = (newValue ?? []).map(function (e) {
           return e.uid;
         });
