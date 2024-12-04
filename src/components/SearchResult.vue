@@ -2,9 +2,9 @@
 <template>
   <div ref="searchResult" class="qpm_SearchResult">
     <div v-if="results && results.length > 0" class="qpm_accordions">
-      <!--Accordion menu for the AI summaries of abstracts from multiple search results-->
+      <!-- Accordion menu for the AI summaries of abstracts from multiple search results -->
       <accordion-menu
-        v-if="results && results.length > 0 && appSettings.openAi.useAi"
+        v-if="appSettings.openAi.useAi"
         class="qpm_ai_hide"
         @expanded-changed="onAiSummariesAccordionStateChange"
       >
@@ -110,9 +110,8 @@
         </div>
       </accordion-menu>
 
-      <!--Accordion menu for the marked articles marked on result entry component-->
+      <!-- Accordion menu for the marked articles marked on result entry component -->
       <accordion-menu
-        v-if="results && results.length > 0"
         ref="articlesAccordion"
         :is-expanded="articleAcordionExpanded"
         :models="selectedEntries"
@@ -238,6 +237,7 @@
           </div>
         </template>
         <template #listItem="value">
+          <!-- These result-entries are shown under the marked articles accordion -->
           <result-entry
             :id="value.model.uid"
             ref="resultEntries"
@@ -262,7 +262,7 @@
             :selectable="entriesAlwaysSelectable || hasAcceptedAi"
             :abstract="getAbstract(value.model.uid)"
             :text="getText(value.model.uid)"
-            @change="changeResultEntryModel"
+            @change="changeResultEntryModel(value.model, value.checked)"
             @change:abstractLoad="onAbstractLoad"
             @loadAbstract="addIdToLoadAbstract"
           />
@@ -294,8 +294,13 @@
             </option>
           </select>
         </div>
-        <div style="border-left: 1px solid #e7e7e7" />
-        <div role="heading" aria-level="2" class="qpm_sortSelect qpm_spaceEvenly">
+
+        <div
+          role="heading"
+          aria-level="2"
+          class="qpm_sortSelect qpm_spaceEvenly"
+          style="border-left: 1px solid #e7e7e7"
+        >
           <select @change="changePageNumber($event)">
             <option
               v-for="size in getPageSizeProps"
@@ -452,7 +457,7 @@
         default: true,
       },
     },
-    data: function () {
+    data() {
       return {
         hasAcceptedAi: false,
         initialAiTab: null,
@@ -477,30 +482,30 @@
           }
         },
       },
-      lowDisabled: function () {
+      lowDisabled() {
         return this.low == 0 || this.loading;
       },
-      highDisabled: function () {
+      highDisabled() {
         return this.high >= this.total || this.loading;
       },
-      getPrettyTotal: function () {
+      getPrettyTotal() {
         let format = languageFormat[this.language];
         return this.total.toLocaleString(format);
       },
-      getOrderMethods: function () {
+      getOrderMethods() {
         return order;
       },
-      getPageSizeProps: function () {
+      getPageSizeProps() {
         return pageSizes;
       },
-      getShownSearchResults: function () {
+      getShownSearchResults() {
         if (this.results == null) return null;
         return this.results.slice(0, this.high);
       },
-      getHasSelectedArticles: function () {
+      getHasSelectedArticles() {
         return this.selectedEntries.length > 0;
       },
-      firstFiveArticlesWithAbstracts: function () {
+      firstFiveArticlesWithAbstracts() {
         const self = this;
         const resultsWithAbstract = this.getShownSearchResults.filter(function (result) {
           return self.getHasAbstract(result.attributes);
@@ -510,13 +515,16 @@
       },
     },
     watch: {
-      preselectedEntries: function (newVal) {
-        if (this.selectedEntries != null && this.selectedEntries.length > 0) return;
-
+      preselectedEntries(newVal) {
+        console.log("preselectedEntries", newVal);
+        if (this.selectedEntries != null && this.selectedEntries.length > 0) {
+          console.log("preselectedEntries is null or empty - returning", newVal);
+          return;
+        }
         this.selectedEntries = newVal;
       },
     },
-    updated: function () {
+    updated() {
       // Guards to avoid badges re-rendering on select/deselect
       if (!this.$refs.resultEntries || this.$refs.resultEntries.length == 0) {
         this.hasAcceptedAi = false;
@@ -542,23 +550,23 @@
         }
       }
     },
-    mounted: function () {
+    mounted() {
       eventBus.$on("result-entry-show-abstract", this.openArticlesAccordion);
     },
-    beforeUnmount: function () {
+    beforeUnmount() {
       eventBus.$off("result-entry-show-abstract", this.openArticlesAccordion);
     },
     methods: {
-      next: function () {
+      next() {
         this.$emit("high");
 
         this.badgesAdded = false;
         this.altmetricsAdded = false;
       },
-      previous: function () {
+      previous() {
         this.$emit("low");
       },
-      reloadScripts: function () {
+      reloadScripts() {
         //Remove divs and scripts from body so they wont affect performance
         let scripts = document.body.getElementsByTagName("script");
         var scriptArray = Array.from(scripts);
@@ -584,7 +592,7 @@
           containerArray[is].parentNode.removeChild(containerArray[is]);
         }
       },
-      getAbstract: function (id) {
+      getAbstract(id) {
         if (this.abstractRecords[id] != undefined) {
           if (typeof this.abstractRecords[id] !== "string") {
             return "";
@@ -593,7 +601,7 @@
         }
         return "";
       },
-      getAuthor: function (authors) {
+      getAuthor(authors) {
         let str = "";
         for (let i = 0; i < authors.length; i++) {
           if (i > 0) str += ",";
@@ -601,7 +609,7 @@
         }
         return str;
       },
-      getHasAbstract: function (attributes) {
+      getHasAbstract(attributes) {
         if (!attributes) {
           return false;
         }
@@ -615,7 +623,7 @@
         });
         return found;
       },
-      getDate: function (history) {
+      getDate(history) {
         for (let i = 0; i < history.length; i++) {
           if (history[i].pubstatus == "entrez") {
             let date = new Date(history[i].date);
@@ -626,7 +634,7 @@
         return "";
       },
       // getDoi ændret af Ole
-      getDoi: function (articleids) {
+      getDoi(articleids) {
         for (let i = 0; i < articleids.length; i++) {
           if (articleids[i].idtype == "doi") {
             let doi = articleids[i].value;
@@ -635,7 +643,7 @@
         }
         return "";
       },
-      getText: function (id) {
+      getText(id) {
         if (id != undefined) {
           if (
             this.abstractRecords[id] != undefined &&
@@ -646,7 +654,7 @@
         }
         return {};
       },
-      getSource: function (value) {
+      getSource(value) {
         try {
           if (this.source != undefined) {
             if (value != undefined) {
@@ -663,7 +671,7 @@
           return error;
         }
       },
-      newSortMethod: function (event) {
+      newSortMethod(event) {
         let obj = {};
         for (let j = 0; j < order.length; j++) {
           if (order[j].method == event.target.value) {
@@ -673,40 +681,40 @@
         }
         this.$emit("newSortMethod", obj);
       },
-      isSelected: function (model) {
+      isSelected(model) {
         return model == this.sort;
       },
-      isSelectedPageSize: function (model) {
+      isSelectedPageSize(model) {
         return model == this.pagesize;
       },
-      getString: function (string) {
+      getString(string) {
         const lg = this.language;
         let constant = messages[string][lg];
         return constant != undefined ? constant : messages[string]["dk"];
       },
-      getTranslation: function (value) {
+      getTranslation(value) {
         const lg = this.language;
         let constant = value.translations[lg];
         return constant != undefined ? constant : value.translations["dk"];
       },
-      changePageNumber: function (event) {
+      changePageNumber(event) {
         const newPageSize = pageSizes[parseInt(event.target.options.selectedIndex)];
         this.$emit("newPageSize", newPageSize);
       },
-      getComponentWidth: function () {
+      getComponentWidth() {
         let container = this.$refs.searchResult;
         if (!container) return;
 
         return parseInt(container.offsetWidth);
       },
-      addArticle: function (article) {
+      addArticle(article) {
         if (Object.prototype.hasOwnProperty.call(this.articles, article.pmid)) {
           delete this.articles[article.pmid];
         }
 
         this.$set(this.articles, article.pmid, article);
       },
-      getSelectedArticles: function () {
+      getSelectedArticles() {
         var resultEntries = this.$refs.resultEntries;
         var selectedArticles = [];
         var entriesForSummary =
@@ -726,19 +734,19 @@
         }
         return selectedArticles;
       },
-      getArticleDtoProvider: function () {
+      getArticleDtoProvider() {
         return this.getArticleDtos;
       },
-      getSearchSummaryPrompts: function () {
+      getSearchSummaryPrompts() {
         return searchSummaryPrompts;
       },
-      getAbstractSummaryPrompts: function () {
+      getAbstractSummaryPrompts() {
         return abstractSummaryPrompts;
       },
-      getAskQuestionsPrompts: function () {
+      getAskQuestionsPrompts() {
         return summarizeArticlePrompt;
       },
-      getSummarySuccessHeader: function () {
+      getSummarySuccessHeader() {
         const self = this;
 
         return function (selected, isMarkedArticlesSearch) {
@@ -756,14 +764,15 @@
           return before + selected.length + after;
         };
       },
-      clickAcceptAi: function (initialTab = null) {
+      clickAcceptAi(initialTab = null) {
         this.hasAcceptedAi = true;
         this.initialAiTab = initialTab;
       },
-      closeSummaries: function () {
+      closeSummaries() {
         this.hasAcceptedAi = false;
       },
-      changeResultEntryModel: function (value, isChecked) {
+      changeResultEntryModel(value, isChecked) {
+        console.log("changeResultEntryModel", value);
         let newValue = [...this.selectedEntries];
         console.log("newValue", newValue);
         let valueIndex = newValue.findIndex(function (e) {
@@ -787,18 +796,18 @@
         this.selectedEntries = newValue;
         this.$emit("change:selectedEntries", newValue);
       },
-      onAbstractLoad: function (id, abstract) {
+      onAbstractLoad(id, abstract) {
         Vue.set(this.abstractRecords, id, abstract);
       },
-      onAiSummariesClickRetry: function () {
+      onAiSummariesClickRetry() {
         this.$el.parentElement
           .querySelector("#qpm_topofsearchbar")
           .scrollIntoView({ behavior: "smooth" });
       },
-      onAiSummariesAccordionStateChange: function (expanded) {
+      onAiSummariesAccordionStateChange(expanded) {
         this.articleAcordionExpanded = expanded;
       },
-      openArticlesAccordion: function ({ $el }) {
+      openArticlesAccordion({ $el }) {
         const articlesAccordion = this.$refs.articlesAccordion;
         if (
           !this.articleAcordionExpanded &&
@@ -814,14 +823,15 @@
           this.onAiSummariesAccordionStateChange(true);
         }
       },
-      onArticleAccordionStateChange: function (expanded) {
+      onArticleAccordionStateChange(expanded) {
         this.articleAcordionExpanded = expanded;
       },
-      onDeselectAllArticles: function () {
+      onDeselectAllArticles() {
         this.selectedEntries = [];
+        this.articleAcordionExpanded = true;
         this.$emit("change:selectedEntries", this.selectedEntries);
       },
-      loadSelectedArticleBadges: function (article) {
+      loadSelectedArticleBadges(article) {
         if (window.__dimensions_embed) {
           window.__dimensions_embed.addBadges();
         }
@@ -831,19 +841,19 @@
           window._altmetric_embed_init(articleBody);
         }
       },
-      shouldResultArticlePreloadAbstract: function (article) {
+      shouldResultArticlePreloadAbstract(article) {
         const isInFirstFive = this.firstFiveArticlesWithAbstracts.some(function (value) {
           return value.uid == article.uid;
         });
         return isInFirstFive;
       },
-      addIdToLoadAbstract: function (id) {
+      async addIdToLoadAbstract(id) {
         this.idswithAbstractsToLoad.push(id);
         if (this.results[this.results.length - 1].uid == id) {
-          this.loadAbstracts();
+          await this.loadAbstracts();
         }
       },
-      loadAbstracts: async function () {
+      async loadAbstracts() {
         const self = this;
         let nlm = this.appSettings.nlm;
         let baseurl =
