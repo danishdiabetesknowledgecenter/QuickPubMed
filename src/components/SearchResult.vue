@@ -2,6 +2,7 @@
 <template>
   <div ref="searchResult" class="qpm_SearchResult">
     <div v-if="results && results.length > 0" class="qpm_accordions">
+      <!--Accordion menu for the AI summaries of abstracts from multiple search results-->
       <accordion-menu
         v-if="results && results.length > 0 && appSettings.openAi.useAi"
         class="qpm_ai_hide"
@@ -86,7 +87,8 @@
                 </button>
                 <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryConsentText')" />
               </div>
-              <!-- AI summaries of abstracts from multiple search results -->
+
+              <!-- AI summaries of abstracts from inside multiple search results -->
               <ai-summaries
                 v-else
                 :show-summarize-article="false"
@@ -108,6 +110,7 @@
         </div>
       </accordion-menu>
 
+      <!--Accordion menu for the marked articles marked on result entry component-->
       <accordion-menu
         v-if="results && results.length > 0"
         ref="articlesAccordion"
@@ -762,7 +765,7 @@
       },
       changeResultEntryModel: function (value, isChecked) {
         let newValue = [...this.selectedEntries];
-        console.log(this.selectedEntries);
+        console.log("newValue", newValue);
         let valueIndex = newValue.findIndex(function (e) {
           return e === value || e.uid == value.uid;
         });

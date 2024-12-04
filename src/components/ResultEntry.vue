@@ -803,7 +803,7 @@
         default: false,
       },
     },
-    data: function () {
+    data() {
       // Added by Ole
       if (document.getElementById("qpm_start") != null) {
         document.getElementById("qpm_start").scrollIntoView({ behavior: "smooth" });
@@ -840,10 +840,10 @@
       computedTitle() {
         return this.getTitle || this.getBookTitle || this.getVernacularTitle || "";
       },
-      getIsPubTypeAllowed: function () {
+      getIsPubTypeAllowed() {
         return this.isPubTypeAllowed;
       },
-      getPromptLanguageType: function () {
+      getPromptLanguageType() {
         return this.initialAiTab.name;
       },
       getIsLicenseAllowed() {
@@ -852,7 +852,7 @@
       getIsResourceAllowed() {
         return this.isResourceAllowed;
       },
-      getUsePDFsummaryFlag: function () {
+      getUsePDFsummaryFlag() {
         return this.appSettings.openAi.usePDFsummary;
       },
       getButtonText() {
@@ -864,10 +864,10 @@
           return this.showingAbstract ? this.getString("hideInfo") : this.getString("showInfo");
         }
       },
-      getComponentWidth: function () {
+      getComponentWidth() {
         return this.checkIfMobile || (this.parentWidth < 520 && this.parentWidth != 0);
       },
-      getPubMedLink: function () {
+      getPubMedLink() {
         return (
           "https://pubmed.ncbi.nlm.nih.gov/" +
           this.pmid +
@@ -877,12 +877,12 @@
           ""
         );
       },
-      getDoiLink: function () {
+      getDoiLink() {
         if (this.doi) {
           return "https://doi.org/" + this.doi;
         } else return "";
       },
-      getPubmedRelated: function () {
+      getPubmedRelated() {
         return (
           "https://pubmed.ncbi.nlm.nih.gov/?" +
           "myncbishare=" +
@@ -891,7 +891,7 @@
           this.pmid
         );
       },
-      getPubmedRelatedReviews: function () {
+      getPubmedRelatedReviews() {
         return (
           "https://pubmed.ncbi.nlm.nih.gov/?" +
           "myncbishare=" +
@@ -900,7 +900,7 @@
           this.pmid
         );
       },
-      getPubmedAlsoViewed: function () {
+      getPubmedAlsoViewed() {
         return (
           "https://pubmed.ncbi.nlm.nih.gov/?" +
           "myncbishare=" +
@@ -909,7 +909,7 @@
           this.pmid
         );
       },
-      getUnpaywall: function () {
+      getUnpaywall() {
         if (this.doi) {
           return "https://unpaywall.org/" + this.doi;
         } else return "";
@@ -917,7 +917,7 @@
       /**
        * Check api response for the url for the pdf version of the article
        */
-      getHasOaPdf: function () {
+      getHasOaPdf() {
         if (!this.unpaywallResponse) return false;
         if (!this.unpaywallResponse["best_oa_location"]) return false;
 
@@ -936,7 +936,7 @@
       /**
        * Check api response for the url for the html version of the article
        */
-      getHasOaHtml: function () {
+      getHasOaHtml() {
         if (!this.unpaywallResponse) return false;
         if (!this.unpaywallResponse["best_oa_location"]) return false;
 
@@ -953,24 +953,24 @@
         return true;
       },
 
-      getOaHtml: function () {
+      getOaHtml() {
         if (this.getHasOaHtml) {
           return this.unpaywallResponse.best_oa_location.url_for_landing_page;
         } else return "";
       },
-      getOaPdf: function () {
+      getOaPdf() {
         if (this.getHasOaPdf) {
           return this.unpaywallResponse.best_oa_location.url;
         } else return "";
       },
-      getGoogleScholar: function () {
+      getGoogleScholar() {
         if (this.pmid != null) {
           return "https://scholar.google.com/scholar_lookup?pmid=" + this.pmid;
         } else {
           return "https://scholar.google.com/scholar_lookup?doi=" + this.doi;
         }
       },
-      getTitle: function () {
+      getTitle() {
         var div = document.createElement("div");
         div.innerHTML = this.title;
         var text = div.textContent || div.innerText || "";
@@ -978,13 +978,13 @@
         return text.replace(/<\/?[^>]+(>|$)/g, "");
       },
       // Added by Ole (getBookTitle and getVernacularTitle also added in template)
-      getBookTitle: function () {
+      getBookTitle() {
         var div = document.createElement("div");
         div.innerHTML = this.booktitle;
         var text = div.textContent || div.innerText || "";
         return text.replace(/<\/?[^>]+(>|$)/g, "");
       },
-      getVernacularTitle: function () {
+      getVernacularTitle() {
         if (this.vernaculartitle) {
           var div = document.createElement("div");
           div.innerHTML = this.vernaculartitle;
@@ -992,7 +992,7 @@
           return text.replace(/<\/?[^>]+(>|$)/g, "");
         } else return "";
       },
-      calculateAuthors: function () {
+      calculateAuthors() {
         let authorArray = this.author.split(",");
         if (!this.shownSixAuthors || authorArray.length <= 6) return this.author;
         let shownAuthors = "";
@@ -1003,18 +1003,12 @@
         shownAuthors += ", et al";
         return shownAuthors;
       },
-      getScreenWidth: function () {
+      getScreenWidth() {
         var width =
           window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
-
-        /* var heigth =
-        window.innerHeight ||
-        document.documentElement.clientHeight ||
-        document.body.clientHeight;
-      Unused variable */
         return width;
       },
-      checkIfMobile: function () {
+      checkIfMobile() {
         let check = false;
         (function (a) {
           if (
@@ -1029,28 +1023,28 @@
         })(navigator.userAgent || navigator.vendor || window.opera);
         return check;
       },
-      mobileResult: function () {
+      mobileResult() {
         if (this.getDoiLink) return { "flex-direction": "row" };
         else return "";
       },
-      showArticleButtons: function () {
+      showArticleButtons() {
         return this.showButtons;
       },
-      usePubMed: function () {
+      usePubMed() {
         if (this.id == this.pmid) return true;
         return false;
       },
-      getAbstractId: function () {
+      getAbstractId() {
         let divName = this.getAbstractDivName;
         return divName + "_" + this._uid;
       },
-      getHyperLink: function () {
+      getHyperLink() {
         return this.hyperLink;
       },
-      getAbstractDivName: function () {
+      getAbstractDivName() {
         return this.id != null ? "abstract_" + this.id : "custom";
       },
-      getSource: function () {
+      getSource() {
         var source = this.source || "";
         var pubDate = this.pubDate || "";
         var sourceDateSeperator = source && pubDate ? ". " : "";
@@ -1059,7 +1053,7 @@
         var pages = ":" + this.pages || "";
         return source + sourceDateSeperator + pubDate + volume + issue + pages;
       },
-      getAbstract: function () {
+      getAbstract() {
         var abstract = "";
 
         if (this.abstract) {
@@ -1078,7 +1072,7 @@
 
         return abstract.trim();
       },
-      getArticle: function () {
+      getArticle() {
         var article = JSON.parse(
           JSON.stringify({
             title: this.getTitle,
@@ -1100,17 +1094,17 @@
         return this.modelValue;
       },
       // eslint-disable-next-line vue/no-async-in-computed-properties
-      getArticlesPromise: async function () {
+      getArticles() {
         var articles = [this.getArticle];
         // eslint-disable-next-line vue/no-async-in-computed-properties
-        return Promise.resolve(articles);
+        return articles;
       },
     },
     watch: {
-      abstract: function () {
+      abstract() {
         this.$emit("articleUpdated", this.getArticle);
       },
-      text: function () {
+      text() {
         this.$emit("articleUpdated", this.getArticle);
       },
       async unpaywallResponseLoaded(newVal) {
@@ -1135,7 +1129,7 @@
       // Inject Dimension and Altmetric scripts if they are not already present
       this.ensureThirdPartyScripts();
     },
-    mounted: function () {
+    mounted() {
       // This is to ensure all badges to be loaded properly
       // given there are multiple occurrences of <specific-articles/>
 
@@ -1150,10 +1144,10 @@
 
       eventBus.$on("result-entry-show-abstract", this.onEventBusShowAbstractEvent);
     },
-    beforeUpdate: function () {
+    beforeUpdate() {
       this.checkPreload();
     },
-    beforeUnmount: function () {
+    beforeUnmount() {
       eventBus.$off("result-entry-show-abstract", this.onEventBusShowAbstractEvent);
       this.$parent.$off("abstractLoadeds", this.setAbstract);
     },
@@ -1327,10 +1321,10 @@
         console.log(`my id is: ${this.id}`);
       },
       //This is needed because AI-summaries expects a function to get the article and it gets stuck in a loop if you pass the articles directly
-      getArticleAsArray: function () {
+      getArticleAsArray() {
         return [this.getArticle];
       },
-      showAbstract: async function (ignoreToggle = false) {
+      async showAbstract(ignoreToggle = false) {
         this.showingAbstract = ignoreToggle === true || !this.showingAbstract;
 
         //scroll up to header if closing
@@ -1356,10 +1350,10 @@
           await this.loadUnpaywallApiResponse();
         }
       },
-      gotosite: function (url) {
+      gotosite(url) {
         window.open(url, "_blank");
       },
-      collapseSection: function (element) {
+      collapseSection(element) {
         // get the height of the element's inner content, regardless of its actual size
         //var sectionHeight = element.scrollHeight;
 
@@ -1380,7 +1374,7 @@
         // mark the section as "currently collapsed"
         element.setAttribute("data-collapsed", "true");
       },
-      expandSection: function (element) {
+      expandSection(element) {
         // get the height of the element's inner content, regardless of its actual size
         var sectionHeight = element.scrollHeight;
 
@@ -1399,7 +1393,7 @@
         // mark the section as "currently not collapsed"
         element.setAttribute("data-collapsed", "false");
       },
-      handleClickEvent: function () {
+      handleClickEvent() {
         let eventClass = this.abstractLoaded ? "qpm_shadow" : "qpm_abstractContainer";
         var section = document.querySelector(eventClass);
         var isCollapsed = section.getAttribute("data-collapsed") === "true";
@@ -1411,17 +1405,17 @@
           this.collapseSection(section);
         }
       },
-      getString: function (string) {
+      getString(string) {
         const lg = this.language;
         let constant = messages[string][lg];
         return constant != undefined ? constant : messages[string]["dk"];
       },
-      getTranslation: function (value) {
+      getTranslation(value) {
         const lg = this.language;
         let constant = value.translations[lg];
         return constant != undefined ? constant : value.translations["dk"];
       },
-      customNameLabel: function (option) {
+      customNameLabel(option) {
         if (!option.name && !option.groupname) return;
         let constant;
         if (option.id) {
@@ -1435,13 +1429,13 @@
         }
         return constant;
       },
-      customGroupLabel: function (option) {
+      customGroupLabel(option) {
         if (!option) return;
         const lg = this.language;
         let constant = option.translations[lg];
         return constant != undefined ? constant : option.translations["dk"];
       },
-      loadUnpaywallApiResponse: async function () {
+      async loadUnpaywallApiResponse() {
         if (!this.doi) return undefined;
 
         let self = this;
@@ -1465,10 +1459,10 @@
             console.debug(err);
           });
       },
-      getAbstractSummaryPrompts: function () {
+      getAbstractSummaryPrompts() {
         return abstractSummaryPrompts;
       },
-      getPdfQuestionPrompts: function () {
+      getPdfQuestionPrompts() {
         let pdfPrompts = [];
         for (let i = 0; i < this.pdfQuestions.length; i++) {
           let prompt = JSON.parse(JSON.stringify(summarizeArticlePrompt));
@@ -1478,48 +1472,48 @@
         }
         return pdfPrompts;
       },
-      getSummarizeArticlePrompt: function () {
+      getSummarizeArticlePrompt() {
         return summarizeArticlePrompt;
       },
-      getAllPrompts: function () {
+      getAllPrompts() {
         let temp = this.getAbstractSummaryPrompts().concat(this.getPdfQuestionPrompts());
         return temp;
       },
-      updateInput: function (event) {
+      updateInput(event) {
         let isChecked = event.target.checked;
         console.log("isChecked: ", isChecked);
         console.log("this.value", this.value);
         this.$emit("change", this.value, isChecked);
       },
-      clickAcceptAi: function (initialTab = null) {
+      clickAcceptAi(initialTab = null) {
         this.hasAcceptedAi = true;
-        this.getArticlesPromise; // Start loading article abstracts now if not already loaded
+        this.getArticles;
         this.initialAiTab = initialTab;
         console.log(this.initialAiTab.name);
       },
-      clickAcceptAiNoAbstract: function (prompt) {
+      clickAcceptAiNoAbstract(prompt) {
         this.hasAcceptedAi = true;
         this.$refs.SummarizeArticleNoAbstractComponent.$emit("SummarizeArticleNoAbstract", prompt);
         console.log("emitting SummarizeArticleNoAbstract", prompt);
         console.log("Prompt name: ", prompt.name);
       },
-      closeSummaries: function () {
+      closeSummaries() {
         this.hasAcceptedAi = false;
       },
-      checkPreload: function () {
+      checkPreload() {
         if (!this.abstractLoaded && this.preLoadAbstract && !this.loading) {
           let showSpinner = false;
           this.loadAbstract(showSpinner);
         }
       },
-      onEventBusShowAbstractEvent: function (args) {
+      onEventBusShowAbstractEvent(args) {
         if (args.$el != this.$el) return;
         this.showAbstract(true);
       },
-      onAiSummariesClickRetry: function () {
+      onAiSummariesClickRetry() {
         this.$el.scrollIntoView({ behavior: "smooth" });
       },
-      changeOnEnter: function (event) {
+      changeOnEnter(event) {
         event.target.click();
       },
     },
