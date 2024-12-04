@@ -642,7 +642,7 @@
 
 <script>
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
-  import AccordionMenu from "@/components/Accordion.vue";
+  import AccordionMenu from "@/components/AccordionMenu.vue";
   import AiSummaries from "@/components/AiSummaries.vue";
   import SummarizeArticleNoAbstract from "@/components/SummarizeArticleNoAbstract.vue";
   import AiTranslation from "@/components/AiTranslation.vue";
@@ -1487,6 +1487,8 @@
       },
       updateInput: function (event) {
         let isChecked = event.target.checked;
+        console.log("isChecked: ", isChecked);
+        console.log("this.value", this.value);
         this.$emit("change", this.value, isChecked);
       },
       clickAcceptAi: function (initialTab = null) {

@@ -99,7 +99,7 @@
 </template>
 
 <script>
-  import AccordionMenu from "@/components/Accordion.vue";
+  import AccordionMenu from "@/components/AccordionMenu.vue";
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
   import QuestionForArticle from "@/components/QuestionForArticle.vue";
 

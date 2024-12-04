@@ -54,7 +54,7 @@
                 />
                 <p v-if="selectedEntries.length > 0">
                   {{ getString("aiSearchSummarySelectedArticlesBefore") }}
-                  <strong>{{ selectedEntries.length }}</strong>
+                  <strong>{{ selectedEntries.length }} </strong>
                   <span v-if="selectedEntries.length == 1">
                     <strong>{{ getString("aiSearchSummarySelectedArticlesAfterSingular") }}</strong>
                   </span>
@@ -380,7 +380,7 @@
 </template>
 
 <script>
-  import AccordionMenu from "@/components/Accordion.vue";
+  import AccordionMenu from "@/components/AccordionMenu.vue";
   import ResultEntry from "@/components/ResultEntry.vue";
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
   import AiSummaries from "@/components/AiSummaries.vue";
@@ -762,6 +762,7 @@
       },
       changeResultEntryModel: function (value, isChecked) {
         let newValue = [...this.selectedEntries];
+        console.log(this.selectedEntries);
         let valueIndex = newValue.findIndex(function (e) {
           return e === value || e.uid == value.uid;
         });
