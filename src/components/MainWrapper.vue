@@ -356,7 +356,7 @@
       this.prepareSubjectOptions();
       this.advanced = !this.advanced;
       this.advancedClick();
-      this.searchPreselectedPmidai();
+      await this.searchPreselectedPmidai();
       await this.search();
     },
     methods: {
@@ -1289,7 +1289,7 @@
 
           this.count = parseInt(esearchResponse.data.esearchresult.count, 10);
           this.searchresult = data;
-          this.searchPreselectedPmidai();
+          await this.searchPreselectedPmidai();
           this.searchLoading = false;
 
           // Update UI and focus
@@ -1414,7 +1414,7 @@
           this.searchresult = [...(this.searchresult || []), ...data];
 
           // Handle any preselected PMIDs (if applicable)
-          this.searchPreselectedPmidai();
+          await this.searchPreselectedPmidai();
 
           // Reset the loading state
           this.searchLoading = false;
@@ -1467,15 +1467,12 @@
        *
        * @function
        */
-      searchPreselectedPmidai() {
-        let self = this;
-        this.searchByIds(this.preselectedPmidai)
-          .then(function (entries) {
-            self.preselectedEntries = entries;
-          })
-          .catch(function (err) {
-            console.error(err);
-          });
+      async searchPreselectedPmidai() {
+        try {
+          this.preselectedEntries = await this.searchByIds(this.preselectedPmidai);
+        } catch (err) {
+          console.error(err);
+        }
       },
       /**
        * Displays a generic search error message to the user.
@@ -1590,6 +1587,7 @@
         return choice.tooltip_simple[this.language];
       },
       updatePreselectedPmidai(newValue) {
+        console.log("updatePreselectedPmidai", newValue);
         this.preselectedPmidai = (newValue ?? []).map(function (e) {
           return e.uid;
         });
