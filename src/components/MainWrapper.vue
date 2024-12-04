@@ -527,6 +527,7 @@
 
             case "pmidai":
               this.preselectedPmidai = values;
+              console.log(`Preselected PMIDs: ${this.preselectedPmidai}`);
               break;
 
             default:
