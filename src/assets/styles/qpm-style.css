@@ -444,6 +444,11 @@ p.qpm_shownumber {
   border-color: transparent;
 }
 
+button.qpm_slim.multiselect__input:focus {
+  outline: 3px solid #000000;
+  outline-offset: 1px;
+}
+
 .qpm_button:disabled {
   border: 1px solid #ddd !important;
   background-color: transparent;
