@@ -123,20 +123,20 @@ When a feature (or multiple consolidated features) should be deployed:
 1. Create PR from `dev` to `main`
 2. Review and merge PR (include relevant info in title and description)
 3. [Create a new release, with a new tag](https://github.com/danishdiabetesknowledgecenter/QuickPubMed/releases)
-4. The new release will trigger the GitHub Actions automatically which will:
+4. The new tag will trigger the GitHub Actions automatically which will:
    - Build the application
    - Deploy to the FTP server
    - Only the `dist` folder is deployed which contains the bundled code
 
 [The deployed app can be viewed here](https://pro.videncenterfordiabetes.dk/nempubmed/it-minds)
 
-If there are updates that should also be included in the same release, then simply create the new tag locally and push it to main branch
+If there are updates that should also be included in the same release, then create the new tag locally and push it to origin
 
 ```
 git checkout main
-git tag (to view all prior tags)
-git tag <tagname with bump to major, minor or patch number>
-git push origin --tags
+git tag (to view prior local tags, or find latest tag on github)
+git tag <new-tag-name> (eg. v2.1.12)
+git push origin <new-tag-name>
 ```
 ### GitHub Secrets
 
