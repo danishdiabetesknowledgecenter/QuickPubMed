@@ -46,7 +46,7 @@
               style="display: inline"
               class="qpm_translateTitleLink qpm_ai_hide"
             >
-              <a v-if="language != 'en'" @click="toggleTranslation">
+              <a v-if="language != 'en'" href="#" @click.prevent="toggleTranslation">
                 {{
                   translationShowing
                     ? getString("hideTranslatedTitle")
