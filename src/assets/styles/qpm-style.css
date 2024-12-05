@@ -1854,6 +1854,11 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   height: 0;
 }
 
+.qpm_switch input:focus + .qpm_slider {
+  outline: 3px solid #000000;
+  outline-offset: 1px;
+}
+
 .qpm_slider {
   position: absolute;
   cursor: pointer;
@@ -1876,6 +1881,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   background-color: white;
   -webkit-transition: 0.4s;
   transition: 0.4s;
+  border-radius: 50%;
 }
 
 input:checked + .qpm_slider {
