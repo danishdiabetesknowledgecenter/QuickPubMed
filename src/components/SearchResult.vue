@@ -6,7 +6,7 @@
       <accordion-menu
         v-if="appSettings.openAi.useAi"
         class="qpm_ai_hide"
-        @expanded-changed="onAiSummariesAccordionStateChange(expanded)"
+        @expanded-changed="onAiSummariesAccordionStateChange"
       >
         <template #header="accordionProps">
           <div class="qpm_aiAccordionHeader">
@@ -113,7 +113,7 @@
       <!-- Accordion menu for the marked articles marked on result entry component -->
       <accordion-menu
         ref="articlesAccordion"
-        :is-expanded="articleAcordionExpanded"
+        :is-expanded="isSelectedArticleAccordionExpanded"
         :models="selectedEntries"
         :open-by-default="preselectedEntries != null && preselectedEntries.length > 0"
         :only-update-model-when-visible="true"
@@ -467,7 +467,8 @@
         idswithAbstractsToLoad: [],
         abstractRecords: {}, // id, abstract
         articles: {},
-        articleAcordionExpanded: undefined,
+        isSummarizeArticlesAcordionExpanded: false,
+        isSelectedArticleAccordionExpanded: false,
       };
     },
     computed: {
@@ -530,7 +531,7 @@
         this.hasAcceptedAi = false;
         this.badgesAdded = false;
         this.altmetricsAdded = false;
-        this.articleAcordionExpanded = false;
+        this.isSummarizeArticlesAcordionExpanded = false;
         this.reloadScripts();
         return;
       }
@@ -802,13 +803,18 @@
           .querySelector("#qpm_topofsearchbar")
           .scrollIntoView({ behavior: "smooth" });
       },
+      /**
+       * @param {boolean} expanded
+       * @returns {void}
+       * @description Callback for when the AI summaries accordion state changes.
+       */
       onAiSummariesAccordionStateChange(expanded) {
-        this.articleAcordionExpanded = expanded;
+        this.isSummarizeArticlesAcordionExpanded = expanded;
       },
       openArticlesAccordion({ $el }) {
         const articlesAccordion = this.$refs.articlesAccordion;
         if (
-          !this.articleAcordionExpanded &&
+          !this.isSummarizeArticlesAcordionExpanded &&
           articlesAccordion != null &&
           !articlesAccordion.expanded
         ) {
@@ -822,11 +828,10 @@
         }
       },
       onArticleAccordionStateChange(expanded) {
-        this.articleAcordionExpanded = expanded;
+        this.isSelectedArticleAccordionExpanded = expanded;
       },
       onDeselectAllArticles() {
         this.selectedEntries = [];
-        this.articleAcordionExpanded = true;
         this.$emit("change:selectedEntries", this.selectedEntries);
       },
       loadSelectedArticleBadges(article) {
