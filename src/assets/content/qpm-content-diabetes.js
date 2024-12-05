@@ -306,8 +306,6 @@ export const topics = [
         id: "S10020",
         name: "S10020",
         buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S10010",
         translations: {
           dk: "Type 1-diabetes",
           en: "Type 1 diabetes",
@@ -336,8 +334,6 @@ export const topics = [
         name: "S10030",
         buttons: true,
         maintopic: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S10010",
         translations: {
           dk: "Type 2-diabetes",
           en: "Type 2 diabetes",
@@ -365,9 +361,6 @@ export const topics = [
         id: "S10040",
         name: "S10040",
         buttons: true,
-        subtopiclevel: 2,
-        maintopicIdLevel1: "S10030",
-        maintopicIdLevel2: "S10010",
         translations: {
           dk: "Graviditetsdiabetes",
           en: "Gestastional diabetes",
@@ -395,9 +388,6 @@ export const topics = [
         id: "S10050",
         name: "S10050",
         buttons: true,
-        subtopiclevel: 2,
-        maintopicIdLevel1: "S10030",
-        maintopicIdLevel2: "S10010",
         translations: {
           dk: "Prædiabetes",
           en: "Pre-diabetes",
