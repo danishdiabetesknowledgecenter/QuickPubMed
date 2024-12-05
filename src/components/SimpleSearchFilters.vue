@@ -23,7 +23,7 @@
               :checked="isFilterUsed(filterData[option.id], choice.name)"
               style="cursor: pointer"
               @change="onFilterChange(option.id, choice, $event)"
-              @keyup.enter="onFilterEnter(option.id, choice, $event)"
+              @keyup.enter="onFilterEnter(choice)"
             />
             <label :for="choice.name">
               {{ getCustomNameLabel(choice) }}
@@ -99,10 +99,10 @@
       },
       /**
        * Handles the Enter key event on a filter checkbox.
-       * Emits the 'update-filter-enter' event with the selectedValue.
-       * @param {String} selectedValue - The selected value within the filter.
+       * Emits the 'update-filter-enter' event with the selectedValue (choice).
+       * @param {String} selectedValue - The selected choice from the filter.
        */
-      onFilterEnter(filterType, selectedValue) {
+      onFilterEnter(selectedValue) {
         this.$emit("update-filter-enter", selectedValue);
       },
       hasVisibleSimpleFilterOption(filters) {
