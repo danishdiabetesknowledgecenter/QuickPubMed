@@ -333,7 +333,6 @@ export const topics = [
         id: "S10030",
         name: "S10030",
         buttons: true,
-        maintopic: true,
         translations: {
           dk: "Type 2-diabetes",
           en: "Type 2 diabetes",
