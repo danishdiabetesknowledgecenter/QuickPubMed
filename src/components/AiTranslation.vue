@@ -112,8 +112,6 @@
     },
     methods: {
       async showTranslation() {
-        console.log(`Translation Loaded: ${this.translationLoaded}, Loading: ${this.loading}`);
-
         if (!this.translationLoaded && !this.loading) {
           this.loading = true; // Set loading state
           try {
@@ -132,7 +130,6 @@
         return constant !== undefined ? constant : messages[string]["dk"];
       },
       async translateTitle(showSpinner = true) {
-        console.log("Translating title", this.title);
         this.loading = showSpinner;
         this.stopGeneration = false;
         const openAiServiceUrl = `${this.appSettings.openAi.baseUrl}/api/TranslateTitle`;

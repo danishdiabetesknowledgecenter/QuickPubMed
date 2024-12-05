@@ -517,9 +517,7 @@
     },
     watch: {
       preselectedEntries(newVal) {
-        console.log("preselectedEntries", newVal);
         if (this.selectedEntries != null && this.selectedEntries.length > 0) {
-          console.log("preselectedEntries is null or empty - returning", newVal);
           return;
         }
         this.selectedEntries = newVal;
@@ -875,7 +873,7 @@
           const { config, message } = err;
 
           if (!config || !config.retry) {
-            console.log("request retried too many times", config.url);
+            console.warn("request retried too many times", config.url);
             return Promise.reject(err);
           }
 
@@ -936,7 +934,7 @@
             return articleData;
           })
           .catch(function (err) {
-            console.log("Error in fetch from pubMed:", err);
+            console.error("Error in fetch from pubMed:", err);
           });
 
         loadData.then((v) => {

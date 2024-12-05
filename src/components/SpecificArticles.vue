@@ -299,7 +299,6 @@
         }
       },
       UnsuccessfullCall(value) {
-        console.log(value);
         this.faltedIds.push(value);
       },
       setOrder(input) {

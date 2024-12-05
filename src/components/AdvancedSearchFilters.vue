@@ -128,7 +128,6 @@
       },
 
       handleRemoveFilterItem(filterItemId) {
-        console.log("AdvancedSearchFilters handleRemoveFilterItem", filterItemId);
         this.$emit("remove-filter-item", filterItemId);
       },
 

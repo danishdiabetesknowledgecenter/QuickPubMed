@@ -138,12 +138,12 @@
           this.errorMessage = undefined;
           this.isLoadingResponse = true;
           if (this.pdfUrl) {
-            console.log("PDF article URL: ", this.pdfUrl);
+            console.info("PDF article URL: ", this.pdfUrl);
             await this.getQuestionPDFArticle();
           }
 
           if (this.htmlUrl && !this.pdfUrl) {
-            console.log("HTML article URL: ", this.htmlUrl);
+            console.info("HTML article URL: ", this.htmlUrl);
             await this.getQuestionHTMLArticle();
           }
         } catch (error) {

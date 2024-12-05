@@ -527,7 +527,6 @@
 
             case "pmidai":
               this.preselectedPmidai = values;
-              console.log(`Preselected PMIDs: ${this.preselectedPmidai}`);
               break;
 
             default:
@@ -558,7 +557,6 @@
             const translationFlag = rawName.slice(-1);
             const isTranslated = translationFlag === "1";
             const name = isTranslated || translationFlag === "0" ? rawName.slice(0, -1) : rawName;
-            console.log(`isTranslated: ${isTranslated}, name: ${name}`);
 
             const tag = {
               name: name,
@@ -570,7 +568,6 @@
               isCustom: true,
               tooltip: customInputTagTooltip,
             };
-            console.log(`Parsed custom input: ${tag.name}`, tag);
             selected.push(tag);
             return;
           }
@@ -1085,8 +1082,6 @@
        * @param {String} filterItemId - The ID of the filter item to remove.
        */
       removeFilterItem(filterItemId) {
-        console.log("MainWrapper removeFilterItem", filterItemId);
-
         // Create a shallow copy of filterData to avoid direct mutations
         const updatedFilterData = { ...this.filterData };
 
@@ -1118,8 +1113,6 @@
         // Update the URL and form based on the new filterData
         this.setUrl();
         this.editForm();
-
-        console.log("Updated filterData:", this.filterData);
       },
 
       /**

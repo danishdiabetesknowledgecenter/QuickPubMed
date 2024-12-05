@@ -114,7 +114,6 @@
     },
     methods: {
       removeFilterItem(filterItemId) {
-        console.log("FilterEntry removeFilterItem", filterItemId);
         this.$emit("remove-filter-item", filterItemId);
       },
       getString(string) {

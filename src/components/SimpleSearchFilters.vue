@@ -102,9 +102,7 @@
        * Emits the 'update-filter-enter' event with the selectedValue.
        * @param {String} selectedValue - The selected value within the filter.
        */
-      onFilterEnter(filterType, selectedValue, event) {
-        const isChecked = event.target.checked;
-        console.log("onFilterEnter", filterType, selectedValue, isChecked);
+      onFilterEnter(filterType, selectedValue) {
         this.$emit("update-filter-enter", selectedValue);
       },
       hasVisibleSimpleFilterOption(filters) {

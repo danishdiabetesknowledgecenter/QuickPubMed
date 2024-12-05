@@ -929,7 +929,7 @@
         }
 
         this.setPdfUrl(url_for_pdf);
-        console.log("url_for_pdf:", this.pdfUrl);
+        console.info("url_for_pdf:", this.pdfUrl);
 
         return true;
       },
@@ -949,7 +949,7 @@
         }
 
         this.setHtmlUrl(url_for_landing_page);
-        console.log("url_for_landing_page", this.htmlUrl);
+        console.info("url_for_landing_page", this.htmlUrl);
         return true;
       },
 
@@ -1262,8 +1262,8 @@
           return false;
         }
         this.isPubTypeAllowed = !this.pubType.includes("Editorial");
-        console.log("pubtype: ", this.pubType);
-        console.log("isPubTypeAllowed: ", this.isPubTypeAllowed);
+        console.info("pubtype: ", this.pubType);
+        console.info("isPubTypeAllowed: ", this.isPubTypeAllowed);
         return this.isPubTypeAllowed;
       },
       /**
@@ -1280,8 +1280,8 @@
           "cc0",
           "public-domain",
         ].includes(license);
-        console.log("license: ", this.license);
-        console.log("isLicenseAllowed: ", this.isLicenseAllowed);
+        console.info("license: ", this.license);
+        console.info("isLicenseAllowed: ", this.isLicenseAllowed);
         return this.isLicenseAllowed;
       },
       /**
@@ -1302,7 +1302,7 @@
           const pdfresponse = await fetch(openAiServiceUrl, options);
           const isAllowed = pdfresponse.status !== 403;
           this.isResourceAllowed = isAllowed;
-          console.log("isResourceAllowed:", this.isResourceAllowed);
+          console.info("isResourceAllowed:", this.isResourceAllowed);
           return isAllowed;
         } catch (error) {
           console.error("Error checking resource:", error);
@@ -1318,7 +1318,7 @@
         this.htmlUrl = url;
       },
       setAbstract() {
-        console.log(`my id is: ${this.id}`);
+        console.info(`my id is: ${this.id}`);
       },
       //This is needed because AI-summaries expects a function to get the article and it gets stuck in a loop if you pass the articles directly
       getArticleAsArray() {
@@ -1487,13 +1487,10 @@
         this.hasAcceptedAi = true;
         this.getArticles;
         this.initialAiTab = initialTab;
-        console.log(this.initialAiTab.name);
       },
       clickAcceptAiNoAbstract(prompt) {
         this.hasAcceptedAi = true;
         this.$refs.SummarizeArticleNoAbstractComponent.$emit("SummarizeArticleNoAbstract", prompt);
-        console.log("emitting SummarizeArticleNoAbstract", prompt);
-        console.log("Prompt name: ", prompt.name);
       },
       closeSummaries() {
         this.hasAcceptedAi = false;

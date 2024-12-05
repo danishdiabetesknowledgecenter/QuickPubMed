@@ -404,17 +404,6 @@
         };
       },
     },
-    watch: {
-      isLicenseAllowed(newVal) {
-        console.log("isLicenseAllowed changed:", newVal);
-      },
-      isResourceAllowed(newVal) {
-        console.log("isResourceAllowed changed:", newVal);
-      },
-      isPubTypeAllowed(newVal) {
-        console.log("isPubTypeAllowed changed:", newVal);
-      },
-    },
     created() {
       if (this.checkForPdf) {
         this.articleName = this.getSelectedArticles()[0].title;

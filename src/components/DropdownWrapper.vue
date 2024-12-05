@@ -976,7 +976,7 @@
         this.input(this.selected, -1);
       },
       handleEditTag() {
-        console.log("editTag");
+        console.info("handleEditTag");
       },
       /**
        * Stops the propagation and default action of an event under certain conditions.

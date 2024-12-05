@@ -126,7 +126,6 @@
         this.tag.tooltip = customInputTagTooltip;
 
         const editInput = this.$refs.editInput;
-        console.log("StartEDIT");
         this.$nextTick(() => {
           editInput.focus();
         });

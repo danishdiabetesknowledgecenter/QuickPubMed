@@ -339,7 +339,6 @@
           }
           return constant;
         } catch (e) {
-          console.log(string, e);
           return string.translations["dk"];
         }
       },
