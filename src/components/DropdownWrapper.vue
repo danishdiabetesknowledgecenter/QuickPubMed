@@ -1245,9 +1245,6 @@
           const allToggled = this.areMaintopicsToggled(currentSubjectOptionGroupId);
           if (allToggled === true) {
             dropdownRef.pointer = dropdownRef.pointer - navDistance;
-            console.log(
-              `NAV_UP | ${currentSubject.name} | all maintopics toggled | ${dropdownRef.pointer}`
-            );
             return;
           }
 
@@ -1256,9 +1253,6 @@
             // Case: base topic and maintopic
             if (currentSubject.maintopic) {
               dropdownRef.pointer = dropdownRef.pointer - 1;
-              console.log(
-                `NAV_UP | ${currentSubject.name} | BaseTopic + maintopic | ${dropdownRef.pointer}`
-              );
               return;
             }
 
@@ -1270,17 +1264,13 @@
             );
 
             const toggledMaintopic = this.areMaintopicsToggled(currentSubjectOptionGroupId);
-            console.log("ToggledMaintopic", toggledMaintopic);
+
             if (toggledMaintopic.length === 1) {
               dropdownRef.pointer = dropdownRef.pointer - 1;
-              console.log(
-                `NAV_UP | ${currentSubject.name} | BaseTopic + sibling maintopic toggled | ${dropdownRef.pointer}`
-              );
               return;
             }
 
             dropdownRef.pointer = dropdownRef.pointer - siblings.length;
-            console.log(`NAV_UP | ${currentSubject.name} | BaseTopic | ${dropdownRef.pointer}`);
             return;
           }
 
@@ -1288,9 +1278,6 @@
           if (optionsAtDepth.length > 0) {
             if (currentSubject.maintopic) {
               dropdownRef.pointer = dropdownRef.pointer - 1;
-              console.log(
-                `NAV_UP | ${currentSubject.name} | not BaseTopic | ${dropdownRef.pointer}`
-              );
               return;
             }
 
@@ -1302,11 +1289,7 @@
 
               if (isGrandParentToggled && !isParentToggled) {
                 var parentChildren = this.getMaintopicChildren(currentSubject.maintopicIdLevel2);
-                console.log("ParentChildren", parentChildren);
                 dropdownRef.pointer = dropdownRef.pointer - parentChildren.length;
-                console.log(
-                  `NAV_UP | ${currentSubject.name} | not BaseTopic + grandparent toggled | ${dropdownRef.pointer}`
-                );
                 return;
               }
             }
@@ -1315,23 +1298,13 @@
             if (currentSubject.maintopicIdLevel1) {
               const isParentToggled = this.maintopicToggledMap[currentSubject.maintopicIdLevel1];
               if (isParentToggled) {
-                // Check if any sibling maintopics are NOT toggled, then we have to skip their children
-                const notToggledMaintopic = this.areMaintopicsToggled(
-                  currentSubjectOptionGroupId,
-                  false
-                );
-
                 dropdownRef.pointer = dropdownRef.pointer - 1;
-                console.log(
-                  `NAV_UP | ${currentSubject.name} | not BaseTopic + parent toggled | ${dropdownRef.pointer}`
-                );
                 return;
               }
             }
 
             const pointerIndex = dropdownRef.pointer - optionsAtDepth.length;
             dropdownRef.pointer = pointerIndex;
-            console.log(`NAV_UP | ${currentSubject.name} | catch all | ${dropdownRef.pointer}`);
             return;
           }
         }
