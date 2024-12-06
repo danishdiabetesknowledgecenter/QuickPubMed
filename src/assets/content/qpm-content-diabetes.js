@@ -36,7 +36,7 @@ export const topics = [
     groups: [
       {
         id: "S00010",
-        name: "S00010",
+        name: "Emne 1",
         buttons: true,
         translations: {
           dk: "Emne 1",
@@ -62,7 +62,7 @@ export const topics = [
       },
       {
         id: "S00020",
-        name: "S00020",
+        name: "Emne 2",
         buttons: true,
         maintopic: true, // Angiver at dette element er en branch og har children elementer
         translations: {
@@ -80,7 +80,7 @@ export const topics = [
       },
       {
         id: "S00030",
-        name: "S00030",
+        name: "Emne 2.1",
         buttons: true,
         maintopic: true, // Angiver at dette element er en branch og har children elementer
         subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midderste niveau)
@@ -100,7 +100,7 @@ export const topics = [
       },
       {
         id: "S00040",
-        name: "S00040",
+        name: "Emne 2.1.1",
         buttons: true,
         subtopiclevel: 2, // Angiver at dette punkt ligger på 2. niveau (nedereste niveau)
         maintopicIdLevel1: "S00030", // Angiver at dette element har et parent med dette id. (Emne 2.1)
@@ -129,7 +129,7 @@ export const topics = [
       },
       {
         id: "S00050",
-        name: "S00050",
+        name: "Emne 2.1.2",
         buttons: true,
         subtopiclevel: 2, // Angiver at dette punkt ligger på 3. niveau
         maintopicIdLevel1: "S00030", // Angiver at dette element har et parent med dette id. (Emne 2.1)
@@ -158,7 +158,7 @@ export const topics = [
       },
       {
         id: "S00060",
-        name: "S00060",
+        name: "Emne 2.1.3",
         buttons: true,
         subtopiclevel: 2, // Angiver at dette punkt ligger på 3. niveau
         maintopicIdLevel1: "S00020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
@@ -187,7 +187,7 @@ export const topics = [
       },
       {
         id: "S00070",
-        name: "S00070",
+        name: "Emne 2.2",
         buttons: true,
         subtopiclevel: 1, // Angiver at dette punkt ligger på 2. niveau
         maintopicIdLevel1: "S00020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
@@ -215,7 +215,7 @@ export const topics = [
       },
       {
         id: "S00080",
-        name: "S00080",
+        name: "Emne 2.3",
         buttons: true,
         subtopiclevel: 1, // Angiver at dette punkt ligger på 2. niveau
         maintopicIdLevel1: "S00020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
@@ -243,7 +243,7 @@ export const topics = [
       },
       {
         id: "S00090",
-        name: "S00090",
+        name: "Emne 3",
         buttons: true,
         translations: {
           dk: "Emne 3",

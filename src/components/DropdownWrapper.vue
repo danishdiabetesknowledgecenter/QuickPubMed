@@ -746,14 +746,15 @@
         const children = [];
         topics.forEach((topic) => {
           topic.groups.forEach((group) => {
-            if (group.maintopicIdLevel1 === maintopicId) {
-              children.push(group);
-            }
-            if (group.maintopicIdLevel2 === maintopicId) {
+            if (
+              group.maintopicIdLevel1 === maintopicId ||
+              group.maintopicIdLevel2 === maintopicId
+            ) {
               children.push(group);
             }
           });
         });
+
         return children;
       },
       /**
@@ -764,9 +765,10 @@
        * @param {number} depth - The depth level to retrieve options from.
        * @param {string} [optionGroupId=null] - (Optional) The group ID to filter options.
        * @param {boolean} [includeChildren=false] - (Optional) Whether to include maintopic children.
+       * @param {boolean} [baseTopic=false] - (Optional) Whether to include siblings for base topics.
        * @returns {Array} - The filtered and possibly expanded options.
        */
-      getOptionsAtDepth(depth, optionGroupId = null, includeChildren = false) {
+      getOptionsAtDepth(depth, optionGroupId = null, includeChildren = false, baseTopic = false) {
         let siblings = [];
         let _topics = topics;
 
@@ -775,7 +777,7 @@
           _topics = _topics.filter((topic) => topic.id === optionGroupId);
         }
 
-        // Find all options at same depth as depth parameter
+        // Case: the topic is not baseTopic since it's at a depth greater than zero
         _topics.forEach((topic) => {
           topic.groups.forEach((group) => {
             if (group.subtopiclevel === depth) {
@@ -784,7 +786,16 @@
           });
         });
 
-        // If includeChildren is true, include children of a sibling that is a maintopic if maintopic is not toggled
+        // Case: the topic is baseTopic since it's at depth zero
+        if (baseTopic && depth === 0) {
+          _topics.forEach((topic) => {
+            topic.groups.forEach((group) => {
+              if (!group.maintopic) siblings.push(group);
+            });
+          });
+        }
+
+        // Case: Include children where a maintopic is toggled
         if (includeChildren) {
           const childrenOptions = [];
 
@@ -810,7 +821,7 @@
        * return true if all maintopics are toggled
        * @param {String} optionGroupId - The Id (eg. S00) of the optiongroup to check
        */
-      areMaintopicsToggled(optionGroupId) {
+      areMaintopicsToggled(optionGroupId, getToggled = true) {
         // find the optiongroup
         const _topics = topics.find((topic) => topic.id === optionGroupId);
         let maintopics = [];
@@ -829,7 +840,13 @@
             allToggled = false;
           }
         });
-        return allToggled;
+        if (allToggled) return true;
+
+        // if not all maintopics are toggled return the ones that are toggled or not toggled based on getToggled flag
+        if (getToggled) {
+          return maintopics.filter((maintopic) => this.maintopicToggledMap[maintopic.id]);
+        }
+        return maintopics.filter((maintopic) => !this.maintopicToggledMap[maintopic.id]);
       },
 
       /**
@@ -1143,12 +1160,12 @@
 
         var currentSubject = dropdownRef.filteredOptions[dropdownRef.pointer];
         var isGroup = currentSubject["$groupLabel"] != null;
-
         var isMaintopic = currentSubject.maintopic;
         var isCurrentExpandedGroup = false;
         var navDistance;
         var subject;
 
+        // Logic for navigating over the topic groups
         if (!isGroup && isMaintopic) {
           // Check if the ID of the currentSubject is a key in maintopicToggledMap
           const isMaintopicToggled = this.maintopicToggledMap[currentSubject.id];
@@ -1160,6 +1177,8 @@
             return;
           }
         }
+
+        // Logic for navigating over the topic (dark blue background)
         if (isGroup) {
           var label = this.customGroupLabelById(currentSubject.$groupLabel);
           subject = this.getSortedSubjectOptions.find(function (e) {
@@ -1213,45 +1232,111 @@
         var isGroup = currentSubject["$groupLabel"] != null;
         var navDistance = 1;
 
+        // Logic for navigating over the topic groups
         if (!isGroup) {
-          console.log("CurrentSubject depth", currentSubject.subtopiclevel || 0);
           var currentSubjectOptionGroupId = currentSubject.id.substring(0, 3);
-
           var optionsAtDepth = this.getOptionsAtDepth(
             currentSubject.subtopiclevel || 0,
             currentSubjectOptionGroupId,
             true
           );
 
-          // Default case when all maintopics are toggled
+          // Case: default when all maintopics are toggled
           const allToggled = this.areMaintopicsToggled(currentSubjectOptionGroupId);
-          if (allToggled) {
-            console.log("All maintopics toggled, navigating with 1 step");
+          if (allToggled === true) {
             dropdownRef.pointer = dropdownRef.pointer - navDistance;
+            console.log(
+              `NAV_UP | ${currentSubject.name} | all maintopics toggled | ${dropdownRef.pointer}`
+            );
             return;
           }
 
-          // check if maintopics are toggled for the group
-          optionsAtDepth.forEach((option) => {
-            if (option.maintopic) {
-              const isMaintopicToggled = this.maintopicToggledMap[option.id];
-              if (!isMaintopicToggled) {
-                navDistance++;
+          // Case: base topic
+          if (optionsAtDepth.length === 0) {
+            // Case: base topic and maintopic
+            if (currentSubject.maintopic) {
+              dropdownRef.pointer = dropdownRef.pointer - 1;
+              console.log(
+                `NAV_UP | ${currentSubject.name} | BaseTopic + maintopic | ${dropdownRef.pointer}`
+              );
+              return;
+            }
+
+            let siblings = this.getOptionsAtDepth(
+              currentSubject.subtopiclevel || 0,
+              currentSubjectOptionGroupId,
+              false,
+              true
+            );
+
+            const toggledMaintopic = this.areMaintopicsToggled(currentSubjectOptionGroupId);
+            console.log("ToggledMaintopic", toggledMaintopic);
+            if (toggledMaintopic.length === 1) {
+              dropdownRef.pointer = dropdownRef.pointer - 1;
+              console.log(
+                `NAV_UP | ${currentSubject.name} | BaseTopic + sibling maintopic toggled | ${dropdownRef.pointer}`
+              );
+              return;
+            }
+
+            dropdownRef.pointer = dropdownRef.pointer - siblings.length;
+            console.log(`NAV_UP | ${currentSubject.name} | BaseTopic | ${dropdownRef.pointer}`);
+            return;
+          }
+
+          // Case: not a base topic
+          if (optionsAtDepth.length > 0) {
+            if (currentSubject.maintopic) {
+              dropdownRef.pointer = dropdownRef.pointer - 1;
+              console.log(
+                `NAV_UP | ${currentSubject.name} | not BaseTopic | ${dropdownRef.pointer}`
+              );
+              return;
+            }
+
+            // Case: not a base topic but grandparent maintopic is toggled
+            if (currentSubject.maintopicIdLevel2) {
+              const isParentToggled = this.maintopicToggledMap[currentSubject.maintopicIdLevel2];
+              const isGrandParentToggled =
+                this.maintopicToggledMap[currentSubject.maintopicIdLevel1];
+
+              if (isGrandParentToggled && !isParentToggled) {
+                var parentChildren = this.getMaintopicChildren(currentSubject.maintopicIdLevel2);
+                console.log("ParentChildren", parentChildren);
+                dropdownRef.pointer = dropdownRef.pointer - parentChildren.length;
+                console.log(
+                  `NAV_UP | ${currentSubject.name} | not BaseTopic + grandparent toggled | ${dropdownRef.pointer}`
+                );
+                return;
               }
             }
-          });
-          console.log("Options at depth", optionsAtDepth);
-          console.log(
-            `NAV_UP | siblings in optionsGroupId: ${currentSubjectOptionGroupId} | ${optionsAtDepth.length}`
-          );
 
-          if (optionsAtDepth.length > 0) {
-            console.log("pointer before", dropdownRef.pointer);
-            dropdownRef.pointer = dropdownRef.pointer - optionsAtDepth.length;
-            console.log("pointer after", dropdownRef.pointer);
+            // Case: not a base topic but parent maintopic is toggled
+            if (currentSubject.maintopicIdLevel1) {
+              const isParentToggled = this.maintopicToggledMap[currentSubject.maintopicIdLevel1];
+              if (isParentToggled) {
+                // Check if any sibling maintopics are NOT toggled, then we have to skip their children
+                const notToggledMaintopic = this.areMaintopicsToggled(
+                  currentSubjectOptionGroupId,
+                  false
+                );
+
+                dropdownRef.pointer = dropdownRef.pointer - 1;
+                console.log(
+                  `NAV_UP | ${currentSubject.name} | not BaseTopic + parent toggled | ${dropdownRef.pointer}`
+                );
+                return;
+              }
+            }
+
+            const pointerIndex = dropdownRef.pointer - optionsAtDepth.length;
+            dropdownRef.pointer = pointerIndex;
+            console.log(`NAV_UP | ${currentSubject.name} | catch all | ${dropdownRef.pointer}`);
             return;
           }
         }
+
+        // Logic for navigating over the topics (dark blue background)
         if (isGroup) {
           var groupIndex = this.getSortedSubjectOptions.findIndex(function (e) {
             return e.id === currentSubject.$groupLabel;
