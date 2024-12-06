@@ -696,6 +696,7 @@
           });
         });
       },
+
       /**
        * Utility method to get the options for a specific optiongroup
        * @param {String} groupName Name of the option--group
@@ -900,7 +901,7 @@
       handleTagClick(event) {
         const target = event.target;
         const targetLabel = target.textContent.trim();
-
+        console.log(`targetLabel | ${targetLabel}`);
         const optionGroupName = this.getOptionGroupName(this.data, targetLabel, this.language);
 
         const optionGroupId = this.getOptionGroupId(optionGroupName);
@@ -908,6 +909,24 @@
 
         const selectedOptionIds = selectedOptions.map((o) => o.id);
         const optionsInOptionGroup = this.getOptionsFromOptionsGroupName(optionGroupName);
+
+        if (!optionGroupName && !optionGroupId) {
+          const filterCategoryId = this.selected[0].id.substring(0, 3);
+          console.log("Filter category | ", filterCategoryId);
+
+          const filterCategoryName = filtrer.find((filter) => filter.id === filterCategoryId).name;
+          const optionsInOptionGroupFilters =
+            this.getOptionsFromOptionsGroupName(filterCategoryName);
+
+          const filterIds = this.selected.map((option) => option.id);
+          console.log(
+            "FilterIds | ",
+            filterIds,
+            "optionsInOptionGroupFilters | ",
+            optionsInOptionGroupFilters
+          );
+          this.updateOptionGroupVisibility(filterIds, optionsInOptionGroupFilters);
+        }
 
         if (selectedOptionIds.length <= 0) {
           this.showOrHideElements();
@@ -1502,9 +1521,7 @@
         let name = "";
         data.some((item) => {
           const groupName = this.getGroupName(item);
-
           if (!groupName) return false;
-
           return item[groupName].some((i) => {
             const currentLabel = this.cleanLabel(i.translations[language]);
             if (currentLabel === targetLabel) {

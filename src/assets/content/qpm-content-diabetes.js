@@ -291,7 +291,15 @@ export const topics = [
           en: "All diabetes types",
         },
         ordering: { dk: 1, en: 1 },
-        searchStrings: {},
+        searchStrings: {
+          narrow: ['"Diabetes Mellitus, Type 1"[majr]'],
+          normal: [
+            '"Diabetes Mellitus, Type 1"[mh] OR ((type-1[ti] OR type-i[ti] OR dm1[ti] OR dmi[ti] OR t1d[ti] OR iddm[ti] OR insulin-dependent[ti] OR insulindependent[ti] OR juvenile-onset[ti] OR autoimmune[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti]))',
+          ],
+          broad: [
+            '"Diabetes Mellitus, Type 1"[mh] OR ((type-1[tiab] OR type-i[tiab] OR dm1[tiab] OR dmi[tiab] OR t1d[tiab] OR iddm[tiab] OR insulin-dependent[tiab] OR insulindependent[tiab] OR juvenile-onset[tiab] OR autoimmune[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab]))',
+          ],
+        },
         searchStringComment: {
           dk: "",
           en: "",
