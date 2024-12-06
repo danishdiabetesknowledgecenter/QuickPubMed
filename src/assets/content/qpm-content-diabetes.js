@@ -15,7 +15,7 @@
  * @property {string} name - The name of the subject group.
  * @property {boolean} buttons - Indicates if buttons are used.
  * @property {boolean} [maintopic] - Indicates if this is branch topic with children.
- * @property {number} [subtopiclevel] - The level of nesting for the child toppic.
+ * @property {number} [subtopiclevel] - The level of nesting for the child topic.
  * @property {string} [maintopicIdLevel1] - The ID of the parent topic.
  * @property {string} [maintopicIdLevel2] - The ID of the grand parent topic.
  * @property {Object} translations - The translations for different languages.
