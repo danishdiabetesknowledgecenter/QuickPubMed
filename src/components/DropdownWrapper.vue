@@ -810,7 +810,7 @@
        * return true if all maintopics are toggled
        * @param {String} optionGroupId - The Id (eg. S00) of the optiongroup to check
        */
-      allMaintopicsToggled(optionGroupId) {
+      areMaintopicsToggled(optionGroupId) {
         // find the optiongroup
         const _topics = topics.find((topic) => topic.id === optionGroupId);
         let maintopics = [];
@@ -1223,9 +1223,9 @@
             true
           );
 
-          const allMaintopicsToggled = this.allMaintopicsToggled(currentSubjectOptionGroupId);
-
-          if (allMaintopicsToggled) {
+          // Default case when all maintopics are toggled
+          const allToggled = this.areMaintopicsToggled(currentSubjectOptionGroupId);
+          if (allToggled) {
             console.log("All maintopics toggled, navigating with 1 step");
             dropdownRef.pointer = dropdownRef.pointer - navDistance;
             return;
