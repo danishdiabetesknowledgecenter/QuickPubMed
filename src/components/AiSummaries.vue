@@ -119,6 +119,7 @@
                       hideOnTargetClick: false,
                     }"
                     class="qpm_button"
+                    @keydown.enter="clickStop($event)"
                     @click="clickStop"
                   >
                     <i class="bx bx-stop-circle" />
@@ -134,6 +135,7 @@
                       hideOnTargetClick: false,
                     }"
                     class="qpm_button"
+                    @keydown.enter="clickRetry($event)"
                     @click="clickRetry"
                   >
                     <i class="bx bx-refresh" style="vertical-align: baseline; font-size: 1em" />
@@ -316,7 +318,6 @@
         stopGeneration: false,
         pdfFound: false,
         articleName: "",
-        $helpTextDelay: 300, // Assuming a default value
       };
     },
     computed: {
@@ -551,13 +552,13 @@
           Vue.set(this.tabStates[prompt.name], "currentIndex", 0);
         }
       },
-      clickSummaryTab(tab) {
+      async clickSummaryTab(tab) {
         this.currentSummary = tab.name;
         let currentSummaries = this.aiSearchSummaries[tab.name];
         if (this.getIsSummaryLoading || (currentSummaries && currentSummaries.length > 0)) {
           return;
         }
-        this.generateAiSummary(tab);
+        await this.generateAiSummary(tab);
       },
       clickStop() {
         this.stopGeneration = true;
