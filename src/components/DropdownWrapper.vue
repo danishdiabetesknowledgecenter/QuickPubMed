@@ -741,10 +741,25 @@
       /**
        * Utility method to get the children options for a maintopic
        * @param {String} maintopicId The maintopic ID
+       * @param {Boolean} isFilter Whether the maintopic is a filter or not
        * @returns list of children options
        */
-      getMaintopicChildren(maintopicId) {
+      getMaintopicChildren(maintopicId, isFilter = false) {
         const children = [];
+
+        if (isFilter) {
+          filtrer.forEach((filter) => {
+            filter.choices.forEach((choice) => {
+              if (
+                choice.maintopicIdLevel1 === maintopicId ||
+                choice.maintopicIdLevel2 === maintopicId
+              ) {
+                children.push(choice);
+              }
+            });
+          });
+          return children;
+        }
         topics.forEach((topic) => {
           topic.groups.forEach((group) => {
             if (
@@ -758,24 +773,43 @@
 
         return children;
       },
-      /**
-       * Retrieves options at a specific depth.
-       * If optionGroupId is provided, filters the options accordingly.
-       * If includeChildren is true, includes children of maintopic options.
-       *
-       * @param {number} depth - The depth level to retrieve options from.
-       * @param {string} [optionGroupId=null] - (Optional) The group ID to filter options.
-       * @param {boolean} [includeChildren=false] - (Optional) Whether to include maintopic children.
-       * @param {boolean} [baseTopic=false] - (Optional) Whether to include siblings for base topics.
-       * @returns {Array} - The filtered and possibly expanded options.
-       */
-      getOptionsAtDepth(depth, optionGroupId = null, includeChildren = false, baseTopic = false) {
-        let siblings = [];
-        let _topics = topics;
 
-        // If option group id provided filter the topics first
+      /**
+       * @param optionGroupId {String} - The Id (eg. S00) of the optiongroup to get siblings for
+       * @param baseTopic {Boolean} - Whether the topic is a base topic or not
+       * @param depth {Number} - The depth level to retrieve options from
+       * @param isFilter {Boolean} - Whether the options are filters or not
+       */
+      getSiblings(optionGroupId, baseTopic, depth, isFilter = false) {
+        const siblings = [];
+
+        if (isFilter) {
+          let _filtrer;
+          if (optionGroupId !== null) {
+            _filtrer = filtrer.filter((filter) => filter.id === optionGroupId);
+          }
+          _filtrer.forEach((filter) => {
+            filter.choices.forEach((choice) => {
+              if (choice.subtopiclevel === depth) {
+                siblings.push(choice);
+              }
+            });
+          });
+
+          // Case: the topic is baseTopic since it's at depth zero
+          if (baseTopic && depth === 0) {
+            _filtrer.forEach((filter) => {
+              filter.choices.forEach((choice) => {
+                if (!choice.maintopic) siblings.push(choice);
+              });
+            });
+          }
+          return siblings;
+        }
+
+        let _topics;
         if (optionGroupId !== null) {
-          _topics = _topics.filter((topic) => topic.id === optionGroupId);
+          _topics = topics.filter((filter) => filter.id === optionGroupId);
         }
 
         // Case: the topic is not baseTopic since it's at a depth greater than zero
@@ -796,6 +830,31 @@
           });
         }
 
+        return siblings;
+      },
+
+      /**
+       * Retrieves options at a specific depth.
+       * If optionGroupId is provided, filters the options accordingly.
+       * If includeChildren is true, includes children of maintopic options.
+       *
+       * @param {number} depth - The depth level to retrieve options from.
+       * @param {string} [optionGroupId=null] - (Optional) The group ID to filter options.
+       * @param {boolean} [includeChildren=false] - (Optional) Whether to include maintopic children.
+       * @param {boolean} [baseTopic=false] - (Optional) Whether to include siblings for base topics.
+       * @param {boolean} [isFilter=false] - (Optional) Whether the options are filters or not.
+       * @returns {Array} - The filtered and possibly expanded options.
+       */
+      getOptionsAtDepth(
+        depth,
+        optionGroupId = null,
+        includeChildren = false,
+        baseTopic = false,
+        isFilter = false
+      ) {
+        let siblings = this.getSiblings(optionGroupId, baseTopic, depth, isFilter);
+        console.log("Siblings | ", siblings);
+
         // Case: Include children where a maintopic is toggled
         if (includeChildren) {
           const childrenOptions = [];
@@ -804,7 +863,7 @@
             if (option.maintopic) {
               const isMaintopicToggled = this.maintopicToggledMap[option.id];
               if (!isMaintopicToggled) {
-                const children = this.getMaintopicChildren(option.id);
+                const children = this.getMaintopicChildren(option.id, isFilter);
                 childrenOptions.push(...children);
               }
             }
@@ -818,21 +877,43 @@
       },
 
       /**
-       * Utility method to check maintopic toggled state for a specific optiongroup ID
-       * return true if all maintopics are toggled
-       * @param {String} optionGroupId - The Id (eg. S00) of the optiongroup to check
+       * Utility method to get the state of maintopics from the dropdown.
+       * @param optionGroupId {String} - The Id (eg. S00) of the optiongroup to get maintopics for
+       * @param filter {Boolean} - Whether the options are filters or not
        */
-      areMaintopicsToggled(optionGroupId, getToggled = true) {
-        // find the optiongroup
-        const _topics = topics.find((topic) => topic.id === optionGroupId);
+      getMaintopics(optionGroupId, filter = false) {
         let maintopics = [];
+        if (filter) {
+          const _filtrer = filtrer.find((filter) => filter.id === optionGroupId);
 
-        // find the maintopics in the optiongroup
+          _filtrer.choices.forEach((group) => {
+            if (group.maintopic) {
+              maintopics.push(group);
+            }
+          });
+          return maintopics;
+        }
+        const _topics = topics.find((topic) => topic.id === optionGroupId);
+
         _topics.groups.forEach((group) => {
           if (group.maintopic) {
             maintopics.push(group);
           }
         });
+
+        return maintopics;
+      },
+
+      /**
+       * Utility method to check maintopic toggled state for a specific optiongroup ID
+       * return true if all maintopics are toggled
+       * @param {String} optionGroupId - The Id (eg. S00) of the optiongroup to check
+       * @param {Boolean} getToggled - Whether to return the toggled or not toggled maintopics
+       * @param {Boolean} isFilter - Whether the options are filters or not
+       */
+      areMaintopicsToggled(optionGroupId, getToggled = true, isFilter = false) {
+        // find the optiongroup
+        const maintopics = this.getMaintopics(optionGroupId, isFilter);
 
         let allToggled = true;
         // check if all maintopics are toggled
@@ -1178,6 +1259,7 @@
         }
 
         var currentSubject = dropdownRef.filteredOptions[dropdownRef.pointer];
+
         var isGroup = currentSubject["$groupLabel"] != null;
         var isMaintopic = currentSubject.maintopic;
         var isCurrentExpandedGroup = false;
@@ -1186,12 +1268,14 @@
 
         // Logic for navigating over the topic groups
         if (!isGroup && isMaintopic) {
+          var currentSubjectOptionGroupId = currentSubject.id.substring(0, 3);
+          const isFilter = currentSubjectOptionGroupId.startsWith("L");
           // Check if the ID of the currentSubject is a key in maintopicToggledMap
           const isMaintopicToggled = this.maintopicToggledMap[currentSubject.id];
 
           // If the option--group is not expanded we set navDistance to amount of non visible children
           if (!isMaintopicToggled) {
-            var maintopicChildren = this.getMaintopicChildren(currentSubject.id);
+            var maintopicChildren = this.getMaintopicChildren(currentSubject.id, isFilter);
             dropdownRef.pointer += maintopicChildren.length + 1;
             return;
           }
@@ -1254,14 +1338,18 @@
         // Logic for navigating over the topic groups
         if (!isGroup) {
           var currentSubjectOptionGroupId = currentSubject.id.substring(0, 3);
+          const isFilter = currentSubjectOptionGroupId.startsWith("L");
+
           var optionsAtDepth = this.getOptionsAtDepth(
             currentSubject.subtopiclevel || 0,
             currentSubjectOptionGroupId,
-            true
+            true,
+            false,
+            isFilter
           );
 
           // Case: default when all maintopics are toggled
-          const allToggled = this.areMaintopicsToggled(currentSubjectOptionGroupId);
+          const allToggled = this.areMaintopicsToggled(currentSubjectOptionGroupId, true, isFilter);
           if (allToggled === true) {
             dropdownRef.pointer = dropdownRef.pointer - navDistance;
             return;
@@ -1279,10 +1367,15 @@
               currentSubject.subtopiclevel || 0,
               currentSubjectOptionGroupId,
               false,
-              true
+              true,
+              isFilter
             );
 
-            const toggledMaintopic = this.areMaintopicsToggled(currentSubjectOptionGroupId);
+            const toggledMaintopic = this.areMaintopicsToggled(
+              currentSubjectOptionGroupId,
+              true,
+              isFilter
+            );
 
             if (toggledMaintopic.length === 1) {
               dropdownRef.pointer = dropdownRef.pointer - 1;
@@ -1307,7 +1400,10 @@
                 this.maintopicToggledMap[currentSubject.maintopicIdLevel1];
 
               if (isGrandParentToggled && !isParentToggled) {
-                var parentChildren = this.getMaintopicChildren(currentSubject.maintopicIdLevel2);
+                var parentChildren = this.getMaintopicChildren(
+                  currentSubject.maintopicIdLevel2,
+                  isFilter
+                );
                 dropdownRef.pointer = dropdownRef.pointer - parentChildren.length;
                 return;
               }
