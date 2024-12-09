@@ -214,7 +214,7 @@
   import DropdownTag from "@/components/DropdownTag.vue";
   import { appSettingsMixin } from "@/mixins/appSettings";
   import { messages } from "@/assets/content/qpm-translations.js";
-  import { topics } from "@/assets/content/qpm-content-diabetes";
+  import { topics } from "@/assets/domains/qpm-content-topics-diabetes";
   import { filtrer } from "@/assets/content/qpm-content-filters";
   import { customInputTagTooltip } from "@/assets/content/qpm-content-utils";
   import { getPromptForLocale, searchTranslationPrompt } from "@/assets/content/qpm-openAiPrompts";
