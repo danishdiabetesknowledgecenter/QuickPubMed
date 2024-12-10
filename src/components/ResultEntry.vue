@@ -440,7 +440,7 @@
                     class="qpm_searchSummaryText qpm_searchSummaryTextBackground"
                   >
                     <p>
-                      <strong>{{ getString("summarizeArticleNotice") }}</strong>
+                      <strong>{{ getString("summarizeArticleNoAbstractNotice") }}</strong>
                     </p>
                     <p>{{ getString("aiSummarizeArticleButton") }}</p>
                     <button
@@ -1271,7 +1271,8 @@
           console.error("DocType undefined, NLM call might have failed");
           return false;
         }
-        this.isDocTypeAllowed = !this.docType.includes("chapter");
+        // doctype is allowed if it contains citation
+        this.isDocTypeAllowed = this.docType.includes("citation");
         console.info("docType: ", this.docType);
         console.info("isDocTypeAllowed: ", this.isDocTypeAllowed);
         return this.isDocTypeAllowed;

@@ -787,4 +787,8 @@ export const messages = {
     dk: "OBS! Hele teksten i denne artikel er opsummeret.",
     en: "Att. The full text of this article is summarized.",
   },
+  summarizeArticleNoAbstractNotice: {
+    dk: "OBS! Hele teksten i denne artikel kan opsummeres.",
+    en: "Att. The full text of this article can be summarized.",
+  },
 };
