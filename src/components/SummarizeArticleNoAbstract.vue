@@ -103,10 +103,10 @@
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
   import QuestionForArticle from "@/components/QuestionForArticle.vue";
 
-  import { appSettingsMixin } from "@/mixins/appSettings";
   import { utilitiesMixin } from "@/mixins/utilities";
-  import { questionsToTitleMapMixin } from "@/mixins/questionsToTitleMap";
+  import { appSettingsMixin } from "@/mixins/appSettings";
   import { summarizeArticleMixin } from "@/mixins/summarizeArticle";
+  import { questionsToTitleMapMixin } from "@/mixins/questionsToTitleMap";
   import { questionHeaderHeightWatcherMixin } from "@/mixins/questionHeaderHeightWatcher";
 
   export default {

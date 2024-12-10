@@ -213,11 +213,12 @@
   import Multiselect from "vue-multiselect";
   import DropdownTag from "@/components/DropdownTag.vue";
   import { appSettingsMixin } from "@/mixins/appSettings";
-  import { messages } from "@/assets/content/qpm-translations.js";
-  import { topics } from "@/assets/domains/qpm-content-topics-diabetes";
+  import { searchTranslationPrompt } from "@/assets/content/qpm-open-ai-prompts";
+  import { topics } from "@/assets/content/diabetes/qpm-content-topics-diabetes";
   import { filtrer } from "@/assets/content/qpm-content-filters";
-  import { customInputTagTooltip } from "@/assets/content/qpm-content-utils";
-  import { getPromptForLocale, searchTranslationPrompt } from "@/assets/content/qpm-openAiPrompts";
+  import { messages } from "@/assets/content/qpm-translations.js";
+  import { getPromptForLocale } from "@/utils/qpm-open-ai-prompts-helpers";
+  import { customInputTagTooltip } from "@/utils/qpm-content-helpers";
 
   export default {
     name: "DropdownWrapper",

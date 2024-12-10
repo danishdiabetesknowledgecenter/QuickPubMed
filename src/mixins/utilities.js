@@ -1,5 +1,5 @@
 import { messages } from "@/assets/content/qpm-translations.js";
-import { domainSpecificPromptingRules } from "@/assets/content/qpm-openAiPrompts.js";
+import { domainSpecificPromptingRules } from "@/assets/content/qpm-open-ai-prompts.js";
 
 /**
  * Mixin for utility functions that are reusable across components.

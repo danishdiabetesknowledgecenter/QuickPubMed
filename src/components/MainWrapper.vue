@@ -149,9 +149,9 @@
   import SearchResult from "@/components/SearchResult.vue";
   import axios from "axios";
 
-  import { scopeIds, customInputTagTooltip } from "@/assets/content/qpm-content-utils.js";
+  import { scopeIds, customInputTagTooltip } from "@/utils/qpm-content-helpers.js";
   import { filtrer } from "@/assets/content/qpm-content-filters.js";
-  import { topics } from "@/assets/domains/qpm-content-topics-diabetes";
+  import { topics } from "@/assets/content/diabetes/qpm-content-topics-diabetes";
   import { order } from "@/assets/content/qpm-content-order.js";
   import { messages } from "@/assets/content/qpm-translations.js";
   import { appSettingsMixin } from "@/mixins/appSettings";

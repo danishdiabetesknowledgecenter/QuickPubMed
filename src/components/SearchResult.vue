@@ -403,8 +403,8 @@
     searchSummaryPrompts,
     abstractSummaryPrompts,
     summarizeArticlePrompt,
-  } from "@/assets/content/qpm-openAiPrompts";
-  import { languageFormat, dateOptions, pageSizes } from "@/assets/content/qpm-content-utils";
+  } from "@/assets/content/qpm-open-ai-prompts";
+  import { languageFormat, dateOptions, pageSizes } from "@/utils/qpm-content-helpers";
   import { order } from "@/assets/content/qpm-content-order";
 
   export default {

@@ -1,12 +1,5 @@
-import {
-  summarizeArticlePrompt,
-  promptEndTextPlainLanguage,
-  promptEndTextProfessionelLanguage,
-  promptStartText,
-  promptQuestions,
-  promptArticleSpecificAnswersOnly,
-  sanitizePrompt,
-} from "@/assets/content/qpm-openAiPrompts";
+import { sanitizePrompt } from "@/utils/qpm-open-ai-prompts-helpers.js";
+import { summarizeArticlePrompt, promptText } from "@/assets/content/qpm-open-ai-prompts.js";
 
 /**
  * Mixin for common methods used in both summarize-article and summarize-article-no-abstract components.
@@ -34,40 +27,42 @@ export const summarizeArticleMixin = {
      * @returns {string} - The localized prompt.
      */
     getComposablePrompt(language = "dk", promptLanguageType = "Hverdagssprog") {
-      // Find the prompt that matches the languagetype
-      let languageSpecificPrompt = summarizeArticlePrompt.find((p) => {
-        return promptLanguageType == p.name;
+      // Find the prompt text for either of the language types "Hverdagssprog" or "Fagligt sprog"
+      const prompTextLanguageType = promptText.find((p) => {
+        p.name == promptLanguageType;
       });
+      const promptEndText = prompTextLanguageType.endText[language];
+      const promptStartText = prompTextLanguageType.startText[language];
+      const promptQuestions = prompTextLanguageType.questions[language];
+      const promptRules = prompTextLanguageType.promptRules[language];
 
-      // Determine the ending text based on the promptName
-      let promptEndText;
-      if (promptLanguageType == "Hverdagssprog") {
-        promptEndText = promptEndTextPlainLanguage[language];
-      } else if (promptLanguageType == "Fagsprog") {
-        promptEndText = promptEndTextProfessionelLanguage[language];
-      }
-      console.log("Using prompt rules for domain: ", this.appSettings.openAi.domain);
-
-      // Load the domain specific rules for the language
+      // Get the domain specific rules for the language
       let domainSpecificRules = this.getDomainSpecificPromptRules(
         this.appSettings.openAi.domain,
         language
       );
+      console.log("Using prompt rules for domain: ", this.appSettings.openAi.domain);
 
       // Compose the prompt text with default prompt questions without the user input questions
-      let promptText = `${domainSpecificRules} ${promptStartText[language]} ${promptQuestions[language]} ${promptArticleSpecificAnswersOnly[language]} ${promptEndText}`;
+      let composedPromptText = `${domainSpecificRules} ${promptStartText} ${promptQuestions} ${promptRules} ${promptEndText}`;
 
       // Compose the prompt text with user questions if userQuestionInput is not empty
       if (this.userQuestionInput) {
-        promptText = `${domainSpecificRules} ${promptStartText[language]} ${this.userQuestionInput} ${promptArticleSpecificAnswersOnly[language]} ${promptEndText}`;
+        composedPromptText = `${domainSpecificRules} ${promptStartText} ${this.userQuestionInput} ${promptRules} ${promptEndText}`;
       }
 
       // Sanitize the composed prompt text
-      let sanitizedPromptText = sanitizePrompt({
-        [language]: promptText,
+      let sanitizedComposedPromptText = sanitizePrompt({
+        [language]: composedPromptText,
       });
 
-      languageSpecificPrompt.prompt = sanitizedPromptText[language];
+      // Get the basic prompt for the given language type
+      let languageSpecificPrompt = summarizeArticlePrompt.find((p) => {
+        return promptLanguageType == p.name;
+      });
+
+      // Set the prompt field to the sanitized composed prompt text for the given language
+      languageSpecificPrompt.prompt = sanitizedComposedPromptText[language];
 
       return languageSpecificPrompt;
     },

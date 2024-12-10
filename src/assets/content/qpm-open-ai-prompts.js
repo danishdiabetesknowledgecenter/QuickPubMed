@@ -1,88 +1,15 @@
-export function getPromptForLocale(prompt, locale) {
-  var localePrompt = {
-    ...prompt,
-    translations: null,
-    name: null,
-    prompt: prompt.prompt && prompt.prompt[locale],
-    messages: prompt.messages && prompt.messages[locale],
-  };
-  Object.keys(localePrompt).forEach(function (key) {
-    if (localePrompt[key] == null) delete localePrompt[key];
-  });
-
-  return localePrompt;
-}
+import { sanitizePrompt, sanitizeMessages } from "@/utils/qpm-open-ai-prompts-helpers.js";
+import { diabetesSpecificPromptRules } from "@/assets/content/diabetes/qpm-prompt-rules-diabetes.js";
+import { dementiaSpecificPromptRules } from "@/assets/content/dementia/qpm-prompt-rules-dementia.js";
 
 /**
- *
- * @param {*} prompt an object containing the prompt for different languages
- * @returns the same object with prompts treated to make them more token friendly
+ * Contains different writting rules specific for a domain, to be used when prompting the ai model.
+ * Will be found based on the string set in appSettings.openAi.domain (eg "diabetes" or "dementia")
  */
-export function sanitizePrompt(prompt) {
-  var langs = Object.keys(prompt);
-  for (let k = 0; k < langs.length; k++) {
-    var lg = langs[k];
-    // Remove suplurflous whitespace to reduce token count
-    var sanitizedPrompt = prompt[lg]
-      .split(" ")
-      .filter(function (e) {
-        return e;
-      })
-      .join(" ")
-      .split("\n")
-      .filter(function (e) {
-        return e;
-      })
-      .join("\n");
-    prompt[lg] = sanitizedPrompt;
-  }
-
-  return prompt;
-}
-
-/**
- *
- * @param {*} messages an object containing the message history for different languages
- * @returns the same object with messages treated to make them more token friendly
- */
-export function sanitizeMessages(messages) {
-  const langs = Object.keys(messages);
-  for (let k = 0; k < langs.length; k++) {
-    var lg = langs[k];
-    var sanitizedMessages = messages[lg]
-      .map((message) => {
-        const sanitizedContent = message.content
-          .split(" ")
-          .filter(function (e) {
-            return e;
-          })
-          .join(" ")
-          .split("\n")
-          .filter(function (e) {
-            return e;
-          })
-          .join("\n");
-
-        if (sanitizedContent.trim() == "") {
-          return null;
-        }
-
-        const sanitizedMessage = Object.assign({}, message, {
-          content: sanitizedContent,
-        });
-        return sanitizedMessage;
-      })
-      .filter((message) => message != null);
-
-    // Explicitly let the messages be missing so it can be filtered out before sending to backend
-    if (sanitizedMessages.length == 0) {
-      sanitizedMessages = null;
-    }
-
-    messages[lg] = sanitizedMessages;
-  }
-  return messages;
-}
+export const domainSpecificPromptingRules = {
+  diabetes: diabetesSpecificPromptRules,
+  dementia: dementiaSpecificPromptRules,
+};
 
 export const searchSummaryPrompts = [
   {
@@ -573,26 +500,6 @@ export const promptQuestions = {
 };
 
 /**
- * Plain language text for use in prompting targeting a general audience
- */
-export const promptEndTextPlainLanguage = {
-  dk: "Du skal generere svar til disse spørgsmål, og disse svar skal bestå af maksimalt 100 ord og skal skrives i et sprog, som nemt kan læses og forstås af en 15-årig uden forhåndskendskab til emnet, og tilføje svarende til array'et, der er value for answers key'en. \
-      Du skal ikke svare med andent end json formatet. Du skal derfor ikke bruge tegnet ` eller skrive json i starten eller slutningen af svaret. Her er teksten:",
-  en: "You must then generate answers to these questions, and these answers must consist of 100 words and must be written in a language that can be easily read and understood by a 15-year-old without prior knowledge of the subject, and add corresponding to the array that is the value for answers key'en. \
-      You must not respond with anything other than JSON format. You must therefore not use the character ` or write json at the beginning or end of the response. Here is the text:",
-};
-
-/**
- * Professional language text for use in prompting targeting a professional audience
- */
-export const promptEndTextProfessionelLanguage = {
-  dk: "Du skal generere svar til alle spørgsmål, og disse svar skal bestå af maksimalt 100 ord og skal skrives på fagsprog som let kan forstås af et sundhedsfagligt publikum eller personer med solid baggrund inden for emnet, og tilføje svarende til array'et, der er value for answers key'en.\
-      Du må ikke svare med andent end json formatet. Du skal derfor ikke bruge tegnet ` eller skrive json i starten eller slutningen af svaret. Her er teksten:",
-  en: "You must then generate answers to these questions, and these answers must consist of 100 words and must be written in professional language that can be easily understood by a healthcare audience or people with a solid background in the subject, and add corresponding to the array that is the value for answers key'en. \
-      You must not respond with anything other than JSON format. You must therefore not use the character ` or write json at the beginning or end of the response. Here is the text:",
-};
-
-/**
  * Prompt text for only allowing answers that are specific to the content of the article
  */
 export const promptArticleSpecificAnswersOnly = {
@@ -600,56 +507,44 @@ export const promptArticleSpecificAnswersOnly = {
   en: `It is very important that you only answer the questions asked if they are relevant to this article, and that you do not answer questions that are not relevant to this article. `,
 };
 
-/**
- * Prompt text for use in prompting to adhere to specific domain rules for diabetes
- */
-export const diabetesSpecificPromptRules = {
-  dk: `Følg altid disse skriveregler: \
-  Skriv altid 'type 1-diabetes', men skriv aldrig 'type 1 diabetes', 'diabetes 1', 'diabetes type 1' e.l. 
-  Skriv altid 'type 2-diabetes', men skriv aldrig 'type 2 diabetes', 'diabetes 2', 'diabetes type 2' e.l. 
-  Skriv altid 'person med diabetes', men skriv aldrig 'diabetiker', 'diabetespatient' e.l. 
-  Skriv altid 'diabetes', men skriv aldrig 'sukkersyge' 
-  Skriv altid 'prædiabetes', men skriv aldrig 'prediabetes' 
-  Brug dansk notation for tal, hvor tusindtalsseparator er et punktum (.) og decimaltegn er et komma (,). Skriv kun tal med korrekt format i din opsummering. 
-  Hvis der i en artikel kun står 'diabetes', og ikke hverken 'type 1-diabetes' eller 'type 2-diabetes', skal du blot skrive 'diabetes'. 
-  Du vil blive straffet meget hårdt, hvis du ikke følger alle de instruktioner, som du har fået.`,
-  en: `Always follow these writing rules: 
-  Always write 'type 1-diabetes', but never write 'type 1 diabetes', 'diabetes 1', 'diabetes type 1' etc. 
-  Always write 'type 2-diabetes', but never write 'type 2 diabetes', 'diabetes 2', 'diabetes type 2' etc. 
-  Always write 'person with diabetes', but never write 'diabetic', 'diabetes patient' etc. 
-  Always write 'diabetes', but never write 'sugar disease' 
-  Always write 'prediabetes', but never write 'prediabetes' 
-  Use Danish notation for numbers, where the thousands separator is a period (.) and the decimal point is a comma (,). Only write numbers with the correct format in your summary. \
-  If an article only mentions 'diabetes', and neither 'type 1 diabetes' nor 'type 2 diabetes', you should just write 'diabetes'. 
-  You will be penalized severely if you do not follow the instructions you have received.`,
-};
-
-/**
- * EXAMPLE (Add more similair to this for other domains)
- * Use it in the domainSpecificPromptingRules object
- * Prompt text for use in prompting to adhere to specific domain rules for dementia
- */
-export const dementiaSpecificPromptRules = {
-  dk: `Følg altid disse skriveregler: 
-  Skriv domæne specifikke regler her
-  Du vil blive straffet meget hårdt, hvis du ikke følger alle de instruktioner, som du har fået.`,
-  en: `Always follow these writing rules: 
-  Write domain specific rules here
-  You will be penalized severely if you do not follow the instructions you have received.`,
-};
-
-/**
- * Contains different writting rules specific for a domain, to be used when prompting the ai model.
- * Will be found based on the string set in appSettings.openAi.domain (eg "diabetes" or "dementia")
- */
-export const domainSpecificPromptingRules = {
-  diabetes: diabetesSpecificPromptRules,
-  dementia: dementiaSpecificPromptRules,
-};
+export const promptText = [
+  // Professional language prompt end text
+  {
+    name: {
+      dk: "Fagsprog",
+      en: "Professional language",
+    },
+    startText: promptStartText,
+    questions: promptQuestions,
+    promptRules: promptArticleSpecificAnswersOnly,
+    endText: {
+      dk: "Du skal generere svar til alle spørgsmål, og disse svar skal bestå af maksimalt 100 ord og skal skrives på fagsprog som let kan forstås af et sundhedsfagligt publikum eller personer med solid baggrund inden for emnet, og tilføje svarende til array'et, der er value for answers key'en. \
+          Du må ikke svare med andet end JSON-formatet. Du skal derfor ikke bruge tegnet ` eller skrive json i starten eller slutningen af svaret. Her er teksten:",
+      en: "You must then generate answers to these questions, and these answers must consist of 100 words and must be written in professional language that can be easily understood by a healthcare audience or people with a solid background in the subject, and add corresponding to the array that is the value for the answers key. \
+          You must not respond with anything other than JSON format. You must therefore not use the character ` or write JSON at the beginning or end of the response. Here is the text:",
+    },
+  },
+  // Plain langugaes prompt end text
+  {
+    name: {
+      dk: "Hverdagssprog",
+      en: "Plain language",
+    },
+    startText: promptStartText,
+    questions: promptQuestions,
+    promptRules: promptArticleSpecificAnswersOnly,
+    endText: {
+      dk: "Du skal generere svar til disse spørgsmål, og disse svar skal bestå af maksimalt 100 ord og skal skrives i et sprog, som nemt kan læses og forstås af en 15-årig uden forhåndskendskab til emnet, og tilføje svarende til array'et, der er value for answers key'en. \
+Du skal ikke svare med andet end JSON-formatet. Du skal derfor ikke bruge tegnet ` eller skrive json i starten eller slutningen af svaret. Her er teksten:",
+      en: "You must then generate answers to these questions, and these answers must consist of 100 words and must be written in a language that can be easily read and understood by a 15-year-old without prior knowledge of the subject, and add corresponding to the array that is the value for the answers key. \
+You must not respond with anything other than JSON format. You must therefore not use the character ` or write JSON at the beginning or end of the response. Here is the text:",
+    },
+  },
+];
 
 /**
  * Basic Prompt for summarizing an article in plain language and professional language.
- * The prompt field should be composed in the code for better maintaning, scalling and readability.
+ * The prompt fields are composed in the code for better maintanability, scalability and readability.
  */
 export const summarizeArticlePrompt = [
   {

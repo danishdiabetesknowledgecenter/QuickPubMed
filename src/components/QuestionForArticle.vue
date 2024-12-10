@@ -79,8 +79,8 @@
   import AccordionMenu from "@/components/AccordionMenu.vue";
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
 
-  import { appSettingsMixin } from "@/mixins/appSettings";
   import { utilitiesMixin } from "@/mixins/utilities";
+  import { appSettingsMixin } from "@/mixins/appSettings";
   import { summarizeArticleMixin } from "@/mixins/summarizeArticle";
   import { questionHeaderHeightWatcherMixin } from "@/mixins/questionHeaderHeightWatcher";
 

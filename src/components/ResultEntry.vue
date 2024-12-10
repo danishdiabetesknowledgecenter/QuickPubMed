@@ -649,7 +649,7 @@
   import {
     abstractSummaryPrompts,
     summarizeArticlePrompt,
-  } from "@/assets/content/qpm-openAiPrompts";
+  } from "@/assets/content/qpm-open-ai-prompts";
 
   export default {
     name: "ResultEntry",

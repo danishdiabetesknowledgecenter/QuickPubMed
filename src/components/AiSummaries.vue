@@ -197,12 +197,12 @@
 
   import { appSettingsMixin, eventBus } from "@/mixins/appSettings.js";
   import { messages } from "@/assets/content/qpm-translations.js";
-  import { languageFormat, dateOptions } from "@/assets/content/qpm-content-utils.js";
+  import { languageFormat, dateOptions } from "@/utils/qpm-content-helpers.js";
   import {
     summarizeSummaryPrompts,
     shortenAbstractPrompts,
-    getPromptForLocale,
-  } from "@/assets/content/qpm-openAiPrompts";
+  } from "@/assets/content/qpm-open-ai-prompts.js";
+  import { getPromptForLocale } from "@/utils/qpm-open-ai-prompts-helpers.js";
 
   export default {
     name: "AiSummaries",

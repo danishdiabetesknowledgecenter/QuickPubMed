@@ -336,7 +336,7 @@
   import { appSettingsMixin } from "@/mixins/appSettings";
   import { messages } from "@/assets/content/qpm-translations.js";
   import { filtrer } from "@/assets/content/qpm-content-filters.js";
-  import { topics } from "@/assets/domains/qpm-content-topics-diabetes";
+  import { topics } from "@/assets/content/diabetes/qpm-content-topics-diabetes";
   import { order } from "@/assets/content/qpm-content-order.js";
 
   export default {

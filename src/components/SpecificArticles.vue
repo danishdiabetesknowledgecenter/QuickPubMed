@@ -101,8 +101,8 @@
 
   import { appSettingsMixin } from "@/mixins/appSettings";
   import { messages } from "@/assets/content/qpm-translations";
-  import { abstractSummaryPrompts } from "@/assets/content/qpm-openAiPrompts.js";
-  import { dateOptions, languageFormat } from "@/assets/content/qpm-content-utils";
+  import { abstractSummaryPrompts } from "@/assets/content/qpm-open-ai-prompts.js";
+  import { dateOptions, languageFormat } from "@/utils/qpm-content-helpers";
   import { order } from "@/assets/content/qpm-content-order";
 
   export default {
