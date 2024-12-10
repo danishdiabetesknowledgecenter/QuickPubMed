@@ -317,6 +317,10 @@ export const messages = {
     dk: "Læs hele artikel",
     en: "Read the whole article",
   },
+  NoUnpaywall: {
+    dk: "Ingen artikel tilgængelig",
+    en: "No article available",
+  },
   UnpaywallNoPdf: {
     dk: "Find PDF hos tidsskriftet",
     en: "Find PDF on the journal website",
@@ -728,8 +732,12 @@ export const messages = {
     en: "Select the records that you want to summarise. If you do not select any, the first 5 records will be summarised.",
   },
   generatePdfQuestionsButtonText: {
-    dk: "Opsummér hele artiklen",
-    en: "Summarize the full article",
+    dk: "Vis opsummering af artiklen",
+    en: "Show summary of the full article",
+  },
+  hideGeneratePdfQuestionsButtonText: {
+    dk: "Skjul opsummering af artiklen",
+    en: "Hide summary of the full article",
   },
   summarizeArticleHeader: {
     dk: "Opsummering af hele artiklen",
@@ -760,8 +768,8 @@ export const messages = {
     en: "Hide more options",
   },
   scrapingError: {
-    dk: "Det var desværre ikke muligt at hente indholdet. Prøv igen senere.",
-    en: "An error occurred. Please try again later.",
+    dk: "Det er desværre ikke muligt at opsummere hele artiklen.",
+    en: "Unfortunately, it is not possible to summarize this article.",
   },
   askQuestionButtontext: {
     dk: "Send",
@@ -776,7 +784,7 @@ export const messages = {
     en: "Unfortunately, it is not possible to summarize this article.",
   },
   summarizeArticleNotice: {
-    dk: "OBS! Hele teksten i denne artikel kan opsummeres.",
-    en: "Att. The full text of this article can be summarized.",
+    dk: "OBS! Hele teksten i denne artikel er opsummeret.",
+    en: "Att. The full text of this article is summarized.",
   },
 };

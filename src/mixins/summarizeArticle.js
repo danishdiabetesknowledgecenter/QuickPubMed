@@ -13,6 +13,17 @@ import {
  * @mixin
  */
 export const summarizeArticleMixin = {
+  data() {
+    return {
+      isArticle: false,
+      scrapingError: undefined,
+      isError: false,
+      errorMessage: undefined,
+      questions: [],
+      answers: [],
+      isLoadingQuestions: true,
+    };
+  },
   methods: {
     /**
      * Retrieves a prompt based on the specified language and prompt language type.
@@ -96,10 +107,7 @@ export const summarizeArticleMixin = {
           this.isError = false;
         }
       } catch (error) {
-        console.error("Error fetching:", error);
-        this.errorMessage = "Netværksfejl prøv igen";
         this.isError = true;
-        console.error(this.errorMessage);
       } finally {
         this.isLoadingQuestions = false;
       }
@@ -115,17 +123,21 @@ export const summarizeArticleMixin = {
 
       const localePrompt = this.getComposablePrompt(this.language, this.promptLanguageType);
 
-      let response = await this.handleFetch(openAiServiceUrl, {
-        prompt: localePrompt,
-        htmlurl: this.htmlUrl,
-        client: this.appSettings.client,
-      }).catch(function (error) {
+      let response = await this.handleFetch(
+        openAiServiceUrl,
+        {
+          prompt: localePrompt,
+          htmlurl: this.htmlUrl,
+          client: this.appSettings.client,
+        },
+        "POST",
+        "getSummarizeHTMLArticle"
+      ).catch(function (error) {
         this.isArticle = false;
         return error;
       });
 
       response = await response.json();
-
       this.scrapingError = false;
       this.isArticle = response.isArticle;
       this.questions = response.questions;
@@ -150,11 +162,16 @@ export const summarizeArticleMixin = {
 
       const localePrompt = this.getComposablePrompt(this.language, this.promptLanguageType);
 
-      let response = await this.handleFetch(openAiServiceUrl, {
-        prompt: localePrompt,
-        pdfurl: this.pdfUrl,
-        client: this.appSettings.client,
-      }).catch(function (error) {
+      let response = await this.handleFetch(
+        openAiServiceUrl,
+        {
+          prompt: localePrompt,
+          pdfurl: this.pdfUrl,
+          client: this.appSettings.client,
+        },
+        "POST",
+        "getSummarizePDFArticle"
+      ).catch(function (error) {
         this.isArticle = false;
         return error;
       });
@@ -165,17 +182,6 @@ export const summarizeArticleMixin = {
       this.questions = response.questions;
       this.answers = response.answers;
       return response;
-    },
-    /**
-     * For now if the pubType array contains "Editorial" then we don't want to summarize the article
-     *
-     * @returns {Boolean} Wheter or not the pubtype allows for summarization
-     */
-    checkPubType: function (pubType) {
-      if (pubType && pubType.includes("Editorial")) {
-        return false;
-      }
-      return true;
     },
   },
 };

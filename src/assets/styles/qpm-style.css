@@ -364,6 +364,15 @@ p.qpm_shownumber {
   font-size: 22px;
 }
 
+.qpm_noPubmedLink {
+  margin-top: 5px;
+  margin-bottom: 0px !important;
+  font-size: 1em !important;
+  color: #8f8f9f;
+  align-self: baseline;
+  padding-right: 15px;
+}
+
 .qpm_pubmedLink {
   margin-top: 5px;
   margin-bottom: 0px !important;

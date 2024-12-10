@@ -10,6 +10,8 @@
           :key="getKey"
           :pmid="getId"
           :doi="getDoi(searchresult)"
+          :pub-type="getPubType(searchresult)"
+          :doc-type="getDocType(searchresult)"
           :title="getTitle()"
           :booktitle="getBookTitle()"
           :vernaculartitle="getVernacularTitle()"
@@ -62,6 +64,7 @@
           :doi="getDoi(value)"
           :title="getTitle(value.title)"
           :pub-type="value.pubtype"
+          :doc-type="value.doctype"
           :booktitle="getBookTitle(value.booktitle)"
           :vernaculartitle="getVernacularTitle(value.vernaculartitle)"
           :date="getDate(value.history)"
@@ -380,6 +383,20 @@
         } catch (err) {
           console.error(err);
           return undefined;
+        }
+      },
+      getPubType(searchResult) {
+        try {
+          return searchResult.pubtype;
+        } catch (error) {
+          return error;
+        }
+      },
+      getDocType(searchResult) {
+        try {
+          return searchResult.doctype;
+        } catch (error) {
+          return error;
         }
       },
       getSource(value) {

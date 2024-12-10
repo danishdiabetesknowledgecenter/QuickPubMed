@@ -344,6 +344,7 @@
                   :is-license-allowed="getIsLicenseAllowed"
                   :is-resource-allowed="getIsResourceAllowed"
                   :is-pub-type-allowed="getIsPubTypeAllowed"
+                  :is-doc-type-allowed="getIsDocTypeAllowed"
                   :show-summarize-article="true"
                   :pub-type="pubType"
                   :pdf-url="pdfUrl"
@@ -365,46 +366,35 @@
             </div>
           </accordion-menu>
           <p
-            v-if="!hasAbstract && isResourceAllowed === undefined"
+            v-if="
+              !hasValidAbstract &&
+              (isResourceAllowed === undefined ||
+                isPubTypeAllowed === undefined ||
+                isLicenseAllowed === undefined)
+            "
             style="margin-left: 20px; margin-top: 15px"
           >
             {{ getString("loadingText") }}
           </p>
-          <p
-            v-else-if="!appSettings.openAi.useAi && !hasValidAbstract"
+          <!--
+            <p
+            v-else-if="
+            !hasValidAbstract &&
+            (!appSettings.openAi.useAi ||
+            !isPubTypeAllowed ||
+            !isLicenseAllowed ||
+            !isResourceAllowed)
+            "
             style="margin-left: 20px; margin-top: 15px"
-          >
+            >
             {{ getString("summarizeArticleNotAvailable") }}
           </p>
-          <p
-            v-else-if="!isPubTypeAllowed && !hasValidAbstract"
-            style="margin-left: 20px; margin-top: 15px"
-          >
-            {{ getString("summarizeArticleNotAvailable") }}
-          </p>
-          <p
-            v-else-if="!isLicenseAllowed && !hasValidAbstract"
-            style="margin-left: 20px; margin-top: 15px"
-          >
-            {{ getString("summarizeArticleNotAvailable") }}
-          </p>
-          <p
-            v-else-if="!isResourceAllowed && !hasValidAbstract"
-            style="margin-left: 20px; margin-top: 15px"
-          >
-            {{ getString("summarizeArticleNotAvailable") }}
-          </p>
-          <p
-            v-else-if="isLicenseAllowed === undefined && !hasValidAbstract"
-            style="margin-left: 20px; margin-top: 15px"
-          >
-            {{ getString("summarizeArticleNotAvailable") }}
-          </p>
+          -->
 
           <accordion-menu
             v-else-if="
               appSettings.openAi.useAi &&
-              !hasAbstract &&
+              !hasValidAbstract &&
               getIsPubTypeAllowed &&
               isLicenseAllowed &&
               isResourceAllowed
@@ -558,6 +548,11 @@
                 </template>
               </p>
             </template>
+            <template v-if="!doi">
+              <p class="qpm_noPubmedLink">
+                {{ getString("NoUnpaywall") }}
+              </p>
+            </template>
           </div>
 
           <div v-if="abstract === ''" class="qpm_abstractWrapper">
@@ -574,7 +569,7 @@
                 </p>
               </div>
             </template>
-            <template v-if="!hasAbstract">
+            <template v-if="!hasAbstract || !isDocTypeAllowed">
               <p style="padding-bottom: 10px">
                 {{ getString("noAbstract") }}
               </p>
@@ -744,6 +739,10 @@
         type: Array,
         required: false,
       },
+      docType: {
+        type: String,
+        default: "",
+      },
       showDate: {
         type: Boolean,
         default: true,
@@ -821,9 +820,10 @@
         hasAcceptedAi: false,
         initialAiTab: "",
         pdfQuestions: [],
-        isLicenseAllowed: false,
-        isResourceAllowed: false,
-        isPubTypeAllowed: false,
+        isLicenseAllowed: undefined,
+        isResourceAllowed: undefined,
+        isPubTypeAllowed: undefined,
+        isDocTypeAllowed: undefined,
         pdfUrl: "",
         htmlUrl: "",
         defaultUrl: "",
@@ -839,6 +839,9 @@
       },
       computedTitle() {
         return this.getTitle || this.getBookTitle || this.getVernacularTitle || "";
+      },
+      getIsDocTypeAllowed() {
+        return this.isDocTypeAllowed;
       },
       getIsPubTypeAllowed() {
         return this.isPubTypeAllowed;
@@ -1113,7 +1116,14 @@
           if (isLicenseAllowed) {
             await this.checkRessource();
             this.checkPubType();
+            return;
           }
+          /* For cases where theres no abstract and unpaywall response is not loaded
+           * We have to manually set the flags to false so the loading text is not shown infinitly
+           * Loading.. is based on the flags being undefiend
+           */
+          this.isPubTypeAllowed = false;
+          this.isResourceAllowed = false;
         }
       },
     },
@@ -1254,6 +1264,19 @@
         this.showExtendedPrompts = !this.showExtendedPrompts;
       },
       /**
+       * Check if docType contains chapter and therefore it doesn't have an abstract
+       */
+      checkDocType() {
+        if (this.docType === undefined) {
+          console.error("DocType undefined, NLM call might have failed");
+          return false;
+        }
+        this.isDocTypeAllowed = !this.docType.includes("chapter");
+        console.info("docType: ", this.docType);
+        console.info("isDocTypeAllowed: ", this.isDocTypeAllowed);
+        return this.isDocTypeAllowed;
+      },
+      /**
        * Check if pubType contains editorial and therefore is not a full article
        */
       checkPubType() {
@@ -1326,7 +1349,12 @@
       },
       async showAbstract(ignoreToggle = false) {
         this.showingAbstract = ignoreToggle === true || !this.showingAbstract;
-
+        this.checkDocType();
+        if (!this.unpaywallResponseLoaded) {
+          this.isLicenseAllowed = false;
+          this.isResourceAllowed = false;
+          this.isPubTypeAllowed = false;
+        }
         //scroll up to header if closing
         if (!this.showingAbstract && this.abstractLoaded && this.id) {
           // Get the div containing the abstract and then select

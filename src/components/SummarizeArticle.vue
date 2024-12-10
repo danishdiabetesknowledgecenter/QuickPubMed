@@ -1,11 +1,12 @@
 <template>
   <div ref="container" style="margin-top: 20px">
     <!-- TITLE Notice the entire article can be summarized -->
-    <p style="margin-bottom: 20px">
+    <p v-if="!isError && !scrapingError && !isLoadingQuestions" style="margin-bottom: 20px">
       <strong>{{ getString("summarizeArticleNotice") }}</strong>
     </p>
 
     <button
+      v-if="!isError && !scrapingError && !isLoadingQuestions"
       v-tooltip="{
         content: getString('hoverAskQuestionText'),
         offset: 5,
@@ -14,10 +15,10 @@
       }"
       class="qpm_button"
       :disabled="isSummaryLoading || isLoadingQuestions || isError"
-      @click="handleSummarizeArticle"
+      @click="toggleShowArticleSummary"
     >
       <i class="bx bx-file" style="vertical-align: baseline; font-size: 1em" />
-      {{ getString("generatePdfQuestionsButtonText") }}
+      {{ getButtonText }}
     </button>
 
     <loading-spinner
@@ -28,7 +29,7 @@
       :size="35"
     />
 
-    <div v-if="isArticle">
+    <div v-if="isArticle && isSummaryVisible">
       <!-- TITLE summarize entire article -->
       <p v-if="questions.length > 1 && !isLoadingQuestions">
         <strong>{{ getString("summarizeArticleHeader") }}</strong>
@@ -175,17 +176,38 @@
         default: "Hverdagssprog",
         required: false,
       },
+      doStuffNow: {
+        type: Boolean,
+        default: false,
+        required: true,
+      },
     },
     data() {
       return {
-        isArticle: false,
-        questions: [],
-        answers: [],
-        isLoadingQuestions: false,
-        isError: false,
-        errorMessage: "",
-        scrapingError: false,
+        isSummaryVisible: false,
       };
+    },
+    computed: {
+      getButtonText() {
+        return !this.isSummaryVisible
+          ? this.getString("generatePdfQuestionsButtonText")
+          : this.getString("hideGeneratePdfQuestionsButtonText");
+      },
+    },
+    watch: {
+      doStuffNow: {
+        handler: function (val) {
+          if (val) {
+            this.handleSummarizeArticle();
+          }
+        },
+        immediate: true,
+      },
+    },
+    methods: {
+      toggleShowArticleSummary() {
+        this.isSummaryVisible = !this.isSummaryVisible;
+      },
     },
   };
 </script>

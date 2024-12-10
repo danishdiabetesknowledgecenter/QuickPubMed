@@ -1,6 +1,6 @@
 <template>
   <div style="margin-top: 20px">
-    <div v-if="isLoadingQuestions" style="height: 250px">
+    <div v-if="isLoadingQuestions">
       <loading-spinner
         class="qpm_searchMore"
         :loading="true"

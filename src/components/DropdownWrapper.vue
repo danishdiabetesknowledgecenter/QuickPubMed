@@ -992,7 +992,7 @@
         const optionsInOptionGroup = this.getOptionsFromOptionsGroupName(optionGroupName);
 
         if (!optionGroupName && !optionGroupId) {
-          const filterCategoryId = this.selected[0].id.substring(0, 3);
+          const filterCategoryId = this.selected[0]?.id?.substring(0, 3);
           console.log("Filter category | ", filterCategoryId);
 
           const filterCategoryName = filtrer.find((filter) => filter.id === filterCategoryId).name;

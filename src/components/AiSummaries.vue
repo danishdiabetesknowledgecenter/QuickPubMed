@@ -170,6 +170,7 @@
                     :language="language"
                     :prompt-language-type="currentSummary"
                     :is-summary-loading="getIsSummaryLoading"
+                    :do-stuff-now="isResourceAllowed"
                   />
                 </div>
                 <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryDisclaimer')" />
@@ -230,6 +231,10 @@
         default: false,
       },
       isPubTypeAllowed: {
+        type: Boolean,
+        default: false,
+      },
+      isDocTypeAllowed: {
         type: Boolean,
         default: false,
       },
