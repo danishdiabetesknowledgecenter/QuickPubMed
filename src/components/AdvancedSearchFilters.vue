@@ -112,7 +112,8 @@
         return this.filterOptions.length;
       },
       placeholderWithCount() {
-        return `${this.showTitle} (${this.selectedCount}/${this.totalFilters})`;
+        // return `${this.showTitle} (${this.selectedCount}/${this.totalFilters})`;
+        return `${this.showTitle}`;
       },
     },
 

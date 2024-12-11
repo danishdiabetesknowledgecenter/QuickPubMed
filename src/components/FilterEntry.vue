@@ -100,9 +100,10 @@
         return this.getString("orOperator");
       },
       customNameLabelWithCount() {
-        return `${this.customNameLabel(this.filterItem)} (${this.selected.length}/${
-          this.filterItem.choices.length
-        })`;
+        //return `${this.customNameLabel(this.filterItem)} (${this.selected.length}/${
+        //  this.filterItem.choices.length
+        //})`;
+        return this.customNameLabel(this.filterItem);
       },
     },
     mounted() {
