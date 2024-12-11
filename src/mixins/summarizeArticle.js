@@ -37,17 +37,6 @@ export const summarizeArticleMixin = {
       const promptQuestions = prompTextLanguageType.questions[language];
       const promptRules = prompTextLanguageType.promptRules[language];
       const promptEndText = prompTextLanguageType.endText[language];
-
-      console.info(
-        `
-      |Domain specific rules| \n ${domainSpecificRules} \n 
-      |Start text| \n ${promptStartText} \n 
-      |Questions| \n ${promptQuestions} \n 
-      |Rules| \n ${promptRules} \n
-      |End text| \n ${promptEndText} \n
-      `
-      );
-
       // Compose the prompt text with default prompt questions without the user input questions
       let composedPromptText = `${domainSpecificRules} ${promptStartText} ${promptQuestions} ${promptRules} ${promptEndText}`;
 
@@ -55,6 +44,26 @@ export const summarizeArticleMixin = {
       if (this.userQuestionInput) {
         composedPromptText = `${domainSpecificRules} ${promptStartText} ${this.userQuestionInput} ${promptRules} ${promptEndText}`;
       }
+
+      console.info(`
+        |Domain specific rules|
+        ${domainSpecificRules}
+        
+        |Start text|
+        ${promptStartText}
+        
+        ${
+          !this.userQuestionInput
+            ? `|Questions|\n${promptQuestions}\n`
+            : `|User questions|\n${this.userQuestionInput}\n`
+        }
+        
+        |Rules|
+        ${promptRules}
+        
+        |End text|
+        ${promptEndText}
+        `);
 
       // Sanitize the composed prompt text
       let sanitizedComposedPromptText = sanitizePrompt({
