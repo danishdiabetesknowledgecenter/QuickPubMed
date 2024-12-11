@@ -275,10 +275,10 @@ export const topics = [
   },
   {
     id: "S10",
-    groupname: "Diabetestype",
+    groupname: "Demenstyper",
     translations: {
-      dk: "Diabetestype",
-      en: "Diabetes type",
+      dk: "Demenstyper",
+      en: "Dementia type",
     },
     ordering: { dk: 1, en: 1 },
     groups: [
@@ -287,8 +287,8 @@ export const topics = [
         name: "S10010",
         buttons: true,
         translations: {
-          dk: "Alle typer diabetes",
-          en: "All diabetes types",
+          dk: "Alle typer demens",
+          en: "All dementia types",
         },
         ordering: { dk: 1, en: 1 },
         searchStrings: {

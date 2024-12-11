@@ -1,5 +1,5 @@
 <template>
-  <div v-show="!isCollapsed && appSettings.openAi.useAi" class="qpm_switch_wrap qpm_ai_hide">
+  <div v-show="!isCollapsed && config.useAI" class="qpm_switch_wrap qpm_ai_hide">
     <label class="qpm_switch">
       <input
         v-model="localSearchWithAI"
@@ -39,6 +39,8 @@
 </template>
 
 <script>
+  import { config } from "@/config/config.js";
+
   export default {
     name: "AiTranslationToggle",
     props: {
@@ -49,7 +51,7 @@
       },
       appSettings: {
         type: Object,
-        default: () => ({ openAi: { useAi: false } }),
+        default: () => ({}),
       },
       getString: {
         type: Function,
@@ -62,6 +64,9 @@
       };
     },
     computed: {
+      config() {
+        return config;
+      },
       localSearchWithAI: {
         get() {
           return this.value;

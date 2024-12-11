@@ -1,5 +1,6 @@
 import { sanitizePrompt } from "@/utils/qpm-open-ai-prompts-helpers.js";
 import { summarizeArticlePrompt, promptText } from "@/assets/content/qpm-open-ai-prompts.js";
+import { config } from "@/config/config";
 
 /**
  * Mixin for common methods used in both summarize-article and summarize-article-no-abstract components.
@@ -28,20 +29,19 @@ export const summarizeArticleMixin = {
      */
     getComposablePrompt(language = "dk", promptLanguageType = "Hverdagssprog") {
       // Find the prompt text for either of the language types "Hverdagssprog" or "Fagligt sprog"
-      const prompTextLanguageType = promptText.find((p) => {
-        p.name == promptLanguageType;
-      });
+      const prompTextLanguageType = promptText.find(
+        (entry) => entry.name[language] === promptLanguageType
+      );
+
+      console.log("prompTextLanguageType: ", prompTextLanguageType);
       const promptEndText = prompTextLanguageType.endText[language];
       const promptStartText = prompTextLanguageType.startText[language];
       const promptQuestions = prompTextLanguageType.questions[language];
       const promptRules = prompTextLanguageType.promptRules[language];
 
       // Get the domain specific rules for the language
-      let domainSpecificRules = this.getDomainSpecificPromptRules(
-        this.appSettings.openAi.domain,
-        language
-      );
-      console.log("Using prompt rules for domain: ", this.appSettings.openAi.domain);
+      let domainSpecificRules = this.getDomainSpecificPromptRules(config.domain, language);
+      console.log("Using prompt rules for domain: ", config.domain);
 
       // Compose the prompt text with default prompt questions without the user input questions
       let composedPromptText = `${domainSpecificRules} ${promptStartText} ${promptQuestions} ${promptRules} ${promptEndText}`;

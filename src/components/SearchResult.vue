@@ -4,7 +4,7 @@
     <div v-if="results && results.length > 0" class="qpm_accordions">
       <!-- Accordion menu for the AI summaries of abstracts from multiple search results -->
       <accordion-menu
-        v-if="appSettings.openAi.useAi"
+        v-if="config.useAI"
         class="qpm_ai_hide"
         @expanded-changed="onAiSummariesAccordionStateChange"
       >
@@ -149,7 +149,7 @@
                 <div style="margin-bottom: 5px">
                   <strong>{{ getString("selectedResultTitle") }}</strong>
                   <button
-                    v-if="!appSettings.openAi.useAi"
+                    v-if="!config.useAI"
                     v-tooltip="{
                       content: getString('hoverselectedResultTitle'),
                       offset: 5,
@@ -160,7 +160,7 @@
                     style="cursor: help; margin-left: -5px"
                   />
                   <button
-                    v-if="appSettings.openAi.useAi"
+                    v-if="config.useAI"
                     v-tooltip="{
                       content: getString('hoverselectedResultTitleAI'),
                       offset: 5,
@@ -390,22 +390,22 @@
 </template>
 
 <script>
-  import AccordionMenu from "@/components/AccordionMenu.vue";
-  import ResultEntry from "@/components/ResultEntry.vue";
-  import LoadingSpinner from "@/components/LoadingSpinner.vue";
-  import AiSummaries from "@/components/AiSummaries.vue";
   import Vue from "vue";
   import axios from "axios";
-
+  import AiSummaries from "@/components/AiSummaries.vue";
+  import ResultEntry from "@/components/ResultEntry.vue";
+  import AccordionMenu from "@/components/AccordionMenu.vue";
+  import LoadingSpinner from "@/components/LoadingSpinner.vue";
+  import { config } from "@/config/config.js";
+  import { order } from "@/assets/content/qpm-content-order.js";
+  import { messages } from "@/assets/content/qpm-translations.js";
   import { appSettingsMixin, eventBus } from "@/mixins/appSettings";
-  import { messages } from "@/assets/content/qpm-translations";
   import {
     searchSummaryPrompts,
     abstractSummaryPrompts,
     summarizeArticlePrompt,
   } from "@/assets/content/qpm-open-ai-prompts";
   import { languageFormat, dateOptions, pageSizes } from "@/utils/qpm-content-helpers";
-  import { order } from "@/assets/content/qpm-content-order";
 
   export default {
     name: "SearchResult",
@@ -474,6 +474,9 @@
       };
     },
     computed: {
+      config() {
+        return config;
+      },
       currentSortMethod: {
         get() {
           return this.sort.method;

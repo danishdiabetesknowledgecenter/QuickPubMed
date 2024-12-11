@@ -42,7 +42,7 @@
               </p>
             </label>
             <p
-              v-if="appSettings.openAi.useAi"
+              v-if="config.useAI"
               style="display: inline"
               class="qpm_translateTitleLink qpm_ai_hide"
             >
@@ -271,7 +271,7 @@
       <div>
         <div v-show="showingAbstract" lang="en" style="position: relative; margin-top: 0">
           <accordion-menu
-            v-if="appSettings.openAi.useAi && hasValidAbstract"
+            v-if="config.useAI && hasValidAbstract"
             class="qpm_ai_hide qpm_accordions"
           >
             <template #header="accordionProps">
@@ -380,7 +380,7 @@
             <p
             v-else-if="
             !hasValidAbstract &&
-            (!appSettings.openAi.useAi ||
+            (!config.useAI ||
             !isPubTypeAllowed ||
             !isLicenseAllowed ||
             !isResourceAllowed)
@@ -393,7 +393,7 @@
 
           <accordion-menu
             v-else-if="
-              appSettings.openAi.useAi &&
+              config.useAI &&
               !hasValidAbstract &&
               getIsPubTypeAllowed &&
               isLicenseAllowed &&
@@ -643,6 +643,7 @@
   import AiTranslation from "@/components/AiTranslation.vue";
   import axios from "axios";
 
+  import { config } from "@/config/config.js";
   import { appSettingsMixin } from "@/mixins/appSettings";
   import { eventBus } from "@/mixins/appSettings";
   import { messages } from "@/assets/content/qpm-translations";
@@ -832,6 +833,9 @@
       };
     },
     computed: {
+      config() {
+        return config;
+      },
       hasValidAbstract() {
         return (
           this.hasAbstract && (this.abstract.trim() !== "" || Object.keys(this.text).length > 0)

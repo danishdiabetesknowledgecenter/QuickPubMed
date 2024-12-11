@@ -214,7 +214,7 @@
   import DropdownTag from "@/components/DropdownTag.vue";
   import { appSettingsMixin } from "@/mixins/appSettings";
   import { searchTranslationPrompt } from "@/assets/content/qpm-open-ai-prompts";
-  import { topics } from "@/assets/content/diabetes/qpm-content-topics-diabetes";
+  import { contentLoaderMixin } from "@/mixins/contentLoaderMixin";
   import { filtrer } from "@/assets/content/qpm-content-filters";
   import { messages } from "@/assets/content/qpm-translations.js";
   import { getPromptForLocale } from "@/utils/qpm-open-ai-prompts-helpers";
@@ -226,7 +226,7 @@
       Multiselect,
       DropdownTag,
     },
-    mixins: [appSettingsMixin],
+    mixins: [appSettingsMixin, contentLoaderMixin],
     props: {
       isMultiple: Boolean,
       isGroup: Boolean,
@@ -706,7 +706,7 @@
       getOptionsFromOptionsGroupName(groupName) {
         const result = [];
         if (this.isGroup) {
-          topics.forEach((topic) => {
+          this.topics.forEach((topic) => {
             if (topic.groupname === groupName) {
               topic.groups.forEach((group) => {
                 result.push({
@@ -761,7 +761,7 @@
           });
           return children;
         }
-        topics.forEach((topic) => {
+        this.topics.forEach((topic) => {
           topic.groups.forEach((group) => {
             if (
               group.maintopicIdLevel1 === maintopicId ||
@@ -810,7 +810,7 @@
 
         let _topics;
         if (optionGroupId !== null) {
-          _topics = topics.filter((filter) => filter.id === optionGroupId);
+          _topics = this.topics.filter((filter) => filter.id === optionGroupId);
         }
 
         // Case: the topic is not baseTopic since it's at a depth greater than zero
@@ -894,7 +894,7 @@
           });
           return maintopics;
         }
-        const _topics = topics.find((topic) => topic.id === optionGroupId);
+        const _topics = this.topics.find((topic) => topic.id === optionGroupId);
 
         _topics.groups.forEach((group) => {
           if (group.maintopic) {
@@ -1586,7 +1586,7 @@
        * @returns {string|null} The ID of the group if found, otherwise null.
        */
       getOptionGroupId(groupname) {
-        for (const topic of topics) {
+        for (const topic of this.topics) {
           if (topic.groupname === groupname) {
             return topic.id;
           }

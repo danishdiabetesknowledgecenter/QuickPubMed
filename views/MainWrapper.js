@@ -6,7 +6,7 @@ import Vue from "vue";
 import VueShowdown from "vue-showdown";
 import { VTooltip } from "v-tooltip";
 import MainWrapper from "@/components/MainWrapper.vue";
-
+import { config } from "@/config/config";
 /**
  * Vue.prototype.$dateFormat = "da-DK";
  * en-US for American, en-GB for British, de-DR for German and so on.
@@ -35,9 +35,17 @@ Vue.directive("tooltip", VTooltip);
 
 const mainWrapperDiv = document.getElementById("main-wrapper");
 
+const domain = mainWrapperDiv.dataset.domain || undefined;
+const useAI = mainWrapperDiv.dataset.useAI === "true";
+const useAISummarizer = mainWrapperDiv.dataset.useAISummarizer === "true";
 const hideTopics = mainWrapperDiv.dataset.hideTopics || undefined;
 const language = mainWrapperDiv.dataset.language || undefined;
 const componentNo = mainWrapperDiv.dataset.componentNo || undefined;
+
+config.domain = domain;
+config.language = language;
+config.useAI = useAI;
+config.useAISummarizer = useAISummarizer;
 
 new Vue({
   render: (h) =>

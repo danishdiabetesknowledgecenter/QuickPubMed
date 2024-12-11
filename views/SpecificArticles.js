@@ -6,6 +6,7 @@ import Vue from "vue";
 import VueShowdown from "vue-showdown";
 import { VTooltip } from "v-tooltip";
 import SpecificArticles from "@/components/SpecificArticles.vue";
+import { config } from "@/config/config";
 
 /**
  * Vue.prototype.$dateFormat = "da-DK";
@@ -47,6 +48,9 @@ const specificArticleDivs = document.querySelectorAll(".specific-articles");
 
 specificArticleDivs.forEach((specificArticleDiv) => {
   // Manually assign each prop with appropriate type conversions
+  const domain = specificArticleDivs.dataset.domain || undefined;
+  const useAI = specificArticleDivs.dataset.useAI === "true";
+  const useAISummarizer = specificArticleDivs.dataset.useAISummarizer === "true";
   const ids = specificArticleDiv.dataset.ids || undefined;
   const query = specificArticleDiv.dataset.query || undefined;
   const queryResults = specificArticleDiv.dataset.queryResults || undefined;
@@ -70,6 +74,11 @@ specificArticleDivs.forEach((specificArticleDiv) => {
   const shownSixAuthors = specificArticleDiv.dataset.shownSixAuthors === "true";
   const showAltmetricBadge = specificArticleDiv.dataset.showAltmetricBadge === "true";
   const showDimensionsBadge = specificArticleDiv.dataset.showDimensionsBadge === "true";
+
+  config.domain = domain;
+  config.language = language;
+  config.useAI = useAI;
+  config.useAISummarizer = useAISummarizer;
 
   // Initialize Vue instance for each element
   new Vue({

@@ -151,7 +151,8 @@
 
   import { scopeIds, customInputTagTooltip } from "@/utils/qpm-content-helpers.js";
   import { filtrer } from "@/assets/content/qpm-content-filters.js";
-  import { topics } from "@/assets/content/diabetes/qpm-content-topics-diabetes";
+  import { contentLoaderMixin } from "@/mixins/contentLoaderMixin";
+
   import { order } from "@/assets/content/qpm-content-order.js";
   import { messages } from "@/assets/content/qpm-translations.js";
   import { appSettingsMixin } from "@/mixins/appSettings";
@@ -169,7 +170,7 @@
       WordedSearchString,
       SearchResult,
     },
-    mixins: [appSettingsMixin],
+    mixins: [appSettingsMixin, contentLoaderMixin],
     props: {
       hideTopics: {
         type: Array,
@@ -419,7 +420,7 @@
         });
       },
       prepareSubjectOptions() {
-        const subjectCopy = JSON.parse(JSON.stringify(topics));
+        const subjectCopy = JSON.parse(JSON.stringify(this.topics));
         subjectCopy.forEach((subjectItem) => {
           if (!this.advanced) {
             subjectItem.groups.forEach((group) => {

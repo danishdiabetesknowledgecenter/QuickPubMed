@@ -159,7 +159,7 @@
 
                   <summarize-article
                     v-if="
-                      getUsePDFsummaryFlag &&
+                      config.useAISummarizer &&
                       showSummarizeArticle &&
                       isLicenseAllowed &&
                       isResourceAllowed &&
@@ -203,7 +203,7 @@
     shortenAbstractPrompts,
   } from "@/assets/content/qpm-open-ai-prompts.js";
   import { getPromptForLocale } from "@/utils/qpm-open-ai-prompts-helpers.js";
-
+  import { config } from "@/config/config.js";
   export default {
     name: "AiSummaries",
     components: {
@@ -326,8 +326,8 @@
       };
     },
     computed: {
-      getUsePDFsummaryFlag() {
-        return this.appSettings.openAi.usePDFsummary;
+      config() {
+        return config;
       },
       getIsSummaryLoading() {
         return this.loadingSummaries.includes(this.currentSummary);
