@@ -170,6 +170,7 @@
                     :language="language"
                     :prompt-language-type="currentSummary"
                     :is-summary-loading="getIsSummaryLoading"
+                    :domain-specific-prompt-rules="domainSpecificPromptRules"
                     :generate-article-summary="isResourceAllowed"
                   />
                 </div>
@@ -194,6 +195,7 @@
   import Vue from "vue";
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
   import SummarizeArticle from "@/components/SummarizeArticle.vue";
+  import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
 
   import { appSettingsMixin, eventBus } from "@/mixins/appSettings.js";
   import { messages } from "@/assets/content/qpm-translations.js";
@@ -204,13 +206,14 @@
   } from "@/assets/content/qpm-open-ai-prompts.js";
   import { getPromptForLocale } from "@/utils/qpm-open-ai-prompts-helpers.js";
   import { config } from "@/config/config.js";
+
   export default {
     name: "AiSummaries",
     components: {
       LoadingSpinner,
       SummarizeArticle,
     },
-    mixins: [appSettingsMixin],
+    mixins: [appSettingsMixin, promptRuleLoaderMixin],
     props: {
       pubType: {
         type: Array,

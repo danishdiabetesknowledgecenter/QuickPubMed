@@ -139,6 +139,7 @@
         :html-url="htmlUrl"
         :language="language"
         :prompt-language-type="promptLanguageType"
+        :domain-specific-prompt-rules="domainSpecificPromptRules"
       />
     </div>
 
@@ -153,11 +154,11 @@
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
   import QuestionForArticle from "@/components/QuestionForArticle.vue";
 
-  import { utilitiesMixin } from "@/mixins/utilities";
-  import { appSettingsMixin } from "@/mixins/appSettings";
-  import { summarizeArticleMixin } from "@/mixins/summarizeArticle";
-  import { questionsToTitleMapMixin } from "@/mixins/questionsToTitleMap";
-  import { questionHeaderHeightWatcherMixin } from "@/mixins/questionHeaderHeightWatcher";
+  import { utilitiesMixin } from "@/mixins/utilities.js";
+  import { appSettingsMixin } from "@/mixins/appSettings.js";
+  import { summarizeArticleMixin } from "@/mixins/summarizeArticle.js";
+  import { questionsToTitleMapMixin } from "@/mixins/questionsToTitleMap.js";
+  import { questionHeaderHeightWatcherMixin } from "@/mixins/questionHeaderHeightWatcher.js";
 
   export default {
     name: "SummarizeArticle",
@@ -201,6 +202,11 @@
       generateArticleSummary: {
         type: Boolean,
         default: false,
+        required: true,
+      },
+      domainSpecificPromptRules: {
+        type: Object,
+        default: () => ({}),
         required: true,
       },
     },

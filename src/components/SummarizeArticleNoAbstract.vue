@@ -90,6 +90,7 @@
       :html-url="htmlUrl"
       :language="language"
       :prompt-language-type="promptLanguageType"
+      :domain-specific-prompt-rules="domainSpecificPromptRules"
     />
 
     <p v-if="errorMessage" class="qpm_error-message">
@@ -103,11 +104,12 @@
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
   import QuestionForArticle from "@/components/QuestionForArticle.vue";
 
-  import { utilitiesMixin } from "@/mixins/utilities";
-  import { appSettingsMixin } from "@/mixins/appSettings";
-  import { summarizeArticleMixin } from "@/mixins/summarizeArticle";
-  import { questionsToTitleMapMixin } from "@/mixins/questionsToTitleMap";
-  import { questionHeaderHeightWatcherMixin } from "@/mixins/questionHeaderHeightWatcher";
+  import { utilitiesMixin } from "@/mixins/utilities.js";
+  import { appSettingsMixin } from "@/mixins/appSettings.js";
+  import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
+  import { summarizeArticleMixin } from "@/mixins/summarizeArticle.js";
+  import { questionsToTitleMapMixin } from "@/mixins/questionsToTitleMap.js";
+  import { questionHeaderHeightWatcherMixin } from "@/mixins/questionHeaderHeightWatcher.js";
 
   export default {
     name: "SummarizeArticleNoAbstract",
@@ -117,6 +119,7 @@
       QuestionForArticle,
     },
     mixins: [
+      promptRuleLoaderMixin,
       appSettingsMixin,
       utilitiesMixin,
       questionsToTitleMapMixin,
@@ -137,6 +140,11 @@
       language: {
         type: String,
         default: "dk",
+      },
+      domainSpecificPromptRules: {
+        type: Object,
+        default: () => ({}),
+        required: true,
       },
     },
     data() {

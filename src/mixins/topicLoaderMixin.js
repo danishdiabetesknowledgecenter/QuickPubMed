@@ -1,9 +1,7 @@
-// src/mixins/contentLoaderMixin.js
-
 import { loadTopics } from "@/utils/contentLoader";
 import { config } from "@/config/config";
 
-export const contentLoaderMixin = {
+export const topicLoaderMixin = {
   data() {
     return {
       topics: [],

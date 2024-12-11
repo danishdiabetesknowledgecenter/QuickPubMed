@@ -32,11 +32,21 @@ export const summarizeArticleMixin = {
         (entry) => entry.name[language] === promptLanguageType
       );
 
-      const promptEndText = prompTextLanguageType.endText[language];
+      const domainSpecificRules = this.domainSpecificPromptRules[language];
       const promptStartText = prompTextLanguageType.startText[language];
       const promptQuestions = prompTextLanguageType.questions[language];
       const promptRules = prompTextLanguageType.promptRules[language];
-      const domainSpecificRules = this.$promptRules[language];
+      const promptEndText = prompTextLanguageType.endText[language];
+
+      console.info(
+        `
+      |Domain specific rules| \n ${domainSpecificRules} \n 
+      |Start text| \n ${promptStartText} \n 
+      |Questions| \n ${promptQuestions} \n 
+      |Rules| \n ${promptRules} \n
+      |End text| \n ${promptEndText} \n
+      `
+      );
 
       // Compose the prompt text with default prompt questions without the user input questions
       let composedPromptText = `${domainSpecificRules} ${promptStartText} ${promptQuestions} ${promptRules} ${promptEndText}`;

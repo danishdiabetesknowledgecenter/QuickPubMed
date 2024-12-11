@@ -138,24 +138,23 @@
 </template>
 
 <script>
-  import ActionButtons from "@/components/ActionButtons.vue";
-  import AiTranslationToggle from "@/components/AiTranslationToggle.vue";
-  import SearchFormToggle from "@/components/SearchFormToggle.vue";
-  import AdvancedSearchToggle from "@/components/AdvancedSearchToggle.vue";
-  import SimpleSearchFilters from "@/components/SimpleSearchFilters.vue";
-  import AdvancedSearchFilters from "@/components/AdvancedSearchFilters.vue";
-  import WordedSearchString from "@/components/WordedSearchString.vue";
-  import SubjectSelection from "@/components/SubjectSelection.vue";
   import SearchResult from "@/components/SearchResult.vue";
+  import ActionButtons from "@/components/ActionButtons.vue";
+  import SubjectSelection from "@/components/SubjectSelection.vue";
+  import SearchFormToggle from "@/components/SearchFormToggle.vue";
+  import WordedSearchString from "@/components/WordedSearchString.vue";
+  import AiTranslationToggle from "@/components/AiTranslationToggle.vue";
+  import SimpleSearchFilters from "@/components/SimpleSearchFilters.vue";
+  import AdvancedSearchToggle from "@/components/AdvancedSearchToggle.vue";
+  import AdvancedSearchFilters from "@/components/AdvancedSearchFilters.vue";
   import axios from "axios";
 
-  import { scopeIds, customInputTagTooltip } from "@/utils/qpm-content-helpers.js";
-  import { filtrer } from "@/assets/content/qpm-content-filters.js";
-  import { contentLoaderMixin } from "@/mixins/contentLoaderMixin";
-
   import { order } from "@/assets/content/qpm-content-order.js";
+  import { filtrer } from "@/assets/content/qpm-content-filters.js";
   import { messages } from "@/assets/content/qpm-translations.js";
+  import { topicLoaderMixin } from "@/mixins/topicLoaderMixin.js";
   import { appSettingsMixin } from "@/mixins/appSettings";
+  import { scopeIds, customInputTagTooltip } from "@/utils/qpm-content-helpers.js";
 
   export default {
     name: "MainWrapper",
@@ -170,7 +169,7 @@
       WordedSearchString,
       SearchResult,
     },
-    mixins: [appSettingsMixin, contentLoaderMixin],
+    mixins: [appSettingsMixin, topicLoaderMixin],
     props: {
       hideTopics: {
         type: Array,

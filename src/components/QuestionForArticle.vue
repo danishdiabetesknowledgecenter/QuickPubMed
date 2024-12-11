@@ -115,6 +115,11 @@
         type: String,
         default: "dk",
       },
+      domainSpecificPromptRules: {
+        type: Object,
+        default: () => ({}),
+        required: true,
+      },
     },
     data() {
       return {

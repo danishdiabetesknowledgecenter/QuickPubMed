@@ -466,6 +466,7 @@
                       ref="SummarizeArticleNoAbstractComponent"
                       :pdf-url="pdfUrl"
                       :html-url="htmlUrl"
+                      :domain-specific-prompt-rules="domainSpecificPromptRules"
                     />
                     <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryConsentText')" />
                   </div>
@@ -636,17 +637,18 @@
 </template>
 
 <script>
-  import LoadingSpinner from "@/components/LoadingSpinner.vue";
-  import AccordionMenu from "@/components/AccordionMenu.vue";
   import AiSummaries from "@/components/AiSummaries.vue";
-  import SummarizeArticleNoAbstract from "@/components/SummarizeArticleNoAbstract.vue";
   import AiTranslation from "@/components/AiTranslation.vue";
+  import AccordionMenu from "@/components/AccordionMenu.vue";
+  import LoadingSpinner from "@/components/LoadingSpinner.vue";
+  import SummarizeArticleNoAbstract from "@/components/SummarizeArticleNoAbstract.vue";
   import axios from "axios";
-
   import { config } from "@/config/config.js";
-  import { appSettingsMixin } from "@/mixins/appSettings";
-  import { eventBus } from "@/mixins/appSettings";
   import { messages } from "@/assets/content/qpm-translations";
+  import { eventBus } from "@/mixins/appSettings";
+  import { appSettingsMixin } from "@/mixins/appSettings";
+  import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
+
   import {
     abstractSummaryPrompts,
     summarizeArticlePrompt,
@@ -661,7 +663,7 @@
       AiTranslation,
       SummarizeArticleNoAbstract,
     },
-    mixins: [appSettingsMixin],
+    mixins: [appSettingsMixin, promptRuleLoaderMixin],
     model: {
       prop: "modelValue",
       event: "change",

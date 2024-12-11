@@ -214,7 +214,7 @@
   import DropdownTag from "@/components/DropdownTag.vue";
   import { appSettingsMixin } from "@/mixins/appSettings";
   import { searchTranslationPrompt } from "@/assets/content/qpm-open-ai-prompts";
-  import { contentLoaderMixin } from "@/mixins/contentLoaderMixin";
+  import { topicLoaderMixin } from "@/mixins/topicLoaderMixin";
   import { filtrer } from "@/assets/content/qpm-content-filters";
   import { messages } from "@/assets/content/qpm-translations.js";
   import { getPromptForLocale } from "@/utils/qpm-open-ai-prompts-helpers";
@@ -226,7 +226,7 @@
       Multiselect,
       DropdownTag,
     },
-    mixins: [appSettingsMixin, contentLoaderMixin],
+    mixins: [appSettingsMixin, topicLoaderMixin],
     props: {
       isMultiple: Boolean,
       isGroup: Boolean,
