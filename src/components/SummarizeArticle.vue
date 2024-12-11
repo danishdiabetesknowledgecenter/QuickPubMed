@@ -4,7 +4,22 @@
     <p v-if="!isError && !scrapingError && !isLoadingQuestions" style="margin-bottom: 20px">
       <strong>{{ getString("summarizeArticleNotice") }}</strong>
     </p>
-
+    <button
+      v-if="!isError && !scrapingError && !isLoadingQuestions"
+      v-tooltip="{
+        content: getString('hoverretryText'),
+        offset: 5,
+        delay: $helpTextDelay,
+        hideOnTargetClick: false,
+      }"
+      class="qpm_button"
+      :disabled="isSummaryLoading || isLoadingQuestions || isError"
+      @keydown.enter="handleRetry()"
+      @click="handleRetry()"
+    >
+      <i class="bx bx-refresh" style="vertical-align: baseline; font-size: 1em" />
+      {{ getString("retryText") }}
+    </button>
     <button
       v-if="!isError && !scrapingError && !isLoadingQuestions"
       v-tooltip="{
@@ -17,7 +32,17 @@
       :disabled="isSummaryLoading || isLoadingQuestions || isError"
       @click="toggleShowArticleSummary"
     >
-      <i class="bx bx-file" style="vertical-align: baseline; font-size: 1em" />
+      <i
+        v-if="isSummaryVisible"
+        class="bx bx-chevron-down"
+        style="vertical-align: baseline; font-size: 1em"
+      />
+      <i
+        v-if="!isSummaryVisible"
+        class="bx bx-chevron-right"
+        style="vertical-align: baseline; font-size: 1em"
+      />
+
       {{ getButtonText }}
     </button>
 
@@ -117,9 +142,6 @@
       />
     </div>
 
-    <p v-if="scrapingError">
-      {{ getString("scrapingError") }}
-    </p>
     <p v-if="errorMessage" class="qpm_error-message">
       {{ errorMessage }}
     </p>
@@ -176,7 +198,7 @@
         default: "Hverdagssprog",
         required: false,
       },
-      doStuffNow: {
+      generateArticleSummary: {
         type: Boolean,
         default: false,
         required: true,
@@ -195,7 +217,7 @@
       },
     },
     watch: {
-      doStuffNow: {
+      generateArticleSummary: {
         handler: function (val) {
           if (val) {
             this.handleSummarizeArticle();
@@ -207,6 +229,10 @@
     methods: {
       toggleShowArticleSummary() {
         this.isSummaryVisible = !this.isSummaryVisible;
+      },
+      handleRetry() {
+        this.isSummaryVisible = true;
+        this.handleSummarizeArticle();
       },
     },
   };

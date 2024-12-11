@@ -1,15 +1,4 @@
 import { sanitizePrompt, sanitizeMessages } from "@/utils/qpm-open-ai-prompts-helpers.js";
-import { diabetesSpecificPromptRules } from "@/assets/content/diabetes/qpm-prompt-rules-diabetes.js";
-import { dementiaSpecificPromptRules } from "@/assets/content/dementia/qpm-prompt-rules-dementia.js";
-
-/**
- * Contains different writting rules specific for a domain, to be used when prompting the ai model.
- * Will be found based on the string set in appSettings.openAi.domain (eg "diabetes" or "dementia")
- */
-export const domainSpecificPromptingRules = {
-  diabetes: diabetesSpecificPromptRules,
-  dementia: dementiaSpecificPromptRules,
-};
 
 export const searchSummaryPrompts = [
   {
@@ -507,6 +496,20 @@ export const promptArticleSpecificAnswersOnly = {
   en: `It is very important that you only answer the questions asked if they are relevant to this article, and that you do not answer questions that are not relevant to this article. `,
 };
 
+/**
+ * This object contains all the prompt texts for the different languages/ language types
+ * This is not the prompt object that is sent to the OpenAI API
+ * @typedef {Object} Prompt
+ * @property {Object} name - The display names for the prompt in different languages types.
+ * @property {string} name.dk - Danish name for the language type.
+ * @property {string} name.en - English name for the language type.
+ * @property {string} startText - Generic text for the start of the prompt.
+ * @property {Array<string>} questions - An array of questions related to the prompt.
+ * @property {string} promptRules - Rules or guidelines for generating responses.
+ * @property {Object} endText - The concluding text for the prompt in different languages.
+ * @property {string} endText.dk - Danish concluding text.
+ * @property {string} endText.en - English concluding text.
+ */
 export const promptText = [
   // Professional language prompt end text
   {
@@ -543,8 +546,8 @@ You must not respond with anything other than JSON format. You must therefore no
 ];
 
 /**
- * Basic Prompt for summarizing an article in plain language and professional language.
- * The prompt fields are composed in the code for better maintanability, scalability and readability.
+ * This is the object being sent to the OpenAI API
+ * The prompt fields are composed in the code using the promptText object
  */
 export const summarizeArticlePrompt = [
   {

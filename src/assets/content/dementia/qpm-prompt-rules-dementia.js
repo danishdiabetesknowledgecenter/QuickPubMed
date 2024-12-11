@@ -1,13 +1,15 @@
 /**
- * EXAMPLE (Add more similair to this for other domains)
- * Use it in the domainSpecificPromptingRules object
  * Prompt text for use in prompting to adhere to specific domain rules for dementia
  */
-export const dementiaSpecificPromptRules = {
+export const promptRules = {
   dk: `Følg altid disse skriveregler: 
-    Skriv domæne specifikke regler her
+    - Dette er regel nummer 1
+    - Dette er regel nummer 2
+    - Dette er regel nummer 1
     Du vil blive straffet meget hårdt, hvis du ikke følger alle de instruktioner, som du har fået.`,
   en: `Always follow these writing rules: 
-    Write domain specific rules here
+    - This is rule number 1
+    - This is rule number 2
+    - This is rule number 1
     You will be penalized severely if you do not follow the instructions you have received.`,
 };

@@ -170,7 +170,7 @@
                     :language="language"
                     :prompt-language-type="currentSummary"
                     :is-summary-loading="getIsSummaryLoading"
-                    :do-stuff-now="isResourceAllowed"
+                    :generate-article-summary="isResourceAllowed"
                   />
                 </div>
                 <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryDisclaimer')" />

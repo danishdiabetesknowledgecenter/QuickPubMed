@@ -1,5 +1,4 @@
 import { messages } from "@/assets/content/qpm-translations.js";
-import { domainSpecificPromptingRules } from "@/assets/content/qpm-open-ai-prompts.js";
 
 /**
  * Mixin for utility functions that are reusable across components.
@@ -8,13 +7,6 @@ import { domainSpecificPromptingRules } from "@/assets/content/qpm-open-ai-promp
  */
 export const utilitiesMixin = {
   methods: {
-    getDomainSpecificPromptRules(domain, locale = "dk") {
-      if (domainSpecificPromptingRules[domain] && domainSpecificPromptingRules[domain][locale]) {
-        return domainSpecificPromptingRules[domain][locale];
-      } else {
-        return null;
-      }
-    },
     /**
      * Retrieves a localized string based on the current language.
      *

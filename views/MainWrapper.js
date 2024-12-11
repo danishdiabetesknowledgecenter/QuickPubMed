@@ -7,6 +7,15 @@ import VueShowdown from "vue-showdown";
 import { VTooltip } from "v-tooltip";
 import MainWrapper from "@/components/MainWrapper.vue";
 import { config } from "@/config/config";
+import { loadPromptRules } from "@/utils/contentLoader";
+
+// There are issues with timing if loading this in summarizeArticle so we have to load it here
+const loadedPromptRules = loadPromptRules(config.domain);
+const promptRules = loadedPromptRules.reduce((acc, module) => {
+  return { ...acc, ...module.promptRules };
+}, {});
+
+Vue.prototype.$promptRules = promptRules;
 /**
  * Vue.prototype.$dateFormat = "da-DK";
  * en-US for American, en-GB for British, de-DR for German and so on.

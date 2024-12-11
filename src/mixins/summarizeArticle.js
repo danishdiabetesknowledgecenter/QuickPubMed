@@ -1,6 +1,5 @@
 import { sanitizePrompt } from "@/utils/qpm-open-ai-prompts-helpers.js";
 import { summarizeArticlePrompt, promptText } from "@/assets/content/qpm-open-ai-prompts.js";
-import { config } from "@/config/config";
 
 /**
  * Mixin for common methods used in both summarize-article and summarize-article-no-abstract components.
@@ -33,15 +32,11 @@ export const summarizeArticleMixin = {
         (entry) => entry.name[language] === promptLanguageType
       );
 
-      console.log("prompTextLanguageType: ", prompTextLanguageType);
       const promptEndText = prompTextLanguageType.endText[language];
       const promptStartText = prompTextLanguageType.startText[language];
       const promptQuestions = prompTextLanguageType.questions[language];
       const promptRules = prompTextLanguageType.promptRules[language];
-
-      // Get the domain specific rules for the language
-      let domainSpecificRules = this.getDomainSpecificPromptRules(config.domain, language);
-      console.log("Using prompt rules for domain: ", config.domain);
+      const domainSpecificRules = this.$promptRules[language];
 
       // Compose the prompt text with default prompt questions without the user input questions
       let composedPromptText = `${domainSpecificRules} ${promptStartText} ${promptQuestions} ${promptRules} ${promptEndText}`;
@@ -115,7 +110,6 @@ export const summarizeArticleMixin = {
      */
     async getSummarizeHTMLArticle() {
       const openAiServiceUrl = this.appSettings.openAi.baseUrl + "/api/SummarizeHTMLArticle";
-
       const localePrompt = this.getComposablePrompt(this.language, this.promptLanguageType);
 
       let response = await this.handleFetch(
@@ -154,7 +148,6 @@ export const summarizeArticleMixin = {
      */
     async getSummarizePDFArticle() {
       const openAiServiceUrl = this.appSettings.openAi.baseUrl + "/api/SummarizePDFArticle";
-
       const localePrompt = this.getComposablePrompt(this.language, this.promptLanguageType);
 
       let response = await this.handleFetch(
