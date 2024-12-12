@@ -2,7 +2,7 @@
   <div v-if="!details || details" class="qpm_wordedSearchString">
     <div v-if="!isCollapsed" class="qpm_toggleDetails" style="box-shadow: inset 0 -1px 0 0 #e0e0e0">
       <p
-        v-if="subjects !== ''"
+        v-if="hasValidSubjects"
         v-tooltip="{
           content: details && getString('hoverDetailsText'),
           offset: 5,
@@ -19,7 +19,7 @@
         <a v-else>{{ getString("hideDetails") }}</a>
       </p>
     </div>
-    <div v-if="subjects !== '' && (!details || isCollapsed)" class="qpm_middle">
+    <div v-if="hasValidSubjects && (!details || isCollapsed)" class="qpm_middle">
       <p
         v-if="!advancedString"
         v-tooltip="{
@@ -227,6 +227,20 @@
       },
     },
     computed: {
+      /**
+       * Determines if the subjects prop contains at least one non-empty entry.
+       *
+       * @returns {boolean} True if subjects contain meaningful data, else false.
+       */
+      hasValidSubjects() {
+        return (
+          Array.isArray(this.subjects) &&
+          this.subjects.length > 0 &&
+          Array.isArray(this.subjects[0]) &&
+          this.subjects[0].length > 0
+        );
+      },
+
       /**
        * Returns an array of [key, value] pairs from the filters object
        * where the value array is not empty.
