@@ -465,27 +465,63 @@ export const promptStartText = {
 };
 
 /**
- * The default questions to ask the model for summarizing of an article
- * Includes standard questions that are mapped to short titles,
- * and one to three article specific generated questions that use the question as the title
+ * @typedef {Object} QuestionItem
+ * @property {string} question - The question text.
+ * @property {string} shortTitle - A short title for the question.
  */
-export const promptQuestions = {
-  dk: `Lav en kort opsummering baseret på artiklens samlede tekst. 
-  Hvad er formålet med denne artikel? 
-  Hvilke metoder blev anvendt? 
-  Hvad er resultaterne? 
-  Hvilke konklusioner drages i artiklen? 
-  Hvilke styrker og svagheder er der i studiet? 
-  Hvilke mulige interessekonflikter har forfatterne til studiet? 
-  Du skal herefter tilføje 2 eller 3 ekstra spørgsmål der har relevance for denne artikel. `,
-  en: `Make a brief summary based on the overall text of the article. 
-  What is the purpose of this article? 
-  What methods were used? 
-  What are the results? 
-  What conclusions are drawn in the article? 
-  What are the strengths and weaknesses of the study? 
-  What possible conflicts of interest do the authors of the study have? 
-  You must then add 2 or 3 extra questions that are relevant for this article.`,
+
+/**
+ * Collection of prompt questions categorized by language.
+ *
+ * @type {Object.<string, QuestionItem[]>}
+ * @property {QuestionItem[]} dk - Questions in Danish.
+ * @property {QuestionItem[]} en - Questions in English.
+ */
+export const promptQuestionsMap = {
+  dk: [
+    {
+      question: "Lav en kort opsummering baseret på artiklens samlede tekst. ",
+      shortTitle: "Resumé",
+    },
+    { question: "Hvad er formålet med denne artikel?", shortTitle: "Formål" },
+    {
+      question: "Hvilke metoder blev anvendt?",
+      shortTitle: "Metoder",
+    },
+    { question: "Hvad er resultaterne?", shortTitle: "Resultater" },
+    { question: "Hvilke konklusioner drages i artiklen?", shortTitle: "Konklusioner" },
+    {
+      question: "Hvilke styrker og svagheder er der i studiet?",
+      shortTitle: "Styrker og svagheder",
+    },
+    {
+      question: "Hvilke mulige interessekonflikter har forfatterne til studiet?",
+      shortTitle: "Interessekonflikter",
+    },
+  ],
+  en: [
+    {
+      question: "Make a brief summary based on the overall text of the article.",
+      shortTitle: "Summary",
+    },
+    { question: "What is the purpose of this article?", shortTitle: "Purpose" },
+    { question: "What methods were used?", shortTitle: "Methods" },
+    { question: "What are the results?", shortTitle: "Results" },
+    { question: "What conclusions are drawn in the article?", shortTitle: "Conclusions" },
+    {
+      question: "What are the strengths and weaknesses of the study?",
+      shortTitle: "Strengths and weaknesses",
+    },
+    {
+      question: "What possible conflicts of interest do the authors of the study have?",
+      shortTitle: "Conflicts of interest",
+    },
+  ],
+};
+
+export const promptQuestionsExtra = {
+  dk: `Du skal herefter tilføje 2 eller 3 ekstra spørgsmål der har relevance for denne artikel. `,
+  en: `You must then add 2 or 3 additional questions that are relevant to this article. `,
 };
 
 /**
@@ -518,7 +554,8 @@ export const promptText = [
       en: "Professional language",
     },
     startText: promptStartText,
-    questions: promptQuestions,
+    questions: promptQuestionsMap,
+    questionsExtra: promptQuestionsExtra,
     promptRules: promptArticleSpecificAnswersOnly,
     endText: {
       dk: "Du skal generere svar til alle spørgsmål, og disse svar skal bestå af maksimalt 100 ord og skal skrives på fagsprog som let kan forstås af et sundhedsfagligt publikum eller personer med solid baggrund inden for emnet, og tilføje svarende til array'et, der er value for answers key'en. \
@@ -534,7 +571,8 @@ export const promptText = [
       en: "Plain language",
     },
     startText: promptStartText,
-    questions: promptQuestions,
+    questions: promptQuestionsMap,
+    questionsExtra: promptQuestionsExtra,
     promptRules: promptArticleSpecificAnswersOnly,
     endText: {
       dk: "Du skal generere svar til disse spørgsmål, og disse svar skal bestå af maksimalt 100 ord og skal skrives i et sprog, som nemt kan læses og forstås af en 15-årig uden forhåndskendskab til emnet, og tilføje svarende til array'et, der er value for answers key'en. \

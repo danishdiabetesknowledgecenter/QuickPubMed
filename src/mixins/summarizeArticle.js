@@ -19,6 +19,21 @@ export const summarizeArticleMixin = {
   },
   methods: {
     /**
+     * Retrieve the questions from the prompt text
+     *
+     * @param {Object.<string, {question: string, shortTitle: string}[]>} promptQuestionsMap
+     * @returns {Object.<string, string>} Transformed promptQuestions with concatenated questions.
+     */
+    extractQuestionsFromPromptTextQuestions(promptQuestionsMap) {
+      const transformed = {};
+
+      for (const [lang, questions] of Object.entries(promptQuestionsMap)) {
+        transformed[lang] = questions.map((q) => q.question.trim()).join("\n");
+      }
+      return transformed;
+    },
+
+    /**
      * Retrieves a prompt based on the specified language and prompt language type.
      * Can be used in question-for-article for prompting with the questions given by the user,
      * or be used in summarize-article and summarize-article-no-abstract for prompting with the default questions aswell as the genere
@@ -32,13 +47,18 @@ export const summarizeArticleMixin = {
         (entry) => entry.name[language] === promptLanguageType
       );
 
+      const promptQuestionsOnly = this.extractQuestionsFromPromptTextQuestions(
+        prompTextLanguageType.questions
+      );
+
       const domainSpecificRules = this.domainSpecificPromptRules[language];
       const promptStartText = prompTextLanguageType.startText[language];
-      const promptQuestions = prompTextLanguageType.questions[language];
+      const promptQuestions = promptQuestionsOnly[language];
+      const promptQuestionsExtra = prompTextLanguageType.questionsExtra[language];
       const promptRules = prompTextLanguageType.promptRules[language];
       const promptEndText = prompTextLanguageType.endText[language];
       // Compose the prompt text with default prompt questions without the user input questions
-      let composedPromptText = `${domainSpecificRules} ${promptStartText} ${promptQuestions} ${promptRules} ${promptEndText}`;
+      let composedPromptText = `${domainSpecificRules} ${promptStartText} ${promptQuestions} ${promptQuestionsExtra} ${promptRules} ${promptEndText}`;
 
       // Compose the prompt text with user questions if userQuestionInput is not empty
       if (this.userQuestionInput) {
@@ -54,7 +74,8 @@ export const summarizeArticleMixin = {
         
         ${
           !this.userQuestionInput
-            ? `|Questions|\n${promptQuestions}\n`
+            ? `|Questions|\n${promptQuestions}\n
+        |QuestionsExtra|\n${promptQuestionsExtra}`
             : `|User questions|\n${this.userQuestionInput}\n`
         }
         

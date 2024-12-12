@@ -64,7 +64,7 @@
       <accordion-menu
         v-for="(question, index) in questions.slice(0, 7)"
         :key="index"
-        :title="questionShortenMapDanish[question] || question"
+        :title="fetchShortTitle(question)"
         :open-by-default="false"
       >
         <template #header="accordionProps">
@@ -83,7 +83,7 @@
                 margin-right: 5px;
               "
             />
-            {{ questionShortenMapDanish[question] || question }}
+            {{ fetchShortTitle(question) }}
           </div>
         </template>
         <template #default>
@@ -102,7 +102,7 @@
       <accordion-menu
         v-for="(question, index) in questions.slice(7)"
         :key="index + 7"
-        :title="questionShortenMapDanish[question] || question"
+        :title="question"
         :open-by-default="false"
       >
         <template #header="accordionProps">
@@ -153,12 +153,11 @@
   import AccordionMenu from "@/components/AccordionMenu.vue";
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
   import QuestionForArticle from "@/components/QuestionForArticle.vue";
-
   import { utilitiesMixin } from "@/mixins/utilities.js";
   import { appSettingsMixin } from "@/mixins/appSettings.js";
   import { summarizeArticleMixin } from "@/mixins/summarizeArticle.js";
-  import { questionsToTitleMapMixin } from "@/mixins/questionsToTitleMap.js";
   import { questionHeaderHeightWatcherMixin } from "@/mixins/questionHeaderHeightWatcher.js";
+  import { getShortTitle } from "@/utils/qpm-open-ai-prompts-helpers.js";
 
   export default {
     name: "SummarizeArticle",
@@ -170,7 +169,6 @@
     mixins: [
       appSettingsMixin,
       utilitiesMixin,
-      questionsToTitleMapMixin,
       summarizeArticleMixin,
       questionHeaderHeightWatcherMixin,
     ],
@@ -239,6 +237,16 @@
       handleRetry() {
         this.isSummaryVisible = true;
         this.handleSummarizeArticle();
+      },
+      /**
+       * Retrieves the short title for a given question.
+       *
+       * @param {string} question - The question text.
+       * @returns {string} The short title or the original question if not found.
+       */
+      fetchShortTitle(question) {
+        const shortTitle = getShortTitle(question, this.language);
+        return shortTitle || question;
       },
     },
   };

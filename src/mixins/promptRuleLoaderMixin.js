@@ -19,7 +19,6 @@ export const promptRuleLoaderMixin = {
       const promptRules = loadedPromptRules.reduce((acc, module) => {
         return { ...acc, ...module.promptRules };
       }, {});
-      console.log("MIXIN | Prompt rules:", promptRules);
       this.domainSpecificPromptRules = promptRules;
     },
   },
