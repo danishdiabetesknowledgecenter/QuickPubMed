@@ -117,6 +117,7 @@
 
       <!-- The list of results from searching -->
       <search-result
+        ref="searchResultList"
         :language="language"
         :total="count"
         :sort="sort"
@@ -1319,7 +1320,14 @@
       searchMore: async function () {
         // Calculate the target number of results based on the next page
         const targetResultLength = Math.min((this.page + 1) * this.pageSize, this.count);
-
+        console.log(
+          "TargetResultLength: ",
+          targetResultLength,
+          "Count: ",
+          this.count,
+          "PageSize: ",
+          this.pageSize
+        );
         // If current results already meet or exceed the target, no need to fetch more
         if (this.searchresult && this.searchresult.length >= targetResultLength) {
           return;
@@ -1413,6 +1421,16 @@
           // Reset the loading state
           this.searchLoading = false;
 
+          // Get the current result entries and update the focus to the first of the newly loading entries
+          // Which is the pageSize minus the targetResultLength + 1
+          const currentResultEntries = this.$refs.searchResultList.$refs.resultEntries;
+          console.log("CurrentResultEntries: ", currentResultEntries);
+
+          // Find the first result entry from the new data and focus on it
+          const firstNewResultEntry = currentResultEntries[this.pageSize];
+
+          console.log("firstNewResultEntry", firstNewResultEntry);
+          firstNewResultEntry.$el.focus();
           // Note: Removed scrolling and focus updates to maintain current scroll position
         } catch (error) {
           // Handle and log any errors that occur during the API requests
