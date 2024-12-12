@@ -854,7 +854,9 @@
         isFilter = false
       ) {
         let siblings = this.getSiblings(optionGroupId, baseTopic, depth, isFilter);
-        console.log("Siblings | ", siblings);
+        siblings.forEach((s) => {
+          console.log("Sibling | ", s.name);
+        });
 
         // Case: Include children where a maintopic is toggled
         if (includeChildren) {
@@ -930,6 +932,17 @@
           return maintopics.filter((maintopic) => this.maintopicToggledMap[maintopic.id]);
         }
         return maintopics.filter((maintopic) => !this.maintopicToggledMap[maintopic.id]);
+      },
+      findNextSibling(currentSubject, filteredSortedOptions) {
+        const currentIndex = filteredSortedOptions.findIndex(
+          (option) => option.name === currentSubject.name
+        );
+
+        if (currentIndex > 0) {
+          return filteredSortedOptions[currentIndex - 1];
+        }
+
+        return null; // No next sibling found
       },
 
       /**
@@ -1353,6 +1366,7 @@
           const allToggled = this.areMaintopicsToggled(currentSubjectOptionGroupId, true, isFilter);
           if (allToggled === true) {
             dropdownRef.pointer = dropdownRef.pointer - navDistance;
+            console.log("Default case | all maintopics open");
             return;
           }
 
@@ -1361,6 +1375,7 @@
             // Case: base topic and maintopic
             if (currentSubject.maintopic) {
               dropdownRef.pointer = dropdownRef.pointer - 1;
+              console.log("BaseTopic case | is base topic and is maintopic");
               return;
             }
 
@@ -1377,9 +1392,11 @@
               true,
               isFilter
             );
+            console.log("BaseTopic case | base topic");
 
             if (toggledMaintopic.length === 1) {
               dropdownRef.pointer = dropdownRef.pointer - 1;
+              console.log("BaseTopic case | base topic and 1 maintopic toggled");
               return;
             }
 
@@ -1391,6 +1408,7 @@
           if (optionsAtDepth.length > 0) {
             if (currentSubject.maintopic) {
               dropdownRef.pointer = dropdownRef.pointer - 1;
+              console.log("Not BaseTopic case | currentSubject.maintopic");
               return;
             }
 
@@ -1399,6 +1417,7 @@
               const isParentToggled = this.maintopicToggledMap[currentSubject.maintopicIdLevel2];
               const isGrandParentToggled =
                 this.maintopicToggledMap[currentSubject.maintopicIdLevel1];
+              console.log("Not BaseTopic case | currentSubject.maintopicIdLevel2");
 
               if (isGrandParentToggled && !isParentToggled) {
                 var parentChildren = this.getMaintopicChildren(
@@ -1406,6 +1425,7 @@
                   isFilter
                 );
                 dropdownRef.pointer = dropdownRef.pointer - parentChildren.length;
+                console.log("Not BaseTopic case | isGrandParentToggled && !isParentToggled");
                 return;
               }
             }
@@ -1414,13 +1434,54 @@
             if (currentSubject.maintopicIdLevel1) {
               const isParentToggled = this.maintopicToggledMap[currentSubject.maintopicIdLevel1];
               if (isParentToggled) {
+                // Print the optionsAtDepth with their name and order
+                optionsAtDepth.forEach((option) => {
+                  console.log("OptionsAtDepth | ", option.name, option.ordering.dk);
+                });
+
+                // Sort the OptionsAtDepth by the ordering field
+                const sortedOptions = optionsAtDepth.sort((a, b) => a.ordering.dk - b.ordering.dk);
+
+                sortedOptions.forEach((option) => {
+                  console.log("sortedOptions | ", option.name, option.ordering.dk);
+                });
+
+                // filter the sortedOptions based on depth
+                const filteredSortedOptions = sortedOptions.filter(
+                  (option) => option.subtopiclevel === currentSubject.subtopiclevel
+                );
+
+                filteredSortedOptions.forEach((option) => {
+                  console.log(
+                    "Filtered sortedOptions | ",
+                    option.name,
+                    option.subtopiclevel,
+                    option.ordering.dk
+                  );
+                });
+
+                // Find the next sibling in the filteredSortedOptions based on the ordering.dk
+
+                const nextSibling = this.findNextSibling(currentSubject, filteredSortedOptions);
+
+                console.log("NextSibling | ", nextSibling.name);
+                // Check if next sibling is a maintopic
+                if (nextSibling.maintopic) {
+                  dropdownRef.pointer = dropdownRef.pointer - 3;
+                }
+
                 dropdownRef.pointer = dropdownRef.pointer - 1;
+                console.log("CurrentSubject.name |", currentSubject.name);
+                console.log(
+                  "Not BaseTopic case | currentSubject.maintopicIdLevel1 && isParentToggled |"
+                );
                 return;
               }
             }
 
             const pointerIndex = dropdownRef.pointer - optionsAtDepth.length;
             dropdownRef.pointer = pointerIndex;
+            console.log("Not BaseTopic case | default");
             return;
           }
         }
