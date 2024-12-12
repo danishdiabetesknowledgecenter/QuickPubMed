@@ -14,7 +14,7 @@ This project contains the source code for the product QuickPubMed hosted on
 
 **Frontend (Vue web app)**
 
-- Node.Js and NPM installed locally
+- Node.Js and NPM installed locally. [Download here](https://nodejs.org/en/download/prebuilt-installer/current)
 
 **Cloning the repositories**
 
