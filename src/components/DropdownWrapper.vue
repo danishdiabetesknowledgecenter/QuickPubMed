@@ -1434,11 +1434,6 @@
             if (currentSubject.maintopicIdLevel1) {
               const isParentToggled = this.maintopicToggledMap[currentSubject.maintopicIdLevel1];
               if (isParentToggled) {
-                // Print the optionsAtDepth with their name and order
-                optionsAtDepth.forEach((option) => {
-                  console.log("OptionsAtDepth | ", option.name, option.ordering.dk);
-                });
-
                 // Sort the OptionsAtDepth by the ordering field
                 const sortedOptions = optionsAtDepth.sort((a, b) => a.ordering.dk - b.ordering.dk);
 

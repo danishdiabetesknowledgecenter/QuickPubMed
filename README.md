@@ -11,19 +11,25 @@ This project contains the source code for the product QuickPubMed hosted on
 
 - [Generate SSH key locally and add it to your github profile](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account)
 
-**Backend**
+**Backend (Azure function API)**
 
-- .NET SDK and the runtime for azure functions installed locally
+- .NET SDK and the runtime installed locally. [Download here](https://dotnet.microsoft.com/en-us/download/dotnet)
+- Azure functions Core Tools installed locally. [Download here](https://github.com/Azure/azure-functions-core-tools)
 
-**Frontend**
+**Frontend (Vue web app)**
 
 - Node.Js and NPM installed locally
+
+**Cloning the repositories**
+
+- You need the git tool to enable cloning, pulling and pushing. There are two options: [git CLI](https://git-scm.com/downloads) or [GitHub Desktop (GUI for git)](https://desktop.github.com/download/) 
+- Go with GitHub Desktop if you prefer the graphical user interface.
 
 ## Setup for local development
 
 ### Frontend project
 
-The **frontend** project can be cloned as such using ssh
+The **frontend** project can be cloned as such using ssh (asuming you only use the git CLI) [See this if using GitHub Desktop](https://docs.github.com/en/desktop/adding-and-cloning-repositories/cloning-a-repository-from-github-to-github-desktop)
 
 ```bash
 git clone git@github.com:danishdiabetesknowledgecenter/QuickPubMed.git
@@ -48,9 +54,13 @@ npm run dev
 
 This will start the Vite development server at `http://localhost:5173`
 
+The app defines three entry points that can be found under /views
+When opening the root directory at `http://localhost:5173` you'll see a simple menu for navigating to these entry points.
+![alt text](readme-assets/image.png)
+
 ### Backend project
 
-The **backend** project can be cloned as such using ssh
+The **backend** project can be cloned as such using ssh (asuming you only use the git CLI) [See this if using GitHub Desktop](https://docs.github.com/en/desktop/adding-and-cloning-repositories/cloning-a-repository-from-github-to-github-desktop)
 
 ```bash
 git clone git@github.com:danishdiabetesknowledgecenter/QuickPubMed-AzureFunctions.git
@@ -67,7 +77,8 @@ cd QuickPubMed-AzureFunctions/qpm_api
 func start
 ```
 
-This will start the azure function server at `http://localhost:7071`
+This will start the azure function server at `http://localhost:7071` and the terminal logs should display the API endpoints as seen on the screenshot below.
+![alt text](readme-assets/image-1.png)
 
 ### Start developing
 
@@ -130,7 +141,7 @@ When a feature (or multiple consolidated features) should be deployed:
 
 [The deployed app can be viewed here](https://pro.videncenterfordiabetes.dk/nempubmed/it-minds)
 
-If there are updates that should also be included in the same release, then create the new tag locally and push it to origin
+If there are updates that should also be included in the same release, then create the new tag locally and push it to origin. (Assuming you only use the git CLI) [See this if using GitHub Desktop to manage tags](https://docs.github.com/en/desktop/managing-commits/managing-tags-in-github-desktop)
 
 ```
 git checkout main
@@ -155,6 +166,8 @@ To add/update secrets:
 
 Furthermore make sure that the enviroment varibels defined in the main.yml are created as [Secrets in GitHub](https://github.com/danishdiabetesknowledgecenter/QuickPubMed/settings/secrets/actions)
 
+[Click here to see secrets defined in the repository](https://github.com/danishdiabetesknowledgecenter/QuickPubMed/settings/secrets/actions)
+
 ## Notes
 
 - The application is built using Vue 2 and Vite 5
@@ -172,6 +185,12 @@ Use this to report bugs or request new feature. These issues can be directly lin
 ### Linting and Formatting
 
 Maintaining consistent code quality and style is essential for collaborative development. This project utilizes ESLint for linting and Prettier for code formatting.
+
+#### Troubleshooting
+
+Should there be any issues running any of the commands for npm or func, make sure the terminal is started with admin rights, and that you've restarted the system after downloading and install packages. 
+
+If a wrong version of something is installed this might cause issues. You can check the version of node or dotnet by appending " --version" to the name of the tool.
 
 #### Tools Used
 
