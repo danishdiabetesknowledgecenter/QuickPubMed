@@ -7,10 +7,6 @@ This project contains the source code for the product QuickPubMed hosted on
 
 ## Prerequisites
 
-**SSH key for cloning**
-
-- [Generate SSH key locally and add it to your github profile](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account)
-
 **Backend (Azure function API)**
 
 - .NET SDK and the runtime installed locally. [Download here](https://dotnet.microsoft.com/en-us/download/dotnet)
@@ -25,6 +21,10 @@ This project contains the source code for the product QuickPubMed hosted on
 - You need the git tool to enable cloning, pulling and pushing. There are two options: [git CLI](https://git-scm.com/downloads) or [GitHub Desktop (GUI for git)](https://desktop.github.com/download/) 
 - Go with GitHub Desktop if you prefer the graphical user interface.
 
+
+- SSH key for cloning with git CLI [Generate SSH key locally and add it to your github profile](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account)
+
+  
 ## Setup for local development
 
 ### Frontend project
