@@ -854,9 +854,6 @@
         isFilter = false
       ) {
         let siblings = this.getSiblings(optionGroupId, baseTopic, depth, isFilter);
-        siblings.forEach((s) => {
-          console.log("Sibling | ", s.name);
-        });
 
         // Case: Include children where a maintopic is toggled
         if (includeChildren) {
@@ -1366,7 +1363,6 @@
           const allToggled = this.areMaintopicsToggled(currentSubjectOptionGroupId, true, isFilter);
           if (allToggled === true) {
             dropdownRef.pointer = dropdownRef.pointer - navDistance;
-            console.log("Default case | all maintopics open");
             return;
           }
 
@@ -1375,7 +1371,6 @@
             // Case: base topic and maintopic
             if (currentSubject.maintopic) {
               dropdownRef.pointer = dropdownRef.pointer - 1;
-              console.log("BaseTopic case | is base topic and is maintopic");
               return;
             }
 
@@ -1392,14 +1387,20 @@
               true,
               isFilter
             );
-            console.log("BaseTopic case | base topic");
 
-            if (toggledMaintopic.length === 1) {
+            // Case: BaseTopic and 1 maintopic toggled at base level
+            if (toggledMaintopic.length === 1 && toggledMaintopic[0]?.subtopiclevel === undefined) {
               dropdownRef.pointer = dropdownRef.pointer - 1;
-              console.log("BaseTopic case | base topic and 1 maintopic toggled");
               return;
             }
 
+            // Case: BaseTopic and 1 maintopic toggled at depth greater than zero
+            if (toggledMaintopic.length === 1 && toggledMaintopic[0]?.suptopiclevel > 0) {
+              dropdownRef.pointer = dropdownRef.pointer - siblings.length;
+              return;
+            }
+
+            // Case: BaseTopic and no maintopics toggled
             dropdownRef.pointer = dropdownRef.pointer - siblings.length;
             return;
           }
@@ -1408,7 +1409,6 @@
           if (optionsAtDepth.length > 0) {
             if (currentSubject.maintopic) {
               dropdownRef.pointer = dropdownRef.pointer - 1;
-              console.log("Not BaseTopic case | currentSubject.maintopic");
               return;
             }
 
@@ -1417,15 +1417,14 @@
               const isParentToggled = this.maintopicToggledMap[currentSubject.maintopicIdLevel2];
               const isGrandParentToggled =
                 this.maintopicToggledMap[currentSubject.maintopicIdLevel1];
-              console.log("Not BaseTopic case | currentSubject.maintopicIdLevel2");
 
+              // Case: not a base topic but grandparent maintopic is toggled while parent maintopic is not toggled
               if (isGrandParentToggled && !isParentToggled) {
                 var parentChildren = this.getMaintopicChildren(
                   currentSubject.maintopicIdLevel2,
                   isFilter
                 );
                 dropdownRef.pointer = dropdownRef.pointer - parentChildren.length;
-                console.log("Not BaseTopic case | isGrandParentToggled && !isParentToggled");
                 return;
               }
             }
@@ -1437,46 +1436,28 @@
                 // Sort the OptionsAtDepth by the ordering field
                 const sortedOptions = optionsAtDepth.sort((a, b) => a.ordering.dk - b.ordering.dk);
 
-                sortedOptions.forEach((option) => {
-                  console.log("sortedOptions | ", option.name, option.ordering.dk);
-                });
-
                 // filter the sortedOptions based on depth
                 const filteredSortedOptions = sortedOptions.filter(
                   (option) => option.subtopiclevel === currentSubject.subtopiclevel
                 );
 
-                filteredSortedOptions.forEach((option) => {
-                  console.log(
-                    "Filtered sortedOptions | ",
-                    option.name,
-                    option.subtopiclevel,
-                    option.ordering.dk
-                  );
-                });
-
                 // Find the next sibling in the filteredSortedOptions based on the ordering.dk
-
                 const nextSibling = this.findNextSibling(currentSubject, filteredSortedOptions);
 
-                console.log("NextSibling | ", nextSibling.name);
                 // Check if next sibling is a maintopic
                 if (nextSibling.maintopic) {
                   dropdownRef.pointer = dropdownRef.pointer - 3;
                 }
 
+                // Case: Not basetopic and next sibling is not a maintopic
                 dropdownRef.pointer = dropdownRef.pointer - 1;
-                console.log("CurrentSubject.name |", currentSubject.name);
-                console.log(
-                  "Not BaseTopic case | currentSubject.maintopicIdLevel1 && isParentToggled |"
-                );
                 return;
               }
             }
 
+            // Case: Not a base topic and no maintopic is toggled
             const pointerIndex = dropdownRef.pointer - optionsAtDepth.length;
             dropdownRef.pointer = pointerIndex;
-            console.log("Not BaseTopic case | default");
             return;
           }
         }
