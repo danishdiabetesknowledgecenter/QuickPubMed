@@ -1565,7 +1565,8 @@
         return constant;
       },
       updateSubjectDropdownWidth() {
-        const dropdown = this.$refs.subjectSelection.$refs.subjectDropdown[0].$refs.selectWrapper;
+        const dropdown =
+          this.$refs?.subjectSelection?.$refs?.subjectDropdown[0]?.$refs?.selectWrapper;
         if (!dropdown.innerHTML) return;
         this.subjectDropdownWidth = parseInt(dropdown.offsetWidth);
       },
