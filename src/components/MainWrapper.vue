@@ -1421,16 +1421,11 @@
           // Reset the loading state
           this.searchLoading = false;
 
-          // Get the current result entries and update the focus to the first of the newly loading entries
-          // Which is the pageSize minus the targetResultLength + 1
-          const currentResultEntries = this.$refs.searchResultList.$refs.resultEntries;
-          console.log("CurrentResultEntries: ", currentResultEntries);
-
           // Find the first result entry from the new data and focus on it
+          const currentResultEntries = this.$refs.searchResultList.$refs.resultEntries;
           const firstNewResultEntry = currentResultEntries[this.pageSize];
-
-          console.log("firstNewResultEntry", firstNewResultEntry);
           firstNewResultEntry.$el.focus();
+
           // Note: Removed scrolling and focus updates to maintain current scroll position
         } catch (error) {
           // Handle and log any errors that occur during the API requests
