@@ -113,7 +113,7 @@
       <!-- Accordion menu for the marked articles marked on result entry component -->
       <accordion-menu
         ref="articlesAccordion"
-        :is-expanded="isSelectedArticleAccordionExpanded || selectedEntries.length > 0"
+        :is-expanded="isSelectedArticleAccordionExpanded"
         :models="selectedEntries"
         :open-by-default="preselectedEntries != null && preselectedEntries.length > 0"
         :only-update-model-when-visible="true"
@@ -833,6 +833,10 @@
       },
       onArticleAccordionStateChange(expanded) {
         this.isSelectedArticleAccordionExpanded = expanded;
+        console.log(
+          "this.isSelectedArticleAccordionExpanded",
+          this.isSelectedArticleAccordionExpanded
+        );
       },
       onDeselectAllArticles() {
         this.selectedEntries = [];
