@@ -1484,7 +1484,6 @@
 
         this.focusByHover = false;
         this.focusedButtonIndex = Math.max(0, this.focusedButtonIndex - 1); // Stop navLeft at left most element
-        console.log("LEFT | FocusedButtonIndex |", this.focusedButtonIndex);
         event.preventDefault();
       },
       navRight(event) {
@@ -1492,7 +1491,6 @@
 
         this.focusByHover = false;
         this.focusedButtonIndex = Math.min(2, this.focusedButtonIndex + 1); // Stop navRight at right most element (currently assumed to be index 2)
-        console.log("RIGHT | FocusedButtonIndex |", this.focusedButtonIndex);
         event.preventDefault();
       },
 
