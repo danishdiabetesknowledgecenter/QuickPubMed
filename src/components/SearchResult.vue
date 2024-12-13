@@ -813,6 +813,7 @@
        */
       onAiSummariesAccordionStateChange(expanded) {
         this.isSummarizeArticlesAcordionExpanded = expanded;
+        this.isSelectedArticleAccordionExpanded = expanded;
       },
       openArticlesAccordion({ $el }) {
         const articlesAccordion = this.$refs.articlesAccordion;
