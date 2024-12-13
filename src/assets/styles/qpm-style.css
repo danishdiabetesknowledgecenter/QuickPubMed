@@ -453,6 +453,16 @@ p.qpm_shownumber {
   border-color: transparent;
 }
 
+.qpm_button:focus-visible,
+.qpm_button.qpm_big:focus-visible,
+.qpm_button.qpm_slim:focus-visible,
+.multiselect__option--highlight
+  .qpm_dropdownButtons
+  .qpm_button.qpm_ButtonColumnFocused {
+  outline: 3px solid #000000 !important;
+  outline-offset: 1px !important;
+}
+
 button.qpm_slim.multiselect__input:focus {
   outline: 3px solid #000000;
   outline-offset: 1px;
