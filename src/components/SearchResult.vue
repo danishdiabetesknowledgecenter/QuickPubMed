@@ -113,7 +113,7 @@
       <!-- Accordion menu for the marked articles marked on result entry component -->
       <accordion-menu
         ref="articlesAccordion"
-        :is-expanded="isSelectedArticleAccordionExpanded"
+        :is-expanded="isSelectedArticleAccordionExpanded || selectedEntries.length > 0"
         :models="selectedEntries"
         :open-by-default="preselectedEntries != null && preselectedEntries.length > 0"
         :only-update-model-when-visible="true"
