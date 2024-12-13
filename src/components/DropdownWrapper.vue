@@ -162,7 +162,7 @@
               delay: $helpTextDelay,
               hideOnTargetClick: false,
             }"
-            class="qpm_button qpm_scopeButtonIdentifier"
+            class="qpm_button"
             :class="getButtonColor(props, 'narrow', 0)"
             tabindex="-1"
             @click="handleScopeButtonClick(props.option, 'narrow', $event)"
@@ -177,7 +177,7 @@
               delay: $helpTextDelay,
               hideOnTargetClick: false,
             }"
-            class="qpm_button qpm_scopeButtonIdentifier"
+            class="qpm_button"
             :class="getButtonColor(props, 'normal', 1)"
             tabindex="-1"
             @click="handleScopeButtonClick(props.option, 'normal', $event)"
@@ -192,7 +192,7 @@
               delay: $helpTextDelay,
               hideOnTargetClick: false,
             }"
-            class="qpm_button qpm_scopeButtonIdentifier"
+            class="qpm_button"
             :class="getButtonColor(props, 'broad', 2)"
             tabindex="-1"
             @click="handleScopeButtonClick(props.option, 'broad', $event)"
