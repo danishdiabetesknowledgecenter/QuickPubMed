@@ -833,10 +833,6 @@
       },
       onArticleAccordionStateChange(expanded) {
         this.isSelectedArticleAccordionExpanded = expanded;
-        console.log(
-          "this.isSelectedArticleAccordionExpanded",
-          this.isSelectedArticleAccordionExpanded
-        );
       },
       onDeselectAllArticles() {
         this.selectedEntries = [];

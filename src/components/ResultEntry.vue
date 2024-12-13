@@ -78,6 +78,7 @@
         </p>
       </div>
     </div>
+    <!-- Case for small screen sizes -->
     <div v-if="getComponentWidth" style="display: flex; flex-direction: column-reverse">
       <div v-if="showArticleButtons" class="qpm_resultButtons_mobile" :style="mobileResult">
         <button
@@ -165,6 +166,7 @@
         </div>
       </div>
     </div>
+    <!-- Default case for normal screen sizes -->
     <div v-else>
       <div v-if="showArticleButtons" class="qpm_resultButtons">
         <button
