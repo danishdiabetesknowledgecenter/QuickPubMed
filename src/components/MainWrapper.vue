@@ -871,6 +871,14 @@
           this.isFirstFill = true;
         }
 
+        this.$nextTick(() => {
+          const searchInput =
+            this.$refs.subjectSelection.$refs.subjectDropdown[index].$refs.multiselect.$refs.search;
+
+          if (searchInput) {
+            searchInput.focus();
+          }
+        });
         this.setUrl();
         this.editForm();
       },
@@ -1598,9 +1606,11 @@
         return choice.tooltip_simple[this.language];
       },
       updatePreselectedPmidai(newValue) {
+        console.log("we updating preselected pmidai");
         this.preselectedPmidai = (newValue ?? []).map(function (e) {
           return e.uid;
         });
+        console.log("new value: ", this.preselectedPmidai);
         this.setUrl();
       },
       // passing along the index seemingly makes vue understand that

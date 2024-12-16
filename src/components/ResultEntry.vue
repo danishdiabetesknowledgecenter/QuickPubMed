@@ -378,20 +378,6 @@
           >
             {{ getString("loadingText") }}
           </p>
-          <!--
-            <p
-            v-else-if="
-            !hasValidAbstract &&
-            (!config.useAI ||
-            !isPubTypeAllowed ||
-            !isLicenseAllowed ||
-            !isResourceAllowed)
-            "
-            style="margin-left: 20px; margin-top: 15px"
-            >
-            {{ getString("summarizeArticleNotAvailable") }}
-          </p>
-          -->
 
           <accordion-menu
             v-else-if="
@@ -468,7 +454,6 @@
                       ref="SummarizeArticleNoAbstractComponent"
                       :pdf-url="pdfUrl"
                       :html-url="htmlUrl"
-                      :domain-specific-prompt-rules="domainSpecificPromptRules"
                     />
                     <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryConsentText')" />
                   </div>
@@ -823,7 +808,7 @@
         unpaywallResponse: undefined,
         unpaywallResponseLoaded: this.doi == null,
         hasAcceptedAi: false,
-        initialAiTab: "",
+        initialAiTab: {},
         pdfQuestions: [],
         isLicenseAllowed: undefined,
         isResourceAllowed: undefined,
@@ -1520,10 +1505,10 @@
         let isChecked = event.target.checked;
         this.$emit("change", this.value, isChecked);
       },
-      clickAcceptAi(initialTab = null) {
+      clickAcceptAi(prompt) {
         this.hasAcceptedAi = true;
         this.getArticles;
-        this.initialAiTab = initialTab;
+        this.initialAiTab = prompt;
       },
       clickAcceptAiNoAbstract(prompt) {
         this.hasAcceptedAi = true;

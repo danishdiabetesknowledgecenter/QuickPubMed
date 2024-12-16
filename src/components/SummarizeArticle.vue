@@ -1,62 +1,22 @@
 <template>
   <div ref="container" style="margin-top: 20px">
     <!-- TITLE Notice the entire article can be summarized -->
-    <p v-if="!isError && !scrapingError && !isLoadingQuestions" style="margin-bottom: 20px">
+    <p v-if="!isError && !scrapingError && !isLoadingCurrent" style="margin-bottom: 20px">
       <strong>{{ getString("summarizeArticleNotice") }}</strong>
     </p>
-    <button
-      v-if="!isError && !scrapingError && !isLoadingQuestions"
-      v-tooltip="{
-        content: getString('hoverretryText'),
-        offset: 5,
-        delay: $helpTextDelay,
-        hideOnTargetClick: false,
-      }"
-      class="qpm_button"
-      :disabled="isSummaryLoading || isLoadingQuestions || isError"
-      @keydown.enter="handleRetry()"
-      @click="handleRetry()"
-    >
-      <i class="bx bx-refresh" style="vertical-align: baseline; font-size: 1em" />
-      {{ getString("retryText") }}
-    </button>
-    <button
-      v-if="!isError && !scrapingError && !isLoadingQuestions"
-      v-tooltip="{
-        content: getString('hoverAskQuestionText'),
-        offset: 5,
-        delay: $helpTextDelay,
-        hideOnTargetClick: false,
-      }"
-      class="qpm_button"
-      :disabled="isSummaryLoading || isLoadingQuestions || isError"
-      @click="toggleShowArticleSummary"
-    >
-      <i
-        v-if="isSummaryVisible"
-        class="bx bx-chevron-down"
-        style="vertical-align: baseline; font-size: 1em"
-      />
-      <i
-        v-if="!isSummaryVisible"
-        class="bx bx-chevron-right"
-        style="vertical-align: baseline; font-size: 1em"
-      />
-
-      {{ getButtonText }}
-    </button>
 
     <loading-spinner
-      v-if="isLoadingQuestions"
+      v-if="isLoadingCurrent"
       class="qpm_searchMore"
       :loading="true"
-      :wait-text="getString('aiSummaryWaitText')"
+      :wait-text="getString('aiArticleSummaryWaitText')"
+      :wait-duration-disclaimer="getString('aiLongWaitTimeDisclaimer')"
       :size="35"
     />
 
-    <div v-if="isArticle && isSummaryVisible">
+    <div v-if="isArticle && !isLoadingCurrent">
       <!-- TITLE summarize entire article -->
-      <p v-if="questions.length > 1 && !isLoadingQuestions">
+      <p v-if="questions.length > 1 && !isLoadingCurrent">
         <strong>{{ getString("summarizeArticleHeader") }}</strong>
       </p>
 
@@ -132,9 +92,27 @@
         </template>
       </accordion-menu>
 
+      <button
+        v-if="!isError && !scrapingError && !isLoadingCurrent"
+        v-tooltip="{
+          content: getString('hoverretryText'),
+          offset: 5,
+          delay: $helpTextDelay,
+          hideOnTargetClick: false,
+        }"
+        class="qpm_button"
+        style="margin-top: 25px"
+        :disabled="isSummaryLoading || isLoadingCurrent || isError"
+        @keydown.enter="handleRetry()"
+        @click="handleRetry()"
+      >
+        <i class="bx bx-refresh" style="vertical-align: baseline; font-size: 1em" />
+        {{ getString("retryText") }}
+      </button>
+
       <!-- User input for asking questions for an article -->
       <question-for-article
-        v-if="!isLoadingQuestions"
+        v-if="!isLoadingCurrent"
         :pdf-url="pdfUrl"
         :html-url="htmlUrl"
         :language="language"
@@ -142,10 +120,6 @@
         :domain-specific-prompt-rules="domainSpecificPromptRules"
       />
     </div>
-
-    <p v-if="errorMessage" class="qpm_error-message">
-      {{ errorMessage }}
-    </p>
   </div>
 </template>
 
@@ -156,6 +130,7 @@
   import { utilitiesMixin } from "@/mixins/utilities.js";
   import { appSettingsMixin } from "@/mixins/appSettings.js";
   import { summarizeArticleMixin } from "@/mixins/summarizeArticle.js";
+  import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
   import { questionHeaderHeightWatcherMixin } from "@/mixins/questionHeaderHeightWatcher.js";
   import { getShortTitle } from "@/utils/qpm-open-ai-prompts-helpers.js";
 
@@ -167,9 +142,10 @@
       QuestionForArticle,
     },
     mixins: [
-      appSettingsMixin,
       utilitiesMixin,
+      appSettingsMixin,
       summarizeArticleMixin,
+      promptRuleLoaderMixin,
       questionHeaderHeightWatcherMixin,
     ],
     props: {
@@ -197,21 +173,12 @@
         default: "Hverdagssprog",
         required: false,
       },
-      generateArticleSummary: {
-        type: Boolean,
-        default: false,
-        required: true,
-      },
-      domainSpecificPromptRules: {
-        type: Object,
-        default: () => ({}),
-        required: true,
-      },
     },
-    data() {
-      return {
-        isSummaryVisible: false,
-      };
+    asyncComputed: {
+      async currentSummary() {
+        // Retrieve the summary based on the current promptLanguageType prop
+        return await this.getAiSummaryOfArticle(this.promptLanguageType);
+      },
     },
     computed: {
       getButtonText() {
@@ -219,24 +186,35 @@
           ? this.getString("generatePdfQuestionsButtonText")
           : this.getString("hideGeneratePdfQuestionsButtonText");
       },
+      formattedAnswers() {
+        if (!this.currentSummary) return "";
+        return this.currentSummary.answers.join("\n\n");
+      },
+      isLoadingCurrent() {
+        // Access the loading state for current promptLanguageType
+        return this.isLoading(this.promptLanguageType);
+      },
     },
     watch: {
-      generateArticleSummary: {
-        handler: function (val) {
-          if (val) {
-            this.handleSummarizeArticle();
-          }
+      isLoadingCurrent: {
+        handler(newState) {
+          console.log(`${this.promptLanguageType} is loading: `, newState);
+        },
+      },
+      promptLanguageType: {
+        async handler(newPromptLanguageType) {
+          // Need to block if the current summary is loading
+          if (this.isLoadingCurrent) return;
+          await this.loadOrGenerateSummary(newPromptLanguageType);
         },
         immediate: true,
       },
     },
     methods: {
-      toggleShowArticleSummary() {
-        this.isSummaryVisible = !this.isSummaryVisible;
-      },
-      handleRetry() {
+      async handleRetry() {
         this.isSummaryVisible = true;
-        this.handleSummarizeArticle();
+        // Passing true to force getting new answers for summarizing of the article
+        await this.getAiSummaryOfArticle(this.promptLanguageType, true);
       },
       /**
        * Retrieves the short title for a given question.
@@ -247,6 +225,24 @@
       fetchShortTitle(question) {
         const shortTitle = getShortTitle(question, this.language);
         return shortTitle || question;
+      },
+      /**
+       * Loads an existing summary or generates a new one based on promptLanguageType.
+       *
+       * @param {string} promptLanguageType - The language type ('plain language' or 'professional language').
+       */
+      async loadOrGenerateSummary(promptLanguageType) {
+        const existingSummary = await this.getAiSummaryOfArticle(promptLanguageType);
+
+        if (!existingSummary) {
+          console.log("Did not find existing summary");
+          await this.generateAndSaveSummary(promptLanguageType);
+        } else if (existingSummary && !this.isLoadingCurrent) {
+          console.log("Found existing summary |", existingSummary);
+          // Populate questions and answers from existing summary
+          this.questions = existingSummary.questions;
+          this.answers = existingSummary.answers;
+        }
       },
     },
   };

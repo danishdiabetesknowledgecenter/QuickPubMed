@@ -5,9 +5,9 @@
     </p>
 
     <accordion-menu
-      v-for="(question, index) in questions"
-      :key="index"
-      :title="question"
+      v-for="(qa, idx) in currentUserQAs"
+      :key="`user-qa-${idx}`"
+      :title="qa.question"
       :open-by-default="true"
     >
       <template #header="accordionProps">
@@ -15,8 +15,8 @@
           <i
             v-if="accordionProps.expanded"
             class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
-          />
-          <i v-else class="bx bx-chevron-right qpm_aiAccordionHeaderArrows" />
+          ></i>
+          <i v-else class="bx bx-chevron-right qpm_aiAccordionHeaderArrows"></i>
           <i
             class="bx bx-help-circle"
             style="
@@ -25,22 +25,23 @@
               margin-left: 3px;
               margin-right: 5px;
             "
-          />
-          {{ question }}
+          ></i>
+          {{ qa.question }}
         </div>
       </template>
       <template #default>
-        <div :style="getAnswerStyle(index)" class="qpm_answer-text">
-          {{ answers[index] }}
+        <div :style="getAnswerStyle(idx)" class="qpm_answer-text">
+          {{ qa.answer }}
         </div>
       </template>
     </accordion-menu>
 
     <loading-spinner
-      v-if="isLoadingResponse"
+      v-if="isLoadingCurrent"
       class="qpm_searchMore"
-      :loading="true"
+      :loading="isLoadingCurrent"
       :wait-text="getString('aiSummaryWaitText')"
+      :wait-duration-disclaimer="getString('aiShortWaitTimeDisclaimer')"
       :size="35"
     />
 
@@ -81,6 +82,7 @@
 
   import { utilitiesMixin } from "@/mixins/utilities";
   import { appSettingsMixin } from "@/mixins/appSettings";
+  import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
   import { summarizeArticleMixin } from "@/mixins/summarizeArticle";
   import { questionHeaderHeightWatcherMixin } from "@/mixins/questionHeaderHeightWatcher";
 
@@ -91,8 +93,9 @@
       LoadingSpinner,
     },
     mixins: [
+      utilitiesMixin, // Ensure utilitiesMixin is first if others depend on it
+      promptRuleLoaderMixin,
       appSettingsMixin,
-      utilitiesMixin,
       summarizeArticleMixin,
       questionHeaderHeightWatcherMixin,
     ],
@@ -114,91 +117,156 @@
       language: {
         type: String,
         default: "dk",
-      },
-      domainSpecificPromptRules: {
-        type: Object,
-        default: () => ({}),
-        required: true,
+        validator: function (value) {
+          // Add additional language validations if needed
+          return ["dk", "en", "es"].includes(value); // Example supported languages
+        },
       },
     },
     data() {
       return {
-        questions: [],
-        answers: [],
-        errorMessage: "",
+        userQAs: {}, // Object keyed by promptLanguageType, each holds an array of { question, answer }
+        loading: {}, // Loading state keyed by promptLanguageType
         isError: false,
+        errorMessage: "",
         isLoadingResponse: false,
-        userQuestionInput: null,
+        userQuestionInput: "", // Initialized as empty string for two-way binding
       };
     },
-    methods: {
-      async handleQuestionForArticle() {
-        try {
-          if (!this.userQuestionInput) {
-            this.errorMessage = "Indtast venligst et spørgsmål";
-            this.isError = true;
+    computed: {
+      /**
+       * Retrieves the user-provided QAs for the current promptLanguageType.
+       *
+       * @returns {Array<{ question: string, answer: string }>}
+       */
+      currentUserQAs() {
+        return this.userQAs[this.promptLanguageType] || [];
+      },
+      /**
+       * Determines if the current promptLanguageType is loading.
+       *
+       * @returns {boolean} - Loading state.
+       */
+      isLoadingCurrent() {
+        return this.loading[this.promptLanguageType] || false;
+      },
+    },
+    watch: {
+      /**
+       * Watches for changes in promptLanguageType to load existing user QAs.
+       */
+      promptLanguageType: {
+        handler(newType) {
+          if (this.isLoadingCurrent) {
+            console.log(
+              `Loading in progress for ${this.promptLanguageType}, skipping load for ${newType}`
+            );
             return;
           }
-          this.isError = false;
-          this.errorMessage = undefined;
-          this.isLoadingResponse = true;
-          if (this.pdfUrl) {
-            console.info("PDF article URL: ", this.pdfUrl);
-            await this.getQuestionPDFArticle();
-          }
+          this.loadExistingUserQuestions(newType);
+        },
+        immediate: true,
+      },
+    },
+    methods: {
+      /**
+       * Handles the submission of a new user question.
+       */
+      async handleQuestionForArticle() {
+        const trimmedQuestion = this.userQuestionInput && this.userQuestionInput.trim();
+        if (!trimmedQuestion) {
+          return; // Do not process empty questions
+        }
 
-          if (this.htmlUrl && !this.pdfUrl) {
-            console.info("HTML article URL: ", this.htmlUrl);
-            await this.getQuestionHTMLArticle();
-          }
+        // Initialize QA array if it doesn't exist
+        if (!this.userQAs[this.promptLanguageType]) {
+          this.$set(this.userQAs, this.promptLanguageType, []);
+        }
+
+        // Add the new question with a placeholder for the answer
+        this.userQAs[this.promptLanguageType].push({
+          question: trimmedQuestion,
+          answer: this.getString("loadingText"),
+        });
+
+        // Process the new question to fetch the answer
+        await this.processNewQuestion(this.promptLanguageType);
+      },
+
+      /**
+       * Processes a newly added user question by calling the appropriate API.
+       *
+       * @param {string} promptLanguageType
+       */
+      async processNewQuestion(promptLanguageType) {
+        this.$set(this.loading, promptLanguageType, true);
+        try {
+          // Utilize the getComposablePrompt method from the mixin
+          const composedPrompt = this.getComposablePrompt(
+            this.language,
+            promptLanguageType
+            // Removed the third argument as per new flow
+          );
+
+          const openAiServiceUrl = this.pdfurl
+            ? `${this.appSettings.openAi.baseUrl}/api/SummarizePDFArticle`
+            : `${this.appSettings.openAi.baseUrl}/api/SummarizeHTMLArticle`;
+
+          const fetchPayload = this.pdfurl
+            ? { prompt: composedPrompt, pdfurl: this.pdfUrl, client: this.appSettings.client }
+            : { prompt: composedPrompt, htmlurl: this.htmlUrl, client: this.appSettings.client };
+
+          this.isLoadingResponse = true;
+          let response = await this.handleFetch(openAiServiceUrl, fetchPayload);
+          console.log("Response from OpenAI API:", response);
+
+          const rawText = await response.text();
+          const sanitizedText = this.sanitizeResponse(rawText);
+          const sanitizedResponse = JSON.parse(sanitizedText);
+
+          console.log("Sanitized response from OpenAI API:", sanitizedResponse);
+
+          // Ensure response.answers is an array with at least one answer
+          const fetchedAnswer =
+            sanitizedResponse.answers && sanitizedResponse.answers.length > 0
+              ? sanitizedResponse.answers[0]
+              : this.getString("userQuestionsNoAnswer");
+
+          // Update the latest question's answer
+          const latestQA =
+            this.userQAs[promptLanguageType][this.userQAs[promptLanguageType].length - 1];
+          this.$set(latestQA, "answer", fetchedAnswer || this.getString("userQuestionsNoAnswer"));
+
+          console.info(`Processed question (${promptLanguageType}):`, sanitizedResponse);
         } catch (error) {
-          console.error("Error fetching:", error);
-          this.errorMessage = "Netværksfejl";
-          this.isError = true;
-          console.error(this.errorMessage);
+          this.errorMessage = "Failed to process the new question.";
+          console.error(`Error processing user question for ${promptLanguageType}:`, error);
+          // Update the latest question's answer to indicate failure
+          const latestQA =
+            this.userQAs[promptLanguageType][this.userQAs[promptLanguageType].length - 1];
+          this.$set(latestQA, "answer", "Failed to fetch answer.");
         } finally {
+          // Clear the input field
+          this.userQuestionInput = "";
           this.isLoadingResponse = false;
-          this.userQuestionInput = null;
+          this.$set(this.loading, promptLanguageType, false);
         }
       },
-      async getQuestionHTMLArticle() {
-        const openAiServiceUrl = this.appSettings.openAi.baseUrl + "/api/SummarizeHTMLArticle";
 
-        const localePrompt = this.getComposablePrompt(this.language, this.promptLanguageType);
-
-        let response = await this.handleFetch(openAiServiceUrl, {
-          prompt: localePrompt,
-          htmlurl: this.htmlUrl,
-          client: this.appSettings.client,
-        }).catch(function (error) {
-          return error;
-        });
-
-        response = await response.json();
-
-        this.questions = [...this.questions, ...response.questions];
-        this.answers = [...this.answers, ...response.answers];
-        return response;
-      },
-      async getQuestionPDFArticle() {
-        const openAiServiceUrl = this.appSettings.openAi.baseUrl + "/api/SummarizePDFArticle";
-
-        const userQuestionPrompt = this.getComposablePrompt(this.language, this.promptLanguageType);
-
-        let response = await this.handleFetch(openAiServiceUrl, {
-          prompt: userQuestionPrompt,
-          pdfurl: this.pdfUrl,
-          client: this.appSettings.client,
-        }).catch((error) => {
-          this.isArticle = false;
-          return error;
-        });
-
-        response = await response.json();
-
-        this.questions = [...this.questions, ...response.questions];
-        this.answers = [...this.answers, ...response.answers];
-        return response;
+      /**
+       * Loads existing user questions and answers for the specified promptLanguageType.
+       *
+       * @param {string} promptLanguageType
+       */
+      async loadExistingUserQuestions(promptLanguageType) {
+        if (this.userQAs[promptLanguageType] && this.userQAs[promptLanguageType].length > 0) {
+          // Existing user QAs are already loaded
+          console.log(`Loaded existing user QAs for: ${promptLanguageType}`);
+        } else {
+          // No existing user QAs, initialize empty array
+          this.$set(this.userQAs, promptLanguageType, []);
+          console.log(`Initialized empty user QAs for: ${promptLanguageType}`);
+        }
       },
     },
   };

@@ -627,6 +627,10 @@ export const messages = {
     dk: "Den kunstige intelligens er i gang med at opsummere...",
     en: "The artificial intelligence is summarizing...",
   },
+  aiArticleSummaryWaitText: {
+    dk: "Hele teksten i denne artikel er i gang med at blive opsummeret ...",
+    en: "The text in this article is being summarized...",
+  },
   aiTranslationWaitText: {
     dk: "Den kunstige intelligens oversætter...",
     en: "The artificial intelligence is translating...",
@@ -750,6 +754,10 @@ export const messages = {
   userQuestionsHeader: {
     dk: "Stil dine egne spørgsmål",
     en: "Ask your own questions",
+  },
+  userQuestionsNoAnswer: {
+    dk: "Svar kunne ikke genereres",
+    en: "No answer found",
   },
   userQuestionInputPlaceholder: {
     dk: "Skriv dit spørgsmål her",

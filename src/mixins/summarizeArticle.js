@@ -14,10 +14,102 @@ export const summarizeArticleMixin = {
       errorMessage: undefined,
       questions: [],
       answers: [],
-      isLoadingQuestions: true,
+      aiArticleSummaries: {},
+      loadingQuestions: {},
     };
   },
   methods: {
+    /**
+     * Retrieves the summary for the specified language type.
+     *
+     * @param {string} promptLanguageType - The language type ('plain language' or 'professional language').
+     * @param {boolean} [isRetry=false] - Whether to regenerating the summary for a new result.
+     * @returns {Object|null} - The summary data or null if not found.
+     */
+    async getAiSummaryOfArticle(promptLanguageType, isRetry = false) {
+      if (isRetry === true) {
+        await this.generateAndSaveSummary(promptLanguageType);
+      }
+      return this.aiArticleSummaries[promptLanguageType] || null;
+    },
+    /**
+     * Generates a summary and saves it under the specified language type.
+     *
+     * @param {string} promptLanguageType - The language type ('plain language' or 'professional language').
+     */
+    async generateAndSaveSummary(promptLanguageType) {
+      try {
+        this.setLoadingState(promptLanguageType, true);
+        const summaryData = await this.handleSummarizeArticle(promptLanguageType);
+        this.saveAiSummaryOfArticle(promptLanguageType, summaryData);
+      } catch (error) {
+        this.isError = true;
+        this.errorMessage = "Failed to generate summary.";
+      } finally {
+        this.setLoadingState(promptLanguageType, false);
+      }
+    },
+    /**
+     * Saves the summary for the specified language type.
+     *
+     * @param {string} promptLanguageType - The language type ('plain language' or 'professional language').
+     * @param {Object} summaryData - The summary data containing questions and answers.
+     */
+    saveAiSummaryOfArticle(promptLanguageType, summaryData) {
+      if (!this.aiArticleSummaries[promptLanguageType]) {
+        this.$set(this.aiArticleSummaries, promptLanguageType, {
+          questions: [],
+          answers: [],
+        });
+      }
+      this.aiArticleSummaries[promptLanguageType].questions = summaryData.questions;
+      this.aiArticleSummaries[promptLanguageType].answers = summaryData.answers;
+      console.log(`Summary saved for "${promptLanguageType}":`, summaryData);
+    },
+    /**
+     * Handles the summarization of an article, either in PDF or HTML format.
+     *
+     * @param {string} promptLanguageType - The current language type.
+     * @returns {Promise<Object>} - The summary data.
+     * @throws {Error} - Throws an error if the summarization process fails.
+     */
+    async handleSummarizeArticle(promptLanguageType) {
+      try {
+        this.isError = false;
+        this.errorMessage = undefined;
+        this.questions = [];
+        this.answers = [];
+
+        if (this.pdfUrl) {
+          console.log("PDF article URL: ", this.pdfUrl);
+          await this.getSummarizePDFArticle(promptLanguageType);
+        }
+
+        if (this.htmlUrl && !this.pdfUrl) {
+          console.log("HTML article URL: ", this.htmlUrl);
+          await this.getSummarizeHTMLArticle(promptLanguageType);
+        }
+
+        if (this.isArticle) {
+          if (this.questions.length > this.answers.length) {
+            this.questions.pop();
+          }
+          console.log({ questions: this.questions, answers: this.answers });
+          this.isError = false;
+          return {
+            questions: this.questions,
+            answers: this.answers,
+          };
+        } else {
+          throw new Error("The content is not recognized as an article.");
+        }
+      } catch (error) {
+        this.isError = true;
+        this.errorMessage = error.message || "An error occurred during summarization.";
+        console.error("Error during summarization:", error);
+        throw error;
+      }
+    },
     /**
      * Retrieve the questions from the prompt text
      *
@@ -57,34 +149,24 @@ export const summarizeArticleMixin = {
       const promptQuestionsExtra = prompTextLanguageType.questionsExtra[language];
       const promptRules = prompTextLanguageType.promptRules[language];
       const promptEndText = prompTextLanguageType.endText[language];
+
       // Compose the prompt text with default prompt questions without the user input questions
-      let composedPromptText = `${domainSpecificRules} ${promptStartText} ${promptQuestions} ${promptQuestionsExtra} ${promptRules} ${promptEndText}`;
+      let composedPromptText = `${domainSpecificRules} ${promptStartText} ${promptQuestions} ${promptQuestionsExtra} ${promptEndText}`;
 
       // Compose the prompt text with user questions if userQuestionInput is not empty
       if (this.userQuestionInput) {
         composedPromptText = `${domainSpecificRules} ${promptStartText} ${this.userQuestionInput} ${promptRules} ${promptEndText}`;
       }
 
-      console.info(`
-        |Domain specific rules|
-        ${domainSpecificRules}
-        
-        |Start text|
-        ${promptStartText}
-        
-        ${
-          !this.userQuestionInput
-            ? `|Questions|\n${promptQuestions}\n
-        |QuestionsExtra|\n${promptQuestionsExtra}`
-            : `|User questions|\n${this.userQuestionInput}\n`
-        }
-        
-        |Rules|
-        ${promptRules}
-        
-        |End text|
-        ${promptEndText}
-        `);
+      console.info(
+        `|Language|\n${language}\n\n|Prompt language type|\n${promptLanguageType}\n\n|Domain specific rules|\n${domainSpecificRules}\n\n|Start text|\n${promptStartText}\n` +
+          `${
+            this.userQuestionInput
+              ? `\n\n|User questions|\n${this.userQuestionInput}\n\n|Rules|\n${promptRules}\n`
+              : `\n|Questions|\n${promptQuestions}\n\n|QuestionsExtra|\n${promptQuestionsExtra}\n`
+          }` +
+          `\n\n|End text|\n${promptEndText}\n`
+      );
 
       // Sanitize the composed prompt text
       let sanitizedComposedPromptText = sanitizePrompt({
@@ -102,83 +184,72 @@ export const summarizeArticleMixin = {
       return languageSpecificPrompt;
     },
     /**
-     * Handles the summarization of an article, either in PDF or HTML format.
+     * Sets the loading state for a specific language type.
      *
-     * @returns {Promise<void>} A promise that resolves when the summarization is complete.
-     * @throws {Error} Throws an error if the summarization process fails.
+     * @param {string} promptLanguageType - The language type.
+     * @param {boolean} state - The loading state to set.
      */
-    async handleSummarizeArticle() {
-      try {
-        this.isError = false;
-        this.errorMessage = undefined;
-        this.questions = [];
-        this.answers = [];
-        this.isLoadingQuestions = true; // Set loading state to true
-
-        if (this.pdfUrl) {
-          console.log("PDF article URL: ", this.pdfUrl);
-          await this.getSummarizePDFArticle();
-        }
-
-        if (this.htmlUrl && !this.pdfUrl) {
-          console.log("HTML article URL: ", this.htmlUrl);
-          await this.getSummarizeHTMLArticle();
-        }
-
-        if (this.isArticle) {
-          if (this.questions.length > this.answers.length) {
-            // Remove the last question if there's a discrepancy
-            console.log(
-              `Response contained ${this.questions.length} Q's and ${this.answers.length} A's `
-            );
-            this.questions.pop();
-          }
-          console.log({ questions: this.questions, answers: this.answers });
-          this.isError = false;
-        }
-      } catch (error) {
-        this.isError = true;
-      } finally {
-        this.isLoadingQuestions = false;
-      }
+    setLoadingState(promptLanguageType, state) {
+      this.$set(this.loadingQuestions, promptLanguageType, state);
     },
+
+    /**
+     * Retrieves the loading state for a specific language type.
+     *
+     * @param {string} promptLanguageType - The language type.
+     * @returns {boolean} - The loading state.
+     */
+    isLoading(promptLanguageType) {
+      return this.loadingQuestions[promptLanguageType] || false;
+    },
+
     /**
      * Summarizes an HTML article by sending a request to the relevant backend function.
      *
      * @returns {Promise<Object>} A promise that resolves to the response from the OpenAI service.
      * @throws {Error} Throws an error if the fetch request fails.
      */
-    async getSummarizeHTMLArticle() {
+    async getSummarizeHTMLArticle(promptLanguageType) {
       const openAiServiceUrl = this.appSettings.openAi.baseUrl + "/api/SummarizeHTMLArticle";
-      const localePrompt = this.getComposablePrompt(this.language, this.promptLanguageType);
+      const localePrompt = this.getComposablePrompt(this.language, promptLanguageType);
 
-      let response = await this.handleFetch(
-        openAiServiceUrl,
-        {
-          prompt: localePrompt,
-          htmlurl: this.htmlUrl,
-          client: this.appSettings.client,
-        },
-        "POST",
-        "getSummarizeHTMLArticle"
-      ).catch(function (error) {
+      try {
+        const response = await this.handleFetch(
+          openAiServiceUrl,
+          {
+            prompt: localePrompt,
+            htmlurl: this.htmlUrl,
+            client: this.appSettings.client,
+          },
+          "POST",
+          "getSummarizeHTMLArticle"
+        );
+
+        // Instead of response.json(), get the text and sanitize it
+        const rawText = await response.text();
+        const sanitizedText = this.sanitizeResponse(rawText);
+
+        // Parse the sanitized JSON
+        const data = JSON.parse(sanitizedText);
+
+        this.scrapingError = false;
+        this.isArticle = data.isArticle;
+        this.questions = data.questions;
+        this.answers = data.answers;
+
+        // Handle empty responses
+        if (data.questions.length < 1) {
+          this.scrapingError = true;
+        }
+
+        return data;
+      } catch (error) {
         this.isArticle = false;
-        return error;
-      });
-
-      response = await response.json();
-      this.scrapingError = false;
-      this.isArticle = response.isArticle;
-      this.questions = response.questions;
-      this.answers = response.answers;
-
-      // in case the resource didn't have time to load the javaScript and therefor returned "blank" html
-      // Questions and answers will be empty and we set the scrapingError to true to indicate the user should try again
-      if (response.questions.length < 1) {
-        this.scrapingError = true;
+        this.isError = true;
+        this.errorMessage = "Failed to summarize HTML article.";
+        console.error("Error parsing summary:", error);
+        throw error;
       }
-
-      return response;
     },
     /**
      * Summarizes a PDF article by sending a request to the relevant backend function.
@@ -186,30 +257,41 @@ export const summarizeArticleMixin = {
      * @returns {Promise<Object>} A promise that resolves to the response from the OpenAI service.
      * @throws {Error} Throws an error if the fetch request fails.
      */
-    async getSummarizePDFArticle() {
+    async getSummarizePDFArticle(promptLanguageType) {
       const openAiServiceUrl = this.appSettings.openAi.baseUrl + "/api/SummarizePDFArticle";
-      const localePrompt = this.getComposablePrompt(this.language, this.promptLanguageType);
+      const localePrompt = this.getComposablePrompt(this.language, promptLanguageType);
 
-      let response = await this.handleFetch(
-        openAiServiceUrl,
-        {
-          prompt: localePrompt,
-          pdfurl: this.pdfUrl,
-          client: this.appSettings.client,
-        },
-        "POST",
-        "getSummarizePDFArticle"
-      ).catch(function (error) {
+      try {
+        const response = await this.handleFetch(
+          openAiServiceUrl,
+          {
+            prompt: localePrompt,
+            pdfurl: this.pdfUrl,
+            client: this.appSettings.client,
+          },
+          "POST",
+          "getSummarizePDFArticle"
+        );
+
+        // Instead of response.json(), get the text and sanitize it
+        const rawText = await response.text();
+        const sanitizedText = this.sanitizeResponse(rawText);
+
+        // Parse the sanitized JSON
+        const data = JSON.parse(sanitizedText);
+
+        this.isArticle = data.isArticle;
+        this.questions = data.questions;
+        this.answers = data.answers;
+
+        return data;
+      } catch (error) {
         this.isArticle = false;
-        return error;
-      });
-
-      response = await response.json();
-
-      this.isArticle = response.isArticle;
-      this.questions = response.questions;
-      this.answers = response.answers;
-      return response;
+        this.isError = true;
+        this.errorMessage = "Failed to summarize PDF article.";
+        console.error("Error parsing summary:", error);
+        throw error;
+      }
     },
   },
 };

@@ -76,7 +76,7 @@
                 <button
                   class="qpm_button"
                   @keydown.enter="clickRetry($event, true)"
-                  @click="clickRetry"
+                  @click="clickRetry($event, true)"
                 >
                   {{ getString("retryText") }}
                 </button>
@@ -135,8 +135,8 @@
                       hideOnTargetClick: false,
                     }"
                     class="qpm_button"
-                    @keydown.enter="clickRetry($event)"
-                    @click="clickRetry"
+                    @keydown.enter="clickRetry($event, true)"
+                    @click="clickRetry($event, true)"
                   >
                     <i class="bx bx-refresh" style="vertical-align: baseline; font-size: 1em" />
                     {{ getString("retryText") }}
@@ -171,7 +171,6 @@
                     :prompt-language-type="currentSummary"
                     :is-summary-loading="getIsSummaryLoading"
                     :domain-specific-prompt-rules="domainSpecificPromptRules"
-                    :generate-article-summary="isResourceAllowed"
                   />
                 </div>
                 <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryDisclaimer')" />
@@ -312,11 +311,55 @@
     data() {
       return {
         currentSummary: "",
+        /**
+         * The tabstates is an object indexed by the name of each tab. The corresponding value is an object containing
+         * information about the state of a tab to enable switching between them without resetting the view.
+         *
+         * @example
+         * tabStates: {
+         *   "fagsprog": {
+         *     currentIndex: 2
+         *   },
+         *   "hverdagssprog": {
+         *     currentIndex: 0
+         *   }
+         * }
+         */
         tabStates: this.prompts.reduce((acc, prompt) => {
           acc[prompt.name] = { currentIndex: 0 };
           return acc;
         }, {}),
         loadingSummaries: [],
+        /**
+         * An object containing each summary that has been fetched so far.
+         * Each entry is an array of objects which always contains at least the following properties:
+         *  - `requestTime`		- Date
+         * 	- `status` 			- "success" | "error" | "loading"
+         *  - `articles`		- [{...}, {...}, {...}]
+         * 	- `body`			- String
+         * @example
+         * aiSearchSummaries: {
+         *   fagsprog: [
+         * 	   {
+         *       requestTime: "2017-06-03T03:57:00.000Z",
+         *       responseTime: "2017-06-03T04:00:00.000Z",
+         *       status: "succes",
+         *       articles: [{...}, {...}],
+         *     	 body: "Artiklerne beskriver..."
+         *     }
+         * 	 ],
+         *   hverdagssprog: [
+         *     {
+         *       requestTime: "2017-06-03T04:10:00.000Z",
+         *       responseTime: "2017-06-03T04:17:00.000Z",
+         *       status: "error",
+         *       articles: [{...}, {...}, {...}],
+         *       body: "CORS error",
+         *       error: {...}
+         *     }
+         *   ]
+         * }
+         */
         aiSearchSummaries: this.prompts.reduce((acc, prompt) => {
           acc[prompt.name] = [];
           return acc;
@@ -342,16 +385,19 @@
         return currentSummaries;
       },
       getCurrentIndex() {
+        console.log("this.currentSummary", this.currentSummary);
         let tabState = this.tabStates[this.currentSummary];
         let index = tabState?.currentIndex ?? 0;
+        console.log("getCurrentIndex", index, "tabState", tabState);
         return index;
       },
       getCurrentSummary() {
         let summaries = this.getCurrentSummaryHistory;
-
+        console.log("getCurrentSummary |", summaries);
         if (!summaries || summaries.length == 0) return undefined;
 
         let index = this.getCurrentIndex;
+
         return summaries[index];
       },
       getDidCurrentSummaryError() {
@@ -557,7 +603,7 @@
           if (tabIndex !== -1) {
             this.loadingSummaries.splice(tabIndex, 1);
           }
-          Vue.set(this.tabStates[prompt.name], "currentIndex", 0);
+          this.$set(this.tabStates[prompt.name], "currentIndex", 0);
         }
       },
       async clickSummaryTab(tab) {
@@ -571,14 +617,15 @@
       clickStop() {
         this.stopGeneration = true;
       },
-      clickRetry(event, moveFocus = false) {
+      async clickRetry(event, moveFocus = false) {
         this.$emit("ai-summaries-click-retry", this);
 
+        console.log("Click retry |", this.currentSummary, "Passed as name");
         const tab = this.getSummaryPromptByName(this.currentSummary);
         if (moveFocus) {
           this.$el.querySelector(`#${tab.name}`).focus();
         }
-        this.generateAiSummary(tab);
+        await this.generateAiSummary(tab);
       },
       clickCopy() {
         const summary = this.$refs.summary;
@@ -589,7 +636,7 @@
       },
       pushToAiSearchSummaries(key, value) {
         const oldSummaries = this.aiSearchSummaries[key] ?? [];
-        const newSummaries = [...oldSummaries, value];
+        let newSummaries = oldSummaries.toSpliced(0, 0, value);
         Vue.set(this.aiSearchSummaries, key, newSummaries);
       },
       updateAiSearchSummariesEntry(summaryName, newValues, index = 0) {
@@ -601,7 +648,7 @@
         this.showHistory = !this.showHistory;
       },
       clickHistoryItem(index) {
-        Vue.set(this.tabStates[this.currentSummary], "currentIndex", index);
+        this.$set(this.tabStates[this.currentSummary], "currentIndex", index);
       },
       formatDate(date) {
         const formattedDate = date.toLocaleDateString(languageFormat[this.language], dateOptions);

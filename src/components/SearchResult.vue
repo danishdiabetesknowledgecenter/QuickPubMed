@@ -753,7 +753,7 @@
       getSummarySuccessHeader() {
         const self = this;
 
-        return function (selected, isMarkedArticlesSearch) {
+        return (selected, isMarkedArticlesSearch) => {
           if (!isMarkedArticlesSearch) {
             let selectedWithAbstracts = selected.filter(
               (e) => e.abstract != null && e.abstract.trim() != ""
@@ -776,10 +776,13 @@
         this.hasAcceptedAi = false;
       },
       changeResultEntryModel(value, isChecked) {
+        console.log("changeResultEntryModel", value, isChecked);
         let newValue = [...this.selectedEntries];
         let valueIndex = newValue.findIndex(function (e) {
-          return e === value || e.uid == value.uid;
+          return e === value || e.uid === value.uid;
         });
+
+        console.log("ValueIndex", valueIndex);
 
         if (isChecked && valueIndex === -1) {
           newValue.push(value);
@@ -835,6 +838,7 @@
         this.isSelectedArticleAccordionExpanded = expanded;
       },
       onDeselectAllArticles() {
+        this.selectedEntries = [];
         this.$emit("change:selectedEntries", this.selectedEntries);
       },
       loadSelectedArticleBadges(article) {

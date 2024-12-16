@@ -19,6 +19,20 @@ export const utilitiesMixin = {
       return constant !== undefined ? constant : messages[string]["dk"];
     },
     /**
+     * Sanitizes the response text by removing ```json``` blocks and any surrounding whitespace.
+     *
+     * @param {string} text - The raw response text.
+     * @returns {string} - The sanitized JSON string.
+     */
+    sanitizeResponse(text) {
+      // Remove ```json and ``` if present
+      let sanitizedText = text.trim();
+      if (sanitizedText.startsWith("```json")) {
+        sanitizedText = sanitizedText.replace(/```json\s*/, "").replace(/```\s*$/, "");
+      }
+      return sanitizedText;
+    },
+    /**
      * Performs a fetch request to the specified URL with the given body and method.
      *
      * @param {string} url - The URL to send the request to.
