@@ -328,7 +328,7 @@ p.qpm_shownumber {
   flex: 1;
   max-width: 100%;
   display: flex;
-  flex-direction: column-reverse;
+  flex-direction: column;
 }
 
 .qpm_hide-tags-wrap .multiselect__tags-wrap {

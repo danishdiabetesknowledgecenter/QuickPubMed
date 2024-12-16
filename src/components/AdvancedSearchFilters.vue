@@ -29,14 +29,14 @@
     <div class="qpm_flex">
       <div class="qpm_filters" :class="{ qpm_visibilityHidden: Object.keys(filters).length === 0 }">
         <filter-entry
-          v-for="(selected, id, index) in filterData"
+          v-for="(id, index) in filterDataKeysReversed"
           :key="id"
           :language="language"
           :filter-item="getFilters(id)"
           :idx="id"
           :hide-topics="hideTopics"
-          :selected="selected"
-          :is-last="index === selectedCount - 1"
+          :selected="filterData[id]"
+          :is-first="index === 0"
           @input="handleAdvancedFilterUpdate"
           @updateScope="handleScopeUpdate"
           @remove-filter-item="handleRemoveFilterItem"
@@ -105,6 +105,9 @@
       };
     },
     computed: {
+      filterDataKeysReversed() {
+        return Object.keys(this.filterData).reverse();
+      },
       selectedCount() {
         return Object.keys(this.filterData).length;
       },

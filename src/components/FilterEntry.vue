@@ -1,7 +1,7 @@
 <template>
   <div class="qpm_flex">
     <div class="qpm_filterEntry" style="width: 100%">
-      <p v-if="!isLast" class="qpm_filterOperator">
+      <p v-if="!isFirst" class="qpm_filterOperator">
         {{ getString("andOperator") }}
       </p>
       <p style="font-size: 0.9em">{{ customNameLabelWithCount }}</p>
@@ -63,7 +63,7 @@
           return [];
         },
       },
-      isLast: {
+      isFirst: {
         type: Boolean,
         default: false,
       },

@@ -835,7 +835,6 @@
         this.isSelectedArticleAccordionExpanded = expanded;
       },
       onDeselectAllArticles() {
-        this.selectedEntries = [];
         this.$emit("change:selectedEntries", this.selectedEntries);
       },
       loadSelectedArticleBadges(article) {
