@@ -81,6 +81,7 @@
 
   import { utilitiesMixin } from "@/mixins/utilities";
   import { appSettingsMixin } from "@/mixins/appSettings";
+  import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
   import { summarizeArticleMixin } from "@/mixins/summarizeArticle";
   import { questionHeaderHeightWatcherMixin } from "@/mixins/questionHeaderHeightWatcher";
 
@@ -91,6 +92,7 @@
       LoadingSpinner,
     },
     mixins: [
+      promptRuleLoaderMixin,
       appSettingsMixin,
       utilitiesMixin,
       summarizeArticleMixin,
@@ -114,11 +116,6 @@
       language: {
         type: String,
         default: "dk",
-      },
-      domainSpecificPromptRules: {
-        type: Object,
-        default: () => ({}),
-        required: true,
       },
     },
     data() {

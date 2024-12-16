@@ -753,7 +753,7 @@
       getSummarySuccessHeader() {
         const self = this;
 
-        return function (selected, isMarkedArticlesSearch) {
+        return (selected, isMarkedArticlesSearch) => {
           if (!isMarkedArticlesSearch) {
             let selectedWithAbstracts = selected.filter(
               (e) => e.abstract != null && e.abstract.trim() != ""
@@ -835,6 +835,7 @@
         this.isSelectedArticleAccordionExpanded = expanded;
       },
       onDeselectAllArticles() {
+        this.selectedEntries = [];
         this.$emit("change:selectedEntries", this.selectedEntries);
       },
       loadSelectedArticleBadges(article) {

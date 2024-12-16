@@ -871,6 +871,18 @@
           this.isFirstFill = true;
         }
 
+        console.log(
+          "SearchInput",
+          this.$refs.subjectSelection.$refs.subjectDropdown[index].$refs.multiselect.$refs.search
+        );
+        this.$nextTick(() => {
+          const searchInput =
+            this.$refs.subjectSelection.$refs.subjectDropdown[index].$refs.multiselect.$refs.search;
+
+          if (searchInput) {
+            searchInput.focus();
+          }
+        });
         this.setUrl();
         this.editForm();
       },

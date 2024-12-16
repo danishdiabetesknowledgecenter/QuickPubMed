@@ -4,47 +4,6 @@
     <p v-if="!isError && !scrapingError && !isLoadingQuestions" style="margin-bottom: 20px">
       <strong>{{ getString("summarizeArticleNotice") }}</strong>
     </p>
-    <button
-      v-if="!isError && !scrapingError && !isLoadingQuestions"
-      v-tooltip="{
-        content: getString('hoverretryText'),
-        offset: 5,
-        delay: $helpTextDelay,
-        hideOnTargetClick: false,
-      }"
-      class="qpm_button"
-      :disabled="isSummaryLoading || isLoadingQuestions || isError"
-      @keydown.enter="handleRetry()"
-      @click="handleRetry()"
-    >
-      <i class="bx bx-refresh" style="vertical-align: baseline; font-size: 1em" />
-      {{ getString("retryText") }}
-    </button>
-    <button
-      v-if="!isError && !scrapingError && !isLoadingQuestions"
-      v-tooltip="{
-        content: getString('hoverAskQuestionText'),
-        offset: 5,
-        delay: $helpTextDelay,
-        hideOnTargetClick: false,
-      }"
-      class="qpm_button"
-      :disabled="isSummaryLoading || isLoadingQuestions || isError"
-      @click="toggleShowArticleSummary"
-    >
-      <i
-        v-if="isSummaryVisible"
-        class="bx bx-chevron-down"
-        style="vertical-align: baseline; font-size: 1em"
-      />
-      <i
-        v-if="!isSummaryVisible"
-        class="bx bx-chevron-right"
-        style="vertical-align: baseline; font-size: 1em"
-      />
-
-      {{ getButtonText }}
-    </button>
 
     <loading-spinner
       v-if="isLoadingQuestions"
@@ -54,7 +13,7 @@
       :size="35"
     />
 
-    <div v-if="isArticle && isSummaryVisible">
+    <div v-if="isArticle">
       <!-- TITLE summarize entire article -->
       <p v-if="questions.length > 1 && !isLoadingQuestions">
         <strong>{{ getString("summarizeArticleHeader") }}</strong>
@@ -132,6 +91,24 @@
         </template>
       </accordion-menu>
 
+      <button
+        v-if="!isError && !scrapingError && !isLoadingQuestions"
+        v-tooltip="{
+          content: getString('hoverretryText'),
+          offset: 5,
+          delay: $helpTextDelay,
+          hideOnTargetClick: false,
+        }"
+        class="qpm_button"
+        style="margin-top: 25px"
+        :disabled="isSummaryLoading || isLoadingQuestions || isError"
+        @keydown.enter="handleRetry()"
+        @click="handleRetry()"
+      >
+        <i class="bx bx-refresh" style="vertical-align: baseline; font-size: 1em" />
+        {{ getString("retryText") }}
+      </button>
+
       <!-- User input for asking questions for an article -->
       <question-for-article
         v-if="!isLoadingQuestions"
@@ -156,6 +133,7 @@
   import { utilitiesMixin } from "@/mixins/utilities.js";
   import { appSettingsMixin } from "@/mixins/appSettings.js";
   import { summarizeArticleMixin } from "@/mixins/summarizeArticle.js";
+  import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
   import { questionHeaderHeightWatcherMixin } from "@/mixins/questionHeaderHeightWatcher.js";
   import { getShortTitle } from "@/utils/qpm-open-ai-prompts-helpers.js";
 
@@ -167,6 +145,7 @@
       QuestionForArticle,
     },
     mixins: [
+      promptRuleLoaderMixin,
       appSettingsMixin,
       utilitiesMixin,
       summarizeArticleMixin,
@@ -202,16 +181,6 @@
         default: false,
         required: true,
       },
-      domainSpecificPromptRules: {
-        type: Object,
-        default: () => ({}),
-        required: true,
-      },
-    },
-    data() {
-      return {
-        isSummaryVisible: false,
-      };
     },
     computed: {
       getButtonText() {
@@ -231,9 +200,6 @@
       },
     },
     methods: {
-      toggleShowArticleSummary() {
-        this.isSummaryVisible = !this.isSummaryVisible;
-      },
       handleRetry() {
         this.isSummaryVisible = true;
         this.handleSummarizeArticle();

@@ -57,34 +57,24 @@ export const summarizeArticleMixin = {
       const promptQuestionsExtra = prompTextLanguageType.questionsExtra[language];
       const promptRules = prompTextLanguageType.promptRules[language];
       const promptEndText = prompTextLanguageType.endText[language];
+
       // Compose the prompt text with default prompt questions without the user input questions
-      let composedPromptText = `${domainSpecificRules} ${promptStartText} ${promptQuestions} ${promptQuestionsExtra} ${promptRules} ${promptEndText}`;
+      let composedPromptText = `${domainSpecificRules} ${promptStartText} ${promptQuestions} ${promptQuestionsExtra} ${promptEndText}`;
 
       // Compose the prompt text with user questions if userQuestionInput is not empty
       if (this.userQuestionInput) {
         composedPromptText = `${domainSpecificRules} ${promptStartText} ${this.userQuestionInput} ${promptRules} ${promptEndText}`;
       }
 
-      console.info(`
-        |Domain specific rules|
-        ${domainSpecificRules}
-        
-        |Start text|
-        ${promptStartText}
-        
-        ${
-          !this.userQuestionInput
-            ? `|Questions|\n${promptQuestions}\n
-        |QuestionsExtra|\n${promptQuestionsExtra}`
-            : `|User questions|\n${this.userQuestionInput}\n`
-        }
-        
-        |Rules|
-        ${promptRules}
-        
-        |End text|
-        ${promptEndText}
-        `);
+      console.info(
+        `|Language|\n${language}\n\n|Prompt language type|\n${promptLanguageType}\n\n|Domain specific rules|\n${domainSpecificRules}\n\n|Start text|\n${promptStartText}\n` +
+          `${
+            this.userQuestionInput
+              ? `\n\n|User questions|\n${this.userQuestionInput}\n\n|Rules|\n${promptRules}\n`
+              : `\n|Questions|\n${promptQuestions}\n\n|QuestionsExtra|\n${promptQuestionsExtra}\n`
+          }` +
+          `\n\n|End text|\n${promptEndText}\n`
+      );
 
       // Sanitize the composed prompt text
       let sanitizedComposedPromptText = sanitizePrompt({

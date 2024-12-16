@@ -170,8 +170,8 @@
                     :language="language"
                     :prompt-language-type="currentSummary"
                     :is-summary-loading="getIsSummaryLoading"
-                    :domain-specific-prompt-rules="domainSpecificPromptRules"
                     :generate-article-summary="isResourceAllowed"
+                    :domain-specific-prompt-rules="domainSpecificPromptRules"
                   />
                 </div>
                 <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryDisclaimer')" />

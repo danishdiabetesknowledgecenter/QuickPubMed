@@ -74,7 +74,7 @@
               margin-right: 5px;
             "
           />
-          {{ fetchShortTitle(question) }}
+          {{ question }}
         </div>
       </template>
       <template #default>
@@ -90,7 +90,6 @@
       :html-url="htmlUrl"
       :language="language"
       :prompt-language-type="promptLanguageType"
-      :domain-specific-prompt-rules="domainSpecificPromptRules"
     />
 
     <p v-if="errorMessage" class="qpm_error-message">
@@ -139,11 +138,6 @@
       language: {
         type: String,
         default: "dk",
-      },
-      domainSpecificPromptRules: {
-        type: Object,
-        default: () => ({}),
-        required: true,
       },
     },
     data() {
