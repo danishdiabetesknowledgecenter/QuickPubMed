@@ -4,7 +4,8 @@
       <loading-spinner
         class="qpm_searchMore"
         :loading="true"
-        :wait-text="getString('aiSummaryWaitText')"
+        :wait-text="getString('aiArticleSummaryWaitText')"
+        :wait-duration-disclaimer="getString('aiLongWaitTimeDisclaimer')"
         :size="35"
       />
     </div>
