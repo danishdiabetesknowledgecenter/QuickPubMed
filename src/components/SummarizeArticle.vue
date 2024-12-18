@@ -105,7 +105,7 @@
         }"
         class="qpm_button"
         style="margin-top: 25px"
-        :disabled="isSummaryLoading || isLoadingCurrent || isError"
+        :disabled="isLoadingCurrent || isError"
         @keydown.enter="handleRetry()"
         @click="handleRetry()"
       >
@@ -166,11 +166,6 @@
         type: String,
         default: "dk",
       },
-      isSummaryLoading: {
-        type: Boolean,
-        required: false,
-        default: false,
-      },
       promptLanguageType: {
         type: String,
         default: "Hverdagssprog",
@@ -199,20 +194,19 @@
       },
     },
     watch: {
-      isSummaryLoading: {
-        handler(newState) {
-          console.log("isSummaryLoading: ", newState);
-        },
-      },
       isLoadingCurrent: {
         handler(newState) {
           console.log(`${this.promptLanguageType} is loading: `, newState);
         },
       },
       promptLanguageType: {
-        async handler(newPromptLanguageType) {
+        async handler(newVal, oldVal) {
+          if (newVal === oldVal) {
+            console.log("PromptLanguageType is the same");
+            return;
+          }
           if (this.isLoadingCurrent) return;
-          await this.loadOrGenerateSummary(newPromptLanguageType);
+          await this.loadOrGenerateSummary(newVal);
         },
         immediate: true,
       },

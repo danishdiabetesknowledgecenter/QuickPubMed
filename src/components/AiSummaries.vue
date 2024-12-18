@@ -159,7 +159,6 @@
                   </button>
                   <keep-alive>
                     <summarize-article
-                      :is="'summarize-article'"
                       v-show="
                         config.useAISummarizer &&
                         showSummarizeArticle &&
@@ -171,7 +170,6 @@
                       :html-url="htmlUrl"
                       :language="language"
                       :prompt-language-type="currentSummary"
-                      :is-summary-loading="getIsSummaryLoading"
                       :domain-specific-prompt-rules="domainSpecificPromptRules"
                     />
                   </keep-alive>
@@ -647,6 +645,7 @@
         this.showHistory = !this.showHistory;
       },
       clickHistoryItem(index) {
+        console.log("ClickHistoryItem", index);
         this.$set(this.tabStates[this.currentSummary], "currentIndex", index);
       },
       formatDate(date) {

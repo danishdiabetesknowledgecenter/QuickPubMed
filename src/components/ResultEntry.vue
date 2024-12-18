@@ -1527,7 +1527,8 @@
         if (args.$el != this.$el) return;
         this.showAbstract(true);
       },
-      onAiSummariesClickRetry() {
+      onAiSummariesClickRetry(value) {
+        console.log("ResultEntry |", value);
         this.$el.scrollIntoView({ behavior: "smooth" });
       },
       changeOnEnter(event) {
