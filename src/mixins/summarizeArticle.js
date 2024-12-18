@@ -27,10 +27,11 @@ export const summarizeArticleMixin = {
      * @returns {Object|null} - The summary data or null if not found.
      */
     async getAiSummaryOfArticle(promptLanguageType, isRetry = false) {
-      if (isRetry === true) {
+      if (isRetry) {
         await this.generateAndSaveSummary(promptLanguageType);
       }
-      return this.aiArticleSummaries[promptLanguageType] || null;
+      const summary = this.aiArticleSummaries[promptLanguageType] || null;
+      return summary;
     },
     /**
      * Generates a summary and saves it under the specified language type.

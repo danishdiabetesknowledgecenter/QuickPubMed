@@ -69,6 +69,7 @@
                 <strong>{{ errorHeader }}</strong>
               </p>
               <p>{{ getCurrentSummary?.body }}</p>
+
               <template v-if="getCurrentSummary?.error">
                 <p>{{ getCurrentSummary?.error?.Message }}</p>
               </template>
@@ -156,22 +157,24 @@
                     <i class="bx bx-copy" style="vertical-align: baseline" />
                     {{ getString("copyText") }}
                   </button>
-
-                  <summarize-article
-                    v-if="
-                      config.useAISummarizer &&
-                      showSummarizeArticle &&
-                      isLicenseAllowed &&
-                      isResourceAllowed &&
-                      isPubTypeAllowed
-                    "
-                    :pdf-url="pdfUrl"
-                    :html-url="htmlUrl"
-                    :language="language"
-                    :prompt-language-type="currentSummary"
-                    :is-summary-loading="getIsSummaryLoading"
-                    :domain-specific-prompt-rules="domainSpecificPromptRules"
-                  />
+                  <keep-alive>
+                    <summarize-article
+                      :is="'summarize-article'"
+                      v-show="
+                        config.useAISummarizer &&
+                        showSummarizeArticle &&
+                        isLicenseAllowed &&
+                        isResourceAllowed &&
+                        isPubTypeAllowed
+                      "
+                      :pdf-url="pdfUrl"
+                      :html-url="htmlUrl"
+                      :language="language"
+                      :prompt-language-type="currentSummary"
+                      :is-summary-loading="getIsSummaryLoading"
+                      :domain-specific-prompt-rules="domainSpecificPromptRules"
+                    />
+                  </keep-alive>
                 </div>
                 <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryDisclaimer')" />
               </div>
@@ -385,15 +388,12 @@
         return currentSummaries;
       },
       getCurrentIndex() {
-        console.log("this.currentSummary", this.currentSummary);
         let tabState = this.tabStates[this.currentSummary];
         let index = tabState?.currentIndex ?? 0;
-        console.log("getCurrentIndex", index, "tabState", tabState);
         return index;
       },
       getCurrentSummary() {
         let summaries = this.getCurrentSummaryHistory;
-        console.log("getCurrentSummary |", summaries);
         if (!summaries || summaries.length == 0) return undefined;
 
         let index = this.getCurrentIndex;
@@ -620,7 +620,6 @@
       async clickRetry(event, moveFocus = false) {
         this.$emit("ai-summaries-click-retry", this);
 
-        console.log("Click retry |", this.currentSummary, "Passed as name");
         const tab = this.getSummaryPromptByName(this.currentSummary);
         if (moveFocus) {
           this.$el.querySelector(`#${tab.name}`).focus();

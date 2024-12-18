@@ -1,7 +1,10 @@
 <template>
   <div ref="container" style="margin-top: 20px">
     <!-- TITLE Notice the entire article can be summarized -->
-    <p v-if="!isError && !scrapingError && !isLoadingCurrent" style="margin-bottom: 20px">
+    <p
+      v-if="!isError && !scrapingError && !isLoadingCurrent && isArticle"
+      style="margin-bottom: 20px"
+    >
       <strong>{{ getString("summarizeArticleNotice") }}</strong>
     </p>
 
@@ -196,6 +199,11 @@
       },
     },
     watch: {
+      isSummaryLoading: {
+        handler(newState) {
+          console.log("isSummaryLoading: ", newState);
+        },
+      },
       isLoadingCurrent: {
         handler(newState) {
           console.log(`${this.promptLanguageType} is loading: `, newState);
@@ -203,7 +211,6 @@
       },
       promptLanguageType: {
         async handler(newPromptLanguageType) {
-          // Need to block if the current summary is loading
           if (this.isLoadingCurrent) return;
           await this.loadOrGenerateSummary(newPromptLanguageType);
         },

@@ -263,7 +263,7 @@
             :selectable="entriesAlwaysSelectable || hasAcceptedAi"
             :abstract="getAbstract(value.model.uid)"
             :text="getText(value.model.uid)"
-            @change="changeResultEntryModel(value.model, value.checked)"
+            @change="changeResultEntryModel"
             @change:abstractLoad="onAbstractLoad"
             @loadAbstract="addIdToLoadAbstract"
           />
@@ -776,7 +776,6 @@
         this.hasAcceptedAi = false;
       },
       changeResultEntryModel(value, isChecked) {
-        console.log("changeResultEntryModel", value, isChecked);
         let newValue = [...this.selectedEntries];
         let valueIndex = newValue.findIndex(function (e) {
           return e === value || e.uid === value.uid;
