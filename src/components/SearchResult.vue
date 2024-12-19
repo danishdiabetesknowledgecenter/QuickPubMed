@@ -264,7 +264,7 @@
             :abstract="getAbstract(value.model.uid)"
             :text="getText(value.model.uid)"
             :is-abstract-loaded="isAbstractLoaded"
-            @change="changeResultEntryModel"
+            @change="changeResultEntryModel(value.model)"
             @change:abstractLoad="onAbstractLoad"
             @loadAbstract="addIdToLoadAbstract"
           />
