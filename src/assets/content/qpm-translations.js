@@ -314,7 +314,7 @@ export const messages = {
     en: "Download PDF",
   },
   UnpaywallWithHtml: {
-    dk: "Læs hele artikel",
+    dk: "Læs hele artiklen",
     en: "Read the whole article",
   },
   NoUnpaywall: {

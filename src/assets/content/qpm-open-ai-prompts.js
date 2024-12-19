@@ -559,7 +559,7 @@ export const promptText = [
     promptRules: promptArticleSpecificAnswersOnly,
     endText: {
       dk: "Du skal generere svar til alle spørgsmål, og disse svar skal bestå af maksimalt 100 ord og skal skrives på fagsprog som let kan forstås af et sundhedsfagligt publikum eller personer med solid baggrund inden for emnet, og tilføje svarende til array'et, der er value for answers key'en. \
-          Du må ikke svare med andet end JSON-formatet. Du skal derfor ikke bruge tegnet ` eller skrive json i starten eller slutningen af svaret. Her er teksten:",
+          Du må ikke svare med andet end JSON-formatet. Du skal derfor ikke bruge tegnet ` eller skrive json i starten eller slutningen af svaret. Her er teksten: ",
       en: "You must then generate answers to these questions, and these answers must consist of 100 words and must be written in professional language that can be easily understood by a healthcare audience or people with a solid background in the subject, and add corresponding to the array that is the value for the answers key. \
           You must not respond with anything other than JSON format. You must therefore not use the character ` or write JSON at the beginning or end of the response. Here is the text:",
     },
@@ -576,7 +576,7 @@ export const promptText = [
     promptRules: promptArticleSpecificAnswersOnly,
     endText: {
       dk: "Du skal generere svar til disse spørgsmål, og disse svar skal bestå af maksimalt 100 ord og skal skrives i et sprog, som nemt kan læses og forstås af en 15-årig uden forhåndskendskab til emnet, og tilføje svarende til array'et, der er value for answers key'en. \
-Du skal ikke svare med andet end JSON-formatet. Du skal derfor ikke bruge tegnet ` eller skrive json i starten eller slutningen af svaret. Her er teksten:",
+Du skal ikke svare med andet end JSON-formatet. Du skal derfor ikke bruge tegnet ` eller skrive json i starten eller slutningen af svaret. Her er teksten: ",
       en: "You must then generate answers to these questions, and these answers must consist of 100 words and must be written in a language that can be easily read and understood by a 15-year-old without prior knowledge of the subject, and add corresponding to the array that is the value for the answers key. \
 You must not respond with anything other than JSON format. You must therefore not use the character ` or write JSON at the beginning or end of the response. Here is the text:",
     },
