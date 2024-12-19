@@ -1219,10 +1219,10 @@
           container.parentNode.removeChild(container);
         });
       },
-      searchsetLowStart() {
+      async searchsetLowStart() {
         this.count = 0;
         this.page = 0;
-        this.search();
+        await this.search();
       },
       /**
        * Initiates a PubMed search using NCBI's Entrez API.
@@ -1509,21 +1509,21 @@
         let option = { cause: err };
         this.searchError = Error(message, option);
       },
-      setPageSize(pageSize) {
+      async setPageSize(pageSize) {
         this.pageSize = pageSize;
         this.page = 0;
         this.setUrl();
-        this.searchMore();
+        await this.searchMore();
       },
-      nextPage() {
+      async nextPage() {
         this.page++;
         this.setUrl();
-        this.searchMore();
+        await this.searchMore();
       },
-      previousPage() {
+      async previousPage() {
         this.page--;
         this.setUrl();
-        this.search();
+        await this.search();
       },
       toggleDetailsBox() {
         // added by Ole
@@ -1532,12 +1532,12 @@
       toggleAdvancedString() {
         this.advancedString = !this.advancedString;
       },
-      newSortMethod(newVal) {
+      async newSortMethod(newVal) {
         this.sort = newVal;
         this.page = 0;
         this.setUrl();
         this.count = 0;
-        this.search();
+        await this.search();
       },
       /**
        * Toggles the collapsed state of the search form.
@@ -1612,11 +1612,10 @@
         return choice.tooltip_simple[this.language];
       },
       updatePreselectedPmidai(newValue) {
-        console.log("we updating preselected pmidai");
         this.preselectedPmidai = (newValue ?? []).map(function (e) {
           return e.uid;
         });
-        console.log("new value: ", this.preselectedPmidai);
+
         this.setUrl();
       },
       // passing along the index seemingly makes vue understand that
