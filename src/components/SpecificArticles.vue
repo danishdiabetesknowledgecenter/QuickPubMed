@@ -84,6 +84,7 @@
           :abstract-summary-prompts="getAbstractSummaryPrompts()"
           :abstract="getAbstract(value.uid)"
           :text="getText(value.uid)"
+          :is-abstract-loaded="isAbstractLoaded"
           @netFail="UnsuccessfullCall"
           @change:abstractLoad="onAbstractLoad"
           @loadAbstract="addIdToLoadAbstract"
@@ -224,6 +225,7 @@
     data() {
       return {
         abstractRecords: {},
+        isAbstractLoaded: false,
         idswithAbstractsToLoad: [],
         enteredIds: [],
         faltedIds: [],
@@ -551,6 +553,8 @@
         }
       },
       onAbstractLoad(id, abstract) {
+        console.log("Abstract loaded for", id), abstract;
+        this.isAbstractLoaded = true;
         Vue.set(this.abstractRecords, id, abstract);
       },
     },

@@ -791,6 +791,10 @@
         type: Boolean,
         default: false,
       },
+      isAbstractLoaded: {
+        type: Boolean,
+        default: false,
+      },
     },
     data() {
       // Added by Ole
@@ -852,6 +856,9 @@
         return this.appSettings.openAi.usePDFsummary;
       },
       getButtonText() {
+        if (!this.isAbstractLoaded) {
+          return this.getString("loadingText");
+        }
         if (this.hasValidAbstract) {
           return this.showingAbstract
             ? this.getString("hideAbstract")
