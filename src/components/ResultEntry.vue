@@ -91,6 +91,7 @@
           }"
           class="qpm_button qpm_slim"
           :class="[
+            !isAbstractLoaded ? 'qpm_abstract' : '',
             showingAbstract ? 'qpm_active' : '',
             hasValidAbstract ? 'qpm_abstract' : 'qpm_noAbstract',
           ]"
@@ -179,6 +180,7 @@
           }"
           class="qpm_button qpm_slim"
           :class="[
+            !isAbstractLoaded ? 'qpm_abstract' : '',
             showingAbstract ? 'qpm_active' : '',
             hasValidAbstract ? 'qpm_abstract' : 'qpm_noAbstract',
           ]"
