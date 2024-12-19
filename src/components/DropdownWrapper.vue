@@ -445,7 +445,6 @@
     },
     methods: {
       onSelectedChange() {
-        console.log("DropdownWrapper | SelectedChanged", this.selected);
         this.updateExpandedGroupHighlighting();
         this.showOrHideElements();
       },
