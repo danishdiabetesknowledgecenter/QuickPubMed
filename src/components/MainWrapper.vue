@@ -871,14 +871,6 @@
           this.isFirstFill = true;
         }
 
-        this.$nextTick(() => {
-          const searchInput =
-            this.$refs.subjectSelection.$refs.subjectDropdown[index].$refs.multiselect.$refs.search;
-
-          if (searchInput) {
-            searchInput.focus();
-          }
-        });
         this.setUrl();
         this.editForm();
       },
@@ -895,6 +887,14 @@
         if (Array.isArray(updatedSubjects) && updatedSubjects[index]) {
           const subject = updatedSubjects[index].find((sub) => sub.name === item.name);
           if (subject) {
+            if (subject.scope === state) {
+              console.log("Same scope selected we should unselect it");
+              // Find the subject in the subjects array and remove it
+              const subjectIndex = updatedSubjects[index].findIndex(
+                (sub) => sub.name === item.name
+              );
+              updatedSubjects[index].splice(subjectIndex, 1);
+            }
             subject.scope = state;
           }
           this.subjects = updatedSubjects;
@@ -1070,6 +1070,12 @@
           const targetItem = sel[index].find((filterItem) => filterItem.id === item.id);
 
           if (targetItem) {
+            if (targetItem.scope === state) {
+              console.log("Same scope selected we should unselect it");
+              // Find the filter in the filterData array and remove it
+              const filterIndex = sel[index].findIndex((sub) => sub.name === item.name);
+              sel[index].splice(filterIndex, 1);
+            }
             targetItem.scope = state;
           } else {
             console.warn(`Item with id ${item.id} not found in sel[${index}]`);
@@ -1325,7 +1331,7 @@
        *
        * @throws Will throw an error if the API requests fail.
        */
-      searchMore: async function () {
+      async searchMore() {
         // Calculate the target number of results based on the next page
         const targetResultLength = Math.min((this.page + 1) * this.pageSize, this.count);
         console.log(

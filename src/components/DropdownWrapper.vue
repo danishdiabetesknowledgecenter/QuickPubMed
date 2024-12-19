@@ -411,6 +411,10 @@
       },
     },
     watch: {
+      selected: {
+        handler: "onSelectedChange",
+        deep: true,
+      },
       maintopicToggledMap: {
         handler: "onMaintainTopicToggledMapChange",
         deep: true,
@@ -440,6 +444,11 @@
       this.initialSetup();
     },
     methods: {
+      onSelectedChange() {
+        console.log("DropdownWrapper | SelectedChanged", this.selected);
+        this.updateExpandedGroupHighlighting();
+        this.showOrHideElements();
+      },
       initialSetup() {
         const element = this.$refs.selectWrapper;
 
@@ -948,6 +957,7 @@
        * @param {HTMLElement} target - The target element.
        */
       handleCategoryGroupClick(event) {
+        console.log("handleCategoryGroupClick", event);
         let target = event.target;
 
         // Check if the click is on the optiongroup name or elsewhere within the multiselect__option__option--group element
