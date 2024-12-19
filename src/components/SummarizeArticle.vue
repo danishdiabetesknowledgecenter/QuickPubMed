@@ -26,7 +26,7 @@
       <!-- Default questions to summarize an article section -->
       <accordion-menu
         v-for="(question, index) in questions.slice(0, 7)"
-        :key="index"
+        :key="`${promptLanguageType}-${index}`"
         :title="fetchShortTitle(question)"
         :open-by-default="false"
       >
@@ -64,7 +64,7 @@
       <!-- Generated article specific questions section -->
       <accordion-menu
         v-for="(question, index) in questions.slice(7)"
-        :key="index + 7"
+        :key="`${promptLanguageType}-${index + 7}`"
         :title="question"
         :open-by-default="false"
       >
