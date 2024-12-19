@@ -34,6 +34,7 @@
           :abstract-summary-prompts="getAbstractSummaryPrompts()"
           :abstract="getAbstract(getId)"
           :text="getText(getId)"
+          :is-abstract-loaded="isAbstractLoaded"
           @netFail="UnsuccessfullCall"
           @change:abstractLoad="onAbstractLoad"
           @loadAbstract="addIdToLoadAbstract"
@@ -553,7 +554,6 @@
         }
       },
       onAbstractLoad(id, abstract) {
-        console.log("Abstract loaded for", id), abstract;
         this.isAbstractLoaded = true;
         Vue.set(this.abstractRecords, id, abstract);
       },

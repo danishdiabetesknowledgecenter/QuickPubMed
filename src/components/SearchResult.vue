@@ -263,6 +263,7 @@
             :selectable="entriesAlwaysSelectable || hasAcceptedAi"
             :abstract="getAbstract(value.model.uid)"
             :text="getText(value.model.uid)"
+            :is-abstract-loaded="isAbstractLoaded"
             @change="changeResultEntryModel"
             @change:abstractLoad="onAbstractLoad"
             @loadAbstract="addIdToLoadAbstract"
@@ -351,6 +352,7 @@
           :abstract="getAbstract(value.uid)"
           :text="getText(value.uid)"
           :value="value"
+          :is-abstract-loaded="isAbstractLoaded"
           @change="changeResultEntryModel"
           @change:abstractLoad="onAbstractLoad"
           @articleUpdated="addArticle"
@@ -468,6 +470,7 @@
         altmetricsAdded: false,
         idswithAbstractsToLoad: [],
         abstractRecords: {}, // id, abstract
+        isAbstractLoaded: false,
         articles: {},
         isSummarizeArticlesAcordionExpanded: false,
         isSelectedArticleAccordionExpanded: false,
@@ -801,6 +804,7 @@
         this.$emit("change:selectedEntries", newValue);
       },
       onAbstractLoad(id, abstract) {
+        this.isAbstractLoaded = true;
         Vue.set(this.abstractRecords, id, abstract);
       },
       onAiSummariesClickRetry() {

@@ -481,7 +481,7 @@
                     target="_blank"
                     :href="getUnpaywall"
                   >
-                  {{ getString("UnpaywallLoading") }}
+                    {{ getString("UnpaywallLoading") }}
                   </a>
                 </template>
 
