@@ -157,22 +157,24 @@
                     <i class="bx bx-copy" style="vertical-align: baseline" />
                     {{ getString("copyText") }}
                   </button>
-                  <keep-alive>
-                    <summarize-article
-                      v-show="
-                        config.useAISummarizer &&
-                        showSummarizeArticle &&
-                        isLicenseAllowed &&
-                        isResourceAllowed &&
-                        isPubTypeAllowed
-                      "
-                      :pdf-url="pdfUrl"
-                      :html-url="htmlUrl"
-                      :language="language"
-                      :prompt-language-type="currentSummary"
-                      :domain-specific-prompt-rules="domainSpecificPromptRules"
-                    />
-                  </keep-alive>
+                  <div v-if="showSummarizeArticle">
+                    <keep-alive>
+                      <summarize-article
+                        v-show="
+                          config.useAISummarizer &&
+                          showSummarizeArticle &&
+                          isLicenseAllowed &&
+                          isResourceAllowed &&
+                          isPubTypeAllowed
+                        "
+                        :pdf-url="pdfUrl"
+                        :html-url="htmlUrl"
+                        :language="language"
+                        :prompt-language-type="currentSummary"
+                        :domain-specific-prompt-rules="domainSpecificPromptRules"
+                      />
+                    </keep-alive>
+                  </div>
                 </div>
                 <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryDisclaimer')" />
               </div>
