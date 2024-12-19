@@ -207,12 +207,11 @@
             promptLanguageType
             // Removed the third argument as per new flow
           );
-
-          const openAiServiceUrl = this.pdfurl
+          const openAiServiceUrl = this.pdfUrl
             ? `${this.appSettings.openAi.baseUrl}/api/SummarizePDFArticle`
             : `${this.appSettings.openAi.baseUrl}/api/SummarizeHTMLArticle`;
 
-          const fetchPayload = this.pdfurl
+          const fetchPayload = this.pdfUrl
             ? { prompt: composedPrompt, pdfurl: this.pdfUrl, client: this.appSettings.client }
             : { prompt: composedPrompt, htmlurl: this.htmlUrl, client: this.appSettings.client };
 

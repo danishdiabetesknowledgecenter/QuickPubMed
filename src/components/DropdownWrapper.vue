@@ -505,7 +505,7 @@
       input(value) {
         if (!value || value.length === 0) {
           this.clearShownItems();
-          this.$emit("input", value);
+          this.$emit("input", value, this.index);
           return;
         }
         // Klone det sidste element for at undgå at ændre det direkte i datakilden
