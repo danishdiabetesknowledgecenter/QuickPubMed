@@ -464,7 +464,7 @@
 
           <div class="qpm_unpaywall">
             <template v-if="doi">
-              <p class="intext-arrow-link onHoverJS qpm_pubmedLink">
+              <p class="onHoverJS qpm_pubmedLink">
                 <template v-if="!unpaywallResponseLoaded">
                   <loading-spinner
                     :loading="true"
@@ -481,7 +481,7 @@
                     target="_blank"
                     :href="getUnpaywall"
                   >
-                    {{ getString("UnpaywallLoading") }}
+                  {{ getString("UnpaywallLoading") }}
                   </a>
                 </template>
 
