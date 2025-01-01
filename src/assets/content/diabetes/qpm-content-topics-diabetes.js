@@ -1205,7 +1205,10 @@ export const topics = [
           dk: "Kost generelt",
           en: "Diet in general",
         },
-        ordering: { dk: 1, en: 1 },
+        ordering: { 
+          dk: 1, 
+          en: 1 
+        },
         searchStrings: {
           narrow: [
             '("Diet, Food, and Nutrition"[majr] OR "Diet Therapy"[majr]) AND "Diabetes Mellitus"[majr]',
@@ -1223,6 +1226,320 @@ export const topics = [
         },
         tooltip: {
           dk: "",
+          en: "",
+        },
+      },
+      {
+        id: "S40015",
+        name: "Diæter og kure",
+        buttons: true,
+        maintopic: true, // Angiver at dette element er en branch og har children elementer
+        translations: {
+          dk: "Diæter og kure",
+          en: "Diets",
+        },
+        ordering: {
+          dk: 2,
+          en: 2,
+        },
+        tooltip: {
+          dk: "",
+          en: "",
+        },
+      },
+      {
+        id: "S400151",
+        name: "DASH-diæt",
+        buttons: true,
+        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midterste niveau)
+        maintopicIdLevel1: "S40015", // Angiver at dette element har et parent med dette id. (Emne 2)
+        translations: {
+          dk: "DASH-diæt",
+          en: "DASH diet",
+        },
+        ordering: {
+          dk: 3,
+          en: 3,
+        },
+        searchStrings: {
+          narrow: [
+            '"Dietary Approaches to Stop Hypertension"[majr] AND "Diabetes Mellitus"[majr]'
+          ],
+          normal: [
+            '("Dietary Approaches to Stop Hypertension"[mh] OR DASH[ti] OR "Dietary Approaches to Stop Hypertension"[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+          ],
+          broad: [
+            '("Dietary Approaches to Stop Hypertension"[mh] OR DASH[tiab] OR "Dietary Approaches to Stop Hypertension"[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+          ],
+        },
+        searchStringComment: {
+          dk: "",
+          en: "",
+        },
+        tooltip: {
+          dk: "DASH (Dietary Approaches to Stop Hypertension) er udviklet til at sænke blodtrykket. Fokus på lavt saltindtag, frugt, grøntsager og magre proteinkilder.",
+          en: "DASH (Dietary Approaches to Stop Hypertension)",
+        },
+      },
+      {
+        id: "S400152",
+        name: "LCHF",
+        buttons: true,
+        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midterste niveau)
+        maintopicIdLevel1: "S40015", // Angiver at dette element har et parent med dette id. (Emne 2)
+        translations: {
+          dk: "Low carb high fat (LCHF)",
+          en: "Low carb high fat (LCHF)",
+        },
+        ordering: {
+          dk: 4,
+          en: 4,
+        },
+        searchStrings: {
+          narrow: [
+            '"Diet, Carbohydrate-Restricted"[majr] AND "Diet, High-Fat"[majr] AND "Diabetes Mellitus"[majr]'
+          ],
+          normal: [
+            '(("Diet, Carbohydrate-Restricted"[mh] AND "Diet, High-Fat"[mh]) OR (low-carb*[ti] AND high-fat[ti]) OR lchf[ti] OR vlchf[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+          ],
+          broad: [
+            '(("Diet, Carbohydrate-Restricted"[mh] AND "Diet, High-Fat"[mh]) OR (low-carb*[tiab] AND high-fat[tiab]) OR lchf[tiab] OR vlchf[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+          ],
+        },
+        searchStringComment: {
+          dk: "",
+          en: "",
+        },
+        tooltip: {
+          dk: "Fokus på at reducere kulhydrater og øge fedtindtaget.",
+          en: "",
+        },
+      },
+      {
+        id: "S400153",
+        name: "Middelhavskost",
+        buttons: true,
+        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midterste niveau)
+        maintopicIdLevel1: "S40015", // Angiver at dette element har et parent med dette id. (Emne 2)
+        translations: {
+          dk: "Middelhavskost",
+          en: "Mediterranean diet",
+        },
+        ordering: {
+          dk: 5,
+          en: 5,
+        },
+        searchStrings: {
+          narrow: [
+            '"Diet, Mediterranean"[majr] AND "Diabetes Mellitus"[majr]'
+          ],
+          normal: [
+            '("Diet, Mediterranean"[mh] OR (mediterranean[ti] AND diet*[ti])) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+          ],
+          broad: [
+            '("Diet, Mediterranean"[mh] OR (mediterranean[tiab] AND diet*[tiab])) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+          ],
+        },
+        searchStringComment: {
+          dk: "",
+          en: "",
+        },
+        tooltip: {
+          dk: "En kost baseret på grøntsager, frugt, fuldkorn, fisk, olivenolie og nødder.",
+          en: "",
+        },
+      },
+      {
+        id: "S400154",
+        name: "Paleo-diæt",
+        buttons: true,
+        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midterste niveau)
+        maintopicIdLevel1: "S40015", // Angiver at dette element har et parent med dette id. (Emne 2)
+        translations: {
+          dk: "Paleo-diæt",
+          en: "Paleolithic diet",
+        },
+        ordering: {
+          dk: 6,
+          en: 6,
+        },
+        searchStrings: {
+          narrow: [
+            '"Diet, Paleolithic"[majr] AND "Diabetes Mellitus"[majr]'
+          ],
+          normal: [
+            '("Diet, Paleolithic"[mh] OR (paleo*[ti] AND diet*[ti])) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+          ],
+          broad: [
+            '("Diet, Paleolithic"[mh] OR (paleo*[tiab] AND diet*[tiab])) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+          ],
+        },
+        searchStringComment: {
+          dk: "",
+          en: "",
+        },
+        tooltip: {
+          dk: "Fokus på \"oprindelige fødevarer\" som magert kød, grøntsager, nødder og frugt, mens forarbejdede fødevarer og kornprodukter undgås.",
+          en: "",
+        },
+      },
+      {
+        id: "S400155",
+        name: "Plantebaseret kost",
+        buttons: true,
+        maintopic: true,
+        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midterste niveau)
+        maintopicIdLevel1: "S40015", // Angiver at dette element har et parent med dette id. (Emne 2)
+        translations: {
+          dk: "Plantebaseret kost",
+          en: "Plant-based diet",
+        },
+        ordering: {
+          dk: 7,
+          en: 7,
+        },
+        searchStringComment: {
+          dk: "",
+          en: "",
+        },
+        tooltip: {
+          dk: "Kost der primært eller udelukkende består af planter som grøntsager, frugt, bælgfrugter, nødder og fuldkorn.",
+          en: "",
+        },
+      },
+      {
+        id: "S4001551",
+        name: "Plantebaseret kost generelt",
+        buttons: true,
+        subtopiclevel: 2, // Angiver at dette element ligger på 1. niveau (midterste niveau)
+        maintopicIdLevel1: "S400155", // Angiver at dette element har et parent med dette id. (Emne 2)
+        translations: {
+          dk: "Plantebaseret kost generelt",
+          en: "Plant-based diet in general",
+        },
+        ordering: {
+          dk: 8,
+          en: 8,
+        },
+        searchStrings: {
+          narrow: [
+            '("Diet, Plant-Based"[majr:noexp] OR "Diet, Vegetarian"[majr:noexp] OR "Diet, Vegan"[majr:noexp]) AND "Diabetes Mellitus"[majr]'
+          ],
+          normal: [
+            '("Diet, Plant-Based"[mh:noexp] OR "Diet, Vegetarian"[mh:noexp] OR "Diet, Vegan"[mh:noexp] OR ((plant-based[ti] OR vegetarian*[ti] OR vegan*[ti]) AND diet*[ti])) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+          ],
+          broad: [
+            '("Diet, Plant-Based"[mh:noexp] OR "Diet, Vegetarian"[mh:noexp] OR "Diet, Vegan"[mh:noexp] OR ((plant-based[tiab] OR vegetarian*[tiab] OR vegan*[tiab]) AND diet*[tiab])) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+          ],
+        },
+        searchStringComment: {
+          dk: "",
+          en: "",
+        },
+        tooltip: {
+          dk: "Kost der primært består af planter som grøntsager, frugt, bælgfrugter, nødder og fuldkorn. Nogle diæter tillader også små mængder animalske produkter.",
+          en: "",
+        },
+      },
+      {
+        id: "S4001552",
+        name: "Vegetarisk kost",
+        buttons: true,
+        subtopiclevel: 2, // Angiver at dette element ligger på 1. niveau (midterste niveau)
+        maintopicIdLevel1: "S400155", // Angiver at dette element har et parent med dette id. (Emne 2)
+        translations: {
+          dk: "Vegetarisk kost",
+          en: "Vegetarian diet",
+        },
+        ordering: {
+          dk: 9,
+          en: 9,
+        },
+        searchStrings: {
+          narrow: [
+            '"Diet, Vegetarian"[majr:noexp] AND "Diabetes Mellitus"[majr]'
+          ],
+          normal: [
+            '("Diet, Vegetarian"[mh:noexp] OR (vegetarian*[ti] AND diet*[ti])) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+          ],
+          broad: [
+            '("Diet, Vegetarian"[mh:noexp] OR (vegetarian*[tiab] AND diet*[tiab])) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+          ],
+        },
+        searchStringComment: {
+          dk: "",
+          en: "",
+        },
+        tooltip: {
+          dk: "Kost der primært består af planter som grøntsager, frugt, bælgfrugter, nødder og fuldkorn, men tillader også små mængder animalske produkter.",
+          en: "",
+        },
+      },
+      {
+        id: "S4001553",
+        name: "Vegansk kost",
+        buttons: true,
+        subtopiclevel: 2, // Angiver at dette element ligger på 1. niveau (midterste niveau)
+        maintopicIdLevel1: "S400155", // Angiver at dette element har et parent med dette id. (Emne 2)
+        translations: {
+          dk: "Vegansk kost",
+          en: "Vegan diet",
+        },
+        ordering: {
+          dk: 10,
+          en: 10,
+        },
+        searchStrings: {
+          narrow: [
+            '"Diet, Vegan"[majr] AND "Diabetes Mellitus"[majr]'
+          ],
+          normal: [
+            '("Diet, Vegan"[majr] OR (vegan*[ti] AND diet*[ti])) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+          ],
+          broad: [
+            '("Diet, Vegan"[majr] OR (vegan*[tiab] AND diet*[tiab])) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+          ],
+        },
+        searchStringComment: {
+          dk: "",
+          en: "",
+        },
+        tooltip: {
+          dk: "Kost der primært består af planter som grøntsager, frugt, bælgfrugter, nødder og fuldkorn, men ikke tillader animalske produkter.",
+          en: "",
+        },
+      },
+      {
+        id: "S400157",
+        name: "Tidsbegrænset spisning",
+        buttons: true,
+        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midterste niveau)
+        maintopicIdLevel1: "S40015", // Angiver at dette element har et parent med dette id. (Emne 2)
+        translations: {
+          dk: "Tidsbegrænset spisning",
+          en: "Time-restricted eating",
+        },
+        ordering: {
+          dk: 11,
+          en: 11,
+        },
+        searchStrings: {
+          narrow: [
+            '"Intermittent Fasting"[majr] AND "Diabetes Mellitus"[majr]'
+          ],
+          normal: [
+            '("Intermittent Fasting"[mh] OR ((intermittent[ti] OR time-restrict*[ti]) AND (diet*[ti] OR eating[ti] OR fasting[ti]))) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+          ],
+          broad: [
+            '("Intermittent Fasting"[mh] OR ((intermittent[tiab] OR time-restrict*[tiab]) AND (diet*[tiab] OR eating[tiab] OR fasting[tiab]))) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+          ],
+        },
+        searchStringComment: {
+          dk: "",
+          en: "",
+        },
+        tooltip: {
+          dk: "Spisemønster, hvor der skiftevis er fasteperioder og spiseperioder.",
           en: "",
         },
       },
@@ -2124,13 +2441,13 @@ export const topics = [
         ordering: { dk: null, en: null },
         searchStrings: {
           narrow: [
-            '("Disabled Children"[majr] OR ("Child"[mh] NOT "Adult"[mh]) OR "Child, Hospitalized"[majr] OR "Child, Institutionalized"[majr] OR "Child Care"[majr] OR "Child Development"[majr] OR "Child Health"[majr] OR "Child Health Services"[majr] OR "Pediatrics"[majr] OR "Pediatric Nursing"[majr] OR "Pediatric Obesity"[majr] OR "Psychology, Child"[majr]) AND "Diabetes Mellitus"[majr]',
+            '(("Child"[mh] NOT "Adult"[mh]) OR "Child, Hospitalized"[majr] OR "Child, Institutionalized"[majr] OR "Child Care"[majr] OR "Child Development"[majr] OR "Child Health"[majr] OR "Child Health Services"[majr] OR "Disabled Children"[majr] OR "Pediatrics"[majr] OR "Pediatric Nursing"[majr] OR "Pediatric Obesity"[majr] OR "Psychology, Child"[majr]) AND "Diabetes Mellitus"[majr]',
           ],
           normal: [
-            '("Disabled Children"[mh] OR ("Child"[mh] NOT "Adult"[mh]) OR "Child, Hospitalized"[mh] OR "Child, Institutionalized"[mh] OR "Child Care"[mh] OR "Child Development"[mh] OR "Child Health"[mh] OR "Child Health Services"[mh] OR "Pediatrics"[mh] OR "Pediatric Nursing"[mh] OR "Pediatric Obesity"[mh] OR "Psychology, Child"[mh] OR child*[ti] OR paediatric*[ti] OR pediatric*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '(("Child"[mh] NOT "Adult"[mh]) OR "Child, Hospitalized"[mh] OR "Child, Institutionalized"[mh] OR "Child Care"[mh] OR "Child Development"[mh] OR "Child Health"[mh] OR "Child Health Services"[mh] OR "Disabled Children"[mh] OR "Pediatrics"[mh] OR "Pediatric Nursing"[mh] OR "Pediatric Obesity"[mh] OR "Psychology, Child"[mh] OR child*[ti] OR paediatric*[ti] OR pediatric*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
           ],
           broad: [
-            '("Disabled Children"[mh] OR "Child"[mh] OR "Child, Hospitalized"[mh] OR "Child, Institutionalized"[mh] OR "Child Care"[mh] OR "Child Development"[mh] OR "Child Health"[mh] OR "Child Health Services"[mh] OR "Pediatrics"[mh] OR "Pediatric Nursing"[mh] OR "Pediatric Obesity"[mh] OR "Psychology, Child"[mh] OR child*[tiab] OR paediatric*[tiab] OR pediatric*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Child"[mh] OR "Child, Hospitalized"[mh] OR "Child, Institutionalized"[mh] OR "Child Care"[mh] OR "Child Development"[mh] OR "Child Health"[mh] OR "Child Health Services"[mh] OR "Disabled Children"[mh] OR "Pediatrics"[mh] OR "Pediatric Nursing"[mh] OR "Pediatric Obesity"[mh] OR "Psychology, Child"[mh] OR child*[tiab] OR paediatric*[tiab] OR pediatric*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
           ],
         },
         searchStringComment: {

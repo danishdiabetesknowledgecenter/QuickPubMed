@@ -46,9 +46,7 @@
               style="display: inline"
               class="qpm_translateTitleLink qpm_ai_hide"
             >
-              <a v-if="language != 'en'" href="#" @click.prevent="toggleTranslation">
-                {{
-                  translationShowing
+              <a v-if="language != 'en'" href="#" @click.prevent="toggleTranslation">{{ translationShowing
                     ? getString("hideTranslatedTitle")
                     : getString("showTranslatedTitle")
                 }}
@@ -304,7 +302,7 @@
                       hideOnTargetClick: false,
                     }"
                     class="bx bx-info-circle"
-                    style="cursor: help; margin-left: -5px; vertical-align: top"
+                    style="cursor: help; margin-left: 0; vertical-align: top"
                   />
                 </div>
               </div>
@@ -417,7 +415,7 @@
                       hideOnTargetClick: false,
                     }"
                     class="bx bx-info-circle"
-                    style="cursor: help; margin-left: -5px; vertical-align: top"
+                    style="cursor: help; margin-left: 0; vertical-align: top"
                   />
                 </div>
               </div>
@@ -482,8 +480,7 @@
                     }"
                     target="_blank"
                     :href="getUnpaywall"
-                  >
-                    {{ getString("UnpaywallLoading") }}
+                  >{{ getString("UnpaywallLoading") }}
                   </a>
                 </template>
 
@@ -499,8 +496,7 @@
                     target="_blank"
                     :href="getOaPdf"
                     download
-                  >
-                    {{ getString("UnpaywallWithPdf") }}
+                  >{{ getString("UnpaywallWithPdf") }}
                   </a>
                 </template>
 
@@ -516,8 +512,7 @@
                     target="_blank"
                     :href="getOaHtml"
                     download
-                  >
-                    {{ getString("UnpaywallWithHtml") }}
+                  >{{ getString("UnpaywallWithHtml") }}
                   </a>
                 </template>
 
@@ -532,15 +527,13 @@
                     }"
                     target="_blank"
                     :href="getUnpaywall"
-                  >
-                    {{ getString("UnpaywallNoPdf") }}
+                  >{{ getString("UnpaywallNoPdf") }}
                   </a>
                 </template>
               </p>
             </template>
             <template v-if="!doi">
-              <p class="qpm_noPubmedLink">
-                {{ getString("NoUnpaywall") }}
+              <p class="qpm_noPubmedLink">{{ getString("NoUnpaywall") }}
               </p>
             </template>
           </div>
