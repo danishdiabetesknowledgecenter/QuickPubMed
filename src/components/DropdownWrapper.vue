@@ -1124,9 +1124,7 @@
         item.scope = state;
 
         //close
-        if (this.getShouldCloseOnInput) {
-          this.$refs.multiselect.$refs.search.blur();
-        }
+        this.$refs.multiselect.deactivate();
 
         //Check if just added
         if (this.tempList.indexOf(item) >= 0) {

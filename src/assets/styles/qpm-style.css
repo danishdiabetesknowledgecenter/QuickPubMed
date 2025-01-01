@@ -1,4 +1,9 @@
-.qpm_vapp {
+:root {
+  --font-primary: 'Open Sans';
+  --font-secondary: 'Open Sans';
+}
+
+.qpm_vapp * {
   font-family: var(--font-secondary);
 }
 
@@ -542,7 +547,7 @@ button.qpm_slim.multiselect__input:focus {
 }
 .qpm_maintopicDropdown + .qpm_entryName {
   font-weight: normal;
-  margin-left: 4px;
+  margin-left: 3px;
 }
 .qpm_maintopicDropdown .qpm_heading {
   text-decoration: none !important;
@@ -625,6 +630,14 @@ input.multiselect__input[placeholder="Select topic or enter search term"] {
 input.multiselect__input[placeholder="Vælg emne/indtast søgeord"] {
   width: 170px !important;
   min-width: 170px;
+}
+input.multiselect__input[placeholder="Vælg afgrænsning"] {
+  width: 155px !important;
+  min-width: 155px;
+}
+input.multiselect__input[placeholder="Tilføj skabelonkategori"] {
+  width: 190px !important;
+  min-width: 155px;
 }
 input.multiselect__input[placeholder="Tilføj afgrænsning"] {
   width: 155px !important;
@@ -1034,6 +1047,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 
 .qpm_translateTitleLink {
   white-space: nowrap;
+  padding-left: 5px;
   font-size: 0.9em !important;
 }
 
@@ -1784,6 +1798,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   transition: height 0.3s linear;
   overflow: hidden;
   margin-bottom: 10px;
+  font-family: var(--font-primary);
   /*	border-bottom: 1px solid #e7e7e7; */
 }
 
@@ -1832,6 +1847,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   padding: 13px 10px 6px 10px;
   /* border-bottom: 1px solid #e7e7e7;*/
   cursor: pointer;
+  font-family: var(--font-primary);
 }
 
 .qpm_aiAccordionHeader strong {

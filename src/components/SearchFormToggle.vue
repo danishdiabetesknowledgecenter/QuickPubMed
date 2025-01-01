@@ -7,7 +7,7 @@
       {{ getString("searchHeaderHidden") }}
     </div>
 
-    <div v-show="subjects.length" class="qpm_toggleSearchForm" @click="$emit('toggle-collapsed')">
+    <div v-if="subjects != false" class="qpm_toggleSearchForm" @click="$emit('toggle-collapsed')">
       <div
         v-show="!isCollapsed"
         v-tooltip="{

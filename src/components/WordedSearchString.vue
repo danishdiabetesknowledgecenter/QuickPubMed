@@ -1,6 +1,6 @@
 <template>
   <div v-if="!details || details" class="qpm_wordedSearchString">
-    <div v-if="!isCollapsed" class="qpm_toggleDetails" style="box-shadow: inset 0 -1px 0 0 #e0e0e0">
+    <div v-if="!isCollapsed" class="qpm_toggleDetails">
       <p
         v-if="hasValidSubjects"
         v-tooltip="{
