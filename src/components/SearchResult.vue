@@ -538,6 +538,7 @@
         this.badgesAdded = false;
         this.altmetricsAdded = false;
         this.isSummarizeArticlesAcordionExpanded = false;
+        this.isAbstractLoaded = false;
         this.reloadScripts();
         return;
       }
