@@ -336,12 +336,12 @@
   import { appSettingsMixin } from "@/mixins/appSettings";
   import { messages } from "@/assets/content/qpm-translations.js";
   import { filtrer } from "@/assets/content/qpm-content-filters.js";
-  import { topics } from "@/assets/content/diabetes/qpm-content-topics-diabetes";
+  import { topicLoaderMixin } from "@/mixins/topicLoaderMixin.js";
   import { order } from "@/assets/content/qpm-content-order.js";
 
   export default {
     name: "SearchGallery",
-    mixins: [appSettingsMixin],
+    mixins: [appSettingsMixin, topicLoaderMixin],
     props: {
       hideTopics: {
         type: Array,
@@ -374,7 +374,7 @@
     },
     created() {
       this.filters = filtrer;
-      this.subjects = topics;
+      this.subjects = this.topics;
       this.orders = order;
     },
     methods: {

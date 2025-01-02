@@ -6,6 +6,7 @@ import Vue from "vue";
 import VueShowdown from "vue-showdown";
 import { VTooltip } from "v-tooltip";
 import SearchGallery from "@/components/SearchGallery.vue";
+import { config } from "@/config/config";
 
 /**
  * Vue.prototype.$dateFormat = "da-DK";
@@ -35,14 +36,18 @@ Vue.directive("tooltip", VTooltip);
 
 const searchGalleryDiv = document.getElementById("search-gallery");
 
+const domain = searchGalleryDiv.dataset.domain || undefined;
 const hideTopics = searchGalleryDiv.dataset.hideTopics || undefined;
 const language = searchGalleryDiv.dataset.language || undefined;
+
+config.domain = domain;
 
 new Vue({
   render: (h) =>
     h(SearchGallery, {
       props: {
         hideTopics: hideTopics,
+
         language: language,
       },
     }),
