@@ -24,7 +24,15 @@
           @translating="handleTranslating"
         />
 
-        <i v-if="subjects.length > 1" class="qpm_removeSubject bx bx-x" @click="removeSubject(n)" />
+        <i
+          v-if="subjects.length > 1"
+          class="qpm_removeSubject bx bx-x"
+          role="button"
+          tabindex="0"
+          aria-label="Remove subject"
+          @click="removeSubject(n)"
+          @keydown.enter.prevent="removeSubject(n)"
+        />
       </div>
       <p
         v-if="n >= 0 && hasSubjects"
