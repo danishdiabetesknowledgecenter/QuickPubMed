@@ -46,7 +46,9 @@
               style="display: inline"
               class="qpm_translateTitleLink qpm_ai_hide"
             >
-              <a v-if="language != 'en'" href="#" @click.prevent="toggleTranslation">{{ translationShowing
+              <a v-if="language != 'en'" href="#" @click.prevent="toggleTranslation"
+                >{{
+                  translationShowing
                     ? getString("hideTranslatedTitle")
                     : getString("showTranslatedTitle")
                 }}
@@ -480,7 +482,7 @@
                     }"
                     target="_blank"
                     :href="getUnpaywall"
-                  >{{ getString("UnpaywallLoading") }}
+                    >{{ getString("UnpaywallLoading") }}
                   </a>
                 </template>
 
@@ -496,7 +498,7 @@
                     target="_blank"
                     :href="getOaPdf"
                     download
-                  >{{ getString("UnpaywallWithPdf") }}
+                    >{{ getString("UnpaywallWithPdf") }}
                   </a>
                 </template>
 
@@ -512,7 +514,7 @@
                     target="_blank"
                     :href="getOaHtml"
                     download
-                  >{{ getString("UnpaywallWithHtml") }}
+                    >{{ getString("UnpaywallWithHtml") }}
                   </a>
                 </template>
 
@@ -527,14 +529,13 @@
                     }"
                     target="_blank"
                     :href="getUnpaywall"
-                  >{{ getString("UnpaywallNoPdf") }}
+                    >{{ getString("UnpaywallNoPdf") }}
                   </a>
                 </template>
               </p>
             </template>
             <template v-if="!doi">
-              <p class="qpm_noPubmedLink">{{ getString("NoUnpaywall") }}
-              </p>
+              <p class="qpm_noPubmedLink">{{ getString("NoUnpaywall") }}</p>
             </template>
           </div>
 
@@ -854,6 +855,7 @@
         if (!this.isAbstractLoaded) {
           return this.getString("loadingText");
         }
+
         if (this.hasValidAbstract) {
           return this.showingAbstract
             ? this.getString("hideAbstract")
