@@ -463,6 +463,7 @@
           console.error("Error fetching summaries:", err);
           this.faltedIds.push(...this.enteredIds); // Optionally track failed IDs
         } finally {
+          this.isAbstractLoaded = true;
           this.loadingComponent = false;
         }
       },
