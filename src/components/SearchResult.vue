@@ -524,6 +524,11 @@
       },
     },
     watch: {
+      loading(newVal) {
+        if (newVal) {
+          this.isAbstractLoaded = false;
+        }
+      },
       preselectedEntries(newVal) {
         if (this.selectedEntries != null && this.selectedEntries.length > 0) {
           return;
@@ -538,7 +543,6 @@
         this.badgesAdded = false;
         this.altmetricsAdded = false;
         this.isSummarizeArticlesAcordionExpanded = false;
-        this.isAbstractLoaded = false;
         this.reloadScripts();
         return;
       }
@@ -723,7 +727,9 @@
         this.$set(this.articles, article.pmid, article);
       },
       getSelectedArticles() {
+        console.log("GetSelectedArticles called");
         var resultEntries = this.$refs.resultEntries;
+        console.log("ResultEntries", resultEntries);
         var selectedArticles = [];
         var entriesForSummary =
           this.selectedEntries.length > 0
