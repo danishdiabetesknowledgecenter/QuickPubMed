@@ -1507,6 +1507,8 @@
       },
       updateInput(event) {
         let isChecked = event.target.checked;
+        console.log("isChecked", isChecked);
+        console.log("value", this.value);
         this.$emit("change", this.value, isChecked);
       },
       clickAcceptAi(prompt) {

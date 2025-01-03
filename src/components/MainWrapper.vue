@@ -257,7 +257,6 @@
             })
             .join(connector);
         };
-
         let substrings = [];
 
         this.subjects.forEach((subjectGroup, index) => {
@@ -1230,6 +1229,7 @@
        * Updates component state with the results and handles UI updates.
        */
       async search() {
+        console.log("Search");
         this.searchLoading = true;
         this.searchError = null;
 
@@ -1611,11 +1611,14 @@
         if (!choice.tooltip_simple) return null;
         return choice.tooltip_simple[this.language];
       },
-      updatePreselectedPmidai(newValue) {
+      async updatePreselectedPmidai(newValue) {
         this.preselectedPmidai = (newValue ?? []).map(function (e) {
           return e.uid;
         });
-
+        console.log("Preselected PMIDs: ", this.preselectedPmidai);
+        if (newValue.length < 1) {
+          console.log("No preselected PMIDs, we should use the first five result entries instead");
+        }
         this.setUrl();
       },
       // passing along the index seemingly makes vue understand that

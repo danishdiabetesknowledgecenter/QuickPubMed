@@ -260,6 +260,7 @@
             :parent-width="getComponentWidth()"
             :abstract-summary-prompts="getAbstractSummaryPrompts()"
             :model-value="selectedEntries"
+            :value="value.model"
             :selectable="entriesAlwaysSelectable || hasAcceptedAi"
             :abstract="getAbstract(value.model.uid)"
             :text="getText(value.model.uid)"
@@ -330,12 +331,12 @@
           :id="value.uid"
           ref="resultEntries"
           :pmid="value.uid"
-          :pub-date="value.pubdate"
           :volume="value.volume"
           :issue="value.issue"
           :pages="value.pages"
           :doi="getDoi(value.articleids)"
           :title="value.title"
+          :pub-date="value.pubdate"
           :pub-type="value.pubtype"
           :doc-type="value.doctype"
           :booktitle="value.booktitle"
@@ -421,7 +422,6 @@
     props: {
       results: {
         type: Array,
-        default: () => undefined,
       },
       total: {
         type: Number,
@@ -474,6 +474,7 @@
         articles: {},
         isSummarizeArticlesAcordionExpanded: false,
         isSelectedArticleAccordionExpanded: false,
+        latestResultEntries: [],
       };
     },
     computed: {
@@ -524,6 +525,24 @@
       },
     },
     watch: {
+      // This is QnD fix for resultEntries ref being overwritten when selecting ResultEntries
+      // With this the ref is reset to the latest resultEntries (which are stored on a save)
+      selectedEntries(newVal) {
+        if (this.selectedEntries.length < 1) {
+          this.$refs.resultEntries = this.latestResultEntries;
+        }
+        this.$emit("change:selectedEntries", newVal);
+      },
+      results() {
+        this.$nextTick(() => {
+          console.log("Updated Refs:", this.$refs.resultEntries);
+          // Check if the resultEntries are an array and has length
+          if (this.$refs.resultEntries && this.$refs.resultEntries.length > 5) {
+            this.latestResultEntries = this.$refs.resultEntries;
+          }
+          console.log("Latest Result Entries:", this.latestResultEntries);
+        });
+      },
       loading(newVal) {
         if (newVal) {
           this.isAbstractLoaded = false;
@@ -563,6 +582,11 @@
       }
     },
     mounted() {
+      this.$nextTick(() => {
+        if (this.$refs.resultEntries) {
+          console.log("Refs initialized:", this.$refs.resultEntries);
+        }
+      });
       eventBus.$on("result-entry-show-abstract", this.openArticlesAccordion);
     },
     beforeUnmount() {
@@ -571,7 +595,6 @@
     methods: {
       next() {
         this.$emit("high");
-
         this.badgesAdded = false;
         this.altmetricsAdded = false;
       },
