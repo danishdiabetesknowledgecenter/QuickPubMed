@@ -304,7 +304,6 @@
                       hideOnTargetClick: false,
                     }"
                     class="bx bx-info-circle"
-                    style="cursor: help; margin-left: 0; vertical-align: top"
                   />
                 </div>
               </div>
@@ -417,7 +416,6 @@
                       hideOnTargetClick: false,
                     }"
                     class="bx bx-info-circle"
-                    style="cursor: help; margin-left: 0; vertical-align: top"
                   />
                 </div>
               </div>

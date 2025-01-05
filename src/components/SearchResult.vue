@@ -35,7 +35,6 @@
                     hideOnTargetClick: false,
                   }"
                   class="bx bx-info-circle"
-                  style="cursor: help; margin-left: -5px"
                 />
               </div>
             </div>
@@ -157,7 +156,6 @@
                       hideOnTargetClick: false,
                     }"
                     class="bx bx-info-circle"
-                    style="cursor: help; margin-left: -5px"
                   />
                   <button
                     v-if="config.useAI"
@@ -168,7 +166,6 @@
                       hideOnTargetClick: false,
                     }"
                     class="bx bx-info-circle"
-                    style="cursor: help; margin-left: -5px"
                   />
                 </div>
                 <div>

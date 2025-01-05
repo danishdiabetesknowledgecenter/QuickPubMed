@@ -896,9 +896,8 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 
 .qpm_removeSubject {
   font-size: 25px;
-  padding-left: 7px;
+  margin-left: 7px;
   cursor: pointer;
-  width: 30px;
 }
 
 .qpm_removeFilter {
@@ -1037,7 +1036,8 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 .qpm_advancedSearch,
 .qpm_translateTitleLink {
   color: var(--color-link);
-  padding-top: 6px;
+  margin: 0 -5px;
+  padding: 0 6px;
   font-size: 1em !important;
 }
 
@@ -1404,8 +1404,9 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   white-space: nowrap;
 }
 
-.qpm_simpleFiltersHeader .bx-info-circle {
+.xbx-info-circle {
   margin-left: 0;
+  padding: 0 2px;
 }
 
 .qpm_simpleFiltersSpacer {
@@ -1454,9 +1455,14 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 
 .bx-info-circle {
   font-size: 1.4em !important;
-  vertical-align: bottom;
+  vertical-align: text-top;
   color: darkslategrey !important;
-  margin-left: -10px;
+  padding: 0;
+  cursor: help !important;
+}
+
+.qpm_accordions .bx-info-circle {
+  margin-left: 5px;
 }
 
 .qpm_resultButtons {
