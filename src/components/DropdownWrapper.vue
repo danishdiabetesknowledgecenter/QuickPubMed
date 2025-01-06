@@ -444,7 +444,15 @@
       this.initialSetup();
     },
     methods: {
-      onSelectedChange() {
+      onSelectedChange(newValue, oldValue) {
+        if (oldValue.length > newValue.length) {
+          // Find the tag that was removed
+          const removedTag = oldValue.find((tag) => !newValue.includes(tag));
+          if (removedTag) {
+            removedTag.scope = "normal";
+            this.$emit("updateScope", removedTag, "normal");
+          }
+        }
         this.updateExpandedGroupHighlighting();
         this.showOrHideElements();
       },
@@ -956,7 +964,6 @@
        * @param {HTMLElement} target - The target element.
        */
       handleCategoryGroupClick(event) {
-        console.log("handleCategoryGroupClick", event);
         let target = event.target;
 
         // Check if the click is on the optiongroup name or elsewhere within the multiselect__option__option--group element
