@@ -235,9 +235,9 @@
         </template>
         <template #listItem="value">
           <!-- These result-entries are shown under the marked articles accordion -->
+          <!-- Do not provide a ref to this intance as it will override and mess up with the existing resultEntries ref-->
           <result-entry
             :id="value.model.uid"
-            ref="resultEntries"
             :pmid="value.model.uid"
             :pub-date="value.model.pubdate"
             :volume="value.model.volume"
@@ -471,7 +471,6 @@
         articles: {},
         isSummarizeArticlesAcordionExpanded: false,
         isSelectedArticleAccordionExpanded: false,
-        latestResultEntries: [],
       };
     },
     computed: {
@@ -522,24 +521,6 @@
       },
     },
     watch: {
-      // This is QnD fix for resultEntries ref being overwritten when selecting ResultEntries
-      // With this the ref is reset to the latest resultEntries (which are stored on a save)
-      selectedEntries(newVal) {
-        if (this.selectedEntries.length < 1) {
-          this.$refs.resultEntries = this.latestResultEntries;
-        }
-        this.$emit("change:selectedEntries", newVal);
-      },
-      results() {
-        this.$nextTick(() => {
-          console.log("Updated Refs:", this.$refs.resultEntries);
-          // Check if the resultEntries are an array and has length
-          if (this.$refs.resultEntries && this.$refs.resultEntries.length > 5) {
-            this.latestResultEntries = this.$refs.resultEntries;
-          }
-          console.log("Latest Result Entries:", this.latestResultEntries);
-        });
-      },
       loading(newVal) {
         if (newVal) {
           this.isAbstractLoaded = false;
@@ -579,11 +560,6 @@
       }
     },
     mounted() {
-      this.$nextTick(() => {
-        if (this.$refs.resultEntries) {
-          console.log("Refs initialized:", this.$refs.resultEntries);
-        }
-      });
       eventBus.$on("result-entry-show-abstract", this.openArticlesAccordion);
     },
     beforeUnmount() {
@@ -747,9 +723,7 @@
         this.$set(this.articles, article.pmid, article);
       },
       getSelectedArticles() {
-        console.log("GetSelectedArticles called");
         var resultEntries = this.$refs.resultEntries;
-        console.log("ResultEntries", resultEntries);
         var selectedArticles = [];
         var entriesForSummary =
           this.selectedEntries.length > 0

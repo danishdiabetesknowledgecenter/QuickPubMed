@@ -1091,7 +1091,6 @@
         }
         return this.modelValue;
       },
-      // eslint-disable-next-line vue/no-async-in-computed-properties
       getArticles() {
         var articles = [this.getArticle];
         // eslint-disable-next-line vue/no-async-in-computed-properties
