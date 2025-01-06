@@ -1437,10 +1437,12 @@
 
           // Find the first result entry from the new data and focus on it
           const currentResultEntries = this.$refs.searchResultList.$refs.resultEntries;
+          console.log("CurrentResultEntries: ", currentResultEntries.length);
 
           const resultEntryIndexToFocus = targetResultLength - this.pageSize;
+          console.log("ResultEntryIndexToFocus: ", resultEntryIndexToFocus);
 
-          const firstNewResultEntry = currentResultEntries[resultEntryIndexToFocus - this.pageSize];
+          const firstNewResultEntry = currentResultEntries[resultEntryIndexToFocus];
           firstNewResultEntry?.$el?.focus();
 
           // Note: Removed scrolling and focus updates to maintain current scroll position
