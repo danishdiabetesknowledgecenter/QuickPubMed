@@ -340,7 +340,7 @@
                   <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryConsentText')" />
                 </div>
 
-                <!-- AI Summaries of abstract -->
+                <!-- AI Summaries of abstract (contains summarize-article) -->
                 <ai-summaries
                   v-else-if="hasAcceptedAi"
                   :license="license"
@@ -1504,8 +1504,6 @@
       },
       updateInput(event) {
         let isChecked = event.target.checked;
-        console.log("isChecked", isChecked);
-        console.log("value", this.value);
         this.$emit("change", this.value, isChecked);
       },
       clickAcceptAi(prompt) {
@@ -1531,7 +1529,6 @@
         this.showAbstract(true);
       },
       onAiSummariesClickRetry(value) {
-        console.log("ResultEntry |", value);
         this.$el.scrollIntoView({ behavior: "smooth" });
       },
       changeOnEnter(event) {

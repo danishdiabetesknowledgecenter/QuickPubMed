@@ -2,7 +2,7 @@
 <template>
   <div ref="searchResult" class="qpm_SearchResult">
     <div v-if="results && results.length > 0" class="qpm_accordions">
-      <!-- Accordion menu for the AI summaries of abstracts from multiple search results -->
+      <!-- Accordion menu for the AI summaries of abstracts from marked result entries -->
       <accordion-menu
         v-if="config.useAI"
         class="qpm_ai_hide"
@@ -87,7 +87,7 @@
                 <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryConsentText')" />
               </div>
 
-              <!-- AI summaries of abstracts from inside multiple search results -->
+              <!-- AI summaries of abstracts from inside multiple search results (summarize-article hiden with flag show-summarize-article=false)-->
               <ai-summaries
                 v-else
                 :show-summarize-article="false"
@@ -109,7 +109,7 @@
         </div>
       </accordion-menu>
 
-      <!-- Accordion menu for the marked articles marked on result entry component -->
+      <!-- Accordion menu for the marked result entries -->
       <accordion-menu
         ref="articlesAccordion"
         :is-expanded="isSelectedArticleAccordionExpanded"
@@ -237,6 +237,7 @@
           <!-- These result-entries are shown under the marked articles accordion -->
           <!-- Do not provide a ref to this intance as it will override and mess up with the existing resultEntries ref-->
           <result-entry
+            :key="value.model.uid"
             :id="value.model.uid"
             :pmid="value.model.uid"
             :pub-date="value.model.pubdate"
@@ -269,6 +270,7 @@
         </template>
       </accordion-menu>
     </div>
+
     <div
       v-if="results && results.length > 0 && total > 0"
       role="heading"
@@ -280,7 +282,7 @@
     </div>
     <div v-if="results && results.length > 0 && total > 0" class="qpm_searchHeader qpm_spaceEvenly">
       <p class="qpm_nomargin">
-        {{ getString("showing") }} {{ low + 1 }}-{{ high }}
+        {{ getString("showing") }} {{ 1 }}-{{ results.length }}
         {{ getString("of") }}
         <span
           ><strong>{{ getPrettyTotal }}</strong> {{ getString("searchMatches") }}</span
@@ -380,7 +382,7 @@
         {{ pagesize }}
       </button>
       <p v-if="!loading || (results && high && total)" class="qpm_nomargin qpm_shownumber">
-        {{ getString("showing") }} 1-{{ high }} {{ getString("of") }}
+        {{ getString("showing") }} 1-{{ results.length }} {{ getString("of") }}
         <span
           ><strong>{{ getPrettyTotal }}</strong> {{ getString("searchMatches") }}</span
         >
@@ -506,7 +508,7 @@
       },
       getShownSearchResults() {
         if (this.results == null) return null;
-        return this.results.slice(0, this.high);
+        return this.results.slice(0, this.high + this.preselectedEntries.length);
       },
       getHasSelectedArticles() {
         return this.selectedEntries.length > 0;
@@ -784,8 +786,6 @@
         let valueIndex = newValue.findIndex(function (e) {
           return e === value || e.uid === value.uid;
         });
-
-        console.log("ValueIndex", valueIndex);
 
         if (isChecked && valueIndex === -1) {
           newValue.push(value);

@@ -332,7 +332,7 @@
         immediate: true,
       },
       advanced(newVal) {
-        console.log(`advanced search | ${newVal}`);
+        console.info(`advanced search | ${newVal}`);
         // Trigger an update for all the DropdownWrapper placeholders
         this.$refs.subjectSelection.$refs.subjectDropdown.forEach((dropdown, index) => {
           dropdown.placeholder = this.getDropdownPlaceholder(index);
@@ -356,8 +356,8 @@
       this.prepareSubjectOptions();
       this.advanced = !this.advanced;
       this.advancedClick();
-      await this.searchPreselectedPmidai();
       await this.search();
+      await this.searchPreselectedPmidai();
     },
     methods: {
       advancedClick(skip = false) {
@@ -772,7 +772,7 @@
         navigator.clipboard
           .writeText(urlLink)
           .then(() => {
-            console.log("URL copied to clipboard");
+            console.info("URL copied to clipboard");
           })
           .catch((err) => {
             console.error("Failed to copy URL: ", err);
@@ -887,7 +887,6 @@
           const subject = updatedSubjects[index].find((sub) => sub.name === item.name);
           if (subject) {
             if (subject.scope === state) {
-              console.log("Same scope selected we should unselect it");
               // Find the subject in the subjects array and remove it
               const subjectIndex = updatedSubjects[index].findIndex(
                 (sub) => sub.name === item.name
@@ -1070,7 +1069,6 @@
 
           if (targetItem) {
             if (targetItem.scope === state) {
-              console.log("Same scope selected we should unselect it");
               // Find the filter in the filterData array and remove it
               const filterIndex = sel[index].findIndex((sub) => sub.name === item.name);
               sel[index].splice(filterIndex, 1);
@@ -1224,12 +1222,21 @@
         await this.search();
       },
       /**
+       * Merges new entries into the existing searchresult without duplicates.
+       * @param {Array} newEntries - Array of new result entries to add.
+       * @returns {Array} - Array of unique entries.
+       */
+      mergeUniqueEntries(newEntries) {
+        const existingUids = new Set(this.searchresult.map((item) => item.uid));
+        const uniqueEntries = newEntries.filter((item) => !existingUids.has(item.uid));
+        return uniqueEntries;
+      },
+      /**
        * Initiates a PubMed search using NCBI's Entrez API.
        * Performs an esearch followed by an esummary to retrieve search results.
        * Updates component state with the results and handles UI updates.
        */
       async search() {
-        console.log("Search");
         this.searchLoading = true;
         this.searchError = null;
 
@@ -1298,7 +1305,12 @@
 
           this.count = parseInt(esearchResponse.data.esearchresult.count, 10);
           this.searchresult = data;
-          await this.searchPreselectedPmidai();
+          // Handle any preselected PMIDs
+          const preSelectedEntries = await this.searchPreselectedPmidai();
+          if (preSelectedEntries && preSelectedEntries.length > 0) {
+            const uniquePreselected = this.mergeUniqueEntries(preSelectedEntries);
+            this.searchresult = [...this.searchresult, ...uniquePreselected];
+          }
           this.searchLoading = false;
 
           // Update UI and focus
@@ -1334,14 +1346,7 @@
       async searchMore() {
         // Calculate the target number of results based on the next page
         const targetResultLength = Math.min((this.page + 1) * this.pageSize, this.count);
-        console.log(
-          "TargetResultLength: ",
-          targetResultLength,
-          "Count: ",
-          this.count,
-          "PageSize: ",
-          this.pageSize
-        );
+
         // If current results already meet or exceed the target, no need to fetch more
         if (this.searchresult && this.searchresult.length >= targetResultLength) {
           return;
@@ -1427,20 +1432,25 @@
 
           // Update the total count and append the new data to existing search results
           this.count = parseInt(esearchResponse.data.esearchresult.count, 10);
-          this.searchresult = [...(this.searchresult || []), ...data];
 
-          // Handle any preselected PMIDs (if applicable)
-          await this.searchPreselectedPmidai();
+          // Merge unique entries to prevent duplicates
+          const uniqueData = this.mergeUniqueEntries(data);
+          this.searchresult = [...this.searchresult, ...uniqueData];
+
+          // Handle any preselected PMIDs
+          const preSelectedEntries = await this.searchPreselectedPmidai();
+          if (preSelectedEntries && preSelectedEntries.length > 0) {
+            const uniquePreselected = this.mergeUniqueEntries(preSelectedEntries);
+            this.searchresult = [...this.searchresult, ...uniquePreselected];
+          }
 
           // Reset the loading state
           this.searchLoading = false;
 
           // Find the first result entry from the new data and focus on it
           const currentResultEntries = this.$refs.searchResultList.$refs.resultEntries;
-          console.log("CurrentResultEntries: ", currentResultEntries.length);
 
           const resultEntryIndexToFocus = targetResultLength - this.pageSize;
-          console.log("ResultEntryIndexToFocus: ", resultEntryIndexToFocus);
 
           const firstNewResultEntry = currentResultEntries[resultEntryIndexToFocus];
           firstNewResultEntry?.$el?.focus();
@@ -1484,7 +1494,6 @@
           for (let i = 0; i < obj.uids.length; i++) {
             data.push(obj[obj.uids[i]]);
           }
-
           return data;
         });
       },
@@ -1496,6 +1505,7 @@
       async searchPreselectedPmidai() {
         try {
           this.preselectedEntries = await this.searchByIds(this.preselectedPmidai);
+          return this.preselectedEntries;
         } catch (err) {
           console.error(err);
         }
@@ -1617,10 +1627,7 @@
         this.preselectedPmidai = (newValue ?? []).map(function (e) {
           return e.uid;
         });
-        console.log("Preselected PMIDs: ", this.preselectedPmidai);
-        if (newValue.length < 1) {
-          console.log("No preselected PMIDs, we should use the first five result entries instead");
-        }
+
         this.setUrl();
       },
       // passing along the index seemingly makes vue understand that
