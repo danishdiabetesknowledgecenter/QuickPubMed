@@ -32,7 +32,7 @@
       :placeholder="placeholder"
       :block-keys="[]"
       :close-on-select="false"
-      :clear-on-select="false"
+      :clear-on-select="true"
       :custom-label="customNameLabel"
       :select-group-label="getSelectGroupLabel"
       :deselect-group-label="getSelectGroupLabel"
@@ -296,6 +296,7 @@
         focusByHover: true,
         ignoreHover: false,
         isLoading: false,
+        isMouseUsed: false, // Flag to track interaction method
       };
     },
     computed: {
@@ -411,6 +412,9 @@
       },
     },
     watch: {
+      isMouseUsed: function (newValue) {
+        console.log("isMouseUsed", newValue);
+      },
       selected: {
         handler: "onSelectedChange",
         deep: true,
@@ -443,6 +447,10 @@
     updated: function () {
       this.initialSetup();
     },
+    beforeDestroy() {
+      document.removeEventListener("mousedown", this.setMouseUsed);
+      document.removeEventListener("keydown", this.resetMouseUsed);
+    },
     methods: {
       onSelectedChange(newValue, oldValue) {
         if (oldValue.length > newValue.length) {
@@ -456,8 +464,25 @@
         this.updateExpandedGroupHighlighting();
         this.showOrHideElements();
       },
+      /**
+       * Sets the flag indicating the last interaction was via mouse.
+       */
+      setMouseUsed() {
+        this.isMouseUsed = true;
+      },
+
+      /**
+       * Resets the flag indicating the last interaction was via keyboard.
+       */
+      resetMouseUsed() {
+        this.isMouseUsed = false;
+      },
       initialSetup() {
         const element = this.$refs.selectWrapper;
+        document.removeEventListener("mousedown", this.setMouseUsed);
+        document.removeEventListener("keydown", this.resetMouseUsed);
+        document.addEventListener("mousedown", this.setMouseUsed);
+        document.addEventListener("keydown", this.resetMouseUsed);
 
         // Click on anywhere on dropdown opens (fix for IE)
         const dropdown = element.getElementsByClassName("qpm_dropDownMenu")[0];
@@ -549,8 +574,13 @@
           value[value.length - 1] = elem;
         }
         this.$emit("input", value, this.index);
-        if (!elem.maintopic) {
-          this.$refs.multiselect.deactivate();
+
+        // Check if the selection was made via mouse
+        if (this.isMouseUsed) {
+          // If not a maintopic, deactivate the multiselect dropdown
+          if (!elem.maintopic) {
+            this.$refs.multiselect.deactivate();
+          }
         }
       },
       close() {
@@ -1122,7 +1152,7 @@
           this.expandedOptionGroupName = "";
           this.updateExpandedGroupHighlighting();
         }
-
+        this.setMouseUsed();
         event.stopPropagation();
         this.$refs.multiselect.$refs.search.focus();
       },
