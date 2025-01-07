@@ -1196,7 +1196,15 @@
         this.input(this.selected, -1);
         this.clearShownItems();
       },
+      /**
+       * This is the handler for the custom tag update event.
+       * A Custom tag is a tag that is not part of the dropdown.
+       * Can be AI translated or not
+       * @param oldTag text of the tag to be updated
+       * @param newTag text of the new tag
+       */
       handleUpdateCustomTag(oldTag, newTag) {
+        console.info("handleUpdateCustomTag");
         var tagIndex = this.selected.findIndex(function (e) {
           return oldTag == e;
         });
