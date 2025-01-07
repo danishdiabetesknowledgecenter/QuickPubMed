@@ -899,7 +899,8 @@
           this.setUrl();
           this.editForm();
         } else {
-          console.error(`updateSubjectScope: subjects[${index}] is undefined or not an array.`);
+          console.warn();
+          `updateSubjectScope: subjects[${index}] is undefined or not an array. No subjects are chosen.`;
         }
       },
       /**
