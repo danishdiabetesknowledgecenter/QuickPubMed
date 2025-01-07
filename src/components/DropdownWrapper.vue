@@ -1098,7 +1098,8 @@
       handleStopEnterOnGroups(event) {
         if (this.$refs.multiselect.pointer < 0) {
           // If there is no hovered element then highlight the first on as with old behavior
-          this.$refs.multiselect.pointer = 1;
+          // setting it to zero enabels the first element to be highlighted on enter after pasting text
+          this.$refs.multiselect.pointer = 0;
         }
         if (event.charCode == 13) {
           if (event.target.classList.contains("multiselect__input")) {
