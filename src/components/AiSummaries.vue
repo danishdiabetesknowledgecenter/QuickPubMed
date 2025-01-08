@@ -157,16 +157,11 @@
                     <i class="bx bx-copy" style="vertical-align: baseline" />
                     {{ getString("copyText") }}
                   </button>
-                  <div v-if="showSummarizeArticle">
+                  <div v-if="showSummarizeArticle && config.useAISummarizer">
                     <keep-alive>
                       <summarize-article
-                        v-show="
-                          config.useAISummarizer &&
-                          showSummarizeArticle &&
-                          isLicenseAllowed &&
-                          isResourceAllowed &&
-                          isPubTypeAllowed
-                        "
+                        :key="currentSummary"
+                        v-show="isLicenseAllowed && isResourceAllowed && isPubTypeAllowed"
                         :pdf-url="pdfUrl"
                         :html-url="htmlUrl"
                         :language="language"
@@ -465,6 +460,7 @@
       }
     },
     activated() {
+      console.log("AiSummaries activated | initialTabPrompt: ", this.initialTabPrompt);
       if (this.initialTabPrompt != null) {
         this.clickSummaryTab(this.initialTabPrompt);
       }
@@ -618,6 +614,9 @@
         this.stopGeneration = true;
       },
       async clickRetry(event, moveFocus = false) {
+        event.preventDefault();
+        event.stopPropagation();
+
         this.$emit("ai-summaries-click-retry", this);
 
         const tab = this.getSummaryPromptByName(this.currentSummary);

@@ -114,14 +114,16 @@
       </button>
 
       <!-- User input for asking questions for an article -->
-      <question-for-article
-        v-if="!isLoadingCurrent"
-        :pdf-url="pdfUrl"
-        :html-url="htmlUrl"
-        :language="language"
-        :prompt-language-type="promptLanguageType"
-        :domain-specific-prompt-rules="domainSpecificPromptRules"
-      />
+      <keep-alive>
+        <question-for-article
+          v-if="!isLoadingCurrent"
+          :pdf-url="pdfUrl"
+          :html-url="htmlUrl"
+          :language="language"
+          :prompt-language-type="promptLanguageType"
+          :domain-specific-prompt-rules="domainSpecificPromptRules"
+        />
+      </keep-alive>
     </div>
   </div>
 </template>
@@ -172,6 +174,18 @@
         required: false,
       },
     },
+    data() {
+      return {
+        isArticle: false,
+        scrapingError: undefined,
+        isError: false,
+        errorMessage: undefined,
+        questions: [],
+        answers: [],
+        aiArticleSummaries: {},
+        loadingQuestions: {},
+      };
+    },
     asyncComputed: {
       async currentSummary() {
         // Retrieve the summary based on the current promptLanguageType prop
@@ -193,6 +207,13 @@
         return this.isLoading(this.promptLanguageType);
       },
     },
+    mounted() {
+      if (this.promptLanguageType) {
+        console.log(`SummarizeArticle: Mounted - loading summary for ${this.promptLanguageType}`);
+        this.loadOrGenerateSummary(this.promptLanguageType);
+      }
+    },
+
     watch: {
       isLoadingCurrent: {
         handler(newState) {
@@ -201,14 +222,16 @@
       },
       promptLanguageType: {
         async handler(newVal, oldVal) {
+          console.log("PromptLanguageType changed |", newVal, oldVal);
           if (newVal === oldVal) {
             console.log("PromptLanguageType is the same");
             return;
           }
+          console.log("IsloadingCurrent |", this.isLoadingCurrent);
           if (this.isLoadingCurrent) return;
           await this.loadOrGenerateSummary(newVal);
         },
-        immediate: true,
+        immediate: false,
       },
     },
     methods: {

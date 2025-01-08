@@ -6,18 +6,6 @@ import { summarizeArticlePrompt, promptText } from "@/assets/content/qpm-open-ai
  * @mixin
  */
 export const summarizeArticleMixin = {
-  data() {
-    return {
-      isArticle: false,
-      scrapingError: undefined,
-      isError: false,
-      errorMessage: undefined,
-      questions: [],
-      answers: [],
-      aiArticleSummaries: {},
-      loadingQuestions: {},
-    };
-  },
   methods: {
     /**
      * Retrieves the summary for the specified language type.

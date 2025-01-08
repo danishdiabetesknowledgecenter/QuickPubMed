@@ -161,12 +161,13 @@
     data() {
       return {
         isArticle: false,
-        questions: [],
-        answers: [],
-        isLoadingQuestions: false,
+        scrapingError: false,
         isError: false,
         errorMessage: "",
-        scrapingError: false,
+        questions: [],
+        answers: [],
+        aiArticleSummaries: {},
+        loadingQuestions: {},
         promptLanguageType: "",
       };
     },
