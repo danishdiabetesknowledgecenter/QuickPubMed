@@ -851,7 +851,7 @@
       },
       getButtonText() {
         if (!this.isAbstractLoaded) {
-          return this.getString("loadingText");
+          return this.getString("showAbstract");
         }
 
         if (this.hasValidAbstract) {

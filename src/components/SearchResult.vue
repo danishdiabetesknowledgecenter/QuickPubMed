@@ -2,7 +2,7 @@
 <template>
   <div ref="searchResult" class="qpm_SearchResult">
     <div v-if="results && results.length > 0" class="qpm_accordions">
-      <!-- Accordion menu for the AI summaries of abstracts from marked result entries -->
+      <!-- Accordion menu for using the AI summaries of abstracts from marked result entries -->
       <accordion-menu
         v-if="config.useAI"
         class="qpm_ai_hide"
@@ -109,7 +109,7 @@
         </div>
       </accordion-menu>
 
-      <!-- Accordion menu for the marked result entries -->
+      <!-- Accordion menu for showing the marked result entries -->
       <accordion-menu
         ref="articlesAccordion"
         :is-expanded="isSelectedArticleAccordionExpanded"
