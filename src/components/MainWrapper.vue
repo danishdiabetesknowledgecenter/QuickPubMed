@@ -1652,7 +1652,10 @@
         if (isTranslating) {
           this.$set(this.dropdownPlaceholders, index, this.getDropdownPlaceholder(index, true));
         } else {
-          this.$set(this.dropdownPlaceholders, index, this.getDropdownPlaceholder(index));
+          console.log(
+            `MainWrapper | updatePlaceholder isTranslating: ${isTranslating} | index: ${index}`
+          );
+          this.$set(this.dropdownPlaceholders, index, this.getDropdownPlaceholder(index, false));
         }
       },
       updatePlaceholders() {

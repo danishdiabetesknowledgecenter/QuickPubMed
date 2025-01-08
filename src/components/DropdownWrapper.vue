@@ -412,9 +412,6 @@
       },
     },
     watch: {
-      isMouseUsed: function (newValue) {
-        console.log("isMouseUsed", newValue);
-      },
       selected: {
         handler: "onSelectedChange",
         deep: true,
@@ -470,7 +467,6 @@
       setMouseUsed() {
         this.isMouseUsed = true;
       },
-
       /**
        * Resets the flag indicating the last interaction was via keyboard.
        */
@@ -574,7 +570,6 @@
           value[value.length - 1] = elem;
         }
         this.$emit("input", value, this.index);
-
         // Check if the selection was made via mouse
         if (this.isMouseUsed) {
           // If not a maintopic, deactivate the multiselect dropdown
@@ -1214,6 +1209,7 @@
           };
           this.isLoading = false;
         } else {
+          console.log("Adding non translated custom search term");
           tag = {
             name: newTag,
             searchStrings: { normal: [newTag] },
@@ -1235,13 +1231,12 @@
        * @param newTag text of the new tag
        */
       handleUpdateCustomTag(oldTag, newTag) {
-        console.info("handleUpdateCustomTag");
         var tagIndex = this.selected.findIndex(function (e) {
           return oldTag == e;
         });
         this.selected.splice(tagIndex, 1, newTag);
         this.clearShownItems();
-        this.input(this.selected, -1);
+        this.input(this.selected);
       },
       handleEditTag() {
         console.info("handleEditTag");
