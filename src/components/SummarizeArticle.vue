@@ -292,13 +292,10 @@
         this.$emit("set-loading", { promptLanguageType });
 
         const existingSummary = this.aiArticleSummaries[promptLanguageType];
-        console.log("Existing summary |", existingSummary);
 
         if (!existingSummary || existingSummary.length === 0) {
-          console.log("Did not find existing summary");
           await this.generateAndSaveSummary(promptLanguageType);
         } else {
-          console.log("Found existing summary |", existingSummary);
           // Set loading to false if summaries exist
           this.$emit("unset-loading", { promptLanguageType });
         }
@@ -316,7 +313,6 @@
           await this.generateAndSaveSummary(promptLanguageType);
         }
         const summary = this.aiArticleSummaries[promptLanguageType] || null;
-        console.log(`Summary for "${promptLanguageType}":`, summary);
         return summary;
       },
 
@@ -354,7 +350,6 @@
         this.currentSummaryIndex[promptLanguageType] =
           this.aiArticleSummaries[promptLanguageType].length - 1;
         this.$emit("article-summary-updated", { promptLanguageType, summaryData });
-        console.log(`Summary saved for "${promptLanguageType}":`, summaryData);
       },
 
       /**
@@ -384,10 +379,7 @@
             if (articleSummaryData.questions.length > articleSummaryData.answers.length) {
               articleSummaryData.questions.pop();
             }
-            console.log("Data from summarization:", {
-              questions: articleSummaryData.questions,
-              answers: articleSummaryData.answers,
-            });
+
             this.isError = false;
             return {
               questions: articleSummaryData.questions,
