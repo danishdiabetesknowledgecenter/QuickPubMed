@@ -205,7 +205,7 @@
   import { config } from "@/config/config.js";
 
   export default {
-    name: "AiSummaries",
+    name: "SummarizeAbstract",
     components: {
       LoadingSpinner,
       SummarizeArticle,

@@ -340,8 +340,8 @@
                   <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryConsentText')" />
                 </div>
 
-                <!-- AI Summaries of abstract (contains summarize-article) -->
-                <ai-summaries
+                <!-- SummarizeAbstract (contains summarize-article) -->
+                <summarize-abstract
                   v-else-if="hasAcceptedAi"
                   :license="license"
                   :is-license-allowed="getIsLicenseAllowed"
@@ -618,7 +618,7 @@
 </template>
 
 <script>
-  import AiSummaries from "@/components/AiSummaries.vue";
+  import SummarizeAbstract from "@/components/SummarizeAbstract.vue";
   import AiTranslation from "@/components/AiTranslation.vue";
   import AccordionMenu from "@/components/AccordionMenu.vue";
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
@@ -640,8 +640,8 @@
     components: {
       LoadingSpinner,
       AccordionMenu,
-      AiSummaries,
       AiTranslation,
+      SummarizeAbstract,
       SummarizeArticleNoAbstract,
     },
     mixins: [appSettingsMixin, promptRuleLoaderMixin],

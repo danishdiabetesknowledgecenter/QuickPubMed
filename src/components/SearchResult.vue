@@ -394,7 +394,7 @@
 <script>
   import Vue from "vue";
   import axios from "axios";
-  import AiSummaries from "@/components/AiSummaries.vue";
+  import AiSummaries from "@/components/SummarizeAbstract.vue";
   import ResultEntry from "@/components/ResultEntry.vue";
   import AccordionMenu from "@/components/AccordionMenu.vue";
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
