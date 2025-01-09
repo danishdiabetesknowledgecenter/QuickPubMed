@@ -181,10 +181,12 @@
                         @unset-loading="handleUnsetLoading"
                         @update-ai-article-summaries="updateAiArticleSummaries"
                         @update-current-summary-index="updateCurrentSummaryIndex"
+                        @error-state-changed="handleSummarizeArticleErrorState"
                       />
                     </keep-alive>
                     <keep-alive>
                       <question-for-article
+                        v-if="!isForbiddenError"
                         :pdf-url="pdfUrl"
                         :html-url="htmlUrl"
                         :language="language"
@@ -333,8 +335,11 @@
         type: Boolean,
         default: false,
       },
+      isForbiddenError: {
+        type: Boolean,
+        default: false,
+      },
     },
-
     data() {
       return {
         currentSummary: "",
@@ -509,6 +514,19 @@
       }
     },
     methods: {
+      /**
+       * Handles the error state change emitted from SummarizeArticle.
+       *
+       * @param {boolean} isError - The current error state.
+       */
+      handleSummarizeArticleErrorState(isError) {
+        if (isError) {
+          this.isForbiddenError = true;
+        } else {
+          this.isForbiddenError = false;
+        }
+      },
+
       /**
        * Set loading state based on emitted event.
        */

@@ -111,6 +111,9 @@
         :language="language"
         :prompt-language-type="promptLanguageType"
         :domain-specific-prompt-rules="domainSpecificPromptRules"
+        :is-loading-current="isLoadingCurrent"
+        :persisted-questions-and-answers="userQuestionsAndAnswers[promptLanguageType]"
+        @update-questions-and-answers="updateUserQuestionsAndAnswers"
       />
     </div>
   </div>
@@ -157,6 +160,10 @@
         type: String,
         default: "dk",
       },
+      prompts: {
+        type: Array,
+        default: () => [],
+      },
     },
     data() {
       return {
@@ -169,6 +176,7 @@
         aiArticleSummaries: {},
         loadingQuestions: {},
         promptLanguageType: "",
+        userQuestionsAndAnswers: {},
       };
     },
     asyncComputed: {
@@ -190,10 +198,29 @@
         },
       },
     },
+    mounted() {
+      // Set the flag to true after initialization
+      this.$nextTick(() => {
+        this.prompts.forEach((prompt) => {
+          if (!this.userQuestionsAndAnswers[prompt.name]) {
+            this.$set(this.userQuestionsAndAnswers, prompt.name, []);
+          }
+        });
+      });
+    },
     created() {
       this.$on("SummarizeArticleNoAbstract", this.handleOnSummarizeArticleNoAbstract);
     },
     methods: {
+      /**
+       * Updates the userQuestionsAndAnswers state.
+       *
+       * @param {Object} payload - Contains promptLanguageType and updated Q&A array.
+       */
+      updateUserQuestionsAndAnswers(payload) {
+        const { promptLanguageType, questionsAndAnswers } = payload;
+        this.$set(this.userQuestionsAndAnswers, promptLanguageType, questionsAndAnswers);
+      },
       async handleRetry() {
         this.isSummaryVisible = true;
         // Passing true to force getting new answers for summarizing of the article

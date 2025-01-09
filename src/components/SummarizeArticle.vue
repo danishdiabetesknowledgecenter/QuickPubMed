@@ -219,6 +219,13 @@
         },
         deep: true,
       },
+      isError(newVal) {
+        if (newVal) {
+          this.$emit("error-state-changed", true);
+        } else {
+          this.$emit("error-state-changed", false);
+        }
+      },
     },
     methods: {
       /**

@@ -454,6 +454,7 @@
                       ref="SummarizeArticleNoAbstractComponent"
                       :pdf-url="pdfUrl"
                       :html-url="htmlUrl"
+                      :prompts="getAllPrompts()"
                     />
                     <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryConsentText')" />
                   </div>
