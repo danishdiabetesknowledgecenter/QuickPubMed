@@ -80,19 +80,15 @@ export const summarizeArticleMixin = {
           await this.getSummarizeHTMLArticle(promptLanguageType);
         }
 
-        if (this.isArticle) {
-          if (this.questions.length > this.answers.length) {
-            this.questions.pop();
-          }
-          console.log({ questions: this.questions, answers: this.answers });
-          this.isError = false;
-          return {
-            questions: this.questions,
-            answers: this.answers,
-          };
-        } else {
-          throw new Error("The content is not recognized as an article.");
+        if (this.questions.length > this.answers.length) {
+          this.questions.pop();
         }
+        console.log({ questions: this.questions, answers: this.answers });
+        this.isError = false;
+        return {
+          questions: this.questions,
+          answers: this.answers,
+        };
       } catch (error) {
         this.isError = true;
         this.errorMessage = error.message || "An error occurred during summarization.";
@@ -223,7 +219,7 @@ export const summarizeArticleMixin = {
         const data = JSON.parse(sanitizedText);
 
         this.scrapingError = false;
-        this.isArticle = data.isArticle;
+
         this.questions = data.questions;
         this.answers = data.answers;
 
@@ -234,7 +230,6 @@ export const summarizeArticleMixin = {
 
         return data;
       } catch (error) {
-        this.isArticle = false;
         this.isError = true;
         this.errorMessage = "Failed to summarize HTML article.";
         console.error("Error parsing summary:", error);
@@ -270,13 +265,11 @@ export const summarizeArticleMixin = {
         // Parse the sanitized JSON
         const data = JSON.parse(sanitizedText);
 
-        this.isArticle = data.isArticle;
         this.questions = data.questions;
         this.answers = data.answers;
 
         return data;
       } catch (error) {
-        this.isArticle = false;
         this.isError = true;
         this.errorMessage = "Failed to summarize PDF article.";
         console.error("Error parsing summary:", error);

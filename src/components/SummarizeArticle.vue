@@ -181,7 +181,6 @@
     },
     data() {
       return {
-        isArticle: false,
         isError: false,
         scrapingError: undefined,
         errorMessage: undefined,
@@ -370,19 +369,15 @@
             articleSummaryData = await this.getSummarizeHTMLArticle(promptLanguageType);
           }
 
-          if (articleSummaryData.isArticle) {
-            if (articleSummaryData.questions.length > articleSummaryData.answers.length) {
-              articleSummaryData.questions.pop();
-            }
-
-            this.isError = false;
-            return {
-              questions: articleSummaryData.questions,
-              answers: articleSummaryData.answers,
-            };
-          } else {
-            throw new Error("The content is not recognized as an article.");
+          if (articleSummaryData.questions.length > articleSummaryData.answers.length) {
+            articleSummaryData.questions.pop();
           }
+
+          this.isError = false;
+          return {
+            questions: articleSummaryData.questions,
+            answers: articleSummaryData.answers,
+          };
         } catch (error) {
           this.isError = true;
           this.errorMessage = error.message || "An error occurred during summarization.";
@@ -495,7 +490,6 @@
           const data = JSON.parse(sanitizedText);
 
           this.scrapingError = false;
-          this.isArticle = data.isArticle;
 
           // Handle empty responses
           if (data.questions.length < 1) {
@@ -504,7 +498,6 @@
 
           return data;
         } catch (error) {
-          this.isArticle = false;
           this.isError = true;
           this.errorMessage = "Failed to summarize HTML article.";
           console.error("Error parsing summary:", error);
@@ -541,11 +534,8 @@
           // Parse the sanitized JSON
           const data = JSON.parse(sanitizedText);
 
-          this.isArticle = data.isArticle;
-
           return data;
         } catch (error) {
-          this.isArticle = false;
           this.isError = true;
           this.errorMessage = "Failed to summarize PDF article.";
           console.error("Error parsing summary:", error);

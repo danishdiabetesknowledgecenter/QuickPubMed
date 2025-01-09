@@ -169,7 +169,6 @@
     },
     data() {
       return {
-        isArticle: false,
         scrapingError: false,
         isError: false,
         errorMessage: "",
