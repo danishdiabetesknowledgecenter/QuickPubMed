@@ -118,17 +118,6 @@
         <i class="bx bx-refresh" style="vertical-align: baseline; font-size: 1em"></i>
         {{ getString("retryText") }}
       </button>
-
-      <!-- User input for asking questions for an article -->
-      <keep-alive>
-        <question-for-article
-          :pdf-url="pdfUrl"
-          :html-url="htmlUrl"
-          :language="language"
-          :prompt-language-type="promptLanguageType"
-          :domain-specific-prompt-rules="domainSpecificPromptRules"
-        />
-      </keep-alive>
     </div>
   </div>
 </template>
@@ -136,7 +125,7 @@
 <script>
   import AccordionMenu from "@/components/AccordionMenu.vue";
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
-  import QuestionForArticle from "@/components/QuestionForArticle.vue";
+
   import { utilitiesMixin } from "@/mixins/utilities.js";
   import { appSettingsMixin } from "@/mixins/appSettings.js";
   import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
@@ -150,7 +139,6 @@
     components: {
       AccordionMenu,
       LoadingSpinner,
-      QuestionForArticle,
     },
     mixins: [
       utilitiesMixin,

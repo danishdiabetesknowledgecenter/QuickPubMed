@@ -183,6 +183,18 @@
                         @update-current-summary-index="updateCurrentSummaryIndex"
                       />
                     </keep-alive>
+                    <keep-alive>
+                      <question-for-article
+                        :pdf-url="pdfUrl"
+                        :html-url="htmlUrl"
+                        :language="language"
+                        :prompt-language-type="currentSummary"
+                        :domain-specific-prompt-rules="domainSpecificPromptRules"
+                        :is-loading-current="loadingArticleSummaries[currentSummary]"
+                        :persisted-questions-and-answers="userQuestionsAndAnswers[currentSummary]"
+                        @update-questions-and-answers="updateUserQuestionsAndAnswers"
+                      />
+                    </keep-alive>
                   </div>
                 </div>
                 <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryDisclaimer')" />
@@ -206,6 +218,7 @@
   import Vue from "vue";
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
   import SummarizeArticle from "@/components/SummarizeArticle.vue";
+  import QuestionForArticle from "@/components/QuestionForArticle.vue";
   import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
 
   import { appSettingsMixin, eventBus } from "@/mixins/appSettings.js";
@@ -224,6 +237,7 @@
     components: {
       LoadingSpinner,
       SummarizeArticle,
+      QuestionForArticle,
     },
     mixins: [appSettingsMixin, promptRuleLoaderMixin],
     props: {
@@ -386,6 +400,7 @@
         currentSummaryIndex: {},
         isInitialized: false,
         loadingArticleSummaries: {},
+        userQuestionsAndAnswers: {},
       };
     },
     computed: {
@@ -480,6 +495,11 @@
     mounted() {
       // Set the flag to true after initialization
       this.$nextTick(() => {
+        this.prompts.forEach((prompt) => {
+          if (!this.userQuestionsAndAnswers[prompt.name]) {
+            this.$set(this.userQuestionsAndAnswers, prompt.name, []);
+          }
+        });
         this.isInitialized = true;
       });
     },
@@ -549,6 +569,16 @@
        */
       setLoading(promptLanguageType) {
         this.$set(this.loadingArticleSummaries, promptLanguageType, true);
+      },
+
+      /**
+       * Updates the userQuestionsAndAnswers state.
+       *
+       * @param {Object} payload - Contains promptLanguageType and updated Q&A array.
+       */
+      updateUserQuestionsAndAnswers(payload) {
+        const { promptLanguageType, questionsAndAnswers } = payload;
+        this.$set(this.userQuestionsAndAnswers, promptLanguageType, questionsAndAnswers);
       },
 
       getTranslation(value) {
