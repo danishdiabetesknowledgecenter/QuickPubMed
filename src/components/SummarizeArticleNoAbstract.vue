@@ -87,7 +87,9 @@
       </accordion-menu>
 
       <button
-        v-if="!isError && !scrapingError && !isLoadingCurrent && isArticle"
+        v-if="
+          !isError && !scrapingError && !isLoadingCurrent && aiArticleSummaries[promptLanguageType]
+        "
         v-tooltip="{
           content: getString('hoverretryText'),
           offset: 5,
@@ -105,7 +107,7 @@
       </button>
 
       <question-for-article
-        v-if="isArticle && !isLoadingCurrent"
+        v-if="!isLoadingCurrent && aiArticleSummaries[promptLanguageType]"
         :pdf-url="pdfUrl"
         :html-url="htmlUrl"
         :language="language"
