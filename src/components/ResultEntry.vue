@@ -1507,17 +1507,8 @@
         this.$emit("change", this.value, isChecked);
       },
       clickAcceptAi(prompt) {
-        if (!this.hasAcceptedAi) {
-          this.hasAcceptedAi = true;
-          console.log("hasAcceptedAi", this.hasAcceptedAi);
-        }
-
+        this.hasAcceptedAi = true;
         this.getArticles;
-        const isNewAiTab = this.initialAiTab.name !== prompt.name;
-        console.log("isNewAiTab", isNewAiTab);
-        if (!isNewAiTab) {
-          this.initialAiTab = prompt;
-        }
         this.initialAiTab = prompt;
       },
       clickAcceptAiNoAbstract(prompt) {

@@ -53,6 +53,7 @@ export const summarizeArticleMixin = {
       }
       this.aiArticleSummaries[promptLanguageType].questions = summaryData.questions;
       this.aiArticleSummaries[promptLanguageType].answers = summaryData.answers;
+      this.$emit("article-summary-updated", { promptLanguageType, summaryData });
       console.log(`Summary saved for "${promptLanguageType}":`, summaryData);
     },
     /**

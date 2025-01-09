@@ -157,16 +157,30 @@
                     <i class="bx bx-copy" style="vertical-align: baseline" />
                     {{ getString("copyText") }}
                   </button>
-                  <div v-if="showSummarizeArticle && config.useAISummarizer">
+                  <div
+                    v-if="
+                      showSummarizeArticle &&
+                      config.useAISummarizer &&
+                      isLicenseAllowed &&
+                      isResourceAllowed &&
+                      isPubTypeAllowed
+                    "
+                  >
                     <keep-alive>
                       <summarize-article
-                        :key="currentSummary"
-                        v-show="isLicenseAllowed && isResourceAllowed && isPubTypeAllowed"
+                        v-if="isInitialized"
                         :pdf-url="pdfUrl"
                         :html-url="htmlUrl"
                         :language="language"
                         :prompt-language-type="currentSummary"
                         :domain-specific-prompt-rules="domainSpecificPromptRules"
+                        :ai-article-summaries="aiArticleSummaries"
+                        :current-summary-index="currentSummaryIndex"
+                        :loading="loadingArticleSummaries[currentSummary]"
+                        @set-loading="handleSetLoading"
+                        @unset-loading="handleUnsetLoading"
+                        @update-ai-article-summaries="updateAiArticleSummaries"
+                        @update-current-summary-index="updateCurrentSummaryIndex"
                       />
                     </keep-alive>
                   </div>
@@ -203,6 +217,7 @@
   } from "@/assets/content/qpm-open-ai-prompts.js";
   import { getPromptForLocale } from "@/utils/qpm-open-ai-prompts-helpers.js";
   import { config } from "@/config/config.js";
+  import { promptText } from "@/assets/content/qpm-open-ai-prompts.js";
 
   export default {
     name: "SummarizeAbstract",
@@ -327,7 +342,7 @@
           acc[prompt.name] = { currentIndex: 0 };
           return acc;
         }, {}),
-        loadingSummaries: [],
+        loadingAbstractSummaries: [],
         /**
          * An object containing each summary that has been fetched so far.
          * Each entry is an array of objects which always contains at least the following properties:
@@ -367,6 +382,10 @@
         stopGeneration: false,
         pdfFound: false,
         articleName: "",
+        aiArticleSummaries: {},
+        currentSummaryIndex: {},
+        isInitialized: false,
+        loadingArticleSummaries: {},
       };
     },
     computed: {
@@ -374,7 +393,7 @@
         return config;
       },
       getIsSummaryLoading() {
-        return this.loadingSummaries.includes(this.currentSummary);
+        return this.loadingAbstractSummaries.includes(this.currentSummary);
       },
       getCurrentSummaryHistory() {
         if (!this.currentSummary) return null;
@@ -420,9 +439,6 @@
           return this.getString("aiShortWaitTimeDisclaimer");
         }
       },
-      getTabNames() {
-        return this.prompts.map((e) => e.name);
-      },
       getSuccessHeader() {
         if (typeof this.successHeader === "function") {
           const currentSummary = this.getCurrentSummary;
@@ -455,17 +471,86 @@
       },
     },
     created() {
+      this.initializeAiArticleSummaries();
+      this.initializeCurrentSummaryIndex();
       if (this.checkForPdf) {
         this.articleName = this.getSelectedArticles()[0].title;
       }
     },
+    mounted() {
+      // Set the flag to true after initialization
+      this.$nextTick(() => {
+        this.isInitialized = true;
+      });
+    },
     activated() {
-      console.log("AiSummaries activated | initialTabPrompt: ", this.initialTabPrompt);
       if (this.initialTabPrompt != null) {
         this.clickSummaryTab(this.initialTabPrompt);
       }
     },
     methods: {
+      /**
+       * Set loading state based on emitted event.
+       */
+      handleSetLoading({ promptLanguageType }) {
+        this.setLoading(promptLanguageType);
+      },
+
+      /**
+       * Unset loading state based on emitted event.
+       */
+      handleUnsetLoading({ promptLanguageType }) {
+        this.$set(this.loadingArticleSummaries, promptLanguageType, false);
+      },
+
+      /**
+       * Initializes aiArticleSummaries based on the current language and promptText names.
+       */
+      initializeAiArticleSummaries() {
+        promptText.forEach((prompt) => {
+          const key = prompt.name[this.language];
+          this.$set(this.aiArticleSummaries, key, []);
+          this.$set(this.loadingArticleSummaries, key, false);
+        });
+      },
+
+      /**
+       * Initializes the currentSummaryIndex object based on the promptText names.
+       */
+      initializeCurrentSummaryIndex() {
+        promptText.forEach((prompt) => {
+          const key = prompt.name[this.language];
+          this.$set(this.currentSummaryIndex, key, 0);
+        });
+      },
+
+      /**
+       * Handler to update aiArticleSummaries from child component.
+       */
+      updateAiArticleSummaries({ promptLanguageType, summaryData }) {
+        this.$set(this.loadingArticleSummaries, promptLanguageType, false); // Set loading to false
+        if (!this.aiArticleSummaries[promptLanguageType]) {
+          this.$set(this.aiArticleSummaries, promptLanguageType, []);
+        }
+        this.aiArticleSummaries[promptLanguageType].push(summaryData);
+        this.currentSummaryIndex[promptLanguageType] =
+          this.aiArticleSummaries[promptLanguageType].length - 1;
+      },
+
+      /**
+       * Handler to update currentSummaryIndex from child component.
+       */
+      updateCurrentSummaryIndex({ promptLanguageType, newIndex }) {
+        this.$set(this.currentSummaryIndex, promptLanguageType, newIndex);
+      },
+
+      /**
+       * Set loading state to true when a article summary fetch starts.
+       */
+      setLoading(promptLanguageType) {
+        this.$set(this.loadingArticleSummaries, promptLanguageType, true);
+      },
+
       getTranslation(value) {
         const lg = this.language;
         const constant = value.translations[lg];
@@ -493,7 +578,7 @@
       async generateAiSummary(prompt) {
         this.stopGeneration = false;
         const waitTimeDisclaimerDelay = this.appSettings.openAi.waitTimeDisclaimerDelay ?? 0;
-        this.loadingSummaries.push(prompt.name);
+        this.loadingAbstractSummaries.push(prompt.name);
 
         const localePrompt = getPromptForLocale(prompt, this.language);
         const summarizePrompt = getPromptForLocale(
@@ -595,9 +680,9 @@
             });
           }
         } finally {
-          const tabIndex = this.loadingSummaries.indexOf(prompt.name);
+          const tabIndex = this.loadingAbstractSummaries.indexOf(prompt.name);
           if (tabIndex !== -1) {
-            this.loadingSummaries.splice(tabIndex, 1);
+            this.loadingAbstractSummaries.splice(tabIndex, 1);
           }
           this.$set(this.tabStates[prompt.name], "currentIndex", 0);
         }
