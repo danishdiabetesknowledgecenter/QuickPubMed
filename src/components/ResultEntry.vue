@@ -339,8 +339,6 @@
                   </button>
                   <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryConsentText')" />
                 </div>
-
-                <!-- SummarizeAbstract (contains summarize-article) -->
                 <summarize-abstract
                   v-else-if="hasAcceptedAi"
                   :license="license"
@@ -361,7 +359,6 @@
                   :has-accepted-ai="hasAcceptedAi"
                   :initial-tab-prompt="initialAiTab"
                   :get-selected-articles="getArticleAsArray"
-                  :check-for-pdf="true"
                   @close="closeSummaries"
                   @ai-summaries-click-retry="onAiSummariesClickRetry"
                 />
@@ -427,12 +424,12 @@
                     v-if="!hasAbstract"
                     class="qpm_searchSummaryText qpm_searchSummaryTextBackground"
                   >
+                    <p>{{ getString("aiSummarizeAbstractButton") }}</p>
                     <p>
-                      <strong>{{ getString("summarizeArticleNoAbstractNotice") }}</strong>
+                      <strong>{{ getString("aiSummarizeSearchResultButton") }}</strong> bob er stærk
                     </p>
-                    <p>{{ getString("aiSummarizeArticleButton") }}</p>
                     <button
-                      v-for="prompt in getSummarizeArticlePrompt()"
+                      v-for="prompt in getAbstractSummaryPrompts()"
                       :key="prompt.name"
                       v-tooltip="{
                         content: getString('hoverSummarizeSearchResultButton'),
@@ -441,7 +438,7 @@
                         hideOnTargetClick: false,
                       }"
                       class="qpm_button qpm_summaryButton"
-                      @click="clickAcceptAiNoAbstract(prompt)"
+                      @click="clickAcceptAi(prompt)"
                     >
                       <i
                         class="bx bx-detail"
@@ -449,15 +446,31 @@
                       />
                       {{ getTranslation(prompt) }}
                     </button>
-                    <!-- AI Summary of an article when no abstract present -->
-                    <summarize-article-no-abstract
-                      ref="SummarizeArticleNoAbstractComponent"
-                      :pdf-url="pdfUrl"
-                      :html-url="htmlUrl"
-                      :prompts="getAllPrompts()"
-                    />
                     <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryConsentText')" />
                   </div>
+                  <!-- AI Summary of an article when no abstract present -->
+                  <summarize-no-abstract
+                    v-if="hasAcceptedAi"
+                    :license="license"
+                    :is-license-allowed="getIsLicenseAllowed"
+                    :is-resource-allowed="getIsResourceAllowed"
+                    :is-pub-type-allowed="getIsPubTypeAllowed"
+                    :is-doc-type-allowed="getIsDocTypeAllowed"
+                    :show-summarize-article="true"
+                    :pub-type="pubType"
+                    :pdf-url="pdfUrl"
+                    :html-url="htmlUrl"
+                    :language="language"
+                    :prompts="getAllPrompts()"
+                    :summary-search-summary-consent-text="getString('aiSearchSummaryConsentHeader')"
+                    :summary-consent-header="getString('aiAbstractSummaryConsentHeader')"
+                    :success-header="getString('aiSummarizeAbstractResultHeader')"
+                    :error-header="getString('aiSummarizeAbstractErrorHeader')"
+                    :has-accepted-ai="hasAcceptedAi"
+                    :initial-tab-prompt="initialAiTab"
+                    :check-for-pdf="true"
+                  />
+                  <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryConsentText')" />
                 </keep-alive>
               </div>
             </div>
@@ -620,10 +633,10 @@
 
 <script>
   import SummarizeAbstract from "@/components/SummarizeAbstract.vue";
+  import SummarizeNoAbstract from "@/components/SummarizeNoAbstract.vue";
   import AiTranslation from "@/components/AiTranslation.vue";
   import AccordionMenu from "@/components/AccordionMenu.vue";
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
-  import SummarizeArticleNoAbstract from "@/components/SummarizeArticleNoAbstract.vue";
   import axios from "axios";
   import { config } from "@/config/config.js";
   import { messages } from "@/assets/content/qpm-translations";
@@ -643,7 +656,7 @@
       AccordionMenu,
       AiTranslation,
       SummarizeAbstract,
-      SummarizeArticleNoAbstract,
+      SummarizeNoAbstract,
     },
     mixins: [appSettingsMixin, promptRuleLoaderMixin],
     model: {
@@ -1511,10 +1524,7 @@
         this.hasAcceptedAi = true;
         this.getArticles;
         this.initialAiTab = prompt;
-      },
-      clickAcceptAiNoAbstract(prompt) {
-        this.hasAcceptedAi = true;
-        this.$refs.SummarizeArticleNoAbstractComponent.$emit("SummarizeArticleNoAbstract", prompt);
+        console.log("We clicked acceptAI");
       },
       closeSummaries() {
         this.hasAcceptedAi = false;
