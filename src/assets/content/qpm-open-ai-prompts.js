@@ -448,20 +448,28 @@ export const searchTranslationPrompt = {
  * Setup text for the prompt to start the summarization of an article
  */
 export const promptStartText = {
-  dk: `Du skal svare i JSON-format. Der skal være 3 key-value pairs i dit svar. 
-  Den første key skal hedde isArticle og kan enten være true eller false. 
-  Den anden key skal hedde questions, og value skal være et array. 
-  Den tredje key skal hedde answers, og value skal være et array med svarene på spørgsmålene. 
-  Du skal undersøge, om den givne tekst er en videnskabelig artikel. 
-  Hvis det er en videnskabelig artikel, skal du sætte value IsArticle til true ellers til false. 
-  Hvis det er en videnskabelig artikel, skal du derefter tilføje følgende spørgsmål til array'et, der er value for questions key'en:`,
-  en: `You must respond in JSON format. There must be 3 key-value pairs in your response. 
-  The first key must be called isArticle and can be either true or false. 
-  The second key must be called questions, and the value must be an array. 
-  The third key must be called answers, and the value must be an array with the answers to the questions. 
-  You must investigate whether the given text is a scientific article. 
-  If it is a scientific article, you must set the value IsArticle to true, otherwise to false. 
-  If it is a scientific article, you must then add the following questions to the array that is the value for the questions key: `,
+  dk: `Du skal svare i JSON-format. Du vil blive givet en række spørgsmål med hver deres shortTitle.
+  Dit svar SKAL altid følge denne givne struktur: 
+  [
+    {
+      "shortTitle": "Summary",
+      "question": "Make a brief summary based on the overall text of the article. Make sure to include the introduction and the conclusion.",
+      "answer": "The article provides an overview of..."
+    },
+  ].
+  Det er vigtigt at du bevarer forholdet mellem shortTitle og question, og at du svarer på alle spørgsmål.
+ `,
+  en: `You must answer in JSON format. You will be given a series of questions, each with their own shortTitle.
+  Your answer MUST always follow this given structure:
+  [
+    {
+      "shortTitle": "Summary",
+      "question": "Make a brief summary based on the overall text of the article. Make sure to include the introduction and the conclusion.",
+      "answer": "The article provides an overview of..."
+    },
+  ].
+  It is important that you maintain the relationship between shortTitle and question, and that you answer all questions.
+  `,
 };
 
 /**
@@ -480,7 +488,8 @@ export const promptStartText = {
 export const promptQuestionsMap = {
   dk: [
     {
-      question: "Lav en kort opsummering baseret på artiklens samlede tekst. ",
+      question:
+        "Lav en kort opsummering baseret på artiklens samlede tekst, hvor du inkluderer indledning og konklusion. Du skal også inkludere de vigtigste resultater og konklusioner.",
       shortTitle: "Resumé",
     },
     { question: "Hvad er formålet med denne artikel?", shortTitle: "Formål" },
@@ -520,8 +529,8 @@ export const promptQuestionsMap = {
 };
 
 export const promptQuestionsExtra = {
-  dk: `Du skal herefter tilføje 2 eller 3 ekstra spørgsmål der har relevance for denne artikel. `,
-  en: `You must then add 2 or 3 additional questions that are relevant to this article. `,
+  dk: `Du skal herefter tilføje 2 eller 3 ekstra spørgsmål der har relevance for denne artikel. For disse spørgsmål skal du selv komme på en shortTitle der passer til spørgsmålet. `,
+  en: `You must then add 2 or 3 additional questions that are relevant to this article. For these questions, you must come up with a shortTitle that fits the question. `,
 };
 
 /**
@@ -558,9 +567,9 @@ export const promptText = [
     questionsExtra: promptQuestionsExtra,
     promptRules: promptArticleSpecificAnswersOnly,
     endText: {
-      dk: "Du skal generere svar til alle spørgsmål, og disse svar skal bestå af maksimalt 100 ord og skal skrives på fagsprog som let kan forstås af et sundhedsfagligt publikum eller personer med solid baggrund inden for emnet, og tilføje svarende til array'et, der er value for answers key'en. \
-      Du må ikke svare med andet end JSON-formatet. Du skal derfor ikke bruge tegnet ` eller skrive json i starten eller slutningen af svaret. Her er teksten: ",
-      en: "You must then generate answers to these questions, and these answers must consist of 100 words and must be written in professional language that can be easily understood by a healthcare audience or people with a solid background in the subject, and add corresponding to the array that is the value for the answers key. \
+      dk: "Du skal generere svar til alle spørgsmål, og disse svar skal bestå af minimum 100 ord og skal skrives på fagsprog som let kan forstås af et sundhedsfagligt publikum eller personer med solid baggrund inden for emnet \
+      Du må ikke svare med andet end JSON-formatet. Du skal aldrig bruge tegnet ` eller medgive 'json' i starten eller slutningen af dit svar. Her er teksten: ",
+      en: "You must then generate answers to these questions, and these answers must consist of atleast 100 words and must be written in professional language that can be easily understood by a healthcare audience or people with a solid background in the subject, and add corresponding to the array that is the value for the answers key. \
       You must not respond with anything other than JSON format. You must therefore not use the character ` or write JSON at the beginning or end of the response. Here is the text: ",
     },
   },
@@ -575,9 +584,9 @@ export const promptText = [
     questionsExtra: promptQuestionsExtra,
     promptRules: promptArticleSpecificAnswersOnly,
     endText: {
-      dk: "Du skal generere svar til disse spørgsmål, og disse svar skal bestå af maksimalt 100 ord og skal skrives i et sprog, som nemt kan læses og forstås af en 15-årig uden forhåndskendskab til emnet, og tilføje svarende til array'et, der er value for answers key'en. \
+      dk: "Du skal generere svar til disse spørgsmål, og disse svar skal bestå af minimum 100 ord og skal skrives i et sprog, som nemt kan læses og forstås af en 15-årig uden forhåndskendskab til emnet, og tilføje svarende til array'et, der er value for answers key'en. \
       Du skal ikke svare med andet end JSON-formatet. Du skal derfor ikke bruge tegnet ` eller skrive json i starten eller slutningen af svaret. Her er teksten: ",
-      en: "You must then generate answers to these questions, and these answers must consist of 100 words and must be written in a language that can be easily read and understood by a 15-year-old without prior knowledge of the subject, and add corresponding to the array that is the value for the answers key. \
+      en: "You must then generate answers to these questions, and these answers must consist of at least 100 words and must be written in a language that can be easily read and understood by a 15-year-old without prior knowledge of the subject, and add corresponding to the array that is the value for the answers key. \
       You must not respond with anything other than JSON format. You must therefore not use the character ` or write JSON at the beginning or end of the response. Here is the text: ",
     },
   },

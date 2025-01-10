@@ -571,6 +571,7 @@
           this.$set(this.aiArticleSummaries, promptLanguageType, []);
         }
         this.aiArticleSummaries[promptLanguageType].push(summaryData);
+        console.log("this.aiArticleSummaries", this.aiArticleSummaries);
         this.currentSummaryIndex[promptLanguageType] =
           this.aiArticleSummaries[promptLanguageType].length - 1;
       },

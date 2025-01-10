@@ -9,11 +9,11 @@
     />
 
     <!-- TITLE summarize entire article -->
-    <p v-if="!loading && currentSummary.questions.length > 1 && !isError">
+    <p v-if="!loading && currentSummary.length > 0 && !isError">
       <strong>{{ getString("summarizeArticleHeader") }}</strong>
     </p>
 
-    <div v-if="!loading && !isError">
+    <div v-if="!loading && currentSummary.length > 0 && !isError">
       <button
         style="margin-top: -3px; border: 0px"
         class="qpm_summary_icon bx bx-chevron-left"
@@ -21,7 +21,7 @@
       />
       <span style="padding: 0px 3px">
         {{ currentSummaryIndex[promptLanguageType] + 1 }} /
-        {{ aiArticleSummaries[promptLanguageType].length }}
+        {{ getTotalSummaries() }}
       </span>
       <button
         style="margin-top: -3px; border: 0px"
@@ -30,78 +30,41 @@
       />
     </div>
 
-    <div v-if="!loading && !isError">
-      <!-- Default questions to summarize an article section -->
-      <accordion-menu
-        v-for="(question, index) in currentSummary.questions.slice(0, 7)"
-        :key="`${promptLanguageType}-${currentSummaryIndex}-${index}`"
-        :title="fetchShortTitle(question)"
-        :open-by-default="false"
-      >
-        <template #header="accordionProps">
-          <div class="qpm_aiAccordionHeader">
-            <i
-              v-if="accordionProps.expanded"
-              class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
-            />
-            <i v-else class="bx bx-chevron-right qpm_aiAccordionHeaderArrows" />
-            <i
-              class="bx bx-credit-card-front"
-              style="
-                font-size: 22px;
-                vertical-align: text-bottom;
-                margin-left: 3px;
-                margin-right: 5px;
-              "
-            ></i>
-            {{ fetchShortTitle(question) }}
-          </div>
-        </template>
-        <template #default>
-          <div class="qpm_answer-text">
-            {{ currentSummary.answers[index] }}
-          </div>
-        </template>
-      </accordion-menu>
+    <div v-if="!loading && currentSummary.length > 0 && !isError">
+      <!-- Display all Q&A summaries -->
+      <div v-for="(qa, index) in currentSummary" :key="index">
+        <accordion-menu
+          :key="`${promptLanguageType}-${currentSummaryIndex[promptLanguageType]}-${index}`"
+          :title="qa.shortTitle"
+          :open-by-default="false"
+        >
+          <template #header="accordionProps">
+            <div class="qpm_aiAccordionHeader">
+              <i
+                v-if="accordionProps.expanded"
+                class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
+              ></i>
+              <i v-else class="bx bx-chevron-right qpm_aiAccordionHeaderArrows"></i>
+              <i
+                class="bx bx-help-circle"
+                style="
+                  font-size: 22px;
+                  vertical-align: text-bottom;
+                  margin-left: 3px;
+                  margin-right: 5px;
+                "
+              ></i>
+              {{ qa.shortTitle }}
+            </div>
+          </template>
 
-      <!-- TITLE for generated article specific questions -->
-      <p v-if="currentSummary.questions.length > 7">
-        <strong>{{ getString("generateQuestionsHeader") }}</strong>
-      </p>
-
-      <!-- Generated article specific questions section -->
-      <accordion-menu
-        v-for="(question, index) in currentSummary.questions.slice(7)"
-        :key="`${promptLanguageType}-${currentSummaryIndex}-${index + 7}`"
-        :title="question"
-        :open-by-default="false"
-      >
-        <template #header="accordionProps">
-          <div ref="headerText" class="qpm_aiAccordionHeader">
-            <i
-              v-if="accordionProps.expanded"
-              class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
-            ></i>
-            <i v-else class="bx bx-chevron-right qpm_aiAccordionHeaderArrows"></i>
-            <i
-              class="bx bx-help-circle"
-              style="
-                font-size: 22px;
-                vertical-align: text-bottom;
-                margin-left: 3px;
-                margin-right: 5px;
-              "
-            ></i>
-            {{ question }}
-          </div>
-        </template>
-
-        <template #default>
-          <div :style="getAnswerStyle(index)" class="qpm_answer-text">
-            {{ currentSummary.answers[index + 7] }}
-          </div>
-        </template>
-      </accordion-menu>
+          <template #default>
+            <div :style="getAnswerStyle(index)" class="qpm_answer-text">
+              {{ qa.answer }}
+            </div>
+          </template>
+        </accordion-menu>
+      </div>
 
       <button
         v-tooltip="{
@@ -112,8 +75,8 @@
         }"
         class="qpm_button"
         style="margin-top: 25px"
-        @keydown.enter="handleRetry()"
-        @click="handleRetry()"
+        @keydown.enter="handleRetry"
+        @click="handleRetry"
       >
         <i class="bx bx-refresh" style="vertical-align: baseline; font-size: 1em"></i>
         {{ getString("retryText") }}
@@ -130,7 +93,6 @@
   import { appSettingsMixin } from "@/mixins/appSettings.js";
   import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
   import { questionHeaderHeightWatcherMixin } from "@/mixins/questionHeaderHeightWatcher.js";
-  import { getShortTitle } from "@/utils/qpm-open-ai-prompts-helpers.js";
   import { sanitizePrompt } from "@/utils/qpm-open-ai-prompts-helpers.js";
   import { summarizeArticlePrompt, promptText } from "@/assets/content/qpm-open-ai-prompts.js";
 
@@ -188,14 +150,12 @@
     },
     computed: {
       currentSummary() {
-        const summaries = this.aiArticleSummaries[this.promptLanguageType];
+        const summariesArray = this.aiArticleSummaries[this.promptLanguageType];
         const index = this.currentSummaryIndex[this.promptLanguageType];
-        return summaries && summaries[index] ? summaries[index] : { questions: [], answers: [] };
-      },
-
-      formattedAnswers() {
-        if (!this.currentSummary) return "";
-        return this.currentSummary.answers.join("\n\n");
+        if (Array.isArray(summariesArray) && summariesArray.length > index && index >= 0) {
+          return summariesArray[index].articleSummaryData;
+        }
+        return [];
       },
     },
     async mounted() {
@@ -219,46 +179,70 @@
         deep: true,
       },
       isError(newVal) {
-        if (newVal) {
-          this.$emit("error-state-changed", true);
-        } else {
-          this.$emit("error-state-changed", false);
-        }
+        this.$emit("error-state-changed", newVal);
       },
     },
     methods: {
       /**
-       * Navigates through the summary history.
-       *
-       * @param {string} direction - 'previous' or 'next'.
+       * Returns the total number of summaries for the current promptLanguageType.
        */
-      navigateHistory(direction) {
-        const type = this.promptLanguageType;
-        const maxIndex = this.aiArticleSummaries[type].length - 1;
-        let newIndex = this.currentSummaryIndex[type];
-
-        if (direction === "previous" && newIndex > 0) {
-          newIndex -= 1;
-        } else if (direction === "next" && newIndex < maxIndex) {
-          newIndex += 1;
+      getTotalSummaries() {
+        const summariesArray = this.aiArticleSummaries[this.promptLanguageType];
+        if (
+          Array.isArray(summariesArray) &&
+          summariesArray.length > 0 &&
+          summariesArray[0].articleSummaryData.length > 0
+        ) {
+          return summariesArray.length;
         }
-
-        // Emit the new index to the parent
-        this.$emit("update-current-summary-index", { promptLanguageType: type, newIndex });
+        return 0;
       },
 
       /**
-       * Saves the summary by emitting an event to the parent component.
+       * Determine the style for the answer text based on the index.
+       * Adjust as needed; placeholder implementation.
+       */
+      getAnswerStyle(index) {
+        // Example styles; adjust based on actual requirements
+        return {
+          padding: "10px",
+          borderRadius: "4px",
+        };
+      },
+
+      /**
+       * Navigate through the summaries.
+       * @param {string} direction - 'previous' or 'next'
+       */
+      navigateHistory(direction) {
+        const summariesArray = this.aiArticleSummaries[this.promptLanguageType];
+        if (!Array.isArray(summariesArray) || summariesArray.length === 0) return;
+
+        const maxIndex = summariesArray.length - 1;
+        let current = this.currentSummaryIndex[this.promptLanguageType];
+
+        if (direction === "previous") {
+          current = current > 0 ? current - 1 : 0;
+        } else if (direction === "next") {
+          current = current < maxIndex ? current + 1 : maxIndex;
+        }
+
+        this.$emit("update-current-summary-index", {
+          promptLanguageType: this.promptLanguageType,
+          newIndex: current,
+        });
+      },
+
+      /**
+       * Emits the new summary to the parent component.
        *
-       * @param {string} promptLanguageType - The language type.
-       * @param {Object} summaryData - The summary data containing questions and answers.
+       * @param {Object} summaryData - The summary object containing shortTitle, question, and answer.
        */
       saveAiSummaryOfArticle(promptLanguageType, summaryData) {
-        const summary = {
-          questions: summaryData.questions,
-          answers: summaryData.answers,
-        };
-        this.$emit("update-ai-article-summaries", { promptLanguageType, summaryData: summary });
+        this.$emit("update-ai-article-summaries", {
+          promptLanguageType: promptLanguageType,
+          summaryData: summaryData,
+        });
       },
 
       async handleRetry() {
@@ -270,12 +254,11 @@
       /**
        * Retrieves the short title for a given question.
        *
-       * @param {string} question - The question text.
-       * @returns {string} The short title or the original question if not found.
+       * @param {Object} qa - The question and answer object.
+       * @returns {string} The short title.
        */
-      fetchShortTitle(question) {
-        const shortTitle = getShortTitle(question, this.language);
-        return shortTitle || question;
+      fetchShortTitle(qa) {
+        return qa.shortTitle || "Untitled";
       },
 
       /**
@@ -316,6 +299,7 @@
       async generateAndSaveSummary(promptLanguageType) {
         try {
           const summaryData = await this.handleSummarizeArticle(promptLanguageType);
+          console.log("Summary data: ", summaryData);
           this.saveAiSummaryOfArticle(promptLanguageType, summaryData);
           // Emit loading end
           this.$emit("unset-loading", { promptLanguageType });
@@ -328,22 +312,61 @@
       },
 
       /**
-       * Saves the summary by adding it to the array for the specific language type.
-       *
-       * @param {string} promptLanguageType - The language type.
-       * @param {Object} summaryData - The summary data containing questions and answers.
+       * Retrieves a prompt based on the specified language and prompt language type.
+       * Can be used in question-for-article for prompting with the questions given by the user,
+       * or be used in summarize-article and summarize-article-no-abstract for prompting with the default questions aswell as the genere
+       * @param {string} [language="dk"] - The language code for the prompt (default is "dk").
+       * @param {string} [promptLanguageType="Hverdagssprog"] - The type of prompt language (default is "Hverdagssprog").
+       * @returns {string} - The localized prompt.
        */
-      saveAiSummaryOfArticle(promptLanguageType, summaryData) {
-        if (!this.aiArticleSummaries[promptLanguageType]) {
-          this.$set(this.aiArticleSummaries, promptLanguageType, []);
+      getComposablePrompt(language = "dk", promptLanguageType = "Hverdagssprog") {
+        // Find the prompt text for either of the language types "Hverdagssprog" or "Fagligt sprog"
+        const prompTextLanguageType = promptText.find(
+          (entry) => entry.name[language] === promptLanguageType
+        );
+
+        const domainSpecificRules = this.domainSpecificPromptRules[language];
+        const promptStartText = prompTextLanguageType.startText[language];
+        //const promptQuestions = promptQuestionsOnly[language];
+        const promptQuestionsWithShortTitle = prompTextLanguageType.questions[language];
+        const questionsString = JSON.stringify(promptQuestionsWithShortTitle, null, 2);
+
+        const promptQuestionsExtra = prompTextLanguageType.questionsExtra[language];
+        const promptRules = prompTextLanguageType.promptRules[language];
+        const promptEndText = prompTextLanguageType.endText[language];
+
+        // Compose the prompt text with default prompt questions without the user input questions
+        let composedPromptText = `${domainSpecificRules} ${promptStartText} ${questionsString} ${promptQuestionsExtra} ${promptEndText}`;
+
+        // Compose the prompt text with user questions if userQuestionInput is not empty
+        if (this.userQuestionInput) {
+          composedPromptText = `${domainSpecificRules} ${promptStartText} ${this.userQuestionInput} ${promptRules} ${promptEndText}`;
         }
-        this.aiArticleSummaries[promptLanguageType].push({
-          questions: summaryData.questions,
-          answers: summaryData.answers,
+
+        console.info(
+          `|Language|\n${language}\n\n|Prompt language type|\n${promptLanguageType}\n\n|Domain specific rules|\n${domainSpecificRules}\n\n|Start text|\n${promptStartText}\n` +
+            `${
+              this.userQuestionInput
+                ? `\n\n|User questions|\n${this.userQuestionInput}\n\n|Rules|\n${promptRules}\n`
+                : `\n|Questions|\n${questionsString}\n\n|QuestionsExtra|\n${promptQuestionsExtra}\n`
+            }` +
+            `\n\n|End text|\n${promptEndText}\n`
+        );
+
+        // Sanitize the composed prompt text
+        let sanitizedComposedPromptText = sanitizePrompt({
+          [language]: composedPromptText,
         });
-        this.currentSummaryIndex[promptLanguageType] =
-          this.aiArticleSummaries[promptLanguageType].length - 1;
-        this.$emit("article-summary-updated", { promptLanguageType, summaryData });
+
+        // Get the basic prompt for the given language type
+        let languageSpecificPrompt = summarizeArticlePrompt.find((p) => {
+          return promptLanguageType == p.name;
+        });
+
+        // Set the prompt field to the sanitized composed prompt text for the given language
+        languageSpecificPrompt.prompt = sanitizedComposedPromptText[language];
+
+        return languageSpecificPrompt;
       },
 
       /**
@@ -369,14 +392,9 @@
             articleSummaryData = await this.getSummarizeHTMLArticle(promptLanguageType);
           }
 
-          if (articleSummaryData.questions.length > articleSummaryData.answers.length) {
-            articleSummaryData.questions.pop();
-          }
-
           this.isError = false;
           return {
-            questions: articleSummaryData.questions,
-            answers: articleSummaryData.answers,
+            articleSummaryData,
           };
         } catch (error) {
           this.isError = true;
@@ -384,80 +402,6 @@
           console.error("Error during summarization:", error);
           throw error;
         }
-      },
-
-      /**
-       * Retrieve the questions from the prompt text
-       *
-       * @param {Object.<string, {question: string, shortTitle: string}[]>} promptQuestionsMap
-       * @returns {Object.<string, string>} Transformed promptQuestions with concatenated questions.
-       */
-      extractQuestionsFromPromptTextQuestions(promptQuestionsMap) {
-        const transformed = {};
-
-        for (const [lang, questions] of Object.entries(promptQuestionsMap)) {
-          transformed[lang] = questions.map((q) => q.question.trim()).join("\n");
-        }
-        return transformed;
-      },
-
-      /**
-       * Retrieves a prompt based on the specified language and prompt language type.
-       * Can be used in question-for-article for prompting with the questions given by the user,
-       * or be used in summarize-article and summarize-article-no-abstract for prompting with the default questions aswell as the genere
-       * @param {string} [language="dk"] - The language code for the prompt (default is "dk").
-       * @param {string} [promptLanguageType="Hverdagssprog"] - The type of prompt language (default is "Hverdagssprog").
-       * @returns {string} - The localized prompt.
-       */
-      getComposablePrompt(language = "dk", promptLanguageType = "Hverdagssprog") {
-        // Find the prompt text for either of the language types "Hverdagssprog" or "Fagligt sprog"
-        const prompTextLanguageType = promptText.find(
-          (entry) => entry.name[language] === promptLanguageType
-        );
-
-        const promptQuestionsOnly = this.extractQuestionsFromPromptTextQuestions(
-          prompTextLanguageType.questions
-        );
-
-        const domainSpecificRules = this.domainSpecificPromptRules[language];
-        const promptStartText = prompTextLanguageType.startText[language];
-        const promptQuestions = promptQuestionsOnly[language];
-        const promptQuestionsExtra = prompTextLanguageType.questionsExtra[language];
-        const promptRules = prompTextLanguageType.promptRules[language];
-        const promptEndText = prompTextLanguageType.endText[language];
-
-        // Compose the prompt text with default prompt questions without the user input questions
-        let composedPromptText = `${domainSpecificRules} ${promptStartText} ${promptQuestions} ${promptQuestionsExtra} ${promptEndText}`;
-
-        // Compose the prompt text with user questions if userQuestionInput is not empty
-        if (this.userQuestionInput) {
-          composedPromptText = `${domainSpecificRules} ${promptStartText} ${this.userQuestionInput} ${promptRules} ${promptEndText}`;
-        }
-
-        console.info(
-          `|Language|\n${language}\n\n|Prompt language type|\n${promptLanguageType}\n\n|Domain specific rules|\n${domainSpecificRules}\n\n|Start text|\n${promptStartText}\n` +
-            `${
-              this.userQuestionInput
-                ? `\n\n|User questions|\n${this.userQuestionInput}\n\n|Rules|\n${promptRules}\n`
-                : `\n|Questions|\n${promptQuestions}\n\n|QuestionsExtra|\n${promptQuestionsExtra}\n`
-            }` +
-            `\n\n|End text|\n${promptEndText}\n`
-        );
-
-        // Sanitize the composed prompt text
-        let sanitizedComposedPromptText = sanitizePrompt({
-          [language]: composedPromptText,
-        });
-
-        // Get the basic prompt for the given language type
-        let languageSpecificPrompt = summarizeArticlePrompt.find((p) => {
-          return promptLanguageType == p.name;
-        });
-
-        // Set the prompt field to the sanitized composed prompt text for the given language
-        languageSpecificPrompt.prompt = sanitizedComposedPromptText[language];
-
-        return languageSpecificPrompt;
       },
 
       /**
@@ -533,7 +477,6 @@
 
           // Parse the sanitized JSON
           const data = JSON.parse(sanitizedText);
-
           return data;
         } catch (error) {
           this.isError = true;

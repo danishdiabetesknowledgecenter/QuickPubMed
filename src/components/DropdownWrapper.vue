@@ -1096,13 +1096,14 @@
           // setting it to zero enabels the first element to be highlighted on enter after pasting text
           this.$refs.multiselect.pointer = 0;
         }
+        // If event is press by enter (charCode 13)
         if (event.charCode == 13) {
           if (event.target.classList.contains("multiselect__input")) {
             const element = this.$refs.selectWrapper;
             target = element.getElementsByClassName("multiselect__option--highlight")[0];
             if (target == null || target.classList.contains("multiselect__option--group")) {
               event.stopPropagation();
-
+              console.log("before first return");
               if (target == null) return;
 
               var focusedGroup = target.querySelector(".qpm_groupLabel").textContent;
@@ -1118,6 +1119,7 @@
               // Nothing currently in focus, and therefore nothing left to do.
               if (dropdownRef.pointer < 0) {
                 event.stopPropagation();
+                console.log("before second return");
                 return;
               }
 
@@ -1129,10 +1131,12 @@
 
               // If no scope buttons exists or none are currently in focus
               // then let the default handeling occur via the input method.
+              console.log("before last return");
               if (!button) return;
 
               event.stopPropagation();
               button.click();
+              return;
             }
           }
         }
