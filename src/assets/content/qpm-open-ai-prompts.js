@@ -457,7 +457,7 @@ export const promptStartText = {
       "answer": "The article provides an overview of..."
     },
   ].
-  Det er vigtigt at du bevarer forholdet mellem shortTitle og question, og at du svarer på alle spørgsmål.
+  Det er vigtigt, at du bevarer forholdet mellem shortTitle og question, og at du svarer på alle spørgsmål.
  `,
   en: `You must answer in JSON format. You will be given a series of questions, each with their own shortTitle.
   Your answer MUST always follow this given structure:
@@ -487,24 +487,32 @@ export const promptStartText = {
  */
 export const promptQuestionsMap = {
   dk: [
-    {
-      question:
-        "Lav en kort opsummering baseret på artiklens samlede tekst, hvor du inkluderer indledning og konklusion. Du skal også inkludere de vigtigste resultater og konklusioner.",
+    { 
+      question: "Lav en kort opsummering baseret på artiklens samlede tekst, hvor du inkluderer indledning og konklusion. Du skal også inkludere de vigtigste resultater og konklusioner.",
       shortTitle: "Resumé",
     },
-    { question: "Hvad er formålet med denne artikel?", shortTitle: "Formål" },
-    {
+    { 
+      question: "Hvad er formålet med denne artikel?", 
+      shortTitle: "Formål" 
+    },
+    { 
       question: "Hvilke metoder blev anvendt?",
       shortTitle: "Metoder",
     },
-    { question: "Hvad er resultaterne?", shortTitle: "Resultater" },
-    { question: "Hvilke konklusioner drages i artiklen?", shortTitle: "Konklusioner" },
-    {
+    { 
+      question: "Hvad er resultaterne?", 
+      shortTitle: "Resultater" 
+    },
+    { 
+      question: "Hvilke konklusioner drages i artiklen?", 
+      shortTitle: "Konklusioner" 
+    },
+    { 
       question: "Hvilke styrker og svagheder er der i studiet?",
       shortTitle: "Styrker og svagheder",
     },
     {
-      question: "Hvilke mulige interessekonflikter har forfatterne til studiet?",
+      question: "Hvilke mulige interessekonflikter har forfatterne til studiet? Angiv kort, hvorfor det er vigtigt at være opmærksom på interessekonflikter i videnskabelige studier. ",
       shortTitle: "Interessekonflikter",
     },
   ],
@@ -513,15 +521,27 @@ export const promptQuestionsMap = {
       question: "Make a brief summary based on the overall text of the article.",
       shortTitle: "Summary",
     },
-    { question: "What is the purpose of this article?", shortTitle: "Purpose" },
-    { question: "What methods were used?", shortTitle: "Methods" },
-    { question: "What are the results?", shortTitle: "Results" },
-    { question: "What conclusions are drawn in the article?", shortTitle: "Conclusions" },
-    {
+    { 
+      question: "What is the purpose of this article?", 
+      shortTitle: "Purpose" 
+    },
+    { 
+      question: "What methods were used?", 
+      shortTitle: "Methods" 
+    },
+    { 
+      question: "What are the results?", 
+      shortTitle: "Results" 
+    },
+    { 
+      question: "What conclusions are drawn in the article?", 
+      shortTitle: "Conclusions" 
+    },
+    { 
       question: "What are the strengths and weaknesses of the study?",
       shortTitle: "Strengths and weaknesses",
     },
-    {
+    { 
       question: "What possible conflicts of interest do the authors of the study have?",
       shortTitle: "Conflicts of interest",
     },
@@ -529,7 +549,7 @@ export const promptQuestionsMap = {
 };
 
 export const promptQuestionsExtra = {
-  dk: `Du skal herefter tilføje 2 eller 3 ekstra spørgsmål der har relevance for denne artikel. For disse spørgsmål skal du selv komme på en shortTitle der passer til spørgsmålet. `,
+  dk: `Du skal herefter tilføje 2 eller 3 ekstra spørgsmål, der har relevans for denne artikel. For disse spørgsmål skal du sætte shortTitle lig med question. `,
   en: `You must then add 2 or 3 additional questions that are relevant to this article. For these questions, you must come up with a shortTitle that fits the question. `,
 };
 
@@ -537,7 +557,7 @@ export const promptQuestionsExtra = {
  * Prompt text for only allowing answers that are specific to the content of the article
  */
 export const promptArticleSpecificAnswersOnly = {
-  dk: `Det er ekstremt vigtigt at du kun besvarer spørgsmål, hvis det er relevant for tekstens indhold. Hvis spørgsmålet omhandler andet end tekstens indhold, svar altid med "Ikke relevant for denne artikel". `,
+  dk: `Det er ekstremt vigtigt, at du kun besvarer spørgsmål, hvis det er relevant for tekstens indhold. Hvis spørgsmålet omhandler andet end tekstens indhold, svar altid med "Ikke relevant for denne artikel". `,
   en: `It is very important that you only answer the questions asked if they are relevant to this article, and that you do not answer questions that are not relevant to this article. `,
 };
 
@@ -567,7 +587,7 @@ export const promptText = [
     questionsExtra: promptQuestionsExtra,
     promptRules: promptArticleSpecificAnswersOnly,
     endText: {
-      dk: "Du skal generere svar til alle spørgsmål, og disse svar skal bestå af minimum 100 ord og skal skrives på fagsprog som let kan forstås af et sundhedsfagligt publikum eller personer med solid baggrund inden for emnet \
+      dk: "Du skal generere svar til alle spørgsmål, og disse svar skal bestå af maksimum 200 ord og skal skrives på fagsprog, som let kan forstås af et sundhedsfagligt publikum eller personer med solid baggrund inden for emnet. \
       Du må ikke svare med andet end JSON-formatet. Du skal aldrig bruge tegnet ` eller medgive 'json' i starten eller slutningen af dit svar. Her er teksten: ",
       en: "You must then generate answers to these questions, and these answers must consist of atleast 100 words and must be written in professional language that can be easily understood by a healthcare audience or people with a solid background in the subject, and add corresponding to the array that is the value for the answers key. \
       You must not respond with anything other than JSON format. You must therefore not use the character ` or write JSON at the beginning or end of the response. Here is the text: ",
@@ -584,7 +604,7 @@ export const promptText = [
     questionsExtra: promptQuestionsExtra,
     promptRules: promptArticleSpecificAnswersOnly,
     endText: {
-      dk: "Du skal generere svar til disse spørgsmål, og disse svar skal bestå af minimum 100 ord og skal skrives i et sprog, som nemt kan læses og forstås af en 15-årig uden forhåndskendskab til emnet, og tilføje svarende til array'et, der er value for answers key'en. \
+      dk: "Du skal generere svar til disse spørgsmål, og disse svar skal bestå af maksimum 100 ord og skal skrives i et sprog, som nemt kan læses og forstås af en 15-årig uden forhåndskendskab til emnet, og tilføje svarende til array'et, der er value for answers key'en. \
       Du skal ikke svare med andet end JSON-formatet. Du skal derfor ikke bruge tegnet ` eller skrive json i starten eller slutningen af svaret. Her er teksten: ",
       en: "You must then generate answers to these questions, and these answers must consist of at least 100 words and must be written in a language that can be easily read and understood by a 15-year-old without prior knowledge of the subject, and add corresponding to the array that is the value for the answers key. \
       You must not respond with anything other than JSON format. You must therefore not use the character ` or write JSON at the beginning or end of the response. Here is the text: ",

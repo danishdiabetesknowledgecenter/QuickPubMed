@@ -17,7 +17,7 @@
  * @property {boolean} [maintopic] - Indicates if this is branch topic with children.
  * @property {number} [subtopiclevel] - The level of nesting for the child topic.
  * @property {string} [maintopicIdLevel1] - The ID of the parent topic.
- * @property {string} [maintopicIdLevel2] - The ID of the grand parent topic.
+ * @property {string} [maintopicIdLevel2] - The ID of the grandparent topic.
  * @property {Object} translations - The translations for different languages.
  * @property {Object} ordering - The ascending sorting order, starting at 0.
  * @property {Object} [searchStrings] - Search strings for different scopes.
@@ -292,12 +292,14 @@ export const topics = [
         },
         ordering: { dk: 1, en: 1 },
         searchStrings: {
-          narrow: ['"Diabetes Mellitus, Type 1"[majr]'],
+          narrow: [
+            '"Diabetes Mellitus"[majr]'
+          ],
           normal: [
-            '"Diabetes Mellitus, Type 1"[mh] OR ((type-1[ti] OR type-i[ti] OR dm1[ti] OR dmi[ti] OR t1d[ti] OR iddm[ti] OR insulin-dependent[ti] OR insulindependent[ti] OR juvenile-onset[ti] OR autoimmune[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti]))',
+            '"Diabetes Mellitus"[mh] OR diabet*[ti] OR pre-diabet*[ti] OR prediabet*[ti]',
           ],
           broad: [
-            '"Diabetes Mellitus, Type 1"[mh] OR ((type-1[tiab] OR type-i[tiab] OR dm1[tiab] OR dmi[tiab] OR t1d[tiab] OR iddm[tiab] OR insulin-dependent[tiab] OR insulindependent[tiab] OR juvenile-onset[tiab] OR autoimmune[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab]))',
+            '"Diabetes Mellitus"[mh] OR diabet*[tiab] OR pre-diabet*[tiab] OR prediabet*[tiab]',
           ],
         },
         searchStringComment: {
