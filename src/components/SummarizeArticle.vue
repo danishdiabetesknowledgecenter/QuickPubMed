@@ -5,11 +5,11 @@
       :wait-text="getString('aiSummaryWaitText')"
       :wait-duration-disclaimer="getString('aiLongWaitTimeDisclaimer')"
       :loading="loading"
-      style="align-self: center"
+      style="align-self: center; padding-top: 30px"
     />
 
     <!-- TITLE summarize entire article -->
-    <p v-if="!loading && currentSummary.length > 0 && !isError">
+    <p v-if="!loading && currentSummary.length > 0 && !isError" style="padding-top: 10px">
       <strong>{{ getString("summarizeArticleHeader") }}</strong>
     </p>
 
@@ -32,7 +32,7 @@
 
     <div v-if="!loading && currentSummary.length > 0 && !isError">
       <!-- Display all Q&A summaries -->
-      <div v-for="(qa, index) in currentSummary" :key="index">
+      <div v-for="(qa, index) in currentSummary.slice(0, 7)" :key="index">
         <accordion-menu
           :key="`${promptLanguageType}-${currentSummaryIndex[promptLanguageType]}-${index}`"
           :title="qa.shortTitle"
@@ -55,6 +55,44 @@
                 "
               ></i>
               {{ qa.shortTitle }}
+            </div>
+          </template>
+
+          <template #default>
+            <div :style="getAnswerStyle(index)" class="qpm_answer-text">
+              {{ qa.answer }}
+            </div>
+          </template>
+        </accordion-menu>
+      </div>
+
+      <!-- TITLE additional questions for the article -->
+      <p v-if="!loading && currentSummary.length > 0 && !isError" style="padding-top: 10px">
+        <strong>{{ getString("generateQuestionsHeader") }}</strong>
+      </p>
+      <div v-for="(qa, index) in currentSummary.slice(7)" :key="index + 7">
+        <accordion-menu
+          :key="`${promptLanguageType}-extra-${currentSummaryIndex[promptLanguageType]}-${index}`"
+          :title="qa.shortTitle"
+          :open-by-default="false"
+        >
+          <template #header="accordionProps">
+            <div class="qpm_aiAccordionHeader">
+              <i
+                v-if="accordionProps.expanded"
+                class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
+              ></i>
+              <i v-else class="bx bx-chevron-right qpm_aiAccordionHeaderArrows"></i>
+              <i
+                class="bx bx-help-circle"
+                style="
+                  font-size: 22px;
+                  vertical-align: text-bottom;
+                  margin-left: 3px;
+                  margin-right: 5px;
+                "
+              ></i>
+              {{ qa.question }}
             </div>
           </template>
 
@@ -171,6 +209,7 @@
        */
       aiArticleSummaries: {
         handler(newVal) {
+          console.log("Watcher: aiArticleSummaries");
           const summaries = newVal[this.promptLanguageType];
           if (summaries && summaries.length === 0 && !this.loading) {
             this.loadOrGenerateSummary(this.promptLanguageType);
@@ -336,21 +375,12 @@
         const promptEndText = prompTextLanguageType.endText[language];
 
         // Compose the prompt text with default prompt questions without the user input questions
-        let composedPromptText = `${domainSpecificRules} ${promptStartText} ${questionsString} ${promptQuestionsExtra} ${promptEndText}`;
-
-        // Compose the prompt text with user questions if userQuestionInput is not empty
-        if (this.userQuestionInput) {
-          composedPromptText = `${domainSpecificRules} ${promptStartText} ${this.userQuestionInput} ${promptRules} ${promptEndText}`;
-        }
+        let composedPromptText = `${domainSpecificRules} ${promptStartText} ${questionsString} ${promptQuestionsExtra} ${promptRules} ${promptEndText}`;
 
         console.info(
           `|Language|\n${language}\n\n|Prompt language type|\n${promptLanguageType}\n\n|Domain specific rules|\n${domainSpecificRules}\n\n|Start text|\n${promptStartText}\n` +
-            `${
-              this.userQuestionInput
-                ? `\n\n|User questions|\n${this.userQuestionInput}\n\n|Rules|\n${promptRules}\n`
-                : `\n|Questions|\n${questionsString}\n\n|QuestionsExtra|\n${promptQuestionsExtra}\n`
-            }` +
-            `\n\n|End text|\n${promptEndText}\n`
+            `\n|Questions|\n${questionsString}\n\n|QuestionsExtra|\n${promptQuestionsExtra}\n\n|Rules|\n${promptRules}\n` +
+            `\n|End text|\n${promptEndText}\n`
         );
 
         // Sanitize the composed prompt text

@@ -169,6 +169,7 @@
                     <keep-alive>
                       <summarize-article
                         v-if="isInitialized"
+                        :key="`abstract-${currentSummary}`"
                         :pdf-url="pdfUrl"
                         :html-url="htmlUrl"
                         :language="language"
@@ -322,7 +323,10 @@
         type: Boolean,
         default: false,
       },
-      hasAcceptedAi: Boolean,
+      hasAcceptedAi: {
+        type: Boolean,
+        required: true,
+      },
       useMarkdown: {
         type: Boolean,
         default: true,
@@ -571,7 +575,6 @@
           this.$set(this.aiArticleSummaries, promptLanguageType, []);
         }
         this.aiArticleSummaries[promptLanguageType].push(summaryData);
-        console.log("this.aiArticleSummaries", this.aiArticleSummaries);
         this.currentSummaryIndex[promptLanguageType] =
           this.aiArticleSummaries[promptLanguageType].length - 1;
       },

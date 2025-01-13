@@ -472,6 +472,19 @@ export const promptStartText = {
   `,
 };
 
+const promptStartTextuserQuestions = {
+  dk: `Du skal svare i JSON-format. Du skal aldrig annotere dit svar med \`\`\`json i starten af svaret samt \`\`\` i slutningen af svaret. 
+  Der vil blive stillet et spørgsmål i kontekst af en videnskabelig artikel, som du skal besvare. Der skal være 2 key-value pairs i dit svar. 
+  Den første key skal hedde questions, og value skal være et array. 
+  Den anden key skal hedde answers, og value skal være et array med svarene på spørgsmålene. 
+  Du må ikke selv komme på spørgsmål eller ændre på det spørgsmål der bliver stillet.`,
+  en: `You must respond in JSON format. You can never annotate your answer with \`\`\json at the beginning of your response, nor with  \`\`\` at the end of your response. 
+  You will be asked one question in the context of a scientific article, that you must answer. There must be 2 key-value pairs in your response. 
+  The first key must be called questions, and the value must be an array. 
+  The second key must be called answers, and the value must be an array with the answers to the questions.
+  You must not come up with questions yourself or change the question that is asked.`,
+};
+
 /**
  * @typedef {Object} QuestionItem
  * @property {string} question - The question text.
@@ -583,6 +596,7 @@ export const promptText = [
       en: "Professional language",
     },
     startText: promptStartText,
+    startTextuserQuestions: promptStartTextuserQuestions,
     questions: promptQuestionsMap,
     questionsExtra: promptQuestionsExtra,
     promptRules: promptArticleSpecificAnswersOnly,
@@ -600,6 +614,7 @@ export const promptText = [
       en: "Plain language",
     },
     startText: promptStartText,
+    startTextuserQuestions: promptStartTextuserQuestions,
     questions: promptQuestionsMap,
     questionsExtra: promptQuestionsExtra,
     promptRules: promptArticleSpecificAnswersOnly,

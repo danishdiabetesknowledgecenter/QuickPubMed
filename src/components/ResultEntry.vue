@@ -421,12 +421,12 @@
               <div class="qpm_ai_hide">
                 <keep-alive>
                   <div
-                    v-if="!hasAbstract"
+                    v-if="!hasAcceptedAi && !hasAbstract"
                     class="qpm_searchSummaryText qpm_searchSummaryTextBackground"
                   >
-                    <p>{{ getString("aiSummarizeAbstractButton") }}</p>
+                    <p>{{ getString("aiSummarizeArticleButton") }}</p>
                     <p>
-                      <strong>{{ getString("aiSummarizeSearchResultButton") }}</strong> bob er stærk
+                      <strong>{{ getString("aiSummarizeSearchResultButton") }}</strong>
                     </p>
                     <button
                       v-for="prompt in getAbstractSummaryPrompts()"
@@ -448,9 +448,8 @@
                     </button>
                     <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryConsentText')" />
                   </div>
-                  <!-- AI Summary of an article when no abstract present -->
                   <summarize-no-abstract
-                    v-if="hasAcceptedAi"
+                    v-else-if="hasAcceptedAi"
                     :license="license"
                     :is-license-allowed="getIsLicenseAllowed"
                     :is-resource-allowed="getIsResourceAllowed"
@@ -462,13 +461,8 @@
                     :html-url="htmlUrl"
                     :language="language"
                     :prompts="getAllPrompts()"
-                    :summary-search-summary-consent-text="getString('aiSearchSummaryConsentHeader')"
-                    :summary-consent-header="getString('aiAbstractSummaryConsentHeader')"
-                    :success-header="getString('aiSummarizeAbstractResultHeader')"
-                    :error-header="getString('aiSummarizeAbstractErrorHeader')"
                     :has-accepted-ai="hasAcceptedAi"
                     :initial-tab-prompt="initialAiTab"
-                    :check-for-pdf="true"
                   />
                   <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryConsentText')" />
                 </keep-alive>
@@ -1524,7 +1518,6 @@
         this.hasAcceptedAi = true;
         this.getArticles;
         this.initialAiTab = prompt;
-        console.log("We clicked acceptAI");
       },
       closeSummaries() {
         this.hasAcceptedAi = false;

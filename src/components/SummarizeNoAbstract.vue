@@ -40,6 +40,7 @@
                     <keep-alive>
                       <summarize-article
                         v-if="isInitialized"
+                        :key="`no-abstract-${currentSummary}`"
                         :pdf-url="pdfUrl"
                         :html-url="htmlUrl"
                         :language="language"
@@ -74,13 +75,6 @@
               </div>
             </div>
           </template>
-          <loading-spinner
-            class="qpm_searchSummaryText"
-            :wait-text="getString('aiSummaryWaitText')"
-            :wait-duration-disclaimer="getWaitTimeString"
-            :loading="isCurrentSummaryWaitingForResponse"
-            style="align-self: center"
-          />
         </div>
       </template>
     </div>
@@ -92,10 +86,8 @@
   import SummarizeArticle from "@/components/SummarizeArticle.vue";
   import QuestionForArticle from "@/components/QuestionForArticle.vue";
   import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
-
   import { appSettingsMixin } from "@/mixins/appSettings.js";
   import { messages } from "@/assets/content/qpm-translations.js";
-
   import { config } from "@/config/config.js";
   import { promptText } from "@/assets/content/qpm-open-ai-prompts.js";
 
@@ -148,7 +140,6 @@
         type: Boolean,
         default: false,
       },
-
       language: {
         type: String,
         default: "dk",
@@ -157,32 +148,14 @@
         type: Array,
         required: true,
       },
-      summaryConsentHeader: {
-        type: String,
-        default: "",
-        required: SVGComponentTransferFunctionElement,
-      },
-      summarySearchSummaryConsentText: {
-        type: String,
-        default: null,
-        required: SVGComponentTransferFunctionElement,
-      },
-      successHeader: {
-        type: [String, Function],
+      hasAcceptedAi: {
+        type: Boolean,
         required: true,
       },
-      errorHeader: {
-        type: String,
-        required: true,
-      },
-
-      hasAcceptedAi: Boolean,
-
       initialTabPrompt: {
         type: Object,
         default: null,
       },
-
       isForbiddenError: {
         type: Boolean,
         default: false,
@@ -191,64 +164,6 @@
     data() {
       return {
         currentSummary: "",
-        /**
-         * The tabstates is an object indexed by the name of each tab. The corresponding value is an object containing
-         * information about the state of a tab to enable switching between them without resetting the view.
-         *
-         * @example
-         * tabStates: {
-         *   "fagsprog": {
-         *     currentIndex: 2
-         *   },
-         *   "hverdagssprog": {
-         *     currentIndex: 0
-         *   }
-         * }
-         */
-        tabStates: this.prompts.reduce((acc, prompt) => {
-          acc[prompt.name] = { currentIndex: 0 };
-          return acc;
-        }, {}),
-        loadingAbstractSummaries: [],
-        /**
-         * An object containing each summary that has been fetched so far.
-         * Each entry is an array of objects which always contains at least the following properties:
-         *  - `requestTime`		- Date
-         * 	- `status` 			- "success" | "error" | "loading"
-         *  - `articles`		- [{...}, {...}, {...}]
-         * 	- `body`			- String
-         * @example
-         * aiSearchSummaries: {
-         *   fagsprog: [
-         * 	   {
-         *       requestTime: "2017-06-03T03:57:00.000Z",
-         *       responseTime: "2017-06-03T04:00:00.000Z",
-         *       status: "succes",
-         *       articles: [{...}, {...}],
-         *     	 body: "Artiklerne beskriver..."
-         *     }
-         * 	 ],
-         *   hverdagssprog: [
-         *     {
-         *       requestTime: "2017-06-03T04:10:00.000Z",
-         *       responseTime: "2017-06-03T04:17:00.000Z",
-         *       status: "error",
-         *       articles: [{...}, {...}, {...}],
-         *       body: "CORS error",
-         *       error: {...}
-         *     }
-         *   ]
-         * }
-         */
-        aiSearchSummaries: this.prompts.reduce((acc, prompt) => {
-          acc[prompt.name] = [];
-          return acc;
-        }, {}),
-        articleCount: 0,
-        showHistory: false,
-        stopGeneration: false,
-        pdfFound: false,
-        articleName: "",
         aiArticleSummaries: {},
         currentSummaryIndex: {},
         isInitialized: false,
@@ -262,87 +177,13 @@
           console.log("currentSummary changed", newVal);
         }
       },
+      loadingArticleSummaries(newVal, oldVal) {
+        console.log("loadingArticleSummaries changed", newVal), oldVal;
+      },
     },
     computed: {
       config() {
         return config;
-      },
-      getIsSummaryLoading() {
-        return this.loadingAbstractSummaries.includes(this.currentSummary);
-      },
-      getCurrentSummaryHistory() {
-        if (!this.currentSummary) return null;
-
-        let currentSummaries = this.aiSearchSummaries[this.currentSummary];
-        return currentSummaries;
-      },
-      getCurrentIndex() {
-        let tabState = this.tabStates[this.currentSummary];
-        let index = tabState?.currentIndex ?? 0;
-        return index;
-      },
-      getCurrentSummary() {
-        let summaries = this.getCurrentSummaryHistory;
-        if (!summaries || summaries.length == 0) return undefined;
-
-        let index = this.getCurrentIndex;
-
-        return summaries[index];
-      },
-      getDidCurrentSummaryError() {
-        const summary = this.getCurrentSummary;
-        return summary?.status == "error";
-      },
-      isCurrentSummaryWaitingForResponse() {
-        const summary = this.getCurrentSummary;
-        return summary?.status == "loading" && (!summary?.body || summary.body.length == 0);
-      },
-      getWaitTimeString() {
-        const currentSummary = this.getCurrentSummary;
-        if (currentSummary == undefined || !currentSummary.showWaitDisclaimer) return "";
-
-        const longAbstractLengthLimit = this.appSettings.openAi.longAbstractLengthLimit ?? 5000;
-
-        const totalAbstractLength =
-          currentSummary?.articles?.reduce((acc, article) => {
-            return acc + article.abstract.length;
-          }, 0) ?? 0;
-
-        if (totalAbstractLength > longAbstractLengthLimit) {
-          return this.getString("aiLongWaitTimeDisclaimer");
-        } else {
-          return this.getString("aiShortWaitTimeDisclaimer");
-        }
-      },
-      getSuccessHeader() {
-        if (typeof this.successHeader === "function") {
-          const currentSummary = this.getCurrentSummary;
-          let articles = currentSummary?.articles;
-          return articles && this.successHeader(articles, currentSummary.isMarkedArticlesSearch);
-        }
-        return this.successHeader;
-      },
-      canRenderMarkdown() {
-        const isVueShowdownRegistered =
-          !!this.$options.components["VueShowdown"] || !!this.$options.components["vue-showdown"];
-        return isVueShowdownRegistered;
-      },
-      languageFormat() {
-        // Define language formats as needed
-        return {
-          dk: {
-            /* date options */
-          },
-          // other languages
-        };
-      },
-      dateOptions() {
-        // Define date options as needed
-        return {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        };
       },
     },
     created() {
@@ -358,6 +199,7 @@
           }
         });
         this.isInitialized = true;
+        console.log("isInitialized", this.isInitialized);
       });
     },
     activated() {
@@ -418,6 +260,7 @@
        * Handler to update aiArticleSummaries from child component.
        */
       updateAiArticleSummaries({ promptLanguageType, summaryData }) {
+        console.log("updateAiArticleSummaries", promptLanguageType, summaryData);
         this.$set(this.loadingArticleSummaries, promptLanguageType, false); // Set loading to false
         if (!this.aiArticleSummaries[promptLanguageType]) {
           this.$set(this.aiArticleSummaries, promptLanguageType, []);
@@ -462,11 +305,6 @@
         const constant = messages[string][lg];
         return constant !== undefined ? constant : messages[string]["dk"];
       },
-      getSummaryPromptByName(name) {
-        return this.prompts.find(function (prompt) {
-          return prompt.name == name;
-        });
-      },
       getErrorTranslation(error) {
         const lg = this.language;
         try {
@@ -476,13 +314,8 @@
           return messages["unknownError"][lg];
         }
       },
-
-      async clickSummaryTab(tab) {
-        this.currentSummary = tab.name;
-        let currentSummaries = this.aiSearchSummaries[tab.name];
-        if (this.getIsSummaryLoading || (currentSummaries && currentSummaries.length > 0)) {
-          return;
-        }
+      async clickSummaryTab(prompt) {
+        this.currentSummary = prompt.name;
       },
       getTabTooltipContent(prompt) {
         const tooltip = prompt?.tooltip;
