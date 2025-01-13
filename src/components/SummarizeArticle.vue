@@ -253,13 +253,17 @@
         console.log("Current article summary copied to the clipboard.");
         if (this.currentSummary.length > 0) {
           const textToCopy =
-            this.authorsList +
+            this.authorsList.trim() +
             ". " +
             this.searchResultTitle +
             this.publicationInfo +
             ". " +
             "\n\n\n" +
-            this.currentSummary.map((qa) => `${qa.shortTitle}\n${qa.answer}`).join("\n\n");
+            this.currentSummary
+              .map((qa, index) =>
+                index < 7 ? `${qa.shortTitle}\n${qa.answer}` : `${qa.question}\n${qa.answer}`
+              )
+              .join("\n\n");
           await navigator.clipboard.writeText(textToCopy);
         }
       },
