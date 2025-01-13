@@ -13,10 +13,11 @@
       <strong>{{ getString("summarizeArticleHeader") }}</strong>
     </p>
 
-    <div v-if="!loading && currentSummary.length > 0 && !isError">
+    <div v-if="!loading && currentSummary.length > 0 && !isError && getTotalSummaries() > 1">
       <button
         style="margin-top: -3px; border: 0px"
         class="qpm_summary_icon bx bx-chevron-left"
+        :disabled="currentSummaryIndex[promptLanguageType] === 0"
         @click="navigateHistory('previous')"
       />
       <span style="padding: 0px 3px">
@@ -26,6 +27,7 @@
       <button
         style="margin-top: -3px; border: 0px"
         class="qpm_summary_icon bx bx-chevron-right"
+        :disabled="currentSummaryIndex[promptLanguageType] === getTotalSummaries() - 1"
         @click="navigateHistory('next')"
       />
     </div>
