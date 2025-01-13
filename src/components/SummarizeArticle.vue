@@ -59,7 +59,7 @@
           </template>
 
           <template #default>
-            <div :style="getAnswerStyle(index)" class="qpm_answer-text">
+            <div class="qpm_answer-text">
               {{ qa.answer }}
             </div>
           </template>
@@ -77,7 +77,7 @@
           :open-by-default="false"
         >
           <template #header="accordionProps">
-            <div class="qpm_aiAccordionHeader">
+            <div ref="headerText" class="qpm_aiAccordionHeader">
               <i
                 v-if="accordionProps.expanded"
                 class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
@@ -209,7 +209,6 @@
        */
       aiArticleSummaries: {
         handler(newVal) {
-          console.log("Watcher: aiArticleSummaries");
           const summaries = newVal[this.promptLanguageType];
           if (summaries && summaries.length === 0 && !this.loading) {
             this.loadOrGenerateSummary(this.promptLanguageType);
@@ -235,18 +234,6 @@
           return summariesArray.length;
         }
         return 0;
-      },
-
-      /**
-       * Determine the style for the answer text based on the index.
-       * Adjust as needed; placeholder implementation.
-       */
-      getAnswerStyle(index) {
-        // Example styles; adjust based on actual requirements
-        return {
-          padding: "10px",
-          borderRadius: "4px",
-        };
       },
 
       /**
@@ -338,7 +325,6 @@
       async generateAndSaveSummary(promptLanguageType) {
         try {
           const summaryData = await this.handleSummarizeArticle(promptLanguageType);
-          console.log("Summary data: ", summaryData);
           this.saveAiSummaryOfArticle(promptLanguageType, summaryData);
           // Emit loading end
           this.$emit("unset-loading", { promptLanguageType });

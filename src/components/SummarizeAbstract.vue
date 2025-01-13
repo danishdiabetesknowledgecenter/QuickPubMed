@@ -783,7 +783,6 @@
         this.showHistory = !this.showHistory;
       },
       clickHistoryItem(index) {
-        console.log("ClickHistoryItem", index);
         this.$set(this.tabStates[this.currentSummary], "currentIndex", index);
       },
       formatDate(date) {

@@ -53,14 +53,16 @@ export const questionHeaderHeightWatcherMixin = {
     },
     getAnswerStyle(index) {
       const height = this.headerHeights[index];
+      console.log("Header Height:", height);
       if (height > 45) {
+        console.log("adding margin");
         return "margin-left: 40px;";
       }
       return "";
     },
   },
   watch: {
-    questions() {
+    aiArticleSummaries() {
       this.$nextTick(this.updateHeaderHeights);
     },
   },
