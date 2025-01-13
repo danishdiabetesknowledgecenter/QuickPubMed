@@ -44,6 +44,7 @@
                         :pdf-url="pdfUrl"
                         :html-url="htmlUrl"
                         :language="language"
+                        :authors-list="authorsList"
                         :prompt-language-type="currentSummary"
                         :domain-specific-prompt-rules="domainSpecificPromptRules"
                         :ai-article-summaries="aiArticleSummaries"
@@ -159,6 +160,10 @@
       isForbiddenError: {
         type: Boolean,
         default: false,
+      },
+      authorsList: {
+        type: String,
+        default: "",
       },
     },
     data() {

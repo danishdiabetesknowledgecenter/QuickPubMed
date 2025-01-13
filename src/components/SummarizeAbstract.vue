@@ -173,6 +173,7 @@
                         :pdf-url="pdfUrl"
                         :html-url="htmlUrl"
                         :language="language"
+                        :authors-list="authorsList"
                         :prompt-language-type="currentSummary"
                         :domain-specific-prompt-rules="domainSpecificPromptRules"
                         :ai-article-summaries="aiArticleSummaries"
@@ -342,6 +343,10 @@
       isForbiddenError: {
         type: Boolean,
         default: false,
+      },
+      authorsList: {
+        type: String,
+        default: "",
       },
     },
     data() {
@@ -764,7 +769,9 @@
       },
       clickCopy() {
         const summary = this.$refs.summary;
-        navigator.clipboard.writeText(summary.innerText);
+        const textToCopy = `${this.authorsList}\n\n\n${summary.innerText}`;
+
+        navigator.clipboard.writeText(textToCopy);
       },
       clickCloseSummary() {
         this.$emit("close");

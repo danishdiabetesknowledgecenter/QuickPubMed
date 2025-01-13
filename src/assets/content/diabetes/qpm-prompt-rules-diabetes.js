@@ -2,7 +2,7 @@
  * Prompt text for use in prompting to adhere to specific domain rules for diabetes
  */
 export const promptRules = {
-  dk: `Følg altid disse skriveregler: \
+  dk: `Følg altid disse skriveregler: 
     Skriv altid 'type 1-diabetes', men skriv aldrig 'type 1 diabetes', 'diabetes 1', 'diabetes type 1' e.l. 
     Skriv altid 'type 2-diabetes', men skriv aldrig 'type 2 diabetes', 'diabetes 2', 'diabetes type 2' e.l. 
     Skriv altid 'person med diabetes', men skriv aldrig 'diabetiker', 'diabetespatient' e.l. 

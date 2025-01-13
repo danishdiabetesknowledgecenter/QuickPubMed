@@ -192,6 +192,10 @@
         type: Boolean,
         required: true,
       },
+      authorsList: {
+        type: String,
+        required: false,
+      },
     },
     data() {
       return {
@@ -238,9 +242,10 @@
       async clickCopy() {
         console.log("Current article summary copied to the clipboard.");
         if (this.currentSummary.length > 0) {
-          const textToCopy = this.currentSummary
-            .map((qa) => `${qa.shortTitle}\n${qa.answer}`)
-            .join("\n\n");
+          const textToCopy =
+            this.authorsList +
+            "\n\n\n" +
+            this.currentSummary.map((qa) => `${qa.shortTitle}\n${qa.answer}`).join("\n\n");
           await navigator.clipboard.writeText(textToCopy);
         }
       },
