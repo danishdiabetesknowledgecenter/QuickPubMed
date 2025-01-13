@@ -256,6 +256,7 @@
             this.authorsList.trim() +
             ". " +
             this.searchResultTitle +
+            " " +
             this.publicationInfo +
             ". " +
             "\n\n\n" +
