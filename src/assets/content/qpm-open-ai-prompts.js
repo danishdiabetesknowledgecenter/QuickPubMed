@@ -564,7 +564,7 @@ export const promptQuestionsMap = {
 };
 
 export const promptQuestionsExtra = {
-  dk: `Du skal herefter tilføje 2 eller 3 ekstra spørgsmål, der har relevans for denne artikel.`,
+  dk: `Du skal herefter tilføje 2 eller 3 ekstra spørgsmål, der har relevans for denne artikel og som du mener, at læseren vil have gavn af at få svar på.`,
   en: `You must then add 2 or 3 additional questions that are relevant to this article.`,
 };
 
@@ -572,7 +572,7 @@ export const promptQuestionsExtra = {
  * Prompt text for only allowing answers that are specific to the content of the article
  */
 export const promptArticleSpecificAnswersOnly = {
-  dk: `Det er ekstremt vigtigt, at du kun besvarer spørgsmål, hvis det er relevant for tekstens indhold. Hvis spørgsmålet omhandler andet end tekstens indhold, svar altid med "Ikke relevant for denne artikel". `,
+  dk: `Det er ekstremt vigtigt, at du kun besvarer spørgsmål, hvis det er relevant for tekstens indhold. Hvis spørgsmålet omhandler andet end tekstens indhold, svar altid med "Ikke relevant for denne artikel".  `,
   en: `It is very important that you only answer the questions asked if they are relevant to this article, and that you do not answer questions that are not relevant to this article. `,
 };
 
