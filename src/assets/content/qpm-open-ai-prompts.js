@@ -500,32 +500,34 @@ const promptStartTextuserQuestions = {
  */
 export const promptQuestionsMap = {
   dk: [
-    { 
-      question: "Lav en kort opsummering baseret på artiklens samlede tekst, hvor du inkluderer indledning og konklusion. Du skal også inkludere de vigtigste resultater og konklusioner.",
+    {
+      question:
+        "Lav en kort opsummering baseret på artiklens samlede tekst, hvor du inkluderer indledning og konklusion. Du skal også inkludere de vigtigste resultater og konklusioner.",
       shortTitle: "Resumé",
     },
-    { 
-      question: "Hvad er formålet med denne artikel?", 
-      shortTitle: "Formål" 
+    {
+      question: "Hvad er formålet med denne artikel?",
+      shortTitle: "Formål",
     },
-    { 
+    {
       question: "Hvilke metoder blev anvendt?",
       shortTitle: "Metoder",
     },
-    { 
-      question: "Hvad er resultaterne?", 
-      shortTitle: "Resultater" 
+    {
+      question: "Hvad er resultaterne?",
+      shortTitle: "Resultater",
     },
-    { 
-      question: "Hvilke konklusioner drages i artiklen?", 
-      shortTitle: "Konklusioner" 
+    {
+      question: "Hvilke konklusioner drages i artiklen?",
+      shortTitle: "Konklusioner",
     },
-    { 
+    {
       question: "Hvilke styrker og svagheder er der i studiet?",
       shortTitle: "Styrker og svagheder",
     },
     {
-      question: "Hvilke mulige interessekonflikter har forfatterne til studiet? Angiv kort, hvorfor det er vigtigt at være opmærksom på interessekonflikter i videnskabelige studier. ",
+      question:
+        "Hvilke mulige interessekonflikter har forfatterne til studiet? Angiv kort, hvorfor det er vigtigt at være opmærksom på interessekonflikter i videnskabelige studier. ",
       shortTitle: "Interessekonflikter",
     },
   ],
@@ -534,27 +536,27 @@ export const promptQuestionsMap = {
       question: "Make a brief summary based on the overall text of the article.",
       shortTitle: "Summary",
     },
-    { 
-      question: "What is the purpose of this article?", 
-      shortTitle: "Purpose" 
+    {
+      question: "What is the purpose of this article?",
+      shortTitle: "Purpose",
     },
-    { 
-      question: "What methods were used?", 
-      shortTitle: "Methods" 
+    {
+      question: "What methods were used?",
+      shortTitle: "Methods",
     },
-    { 
-      question: "What are the results?", 
-      shortTitle: "Results" 
+    {
+      question: "What are the results?",
+      shortTitle: "Results",
     },
-    { 
-      question: "What conclusions are drawn in the article?", 
-      shortTitle: "Conclusions" 
+    {
+      question: "What conclusions are drawn in the article?",
+      shortTitle: "Conclusions",
     },
-    { 
+    {
       question: "What are the strengths and weaknesses of the study?",
       shortTitle: "Strengths and weaknesses",
     },
-    { 
+    {
       question: "What possible conflicts of interest do the authors of the study have?",
       shortTitle: "Conflicts of interest",
     },
@@ -562,8 +564,8 @@ export const promptQuestionsMap = {
 };
 
 export const promptQuestionsExtra = {
-  dk: `Du skal herefter tilføje 2 eller 3 ekstra spørgsmål, der har relevans for denne artikel. For disse spørgsmål skal du sætte shortTitle lig med question. `,
-  en: `You must then add 2 or 3 additional questions that are relevant to this article. For these questions, you must come up with a shortTitle that fits the question. `,
+  dk: `Du skal herefter tilføje 2 eller 3 ekstra spørgsmål, der har relevans for denne artikel.`,
+  en: `You must then add 2 or 3 additional questions that are relevant to this article.`,
 };
 
 /**
