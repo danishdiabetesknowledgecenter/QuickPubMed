@@ -44,7 +44,9 @@
                         :pdf-url="pdfUrl"
                         :html-url="htmlUrl"
                         :language="language"
+                        :search-result-title="searchResultTitle"
                         :authors-list="authorsList"
+                        :publication-info="publicationInfo"
                         :prompt-language-type="currentSummary"
                         :domain-specific-prompt-rules="domainSpecificPromptRules"
                         :ai-article-summaries="aiArticleSummaries"
@@ -162,6 +164,14 @@
         default: false,
       },
       authorsList: {
+        type: String,
+        default: "",
+      },
+      publicationInfo: {
+        type: String,
+        default: "",
+      },
+      searchResultTitle: {
         type: String,
         default: "",
       },

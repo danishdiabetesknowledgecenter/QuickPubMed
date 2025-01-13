@@ -351,7 +351,9 @@
                   :pdf-url="pdfUrl"
                   :html-url="htmlUrl"
                   :language="language"
-                  :authors-list="author"
+                  :search-result-title="computedTitle"
+                  :authors-list="author.trim()"
+                  :publication-info="getFormattedPublication()"
                   :prompts="getAllPrompts()"
                   :summary-search-summary-consent-text="getString('aiSearchSummaryConsentHeader')"
                   :summary-consent-header="getString('aiAbstractSummaryConsentHeader')"
@@ -461,7 +463,9 @@
                     :pdf-url="pdfUrl"
                     :html-url="htmlUrl"
                     :language="language"
+                    :search-result-title="computedTitle"
                     :authors-list="author"
+                    :publication-info="getFormattedPublication()"
                     :prompts="getAllPrompts()"
                     :has-accepted-ai="hasAcceptedAi"
                     :initial-tab-prompt="initialAiTab"
@@ -1166,6 +1170,26 @@
       this.$parent.$off("abstractLoadeds", this.setAbstract);
     },
     methods: {
+      getFormattedPublication() {
+        let formatted = "";
+        if (this.journalName) {
+          formatted += `${this.journalName}. `;
+        }
+        if (this.pubDate) {
+          formatted += `${this.pubDate};`;
+        }
+        if (this.volume) {
+          formatted += `${this.volume}`;
+        }
+        if (this.issue) {
+          formatted += `(${this.issue})`;
+        }
+        if (this.pages) {
+          formatted += `:${this.pages}`;
+        }
+        return formatted;
+      },
+
       /**
        * Ensures that the Dimension and Altmetric third-party scripts are loaded.
        * If the scripts are not present, they are dynamically injected into the document.

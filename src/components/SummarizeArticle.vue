@@ -198,6 +198,14 @@
         type: String,
         required: false,
       },
+      publicationInfo: {
+        type: String,
+        default: "",
+      },
+      searchResultTitle: {
+        type: String,
+        default: "",
+      },
     },
     data() {
       return {
@@ -246,6 +254,10 @@
         if (this.currentSummary.length > 0) {
           const textToCopy =
             this.authorsList +
+            ". " +
+            this.searchResultTitle +
+            this.publicationInfo +
+            ". " +
             "\n\n\n" +
             this.currentSummary.map((qa) => `${qa.shortTitle}\n${qa.answer}`).join("\n\n");
           await navigator.clipboard.writeText(textToCopy);
@@ -362,6 +374,8 @@
           this.isError = true;
           this.errorMessage = "Failed to generate summary.";
           // Emit loading end on error
+          this.$emit("unset-loading", { promptLanguageType });
+        } finally {
           this.$emit("unset-loading", { promptLanguageType });
         }
       },

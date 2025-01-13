@@ -173,7 +173,9 @@
                         :pdf-url="pdfUrl"
                         :html-url="htmlUrl"
                         :language="language"
+                        :search-result-title="searchResultTitle"
                         :authors-list="authorsList"
+                        :publication-info="publicationInfo"
                         :prompt-language-type="currentSummary"
                         :domain-specific-prompt-rules="domainSpecificPromptRules"
                         :ai-article-summaries="aiArticleSummaries"
@@ -345,6 +347,14 @@
         default: false,
       },
       authorsList: {
+        type: String,
+        default: "",
+      },
+      publicationInfo: {
+        type: String,
+        default: "",
+      },
+      searchResultTitle: {
         type: String,
         default: "",
       },
@@ -769,7 +779,7 @@
       },
       clickCopy() {
         const summary = this.$refs.summary;
-        const textToCopy = `${this.authorsList}\n\n\n${summary.innerText}`;
+        const textToCopy = `${this.authorsList}. ${this.searchResultTitle} ${this.publicationInfo}. \n\n\n${summary.innerText}`;
 
         navigator.clipboard.writeText(textToCopy);
       },
