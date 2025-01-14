@@ -265,6 +265,7 @@
         return this.doi ? this.doi : null;
       },
       getId() {
+        console.log("Getting ID: ", this.ids ? this.ids : null);
         return this.ids ? this.ids : null;
       },
       getComponentId() {
@@ -335,7 +336,10 @@
         }
       },
       getHasAbstract(attributes) {
-        if (this.abstract || this.sectionedAbstract) return true;
+        if (this.abstract || this.sectionedAbstract) {
+          console.log("We have an abstract", this.sectionedAbstract);
+          return true;
+        }
         if (!attributes) {
           return false;
         }

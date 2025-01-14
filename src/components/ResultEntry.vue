@@ -100,7 +100,7 @@
           {{ getButtonText }}
         </button>
         <button
-          v-if="pmid != null"
+          v-if="pmid !== null"
           v-tooltip="{
             content: getString('hoverOpenInPubMedButton'),
             offset: 5,
@@ -189,7 +189,7 @@
           {{ getButtonText }}
         </button>
         <button
-          v-if="pmid !== undefined"
+          v-if="pmid !== null"
           v-tooltip="{
             content: getString('hoverOpenInPubMedButton'),
             offset: 5,
@@ -565,7 +565,10 @@
                 </p>
               </div>
             </template>
-            <template v-if="!hasAbstract || !isDocTypeAllowed">
+            <template v-if="hasSectionedAbstract">
+              <p style="padding-top: 20px" v-html="getSectionAbstract"></p>
+            </template>
+            <template v-if="!hasAbstract || (!isDocTypeAllowed && !hasSectionedAbstract)">
               <p style="padding-bottom: 10px">
                 {{ getString("noAbstract") }}
               </p>
@@ -1073,6 +1076,15 @@
         var issue = "(" + this.issue + ")" || "";
         var pages = ":" + this.pages || "";
         return source + sourceDateSeperator + pubDate + volume + issue + pages;
+      },
+      getSectionAbstract() {
+        if (!this.sectionedAbstract) return "";
+
+        return Object.keys(this.sectionedAbstract)
+          .map((key) => {
+            return `<p style="font-weight: bold">${key}:</p> ${this.sectionedAbstract[key]}`;
+          })
+          .join("<br><br>");
       },
       getAbstract() {
         var abstract = "";
