@@ -337,7 +337,6 @@
       },
       getHasAbstract(attributes) {
         if (this.abstract || this.sectionedAbstract) {
-          console.log("We have an abstract", this.sectionedAbstract);
           return true;
         }
         if (!attributes) {
@@ -403,7 +402,6 @@
       },
       getPubType(searchResult) {
         if (!searchResult) {
-          console.log("getPubType | Search result is undefined");
           return;
         }
         try {
@@ -415,7 +413,6 @@
       },
       getDocType(searchResult) {
         if (!searchResult) {
-          console.log("getDocType | Search result is undefined");
           return;
         }
         try {
