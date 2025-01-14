@@ -1172,8 +1172,9 @@
     methods: {
       getFormattedPublication() {
         let formatted = "";
-        if (this.journalName) {
-          formatted += `${this.journalName}. `;
+
+        if (this.source) {
+          formatted += `${this.source}. `;
         }
         if (this.pubDate) {
           formatted += `${this.pubDate};`;
@@ -1187,6 +1188,7 @@
         if (this.pages) {
           formatted += `:${this.pages}`;
         }
+        console.info("formatted: ", formatted);
         return formatted;
       },
 
