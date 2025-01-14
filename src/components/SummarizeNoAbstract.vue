@@ -40,6 +40,7 @@
                     <keep-alive>
                       <summarize-article
                         v-if="isInitialized"
+                        :ref="`summarizeArticleNoAbstract-${currentSummary}`"
                         :key="`no-abstract-${currentSummary}`"
                         :pdf-url="pdfUrl"
                         :html-url="htmlUrl"
@@ -72,6 +73,47 @@
                         @update-questions-and-answers="updateUserQuestionsAndAnswers"
                       />
                     </keep-alive>
+                    <button
+                      v-if="
+                        !loadingArticleSummaries[currentSummary] || !currentSummary.length === 0
+                      "
+                      v-tooltip="{
+                        content: getString('hoverretryText'),
+                        offset: 5,
+                        delay: $helpTextDelay,
+                        hideOnTargetClick: false,
+                      }"
+                      class="qpm_button"
+                      style="margin-top: 25px"
+                      :disabled="
+                        loadingArticleSummaries[currentSummary] || currentSummary.length === 0
+                      "
+                      @keydown.enter="handleRetryArticleSummary"
+                      @click="handleRetryArticleSummary"
+                    >
+                      <i class="bx bx-refresh" style="vertical-align: baseline; font-size: 1em"></i>
+                      {{ getString("retryText") }}
+                    </button>
+                    <button
+                      v-if="
+                        !loadingArticleSummaries[currentSummary] || !currentSummary.length === 0
+                      "
+                      v-tooltip="{
+                        content: getString('hovercopyText'),
+                        offset: 5,
+                        delay: $helpTextDelay,
+                        hideOnTargetClick: false,
+                      }"
+                      class="qpm_button"
+                      :disabled="
+                        loadingArticleSummaries[currentSummary] || currentSummary.length === 0
+                      "
+                      @keydown.enter="clickCopyArticleSummary"
+                      @click="clickCopyArticleSummary"
+                    >
+                      <i class="bx bx-copy" style="vertical-align: baseline" />
+                      {{ getString("copyText") }}
+                    </button>
                   </div>
                 </div>
                 <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryDisclaimer')" />
@@ -223,6 +265,73 @@
       }
     },
     methods: {
+      handleRetryArticleSummary() {
+        const refName = `summarizeArticleNoAbstract-${this.currentSummary}`;
+        const summarizeArticleComponent = this.$refs[refName];
+
+        if (
+          summarizeArticleComponent &&
+          typeof summarizeArticleComponent.handleRetry === "function"
+        ) {
+          summarizeArticleComponent.handleRetry();
+        } else {
+          console.error(`Ref '${refName}' not found or 'handleRetry' method does not exist.`);
+        }
+      },
+      async clickCopyArticleSummary() {
+        console.log("Current article summary copied to the clipboard.");
+        if (this.currentSummary !== "") {
+          // Get the user questions and answers for the current summary
+          const userQuestionsAndAnswers = this.userQuestionsAndAnswers[this.currentSummary];
+          const questionsSection = userQuestionsAndAnswers
+            .map((qa) => `${qa.question}\n${qa.answer}`)
+            .join("\n\n");
+
+          // Get the current summary index
+          const idx = this.currentSummaryIndex[this.currentSummary];
+          // Get the summary data for the current summary
+          const summaryData = this.aiArticleSummaries[this.currentSummary][idx].articleSummaryData;
+
+          const firstSeven = summaryData
+            .slice(0, 7)
+            .map((qa) => `${qa.shortTitle}\n${qa.answer}`)
+            .join("\n\n");
+
+          const remaining = summaryData
+            .slice(7)
+            .map((qa) => `${qa.question}\n${qa.answer}`)
+            .join("\n\n");
+
+          // Construct the text to copy
+          const textToCopy =
+            this.authorsList.trim() +
+            ". " +
+            this.searchResultTitle +
+            " " +
+            this.publicationInfo +
+            ". " +
+            "\n\n" +
+            this.getString("summarizeArticleHeader") +
+            ": " +
+            "\n\n" +
+            firstSeven +
+            "\n\n" +
+            this.getString("generateQuestionsHeader") +
+            ": " +
+            "\n\n" +
+            remaining +
+            "\n\n" +
+            this.getString("userQuestionsHeader") +
+            ": " +
+            "\n\n" +
+            questionsSection +
+            "\n\n";
+          // Write to clipboard
+          await navigator.clipboard.writeText(textToCopy);
+        } else {
+          console.error("No current summary to copy.");
+        }
+      },
       /**
        * Handles the error state change emitted from SummarizeArticle.
        *

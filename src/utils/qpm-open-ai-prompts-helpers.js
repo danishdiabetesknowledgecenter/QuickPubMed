@@ -1,5 +1,3 @@
-import { promptQuestionsMap } from "@/assets/content/qpm-open-ai-prompts.js";
-
 /**
  * @typedef {Object} QuestionItem
  * @property {string} question - The question text.
@@ -24,42 +22,6 @@ import { promptQuestionsMap } from "@/assets/content/qpm-open-ai-prompts.js";
  * @type {Object.<string, ShortTitleMap>}
  */
 const precomputedShortTitleMaps = {};
-
-/**
- * Initializes the precomputed maps.
- */
-function initializePrecomputedMaps() {
-  for (const [language, questions] of Object.entries(promptQuestionsMap)) {
-    precomputedShortTitleMaps[language] = {};
-    questions.forEach((q) => {
-      precomputedShortTitleMaps[language][q.question.trim()] = q.shortTitle;
-    });
-  }
-}
-
-// Initialize on module load
-initializePrecomputedMaps();
-
-/**
- * Retrieves the short title for a given question based on language.
- *
- * @param {string} question - The question text.
- * @param {string} language - The language code ('dk' or 'en').
- * @returns {string|undefined} The short title corresponding to the question.
- */
-export function getShortTitle(question, language) {
-  if (!precomputedShortTitleMaps[language]) {
-    console.warn(`Language '${language}' is not supported.`);
-    return undefined;
-  }
-
-  const shortTitle = precomputedShortTitleMaps[language][question.trim()];
-  if (!shortTitle) {
-    console.warn(`Question '${question}' not found for language '${language}'.`);
-  }
-
-  return shortTitle;
-}
 
 export function getPromptForLocale(prompt, locale) {
   var localePrompt = {

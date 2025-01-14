@@ -477,12 +477,33 @@ const promptStartTextuserQuestions = {
   Der vil blive stillet et spørgsmål i kontekst af en videnskabelig artikel, som du skal besvare. Der skal være 2 key-value pairs i dit svar. 
   Den første key skal hedde questions, og value skal være et array. 
   Den anden key skal hedde answers, og value skal være et array med svarene på spørgsmålene. 
-  Du må ikke selv komme på spørgsmål eller ændre på det spørgsmål der bliver stillet.`,
+  Strukturen for dit svar skal være som følger:
+  {
+    "questions": [
+      "her er et eksempel spørgsmål"
+    ],
+    "answers": [
+      "her er et eksempel svar"
+    ]
+  }
+  Det er ekstremt vigtigt at du vurderer om spørgsmål rent faktisk er et spørgsmål. 
+  Hvis det ikke er et spørgsmål, skal du svare med "Jeg kan ikke genkende et spørgsmål i denne tekst, prøv at formulere dig anderledes". Her er spørgsmålet:  `,
   en: `You must respond in JSON format. You can never annotate your answer with \`\`\json at the beginning of your response, nor with  \`\`\` at the end of your response. 
   You will be asked one question in the context of a scientific article, that you must answer. There must be 2 key-value pairs in your response. 
   The first key must be called questions, and the value must be an array. 
   The second key must be called answers, and the value must be an array with the answers to the questions.
-  You must not come up with questions yourself or change the question that is asked.`,
+  The structure of your response must be as follows:
+  {
+    "questions": [
+      "here is an example question"
+    ],
+    "answers": [
+      "here is an example answer"
+    ]
+  }
+  You must not come up with questions yourself or change the question that is asked. 
+  It is extremly important that you assess whether the question is actually a question. 
+  If it is not a question, you must respond with "I cannot recognize a question in this text". Here is the question:  `,
 };
 
 /**
@@ -605,7 +626,7 @@ export const promptText = [
     endText: {
       dk: "Du skal generere svar til alle spørgsmål, og disse svar skal bestå af maksimum 200 ord og skal skrives på fagsprog, som let kan forstås af et sundhedsfagligt publikum eller personer med solid baggrund inden for emnet. \
       Du må ikke svare med andet end JSON-formatet. Du skal aldrig bruge tegnet ` eller medgive 'json' i starten eller slutningen af dit svar. Her er teksten: ",
-      en: "You must then generate answers to these questions, and these answers must consist of atleast 100 words and must be written in professional language that can be easily understood by a healthcare audience or people with a solid background in the subject, and add corresponding to the array that is the value for the answers key. \
+      en: "You must then generate answers to these questions, and these answers must consist of atleast 200 words and must be written in professional language that can be easily understood by a healthcare audience or people with a solid background in the subject, and add corresponding to the array that is the value for the answers key. \
       You must not respond with anything other than JSON format. You must therefore not use the character ` or write JSON at the beginning or end of the response. Here is the text: ",
     },
   },
@@ -621,7 +642,7 @@ export const promptText = [
     questionsExtra: promptQuestionsExtra,
     promptRules: promptArticleSpecificAnswersOnly,
     endText: {
-      dk: "Du skal generere svar til disse spørgsmål, og disse svar skal bestå af maksimum 100 ord og skal skrives i et sprog, som nemt kan læses og forstås af en 15-årig uden forhåndskendskab til emnet, og tilføje svarende til array'et, der er value for answers key'en. \
+      dk: "Du skal generere svar til disse spørgsmål, og disse svar skal bestå af maksimum 200 ord og skal skrives i et sprog, som nemt kan læses og forstås af en 15-årig uden forhåndskendskab til emnet, og tilføje svarende til array'et, der er value for answers key'en. \
       Du skal ikke svare med andet end JSON-formatet. Du skal derfor ikke bruge tegnet ` eller skrive json i starten eller slutningen af svaret. Her er teksten: ",
       en: "You must then generate answers to these questions, and these answers must consist of at least 100 words and must be written in a language that can be easily read and understood by a 15-year-old without prior knowledge of the subject, and add corresponding to the array that is the value for the answers key. \
       You must not respond with anything other than JSON format. You must therefore not use the character ` or write JSON at the beginning or end of the response. Here is the text: ",

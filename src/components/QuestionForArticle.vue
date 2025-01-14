@@ -163,6 +163,8 @@
           questionsAndAnswers: updatedQAs,
         });
 
+        this.$emit("set-loading", { promptLanguageType: this.promptLanguageType });
+
         // Process the new question
         await this.processNewQuestion(trimmedQuestion, updatedQAs.length - 1);
       },
@@ -175,6 +177,8 @@
        */
       async processNewQuestion(question, index) {
         this.isLoadingResponse = true;
+        this.$emit("set-loading-user-question", { promptLanguageType: this.promptLanguageType });
+
         try {
           const composedPrompt = this.getComposablePrompt(this.language, this.promptLanguageType);
           console.log("We got the composed prompt: ", composedPrompt);
@@ -218,6 +222,9 @@
         } finally {
           this.userQuestionInput = "";
           this.isLoadingResponse = false;
+          this.$emit("unset-loading-user-question", {
+            promptLanguageType: this.promptLanguageType,
+          });
         }
       },
 

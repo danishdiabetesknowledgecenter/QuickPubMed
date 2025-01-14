@@ -257,6 +257,7 @@
         return !this.hideButtons;
       },
       isCustom() {
+        console.log("We are custom: ", !this.loadingComponent && this.enteredIds.length === 0);
         return !this.loadingComponent && this.enteredIds.length === 0;
       },
       getKey() {

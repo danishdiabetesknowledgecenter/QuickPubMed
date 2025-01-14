@@ -1188,7 +1188,6 @@
         if (this.pages) {
           formatted += `:${this.pages}`;
         }
-        console.info("formatted: ", formatted);
         return formatted;
       },
 

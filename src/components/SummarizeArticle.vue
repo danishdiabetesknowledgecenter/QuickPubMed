@@ -105,36 +105,6 @@
           </template>
         </accordion-menu>
       </div>
-
-      <button
-        v-tooltip="{
-          content: getString('hoverretryText'),
-          offset: 5,
-          delay: $helpTextDelay,
-          hideOnTargetClick: false,
-        }"
-        class="qpm_button"
-        style="margin-top: 25px"
-        @keydown.enter="handleRetry"
-        @click="handleRetry"
-      >
-        <i class="bx bx-refresh" style="vertical-align: baseline; font-size: 1em"></i>
-        {{ getString("retryText") }}
-      </button>
-      <button
-        v-tooltip="{
-          content: getString('hovercopyText'),
-          offset: 5,
-          delay: $helpTextDelay,
-          hideOnTargetClick: false,
-        }"
-        class="qpm_button"
-        :disabled="loading || currentSummary.length === 0"
-        @click="clickCopy"
-      >
-        <i class="bx bx-copy" style="vertical-align: baseline" />
-        {{ getString("copyText") }}
-      </button>
     </div>
   </div>
 </template>
@@ -249,25 +219,6 @@
       },
     },
     methods: {
-      async clickCopy() {
-        console.log("Current article summary copied to the clipboard.");
-        if (this.currentSummary.length > 0) {
-          const textToCopy =
-            this.authorsList.trim() +
-            ". " +
-            this.searchResultTitle +
-            " " +
-            this.publicationInfo +
-            ". " +
-            "\n\n\n" +
-            this.currentSummary
-              .map((qa, index) =>
-                index < 7 ? `${qa.shortTitle}\n${qa.answer}` : `${qa.question}\n${qa.answer}`
-              )
-              .join("\n\n");
-          await navigator.clipboard.writeText(textToCopy);
-        }
-      },
       /**
        * Returns the total number of summaries for the current promptLanguageType.
        */
