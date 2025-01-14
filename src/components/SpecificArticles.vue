@@ -353,9 +353,6 @@
         return found;
       },
       getDate(history) {
-        if (!history) {
-          return;
-        }
         try {
           if (this.date) return this.date;
           for (let i = 0; i < history.length; i++) {
