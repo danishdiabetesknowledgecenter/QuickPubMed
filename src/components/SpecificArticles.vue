@@ -20,7 +20,7 @@
           :has-abstract="getHasAbstract()"
           :custom-abstract="abstract"
           :sectioned-abstract="sectionedAbstract"
-          :author="getAuthor()"
+          :author="getAuthor(this.authors)"
           :show-buttons="showArticleButtons"
           :show-date="showDate"
           :single-article="true"
@@ -251,6 +251,7 @@
       },
       interpretQuery() {
         if (!this.query) return "";
+        console.log("Interpreting query: ", this.query);
         return this.query;
       },
       showArticleButtons() {
@@ -317,6 +318,9 @@
         }
       },
       getAuthor(authors) {
+        if (!authors) {
+          return;
+        }
         try {
           if (this.authors) return this.authors;
           let str = "";
@@ -326,7 +330,8 @@
           }
           return str;
         } catch (error) {
-          return error;
+          console.error("Error in getAuthor: ", error);
+          return;
         }
       },
       getHasAbstract(attributes) {
@@ -344,6 +349,9 @@
         return found;
       },
       getDate(history) {
+        if (!history) {
+          return;
+        }
         try {
           if (this.date) return this.date;
           for (let i = 0; i < history.length; i++) {
@@ -358,7 +366,8 @@
           }
           return "";
         } catch (error) {
-          return error;
+          console.error("Error in getDate: ", error);
+          return;
         }
       },
       getTitle(std) {
@@ -384,23 +393,33 @@
             }
           }
           return "";
-        } catch (err) {
-          console.error(err);
+        } catch (error) {
+          console.error("Error in getDoi ", error);
           return undefined;
         }
       },
       getPubType(searchResult) {
+        if (!searchResult) {
+          console.log("getPubType | Search result is undefined");
+          return;
+        }
         try {
           return searchResult.pubtype;
         } catch (error) {
-          return error;
+          console.error("Error in getPubType: ", error);
+          return;
         }
       },
       getDocType(searchResult) {
+        if (!searchResult) {
+          console.log("getDocType | Search result is undefined");
+          return;
+        }
         try {
           return searchResult.doctype;
         } catch (error) {
-          return error;
+          console.error("Error in getDocType: ", error);
+          return;
         }
       },
       getSource(value) {

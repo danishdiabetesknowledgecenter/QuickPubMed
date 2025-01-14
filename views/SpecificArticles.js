@@ -53,7 +53,7 @@ specificArticleDivs.forEach((specificArticleDiv) => {
   const useAISummarizer = specificArticleDiv.dataset.useAISummarizer === "true";
   const ids = specificArticleDiv.dataset.ids || undefined;
   const query = specificArticleDiv.dataset.query || undefined;
-  const queryResults = specificArticleDiv.dataset.queryResults || undefined;
+  const queryResults = Number(specificArticleDiv.dataset.queryResults) || undefined;
   const sortMethod = specificArticleDiv.dataset.sortMethod || undefined;
   const hideButtons = specificArticleDiv.dataset.hideButtons === "true";
   const showDate = specificArticleDiv.dataset.showDate === "true";

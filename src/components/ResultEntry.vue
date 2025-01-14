@@ -171,7 +171,7 @@
     <div v-else>
       <div v-if="showArticleButtons" class="qpm_resultButtons">
         <button
-          v-if="hasValidAbstract || pmid || doi"
+          v-if="hasSectionedAbstract || hasValidAbstract || pmid || doi"
           v-tooltip="{
             content: getString('hoverShowAbstractButton'),
             offset: 5,
@@ -837,6 +837,9 @@
       config() {
         return config;
       },
+      hasSectionedAbstract() {
+        return this.sectionedAbstract && Object.keys(this.sectionedAbstract).length > 0;
+      },
       hasValidAbstract() {
         return (
           this.hasAbstract && (this.abstract.trim() !== "" || Object.keys(this.text).length > 0)
@@ -866,6 +869,12 @@
       getButtonText() {
         if (!this.isAbstractLoaded) {
           return this.getString("showAbstract");
+        }
+
+        if (this.hasSectionedAbstract) {
+          return this.showingAbstract
+            ? this.getString("hideAbstract")
+            : this.getString("showAbstract");
         }
 
         if (this.hasValidAbstract) {
