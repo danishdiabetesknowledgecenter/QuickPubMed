@@ -355,6 +355,7 @@
       getDate(history) {
         try {
           if (this.date) return this.date;
+          if (!history) return "";
           for (let i = 0; i < history.length; i++) {
             if (history[i].pubstatus === "entrez") {
               let date = new Date(history[i].date);
@@ -386,6 +387,7 @@
       getDoi(searchResult) {
         try {
           if (this.doi || this.isCustomDoi) return this.doi;
+          if (!searchResult) return "";
           let articleids = searchResult.articleids;
           for (let i = 0; i < articleids.length; i++) {
             if (articleids[i].idtype === "doi") {
