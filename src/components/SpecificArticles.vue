@@ -251,7 +251,6 @@
       },
       interpretQuery() {
         if (!this.query) return "";
-        console.log("Interpreting query: ", this.query);
         return this.query;
       },
       showArticleButtons() {
@@ -274,11 +273,58 @@
     },
     created() {
       this.loadingComponent = true;
-      this.parseIds();
-      if (this.enteredIds.length > 0) {
+      if (this.queryResults) {
+        this.pageSize = parseInt(this.queryResults);
+      }
+      this.setOrder(this.sortMethod);
+
+      const baseUrl =
+        "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi" +
+        "?db=pubmed" +
+        "&tool=QuickPubMed" +
+        `&email=${this.appSettings.nlm.email}` +
+        `&api_key=${this.appSettings.nlm.key}` +
+        "&retmode=json" +
+        `&retmax=${this.pageSize}` +
+        `&retstart=${this.page * this.pageSize}` +
+        `&sort=${this.sort.method}` +
+        "&term=";
+
+      // Parse IDs if provided
+      if (this.ids) {
+        const idArray = this.ids.split(",").map((id) => id.trim());
+        this.enteredIds.push(...idArray);
+      }
+
+      // Handle interpretQuery
+      if (this.interpretQuery === "") {
+        // No query provided, proceed with enteredIds
         this.loadWithIds();
-      } else {
+        this.customLink = this.hyperLink;
         this.loadingComponent = false;
+      } else {
+        // Query provided, fetch IDs based on the query
+        axiosInstance
+          .get(baseUrl + encodeURIComponent(this.interpretQuery))
+          .then((response) => {
+            const ids = response.data.esearchresult.idlist;
+            if (ids && ids.length !== 0) {
+              ids.forEach((id) => {
+                if (!this.enteredIds.includes(id)) this.enteredIds.push(id);
+              });
+            }
+
+            this.count = parseInt(response.data.esearchresult.count) || 0;
+            this.loadWithIds();
+          })
+          .catch((error) => {
+            console.error("Error fetching IDs based on query:", error);
+            // Optionally, you can set faletedIds or handle the error as needed
+          })
+          .finally(() => {
+            this.customLink = this.hyperLink;
+            this.loadingComponent = false;
+          });
       }
     },
     mounted() {
@@ -431,7 +477,9 @@
               if (value.pages !== undefined) value.pages = undefined;
               if (value.pubdate !== undefined) value.pubdate = undefined;
             }
-            return this.source;
+            if (this.source !== "") {
+              return this.source;
+            }
           }
           if (value.booktitle) return value.booktitle;
           return value.source;
