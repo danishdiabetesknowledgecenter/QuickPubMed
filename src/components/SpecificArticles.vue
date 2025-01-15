@@ -471,7 +471,7 @@
       },
       getSource(value) {
         try {
-          if (this.source !== undefined) {
+          if (this.source !== "") {
             if (value !== undefined) {
               if (value.volume !== undefined) value.volume = undefined;
               if (value.issue !== undefined) value.issue = undefined;

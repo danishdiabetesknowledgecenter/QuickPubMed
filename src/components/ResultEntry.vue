@@ -554,7 +554,7 @@
           <!-- abstract is in text prop -->
           <div v-if="abstract === ''" class="qpm_abstractWrapper">
             <template v-if="hasSectionedAbstract">
-              <p style="padding-top: 20px" v-html="getSectionAbstract"></p>
+              <div v-html="getSectionAbstract"></div>
             </template>
 
             <!-- abstract is provided manually through sectionedAbstract prop-->
@@ -1112,9 +1112,9 @@
 
         return Object.keys(this.sectionedAbstract)
           .map((key) => {
-            return `<p style="font-weight: bold">${key}</p> ${this.sectionedAbstract[key]}`;
+            return `<p><strong>${key}</strong></p><p>${this.sectionedAbstract[key]}</p>`;
           })
-          .join("<br><br>");
+          .join("");
       },
       getAbstract() {
         var abstract = "";
