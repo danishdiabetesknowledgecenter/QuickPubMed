@@ -1195,9 +1195,6 @@
       // Listen for the 'abstractLoaded' event from the parent component
       this.$parent.$on("abstractLoaded", this.setAbstract);
 
-      this.checkPreload();
-      this.$emit("loadAbstract", this.id);
-
       // Inject Dimension and Altmetric scripts if they are not already present
       this.ensureThirdPartyScripts();
     },
@@ -1607,6 +1604,7 @@
         if (!this.abstractLoaded && this.preLoadAbstract && !this.loading) {
           let showSpinner = false;
           this.loadAbstract(showSpinner);
+          console.log("We called this.loadAbstract(showSpinner) from checkPreload()");
         }
       },
       onEventBusShowAbstractEvent(args) {
