@@ -513,7 +513,7 @@
       getAbstractSummaryPrompts() {
         return abstractSummaryPrompts;
       },
-      async loadWithIdsNEW() {
+      async loadWithIds() {
         if (this.enteredIds.size === 0) {
           this.loadingComponent = false;
           return;
@@ -536,7 +536,7 @@
 
           const data = response.data.result;
           console.log("Data: ", data);
-          this.searchresult = data.uids.map((uid) => data[uid]);
+          this.searchresult = data?.uids.map((uid) => data[uid]);
           await this.loadAbstracts();
         } catch (err) {
           console.error("Error fetching summaries:", err);
@@ -546,43 +546,7 @@
           this.loadingComponent = false;
         }
       },
-      loadWithIds() {
-        var self = this;
-
-        if (!self.enteredIds || self.enteredIds.length == 0) {
-          this.customLink = this.hyperLink;
-          self.searchLoading = false;
-          self.loadingComponent = false;
-          return;
-        }
-
-        var baseUrl =
-          "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&tool=QuickPubMed&email=admin@videncenterfordiabetes.dk&api_key=258a604944c9858b96739c730cd6a579c908&retmode=json&id=";
-        axios
-          .get(baseUrl + self.enteredIds.join(","))
-          .then(function (resp2) {
-            //Create list of returned data
-            let data = [];
-            let obj = resp2.data.result;
-
-            if (!obj) {
-              console.log("Error: Search was no success", err, resp2);
-              self.searchLoading = false;
-              return;
-            }
-            for (var i = 0; i < obj.uids.length; i++) {
-              data.push(obj[obj.uids[i]]);
-            }
-            self.searchresult = data;
-          })
-          .catch(function (err) {
-            console.error("There was an error with the network call\n", err);
-          })
-          .then(function () {
-            self.loadingComponent = false;
-          });
-      },
-      async loadAbstractsNEW() {
+      async loadAbstracts() {
         const baseurl = "/efetch.fcgi"; // Relative path since baseURL is set in axiosInstance
 
         try {
@@ -637,7 +601,43 @@
           console.error("Error in fetch from PubMed:", err);
         }
       },
-      async loadAbstracts() {
+      loadWithIdsOLD() {
+        var self = this;
+
+        if (!self.enteredIds || self.enteredIds.length == 0) {
+          this.customLink = this.hyperLink;
+          self.searchLoading = false;
+          self.loadingComponent = false;
+          return;
+        }
+
+        var baseUrl =
+          "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&tool=QuickPubMed&email=admin@videncenterfordiabetes.dk&api_key=258a604944c9858b96739c730cd6a579c908&retmode=json&id=";
+        axios
+          .get(baseUrl + self.enteredIds.join(","))
+          .then(function (resp2) {
+            //Create list of returned data
+            let data = [];
+            let obj = resp2.data.result;
+
+            if (!obj) {
+              console.log("Error: Search was no success", err, resp2);
+              self.searchLoading = false;
+              return;
+            }
+            for (var i = 0; i < obj.uids.length; i++) {
+              data.push(obj[obj.uids[i]]);
+            }
+            self.searchresult = data;
+          })
+          .catch(function (err) {
+            console.error("There was an error with the network call\n", err);
+          })
+          .then(function () {
+            self.loadingComponent = false;
+          });
+      },
+      async loadAbstractsOLD() {
         const self = this;
         let nlm = this.appSettings.nlm;
         let baseurl =
