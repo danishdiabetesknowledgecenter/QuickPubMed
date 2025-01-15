@@ -613,6 +613,20 @@
               {{ getString("relatedPubmedReviews") }}
             </a>
           </p>
+          <p class="intext-arrow-link onHoverJS qpm_pubmedLink" v-if="pmid != undefined">
+            <a
+              v-if="pmid != undefined"
+              target="_blank"
+              :href="getPubmedAlsoViewed"
+              v-tooltip="{
+                content: getString('hoveralsoviewedPubmed'),
+                offset: 5,
+                delay: $helpTextDelay,
+                trigger: 'hover',
+              }"
+              >{{ getString("alsoviewedPubmed") }}</a
+            >
+          </p>
           <p v-if="(pmid || doi) !== undefined" class="intext-arrow-link onHoverJS qpm_pubmedLink">
             <a
               v-if="(pmid || doi) !== undefined"
