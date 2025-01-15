@@ -551,8 +551,14 @@
             </template>
           </div>
 
+          <!-- abstract is in text prop -->
           <div v-if="abstract === ''" class="qpm_abstractWrapper">
-            <template v-if="hasAbstract">
+            <template v-if="hasSectionedAbstract">
+              <p style="padding-top: 20px" v-html="getSectionAbstract"></p>
+            </template>
+
+            <!-- abstract is provided manually through sectionedAbstract prop-->
+            <template v-if="hasAbstract && !hasSectionedAbstract">
               <div v-for="(abstractValue, name) in text" :key="name">
                 <p v-if="name !== 'UNLABELLED' && name !== 'null'">
                   <strong>{{ name }}</strong>
@@ -565,9 +571,8 @@
                 </p>
               </div>
             </template>
-            <template v-if="hasSectionedAbstract">
-              <p style="padding-top: 20px" v-html="getSectionAbstract"></p>
-            </template>
+
+            <!-- there is no abstract-->
             <template v-if="!hasAbstract || (!isDocTypeAllowed && !hasSectionedAbstract)">
               <p style="padding-bottom: 10px">
                 {{ getString("noAbstract") }}
@@ -575,6 +580,7 @@
             </template>
           </div>
 
+          <!-- abstract is in abstract prop -->
           <div v-else class="qpm_abstractWrapper">
             <div>
               <p><strong>Abstract</strong></p>
@@ -582,7 +588,10 @@
             <p>{{ abstract }}</p>
           </div>
         </div>
+
+        <!-- links for related content below abstract -->
         <div v-if="(pmid !== undefined || doi) && showingAbstract" class="qpm_relatedLinks">
+          <!-- Find related articles -->
           <p v-if="pmid !== undefined" class="intext-arrow-link onHoverJS qpm_pubmedLink">
             <a
               v-if="pmid !== undefined"
@@ -598,6 +607,8 @@
               {{ getString("relatedPubmed") }}
             </a>
           </p>
+
+          <!-- Find related systematic reviews -->
           <p v-if="pmid !== undefined" class="intext-arrow-link onHoverJS qpm_pubmedLink">
             <a
               v-if="pmid !== undefined"
@@ -613,6 +624,8 @@
               {{ getString("relatedPubmedReviews") }}
             </a>
           </p>
+
+          <!-- Other people also viewed -->
           <p class="intext-arrow-link onHoverJS qpm_pubmedLink" v-if="pmid != undefined">
             <a
               v-if="pmid != undefined"
@@ -627,6 +640,8 @@
               >{{ getString("alsoviewedPubmed") }}</a
             >
           </p>
+
+          <!-- Search on Google Scholar -->
           <p v-if="(pmid || doi) !== undefined" class="intext-arrow-link onHoverJS qpm_pubmedLink">
             <a
               v-if="(pmid || doi) !== undefined"
@@ -1032,6 +1047,7 @@
       },
       calculateAuthors() {
         let authorArray = this.author.split(",");
+
         if (!this.shownSixAuthors || authorArray.length <= 6) return this.author;
         let shownAuthors = "";
         for (let i = 0; i < 6; i++) {
@@ -1096,7 +1112,7 @@
 
         return Object.keys(this.sectionedAbstract)
           .map((key) => {
-            return `<p style="font-weight: bold">${key}:</p> ${this.sectionedAbstract[key]}`;
+            return `<p style="font-weight: bold">${key}</p> ${this.sectionedAbstract[key]}`;
           })
           .join("<br><br>");
       },
@@ -1178,6 +1194,9 @@
     created() {
       // Listen for the 'abstractLoaded' event from the parent component
       this.$parent.$on("abstractLoaded", this.setAbstract);
+
+      this.checkPreload();
+      this.$emit("loadAbstract", this.id);
 
       // Inject Dimension and Altmetric scripts if they are not already present
       this.ensureThirdPartyScripts();
@@ -1405,8 +1424,8 @@
       setHtmlUrl(url) {
         this.htmlUrl = url;
       },
-      setAbstract() {
-        console.info(`my id is: ${this.id}`);
+      setAbstract(id) {
+        console.info(`my id is: ${id}`);
       },
       //This is needed because AI-summaries expects a function to get the article and it gets stuck in a loop if you pass the articles directly
       getArticleAsArray() {
