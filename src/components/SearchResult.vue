@@ -88,13 +88,14 @@
               </div>
 
               <!-- AI summaries of abstracts from inside multiple search results (summarize-article hiden with flag show-summarize-article=false)-->
-              <ai-summaries
+              <summarize-abstract
                 v-else
                 :show-summarize-article="false"
                 :language="language"
                 :prompts="getSearchSummaryPrompts()"
                 :success-header="getSummarySuccessHeader()"
                 :is-marked-articles="getHasSelectedArticles"
+                :articles-references="getSelectedArticlesReferences"
                 :summary-consent-header="getString('aiSearchSummaryConsentHeader')"
                 :summary-search-summary-consent-text="getString('aiSearchSummaryConsentHeaderText')"
                 :error-header="getString('aiSummarizeSearchErrorHeader')"
@@ -394,7 +395,7 @@
 <script>
   import Vue from "vue";
   import axios from "axios";
-  import AiSummaries from "@/components/SummarizeAbstract.vue";
+  import SummarizeAbstract from "@/components/SummarizeAbstract.vue";
   import ResultEntry from "@/components/ResultEntry.vue";
   import AccordionMenu from "@/components/AccordionMenu.vue";
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
@@ -415,7 +416,7 @@
       AccordionMenu,
       ResultEntry,
       LoadingSpinner,
-      AiSummaries,
+      SummarizeAbstract,
     },
     mixins: [appSettingsMixin],
     props: {
@@ -476,6 +477,31 @@
       };
     },
     computed: {
+      /**
+       * Gets the text that composes the references. Consists of authors title and publicationInfo
+       * If no entries are selected, it will use the first five results
+       * @returns {Array} Array of objects with authors, publicationInfo and title
+       */
+      getSelectedArticlesReferences() {
+        // No selected entries, use the first five articles with abstracts
+        if (this.selectedEntries.length == 0) {
+          return this.firstFiveArticlesWithAbstracts.map((entry) => {
+            return {
+              authors: this.getAuthor(entry.authors),
+              publicationInfo: this.getPublicationInfo(entry),
+              title: entry.title,
+            };
+          });
+        }
+        // Selected entries are available
+        return this.selectedEntries.map((entry) => {
+          return {
+            authors: this.getAuthor(entry.authors),
+            publicationInfo: this.getPublicationInfo(entry),
+            title: entry.title,
+          };
+        });
+      },
       config() {
         return config;
       },
@@ -611,13 +637,16 @@
         }
         return "";
       },
+      // Writes out all names of the authors array, split by comma
       getAuthor(authors) {
-        let str = "";
+        let authorString = "";
         for (let i = 0; i < authors.length; i++) {
-          if (i > 0) str += ",";
-          str += " " + authors[i].name;
+          if (i > 0) {
+            authorString += ", ";
+          }
+          authorString += authors[i].name;
         }
-        return str;
+        return authorString;
       },
       getHasAbstract(attributes) {
         if (!attributes) {
@@ -680,6 +709,26 @@
         } catch (error) {
           return error;
         }
+      },
+      getPublicationInfo(entry) {
+        let formatted = "";
+
+        if (entry.source) {
+          formatted += `${entry.source}. `;
+        }
+        if (entry.pubDate) {
+          formatted += `${entry.pubDate};`;
+        }
+        if (entry.volume) {
+          formatted += `${entry.volume}`;
+        }
+        if (entry.issue) {
+          formatted += `(${entry.issue})`;
+        }
+        if (entry.pages) {
+          formatted += `:${entry.pages}`;
+        }
+        return formatted;
       },
       newSortMethod(event) {
         let obj = {};

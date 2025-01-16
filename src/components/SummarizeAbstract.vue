@@ -409,6 +409,10 @@
         type: String,
         default: "",
       },
+      articlesReferences: {
+        type: Array,
+        default: () => [],
+      },
     },
     data() {
       return {
@@ -903,8 +907,19 @@
       },
       clickCopy() {
         const summary = this.$refs.summary;
-        const textToCopy = `${this.authorsList}. ${this.searchResultTitle} ${this.publicationInfo}. \n\n\n${summary.innerText}`;
-
+        let textToCopy = "";
+        if (this.articlesReferences.length > 0) {
+          const articlesReferencesString = this.articlesReferences
+            .map((article) => {
+              return `${article.authors}. ${article.title} ${article.publicationInfo}.\n\n`;
+            })
+            .join("");
+          textToCopy = `${articlesReferencesString}${summary.innerText}\n`;
+        } else {
+          textToCopy = `${this.authorsList}. ${this.searchResultTitle} ${
+            this.publicationInfo
+          }.\n\n${summary.innerText.trim()}`;
+        }
         navigator.clipboard.writeText(textToCopy);
       },
       clickCloseSummary() {
