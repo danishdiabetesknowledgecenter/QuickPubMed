@@ -37,7 +37,7 @@
           :abstract="getAbstract(getId)"
           :text="getText(getId)"
           :is-abstract-loaded="isAbstractLoaded"
-          use-translate-title="useTranslateTitle"
+          :use-translate-title="useTranslateTitle"
           @netFail="UnsuccessfullCall"
           @change:abstractLoad="onAbstractLoad"
           @loadAbstract="addIdToLoadAbstract"
