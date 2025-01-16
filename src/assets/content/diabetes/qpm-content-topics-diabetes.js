@@ -82,7 +82,6 @@ export const topics = [
         id: "S00030",
         name: "Emne 2.1",
         buttons: true,
-        maintopic: true, // Angiver at dette element er en branch og har children elementer
         subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midderste niveau)
         maintopicIdLevel1: "S00020", // Angiver at dette element har et parent med dette id. (Emne 2)
         translations: {
@@ -93,9 +92,43 @@ export const topics = [
           dk: 3,
           en: 3,
         },
+        searchStrings: {
+          narrow: ["xxx"],
+          normal: ["xxx"],
+          broad: ["xxx"],
+        },
         tooltip: {
           dk: "Kommentar til dette emne",
           en: "Comment about this topic",
+        },
+      },
+      {
+        id: "S00070",
+        name: "Emne 2.2",
+        buttons: true,
+        maintopic: true, // Angiver at dette element er en branch og har children elementer
+        subtopiclevel: 1, // Angiver at dette punkt ligger på 2. niveau
+        maintopicIdLevel1: "S00020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
+        translations: {
+          dk: "Emne 2.2",
+          en: "Topic 2.2",
+        },
+        ordering: {
+          dk: 4,
+          en: 4,
+        },
+        searchStrings: {
+          narrow: ["xxx"],
+          normal: ["xxx"],
+          broad: ["xxx"],
+        },
+        searchStringComment: {
+          dk: "",
+          en: "",
+        },
+        tooltip: {
+          dk: "",
+          en: "",
         },
       },
       {
@@ -103,15 +136,15 @@ export const topics = [
         name: "Emne 2.1.1",
         buttons: true,
         subtopiclevel: 2, // Angiver at dette punkt ligger på 2. niveau (nedereste niveau)
-        maintopicIdLevel1: "S00030", // Angiver at dette element har et parent med dette id. (Emne 2.1)
+        maintopicIdLevel1: "S00070", // Angiver at dette element har et parent med dette id. (Emne 2.1)
         maintopicIdLevel2: "S00020", // Angiver at dette element har et grandparent med dette id (Emne 2)
         translations: {
           dk: "Emne 2.1.1",
           en: "Topic 2.1.1",
         },
         ordering: {
-          dk: 4,
-          en: 4,
+          dk: 5,
+          en: 5,
         },
         searchStrings: {
           narrow: ["xxx"],
@@ -132,40 +165,11 @@ export const topics = [
         name: "Emne 2.1.2",
         buttons: true,
         subtopiclevel: 2, // Angiver at dette punkt ligger på 3. niveau
-        maintopicIdLevel1: "S00030", // Angiver at dette element har et parent med dette id. (Emne 2.1)
+        maintopicIdLevel1: "S00070", // Angiver at dette element har et parent med dette id. (Emne 2.1)
         maintopicIdLevel2: "S00020", // Angiver at dette element har et grandparent med dette id (Emne 2)
         translations: {
           dk: "Emne 2.1.2",
           en: "Topic 2.1.2",
-        },
-        ordering: {
-          dk: 5,
-          en: 5,
-        },
-        searchStrings: {
-          narrow: ["xxx"],
-          normal: ["xxx"],
-          broad: ["xxx"],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
-      },
-      {
-        id: "S00060",
-        name: "Emne 2.1.3",
-        buttons: true,
-        subtopiclevel: 2, // Angiver at dette punkt ligger på 3. niveau
-        maintopicIdLevel1: "S00020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
-        maintopicIdLevel2: "S00030", // Angiver at dette er punktet på 2. niveau til punktet med det angivne name.
-        translations: {
-          dk: "Emne 2.1.3",
-          en: "Topic 2.1.3",
         },
         ordering: {
           dk: 6,
@@ -186,14 +190,15 @@ export const topics = [
         },
       },
       {
-        id: "S00070",
-        name: "Emne 2.2",
+        id: "S00060",
+        name: "Emne 2.1.3",
         buttons: true,
-        subtopiclevel: 1, // Angiver at dette punkt ligger på 2. niveau
-        maintopicIdLevel1: "S00020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
+        subtopiclevel: 2, // Angiver at dette punkt ligger på 3. niveau
+        maintopicIdLevel1: "S00070", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
+        maintopicIdLevel2: "S00020", // Angiver at dette er punktet på 2. niveau til punktet med det angivne name.
         translations: {
-          dk: "Emne 2.2",
-          en: "Topic 2.2",
+          dk: "Emne 2.1.3",
+          en: "Topic 2.1.3",
         },
         ordering: {
           dk: 7,
@@ -1414,7 +1419,8 @@ export const topics = [
         name: "Plantebaseret kost generelt",
         buttons: true,
         subtopiclevel: 2, // Angiver at dette element ligger på 1. niveau (midterste niveau)
-        maintopicIdLevel1: "S400155", // Angiver at dette element har et parent med dette id. (Emne 2)
+        maintopicIdLevel1: "S40015", // Angiver at dette element har et parent med dette id. 
+        maintopicIdLevel2: "S400155", // Angiver at dette element har et grandparent med dette id. 
         translations: {
           dk: "Plantebaseret kost generelt",
           en: "Plant-based diet in general",
@@ -1448,7 +1454,8 @@ export const topics = [
         name: "Vegetarisk kost",
         buttons: true,
         subtopiclevel: 2, // Angiver at dette element ligger på 1. niveau (midterste niveau)
-        maintopicIdLevel1: "S400155", // Angiver at dette element har et parent med dette id. (Emne 2)
+        maintopicIdLevel1: "S40015", // Angiver at dette element har et parent med dette id.
+        maintopicIdLevel2: "S400155", // Angiver at dette element har et grandparent med dette id. 
         translations: {
           dk: "Vegetarisk kost",
           en: "Vegetarian diet",
@@ -1482,7 +1489,8 @@ export const topics = [
         name: "Vegansk kost",
         buttons: true,
         subtopiclevel: 2, // Angiver at dette element ligger på 1. niveau (midterste niveau)
-        maintopicIdLevel1: "S400155", // Angiver at dette element har et parent med dette id. (Emne 2)
+        maintopicIdLevel1: "S40015", // Angiver at dette element har et parent med dette id.
+        maintopicIdLevel2: "S400155", // Angiver at dette element har et grandparent med dette id. 
         translations: {
           dk: "Vegansk kost",
           en: "Vegan diet",
