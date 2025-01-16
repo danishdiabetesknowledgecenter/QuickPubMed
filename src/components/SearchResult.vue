@@ -257,7 +257,6 @@
             :author="getAuthor(value.model.authors)"
             :language="language"
             :parent-width="getComponentWidth()"
-            :abstract-summary-prompts="getAbstractSummaryPrompts()"
             :model-value="selectedEntries"
             :value="value.model"
             :selectable="entriesAlwaysSelectable || hasAcceptedAi"
@@ -347,7 +346,6 @@
           :author="getAuthor(value.authors)"
           :language="language"
           :parent-width="getComponentWidth()"
-          :abstract-summary-prompts="getAbstractSummaryPrompts()"
           :model-value="selectedEntries"
           :selectable="entriesAlwaysSelectable || hasAcceptedAi"
           :abstract="getAbstract(value.uid)"
@@ -403,11 +401,8 @@
   import { order } from "@/assets/content/qpm-content-order.js";
   import { messages } from "@/assets/content/qpm-translations.js";
   import { appSettingsMixin, eventBus } from "@/mixins/appSettings";
-  import {
-    searchSummaryPrompts,
-    abstractSummaryPrompts,
-    summarizeArticlePrompt,
-  } from "@/assets/content/qpm-open-ai-prompts";
+  import { searchSummaryPrompts } from "@/assets/content/qpm-open-ai-abstract-prompts";
+
   import { languageFormat, dateOptions, pageSizes } from "@/utils/qpm-content-helpers";
 
   export default {
@@ -798,12 +793,6 @@
       },
       getSearchSummaryPrompts() {
         return searchSummaryPrompts;
-      },
-      getAbstractSummaryPrompts() {
-        return abstractSummaryPrompts;
-      },
-      getAskQuestionsPrompts() {
-        return summarizeArticlePrompt;
       },
       getSummarySuccessHeader() {
         const self = this;

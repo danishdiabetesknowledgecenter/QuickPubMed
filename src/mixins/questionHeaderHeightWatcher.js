@@ -63,7 +63,6 @@ export const questionHeaderHeightWatcherMixin = {
     loading: {
       handler(newVal, oldVal) {
         if (newVal === false && oldVal === true) {
-          console.log("updating header heights from mixin watch after loading is done");
           this.$nextTick(this.updateHeaderHeights);
         }
       },

@@ -79,7 +79,10 @@
 <script>
   import AccordionMenu from "@/components/AccordionMenu.vue";
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
-  import { summarizeArticlePrompt, promptText } from "@/assets/content/qpm-open-ai-prompts.js";
+  import {
+    summarizeArticlePrompt,
+    promptText,
+  } from "@/assets/content/qpm-open-ai-article-prompts.js";
   import { sanitizePrompt } from "@/utils/qpm-open-ai-prompts-helpers.js";
 
   import { utilitiesMixin } from "@/mixins/utilities";

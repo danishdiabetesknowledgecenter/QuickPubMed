@@ -134,7 +134,7 @@
   import { appSettingsMixin } from "@/mixins/appSettings.js";
   import { messages } from "@/assets/content/qpm-translations.js";
   import { config } from "@/config/config.js";
-  import { promptText } from "@/assets/content/qpm-open-ai-prompts.js";
+  import { promptText } from "@/assets/content/qpm-open-ai-article-prompts.js";
 
   export default {
     name: "SummarizeNoAbstract",

@@ -66,7 +66,7 @@
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
   import { appSettingsMixin } from "@/mixins/appSettings.js";
   import { getPromptForLocale } from "@/utils/qpm-open-ai-prompts-helpers.js";
-  import { titleTranslationPrompt } from "@/assets/content/qpm-open-ai-prompts.js";
+  import { titleTranslationPrompt } from "@/assets/content/qpm-open-ai-translation-prompts.js";
 
   export default {
     name: "AiTranslation",

@@ -320,7 +320,7 @@
                     <strong>{{ getString("aiSummarizeSearchResultButton") }}</strong>
                   </p>
                   <button
-                    v-for="prompt in getAbstractSummaryPrompts()"
+                    v-for="prompt in getSummarizeAbstractPrompt()"
                     :key="prompt.name"
                     v-tooltip="{
                       content: getString('hoverSummarizeSearchResultButton'),
@@ -432,7 +432,7 @@
                       <strong>{{ getString("aiSummarizeSearchResultButton") }}</strong>
                     </p>
                     <button
-                      v-for="prompt in getAbstractSummaryPrompts()"
+                      v-for="prompt in getSummarizeAbstractPrompt()"
                       :key="prompt.name"
                       v-tooltip="{
                         content: getString('hoverSummarizeSearchResultButton'),
@@ -675,11 +675,7 @@
   import { eventBus } from "@/mixins/appSettings";
   import { appSettingsMixin } from "@/mixins/appSettings";
   import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
-
-  import {
-    abstractSummaryPrompts,
-    summarizeArticlePrompt,
-  } from "@/assets/content/qpm-open-ai-prompts";
+  import { summarizeAbstractPrompt } from "@/assets/content/qpm-open-ai-abstract-prompts";
 
   export default {
     name: "ResultEntry",
@@ -810,10 +806,6 @@
       showDimensionsBadge: {
         type: Boolean,
         default: true,
-      },
-      abstractSummaryPrompts: {
-        type: Array,
-        required: true,
       },
       selectable: {
         type: Boolean,
@@ -1572,24 +1564,11 @@
             console.debug(err);
           });
       },
-      getAbstractSummaryPrompts() {
-        return abstractSummaryPrompts;
-      },
-      getPdfQuestionPrompts() {
-        let pdfPrompts = [];
-        for (let i = 0; i < this.pdfQuestions.length; i++) {
-          let prompt = JSON.parse(JSON.stringify(summarizeArticlePrompt));
-          prompt.prompt.dk += this.pdfQuestions[i];
-          prompt.name = "pdf" + i;
-          pdfPrompts.push(prompt);
-        }
-        return pdfPrompts;
-      },
-      getSummarizeArticlePrompt() {
-        return summarizeArticlePrompt;
+      getSummarizeAbstractPrompt() {
+        return summarizeAbstractPrompt;
       },
       getAllPrompts() {
-        let temp = this.getAbstractSummaryPrompts().concat(this.getPdfQuestionPrompts());
+        let temp = this.getSummarizeAbstractPrompt();
         return temp;
       },
       updateInput(event) {

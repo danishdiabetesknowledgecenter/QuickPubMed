@@ -284,10 +284,10 @@
   import {
     summarizeSummaryPrompts,
     shortenAbstractPrompts,
-  } from "@/assets/content/qpm-open-ai-prompts.js";
+  } from "@/assets/content/qpm-open-ai-abstract-prompts.js";
   import { getPromptForLocale } from "@/utils/qpm-open-ai-prompts-helpers.js";
   import { config } from "@/config/config.js";
-  import { promptText } from "@/assets/content/qpm-open-ai-prompts.js";
+  import { promptText } from "@/assets/content/qpm-open-ai-article-prompts.js";
 
   export default {
     name: "SummarizeAbstract",

@@ -34,7 +34,6 @@
           :shown-six-authors="shownSixAuthors"
           :show-altmetric-badge="showAltmetricBadge"
           :show-dimensions-badge="showDimensionsBadge"
-          :abstract-summary-prompts="getAbstractSummaryPrompts()"
           :abstract="getAbstract(getId)"
           :text="getText(getId)"
           :is-abstract-loaded="isAbstractLoaded"
@@ -86,7 +85,6 @@
           :shown-six-authors="shownSixAuthors"
           :show-altmetric-badge="showAltmetricBadge"
           :show-dimensions-badge="showDimensionsBadge"
-          :abstract-summary-prompts="getAbstractSummaryPrompts()"
           :abstract="getAbstract(value.uid)"
           :text="getText(value.uid)"
           :is-abstract-loaded="isAbstractLoaded"
@@ -108,7 +106,6 @@
 
   import { appSettingsMixin } from "@/mixins/appSettings";
   import { messages } from "@/assets/content/qpm-translations";
-  import { abstractSummaryPrompts } from "@/assets/content/qpm-open-ai-prompts.js";
   import { dateOptions, languageFormat } from "@/utils/qpm-content-helpers";
   import { order } from "@/assets/content/qpm-content-order";
 
@@ -478,9 +475,6 @@
           }
         }
         return {};
-      },
-      getAbstractSummaryPrompts() {
-        return abstractSummaryPrompts;
       },
       // Fetch initial articles based on ids or query
       async fetchInitialArticles() {

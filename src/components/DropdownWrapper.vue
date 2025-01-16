@@ -212,13 +212,13 @@
 <script>
   import Multiselect from "vue-multiselect";
   import DropdownTag from "@/components/DropdownTag.vue";
-  import { appSettingsMixin } from "@/mixins/appSettings";
-  import { searchTranslationPrompt } from "@/assets/content/qpm-open-ai-prompts";
-  import { topicLoaderMixin } from "@/mixins/topicLoaderMixin";
-  import { filtrer } from "@/assets/content/qpm-content-filters";
+  import { appSettingsMixin } from "@/mixins/appSettings.js";
+  import { topicLoaderMixin } from "@/mixins/topicLoaderMixin.js";
+  import { filtrer } from "@/assets/content/qpm-content-filters.js";
   import { messages } from "@/assets/content/qpm-translations.js";
-  import { getPromptForLocale } from "@/utils/qpm-open-ai-prompts-helpers";
-  import { customInputTagTooltip } from "@/utils/qpm-content-helpers";
+  import { searchTranslationPrompt } from "@/assets/content/qpm-open-ai-translation-prompts.js";
+  import { getPromptForLocale } from "@/utils/qpm-open-ai-prompts-helpers.js";
+  import { customInputTagTooltip } from "@/utils/qpm-content-helpers.js";
 
   export default {
     name: "DropdownWrapper",

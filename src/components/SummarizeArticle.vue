@@ -118,7 +118,10 @@
   import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
   import { questionHeaderHeightWatcherMixin } from "@/mixins/questionHeaderHeightWatcher.js";
   import { sanitizePrompt } from "@/utils/qpm-open-ai-prompts-helpers.js";
-  import { summarizeArticlePrompt, promptText } from "@/assets/content/qpm-open-ai-prompts.js";
+  import {
+    summarizeArticlePrompt,
+    promptText,
+  } from "@/assets/content/qpm-open-ai-article-prompts.js";
 
   export default {
     name: "SummarizeArticle",
