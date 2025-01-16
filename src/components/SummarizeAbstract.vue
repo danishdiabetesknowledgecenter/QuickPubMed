@@ -475,12 +475,12 @@
         stopGeneration: false,
         pdfFound: false,
         articleName: "",
-        aiArticleSummaries: {},
-        currentSummaryIndex: {},
-        isInitialized: false,
-        loadingArticleSummaries: {},
-        loadingQuestionsAndAnswers: {},
-        userQuestionsAndAnswers: {},
+        aiArticleSummaries: {}, // Keeps track of the article summaries for each promptLangaugeType
+        currentSummaryIndex: {}, // Keeps track of the current index for each article summary
+        isInitialized: false, // Flag for initialization of objects to hold data for article summary
+        loadingArticleSummaries: {}, // Keeps track of loading state for each article summary
+        loadingQuestionsAndAnswers: {}, // Keeps track of loading state for each user question
+        userQuestionsAndAnswers: {}, // Keeps track of user questions and answers for each article summary
       };
     },
     computed: {
@@ -703,12 +703,13 @@
           return messages["unknownError"][lg];
         }
       },
-      async generateAiSummary(prompt) {
+      async generateAbstractSummary(prompt) {
         this.stopGeneration = false;
         const waitTimeDisclaimerDelay = this.appSettings.openAi.waitTimeDisclaimerDelay ?? 0;
         this.loadingAbstractSummaries.push(prompt.name);
 
         const localePrompt = getPromptForLocale(prompt, this.language);
+
         const summarizePrompt = getPromptForLocale(
           summarizeSummaryPrompts.find((p) => prompt.name === p.name),
           this.language
@@ -821,7 +822,7 @@
         if (this.getIsSummaryLoading || (currentSummaries && currentSummaries.length > 0)) {
           return;
         }
-        await this.generateAiSummary(tab);
+        await this.generateAbstractSummary(tab);
       },
       clickStop() {
         this.stopGeneration = true;
@@ -849,7 +850,7 @@
         if (moveFocus) {
           this.$el.querySelector(`#${tab.name}`).focus();
         }
-        await this.generateAiSummary(tab);
+        await this.generateAbstractSummary(tab);
       },
       async clickCopyArticleSummary() {
         console.log("Current article summary copied to the clipboard.");

@@ -341,8 +341,6 @@
 
       /**
        * Retrieves a prompt based on the specified language and prompt language type.
-       * Can be used in question-for-article for prompting with the questions given by the user,
-       * or be used in summarize-article and summarize-article-no-abstract for prompting with the default questions aswell as the genere
        * @param {string} [language="dk"] - The language code for the prompt (default is "dk").
        * @param {string} [promptLanguageType="Hverdagssprog"] - The type of prompt language (default is "Hverdagssprog").
        * @returns {string} - The localized prompt.
