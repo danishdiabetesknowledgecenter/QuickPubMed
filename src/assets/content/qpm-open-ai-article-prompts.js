@@ -76,64 +76,62 @@ const promptStartTextuserQuestions = {
 export const promptQuestionsMap = {
   dk: [
     {
-      question:
-        "Lav en kort opsummering baseret på artiklens samlede tekst, hvor du inkluderer indledning og konklusion. Du skal også inkludere de vigtigste resultater og konklusioner.",
-      shortTitle: "Resumé",
+      question: `Lav en kort opsummering baseret på artiklens samlede tekst, hvor du inkluderer indledning og konklusion. Du skal også inkludere de vigtigste resultater og konklusioner.`,
+      shortTitle: `Resumé`,
     },
     {
-      question: "Hvad er formålet med denne artikel?",
-      shortTitle: "Formål",
+      question: `Hvad er formålet med denne artikel?`,
+      shortTitle: `Formål`,
     },
     {
-      question: "Hvilke metoder blev anvendt?",
-      shortTitle: "Metoder",
+      question: `Hvilke metoder blev anvendt?`,
+      shortTitle: `Metoder`,
     },
     {
-      question: "Hvad er resultaterne?",
-      shortTitle: "Resultater",
+      question: `Hvad er resultaterne?`,
+      shortTitle: `Resultater`,
     },
     {
-      question: "Hvilke konklusioner drages i artiklen?",
-      shortTitle: "Konklusioner",
+      question: `Hvilke konklusioner drages i artiklen?`,
+      shortTitle: `Konklusioner`,
     },
     {
-      question: "Hvilke styrker og svagheder er der i studiet?",
-      shortTitle: "Styrker og svagheder",
+      question: `Hvilke styrker og svagheder er der i studiet?`,
+      shortTitle: `Styrker og svagheder`,
     },
     {
-      question:
-        "Hvilke mulige interessekonflikter har forfatterne til studiet? Angiv kort, hvorfor det er vigtigt at være opmærksom på interessekonflikter i videnskabelige studier. ",
-      shortTitle: "Interessekonflikter",
+      question: `Hvilke mulige interessekonflikter har forfatterne til studiet? Angiv kort, hvorfor det er vigtigt at være opmærksom på interessekonflikter i videnskabelige studier. `,
+      shortTitle: `Interessekonflikter`,
     },
   ],
   en: [
     {
-      question: "Make a brief summary based on the overall text of the article.",
-      shortTitle: "Summary",
+      question: `Make a brief summary based on the overall text of the article.`,
+      shortTitle: `Summary`,
     },
     {
-      question: "What is the purpose of this article?",
-      shortTitle: "Purpose",
+      question: `What is the purpose of this article?`,
+      shortTitle: `Purpose`,
     },
     {
-      question: "What methods were used?",
-      shortTitle: "Methods",
+      question: `What methods were used?`,
+      shortTitle: `Methods`,
     },
     {
-      question: "What are the results?",
-      shortTitle: "Results",
+      question: `What are the results?`,
+      shortTitle: `Results`,
     },
     {
-      question: "What conclusions are drawn in the article?",
-      shortTitle: "Conclusions",
+      question: `What conclusions are drawn in the article?`,
+      shortTitle: `Conclusions`,
     },
     {
-      question: "What are the strengths and weaknesses of the study?",
-      shortTitle: "Strengths and weaknesses",
+      question: `What are the strengths and weaknesses of the study?`,
+      shortTitle: `Strengths and weaknesses`,
     },
     {
-      question: "What possible conflicts of interest do the authors of the study have?",
-      shortTitle: "Conflicts of interest",
+      question: `What possible conflicts of interest do the authors of the study have?`,
+      shortTitle: `Conflicts of interest`,
     },
   ],
 };
@@ -147,8 +145,10 @@ export const promptQuestionsExtra = {
  * Prompt text for only allowing answers that are specific to the content of the article
  */
 export const promptArticleSpecificAnswersOnly = {
-  dk: `Det er ekstremt vigtigt, at du kun besvarer spørgsmål, hvis det er relevant for tekstens indhold. Hvis spørgsmålet omhandler andet end tekstens indhold, svar altid med "Ikke relevant for denne artikel".  `,
-  en: `It is very important that you only answer the questions asked if they are relevant to this article, and that you do not answer questions that are not relevant to this article. `,
+  dk: `Det er ekstremt vigtigt, at du kun besvarer spørgsmål, hvis det er relevant for tekstens indhold. 
+  Hvis spørgsmålet omhandler andet end tekstens indhold, svar altid med "Ikke relevant for denne artikel".  `,
+  en: `It is very important that you only answer the questions asked if they are relevant to this article, 
+  and that you do not answer questions that are not relevant to this article. `,
 };
 
 /**

@@ -354,7 +354,7 @@
                   :search-result-title="computedTitle"
                   :authors-list="author.trim()"
                   :publication-info="getFormattedPublication()"
-                  :prompts="getAllPrompts()"
+                  :prompts="getSummarizeAbstractPrompt()"
                   :summary-search-summary-consent-text="getString('aiSearchSummaryConsentHeader')"
                   :summary-consent-header="getString('aiAbstractSummaryConsentHeader')"
                   :success-header="getString('aiSummarizeAbstractResultHeader')"
@@ -466,7 +466,7 @@
                     :search-result-title="computedTitle"
                     :authors-list="author"
                     :publication-info="getFormattedPublication()"
-                    :prompts="getAllPrompts()"
+                    :prompts="getSummarizeAbstractPrompt()"
                     :has-accepted-ai="hasAcceptedAi"
                     :initial-tab-prompt="initialAiTab"
                   />
@@ -1566,10 +1566,6 @@
       },
       getSummarizeAbstractPrompt() {
         return summarizeAbstractPrompt;
-      },
-      getAllPrompts() {
-        let temp = this.getSummarizeAbstractPrompt();
-        return temp;
       },
       updateInput(event) {
         let isChecked = event.target.checked;

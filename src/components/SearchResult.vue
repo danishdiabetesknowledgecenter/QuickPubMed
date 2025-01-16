@@ -67,7 +67,7 @@
                   <strong>{{ getString("aiSummarizeSearchResultButton") }}</strong>
                 </p>
                 <button
-                  v-for="(prompt, index) in getSearchSummaryPrompts()"
+                  v-for="(prompt, index) in getSummarizeAbstractPrompt()"
                   :key="`prompt-${prompt.name}-${index}`"
                   v-tooltip="{
                     content: getString('hoverSummarizeSearchResultButton'),
@@ -92,7 +92,7 @@
                 v-else
                 :show-summarize-article="false"
                 :language="language"
-                :prompts="getSearchSummaryPrompts()"
+                :prompts="getSummarizeAbstractPrompt()"
                 :success-header="getSummarySuccessHeader()"
                 :is-marked-articles="getHasSelectedArticles"
                 :articles-references="getSelectedArticlesReferences"
@@ -393,16 +393,15 @@
 <script>
   import Vue from "vue";
   import axios from "axios";
-  import SummarizeAbstract from "@/components/SummarizeAbstract.vue";
+  import { config } from "@/config/config.js";
   import ResultEntry from "@/components/ResultEntry.vue";
   import AccordionMenu from "@/components/AccordionMenu.vue";
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
-  import { config } from "@/config/config.js";
+  import SummarizeAbstract from "@/components/SummarizeAbstract.vue";
   import { order } from "@/assets/content/qpm-content-order.js";
   import { messages } from "@/assets/content/qpm-translations.js";
+  import { summarizeAbstractPrompt } from "@/assets/content/qpm-open-ai-abstract-prompts";
   import { appSettingsMixin, eventBus } from "@/mixins/appSettings";
-  import { searchSummaryPrompts } from "@/assets/content/qpm-open-ai-abstract-prompts";
-
   import { languageFormat, dateOptions, pageSizes } from "@/utils/qpm-content-helpers";
 
   export default {
@@ -791,8 +790,8 @@
       getArticleDtoProvider() {
         return this.getArticleDtos;
       },
-      getSearchSummaryPrompts() {
-        return searchSummaryPrompts;
+      getSummarizeAbstractPrompt() {
+        return summarizeAbstractPrompt;
       },
       getSummarySuccessHeader() {
         const self = this;
