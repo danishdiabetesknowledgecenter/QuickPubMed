@@ -204,9 +204,11 @@
                         @update-questions-and-answers="updateUserQuestionsAndAnswers"
                       />
                     </keep-alive>
+
                     <button
                       v-if="
-                        !loadingArticleSummaries[currentSummary] || !currentSummary.length === 0
+                        !isForbiddenError &&
+                        (!loadingArticleSummaries[currentSummary] || !currentSummary.length === 0)
                       "
                       v-tooltip="{
                         content: getString('hoverretryText'),
@@ -229,7 +231,8 @@
                     </button>
                     <button
                       v-if="
-                        !loadingArticleSummaries[currentSummary] || !currentSummary.length === 0
+                        !isForbiddenError &&
+                        (!loadingArticleSummaries[currentSummary] || !currentSummary.length === 0)
                       "
                       v-tooltip="{
                         content: getString('hovercopyText'),
