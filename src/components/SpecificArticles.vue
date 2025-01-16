@@ -130,7 +130,7 @@
       },
       queryResults: {
         type: Number,
-        default: 2,
+        default: 1,
         required: false,
       },
       sortMethod: {
@@ -307,64 +307,6 @@
       }
     },
     methods: {
-      // Fetch initial articles based on ids or query
-      async fetchInitialArticles() {
-        this.loadingComponent = true;
-        this.enteredIds = []; // Reset IDs
-        this.isAbstractLoaded = false;
-        this.faltedIds = []; // Reset failed IDs if necessary
-
-        if (this.ids) {
-          // Handle provided IDs
-          const idArray = this.ids
-            .split(",")
-            .map((id) => id.trim())
-            .filter((id) => id !== "")
-            .slice(0, this.queryResults); // Limit to queryResults
-          this.enteredIds = idArray;
-          console.log("Using provided IDs:", this.enteredIds);
-          if (this.enteredIds.length > 0) {
-            await this.loadWithIds();
-          } else {
-            console.log("No valid IDs provided.");
-            this.loadingComponent = false;
-          }
-        } else if (this.interpretQuery) {
-          // Handle query-based fetching
-          const baseUrl =
-            "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi" +
-            "?db=pubmed" +
-            "&retmode=json" +
-            `&api_key=${this.appSettings.nlm.key}` +
-            `&email=${this.appSettings.nlm.email}` +
-            "&term=" +
-            encodeURIComponent(this.query) +
-            `&retmax=${this.queryResults}`;
-
-          try {
-            const response = await axiosInstance.get(baseUrl, {
-              retry: 3, // Number of retries
-            });
-
-            const ids = response.data.esearchresult.idlist;
-            if (ids && ids.length > 0) {
-              this.enteredIds = ids.slice(0, this.queryResults); // Ensure limit
-              console.log("Initial IDs added:", this.enteredIds);
-              await this.loadWithIds();
-            } else {
-              console.log("No IDs found for the given query.");
-            }
-          } catch (error) {
-            console.error("Error fetching IDs based on query:", error);
-            // Optionally, handle errors or set faletedIds
-          } finally {
-            this.loadingComponent = false;
-          }
-        } else {
-          console.log("No IDs or query provided.");
-          this.loadingComponent = false;
-        }
-      },
       getAuthor(authors) {
         if (!authors) {
           return;
@@ -470,7 +412,10 @@
         }
       },
       getSource(value) {
+        console.log("getSource | Value: ", value);
         try {
+          let source = "";
+          // Check if a custom source is provided
           if (this.source !== "") {
             if (value !== undefined) {
               if (value.volume !== undefined) value.volume = undefined;
@@ -478,13 +423,16 @@
               if (value.pages !== undefined) value.pages = undefined;
               if (value.pubdate !== undefined) value.pubdate = undefined;
             }
-            if (this.source !== "") {
-              return this.source;
-            }
+            // Return the custom source
+            source = this.source;
+          } else if (value.booktitle) {
+            source = value.booktitle;
+          } else {
+            source = value.source;
           }
-          if (value.booktitle) return value.booktitle;
-          return value.source;
+          return source;
         } catch (error) {
+          console.error("Error in getSource:", error);
           return;
         }
       },
@@ -527,6 +475,64 @@
       getAbstractSummaryPrompts() {
         return abstractSummaryPrompts;
       },
+      // Fetch initial articles based on ids or query
+      async fetchInitialArticles() {
+        this.loadingComponent = true;
+        this.enteredIds = []; // Reset IDs
+        this.isAbstractLoaded = false;
+        this.faltedIds = []; // Reset failed IDs if necessary
+
+        if (this.ids) {
+          // Handle provided IDs
+          const idArray = this.ids
+            .split(",")
+            .map((id) => id.trim())
+            .filter((id) => id !== "");
+
+          this.enteredIds = idArray;
+          console.log("Using provided IDs:", this.enteredIds);
+          if (this.enteredIds.length > 0) {
+            await this.loadWithIds();
+          } else {
+            console.log("No valid IDs provided.");
+            this.loadingComponent = false;
+          }
+        } else if (this.interpretQuery) {
+          // Handle query-based fetching
+          const baseUrl =
+            "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi" +
+            "?db=pubmed" +
+            "&retmode=json" +
+            `&api_key=${this.appSettings.nlm.key}` +
+            `&email=${this.appSettings.nlm.email}` +
+            "&term=" +
+            encodeURIComponent(this.query) +
+            `&retmax=${this.queryResults}`;
+
+          try {
+            const response = await axiosInstance.get(baseUrl, {
+              retry: 3, // Number of retries
+            });
+
+            const ids = response.data.esearchresult.idlist;
+            if (ids && ids.length > 0) {
+              this.enteredIds = ids.slice(0, this.queryResults); // Ensure limit
+              console.log("Initial IDs added:", this.enteredIds);
+              await this.loadWithIds();
+            } else {
+              console.log("No IDs found for the given query.");
+            }
+          } catch (error) {
+            console.error("Error fetching IDs based on query:", error);
+            // Optionally, handle errors or set faletedIds
+          } finally {
+            this.loadingComponent = false;
+          }
+        } else {
+          console.log("No IDs or query provided.");
+          this.loadingComponent = false;
+        }
+      },
       // Fetch summaries based on enteredIds
       async loadWithIds() {
         if (this.enteredIds.length === 0 || this.isFetching) {
@@ -552,12 +558,22 @@
             retry: 3, // Number of retries
           });
 
-          const data = response.data.result;
-          console.log("Data:", data);
+          const dataResult = response.data.result;
+          // Copy dataResult to maintain original data state
+          const dataResultCopy = { ...response.data.result };
 
-          if (data && data.uids) {
-            this.searchresult = data.uids.map((uid) => data[uid]);
-            console.log("Articles:", this.searchresult);
+          if (dataResultCopy && dataResultCopy.uids) {
+            this.searchresult = dataResult.uids.map((uid) => {
+              const entry = { ...dataResult[uid] };
+              return {
+                ...entry,
+                volume: entry.volume || "",
+                issue: entry.issue || "",
+                pages: entry.pages || "",
+                pubdate: entry.pubdate || "",
+              };
+            });
+            console.log("this.searchresult:", this.searchresult);
             await this.loadAbstracts();
           } else {
             console.log("No articles found in the response.");
