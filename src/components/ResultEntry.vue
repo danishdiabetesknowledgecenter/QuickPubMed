@@ -42,7 +42,7 @@
               </p>
             </label>
             <p
-              v-if="config.useAI"
+              v-if="config.useAI && useTranslateTitle"
               style="display: inline"
               class="qpm_translateTitleLink qpm_ai_hide"
             >
@@ -834,6 +834,10 @@
       isAbstractLoaded: {
         type: Boolean,
         default: false,
+      },
+      useTranslateTitle: {
+        type: Boolean,
+        default: true,
       },
     },
     data() {

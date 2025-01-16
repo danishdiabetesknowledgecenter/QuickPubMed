@@ -38,6 +38,7 @@
           :abstract="getAbstract(getId)"
           :text="getText(getId)"
           :is-abstract-loaded="isAbstractLoaded"
+          use-translate-title="useTranslateTitle"
           @netFail="UnsuccessfullCall"
           @change:abstractLoad="onAbstractLoad"
           @loadAbstract="addIdToLoadAbstract"
@@ -89,6 +90,7 @@
           :abstract="getAbstract(value.uid)"
           :text="getText(value.uid)"
           :is-abstract-loaded="isAbstractLoaded"
+          :use-translate-title="useTranslateTitle"
           @netFail="UnsuccessfullCall"
           @change:abstractLoad="onAbstractLoad"
           @loadAbstract="addIdToLoadAbstract"
@@ -225,6 +227,10 @@
         type: Boolean,
         default: true,
       },
+      useTranslateTitle: {
+        type: Boolean,
+        default: true,
+      },
     },
     data() {
       return {
@@ -288,6 +294,7 @@
       this.$off("loadAbstract", this.addIdToLoadAbstract);
     },
     mounted() {
+      console.log("useTranslateTitle: ", this.useTranslateTitle);
       if (this.componentNo == null) {
         this.componentId = this._uid;
       } else {

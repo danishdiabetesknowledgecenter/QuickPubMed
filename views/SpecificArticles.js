@@ -74,6 +74,7 @@ specificArticleDivs.forEach((specificArticleDiv) => {
   const shownSixAuthors = specificArticleDiv.dataset.shownSixAuthors === "true";
   const showAltmetricBadge = specificArticleDiv.dataset.showAltmetricBadge === "true";
   const showDimensionsBadge = specificArticleDiv.dataset.showDimensionsBadge === "true";
+  const useTranslateTitle = specificArticleDiv.dataset.useTranslateTitle === "true";
 
   config.domain = domain;
   config.language = language;
@@ -108,6 +109,7 @@ specificArticleDivs.forEach((specificArticleDiv) => {
           shownSixAuthors,
           showAltmetricBadge,
           showDimensionsBadge,
+          useTranslateTitle,
         },
       }),
   }).$mount(specificArticleDiv);
