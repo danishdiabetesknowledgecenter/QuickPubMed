@@ -446,6 +446,7 @@
       this.initialSetup();
     },
     beforeDestroy() {
+      this.isUserTyping = false;
       document.removeEventListener("mousedown", this.setMouseUsed);
       document.removeEventListener("keydown", this.resetMouseUsed);
     },
@@ -976,6 +977,7 @@
         const currentIndex = filteredSortedOptions.findIndex(
           (option) => option.name === currentSubject.name
         );
+        console.log("FindNextSibling currentIndex: ", currentIndex);
 
         if (currentIndex > 0) {
           return filteredSortedOptions[currentIndex - 1];
@@ -1091,6 +1093,7 @@
         const newWidth = `${event.target.value.length + 1}ch`;
         console.log("we inputting");
         event.target.style.setProperty("width", newWidth, "important");
+        this.isUserTyping = true;
       },
       handleStopEnterOnGroups(event) {
         if (this.$refs.multiselect.pointer < 0) {
@@ -1282,8 +1285,10 @@
        * Blur handler needed to force groups to close if search is aborted
        */
       handleOnBlur() {
+        this.isUserTyping = false;
         this.initialSetup();
       },
+
       scrollToFocusedSubject() {
         var subject = this.$refs.multiselect.$refs.list.querySelector(
           ".multiselect__option--highlight"
@@ -1307,6 +1312,11 @@
         if (this.focusedButtonIndex < 0 || this.focusByHover) {
           this.focusedButtonIndex = 1; // index 1 is assumed to be the middle/default index
           this.focusByHover = false;
+        }
+
+        if (this.isUserTyping) {
+          dropdownRef.pointer += 1;
+          return;
         }
 
         // No element selected, just select first
@@ -1385,6 +1395,11 @@
             block: "nearest",
             inline: "nearest",
           });
+          return;
+        }
+
+        if (this.isUserTyping) {
+          dropdownRef.pointer -= 1;
           return;
         }
 
@@ -1489,6 +1504,12 @@
 
                 // Find the next sibling in the filteredSortedOptions based on the ordering.dk
                 const nextSibling = this.findNextSibling(currentSubject, filteredSortedOptions);
+
+                // Check if nextSibling is null, and navigate to the parent maintopic
+                if (!nextSibling) {
+                  dropdownRef.pointer = dropdownRef.pointer - 1;
+                  return;
+                }
 
                 // Check if next sibling is a maintopic
                 if (nextSibling.maintopic) {
