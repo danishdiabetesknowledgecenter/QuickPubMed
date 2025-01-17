@@ -281,10 +281,7 @@
   import { appSettingsMixin, eventBus } from "@/mixins/appSettings.js";
   import { messages } from "@/assets/content/qpm-translations.js";
   import { languageFormat, dateOptions } from "@/utils/qpm-content-helpers.js";
-  import {
-    summarizeSummaryPrompts,
-    shortenAbstractPrompts,
-  } from "@/assets/content/qpm-open-ai-abstract-prompts.js";
+
   import { getPromptForLocale } from "@/utils/qpm-open-ai-prompts-helpers.js";
   import { config } from "@/config/config.js";
   import { promptText } from "@/assets/content/qpm-open-ai-article-prompts.js";
@@ -711,15 +708,6 @@
 
         const localePrompt = getPromptForLocale(prompt, this.language);
 
-        const summarizePrompt = getPromptForLocale(
-          summarizeSummaryPrompts.find((p) => prompt.name === p.name),
-          this.language
-        );
-        const shortenAbstractPrompt = getPromptForLocale(
-          shortenAbstractPrompts.find((p) => prompt.name === p.name),
-          this.language
-        );
-
         const endpoint = "/api/SummarizeSearch";
         const openAiServiceUrl = `${this.appSettings.openAi.baseUrl}${endpoint}`;
 
@@ -789,8 +777,6 @@
           await readData(openAiServiceUrl, {
             prompt: localePrompt,
             articles: articles,
-            summarizeAbstractPrompt: summarizePrompt,
-            shortenAbstractPrompt: shortenAbstractPrompt,
             client: this.appSettings.client,
           });
         } catch (error) {
