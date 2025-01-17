@@ -67,7 +67,7 @@
                   <strong>{{ getString("aiSummarizeSearchResultButton") }}</strong>
                 </p>
                 <button
-                  v-for="(prompt, index) in getSummarizeAbstractPrompt()"
+                  v-for="(prompt, index) in getSummarizeMultipleAbstractsPrompt()"
                   :key="`prompt-${prompt.name}-${index}`"
                   v-tooltip="{
                     content: getString('hoverSummarizeSearchResultButton'),
@@ -794,12 +794,12 @@
         return this.getArticleDtos;
       },
       getSummarizeMultipleAbstractsPrompt() {
-        let temp = summarizeMultipleAbstractPrompt;
-        return temp;
+        let multiple = summarizeMultipleAbstractPrompt;
+        return multiple;
       },
       getSummarizeAbstractPrompt() {
-        let temp = summarizeAbstractPrompt;
-        return temp;
+        let single = summarizeAbstractPrompt;
+        return single;
       },
       getSummarySuccessHeader() {
         const self = this;

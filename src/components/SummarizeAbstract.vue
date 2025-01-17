@@ -573,7 +573,6 @@
       // Set the flag to true after initialization
       this.$nextTick(() => {
         this.prompts.forEach((prompt) => {
-          console.log("prompt", prompt);
           if (!this.userQuestionsAndAnswers[prompt.name]) {
             this.$set(this.userQuestionsAndAnswers, prompt.name, []);
           }
@@ -705,7 +704,6 @@
         this.stopGeneration = false;
         const waitTimeDisclaimerDelay = this.appSettings.openAi.waitTimeDisclaimerDelay ?? 0;
         this.loadingAbstractSummaries.push(prompt.name);
-        console.log("THIS IS THE PROMPT WE SEND:", prompt);
         const localePrompt = getPromptForLocale(prompt, this.language);
 
         const endpoint = "/api/SummarizeSearch";
@@ -840,7 +838,7 @@
         await this.generateAbstractSummary(tab);
       },
       async clickCopyArticleSummary() {
-        console.log("Current article summary copied to the clipboard.");
+        console.info("Current article summary copied to the clipboard.");
         if (this.currentSummary !== "") {
           // Get the user questions and answers for the current summary
           const userQuestionsAndAnswers = this.userQuestionsAndAnswers[this.currentSummary];
