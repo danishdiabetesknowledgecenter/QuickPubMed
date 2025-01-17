@@ -705,7 +705,7 @@
         this.stopGeneration = false;
         const waitTimeDisclaimerDelay = this.appSettings.openAi.waitTimeDisclaimerDelay ?? 0;
         this.loadingAbstractSummaries.push(prompt.name);
-
+        console.log("THIS IS THE PROMPT WE SEND:", prompt);
         const localePrompt = getPromptForLocale(prompt, this.language);
 
         const endpoint = "/api/SummarizeSearch";

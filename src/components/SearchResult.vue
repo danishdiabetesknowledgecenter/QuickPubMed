@@ -794,10 +794,12 @@
         return this.getArticleDtos;
       },
       getSummarizeMultipleAbstractsPrompt() {
-        return summarizeMultipleAbstractPrompt;
+        let temp = summarizeMultipleAbstractPrompt;
+        return temp;
       },
       getSummarizeAbstractPrompt() {
-        return summarizeAbstractPrompt;
+        let temp = summarizeAbstractPrompt;
+        return temp;
       },
       getSummarySuccessHeader() {
         const self = this;
