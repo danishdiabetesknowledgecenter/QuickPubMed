@@ -297,6 +297,7 @@
         ignoreHover: false,
         isLoading: false,
         isMouseUsed: false, // Flag to track interaction method
+        isUserTyping: false,
       };
     },
     computed: {
@@ -1088,6 +1089,7 @@
        */
       handleInputEvent(event) {
         const newWidth = `${event.target.value.length + 1}ch`;
+        console.log("we inputting");
         event.target.style.setProperty("width", newWidth, "important");
       },
       handleStopEnterOnGroups(event) {

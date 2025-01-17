@@ -87,12 +87,12 @@
                 <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryConsentText')" />
               </div>
 
-              <!-- AI summaries of abstracts from inside multiple search results (summarize-article hiden with flag show-summarize-article=false)-->
+              <!-- AI summaries of abstracts from inside multiple search results (summarize-article hidden with flag show-summarize-article=false)-->
               <summarize-abstract
                 v-else
                 :show-summarize-article="false"
                 :language="language"
-                :prompts="getSummarizeAbstractPrompt()"
+                :prompts="getSummarizeMultipleAbstractsPrompt()"
                 :success-header="getSummarySuccessHeader()"
                 :is-marked-articles="getHasSelectedArticles"
                 :articles-references="getSelectedArticlesReferences"
@@ -400,7 +400,10 @@
   import SummarizeAbstract from "@/components/SummarizeAbstract.vue";
   import { order } from "@/assets/content/qpm-content-order.js";
   import { messages } from "@/assets/content/qpm-translations.js";
-  import { summarizeAbstractPrompt } from "@/assets/content/qpm-open-ai-abstract-prompts";
+  import {
+    summarizeAbstractPrompt,
+    summarizeMultipleAbstractPrompt,
+  } from "@/assets/content/qpm-open-ai-abstract-prompts";
   import { appSettingsMixin, eventBus } from "@/mixins/appSettings";
   import { languageFormat, dateOptions, pageSizes } from "@/utils/qpm-content-helpers";
 
@@ -789,6 +792,9 @@
       },
       getArticleDtoProvider() {
         return this.getArticleDtos;
+      },
+      getSummarizeMultipleAbstractsPrompt() {
+        return summarizeMultipleAbstractPrompt;
       },
       getSummarizeAbstractPrompt() {
         return summarizeAbstractPrompt;

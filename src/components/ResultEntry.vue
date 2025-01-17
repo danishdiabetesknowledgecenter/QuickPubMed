@@ -1565,7 +1565,8 @@
           });
       },
       getSummarizeAbstractPrompt() {
-        return summarizeAbstractPrompt;
+        let temp = summarizeAbstractPrompt;
+        return temp;
       },
       updateInput(event) {
         let isChecked = event.target.checked;

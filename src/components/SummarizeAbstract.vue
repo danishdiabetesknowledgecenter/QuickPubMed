@@ -576,6 +576,7 @@
       // Set the flag to true after initialization
       this.$nextTick(() => {
         this.prompts.forEach((prompt) => {
+          console.log("prompt", prompt);
           if (!this.userQuestionsAndAnswers[prompt.name]) {
             this.$set(this.userQuestionsAndAnswers, prompt.name, []);
           }
