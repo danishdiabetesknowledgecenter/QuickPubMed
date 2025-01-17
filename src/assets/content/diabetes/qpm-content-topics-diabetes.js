@@ -297,12 +297,8 @@ export const topics = [
         },
         ordering: { dk: 1, en: 1 },
         searchStrings: {
-          narrow: [
-            '"Diabetes Mellitus"[majr]'
-          ],
-          normal: [
-            '"Diabetes Mellitus"[mh] OR diabet*[ti] OR pre-diabet*[ti] OR prediabet*[ti]',
-          ],
+          narrow: ['"Diabetes Mellitus"[majr]'],
+          normal: ['"Diabetes Mellitus"[mh] OR diabet*[ti] OR pre-diabet*[ti] OR prediabet*[ti]'],
           broad: [
             '"Diabetes Mellitus"[mh] OR diabet*[tiab] OR pre-diabet*[tiab] OR prediabet*[tiab]',
           ],
@@ -1212,9 +1208,9 @@ export const topics = [
           dk: "Kost generelt",
           en: "Diet in general",
         },
-        ordering: { 
-          dk: 1, 
-          en: 1 
+        ordering: {
+          dk: 1,
+          en: 1,
         },
         searchStrings: {
           narrow: [
@@ -1269,9 +1265,7 @@ export const topics = [
           en: 3,
         },
         searchStrings: {
-          narrow: [
-            '"Dietary Approaches to Stop Hypertension"[majr] AND "Diabetes Mellitus"[majr]'
-          ],
+          narrow: ['"Dietary Approaches to Stop Hypertension"[majr] AND "Diabetes Mellitus"[majr]'],
           normal: [
             '("Dietary Approaches to Stop Hypertension"[mh] OR DASH[ti] OR "Dietary Approaches to Stop Hypertension"[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
           ],
@@ -1304,7 +1298,7 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            '"Diet, Carbohydrate-Restricted"[majr] AND "Diet, High-Fat"[majr] AND "Diabetes Mellitus"[majr]'
+            '"Diet, Carbohydrate-Restricted"[majr] AND "Diet, High-Fat"[majr] AND "Diabetes Mellitus"[majr]',
           ],
           normal: [
             '(("Diet, Carbohydrate-Restricted"[mh] AND "Diet, High-Fat"[mh]) OR (low-carb*[ti] AND high-fat[ti]) OR lchf[ti] OR vlchf[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
@@ -1337,9 +1331,7 @@ export const topics = [
           en: 5,
         },
         searchStrings: {
-          narrow: [
-            '"Diet, Mediterranean"[majr] AND "Diabetes Mellitus"[majr]'
-          ],
+          narrow: ['"Diet, Mediterranean"[majr] AND "Diabetes Mellitus"[majr]'],
           normal: [
             '("Diet, Mediterranean"[mh] OR (mediterranean[ti] AND diet*[ti])) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
           ],
@@ -1371,9 +1363,7 @@ export const topics = [
           en: 6,
         },
         searchStrings: {
-          narrow: [
-            '"Diet, Paleolithic"[majr] AND "Diabetes Mellitus"[majr]'
-          ],
+          narrow: ['"Diet, Paleolithic"[majr] AND "Diabetes Mellitus"[majr]'],
           normal: [
             '("Diet, Paleolithic"[mh] OR (paleo*[ti] AND diet*[ti])) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
           ],
@@ -1386,7 +1376,7 @@ export const topics = [
           en: "",
         },
         tooltip: {
-          dk: "Fokus på \"oprindelige fødevarer\" som magert kød, grøntsager, nødder og frugt, mens forarbejdede fødevarer og kornprodukter undgås.",
+          dk: 'Fokus på "oprindelige fødevarer" som magert kød, grøntsager, nødder og frugt, mens forarbejdede fødevarer og kornprodukter undgås.',
           en: "",
         },
       },
@@ -1419,8 +1409,8 @@ export const topics = [
         name: "Plantebaseret kost generelt",
         buttons: true,
         subtopiclevel: 2, // Angiver at dette element ligger på 1. niveau (midterste niveau)
-        maintopicIdLevel1: "S40015", // Angiver at dette element har et parent med dette id. 
-        maintopicIdLevel2: "S400155", // Angiver at dette element har et grandparent med dette id. 
+        maintopicIdLevel1: "S40015", // Angiver at dette element har et parent med dette id.
+        maintopicIdLevel2: "S400155", // Angiver at dette element har et grandparent med dette id.
         translations: {
           dk: "Plantebaseret kost generelt",
           en: "Plant-based diet in general",
@@ -1431,7 +1421,7 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            '("Diet, Plant-Based"[majr:noexp] OR "Diet, Vegetarian"[majr:noexp] OR "Diet, Vegan"[majr:noexp]) AND "Diabetes Mellitus"[majr]'
+            '("Diet, Plant-Based"[majr:noexp] OR "Diet, Vegetarian"[majr:noexp] OR "Diet, Vegan"[majr:noexp]) AND "Diabetes Mellitus"[majr]',
           ],
           normal: [
             '("Diet, Plant-Based"[mh:noexp] OR "Diet, Vegetarian"[mh:noexp] OR "Diet, Vegan"[mh:noexp] OR ((plant-based[ti] OR vegetarian*[ti] OR vegan*[ti]) AND diet*[ti])) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
@@ -1455,7 +1445,7 @@ export const topics = [
         buttons: true,
         subtopiclevel: 2, // Angiver at dette element ligger på 1. niveau (midterste niveau)
         maintopicIdLevel1: "S40015", // Angiver at dette element har et parent med dette id.
-        maintopicIdLevel2: "S400155", // Angiver at dette element har et grandparent med dette id. 
+        maintopicIdLevel2: "S400155", // Angiver at dette element har et grandparent med dette id.
         translations: {
           dk: "Vegetarisk kost",
           en: "Vegetarian diet",
@@ -1465,9 +1455,7 @@ export const topics = [
           en: 9,
         },
         searchStrings: {
-          narrow: [
-            '"Diet, Vegetarian"[majr:noexp] AND "Diabetes Mellitus"[majr]'
-          ],
+          narrow: ['"Diet, Vegetarian"[majr:noexp] AND "Diabetes Mellitus"[majr]'],
           normal: [
             '("Diet, Vegetarian"[mh:noexp] OR (vegetarian*[ti] AND diet*[ti])) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
           ],
@@ -1490,7 +1478,7 @@ export const topics = [
         buttons: true,
         subtopiclevel: 2, // Angiver at dette element ligger på 1. niveau (midterste niveau)
         maintopicIdLevel1: "S40015", // Angiver at dette element har et parent med dette id.
-        maintopicIdLevel2: "S400155", // Angiver at dette element har et grandparent med dette id. 
+        maintopicIdLevel2: "S400155", // Angiver at dette element har et grandparent med dette id.
         translations: {
           dk: "Vegansk kost",
           en: "Vegan diet",
@@ -1500,9 +1488,7 @@ export const topics = [
           en: 10,
         },
         searchStrings: {
-          narrow: [
-            '"Diet, Vegan"[majr] AND "Diabetes Mellitus"[majr]'
-          ],
+          narrow: ['"Diet, Vegan"[majr] AND "Diabetes Mellitus"[majr]'],
           normal: [
             '("Diet, Vegan"[majr] OR (vegan*[ti] AND diet*[ti])) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
           ],
@@ -1534,9 +1520,7 @@ export const topics = [
           en: 11,
         },
         searchStrings: {
-          narrow: [
-            '"Intermittent Fasting"[majr] AND "Diabetes Mellitus"[majr]'
-          ],
+          narrow: ['"Intermittent Fasting"[majr] AND "Diabetes Mellitus"[majr]'],
           normal: [
             '("Intermittent Fasting"[mh] OR ((intermittent[ti] OR time-restrict*[ti]) AND (diet*[ti] OR eating[ti] OR fasting[ti]))) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
           ],
