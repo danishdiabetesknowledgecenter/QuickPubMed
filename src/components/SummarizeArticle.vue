@@ -48,7 +48,7 @@
               ></i>
               <i v-else class="bx bx-chevron-right qpm_aiAccordionHeaderArrows"></i>
               <i
-                class="bx bx-help-circle"
+                class="bx bx-detail"
                 style="
                   font-size: 22px;
                   vertical-align: text-bottom;
