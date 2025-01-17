@@ -878,6 +878,7 @@
             .join("\n\n");
 
           // Construct the text to copy
+          let userQuestionsSection = "";
           const textToCopy =
             this.authorsList.trim() +
             ". " +
@@ -895,14 +896,16 @@
             ": " +
             "\n\n" +
             remaining +
-            "\n\n" +
-            this.getString("userQuestionsHeader") +
-            ": " +
-            "\n\n" +
-            questionsSection +
             "\n\n";
+
+          // If there are user questions, add them to the text to copy
+          if (this.userQuestionsAndAnswers[this.currentSummary].length > 0) {
+            userQuestionsSection =
+              this.getString("userQuestionsHeader") + ": " + "\n\n" + questionsSection + "\n\n";
+          }
+
           // Write to clipboard
-          await navigator.clipboard.writeText(textToCopy);
+          await navigator.clipboard.writeText(textToCopy + userQuestionsSection);
         } else {
           console.error("No current summary to copy.");
         }
