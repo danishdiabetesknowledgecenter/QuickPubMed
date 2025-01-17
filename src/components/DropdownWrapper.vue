@@ -977,7 +977,6 @@
         const currentIndex = filteredSortedOptions.findIndex(
           (option) => option.name === currentSubject.name
         );
-        console.log("FindNextSibling currentIndex: ", currentIndex);
 
         if (currentIndex > 0) {
           return filteredSortedOptions[currentIndex - 1];
