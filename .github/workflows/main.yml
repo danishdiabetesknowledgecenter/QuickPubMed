@@ -35,10 +35,7 @@ jobs:
             VITE_NLM_KEY: ${{ secrets.VITE_NLM_KEY }}
             VITE_MY_NCBI_SHARE: ${{ secrets.VITE_MY_NCBI_SHARE }}
             ### OpenAI Environment Variables
-            VITE_DOMAIN: ${{ secrets.VITE_DOMAIN }}
             VITE_OPENAI_BASE_URL: ${{ secrets.VITE_OPENAI_BASE_URL }}
-            VITE_USE_AI: ${{ secrets.VITE_USE_AI }}
-            VITE_USE_AI_SUMMARIZER: ${{ secrets.VITE_USE_AI_SUMMARIZER }}
             VITE_LONG_ABSTRACT_LENGTH_LIMIT: ${{ secrets.VITE_LONG_ABSTRACT_LENGTH_LIMIT }}
             VITE_WAIT_TIME_DISCLAIMER_DELAY: ${{ secrets.VITE_WAIT_TIME_DISCLAIMER_DELAY }}
             ### Unpaywall Environment Variables
