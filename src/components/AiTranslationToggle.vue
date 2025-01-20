@@ -49,10 +49,6 @@
         type: Boolean,
         default: false,
       },
-      appSettings: {
-        type: Object,
-        default: () => ({}),
-      },
       getString: {
         type: Function,
         default: () => "",

@@ -23,7 +23,6 @@
           <ai-translation-toggle
             v-model="searchWithAI"
             :is-collapsed="isCollapsed"
-            :app-settings="appSettings"
             :get-string="getString"
           />
 

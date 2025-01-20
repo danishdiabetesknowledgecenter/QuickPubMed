@@ -891,9 +891,6 @@
       getIsResourceAllowed() {
         return this.isResourceAllowed;
       },
-      getUsePDFsummaryFlag() {
-        return this.appSettings.openAi.usePDFsummary;
-      },
       getButtonText() {
         if (!this.isAbstractLoaded) {
           return this.getString("showAbstract");

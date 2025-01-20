@@ -1089,7 +1089,6 @@
        */
       handleInputEvent(event) {
         const newWidth = `${event.target.value.length + 1}ch`;
-        console.log("we inputting");
         event.target.style.setProperty("width", newWidth, "important");
         this.isUserTyping = true;
       },
@@ -1104,13 +1103,11 @@
           if (event.target.classList.contains("multiselect__input")) {
             const element = this.$refs.selectWrapper;
             target = element.getElementsByClassName("multiselect__option--highlight")[0];
-            console.log("Target", target);
             if (target == null || target.classList.contains("multiselect__option--group")) {
               event.stopPropagation();
               if (target == null) return;
 
               var focusedGroup = target.querySelector(".qpm_groupLabel").textContent;
-              console.log("focusedGroup", focusedGroup);
 
               if (focusedGroup === this.expandedOptionGroupName) {
                 this.expandedOptionGroupName = "";
@@ -1125,7 +1122,6 @@
               // Nothing currently in focus, and therefore nothing left to do.
               if (dropdownRef.pointer < 0) {
                 event.stopPropagation();
-                console.log("before second return");
                 return;
               }
 
@@ -1137,7 +1133,6 @@
 
               // If no scope buttons exists or none are currently in focus
               // then let the default handeling occur via the input method.
-              console.log("before last return");
               if (!button) return;
 
               event.stopPropagation();
@@ -1196,7 +1191,6 @@
       async handleAddTag(newTag) {
         var tag;
         if (this.searchWithAI) {
-          console.log("Adding translated custom search term");
           this.isLoading = true;
           this.$emit("translating", true, this.index);
 
@@ -1221,7 +1215,6 @@
           this.$emit("translating", false, this.index);
           this.isLoading = false;
         } else {
-          console.log("Adding non translated custom search term");
           this.$emit("translating", false, this.index);
 
           this.$refs.multiselect.deactivate();
