@@ -285,6 +285,11 @@
   import { getPromptForLocale } from "@/utils/qpm-open-ai-prompts-helpers.js";
   import { config } from "@/config/config.js";
   import { promptText } from "@/assets/content/qpm-open-ai-article-prompts.js";
+  import {
+    promptTextMultipleAbstracts,
+    promptTextSingleAbstract,
+  } from "@/assets/content/qpm-open-ai-abstract-prompts";
+  import { sanitizePrompt } from "@/utils/qpm-open-ai-prompts-helpers.js";
 
   export default {
     name: "SummarizeAbstract",
@@ -700,11 +705,54 @@
           return messages["unknownError"][lg];
         }
       },
+      getComposableAbstractPrompt(basePrompt, language, promptLanguageType) {
+        let tempPromptText = "";
+        const isMultipleAbstract = this.articlesReferences.length > 0;
+
+        console.log("isMultipleAbstract:", isMultipleAbstract);
+        if (isMultipleAbstract) {
+          tempPromptText = promptTextMultipleAbstracts;
+        } else {
+          tempPromptText = promptTextSingleAbstract;
+        }
+
+        const prompTextLanguageType = tempPromptText.find(
+          (entry) => entry.name === promptLanguageType
+        );
+
+        const domainSpecificRules = this.domainSpecificPromptRules[language];
+        const promptStartText = prompTextLanguageType.startText[language];
+        const promptEndText = prompTextLanguageType.endText[language];
+
+        // Compose the prompt text with default prompt questions without the user input questions
+        let composedPromptText = `${domainSpecificRules} ${promptStartText} ${promptEndText}`;
+
+        console.info(
+          `|Language|\n${language}\n\n|Prompt language type|\n${promptLanguageType}\n\n|Domain specific rules|\n${domainSpecificRules}\n\n|Start text|\n${promptStartText}\n` +
+            `\n|End text|\n${promptEndText}\n`
+        );
+
+        // Sanitize the composed prompt text
+        let sanitizedComposedPromptText = sanitizePrompt({
+          [language]: composedPromptText,
+        });
+
+        // Set the prompt field to the sanitized composed prompt text for the given language
+        basePrompt.prompt = sanitizedComposedPromptText[language];
+        return basePrompt;
+      },
+
       async generateAbstractSummary(prompt) {
         this.stopGeneration = false;
         const waitTimeDisclaimerDelay = this.appSettings.openAi.waitTimeDisclaimerDelay ?? 0;
         this.loadingAbstractSummaries.push(prompt.name);
-        const localePrompt = getPromptForLocale(prompt, this.language);
+
+        // Get the prompt text for the current language which includes the domain specific rules
+        const localePrompt = this.getComposableAbstractPrompt(
+          { ...prompt },
+          this.language,
+          prompt.name
+        );
 
         const endpoint = "/api/SummarizeSearch";
         const openAiServiceUrl = `${this.appSettings.openAi.baseUrl}${endpoint}`;

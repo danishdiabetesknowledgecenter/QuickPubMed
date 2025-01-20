@@ -400,10 +400,8 @@
   import SummarizeAbstract from "@/components/SummarizeAbstract.vue";
   import { order } from "@/assets/content/qpm-content-order.js";
   import { messages } from "@/assets/content/qpm-translations.js";
-  import {
-    summarizeAbstractPrompt,
-    summarizeMultipleAbstractPrompt,
-  } from "@/assets/content/qpm-open-ai-abstract-prompts";
+  import { summarizeMultipleAbstractPrompt } from "@/assets/content/qpm-open-ai-abstract-prompts";
+  import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
   import { appSettingsMixin, eventBus } from "@/mixins/appSettings";
   import { languageFormat, dateOptions, pageSizes } from "@/utils/qpm-content-helpers";
 
@@ -415,7 +413,7 @@
       LoadingSpinner,
       SummarizeAbstract,
     },
-    mixins: [appSettingsMixin],
+    mixins: [appSettingsMixin, promptRuleLoaderMixin],
     props: {
       results: {
         type: Array,
@@ -796,10 +794,6 @@
       getSummarizeMultipleAbstractsPrompt() {
         let multiple = summarizeMultipleAbstractPrompt;
         return multiple;
-      },
-      getSummarizeAbstractPrompt() {
-        let single = summarizeAbstractPrompt;
-        return single;
       },
       getSummarySuccessHeader() {
         const self = this;

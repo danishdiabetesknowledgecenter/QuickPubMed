@@ -21,8 +21,6 @@
  *
  * @type {Object.<string, ShortTitleMap>}
  */
-const precomputedShortTitleMaps = {};
-
 export function getPromptForLocale(prompt, locale) {
   var localePrompt = {
     ...prompt,
