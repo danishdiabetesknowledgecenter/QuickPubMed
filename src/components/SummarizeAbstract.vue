@@ -13,6 +13,13 @@
           }"
           class="qpm_tab"
           :class="{ qpm_tab_active: prompt.name == currentSummary }"
+          :style="{
+            cursor:
+              showSummarizeArticle && getAreSummariesLoading && prompt.name !== currentSummary
+                ? 'not-allowed'
+                : 'pointer',
+          }"
+          :disabled="showSummarizeArticle && getAreSummariesLoading"
           @click="clickSummaryTab(prompt)"
         >
           {{ getTranslation(prompt) }}
@@ -112,7 +119,7 @@
                 </p>
                 <div style="margin: 20px 5px">
                   <button
-                    v-if="getIsSummaryLoading"
+                    v-if="getIsAbstractSummaryLoading"
                     v-tooltip="{
                       content: getString('hoverretryText'),
                       offset: 5,
@@ -128,7 +135,7 @@
                   </button>
 
                   <button
-                    v-if="!getIsSummaryLoading"
+                    v-if="!getIsAbstractSummaryLoading"
                     v-tooltip="{
                       content: getString('hoverretryText'),
                       offset: 5,
@@ -137,6 +144,7 @@
                     }"
                     class="qpm_button"
                     @keydown.enter="clickRetry($event, true)"
+                    :disabled="getAreSummariesLoading"
                     @click="clickRetry($event, true)"
                   >
                     <i class="bx bx-refresh" style="vertical-align: baseline; font-size: 1em" />
@@ -151,7 +159,7 @@
                       hideOnTargetClick: false,
                     }"
                     class="qpm_button"
-                    :disabled="getIsSummaryLoading"
+                    :disabled="getIsAbstractSummaryLoading"
                     @click="clickCopy"
                   >
                     <i class="bx bx-copy" style="vertical-align: baseline" />
@@ -282,7 +290,6 @@
   import { messages } from "@/assets/content/qpm-translations.js";
   import { languageFormat, dateOptions } from "@/utils/qpm-content-helpers.js";
 
-  import { getPromptForLocale } from "@/utils/qpm-open-ai-prompts-helpers.js";
   import { config } from "@/config/config.js";
   import { promptText } from "@/assets/content/qpm-open-ai-article-prompts.js";
   import {
@@ -411,6 +418,7 @@
         type: String,
         default: "",
       },
+      // Contains the source references for the text used in copying the article/abstract summary
       articlesReferences: {
         type: Array,
         default: () => [],
@@ -438,37 +446,7 @@
           return acc;
         }, {}),
         loadingAbstractSummaries: [],
-        /**
-         * An object containing each summary that has been fetched so far.
-         * Each entry is an array of objects which always contains at least the following properties:
-         *  - `requestTime`		- Date
-         * 	- `status` 			- "success" | "error" | "loading"
-         *  - `articles`		- [{...}, {...}, {...}]
-         * 	- `body`			- String
-         * @example
-         * aiSearchSummaries: {
-         *   fagsprog: [
-         * 	   {
-         *       requestTime: "2017-06-03T03:57:00.000Z",
-         *       responseTime: "2017-06-03T04:00:00.000Z",
-         *       status: "succes",
-         *       articles: [{...}, {...}],
-         *     	 body: "Artiklerne beskriver..."
-         *     }
-         * 	 ],
-         *   hverdagssprog: [
-         *     {
-         *       requestTime: "2017-06-03T04:10:00.000Z",
-         *       responseTime: "2017-06-03T04:17:00.000Z",
-         *       status: "error",
-         *       articles: [{...}, {...}, {...}],
-         *       body: "CORS error",
-         *       error: {...}
-         *     }
-         *   ]
-         * }
-         */
-        aiSearchSummaries: this.prompts.reduce((acc, prompt) => {
+        aiAbstractSummaries: this.prompts.reduce((acc, prompt) => {
           acc[prompt.name] = [];
           return acc;
         }, {}),
@@ -486,16 +464,26 @@
       };
     },
     computed: {
+      /**
+       * Check if both the abstract and article summaries are loading.
+       * if either of them are loading it will return true.
+       */
+      getAreSummariesLoading() {
+        return this.getIsAbstractSummaryLoading || this.getIsArticleSummaryLoading;
+      },
       config() {
         return config;
       },
-      getIsSummaryLoading() {
+      getIsArticleSummaryLoading() {
+        return this.loadingArticleSummaries[this.currentSummary];
+      },
+      getIsAbstractSummaryLoading() {
         return this.loadingAbstractSummaries.includes(this.currentSummary);
       },
       getCurrentSummaryHistory() {
         if (!this.currentSummary) return null;
 
-        let currentSummaries = this.aiSearchSummaries[this.currentSummary];
+        let currentSummaries = this.aiAbstractSummaries[this.currentSummary];
         return currentSummaries;
       },
       getCurrentIndex() {
@@ -609,7 +597,6 @@
       handleSetLoading({ promptLanguageType }) {
         this.$set(this.loadingArticleSummaries, promptLanguageType, true);
       },
-
       /**
        * Unset loading state based on emitted event.
        */
@@ -622,7 +609,6 @@
       handleSetLoadingUserQuestion({ promptLanguageType }) {
         this.$set(this.loadingQuestionsAndAnswers, promptLanguageType, true);
       },
-
       /**
        * Unset loading state for user question based on emitted event.
        */
@@ -640,7 +626,6 @@
           this.$set(this.loadingQuestionsAndAnswers, key, false);
         });
       },
-
       /**
        * Initializes the currentSummaryIndex object based on the promptText names.
        */
@@ -650,7 +635,6 @@
           this.$set(this.currentSummaryIndex, key, 0);
         });
       },
-
       /**
        * Handler to update aiArticleSummaries from child component.
        */
@@ -663,14 +647,12 @@
         this.currentSummaryIndex[promptLanguageType] =
           this.aiArticleSummaries[promptLanguageType].length - 1;
       },
-
       /**
        * Handler to update currentSummaryIndex from child component.
        */
       updateCurrentSummaryIndex({ promptLanguageType, newIndex }) {
         this.$set(this.currentSummaryIndex, promptLanguageType, newIndex);
       },
-
       /**
        * Updates the userQuestionsAndAnswers state.
        *
@@ -680,7 +662,6 @@
         const { promptLanguageType, questionsAndAnswers } = payload;
         this.$set(this.userQuestionsAndAnswers, promptLanguageType, questionsAndAnswers);
       },
-
       getTranslation(value) {
         const lg = this.language;
         const constant = value.translations[lg];
@@ -705,6 +686,14 @@
           return messages["unknownError"][lg];
         }
       },
+      /**
+       * Constructs a composable abstract prompt with the necessary fields.
+       *
+       * @param {Object} prompt - The initial prompt object.
+       * @param {String} language - The language code (e.g., 'en', 'dk').
+       * @param {String} promptLanguageType - The prompt language type (e.g., 'plain langauge', 'proffesional language').
+       * @returns {Object} - The composed prompt object ready for backend processing.
+       */
       getComposableAbstractPrompt(basePrompt, language, promptLanguageType) {
         let tempPromptText = "";
         const isMultipleAbstract = this.articlesReferences.length > 0;
@@ -741,7 +730,6 @@
         basePrompt.prompt = sanitizedComposedPromptText[language];
         return basePrompt;
       },
-
       async generateAbstractSummary(prompt) {
         this.stopGeneration = false;
         const waitTimeDisclaimerDelay = this.appSettings.openAi.waitTimeDisclaimerDelay ?? 0;
@@ -851,8 +839,8 @@
       },
       async clickSummaryTab(tab) {
         this.currentSummary = tab.name;
-        let currentSummaries = this.aiSearchSummaries[tab.name];
-        if (this.getIsSummaryLoading || (currentSummaries && currentSummaries.length > 0)) {
+        let currentSummaries = this.aiAbstractSummaries[tab.name];
+        if (this.getIsAbstractSummaryLoading || (currentSummaries && currentSummaries.length > 0)) {
           return;
         }
         await this.generateAbstractSummary(tab);
@@ -963,13 +951,13 @@
         this.$emit("close");
       },
       pushToAiSearchSummaries(key, value) {
-        const oldSummaries = this.aiSearchSummaries[key] ?? [];
+        const oldSummaries = this.aiAbstractSummaries[key] ?? [];
         let newSummaries = oldSummaries.toSpliced(0, 0, value);
-        Vue.set(this.aiSearchSummaries, key, newSummaries);
+        Vue.set(this.aiAbstractSummaries, key, newSummaries);
       },
       updateAiSearchSummariesEntry(summaryName, newValues, index = 0) {
         for (const [key, value] of Object.entries(newValues)) {
-          this.$set(this.aiSearchSummaries[summaryName][index], key, value);
+          this.$set(this.aiAbstractSummaries[summaryName][index], key, value);
         }
       },
       toggleHistory() {
@@ -1012,7 +1000,9 @@
       getTabTooltipContent(prompt) {
         const tooltip = prompt?.tooltip;
         if (!tooltip) return null;
-
+        if (this.getAreSummariesLoading && prompt.name !== this.currentSummary) {
+          return this.getString("summarizationInProgressDisclaimer");
+        }
         return tooltip[this.language];
       },
     },

@@ -799,4 +799,8 @@ export const messages = {
     dk: "OBS! Hele teksten i denne artikel kan opsummeres.",
     en: "Att. The full text of this article can be summarized.",
   },
+  summarizationInProgressDisclaimer: {
+    dk: "Opsummeringen er i gang, vent venligst til den er færdig. Herefter kan du skifte fane.",
+    en: "The summarization is in progress, please wait until it is finished. After that, you can switch tabs.",
+  },
 };
