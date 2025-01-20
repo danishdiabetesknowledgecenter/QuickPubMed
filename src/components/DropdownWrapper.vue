@@ -984,7 +984,6 @@
 
         return null; // No next sibling found
       },
-
       /**
        * Handles the event when clicking the optiongroup/category
        * Updates the visibility of expanded optiongroup and selected options, using updateOptionGroupVisibility
@@ -1105,17 +1104,20 @@
           if (event.target.classList.contains("multiselect__input")) {
             const element = this.$refs.selectWrapper;
             target = element.getElementsByClassName("multiselect__option--highlight")[0];
+            console.log("Target", target);
             if (target == null || target.classList.contains("multiselect__option--group")) {
               event.stopPropagation();
-              console.log("before first return");
               if (target == null) return;
 
               var focusedGroup = target.querySelector(".qpm_groupLabel").textContent;
+              console.log("focusedGroup", focusedGroup);
 
-              if (focusedGroup == this.expandedOptionGroupName) {
+              if (focusedGroup === this.expandedOptionGroupName) {
                 this.expandedOptionGroupName = "";
+                this.updateExpandedGroupHighlighting();
               } else {
                 this.expandedOptionGroupName = focusedGroup;
+                this.updateExpandedGroupHighlighting();
               }
             } else if (!this.focusByHover && this.focusedButtonIndex >= 0) {
               var dropdownRef = this.$refs.multiselect;
@@ -1194,6 +1196,7 @@
       async handleAddTag(newTag) {
         var tag;
         if (this.searchWithAI) {
+          console.log("Adding translated custom search term");
           this.isLoading = true;
           this.$emit("translating", true, this.index);
 
@@ -1215,20 +1218,29 @@
               en: customInputTagTooltip.en + " - this search is translated from: " + newTag,
             },
           };
+          this.$emit("translating", false, this.index);
           this.isLoading = false;
         } else {
           console.log("Adding non translated custom search term");
+          this.$emit("translating", false, this.index);
+
+          this.$refs.multiselect.deactivate();
+          // setTimeout is to resolve the tag placeholder before starting to translate
+          // Without this the dropdown will hide category groups when adding a new tag
+          await new Promise((resolve) => setTimeout(resolve, 20));
           tag = {
             name: newTag,
             searchStrings: { normal: [newTag] },
             preString: this.getString("manualInputTerm") + ":\u00A0",
             isCustom: true,
+            isTranslated: false,
             tooltip: customInputTagTooltip,
           };
+          this.$emit("translating", false, this.index);
         }
-        this.$emit("translating", false, this.index);
         this.selected.push(tag);
         this.input(this.selected, -1);
+        this.loading = false;
         this.clearShownItems();
       },
       /**

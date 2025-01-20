@@ -98,6 +98,7 @@
         this.$emit("should-focus-next-dropdown", payload);
       },
       handleTranslating(isTranslating, index) {
+        console.log("handleTranslating | emitting 'update-placeholder' ", isTranslating, index);
         this.$emit("update-placeholder", isTranslating, index);
       },
       addSubject() {
