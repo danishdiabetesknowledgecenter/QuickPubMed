@@ -362,11 +362,11 @@
         const promptEndText = prompTextLanguageType.endText[language];
 
         // Compose the prompt text with default prompt questions without the user input questions
-        let composedPromptText = `${domainSpecificRules} ${promptStartText} ${questionsString} ${promptQuestionsExtra} ${promptRules} ${promptEndText}`;
+        let composedPromptText = `${domainSpecificRules} ${promptStartText} ${questionsString} ${promptQuestionsExtra} ${promptEndText}`;
 
         console.info(
           `|Language|\n${language}\n\n|Prompt language type|\n${promptLanguageType}\n\n|Domain specific rules|\n${domainSpecificRules}\n\n|Start text|\n${promptStartText}\n` +
-            `\n|Questions|\n${questionsString}\n\n|QuestionsExtra|\n${promptQuestionsExtra}\n\n|Rules|\n${promptRules}\n` +
+            `\n|Questions|\n${questionsString}\n\n|QuestionsExtra|\n${promptQuestionsExtra}\n` +
             `\n|End text|\n${promptEndText}\n`
         );
 
@@ -453,7 +453,8 @@
           this.scrapingError = false;
 
           // Handle empty responses
-          if (data.questions.length < 1) {
+          if (data.length < 1) {
+            console.error("Data array is empty");
             this.scrapingError = true;
           }
 
