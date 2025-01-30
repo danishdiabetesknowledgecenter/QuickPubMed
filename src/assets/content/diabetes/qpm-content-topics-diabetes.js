@@ -24,6 +24,13 @@
  * @property {Object} [searchStringComment] - Comments about the search strings.
  */
 /** @type {Array<Topic>} */
+
+export const standardString = {
+  narrow: '"Diabetes Mellitus"[majr]',
+  normal: '"Diabetes Mellitus"[mh] OR diabet*[ti]',
+  broad: '"Diabetes Mellitus"[mh] OR diabet*[tiab]',
+}
+
 export const topics = [
   {
     id: "S00",
@@ -297,10 +304,14 @@ export const topics = [
         },
         ordering: { dk: 1, en: 1 },
         searchStrings: {
-          narrow: ['"Diabetes Mellitus"[majr]'],
-          normal: ['"Diabetes Mellitus"[mh] OR diabet*[ti] OR pre-diabet*[ti] OR prediabet*[ti]'],
+          narrow: [
+            standardString['narrow']
+          ],
+          normal: [
+            standardString['normal'] + ' OR pre-diabet*[ti] OR prediabet*[ti]'
+          ],
           broad: [
-            '"Diabetes Mellitus"[mh] OR diabet*[tiab] OR pre-diabet*[tiab] OR prediabet*[tiab]',
+            standardString['broad'] + ' OR pre-diabet*[tiab] OR prediabet*[tiab]',
           ],
         },
         searchStringComment: {
@@ -324,10 +335,10 @@ export const topics = [
         searchStrings: {
           narrow: ['"Diabetes Mellitus, Type 1"[majr]'],
           normal: [
-            '"Diabetes Mellitus, Type 1"[mh] OR ((type-1[ti] OR type-i[ti] OR dm1[ti] OR dmi[ti] OR t1d[ti] OR iddm[ti] OR insulin-dependent[ti] OR insulindependent[ti] OR juvenile-onset[ti] OR autoimmune[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti]))',
+            '"Diabetes Mellitus, Type 1"[mh] OR ((type-1[ti] OR type-i[ti] OR dm1[ti] OR dmi[ti] OR t1d[ti] OR iddm[ti] OR insulin-dependent[ti] OR insulindependent[ti] OR juvenile-onset[ti] OR autoimmune[ti]) AND (' + standardString['normal'] + '))',
           ],
           broad: [
-            '"Diabetes Mellitus, Type 1"[mh] OR ((type-1[tiab] OR type-i[tiab] OR dm1[tiab] OR dmi[tiab] OR t1d[tiab] OR iddm[tiab] OR insulin-dependent[tiab] OR insulindependent[tiab] OR juvenile-onset[tiab] OR autoimmune[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab]))',
+            '"Diabetes Mellitus, Type 1"[mh] OR ((type-1[tiab] OR type-i[tiab] OR dm1[tiab] OR dmi[tiab] OR t1d[tiab] OR iddm[tiab] OR insulin-dependent[tiab] OR insulindependent[tiab] OR juvenile-onset[tiab] OR autoimmune[tiab]) AND (' + standardString['broad'] + '))',
           ],
         },
         searchStringComment: {
@@ -351,10 +362,10 @@ export const topics = [
         searchStrings: {
           narrow: ['"Diabetes Mellitus, Type 2"[majr]'],
           normal: [
-            '"Diabetes Mellitus, Type 2"[mh] OR ((type-2[ti] OR type-ii[ti] OR dm2[ti] OR t2d[ti] OR niddm[ti] OR noninsulin-dependent[ti] OR non-insulin-dependent[ti] OR noninsulindependent[ti] OR adult-onset[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti]))',
+            '"Diabetes Mellitus, Type 2"[mh] OR ((type-2[ti] OR type-ii[ti] OR dm2[ti] OR t2d[ti] OR niddm[ti] OR noninsulin-dependent[ti] OR non-insulin-dependent[ti] OR noninsulindependent[ti] OR adult-onset[ti]) AND (' + standardString['normal'] + '))',
           ],
           broad: [
-            '"Diabetes Mellitus, Type 2"[mh] OR ((type-2[tiab] OR type-ii[tiab] OR dm2[tiab] OR dmii[tiab] OR t2d[tiab] OR niddm[tiab] OR noninsulin-dependent[tiab] OR non-insulin-dependent[tiab] OR noninsulindependent[tiab] OR adult-onset[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab]))',
+            '"Diabetes Mellitus, Type 2"[mh] OR ((type-2[tiab] OR type-ii[tiab] OR dm2[tiab] OR dmii[tiab] OR t2d[tiab] OR niddm[tiab] OR noninsulin-dependent[tiab] OR non-insulin-dependent[tiab] OR noninsulindependent[tiab] OR adult-onset[tiab]) AND (' + standardString['broad'] + '))',
           ],
         },
         searchStringComment: {
@@ -378,10 +389,10 @@ export const topics = [
         searchStrings: {
           narrow: ['"Diabetes, Gestational"[majr]'],
           normal: [
-            '"Diabetes, Gestational"[mh] OR ((gestational*[ti] OR gdm[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti]))',
+            '"Diabetes, Gestational"[mh] OR ((gestational*[ti] OR gdm[ti]) AND (' + standardString['normal'] + '))',
           ],
           broad: [
-            '"Diabetes, Gestational"[mh] OR ((gestational*[tiab] OR gdm[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab]))',
+            '"Diabetes, Gestational"[mh] OR ((gestational*[tiab] OR gdm[tiab]) AND (' + standardString['broad'] + '))',
           ],
         },
         searchStringComment: {
@@ -428,10 +439,10 @@ export const topics = [
         searchStrings: {
           narrow: ['"Latent Autoimmune Diabetes in Adults"[majr]'],
           normal: [
-            '"Latent Autoimmune Diabetes in Adults"[mh] OR (("latent autoimmune"[ti] OR lada[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti]))',
+            '"Latent Autoimmune Diabetes in Adults"[mh] OR (("latent autoimmune"[ti] OR lada[ti]) AND (' + standardString['normal'] + '))',
           ],
           broad: [
-            '"Latent Autoimmune Diabetes in Adults"[mh] OR (("latent autoimmune"[tiab] OR lada[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab]))',
+            '"Latent Autoimmune Diabetes in Adults"[mh] OR (("latent autoimmune"[tiab] OR lada[tiab]) AND (' + standardString['broad'] + '))',
           ],
         },
         searchStringComment: {
@@ -457,10 +468,10 @@ export const topics = [
             '("Mason-Type Diabetes"[nm] OR "Maturity-Onset Diabetes of the Young, Type 1"[nm] OR "Maturity-Onset Diabetes of the Young, Type 2"[nm] OR "Maturity-Onset Diabetes of the Young, Type 3"[nm] OR "Maturity-Onset Diabetes of the Young, Type 4"[nm] OR "Renal cysts and diabetes syndrome"[nm] OR "MODY, Type 6"[nm] OR "Maturity-Onset Diabetes of the Young, Type 8, with Exocrine Dysfunction"[nm] OR "Maturity-Onset Diabetes Of The Young, Type 9"[nm]) AND (maturity-onset[ti] OR maturityonset[ti] OR mody[ti])',
           ],
           normal: [
-            '("Mason-Type Diabetes"[nm] OR "Maturity-Onset Diabetes of the Young, Type 1"[nm] OR "Maturity-Onset Diabetes of the Young, Type 2"[nm] OR "Maturity-Onset Diabetes of the Young, Type 3"[nm] OR "Maturity-Onset Diabetes of the Young, Type 4"[nm] OR "Renal cysts and diabetes syndrome"[nm] OR "MODY, Type 6"[nm] OR "Maturity-Onset Diabetes of the Young, Type 8, with Exocrine Dysfunction"[nm] OR "Maturity-Onset Diabetes Of The Young, Type 9"[nm]) OR ((maturity-onset[ti] OR maturityonset[ti] OR mody[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti]))',
+            '("Mason-Type Diabetes"[nm] OR "Maturity-Onset Diabetes of the Young, Type 1"[nm] OR "Maturity-Onset Diabetes of the Young, Type 2"[nm] OR "Maturity-Onset Diabetes of the Young, Type 3"[nm] OR "Maturity-Onset Diabetes of the Young, Type 4"[nm] OR "Renal cysts and diabetes syndrome"[nm] OR "MODY, Type 6"[nm] OR "Maturity-Onset Diabetes of the Young, Type 8, with Exocrine Dysfunction"[nm] OR "Maturity-Onset Diabetes Of The Young, Type 9"[nm]) OR ((maturity-onset[ti] OR maturityonset[ti] OR mody[ti]) AND (' + standardString['normal'] + '))',
           ],
           broad: [
-            '("Mason-Type Diabetes"[nm] OR "Maturity-Onset Diabetes of the Young, Type 1"[nm] OR "Maturity-Onset Diabetes of the Young, Type 2"[nm] OR "Maturity-Onset Diabetes of the Young, Type 3"[nm] OR "Maturity-Onset Diabetes of the Young, Type 4"[nm] OR "Renal cysts and diabetes syndrome"[nm] OR "MODY, Type 6"[nm] OR "Maturity-Onset Diabetes of the Young, Type 8, with Exocrine Dysfunction"[nm] OR "Maturity-Onset Diabetes Of The Young, Type 9"[nm]) OR ((maturity-onset[tiab] OR maturityonset[tiab] OR mody*[tiab] OR monogenic*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab]))',
+            '("Mason-Type Diabetes"[nm] OR "Maturity-Onset Diabetes of the Young, Type 1"[nm] OR "Maturity-Onset Diabetes of the Young, Type 2"[nm] OR "Maturity-Onset Diabetes of the Young, Type 3"[nm] OR "Maturity-Onset Diabetes of the Young, Type 4"[nm] OR "Renal cysts and diabetes syndrome"[nm] OR "MODY, Type 6"[nm] OR "Maturity-Onset Diabetes of the Young, Type 8, with Exocrine Dysfunction"[nm] OR "Maturity-Onset Diabetes Of The Young, Type 9"[nm]) OR ((maturity-onset[tiab] OR maturityonset[tiab] OR mody*[tiab] OR monogenic*[tiab]) AND (' + standardString['broad'] + '))',
           ],
         },
         searchStringComment: {
@@ -483,13 +494,13 @@ export const topics = [
         ordering: { dk: 8, en: 8 },
         searchStrings: {
           narrow: [
-            '("Diabetes Mellitus, Transient Neonatal, 1"[nm] OR "Diabetes Mellitus, Transient Neonatal, 2"[nm] OR "Diabetes Mellitus, Transient Neonatal, 3"[nm] OR "6q24-Related Transient Neonatal Diabetes Mellitus"[nm] OR "Diabetes Mellitus, Permanent Neonatal"[nm] OR "Diabetes Mellitus, Permanent Neonatal, with Cerebellar Agenesis"[nm] OR "Diabetes Mellitus, Permanent Neonatal, With Neurologic Features"[nm] OR "Diabetes Mellitus, Neonatal, with Congenital Hypothyroidism"[nm]) AND ("neonatal diabetes"[ti] OR ("Infant"[mh] AND "Mutation"[mh] AND "Diabetes Mellitus"[majr]))',
+            '("Diabetes Mellitus, Transient Neonatal, 1"[nm] OR "Diabetes Mellitus, Transient Neonatal, 2"[nm] OR "Diabetes Mellitus, Transient Neonatal, 3"[nm] OR "6q24-Related Transient Neonatal Diabetes Mellitus"[nm] OR "Diabetes Mellitus, Permanent Neonatal"[nm] OR "Diabetes Mellitus, Permanent Neonatal, with Cerebellar Agenesis"[nm] OR "Diabetes Mellitus, Permanent Neonatal, With Neurologic Features"[nm] OR "Diabetes Mellitus, Neonatal, with Congenital Hypothyroidism"[nm]) AND ("neonatal diabetes"[ti] OR ("Infant"[mh] AND "Mutation"[mh] AND ' + standardString['narrow'] + '))',
           ],
           normal: [
-            '("Diabetes Mellitus, Transient Neonatal, 1"[nm] OR "Diabetes Mellitus, Transient Neonatal, 2"[nm] OR "Diabetes Mellitus, Transient Neonatal, 3"[nm] OR "6q24-Related Transient Neonatal Diabetes Mellitus"[nm] OR "Diabetes Mellitus, Permanent Neonatal"[nm] OR "Diabetes Mellitus, Permanent Neonatal, with Cerebellar Agenesis"[nm] OR "Diabetes Mellitus, Permanent Neonatal, With Neurologic Features"[nm] OR "Diabetes Mellitus, Neonatal, with Congenital Hypothyroidism"[nm]) OR "neonatal diabetes"[ti] OR ("Infant"[mh] AND "Mutation"[mh] AND ("Diabetes Mellitus"[mh] OR diabet*[ti]))',
+            '("Diabetes Mellitus, Transient Neonatal, 1"[nm] OR "Diabetes Mellitus, Transient Neonatal, 2"[nm] OR "Diabetes Mellitus, Transient Neonatal, 3"[nm] OR "6q24-Related Transient Neonatal Diabetes Mellitus"[nm] OR "Diabetes Mellitus, Permanent Neonatal"[nm] OR "Diabetes Mellitus, Permanent Neonatal, with Cerebellar Agenesis"[nm] OR "Diabetes Mellitus, Permanent Neonatal, With Neurologic Features"[nm] OR "Diabetes Mellitus, Neonatal, with Congenital Hypothyroidism"[nm]) OR "neonatal diabetes"[ti] OR ("Infant"[mh] AND "Mutation"[mh] AND (' + standardString['normal'] + '))',
           ],
           broad: [
-            '("Diabetes Mellitus, Transient Neonatal, 1"[nm] OR "Diabetes Mellitus, Transient Neonatal, 2"[nm] OR "Diabetes Mellitus, Transient Neonatal, 3"[nm] OR "6q24-Related Transient Neonatal Diabetes Mellitus"[nm] OR "Diabetes Mellitus, Permanent Neonatal"[nm] OR "Diabetes Mellitus, Permanent Neonatal, with Cerebellar Agenesis"[nm] OR "Diabetes Mellitus, Permanent Neonatal, With Neurologic Features"[nm] OR "Diabetes Mellitus, Neonatal, with Congenital Hypothyroidism"[nm]) OR "neonatal diabetes"[tiab] OR ("Infant"[mh] AND "Mutation"[mh] AND ("Diabetes Mellitus"[mh] OR diabet*[tiab]))',
+            '("Diabetes Mellitus, Transient Neonatal, 1"[nm] OR "Diabetes Mellitus, Transient Neonatal, 2"[nm] OR "Diabetes Mellitus, Transient Neonatal, 3"[nm] OR "6q24-Related Transient Neonatal Diabetes Mellitus"[nm] OR "Diabetes Mellitus, Permanent Neonatal"[nm] OR "Diabetes Mellitus, Permanent Neonatal, with Cerebellar Agenesis"[nm] OR "Diabetes Mellitus, Permanent Neonatal, With Neurologic Features"[nm] OR "Diabetes Mellitus, Neonatal, with Congenital Hypothyroidism"[nm]) OR "neonatal diabetes"[tiab] OR ("Infant"[mh] AND "Mutation"[mh] AND (' + standardString['broad'] + '))',
           ],
         },
         searchStringComment: {
@@ -528,10 +539,10 @@ export const topics = [
         searchStrings: {
           narrow: ['"Diabetes Complications"[majr]'],
           normal: [
-            '"Diabetes Complications"[mh] OR (complication*[ti] AND ("Diabetes Mellitus"[mh] OR diabet*[ti]))',
+            '"Diabetes Complications"[mh] OR (complication*[ti] AND (' + standardString['normal'] + '))',
           ],
           broad: [
-            '"Diabetes Complications"[mh] OR (complication*[tiab] AND ("Diabetes Mellitus"[mh] OR diabet*[tiab]))',
+            '"Diabetes Complications"[mh] OR (complication*[tiab] AND (' + standardString['broad'] + '))',
           ],
         },
         searchStringComment: {
@@ -555,10 +566,10 @@ export const topics = [
         searchStrings: {
           narrow: ['"Diabetic Neuropathies"[majr:noexp]'],
           normal: [
-            '"Diabetic Neuropathies"[mh:noexp] OR ((neuropath*[ti] OR neuralgi*[ti] OR mononeuropath*[ti] OR polyneuropath*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti]))',
+            '"Diabetic Neuropathies"[mh:noexp] OR ((neuropath*[ti] OR neuralgi*[ti] OR mononeuropath*[ti] OR polyneuropath*[ti]) AND (' + standardString['normal'] + '))',
           ],
           broad: [
-            '"Diabetic Neuropathies"[mh:noexp] OR ((neuropath*[tiab] OR neuralgi*[tiab] OR mononeuropath*[tiab] OR polyneuropath*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab]))',
+            '"Diabetic Neuropathies"[mh:noexp] OR ((neuropath*[tiab] OR neuralgi*[tiab] OR mononeuropath*[tiab] OR polyneuropath*[tiab]) AND (' + standardString['broad'] + '))',
           ],
         },
         searchStringComment: {
@@ -585,7 +596,7 @@ export const topics = [
             '"Diabetic Nephropathies"[mh] OR ((nephropath*[ti] OR kidney*[ti] OR glomeruloscleros*[ti] OR renal*[ti]) AND ("Diabetes Mellitus"[mh] AND diabet*[ti]))',
           ],
           broad: [
-            '"Diabetic Nephropathies"[mh] OR ((nephropath*[tiab] OR kidney*[tiab] OR glomeruloscleros*[tiab] OR renal*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab]))',
+            '"Diabetic Nephropathies"[mh] OR ((nephropath*[tiab] OR kidney*[tiab] OR glomeruloscleros*[tiab] OR renal*[ti]) AND (' + standardString['broad'] + '))',
           ],
         },
         searchStringComment: {
@@ -609,10 +620,10 @@ export const topics = [
         searchStrings: {
           narrow: ['"Diabetic Retinopathy"[majr:noexp]'],
           normal: [
-            '"Diabetic Retinopathy"[mh:noexp] OR (retinopath*[ti] AND ("Diabetes Mellitus"[mh] OR diabet*[ti]))',
+            '"Diabetic Retinopathy"[mh:noexp] OR (retinopath*[ti] AND (' + standardString['normal'] + '))',
           ],
           broad: [
-            '"Diabetic Retinopathy"[mh:noexp] OR (retinopath*[tiab] AND ("Diabetes Mellitus"[mh] OR diabet*[tiab]))',
+            '"Diabetic Retinopathy"[mh:noexp] OR (retinopath*[tiab] AND (' + standardString['broad'] + '))',
           ],
         },
         searchStringComment: {
@@ -636,10 +647,10 @@ export const topics = [
         searchStrings: {
           narrow: ['"Diabetic Foot"[majr]'],
           normal: [
-            '"Diabetic Foot"[mh] OR ((foot[ti] OR feet[ti] OR podiatri*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti]))',
+            '"Diabetic Foot"[mh] OR ((foot[ti] OR feet[ti] OR podiatri*[ti]) AND (' + standardString['normal'] + '))',
           ],
           broad: [
-            '"Diabetic Foot"[mh] OR ((foot[tiab] OR feet[tiab] OR podiatri*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab]))',
+            '"Diabetic Foot"[mh] OR ((foot[tiab] OR feet[tiab] OR podiatri*[tiab]) AND (' + standardString['broad'] + '))',
           ],
         },
         searchStringComment: {
@@ -661,12 +672,12 @@ export const topics = [
         },
         ordering: { dk: null, en: null },
         searchStrings: {
-          narrow: ['"Gastroparesis"[majr] AND "Diabetes Mellitus"[majr]'],
+          narrow: ['"Gastroparesis"[majr] AND ' + standardString['narrow']],
           normal: [
-            '("Gastroparesis"[mh] OR gastropares*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Gastroparesis"[mh] OR gastropares*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Gastroparesis"[mh] OR gastropares*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Gastroparesis"[mh] OR gastropares*[tiab]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -689,13 +700,13 @@ export const topics = [
         ordering: { dk: null, en: null },
         searchStrings: {
           narrow: [
-            '("Cardiovascular Diseases"[majr] AND "Diabetes Mellitus"[majr]) NOT "Diabetic Angiopathies"[mh]',
+            '("Cardiovascular Diseases"[majr] AND ' + standardString['narrow'] + ') NOT "Diabetic Angiopathies"[mh]',
           ],
           normal: [
-            '(("Cardiovascular Diseases"[mh] OR cardio*[ti] OR heart[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])) NOT "Diabetic Angiopathies"[mh]',
+            '(("Cardiovascular Diseases"[mh] OR cardio*[ti] OR heart[ti]) AND (' + standardString['normal'] + ')) NOT "Diabetic Angiopathies"[mh]',
           ],
           broad: [
-            '(("Cardiovascular Diseases"[mh] OR cardio*[tiab] OR heart[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])) NOT "Diabetic Angiopathies"[mh]',
+            '(("Cardiovascular Diseases"[mh] OR cardio*[tiab] OR heart[tiab]) AND (' + standardString['broad'] + ')) NOT "Diabetic Angiopathies"[mh]',
           ],
         },
         searchStringComment: {
@@ -718,13 +729,13 @@ export const topics = [
         ordering: { dk: null, en: null },
         searchStrings: {
           narrow: [
-            '(("Skin Manifestations"[majr] OR "Skin Diseases"[majr]) AND "Diabetes Mellitus"[majr]) NOT ("Diabetic Foot"[mh] OR (("Dermatitis, Contact"[majr] OR "Eczema"[majr]) AND ("Insulin Infusion Systems"[mh] OR "Blood Glucose Self-Monitoring"[mh])))',
+            '(("Skin Manifestations"[majr] OR "Skin Diseases"[majr]) AND ' + standardString['narrow'] + ') NOT ("Diabetic Foot"[mh] OR (("Dermatitis, Contact"[majr] OR "Eczema"[majr]) AND ("Insulin Infusion Systems"[mh] OR "Blood Glucose Self-Monitoring"[mh])))',
           ],
           normal: [
-            '(("Skin Manifestations"[mh] OR "Skin Diseases"[mh] OR "skin"[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])) NOT ("Diabetic Foot"[mh] OR (("Dermatitis, Contact"[mh] OR "Eczema"[mh] OR allerg*[ti] OR dermatitis*[ti] OR eczema*[ti] OR skin-problem*[ti] OR skin-reaction*[ti]) AND (("Insulin Infusion Systems"[mh] OR insulin-infusion*[ti] OR insulin-pump*[ti]) OR ("Blood Glucose Self-Monitoring"[mh] OR ((blood-glucose*[ti] OR blood-sugar*[ti] OR hba1c[ti]) AND (cgm[ti] OR bgm[ti] OR flash[ti] OR libre[ti] OR measur*[ti] OR monitor*[ti] OR iscgm[ti]))))))',
+            '(("Skin Manifestations"[mh] OR "Skin Diseases"[mh] OR "skin"[ti]) AND (' + standardString['normal'] + ')) NOT ("Diabetic Foot"[mh] OR (("Dermatitis, Contact"[mh] OR "Eczema"[mh] OR allerg*[ti] OR dermatitis*[ti] OR eczema*[ti] OR skin-problem*[ti] OR skin-reaction*[ti]) AND (("Insulin Infusion Systems"[mh] OR insulin-infusion*[ti] OR insulin-pump*[ti]) OR ("Blood Glucose Self-Monitoring"[mh] OR ((blood-glucose*[ti] OR blood-sugar*[ti] OR hba1c[ti]) AND (cgm[ti] OR bgm[ti] OR flash[ti] OR libre[ti] OR measur*[ti] OR monitor*[ti] OR iscgm[ti]))))))',
           ],
           broad: [
-            '(("Skin Manifestations"[mh] OR "Skin Diseases"[mh] OR "skin"[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])) NOT ("Diabetic Foot"[mh] OR (("Dermatitis, Contact"[mh] OR "Eczema"[mh] OR allerg*[tiab] OR dermatitis*[tiab] OR eczema*[tiab] OR skin-problem*[tiab] OR skin-reaction*[tiab]) AND (("Insulin Infusion Systems"[mh] OR insulin-infusion*[tiab] OR insulin-pump*[tiab]) OR ("Blood Glucose Self-Monitoring"[mh] OR ((blood-glucose*[tiab] OR blood-sugar*[tiab] OR hba1c[tiab]) AND (cgm[tiab] OR bgm[tiab] OR flash[tiab] OR libre[tiab] OR measur*[tiab] OR monitor*[tiab] OR iscgm[tiab]))))))',
+            '(("Skin Manifestations"[mh] OR "Skin Diseases"[mh] OR "skin"[tiab]) AND (' + standardString['broad'] + ')) NOT ("Diabetic Foot"[mh] OR (("Dermatitis, Contact"[mh] OR "Eczema"[mh] OR allerg*[tiab] OR dermatitis*[tiab] OR eczema*[tiab] OR skin-problem*[tiab] OR skin-reaction*[tiab]) AND (("Insulin Infusion Systems"[mh] OR insulin-infusion*[tiab] OR insulin-pump*[tiab]) OR ("Blood Glucose Self-Monitoring"[mh] OR ((blood-glucose*[tiab] OR blood-sugar*[tiab] OR hba1c[tiab]) AND (cgm[tiab] OR bgm[tiab] OR flash[tiab] OR libre[tiab] OR measur*[tiab] OR monitor*[tiab] OR iscgm[tiab]))))))',
           ],
         },
         searchStringComment: {
@@ -747,13 +758,13 @@ export const topics = [
         ordering: { dk: null, en: null },
         searchStrings: {
           narrow: [
-            '("Dermatitis, Contact"[majr] OR "Eczema"[majr]) AND ("Insulin Infusion Systems"[mh] OR "Blood Glucose Self-Monitoring"[mh]) AND "Diabetes Mellitus"[majr]',
+            '("Dermatitis, Contact"[majr] OR "Eczema"[majr]) AND ("Insulin Infusion Systems"[mh] OR "Blood Glucose Self-Monitoring"[mh]) AND ' + standardString['narrow'] + '',
           ],
           normal: [
-            '("Dermatitis, Contact"[mh] OR "Eczema"[mh] OR allerg*[ti] OR dermatitis*[ti] OR eczema*[ti] OR skin-problem*[ti] OR skin-reaction*[ti]) AND (("Insulin Infusion Systems"[mh] OR insulin-infusion*[ti] OR insulin-pump*[ti]) OR ("Blood Glucose Self-Monitoring"[mh] OR ((blood-glucose*[ti] OR blood-sugar*[ti] OR hba1c[ti]) AND (cgm[ti] OR bgm[ti] OR flash[ti] OR libre[ti] OR measur*[ti] OR monitor*[ti] OR iscgm[ti])))) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Dermatitis, Contact"[mh] OR "Eczema"[mh] OR allerg*[ti] OR dermatitis*[ti] OR eczema*[ti] OR skin-problem*[ti] OR skin-reaction*[ti]) AND (("Insulin Infusion Systems"[mh] OR insulin-infusion*[ti] OR insulin-pump*[ti]) OR ("Blood Glucose Self-Monitoring"[mh] OR ((blood-glucose*[ti] OR blood-sugar*[ti] OR hba1c[ti]) AND (cgm[ti] OR bgm[ti] OR flash[ti] OR libre[ti] OR measur*[ti] OR monitor*[ti] OR iscgm[ti])))) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Dermatitis, Contact"[mh] OR "Eczema"[mh] OR allerg*[tiab] OR dermatitis*[tiab] OR eczema*[tiab] OR skin-problem*[tiab] OR skin-reaction*[tiab]) AND (("Insulin Infusion Systems"[mh] OR insulin-infusion*[tiab] OR insulin-pump*[tiab]) OR ("Blood Glucose Self-Monitoring"[mh] OR ((blood-glucose*[tiab] OR blood-sugar*[tiab] OR hba1c[tiab]) AND (cgm[tiab] OR bgm[tiab] OR flash[tiab] OR libre[tiab] OR measur*[tiab] OR monitor*[tiab] OR iscgm[tiab])))) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Dermatitis, Contact"[mh] OR "Eczema"[mh] OR allerg*[tiab] OR dermatitis*[tiab] OR eczema*[tiab] OR skin-problem*[tiab] OR skin-reaction*[tiab]) AND (("Insulin Infusion Systems"[mh] OR insulin-infusion*[tiab] OR insulin-pump*[tiab]) OR ("Blood Glucose Self-Monitoring"[mh] OR ((blood-glucose*[tiab] OR blood-sugar*[tiab] OR hba1c[tiab]) AND (cgm[tiab] OR bgm[tiab] OR flash[tiab] OR libre[tiab] OR measur*[tiab] OR monitor*[tiab] OR iscgm[tiab])))) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -802,12 +813,14 @@ export const topics = [
         ordering: { dk: null, en: null },
         buttons: true,
         searchStrings: {
-          narrow: ['"Hypoglycemia"[majr]'],
+          narrow: [
+            '"Hypoglycemia"[majr]'
+          ],
           normal: [
-            '"Hypoglycemia"[mh] OR hypoglycaemi*[ti] OR hypo-glycaemi*[ti] OR hypoglycemi*[ti] OR hypo-glycemi*[ti]',
+            '"Hypoglycemia"[mh] OR hypoglycaemi*[ti] OR hypo-glycaemi*[ti] OR hypoglycemi*[ti] OR hypo-glycemi*[ti]'
           ],
           broad: [
-            '"Hypoglycemia"[mh] OR hypoglycaemi*[tiab] OR hypo-glycaemi*[tiab] OR hypoglycemi*[tiab] OR hypo-glycemi*[tiab]',
+            '"Hypoglycemia"[mh] OR hypoglycaemi*[tiab] OR hypo-glycaemi*[tiab] OR hypoglycemi*[tiab] OR hypo-glycemi*[tiab]'
           ],
         },
         searchStringComment: {
@@ -853,13 +866,13 @@ export const topics = [
         ordering: { dk: null, en: null },
         searchStrings: {
           narrow: [
-            '("Connective Tissue Diseases"[majr] OR "Trigger Finger Disorder"[majr]) AND "Diabetes Mellitus"[majr]',
+            '("Connective Tissue Diseases"[majr] OR "Trigger Finger Disorder"[majr]) AND ' + standardString['narrow'] + ''
           ],
           normal: [
-            '("Connective Tissue Diseases"[mh] OR "Trigger Finger Disorder"[mh] OR connective-tissue*[ti] OR trigger-finger*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Connective Tissue Diseases"[mh] OR "Trigger Finger Disorder"[mh] OR connective-tissue*[ti] OR trigger-finger*[ti]) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            '("Connective Tissue Diseases"[mh] OR "Trigger Finger Disorder"[mh] OR connective-tissue*[tiab] OR trigger-finger*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Connective Tissue Diseases"[mh] OR "Trigger Finger Disorder"[mh] OR connective-tissue*[tiab] OR trigger-finger*[tiab]) AND (' + standardString['broad'] + ')'
           ],
         },
         searchStringComment: {
@@ -882,13 +895,13 @@ export const topics = [
         ordering: { dk: null, en: null },
         searchStrings: {
           narrow: [
-            '("Oral Health"[majr] OR "Periodontal Diseases"[majr]) AND "Diabetes Mellitus"[majr]',
+            '("Oral Health"[majr] OR "Periodontal Diseases"[majr]) AND ' + standardString['narrow'] + ''
           ],
           normal: [
-            '("Oral Health"[mh] OR "Periodontal Diseases"[mh] OR oral-health[ti] OR parodont*[ti] OR periodont*[ti] OR teeth*[ti] OR tooth[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Oral Health"[mh] OR "Periodontal Diseases"[mh] OR oral-health[ti] OR parodont*[ti] OR periodont*[ti] OR teeth*[ti] OR tooth[ti]) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            '("Oral Health"[mh] OR "Periodontal Diseases"[mh] OR oral-health[tiab] OR parodont*[tiab] OR periodont*[tiab] OR teeth*[tiab] OR tooth[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Oral Health"[mh] OR "Periodontal Diseases"[mh] OR oral-health[tiab] OR parodont*[tiab] OR periodont*[tiab] OR teeth*[tiab] OR tooth[tiab]) AND (' + standardString['broad'] + ')'
           ],
         },
         searchStringComment: {
@@ -908,16 +921,19 @@ export const topics = [
           dk: "Seksuel dysfunktion",
           en: "Sexual dysfunction",
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
           narrow: [
-            '("Sexual Dysfunctions, Psychological"[majr] OR "Sexual Dysfunction, Physiological"[majr]) AND "Diabetes Mellitus"[majr]',
+            '("Sexual Dysfunctions, Psychological"[majr] OR "Sexual Dysfunction, Physiological"[majr]) AND ' + standardString['narrow'] + ''
           ],
           normal: [
-            '("Sexual Dysfunctions, Psychological"[mh] OR "Sexual Dysfunction, Physiological"[mh] OR ((sexual*[ti] OR erectil*[ti]) AND (dysfunction*[ti] OR problem*[ti]))) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Sexual Dysfunctions, Psychological"[mh] OR "Sexual Dysfunction, Physiological"[mh] OR ((sexual*[ti] OR erectil*[ti]) AND (dysfunction*[ti] OR problem*[ti]))) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            '("Sexual Dysfunctions, Psychological"[mh] OR "Sexual Dysfunction, Physiological"[mh] OR ((sexual*[tiab] OR erectil*[tiab]) AND (dysfunction*[tiab] OR problem*[tiab]))) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Sexual Dysfunctions, Psychological"[mh] OR "Sexual Dysfunction, Physiological"[mh] OR ((sexual*[tiab] OR erectil*[tiab]) AND (dysfunction*[tiab] OR problem*[tiab]))) AND (' + standardString['broad'] + ')'
           ],
         },
         searchStringComment: {
@@ -937,14 +953,19 @@ export const topics = [
           dk: "Søvnproblemer",
           en: "Sleep disorders",
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['"Sleep"[majr] AND "Diabetes Mellitus"[majr]'],
+          narrow: [
+            '"Sleep"[majr] AND ' + standardString['narrow']
+          ],
           normal: [
-            '("Sleep"[mh] OR sleep*[ti] OR apnea*[ti] OR apnoea*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Sleep"[mh] OR sleep*[ti] OR apnea*[ti] OR apnoea*[ti]) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            '("Sleep"[mh] OR sleep*[tiab] OR apnea*[tiab] OR apnoea*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Sleep"[mh] OR sleep*[tiab] OR apnea*[tiab] OR apnoea*[tiab]) AND (' + standardString['broad'] + ')'
           ],
         },
         searchStringComment: {
@@ -969,7 +990,10 @@ export const topics = [
       dk: "Medicinsk behandling",
       en: "Medical treatment",
     },
-    ordering: { dk: 3, en: 3 },
+    ordering: { 
+      dk: 3, 
+      en: 3 
+    },
     groups: [
       {
         id: "S30010",
@@ -979,12 +1003,19 @@ export const topics = [
           dk: "Medicinsk behandling generelt",
           en: "Medical treatment in general",
         },
-        ordering: { dk: 1, en: 1 },
+        ordering: { 
+          dk: 1, 
+          en: 1 
+        },
         searchStrings: {
-          narrow: ['"Diabetes Mellitus/drug therapy"[majr] OR "Hypoglycemic Agents"[majr]'],
-          normal: ['"Diabetes Mellitus/drug therapy"[mh] OR "Hypoglycemic Agents"[mh]'],
+          narrow: [
+            '"Diabetes Mellitus/drug therapy"[majr] OR "Hypoglycemic Agents"[majr]'
+          ],
+          normal: [
+            '"Diabetes Mellitus/drug therapy"[mh] OR "Hypoglycemic Agents"[mh]'
+          ],
           broad: [
-            '"Diabetes Mellitus/drug therapy"[mh] OR "Hypoglycemic Agents"[mh] OR "Hypoglycemic Agents"[pa]',
+            '"Diabetes Mellitus/drug therapy"[mh] OR "Hypoglycemic Agents"[mh] OR "Hypoglycemic Agents"[pa]'
           ],
         },
         searchStringComment: {
@@ -1004,14 +1035,19 @@ export const topics = [
           dk: "DPP-4-hæmmere",
           en: "DPP-4 inhibitors",
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['"Dipeptidyl-Peptidase IV Inhibitors"[majr] AND "Diabetes Mellitus"[majr]'],
+          narrow: [
+            '"Dipeptidyl-Peptidase IV Inhibitors"[majr] AND ' + standardString['narrow']
+          ],
           normal: [
-            '("Dipeptidyl-Peptidase IV Inhibitors"[mh] OR dpp[ti] OR dipeptyl*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Dipeptidyl-Peptidase IV Inhibitors"[mh] OR dpp[ti] OR dipeptyl*[ti]) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            '("Dipeptidyl-Peptidase IV Inhibitors"[mh] OR "Dipeptidyl-Peptidase IV Inhibitors"[pa] OR dpp[tiab] OR dipeptyl*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Dipeptidyl-Peptidase IV Inhibitors"[mh] OR "Dipeptidyl-Peptidase IV Inhibitors"[pa] OR dpp[tiab] OR dipeptyl*[tiab]) AND (' + standardString['broad'] + ')'
           ],
         },
         searchStringComment: {
@@ -1031,14 +1067,19 @@ export const topics = [
           dk: "Glitazoner (tiazolidindioner)",
           en: "Glitazones (thiazolidinediones)",
         },
-        ordering: { dk: null, en: null },
+        ordering: {
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['"Thiazolidinediones"[majr] AND "Diabetes Mellitus"[majr]'],
+          narrow: [
+            '"Thiazolidinediones"[majr] AND ' + standardString['narrow']
+          ],
           normal: [
-            '("Thiazolidinediones"[mh] OR thiazolidinedione*[ti] OR glitazone*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Thiazolidinediones"[mh] OR thiazolidinedione*[ti] OR glitazone*[ti]) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            '("Thiazolidinediones"[mh] OR thiazolidinedione*[tiab] OR glitazone*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Thiazolidinediones"[mh] OR thiazolidinedione*[tiab] OR glitazone*[tiab]) AND (' + standardString['broad'] + ')'
           ],
         },
         searchStringComment: {
@@ -1058,16 +1099,19 @@ export const topics = [
           dk: "GLP-1-receptoragonister",
           en: "GLP-1 receptor agonists",
         },
-        ordering: { dk: null, en: null },
+        ordering: {
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
           narrow: [
-            '"Glucagon-Like Peptide 1"[majr] OR "Glucagon-Like Peptide-1 Receptor Agonists"[majr] AND "Diabetes Mellitus"[majr]',
+            '"Glucagon-Like Peptide 1"[majr] OR "Glucagon-Like Peptide-1 Receptor Agonists"[majr] AND ' + standardString['narrow']
           ],
           normal: [
-            '("Glucagon-Like Peptide 1"[mh] OR "Glucagon-Like Peptide-1 Receptor Agonists"[mh] OR glp[ti] OR glucagon-like*[ti] OR glucagonlike*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Glucagon-Like Peptide 1"[mh] OR "Glucagon-Like Peptide-1 Receptor Agonists"[mh] OR glp[ti] OR glucagon-like*[ti] OR glucagonlike*[ti]) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            '("Glucagon-Like Peptide 1"[mh] OR "Glucagon-Like Peptide-1 Receptor Agonists"[mh] OR glp[tiab] OR glucagon-like*[tiab] OR glucagonlike*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Glucagon-Like Peptide 1"[mh] OR "Glucagon-Like Peptide-1 Receptor Agonists"[mh] OR glp[tiab] OR glucagon-like*[tiab] OR glucagonlike*[tiab]) AND (' + standardString['broad'] + ')'
           ],
         },
         searchStringComment: {
@@ -1087,12 +1131,17 @@ export const topics = [
           dk: "Insulin",
           en: "Insulin",
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['"Insulins"[majr] AND "Diabetes Mellitus"[majr]'],
-          normal: ['("Insulins"[mh] OR insulin*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])'],
+          narrow: ['"Insulins"[majr] AND ' + standardString['narrow']
+          ],
+          normal: ['("Insulins"[mh] OR insulin*[ti]) AND (' + standardString['normal'] + ')'
+          ],
           broad: [
-            '("Insulins"[mh] OR insulin*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Insulins"[mh] OR insulin*[tiab]) AND (' + standardString['broad'] + ')'
           ],
         },
         searchStringComment: {
@@ -1112,14 +1161,18 @@ export const topics = [
           dk: "Metformin",
           en: "Metformin",
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['"Metformin"[majr] AND "Diabetes Mellitus"[majr]'],
+          narrow: ['"Metformin"[majr] AND ' + standardString['narrow']
+          ],
           normal: [
-            '("Metformin"[mh] OR metformin*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Metformin"[mh] OR metformin*[ti]) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            '("Metformin"[mh] OR metformin*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Metformin"[mh] OR metformin*[tiab]) AND (' + standardString['broad'] + ')'
           ],
         },
         searchStringComment: {
@@ -1139,14 +1192,19 @@ export const topics = [
           dk: "SGLT-2-hæmmere",
           en: "SGLT-2 inhibitors",
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['"Sodium-Glucose Transporter 2 Inhibitors"[majr] AND "Diabetes Mellitus"[majr]'],
+          narrow: [
+            '"Sodium-Glucose Transporter 2 Inhibitors"[majr] AND ' + standardString['narrow']
+          ],
           normal: [
-            '("Sodium-Glucose Transporter 2 Inhibitors"[mh] OR sglt*[ti] OR sodium-glucose*[ti] OR sodiumglucose*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Sodium-Glucose Transporter 2 Inhibitors"[mh] OR sglt*[ti] OR sodium-glucose*[ti] OR sodiumglucose*[ti]) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            '("Sodium-Glucose Transporter 2 Inhibitors"[mh] OR "Sodium-Glucose Transporter 2 Inhibitors"[pa] OR sglt*[tiab] OR sodium-glucose*[tiab] OR sodiumglucose*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Sodium-Glucose Transporter 2 Inhibitors"[mh] OR "Sodium-Glucose Transporter 2 Inhibitors"[pa] OR sglt*[tiab] OR sodium-glucose*[tiab] OR sodiumglucose*[tiab]) AND (' + standardString['broad'] + ')'
           ],
         },
         searchStringComment: {
@@ -1166,14 +1224,19 @@ export const topics = [
           dk: "Sulfonylurinstoffer",
           en: "Sulfonylureas",
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['"Sulfonylurea Compounds"[majr] AND "Diabetes Mellitus"[majr]'],
+          narrow: [
+            '"Sulfonylurea Compounds"[majr] AND ' + standardString['narrow']
+          ],
           normal: [
-            '("Sulfonylurea Compounds"[mh] OR sulfonyl*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Sulfonylurea Compounds"[mh] OR sulfonyl*[ti]) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            '("Sulfonylurea Compounds"[mh] OR sulfonyl*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Sulfonylurea Compounds"[mh] OR sulfonyl*[tiab]) AND (' + standardString['broad'] + ')'
           ],
         },
         searchStringComment: {
@@ -1214,13 +1277,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            '("Diet, Food, and Nutrition"[majr] OR "Diet Therapy"[majr]) AND "Diabetes Mellitus"[majr]',
+            '("Diet, Food, and Nutrition"[majr] OR "Diet Therapy"[majr]) AND ' + standardString['narrow'] + '',
           ],
           normal: [
-            '("Diet, Food, and Nutrition"[mh] OR "Diet Therapy"[mh] OR "diet therapy"[sh] OR diet*[ti] OR eat[ti] OR eating[ti] OR food*[ti] OR nutrition*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Diet, Food, and Nutrition"[mh] OR "Diet Therapy"[mh] OR "diet therapy"[sh] OR diet*[ti] OR eat[ti] OR eating[ti] OR food*[ti] OR nutrition*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Diet, Food, and Nutrition"[mh] OR "Diet Therapy"[mh] OR "diet therapy"[sh] OR diet*[tiab] OR eat[tiab] OR eating[tiab] OR food*[tiab] OR nutrition*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Diet, Food, and Nutrition"[mh] OR "Diet Therapy"[mh] OR "diet therapy"[sh] OR diet*[tiab] OR eat[tiab] OR eating[tiab] OR food*[tiab] OR nutrition*[tiab]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -1265,12 +1328,12 @@ export const topics = [
           en: 3,
         },
         searchStrings: {
-          narrow: ['"Dietary Approaches to Stop Hypertension"[majr] AND "Diabetes Mellitus"[majr]'],
+          narrow: ['"Dietary Approaches to Stop Hypertension"[majr] AND ' + standardString['narrow'] + ''],
           normal: [
-            '("Dietary Approaches to Stop Hypertension"[mh] OR DASH[ti] OR "Dietary Approaches to Stop Hypertension"[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Dietary Approaches to Stop Hypertension"[mh] OR DASH[ti] OR "Dietary Approaches to Stop Hypertension"[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Dietary Approaches to Stop Hypertension"[mh] OR DASH[tiab] OR "Dietary Approaches to Stop Hypertension"[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Dietary Approaches to Stop Hypertension"[mh] OR DASH[tiab] OR "Dietary Approaches to Stop Hypertension"[tiab]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -1298,13 +1361,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            '"Diet, Carbohydrate-Restricted"[majr] AND "Diet, High-Fat"[majr] AND "Diabetes Mellitus"[majr]',
+            '"Diet, Carbohydrate-Restricted"[majr] AND "Diet, High-Fat"[majr] AND ' + standardString['narrow'] + '',
           ],
           normal: [
-            '(("Diet, Carbohydrate-Restricted"[mh] AND "Diet, High-Fat"[mh]) OR (low-carb*[ti] AND high-fat[ti]) OR lchf[ti] OR vlchf[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '(("Diet, Carbohydrate-Restricted"[mh] AND "Diet, High-Fat"[mh]) OR (low-carb*[ti] AND high-fat[ti]) OR lchf[ti] OR vlchf[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '(("Diet, Carbohydrate-Restricted"[mh] AND "Diet, High-Fat"[mh]) OR (low-carb*[tiab] AND high-fat[tiab]) OR lchf[tiab] OR vlchf[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '(("Diet, Carbohydrate-Restricted"[mh] AND "Diet, High-Fat"[mh]) OR (low-carb*[tiab] AND high-fat[tiab]) OR lchf[tiab] OR vlchf[tiab]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -1331,12 +1394,12 @@ export const topics = [
           en: 5,
         },
         searchStrings: {
-          narrow: ['"Diet, Mediterranean"[majr] AND "Diabetes Mellitus"[majr]'],
+          narrow: ['"Diet, Mediterranean"[majr] AND ' + standardString['narrow'] + ''],
           normal: [
-            '("Diet, Mediterranean"[mh] OR (mediterranean[ti] AND diet*[ti])) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Diet, Mediterranean"[mh] OR (mediterranean[ti] AND diet*[ti])) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Diet, Mediterranean"[mh] OR (mediterranean[tiab] AND diet*[tiab])) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Diet, Mediterranean"[mh] OR (mediterranean[tiab] AND diet*[tiab])) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -1363,12 +1426,12 @@ export const topics = [
           en: 6,
         },
         searchStrings: {
-          narrow: ['"Diet, Paleolithic"[majr] AND "Diabetes Mellitus"[majr]'],
+          narrow: ['"Diet, Paleolithic"[majr] AND ' + standardString['narrow'] + ''],
           normal: [
-            '("Diet, Paleolithic"[mh] OR (paleo*[ti] AND diet*[ti])) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Diet, Paleolithic"[mh] OR (paleo*[ti] AND diet*[ti])) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Diet, Paleolithic"[mh] OR (paleo*[tiab] AND diet*[tiab])) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Diet, Paleolithic"[mh] OR (paleo*[tiab] AND diet*[tiab])) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -1421,13 +1484,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            '("Diet, Plant-Based"[majr:noexp] OR "Diet, Vegetarian"[majr:noexp] OR "Diet, Vegan"[majr:noexp]) AND "Diabetes Mellitus"[majr]',
+            '("Diet, Plant-Based"[majr:noexp] OR "Diet, Vegetarian"[majr:noexp] OR "Diet, Vegan"[majr:noexp]) AND ' + standardString['narrow'] + '',
           ],
           normal: [
-            '("Diet, Plant-Based"[mh:noexp] OR "Diet, Vegetarian"[mh:noexp] OR "Diet, Vegan"[mh:noexp] OR ((plant-based[ti] OR vegetarian*[ti] OR vegan*[ti]) AND diet*[ti])) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Diet, Plant-Based"[mh:noexp] OR "Diet, Vegetarian"[mh:noexp] OR "Diet, Vegan"[mh:noexp] OR ((plant-based[ti] OR vegetarian*[ti] OR vegan*[ti]) AND diet*[ti])) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Diet, Plant-Based"[mh:noexp] OR "Diet, Vegetarian"[mh:noexp] OR "Diet, Vegan"[mh:noexp] OR ((plant-based[tiab] OR vegetarian*[tiab] OR vegan*[tiab]) AND diet*[tiab])) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Diet, Plant-Based"[mh:noexp] OR "Diet, Vegetarian"[mh:noexp] OR "Diet, Vegan"[mh:noexp] OR ((plant-based[tiab] OR vegetarian*[tiab] OR vegan*[tiab]) AND diet*[tiab])) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -1455,12 +1518,12 @@ export const topics = [
           en: 9,
         },
         searchStrings: {
-          narrow: ['"Diet, Vegetarian"[majr:noexp] AND "Diabetes Mellitus"[majr]'],
+          narrow: ['"Diet, Vegetarian"[majr:noexp] AND ' + standardString['narrow'] + ''],
           normal: [
-            '("Diet, Vegetarian"[mh:noexp] OR (vegetarian*[ti] AND diet*[ti])) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Diet, Vegetarian"[mh:noexp] OR (vegetarian*[ti] AND diet*[ti])) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Diet, Vegetarian"[mh:noexp] OR (vegetarian*[tiab] AND diet*[tiab])) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Diet, Vegetarian"[mh:noexp] OR (vegetarian*[tiab] AND diet*[tiab])) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -1488,12 +1551,12 @@ export const topics = [
           en: 10,
         },
         searchStrings: {
-          narrow: ['"Diet, Vegan"[majr] AND "Diabetes Mellitus"[majr]'],
+          narrow: ['"Diet, Vegan"[majr] AND ' + standardString['narrow'] + ''],
           normal: [
-            '("Diet, Vegan"[majr] OR (vegan*[ti] AND diet*[ti])) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Diet, Vegan"[majr] OR (vegan*[ti] AND diet*[ti])) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Diet, Vegan"[majr] OR (vegan*[tiab] AND diet*[tiab])) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Diet, Vegan"[majr] OR (vegan*[tiab] AND diet*[tiab])) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -1520,12 +1583,12 @@ export const topics = [
           en: 11,
         },
         searchStrings: {
-          narrow: ['"Intermittent Fasting"[majr] AND "Diabetes Mellitus"[majr]'],
+          narrow: ['"Intermittent Fasting"[majr] AND ' + standardString['narrow'] + ''],
           normal: [
-            '("Intermittent Fasting"[mh] OR ((intermittent[ti] OR time-restrict*[ti]) AND (diet*[ti] OR eating[ti] OR fasting[ti]))) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Intermittent Fasting"[mh] OR ((intermittent[ti] OR time-restrict*[ti]) AND (diet*[ti] OR eating[ti] OR fasting[ti]))) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Intermittent Fasting"[mh] OR ((intermittent[tiab] OR time-restrict*[tiab]) AND (diet*[tiab] OR eating[tiab] OR fasting[tiab]))) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Intermittent Fasting"[mh] OR ((intermittent[tiab] OR time-restrict*[tiab]) AND (diet*[tiab] OR eating[tiab] OR fasting[tiab]))) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -1547,12 +1610,12 @@ export const topics = [
         },
         ordering: { dk: null, en: null },
         searchStrings: {
-          narrow: ['"Beverages"[majr] AND "Diabetes Mellitus"[majr]'],
+          narrow: ['"Beverages"[majr] AND ' + standardString['narrow'] + ''],
           normal: [
-            '("Beverages"[mh] OR beverage*[ti] OR drink*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Beverages"[mh] OR beverage*[ti] OR drink*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Beverages"[mh] OR beverage*[tiab] OR drink*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Beverages"[mh] OR beverage*[tiab] OR drink*[tiab]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -1574,12 +1637,12 @@ export const topics = [
         },
         ordering: { dk: null, en: null },
         searchStrings: {
-          narrow: ['("Fatty Acids"[majr] OR "Fats"[majr]) AND "Diabetes Mellitus"[majr]'],
+          narrow: ['("Fatty Acids"[majr] OR "Fats"[majr]) AND ' + standardString['narrow'] + ''],
           normal: [
-            '("Fatty Acids"[mh] OR "Fats"[mh] OR fat[ti] OR fats[ti] OR fatty[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Fatty Acids"[mh] OR "Fats"[mh] OR fat[ti] OR fats[ti] OR fatty[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Fatty Acids"[mh] OR "Fats"[mh] OR fat[tiab] OR fats[tiab] OR fatty[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Fatty Acids"[mh] OR "Fats"[mh] OR fat[tiab] OR fats[tiab] OR fatty[tiab]) AND (' + standardString['normal'] + ')',
           ],
         },
         searchStringComment: {
@@ -1601,12 +1664,12 @@ export const topics = [
         },
         ordering: { dk: null, en: null },
         searchStrings: {
-          narrow: ['"Dietary Fiber"[majr] AND "Diabetes Mellitus"[majr]'],
+          narrow: ['"Dietary Fiber"[majr] AND ' + standardString['narrow'] + ''],
           normal: [
-            '("Dietary Fiber"[mh] OR ((fiber*[ti] OR fibre*[ti]) AND diet*[ti])) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Dietary Fiber"[mh] OR ((fiber*[ti] OR fibre*[ti]) AND diet*[ti])) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Dietary Fiber"[mh] OR ((fiber*[tiab] OR fibre*[tiab]) AND diet*[tiab])) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Dietary Fiber"[mh] OR ((fiber*[tiab] OR fibre*[tiab]) AND diet*[tiab])) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -1629,13 +1692,13 @@ export const topics = [
         ordering: { dk: null, en: null },
         searchStrings: {
           narrow: [
-            '("Dietary Carbohydrates"[majr] OR "Diet, Carbohydrate Loading"[majr] OR "Diet, Carbohydrate-Restricted"[majr]) AND "Diabetes Mellitus"[majr]',
+            '("Dietary Carbohydrates"[majr] OR "Diet, Carbohydrate Loading"[majr] OR "Diet, Carbohydrate-Restricted"[majr]) AND ' + standardString['narrow'] + '',
           ],
           normal: [
-            '("Dietary Carbohydrates"[mh] OR "Diet, Carbohydrate Loading"[mh] OR "Diet, Carbohydrate-Restricted"[mh] OR carb*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Dietary Carbohydrates"[mh] OR "Diet, Carbohydrate Loading"[mh] OR "Diet, Carbohydrate-Restricted"[mh] OR carb*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Dietary Carbohydrates"[mh] OR "Diet, Carbohydrate Loading"[mh] OR "Diet, Carbohydrate-Restricted"[mh] OR carb*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Dietary Carbohydrates"[mh] OR "Diet, Carbohydrate Loading"[mh] OR "Diet, Carbohydrate-Restricted"[mh] OR carb*[tiab]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -1658,13 +1721,13 @@ export const topics = [
         ordering: { dk: null, en: null },
         searchStrings: {
           narrow: [
-            '("Artificially Sweetened Beverages"[majr] OR "Non-Nutritive Sweeteners"[majr] OR "Sweetening Agents"[majr:noexp] OR "Sweetening Agents"[nm]) AND "Diabetes Mellitus"[majr]',
+            '("Artificially Sweetened Beverages"[majr] OR "Non-Nutritive Sweeteners"[majr] OR "Sweetening Agents"[majr:noexp] OR "Sweetening Agents"[nm]) AND ' + standardString['narrow'] + '',
           ],
           normal: [
-            '("Artificially Sweetened Beverages"[mh] OR "Non-Nutritive Sweeteners"[mh] OR "Sweetening Agents"[mh:noexp] OR "Sweetening Agents"[nm] OR artificial* sweet*[ti] OR non-nutritive sweet*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Artificially Sweetened Beverages"[mh] OR "Non-Nutritive Sweeteners"[mh] OR "Sweetening Agents"[mh:noexp] OR "Sweetening Agents"[nm] OR artificial* sweet*[ti] OR non-nutritive sweet*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Artificially Sweetened Beverages"[mh] OR "Non-Nutritive Sweeteners"[mh] OR "Sweetening Agents"[mh:noexp] OR "Sweetening Agents"[nm] OR artificial* sweet*[tiab] OR non-nutritive sweet*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Artificially Sweetened Beverages"[mh] OR "Non-Nutritive Sweeteners"[mh] OR "Sweetening Agents"[mh:noexp] OR "Sweetening Agents"[nm] OR artificial* sweet*[tiab] OR non-nutritive sweet*[tiab]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -1701,12 +1764,12 @@ export const topics = [
         },
         ordering: { dk: null, en: null },
         searchStrings: {
-          narrow: ['"Blood Glucose Self-Monitoring"[majr] AND "Diabetes Mellitus"[majr]'],
+          narrow: ['"Blood Glucose Self-Monitoring"[majr] AND ' + standardString['narrow'] + ''],
           normal: [
-            '("Blood Glucose Self-Monitoring"[mh] OR ((blood-glucose*[ti] OR blood-sugar*[ti] OR hba1c[ti]) AND (cgm[ti] OR bgm[ti] OR flash[ti] OR libre[ti] OR measur*[ti] OR monitor*[ti] OR iscgm[ti]))) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Blood Glucose Self-Monitoring"[mh] OR ((blood-glucose*[ti] OR blood-sugar*[ti] OR hba1c[ti]) AND (cgm[ti] OR bgm[ti] OR flash[ti] OR libre[ti] OR measur*[ti] OR monitor*[ti] OR iscgm[ti]))) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Blood Glucose Self-Monitoring"[mh] OR ((blood-glucose*[tiab] OR blood-sugar*[tiab] OR hba1c[tiab]) AND (cgm[tiab] OR bgm[tiab] OR flash[tiab] OR libre[tiab] OR measur*[tiab] OR monitor*[tiab] OR iscgm[tiab]))) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Blood Glucose Self-Monitoring"[mh] OR ((blood-glucose*[tiab] OR blood-sugar*[tiab] OR hba1c[tiab]) AND (cgm[tiab] OR bgm[tiab] OR flash[tiab] OR libre[tiab] OR measur*[tiab] OR monitor*[tiab] OR iscgm[tiab]))) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -1753,12 +1816,12 @@ export const topics = [
         },
         ordering: { dk: null, en: null },
         searchStrings: {
-          narrow: ['"Artificial Intelligence"[majr] AND "Diabetes Mellitus"[majr]'],
+          narrow: ['"Artificial Intelligence"[majr] AND ' + standardString['narrow'] + ''],
           normal: [
-            '("Artificial Intelligence"[mh] OR artificial-intelligence*[ti] OR chatgpt*[ti] OR machine-learn*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Artificial Intelligence"[mh] OR artificial-intelligence*[ti] OR chatgpt*[ti] OR machine-learn*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Artificial Intelligence"[mh] OR artificial-intelligence*[tiab] OR chatgpt*[tiab] OR machine-learn*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Artificial Intelligence"[mh] OR artificial-intelligence*[tiab] OR chatgpt*[tiab] OR machine-learn*[tiab]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -1781,13 +1844,13 @@ export const topics = [
         ordering: { dk: null, en: null },
         searchStrings: {
           narrow: [
-            '("Mobile Applications"[majr] OR "Cell Phone"[majr] OR "Cell Phone Use"[majr] OR "Computers, Handheld"[majr]) AND "Diabetes Mellitus"[majr]',
+            '("Mobile Applications"[majr] OR "Cell Phone"[majr] OR "Cell Phone Use"[majr] OR "Computers, Handheld"[majr]) AND ' + standardString['narrow'] + '',
           ],
           normal: [
-            '("Mobile Applications"[mh] OR "Cell Phone"[mh] OR "Cell Phone Use"[mh] OR "Computers, Handheld"[mh] OR m-health[ti] OR m-health[ti] OR smart-phone*[ti] OR smartphone*[ti] OR ((cell[ti] OR mobile*[ti] OR tablet*[ti]) AND (app[ti] OR application*[ti] OR apps[ti] OR phone*[ti]))) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Mobile Applications"[mh] OR "Cell Phone"[mh] OR "Cell Phone Use"[mh] OR "Computers, Handheld"[mh] OR m-health[ti] OR m-health[ti] OR smart-phone*[ti] OR smartphone*[ti] OR ((cell[ti] OR mobile*[ti] OR tablet*[ti]) AND (app[ti] OR application*[ti] OR apps[ti] OR phone*[ti]))) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Mobile Applications"[mh] OR "Cell Phone"[mh] OR "Cell Phone Use"[mh] OR "Computers, Handheld"[mh] OR m-health[tiab] OR m-health[tiab] OR smart-phone*[tiab] OR smartphone*[tiab] OR ((cell[tiab] OR mobile*[tiab] OR tablet*[tiab]) AND (app[tiab] OR application*[tiab] OR apps[tiab] OR phone*[tiab]))) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Mobile Applications"[mh] OR "Cell Phone"[mh] OR "Cell Phone Use"[mh] OR "Computers, Handheld"[mh] OR m-health[tiab] OR m-health[tiab] OR smart-phone*[tiab] OR smartphone*[tiab] OR ((cell[tiab] OR mobile*[tiab] OR tablet*[tiab]) AND (app[tiab] OR application*[tiab] OR apps[tiab] OR phone*[tiab]))) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -1809,12 +1872,12 @@ export const topics = [
         },
         ordering: { dk: null, en: null },
         searchStrings: {
-          narrow: ['"Telemedicine"[majr] AND "Diabetes Mellitus"[majr]'],
+          narrow: ['"Telemedicine"[majr] AND ' + standardString['narrow'] + ''],
           normal: [
-            '("Telemedicine"[mh] OR e-health[ti] OR ehealth[ti] OR tele*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Telemedicine"[mh] OR e-health[ti] OR ehealth[ti] OR tele*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Telemedicine"[mh] OR e-health[tiab] OR ehealth[tiab] OR tele*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Telemedicine"[mh] OR e-health[tiab] OR ehealth[tiab] OR tele*[tiab]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -1898,13 +1961,13 @@ export const topics = [
         ordering: { dk: null, en: null },
         searchStrings: {
           narrow: [
-            '("Blood Pressure"[majr] OR "Blood Pressure Determination"[majr] OR "Hypertension"[majr]) AND "Diabetes Mellitus"[majr]',
+            '("Blood Pressure"[majr] OR "Blood Pressure Determination"[majr] OR "Hypertension"[majr]) AND ' + standardString['narrow'] + '',
           ],
           normal: [
-            '("Blood Pressure"[mh] OR "Blood Pressure Determination"[mh] OR "Hypertension"[mh] OR blood-pressure*[ti] OR hypertensi*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Blood Pressure"[mh] OR "Blood Pressure Determination"[mh] OR "Hypertension"[mh] OR blood-pressure*[ti] OR hypertensi*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Blood Pressure"[mh] OR "Blood Pressure Determination"[mh] OR "Hypertension"[mh] OR blood-pressure*[tiab] OR hypertensi*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Blood Pressure"[mh] OR "Blood Pressure Determination"[mh] OR "Hypertension"[mh] OR blood-pressure*[tiab] OR hypertensi*[tiab]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -1926,12 +1989,12 @@ export const topics = [
         ordering: { dk: null, en: null },
         buttons: true,
         searchStrings: {
-          narrow: ['"Glomerular Filtration Rate"[majr] AND "Diabetes Mellitus"[majr]'],
+          narrow: ['"Glomerular Filtration Rate"[majr] AND ' + standardString['narrow'] + ''],
           normal: [
-            '("Glomerular Filtration Rate"[mh] OR glomerular-filtration[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Glomerular Filtration Rate"[mh] OR glomerular-filtration[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Glomerular Filtration Rate"[mh] OR glomerular-filtration[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Glomerular Filtration Rate"[mh] OR glomerular-filtration[tiab]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -1976,12 +2039,12 @@ export const topics = [
         ordering: { dk: null, en: null },
         buttons: true,
         searchStrings: {
-          narrow: ['"Glycated Hemoglobin"[majr] AND "Diabetes Mellitus"[majr]'],
+          narrow: ['"Glycated Hemoglobin"[majr] AND ' + standardString['narrow'] + ''],
           normal: [
-            '("Glycated Hemoglobin"[mh] OR "Glycated Hemoglobin"[nm] OR a1c[ti] OR glycated-hemoglobin[ti] OR hba1c[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Glycated Hemoglobin"[mh] OR "Glycated Hemoglobin"[nm] OR a1c[ti] OR glycated-hemoglobin[ti] OR hba1c[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Glycated Hemoglobin"[mh] OR "Glycated Hemoglobin"[mh] OR a1c[ti] OR glycated-hemoglobin[tiab] OR hba1c[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Glycated Hemoglobin"[mh] OR "Glycated Hemoglobin"[mh] OR a1c[ti] OR glycated-hemoglobin[tiab] OR hba1c[tiab]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -2003,9 +2066,9 @@ export const topics = [
         ordering: { dk: null, en: null },
         buttons: true,
         searchStrings: {
-          narrow: ['"Ketones"[majr] AND "Diabetes Mellitus"[majr]'],
-          normal: ['("Ketones"[mh] OR keton*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])'],
-          broad: ['("Ketones"[mh] OR keton*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])'],
+          narrow: ['"Ketones"[majr] AND ' + standardString['narrow'] + ''],
+          normal: ['("Ketones"[mh] OR keton*[ti]) AND (' + standardString['normal'] + ')'],
+          broad: ['("Ketones"[mh] OR keton*[tiab]) AND (' + standardString['broad'] + ')'],
         },
         searchStringComment: {
           dk: "",
@@ -2026,12 +2089,12 @@ export const topics = [
         ordering: { dk: null, en: null },
         buttons: true,
         searchStrings: {
-          narrow: ['"Cholesterol"[majr] AND "Diabetes Mellitus"[majr]'],
+          narrow: ['"Cholesterol"[majr] AND ' + standardString['narrow'] + ''],
           normal: [
-            '("Cholesterol"[mh] OR cholesterol*[ti] OR hdl[ti] OR ldl[ti] OR vldl[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Cholesterol"[mh] OR cholesterol*[ti] OR hdl[ti] OR ldl[ti] OR vldl[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Cholesterol"[mh] OR cholesterol*[tiab] OR hdl[tiab] OR ldl[tiab] OR vldl[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Cholesterol"[mh] OR cholesterol*[tiab] OR hdl[tiab] OR ldl[tiab] OR vldl[tiab]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -2068,12 +2131,12 @@ export const topics = [
         },
         ordering: { dk: null, en: null },
         searchStrings: {
-          narrow: ['"Anxiety"[majr:noexp] AND "Diabetes Mellitus"[majr]'],
+          narrow: ['"Anxiety"[majr:noexp] AND ' + standardString['narrow'] + ''],
           normal: [
-            '("Anxiety"[mh:noexp] OR anxiet*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Anxiety"[mh:noexp] OR anxiet*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Anxiety"[mh:noexp] OR anxiet*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Anxiety"[mh:noexp] OR anxiet*[tiab]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -2095,12 +2158,12 @@ export const topics = [
         ordering: { dk: null, en: null },
         buttons: true,
         searchStrings: {
-          narrow: ['("Bulimia"[majr] OR "Diabulimia"[majr]) AND "Diabetes Mellitus"[majr]'],
+          narrow: ['("Bulimia"[majr] OR "Diabulimia"[majr]) AND ' + standardString['narrow'] + ''],
           normal: [
-            '("Bulimia"[mh] OR "Diabulimia"[mh] OR bulimi*[ti] OR diabulim*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Bulimia"[mh] OR "Diabulimia"[mh] OR bulimi*[ti] OR diabulim*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Bulimia"[mh] OR "Diabulimia"[mh] OR bulimi*[tiab] OR diabulim*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Bulimia"[mh] OR "Diabulimia"[mh] OR bulimi*[tiab] OR diabulim*[tiab]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -2123,13 +2186,13 @@ export const topics = [
         buttons: true,
         searchStrings: {
           narrow: [
-            '("Depression"[majr] OR "Depressive Disorder"[majr]) AND "Diabetes Mellitus"[majr]',
+            '("Depression"[majr] OR "Depressive Disorder"[majr]) AND ' + standardString['narrow'] + '',
           ],
           normal: [
-            '("Depression"[mh] OR "Depressive Disorder"[mh] OR depres*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Depression"[mh] OR "Depressive Disorder"[mh] OR depres*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Depression"[mh] OR "Depressive Disorder"[mh] OR depres*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Depression"[mh] OR "Depressive Disorder"[mh] OR depres*[tiab]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -2152,13 +2215,13 @@ export const topics = [
         buttons: true,
         searchStrings: {
           narrow: [
-            '(("Psychological Distress"[majr:noexp] OR ("distress"[ti] AND diabet*[ti])) NOT "Respiratory Distress Syndrome"[mh]) AND "Diabetes Mellitus"[majr]',
+            '(("Psychological Distress"[majr:noexp] OR ("distress"[ti] AND diabet*[ti])) NOT "Respiratory Distress Syndrome"[mh]) AND ' + standardString['narrow'] + '',
           ],
           normal: [
-            '(("Psychological Distress"[mh:noexp] OR "distress"[ti]) NOT "Respiratory Distress Syndrome"[mh]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '(("Psychological Distress"[mh:noexp] OR "distress"[ti]) NOT "Respiratory Distress Syndrome"[mh]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '(("Psychological Distress"[mh:noexp] OR "distress"[tiab]) NOT "Respiratory Distress Syndrome"[mh]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '(("Psychological Distress"[mh:noexp] OR "distress"[tiab]) NOT "Respiratory Distress Syndrome"[mh]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -2180,12 +2243,12 @@ export const topics = [
         ordering: { dk: null, en: null },
         buttons: true,
         searchStrings: {
-          narrow: ['"Feeding and Eating Disorders"[majr] AND "Diabetes Mellitus"[majr]'],
+          narrow: ['"Feeding and Eating Disorders"[majr] AND ' + standardString['narrow'] + ''],
           normal: [
-            '("Feeding and Eating Disorders"[mh] OR bulimi*[ti] OR diabulimi*[ti] OR binge-eating*[ti] OR bingeeat*[ti] OR eating-disorder*[ti] OR hyperphagi*[ti] OR overeat*[ti] OR polyphagi*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Feeding and Eating Disorders"[mh] OR bulimi*[ti] OR diabulimi*[ti] OR binge-eating*[ti] OR bingeeat*[ti] OR eating-disorder*[ti] OR hyperphagi*[ti] OR overeat*[ti] OR polyphagi*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Feeding and Eating Disorders"[mh] OR bulimi*[tiab] OR diabulimi*[tiab] OR binge-eating*[tiab] OR bingeeat*[tiab] OR eating-disorder*[tiab] OR hyperphagi*[tiab] OR overeat*[tiab] OR polyphagi*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Feeding and Eating Disorders"[mh] OR bulimi*[tiab] OR diabulimi*[tiab] OR binge-eating*[tiab] OR bingeeat*[tiab] OR eating-disorder*[tiab] OR hyperphagi*[tiab] OR overeat*[tiab] OR polyphagi*[tiab]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -2208,13 +2271,13 @@ export const topics = [
         buttons: true,
         searchStrings: {
           narrow: [
-            '("Binge-Eating Disorder"[majr] OR "Hyperphagia"[majr:noexp]) AND "Diabetes Mellitus"[majr]',
+            '("Binge-Eating Disorder"[majr] OR "Hyperphagia"[majr:noexp]) AND ' + standardString['narrow'] + '',
           ],
           normal: [
-            '("Binge-Eating Disorder"[mh] OR "Hyperphagia"[mh:noexp] OR binge-eating*[ti] OR bingeeat*[ti] OR hyperphagi*[ti] OR overeat*[ti] OR polyphagi*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Binge-Eating Disorder"[mh] OR "Hyperphagia"[mh:noexp] OR binge-eating*[ti] OR bingeeat*[ti] OR hyperphagi*[ti] OR overeat*[ti] OR polyphagi*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Binge-Eating Disorder"[mh] OR "Hyperphagia"[mh:noexp] OR binge-eating*[tiab] OR bingeeat*[tiab] OR hyperphagi*[tiab] OR overeat*[tiab] OR polyphagi*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Binge-Eating Disorder"[mh] OR "Hyperphagia"[mh:noexp] OR binge-eating*[tiab] OR bingeeat*[tiab] OR hyperphagi*[tiab] OR overeat*[tiab] OR polyphagi*[tiab]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -2252,13 +2315,13 @@ export const topics = [
         ordering: { dk: 1, en: 1 },
         searchStrings: {
           narrow: [
-            '(("Public Health"[majr] AND "prevention and control"[sh]) OR "Public Health Practice"[majr] OR "Community Health Services"[majr] OR "Preventive Health Services"[majr] OR "Health Knowledge, Attitudes, Practice"[majr] OR "Health Communication"[majr]) AND "Diabetes Mellitus"[majr]',
+            '(("Public Health"[majr] AND "prevention and control"[sh]) OR "Public Health Practice"[majr] OR "Community Health Services"[majr] OR "Preventive Health Services"[majr] OR "Health Knowledge, Attitudes, Practice"[majr] OR "Health Communication"[majr]) AND ' + standardString['narrow'] + '',
           ],
           normal: [
-            '(("Public Health"[mh] AND "prevention and control"[sh]) OR "Public Health Practice"[mh] OR "Community Health Services"[mh] OR "Preventive Health Services"[mh] OR "Health Knowledge, Attitudes, Practice"[mh] OR "Health Communication"[mh]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '(("Public Health"[mh] AND "prevention and control"[sh]) OR "Public Health Practice"[mh] OR "Community Health Services"[mh] OR "Preventive Health Services"[mh] OR "Health Knowledge, Attitudes, Practice"[mh] OR "Health Communication"[mh]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("prevention and control"[sh] OR "Public Health Practice"[mh] OR "Community Health Services"[mh] OR "Preventive Health Services"[mh] OR "Health Knowledge, Attitudes, Practice"[mh] OR "Health Communication"[mh]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("prevention and control"[sh] OR "Public Health Practice"[mh] OR "Community Health Services"[mh] OR "Preventive Health Services"[mh] OR "Health Knowledge, Attitudes, Practice"[mh] OR "Health Communication"[mh]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -2280,12 +2343,12 @@ export const topics = [
         ordering: { dk: null, en: null },
         buttons: true,
         searchStrings: {
-          narrow: ['"Heredity"[majr] AND "Diabetes Mellitus"[majr]'],
+          narrow: ['"Heredity"[majr] AND ' + standardString['narrow'] + ''],
           normal: [
-            '("Heredity"[mh] OR heridity*[ti] OR heritability*[ti]) AND "Diabetes Mellitus"[majr]',
+            '("Heredity"[mh] OR heridity*[ti] OR heritability*[ti]) AND ' + standardString['narrow'] + '',
           ],
           broad: [
-            '("Heredity"[mh] OR heridity*[tiab] OR heritability*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Heredity"[mh] OR heridity*[tiab] OR heritability*[tiab]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -2307,12 +2370,12 @@ export const topics = [
         },
         ordering: { dk: null, en: null },
         searchStrings: {
-          narrow: ['"Exercise"[majr] AND "Diabetes Mellitus"[majr]'],
+          narrow: ['"Exercise"[majr] AND ' + standardString['narrow'] + ''],
           normal: [
-            '("Exercise"[mh] OR exercise*[ti] OR physical-activ*[ti] OR physically-activ*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Exercise"[mh] OR exercise*[ti] OR physical-activ*[ti] OR physically-activ*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Exercise"[mh] OR exercise*[tiab] OR physical-activ*[tiab] OR physically-activ*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Exercise"[mh] OR exercise*[tiab] OR physical-activ*[tiab] OR physically-activ*[tiab]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -2334,12 +2397,12 @@ export const topics = [
         },
         ordering: { dk: null, en: null },
         searchStrings: {
-          narrow: ['"Overweight"[majr] AND "Diabetes Mellitus"[majr]'],
+          narrow: ['"Overweight"[majr] AND ' + standardString['narrow'] + ''],
           normal: [
-            '("Overweight"[mh] OR obese*[ti] OR obesity*[ti] OR overweight*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Overweight"[mh] OR obese*[ti] OR obesity*[ti] OR overweight*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Overweight"[mh] OR obese*[tiab] OR obesity*[tiab] OR overweight*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Overweight"[mh] OR obese*[tiab] OR obesity*[tiab] OR overweight*[tiab]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -2362,13 +2425,13 @@ export const topics = [
         ordering: { dk: null, en: null },
         searchStrings: {
           narrow: [
-            '("Smoking"[majr] OR "Smoking Cessation"[majr] OR "Tobacco"[majr] OR "Tobacco Use Cessation"[majr]) AND "Diabetes Mellitus"[majr]',
+            '("Smoking"[majr] OR "Smoking Cessation"[majr] OR "Tobacco"[majr] OR "Tobacco Use Cessation"[majr]) AND ' + standardString['narrow'] + '',
           ],
           normal: [
-            '("Smoking"[mh] OR "Smoking Cessation"[mh] OR "Tobacco"[mh] OR "Tobacco Use Cessation"[mh] OR smoke*[ti] OR smoking*[ti] OR tobacco*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Smoking"[mh] OR "Smoking Cessation"[mh] OR "Tobacco"[mh] OR "Tobacco Use Cessation"[mh] OR smoke*[ti] OR smoking*[ti] OR tobacco*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Smoking"[mh] OR "Smoking Cessation"[mh] OR "Tobacco"[mh] OR "Tobacco Use Cessation"[mh] OR smoke*[tiab] OR smoking*[tiab] OR tobacco*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Smoking"[mh] OR "Smoking Cessation"[mh] OR "Tobacco"[mh] OR "Tobacco Use Cessation"[mh] OR smoke*[tiab] OR smoking*[tiab] OR tobacco*[tiab]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -2406,13 +2469,13 @@ export const topics = [
         ordering: { dk: null, en: null },
         searchStrings: {
           narrow: [
-            '("Designer Drugs"[majr] OR "Drug Users"[majr] OR "Substance-Related Disorders"[majr] OR "Illicit Drugs"[majr]) AND "Diabetes Mellitus"[majr]',
+            '("Designer Drugs"[majr] OR "Drug Users"[majr] OR "Substance-Related Disorders"[majr] OR "Illicit Drugs"[majr]) AND ' + standardString['narrow'] + '',
           ],
           normal: [
-            '("Designer Drugs"[mh] OR "Drug Users"[mh] OR "Substance-Related Disorders"[mh] OR "Illicit Drugs"[mh] OR ("drug user*"[ti] OR (alkohol[ti] OR amphetamine[ti] OR cocaine[ti] OR drug[ti] OR marijuana[ti] OR narcotic[ti] OR substance[ti]) AND (abuse[ti] OR addict*[ti] OR disorder[ti]))) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Designer Drugs"[mh] OR "Drug Users"[mh] OR "Substance-Related Disorders"[mh] OR "Illicit Drugs"[mh] OR ("drug user*"[ti] OR (alkohol[ti] OR amphetamine[ti] OR cocaine[ti] OR drug[ti] OR marijuana[ti] OR narcotic[ti] OR substance[ti]) AND (abuse[ti] OR addict*[ti] OR disorder[ti]))) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Designer Drugs"[mh] OR "Drug Users"[mh] OR "Substance-Related Disorders"[mh] OR "Illicit Drugs"[mh] OR ("drug user*"[tiab] OR (alkohol[tiab] OR amphetamine[tiab] OR cocaine[tiab] OR drug[tiab] OR marijuana[tiab] OR narcotic[tiab] OR substance[tiab]) AND (abuse[tiab] OR addict*[tiab] OR disorder[tiab]))) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Designer Drugs"[mh] OR "Drug Users"[mh] OR "Substance-Related Disorders"[mh] OR "Illicit Drugs"[mh] OR ("drug user*"[tiab] OR (alkohol[tiab] OR amphetamine[tiab] OR cocaine[tiab] OR drug[tiab] OR marijuana[tiab] OR narcotic[tiab] OR substance[tiab]) AND (abuse[tiab] OR addict*[tiab] OR disorder[tiab]))) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -2435,13 +2498,13 @@ export const topics = [
         ordering: { dk: null, en: null },
         searchStrings: {
           narrow: [
-            '(("Child"[mh] NOT "Adult"[mh]) OR "Child, Hospitalized"[majr] OR "Child, Institutionalized"[majr] OR "Child Care"[majr] OR "Child Development"[majr] OR "Child Health"[majr] OR "Child Health Services"[majr] OR "Disabled Children"[majr] OR "Pediatrics"[majr] OR "Pediatric Nursing"[majr] OR "Pediatric Obesity"[majr] OR "Psychology, Child"[majr]) AND "Diabetes Mellitus"[majr]',
+            '(("Child"[mh] NOT "Adult"[mh]) OR "Child, Hospitalized"[majr] OR "Child, Institutionalized"[majr] OR "Child Care"[majr] OR "Child Development"[majr] OR "Child Health"[majr] OR "Child Health Services"[majr] OR "Disabled Children"[majr] OR "Pediatrics"[majr] OR "Pediatric Nursing"[majr] OR "Pediatric Obesity"[majr] OR "Psychology, Child"[majr]) AND ' + standardString['narrow'] + '',
           ],
           normal: [
-            '(("Child"[mh] NOT "Adult"[mh]) OR "Child, Hospitalized"[mh] OR "Child, Institutionalized"[mh] OR "Child Care"[mh] OR "Child Development"[mh] OR "Child Health"[mh] OR "Child Health Services"[mh] OR "Disabled Children"[mh] OR "Pediatrics"[mh] OR "Pediatric Nursing"[mh] OR "Pediatric Obesity"[mh] OR "Psychology, Child"[mh] OR child*[ti] OR paediatric*[ti] OR pediatric*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '(("Child"[mh] NOT "Adult"[mh]) OR "Child, Hospitalized"[mh] OR "Child, Institutionalized"[mh] OR "Child Care"[mh] OR "Child Development"[mh] OR "Child Health"[mh] OR "Child Health Services"[mh] OR "Disabled Children"[mh] OR "Pediatrics"[mh] OR "Pediatric Nursing"[mh] OR "Pediatric Obesity"[mh] OR "Psychology, Child"[mh] OR child*[ti] OR paediatric*[ti] OR pediatric*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Child"[mh] OR "Child, Hospitalized"[mh] OR "Child, Institutionalized"[mh] OR "Child Care"[mh] OR "Child Development"[mh] OR "Child Health"[mh] OR "Child Health Services"[mh] OR "Disabled Children"[mh] OR "Pediatrics"[mh] OR "Pediatric Nursing"[mh] OR "Pediatric Obesity"[mh] OR "Psychology, Child"[mh] OR child*[tiab] OR paediatric*[tiab] OR pediatric*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Child"[mh] OR "Child, Hospitalized"[mh] OR "Child, Institutionalized"[mh] OR "Child Care"[mh] OR "Child Development"[mh] OR "Child Health"[mh] OR "Child Health Services"[mh] OR "Disabled Children"[mh] OR "Pediatrics"[mh] OR "Pediatric Nursing"[mh] OR "Pediatric Obesity"[mh] OR "Psychology, Child"[mh] OR child*[tiab] OR paediatric*[tiab] OR pediatric*[tiab]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -2464,13 +2527,13 @@ export const topics = [
         buttons: true,
         searchStrings: {
           narrow: [
-            '(("Preconception Care"[majr] OR "Pregnancy in Diabetics"[majr] OR "Prenatal Care"[majr]) NOT ("Diabetes, Gestational"[mh] OR gestational*[tiab] OR gdm[tiab])) AND "Diabetes Mellitus"[majr]',
+            '(("Preconception Care"[majr] OR "Pregnancy in Diabetics"[majr] OR "Prenatal Care"[majr]) NOT ("Diabetes, Gestational"[mh] OR gestational*[tiab] OR gdm[tiab])) AND ' + standardString['narrow'] + '',
           ],
           normal: [
-            '(("Preconception Care"[mh] OR "Pregnancy in Diabetics"[mh] OR "Prenatal Care"[mh] OR antenatal*[ti] OR pre-exist*[ti] OR preexist*[ti] OR pregnan*[ti] OR prenatal*[ti]) NOT ("Diabetes, Gestational"[mh] OR gestational*[tiab] OR gdm[tiab)) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '(("Preconception Care"[mh] OR "Pregnancy in Diabetics"[mh] OR "Prenatal Care"[mh] OR antenatal*[ti] OR pre-exist*[ti] OR preexist*[ti] OR pregnan*[ti] OR prenatal*[ti]) NOT ("Diabetes, Gestational"[mh] OR gestational*[tiab] OR gdm[tiab)) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '(("Preconception Care"[mh] OR "Pregnancy in Diabetics"[mh] OR "Prenatal Care"[mh] OR antenatal*[tiab] OR pre-exist*[tiab] OR preexist*[tiab] OR pregnan*[tiab] OR prenatal*[tiab]) NOT ("Diabetes, Gestational"[mh] OR gestational*[tiab] OR gdm[tiab])) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '(("Preconception Care"[mh] OR "Pregnancy in Diabetics"[mh] OR "Prenatal Care"[mh] OR antenatal*[tiab] OR pre-exist*[tiab] OR preexist*[tiab] OR pregnan*[tiab] OR prenatal*[tiab]) NOT ("Diabetes, Gestational"[mh] OR gestational*[tiab] OR gdm[tiab])) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -2493,13 +2556,13 @@ export const topics = [
         ordering: { dk: null, en: null },
         searchStrings: {
           narrow: [
-            '("Minority Groups"[majr] OR "Minority Health"[majr]) AND "Diabetes Mellitus"[majr]',
+            '("Minority Groups"[majr] OR "Minority Health"[majr]) AND ' + standardString['narrow'] + '',
           ],
           normal: [
-            '("Minority Groups"[mh] OR "Minority Health"[mh] OR (minorit*[ti] AND (group*[ti] OR population*[ti]))) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Minority Groups"[mh] OR "Minority Health"[mh] OR (minorit*[ti] AND (group*[ti] OR population*[ti]))) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Minority Groups"[mh] OR "Minority Health"[mh] OR (minorit*[tiab] AND (group*[tiab] OR population*[tiab]))) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Minority Groups"[mh] OR "Minority Health"[mh] OR (minorit*[tiab] AND (group*[tiab] OR population*[tiab]))) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -2521,12 +2584,12 @@ export const topics = [
         },
         ordering: { dk: null, en: null },
         searchStrings: {
-          narrow: ['("Family"[majr] OR "Family Health"[majr]) AND "Diabetes Mellitus"[majr]'],
+          narrow: ['("Family"[majr] OR "Family Health"[majr]) AND ' + standardString['narrow'] + ''],
           normal: [
-            '("Family"[mh] OR "Family Health"[mh] OR family-based*[ti] OR familybased*[ti] OR family-orient*[ti] OR familyorient*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Family"[mh] OR "Family Health"[mh] OR family-based*[ti] OR familybased*[ti] OR family-orient*[ti] OR familyorient*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Family"[mh] OR "Family Health"[mh] OR "Caregivers"[mh] OR family-based*[tiab] OR familybased*[tiab] OR family-orient*[tiab] OR familyorient*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Family"[mh] OR "Family Health"[mh] OR "Caregivers"[mh] OR family-based*[tiab] OR familybased*[tiab] OR family-orient*[tiab] OR familyorient*[tiab]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -2549,13 +2612,13 @@ export const topics = [
         ordering: { dk: null, en: null },
         searchStrings: {
           narrow: [
-            '("Health Equity"[majr] OR "Health Status Disparities"[majr] OR Poverty[majr] OR "Social Marginalization"[majr] OR "Vulnerable Populations"[majr]) AND "Diabetes Mellitus"[majr]',
+            '("Health Equity"[majr] OR "Health Status Disparities"[majr] OR Poverty[majr] OR "Social Marginalization"[majr] OR "Vulnerable Populations"[majr]) AND ' + standardString['narrow'] + '',
           ],
           normal: [
-            '("Health Equity"[mh] OR "Health Status Disparities"[mh] OR Poverty[mh] OR "Social Marginalization"[mh] OR "Vulnerable Populations"[mh] OR disadvantage*[ti] OR disparit*[ti] OR hard-to-reach*[ti] OR inequalit*[ti] OR inequit*[ti] OR marginali*[ti] OR most-in-need*[ti] OR poverty*[ti] OR vulnerabl*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Health Equity"[mh] OR "Health Status Disparities"[mh] OR Poverty[mh] OR "Social Marginalization"[mh] OR "Vulnerable Populations"[mh] OR disadvantage*[ti] OR disparit*[ti] OR hard-to-reach*[ti] OR inequalit*[ti] OR inequit*[ti] OR marginali*[ti] OR most-in-need*[ti] OR poverty*[ti] OR vulnerabl*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Health Equity"[mh] OR "Health Status Disparities"[mh] OR Poverty[mh] OR "Social Marginalization"[mh] OR "Vulnerable Populations"[mh] OR disadvantage*[tiab] OR disparit*[tiab] OR hard-to-reach*[tiab] OR inequalit*[tiab] OR inequit*[tiab] OR marginali*[tiab] OR most-in-need*[tiab] OR poverty*[tiab] OR vulnerabl*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Health Equity"[mh] OR "Health Status Disparities"[mh] OR Poverty[mh] OR "Social Marginalization"[mh] OR "Vulnerable Populations"[mh] OR disadvantage*[tiab] OR disparit*[tiab] OR hard-to-reach*[tiab] OR inequalit*[tiab] OR inequit*[tiab] OR marginali*[tiab] OR most-in-need*[tiab] OR poverty*[tiab] OR vulnerabl*[tiab]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -2578,13 +2641,13 @@ export const topics = [
         buttons: true,
         searchStrings: {
           narrow: [
-            '("Developmental Disabilities"[majr] OR "Intellectual Disability"[majr] OR "Persons with Mental Disabilities"[majr]) AND "Diabetes Mellitus"[majr]',
+            '("Developmental Disabilities"[majr] OR "Intellectual Disability"[majr] OR "Persons with Mental Disabilities"[majr]) AND ' + standardString['narrow'] + '',
           ],
           normal: [
-            '("Developmental Disabilities"[mh] OR "Intellectual Disability"[mh] OR "Persons with Mental Disabilities"[mh] OR ((developmental*[ti] OR intellectual*[ti] OR mental*[ti]) AND disabilit*[ti])) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Developmental Disabilities"[mh] OR "Intellectual Disability"[mh] OR "Persons with Mental Disabilities"[mh] OR ((developmental*[ti] OR intellectual*[ti] OR mental*[ti]) AND disabilit*[ti])) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Developmental Disabilities"[mh] OR "Intellectual Disability"[mh] OR "Persons with Mental Disabilities"[mh] OR ((developmental*[tiab] OR intellectual*[tiab] OR mental*[tiab]) AND disabilit*[tiab])) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Developmental Disabilities"[mh] OR "Intellectual Disability"[mh] OR "Persons with Mental Disabilities"[mh] OR ((developmental*[tiab] OR intellectual*[tiab] OR mental*[tiab]) AND disabilit*[tiab])) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -2607,13 +2670,13 @@ export const topics = [
         buttons: true,
         searchStrings: {
           narrow: [
-            '(("Adolescent"[mh] NOT "Adult"[mh]) OR "Adolescent, Hospitalized "[majr] OR "Adolescent, Institutionalized"[majr] OR "Adolescent Development"[majr] OR "Adolescent Behavior"[majr] OR "Adolescent Health"[majr] OR "Adolescent Health Services"[majr] OR "Adolescent Medicine"[majr] OR "Psychology, Adolescent"[majr] OR "Youth Sports"[majr]) AND "Diabetes Mellitus"[majr]',
+            '(("Adolescent"[mh] NOT "Adult"[mh]) OR "Adolescent, Hospitalized "[majr] OR "Adolescent, Institutionalized"[majr] OR "Adolescent Development"[majr] OR "Adolescent Behavior"[majr] OR "Adolescent Health"[majr] OR "Adolescent Health Services"[majr] OR "Adolescent Medicine"[majr] OR "Psychology, Adolescent"[majr] OR "Youth Sports"[majr]) AND ' + standardString['narrow'] + '',
           ],
           normal: [
-            '(("Adolescent"[mh] NOT "Adult"[mh]) OR "Adolescent, Hospitalized "[mh] OR "Adolescent, Institutionalized"[mh] OR "Adolescent Development"[mh] OR "Adolescent Behavior"[mh] OR "Adolescent Health"[mh] OR "Adolescent Health Services"[mh] OR "Adolescent Medicine"[mh] OR "Psychology, Adolescent"[mh] OR "Youth Sports"[mh] OR adolescen*[ti] OR "young people*"[ti] OR youth*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '(("Adolescent"[mh] NOT "Adult"[mh]) OR "Adolescent, Hospitalized "[mh] OR "Adolescent, Institutionalized"[mh] OR "Adolescent Development"[mh] OR "Adolescent Behavior"[mh] OR "Adolescent Health"[mh] OR "Adolescent Health Services"[mh] OR "Adolescent Medicine"[mh] OR "Psychology, Adolescent"[mh] OR "Youth Sports"[mh] OR adolescen*[ti] OR "young people*"[ti] OR youth*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Adolescent"[mh] OR "Adolescent, Hospitalized "[mh] OR "Adolescent, Institutionalized"[mh] OR "Adolescent Development"[mh] OR "Adolescent Behavior"[mh] OR "Adolescent Health"[mh] OR "Adolescent Health Services"[mh] OR "Adolescent Medicine"[mh] OR "Psychology, Adolescent"[mh] OR "Youth Sports"[mh] OR adolescen*[tiab] OR "young people*"[tiab] OR youth*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Adolescent"[mh] OR "Adolescent, Hospitalized "[mh] OR "Adolescent, Institutionalized"[mh] OR "Adolescent Development"[mh] OR "Adolescent Behavior"[mh] OR "Adolescent Health"[mh] OR "Adolescent Health Services"[mh] OR "Adolescent Medicine"[mh] OR "Psychology, Adolescent"[mh] OR "Youth Sports"[mh] OR adolescen*[tiab] OR "young people*"[tiab] OR youth*[tiab]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -2636,13 +2699,13 @@ export const topics = [
         buttons: true,
         searchStrings: {
           narrow: [
-            '((("Aged"[mh] NOT "Adult"[mh:noexp]) NOT ("Adolescent"[mh] OR "Child"[mh] OR "Infant"[mh])) OR "Health Services for the Aged"[majr] OR "Homes for the Aged"[majr] OR "Retirement"[majr] OR "Senior Centers"[majr]) AND "Diabetes Mellitus"[majr]',
+            '((("Aged"[mh] NOT "Adult"[mh:noexp]) NOT ("Adolescent"[mh] OR "Child"[mh] OR "Infant"[mh])) OR "Health Services for the Aged"[majr] OR "Homes for the Aged"[majr] OR "Retirement"[majr] OR "Senior Centers"[majr]) AND ' + standardString['narrow'] + '',
           ],
           normal: [
-            '(((("Aged"[mh] NOT "Adult"[mh:noexp]) NOT ("Adolescent"[mh] OR "Child"[mh] OR "Infant"[mh])) OR "Health Services for the Aged"[mh] OR "Homes for the Aged"[mh] OR "Retirement"[mh] OR "Senior Centers"[mh] OR elderly[ti]) OR (older*[ti] AND (people*[ti] OR person*[ti]))) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '(((("Aged"[mh] NOT "Adult"[mh:noexp]) NOT ("Adolescent"[mh] OR "Child"[mh] OR "Infant"[mh])) OR "Health Services for the Aged"[mh] OR "Homes for the Aged"[mh] OR "Retirement"[mh] OR "Senior Centers"[mh] OR elderly[ti]) OR (older*[ti] AND (people*[ti] OR person*[ti]))) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '(("Aged"[mh] OR "Health Services for the Aged"[mh] OR "Homes for the Aged"[mh] OR "Retirement"[mh] OR "Senior Centers"[mh] OR elderly[tiab]) OR (older*[tiab] AND (people*[tiab] OR person*[tiab]))) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '(("Aged"[mh] OR "Health Services for the Aged"[mh] OR "Homes for the Aged"[mh] OR "Retirement"[mh] OR "Senior Centers"[mh] OR elderly[tiab]) OR (older*[tiab] AND (people*[tiab] OR person*[tiab]))) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -2680,13 +2743,13 @@ export const topics = [
         buttons: true,
         searchStrings: {
           narrow: [
-            '("Amputation, Surgical"[majr] OR "Amputation Stumps"[majr]) AND "Diabetes Mellitus"[majr]',
+            '("Amputation, Surgical"[majr] OR "Amputation Stumps"[majr]) AND ' + standardString['narrow'] + '',
           ],
           normal: [
-            '("Amputation, Surgical"[mh] OR "Amputation Stumps"[mh] OR amputat*[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Amputation, Surgical"[mh] OR "Amputation Stumps"[mh] OR amputat*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Amputation, Surgical"[mh] OR "Amputation Stumps"[mh] OR amputat*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Amputation, Surgical"[mh] OR "Amputation Stumps"[mh] OR amputat*[tiab]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -2708,12 +2771,12 @@ export const topics = [
         ordering: { dk: null, en: null },
         buttons: true,
         searchStrings: {
-          narrow: ['("COVID-19"[majr] OR "SARS-CoV-2"[majr]) AND "Diabetes Mellitus"[majr]'],
+          narrow: ['("COVID-19"[majr] OR "SARS-CoV-2"[majr]) AND ' + standardString['narrow'] + ''],
           normal: [
-            '("COVID-19"[mh] OR "SARS-CoV-2"[mh]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("COVID-19"[mh] OR "SARS-CoV-2"[mh]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '(("COVID-19"[mh] OR "COVID-19 Testing"[mh] OR "COVID-19 Vaccines"[mh] OR "SARS-CoV-2"[mh] OR 2019-ncov*[tiab] OR 2019ncov*[tiab] OR 2019-novel-cov*[tiab] OR coronavirus[ti] OR coronavirus-2*[tiab] OR coronavirus-disease-19*[tiab] OR corona-virus-disease-19*[tiab] OR coronavirus-disease-20*[tiab] OR corona-virus-disease-20*[tiab] OR covid-19*[tiab] OR covid19*[tiab] OR covid-20*[tiab] OR covid20*[tiab] OR ncov-2019*[tiab] OR ncov2019*[tiab] OR new-coronavirus[tiab] OR new-corona-virus[tiab] OR novel-coronavirus[tiab] OR novel-corona-virus[tiab] OR sars-2*[tiab] OR sars2*[tiab] OR sars-cov-19*[tiab] OR sars-cov19*[tiab] OR sarscov19*[tiab] OR sarscov-19*[tiab] OR sars-cov-2*[tiab] OR sars-cov2*[tiab] OR sarscov2*[tiab] OR sarscov-2*[tiab] OR (("Coronavirus"[mh] OR "Coronavirus Infections"[mh] OR betacoronavirus[tiab] OR beta-coronavirus[tiab] OR beta-corona-virus[tiab] OR corona-virus[tiab] OR coronavirus[tiab] OR sars*[tiab] OR severe-acute-respiratory*[tiab]) AND (2019[tiab] OR 2020[tiab] OR wuhan*[tiab] OR hubei*[tiab] OR china*[tiab] OR chinese*[tiab] OR outbreak*[tiab] OR epidemic*[tiab] OR pandemic*[tiab]))) AND 2019/12:3000[dp]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '(("COVID-19"[mh] OR "COVID-19 Testing"[mh] OR "COVID-19 Vaccines"[mh] OR "SARS-CoV-2"[mh] OR 2019-ncov*[tiab] OR 2019ncov*[tiab] OR 2019-novel-cov*[tiab] OR coronavirus[ti] OR coronavirus-2*[tiab] OR coronavirus-disease-19*[tiab] OR corona-virus-disease-19*[tiab] OR coronavirus-disease-20*[tiab] OR corona-virus-disease-20*[tiab] OR covid-19*[tiab] OR covid19*[tiab] OR covid-20*[tiab] OR covid20*[tiab] OR ncov-2019*[tiab] OR ncov2019*[tiab] OR new-coronavirus[tiab] OR new-corona-virus[tiab] OR novel-coronavirus[tiab] OR novel-corona-virus[tiab] OR sars-2*[tiab] OR sars2*[tiab] OR sars-cov-19*[tiab] OR sars-cov19*[tiab] OR sarscov19*[tiab] OR sarscov-19*[tiab] OR sars-cov-2*[tiab] OR sars-cov2*[tiab] OR sarscov2*[tiab] OR sarscov-2*[tiab] OR (("Coronavirus"[mh] OR "Coronavirus Infections"[mh] OR betacoronavirus[tiab] OR beta-coronavirus[tiab] OR beta-corona-virus[tiab] OR corona-virus[tiab] OR coronavirus[tiab] OR sars*[tiab] OR severe-acute-respiratory*[tiab]) AND (2019[tiab] OR 2020[tiab] OR wuhan*[tiab] OR hubei*[tiab] OR china*[tiab] OR chinese*[tiab] OR outbreak*[tiab] OR epidemic*[tiab] OR pandemic*[tiab]))) AND 2019/12:3000[dp]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -2735,12 +2798,12 @@ export const topics = [
         ordering: { dk: null, en: null },
         buttons: true,
         searchStrings: {
-          narrow: ['"Self Care"[majr] AND "Diabetes Mellitus"[majr]'],
+          narrow: ['"Self Care"[majr] AND ' + standardString['narrow'] + ''],
           normal: [
-            '("Self Care"[mh] OR self-care[ti] OR self-management[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Self Care"[mh] OR self-care[ti] OR self-management[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Self Care"[mh] OR self-care[tiab] OR self-management[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Self Care"[mh] OR self-care[tiab] OR self-management[tiab]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -2763,13 +2826,13 @@ export const topics = [
         buttons: true,
         searchStrings: {
           narrow: [
-            '("Neoplasms"[majr] NOT "Polycystic Ovary Syndrome"[mh]) AND "Diabetes Mellitus"[majr]',
+            '("Neoplasms"[majr] NOT "Polycystic Ovary Syndrome"[mh]) AND ' + standardString['narrow'] + '',
           ],
           normal: [
-            '(("Neoplasms"[mh] OR cancer*[ti] OR carcinoma*[ti] OR neoplasm*[ti]) NOT ("Polycystic Ovary Syndrome"[mh] OR pcos[tiab])) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '(("Neoplasms"[mh] OR cancer*[ti] OR carcinoma*[ti] OR neoplasm*[ti]) NOT ("Polycystic Ovary Syndrome"[mh] OR pcos[tiab])) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '(("Neoplasms"[mh] OR cancer*[tiab] OR carcinoma*[tiab] OR neoplasm*[tiab]) NOT ("Polycystic Ovary Syndrome"[mh] OR pcos[tiab])) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '(("Neoplasms"[mh] OR cancer*[tiab] OR carcinoma*[tiab] OR neoplasm*[tiab]) NOT ("Polycystic Ovary Syndrome"[mh] OR pcos[tiab])) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -2791,12 +2854,12 @@ export const topics = [
         ordering: { dk: null, en: null },
         buttons: true,
         searchStrings: {
-          narrow: ['"Patient Education as Topic"[majr] AND "Diabetes Mellitus"[majr]'],
+          narrow: ['"Patient Education as Topic"[majr] AND ' + standardString['narrow'] + ''],
           normal: [
-            '("Patient Education as Topic"[mh] OR patient-education[ti]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Patient Education as Topic"[mh] OR patient-education[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Patient Education as Topic"[mh] OR patient-education[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Patient Education as Topic"[mh] OR patient-education[tiab]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -2819,13 +2882,13 @@ export const topics = [
         buttons: true,
         searchStrings: {
           narrow: [
-            '("Fluorocarbons"[majr] OR "Alkanesulfonic Acids"[majr]) AND ("Environmental Pollutants"[mh] OR exposure*[ti]) AND "Diabetes Mellitus"[majr]',
+            '("Fluorocarbons"[majr] OR "Alkanesulfonic Acids"[majr]) AND ("Environmental Pollutants"[mh] OR exposure*[ti]) AND ' + standardString['narrow'] + '',
           ],
           normal: [
-            '("Fluorocarbons"[mh] OR "Alkanesulfonic Acids"[mh] OR perfluoro*[ti] OR polyfluoro*[ti] OR perfluoro*[nm] OR polyfluoro*[nm]) AND ("Environmental Pollutants"[mh] OR Environmental Pollutants [Pharmacological Action] OR exposure*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[ti])',
+            '("Fluorocarbons"[mh] OR "Alkanesulfonic Acids"[mh] OR perfluoro*[ti] OR polyfluoro*[ti] OR perfluoro*[nm] OR polyfluoro*[nm]) AND ("Environmental Pollutants"[mh] OR Environmental Pollutants [Pharmacological Action] OR exposure*[tiab]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Fluorocarbons"[mh] OR "Alkanesulfonic Acids"[mh] OR perfluoro*[tiab] OR polyfluoro*[tiab] OR perfluoro*[nm] OR polyfluoro*[nm]) AND ("Environmental Pollutants"[mh] OR Environmental Pollutants [Pharmacological Action] OR exposure*[tiab]) AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])',
+            '("Fluorocarbons"[mh] OR "Alkanesulfonic Acids"[mh] OR perfluoro*[tiab] OR polyfluoro*[tiab] OR perfluoro*[nm] OR polyfluoro*[nm]) AND ("Environmental Pollutants"[mh] OR Environmental Pollutants [Pharmacological Action] OR exposure*[tiab]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
@@ -2847,9 +2910,9 @@ export const topics = [
         ordering: { dk: null, en: null },
         buttons: true,
         searchStrings: {
-          narrow: ['"ramadan"[ti] AND "Diabetes Mellitus"[majr]'],
-          normal: ['ramadan[ti] AND ("Diabetes Mellitus"[mh] OR diabet*[ti])'],
-          broad: ['ramadan[tiab] AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])'],
+          narrow: ['"ramadan"[ti] AND ' + standardString['narrow'] + ''],
+          normal: ['ramadan[ti] AND (' + standardString['normal'] + ')'],
+          broad: ['ramadan[tiab] AND (' + standardString['broad'] + ')'],
         },
         searchStringComment: {
           dk: "Fritekstord vil blive tilføjet.",
@@ -2870,9 +2933,9 @@ export const topics = [
         ordering: { dk: null, en: null },
         buttons: true,
         searchStrings: {
-          narrow: ['"Education, Professional"[majr] AND "Diabetes Mellitus"[majr]'],
-          normal: ['"Education, Professional"[mh] AND ("Diabetes Mellitus"[mh] OR diabet*[ti])'],
-          broad: ['"Education, Professional"[mh] AND ("Diabetes Mellitus"[mh] OR diabet*[tiab])'],
+          narrow: ['"Education, Professional"[majr] AND ' + standardString['narrow'] + ''],
+          normal: ['"Education, Professional"[mh] AND (' + standardString['normal'] + ')'],
+          broad: ['"Education, Professional"[mh] AND (' + standardString['broad'] + ')'],
         },
         searchStringComment: {
           dk: "Fritekstord vil blive tilføjet.",
@@ -2909,7 +2972,7 @@ export const topics = [
         ordering: { dk: null, en: null },
         searchStrings: {
           normal: [
-            '"Diabetes Mellitus"[mh] OR diabet*[tiab] OR blood-glucose*[tiab] OR glycaemi*[tiab] OR glycemi*[tiab] OR hba1c*[tiab] OR a1c[tiab] OR hyperglyc*[tiab] OR hypoglyc*[tiab] OR insulin*[tiab] OR metabolic*[tiab]',
+            standardString['broad'] + ' OR blood-glucose*[tiab] OR glycaemi*[tiab] OR glycemi*[tiab] OR hba1c*[tiab] OR a1c[tiab] OR hyperglyc*[tiab] OR hypoglyc*[tiab] OR insulin*[tiab] OR metabolic*[tiab]',
           ],
         },
         searchStringComment: {

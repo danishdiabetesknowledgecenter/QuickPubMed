@@ -6,12 +6,12 @@ export const promptStartText = {
   Dit svar SKAL altid følge denne givne struktur: 
   [
     {
-      "shortTitle": "Summary",
-      "question": "Make a brief summary based on the overall text of the article. Make sure to include the introduction and the conclusion.",
-      "answer": "The article provides an overview of..."
+      "shortTitle": "Resumé",
+      "question": "Lav et kort resumé baseret på hele teksten i artiklen. Sørg for at inkludere både indledningen og konklusionen.",
+      "answer": "Artiklen giver et overblik over..."
     },
   ].
-  Det er vigtigt, at du bevarer forholdet mellem shortTitle og question, og at du svarer på alle spørgsmål.
+  Det er vigtigt, at du bevarer forholdet mellem shortTitle og question, og at du svarer på alle spørgsmål. Alle svar skal formuleres i den sproglige tone, som du er blevet bedt om at anvende. 
  `,
   en: `You must answer in JSON format. You will be given a series of questions, each with their own shortTitle.
   Your answer MUST always follow this given structure:
@@ -34,14 +34,14 @@ const promptStartTextuserQuestions = {
   Strukturen for dit svar skal være som følger:
   {
     "questions": [
-      "her er et eksempel spørgsmål"
+      "her er et eksempel på et spørgsmål"
     ],
     "answers": [
-      "her er et eksempel svar"
+      "her er et eksempel på et svar"
     ]
   }
-  Det er ekstremt vigtigt at du vurderer om spørgsmål rent faktisk er et spørgsmål. 
-  Hvis det ikke er et spørgsmål, skal du svare med "Jeg kan ikke genkende et spørgsmål i denne tekst, prøv at formulere dig anderledes". Her er spørgsmålet:  `,
+  Det er ekstremt vigtigt, at du vurderer, om det stillede spørgsmål rent faktisk er et spørgsmål. 
+  Hvis det ikke er et spørgsmål, skal du svare med "Jeg kan ikke genkende et spørgsmål i det, du har skrevet. Prøv at omformulere dit spørgsmål.". Her er spørgsmålet:  `,
   en: `You must respond in JSON format. You can never annotate your answer with \`\`\json at the beginning of your response, nor with  \`\`\` at the end of your response. 
   You will be asked one question in the context of a scientific article, that you must answer. There must be 2 key-value pairs in your response. 
   The first key must be called questions, and the value must be an array. 
@@ -76,7 +76,7 @@ const promptStartTextuserQuestions = {
 export const promptQuestionsMap = {
   dk: [
     {
-      question: `Lav en kort opsummering baseret på artiklens samlede tekst, hvor du inkluderer indledning og konklusion. Du skal også inkludere de vigtigste resultater og konklusioner.`,
+      question: `Lav en kort opsummering baseret på artiklens samlede tekst, hvor du inkluderer indledning og konklusion. Du skal også inkludere de vigtigste resultater og konklusioner. `,
       shortTitle: `Resumé`,
     },
     {
@@ -137,7 +137,7 @@ export const promptQuestionsMap = {
 };
 
 export const promptQuestionsExtra = {
-  dk: `Du skal herefter tilføje 2 eller 3 ekstra spørgsmål, der har relevans for denne artikel og som du mener, at læseren vil have gavn af at få svar på.`,
+  dk: `Du skal herefter tilføje 2 eller 3 ekstra spørgsmål, der har relevans for denne artikel, og som du mener, at læseren vil have gavn af at få svar på.`,
   en: `You must then add 2 or 3 additional questions that are relevant to this article.`,
 };
 
@@ -146,7 +146,7 @@ export const promptQuestionsExtra = {
  */
 export const promptArticleSpecificAnswersOnly = {
   dk: `Det er ekstremt vigtigt, at du kun besvarer spørgsmål, hvis det er relevant for tekstens indhold. 
-  Hvis spørgsmålet omhandler andet end tekstens indhold, svar altid med "Ikke relevant for denne artikel".  `,
+  Hvis spørgsmålet omhandler andet end tekstens indhold, så svar altid med "Ikke relevant for denne artikel".  `,
   en: `It is very important that you only answer the questions asked if they are relevant to this article, 
   and that you do not answer questions that are not relevant to this article. `,
 };
@@ -166,39 +166,51 @@ export const promptArticleSpecificAnswersOnly = {
  * @property {string} endText.en - English concluding text.
  */
 export const promptText = [
-  // Professional language prompt end text
-  {
-    name: {
-      dk: "Fagsprog",
-      en: "Professional language",
-    },
-    startText: promptStartText,
-    startTextuserQuestions: promptStartTextuserQuestions,
-    questions: promptQuestionsMap,
-    questionsExtra: promptQuestionsExtra,
-    promptRules: promptArticleSpecificAnswersOnly,
-    endText: {
-      dk: "Du skal generere svar til alle spørgsmål, og disse svar skal bestå af maksimum 200 ord og skal skrives på fagsprog, som let kan forstås af et sundhedsfagligt publikum eller personer med solid baggrund inden for emnet. \
-      Du må ikke svare med andet end JSON-formatet. Du skal aldrig bruge tegnet ` eller medgive 'json' i starten eller slutningen af dit svar. Her er teksten: ",
-      en: "You must then generate answers to these questions, and these answers must consist of atleast 200 words and must be written in professional language that can be easily understood by a healthcare audience or people with a solid background in the subject, and add corresponding to the array that is the value for the answers key. \
-      You must not respond with anything other than JSON format. You must therefore not use the character ` or write JSON at the beginning or end of the response. Here is the text: ",
-    },
-  },
   // Plain langugaes prompt end text
   {
     name: {
       dk: "Hverdagssprog",
       en: "Plain language",
     },
+    languageType: {
+      dk: "Du skal generere svar til disse spørgsmål, og disse svar skal bestå af maksimum 200 ord og skal skrives i et sprog, som nemt kan læses og forstås af en 15-årig uden forhåndskendskab til emnet. Forklar altid svære ord i parentes. Du skal altid svare på korrekt dansk. Gennemgå dit svar 10 gange for sproglig korrekthed, før du returnerer sit svar. \
+      Du skal ikke svare med andet end JSON-formatet. Du skal derfor ikke bruge tegnet ` eller skrive json i starten eller slutningen af svaret. Her er teksten: ",
+      en: "You must then generate answers to these questions, and these answers must consist of at least 100 words and must be written in a language that can be easily read and understood by a 15-year-old without prior knowledge of the subject, and add corresponding to the array that is the value for the answers key. \
+      You must not respond with anything other than JSON format. You must therefore not use the character ` or write JSON at the beginning or end of the response. Here is the text: ",
+    },
     startText: promptStartText,
     startTextuserQuestions: promptStartTextuserQuestions,
     questions: promptQuestionsMap,
     questionsExtra: promptQuestionsExtra,
     promptRules: promptArticleSpecificAnswersOnly,
     endText: {
-      dk: "Du skal generere svar til disse spørgsmål, og disse svar skal bestå af maksimum 200 ord og skal skrives i et sprog, som nemt kan læses og forstås af en 15-årig uden forhåndskendskab til emnet, og tilføje svarende til array'et, der er value for answers key'en. \
+      dk: "Du skal generere svar til disse spørgsmål, og disse svar skal bestå af maksimum 200 ord og skal skrives i et sprog, som nemt kan læses og forstås af en 15-årig uden forhåndskendskab til emnet. Forklar altid svære ord i parentes. Du skal altid svare på korrekt dansk. Gennemgå dit svar 10 gange for sproglig korrekthed, før du returnerer sit svar. \
       Du skal ikke svare med andet end JSON-formatet. Du skal derfor ikke bruge tegnet ` eller skrive json i starten eller slutningen af svaret. Her er teksten: ",
       en: "You must then generate answers to these questions, and these answers must consist of at least 100 words and must be written in a language that can be easily read and understood by a 15-year-old without prior knowledge of the subject, and add corresponding to the array that is the value for the answers key. \
+      You must not respond with anything other than JSON format. You must therefore not use the character ` or write JSON at the beginning or end of the response. Here is the text: ",
+    },
+  },
+  // Professional language prompt end text
+  {
+    name: {
+      dk: "Fagsprog",
+      en: "Professional language",
+    },
+    languageType: {
+      dk: "Du skal generere svar til disse spørgsmål, og disse svar skal bestå af maksimum 200 ord og skal skrives i et sprog, som nemt kan læses og forstås af en 15-årig uden forhåndskendskab til emnet. Forklar altid svære ord i parentes. Du skal altid svare på korrekt dansk. Gennemgå dit svar 10 gange for sproglig korrekthed, før du returnerer sit svar. \
+      Du skal ikke svare med andet end JSON-formatet. Du skal derfor ikke bruge tegnet ` eller skrive json i starten eller slutningen af svaret. Her er teksten: ",
+      en: "You must then generate answers to these questions, and these answers must consist of at least 100 words and must be written in a language that can be easily read and understood by a 15-year-old without prior knowledge of the subject, and add corresponding to the array that is the value for the answers key. \
+      You must not respond with anything other than JSON format. You must therefore not use the character ` or write JSON at the beginning or end of the response. Here is the text: ",
+    },
+    startText: promptStartText,
+    startTextuserQuestions: promptStartTextuserQuestions,
+    questions: promptQuestionsMap,
+    questionsExtra: promptQuestionsExtra,
+    promptRules: promptArticleSpecificAnswersOnly,
+    endText: {
+      dk: "Du skal generere svar til alle spørgsmål, og disse svar skal bestå af maksimum 200 ord og skal skrives på fagsprog, som let kan forstås af et sundhedsfagligt publikum eller personer med solid baggrund inden for emnet. Du skal altid svare på korrekt dansk. Gennemgå dit svar 10 gange for sproglig korrekthed, før du returnerer sit svar. \
+      Du må ikke svare med andet end JSON-formatet. Du skal aldrig bruge tegnet ` eller medgive 'json' i starten eller slutningen af dit svar. Her er teksten: ",
+      en: "You must then generate answers to these questions, and these answers must consist of atleast 200 words and must be written in professional language that can be easily understood by a healthcare audience or people with a solid background in the subject, and add corresponding to the array that is the value for the answers key. \
       You must not respond with anything other than JSON format. You must therefore not use the character ` or write JSON at the beginning or end of the response. Here is the text: ",
     },
   },

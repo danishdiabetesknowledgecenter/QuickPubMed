@@ -1,6 +1,16 @@
 :root {
   --font-primary: "Open Sans";
   --font-secondary: "Open Sans";
+  --color-white: #fff;
+  --colot-black: #000;
+  --color-grey-light: #f4f4f4;
+  --color-grey: #e7e7e7;
+  --color-blue-dark: #3d5068;
+  --color-blue-light: lightskyblue;
+  --color-red-dark: #932833;
+  --color-red-light: #ba4343;
+  --color-green-light: #799d93;
+  --color-link: #004fa4;
 }
 
 .qpm_vapp * {
@@ -19,10 +29,7 @@
 
 .qpm_vapp li,
 .qpm_vapp ul,
-.qpm_vapp
-  ul:not(.filter-search__filter__alphabet):not(.fontsize):not(.sidemenu__dropdown):not(
-    .list__timeline
-  ) {
+.qpm_vapp ul:not(.filter-search__filter__alphabet):not(.fontsize):not(.sidemenu__dropdown):not(.list__timeline) {
   padding-left: 0 !important;
 }
 
@@ -40,7 +47,7 @@
 }
 
 .qpm_vapp input[type="checkbox"] {
-  accent-color: #3d5068;
+  accent-color: var(--color-blue-dark);
 }
 
 .qpm_ResultEntry button {
@@ -64,7 +71,7 @@
 }
 
 .qpm_middle {
-  border: solid #e7e7e7;
+  border: solid var(--color-grey);
   border-width: 0 1px 1px;
   padding: 15px;
 }
@@ -94,8 +101,8 @@
 }
 
 .tooltip .tooltip-inner {
-  background: #fff;
-  color: #000;
+  background: var(--color-white);
+  color: var(--color-black);
   text-align: left;
   border-radius: 10px;
   border: 1px solid var(--color-grey-dark);
@@ -230,8 +237,8 @@ input.qpm_selectArticleCheckbox[type="checkbox"] {
 
 .qpm_summaryButton {
   margin: 10px 5px 0 3px;
-  background-color: #799d93 !important;
-  color: #ffffff !important;
+  background-color: var(--color-green-light) !important;
+  color: var(--color-white) !important;
   text-align: left;
 }
 
@@ -288,8 +295,8 @@ input.qpm_selectArticleCheckbox[type="checkbox"] {
 
 .qpm_searchHeader {
   font-size: 0.8em;
-  border-top: 1px solid #e7e7e7;
-  border-bottom: 1px solid #e7e7e7;
+  border-top: 1px solid var(--color-grey);
+  border-bottom: 1px solid var(--color-grey);
   margin-top: 20px;
   margin-bottom: 20px;
 }
@@ -325,7 +332,7 @@ p.qpm_shownumber {
 
 .qpm_filters {
   margin-top: -5px;
-  background-color: #e7e7e7;
+  background-color: var(--color-grey);
   -webkit-box-shadow: inset 0 0 4px 0 rgba(0, 0, 0, 0.2);
   -moz-box-shadow: inset 0 0 4px 0 rgba(0, 0, 0, 0.2);
   box-shadow: inset 0 0 4px 0 rgba(0, 0, 0, 0.2);
@@ -341,7 +348,7 @@ p.qpm_shownumber {
 }
 
 .qpm_abstract {
-  background-color: white;
+  background-color: var(--color-white);
   margin-top: 10px;
   clear: both;
 }
@@ -438,7 +445,7 @@ p.qpm_shownumber {
 
 .qpm_button {
   border: 1px solid #ddd !important;
-  background-color: white;
+  background-color: var(--color-white);
   border-radius: 3px !important;
   padding: 10px !important;
   transition: all 0.2s ease !important;
@@ -460,12 +467,12 @@ p.qpm_shownumber {
 .qpm_button.qpm_big:focus-visible,
 .qpm_button.qpm_slim:focus-visible,
 .multiselect__option--highlight .qpm_dropdownButtons .qpm_button.qpm_ButtonColumnFocused {
-  outline: 3px solid #000000 !important;
+  outline: 3px solid var(--color-black) !important;
   outline-offset: 1px !important;
 }
 
 button.qpm_slim.multiselect__input:focus {
-  outline: 3px solid #000000;
+  outline: 3px solid var(--color-black);
   outline-offset: 1px;
 }
 
@@ -481,12 +488,12 @@ button.qpm_slim.multiselect__input:focus {
   opacity: 0.3;
 }
 .qpm_button.qpm_slim.qpm_active {
-  background-color: #799d93 !important;
-  color: white !important;
+  background-color: var(--color-green-light) !important;
+  color: var(--color-white) !important;
 }
 
 .qpm_button.qpm_slim.qpm_active:hover {
-  background-color: white;
+  background-color: var(--color-white);
   border: 1px solid #cecece;
 }
 
@@ -509,11 +516,11 @@ button.qpm_slim.multiselect__input:focus {
 }
 
 .qpm_dropdown .qpm_button:hover {
-  color: white;
+  color: var(--color-white);
 }
 
 .qpm_selectedButton {
-  color: white;
+  color: var(--color-white);
   border-color: transparent;
 }
 
@@ -557,12 +564,12 @@ button.qpm_slim.multiselect__input:focus {
   width: 8px;
   border-style: solid;
   border-width: 2px 2px 0 0;
-  border-color: #000;
+  border-color: var(--color-black);
   transform: rotate(135deg);
   top: 25%;
 }
 .multiselect__tag:hover {
-  background: #ba4343 !important;
+  background: var(--color-red-light) !important;
 }
 
 .multiselect__tag {
@@ -584,7 +591,7 @@ button.qpm_slim.multiselect__input:focus {
 }
 
 .multiselect__tag span p {
-  color: white;
+  color: var(--color-white);
   max-width: 100%;
   margin: -4px 0;
   line-height: 1.5;
@@ -687,6 +694,14 @@ input.multiselect__input[placeholder="Tilføj tilgængelighed"] {
   width: 170px !important;
   min-width: 170px;
 }
+input.multiselect__input[placeholder="Tilføj tilhørsforhold eller indtast søgeord"] {
+  width: 320px !important;
+  min-width: 320px;
+}
+input.multiselect__input[placeholder="Tilføj tilhørsforhold/søgeord"] {
+  width: 230px !important;
+  min-width: 230px;
+}
 input.multiselect__input[placeholder="Tilføj andre afgrænsninger"] {
   width: 217px !important;
   min-width: 217px;
@@ -699,13 +714,13 @@ input.multiselect__input[placeholder="Tilføj andre afgrænsninger"] {
 }
 
 .multiselect__tag-icon:after {
-  color: white !important;
+  color: var(--color-white) !important;
   font-size: 1em;
 }
 
 .multiselect__tag-icon:focus,
 .multiselect__tag-icon:hover {
-  background: #ba4343 !important;
+  background: var(--color-red-light) !important;
 }
 
 .qpm_operator {
@@ -787,14 +802,14 @@ input.multiselect__input[placeholder="Tilføj andre afgrænsninger"] {
 li.multiselect__element.qpm_groupExpanded span.multiselect__option--group,
 li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   background: #35495e;
-  color: white !important;
+  color: var(--color-white) !important;
 }
 
 .multiselect__option--group-selected.multiselect__option--highlight,
 .multiselect__option--group-selected.multiselect__option--highlight:after,
 .multiselect__option--group.multiselect__option--highlight span,
 .multiselect__option--group.multiselect__option--highlight i {
-  color: white !important;
+  color: var(--color-white) !important;
   background: #35495e;
 }
 
@@ -843,19 +858,16 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   margin-left: -14px;
 }
 
-.qpm_subjects {
-}
-
 .qpm_button.qpm_big {
   background-color: #4d6687 !important;
-  color: white !important;
+  color: var(--color-white) !important;
 }
 
 .qpm_button.qpm_disabled,
 .qpm_button.qpm_slim.qpm_disabled,
 .qpm_button.qpm_dark.qpm_disabled {
   background-color: #a0a0a0 !important;
-  color: white !important;
+  color: var(--color-white) !important;
 }
 
 .qpm_button.qpm_dark.qpm_disabled {
@@ -863,25 +875,25 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 }
 
 .qpm_button.qpm_slim {
-  background-color: white !important;
+  background-color: var(--color-white) !important;
   padding: 5px;
 }
 
 .qpm_button.qpm_slim.qpm_abstract {
   background-color: var(--color-tertiary) !important;
-  color: white !important;
+  color: var(--color-white) !important;
 }
 
 .qpm_button.qpm_dark {
   background-color: var(--color-tertiary) !important;
-  color: white !important;
+  color: var(--color-white) !important;
   white-space: nowrap;
 }
 
 .qpm_search,
 .qpm_search:hover {
   background-color: var(--color-tertiary) !important;
-  color: white !important;
+  color: var(--color-white) !important;
   width: 85px !important;
   white-space: nowrap;
 }
@@ -890,16 +902,18 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   flex: 1;
 }
 
-.qpm_removeSubject {
+.qpm_removeFilter,
+.qpm_removeFilter {
   font-size: 25px;
-  margin-left: 7px;
   cursor: pointer;
 }
 
+.qpm_removeSubject {
+  margin-left: 7px;
+}
+
 .qpm_removeFilter {
-  font-size: 25px;
   padding-left: 7px;
-  cursor: pointer;
 }
 
 .qpm_emptySpace {
@@ -917,14 +931,14 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 .qpm_tab {
   float: left;
   margin: 2px 0 -1px 10px;
-  border: 1px solid #e7e7e7;
+  border: 1px solid var(--color-grey);
   border-bottom: 0;
-  background-color: #ffffff;
+  background-color: var(--color-white);
   border-radius: 8px 8px 0 0;
   overflow: hidden;
   padding: 10px 20px;
   cursor: pointer;
-  color: #000000;
+  color: var(--color-black);
   font-size: 1em !important;
 }
 
@@ -1012,7 +1026,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   line-height: 1.8em;
   white-space: nowrap;
   border: 1px solid #ddd;
-  background-color: white;
+  background-color: var(--color-white);
   border-radius: 3px;
   padding: 5px;
   margin-bottom: 5px;
@@ -1022,17 +1036,17 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 }
 
 .qpm_summary_history_item.qpm_error {
-  background-color: #932833;
-  color: #fff;
+  background-color: var(--color-red-dark);
+  color: var(--color-white);
 }
 
 .qpm_summary_history_item.qpm_current {
-  background-color: #3d5068;
-  color: #fff;
+  background-color: var(--color-blue-dark);
+  color: var(--color-white);
 }
 
 .qpm_summary_history_item:hover {
-  background-color: lightskyblue;
+  background-color: var(--color-blue-light);
   color: revert;
 }
 
@@ -1093,7 +1107,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   bottom: 2px;
   left: 0;
   border-radius: 10px;
-  border: 1px solid #e7e7e7;
+  border: 1px solid var(--color-grey);
 }
 
 .qpm_wordedSearchString {
@@ -1141,7 +1155,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 }
 
 .qpm_ResultEntryWrapper {
-  border-bottom: 1px solid #e7e7e7;
+  border-bottom: 1px solid var(--color-grey);
 }
 
 .qpm_ResultEntry {
@@ -1165,7 +1179,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 .qpm_ResultEntry button.qpm_noAbstract,
 .qpm_ResultEntry button.qpm_noAbstract:hover {
   background-color: #808080 !important;
-  color: #ffffff !important;
+  color: var(--color-white) !important;
 }
 
 .qpm_resultentryDate {
@@ -1188,7 +1202,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 
 .qpm_ArticleReference .qpm_resultTitle {
   font-weight: 600;
-  color: #000 !important;
+  color: var(--color-black) !important;
   line-height: 1.5em;
   padding-bottom: 7px;
 }
@@ -1254,16 +1268,16 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   margin: -1px 0;
   height: 35px;
   width: 100%;
-  border-top: 1px solid #e7e7e7;
-  border-bottom: 1px solid #e7e7e7;
+  border-top: 1px solid var(--color-grey);
+  border-bottom: 1px solid var(--color-grey);
   border-left: 0;
   border-right: 0;
   padding-right: 5px;
   text-align-last: end;
   font-weight: 400;
   font-size: 1.1em;
-  background-color: #ffffff !important;
-  color: #000000 !important;
+  background-color: var(--color-white) !important;
+  color: var(--color-black) !important;
   -webkit-appearance: auto !important;
   -moz-appearance: auto !important;
   appearance: auto !important;
@@ -1286,7 +1300,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   width: 8px;
   border-style: solid;
   border-width: 2px 2px 0 0;
-  border-color: #000;
+  border-color: var(--color-black);
   transform: rotate(135deg);
   top: 25%;
 }
@@ -1295,7 +1309,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 .multiselect__option--selected.multiselect__option--highlight,
 .multiselect__option--highlight:after {
   background-color: #9ac5d5;
-  color: white !important;
+  color: var(--color-white) !important;
 }
 
 .multiselect__option--selected {
@@ -1308,7 +1322,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 }
 
 .qpm_dropdownButtons .qpm_button {
-  color: white !important;
+  color: var(--color-white) !important;
 }
 
 .qpm_buttonColor1,
@@ -1322,7 +1336,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 .qpm_buttonColor2.multiselect__tag,
 .qpm_buttonColor2.qpm_selectedButton,
 .qpm_buttonColor2:hover {
-  background-color: #3d5068 !important;
+  background-color: var(--color-blue-dark) !important;
 }
 
 .qpm_buttonColor2:has(input),
@@ -1336,7 +1350,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 .qpm_buttonColor3.multiselect__tag,
 .qpm_buttonColor3.qpm_selectedButton,
 .qpm_buttonColor3:hover {
-  background-color: #932833 !important;
+  background-color: var(--color-red-dark) !important;
 }
 
 .qpm_buttonColor4,
@@ -1350,14 +1364,14 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 .qpm_buttonColor5.multiselect__tag,
 .qpm_buttonColor5.qpm_selectedButton,
 .qpm_buttonColor5:hover {
-  background-color: #3d5068 !important;
+  background-color: var(--color-blue-dark) !important;
 }
 
 .qpm_buttonColor6,
 .qpm_buttonColor6.multiselect__tag,
 .qpm_buttonColor6.qpm_selectedButton,
 .qpm_buttonColor6:hover {
-  background-color: #932833 !important;
+  background-color: var(--color-red-dark) !important;
 }
 
 .qpm_buttonColor7,
@@ -1552,7 +1566,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   left: 0;
   content: "\e914";
   font-family: "icomoon" !important;
-  color: #000;
+  color: var(--color-black);
   font-weight: normal;
   font-size: 32px;
   vertical-align: text-bottom;
@@ -1643,7 +1657,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 }
 
 .qpm_searchSummaryBox button {
-  border: 1px solid #e7e7e7;
+  border: 1px solid var(--color-grey);
   z-index: 10;
 }
 
@@ -1662,7 +1676,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   font-size: 0.93em;
   /* overflow: auto; */
   padding: 5px 15px 10px 15px;
-  /* border-bottom: 1px solid #e7e7e7; */
+  /* border-bottom: 1px solid var(--color-grey); */
 }
 .qpm_searchSummaryResponseBox .qpm_searchSummaryText {
   position: relative;
@@ -1676,7 +1690,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 
 .qpm_accordion .qpm_searchTranslatedTitle,
 .qpm_SpecificArticle .qpm_searchTranslatedTitle {
-  background-color: #ffffff;
+  background-color: var(--color-white);
 }
 
 .qpm_ResultEntry .qpm_searchSummaryText {
@@ -1769,13 +1783,13 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   border-style: solid;
   border-width: 2px;
   border-radius: 5px;
-  border-color: #ba4343;
+  border-color: var(--color-red-light);
 }
 
 .qpm_accordion {
   /* margin-bottom: 10px; */
   width: 100%;
-  border-bottom: 1px solid #e7e7e7;
+  border-bottom: 1px solid var(--color-grey);
 }
 
 .qpm_accordion .qpm_accordion-header {
@@ -1803,7 +1817,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   overflow: hidden;
   margin-bottom: 10px;
   font-family: var(--font-primary);
-  /*	border-bottom: 1px solid #e7e7e7; */
+  /*	border-bottom: 1px solid var(--color-grey); */
 }
 
 .qpm_accordion-content .list-fade-item:last-child > .qpm_ResultEntry {
@@ -1839,7 +1853,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 }
 
 .qpm_accordions {
-  border-top: 1px solid #e7e7e7;
+  border-top: 1px solid var(--color-grey);
   margin-top: 40px;
 }
 
@@ -1849,7 +1863,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 
 .qpm_aiAccordionHeader {
   padding: 13px 10px 6px 10px;
-  /* border-bottom: 1px solid #e7e7e7;*/
+  /* border-bottom: 1px solid var(--color-grey);*/
   cursor: pointer;
   font-family: var(--font-primary);
 }
@@ -1872,7 +1886,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 	font-size: 1em;
 	margin: 10px;
 	padding: 5px;
-	border: #932833;
+	border: var(--color-red-dark);
 	border-style: solid;
 	border-width: 1px;
 }
@@ -1899,7 +1913,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 }
 
 .qpm_switch input:focus + .qpm_slider {
-  outline: 3px solid #000000;
+  outline: 3px solid var(--color-black);
   outline-offset: 1px;
 }
 
@@ -1922,18 +1936,18 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   width: 20px;
   left: 3px;
   bottom: 3px;
-  background-color: white;
+  background-color: var(--color-white);
   -webkit-transition: 0.4s;
   transition: 0.4s;
   border-radius: 50%;
 }
 
 input:checked + .qpm_slider {
-  background-color: #3d5068;
+  background-color: var(--color-blue-dark);
 }
 
 input:focus:checked + .qpm_slider {
-  box-shadow: 0 0 1px #3d5068;
+  box-shadow: 0 0 1px var(--color-blue-dark);
 }
 
 input:checked + .qpm_slider:before {
@@ -2087,8 +2101,8 @@ input:checked + .qpm_slider:before {
   }
 
   .qpm_tab:hover {
-    background-color: #ffffff;
-    border: 1px solid #e7e7e7;
+    background-color: var(--color-white);
+    border: 1px solid var(--color-grey);
     border-bottom: 0;
   }
 
@@ -2150,7 +2164,7 @@ input:checked + .qpm_slider:before {
 	width: 26px;
 	left: 4px;
 	bottom: 4px;
-	background-color: white;
+	background-color: var(--color-white);
 	-webkit-transition: .4s;
 	transition: .4s;
   }

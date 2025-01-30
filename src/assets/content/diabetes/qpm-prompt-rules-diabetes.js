@@ -13,12 +13,11 @@ export const promptRules = {
     Hvis der i en artikel kun står 'diabetes', og ikke hverken 'type 1-diabetes' eller 'type 2-diabetes', skal du blot skrive 'diabetes'. 
     Du vil blive straffet meget hårdt, hvis du ikke følger alle de instruktioner, som du har fået. `,
   en: `Always follow these writing rules: 
-    Always write 'type 1-diabetes', but never write 'type 1 diabetes', 'diabetes 1', 'diabetes type 1' etc. 
-    Always write 'type 2-diabetes', but never write 'type 2 diabetes', 'diabetes 2', 'diabetes type 2' etc. 
+    Always write 'type 1 diabetes', but never write 'type 1-diabetes', 'diabetes 1', 'diabetes type 1' etc. 
+    Always write 'type 2 diabetes', but never write 'type 2-diabetes', 'diabetes 2', 'diabetes type 2' etc. 
     Always write 'person with diabetes', but never write 'diabetic', 'diabetes patient' etc. 
-    Always write 'diabetes', but never write 'sugar disease' 
-    Always write 'prediabetes', but never write 'prediabetes' 
-    Use Danish notation for numbers, where the thousands separator is a period (.) and the decimal point is a comma (,). Only write numbers with the correct format in your summary. \
+    Always write 'pre-diabetes', but never write 'prediabetes' 
+    Use English notation for numbers, where the thousands separator is a comma (,) and the decimal point is a period (.). Only write numbers with the correct format in your summary. \
     If an article only mentions 'diabetes', and neither 'type 1 diabetes' nor 'type 2 diabetes', you should just write 'diabetes'. 
     You will be penalized severely if you do not follow the instructions you have received. `,
 };

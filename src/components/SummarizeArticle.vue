@@ -352,6 +352,7 @@
         );
 
         const domainSpecificRules = this.domainSpecificPromptRules[language];
+        const promptLanguageTypeText = prompTextLanguageType.languageType[language];
         const promptStartText = prompTextLanguageType.startText[language];
         //const promptQuestions = promptQuestionsOnly[language];
         const promptQuestionsWithShortTitle = prompTextLanguageType.questions[language];
@@ -362,10 +363,10 @@
         const promptEndText = prompTextLanguageType.endText[language];
 
         // Compose the prompt text with default prompt questions without the user input questions
-        let composedPromptText = `${domainSpecificRules} ${promptStartText} ${questionsString} ${promptQuestionsExtra} ${promptEndText}`;
+        let composedPromptText = `${domainSpecificRules} ${promptLanguageTypeText} ${promptStartText} ${questionsString} ${promptQuestionsExtra} ${promptEndText}`;
 
         console.info(
-          `|Language|\n${language}\n\n|Prompt language type|\n${promptLanguageType}\n\n|Domain specific rules|\n${domainSpecificRules}\n\n|Start text|\n${promptStartText}\n` +
+          `|Language|\n${language}\n\n|Prompt language type|\n${promptLanguageType}\n\n|Domain specific rules|\n${domainSpecificRules}\n\n|Start text|\n${promptLanguageTypeText}\n\n|Start text|\n${promptStartText}\n` +
             `\n|Questions|\n${questionsString}\n\n|QuestionsExtra|\n${promptQuestionsExtra}\n` +
             `\n|End text|\n${promptEndText}\n`
         );

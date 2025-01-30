@@ -161,12 +161,12 @@
                   </p>
                 </td>
               </tr>
-              <tr v-if="blockHasComment(group)">
+              <tr v-if="group && group.searchStringComment && blockHasComment(group)">
                 <th colspan="2">
                   {{ getString("comment") }}
                 </th>
               </tr>
-              <tr v-if="blockHasComment(group)">
+              <tr v-if="group && group.searchStringComment && blockHasComment(group)">
                 <td colspan="2">
                   {{ group.searchStringComment[language] }}
                 </td>
@@ -314,12 +314,12 @@
                   </p>
                 </td>
               </tr>
-              <tr v-if="blockHasComment(choice)">
+              <tr v-if="choice && choice.searchStringComment && blockHasComment(choice)">
                 <th colspan="2">
                   {{ getString("comment") }}
                 </th>
               </tr>
-              <tr v-if="blockHasComment(choice)">
+              <tr v-if="choice && choice.searchStringComment && blockHasComment(choice)">
                 <td colspan="2">
                   {{ choice.searchStringComment[language] }}
                 </td>
@@ -351,7 +351,7 @@
       },
       language: {
         type: String,
-        default: "dk",
+        default: "en",
       },
     },
     data() {
@@ -379,7 +379,10 @@
     },
     methods: {
       blockHasComment(block) {
-        if (block.searchStringComment[this.language]) return true;
+        let language = this.language || 'en';
+        if (block.searchStringComment[this.language]) {
+          return true;
+        }
         return false;
       },
       hideOrCollapse(className) {
@@ -461,7 +464,7 @@
       getString(string) {
         let lg = this.language;
         let constant = messages[string][lg];
-        return constant != undefined ? constant : messages[string]["dk"];
+        return constant != undefined ? constant : messages[string]["en"];
       },
       customNameLabel(option) {
         if (!option.name && !option.groupname) return;
@@ -471,7 +474,7 @@
           constant =
             option.translations[lg] != undefined
               ? option.translations[lg]
-              : option.translations["dk"];
+              : option.translations["en"];
         } else {
           constant = option.name;
         }

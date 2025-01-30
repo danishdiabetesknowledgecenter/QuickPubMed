@@ -12,7 +12,7 @@ export const promptTextMultipleAbstracts = [
       Lav en opsummering på dansk, som fylder mindst 250 ord, men højst 30% af den samlede oprindelige tekst, 
       af nedenstående tekst (angivet i den nummererede liste nedenfor og afgrænset af triple backticks), som udgøres af en række søgeresultater. 
       Hvert enkelt søgeresultat består en titel, en kilde og et abstracts af et videnskabeligt studie. 
-      Skriv teksten, så den bliver meget let at forstå for en yngre person på 18 år, som ikke har nogen viden om emnet. 
+      Skriv teksten, så den bliver meget let at forstå for en yngre person på 15 år, som ikke har nogen viden om emnet. 
       Skriv teksten så simpel og klar som muligt med et LIX-tal på under 25. Forklar svære ord og fagord i en parentes, som indsættes umiddelbart efter det pågældende ord. 
       Alle udsagn i opsummeringen skal altid kunne genfindes i den oprindelige tekst. Opbyg opsummeringen således: 
       - Start med at beskrive, hvad alle studierne samlet set viser. Hvis der er markante forskelle mellem studierne, så beskriv disse forskelle. 
@@ -60,7 +60,7 @@ export const promptTextMultipleAbstracts = [
       `,
     },
     endText: {
-      dk: `Her er tektsten: `,
+      dk: `Her er teksten: `,
       en: `Here is the text: `,
     },
   },
@@ -111,7 +111,7 @@ export const promptTextMultipleAbstracts = [
       4) Write the actual summary of the studies.`,
     },
     endText: {
-      dk: `Her er tektsten: `,
+      dk: `Her er teksten: `,
       en: `Here is the text: `,
     },
   },
@@ -127,7 +127,7 @@ export const promptTextSingleAbstract = [
     },
     startText: {
       dk: `Lav en opsummering på dansk på højst 150 ord af denne tekst, som udgøres af et abstract af en videnskabelig artikel. 
-      Skriv teksten, så den bliver meget let at forstå for en yngre dansk person på 18 år, som ikke har nogen viden om emnet. 
+      Skriv teksten, så den bliver meget let at forstå for en yngre dansk person på 15 år, som ikke har nogen viden om emnet. 
       Gør teksten så simpel og klar som muligt med et LIX-tal på under 25. 
       Forklar svære ord og fagord i en parentes, som indsættes umiddelbart efter det pågældende ord. 
       Start med at angive, hvad studiet konkluderer.`,
@@ -138,7 +138,7 @@ export const promptTextSingleAbstract = [
       Start by stating what the study concludes.`,
     },
     endText: {
-      dk: `Her er tektsten: `,
+      dk: `Her er teksten: `,
       en: `Here is the text: `,
     },
   },
@@ -157,64 +157,9 @@ export const promptTextSingleAbstract = [
       Start by stating what all the studies conclude.`,
     },
     endText: {
-      dk: `Her er tektsten: `,
+      dk: `Her er teksten: `,
       en: `Here is the text: `,
     },
-  },
-];
-
-// Base prompt object for summarizing single search result abstract. Only the tooltip text is managed here
-export const summarizeAbstractPrompt = [
-  {
-    name: "Hverdagssprog",
-    translations: {
-      dk: "Hverdagssprog",
-      en: "Plain language",
-    },
-    tooltip: {
-      dk: "Opsummering skrevet i et sprog, som er nemt at forstå, selvom man ikke har forhåndskendskab til emnet.",
-      en: "Summary written in a language that is easy to understand, even without prior knowledge of the subject.",
-    },
-    // Each model has its own limit for the number of tokens it can handle. However, it is difficult to determine the limit dynamically. Please adjust this number to match the one given here: https://platform.openai.com/docs/models
-    model_token_limit: 128000,
-    // Below are a series of openAi parameters. To learn more about them see: https://platform.openai.com/docs/api-reference/completions/create
-    model: "chatgpt-4o-latest",
-    // The openAi model to use. The models have different strengths and costs, to learn more about them see: https://platform.openai.com/docs/models/overview
-    top_p: 0.1,
-    // Optional(min: 0.0, max: 2.0, default: 1.0)
-    temperature: 0.1,
-    // Optional(min: 0.0, max: 2.0, default: 1.0)
-    presence_penalty: null,
-    // Optional (min: -2.0, max: 2.0, default: 0.0)
-    frequency_penalty: null,
-    // Optional (min: -2.0, max: 2.0, default: 0.0)
-    max_tokens: 4000,
-    // NOTICE! The prompt field will be populated using the promptTextSingleAbstract object below
-    prompt: "",
-  },
-  {
-    name: "Fagsprog",
-    translations: {
-      dk: "Fagsprog",
-      en: "Professional language",
-    },
-    tooltip: {
-      dk: "Opsummering skrevet i et sprog, som er nemt forståeligt for fagpersoner med forhåndskendskab til emnet.",
-      en: "Summary written in a language that is easily understood by professionals with prior knowledge of the subject.",
-    },
-    // Each model has its own limit for the number of tokens it can handle. However, it is difficult to determine the limit dynamically. Please adjust this number to match the one given here: https://platform.openai.com/docs/models
-    model_token_limit: 128000,
-    // Below are a series of openAi parameters. To learn more about them see: https://platform.openai.com/docs/api-reference/completions/create
-    model: "chatgpt-4o-latest",
-    top_p: 0.1,
-    // Optional(min: 0.0, max: 2.0, default: 1.0)
-    temperature: 0.1,
-    // Optional(min: 0.0, max: 2.0, default: 1.0)
-    presence_penalty: null,
-    frequency_penalty: null,
-    max_tokens: 4000,
-    // NOTICE! The prompt field will be populated using the promptTextSingleAbstract object below
-    prompt: "",
   },
 ];
 
@@ -270,6 +215,61 @@ export const summarizeMultipleAbstractPrompt = [
     frequency_penalty: null,
     max_tokens: 4000,
     // NOTICE! The prompt field will be populated using the promptTextMultipleAbstracts object below
+    prompt: "",
+  },
+];
+
+// Base prompt object for summarizing single search result abstract. Only the tooltip text is managed here
+export const summarizeSingleAbstractPrompt = [
+  {
+    name: "Hverdagssprog",
+    translations: {
+      dk: "Hverdagssprog",
+      en: "Plain language",
+    },
+    tooltip: {
+      dk: "Opsummering skrevet i et sprog, som er nemt at forstå, selvom man ikke har forhåndskendskab til emnet.",
+      en: "Summary written in a language that is easy to understand, even without prior knowledge of the subject.",
+    },
+    // Each model has its own limit for the number of tokens it can handle. However, it is difficult to determine the limit dynamically. Please adjust this number to match the one given here: https://platform.openai.com/docs/models
+    model_token_limit: 128000,
+    // Below are a series of openAi parameters. To learn more about them see: https://platform.openai.com/docs/api-reference/completions/create
+    model: "chatgpt-4o-latest",
+    // The openAi model to use. The models have different strengths and costs, to learn more about them see: https://platform.openai.com/docs/models/overview
+    top_p: 0.1,
+    // Optional(min: 0.0, max: 2.0, default: 1.0)
+    temperature: 0.1,
+    // Optional(min: 0.0, max: 2.0, default: 1.0)
+    presence_penalty: null,
+    // Optional (min: -2.0, max: 2.0, default: 0.0)
+    frequency_penalty: null,
+    // Optional (min: -2.0, max: 2.0, default: 0.0)
+    max_tokens: 4000,
+    // NOTICE! The prompt field will be populated using the promptTextSingleAbstract object below
+    prompt: "",
+  },
+  {
+    name: "Fagsprog",
+    translations: {
+      dk: "Fagsprog",
+      en: "Professional language",
+    },
+    tooltip: {
+      dk: "Opsummering skrevet i et sprog, som er nemt forståeligt for fagpersoner med forhåndskendskab til emnet.",
+      en: "Summary written in a language that is easily understood by professionals with prior knowledge of the subject.",
+    },
+    // Each model has its own limit for the number of tokens it can handle. However, it is difficult to determine the limit dynamically. Please adjust this number to match the one given here: https://platform.openai.com/docs/models
+    model_token_limit: 128000,
+    // Below are a series of openAi parameters. To learn more about them see: https://platform.openai.com/docs/api-reference/completions/create
+    model: "chatgpt-4o-latest",
+    top_p: 0.1,
+    // Optional(min: 0.0, max: 2.0, default: 1.0)
+    temperature: 0.1,
+    // Optional(min: 0.0, max: 2.0, default: 1.0)
+    presence_penalty: null,
+    frequency_penalty: null,
+    max_tokens: 4000,
+    // NOTICE! The prompt field will be populated using the promptTextSingleAbstract object below
     prompt: "",
   },
 ];

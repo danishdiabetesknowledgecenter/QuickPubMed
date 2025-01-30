@@ -24,6 +24,7 @@
  * @property {Object} [searchStringComment] - Comments about the search strings.
  */
 /** @type {Array<Topic>} */
+
 export const topics = [
   {
     id: "S00",

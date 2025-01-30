@@ -320,7 +320,7 @@
                     <strong>{{ getString("aiSummarizeSearchResultButton") }}</strong>
                   </p>
                   <button
-                    v-for="prompt in getSummarizeAbstractPrompt()"
+                    v-for="prompt in getsummarizeSingleAbstractPrompt()"
                     :key="prompt.name"
                     v-tooltip="{
                       content: getString('hoverSummarizeSearchResultButton'),
@@ -354,7 +354,7 @@
                   :search-result-title="computedTitle"
                   :authors-list="author.trim()"
                   :publication-info="getFormattedPublication()"
-                  :prompts="getSummarizeAbstractPrompt()"
+                  :prompts="getsummarizeSingleAbstractPrompt()"
                   :summary-search-summary-consent-text="getString('aiSearchSummaryConsentHeader')"
                   :summary-consent-header="getString('aiAbstractSummaryConsentHeader')"
                   :success-header="getString('aiSummarizeAbstractResultHeader')"
@@ -432,7 +432,7 @@
                       <strong>{{ getString("aiSummarizeSearchResultButton") }}</strong>
                     </p>
                     <button
-                      v-for="prompt in getSummarizeAbstractPrompt()"
+                      v-for="prompt in getsummarizeSingleAbstractPrompt()"
                       :key="prompt.name"
                       v-tooltip="{
                         content: getString('hoverSummarizeSearchResultButton'),
@@ -466,7 +466,7 @@
                     :search-result-title="computedTitle"
                     :authors-list="author"
                     :publication-info="getFormattedPublication()"
-                    :prompts="getSummarizeAbstractPrompt()"
+                    :prompts="getsummarizeSingleAbstractPrompt()"
                     :has-accepted-ai="hasAcceptedAi"
                     :initial-tab-prompt="initialAiTab"
                   />
@@ -675,7 +675,7 @@
   import { eventBus } from "@/mixins/appSettings";
   import { appSettingsMixin } from "@/mixins/appSettings";
   import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
-  import { summarizeAbstractPrompt } from "@/assets/content/qpm-open-ai-abstract-prompts";
+  import { summarizeSingleAbstractPrompt } from "@/assets/content/qpm-open-ai-abstract-prompts";
 
   export default {
     name: "ResultEntry",
@@ -1561,8 +1561,8 @@
             console.debug(err);
           });
       },
-      getSummarizeAbstractPrompt() {
-        let temp = summarizeAbstractPrompt;
+      getsummarizeSingleAbstractPrompt() {
+        let temp = summarizeSingleAbstractPrompt;
         return temp;
       },
       updateInput(event) {
