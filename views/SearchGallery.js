@@ -47,7 +47,6 @@ new Vue({
     h(SearchGallery, {
       props: {
         hideTopics: hideTopics,
-
         language: language,
       },
     }),

@@ -1,6 +1,7 @@
 :root {
   --font-primary: "Open Sans";
   --font-secondary: "Open Sans";
+  --color-primary-button: var(--color-primary);
   --color-white: #fff;
   --colot-black: #000;
   --color-grey-light: #f4f4f4;
@@ -880,19 +881,19 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 }
 
 .qpm_button.qpm_slim.qpm_abstract {
-  background-color: var(--color-tertiary) !important;
+  background-color: var(--color-primary-button) !important;
   color: var(--color-white) !important;
 }
 
 .qpm_button.qpm_dark {
-  background-color: var(--color-tertiary) !important;
+  background-color: var(--color-primary-button) !important;
   color: var(--color-white) !important;
   white-space: nowrap;
 }
 
 .qpm_search,
 .qpm_search:hover {
-  background-color: var(--color-tertiary) !important;
+  background-color: var(--color-primary-button) !important;
   color: var(--color-white) !important;
   width: 85px !important;
   white-space: nowrap;

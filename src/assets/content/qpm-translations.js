@@ -59,19 +59,19 @@ export const messages = {
   },
   searchToggleWithAI: {
     dk: "Indtast med AI-oversættelse",
-    en: "You are searching with AI-translation from danish to english.",
+    en: "Use AI assisted input",
   },
   hoversearchToggleWithAI: {
     dk: "Hvis du selv indtaster søgeord, kan du bruge kunstig intelligens (AI) til at oversætte fra fx dansk til en søgning, som fungerer i PubMed. <br><br><strong>Du har slået denne funktion til</strong>.",
-    en: "",
+    en: "If you enter search terms manually, you can use artificial intelligence (AI) to translate from any language into a search query that works in PubMed.<br><br><strong>You have enabled this feature</strong>.",
   },
   searchToggleWithoutAI: {
-    dk: "Indtast med AI-oversættelse",
-    en: "You are searching without AI-translation. Click to search in danish.",
+    dk: "Indtast med AI-oversættelse (slået fra)",
+    en: "Use AI assisted input (disabled)",
   },
   hoversearchToggleWithoutAI: {
     dk: "Hvis du selv indtaster søgeord, kan du bruge kunstig intelligens (AI) til at oversætte fra fx dansk til en søgning, som fungerer i PubMed. <br><br><strong>Du har <i>ikke</i> slået denne funktion til</strong>. Derfor bliver dine søgeord brugt, som de er indtastet. Dvs. at de skal skrives på engelsk, da de ellers ikke fungerer i PubMed.",
-    en: "",
+    en: "If you enter search terms manually, you can use artificial intelligence (AI) to translate from any language into a search query that works in PubMed.<br><br><strong>You have <i>not</i> enabled this feature</strong>. Therefore, your search terms will be used exactly as entered. This means they must be written in English, as they will not work in PubMed otherwise.",
   },
   advancedSearch: {
     dk: "Avanceret",
@@ -102,8 +102,8 @@ export const messages = {
     en: "Select topic or enter search term",
   },
   translatingPlaceholder: {
-    dk: "AI-oversætter...",
-    en: "AI-translating...",
+    dk: "AI-oversættelse i gang...",
+    en: "AI translation...",
   },
   noResult: {
     dk: "Ingen resultater matcher søgningen",
@@ -597,11 +597,11 @@ export const messages = {
     dk:
       "Læs mere om, <a href='" +
       aiURL +
-      "' target='_target' title='Læs mere om, hvordan den automatiske opsummering fungerer (åbner i nyt vindue)'>hvordan den automatiske opsummering fungerer</a>",
+      "' target='_blank' title='Læs mere om, hvordan den automatiske opsummering fungerer (åbner i nyt vindue)'>hvordan den automatiske opsummering fungerer</a>",
     en:
       "Read more about <a href='" +
       aiURL +
-      "' target='_target' title='Read more about how the AI summary works (opens in new tab)'>how the AI summary works</a>",
+      "' target='_blank' title='Read more about how the AI summary works (opens in new tab)'>how the AI summary works</a>",
   },
   aiSummaryDisclaimer: {
     dk:
@@ -611,7 +611,7 @@ export const messages = {
     en:
       "This summary is made with <strong>artificial intelligence</strong> (AI). Read more about <a href='" +
       aiURL +
-      "' target='_target' title='Read more about how the AI summary works (opens in new tab)'>how the AI summary works</a>",
+      "' target='_blank' title='Read more about how the AI summary works (opens in new tab)'>how the AI summary works</a>",
   },
   translationDisclaimer: {
     dk:
@@ -621,7 +621,7 @@ export const messages = {
     en:
       "This summary is made with <strong>artificial intelligence</strong>. Read more about <a href='" +
       aiURL +
-      "' target='_target' title='Read more about how the AI summary works (opens in new tab)'>how the AI summary works</a>",
+      "' target='_blank' title='Read more about how the AI summary works (opens in new tab)'>how the AI summary works</a>",
   },
   aiSummaryWaitText: {
     dk: "Den kunstige intelligens er i gang med at opsummere...",
