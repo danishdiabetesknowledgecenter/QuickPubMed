@@ -95,7 +95,7 @@
 }
 
 .qpm_table .qpm_button {
-    color: #ffffff;
+    color: #ffffff !important;
     width: -webkit-fill-available;
     font-size: 0.8em;
     cursor: help;

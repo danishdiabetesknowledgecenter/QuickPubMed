@@ -3,7 +3,8 @@
   --font-secondary: "Open Sans";
   --color-primary-button: var(--color-primary);
   --color-white: #fff;
-  --colot-black: #000;
+  --color-black: #000;
+  --color-grey-dark: #919191;
   --color-grey-light: #f4f4f4;
   --color-grey: #e7e7e7;
   --color-blue-dark: #3d5068;
@@ -19,7 +20,8 @@
 }
 
 .qpm_vapp p,
-.qpm_vapp li {
+.qpm_vapp li,
+.qpm_vapp li ul li {
   margin-bottom: 0;
   font-size: 1.1em;
 }
@@ -45,6 +47,11 @@
   font-size: 1em;
   border: none;
   color: inherit;
+}
+
+.qpm_vapp input,
+.qpm_SpecificArticle input{
+  color: var(--color-black) !important; 
 }
 
 .qpm_vapp input[type="checkbox"] {
@@ -467,14 +474,19 @@ p.qpm_shownumber {
 .qpm_button:focus-visible,
 .qpm_button.qpm_big:focus-visible,
 .qpm_button.qpm_slim:focus-visible,
+input.multiselect__input.qpm_keyboard-focus,
 .multiselect__option--highlight .qpm_dropdownButtons .qpm_button.qpm_ButtonColumnFocused {
-  outline: 3px solid var(--color-black) !important;
-  outline-offset: 1px !important;
+  outline: 2px solid var(--color-black) !important;
+  outline-offset: 0 !important;
+}
+.qpm_accordion .qpm_accordion-toggle:focus-visible {
+  outline: 2px solid var(--color-black) !important;
+  outline-offset: -2px !important;
 }
 
-button.qpm_slim.multiselect__input:focus {
-  outline: 3px solid var(--color-black);
-  outline-offset: 1px;
+button.qpm_slim.multiselect__input:focus-visible {
+  outline: 2px solid var(--color-black);
+  outline-offset: 0;
 }
 
 .qpm_button:disabled {
@@ -573,6 +585,10 @@ button.qpm_slim.multiselect__input:focus {
   background: var(--color-red-light) !important;
 }
 
+.multiselect__tag.qpm_tag-focus {
+  outline: 2px solid blue; /* Juster farve og tykkelse efter behov */
+}
+
 .multiselect__tag {
   background-color: #6c5b7b;
   padding: 8px 26px 8px 10px;
@@ -615,6 +631,13 @@ button.qpm_slim.multiselect__input:focus {
   appearance: none;
 }
 
+input.multiselect__input{
+  border-radius: 5px !important;
+}
+input.multiselect__input[placeholder="Add template category"] {
+  width: 189px !important;
+  min-width: 189px;
+}
 input.multiselect__input[placeholder="Tilføj emne"] {
   width: 102px !important;
   min-width: 102px;
@@ -643,6 +666,10 @@ input.multiselect__input[placeholder="Tilføj skabelonkategori"] {
   width: 190px !important;
   min-width: 155px;
 }
+input.multiselect__input[placeholder="Add limit"] {
+  width: 88px !important;
+  min-width: 88px;
+}
 input.multiselect__input[placeholder="Tilføj afgrænsning"] {
   width: 155px !important;
   min-width: 155px;
@@ -650,6 +677,10 @@ input.multiselect__input[placeholder="Tilføj afgrænsning"] {
 input.multiselect__input[placeholder="Tilføj reviewtype eller indtast søgeord"] {
   width: 300px !important;
   min-width: 300px;
+}
+input.multiselect__input[placeholder="Add review type or enter search term"] {
+  width: 297px !important;
+  min-width: 297px;
 }
 input.multiselect__input[placeholder="Tilføj reviewtype/søgeord"] {
   width: 208px !important;
@@ -659,6 +690,10 @@ input.multiselect__input[placeholder="Tilføj studietype eller indtast søgeord"
   width: 300px !important;
   min-width: 300px;
 }
+input.multiselect__input[placeholder="Add study type or enter search term"] {
+  width: 291px !important;
+  min-width: 291px;
+}
 input.multiselect__input[placeholder="Tilføj studietype/søgeord"] {
   width: 207px !important;
   min-width: 207px;
@@ -667,6 +702,11 @@ input.multiselect__input[placeholder="Tilføj sprog eller indtast søgeord"] {
   width: 261px !important;
   min-width: 261px;
 }
+input.multiselect__input[placeholder="Add language or enter search term"] {
+  width: 280px !important;
+  min-width: 280px;
+}
+
 input.multiselect__input[placeholder="Tilføj sprog/søgeord"] {
   width: 173px !important;
   min-width: 173px;
@@ -674,6 +714,10 @@ input.multiselect__input[placeholder="Tilføj sprog/søgeord"] {
 input.multiselect__input[placeholder="Tilføj geografi eller indtast søgeord"] {
   width: 280px !important;
   min-width: 280px;
+}
+input.multiselect__input[placeholder="Add geography or enter search term"] {
+  width: 249px !important;
+  min-width: 249px;
 }
 input.multiselect__input[placeholder="Tilføj geografi/søgeord"] {
   width: 191px !important;
@@ -683,13 +727,25 @@ input.multiselect__input[placeholder="Tilføj køn"] {
   width: 88px !important;
   min-width: 88px;
 }
+input.multiselect__input[placeholder="Add sex"] {
+  width: 78px !important;
+  min-width: 78px;
+}
 input.multiselect__input[placeholder="Tilføj aldersgruppe"] {
   width: 160px !important;
   min-width: 160px;
 }
+input.multiselect__input[placeholder="Add age group"] {
+  width: 130px !important;
+  min-width: 130px;
+}
 input.multiselect__input[placeholder="Tilføj publiceringsdato"] {
   width: 186px !important;
   min-width: 186px;
+}
+input.multiselect__input[placeholder="Add publication date"] {
+  width: 173px !important;
+  min-width: 173px;
 }
 input.multiselect__input[placeholder="Tilføj tilgængelighed"] {
   width: 170px !important;
@@ -699,31 +755,39 @@ input.multiselect__input[placeholder="Tilføj tilhørsforhold eller indtast søg
   width: 320px !important;
   min-width: 320px;
 }
+input.multiselect__input[placeholder="Add affiliation or enter search term"] {
+  width: 281px !important;
+  min-width: 281px;
+}
 input.multiselect__input[placeholder="Tilføj tilhørsforhold/søgeord"] {
   width: 230px !important;
   min-width: 230px;
+}
+input.multiselect__input[placeholder="Add affiliation/search term"] {
+  width: 220px !important;
+  min-width: 220px;
 }
 input.multiselect__input[placeholder="Tilføj andre afgrænsninger"] {
   width: 217px !important;
   min-width: 217px;
 }
-
+input.multiselect__input[placeholder="Add other limits"] {
+  width: 140px !important;
+  min-width: 140px;
+}
 .multiselect__tag-icon {
   border-radius: 0;
   line-height: 2em;
   padding-right: 2px;
 }
-
 .multiselect__tag-icon:after {
   color: var(--color-white) !important;
   font-size: 1em;
 }
-
 .multiselect__tag-icon:focus,
 .multiselect__tag-icon:hover {
   background: var(--color-red-light) !important;
 }
-
 .qpm_operator {
   margin-left: 6px;
   margin-right: 6px;
@@ -895,7 +959,9 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 .qpm_search:hover {
   background-color: var(--color-primary-button) !important;
   color: var(--color-white) !important;
-  width: 85px !important;
+  padding-left: 15px !important;
+  padding-right: 15px !important;
+  margin-right: 0;
   white-space: nowrap;
 }
 
@@ -903,7 +969,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   flex: 1;
 }
 
-.qpm_removeFilter,
+.qpm_removeSubject,
 .qpm_removeFilter {
   font-size: 25px;
   cursor: pointer;
@@ -914,7 +980,8 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 }
 
 .qpm_removeFilter {
-  padding-left: 7px;
+  padding-left: 0;
+  margin-left: 5px;
 }
 
 .qpm_emptySpace {
@@ -1261,6 +1328,10 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   z-index: 1;
 }
 
+.qpm_sortSelect:not(:first-of-type) {
+  border-left: 1px solid rgb(231, 231, 231);
+}
+
 .qpm_sortSelect span {
   margin-right: -3px;
 }
@@ -1389,9 +1460,8 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 .qpm_toggleSearchForm {
   display: flex;
   justify-items: center;
-  /*  border-left: solid grey 2px; */
   margin: 4px 0 0 20px;
-  padding: 0 20px 0 20px;
+  padding: 0 20px 0 10px;
   cursor: pointer;
 }
 
@@ -1913,9 +1983,9 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   height: 0;
 }
 
-.qpm_switch input:focus + .qpm_slider {
-  outline: 3px solid var(--color-black);
-  outline-offset: 1px;
+.qpm_switch input:focus-visible + .qpm_slider {
+  outline: 2px solid var(--color-black);
+  outline-offset: 0;
 }
 
 .qpm_slider {
@@ -1984,6 +2054,10 @@ input:checked + .qpm_slider:before {
 @media only screen and (max-width: 800px) {
   .qpm_advancedSearch {
     margin-top: -9px;
+  }
+
+  .qpm_sortSelect:first-of-type {
+    border-left: 1px solid rgb(231, 231, 231);
   }
 
   .qpm_hideonmobile {

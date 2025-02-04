@@ -2,7 +2,7 @@
  * Setup text for the prompt to start the summarization of an article
  */
 export const promptStartText = {
-  dk: `Du skal svare i JSON-format. Du vil blive givet en række spørgsmål med hver deres shortTitle.
+  dk: `Du skal svare i JSON-format. Du skal først kontrollere, om teksten stammer far en videnskabelig artikel. Hvis teksten ikke stammer fra en videnskabelig artikel, skal stoppe og svare med "Jeg kan desværre alligevel ikke opsummere denne artikel". Du vil blive givet en række spørgsmål med hver deres shortTitle.
   Dit svar SKAL altid følge denne givne struktur: 
   [
     {
@@ -13,7 +13,7 @@ export const promptStartText = {
   ].
   Det er vigtigt, at du bevarer forholdet mellem shortTitle og question, og at du svarer på alle spørgsmål. Alle svar skal formuleres i den sproglige tone, som du er blevet bedt om at anvende. 
  `,
-  en: `You must answer in JSON format. You will be given a series of questions, each with their own shortTitle.
+  en: `You must answer in JSON format. First, you must check if the text is from a scientific article. If it is not, you must stop and respond with "I can unfortunately not summarize this article". You will be given a series of questions, each with their own shortTitle.
   Your answer MUST always follow this given structure:
   [
     {
@@ -100,7 +100,7 @@ export const promptQuestionsMap = {
       shortTitle: `Styrker og svagheder`,
     },
     {
-      question: `Hvilke mulige interessekonflikter har forfatterne til studiet? Angiv kort, hvorfor det er vigtigt at være opmærksom på interessekonflikter i videnskabelige studier. `,
+      question: `Hvilke mulige interessekonflikter har forfatterne til studiet? Mulige interessekonflikter inkluderer også, at man forholder sig til, hvem erhar finansieret studiet. Angiv kort, hvorfor det er vigtigt at være opmærksom på interessekonflikter i videnskabelige studier. `,
       shortTitle: `Interessekonflikter`,
     },
   ],

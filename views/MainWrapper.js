@@ -39,7 +39,15 @@ const mainWrapperDiv = document.getElementById("main-wrapper");
 const domain = mainWrapperDiv.dataset.domain || undefined;
 const useAI = mainWrapperDiv.dataset.useAI === "true";
 const useAISummarizer = mainWrapperDiv.dataset.useAISummarizer === "true";
-const hideTopics = mainWrapperDiv.dataset.hideTopics || undefined;
+
+let parsedHideTopics = [];
+if (mainWrapperDiv.dataset.hideTopics) {
+  try {
+    parsedHideTopics = JSON.parse(mainWrapperDiv.dataset.hideTopics.replace(/'/g, '"'));
+  } catch (e) {
+    console.warn('Could not parse hideTopics dataset:', e);
+  }
+}
 const language = mainWrapperDiv.dataset.language || undefined;
 const componentNo = mainWrapperDiv.dataset.componentNo || undefined;
 
@@ -52,7 +60,7 @@ new Vue({
   render: (h) =>
     h(MainWrapper, {
       props: {
-        hideTopics: hideTopics,
+        hideTopics: parsedHideTopics,
         language: language,
         componentNo: componentNo,
       },

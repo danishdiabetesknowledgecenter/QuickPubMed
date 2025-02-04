@@ -27,7 +27,7 @@ export const messages = {
   },
   manualInputTermTranslated: {
     dk: "AI-oversættelse",
-    en: "AI-translation",
+    en: "AI translation",
   },
   manualInputTerm: {
     dk: "Søgeord",
@@ -59,7 +59,7 @@ export const messages = {
   },
   searchToggleWithAI: {
     dk: "Indtast med AI-oversættelse",
-    en: "Use AI assisted input",
+    en: "AI-assisted input",
   },
   hoversearchToggleWithAI: {
     dk: "Hvis du selv indtaster søgeord, kan du bruge kunstig intelligens (AI) til at oversætte fra fx dansk til en søgning, som fungerer i PubMed. <br><br><strong>Du har slået denne funktion til</strong>.",
@@ -67,7 +67,7 @@ export const messages = {
   },
   searchToggleWithoutAI: {
     dk: "Indtast med AI-oversættelse (slået fra)",
-    en: "Use AI assisted input (disabled)",
+    en: "AI-assisted input (disabled)",
   },
   hoversearchToggleWithoutAI: {
     dk: "Hvis du selv indtaster søgeord, kan du bruge kunstig intelligens (AI) til at oversætte fra fx dansk til en søgning, som fungerer i PubMed. <br><br><strong>Du har <i>ikke</i> slået denne funktion til</strong>. Derfor bliver dine søgeord brugt, som de er indtastet. Dvs. at de skal skrives på engelsk, da de ellers ikke fungerer i PubMed.",
@@ -274,8 +274,8 @@ export const messages = {
     en: "Create alert in PubMed",
   },
   fillEmptyDropdownFirstAlert: {
-    dk: "Tilføj emne til den tomme dropdown-menu først",
-    en: "Add the topic in the empty dropdown instead",
+    dk: "Tilføj et eller flere emner eller indtast søgeord i den tomme rullemenu først.",
+    en: "Add one or more topics or enter search terms in the empty dropdown first.",
   },
   noAuthorsListed: {
     dk: "Ingen forfattere angivet",
@@ -295,11 +295,11 @@ export const messages = {
   },
   hoverrelatedPubmedReviews: {
     dk: "Find forskningsoversigter på PubMed, som ligner denne &ndash; de artikler, der vises, er bestemt ud fra algoritmer (åbner i nyt vindue)",
-    en: "Find reviews on PubMed similar to this article based on algorithms (opens in new tab)",
+    en: "Find systematic reviews on PubMed similar to this based on algorithms (opens in new tab)",
   },
   alsoviewedPubmed: {
     dk: "Se, hvad andre også har kigget på",
-    en: "Records frequently viewed together with this in PubMed",
+    en: "Records frequently viewed together with this one in PubMed",
   },
   hoveralsoviewedPubmed: {
     dk: "Find artikler på PubMed, som andre har kigget på sammen med denne artikel (åbner i nyt vindue)",
@@ -315,7 +315,7 @@ export const messages = {
   },
   UnpaywallWithHtml: {
     dk: "Læs hele artiklen",
-    en: "Read the whole article",
+    en: "Read full-text article",
   },
   NoUnpaywall: {
     dk: "Ingen artikel tilgængelig",
@@ -414,7 +414,7 @@ export const messages = {
     en: "Show PubMed record (opens in a new tab)",
   },
   hoverOpenDOIButton: {
-    dk: "Få adgang til artiklen på tidsskriftets hjemmeside &ndash; koster muligvis penge (åbner i nyt vindue)",
+    dk: "Få adgang til artiklen på tidsskriftets hjemmeside &ndash; muligvis mod betaling (åbner i nyt vindue)",
     en: "Get access to the article on the journal website &ndash; access charges may apply (opens in a new tab)",
   },
   hoverSearchString: {
@@ -435,7 +435,7 @@ export const messages = {
   },
   hoverDetailsText: {
     dk: "<div style='text-align: left; font-size: 0.9em; margin: 10px 0 0 0'><p>Her kan du:<ul style='list-style-position: outside; padding: 0 15px;'><li>få vist en læsevenlig udgave af din søgning</li><li>få vist PubMed-søgestrengen</li><li>gennemføre søgningen direkte i PubMed</li><li>oprette en overvågning.</li></ul></p></div>",
-    en: "<div style='text-align: left; font-size: 0.9em; margin: 10px 0 0 0'><p>Options i 'Details':<ul style='list-style-position: outside; padding: 0 15px;'><li>show an easy-to-read version of your search;</li><li>show your PubMed search string;</li><li>run your search in PubMed; and</li><li>create an alert in PubMed.</li></ul></p></div>",
+    en: "<div style='text-align: left; font-size: 0.9em; margin: 10px 0 0 0'><p>Options in 'Details':<ul style='list-style-position: outside; padding: 0 15px;'><li>show an easy-to-read version of your search;</li><li>show your PubMed search string;</li><li>run your search in PubMed; and</li><li>create an alert in PubMed.</li></ul></p></div>",
   },
   hoverShowFilterCategoryText: {
     dk: "Klik her for at se og vælge afgrænsnings kategorier til søgning",
@@ -491,11 +491,11 @@ export const messages = {
   },
   aiSummarizeSearchResultButton: {
     dk: "Vælg opsummering på:",
-    en: "Summarize search results in:",
+    en: "Summarise in:",
   },
   hoverSummarizeSearchResultButton: {
     dk: "Brug kunstig intel&shy;ligens (AI) til at lave en dansk opsummering af søge&shy;resul&shy;tatet.",
-    en: "Apply artificial intelligence (AI) to summarize the search result.",
+    en: "Apply artificial intelligence (AI) to summarise the search result.",
   },
   aiSummarizeSelectedSearchResultHeaderNoCount: {
     dk: "Opsummering af de valgte artikler",
@@ -531,7 +531,7 @@ export const messages = {
   },
   tooLongAbstractsError: {
     dk: "Det er desværre ikke muligt at opsummere så mange abstracts. Vælg et lavere antal resultater herunder, og prøv igen.",
-    en: "Unfortunately, it is not possible to summarize this many abstracts. Please select a lower number of results below and try again.",
+    en: "Unfortunately, it is not possible to summarise this many abstracts. Please select a lower number of results below and try again.",
   },
   aiSummarizeSearchErrorHeader: {
     dk: "Opsummeringen er ikke mulig",
@@ -539,19 +539,19 @@ export const messages = {
   },
   aiSummarizeAbstractButton: {
     dk: "Få nedenstående abstract opsummeret på dansk ved hjælp af kunstig intelligens.",
-    en: "Get the following abstract summarized using artificial intelligence.",
+    en: "Summarise the following abstract using AI.",
   },
   aiSummarizeArticleButton: {
     dk: "Få artiklen opsummeret ved hjælp af kunstig intelligens.",
-    en: "Have the article summarized using artificial intelligence.",
+    en: "Summarise the article using AI.",
   },
   hoverSummarizeAbstractButton: {
     dk: "Brug kunstig intel&shy;ligens til at lave en dansk opsummering af dette abstract.",
-    en: "Apply artificial intelligence to summarize this abstract.",
+    en: "Apply AI to summarise this abstract.",
   },
   hoverSummarizeArticleButton: {
     dk: "Brug kunstig intel&shy;ligens til at lave en dansk opsummering af denne artikel.",
-    en: "Apply artificial intelligence to summarize this article.",
+    en: "Apply AI to summarise this article.",
   },
   aiSummarizeAbstractResultHeader: {
     dk: "Opsummering af artiklens abstract",
@@ -563,11 +563,11 @@ export const messages = {
   },
   aiAbstractSummaryConsentHeader: {
     dk: "Klik på et faneblad for at få opsummeret abstractet",
-    en: "Click a tab to summarize the abstract",
+    en: "Click a tab to summarise the abstract",
   },
   aiSearchSummaryConsentHeader: {
     dk: "Vælg de artikler, du ønsker at få opsummeret, ved at markere dem. Dine valgte artikler vil blive vist under 'Markerede artikler' herunder.",
-    en: "Select the records you wish to have summarised by marking them. You can find your selected records under 'Selected records' below.",
+    en: "Select the records you wish to have summarised by selecting them. You can find your selected records under 'Selected records' below.",
   },
   aiSearchSummaryConsentHeaderText: {
     dk: "Markerer du <strong>ikke</strong> nogen, vil de første 5 artikler blive opsummeret.",
@@ -615,25 +615,25 @@ export const messages = {
   },
   translationDisclaimer: {
     dk:
-      "Denne oversættelse er lavet med <strong>kunstig intelligens</strong>. Læs mere om, <a href='" +
+      "Denne oversættelse er lavet med <strong>kunstig intelligens</strong> (AI). Læs mere om, <a href='" +
       aiURL +
       "' target='_blank' title='Læs mere om, hvordan den automatiske oversættelse fungerer (åbner i nyt vindue)'>hvordan den automatiske oversættelse fungerer</a>",
     en:
-      "This summary is made with <strong>artificial intelligence</strong>. Read more about <a href='" +
+      "This summary is made with <strong>artificial intelligence</strong> (AI). Read more about <a href='" +
       aiURL +
       "' target='_blank' title='Read more about how the AI summary works (opens in new tab)'>how the AI summary works</a>",
   },
   aiSummaryWaitText: {
     dk: "Den kunstige intelligens er i gang med at opsummere...",
-    en: "The artificial intelligence is summarizing...",
+    en: "The AI is summarising...",
   },
   aiArticleSummaryWaitText: {
-    dk: "Hele teksten i denne artikel er i gang med at blive opsummeret ...",
-    en: "The text in this article is being summarized...",
+    dk: "Hele teksten i denne artikel er i gang med at blive opsummeret...",
+    en: "The text in this article is being summarised...",
   },
   aiTranslationWaitText: {
     dk: "Den kunstige intelligens oversætter...",
-    en: "The artificial intelligence is translating...",
+    en: "The AI is translating...",
   },
   aiShortWaitTimeDisclaimer: {
     dk: "(Kan tage op til 30 sekunder)",
@@ -661,19 +661,19 @@ export const messages = {
   },
   hoverretryText: {
     dk: "Bed den kunstige intelligens om at lave opsummeringen igen. Det kan give et lidt anderledes resultat.",
-    en: "Ask the artificial intelligence to regenerate the summary. It may produce a slightly different result.",
+    en: "Ask the AI to regenerate the summary. It may produce a slightly different result.",
   },
   hoverAskQuestionText: {
-    dk: "Klik her for at få den kunstig intelligens til at generere spørgsmål til hele artiklen. Klik igen for at generere svar på ny",
-    en: "Click to here to have the AI generate questions for the entire article. Click again to generate answers once more",
+    dk: "Klik her for at få den kunstig intelligens til at generere spørgsmål til hele artiklen. Klik igen for at generere svar på ny.",
+    en: "Click to here to have the AI generate questions for the fuld-text article. Click again to generate answers once more.",
   },
   copyText: {
     dk: "Kopiér tekst",
     en: "Copy text",
   },
   hovercopyText: {
-    dk: "Kopiér teksten",
-    en: "Copy text",
+    dk: "Kopiér den opsummerede tekst",
+    en: "Copy the summarised text",
   },
   searchErrorGeneric: {
     dk: "Fejl: Søgeresultater kunne ikke hentes",
@@ -685,11 +685,11 @@ export const messages = {
   },
   hoverselectedResultTitle: {
     dk: "Oversigt over de artikler, som du har markeret. Markerede artikler kan f.eks. deles med andre.",
-    en: "Selected records",
+    en: "Your selected records. Selected records can be shared with others.",
   },
   hoverselectedResultTitleAI: {
     dk: "Oversigt over de artikler, som du har markeret. Markerede artikler kan enten opsummeres med kunstig intelligens (AI) eller deles med andre.",
-    en: "Selected records",
+    en: "Your selected records. Selected records can either be summarised using artificial intelligence (AI) or shared with others.",
   },
   selectedResultsAccordionHeader: {
     dk: "Opsummering med kunstig intelligens (AI)",
@@ -705,15 +705,15 @@ export const messages = {
   },
   selectedResultAccordionHeaderNoAbstract: {
     dk: "Opsummering af hele artiklen med kunstig intelligens (AI)",
-    en: "AI summary of article",
+    en: "AI summary of full-text article",
   },
   hoverselectedResultAccordionHeader: {
     dk: "Få opsummeret dette abstract på dansk ved hjælp af kunstig intelligens (AI).",
-    en: "",
+    en: "Summarise this abstract using artificial intelligence (AI).",
   },
   hoverselectedResultAccordionHeaderNoAbstract: {
     dk: "Få opsummeret denne artikel på dansk ved hjælp af kunstig intelligens (AI).",
-    en: "",
+    en: "Summarise this article using artificial intelligence (AI).",
   },
   hovermarkedArticleCounter: {
     dk: "Antal artikler du har markeret.",
@@ -729,7 +729,7 @@ export const messages = {
   },
   selectedResultEmptyText: {
     dk: "<p>Du har ikke markeret nogen artikler.</p>",
-    en: "<p>No articles have been selected yet.\nMark articles by clicking the heck box to the left of each search result.</p>",
+    en: "<p>No records have been selected yet.</p>",
   },
   aiSummarizeSearchResultExplanation: {
     dk: "Markér de artikler, som du vil have opsummeret. Hvis du ikke markerer nogen, vil de første 5 artikler blive opsummeret.",
@@ -737,16 +737,22 @@ export const messages = {
   },
   generatePdfQuestionsButtonText: {
     dk: "Vis opsummering af artiklen",
-    en: "Show summary of the full article",
+    en: "Show summary of the full-text article",
   },
   hideGeneratePdfQuestionsButtonText: {
     dk: "Skjul opsummering af artiklen",
-    en: "Hide summary of the full article",
+    en: "Hide summary of the full-text article",
   },
+  summarizeArticleAvailable: {
+    dk: "OBS! Hele denne artikels tekst kan opsummeres og er på vej.",
+    en: "NOTE! The full-text of this article can be summarised and is on its way.",
+  },
+
   summarizeArticleHeader: {
     dk: "Opsummering af hele artiklen",
-    en: "Summary of the full article",
+    en: "Summary of the full-text article",
   },
+
   generateQuestionsHeader: {
     dk: "Spørgsmål til denne artikel",
     en: "Questions for this article",
@@ -760,13 +766,14 @@ export const messages = {
     en: "No answer found",
   },
   userQuestionInputPlaceholder: {
-    dk: "Skriv dit spørgsmål her",
-    en: "Enter your question here",
+    dk: "Skriv dit spørgsmål",
+    en: "Enter your question",
   },
   userQuestionInputHoverText: {
-    dk: "Skriv dit spørgsmål her, tryk på enter knappen for at sende",
-    en: "Enter your question here, press the enter key to submit",
+    dk: "Skriv dit spørgsmål her, og klik på 'Spørg' eller tryk på 'Enter'-knappen",
+    en: "Enter your question here, and click 'Ask' or press the 'Enter' key",
   },
+
   showMoreOptions: {
     dk: "Vis flere muligheder",
     en: "Show more options",
@@ -777,11 +784,11 @@ export const messages = {
   },
   scrapingError: {
     dk: "Det er desværre ikke muligt at opsummere hele artiklen.",
-    en: "Unfortunately, it is not possible to summarize this article.",
+    en: "Unfortunately, it is not possible to summarise this article.",
   },
   askQuestionButtontext: {
-    dk: "Send",
-    en: "Send",
+    dk: "Spørg",
+    en: "Ask",
   },
   loadingText: {
     dk: "Indlæser...",
@@ -789,18 +796,18 @@ export const messages = {
   },
   summarizeArticleNotAvailable: {
     dk: "Det er desværre ikke muligt at opsummere hele artiklen.",
-    en: "Unfortunately, it is not possible to summarize this article.",
+    en: "Unfortunately, it is not possible to summarise this article.",
   },
   summarizeArticleNotice: {
     dk: "OBS! Hele teksten i denne artikel er opsummeret.",
-    en: "Att. The full text of this article is summarized.",
+    en: "NOTE! The full-text of this article is summarised.",
   },
   summarizeArticleNoAbstractNotice: {
     dk: "OBS! Hele teksten i denne artikel kan opsummeres.",
-    en: "Att. The full text of this article can be summarized.",
+    en: "NOTE! The full-text of this article can be summarised.",
   },
   summarizationInProgressDisclaimer: {
     dk: "Opsummeringen er i gang, vent venligst til den er færdig. Herefter kan du skifte fane.",
-    en: "The summarization is in progress, please wait until it is finished. After that, you can switch tabs.",
+    en: "The summarisation is in progress, please wait until it is finished. After that, you can switch tabs.",
   },
 };

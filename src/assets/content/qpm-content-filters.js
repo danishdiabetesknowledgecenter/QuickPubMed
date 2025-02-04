@@ -1264,18 +1264,18 @@ export const filtrer = [
     isDefault: true,
     translations: {
       dk: "Tilhørsforhold",
-      en: "Authors' affiliation",
+      en: "Affiliation",
     },
     ordering: { dk: 8, en: 8 },
     allowCustomInput: true,
     choices: [
       {
-        name: "Danmark ",
+        name: "Danske institutioner ",
         buttons: true,
         id: "L80010",
         translations: {
-          dk: "Danmark",
-          en: "Denmark",
+          dk: "Danske institutioner",
+          en: "Danish institutions",
         },
         ordering: { dk: 1, en: 1 },
         simpleSearch: false,
@@ -1502,78 +1502,24 @@ export const filtrer = [
   },
   {
     id: "L90",
-    name: "Andre afgrænsninger",
+    name: "Availability",
     isDefault: true,
     translations: {
-      dk: "Andre afgrænsninger",
-      en: "Other limits",
+      dk: "Tilgængelighed",
+      en: "Availability",
     },
     ordering: { dk: 8, en: 9 },
     allowCustomInput: false,
     choices: [
       {
-        name: "Fjern dyrestudier",
-        buttons: true,
-        id: "L90010",
-        translations: {
-          dk: "Fjern dyrestudier",
-          en: "Remove animal studies",
-        },
-        ordering: { dk: 1, en: 1 },
-        simpleSearch: false,
-        standardSimple: true,
-        tooltip_simple: {
-          dk: "Artikler, som kun handler om dyr og ikke mennesker, fjernes.",
-          en: "",
-        },
-        searchStrings: {
-          narrow: ['"Humans"[mh]'],
-          normal: ['all[sb] NOT ("Animals"[mh] NOT "Humans"[mh])'],
-          broad: ['all[sb] NOT ("Animals"[mh] NOT "Humans"[mh])'],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
-      },
-      {
-        name: "Kun dyrestudier",
-        buttons: true,
-        id: "L90020",
-        translations: {
-          dk: "Kun dyrestudier",
-          en: "Only animal studies",
-        },
-        ordering: { dk: 2, en: 2 },
-        searchStrings: {
-          narrow: ['"Animals"[mh] NOT "Humans"[mh]'],
-          normal: ['("Animals"[mh] NOT "Humans"[mh]) OR ("Animals"[mh:noexp] AND "Humans"[mh])'],
-          broad: [
-            '(all[sb] NOT ("Humans"[mh] NOT "Animals"[mh:noexp])) OR ("Animals"[mh:noexp] AND "Humans"[mh])',
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
-      },
-      {
-        name: "Kun resultater med abstracts",
+        name: "L90010",
         buttons: false,
-        id: "L90030",
+        id: "L90010",
         translations: {
           dk: "Kun resultater med abstracts",
           en: "Only records with abstracts",
         },
-        ordering: { dk: 3, en: 3 },
+        ordering: { dk: 1, en: 1 },
         searchStrings: {
           normal: ['fha[Filter]'],
         },
@@ -1587,14 +1533,14 @@ export const filtrer = [
         },
       },
       {
-        name: "Kun gratis tilgængelige artikler",
+        name: "L90020",
         buttons: false,
-        id: "L90040",
+        id: "L90020",
         translations: {
           dk: "Kun gratis tilgængelige artikler",
-          en: "Only records with abstracts",
+          en: "Only open access records",
         },
-        ordering: { dk: 4, en: 4 },
+        ordering: { dk: 2, en: 2 },
         searchStrings: {
           normal: ['ffrft[Filter]'],
         },
@@ -1607,6 +1553,96 @@ export const filtrer = [
           en: "",
         },
       },
+    ],
+    tooltip: {
+      dk: "",
+      en: "",
+    },
+  },
+  {
+    id: "L100",
+    name: "Other limits",
+    isDefault: true,
+    translations: {
+      dk: "Andre afgrænsninger",
+      en: "Other limits",
+    },
+    ordering: { 
+      dk: 9, 
+      en: 10 
+    },
+    allowCustomInput: false,
+    choices: [
+      {
+        name: "Remove animal studies",
+        buttons: true,
+        id: "L100010",
+        translations: {
+          dk: "Fjern dyrestudier",
+          en: "Remove animal studies",
+        },
+        ordering: { 
+          dk: 1, 
+          en: 1 
+        },
+        simpleSearch: false,
+        standardSimple: true,
+        tooltip_simple: {
+          dk: "Artikler, som kun handler om dyr og ikke mennesker, fjernes.",
+          en: "Records that only deal with animals and not humans are removed."
+        },
+        searchStrings: {
+          narrow: [
+            '"Humans"[mh]'
+          ],
+          normal: [
+            'all[sb] NOT ("Animals"[mh] NOT "Humans"[mh])'
+          ],
+          broad: [
+            'all[sb] NOT ("Animals"[mh] NOT "Humans"[mh])'
+          ],
+        },
+        searchStringComment: {
+          dk: "",
+          en: "",
+        },
+        tooltip: {
+          dk: "",
+          en: "",
+        },
+      },
+      {
+        name: "Only animal studies",
+        buttons: true,
+        id: "L100020",
+        translations: {
+          dk: "Kun dyrestudier",
+          en: "Only animal studies",
+        },
+        ordering: { 
+          dk: 2, 
+          en: 2 
+        },
+        searchStrings: {
+          narrow: [
+            '"Animals"[mh] NOT "Humans"[mh]'
+          ],
+          normal: [
+            '("Animals"[mh] NOT "Humans"[mh]) OR ("Animals"[mh:noexp] AND "Humans"[mh])'
+          ],
+          broad: [
+            '(all[sb] NOT ("Humans"[mh] NOT "Animals"[mh:noexp])) OR ("Animals"[mh:noexp] AND "Humans"[mh])'
+          ],
+        },
+        searchStringComment: {
+          dk: "",
+          en: "",
+        },
+        tooltip: {
+          dk: "",
+          en: "",
+        },
+      }
     ],
     tooltip: {
       dk: "",

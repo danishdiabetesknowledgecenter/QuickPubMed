@@ -1,7 +1,7 @@
 <template>
   <div class="column is-half">
     <div class="qpm_accordion" :class="{ 'not-expanded': !getIsExpanded }">
-      <div tabindex="0" @click="toggleAccordionState" @keypress.enter="toggleAccordionState">
+      <div class="qpm_accordion-toggle" tabindex="0" @click="toggleAccordionState" @keypress.enter="toggleAccordionState">
         <slot
           name="header"
           :expanded="getIsExpanded"

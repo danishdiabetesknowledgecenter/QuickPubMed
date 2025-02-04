@@ -173,9 +173,7 @@
     props: {
       hideTopics: {
         type: Array,
-        default() {
-          return [];
-        },
+        default: () => []
       },
       hideFilters: {
         type: Array,
@@ -223,6 +221,7 @@
         subjects: [[]],
         translating: false,
         dropdownPlaceholders: [],
+        hideTopics: [], // Initialize as empty array
       };
     },
     computed: {
@@ -357,6 +356,16 @@
       this.advancedClick();
       await this.search();
       await this.searchPreselectedPmidai();
+    },
+    created() {
+      // If hideTopics comes as string, convert it to array
+      if (typeof this.hideTopics === 'string') {
+        try {
+          this.hideTopics = JSON.parse(this.hideTopics.replace(/'/g, '"'));
+        } catch (e) {
+          this.hideTopics = [];
+        }
+      }
     },
     methods: {
       advancedClick(skip = false) {

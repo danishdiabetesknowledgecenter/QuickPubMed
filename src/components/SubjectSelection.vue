@@ -73,7 +73,14 @@
     },
     props: {
       subjects: { type: Array, required: true, default: () => [] },
-      hideTopics: { type: Array, required: true, default: () => [] },
+      hideTopics: { 
+        type: Array, 
+        default: () => [],
+        validator: function(value) {
+          console.log('hideTopics validator:', value);
+          return Array.isArray(value);
+        }
+      },
       subjectOptions: { type: Array, required: true, default: () => [] },
       dropdownPlaceholders: { type: Array, required: true, default: () => [] },
       language: { type: String, default: "dk" },
@@ -86,6 +93,37 @@
       showFilter: Boolean,
       hasSubjects: Boolean,
       searchWithAI: Boolean,
+    },
+    watch: {
+      hideTopics: {
+        immediate: true,
+        handler(newVal) {
+          console.log('hideTopics changed in SubjectSelection:', newVal);
+          this.$nextTick(() => {
+            if (this.$refs.subjectDropdown) {
+              // Force opdatering af alle dropdown komponenter
+              this.$refs.subjectDropdown.forEach(dropdown => {
+                if (dropdown) {
+                  dropdown.updateSortedSubjectOptions();
+                  dropdown.$forceUpdate();
+                }
+              });
+            }
+          });
+        }
+      }
+    },
+    mounted() {
+      // Ensures initial state
+      this.$nextTick(() => {
+        if (this.$refs.subjectDropdown) {
+          this.$refs.subjectDropdown.forEach(dropdown => {
+            if (dropdown) {
+              dropdown.updateSortedSubjectOptions();
+            }
+          });
+        }
+      });
     },
     methods: {
       handleUpdateSubjects(value, index) {

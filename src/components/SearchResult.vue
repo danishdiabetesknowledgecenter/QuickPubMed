@@ -301,7 +301,6 @@
           role="heading"
           aria-level="2"
           class="qpm_sortSelect qpm_spaceEvenly"
-          style="border-left: 1px solid #e7e7e7"
         >
           <select @change="changePageNumber($event)">
             <option

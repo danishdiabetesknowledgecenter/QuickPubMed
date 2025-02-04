@@ -261,9 +261,7 @@
       },
       hideTopics: {
         type: Array,
-        default: function () {
-          return [];
-        },
+        default: () => []
       },
       noResultString: {
         type: String,
@@ -319,26 +317,61 @@
       getTagPlaceHolder: function () {
         return this.getString("tagplaceholder");
       },
-      shownSubjects: function () {
-        if (this.hideTopics == null || this.hideTopics.length === 0) {
+      shownSubjects: function () {        
+        if (!Array.isArray(this.hideTopics) || this.hideTopics.length === 0) {
           return this.data;
         }
-        let self = this;
-        function isNotHidden(e) {
-          return !self.isHiddenTopic(e.id);
-        }
 
-        let shown = this.data.filter(isNotHidden).map(function (e) {
-          let copy = JSON.parse(JSON.stringify(e));
-          if (copy.groups != undefined) {
-            copy.groups = copy.groups.filter(isNotHidden);
-          } else if (copy.choices != undefined) {
-            copy.choices = copy.choices.filter(isNotHidden);
+        const shouldHideItem = (item) => {
+          // Check direkte ID match
+          if (this.hideTopics.includes(item.id)) {
+            return true;
           }
-          return copy;
-        });
+          // Check parent ID match (for nested items)
+          if (item.maintopicIdLevel1 && this.hideTopics.includes(item.maintopicIdLevel1)) {
+            return true;
+          }
+          // Check grandparent ID match (for deeply nested items)
+          if (item.maintopicIdLevel2 && this.hideTopics.includes(item.maintopicIdLevel2)) {
+            return true;
+          }
+          return false;
+        };
 
-        return shown;
+        return this.data.map(section => {
+          // Hvis section selv skal skjules, spring den over
+          if (shouldHideItem(section)) {
+            return null;
+          }
+
+          const sectionCopy = JSON.parse(JSON.stringify(section));
+          
+          if (sectionCopy.choices) {
+            sectionCopy.choices = sectionCopy.choices.filter(choice => {
+              const shouldHide = shouldHideItem(choice);
+              return !shouldHide;
+            });
+          }
+          
+          if (sectionCopy.groups) {
+            sectionCopy.groups = sectionCopy.groups.filter(group => {
+              const shouldHide = shouldHideItem(group);
+              return !shouldHide;
+            });
+          }
+          
+          return sectionCopy;
+        })
+        .filter(section => section !== null) // Fjern skjulte sections
+        .filter(section => {
+          if (section.choices) {
+            return section.choices.length > 0;
+          }
+          if (section.groups) {
+            return section.groups.length > 0;
+          }
+          return true;
+        });
       },
       getSortedSubjectOptions: function () {
         let self = this;
@@ -421,6 +454,15 @@
         handler: "onMaintainTopicToggledMapChange",
         deep: true,
       },
+      hideTopics: {
+        immediate: true,
+        handler(newVal) {
+          this.$nextTick(() => {
+            // Opdater kun data uden at kalde refresh
+            this.updateSortedSubjectOptions();
+          });
+        }
+      },
     },
     mounted: function () {
       this.initialSetup();
@@ -441,6 +483,12 @@
         console.warn("this.data is not an array or is undefined");
       }
       this.$emit("mounted", this);
+
+      const input = this.$el.querySelector('.multiselect__input');
+      if (input) {
+        input.addEventListener('focus', this.addKeyboardFocus);
+        input.addEventListener('blur', this.removeKeyboardFocus);
+      }
     },
     updated: function () {
       this.initialSetup();
@@ -449,6 +497,12 @@
       this.isUserTyping = false;
       document.removeEventListener("mousedown", this.setMouseUsed);
       document.removeEventListener("keydown", this.resetMouseUsed);
+
+      const input = this.$el.querySelector('.multiselect__input');
+      if (input) {
+        input.removeEventListener('focus', this.addKeyboardFocus);
+        input.removeEventListener('blur', this.removeKeyboardFocus);
+      }
     },
     methods: {
       onSelectedChange(newValue, oldValue) {
@@ -468,12 +522,25 @@
        */
       setMouseUsed() {
         this.isMouseUsed = true;
+        this.removeKeyboardFocus();
       },
       /**
        * Resets the flag indicating the last interaction was via keyboard.
        */
       resetMouseUsed() {
         this.isMouseUsed = false;
+      },
+      addKeyboardFocus() {
+        const input = this.$el.querySelector('.multiselect__input');
+        if (input && !this.isMouseUsed) {
+          input.classList.add('qpm_keyboard-focus');
+        }
+      },
+      removeKeyboardFocus() {
+        const input = this.$el.querySelector('.multiselect__input');
+        if (input) {
+          input.classList.remove('qpm_keyboard-focus');
+        }
       },
       initialSetup() {
         const element = this.$refs.selectWrapper;
@@ -491,7 +558,7 @@
         const input = element.getElementsByClassName("multiselect__input")[0];
         input.addEventListener("input", this.handleInputEvent.bind(this));
 
-        // Hide last operator (Changed by Ole on 20231210)
+        // Hide last operator
         const operators = element.getElementsByClassName("qpm_operator");
         Array.from(operators).forEach((operator, index) => {
           if (index === operators.length - 1) {
@@ -519,8 +586,8 @@
         element.removeEventListener("keypress", self.handleStopEnterOnGroups, true);
         element.addEventListener("keypress", self.handleStopEnterOnGroups, true);
 
-        input.removeEventListener("keyup", self.handleSearchInput);
-        input.addEventListener("keyup", self.handleSearchInput);
+        input.removeEventListener("keyup", this.handleSearchInput);
+        input.addEventListener("keyup", this.handleSearchInput);
         if (!input.value) {
           // Hide what needs to be hidden only if groups and only if we are not currently doing a search
           this.showOrHideElements();
@@ -1619,6 +1686,11 @@
       },
       updateSortedSubjectOptions() {
         this.showOrHideElements();
+        this.$nextTick(() => {
+          if (this.$refs.multiselect && typeof this.$refs.multiselect.refresh === 'function') {
+            this.$refs.multiselect.refresh();
+          }
+        });
       },
       /**
        * Handles changes to maintopicToggledMap by updating sorted subject options.

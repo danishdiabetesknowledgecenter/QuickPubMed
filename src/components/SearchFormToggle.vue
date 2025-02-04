@@ -7,7 +7,17 @@
       {{ getString("searchHeaderHidden") }}
     </div>
 
-    <div v-if="subjects != false" class="qpm_toggleSearchForm" @click="$emit('toggle-collapsed')">
+    <div 
+      v-if="subjects != false" 
+      class="qpm_toggleSearchForm" 
+      @click="$emit('toggle-collapsed')"
+      @keydown.enter="$emit('toggle-collapsed')"
+      @keydown.space.prevent="$emit('toggle-collapsed')"
+      role="button"
+      tabindex="0"
+      :aria-label="isCollapsed ? getString('showForm') : getString('hideForm')"
+      :aria-expanded="!isCollapsed"
+    >
       <div
         v-show="!isCollapsed"
         v-tooltip="{

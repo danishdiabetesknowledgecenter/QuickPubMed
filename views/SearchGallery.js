@@ -37,7 +37,20 @@ Vue.directive("tooltip", VTooltip);
 const searchGalleryDiv = document.getElementById("search-gallery");
 
 const domain = searchGalleryDiv.dataset.domain || undefined;
-const hideTopics = searchGalleryDiv.dataset.hideTopics || undefined;
+
+// Parse hideTopics på samme måde som i MainWrapper.js
+let parsedHideTopics = [];
+if (searchGalleryDiv.dataset.hideTopics) {
+  try {
+    console.log('Attempting to parse:', searchGalleryDiv.dataset.hideTopics.replace(/'/g, '"'));
+    parsedHideTopics = JSON.parse(searchGalleryDiv.dataset.hideTopics.replace(/'/g, '"'));
+    console.log('Parsed result:', parsedHideTopics);
+    console.log('Parsed type:', typeof parsedHideTopics);
+  } catch (e) {
+    console.warn('Kunne ikke parse hideTopics dataset:', e);
+  }
+}
+
 const language = searchGalleryDiv.dataset.language || undefined;
 
 config.domain = domain;
@@ -46,7 +59,8 @@ new Vue({
   render: (h) =>
     h(SearchGallery, {
       props: {
-        hideTopics: hideTopics,
+        hideTopics: parsedHideTopics,  // Send det parsede array
+        domain: domain,
         language: language,
       },
     }),

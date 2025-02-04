@@ -612,10 +612,10 @@ export const topics = [
             '"Sunscreening Agents"[majr] OR (("Protective Clothing"[majr] OR "Textiles"[majr]) AND "Ultraviolet Rays"[majr]) OR "Sun Protection Factor"[majr]'
           ],
           normal: [
-            '"Sunscreening Agents"[mh] OR (("Protective Clothing"[mh] OR "Textiles"[mh]) AND "Ultraviolet Rays"[mh]) OR "Sun Protection Factor"[mh] OR "sunscreen"[ti] OR "photoprotect*"[ti] OR "sun protect*[ti] OR "skin cancer prevent*"[ti] OR "UV prot*"[ti] OR "Skin Neoplasms/prevention and control"[mh] OR "Melanoma/prevention and control"[mh] OR "Carcinoma, Basal Cell/prevention and control"[mh]'
+            '"Sunscreening Agents"[mh] OR (("Protective Clothing"[mh] OR "Textiles"[mh]) AND "Ultraviolet Rays"[mh]) OR "Sun Protection Factor"[mh] OR "sunscreen"[ti] OR "photoprotect*"[ti] OR "sun protect*"[ti] OR "skin cancer prevent*"[ti] OR "UV prot*"[ti] OR "Skin Neoplasms/prevention and control"[mh] OR "Melanoma/prevention and control"[mh] OR "Carcinoma, Basal Cell/prevention and control"[mh]'
           ],
           broad: [
-            '"Sunscreening Agents"[mh] OR (("Protective Clothing"[mh] OR "Textiles"[mh]) AND "Ultraviolet Rays"[mh]) OR "Sun Protection Factor"[mh] OR "sunscreen"[tiab] OR "photoprotect*"[tiab] OR "sun protect*[tiab] OR "skin cancer prevent*"[tiab] OR "UV prot*"[tiab] OR "Skin Neoplasms/prevention and control"[mh] OR "Melanoma/prevention and control"[mh] OR "Carcinoma, Basal Cell/prevention and control"[mh]'
+            '"Sunscreening Agents"[mh] OR (("Protective Clothing"[mh] OR "Textiles"[mh]) AND "Ultraviolet Rays"[mh]) OR "Sun Protection Factor"[mh] OR "sunscreen"[tiab] OR "photoprotect*"[tiab] OR "sun protect*"[tiab] OR "skin cancer prevent*"[tiab] OR "UV prot*"[tiab] OR "Skin Neoplasms/prevention and control"[mh] OR "Melanoma/prevention and control"[mh] OR "Carcinoma, Basal Cell/prevention and control"[mh]'
           ]
         },
         searchStringComment: {
@@ -1018,10 +1018,10 @@ export const topics = [
             '("Aged"[mh] OR "Aged, 80 and over"[mh]) AND (' + standardString['narrow'] + ')'
           ],
           normal: [
-            '("Aged"[mh] OR "Aged, 80 and over"[mh] OR "elder*"[ti] OR "older adult*"[ti] "older patient*"[ti] OR "older person*"[ti] OR "older people"[ti] OR "older age"[ti] OR "geriatr*"[ti]) AND (' + standardString['normal'] + ')'
+            '("Aged"[mh] OR "Aged, 80 and over"[mh] OR "elder*"[ti] OR "older adult*"[ti] OR "older patient*"[ti] OR "older person*"[ti] OR "older people"[ti] OR "older age"[ti] OR "geriatr*"[ti]) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            '("Aged"[mh] OR "Aged, 80 and over"[mh] OR "elder*"[tiab] OR "older adult*"[tiab] "older patient*"[tiab] OR "older person*"[tiab] OR "older people"[tiab] OR "older age"[tiab] OR "geriatr*"[tiab]) AND (' + standardString['broad'] + ')'
+            '("Aged"[mh] OR "Aged, 80 and over"[mh] OR "elder*"[tiab] OR "older adult*"[tiab] OR "older patient*"[tiab] OR "older person*"[tiab] OR "older people"[tiab] OR "older age"[tiab] OR "geriatr*"[tiab]) AND (' + standardString['broad'] + ')'
           ],
         },
         searchStringComment: {

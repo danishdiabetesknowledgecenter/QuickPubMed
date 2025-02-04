@@ -1,6 +1,6 @@
 <!-- eslint-disable vue/no-v-html -->
 <template>
-  <div ref="result" tabindex="0" class="qpm_ResultEntry" :name="id">
+  <div ref="result" class="qpm_ResultEntry" :name="id">
     <loading-spinner :loading="loading" />
     <p v-if="showDate" class="qpm_resultentryDate">
       {{ date }}
@@ -82,7 +82,7 @@
     <div v-if="getComponentWidth" style="display: flex; flex-direction: column-reverse">
       <div v-if="showArticleButtons" class="qpm_resultButtons_mobile" :style="mobileResult">
         <button
-          v-if="hasValidAbstract"
+          v-if="hasSectionedAbstract || hasValidAbstract || pmid || doi"
           v-tooltip="{
             content: getString('hoverShowAbstractButton'),
             offset: 5,

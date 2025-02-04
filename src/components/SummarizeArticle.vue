@@ -1,13 +1,18 @@
 <template>
-  <div v-if="!isError" ref="container" style="margin-top: 20px">
+  <div v-if="!isError" ref="container" style="margin-top: 20px">  
+    <!-- Heading telling that summarize entire article is available -->
+    <p v-if="loading && !isError" style="padding-top: 10px">
+      <strong>{{ getString("summarizeArticleAvailable") }}</strong>
+    </p>
+
     <loading-spinner
       class="qpm_searchSummaryText"
       :wait-text="getString('aiSummaryWaitText')"
       :wait-duration-disclaimer="getString('aiLongWaitTimeDisclaimer')"
       :loading="loading"
-      style="align-self: center; padding-top: 30px"
+      style="align-self: center; padding-top: 50px"
     />
-
+    
     <!-- TITLE summarize entire article -->
     <p v-if="!loading && currentSummary.length > 0 && !isError" style="padding-top: 10px">
       <strong>{{ getString("summarizeArticleHeader") }}</strong>
