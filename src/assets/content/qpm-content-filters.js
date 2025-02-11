@@ -1560,7 +1560,7 @@ export const filtrer = [
     },
   },
   {
-    id: "L100",
+    id: "LXX",
     name: "Other limits",
     isDefault: true,
     translations: {
@@ -1576,11 +1576,12 @@ export const filtrer = [
       {
         name: "Remove animal studies",
         buttons: true,
-        id: "L100010",
+        id: "LXX010",
         translations: {
           dk: "Fjern dyrestudier",
           en: "Remove animal studies",
         },
+
         ordering: { 
           dk: 1, 
           en: 1 
@@ -1614,11 +1615,12 @@ export const filtrer = [
       {
         name: "Only animal studies",
         buttons: true,
-        id: "L100020",
+        id: "LXX020",
         translations: {
           dk: "Kun dyrestudier",
           en: "Only animal studies",
         },
+
         ordering: { 
           dk: 2, 
           en: 2 

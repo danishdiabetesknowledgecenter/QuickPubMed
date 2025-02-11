@@ -43,116 +43,139 @@ export const topics = [
     groups: [
       {
         id: "S00010",
-        name: "Emne 1",
+        name: "S00010",
         buttons: true,
         translations: {
-          dk: "Emne 1",
-          en: "Topic 1",
+          dk: "Underemne 1",
+          en: "Subtopic 1",
         },
         ordering: {
           dk: 1,
           en: 1,
         },
         searchStrings: {
-          narrow: ["xxx"],
-          normal: ["xxx"],
-          broad: ["xxx"],
+          narrow: [
+            'xxx'
+          ],
+          normal: [
+            'xxx'
+          ],
+          broad: [
+            'xxx'
+          ],
         },
         searchStringComment: {
           dk: "",
           en: "",
         },
         tooltip: {
-          dk: "",
-          en: "",
+          dk: "Dette er et eksempel på et underemne på niveau 1.",
+          en: "This is an example of a subtopic at level 1.",
         },
+
       },
       {
         id: "S00020",
-        name: "Emne 2",
+        name: "S00020",
         buttons: true,
         maintopic: true, // Angiver at dette element er en branch og har children elementer
         translations: {
-          dk: "Emne 2",
-          en: "Topic 2",
+          dk: "Underemne 2",
+          en: "Subtopic 2",
         },
+
         ordering: {
           dk: 2,
           en: 2,
         },
         tooltip: {
-          dk: "",
-          en: "",
+          dk: "Dette er et eksempel på et underemne på niveau 1, som har under&shy;liggende emner (indikeret med en pil). Klik for at se under&shy;liggende emner.",
+          en: "This is an example of a subtopic at level 1, that has subtopics underneath (indicated with an arrow). Click to see the subtopics.",
         },
       },
       {
         id: "S00030",
-        name: "Emne 2.1",
+        name: "S00030",
         buttons: true,
         maintopic: true, // Angiver at dette element er en branch og har children elementer
         subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midderste niveau)
         maintopicIdLevel1: "S00020", // Angiver at dette element har et parent med dette id. (Emne 2)
         translations: {
-          dk: "Emne 2.1",
-          en: "Topic 2.1",
+          dk: "Underemne 2.1",
+          en: "Subtopic 2.1",
         },
+
         ordering: {
           dk: 3,
           en: 3,
         },
         tooltip: {
-          dk: "Kommentar til dette emne",
-          en: "Comment about this topic",
+          dk: "Dette er et eksempel på et underemne på niveau 2, som også har et under&shy;liggende emne (indikeret med en pil). Klik for at se under&shy;liggende emner.",
+          en: "This is an example of a subtopic at level 2, that also has a subtopic underneath (indicated with an arrow). Click to see the subtopics.",
         },
       },
       {
         id: "S00040",
-        name: "Emne 2.1.1",
+        name: "S00040",
         buttons: true,
         subtopiclevel: 2, // Angiver at dette punkt ligger på 2. niveau (nedereste niveau)
         maintopicIdLevel1: "S00030", // Angiver at dette element har et parent med dette id. (Emne 2.1)
         maintopicIdLevel2: "S00020", // Angiver at dette element har et grandparent med dette id (Emne 2)
         translations: {
-          dk: "Emne 2.1.1",
-          en: "Topic 2.1.1",
+          dk: "Underemne 2.1.1",
+          en: "Subtopic 2.1.1",
         },
+
         ordering: {
           dk: 4,
           en: 4,
         },
         searchStrings: {
-          narrow: ["xxx"],
-          normal: ["xxx"],
-          broad: ["xxx"],
+          narrow: [
+            'xxx'
+          ],
+          normal: [
+            'xxx'
+          ],
+          broad: [
+            'xxx'
+          ],
         },
         searchStringComment: {
           dk: "",
           en: "",
         },
         tooltip: {
-          dk: "Kommentar til dette emne",
-          en: "Comment about this topic",
+          dk: "Dette er et eksempel på et underemne på niveau 3, som er det dybteste niveau i denne rullemenu.",
+          en: "This is an example of a subtopic at level 3, which is the deepest level in this dropdown menu.",
         },
+
       },
       {
         id: "S00050",
-        name: "Emne 2.1.2",
+        name: "S00050",
         buttons: true,
         subtopiclevel: 2, // Angiver at dette punkt ligger på 3. niveau
         maintopicIdLevel1: "S00030", // Angiver at dette element har et parent med dette id. (Emne 2.1)
         maintopicIdLevel2: "S00020", // Angiver at dette element har et grandparent med dette id (Emne 2)
         translations: {
-          dk: "Emne 2.1.2",
-          en: "Topic 2.1.2",
+          dk: "Underemne 2.1.2",
+          en: "Subtopic 2.1.2",
         },
         ordering: {
           dk: 5,
           en: 5,
         },
         searchStrings: {
-          narrow: ["xxx"],
-          normal: ["xxx"],
-          broad: ["xxx"],
+          narrow: [
+            'xxx'
+          ],
+          normal: [
+            'xxx'
+          ],
+          broad: [
+            'xxx'
+          ],
         },
         searchStringComment: {
           dk: "",
@@ -165,23 +188,29 @@ export const topics = [
       },
       {
         id: "S00060",
-        name: "Emne 2.1.3",
+        name: "S00060",
         buttons: true,
         subtopiclevel: 2, // Angiver at dette punkt ligger på 3. niveau
         maintopicIdLevel1: "S00020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
         maintopicIdLevel2: "S00030", // Angiver at dette er punktet på 2. niveau til punktet med det angivne name.
         translations: {
-          dk: "Emne 2.1.3",
-          en: "Topic 2.1.3",
+          dk: "Underemne 2.1.3",
+          en: "Subtopic 2.1.3",
         },
         ordering: {
           dk: 6,
           en: 6,
         },
         searchStrings: {
-          narrow: ["xxx"],
-          normal: ["xxx"],
-          broad: ["xxx"],
+          narrow: [
+            'xxx'
+          ],
+          normal: [
+            'xxx'
+          ],
+          broad: [
+            'xxx'
+          ],
         },
         searchStringComment: {
           dk: "",
@@ -194,22 +223,28 @@ export const topics = [
       },
       {
         id: "S00070",
-        name: "Emne 2.2",
+        name: "S00070",
         buttons: true,
         subtopiclevel: 1, // Angiver at dette punkt ligger på 2. niveau
         maintopicIdLevel1: "S00020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
         translations: {
-          dk: "Emne 2.2",
-          en: "Topic 2.2",
+          dk: "Underemne 2.2",
+          en: "Subtopic 2.2",
         },
         ordering: {
           dk: 7,
           en: 7,
         },
         searchStrings: {
-          narrow: ["xxx"],
-          normal: ["xxx"],
-          broad: ["xxx"],
+          narrow: [
+            'xxx'
+          ],
+          normal: [
+            'xxx'
+          ],
+          broad: [
+            'xxx'
+          ],
         },
         searchStringComment: {
           dk: "",
@@ -222,22 +257,28 @@ export const topics = [
       },
       {
         id: "S00080",
-        name: "Emne 2.3",
+        name: "S00080",
         buttons: true,
         subtopiclevel: 1, // Angiver at dette punkt ligger på 2. niveau
         maintopicIdLevel1: "S00020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
         translations: {
-          dk: "Emne 2.3",
-          en: "Topic 2.3",
+          dk: "Underemne 2.3",
+          en: "Subtopic 2.3",
         },
         ordering: {
           dk: 8,
           en: 8,
         },
         searchStrings: {
-          narrow: ["xxx"],
-          normal: ["xxx"],
-          broad: ["xxx"],
+          narrow: [
+            'xxx'
+          ],
+          normal: [
+            'xxx'
+          ],
+          broad: [
+            'xxx'
+          ],
         },
         searchStringComment: {
           dk: "",
@@ -250,20 +291,26 @@ export const topics = [
       },
       {
         id: "S00090",
-        name: "Emne 3",
+        name: "S00090",
         buttons: true,
         translations: {
-          dk: "Emne 3",
-          en: "Topic 3",
+          dk: "Underemne 3",
+          en: "Subtopic 3",
         },
         ordering: {
           dk: 9,
           en: 9,
         },
         searchStrings: {
-          narrow: ["xxx"],
-          normal: ["xxx"],
-          broad: ["xxx"],
+          narrow: [
+            'xxx'
+          ],
+          normal: [
+            'xxx'
+          ],
+          broad: [
+            'xxx'
+          ],
         },
         searchStringComment: {
           dk: "",
@@ -276,8 +323,8 @@ export const topics = [
       },
     ],
     tooltip: {
-      dk: "",
-      en: "",
+      dk: "Denne kategori er et eksempel, hvor man kan se brugen flere niveauer og kommentarer. Kategorien fjernes, når formularen er live. Bemærk, at det også er muligt at indsætte en kommentar som denne på de øvrige kategorier i dropdownen.",
+      en: "This category is an example, where you can see the use of multiple levels and comments. The category is removed once the form is live. Note that it is also possible to insert a comment like this on the other categories in the dropdown.",
     },
   },
   {
