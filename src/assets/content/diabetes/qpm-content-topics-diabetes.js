@@ -334,7 +334,10 @@ export const topics = [
       dk: "Diabetestype",
       en: "Diabetes type",
     },
-    ordering: { dk: 1, en: 1 },
+    ordering: { 
+      dk: 1, 
+      en: 1 
+    },
     groups: [
       {
         id: "S10010",
@@ -344,7 +347,10 @@ export const topics = [
           dk: "Alle typer diabetes",
           en: "All diabetes types",
         },
-        ordering: { dk: 1, en: 1 },
+        ordering: { 
+          dk: 1, 
+          en: 1 
+        },
         searchStrings: {
           narrow: [
             standardString['narrow']
@@ -373,9 +379,14 @@ export const topics = [
           dk: "Type 1-diabetes",
           en: "Type 1 diabetes",
         },
-        ordering: { dk: 2, en: 2 },
+        ordering: { 
+          dk: 2, 
+          en: 2 
+        },
         searchStrings: {
-          narrow: ['"Diabetes Mellitus, Type 1"[majr]'],
+          narrow: [
+            '"Diabetes Mellitus, Type 1"[majr]'
+          ],
           normal: [
             '"Diabetes Mellitus, Type 1"[mh] OR ((type-1[ti] OR type-i[ti] OR dm1[ti] OR dmi[ti] OR t1d[ti] OR iddm[ti] OR insulin-dependent[ti] OR insulindependent[ti] OR juvenile-onset[ti] OR autoimmune[ti]) AND (' + standardString['normal'] + '))',
           ],
@@ -400,9 +411,14 @@ export const topics = [
           dk: "Type 2-diabetes",
           en: "Type 2 diabetes",
         },
-        ordering: { dk: 3, en: 3 },
+        ordering: { 
+          dk: 3, 
+          en: 3 
+        },
         searchStrings: {
-          narrow: ['"Diabetes Mellitus, Type 2"[majr]'],
+          narrow: [
+            '"Diabetes Mellitus, Type 2"[majr]'
+          ],
           normal: [
             '"Diabetes Mellitus, Type 2"[mh] OR ((type-2[ti] OR type-ii[ti] OR dm2[ti] OR t2d[ti] OR niddm[ti] OR noninsulin-dependent[ti] OR non-insulin-dependent[ti] OR noninsulindependent[ti] OR adult-onset[ti]) AND (' + standardString['normal'] + '))',
           ],
@@ -427,9 +443,14 @@ export const topics = [
           dk: "Graviditetsdiabetes",
           en: "Gestastional diabetes",
         },
-        ordering: { dk: 4, en: 4 },
+        ordering: { 
+          dk: 4, 
+          en: 4 
+        },
         searchStrings: {
-          narrow: ['"Diabetes, Gestational"[majr]'],
+          narrow: [
+            '"Diabetes, Gestational"[majr]'
+          ],
           normal: [
             '"Diabetes, Gestational"[mh] OR ((gestational*[ti] OR gdm[ti]) AND (' + standardString['normal'] + '))',
           ],
@@ -454,11 +475,20 @@ export const topics = [
           dk: "Prædiabetes",
           en: "Pre-diabetes",
         },
-        ordering: { dk: 5, en: 5 },
+        ordering: { 
+          dk: 5, 
+          en: 5 
+        },
         searchStrings: {
-          narrow: ['"Prediabetic State"[majr]'],
-          normal: ['"Prediabetic State"[mh] OR pre-diabet*[ti] OR prediabet*[ti]'],
-          broad: ['"Prediabetic State"[mh] OR pre-diabet*[tiab] OR prediabet*[tiab]'],
+          narrow: [
+            '"Prediabetic State"[majr]'
+          ],
+          normal: [
+            '"Prediabetic State"[mh] OR pre-diabet*[ti] OR prediabet*[ti]'
+          ],
+          broad: [
+            '"Prediabetic State"[mh] OR pre-diabet*[tiab] OR prediabet*[tiab]'
+          ],
         },
         searchStringComment: {
           dk: "",
@@ -471,15 +501,20 @@ export const topics = [
       },
       {
         id: "S10060",
-        name: "LADA",
+        name: "S10060",
         buttons: true,
         translations: {
           dk: "LADA",
           en: "LADA",
         },
-        ordering: { dk: 6, en: 6 },
+        ordering: { 
+          dk: 6, 
+          en: 6 
+        },
         searchStrings: {
-          narrow: ['"Latent Autoimmune Diabetes in Adults"[majr]'],
+          narrow: [
+            '"Latent Autoimmune Diabetes in Adults"[majr]'
+          ],
           normal: [
             '"Latent Autoimmune Diabetes in Adults"[mh] OR (("latent autoimmune"[ti] OR lada[ti]) AND (' + standardString['normal'] + '))',
           ],
@@ -498,13 +533,16 @@ export const topics = [
       },
       {
         id: "S10070",
-        name: "MODY",
+        name: "S10070",
         buttons: true,
         translations: {
           dk: "MODY",
           en: "MODY",
         },
-        ordering: { dk: 7, en: 7 },
+        ordering: { 
+          dk: 7, 
+          en: 7 
+        },
         searchStrings: {
           narrow: [
             '("Mason-Type Diabetes"[nm] OR "Maturity-Onset Diabetes of the Young, Type 1"[nm] OR "Maturity-Onset Diabetes of the Young, Type 2"[nm] OR "Maturity-Onset Diabetes of the Young, Type 3"[nm] OR "Maturity-Onset Diabetes of the Young, Type 4"[nm] OR "Renal cysts and diabetes syndrome"[nm] OR "MODY, Type 6"[nm] OR "Maturity-Onset Diabetes of the Young, Type 8, with Exocrine Dysfunction"[nm] OR "Maturity-Onset Diabetes Of The Young, Type 9"[nm]) AND (maturity-onset[ti] OR maturityonset[ti] OR mody[ti])',
@@ -527,13 +565,16 @@ export const topics = [
       },
       {
         id: "S10080",
-        name: "Neonatal diabetes",
+        name: "S10080",
         buttons: true,
         translations: {
           dk: "Neonatal diabetes",
           en: "Neonatal diabetes",
         },
-        ordering: { dk: 8, en: 8 },
+        ordering: { 
+          dk: 8, 
+          en: 8 
+        },
         searchStrings: {
           narrow: [
             '("Diabetes Mellitus, Transient Neonatal, 1"[nm] OR "Diabetes Mellitus, Transient Neonatal, 2"[nm] OR "Diabetes Mellitus, Transient Neonatal, 3"[nm] OR "6q24-Related Transient Neonatal Diabetes Mellitus"[nm] OR "Diabetes Mellitus, Permanent Neonatal"[nm] OR "Diabetes Mellitus, Permanent Neonatal, with Cerebellar Agenesis"[nm] OR "Diabetes Mellitus, Permanent Neonatal, With Neurologic Features"[nm] OR "Diabetes Mellitus, Neonatal, with Congenital Hypothyroidism"[nm]) AND ("neonatal diabetes"[ti] OR ("Infant"[mh] AND "Mutation"[mh] AND ' + standardString['narrow'] + '))',
@@ -567,293 +608,343 @@ export const topics = [
       dk: "Komplikationer",
       en: "Complications",
     },
-    ordering: { dk: 2, en: 2 },
+    ordering: { 
+      dk: 2, 
+      en: 2 
+    },
     groups: [
       {
         id: "S20010",
-        name: "Komplikationer generelt",
+        name: "S20010",
         buttons: true,
         translations: {
           dk: "Komplikationer generelt",
-          en: "Complications in general",
+          en: "Complications in general"
         },
-        ordering: { dk: 1, en: 1 },
+        ordering: { 
+          dk: 1, 
+          en: 1 
+        },
         searchStrings: {
-          narrow: ['"Diabetes Complications"[majr]'],
+          narrow: [
+            '"Diabetes Complications"[majr]'
+          ],
           normal: [
             '"Diabetes Complications"[mh] OR (complication*[ti] AND (' + standardString['normal'] + '))',
           ],
           broad: [
             '"Diabetes Complications"[mh] OR (complication*[tiab] AND (' + standardString['broad'] + '))',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S20020",
-        name: "Diabetisk neuropati",
+        name: "S20020",
         buttons: true,
         translations: {
           dk: "Diabetisk neuropati",
-          en: "Diabetic neuropathy",
+          en: "Diabetic neuropathy"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['"Diabetic Neuropathies"[majr:noexp]'],
+          narrow: [
+            '"Diabetic Neuropathies"[majr:noexp]'
+          ],
           normal: [
-            '"Diabetic Neuropathies"[mh:noexp] OR ((neuropath*[ti] OR neuralgi*[ti] OR mononeuropath*[ti] OR polyneuropath*[ti]) AND (' + standardString['normal'] + '))',
+            '"Diabetic Neuropathies"[mh:noexp] OR ((neuropath*[ti] OR neuralgi*[ti] OR mononeuropath*[ti] OR polyneuropath*[ti]) AND (' + standardString['normal'] + '))'
           ],
           broad: [
-            '"Diabetic Neuropathies"[mh:noexp] OR ((neuropath*[tiab] OR neuralgi*[tiab] OR mononeuropath*[tiab] OR polyneuropath*[tiab]) AND (' + standardString['broad'] + '))',
-          ],
+            '"Diabetic Neuropathies"[mh:noexp] OR ((neuropath*[tiab] OR neuralgi*[tiab] OR mononeuropath*[tiab] OR polyneuropath*[tiab]) AND (' + standardString['broad'] + '))'
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S20030",
-        name: "Diabetisk nefropati",
+        name: "S20030",
         buttons: true,
         translations: {
           dk: "Diabetisk nefropati",
-          en: "Diabetic nephropathy",
+          en: "Diabetic nephropathy"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['"Diabetic Nephropathies"[majr]'],
+          narrow: [
+            '"Diabetic Nephropathies"[majr]'
+          ],
           normal: [
-            '"Diabetic Nephropathies"[mh] OR ((nephropath*[ti] OR kidney*[ti] OR glomeruloscleros*[ti] OR renal*[ti]) AND ("Diabetes Mellitus"[mh] AND diabet*[ti]))',
+            '"Diabetic Nephropathies"[mh] OR ((nephropath*[ti] OR kidney*[ti] OR glomeruloscleros*[ti] OR renal*[ti]) AND ("Diabetes Mellitus"[mh] AND diabet*[ti]))'
           ],
           broad: [
-            '"Diabetic Nephropathies"[mh] OR ((nephropath*[tiab] OR kidney*[tiab] OR glomeruloscleros*[tiab] OR renal*[ti]) AND (' + standardString['broad'] + '))',
-          ],
+            '"Diabetic Nephropathies"[mh] OR ((nephropath*[tiab] OR kidney*[tiab] OR glomeruloscleros*[tiab] OR renal*[ti]) AND (' + standardString['broad'] + '))'
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S20040",
-        name: "Diabetisk retinopati",
+        name: "S20040",
         buttons: true,
         translations: {
           dk: "Diabetisk retinopati",
-          en: "Diabetic retionopathy",
+          en: "Diabetic retinopathy"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['"Diabetic Retinopathy"[majr:noexp]'],
+          narrow: [
+            '"Diabetic Retinopathy"[majr:noexp]'
+          ],
           normal: [
-            '"Diabetic Retinopathy"[mh:noexp] OR (retinopath*[ti] AND (' + standardString['normal'] + '))',
+            '"Diabetic Retinopathy"[mh:noexp] OR (retinopath*[ti] AND (' + standardString['normal'] + '))'
           ],
           broad: [
-            '"Diabetic Retinopathy"[mh:noexp] OR (retinopath*[tiab] AND (' + standardString['broad'] + '))',
-          ],
+            '"Diabetic Retinopathy"[mh:noexp] OR (retinopath*[tiab] AND (' + standardString['broad'] + '))'
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S20050",
-        name: "Fodsår og andre fodsygdomme",
+        name: "S20050",
         buttons: true,
         translations: {
           dk: "Fodsår og andre fodsygdomme",
-          en: "Diabetic foot complications",
+          en: "Diabetic foot complications"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['"Diabetic Foot"[majr]'],
+          narrow: [
+            '"Diabetic Foot"[majr]'
+          ],
           normal: [
-            '"Diabetic Foot"[mh] OR ((foot[ti] OR feet[ti] OR podiatri*[ti]) AND (' + standardString['normal'] + '))',
+            '"Diabetic Foot"[mh] OR ((foot[ti] OR feet[ti] OR podiatri*[ti]) AND (' + standardString['normal'] + '))'
           ],
           broad: [
-            '"Diabetic Foot"[mh] OR ((foot[tiab] OR feet[tiab] OR podiatri*[tiab]) AND (' + standardString['broad'] + '))',
-          ],
+            '"Diabetic Foot"[mh] OR ((foot[tiab] OR feet[tiab] OR podiatri*[tiab]) AND (' + standardString['broad'] + '))'
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S20060",
-        name: "Gastroparese",
+        name: "S20060",
         buttons: true,
         translations: {
           dk: "Gastroparese",
-          en: "Gastroparesis",
+          en: "Gastroparesis"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['"Gastroparesis"[majr] AND ' + standardString['narrow']],
+          narrow: [
+            '"Gastroparesis"[majr] AND ' + standardString['narrow']
+          ],
           normal: [
-            '("Gastroparesis"[mh] OR gastropares*[ti]) AND (' + standardString['normal'] + ')',
+            '("Gastroparesis"[mh] OR gastropares*[ti]) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            '("Gastroparesis"[mh] OR gastropares*[tiab]) AND (' + standardString['broad'] + ')',
-          ],
+            '("Gastroparesis"[mh] OR gastropares*[tiab]) AND (' + standardString['broad'] + ')'
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S20070",
-        name: "Hjerte-kar-sygdomme",
+        name: "S20070",
         buttons: true,
         translations: {
           dk: "Hjerte-kar-sygdomme",
-          en: "Cardiovascular diseases",
+          en: "Cardiovascular diseases"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
           narrow: [
-            '("Cardiovascular Diseases"[majr] AND ' + standardString['narrow'] + ') NOT "Diabetic Angiopathies"[mh]',
+            '("Cardiovascular Diseases"[majr] AND ' + standardString['narrow'] + ') NOT "Diabetic Angiopathies"[mh]'
           ],
           normal: [
-            '(("Cardiovascular Diseases"[mh] OR cardio*[ti] OR heart[ti]) AND (' + standardString['normal'] + ')) NOT "Diabetic Angiopathies"[mh]',
+            '(("Cardiovascular Diseases"[mh] OR cardio*[ti] OR heart[ti]) AND (' + standardString['normal'] + ')) NOT "Diabetic Angiopathies"[mh]'
           ],
           broad: [
-            '(("Cardiovascular Diseases"[mh] OR cardio*[tiab] OR heart[tiab]) AND (' + standardString['broad'] + ')) NOT "Diabetic Angiopathies"[mh]',
-          ],
+            '(("Cardiovascular Diseases"[mh] OR cardio*[tiab] OR heart[tiab]) AND (' + standardString['broad'] + ')) NOT "Diabetic Angiopathies"[mh]'
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S20080",
-        name: "Hudforandringer",
+        name: "S20080",
         buttons: true,
         translations: {
           dk: "Hudforandringer",
-          en: "Skin conditions",
+          en: "Skin conditions"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
           narrow: [
-            '(("Skin Manifestations"[majr] OR "Skin Diseases"[majr]) AND ' + standardString['narrow'] + ') NOT ("Diabetic Foot"[mh] OR (("Dermatitis, Contact"[majr] OR "Eczema"[majr]) AND ("Insulin Infusion Systems"[mh] OR "Blood Glucose Self-Monitoring"[mh])))',
+            '(("Skin Manifestations"[majr] OR "Skin Diseases"[majr]) AND ' + standardString['narrow'] + ') NOT ("Diabetic Foot"[mh] OR (("Dermatitis, Contact"[majr] OR "Eczema"[majr]) AND ("Insulin Infusion Systems"[mh] OR "Blood Glucose Self-Monitoring"[mh])))'
           ],
           normal: [
-            '(("Skin Manifestations"[mh] OR "Skin Diseases"[mh] OR "skin"[ti]) AND (' + standardString['normal'] + ')) NOT ("Diabetic Foot"[mh] OR (("Dermatitis, Contact"[mh] OR "Eczema"[mh] OR allerg*[ti] OR dermatitis*[ti] OR eczema*[ti] OR skin-problem*[ti] OR skin-reaction*[ti]) AND (("Insulin Infusion Systems"[mh] OR insulin-infusion*[ti] OR insulin-pump*[ti]) OR ("Blood Glucose Self-Monitoring"[mh] OR ((blood-glucose*[ti] OR blood-sugar*[ti] OR hba1c[ti]) AND (cgm[ti] OR bgm[ti] OR flash[ti] OR libre[ti] OR measur*[ti] OR monitor*[ti] OR iscgm[ti]))))))',
+            '(("Skin Manifestations"[mh] OR "Skin Diseases"[mh] OR "skin"[ti]) AND (' + standardString['normal'] + ')) NOT ("Diabetic Foot"[mh] OR (("Dermatitis, Contact"[mh] OR "Eczema"[mh] OR allerg*[ti] OR dermatitis*[ti] OR eczema*[ti] OR skin-problem*[ti] OR skin-reaction*[ti]) AND (("Insulin Infusion Systems"[mh] OR insulin-infusion*[ti] OR insulin-pump*[ti]) OR ("Blood Glucose Self-Monitoring"[mh] OR ((blood-glucose*[ti] OR blood-sugar*[ti] OR hba1c[ti]) AND (cgm[ti] OR bgm[ti] OR flash[ti] OR libre[ti] OR measur*[ti] OR monitor*[ti] OR iscgm[ti]))))))'
           ],
           broad: [
-            '(("Skin Manifestations"[mh] OR "Skin Diseases"[mh] OR "skin"[tiab]) AND (' + standardString['broad'] + ')) NOT ("Diabetic Foot"[mh] OR (("Dermatitis, Contact"[mh] OR "Eczema"[mh] OR allerg*[tiab] OR dermatitis*[tiab] OR eczema*[tiab] OR skin-problem*[tiab] OR skin-reaction*[tiab]) AND (("Insulin Infusion Systems"[mh] OR insulin-infusion*[tiab] OR insulin-pump*[tiab]) OR ("Blood Glucose Self-Monitoring"[mh] OR ((blood-glucose*[tiab] OR blood-sugar*[tiab] OR hba1c[tiab]) AND (cgm[tiab] OR bgm[tiab] OR flash[tiab] OR libre[tiab] OR measur*[tiab] OR monitor*[tiab] OR iscgm[tiab]))))))',
-          ],
+            '(("Skin Manifestations"[mh] OR "Skin Diseases"[mh] OR "skin"[tiab]) AND (' + standardString['broad'] + ')) NOT ("Diabetic Foot"[mh] OR (("Dermatitis, Contact"[mh] OR "Eczema"[mh] OR allerg*[tiab] OR dermatitis*[tiab] OR eczema*[tiab] OR skin-problem*[tiab] OR skin-reaction*[tiab]) AND (("Insulin Infusion Systems"[mh] OR insulin-infusion*[tiab] OR insulin-pump*[tiab]) OR ("Blood Glucose Self-Monitoring"[mh] OR ((blood-glucose*[tiab] OR blood-sugar*[tiab] OR hba1c[tiab]) AND (cgm[tiab] OR bgm[tiab] OR flash[tiab] OR libre[tiab] OR measur*[tiab] OR monitor*[tiab] OR iscgm[tiab]))))))'
+          ]
         },
         searchStringComment: {
           dk: "Flere hudproblemer vil blive tilføjet.",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "Hudforandringer som følge af diabetes",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S20090",
-        name: "Hudreaktioner",
+        name: "S20090",
         buttons: true,
         translations: {
           dk: "Hudreaktioner",
-          en: "Skin reactions",
+          en: "Skin reactions"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
           narrow: [
-            '("Dermatitis, Contact"[majr] OR "Eczema"[majr]) AND ("Insulin Infusion Systems"[mh] OR "Blood Glucose Self-Monitoring"[mh]) AND ' + standardString['narrow'] + '',
+            '("Dermatitis, Contact"[majr] OR "Eczema"[majr]) AND ("Insulin Infusion Systems"[mh] OR "Blood Glucose Self-Monitoring"[mh]) AND ' + standardString['narrow']
           ],
           normal: [
-            '("Dermatitis, Contact"[mh] OR "Eczema"[mh] OR allerg*[ti] OR dermatitis*[ti] OR eczema*[ti] OR skin-problem*[ti] OR skin-reaction*[ti]) AND (("Insulin Infusion Systems"[mh] OR insulin-infusion*[ti] OR insulin-pump*[ti]) OR ("Blood Glucose Self-Monitoring"[mh] OR ((blood-glucose*[ti] OR blood-sugar*[ti] OR hba1c[ti]) AND (cgm[ti] OR bgm[ti] OR flash[ti] OR libre[ti] OR measur*[ti] OR monitor*[ti] OR iscgm[ti])))) AND (' + standardString['normal'] + ')',
+            '("Dermatitis, Contact"[mh] OR "Eczema"[mh] OR allerg*[ti] OR dermatitis*[ti] OR eczema*[ti] OR skin-problem*[ti] OR skin-reaction*[ti]) AND (("Insulin Infusion Systems"[mh] OR insulin-infusion*[ti] OR insulin-pump*[ti]) OR ("Blood Glucose Self-Monitoring"[mh] OR ((blood-glucose*[ti] OR blood-sugar*[ti] OR hba1c[ti]) AND (cgm[ti] OR bgm[ti] OR flash[ti] OR libre[ti] OR measur*[ti] OR monitor*[ti] OR iscgm[ti])))) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            '("Dermatitis, Contact"[mh] OR "Eczema"[mh] OR allerg*[tiab] OR dermatitis*[tiab] OR eczema*[tiab] OR skin-problem*[tiab] OR skin-reaction*[tiab]) AND (("Insulin Infusion Systems"[mh] OR insulin-infusion*[tiab] OR insulin-pump*[tiab]) OR ("Blood Glucose Self-Monitoring"[mh] OR ((blood-glucose*[tiab] OR blood-sugar*[tiab] OR hba1c[tiab]) AND (cgm[tiab] OR bgm[tiab] OR flash[tiab] OR libre[tiab] OR measur*[tiab] OR monitor*[tiab] OR iscgm[tiab])))) AND (' + standardString['broad'] + ')',
-          ],
+            '("Dermatitis, Contact"[mh] OR "Eczema"[mh] OR allerg*[tiab] OR dermatitis*[tiab] OR eczema*[tiab] OR skin-problem*[tiab] OR skin-reaction*[tiab]) AND (("Insulin Infusion Systems"[mh] OR insulin-infusion*[tiab] OR insulin-pump*[tiab]) OR ("Blood Glucose Self-Monitoring"[mh] OR ((blood-glucose*[tiab] OR blood-sugar*[tiab] OR hba1c[tiab]) AND (cgm[tiab] OR bgm[tiab] OR flash[tiab] OR libre[tiab] OR measur*[tiab] OR monitor*[tiab] OR iscgm[tiab])))) AND (' + standardString['broad'] + ')'
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "Hudproblemer, der kan opstå som følge af diabetesteknologi såsom sensorer og pumper.",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
-        id: "S20140",
-        name: "Hyperglykæmi",
+        id: "S20100",
+        name: "S20100",
+        buttons: true,
         translations: {
           dk: "Hyperglykæmi",
-          en: "Hyperglycemia",
+          en: "Hyperglycemia"
         },
-        ordering: { dk: null, en: null },
-        buttons: true,
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['"Hyperglycemia"[majr]'],
+          narrow: [
+            '"Hyperglycemia"[majr]'
+          ],
           normal: [
-            '"Hyperglycemia"[mh] OR hyperglycaemi*[ti] OR hyper-glycaemi*[ti] OR hyperglycemi*[ti] OR hyper-glycemi*[ti]',
+            '"Hyperglycemia"[mh] OR hyperglycaemi*[ti] OR hyper-glycaemi*[ti] OR hyperglycemi*[ti] OR hyper-glycemi*[ti]'
           ],
           broad: [
-            '"Hyperglycemia"[mh] OR hyperglycaemi*[tiab] OR hyper-glycaemi*[tiab] OR hyperglycemi*[tiab] OR hyper-glycemi*[tiab]',
-          ],
+            '"Hyperglycemia"[mh] OR hyperglycaemi*[tiab] OR hyper-glycaemi*[tiab] OR hyperglycemi*[tiab] OR hyper-glycemi*[tiab]'
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
-        id: "S20150",
-        name: "Hypoglykæmi",
+        id: "S20110",
+        name: "S20110",
+        buttons: true,
         translations: {
           dk: "Hypoglykæmi",
-          en: "Hypoglycemia",
+          en: "Hypoglycemia"
         },
-        ordering: { dk: null, en: null },
-        buttons: true,
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
           narrow: [
             '"Hypoglycemia"[majr]'
@@ -863,105 +954,24 @@ export const topics = [
           ],
           broad: [
             '"Hypoglycemia"[mh] OR hypoglycaemi*[tiab] OR hypo-glycaemi*[tiab] OR hypoglycemi*[tiab] OR hypo-glycemi*[tiab]'
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
-      },
-      {
-        id: "S20160",
-        name: "Ketoacidose",
-        translations: {
-          dk: "Ketoacidose",
-          en: "Ketoacidosis",
-        },
-        ordering: { dk: null, en: null },
-        buttons: true,
-        searchStrings: {
-          narrow: ['"Diabetic Ketoacidosis"[majr]'],
-          normal: ['"Diabetic Ketoacidosis"[mh] OR ketoacidos*[ti]'],
-          broad: ['"Diabetic Ketoacidosis"[mh] OR ketoacidos*[tiab]'],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
-      },
-      {
-        id: "S20100",
-        name: "Led, muskler og bindevæv",
-        buttons: true,
-        translations: {
-          dk: "Led, muskler og bindevæv",
-          en: "Joints, muscles and connective tissue",
-        },
-        ordering: { dk: null, en: null },
-        searchStrings: {
-          narrow: [
-            '("Connective Tissue Diseases"[majr] OR "Trigger Finger Disorder"[majr]) AND ' + standardString['narrow'] + ''
-          ],
-          normal: [
-            '("Connective Tissue Diseases"[mh] OR "Trigger Finger Disorder"[mh] OR connective-tissue*[ti] OR trigger-finger*[ti]) AND (' + standardString['normal'] + ')'
-          ],
-          broad: [
-            '("Connective Tissue Diseases"[mh] OR "Trigger Finger Disorder"[mh] OR connective-tissue*[tiab] OR trigger-finger*[tiab]) AND (' + standardString['broad'] + ')'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
-      },
-      {
-        id: "S20110",
-        name: "Parodontitis",
-        buttons: true,
-        translations: {
-          dk: "Parodontitis",
-          en: "Periodontitis",
-        },
-        ordering: { dk: null, en: null },
-        searchStrings: {
-          narrow: [
-            '("Oral Health"[majr] OR "Periodontal Diseases"[majr]) AND ' + standardString['narrow'] + ''
-          ],
-          normal: [
-            '("Oral Health"[mh] OR "Periodontal Diseases"[mh] OR oral-health[ti] OR parodont*[ti] OR periodont*[ti] OR teeth*[ti] OR tooth[ti]) AND (' + standardString['normal'] + ')'
-          ],
-          broad: [
-            '("Oral Health"[mh] OR "Periodontal Diseases"[mh] OR oral-health[tiab] OR parodont*[tiab] OR periodont*[tiab] OR teeth*[tiab] OR tooth[tiab]) AND (' + standardString['broad'] + ')'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S20120",
-        name: "Seksuel dysfunktion",
+        name: "S20120",
         buttons: true,
         translations: {
-          dk: "Seksuel dysfunktion",
-          en: "Sexual dysfunction",
+          dk: "Ketoacidose",
+          en: "Ketoacidosis"
         },
         ordering: { 
           dk: null, 
@@ -969,31 +979,127 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            '("Sexual Dysfunctions, Psychological"[majr] OR "Sexual Dysfunction, Physiological"[majr]) AND ' + standardString['narrow'] + ''
+            '"Diabetic Ketoacidosis"[majr]'
+          ],
+          normal: [
+            '"Diabetic Ketoacidosis"[mh] OR ketoacidos*[ti]'
+          ],
+          broad: [
+            '"Diabetic Ketoacidosis"[mh] OR ketoacidos*[tiab]'
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: "S20130",
+        name: "S20130",
+        buttons: true,
+        translations: {
+          dk: "Led, muskler og bindevæv",
+          en: "Joints, muscles and connective tissue"
+        },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
+        searchStrings: {
+          narrow: [
+            '("Connective Tissue Diseases"[majr] OR "Trigger Finger Disorder"[majr]) AND ' + standardString['narrow']
+          ],
+          normal: [
+            '("Connective Tissue Diseases"[mh] OR "Trigger Finger Disorder"[mh] OR connective-tissue*[ti] OR trigger-finger*[ti]) AND (' + standardString['normal'] + ')'
+          ],
+          broad: [
+            '("Connective Tissue Diseases"[mh] OR "Trigger Finger Disorder"[mh] OR connective-tissue*[tiab] OR trigger-finger*[tiab]) AND (' + standardString['broad'] + ')'
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: "S20140",
+        name: "S20140",
+        buttons: true,
+        translations: {
+          dk: "Parodontitis",
+          en: "Periodontitis"
+        },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
+        searchStrings: {
+          narrow: [
+            '("Oral Health"[majr] OR "Periodontal Diseases"[majr]) AND ' + standardString['narrow']
+          ],
+          normal: [
+            '("Oral Health"[mh] OR "Periodontal Diseases"[mh] OR oral-health[ti] OR parodont*[ti] OR periodont*[ti] OR teeth*[ti] OR tooth[ti]) AND (' + standardString['normal'] + ')'
+          ],
+          broad: [
+            '("Oral Health"[mh] OR "Periodontal Diseases"[mh] OR oral-health[tiab] OR parodont*[tiab] OR periodont*[tiab] OR teeth*[tiab] OR tooth[tiab]) AND (' + standardString['broad'] + ')'
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: "S20150",
+        name: "S20150",
+        buttons: true,
+        translations: {
+          dk: "Seksuel dysfunktion",
+          en: "Sexual dysfunction"
+        },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
+        searchStrings: {
+          narrow: [
+            '("Sexual Dysfunctions, Psychological"[majr] OR "Sexual Dysfunction, Physiological"[majr]) AND ' + standardString['narrow']
           ],
           normal: [
             '("Sexual Dysfunctions, Psychological"[mh] OR "Sexual Dysfunction, Physiological"[mh] OR ((sexual*[ti] OR erectil*[ti]) AND (dysfunction*[ti] OR problem*[ti]))) AND (' + standardString['normal'] + ')'
           ],
           broad: [
             '("Sexual Dysfunctions, Psychological"[mh] OR "Sexual Dysfunction, Physiological"[mh] OR ((sexual*[tiab] OR erectil*[tiab]) AND (dysfunction*[tiab] OR problem*[tiab]))) AND (' + standardString['broad'] + ')'
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
-        id: "S20130",
-        name: "Søvnproblemer",
+        id: "S20160",
+        name: "S20160",
         buttons: true,
         translations: {
           dk: "Søvnproblemer",
-          en: "Sleep disorders",
+          en: "Sleep disorders"
         },
         ordering: { 
           dk: null, 
@@ -1008,16 +1114,16 @@ export const topics = [
           ],
           broad: [
             '("Sleep"[mh] OR sleep*[tiab] OR apnea*[tiab] OR apnoea*[tiab]) AND (' + standardString['broad'] + ')'
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
     ],
     tooltip: {
@@ -1027,7 +1133,7 @@ export const topics = [
   },
   {
     id: "S30",
-    groupname: "Medicinsk behandling",
+    groupname: "S30",
     translations: {
       dk: "Medicinsk behandling",
       en: "Medical treatment",
@@ -1039,11 +1145,11 @@ export const topics = [
     groups: [
       {
         id: "S30010",
-        name: "Medicinsk behandling generelt",
+        name: "S30010",
         buttons: true,
         translations: {
           dk: "Medicinsk behandling generelt",
-          en: "Medical treatment in general",
+          en: "Medical treatment in general"
         },
         ordering: { 
           dk: 1, 
@@ -1058,24 +1164,24 @@ export const topics = [
           ],
           broad: [
             '"Diabetes Mellitus/drug therapy"[mh] OR "Hypoglycemic Agents"[mh] OR "Hypoglycemic Agents"[pa]'
-          ],
+          ]
         },
         searchStringComment: {
           dk: "Flere lægemidler m.m. vil blive tilføjet.",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S30020",
-        name: "DPP-4-hæmmere",
+        name: "S30020",
         buttons: true,
         translations: {
           dk: "DPP-4-hæmmere",
-          en: "DPP-4 inhibitors",
+          en: "DPP-4 inhibitors"
         },
         ordering: { 
           dk: null, 
@@ -1090,7 +1196,7 @@ export const topics = [
           ],
           broad: [
             '("Dipeptidyl-Peptidase IV Inhibitors"[mh] OR "Dipeptidyl-Peptidase IV Inhibitors"[pa] OR dpp[tiab] OR dipeptyl*[tiab]) AND (' + standardString['broad'] + ')'
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
@@ -1099,15 +1205,15 @@ export const topics = [
         tooltip: {
           dk: "",
           en: "",
-        },
+        }
       },
       {
         id: "S30030",
-        name: "Glitazoner (tiazolidindioner)",
+        name: "S30030",
         buttons: true,
         translations: {
           dk: "Glitazoner (tiazolidindioner)",
-          en: "Glitazones (thiazolidinediones)",
+          en: "Glitazones (thiazolidinediones)"
         },
         ordering: {
           dk: null, 
@@ -1122,24 +1228,24 @@ export const topics = [
           ],
           broad: [
             '("Thiazolidinediones"[mh] OR thiazolidinedione*[tiab] OR glitazone*[tiab]) AND (' + standardString['broad'] + ')'
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S30040",
-        name: "GLP-1-receptoragonister",
+        name: "S30040",
         buttons: true,
         translations: {
           dk: "GLP-1-receptoragonister",
-          en: "GLP-1 receptor agonists",
+          en: "GLP-1 receptor agonists"
         },
         ordering: {
           dk: null, 
@@ -1154,24 +1260,24 @@ export const topics = [
           ],
           broad: [
             '("Glucagon-Like Peptide 1"[mh] OR "Glucagon-Like Peptide-1 Receptor Agonists"[mh] OR glp[tiab] OR glucagon-like*[tiab] OR glucagonlike*[tiab]) AND (' + standardString['broad'] + ')'
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S30050",
-        name: "Insulin",
+        name: "S30050",
         buttons: true,
         translations: {
           dk: "Insulin",
-          en: "Insulin",
+          en: "Insulin"
         },
         ordering: { 
           dk: null, 
@@ -1184,24 +1290,24 @@ export const topics = [
           ],
           broad: [
             '("Insulins"[mh] OR insulin*[tiab]) AND (' + standardString['broad'] + ')'
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S30060",
-        name: "Metformin",
+        name: "S30060",
         buttons: true,
         translations: {
           dk: "Metformin",
-          en: "Metformin",
+          en: "Metformin"
         },
         ordering: { 
           dk: null, 
@@ -1215,24 +1321,24 @@ export const topics = [
           ],
           broad: [
             '("Metformin"[mh] OR metformin*[tiab]) AND (' + standardString['broad'] + ')'
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S30070",
-        name: "SGLT-2-hæmmere",
+        name: "S30070",
         buttons: true,
         translations: {
           dk: "SGLT-2-hæmmere",
-          en: "SGLT-2 inhibitors",
+          en: "SGLT-2 inhibitors"
         },
         ordering: { 
           dk: null, 
@@ -1247,24 +1353,24 @@ export const topics = [
           ],
           broad: [
             '("Sodium-Glucose Transporter 2 Inhibitors"[mh] OR "Sodium-Glucose Transporter 2 Inhibitors"[pa] OR sglt*[tiab] OR sodium-glucose*[tiab] OR sodiumglucose*[tiab]) AND (' + standardString['broad'] + ')'
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S30080",
-        name: "Sulfonylurinstoffer",
+        name: "S30080",
         buttons: true,
         translations: {
           dk: "Sulfonylurinstoffer",
-          en: "Sulfonylureas",
+          en: "Sulfonylureas"
         },
         ordering: { 
           dk: null, 
@@ -1279,43 +1385,46 @@ export const topics = [
           ],
           broad: [
             '("Sulfonylurea Compounds"[mh] OR sulfonyl*[tiab]) AND (' + standardString['broad'] + ')'
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
-      },
+          en: ""
+        }
+      }
     ],
     tooltip: {
       dk: "",
-      en: "",
+      en: ""
     },
   },
   {
     id: "S40",
-    groupname: "Kost",
+    groupname: "S40",
     translations: {
       dk: "Kost",
-      en: "Diet",
+      en: "Diet"
     },
-    ordering: { dk: 4, en: 4 },
+    ordering: { 
+      dk: 4, 
+      en: 4 
+    },
     groups: [
       {
         id: "S40010",
-        name: "Kost generelt",
+        name: "S40010",
         buttons: true,
         translations: {
           dk: "Kost generelt",
-          en: "Diet in general",
+          en: "Diet in general"
         },
         ordering: {
           dk: 1,
-          en: 1,
+          en: 1
         },
         searchStrings: {
           narrow: [
@@ -1326,22 +1435,22 @@ export const topics = [
           ],
           broad: [
             '("Diet, Food, and Nutrition"[mh] OR "Diet Therapy"[mh] OR "diet therapy"[sh] OR diet*[tiab] OR eat[tiab] OR eating[tiab] OR food*[tiab] OR nutrition*[tiab]) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
-        id: "S40015",
-        name: "Diæter og kure",
+        id: "S40020",
+        name: "S40020",
         buttons: true,
-        maintopic: true, // Angiver at dette element er en branch og har children elementer
+        maintopic: true,
         translations: {
           dk: "Diæter og kure",
           en: "Diets",
@@ -1353,53 +1462,55 @@ export const topics = [
         tooltip: {
           dk: "",
           en: "",
-        },
+        }
       },
       {
-        id: "S400151",
-        name: "DASH-diæt",
+        id: "S4002010",
+        name: "S4002010",
         buttons: true,
-        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midterste niveau)
-        maintopicIdLevel1: "S40015", // Angiver at dette element har et parent med dette id. (Emne 2)
+        subtopiclevel: 1,
+        maintopicIdLevel1: "S40020",
         translations: {
           dk: "DASH-diæt",
-          en: "DASH diet",
+          en: "DASH diet"
         },
         ordering: {
           dk: 3,
-          en: 3,
+          en: 3
         },
         searchStrings: {
-          narrow: ['"Dietary Approaches to Stop Hypertension"[majr] AND ' + standardString['narrow'] + ''],
+          narrow: [
+            '"Dietary Approaches to Stop Hypertension"[majr] AND ' + standardString['narrow'] + ''
+          ],
           normal: [
             '("Dietary Approaches to Stop Hypertension"[mh] OR DASH[ti] OR "Dietary Approaches to Stop Hypertension"[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
             '("Dietary Approaches to Stop Hypertension"[mh] OR DASH[tiab] OR "Dietary Approaches to Stop Hypertension"[tiab]) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "DASH (Dietary Approaches to Stop Hypertension) er udviklet til at sænke blodtrykket. Fokus på lavt saltindtag, frugt, grøntsager og magre proteinkilder.",
-          en: "DASH (Dietary Approaches to Stop Hypertension)",
-        },
+          en: "DASH (Dietary Approaches to Stop Hypertension)"
+        }
       },
       {
-        id: "S400152",
-        name: "LCHF",
+        id: "S4002020",
+        name: "S4002020",
         buttons: true,
-        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midterste niveau)
-        maintopicIdLevel1: "S40015", // Angiver at dette element har et parent med dette id. (Emne 2)
+        subtopiclevel: 1,
+        maintopicIdLevel1: "S40020",
         translations: {
           dk: "Low carb high fat (LCHF)",
-          en: "Low carb high fat (LCHF)",
+          en: "Low carb high fat (LCHF)"
         },
         ordering: {
           dk: 4,
-          en: 4,
+          en: 4
         },
         searchStrings: {
           narrow: [
@@ -1414,115 +1525,119 @@ export const topics = [
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "Fokus på at reducere kulhydrater og øge fedtindtaget.",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
-        id: "S400153",
-        name: "Middelhavskost",
+        id: "S4002030",
+        name: "S4002030",
         buttons: true,
-        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midterste niveau)
-        maintopicIdLevel1: "S40015", // Angiver at dette element har et parent med dette id. (Emne 2)
+        subtopiclevel: 1,
+        maintopicIdLevel1: "S40020",
         translations: {
           dk: "Middelhavskost",
-          en: "Mediterranean diet",
+          en: "Mediterranean diet"
         },
         ordering: {
           dk: 5,
-          en: 5,
+          en: 5
         },
         searchStrings: {
-          narrow: ['"Diet, Mediterranean"[majr] AND ' + standardString['narrow'] + ''],
+          narrow: [
+            '"Diet, Mediterranean"[majr] AND ' + standardString['narrow'] + ''
+          ],
           normal: [
             '("Diet, Mediterranean"[mh] OR (mediterranean[ti] AND diet*[ti])) AND (' + standardString['normal'] + ')',
           ],
           broad: [
             '("Diet, Mediterranean"[mh] OR (mediterranean[tiab] AND diet*[tiab])) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "En kost baseret på grøntsager, frugt, fuldkorn, fisk, olivenolie og nødder.",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
-        id: "S400154",
-        name: "Paleo-diæt",
+        id: "S4002040",
+        name: "S4002040",
         buttons: true,
-        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midterste niveau)
-        maintopicIdLevel1: "S40015", // Angiver at dette element har et parent med dette id. (Emne 2)
+        subtopiclevel: 1,
+        maintopicIdLevel1: "S40020",
         translations: {
           dk: "Paleo-diæt",
-          en: "Paleolithic diet",
+          en: "Paleolithic diet"
         },
         ordering: {
           dk: 6,
-          en: 6,
+          en: 6
         },
         searchStrings: {
-          narrow: ['"Diet, Paleolithic"[majr] AND ' + standardString['narrow'] + ''],
+          narrow: [
+            '"Diet, Paleolithic"[majr] AND ' + standardString['narrow'] + ''
+          ],
           normal: [
             '("Diet, Paleolithic"[mh] OR (paleo*[ti] AND diet*[ti])) AND (' + standardString['normal'] + ')',
           ],
           broad: [
             '("Diet, Paleolithic"[mh] OR (paleo*[tiab] AND diet*[tiab])) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: 'Fokus på "oprindelige fødevarer" som magert kød, grøntsager, nødder og frugt, mens forarbejdede fødevarer og kornprodukter undgås.',
-          en: "",
-        },
+          en: ""
+        }
       },
       {
-        id: "S400155",
-        name: "Plantebaseret kost",
+        id: "S4002050",
+        name: "S4002050",
         buttons: true,
         maintopic: true,
-        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midterste niveau)
-        maintopicIdLevel1: "S40015", // Angiver at dette element har et parent med dette id. (Emne 2)
+        subtopiclevel: 1,
+        maintopicIdLevel1: "S40020",
         translations: {
           dk: "Plantebaseret kost",
-          en: "Plant-based diet",
+          en: "Plant-based diet"
         },
         ordering: {
           dk: 7,
-          en: 7,
+          en: 7
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "Kost der primært eller udelukkende består af planter som grøntsager, frugt, bælgfrugter, nødder og fuldkorn.",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
-        id: "S4001551",
-        name: "Plantebaseret kost generelt",
+        id: "S400205010",
+        name: "S400205010",
         buttons: true,
-        subtopiclevel: 2, // Angiver at dette element ligger på 1. niveau (midterste niveau)
-        maintopicIdLevel1: "S40015", // Angiver at dette element har et parent med dette id.
-        maintopicIdLevel2: "S400155", // Angiver at dette element har et grandparent med dette id.
+        subtopiclevel: 2,
+        maintopicIdLevel1: "S40020",
+        maintopicIdLevel2: "S4002050",
         translations: {
           dk: "Plantebaseret kost generelt",
-          en: "Plant-based diet in general",
+          en: "Plant-based diet in general"
         },
         ordering: {
           dk: 8,
-          en: 8,
+          en: 8
         },
         searchStrings: {
           narrow: [
@@ -1533,205 +1648,229 @@ export const topics = [
           ],
           broad: [
             '("Diet, Plant-Based"[mh:noexp] OR "Diet, Vegetarian"[mh:noexp] OR "Diet, Vegan"[mh:noexp] OR ((plant-based[tiab] OR vegetarian*[tiab] OR vegan*[tiab]) AND diet*[tiab])) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "Kost der primært består af planter som grøntsager, frugt, bælgfrugter, nødder og fuldkorn. Nogle diæter tillader også små mængder animalske produkter.",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
-        id: "S4001552",
-        name: "Vegetarisk kost",
+        id: "S400205020",
+        name: "S400205020",
         buttons: true,
-        subtopiclevel: 2, // Angiver at dette element ligger på 1. niveau (midterste niveau)
-        maintopicIdLevel1: "S40015", // Angiver at dette element har et parent med dette id.
-        maintopicIdLevel2: "S400155", // Angiver at dette element har et grandparent med dette id.
+        subtopiclevel: 2,
+        maintopicIdLevel1: "S40020",
+        maintopicIdLevel2: "S4002050",
         translations: {
           dk: "Vegetarisk kost",
-          en: "Vegetarian diet",
+          en: "Vegetarian diet"
         },
         ordering: {
           dk: 9,
-          en: 9,
+          en: 9
         },
         searchStrings: {
-          narrow: ['"Diet, Vegetarian"[majr:noexp] AND ' + standardString['narrow'] + ''],
+          narrow: [
+            '"Diet, Vegetarian"[majr:noexp] AND ' + standardString['narrow'] + ''
+          ],
           normal: [
             '("Diet, Vegetarian"[mh:noexp] OR (vegetarian*[ti] AND diet*[ti])) AND (' + standardString['normal'] + ')',
           ],
           broad: [
             '("Diet, Vegetarian"[mh:noexp] OR (vegetarian*[tiab] AND diet*[tiab])) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "Kost der primært består af planter som grøntsager, frugt, bælgfrugter, nødder og fuldkorn, men tillader også små mængder animalske produkter.",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
-        id: "S4001553",
-        name: "Vegansk kost",
+        id: "S400205030",
+        name: "S400205030",
         buttons: true,
-        subtopiclevel: 2, // Angiver at dette element ligger på 1. niveau (midterste niveau)
-        maintopicIdLevel1: "S40015", // Angiver at dette element har et parent med dette id.
-        maintopicIdLevel2: "S400155", // Angiver at dette element har et grandparent med dette id.
+        subtopiclevel: 2,
+        maintopicIdLevel1: "S40020",
+        maintopicIdLevel2: "S4002050",
         translations: {
           dk: "Vegansk kost",
-          en: "Vegan diet",
+          en: "Vegan diet"
         },
         ordering: {
           dk: 10,
-          en: 10,
+          en: 10
         },
         searchStrings: {
-          narrow: ['"Diet, Vegan"[majr] AND ' + standardString['narrow'] + ''],
+          narrow: [
+            '"Diet, Vegan"[majr] AND ' + standardString['narrow'] + ''
+          ],
           normal: [
             '("Diet, Vegan"[majr] OR (vegan*[ti] AND diet*[ti])) AND (' + standardString['normal'] + ')',
           ],
           broad: [
             '("Diet, Vegan"[majr] OR (vegan*[tiab] AND diet*[tiab])) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "Kost der primært består af planter som grøntsager, frugt, bælgfrugter, nødder og fuldkorn, men ikke tillader animalske produkter.",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
-        id: "S400157",
-        name: "Tidsbegrænset spisning",
+        id: "S4002070",
+        name: "S4002070",
         buttons: true,
-        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midterste niveau)
-        maintopicIdLevel1: "S40015", // Angiver at dette element har et parent med dette id. (Emne 2)
+        subtopiclevel: 1,
+        maintopicIdLevel1: "S40020",
         translations: {
           dk: "Tidsbegrænset spisning",
-          en: "Time-restricted eating",
+          en: "Time-restricted eating"
         },
         ordering: {
           dk: 11,
-          en: 11,
+          en: 11
         },
         searchStrings: {
-          narrow: ['"Intermittent Fasting"[majr] AND ' + standardString['narrow'] + ''],
+          narrow: [
+            '"Intermittent Fasting"[majr] AND ' + standardString['narrow'] + ''
+          ],
           normal: [
             '("Intermittent Fasting"[mh] OR ((intermittent[ti] OR time-restrict*[ti]) AND (diet*[ti] OR eating[ti] OR fasting[ti]))) AND (' + standardString['normal'] + ')',
           ],
           broad: [
             '("Intermittent Fasting"[mh] OR ((intermittent[tiab] OR time-restrict*[tiab]) AND (diet*[tiab] OR eating[tiab] OR fasting[tiab]))) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "Spisemønster, hvor der skiftevis er fasteperioder og spiseperioder.",
-          en: "",
+          en: ""
         },
       },
       {
-        id: "S40020",
-        name: "Drikke",
+        id: "S40030",
+        name: "S40030",
         buttons: true,
         translations: {
           dk: "Drikke",
-          en: "Beverages",
+          en: "Beverages"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['"Beverages"[majr] AND ' + standardString['narrow'] + ''],
+          narrow: [
+            '"Beverages"[majr] AND ' + standardString['narrow'] + ''
+          ],
           normal: [
             '("Beverages"[mh] OR beverage*[ti] OR drink*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
             '("Beverages"[mh] OR beverage*[tiab] OR drink*[tiab]) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
-        id: "S40030",
-        name: "Fedt",
+        id: "S40040",
+        name: "S40040",
         buttons: true,
         translations: {
           dk: "Fedt",
-          en: "Fats",
+          en: "Fats"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['("Fatty Acids"[majr] OR "Fats"[majr]) AND ' + standardString['narrow'] + ''],
+          narrow: [
+            '("Fatty Acids"[majr] OR "Fats"[majr]) AND ' + standardString['narrow'] + ''
+          ],
           normal: [
             '("Fatty Acids"[mh] OR "Fats"[mh] OR fat[ti] OR fats[ti] OR fatty[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
             '("Fatty Acids"[mh] OR "Fats"[mh] OR fat[tiab] OR fats[tiab] OR fatty[tiab]) AND (' + standardString['normal'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
-        id: "S40040",
-        name: "Fibre",
+        id: "S40050",
+        name: "S40050",
         buttons: true,
         translations: {
           dk: "Fibre",
-          en: "Dietary fiber",
+          en: "Dietary fiber"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['"Dietary Fiber"[majr] AND ' + standardString['narrow'] + ''],
+          narrow: [
+            '"Dietary Fiber"[majr] AND ' + standardString['narrow'] + ''
+          ],
           normal: [
             '("Dietary Fiber"[mh] OR ((fiber*[ti] OR fibre*[ti]) AND diet*[ti])) AND (' + standardString['normal'] + ')',
           ],
           broad: [
             '("Dietary Fiber"[mh] OR ((fiber*[tiab] OR fibre*[tiab]) AND diet*[tiab])) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
-        id: "S40050",
-        name: "Kulhydrater",
+        id: "S40060",
+        name: "S40060",
         buttons: true,
         translations: {
           dk: "Kulhydrater",
           en: "Carbohydrates",
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
           narrow: [
             '("Dietary Carbohydrates"[majr] OR "Diet, Carbohydrate Loading"[majr] OR "Diet, Carbohydrate-Restricted"[majr]) AND ' + standardString['narrow'] + '',
@@ -1741,26 +1880,29 @@ export const topics = [
           ],
           broad: [
             '("Dietary Carbohydrates"[mh] OR "Diet, Carbohydrate Loading"[mh] OR "Diet, Carbohydrate-Restricted"[mh] OR carb*[tiab]) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
-        id: "S40060",
-        name: "Kunstige sødestoffer",
+        id: "S40070",
+        name: "S40070",
         buttons: true,
         translations: {
           dk: "Kunstige sødestoffer",
-          en: "Artificial sweeteners",
+          en: "Artificial sweeteners"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
           narrow: [
             '("Artificially Sweetened Beverages"[majr] OR "Non-Nutritive Sweeteners"[majr] OR "Sweetening Agents"[majr:noexp] OR "Sweetening Agents"[nm]) AND ' + standardString['narrow'] + '',
@@ -1770,120 +1912,143 @@ export const topics = [
           ],
           broad: [
             '("Artificially Sweetened Beverages"[mh] OR "Non-Nutritive Sweeteners"[mh] OR "Sweetening Agents"[mh:noexp] OR "Sweetening Agents"[nm] OR artificial* sweet*[tiab] OR non-nutritive sweet*[tiab]) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
-      },
+          en: ""
+        }
+      }
     ],
     tooltip: {
       dk: "",
-      en: "",
+      en: ""
     },
   },
   {
     id: "S50",
-    groupname: "Teknologi",
+    groupname: "S50",
     translations: {
       dk: "Teknologi",
-      en: "Technology",
+      en: "Technology"
     },
-    ordering: { dk: 5, en: 5 },
+    ordering: { 
+      dk: 5, 
+      en: 5 
+    },
     groups: [
       {
         id: "S50010",
-        name: "Blodsukkermåling",
+        name: "S50010",
         buttons: true,
         translations: {
           dk: "Glukosesensorer",
-          en: "Blood glucose self-monitoring",
+          en: "Blood glucose self-monitoring"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['"Blood Glucose Self-Monitoring"[majr] AND ' + standardString['narrow'] + ''],
+          narrow: [
+            '"Blood Glucose Self-Monitoring"[majr] AND ' + standardString['narrow'] + ''
+          ],
           normal: [
             '("Blood Glucose Self-Monitoring"[mh] OR ((blood-glucose*[ti] OR blood-sugar*[ti] OR hba1c[ti]) AND (cgm[ti] OR bgm[ti] OR flash[ti] OR libre[ti] OR measur*[ti] OR monitor*[ti] OR iscgm[ti]))) AND (' + standardString['normal'] + ')',
           ],
           broad: [
             '("Blood Glucose Self-Monitoring"[mh] OR ((blood-glucose*[tiab] OR blood-sugar*[tiab] OR hba1c[tiab]) AND (cgm[tiab] OR bgm[tiab] OR flash[tiab] OR libre[tiab] OR measur*[tiab] OR monitor*[tiab] OR iscgm[tiab]))) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S50020",
-        name: "Insulinpumper",
+        name: "S50020",
         buttons: true,
         translations: {
           dk: "Insulinpumper",
-          en: "Insulin infusion systems",
+          en: "Insulin infusion systems"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['"Insulin Infusion Systems"[majr]'],
-          normal: ['"Insulin Infusion Systems"[mh] OR insulin-infusion*[ti] OR insulin-pump*[ti]'],
+          narrow: [
+            '"Insulin Infusion Systems"[majr]'
+          ],
+          normal: [
+            '"Insulin Infusion Systems"[mh] OR insulin-infusion*[ti] OR insulin-pump*[ti]',
+          ],
           broad: [
             '"Insulin Infusion Systems"[mh] OR insulin-infusion*[tiab] OR insulin-pump*[tiab]',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S50030",
-        name: "Kunstig intelligens",
+        name: "S50030",
         buttons: true,
         translations: {
           dk: "Kunstig intelligens",
-          en: "Artificial intelligence",
+          en: "Artificial intelligence"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['"Artificial Intelligence"[majr] AND ' + standardString['narrow'] + ''],
+          narrow: [
+            '"Artificial Intelligence"[majr] AND ' + standardString['narrow'] + ''
+          ],
           normal: [
             '("Artificial Intelligence"[mh] OR artificial-intelligence*[ti] OR chatgpt*[ti] OR machine-learn*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
             '("Artificial Intelligence"[mh] OR artificial-intelligence*[tiab] OR chatgpt*[tiab] OR machine-learn*[tiab]) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S50040",
-        name: "Mobiltelefoner og apps",
+        name: "S50040",
         buttons: true,
         translations: {
           dk: "Mobiltelefoner og apps",
-          en: "Mobile phones and apps",
+          en: "Mobile phones and apps"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
           narrow: [
             '("Mobile Applications"[majr] OR "Cell Phone"[majr] OR "Cell Phone Use"[majr] OR "Computers, Handheld"[majr]) AND ' + standardString['narrow'] + '',
@@ -1893,114 +2058,143 @@ export const topics = [
           ],
           broad: [
             '("Mobile Applications"[mh] OR "Cell Phone"[mh] OR "Cell Phone Use"[mh] OR "Computers, Handheld"[mh] OR m-health[tiab] OR m-health[tiab] OR smart-phone*[tiab] OR smartphone*[tiab] OR ((cell[tiab] OR mobile*[tiab] OR tablet*[tiab]) AND (app[tiab] OR application*[tiab] OR apps[tiab] OR phone*[tiab]))) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S50050",
-        name: "Telemedicin og e-sundhed",
+        name: "S50050",
         buttons: true,
         translations: {
           dk: "Telemedicin og e-sundhed",
-          en: "Telemedicine og e-health",
+          en: "Telemedicine og e-health"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['"Telemedicine"[majr] AND ' + standardString['narrow'] + ''],
+          narrow: [
+            '"Telemedicine"[majr] AND ' + standardString['narrow'] + ''
+          ],
           normal: [
             '("Telemedicine"[mh] OR e-health[ti] OR ehealth[ti] OR tele*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
             '("Telemedicine"[mh] OR e-health[tiab] OR ehealth[tiab] OR tele*[tiab]) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
-      },
+          en: ""
+        }
+      }
     ],
     tooltip: {
       dk: "",
       en: "",
-    },
+    }
   },
   {
     id: "S60",
-    groupname: "Kliniske målinger",
+    groupname: "S60",
     translations: {
       dk: "Kliniske målinger",
-      en: "Clinical measures",
+      en: "Clinical measures"
     },
-    ordering: { dk: 6, en: 6 },
+    ordering: { 
+      dk: 6, 
+      en: 6 
+    },
     groups: [
       {
-        id: "S60080",
-        name: "Albuminuri",
+        id: "S60010",
+        name: "S60010",
         buttons: true,
         translations: {
           dk: "Albuminuri",
-          en: "Albuminuria",
+          en: "Albuminuria"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['"Albuminuria"[majr]'],
-          normal: ['("Albuminuria"[mh] OR albuminuria*[ti])'],
-          broad: ['("Albuminuria"[mh] OR albuminuria*[tiab])'],
+          narrow: [
+            '"Albuminuria"[majr]'
+          ],
+          normal: [
+            '("Albuminuria"[mh] OR albuminuria*[ti])',
+          ],
+          broad: [
+            '("Albuminuria"[mh] OR albuminuria*[tiab])',
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
-      },
-      {
-        id: "S60010",
-        name: "Blodsukker",
-        buttons: true,
-        translations: {
-          dk: "Blodsukker",
-          en: "Blood sugar",
-        },
-        ordering: { dk: null, en: null },
-        searchStrings: {
-          narrow: ['"Blood Glucose"[majr]'],
-          normal: ['("Blood Glucose"[mh] OR blood-glucose[ti])'],
-          broad: ['("Blood Glucose"[mh] OR blood-glucose[tiab])'],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S60020",
-        name: "Blodtryk",
+        name: "S60020",
+        buttons: true,
+        translations: {
+          dk: "Blodsukker",
+          en: "Blood sugar"
+        },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
+        searchStrings: {
+          narrow: [
+            '"Blood Glucose"[majr]'
+          ],
+          normal: [
+            '("Blood Glucose"[mh] OR blood-glucose[ti])',
+          ],
+          broad: [
+            '("Blood Glucose"[mh] OR blood-glucose[tiab])',
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: "S60030",
+        name: "S60030",
         buttons: true,
         translations: {
           dk: "Blodtryk",
-          en: "Blood pressure",
+          en: "Blood pressure"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
           narrow: [
             '("Blood Pressure"[majr] OR "Blood Pressure Determination"[majr] OR "Hypertension"[majr]) AND ' + standardString['narrow'] + '',
@@ -2010,222 +2204,271 @@ export const topics = [
           ],
           broad: [
             '("Blood Pressure"[mh] OR "Blood Pressure Determination"[mh] OR "Hypertension"[mh] OR blood-pressure*[tiab] OR hypertensi*[tiab]) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
+          en: ""
         },
       },
       {
-        id: "S60030",
-        name: "eGFR",
+        id: "S60040",
+        name: "S60040",
         translations: {
           dk: "eGFR",
-          en: "eGFR",
+          en: "eGFR"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         buttons: true,
         searchStrings: {
-          narrow: ['"Glomerular Filtration Rate"[majr] AND ' + standardString['narrow'] + ''],
+          narrow: [
+            '"Glomerular Filtration Rate"[majr] AND ' + standardString['narrow'] + ''
+          ],
           normal: [
             '("Glomerular Filtration Rate"[mh] OR glomerular-filtration[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
             '("Glomerular Filtration Rate"[mh] OR glomerular-filtration[tiab]) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
-      },
-      {
-        id: "S60040",
-        name: "Glukosebelastning",
-        translations: {
-          dk: "Glukosebelastning",
-          en: "Oral glucose tolerance test",
-        },
-        ordering: { dk: null, en: null },
-        buttons: true,
-        searchStrings: {
-          narrow: ['"Glucose Tolerance Test"[majr]'],
-          normal: ['"Glucose Tolerance Test"[mh] OR glucose-tolerance[ti] OR ogtt[ti]'],
-          broad: ['"Glucose Tolerance Test"[mh] OR glucose-tolerance[tiab] OR ogtt[tiab]'],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S60050",
-        name: "HbA1c",
+        name: "S60050",
         translations: {
-          dk: "Hb1Ac",
-          en: "Hb1Ac",
+          dk: "Glukosebelastning",
+          en: "Oral glucose tolerance test"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         buttons: true,
         searchStrings: {
-          narrow: ['"Glycated Hemoglobin"[majr] AND ' + standardString['narrow'] + ''],
+          narrow: [
+            '"Glucose Tolerance Test"[majr]'
+          ],
+          normal: [
+            '("Glucose Tolerance Test"[mh] OR glucose-tolerance[ti] OR ogtt[ti])',
+          ],
+          broad: [
+            '("Glucose Tolerance Test"[mh] OR glucose-tolerance[tiab] OR ogtt[tiab])',
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: "S60060",
+        name: "S60060",
+        translations: {
+          dk: "HbA1c",
+          en: "HbA1c"
+        },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
+        buttons: true,
+        searchStrings: {
+          narrow: [
+            '"Glycated Hemoglobin"[majr] AND ' + standardString['narrow'] + ''
+          ],
           normal: [
             '("Glycated Hemoglobin"[mh] OR "Glycated Hemoglobin"[nm] OR a1c[ti] OR glycated-hemoglobin[ti] OR hba1c[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
             '("Glycated Hemoglobin"[mh] OR "Glycated Hemoglobin"[mh] OR a1c[ti] OR glycated-hemoglobin[tiab] OR hba1c[tiab]) AND (' + standardString['broad'] + ')',
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: "S60070",
+        name: "S60070",
+        translations: {
+          dk: "Ketoner",
+          en: "Ketones"
+        },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
+        buttons: true,
+        searchStrings: {
+          narrow: [
+            '"Ketones"[majr] AND ' + standardString['narrow'] + ''
+          ],
+          normal: [
+            '("Ketones"[mh] OR keton*[ti]) AND (' + standardString['normal'] + ')',
+          ],
+          broad: [
+            '("Ketones"[mh] OR keton*[tiab]) AND (' + standardString['broad'] + ')',
           ],
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
-        id: "S60060",
-        name: "Ketoner",
-        translations: {
-          dk: "Ketoner",
-          en: "Ketones",
-        },
-        ordering: { dk: null, en: null },
-        buttons: true,
-        searchStrings: {
-          narrow: ['"Ketones"[majr] AND ' + standardString['narrow'] + ''],
-          normal: ['("Ketones"[mh] OR keton*[ti]) AND (' + standardString['normal'] + ')'],
-          broad: ['("Ketones"[mh] OR keton*[tiab]) AND (' + standardString['broad'] + ')'],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
-      },
-      {
-        id: "S60070",
-        name: "Kolesterol",
+        id: "S60080",
+        name: "S60080",
         translations: {
           dk: "Kolesterol",
-          en: "Cholesterol",
+          en: "Cholesterol"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         buttons: true,
         searchStrings: {
-          narrow: ['"Cholesterol"[majr] AND ' + standardString['narrow'] + ''],
+          narrow: [
+            '"Cholesterol"[majr] AND ' + standardString['narrow'] + ''
+          ],
           normal: [
             '("Cholesterol"[mh] OR cholesterol*[ti] OR hdl[ti] OR ldl[ti] OR vldl[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
             '("Cholesterol"[mh] OR cholesterol*[tiab] OR hdl[tiab] OR ldl[tiab] OR vldl[tiab]) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
-      },
+          en: ""
+        }
+      }
     ],
     tooltip: {
       dk: "",
-      en: "",
-    },
+      en: ""
+    }
   },
   {
     id: "S70",
-    groupname: "Mental sundhed",
+    groupname: "S70",
     translations: {
       dk: "Mental sundhed",
-      en: "Mental health",
+      en: "Mental health"
     },
-    ordering: { dk: 7, en: 7 },
+    ordering: { 
+      dk: 7, 
+      en: 7 
+    },
     groups: [
       {
-        name: "Angst",
-        buttons: true,
         id: "S70010",
+        name: "S70010",
+        buttons: true,
         translations: {
           dk: "Angst",
-          en: "Anxiety",
+          en: "Anxiety"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['"Anxiety"[majr:noexp] AND ' + standardString['narrow'] + ''],
+          narrow: [
+            '"Anxiety"[majr:noexp] AND ' + standardString['narrow'] + ''
+          ],
           normal: [
             '("Anxiety"[mh:noexp] OR anxiet*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
             '("Anxiety"[mh:noexp] OR anxiet*[tiab]) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S70020",
-        name: "Bulimi og diabulimi",
+        name: "S70020",
+        buttons: true,
         translations: {
           dk: "Bulimi og diabulimi",
-          en: "Bulimia og diabulimia",
+          en: "Bulimia og diabulimia"
         },
-        ordering: { dk: null, en: null },
-        buttons: true,
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['("Bulimia"[majr] OR "Diabulimia"[majr]) AND ' + standardString['narrow'] + ''],
+          narrow: [
+            '("Bulimia"[majr] OR "Diabulimia"[majr]) AND ' + standardString['narrow'] + ''
+          ],
           normal: [
             '("Bulimia"[mh] OR "Diabulimia"[mh] OR bulimi*[ti] OR diabulim*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
             '("Bulimia"[mh] OR "Diabulimia"[mh] OR bulimi*[tiab] OR diabulim*[tiab]) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
+          en: ""
         },
       },
       {
         id: "S70030",
-        name: "Depression",
+        name: "S70030",
+        buttons: true,
         translations: {
           dk: "Depression",
-          en: "Depression",
+          en: "Depression"
         },
-        ordering: { dk: null, en: null },
-        buttons: true,
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
           narrow: [
             '("Depression"[majr] OR "Depressive Disorder"[majr]) AND ' + standardString['narrow'] + '',
@@ -2235,26 +2478,29 @@ export const topics = [
           ],
           broad: [
             '("Depression"[mh] OR "Depressive Disorder"[mh] OR depres*[tiab]) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S70040",
-        name: "Diabetes distress",
+        name: "S70040",
+        buttons: true,
         translations: {
           dk: "Diabetes distress",
-          en: "Diabetes distress",
+          en: "Diabetes distress"
         },
-        ordering: { dk: null, en: null },
-        buttons: true,
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
           narrow: [
             '(("Psychological Distress"[majr:noexp] OR ("distress"[ti] AND diabet*[ti])) NOT "Respiratory Distress Syndrome"[mh]) AND ' + standardString['narrow'] + '',
@@ -2264,53 +2510,61 @@ export const topics = [
           ],
           broad: [
             '(("Psychological Distress"[mh:noexp] OR "distress"[tiab]) NOT "Respiratory Distress Syndrome"[mh]) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S70050",
-        name: "Spiseforstyrrelser",
+        name: "S70050",
+        buttons: true,
         translations: {
           dk: "Spiseforstyrrelser",
-          en: "Eating disorders",
+          en: "Eating disorders"
         },
-        ordering: { dk: null, en: null },
-        buttons: true,
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['"Feeding and Eating Disorders"[majr] AND ' + standardString['narrow'] + ''],
+          narrow: [
+            '"Feeding and Eating Disorders"[majr] AND ' + standardString['narrow'] + ''
+          ],
           normal: [
             '("Feeding and Eating Disorders"[mh] OR bulimi*[ti] OR diabulimi*[ti] OR binge-eating*[ti] OR bingeeat*[ti] OR eating-disorder*[ti] OR hyperphagi*[ti] OR overeat*[ti] OR polyphagi*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
             '("Feeding and Eating Disorders"[mh] OR bulimi*[tiab] OR diabulimi*[tiab] OR binge-eating*[tiab] OR bingeeat*[tiab] OR eating-disorder*[tiab] OR hyperphagi*[tiab] OR overeat*[tiab] OR polyphagi*[tiab]) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S70060",
-        name: "Tvangsoverspisning",
+        name: "S70060",
+        buttons: true,
         translations: {
           dk: "Tvangsoverspisning",
-          en: "Binge eating disorder",
+          en: "Binge eating disorder"
         },
-        ordering: { dk: null, en: null },
-        buttons: true,
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
           narrow: [
             '("Binge-Eating Disorder"[majr] OR "Hyperphagia"[majr:noexp]) AND ' + standardString['narrow'] + '',
@@ -2320,41 +2574,47 @@ export const topics = [
           ],
           broad: [
             '("Binge-Eating Disorder"[mh] OR "Hyperphagia"[mh:noexp] OR binge-eating*[tiab] OR bingeeat*[tiab] OR hyperphagi*[tiab] OR overeat*[tiab] OR polyphagi*[tiab]) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
-      },
+          en: ""
+        }
+      }
     ],
     tooltip: {
       dk: "",
-      en: "",
-    },
+      en: ""
+    }
   },
   {
     id: "S80",
-    groupname: "Forebyggelse og risikofaktorer",
+    groupname: "S80",
     translations: {
       dk: "Forebyggelse og risikofaktorer",
-      en: "Prevention and resk factors",
+      en: "Prevention and resk factors"
     },
-    ordering: { dk: 8, en: 8 },
+    ordering: { 
+      dk: 8, 
+      en: 8 
+    },
     groups: [
       {
         id: "S80010",
-        name: "Forebyggelse generelt",
+        name: "S80010",
         buttons: true,
         translations: {
           dk: "Forebyggelse generelt",
-          en: "Prevention in general",
+          en: "Prevention in general"
         },
-        ordering: { dk: 1, en: 1 },
+        ordering: { 
+          dk: 1, 
+          en: 1 
+        },
         searchStrings: {
           narrow: [
             '(("Public Health"[majr] AND "prevention and control"[sh]) OR "Public Health Practice"[majr] OR "Community Health Services"[majr] OR "Preventive Health Services"[majr] OR "Health Knowledge, Attitudes, Practice"[majr] OR "Health Communication"[majr]) AND ' + standardString['narrow'] + '',
@@ -2364,107 +2624,125 @@ export const topics = [
           ],
           broad: [
             '("prevention and control"[sh] OR "Public Health Practice"[mh] OR "Community Health Services"[mh] OR "Preventive Health Services"[mh] OR "Health Knowledge, Attitudes, Practice"[mh] OR "Health Communication"[mh]) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "Fritekstord vil blive tilføjet.",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
-        id: "S80050",
-        name: "Arvelighed",
+        id: "S80020",
+        name: "S80020",
+        buttons: true,
         translations: {
           dk: "Arvelighed",
-          en: "Heridity",
+          en: "Heridity"
         },
-        ordering: { dk: null, en: null },
-        buttons: true,
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['"Heredity"[majr] AND ' + standardString['narrow'] + ''],
+          narrow: [
+            '"Heredity"[majr] AND ' + standardString['narrow'] + ''
+          ],
           normal: [
             '("Heredity"[mh] OR heridity*[ti] OR heritability*[ti]) AND ' + standardString['narrow'] + '',
           ],
           broad: [
             '("Heredity"[mh] OR heridity*[tiab] OR heritability*[tiab]) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
-        id: "S80020",
-        name: "Motion",
+        id: "S80030",
+        name: "S80030",
         buttons: true,
         translations: {
           dk: "Motion",
-          en: "Physical activity",
+          en: "Physical activity"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['"Exercise"[majr] AND ' + standardString['narrow'] + ''],
+          narrow: [
+            '"Exercise"[majr] AND ' + standardString['narrow'] + ''
+          ],
           normal: [
             '("Exercise"[mh] OR exercise*[ti] OR physical-activ*[ti] OR physically-activ*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
             '("Exercise"[mh] OR exercise*[tiab] OR physical-activ*[tiab] OR physically-activ*[tiab]) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S80040",
-        name: "Overvægt",
+        name: "S80040",
         buttons: true,
         translations: {
           dk: "Overvægt",
-          en: "Overwieght",
+          en: "Overwieght"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['"Overweight"[majr] AND ' + standardString['narrow'] + ''],
+          narrow: [
+            '"Overweight"[majr] AND ' + standardString['narrow'] + ''
+          ],
           normal: [
             '("Overweight"[mh] OR obese*[ti] OR obesity*[ti] OR overweight*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
             '("Overweight"[mh] OR obese*[tiab] OR obesity*[tiab] OR overweight*[tiab]) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
-        id: "S80030",
-        name: "Rygning",
+        id: "S80050",
+        name: "S80050",
         buttons: true,
         translations: {
           dk: "Rygning",
-          en: "Smoking",
+          en: "Smoking"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
           narrow: [
             '("Smoking"[majr] OR "Smoking Cessation"[majr] OR "Tobacco"[majr] OR "Tobacco Use Cessation"[majr]) AND ' + standardString['narrow'] + '',
@@ -2474,41 +2752,47 @@ export const topics = [
           ],
           broad: [
             '("Smoking"[mh] OR "Smoking Cessation"[mh] OR "Tobacco"[mh] OR "Tobacco Use Cessation"[mh] OR smoke*[tiab] OR smoking*[tiab] OR tobacco*[tiab]) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
-      },
+          en: ""
+        }
+      }
     ],
     tooltip: {
       dk: "",
-      en: "",
-    },
+      en: ""
+    }
   },
   {
     id: "S90",
-    groupname: "Særlige grupper",
+    groupname: "S90",
     translations: {
       dk: "Særlige grupper",
-      en: "Special groups",
+      en: "Special groups"
     },
-    ordering: { dk: 9, en: 9 },
+    ordering: { 
+      dk: 9, 
+      en: 9 
+    },
     groups: [
       {
         id: "S90010",
-        name: "Alkohol- og stofmisbrugere",
+        name: "S90010",
         buttons: true,
         translations: {
           dk: "Alkohol- og stofmisbrugere",
-          en: "Alcohol and drug abuse",
+          en: "Alcohol and drug abuse"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
           narrow: [
             '("Designer Drugs"[majr] OR "Drug Users"[majr] OR "Substance-Related Disorders"[majr] OR "Illicit Drugs"[majr]) AND ' + standardString['narrow'] + '',
@@ -2518,26 +2802,29 @@ export const topics = [
           ],
           broad: [
             '("Designer Drugs"[mh] OR "Drug Users"[mh] OR "Substance-Related Disorders"[mh] OR "Illicit Drugs"[mh] OR ("drug user*"[tiab] OR (alkohol[tiab] OR amphetamine[tiab] OR cocaine[tiab] OR drug[tiab] OR marijuana[tiab] OR narcotic[tiab] OR substance[tiab]) AND (abuse[tiab] OR addict*[tiab] OR disorder[tiab]))) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S90020",
-        name: "Børn",
+        name: "S90020",
         buttons: true,
         translations: {
           dk: "Børn",
-          en: "Children",
+          en: "Children"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
           narrow: [
             '(("Child"[mh] NOT "Adult"[mh]) OR "Child, Hospitalized"[majr] OR "Child, Institutionalized"[majr] OR "Child Care"[majr] OR "Child Development"[majr] OR "Child Health"[majr] OR "Child Health Services"[majr] OR "Disabled Children"[majr] OR "Pediatrics"[majr] OR "Pediatric Nursing"[majr] OR "Pediatric Obesity"[majr] OR "Psychology, Child"[majr]) AND ' + standardString['narrow'] + '',
@@ -2547,25 +2834,28 @@ export const topics = [
           ],
           broad: [
             '("Child"[mh] OR "Child, Hospitalized"[mh] OR "Child, Institutionalized"[mh] OR "Child Care"[mh] OR "Child Development"[mh] OR "Child Health"[mh] OR "Child Health Services"[mh] OR "Disabled Children"[mh] OR "Pediatrics"[mh] OR "Pediatric Nursing"[mh] OR "Pediatric Obesity"[mh] OR "Psychology, Child"[mh] OR child*[tiab] OR paediatric*[tiab] OR pediatric*[tiab]) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S90030",
-        name: "Gravide med eksisterende diabetes",
+        name: "S90030",
         translations: {
           dk: "Gravide med eksisterende diabetes",
-          en: "Pregnant women with pre-existing diabetes",
+          en: "Pregnant women with pre-existing diabetes"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         buttons: true,
         searchStrings: {
           narrow: [
@@ -2576,26 +2866,29 @@ export const topics = [
           ],
           broad: [
             '(("Preconception Care"[mh] OR "Pregnancy in Diabetics"[mh] OR "Prenatal Care"[mh] OR antenatal*[tiab] OR pre-exist*[tiab] OR preexist*[tiab] OR pregnan*[tiab] OR prenatal*[tiab]) NOT ("Diabetes, Gestational"[mh] OR gestational*[tiab] OR gdm[tiab])) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S90040",
-        name: "Minoritetsgrupper",
+        name: "S90040",
         buttons: true,
         translations: {
           dk: "Minoritetsgrupper",
-          en: "Minority groups",
+          en: "Minority groups"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
           narrow: [
             '("Minority Groups"[majr] OR "Minority Health"[majr]) AND ' + standardString['narrow'] + '',
@@ -2605,53 +2898,61 @@ export const topics = [
           ],
           broad: [
             '("Minority Groups"[mh] OR "Minority Health"[mh] OR (minorit*[tiab] AND (group*[tiab] OR population*[tiab]))) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S90050",
-        name: "Pårørende",
+        name: "S90050",
         buttons: true,
         translations: {
           dk: "Pårørende",
-          en: "Relatives",
+          en: "Relatives"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['("Family"[majr] OR "Family Health"[majr]) AND ' + standardString['narrow'] + ''],
+          narrow: [
+            '("Family"[majr] OR "Family Health"[majr]) AND ' + standardString['narrow'] + ''
+          ],
           normal: [
             '("Family"[mh] OR "Family Health"[mh] OR family-based*[ti] OR familybased*[ti] OR family-orient*[ti] OR familyorient*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
             '("Family"[mh] OR "Family Health"[mh] OR "Caregivers"[mh] OR family-based*[tiab] OR familybased*[tiab] OR family-orient*[tiab] OR familyorient*[tiab]) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: '"Caregivers"[mh] er kun medtaget i den brede søgning, da denne også inkluderer hospitalspersonale.',
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S90060",
-        name: "Socialt udsatte",
+        name: "S90060",
         buttons: true,
         translations: {
           dk: "Socialt udsatte",
-          en: "Vulnerable populations",
+          en: "Vulnerable populations"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
           narrow: [
             '("Health Equity"[majr] OR "Health Status Disparities"[majr] OR Poverty[majr] OR "Social Marginalization"[majr] OR "Vulnerable Populations"[majr]) AND ' + standardString['narrow'] + '',
@@ -2661,25 +2962,28 @@ export const topics = [
           ],
           broad: [
             '("Health Equity"[mh] OR "Health Status Disparities"[mh] OR Poverty[mh] OR "Social Marginalization"[mh] OR "Vulnerable Populations"[mh] OR disadvantage*[tiab] OR disparit*[tiab] OR hard-to-reach*[tiab] OR inequalit*[tiab] OR inequit*[tiab] OR marginali*[tiab] OR most-in-need*[tiab] OR poverty*[tiab] OR vulnerabl*[tiab]) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S90070",
-        name: "Udviklingshæmmede",
+        name: "S90070",
         translations: {
           dk: "Udviklingshæmmede",
-          en: "People with developmental disabilities",
+          en: "People with developmental disabilities"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         buttons: true,
         searchStrings: {
           narrow: [
@@ -2690,25 +2994,28 @@ export const topics = [
           ],
           broad: [
             '("Developmental Disabilities"[mh] OR "Intellectual Disability"[mh] OR "Persons with Mental Disabilities"[mh] OR ((developmental*[tiab] OR intellectual*[tiab] OR mental*[tiab]) AND disabilit*[tiab])) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S90080",
-        name: "Unge",
+        name: "S90080",
         translations: {
           dk: "Unge",
-          en: "Young people",
+          en: "Young people"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         buttons: true,
         searchStrings: {
           narrow: [
@@ -2719,25 +3026,28 @@ export const topics = [
           ],
           broad: [
             '("Adolescent"[mh] OR "Adolescent, Hospitalized "[mh] OR "Adolescent, Institutionalized"[mh] OR "Adolescent Development"[mh] OR "Adolescent Behavior"[mh] OR "Adolescent Health"[mh] OR "Adolescent Health Services"[mh] OR "Adolescent Medicine"[mh] OR "Psychology, Adolescent"[mh] OR "Youth Sports"[mh] OR adolescen*[tiab] OR "young people*"[tiab] OR youth*[tiab]) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "S90090",
-        name: "Ældre",
+        name: "S90090",
         translations: {
           dk: "Ældre",
-          en: "Elderly people",
+          en: "Elderly people"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         buttons: true,
         searchStrings: {
           narrow: [
@@ -2748,41 +3058,47 @@ export const topics = [
           ],
           broad: [
             '(("Aged"[mh] OR "Health Services for the Aged"[mh] OR "Homes for the Aged"[mh] OR "Retirement"[mh] OR "Senior Centers"[mh] OR elderly[tiab]) OR (older*[tiab] AND (people*[tiab] OR person*[tiab]))) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
-      },
+          en: ""
+        }
+      }
     ],
     tooltip: {
       dk: "",
-      en: "",
-    },
+      en: ""
+    }
   },
   {
     id: "SXX",
-    groupname: "Andre emner",
+    groupname: "SXX",
     translations: {
       dk: "Andre emner",
-      en: "Other topics",
+      en: "Other topics"
     },
-    ordering: { dk: 9, en: 9 },
+    ordering: { 
+      dk: 9, 
+      en: 9 
+    },
     groups: [
       {
         id: "SXX110",
         name: "Amputationer",
+        buttons: true,
         translations: {
           dk: "Amputationer",
-          en: "Amputations",
+          en: "Amputations"
         },
-        ordering: { dk: null, en: null },
-        buttons: true,
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
           narrow: [
             '("Amputation, Surgical"[majr] OR "Amputation Stumps"[majr]) AND ' + standardString['narrow'] + '',
@@ -2792,80 +3108,93 @@ export const topics = [
           ],
           broad: [
             '("Amputation, Surgical"[mh] OR "Amputation Stumps"[mh] OR amputat*[tiab]) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "SXX010",
-        name: "COVID-19",
+        name: "SXX010",
+        buttons: true,
         translations: {
           dk: "COVID-19",
-          en: "COVID-19",
+          en: "COVID-19"
         },
-        ordering: { dk: null, en: null },
-        buttons: true,
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['("COVID-19"[majr] OR "SARS-CoV-2"[majr]) AND ' + standardString['narrow'] + ''],
+          narrow: [
+            '("COVID-19"[majr] OR "SARS-CoV-2"[majr]) AND ' + standardString['narrow'] + ''
+          ],
           normal: [
             '("COVID-19"[mh] OR "SARS-CoV-2"[mh]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
             '(("COVID-19"[mh] OR "COVID-19 Testing"[mh] OR "COVID-19 Vaccines"[mh] OR "SARS-CoV-2"[mh] OR 2019-ncov*[tiab] OR 2019ncov*[tiab] OR 2019-novel-cov*[tiab] OR coronavirus[ti] OR coronavirus-2*[tiab] OR coronavirus-disease-19*[tiab] OR corona-virus-disease-19*[tiab] OR coronavirus-disease-20*[tiab] OR corona-virus-disease-20*[tiab] OR covid-19*[tiab] OR covid19*[tiab] OR covid-20*[tiab] OR covid20*[tiab] OR ncov-2019*[tiab] OR ncov2019*[tiab] OR new-coronavirus[tiab] OR new-corona-virus[tiab] OR novel-coronavirus[tiab] OR novel-corona-virus[tiab] OR sars-2*[tiab] OR sars2*[tiab] OR sars-cov-19*[tiab] OR sars-cov19*[tiab] OR sarscov19*[tiab] OR sarscov-19*[tiab] OR sars-cov-2*[tiab] OR sars-cov2*[tiab] OR sarscov2*[tiab] OR sarscov-2*[tiab] OR (("Coronavirus"[mh] OR "Coronavirus Infections"[mh] OR betacoronavirus[tiab] OR beta-coronavirus[tiab] OR beta-corona-virus[tiab] OR corona-virus[tiab] OR coronavirus[tiab] OR sars*[tiab] OR severe-acute-respiratory*[tiab]) AND (2019[tiab] OR 2020[tiab] OR wuhan*[tiab] OR hubei*[tiab] OR china*[tiab] OR chinese*[tiab] OR outbreak*[tiab] OR epidemic*[tiab] OR pandemic*[tiab]))) AND 2019/12:3000[dp]) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "SXX020",
-        name: "Egenomsorg",
+        name: "SXX020",
+        buttons: true,
         translations: {
           dk: "Egenomsorg",
-          en: "Self care",
+          en: "Self care"
         },
-        ordering: { dk: null, en: null },
-        buttons: true,
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['"Self Care"[majr] AND ' + standardString['narrow'] + ''],
+          narrow: [
+            '"Self Care"[majr] AND ' + standardString['narrow'] + ''
+          ],
           normal: [
             '("Self Care"[mh] OR self-care[ti] OR self-management[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
             '("Self Care"[mh] OR self-care[tiab] OR self-management[tiab]) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
-          dk: "Fritekstord vil blive tilføjet.",
-          en: "",
+          dk: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
-        id: "SXX060",
-        name: "Kræft",
+        id: "SXX030",
+        name: "SXX030",
+        buttons: true,
         translations: {
           dk: "Kræft",
-          en: "Cancer",
+          en: "Cancer"
         },
-        ordering: { dk: null, en: null },
-        buttons: true,
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
           narrow: [
             '("Neoplasms"[majr] NOT "Polycystic Ovary Syndrome"[mh]) AND ' + standardString['narrow'] + '',
@@ -2875,53 +3204,61 @@ export const topics = [
           ],
           broad: [
             '(("Neoplasms"[mh] OR cancer*[tiab] OR carcinoma*[tiab] OR neoplasm*[tiab]) NOT ("Polycystic Ovary Syndrome"[mh] OR pcos[tiab])) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
-          dk: "Fritekstord vil blive tilføjet.",
-          en: "",
+          dk: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
-        id: "SXX070",
-        name: "Patientuddannelse",
+        id: "SXX040",
+        name: "SXX040",
+        buttons: true,
         translations: {
           dk: "Patientuddannelse",
-          en: "Patient education",
+          en: "Patient education"
         },
-        ordering: { dk: null, en: null },
-        buttons: true,
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['"Patient Education as Topic"[majr] AND ' + standardString['narrow'] + ''],
+          narrow: [
+            '"Patient Education as Topic"[majr] AND ' + standardString['narrow'] + ''
+          ],
           normal: [
             '("Patient Education as Topic"[mh] OR patient-education[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
             '("Patient Education as Topic"[mh] OR patient-education[tiab]) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
-          dk: "Fritekstord vil blive tilføjet.",
-          en: "",
+          dk: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
-        id: "SXX080",
-        name: "PFAS",
+        id: "SXX050",
+        name: "SXX050",
+        buttons: true,
         translations: {
           dk: "PFAS",
-          en: "PFAS",
+          en: "PFAS"
         },
-        ordering: { dk: null, en: null },
-        buttons: true,
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
           narrow: [
             '("Fluorocarbons"[majr] OR "Alkanesulfonic Acids"[majr]) AND ("Environmental Pollutants"[mh] OR exposure*[ti]) AND ' + standardString['narrow'] + '',
@@ -2931,133 +3268,195 @@ export const topics = [
           ],
           broad: [
             '("Fluorocarbons"[mh] OR "Alkanesulfonic Acids"[mh] OR perfluoro*[tiab] OR polyfluoro*[tiab] OR perfluoro*[nm] OR polyfluoro*[nm]) AND ("Environmental Pollutants"[mh] OR Environmental Pollutants [Pharmacological Action] OR exposure*[tiab]) AND (' + standardString['broad'] + ')',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "SXX090",
-        name: "Ramadan",
+        name: "SXX090",
+        buttons: true,
         translations: {
           dk: "Ramadan",
-          en: "Ramadan",
+          en: "Ramadan"
         },
-        ordering: { dk: null, en: null },
-        buttons: true,
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['"ramadan"[ti] AND ' + standardString['narrow'] + ''],
-          normal: ['ramadan[ti] AND (' + standardString['normal'] + ')'],
-          broad: ['ramadan[tiab] AND (' + standardString['broad'] + ')'],
+          narrow: [
+            'ramadan[ti] AND ' + standardString['narrow'] + ''
+          ],
+          normal: [
+            'ramadan[ti] AND (' + standardString['normal'] + ')'
+          ],
+          broad: [
+            'ramadan[tiab] AND (' + standardString['broad'] + ')'
+          ]
         },
         searchStringComment: {
-          dk: "Fritekstord vil blive tilføjet.",
-          en: "",
+          dk: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
         id: "SXX100",
-        name: "Uddannelse af fagpersoner",
-        translations: {
-          dk: "Uddannelse af fagpersoner",
-          en: "Education of health professionals",
-        },
-        ordering: { dk: null, en: null },
+        name: "SXX100",
         buttons: true,
+        translations: {
+          dk: "Remission",
+          en: "Remission"
+        },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
-          narrow: ['"Education, Professional"[majr] AND ' + standardString['narrow'] + ''],
-          normal: ['"Education, Professional"[mh] AND (' + standardString['normal'] + ')'],
-          broad: ['"Education, Professional"[mh] AND (' + standardString['broad'] + ')'],
+          narrow: [
+            '"Remission Induction"[majr] AND ' + standardString['narrow'] + ''
+          ],
+          normal: [
+            '("Remission Induction"[mh] OR remission*[ti]) AND (' + standardString['normal'] + ')'
+          ],
+          broad: [
+            '("Remission Induction"[mh] OR remission*[tiab]) AND (' + standardString['broad'] + ')'
+          ]
         },
         searchStringComment: {
-          dk: "Fritekstord vil blive tilføjet.",
-          en: "",
+          dk: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
+      {
+        id: "SXX110",
+        name: "SXX110",
+        buttons: true,
+        translations: {
+          dk: "Uddannelse af fagpersoner",
+          en: "Education of health professionals"
+        },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
+        searchStrings: {
+          narrow: [
+            '"Education, Professional"[majr] AND ' + standardString['narrow'] + ''
+          ],
+          normal: [
+            '"Education, Professional"[mh] AND (' + standardString['normal'] + ')'
+          ],
+          broad: [
+            '"Education, Professional"[mh] AND (' + standardString['broad'] + ')'
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      }
     ],
     tooltip: {
       dk: "",
-      en: "",
-    },
+      en: ""
+    }
   },
   {
     id: "C10",
-    groupname: "COVID-19",
+    groupname: "C10",
     translations: {
       dk: "COVID-19",
-      en: "COVID-19",
+      en: "COVID-19"
     },
-    ordering: { dk: 10, en: 10 },
+    ordering: { 
+      dk: 100, 
+      en: 100 
+    },
     groups: [
       {
-        id: "C10020",
-        name: "Diabetes",
+        id: "C10010",
+        name: "C10010",
         buttons: true,
         translations: {
           dk: "Diabetes",
-          en: "Diabetes",
+          en: "Diabetes"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
           normal: [
             standardString['broad'] + ' OR blood-glucose*[tiab] OR glycaemi*[tiab] OR glycemi*[tiab] OR hba1c*[tiab] OR a1c[tiab] OR hyperglyc*[tiab] OR hypoglyc*[tiab] OR insulin*[tiab] OR metabolic*[tiab]',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
+          en: ""
         },
       },
       {
-        id: "C10030",
-        name: "Hjerte-kar-sygdom",
+        id: "C10020",
+        name: "C10020",
         buttons: true,
         translations: {
           dk: "Hjerte-kar-sygdom",
-          en: "Cardiovascular diseases",
+          en: "Cardiovascular diseases"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
           normal: [
-            '"Cardiovascular Diseases"[mh] OR "Cardiovascular System"[mh]  OR cardiopulmonary*[tiab] OR cardio-pulmonary*[tiab] OR cardiorespiratory*[tiab] OR cardio-respiratory*[tiab] OR cardiovascular*[tiab] OR cardio-vascular*[tiab] OR cvd[tiab] OR heart*[tiab] OR hypertens*[tiab]',
-          ],
+            '"Cardiovascular Diseases"[mh] OR "Cardiovascular System"[mh]  OR cardiopulmonary*[tiab] OR cardio-pulmonary*[tiab] OR cardiorespiratory*[tiab] OR cardio-respiratory*[tiab] OR cardiovascular*[tiab] OR cardio-vascular*[tiab] OR cvd[tiab] OR heart*[tiab] OR hypertens*[tiab]'
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
-        id: "C10040",
-        name: "Nyresygdom",
+        id: "C10030",
+        name: "C10030",
         buttons: true,
         translations: {
           dk: "Nyresygdom",
-          en: "Kidney diseases",
+          en: "Kidney diseases"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
           normal: [
             '"Kidney Diseases"[mh] OR "Kidney"[mh] OR nephro*[tiab] OR kidney*[tiab] OR renal*[tiab]',
@@ -3065,40 +3464,43 @@ export const topics = [
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
+          en: ""
+        }
       },
       {
-        id: "C10050",
-        name: "Mental sundhed",
+        id: "C10040",
+        name: "C10040",
         buttons: true,
         translations: {
           dk: "Mental sundhed",
-          en: "Mental health",
+          en: "Mental health"
         },
-        ordering: { dk: null, en: null },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
         searchStrings: {
           normal: [
             '"Depression"[mh] OR "Emotions"[mh] OR "Mental Disorders"[mh] OR "Mental Health"[mh] OR "Stress, Psychological"[mh] OR psychology[sh] OR anxiety[tiab] OR depression[tiab] OR depressive[tiab] OR emotion*[tiab] OR insomnia*[tiab] OR life-stress*[tiab] OR mental*[tiab] OR psychiatr*[tiab] OR psycholog*[tiab] OR psychosocial*[tiab] OR psycho-social*[tiab] OR sleep*[tiab] OR stressful*[tiab]',
-          ],
+          ]
         },
         searchStringComment: {
           dk: "",
-          en: "",
+          en: ""
         },
         tooltip: {
           dk: "",
-          en: "",
-        },
-      },
+          en: ""
+        }
+      }
     ],
     tooltip: {
       dk: "",
-      en: "",
-    },
-  },
+      en: ""
+    }
+  }
 ];
