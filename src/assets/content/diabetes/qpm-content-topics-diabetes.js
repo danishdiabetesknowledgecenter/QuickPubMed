@@ -2987,13 +2987,13 @@ export const topics = [
         buttons: true,
         searchStrings: {
           narrow: [
-            '("Developmental Disabilities"[majr] OR "Intellectual Disability"[majr] OR "Persons with Mental Disabilities"[majr]) AND ' + standardString['narrow'] + '',
+            '("Developmental Disabilities"[majr] OR "Intellectual Disability"[majr] OR "Persons with Intellectual Disabilities"[majr]) AND ' + standardString['narrow'] + '',
           ],
           normal: [
-            '("Developmental Disabilities"[mh] OR "Intellectual Disability"[mh] OR "Persons with Mental Disabilities"[mh] OR ((developmental*[ti] OR intellectual*[ti] OR mental*[ti]) AND disabilit*[ti])) AND (' + standardString['normal'] + ')',
+            '("Developmental Disabilities"[mh] OR "Intellectual Disability"[mh] OR "Persons with Intellectual Disabilities"[mh] OR ((developmental*[ti] OR intellectual*[ti] OR mental*[ti]) AND disabilit*[ti])) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Developmental Disabilities"[mh] OR "Intellectual Disability"[mh] OR "Persons with Mental Disabilities"[mh] OR ((developmental*[tiab] OR intellectual*[tiab] OR mental*[tiab]) AND disabilit*[tiab])) AND (' + standardString['broad'] + ')',
+            '("Developmental Disabilities"[mh] OR "Intellectual Disability"[mh] OR "Persons with Intellectual Disabilities"[mh] OR ((developmental*[tiab] OR intellectual*[tiab] OR mental*[tiab]) AND disabilit*[tiab])) AND (' + standardString['broad'] + ')',
           ]
         },
         searchStringComment: {
