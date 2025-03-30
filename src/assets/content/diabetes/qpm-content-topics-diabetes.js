@@ -2156,8 +2156,8 @@ export const topics = [
         name: "S60020",
         buttons: true,
         translations: {
-          dk: "Blodsukker",
-          en: "Blood sugar"
+          dk: "Blodglukose",
+          en: "Blood glucose"
         },
         ordering: { 
           dk: null, 
@@ -2770,8 +2770,219 @@ export const topics = [
     }
   },
   {
-    id: "S90",
-    groupname: "S90",
+    id: 'S90',
+    groupname: 'S90',
+    translations: {
+        dk: 'Køn og diabetes',
+        en: 'Gender and diabetes'
+    }, 
+    ordering: { 
+      dk: 8, 
+      en: 8 
+    },
+    groups: [
+      {
+        id: 'S90010',
+        name: 'S90010',
+        buttons: true,
+        translations: {
+          dk: 'Fertilitet',
+          en: 'Fertility'
+        },
+        ordering: { 
+          dk: 1, 
+          en: 1 
+        },
+        searchStrings: {
+          narrow: [
+            '("Fertility"[majr] OR "Infertility"[majr]) AND ' + standardString['narrow'] + '',
+          ],
+          normal: [
+            '("Fertility"[mh] OR "Infertility"[mh] OR fertility[ti] OR infertility[ti]) AND (' + standardString['normal'] + ')',
+          ],
+          broad: [
+            '("Fertility"[mh] OR "Infertility"[mh] OR fertility[tiab] OR infertility[tiab]) AND (' + standardString['broad'] + ')',
+          ],
+        },
+        searchStringComment: {
+          dk: "Fritekstord vil blive tilføjet.",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: 'S90020',
+        name: 'S90020',
+        buttons: true,
+        translations: {
+          dk: 'Polycystisk ovariesyndrom (PCOS)',
+          en: 'Polycystic Ovary Syndrome (PCOS)'
+        },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
+        buttons: true, 
+        searchStrings: {
+          narrow: [
+            '"Polycystic Ovary Syndrome"[majr] AND ' + standardString['narrow'] + '',
+          ],
+          normal: [
+            '("Polycystic Ovary Syndrome"[mh] OR polycystic ovary syndrome[ti] OR pcos[ti]) AND (' + standardString['normal'] + ')',
+          ],
+          broad: [
+            '("Polycystic Ovary Syndrome"[mh] OR polycystic ovary syndrome[tiab] OR pcos[tiab]) AND (' + standardString['broad'] + ')',
+          ],
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: 'S90030',
+        name: 'S90030',
+        buttons: true,
+        translations: {
+          dk: 'Menstruationscyklus',
+          en: 'Menstrual cycle'
+        },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
+        searchStrings: {
+          narrow: [
+            '("Menstrual Cycle"[majr] OR "Menstruation Disturbances"[majr]) AND ' + standardString['narrow'] + '',
+          ],
+          normal: [
+            '("Menstrual Cycle"[mh] OR "Menstruation Disturbances"[mh] OR menstrua*[ti]) AND (' + standardString['normal'] + ')',
+          ],
+          broad: [
+            '("Menstrual Cycle"[mh] OR "Menstruation Disturbances"[mh] OR menstrua*[tiab]) AND (' + standardString['broad'] + ')',
+          ],
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: 'S90040',
+        name: 'S90040',
+        buttons: true,
+        translations: {
+          dk: 'Overgangsalder',
+          en: 'Climacteric'
+        },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
+        searchStrings: {
+          narrow: [
+            '"Climacteric"[majr] AND ' + standardString['narrow'] + '',
+          ],
+          normal: [
+            '("Climacteric"[mh] OR andropaus*[ti] OR climacteric[ti] OR menopaus*[ti]) AND (' + standardString['normal'] + ')',
+          ],
+          broad: [
+            '("Climacteric"[mh] OR andropaus*[tiab] OR climacteric[tiab] OR menopaus*[tiab]) AND (' + standardString['broad'] + ')',
+          ],
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: 'S90050',
+        name: 'S90050',
+        buttons: true,
+        translations: {
+          dk: 'Pubertet',
+          en: 'Puberty'
+        },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
+        searchStrings: {
+          narrow: [
+            '("Puberty"[majr]) AND ' + standardString['narrow'] + '',
+          ],
+          normal: [
+            '("Puberty"[mh] OR adrenarche[ti] OR menarche[ti] OR puberty[ti]) AND (' + standardString['normal'] + ')',
+          ],
+          broad: [
+            '("Puberty"[mh] OR adrenarche[tiab] OR menarche[tiab] OR puberty[tiab]) AND (' + standardString['broad'] + ')',
+          ],
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: 'S90060',
+        name: 'S90060',
+        buttons: true,
+        translations: {
+          dk: 'Testosteron',
+          en: 'Testosterone'
+        },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
+        searchStrings: {
+          narrow: [
+            '("Testosterone"[majr] OR "Hypogonadism"[majr]) AND ' + standardString['narrow'] + '',
+          ],
+          normal: [
+            '("Testosterone"[mh] OR "Hypogonadism"[mh] OR testosteron*[ti] OR hypogonadis*[ti]) AND (' + standardString['normal'] + ')',
+          ],
+          broad: [
+            '("Testosterone"[mh] OR "Hypogonadism"[mh] OR testosteron*[tiab] OR hypogonadis*[tiab]) AND (' + standardString['broad'] + ')',
+          ],
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+    ],
+    tooltip: {
+        dk: "",
+        en: ""
+    }
+  },
+  {
+    id: "S100",
+    groupname: "S100",
     translations: {
       dk: "Særlige grupper",
       en: "Special groups"
@@ -2782,8 +2993,8 @@ export const topics = [
     },
     groups: [
       {
-        id: "S90010",
-        name: "S90010",
+        id: "S100010",
+        name: "S100010",
         buttons: true,
         translations: {
           dk: "Alkohol- og stofmisbrugere",
@@ -2814,8 +3025,8 @@ export const topics = [
         }
       },
       {
-        id: "S90020",
-        name: "S90020",
+        id: "S100020",
+        name: "S100020",
         buttons: true,
         translations: {
           dk: "Børn",
@@ -2846,8 +3057,8 @@ export const topics = [
         }
       },
       {
-        id: "S90030",
-        name: "S90030",
+        id: "S100030",
+        name: "S100030",
         translations: {
           dk: "Gravide med eksisterende diabetes",
           en: "Pregnant women with pre-existing diabetes"
@@ -2878,8 +3089,8 @@ export const topics = [
         }
       },
       {
-        id: "S90040",
-        name: "S90040",
+        id: "S100040",
+        name: "S100040",
         buttons: true,
         translations: {
           dk: "Minoritetsgrupper",
@@ -2910,8 +3121,8 @@ export const topics = [
         }
       },
       {
-        id: "S90050",
-        name: "S90050",
+        id: "S100050",
+        name: "S100050",
         buttons: true,
         translations: {
           dk: "Pårørende",
@@ -2942,8 +3153,8 @@ export const topics = [
         }
       },
       {
-        id: "S90060",
-        name: "S90060",
+        id: "S100060",
+        name: "S100060",
         buttons: true,
         translations: {
           dk: "Socialt udsatte",
@@ -2974,8 +3185,8 @@ export const topics = [
         }
       },
       {
-        id: "S90070",
-        name: "S90070",
+        id: "S100070",
+        name: "S100070",
         translations: {
           dk: "Udviklingshæmmede",
           en: "People with developmental disabilities"
@@ -3006,8 +3217,8 @@ export const topics = [
         }
       },
       {
-        id: "S90080",
-        name: "S90080",
+        id: "S100080",
+        name: "S100080",
         translations: {
           dk: "Unge",
           en: "Young people"
@@ -3038,8 +3249,8 @@ export const topics = [
         }
       },
       {
-        id: "S90090",
-        name: "S90090",
+        id: "S100090",
+        name: "S100090",
         translations: {
           dk: "Ældre",
           en: "Elderly people"

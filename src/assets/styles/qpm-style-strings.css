@@ -20,9 +20,18 @@
     padding-left: 15px;
 }
 
+.qpm_groupid {
+    font-size: 0.8em;
+    color: var(--color-grey-medium);
+    font-weight: normal;
+    margin-left: 10px;
+    vertical-align: text-top;
+}
+
 .qpm_subjectSearchStrings h2.qpm_heading, .qpm_subjectSearchStrings h3.qpm_heading, .qpm_searchGroups h4.qpm_heading, .qpm_filterSearchStrings h2.qpm_heading, .qpm_filterSearchStrings h3.qpm_heading, .qpm_filterGroups h4.qpm_heading {
     margin-top: 10px !important;
     cursor: pointer;
+    display: inline-block
 }
 
 .qpm_searchStringCollection h2:hover, .qpm_filterSearchStrings h3:hover, .qpm_subjectSearchStrings h3:hover, .qpm_subjectSearchStrings h4:hover {

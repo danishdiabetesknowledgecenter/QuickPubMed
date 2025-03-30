@@ -392,9 +392,9 @@
             aSort = a.ordering[lang];
             bSort = b.ordering[lang];
           } else {
-            // Both are unordered
-            aSort = self.customGroupLabel(a);
-            bSort = self.customGroupLabel(b);
+            // Begge er uordnede
+            aSort = self.customGroupLabel(a).toLowerCase();
+            bSort = self.customGroupLabel(b).toLowerCase();
           }
 
           if (aSort === bSort) {

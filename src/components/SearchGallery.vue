@@ -36,8 +36,9 @@
           class="qpm_heading intext-arrow-link"
           @click="hideOrCollapse(toClassName(subject.groupname))"
         >
-          {{ customNameLabel(subject) }}
+          {{ customNameLabel(subject) }} 
         </h3>
+        <span class="qpm_groupid">(ID: {{ subject.id }})</span>
         <div
           v-for="(group, index) in subject.groups"
           :key="`group-${group.id}-${index}`"
@@ -56,8 +57,9 @@
             :class="{ 'intext-arrow-link': !group.maintopic }"
             @click="hideOrCollapse(toClassName(group.name))"
           >
-            {{ customNameLabel(group) }}
+            {{ customNameLabel(group) }} 
           </h4>
+          <span class="qpm_groupid">(ID: {{ group.id }})</span>
           <div
             v-if="!group.maintopic"
             class="qpm_searchGroups qpm_collapsedSection qpm_searchSubject"
@@ -189,8 +191,9 @@
         class="qpm_filterSearchStrings qpm_collapsedSection"
       >
         <h3 class="qpm_heading intext-arrow-link" @click="hideOrCollapse(toClassName(filter.name))">
-          {{ customNameLabel(filter) }}
+          {{ customNameLabel(filter) }} 
         </h3>
+        <span class="qpm_groupid">(ID: {{ filter.id }})</span>
         <div
           v-for="choice in filter.choices"
           :key="choice.id"
@@ -209,8 +212,9 @@
             :class="{ 'intext-arrow-link': !choice.maintopic }"
             @click="hideOrCollapse(toClassName(choice.name))"
           >
-            {{ customNameLabel(choice) }}
+            {{ customNameLabel(choice) }} 
           </h4>
+          <span class="qpm_groupid">(ID: {{ choice.id }})</span>
           <div
             v-if="!choice.maintopic"
             class="qpm_filterGroup qpm_collapsedSection qpm_searchFilter"
@@ -504,8 +508,8 @@
             bSort = b.ordering[lang];
           } else {
             // Both are unordered
-            aSort = self.customNameLabel(a);
-            bSort = self.customNameLabel(b);
+            aSort = self.customNameLabel(a).toLowerCase();
+            bSort = self.customNameLabel(b).toLowerCase();
           }
 
           if (aSort === bSort) {
