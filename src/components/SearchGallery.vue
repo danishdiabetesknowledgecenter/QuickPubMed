@@ -169,8 +169,7 @@
                 </th>
               </tr>
               <tr v-if="group && group.searchStringComment && blockHasComment(group)">
-                <td colspan="2">
-                  {{ group.searchStringComment[language] }}
+                <td colspan="2" v-html="group.searchStringComment[language]">
                 </td>
               </tr>
             </table>
@@ -324,8 +323,7 @@
                 </th>
               </tr>
               <tr v-if="choice && choice.searchStringComment && blockHasComment(choice)">
-                <td colspan="2">
-                  {{ choice.searchStringComment[language] }}
+                <td colspan="2" v-html="choice.searchStringComment[language]">
                 </td>
               </tr>
             </table>

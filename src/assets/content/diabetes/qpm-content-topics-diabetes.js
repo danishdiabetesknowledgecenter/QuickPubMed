@@ -33,8 +33,8 @@ export const standardString = {
 
 export const topics = [
   {
-    id: "S00",
-    groupname: "Skabelonkategori",
+    id: "S000",
+    groupname: "S000",
     translations: {
       dk: "Skabelonkategori",
       en: "Template category",
@@ -42,8 +42,8 @@ export const topics = [
     ordering: { dk: 0, en: 0 },
     groups: [
       {
-        id: "S00010",
-        name: "S00010",
+        id: "S000010",
+        name: "S000010",
         buttons: true,
         translations: {
           dk: "Underemne 1",
@@ -75,8 +75,8 @@ export const topics = [
 
       },
       {
-        id: "S00020",
-        name: "S00020",
+        id: "S000020",
+        name: "S000020",
         buttons: true,
         maintopic: true, // Angiver at dette element er en branch og har children elementer
         translations: {
@@ -94,12 +94,12 @@ export const topics = [
         },
       },
       {
-        id: "S00030",
-        name: "S00030",
+        id: "S000020010",
+        name: "S000020010",
         buttons: true,
         maintopic: true, // Angiver at dette element er en branch og har children elementer
         subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midderste niveau)
-        maintopicIdLevel1: "S00020", // Angiver at dette element har et parent med dette id. (Emne 2)
+        maintopicIdLevel1: "S000020", // Angiver at dette element har et parent med dette id. (Emne 2)
         translations: {
           dk: "Underemne 2.1",
           en: "Subtopic 2.1",
@@ -115,12 +115,12 @@ export const topics = [
         },
       },
       {
-        id: "S00040",
-        name: "S00040",
+        id: "S000020010010",
+        name: "S000020010010",
         buttons: true,
         subtopiclevel: 2, // Angiver at dette punkt ligger på 2. niveau (nedereste niveau)
-        maintopicIdLevel1: "S00030", // Angiver at dette element har et parent med dette id. (Emne 2.1)
-        maintopicIdLevel2: "S00020", // Angiver at dette element har et grandparent med dette id (Emne 2)
+        maintopicIdLevel1: "S000030", // Angiver at dette element har et parent med dette id. (Emne 2.1)
+        maintopicIdLevel2: "S000020", // Angiver at dette element har et grandparent med dette id (Emne 2)
         translations: {
           dk: "Underemne 2.1.1",
           en: "Subtopic 2.1.1",
@@ -152,12 +152,12 @@ export const topics = [
 
       },
       {
-        id: "S00050",
-        name: "S00050",
+        id: "S000020010020",
+        name: "S000020010020",
         buttons: true,
         subtopiclevel: 2, // Angiver at dette punkt ligger på 3. niveau
-        maintopicIdLevel1: "S00030", // Angiver at dette element har et parent med dette id. (Emne 2.1)
-        maintopicIdLevel2: "S00020", // Angiver at dette element har et grandparent med dette id (Emne 2)
+        maintopicIdLevel1: "S000030", // Angiver at dette element har et parent med dette id. (Emne 2.1)
+        maintopicIdLevel2: "S000020", // Angiver at dette element har et grandparent med dette id (Emne 2)
         translations: {
           dk: "Underemne 2.1.2",
           en: "Subtopic 2.1.2",
@@ -187,12 +187,12 @@ export const topics = [
         },
       },
       {
-        id: "S00060",
-        name: "S00060",
+        id: "S000020010030",
+        name: "S000020010030",
         buttons: true,
         subtopiclevel: 2, // Angiver at dette punkt ligger på 3. niveau
-        maintopicIdLevel1: "S00020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
-        maintopicIdLevel2: "S00030", // Angiver at dette er punktet på 2. niveau til punktet med det angivne name.
+        maintopicIdLevel1: "S000020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
+        maintopicIdLevel2: "S000030", // Angiver at dette er punktet på 2. niveau til punktet med det angivne name.
         translations: {
           dk: "Underemne 2.1.3",
           en: "Subtopic 2.1.3",
@@ -222,11 +222,11 @@ export const topics = [
         },
       },
       {
-        id: "S00070",
-        name: "S00070",
+        id: "S000020020",
+        name: "S000020020",
         buttons: true,
         subtopiclevel: 1, // Angiver at dette punkt ligger på 2. niveau
-        maintopicIdLevel1: "S00020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
+        maintopicIdLevel1: "S000020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
         translations: {
           dk: "Underemne 2.2",
           en: "Subtopic 2.2",
@@ -256,11 +256,11 @@ export const topics = [
         },
       },
       {
-        id: "S00080",
-        name: "S00080",
+        id: "S000020030",
+        name: "S000020030",
         buttons: true,
         subtopiclevel: 1, // Angiver at dette punkt ligger på 2. niveau
-        maintopicIdLevel1: "S00020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
+        maintopicIdLevel1: "S000020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
         translations: {
           dk: "Underemne 2.3",
           en: "Subtopic 2.3",
@@ -290,8 +290,8 @@ export const topics = [
         },
       },
       {
-        id: "S00090",
-        name: "S00090",
+        id: "S000030",
+        name: "S000030",
         buttons: true,
         translations: {
           dk: "Underemne 3",
@@ -328,8 +328,8 @@ export const topics = [
     },
   },
   {
-    id: "S10",
-    groupname: "Diabetestype",
+    id: "S010",
+    groupname: "S010",
     translations: {
       dk: "Diabetestype",
       en: "Diabetes type",
@@ -340,8 +340,8 @@ export const topics = [
     },
     groups: [
       {
-        id: "S10010",
-        name: "S10010",
+        id: "S010010",
+        name: "S010010",
         buttons: true,
         translations: {
           dk: "Alle typer diabetes",
@@ -372,8 +372,8 @@ export const topics = [
         },
       },
       {
-        id: "S10020",
-        name: "S10020",
+        id: "S010020",
+        name: "S010020",
         buttons: true,
         translations: {
           dk: "Type 1-diabetes",
@@ -404,8 +404,8 @@ export const topics = [
         },
       },
       {
-        id: "S10030",
-        name: "S10030",
+        id: "S010030",
+        name: "S010030",
         buttons: true,
         translations: {
           dk: "Type 2-diabetes",
@@ -436,8 +436,8 @@ export const topics = [
         },
       },
       {
-        id: "S10040",
-        name: "S10040",
+        id: "S010040",
+        name: "S010040",
         buttons: true,
         translations: {
           dk: "Graviditetsdiabetes",
@@ -468,8 +468,8 @@ export const topics = [
         },
       },
       {
-        id: "S10050",
-        name: "S10050",
+        id: "S010050",
+        name: "S010050",
         buttons: true,
         translations: {
           dk: "Prædiabetes",
@@ -500,8 +500,8 @@ export const topics = [
         },
       },
       {
-        id: "S10060",
-        name: "S10060",
+        id: "S010060",
+        name: "S010060",
         buttons: true,
         translations: {
           dk: "LADA",
@@ -532,8 +532,8 @@ export const topics = [
         },
       },
       {
-        id: "S10070",
-        name: "S10070",
+        id: "S010070",
+        name: "S010070",
         buttons: true,
         translations: {
           dk: "MODY",
@@ -564,8 +564,8 @@ export const topics = [
         },
       },
       {
-        id: "S10080",
-        name: "S10080",
+        id: "S010080",
+        name: "S010080",
         buttons: true,
         translations: {
           dk: "Neonatal diabetes",
@@ -602,8 +602,8 @@ export const topics = [
     },
   },
   {
-    id: "S20",
-    groupname: "Komplikationer",
+    id: "S020",
+    groupname: "S020",
     translations: {
       dk: "Komplikationer",
       en: "Complications",
@@ -614,8 +614,8 @@ export const topics = [
     },
     groups: [
       {
-        id: "S20010",
-        name: "S20010",
+        id: "S020010",
+        name: "S020010",
         buttons: true,
         translations: {
           dk: "Komplikationer generelt",
@@ -646,40 +646,8 @@ export const topics = [
         }
       },
       {
-        id: "S20020",
-        name: "S20020",
-        buttons: true,
-        translations: {
-          dk: "Diabetisk neuropati",
-          en: "Diabetic neuropathy"
-        },
-        ordering: { 
-          dk: null, 
-          en: null 
-        },
-        searchStrings: {
-          narrow: [
-            '"Diabetic Neuropathies"[majr:noexp]'
-          ],
-          normal: [
-            '"Diabetic Neuropathies"[mh:noexp] OR ((neuropath*[ti] OR neuralgi*[ti] OR mononeuropath*[ti] OR polyneuropath*[ti]) AND (' + standardString['normal'] + '))'
-          ],
-          broad: [
-            '"Diabetic Neuropathies"[mh:noexp] OR ((neuropath*[tiab] OR neuralgi*[tiab] OR mononeuropath*[tiab] OR polyneuropath*[tiab]) AND (' + standardString['broad'] + '))'
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        id: "S20030",
-        name: "S20030",
+        id: "S020020",
+        name: "S020020",
         buttons: true,
         translations: {
           dk: "Diabetisk nefropati",
@@ -710,8 +678,40 @@ export const topics = [
         }
       },
       {
-        id: "S20040",
-        name: "S20040",
+        id: "S020030",
+        name: "S020030",
+        buttons: true,
+        translations: {
+          dk: "Diabetisk neuropati",
+          en: "Diabetic neuropathy"
+        },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
+        searchStrings: {
+          narrow: [
+            '"Diabetic Neuropathies"[majr:noexp]'
+          ],
+          normal: [
+            '"Diabetic Neuropathies"[mh:noexp] OR ((neuropath*[ti] OR neuralgi*[ti] OR mononeuropath*[ti] OR polyneuropath*[ti]) AND (' + standardString['normal'] + '))'
+          ],
+          broad: [
+            '"Diabetic Neuropathies"[mh:noexp] OR ((neuropath*[tiab] OR neuralgi*[tiab] OR mononeuropath*[tiab] OR polyneuropath*[tiab]) AND (' + standardString['broad'] + '))'
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: "S020040",
+        name: "S020040",
         buttons: true,
         translations: {
           dk: "Diabetisk retinopati",
@@ -742,8 +742,8 @@ export const topics = [
         }
       },
       {
-        id: "S20050",
-        name: "S20050",
+        id: "S020050",
+        name: "S020050",
         buttons: true,
         translations: {
           dk: "Fodsår og andre fodsygdomme",
@@ -774,8 +774,8 @@ export const topics = [
         }
       },
       {
-        id: "S20060",
-        name: "S20060",
+        id: "S020060",
+        name: "S020060",
         buttons: true,
         translations: {
           dk: "Gastroparese",
@@ -806,8 +806,8 @@ export const topics = [
         }
       },
       {
-        id: "S20070",
-        name: "S20070",
+        id: "S020070",
+        name: "S020070",
         buttons: true,
         translations: {
           dk: "Hjerte-kar-sygdomme",
@@ -838,8 +838,8 @@ export const topics = [
         }
       },
       {
-        id: "S20080",
-        name: "S20080",
+        id: "S020080",
+        name: "S020080",
         buttons: true,
         translations: {
           dk: "Hudforandringer",
@@ -870,8 +870,8 @@ export const topics = [
         }
       },
       {
-        id: "S20090",
-        name: "S20090",
+        id: "S020090",
+        name: "S020090",
         buttons: true,
         translations: {
           dk: "Hudreaktioner",
@@ -902,8 +902,8 @@ export const topics = [
         }
       },
       {
-        id: "S20100",
-        name: "S20100",
+        id: "S020100",
+        name: "S020100",
         buttons: true,
         translations: {
           dk: "Hyperglykæmi",
@@ -934,8 +934,8 @@ export const topics = [
         }
       },
       {
-        id: "S20110",
-        name: "S20110",
+        id: "S020110",
+        name: "S020110",
         buttons: true,
         translations: {
           dk: "Hypoglykæmi",
@@ -966,8 +966,8 @@ export const topics = [
         }
       },
       {
-        id: "S20120",
-        name: "S20120",
+        id: "S020120",
+        name: "S020120",
         buttons: true,
         translations: {
           dk: "Ketoacidose",
@@ -998,8 +998,8 @@ export const topics = [
         }
       },
       {
-        id: "S20130",
-        name: "S20130",
+        id: "S020130",
+        name: "S020130",
         buttons: true,
         translations: {
           dk: "Led, muskler og bindevæv",
@@ -1030,8 +1030,8 @@ export const topics = [
         }
       },
       {
-        id: "S20140",
-        name: "S20140",
+        id: "S020140",
+        name: "S020140",
         buttons: true,
         translations: {
           dk: "Parodontitis",
@@ -1062,8 +1062,8 @@ export const topics = [
         }
       },
       {
-        id: "S20150",
-        name: "S20150",
+        id: "S020150",
+        name: "S020150",
         buttons: true,
         translations: {
           dk: "Seksuel dysfunktion",
@@ -1094,8 +1094,8 @@ export const topics = [
         }
       },
       {
-        id: "S20160",
-        name: "S20160",
+        id: "S020160",
+        name: "S020160",
         buttons: true,
         translations: {
           dk: "Søvnproblemer",
@@ -1132,8 +1132,8 @@ export const topics = [
     },
   },
   {
-    id: "S30",
-    groupname: "S30",
+    id: "S030",
+    groupname: "S030",
     translations: {
       dk: "Medicinsk behandling",
       en: "Medical treatment",
@@ -1144,8 +1144,8 @@ export const topics = [
     },
     groups: [
       {
-        id: "S30010",
-        name: "S30010",
+        id: "S030010",
+        name: "S030010",
         buttons: true,
         translations: {
           dk: "Medicinsk behandling generelt",
@@ -1176,8 +1176,8 @@ export const topics = [
         }
       },
       {
-        id: "S30020",
-        name: "S30020",
+        id: "S030020",
+        name: "S030020",
         buttons: true,
         translations: {
           dk: "DPP-4-hæmmere",
@@ -1208,8 +1208,8 @@ export const topics = [
         }
       },
       {
-        id: "S30030",
-        name: "S30030",
+        id: "S030030",
+        name: "S030030",
         buttons: true,
         translations: {
           dk: "Glitazoner (tiazolidindioner)",
@@ -1240,8 +1240,8 @@ export const topics = [
         }
       },
       {
-        id: "S30040",
-        name: "S30040",
+        id: "S030040",
+        name: "S030040",
         buttons: true,
         translations: {
           dk: "GLP-1-receptoragonister",
@@ -1272,8 +1272,8 @@ export const topics = [
         }
       },
       {
-        id: "S30050",
-        name: "S30050",
+        id: "S030050",
+        name: "S030050",
         buttons: true,
         translations: {
           dk: "Insulin",
@@ -1302,8 +1302,8 @@ export const topics = [
         }
       },
       {
-        id: "S30060",
-        name: "S30060",
+        id: "S030060",
+        name: "S030060",
         buttons: true,
         translations: {
           dk: "Metformin",
@@ -1333,8 +1333,8 @@ export const topics = [
         }
       },
       {
-        id: "S30070",
-        name: "S30070",
+        id: "S030070",
+        name: "S030070",
         buttons: true,
         translations: {
           dk: "SGLT-2-hæmmere",
@@ -1365,8 +1365,8 @@ export const topics = [
         }
       },
       {
-        id: "S30080",
-        name: "S30080",
+        id: "S030080",
+        name: "S030080",
         buttons: true,
         translations: {
           dk: "Sulfonylurinstoffer",
@@ -1403,11 +1403,11 @@ export const topics = [
     },
   },
   {
-    id: "S40",
-    groupname: "S40",
+    id: "S040",
+    groupname: "S040",
     translations: {
-      dk: "Kost",
-      en: "Diet"
+      dk: "Ernæring",
+      en: "Nutrition"
     },
     ordering: { 
       dk: 4, 
@@ -1415,12 +1415,12 @@ export const topics = [
     },
     groups: [
       {
-        id: "S40010",
-        name: "S40010",
+        id: "S040010",
+        name: "S040010",
         buttons: true,
         translations: {
-          dk: "Kost generelt",
-          en: "Diet in general"
+          dk: "Ernæring generelt",
+          en: "Nutrition in general"
         },
         ordering: {
           dk: 1,
@@ -1447,8 +1447,8 @@ export const topics = [
         }
       },
       {
-        id: "S40020",
-        name: "S40020",
+        id: "S040020",
+        name: "S040020",
         buttons: true,
         maintopic: true,
         translations: {
@@ -1465,11 +1465,11 @@ export const topics = [
         }
       },
       {
-        id: "S4002010",
-        name: "S4002010",
+        id: "S040020010",
+        name: "S040020010",
         buttons: true,
         subtopiclevel: 1,
-        maintopicIdLevel1: "S40020",
+        maintopicIdLevel1: "S040020",
         translations: {
           dk: "DASH-diæt",
           en: "DASH diet"
@@ -1499,11 +1499,11 @@ export const topics = [
         }
       },
       {
-        id: "S4002020",
-        name: "S4002020",
+        id: "S040020020",
+        name: "S040020020",
         buttons: true,
         subtopiclevel: 1,
-        maintopicIdLevel1: "S40020",
+        maintopicIdLevel1: "S040020",
         translations: {
           dk: "Low carb high fat (LCHF)",
           en: "Low carb high fat (LCHF)"
@@ -1533,11 +1533,11 @@ export const topics = [
         }
       },
       {
-        id: "S4002030",
-        name: "S4002030",
+        id: "S040020030",
+        name: "S040020030",
         buttons: true,
         subtopiclevel: 1,
-        maintopicIdLevel1: "S40020",
+        maintopicIdLevel1: "S040020",
         translations: {
           dk: "Middelhavskost",
           en: "Mediterranean diet"
@@ -1567,11 +1567,11 @@ export const topics = [
         }
       },
       {
-        id: "S4002040",
-        name: "S4002040",
+        id: "S040020040",
+        name: "S040020040",
         buttons: true,
         subtopiclevel: 1,
-        maintopicIdLevel1: "S40020",
+        maintopicIdLevel1: "S040020",
         translations: {
           dk: "Paleo-diæt",
           en: "Paleolithic diet"
@@ -1601,12 +1601,12 @@ export const topics = [
         }
       },
       {
-        id: "S4002050",
-        name: "S4002050",
+        id: "S040020050",
+        name: "S040020050",
         buttons: true,
         maintopic: true,
         subtopiclevel: 1,
-        maintopicIdLevel1: "S40020",
+        maintopicIdLevel1: "S040020",
         translations: {
           dk: "Plantebaseret kost",
           en: "Plant-based diet"
@@ -1625,12 +1625,12 @@ export const topics = [
         }
       },
       {
-        id: "S400205010",
-        name: "S400205010",
+        id: "S040020050010",
+        name: "S040020050010",
         buttons: true,
         subtopiclevel: 2,
-        maintopicIdLevel1: "S40020",
-        maintopicIdLevel2: "S4002050",
+        maintopicIdLevel1: "S040020050",
+        maintopicIdLevel2: "S040020",
         translations: {
           dk: "Plantebaseret kost generelt",
           en: "Plant-based diet in general"
@@ -1660,12 +1660,12 @@ export const topics = [
         }
       },
       {
-        id: "S400205020",
-        name: "S400205020",
+        id: "S040020050020",
+        name: "S040020050020",
         buttons: true,
         subtopiclevel: 2,
-        maintopicIdLevel1: "S40020",
-        maintopicIdLevel2: "S4002050",
+        maintopicIdLevel1: "S040020050",
+        maintopicIdLevel2: "S040020",
         translations: {
           dk: "Vegetarisk kost",
           en: "Vegetarian diet"
@@ -1695,12 +1695,12 @@ export const topics = [
         }
       },
       {
-        id: "S400205030",
-        name: "S400205030",
+        id: "S040020050030",
+        name: "S040020050030",
         buttons: true,
         subtopiclevel: 2,
-        maintopicIdLevel1: "S40020",
-        maintopicIdLevel2: "S4002050",
+        maintopicIdLevel1: "S040020050",
+        maintopicIdLevel2: "S040020",
         translations: {
           dk: "Vegansk kost",
           en: "Vegan diet"
@@ -1730,11 +1730,11 @@ export const topics = [
         }
       },
       {
-        id: "S4002070",
-        name: "S4002070",
+        id: "S040020060",
+        name: "S040020060",
         buttons: true,
         subtopiclevel: 1,
-        maintopicIdLevel1: "S40020",
+        maintopicIdLevel1: "S040020",
         translations: {
           dk: "Tidsbegrænset spisning",
           en: "Time-restricted eating"
@@ -1764,8 +1764,8 @@ export const topics = [
         },
       },
       {
-        id: "S40030",
-        name: "S40030",
+        id: "S040030",
+        name: "S040030",
         buttons: true,
         translations: {
           dk: "Drikke",
@@ -1796,8 +1796,8 @@ export const topics = [
         }
       },
       {
-        id: "S40040",
-        name: "S40040",
+        id: "S040040",
+        name: "S040040",
         buttons: true,
         translations: {
           dk: "Fedt",
@@ -1828,8 +1828,8 @@ export const topics = [
         }
       },
       {
-        id: "S40050",
-        name: "S40050",
+        id: "S040050",
+        name: "S040050",
         buttons: true,
         translations: {
           dk: "Fibre",
@@ -1860,8 +1860,40 @@ export const topics = [
         }
       },
       {
-        id: "S40060",
-        name: "S40060",
+        id: 'S040060',
+        name: 'S040060',
+        buttons: true,
+        translations: {
+          dk: 'Glykæmisk indeks',
+          en: 'Glycemic Index'
+        },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
+        searchStrings: {
+          narrow: [
+            '"Glycemic Index"[majr]',
+          ],
+          normal: [
+            '"Glycemic Index"[mh] OR glycaemic index[ti] OR glycemic index[ti]',
+          ],
+          broad: [
+            '"Glycemic Index"[mh] OR glycaemic index[tiab] OR glycemic index[tiab]',
+          ],
+        },
+        searchStringComment: {
+            dk: "Denne søgning er ikke kombineret med diabetesrelevante søgeord på forhånd.",
+            en: ""
+        },
+        tooltip: {
+            dk: "Denne søgning er ikke kombineret med diabetes&shy;relevante søgeord på forhånd.",
+            en: ""
+        }
+      },
+      {
+        id: "S040070",
+        name: "S040070",
         buttons: true,
         translations: {
           dk: "Kulhydrater",
@@ -1892,8 +1924,8 @@ export const topics = [
         }
       },
       {
-        id: "S40070",
-        name: "S40070",
+        id: "S040080",
+        name: "S040080",
         buttons: true,
         translations: {
           dk: "Kunstige sødestoffer",
@@ -1930,8 +1962,8 @@ export const topics = [
     },
   },
   {
-    id: "S50",
-    groupname: "S50",
+    id: "S050",
+    groupname: "S050",
     translations: {
       dk: "Teknologi",
       en: "Technology"
@@ -1942,8 +1974,8 @@ export const topics = [
     },
     groups: [
       {
-        id: "S50010",
-        name: "S50010",
+        id: "S050010",
+        name: "S050010",
         buttons: true,
         translations: {
           dk: "Glukosesensorer",
@@ -1974,8 +2006,8 @@ export const topics = [
         }
       },
       {
-        id: "S50020",
-        name: "S50020",
+        id: "S050020",
+        name: "S050020",
         buttons: true,
         translations: {
           dk: "Insulinpumper",
@@ -2006,8 +2038,8 @@ export const topics = [
         }
       },
       {
-        id: "S50030",
-        name: "S50030",
+        id: "S050030",
+        name: "S050030",
         buttons: true,
         translations: {
           dk: "Kunstig intelligens",
@@ -2038,8 +2070,8 @@ export const topics = [
         }
       },
       {
-        id: "S50040",
-        name: "S50040",
+        id: "S050040",
+        name: "S050040",
         buttons: true,
         translations: {
           dk: "Mobiltelefoner og apps",
@@ -2070,8 +2102,8 @@ export const topics = [
         }
       },
       {
-        id: "S50050",
-        name: "S50050",
+        id: "S050050",
+        name: "S050050",
         buttons: true,
         translations: {
           dk: "Telemedicin og e-sundhed",
@@ -2108,8 +2140,8 @@ export const topics = [
     }
   },
   {
-    id: "S60",
-    groupname: "S60",
+    id: "S060",
+    groupname: "S060",
     translations: {
       dk: "Kliniske målinger",
       en: "Clinical measures"
@@ -2120,8 +2152,8 @@ export const topics = [
     },
     groups: [
       {
-        id: "S60010",
-        name: "S60010",
+        id: "S060010",
+        name: "S060010",
         buttons: true,
         translations: {
           dk: "Albuminuri",
@@ -2152,8 +2184,8 @@ export const topics = [
         }
       },
       {
-        id: "S60020",
-        name: "S60020",
+        id: "S060020",
+        name: "S060020",
         buttons: true,
         translations: {
           dk: "Blodglukose",
@@ -2184,8 +2216,8 @@ export const topics = [
         }
       },
       {
-        id: "S60030",
-        name: "S60030",
+        id: "S060030",
+        name: "S060030",
         buttons: true,
         translations: {
           dk: "Blodtryk",
@@ -2216,8 +2248,8 @@ export const topics = [
         },
       },
       {
-        id: "S60040",
-        name: "S60040",
+        id: "S060040",
+        name: "S060040",
         translations: {
           dk: "eGFR",
           en: "eGFR"
@@ -2248,8 +2280,8 @@ export const topics = [
         }
       },
       {
-        id: "S60050",
-        name: "S60050",
+        id: "S060050",
+        name: "S060050",
         translations: {
           dk: "Glukosebelastning",
           en: "Oral glucose tolerance test"
@@ -2280,8 +2312,8 @@ export const topics = [
         }
       },
       {
-        id: "S60060",
-        name: "S60060",
+        id: "S060060",
+        name: "S060060",
         translations: {
           dk: "HbA1c",
           en: "HbA1c"
@@ -2312,8 +2344,8 @@ export const topics = [
         }
       },
       {
-        id: "S60070",
-        name: "S60070",
+        id: "S060070",
+        name: "S060070",
         translations: {
           dk: "Ketoner",
           en: "Ketones"
@@ -2344,8 +2376,8 @@ export const topics = [
         }
       },
       {
-        id: "S60080",
-        name: "S60080",
+        id: "S060080",
+        name: "S060080",
         translations: {
           dk: "Kolesterol",
           en: "Cholesterol"
@@ -2382,8 +2414,8 @@ export const topics = [
     }
   },
   {
-    id: "S70",
-    groupname: "S70",
+    id: "S070",
+    groupname: "S070",
     translations: {
       dk: "Mental sundhed",
       en: "Mental health"
@@ -2394,8 +2426,8 @@ export const topics = [
     },
     groups: [
       {
-        id: "S70010",
-        name: "S70010",
+        id: "S070010",
+        name: "S070010",
         buttons: true,
         translations: {
           dk: "Angst",
@@ -2426,8 +2458,8 @@ export const topics = [
         }
       },
       {
-        id: "S70020",
-        name: "S70020",
+        id: "S070020",
+        name: "S070020",
         buttons: true,
         translations: {
           dk: "Bulimi og diabulimi",
@@ -2458,8 +2490,8 @@ export const topics = [
         },
       },
       {
-        id: "S70030",
-        name: "S70030",
+        id: "S070030",
+        name: "S070030",
         buttons: true,
         translations: {
           dk: "Depression",
@@ -2490,8 +2522,8 @@ export const topics = [
         }
       },
       {
-        id: "S70040",
-        name: "S70040",
+        id: "S070040",
+        name: "S070040",
         buttons: true,
         translations: {
           dk: "Diabetes distress",
@@ -2522,8 +2554,8 @@ export const topics = [
         }
       },
       {
-        id: "S70050",
-        name: "S70050",
+        id: "S070050",
+        name: "S070050",
         buttons: true,
         translations: {
           dk: "Spiseforstyrrelser",
@@ -2554,8 +2586,8 @@ export const topics = [
         }
       },
       {
-        id: "S70060",
-        name: "S70060",
+        id: "S070060",
+        name: "S070060",
         buttons: true,
         translations: {
           dk: "Tvangsoverspisning",
@@ -2592,8 +2624,8 @@ export const topics = [
     }
   },
   {
-    id: "S80",
-    groupname: "S80",
+    id: "S080",
+    groupname: "S080",
     translations: {
       dk: "Forebyggelse og risikofaktorer",
       en: "Prevention and resk factors"
@@ -2604,8 +2636,8 @@ export const topics = [
     },
     groups: [
       {
-        id: "S80010",
-        name: "S80010",
+        id: "S080010",
+        name: "S080010",
         buttons: true,
         translations: {
           dk: "Forebyggelse generelt",
@@ -2636,8 +2668,8 @@ export const topics = [
         }
       },
       {
-        id: "S80020",
-        name: "S80020",
+        id: "S080020",
+        name: "S080020",
         buttons: true,
         translations: {
           dk: "Arvelighed",
@@ -2668,8 +2700,8 @@ export const topics = [
         }
       },
       {
-        id: "S80030",
-        name: "S80030",
+        id: "S080030",
+        name: "S080030",
         buttons: true,
         translations: {
           dk: "Motion",
@@ -2700,8 +2732,8 @@ export const topics = [
         }
       },
       {
-        id: "S80040",
-        name: "S80040",
+        id: "S080040",
+        name: "S080040",
         buttons: true,
         translations: {
           dk: "Overvægt",
@@ -2732,8 +2764,8 @@ export const topics = [
         }
       },
       {
-        id: "S80050",
-        name: "S80050",
+        id: "S080050",
+        name: "S080050",
         buttons: true,
         translations: {
           dk: "Rygning",
@@ -2770,8 +2802,8 @@ export const topics = [
     }
   },
   {
-    id: 'S90',
-    groupname: 'S90',
+    id: 'S090',
+    groupname: 'S090',
     translations: {
         dk: 'Køn og diabetes',
         en: 'Gender and diabetes'
@@ -2782,8 +2814,8 @@ export const topics = [
     },
     groups: [
       {
-        id: 'S90010',
-        name: 'S90010',
+        id: 'S090010',
+        name: 'S090010',
         buttons: true,
         translations: {
           dk: 'Fertilitet',
@@ -2814,8 +2846,72 @@ export const topics = [
         }
       },
       {
-        id: 'S90020',
-        name: 'S90020',
+        id: 'S090020',
+        name: 'S090020',
+        buttons: true,
+        translations: {
+          dk: 'Menstruationscyklus',
+          en: 'Menstrual cycle'
+        },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
+        searchStrings: {
+          narrow: [
+            '("Menstrual Cycle"[majr] OR "Menstruation Disturbances"[majr]) AND ' + standardString['narrow'] + '',
+          ],
+          normal: [
+            '("Menstrual Cycle"[mh] OR "Menstruation Disturbances"[mh] OR menstrua*[ti]) AND (' + standardString['normal'] + ')',
+          ],
+          broad: [
+            '("Menstrual Cycle"[mh] OR "Menstruation Disturbances"[mh] OR menstrua*[tiab]) AND (' + standardString['broad'] + ')',
+          ],
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: 'S090030',
+        name: 'S090030',
+        buttons: true,
+        translations: {
+          dk: 'Overgangsalder',
+          en: 'Climacteric'
+        },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
+        searchStrings: {
+          narrow: [
+            '"Climacteric"[majr] AND ' + standardString['narrow'] + '',
+          ],
+          normal: [
+            '("Climacteric"[mh] OR andropaus*[ti] OR climacteric[ti] OR menopaus*[ti]) AND (' + standardString['normal'] + ')',
+          ],
+          broad: [
+            '("Climacteric"[mh] OR andropaus*[tiab] OR climacteric[tiab] OR menopaus*[tiab]) AND (' + standardString['broad'] + ')',
+          ],
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: 'S090040',
+        name: 'S090040',
         buttons: true,
         translations: {
           dk: 'Polycystisk ovariesyndrom (PCOS)',
@@ -2847,72 +2943,8 @@ export const topics = [
         }
       },
       {
-        id: 'S90030',
-        name: 'S90030',
-        buttons: true,
-        translations: {
-          dk: 'Menstruationscyklus',
-          en: 'Menstrual cycle'
-        },
-        ordering: { 
-          dk: null, 
-          en: null 
-        },
-        searchStrings: {
-          narrow: [
-            '("Menstrual Cycle"[majr] OR "Menstruation Disturbances"[majr]) AND ' + standardString['narrow'] + '',
-          ],
-          normal: [
-            '("Menstrual Cycle"[mh] OR "Menstruation Disturbances"[mh] OR menstrua*[ti]) AND (' + standardString['normal'] + ')',
-          ],
-          broad: [
-            '("Menstrual Cycle"[mh] OR "Menstruation Disturbances"[mh] OR menstrua*[tiab]) AND (' + standardString['broad'] + ')',
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        id: 'S90040',
-        name: 'S90040',
-        buttons: true,
-        translations: {
-          dk: 'Overgangsalder',
-          en: 'Climacteric'
-        },
-        ordering: { 
-          dk: null, 
-          en: null 
-        },
-        searchStrings: {
-          narrow: [
-            '"Climacteric"[majr] AND ' + standardString['narrow'] + '',
-          ],
-          normal: [
-            '("Climacteric"[mh] OR andropaus*[ti] OR climacteric[ti] OR menopaus*[ti]) AND (' + standardString['normal'] + ')',
-          ],
-          broad: [
-            '("Climacteric"[mh] OR andropaus*[tiab] OR climacteric[tiab] OR menopaus*[tiab]) AND (' + standardString['broad'] + ')',
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        id: 'S90050',
-        name: 'S90050',
+        id: 'S090050',
+        name: 'S090050',
         buttons: true,
         translations: {
           dk: 'Pubertet',
@@ -2943,8 +2975,8 @@ export const topics = [
         }
       },
       {
-        id: 'S90060',
-        name: 'S90060',
+        id: 'S090060',
+        name: 'S090060',
         buttons: true,
         translations: {
           dk: 'Testosteron',
@@ -3287,8 +3319,8 @@ export const topics = [
     }
   },
   {
-    id: "SXX",
-    groupname: "SXX",
+    id: "SXXX",
+    groupname: "SXXX",
     translations: {
       dk: "Andre emner",
       en: "Other topics"
@@ -3299,8 +3331,8 @@ export const topics = [
     },
     groups: [
       {
-        id: "SXX110",
-        name: "Amputationer",
+        id: "SXXX010",
+        name: "SXXX010",
         buttons: true,
         translations: {
           dk: "Amputationer",
@@ -3331,8 +3363,8 @@ export const topics = [
         }
       },
       {
-        id: "SXX010",
-        name: "SXX010",
+        id: "SXXX020",
+        name: "SXXX020",
         buttons: true,
         translations: {
           dk: "COVID-19",
@@ -3363,8 +3395,8 @@ export const topics = [
         }
       },
       {
-        id: "SXX020",
-        name: "SXX020",
+        id: "SXXX030",
+        name: "SXXX030",
         buttons: true,
         translations: {
           dk: "Egenomsorg",
@@ -3395,8 +3427,8 @@ export const topics = [
         }
       },
       {
-        id: "SXX030",
-        name: "SXX030",
+        id: "SXXX040",
+        name: "SXXX040",
         buttons: true,
         translations: {
           dk: "Kræft",
@@ -3427,8 +3459,8 @@ export const topics = [
         }
       },
       {
-        id: "SXX040",
-        name: "SXX040",
+        id: "SXXX050",
+        name: "SXXX050",
         buttons: true,
         translations: {
           dk: "Patientuddannelse",
@@ -3459,8 +3491,8 @@ export const topics = [
         }
       },
       {
-        id: "SXX050",
-        name: "SXX050",
+        id: "SXXX060",
+        name: "SXXX060",
         buttons: true,
         translations: {
           dk: "PFAS",
@@ -3491,8 +3523,8 @@ export const topics = [
         }
       },
       {
-        id: "SXX090",
-        name: "SXX090",
+        id: "SXXX070",
+        name: "SXXX070",
         buttons: true,
         translations: {
           dk: "Ramadan",
@@ -3523,8 +3555,8 @@ export const topics = [
         }
       },
       {
-        id: "SXX100",
-        name: "SXX100",
+        id: "SXXX080",
+        name: "SXXX080",
         buttons: true,
         translations: {
           dk: "Remission",
@@ -3555,8 +3587,8 @@ export const topics = [
         }
       },
       {
-        id: "SXX110",
-        name: "SXX110",
+        id: "SXXX090",
+        name: "SXXX090",
         buttons: true,
         translations: {
           dk: "Uddannelse af fagpersoner",
@@ -3593,8 +3625,8 @@ export const topics = [
     }
   },
   {
-    id: "C10",
-    groupname: "C10",
+    id: "C010",
+    groupname: "C010",
     translations: {
       dk: "COVID-19",
       en: "COVID-19"
@@ -3605,8 +3637,8 @@ export const topics = [
     },
     groups: [
       {
-        id: "C10010",
-        name: "C10010",
+        id: "C010010",
+        name: "C010010",
         buttons: true,
         translations: {
           dk: "Diabetes",
@@ -3631,8 +3663,8 @@ export const topics = [
         },
       },
       {
-        id: "C10020",
-        name: "C10020",
+        id: "C010020",
+        name: "C010020",
         buttons: true,
         translations: {
           dk: "Hjerte-kar-sygdom",
@@ -3657,8 +3689,34 @@ export const topics = [
         }
       },
       {
-        id: "C10030",
-        name: "C10030",
+        id: "C010030",
+        name: "C010030",
+        buttons: true,
+        translations: {
+          dk: "Mental sundhed",
+          en: "Mental health"
+        },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
+        searchStrings: {
+          normal: [
+            '"Depression"[mh] OR "Emotions"[mh] OR "Mental Disorders"[mh] OR "Mental Health"[mh] OR "Stress, Psychological"[mh] OR psychology[sh] OR anxiety[tiab] OR depression[tiab] OR depressive[tiab] OR emotion*[tiab] OR insomnia*[tiab] OR life-stress*[tiab] OR mental*[tiab] OR psychiatr*[tiab] OR psycholog*[tiab] OR psychosocial*[tiab] OR psycho-social*[tiab] OR sleep*[tiab] OR stressful*[tiab]',
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: "C010040",
+        name: "C010040",
         buttons: true,
         translations: {
           dk: "Nyresygdom",
@@ -3682,32 +3740,6 @@ export const topics = [
           en: ""
         }
       },
-      {
-        id: "C10040",
-        name: "C10040",
-        buttons: true,
-        translations: {
-          dk: "Mental sundhed",
-          en: "Mental health"
-        },
-        ordering: { 
-          dk: null, 
-          en: null 
-        },
-        searchStrings: {
-          normal: [
-            '"Depression"[mh] OR "Emotions"[mh] OR "Mental Disorders"[mh] OR "Mental Health"[mh] OR "Stress, Psychological"[mh] OR psychology[sh] OR anxiety[tiab] OR depression[tiab] OR depressive[tiab] OR emotion*[tiab] OR insomnia*[tiab] OR life-stress*[tiab] OR mental*[tiab] OR psychiatr*[tiab] OR psycholog*[tiab] OR psychosocial*[tiab] OR psycho-social*[tiab] OR sleep*[tiab] OR stressful*[tiab]',
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      }
     ],
     tooltip: {
       dk: "",
