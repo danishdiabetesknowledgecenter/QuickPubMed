@@ -956,7 +956,7 @@ export const filtrer = [
       {
         id: "L040030",
         name: "L040030",
-        buttons: true,
+        maintopic: true,
         translations: {
           dk: "Nordiske lande",
           en: "Nordic countries",
@@ -965,29 +965,12 @@ export const filtrer = [
           dk: 3, 
           en: 3 
         },
-        simpleSearch: false,
-        standardSimple: false,
-        tooltip_simple: {
-          dk: "Artikler, som (blandt andet) omhandler Danmark, Norge, Sverige, Finland, Island og Grønland",
-          en: "",
-        },
-        searchStrings: {
-          narrow: [
-            '"Scandinavian and Nordic Countries"[mh] OR scandinavia*[ti] OR nordic-countr*[ti] OR denmark*[ti] OR danish*[ti] OR (danes*[ti] NOT (("great danes"[ti] OR "Dogs"[mh]) NOT "Denmark"[mh])) OR norway*[ti] OR norwegian*[ti] OR swed*[ti] OR finnish*[ti] OR iceland*[ti] OR greenland*[ti]',
-          ],
-          normal: [
-            '"Scandinavian and Nordic Countries"[mh] OR scandinavia*[tiab] OR nordic-countr*[tiab] OR denmark*[tiab] OR danish*[tiab] OR (danes*[tiab] NOT (("great danes"[tiab] OR "Dogs"[mh]) NOT "Denmark"[mh])) OR norway*[tiab] OR norwegian*[tiab] OR swed*[tiab] OR finnish*[tiab] OR iceland*[tiab] OR greenland*[tiab]',
-          ],
-          broad: [
-            '"Scandinavian and Nordic Countries"[mh] OR scandinavia*[all] OR denmark*[all] OR danish*[all] OR (danes*[all] NOT (("great danes"[tiab] OR "Dogs"[mh]) NOT "Denmark"[mh])) OR norway*[all] OR norwegian*[all] OR swed*[all] OR finnish*[all] OR iceland*[all] OR greenland*[all]',
-          ],
-        },
         searchStringComment: {
-          dk: "[majr] findes ikke for geografi - derfor [ti] -> [tiab] -> [all], da der så også søges i affiliation.",
+          dk: "",
           en: "",
         },
         tooltip: {
-          dk: "",
+          dk: "Artikler, som (blandt andet) omhandler Danmark, Norge, Sverige, Finland, Island, Færøerne og Grønland",
           en: "",
         },
       },
@@ -995,9 +978,11 @@ export const filtrer = [
         id: "L040040",
         name: "L040040",
         buttons: true,
+        subtopiclevel: 1, // Angiver at dette punkt ligger på 1. niveau (miderste niveau)
+        maintopicIdLevel1: "L040030", // Angiver at dette element har et parent med dette id. (Afgrænsning 2)
         translations: {
-          dk: "Danmark",
-          en: "Denmark",
+          dk: "Alle nordiske lande",
+          en: "All Nordic countries",
         },
         ordering: { 
           dk: 4, 
@@ -1005,15 +990,55 @@ export const filtrer = [
         },
         simpleSearch: false,
         standardSimple: false,
+        tooltip_simple: {
+          dk: "Artikler, som (blandt andet) omhandler Danmark, Norge, Sverige, Finland, Island, Færøerne og Grønland",
+          en: "",
+        },
         searchStrings: {
           narrow: [
-            '"Denmark"[mh] OR denmark*[ti] OR danish*[ti] OR dane*[ti]'
+            '"Scandinavian and Nordic Countries"[mh] OR scandinavia*[ti] OR nordic-countr*[ti] OR denmark*[ti] OR danish*[ti] OR (danes*[ti] NOT (("great danes"[ti] OR "Dogs"[mh]) NOT "Denmark"[mh])) OR norway*[ti] OR norwegian*[ti] OR swed*[ti] OR finnish*[ti] OR iceland*[ti] OR greenland*[ti] OR faroe island*[ti] OR faeroe island*[ti]',
           ],
           normal: [
-            '"Denmark"[mh] OR denmark*[tiab] OR danish*[tiab] OR dane*[tiab]'
+            '"Scandinavian and Nordic Countries"[mh] OR scandinavia*[tiab] OR nordic-countr*[tiab] OR denmark*[tiab] OR danish*[tiab] OR (danes*[tiab] NOT (("great danes"[tiab] OR "Dogs"[mh]) NOT "Denmark"[mh])) OR norway*[tiab] OR norwegian*[tiab] OR swed*[tiab] OR finnish*[tiab] OR iceland*[tiab] OR greenland*[tiab] OR faroe island*[tiab] OR faeroe island*[tiab]',
           ],
           broad: [
-            '"Denmark"[mh] OR denmark[all] OR danish[all] OR dane*[all]'
+            '"Scandinavian and Nordic Countries"[mh] OR scandinavia*[all] OR denmark*[all] OR danish*[all] OR (danes*[all] NOT (("great danes"[tiab] OR "Dogs"[mh]) NOT "Denmark"[mh])) OR norway*[all] OR norwegian*[all] OR swed*[all] OR finnish*[all] OR iceland*[all] OR greenland*[all] OR faroe island*[all] OR faeroe island*[all]',
+          ],
+        },
+        searchStringComment: {
+          dk: "[majr] findes ikke for geografi - derfor [ti] -> [tiab] -> [all], da der så også søges i affiliation.",
+          en: "",
+        },
+        tooltip: {
+          dk: "Artikler, som (blandt andet) omhandler Danmark, Norge, Sverige, Finland, Island, Færøerne og Grønland",
+          en: "",
+        },
+      },
+      {
+        id: "L040050",
+        name: "L040050",
+        buttons: true,
+        subtopiclevel: 1, // Angiver at dette punkt ligger på 1. niveau (miderste niveau)
+        maintopicIdLevel1: "L040030", // Angiver at dette element har et parent med dette id. (Afgrænsning 2)
+        translations: {
+          dk: "Danmark",
+          en: "Denmark",
+        },
+        ordering: { 
+          dk: 5, 
+          en: 5 
+        },
+        simpleSearch: false,
+        standardSimple: false,
+        searchStrings: {
+          narrow: [
+            '"Denmark"[mh] OR denmark*[ti] OR danish*[ti] OR (danes*[ti] NOT (("great danes"[ti] OR "Dogs"[mh]) NOT "Denmark"[mh]))'
+          ],
+          normal: [
+            '"Denmark"[mh] OR denmark*[tiab] OR danish*[tiab] OR (danes*[tiab] NOT (("great danes"[tiab] OR "Dogs"[mh]) NOT "Denmark"[mh]))'
+          ],
+          broad: [
+            '"Denmark"[mh] OR denmark[all] OR danish[all] OR (danes*[all] NOT (("great danes"[ti] OR "Dogs"[mh]) NOT "Denmark"[mh]))'
           ],
         },
         searchStringComment: {
@@ -1026,16 +1051,162 @@ export const filtrer = [
         },
       },
       {
-        id: "L040050",
-        name: "L040050",
+        id: "L040060",
+        name: "L040060",
         buttons: true,
+        subtopiclevel: 1, // Angiver at dette punkt ligger på 1. niveau (miderste niveau)
+        maintopicIdLevel1: "L040030", // Angiver at dette element har et parent med dette id. (Afgrænsning 2)
+        translations: {
+          dk: "Finland",
+          en: "Finland",
+        },
+        ordering: { 
+          dk: 6, 
+          en: 6 
+        },
+        simpleSearch: false,
+        standardSimple: false,
+        searchStrings: {
+          narrow: [
+            '"Finland"[mh] OR finland*[ti] OR finnish[ti]'
+          ],
+          normal: [
+            '"Finland"[mh] OR finland*[tiab] OR finnish[tiab]'
+          ],
+          broad: [
+            '"Finland"[mh] OR finland[all] OR finnish[all]'
+          ],
+        },
+        searchStringComment: {
+          dk: "",
+          en: "",
+        },
+        tooltip: {
+          dk: "",
+          en: "",
+        },
+      },
+      {
+        id: "L040070",
+        name: "L040070",
+        buttons: true,
+        subtopiclevel: 1, // Angiver at dette punkt ligger på 1. niveau (miderste niveau)
+        maintopicIdLevel1: "L040030", // Angiver at dette element har et parent med dette id. (Afgrænsning 2)
+        translations: {
+          dk: "Færøerne",
+          en: "Faroe Islands",
+        },
+        ordering: { 
+          dk: 7, 
+          en: 7 
+        },
+        simpleSearch: false,
+        standardSimple: false,
+        searchStrings: {
+          narrow: [
+            'faroe island*[ti] OR faeroe island*[ti]'
+          ],
+          normal: [
+            'faroe island*[tiab] OR faeroe island*[tiab]'
+          ],
+          broad: [
+            'faroe island*[all] OR faeroe island*[all]'
+          ],
+        },
+        searchStringComment: {
+          dk: "",
+          en: "",
+        },
+        tooltip: {
+          dk: "",
+          en: "",
+        },
+      },
+      {
+        id: "L040080",
+        name: "L040080",
+        buttons: true,
+        subtopiclevel: 1, // Angiver at dette punkt ligger på 1. niveau (miderste niveau)
+        maintopicIdLevel1: "L040030", // Angiver at dette element har et parent med dette id. (Afgrænsning 2)
+        translations: {
+          dk: "Grønland",
+          en: "Greenland",
+        },
+        ordering: { 
+          dk: 8, 
+          en: 8 
+        },
+        simpleSearch: false,
+        standardSimple: false,
+        searchStrings: {
+          narrow: [
+            '"Greenland"[mh] OR greenland*[ti]'
+          ],
+          normal: [
+            '"Greenland"[mh] OR greenland*[tiab]'
+          ],
+          broad: [
+            '"Greenland"[mh] OR greenland[all]'
+          ],
+        },
+        searchStringComment: {
+          dk: "",
+          en: "",
+        },
+        tooltip: {
+          dk: "",
+          en: "",
+        },
+      },
+      {
+        id: "L040090",
+        name: "L040090",
+        buttons: true,
+        subtopiclevel: 1, // Angiver at dette punkt ligger på 1. niveau (miderste niveau)
+        maintopicIdLevel1: "L040030", // Angiver at dette element har et parent med dette id. (Afgrænsning 2)
+        translations: {
+          dk: "Island",
+          en: "Iceland",
+        },
+        ordering: { 
+          dk: 9, 
+          en: 9 
+        },
+        simpleSearch: false,
+        standardSimple: false,
+        searchStrings: {
+          narrow: [
+            '"Iceland"[mh] OR iceland*[ti]'
+          ],
+          normal: [
+            '"Iceland"[mh] OR iceland*[tiab]'
+          ],
+          broad: [
+            '"Iceland"[mh] OR iceland*[all]'
+          ],
+        },
+        searchStringComment: {
+          dk: "",
+          en: "",
+        },
+        tooltip: {
+          dk: "",
+          en: "",
+        },
+      },
+      {
+        id: "L040100",
+        name: "L040100",
+        buttons: true,
+        subtopiclevel: 1, // Angiver at dette punkt ligger på 1. niveau (miderste niveau)
+        maintopicIdLevel1: "L040030", // Angiver at dette element har et parent med dette id. (Afgrænsning 2)
         translations: {
           dk: "Norge",
           en: "Norway",
         },
         ordering: { 
-          dk: 6, 
-          en: 6 
+          dk: 10, 
+          en: 10 
         },
         searchStrings: {
           narrow: [
@@ -1058,16 +1229,18 @@ export const filtrer = [
         },
       },
       {
-        id: "L040060",
-        name: "L040060",
+        id: "L040110",
+        name: "L040110",
         buttons: true,
+        subtopiclevel: 1, // Angiver at dette punkt ligger på 1. niveau (miderste niveau)
+        maintopicIdLevel1: "L040030", // Angiver at dette element har et parent med dette id. (Afgrænsning 2)
         translations: {
           dk: "Sverige",
           en: "Sweden",
         },
         ordering: { 
-          dk: 5, 
-          en: 5 
+          dk: 11, 
+          en: 11 
         },
         searchStrings: {
           narrow: [
