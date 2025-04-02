@@ -65,14 +65,13 @@ export const topics = [
           ],
         },
         searchStringComment: {
-          dk: "",
-          en: "",
+          dk: "Dette er et eksempel på et underemne på niveau 1.",
+          en: "This is an example of a subtopic at level 1.",
         },
         tooltip: {
           dk: "Dette er et eksempel på et underemne på niveau 1.",
           en: "This is an example of a subtopic at level 1.",
         },
-
       },
       {
         id: "S000020",
@@ -87,6 +86,10 @@ export const topics = [
         ordering: {
           dk: 2,
           en: 2,
+        },
+        searchStringComment: {
+          dk: "Dette er et eksempel på et underemne på niveau 1, som har under&shy;liggende emner (indikeret med en pil). Klik for at se under&shy;liggende emner.",
+          en: "This is an example of a subtopic at level 1, that has subtopics underneath (indicated with an arrow). Click to see the subtopics.",
         },
         tooltip: {
           dk: "Dette er et eksempel på et underemne på niveau 1, som har under&shy;liggende emner (indikeret med en pil). Klik for at se under&shy;liggende emner.",
@@ -104,10 +107,13 @@ export const topics = [
           dk: "Underemne 2.1",
           en: "Subtopic 2.1",
         },
-
         ordering: {
           dk: 3,
           en: 3,
+        },
+        searchStringComment: {
+          dk: "Dette er et eksempel på et underemne på niveau 2, som også har et under&shy;liggende emne (indikeret med en pil). Klik for at se under&shy;liggende emner.",
+          en: "This is an example of a subtopic at level 2, that also has a subtopic underneath (indicated with an arrow). Click to see the subtopics.",
         },
         tooltip: {
           dk: "Dette er et eksempel på et underemne på niveau 2, som også har et under&shy;liggende emne (indikeret med en pil). Klik for at se under&shy;liggende emner.",
@@ -119,13 +125,12 @@ export const topics = [
         name: "S000020010010",
         buttons: true,
         subtopiclevel: 2, // Angiver at dette punkt ligger på 2. niveau (nedereste niveau)
-        maintopicIdLevel1: "S000030", // Angiver at dette element har et parent med dette id. (Emne 2.1)
+        maintopicIdLevel1: "S000020010", // Angiver at dette element har et parent med dette id. (Emne 2.1)
         maintopicIdLevel2: "S000020", // Angiver at dette element har et grandparent med dette id (Emne 2)
         translations: {
           dk: "Underemne 2.1.1",
           en: "Subtopic 2.1.1",
         },
-
         ordering: {
           dk: 4,
           en: 4,
@@ -142,8 +147,8 @@ export const topics = [
           ],
         },
         searchStringComment: {
-          dk: "",
-          en: "",
+          dk: "Dette er et eksempel på et underemne på niveau 3, som er det dybteste niveau i denne rullemenu.",
+          en: "This is an example of a subtopic at level 3, which is the deepest level in this dropdown menu.",
         },
         tooltip: {
           dk: "Dette er et eksempel på et underemne på niveau 3, som er det dybteste niveau i denne rullemenu.",
@@ -156,7 +161,7 @@ export const topics = [
         name: "S000020010020",
         buttons: true,
         subtopiclevel: 2, // Angiver at dette punkt ligger på 3. niveau
-        maintopicIdLevel1: "S000030", // Angiver at dette element har et parent med dette id. (Emne 2.1)
+        maintopicIdLevel1: "S000020010", // Angiver at dette element har et parent med dette id. (Emne 2.1)
         maintopicIdLevel2: "S000020", // Angiver at dette element har et grandparent med dette id (Emne 2)
         translations: {
           dk: "Underemne 2.1.2",
@@ -191,8 +196,8 @@ export const topics = [
         name: "S000020010030",
         buttons: true,
         subtopiclevel: 2, // Angiver at dette punkt ligger på 3. niveau
-        maintopicIdLevel1: "S000020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
-        maintopicIdLevel2: "S000030", // Angiver at dette er punktet på 2. niveau til punktet med det angivne name.
+        maintopicIdLevel1: "S000020010", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
+        maintopicIdLevel2: "S000020", // Angiver at dette er punktet på 2. niveau til punktet med det angivne name.
         translations: {
           dk: "Underemne 2.1.3",
           en: "Subtopic 2.1.3",
@@ -292,7 +297,7 @@ export const topics = [
       {
         id: "S000030",
         name: "S000030",
-        buttons: true,
+        buttons: false,
         translations: {
           dk: "Underemne 3",
           en: "Subtopic 3",
@@ -313,12 +318,12 @@ export const topics = [
           ],
         },
         searchStringComment: {
-          dk: "",
-          en: "",
+          dk: "Dette er et eksempel på, at de tre valgmuligheder 'Smal', 'Normal' og 'Bred' ikke vises i avanceret søgning.",
+          en: "This is an example of, that the three options 'Narrow', 'Standard' and 'Broad' are not shown in advanced search.",
         },
         tooltip: {
-          dk: "",
-          en: "",
+          dk: "Dette er et eksempel på, at de tre valgmuligheder 'Smal', 'Normal' og 'Bred' ikke vises i avanceret søgning.",
+          en: "This is an example of, that the three options 'Narrow', 'Standard' and 'Broad' are not shown in advanced search.",
         },
       },
     ],
@@ -787,7 +792,7 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            '"Gastroparesis"[majr] AND ' + standardString['narrow']
+            '"Gastroparesis"[majr] AND ' + standardString['narrow'] + ''
           ],
           normal: [
             '("Gastroparesis"[mh] OR gastropares*[ti]) AND (' + standardString['normal'] + ')'
@@ -1107,7 +1112,7 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            '"Sleep"[majr] AND ' + standardString['narrow']
+            '"Sleep"[majr] AND ' + standardString['narrow'] + ''
           ],
           normal: [
             '("Sleep"[mh] OR sleep*[ti] OR apnea*[ti] OR apnoea*[ti]) AND (' + standardString['normal'] + ')'
@@ -1189,7 +1194,7 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            '"Dipeptidyl-Peptidase IV Inhibitors"[majr] AND ' + standardString['narrow']
+            '"Dipeptidyl-Peptidase IV Inhibitors"[majr] AND ' + standardString['narrow'] + ''
           ],
           normal: [
             '("Dipeptidyl-Peptidase IV Inhibitors"[mh] OR dpp[ti] OR dipeptyl*[ti]) AND (' + standardString['normal'] + ')'
@@ -1221,7 +1226,7 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            '"Thiazolidinediones"[majr] AND ' + standardString['narrow']
+            '"Thiazolidinediones"[majr] AND ' + standardString['narrow'] + ''
           ],
           normal: [
             '("Thiazolidinediones"[mh] OR thiazolidinedione*[ti] OR glitazone*[ti]) AND (' + standardString['normal'] + ')'
@@ -1253,7 +1258,7 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            '"Glucagon-Like Peptide 1"[majr] OR "Glucagon-Like Peptide-1 Receptor Agonists"[majr] AND ' + standardString['narrow']
+            '"Glucagon-Like Peptide 1"[majr] OR "Glucagon-Like Peptide-1 Receptor Agonists"[majr] AND ' + standardString['narrow'] + ''
           ],
           normal: [
             '("Glucagon-Like Peptide 1"[mh] OR "Glucagon-Like Peptide-1 Receptor Agonists"[mh] OR glp[ti] OR glucagon-like*[ti] OR glucagonlike*[ti]) AND (' + standardString['normal'] + ')'
@@ -1284,7 +1289,7 @@ export const topics = [
           en: null 
         },
         searchStrings: {
-          narrow: ['"Insulins"[majr] AND ' + standardString['narrow']
+          narrow: ['"Insulins"[majr] AND ' + standardString['narrow'] + ''
           ],
           normal: ['("Insulins"[mh] OR insulin*[ti]) AND (' + standardString['normal'] + ')'
           ],
@@ -1314,7 +1319,7 @@ export const topics = [
           en: null 
         },
         searchStrings: {
-          narrow: ['"Metformin"[majr] AND ' + standardString['narrow']
+          narrow: ['"Metformin"[majr] AND ' + standardString['narrow'] + ''
           ],
           normal: [
             '("Metformin"[mh] OR metformin*[ti]) AND (' + standardString['normal'] + ')'
@@ -1346,7 +1351,7 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            '"Sodium-Glucose Transporter 2 Inhibitors"[majr] AND ' + standardString['narrow']
+            '"Sodium-Glucose Transporter 2 Inhibitors"[majr] AND ' + standardString['narrow'] + ''
           ],
           normal: [
             '("Sodium-Glucose Transporter 2 Inhibitors"[mh] OR sglt*[ti] OR sodium-glucose*[ti] OR sodiumglucose*[ti]) AND (' + standardString['normal'] + ')'
@@ -1378,7 +1383,7 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            '"Sulfonylurea Compounds"[majr] AND ' + standardString['narrow']
+            '"Sulfonylurea Compounds"[majr] AND ' + standardString['narrow'] + ''
           ],
           normal: [
             '("Sulfonylurea Compounds"[mh] OR sulfonyl*[ti]) AND (' + standardString['normal'] + ')'
@@ -1965,8 +1970,8 @@ export const topics = [
     id: "S050",
     groupname: "S050",
     translations: {
-      dk: "Teknologi",
-      en: "Technology"
+      dk: "Fysisk aktivitet",
+      en: "Physical activity"
     },
     ordering: { 
       dk: 5, 
@@ -1976,6 +1981,216 @@ export const topics = [
       {
         id: "S050010",
         name: "S050010",
+        buttons: true,
+        translations: {
+          dk: "Aerob træning (konditionstræning)",
+          en: "Aerobic training (conditioning)"
+        },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
+        searchStrings: {
+          narrow: [
+            '"Exercise"[majr] AND ' + standardString['narrow'] + ''
+          ],
+          normal: [
+            '("Exercise"[mh] OR exercise*[ti]) AND (' + standardString['normal'] + ')',
+          ],
+          broad: [
+            '("Exercise"[mh] OR exercise*[tiab]) AND (' + standardString['broad'] + ')',
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: "S050020",
+        name: "S050020",
+        buttons: true,
+        translations: {
+          dk: "Styrketræning (modstandstræning)",
+          en: "Strength training (resistance training)"
+        },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
+        searchStrings: {
+          narrow: [
+            '"Resistance Training"[majr] AND ' + standardString['narrow'] + ''
+          ],
+          normal: [
+            '("Resistance Training"[mh] OR resistance training[ti] OR strength training[ti]) AND (' + standardString['normal'] + ')',
+          ],
+          broad: [
+            '("Resistance Training"[mh] OR resistance training[tiab] OR strength training[tiab]) AND (' + standardString['broad'] + ')',
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: "S050030",
+        name: "S050030",
+        buttons: true,
+        translations: {
+          dk: "Fleksibilitets- og balancetræning",
+          en: "Flexibility and balance training"
+        },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
+        searchStrings: {
+          narrow: [
+            '("Muscle Stretching Exercises"[majr] OR "Postural Balance"[majr]) AND ' + standardString['narrow'] + ''
+          ],
+          normal: [
+            '(("Muscle Stretching Exercises"[mh] OR "Postural Balance"[mh]) OR flexibility*[ti] OR balance*[ti]) AND (' + standardString['normal'] + ')',
+          ],
+          broad: [
+            '(("Muscle Stretching Exercises"[mh] OR "Postural Balance"[mh]) OR flexibility*[tiab] OR balance*[tiab]) AND (' + standardString['broad'] + ')',
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: "S050040",
+        name: "S050040",
+        buttons: true,
+        translations: {
+          dk: "Hverdagsaktiviteter (lavintensiv fysisk aktivitet)",
+          en: "Daily activities (low-intensity physical activity)"
+        },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
+        searchStrings: {
+          narrow: [
+            '"Activities of Daily Living"[majr] AND ' + standardString['narrow'] + '',
+          ],
+          normal: [
+            '("Activities of Daily Living"[mh] OR daily-activ*[ti] OR low-intensity[ti]) AND (' + standardString['normal'] + ')',
+          ],
+          broad: [
+            '("Activities of Daily Living"[mh] OR daily-activ*[tiab] OR low-intensity[tiab]) AND (' + standardString['broad'] + ')',
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: "S050050",
+        name: "S050050",
+        buttons: true,
+        translations: {
+          dk: "HIIT (højintensiv intervaltræning)",
+          en: "HIIT (high-intensity interval training)"
+        },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
+        searchStrings: {
+          narrow: [
+            '"High-Intensity Interval Training"[majr] AND ' + standardString['narrow'] + ''
+          ],
+          normal: [
+            '("High-Intensity Interval Training"[mh] OR "high-intensity training"[ti:~3]) AND (' + standardString['normal'] + ')',
+          ],
+          broad: [
+            '("High-Intensity Interval Training"[mh] OR "high-intensity training"[tiab:~3]) AND (' + standardString['broad'] + ')',
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: "S050060",
+        name: "S050060",
+        buttons: true,
+        translations: {
+          dk: "Stillesiddende adfærd",
+          en: "Sedentary behavior"
+        },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
+        searchStrings: {
+          narrow: [
+            '"Sedentary Behavior"[majr] AND ' + standardString['narrow'] + ''
+          ],
+          normal: [
+            '("Sedentary Behavior"[mh] OR sedentary*[ti]) AND (' + standardString['normal'] + ')',
+          ],
+          broad: [
+            '("Sedentary Behavior"[mh] OR sedentary*[tiab]) AND (' + standardString['broad'] + ')',
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      }
+    ],
+    tooltip: {
+      dk: "",
+      en: "",
+    }
+  },
+  {
+    id: "S060",
+    groupname: "S060",
+    translations: {
+      dk: "Teknologi",
+      en: "Technology"
+    },
+    ordering: { 
+      dk: 6, 
+      en: 6 
+    },
+    groups: [
+      {
+        id: "S060010",
+        name: "S060010",
         buttons: true,
         translations: {
           dk: "Glukosesensorer",
@@ -2006,8 +2221,8 @@ export const topics = [
         }
       },
       {
-        id: "S050020",
-        name: "S050020",
+        id: "S060020",
+        name: "S060020",
         buttons: true,
         translations: {
           dk: "Insulinpumper",
@@ -2038,8 +2253,8 @@ export const topics = [
         }
       },
       {
-        id: "S050030",
-        name: "S050030",
+        id: "S060030",
+        name: "S060030",
         buttons: true,
         translations: {
           dk: "Kunstig intelligens",
@@ -2070,8 +2285,8 @@ export const topics = [
         }
       },
       {
-        id: "S050040",
-        name: "S050040",
+        id: "S060040",
+        name: "S060040",
         buttons: true,
         translations: {
           dk: "Mobiltelefoner og apps",
@@ -2102,8 +2317,8 @@ export const topics = [
         }
       },
       {
-        id: "S050050",
-        name: "S050050",
+        id: "S060050",
+        name: "S060050",
         buttons: true,
         translations: {
           dk: "Telemedicin og e-sundhed",
@@ -2140,20 +2355,20 @@ export const topics = [
     }
   },
   {
-    id: "S060",
-    groupname: "S060",
+    id: "S070",
+    groupname: "S070",
     translations: {
       dk: "Kliniske målinger",
       en: "Clinical measures"
     },
     ordering: { 
-      dk: 6, 
-      en: 6 
+      dk: 7, 
+      en: 7 
     },
     groups: [
       {
-        id: "S060010",
-        name: "S060010",
+        id: "S070010",
+        name: "S070010",
         buttons: true,
         translations: {
           dk: "Albuminuri",
@@ -2184,8 +2399,8 @@ export const topics = [
         }
       },
       {
-        id: "S060020",
-        name: "S060020",
+        id: "S070020",
+        name: "S070020",
         buttons: true,
         translations: {
           dk: "Blodglukose",
@@ -2216,8 +2431,8 @@ export const topics = [
         }
       },
       {
-        id: "S060030",
-        name: "S060030",
+        id: "S070030",
+        name: "S070030",
         buttons: true,
         translations: {
           dk: "Blodtryk",
@@ -2248,8 +2463,8 @@ export const topics = [
         },
       },
       {
-        id: "S060040",
-        name: "S060040",
+        id: "S070040",
+        name: "S070040",
         translations: {
           dk: "eGFR",
           en: "eGFR"
@@ -2280,8 +2495,8 @@ export const topics = [
         }
       },
       {
-        id: "S060050",
-        name: "S060050",
+        id: "S070050",
+        name: "S070050",
         translations: {
           dk: "Glukosebelastning",
           en: "Oral glucose tolerance test"
@@ -2312,8 +2527,8 @@ export const topics = [
         }
       },
       {
-        id: "S060060",
-        name: "S060060",
+        id: "S070060",
+        name: "S070060",
         translations: {
           dk: "HbA1c",
           en: "HbA1c"
@@ -2344,8 +2559,8 @@ export const topics = [
         }
       },
       {
-        id: "S060070",
-        name: "S060070",
+        id: "S070070",
+        name: "S070070",
         translations: {
           dk: "Ketoner",
           en: "Ketones"
@@ -2376,8 +2591,8 @@ export const topics = [
         }
       },
       {
-        id: "S060080",
-        name: "S060080",
+        id: "S070080",
+        name: "S070080",
         translations: {
           dk: "Kolesterol",
           en: "Cholesterol"
@@ -2414,20 +2629,20 @@ export const topics = [
     }
   },
   {
-    id: "S070",
-    groupname: "S070",
+    id: "S080",
+    groupname: "S080",
     translations: {
       dk: "Mental sundhed",
       en: "Mental health"
     },
     ordering: { 
-      dk: 7, 
-      en: 7 
+      dk: 8, 
+      en: 8 
     },
     groups: [
       {
-        id: "S070010",
-        name: "S070010",
+        id: "S080010",
+        name: "S080010",
         buttons: true,
         translations: {
           dk: "Angst",
@@ -2458,8 +2673,8 @@ export const topics = [
         }
       },
       {
-        id: "S070020",
-        name: "S070020",
+        id: "S080020",
+        name: "S080020",
         buttons: true,
         translations: {
           dk: "Bulimi og diabulimi",
@@ -2490,8 +2705,8 @@ export const topics = [
         },
       },
       {
-        id: "S070030",
-        name: "S070030",
+        id: "S080030",
+        name: "S080030",
         buttons: true,
         translations: {
           dk: "Depression",
@@ -2522,8 +2737,8 @@ export const topics = [
         }
       },
       {
-        id: "S070040",
-        name: "S070040",
+        id: "S080040",
+        name: "S080040",
         buttons: true,
         translations: {
           dk: "Diabetes distress",
@@ -2554,8 +2769,8 @@ export const topics = [
         }
       },
       {
-        id: "S070050",
-        name: "S070050",
+        id: "S080050",
+        name: "S080050",
         buttons: true,
         translations: {
           dk: "Spiseforstyrrelser",
@@ -2586,8 +2801,8 @@ export const topics = [
         }
       },
       {
-        id: "S070060",
-        name: "S070060",
+        id: "S080060",
+        name: "S080060",
         buttons: true,
         translations: {
           dk: "Tvangsoverspisning",
@@ -2624,20 +2839,20 @@ export const topics = [
     }
   },
   {
-    id: "S080",
-    groupname: "S080",
+    id: "S090",
+    groupname: "S090",
     translations: {
       dk: "Forebyggelse og risikofaktorer",
       en: "Prevention and resk factors"
     },
     ordering: { 
-      dk: 8, 
-      en: 8 
+      dk: 9, 
+      en: 9 
     },
     groups: [
       {
-        id: "S080010",
-        name: "S080010",
+        id: "S090010",
+        name: "S090010",
         buttons: true,
         translations: {
           dk: "Forebyggelse generelt",
@@ -2668,8 +2883,8 @@ export const topics = [
         }
       },
       {
-        id: "S080020",
-        name: "S080020",
+        id: "S090020",
+        name: "S090020",
         buttons: true,
         translations: {
           dk: "Arvelighed",
@@ -2700,8 +2915,8 @@ export const topics = [
         }
       },
       {
-        id: "S080030",
-        name: "S080030",
+        id: "S090030",
+        name: "S090030",
         buttons: true,
         translations: {
           dk: "Motion",
@@ -2732,8 +2947,8 @@ export const topics = [
         }
       },
       {
-        id: "S080040",
-        name: "S080040",
+        id: "S090040",
+        name: "S090040",
         buttons: true,
         translations: {
           dk: "Overvægt",
@@ -2764,8 +2979,8 @@ export const topics = [
         }
       },
       {
-        id: "S080050",
-        name: "S080050",
+        id: "S090050",
+        name: "S090050",
         buttons: true,
         translations: {
           dk: "Rygning",
@@ -2802,20 +3017,20 @@ export const topics = [
     }
   },
   {
-    id: 'S090',
-    groupname: 'S090',
+    id: 'S100',
+    groupname: 'S100',
     translations: {
         dk: 'Køn og diabetes',
         en: 'Gender and diabetes'
     }, 
     ordering: { 
-      dk: 8, 
-      en: 8 
+      dk: 10, 
+      en: 10 
     },
     groups: [
       {
-        id: 'S090010',
-        name: 'S090010',
+        id: 'S100010',
+        name: 'S100010',
         buttons: true,
         translations: {
           dk: 'Fertilitet',
@@ -2846,8 +3061,8 @@ export const topics = [
         }
       },
       {
-        id: 'S090020',
-        name: 'S090020',
+        id: 'S100020',
+        name: 'S100020',
         buttons: true,
         translations: {
           dk: 'Menstruationscyklus',
@@ -2878,8 +3093,8 @@ export const topics = [
         }
       },
       {
-        id: 'S090030',
-        name: 'S090030',
+        id: 'S100030',
+        name: 'S100030',
         buttons: true,
         translations: {
           dk: 'Overgangsalder',
@@ -2910,8 +3125,8 @@ export const topics = [
         }
       },
       {
-        id: 'S090040',
-        name: 'S090040',
+        id: 'S100040',
+        name: 'S100040',
         buttons: true,
         translations: {
           dk: 'Polycystisk ovariesyndrom (PCOS)',
@@ -2943,8 +3158,8 @@ export const topics = [
         }
       },
       {
-        id: 'S090050',
-        name: 'S090050',
+        id: 'S100050',
+        name: 'S100050',
         buttons: true,
         translations: {
           dk: 'Pubertet',
@@ -2975,8 +3190,8 @@ export const topics = [
         }
       },
       {
-        id: 'S090060',
-        name: 'S090060',
+        id: 'S100060',
+        name: 'S100060',
         buttons: true,
         translations: {
           dk: 'Testosteron',
@@ -3013,20 +3228,20 @@ export const topics = [
     }
   },
   {
-    id: "S100",
-    groupname: "S100",
+    id: "S110",
+    groupname: "S110",
     translations: {
       dk: "Særlige grupper",
       en: "Special groups"
     },
     ordering: { 
-      dk: 9, 
-      en: 9 
+      dk: 11, 
+      en: 11 
     },
     groups: [
       {
-        id: "S100010",
-        name: "S100010",
+        id: "S110010",
+        name: "S110010",
         buttons: true,
         translations: {
           dk: "Alkohol- og stofmisbrugere",
@@ -3057,8 +3272,8 @@ export const topics = [
         }
       },
       {
-        id: "S100020",
-        name: "S100020",
+        id: "S110020",
+        name: "S110020",
         buttons: true,
         translations: {
           dk: "Børn",
@@ -3089,8 +3304,8 @@ export const topics = [
         }
       },
       {
-        id: "S100030",
-        name: "S100030",
+        id: "S110030",
+        name: "S110030",
         translations: {
           dk: "Gravide med eksisterende diabetes",
           en: "Pregnant women with pre-existing diabetes"
@@ -3121,8 +3336,8 @@ export const topics = [
         }
       },
       {
-        id: "S100040",
-        name: "S100040",
+        id: "S110040",
+        name: "S110040",
         buttons: true,
         translations: {
           dk: "Minoritetsgrupper",
@@ -3153,8 +3368,8 @@ export const topics = [
         }
       },
       {
-        id: "S100050",
-        name: "S100050",
+        id: "S110050",
+        name: "S110050",
         buttons: true,
         translations: {
           dk: "Pårørende",
@@ -3185,8 +3400,8 @@ export const topics = [
         }
       },
       {
-        id: "S100060",
-        name: "S100060",
+        id: "S110060",
+        name: "S110060",
         buttons: true,
         translations: {
           dk: "Socialt udsatte",
@@ -3217,8 +3432,8 @@ export const topics = [
         }
       },
       {
-        id: "S100070",
-        name: "S100070",
+        id: "S110070",
+        name: "S110070",
         translations: {
           dk: "Udviklingshæmmede",
           en: "People with developmental disabilities"
@@ -3249,8 +3464,8 @@ export const topics = [
         }
       },
       {
-        id: "S100080",
-        name: "S100080",
+        id: "S110080",
+        name: "S110080",
         translations: {
           dk: "Unge",
           en: "Young people"
@@ -3281,8 +3496,8 @@ export const topics = [
         }
       },
       {
-        id: "S100090",
-        name: "S100090",
+        id: "S110090",
+        name: "S110090",
         translations: {
           dk: "Ældre",
           en: "Elderly people"
@@ -3326,8 +3541,8 @@ export const topics = [
       en: "Other topics"
     },
     ordering: { 
-      dk: 9, 
-      en: 9 
+      dk: 100, 
+      en: 100 
     },
     groups: [
       {
@@ -3632,8 +3847,8 @@ export const topics = [
       en: "COVID-19"
     },
     ordering: { 
-      dk: 100, 
-      en: 100 
+      dk: 1000, 
+      en: 1000 
     },
     groups: [
       {

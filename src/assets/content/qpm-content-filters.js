@@ -119,7 +119,7 @@ export const filtrer = [
         name: "L000020010010",
         buttons: true,
         subtopiclevel: 2, // Angiver at dette punkt ligger på 2. niveau (nedereste niveau)
-        maintopicIdLevel1: "L000030", // Angiver at dette element har et parent med dette id. (Afgrænsning 2.1)
+        maintopicIdLevel1: "L000020010", // Angiver at dette element har et parent med dette id. (Afgrænsning 2.1)
         maintopicIdLevel2: "L000020", // Angiver at dette element har et grandparent med dette id (Afgrænsning 2)
         translations: {
           dk: "Afgrænsning 2.1.1",
@@ -154,7 +154,7 @@ export const filtrer = [
         name: "L000020010020",
         buttons: true,
         subtopiclevel: 2, // Angiver at dette punkt ligger på 2. niveau (nedereste niveau)
-        maintopicIdLevel1: "L000030", // Angiver at dette element har et parent med dette id. (Afgrænsning 2.1)
+        maintopicIdLevel1: "L000020010", // Angiver at dette element har et parent med dette id. (Afgrænsning 2.1)
         maintopicIdLevel2: "L000020", // Angiver at dette element har et grandparent med dette id (Afgrænsning 2)
         translations: {
           dk: "Afgrænsning 2.1.2",
@@ -189,7 +189,7 @@ export const filtrer = [
         name: "L000020010030",
         buttons: true,
         subtopiclevel: 2, // Angiver at dette punkt ligger på 2. niveau (nedereste niveau)
-        maintopicIdLevel1: "L000030", // Angiver at dette element har et parent med dette id. (Afgrænsning 2.1)
+        maintopicIdLevel1: "L000020010", // Angiver at dette element har et parent med dette id. (Afgrænsning 2.1)
         maintopicIdLevel2: "L000020", // Angiver at dette element har et grandparent med dette id (Afgrænsning 2)
         translations: {
           dk: "Afgrænsning 2.1.3",

@@ -96,7 +96,7 @@
               {{ getString("andOperator").toLowerCase() }}
             </span>
             <span class="qpm_searchStringGroupWhere">
-              {{ getWordedFilterString(name) }} {{ getString("is") }}
+              {{ getWordedFilterStringFromId(name) }} {{ getString("is") }}
             </span>
             <div v-if="value.length !== 0" class="qpm_searchStringWordGroup">
               <div
@@ -422,6 +422,14 @@
       },
       selectAndCopy() {
         this.copyTextfieldFunction();
+      },
+      getWordedFilterStringFromId(id) {
+        const filterGroup = filtrer.find(group => group.id === id);
+        if (filterGroup && filterGroup.translations) {
+          const lg = this.language;
+          return filterGroup.translations[lg] || filterGroup.translations["dk"];
+        }
+        return this.getWordedFilterStringById(id);
       },
     },
   };

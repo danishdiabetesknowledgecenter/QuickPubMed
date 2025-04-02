@@ -18,7 +18,7 @@
             <input
               :id="choice.name"
               type="checkbox"
-              :title="titleCheckBoxTranslate"
+              :title="getString('checkboxTitle')"
               :value="choice.name"
               :checked="isFilterUsed(filterData[option.id], choice.name)"
               style="cursor: pointer"
@@ -82,7 +82,7 @@
     },
     data() {
       return {
-        titleCheckBoxTranslate: "titleCheckBoxTranslate",
+        titleCheckBoxTranslate: this.getString("checkboxTitle") || "",
       };
     },
     methods: {

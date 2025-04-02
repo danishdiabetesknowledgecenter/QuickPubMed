@@ -45,6 +45,10 @@ export const messages = {
     dk: "Søg",
     en: "Search",
   },
+  checkboxTitle: {
+    dk: "Markér for at tilføje denne afgrænsning.",
+    en: "Check to add this limit.",
+  },
   searchHeaderShown: {
     dk: "Søg efter artikler, der handler om:",
     en: "Search for records about:",
