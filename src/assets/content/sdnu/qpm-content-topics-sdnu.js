@@ -33,20 +33,17 @@ export const standardString = {
 
 export const topics = [
   {
-    id: "S00",
-    groupname: "Skabelonkategori",
+    id: "S000",
+    groupname: "S000",
     translations: {
       dk: "Skabelonkategori",
       en: "Template category",
     },
-    ordering: {
-      dk: 0,
-      en: 0
-    },
+    ordering: { dk: 0, en: 0 },
     groups: [
       {
-        id: "S00010",
-        name: "S00010",
+        id: "S000010",
+        name: "S000010",
         buttons: true,
         translations: {
           dk: "Underemne 1",
@@ -68,8 +65,8 @@ export const topics = [
           ],
         },
         searchStringComment: {
-          dk: "",
-          en: "",
+          dk: "Dette er et eksempel på et underemne på niveau 1.",
+          en: "This is an example of a subtopic at level 1.",
         },
         tooltip: {
           dk: "Dette er et eksempel på et underemne på niveau 1.",
@@ -77,17 +74,22 @@ export const topics = [
         },
       },
       {
-        id: "S00020",
-        name: "S00020",
+        id: "S000020",
+        name: "S000020",
         buttons: true,
         maintopic: true, // Angiver at dette element er en branch og har children elementer
         translations: {
           dk: "Underemne 2",
           en: "Subtopic 2",
         },
+
         ordering: {
           dk: 2,
           en: 2,
+        },
+        searchStringComment: {
+          dk: "Dette er et eksempel på et underemne på niveau 1, som har under&shy;liggende emner (indikeret med en pil). Klik for at se under&shy;liggende emner.",
+          en: "This is an example of a subtopic at level 1, that has subtopics underneath (indicated with an arrow). Click to see the subtopics.",
         },
         tooltip: {
           dk: "Dette er et eksempel på et underemne på niveau 1, som har under&shy;liggende emner (indikeret med en pil). Klik for at se under&shy;liggende emner.",
@@ -95,12 +97,12 @@ export const topics = [
         },
       },
       {
-        id: "S00030",
-        name: "S00030",
+        id: "S000020010",
+        name: "S000020010",
         buttons: true,
         maintopic: true, // Angiver at dette element er en branch og har children elementer
         subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midderste niveau)
-        maintopicIdLevel1: "S00020", // Angiver at dette element har et parent med dette id. (Emne 2)
+        maintopicIdLevel1: "S000020", // Angiver at dette element har et parent med dette id. (Emne 2)
         translations: {
           dk: "Underemne 2.1",
           en: "Subtopic 2.1",
@@ -109,18 +111,22 @@ export const topics = [
           dk: 3,
           en: 3,
         },
+        searchStringComment: {
+          dk: "Dette er et eksempel på et underemne på niveau 2, som også har et under&shy;liggende emne (indikeret med en pil). Klik for at se under&shy;liggende emner.",
+          en: "This is an example of a subtopic at level 2, that also has a subtopic underneath (indicated with an arrow). Click to see the subtopics.",
+        },
         tooltip: {
           dk: "Dette er et eksempel på et underemne på niveau 2, som også har et under&shy;liggende emne (indikeret med en pil). Klik for at se under&shy;liggende emner.",
           en: "This is an example of a subtopic at level 2, that also has a subtopic underneath (indicated with an arrow). Click to see the subtopics.",
         },
       },
       {
-        id: "S00040",
-        name: "S00040",
+        id: "S000020010010",
+        name: "S000020010010",
         buttons: true,
         subtopiclevel: 2, // Angiver at dette punkt ligger på 2. niveau (nedereste niveau)
-        maintopicIdLevel1: "S00030", // Angiver at dette element har et parent med dette id. (Emne 2.1)
-        maintopicIdLevel2: "S00020", // Angiver at dette element har et grandparent med dette id (Emne 2)
+        maintopicIdLevel1: "S000020010", // Angiver at dette element har et parent med dette id. (Emne 2.1)
+        maintopicIdLevel2: "S000020", // Angiver at dette element har et grandparent med dette id (Emne 2)
         translations: {
           dk: "Underemne 2.1.1",
           en: "Subtopic 2.1.1",
@@ -141,21 +147,22 @@ export const topics = [
           ],
         },
         searchStringComment: {
-          dk: "",
-          en: "",
+          dk: "Dette er et eksempel på et underemne på niveau 3, som er det dybteste niveau i denne rullemenu.",
+          en: "This is an example of a subtopic at level 3, which is the deepest level in this dropdown menu.",
         },
         tooltip: {
           dk: "Dette er et eksempel på et underemne på niveau 3, som er det dybteste niveau i denne rullemenu.",
           en: "This is an example of a subtopic at level 3, which is the deepest level in this dropdown menu.",
         },
+
       },
       {
-        id: "S00050",
-        name: "S00050",
+        id: "S000020010020",
+        name: "S000020010020",
         buttons: true,
         subtopiclevel: 2, // Angiver at dette punkt ligger på 3. niveau
-        maintopicIdLevel1: "S00030", // Angiver at dette element har et parent med dette id. (Emne 2.1)
-        maintopicIdLevel2: "S00020", // Angiver at dette element har et grandparent med dette id (Emne 2)
+        maintopicIdLevel1: "S000020010", // Angiver at dette element har et parent med dette id. (Emne 2.1)
+        maintopicIdLevel2: "S000020", // Angiver at dette element har et grandparent med dette id (Emne 2)
         translations: {
           dk: "Underemne 2.1.2",
           en: "Subtopic 2.1.2",
@@ -185,12 +192,12 @@ export const topics = [
         },
       },
       {
-        id: "S00060",
-        name: "S00060",
+        id: "S000020010030",
+        name: "S000020010030",
         buttons: true,
         subtopiclevel: 2, // Angiver at dette punkt ligger på 3. niveau
-        maintopicIdLevel1: "S00020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
-        maintopicIdLevel2: "S00030", // Angiver at dette er punktet på 2. niveau til punktet med det angivne name.
+        maintopicIdLevel1: "S000020010", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
+        maintopicIdLevel2: "S000020", // Angiver at dette er punktet på 2. niveau til punktet med det angivne name.
         translations: {
           dk: "Underemne 2.1.3",
           en: "Subtopic 2.1.3",
@@ -220,11 +227,11 @@ export const topics = [
         },
       },
       {
-        id: "S00070",
-        name: "S00070",
+        id: "S000020020",
+        name: "S000020020",
         buttons: true,
         subtopiclevel: 1, // Angiver at dette punkt ligger på 2. niveau
-        maintopicIdLevel1: "S00020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
+        maintopicIdLevel1: "S000020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
         translations: {
           dk: "Underemne 2.2",
           en: "Subtopic 2.2",
@@ -254,11 +261,11 @@ export const topics = [
         },
       },
       {
-        id: "S00080",
-        name: "S00080",
+        id: "S000020030",
+        name: "S000020030",
         buttons: true,
         subtopiclevel: 1, // Angiver at dette punkt ligger på 2. niveau
-        maintopicIdLevel1: "S00020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
+        maintopicIdLevel1: "S000020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
         translations: {
           dk: "Underemne 2.3",
           en: "Subtopic 2.3",
@@ -288,9 +295,9 @@ export const topics = [
         },
       },
       {
-        id: "S00090",
-        name: "S00090",
-        buttons: true,
+        id: "S000030",
+        name: "S000030",
+        buttons: false,
         translations: {
           dk: "Underemne 3",
           en: "Subtopic 3",
@@ -311,12 +318,12 @@ export const topics = [
           ],
         },
         searchStringComment: {
-          dk: "",
-          en: "",
+          dk: "Dette er et eksempel på, at de tre valgmuligheder 'Smal', 'Normal' og 'Bred' ikke vises i avanceret søgning.",
+          en: "This is an example of, that the three options 'Narrow', 'Standard' and 'Broad' are not shown in advanced search.",
         },
         tooltip: {
-          dk: "",
-          en: "",
+          dk: "Dette er et eksempel på, at de tre valgmuligheder 'Smal', 'Normal' og 'Bred' ikke vises i avanceret søgning.",
+          en: "This is an example of, that the three options 'Narrow', 'Standard' and 'Broad' are not shown in advanced search.",
         },
       },
     ],
@@ -326,23 +333,20 @@ export const topics = [
     },
   },
   {
-    groupname: 'Cognition', id: 'S10',
+    id: 'S010',
+    groupname: 'S010', 
     translations: {
       dk: 'Kognition',
       en: 'Cognition'
     },
-    // use null to mean unordered or any positive number to order this 
-    // element using the number as a priority with lower number being 
-    // higher priority (being shown earlier in the list).
-    //? Maybe use negative values to represent elements always sorted last
     ordering: {
       dk: 1,
       en: 1
     },
     groups: [
       {
-        name: 'S10010',
-        id: 'S10010',
+        name: 'S010010',
+        id: 'S010010',
         buttons: true,
         translations: {
           dk: 'Kognitive forstyrrelser',
@@ -354,13 +358,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            'xxx'
+            '"Cognition disorders"[majr] AND ' + standardString['narrow']
           ],
           normal: [
-            '"Cognition disorders"[mh] OR cogniti*[ti]'
+            '("Cognition disorders"[mh] OR cogniti* disorder*[ti] OR cogniti* impairment*[ti]) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            'xxx'
+            '("Cognition disorders"[mh] OR cogniti* disorder*[tiab] OR cogniti* impairment*[tiab]) AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -373,8 +377,8 @@ export const topics = [
         }
       },
       {
-        name: "S10020",
-        id: "S10020",
+        name: "S010020",
+        id: "S010020",
         buttons: true,
         translations: {
           dk: "Kognitiv dysfunktion",
@@ -386,13 +390,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            'xxx'
+            '"Cognitive Dysfunction"[majr] AND ' + standardString['narrow']
           ],
           normal: [
-            '"Cognitive Dysfunction"[mh] OR cognitive dysfunction[ti]'
+            '("Cognitive Dysfunction"[mh] OR cognitive dysfunction[ti]) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            'xxx'
+            '("Cognitive Dysfunction"[mh] OR cognitive dysfunction[tiab]) AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -405,104 +409,8 @@ export const topics = [
         }
       },
       {
-        name: "S10030",
-        id: "S10030",
-        buttons: true,
-        translations: {
-          dk: "Eksekutiv funktion",
-          en: "Executive function"
-        },
-        ordering: {
-          dk: null,
-          en: null
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            '"Executive Function"[mh]'
-          ],
-          broad: [
-            'xxx'
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        name: "S10040",
-        id: "S10040",
-        buttons: true,
-        translations: {
-          dk: "Hukommelse",
-          en: "Memory"
-        },
-        ordering: {
-          dk: null,
-          en: null
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            '"Memory"[mh]'
-          ],
-          broad: [
-            'xxx'
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        name: "S10050",
-        id: "S10050",
-        buttons: true,
-        translations: {
-          dk: "Behandling af information",
-          en: "Processing speed"
-        },
-        ordering: {
-          dk: null,
-          en: null
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            '"Processing Speed"[mh]'
-          ],
-          broad: [
-            'xxx'
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        name: "S10060",
-        id: "S10060",
+        name: "S010030",
+        id: "S010030",
         buttons: true,
         translations: {
           dk: "Appetitstyring",
@@ -514,17 +422,17 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            'xxx'
+            '"Appetite Regulation"[majr] AND ' + standardString['narrow']
           ],
           normal: [
-            '"Appetite Regulation"[mh]'
+            '("Appetite Regulation"[mh] OR appetite regulation*[ti]) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            'xxx'
+            '("Appetite Regulation"[mh] OR appetite regulation*[tiab]) AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
-          dk: "Comment",
+          dk: "",
           en: ""
         },
         tooltip: {
@@ -533,8 +441,8 @@ export const topics = [
         }
       },
       {
-        name: "S10070",
-        id: "S10070",
+        name: "S010040",
+        id: "S010040",
         buttons: true,
         translations: {
           dk: "Attention",
@@ -546,13 +454,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            'xxx'
+            '"Attention"[majr] AND ' + standardString['narrow']
           ],
           normal: [
-            '"Attention"[mh]'
+            '("Attention"[mh] OR attention*[ti]) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            'xxx'
+            '("Attention"[mh] OR attention*[tiab]) AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -563,12 +471,108 @@ export const topics = [
           dk: "",
           en: ""
         }
-      }
+      },
+      {
+        name: "S010050",
+        id: "S010050",
+        buttons: true,
+        translations: {
+          dk: "Behandling af information",
+          en: "Processing speed"
+        },
+        ordering: {
+          dk: null,
+          en: null
+        },
+        searchStrings: {
+          narrow: [
+            '"Processing Speed"[majr] AND ' + standardString['narrow']
+          ],
+          normal: [
+            '("Processing Speed"[mh] OR processing speed*[ti]) AND (' + standardString['normal'] + ')'
+          ],
+          broad: [
+            '("Processing Speed"[mh] OR processing speed*[tiab]) AND (' + standardString['broad'] + ')'
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        name: "S010060",
+        id: "S010060",
+        buttons: true,
+        translations: {
+          dk: "Eksekutiv funktion",
+          en: "Executive function"
+        },
+        ordering: {
+          dk: null,
+          en: null
+        },
+        searchStrings: {
+          narrow: [
+            '"Executive Function"[majr] AND ' + standardString['narrow']
+          ],
+          normal: [
+            '("Executive Function"[mh] OR executive function[ti]) AND (' + standardString['normal'] + ')'
+          ],
+          broad: [
+            '("Executive Function"[mh] OR executive function[tiab]) AND (' + standardString['broad'] + ')'
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        name: "S010070",
+        id: "S010070",
+        buttons: true,
+        translations: {
+          dk: "Hukommelse",
+          en: "Memory"
+        },
+        ordering: {
+          dk: null,
+          en: null
+        },
+        searchStrings: {
+          narrow: [
+            '"Memory"[majr] AND ' + standardString['narrow']
+          ],
+          normal: [
+            '("Memory"[mh] OR memory*[ti]) AND (' + standardString['normal'] + ')'
+          ],
+          broad: [
+            '("Memory"[mh] OR memory*[tiab]) AND (' + standardString['broad'] + ')'
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
     ]
   },
   {
-    groupname: 'CNS disorders',
-    id: 'S20',
+    id: 'S020',
+    groupname: 'S020',
     translations: {
       dk: 'Centralnervesystemsforstyrrelser',
       en: 'CNS disorders'
@@ -579,8 +583,8 @@ export const topics = [
     },
     groups: [
       {
-        name: "S20010",
-        id: "S20010",
+        name: "S020010",
+        id: "S020010",
         buttons: true,
         translations: {
           dk: "Neurodegenerative sygdomme generelt",
@@ -592,13 +596,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            'xxx'
+            '"Neurodegenerative diseases"[majr] AND ' + standardString['narrow']
           ],
           normal: [
-            '"Neurodegenerative diseases"[mh]'
+            '("Neurodegenerative diseases"[mh] OR neurodegenerative*[ti]) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            'xxx'
+            '("Neurodegenerative diseases"[mh] OR neurodegenerative*[tiab]) AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -611,11 +615,11 @@ export const topics = [
         }
       },
       {
-        name: "S20020",
-        id: "S20020",
+        name: "S020020",
+        id: "S020020",
         buttons: true,
         translations: {
-          dk: "Alzheimer's sygdom",
+          dk: "Alzheimers sygdom",
           en: "Alzheimer's disease"
         },
         ordering: {
@@ -624,13 +628,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            'xxx'
+            '"Alzheimer Disease"[majr] AND ' + standardString['narrow']
           ],
           normal: [
-            '"Alzheimer Disease"[mh]'
+            '("Alzheimer Disease"[mh] OR alzheimer*[ti]) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            'xxx'
+            '("Alzheimer Disease"[mh] OR alzheimer*[tiab]) AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -643,8 +647,8 @@ export const topics = [
         }
       },
       {
-        name: "S20030",
-        id: "S20030",
+        name: "S020030",
+        id: "S020030",
         buttons: true,
         translations: {
           dk: "Demens",
@@ -656,13 +660,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            'xxx'
+            '"Dementia"[majr] AND ' + standardString['narrow']
           ],
           normal: [
-            '"Dementia"[mh] OR dementia*[ti]'
+            '("Dementia"[mh] OR dementia*[ti]) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            'xxx'
+            '("Dementia"[mh] OR dementia*[tiab]) AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -675,40 +679,8 @@ export const topics = [
         }
       },
       {
-        name: "S20040",
-        id: "S20040",
-        buttons: true,
-        translations: {
-          dk: "Parkinson's sygdom",
-          en: "Parkinson's disease"
-        },
-        ordering: {
-          dk: null,
-          en: null
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            '"Parkinson Disease"[mh]'
-          ],
-          broad: [
-            'xxx'
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        name: "S20050",
-        id: "S20050",
+        name: "S020040",
+        id: "S020040",
         buttons: true,
         translations: {
           dk: "Demyelinerende autoimmun sygdomme, CNS",
@@ -720,13 +692,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            'xxx'
+            '"Demyelinating Autoimmune Diseases, CNS"[majr] AND ' + standardString['narrow']
           ],
           normal: [
-            '"Demyelinating Autoimmune Diseases, CNS"[mh]'
+            '("Demyelinating Autoimmune Diseases, CNS"[mh] OR demyelinating autoimmune*[ti]) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            'xxx'
+            '("Demyelinating Autoimmune Diseases, CNS"[mh] OR demyelinating autoimmune*[tiab]) AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -739,8 +711,8 @@ export const topics = [
         }
       },
       {
-        name: "S20060",
-        id: "S20060",
+        name: "S020050",
+        id: "S020050",
         buttons: true,
         translations: {
           dk: "Neuroinflammation",
@@ -752,13 +724,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            'xxx'
+            '"Neuroinflammatory Diseases"[majr] AND ' + standardString['narrow']
           ],
           normal: [
-            '"Neuroinflammatory Diseases"[mh]'
+            '("Neuroinflammatory Diseases"[mh] OR neuroinflammatory*[ti]) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            'xxx'
+            '("Neuroinflammatory Diseases"[mh] OR neuroinflammatory*[tiab]) AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -769,11 +741,44 @@ export const topics = [
           dk: "",
           en: ""
         }
-      }
+      },
+      {
+        name: "S020060",
+        id: "S020060",
+        buttons: true,
+        translations: {
+          dk: "Parkinsons sygdom",
+          en: "Parkinson's disease"
+        },
+        ordering: {
+          dk: null,
+          en: null
+        },
+        searchStrings: {
+          narrow: [
+            '"Parkinson Disease"[majr] AND ' + standardString['narrow']
+          ],
+          normal: [
+            '("Parkinson Disease"[mh] OR parkinson*[ti]) AND (' + standardString['normal'] + ')'
+          ],
+          broad: [
+            '("Parkinson Disease"[mh] OR parkinson*[tiab]) AND (' + standardString['broad'] + ')'
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
     ]
   },
   {
-    groupname: 'Diabetic neuropathy', id: 'S30',
+    groupname: 'S030',
+    id: 'S030',
     translations: {
       dk: 'Diabetisk neuropati',
       en: 'Diabetic neuropathy'
@@ -784,8 +789,8 @@ export const topics = [
     },
     groups: [
       {
-        name: "S30010",
-        id: "S30010",
+        name: "S030010",
+        id: "S030010",
         buttons: true,
         translations: {
           dk: "Autonom neuropati",
@@ -797,13 +802,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            'xxx'
+            '"Autonomic Nervous System"[majr] AND ' + standardString['narrow']
           ],
           normal: [
-            '(("Autonomic Nervous System"[mh] OR "Autonomic Nervous System Diseases"[mh]) AND ("Diabetic Neuropathies"[mh] OR neuropath*[ti])) OR autonomic neuropath*[ti]'
+            '(("Autonomic Nervous System"[mh] OR "Autonomic Nervous System Diseases"[mh]) AND ("Diabetic Neuropathies"[mh] OR neuropath*[ti])) OR autonomic neuropath*[ti] AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            'xxx'
+            '(("Autonomic Nervous System"[mh] OR "Autonomic Nervous System Diseases"[mh]) AND ("Diabetic Neuropathies"[mh] OR neuropath*[tiab])) OR autonomic neuropath*[tiab] AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -816,104 +821,8 @@ export const topics = [
         }
       },
       {
-        name: "S30020",
-        id: "S30020",
-        buttons: true,
-        translations: {
-          dk: "Perifer neuropati",
-          en: "Peripheral neuropathy"
-        },
-        ordering: {
-          dk: null,
-          en: null
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            '("Peripheral Nervous System Diseases"[mh] AND ("Diabetic Neuropathies"[mh] OR neuropath*[ti])) OR peripheral neuropath*[ti]'
-          ],
-          broad: [
-            'xxx'
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        name: "S30030",
-        id: "S30030",
-        buttons: true,
-        translations: {
-          dk: "Smertefuld neuropati",
-          en: "Painful neuropathy"
-        },
-        ordering: {
-          dk: null,
-          en: null
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            '("Diabetic Neuropathies"[mh] OR "Polyneuropathies"[mh]'
-          ],
-          broad: [
-            'xxx'
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        name: "S30040",
-        id: "S30040",
-        buttons: true,
-        translations: {
-          dk: "Småfiberneuropati",
-          en: "Small fibre neuropathy"
-        },
-        ordering: {
-          dk: null,
-          en: null
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            '"Diabetic Neuropathies"[mh] AND small fibre*[ti]'
-          ],
-          broad: [
-            'xxx'
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        name: "S30050",
-        id: "S30050",
+        name: "S030020",
+        id: "S030020",
         buttons: true,
         translations: {
           dk: "Gastroparese",
@@ -925,13 +834,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            'xxx'
+            '"Gastroparesis"[majr] AND ' + standardString['narrow']
           ],
           normal: [
-            '"Gastroparesis"[mh]'
+            '("Gastroparesis"[mh] OR gastroparesis*[ti]) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            'xxx'
+            '("Gastroparesis"[mh] OR gastroparesis*[tiab]) AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -944,40 +853,8 @@ export const topics = [
         }
       },
       {
-        name: "S30060",
-        id: "S30060",
-        buttons: true,
-        translations: {
-          dk: "Sudomotor dysfunktion",
-          en: "Sudomotor dysfunction"
-        },
-        ordering: {
-          dk: null,
-          en: null
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            '"Hyperhidrosis"[mh] OR "Hyperhidrosis"[mh] OR sudomotor* dysfunction*[ti]'
-          ],
-          broad: [
-            'xxx'
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        name: "S30070",
-        id: "S30070",
+        name: "S030030",
+        id: "S030030",
         buttons: true,
         translations: {
           dk: "Kardial autonom neuropati (CAN)",
@@ -989,13 +866,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            'xxx'
+            '"Autonomic Nervous System Diseases"[majr] AND cardi*[ti] AND ' + standardString['narrow']
           ],
           normal: [
-            'xxx'
+            '"Autonomic Nervous System Diseases"[mh] AND cardi*[ti] AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            'xxx'
+            '"Autonomic Nervous System Diseases"[mh] AND cardi*[tiab] AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -1008,8 +885,40 @@ export const topics = [
         }
       },
       {
-        name: "S30080",
-        id: "S30080",
+        name: "S030040",
+        id: "S030040",
+        buttons: true,
+        translations: {
+          dk: "Perifer neuropati",
+          en: "Peripheral neuropathy"
+        },
+        ordering: {
+          dk: null,
+          en: null
+        },
+        searchStrings: {
+          narrow: [
+            '"Peripheral Nervous System Diseases"[majr] AND ' + standardString['narrow']
+          ],
+          normal: [
+            '("Peripheral Nervous System Diseases"[mh] AND ("Diabetic Neuropathies"[mh] OR neuropath*[ti])) OR peripheral neuropath*[ti] AND (' + standardString['normal'] + ')'
+          ],
+          broad: [
+            '("Peripheral Nervous System Diseases"[mh] AND ("Diabetic Neuropathies"[mh] OR neuropath*[tiab])) OR peripheral neuropath*[tiab] AND (' + standardString['broad'] + ')'
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        name: "S030050",
+        id: "S030050",
         buttons: true,
         translations: {
           dk: "Retinopati",
@@ -1021,13 +930,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            'xxx'
+            '"Diabetic Retinopathy"[majr] AND ' + standardString['narrow']
           ],
           normal: [
-            '"Diabetic Retinopathy"[mh] OR "Optic Neuropathy, Ischemic"[mh]'
+            '("Diabetic Retinopathy"[mh] OR "Optic Neuropathy, Ischemic"[mh] OR retinopathy*[ti]) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            'xxx'
+            '("Diabetic Retinopathy"[mh] OR "Optic Neuropathy, Ischemic"[mh] OR retinopathy*[tiab]) AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -1038,11 +947,108 @@ export const topics = [
           dk: "",
           en: ""
         }
-      }
+      },
+      {
+        name: "S030060",
+        id: "S030060",
+        buttons: true,
+        translations: {
+          dk: "Smertefuld neuropati",
+          en: "Painful neuropathy"
+        },
+        ordering: {
+          dk: null,
+          en: null
+        },
+        searchStrings: {
+          narrow: [
+            '("Diabetic Neuropathies"[majr] OR "Polyneuropathies"[majr]) AND ' + standardString['narrow']
+          ],
+          normal: [
+            '("Diabetic Neuropathies"[mh] OR "Polyneuropathies"[mh] OR neuropath*[ti] OR polyneuropath*[ti]) AND (' + standardString['normal'] + ')'
+          ],
+          broad: [
+            '("Diabetic Neuropathies"[mh] OR "Polyneuropathies"[mh] OR neuropath*[tiab] OR polyneuropath*[tiab]) AND (' + standardString['broad'] + ')'
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        name: "S030070",
+        id: "S030070",
+        buttons: true,
+        translations: {
+          dk: "Småfiberneuropati",
+          en: "Small fibre neuropathy"
+        },
+        ordering: {
+          dk: null,
+          en: null
+        },
+        searchStrings: {
+          narrow: [
+            '"Small Fiber Neuropathy"[majr] AND ' + standardString['narrow']
+          ],
+          normal: [
+            '("Small Fiber Neuropathy"[mh] OR small fibre*[ti]) AND (' + standardString['normal'] + ')'
+          ],
+          broad: [
+            '("Small Fiber Neuropathy"[mh] OR small fibre*[tiab]) AND (' + standardString['broad'] + ')'
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        name: "S030080",
+        id: "S030080",
+        buttons: true,
+        translations: {
+          dk: "Sudomotor dysfunktion",
+          en: "Sudomotor dysfunction"
+        },
+        ordering: {
+          dk: null,
+          en: null
+        },
+        searchStrings: {
+          narrow: [
+            '"Hyperhidrosis"[majr] AND ' + standardString['narrow']
+          ],
+          normal: [
+            '("Hyperhidrosis"[mh] OR sudomotor* dysfunction*[ti]) AND (' + standardString['normal'] + ')'
+          ],
+          broad: [
+            '("Hyperhidrosis"[mh] OR sudomotor* dysfunction*[tiab]) AND (' + standardString['broad'] + ')'
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
     ]
   },
   {
-    groupname: 'Circadian rhythm', id: 'S40',
+    groupname: 'S040',
+    id: 'S040',
     translations: {
       dk: 'Døgnrytme',
       en: 'Circadian rhythm'
@@ -1053,8 +1059,8 @@ export const topics = [
     },
     groups: [
       {
-        name: "S40010",
-        id: "S40010",
+        name: "S040010",
+        id: "S040010",
         buttons: true,
         translations: {
           dk: "Døgnrytme",
@@ -1066,13 +1072,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            'xxx'
+            '"Circadian Rhythm"[majr] AND ' + standardString['narrow']
           ],
           normal: [
-            '"Circadian Rhythm"[mh]'
+            '("Circadian Rhythm"[mh] OR circadian*[ti]) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            'xxx'
+            '("Circadian Rhythm"[mh] OR circadian*[tiab]) AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -1085,8 +1091,8 @@ export const topics = [
         }
       },
       {
-        name: "S40020",
-        id: "S40020",
+        name: "S040020",
+        id: "S040020",
         buttons: true,
         translations: {
           dk: "Døgnrytmeforstyrrelse",
@@ -1098,13 +1104,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            'xxx'
+            '"Sleep Disorders, Circadian Rhythm"[majr] AND ' + standardString['narrow']
           ],
           normal: [
-            '"Sleep Disorders, Circadian Rhythm"[mh] OR "Sleep Apnea Syndromes"[mh]'
+            '("Sleep Disorders, Circadian Rhythm"[mh] OR "Sleep Apnea Syndromes"[mh] OR circadian*[ti]) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            'xxx'
+            '("Sleep Disorders, Circadian Rhythm"[mh] OR "Sleep Apnea Syndromes"[mh] OR circadian*[tiab]) AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -1119,8 +1125,8 @@ export const topics = [
     ]
   },
   {
-    groupname: 'Metabolism',
-    id: 'S50',
+    groupname: 'S050',
+    id: 'S050',
     translations: {
       dk: 'Metabolisme',
       en: 'Metabolism'
@@ -1131,8 +1137,8 @@ export const topics = [
     },
     groups: [
       {
-        name: "S50010",
-        id: "S50010",
+        name: "S050010",
+        id: "S050010",
         buttons: true,
         translations: {
           dk: "Brain hypometabolism",
@@ -1144,13 +1150,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            'xxx'
+            '"Brain/metabolism"[majr] AND ' + standardString['narrow']
           ],
           normal: [
-            '"Brain/metabolism"[mh] OR "Neurodegenerative diseases/metabolism"[mh]'
+            '("Brain/metabolism"[mh] OR "Neurodegenerative diseases/metabolism"[mh] OR brain* hypometabolism*[ti]) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            'xxx'
+            '("Brain/metabolism"[mh] OR "Neurodegenerative diseases/metabolism"[mh] OR brain* hypometabolism*[tiab]) AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -1163,8 +1169,8 @@ export const topics = [
         }
       },
       {
-        name: "S50020",
-        id: "S50020",
+        name: "S050020",
+        id: "S050020",
         buttons: true,
         translations: {
           dk: "Glukose",
@@ -1176,13 +1182,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            'xxx'
+            '"Blood Glucose"[majr] AND ' + standardString['narrow']
           ],
           normal: [
-            '"Blood Glucose"[mh] OR "Hyperglycemia"[mh] OR "Hypoglycemia"[mh]'
+            '("Blood Glucose"[mh] OR "Hyperglycemia"[mh] OR "Hypoglycemia"[mh] OR glucose*[ti]) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            'xxx'
+            '("Blood Glucose"[mh] OR "Hyperglycemia"[mh] OR "Hypoglycemia"[mh] OR glucose*[tiab]) AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -1195,104 +1201,8 @@ export const topics = [
         }
       },
       {
-        name: "S50030",
-        id: "S50030",
-        buttons: true,
-        translations: {
-          dk: "Insulin",
-          en: "Insulin"
-        },
-        ordering: {
-          dk: null,
-          en: null
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            '("Insulin"[mh]'
-          ],
-          broad: [
-            'xxx'
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        name: "S50040",
-        id: "S50040",
-        buttons: true,
-        translations: {
-          dk: "Ketoner",
-          en: "Ketone bodies"
-        },
-        ordering: {
-          dk: null,
-          en: null
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            '"Ketone Bodies"[mh]'
-          ],
-          broad: [
-            'xxx'
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        name: "S50050",
-        id: "S50050",
-        buttons: true,
-        translations: {
-          dk: "Ketogen diæt",
-          en: "Ketogenic diet"
-        },
-        ordering: {
-          dk: null,
-          en: null
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            '"Diet, Ketogenic"[mh]'
-          ],
-          broad: [
-            'xxx'
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        name: "S50060",
-        id: "S50060",
+        name: "S050030",
+        id: "S050030",
         buttons: true,
         translations: {
           dk: "Hjerneinsulinresistens",
@@ -1304,13 +1214,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            'xxx'
+            '"Insulin Resistance"[majr] AND "Brain"[majr] AND ' + standardString['narrow']
           ],
           normal: [
-            '("Insulin Resistance"[mh] OR insulin resistance[ti]) AND ("Brain"[mh] OR brain[ti])'
+            '("Insulin Resistance"[mh] OR insulin resistance[ti]) AND ("Brain"[mh] OR brain[ti]) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            'xxx'
+            '("Insulin Resistance"[mh] OR insulin resistance[tiab]) AND ("Brain"[mh] OR brain[tiab]) AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -1323,8 +1233,104 @@ export const topics = [
         }
       },
       {
-        name: "S50070",
-        id: "S50070",
+        name: "S050040",
+        id: "S050040",
+        buttons: true,
+        translations: {
+          dk: "Insulin",
+          en: "Insulin"
+        },
+        ordering: {
+          dk: null,
+          en: null
+        },
+        searchStrings: {
+          narrow: [
+            '"Insulin"[majr] AND ' + standardString['narrow']
+          ],
+          normal: [
+            '("Insulin"[mh] OR insulin*[ti]) AND (' + standardString['normal'] + ')'
+          ],
+          broad: [
+            '("Insulin"[mh] OR insulin*[tiab]) AND (' + standardString['broad'] + ')'
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        name: "S050050",
+        id: "S050050",
+        buttons: true,
+        translations: {
+          dk: "Ketogen diæt",
+          en: "Ketogenic diet"
+        },
+        ordering: {
+          dk: null,
+          en: null
+        },
+        searchStrings: {
+          narrow: [
+            '"Diet, Ketogenic"[majr] AND ' + standardString['narrow']
+          ],
+          normal: [
+            '("Diet, Ketogenic"[mh] OR ketogenic*[ti]) AND (' + standardString['normal'] + ')'
+          ],
+          broad: [
+            '("Diet, Ketogenic"[mh] OR ketogenic*[tiab]) AND (' + standardString['broad'] + ')'
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        name: "S050060",
+        id: "S050060",
+        buttons: true,
+        translations: {
+          dk: "Ketoner",
+          en: "Ketone bodies"
+        },
+        ordering: {
+          dk: null,
+          en: null
+        },
+        searchStrings: {
+          narrow: [
+            '"Ketone Bodies"[majr] AND ' + standardString['narrow']
+          ],
+          normal: [
+            '("Ketone Bodies"[mh] OR ketone*[ti]) AND (' + standardString['normal'] + ')'
+          ],
+          broad: [
+            '("Ketone Bodies"[mh] OR ketone*[tiab]) AND (' + standardString['broad'] + ')'
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        name: "S050070",
+        id: "S050070",
         buttons: true,
         translations: {
           dk: "Perifer insulinresistens",
@@ -1336,13 +1342,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            'xxx'
+            '"Insulin Resistance"[majr] AND peripheral*[ti] AND ' + standardString['narrow']
           ],
           normal: [
-            '"Insulin Resistance"[mh] AND peripheral*[ti] '
+            '"Insulin Resistance"[mh] AND peripheral*[ti] AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            'xxx'
+            '"Insulin Resistance"[mh] AND peripheral*[tiab] AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -1357,8 +1363,8 @@ export const topics = [
     ]
   },
   {
-    groupname: 'Risk factors',
-    id: 'S60',
+    groupname: 'S060',
+    id: 'S060',
     translations: {
       dk: 'Risikofaktorer',
       en: 'Risk factors'
@@ -1369,168 +1375,8 @@ export const topics = [
     },
     groups: [
       {
-        name: "S60010",
-        id: "S60010",
-        buttons: true,
-        translations: {
-          dk: "Aldring",
-          en: "Aging"
-        },
-        ordering: {
-          dk: null,
-          en: null
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            '"Cognitive Aging"[mh] OR ("Aging"[mh] NOT 2016:3000[mhda])'
-          ],
-          broad: [
-            'xxx'
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        name: "S60020",
-        id: "S60020",
-        buttons: true,
-        translations: {
-          dk: "Autoimmune sygdomme",
-          en: "Autoimmune diseases"
-        },
-        ordering: {
-          dk: null,
-          en: null
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            '"Autoimmune Diseases"[mh]'
-          ],
-          broad: [
-            'xxx'
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        name: "S60030",
-        id: "S60030",
-        buttons: true,
-        translations: {
-          dk: "Inflammation",
-          en: "Inflammation"
-        },
-        ordering: {
-          dk: null,
-          en: null
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            '"Inflammation"[mh]'
-          ],
-          broad: [
-            'xxx'
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        name: "S60040",
-        id: "S60040",
-        buttons: true,
-        translations: {
-          dk: "Svær overvægt",
-          en: "Obesity"
-        },
-        ordering: {
-          dk: null,
-          en: null
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            '"Obesity"[mh]'
-          ],
-          broad: [
-            'xxx'
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        name: "S60050",
-        id: "S60050",
-        buttons: true,
-        translations: {
-          dk: "Stroke",
-          en: "Stroke"
-        },
-        ordering: {
-          dk: null,
-          en: null
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            '"Stroke"[mh]'
-          ],
-          broad: [
-            'xxx'
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        name: "S60060",
-        id: "S60060",
+        name: "S060010",
+        id: "S060010",
         buttons: true,
         translations: {
           dk: "Type 1-diabetes",
@@ -1561,8 +1407,8 @@ export const topics = [
         }
       },
       {
-        name: "S60070",
-        id: "S60070",
+        name: "S060020",
+        id: "S060020",
         buttons: true,
         translations: {
           dk: "Type 2-diabetes",
@@ -1593,12 +1439,12 @@ export const topics = [
         }
       },
       {
-        name: "S60080",
-        id: "S60080",
+        name: "S060030",
+        id: "S060030",
         buttons: true,
         translations: {
-          dk: "Rygning",
-          en: "Smoking"
+          dk: "Aldring",
+          en: "Aging"
         },
         ordering: {
           dk: null,
@@ -1606,13 +1452,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            'xxx'
+            '("Cognitive Aging"[majr] OR ("Aging"[majr] NOT 2016:3000[mhda])) AND ' + standardString['narrow']
           ],
           normal: [
-            '"Smoking"[mh]'
+            '("Cognitive Aging"[mh] OR ("Aging"[mh] NOT 2016:3000[mhda])) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            'xxx'
+            '("Cognitive Aging"[mh] OR ("Aging"[mh] NOT 2016:3000[mhda])) AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -1625,8 +1471,40 @@ export const topics = [
         }
       },
       {
-        name: "S60090",
-        id: "S60090",
+        name: "S060040",
+        id: "S060040",
+        buttons: true,
+        translations: {
+          dk: "Autoimmune sygdomme",
+          en: "Autoimmune diseases"
+        },
+        ordering: {
+          dk: null,
+          en: null
+        },
+        searchStrings: {
+          narrow: [
+            '"Autoimmune Diseases"[majr] AND ' + standardString['narrow']
+          ],
+          normal: [
+            '("Autoimmune Diseases"[mh] OR autoimmune*[ti]) AND (' + standardString['normal'] + ')'
+          ],
+          broad: [
+            '("Autoimmune Diseases"[mh] OR autoimmune*[tiab]) AND (' + standardString['broad'] + ')'
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        name: "S060050",
+        id: "S060050",
         buttons: true,
         translations: {
           dk: "Hypertension",
@@ -1638,13 +1516,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            'xxx'
+            '"Hypertension"[majr] AND ' + standardString['narrow']
           ],
           normal: [
-            '"Hypertension"[mh]'
+            '("Hypertension"[mh] OR hypertension*[ti]) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            'xxx'
+            '("Hypertension"[mh] OR hypertension*[tiab]) AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -1655,7 +1533,135 @@ export const topics = [
           dk: "",
           en: ""
         }
-      }
+      },
+      {
+        name: "S060060",
+        id: "S060060",
+        buttons: true,
+        translations: {
+          dk: "Inflammation",
+          en: "Inflammation"
+        },
+        ordering: {
+          dk: null,
+          en: null
+        },
+        searchStrings: {
+          narrow: [
+            '"Inflammation"[majr] AND ' + standardString['narrow']
+          ],
+          normal: [
+            '("Inflammation"[mh] OR inflammation*[ti]) AND (' + standardString['normal'] + ')'
+          ],
+          broad: [
+            '("Inflammation"[mh] OR inflammation*[tiab]) AND (' + standardString['broad'] + ')'
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        name: "S060070",
+        id: "S060070",
+        buttons: true,
+        translations: {
+          dk: "Rygning",
+          en: "Smoking"
+        },
+        ordering: {
+          dk: null,
+          en: null
+        },
+        searchStrings: {
+          narrow: [
+            '"Smoking"[majr] AND ' + standardString['narrow']
+          ],
+          normal: [
+            '("Smoking"[mh] OR smoking*[ti]) AND (' + standardString['normal'] + ')'
+          ],
+          broad: [
+            '("Smoking"[mh] OR smoking*[tiab]) AND (' + standardString['broad'] + ')'
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        name: "S060080",
+        id: "S060080",
+        buttons: true,
+        translations: {
+          dk: "Stroke",
+          en: "Stroke"
+        },
+        ordering: {
+          dk: null,
+          en: null
+        },
+        searchStrings: {
+          narrow: [
+            '"Stroke"[majr] AND ' + standardString['narrow']
+          ],
+          normal: [
+            '("Stroke"[mh] OR stroke*[ti]) AND (' + standardString['normal'] + ')'
+          ],
+          broad: [
+            '("Stroke"[mh] OR stroke*[tiab]) AND (' + standardString['broad'] + ')'
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        name: "S060090",
+        id: "S060090",
+        buttons: true,
+        translations: {
+          dk: "Svær overvægt",
+          en: "Obesity"
+        },
+        ordering: {
+          dk: null,
+          en: null
+        },
+        searchStrings: {
+          narrow: [
+            '"Obesity"[majr] AND ' + standardString['narrow']
+          ],
+          normal: [
+            '("Obesity"[mh] OR obesity*[ti]) AND (' + standardString['normal'] + ')'
+          ],
+          broad: [
+            '("Obesity"[mh] OR obesity*[tiab]) AND (' + standardString['broad'] + ')'
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
     ],
     tooltip: {
       dk: "",
@@ -1663,8 +1669,8 @@ export const topics = [
     }
   },
   {
-    groupname: 'Methods',
-    id: 'S80',
+    groupname: 'S080',
+    id: 'S080',
     translations: {
       dk: 'Metoder',
       en: 'Methods'
@@ -1675,104 +1681,8 @@ export const topics = [
     },
     groups: [
       {
-        name: "S80010",
-        id: "S80010",
-        buttons: true,
-        translations: {
-          dk: "Magnetresonanskanning",
-          en: "Magnetic resonance imaging"
-        },
-        ordering: {
-          dk: null,
-          en: null
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            '"Magnetic Resonance Imaging"[mh]'
-          ],
-          broad: [
-            'xxx'
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        name: "S80020",
-        id: "S80020",
-        buttons: true,
-        translations: {
-          dk: "Glukosetolerancetest",
-          en: "Glucose tolerance test"
-        },
-        ordering: {
-          dk: null,
-          en: null
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            '"Glucose Tolerance Test"[mh]'
-          ],
-          broad: [
-            'xxx'
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        name: "S80030",
-        id: "S80030",
-        buttons: true,
-        translations: {
-          dk: "Glukose clamp teknik",
-          en: "Glucose clamp technique"
-        },
-        ordering: {
-          dk: null,
-          en: null
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            '"Glucose Clamp Technique"[mh]'
-          ],
-          broad: [
-            'xxx'
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        name: "S80040",
-        id: "S80040",
+        name: "S080010",
+        id: "S080010",
         buttons: true,
         translations: {
           dk: "Elektroencefalografi",
@@ -1784,13 +1694,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            'xxx'
+            '"Electroencephalography"[majr] AND ' + standardString['narrow']
           ],
           normal: [
-            '"Electroencephalography"[mh]'
+            '("Electroencephalography"[mh] OR electroencephalography*[ti]) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            'xxx'
+            '("Electroencephalography"[mh] OR electroencephalography*[tiab]) AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -1803,8 +1713,104 @@ export const topics = [
         }
       },
       {
-        name: "S80050",
-        id: "S80050",
+        name: "S080020",
+        id: "S080020",
+        buttons: true,
+        translations: {
+          dk: "Glukose clamp-teknik",
+          en: "Glucose clamp technique"
+        },
+        ordering: {
+          dk: null,
+          en: null
+        },
+        searchStrings: {
+          narrow: [
+            '"Glucose Clamp Technique"[majr] AND ' + standardString['narrow']
+          ],
+          normal: [
+            '("Glucose Clamp Technique"[mh] OR glucose clamp technique*[ti]) AND (' + standardString['normal'] + ')'
+          ],
+          broad: [
+            '("Glucose Clamp Technique"[mh] OR glucose clamp technique*[tiab]) AND (' + standardString['broad'] + ')'
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        name: "S080030",
+        id: "S080030",
+        buttons: true,
+        translations: {
+          dk: "Glukosetolerancetest",
+          en: "Glucose tolerance test"
+        },
+        ordering: {
+          dk: null,
+          en: null
+        },
+        searchStrings: {
+          narrow: [
+            '"Glucose Tolerance Test"[majr] AND ' + standardString['narrow']
+          ],
+          normal: [
+            '("Glucose Tolerance Test"[mh] OR glucose tolerance test*[ti]) AND (' + standardString['normal'] + ')'
+          ],
+          broad: [
+            '("Glucose Tolerance Test"[mh] OR glucose tolerance test*[tiab]) AND (' + standardString['broad'] + ')'
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        name: "S080040",
+        id: "S080040",
+        buttons: true,
+        translations: {
+          dk: "Magnetresonanskanning",
+          en: "Magnetic resonance imaging"
+        },
+        ordering: {
+          dk: null,
+          en: null
+        },
+        searchStrings: {
+          narrow: [
+            '"Magnetic Resonance Imaging"[majr] AND ' + standardString['narrow']
+          ],
+          normal: [
+            '("Magnetic Resonance Imaging"[mh] OR magnetic resonance imaging*[ti]) AND (' + standardString['normal'] + ')'
+          ],
+          broad: [
+            '("Magnetic Resonance Imaging"[mh] OR magnetic resonance imaging*[tiab]) AND (' + standardString['broad'] + ')'
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        name: "S080050",
+        id: "S080050",
         buttons: true,
         translations: {
           dk: "Neuropsykologiske tests",
@@ -1816,13 +1822,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            'xxx'
+            '"Neuropsychological Tests"[majr] AND ' + standardString['narrow']
           ],
           normal: [
-            '"Neuropsychological Tests"[mh]'
+            '("Neuropsychological Tests"[mh] OR neuropsychological tests*[ti]) AND (' + standardString['normal'] + ')'
           ],
           broad: [
-            'xxx'
+            '("Neuropsychological Tests"[mh] OR neuropsychological tests*[tiab]) AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -1837,8 +1843,8 @@ export const topics = [
     ]
   },
   {
-    groupname: 'Other topics',
-    id: 'SXX',
+    groupname: 'SXXX',
+    id: 'SXXX',
     translations: {
       dk: 'Andre emner',
       en: 'Other topics'
@@ -1849,8 +1855,8 @@ export const topics = [
     },
     groups: [
       {
-        name: "SXX010",
-        id: "SXX010",
+        name: "SXXX010",
+        id: "SXXX010",
         buttons: true,
         translations: {
           dk: "Andet emne 1",
@@ -1881,8 +1887,8 @@ export const topics = [
         }
       },
       {
-        name: "SXX020",
-        id: "SXX020",
+        name: "SXXX020",
+        id: "SXXX020",
         buttons: true,
         translations: {
           dk: "Andet emne 2",
@@ -1913,8 +1919,8 @@ export const topics = [
         }
       },
       {
-        name: "SXX030",
-        id: "SXX030",
+        name: "SXXX030",
+        id: "SXXX030",
         buttons: true,
         translations: {
           dk: "Andet emne 3",
