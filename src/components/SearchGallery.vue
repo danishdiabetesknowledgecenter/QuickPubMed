@@ -23,6 +23,8 @@
         <h2
           class="qpm_heading intext-arrow-link"
           @click="hideOrCollapse('qpm_subjectSearchStrings')"
+          @keyup.enter="hideOrCollapse('qpm_subjectSearchStrings')"
+          tabindex="0"
         >
           {{ getString("subjects") }}
         </h2>
@@ -35,6 +37,8 @@
         <h3
           class="qpm_heading intext-arrow-link"
           @click="hideOrCollapse(toClassName(subject.groupname))"
+          @keyup.enter="hideOrCollapse(toClassName(subject.groupname))"
+          tabindex="0"
         >
           {{ customNameLabel(subject) }} 
         </h3>
@@ -56,6 +60,8 @@
             class="qpm_heading"
             :class="{ 'intext-arrow-link': !group.maintopic }"
             @click="hideOrCollapse(toClassName(group.name))"
+            @keyup.enter="hideOrCollapse(toClassName(group.name))"
+            tabindex="0"
           >
             {{ customNameLabel(group) }} 
           </h4>
@@ -180,6 +186,8 @@
         <h2
           class="qpm_heading intext-arrow-link"
           @click="hideOrCollapse('qpm_filterSearchStrings')"
+          @keyup.enter="hideOrCollapse('qpm_filterSearchStrings')"
+          tabindex="0"
         >
           {{ getString("filters") }}
         </h2>
@@ -189,7 +197,12 @@
         :key="filter.name"
         class="qpm_filterSearchStrings qpm_collapsedSection"
       >
-        <h3 class="qpm_heading intext-arrow-link" @click="hideOrCollapse(toClassName(filter.name))">
+        <h3 
+          class="qpm_heading intext-arrow-link" 
+          @click="hideOrCollapse(toClassName(filter.name))"
+          @keyup.enter="hideOrCollapse(toClassName(filter.name))"
+          tabindex="0"
+        >
           {{ customNameLabel(filter) }} 
         </h3>
         <span class="qpm_groupid">(ID: {{ filter.id }})</span>
@@ -210,6 +223,8 @@
             class="qpm_heading"
             :class="{ 'intext-arrow-link': !choice.maintopic }"
             @click="hideOrCollapse(toClassName(choice.name))"
+            @keyup.enter="hideOrCollapse(toClassName(choice.name))"
+            tabindex="0"
           >
             {{ customNameLabel(choice) }} 
           </h4>
@@ -390,63 +405,76 @@
       hideOrCollapse(className) {
         const elements = document.getElementsByClassName(className);
         for (let i = 0; i < elements.length; i++) {
-          elements[i].classList.toggle("qpm_collapsedSection");
+          if (elements[i].classList.contains("qpm_collapsedSection")) {
+            elements[i].style.display = 'block';
+            setTimeout(() => {
+              elements[i].classList.remove("qpm_collapsedSection");
+              elements[i].classList.add("qpm_expandedSection");
+              
+              const headings = elements[i].querySelectorAll('h3, h4');
+              headings.forEach(heading => {
+                heading.setAttribute('tabindex', '0');
+              });
+            }, 10);
+          } else {
+            elements[i].classList.remove("qpm_expandedSection");
+            elements[i].classList.add("qpm_collapsedSection");
+            
+            const headings = elements[i].querySelectorAll('h3, h4');
+            headings.forEach(heading => {
+              heading.setAttribute('tabindex', '-1');
+            });
+            
+            elements[i].addEventListener('transitionend', function handler() {
+              elements[i].style.display = 'none';
+              elements[i].removeEventListener('transitionend', handler);
+            }, { once: true });
+          }
         }
       },
       toggleAll() {
         if (this.isAllToggled) {
-          let subjectSections = document.getElementsByClassName("qpm_subjectSearchStrings");
-          for (let i = 0; i < subjectSections.length; i++) {
-            subjectSections[i].classList.remove("qpm_collapsedSection");
-          }
-          let searchGroups = document.getElementsByClassName("qpm_searchGroups");
-          for (let j = 0; j < searchGroups.length; j++) {
-            searchGroups[j].classList.remove("qpm_collapsedSection");
-          }
-          let searchSubjects = document.getElementsByClassName("qpm_searchSubject");
-          for (let k = 0; k < searchSubjects.length; k++) {
-            searchSubjects[k].classList.remove("qpm_collapsedSection");
-          }
-
-          let filterSections = document.getElementsByClassName("qpm_filterSearchStrings");
-          for (let i = 0; i < filterSections.length; i++) {
-            filterSections[i].classList.remove("qpm_collapsedSection");
-          }
-          let filterGroups = document.getElementsByClassName("qpm_filterGroups");
-          for (let j = 0; j < filterGroups.length; j++) {
-            filterGroups[j].classList.remove("qpm_collapsedSection");
-          }
-          let searchFilters = document.getElementsByClassName("qpm_searchFilter");
-          for (let k = 0; k < searchFilters.length; k++) {
-            searchFilters[k].classList.remove("qpm_collapsedSection");
-          }
+          const sectionTypes = [
+            "qpm_subjectSearchStrings",
+            "qpm_searchGroups",
+            "qpm_searchSubject",
+            "qpm_filterSearchStrings", 
+            "qpm_filterGroups",
+            "qpm_searchFilter"
+          ];
+          
+          sectionTypes.forEach(type => {
+            const sections = document.getElementsByClassName(type);
+            for (let i = 0; i < sections.length; i++) {
+              sections[i].style.display = 'block';
+              setTimeout(() => {
+                sections[i].classList.remove("qpm_collapsedSection");
+                sections[i].classList.add("qpm_expandedSection");
+              }, 10);
+            }
+          });
           this.isAllToggled = false;
         } else {
-          let subjectSections = document.getElementsByClassName("qpm_subjectSearchStrings");
-          for (let i = 0; i < subjectSections.length; i++) {
-            subjectSections[i].classList.add("qpm_collapsedSection");
-          }
-          let searchGroups = document.getElementsByClassName("qpm_searchGroups");
-          for (let j = 0; j < searchGroups.length; j++) {
-            searchGroups[j].classList.add("qpm_collapsedSection");
-          }
-          let searchSubjects = document.getElementsByClassName("qpm_searchSubject");
-          for (let k = 0; k < searchSubjects.length; k++) {
-            searchSubjects[k].classList.add("qpm_collapsedSection");
-          }
-
-          let filterSections = document.getElementsByClassName("qpm_filterSearchStrings");
-          for (let i = 0; i < filterSections.length; i++) {
-            filterSections[i].classList.add("qpm_collapsedSection");
-          }
-          let filters = document.getElementsByClassName("qpm_filterGroups");
-          for (let j = 0; j < filters.length; j++) {
-            filters[j].classList.add("qpm_collapsedSection");
-          }
-          let searchFilters = document.getElementsByClassName("qpm_searchFilter");
-          for (let k = 0; k < searchFilters.length; k++) {
-            searchFilters[k].classList.add("qpm_collapsedSection");
-          }
+          const sectionTypes = [
+            "qpm_subjectSearchStrings",
+            "qpm_searchGroups",
+            "qpm_searchSubject",
+            "qpm_filterSearchStrings", 
+            "qpm_filterGroups",
+            "qpm_searchFilter"
+          ];
+          
+          sectionTypes.forEach(type => {
+            const sections = document.getElementsByClassName(type);
+            for (let i = 0; i < sections.length; i++) {
+              sections[i].classList.remove("qpm_expandedSection");
+              sections[i].classList.add("qpm_collapsedSection");
+              sections[i].addEventListener('transitionend', function handler() {
+                sections[i].style.display = 'none';
+                sections[i].removeEventListener('transitionend', handler);
+              }, { once: true });
+            }
+          });
           this.isAllToggled = true;
         }
       },

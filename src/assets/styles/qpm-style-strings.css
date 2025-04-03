@@ -1,5 +1,19 @@
 .qpm_collapsedSection {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s ease-in-out;
+    padding-top: 0;
+    margin-top: 0;
+    opacity: 0;
     display: none;
+}
+
+.qpm_expandedSection {
+    max-height: 2000px;
+    overflow: hidden;
+    transition: max-height 0.5s ease-in-out, opacity 0.4s ease-in-out;
+    opacity: 1;
+    display: block;
 }
 
 .qpm_subjectSearchStrings, .qpm_filterSearchStrings {
@@ -145,4 +159,13 @@
         position: relative;
         left: -90px;
     }
+}
+
+.qpm_subjectSearchStrings, 
+.qpm_searchGroups, 
+.qpm_searchSubject,
+.qpm_filterSearchStrings, 
+.qpm_filterGroups, 
+.qpm_searchFilter {
+    transition: max-height 0.5s ease-in-out, opacity 0.3s ease-in-out, padding-top 0.3s ease-in-out, margin-top 0.3s ease-in-out;
 }
