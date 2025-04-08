@@ -44,7 +44,7 @@
         <div
           v-for="(group, index) in subject.groups"
           :key="`group-${group.id}-${index}`"
-          class="qpm_searchGroups qpm_collapsedSection"
+          class="qpm_searchGroup qpm_collapsedSection"
           :class="[
             toClassName(subject.groupname),
             {
@@ -69,7 +69,7 @@
           </div>
           <div
             v-if="!group.maintopic"
-            class="qpm_searchGroups qpm_collapsedSection qpm_searchSubject"
+            class="qpm_searchGroup qpm_collapsedSection qpm_searchSubject"
             :class="toClassName(group.name)"
           >
             <table class="qpm_table">
@@ -216,7 +216,7 @@
         <div
           v-for="choice in filter.choices"
           :key="choice.id"
-          class="qpm_filterGroups qpm_collapsedSection"
+          class="qpm_filterGroup qpm_collapsedSection"
           :class="[
             toClassName(filter.name),
             {
@@ -424,7 +424,7 @@
           for (let i = 0; i < subjectSections.length; i++) {
             subjectSections[i].classList.remove("qpm_collapsedSection");
           }
-          let searchGroups = document.getElementsByClassName("qpm_searchGroups");
+          let searchGroups = document.getElementsByClassName("qpm_searchGroup");
           for (let j = 0; j < searchGroups.length; j++) {
             searchGroups[j].classList.remove("qpm_collapsedSection");
           }
@@ -437,7 +437,7 @@
           for (let i = 0; i < filterSections.length; i++) {
             filterSections[i].classList.remove("qpm_collapsedSection");
           }
-          let filterGroups = document.getElementsByClassName("qpm_filterGroups");
+          let filterGroups = document.getElementsByClassName("qpm_filterGroup");
           for (let j = 0; j < filterGroups.length; j++) {
             filterGroups[j].classList.remove("qpm_collapsedSection");
           }
@@ -451,7 +451,7 @@
           for (let i = 0; i < subjectSections.length; i++) {
             subjectSections[i].classList.add("qpm_collapsedSection");
           }
-          let searchGroups = document.getElementsByClassName("qpm_searchGroups");
+          let searchGroups = document.getElementsByClassName("qpm_searchGroup");
           for (let j = 0; j < searchGroups.length; j++) {
             searchGroups[j].classList.add("qpm_collapsedSection");
           }
@@ -464,9 +464,9 @@
           for (let i = 0; i < filterSections.length; i++) {
             filterSections[i].classList.add("qpm_collapsedSection");
           }
-          let filters = document.getElementsByClassName("qpm_filterGroups");
-          for (let j = 0; j < filters.length; j++) {
-            filters[j].classList.add("qpm_collapsedSection");
+          let filterGroups = document.getElementsByClassName("qpm_filterGroup");
+          for (let j = 0; j < filterGroups.length; j++) {
+            filterGroups[j].classList.add("qpm_collapsedSection");
           }
           let searchFilters = document.getElementsByClassName("qpm_searchFilter");
           for (let k = 0; k < searchFilters.length; k++) {
