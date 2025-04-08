@@ -32,7 +32,7 @@
 
 .qpm_vapp li,
 .qpm_vapp ul,
-.qpm_vapp ul:not(.filter-search__filter__alphabet):not(.fontsize):not(.sidemenu__dropdown):not(.list__timeline) {
+.qpm_vapp ul:not(.filter-search__filter__alphabet):not(.fontsize):not(.sidemenu__dropdown):not(.list__timeline):not(.qpm_vapp .multiselect__content) {
   padding-left: 0 !important;
 }
 

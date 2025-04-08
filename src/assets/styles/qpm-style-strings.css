@@ -6,6 +6,10 @@
     margin-top: 0;
     margin-bottom: 0;
     border-width: 0;
+    border-top-width: 0 !important;
+    border: none !important;
+    transition: max-height 1.3s ease;
+    display: none;
 }
 
 .qpm_subjectSearchStrings, .qpm_filterSearchStrings {
@@ -21,8 +25,7 @@
     margin-top: 22px;
 }
 
-.qpm_searchStringCollection h2.qpm_heading, 
-.qpm_searchStringCollection h2.intext-arrow-link{
+.qpm_searchStringCollection h2.qpm_heading, .qpm_searchStringCollection h2.intext-arrow-link{
     margin-top: 0 !important;
     padding-left: 15px;
     line-height: 2;
@@ -45,28 +48,18 @@
     margin: 0 -5px;
 }
 
-.qpm_subjectSearchStrings h2.qpm_heading, 
-.qpm_subjectSearchStrings h3.qpm_heading, 
-.qpm_searchGroups h4.qpm_heading, 
-.qpm_filterSearchStrings h2.qpm_heading, 
-.qpm_filterSearchStrings h3.qpm_heading, 
-.qpm_filterGroups h4.qpm_heading {
+.qpm_subjectSearchStrings h2.qpm_heading, .qpm_subjectSearchStrings h3.qpm_heading, .qpm_searchGroups h4.qpm_heading, .qpm_filterSearchStrings h2.qpm_heading, .qpm_filterSearchStrings h3.qpm_heading, .qpm_filterGroups h4.qpm_heading {
     margin-top: 10px !important;
     cursor: pointer;
     display: inline-block
 }
 
-.qpm_searchStringCollection h2:hover, 
-.qpm_filterSearchStrings h3:hover, 
-.qpm_subjectSearchStrings h3:hover, 
-.qpm_subjectSearchStrings h4:hover {
+.qpm_searchStringCollection h2:hover, .qpm_filterSearchStrings h3:hover, .qpm_subjectSearchStrings h3:hover, .qpm_subjectSearchStrings h4:hover {
     text-decoration: underline !important;
     cursor: pointer;
 }
 
-.qpm_searchStringCollection h2.intext-arrow-link:before, 
-.qpm_searchStringCollection h3.intext-arrow-link:before, 
-.qpm_searchStringCollection h4.intext-arrow-link:before {
+.qpm_searchStringCollection h2.intext-arrow-link:before, .qpm_searchStringCollection h3.intext-arrow-link:before, .qpm_searchStringCollection h4.intext-arrow-link:before {
     top: 1px;
 }
 
@@ -76,54 +69,51 @@
     padding: 15px 0;
 }
 
+.qpm_subjectSearchStrings, .qpm_searchGroups, .qpm_searchSubject, .qpm_filterSearchStrings, .qpm_filterGroups, .qpm_searchFilter {
+    margin-left: 30px;
+}
+.qpm_searchGroups.qpm_maintopicDropdown,
+.qpm_filterGroups.qpm_maintopicDropdown {
+	margin-left: 60px;
+}
 .qpm_searchGroups.qpm_maintopicDropdown.qpm_subtopicDropdown,
 .qpm_filterGroups.qpm_maintopicDropdown.qpm_subtopicDropdown {
-	padding-left: 30px;
+	margin-left: 60px;
 }
 .qpm_searchGroups.qpm_subtopicDropdown.qpm_subtopicDropdownLevel2,
 .qpm_filterGroups.qpm_subtopicDropdown.qpm_subtopicDropdownLevel2 {
-	padding-left: 60px;
+	margin-left: 60px;
 }
-.qpm_searchSubject, 
-.qpm_searchFilter {
+.qpm_searchSubject, .qpm_searchFilter {
     margin-bottom: 20px;
 }
 
-.qpm_searchSubject table, 
-.qpm_searchFilter table {
+.qpm_searchSubject table, .qpm_searchFilter table {
     border-collapse: collapse;
     border-width: 1px;
     border-style: solid;
 }
 
-.qpm_searchSubject td, 
-.qpm_searchSubject th, 
-.qpm_searchFilter td, 
-.qpm_searchFilter th {
+.qpm_searchSubject td, .qpm_searchSubject th, .qpm_searchFilter td, .qpm_searchFilter th {
     vertical-align: top;
     text-align: left;
 }
 
-.qpm_searchSubject td p.qpm_table_p, 
-.qpm_searchSubject th p.qpm_table_p, 
-.qpm_searchFilter td p.qpm_table_p, 
-.qpm_searchFilter th p.qpm_table_p { 
+.qpm_searchSubject td p.qpm_table_p, .qpm_searchSubject th p.qpm_table_p, .qpm_searchFilter td p.qpm_table_p, .qpm_searchFilter th p.qpm_table_p { 
     margin-bottom: 0 !important;
 }
 
-.qpm_searchSubject th:first-child, 
-.qpm_searchFilter th:first-child {
+
+.qpm_searchSubject th:first-child, .qpm_searchFilter th:first-child {
     width: 1%;
 }
 
-.qpm_searchSubject .qpm_table td, 
-.qpm_searchFilter .qpm_table td {
+.qpm_searchSubject .qpm_table td, .qpm_searchFilter .qpm_table td {
     background-color: transparent;
     border-top: solid 1px var(--color-grey-light);
 }
 
-.qpm_searchSubject .qpm_table th, 
-.qpm_searchFilter .qpm_table th {
+.qpm_searchSubject .qpm_table th, .qpm_searchFilter .qpm_table th {
     background-color: var(--color-grey-light);
 }
 
@@ -160,6 +150,7 @@
 .qpm_showHideAll {
     min-width: 200px !important;
 }
+
 .qpm_showHideAll a {
     margin-bottom: 15px;
     padding: 0 5px !important;
@@ -169,8 +160,7 @@
 /* Justeringer til mobilskærme */
 
 @media only screen and (max-width: 800px) {
-    .qpm_searchSubject, 
-    .qpm_filterGroup {
+    .qpm_searchSubject, .qpm_filterGroup {
         width: calc(100% + 65px) !important;
         position: relative;
         left: -90px;
