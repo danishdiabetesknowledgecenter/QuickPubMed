@@ -1,48 +1,46 @@
 <template>
   <div class="qpm_searchStringCollection">
     <p
-      v-if="isAllToggled"
       class="qpm_advancedSearch qpm_showHideAll"
       style="display: flex; justify-content: flex-end"
-      @keyup.enter="toggleAll()"
-      @click="toggleAll()"
     >
-      <a tabindex="0">{{ getString("showAllSearchstrings") }}</a>
-    </p>
-    <p
-      v-if="!isAllToggled"
-      class="qpm_advancedSearch qpm_showHideAll"
-      style="display: flex; justify-content: flex-end"
-      @keyup.enter="toggleAll()"
-      @click="toggleAll()"
-    >
-      <a tabindex="0">{{ getString("hideAllSearchstrings") }}</a>
+      <a 
+        tabindex="0"
+        @keyup.enter="toggleAll()"
+        @click="toggleAll()"
+      >{{ isAllToggled ? getString("showAllSearchstrings") : getString("hideAllSearchstrings") }}</a>
     </p>
     <div class="qpm_searchStringStringsContainer rich-text">
       <div style="padding-top: 5px">
-        <h2
-          class="qpm_heading intext-arrow-link"
+        <div class="qpm_headingContainerFocus_h2"
           @click="hideOrCollapse('qpm_subjectSearchStrings')"
           @keyup.enter="hideOrCollapse('qpm_subjectSearchStrings')"
           tabindex="0"
         >
-          {{ getString("subjects") }}
-        </h2>
+          <h2
+            class="qpm_heading intext-arrow-link"
+          >
+            {{ getString("subjects") }}
+          </h2>
+        </div>
       </div>
       <div
         v-for="subject in getSortedSubjects"
         :key="`subject-${subject.id}`"
         class="qpm_subjectSearchStrings qpm_collapsedSection"
       >
-        <h3
-          class="qpm_heading intext-arrow-link"
+        <div class="qpm_headingContainerFocus_h3"
           @click="hideOrCollapse(toClassName(subject.groupname))"
           @keyup.enter="hideOrCollapse(toClassName(subject.groupname))"
           tabindex="0"
         >
-          {{ customNameLabel(subject) }} 
-        </h3>
-        <span class="qpm_groupid">(ID: {{ subject.id }})</span>
+          <h3
+            class="qpm_heading intext-arrow-link"
+          >
+            {{ customNameLabel(subject) }} 
+          </h3>
+          <span class="qpm_groupid">(ID: {{ subject.id }})</span>
+        </div>
         <div
           v-for="(group, index) in subject.groups"
           :key="`group-${group.id}-${index}`"
@@ -56,16 +54,19 @@
             },
           ]"
         >
-          <h4
-            class="qpm_heading"
-            :class="{ 'intext-arrow-link': !group.maintopic }"
+          <div class="qpm_headingContainerFocus_h4"
             @click="hideOrCollapse(toClassName(group.name))"
             @keyup.enter="hideOrCollapse(toClassName(group.name))"
             tabindex="0"
           >
-            {{ customNameLabel(group) }} 
-          </h4>
-          <span class="qpm_groupid">(ID: {{ group.id }})</span>
+            <h4
+              class="qpm_heading"
+              :class="{ 'intext-arrow-link': !group.maintopic }"
+            >
+              {{ customNameLabel(group) }} 
+            </h4>
+            <span class="qpm_groupid">(ID: {{ group.id }})</span>
+          </div>
           <div
             v-if="!group.maintopic"
             class="qpm_searchGroups qpm_collapsedSection qpm_searchSubject"
@@ -183,29 +184,35 @@
         </div>
       </div>
       <div class="qpm_heading_limits">
-        <h2
-          class="qpm_heading intext-arrow-link"
+        <div class="qpm_headingContainerFocus_h2"
           @click="hideOrCollapse('qpm_filterSearchStrings')"
           @keyup.enter="hideOrCollapse('qpm_filterSearchStrings')"
           tabindex="0"
         >
-          {{ getString("filters") }}
-        </h2>
+          <h2
+            class="qpm_heading intext-arrow-link"
+          >
+            {{ getString("filters") }}
+          </h2>
+        </div>
       </div>
       <div
         v-for="filter in getSortedFilters"
         :key="filter.name"
         class="qpm_filterSearchStrings qpm_collapsedSection"
       >
-        <h3 
-          class="qpm_heading intext-arrow-link" 
+        <div class="qpm_headingContainerFocus_h3"
           @click="hideOrCollapse(toClassName(filter.name))"
           @keyup.enter="hideOrCollapse(toClassName(filter.name))"
           tabindex="0"
         >
-          {{ customNameLabel(filter) }} 
-        </h3>
-        <span class="qpm_groupid">(ID: {{ filter.id }})</span>
+          <h3
+            class="qpm_heading intext-arrow-link"
+          >
+            {{ customNameLabel(filter) }} 
+          </h3>
+          <span class="qpm_groupid">(ID: {{ filter.id }})</span>
+        </div>
         <div
           v-for="choice in filter.choices"
           :key="choice.id"
@@ -219,16 +226,19 @@
             },
           ]"
         >
-          <h4
-            class="qpm_heading"
-            :class="{ 'intext-arrow-link': !choice.maintopic }"
+          <div class="qpm_headingContainerFocus_h4"
             @click="hideOrCollapse(toClassName(choice.name))"
             @keyup.enter="hideOrCollapse(toClassName(choice.name))"
             tabindex="0"
           >
-            {{ customNameLabel(choice) }} 
-          </h4>
-          <span class="qpm_groupid">(ID: {{ choice.id }})</span>
+            <h4
+              class="qpm_heading"
+              :class="{ 'intext-arrow-link': !choice.maintopic }"
+            >
+              {{ customNameLabel(choice) }} 
+            </h4>
+            <span class="qpm_groupid">(ID: {{ choice.id }})</span>
+          </div>
           <div
             v-if="!choice.maintopic"
             class="qpm_filterGroup qpm_collapsedSection qpm_searchFilter"
@@ -405,76 +415,63 @@
       hideOrCollapse(className) {
         const elements = document.getElementsByClassName(className);
         for (let i = 0; i < elements.length; i++) {
-          if (elements[i].classList.contains("qpm_collapsedSection")) {
-            elements[i].style.display = 'block';
-            setTimeout(() => {
-              elements[i].classList.remove("qpm_collapsedSection");
-              elements[i].classList.add("qpm_expandedSection");
-              
-              const headings = elements[i].querySelectorAll('h3, h4');
-              headings.forEach(heading => {
-                heading.setAttribute('tabindex', '0');
-              });
-            }, 10);
-          } else {
-            elements[i].classList.remove("qpm_expandedSection");
-            elements[i].classList.add("qpm_collapsedSection");
-            
-            const headings = elements[i].querySelectorAll('h3, h4');
-            headings.forEach(heading => {
-              heading.setAttribute('tabindex', '-1');
-            });
-            
-            elements[i].addEventListener('transitionend', function handler() {
-              elements[i].style.display = 'none';
-              elements[i].removeEventListener('transitionend', handler);
-            }, { once: true });
-          }
+          elements[i].classList.toggle("qpm_collapsedSection");
         }
       },
       toggleAll() {
         if (this.isAllToggled) {
-          const sectionTypes = [
-            "qpm_subjectSearchStrings",
-            "qpm_searchGroups",
-            "qpm_searchSubject",
-            "qpm_filterSearchStrings", 
-            "qpm_filterGroups",
-            "qpm_searchFilter"
-          ];
-          
-          sectionTypes.forEach(type => {
-            const sections = document.getElementsByClassName(type);
-            for (let i = 0; i < sections.length; i++) {
-              sections[i].style.display = 'block';
-              setTimeout(() => {
-                sections[i].classList.remove("qpm_collapsedSection");
-                sections[i].classList.add("qpm_expandedSection");
-              }, 10);
-            }
-          });
+          let subjectSections = document.getElementsByClassName("qpm_subjectSearchStrings");
+          for (let i = 0; i < subjectSections.length; i++) {
+            subjectSections[i].classList.remove("qpm_collapsedSection");
+          }
+          let searchGroups = document.getElementsByClassName("qpm_searchGroups");
+          for (let j = 0; j < searchGroups.length; j++) {
+            searchGroups[j].classList.remove("qpm_collapsedSection");
+          }
+          let searchSubjects = document.getElementsByClassName("qpm_searchSubject");
+          for (let k = 0; k < searchSubjects.length; k++) {
+            searchSubjects[k].classList.remove("qpm_collapsedSection");
+          }
+
+          let filterSections = document.getElementsByClassName("qpm_filterSearchStrings");
+          for (let i = 0; i < filterSections.length; i++) {
+            filterSections[i].classList.remove("qpm_collapsedSection");
+          }
+          let filterGroups = document.getElementsByClassName("qpm_filterGroups");
+          for (let j = 0; j < filterGroups.length; j++) {
+            filterGroups[j].classList.remove("qpm_collapsedSection");
+          }
+          let searchFilters = document.getElementsByClassName("qpm_searchFilter");
+          for (let k = 0; k < searchFilters.length; k++) {
+            searchFilters[k].classList.remove("qpm_collapsedSection");
+          }
           this.isAllToggled = false;
         } else {
-          const sectionTypes = [
-            "qpm_subjectSearchStrings",
-            "qpm_searchGroups",
-            "qpm_searchSubject",
-            "qpm_filterSearchStrings", 
-            "qpm_filterGroups",
-            "qpm_searchFilter"
-          ];
-          
-          sectionTypes.forEach(type => {
-            const sections = document.getElementsByClassName(type);
-            for (let i = 0; i < sections.length; i++) {
-              sections[i].classList.remove("qpm_expandedSection");
-              sections[i].classList.add("qpm_collapsedSection");
-              sections[i].addEventListener('transitionend', function handler() {
-                sections[i].style.display = 'none';
-                sections[i].removeEventListener('transitionend', handler);
-              }, { once: true });
-            }
-          });
+          let subjectSections = document.getElementsByClassName("qpm_subjectSearchStrings");
+          for (let i = 0; i < subjectSections.length; i++) {
+            subjectSections[i].classList.add("qpm_collapsedSection");
+          }
+          let searchGroups = document.getElementsByClassName("qpm_searchGroups");
+          for (let j = 0; j < searchGroups.length; j++) {
+            searchGroups[j].classList.add("qpm_collapsedSection");
+          }
+          let searchSubjects = document.getElementsByClassName("qpm_searchSubject");
+          for (let k = 0; k < searchSubjects.length; k++) {
+            searchSubjects[k].classList.add("qpm_collapsedSection");
+          }
+
+          let filterSections = document.getElementsByClassName("qpm_filterSearchStrings");
+          for (let i = 0; i < filterSections.length; i++) {
+            filterSections[i].classList.add("qpm_collapsedSection");
+          }
+          let filters = document.getElementsByClassName("qpm_filterGroups");
+          for (let j = 0; j < filters.length; j++) {
+            filters[j].classList.add("qpm_collapsedSection");
+          }
+          let searchFilters = document.getElementsByClassName("qpm_searchFilter");
+          for (let k = 0; k < searchFilters.length; k++) {
+            searchFilters[k].classList.add("qpm_collapsedSection");
+          }
           this.isAllToggled = true;
         }
       },
