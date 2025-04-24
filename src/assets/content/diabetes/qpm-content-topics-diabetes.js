@@ -1983,22 +1983,22 @@ export const topics = [
         name: "S050010",
         buttons: true,
         translations: {
-          dk: "Aerob træning (konditionstræning)",
-          en: "Aerobic training (conditioning)"
+          dk: "Fysisk aktivitet generelt",
+          en: "Physical activity in general"
         },
         ordering: { 
-          dk: null, 
-          en: null 
+          dk: 1, 
+          en: 1 
         },
         searchStrings: {
           narrow: [
             '"Exercise"[majr] AND ' + standardString['narrow'] + ''
           ],
           normal: [
-            '("Exercise"[mh] OR exercise*[ti]) AND (' + standardString['normal'] + ')',
+            '("Exercise"[mh] OR exercise*[ti] OR physical activit*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Exercise"[mh] OR exercise*[tiab]) AND (' + standardString['broad'] + ')',
+            '("Exercise"[mh] OR exercise*[tiab] OR physical activit*[tiab]) AND (' + standardString['broad'] + ')',
           ]
         },
         searchStringComment: {
@@ -2014,23 +2014,47 @@ export const topics = [
         id: "S050020",
         name: "S050020",
         buttons: true,
+        maintopic: true,
         translations: {
-          dk: "Styrketræning (modstandstræning)",
-          en: "Strength training (resistance training)"
+          dk: "Konditionstræning",
+          en: "Cardiorespiratory fitness"
         },
         ordering: { 
-          dk: null, 
-          en: null 
+          dk: 2, 
+          en: 2 
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: "S050020010",
+        name: "S050020010",
+        buttons: true,
+        subtopiclevel: 1,
+        maintopicIdLevel1: "S050020",
+        translations: {
+          dk: "Konditionstræning generelt",
+          en: "Cardiorespiratory fitness in general"
+        },
+        ordering: { 
+          dk: 2, 
+          en: 2 
         },
         searchStrings: {
           narrow: [
-            '"Resistance Training"[majr] AND ' + standardString['narrow'] + ''
+            '("Activities of Daily Living"[majr] OR "Physical Conditioning, Human"[majr] OR "Physical Endurance"[majr] OR "Physical Fitness"[majr] OR "Walking"[majr]) AND ' + standardString['narrow'] + ''
           ],
           normal: [
-            '("Resistance Training"[mh] OR resistance training[ti] OR strength training[ti]) AND (' + standardString['normal'] + ')',
+            '("Activities of Daily Living"[mh] OR "Physical Conditioning, Human"[mh] OR "Physical Endurance"[mh] OR "Physical Fitness"[mh] OR "Walking"[mh] OR aerobic*[ti] OR cardiorespiratory*[ti] OR daily-activ*[ti] OR endurance*[ti] OR fitness*[ti] OR "low-intensity training"[ti:~3] OR "moderate-intensity training"[ti:~3] OR walking[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Resistance Training"[mh] OR resistance training[tiab] OR strength training[tiab]) AND (' + standardString['broad'] + ')',
+            '("Activities of Daily Living"[mh] OR "Physical Conditioning, Human"[mh] OR "Physical Endurance"[mh] OR "Physical Fitness"[mh] OR "Walking"[mh] OR aerobic*[tiab] OR cardiorespiratory*[tiab] OR daily-activ*[tiab] OR endurance*[tiab] OR fitness*[tiab] OR "low-intensity training"[tiab:~3] OR "moderate-intensity training"[tiab:~3] OR walking[tiab]) AND (' + standardString['broad'] + ')',
           ]
         },
         searchStringComment: {
@@ -2043,26 +2067,29 @@ export const topics = [
         }
       },
       {
-        id: "S050030",
-        name: "S050030",
+        id: "S050020020",
+        name: "S050020020",
         buttons: true,
+        subtopiclevel: 1,
+        maintopicIdLevel1: "S050020",
         translations: {
-          dk: "Fleksibilitets- og balancetræning",
-          en: "Flexibility and balance training"
+          dk: "Hverdagsaktiviteter (lav til moderat intensitet)",
+          en: "Daily activities (low to moderate intensity)"
         },
         ordering: { 
-          dk: null, 
-          en: null 
+          dk: 3, 
+          en: 3 
         },
         searchStrings: {
           narrow: [
-            '("Muscle Stretching Exercises"[majr] OR "Postural Balance"[majr]) AND ' + standardString['narrow'] + ''
+            '("Activities of Daily Living"[majr] OR "Walking"[majr]) AND ' + standardString['narrow'] + '',
           ],
           normal: [
-            '(("Muscle Stretching Exercises"[mh] OR "Postural Balance"[mh]) OR flexibility*[ti] OR balance*[ti]) AND (' + standardString['normal'] + ')',
+            '("Activities of Daily Living"[mh] OR "Walking"[mh] OR daily-activ*[ti] OR "low-intensity training"[ti:~3] OR "moderate-intensity training"[ti:~3] OR walking[ti]) AND (' + standardString['normal'] + ')',
+
           ],
           broad: [
-            '(("Muscle Stretching Exercises"[mh] OR "Postural Balance"[mh]) OR flexibility*[tiab] OR balance*[tiab]) AND (' + standardString['broad'] + ')',
+            '("Activities of Daily Living"[mh] OR "Walking"[mh] OR daily-activ*[tiab] OR "low-intensity training"[tiab:~3] OR "moderate-intensity training"[tiab:~3] OR walking[tiab]) AND (' + standardString['broad'] + ')',
           ]
         },
         searchStringComment: {
@@ -2075,26 +2102,28 @@ export const topics = [
         }
       },
       {
-        id: "S050040",
-        name: "S050040",
+        id: "S050020030",
+        name: "S050020030",
+        subtopiclevel: 1,
+        maintopicIdLevel1: "S050020",
         buttons: true,
         translations: {
-          dk: "Hverdagsaktiviteter (lavintensiv fysisk aktivitet)",
-          en: "Daily activities (low-intensity physical activity)"
+          dk: "Udholdenhedstræning (moderat intensitet)",
+          en: "Endurance training (moderate intensity)"
         },
         ordering: { 
-          dk: null, 
-          en: null 
+          dk: 4, 
+          en: 4 
         },
         searchStrings: {
           narrow: [
-            '"Activities of Daily Living"[majr] AND ' + standardString['narrow'] + '',
+            '("Endurance Training"[majr] OR "Physical Endurance"[majr]) AND ' + standardString['narrow'] + '',
           ],
           normal: [
-            '("Activities of Daily Living"[mh] OR daily-activ*[ti] OR low-intensity[ti]) AND (' + standardString['normal'] + ')',
+            '("Endurance Training"[mh] OR "Physical Endurance"[mh] OR endurance*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Activities of Daily Living"[mh] OR daily-activ*[tiab] OR low-intensity[tiab]) AND (' + standardString['broad'] + ')',
+            '("Endurance Training"[mh] OR "Physical Endurance"[mh] OR endurance*[tiab]) AND (' + standardString['broad'] + ')',
           ]
         },
         searchStringComment: {
@@ -2107,16 +2136,18 @@ export const topics = [
         }
       },
       {
-        id: "S050050",
-        name: "S050050",
+        id: "S050020040",
+        name: "S050020040",
         buttons: true,
+        subtopiclevel: 1,
+        maintopicIdLevel1: "S050020",
         translations: {
-          dk: "HIIT (højintensiv intervaltræning)",
-          en: "HIIT (high-intensity interval training)"
+          dk: "Højintensiv intervaltræning (HIIT)",
+          en: "High-intensity interval training (HIIT)"
         },
         ordering: { 
-          dk: null, 
-          en: null 
+          dk: 5, 
+          en: 5 
         },
         searchStrings: {
           narrow: [
@@ -2139,26 +2170,90 @@ export const topics = [
         }
       },
       {
-        id: "S050060",
-        name: "S050060",
+        id: "S050030",
+        name: "S050030",
+        buttons: true,
+        translations: {
+          dk: "Styrketræning",
+          en: "Strength training"
+        },
+        ordering: { 
+          dk: 6, 
+          en: 6 
+        },
+        searchStrings: {
+          narrow: [
+            '"Resistance Training"[majr] AND ' + standardString['narrow'] + ''
+          ],
+          normal: [
+            '("Resistance Training"[mh] OR resistance training[ti] OR strength training[ti] OR weight training[ti]) AND (' + standardString['normal'] + ')',
+          ],
+          broad: [
+            '("Resistance Training"[mh] OR resistance training[tiab] OR strength training[tiab] OR weight training[tiab]) AND (' + standardString['broad'] + ')',
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "F.eks. med vægte, elastikker eller egen kropsvægt.",
+          en: "E.g. with weights, elastic bands or body weight."
+        }
+      },
+      {
+        id: "S050040",
+        name: "S050040",
+        buttons: true,
+        translations: {
+          dk: "Balance- og bevægelighedstræning",
+          en: "Balance and flexibility training"
+        },
+        ordering: { 
+          dk: 7, 
+          en: 7 
+        },
+        searchStrings: {
+          narrow: [
+            '("Muscle Stretching Exercises"[majr] OR "Postural Balance"[majr]) AND ' + standardString['narrow'] + ''
+          ],
+          normal: [
+            '("Muscle Stretching Exercises"[mh] OR "Postural Balance"[mh] OR flexibilit*[ti] OR balance*[ti]) AND (' + standardString['normal'] + ')',
+          ],
+          broad: [
+            '("Muscle Stretching Exercises"[mh] OR "Postural Balance"[mh] OR flexibilit*[tiab] OR balance*[tiab]) AND (' + standardString['broad'] + ')',
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "Anbefales hvis man er over 65 år.",
+          en: "Recommended if you are over 65 years old."
+        }
+      },
+      {
+        id: "S050050",
+        name: "S050050",
         buttons: true,
         translations: {
           dk: "Stillesiddende adfærd",
           en: "Sedentary behavior"
         },
         ordering: { 
-          dk: null, 
-          en: null 
+          dk: 8, 
+          en: 8 
         },
         searchStrings: {
           narrow: [
             '"Sedentary Behavior"[majr] AND ' + standardString['narrow'] + ''
           ],
           normal: [
-            '("Sedentary Behavior"[mh] OR sedentary*[ti]) AND (' + standardString['normal'] + ')',
+            '("Sedentary Behavior"[mh] OR physical inactivit*[ti] OR sedentar*[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Sedentary Behavior"[mh] OR sedentary*[tiab]) AND (' + standardString['broad'] + ')',
+            '("Sedentary Behavior"[mh] OR physical inactivit*[tiab] OR sedentar*[tiab]) AND (' + standardString['broad'] + ')',
           ]
         },
         searchStringComment: {
