@@ -1765,10 +1765,10 @@ export const filtrer = [
         },
       },
       {
-        id: "L08002010",
-        name: "L08002010",
+        id: "L080020010",
+        name: "L080020010",
         buttons: false,
-        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midderste niveau)
+        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midterste niveau)
         maintopicIdLevel1: "L080020", // Angiver at dette element har et parent med dette id. (Emne 2)
         translations: {
           dk: "Alle Steno Diabetes-centre",
@@ -1793,10 +1793,10 @@ export const filtrer = [
         },
       },
       {
-        id: "L08002020",
-        name: "L08002020",
+        id: "L080020020",
+        name: "L080020020",
         buttons: false,
-        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midderste niveau)
+        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midterste niveau)
         maintopicIdLevel1: "L080020", // Angiver at dette element har et parent med dette id. (Emne 2)
         translations: {
           dk: "Steno Diabetes Center Copenhagen",
@@ -1821,10 +1821,10 @@ export const filtrer = [
         },
       },
       {
-        id: "L08002030",
-        name: "L08002030",
+        id: "L080020030",
+        name: "L080020030",
         buttons: false,
-        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midderste niveau)
+        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midterste niveau)
         maintopicIdLevel1: "L080020", // Angiver at dette element har et parent med dette id. (Emne 2)
         translations: {
           dk: "Steno Diabetes Center Færøerne",
@@ -1849,10 +1849,10 @@ export const filtrer = [
         },
       },
       {
-        id: "L08002040",
-        name: "L08002040",
+        id: "L080020040",
+        name: "L080020040",
         buttons: false,
-        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midderste niveau)
+        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midterste niveau)
         maintopicIdLevel1: "L080020", // Angiver at dette element har et parent med dette id. (Emne 2)
         translations: {
           dk: "Steno Diabetes Center Grønland",
@@ -1877,10 +1877,10 @@ export const filtrer = [
         },
       },
       {
-        id: "L08002050",
-        name: "L08002050",
+        id: "L080020050",
+        name: "L080020050",
         buttons: false,
-        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midderste niveau)
+        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midterste niveau)
         maintopicIdLevel1: "L080020", // Angiver at dette element har et parent med dette id. (Emne 2)
         translations: {
           dk: "Steno Diabetes Center Nordjylland",
@@ -1905,10 +1905,10 @@ export const filtrer = [
         },
       },
       {
-        id: "L08002060",
-        name: "L08002060",
+        id: "L080020060",
+        name: "L080020060",
         buttons: false,
-        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midderste niveau)
+        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midterste niveau)
         maintopicIdLevel1: "L080020", // Angiver at dette element har et parent med dette id. (Emne 2)
         translations: {
           dk: "Steno Diabetes Center Odense",
@@ -1933,10 +1933,10 @@ export const filtrer = [
         },
       },
       {
-        id: "L08002070",
-        name: "L08002070",
+        id: "L080020070",
+        name: "L080020070",
         buttons: false,
-        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midderste niveau)
+        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midterste niveau)
         maintopicIdLevel1: "L080020", // Angiver at dette element har et parent med dette id. (Emne 2)
         translations: {
           dk: "Steno Diabetes Center Sjælland",
@@ -1961,10 +1961,10 @@ export const filtrer = [
         },
       },
       {
-        id: "L08002080",
-        name: "L08002080",
+        id: "L080020080",
+        name: "L080020080",
         buttons: false,
-        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midderste niveau)
+        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midterste niveau)
         maintopicIdLevel1: "L080020", // Angiver at dette element har et parent med dette id. (Emne 2)
         translations: {
           dk: "Steno Diabetes Center Aarhus",
