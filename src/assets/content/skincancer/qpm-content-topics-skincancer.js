@@ -33,8 +33,8 @@ export const standardString = {
 
 export const topics = [
   {
-    id: "S00",
-    groupname: "Skabelonkategori",
+    id: "S000",
+    groupname: "S000",
     translations: {
       dk: "Skabelonkategori",
       en: "Template category",
@@ -42,8 +42,8 @@ export const topics = [
     ordering: { dk: 0, en: 0 },
     groups: [
       {
-        id: "S00010",
-        name: "S00010",
+        id: "S000010",
+        name: "S000010",
         buttons: true,
         translations: {
           dk: "Underemne 1",
@@ -65,18 +65,17 @@ export const topics = [
           ],
         },
         searchStringComment: {
-          dk: "",
-          en: "",
+          dk: "Dette er et eksempel på et underemne på niveau 1.",
+          en: "This is an example of a subtopic at level 1.",
         },
         tooltip: {
           dk: "Dette er et eksempel på et underemne på niveau 1.",
           en: "This is an example of a subtopic at level 1.",
         },
-
       },
       {
-        id: "S00020",
-        name: "S00020",
+        id: "S000020",
+        name: "S000020",
         buttons: true,
         maintopic: true, // Angiver at dette element er en branch og har children elementer
         translations: {
@@ -88,26 +87,33 @@ export const topics = [
           dk: 2,
           en: 2,
         },
+        searchStringComment: {
+          dk: "Dette er et eksempel på et underemne på niveau 1, som har under&shy;liggende emner (indikeret med en pil). Klik for at se under&shy;liggende emner.",
+          en: "This is an example of a subtopic at level 1, that has subtopics underneath (indicated with an arrow). Click to see the subtopics.",
+        },
         tooltip: {
           dk: "Dette er et eksempel på et underemne på niveau 1, som har under&shy;liggende emner (indikeret med en pil). Klik for at se under&shy;liggende emner.",
           en: "This is an example of a subtopic at level 1, that has subtopics underneath (indicated with an arrow). Click to see the subtopics.",
         },
       },
       {
-        id: "S00030",
-        name: "S00030",
+        id: "S000020010",
+        name: "S000020010",
         buttons: true,
         maintopic: true, // Angiver at dette element er en branch og har children elementer
         subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midderste niveau)
-        maintopicIdLevel1: "S00020", // Angiver at dette element har et parent med dette id. (Emne 2)
+        maintopicIdLevel1: "S000020", // Angiver at dette element har et parent med dette id. (Emne 2)
         translations: {
           dk: "Underemne 2.1",
           en: "Subtopic 2.1",
         },
-
         ordering: {
           dk: 3,
           en: 3,
+        },
+        searchStringComment: {
+          dk: "Dette er et eksempel på et underemne på niveau 2, som også har et under&shy;liggende emne (indikeret med en pil). Klik for at se under&shy;liggende emner.",
+          en: "This is an example of a subtopic at level 2, that also has a subtopic underneath (indicated with an arrow). Click to see the subtopics.",
         },
         tooltip: {
           dk: "Dette er et eksempel på et underemne på niveau 2, som også har et under&shy;liggende emne (indikeret med en pil). Klik for at se under&shy;liggende emner.",
@@ -115,17 +121,16 @@ export const topics = [
         },
       },
       {
-        id: "S00040",
-        name: "S00040",
+        id: "S000020010010",
+        name: "S000020010010",
         buttons: true,
         subtopiclevel: 2, // Angiver at dette punkt ligger på 2. niveau (nedereste niveau)
-        maintopicIdLevel1: "S00030", // Angiver at dette element har et parent med dette id. (Emne 2.1)
-        maintopicIdLevel2: "S00020", // Angiver at dette element har et grandparent med dette id (Emne 2)
+        maintopicIdLevel1: "S000020010", // Angiver at dette element har et parent med dette id. (Emne 2.1)
+        maintopicIdLevel2: "S000020", // Angiver at dette element har et grandparent med dette id (Emne 2)
         translations: {
           dk: "Underemne 2.1.1",
           en: "Subtopic 2.1.1",
         },
-
         ordering: {
           dk: 4,
           en: 4,
@@ -142,8 +147,8 @@ export const topics = [
           ],
         },
         searchStringComment: {
-          dk: "",
-          en: "",
+          dk: "Dette er et eksempel på et underemne på niveau 3, som er det dybteste niveau i denne rullemenu.",
+          en: "This is an example of a subtopic at level 3, which is the deepest level in this dropdown menu.",
         },
         tooltip: {
           dk: "Dette er et eksempel på et underemne på niveau 3, som er det dybteste niveau i denne rullemenu.",
@@ -152,12 +157,12 @@ export const topics = [
 
       },
       {
-        id: "S00050",
-        name: "S00050",
+        id: "S000020010020",
+        name: "S000020010020",
         buttons: true,
         subtopiclevel: 2, // Angiver at dette punkt ligger på 3. niveau
-        maintopicIdLevel1: "S00030", // Angiver at dette element har et parent med dette id. (Emne 2.1)
-        maintopicIdLevel2: "S00020", // Angiver at dette element har et grandparent med dette id (Emne 2)
+        maintopicIdLevel1: "S000020010", // Angiver at dette element har et parent med dette id. (Emne 2.1)
+        maintopicIdLevel2: "S000020", // Angiver at dette element har et grandparent med dette id (Emne 2)
         translations: {
           dk: "Underemne 2.1.2",
           en: "Subtopic 2.1.2",
@@ -187,12 +192,12 @@ export const topics = [
         },
       },
       {
-        id: "S00060",
-        name: "S00060",
+        id: "S000020010030",
+        name: "S000020010030",
         buttons: true,
         subtopiclevel: 2, // Angiver at dette punkt ligger på 3. niveau
-        maintopicIdLevel1: "S00020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
-        maintopicIdLevel2: "S00030", // Angiver at dette er punktet på 2. niveau til punktet med det angivne name.
+        maintopicIdLevel1: "S000020010", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
+        maintopicIdLevel2: "S000020", // Angiver at dette er punktet på 2. niveau til punktet med det angivne name.
         translations: {
           dk: "Underemne 2.1.3",
           en: "Subtopic 2.1.3",
@@ -222,11 +227,11 @@ export const topics = [
         },
       },
       {
-        id: "S00070",
-        name: "S00070",
+        id: "S000020020",
+        name: "S000020020",
         buttons: true,
         subtopiclevel: 1, // Angiver at dette punkt ligger på 2. niveau
-        maintopicIdLevel1: "S00020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
+        maintopicIdLevel1: "S000020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
         translations: {
           dk: "Underemne 2.2",
           en: "Subtopic 2.2",
@@ -256,11 +261,11 @@ export const topics = [
         },
       },
       {
-        id: "S00080",
-        name: "S00080",
+        id: "S000020030",
+        name: "S000020030",
         buttons: true,
         subtopiclevel: 1, // Angiver at dette punkt ligger på 2. niveau
-        maintopicIdLevel1: "S00020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
+        maintopicIdLevel1: "S000020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
         translations: {
           dk: "Underemne 2.3",
           en: "Subtopic 2.3",
@@ -290,9 +295,9 @@ export const topics = [
         },
       },
       {
-        id: "S00090",
-        name: "S00090",
-        buttons: true,
+        id: "S000030",
+        name: "S000030",
+        buttons: false,
         translations: {
           dk: "Underemne 3",
           en: "Subtopic 3",
@@ -313,12 +318,12 @@ export const topics = [
           ],
         },
         searchStringComment: {
-          dk: "",
-          en: "",
+          dk: "Dette er et eksempel på, at de tre valgmuligheder 'Smal', 'Normal' og 'Bred' ikke vises i avanceret søgning.",
+          en: "This is an example of, that the three options 'Narrow', 'Standard' and 'Broad' are not shown in advanced search.",
         },
         tooltip: {
-          dk: "",
-          en: "",
+          dk: "Dette er et eksempel på, at de tre valgmuligheder 'Smal', 'Normal' og 'Bred' ikke vises i avanceret søgning.",
+          en: "This is an example of, that the three options 'Narrow', 'Standard' and 'Broad' are not shown in advanced search.",
         },
       },
     ],
@@ -328,24 +333,24 @@ export const topics = [
     },
   },
   {
-    groupname: 'Skin cancer and precancerous lesions', id: 'S10',
+    groupname: 'S010', 
+    id: 'S010',
     translations: {
         dk: 'Hudkræft og forstadier',
-        en: 'Skin cancer and precancerous lesions'
+        en: 'Precursors and skin cancer'
     }, 
     // use null to mean unordered or any positive number to order this 
     // element using the number as a priority with lower number being 
     // higher priority (being shown earlier in the list).
-    //? Maybe use negative values to represent elements always sorted last
     ordering: { 
       dk: 1, 
       en: 1 
     },
     groups: [        
       {
-        name: 'All types', 
-        buttons: true, 
-        id: 'S10010',
+        name: 'S010010', 
+        id: 'S010010',
+        buttons: true,
         translations: {
           dk: 'Alle typer',
           en: 'All types'
@@ -369,11 +374,11 @@ export const topics = [
         }
       },
       {
-        name: 'Actinic keratosis', 
+        name: 'S010020',
+        id: 'S010020',
         buttons: true, 
-        id: 'S10020',
         translations: {
-          dk: 'Aktiniske keratoser',
+          dk: 'Aktinisk keratose',
           en: 'Actinic keratosis'
         }, 
         ordering: { 
@@ -401,12 +406,12 @@ export const topics = [
         }
       },
       {
-        name: 'Merkel Cell Carcinoma', 
-        buttons: true, 
-        id: 'S10030',
+        name: 'S010030',  
+        id: 'S010030',
+        buttons: true,
         translations: {
-          dk: 'Merkelcellekarcinom',
-          en: 'Merkel Cell Carcinoma'
+          dk: 'Merkelcelle karcinom',
+          en: 'Merkel cell carcinoma'
         }, 
         ordering: { 
           dk: null, 
@@ -433,9 +438,9 @@ export const topics = [
         }
       },
       {
-        name: 'Bowen\'s disease', 
+        name: 'S010040', 
+        id: 'S010040',
         buttons: true, 
-        id: 'S10040',
         translations: {
           dk: 'Bowens sygdom',
           en: 'Bowen\'s disease'
@@ -465,11 +470,11 @@ export const topics = [
         }
       },
       {
-        name: 'Basal cell carcinoma', 
+        name: 'S010050', 
+        id: 'S010050',
         buttons: true, 
-        id: 'S10050',
         translations: {
-          dk: 'Basalcellekarcinom',
+          dk: 'Basalcellekræft (Basalcelle karcinom eller Basaliom)',
           en: 'Basal cell carcinoma',
         }, 
         ordering: { 
@@ -497,11 +502,11 @@ export const topics = [
         }
       },
       {
-        name: 'Melanoma', 
+        name: 'S010060', 
+        id: 'S010060',
         buttons: true, 
-        id: 'S10060',
         translations: {
-          dk: 'Melanom',
+          dk: 'Modermærkekræft',
           en: 'Melanoma'
         }, 
         ordering: { 
@@ -529,12 +534,12 @@ export const topics = [
         }
       },
       {
-        name: 'Cutaneous Lymphoma', 
+        name: 'S010070', 
+        id: 'S010070',
         buttons: true, 
-        id: 'S10070',
         translations: {
           dk: 'Kutant lymfom',
-          en: 'Cutaneous Lymphoma',
+          en: 'Cutaneous lymphoma',
         }, 
         ordering: { 
           dk: null, 
@@ -561,11 +566,11 @@ export const topics = [
         }
       },
       {
-        name: 'Squamous cell carcinoma', 
+        name: 'S010080', 
+        id: 'S010080',
         buttons: true, 
-        id: 'S10080',
         translations: {
-          dk: 'Spinocellulært karcinom',
+          dk: 'Pladecellekræft (Planocellulært karcinom eller Spinocellulært karcinom)',
           en: 'Squamous cell carcinoma',
         }, 
         ordering: { 
@@ -599,8 +604,8 @@ export const topics = [
     }
   },
   {
-    groupname: 'Prevention',
-    id: 'S20', 
+    groupname: 'S020',
+    id: 'S020', 
     translations: {
       dk: 'Forebyggelse',
       en: 'Prevention'
@@ -611,9 +616,9 @@ export const topics = [
     },
     groups: [
       {
-        name: 'Lifestyle and diet', 
+        name: 'S020010', 
+        id: 'S020010',
         buttons: true, 
-        id: 'S20010',
         translations: {
           dk: 'Livsstil og kost',
           en: 'Lifestyle and diet'
@@ -643,9 +648,9 @@ export const topics = [
         }
       },
       {
-        name: 'Sun protection ', 
+        name: 'S020020', 
+        id: 'S020020',
         buttons: true, 
-        id: 'S20020',
         translations: {
           dk: 'Solbeskyttelse ',
           en: 'Sun protection '
@@ -675,11 +680,11 @@ export const topics = [
         }
       },
       {
-        name: 'Chemoprevention', 
+        name: 'S020030', 
+        id: 'S020030',
         buttons: true, 
-        id: 'S20030',
         translations: {
-          dk: 'Kemoprevention',
+          dk: 'Forebyggelse med lægemidler eller andre stoffer (Kemoprævention)',
           en: 'Chemoprevention'
         }, 
         ordering: { 
@@ -713,8 +718,8 @@ export const topics = [
     }
   },
   {
-    groupname: 'Clinical measurements and diagnostics', 
-    id: 'S30',
+    groupname: 'S030',
+    id: 'S030',
     translations: {
       dk: 'Kliniske målinger og diagnostik',
       en: 'Clinical measurements and diagnostics'
@@ -725,11 +730,11 @@ export const topics = [
     },
     groups: [
       {
-        name: 'Dermoscopy', 
+        name: 'S030010', 
+        id: 'S030010',
         buttons: true, 
-        id: 'S30010',
         translations: {
-          dk: 'Dermoskopi',
+          dk: 'Dermatoskopi (Undersøgelse med håndholdt mikroskop)',
           en: 'Dermoscopy'
         }, 
         ordering: { 
@@ -757,11 +762,11 @@ export const topics = [
         }
       },
       {
-        name: 'Histopathology', 
+        name: 'S030020', 
+        id: 'S030020',
         buttons: true, 
-        id: 'S30020',
         translations: {
-          dk: 'Histopatologi',
+          dk: 'Histopatologi (Vævsundersøgelse)',
           en: 'Histopathology'
         }, 
         ordering: { 
@@ -789,9 +794,9 @@ export const topics = [
         }
       },
       {
-        name: 'Non-invasive imaging', 
+        name: 'S030030', 
+        id: 'S030030',
         buttons: true, 
-        id: 'S30030',
         translations: {
           dk: 'Ikke-invasiv billeddannelse',
           en: 'Non-invasive imaging'
@@ -827,10 +832,10 @@ export const topics = [
     }
   },
   {
-    groupname: 'Treatment', 
-    id: 'S40',
+    groupname: 'S040',
+    id: 'S040',
     translations: {
-      dk: 'Behandlingstyper',
+      dk: 'Behandling',
       en: 'Treatment'
     }, 
     ordering: { 
@@ -839,11 +844,11 @@ export const topics = [
     },
     groups: [
       {
-        name: 'Topical', 
+        name: 'S040010', 
+        id: 'S040010',
         buttons: true, 
-        id: 'S40010',
         translations: {
-          dk: 'Topikal',
+          dk: 'Lokal behandling (Topikal)',
           en: 'Topical'
         }, 
         ordering: { 
@@ -871,11 +876,11 @@ export const topics = [
         }
       },
       {
-        name: 'Systemic', 
+        name: 'S040020', 
+        id: 'S040020',
         buttons: true, 
-        id: 'S40020',
         translations: {
-          dk: 'Systemisk',
+          dk: 'Indsprøjtning eller tablet (Systemisk)',
           en: 'Systemic'
         }, 
         ordering: { 
@@ -903,11 +908,11 @@ export const topics = [
         }
       },
       {
-        name: 'Interventional', 
+        name: 'S040030', 
+        id: 'S040030',
         buttons: true, 
-        id: 'S40030',
         translations: {
-          dk: 'Interventionel',
+          dk: 'Fysisk behandling (Interventionel)',
           en: 'Interventional'
         }, 
         ordering: { 
@@ -935,9 +940,9 @@ export const topics = [
         }
       },
       {
-        name: 'Side effects ', 
+        name: 'S040040', 
+        id: 'S040040',
         buttons: true, 
-        id: 'S40040',
         translations: {
           dk: 'Bivirkninger',
           en: 'Side effects '
@@ -949,13 +954,13 @@ export const topics = [
         searchStrings: {
           narrow: [
             '("Cicatrix"[majr] OR "Dermatitis, Contact"[majr] OR "Drug-Related Side Effects and Adverse Reactions"[majr] OR "Hyperpigmentation"[majr] OR "Hypopigmentation"[majr] OR "Infections"[majr]) AND ("Administration, Cutaneous"[majr] OR ("Injections"[majr] OR "Infusions, Parenteral"[majr] OR "Administration, Intravenous"[majr] OR "Administration, Oral"[majr] OR "Chemotherapy, Cancer, Regional Perfusion"[majr]) OR ("Phototherapy"[majr] OR "Laser Therapy"[majr] OR "Lasers, Dye"[majr] OR "Lasers, Gas"[majr] OR "Lasers, Solid-State"[majr] OR "Dermatologic Surgical Procedures"[majr] OR "Surgical Procedures, Operative"[majr] OR "Radiotherapy"[majr] OR "Iontophoresis"[majr])) AND (' + standardString['narrow'] + ')'
-          ], // Combined with sting from topical, systemic and interventional: narrow (remember to edit both)
+          ], // Combined with string from topical, systemic and interventional: narrow (remember to edit both)
           normal: [
             '("Cicatrix"[mh] OR "Dermatitis, Contact"[mh] OR "Drug-Related Side Effects and Adverse Reactions"[mh] OR "Hyperpigmentation"[mh] OR "Hypopigmentation"[mh] OR "Infections"[mh] OR "adverse"[ti] OR "allerg*"[ti] OR "dyspigm*"[ti] OR "hyperpigm*"[ti] OR "hypopigm*"[ti] OR "infect*"[ti] OR "scar*"[ti] OR "side effect*"[ti]) AND (("Administration, Cutaneous"[mh] OR "topical"[ti]) OR (("Injections"[mh] OR "Infusions, Parenteral"[mh] OR "Administration, Intravenous"[mh] OR "Administration, Oral"[mh] OR "Chemotherapy, Cancer, Regional Perfusion"[mh] OR "systemic"[ti]) OR ("Phototherapy"[mh] OR "Laser Therapy"[mh] OR "Lasers, Dye"[mh] OR "Lasers, Gas"[mh] OR "Lasers, Solid-State"[mh] OR "Dermatologic Surgical Procedures"[mh] OR "Surgical Procedures, Operative"[mh] OR "Radiotherapy"[mh] OR "Iontophoresis"[mh] OR "mohs"[ti] OR "PDT"[ti] OR "photodynamic"[ti]))) AND (' + standardString['normal'] + ')'
-          ], // Combined with sting from topical, systemic and interventional: normal (remember to edit both)
+          ], // Combined with string from topical, systemic and interventional: normal (remember to edit both)
           broad: [
             '("Cicatrix"[mh] OR "Dermatitis, Contact"[mh] OR "Drug-Related Side Effects and Adverse Reactions"[mh] OR "Hyperpigmentation"[mh] OR "Hypopigmentation"[mh] OR "Infections"[mh] OR "adverse"[tiab] OR "allerg*"[tiab] OR "dyspigm*"[tiab] OR "hyperpigm*"[tiab] OR "hypopigm*"[tiab] OR "infect*"[tiab] OR "scar*"[tiab] OR "side effect*"[tiab]) AND (("Administration, Cutaneous"[mh] OR "topical"[tiab]) OR ("Injections"[mh] OR "Infusions, Parenteral"[mh] OR "Administration, Intravenous"[mh] OR "Administration, Oral"[mh] OR "Chemotherapy, Cancer, Regional Perfusion"[mh] OR "systemic"[tiab]) OR ("Phototherapy"[mh] OR "Laser Therapy"[mh] OR "Lasers, Dye"[mh] OR "Lasers, Gas"[mh] OR "Lasers, Solid-State"[mh] OR "Dermatologic Surgical Procedures"[mh] OR "Surgical Procedures, Operative"[mh] OR "Iontophoresis"[mh] OR "Radiotherapy"[mh] OR "mohs"[tiab] OR "PDT"[tiab] OR "photodynamic"[tiab])) AND (' + standardString['broad'] + ')'
-          ], // Combined with sting from topical, systemic and interventional: broad (remember to edit both)
+          ], // Combined with string from topical, systemic and interventional: broad (remember to edit both)
         },
         searchStringComment: {
           dk: "",
@@ -973,8 +978,8 @@ export const topics = [
     }
   },
   {
-    groupname: 'Risk assessment', 
-    id: 'S50',
+    groupname: 'S050',
+    id: 'S050',
     translations: {
         dk: 'Risikovurdering',
         en: 'Risk assessment'
@@ -985,11 +990,11 @@ export const topics = [
     },
     groups: [
       {
-        name: 'Transplant recipient', 
+        name: 'S050010', 
+        id: 'S050010',
         buttons: true, 
-        id: 'S50010',
         translations: {
-          dk: 'Transplantationsmodtager',
+          dk: 'Organtransplanteret (Transplantationsmodtager)',
           en: 'Transplant recipient'
         }, 
         ordering: { 
@@ -1017,9 +1022,9 @@ export const topics = [
         }
       },
       {
-        name: 'Skin type', 
+        name: 'S050020', 
+        id: 'S050020',
         buttons: true, 
-        id: 'S50020',
         translations: {
           dk: 'Hudtype',
           en: 'Skin type'
@@ -1049,9 +1054,9 @@ export const topics = [
         }
       },
       {
-        name: 'Elderly people', 
+        name: 'S050030', 
+        id: 'S050030',
         buttons: true, 
-        id: 'S50030',
         translations: {
           dk: 'Ældre',
           en: 'Elderly people'
@@ -1081,9 +1086,9 @@ export const topics = [
         }
       },
       {
-        name: 'Children', 
+        name: 'S050040', 
+        id: 'S050040',
         buttons: true, 
-        id: 'S50040',
         translations: {
           dk: 'Børn',
           en: 'Children'
@@ -1112,9 +1117,9 @@ export const topics = [
         }
       },
       {
-        name: 'Genetics', 
+        name: 'S050050', 
+        id: 'S050050',
         buttons: true, 
-        id: 'S50050',
         translations: {
           dk: 'Genetik',
           en: 'Genetics'
@@ -1150,8 +1155,8 @@ export const topics = [
     }
   },
   {
-    groupname: 'Other topics', 
-    id: 'S60',
+    groupname: 'S060',
+    id: 'S060',
     translations: {
       dk: 'Andre emner',
       en: 'Other topics'
@@ -1162,9 +1167,9 @@ export const topics = [
     },
     groups: [
       {
-        name: 'Animal models', 
+        name: 'S060010', 
+        id: 'S060010',
         buttons: true, 
-        id: 'S60010',
         translations: {
           dk: 'Dyremodeller',
           en: 'Animal models'
@@ -1194,9 +1199,9 @@ export const topics = [
         }
       },
       {
-        name: 'Economics', 
+        name: 'S060020', 
+        id: 'S060020',
         buttons: true, 
-        id: 'S60020',
         translations: {
           dk: 'Økonomi',
           en: 'Economics'
@@ -1226,9 +1231,9 @@ export const topics = [
         }
       },
       {
-        name: 'Artificial intelligence (AI)', 
+        name: 'S060030', 
+        id: 'S060030',
         buttons: true, 
-        id: 'S60030',
         translations: {
           dk: 'Kunstig intelligens (AI)',
           en: 'Artificial intelligence (AI)'
@@ -1258,9 +1263,9 @@ export const topics = [
         }
       },
       {
-        name: 'Teledermatology', 
+        name: 'S060040', 
+        id: 'S060040',
         buttons: true, 
-        id: 'S60040',
         translations: {
           dk: 'Teledermatologi',
           en: 'Teledermatology'
