@@ -474,7 +474,7 @@ export const topics = [
         id: 'S010050',
         buttons: true, 
         translations: {
-          dk: 'Basalcellekræft (Basalcelle karcinom eller Basaliom)',
+          dk: 'Basalcellekræft (basalcelle karcinom eller basaliom)',
           en: 'Basal cell carcinoma',
         }, 
         ordering: { 
@@ -570,7 +570,7 @@ export const topics = [
         id: 'S010080',
         buttons: true, 
         translations: {
-          dk: 'Pladecellekræft (Planocellulært karcinom eller Spinocellulært karcinom)',
+          dk: 'Pladecellekræft (planocellulært karcinom eller spinocellulært karcinom)',
           en: 'Squamous cell carcinoma',
         }, 
         ordering: { 
@@ -684,7 +684,7 @@ export const topics = [
         id: 'S020030',
         buttons: true, 
         translations: {
-          dk: 'Forebyggelse med lægemidler eller andre stoffer (Kemoprævention)',
+          dk: 'Forebyggelse med lægemidler eller andre stoffer (kemoprævention)',
           en: 'Chemoprevention'
         }, 
         ordering: { 
@@ -734,7 +734,7 @@ export const topics = [
         id: 'S030010',
         buttons: true, 
         translations: {
-          dk: 'Dermatoskopi (Undersøgelse med håndholdt mikroskop)',
+          dk: 'Dermatoskopi (undersøgelse med håndholdt mikroskop)',
           en: 'Dermoscopy'
         }, 
         ordering: { 
@@ -766,7 +766,7 @@ export const topics = [
         id: 'S030020',
         buttons: true, 
         translations: {
-          dk: 'Histopatologi (Vævsundersøgelse)',
+          dk: 'Histopatologi (vævsundersøgelse)',
           en: 'Histopathology'
         }, 
         ordering: { 
@@ -848,7 +848,7 @@ export const topics = [
         id: 'S040010',
         buttons: true, 
         translations: {
-          dk: 'Lokal behandling (Topikal)',
+          dk: 'Lokal behandling (topikal)',
           en: 'Topical'
         }, 
         ordering: { 
@@ -880,7 +880,7 @@ export const topics = [
         id: 'S040020',
         buttons: true, 
         translations: {
-          dk: 'Indsprøjtning eller tablet (Systemisk)',
+          dk: 'Indsprøjtning eller tablet (systemisk)',
           en: 'Systemic'
         }, 
         ordering: { 
@@ -912,7 +912,7 @@ export const topics = [
         id: 'S040030',
         buttons: true, 
         translations: {
-          dk: 'Fysisk behandling (Interventionel)',
+          dk: 'Fysisk behandling (interventionel)',
           en: 'Interventional'
         }, 
         ordering: { 
@@ -994,7 +994,7 @@ export const topics = [
         id: 'S050010',
         buttons: true, 
         translations: {
-          dk: 'Organtransplanteret (Transplantationsmodtager)',
+          dk: 'Organtransplanteret (transplantationsmodtager)',
           en: 'Transplant recipient'
         }, 
         ordering: { 
