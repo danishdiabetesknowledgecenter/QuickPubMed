@@ -2048,13 +2048,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            '("Activities of Daily Living"[majr] OR "Physical Conditioning, Human"[majr] OR "Physical Endurance"[majr] OR "Physical Fitness"[majr] OR "Walking"[majr]) AND ' + standardString['narrow'] + ''
+            '("Activities of Daily Living"[majr] OR "Bicycling"[majr] OR "Physical Conditioning, Human"[majr] OR "Physical Endurance"[majr] OR "Physical Fitness"[majr] OR "Walking"[majr]) AND ' + standardString['narrow'] + ''
           ],
           normal: [
-            '("Activities of Daily Living"[mh] OR "Physical Conditioning, Human"[mh] OR "Physical Endurance"[mh] OR "Physical Fitness"[mh] OR "Walking"[mh] OR aerobic*[ti] OR cardiorespiratory*[ti] OR daily-activ*[ti] OR endurance*[ti] OR fitness*[ti] OR "low-intensity training"[ti:~3] OR "moderate-intensity training"[ti:~3] OR walking[ti]) AND (' + standardString['normal'] + ')',
+            '("Activities of Daily Living"[mh] OR "Bicycling"[mh] OR "Physical Conditioning, Human"[mh] OR "Physical Endurance"[mh] OR "Physical Fitness"[mh] OR "Walking"[mh] OR aerobic*[ti] OR cardiorespiratory*[ti] OR daily-activ*[ti] OR bicycling*[ti] OR bicycle*[ti] OR cycling*[ti] OR endurance*[ti] OR fitness*[ti] OR "low-intensity training"[ti:~3] OR "moderate-intensity training"[ti:~3] OR walking[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Activities of Daily Living"[mh] OR "Physical Conditioning, Human"[mh] OR "Physical Endurance"[mh] OR "Physical Fitness"[mh] OR "Walking"[mh] OR aerobic*[tiab] OR cardiorespiratory*[tiab] OR daily-activ*[tiab] OR endurance*[tiab] OR fitness*[tiab] OR "low-intensity training"[tiab:~3] OR "moderate-intensity training"[tiab:~3] OR walking[tiab]) AND (' + standardString['broad'] + ')',
+            '("Activities of Daily Living"[mh] OR "Bicycling"[mh] OR "Physical Conditioning, Human"[mh] OR "Physical Endurance"[mh] OR "Physical Fitness"[mh] OR "Walking"[mh] OR aerobic*[tiab] OR cardiorespiratory*[tiab] OR daily-activ*[tiab] OR bicycling*[tiab] OR bicycle*[tiab] OR cycling*[tiab] OR endurance*[tiab] OR fitness*[tiab] OR "low-intensity training"[tiab:~3] OR "moderate-intensity training"[tiab:~3] OR walking[tiab]) AND (' + standardString['broad'] + ')',
           ]
         },
         searchStringComment: {
@@ -2082,14 +2082,14 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            '("Activities of Daily Living"[majr] OR "Walking"[majr]) AND ' + standardString['narrow'] + '',
+            '("Activities of Daily Living"[majr] OR "Bicycling"[majr] OR "Walking"[majr]) AND ' + standardString['narrow'] + '',
           ],
           normal: [
-            '("Activities of Daily Living"[mh] OR "Walking"[mh] OR daily-activ*[ti] OR "low-intensity training"[ti:~3] OR "moderate-intensity training"[ti:~3] OR walking[ti]) AND (' + standardString['normal'] + ')',
+            '("Activities of Daily Living"[mh] OR "Bicycling"[mh] OR "Walking"[mh] OR bicycling*[ti] OR bicycle*[ti] OR cycling*[ti] OR daily-activ*[ti] OR "low-intensity training"[ti:~3] OR "moderate-intensity training"[ti:~3] OR walking[ti]) AND (' + standardString['normal'] + ')',
 
           ],
           broad: [
-            '("Activities of Daily Living"[mh] OR "Walking"[mh] OR daily-activ*[tiab] OR "low-intensity training"[tiab:~3] OR "moderate-intensity training"[tiab:~3] OR walking[tiab]) AND (' + standardString['broad'] + ')',
+            '("Activities of Daily Living"[mh] OR "Bicycling"[mh] OR "Walking"[mh] OR bicycling*[tiab] OR bicycle*[tiab] OR cycling*[tiab] OR daily-activ*[tiab] OR "low-intensity training"[tiab:~3] OR "moderate-intensity training"[tiab:~3] OR walking[tiab]) AND (' + standardString['broad'] + ')',
           ]
         },
         searchStringComment: {
@@ -2183,13 +2183,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            '"Resistance Training"[majr] AND ' + standardString['narrow'] + ''
+            '"Resistance Training"[majr] OR "Weight Lifting"[majr] AND ' + standardString['narrow'] + ''
           ],
           normal: [
-            '("Resistance Training"[mh] OR resistance training[ti] OR strength training[ti] OR weight training[ti]) AND (' + standardString['normal'] + ')',
+            '("Resistance Training"[mh] OR "Weight Lifting"[mh] OR resistance training[ti] OR strength training[ti] OR weight-lifting*[ti] OR weightlifting*[ti] OR weight training[ti]) AND (' + standardString['normal'] + ')',
           ],
           broad: [
-            '("Resistance Training"[mh] OR resistance training[tiab] OR strength training[tiab] OR weight training[tiab]) AND (' + standardString['broad'] + ')',
+            '("Resistance Training"[mh] OR "Weight Lifting"[mh] OR resistance training[tiab] OR strength training[tiab] OR weight-lifting*[tiab] OR weightlifting*[tiab] OR weight training[tiab]) AND (' + standardString['broad'] + ')',
           ]
         },
         searchStringComment: {
@@ -2237,13 +2237,468 @@ export const topics = [
         id: "S050050",
         name: "S050050",
         buttons: true,
+        maintopic: true,
+        translations: {
+          dk: "Sport",
+          en: "Sports"
+        },
+        ordering: { 
+          dk: 8, 
+          en: 8 
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: "S050050010",
+        name: "S050050010",
+        buttons: true,
+        subtopiclevel: 1,
+        maintopicIdLevel1: "S050050",
+        translations: {
+          dk: "Sport generelt",
+          en: "Sports in general"
+        },
+        ordering: { 
+          dk: 9, 
+          en: 9 
+        },
+        searchStrings: {
+          narrow: [
+            '("Sports"[majr] OR "Yoga"[majr]) AND ' + standardString['narrow'] + ''
+          ],
+          normal: [
+            '("Sports"[mh] OR "Yoga"[mh] OR bicycling*[ti] OR bicycle*[ti] OR cycling*[ti] OR football*[ti] OR gymnastics*[ti] OR jogging*[ti] OR marathon*[ti] OR running*[ti] OR skiing*[ti] OR soccer*[ti] OR swimming*[ti] OR walking*[ti] OR weightlifting*[ti] OR weight-lifting*[ti] OR yoga*[ti]) AND (' + standardString['normal'] + ')',
+          ],
+          broad: [
+            '("Sports"[mh] OR "Yoga"[mh] OR bicycling*[tiab] OR bicycle*[tiab] OR cycling*[tiab] OR football*[tiab] OR gymnastics*[tiab] OR jogging*[tiab] OR marathon*[tiab] OR running*[tiab] OR skiing*[tiab] OR soccer*[tiab] OR swimming*[tiab] OR walking*[tiab] OR weightlifting*[tiab] OR weight-lifting*[tiab] OR yoga*[tiab]) AND (' + standardString['broad'] + ')',
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: "S050050020",
+        name: "S050050020",
+        buttons: true,
+        subtopiclevel: 1,
+        maintopicIdLevel1: "S050050",
+        translations: {
+          dk: "Cykling",
+          en: "Cycling"
+        },
+        ordering: { 
+          dk: 10, 
+          en: 10 
+        },
+        searchStrings: {
+          narrow: [
+            '("Bicycling"[majr]) AND ' + standardString['narrow'] + '',
+          ],
+          normal: [
+            '("Bicycling"[mh] OR bicycling*[ti] OR bicycle*[ti] OR cycling*[ti]) AND (' + standardString['normal'] + ')',
+
+          ],
+          broad: [
+            '("Bicycling"[mh] OR bicycling*[tiab] OR bicycle*[tiab] OR cycling*[tiab]) AND (' + standardString['broad'] + ')',
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: "S050050030",
+        name: "S050050030",
+        subtopiclevel: 1,
+        maintopicIdLevel1: "S050050",
+        buttons: true,
+        translations: {
+          dk: "Fodbold",
+          en: "Football (soccer)"
+        },
+        ordering: { 
+          dk: 11, 
+          en: 11 
+        },
+        searchStrings: {
+          narrow: [
+            '("Soccer"[majr]) AND ' + standardString['narrow'] + '',
+          ],
+          normal: [
+            '("Soccer"[mh] OR football*[ti] OR soccer*[ti]) AND (' + standardString['normal'] + ')',
+          ],
+          broad: [
+            '("Soccer"[mh] OR football*[tiab] OR soccer*[tiab]) AND (' + standardString['broad'] + ')',
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: "S050050040",
+        name: "S050050040",
+        buttons: true,
+        subtopiclevel: 1,
+        maintopicIdLevel1: "S050050",
+        translations: {
+          dk: "Gang",
+          en: "Walking"
+        },
+        ordering: { 
+          dk: 12, 
+          en: 12 
+        },
+        searchStrings: {
+          narrow: [
+            '"Walking"[majr] AND ' + standardString['narrow'] + ''
+          ],
+          normal: [
+            '("Walking"[mh] OR walking*[ti]) AND (' + standardString['normal'] + ')',
+          ],
+          broad: [
+            '("Walking"[mh] OR walking*[tiab]) AND (' + standardString['broad'] + ')',
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: "S050050050",
+        name: "S050050050",
+        buttons: true,
+        subtopiclevel: 1,
+        maintopicIdLevel1: "S050050",
+        translations: {
+          dk: "Gymnastik",
+          en: "Gymnastics"
+        },
+        ordering: { 
+          dk: 13, 
+          en: 13 
+        },
+        searchStrings: {
+          narrow: [
+            '"Gymnastics"[majr] AND ' + standardString['narrow'] + ''
+          ],
+          normal: [
+            '("Gymnastics"[mh] OR gymnastics*[ti]) AND (' + standardString['normal'] + ')',
+          ],
+          broad: [
+            '("Gymnastics"[mh] OR gymnastics*[tiab]) AND (' + standardString['broad'] + ')',
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: "S050050060",
+        name: "S050050060",
+        buttons: true,
+        maintopic: true,
+        subtopiclevel: 1,
+        maintopicIdLevel1: "S050050",
+        translations: {
+          dk: "Løb",
+          en: "Running"
+        },
+        ordering: { 
+          dk: 14, 
+          en: 14 
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: "S050050060010",
+        name: "S050050060010",
+        buttons: true,
+        subtopiclevel: 2,
+        maintopicIdLevel1: "S050050",
+        maintopicIdLevel2: "S050050060",
+        translations: {
+          dk: "Løb generelt",
+          en: "Running in general"
+        },
+        ordering: { 
+          dk: 15, 
+          en: 15 
+        },
+        searchStrings: {
+          narrow: [
+            '"Running"[majr] AND ' + standardString['narrow'] + ''
+          ],
+          normal: [
+            '("Running"[mh] OR running*[ti]) AND (' + standardString['normal'] + ')',
+          ],
+          broad: [
+            '("Running"[mh] OR running*[tiab]) AND (' + standardString['broad'] + ')',
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: "S050050060020",
+        name: "S050050060020",
+        buttons: true,
+        subtopiclevel: 2,
+        maintopicIdLevel1: "S050050",
+        maintopicIdLevel2: "S050050060",
+        translations: {
+          dk: "Jogging",
+          en: "Jogging"
+        },
+        ordering: { 
+          dk: 16, 
+          en: 16 
+        },
+        searchStrings: {
+          narrow: [
+            '"Jogging"[majr] AND ' + standardString['narrow'] + ''
+          ],
+          normal: [
+            '("Jogging"[mh] OR jogging*[ti]) AND (' + standardString['normal'] + ')',
+          ],
+          broad: [
+            '("Jogging"[mh] OR jogging*[tiab]) AND (' + standardString['broad'] + ')',
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: "S050050060030",
+        name: "S050050060030",
+        buttons: true,
+        subtopiclevel: 2,
+        maintopicIdLevel1: "S050050",
+        maintopicIdLevel2: "S050050060",
+        translations: {
+          dk: "Maratonløb",
+          en: "Marathon"
+        },
+        ordering: { 
+          dk: 17, 
+          en: 17 
+        },
+        searchStrings: {
+          narrow: [
+            '"Marathon Running"[majr] AND ' + standardString['narrow'] + ''
+          ],
+          normal: [
+            '("Marathon Running"[mh] OR marathon*[ti]) AND (' + standardString['normal'] + ')',
+          ],
+          broad: [
+            '("Marathon Running"[mh] OR marathon*[tiab]) AND (' + standardString['broad'] + ')',
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: "S050050060",
+        name: "S050050060",
+        buttons: true,
+        subtopiclevel: 1,
+        maintopicIdLevel1: "S050050",
+        maintopicIdLevel2: "S050050060",
+        translations: {
+          dk: "Skisport",
+          en: "Skiing"
+        },
+        ordering: { 
+          dk: 17, 
+          en: 17 
+        },
+        searchStrings: {
+          narrow: [
+            '"Skiing"[majr] AND ' + standardString['narrow'] + ''
+          ],
+          normal: [
+            '("Skiing"[mh] OR skiing*[ti]) AND (' + standardString['normal'] + ')',
+          ],
+          broad: [
+            '("Skiing"[mh] OR skiing*[tiab]) AND (' + standardString['broad'] + ')',
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: "S050050070",
+        name: "S050050070",
+        buttons: true,
+        subtopiclevel: 1,
+        maintopicIdLevel1: "S050050",
+        translations: {
+          dk: "Svømning",
+          en: "Swimming"
+        },
+        ordering: { 
+          dk: 18, 
+          en: 18 
+        },
+        searchStrings: {
+          narrow: [
+            '"Swimming"[majr] AND ' + standardString['narrow'] + ''
+          ],
+          normal: [
+            '("Swimming"[mh] OR swimming*[ti]) AND (' + standardString['normal'] + ')',
+          ],
+          broad: [
+            '("Swimming"[mh] OR swimming*[tiab]) AND (' + standardString['broad'] + ')',
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: "S050050080",
+        name: "S050050080",
+        buttons: true,
+        subtopiclevel: 1,
+        maintopicIdLevel1: "S050050",
+        translations: {
+          dk: "Vægtløftning",
+          en: "Weightlifting"
+        },
+        ordering: { 
+          dk: 19, 
+          en: 19 
+        },
+        searchStrings: {
+          narrow: [
+            '"Weight Lifting"[majr] AND ' + standardString['narrow'] + ''
+          ],
+          normal: [
+            '("Weight Lifting"[mh] OR weight-lifting*[ti] OR weightlifting*[ti]) AND (' + standardString['normal'] + ')',
+          ],
+          broad: [
+            '("Weight Lifting"[mh] OR weight-lifting*[tiab] OR weightlifting*[tiab]) AND (' + standardString['broad'] + ')',
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: "S050050090",
+        name: "S050050090",
+        buttons: true,
+        subtopiclevel: 1,
+        maintopicIdLevel1: "S050050",
+        translations: {
+          dk: "Yoga",
+          en: "Yoga"
+        },
+        ordering: { 
+          dk: 20, 
+          en: 20 
+        },
+        searchStrings: {
+          narrow: [
+            '"Yoga"[majr] AND ' + standardString['narrow'] + ''
+          ],
+          normal: [
+            '("Yoga"[mh] OR yoga*[ti]) AND (' + standardString['normal'] + ')',
+          ],
+          broad: [
+            '("Yoga"[mh] OR yoga*[tiab]) AND (' + standardString['broad'] + ')',
+          ]
+        },
+        searchStringComment: {
+          dk: "",
+          en: ""
+        },
+        tooltip: {
+          dk: "",
+          en: ""
+        }
+      },
+      {
+        id: "S050060",
+        name: "S050060",
+        buttons: true,
         translations: {
           dk: "Stillesiddende adfærd",
           en: "Sedentary behavior"
         },
         ordering: { 
-          dk: 8, 
-          en: 8 
+          dk: 21, 
+          en: 21 
         },
         searchStrings: {
           narrow: [
