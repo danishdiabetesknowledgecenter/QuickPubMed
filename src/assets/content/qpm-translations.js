@@ -696,16 +696,16 @@ export const messages = {
     en: "Your selected records. Selected records can either be summarised using artificial intelligence (AI) or shared with others.",
   },
   selectedResultsAccordionHeader: {
-    dk: "Opsummering med kunstig intelligens (AI)",
-    en: "AI summary",
+    dk: "Få opsummeret søgeresultatet med AI",
+    en: "Generate AI summary of search result",
   },
   hoverselectedResultsAccordionHeader: {
     dk: "Få opsummeret flere artikler ad gangen.",
-    en: "AI summary",
+    en: "Generate AI summary of multiple records",
   },
   selectedResultAccordionHeader: {
-    dk: "Opsummering af abstract med kunstig intelligens (AI)",
-    en: "AI summary of abstract",
+    dk: "Få opsummeret abstractet med AI",
+    en: "Generate AI summary of abstract",
   },
   selectedResultAccordionHeaderNoAbstract: {
     dk: "Opsummering af hele artiklen med kunstig intelligens (AI)",

@@ -10,22 +10,11 @@
       >
         <template #header="accordionProps">
           <div class="qpm_aiAccordionHeader">
-            <div style="display: inline-flex">
-              <i
-                v-if="accordionProps.expanded"
-                class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
-              />
-              <i v-else class="bx bx-chevron-right qpm_aiAccordionHeaderArrows" />
-              <i
-                class="bx bx-detail"
-                style="
-                  font-size: 22px;
-                  vertical-align: text-bottom;
-                  margin-left: 3px;
-                  margin-right: 5px;
-                "
-              />
+            <div style="display: flex;flex-wrap: nowrap;justify-content: space-between;">
               <div>
+                <i
+                class="ri-sparkling-fill"
+                />
                 <strong>{{ getString("selectedResultsAccordionHeader") }}</strong>
                 <button
                   v-tooltip="{
@@ -35,6 +24,16 @@
                     hideOnTargetClick: false,
                   }"
                   class="bx bx-info-circle"
+                />
+              </div>
+              <div>
+                <i
+                  v-if="accordionProps.expanded"
+                  class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
+                />
+                <i 
+                  v-else 
+                  class="bx bx-chevron-down qpm_aiAccordionHeaderArrows" 
                 />
               </div>
             </div>
@@ -80,7 +79,6 @@
                 >
                   <i
                     class="bx bx-detail"
-                    style="font-size: 22px; line-height: 0; margin: -4px 2px 0 0"
                   />
                   {{ getTranslation(prompt) }}
                 </button>
@@ -124,29 +122,20 @@
         <template #header="accordionProps">
           <div class="qpm_aiAccordionHeader">
             <div style="display: inline-flex; width: 100%">
-              <i
-                v-if="accordionProps.expanded"
-                class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
-              />
-              <i v-else class="bx bx-chevron-right qpm_aiAccordionHeaderArrows" />
-              <i
-                class="bx bx-check-square"
-                style="
-                  font-size: 22px;
-                  vertical-align: text-bottom;
-                  margin-left: 3px;
-                  margin-right: 5px;
-                "
-              />
               <div
                 style="
                   display: inline-flex;
                   width: 100%;
                   justify-content: space-between;
-                  flex-wrap: wrap;
+                  align-items: center;
+                  padding: 1.81px 0;
                 "
               >
-                <div style="margin-bottom: 5px">
+                <div>
+                  <i
+                    class="bx bx-check-square"
+                    style="font-size: 23px; vertical-align: top; margin-right: 10px;"
+                  />
                   <strong>{{ getString("selectedResultTitle") }}</strong>
                   <button
                     v-if="!config.useAI"
@@ -178,7 +167,6 @@
                       hideOnTargetClick: false,
                     }"
                     class="qpm_button qpm_markedArticleCounter"
-                    @click.stop
                   >
                     {{ selectedEntries.length }}
                     <span v-if="selectedEntries.length == 1">
@@ -190,6 +178,16 @@
                   </button>
                 </div>
               </div>
+              <div>
+                <i
+                  v-if="accordionProps.expanded"
+                  class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
+                />
+                <i 
+                  v-else 
+                  class="bx bx-chevron-down qpm_aiAccordionHeaderArrows" 
+                />
+              </div>  
             </div>
           </div>
         </template>

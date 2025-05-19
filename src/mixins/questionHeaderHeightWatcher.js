@@ -54,7 +54,7 @@ export const questionHeaderHeightWatcherMixin = {
     getAnswerStyle(index) {
       const height = this.headerHeights[index];
       if (height > 45) {
-        return "margin-left: 40px;";
+        return "margin-left: 0;";
       }
       return "";
     },

@@ -49,17 +49,14 @@
             <div class="qpm_aiAccordionHeader">
               <i
                 v-if="accordionProps.expanded"
-                class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
+                class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
               ></i>
-              <i v-else class="bx bx-chevron-right qpm_aiAccordionHeaderArrows"></i>
+              <i 
+                v-else 
+                class="bx bx-chevron-down qpm_aiAccordionHeaderArrows" 
+              ></i>
               <i
                 class="bx bx-detail"
-                style="
-                  font-size: 22px;
-                  vertical-align: text-bottom;
-                  margin-left: 3px;
-                  margin-right: 5px;
-                "
               ></i>
               {{ qa.shortTitle }}
             </div>
@@ -84,13 +81,9 @@
           :open-by-default="false"
         >
           <template #header="accordionProps">
-            <div ref="headerText" class="qpm_aiAccordionHeader">
-              <i
-                v-if="accordionProps.expanded"
-                class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
-              ></i>
-              <i v-else class="bx bx-chevron-right qpm_aiAccordionHeaderArrows"></i>
-              <i
+            <div ref="headerText" class="qpm_aiAccordionHeader" style="display: flex; justify-content: space-between">
+              <div style="display: flex;">
+                <i
                 class="bx bx-help-circle"
                 style="
                   font-size: 22px;
@@ -98,13 +91,27 @@
                   margin-left: 3px;
                   margin-right: 5px;
                 "
-              ></i>
-              {{ qa.question }}
+                ></i>
+                <div>
+                  {{ qa.question }}
+                </div>
+              </div>
+              <div>
+                <i
+                  v-if="accordionProps.expanded"
+                  class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
+                ></i>
+                <i 
+                  v-else 
+                  class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
+                ></i>
+              </div>
             </div>
           </template>
 
           <template #default>
-            <div :style="getAnswerStyle(index)" class="qpm_answer-text">
+<!--        <div :style="getAnswerStyle(index)" class="qpm_answer-text"> -->
+            <div class="qpm_answer-text">
               {{ qa.answer }}
             </div>
           </template>

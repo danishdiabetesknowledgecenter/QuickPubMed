@@ -1492,11 +1492,6 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   white-space: nowrap;
 }
 
-.xbx-info-circle {
-  margin-left: 0;
-  padding: 0 2px;
-}
-
 .qpm_simpleFiltersSpacer {
   grid-column: 1 / auto;
   margin: 5px 0;
@@ -1547,6 +1542,30 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   color: darkslategrey !important;
   padding: 0;
   cursor: help !important;
+}
+
+.bx-info-circle:not(.qpm_searchFormula *) {
+  margin-top: -1px;
+}
+
+.bx-detail {
+  font-size: 22px;
+  line-height: 0;
+  margin: -4px 2px 0px 0px;
+}
+
+.ri-sparkling-fill {
+  font-size: 1.4em !important;
+  margin: -4px 9px 0 0;
+}
+.qpm_simpleFiltersHeader .ri-sparkling-fill {
+  font-size: 1.3em !important;
+  font-weight: normal;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+.qpm_abstract .ri-sparkling-fill {
+  margin-right: 7px;
 }
 
 .qpm_accordions .bx-info-circle {
@@ -1868,11 +1887,11 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 }
 
 .qpm_aiAccordionHeader .qpm_button {
-  top: -3px;
+  top: 1px;
   position: relative;
   float: right;
   padding: 2px 7px !important;
-  margin-right: 5px;
+  margin-right: 21px;
   line-height: 24px;
 }
 
@@ -1933,8 +1952,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 }
 
 .qpm_aiAccordionHeader {
-  padding: 13px 10px 6px 10px;
-  /* border-bottom: 1px solid var(--color-grey);*/
+  padding: 10px;
   cursor: pointer;
   font-family: var(--font-primary);
 }
@@ -1947,9 +1965,9 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 .qpm_aiAccordionHeaderArrows {
   font-size: 30px;
   position: relative;
-  bottom: 3px;
+  top: 3px;
   right: 5px;
-  float: left;
+  float: right;
 }
 
 /*
@@ -1968,6 +1986,11 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   align-items: center;
   flex-wrap: wrap;
   margin-right: -15px;
+}
+.qpm_switch_wrap .qpm_simpleFiltersHeader {
+  display: flex;
+  gap: 5px;
+  align-items: center;
 }
 .qpm_switch {
   position: relative;
@@ -2273,6 +2296,8 @@ input:checked + .qpm_slider:before {
   font-family: inherit; /* Use the inherited font family */
   padding-top: 10px;
   text-align: start;
+  margin-left: 38px;
+  margin-right: 25px;
 }
 
 .qpm_error-message {

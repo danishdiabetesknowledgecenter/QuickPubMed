@@ -279,22 +279,11 @@
             class="qpm_ai_hide qpm_accordions"
           >
             <template #header="accordionProps">
-              <div class="qpm_aiAccordionHeader" style="padding-left: 15px; display: inline-flex">
-                <i
-                  v-if="accordionProps.expanded"
-                  class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
-                />
-                <i v-else class="bx bx-chevron-right qpm_aiAccordionHeaderArrows" />
-                <i
-                  class="bx bx-detail"
-                  style="
-                    font-size: 22px;
-                    vertical-align: text-bottom;
-                    margin-left: 3px;
-                    margin-right: 5px;
-                  "
-                />
+              <div class="qpm_aiAccordionHeader" style="padding-left: 18px; display: flex; flex-wrap: nowrap; justify-content: space-between;">
                 <div>
+                  <i
+                    class="ri-sparkling-fill"
+                  />
                   <strong>{{ getString("selectedResultAccordionHeader") }}</strong>
                   <button
                     v-tooltip="{
@@ -304,6 +293,16 @@
                       hideOnTargetClick: false,
                     }"
                     class="bx bx-info-circle"
+                  />
+                </div>
+                <div>
+                  <i
+                    v-if="accordionProps.expanded"
+                    class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
+                  />
+                  <i 
+                    v-else 
+                    class="bx bx-chevron-down qpm_aiAccordionHeaderArrows" 
                   />
                 </div>
               </div>
@@ -333,7 +332,6 @@
                   >
                     <i
                       class="bx bx-detail"
-                      style="font-size: 22px; line-height: 0; margin: -4px 2px 0 0"
                     />
                     {{ getTranslation(prompt) }}
                   </button>
@@ -398,13 +396,7 @@
                 />
                 <i v-else class="bx bx-chevron-right qpm_aiAccordionHeaderArrows" />
                 <i
-                  class="bx bx-detail"
-                  style="
-                    font-size: 22px;
-                    vertical-align: text-bottom;
-                    margin-left: 3px;
-                    margin-right: 5px;
-                  "
+                  class="ri-sparkling-fill"
                 />
                 <div>
                   <strong>{{ getString("selectedResultAccordionHeaderNoAbstract") }}</strong>
@@ -445,7 +437,6 @@
                     >
                       <i
                         class="bx bx-detail"
-                        style="font-size: 22px; line-height: 0; margin: -4px 2px 0 0"
                       />
                       {{ getTranslation(prompt) }}
                     </button>

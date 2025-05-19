@@ -10,6 +10,9 @@
       <span class="qpm_slider qpm_round" />
     </label>
     <span v-if="localSearchWithAI" class="qpm_simpleFiltersHeader">
+      <i
+        class="ri-sparkling-fill"
+      />
       {{ getString("searchToggleWithAI") }}
       <button
         v-tooltip="{
@@ -23,6 +26,10 @@
       />
     </span>
     <span v-else class="qpm_simpleFiltersHeader">
+      <i
+        style="color: darkgray"
+        class="ri-sparkling-fill"
+      />
       {{ getString("searchToggleWithoutAI") }}
       <button
         v-tooltip="{
