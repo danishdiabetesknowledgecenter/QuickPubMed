@@ -105,6 +105,18 @@ export const messages = {
     dk: "Vælg emne eller indtast søgeord",
     en: "Select topic or enter search term",
   },
+  subjectadvancedplaceholder_notopics: {
+    dk: "Indtast søgeord",
+    en: "Enter search term",
+  },
+  subjectadvancedplaceholder_mobile_notopics: {
+    dk: "Indtast søgeord",
+    en: "Enter search term",
+  },
+  subjectsimpleplaceholder_notopics: {
+    dk: "Indtast søgeord",
+    en: "Enter search term",
+  },
   translatingPlaceholder: {
     dk: "AI-oversættelse i gang...",
     en: "AI translation...",

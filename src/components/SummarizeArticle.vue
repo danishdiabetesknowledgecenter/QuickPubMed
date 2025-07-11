@@ -81,14 +81,13 @@
           :open-by-default="false"
         >
           <template #header="accordionProps">
-            <div ref="headerText" class="qpm_aiAccordionHeader" style="display: flex; justify-content: space-between">
+            <div ref="headerText" class="qpm_aiAccordionHeader" style="display: flex; justify-content: space-between; align-items: center;">
               <div style="display: flex;">
                 <i
                 class="bx bx-help-circle"
                 style="
                   font-size: 22px;
                   vertical-align: text-bottom;
-                  margin-left: 3px;
                   margin-right: 5px;
                 "
                 ></i>

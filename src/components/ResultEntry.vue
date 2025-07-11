@@ -13,10 +13,11 @@
             :id="'qpm_selectArticleCheckbox_' + id"
             type="checkbox"
             class="qpm_selectArticleCheckbox"
-            style="margin-left: -30px"
+            style="margin-left: -40px"
             :name="'qpm_selectArticleCheckbox_' + id"
             :checked="isChecked"
             :value="value"
+            :aria-label="'Select: ' + getTitle"
             @change="updateInput"
             @keyup.enter="changeOnEnter"
           />
@@ -279,21 +280,26 @@
             class="qpm_ai_hide qpm_accordions"
           >
             <template #header="accordionProps">
-              <div class="qpm_aiAccordionHeader" style="padding-left: 18px; display: flex; flex-wrap: nowrap; justify-content: space-between;">
-                <div>
-                  <i
-                    class="ri-sparkling-fill"
-                  />
-                  <strong>{{ getString("selectedResultAccordionHeader") }}</strong>
-                  <button
-                    v-tooltip="{
-                      content: getString('hoverselectedResultAccordionHeader'),
-                      offset: 5,
-                      delay: $helpTextDelay,
-                      hideOnTargetClick: false,
-                    }"
-                    class="bx bx-info-circle"
-                  />
+              <div class="qpm_aiAccordionHeader" style="padding-left: 18px; display: flex; flex-wrap: nowrap; justify-content: space-between;gap: 5px;">
+                <div style="display: flex">
+                  <div>
+                    <i
+                      class="ri-sparkling-fill"
+                    />
+                  </div>
+                  <div style="align-content: center;">
+                    <strong>{{ getString("selectedResultAccordionHeader") }}</strong>
+                    <button
+                      v-tooltip="{
+                        content: getString('hoverselectedResultAccordionHeader'),
+                        offset: 5,
+                        delay: $helpTextDelay,
+                        hideOnTargetClick: false,
+                      }"
+                      class="bx bx-info-circle"
+                      aria-label="Info"
+                    />
+                  </div>
                 </div>
                 <div>
                   <i
@@ -408,6 +414,7 @@
                       hideOnTargetClick: false,
                     }"
                     class="bx bx-info-circle"
+                    aria-label="Info"
                   />
                 </div>
               </div>

@@ -27,7 +27,7 @@
 }
 
 .qpm_dropDownMenu span {
-  font-size: 1rem;
+  font-size: initial;
 }
 
 .qpm_vapp li,
@@ -56,6 +56,8 @@
 
 .qpm_vapp input[type="checkbox"] {
   accent-color: var(--color-blue-dark);
+  min-height: 24px;
+  min-width: 24px;
 }
 
 .qpm_ResultEntry button {
@@ -231,20 +233,49 @@
   z-index: 1;
 }
 
-input.qpm_selectArticleCheckbox[type="checkbox"] {
-  transform: scale(1.15);
-  -webkit-transform: scale(1.15);
-  width: auto;
-  flex: 0 0 17px;
+/* Custom spinner to replace vue-multiselect's built-in spinner */
+.qpm_multiselect_custom_spinner {
+  position: relative;
+  right: 0;
+  margin-top: -30px;
+  left: calc(100% - 20px);
+  width: 30px;
+  height: 30px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;  
+  z-index: 10;
 }
 
-.qpm_selectArticleCheckbox {
-  margin: 7px 12px 5px 3px;
-  align-self: flex-start;
+.qpm_multiselect_custom_spinner .qpm_loading {
+  position: relative;
+  top: unset;
+  left: unset;
+  transform: unset;
+}
+
+.qpm_selectArticleCheckbox:not([type="checkbox"]) {
+  margin: 5px 13px 0px -1px;
+  align-content: center;
+}
+
+input.qpm_selectArticleCheckbox[type="checkbox"] {
+  /* transform: scale(1.15); */
+  /* -webkit-transform: scale(1.15); */
+  /* width: auto; */
+  /* flex: 0 0 17px; */
+  margin: 2px 15px 5px 5px;
+}
+
+.qpm_box input.qpm_selectArticleCheckbox[type="checkbox"] {
+  margin: 2px 15px 0px -40px !important;
 }
 
 .qpm_summaryButton {
   margin: 10px 5px 0 3px;
+  padding-left: 15px;
+  padding-right: 15px;
   background-color: var(--color-green-light) !important;
   color: var(--color-white) !important;
   text-align: left;
@@ -307,10 +338,11 @@ input.qpm_selectArticleCheckbox[type="checkbox"] {
   border-bottom: 1px solid var(--color-grey);
   margin-top: 20px;
   margin-bottom: 20px;
+  align-items: baseline;
 }
 
 .qpm_nomargin {
-  margin: 5px 0;
+  margin: 0;
 }
 
 .qpm_nomargin span {
@@ -394,7 +426,7 @@ p.qpm_shownumber {
 }
 
 .qpm_pubmedLink {
-  margin-top: 5px;
+  margin-top: 10px;
   margin-bottom: 0px !important;
   font-size: 1em !important;
   align-self: baseline;
@@ -455,27 +487,63 @@ p.qpm_shownumber {
   border: 1px solid #ddd !important;
   background-color: var(--color-white);
   border-radius: 3px !important;
-  padding: 10px !important;
   transition: all 0.2s ease !important;
   cursor: pointer;
   display: inline !important;
   margin-right: 5px;
+  height: 44px !important;
+  padding: 0 15px;
 }
 
 .qpm_button:hover,
 .qpm_button.qpm_big:hover,
 .qpm_button.qpm_slim:hover,
+button.qpm_tab:hover,
 .multiselect__option--highlight .qpm_dropdownButtons .qpm_button.qpm_ButtonColumnFocused {
   color: black;
   background-color: #d8e8ef;
   border-color: transparent;
 }
 
+/* Simplified focus-visible styling - only show focus outline for keyboard navigation */
+
+/* KEYBOARD MODE: Show focus styling only for input field */
+.qpm_vapp.qpm_keyboard-mode .multiselect__input:focus {
+  outline: none !important;
+  border: 2px solid var(--color-black) !important;
+}
+
+/* KEYBOARD MODE: Show focus styling for buttons */
+.qpm_vapp.qpm_keyboard-mode .qpm_button:focus,
+.qpm_vapp.qpm_keyboard-mode button:focus,
+.qpm_vapp.qpm_keyboard-mode .multiselect__option--highlight .qpm_button.qpm_ButtonColumnFocused {
+  outline: 2px solid var(--color-black) !important;
+  outline-offset: 0 !important;
+  position: relative; 
+  z-index: 100;  
+}
+
+.qpm_vapp.qpm_keyboard-mode button.qpm_tab:focus,
+.qpm_vapp.qpm_keyboard-mode button.qpm_summary_icon:focus {
+  outline-offset: -2px !important;
+}
+
+/* MOUSE MODE: Hide focus styling */
+.qpm_vapp.qpm_mouse-mode .multiselect__input:focus {
+  outline: none !important;
+  border: 1px solid lightgrey !important;
+}
+
+.qpm_vapp.qpm_mouse-mode .qpm_button:focus,
+.qpm_vapp.qpm_mouse-mode button:focus,
+.qpm_vapp.qpm_mouse-mode .multiselect__option--highlight .qpm_button.qpm_ButtonColumnFocused {
+  outline: none !important;
+}
+
+/* Keep focus-visible for browsers that support it as fallback */
 .qpm_button:focus-visible,
 .qpm_button.qpm_big:focus-visible,
-.qpm_button.qpm_slim:focus-visible,
-input.multiselect__input.qpm_keyboard-focus,
-.multiselect__option--highlight .qpm_dropdownButtons .qpm_button.qpm_ButtonColumnFocused {
+.qpm_button.qpm_slim:focus-visible {
   outline: 2px solid var(--color-black) !important;
   outline-offset: 0 !important;
 }
@@ -493,6 +561,25 @@ button.qpm_slim.multiselect__input:focus-visible {
   border: 1px solid #ddd !important;
   background-color: transparent;
 }
+
+.qpm_selectedResultDeselectAllWrapper {
+  background-color: var(--color-grey-light);
+  font-size: 0.96em;
+  width: 100%;
+  padding-bottom: 10px;
+}
+
+.qpm_selectedResultDeselectAllWrapper > div {
+  display: flex; 
+  align-items: center; 
+  gap: 9px; 
+  padding: 10px 9px;
+}
+
+.qpm_selectedResultDeselectAllWrapper div:first-child {
+  border-bottom: solid 1px lightgrey;
+}
+
 #qpm_selectedResultDeselectAll:disabled .qpm_button {
   color: #808080;
   background-color: transparent !important;
@@ -513,18 +600,16 @@ button.qpm_slim.multiselect__input:focus-visible {
 .qpm_getUrlToolTip {
 }
 
-.qpm_dropdownButtons .qpm_button {
-  border-radius: 0;
-}
-
 .qpm_dropdown {
   flex: 1;
   width: 90%;
   max-width: 100%;
+  position: relative;
 }
 
 .qpm_dropdown .qpm_button {
-  padding: 5px;
+  padding: 10px;
+  margin: 2px 0;
   font-size: 0.8em;
 }
 
@@ -591,38 +676,38 @@ button.qpm_slim.multiselect__input:focus-visible {
 
 .multiselect__tag {
   background-color: #6c5b7b;
-  padding: 8px 26px 8px 10px;
+  padding: 12px 36px 12px 12px;
+  min-height: 44px;
   margin-right: 0;
   margin-bottom: 7px;
   border-radius: 5px;
-  max-width: min(700px, 100%);
+  max-width: min(775px, 100%);
   cursor: pointer;
   white-space: normal;
-  /*	height: 32px; */
 }
 
 .multiselect__tag span {
   max-width: 100%;
-  display: inline-flex;
   max-height: 100%;
+  display: inline-flex;
 }
 
 .multiselect__tag span p {
   color: var(--color-white);
   max-width: 100%;
   margin: -4px 0;
-  line-height: 1.5;
-  font-size: inherit;
+  line-height: 1.6;
   text-overflow: ellipsis;
   overflow-x: clip;
   overflow-y: visible;
+  font-size: 1em;
 }
 
 .multiselect__tag span input {
   margin: -4px 5px;
   padding: 0 5px;
   border: none;
-  font-size: inherit;
+  font-size: 1em;
   line-height: normal;
   max-height: 100%;
   min-height: 24px;
@@ -633,152 +718,18 @@ button.qpm_slim.multiselect__input:focus-visible {
 
 input.multiselect__input{
   border-radius: 5px !important;
-}
-input.multiselect__input[placeholder="Add template category"] {
-  width: 189px !important;
-  min-width: 189px;
-}
-input.multiselect__input[placeholder="Tilføj emne"] {
-  width: 102px !important;
-  min-width: 102px;
-}
-input.multiselect__input[placeholder="Add topic"] {
-  width: 102px !important;
-  min-width: 102px;
-}
-input.multiselect__input[placeholder="Vælg emne eller indtast søgeord"] {
-  width: 261px !important;
-  min-width: 261px;
-}
-input.multiselect__input[placeholder="Select topic or enter search term"] {
-  width: 260px !important;
-  min-width: 260px;
-}
-input.multiselect__input[placeholder="Vælg emne/indtast søgeord"] {
-  width: 170px !important;
-  min-width: 170px;
-}
-input.multiselect__input[placeholder="Vælg afgrænsning"] {
-  width: 155px !important;
-  min-width: 155px;
-}
-input.multiselect__input[placeholder="Tilføj skabelonkategori"] {
-  width: 190px !important;
-  min-width: 155px;
-}
-input.multiselect__input[placeholder="Add limit"] {
-  width: 88px !important;
-  min-width: 88px;
-}
-input.multiselect__input[placeholder="Tilføj afgrænsning"] {
-  width: 155px !important;
-  min-width: 155px;
-}
-input.multiselect__input[placeholder="Tilføj reviewtype eller indtast søgeord"] {
-  width: 300px !important;
-  min-width: 300px;
-}
-input.multiselect__input[placeholder="Add review type or enter search term"] {
-  width: 297px !important;
-  min-width: 297px;
-}
-input.multiselect__input[placeholder="Tilføj reviewtype/søgeord"] {
-  width: 208px !important;
-  min-width: 208px;
-}
-input.multiselect__input[placeholder="Tilføj studietype eller indtast søgeord"] {
-  width: 300px !important;
-  min-width: 300px;
-}
-input.multiselect__input[placeholder="Add study type or enter search term"] {
-  width: 291px !important;
-  min-width: 291px;
-}
-input.multiselect__input[placeholder="Tilføj studietype/søgeord"] {
-  width: 207px !important;
-  min-width: 207px;
-}
-input.multiselect__input[placeholder="Tilføj sprog eller indtast søgeord"] {
-  width: 261px !important;
-  min-width: 261px;
-}
-input.multiselect__input[placeholder="Add language or enter search term"] {
-  width: 280px !important;
-  min-width: 280px;
+  min-height: 44px;
 }
 
-input.multiselect__input[placeholder="Tilføj sprog/søgeord"] {
-  width: 173px !important;
-  min-width: 173px;
-}
-input.multiselect__input[placeholder="Tilføj geografi eller indtast søgeord"] {
-  width: 280px !important;
-  min-width: 280px;
-}
-input.multiselect__input[placeholder="Add geography or enter search term"] {
-  width: 249px !important;
-  min-width: 249px;
-}
-input.multiselect__input[placeholder="Tilføj geografi/søgeord"] {
-  width: 191px !important;
-  min-width: 191px;
-}
-input.multiselect__input[placeholder="Tilføj køn"] {
-  width: 88px !important;
-  min-width: 88px;
-}
-input.multiselect__input[placeholder="Add sex"] {
-  width: 78px !important;
-  min-width: 78px;
-}
-input.multiselect__input[placeholder="Tilføj aldersgruppe"] {
-  width: 160px !important;
-  min-width: 160px;
-}
-input.multiselect__input[placeholder="Add age group"] {
-  width: 130px !important;
-  min-width: 130px;
-}
-input.multiselect__input[placeholder="Tilføj publiceringsdato"] {
-  width: 186px !important;
-  min-width: 186px;
-}
-input.multiselect__input[placeholder="Add publication date"] {
-  width: 173px !important;
-  min-width: 173px;
-}
-input.multiselect__input[placeholder="Tilføj tilgængelighed"] {
-  width: 170px !important;
-  min-width: 170px;
-}
-input.multiselect__input[placeholder="Tilføj tilhørsforhold eller indtast søgeord"] {
-  width: 320px !important;
-  min-width: 320px;
-}
-input.multiselect__input[placeholder="Add affiliation or enter search term"] {
-  width: 281px !important;
-  min-width: 281px;
-}
-input.multiselect__input[placeholder="Tilføj tilhørsforhold/søgeord"] {
-  width: 230px !important;
-  min-width: 230px;
-}
-input.multiselect__input[placeholder="Add affiliation/search term"] {
-  width: 220px !important;
-  min-width: 220px;
-}
-input.multiselect__input[placeholder="Tilføj andre afgrænsninger"] {
-  width: 217px !important;
-  min-width: 217px;
-}
-input.multiselect__input[placeholder="Add other limits"] {
-  width: 140px !important;
-  min-width: 140px;
-}
+
+
 .multiselect__tag-icon {
   border-radius: 0;
   line-height: 2em;
-  padding-right: 2px;
+  margin-left: 0;
+  width: 24px;
+  align-content: center;
+  background-color: rgba(0, 0, 0, 0.3);
 }
 .multiselect__tag-icon:after {
   color: var(--color-white) !important;
@@ -788,19 +739,17 @@ input.multiselect__input[placeholder="Add other limits"] {
 .multiselect__tag-icon:hover {
   background: var(--color-red-light) !important;
 }
+.multiselect__tag-icon:focus-visible {
+  border: 2px solid var(--color-black) !important;
+  outline-offset: 0; 
+}
 .qpm_operator {
   margin-left: 6px;
   margin-right: 6px;
-  margin-bottom: -1px;
+  margin-bottom: 6px;
   display: inline-block;
-  vertical-align: middle !important;
-  position: relative;
-  top: 50%;
-  -ms-transform: translateY(-50%);
-  -webkit-transform: translateY(-50%);
-  -moz-transform: translateY(-50%);
-  -o-transform: translateY(-50%);
-  transform: translateY(-50%);
+  padding-top: min(10px, 10px);
+  padding-bottom: min(10px, 10px);
   font-weight: 700;
 }
 
@@ -817,9 +766,8 @@ input.multiselect__input[placeholder="Add other limits"] {
 
 .multiselect__input {
   display: inline-block !important;
-  /*Show placeholder all the time*/
-  width: auto !important;
-  padding: 0 5px 0 8px !important;
+  width: auto;
+  padding: 0 10px 0 10px !important;
   position: relative !important;
   margin-right: 0 !important;
   margin-bottom: 7px;
@@ -828,10 +776,32 @@ input.multiselect__input[placeholder="Add other limits"] {
   max-width: min(700px, 100%);
   cursor: pointer;
   height: 32px;
+  box-sizing: border-box !important;
 }
 
 .multiselect__input:hover {
   border: solid 1px darkgrey !important;
+}
+
+.multiselect__input:focus,
+.multiselect__input:not(:placeholder-shown) {
+  /* padding: 0 15px !important; */
+}
+
+.multiselect__input.qpm_silent-focus {
+  outline: none !important;
+  border: solid 1px lightgrey !important;
+  box-shadow: none !important;
+}
+
+.multiselect__input.qpm_silent-focus:hover {
+  border: solid 1px darkgrey !important;
+}
+
+.multiselect__input.qpm_silent-focus:focus {
+  outline: none !important;
+  border: solid 1px lightgrey !important;
+  box-shadow: none !important;
 }
 
 .multiselect__input::-webkit-input-placeholder {
@@ -844,12 +814,13 @@ input.multiselect__input[placeholder="Add other limits"] {
 }
 
 .multiselect__tags {
-  min-height: 48px;
+  min-height: 44px;
+  font-size: 1em;
 }
 
 .multiselect__tags-wrap,
 .multiselect__tags-wrap span {
-  vertical-align: bottom;
+  vertical-align: middle;
 }
 
 .multiselect__tag input {
@@ -879,7 +850,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 }
 
 .multiselect__option--group {
-  /* background-color: #f9f9f9; */
+  height: 44px;
 }
 
 .multiselect__option--selected {
@@ -887,20 +858,25 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   background: #fafafa;
 }
 
-.multiselect__content {
-  margin-bottom: 0 !important;
-}
-
 .multiselect__content-wrapper {
   border-color: #bbbbbb;
   max-height: none !important;
 }
 
+.multiselect__content {
+  margin-bottom: 0 !important;
+}
+
 .multiselect__option {
+  margin-bottom: 0 !important;
   display: flex;
   flex-direction: row;
   align-items: center;
-  padding: 5px 12px;
+  padding: 0 4px 0 12px;
+  min-height: 48px;
+}
+.multiselect__option:after {
+  line-height: 48px;
 }
 
 .qpm_forceRight {
@@ -940,8 +916,8 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 }
 
 .qpm_button.qpm_slim {
-  background-color: var(--color-white) !important;
-  padding: 5px;
+  /* background-color: var(--color-white) !important; */
+  /* padding: 5px; */
 }
 
 .qpm_button.qpm_slim.qpm_abstract {
@@ -996,41 +972,40 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   float: right;
 }
 
-.qpm_tab {
+button.qpm_tab {
   float: left;
-  margin: 2px 0 -1px 10px;
-  border: 1px solid var(--color-grey);
-  border-bottom: 0;
-  background-color: var(--color-white);
-  border-radius: 8px 8px 0 0;
+  height: 44px;
+  margin: 0 0 0 10px;
   overflow: hidden;
-  padding: 10px 20px;
+  padding: 0 20px;
   cursor: pointer;
   color: var(--color-black);
   font-size: 1em !important;
+  background-color: var(--color-white);
+  border: 1px solid var(--color-grey);
+  border-radius: 8px 8px 0 0;
+  border-bottom: 0 !important;
+  z-index: 10;
 }
 
 .qpm_tab:hover {
-  background-color: #d8e8ef;
-  border: 1px solid #d8e8ef;
-  border-bottom: 0;
+  background-color: var(--color-white);
+  border: 1px solid var(--color-grey-light);
 }
 
-/*.qpm_searchSummaryBox > .qpm_tab_active {
-	background-color: var(--color-grey-dark) !important;
-*/
 .qpm_tab_active {
   background-color: var(--color-grey-light) !important;
   border-color: var(--color-grey-light) !important;
+  border-bottom: -1px solid var(--color-grey) !important;
   font-weight: 600 !important;
-  padding: 10px 18px;
+  padding: 0 19px !important;
 }
 
 .qpm_tab_loading {
   background-color: var(--color-red-light) !important;
   border-color: var(--color-red-light) !important;
   font-weight: 100 !important;
-  padding: 10px 18px;
+  padding: 0 19px !important;
 }
 
 .qpm_summary_icon_row {
@@ -1224,6 +1199,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 
 .qpm_ResultEntryWrapper {
   border-bottom: 1px solid var(--color-grey);
+  padding-left: 10px;
 }
 
 .qpm_ResultEntry {
@@ -1239,9 +1215,9 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 
 .qpm_ResultEntry .qpm_button.qpm_slim {
   margin-top: 15px;
+  min-width: 130px;
   padding-left: 12px;
   padding-right: 12px;
-  min-width: 130px;
 }
 
 .qpm_ResultEntry button.qpm_noAbstract,
@@ -1338,7 +1314,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 
 .qpm_sortSelect select {
   margin: -1px 0;
-  height: 35px;
+  height: 44px;
   width: 100%;
   border-top: 1px solid var(--color-grey);
   border-bottom: 1px solid var(--color-grey);
@@ -1357,7 +1333,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 
 .multiselect__select {
   padding: 0px 8px !important;
-  top: 5px;
+  top: 10px;
 }
 
 .multiselect--active .multiselect__select {
@@ -1368,13 +1344,28 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   position: relative;
   content: "";
   display: inline-block;
-  height: 8px;
-  width: 8px;
+  height: 10px;
+  width: 10px;
   border-style: solid;
   border-width: 2px 2px 0 0;
   border-color: var(--color-black);
   transform: rotate(135deg);
   top: 25%;
+}
+
+.qpm_hideDropdownArrow .multiselect__select {
+  display: none !important;
+}
+
+.qpm_hideDropdownArrow .multiselect__content-wrapper {
+  display: none !important;
+}
+
+.qpm_hideDropdownArrow .multiselect__input {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  padding: 0 10px 0 10px !important;
 }
 
 .multiselect__option--highlight,
@@ -1393,8 +1384,14 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   width: 100%;
 }
 
+.qpm_dropdownButtons  {
+  display: flex;
+  gap: 4px;
+}
+
 .qpm_dropdownButtons .qpm_button {
   color: var(--color-white) !important;
+  border-radius: 0;
 }
 
 .qpm_buttonColor1,
@@ -1455,6 +1452,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 
 .qpm_prestring {
   font-weight: 600;
+  display: contents !important;
 }
 
 .qpm_toggleSearchForm {
@@ -1467,7 +1465,8 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 
 .qpm_toggleSearchFormBtn {
   margin-right: -10px;
-  height: 25px;
+  min-height: 24px;
+  min-width: 24px;
   cursor: pointer;
   font-size: 20px;
   margin-top: 9px;
@@ -1478,6 +1477,29 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
     transform: rotate(-135deg);
 }
 */
+
+.qpm_aiToggle {
+  display: flex;
+  align-items: baseline;
+  width: -webkit-fill-available;
+}
+
+.qpm_aiToggle div:last-of-type {
+  margin-top: 2px;
+  display: flex;
+  align-items: start;
+  gap: 6px;
+}
+
+.qpm_aiToggle:not(i) {
+  font-weight: 600;
+}
+.qpm_aiToggle i {
+  font-weight: normal;
+}
+.qpm_aiToggle .ri-sparkling-fill {
+  margin-right: 6px;
+}
 
 .qpm_simpleFiltersContainer {
   display: grid;
@@ -1490,6 +1512,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   grid-column: 1;
   grid-row: auto / span 4;
   white-space: nowrap;
+  margin-bottom: 10px;
 }
 
 .qpm_simpleFiltersSpacer {
@@ -1503,13 +1526,10 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 
 .qpm_simpleFilters {
   float: left;
-  /*display: flex;
-    flex-direction: column;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    min-width: 50%; */
-  margin-bottom: 5px;
+  display: flex;
   white-space: nowrap;
+  margin-bottom: 10px;
+  min-width: min-content;
 }
 
 .qpm_simpleFilters div {
@@ -1517,7 +1537,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 }
 
 .qpm_simpleFilters label {
-  padding: 0 5px 0 5px;
+  padding: 0 5px 0 10px;
 }
 
 .qpm_furtherReading {
@@ -1529,7 +1549,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 }
 
 .bx {
-  vertical-align: middle;
+  vertical-align: middle;;
 }
 
 .bx-skip-next {
@@ -1538,14 +1558,12 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 
 .bx-info-circle {
   font-size: 1.4em !important;
-  vertical-align: text-top;
+  vertical-align: middle;
   color: darkslategrey !important;
   padding: 0;
   cursor: help !important;
-}
-
-.bx-info-circle:not(.qpm_searchFormula *) {
-  margin-top: -1px;
+  min-width: 24px !important;
+  min-height: 24px !important;
 }
 
 .bx-detail {
@@ -1554,9 +1572,30 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   margin: -4px 2px 0px 0px;
 }
 
+.bxs-minus-square {
+  font-size: 2.1em;
+  min-height: 24px;
+  min-width: 24px;
+  align-self: center;
+  margin: 0 4px 0 0;
+  cursor: pointer;
+}
+.bx-check-square {
+  font-size: 2.0em;
+  min-height: 24px;
+  min-width: 24px;
+  vertical-align: middle;
+  margin-right: 13px;
+}
+
 .ri-sparkling-fill {
-  font-size: 1.4em !important;
-  margin: -4px 9px 0 0;
+  font-size: 1.7em !important;
+  min-height: 24px;
+  min-width: 24px;
+  /* margin: -4px 19px 0 0; */
+  margin-right: 15px;
+  vertical-align: middle;
+  line-height: 0;
 }
 .qpm_simpleFiltersHeader .ri-sparkling-fill {
   font-size: 1.3em !important;
@@ -1743,16 +1782,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 }
 
 .qpm_searchSummaryBox .qpm_tab {
-  margin: 2px 10px -1px 0;
-}
-
-.qpm_searchSummaryBox button {
-  border: 1px solid var(--color-grey);
-  z-index: 10;
-}
-
-.qpm_searchSummaryBox button.qpm_tab {
-  border-bottom: 1px solid var(--color-grey-light);
+  margin: 0 10px 0 0;
 }
 
 .qpm_searchSummaryTextBackground {
@@ -1895,13 +1925,21 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   line-height: 24px;
 }
 
+.qpm_markedArticleCounter {
+  border: 1px dashed var(--color-grey-dark);
+  border-radius: 5px;
+  padding: 5px 10px;
+  margin: -5px 30px -5px 0;
+  color: var(--color-black);
+}
+
 .qpm_markedArticleCounter:hover {
   cursor: help;
   background-color: transparent;
 }
 
 .qpm_accordion .qpm_accordion-content {
-  box-sizing: content-box;
+  /* box-sizing: content-box; */
   /*	transition: all 0.5s ease-in-out; */
   transition: height 0.3s linear;
   overflow: hidden;
@@ -1916,6 +1954,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 
 .qpm_box {
   background-color: var(--color-grey-light);
+  padding: 0 10px;
 }
 
 .collapse-enter,
@@ -1955,11 +1994,12 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   padding: 10px;
   cursor: pointer;
   font-family: var(--font-primary);
+  align-items: center;
 }
 
 .qpm_aiAccordionHeader strong {
   font-weight: 600;
-  vertical-align: text-bottom;
+  vertical-align: middle;
 }
 
 .qpm_aiAccordionHeaderArrows {
@@ -1968,6 +2008,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   top: 3px;
   right: 5px;
   float: right;
+  margin-left: 5px;
 }
 
 /*
@@ -1983,9 +2024,6 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 
 .qpm_switch_wrap {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-right: -15px;
 }
 .qpm_switch_wrap .qpm_simpleFiltersHeader {
   display: flex;
@@ -1997,7 +2035,8 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   display: inline-block;
   width: 46px;
   height: 26px;
-  margin-right: 10px;
+  margin-right: 15px;
+  margin-top: 2px;
 }
 
 .qpm_switch input {
@@ -2021,6 +2060,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   background-color: #ccc;
   -webkit-transition: 0.4s;
   transition: 0.4s;
+  width: inherit;
 }
 
 .qpm_slider:before {
@@ -2038,6 +2078,10 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 
 input:checked + .qpm_slider {
   background-color: var(--color-blue-dark);
+}
+
+.d-flex {
+  align-items: flex-start;
 }
 
 input:focus:checked + .qpm_slider {
@@ -2065,7 +2109,7 @@ input:checked + .qpm_slider:before {
   }
 }
 
-/* Justeringer til mobilskÃ¦rme */
+/* Justeringer til mobilskærme */
 
 @media only screen and (max-width: 1199px) {
   .qpm_headerText .h3 {
@@ -2141,7 +2185,7 @@ input:checked + .qpm_slider:before {
     padding-left: 0;
     margin-left: 0;
     display: flex;
-    justify-content: space-between;
+    justify-content: space-between;    
   }
 
   .qpm_searchHeader p {
@@ -2196,12 +2240,6 @@ input:checked + .qpm_slider:before {
   }
   .qpm_summaryDisclaimer {
     padding-bottom: 15px;
-  }
-
-  .qpm_tab:hover {
-    background-color: var(--color-white);
-    border: 1px solid var(--color-grey);
-    border-bottom: 0;
   }
 
   .qpm_abstractWrapper {

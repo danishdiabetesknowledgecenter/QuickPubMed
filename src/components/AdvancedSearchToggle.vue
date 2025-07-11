@@ -1,7 +1,7 @@
 <template>
   <div v-if="!isCollapsed" class="qpm_tabs">
     <!-- Advanced Search Tab -->
-    <p
+    <button
       v-if="!advanced"
       v-tooltip="{
         content: getString('hoverAdvancedText'),
@@ -17,17 +17,17 @@
       <span class="qpm_hideonmobile">
         {{ getString("searchMode") }}
       </span>
-    </p>
+    </button>
 
-    <p v-if="advanced" class="qpm_tab qpm_tab_active">
+    <button v-if="advanced" class="qpm_tab qpm_tab_active">
       {{ getString("advancedSearch") }}
       <span class="qpm_hideonmobile">
         {{ getString("searchMode") }}
       </span>
-    </p>
+    </button>
 
     <!-- Simple Search Tab -->
-    <p
+    <button
       v-if="advanced"
       v-tooltip="{
         content: getString('hoverBasicText'),
@@ -43,14 +43,14 @@
       <span class="qpm_hideonmobile">
         {{ getString("searchMode") }}
       </span>
-    </p>
+    </button>
 
-    <p v-if="!advanced" class="qpm_tab qpm_tab_active">
+    <button v-if="!advanced" class="qpm_tab qpm_tab_active">
       {{ getString("simpleSearch") }}
       <span class="qpm_hideonmobile">
         {{ getString("searchMode") }}
       </span>
-    </p>
+    </button>
   </div>
 </template>
 

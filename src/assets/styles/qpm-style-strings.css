@@ -26,7 +26,12 @@
 }
 
 .qpm_searchStringCollection h2.qpm_heading, 
-.qpm_searchStringCollection h2.intext-arrow-link{
+.qpm_searchStringCollection h2.intext-arrow-link,
+.qpm_searchStringCollection h3.qpm_heading, 
+.qpm_searchStringCollection h3.intext-arrow-link,
+.qpm_searchStringCollection h4.qpm_heading, 
+.qpm_searchStringCollection h4.intext-arrow-link {
+    padding-top: 0 !important;
     margin-top: 0 !important;
     padding-left: 15px;
     line-height: 2;

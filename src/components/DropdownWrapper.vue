@@ -18,13 +18,16 @@
       ref="multiselect"
       v-model="getStateCopy"
       class="qpm_dropDownMenu"
+      :class="{ 'qpm_hideDropdownArrow': shouldHideDropdownArrow }"
+      :aria-expanded="isDropdownOpen"
+      :aria-label="placeholder"
       open-direction="bottom"
       track-by="name"
       label="name"
       select-label=""
       deselect-label=""
       selected-label=""
-      :options="getSortedSubjectOptions"
+      :options="shouldHideDropdownArrow ? [] : getSortedSubjectOptions"
       :multiple="isMultiple"
       :group-select="true"
       :group-values="isGroup ? 'groups' : undefined"
@@ -38,7 +41,7 @@
       :deselect-group-label="getSelectGroupLabel"
       :tag-placeholder="getTagPlaceHolder"
       :taggable="taggable"
-      :loading="isLoading"
+      :loading="false"
       :searchable="true"
       @tag="handleAddTag"
       @input="input"
@@ -60,6 +63,7 @@
           :qpm-button-color-3="qpmButtonColor3"
           :language="language"
           @edit="handleEditTag"
+          @tag-click="handleTagClick"
         />
       </template>
 
@@ -119,6 +123,7 @@
           v-tooltip.right="customGroupTooltipById(props.option.$groupLabel)"
           class="bx bx-info-circle qpm_groupLabel"
           style="cursor: help; font-weight: 200; margin-left: 10px"
+          aria-label="Info"
         />
 
         <span
@@ -140,6 +145,7 @@
           }"
           class="bx bx-info-circle qpm_entryName"
           style="cursor: help; font-weight: 200; margin-left: -5px"
+          aria-label="Info"
         />
 
         <span v-if="props.option.isTag" class="qpm_entryManual"
@@ -203,9 +209,17 @@
       </template>
 
       <span slot="noResult">
-        {{ getNoResultString }}
+        {{ shouldHideDropdownArrow ? '' : getNoResultString }}
       </span>
     </multiselect>
+    
+    <!-- Custom LoadingSpinner to replace vue-multiselect's spinner -->
+    <loading-spinner 
+      v-if="isLoading" 
+      :loading="isLoading" 
+      class="qpm_multiselect_custom_spinner"
+      :size="30"
+    />
   </div>
 </template>
 
@@ -219,12 +233,14 @@
   import { searchTranslationPrompt } from "@/assets/content/qpm-open-ai-translation-prompts.js";
   import { getPromptForLocale } from "@/utils/qpm-open-ai-prompts-helpers.js";
   import { customInputTagTooltip } from "@/utils/qpm-content-helpers.js";
+  import LoadingSpinner from "@/components/LoadingSpinner.vue";
 
   export default {
     name: "DropdownWrapper",
     components: {
       Multiselect,
       DropdownTag,
+      LoadingSpinner,
     },
     mixins: [appSettingsMixin, topicLoaderMixin],
     props: {
@@ -296,9 +312,17 @@
         isLoading: false,
         isMouseUsed: false, // Flag to track interaction method
         isUserTyping: false,
+        inputWidthObserver: null,
+        isSilentFocus: false, // Track if focus is "silent" (no visual styling)
+        _isEmptyDropdown: false, // Track if this is an empty dropdown with custom input handling
+        isDropdownOpen: false, // Track dropdown state for aria-expanded
       };
     },
     computed: {
+      dropdownListId: function () {
+        // Generate a unique ID for the listbox based on the component's index or use fallback
+        return `listbox-${this.index || 'default'}`;
+      },
       getStateCopy: {
         get: function () {
           if (!this.selected) {
@@ -323,7 +347,7 @@
         }
 
         const shouldHideItem = (item) => {
-          // Check direkte ID match
+          // Check direct ID match
           if (this.hideTopics.includes(item.id)) {
             return true;
           }
@@ -339,7 +363,7 @@
         };
 
         return this.data.map(section => {
-          // Hvis section selv skal skjules, spring den over
+          // If section itself should be hidden, skip it
           if (shouldHideItem(section)) {
             return null;
           }
@@ -362,7 +386,7 @@
           
           return sectionCopy;
         })
-        .filter(section => section !== null) // Fjern skjulte sections
+        .filter(section => section !== null) // Remove hidden sections
         .filter(section => {
           if (section.choices) {
             return section.choices.length > 0;
@@ -378,23 +402,26 @@
         let lang = this.language;
 
         function sortByPriorityOrName(a, b) {
+          // Safety check for undefined/null items
+          if (!a || !b) return 0;
+          
           let aSort, bSort;
 
-          if (a.ordering[lang] != null && b.ordering[lang] == null) {
+          if (a.ordering && a.ordering[lang] != null && (!b.ordering || b.ordering[lang] == null)) {
             return -1; // a is ordered and b is not -> a first
           }
-          if (b.ordering[lang] != null && a.ordering[lang] == null) {
+          if (b.ordering && b.ordering[lang] != null && (!a.ordering || a.ordering[lang] == null)) {
             return 1; // b is ordered and a is not -> b first
           }
 
-          if (a.ordering[lang] != null) {
+          if (a.ordering && a.ordering[lang] != null) {
             // We know both are non null due to earlier check
             aSort = a.ordering[lang];
             bSort = b.ordering[lang];
           } else {
             // Begge er uordnede
-            aSort = self.customGroupLabel(a).toLowerCase();
-            bSort = self.customGroupLabel(b).toLowerCase();
+            aSort = self.customGroupLabel(a)?.toLowerCase() || '';
+            bSort = self.customGroupLabel(b)?.toLowerCase() || '';
           }
 
           if (aSort === bSort) {
@@ -408,8 +435,13 @@
         }
 
         let data = JSON.parse(JSON.stringify(this.shownSubjects));
+        
+        // Filter out null/undefined items
+        data = data.filter(item => item != null);
 
         for (let i = 0; i < data.length; i++) {
+          if (!data[i]) continue;
+          
           let groupName = null;
           if (data[i]["groups"] != null) {
             groupName = "groups";
@@ -419,6 +451,8 @@
             continue;
           }
 
+          // Filter out null/undefined items before sorting
+          data[i][groupName] = data[i][groupName].filter(item => item != null);
           data[i][groupName].sort(sortByPriorityOrName); // Sort categories in groups
         }
 
@@ -444,6 +478,32 @@
       getShouldCloseOnInput: function () {
         return this.closeOnInput && this.focusByHover;
       },
+      shouldHideDropdownArrow: function () {
+        // Only hide the arrow for subject dropdowns (which use isGroup=true)
+        if (!this.isGroup) {
+          console.log('shouldHideDropdownArrow: false (not isGroup)');
+          return false;
+        }
+        
+        // Debug information
+        console.log('shouldHideDropdownArrow debug:', {
+          dataExists: !!this.data,
+          dataLength: this.data ? this.data.length : 0,
+          data: this.data,
+          shownSubjects: this.shownSubjects,
+          hideTopics: this.hideTopics
+        });
+        
+        // Hide the arrow only if there are no original data (not based on hideTopics filtering)
+        // A dropdown with hidden topics is still a dropdown with topics
+        const result = !this.data || this.data.length === 0 || 
+               this.data.every(section => 
+                 !section.groups || section.groups.length === 0
+               );
+        
+        console.log('shouldHideDropdownArrow result:', result);
+        return result;
+      },
     },
     watch: {
       selected: {
@@ -458,10 +518,56 @@
         immediate: true,
         handler(newVal) {
           this.$nextTick(() => {
-            // Opdater kun data uden at kalde refresh
+            // Update data without calling refresh
             this.updateSortedSubjectOptions();
           });
         }
+      },
+      placeholder: {
+        immediate: true,
+        handler(newVal) {
+          this.$nextTick(() => {
+            const input = this.$el?.getElementsByClassName("multiselect__input")[0];
+            if (input) {
+              this.setWidthToPlaceholderWidth(input);
+            }
+          });
+        }
+      },
+      isSilentFocus: {
+        handler(newVal) {
+          if (newVal && this.$refs.multiselect && this.$refs.multiselect.isOpen && !this.isUserTyping) {
+            // Force close dropdown when silent focus is activated (but not when user is typing)
+            this.$refs.multiselect.deactivate();
+          }
+        }
+      },
+      // Watch for changes in dropdown data/topics
+      shouldHideDropdownArrow: {
+        handler(newVal, oldVal) {
+          if (newVal !== oldVal) {
+            console.log('shouldHideDropdownArrow changed:', oldVal, '->', newVal);
+            this.$nextTick(() => {
+              const input = this.$el?.querySelector('.multiselect__input');
+              if (input) {
+                if (newVal && !this._isEmptyDropdown && this.index !== 0) {
+                  // Dropdown became empty - activate empty dropdown mode (but not for first dropdown)
+                  console.log('Dropdown became empty - enabling empty dropdown mode (index:', this.index, ')');
+                  this.disableMultiselectInput(input);
+                } else if (!newVal && this._isEmptyDropdown) {
+                  // Dropdown got topics - disabling empty dropdown mode
+                  console.log('Dropdown got topics - disabling empty dropdown mode (index:', this.index, ')');
+                  this.restoreMultiselectInput(input);
+                } else if (this.index === 0 && this._isEmptyDropdown) {
+                  // First dropdown should always be in normal mode
+                  console.log('Ensuring first dropdown (index 0) stays in normal mode');
+                  this.restoreMultiselectInput(input);
+                }
+              }
+            });
+          }
+        },
+        immediate: false,
       },
     },
     mounted: function () {
@@ -488,10 +594,61 @@
       if (input) {
         input.addEventListener('focus', this.addKeyboardFocus);
         input.addEventListener('blur', this.removeKeyboardFocus);
+        input.addEventListener('focus', this.handleFocus);
+        input.addEventListener('blur', this.handleBlur);
+        input.addEventListener('click', this.handleClick, { capture: true });
+        input.addEventListener('keydown', this.handleKeyDown.bind(this));
+        
+        // For empty dropdown (no topics), completely disable multiselect's input handling
+        // But only if it's not already set up as empty dropdown
+        // EXCEPTION: The first dropdown (index 0) should always function normally
+        if (this.shouldHideDropdownArrow && !this._isEmptyDropdown && this.index !== 0) {
+          console.log('Setting up empty dropdown mode for dropdown with no topics (index:', this.index, ')');
+          this.disableMultiselectInput(input);
+        }
+        // If dropdown HAS topics but is incorrectly set as empty dropdown, restore normal functionality
+        else if (!this.shouldHideDropdownArrow && this._isEmptyDropdown) {
+          console.log('Restoring normal dropdown mode for dropdown with topics (index:', this.index, ')');
+          this.restoreMultiselectInput(input);
+        }
+        // If this is the first dropdown, ensure it's always in normal mode
+        else if (this.index === 0 && this._isEmptyDropdown) {
+          console.log('Ensuring first dropdown (index 0) is in normal mode');
+          this.restoreMultiselectInput(input);
+        }
+        // For dropdowns WITH topics - let multiselect handle everything normally (no custom handlers)
+        
+        // Set initial width based on placeholder
+        this.setWidthToPlaceholderWidth(input);
+        
+        // Watch for changes in input field's style to prevent unwanted width changes
+        this.setupInputWidthObserver(input);
       }
+      
+      // Watch for multiselect opening and prevent it during silent focus (unless user is typing)
+      this.$watch(() => this.$refs.multiselect?.isOpen, (isOpen) => {
+        if (isOpen && this.isSilentFocus && !this.isUserTyping) {
+          this.$nextTick(() => {
+            this.$refs.multiselect.deactivate();
+          });
+        }
+      });
+
+      // Fix aria-controls to match actual listbox ID
+      this.$nextTick(() => {
+        this.fixAriaControls();
+        this.updateAriaExpanded();
+      });
     },
     updated: function () {
       this.initialSetup();
+      // Update width when component updates
+      this.$nextTick(() => {
+        const input = this.$el?.getElementsByClassName("multiselect__input")[0];
+        if (input) {
+          this.setWidthToPlaceholderWidth(input);
+        }
+      });
     },
     beforeDestroy() {
       this.isUserTyping = false;
@@ -502,20 +659,64 @@
       if (input) {
         input.removeEventListener('focus', this.addKeyboardFocus);
         input.removeEventListener('blur', this.removeKeyboardFocus);
+        input.removeEventListener('focus', this.handleFocus);
+        input.removeEventListener('blur', this.handleBlur);
+        input.removeEventListener('click', this.handleClick);
+        input.removeEventListener('keydown', this.handleKeyDown);
+        
+        // Cleanup for empty dropdowns
+        if (this._isEmptyDropdown && input.getAttribute('data-multiselect-disabled') === 'true') {
+          this.restoreMultiselectInput(input);
+        }
+      }
+      
+      // Ryd op observer
+      if (this.inputWidthObserver) {
+        this.inputWidthObserver.disconnect();
+        this.inputWidthObserver = null;
       }
     },
     methods: {
       onSelectedChange(newValue, oldValue) {
+        console.log('onSelectedChange called', {
+          oldLength: oldValue.length,
+          newLength: newValue.length,
+          focusedButtonIndex: this.focusedButtonIndex,
+          focusByHover: this.focusByHover
+        });
+        
+        // Store focus state before changes
+        var focusedButtonIndex = this.focusedButtonIndex;
+        var focusByHover = this.focusByHover;
+        var pointer = this.$refs.multiselect ? this.$refs.multiselect.pointer : -1;
+        
         if (oldValue.length > newValue.length) {
           // Find the tag that was removed
           const removedTag = oldValue.find((tag) => !newValue.includes(tag));
           if (removedTag) {
+            console.log('Tag removed:', removedTag.name);
             removedTag.scope = "normal";
             this.$emit("updateScope", removedTag, "normal");
           }
         }
         this.updateExpandedGroupHighlighting();
         this.showOrHideElements();
+        
+        // Clear tempList to allow future interactions with scope buttons
+        this.tempList = [];
+        
+        // Restore focus state after changes
+        this.focusedButtonIndex = focusedButtonIndex;
+        this.focusByHover = focusByHover;
+        if (this.$refs.multiselect && pointer >= 0) {
+          this.$refs.multiselect.pointer = pointer;
+        }
+        
+        console.log('onSelectedChange finished', {
+          restoredFocusedButtonIndex: this.focusedButtonIndex,
+          restoredFocusByHover: this.focusByHover,
+          tempListCleared: true
+        });
       },
       /**
        * Sets the flag indicating the last interaction was via mouse.
@@ -540,6 +741,11 @@
         const input = this.$el.querySelector('.multiselect__input');
         if (input) {
           input.classList.remove('qpm_keyboard-focus');
+          // Når input mister fokus, sæt bredden tilbage til placeholder-bredde hvis der ikke er tekst
+          if (!input.value || input.value.length === 0) {
+            this.setWidthToPlaceholderWidth(input);
+            this.isUserTyping = false;
+          }
         }
       },
       initialSetup() {
@@ -556,7 +762,11 @@
 
         // Set placeholder to correct length
         const input = element.getElementsByClassName("multiselect__input")[0];
-        input.addEventListener("input", this.handleInputEvent.bind(this));
+        if (input) {
+          // Disse event listeners er nødvendige for al normal multiselect funktionalitet
+          input.addEventListener("input", this.handleInputEvent.bind(this));
+          input.addEventListener("keydown", this.handleKeyDown.bind(this));
+        }
 
         // Hide last operator
         const operators = element.getElementsByClassName("qpm_operator");
@@ -586,17 +796,23 @@
         element.removeEventListener("keypress", self.handleStopEnterOnGroups, true);
         element.addEventListener("keypress", self.handleStopEnterOnGroups, true);
 
-        input.removeEventListener("keyup", this.handleSearchInput);
-        input.addEventListener("keyup", this.handleSearchInput);
-        if (!input.value) {
-          // Hide what needs to be hidden only if groups and only if we are not currently doing a search
-          this.showOrHideElements();
+        if (input) {
+          input.removeEventListener("keyup", this.handleSearchInput);
+          input.addEventListener("keyup", this.handleSearchInput);
+          if (!input.value) {
+            // Hide what needs to be hidden only if groups and only if we are not currently doing a search
+            this.showOrHideElements();
+          }
         }
 
         const labels = element.getElementsByClassName("multiselect__tag");
         Array.from(labels).forEach((label) => {
           label.removeEventListener("click", self.handleTagClick);
           label.addEventListener("click", self.handleTagClick);
+          
+          // Tilføj keyboard event listener
+          label.removeEventListener("keydown", self.handleTagKeyDown);
+          label.addEventListener("keydown", self.handleTagKeyDown);
         });
       },
       clearShownItems() {
@@ -614,9 +830,9 @@
           this.$emit("input", value, this.index);
           return;
         }
-        // Klone det sidste element for at undgå at ændre det direkte i datakilden
+        // Clone the last element to avoid modifying it directly in the data source
         let elem = { ...value[value.length - 1] };
-        let lg = this.language; // Bruger this.language til at få den aktuelle sprogkode
+        let lg = this.language; // Use this.language to get the current language code
 
         if (elem.maintopic) {
           //toggle the maintopic
@@ -627,15 +843,15 @@
           value.pop();
         }
 
-        // Tjek kun for '-' i det aktuelle sprog
+        // Only check for '-' in the current language
         if (!elem.isCustom && elem.translations[lg] && elem.translations[lg].startsWith("-")) {
-          // Ændre kun translations for det aktuelle sprog
+          // Only modify translations for the current language
           let updatedTranslations = { ...elem.translations };
           updatedTranslations[lg] = elem.translations[lg].slice(1);
 
-          // Opdater elem med de nye translations, så ændringen kun påvirker det valgte sprog
+          // Update elem with the new translations, so the change only affects the selected language
           elem.translations = updatedTranslations;
-          // Erstat det oprindelige element med den ændrede klon i værdi-arrayet
+          // Replace the original element with the modified clone in the value array
           value[value.length - 1] = elem;
         }
         this.$emit("input", value, this.index);
@@ -648,14 +864,37 @@
         }
       },
       close() {
-        if (this.tempList.length > 0) return; //Check if any items have been clicked
+        if (this.tempList.length > 0) return; // Check if any items have been clicked
 
         let input = this.$el.getElementsByClassName("multiselect__input")[0];
 
         this.setWidthToPlaceholderWidth(input);
+        
+        // Update dropdown state for aria-expanded
+        this.isDropdownOpen = false;
+        
+        // Update aria-expanded directly on DOM
+        this.$nextTick(() => {
+          this.updateAriaExpanded();
+        });
       },
       open() {
-        this.$refs.multiselect.pointer = -1; // Remove highlight of non hovered items
+        // If this is an empty dropdown, don't allow opening
+        if (this._isEmptyDropdown) {
+          // Do nothing, handled by custom event handlers
+          return;
+        }
+        
+        // For dropdowns with topics, reset pointer to ensure highlight logic works
+        this.$refs.multiselect.pointer = -1;
+        
+        // Update dropdown state for aria-expanded
+        this.isDropdownOpen = true;
+        
+        // Update aria-expanded directly on DOM
+        this.$nextTick(() => {
+          this.updateAriaExpanded();
+        });
       },
       /**
        * Added for sanity, since we hide elements by adding qpm_shown
@@ -705,11 +944,13 @@
             const parentId = entry.getAttribute("parent-id");
             const grandParentId = entry.getAttribute("grand-parent-id");
 
+            // Element should be hidden if its parent or grandparent is collapsed
+            // Treat undefined as false (collapsed) since maintopics start collapsed until clicked
             const shouldShow =
-              (parentId && !this.maintopicToggledMap[parentId]) ||
-              (grandParentId && !this.maintopicToggledMap[grandParentId]);
+              (!parentId || this.maintopicToggledMap[parentId]) &&
+              (!grandParentId || this.maintopicToggledMap[grandParentId]);
 
-            parent.classList.toggle("qpm_shown", shouldShow);
+            parent.classList.toggle("qpm_shown", !shouldShow);
           });
           return;
         }
@@ -795,7 +1036,7 @@
        */
       showElementsByDepths(depths, optionsInGroupIds) {
         depths.forEach((depth) => {
-          const depthElements = document.querySelectorAll(`span[option-depth="${depth}"]`);
+          const depthElements = document.querySelectorAll(`span[option-id="${depth}"]`);
           depthElements.forEach((element) => {
             const optionId = element.getAttribute("option-id");
             if (optionsInGroupIds.has(optionId)) {
@@ -996,20 +1237,24 @@
         if (filter) {
           const _filtrer = filtrer.find((filter) => filter.id === optionGroupId);
 
+          if (_filtrer && _filtrer.choices) {
           _filtrer.choices.forEach((group) => {
             if (group.maintopic) {
               maintopics.push(group);
             }
           });
+          }
           return maintopics;
         }
         const _topics = this.topics.find((topic) => topic.id === optionGroupId);
 
+        if (_topics && _topics.groups) {
         _topics.groups.forEach((group) => {
           if (group.maintopic) {
             maintopics.push(group);
           }
         });
+        }
 
         return maintopics;
       },
@@ -1074,6 +1319,10 @@
             this.resetMaintopicToggledMap();
           } else {
             this.expandedOptionGroupName = optionGroupName;
+            
+            // Reset maintopicToggledMap when switching to a new category
+            // This prevents navigation issues caused by state from previous categories
+            this.resetMaintopicToggledMap();
 
             const optionGroupId = this.getOptionGroupId(optionGroupName);
             const selectedOptions = this.getSelectedOptionsByOptionGroupId(optionGroupId);
@@ -1155,9 +1404,42 @@
        * @param {Event} event - The input event object.
        */
       handleInputEvent(event) {
-        const newWidth = `${event.target.value.length + 1}ch`;
-        event.target.style.setProperty("width", newWidth, "important");
-        this.isUserTyping = true;
+        // Update typing state regardless of dropdown state
+        this.isUserTyping = event.target.value.length > 0;
+
+        // Silent focus should already be handled by handleKeyDown, but keep as fallback
+        if (this.isSilentFocus && this.isUserTyping) {
+          console.log('handleInputEvent: Silent focus still active, removing as fallback');
+          this.removeSilentFocus(event.target);
+        }
+
+        // If dropdown arrow is hidden (no topics), use 100% width but still allow text input
+        if (this.shouldHideDropdownArrow) {
+          // Don't change width - let CSS handle 100%, but ensure text is visible
+          if (event.target.value.length > 0) {
+            // For hidden dropdown arrow, ensure the input field stays at 100% width
+            event.target.style.setProperty('width', '100%', 'important');
+          }
+          
+          // Ensure multiselect's internal search value is updated
+          if (this.$refs.multiselect) {
+            this.$refs.multiselect.search = event.target.value;
+          }
+          
+          // Emit search change event to parent component
+          this.$emit("searchchange", event.target.value, this.index);
+          
+          // Don't do further width calculations, but allow input to work normally
+          return;
+        }
+
+        if (event.target.value.length > 0) {
+          // Når der er tekst, beregn præcis bredde baseret på faktisk tekst
+          this.setWidthToTextWidth(event.target, event.target.value);
+        } else {
+          // Når der ikke er tekst, brug placeholder-baseret bredde
+          this.setWidthToPlaceholderWidth(event.target);
+        }
       },
       handleStopEnterOnGroups(event) {
         if (this.$refs.multiselect.pointer < 0) {
@@ -1203,7 +1485,28 @@
               if (!button) return;
 
               event.stopPropagation();
+              
+              // Store current focus state before clicking
+              var currentFocusedButtonIndex = this.focusedButtonIndex;
+              var currentPointer = dropdownRef.pointer;
+              var currentFocusByHover = this.focusByHover;
+              
               button.click();
+              
+              // Immediately restore focus state to prevent it from being lost
+              this.focusedButtonIndex = currentFocusedButtonIndex;
+              this.focusByHover = currentFocusByHover;
+              dropdownRef.pointer = currentPointer;
+              
+              // Also restore after DOM updates
+              this.$nextTick(() => {
+                this.focusedButtonIndex = currentFocusedButtonIndex;
+                this.focusByHover = currentFocusByHover;
+                if (dropdownRef.filteredOptions && dropdownRef.filteredOptions[currentPointer]) {
+                  dropdownRef.pointer = currentPointer;
+                }
+              });
+              
               return;
             }
           }
@@ -1222,27 +1525,50 @@
         }
         this.setMouseUsed();
         event.stopPropagation();
-        this.$refs.multiselect.$refs.search.focus();
+        
+        // Sikkerhedstjek for at search ref eksisterer
+        if (this.$refs.multiselect && this.$refs.multiselect.$refs.search) {
+          this.$refs.multiselect.$refs.search.focus();
+        }
       },
       handleScopeButtonClick(item, state, event) {
+        console.log('handleScopeButtonClick called', {
+          itemName: item.name,
+          state: state,
+          currentScope: item.scope,
+          focusedButtonIndex: this.focusedButtonIndex,
+          focusByHover: this.focusByHover,
+          selectedLength: this.selected.length
+        });
+
         this.$emit("updateScope", item, state, this.index);
         item.scope = state;
 
-        //close
+        // Only close dropdown on actual mouse clicks, not on programmatic clicks from Enter key
+        // Use multiple checks to ensure this is a real mouse click:
+        // 1. event.isTrusted - true for real user events, false for programmatic events
+        // 2. this.isMouseUsed - tracks if last interaction was via mouse
+        // 3. event.detail > 0 - mouse clicks have detail > 0, programmatic clicks have detail = 0
+        if (event.isTrusted && this.isMouseUsed && event.detail > 0) {
         this.$refs.multiselect.deactivate();
+        }
 
         //Check if just added
         if (this.tempList.indexOf(item) >= 0) {
+          console.log('Item was just added to tempList');
           event.stopPropagation();
           return;
         }
         //Check if added previously
         for (let i = 0; i < this.selected.length; i++) {
           if (this.selected[i].name == item.name) {
+            console.log('Item was already in selected list');
             event.stopPropagation();
             return;
           }
         }
+        
+        console.log('Item not found in selected or tempList - will be added');
       },
       handleOnButtonMouseover(index, event) {
         // Prevent mouse from focusing new subject. Used for auto scroll.
@@ -1275,8 +1601,8 @@
             isTranslated: true,
             preTranslation: newTag,
             tooltip: {
-              dk: customInputTagTooltip.dk + " - denne søgning er oversat fra: " + newTag,
-              en: customInputTagTooltip.en + " - this search is translated from: " + newTag,
+              dk: customInputTagTooltip.dk + " &ndash; denne søgning er oversat fra: <strong>" + newTag + "</strong>",
+              en: customInputTagTooltip.en + " &ndash; this search is translated from: <strong>" + newTag + "</strong>",
             },
           };
           this.$emit("translating", false, this.index);
@@ -1475,6 +1801,51 @@
         }
 
         var currentSubject = dropdownRef.filteredOptions[dropdownRef.pointer];
+        
+        // Check if we're navigating up from a collapsed maintopic's children (works for both topics and filters)
+        const itemAbove = dropdownRef.filteredOptions[dropdownRef.pointer - 1];
+        if (itemAbove && !itemAbove["$groupLabel"] && itemAbove.maintopic) {
+          var currentSubjectOptionGroupId = itemAbove.id.substring(0, 3);
+          const isFilter = currentSubjectOptionGroupId.startsWith("L");
+          const isMaintopicToggled = this.maintopicToggledMap[itemAbove.id];
+
+          // If the maintopic above is not expanded, we need to jump over all its hidden children
+          if (!isMaintopicToggled) {
+            var maintopicChildren = this.getMaintopicChildren(itemAbove.id, isFilter);
+            dropdownRef.pointer -= maintopicChildren.length + 1;
+            this.scrollToFocusedSubject();
+            return;
+          }
+        }
+
+        // Check if the item above belongs to a collapsed parent (for 2nd/3rd level navigation)
+        if (itemAbove && !itemAbove["$groupLabel"]) {
+          const parentId = itemAbove.maintopicIdLevel1;
+          const grandparentId = itemAbove.maintopicIdLevel2;
+          
+          // Check grandparent first (highest level)
+          // Treat undefined as false (collapsed) since maintopics start collapsed until clicked
+          if (grandparentId && !this.maintopicToggledMap[grandparentId]) {
+            const grandparentIndex = dropdownRef.filteredOptions.findIndex((opt) => opt.id === grandparentId);
+            if (grandparentIndex !== -1) {
+              dropdownRef.pointer = grandparentIndex;
+              this.scrollToFocusedSubject();
+              return;
+            }
+          }
+          
+          // Then check parent
+          // Treat undefined as false (collapsed) since maintopics start collapsed until clicked
+          if (parentId && !this.maintopicToggledMap[parentId]) {
+            const parentIndex = dropdownRef.filteredOptions.findIndex((opt) => opt.id === parentId);
+            if (parentIndex !== -1) {
+              dropdownRef.pointer = parentIndex;
+              this.scrollToFocusedSubject();
+              return;
+            }
+          }
+        }
+
         var isGroup = currentSubject["$groupLabel"] != null;
         var navDistance = 1;
 
@@ -1496,6 +1867,45 @@
           if (allToggled === true) {
             dropdownRef.pointer = dropdownRef.pointer - navDistance;
             return;
+          }
+
+          const itemAbove = dropdownRef.filteredOptions[dropdownRef.pointer - 1];
+          if (itemAbove) {
+            const parentId = itemAbove.maintopicIdLevel1;
+            const grandparentId = itemAbove.maintopicIdLevel2;
+
+            // Check if the grandparent is collapsed. If so, jump to it.
+            // Treat undefined as false (collapsed) since maintopics start collapsed until clicked
+            if (grandparentId && !this.maintopicToggledMap[grandparentId]) {
+              const parentIndex = dropdownRef.filteredOptions.findIndex(
+                (opt) => opt.id === grandparentId
+              );
+              if (parentIndex !== -1) {
+                dropdownRef.pointer = parentIndex;
+                this.scrollToFocusedSubject();
+                return; // We're done
+              }
+            }
+
+            // If grandparent is NOT collapsed, check if the parent is collapsed.
+            // Treat undefined as false (collapsed) since maintopics start collapsed until clicked
+            if (parentId && !this.maintopicToggledMap[parentId]) {
+              const parentIndex = dropdownRef.filteredOptions.findIndex((opt) => opt.id === parentId);
+              if (parentIndex !== -1) {
+                dropdownRef.pointer = parentIndex;
+                this.scrollToFocusedSubject();
+                return; // We're done
+              }
+            }
+
+            // Check if the item above is a collapsed maintopic
+            // Treat undefined as false (collapsed) since maintopics start collapsed until clicked
+            if (itemAbove.maintopic && !this.maintopicToggledMap[itemAbove.id]) {
+              var maintopicChildren = this.getMaintopicChildren(itemAbove.id, isFilter);
+              dropdownRef.pointer -= maintopicChildren.length + 1;
+              this.scrollToFocusedSubject();
+              return;
+            }
           }
 
           // Case: base topic
@@ -1582,13 +1992,15 @@
                   return;
                 }
 
-                // Check if next sibling is a maintopic
-                if (nextSibling.maintopic) {
-                  dropdownRef.pointer = dropdownRef.pointer - 3;
-                }
-
-                // Case: Not basetopic and next sibling is not a maintopic
+                // Check if the previous sibling is a toggled maintopic
+                const isToggled = this.maintopicToggledMap[nextSibling.id];
+                if (nextSibling.maintopic && isToggled) {
+                  const children = this.getMaintopicChildren(nextSibling.id, isFilter);
+                  dropdownRef.pointer = dropdownRef.pointer - children.length - 1;
+                } else {
+                  // Previous sibling is not a toggled maintopic, just move up one step
                 dropdownRef.pointer = dropdownRef.pointer - 1;
+                }
                 return;
               }
             }
@@ -1883,9 +2295,24 @@
         return null;
       },
       setWidthToPlaceholderWidth(input) {
+        if (!input || !input.getAttribute) return;
+        
+        const placeholder = input.getAttribute("placeholder");
+        if (!placeholder) return;
+
+        // If dropdown arrow is hidden (no topics), always use 100% width
+        if (this.shouldHideDropdownArrow) {
+          // Remove any inline width style to let CSS handle 100% width
+          input.style.removeProperty('width');
+          return;
+        }
+
         // Create a temporary span element and set its text to the placeholder text
         let tempSpan = document.createElement("span");
-        tempSpan.innerHTML = input.getAttribute("placeholder");
+        tempSpan.textContent = placeholder; // Use textContent instead of innerHTML for safety
+        tempSpan.style.visibility = "hidden"; // Make it invisible but still take up space
+        tempSpan.style.position = "absolute"; // Remove from document flow
+        tempSpan.style.top = "-9999px"; // Move off-screen
 
         // Apply the same styles to the span as the input
         let inputStyle = window.getComputedStyle(input);
@@ -1895,16 +2322,74 @@
         tempSpan.style.letterSpacing = inputStyle.letterSpacing;
         tempSpan.style.whiteSpace = "nowrap"; // Ensure text stays on one line
 
-        // Add the span to the body (it won't be visible)
+        // Add the span to the body
         document.body.appendChild(tempSpan);
 
-        // Get the width of the area
-        let placeholderWidth = tempSpan.getBoundingClientRect().width + 27;
+        // Get the width of the text and add space for borders and padding (20px for left+right padding, 5px for buffer)
+        let placeholderWidth = tempSpan.getBoundingClientRect().width + 25;
 
         // Remove the span from the body
         document.body.removeChild(tempSpan);
 
-        input.style.width = placeholderWidth + "px";
+        // Set the width with !important to override any CSS rules
+        input.style.setProperty('width', placeholderWidth + 'px', 'important');
+      },
+      /**
+       * Sets the input width based on the actual text content
+       */
+      setWidthToTextWidth(input, text) {
+        if (!input || !text) return;
+
+        // Create a temporary span to measure text width
+        let tempSpan = document.createElement("span");
+        tempSpan.textContent = text;
+        tempSpan.style.visibility = "hidden";
+        tempSpan.style.position = "absolute";
+        tempSpan.style.top = "-9999px";
+
+        // Apply the same styles to the span as the input
+        let inputStyle = window.getComputedStyle(input);
+        tempSpan.style.fontFamily = inputStyle.fontFamily;
+        tempSpan.style.fontSize = inputStyle.fontSize;
+        tempSpan.style.fontWeight = inputStyle.fontWeight;
+        tempSpan.style.letterSpacing = inputStyle.letterSpacing;
+        tempSpan.style.whiteSpace = "nowrap";
+
+        // Add the span to the body
+        document.body.appendChild(tempSpan);
+
+        // Get the width of the text and add space for padding (20px) + borders (2px)
+        let textWidth = tempSpan.getBoundingClientRect().width + 27;
+
+        // Remove the span from the body
+        document.body.removeChild(tempSpan);
+
+        // Set minimum width to prevent text from being cut off
+        let minWidth = Math.max(textWidth, 60); // Minimum 60px width
+
+        // Set the width with !important to override any CSS rules
+        input.style.setProperty('width', minWidth + 'px', 'important');
+      },
+      setupInputWidthObserver(input) {
+        // Opret en MutationObserver til at overvåge ændringer i input-feltets style
+        this.inputWidthObserver = new MutationObserver((mutations) => {
+          mutations.forEach((mutation) => {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+              // Hvis input-feltet er tomt og ikke under indtastning, gendan placeholder-bredden
+              if ((!input.value || input.value.length === 0) && !this.isUserTyping) {
+                this.$nextTick(() => {
+                  this.setWidthToPlaceholderWidth(input);
+                });
+              }
+            }
+          });
+        });
+
+        // Start observering af input-elementet
+        this.inputWidthObserver.observe(input, {
+          attributes: true,
+          attributeFilter: ['style']
+        });
       },
       customNameLabel(option) {
         if (!option.name && !option.groupname) return;
@@ -1948,6 +2433,307 @@
        */
       cleanLabel(label) {
         return label.startsWith("⤷") ? label.slice(1).trim() : label.trim();
+      },
+      /**
+       * Sets silent focus on input - cursor is placed but no focus styling is shown
+       */
+      setSilentFocus(input) {
+        if (!input) return;
+        
+        this.isSilentFocus = true;
+        
+        // Apply silent styling before focusing to prevent flash
+        input.classList.add('qpm_silent-focus');
+        input.style.outline = 'none !important';
+        input.style.border = '1px solid lightgrey !important';
+        input.style.boxShadow = 'none !important';
+        
+        // Temporarily disable multiselect activation to prevent dropdown opening
+        const originalActivate = this.$refs.multiselect.activate;
+        this.$refs.multiselect.activate = () => {};
+        
+        // Focus the input
+        input.setAttribute('tabindex', '0');
+        input.focus({ preventScroll: true });
+        
+        // Restore multiselect activation after a short delay
+        setTimeout(() => {
+          this.$refs.multiselect.activate = originalActivate;
+        }, 100);
+        
+        // Ensure dropdown is closed
+        if (this.$refs.multiselect && this.$refs.multiselect.isOpen) {
+          this.$refs.multiselect.deactivate();
+        }
+      },
+      /**
+       * Removes silent focus and allows normal focus behavior
+       */
+      removeSilentFocus(input) {
+        if (!input) return;
+        
+        this.isSilentFocus = false;
+        input.classList.remove('qpm_silent-focus');
+        
+        // Remove inline styles to allow normal CSS to take over
+        input.style.removeProperty('outline');
+        input.style.removeProperty('border');
+        input.style.removeProperty('box-shadow');
+      },
+      /**
+       * Handles focus events - distinguishes between programmatic and user-initiated focus
+       */
+      handleFocus(event) {
+        const input = event.target;
+        
+        // If this is a silent focus, don't show focus styling or open dropdown
+        if (this.isSilentFocus) {
+          // Prevent multiselect from opening dropdown during silent focus
+          setTimeout(() => {
+            if (this.$refs.multiselect && this.$refs.multiselect.isOpen) {
+              this.$refs.multiselect.deactivate();
+            }
+          }, 0);
+          return;
+        }
+        
+        // Normal focus behavior - silent focus should already be removed by handleClick if user clicked
+        // Only remove silent focus here if it's keyboard navigation (not handled by click)
+        if (this.isSilentFocus && !this.isMouseUsed) {
+          this.removeSilentFocus(input);
+        }
+      },
+      /**
+       * Handles blur events
+       */
+      handleBlur(event) {
+        const input = event.target;
+        
+        // Always remove silent focus on blur
+        this.removeSilentFocus(input);
+        
+        // If input is empty, restore placeholder width
+        if (!input.value || input.value.length === 0) {
+          this.$nextTick(() => {
+            this.setWidthToPlaceholderWidth(input);
+          });
+        }
+      },
+      /**
+       * Handles click events - removes silent focus to allow normal dropdown behavior
+       */
+      handleClick(event) {
+        const input = event.target;
+        
+        // If this is a silent focus, remove it immediately to allow dropdown opening
+        if (this.isSilentFocus) {
+          // Stop propagation to prevent any conflicts
+          event.stopPropagation();
+          this.removeSilentFocus(input);
+          
+          // Force dropdown to open after silent focus is removed
+          this.$nextTick(() => {
+            if (this.$refs.multiselect && !this.$refs.multiselect.isOpen) {
+              this.$refs.multiselect.activate();
+            }
+          });
+        }
+      },
+
+      /**
+       * Handles keydown events - removes silent focus before character is processed
+       */
+      handleKeyDown(event) {
+        // Only handle printable characters and common input keys
+        const isPrintableKey = event.key.length === 1 || 
+                               ['Backspace', 'Delete', 'Enter', 'Tab'].includes(event.key);
+        
+        if (this.isSilentFocus && isPrintableKey && event.key !== 'Tab') {
+          const input = event.target;
+          console.log('handleKeyDown: Removing silent focus before key processing:', event.key);
+          
+          // Remove silent focus immediately before the character is processed
+          this.removeSilentFocus(input);
+          
+          // For printable characters, ensure dropdown opens (kun for dropdowns med topics)
+          if (event.key.length === 1 && !this.shouldHideDropdownArrow) {
+            this.$nextTick(() => {
+              if (this.$refs.multiselect && !this.$refs.multiselect.isOpen) {
+                this.$refs.multiselect.activate();
+              }
+            });
+          }
+        }
+      },
+      /**
+       * Public method to set silent focus from parent component
+       */
+      setSilentFocusFromParent() {
+        const input = this.$el?.querySelector('.multiselect__input');
+        if (input) {
+          this.setSilentFocus(input);
+        }
+      },
+      /**
+       * Deaktiverer multiselect's input-håndtering for tomme dropdowns
+       * og erstatter den med vores egen implementation
+       */
+      disableMultiselectInput(input) {
+        console.log('Disabling multiselect input handling for empty dropdown');
+        
+        // I stedet for at overskrive multiselect metoder, deaktiver bare input-feltet
+        // og tilføj vores egne event listeners med højere prioritet
+        
+        // Marker input-feltet som deaktiveret for multiselect
+        input.setAttribute('data-multiselect-disabled', 'true');
+        
+        // Tilføj vores egne event listeners med capture: true for højeste prioritet
+        input.addEventListener("input", this.handleEmptyDropdownInput.bind(this), { capture: true });
+        input.addEventListener("keydown", this.handleEmptyDropdownKeydown.bind(this), { capture: true });
+        input.addEventListener("focus", this.handleEmptyDropdownFocus.bind(this), { capture: true });
+        input.addEventListener("click", this.handleEmptyDropdownClick.bind(this), { capture: true });
+        
+        // Lad CSS håndtere styling - fjern alle inline styles
+        input.style.removeProperty('width');
+        input.style.removeProperty('display');
+        input.style.removeProperty('visibility');
+        input.style.removeProperty('opacity');
+        input.style.removeProperty('max-width');
+        input.style.removeProperty('min-width');
+        
+        // Deaktiver multiselect's dropdown funktionalitet for denne instans
+        this._isEmptyDropdown = true;
+      },
+      /**
+       * Håndterer input events for tomme dropdowns
+       */
+      handleEmptyDropdownInput(event) {
+        // Stop alle multiselect events
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        
+        const currentValue = event.target.value;
+        console.log('handleEmptyDropdownInput:', currentValue);
+        
+        // Fjern silent focus hvis aktiv
+        if (this.isSilentFocus) {
+          this.removeSilentFocus(event.target);
+        }
+        
+        // Opdater typing state
+        this.isUserTyping = currentValue.length > 0;
+        
+        // Opdater multiselect's interne search værdi (vigtigt for funktionalitet)
+        if (this.$refs.multiselect) {
+          this.$refs.multiselect.search = currentValue;
+        }
+        
+        // Emit til parent (samme som normal handleInputEvent)
+        this.$emit("searchchange", currentValue, this.index);
+        
+        // Lad CSS håndtere bredde - fjern inline styles
+        event.target.style.removeProperty('width');
+        event.target.style.removeProperty('max-width');
+        event.target.style.removeProperty('min-width');
+      },
+      /**
+       * Håndterer keydown events for tomme dropdowns
+       */
+      handleEmptyDropdownKeydown(event) {
+        console.log('handleEmptyDropdownKeydown:', event.key);
+        
+        // Håndter Enter key - trigger custom tag creation
+        if (event.key === 'Enter') {
+          event.stopPropagation();
+          event.preventDefault();
+          
+          const currentValue = event.target.value;
+          if (currentValue && currentValue.trim().length > 0) {
+            // Trigger custom tag creation (samme som normal multiselect)
+            this.handleAddTag(currentValue.trim());
+            // Ryd input-feltet
+            event.target.value = '';
+            if (this.$refs.multiselect) {
+              this.$refs.multiselect.search = '';
+            }
+            this.isUserTyping = false;
+          }
+          return;
+        }
+        
+        // Stop multiselect events for normale taster
+        if (event.key.length === 1 || ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
+          event.stopPropagation();
+        }
+        
+        // Fjern silent focus ved første tastetryk
+        if (this.isSilentFocus && event.key.length === 1) {
+          this.removeSilentFocus(event.target);
+        }
+      },
+      /**
+       * Håndterer focus events for tomme dropdowns
+       */
+      handleEmptyDropdownFocus(event) {
+        event.stopPropagation();
+        console.log('handleEmptyDropdownFocus: Preventing multiselect activation');
+      },
+      /**
+       * Håndterer click events for tomme dropdowns
+       */
+      handleEmptyDropdownClick(event) {
+        event.stopPropagation();
+        console.log('handleEmptyDropdownClick: Preventing multiselect activation');
+        
+        // Fjern silent focus hvis aktiv
+        if (this.isSilentFocus) {
+          this.removeSilentFocus(event.target);
+        }
+      },
+       /**
+        * Genopretter multiselect's originale funktionalitet
+        */
+       restoreMultiselectInput(input) {
+         console.log('Restoring multiselect input handling');
+         
+         // Fjern vores custom event listeners
+         input.removeEventListener("input", this.handleEmptyDropdownInput, { capture: true });
+         input.removeEventListener("keydown", this.handleEmptyDropdownKeydown, { capture: true });
+         input.removeEventListener("focus", this.handleEmptyDropdownFocus, { capture: true });
+         input.removeEventListener("click", this.handleEmptyDropdownClick, { capture: true });
+         
+         // Fjern marker
+         input.removeAttribute('data-multiselect-disabled');
+         this._isEmptyDropdown = false;
+       },
+       updateAriaExpanded() {
+        // Find the combobox element and update aria-expanded
+        const combobox = this.$el.querySelector('[role="combobox"]');
+        if (combobox) {
+          combobox.setAttribute('aria-expanded', this.isDropdownOpen ? 'true' : 'false');
+        }
+      },
+      fixAriaControls() {
+        // Find the actual listbox element
+        const listbox = this.$el.querySelector('ul[role="listbox"]');
+        if (listbox) {
+          // Get the actual ID from the listbox
+          const actualId = listbox.id;
+          
+          // Find the combobox element and update its aria-controls and aria-expanded
+          const combobox = this.$el.querySelector('[role="combobox"]');
+          if (combobox && actualId) {
+            combobox.setAttribute('aria-controls', actualId);
+            combobox.setAttribute('aria-expanded', this.isDropdownOpen ? 'true' : 'false');
+          }
+        }
+      },
+      // Ny method til keyboard handling
+      handleTagKeyDown(event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          this.handleTagClick(event);
+        }
       },
     },
   };

@@ -38,6 +38,7 @@
               }"
               class="bx bx-info-circle"
               style="cursor: help"
+              aria-label="Info"
             />
           </div>
           <div :key="`spacer-${option.id}`" class="qpm_simpleFiltersSpacer" />

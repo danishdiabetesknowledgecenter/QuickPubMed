@@ -15,6 +15,12 @@ export const topicLoaderMixin = {
   },
   methods: {
     loadTopicsData() {
+      // Skip loading and error messages if no domain is specified
+      if (!config.domain) {
+        this.topics = [];
+        return;
+      }
+      
       const loadedTopics = loadTopics(config.domain);
       if (loadedTopics.length > 0) {
         // Flatten the array if there are multiple modules

@@ -26,6 +26,12 @@
             :get-string="getString"
           />
 
+          <div 
+            v-show="isCollapsed" 
+            style="padding-bottom: 10px;"
+            >
+          </div>
+
           <div v-show="!isCollapsed" class="qpm_searchFormula">
             <!-- The dropdown for selecting subjects to be included in the search -->
             <subject-selection
@@ -221,7 +227,6 @@
         subjects: [[]],
         translating: false,
         dropdownPlaceholders: [],
-        hideTopics: [], // Initialize as empty array
       };
     },
     computed: {
@@ -230,6 +235,53 @@
           ...option,
           choices: option.choices.filter((choice) => choice.simpleSearch),
         }));
+      },
+      hasAvailableTopics() {
+        if (!this.subjectOptions || this.subjectOptions.length === 0) {
+          return false;
+        }
+        
+        // Simuler samme logik som DropdownWrapper's shownSubjects
+        const shouldHideItem = (item) => {
+          if (this.hideTopics.includes(item.id)) {
+            return true;
+          }
+          if (item.maintopicIdLevel1 && this.hideTopics.includes(item.maintopicIdLevel1)) {
+            return true;
+          }
+          if (item.maintopicIdLevel2 && this.hideTopics.includes(item.maintopicIdLevel2)) {
+            return true;
+          }
+          return false;
+        };
+
+        const availableTopics = this.subjectOptions
+          .map(section => {
+            if (shouldHideItem(section)) {
+              return null;
+            }
+
+            const sectionCopy = JSON.parse(JSON.stringify(section));
+            
+            if (sectionCopy.groups) {
+              sectionCopy.groups = sectionCopy.groups.filter(group => {
+                return !shouldHideItem(group);
+              });
+            }
+            
+            return sectionCopy;
+          })
+          .filter(section => section !== null)
+          .filter(section => {
+            if (section.groups) {
+              return section.groups.length > 0;
+            }
+            return true;
+          });
+
+        return availableTopics.length > 0 && availableTopics.some(section => 
+          section.groups && section.groups.length > 0
+        );
       },
       showTitle() {
         if (this.filters.length < this.filterOptions.length) {
@@ -246,6 +298,12 @@
 
         const buildSubstring = (items, connector = " OR ") => {
           return items
+            .filter((item) => 
+              item.searchStrings && 
+              item.scope && 
+              item.searchStrings[item.scope] && 
+              item.searchStrings[item.scope].length > 0
+            )
             .map((item) => {
               const { scope, searchStrings } = item;
               const combined = searchStrings[scope].join(connector);
@@ -260,6 +318,10 @@
         this.subjects.forEach((subjectGroup, index) => {
           const subjectsToIterate = subjectGroup.length;
           const hasOperators = subjectGroup.some((item) =>
+            item.searchStrings && 
+            item.scope && 
+            item.searchStrings[item.scope] && 
+            item.searchStrings[item.scope][0] &&
             hasLogicalOperators(item.searchStrings[item.scope][0])
           );
 
@@ -288,6 +350,10 @@
         Object.keys(this.filterData).forEach((key) => {
           const filterGroup = this.filterData[key];
           const hasOperators = filterGroup.some((item) =>
+            item.searchStrings && 
+            item.scope && 
+            item.searchStrings[item.scope] && 
+            item.searchStrings[item.scope][0] &&
             hasLogicalOperators(item.searchStrings[item.scope][0])
           );
 
@@ -336,9 +402,16 @@
           dropdown.placeholder = this.getDropdownPlaceholder(index);
         });
       },
+
     },
     beforeMount() {
       window.removeEventListener("resize", this.updateSubjectDropdownWidth);
+    },
+    beforeDestroy() {
+      // Cleanup focus-visible event listeners
+      if (this._focusVisibleCleanup) {
+        this._focusVisibleCleanup();
+      }
     },
     async mounted() {
       this.advanced = !this.advanced;
@@ -352,10 +425,26 @@
 
       this.prepareFilterOptions();
       this.prepareSubjectOptions();
+      
       this.advanced = !this.advanced;
       this.advancedClick();
       await this.search();
       await this.searchPreselectedPmidai();
+      
+      // Silent focus på det første input-felt når formularen er indlæst
+      this.$nextTick(() => {
+        this.$nextTick(() => {
+          const firstSubjectDropdown = this.$refs.subjectSelection?.$refs.subjectDropdown?.[0];
+          if (firstSubjectDropdown && firstSubjectDropdown.setSilentFocusFromParent) {
+            firstSubjectDropdown.setSilentFocusFromParent();
+          }
+        });
+      });
+      
+      // Initialize focus-visible behavior
+      this.$nextTick(() => {
+        this.initializeFocusVisible();
+      });
     },
     created() {
       // If hideTopics comes as string, convert it to array
@@ -368,18 +457,84 @@
       }
     },
     methods: {
+      /**
+       * Initialize focus-visible behavior to only show focus outline for keyboard navigation
+       */
+      initializeFocusVisible() {
+        // Find the main wrapper element (where Vue is mounted)
+        let appElement = document.getElementById('main-wrapper');
+        console.log('initializeFocusVisible: Looking for main-wrapper element:', appElement);
+        
+        if (!appElement) {
+          // Fallback: try to find the Vue app root element
+          appElement = this.$el?.parentElement || document.body;
+          console.log('initializeFocusVisible: Using fallback element:', appElement);
+        }
+        
+        if (!appElement) {
+          console.error('initializeFocusVisible: Could not find any suitable element!');
+          return;
+        }
+        
+        // Add qpm_vapp class to match CSS selectors
+        appElement.classList.add('qpm_vapp');
+        
+        // Start in mouse mode - only show focus outlines when user uses keyboard
+        appElement.classList.add('qpm_mouse-mode');
+        appElement.classList.remove('qpm_keyboard-mode');
+        
+        console.log('initializeFocusVisible: Added classes. Element classes:', appElement.className);
+        
+        // Switch to keyboard mode on any key press (especially Tab)
+        const handleKeyDown = (event) => {
+          // Include Tab key specifically for navigation
+          if (['Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Space'].includes(event.key)) {
+            appElement.classList.add('qpm_keyboard-mode');
+            appElement.classList.remove('qpm_mouse-mode');
+            console.log('Switched to keyboard mode:', event.key, 'Classes:', appElement.className);
+          }
+        };
+        
+        // Switch to mouse mode on any mouse click or mouse movement with buttons
+        const handleMouseDown = () => {
+          appElement.classList.add('qpm_mouse-mode');
+          appElement.classList.remove('qpm_keyboard-mode');
+          console.log('Switched to mouse mode. Classes:', appElement.className);
+        };
+        
+        // Also switch to mouse mode on mouse movement (when user moves mouse after using keyboard)
+        const handleMouseMove = (event) => {
+          // Only switch on actual mouse movement, not programmatic events
+          if (event.isTrusted && (event.movementX !== 0 || event.movementY !== 0)) {
+            appElement.classList.add('qpm_mouse-mode');
+            appElement.classList.remove('qpm_keyboard-mode');
+          }
+        };
+        
+        // Add event listeners
+        document.addEventListener('keydown', handleKeyDown, true);
+        document.addEventListener('mousedown', handleMouseDown, true);
+        document.addEventListener('mousemove', handleMouseMove, { passive: true });
+        
+        // Store cleanup function for potential future use
+        this._focusVisibleCleanup = () => {
+          document.removeEventListener('keydown', handleKeyDown, true);
+          document.removeEventListener('mousedown', handleMouseDown, true);
+          document.removeEventListener('mousemove', handleMouseMove);
+        };
+      },
       advancedClick(skip = false) {
         // Toggle the 'advanced' mode
         this.advanced = !this.advanced;
 
-        // Reset options
-        this.subjectOptions = [];
-        this.filterOptions = [];
+        // Reset options with proper cleanup
+        this.subjectOptions.splice(0);
+        this.filterOptions.splice(0);
 
         // Reset filters if necessary
         if (!this.alwaysShowFilter) {
           this.filterData = {};
-          this.filters = [];
+          this.filters.splice(0);
         }
 
         // Prepare options
@@ -411,16 +566,23 @@
       prepareFilterOptions() {
         const filterCopy = JSON.parse(JSON.stringify(filtrer));
         filterCopy.forEach((filterItem) => {
+          // Skip if filterItem is null or undefined
+          if (!filterItem) return;
+          
           if (!this.advanced) {
+            if (filterItem.choices && Array.isArray(filterItem.choices)) {
             filterItem.choices.forEach((choice) => {
+                if (choice) {
               choice.buttons = false;
               if (
                 (!this.isUrlParsed || choice.simpleSearch || choice.standardSimple) &&
                 !this.filterOptions.includes(filterItem)
               ) {
                 this.filterOptions.push(filterItem);
+                  }
               }
             });
+            }
           } else {
             this.filterOptions.push(filterItem);
           }
@@ -429,10 +591,17 @@
       prepareSubjectOptions() {
         const subjectCopy = JSON.parse(JSON.stringify(this.topics));
         subjectCopy.forEach((subjectItem) => {
+          // Skip if subjectItem is null or undefined
+          if (!subjectItem) return;
+          
           if (!this.advanced) {
+            if (subjectItem.groups && Array.isArray(subjectItem.groups)) {
             subjectItem.groups.forEach((group) => {
+                if (group) {
               group.buttons = false;
+                }
             });
+            }
           }
           this.subjectOptions.push(subjectItem);
         });
@@ -826,10 +995,35 @@
 
         this.$nextTick(function () {
           const subjectDropdown = this.$refs.subjectSelection.$refs.subjectDropdown;
-          subjectDropdown[subjectDropdown.length - 1].$refs.multiselect.$refs.search.focus();
+          const lastDropdown = subjectDropdown[subjectDropdown.length - 1];
+          
+          if (lastDropdown && lastDropdown.$refs && lastDropdown.$refs.multiselect) {
+            // Focus on the input and open the dropdown
+            const input = lastDropdown.$refs.multiselect.$refs.search;
+            if (input) {
+              input.focus();
+              // Open the dropdown if it has topics
+              if (!lastDropdown.shouldHideDropdownArrow) {
+                lastDropdown.$refs.multiselect.activate();
+              }
+            }
+          }
 
           // Update placeholders after DOM update
           this.updatePlaceholders();
+          
+          // Try again with a small delay if first attempt failed
+          setTimeout(() => {
+            const subjectDropdown = this.$refs.subjectSelection.$refs.subjectDropdown;
+            const lastDropdown = subjectDropdown[subjectDropdown.length - 1];
+            
+            if (lastDropdown && lastDropdown.$refs && lastDropdown.$refs.multiselect) {
+              const input = lastDropdown.$refs.multiselect.$refs.search;
+              if (input && !lastDropdown.shouldHideDropdownArrow && !lastDropdown.$refs.multiselect.isOpen) {
+                lastDropdown.$refs.multiselect.activate();
+              }
+            }
+          }, 100);
         });
       },
       /**
@@ -1164,6 +1358,14 @@
           subjectDropdown[0].clearShownItems();
         }
         this.setUrl();
+        
+        // Focus on the first input field after reset
+        this.$nextTick(() => {
+          const subjectDropdown = this.$refs.subjectSelection.$refs.subjectDropdown;
+          if (subjectDropdown && subjectDropdown[0] && subjectDropdown[0].setSilentFocusFromParent) {
+            subjectDropdown[0].setSilentFocusFromParent();
+          }
+        });
       },
       editForm() {
         this.searchresult = undefined;
@@ -1547,9 +1749,8 @@
         await this.search();
       },
       toggleDetailsBox() {
-        // added by Ole
-        this.details = !this.details; // added by Ole
-      }, // added by Ole
+        this.details = !this.details;
+      },
       toggleAdvancedString() {
         this.advancedString = !this.advancedString;
       },
@@ -1645,15 +1846,18 @@
         if (translating) {
           return this.getString("translatingPlaceholder");
         }
+        
+        const hasTopics = this.hasAvailableTopics;
+        
         if (this.advanced) {
           let width = this.subjectDropdownWidth;
           if (this.checkIfMobile() || (width < 520 && width != 0)) {
-            return this.getString("subjectadvancedplaceholder_mobile");
+            return this.getString(hasTopics ? "subjectadvancedplaceholder_mobile" : "subjectadvancedplaceholder_mobile_notopics");
           } else {
-            return this.getString("subjectadvancedplaceholder");
+            return this.getString(hasTopics ? "subjectadvancedplaceholder" : "subjectadvancedplaceholder_notopics");
           }
         } else {
-          return this.getString("subjectsimpleplaceholder");
+          return this.getString(hasTopics ? "subjectsimpleplaceholder" : "subjectsimpleplaceholder_notopics");
         }
       },
       updatePlaceholder(isTranslating, index) {

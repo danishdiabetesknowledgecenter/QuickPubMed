@@ -53,8 +53,7 @@
           offset: 5,
           delay: $helpTextDelay,
         }"
-        class="qpm_slim multiselect__input"
-        style="width: 120px; padding: 4px 12px 4px 11px !important; height: 38px"
+        class="qpm_slim qpm_button"
         @click="addSubject"
       >
         {{ getString("addsubjectlimit") }} {{ getString("addsubject") }}

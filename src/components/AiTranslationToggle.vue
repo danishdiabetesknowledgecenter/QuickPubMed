@@ -9,38 +9,48 @@
       />
       <span class="qpm_slider qpm_round" />
     </label>
-    <span v-if="localSearchWithAI" class="qpm_simpleFiltersHeader">
-      <i
-        class="ri-sparkling-fill"
-      />
-      {{ getString("searchToggleWithAI") }}
-      <button
-        v-tooltip="{
-          content: getString('hoversearchToggleWithAI'),
-          offset: 5,
-          delay: $helpTextDelay,
-          hideOnTargetClick: false,
-        }"
-        class="bx bx-info-circle"
-        style="cursor: help"
-      />
+    <span v-if="localSearchWithAI" class="qpm_aiToggle">
+      <div>
+        <i
+          class="ri-sparkling-fill"
+        />
+      </div>
+      <div>
+        {{ getString("searchToggleWithAI") }}
+        <button
+          v-tooltip="{
+            content: getString('hoversearchToggleWithAI'),
+            offset: 5,
+            delay: $helpTextDelay,
+            hideOnTargetClick: false,
+          }"
+          class="bx bx-info-circle"
+          style="cursor: help"
+          aria-label="Info"
+        />
+      </div>
     </span>
-    <span v-else class="qpm_simpleFiltersHeader">
-      <i
-        style="color: darkgray"
-        class="ri-sparkling-fill"
-      />
-      {{ getString("searchToggleWithoutAI") }}
-      <button
-        v-tooltip="{
-          content: getString('hoversearchToggleWithoutAI'),
-          offset: 5,
-          delay: $helpTextDelay,
-          hideOnTargetClick: false,
-        }"
-        class="bx bx-info-circle"
-        style="cursor: help"
-      />
+    <span v-else class="qpm_aiToggle">
+      <div>
+        <i
+          style="color: darkgray"
+          class="ri-sparkling-fill"
+        />
+      </div>
+      <div>
+        {{ getString("searchToggleWithoutAI") }}
+        <button
+          v-tooltip="{
+            content: getString('hoversearchToggleWithoutAI'),
+            offset: 5,
+            delay: $helpTextDelay,
+            hideOnTargetClick: false,
+          }"
+          class="bx bx-info-circle"
+          style="cursor: help"
+          aria-label="Info"
+        />
+      </div>
     </span>
   </div>
 </template>

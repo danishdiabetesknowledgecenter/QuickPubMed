@@ -1,16 +1,15 @@
 <template>
   <div
     class="multiselect__tags-wrap"
-    @mousedown.stop
-    @focusin.capture.stop
-    @focusout.capture.stop
-    @focus.capture.stop
+    @mousedown="handleMouseDown"
   >
     <span
       v-tooltip="{ content: getTooltip, offset: 5, delay: helpTextDelay }"
       class="multiselect__tag"
       :class="getTagColor(triple.option.scope)"
-      @click.stop="startEdit"
+      @click="handleTagClick"
+      @keydown.enter.prevent="handleKeydown"
+      tabindex="0"
     >
       <span v-if="triple.option.isCustom">
         <p>
@@ -27,15 +26,15 @@
           @keydown.right.stop
           @focus.stop
           @blur.stop="endEdit"
-          @keyup.enter.stop="endEdit"
+          @keydown.enter.stop="endEdit"
         />
       </span>
       <span v-else> {{ triple.option.preString }}{{ getCustomNameLabel }} </span>
       <i
-        aria-hidden="true"
-        tabindex="-1"
+        tabindex="0"
         class="multiselect__tag-icon"
         @click.stop="triple.remove(triple.option)"
+        @keydown.enter.prevent="handleCrossKeydown"
       />
     </span>
     <span class="qpm_operator">{{ operator }}</span>
@@ -161,6 +160,55 @@
           return this.qpmButtonColor3;
         }
         return "";
+      },
+      handleTagClick(event) {
+        // Hvis det er et custom tag, start edit mode
+        if (this.triple.option.isCustom) {
+          this.startEdit();
+          return;
+        }
+        
+        // For normale tags: find parent DropdownWrapper
+        let parent = this.$parent;
+        while (parent && parent.$options.name !== 'DropdownWrapper') {
+          parent = parent.$parent;
+        }
+        
+        if (parent) {
+          // Først åbn dropdownen
+          if (parent.handleOpenMenuOnClick) {
+            parent.handleOpenMenuOnClick(event);
+          }
+          
+          // Derefter kald handleTagClick for at udvide den rigtige kategori
+          if (parent.handleTagClick) {
+            parent.handleTagClick(event);
+          }
+        }
+      },
+      handleKeydown(event) {
+        // Hvis custom tag, start edit
+        if (this.triple.option.isCustom && !this.isEditMode) {
+          // Tilføj en lille forsinkelse for at undgå konflikt med keyup.enter på input
+          this.$nextTick(() => {
+            this.startEdit();
+          });
+          return; // Stop her - kald ikke handleTagClick
+        }
+
+        // For normale tags: kald handleTagClick for at åbne dropdown
+        if (!this.triple.option.isCustom) {
+          this.handleTagClick(event);
+        }
+      },
+      /*  Allow mousedown to bubble for normal tags (so DropdownWrapper kan åbne
+          dropdownen), men blokér for custom-tags når de er i edit-mode. */
+      handleMouseDown(event) {
+        // Lad mousedown boble op til parent
+      },
+      handleCrossKeydown(event) {
+        // Simuler klik på krydset når Enter trykkes
+        event.target.click();
       },
     },
   };

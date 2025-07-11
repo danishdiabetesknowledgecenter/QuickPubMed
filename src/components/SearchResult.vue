@@ -10,21 +10,26 @@
       >
         <template #header="accordionProps">
           <div class="qpm_aiAccordionHeader">
-            <div style="display: flex;flex-wrap: nowrap;justify-content: space-between;">
-              <div>
-                <i
-                class="ri-sparkling-fill"
-                />
-                <strong>{{ getString("selectedResultsAccordionHeader") }}</strong>
-                <button
-                  v-tooltip="{
-                    content: getString('hoverselectedResultsAccordionHeader'),
-                    offset: 5,
-                    delay: $helpTextDelay,
-                    hideOnTargetClick: false,
-                  }"
-                  class="bx bx-info-circle"
-                />
+            <div style="display: flex;flex-wrap: nowrap;justify-content: space-between; align-items: center;">
+              <div style="display: flex">
+                <div>
+                  <i
+                  class="ri-sparkling-fill"
+                  />
+                </div>
+                <div style="align-content: center;">
+                  <strong>{{ getString("selectedResultsAccordionHeader") }}</strong>
+                  <button
+                    v-tooltip="{
+                      content: getString('hoverselectedResultsAccordionHeader'),
+                      offset: 5,
+                      delay: $helpTextDelay,
+                      hideOnTargetClick: false,
+                    }"
+                    class="bx bx-info-circle"
+                    aria-label="Info"
+                  />
+                </div>
               </div>
               <div>
                 <i
@@ -128,13 +133,12 @@
                   width: 100%;
                   justify-content: space-between;
                   align-items: center;
-                  padding: 1.81px 0;
+                  margin-left: -1px;
                 "
               >
                 <div>
                   <i
                     class="bx bx-check-square"
-                    style="font-size: 23px; vertical-align: top; margin-right: 10px;"
                   />
                   <strong>{{ getString("selectedResultTitle") }}</strong>
                   <button
@@ -146,6 +150,7 @@
                       hideOnTargetClick: false,
                     }"
                     class="bx bx-info-circle"
+                    aria-label="Info"
                   />
                   <button
                     v-if="config.useAI"
@@ -156,26 +161,36 @@
                       hideOnTargetClick: false,
                     }"
                     class="bx bx-info-circle"
+                    aria-label="Info"
                   />
                 </div>
                 <div>
-                  <button
+                  <div
                     v-tooltip="{
                       content: getString('hovermarkedArticleCounter'),
                       offset: 5,
                       delay: $helpTextDelay,
                       hideOnTargetClick: false,
                     }"
-                    class="qpm_button qpm_markedArticleCounter"
+                    class="qpm_markedArticleCounter"
+                    tabindex="0"
                   >
-                    {{ selectedEntries.length }}
-                    <span v-if="selectedEntries.length == 1">
+                    <span>
+                      {{ selectedEntries.length }}
+                    </span>
+                    <span 
+                      v-if="selectedEntries.length == 1"
+                      class="qpm_markedArticleCounterText qpm_hideonmobile"
+                    >
                       {{ getString("aiSearchSummarySelectedArticlesAfterSingular") }}
                     </span>
-                    <span v-if="selectedEntries.length > 1 || selectedEntries.length == 0">
+                    <span 
+                      v-if="selectedEntries.length > 1 || selectedEntries.length == 0"
+                      class="qpm_markedArticleCounterText qpm_hideonmobile"
+                    >
                       {{ getString("aiSearchSummarySelectedArticlesAfterPlural") }}
                     </span>
-                  </button>
+                  </div>
                 </div>
               </div>
               <div>
@@ -192,41 +207,32 @@
           </div>
         </template>
         <template #default>
-          <div
-            class="list-fade-item"
+          <div 
+            class="list-fade-item qpm_selectedResultDeselectAllWrapper"
             name="transition-item-0"
-            style="
-              padding: 5px 0 5px 10px;
-              background-color: var(--color-grey-light);
-              border-bottom: solid 1px lightgrey;
-              font-size: 0.96em;
-            "
-            @click="onDeselectAllArticles"
           >
-            <button
-              id="qpm_selectedResultDeselectAll"
-              style="padding-left: 0"
-              :disabled="selectedEntries == null || selectedEntries.length <= 0"
-            >
+            <div>
               <i
-                class="bx bxs-minus-square qpm_selectArticleCheckbox"
-                style="font-size: 22px; line-height: 0; margin: -4px 4px 0 0"
+                  class="bx bxs-minus-square"
               />
               <button
+                id="qpm_selectedResultDeselectAll"
+                class="qpm_button qpm_selectArticleCheckbox"
+                :disabled="selectedEntries == null || selectedEntries.length <= 0"
                 v-tooltip="{
                   content: getString('hoverselectedResultDeselectAllText'),
                   offset: 5,
                   delay: $helpTextDelay,
                   hideOnTargetClick: false,
                 }"
-                class="qpm_button qpm_selectArticleCheckbox list-fade-item"
+                @click="onDeselectAllArticles"
+                tabindex="0"
               >
                 {{ getString("selectedResultDeselectAllText") }}
               </button>
-            </button>
-          </div>
-          <div class="qpm_searchSummaryText qpm_searchSummaryTextBackground">
+            </div>
             <div
+              class="qpm_searchSummaryText qpm_searchSummaryTextBackground"
               v-if="selectedEntries == null || selectedEntries.length == 0"
               v-html="getString('selectedResultEmptyText')"
             />
@@ -288,7 +294,7 @@
       </p>
       <div v-if="results && results.length != 0" class="qpm_searchHeaderSort qpm_spaceEvenly">
         <div class="qpm_sortSelect" style="padding-right: 7px">
-          <select v-model="currentSortMethod" @change="newSortMethod">
+          <select v-model="currentSortMethod" :aria-label="getString('sortBy')" @change="newSortMethod">
             <option v-for="sorter in getOrderMethods" :key="sorter.id" :value="sorter.method">
               {{ getTranslation(sorter) }}
             </option>
@@ -300,7 +306,7 @@
           aria-level="2"
           class="qpm_sortSelect qpm_spaceEvenly"
         >
-          <select @change="changePageNumber($event)">
+          <select :aria-label="getString('pagesizePerPage')" @change="changePageNumber($event)">
             <option
               v-for="size in getPageSizeProps"
               :key="size"

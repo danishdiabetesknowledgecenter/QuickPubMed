@@ -49,6 +49,7 @@
           <button
             class="qpm_summary_icon bx bx-x"
             style="margin-left: 20px; margin-top: -5px; border: 1px solid #e7e7e7"
+            aria-label="Close"
             @click="clickCloseSummary"
           />
         </div>
