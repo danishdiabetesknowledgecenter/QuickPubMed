@@ -885,6 +885,14 @@
           return;
         }
         
+        // If we're in silent focus, remove it and allow dropdown to open
+        if (this.isSilentFocus) {
+          const input = this.$el?.querySelector('.multiselect__input');
+          if (input) {
+            this.removeSilentFocus(input);
+          }
+        }
+        
         // For dropdowns with topics, reset pointer to ensure highlight logic works
         this.$refs.multiselect.pointer = -1;
         
@@ -1377,6 +1385,45 @@
           // Only show the tags in the clicked group
           this.updateOptionGroupVisibility(selectedOptionIds, optionsInOptionGroup);
         }
+
+        // Ny funktionalitet: Highlight det klikkede element i dropdownen
+        this.highlightClickedTagInDropdown(targetLabel);
+      },
+
+      /**
+       * Highlighter det element i dropdownen som svarer til den klikkede brik
+       * @param {string} targetLabel - Teksten fra den klikkede brik
+       */
+      highlightClickedTagInDropdown(targetLabel) {
+        // Vent til næste tick for at sikre dropdownen er åben og opdateret
+        this.$nextTick(() => {
+          if (!this.$refs.multiselect || !this.$refs.multiselect.filteredOptions) {
+            return;
+          }
+
+          const filteredOptions = this.$refs.multiselect.filteredOptions;
+          const cleanedTargetLabel = this.cleanLabel(targetLabel);
+          
+          // Find det element der matcher den klikkede brik
+          const matchingIndex = filteredOptions.findIndex((option) => {
+            if (option.$groupLabel) {
+              return false; // Skip gruppelabels
+            }
+            
+            const optionLabel = this.cleanLabel(this.customNameLabel(option));
+            return optionLabel === cleanedTargetLabel;
+          });
+
+          if (matchingIndex !== -1) {
+            // Sæt pointer til det matchende element for at highlighte det
+            this.$refs.multiselect.pointer = matchingIndex;
+            
+            // Scroll elementet ind i view
+            this.$nextTick(() => {
+              this.scrollToFocusedSubject();
+            });
+          }
+        });
       },
       handleSearchInput(event) {
         if (!this.isGroup) return;

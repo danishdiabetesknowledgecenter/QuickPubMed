@@ -728,9 +728,7 @@
             const tag = {
               name: name,
               searchStrings: { normal: [name] },
-              preString: isTranslated
-                ? `${this.getString("manualInputTermTranslated")}:\u00A0 `
-                : `${this.getString("manualInputTerm")}:\u00A0 `,
+              preString: `${this.getString("manualInputTerm")}:\u00A0 `,
               scope: "normal",
               isCustom: true,
               tooltip: customInputTagTooltip,
@@ -785,14 +783,15 @@
           const groupId = filterGroup.id;
 
           if (isCustomInput) {
-            const name = id.slice(2, -2);
-            const isTranslated = !isNaN(parseInt(name.slice(-1), 10));
+            const rawName = id.slice(2, -2);
+            const translationFlag = rawName.slice(-1);
+            const isTranslated = translationFlag === "1";
+            const name = isTranslated || translationFlag === "0" ? rawName.slice(0, -1) : rawName;
+            
             const tag = {
               name: name,
               searchStrings: { normal: [name] },
-              preString: isTranslated
-                ? `${this.getString("manualInputTermTranslated")}:\u00A0 `
-                : `${this.getString("manualInputTerm")}:\u00A0 `,
+              preString: `${this.getString("manualInputTerm")}:\u00A0 `,
               scope: "normal",
               isCustom: true,
               tooltip: customInputTagTooltip,
