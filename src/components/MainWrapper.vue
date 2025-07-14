@@ -388,30 +388,15 @@
       },
     },
     watch: {
-      subjectSelection: {
-        handler() {
-          this.updatePlaceholders();
-        },
-        deep: true,
-        immediate: true,
-      },
-      advanced(newVal) {
-        console.info(`advanced search | ${newVal}`);
-        // Trigger an update for all the DropdownWrapper placeholders
-        this.$refs.subjectSelection.$refs.subjectDropdown.forEach((dropdown, index) => {
-          dropdown.placeholder = this.getDropdownPlaceholder(index);
-        });
-      },
-
-    },
-    beforeMount() {
-      window.removeEventListener("resize", this.updateSubjectDropdownWidth);
+      // Fjernet fejlagtig watch handler for subjectSelection
     },
     beforeDestroy() {
       // Cleanup focus-visible event listeners
       if (this._focusVisibleCleanup) {
         this._focusVisibleCleanup();
       }
+      // Tilføj proper cleanup for resize listener
+      window.removeEventListener("resize", this.updateSubjectDropdownWidth);
     },
     async mounted() {
       this.advanced = !this.advanced;
@@ -562,6 +547,11 @@
 
         // Set 'showFilter' flag
         this.showFilter = this.advanced && this.filters.length > 0;
+        
+        this.$nextTick(() => {
+          this.updateSubjectDropdownWidth();
+          this.updatePlaceholders();
+        });
       },
       prepareFilterOptions() {
         const filterCopy = JSON.parse(JSON.stringify(filtrer));
@@ -1804,10 +1794,13 @@
         return constant;
       },
       updateSubjectDropdownWidth() {
-        const dropdown =
-          this.$refs?.subjectSelection?.$refs?.subjectDropdown[0]?.$refs?.selectWrapper;
-        if (!dropdown.innerHTML) return;
+        const dropdown = this.$refs?.subjectSelection?.$refs?.subjectDropdown[0]?.$refs?.selectWrapper;
+        
+        if (!dropdown) return;
         this.subjectDropdownWidth = parseInt(dropdown.offsetWidth);
+
+        // Opdater placeholders automatisk ved resize
+        this.updatePlaceholders();
       },
       checkIfMobile() {
         let check = false;
@@ -1848,16 +1841,18 @@
         }
         
         const hasTopics = this.hasAvailableTopics;
+        const width = this.subjectDropdownWidth;
+        const isMobileOrSmall = this.checkIfMobile() || (width < 520 && width >= 0);
         
-        if (this.advanced) {
-          let width = this.subjectDropdownWidth;
-          if (this.checkIfMobile() || (width < 520 && width != 0)) {
-            return this.getString(hasTopics ? "subjectadvancedplaceholder_mobile" : "subjectadvancedplaceholder_mobile_notopics");
-          } else {
-            return this.getString(hasTopics ? "subjectadvancedplaceholder" : "subjectadvancedplaceholder_notopics");
-          }
+        // Brug samme mobile logic for både simple og advanced
+        if (isMobileOrSmall) {
+          return this.getString(hasTopics ? "subjectadvancedplaceholder_mobile" : "subjectadvancedplaceholder_mobile_notopics");
         } else {
-          return this.getString(hasTopics ? "subjectsimpleplaceholder" : "subjectsimpleplaceholder_notopics");
+          if (this.advanced) {
+            return this.getString(hasTopics ? "subjectadvancedplaceholder" : "subjectadvancedplaceholder_notopics");
+          } else {
+            return this.getString(hasTopics ? "subjectsimpleplaceholder" : "subjectsimpleplaceholder_notopics");
+          }
         }
       },
       updatePlaceholder(isTranslating, index) {

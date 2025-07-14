@@ -352,7 +352,7 @@ input.qpm_selectArticleCheckbox[type="checkbox"] {
 p.qpm_shownumber {
   font-size: 1em;
   text-align: center;
-  padding: 0 10px 3px;
+  padding-top: 10px;
 }
 
 .qpm_searchform {
@@ -939,6 +939,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   padding-right: 15px !important;
   margin-right: 0;
   white-space: nowrap;
+  min-width: 100px !important;
 }
 
 .qpm_subjectEntry {
@@ -1480,14 +1481,13 @@ button.qpm_tab {
 
 .qpm_aiToggle {
   display: flex;
-  align-items: baseline;
   width: -webkit-fill-available;
+  margin-top: -1px;
 }
 
 .qpm_aiToggle div:last-of-type {
   margin-top: 2px;
   display: flex;
-  align-items: start;
   gap: 6px;
 }
 
@@ -1769,7 +1769,7 @@ button.qpm_tab {
   display: flex;
   justify-content: center;
   flex-direction: column;
-  /* margin-top: 10px; */
+  margin-top: 10px;
 }
 
 .qpm_abstract .qpm_searchSummaryBox {
@@ -1990,6 +1990,14 @@ button.qpm_tab {
   margin-top: -1px;
 }
 
+.qpm_accordion-toggle:not(.qpm_ResultEntryWrapper .qpm_accordion-toggle) {
+  background-color: var(--color-grey-light);
+}
+
+.qpm_accordion-open .qpm_aiAccordionHeader:not(.qpm_ResultEntryWrapper .qpm_aiAccordionHeader) {
+  background-color: var(--color-grey);
+}
+
 .qpm_aiAccordionHeader {
   padding: 10px;
   cursor: pointer;
@@ -2005,7 +2013,7 @@ button.qpm_tab {
 .qpm_aiAccordionHeaderArrows {
   font-size: 30px;
   position: relative;
-  top: 3px;
+  /* top: 3px; */
   right: 5px;
   float: right;
   margin-left: 5px;
@@ -2036,7 +2044,6 @@ button.qpm_tab {
   width: 46px;
   height: 26px;
   margin-right: 15px;
-  margin-top: 2px;
 }
 
 .qpm_switch input {

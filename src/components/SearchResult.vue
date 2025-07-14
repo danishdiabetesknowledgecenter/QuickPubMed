@@ -219,12 +219,12 @@
                 id="qpm_selectedResultDeselectAll"
                 class="qpm_button qpm_selectArticleCheckbox"
                 :disabled="selectedEntries == null || selectedEntries.length <= 0"
-                v-tooltip="{
+                v-tooltip="selectedEntries != null && selectedEntries.length > 0 ? {
                   content: getString('hoverselectedResultDeselectAllText'),
                   offset: 5,
                   delay: $helpTextDelay,
                   hideOnTargetClick: false,
-                }"
+                } : null"
                 @click="onDeselectAllArticles"
                 tabindex="0"
               >
@@ -380,7 +380,7 @@
         class="qpm_button qpm_dark"
         @click="next"
       >
-        <span class="qpm_hideonmobile">{{ getString("next") }}</span>
+        <span>{{ getString("next") }}</span>
         {{ pagesize }}
       </button>
       <p v-if="!loading || (results && high && total)" class="qpm_nomargin qpm_shownumber">
