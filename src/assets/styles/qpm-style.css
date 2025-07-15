@@ -2311,22 +2311,21 @@ input:checked + .qpm_slider:before {
 
 /* Tilføj omkring linje 1050 hvor multiselect styles er */
 @media (max-width: 768px) {
-  /* Dropdown scrolling og touch support */
+  /* Touch og scrolling support */
   .multiselect__content-wrapper {
     -webkit-overflow-scrolling: touch !important;
     transition: none !important;
   }
   
-  /* Minimum touch targets og flex layout */
+  /* Minimum touch targets */
   .multiselect__option {
     min-height: 44px !important;
     padding: 8px 12px !important;
     display: flex !important;
     align-items: center !important;
-    /* FJERN overflow-x og white-space herfra */
   }
   
-  /* KUN på optioner med knapper (ikke hovedkategorier): */
+  /* KUN horizontal scrolling på optioner med knapper */
   .multiselect__option:has(.qpm_dropdownButtons) {
     overflow-x: auto !important;
     white-space: nowrap !important;
@@ -2338,13 +2337,13 @@ input:checked + .qpm_slider:before {
     align-items: center !important;
   }
   
-  /* Forhindre content i at tvinge wrapper til at udvide */
+  /* Forhindre content expansion */
   .multiselect__content {
     min-height: unset !important;
     height: auto !important;
   }
   
-  /* Sikr at elements og knapper ikke krymper */
+  /* Flex shrink protection */
   .multiselect__element,
   .qpm_dropdownButtons,
   .qpm_dropdownButtons .qpm_button {
@@ -2352,54 +2351,6 @@ input:checked + .qpm_slider:before {
   }
   
   .qpm_dropdownButtons .qpm_button {
-    white-space: nowrap !important;
-  }
-}
-
-/* Forbedre responsive dropdown styling */
-.multiselect__content-wrapper {
-  transition: max-height 0.3s ease-in-out !important;
-  overflow-y: auto !important;
-  overflow-x: auto !important;
-}
-
-@media (max-width: 768px) {
-  .multiselect__content-wrapper {
-    -webkit-overflow-scrolling: touch !important;
-  }
-  
-  /* Sikr minimum touch targets */
-  .multiselect__option {
-    min-height: 44px !important;
-    display: flex !important;
-    align-items: center !important;
-  }
-  
-  .qpm_groupLabel {
-    min-height: 44px !important;
-    display: flex !important;
-    align-items: center !important;
-  }
-}
-
-/* Smooth height transitions */
-.qpm_dropDownMenu .multiselect__content-wrapper {
-  transition: max-height 0.2s ease-out;
-}
-
-/* Tilføj denne regel for at tillade horizontal scrolling på mobile */
-@media (max-width: 768px) {
-  .multiselect__option {
-    white-space: nowrap !important;
-  }
-  
-  /* Sikr at knapperne ikke krymper */
-  .qpm_dropdownButtons {
-    flex-shrink: 0 !important;
-  }
-  
-  .qpm_dropdownButtons .qpm_button {
-    flex-shrink: 0 !important;
     white-space: nowrap !important;
   }
 }
