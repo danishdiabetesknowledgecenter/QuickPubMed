@@ -1581,8 +1581,9 @@
         event.stopPropagation();
         
         // Sikkerhedstjek for at search ref eksisterer
+        // Tilføj preventScroll for at undgå scroll på mobile enheder
         if (this.$refs.multiselect && this.$refs.multiselect.$refs.search) {
-          this.$refs.multiselect.$refs.search.focus();
+          this.$refs.multiselect.$refs.search.focus({ preventScroll: true });
         }
       },
       handleScopeButtonClick(item, state, event) {
@@ -1718,19 +1719,28 @@
         // Click event was on the parent multiselect group
         if (event.target.classList.contains("multiselect__option--group")) {
           event.stopPropagation();
-          event.preventDefault();
+          // Kun preventDefault for non-touch events for at tillade touch navigation
+          if (event.type !== 'touchend' && event.type !== 'touchstart') {
+            event.preventDefault();
+          }
           return false;
         }
         // Click event was on the category name (left aligned)
         if (event.target.classList.contains("qpm_groupLabel")) {
           event.stopPropagation();
-          event.preventDefault();
+          // Kun preventDefault for non-touch events for at tillade touch navigation
+          if (event.type !== 'touchend' && event.type !== 'touchstart') {
+            event.preventDefault();
+          }
           return false;
         }
         // click event was on either of the scope labels (right aligned in advanced search)
         if (event.target.classList.contains("qpm_scopeLabel")) {
           event.stopPropagation();
-          event.preventDefault();
+          // Kun preventDefault for non-touch events for at tillade touch navigation
+          if (event.type !== 'touchend' && event.type !== 'touchstart') {
+            event.preventDefault();
+          }
           event.target.parentNode.click();
           return false;
         }
@@ -1752,8 +1762,10 @@
         var isFocusVissible = this.isSubjectVissible(subject);
         if (!isFocusVissible) {
           this.ignoreHover = true;
+          // Tilføj check for mobile for at undgå aggressive scrolling
+          const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
           subject.scrollIntoView({
-            behavior: "smooth",
+            behavior: isMobile ? "auto" : "smooth", // Brug "auto" på mobile for mindre aggressive scroll
             block: "nearest",
             inline: "nearest",
           });
