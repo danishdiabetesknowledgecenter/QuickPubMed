@@ -2368,3 +2368,28 @@ input:checked + .qpm_slider:before {
   outline: none;
   box-shadow: 0 0 8px rgba(102, 175, 233, 0.6);
 }
+
+/* Tilføj omkring linje 1050 hvor multiselect styles er */
+@media (max-width: 768px) {
+  .multiselect__content-wrapper {
+    max-height: 300px !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  
+  .multiselect__content {
+    max-height: 300px !important;
+  }
+  
+  /* Forbedre touch targets på mobile */
+  .multiselect__option {
+    min-height: 44px !important;
+    padding: 8px 12px !important;
+  }
+  
+  .qpm_groupLabel {
+    min-height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+}

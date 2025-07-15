@@ -22,6 +22,7 @@
       :aria-expanded="isDropdownOpen"
       :aria-label="placeholder"
       open-direction="bottom"
+      :max-height="getMaxHeight"
       track-by="name"
       label="name"
       select-label=""
@@ -316,6 +317,7 @@
         isSilentFocus: false, // Track if focus is "silent" (no visual styling)
         _isEmptyDropdown: false, // Track if this is an empty dropdown with custom input handling
         isDropdownOpen: false, // Track dropdown state for aria-expanded
+        isTouchInteraction: false, // Track touch interactions
       };
     },
     computed: {
@@ -503,6 +505,11 @@
         
         console.log('shouldHideDropdownArrow result:', result);
         return result;
+      },
+      getMaxHeight() {
+        // Begræns dropdown højde på mobile for at undgå viewport problemer
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        return isMobile ? 300 : 600; // Kortere på mobile
       },
     },
     watch: {
@@ -790,17 +797,18 @@
         const self = this;
 
         headers.forEach((header) => {
-          // Stop existing mousedown events
+          // Stop existing events
           header.removeEventListener("mousedown", self.handleStopEvent, true);
           header.removeEventListener("touchstart", self.handleStopEvent, true);
           
-          // Tilføj separate event handlers for forskellige event typer
+          // Tilføj touch-aware event handling
           header.addEventListener("mousedown", self.handleStopEvent, true);
-          header.addEventListener("touchstart", self.handleStopEvent, true);
+          header.addEventListener("touchstart", self.handleTouchStart, true);
+          header.addEventListener("touchend", self.handleTouchEnd, true);
 
-          // Add click handler for category groups (higher priority på mobile)
+          // Add click handler for category groups (med højere prioritet)
           header.removeEventListener("click", self.handleCategoryGroupClick);
-          header.addEventListener("click", self.handleCategoryGroupClick);
+          header.addEventListener("click", self.handleCategoryGroupClick, { passive: false });
         });
 
         // Stop selecting group when pressing enter during search
@@ -1321,6 +1329,13 @@
        * @param {HTMLElement} target - The target element.
        */
       handleCategoryGroupClick(event) {
+        // Hvis det er en touch interaction på en lang dropdown, 
+        // sikr at event ikke går tabt
+        if (this.isTouchInteraction) {
+          event.stopPropagation();
+          event.preventDefault();
+        }
+        
         let target = event.target;
 
         // Check if the click is on the optiongroup name or elsewhere within the multiselect__option__option--group element
@@ -1340,7 +1355,6 @@
             this.expandedOptionGroupName = optionGroupName;
             
             // Reset maintopicToggledMap when switching to a new category
-            // This prevents navigation issues caused by state from previous categories
             this.resetMaintopicToggledMap();
 
             const optionGroupId = this.getOptionGroupId(optionGroupName);
@@ -1353,7 +1367,6 @@
               this.showOrHideElements();
               this.updateExpandedGroupHighlighting();
             } else {
-              // Only show the tags in the clicked group
               this.updateOptionGroupVisibility(selectedOptionIds, optionsInOptionGroup);
             }
           }
@@ -1721,27 +1734,21 @@
        */
       handleStopEvent(event) {
         const isTouch = event.type === 'touchstart' || event.type === 'touchend';
-        const isGroupLabel = event.target.classList.contains("qpm_groupLabel");
-        const isOptionGroup = event.target.classList.contains("multiselect__option--group");
         
-        // For gruppelabels på touch enheder: LAD CLICK EVENTS GÅ IGENNEM
-        if (isGroupLabel && isTouch) {
-          // Kun stopPropagation, ikke preventDefault
+        // Click event was on the parent multiselect group
+        if (event.target.classList.contains("multiselect__option--group")) {
           event.stopPropagation();
-          return false;
-        }
-        
-        // Original logik for andre tilfælde
-        if (isOptionGroup) {
-          event.stopPropagation();
+          // Kun preventDefault for ikke-touch events
           if (!isTouch) {
             event.preventDefault();
           }
           return false;
         }
         
-        if (isGroupLabel) {
+        // Click event was on the category name (left aligned)
+        if (event.target.classList.contains("qpm_groupLabel")) {
           event.stopPropagation();
+          // For touch events: LAD click events gå igennem
           if (!isTouch) {
             event.preventDefault();
           }
@@ -1751,7 +1758,9 @@
         // click event was on either of the scope labels (right aligned in advanced search)
         if (event.target.classList.contains("qpm_scopeLabel")) {
           event.stopPropagation();
-          event.preventDefault();
+          if (!isTouch) {
+            event.preventDefault();
+          }
           event.target.parentNode.click();
           return false;
         }
@@ -2814,6 +2823,27 @@
           event.preventDefault();
           this.handleTagClick(event);
         }
+      },
+      handleTouchStart(event) {
+        // Marker at vi er i en touch interaction
+        this.isTouchInteraction = true;
+        this.setMouseUsed(); // Marker som "mouse" interaction for eksisterende logik
+        
+        // For group labels: LAD touch events fortsætte til click
+        if (event.target.classList.contains("qpm_groupLabel")) {
+          event.stopPropagation();
+          // IKKE preventDefault - lad touch -> click flow fungere
+          return false;
+        }
+        
+        // For andre elementer: brug original logik
+        this.handleStopEvent(event);
+      },
+      handleTouchEnd(event) {
+        // Reset touch interaction flag efter lille delay
+        setTimeout(() => {
+          this.isTouchInteraction = false;
+        }, 100);
       },
     },
   };
