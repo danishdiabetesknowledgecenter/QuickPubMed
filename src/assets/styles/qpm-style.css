@@ -2311,46 +2311,62 @@ input:checked + .qpm_slider:before {
 
 /* Tilføj omkring linje 1050 hvor multiselect styles er */
 @media (max-width: 768px) {
-  /* Touch og scrolling support */
+  /* FIX: Deaktiver problematiske pseudo-elementer */
+  .multiselect__option:after {
+    display: none !important;
+    pointer-events: none !important;
+  }
+  
+  /* FIX: Sikr korrekt touch target mapping */
   .multiselect__content-wrapper {
     -webkit-overflow-scrolling: touch !important;
     transition: none !important;
+    position: relative !important;
+    z-index: 1 !important;
   }
   
-  /* Minimum touch targets */
+  /* FIX: Konsistent touch targets uden positioning konflikter */
   .multiselect__option {
     min-height: 44px !important;
     padding: 8px 12px !important;
     display: flex !important;
     align-items: center !important;
+    position: relative !important;
+    z-index: 2 !important;
+    touch-action: manipulation !important;
+    -webkit-touch-callout: none !important;
+    /* VIGTIGT: Fjern transforms der forskyder touch areas */
+    transform: none !important;
   }
   
-  /* KUN horizontal scrolling på optioner med knapper */
-  .multiselect__option:has(.qpm_dropdownButtons) {
+  /* FIX: Sikr at gruppekategorier ikke har scrolling interferens */
+  .multiselect__option--group {
+    overflow: visible !important;
+    white-space: normal !important;
+  }
+  
+  /* FIX: Kun horizontal scrolling for knapper, uden positioning konflikter */
+  .multiselect__option:not(.multiselect__option--group) {
     overflow-x: auto !important;
     white-space: nowrap !important;
+  }
+  
+  /* FIX: Sikr knapper har højeste z-index og korrekte touch targets */
+  .qpm_dropdownButtons .qpm_button {
+    position: relative !important;
+    z-index: 10 !important;
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+    /* VIGTIGT: Fjern transforms der kan forskyde touch areas */
+    transform: none !important;
   }
   
   .qpm_groupLabel {
     min-height: 44px !important;
     display: flex !important;
     align-items: center !important;
-  }
-  
-  /* Forhindre content expansion */
-  .multiselect__content {
-    min-height: unset !important;
-    height: auto !important;
-  }
-  
-  /* Flex shrink protection */
-  .multiselect__element,
-  .qpm_dropdownButtons,
-  .qpm_dropdownButtons .qpm_button {
-    flex-shrink: 0 !important;
-  }
-  
-  .qpm_dropdownButtons .qpm_button {
-    white-space: nowrap !important;
+    position: relative !important;
+    z-index: 3 !important;
+    touch-action: manipulation !important;
   }
 }

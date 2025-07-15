@@ -321,6 +321,7 @@
         touchStartX: 0,
         touchStartY: 0,
         touchMoved: false,
+        isScrolling: false, // Track scroll gestures
       };
     },
     computed: {
@@ -2865,6 +2866,11 @@
         
         if (deltaX > 10 || deltaY > 10) {
           this.touchMoved = true;
+          // VIGTIG: Stop propagation under scroll for at forhindre dropdown close
+          event.stopPropagation();
+          
+          // Marker at dette er en scroll gesture, ikke en click
+          this.isScrolling = true;
         }
       },
       handleTouchEnd(event) {
@@ -2872,16 +2878,26 @@
         
         const touchDuration = Date.now() - this.touchStartTime;
         
-        // Kun behandl som valid tap hvis:
-        // 1. Touch duration er mindst 50ms (undgå accidental touches)
-        // 2. Finger ikke har bevæget sig for meget
-        // 3. Touch duration er ikke for lang (max 1000ms)
+        // Hvis det var en scroll gesture, forhindre click events
+        if (this.isScrolling) {
+          // Stop alle click events efter scroll
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+          
+          // Reset flags
+          this.isScrolling = false;
+          this.isTouchInteraction = false;
+          this.touchMoved = false;
+          return false; // Forhindrer dropdown close
+        }
+        
+        // Rest af existing logic...
         const isValidTap = touchDuration >= 50 && 
                            touchDuration <= 1000 && 
                            !this.touchMoved;
         
         if (!isValidTap) {
-          // Cancel touch interaction hvis ikke valid
           this.isTouchInteraction = false;
           return;
         }
@@ -2889,8 +2905,7 @@
         // Reset touch interaction flag efter længere delay for iOS
         setTimeout(() => {
           this.isTouchInteraction = false;
-          this.touchMoved = false;
-        }, 300); // Øget til 300ms for iOS Safari
+        }, 300);
       },
     },
   };
