@@ -782,26 +782,15 @@
         const headers = Array.from(element.getElementsByClassName("multiselect__element"));
         const self = this;
 
-        // LØSNING: Forbedret event handling for mobile enheder
+        // TILBAGE TIL ORIGINAL KODE
         headers.forEach((header) => {
-          // Fjern eksisterende event listeners
+          // Stop existing mousedown events
           header.removeEventListener("mousedown", self.handleStopEvent, true);
-          header.removeEventListener("click", self.handleCategoryGroupClick);
-          header.removeEventListener("touchstart", self.handleMobileTouchStart, true);
-          header.removeEventListener("touchend", self.handleMobileTouchEnd);
+          header.addEventListener("mousedown", self.handleStopEvent, true);
 
-          // Detekter om det er mobile enhed
-          const isMobile = this.checkIfMobile();
-          
-          if (isMobile) {
-            // På mobile enheder: Brug touch events direkte
-            header.addEventListener("touchstart", self.handleMobileTouchStart.bind(self), { passive: true });
-            header.addEventListener("touchend", self.handleMobileTouchEnd.bind(self), { passive: false });
-          } else {
-            // På desktop: Brug original mouse events
-            header.addEventListener("mousedown", self.handleStopEvent, true);
-            header.addEventListener("click", self.handleCategoryGroupClick);
-          }
+          // Add click handler for category groups
+          header.removeEventListener("click", self.handleCategoryGroupClick);
+          header.addEventListener("click", self.handleCategoryGroupClick);
         });
 
         // Stop selecting group when pressing enter during search
@@ -2798,69 +2787,6 @@
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
           this.handleTagClick(event);
-        }
-      },
-      // Tilføj nye metoder til at håndtere mobile touch events
-      handleMobileTouchStart(event) {
-        this.touchStartTime = Date.now();
-        this.touchStartTarget = event.target;
-        
-        // Gem original touch position for at detektere scroll vs tap
-        if (event.touches && event.touches[0]) {
-          this.touchStartY = event.touches[0].clientY;
-          this.touchStartX = event.touches[0].clientX;
-        }
-      },
-      handleMobileTouchEnd(event) {
-        // Kun håndter hvis det er samme element og ikke en scroll gesture
-        if (this.touchStartTarget !== event.target) {
-          return;
-        }
-        
-        const touchDuration = Date.now() - this.touchStartTime;
-        const maxTouchDuration = 500; // maksimum tid for at det tæller som tap
-        
-        // Check om det var en scroll gesture
-        let isScroll = false;
-        if (event.changedTouches && event.changedTouches[0] && this.touchStartY !== undefined) {
-          const touchEndY = event.changedTouches[0].clientY;
-          const touchEndX = event.changedTouches[0].clientX;
-          const verticalDistance = Math.abs(touchEndY - this.touchStartY);
-          const horizontalDistance = Math.abs(touchEndX - this.touchStartX);
-          
-          // Hvis der er bevægelse over 10px, tæl det som scroll
-          isScroll = verticalDistance > 10 || horizontalDistance > 10;
-        }
-        
-        // Kun håndter som tap hvis det var kort og ikke scroll
-        if (touchDuration <= maxTouchDuration && !isScroll) {
-          const target = event.target;
-          
-          // Håndter forskellige typer elementer mere selektivt
-          if (target.classList.contains("multiselect__option--group")) {
-            event.preventDefault();
-            return;
-          }
-          
-          if (target.classList.contains("qpm_groupLabel")) {
-            event.preventDefault();
-            return;
-          }
-          
-          if (target.classList.contains("qpm_scopeLabel")) {
-            event.preventDefault();
-            // Simuler click på parent i stedet for at blokere
-            setTimeout(() => {
-              target.parentNode.click();
-            }, 0);
-            return;
-          }
-          
-          // For alle andre elementer: lad normal click handling foregå
-          // Men trigger det programmatisk for at sikre det virker
-          setTimeout(() => {
-            this.handleCategoryGroupClick(event);
-          }, 0);
         }
       },
       checkIfMobile() {
