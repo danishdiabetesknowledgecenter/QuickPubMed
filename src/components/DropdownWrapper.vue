@@ -752,9 +752,16 @@
         const element = this.$refs.selectWrapper;
         document.removeEventListener("mousedown", this.setMouseUsed);
         document.removeEventListener("keydown", this.resetMouseUsed);
+        // Tilføj fjernelse af eksisterende touch listeners for at undgå dubletter
+        document.removeEventListener("touchstart", this.setMouseUsed);
+        document.removeEventListener("touchend", this.setMouseUsed);
+        
         document.addEventListener("mousedown", this.setMouseUsed);
         document.addEventListener("keydown", this.resetMouseUsed);
-
+        // Tilføj touch event support til eksisterende system
+        document.addEventListener("touchstart", this.setMouseUsed);
+        document.addEventListener("touchend", this.setMouseUsed);
+        
         // Click on anywhere on dropdown opens (fix for IE)
         const dropdown = element.getElementsByClassName("qpm_dropDownMenu")[0];
         dropdown.removeEventListener("mousedown", this.handleOpenMenuOnClick);
@@ -1591,13 +1598,16 @@
         this.$emit("updateScope", item, state, this.index);
         item.scope = state;
 
-        // Only close dropdown on actual mouse clicks, not on programmatic clicks from Enter key
-        // Use multiple checks to ensure this is a real mouse click:
+        // Only close dropdown on actual user interactions (mouse clicks or touch), not on programmatic clicks from Enter key
+        // Robuste check der håndterer både mouse og touch events:
         // 1. event.isTrusted - true for real user events, false for programmatic events
-        // 2. this.isMouseUsed - tracks if last interaction was via mouse
-        // 3. event.detail > 0 - mouse clicks have detail > 0, programmatic clicks have detail = 0
-        if (event.isTrusted && this.isMouseUsed && event.detail > 0) {
-        this.$refs.multiselect.deactivate();
+        // 2. this.isMouseUsed - tracks if last interaction was via mouse/touch
+        // 3. For mouse: event.detail > 0, for touch: event.detail kan være 0, så accepter også det
+        const isRealUserInteraction = event.isTrusted && this.isMouseUsed && 
+          (event.detail > 0 || event.type === 'touchend' || event.type === 'touchstart');
+        
+        if (isRealUserInteraction) {
+          this.$refs.multiselect.deactivate();
         }
 
         //Check if just added
