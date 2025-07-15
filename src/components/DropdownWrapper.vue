@@ -318,6 +318,7 @@
         _isEmptyDropdown: false, // Track if this is an empty dropdown with custom input handling
         isDropdownOpen: false, // Track dropdown state for aria-expanded
         isTouchInteraction: false, // Track touch interactions
+        cachedMobileHeight: null, // Cache højden baseret på hovedkategorier
       };
     },
     computed: {
@@ -513,14 +514,23 @@
           return 600; // Standard desktop
         }
         
-        // Mobile: Simpel beregning baseret på antal hovedkategorier
+        // Hvis højden er cached, brug den
+        if (this.cachedMobileHeight !== null) {
+          return this.cachedMobileHeight;
+        }
+        
+        // Beregn højde første gang baseret på hovedkategorier
         if (this.getSortedSubjectOptions && this.getSortedSubjectOptions.length > 0) {
           const groupCount = this.getSortedSubjectOptions.length;
-          // 48px per gruppe (original højde) + padding
-          const calculatedHeight = (groupCount * 48) + 60;
+          // 44px per hovedkategori + minimal padding (reduceret til 8px)
+          const calculatedHeight = (groupCount * 44) + 1;
           
-          // Begræns mellem 250-400px på mobile
-          return Math.max(250, Math.min(calculatedHeight, 400));
+          // Cache højden
+          this.cachedMobileHeight = Math.max(250, calculatedHeight);
+          
+          console.log(`Cached mobile height for ${groupCount} groups: ${this.cachedMobileHeight}px`);
+          
+          return this.cachedMobileHeight;
         }
         
         return 300; // Fallback
@@ -597,7 +607,8 @@
       },
       maintopicToggledMap: {
         handler() {
-          this.updateDropdownHeight();
+          // Når maintopics åbnes/lukkes, bevar fast dropdown højde
+          this.enforceFixedDropdownHeight();
         },
         deep: true
       },
@@ -948,8 +959,8 @@
         // Update dropdown state for aria-expanded
         this.isDropdownOpen = true;
         
-        // KUN opdater højde på mobile (ingen styling ændringer)
-        this.updateDropdownHeightOnMobile();
+        // Sæt fast højde på mobile
+        this.enforceFixedDropdownHeight();
         
         // Update aria-expanded directly on DOM
         this.$nextTick(() => {
@@ -1376,9 +1387,9 @@
           target = target.parentElement;
         }
 
-        const optionGroupName = target.getElementsByClassName("qpm_groupLabel")[0].textContent;
+        const optionGroupName = target.getElementsByClassName("qpm_groupLabel")[0]?.textContent;
 
-        if (target.classList.contains("multiselect__option--group")) {
+        if (target.classList.contains("multiselect__option--group") && optionGroupName) {
           if (this.expandedOptionGroupName === optionGroupName) {
             this.hideItems(this.expandedOptionGroupName);
             this.expandedOptionGroupName = "";
@@ -1403,15 +1414,10 @@
               this.updateOptionGroupVisibility(selectedOptionIds, optionsInOptionGroup);
             }
           }
-        } else {
-          // This is when we are adding a new tag
+          
+          // Sikr fast højde efter kategori ændring
+          this.enforceFixedDropdownHeight();
         }
-
-        // Efter at have ændret expandedOptionGroupName eller maintopicToggledMap:
-        // Opdater dropdown højde
-        this.$nextTick(() => {
-          this.updateDropdownHeight();
-        });
       },
       /**
        * Handles the click event on a tag (an option that has been selected),
@@ -2966,6 +2972,40 @@
             contentWrapper.style.maxHeight = newHeight + 'px';
           }
         });
+      },
+
+      // Korrekt implementering der targeter de rigtige vue-multiselect elementer
+      enforceFixedDropdownHeight() {
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        if (!isMobile) return;
+        
+        this.$nextTick(() => {
+          // Target de rigtige vue-multiselect elementer
+          const multiselectElement = this.$el?.querySelector('.multiselect');
+          const contentWrapper = this.$el?.querySelector('.multiselect__content-wrapper');
+          const content = this.$el?.querySelector('.multiselect__content');
+          
+          if (contentWrapper && content) {
+            const fixedHeight = this.getMobileAwareMaxHeight;
+            
+            console.log('Setting fixed dropdown height:', fixedHeight + 'px');
+            
+            // Sæt fast højde på wrapper og aktiver scrolling
+            contentWrapper.style.maxHeight = fixedHeight + 'px';
+            contentWrapper.style.height = fixedHeight + 'px';
+            contentWrapper.style.overflowY = 'auto';
+            // FJERN denne linje: contentWrapper.style.overflowX = 'hidden';
+            // Tillad horizontal scrolling til knapperne i avanceret mode
+            contentWrapper.style.overflowX = 'auto';
+            
+            // Sikr at content ikke tvinger wrapper til at udvide
+            content.style.minHeight = 'unset';
+            content.style.height = 'auto';
+          }
+        });
+      },
+      resetMobileHeightCache() {
+        this.cachedMobileHeight = null;
       },
     },
   };

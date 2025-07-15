@@ -3393,7 +3393,7 @@ export const topics = [
     groupname: "S090",
     translations: {
       dk: "Forebyggelse og risikofaktorer",
-      en: "Prevention and resk factors"
+      en: "Prevention and risk factors"
     },
     ordering: { 
       dk: 9, 

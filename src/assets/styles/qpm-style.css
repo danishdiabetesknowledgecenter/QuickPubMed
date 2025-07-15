@@ -2371,8 +2371,22 @@ input:checked + .qpm_slider:before {
 
 /* Tilføj omkring linje 1050 hvor multiselect styles er */
 @media (max-width: 768px) {
+  /* Sikr korrekt scrolling på mobile */
   .multiselect__content-wrapper {
-    -webkit-overflow-scrolling: touch;
+    -webkit-overflow-scrolling: touch !important;
+    /* Fjern enhver transition der kan interferere */
+    transition: none !important;
+  }
+  
+  /* Forhindre content i at tvinge wrapper til at udvide */
+  .multiselect__content {
+    min-height: unset !important;
+    height: auto !important;
+  }
+  
+  /* Sikr at elements ikke bryder scrolling */
+  .multiselect__element {
+    flex-shrink: 0 !important;
   }
 }
 
@@ -2380,7 +2394,7 @@ input:checked + .qpm_slider:before {
 .multiselect__content-wrapper {
   transition: max-height 0.3s ease-in-out !important;
   overflow-y: auto !important;
-  overflow-x: hidden !important;
+  overflow-x: auto !important;
 }
 
 @media (max-width: 768px) {
@@ -2391,7 +2405,6 @@ input:checked + .qpm_slider:before {
   /* Sikr minimum touch targets */
   .multiselect__option {
     min-height: 44px !important;
-    padding: 8px 12px !important;
     display: flex !important;
     align-items: center !important;
   }
@@ -2406,4 +2419,22 @@ input:checked + .qpm_slider:before {
 /* Smooth height transitions */
 .qpm_dropDownMenu .multiselect__content-wrapper {
   transition: max-height 0.2s ease-out;
+}
+
+/* Tilføj denne regel for at tillade horizontal scrolling på mobile */
+@media (max-width: 768px) {
+  .multiselect__option {
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+  }
+  
+  /* Sikr at knapperne ikke krymper */
+  .qpm_dropdownButtons {
+    flex-shrink: 0 !important;
+  }
+  
+  .qpm_dropdownButtons .qpm_button {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+  }
 }
