@@ -310,18 +310,12 @@
         focusByHover: true,
         ignoreHover: false,
         isLoading: false,
-        isMouseUsed: false,
+        isMouseUsed: false, // Flag to track interaction method
         isUserTyping: false,
         inputWidthObserver: null,
-        isSilentFocus: false,
-        _isEmptyDropdown: false,
-        isDropdownOpen: false,
-        isTouchInteraction: false,
-        touchStartTime: 0,
-        touchStartX: 0,
-        touchStartY: 0,
-        touchMoved: false,
-        isScrolling: false, // Track scroll gestures
+        isSilentFocus: false, // Track if focus is "silent" (no visual styling)
+        _isEmptyDropdown: false, // Track if this is an empty dropdown with custom input handling
+        isDropdownOpen: false, // Track dropdown state for aria-expanded
       };
     },
     computed: {
@@ -575,25 +569,6 @@
         },
         immediate: false,
       },
-      expandedOptionGroupName: {
-        handler() {
-          // FJERN: this.enforceFixedDropdownHeight();
-          // Eventuelt tilføj anden logik hvis nødvendig
-        }
-      },
-      maintopicToggledMap: {
-        handler() {
-          // FJERN: this.enforceFixedDropdownHeight();
-          // Bevar kun: this.updateSortedSubjectOptions(); hvis den eksisterer
-        },
-        deep: true
-      },
-      getSortedSubjectOptions: {
-        handler() {
-          // FJERN: this.enforceFixedDropdownHeight();
-        },
-        deep: true
-      }
     },
     mounted: function () {
       this.initialSetup();
@@ -777,16 +752,9 @@
         const element = this.$refs.selectWrapper;
         document.removeEventListener("mousedown", this.setMouseUsed);
         document.removeEventListener("keydown", this.resetMouseUsed);
-        // Tilføj fjernelse af eksisterende touch listeners for at undgå dubletter
-        document.removeEventListener("touchstart", this.setMouseUsed);
-        document.removeEventListener("touchend", this.setMouseUsed);
-        
         document.addEventListener("mousedown", this.setMouseUsed);
         document.addEventListener("keydown", this.resetMouseUsed);
-        // Tilføj touch event support til eksisterende system
-        document.addEventListener("touchstart", this.setMouseUsed);
-        document.addEventListener("touchend", this.setMouseUsed);
-        
+
         // Click on anywhere on dropdown opens (fix for IE)
         const dropdown = element.getElementsByClassName("qpm_dropDownMenu")[0];
         dropdown.removeEventListener("mousedown", this.handleOpenMenuOnClick);
@@ -815,19 +783,13 @@
         const self = this;
 
         headers.forEach((header) => {
-          // Stop existing events
+          // Stop existing mousedown events
           header.removeEventListener("mousedown", self.handleStopEvent, true);
-          header.removeEventListener("touchstart", self.handleStopEvent, true);
-          
-          // Tilføj touch-aware event handling
           header.addEventListener("mousedown", self.handleStopEvent, true);
-          header.addEventListener("touchstart", self.handleTouchStart, true);
-          header.addEventListener("touchmove", self.handleTouchMove, true); // TILFØJ DENNE
-          header.addEventListener("touchend", self.handleTouchEnd, true);
 
-          // Add click handler for category groups (med højere prioritet)
+          // Add click handler for category groups
           header.removeEventListener("click", self.handleCategoryGroupClick);
-          header.addEventListener("click", self.handleCategoryGroupClick, { passive: false });
+          header.addEventListener("click", self.handleCategoryGroupClick);
         });
 
         // Stop selecting group when pressing enter during search
@@ -919,6 +881,7 @@
       open() {
         // If this is an empty dropdown, don't allow opening
         if (this._isEmptyDropdown) {
+          // Do nothing, handled by custom event handlers
           return;
         }
         
@@ -932,6 +895,9 @@
         
         // For dropdowns with topics, reset pointer to ensure highlight logic works
         this.$refs.multiselect.pointer = -1;
+        
+        // Update dropdown state for aria-expanded
+        this.isDropdownOpen = true;
         
         // Update aria-expanded directly on DOM
         this.$nextTick(() => {
@@ -1344,13 +1310,6 @@
        * @param {HTMLElement} target - The target element.
        */
       handleCategoryGroupClick(event) {
-        // Hvis det er en touch interaction på en lang dropdown, 
-        // sikr at event ikke går tabt
-        if (this.isTouchInteraction) {
-          event.stopPropagation();
-          event.preventDefault();
-        }
-        
         let target = event.target;
 
         // Check if the click is on the optiongroup name or elsewhere within the multiselect__option__option--group element
@@ -1358,9 +1317,9 @@
           target = target.parentElement;
         }
 
-        const optionGroupName = target.getElementsByClassName("qpm_groupLabel")[0]?.textContent;
+        const optionGroupName = target.getElementsByClassName("qpm_groupLabel")[0].textContent;
 
-        if (target.classList.contains("multiselect__option--group") && optionGroupName) {
+        if (target.classList.contains("multiselect__option--group")) {
           if (this.expandedOptionGroupName === optionGroupName) {
             this.hideItems(this.expandedOptionGroupName);
             this.expandedOptionGroupName = "";
@@ -1370,6 +1329,7 @@
             this.expandedOptionGroupName = optionGroupName;
             
             // Reset maintopicToggledMap when switching to a new category
+            // This prevents navigation issues caused by state from previous categories
             this.resetMaintopicToggledMap();
 
             const optionGroupId = this.getOptionGroupId(optionGroupName);
@@ -1382,9 +1342,12 @@
               this.showOrHideElements();
               this.updateExpandedGroupHighlighting();
             } else {
+              // Only show the tags in the clicked group
               this.updateOptionGroupVisibility(selectedOptionIds, optionsInOptionGroup);
             }
           }
+        } else {
+          // This is when we are adding a new tag
         }
       },
       /**
@@ -1611,9 +1574,8 @@
         event.stopPropagation();
         
         // Sikkerhedstjek for at search ref eksisterer
-        // Tilføj preventScroll for at undgå scroll på mobile enheder
         if (this.$refs.multiselect && this.$refs.multiselect.$refs.search) {
-          this.$refs.multiselect.$refs.search.focus({ preventScroll: true });
+          this.$refs.multiselect.$refs.search.focus();
         }
       },
       handleScopeButtonClick(item, state, event) {
@@ -1629,16 +1591,13 @@
         this.$emit("updateScope", item, state, this.index);
         item.scope = state;
 
-        // Only close dropdown on actual user interactions (mouse clicks or touch), not on programmatic clicks from Enter key
-        // Robuste check der håndterer både mouse og touch events:
+        // Only close dropdown on actual mouse clicks, not on programmatic clicks from Enter key
+        // Use multiple checks to ensure this is a real mouse click:
         // 1. event.isTrusted - true for real user events, false for programmatic events
-        // 2. this.isMouseUsed - tracks if last interaction was via mouse/touch
-        // 3. For mouse: event.detail > 0, for touch: event.detail kan være 0, så accepter også det
-        const isRealUserInteraction = event.isTrusted && this.isMouseUsed && 
-          (event.detail > 0 || event.type === 'touchend' || event.type === 'touchstart');
-        
-        if (isRealUserInteraction) {
-          this.$refs.multiselect.deactivate();
+        // 2. this.isMouseUsed - tracks if last interaction was via mouse
+        // 3. event.detail > 0 - mouse clicks have detail > 0, programmatic clicks have detail = 0
+        if (event.isTrusted && this.isMouseUsed && event.detail > 0) {
+        this.$refs.multiselect.deactivate();
         }
 
         //Check if just added
@@ -1746,34 +1705,22 @@
        * @returns {boolean} Always returns false to indicate the event has been handled.
        */
       handleStopEvent(event) {
-        const isTouch = event.type === 'touchstart' || event.type === 'touchend';
-        
         // Click event was on the parent multiselect group
         if (event.target.classList.contains("multiselect__option--group")) {
           event.stopPropagation();
-          // Kun preventDefault for ikke-touch events
-          if (!isTouch) {
-            event.preventDefault();
-          }
+          event.preventDefault();
           return false;
         }
-        
         // Click event was on the category name (left aligned)
         if (event.target.classList.contains("qpm_groupLabel")) {
           event.stopPropagation();
-          // For touch events: LAD click events gå igennem
-          if (!isTouch) {
-            event.preventDefault();
-          }
+          event.preventDefault();
           return false;
         }
-        
         // click event was on either of the scope labels (right aligned in advanced search)
         if (event.target.classList.contains("qpm_scopeLabel")) {
           event.stopPropagation();
-          if (!isTouch) {
-            event.preventDefault();
-          }
+          event.preventDefault();
           event.target.parentNode.click();
           return false;
         }
@@ -1795,10 +1742,8 @@
         var isFocusVissible = this.isSubjectVissible(subject);
         if (!isFocusVissible) {
           this.ignoreHover = true;
-          // Tilføj check for mobile for at undgå aggressive scrolling
-          const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
           subject.scrollIntoView({
-            behavior: isMobile ? "auto" : "smooth", // Brug "auto" på mobile for mindre aggressive scroll
+            behavior: "smooth",
             block: "nearest",
             inline: "nearest",
           });
@@ -2836,76 +2781,6 @@
           event.preventDefault();
           this.handleTagClick(event);
         }
-      },
-      handleTouchStart(event) {
-        // Marker at vi er i en touch interaction
-        this.isTouchInteraction = true;
-        this.setMouseUsed();
-        
-        // Store touch start data
-        this.touchStartTime = Date.now();
-        this.touchStartX = event.touches[0].clientX;
-        this.touchStartY = event.touches[0].clientY;
-        this.touchMoved = false;
-        
-        // For group labels: LAD touch events fortsætte til click
-        if (event.target.classList.contains("qpm_groupLabel")) {
-          event.stopPropagation();
-          return false;
-        }
-        
-        this.handleStopEvent(event);
-      },
-      handleTouchMove(event) {
-        if (!this.isTouchInteraction) return;
-        
-        // Check om finger har bevæget sig mere end threshold (10px)
-        const touch = event.touches[0];
-        const deltaX = Math.abs(touch.clientX - this.touchStartX);
-        const deltaY = Math.abs(touch.clientY - this.touchStartY);
-        
-        if (deltaX > 10 || deltaY > 10) {
-          this.touchMoved = true;
-          // VIGTIG: Stop propagation under scroll for at forhindre dropdown close
-          event.stopPropagation();
-          
-          // Marker at dette er en scroll gesture, ikke en click
-          this.isScrolling = true;
-        }
-      },
-      handleTouchEnd(event) {
-        if (!this.isTouchInteraction) return;
-        
-        const touchDuration = Date.now() - this.touchStartTime;
-        
-        // Hvis det var en scroll gesture, forhindre click events
-        if (this.isScrolling) {
-          // Stop alle click events efter scroll
-          event.preventDefault();
-          event.stopPropagation();
-          event.stopImmediatePropagation();
-          
-          // Reset flags
-          this.isScrolling = false;
-          this.isTouchInteraction = false;
-          this.touchMoved = false;
-          return false; // Forhindrer dropdown close
-        }
-        
-        // Rest af existing logic...
-        const isValidTap = touchDuration >= 50 && 
-                           touchDuration <= 1000 && 
-                           !this.touchMoved;
-        
-        if (!isValidTap) {
-          this.isTouchInteraction = false;
-          return;
-        }
-        
-        // Reset touch interaction flag efter længere delay for iOS
-        setTimeout(() => {
-          this.isTouchInteraction = false;
-        }, 300);
       },
     },
   };
