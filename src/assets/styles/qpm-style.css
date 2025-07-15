@@ -2371,11 +2371,31 @@ input:checked + .qpm_slider:before {
 
 /* Tilføj omkring linje 1050 hvor multiselect styles er */
 @media (max-width: 768px) {
-  /* Sikr korrekt scrolling på mobile */
+  /* Dropdown scrolling og touch support */
   .multiselect__content-wrapper {
     -webkit-overflow-scrolling: touch !important;
-    /* Fjern enhver transition der kan interferere */
     transition: none !important;
+  }
+  
+  /* Minimum touch targets og flex layout */
+  .multiselect__option {
+    min-height: 44px !important;
+    padding: 8px 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    /* FJERN overflow-x og white-space herfra */
+  }
+  
+  /* KUN på optioner med knapper (ikke hovedkategorier): */
+  .multiselect__option:has(.qpm_dropdownButtons) {
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+  }
+  
+  .qpm_groupLabel {
+    min-height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
   }
   
   /* Forhindre content i at tvinge wrapper til at udvide */
@@ -2384,9 +2404,15 @@ input:checked + .qpm_slider:before {
     height: auto !important;
   }
   
-  /* Sikr at elements ikke bryder scrolling */
-  .multiselect__element {
+  /* Sikr at elements og knapper ikke krymper */
+  .multiselect__element,
+  .qpm_dropdownButtons,
+  .qpm_dropdownButtons .qpm_button {
     flex-shrink: 0 !important;
+  }
+  
+  .qpm_dropdownButtons .qpm_button {
+    white-space: nowrap !important;
   }
 }
 
@@ -2424,7 +2450,6 @@ input:checked + .qpm_slider:before {
 /* Tilføj denne regel for at tillade horizontal scrolling på mobile */
 @media (max-width: 768px) {
   .multiselect__option {
-    overflow-x: auto !important;
     white-space: nowrap !important;
   }
   

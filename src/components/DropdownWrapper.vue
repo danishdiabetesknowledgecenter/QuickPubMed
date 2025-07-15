@@ -602,7 +602,8 @@
       },
       expandedOptionGroupName: {
         handler() {
-          this.updateDropdownHeight();
+          // ❌ updateDropdownHeight() er ødelagt - erstat med:
+          this.enforceFixedDropdownHeight();
         }
       },
       maintopicToggledMap: {
@@ -614,7 +615,8 @@
       },
       getSortedSubjectOptions: {
         handler() {
-          this.updateDropdownHeight();
+          // ❌ updateDropdownHeight() er ødelagt - erstat med:
+          this.enforceFixedDropdownHeight();
         },
         deep: true
       }
@@ -2960,20 +2962,6 @@
         });
       },
 
-      // Kun opdater højde, ikke styling
-      updateDropdownHeightOnMobile() {
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        if (!isMobile) return; // Kun på mobile
-        
-        this.$nextTick(() => {
-          const contentWrapper = this.$el?.querySelector('.multiselect__content-wrapper');
-          if (contentWrapper) {
-            const newHeight = this.getDynamicMaxHeight;
-            contentWrapper.style.maxHeight = newHeight + 'px';
-          }
-        });
-      },
-
       // Korrekt implementering der targeter de rigtige vue-multiselect elementer
       enforceFixedDropdownHeight() {
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -3003,9 +2991,6 @@
             content.style.height = 'auto';
           }
         });
-      },
-      resetMobileHeightCache() {
-        this.cachedMobileHeight = null;
       },
     },
   };
