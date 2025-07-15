@@ -319,6 +319,10 @@
         isDropdownOpen: false, // Track dropdown state for aria-expanded
         isTouchInteraction: false, // Track touch interactions
         cachedMobileHeight: null, // Cache højden baseret på hovedkategorier
+        touchStartTime: 0,
+        touchStartX: 0,
+        touchStartY: 0,
+        touchMoved: false,
       };
     },
     computed: {
@@ -848,6 +852,7 @@
           // Tilføj touch-aware event handling
           header.addEventListener("mousedown", self.handleStopEvent, true);
           header.addEventListener("touchstart", self.handleTouchStart, true);
+          header.addEventListener("touchmove", self.handleTouchMove, true); // TILFØJ DENNE
           header.addEventListener("touchend", self.handleTouchEnd, true);
 
           // Add click handler for category groups (med højere prioritet)
@@ -2874,23 +2879,58 @@
       handleTouchStart(event) {
         // Marker at vi er i en touch interaction
         this.isTouchInteraction = true;
-        this.setMouseUsed(); // Marker som "mouse" interaction for eksisterende logik
+        this.setMouseUsed();
+        
+        // Store touch start data
+        this.touchStartTime = Date.now();
+        this.touchStartX = event.touches[0].clientX;
+        this.touchStartY = event.touches[0].clientY;
+        this.touchMoved = false;
         
         // For group labels: LAD touch events fortsætte til click
         if (event.target.classList.contains("qpm_groupLabel")) {
           event.stopPropagation();
-          // IKKE preventDefault - lad touch -> click flow fungere
           return false;
         }
         
-        // For andre elementer: brug original logik
         this.handleStopEvent(event);
       },
+      handleTouchMove(event) {
+        if (!this.isTouchInteraction) return;
+        
+        // Check om finger har bevæget sig mere end threshold (10px)
+        const touch = event.touches[0];
+        const deltaX = Math.abs(touch.clientX - this.touchStartX);
+        const deltaY = Math.abs(touch.clientY - this.touchStartY);
+        
+        if (deltaX > 10 || deltaY > 10) {
+          this.touchMoved = true;
+        }
+      },
       handleTouchEnd(event) {
-        // Reset touch interaction flag efter lille delay
+        if (!this.isTouchInteraction) return;
+        
+        const touchDuration = Date.now() - this.touchStartTime;
+        
+        // Kun behandl som valid tap hvis:
+        // 1. Touch duration er mindst 50ms (undgå accidental touches)
+        // 2. Finger ikke har bevæget sig for meget
+        // 3. Touch duration er ikke for lang (max 1000ms)
+        const isValidTap = touchDuration >= 50 && 
+                           touchDuration <= 1000 && 
+                           !this.touchMoved;
+        
+        if (!isValidTap) {
+          // Cancel touch interaction hvis ikke valid
+          this.isTouchInteraction = false;
+          return;
+        }
+        
+        // Reset touch interaction flag efter længere delay for iOS
         setTimeout(() => {
           this.isTouchInteraction = false;
-        }, 100);
+          this.touchMoved = false;
+        }, 300); // Øget til 300ms for iOS Safari
       },
       countVisibleGroups() {
         if (!this.getSortedSubjectOptions) return 0;
