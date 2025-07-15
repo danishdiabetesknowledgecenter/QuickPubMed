@@ -21,7 +21,7 @@
       :class="{ 'qpm_hideDropdownArrow': shouldHideDropdownArrow }"
       :aria-expanded="isDropdownOpen"
       :aria-label="placeholder"
-      open-direction="bottom"
+      :open-direction="dropdownDirection"
       :max-height="getMaxHeight"
       track-by="name"
       label="name"
@@ -318,6 +318,8 @@
         _isEmptyDropdown: false, // Track if this is an empty dropdown with custom input handling
         isDropdownOpen: false, // Track dropdown state for aria-expanded
         isTouchInteraction: false, // Track touch interactions
+        viewportHeight: window.innerHeight,
+        dropdownTopOffset: 0,
       };
     },
     computed: {
@@ -507,9 +509,18 @@
         return result;
       },
       getMaxHeight() {
-        // Begræns dropdown højde på mobile for at undgå viewport problemer
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        return isMobile ? 300 : 600; // Kortere på mobile
+        return this.calculateOptimalDropdownHeight();
+      },
+      dropdownDirection() {
+        // Dynamisk retning baseret på plads
+        const viewportHeight = this.viewportHeight;
+        const dropdownTop = this.dropdownTopOffset;
+        
+        // Hvis der er mere plads over end under, åbn opad
+        if (dropdownTop > viewportHeight - dropdownTop) {
+          return 'top';
+        }
+        return 'bottom';
       },
     },
     watch: {
@@ -646,6 +657,9 @@
         this.fixAriaControls();
         this.updateAriaExpanded();
       });
+
+      // Tilføj viewport tracking for dynamic dropdown sizing
+      this.setupViewportTracking();
     },
     updated: function () {
       this.initialSetup();
@@ -682,6 +696,8 @@
         this.inputWidthObserver.disconnect();
         this.inputWidthObserver = null;
       }
+
+      this.cleanupViewportTracking();
     },
     methods: {
       onSelectedChange(newValue, oldValue) {
@@ -922,6 +938,9 @@
         this.$nextTick(() => {
           this.updateAriaExpanded();
         });
+
+        // Update dropdown position når den åbnes
+        this.updateDropdownPosition();
       },
       /**
        * Added for sanity, since we hide elements by adding qpm_shown
@@ -2844,6 +2863,94 @@
         setTimeout(() => {
           this.isTouchInteraction = false;
         }, 100);
+      },
+      setupViewportTracking() {
+        // Track viewport changes
+        this.handleViewportChange = this.handleViewportChange.bind(this);
+        window.addEventListener('resize', this.handleViewportChange, { passive: true });
+        window.addEventListener('orientationchange', this.handleViewportChange, { passive: true });
+        
+        // Initial calculation
+        this.updateDropdownPosition();
+      },
+      cleanupViewportTracking() {
+        if (this.handleViewportChange) {
+          window.removeEventListener('resize', this.handleViewportChange);
+          window.removeEventListener('orientationchange', this.handleViewportChange);
+        }
+      },
+      handleViewportChange() {
+        // Debounce viewport changes
+        clearTimeout(this.viewportTimeout);
+        this.viewportTimeout = setTimeout(() => {
+          this.viewportHeight = window.innerHeight;
+          this.updateDropdownPosition();
+        }, 100);
+      },
+      updateDropdownPosition() {
+        this.$nextTick(() => {
+          if (this.$el) {
+            const rect = this.$el.getBoundingClientRect();
+            this.dropdownTopOffset = rect.bottom;
+          }
+        });
+      },
+      calculateOptimalDropdownHeight() {
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        
+        if (!isMobile) {
+          // Desktop: brug større standard højde
+          return 400;
+        }
+
+        // Mobile: beregn dynamisk baseret på tilgængelig plads
+        const viewportHeight = this.viewportHeight;
+        const dropdownTop = this.dropdownTopOffset;
+        
+        // Reserve plads til:
+        const bottomPadding = 20; // Padding fra bunden af skærmen
+        const headerSpace = 60;   // Plads til keyboard/browser UI
+        const minHeight = 150;    // Minimum dropdown højde
+        const maxHeight = 500;    // Maximum dropdown højde (for store skærme)
+        
+        // Beregn tilgængelig plads under dropdown
+        const availableSpaceBelow = viewportHeight - dropdownTop - bottomPadding - headerSpace;
+        
+        // Hvis der ikke er nok plads under dropdown, check plads over
+        if (availableSpaceBelow < minHeight && dropdownTop > viewportHeight / 2) {
+          // Åbn dropdown opad hvis der er mere plads over
+          const availableSpaceAbove = dropdownTop - headerSpace - bottomPadding;
+          const calculatedHeight = Math.max(minHeight, Math.min(maxHeight, availableSpaceAbove));
+          
+          // Sæt open-direction til "top" hvis vi bruger plads opad
+          this.$nextTick(() => {
+            if (this.$refs.multiselect) {
+              this.$refs.multiselect.openDirection = 'top';
+            }
+          });
+          
+          return calculatedHeight;
+        }
+        
+        // Standard: åbn dropdown nedad
+        this.$nextTick(() => {
+          if (this.$refs.multiselect) {
+            this.$refs.multiselect.openDirection = 'bottom';
+          }
+        });
+        
+        // Beregn optimal højde baseret på tilgængelig plads
+        const calculatedHeight = Math.max(minHeight, Math.min(maxHeight, availableSpaceBelow));
+        
+        console.log('Calculated dropdown height:', {
+          viewportHeight,
+          dropdownTop,
+          availableSpaceBelow,
+          calculatedHeight,
+          isMobile
+        });
+        
+        return calculatedHeight;
       },
     },
   };

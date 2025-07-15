@@ -2372,13 +2372,13 @@ input:checked + .qpm_slider:before {
 /* Tilføj omkring linje 1050 hvor multiselect styles er */
 @media (max-width: 768px) {
   .multiselect__content-wrapper {
-    max-height: 300px !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
+    /* Fjern fast max-height, da det nu er dynamisk */
   }
   
   .multiselect__content {
-    max-height: 300px !important;
+    /* Fjern fast max-height, da det nu er dynamisk */
   }
   
   /* Forbedre touch targets på mobile */
@@ -2391,5 +2391,26 @@ input:checked + .qpm_slider:before {
     min-height: 44px !important;
     display: flex !important;
     align-items: center !important;
+  }
+  
+  /* Sørg for dropdown ikke går ud over viewport */
+  .multiselect {
+    position: relative;
+  }
+  
+  .multiselect__content-wrapper {
+    position: absolute;
+    z-index: 1000;
+    width: 100%;
+    /* Box shadow for bedre visuel adskillelse */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    border-radius: 4px;
+  }
+}
+
+/* Tilføj for landscape orientation på mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+  .multiselect__content-wrapper {
+    /* Mindre margin i landscape for at udnytte plads bedre */
   }
 }
