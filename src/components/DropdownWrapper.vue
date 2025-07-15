@@ -792,9 +792,13 @@
         headers.forEach((header) => {
           // Stop existing mousedown events
           header.removeEventListener("mousedown", self.handleStopEvent, true);
+          header.removeEventListener("touchstart", self.handleStopEvent, true);
+          
+          // Tilføj separate event handlers for forskellige event typer
           header.addEventListener("mousedown", self.handleStopEvent, true);
+          header.addEventListener("touchstart", self.handleStopEvent, true);
 
-          // Add click handler for category groups
+          // Add click handler for category groups (higher priority på mobile)
           header.removeEventListener("click", self.handleCategoryGroupClick);
           header.addEventListener("click", self.handleCategoryGroupClick);
         });
@@ -1716,31 +1720,38 @@
        * @returns {boolean} Always returns false to indicate the event has been handled.
        */
       handleStopEvent(event) {
-        // Click event was on the parent multiselect group
-        if (event.target.classList.contains("multiselect__option--group")) {
+        const isTouch = event.type === 'touchstart' || event.type === 'touchend';
+        const isGroupLabel = event.target.classList.contains("qpm_groupLabel");
+        const isOptionGroup = event.target.classList.contains("multiselect__option--group");
+        
+        // For gruppelabels på touch enheder: LAD CLICK EVENTS GÅ IGENNEM
+        if (isGroupLabel && isTouch) {
+          // Kun stopPropagation, ikke preventDefault
           event.stopPropagation();
-          // Kun preventDefault for non-touch events for at tillade touch navigation
-          if (event.type !== 'touchend' && event.type !== 'touchstart') {
+          return false;
+        }
+        
+        // Original logik for andre tilfælde
+        if (isOptionGroup) {
+          event.stopPropagation();
+          if (!isTouch) {
             event.preventDefault();
           }
           return false;
         }
-        // Click event was on the category name (left aligned)
-        if (event.target.classList.contains("qpm_groupLabel")) {
+        
+        if (isGroupLabel) {
           event.stopPropagation();
-          // Kun preventDefault for non-touch events for at tillade touch navigation
-          if (event.type !== 'touchend' && event.type !== 'touchstart') {
+          if (!isTouch) {
             event.preventDefault();
           }
           return false;
         }
+        
         // click event was on either of the scope labels (right aligned in advanced search)
         if (event.target.classList.contains("qpm_scopeLabel")) {
           event.stopPropagation();
-          // Kun preventDefault for non-touch events for at tillade touch navigation
-          if (event.type !== 'touchend' && event.type !== 'touchstart') {
-            event.preventDefault();
-          }
+          event.preventDefault();
           event.target.parentNode.click();
           return false;
         }
