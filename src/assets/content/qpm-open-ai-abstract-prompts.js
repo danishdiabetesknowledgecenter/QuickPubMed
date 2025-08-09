@@ -178,7 +178,7 @@ export const summarizeMultipleAbstractPrompt = [
     // Each model has its own limit for the number of tokens it can handle. However, it is difficult to determine the limit dynamically. Please adjust this number to match the one given here: https://platform.openai.com/docs/models
     model_token_limit: 128000,
     // Below are a series of openAi parameters. To learn more about them see: https://platform.openai.com/docs/api-reference/completions/create
-    model: "gpt-5",
+    model: "chatgpt-4o-latest",
     reasoning: {
       effort: "high",
     },
@@ -212,7 +212,7 @@ export const summarizeMultipleAbstractPrompt = [
     // Please adjust this number to match the one given here: https://platform.openai.com/docs/models
     model_token_limit: 128000,
     // Below are a series of openAi parameters. To learn more about them see: https://platform.openai.com/docs/api-reference/completions/create
-    model: "gpt-5",
+    model: "chatgpt-4o-latest",
     reasoning: {
       effort: "high",
     },
@@ -246,7 +246,7 @@ export const summarizeSingleAbstractPrompt = [
     // Each model has its own limit for the number of tokens it can handle. However, it is difficult to determine the limit dynamically. Please adjust this number to match the one given here: https://platform.openai.com/docs/models
     model_token_limit: 128000,
     // Below are a series of openAi parameters. To learn more about them see: https://platform.openai.com/docs/api-reference/completions/create
-    model: "gpt-5",
+    model: "chatgpt-4o-latest",
     reasoning: {
       effort: "high",
     },
@@ -279,7 +279,7 @@ export const summarizeSingleAbstractPrompt = [
     // Each model has its own limit for the number of tokens it can handle. However, it is difficult to determine the limit dynamically. Please adjust this number to match the one given here: https://platform.openai.com/docs/models
     model_token_limit: 128000,
     // Below are a series of openAi parameters. To learn more about them see: https://platform.openai.com/docs/api-reference/completions/create
-    model: "gpt-5",
+    model: "chatgpt-4o-latest",
     reasoning: {
       effort: "high",
     },
