@@ -228,7 +228,13 @@ export const summarizeArticlePrompt = [
       en: "Plain language",
     },
     model_token_limit: 128000,
-    model: "chatgpt-4o-latest",
+    model: "gpt-5",
+    reasoning: {
+      effort: "high",
+    },
+    text: {
+      verbosity: "high",
+    },
     temperature: null,
     presence_penalty: null,
     frequency_penalty: null,
@@ -247,7 +253,13 @@ export const summarizeArticlePrompt = [
       en: "Professional language",
     },
     model_token_limit: 128000,
-    model: "chatgpt-4o-latest",
+    model: "gpt-5",
+    reasoning: {
+      effort: "high",
+    },
+    text: {
+      verbosity: "high",
+    },
     temperature: null,
     presence_penalty: null,
     frequency_penalty: null,

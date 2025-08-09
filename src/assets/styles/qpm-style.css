@@ -21,6 +21,7 @@
 
 .qpm_vapp p,
 .qpm_vapp li,
+.qpm_vapp li ul,
 .qpm_vapp li ul li {
   margin-bottom: 0;
   font-size: 1.1em;
@@ -858,16 +859,15 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   background: #fafafa;
 }
 
-/* Opdaterer .multiselect__content-wrapper reglen omkring linje 861 */
 .multiselect__content-wrapper {
   border-color: #bbbbbb;
   max-height: none !important;
-  /* Tilføjet for at løse mobile touch event problemer */
-  touch-action: manipulation;
-  pointer-events: auto;
 }
 
-/* .multiselect__option bliver allerede opdateret med min-height: 48px hvilket er perfekt */
+.multiselect__content {
+  margin-bottom: 0 !important;
+}
+
 .multiselect__option {
   margin-bottom: 0 !important;
   display: flex;
@@ -875,9 +875,9 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   align-items: center;
   padding: 0 4px 0 12px;
   min-height: 48px;
-  /* Tilføjet for at sikre touch events virker på mobile */
-  touch-action: manipulation;
-  pointer-events: auto;
+}
+.multiselect__option:after {
+  line-height: 48px;
 }
 
 .qpm_forceRight {
@@ -2368,77 +2368,4 @@ input:checked + .qpm_slider:before {
   border-color: #66afe9;
   outline: none;
   box-shadow: 0 0 8px rgba(102, 175, 233, 0.6);
-}
-
-/* Mobile touch event fixes - tilføjes til slutningen af filen */
-@media (max-width: 768px) {
-  .multiselect__content-wrapper {
-    /* Sikr dropdown ikke går udenfor viewport på mobile */
-    max-width: 100vw;
-    max-height: 50vh;
-    overflow-y: auto;
-    /* Force hardware acceleration for bedre performance */
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
-    /* Extra sikkerhed for touch events */
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-  }
-
-  .multiselect__option {
-    /* Øg touch target størrelse for bedre mobile oplevelse */
-    min-height: 44px; /* Apple's anbefaling for touch targets */
-    /* Sikr touch events registreres korrekt */
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: rgba(0,0,0,0.1);
-  }
-
-  /* Sikr at dropdown options udenfor container kan trykkes på */
-  .qpm_dropdown .multiselect__content-wrapper {
-    position: relative;
-    z-index: 1000;
-  }
-}
-
-/* Erstat den forrige mobile CSS med denne simple version */
-@media screen and (max-width: 768px) {
-  /* Kun touch event fixes - ingen height eller scroll ændringer */
-  .multiselect__content-wrapper {
-    /* Behold original height og scroll adfærd */
-    z-index: 9999 !important;
-    /* Kun touch handling forbedringer */
-    touch-action: manipulation;
-    -webkit-overflow-scrolling: touch;
-    transform: translateZ(0);
-  }
-
-  /* Forbedre touch targets for iOS uden at ændre layout */
-  .multiselect__option {
-    min-height: 44px !important; /* iOS minimum touch target */
-    touch-action: manipulation !important;
-    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
-    /* Sikr elementet kan modtage touch events */
-    pointer-events: auto !important;
-    /* Forbedre responsivitet */
-    -webkit-user-select: none;
-    user-select: none;
-  }
-
-  /* Hjælp iOS med at genkende touch områder */
-  .multiselect__element {
-    position: relative;
-    transform: translateZ(0);
-    backface-visibility: hidden;
-  }
-}
-
-/* iOS Safari specifik touch fix */
-@supports (-webkit-touch-callout: none) {
-  .multiselect__option {
-    cursor: pointer;
-    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
-  }
 }

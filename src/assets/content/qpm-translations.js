@@ -39,7 +39,7 @@ export const messages = {
   },
   choselimits: {
     dk: "Vælg afgrænsning",
-    en: "Add limit",
+    en: "Select limit",
   },
   search: {
     dk: "Søg",
@@ -127,7 +127,7 @@ export const messages = {
   },
   noResultTip: {
     dk: "Prøv eventuelt at fjerne nogle afgrænsninger, eller kontrollér for stavefejl, hvis du har indtastet søgeord.",
-    en: "Try to remove some limits, or check for spelling mistakes if you have entered search terms.",
+    en: "Try removing some limits, or check for spelling mistakes if you entered search terms.",
   },
   noDropdownContent: {
     dk: "Ingen matchende valgmuligheder i listen.",
@@ -355,7 +355,7 @@ export const messages = {
   },
   hoverUnpaywall_loading: {
     dk: "Nogle artikler kan downloades i PDF-format, hvis de er gratis tilgængelige, eller der er givet adgang via din netværksforbindelse &ndash; hvis du ikke har adgang til PDF-versionen, vil du blot blive sendt ind på tidsskriftets hjemmeside (åbner i nyt vindue)",
-    en: "Some journal articles can be downloaded in PDF format if they are available for free or accessible through your network connection &ndash; if you do not have access to the PDF version, you will forwarded to the journal website (opens in new tab)",
+    en: "Some journal articles can be downloaded in PDF format if they are available for free or accessible through your network connection &ndash; if you do not have access to the PDF version, you will be forwarded to the journal website (opens in new tab)",
   },
   GoogleScholar: {
     dk: "Søg efter denne artikel på Google Scholar",
@@ -435,7 +435,7 @@ export const messages = {
   },
   hoverSearchString: {
     dk: "Klik på feltet for at kopiere søgestrengen",
-    en: "Click on the input box to copy search string",
+    en: "Click on the input box to copy the search string",
   },
   hoverAddSubject: {
     dk: "Klik for at tilføje emne",
@@ -454,20 +454,20 @@ export const messages = {
     en: "<div style='text-align: left; font-size: 0.9em; margin: 10px 0 0 0'><p>Options in 'Details':<ul style='list-style-position: outside; padding: 0 15px;'><li>show an easy-to-read version of your search;</li><li>show your PubMed search string;</li><li>run your search in PubMed; and</li><li>create an alert in PubMed.</li></ul></p></div>",
   },
   hoverShowFilterCategoryText: {
-    dk: "Klik her for at se og vælge afgrænsnings kategorier til søgning",
-    en: "Click to show categories for selecting filters for searching",
+    dk: "Klik for at se og vælge afgrænsningskategorier",
+    en: "Click to show and select filter categories",
   },
   hoverShowSearchStringText: {
     dk: "Vis den søgestreng, som sendes til PubMed",
-    en: "Show the search string sent PubMed",
+    en: "Show the search string sent to PubMed",
   },
   hoverShowPrettyStringText: {
     dk: "Vis læsevenlig søgning",
-    en: "Show easy to read search",
+    en: "Show easy-to-read search",
   },
   sortBy: {
     dk: "Sorter efter",
-    en: "Order by",
+    en: "Sort by",
   },
   hideForm: {
     dk: "Skjul søgeformularen",
@@ -515,7 +515,7 @@ export const messages = {
   },
   aiSummarizeSelectedSearchResultHeaderNoCount: {
     dk: "Opsummering af de valgte artikler",
-    en: "Summary of the seleted records",
+    en: "Summary of the selected records",
   },
   aiSummarizeSelectedSearchResultHeaderBeforeCount: {
     dk: "Opsummering af de ",
@@ -538,7 +538,7 @@ export const messages = {
     en: "<strong>NOTE</strong>: This summary is made with <strong>artificial intelligence (AI)</strong>, which can sometimes produce inaccurate or incorrect results. Always read the original article before using the information.",
   },
   unknownError: {
-    dk: "Der er desværre opstået en fejl. Prøv eventuelt af opsummere igen, eller prøv igen senere.",
+    dk: "Der er desværre opstået en fejl. Prøv eventuelt at opsummere igen, eller prøv igen senere.",
     en: "Unfortunately, an error has occurred. Try summarising again or try again later.",
   },
   noAbstractsError: {
@@ -635,9 +635,9 @@ export const messages = {
       aiURL +
       "' target='_blank' title='Læs mere om, hvordan den automatiske oversættelse fungerer (åbner i nyt vindue)'>hvordan den automatiske oversættelse fungerer</a>",
     en:
-      "This summary is made with <strong>artificial intelligence</strong> (AI). Read more about <a href='" +
+      "This translation is made with <strong>artificial intelligence</strong> (AI). Read more about <a href='" +
       aiURL +
-      "' target='_blank' title='Read more about how the AI summary works (opens in new tab)'>how the AI summary works</a>",
+      "' target='_blank' title='Read more about how the AI translation works (opens in new tab)'>how the AI translation works</a>",
   },
   aiSummaryWaitText: {
     dk: "Den kunstige intelligens er i gang med at opsummere...",
@@ -680,8 +680,8 @@ export const messages = {
     en: "Ask the AI to regenerate the summary. It may produce a slightly different result.",
   },
   hoverAskQuestionText: {
-    dk: "Klik her for at få den kunstig intelligens til at generere spørgsmål til hele artiklen. Klik igen for at generere svar på ny.",
-    en: "Click to here to have the AI generate questions for the fuld-text article. Click again to generate answers once more.",
+    dk: "Klik for at få den kunstig intelligens til at generere spørgsmål til hele artiklen. Klik igen for at generere svar på ny.",
+    en: "Click to have the AI generate questions for the full-text article. Click again to generate answers once more.",
   },
   copyText: {
     dk: "Kopiér tekst",

@@ -782,7 +782,6 @@
         const headers = Array.from(element.getElementsByClassName("multiselect__element"));
         const self = this;
 
-        // TILBAGE TIL ORIGINAL KODE
         headers.forEach((header) => {
           // Stop existing mousedown events
           header.removeEventListener("mousedown", self.handleStopEvent, true);
@@ -1706,31 +1705,25 @@
        * @returns {boolean} Always returns false to indicate the event has been handled.
        */
       handleStopEvent(event) {
-        // Kun stop events for specifikke element typer der skal blokeres
+        // Click event was on the parent multiselect group
         if (event.target.classList.contains("multiselect__option--group")) {
           event.stopPropagation();
           event.preventDefault();
           return false;
         }
-        
+        // Click event was on the category name (left aligned)
         if (event.target.classList.contains("qpm_groupLabel")) {
           event.stopPropagation();
           event.preventDefault();
           return false;
         }
-        
+        // click event was on either of the scope labels (right aligned in advanced search)
         if (event.target.classList.contains("qpm_scopeLabel")) {
           event.stopPropagation();
           event.preventDefault();
-          // Trigger click på parent element
-          setTimeout(() => {
-            event.target.parentNode.click();
-          }, 0);
+          event.target.parentNode.click();
           return false;
         }
-        
-        // For alle andre elementer: lad dem passere igennem
-        // Dette er den vigtige ændring - vi blokerer ikke alle events
       },
       /**
        * Blur handler needed to force groups to close if search is aborted
@@ -2788,11 +2781,6 @@
           event.preventDefault();
           this.handleTagClick(event);
         }
-      },
-      checkIfMobile() {
-        // Implementer din egen logik for at detektere mobile enheder
-        // Dette er bare et eksempel, du kan bruge en af mange andre metoder
-        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       },
     },
   };

@@ -178,7 +178,13 @@ export const summarizeMultipleAbstractPrompt = [
     // Each model has its own limit for the number of tokens it can handle. However, it is difficult to determine the limit dynamically. Please adjust this number to match the one given here: https://platform.openai.com/docs/models
     model_token_limit: 128000,
     // Below are a series of openAi parameters. To learn more about them see: https://platform.openai.com/docs/api-reference/completions/create
-    model: "chatgpt-4o-latest",
+    model: "gpt-5",
+    reasoning: {
+      effort: "high",
+    },
+    text: {
+      verbosity: "high",
+    },
     // The openAi model to use. The models have different strengths and costs, to learn more about them see: https://platform.openai.com/docs/models/overview
     top_p: 0.1,
     // Optional(min: 0.0, max: 2.0, default: 1.0)
@@ -206,7 +212,13 @@ export const summarizeMultipleAbstractPrompt = [
     // Please adjust this number to match the one given here: https://platform.openai.com/docs/models
     model_token_limit: 128000,
     // Below are a series of openAi parameters. To learn more about them see: https://platform.openai.com/docs/api-reference/completions/create
-    model: "chatgpt-4o-latest",
+    model: "gpt-5",
+    reasoning: {
+      effort: "high",
+    },
+    text: {
+      verbosity: "high",
+    },
     top_p: 0.1,
     // Optional(min: 0.0, max: 2.0, default: 1.0)
     temperature: 0.1,
@@ -234,7 +246,13 @@ export const summarizeSingleAbstractPrompt = [
     // Each model has its own limit for the number of tokens it can handle. However, it is difficult to determine the limit dynamically. Please adjust this number to match the one given here: https://platform.openai.com/docs/models
     model_token_limit: 128000,
     // Below are a series of openAi parameters. To learn more about them see: https://platform.openai.com/docs/api-reference/completions/create
-    model: "chatgpt-4o-latest",
+    model: "gpt-5",
+    reasoning: {
+      effort: "high",
+    },
+    text: {
+      verbosity: "high",
+    },
     // The openAi model to use. The models have different strengths and costs, to learn more about them see: https://platform.openai.com/docs/models/overview
     top_p: 0.1,
     // Optional(min: 0.0, max: 2.0, default: 1.0)
@@ -261,7 +279,13 @@ export const summarizeSingleAbstractPrompt = [
     // Each model has its own limit for the number of tokens it can handle. However, it is difficult to determine the limit dynamically. Please adjust this number to match the one given here: https://platform.openai.com/docs/models
     model_token_limit: 128000,
     // Below are a series of openAi parameters. To learn more about them see: https://platform.openai.com/docs/api-reference/completions/create
-    model: "chatgpt-4o-latest",
+    model: "gpt-5",
+    reasoning: {
+      effort: "high",
+    },
+    text: {
+      verbosity: "high",
+    },
     top_p: 0.1,
     // Optional(min: 0.0, max: 2.0, default: 1.0)
     temperature: 0.1,
