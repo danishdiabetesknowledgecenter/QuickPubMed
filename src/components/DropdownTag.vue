@@ -7,27 +7,42 @@
       v-tooltip="{ content: getTooltip, offset: 5, delay: helpTextDelay }"
       class="multiselect__tag"
       :class="getTagColor(triple.option.scope)"
+      :style="isEditMode ? (isMultiLine ? 'width: 100%; display: flex; flex-direction: column;' : 'width: 100%;') : ''"
       @click="handleTagClick"
       @keydown.enter.prevent="handleKeydown"
       tabindex="0"
     >
-      <span v-if="triple.option.isCustom">
-        <p>
+      <span v-if="triple.option.isCustom" :style="isEditMode ? 'width: 100%;' : ''">
+        <p v-if="!isEditMode">
           <span class="qpm_prestring">{{ triple.option.preString }}</span>
-          <template v-if="!isEditMode">{{ getCustomNameLabel }}</template>
+          {{ getCustomNameLabel }}
         </p>
-        <input
-          v-show="isEditMode"
-          ref="editInput"
-          v-model="getCustomNameLabel"
-          type="text"
-          minlength="1"
-          @keydown.left.stop
-          @keydown.right.stop
-          @focus.stop
-          @blur.stop="endEdit"
-          @keydown.enter.stop="endEdit"
-        />
+        <div v-if="isEditMode" :style="getEditContainerStyle" @click.stop @mousedown.stop>
+          <div v-if="isMultiLine" style="margin-bottom: 4px;">
+            <span class="qpm_prestring">{{ triple.option.preString }}</span>
+          </div>
+          <span v-if="!isMultiLine" class="qpm_prestring">{{ triple.option.preString }}</span>
+          <textarea
+            ref="editInput"
+            v-model="getCustomNameLabel"
+            minlength="1"
+            rows="1"
+            :style="getTextareaStyle"
+            @keydown.left.stop
+            @keydown.right.stop
+            @keydown.space.stop
+            @keyup.space.stop
+            @keydown="handleTextareaKeydown"
+            @focus.stop
+            @blur.stop="endEdit"
+            @keydown.enter.stop="endEdit"
+            @input="handleInput"
+            @keyup="autoResize"
+            @paste="handlePaste"
+            @click.stop
+            @mousedown.stop
+          />
+        </div>
       </span>
       <span v-else> {{ triple.option.preString }}{{ getCustomNameLabel }} </span>
       <i
@@ -81,13 +96,14 @@
         default: "dk",
       },
     },
-    data() {
-      return {
-        isEditMode: false,
-        tag: JSON.parse(JSON.stringify(this.triple.option)),
-        helpTextDelay: 300,
-      };
-    },
+         data() {
+       return {
+         isEditMode: false,
+         tag: JSON.parse(JSON.stringify(this.triple.option)),
+         helpTextDelay: 300,
+         isMultiLine: false,
+       };
+     },
     computed: {
       getCustomNameLabel: {
         get() {
@@ -95,21 +111,58 @@
           return label ? label : " ";
         },
         set(newName) {
+          console.log('getCustomNameLabel setter called with:', newName, 'isEditMode:', this.isEditMode);
           this.tag.name = newName;
           this.tag.searchStrings.normal = [newName];
         },
       },
-      getTooltip() {
-        let tooltip = null;
-        if (this.tag.tooltip) {
-          tooltip = this.tag.tooltip[this.language];
-        }
-        return tooltip;
-      },
+             getTooltip() {
+         let tooltip = null;
+         if (this.tag.tooltip) {
+           tooltip = this.tag.tooltip[this.language];
+         }
+         return tooltip;
+       },
+       getTextareaStyle() {
+         const baseStyle = "resize: none; overflow: hidden; min-height: 1.2em; line-height: 1.2em; padding: 2px 4px; border: 1px solid #ccc; font-family: inherit; font-size: inherit; box-sizing: border-box; margin: 0;";
+         
+         if (this.isMultiLine) {
+           // Multiple lines: full width and block display
+           return baseStyle + " width: 100%; display: block;";
+         } else {
+           // Single line: fill remaining space inline
+           return baseStyle + " flex: 1; display: inline-block;";
+         }
+       },
+       getEditContainerStyle() {
+         if (this.isMultiLine) {
+           // Multiple lines: full width
+           return "width: 100%;";
+         } else {
+           // Single line: flex layout so textarea fills remaining space
+           return "display: flex; align-items: center; width: 100%;";
+         }
+       },
     },
     watch: {
-      triple(newTriple) {
-        this.tag = newTriple.option;
+      triple(newTriple, oldTriple) {
+        console.log('triple watcher triggered', {
+          newId: newTriple.option.id,
+          oldId: oldTriple?.option?.id,
+          isEditMode: this.isEditMode
+        });
+        
+        // Only reset edit mode if it's actually a new tag (not just an update of the same tag)
+        if (!oldTriple || newTriple.option.id !== oldTriple.option.id) {
+          console.log('Resetting edit mode - different tag');
+          this.tag = newTriple.option;
+          this.isEditMode = false;
+          this.isMultiLine = false;
+        } else {
+          // Same tag, only update tag data without resetting edit mode
+          console.log('Same tag - keeping edit mode');
+          this.tag = newTriple.option;
+        }
       },
     },
     methods: {
@@ -125,9 +178,18 @@
         this.tag.isTranslated = false;
         this.tag.tooltip = customInputTagTooltip;
 
-        const editInput = this.$refs.editInput;
         this.$nextTick(() => {
-          editInput.focus();
+          const editInput = this.$refs.editInput;
+          if (editInput) {
+            editInput.focus();
+            // Multiple attempts to get autoResize working
+            setTimeout(() => {
+              this.autoResize();
+            }, 10);
+            setTimeout(() => {
+              this.autoResize();
+            }, 50);
+          }
         });
       },
       endEdit(triggerEvent) {
@@ -142,9 +204,12 @@
         }
 
         this.isEditMode = false;
+        this.isMultiLine = false;
 
         const editInput = this.$refs.editInput;
-        editInput.blur();
+        if (editInput) {
+          editInput.blur();
+        }
 
         if (!this.tag.name.trim()) return;
         this.updateTag(this.tag);
@@ -162,9 +227,15 @@
         return "";
       },
       handleTagClick(event) {
-        // Hvis det er et custom tag, start edit mode
-        if (this.triple.option.isCustom) {
+        // If it's a custom tag and we're not already in edit mode, start edit mode
+        if (this.triple.option.isCustom && !this.isEditMode) {
           this.startEdit();
+          return;
+        }
+        
+        // If we're already in edit mode, ignore click
+        if (this.isEditMode) {
+          event.stopPropagation();
           return;
         }
         
@@ -175,41 +246,100 @@
         }
         
         if (parent) {
-          // Først åbn dropdownen
+          // First open the dropdown
           if (parent.handleOpenMenuOnClick) {
             parent.handleOpenMenuOnClick(event);
           }
           
-          // Derefter kald handleTagClick for at udvide den rigtige kategori
+          // Then call handleTagClick to expand the right category
           if (parent.handleTagClick) {
             parent.handleTagClick(event);
           }
         }
       },
       handleKeydown(event) {
-        // Hvis custom tag, start edit
+        // If custom tag, start edit
         if (this.triple.option.isCustom && !this.isEditMode) {
-          // Tilføj en lille forsinkelse for at undgå konflikt med keyup.enter på input
+          // Add a small delay to avoid conflict with keyup.enter on input
           this.$nextTick(() => {
             this.startEdit();
           });
-          return; // Stop her - kald ikke handleTagClick
+          return; // Stop here - don't call handleTagClick
         }
 
-        // For normale tags: kald handleTagClick for at åbne dropdown
+        // For normal tags: call handleTagClick to open dropdown
         if (!this.triple.option.isCustom) {
           this.handleTagClick(event);
         }
       },
-      /*  Allow mousedown to bubble for normal tags (so DropdownWrapper kan åbne
-          dropdownen), men blokér for custom-tags når de er i edit-mode. */
+      /*  Allow mousedown to bubble for normal tags (so DropdownWrapper can open
+          the dropdown), but block for custom-tags when they are in edit-mode. */
       handleMouseDown(event) {
-        // Lad mousedown boble op til parent
+        // If we're in edit mode, stop event propagation
+        if (this.isEditMode) {
+          event.stopPropagation();
+          return;
+        }
+        // Let mousedown bubble up to parent for normal tags
       },
       handleCrossKeydown(event) {
-        // Simuler klik på krydset når Enter trykkes
+        // Simulate click on the cross when Enter is pressed
         event.target.click();
       },
+             autoResize() {
+         const textarea = this.$refs.editInput;
+         if (!textarea) return;
+         
+         // Debug log to see if function is being called
+         console.log('autoResize called, scrollHeight:', textarea.scrollHeight);
+         
+         // Ensure textarea has full width first
+         textarea.style.width = '100%';
+         textarea.style.display = 'block';
+         textarea.style.boxSizing = 'border-box';
+         
+         // Reset height to 1 line first
+         textarea.style.height = '1.2em';
+         
+         // Force a repaint to ensure correct measurements
+         textarea.offsetHeight;
+         
+         // Now calculate the correct height based on content
+         const scrollHeight = textarea.scrollHeight;
+         const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight) || 16;
+         const isMultipleLines = scrollHeight > lineHeight * 1.5;
+         
+         console.log('lineHeight:', lineHeight, 'scrollHeight:', scrollHeight, 'isMultipleLines:', isMultipleLines);
+         
+         // Update isMultiLine state
+         this.isMultiLine = isMultipleLines;
+         
+         // Set height to scrollHeight to adapt to content
+         textarea.style.height = scrollHeight + 'px';
+         
+         console.log('Final height set to:', scrollHeight + 'px');
+       },
+       handleInput() {
+         // Call autoResize with a small delay
+         this.$nextTick(() => {
+           this.autoResize();
+         });
+       },
+       handlePaste() {
+         // Call autoResize after paste with slightly longer delay
+         setTimeout(() => {
+           this.autoResize();
+         }, 10);
+       },
+       handleTextareaKeydown(event) {
+         // Stop all keydown events from bubbling up, except Enter which should end edit
+         if (event.key !== 'Enter') {
+           event.stopPropagation();
+         }
+         
+         // Log for debugging
+         console.log('Textarea keydown:', event.key, 'stopped propagation');
+       },
     },
   };
 </script>

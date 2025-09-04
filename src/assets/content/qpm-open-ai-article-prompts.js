@@ -228,7 +228,7 @@ export const summarizeArticlePrompt = [
       en: "Plain language",
     },
     model_token_limit: 128000,
-    model: "chatgpt-4o-latest",
+    model: "gpt-5-chat-latest",
     reasoning: {
       effort: "high",
     },
@@ -253,7 +253,7 @@ export const summarizeArticlePrompt = [
       en: "Professional language",
     },
     model_token_limit: 128000,
-    model: "chatgpt-4o-latest",
+    model: "gpt-5-chat-latest",
     reasoning: {
       effort: "high",
     },

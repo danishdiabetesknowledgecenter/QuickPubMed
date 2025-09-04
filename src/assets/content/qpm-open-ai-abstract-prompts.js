@@ -13,7 +13,7 @@ export const promptTextMultipleAbstracts = [
       af nedenstående tekst (angivet i den nummererede liste nedenfor og afgrænset af triple backticks), som udgøres af en række søgeresultater. 
       Hvert enkelt søgeresultat består en titel, en kilde og et abstracts af et videnskabeligt studie. 
       Skriv teksten, så den bliver meget let at forstå for en yngre person på 15 år, som ikke har nogen viden om emnet. 
-      Skriv teksten så simpel og klar som muligt med et LIX-tal på under 25. Forklar svære ord og fagord i en parentes, som indsættes umiddelbart efter det pågældende ord. 
+      Skriv teksten så simpel og klar som muligt med et LIX-tal på under 25. Forklar svære ord og fagord i en parentes, som indsættes umiddelbart efter det pågældende ord. Angiv aldrig LIX-tallet i selve teksten. 
       Alle udsagn i opsummeringen skal altid kunne genfindes i den oprindelige tekst. Opbyg opsummeringen således: 
       - Start med at beskrive, hvad alle studierne samlet set viser. Hvis der er markante forskelle mellem studierne, så beskriv disse forskelle. 
       - Skriv dernæst selve opsummeringen af studierne - gerne ved brug af korrekt punktopstilling. Anvend kun et niveau i punktopstillinger. 
@@ -40,7 +40,8 @@ export const promptTextMultipleAbstracts = [
       of the text below (indicated in the numbered list below and delimited by triple backticks),
       which is made up of a number of search results. Each individual search result consists of a title, 
       a source and an abstract of a scientific study. Write the text so that it will be very easy to understand for a younger person of 18 years who has no knowledge about the subject.
-      Write the text as simply and clearly as possible with a LIX number of less than 25. Explain difficult words and technical terms in brackets,
+      Write the text as simply and clearly as possible with a LIX number of less than 25. Do not include the LIX number in the text itself.
+      Explain difficult words and technical terms in brackets,
       which are inserted immediately after the word in question. Structure the summary as follows:
       - Start by describing what all the studies show overall. If there are significant differences between the studies, describe these differences.
       - Next, write the actual summary of the studies.
@@ -73,7 +74,7 @@ export const promptTextMultipleAbstracts = [
     startText: {
       dk: `Du er en sundhedsvidenskabelig fagperson, som skriver på dansk i et let forståeligt sprog og altid indsætter henvisninger til enkelte studier i teksten, 
       hver gang du omtaler noget, som stammer fra et eller flere bestemte af studierne fra listen. Du skriver aldrig i førsteperson. 
-      Lav en opsummering på dansk på højst 300 ord af denne tekst (givet i den numererede liste nedenfor og afgrænset af tre backticks), som udgøres af abstracts af videnskabelige studier. 
+      Lav en opsummering på dansk på højst 300 ord af denne tekst (givet i den numererede liste nedenfor og afgrænset af tre backticks), som udgøres af abstracts af videnskabelige studier. Angiv aldrig antallet af ord eller tekstens længde i selve teksten. 
       Skriv teksten på fagsprog, som let kan forstås af et sundhedsfagligt publikum eller personer med solid baggrund inden for emnet. 
       Gør teksten så simpel og klar som mulig. Opsummeringen skal opbygges således: 
       1) Brug IKKE punktopstilling, dvs. '1)', '2)' osv. Skriv altid type 1-diabetes og type 2-diabetes med bindestreng, og skriv aldrig sukkersyge. 
@@ -93,8 +94,7 @@ export const promptTextMultipleAbstracts = [
 
       3) Start med at beskrive, hvad alle studierne samlet set viser. Hvis der er markante forskelle mellem studierne, så beskriv disse forskelle.\n 
       4) Skriv til dernæst selve opsummeringen af studierne.`,
-      en: `Make a summary in English of no more than 300 words of this text (given in the numbered list below and delimited by three backticks),
-      which consists of abstracts of scientific studies. Write the text in professional language that can be easily understood by a healthcare audience or people with a solid background in the subject.
+      en: `Make a summary in English of no more than 300 words of this text (given in the numbered list below and delimited by three backticks), which consists of abstracts of scientific studies. Write the text in professional language that can be easily understood by a healthcare audience or people with a solid background in the subject. Do not include the number of words or the length of the text in the text itself.
       Make the text as simple and clear as possible. The summary must be structured as follows:
       1) Do NOT use bullet points, ie. '1)', '2)' etc.
       2) IMPORTANT: When mentioning a study, ALWAYS insert a reference to the individual study within the text itself as a clickable link in Markdown format in this form:
@@ -126,14 +126,14 @@ export const promptTextSingleAbstract = [
       en: "Plain language",
     },
     startText: {
-      dk: `Lav en opsummering på dansk på højst 150 ord af denne tekst, som udgøres af et abstract af en videnskabelig artikel. 
+      dk: `Lav en opsummering på dansk på højst 150 ord af denne tekst, som udgøres af et abstract af en videnskabelig artikel. Angiv aldrig antallet af ord eller tekstens længde i selve teksten.
       Skriv teksten, så den bliver meget let at forstå for en yngre dansk person på 15 år, som ikke har nogen viden om emnet. 
-      Gør teksten så simpel og klar som muligt med et LIX-tal på under 25. 
+      Gør teksten så simpel og klar som muligt med et LIX-tal på under 25. Angiv aldrig LIX-tallet i selve teksten. 
       Forklar svære ord og fagord i en parentes, som indsættes umiddelbart efter det pågældende ord. 
       Start med at angive, hvad studiet konkluderer.`,
-      en: `Make a summary in English of no more than 150 words of this text, which is made up of an abstract of a scientific article.
+      en: `Make a summary in English of no more than 150 words of this text, which is made up of an abstract of a scientific article. Do not include the number of words or the length of the text in the text itself.
       Write the text so that it will be very easy to understand for a younger person of 18 years who has no knowledge about the subject.
-      Make the text as simple and clear as possible with a LIX number of less than 25.
+      Make the text as simple and clear as possible with a LIX number of less than 25. Do not include the LIX number in the text itself.
       Explain difficult words and technical terms in parantheses, which are inserted immediately after the word in question.
       Start by stating what the study concludes.`,
     },
@@ -149,10 +149,10 @@ export const promptTextSingleAbstract = [
       en: "Professional language",
     },
     startText: {
-      dk: `Lav en opsummering på dansk på højst 150 ord af denne tekst, som udgøres af et abstract af en videnskabelig artikel.
+      dk: `Lav en opsummering på dansk på højst 150 ord af denne tekst, som udgøres af et abstract af en videnskabelig artikel. Angiv aldrig antallet af ord eller tekstens længde i selve teksten.
       Skriv teksten på fagsprog, som let kan forstås af et sundhedsfagligt publikum eller personer med solid baggrund inden for emnet. 
       Start med at angive, hvad studiet konkluderer.`,
-      en: `Make a summary in English of no more than 150 words of this text, which consists of an abstract of a scientific article.
+      en: `Make a summary in English of no more than 150 words of this text, which consists of an abstract of a scientific article. Do not include the number of words or the length of the text in the text itself.
       Write the text in professional language that can be easily understood by a healthcare audience or people with a solid background in the subject.
       Start by stating what all the studies conclude.`,
     },
@@ -178,7 +178,7 @@ export const summarizeMultipleAbstractPrompt = [
     // Each model has its own limit for the number of tokens it can handle. However, it is difficult to determine the limit dynamically. Please adjust this number to match the one given here: https://platform.openai.com/docs/models
     model_token_limit: 128000,
     // Below are a series of openAi parameters. To learn more about them see: https://platform.openai.com/docs/api-reference/completions/create
-    model: "chatgpt-4o-latest",
+    model: "gpt-5-chat-latest",
     reasoning: {
       effort: "high",
     },
@@ -212,7 +212,7 @@ export const summarizeMultipleAbstractPrompt = [
     // Please adjust this number to match the one given here: https://platform.openai.com/docs/models
     model_token_limit: 128000,
     // Below are a series of openAi parameters. To learn more about them see: https://platform.openai.com/docs/api-reference/completions/create
-    model: "chatgpt-4o-latest",
+    model: "gpt-5-chat-latest",
     reasoning: {
       effort: "high",
     },
@@ -246,7 +246,7 @@ export const summarizeSingleAbstractPrompt = [
     // Each model has its own limit for the number of tokens it can handle. However, it is difficult to determine the limit dynamically. Please adjust this number to match the one given here: https://platform.openai.com/docs/models
     model_token_limit: 128000,
     // Below are a series of openAi parameters. To learn more about them see: https://platform.openai.com/docs/api-reference/completions/create
-    model: "chatgpt-4o-latest",
+    model: "gpt-5-chat-latest",
     reasoning: {
       effort: "high",
     },
@@ -279,7 +279,7 @@ export const summarizeSingleAbstractPrompt = [
     // Each model has its own limit for the number of tokens it can handle. However, it is difficult to determine the limit dynamically. Please adjust this number to match the one given here: https://platform.openai.com/docs/models
     model_token_limit: 128000,
     // Below are a series of openAi parameters. To learn more about them see: https://platform.openai.com/docs/api-reference/completions/create
-    model: "chatgpt-4o-latest",
+    model: "gpt-5-chat-latest",
     reasoning: {
       effort: "high",
     },

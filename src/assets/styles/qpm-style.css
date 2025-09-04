@@ -232,9 +232,11 @@
   left: 50%;
   transform: translate(-50%, 0%);
   z-index: 1;
+  margin-top: 25px;
 }
 
 /* Custom spinner to replace vue-multiselect's built-in spinner */
+
 .qpm_multiselect_custom_spinner {
   position: relative;
   right: 0;
@@ -247,6 +249,10 @@
   align-items: center;
   justify-content: center;  
   z-index: 10;
+}
+
+.qpm_hideDropdownArrow + .qpm_multiselect_custom_spinner {
+  left: calc(100% - 30px);
 }
 
 .qpm_multiselect_custom_spinner .qpm_loading {
@@ -1361,6 +1367,10 @@ button.qpm_tab {
 
 .qpm_hideDropdownArrow .multiselect__content-wrapper {
   display: none !important;
+}
+
+.qpm_hideDropdownArrow .multiselect__tags {
+  padding-right: 8px;
 }
 
 .qpm_hideDropdownArrow .multiselect__input {
