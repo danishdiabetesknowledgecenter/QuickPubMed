@@ -272,7 +272,7 @@
             :wait-text="getString('aiSummaryWaitText')"
             :wait-duration-disclaimer="getWaitTimeString"
             :loading="isCurrentSummaryWaitingForResponse"
-            style="align-self: center"
+            style="align-self: center; min-height: 1px; padding-bottom: 30px"
           />
         </div>
       </template>

@@ -204,10 +204,10 @@
 
 .qpm_loading {
   position: absolute;
-  top: 65%;
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 1;
+  display: block;
 }
 
 .qpm_pubmedLink .qpm_loading {
@@ -1198,6 +1198,7 @@ button.qpm_tab {
 
 .qpm_SearchResult {
   min-height: 15px;
+  padding-bottom: 50px;
 }
 
 .qpm_SearchResult,

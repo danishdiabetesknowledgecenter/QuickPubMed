@@ -665,7 +665,7 @@ export const filtrer = [
           dk: null, 
           en: null 
         },
-        simpleSearch: false,
+        simpleSearch: true,
         standardSimple: false,
         tooltip_simple: {
           dk: "",
@@ -703,7 +703,7 @@ export const filtrer = [
           dk: null, 
           en: null 
         },
-        simpleSearch: false,
+        simpleSearch: true,
         standardSimple: false,
         searchStrings: {
           narrow: [
@@ -2130,6 +2130,8 @@ export const filtrer = [
           dk: 2, 
           en: 2 
         },
+        simpleSearch: false,
+        standardSimple: false,
         searchStrings: {
           narrow: [
             '"Animals"[mh] NOT "Humans"[mh]'

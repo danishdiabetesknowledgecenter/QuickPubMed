@@ -3,13 +3,15 @@
     v-if="showingTranslation"
     class="qpm_searchSummaryText qpm_searchSummaryTextBackground qpm_searchTranslatedTitle"
   >
-    <loading-spinner :loading="loading" style="display: inline-block" />
     <div v-if="useMarkdown && canRenderMarkdown">
       <vue-showdown :options="{ smoothLivePreview: true }" :markdown="text" />
     </div>
-    <p v-else>
-      {{ text }}
-    </p>
+    <div v-else>
+      <p>{{ text }}</p>
+    </div>
+    <div v-if="loading" style="margin: 30px 0; min-height: 1px;">
+      <loading-spinner :loading="loading"/>
+    </div>
     <div style="margin-top: 20px; margin-left: 5px">
       <button
         v-if="writing"
@@ -39,6 +41,7 @@
         {{ getString("retryText") }}
       </button>
       <button
+        v-if="!loading"
         v-tooltip="{
           content: getString('hovercopyText'),
           offset: 5,
@@ -46,7 +49,6 @@
           hideOnTargetClick: false,
         }"
         class="qpm_button"
-        :disabled="loading"
         @click="clickCopy"
       >
         <i class="bx bx-copy" style="vertical-align: baseline" />
