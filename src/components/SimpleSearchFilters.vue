@@ -1,9 +1,24 @@
 <template>
   <div>
-    <h4 role="heading" aria-level="3" class="h4">
-      {{ getString("SimpleFiltersHeader") }}
-    </h4>
+    <div class="qpm_filtersHeaderContainer">
+      <h4 role="heading" aria-level="3" class="h4">
+        {{ getString("SimpleFiltersHeader") }}
+      </h4>
+      <button
+        v-tooltip="{
+        content: getString('hoverFiltersHeader'),
+        offset: 5,
+        delay: helpTextDelay,
+        hideOnTargetClick: false,
+        }"
+        class="bx bx-info-circle"
+        style="cursor: help"
+        aria-label="Info"
+      />
+    </div>
     <div id="qpm_topofsearchbar" class="qpm_simpleFiltersContainer">
+      <!-- Tilføj denne linje for spacer mellem hovedoverskrift og første filtergruppe -->
+      <div class="qpm_simpleFiltersSpacer" />
       <template v-for="option in filteredChoices">
         <template v-if="hasVisibleSimpleFilterOption(option.choices)">
           <b :key="`label-${option.id}`" class="qpm_simpleFiltersHeader">

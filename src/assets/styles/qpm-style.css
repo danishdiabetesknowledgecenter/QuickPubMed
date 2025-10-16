@@ -76,7 +76,7 @@
 
 .qpm_toggleDetails {
   background-color: var(--color-grey-light);
-  padding: 0 20px 15px 0;
+  padding: 10px 20px 15px 0;
   display: flex;
   justify-content: flex-end;
 }
@@ -1528,12 +1528,16 @@ button.qpm_tab {
 }
 
 .qpm_simpleFiltersSpacer {
-  grid-column: 1 / auto;
-  margin: 5px 0;
+  grid-column: 1 / -1;
+  margin-top: 0;
+  margin-right: -10px;
+  margin-bottom: 10px;
+  margin-left: 0;
+  border-top: 1px solid var(--color-grey);
 }
 
 .qpm_simpleFiltersSpacer:last-of-type {
-  margin: 0;
+  margin-bottom: 0;
 }
 
 .qpm_simpleFilters {
@@ -2138,10 +2142,9 @@ input:checked + .qpm_slider:before {
 }
 
 @media only screen and (max-width: 800px) {
-  .qpm_advancedSearch {
-    margin-top: -9px;
+  .qpm_simpleFiltersSpacer {
+    margin-right: 0;
   }
-
   .qpm_sortSelect:first-of-type {
     border-left: 1px solid rgb(231, 231, 231);
   }
@@ -2379,4 +2382,10 @@ input:checked + .qpm_slider:before {
   border-color: #66afe9;
   outline: none;
   box-shadow: 0 0 8px rgba(102, 175, 233, 0.6);
+}
+
+.qpm_filtersHeaderContainer {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
 }

@@ -493,6 +493,10 @@ export const messages = {
     dk: "Afgrænsninger",
     en: "Limits",
   },
+  hoverFiltersHeader: {
+    dk: "Hvis du vælger emner fra <strong>flere forskellige kate&shy;gorier</strong>, afgræn&shy;ses søgnin&shy;gen til artikler, der inde&shy;holder <strong>mindst ét emne fra hver kategori</strong>, dvs. der indsættes <strong>OG</strong> mellem kategorierne.<br><br>Hvis du vælger emner fra <strong>samme kategori</strong>, afgræn&shy;ses søgningen til artikler, der indeholder <strong>mindst ét af emnerne fra denne kategori</strong>, dvs. der ind&shy;sættes <strong>ELLER</strong> mellem emnerne <strong>inden for kategorien</strong>.",
+    en: "If you select topics from <strong>multiple different categories</strong>, the search is limited to articles that contain <strong>at least one topic from each category</strong>, i.e. <strong>AND</strong> is inserted between categories.<br><br>If you select topics from <strong>the same category</strong>, the search is limited to articles that contain <strong>at least one of the topics from this category</strong>, i.e. <strong>OR</strong> is inserted between topics <strong>within the category</strong>.",
+  },
   showAllSearchstrings: {
     dk: "Vis alle søgestrenge",
     en: "Show all search strings",

@@ -355,7 +355,7 @@ export const filtrer = [
         standardSimple: true,
         tooltip_simple: {
           dk: "Artikler, hvor forskning systematisk er blevet indsamlet og gennemgået for at kunne vurdere, hvad man samlet set ved om et bestemt område.",
-          en: "",
+          en: "Articles where research has been systematically collected and reviewed to be able to evaluate what has been gathered as a whole about a specific area.",
         },
         searchStrings: {
           narrow: [
@@ -370,11 +370,11 @@ export const filtrer = [
         },
         searchStringComment: {
           dk: "Inkluderer udover systematiske reviews også metaanalyser, men ikke protokoller og artikler, som er trukket tilbage.",
-          en: "",
+          en: "Includes systematic reviews in addition to meta-analyses, but not protocols and articles that have been withdrawn.",
         },
         tooltip: {
           dk: "Artikler, hvor forskning systematisk er blevet indsamlet og gennemgået for at kunne vurdere, hvad man samlet set ved om et bestemt område. Inkluderer udover systematiske reviews også metaanalyser, men ikke protokoller og artikler, som er trukket tilbage.",
-          en: "",
+          en: "Articles where research has been systematically collected and reviewed to be able to evaluate what has been gathered as a whole about a specific area. Includes systematic reviews in addition to meta-analyses, but not protocols and articles that have been withdrawn.",
         },
       },
       {
@@ -393,7 +393,7 @@ export const filtrer = [
         standardSimple: false,
         tooltip_simple: {
           dk: "En særlig type forsk&shy;nings&shy;over&shy;sigter, som er ud&shy;arbej&shy;det efter strin&shy;gente metoder. Udgives af Cochrane Collaboration.",
-          en: "",
+          en: "A special type of systematic reviews, which are made according to strict methods. Published by the Cochrane Collaboration.",
         },
         searchStrings: {
           normal: [
@@ -430,11 +430,11 @@ export const filtrer = [
         },
         searchStringComment: {
           dk: "<a href='https://www.healthevidence.org' target='_blank'>Health Evidence</a> er en service fra canadiske McMaster University, der samler og kvalitets&shy;vurderer forsknings&shy;oversigter inden for folke&shy;sundheds&shy;området. Når denne afgræsning vælges, søges kun blandt de forsknings&shy;oversigter fra Health Evidence, som er relateret til diabetes og har en høj score for kvalitets&shy;vurdering (8-10). Kun artikler, som er mindre end 10 år gamle, og som ikke er trukket tilbage, vises. Opdateret med tilgængelige artikler i Health Evidence den 25. september 2025.",
-          en: "",
+          en: "<a href='https://www.healthevidence.org' target='_blank'>Health Evidence</a> is a service from McMaster University, Canada, which collects and quality assesses systematic reviews within the field of public health. When this limit is selected, only systematic reviews from Health Evidence are searched that are related to diabetes and have a high score for quality assessment (8-10). Only articles that are less than 10 years old and that have not been withdrawn are shown. Updated with available articles in Health Evidence on 25 September 2025.",
         },
         tooltip: {
           dk: "Health Evidence er en service fra canadiske McMaster University, der samler og kvalitets&shy;vurderer forsknings&shy;oversigter inden for folke&shy;sundheds&shy;området. Når denne afgræsning vælges, søges kun blandt de forsknings&shy;oversigter fra Health Evidence, som er relateret til diabetes og har en høj score for kvalitets&shy;vurdering (8-10). Kun artikler, som er mindre end 10 år gamle, og som ikke er trukket tilbage, vises.",
-          en: "",
+          en: "Health Evidence is a service from McMaster University, Canada, which collects and quality assesses systematic reviews within the field of public health. When this limit is selected, only systematic reviews from Health Evidence are searched that are related to diabetes and have a high score for quality assessment (8-10). Only articles that are less than 10 years old and that have not been withdrawn are shown.",
         },
       },
       {
@@ -458,11 +458,11 @@ export const filtrer = [
         },
         searchStringComment: {
           dk: "Kun guidelines, der er udgivet i videnskabelige tidsskrifter, kan findes via PubMed. Guidelines, som er udgivet andre steder, vises ikke.",
-          en: "",
+          en: "Only guidelines published in scientific journals can be found via PubMed. Guidelines published elsewhere are not shown.",
         },
         tooltip: {
           dk: "Kun guidelines, der er udgivet i videnskabelige tidsskrifter, kan findes via PubMed. Guidelines, som er udgivet andre steder, vises ikke.",
-          en: "",
+          en: "Only guidelines published in scientific journals can be found via PubMed. Guidelines published elsewhere are not shown.",
         },
       },
       {
@@ -559,7 +559,7 @@ export const filtrer = [
         standardSimple: false,
         tooltip_simple: {
           dk: "Studier af antallet af personer, der diag&shy;nos&shy;ti&shy;ceres ud af en be&shy;folk&shy;nings&shy;gruppe inden for en bestemt tids&shy;periode (incidens) eller fore&shy;komsten af en sygdom eller anden faktor i en befolk&shy;nings&shy;gruppe (prævalens).",
-          en: "",
+          en: "Studies of the number of people diagnosed out of a population group within a specific period of time (incidence) or the occurrence of a disease or other factor in a population group (prevalence).",
         },
         searchStrings: {
           narrow: [
@@ -631,7 +631,7 @@ export const filtrer = [
         standardSimple: false,
         tooltip_simple: {
           dk: "Studier baseret på kvali&shy;ta&shy;tiv metode, som er en fælles&shy;betegnelse for en række forskellige under&shy;søgelses&shy;metoder såsom semi&shy;struk&shy;turerede inter&shy;views, del&shy;tager&shy;obser&shy;va&shy;tioner og fokus&shy;gruppe&shy;inter&shy;views. Den kvali&shy;ta&shy;tive til&shy;gang giver mulighed for at opnå viden om forhold, der oftest er svære at måle og beskrive med tal.",
-          en: "",
+          en: "Studies based on qualitative methods, which is a common term for a range of different research methods such as semi-structured interviews, participant observation and focus group interviews. The qualitative approach allows for gaining knowledge about phenomena that are often difficult to measure and describe with numbers.",
         },
         searchStrings: {
           narrow: [
@@ -646,7 +646,7 @@ export const filtrer = [
         },
         searchStringComment: {
           dk: "Den brede søgning er baseret på filter fra Wong SS, Wilczynski NL, Haynes RB; Hedges Team. Developing optimal search strategies for detecting clinically relevant qualitative studies in MEDLINE. Stud Health Technol Inform. 2004;107(Pt 1):311-6 (PubMed ID: 15360825).",
-          en: "",
+          en: "The broad search is based on the filter from Wong SS, Wilczynski NL, Haynes RB; Hedges Team. Developing optimal search strategies for detecting clinically relevant qualitative studies in MEDLINE. Stud Health Technol Inform. 2004;107(Pt 1):311-6 (PubMed ID: 15360825).",
         },
         tooltip: {
           dk: "",
@@ -668,8 +668,8 @@ export const filtrer = [
         simpleSearch: true,
         standardSimple: false,
         tooltip_simple: {
-          dk: "",
-          en: "",
+          dk: "Studier, hvor deltagere tilfældigt (randomiseres) fordeles til en interven&shy;tionsgruppe og en kontrol&shy;gruppe, så man kan sammenligne effekten af en indsats og dermed vurdere årsags&shy;sammen&shy;hænge.",
+          en: "Studies where participants are randomly (randomized) assigned to an intervention group and a control group, so that the effect of an intervention can be compared and the cause-effect relationships can be evaluated.",
         },
         searchStrings: {
           narrow: [
@@ -687,8 +687,8 @@ export const filtrer = [
           en: "",
         },
         tooltip: {
-          dk: "",
-          en: "",
+          dk: "Studier, hvor deltagere tilfældigt (randomiseres) fordeles til en interven&shy;tionsgruppe og en kontrol&shy;gruppe, så man kan sammenligne effekten af en indsats og dermed vurdere årsags&shy;sammen&shy;hænge.",
+          en: "Studies where participants are randomly (randomized) assigned to an intervention group and a control group, so that the effect of an intervention can be compared and the cause-effect relationships can be evaluated.",
         },
       },
       {
@@ -705,6 +705,10 @@ export const filtrer = [
         },
         simpleSearch: true,
         standardSimple: false,
+        tooltip_simple: {
+          dk: "Studier, der under&shy;søger sam&shy;men&shy;hænge mellem ressourcer, om&shy;kost&shy;ninger og resultater for at vurdere effektivitet, omkostnings&shy;niveauer og samfunds&shy;økonomisk gevinst af indsatser eller behandlings&shy;former.",
+          en: "Studies that investigate the relationships between resources, costs and results to evaluate effectiveness, cost levels and social economic benefits of interventions or treatment forms.",
+        },
         searchStrings: {
           narrow: [
             '"Costs and Cost Analysis"[majr]'
@@ -721,8 +725,8 @@ export const filtrer = [
           en: "",
         },
         tooltip: {
-          dk: "",
-          en: "",
+          dk: "Studier, der under&shy;søger sam&shy;men&shy;hænge mellem ressourcer, om&shy;kost&shy;ninger og resultater for at vurdere effektivitet, omkostnings&shy;niveauer og samfunds&shy;økonomisk gevinst af indsatser eller behandlings&shy;former.",
+          en: "Studies that investigate the relationships between resources, costs and results to evaluate effectiveness, cost levels and social economic benefits of interventions or treatment forms.",
         },
       },
     ],
