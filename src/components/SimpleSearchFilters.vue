@@ -40,21 +40,23 @@
               @change="onFilterChange(option.id, choice, $event)"
               @keyup.enter="onFilterEnter(choice)"
             />
-            <label :for="choice.name">
-              {{ getCustomNameLabel(choice) }}
-            </label>
-            <button
-              v-if="getSimpleTooltip(choice)"
-              v-tooltip="{
-                content: getSimpleTooltip(choice),
-                offset: 5,
-                delay: helpTextDelay,
-                hideOnTargetClick: false,
-              }"
-              class="bx bx-info-circle"
-              style="cursor: help"
-              aria-label="Info"
-            />
+            <div>
+              <label :for="choice.name">
+                {{ getCustomNameLabel(choice) }}
+              </label>
+              <button
+                v-if="getSimpleTooltip(choice)"
+                v-tooltip="{
+                  content: getSimpleTooltip(choice),
+                  offset: 5,
+                  delay: helpTextDelay,
+                  hideOnTargetClick: false,
+                }"
+                class="bx bx-info-circle"
+                style="cursor: help"
+                aria-label="Info"
+              />
+            </div>
           </div>
           <div :key="`spacer-${option.id}`" class="qpm_simpleFiltersSpacer" />
         </template>

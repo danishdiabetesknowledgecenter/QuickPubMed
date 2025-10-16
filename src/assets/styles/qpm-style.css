@@ -1515,8 +1515,9 @@ button.qpm_tab {
 
 .qpm_simpleFiltersContainer {
   display: grid;
-  grid-template-columns: minmax(auto, 125px) repeat(auto-fit, minmax(auto, 36%));
-  column-gap: 20px;
+  grid-template-columns: minmax(auto, 125px) 1fr 1fr;
+  column-gap: 30px;
+  width: 100%;
 }
 
 .qpm_simpleFiltersHeader {
@@ -1530,7 +1531,7 @@ button.qpm_tab {
 .qpm_simpleFiltersSpacer {
   grid-column: 1 / -1;
   margin-top: 0;
-  margin-right: -10px;
+  margin-right: 0;
   margin-bottom: 10px;
   margin-left: 0;
   border-top: 1px solid var(--color-grey);
@@ -1541,20 +1542,27 @@ button.qpm_tab {
 }
 
 .qpm_simpleFilters {
-  float: left;
   display: flex;
+  align-items: flex-start;
   white-space: nowrap;
   margin-bottom: 10px;
-  min-width: min-content;
 }
 
 .qpm_simpleFilters div {
-  margin-right: 20px;
+  padding: 0 5px 0 10px;
 }
 
 .qpm_simpleFilters label {
-  padding: 0 5px 0 10px;
+  padding-right: 2px;
 }
+.qpm_simpleFilters label,
+.qpm_simpleFilters button {
+  vertical-align: top;
+}
+.qpm_simpleFilters button {
+  padding-bottom: 1px;
+}
+
 
 .qpm_furtherReading {
   display: flex;
@@ -2172,9 +2180,19 @@ input:checked + .qpm_slider:before {
   }
 }
 
+@media only screen and (max-width: 750px) {
+  .qpm_simpleFiltersContainer {
+    grid-template-columns: minmax(auto, 125px) 1fr;
+  }
+}
+
 @media only screen and (max-width: 500px) {
   .multiselect__tags-wrap {
     display: grid;
+  }
+
+  .qpm_simpleFilters {
+    white-space: normal;
   }
 
   .qpm_simpleFiltersContainer {
