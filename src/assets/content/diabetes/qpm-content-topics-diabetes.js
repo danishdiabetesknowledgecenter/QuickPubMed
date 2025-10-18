@@ -46,8 +46,8 @@ export const topics = [
         name: "S000010",
         buttons: true,
         translations: {
-          dk: "Underemne 1",
-          en: "Subtopic 1",
+          dk: "Emne 1",
+          en: "Topic 1",
         },
         ordering: {
           dk: 1,
@@ -267,8 +267,8 @@ export const topics = [
         subtopiclevel: 1, // Angiver at dette punkt ligger på 2. niveau
         maintopicIdLevel1: "S000020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
         translations: {
-          dk: "Underemne 2.3",
-          en: "Subtopic 2.3",
+          dk: "Emne 2",
+          en: "Topic 2",
         },
         ordering: {
           dk: 8,
@@ -299,8 +299,8 @@ export const topics = [
         name: "S000030",
         buttons: false,
         translations: {
-          dk: "Underemne 3",
-          en: "Subtopic 3",
+          dk: "Emne 3",
+          en: "Topic 3",
         },
         ordering: {
           dk: 9,

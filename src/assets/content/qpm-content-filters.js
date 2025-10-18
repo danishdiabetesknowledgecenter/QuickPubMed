@@ -509,34 +509,77 @@ export const filtrer = [
     ordering: { dk: 2, en: 2 },
     allowCustomInput: true,
     choices: [
+      // Study types are placed in the order they should appear in simple search mode. Thier IDs are still numbered according to the original filter order.
       {
-        id: "L020010",
-        name: "L020010",
+        id: "L020050",
+        name: "L020050",
         buttons: true,
         translations: {
-          dk: "Case-kontrol-studier",
-          en: "Case-control studies",
+          dk: "Randomiserede, kontrollerede forsøg",
+          en: "Randomized controlled trials",
         },
         ordering: { 
           dk: null, 
           en: null 
         },
-        simpleSearch: false,
+        simpleSearch: true,
         standardSimple: false,
+        tooltip_simple: {
+          dk: "Studier, hvor deltagere tilfældigt (randomiseres) fordeles til en interven&shy;tionsgruppe og en kontrol&shy;gruppe, så man kan sammenligne effekten af en indsats og dermed vurdere årsags&shy;sammen&shy;hænge.",
+          en: "Studies where participants are randomly (randomized) assigned to an intervention group and a control group, so that the effect of an intervention can be compared and the cause-effect relationships can be evaluated.",
+        },
         searchStrings: {
           narrow: [
-            '"Case-Control Studies"[majr]'
+            '"Randomized Controlled Trial"[pt]'
           ],
           normal: [
-            '"Case-Control Studies"[mh] OR case-control[ti]'
+            '"Randomized Controlled Trial"[pt] OR randomi*[ti]'
           ],
           broad: [
-            '"Case-Control Studies"[mh] OR case-control[tiab]'
+            '"Randomized Controlled Trial"[pt] OR randomi*[tiab]'
           ],
         },
         searchStringComment: {
           dk: "",
           en: "",
+        },
+        tooltip: {
+          dk: "Studier, hvor deltagere tilfældigt (randomiseres) fordeles til en interven&shy;tionsgruppe og en kontrol&shy;gruppe, så man kan sammenligne effekten af en indsats og dermed vurdere årsags&shy;sammen&shy;hænge.",
+          en: "Studies where participants are randomly (randomized) assigned to an intervention group and a control group, so that the effect of an intervention can be compared and the cause-effect relationships can be evaluated.",
+        },
+      },
+      {
+        id: "L020040",
+        name: "L020040",
+        buttons: true,
+        translations: {
+          dk: "Kvalitative studier",
+          en: "Qualitative studies",
+        },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
+        simpleSearch: true,
+        standardSimple: false,
+        tooltip_simple: {
+          dk: "Studier baseret på kvali&shy;ta&shy;tiv metode, som er en fælles&shy;betegnelse for en række forskellige under&shy;søgelses&shy;metoder såsom semi&shy;struk&shy;turerede inter&shy;views, del&shy;tager&shy;obser&shy;va&shy;tioner og fokus&shy;gruppe&shy;inter&shy;views. Den kvali&shy;ta&shy;tive til&shy;gang giver mulighed for at opnå viden om forhold, der oftest er svære at måle og beskrive med tal.",
+          en: "Studies based on qualitative methods, which is a common term for a range of different research methods such as semi-structured interviews, participant observation and focus group interviews. The qualitative approach allows for gaining knowledge about phenomena that are often difficult to measure and describe with numbers.",
+        },
+        searchStrings: {
+          narrow: [
+            '"Qualitative Research"[majr]'
+          ],
+          normal: [
+            '"Qualitative Research"[mh] OR qualitative[ti]'
+          ],
+          broad: [
+            '"Qualitative Research"[mh] OR qualitative[tiab] OR themes[tiab] OR interview*[tiab] OR psychology[sh:noexp] OR "Health Services Administration"[mh]',
+          ],
+        },
+        searchStringComment: {
+          dk: "Den brede søgning er baseret på filter fra Wong SS, Wilczynski NL, Haynes RB; Hedges Team. Developing optimal search strategies for detecting clinically relevant qualitative studies in MEDLINE. Stud Health Technol Inform. 2004;107(Pt 1):311-6 (PubMed ID: 15360825).",
+          en: "The broad search is based on the filter from Wong SS, Wilczynski NL, Haynes RB; Hedges Team. Developing optimal search strategies for detecting clinically relevant qualitative studies in MEDLINE. Stud Health Technol Inform. 2004;107(Pt 1):311-6 (PubMed ID: 15360825).",
         },
         tooltip: {
           dk: "",
@@ -582,116 +625,6 @@ export const filtrer = [
         },
       },
       {
-        id: "L020030",
-        name: "L020030",
-        buttons: true,
-        translations: {
-          dk: "Kohortestudier",
-          en: "Cohortstudies",
-        },
-        ordering: { 
-          dk: null, 
-          en: null 
-        },
-        simpleSearch: false,
-        standardSimple: false,
-        searchStrings: {
-          narrow: [
-            '"Cohort Studies"[majr]'
-          ],
-          normal: [
-            '"Cohort Studies"[mh] OR cohort[ti]'
-          ],
-          broad: [
-            '"Cohort Studies"[mh] OR cohort[tiab]'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
-      },
-      {
-        id: "L020040",
-        name: "L020040",
-        buttons: true,
-        translations: {
-          dk: "Kvalitative studier",
-          en: "Qualitative studies",
-        },
-        ordering: { 
-          dk: null, 
-          en: null 
-        },
-        simpleSearch: true,
-        standardSimple: false,
-        tooltip_simple: {
-          dk: "Studier baseret på kvali&shy;ta&shy;tiv metode, som er en fælles&shy;betegnelse for en række forskellige under&shy;søgelses&shy;metoder såsom semi&shy;struk&shy;turerede inter&shy;views, del&shy;tager&shy;obser&shy;va&shy;tioner og fokus&shy;gruppe&shy;inter&shy;views. Den kvali&shy;ta&shy;tive til&shy;gang giver mulighed for at opnå viden om forhold, der oftest er svære at måle og beskrive med tal.",
-          en: "Studies based on qualitative methods, which is a common term for a range of different research methods such as semi-structured interviews, participant observation and focus group interviews. The qualitative approach allows for gaining knowledge about phenomena that are often difficult to measure and describe with numbers.",
-        },
-        searchStrings: {
-          narrow: [
-            '"Qualitative Research"[majr]'
-          ],
-          normal: [
-            '"Qualitative Research"[mh] OR qualitative[ti]'
-          ],
-          broad: [
-            '"Qualitative Research"[mh] OR qualitative[tiab] OR themes[tiab] OR interview*[tiab] OR psychology[sh:noexp] OR "Health Services Administration"[mh]',
-          ],
-        },
-        searchStringComment: {
-          dk: "Den brede søgning er baseret på filter fra Wong SS, Wilczynski NL, Haynes RB; Hedges Team. Developing optimal search strategies for detecting clinically relevant qualitative studies in MEDLINE. Stud Health Technol Inform. 2004;107(Pt 1):311-6 (PubMed ID: 15360825).",
-          en: "The broad search is based on the filter from Wong SS, Wilczynski NL, Haynes RB; Hedges Team. Developing optimal search strategies for detecting clinically relevant qualitative studies in MEDLINE. Stud Health Technol Inform. 2004;107(Pt 1):311-6 (PubMed ID: 15360825).",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
-      },
-      {
-        id: "L020050",
-        name: "L020050",
-        buttons: true,
-        translations: {
-          dk: "Randomiserede, kontrollerede forsøg",
-          en: "Randomized controlled trials",
-        },
-        ordering: { 
-          dk: null, 
-          en: null 
-        },
-        simpleSearch: true,
-        standardSimple: false,
-        tooltip_simple: {
-          dk: "Studier, hvor deltagere tilfældigt (randomiseres) fordeles til en interven&shy;tionsgruppe og en kontrol&shy;gruppe, så man kan sammenligne effekten af en indsats og dermed vurdere årsags&shy;sammen&shy;hænge.",
-          en: "Studies where participants are randomly (randomized) assigned to an intervention group and a control group, so that the effect of an intervention can be compared and the cause-effect relationships can be evaluated.",
-        },
-        searchStrings: {
-          narrow: [
-            '"Randomized Controlled Trial"[pt]'
-          ],
-          normal: [
-            '"Randomized Controlled Trial"[pt] OR randomi*[ti]'
-          ],
-          broad: [
-            '"Randomized Controlled Trial"[pt] OR randomi*[tiab]'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "Studier, hvor deltagere tilfældigt (randomiseres) fordeles til en interven&shy;tionsgruppe og en kontrol&shy;gruppe, så man kan sammenligne effekten af en indsats og dermed vurdere årsags&shy;sammen&shy;hænge.",
-          en: "Studies where participants are randomly (randomized) assigned to an intervention group and a control group, so that the effect of an intervention can be compared and the cause-effect relationships can be evaluated.",
-        },
-      },
-      {
         id: "L020060",
         name: "L020060",
         buttons: true,
@@ -727,6 +660,74 @@ export const filtrer = [
         tooltip: {
           dk: "Studier, der under&shy;søger sam&shy;men&shy;hænge mellem ressourcer, om&shy;kost&shy;ninger og resultater for at vurdere effektivitet, omkostnings&shy;niveauer og samfunds&shy;økonomisk gevinst af indsatser eller behandlings&shy;former.",
           en: "Studies that investigate the relationships between resources, costs and results to evaluate effectiveness, cost levels and social economic benefits of interventions or treatment forms.",
+        },
+      },
+      {
+        id: "L020010",
+        name: "L020010",
+        buttons: true,
+        translations: {
+          dk: "Case-kontrol-studier",
+          en: "Case-control studies",
+        },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
+        simpleSearch: false,
+        standardSimple: false,
+        searchStrings: {
+          narrow: [
+            '"Case-Control Studies"[majr]'
+          ],
+          normal: [
+            '"Case-Control Studies"[mh] OR case-control[ti]'
+          ],
+          broad: [
+            '"Case-Control Studies"[mh] OR case-control[tiab]'
+          ],
+        },
+        searchStringComment: {
+          dk: "",
+          en: "",
+        },
+        tooltip: {
+          dk: "",
+          en: "",
+        },
+      },
+      {
+        id: "L020030",
+        name: "L020030",
+        buttons: true,
+        translations: {
+          dk: "Kohortestudier",
+          en: "Cohortstudies",
+        },
+        ordering: { 
+          dk: null, 
+          en: null 
+        },
+        simpleSearch: false,
+        standardSimple: false,
+        searchStrings: {
+          narrow: [
+            '"Cohort Studies"[majr]'
+          ],
+          normal: [
+            '"Cohort Studies"[mh] OR cohort[ti]'
+          ],
+          broad: [
+            '"Cohort Studies"[mh] OR cohort[tiab]'
+          ],
+        },
+        searchStringComment: {
+          dk: "",
+          en: "",
+        },
+        tooltip: {
+          dk: "",
+          en: "",
         },
       },
     ],

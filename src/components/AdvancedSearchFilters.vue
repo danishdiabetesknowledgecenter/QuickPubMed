@@ -1,6 +1,6 @@
 <template>
   <!-- The dropdown for selecting limits to be included in the advanced search -->
-  <div style="margin-bottom: 10px">
+  <div style="margin: 30px 5px 10px">
     <div class="qpm_filtersHeaderContainer">
       <h4 role="heading" aria-level="3" class="h4">
         {{ getString("AdvancedFiltersHeader") }}

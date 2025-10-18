@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div style="margin: 30px 5px 0">
     <div class="qpm_filtersHeaderContainer">
       <h4 role="heading" aria-level="3" class="h4">
         {{ getString("SimpleFiltersHeader") }}

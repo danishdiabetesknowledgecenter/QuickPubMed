@@ -280,12 +280,12 @@
       role="heading"
       aria-level="2"
       class="h3"
-      style="padding-top: 30px"
+      style="padding-top: 30px; margin-left: 5px"
     >
       {{ getString("searchresult") }}
     </div>
     <div v-if="results && results.length > 0 && total > 0" class="qpm_searchHeader qpm_spaceEvenly">
-      <p class="qpm_nomargin">
+      <p class="qpm_nomargin" style="margin-left: 5px">
         {{ getString("showing") }} {{ 1 }}-{{ results.length }}
         {{ getString("of") }}
         <span
