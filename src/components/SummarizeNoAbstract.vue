@@ -361,10 +361,11 @@
 
       /**
        * Initializes aiArticleSummaries based on the current language and promptText names.
+       * Note: We use the Danish names as keys since promptLanguageType is always in Danish
        */
       initializeAiArticleSummaries() {
         promptText.forEach((prompt) => {
-          const key = prompt.name[this.language];
+          const key = prompt.name.dk; // Always use Danish names for consistency
           this.$set(this.aiArticleSummaries, key, []);
           this.$set(this.loadingArticleSummaries, key, false);
         });
@@ -372,10 +373,11 @@
 
       /**
        * Initializes the currentSummaryIndex object based on the promptText names.
+       * Note: We use the Danish names as keys since promptLanguageType is always in Danish
        */
       initializeCurrentSummaryIndex() {
         promptText.forEach((prompt) => {
-          const key = prompt.name[this.language];
+          const key = prompt.name.dk; // Always use Danish names for consistency
           this.$set(this.currentSummaryIndex, key, 0);
         });
       },

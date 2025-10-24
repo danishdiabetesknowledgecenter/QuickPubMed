@@ -361,7 +361,7 @@
           @loadAbstract="addIdToLoadAbstract"
         />
       </div>
-      <loading-spinner :loading="loading" class="qpm_searchMore" size="44" />
+      <loading-spinner :loading="loading" class="qpm_searchMore" :size="44" />
       <div v-if="error != null" class="qpm_flex">
         <div class="qpm_errorBox">
           {{ error.message ?? error.toString() }}

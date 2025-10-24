@@ -358,8 +358,9 @@
        */
       getComposablePrompt(language = "dk", promptLanguageType = "Hverdagssprog") {
         // Find the prompt text for either of the language types "Hverdagssprog" or "Fagligt sprog"
+        // Note: promptLanguageType is always in Danish, so we match against the Danish name
         const prompTextLanguageType = promptText.find(
-          (entry) => entry.name[language] === promptLanguageType
+          (entry) => entry.name.dk === promptLanguageType
         );
 
         const domainSpecificRules = this.domainSpecificPromptRules[language];
@@ -388,8 +389,11 @@
         });
 
         // Get the basic prompt for the given language type
+        // The promptLanguageType comes in as the Danish name (e.g., "Hverdagssprog" or "Fagsprog")
+        // We need to find the matching entry in summarizeArticlePrompt
         let languageSpecificPrompt = summarizeArticlePrompt.find((p) => {
-          return promptLanguageType == p.name;
+          // Compare directly with promptLanguageType since both use Danish names
+          return p.name === promptLanguageType;
         });
 
         // Set the prompt field to the sanitized composed prompt text for the given language
