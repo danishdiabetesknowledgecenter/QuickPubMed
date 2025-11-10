@@ -157,18 +157,20 @@
             !props.option.$groupLabel &&
             props.option.buttons &&
             !props.option.isTag &&
-            !props.option.maintopic
+            !props.option.maintopic &&
+            shouldShowScopeButtons(props.option)
           "
           class="qpm_dropdownButtons qpm_forceRight"
         >
           <button
+            v-if="hasScopeContent(props.option, 'narrow')"
             v-tooltip="{
               content: getString('tooltipNarrow'),
               offset: 5,
               delay: $helpTextDelay,
               hideOnTargetClick: false,
             }"
-            class="qpm_button"
+            class="qpm_button qpm_scopeButton"
             :class="getButtonColor(props, 'narrow', 0)"
             tabindex="-1"
             @click="handleScopeButtonClick(props.option, 'narrow', $event)"
@@ -177,13 +179,14 @@
           </button>
 
           <button
+            v-if="hasScopeContent(props.option, 'normal')"
             v-tooltip="{
               content: getString('tooltipNormal'),
               offset: 5,
               delay: $helpTextDelay,
               hideOnTargetClick: false,
             }"
-            class="qpm_button"
+            class="qpm_button qpm_scopeButton"
             :class="getButtonColor(props, 'normal', 1)"
             tabindex="-1"
             @click="handleScopeButtonClick(props.option, 'normal', $event)"
@@ -192,13 +195,14 @@
           </button>
 
           <button
+            v-if="hasScopeContent(props.option, 'broad')"
             v-tooltip="{
               content: getString('tooltipBroad'),
               offset: 5,
               delay: $helpTextDelay,
               hideOnTargetClick: false,
             }"
-            class="qpm_button"
+            class="qpm_button qpm_scopeButton"
             :class="getButtonColor(props, 'broad', 2)"
             tabindex="-1"
             @click="handleScopeButtonClick(props.option, 'broad', $event)"
@@ -661,6 +665,59 @@
       }
     },
     methods: {
+      /**
+       * Tjekker om et searchString scope har valid indhold
+       * @param {Object} option - Option objektet fra dropdown
+       * @param {string} scope - Scope navnet ('narrow', 'normal' eller 'broad')
+       * @returns {boolean} True hvis scope har indhold, false ellers
+       */
+      hasScopeContent(option, scope) {
+        // Tjek om option har searchStrings
+        if (!option || !option.searchStrings) {
+          return false;
+        }
+        
+        // Tjek om scope property eksisterer
+        if (!option.searchStrings.hasOwnProperty(scope)) {
+          return false;
+        }
+        
+        const searchString = option.searchStrings[scope];
+        
+        // Tjek om searchString er et tomt array
+        if (Array.isArray(searchString) && searchString.length === 0) {
+          return false;
+        }
+        
+        // Tjek om searchString array har indhold
+        if (Array.isArray(searchString)) {
+          const value = searchString[0];
+          return value != null && value !== '';
+        }
+        
+        // Hvis det ikke er et array, tjek om det har værdi
+        return searchString != null && searchString !== '';
+      },
+      /**
+       * Tæller antal scopes med valid indhold
+       * @param {Object} option - Option objektet fra dropdown
+       * @returns {number} Antal scopes med indhold
+       */
+      countValidScopes(option) {
+        let count = 0;
+        if (this.hasScopeContent(option, 'narrow')) count++;
+        if (this.hasScopeContent(option, 'normal')) count++;
+        if (this.hasScopeContent(option, 'broad')) count++;
+        return count;
+      },
+      /**
+       * Tjekker om knapperne skal vises (kun hvis der er 2 eller flere scopes)
+       * @param {Object} option - Option objektet fra dropdown
+       * @returns {boolean} True hvis knapper skal vises
+       */
+      shouldShowScopeButtons(option) {
+        return this.countValidScopes(option) >= 2;
+      },
       onSelectedChange(newValue, oldValue) {
         console.log('onSelectedChange called', {
           oldLength: oldValue.length,

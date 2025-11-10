@@ -77,7 +77,7 @@
                 <th>{{ getString("scope") }}</th>
                 <th>{{ getString("searchString") }}</th>
               </tr>
-              <tr v-if="group.searchStrings.narrow">
+              <tr v-if="group.searchStrings && hasValidSearchString(group.searchStrings.narrow)">
                 <td>
                   <button
                     v-tooltip="{
@@ -108,7 +108,7 @@
                   </p>
                 </td>
               </tr>
-              <tr v-if="group.searchStrings.normal">
+              <tr v-if="group.searchStrings && hasValidSearchString(group.searchStrings.normal)">
                 <td>
                   <button
                     v-tooltip="{
@@ -139,7 +139,7 @@
                   </p>
                 </td>
               </tr>
-              <tr v-if="group.searchStrings.broad">
+              <tr v-if="group.searchStrings && hasValidSearchString(group.searchStrings.broad)">
                 <td>
                   <button
                     v-tooltip="{
@@ -249,7 +249,7 @@
                 <th>{{ getString("scope") }}</th>
                 <th>{{ getString("searchString") }}</th>
               </tr>
-              <tr v-if="choice.searchStrings.narrow">
+              <tr v-if="choice.searchStrings && hasValidSearchString(choice.searchStrings.narrow)">
                 <td>
                   <button
                     v-tooltip="{
@@ -280,7 +280,7 @@
                   </p>
                 </td>
               </tr>
-              <tr v-if="choice.searchStrings.normal">
+              <tr v-if="choice.searchStrings && hasValidSearchString(choice.searchStrings.normal)">
                 <td>
                   <button
                     v-tooltip="{
@@ -311,7 +311,7 @@
                   </p>
                 </td>
               </tr>
-              <tr v-if="choice.searchStrings.broad">
+              <tr v-if="choice.searchStrings && hasValidSearchString(choice.searchStrings.broad)">
                 <td>
                   <button
                     v-tooltip="{
@@ -485,8 +485,22 @@
         );
       },
       trimSearchString(searchString) {
-        if (Array.isArray(searchString)) return searchString[0].toString();
+        if (!searchString) return '';
+        if (Array.isArray(searchString)) {
+          if (searchString.length === 0) return '';
+          const value = searchString[0];
+          if (!value) return '';
+          return value.toString();
+        }
         return searchString.toString();
+      },
+      hasValidSearchString(searchString) {
+        if (!searchString) return false;
+        if (Array.isArray(searchString)) {
+          if (searchString.length === 0) return false;
+          return searchString[0] != null && searchString[0] !== '';
+        }
+        return searchString !== '';
       },
       getString(string) {
         let lg = this.language;
