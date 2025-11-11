@@ -58,13 +58,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            'xxx'
+            'xxx AND (' + standardString['narrow'] + ')'
           ],
           normal: [
-            'xxx'
+            'xxx AND (' + standardString['normal'] + ')' 
           ],
           broad: [
-            'xxx'
+            'xxx AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -131,13 +131,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            'xxx'
+            'xxx AND (' + standardString['narrow'] + ')'
           ],
           normal: [
-            'xxx'
+            'xxx AND (' + standardString['normal'] + ')' 
           ],
           broad: [
-            'xxx'
+            'xxx AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -166,13 +166,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            'xxx'
+            'xxx AND (' + standardString['narrow'] + ')'
           ],
           normal: [
-            'xxx'
+            'xxx AND (' + standardString['normal'] + ')' 
           ],
           broad: [
-            'xxx'
+            'xxx AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -201,13 +201,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            'xxx'
+            'xxx AND (' + standardString['narrow'] + ')'
           ],
           normal: [
-            'xxx'
+            'xxx AND (' + standardString['normal'] + ')' 
           ],
           broad: [
-            'xxx'
+            'xxx AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -235,13 +235,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            'xxx'
+            'xxx AND (' + standardString['narrow'] + ')'
           ],
           normal: [
-            'xxx'
+            'xxx AND (' + standardString['normal'] + ')' 
           ],
           broad: [
-            'xxx'
+            'xxx AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -269,13 +269,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            'xxx'
+            'xxx AND (' + standardString['narrow'] + ')'
           ],
           normal: [
-            'xxx'
+            'xxx AND (' + standardString['normal'] + ')' 
           ],
           broad: [
-            'xxx'
+            'xxx AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -301,13 +301,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            'xxx'
+            'xxx AND (' + standardString['narrow'] + ')'
           ],
           normal: [
-            'xxx'
+            'xxx AND (' + standardString['normal'] + ')' 
           ],
           broad: [
-            'xxx'
+            'xxx AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -352,13 +352,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            ''
+            '"Cerebral Palsy"[majr] AND (' + standardString['narrow'] + ')'
           ],
           normal: [
-            '("Cerebral Palsy"[mh] OR "cerebral palsy"[ti])'
+            '("Cerebral Palsy"[mh] OR "cerebral palsy"[ti]) AND (' + standardString['normal'] + ')' 
           ],
           broad: [
-            ''
+            '"Cerebral Palsy"[mh] OR "cerebral palsy"[tiab] AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -385,13 +385,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            ''
+            '"Acute Febrile Encephalopathy"[majr] OR "Hypoxia, Brain"[majr] OR "Chronic Traumatic Encephalopathy"[majr] OR "Encephalopathy, Bovine Spongiform"[majr] OR "Hepatic Encephalopathy"[majr] OR "Hypertensive Encephalopathy"[majr] OR "Sepsis-Associated Encephalopathy"[majr] OR "Wernicke Encephalopathy"[majr] AND (' + standardString['narrow'] + ')'
           ],
           normal: [
-            '(("Acute Febrile Encephalopathy"[mh] OR "Hypoxia, Brain"[mh] OR "Chronic Traumatic Encephalopathy"[mh] OR "Encephalopathy, Bovine Spongiform"[mh] OR "Hepatic Encephalopathy"[mh] OR "Hypertensive Encephalopathy"[mh] OR "Sepsis-Associated Encephalopathy"[mh] OR "Wernicke Encephalopathy"[mh]) OR encephalopath*[ti])'
+            '(("Acute Febrile Encephalopathy"[mh] OR "Hypoxia, Brain"[mh] OR "Chronic Traumatic Encephalopathy"[mh] OR "Encephalopathy, Bovine Spongiform"[mh] OR "Hepatic Encephalopathy"[mh] OR "Hypertensive Encephalopathy"[mh] OR "Sepsis-Associated Encephalopathy"[mh] OR "Wernicke Encephalopathy"[mh]) OR encephalopath*[ti]) AND (' + standardString['normal'] + ')' 
           ],
           broad: [
-            ''
+            '("Acute Febrile Encephalopathy"[mh] OR "Hypoxia, Brain"[mh] OR "Chronic Traumatic Encephalopathy"[mh] OR "Encephalopathy, Bovine Spongiform"[mh] OR "Hepatic Encephalopathy"[mh] OR "Hypertensive Encephalopathy"[mh] OR "Sepsis-Associated Encephalopathy"[mh] OR "Wernicke Encephalopathy"[mh]) OR encephalopath*[tiab] AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -418,13 +418,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            ''
+            '"Brain Concussion"[majr] AND (' + standardString['narrow'] + ')'
           ],
           normal: [
-            '("Brain Concussion"[mh] OR concussion*[ti])'
+            '("Brain Concussion"[mh] OR concussion*[ti]) AND (' + standardString['normal'] + ')' 
           ],
           broad: [
-            ''
+            '"Brain Concussion"[mh] OR concussion*[tiab] AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -451,13 +451,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            ''
+            '"Brain Neoplasms"[majr] AND (' + standardString['narrow'] + ')'
           ],
           normal: [
-            '("Brain Neoplasms"[mh] OR "brain neoplasm*"[ti] OR "brain tumor*"[ti] OR "brain tumour*"[ti] OR "brain cancer"[ti:~2])'
+            '("Brain Neoplasms"[mh] OR "brain neoplasm*"[ti] OR "brain tumor*"[ti] OR "brain tumour*"[ti] OR "brain cancer"[ti:~2]) AND (' + standardString['normal'] + ')' 
           ],
           broad: [
-            ''
+            '"Brain Neoplasms"[mh] OR "brain neoplasm*"[tiab] OR "brain tumor*"[tiab] OR "brain tumour*"[tiab] OR "brain cancer"[tiab:~2] AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -484,13 +484,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            ''
+            '"Spinal Cord Injuries"[majr] AND (' + standardString['narrow'] + ')'
           ],
           normal: [
-            '("Spinal Cord Injuries"[mh] OR "spinal cord injury"[ti:~2] OR "spinal cord injuries"[ti:~2])'
+            '("Spinal Cord Injuries"[mh] OR "spinal cord injury"[ti:~2] OR "spinal cord injuries"[ti:~2]) AND (' + standardString['normal'] + ')' 
           ],
           broad: [
-            ''
+            '"Spinal Cord Injuries"[mh] OR "spinal cord injury"[tiab:~2] OR "spinal cord injuries"[tiab:~2] AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -517,13 +517,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            ''
+            '"Stroke"[majr] AND (' + standardString['narrow'] + ')'
           ],
           normal: [
-            '("Stroke"[mh] OR stroke[ti] OR "apoplex*"[ti] OR "cerebrovascular accident*"[ti])'
+            '("Stroke"[mh] OR stroke[ti] OR "apoplex*"[ti] OR "cerebrovascular accident*"[ti]) AND (' + standardString['normal'] + ')' 
           ],
           broad: [
-            ''
+            '"Stroke"[mh] OR stroke[tiab] OR "apoplex*"[tiab] OR "cerebrovascular accident*"[tiab] AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -550,13 +550,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            ''
+            '"Brain Injuries, Traumatic"[majr] AND (' + standardString['narrow'] + ')'
           ],
           normal: [
-            '("brain injuries, traumatic"[mh] OR "traumatic brain injury"[ti:~1] OR "traumatic brain injuries"[ti:~1])'
+            '("brain injuries, traumatic"[mh] OR "traumatic brain injury"[ti:~1] OR "traumatic brain injuries"[ti:~1]) AND (' + standardString['normal'] + ')' 
           ],
           broad: [
-            ''
+            '"brain injuries, traumatic"[mh] OR "traumatic brain injury"[tiab:~1] OR "traumatic brain injuries"[tiab:~1] AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -625,7 +625,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Impulsive Behavior[mh] OR Inhibition, Psychological[mh] OR Emotional Regulation[mh]'
+            'Impulsive Behavior[mh] OR Inhibition, Psychological[mh] OR Emotional Regulation[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -660,7 +660,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Affective Symptoms[mh]'
+            'Affective Symptoms[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -695,7 +695,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'alexithymia'
+            'alexithymia AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -730,7 +730,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Anxiety[mh] OR Anxiety Disorders[mh]'
+            'Anxiety[mh] OR Anxiety Disorders[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -765,7 +765,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Apathy[mh] OR "apathy" OR "abulia"'
+            'Apathy[mh] OR "apathy" OR "abulia" AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -800,7 +800,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Depression[mh] OR Depressive Disorder[mh]'
+            'Depression[mh] OR Depressive Disorder[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -835,7 +835,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Emotional blunting'
+            'Emotional blunting AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -870,7 +870,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Irritable Mood[mh] OR Aggression[mh] OR Anger[mh] OR Frustration[mh]'
+            'Irritable Mood[mh] OR Aggression[mh] OR Anger[mh] OR Frustration[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -905,7 +905,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Stress, Psychological[mh] OR Psychological Distress[mh]'
+            'Stress, Psychological[mh] OR Psychological Distress[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -940,7 +940,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Stress Disorders, Post-Traumatic[mh]'
+            'Stress Disorders, Post-Traumatic[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -975,7 +975,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Grief[mh] OR Prolonged Grief Disorder[mh] OR Adjustment Disorders[mh] OR Life Change Events[mh] OR Stress Disorders, Traumatic, Acute[mh]'
+            'Grief[mh] OR Prolonged Grief Disorder[mh] OR Adjustment Disorders[mh] OR Life Change Events[mh] OR Stress Disorders, Traumatic, Acute[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -1029,7 +1029,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Aphasia[mh] OR Anomia[mh] OR Agrammatism OR Communication Disorders[mh] OR "Cognitive communication disorder*"'
+            'Aphasia[mh] OR Anomia[mh] OR Agrammatism OR Communication Disorders[mh] OR "Cognitive communication disorder*" AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -1064,7 +1064,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Agraphia[mh]'
+            'Agraphia[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -1099,7 +1099,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Dyscalculia[mh]'
+            'Dyscalculia[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -1134,7 +1134,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Dyslexia[mh]'
+            'Dyslexia[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -1169,7 +1169,7 @@ export const topics = [
             ''
           ],
           normal: [
-            '("Agnosia"[mh] OR "Awareness"[mh] OR "Denial (Psychology)"[mh]) OR ("anosognosia") OR ("anosodiaphoria") OR ("self-awareness")'
+            '("Agnosia"[mh] OR "Awareness"[mh] OR "Denial (Psychology)"[mh]) OR ("anosognosia") OR ("anosodiaphoria") OR ("self-awareness") AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -1204,7 +1204,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Apraxias[mh]'
+            'Apraxias[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -1239,7 +1239,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Executive Function[mh] OR Judgment[mh] OR Decision Making[mh] OR Metacognition[mh] OR Problem Solving[mh] OR planning OR "set shift*" OR "dysexecutive" OR "executive problem*" OR "executive disorder*" OR "executive deficit*"'
+            'Executive Function[mh] OR Judgment[mh] OR Decision Making[mh] OR Metacognition[mh] OR Problem Solving[mh] OR planning OR "set shift*" OR "dysexecutive" OR "executive problem*" OR "executive disorder*" OR "executive deficit*" AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -1274,7 +1274,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Memory Disorders[mh] OR Learning Disabilities[mh] OR Memory, Episodic[mh] OR Spatial Memory[mh]'
+            'Memory Disorders[mh] OR Learning Disabilities[mh] OR Memory, Episodic[mh] OR Spatial Memory[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -1309,7 +1309,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Neurocognitive Disorders[mh] OR Cognition Disorders[mh] OR Cognitive Dysfunction[mh] OR Cognition[mh]'
+            'Neurocognitive Disorders[mh] OR Cognition Disorders[mh] OR Cognitive Dysfunction[mh] OR Cognition[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -1344,7 +1344,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Attention[mh] OR Processing Speed[mh] OR Psychomotor Performance[mh]'
+            'Attention[mh] OR Processing Speed[mh] OR Psychomotor Performance[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -1379,7 +1379,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Orientation[mh]'
+            'Orientation[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -1414,7 +1414,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Social Cognition[mh] OR Theory of Mind[mh] OR Psychosocial Functioning[mh] OR empath* OR Social Skills[mh]'
+            'Social Cognition[mh] OR Theory of Mind[mh] OR Psychosocial Functioning[mh] OR empath* OR Social Skills[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -1449,7 +1449,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Memory, Short-Term[mh] OR "working memory"'
+            'Memory, Short-Term[mh] OR "working memory" AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -1489,7 +1489,7 @@ export const topics = [
         buttons: true,
         
         subtopiclevel: 1,
-        maintopicIdLevel1: 'S020020',
+        maintopicIdLevel1: 'S020030',
         translations: {
           dk: 'Akinesi/hypokinesi',
           en: 'Akinesia/hypokinesia'
@@ -1503,7 +1503,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Hypokinesia[mh]'
+            'Hypokinesia[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -1524,7 +1524,7 @@ export const topics = [
         buttons: true,
         
         subtopiclevel: 1,
-        maintopicIdLevel1: 'S020020',
+        maintopicIdLevel1: 'S020030',
         translations: {
           dk: 'Alien hand/limb syndrom',
           en: 'Alien hand/limb syndrome'
@@ -1538,7 +1538,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Alien Limb Phenomenon[mh]'
+            'Alien Limb Phenomenon[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -1559,7 +1559,7 @@ export const topics = [
         buttons: true,
         
         subtopiclevel: 1,
-        maintopicIdLevel1: 'S020020',
+        maintopicIdLevel1: 'S020030',
         translations: {
           dk: 'Ataksi',
           en: 'Ataxia'
@@ -1573,7 +1573,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Ataxia[mh] OR Cerebellar Ataxia[mh] OR Gait Ataxia[mh]'
+            'Ataxia[mh] OR Cerebellar Ataxia[mh] OR Gait Ataxia[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -1594,7 +1594,7 @@ export const topics = [
         buttons: true,
         
         subtopiclevel: 1,
-        maintopicIdLevel1: 'S020020',
+        maintopicIdLevel1: 'S020030',
         translations: {
           dk: 'Atrofi (tab af muskelmasse)',
           en: 'Atrophy (loss of muscle mass)'
@@ -1608,7 +1608,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Muscular Atrophy[mh]'
+            'Muscular Atrophy[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -1629,7 +1629,7 @@ export const topics = [
         buttons: true,
         
         subtopiclevel: 1,
-        maintopicIdLevel1: 'S020020',
+        maintopicIdLevel1: 'S020030',
         translations: {
           dk: 'Dysartri',
           en: 'Dysarthria'
@@ -1643,7 +1643,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Dysarthria[mh]'
+            'Dysarthria[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -1664,7 +1664,7 @@ export const topics = [
         buttons: true,
         
         subtopiclevel: 1,
-        maintopicIdLevel1: 'S020020',
+        maintopicIdLevel1: 'S020030',
         translations: {
           dk: 'Dysfagi',
           en: 'Dysphagia'
@@ -1678,7 +1678,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Deglutition Disorders[mh] OR Dysphagia'
+            'Deglutition Disorders[mh] OR Dysphagia AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -1699,7 +1699,7 @@ export const topics = [
         buttons: true,
         
         subtopiclevel: 1,
-        maintopicIdLevel1: 'S020020',
+        maintopicIdLevel1: 'S020030',
         translations: {
           dk: 'Dyskinesi',
           en: 'Dyskinesia'
@@ -1713,7 +1713,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Dyskinesias[mh] OR Tremor[mh]'
+            'Dyskinesias[mh] OR Tremor[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -1734,7 +1734,7 @@ export const topics = [
         buttons: true,
         
         subtopiclevel: 1,
-        maintopicIdLevel1: 'S020020',
+        maintopicIdLevel1: 'S020030',
         translations: {
           dk: 'Facialisparese',
           en: 'Facial palsy'
@@ -1748,7 +1748,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Facial paralysis[mh]'
+            'Facial paralysis[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -1769,7 +1769,7 @@ export const topics = [
         buttons: true,
         
         subtopiclevel: 1,
-        maintopicIdLevel1: 'S020020',
+        maintopicIdLevel1: 'S020030',
         translations: {
           dk: 'Finmotorik',
           en: 'Fine motor skills'
@@ -1783,7 +1783,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'dexterity'
+            'dexterity AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -1804,7 +1804,7 @@ export const topics = [
         buttons: true,
 
         subtopiclevel: 1,
-        maintopicIdLevel1: 'S020020',
+        maintopicIdLevel1: 'S020030',
         translations: {
           dk: 'Forflytning og mobilitet',
           en: 'Transfer and mobility'
@@ -1818,7 +1818,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Moving and Lifting Patients[mh] OR Mobility Limitation[mh] OR ("transfer skill*" OR "ambulat* difficult*") OR Motor Activity[mh]'
+            'Moving and Lifting Patients[mh] OR Mobility Limitation[mh] OR ("transfer skill*" OR "ambulat* difficult*") OR Motor Activity[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -1839,7 +1839,7 @@ export const topics = [
         buttons: true,
         
         subtopiclevel: 1,
-        maintopicIdLevel1: 'S020020',
+        maintopicIdLevel1: 'S020030',
         translations: {
           dk: 'Gangfunktion',
           en: 'Gait function'
@@ -1853,7 +1853,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Gait Disorders, Neurologic[mh] OR Gait Analysis[mh]'
+            'Gait Disorders, Neurologic[mh] OR Gait Analysis[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -1874,7 +1874,7 @@ export const topics = [
         buttons: true,
         
         subtopiclevel: 1,
-        maintopicIdLevel1: 'S020020',
+        maintopicIdLevel1: 'S020030',
         translations: {
           dk: 'Hypertoni',
           en: 'Hypertonia'
@@ -1888,7 +1888,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Muscle Hypertonia[mh] OR Dystonia[mh] OR Contracture[mh]'
+            'Muscle Hypertonia[mh] OR Dystonia[mh] OR Contracture[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -1909,7 +1909,7 @@ export const topics = [
         buttons: true,
         
         subtopiclevel: 1,
-        maintopicIdLevel1: 'S020020',
+        maintopicIdLevel1: 'S020030',
         translations: {
           dk: 'Motoriske forstyrrelser',
           en: 'Motor disorders'
@@ -1923,7 +1923,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Motor Disorders[mh] OR Motor Skills Disorders[mh] OR Motor Skills[mh]'
+            'Motor Disorders[mh] OR Motor Skills Disorders[mh] OR Motor Skills[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -1944,7 +1944,7 @@ export const topics = [
         buttons: true,
         
         subtopiclevel: 1,
-        maintopicIdLevel1: 'S020020',
+        maintopicIdLevel1: 'S020030',
         translations: {
           dk: 'Paralyse',
           en: 'Paralysis'
@@ -1958,7 +1958,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Paralysis[mh]'
+            'Paralysis[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -1979,7 +1979,7 @@ export const topics = [
         buttons: true,
         
         subtopiclevel: 1,
-        maintopicIdLevel1: 'S020020',
+        maintopicIdLevel1: 'S020030',
         translations: {
           dk: 'Parese',
           en: 'Paresis'
@@ -1993,7 +1993,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Paresis[mh] OR hemipare*'
+            'Paresis[mh] OR hemipare* AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -2014,7 +2014,7 @@ export const topics = [
         buttons: true,
         
         subtopiclevel: 1,
-        maintopicIdLevel1: 'S020020',
+        maintopicIdLevel1: 'S020030',
         translations: {
           dk: 'Øjenmotorik',
           en: 'Oculomotor function'
@@ -2028,7 +2028,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Ocular Motility Disorders[mh]'
+            'Ocular Motility Disorders[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -2082,7 +2082,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Agnosia[mh]'
+            'Agnosia[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -2117,7 +2117,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Motion Perception[mh] OR "akinetopsia"'
+            'Motion Perception[mh] OR "akinetopsia" AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -2152,7 +2152,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Color Perception[mh] OR "achromatopsia"'
+            'Color Perception[mh] OR "achromatopsia" AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -2187,7 +2187,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Allesthesia[mh]'
+            'Allesthesia[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -2222,7 +2222,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Auditory Perception[mh] OR Auditory Perceptual Disorders[mh] OR (Agnosia[mh] AND ("auditor*" OR "sound")) OR "amusia" OR "auditor* agnosia" OR "phonagnosia"'
+            'Auditory Perception[mh] OR Auditory Perceptual Disorders[mh] OR (Agnosia[mh] AND ("auditor*" OR "sound")) OR "amusia" OR "auditor* agnosia" OR "phonagnosia" AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -2243,7 +2243,7 @@ export const topics = [
         buttons: true,
         
         subtopiclevel: 1,
-        maintopicIdLevel1: 'S020050',
+        maintopicIdLevel1: 'S020040',
         translations: {
           dk: 'Gustatoriske agnosier',
           en: 'Gustatory agnosia'
@@ -2257,7 +2257,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Taste Perception[mh] OR (Agnosia[mh] AND ("gustator*" OR "taste"))'
+            'Taste Perception[mh] OR (Agnosia[mh] AND ("gustator*" OR "taste")) AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -2292,7 +2292,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Hallucinations[mh]'
+            'Hallucinations[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -2327,7 +2327,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Olfactory Perception[mh] OR Anosmia[mh] OR (Agnosia[mh] AND ("olfactor*" OR "smell*" OR "odor*"))'
+            'Olfactory Perception[mh] OR Anosmia[mh] OR (Agnosia[mh] AND ("olfactor*" OR "smell*" OR "odor*")) AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -2362,7 +2362,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Perceptual Disorders[mh]'
+            'Perceptual Disorders[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -2397,7 +2397,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Facial Recognition[mh] OR Prosopagnosia[mh]'
+            'Facial Recognition[mh] OR Prosopagnosia[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -2432,7 +2432,7 @@ export const topics = [
             ''
           ],
           normal: [
-            '("unilateral neglect") OR ("hemispatial neglect") OR ("spatial neglect") OR ("hemineglect") OR ("hemi inattention") OR ("hemi-inattention") OR ("visual neglect") OR ("auditory neglect") OR ("tactile neglect") OR ("allocentric neglect") OR ("egocentric neglect") OR ("sensory neglect") OR ("motor neglect") OR ("perceptual neglect") OR ("hemi agnosia") OR ("hemispatial agnosia") OR ("unilateral agnosia") OR ("neglect dyslexia") OR ("representational neglect") OR ("personal neglect") OR ("peripersonal neglect") OR ("extrapersonal neglect") OR ("ipsilateral neglect") OR ("vertical neglect") OR ("radial neglect") OR ("extinction to simultaneously stimuli") OR ("motor extinction") OR ("visual extinction") OR ("auditory extinction") OR ("tactile extinction")'
+            '("unilateral neglect") OR ("hemispatial neglect") OR ("spatial neglect") OR ("hemineglect") OR ("hemi inattention") OR ("hemi-inattention") OR ("visual neglect") OR ("auditory neglect") OR ("tactile neglect") OR ("allocentric neglect") OR ("egocentric neglect") OR ("sensory neglect") OR ("motor neglect") OR ("perceptual neglect") OR ("hemi agnosia") OR ("hemispatial agnosia") OR ("unilateral agnosia") OR ("neglect dyslexia") OR ("representational neglect") OR ("personal neglect") OR ("peripersonal neglect") OR ("extrapersonal neglect") OR ("ipsilateral neglect") OR ("vertical neglect") OR ("radial neglect") OR ("extinction to simultaneously stimuli") OR ("motor extinction") OR ("visual extinction") OR ("auditory extinction") OR ("tactile extinction") AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -2467,7 +2467,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Touch Perception[mh] OR Stereognosis[mh] OR (Agnosia[mh] AND ("tacti*" OR "touch" OR "kinesthe*)) OR "astereognosis" OR "ahylognosia" OR "amorphognosia"'
+            'Touch Perception[mh] OR Stereognosis[mh] OR (Agnosia[mh] AND ("tacti*" OR "touch" OR "kinesthe*)) OR "astereognosis" OR "ahylognosia" OR "amorphognosia" AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -2502,7 +2502,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Visual Perception[mh] OR (Agnosia[mh] AND ("visua*" OR "optic*" OR "sight")) OR "akinetopsia" OR "achromatopsia" OR "form agnosia"'
+            'Visual Perception[mh] OR (Agnosia[mh] AND ("visua*" OR "optic*" OR "sight")) OR "akinetopsia" OR "achromatopsia" OR "form agnosia" AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -2556,7 +2556,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Disruptive, Impulse Control, and Conduct Disorders[mh] OR Conduct Disorder[mh]'
+            'Disruptive, Impulse Control, and Conduct Disorders[mh] OR Conduct Disorder[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -2591,7 +2591,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Substance-Related Disorders[mh] OR Drinking Behavior[mh] OR Smoking[mh] OR Tobacco Use[mh] OR Drug-Seeking Behavior[mh] OR Marijuana Use[mh] OR Recreational Drug Use[mh]'
+            'Substance-Related Disorders[mh] OR Drinking Behavior[mh] OR Smoking[mh] OR Tobacco Use[mh] OR Drug-Seeking Behavior[mh] OR Marijuana Use[mh] OR Recreational Drug Use[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -2626,7 +2626,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Identity OR Life Change Events[mh]'
+            'Identity OR Life Change Events[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -2661,7 +2661,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Mental Health[mh] OR Personal Satisfaction[mh] OR Psychological Well-Being[mh]'
+            'Mental Health[mh] OR Personal Satisfaction[mh] OR Psychological Well-Being[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -2696,7 +2696,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Self-Management[mh] OR Coping Skills[mh]'
+            'Self-Management[mh] OR Coping Skills[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -2731,7 +2731,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Self Care[mh] OR Self-Neglect[mh] OR "Self care" OR "self maintenance" OR Oral Health[mh]'
+            'Self Care[mh] OR Self-Neglect[mh] OR "Self care" OR "self maintenance" OR Oral Health[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -2766,7 +2766,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Personality Disorders[mh] OR Personality[mh]'
+            'Personality Disorders[mh] OR Personality[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -2801,7 +2801,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Resilience, Psychological[mh]'
+            'Resilience, Psychological[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -2836,7 +2836,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Risk-Taking[mh] OR Health Risk Behaviors[mh] OR Dangerous Behavior[mh]'
+            'Risk-Taking[mh] OR Health Risk Behaviors[mh] OR Dangerous Behavior[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -2871,7 +2871,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Self Efficacy[mh]'
+            'Self Efficacy[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -2906,7 +2906,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Independent Living[mh]'
+            'Independent Living[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -2941,7 +2941,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Quality of Life[mh]'
+            'Quality of Life[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -2993,7 +2993,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Touch[mh] OR Somatosensory Disorders[mh]'
+            'Touch[mh] OR Somatosensory Disorders[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -3027,7 +3027,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Hemianopsia[mh] OR hemianopsia OR hemianopia'
+            'Hemianopsia[mh] OR hemianopsia OR hemianopia AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -3061,7 +3061,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Headache[mh] OR "Headache Disorders"[mh]'
+            'Headache[mh] OR "Headache Disorders"[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -3095,7 +3095,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Hearing[mh] OR Hearing Disorders[mh] OR "cortical deafness"'
+            'Hearing[mh] OR Hearing Disorders[mh] OR "cortical deafness" AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -3129,7 +3129,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Blindness, Cortical[mh]'
+            'Blindness, Cortical[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -3163,7 +3163,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Smell[mh] OR Olfaction Disorders[mh] OR Anosmia[mh]'
+            'Smell[mh] OR Olfaction Disorders[mh] OR Anosmia[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -3197,7 +3197,7 @@ export const topics = [
             ''
           ],
           normal: [
-            '(Hyperacusis[mh] OR "noise sensitivit*") OR (Photophobia[mh] OR "light sensitivit*")'
+            '(Hyperacusis[mh] OR "noise sensitivit*") OR (Photophobia[mh] OR "light sensitivit*") AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -3231,7 +3231,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Proprioception[mh]'
+            'Proprioception[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -3265,7 +3265,7 @@ export const topics = [
             ''
           ],
           normal: [
-            '"Sensory processing" OR "Sensory integration" OR "Sensory processing disorder"'
+            '"Sensory processing" OR "Sensory integration" OR "Sensory processing disorder" AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -3299,7 +3299,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Taste[mh] OR Taste Disorders[mh] OR Ageusia[mh] OR Dysgeusia[mh]'
+            'Taste[mh] OR Taste Disorders[mh] OR Ageusia[mh] OR Dysgeusia[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -3334,7 +3334,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Pain[mh] OR Pain Perception[mh]'
+            'Pain[mh] OR Pain Perception[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -3368,7 +3368,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Vertigo[mh] OR Dizziness[mh]'
+            'Vertigo[mh] OR Dizziness[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -3402,7 +3402,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Vision, Ocular[mh] OR "Vision Disorders"[mh] OR "cerebral visual impairment" OR "cortical visual impairment"'
+            'Vision, Ocular[mh] OR "Vision Disorders"[mh] OR "cerebral visual impairment" OR "cortical visual impairment" AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -3436,7 +3436,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Vestibular Diseases[mh] OR "Vestibular System"[mh]'
+            'Vestibular Diseases[mh] OR "Vestibular System"[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -3488,7 +3488,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Activities of Daily Living[mh] OR "activit* of daily living"'
+            'Activities of Daily Living[mh] OR "activit* of daily living" AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -3522,7 +3522,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Employment[mh] OR Occupations[mh] OR Retirement[mh] OR Return to Work[mh] OR "Return to work"'
+            'Employment[mh] OR Occupations[mh] OR Retirement[mh] OR Return to Work[mh] OR "Return to work" AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -3556,7 +3556,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Automobile Driving[mh] OR "licensing" OR "driving" OR "driver"'
+            'Automobile Driving[mh] OR "licensing" OR "driving" OR "driver" AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -3590,7 +3590,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Leisure Activities[mh]'
+            'Leisure Activities[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -3624,7 +3624,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Sedentary Behavior[mh]'
+            'Sedentary Behavior[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -3658,7 +3658,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Crime[mh] OR Criminal Behavior[mh]'
+            'Crime[mh] OR Criminal Behavior[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -3692,7 +3692,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Exercise[mh]'
+            'Exercise[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -3726,7 +3726,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Return to School[mh] OR "Education"[mh]'
+            'Return to School[mh] OR "Education"[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -3779,7 +3779,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Caregiver Burden[mh] OR "family need*"'
+            'Caregiver Burden[mh] OR "family need*" AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -3813,7 +3813,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Community Participation[mh] OR Social Participation[mh] OR "community reintegration" OR "community re-integration"'
+            'Community Participation[mh] OR Social Participation[mh] OR "community reintegration" OR "community re-integration" AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -3847,7 +3847,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Divorce[mh]'
+            'Divorce[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -3881,7 +3881,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Social Isolation[mh] OR "loneliness"'
+            'Social Isolation[mh] OR "loneliness" AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -3915,7 +3915,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Health service utilization OR "health care cost*" OR "healthcare cost*"'
+            'Health service utilization OR "health care cost*" OR "healthcare cost*" AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -3949,7 +3949,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Unmet need*'
+            'Unmet need* AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -4002,7 +4002,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Psychomotor Agitation[mh]'
+            'Psychomotor Agitation[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -4036,7 +4036,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Arousal[mh] OR Wakefulness[mh]'
+            'Arousal[mh] OR Wakefulness[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -4070,7 +4070,7 @@ export const topics = [
             ''
           ],
           normal: [
-            '"paroxysmal sympathetic hyperactivity"'
+            '"paroxysmal sympathetic hyperactivity" AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -4104,7 +4104,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Consciousness Disorders[mh] OR Persistent Vegetative State[mh] OR "vegetative state" OR "unresponsive wakefulness state" OR "minimal conscious state"'
+            'Consciousness Disorders[mh] OR Persistent Vegetative State[mh] OR "vegetative state" OR "unresponsive wakefulness state" OR "minimal conscious state" AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -4138,7 +4138,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Seizures[mh]'
+            'Seizures[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -4172,7 +4172,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Fatigue[mh] OR Lethargy[mh] OR fatigability OR "cognitive fatigue" OR "mental fatigue" OR "physical fatigue"'
+            'Fatigue[mh] OR Lethargy[mh] OR fatigability OR "cognitive fatigue" OR "mental fatigue" OR "physical fatigue" AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -4206,7 +4206,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Confusion[mh] OR Delirium[mh] OR "Post traumatic amnesia" OR "Post traumatic confusional state"'
+            'Confusion[mh] OR Delirium[mh] OR "Post traumatic amnesia" OR "Post traumatic confusional state" AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -4241,7 +4241,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Locked-In Syndrome[mh]'
+            'Locked-In Syndrome[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -4276,7 +4276,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Sexuality[mh] OR Sexual Behavior[mh] OR Sexual Health[mh]'
+            'Sexuality[mh] OR Sexual Behavior[mh] OR Sexual Health[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -4311,7 +4311,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Dyssomnias[mh] OR Sleep[mh] OR "sleep disturbance*" OR "sleep disorder*" OR "insomni*" OR "sleep apne*" OR "excessive daytime sleepiness" OR "sleep quality"'
+            'Dyssomnias[mh] OR Sleep[mh] OR "sleep disturbance*" OR "sleep disorder*" OR "insomni*" OR "sleep apne*" OR "excessive daytime sleepiness" OR "sleep quality" AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -4380,13 +4380,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            ''
+            '"Enteral Nutrition"[majr] AND (' + standardString['narrow'] + ')'
           ],
           normal: [
-            'Enteral Nutrition[mh] OR "tube feeding"[ti:~0] OR "enteral nutrition"[ti]'
+            'Enteral Nutrition[mh] OR "tube feeding"[ti:~0] OR "enteral nutrition"[ti] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
-            ''
+            '"Enteral Nutrition"[mh] OR "tube feeding"[tiab:~0] OR "enteral nutrition"[tiab] AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -4425,8 +4425,8 @@ export const topics = [
         subtopiclevel: 1,
         maintopicIdLevel1: 'S030020',
         translations: {
-          dk: 'SSRI - Selective Serotonin Reuptake Inhibitors',
-          en: 'SSRI - Selective Serotonin Reuptake Inhibitors'
+          dk: 'SSRI – Selective Serotonin Reuptake Inhibitors',
+          en: 'SSRI – Selective Serotonin Reuptake Inhibitors'
         },
         ordering: {
           dk: 4,
@@ -4434,13 +4434,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            ''
+            '"Selective Serotonin Reuptake Inhibitors"[majr] AND (' + standardString['narrow'] + ')'
           ],
           normal: [
-            'Selective Serotonin Reuptake Inhibitors[mh] OR "Selective Serotonin Reuptake Inhibitors"[ti]'
+            'Selective Serotonin Reuptake Inhibitors[mh] OR "Selective Serotonin Reuptake Inhibitors"[ti] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
-            ''
+            '"Selective Serotonin Reuptake Inhibitors"[mh] OR "Selective Serotonin Reuptake Inhibitors"[tiab] AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -4488,13 +4488,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            ''
+            '"Mindfulness"[majr] AND (' + standardString['narrow'] + ')'
           ],
           normal: [
-            '"Mindfulness"[mh] OR "mindfulness"[ti]'
+            '"Mindfulness"[mh] OR "mindfulness"[ti] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
-            ''
+            '"Mindfulness"[mh] OR "mindfulness"[tiab] AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -4523,13 +4523,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            ''
+            '"Acceptance and Commitment Therapy"[majr] AND (' + standardString['narrow'] + ')'
           ],
           normal: [
-            '"Acceptance and Commitment Therapy"[mh] OR "acceptance and commitment therap*"[ti]'
+            '"Acceptance and Commitment Therapy"[mh] OR "acceptance and commitment therap*"[ti] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
-            ''
+            '"Acceptance and Commitment Therapy"[mh] OR "acceptance and commitment therap*"[tiab] AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -4568,8 +4568,8 @@ export const topics = [
         subtopiclevel: 1,
         maintopicIdLevel1: 'S030040',
         translations: {
-          dk: 'CIMT Constraint-induced Movement Therapy, also mCIMT modified Constraint-induced Movement Therapy',
-          en: 'CIMT Constraint-induced Movement Therapy, also mCIMT modified Constraint-induced Movement Therapy'
+          dk: 'CIMT/mCIMT – (modified) Constraint-induced Movement Therapy',
+          en: 'CIMT/mCIMT – (modified) Constraint-induced Movement Therapy'
         },
         ordering: {
           dk: 9,
@@ -4577,13 +4577,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            ''
+            '"forced use"[ti] OR "constrain* induced movement therapy"[ti] AND (' + standardString['narrow'] + ')'
           ],
           normal: [
-            '"forced use"[ti] OR "constrain* induced movement therapy"[ti]'
+            '"forced use"[ti] OR "constrain* induced movement therapy"[ti] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
-            ''
+            '"forced use"[tiab] OR "constrain* induced movement therapy"[tiab] AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -4603,8 +4603,8 @@ export const topics = [
         subtopiclevel: 1,
         maintopicIdLevel1: 'S030040',
         translations: {
-          dk: 'HIGT - High Intensity Gait Training',
-          en: 'HIGT - High Intensity Gait Training'
+          dk: 'HIGT – High Intensity Gait Training',
+          en: 'HIGT – High Intensity Gait Training'
         },
         ordering: {
           dk: 10,
@@ -4612,13 +4612,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            ''
+            '"high intensity gait train*"[ti] AND (' + standardString['normal'] + ')'
           ],
           normal: [
-            '"high intensity gait train*"[ti]'
+            '"high intensity gait train*"[ti] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
-            ''
+            '"high intensity gait train*"[tiab] AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -4647,13 +4647,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            ''
+            '"task training"[ti:~1] AND (' + standardString['normal'] + ')'
           ],
           normal: [
-            '"task training"[ti:~1]'
+            '"task training"[ti:~1] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
-            ''
+            '"task training"[tiab:~1] AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -4682,13 +4682,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            ''
+            '"Endurance Training"[majr] AND (' + standardString['narrow'] + ')'
           ],
           normal: [
-            '"Endurance Training"[mh] OR "endurance training"[ti]'
+            '"Endurance Training"[mh] OR "endurance training"[ti] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
-            ''
+            '"Endurance Training"[mh] OR "endurance training"[tiab] AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -4717,13 +4717,13 @@ export const topics = [
         },
         searchStrings: {
           narrow: [
-            ''
+            '"Electric Stimulation Therapy"[majr:noexp] OR "Transcranial Direct Current Stimulation"[majr] OR "Transcutaneous Electric Nerve Stimulation"[majr] AND (' + standardString['narrow'] + ')'
           ],
           normal: [
-            '"functional electrical stimulat*"[ti] OR "Transcutaneous Electric Nerve Stimulat*"[ti] OR "Transcranial Direct Current Stimulat*"[ti] OR "neuromuscular electrical stimulat*"[ti]'
+            '"Electric Stimulation Therapy"[mh:noexp] OR "Transcranial Direct Current Stimulation"[mh] OR "Transcutaneous Electric Nerve Stimulation"[mh] OR "functional electrical stimulat*"[ti] OR "Transcutaneous Electric Nerve Stimulat*"[ti] OR "Transcranial Direct Current Stimulat*"[ti] OR "neuromuscular electrical stimulat*"[ti] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
-            ''
+            '"Electric Stimulation Therapy"[mh:noexp] OR "Transcranial Direct Current Stimulation"[mh] OR "Transcutaneous Electric Nerve Stimulation"[mh] OR "functional electrical stimulat*"[tiab] OR "Transcutaneous Electric Nerve Stimulat*"[tiab] OR "Transcranial Direct Current Stimulat*"[tiab] OR "neuromuscular electrical stimulat*"[tiab] AND (' + standardString['broad'] + ')'
           ]
         },
         searchStringComment: {
@@ -4792,7 +4792,7 @@ export const topics = [
             ''
           ],
           normal: [
-            '"Functional independence measure"[all]'
+            '"Functional independence measure"[all] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -4827,7 +4827,7 @@ export const topics = [
             ''
           ],
           normal: [
-            '"Early Functional abilities"[all]'
+            '"Early Functional abilities"[all] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -4862,7 +4862,7 @@ export const topics = [
             ''
           ],
           normal: [
-            '"Bartel index"[all] OR "barthel index"[all] OR "barthel 20"[all] OR "barthel 100"[all] OR "barthel 20"[all] OR "barthel 100"[all]'
+            '"Bartel index"[all] OR "barthel index"[all] OR "barthel 20"[all] OR "barthel 100"[all] OR "barthel 20"[all] OR "barthel 100"[all] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -4897,7 +4897,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'ERBI[all] OR "early rehabilitation bart* inde*"[all]'
+            'ERBI[all] OR "early rehabilitation bart* inde*"[all] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -4932,7 +4932,7 @@ export const topics = [
             ''
           ],
           normal: [
-            '"Modified Rankin Scale"[all]'
+            '"Modified Rankin Scale"[all] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -4967,7 +4967,7 @@ export const topics = [
             ''
           ],
           normal: [
-            '"Glasgow Coma Scale"[all]'
+            '"Glasgow Coma Scale"[all] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -5002,7 +5002,7 @@ export const topics = [
             ''
           ],
           normal: [
-            '"Functional Oral Intake Scale"[all]'
+            '"Functional Oral Intake Scale"[all] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -5056,7 +5056,7 @@ export const topics = [
             ''
           ],
           normal: [
-            '"moca"[all] OR "Montreal Cognitive Assessment"[all]'
+            '"moca"[all] OR "Montreal Cognitive Assessment"[all] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -5107,7 +5107,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Marital Status[mh]'
+            'Marital Status[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -5140,7 +5140,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Ethnicity[mh]'
+            'Ethnicity[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -5173,7 +5173,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Patient Participation[mh]'
+            'Patient Participation[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -5206,7 +5206,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Caregivers[mh]'
+            'Caregivers[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -5239,7 +5239,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Sociodemographic Factors[mh]'
+            'Sociodemographic Factors[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -5272,7 +5272,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Socioeconomic Factors[mh]'
+            'Socioeconomic Factors[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -5305,7 +5305,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Health Literacy[mh]'
+            'Health Literacy[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -5338,7 +5338,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Educational Status[mh]'
+            'Educational Status[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
@@ -5371,7 +5371,7 @@ export const topics = [
             ''
           ],
           normal: [
-            'Health Inequities[mh]'
+            'Health Inequities[mh] AND (' + standardString['normal'] + ')' 
           ],
           broad: [
             ''
