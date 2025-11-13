@@ -54,6 +54,11 @@
     margin: 0 -5px;
 }
 
+.qpm_searchGroup.qpm_maintopicDropdown .qpm_headingContainerFocus_h4,
+.qpm_filterGroup.qpm_maintopicDropdown .qpm_headingContainerFocus_h4 {
+    margin-left: -15px;
+}
+
 .qpm_subjectSearchStrings h2.qpm_heading, 
 .qpm_subjectSearchStrings h3.qpm_heading, 
 .qpm_searchGroup h4.qpm_heading, 
