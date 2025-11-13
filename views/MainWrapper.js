@@ -34,35 +34,43 @@ Vue.use(VueShowdown, {
 
 Vue.directive("tooltip", VTooltip);
 
-const mainWrapperDiv = document.getElementById("main-wrapper");
+// Find alle elementer med klassen "main-wrapper" for at understøtte flere instanser på samme side
+const mainWrapperDivs = document.querySelectorAll(".main-wrapper");
 
-const domain = mainWrapperDiv.dataset.domain || undefined;
-const useAI = mainWrapperDiv.dataset.useAI === "true";
-const useAISummarizer = mainWrapperDiv.dataset.useAISummarizer === "true";
-
-let parsedHideTopics = [];
-if (mainWrapperDiv.dataset.hideTopics) {
-  try {
-    parsedHideTopics = JSON.parse(mainWrapperDiv.dataset.hideTopics.replace(/'/g, '"'));
-  } catch (e) {
-    console.warn('Could not parse hideTopics dataset:', e);
+mainWrapperDivs.forEach((mainWrapperDiv, index) => {
+  // Generer et unikt ID for hver instans hvis det ikke allerede har et
+  if (!mainWrapperDiv.id) {
+    mainWrapperDiv.id = `main-wrapper-${index}`;
   }
-}
-const language = mainWrapperDiv.dataset.language || undefined;
-const componentNo = mainWrapperDiv.dataset.componentNo || undefined;
 
-config.domain = domain;
-config.language = language;
-config.useAI = useAI;
-config.useAISummarizer = useAISummarizer;
+  const domain = mainWrapperDiv.dataset.domain || undefined;
+  const useAI = mainWrapperDiv.dataset.useAI === "true";
+  const useAISummarizer = mainWrapperDiv.dataset.useAISummarizer === "true";
 
-new Vue({
-  render: (h) =>
-    h(MainWrapper, {
-      props: {
-        hideTopics: parsedHideTopics,
-        language: language,
-        componentNo: componentNo,
-      },
-    }),
-}).$mount("#main-wrapper");
+  let parsedHideTopics = [];
+  if (mainWrapperDiv.dataset.hideTopics) {
+    try {
+      parsedHideTopics = JSON.parse(mainWrapperDiv.dataset.hideTopics.replace(/'/g, '"'));
+    } catch (e) {
+      console.warn('Could not parse hideTopics dataset:', e);
+    }
+  }
+  const language = mainWrapperDiv.dataset.language || undefined;
+  const componentNo = mainWrapperDiv.dataset.componentNo || undefined;
+
+  config.domain = domain;
+  config.language = language;
+  config.useAI = useAI;
+  config.useAISummarizer = useAISummarizer;
+
+  new Vue({
+    render: (h) =>
+      h(MainWrapper, {
+        props: {
+          hideTopics: parsedHideTopics,
+          language: language,
+          componentNo: componentNo,
+        },
+      }),
+  }).$mount(`#${mainWrapperDiv.id}`);
+});
