@@ -229,12 +229,7 @@ export const summarizeArticlePrompt = [
     },
     model_token_limit: 128000,
     model: "gpt-5-chat-latest",
-    reasoning: {
-      effort: "high",
-    },
-    text: {
-      verbosity: "high",
-    },
+    // NOTE: temperature and top_p are NOT supported when using reasoning models with effort != "none"
     temperature: null,
     presence_penalty: null,
     frequency_penalty: null,
@@ -254,12 +249,7 @@ export const summarizeArticlePrompt = [
     },
     model_token_limit: 128000,
     model: "gpt-5-chat-latest",
-    reasoning: {
-      effort: "high",
-    },
-    text: {
-      verbosity: "high",
-    },
+    // NOTE: temperature and top_p are NOT supported when using reasoning models with effort != "none"
     temperature: null,
     presence_penalty: null,
     frequency_penalty: null,

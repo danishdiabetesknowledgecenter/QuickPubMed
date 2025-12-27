@@ -444,7 +444,8 @@
        * @throws {Error} Throws an error if the fetch request fails.
        */
       async getSummarizeHTMLArticle(promptLanguageType) {
-        const openAiServiceUrl = this.appSettings.openAi.baseUrl + "/api/SummarizeHTMLArticle";
+        // Call Azure Function directly for article summarization
+        const openAiServiceUrl = this.appSettings.openAi.azureFunctionUrl + "/api/SummarizeHTMLArticle";
         const localePrompt = this.getComposablePrompt(this.language, promptLanguageType);
 
         try {
@@ -490,7 +491,8 @@
        * @throws {Error} Throws an error if the fetch request fails.
        */
       async getSummarizePDFArticle(promptLanguageType) {
-        const openAiServiceUrl = this.appSettings.openAi.baseUrl + "/api/SummarizePDFArticle";
+        // Call Azure Function directly for article summarization
+        const openAiServiceUrl = this.appSettings.openAi.azureFunctionUrl + "/api/SummarizePDFArticle";
         const localePrompt = this.getComposablePrompt(this.language, promptLanguageType);
 
         try {

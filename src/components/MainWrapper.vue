@@ -1451,12 +1451,9 @@
         this.reloadScripts();
 
         try {
-          // ESearch request to get list of IDs
+          // ESearch request to get list of IDs (credentials handled by PHP proxy)
           const esearchParams = new URLSearchParams({
             db: "pubmed",
-            tool: "QuickPubMed",
-            email: nlm.email,
-            api_key: nlm.key,
             retmode: "json",
             retmax: this.pageSize,
             retstart: this.page * this.pageSize,
@@ -1464,9 +1461,8 @@
             term: query,
           });
 
-          const esearchResponse = await axios.post(
-            "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
-            esearchParams
+          const esearchResponse = await axios.get(
+            `${nlm.proxyUrl}/esearch?${esearchParams}`
           );
 
           const idList = esearchResponse.data.esearchresult.idlist.filter(Boolean);
@@ -1478,19 +1474,15 @@
             return;
           }
 
-          // ESummary request to get details for each ID
+          // ESummary request to get details for each ID (credentials handled by PHP proxy)
           const esummaryParams = new URLSearchParams({
             db: "pubmed",
-            tool: "QuickPubMed",
-            email: nlm.email,
-            api_key: nlm.key,
             retmode: "json",
             id: idList.join(","),
           });
 
-          const esummaryResponse = await axios.post(
-            "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi",
-            esummaryParams
+          const esummaryResponse = await axios.get(
+            `${nlm.proxyUrl}/esummary?${esummaryParams}`
           );
 
           const esummaryResult = esummaryResponse.data.result;
@@ -1570,12 +1562,9 @@
         this.reloadScripts();
 
         try {
-          // Prepare parameters for the ESearch API request
+          // Prepare parameters for the ESearch API request (credentials handled by PHP proxy)
           const esearchParams = new URLSearchParams({
             db: "pubmed",
-            tool: "QuickPubMed",
-            email: nlm.email,
-            api_key: nlm.key,
             retmode: "json",
             retmax: Math.min(this.pageSize, targetResultLength - (this.searchresult.length || 0)),
             retstart: Math.max(this.searchresult.length || 0, this.page * this.pageSize),
@@ -1584,9 +1573,8 @@
           });
 
           // Perform the ESearch API request to retrieve PubMed IDs
-          const esearchResponse = await axios.post(
-            "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
-            esearchParams
+          const esearchResponse = await axios.get(
+            `${nlm.proxyUrl}/esearch?${esearchParams}`
           );
 
           // Extract and filter the list of PubMed IDs
@@ -1602,20 +1590,16 @@
             return;
           }
 
-          // Prepare parameters for the ESummary API request
+          // Prepare parameters for the ESummary API request (credentials handled by PHP proxy)
           const esummaryParams = new URLSearchParams({
             db: "pubmed",
-            tool: "QuickPubMed",
-            email: nlm.email,
-            api_key: nlm.key,
             retmode: "json",
             id: idList.join(","),
           });
 
           // Perform the ESummary API request to retrieve detailed information
-          const esummaryResponse = await axios.post(
-            "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi",
-            esummaryParams
+          const esummaryResponse = await axios.get(
+            `${nlm.proxyUrl}/esummary?${esummaryParams}`
           );
 
           const esummaryResult = esummaryResponse.data.result;
@@ -1677,12 +1661,8 @@
           return [];
         }
         let nlm = this.appSettings.nlm;
-        let baseUrl =
-          "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&tool=QuickPubMed&email=" +
-          nlm.email +
-          "&api_key=" +
-          nlm.key +
-          "&retmode=json&id=";
+        // Credentials handled by PHP proxy
+        let baseUrl = `${nlm.proxyUrl}/esummary?db=pubmed&retmode=json&id=`;
 
         return axios.get(baseUrl + ids.join(",")).then(function (resp) {
           //Create list of returned data

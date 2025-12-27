@@ -9,12 +9,7 @@ export const titleTranslationPrompt = {
   model_token_limit: 128000,
   // Below are a series of openAi parameters. To learn more about them see: https://platform.openai.com/docs/api-reference/completions/create
   model: "gpt-5-chat-latest",
-  reasoning: {
-    effort: "low",
-  },
-  text: {
-    verbosity: "high",
-  },
+  // NOTE: temperature and top_p are NOT supported when using reasoning models with effort != "none"
   // The openAi model to use. The models have different strengths and costs, to learn more about them see: https://platform.openai.com/docs/models/overview
   temperature: null,
   // Optional(min: 0.0, max: 2.0, default: 1.0)
@@ -48,14 +43,9 @@ export const searchTranslationPrompt = {
   model_token_limit: 128000,
   // Below are a series of openAi parameters. To learn more about them see: https://platform.openai.com/docs/api-reference/completions/create
   model: "gpt-5-chat-latest",
-  reasoning: {
-    effort: "high",
-  },
-  text: {
-    verbosity: "high",
-  },
+  // NOTE: temperature and top_p are NOT supported when using reasoning models with effort != "none"
   // The openAi model to use. The models have different strengths and costs, to learn more about them see: https://platform.openai.com/docs/models/overview
-  temperature: 0.0,
+  temperature: null,
   // Optional(min: 0.0, max: 2.0, default: 1.0)
   presence_penalty: null,
   // Optional (min: -2.0, max: 2.0, default: 0.0)

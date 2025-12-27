@@ -24,7 +24,6 @@ export const promptTextMultipleAbstracts = [
       Indsæt IKKE en referenceliste til sidst. 
       - Ved punktopstillinger, så brug Markdown language. Du må aldrig lave en nummereret liste med kun et punkt. 
       - Brug gerne overskrifter, men indled aldrig det allerførste afsnit med en overskrift. 
-      - Brug sentence case, aldrig title case, i overskrifter og underoverskrifter. I sentence case er kun det første ord med stort begyndelsesbogstav. 
       Her er et eksempel (afgrænset af triple backticks) på, hvordan du altid skal indsætte henvisninger til de enkelte studier i selve teksten, hver gang du omtaler noget, 
       som stammer fra et eller flere bestemte af studierne på listen: 
       ´´´En systematisk gennemgang og meta-analyse viser, at forekomsten af fødselsdepression er høj, især i udviklingslande. 
@@ -91,9 +90,9 @@ export const promptTextMultipleAbstracts = [
       En systematisk gennemgang af epidemiologiske studier viser, at der er en høj forekomst af depression hos personer med diabetes. 
       Kvinder med diabetes har en højere forekomst af depression end mænd **([Roy & Lloyd, 2012](#87654321 \"Scroll ned til denne artikel\"); 
       [Samuelsen, 2018](#12873465 \"Scroll ned til denne artikel\"))**.´´´ 
-
       3) Start med at beskrive, hvad alle studierne samlet set viser. Hvis der er markante forskelle mellem studierne, så beskriv disse forskelle.\n 
-      4) Skriv til dernæst selve opsummeringen af studierne.`,
+      4) Skriv til dernæst selve opsummeringen af studierne.\n
+      5) Gennemgå hele outputtet for formatteringsfejl og ret eventuelle fejl, før du returnerer resultatet.`,
       en: `Make a summary in English of no more than 300 words of this text (given in the numbered list below and delimited by three backticks), which consists of abstracts of scientific studies. Write the text in professional language that can be easily understood by a healthcare audience or people with a solid background in the subject. Do not include the number of words or the length of the text in the text itself.
       Make the text as simple and clear as possible. The summary must be structured as follows:
       1) Do NOT use bullet points, ie. '1)', '2)' etc.
@@ -108,7 +107,8 @@ export const promptTextMultipleAbstracts = [
       Women with diabetes have a higher incidence of depression compared to men **([Roy & Lloyd, 2012](#87654321 \"Scroll down to this article\");
       [Samuelsen, 2018](#12873465 \"Scroll down to this article\"))**.´´´
       3) Start by describing what all the studies show collectively, and if there are significant differences between the studies, describe these differences.
-      4) Write the actual summary of the studies.`,
+      4) Write the actual summary of the studies.
+      5) Review the entire output for formatting errors and correct any errors before returning the result.`,
     },
     endText: {
       dk: `Her er teksten: `,
@@ -179,16 +179,9 @@ export const summarizeMultipleAbstractPrompt = [
     model_token_limit: 128000,
     // Below are a series of openAi parameters. To learn more about them see: https://platform.openai.com/docs/api-reference/completions/create
     model: "gpt-5-chat-latest",
-    reasoning: {
-      effort: "high",
-    },
-    text: {
-      verbosity: "high",
-    },
-    // The openAi model to use. The models have different strengths and costs, to learn more about them see: https://platform.openai.com/docs/models/overview
-    top_p: 0.1,
+    // NOTE: temperature and top_p are NOT supported when using reasoning models with effort != "none"
     // Optional(min: 0.0, max: 2.0, default: 1.0)
-    temperature: 0.1,
+    temperature: null,
     // Optional(min: 0.0, max: 2.0, default: 1.0)
     presence_penalty: null,
     // Optional (min: -2.0, max: 2.0, default: 0.0)
@@ -213,15 +206,9 @@ export const summarizeMultipleAbstractPrompt = [
     model_token_limit: 128000,
     // Below are a series of openAi parameters. To learn more about them see: https://platform.openai.com/docs/api-reference/completions/create
     model: "gpt-5-chat-latest",
-    reasoning: {
-      effort: "high",
-    },
-    text: {
-      verbosity: "high",
-    },
-    top_p: 0.1,
+    // NOTE: temperature and top_p are NOT supported when using reasoning models with effort != "none"
     // Optional(min: 0.0, max: 2.0, default: 1.0)
-    temperature: 0.1,
+    temperature: null,
     // Optional(min: 0.0, max: 2.0, default: 1.0)
     presence_penalty: null,
     frequency_penalty: null,
@@ -247,16 +234,9 @@ export const summarizeSingleAbstractPrompt = [
     model_token_limit: 128000,
     // Below are a series of openAi parameters. To learn more about them see: https://platform.openai.com/docs/api-reference/completions/create
     model: "gpt-5-chat-latest",
-    reasoning: {
-      effort: "high",
-    },
-    text: {
-      verbosity: "high",
-    },
-    // The openAi model to use. The models have different strengths and costs, to learn more about them see: https://platform.openai.com/docs/models/overview
-    top_p: 0.1,
+    // NOTE: temperature and top_p are NOT supported when using reasoning models with effort != "none"
     // Optional(min: 0.0, max: 2.0, default: 1.0)
-    temperature: 0.1,
+    temperature: null,
     // Optional(min: 0.0, max: 2.0, default: 1.0)
     presence_penalty: null,
     // Optional (min: -2.0, max: 2.0, default: 0.0)
@@ -280,15 +260,9 @@ export const summarizeSingleAbstractPrompt = [
     model_token_limit: 128000,
     // Below are a series of openAi parameters. To learn more about them see: https://platform.openai.com/docs/api-reference/completions/create
     model: "gpt-5-chat-latest",
-    reasoning: {
-      effort: "high",
-    },
-    text: {
-      verbosity: "high",
-    },
-    top_p: 0.1,
+    // NOTE: temperature and top_p are NOT supported when using reasoning models with effort != "none"
     // Optional(min: 0.0, max: 2.0, default: 1.0)
-    temperature: 0.1,
+    temperature: null,
     // Optional(min: 0.0, max: 2.0, default: 1.0)
     presence_penalty: null,
     frequency_penalty: null,

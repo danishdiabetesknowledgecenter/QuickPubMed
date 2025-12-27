@@ -1385,7 +1385,8 @@
        */
       async checkRessource() {
         const endpoint = "/api/CheckIfResourceIsForbidden";
-        const openAiServiceUrl = `${this.appSettings.openAi.baseUrl}${endpoint}`;
+        // Call Azure Function directly for resource check
+        const openAiServiceUrl = `${this.appSettings.openAi.azureFunctionUrl}${endpoint}`;
         const options = {
           method: "POST",
           body: JSON.stringify({

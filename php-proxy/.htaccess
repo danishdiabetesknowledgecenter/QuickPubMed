@@ -1,0 +1,32 @@
+# Apache .htaccess fil til PHP Proxy
+# Sørger for at requests til /api/* routes til de rigtige PHP filer
+
+RewriteEngine On
+
+# Beskyt config.php mod direkte adgang
+<Files "config.php">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+# Route OpenAI API requests
+RewriteRule ^api/SummarizeSearch$ api/SummarizeSearch.php [L,QSA]
+RewriteRule ^api/TranslateTitle$ api/TranslateTitle.php [L,QSA]
+RewriteRule ^api/SummarizeHTMLArticle$ api/SummarizeHTMLArticle.php [L,QSA]
+RewriteRule ^api/SummarizePDFArticle$ api/SummarizePDFArticle.php [L,QSA]
+RewriteRule ^api/CheckIfResourceIsForbidden$ api/CheckIfResourceIsForbidden.php [L,QSA]
+
+# Route NLM/PubMed API requests
+RewriteRule ^api/nlm/esearch$ api/NlmSearch.php [L,QSA]
+RewriteRule ^api/nlm/esummary$ api/NlmSummary.php [L,QSA]
+RewriteRule ^api/nlm/efetch$ api/NlmFetch.php [L,QSA]
+
+# Disable caching for API responses
+<IfModule mod_headers.c>
+    <FilesMatch "\.(php)$">
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+        Header set Pragma "no-cache"
+        Header set Expires 0
+    </FilesMatch>
+</IfModule>
+

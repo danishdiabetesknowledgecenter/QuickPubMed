@@ -1,6 +1,7 @@
 // src/utils/axiosInstance.js
 import axios from "axios";
 import Bottleneck from "bottleneck";
+import { settings } from "@/config/settings";
 
 // Create a Bottleneck limiter to allow max 3 requests per second
 const limiter = new Bottleneck({
@@ -10,9 +11,9 @@ const limiter = new Bottleneck({
   maxConcurrent: 1, // one request at a time
 });
 
-// Create a shared axios instance
+// Create a shared axios instance - now uses PHP proxy to hide API key
 const axiosInstance = axios.create({
-  baseURL: "https://eutils.ncbi.nlm.nih.gov/entrez/eutils",
+  baseURL: settings.nlm.proxyUrl,
   headers: { Accept: "application/json, text/plain, */*" },
   timeout: 10000, // 10 seconds
 });

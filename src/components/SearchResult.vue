@@ -912,13 +912,8 @@
       async loadAbstracts() {
         const self = this;
         let nlm = this.appSettings.nlm;
-        let baseurl =
-          "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&tool=QuickPubMed" +
-          "&email=" +
-          nlm.email +
-          "&api_key=" +
-          nlm.key +
-          "&retmode=xml&id=";
+        // Credentials handled by PHP proxy
+        let baseurl = `${nlm.proxyUrl}/efetch?db=pubmed&retmode=xml&id=`;
 
         let url = baseurl + self.idswithAbstractsToLoad.join(",");
         let axiosInstance = axios.create({

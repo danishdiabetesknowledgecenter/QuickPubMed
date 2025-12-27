@@ -186,9 +186,10 @@
           const composedPrompt = this.getComposablePrompt(this.language, this.promptLanguageType);
           console.log("We got the composed prompt: ", composedPrompt);
           console.log("Composed prompt: ", composedPrompt);
+          // Call Azure Function directly for article summarization
           const openAiServiceUrl = this.pdfUrl
-            ? `${this.appSettings.openAi.baseUrl}/api/SummarizePDFArticle`
-            : `${this.appSettings.openAi.baseUrl}/api/SummarizeHTMLArticle`;
+            ? `${this.appSettings.openAi.azureFunctionUrl}/api/SummarizePDFArticle`
+            : `${this.appSettings.openAi.azureFunctionUrl}/api/SummarizeHTMLArticle`;
 
           const fetchPayload = this.pdfUrl
             ? { prompt: composedPrompt, pdfurl: this.pdfUrl, client: this.appSettings.client }

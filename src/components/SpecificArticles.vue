@@ -499,19 +499,17 @@
             this.loadingComponent = false;
           }
         } else if (this.interpretQuery) {
-          // Handle query-based fetching
+          // Handle query-based fetching (credentials handled by PHP proxy)
           const baseUrl =
-            "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi" +
+            `${this.appSettings.nlm.proxyUrl}/esearch` +
             "?db=pubmed" +
             "&retmode=json" +
-            `&api_key=${this.appSettings.nlm.key}` +
-            `&email=${this.appSettings.nlm.email}` +
             "&term=" +
             encodeURIComponent(this.query) +
             `&retmax=${this.queryResults}`;
 
           try {
-            const response = await axiosInstance.get(baseUrl, {
+            const response = await axios.get(baseUrl, {
               retry: 3, // Number of retries
             });
 
@@ -544,15 +542,13 @@
         this.isFetching = true; // Set fetching flag
         this.loadingComponent = true;
 
-        const baseUrl = "/esummary.fcgi"; // Relative path since baseURL is set in axiosInstance
+        // Credentials handled by PHP proxy
+        const baseUrl = `${this.appSettings.nlm.proxyUrl}/esummary`;
 
         try {
-          const response = await axiosInstance.get(baseUrl, {
+          const response = await axios.get(baseUrl, {
             params: {
               db: "pubmed",
-              tool: "QuickPubMed",
-              email: this.appSettings.nlm.email,
-              api_key: this.appSettings.nlm.key,
               retmode: "json",
               id: this.enteredIds.join(","),
             },
@@ -594,18 +590,16 @@
           return;
         }
 
-        const baseurl = "/efetch.fcgi"; // Relative path since baseURL is set in axiosInstance
+        // Credentials handled by PHP proxy
+        const baseurl = `${this.appSettings.nlm.proxyUrl}/efetch`;
 
         try {
           const combinedIds = [...this.enteredIds, ...this.idswithAbstractsToLoad];
           const uniqueIds = Array.from(new Set(combinedIds)).join(",");
 
-          const response = await axiosInstance.get(baseurl, {
+          const response = await axios.get(baseurl, {
             params: {
               db: "pubmed",
-              tool: "QuickPubMed",
-              email: this.appSettings.nlm.email,
-              api_key: this.appSettings.nlm.key,
               retmode: "xml",
               id: uniqueIds,
             },
