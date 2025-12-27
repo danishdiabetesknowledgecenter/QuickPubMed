@@ -114,8 +114,19 @@ $openaiRequest = [
     'stream' => true
 ];
 
-// Tilføj valgfri parametre
-if (isset($prompt['max_tokens']) && $prompt['max_tokens'] !== null) {
+// GPT-5.2 parameters
+if (isset($prompt['reasoning']) && is_array($prompt['reasoning'])) {
+    $openaiRequest['reasoning'] = $prompt['reasoning'];
+}
+if (isset($prompt['text']) && is_array($prompt['text'])) {
+    $openaiRequest['text'] = $prompt['text'];
+}
+if (isset($prompt['max_output_tokens']) && $prompt['max_output_tokens'] !== null) {
+    $openaiRequest['max_output_tokens'] = (int)$prompt['max_output_tokens'];
+}
+
+// Legacy parameters (for older models or reasoning.effort = "none")
+if (isset($prompt['max_tokens']) && $prompt['max_tokens'] !== null && !isset($prompt['max_output_tokens'])) {
     $openaiRequest['max_completion_tokens'] = (int)$prompt['max_tokens'];
 }
 if (isset($prompt['temperature']) && $prompt['temperature'] !== null) {

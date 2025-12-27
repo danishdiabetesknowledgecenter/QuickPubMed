@@ -5,20 +5,12 @@ export const titleTranslationPrompt = {
   translations: {
     dk: "dansk",
   },
-  // Each model has its own limit for the number of tokens it can handle. However, it is difficult to determine the limit dynamically. Please adjust this number to match the one given here: https://platform.openai.com/docs/models
   model_token_limit: 128000,
-  // Below are a series of openAi parameters. To learn more about them see: https://platform.openai.com/docs/api-reference/completions/create
-  model: "gpt-5-chat-latest",
-  // NOTE: temperature and top_p are NOT supported when using reasoning models with effort != "none"
-  // The openAi model to use. The models have different strengths and costs, to learn more about them see: https://platform.openai.com/docs/models/overview
-  temperature: null,
-  // Optional(min: 0.0, max: 2.0, default: 1.0)
-  presence_penalty: null,
-  // Optional (min: -2.0, max: 2.0, default: 0.0)
-  frequency_penalty: null,
-  // Optional (min: -2.0, max: 2.0, default: 0.0)
-  max_tokens: 500,
-  // Optional (min/max value depends on model)
+  model: "gpt-5.2-chat-latest",
+  // GPT-5.2 parameters - see https://platform.openai.com/docs/guides/latest-model
+  reasoning: { effort: "medium" },  // none, low, medium, high, xhigh
+  text: { verbosity: "medium" },     // low, medium, high
+  max_output_tokens: 500,
   stream: true,
   prompt: sanitizePrompt({
     dk: "Oversæt denne titel til dansk, hvor du bruger ord, som er nemme at forstå for en person uden kendskab til emnet. Angiv den oversatte titel med fed ved brug af Markdown (dvs. **Oversat titel**). \
@@ -39,20 +31,12 @@ export const searchTranslationPrompt = {
     dk: "dansk",
     en: "English",
   },
-  // Each model has its own limit for the number of tokens it can handle. However, it is difficult to determine the limit dynamically. Please adjust this number to match the one given here: https://platform.openai.com/docs/models
   model_token_limit: 128000,
-  // Below are a series of openAi parameters. To learn more about them see: https://platform.openai.com/docs/api-reference/completions/create
-  model: "gpt-5-chat-latest",
-  // NOTE: temperature and top_p are NOT supported when using reasoning models with effort != "none"
-  // The openAi model to use. The models have different strengths and costs, to learn more about them see: https://platform.openai.com/docs/models/overview
-  temperature: null,
-  // Optional(min: 0.0, max: 2.0, default: 1.0)
-  presence_penalty: null,
-  // Optional (min: -2.0, max: 2.0, default: 0.0)
-  frequency_penalty: null,
-  // Optional (min: -2.0, max: 2.0, default: 0.0)
-  max_tokens: 500,
-  // Optional (min/max value depends on model)
+  model: "gpt-5.2",
+  // GPT-5.2 parameters - see https://platform.openai.com/docs/guides/latest-model
+  reasoning: { effort: "medium" },  // none, low, medium, high, xhigh
+  text: { verbosity: "medium" },     // low, medium, high
+  max_output_tokens: 500,
   stream: true,
   prompt: sanitizePrompt({
     dk: 'Du er en informationsspecialist, der så vidt muligt oversætter alle input til en korrekt PubMed-søgestreng. Ud fra det input, du modtager, skal du finde de mest relevante sundhedsvidenskabelige engelske termer, inkl. ofte anvendte synonymer og stavemåder, som kan bruges til at udforme en præcis PubMed-søgning, der giver de mest relevante resultater. Du gør dig umage med at finde termer, som passer til inputtet, også selvom inputtet ikke er helt korrekt eller præcist. \

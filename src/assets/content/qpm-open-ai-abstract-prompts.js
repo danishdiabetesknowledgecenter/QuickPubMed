@@ -175,20 +175,12 @@ export const summarizeMultipleAbstractPrompt = [
       dk: "Opsummering skrevet i et sprog, som er nemt at forstå, selvom man ikke har forhåndskendskab til emnet.",
       en: "Summary written in a language that is easy to understand, even without prior knowledge of the subject.",
     },
-    // Each model has its own limit for the number of tokens it can handle. However, it is difficult to determine the limit dynamically. Please adjust this number to match the one given here: https://platform.openai.com/docs/models
     model_token_limit: 128000,
-    // Below are a series of openAi parameters. To learn more about them see: https://platform.openai.com/docs/api-reference/completions/create
-    model: "gpt-5-chat-latest",
-    // NOTE: temperature and top_p are NOT supported when using reasoning models with effort != "none"
-    // Optional(min: 0.0, max: 2.0, default: 1.0)
-    temperature: null,
-    // Optional(min: 0.0, max: 2.0, default: 1.0)
-    presence_penalty: null,
-    // Optional (min: -2.0, max: 2.0, default: 0.0)
-    frequency_penalty: null,
-    // Optional (min: -2.0, max: 2.0, default: 0.0)
-    max_tokens: 4000,
-    // NOTICE! The prompt field will be populated using the promptTextMultipleAbstracts object below
+    model: "gpt-5.2-chat-latest",
+    // GPT-5.2 parameters - see https://platform.openai.com/docs/guides/latest-model
+    reasoning: { effort: "medium" },  // none, low, medium, high, xhigh
+    text: { verbosity: "medium" },     // low, medium, high
+    max_output_tokens: 4000,
     prompt: "",
   },
   {
@@ -201,19 +193,12 @@ export const summarizeMultipleAbstractPrompt = [
       dk: "Opsummering skrevet i et sprog, som er nemt forståeligt for fagpersoner med forhåndskendskab til emnet.",
       en: "Summary written in a language that is easily understood by professionals with prior knowledge of the subject.",
     },
-    // Each model has its own limit for the number of tokens it can handle. However, it is difficult to determine the limit dynamically.
-    // Please adjust this number to match the one given here: https://platform.openai.com/docs/models
     model_token_limit: 128000,
-    // Below are a series of openAi parameters. To learn more about them see: https://platform.openai.com/docs/api-reference/completions/create
-    model: "gpt-5-chat-latest",
-    // NOTE: temperature and top_p are NOT supported when using reasoning models with effort != "none"
-    // Optional(min: 0.0, max: 2.0, default: 1.0)
-    temperature: null,
-    // Optional(min: 0.0, max: 2.0, default: 1.0)
-    presence_penalty: null,
-    frequency_penalty: null,
-    max_tokens: 4000,
-    // NOTICE! The prompt field will be populated using the promptTextMultipleAbstracts object below
+    model: "gpt-5.2-chat-latest",
+    // GPT-5.2 parameters - see https://platform.openai.com/docs/guides/latest-model
+    reasoning: { effort: "medium" },  // none, low, medium, high, xhigh
+    text: { verbosity: "medium" },     // low, medium, high
+    max_output_tokens: 4000,
     prompt: "",
   },
 ];
@@ -230,20 +215,12 @@ export const summarizeSingleAbstractPrompt = [
       dk: "Opsummering skrevet i et sprog, som er nemt at forstå, selvom man ikke har forhåndskendskab til emnet.",
       en: "Summary written in a language that is easy to understand, even without prior knowledge of the subject.",
     },
-    // Each model has its own limit for the number of tokens it can handle. However, it is difficult to determine the limit dynamically. Please adjust this number to match the one given here: https://platform.openai.com/docs/models
     model_token_limit: 128000,
-    // Below are a series of openAi parameters. To learn more about them see: https://platform.openai.com/docs/api-reference/completions/create
-    model: "gpt-5-chat-latest",
-    // NOTE: temperature and top_p are NOT supported when using reasoning models with effort != "none"
-    // Optional(min: 0.0, max: 2.0, default: 1.0)
-    temperature: null,
-    // Optional(min: 0.0, max: 2.0, default: 1.0)
-    presence_penalty: null,
-    // Optional (min: -2.0, max: 2.0, default: 0.0)
-    frequency_penalty: null,
-    // Optional (min: -2.0, max: 2.0, default: 0.0)
-    max_tokens: 4000,
-    // NOTICE! The prompt field will be populated using the promptTextSingleAbstract object below
+    model: "gpt-5.2-chat-latest",
+    // GPT-5.2 parameters - see https://platform.openai.com/docs/guides/latest-model
+    reasoning: { effort: "medium" },  // none, low, medium, high, xhigh
+    text: { verbosity: "medium" },     // low, medium, high
+    max_output_tokens: 4000,
     prompt: "",
   },
   {
@@ -256,18 +233,12 @@ export const summarizeSingleAbstractPrompt = [
       dk: "Opsummering skrevet i et sprog, som er nemt forståeligt for fagpersoner med forhåndskendskab til emnet.",
       en: "Summary written in a language that is easily understood by professionals with prior knowledge of the subject.",
     },
-    // Each model has its own limit for the number of tokens it can handle. However, it is difficult to determine the limit dynamically. Please adjust this number to match the one given here: https://platform.openai.com/docs/models
     model_token_limit: 128000,
-    // Below are a series of openAi parameters. To learn more about them see: https://platform.openai.com/docs/api-reference/completions/create
-    model: "gpt-5-chat-latest",
-    // NOTE: temperature and top_p are NOT supported when using reasoning models with effort != "none"
-    // Optional(min: 0.0, max: 2.0, default: 1.0)
-    temperature: null,
-    // Optional(min: 0.0, max: 2.0, default: 1.0)
-    presence_penalty: null,
-    frequency_penalty: null,
-    max_tokens: 4000,
-    // NOTICE! The prompt field will be populated using the promptTextSingleAbstract object below
+    model: "gpt-5.2-chat-latest",
+    // GPT-5.2 parameters - see https://platform.openai.com/docs/guides/latest-model
+    reasoning: { effort: "medium" },  // none, low, medium, high, xhigh
+    text: { verbosity: "medium" },     // low, medium, high
+    max_output_tokens: 4000,
     prompt: "",
   },
 ];

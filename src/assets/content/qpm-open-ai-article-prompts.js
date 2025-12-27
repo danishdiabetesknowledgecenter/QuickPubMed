@@ -228,12 +228,11 @@ export const summarizeArticlePrompt = [
       en: "Plain language",
     },
     model_token_limit: 128000,
-    model: "gpt-5-chat-latest",
-    // NOTE: temperature and top_p are NOT supported when using reasoning models with effort != "none"
-    temperature: null,
-    presence_penalty: null,
-    frequency_penalty: null,
-    max_tokens: 4000,
+    model: "gpt-5.2-chat-latest",
+    // GPT-5.2 parameters - see https://platform.openai.com/docs/guides/latest-model
+    reasoning: { effort: "medium" },  // none, low, medium, high, xhigh
+    text: { verbosity: "medium" },     // low, medium, high
+    max_output_tokens: 4000,
     stream: true,
     type: "json_object",
     prompt: {
@@ -248,12 +247,11 @@ export const summarizeArticlePrompt = [
       en: "Professional language",
     },
     model_token_limit: 128000,
-    model: "gpt-5-chat-latest",
-    // NOTE: temperature and top_p are NOT supported when using reasoning models with effort != "none"
-    temperature: null,
-    presence_penalty: null,
-    frequency_penalty: null,
-    max_tokens: 4000,
+    model: "gpt-5.2-chat-latest",
+    // GPT-5.2 parameters - see https://platform.openai.com/docs/guides/latest-model
+    reasoning: { effort: "medium" },  // none, low, medium, high, xhigh
+    text: { verbosity: "medium" },     // low, medium, high
+    max_output_tokens: 4000,
     stream: true,
     type: "json_object",
     prompt: {
