@@ -1,12 +1,12 @@
 // Load the general environment variables
-const NEMPUBMED_URL = import.meta.env.VITE_NEMPUBMED_URL;
+const ABOUT_AI_URL = import.meta.env.VITE_ABOUT_AI_URL;
 const CLIENT_NAME = import.meta.env.VITE_CLIENT_NAME;
 
 // Load the NLM environment variables (only myncbishare needed client-side)
 const MY_NCBI_SHARE = import.meta.env.VITE_MY_NCBI_SHARE;
 
-// Load the API proxy URL (handles OpenAI and NLM calls)
-const API_PROXY_URL = import.meta.env.VITE_API_PROXY_URL;
+// API proxy URL - uses relative path by default (works on any domain)
+const API_PROXY_URL = import.meta.env.VITE_API_PROXY_URL || '/php-proxy';
 
 // Azure Function URL for article summarization (works better for PDF downloads)
 const AZURE_FUNCTION_URL = 'https://qpm-openai-service.azurewebsites.net';
@@ -18,7 +18,7 @@ const UNPAYWALL_EMAIL = import.meta.env.VITE_UNPAYWALL_EMAIL;
 const UNPAYWALL_URL = import.meta.env.VITE_UNPAYWALL_URL;
 
 // Export the settings
-export const aiURL = NEMPUBMED_URL;
+export const aiURL = ABOUT_AI_URL;
 
 /**
  * @typedef {settings} Settings

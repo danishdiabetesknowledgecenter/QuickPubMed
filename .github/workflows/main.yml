@@ -28,14 +28,11 @@ jobs:
       - name: 🏗️ Build Project
         env:
             ### General Environment Variables
-            VITE_NEMPUBMED_URL: ${{ secrets.VITE_NEMPUBMED_URL }}
+            VITE_ABOUT_AI_URL: ${{ secrets.VITE_ABOUT_AI_URL }}
             VITE_CLIENT_NAME: ${{ secrets.VITE_CLIENT_NAME }}
-            ### NLM Environment Variables
-            VITE_NLM_EMAIL: ${{ secrets.VITE_NLM_EMAIL }}
-            VITE_NLM_KEY: ${{ secrets.VITE_NLM_KEY }}
+            ### NLM Environment Variables (only myncbishare needed client-side)
             VITE_MY_NCBI_SHARE: ${{ secrets.VITE_MY_NCBI_SHARE }}
-            ### OpenAI Environment Variables
-            VITE_OPENAI_BASE_URL: ${{ secrets.VITE_OPENAI_BASE_URL }}
+            ### OpenAI/API settings (API keys are in server-side config.php)
             VITE_LONG_ABSTRACT_LENGTH_LIMIT: ${{ secrets.VITE_LONG_ABSTRACT_LENGTH_LIMIT }}
             VITE_WAIT_TIME_DISCLAIMER_DELAY: ${{ secrets.VITE_WAIT_TIME_DISCLAIMER_DELAY }}
             ### Unpaywall Environment Variables
