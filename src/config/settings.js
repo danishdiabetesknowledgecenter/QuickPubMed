@@ -5,8 +5,19 @@ const CLIENT_NAME = import.meta.env.VITE_CLIENT_NAME;
 // Load the NLM environment variables (only myncbishare needed client-side)
 const MY_NCBI_SHARE = import.meta.env.VITE_MY_NCBI_SHARE;
 
-// API proxy URL - uses relative path by default (works on any domain)
-const API_PROXY_URL = import.meta.env.VITE_API_PROXY_URL || '/php-proxy';
+// API proxy URL - automatically detects base path from script location
+// This works even when JS is loaded from a different domain than the page
+function getProxyUrl() {
+  if (import.meta.env.VITE_API_PROXY_URL) {
+    return import.meta.env.VITE_API_PROXY_URL;
+  }
+  // Get base URL from the JS file location (import.meta.url)
+  // Remove /assets/filename.js to get the base directory
+  const scriptUrl = import.meta.url;
+  const baseUrl = scriptUrl.replace(/\/assets\/[^/]+$/, '');
+  return baseUrl + '/php-proxy';
+}
+const API_PROXY_URL = getProxyUrl();
 
 // Azure Function URL for article summarization (works better for PDF downloads)
 const AZURE_FUNCTION_URL = 'https://qpm-openai-service.azurewebsites.net';
