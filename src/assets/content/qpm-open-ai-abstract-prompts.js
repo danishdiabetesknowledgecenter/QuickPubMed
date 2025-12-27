@@ -177,9 +177,8 @@ export const summarizeMultipleAbstractPrompt = [
     },
     model_token_limit: 128000,
     model: "gpt-5.2-chat-latest",
-    // GPT-5.2 parameters - see https://platform.openai.com/docs/guides/latest-model
+    // gpt-5.2-chat-latest: when reasoning.effort != "none", temperature/top_p/logprobs are NOT allowed
     reasoning: { effort: "medium" },  // none, low, medium, high, xhigh
-    text: { verbosity: "medium" },     // low, medium, high
     max_output_tokens: 4000,
     prompt: "",
   },
@@ -195,9 +194,8 @@ export const summarizeMultipleAbstractPrompt = [
     },
     model_token_limit: 128000,
     model: "gpt-5.2-chat-latest",
-    // GPT-5.2 parameters - see https://platform.openai.com/docs/guides/latest-model
+    // gpt-5.2-chat-latest: when reasoning.effort != "none", temperature/top_p/logprobs are NOT allowed
     reasoning: { effort: "medium" },  // none, low, medium, high, xhigh
-    text: { verbosity: "medium" },     // low, medium, high
     max_output_tokens: 4000,
     prompt: "",
   },
@@ -217,9 +215,8 @@ export const summarizeSingleAbstractPrompt = [
     },
     model_token_limit: 128000,
     model: "gpt-5.2-chat-latest",
-    // GPT-5.2 parameters - see https://platform.openai.com/docs/guides/latest-model
+    // gpt-5.2-chat-latest: when reasoning.effort != "none", temperature/top_p/logprobs are NOT allowed
     reasoning: { effort: "medium" },  // none, low, medium, high, xhigh
-    text: { verbosity: "medium" },     // low, medium, high
     max_output_tokens: 4000,
     prompt: "",
   },
@@ -235,9 +232,8 @@ export const summarizeSingleAbstractPrompt = [
     },
     model_token_limit: 128000,
     model: "gpt-5.2-chat-latest",
-    // GPT-5.2 parameters - see https://platform.openai.com/docs/guides/latest-model
+    // gpt-5.2-chat-latest: when reasoning.effort != "none", temperature/top_p/logprobs are NOT allowed
     reasoning: { effort: "medium" },  // none, low, medium, high, xhigh
-    text: { verbosity: "medium" },     // low, medium, high
     max_output_tokens: 4000,
     prompt: "",
   },

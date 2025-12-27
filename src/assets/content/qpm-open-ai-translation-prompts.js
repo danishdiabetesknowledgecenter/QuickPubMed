@@ -7,9 +7,8 @@ export const titleTranslationPrompt = {
   },
   model_token_limit: 128000,
   model: "gpt-5.2-chat-latest",
-  // GPT-5.2 parameters - see https://platform.openai.com/docs/guides/latest-model
-  reasoning: { effort: "medium" },  // none, low, medium, high, xhigh
-  text: { verbosity: "medium" },     // low, medium, high
+  // gpt-5.2-chat-latest: when reasoning.effort != "none", temperature/top_p/logprobs are NOT allowed
+  reasoning: { effort: "low" },  // none, low, medium, high, xhigh
   max_output_tokens: 500,
   stream: true,
   prompt: sanitizePrompt({
@@ -33,9 +32,8 @@ export const searchTranslationPrompt = {
   },
   model_token_limit: 128000,
   model: "gpt-5.2",
-  // GPT-5.2 parameters - see https://platform.openai.com/docs/guides/latest-model
-  reasoning: { effort: "medium" },  // none, low, medium, high, xhigh
-  text: { verbosity: "medium" },     // low, medium, high
+  // gpt-5.2-chat-latest: when reasoning.effort != "none", temperature/top_p/logprobs are NOT allowed
+  reasoning: { effort: "low" },  // none, low, medium, high, xhigh
   max_output_tokens: 500,
   stream: true,
   prompt: sanitizePrompt({

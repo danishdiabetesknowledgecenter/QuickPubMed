@@ -109,34 +109,39 @@ if (isset($prompt['messages']) && is_array($prompt['messages'])) {
 
 // Byg OpenAI request
 $openaiRequest = [
-    'model' => $prompt['model'] ?? 'gpt-4',
+    'model' => $prompt['model'] ?? 'gpt-5.2-chat-latest',
     'messages' => $messages,
     'stream' => true
 ];
 
-// GPT-5.2 parameters
-if (isset($prompt['reasoning']) && is_array($prompt['reasoning'])) {
-    $openaiRequest['reasoning'] = $prompt['reasoning'];
-}
-if (isset($prompt['text']) && is_array($prompt['text'])) {
-    $openaiRequest['text'] = $prompt['text'];
-}
-if (isset($prompt['max_output_tokens']) && $prompt['max_output_tokens'] !== null) {
-    $openaiRequest['max_output_tokens'] = (int)$prompt['max_output_tokens'];
-}
+// Check if using reasoning (gpt-5.2-chat-latest)
+$reasoningEffort = $prompt['reasoning']['effort'] ?? null;
 
-// Legacy parameters (for older models or reasoning.effort = "none")
-if (isset($prompt['max_tokens']) && $prompt['max_tokens'] !== null && !isset($prompt['max_output_tokens'])) {
-    $openaiRequest['max_completion_tokens'] = (int)$prompt['max_tokens'];
-}
-if (isset($prompt['temperature']) && $prompt['temperature'] !== null) {
-    $openaiRequest['temperature'] = (float)$prompt['temperature'];
-}
-if (isset($prompt['presence_penalty']) && $prompt['presence_penalty'] !== null) {
-    $openaiRequest['presence_penalty'] = (float)$prompt['presence_penalty'];
-}
-if (isset($prompt['frequency_penalty']) && $prompt['frequency_penalty'] !== null) {
-    $openaiRequest['frequency_penalty'] = (float)$prompt['frequency_penalty'];
+if ($reasoningEffort && $reasoningEffort !== 'none') {
+    // gpt-5.2-chat-latest with reasoning: use reasoning and max_output_tokens
+    // NOTE: temperature, top_p, logprobs are NOT allowed when reasoning.effort != "none"
+    $openaiRequest['reasoning'] = ['effort' => $reasoningEffort];
+    
+    if (isset($prompt['max_output_tokens']) && $prompt['max_output_tokens'] !== null) {
+        $openaiRequest['max_output_tokens'] = (int)$prompt['max_output_tokens'];
+    }
+} else {
+    // Standard mode or reasoning.effort = "none": can use temperature etc.
+    if (isset($prompt['max_tokens']) && $prompt['max_tokens'] !== null) {
+        $openaiRequest['max_tokens'] = (int)$prompt['max_tokens'];
+    }
+    if (isset($prompt['max_output_tokens']) && $prompt['max_output_tokens'] !== null) {
+        $openaiRequest['max_output_tokens'] = (int)$prompt['max_output_tokens'];
+    }
+    if (isset($prompt['temperature']) && $prompt['temperature'] !== null) {
+        $openaiRequest['temperature'] = (float)$prompt['temperature'];
+    }
+    if (isset($prompt['presence_penalty']) && $prompt['presence_penalty'] !== null) {
+        $openaiRequest['presence_penalty'] = (float)$prompt['presence_penalty'];
+    }
+    if (isset($prompt['frequency_penalty']) && $prompt['frequency_penalty'] !== null) {
+        $openaiRequest['frequency_penalty'] = (float)$prompt['frequency_penalty'];
+    }
 }
 
 // Streaming response
