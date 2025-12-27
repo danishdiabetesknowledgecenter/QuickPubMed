@@ -6,13 +6,20 @@
 
 require_once __DIR__ . '/../config.php';
 
-// CORS headers
+// CORS headers - check both Origin and Referer for compatibility
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+if (empty($origin) && !empty($_SERVER['HTTP_REFERER'])) {
+    $parsed = parse_url($_SERVER['HTTP_REFERER']);
+    $origin = ($parsed['scheme'] ?? 'https') . '://' . ($parsed['host'] ?? '');
+}
 $allowedOrigin = getAllowedOrigin($origin);
 
 if ($allowedOrigin) {
     header('Access-Control-Allow-Origin: ' . $allowedOrigin);
     header('Access-Control-Allow-Credentials: true');
+} else {
+    // Fallback: allow all origins for GET requests (public API data)
+    header('Access-Control-Allow-Origin: *');
 }
 header('Access-Control-Allow-Methods: GET, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
