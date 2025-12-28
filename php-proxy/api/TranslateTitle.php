@@ -62,35 +62,26 @@ if (isset($prompt['messages']) && is_array($prompt['messages'])) {
     $messages[] = ['role' => 'user', 'content' => $promptText];
 }
 
-// Byg OpenAI request
+// Byg OpenAI request - using Responses API for GPT-5.2
+// See: https://platform.openai.com/docs/api-reference/responses/create
 $openaiRequest = [
-    'model' => $prompt['model'] ?? 'gpt-5.2-chat-latest',
-    'messages' => $messages,
+    'model' => $prompt['model'] ?? 'gpt-5.2',
+    'input' => $messages,  // Responses API uses 'input' instead of 'messages'
     'stream' => true
 ];
 
-// Check if using reasoning (gpt-5.2-chat-latest)
-$reasoningEffort = $prompt['reasoning']['effort'] ?? null;
-
-if ($reasoningEffort && $reasoningEffort !== 'none') {
-    // gpt-5.2-chat-latest with reasoning: use reasoning and max_output_tokens
-    // NOTE: temperature, top_p, logprobs are NOT allowed when reasoning.effort != "none"
-    $openaiRequest['reasoning'] = ['effort' => $reasoningEffort];
-    
-    if (isset($prompt['max_output_tokens']) && $prompt['max_output_tokens'] !== null) {
-        $openaiRequest['max_output_tokens'] = (int)$prompt['max_output_tokens'];
-    }
+// GPT-5.2 reasoning parameter
+if (isset($prompt['reasoning']['effort'])) {
+    $openaiRequest['reasoning'] = ['effort' => $prompt['reasoning']['effort']];
 } else {
-    // Standard mode or reasoning.effort = "none": can use temperature etc.
-    if (isset($prompt['max_tokens']) && $prompt['max_tokens'] !== null) {
-        $openaiRequest['max_tokens'] = (int)$prompt['max_tokens'];
-    }
-    if (isset($prompt['max_output_tokens']) && $prompt['max_output_tokens'] !== null) {
-        $openaiRequest['max_output_tokens'] = (int)$prompt['max_output_tokens'];
-    }
-    if (isset($prompt['temperature']) && $prompt['temperature'] !== null) {
-        $openaiRequest['temperature'] = (float)$prompt['temperature'];
-    }
+    $openaiRequest['reasoning'] = ['effort' => 'low']; // Default for translation
+}
+
+// max_output_tokens for GPT-5.2
+if (isset($prompt['max_output_tokens']) && $prompt['max_output_tokens'] !== null) {
+    $openaiRequest['max_output_tokens'] = (int)$prompt['max_output_tokens'];
+} elseif (isset($prompt['max_tokens']) && $prompt['max_tokens'] !== null) {
+    $openaiRequest['max_output_tokens'] = (int)$prompt['max_tokens'];
 }
 
 // Streaming response
@@ -130,10 +121,21 @@ curl_setopt_array($ch, [
                 }
                 
                 $parsed = json_decode($jsonData, true);
-                if ($parsed && isset($parsed['choices'][0]['delta']['content'])) {
-                    $content = $parsed['choices'][0]['delta']['content'];
-                    echo $content;
-                    flush();
+                
+                // Responses API streaming format
+                if ($parsed) {
+                    // Check for text delta in Responses API format
+                    if (isset($parsed['type']) && $parsed['type'] === 'response.output_text.delta') {
+                        $content = $parsed['delta'] ?? '';
+                        echo $content;
+                        flush();
+                    }
+                    // Fallback to Chat Completions format (for compatibility)
+                    elseif (isset($parsed['choices'][0]['delta']['content'])) {
+                        $content = $parsed['choices'][0]['delta']['content'];
+                        echo $content;
+                        flush();
+                    }
                 }
             }
         }

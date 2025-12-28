@@ -176,8 +176,7 @@ export const summarizeMultipleAbstractPrompt = [
       en: "Summary written in a language that is easy to understand, even without prior knowledge of the subject.",
     },
     model_token_limit: 128000,
-    model: "gpt-5.2-chat-latest",
-    // gpt-5.2-chat-latest: when reasoning.effort != "none", temperature/top_p/logprobs are NOT allowed
+    model: "gpt-5.2",
     reasoning: { effort: "medium" },  // none, low, medium, high, xhigh
     max_output_tokens: 4000,
     prompt: "",
@@ -193,8 +192,7 @@ export const summarizeMultipleAbstractPrompt = [
       en: "Summary written in a language that is easily understood by professionals with prior knowledge of the subject.",
     },
     model_token_limit: 128000,
-    model: "gpt-5.2-chat-latest",
-    // gpt-5.2-chat-latest: when reasoning.effort != "none", temperature/top_p/logprobs are NOT allowed
+    model: "gpt-5.2",
     reasoning: { effort: "medium" },  // none, low, medium, high, xhigh
     max_output_tokens: 4000,
     prompt: "",
@@ -214,8 +212,7 @@ export const summarizeSingleAbstractPrompt = [
       en: "Summary written in a language that is easy to understand, even without prior knowledge of the subject.",
     },
     model_token_limit: 128000,
-    model: "gpt-5.2-chat-latest",
-    // gpt-5.2-chat-latest: when reasoning.effort != "none", temperature/top_p/logprobs are NOT allowed
+    model: "gpt-5.2",
     reasoning: { effort: "medium" },  // none, low, medium, high, xhigh
     max_output_tokens: 4000,
     prompt: "",
@@ -231,8 +228,7 @@ export const summarizeSingleAbstractPrompt = [
       en: "Summary written in a language that is easily understood by professionals with prior knowledge of the subject.",
     },
     model_token_limit: 128000,
-    model: "gpt-5.2-chat-latest",
-    // gpt-5.2-chat-latest: when reasoning.effort != "none", temperature/top_p/logprobs are NOT allowed
+    model: "gpt-5.2",
     reasoning: { effort: "medium" },  // none, low, medium, high, xhigh
     max_output_tokens: 4000,
     prompt: "",

@@ -45,10 +45,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
+// Debug mode - show what would be sent (allow GET for easy browser testing)
+if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+    header('Content-Type: application/json');
+    echo json_encode([
+        'debug' => true,
+        'info' => 'Use POST with JSON body to see full debug info. This is a GET request.',
+        'openai_api_url' => defined('OPENAI_API_URL') ? OPENAI_API_URL : 'NOT DEFINED',
+        'openai_key_set' => defined('OPENAI_API_KEY') && !empty(OPENAI_API_KEY),
+        'php_version' => PHP_VERSION
+    ], JSON_PRETTY_PRINT);
+    exit;
+}
+
 // Kun POST tilladt
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
-    echo json_encode(['error' => 'Method not allowed']);
+    header('Content-Type: application/json');
+    echo json_encode([
+        'error' => 'Method not allowed',
+        'method_received' => $_SERVER['REQUEST_METHOD'],
+        'request_uri' => $_SERVER['REQUEST_URI'] ?? 'unknown'
+    ]);
     exit;
 }
 
@@ -107,52 +125,34 @@ if (isset($prompt['messages']) && is_array($prompt['messages'])) {
     $messages[] = ['role' => 'user', 'content' => $promptText];
 }
 
-// Byg OpenAI request
+// Byg OpenAI request - using Responses API for GPT-5.2
+// See: https://platform.openai.com/docs/api-reference/responses/create
 $openaiRequest = [
-    'model' => $prompt['model'] ?? 'gpt-5.2-chat-latest',
-    'messages' => $messages,
+    'model' => $prompt['model'] ?? 'gpt-5.2',
+    'input' => $messages,  // Responses API uses 'input' instead of 'messages'
     'stream' => true
 ];
 
-// Check if using reasoning (gpt-5.2-chat-latest)
-$reasoningEffort = $prompt['reasoning']['effort'] ?? null;
-
-if ($reasoningEffort && $reasoningEffort !== 'none') {
-    // gpt-5.2-chat-latest with reasoning: use reasoning and max_output_tokens
-    // NOTE: temperature, top_p, logprobs are NOT allowed when reasoning.effort != "none"
-    $openaiRequest['reasoning'] = ['effort' => $reasoningEffort];
-    
-    if (isset($prompt['max_output_tokens']) && $prompt['max_output_tokens'] !== null) {
-        $openaiRequest['max_output_tokens'] = (int)$prompt['max_output_tokens'];
-    }
+// GPT-5.2 reasoning parameter
+if (isset($prompt['reasoning']['effort'])) {
+    $openaiRequest['reasoning'] = ['effort' => $prompt['reasoning']['effort']];
 } else {
-    // Standard mode or reasoning.effort = "none": can use temperature etc.
-    if (isset($prompt['max_tokens']) && $prompt['max_tokens'] !== null) {
-        $openaiRequest['max_tokens'] = (int)$prompt['max_tokens'];
-    }
-    if (isset($prompt['max_output_tokens']) && $prompt['max_output_tokens'] !== null) {
-        $openaiRequest['max_output_tokens'] = (int)$prompt['max_output_tokens'];
-    }
-    if (isset($prompt['temperature']) && $prompt['temperature'] !== null) {
-        $openaiRequest['temperature'] = (float)$prompt['temperature'];
-    }
-    if (isset($prompt['presence_penalty']) && $prompt['presence_penalty'] !== null) {
-        $openaiRequest['presence_penalty'] = (float)$prompt['presence_penalty'];
-    }
-    if (isset($prompt['frequency_penalty']) && $prompt['frequency_penalty'] !== null) {
-        $openaiRequest['frequency_penalty'] = (float)$prompt['frequency_penalty'];
-    }
+    $openaiRequest['reasoning'] = ['effort' => 'medium']; // Default
 }
 
-// Streaming response
-header('Content-Type: text/event-stream');
-header('Cache-Control: no-cache');
-header('X-Accel-Buffering: no');
+// GPT-5.2 text/verbosity parameter
+if (isset($prompt['text']['verbosity'])) {
+    $openaiRequest['text'] = ['format' => ['type' => 'text'], 'verbosity' => $prompt['text']['verbosity']];
+}
 
-// Disable output buffering
-if (ob_get_level()) ob_end_clean();
+// max_output_tokens for GPT-5.2
+if (isset($prompt['max_output_tokens']) && $prompt['max_output_tokens'] !== null) {
+    $openaiRequest['max_output_tokens'] = (int)$prompt['max_output_tokens'];
+} elseif (isset($prompt['max_tokens']) && $prompt['max_tokens'] !== null) {
+    $openaiRequest['max_output_tokens'] = (int)$prompt['max_tokens'];
+}
 
-// Initialize cURL for streaming
+// DEBUG: First make a non-streaming request to check for errors
 $ch = curl_init(OPENAI_API_URL);
 
 $headers = [
@@ -164,13 +164,50 @@ if (OPENAI_ORG_ID) {
     $headers[] = 'OpenAI-Organization: ' . OPENAI_ORG_ID;
 }
 
+// First, test without streaming to see error
+$testRequest = $openaiRequest;
+$testRequest['stream'] = false;
+
+curl_setopt_array($ch, [
+    CURLOPT_POST => true,
+    CURLOPT_POSTFIELDS => json_encode($testRequest),
+    CURLOPT_HTTPHEADER => $headers,
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_TIMEOUT => 60
+]);
+
+$testResponse = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+// If error, return the full error message
+if ($httpCode >= 400) {
+    header('Content-Type: application/json');
+    http_response_code($httpCode);
+    echo json_encode([
+        'error' => 'OpenAI API Error',
+        'http_code' => $httpCode,
+        'openai_response' => json_decode($testResponse, true) ?? $testResponse,
+        'request_sent' => $openaiRequest
+    ], JSON_PRETTY_PRINT);
+    exit;
+}
+
+// If successful, proceed with streaming
+header('Content-Type: text/event-stream');
+header('Cache-Control: no-cache');
+header('X-Accel-Buffering: no');
+
+if (ob_get_level()) ob_end_clean();
+
+$ch = curl_init(OPENAI_API_URL);
+
 curl_setopt_array($ch, [
     CURLOPT_POST => true,
     CURLOPT_POSTFIELDS => json_encode($openaiRequest),
     CURLOPT_HTTPHEADER => $headers,
     CURLOPT_RETURNTRANSFER => false,
     CURLOPT_WRITEFUNCTION => function($ch, $data) {
-        // Parse SSE data
         $lines = explode("\n", $data);
         foreach ($lines as $line) {
             $line = trim($line);
@@ -184,10 +221,22 @@ curl_setopt_array($ch, [
                 }
                 
                 $parsed = json_decode($jsonData, true);
-                if ($parsed && isset($parsed['choices'][0]['delta']['content'])) {
-                    $content = $parsed['choices'][0]['delta']['content'];
-                    echo $content;
-                    flush();
+                
+                // Responses API streaming format
+                // See: https://platform.openai.com/docs/api-reference/responses/streaming
+                if ($parsed) {
+                    // Check for text delta in Responses API format
+                    if (isset($parsed['type']) && $parsed['type'] === 'response.output_text.delta') {
+                        $content = $parsed['delta'] ?? '';
+                        echo $content;
+                        flush();
+                    }
+                    // Fallback to Chat Completions format (for compatibility)
+                    elseif (isset($parsed['choices'][0]['delta']['content'])) {
+                        $content = $parsed['choices'][0]['delta']['content'];
+                        echo $content;
+                        flush();
+                    }
                 }
             }
         }
@@ -196,19 +245,6 @@ curl_setopt_array($ch, [
     CURLOPT_TIMEOUT => 300
 ]);
 
-$result = curl_exec($ch);
-
-$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-$curlError = curl_error($ch);
-$curlErrno = curl_errno($ch);
-
+curl_exec($ch);
 curl_close($ch);
-
-if ($curlErrno) {
-    echo "\n\nCURL Error ({$curlErrno}): {$curlError}";
-}
-
-if ($httpCode >= 400) {
-    echo "\n\nHTTP Error: {$httpCode}";
-}
 

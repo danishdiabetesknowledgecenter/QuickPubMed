@@ -228,8 +228,7 @@ export const summarizeArticlePrompt = [
       en: "Plain language",
     },
     model_token_limit: 128000,
-    model: "gpt-5.2-chat-latest",
-    // gpt-5.2-chat-latest: when reasoning.effort != "none", temperature/top_p/logprobs are NOT allowed
+    model: "gpt-5.2",
     reasoning: { effort: "medium" },  // none, low, medium, high, xhigh
     max_output_tokens: 4000,
     stream: true,
@@ -246,8 +245,7 @@ export const summarizeArticlePrompt = [
       en: "Professional language",
     },
     model_token_limit: 128000,
-    model: "gpt-5.2-chat-latest",
-    // gpt-5.2-chat-latest: when reasoning.effort != "none", temperature/top_p/logprobs are NOT allowed
+    model: "gpt-5.2",
     reasoning: { effort: "medium" },  // none, low, medium, high, xhigh
     max_output_tokens: 4000,
     stream: true,

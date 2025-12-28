@@ -6,8 +6,7 @@ export const titleTranslationPrompt = {
     dk: "dansk",
   },
   model_token_limit: 128000,
-  model: "gpt-5.2-chat-latest",
-  // gpt-5.2-chat-latest: when reasoning.effort != "none", temperature/top_p/logprobs are NOT allowed
+  model: "gpt-5.2",
   reasoning: { effort: "low" },  // none, low, medium, high, xhigh
   max_output_tokens: 500,
   stream: true,
@@ -32,7 +31,6 @@ export const searchTranslationPrompt = {
   },
   model_token_limit: 128000,
   model: "gpt-5.2",
-  // gpt-5.2-chat-latest: when reasoning.effort != "none", temperature/top_p/logprobs are NOT allowed
   reasoning: { effort: "low" },  // none, low, medium, high, xhigh
   max_output_tokens: 500,
   stream: true,
