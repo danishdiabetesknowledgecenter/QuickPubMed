@@ -1133,6 +1133,7 @@
             authors: this.calculateAuthors,
             source: this.getSource,
             pmid: this.pmid,
+            pubdate: this.pubDate,
             abstract: this.getAbstract,
           })
         );

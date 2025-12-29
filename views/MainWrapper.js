@@ -43,7 +43,8 @@ mainWrapperDivs.forEach((mainWrapperDiv, index) => {
     mainWrapperDiv.id = `main-wrapper-${index}`;
   }
 
-  const domain = mainWrapperDiv.dataset.domain || undefined;
+  // Keep empty string as-is (don't convert to undefined)
+  const domain = mainWrapperDiv.dataset.domain !== undefined ? mainWrapperDiv.dataset.domain : null;
   const useAI = mainWrapperDiv.dataset.useAI === "true";
   const useAISummarizer = mainWrapperDiv.dataset.useAISummarizer === "true";
 
@@ -58,18 +59,31 @@ mainWrapperDivs.forEach((mainWrapperDiv, index) => {
   const language = mainWrapperDiv.dataset.language || undefined;
   const componentNo = mainWrapperDiv.dataset.componentNo || undefined;
 
-  config.domain = domain;
-  config.language = language;
+  // Set global config (for backward compatibility with single-instance usage)
+  if (domain) {
+    config.domain = domain;
+  }
+  if (language) {
+    config.language = language;
+  }
   config.useAI = useAI;
   config.useAISummarizer = useAISummarizer;
 
   new Vue({
+    // Provide domain to all child components via inject
+    provide: {
+      instanceDomain: domain,
+      instanceLanguage: language,
+      instanceUseAI: useAI,
+      instanceUseAISummarizer: useAISummarizer,
+    },
     render: (h) =>
       h(MainWrapper, {
         props: {
           hideTopics: parsedHideTopics,
           language: language,
           componentNo: componentNo,
+          domain: domain,
         },
       }),
   }).$mount(`#${mainWrapperDiv.id}`);

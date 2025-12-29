@@ -716,13 +716,16 @@
         const promptStartText = prompTextLanguageType.startText[language];
         const promptEndText = prompTextLanguageType.endText[language];
 
-        // Compose the prompt text with default prompt questions without the user input questions
-        let composedPromptText = `${domainSpecificRules} ${promptStartText} ${promptEndText}`;
+        // Compose the prompt text with headers for better readability
+        let composedPromptText = '';
+        
+        if (domainSpecificRules) {
+          composedPromptText += `## DOMAIN-SPECIFIC RULES ##\n${domainSpecificRules}\n\n`;
+        }
+        
+        composedPromptText += `## INSTRUCTIONS ##\n${promptStartText}\n\n`;
+        composedPromptText += `## OUTPUT FORMAT ##\n${promptEndText}\n`;
 
-        console.info(
-          `|Language|\n${language}\n\n|Prompt language type|\n${promptLanguageType}\n\n|Domain specific rules|\n${domainSpecificRules}\n\n|Start text|\n${promptStartText}\n` +
-            `\n|End text|\n${promptEndText}\n`
-        );
 
         // Sanitize the composed prompt text
         let sanitizedComposedPromptText = sanitizePrompt({
@@ -810,11 +813,88 @@
 
         this.articleCount = articles.length;
 
+        // Build complete prompt text with articles
+        let articleText = `\n\n## ARTICLES TO SUMMARIZE (${articles.length}) ##\n`;
+        articles.forEach((article, i) => {
+          const num = i + 1;
+          const abstract = article.Abstract || article.abstract || '';
+          const title = article.Title || article.title || '';
+          const pmid = article.PMID || article.pmid || article.uid || '';
+          const source = article.Source || article.source || article.fulljournalname || '';
+          const authorList = article.AuthorList || article.authorList || article.Authors || article.authors || [];
+          const pubDate = article.PubDate || article.pubDate || article.pubdate || article.PublicationDate || article.publicationDate || '';
+          
+          // Get authors - can be string "Li W, Huang E, Gao S" or array [{name: "Li W"}]
+          const authorsRaw = article.authors || article.Authors || authorList || '';
+          
+          // Format authors as string and parse for reference
+          let authorsStr = '';
+          let authorParts = [];
+          
+          if (Array.isArray(authorsRaw) && authorsRaw.length > 0) {
+            // Array format: [{name: "Li W"}, ...]
+            authorParts = authorsRaw.map(a => a.name || a);
+            authorsStr = authorParts.join(', ');
+          } else if (typeof authorsRaw === 'string' && authorsRaw) {
+            // String format: "Li W, Huang E, Gao S"
+            authorsStr = authorsRaw;
+            authorParts = authorsRaw.split(',').map(a => a.trim()).filter(a => a);
+          }
+          
+          // Build APA-style reference (LastName, Year) or (LastName et al., Year)
+          let reference = '';
+          
+          // Get year from pubdate (NLM format: "2020 Mar 12" - year is first)
+          let year = '';
+          const rawPubDate = article.pubdate || article.PubDate || pubDate || '';
+          
+          if (rawPubDate) {
+            const pubDateYearMatch = rawPubDate.match(/^\d{4}/);
+            year = pubDateYearMatch ? pubDateYearMatch[0] : '';
+          }
+          
+          // Get first author's last name
+          let lastName = '';
+          const authorCount = authorParts.length;
+          
+          if (authorCount > 0) {
+            // NLM format: "Efternavn Initialer" - e.g. "de Visser H", "Li W", "van der Berg JK"
+            // Remove initials at the end (1-3 uppercase letters, possibly with periods)
+            lastName = authorParts[0].trim().replace(/\s+[A-Z]{1,3}\.?$/, '').trim();
+          }
+          
+          // Build reference
+          if (lastName && year) {
+            reference = authorCount > 1 
+              ? `${lastName} et al., ${year}` 
+              : `${lastName}, ${year}`;
+          }
+          
+          articleText += `\n--- Article ${num} ---\n`;
+          articleText += `Title: ${title}\n`;
+          articleText += `Authors: ${authorsStr}\n`;
+          articleText += `Source: ${source}\n`;
+          articleText += `Reference: ${reference}\n`;
+          articleText += `PMID: ${pmid}\n`;
+          articleText += `Abstract:\n${abstract}\n`;
+        });
+
+        // Create complete prompt with articles
+        const completePromptText = localePrompt.prompt + articleText;
+
         const requestBody = {
-          prompt: localePrompt,
+          prompt: {
+            ...localePrompt,
+            prompt: completePromptText, // Full prompt with articles
+          },
           articles: articles,
           client: this.appSettings.client,
         };
+
+        // Log complete prompt as sent to OpenAI
+        console.info(
+          `|Complete prompt sent to OpenAI|\n\n${completePromptText}`
+        );
 
         try {
           await readData(openAiServiceUrl, requestBody);

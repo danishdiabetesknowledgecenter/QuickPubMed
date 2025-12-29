@@ -64,6 +64,7 @@ if (!$input) {
 // Udtræk data fra request
 $prompt = $input['prompt'] ?? null;
 $articles = $input['articles'] ?? [];
+$debug = $input['debug'] ?? false;
 
 if (!$prompt) {
     http_response_code(400);
@@ -71,31 +72,8 @@ if (!$prompt) {
     exit;
 }
 
-// Byg artikel-tekst til prompt
-$articleText = '';
-foreach ($articles as $i => $article) {
-    $num = $i + 1;
-    $abstract = $article['Abstract'] ?? $article['abstract'] ?? '';
-    $title = $article['Title'] ?? $article['title'] ?? '';
-    $pmid = $article['PMID'] ?? $article['pmid'] ?? '';
-    $source = $article['Source'] ?? $article['source'] ?? '';
-    $authors = $article['AuthorList'] ?? $article['authorList'] ?? $article['Authors'] ?? $article['authors'] ?? '';
-    $pubDate = $article['PubDate'] ?? $article['pubDate'] ?? $article['PublicationDate'] ?? $article['publicationDate'] ?? '';
-    
-    // Handle authors array
-    if (is_array($authors)) {
-        $authors = implode(', ', $authors);
-    }
-    
-    $articleText .= "\n{$num}. ```";
-    $articleText .= "Title:\n{$title}\n";
-    $articleText .= "Authors:\n{$authors}\n";
-    $articleText .= "Publication Date:\n{$pubDate}\n";
-    $articleText .= "PMID:\n{$pmid}\n";
-    $articleText .= "Source:\n{$source}\n";
-    $articleText .= "Abstract:\n{$abstract}";
-    $articleText .= "```";
-}
+// Get prompt text - frontend now sends complete prompt with articles included
+$promptText = $prompt['prompt'] ?? '';
 
 // Byg messages array
 $messages = [];
@@ -106,13 +84,7 @@ if (isset($prompt['messages']) && is_array($prompt['messages'])) {
             'content' => $msg['content'] ?? ''
         ];
     }
-    // Tilføj artikler til sidste user message
-    if (!empty($messages)) {
-        $lastIndex = count($messages) - 1;
-        $messages[$lastIndex]['content'] .= $articleText;
-    }
 } else {
-    $promptText = ($prompt['prompt'] ?? '') . $articleText;
     $messages[] = ['role' => 'user', 'content' => $promptText];
 }
 
@@ -143,6 +115,17 @@ if (isset($prompt['max_output_tokens']) && $prompt['max_output_tokens'] !== null
     $openaiRequest['max_output_tokens'] = (int)$prompt['max_output_tokens'];
 } elseif (isset($prompt['max_tokens']) && $prompt['max_tokens'] !== null) {
     $openaiRequest['max_output_tokens'] = (int)$prompt['max_tokens'];
+}
+
+// Debug mode - return full prompt without calling OpenAI
+if ($debug) {
+    header('Content-Type: application/json');
+    echo json_encode([
+        'debug' => true,
+        'full_prompt_text' => $promptText,
+        'openai_request' => $openaiRequest,
+    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    exit;
 }
 
 // Streaming response

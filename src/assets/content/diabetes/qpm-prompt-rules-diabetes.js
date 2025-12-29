@@ -8,7 +8,8 @@ export const promptRules = {
     Skriv altid 'person med diabetes', men skriv aldrig 'diabetiker', 'diabetespatient' e.l. 
     Skriv altid 'diabetes', men skriv aldrig 'sukkersyge'.  
     Skriv altid 'prædiabetes', men skriv aldrig 'prediabetes'. 
-    Oversæt altid ordet 'review' til 'review', når det indgår i en kontekst, hvor det betyder en samling af forskning. 
+    Oversæt altid ordet 'review' til 'review', når det indgår i en kontekst, hvor det betyder en samling af forskning.
+    Ordet 'reveiw' er intetkøn, dvs. 'et review' er korrekt, men 'en review' er ikke korrekt.
     Brug dansk notation for tal, hvor tusindtalsseparator er et punktum (.) og decimaltegn er et komma (,). Skriv kun tal med korrekt format i din opsummering. 
     Hvis der i en artikel kun står 'diabetes', og ikke hverken 'type 1-diabetes' eller 'type 2-diabetes', skal du blot skrive 'diabetes'. 
     Du vil blive straffet meget hårdt, hvis du ikke følger alle de instruktioner, som du har fået. `,

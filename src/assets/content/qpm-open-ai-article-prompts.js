@@ -2,7 +2,7 @@
  * Setup text for the prompt to start the summarization of an article
  */
 export const promptStartText = {
-  dk: `Du skal svare i JSON-format. Du skal først kontrollere, om teksten stammer far en videnskabelig artikel. Hvis teksten ikke stammer fra en videnskabelig artikel, skal stoppe og svare med "Jeg kan desværre alligevel ikke opsummere denne artikel". Du vil blive givet en række spørgsmål med hver deres shortTitle.
+  dk: `Du skal svare i JSON-format. Du skal først kontrollere, om teksten stammer fra en videnskabelig artikel. Hvis teksten ikke stammer fra en videnskabelig artikel, skal du stoppe og svare med "Jeg kan desværre alligevel ikke opsummere denne artikel". Du vil blive givet en række spørgsmål med hver deres shortTitle.
   Dit svar SKAL altid følge denne givne struktur: 
   [
     {
@@ -22,7 +22,7 @@ export const promptStartText = {
       "answer": "The article provides an overview of..."
     },
   ].
-  It is important that you maintain the relationship between shortTitle and question, and that you answer all questions.
+  It is important that you maintain the relationship between shortTitle and question, and that you answer all questions. All answers must be written in the tone of voice that du have been asked to use.
   `,
 };
 
@@ -57,7 +57,7 @@ const promptStartTextuserQuestions = {
   }
   You must not come up with questions yourself or change the question that is asked. 
   It is extremly important that you assess whether the question is actually a question. 
-  If it is not a question, you must respond with "I cannot recognize a question in this text". Here is the question:  `,
+  If it is not a question, you must respond with "I cannot recognize a question in this text. Please rephrase your question.". Here is the question:  `,
 };
 
 /**
@@ -197,9 +197,9 @@ export const promptText = [
       en: "Professional language",
     },
     languageType: {
-      dk: "Du skal generere svar til disse spørgsmål, og disse svar skal bestå af maksimum 200 ord og skal skrives i et sprog, som nemt kan læses og forstås af en 15-årig uden forhåndskendskab til emnet. Forklar altid svære ord i parentes. Du skal altid svare på korrekt dansk. Gennemgå dit svar 10 gange for sproglig korrekthed, før du returnerer sit svar. \
+      dk: "Du skal generere svar til disse spørgsmål, og disse svar skal bestå af maksimum 200 ord og skal skrives i et sprog, som nemt kan læses og forstås af en fagperson med forhåndskendskab til emnet. Du skal altid svare på korrekt dansk. Gennemgå dit svar 10 gange for sproglig korrekthed, før du returnerer sit svar. \
       Du skal ikke svare med andet end JSON-formatet. Du skal derfor ikke bruge tegnet ` eller skrive json i starten eller slutningen af svaret. Her er teksten: ",
-      en: "You must then generate answers to these questions, and these answers must consist of at least 100 words and must be written in a language that can be easily read and understood by a 15-year-old without prior knowledge of the subject, and add corresponding to the array that is the value for the answers key. \
+      en: "You must then generate answers to these questions, and these answers must consist of at least 100 words and must be written in a language that can be easily read and understood by a professional with prior knowledge of the subject, and add corresponding to the array that is the value for the answers key. \
       You must not respond with anything other than JSON format. You must therefore not use the character ` or write JSON at the beginning or end of the response. Here is the text: ",
     },
     startText: promptStartText,
