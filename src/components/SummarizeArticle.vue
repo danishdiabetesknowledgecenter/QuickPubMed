@@ -610,17 +610,26 @@
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let fullText = "";
+        let isFirstChunk = true;
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
-          const chunk = decoder.decode(value, { stream: true });
+          let chunk = decoder.decode(value, { stream: true });
+          
+          // Skip initial padding (first chunk may be whitespace)
+          if (isFirstChunk) {
+            chunk = chunk.trimStart();
+            isFirstChunk = false;
+            if (!chunk) continue; // Skip if chunk was just padding
+          }
+          
           fullText += chunk;
-          this.streamingText = fullText;
+          this.streamingText = fullText.trim();
         }
 
-        return fullText;
+        return fullText.trim();
       },
     },
   };
