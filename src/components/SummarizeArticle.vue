@@ -6,7 +6,7 @@
     </p>
 
     <loading-spinner
-      v-if="!streamingText"
+      v-if="!streamingText && streamingItems.length === 0"
       class="qpm_searchSummaryText"
       :wait-text="getString('aiSummaryWaitText')"
       :wait-duration-disclaimer="getString('aiLongWaitTimeDisclaimer')"
@@ -683,32 +683,67 @@
        */
       parseStreamingItems(text) {
         try {
-          // Try to find complete objects in the JSON array
-          // Look for pattern: {"shortTitle":..., "question":..., "answer":...}
-          const objectPattern = /\{\s*"shortTitle"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"\s*,\s*"question"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"\s*,\s*"answer"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"\s*\}/g;
-          
-          let match;
           const items = [];
           
-          while ((match = objectPattern.exec(text)) !== null) {
-            items.push({
-              shortTitle: this.unescapeJson(match[1]),
-              question: this.unescapeJson(match[2]),
-              answer: this.unescapeJson(match[3]),
-              isStreaming: false
-            });
+          // Find all complete JSON objects by matching balanced braces
+          let depth = 0;
+          let objectStart = -1;
+          let inString = false;
+          let escape = false;
+          
+          for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            
+            if (escape) {
+              escape = false;
+              continue;
+            }
+            
+            if (char === '\\' && inString) {
+              escape = true;
+              continue;
+            }
+            
+            if (char === '"' && !escape) {
+              inString = !inString;
+              continue;
+            }
+            
+            if (inString) continue;
+            
+            if (char === '{') {
+              if (depth === 0) {
+                objectStart = i;
+              }
+              depth++;
+            } else if (char === '}') {
+              depth--;
+              if (depth === 0 && objectStart !== -1) {
+                // Found complete object
+                const objectStr = text.substring(objectStart, i + 1);
+                try {
+                  const obj = JSON.parse(objectStr);
+                  if (obj.shortTitle && obj.answer !== undefined) {
+                    items.push({
+                      shortTitle: obj.shortTitle,
+                      question: obj.question || "",
+                      answer: obj.answer,
+                      isStreaming: false
+                    });
+                  }
+                } catch (e) {
+                  // Not valid JSON yet
+                }
+                objectStart = -1;
+              }
+            }
           }
           
-          // Check if there's a partial item being streamed
-          const lastCompleteIndex = text.lastIndexOf('}');
-          const lastOpenIndex = text.lastIndexOf('{"shortTitle"');
-          
-          if (lastOpenIndex > lastCompleteIndex) {
-            // There's a partial item - try to extract what we have
-            const partialText = text.substring(lastOpenIndex);
-            const partialItem = this.parsePartialItem(partialText);
+          // Check for partial object at the end
+          if (depth > 0 && objectStart !== -1) {
+            const partialStr = text.substring(objectStart);
+            const partialItem = this.parsePartialItem(partialStr);
             if (partialItem) {
-              partialItem.isStreaming = true;
               items.push(partialItem);
             }
           }
@@ -717,7 +752,7 @@
             this.streamingItems = items;
           }
         } catch (e) {
-          // Parsing failed, that's okay - we'll try again with more data
+          console.log("Parsing error:", e);
         }
       },
       
@@ -727,52 +762,40 @@
       parsePartialItem(text) {
         const item = { shortTitle: "", question: "", answer: "", isStreaming: true };
         
-        // Extract shortTitle
-        const titleMatch = text.match(/"shortTitle"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/);
+        // Extract shortTitle using simple string search
+        const titleMatch = text.match(/"shortTitle"\s*:\s*"((?:[^"\\]|\\.)*)"/);
         if (titleMatch) {
-          item.shortTitle = this.unescapeJson(titleMatch[1]);
+          item.shortTitle = JSON.parse('"' + titleMatch[1] + '"');
         } else {
-          return null; // Need at least title
+          return null;
         }
         
         // Extract question
-        const questionMatch = text.match(/"question"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/);
+        const questionMatch = text.match(/"question"\s*:\s*"((?:[^"\\]|\\.)*)"/);
         if (questionMatch) {
-          item.question = this.unescapeJson(questionMatch[1]);
+          try {
+            item.question = JSON.parse('"' + questionMatch[1] + '"');
+          } catch (e) {
+            item.question = questionMatch[1];
+          }
         }
         
-        // Extract partial answer
-        const answerStart = text.indexOf('"answer"');
-        if (answerStart !== -1) {
-          const afterAnswer = text.substring(answerStart);
-          const colonIndex = afterAnswer.indexOf(':');
-          if (colonIndex !== -1) {
-            const afterColon = afterAnswer.substring(colonIndex + 1).trim();
-            if (afterColon.startsWith('"')) {
-              // Extract everything after the opening quote
-              let answerContent = afterColon.substring(1);
-              // Remove trailing incomplete escape or quote
-              if (answerContent.endsWith('\\')) {
-                answerContent = answerContent.slice(0, -1);
-              }
-              item.answer = this.unescapeJson(answerContent);
-            }
+        // Extract partial answer - find the last "answer": and get content after it
+        const answerMatch = text.match(/"answer"\s*:\s*"((?:[^"\\]|\\.)*)/);
+        if (answerMatch) {
+          try {
+            // Try to parse what we have, adding closing quote
+            item.answer = JSON.parse('"' + answerMatch[1] + '"');
+          } catch (e) {
+            // If parse fails, just unescape manually
+            item.answer = answerMatch[1]
+              .replace(/\\n/g, '\n')
+              .replace(/\\"/g, '"')
+              .replace(/\\\\/g, '\\');
           }
         }
         
         return item;
-      },
-      
-      /**
-       * Unescape JSON string escape sequences
-       */
-      unescapeJson(str) {
-        return str
-          .replace(/\\n/g, '\n')
-          .replace(/\\r/g, '\r')
-          .replace(/\\t/g, '\t')
-          .replace(/\\"/g, '"')
-          .replace(/\\\\/g, '\\');
       },
     },
   };
