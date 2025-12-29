@@ -177,7 +177,7 @@ export const summarizeMultipleAbstractPrompt = [
     },
     model_token_limit: 128000,
     model: "gpt-5.2-chat-latest",
-    reasoning: { effort: "low" },      // none, low, medium, high, xhigh
+    reasoning: { effort: "none" },      // none, low, medium, high, xhigh
     text: { verbosity: "medium" },     // low, medium, high
     max_output_tokens: 4000,
     prompt: "",
@@ -194,7 +194,7 @@ export const summarizeMultipleAbstractPrompt = [
     },
     model_token_limit: 128000,
     model: "gpt-5.2-chat-latest",
-    reasoning: { effort: "low" },      // none, low, medium, high, xhigh
+    reasoning: { effort: "none" },      // none, low, medium, high, xhigh
     text: { verbosity: "medium" },     // low, medium, high
     max_output_tokens: 4000,
     prompt: "",
@@ -215,7 +215,7 @@ export const summarizeSingleAbstractPrompt = [
     },
     model_token_limit: 128000,
     model: "gpt-5.2-chat-latest",
-    reasoning: { effort: "low" },      // none, low, medium, high, xhigh
+    reasoning: { effort: "none" },      // none, low, medium, high, xhigh
     text: { verbosity: "medium" },     // low, medium, high
     max_output_tokens: 4000,
     prompt: "",
@@ -232,7 +232,7 @@ export const summarizeSingleAbstractPrompt = [
     },
     model_token_limit: 128000,
     model: "gpt-5.2-chat-latest",
-    reasoning: { effort: "low" },      // none, low, medium, high, xhigh
+    reasoning: { effort: "none" },      // none, low, medium, high, xhigh
     text: { verbosity: "medium" },     // low, medium, high
     max_output_tokens: 4000,
     prompt: "",
