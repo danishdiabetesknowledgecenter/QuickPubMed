@@ -12,46 +12,20 @@
       name="viewport"
       content="initial-scale=1.0, maximum-scale=5.0, minimum-scale=1.0, width=device-width"
     />
-    <link
-      href="https://videncenterfordiabetes.dk/assets/css/icons.css"
-      rel="stylesheet"
-      media="all"
-    />
-    <link
-      href="https://videncenterfordiabetes.dk/assets/css/module-styles.css"
-      rel="stylesheet"
-      media="all"
-      data-style="module style"
-    />
-    <link
-      href="https://videncenterfordiabetes.dk/assets/css/identity-videncenter-for-diabetes.css"
-      rel="stylesheet"
-      media="all"
-      data-style="identity-videncenter-for-diabetes"
-    />
-    <link
-      href="https://videncenterfordiabetes.dk/assets/css/sleeve-default.css"
-      rel="stylesheet"
-      media="all"
-      data-style="sleeve-default"
-    />
-    <link
-      href="https://videncenterfordiabetes.dk/assets/css/print.css"
-      rel="stylesheet"
-      media="print"
-    />
-    <script src="https://code.jquery.com/jquery-3.6.1.min.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" media="all" type="text/css" href="https://videncenterfordiabetes.dk/assets/css/icons.css" />
+    <link rel="stylesheet" media="all" href="https://videncenterfordiabetes.dk/css/bundle.css" />
+
+    <script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/1000hz-bootstrap-validator/0.11.9/validator.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/js/bootstrap.bundle.min.js"></script>
     <script src="https://ajax.aspnetcdn.com/ajax/jquery.validate/1.16.0/jquery.validate.min.js"></script>
     <script src="https://ajax.aspnetcdn.com/ajax/mvc/5.2.3/jquery.validate.unobtrusive.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/css-vars-ponyfill@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/2.2.1/js.cookie.min.js"></script>
 
     <script src="https://videncenterfordiabetes.dk/Scripts/picturefill.min.js"></script>
     <script src="https://videncenterfordiabetes.dk/Scripts/lazysizes.min.js"></script>
     <script src="https://videncenterfordiabetes.dk/Scripts/ls.unveilhooks.min.js"></script>
-    <script src="https://videncenterfordiabetes.dk/assets/js/vendor.js"></script>
-    <script src="https://videncenterfordiabetes.dk/assets/js/app.js"></script>
+    <script src="https://videncenterfordiabetes.dk/js/bundle.js"></script>
 
     <style>
       :root {
@@ -80,6 +54,7 @@
     </style>
 
     <link rel="stylesheet" href="https://unpkg.com/boxicons@2.0.5/css/boxicons.min.css" />
+    <link rel="stylesheet" href="https://unpkg.com/remixicon@4.6.0/fonts/remixicon.css" />
     <link
       rel="stylesheet"
       href="https://unpkg.com/vue-multiselect@2.1.6/dist/vue-multiselect.min.css"
@@ -88,14 +63,23 @@
   <body style="background: white">
     <div style="width: 872px; max-width: 100%; margin: auto; padding: 15px">
       <div
-        id="main-wrapper"
+        class="main-wrapper"
         data-domain="diabetes"
         data-use-a-i="true"
         data-use-a-i-summarizer="true"
-        data-hide-topics=""
-        data-language=""
+        data-hide-topics="['L10010']"
+        data-language="dk"
         data-component-no=""
       ></div>
+      <div
+      class="main-wrapper"
+      data-domain=""
+      data-use-a-i="true"
+      data-use-a-i-summarizer="true"
+      data-hide-topics="['L10010']"
+      data-language="dk"
+      data-component-no=""
+    ></div>
     </div>
     <script type="module" src="./MainWrapper.js"></script>
   </body>

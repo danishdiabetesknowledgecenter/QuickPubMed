@@ -29,11 +29,9 @@ export default defineConfig(({ command }) => {
         "@": path.resolve(__dirname, "./src"),
       },
     },
-    css: {
-      // Disable CSS code splitting to bundle all CSS into one file
-      codeSplit: false,
-    },
     build: {
+      // Disable CSS code splitting to bundle all CSS into one file
+      cssCodeSplit: false,
       outDir: "dist",
       rollupOptions: {
         input, // Use the conditional input
