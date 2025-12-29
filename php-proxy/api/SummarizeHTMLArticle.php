@@ -23,7 +23,7 @@ require_once $configPath;
 // TEMPORARY: Use old Azure endpoint that handles both text extraction AND OpenAI
 // Change to 'https://qpm-openai-service.azurewebsites.net/api/FetchHTMLText' after deployment
 define('AZURE_HTML_URL', 'https://qpm-openai-service.azurewebsites.net/api/SummarizeHTMLArticle');
-define('USE_NEW_FLOW', false);  // Set to true after deploying new Azure Functions
+define('USE_NEW_FLOW', true);  // Set to true after deploying new Azure Functions
 
 // CORS headers
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
