@@ -157,12 +157,32 @@ if (isset($prompt['max_output_tokens']) && $prompt['max_output_tokens'] !== null
     $openaiRequest['max_output_tokens'] = (int)$prompt['max_tokens'];
 }
 
-// Streaming response headers
-header('Content-Type: text/event-stream');
-header('Cache-Control: no-cache');
-header('X-Accel-Buffering: no');
+// Streaming response headers - disable ALL buffering
+header('Content-Type: text/plain; charset=utf-8');
+header('Cache-Control: no-cache, no-store, must-revalidate');
+header('Pragma: no-cache');
+header('X-Accel-Buffering: no');  // Nginx
+header('X-Content-Type-Options: nosniff');
+header('Transfer-Encoding: chunked');
 
-if (ob_get_level()) ob_end_clean();
+// Disable all output buffering
+@ini_set('output_buffering', 'Off');
+@ini_set('zlib.output_compression', 0);
+while (ob_get_level()) ob_end_clean();
+ob_implicit_flush(true);
+
+// Disable Apache buffering
+if (function_exists('apache_setenv')) {
+    @apache_setenv('no-gzip', '1');
+}
+
+// Set unlimited execution time for long streams
+set_time_limit(0);
+
+// Send initial padding to trigger streaming (some servers buffer until ~1KB)
+echo str_repeat(' ', 1024);
+@ob_flush();
+@flush();
 
 // Call OpenAI API with streaming
 $headers = [
@@ -196,13 +216,15 @@ curl_setopt_array($ch, [
                     if (isset($parsed['type']) && $parsed['type'] === 'response.output_text.delta') {
                         $content = $parsed['delta'] ?? '';
                         echo $content;
-                        flush();
+                        @ob_flush();
+                        @flush();
                     }
                     // Fallback to Chat Completions format
                     elseif (isset($parsed['choices'][0]['delta']['content'])) {
                         $content = $parsed['choices'][0]['delta']['content'];
                         echo $content;
-                        flush();
+                        @ob_flush();
+                        @flush();
                     }
                 }
             }
