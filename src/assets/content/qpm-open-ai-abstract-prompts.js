@@ -176,7 +176,7 @@ export const summarizeMultipleAbstractPrompt = [
       en: "Summary written in a language that is easy to understand, even without prior knowledge of the subject.",
     },
     model_token_limit: 128000,
-    model: "gpt-5.2-chat-latest",
+    model: "gpt-5.2",
     reasoning: { effort: "none" },      // none, low, medium, high, xhigh
     text: { verbosity: "medium" },     // low, medium, high
     max_output_tokens: 4000,
@@ -193,7 +193,7 @@ export const summarizeMultipleAbstractPrompt = [
       en: "Summary written in a language that is easily understood by professionals with prior knowledge of the subject.",
     },
     model_token_limit: 128000,
-    model: "gpt-5.2-chat-latest",
+    model: "gpt-5.2",
     reasoning: { effort: "none" },      // none, low, medium, high, xhigh
     text: { verbosity: "medium" },     // low, medium, high
     max_output_tokens: 4000,
@@ -214,7 +214,7 @@ export const summarizeSingleAbstractPrompt = [
       en: "Summary written in a language that is easy to understand, even without prior knowledge of the subject.",
     },
     model_token_limit: 128000,
-    model: "gpt-5.2-chat-latest",
+    model: "gpt-5.2",
     reasoning: { effort: "none" },      // none, low, medium, high, xhigh
     text: { verbosity: "medium" },     // low, medium, high
     max_output_tokens: 4000,
@@ -231,7 +231,7 @@ export const summarizeSingleAbstractPrompt = [
       en: "Summary written in a language that is easily understood by professionals with prior knowledge of the subject.",
     },
     model_token_limit: 128000,
-    model: "gpt-5.2-chat-latest",
+    model: "gpt-5.2",
     reasoning: { effort: "none" },      // none, low, medium, high, xhigh
     text: { verbosity: "medium" },     // low, medium, high
     max_output_tokens: 4000,
