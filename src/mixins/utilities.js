@@ -15,6 +15,11 @@ export const utilitiesMixin = {
      */
     getString(string) {
       const lg = this.language;
+      // Check if the translation key exists
+      if (!messages[string]) {
+        console.warn(`Missing translation key: ${string}`);
+        return string; // Return the key as fallback
+      }
       const constant = messages[string][lg];
       return constant !== undefined ? constant : messages[string]["dk"];
     },
