@@ -14,15 +14,42 @@
       style="align-self: center; padding-top: 50px"
     />
     
-    <!-- Show streaming text while loading -->
-    <div v-if="loading && streamingText" class="qpm_streaming-container">
-      <div class="qpm_streaming-header">
-        <i class="bx bx-loader-alt bx-spin"></i>
-        <span>{{ getString("aiGeneratingText") || "Genererer opsummering..." }}</span>
+    <!-- Show streaming items progressively while loading -->
+    <div v-if="loading && streamingItems.length > 0">
+      <p style="padding-top: 10px">
+        <strong>{{ getString("summarizeArticleHeader") }}</strong>
+      </p>
+      <div v-for="(qa, index) in streamingItems.slice(0, 7)" :key="'streaming-' + index">
+        <accordion-menu
+          :title="qa.shortTitle"
+          :open-by-default="index === 0"
+        >
+          <template #header="accordionProps">
+            <div class="qpm_aiAccordionHeader">
+              <i
+                v-if="accordionProps.expanded"
+                class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
+              ></i>
+              <i 
+                v-else 
+                class="bx bx-chevron-down qpm_aiAccordionHeaderArrows" 
+              ></i>
+              <i class="bx bx-detail"></i>
+              {{ qa.shortTitle }}
+              <i v-if="qa.isStreaming" class="bx bx-loader-alt bx-spin" style="margin-left: 8px; font-size: 0.9em;"></i>
+            </div>
+          </template>
+          <template #default>
+            <div class="qpm_answer-text">
+              {{ qa.answer }}<span v-if="qa.isStreaming" class="qpm_streaming-cursor">▌</span>
+            </div>
+          </template>
+        </accordion-menu>
       </div>
-      <div class="qpm_streaming-content">
-        <div v-html="formattedStreamingText"></div>
-        <span class="qpm_streaming-cursor">▌</span>
+      <!-- Show loading indicator for remaining items -->
+      <div v-if="streamingItems.length < 7" class="qpm_streaming-loading">
+        <i class="bx bx-loader-alt bx-spin"></i>
+        <span>{{ getString("aiGeneratingText") || "Genererer mere..." }}</span>
       </div>
     </div>
     
@@ -210,6 +237,7 @@
         scrapingError: undefined,
         errorMessage: undefined,
         streamingText: "",
+        streamingItems: [], // Parsed Q&A items shown progressively
       };
     },
     computed: {
@@ -514,8 +542,9 @@
         const localePrompt = this.getComposablePrompt(this.language, promptLanguageType);
 
         try {
-          // Reset streaming text
+          // Reset streaming state
           this.streamingText = "";
+          this.streamingItems = [];
 
           const response = await this.handleFetch(
             openAiServiceUrl,
@@ -532,8 +561,9 @@
           const rawText = await this.readStreamingResponse(response);
           const sanitizedText = this.sanitizeResponse(rawText);
 
-          // Clear streaming text before showing parsed result
+          // Clear streaming state before showing parsed result
           this.streamingText = "";
+          this.streamingItems = [];
 
           // Parse the sanitized JSON
           const data = JSON.parse(sanitizedText);
@@ -549,6 +579,7 @@
           return data;
         } catch (error) {
           this.streamingText = "";
+          this.streamingItems = [];
           this.isError = true;
           this.errorMessage = "Failed to summarize HTML article.";
           console.error("Error parsing summary:", error);
@@ -568,8 +599,9 @@
         const localePrompt = this.getComposablePrompt(this.language, promptLanguageType);
 
         try {
-          // Reset streaming text
+          // Reset streaming state
           this.streamingText = "";
+          this.streamingItems = [];
 
           const response = await this.handleFetch(
             openAiServiceUrl,
@@ -586,14 +618,16 @@
           const rawText = await this.readStreamingResponse(response);
           const sanitizedText = this.sanitizeResponse(rawText);
 
-          // Clear streaming text before showing parsed result
+          // Clear streaming state before showing parsed result
           this.streamingText = "";
+          this.streamingItems = [];
 
           // Parse the sanitized JSON
           const data = JSON.parse(sanitizedText);
           return data;
         } catch (error) {
           this.streamingText = "";
+          this.streamingItems = [];
           this.isError = true;
           this.errorMessage = "Failed to summarize PDF article.";
           console.error("Error parsing summary:", error);
@@ -611,6 +645,11 @@
         const decoder = new TextDecoder();
         let fullText = "";
         let isFirstChunk = true;
+        
+        // Reset streaming items
+        this.streamingItems = [];
+        let currentItemIndex = -1;
+        let lastParsedLength = 0;
 
         while (true) {
           const { done, value } = await reader.read();
@@ -622,17 +661,118 @@
           if (isFirstChunk) {
             chunk = chunk.trimStart();
             isFirstChunk = false;
-            if (!chunk) continue; // Skip if chunk was just padding
+            if (!chunk) continue;
           }
           
           fullText += chunk;
           this.streamingText = fullText.trim();
           
-          // Force Vue to update the UI immediately
+          // Try to parse complete items from the stream
+          this.parseStreamingItems(fullText);
+          
           await this.$nextTick();
         }
 
+        // Clear streaming state
+        this.streamingItems = [];
         return fullText.trim();
+      },
+      
+      /**
+       * Parses JSON stream and extracts complete Q&A items progressively
+       */
+      parseStreamingItems(text) {
+        try {
+          // Try to find complete objects in the JSON array
+          // Look for pattern: {"shortTitle":..., "question":..., "answer":...}
+          const objectPattern = /\{\s*"shortTitle"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"\s*,\s*"question"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"\s*,\s*"answer"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"\s*\}/g;
+          
+          let match;
+          const items = [];
+          
+          while ((match = objectPattern.exec(text)) !== null) {
+            items.push({
+              shortTitle: this.unescapeJson(match[1]),
+              question: this.unescapeJson(match[2]),
+              answer: this.unescapeJson(match[3]),
+              isStreaming: false
+            });
+          }
+          
+          // Check if there's a partial item being streamed
+          const lastCompleteIndex = text.lastIndexOf('}');
+          const lastOpenIndex = text.lastIndexOf('{"shortTitle"');
+          
+          if (lastOpenIndex > lastCompleteIndex) {
+            // There's a partial item - try to extract what we have
+            const partialText = text.substring(lastOpenIndex);
+            const partialItem = this.parsePartialItem(partialText);
+            if (partialItem) {
+              partialItem.isStreaming = true;
+              items.push(partialItem);
+            }
+          }
+          
+          if (items.length > 0) {
+            this.streamingItems = items;
+          }
+        } catch (e) {
+          // Parsing failed, that's okay - we'll try again with more data
+        }
+      },
+      
+      /**
+       * Parse a partial JSON object that's still being streamed
+       */
+      parsePartialItem(text) {
+        const item = { shortTitle: "", question: "", answer: "", isStreaming: true };
+        
+        // Extract shortTitle
+        const titleMatch = text.match(/"shortTitle"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/);
+        if (titleMatch) {
+          item.shortTitle = this.unescapeJson(titleMatch[1]);
+        } else {
+          return null; // Need at least title
+        }
+        
+        // Extract question
+        const questionMatch = text.match(/"question"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/);
+        if (questionMatch) {
+          item.question = this.unescapeJson(questionMatch[1]);
+        }
+        
+        // Extract partial answer
+        const answerStart = text.indexOf('"answer"');
+        if (answerStart !== -1) {
+          const afterAnswer = text.substring(answerStart);
+          const colonIndex = afterAnswer.indexOf(':');
+          if (colonIndex !== -1) {
+            const afterColon = afterAnswer.substring(colonIndex + 1).trim();
+            if (afterColon.startsWith('"')) {
+              // Extract everything after the opening quote
+              let answerContent = afterColon.substring(1);
+              // Remove trailing incomplete escape or quote
+              if (answerContent.endsWith('\\')) {
+                answerContent = answerContent.slice(0, -1);
+              }
+              item.answer = this.unescapeJson(answerContent);
+            }
+          }
+        }
+        
+        return item;
+      },
+      
+      /**
+       * Unescape JSON string escape sequences
+       */
+      unescapeJson(str) {
+        return str
+          .replace(/\\n/g, '\n')
+          .replace(/\\r/g, '\r')
+          .replace(/\\t/g, '\t')
+          .replace(/\\"/g, '"')
+          .replace(/\\\\/g, '\\');
       },
     },
   };
@@ -694,6 +834,19 @@
 @keyframes blink {
   0%, 40% { opacity: 1; }
   41%, 100% { opacity: 0; }
+}
+
+.qpm_streaming-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 15px;
+  color: var(--qpm-primary-color, #007bff);
+  font-size: 0.9em;
+}
+
+.qpm_streaming-loading i {
+  font-size: 1.2em;
 }
 
 /* Scrollbar styling */
