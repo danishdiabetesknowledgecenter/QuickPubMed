@@ -627,6 +627,9 @@
           
           fullText += chunk;
           this.streamingText = fullText.trim();
+          
+          // Force Vue to update the UI immediately
+          await this.$nextTick();
         }
 
         return fullText.trim();
