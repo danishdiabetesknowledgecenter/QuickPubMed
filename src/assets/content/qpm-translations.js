@@ -663,6 +663,10 @@ export const messages = {
     dk: "(Kan tage op til 60 sekunder)",
     en: "(May last up to 60 seconds)",
   },
+  aiGeneratingText: {
+    dk: "Genererer mere...",
+    en: "Generating more...",
+  },
   showTranslatedTitle: {
     dk: "Oversæt titel",
     en: "Translate title",
