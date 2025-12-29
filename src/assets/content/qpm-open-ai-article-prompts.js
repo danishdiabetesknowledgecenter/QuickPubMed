@@ -229,7 +229,8 @@ export const summarizeArticlePrompt = [
     },
     model_token_limit: 128000,
     model: "gpt-5.2",
-    reasoning: { effort: "medium" },  // none, low, medium, high, xhigh
+    reasoning: { effort: "low" },      // none, low, medium, high, xhigh
+    text: { verbosity: "medium" },     // low, medium, high
     max_output_tokens: 4000,
     stream: true,
     type: "json_object",
@@ -246,7 +247,8 @@ export const summarizeArticlePrompt = [
     },
     model_token_limit: 128000,
     model: "gpt-5.2",
-    reasoning: { effort: "medium" },  // none, low, medium, high, xhigh
+    reasoning: { effort: "low" },      // none, low, medium, high, xhigh
+    text: { verbosity: "medium" },     // low, medium, high
     max_output_tokens: 4000,
     stream: true,
     type: "json_object",

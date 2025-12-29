@@ -97,9 +97,18 @@ foreach ($articles as $i => $article) {
     $title = $article['Title'] ?? $article['title'] ?? '';
     $pmid = $article['PMID'] ?? $article['pmid'] ?? '';
     $source = $article['Source'] ?? $article['source'] ?? '';
+    $authors = $article['AuthorList'] ?? $article['authorList'] ?? $article['Authors'] ?? $article['authors'] ?? '';
+    $pubDate = $article['PubDate'] ?? $article['pubDate'] ?? $article['PublicationDate'] ?? $article['publicationDate'] ?? '';
+    
+    // Handle authors array
+    if (is_array($authors)) {
+        $authors = implode(', ', $authors);
+    }
     
     $articleText .= "\n{$num}. ```";
     $articleText .= "Title:\n{$title}\n";
+    $articleText .= "Authors:\n{$authors}\n";
+    $articleText .= "Publication Date:\n{$pubDate}\n";
     $articleText .= "PMID:\n{$pmid}\n";
     $articleText .= "Source:\n{$source}\n";
     $articleText .= "Abstract:\n{$abstract}";
@@ -137,12 +146,14 @@ $openaiRequest = [
 if (isset($prompt['reasoning']['effort'])) {
     $openaiRequest['reasoning'] = ['effort' => $prompt['reasoning']['effort']];
 } else {
-    $openaiRequest['reasoning'] = ['effort' => 'medium']; // Default
+    $openaiRequest['reasoning'] = ['effort' => 'low']; // Default - faster
 }
 
 // GPT-5.2 text/verbosity parameter
 if (isset($prompt['text']['verbosity'])) {
-    $openaiRequest['text'] = ['format' => ['type' => 'text'], 'verbosity' => $prompt['text']['verbosity']];
+    $openaiRequest['text'] = ['verbosity' => $prompt['text']['verbosity']];
+} else {
+    $openaiRequest['text'] = ['verbosity' => 'medium']; // Default
 }
 
 // max_output_tokens for GPT-5.2
@@ -152,8 +163,25 @@ if (isset($prompt['max_output_tokens']) && $prompt['max_output_tokens'] !== null
     $openaiRequest['max_output_tokens'] = (int)$prompt['max_tokens'];
 }
 
-// DEBUG: First make a non-streaming request to check for errors
-$ch = curl_init(OPENAI_API_URL);
+// ============ DEBUG MODE ============
+// Add ?debug=full to URL to see full request/response without calling OpenAI
+// Add ?debug=request to URL to see what would be sent
+// Add ?debug=test to URL to make a non-streaming test call and see full response
+$debugMode = $_GET['debug'] ?? null;
+
+if ($debugMode === 'request' || $debugMode === 'full') {
+    header('Content-Type: application/json');
+    echo json_encode([
+        'debug_mode' => $debugMode,
+        'timestamp' => date('Y-m-d H:i:s'),
+        'openai_api_url' => OPENAI_API_URL,
+        'request_to_send' => $openaiRequest,
+        'articles_count' => count($articles),
+        'articles_received' => $articles,
+        'prompt_received' => $prompt
+    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    exit;
+}
 
 $headers = [
     'Content-Type: application/json',
@@ -164,7 +192,39 @@ if (OPENAI_ORG_ID) {
     $headers[] = 'OpenAI-Organization: ' . OPENAI_ORG_ID;
 }
 
-// First, test without streaming to see error
+// Debug test mode - make non-streaming call to see full response
+if ($debugMode === 'test') {
+    $ch = curl_init(OPENAI_API_URL);
+    $testRequest = $openaiRequest;
+    $testRequest['stream'] = false;
+    
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => json_encode($testRequest),
+        CURLOPT_HTTPHEADER => $headers,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 120
+    ]);
+    
+    $testResponse = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+    curl_close($ch);
+    
+    header('Content-Type: application/json');
+    echo json_encode([
+        'debug_mode' => 'test',
+        'timestamp' => date('Y-m-d H:i:s'),
+        'http_code' => $httpCode,
+        'curl_error' => $curlError ?: null,
+        'request_sent' => $testRequest,
+        'response_received' => json_decode($testResponse, true) ?? $testResponse
+    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+// Normal mode - first test without streaming to catch errors
+$ch = curl_init(OPENAI_API_URL);
 $testRequest = $openaiRequest;
 $testRequest['stream'] = false;
 
@@ -173,7 +233,7 @@ curl_setopt_array($ch, [
     CURLOPT_POSTFIELDS => json_encode($testRequest),
     CURLOPT_HTTPHEADER => $headers,
     CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_TIMEOUT => 60
+    CURLOPT_TIMEOUT => 120
 ]);
 
 $testResponse = curl_exec($ch);
@@ -189,7 +249,7 @@ if ($httpCode >= 400) {
         'http_code' => $httpCode,
         'openai_response' => json_decode($testResponse, true) ?? $testResponse,
         'request_sent' => $openaiRequest
-    ], JSON_PRETTY_PRINT);
+    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
     exit;
 }
 

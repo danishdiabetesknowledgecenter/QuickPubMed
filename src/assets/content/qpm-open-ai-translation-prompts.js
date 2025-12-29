@@ -7,7 +7,8 @@ export const titleTranslationPrompt = {
   },
   model_token_limit: 128000,
   model: "gpt-5.2",
-  reasoning: { effort: "low" },  // none, low, medium, high, xhigh
+  reasoning: { effort: "low" },        // none, low, medium, high, xhigh
+  text: { verbosity: "medium" },       // low, medium, high
   max_output_tokens: 500,
   stream: true,
   prompt: sanitizePrompt({
@@ -31,7 +32,8 @@ export const searchTranslationPrompt = {
   },
   model_token_limit: 128000,
   model: "gpt-5.2",
-  reasoning: { effort: "low" },  // none, low, medium, high, xhigh
+  reasoning: { effort: "low" },        // none, low, medium, high, xhigh
+  text: { verbosity: "medium" },       // low, medium, high
   max_output_tokens: 500,
   stream: true,
   prompt: sanitizePrompt({
