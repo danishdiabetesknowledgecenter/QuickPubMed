@@ -1,8 +1,8 @@
 <?php
 /**
- * SummarizePDFArticle API
+ * SummarizePDFArticle API with Streaming Support
  * 1. Calls Azure Function to fetch PDF text (bypasses CORS/publisher restrictions)
- * 2. Calls OpenAI API directly for summarization
+ * 2. Calls OpenAI API with streaming for faster perceived response
  */
 
 error_reporting(E_ALL);
@@ -119,7 +119,7 @@ if (empty($extractedText)) {
 }
 
 // ============================================================
-// Step 2: Call OpenAI API directly
+// Step 2: Call OpenAI API with streaming
 // ============================================================
 $promptText = ($prompt['prompt'] ?? '') . $extractedText;
 
@@ -131,17 +131,16 @@ if (isset($prompt['messages']) && is_array($prompt['messages'])) {
             'content' => $msg['content'] ?? ''
         ];
     }
-    // Add extracted text as user message
     $messages[] = ['role' => 'user', 'content' => $extractedText];
 } else {
     $messages[] = ['role' => 'user', 'content' => $promptText];
 }
 
-// Build OpenAI request - using Responses API
+// Build OpenAI request with streaming
 $openaiRequest = [
     'model' => $prompt['model'] ?? 'gpt-4o',
     'input' => $messages,
-    'stream' => false
+    'stream' => true
 ];
 
 // Reasoning parameter
@@ -158,7 +157,14 @@ if (isset($prompt['max_output_tokens']) && $prompt['max_output_tokens'] !== null
     $openaiRequest['max_output_tokens'] = (int)$prompt['max_tokens'];
 }
 
-// Call OpenAI API
+// Streaming response headers
+header('Content-Type: text/event-stream');
+header('Cache-Control: no-cache');
+header('X-Accel-Buffering: no');
+
+if (ob_get_level()) ob_end_clean();
+
+// Call OpenAI API with streaming
 $headers = [
     'Content-Type: application/json',
     'Authorization: Bearer ' . OPENAI_API_KEY
@@ -169,51 +175,42 @@ curl_setopt_array($ch, [
     CURLOPT_POST => true,
     CURLOPT_POSTFIELDS => json_encode($openaiRequest),
     CURLOPT_HTTPHEADER => $headers,
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_TIMEOUT => 300
-]);
-
-$openaiResponse = curl_exec($ch);
-$openaiHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-$curlError = curl_error($ch);
-curl_close($ch);
-
-if ($curlError) {
-    http_response_code(500);
-    header('Content-Type: application/json');
-    echo json_encode(['error' => 'OpenAI API error: ' . $curlError]);
-    exit;
-}
-
-if ($openaiHttpCode !== 200) {
-    http_response_code($openaiHttpCode);
-    header('Content-Type: application/json');
-    echo json_encode(['error' => 'OpenAI API returned HTTP ' . $openaiHttpCode, 'details' => $openaiResponse]);
-    exit;
-}
-
-$result = json_decode($openaiResponse, true);
-
-// Extract text from Responses API output
-$textContent = '';
-if (isset($result['output']) && is_array($result['output'])) {
-    foreach ($result['output'] as $outputItem) {
-        if (($outputItem['type'] ?? '') === 'message' && isset($outputItem['content'])) {
-            foreach ($outputItem['content'] as $contentItem) {
-                if (($contentItem['type'] ?? '') === 'output_text') {
-                    $textContent = $contentItem['text'] ?? '';
-                    break 2;
+    CURLOPT_RETURNTRANSFER => false,
+    CURLOPT_WRITEFUNCTION => function($ch, $data) {
+        $lines = explode("\n", $data);
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (empty($line)) continue;
+            
+            if (strpos($line, 'data: ') === 0) {
+                $jsonData = substr($line, 6);
+                
+                if ($jsonData === '[DONE]') {
+                    break;
+                }
+                
+                $parsed = json_decode($jsonData, true);
+                
+                if ($parsed) {
+                    // Responses API streaming format
+                    if (isset($parsed['type']) && $parsed['type'] === 'response.output_text.delta') {
+                        $content = $parsed['delta'] ?? '';
+                        echo $content;
+                        flush();
+                    }
+                    // Fallback to Chat Completions format
+                    elseif (isset($parsed['choices'][0]['delta']['content'])) {
+                        $content = $parsed['choices'][0]['delta']['content'];
+                        echo $content;
+                        flush();
+                    }
                 }
             }
         }
-    }
-}
+        return strlen($data);
+    },
+    CURLOPT_TIMEOUT => 300
+]);
 
-// Fallback to Chat Completions format
-if (empty($textContent) && isset($result['choices'][0]['message']['content'])) {
-    $textContent = $result['choices'][0]['message']['content'];
-}
-
-// Return the text content directly (frontend expects to parse this as JSON)
-header('Content-Type: application/json');
-echo $textContent;
+curl_exec($ch);
+curl_close($ch);

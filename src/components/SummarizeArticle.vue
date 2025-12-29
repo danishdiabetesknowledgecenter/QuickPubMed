@@ -6,12 +6,25 @@
     </p>
 
     <loading-spinner
+      v-if="!streamingText"
       class="qpm_searchSummaryText"
       :wait-text="getString('aiSummaryWaitText')"
       :wait-duration-disclaimer="getString('aiLongWaitTimeDisclaimer')"
       :loading="loading"
       style="align-self: center; padding-top: 50px"
     />
+    
+    <!-- Show streaming text while loading -->
+    <div v-if="loading && streamingText" class="qpm_streaming-container">
+      <div class="qpm_streaming-header">
+        <i class="bx bx-loader-alt bx-spin"></i>
+        <span>{{ getString("aiGeneratingText") || "Genererer opsummering..." }}</span>
+      </div>
+      <div class="qpm_streaming-content">
+        <div v-html="formattedStreamingText"></div>
+        <span class="qpm_streaming-cursor">▌</span>
+      </div>
+    </div>
     
     <!-- TITLE summarize entire article -->
     <p v-if="!loading && currentSummary.length > 0 && !isError" style="padding-top: 10px">
@@ -196,6 +209,7 @@
         isError: false,
         scrapingError: undefined,
         errorMessage: undefined,
+        streamingText: "",
       };
     },
     computed: {
@@ -206,6 +220,57 @@
           return summariesArray[index].articleSummaryData;
         }
         return [];
+      },
+      /**
+       * Formats streaming text to look nice for the user.
+       * Extracts answers from JSON and displays them cleanly.
+       */
+      formattedStreamingText() {
+        if (!this.streamingText) return "";
+        
+        // Try to extract readable content from the JSON stream
+        let text = this.streamingText;
+        
+        // Extract answer contents - look for "answer": "..." patterns
+        const answerMatches = text.match(/"answer"\s*:\s*"([^"]*)/g);
+        if (answerMatches && answerMatches.length > 0) {
+          // Format extracted answers nicely
+          const answers = answerMatches.map((match, index) => {
+            const content = match.replace(/"answer"\s*:\s*"/, "");
+            return content;
+          });
+          
+          // Join answers with line breaks and format
+          let formattedText = answers.join("\n\n");
+          
+          // Clean up escape characters
+          formattedText = formattedText
+            .replace(/\\n/g, "\n")
+            .replace(/\\"/g, '"')
+            .replace(/\\t/g, "  ");
+          
+          // Convert newlines to <br> for HTML display
+          return formattedText.replace(/\n/g, "<br>");
+        }
+        
+        // If no answers found yet, show a clean message
+        if (text.length < 50) {
+          return "";
+        }
+        
+        // Fallback: clean up raw JSON to be more readable
+        let cleanText = text
+          .replace(/^\s*\[\s*/, "")
+          .replace(/\{"shortTitle":/g, "\n<strong>")
+          .replace(/"question"\s*:\s*"/g, "</strong><br><em>")
+          .replace(/"answer"\s*:\s*"/g, "</em><br>")
+          .replace(/",\s*$/g, "")
+          .replace(/\\n/g, "<br>")
+          .replace(/\\"/g, '"')
+          .replace(/"\s*}/g, "")
+          .replace(/,\s*{/g, "<br><br>");
+        
+        return cleanText;
       },
     },
     async mounted() {
@@ -439,16 +504,19 @@
 
       /**
        * Summarizes an HTML article by sending a request to the relevant backend function.
+       * Uses streaming to show text as it arrives.
        *
        * @returns {Promise<Object>} A promise that resolves to the response from the OpenAI service.
        * @throws {Error} Throws an error if the fetch request fails.
        */
       async getSummarizeHTMLArticle(promptLanguageType) {
-        // Call Azure Function directly for article summarization
         const openAiServiceUrl = this.appSettings.openAi.azureFunctionUrl + "/api/SummarizeHTMLArticle";
         const localePrompt = this.getComposablePrompt(this.language, promptLanguageType);
 
         try {
+          // Reset streaming text
+          this.streamingText = "";
+
           const response = await this.handleFetch(
             openAiServiceUrl,
             {
@@ -460,9 +528,12 @@
             "getSummarizeHTMLArticle"
           );
 
-          // Instead of response.json(), get the text and sanitize it
-          const rawText = await response.text();
+          // Use streaming to read response
+          const rawText = await this.readStreamingResponse(response);
           const sanitizedText = this.sanitizeResponse(rawText);
+
+          // Clear streaming text before showing parsed result
+          this.streamingText = "";
 
           // Parse the sanitized JSON
           const data = JSON.parse(sanitizedText);
@@ -477,6 +548,7 @@
 
           return data;
         } catch (error) {
+          this.streamingText = "";
           this.isError = true;
           this.errorMessage = "Failed to summarize HTML article.";
           console.error("Error parsing summary:", error);
@@ -486,16 +558,19 @@
 
       /**
        * Summarizes a PDF article by sending a request to the relevant backend function.
+       * Uses streaming to show text as it arrives.
        *
        * @returns {Promise<Object>} A promise that resolves to the response from the OpenAI service.
        * @throws {Error} Throws an error if the fetch request fails.
        */
       async getSummarizePDFArticle(promptLanguageType) {
-        // Call Azure Function directly for article summarization
         const openAiServiceUrl = this.appSettings.openAi.azureFunctionUrl + "/api/SummarizePDFArticle";
         const localePrompt = this.getComposablePrompt(this.language, promptLanguageType);
 
         try {
+          // Reset streaming text
+          this.streamingText = "";
+
           const response = await this.handleFetch(
             openAiServiceUrl,
             {
@@ -507,20 +582,124 @@
             "getSummarizePDFArticle"
           );
 
-          // Instead of response.json(), get the text and sanitize it
-          const rawText = await response.text();
+          // Use streaming to read response
+          const rawText = await this.readStreamingResponse(response);
           const sanitizedText = this.sanitizeResponse(rawText);
+
+          // Clear streaming text before showing parsed result
+          this.streamingText = "";
 
           // Parse the sanitized JSON
           const data = JSON.parse(sanitizedText);
           return data;
         } catch (error) {
+          this.streamingText = "";
           this.isError = true;
           this.errorMessage = "Failed to summarize PDF article.";
           console.error("Error parsing summary:", error);
           throw error;
         }
       },
+
+      /**
+       * Reads a streaming response and updates streamingText as chunks arrive.
+       * @param {Response} response - The fetch response object
+       * @returns {Promise<string>} The complete response text
+       */
+      async readStreamingResponse(response) {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let fullText = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          fullText += chunk;
+          this.streamingText = fullText;
+        }
+
+        return fullText;
+      },
     },
   };
 </script>
+
+<style scoped>
+.qpm_streaming-container {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 12px;
+  margin: 15px 0;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-left: 4px solid var(--qpm-primary-color, #007bff);
+}
+
+.qpm_streaming-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+  color: var(--qpm-primary-color, #007bff);
+  font-weight: 600;
+  font-size: 0.95em;
+}
+
+.qpm_streaming-header i {
+  font-size: 1.2em;
+}
+
+.qpm_streaming-content {
+  background: white;
+  border-radius: 8px;
+  padding: 15px;
+  max-height: 350px;
+  overflow-y: auto;
+  line-height: 1.7;
+  font-size: 0.95em;
+  color: #333;
+}
+
+.qpm_streaming-content strong {
+  color: var(--qpm-primary-color, #007bff);
+  display: block;
+  margin-top: 10px;
+  margin-bottom: 5px;
+}
+
+.qpm_streaming-content em {
+  color: #555;
+  font-style: italic;
+}
+
+.qpm_streaming-cursor {
+  animation: blink 0.8s infinite;
+  color: var(--qpm-primary-color, #007bff);
+  font-weight: bold;
+}
+
+@keyframes blink {
+  0%, 40% { opacity: 1; }
+  41%, 100% { opacity: 0; }
+}
+
+/* Scrollbar styling */
+.qpm_streaming-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.qpm_streaming-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.qpm_streaming-content::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.qpm_streaming-content::-webkit-scrollbar-thumb:hover {
+  background: #aaa;
+}
+</style>
