@@ -1755,6 +1755,10 @@
         this.setUrl();
       },
       getString(string) {
+        if (!messages[string]) {
+          console.warn(`Missing translation key: ${string}`);
+          return string;
+        }
         let constant = messages[string][this.language];
         return constant != undefined ? constant : messages[string]["dk"];
       },

@@ -168,6 +168,10 @@
     methods: {
       getString(string) {
         const lg = this.language;
+        if (!messages[string]) {
+          console.warn(`Missing translation key: ${string}`);
+          return string;
+        }
         const constant = messages[string][lg];
         return constant !== undefined ? constant : messages[string]["dk"];
       },

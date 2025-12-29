@@ -504,6 +504,10 @@
       },
       getString(string) {
         let lg = this.language;
+        if (!messages[string]) {
+          console.warn(`Missing translation key: ${string}`);
+          return string;
+        }
         let constant = messages[string][lg];
         return constant != undefined ? constant : messages[string]["en"];
       },
