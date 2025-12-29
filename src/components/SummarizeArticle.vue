@@ -16,13 +16,14 @@
     
     <!-- Show streaming items progressively while loading -->
     <div v-if="loading && validStreamingItems.length > 0">
+      <!-- Opsummering af hele artiklen (first 7 items) -->
       <p style="padding-top: 10px">
         <strong>{{ getString("summarizeArticleHeader") }}</strong>
       </p>
       <div v-for="(qa, index) in validStreamingItems.slice(0, 7)" :key="'streaming-' + index">
         <accordion-menu
           :title="qa.shortTitle || '...'"
-          :open-by-default="index === 0"
+          :open-by-default="false"
         >
           <template #header="accordionProps">
             <div class="qpm_aiAccordionHeader">
@@ -46,8 +47,49 @@
           </template>
         </accordion-menu>
       </div>
-      <!-- Show loading indicator for remaining items -->
+      <!-- Show loading indicator while waiting for first 7 items -->
       <div v-if="validStreamingItems.length < 7" class="qpm_streaming-loading">
+        <i class="bx bx-loader-alt bx-spin"></i>
+        <span>{{ getString("aiGeneratingText") }}</span>
+      </div>
+      
+      <!-- Spørgsmål til denne artikel (items from index 7+) -->
+      <template v-if="validStreamingItems.length > 7">
+        <p style="padding-top: 10px">
+          <strong>{{ getString("generateQuestionsHeader") }}</strong>
+        </p>
+        <div v-for="(qa, index) in validStreamingItems.slice(7)" :key="'streaming-extra-' + index">
+          <accordion-menu
+            :title="qa.shortTitle || '...'"
+            :open-by-default="false"
+          >
+            <template #header="accordionProps">
+              <div class="qpm_aiAccordionHeader" style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex;">
+                  <i
+                    v-if="accordionProps.expanded"
+                    class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
+                  ></i>
+                  <i 
+                    v-else 
+                    class="bx bx-chevron-down qpm_aiAccordionHeaderArrows" 
+                  ></i>
+                  <i class="bx bx-help-circle"></i>
+                  {{ qa.shortTitle || '...' }}
+                  <i v-if="qa.isStreaming" class="bx bx-loader-alt bx-spin" style="margin-left: 8px; font-size: 0.9em;"></i>
+                </div>
+              </div>
+            </template>
+            <template #default>
+              <div class="qpm_answer-text">
+                {{ qa.answer || '' }}<span v-if="qa.isStreaming" class="qpm_streaming-cursor">▌</span>
+              </div>
+            </template>
+          </accordion-menu>
+        </div>
+      </template>
+      <!-- Show loading indicator while waiting for additional questions -->
+      <div v-else-if="validStreamingItems.length >= 7" class="qpm_streaming-loading">
         <i class="bx bx-loader-alt bx-spin"></i>
         <span>{{ getString("aiGeneratingText") }}</span>
       </div>
