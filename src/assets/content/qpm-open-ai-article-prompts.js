@@ -34,10 +34,10 @@ const promptStartTextuserQuestions = {
   Strukturen for dit svar skal være som følger:
   {
     "questions": [
-      "her er et eksempel på et spørgsmål"
+      "Her er et eksempel på et spørgsmål."
     ],
     "answers": [
-      "her er et eksempel på et svar"
+      "Her er et eksempel på et svar."
     ]
   }
   Det er ekstremt vigtigt, at du vurderer, om det stillede spørgsmål rent faktisk er et spørgsmål. 
@@ -49,10 +49,10 @@ const promptStartTextuserQuestions = {
   The structure of your response must be as follows:
   {
     "questions": [
-      "here is an example question"
+      "Here is an example question."
     ],
     "answers": [
-      "here is an example answer"
+      "Here is an example answer."
     ]
   }
   You must not come up with questions yourself or change the question that is asked. 
@@ -228,8 +228,8 @@ export const summarizeArticlePrompt = [
       en: "Plain language",
     },
     model_token_limit: 128000,
-    model: "gpt-5.2",
-    reasoning: { effort: "low" },      // none, low, medium, high, xhigh
+    model: "gpt-5.2-chat-latest",
+    reasoning: { effort: "none" },      // none, low, medium, high, xhigh
     text: { verbosity: "medium" },     // low, medium, high
     max_output_tokens: 4000,
     stream: true,
@@ -246,8 +246,8 @@ export const summarizeArticlePrompt = [
       en: "Professional language",
     },
     model_token_limit: 128000,
-    model: "gpt-5.2",
-    reasoning: { effort: "low" },      // none, low, medium, high, xhigh
+    model: "gpt-5.2-chat-latest",
+    reasoning: { effort: "none" },      // none, low, medium, high, xhigh
     text: { verbosity: "medium" },     // low, medium, high
     max_output_tokens: 4000,
     stream: true,

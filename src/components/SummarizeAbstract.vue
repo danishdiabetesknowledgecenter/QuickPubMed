@@ -810,12 +810,14 @@
 
         this.articleCount = articles.length;
 
+        const requestBody = {
+          prompt: localePrompt,
+          articles: articles,
+          client: this.appSettings.client,
+        };
+
         try {
-          await readData(openAiServiceUrl, {
-            prompt: localePrompt,
-            articles: articles,
-            client: this.appSettings.client,
-          });
+          await readData(openAiServiceUrl, requestBody);
         } catch (error) {
           if (error.data) {
             this.updateAiSearchSummariesEntry(prompt.name, {

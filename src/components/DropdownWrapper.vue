@@ -2268,15 +2268,21 @@
         const openAiServiceUrl = this.appSettings.openAi.baseUrl + "/api/TranslateTitle";
         var localePrompt = getPromptForLocale(searchTranslationPrompt, "dk");
 
+        const requestBody = {
+          prompt: localePrompt,
+          title: wordsToTranslate,
+          client: this.appSettings.client,
+        };
+
+        console.info(
+          `|TranslateSearch Request|\n\n|Words to translate|\n${wordsToTranslate}\n\n|Prompt text|\n${localePrompt.prompt}\n`
+        );
+
         try {
           let answer = "";
           const response = await fetch(openAiServiceUrl, {
             method: "POST",
-            body: JSON.stringify({
-              prompt: localePrompt,
-              title: wordsToTranslate,
-              client: this.appSettings.client,
-            }),
+            body: JSON.stringify(requestBody),
           });
 
           if (!response.ok) {

@@ -169,11 +169,17 @@
           }
         };
 
-        await readData(openAiServiceUrl, {
+        const requestBody = {
           prompt: localePrompt,
           title: this.title,
           client: this.appSettings.client,
-        });
+        };
+
+        console.info(
+          `|TranslateTitle Request|\n\n|Title|\n${this.title}\n\n|Prompt text|\n${localePrompt.prompt}\n`
+        );
+
+        await readData(openAiServiceUrl, requestBody);
       },
       clickCopy() {
         navigator.clipboard.writeText(this.text);

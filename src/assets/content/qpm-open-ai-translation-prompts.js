@@ -6,7 +6,7 @@ export const titleTranslationPrompt = {
     dk: "dansk",
   },
   model_token_limit: 128000,
-  model: "gpt-5.2",
+  model: "gpt-5.2-chat-latest",
   reasoning: { effort: "low" },        // none, low, medium, high, xhigh
   text: { verbosity: "medium" },       // low, medium, high
   max_output_tokens: 500,
@@ -31,7 +31,7 @@ export const searchTranslationPrompt = {
     en: "English",
   },
   model_token_limit: 128000,
-  model: "gpt-5.2",
+  model: "gpt-5.2-chat-latest",
   reasoning: { effort: "low" },        // none, low, medium, high, xhigh
   text: { verbosity: "medium" },       // low, medium, high
   max_output_tokens: 500,

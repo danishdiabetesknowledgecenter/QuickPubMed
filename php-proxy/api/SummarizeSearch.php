@@ -45,28 +45,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-// Debug mode - show what would be sent (allow GET for easy browser testing)
-if (isset($_GET['debug']) && $_GET['debug'] === '1') {
-    header('Content-Type: application/json');
-    echo json_encode([
-        'debug' => true,
-        'info' => 'Use POST with JSON body to see full debug info. This is a GET request.',
-        'openai_api_url' => defined('OPENAI_API_URL') ? OPENAI_API_URL : 'NOT DEFINED',
-        'openai_key_set' => defined('OPENAI_API_KEY') && !empty(OPENAI_API_KEY),
-        'php_version' => PHP_VERSION
-    ], JSON_PRETTY_PRINT);
-    exit;
-}
-
 // Kun POST tilladt
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
-    header('Content-Type: application/json');
-    echo json_encode([
-        'error' => 'Method not allowed',
-        'method_received' => $_SERVER['REQUEST_METHOD'],
-        'request_uri' => $_SERVER['REQUEST_URI'] ?? 'unknown'
-    ]);
+    echo json_encode(['error' => 'Method not allowed']);
     exit;
 }
 
@@ -137,7 +119,7 @@ if (isset($prompt['messages']) && is_array($prompt['messages'])) {
 // Byg OpenAI request - using Responses API for GPT-5.2
 // See: https://platform.openai.com/docs/api-reference/responses/create
 $openaiRequest = [
-    'model' => $prompt['model'] ?? 'gpt-5.2',
+    'model' => $prompt['model'] ?? 'gpt-5.2-chat-latest',
     'input' => $messages,  // Responses API uses 'input' instead of 'messages'
     'stream' => true
 ];
@@ -146,7 +128,7 @@ $openaiRequest = [
 if (isset($prompt['reasoning']['effort'])) {
     $openaiRequest['reasoning'] = ['effort' => $prompt['reasoning']['effort']];
 } else {
-    $openaiRequest['reasoning'] = ['effort' => 'low']; // Default - faster
+    $openaiRequest['reasoning'] = ['effort' => 'none']; // Default - faster
 }
 
 // GPT-5.2 text/verbosity parameter
@@ -163,102 +145,18 @@ if (isset($prompt['max_output_tokens']) && $prompt['max_output_tokens'] !== null
     $openaiRequest['max_output_tokens'] = (int)$prompt['max_tokens'];
 }
 
-// ============ DEBUG MODE ============
-// Add ?debug=full to URL to see full request/response without calling OpenAI
-// Add ?debug=request to URL to see what would be sent
-// Add ?debug=test to URL to make a non-streaming test call and see full response
-$debugMode = $_GET['debug'] ?? null;
-
-if ($debugMode === 'request' || $debugMode === 'full') {
-    header('Content-Type: application/json');
-    echo json_encode([
-        'debug_mode' => $debugMode,
-        'timestamp' => date('Y-m-d H:i:s'),
-        'openai_api_url' => OPENAI_API_URL,
-        'request_to_send' => $openaiRequest,
-        'articles_count' => count($articles),
-        'articles_received' => $articles,
-        'prompt_received' => $prompt
-    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-    exit;
-}
-
-$headers = [
-    'Content-Type: application/json',
-    'Authorization: Bearer ' . OPENAI_API_KEY
-];
-
-if (OPENAI_ORG_ID) {
-    $headers[] = 'OpenAI-Organization: ' . OPENAI_ORG_ID;
-}
-
-// Debug test mode - make non-streaming call to see full response
-if ($debugMode === 'test') {
-    $ch = curl_init(OPENAI_API_URL);
-    $testRequest = $openaiRequest;
-    $testRequest['stream'] = false;
-    
-    curl_setopt_array($ch, [
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => json_encode($testRequest),
-        CURLOPT_HTTPHEADER => $headers,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 120
-    ]);
-    
-    $testResponse = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curlError = curl_error($ch);
-    curl_close($ch);
-    
-    header('Content-Type: application/json');
-    echo json_encode([
-        'debug_mode' => 'test',
-        'timestamp' => date('Y-m-d H:i:s'),
-        'http_code' => $httpCode,
-        'curl_error' => $curlError ?: null,
-        'request_sent' => $testRequest,
-        'response_received' => json_decode($testResponse, true) ?? $testResponse
-    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-    exit;
-}
-
-// Normal mode - first test without streaming to catch errors
-$ch = curl_init(OPENAI_API_URL);
-$testRequest = $openaiRequest;
-$testRequest['stream'] = false;
-
-curl_setopt_array($ch, [
-    CURLOPT_POST => true,
-    CURLOPT_POSTFIELDS => json_encode($testRequest),
-    CURLOPT_HTTPHEADER => $headers,
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_TIMEOUT => 120
-]);
-
-$testResponse = curl_exec($ch);
-$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-curl_close($ch);
-
-// If error, return the full error message
-if ($httpCode >= 400) {
-    header('Content-Type: application/json');
-    http_response_code($httpCode);
-    echo json_encode([
-        'error' => 'OpenAI API Error',
-        'http_code' => $httpCode,
-        'openai_response' => json_decode($testResponse, true) ?? $testResponse,
-        'request_sent' => $openaiRequest
-    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-    exit;
-}
-
-// If successful, proceed with streaming
+// Streaming response
 header('Content-Type: text/event-stream');
 header('Cache-Control: no-cache');
 header('X-Accel-Buffering: no');
 
 if (ob_get_level()) ob_end_clean();
+
+// HTTP headers for OpenAI API
+$headers = [
+    'Content-Type: application/json',
+    'Authorization: Bearer ' . OPENAI_API_KEY
+];
 
 $ch = curl_init(OPENAI_API_URL);
 

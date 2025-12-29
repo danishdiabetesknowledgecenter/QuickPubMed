@@ -91,26 +91,6 @@ if (isset($prompt['max_output_tokens']) && $prompt['max_output_tokens'] !== null
     $openaiRequest['max_output_tokens'] = (int)$prompt['max_tokens'];
 }
 
-// ============ DEBUG MODE ============
-// Add ?debug=full to URL to see full request/response without calling OpenAI
-// Add ?debug=request to URL to see what would be sent
-// Add ?debug=test to URL to make a non-streaming test call and see full response
-$debugMode = $_GET['debug'] ?? null;
-
-if ($debugMode === 'request' || $debugMode === 'full') {
-    header('Content-Type: application/json');
-    echo json_encode([
-        'debug_mode' => $debugMode,
-        'timestamp' => date('Y-m-d H:i:s'),
-        'endpoint' => 'TranslateTitle',
-        'openai_api_url' => OPENAI_API_URL,
-        'request_to_send' => $openaiRequest,
-        'title_received' => $title,
-        'prompt_received' => $prompt
-    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-    exit;
-}
-
 $headers = [
     'Content-Type: application/json',
     'Authorization: Bearer ' . OPENAI_API_KEY
@@ -118,37 +98,6 @@ $headers = [
 
 if (OPENAI_ORG_ID) {
     $headers[] = 'OpenAI-Organization: ' . OPENAI_ORG_ID;
-}
-
-// Debug test mode - make non-streaming call to see full response
-if ($debugMode === 'test') {
-    $ch = curl_init(OPENAI_API_URL);
-    $testRequest = $openaiRequest;
-    $testRequest['stream'] = false;
-    
-    curl_setopt_array($ch, [
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => json_encode($testRequest),
-        CURLOPT_HTTPHEADER => $headers,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 60
-    ]);
-    
-    $testResponse = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curlError = curl_error($ch);
-    curl_close($ch);
-    
-    header('Content-Type: application/json');
-    echo json_encode([
-        'debug_mode' => 'test',
-        'timestamp' => date('Y-m-d H:i:s'),
-        'http_code' => $httpCode,
-        'curl_error' => $curlError ?: null,
-        'request_sent' => $testRequest,
-        'response_received' => json_decode($testResponse, true) ?? $testResponse
-    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-    exit;
 }
 
 // Streaming response
