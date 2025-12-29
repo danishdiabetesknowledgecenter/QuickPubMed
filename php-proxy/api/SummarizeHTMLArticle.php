@@ -1,9 +1,8 @@
 <?php
 /**
  * SummarizeHTMLArticle API
- * 
- * TEMPORARY: Uses old Azure endpoint until new FetchHTMLText is deployed
- * After deployment, this will call Azure only for text extraction, then OpenAI directly
+ * 1. Calls Azure Function to fetch HTML text (bypasses CORS/publisher restrictions)
+ * 2. Calls OpenAI API directly for summarization
  */
 
 error_reporting(E_ALL);
@@ -20,17 +19,17 @@ if (!file_exists($configPath)) {
 }
 require_once $configPath;
 
-// TEMPORARY: Use old Azure endpoint that handles both text extraction AND OpenAI
-// Change to 'https://qpm-openai-service.azurewebsites.net/api/FetchHTMLText' after deployment
-define('AZURE_HTML_URL', 'https://qpm-openai-service.azurewebsites.net/api/SummarizeHTMLArticle');
-define('USE_NEW_FLOW', true);  // Set to true after deploying new Azure Functions
+// Azure Function URL for fetching HTML text only
+define('AZURE_FETCH_HTML_URL', 'https://qpm-openai-service.azurewebsites.net/api/FetchHTMLText');
 
 // CORS headers
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-$allowedOrigin = getAllowedOrigin($origin);
-if ($allowedOrigin) {
-    header('Access-Control-Allow-Origin: ' . $allowedOrigin);
-    header('Access-Control-Allow-Credentials: true');
+if (function_exists('getAllowedOrigin')) {
+    $allowedOrigin = getAllowedOrigin($origin);
+    if ($allowedOrigin) {
+        header('Access-Control-Allow-Origin: ' . $allowedOrigin);
+        header('Access-Control-Allow-Credentials: true');
+    }
 } else {
     header('Access-Control-Allow-Origin: *');
 }
@@ -52,9 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 // Read request body
-$inputBody = file_get_contents('php://input');
-$input = json_decode($inputBody, true);
-
+$input = json_decode(file_get_contents('php://input'), true);
 if (!$input) {
     http_response_code(400);
     header('Content-Type: application/json');
@@ -80,49 +77,9 @@ if (!$prompt) {
 }
 
 // ============================================================
-// TEMPORARY: Forward to old Azure endpoint (handles everything)
-// ============================================================
-if (!USE_NEW_FLOW) {
-    // Forward the entire request to the old Azure Function
-    $ch = curl_init(AZURE_HTML_URL);
-    curl_setopt_array($ch, [
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => $inputBody,
-        CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Accept: */*'],
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 300,
-        CURLOPT_FOLLOWLOCATION => true
-    ]);
-
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
-    $curlError = curl_error($ch);
-    curl_close($ch);
-
-    if ($curlError) {
-        http_response_code(500);
-        header('Content-Type: application/json');
-        echo json_encode(['error' => 'Proxy error: ' . $curlError]);
-        exit;
-    }
-
-    // Forward response from Azure
-    if ($contentType) {
-        header('Content-Type: ' . $contentType);
-    }
-    http_response_code($httpCode);
-    echo $response;
-    exit;
-}
-
-// ============================================================
-// NEW FLOW: Call Azure for text only, then OpenAI directly
-// (Activate by setting USE_NEW_FLOW = true after deployment)
-// ============================================================
-
 // Step 1: Fetch HTML text from Azure Function
-$ch = curl_init(AZURE_HTML_URL);
+// ============================================================
+$ch = curl_init(AZURE_FETCH_HTML_URL);
 curl_setopt_array($ch, [
     CURLOPT_POST => true,
     CURLOPT_POSTFIELDS => json_encode(['htmlurl' => $htmlUrl]),
@@ -161,7 +118,9 @@ if (empty($extractedText)) {
     exit;
 }
 
-// Step 2: Build OpenAI request with extracted text
+// ============================================================
+// Step 2: Call OpenAI API directly
+// ============================================================
 $promptText = ($prompt['prompt'] ?? '') . $extractedText;
 
 $messages = [];
@@ -178,28 +137,28 @@ if (isset($prompt['messages']) && is_array($prompt['messages'])) {
     $messages[] = ['role' => 'user', 'content' => $promptText];
 }
 
-// Build OpenAI request - using Responses API for GPT-5.2
+// Build OpenAI request - using Responses API
 $openaiRequest = [
-    'model' => $prompt['model'] ?? 'gpt-5.2-chat-latest',
+    'model' => $prompt['model'] ?? 'gpt-4o',
     'input' => $messages,
     'stream' => false
 ];
 
-// GPT-5.2 reasoning parameter
+// Reasoning parameter
 if (isset($prompt['reasoning']['effort'])) {
     $openaiRequest['reasoning'] = ['effort' => $prompt['reasoning']['effort']];
 } else {
     $openaiRequest['reasoning'] = ['effort' => 'none'];
 }
 
-// max_output_tokens for GPT-5.2
+// max_output_tokens
 if (isset($prompt['max_output_tokens']) && $prompt['max_output_tokens'] !== null) {
     $openaiRequest['max_output_tokens'] = (int)$prompt['max_output_tokens'];
 } elseif (isset($prompt['max_tokens']) && $prompt['max_tokens'] !== null) {
     $openaiRequest['max_output_tokens'] = (int)$prompt['max_tokens'];
 }
 
-// Step 3: Call OpenAI API (non-streaming)
+// Call OpenAI API
 $headers = [
     'Content-Type: application/json',
     'Authorization: Bearer ' . OPENAI_API_KEY
