@@ -36,7 +36,7 @@ export const topics = [
     id: "S000",
     groupname: "S000",
     translations: {
-      dk: "Skabelonkategorix",
+      dk: "Skabelonkategori",
       en: "Template category",
     },
     ordering: { dk: 0, en: 0 },
