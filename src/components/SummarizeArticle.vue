@@ -15,13 +15,13 @@
     />
     
     <!-- Show streaming items progressively while loading -->
-    <div v-if="loading && streamingItems.length > 0">
+    <div v-if="loading && validStreamingItems.length > 0">
       <p style="padding-top: 10px">
         <strong>{{ getString("summarizeArticleHeader") }}</strong>
       </p>
-      <div v-for="(qa, index) in streamingItems.slice(0, 7)" :key="'streaming-' + index">
+      <div v-for="(qa, index) in validStreamingItems.slice(0, 7)" :key="'streaming-' + index">
         <accordion-menu
-          :title="qa.shortTitle"
+          :title="qa.shortTitle || '...'"
           :open-by-default="index === 0"
         >
           <template #header="accordionProps">
@@ -35,19 +35,19 @@
                 class="bx bx-chevron-down qpm_aiAccordionHeaderArrows" 
               ></i>
               <i class="bx bx-detail"></i>
-              {{ qa.shortTitle }}
+              {{ qa.shortTitle || '...' }}
               <i v-if="qa.isStreaming" class="bx bx-loader-alt bx-spin" style="margin-left: 8px; font-size: 0.9em;"></i>
             </div>
           </template>
           <template #default>
             <div class="qpm_answer-text">
-              {{ qa.answer }}<span v-if="qa.isStreaming" class="qpm_streaming-cursor">▌</span>
+              {{ qa.answer || '' }}<span v-if="qa.isStreaming" class="qpm_streaming-cursor">▌</span>
             </div>
           </template>
         </accordion-menu>
       </div>
       <!-- Show loading indicator for remaining items -->
-      <div v-if="streamingItems.length < 7" class="qpm_streaming-loading">
+      <div v-if="validStreamingItems.length < 7" class="qpm_streaming-loading">
         <i class="bx bx-loader-alt bx-spin"></i>
         <span>{{ getString("aiGeneratingText") }}</span>
       </div>
@@ -249,6 +249,13 @@
         }
         return [];
       },
+      /**
+       * Returns only valid streaming items (with shortTitle defined)
+       */
+      validStreamingItems() {
+        return this.streamingItems.filter(item => item && item.shortTitle);
+      },
+      
       /**
        * Formats streaming text to look nice for the user.
        * Extracts answers from JSON and displays them cleanly.
