@@ -49,7 +49,7 @@
       <!-- Show loading indicator for remaining items -->
       <div v-if="streamingItems.length < 7" class="qpm_streaming-loading">
         <i class="bx bx-loader-alt bx-spin"></i>
-        <span>{{ getString("aiGeneratingText") || "Genererer mere..." }}</span>
+        <span>Genererer mere...</span>
       </div>
     </div>
     
