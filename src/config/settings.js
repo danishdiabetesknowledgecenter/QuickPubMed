@@ -19,8 +19,8 @@ function getProxyUrl() {
 }
 const API_PROXY_URL = getProxyUrl();
 
-// Article summarization URL - now uses PHP proxy which calls Azure for text extraction only
-const AZURE_FUNCTION_URL = getProxyUrl();
+// Azure Function URL for article summarization (PDF/HTML download bypasses CORS)
+const AZURE_FUNCTION_URL = 'https://qpm-openai-service.azurewebsites.net';
 const LONG_ABSTRACT_LENGTH_LIMIT = import.meta.env.VITE_LONG_ABSTRACT_LENGTH_LIMIT;
 const WAIT_TIME_DISCLAIMER_DELAY = import.meta.env.VITE_WAIT_TIME_DISCLAIMER_DELAY;
 
@@ -43,7 +43,7 @@ export const settings = {
   },
   openAi: {
     baseUrl: API_PROXY_URL,
-    // PHP proxy URL for article summarization (PDF/HTML) - calls Azure only for text extraction
+    // Azure Function URL for article summarization (PDF/HTML) and resource check
     azureFunctionUrl: AZURE_FUNCTION_URL,
     // The combined abstract length of the selected articles in characters
     longAbstractLengthLimit: Number(LONG_ABSTRACT_LENGTH_LIMIT),
