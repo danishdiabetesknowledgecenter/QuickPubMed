@@ -60,23 +60,30 @@
         </p>
         <div v-for="(qa, index) in validStreamingItems.slice(7)" :key="'streaming-extra-' + index">
           <accordion-menu
-            :title="qa.shortTitle || '...'"
+            :title="qa.question || qa.shortTitle || '...'"
             :open-by-default="false"
           >
             <template #header="accordionProps">
               <div class="qpm_aiAccordionHeader" style="display: flex; justify-content: space-between; align-items: center;">
                 <div style="display: flex;">
                   <i
+                    class="bx bx-help-circle"
+                    style="font-size: 22px; vertical-align: text-bottom; margin-right: 5px;"
+                  ></i>
+                  <div>
+                    {{ qa.question || qa.shortTitle || '...' }}
+                    <i v-if="qa.isStreaming" class="bx bx-loader-alt bx-spin" style="margin-left: 8px; font-size: 0.9em;"></i>
+                  </div>
+                </div>
+                <div>
+                  <i
                     v-if="accordionProps.expanded"
                     class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
                   ></i>
                   <i 
                     v-else 
-                    class="bx bx-chevron-down qpm_aiAccordionHeaderArrows" 
+                    class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
                   ></i>
-                  <i class="bx bx-help-circle"></i>
-                  {{ qa.shortTitle || '...' }}
-                  <i v-if="qa.isStreaming" class="bx bx-loader-alt bx-spin" style="margin-left: 8px; font-size: 0.9em;"></i>
                 </div>
               </div>
             </template>
