@@ -26,17 +26,20 @@
           :open-by-default="false"
         >
           <template #header="accordionProps">
-            <div class="qpm_aiAccordionHeader">
-              <i
-                v-if="accordionProps.expanded"
-                class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
-              ></i>
-              <i 
-                v-else 
-                class="bx bx-chevron-down qpm_aiAccordionHeaderArrows" 
-              ></i>
-              <i class="bx bx-detail"></i>
-              {{ qa.shortTitle || '...' }}
+            <div class="qpm_aiAccordionHeader" style="display: flex; justify-content: space-between; align-items: center;">
+              <div style="display: flex; align-items: center;">
+                <i
+                  v-if="accordionProps.expanded"
+                  class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
+                ></i>
+                <i 
+                  v-else 
+                  class="bx bx-chevron-down qpm_aiAccordionHeaderArrows" 
+                ></i>
+                <i class="bx bx-detail"></i>
+                {{ qa.shortTitle || '...' }}
+              </div>
+              <loading-spinner v-if="qa.isStreaming" :loading="true" :size="16" style="display: inline-block; margin-left: 8px;" />
             </div>
           </template>
           <template #default>
@@ -64,7 +67,7 @@
           >
             <template #header="accordionProps">
               <div class="qpm_aiAccordionHeader" style="display: flex; justify-content: space-between; align-items: center;">
-                <div style="display: flex;">
+                <div style="display: flex; align-items: center;">
                   <i
                     class="bx bx-help-circle"
                     style="font-size: 22px; vertical-align: text-bottom; margin-right: 5px;"
@@ -72,6 +75,7 @@
                   <div>
                     {{ qa.question || qa.shortTitle || '...' }}
                   </div>
+                  <loading-spinner v-if="qa.isStreaming" :loading="true" :size="16" style="display: inline-block; margin-left: 8px;" />
                 </div>
                 <div>
                   <i
