@@ -53,7 +53,7 @@
       </div>
       
       <!-- Spørgsmål til denne artikel (items from index 7+) -->
-      <template v-if="validStreamingItems.length > 7">
+      <template v-if="validStreamingItems.length >= 7">
         <p style="padding-top: 10px">
           <strong>{{ getString("generateQuestionsHeader") }}</strong>
         </p>
@@ -92,12 +92,12 @@
             </template>
           </accordion-menu>
         </div>
+        <!-- Show loading indicator while more questions are arriving -->
+        <div v-if="hasStreamingItem" class="qpm_streaming-loading">
+          <loading-spinner :loading="true" :size="18" style="display: inline-block;" />
+          <span>{{ getString("aiGeneratingText") }}</span>
+        </div>
       </template>
-      <!-- Show loading indicator while waiting for additional questions -->
-      <div v-else-if="validStreamingItems.length >= 7" class="qpm_streaming-loading">
-        <loading-spinner :loading="true" :size="18" style="display: inline-block;" />
-        <span>{{ getString("aiGeneratingText") }}</span>
-      </div>
     </div>
     
     <!-- TITLE summarize entire article -->
@@ -301,6 +301,13 @@
        */
       validStreamingItems() {
         return this.streamingItems.filter(item => item && item.shortTitle);
+      },
+      
+      /**
+       * Returns true if any streaming item is still being streamed
+       */
+      hasStreamingItem() {
+        return this.streamingItems.some(item => item && item.isStreaming);
       },
       
       /**
