@@ -26,19 +26,17 @@
           :open-by-default="false"
         >
           <template #header="accordionProps">
-            <div class="qpm_aiAccordionHeader" style="display: flex; justify-content: space-between; align-items: center;">
-              <div style="display: flex; align-items: center;">
-                <i
-                  v-if="accordionProps.expanded"
-                  class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
-                ></i>
-                <i 
-                  v-else 
-                  class="bx bx-chevron-down qpm_aiAccordionHeaderArrows" 
-                ></i>
-                <i class="bx bx-detail"></i>
-                {{ qa.shortTitle || '...' }}
-              </div>
+            <div class="qpm_aiAccordionHeader">
+              <i
+                v-if="accordionProps.expanded"
+                class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
+              ></i>
+              <i 
+                v-else 
+                class="bx bx-chevron-down qpm_aiAccordionHeaderArrows" 
+              ></i>
+              <i class="bx bx-detail"></i>
+              {{ qa.shortTitle || '...' }}
               <loading-spinner v-if="qa.isStreaming" :loading="true" :size="16" style="display: inline-block; margin-left: 8px;" />
             </div>
           </template>
@@ -74,8 +72,8 @@
                   ></i>
                   <div>
                     {{ qa.question || qa.shortTitle || '...' }}
+                    <loading-spinner v-if="qa.isStreaming" :loading="true" :size="16" style="display: inline-block; margin-left: 8px;" />
                   </div>
-                  <loading-spinner v-if="qa.isStreaming" :loading="true" :size="16" style="display: inline-block; margin-left: 8px;" />
                 </div>
                 <div>
                   <i
