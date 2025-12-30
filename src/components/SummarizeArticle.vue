@@ -49,10 +49,6 @@
           </template>
         </accordion-menu>
       </div>
-      <!-- Show waiting indicator while streaming -->
-      <div v-if="hasStreamingItem" class="qpm_streaming-loading">
-        <span>{{ getString("aiGeneratingText") }}<span class="qpm_animated-dots"></span></span>
-      </div>
       
       <!-- Spørgsmål til denne artikel (items from index 7+) - only show header when first question starts streaming -->
       <template v-if="validStreamingItems.length > 7">
@@ -98,6 +94,11 @@
           </accordion-menu>
         </div>
       </template>
+      
+      <!-- Show waiting indicator at the bottom while streaming (not on last item) -->
+      <div v-if="showWaitingIndicator" class="qpm_streaming-loading">
+        <span>{{ getString("aiGeneratingText") }}<span class="qpm_animated-dots"></span></span>
+      </div>
     </div>
     
     <!-- TITLE summarize entire article -->
@@ -308,6 +309,17 @@
        */
       hasStreamingItem() {
         return this.streamingItems.some(item => item && item.isStreaming);
+      },
+      
+      /**
+       * Returns true if we should show the "more items coming" indicator
+       * Shows while loading and there's content, stays visible until streaming completes
+       */
+      showWaitingIndicator() {
+        // Show while loading, but not after the last item is complete
+        // We detect "last item complete" by checking if hasStreamingItem is false but loading is true
+        // In that case, we're in the brief moment between items, so we still show
+        return this.loading && this.validStreamingItems.length > 0;
       },
       
       /**
