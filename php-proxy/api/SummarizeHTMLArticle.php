@@ -190,6 +190,10 @@ $headers = [
     'Authorization: Bearer ' . OPENAI_API_KEY
 ];
 
+// Track last data time for heartbeat mechanism
+$GLOBALS['lastDataTime'] = time();
+$GLOBALS['heartbeatInterval'] = 10; // Send heartbeat every 10 seconds of inactivity
+
 $ch = curl_init(OPENAI_API_URL);
 curl_setopt_array($ch, [
     CURLOPT_POST => true,
@@ -197,6 +201,7 @@ curl_setopt_array($ch, [
     CURLOPT_HTTPHEADER => $headers,
     CURLOPT_RETURNTRANSFER => false,
     CURLOPT_WRITEFUNCTION => function($ch, $data) {
+        $GLOBALS['lastDataTime'] = time();
         $lines = explode("\n", $data);
         foreach ($lines as $line) {
             $line = trim($line);
@@ -231,8 +236,31 @@ curl_setopt_array($ch, [
         }
         return strlen($data);
     },
-    CURLOPT_TIMEOUT => 300
+    // Progress function sends heartbeat to keep mobile connections alive
+    CURLOPT_NOPROGRESS => false,
+    CURLOPT_PROGRESSFUNCTION => function($ch, $downloadTotal, $downloadNow, $uploadTotal, $uploadNow) {
+        // Send a space character as heartbeat if no data received recently
+        $timeSinceLastData = time() - $GLOBALS['lastDataTime'];
+        if ($timeSinceLastData >= $GLOBALS['heartbeatInterval']) {
+            echo ' ';
+            @ob_flush();
+            @flush();
+            $GLOBALS['lastDataTime'] = time();
+        }
+        return 0; // Return 0 to continue, non-zero to abort
+    },
+    CURLOPT_TIMEOUT => 300,
+    CURLOPT_CONNECTTIMEOUT => 30,
+    CURLOPT_LOW_SPEED_LIMIT => 1,
+    CURLOPT_LOW_SPEED_TIME => 120  // Allow up to 2 minutes of slow transfer
 ]);
 
-curl_exec($ch);
+$result = curl_exec($ch);
+$error = curl_error($ch);
+$errno = curl_errno($ch);
 curl_close($ch);
+
+// Log any curl errors for debugging
+if ($errno) {
+    error_log("OpenAI curl error ($errno): $error");
+}
