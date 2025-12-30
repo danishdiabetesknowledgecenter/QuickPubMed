@@ -59,13 +59,25 @@ if (!$input) {
     exit;
 }
 
-// Support plain, base64-encoded, and double-base64-encoded URLs (to bypass mod_security filters)
-$htmlUrl = $input['htmlurl'] ?? null;
+// Support multiple ways to pass URL (to bypass aggressive mod_security/WAF filters)
+// Priority: 1. HTTP header (X-Html-Url) - bypasses body scanning
+//           2. Body parameter (htmlurl)
+//           3. Base64 encoded (htmlurl_encoded)
+//           4. Double base64 encoded (htmlurl_encoded2)
+$htmlUrl = null;
+
+// Try HTTP header first (most reliable for bypassing WAF)
+if (isset($_SERVER['HTTP_X_HTML_URL'])) {
+    $htmlUrl = $_SERVER['HTTP_X_HTML_URL'];
+}
+// Fallback to body parameters
+if (!$htmlUrl) {
+    $htmlUrl = $input['htmlurl'] ?? null;
+}
 if (!$htmlUrl && isset($input['htmlurl_encoded'])) {
     $htmlUrl = base64_decode($input['htmlurl_encoded']);
 }
 if (!$htmlUrl && isset($input['htmlurl_encoded2'])) {
-    // Double base64 decode (needed for domains like thelancet.com that trigger WAF even when base64 encoded)
     $htmlUrl = base64_decode(base64_decode($input['htmlurl_encoded2']));
 }
 $prompt = $input['prompt'] ?? null;
@@ -73,7 +85,7 @@ $prompt = $input['prompt'] ?? null;
 if (!$htmlUrl) {
     http_response_code(400);
     header('Content-Type: application/json');
-    echo json_encode(['error' => 'Missing htmlurl, htmlurl_encoded, or htmlurl_encoded2']);
+    echo json_encode(['error' => 'Missing htmlurl (provide via X-Html-Url header or body parameter)']);
     exit;
 }
 
