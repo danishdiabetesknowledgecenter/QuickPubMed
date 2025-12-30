@@ -1,18 +1,10 @@
 <template>
   <div v-if="!isError" ref="container" style="margin-top: 20px">  
-    <!-- Heading telling that summarize entire article is available -->
-    <p v-if="loading && !isError" style="padding-top: 10px">
+    <!-- Heading telling that summarize entire article is being checked - shown while waiting for response -->
+    <p v-if="loading && !isError && streamingItems.length === 0" style="padding-top: 10px">
       <strong>{{ getString("summarizeArticleAvailable") }}</strong>
+      <loading-spinner :loading="true" :size="16" style="display: inline-block; margin-left: 8px; vertical-align: middle;" />
     </p>
-
-    <loading-spinner
-      v-if="!streamingText && streamingItems.length === 0"
-      class="qpm_searchSummaryText"
-      :wait-text="getString('aiSummaryWaitText')"
-      :wait-duration-disclaimer="getString('aiLongWaitTimeDisclaimer')"
-      :loading="loading"
-      style="align-self: center; padding-top: 50px"
-    />
     
     <!-- Show streaming items progressively while loading -->
     <div v-if="loading && validStreamingItems.length > 0">

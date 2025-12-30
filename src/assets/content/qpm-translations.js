@@ -768,8 +768,8 @@ export const messages = {
     en: "Hide summary of the full-text article",
   },
   summarizeArticleAvailable: {
-    dk: "OBS! Hele denne artikels tekst kan opsummeres og er på vej.",
-    en: "NOTE! The full-text of this article can be summarised and is on its way.",
+    dk: "OBS! Hele artiklens tekst kan muligvis opsummeres \u2013 vent et øjeblik, mens det tjekkes, om teksten er tilgængelig.",
+    en: "NOTE! The full-text of this article may be available for summarisation \u2013 please wait while we check if the text is accessible.",
   },
 
   summarizeArticleHeader: {
