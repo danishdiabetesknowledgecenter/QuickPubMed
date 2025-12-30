@@ -790,6 +790,8 @@
         const decoder = new TextDecoder();
         let fullText = "";
         let isFirstChunk = true;
+        let metadataLogged = false;
+        const STREAM_SEPARATOR = "---STREAM_START---";
         
         // Reset streaming items
         this.streamingItems = [];
@@ -810,10 +812,39 @@
           }
           
           fullText += chunk;
-          this.streamingText = fullText.trim();
           
-          // Try to parse complete items from the stream
-          this.parseStreamingItems(fullText);
+          // Check for metadata and stream separator
+          if (!metadataLogged && fullText.includes(STREAM_SEPARATOR)) {
+            const separatorIndex = fullText.indexOf(STREAM_SEPARATOR);
+            const metadataStr = fullText.substring(0, separatorIndex).trim();
+            
+            try {
+              const metadata = JSON.parse(metadataStr);
+              if (metadata.type === 'metadata') {
+                // Log the extracted article text
+                console.info(
+                  `=== Extracted Article Text ===`,
+                  '\n\n|Source URL|\n', metadata.pdfUrl || metadata.htmlUrl,
+                  '\n\n|Text Length|\n', metadata.extractedTextLength, 'characters',
+                  '\n\n|Extracted Text|\n', metadata.extractedText
+                );
+              }
+            } catch (e) {
+              // Metadata parsing failed, continue anyway
+            }
+            
+            metadataLogged = true;
+            // Remove metadata and separator from fullText
+            fullText = fullText.substring(separatorIndex + STREAM_SEPARATOR.length).trim();
+          }
+          
+          // Only process streaming content after metadata has been handled
+          if (metadataLogged) {
+            this.streamingText = fullText.trim();
+            
+            // Try to parse complete items from the stream
+            this.parseStreamingItems(fullText);
+          }
           
           await this.$nextTick();
         }

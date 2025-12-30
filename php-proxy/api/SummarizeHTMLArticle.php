@@ -179,8 +179,14 @@ if (function_exists('apache_setenv')) {
 // Set unlimited execution time for long streams
 set_time_limit(0);
 
-// Send initial padding to trigger streaming (some servers buffer until ~1KB)
-echo str_repeat(' ', 1024);
+// Send metadata with extracted text for frontend logging, then separator
+$metadata = json_encode([
+    'type' => 'metadata',
+    'extractedTextLength' => strlen($extractedText),
+    'extractedText' => $extractedText,
+    'htmlUrl' => $htmlUrl
+]);
+echo $metadata . "\n---STREAM_START---\n";
 @ob_flush();
 @flush();
 
