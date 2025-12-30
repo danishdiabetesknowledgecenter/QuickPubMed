@@ -642,9 +642,10 @@
         const openAiServiceUrl = this.appSettings.openAi.azureFunctionUrl + "/api/SummarizeHTMLArticle";
         const localePrompt = this.getComposablePrompt(this.language, promptLanguageType);
 
-        // Build the request body (URL sent via header to bypass WAF body scanning)
+        // Build the request body for logging
         const requestBody = {
           prompt: localePrompt,
+          htmlurl: this.htmlUrl,
           client: this.appSettings.client,
         };
 
@@ -652,7 +653,7 @@
         console.info(
           `=== OpenAI API Request (HTML Article) ===`,
           '\n\n|URL|\n', openAiServiceUrl,
-          '\n\n|HTML URL (via header)|\n', this.htmlUrl,
+          '\n\n|HTML URL|\n', this.htmlUrl,
           '\n\n|Client|\n', this.appSettings.client,
           '\n\n|Model|\n', localePrompt.model,
           '\n\n|Max Output Tokens|\n', localePrompt.max_output_tokens,
@@ -669,13 +670,11 @@
           this.streamingComplete = false;
           this.expectedTotalItems = null;
 
-          // Send HTML URL via base64-encoded header to bypass WAF scanning
           const response = await this.handleFetch(
             openAiServiceUrl,
             requestBody,
             "POST",
-            "getSummarizeHTMLArticle",
-            { "X-Html-Url-Encoded": btoa(this.htmlUrl) }
+            "getSummarizeHTMLArticle"
           );
 
           // Use streaming to read response

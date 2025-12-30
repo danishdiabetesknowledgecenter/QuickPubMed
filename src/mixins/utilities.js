@@ -44,18 +44,13 @@ export const utilitiesMixin = {
      * @param {Object} body - The body of the request, which will be JSON-stringified.
      * @param {string} [method="POST"] - The HTTP method to use for the request (default is "POST").
      * @param {string} [tag="default"] - A tag to identify the request in log messages (default is "default").
-     * @param {Object} [extraHeaders={}] - Additional headers to include in the request.
      * @returns {Promise<Response>} - A promise that resolves to the fetch response.
      * @throws {Error} - Throws an error if the fetch request fails.
      */
-    async handleFetch(url, body, method = "POST", tag = "default", extraHeaders = {}) {
+    async handleFetch(url, body, method = "POST", tag = "default") {
       try {
         const response = await fetch(url, {
           method: method,
-          headers: {
-            "Content-Type": "application/json",
-            ...extraHeaders
-          },
           body: JSON.stringify(body),
         });
         if (!response.ok) {
