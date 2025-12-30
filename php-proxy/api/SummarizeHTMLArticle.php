@@ -60,14 +60,17 @@ if (!$input) {
 }
 
 // Support multiple ways to pass URL (to bypass aggressive mod_security/WAF filters)
-// Priority: 1. HTTP header (X-Html-Url) - bypasses body scanning
-//           2. Body parameter (htmlurl)
-//           3. Base64 encoded (htmlurl_encoded)
-//           4. Double base64 encoded (htmlurl_encoded2)
+// Priority: 1. Base64-encoded HTTP header (X-Html-Url-Encoded) - bypasses WAF completely
+//           2. Plain HTTP header (X-Html-Url)
+//           3. Body parameters (various encodings)
 $htmlUrl = null;
 
-// Try HTTP header first (most reliable for bypassing WAF)
-if (isset($_SERVER['HTTP_X_HTML_URL'])) {
+// Try base64-encoded HTTP header first (bypasses WAF that scans header values)
+if (isset($_SERVER['HTTP_X_HTML_URL_ENCODED'])) {
+    $htmlUrl = base64_decode($_SERVER['HTTP_X_HTML_URL_ENCODED']);
+}
+// Try plain HTTP header
+if (!$htmlUrl && isset($_SERVER['HTTP_X_HTML_URL'])) {
     $htmlUrl = $_SERVER['HTTP_X_HTML_URL'];
 }
 // Fallback to body parameters
@@ -85,7 +88,7 @@ $prompt = $input['prompt'] ?? null;
 if (!$htmlUrl) {
     http_response_code(400);
     header('Content-Type: application/json');
-    echo json_encode(['error' => 'Missing htmlurl (provide via X-Html-Url header or body parameter)']);
+    echo json_encode(['error' => 'Missing htmlurl (provide via X-Html-Url-Encoded header or body parameter)']);
     exit;
 }
 
