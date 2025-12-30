@@ -37,7 +37,6 @@
               ></i>
               <i class="bx bx-detail"></i>
               {{ qa.shortTitle || '...' }}
-              <i v-if="qa.isStreaming" class="bx bx-loader-alt bx-spin" style="margin-left: 8px; font-size: 0.9em;"></i>
             </div>
           </template>
           <template #default>
@@ -49,7 +48,7 @@
       </div>
       <!-- Show loading indicator while waiting for first 7 items -->
       <div v-if="validStreamingItems.length < 7" class="qpm_streaming-loading">
-        <i class="bx bx-loader-alt bx-spin"></i>
+        <loading-spinner :loading="true" :size="18" style="display: inline-block;" />
         <span>{{ getString("aiGeneratingText") }}</span>
       </div>
       
@@ -72,7 +71,6 @@
                   ></i>
                   <div>
                     {{ qa.question || qa.shortTitle || '...' }}
-                    <i v-if="qa.isStreaming" class="bx bx-loader-alt bx-spin" style="margin-left: 8px; font-size: 0.9em;"></i>
                   </div>
                 </div>
                 <div>
@@ -97,7 +95,7 @@
       </template>
       <!-- Show loading indicator while waiting for additional questions -->
       <div v-else-if="validStreamingItems.length >= 7" class="qpm_streaming-loading">
-        <i class="bx bx-loader-alt bx-spin"></i>
+        <loading-spinner :loading="true" :size="18" style="display: inline-block;" />
         <span>{{ getString("aiGeneratingText") }}</span>
       </div>
     </div>
