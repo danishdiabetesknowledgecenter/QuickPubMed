@@ -49,14 +49,13 @@
           </template>
         </accordion-menu>
       </div>
-      <!-- Show loading indicator while waiting for first 7 items -->
-      <div v-if="validStreamingItems.length < 7" class="qpm_streaming-loading">
-        <loading-spinner :loading="true" :size="18" style="display: inline-block;" />
-        <span>{{ getString("aiGeneratingText") }}</span>
+      <!-- Show waiting indicator while streaming -->
+      <div v-if="hasStreamingItem" class="qpm_streaming-loading">
+        <span>{{ getString("aiGeneratingText") }}<span class="qpm_animated-dots"></span></span>
       </div>
       
-      <!-- Spørgsmål til denne artikel (items from index 7+) -->
-      <template v-if="validStreamingItems.length >= 7">
+      <!-- Spørgsmål til denne artikel (items from index 7+) - only show header when first question starts streaming -->
+      <template v-if="validStreamingItems.length > 7">
         <p style="padding-top: 10px">
           <strong>{{ getString("generateQuestionsHeader") }}</strong>
         </p>
@@ -97,11 +96,6 @@
               </div>
             </template>
           </accordion-menu>
-        </div>
-        <!-- Show loading indicator while more questions are arriving -->
-        <div v-if="hasStreamingItem" class="qpm_streaming-loading">
-          <loading-spinner :loading="true" :size="18" style="display: inline-block;" />
-          <span>{{ getString("aiGeneratingText") }}</span>
         </div>
       </template>
     </div>
@@ -931,12 +925,20 @@
   align-items: center;
   gap: 8px;
   padding: 15px;
-  color: var(--qpm-primary-color, #007bff);
   font-size: 0.9em;
 }
 
-.qpm_streaming-loading i {
-  font-size: 1.2em;
+.qpm_animated-dots::after {
+  content: '';
+  animation: dots 2.5s steps(5, end) infinite;
+}
+
+@keyframes dots {
+  0% { content: '.'; }
+  20% { content: '..'; }
+  40% { content: '...'; }
+  60% { content: '....'; }
+  80%, 100% { content: '.....'; }
 }
 
 /* Scrollbar styling */
