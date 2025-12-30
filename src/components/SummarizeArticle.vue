@@ -37,7 +37,9 @@
               ></i>
               <i class="bx bx-detail"></i>
               {{ qa.shortTitle || '...' }}
-              <i v-if="qa.isStreaming" class="bx bx-loader-alt bx-spin" style="margin-left: 8px; color: var(--qpm-primary-color, #007bff);"></i>
+              <span v-if="qa.isStreaming" style="display: inline-flex; align-items: center; margin-left: 8px;">
+                <loading-spinner :loading="true" :size="16" style="display: inline-block;" />
+              </span>
             </div>
           </template>
           <template #default>
@@ -70,9 +72,11 @@
                     class="bx bx-help-circle"
                     style="font-size: 22px; vertical-align: text-bottom; margin-right: 5px;"
                   ></i>
-                  <div>
+                  <div style="display: flex; align-items: center;">
                     {{ qa.question || qa.shortTitle || '...' }}
-                    <i v-if="qa.isStreaming" class="bx bx-loader-alt bx-spin" style="margin-left: 8px; color: var(--qpm-primary-color, #007bff);"></i>
+                    <span v-if="qa.isStreaming" style="display: inline-flex; align-items: center; margin-left: 8px;">
+                      <loading-spinner :loading="true" :size="16" style="display: inline-block;" />
+                    </span>
                   </div>
                 </div>
                 <div>
