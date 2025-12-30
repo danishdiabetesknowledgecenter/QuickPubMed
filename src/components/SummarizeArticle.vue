@@ -37,7 +37,7 @@
               ></i>
               <i class="bx bx-detail"></i>
               {{ qa.shortTitle || '...' }}
-              <loading-spinner v-if="qa.isStreaming" :loading="true" :size="16" style="display: inline-block; margin-left: 8px;" />
+              <i v-if="qa.isStreaming" class="bx bx-loader-alt bx-spin" style="margin-left: 8px; color: var(--qpm-primary-color, #007bff);"></i>
             </div>
           </template>
           <template #default>
@@ -72,7 +72,7 @@
                   ></i>
                   <div>
                     {{ qa.question || qa.shortTitle || '...' }}
-                    <loading-spinner v-if="qa.isStreaming" :loading="true" :size="16" style="display: inline-block; margin-left: 8px;" />
+                    <i v-if="qa.isStreaming" class="bx bx-loader-alt bx-spin" style="margin-left: 8px; color: var(--qpm-primary-color, #007bff);"></i>
                   </div>
                 </div>
                 <div>
