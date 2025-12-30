@@ -642,6 +642,27 @@
         const openAiServiceUrl = this.appSettings.openAi.azureFunctionUrl + "/api/SummarizeHTMLArticle";
         const localePrompt = this.getComposablePrompt(this.language, promptLanguageType);
 
+        // Build the request body for logging
+        const requestBody = {
+          prompt: localePrompt,
+          htmlurl: this.htmlUrl,
+          client: this.appSettings.client,
+        };
+
+        // Log everything being sent to the API
+        console.info(
+          `=== OpenAI API Request (HTML Article) ===`,
+          '\n\n|URL|\n', openAiServiceUrl,
+          '\n\n|HTML URL|\n', this.htmlUrl,
+          '\n\n|Client|\n', this.appSettings.client,
+          '\n\n|Model|\n', localePrompt.model,
+          '\n\n|Max Output Tokens|\n', localePrompt.max_output_tokens,
+          '\n\n|Reasoning Effort|\n', localePrompt.reasoning?.effort,
+          '\n\n|Stream|\n', localePrompt.stream,
+          '\n\n|Prompt (full text)|\n', localePrompt.prompt,
+          '\n\n|Complete Request Body|\n', JSON.stringify(requestBody, null, 2)
+        );
+
         try {
           // Reset streaming state
           this.streamingText = "";
@@ -651,11 +672,7 @@
 
           const response = await this.handleFetch(
             openAiServiceUrl,
-            {
-              prompt: localePrompt,
-              htmlurl: this.htmlUrl,
-              client: this.appSettings.client,
-            },
+            requestBody,
             "POST",
             "getSummarizeHTMLArticle"
           );
@@ -704,6 +721,27 @@
         const openAiServiceUrl = this.appSettings.openAi.azureFunctionUrl + "/api/SummarizePDFArticle";
         const localePrompt = this.getComposablePrompt(this.language, promptLanguageType);
 
+        // Build the request body for logging
+        const requestBody = {
+          prompt: localePrompt,
+          pdfurl: this.pdfUrl,
+          client: this.appSettings.client,
+        };
+
+        // Log everything being sent to the API
+        console.info(
+          `=== OpenAI API Request (PDF Article) ===`,
+          '\n\n|URL|\n', openAiServiceUrl,
+          '\n\n|PDF URL|\n', this.pdfUrl,
+          '\n\n|Client|\n', this.appSettings.client,
+          '\n\n|Model|\n', localePrompt.model,
+          '\n\n|Max Output Tokens|\n', localePrompt.max_output_tokens,
+          '\n\n|Reasoning Effort|\n', localePrompt.reasoning?.effort,
+          '\n\n|Stream|\n', localePrompt.stream,
+          '\n\n|Prompt (full text)|\n', localePrompt.prompt,
+          '\n\n|Complete Request Body|\n', JSON.stringify(requestBody, null, 2)
+        );
+
         try {
           // Reset streaming state
           this.streamingText = "";
@@ -713,11 +751,7 @@
 
           const response = await this.handleFetch(
             openAiServiceUrl,
-            {
-              prompt: localePrompt,
-              pdfurl: this.pdfUrl,
-              client: this.appSettings.client,
-            },
+            requestBody,
             "POST",
             "getSummarizePDFArticle"
           );
