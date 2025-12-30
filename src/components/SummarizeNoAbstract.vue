@@ -58,17 +58,18 @@
                         @update-ai-article-summaries="updateAiArticleSummaries"
                         @update-current-summary-index="updateCurrentSummaryIndex"
                         @error-state-changed="handleSummarizeArticleErrorState"
+                        @last-item-streaming-started="handleLastItemStreamingStarted"
                       />
                     </keep-alive>
                     <keep-alive>
                       <question-for-article
-                        v-if="!isForbiddenError"
+                        v-if="!isForbiddenError && (!loadingArticleSummaries[currentSummary] || showUserQuestionsEarly)"
                         :pdf-url="pdfUrl"
                         :html-url="htmlUrl"
                         :language="language"
                         :prompt-language-type="currentSummary"
                         :domain-specific-prompt-rules="domainSpecificPromptRules"
-                        :is-loading-current="loadingArticleSummaries[currentSummary]"
+                        :is-loading-current="loadingArticleSummaries[currentSummary] && !showUserQuestionsEarly"
                         :persisted-questions-and-answers="userQuestionsAndAnswers[currentSummary]"
                         @update-questions-and-answers="updateUserQuestionsAndAnswers"
                       />
@@ -226,6 +227,7 @@
         isInitialized: false,
         loadingArticleSummaries: {},
         userQuestionsAndAnswers: {},
+        showUserQuestionsEarly: false, // Show user questions section when last item starts streaming
       };
     },
     watch: {
@@ -350,6 +352,7 @@
        */
       handleSetLoading({ promptLanguageType }) {
         this.setLoading(promptLanguageType);
+        this.showUserQuestionsEarly = false; // Reset when new loading starts
       },
 
       /**
@@ -357,6 +360,14 @@
        */
       handleUnsetLoading({ promptLanguageType }) {
         this.$set(this.loadingArticleSummaries, promptLanguageType, false);
+        this.showUserQuestionsEarly = false; // Reset when loading completes
+      },
+
+      /**
+       * Handle event when last item streaming starts - show user questions section early
+       */
+      handleLastItemStreamingStarted() {
+        this.showUserQuestionsEarly = true;
       },
 
       /**

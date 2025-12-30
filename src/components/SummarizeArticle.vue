@@ -314,6 +314,20 @@
       },
       
       /**
+       * Returns true if we're currently streaming the last item
+       */
+      isStreamingLastItem() {
+        if (!this.loading) return false;
+        if (this.expectedTotalItems !== null && this.validStreamingItems.length >= this.expectedTotalItems) {
+          return true;
+        }
+        if (this.streamingComplete) {
+          return true;
+        }
+        return false;
+      },
+      
+      /**
        * Returns true if we should show the "more items coming" indicator
        * Shows while loading and there's content, but not when the last item is streaming
        */
@@ -321,12 +335,8 @@
         if (!this.loading || this.validStreamingItems.length === 0) {
           return false;
         }
-        // If we know the total, hide when we're on the last item
-        if (this.expectedTotalItems !== null && this.validStreamingItems.length >= this.expectedTotalItems) {
-          return false;
-        }
-        // Also hide if streaming is complete (closing bracket found)
-        if (this.streamingComplete) {
+        // Hide when streaming the last item
+        if (this.isStreamingLastItem) {
           return false;
         }
         return true;
@@ -406,6 +416,14 @@
       },
       isError(newVal) {
         this.$emit("error-state-changed", newVal);
+      },
+      /**
+       * Emit event when last item streaming starts so parent can show user questions section
+       */
+      isStreamingLastItem(newVal) {
+        if (newVal) {
+          this.$emit("last-item-streaming-started");
+        }
       },
     },
     methods: {
