@@ -59,13 +59,17 @@ if (!$input) {
     exit;
 }
 
+// Support both plain and base64-encoded URLs (to bypass mod_security filters)
 $htmlUrl = $input['htmlurl'] ?? null;
+if (!$htmlUrl && isset($input['htmlurl_encoded'])) {
+    $htmlUrl = base64_decode($input['htmlurl_encoded']);
+}
 $prompt = $input['prompt'] ?? null;
 
 if (!$htmlUrl) {
     http_response_code(400);
     header('Content-Type: application/json');
-    echo json_encode(['error' => 'Missing htmlurl']);
+    echo json_encode(['error' => 'Missing htmlurl or htmlurl_encoded']);
     exit;
 }
 

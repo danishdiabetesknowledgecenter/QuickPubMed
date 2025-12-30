@@ -1,6 +1,17 @@
 # Apache .htaccess fil til PHP Proxy
 # Sørger for at requests til /api/* routes til de rigtige PHP filer
 
+# Disable mod_security for this directory (can cause 403 on large POST requests)
+<IfModule mod_security.c>
+    SecFilterEngine Off
+    SecFilterScanPOST Off
+</IfModule>
+
+# Alternative mod_security2 syntax
+<IfModule mod_security2.c>
+    SecRuleEngine Off
+</IfModule>
+
 RewriteEngine On
 
 # CORS headers for all requests

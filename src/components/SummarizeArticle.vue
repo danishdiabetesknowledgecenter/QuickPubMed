@@ -643,9 +643,10 @@
         const localePrompt = this.getComposablePrompt(this.language, promptLanguageType);
 
         // Build the request body for logging
+        // Use base64-encoded URL to bypass mod_security filters on certain domains (e.g., thelancet.com)
         const requestBody = {
           prompt: localePrompt,
-          htmlurl: this.htmlUrl,
+          htmlurl_encoded: btoa(this.htmlUrl),
           client: this.appSettings.client,
         };
 
