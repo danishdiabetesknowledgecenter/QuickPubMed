@@ -42,7 +42,7 @@
           </template>
           <template #default>
             <div class="qpm_answer-text">
-              {{ qa.answer || '' }}<span v-if="qa.isStreaming" class="qpm_streaming-cursor">▌</span>
+              {{ qa.answer || '' }}
             </div>
           </template>
         </accordion-menu>
@@ -89,7 +89,7 @@
             </template>
             <template #default>
               <div class="qpm_answer-text">
-                {{ qa.answer || '' }}<span v-if="qa.isStreaming" class="qpm_streaming-cursor">▌</span>
+                {{ qa.answer || '' }}
               </div>
             </template>
           </accordion-menu>
