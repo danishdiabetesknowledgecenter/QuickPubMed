@@ -7,10 +7,10 @@ export const promptStartText = {
   {
     "totalItems": 10,
     "items": [
-      {
-        "shortTitle": "Resumé",
-        "question": "Lav et kort resumé baseret på hele teksten i artiklen. Sørg for at inkludere både indledningen og konklusionen.",
-        "answer": "Artiklen giver et overblik over..."
+    {
+      "shortTitle": "Resumé",
+      "question": "Lav et kort resumé baseret på hele teksten i artiklen. Sørg for at inkludere både indledningen og konklusionen.",
+      "answer": "Artiklen giver et overblik over..."
       }
     ]
   }
@@ -22,10 +22,10 @@ export const promptStartText = {
   {
     "totalItems": 10,
     "items": [
-      {
-        "shortTitle": "Summary",
-        "question": "Make a brief summary based on the overall text of the article. Make sure to include the introduction and the conclusion.",
-        "answer": "The article provides an overview of..."
+    {
+      "shortTitle": "Summary",
+      "question": "Make a brief summary based on the overall text of the article. Make sure to include the introduction and the conclusion.",
+      "answer": "The article provides an overview of..."
       }
     ]
   }
