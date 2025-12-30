@@ -4,24 +4,32 @@
 export const promptStartText = {
   dk: `Du skal svare i JSON-format. Du skal først kontrollere, om teksten stammer fra en videnskabelig artikel. Hvis teksten ikke stammer fra en videnskabelig artikel, skal du stoppe og svare med "Jeg kan desværre alligevel ikke opsummere denne artikel". Du vil blive givet en række spørgsmål med hver deres shortTitle.
   Dit svar SKAL altid følge denne givne struktur: 
-  [
-    {
-      "shortTitle": "Resumé",
-      "question": "Lav et kort resumé baseret på hele teksten i artiklen. Sørg for at inkludere både indledningen og konklusionen.",
-      "answer": "Artiklen giver et overblik over..."
-    },
-  ].
+  {
+    "totalItems": 10,
+    "items": [
+      {
+        "shortTitle": "Resumé",
+        "question": "Lav et kort resumé baseret på hele teksten i artiklen. Sørg for at inkludere både indledningen og konklusionen.",
+        "answer": "Artiklen giver et overblik over..."
+      }
+    ]
+  }
+  VIGTIGT: Du SKAL angive "totalItems" FØRST i dit svar med det præcise antal items du vil returnere, FØR du begynder at generere items-arrayet. Dette er kritisk for at frontend kan vise korrekt loading-status.
   Det er vigtigt, at du bevarer forholdet mellem shortTitle og question, og at du svarer på alle spørgsmål. Alle svar skal formuleres i den sproglige tone, som du er blevet bedt om at anvende. 
  `,
   en: `You must answer in JSON format. First, you must check if the text is from a scientific article. If it is not, you must stop and respond with "I can unfortunately not summarize this article". You will be given a series of questions, each with their own shortTitle.
   Your answer MUST always follow this given structure:
-  [
-    {
-      "shortTitle": "Summary",
-      "question": "Make a brief summary based on the overall text of the article. Make sure to include the introduction and the conclusion.",
-      "answer": "The article provides an overview of..."
-    },
-  ].
+  {
+    "totalItems": 10,
+    "items": [
+      {
+        "shortTitle": "Summary",
+        "question": "Make a brief summary based on the overall text of the article. Make sure to include the introduction and the conclusion.",
+        "answer": "The article provides an overview of..."
+      }
+    ]
+  }
+  IMPORTANT: You MUST specify "totalItems" FIRST in your response with the exact number of items you will return, BEFORE you start generating the items array. This is critical for the frontend to show correct loading status.
   It is important that you maintain the relationship between shortTitle and question, and that you answer all questions. All answers must be written in the tone of voice that du have been asked to use.
   `,
 };

@@ -286,6 +286,8 @@
         errorMessage: undefined,
         streamingText: "",
         streamingItems: [], // Parsed Q&A items shown progressively
+        streamingComplete: false, // True when JSON array is fully received
+        expectedTotalItems: null, // Total items expected from LLM (parsed from totalItems field)
       };
     },
     computed: {
@@ -313,13 +315,21 @@
       
       /**
        * Returns true if we should show the "more items coming" indicator
-       * Shows while loading and there's content, stays visible until streaming completes
+       * Shows while loading and there's content, but not when the last item is streaming
        */
       showWaitingIndicator() {
-        // Show while loading, but not after the last item is complete
-        // We detect "last item complete" by checking if hasStreamingItem is false but loading is true
-        // In that case, we're in the brief moment between items, so we still show
-        return this.loading && this.validStreamingItems.length > 0;
+        if (!this.loading || this.validStreamingItems.length === 0) {
+          return false;
+        }
+        // If we know the total, hide when we're on the last item
+        if (this.expectedTotalItems !== null && this.validStreamingItems.length >= this.expectedTotalItems) {
+          return false;
+        }
+        // Also hide if streaming is complete (closing bracket found)
+        if (this.streamingComplete) {
+          return false;
+        }
+        return true;
       },
       
       /**
@@ -618,6 +628,8 @@
           // Reset streaming state
           this.streamingText = "";
           this.streamingItems = [];
+          this.streamingComplete = false;
+          this.expectedTotalItems = null;
 
           const response = await this.handleFetch(
             openAiServiceUrl,
@@ -639,7 +651,10 @@
           this.streamingItems = [];
 
           // Parse the sanitized JSON
-          const data = JSON.parse(sanitizedText);
+          const parsed = JSON.parse(sanitizedText);
+          
+          // Handle both old format (array) and new format (object with items)
+          const data = Array.isArray(parsed) ? parsed : (parsed.items || []);
 
           this.scrapingError = false;
 
@@ -675,6 +690,8 @@
           // Reset streaming state
           this.streamingText = "";
           this.streamingItems = [];
+          this.streamingComplete = false;
+          this.expectedTotalItems = null;
 
           const response = await this.handleFetch(
             openAiServiceUrl,
@@ -696,7 +713,10 @@
           this.streamingItems = [];
 
           // Parse the sanitized JSON
-          const data = JSON.parse(sanitizedText);
+          const parsed = JSON.parse(sanitizedText);
+          
+          // Handle both old format (array) and new format (object with items)
+          const data = Array.isArray(parsed) ? parsed : (parsed.items || []);
           return data;
         } catch (error) {
           this.streamingText = "";
@@ -753,16 +773,28 @@
       
       /**
        * Parses JSON stream and extracts complete Q&A items progressively
+       * Supports both old format (array) and new format (object with totalItems and items)
        */
       parseStreamingItems(text) {
         try {
           const items = [];
+          
+          // Try to extract totalItems from the beginning of the JSON
+          if (this.expectedTotalItems === null) {
+            const totalItemsMatch = text.match(/"totalItems"\s*:\s*(\d+)/);
+            if (totalItemsMatch) {
+              this.expectedTotalItems = parseInt(totalItemsMatch[1], 10);
+            }
+          }
           
           // Find all complete JSON objects by matching balanced braces
           let depth = 0;
           let objectStart = -1;
           let inString = false;
           let escape = false;
+          let arrayDepth = 0;
+          let foundClosingBracket = false;
+          let inItemsArray = false;
           
           for (let i = 0; i < text.length; i++) {
             const char = text[i];
@@ -784,36 +816,65 @@
             
             if (inString) continue;
             
+            // Track array brackets - we're looking for the "items" array
+            if (char === '[') {
+              arrayDepth++;
+              // Check if this is the items array
+              const beforeBracket = text.substring(Math.max(0, i - 20), i);
+              if (beforeBracket.includes('"items"')) {
+                inItemsArray = true;
+              }
+            } else if (char === ']') {
+              arrayDepth--;
+              if (arrayDepth === 0 && inItemsArray) {
+                foundClosingBracket = true;
+              }
+            }
+            
             if (char === '{') {
-              if (depth === 0) {
-                objectStart = i;
+              if (depth === 0 || (depth === 1 && inItemsArray)) {
+                // Only track objects inside the items array (depth 1) or root object
+                if (inItemsArray && depth === 1) {
+                  objectStart = i;
+                } else if (!inItemsArray && depth === 0) {
+                  // This is either root object (new format) or item object (old format)
+                  objectStart = i;
+                }
               }
               depth++;
             } else if (char === '}') {
               depth--;
-              if (depth === 0 && objectStart !== -1) {
-                // Found complete object
-                const objectStr = text.substring(objectStart, i + 1);
-                try {
-                  const obj = JSON.parse(objectStr);
-                  if (obj.shortTitle && obj.answer !== undefined) {
-                    items.push({
-                      shortTitle: obj.shortTitle,
-                      question: obj.question || "",
-                      answer: obj.answer,
-                      isStreaming: false
-                    });
+              if (objectStart !== -1) {
+                // For new format: items are at depth 1 inside the items array
+                // For old format: items are at depth 0
+                const isItemObject = (inItemsArray && depth === 1) || (!inItemsArray && depth === 0 && !text.includes('"totalItems"'));
+                
+                if (isItemObject) {
+                  const objectStr = text.substring(objectStart, i + 1);
+                  try {
+                    const obj = JSON.parse(objectStr);
+                    if (obj.shortTitle && obj.answer !== undefined) {
+                      items.push({
+                        shortTitle: obj.shortTitle,
+                        question: obj.question || "",
+                        answer: obj.answer,
+                        isStreaming: false
+                      });
+                    }
+                  } catch (e) {
+                    // Not valid JSON yet
                   }
-                } catch (e) {
-                  // Not valid JSON yet
+                  objectStart = -1;
                 }
-                objectStart = -1;
               }
             }
           }
           
-          // Check for partial object at the end
-          if (depth > 0 && objectStart !== -1) {
+          // Update streamingComplete when we find the closing bracket of the items array
+          this.streamingComplete = foundClosingBracket;
+          
+          // Check for partial object at the end (only if array is not complete)
+          if (depth > 1 && objectStart !== -1 && !foundClosingBracket) {
             const partialStr = text.substring(objectStart);
             const partialItem = this.parsePartialItem(partialStr);
             if (partialItem) {
