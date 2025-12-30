@@ -664,8 +664,8 @@ export const messages = {
     en: "(May last up to 60 seconds)",
   },
   aiGeneratingText: {
-    dk: "Flere punkter er på vej",
-    en: "More headings are on their way",
+    dk: "Det kunstige intelligens er i gang med at opsummere artiklen, og der vises snart flere punkter",
+    en: "The AI is summarising the article, and more headings will soon be shown",
   },
   showTranslatedTitle: {
     dk: "Oversæt titel",

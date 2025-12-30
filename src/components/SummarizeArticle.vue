@@ -3,7 +3,9 @@
     <!-- Heading telling that summarize entire article is being checked - shown while waiting for response -->
     <p v-if="loading && !isError && streamingItems.length === 0" style="padding-top: 10px">
       <strong>{{ getString("summarizeArticleAvailable") }}</strong>
-      <loading-spinner :loading="true" :size="16" style="display: inline-block; margin-left: 8px; vertical-align: middle;" />
+      <span style="display: inline-flex; align-items: center; margin-left: 8px;">
+        <loading-spinner :loading="true" :size="16" style="display: inline-block;" />
+      </span>
     </p>
     
     <!-- Show streaming items progressively while loading -->
