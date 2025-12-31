@@ -738,7 +738,7 @@
         }
         
         composedPromptText += `## INSTRUCTIONS ##\n${promptStartText}\n\n`;
-        composedPromptText += `## OUTPUT FORMAT ##\n${promptEndText}\n`;
+        composedPromptText += `## END TEXT ##\n${promptEndText}\n`;
 
 
         // Sanitize the composed prompt text

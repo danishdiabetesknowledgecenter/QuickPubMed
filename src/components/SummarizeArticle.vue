@@ -883,8 +883,8 @@
           await this.$nextTick();
         }
 
-        // Clear streaming state
-        this.streamingItems = [];
+        // Don't clear streaming items here - they're needed as fallback if JSON.parse fails
+        // They will be cleared after copying in getSummarize*Article functions
         return fullText.trim();
       },
       
