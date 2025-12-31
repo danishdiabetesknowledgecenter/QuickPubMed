@@ -754,6 +754,9 @@
           const rawText = await this.readStreamingResponse(response);
           const sanitizedText = this.sanitizeResponse(rawText);
 
+          // Debug: log first 200 chars of sanitized text
+          console.log('=== PDF sanitizedText (first 200 chars) ===', sanitizedText.substring(0, 200));
+
           // Clear streaming state before showing parsed result
           this.streamingText = "";
           this.streamingItems = [];
