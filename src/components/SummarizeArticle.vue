@@ -691,6 +691,8 @@
             data = Array.isArray(parsed) ? parsed : (parsed.items || []);
           } catch (parseError) {
             console.warn('JSON.parse failed, using streaming items instead:', parseError.message);
+            console.log('=== streamingItemsCopy length ===', streamingItemsCopy.length);
+            console.log('=== streamingItemsCopy ===', JSON.stringify(streamingItemsCopy, null, 2));
             // Use the successfully parsed streaming items as fallback
             if (streamingItemsCopy.length > 0) {
               data = streamingItemsCopy.map(item => ({
@@ -791,6 +793,8 @@
             data = Array.isArray(parsed) ? parsed : (parsed.items || []);
           } catch (parseError) {
             console.warn('JSON.parse failed, using streaming items instead:', parseError.message);
+            console.log('=== streamingItemsCopy length ===', streamingItemsCopy.length);
+            console.log('=== streamingItemsCopy ===', JSON.stringify(streamingItemsCopy, null, 2));
             // Use the successfully parsed streaming items as fallback
             if (streamingItemsCopy.length > 0) {
               data = streamingItemsCopy.map(item => ({
@@ -1001,6 +1005,10 @@
           }
           
           if (items.length > 0) {
+            // Log when items change
+            if (items.length !== this.streamingItems.length) {
+              console.log('=== parseStreamingItems: items updated ===', items.length, 'items');
+            }
             this.streamingItems = items;
           }
         } catch (e) {
