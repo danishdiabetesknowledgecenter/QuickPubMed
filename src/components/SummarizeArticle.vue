@@ -29,11 +29,12 @@
                 v-else 
                 class="bx bx-chevron-down qpm_aiAccordionHeaderArrows" 
               ></i>
-              <i class="bx bx-detail"></i>
-              {{ qa.shortTitle || '...' }}
-              <span v-if="qa.isStreaming" style="display: inline-flex; align-items: center; margin-left: 8px;">
-                <loading-spinner :loading="true" :size="16" style="display: inline-block;" />
+              <!-- Show spinner instead of icon while streaming -->
+              <span v-if="qa.isStreaming" style="display: inline-flex; align-items: center; margin-right: 5px;">
+                <loading-spinner :loading="true" :size="18" style="display: inline-block;" />
               </span>
+              <i v-else class="bx bx-detail"></i>
+              {{ qa.shortTitle || '...' }}
             </div>
           </template>
           <template #default>
@@ -44,12 +45,12 @@
         </accordion-menu>
       </div>
       
-      <!-- Spørgsmål til denne artikel (items from index 7+) - only show header when first question starts streaming -->
-      <template v-if="validStreamingItems.length > 7">
+      <!-- Spørgsmål til denne artikel (items from index 7+) - only show when question is fully parsed to avoid flicker -->
+      <template v-if="validQuestionItems.length > 0">
         <p style="padding-top: 10px">
           <strong>{{ getString("generateQuestionsHeader") }}</strong>
         </p>
-        <div v-for="(qa, index) in validStreamingItems.slice(7)" :key="'streaming-extra-' + index">
+        <div v-for="(qa, index) in validQuestionItems" :key="'streaming-extra-' + index">
           <accordion-menu
             :title="qa.question || qa.shortTitle || '...'"
             :open-by-default="false"
@@ -57,16 +58,16 @@
             <template #header="accordionProps">
               <div class="qpm_aiAccordionHeader" style="display: flex; justify-content: space-between; align-items: center;">
                 <div style="display: flex; align-items: center;">
+                  <!-- Show spinner instead of icon while streaming -->
+                  <span v-if="qa.isStreaming" style="display: inline-flex; align-items: center; margin-right: 5px;">
+                    <loading-spinner :loading="true" :size="20" style="display: inline-block;" />
+                  </span>
                   <i
+                    v-else
                     class="bx bx-help-circle"
                     style="font-size: 22px; vertical-align: text-bottom; margin-right: 5px;"
                   ></i>
-                  <div style="display: flex; align-items: center;">
-                    {{ qa.question || qa.shortTitle || '...' }}
-                    <span v-if="qa.isStreaming" style="display: inline-flex; align-items: center; margin-left: 8px;">
-                      <loading-spinner :loading="true" :size="16" style="display: inline-block;" />
-                    </span>
-                  </div>
+                  {{ qa.question || qa.shortTitle || '...' }}
                 </div>
                 <div>
                   <i
@@ -298,6 +299,17 @@
        */
       validStreamingItems() {
         return this.streamingItems.filter(item => item && item.shortTitle);
+      },
+      
+      /**
+       * Returns valid question items (index 7+) - only when question is defined
+       * This prevents "flicker" when shortTitle shows briefly before question
+       */
+      validQuestionItems() {
+        const allItems = this.validStreamingItems;
+        if (allItems.length <= 7) return [];
+        // For questions, only show when question field is populated (not just shortTitle)
+        return allItems.slice(7).filter(item => item.question);
       },
       
       /**
