@@ -150,6 +150,11 @@ if (isset($prompt['reasoning']['effort'])) {
     $openaiRequest['reasoning'] = ['effort' => 'none'];
 }
 
+// Text format - enforce JSON output for valid JSON responses
+if (isset($prompt['type']) && $prompt['type'] === 'json_object') {
+    $openaiRequest['text'] = ['format' => ['type' => 'json_object']];
+}
+
 // max_output_tokens
 if (isset($prompt['max_output_tokens']) && $prompt['max_output_tokens'] !== null) {
     $openaiRequest['max_output_tokens'] = (int)$prompt['max_output_tokens'];
