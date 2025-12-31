@@ -27,6 +27,10 @@
             "
           ></i>
           {{ qa.question }}
+          <!-- Show spinner next to question when streaming -->
+          <span v-if="streamingIndex === idx && isLoadingResponse" style="display: inline-flex; align-items: center; margin-left: 8px;">
+            <loading-spinner :loading="true" :size="16" style="display: inline-block;" />
+          </span>
         </div>
       </template>
       <template #default>
@@ -34,9 +38,6 @@
           <!-- Show streaming answer if this is the currently streaming question -->
           <template v-if="streamingIndex === idx && streamingAnswer">
             {{ streamingAnswer }}
-            <span v-if="isLoadingResponse" style="display: inline-flex; align-items: center; margin-left: 8px;">
-              <loading-spinner :loading="true" :size="16" style="display: inline-block;" />
-            </span>
           </template>
           <template v-else>
             {{ qa.answer }}
