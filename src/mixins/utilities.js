@@ -30,8 +30,16 @@ export const utilitiesMixin = {
      * @returns {string} - The sanitized JSON string.
      */
     sanitizeResponse(text) {
-      // Remove ```json and ``` if present
       let sanitizedText = text.trim();
+      
+      // Remove metadata and stream separator if present (from streaming API)
+      const STREAM_SEPARATOR = "---STREAM_START---";
+      if (sanitizedText.includes(STREAM_SEPARATOR)) {
+        const separatorIndex = sanitizedText.indexOf(STREAM_SEPARATOR);
+        sanitizedText = sanitizedText.substring(separatorIndex + STREAM_SEPARATOR.length).trim();
+      }
+      
+      // Remove ```json and ``` if present
       if (sanitizedText.startsWith("```json")) {
         sanitizedText = sanitizedText.replace(/```json\s*/, "").replace(/```\s*$/, "");
       }

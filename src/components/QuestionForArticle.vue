@@ -31,7 +31,16 @@
       </template>
       <template #default>
         <div :style="getAnswerStyle(idx)" class="qpm_answer-text">
-          {{ qa.answer }}
+          <!-- Show streaming answer if this is the currently streaming question -->
+          <template v-if="streamingIndex === idx && streamingAnswer">
+            {{ streamingAnswer }}
+            <span v-if="isLoadingResponse" style="display: inline-flex; align-items: center; margin-left: 8px;">
+              <loading-spinner :loading="true" :size="16" style="display: inline-block;" />
+            </span>
+          </template>
+          <template v-else>
+            {{ qa.answer }}
+          </template>
         </div>
       </template>
     </accordion-menu>
@@ -140,6 +149,8 @@
         errorMessage: "",
         isLoadingResponse: false,
         userQuestionInput: "",
+        streamingAnswer: "", // Current streaming answer text
+        streamingIndex: -1, // Index of the question being streamed
       };
     },
     methods: {
@@ -180,6 +191,8 @@
        */
       async processNewQuestion(question, index) {
         this.isLoadingResponse = true;
+        this.streamingIndex = index;
+        this.streamingAnswer = "";
         this.$emit("set-loading-user-question", { promptLanguageType: this.promptLanguageType });
 
         try {
@@ -196,14 +209,23 @@
             : { prompt: composedPrompt, htmlurl: this.htmlUrl, client: this.appSettings.client };
 
           const response = await this.handleFetch(openAiServiceUrl, fetchPayload);
-          const rawText = await response.text();
+          
+          // Use streaming to read response
+          const rawText = await this.readStreamingUserQuestion(response);
           const sanitizedText = this.sanitizeResponse(rawText);
-          const sanitizedResponse = JSON.parse(sanitizedText);
-
-          const fetchedAnswer =
-            sanitizedResponse.answers && sanitizedResponse.answers.length > 0
-              ? sanitizedResponse.answers[0]
-              : this.getString("userQuestionsNoAnswer");
+          
+          let fetchedAnswer;
+          try {
+            const sanitizedResponse = JSON.parse(sanitizedText);
+            fetchedAnswer =
+              sanitizedResponse.answers && sanitizedResponse.answers.length > 0
+                ? sanitizedResponse.answers[0]
+                : this.getString("userQuestionsNoAnswer");
+          } catch (parseError) {
+            // If JSON parsing fails, use the streaming answer we collected
+            console.warn("JSON.parse failed, using streaming answer:", parseError.message);
+            fetchedAnswer = this.streamingAnswer || this.getString("userQuestionsNoAnswer");
+          }
 
           const updatedQAs = [...this.persistedQuestionsAndAnswers];
           console.log("Updated QAs: ", updatedQAs);
@@ -226,9 +248,77 @@
         } finally {
           this.userQuestionInput = "";
           this.isLoadingResponse = false;
+          this.streamingIndex = -1;
+          this.streamingAnswer = "";
           this.$emit("unset-loading-user-question", {
             promptLanguageType: this.promptLanguageType,
           });
+        }
+      },
+      
+      /**
+       * Reads a streaming response and extracts the answer text progressively.
+       * @param {Response} response - The fetch response object
+       * @returns {Promise<string>} The complete response text
+       */
+      async readStreamingUserQuestion(response) {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let fullText = "";
+        let isFirstChunk = true;
+        let metadataHandled = false;
+        const STREAM_SEPARATOR = "---STREAM_START---";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          let chunk = decoder.decode(value, { stream: true });
+          
+          // Skip initial padding
+          if (isFirstChunk) {
+            chunk = chunk.trimStart();
+            isFirstChunk = false;
+            if (!chunk) continue;
+          }
+          
+          fullText += chunk;
+          
+          // Handle metadata separator
+          if (!metadataHandled && fullText.includes(STREAM_SEPARATOR)) {
+            const separatorIndex = fullText.indexOf(STREAM_SEPARATOR);
+            fullText = fullText.substring(separatorIndex + STREAM_SEPARATOR.length).trim();
+            metadataHandled = true;
+          }
+          
+          // Extract answer from JSON stream for display
+          if (metadataHandled) {
+            this.extractStreamingAnswer(fullText);
+          }
+          
+          await this.$nextTick();
+        }
+
+        return fullText.trim();
+      },
+      
+      /**
+       * Extracts the answer text from the streaming JSON for progressive display.
+       * @param {string} text - The current streaming text
+       */
+      extractStreamingAnswer(text) {
+        // Try to extract the "answers" array content
+        const answersMatch = text.match(/"answers"\s*:\s*\[\s*"([^]*)/);
+        if (answersMatch) {
+          let answer = answersMatch[1];
+          // Remove trailing incomplete JSON
+          const lastQuoteIndex = answer.lastIndexOf('"');
+          if (lastQuoteIndex > 0) {
+            answer = answer.substring(0, lastQuoteIndex);
+          }
+          // Unescape JSON string
+          answer = answer.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+          this.streamingAnswer = answer;
         }
       },
 
