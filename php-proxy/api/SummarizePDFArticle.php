@@ -153,6 +153,9 @@ if (isset($prompt['reasoning']['effort'])) {
 // Text format - enforce JSON output for valid JSON responses
 if (isset($prompt['type']) && $prompt['type'] === 'json_object') {
     $openaiRequest['text'] = ['format' => ['type' => 'json_object']];
+    error_log('JSON mode enabled for PDF summarization');
+} else {
+    error_log('JSON mode NOT enabled - prompt type: ' . ($prompt['type'] ?? 'not set'));
 }
 
 // max_output_tokens
@@ -184,12 +187,16 @@ if (function_exists('apache_setenv')) {
 // Set unlimited execution time for long streams
 set_time_limit(0);
 
+// Check if JSON mode is enabled
+$jsonModeEnabled = isset($openaiRequest['text']['format']['type']) && $openaiRequest['text']['format']['type'] === 'json_object';
+
 // Send metadata with extracted text for frontend logging, then separator
 $metadata = json_encode([
     'type' => 'metadata',
     'extractedTextLength' => strlen($extractedText),
     'extractedText' => $extractedText,
-    'pdfUrl' => $pdfUrl
+    'pdfUrl' => $pdfUrl,
+    'jsonModeEnabled' => $jsonModeEnabled
 ]);
 echo $metadata . "\n---STREAM_START---\n";
 @ob_flush();

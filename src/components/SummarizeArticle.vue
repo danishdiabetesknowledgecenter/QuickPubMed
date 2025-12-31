@@ -30,9 +30,7 @@
                 class="bx bx-chevron-down qpm_aiAccordionHeaderArrows" 
               ></i>
               <!-- Show spinner instead of icon while streaming -->
-              <span v-if="qa.isStreaming" style="display: inline-flex; align-items: center; margin-right: 5px;">
-                <loading-spinner :loading="true" :size="18" style="display: inline-block;" />
-              </span>
+              <loading-spinner v-if="qa.isStreaming" :loading="true" :size="22" class="qpm_streaming-icon" />
               <i v-else class="bx bx-detail"></i>
               {{ qa.shortTitle || '...' }}
             </div>
@@ -59,9 +57,7 @@
               <div class="qpm_aiAccordionHeader" style="display: flex; justify-content: space-between; align-items: center;">
                 <div style="display: flex; align-items: center;">
                   <!-- Show spinner instead of icon while streaming -->
-                  <span v-if="qa.isStreaming" style="display: inline-flex; align-items: center; margin-right: 5px;">
-                    <loading-spinner :loading="true" :size="20" style="display: inline-block;" />
-                  </span>
+                  <loading-spinner v-if="qa.isStreaming" :loading="true" :size="22" class="qpm_streaming-icon" style="margin-right: 5px;" />
                   <i
                     v-else
                     class="bx bx-help-circle"
@@ -876,6 +872,7 @@
                   `=== Extracted Article Text ===`,
                   '\n\n|Source URL|\n', metadata.pdfUrl || metadata.htmlUrl,
                   '\n\n|Text Length|\n', metadata.extractedTextLength, 'characters',
+                  '\n\n|JSON Mode Enabled|\n', metadata.jsonModeEnabled ? 'YES' : 'NO',
                   '\n\n|Extracted Text|\n', metadata.extractedText
                 );
               }
@@ -994,9 +991,10 @@
                         answer: obj.answer,
                         isStreaming: false
                       });
+                      console.log('=== Item parsed ===', obj.shortTitle);
                     }
                   } catch (e) {
-                    // Not valid JSON yet
+                    console.log('=== Item parse failed at position ===', objectStart, '-', i, 'error:', e.message);
                   }
                   objectStart = -1;
                 }
@@ -1169,5 +1167,11 @@
 
 .qpm_streaming-content::-webkit-scrollbar-thumb:hover {
   background: #aaa;
+}
+
+/* Spinner icon styling to match boxicons placement */
+.qpm_streaming-icon {
+  display: inline-block;
+  vertical-align: middle;
 }
 </style>
