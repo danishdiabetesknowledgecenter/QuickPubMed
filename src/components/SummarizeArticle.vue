@@ -788,10 +788,13 @@
           // Save streaming items before clearing (in case JSON.parse fails)
           const streamingItemsCopy = [...this.validStreamingItems];
           
+          // Debug: log raw text before sanitization
+          console.log('=== PDF rawText (first 500 chars) ===', rawText.substring(0, 500));
+          
           const sanitizedText = this.sanitizeResponse(rawText);
 
-          // Debug: log first 200 chars of sanitized text
-          console.log('=== PDF sanitizedText (first 200 chars) ===', sanitizedText.substring(0, 200));
+          // Debug: log sanitized text
+          console.log('=== PDF sanitizedText (first 500 chars) ===', sanitizedText.substring(0, 500));
 
           // Clear streaming state before showing parsed result
           this.streamingText = "";
@@ -902,6 +905,7 @@
 
         // Don't clear streaming items here - they're needed as fallback if JSON.parse fails
         // They will be cleared after copying in getSummarize*Article functions
+        console.log('=== readStreamingResponse complete ===', 'fullText length:', fullText.length, 'streamingItems count:', this.streamingItems.length);
         return fullText.trim();
       },
       
