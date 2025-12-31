@@ -20,19 +20,23 @@
           :open-by-default="false"
         >
           <template #header="accordionProps">
-            <div class="qpm_aiAccordionHeader">
-              <i
-                v-if="accordionProps.expanded"
-                class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
-              ></i>
-              <i 
-                v-else 
-                class="bx bx-chevron-down qpm_aiAccordionHeaderArrows" 
-              ></i>
-              <!-- Show spinner instead of icon while streaming -->
-              <loading-spinner v-if="qa.isStreaming" :loading="true" :size="22" class="qpm_streaming-icon" />
-              <i v-else class="bx bx-detail"></i>
-              {{ qa.shortTitle || '...' }}
+            <div class="qpm_aiAccordionHeader" style="display: flex; justify-content: space-between; align-items: center;">
+              <div style="display: flex; align-items: center;">
+                <!-- Show spinner instead of icon while streaming -->
+                <loading-spinner v-if="qa.isStreaming" :loading="true" :size="22" class="qpm_streaming-icon" style="margin-right: 5px;" />
+                <i v-else class="bx bx-detail" style="font-size: 22px; margin-right: 5px;"></i>
+                {{ qa.shortTitle || '...' }}
+              </div>
+              <div>
+                <i
+                  v-if="accordionProps.expanded"
+                  class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
+                ></i>
+                <i 
+                  v-else 
+                  class="bx bx-chevron-down qpm_aiAccordionHeaderArrows" 
+                ></i>
+              </div>
             </div>
           </template>
           <template #default>

@@ -151,12 +151,8 @@ if (isset($prompt['reasoning']['effort'])) {
 }
 
 // Text format - enforce JSON output for valid JSON responses
-if (isset($prompt['type']) && $prompt['type'] === 'json_object') {
-    $openaiRequest['text'] = ['format' => ['type' => 'json_object']];
-    error_log('JSON mode enabled for PDF summarization');
-} else {
-    error_log('JSON mode NOT enabled - prompt type: ' . ($prompt['type'] ?? 'not set'));
-}
+// For Responses API: use text.format
+$openaiRequest['text'] = ['format' => ['type' => 'json_object']];
 
 // max_output_tokens
 if (isset($prompt['max_output_tokens']) && $prompt['max_output_tokens'] !== null) {

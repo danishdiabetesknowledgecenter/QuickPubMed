@@ -13,7 +13,8 @@
 // ============ OpenAI Configuration ============
 define('OPENAI_API_KEY', 'sk-INSERT-YOUR-API-KEY-HERE');
 define('OPENAI_ORG_ID', '');
-define('OPENAI_API_URL', 'https://api.openai.com/v1/chat/completions');
+// Use Responses API for GPT-5.2 and newer models with JSON mode support
+define('OPENAI_API_URL', 'https://api.openai.com/v1/responses');
 
 // ============ NLM/PubMed Configuration ============
 define('NLM_API_KEY', 'INSERT-YOUR-NLM-API-KEY-HERE');
