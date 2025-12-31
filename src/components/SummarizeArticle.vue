@@ -312,16 +312,6 @@
        */
       isStreamingLastItem() {
         if (!this.loading) return false;
-        
-        // Debug log
-        if (this.validStreamingItems.length > 0) {
-          console.log('=== isStreamingLastItem check ===', {
-            expectedTotalItems: this.expectedTotalItems,
-            validStreamingItemsLength: this.validStreamingItems.length,
-            streamingComplete: this.streamingComplete
-          });
-        }
-        
         if (this.expectedTotalItems !== null && this.validStreamingItems.length >= this.expectedTotalItems) {
           return true;
         }
