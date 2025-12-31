@@ -673,17 +673,35 @@
 
           // Use streaming to read response
           const rawText = await this.readStreamingResponse(response);
+          
+          // Save streaming items before clearing (in case JSON.parse fails)
+          const streamingItemsCopy = [...this.validStreamingItems];
+          
           const sanitizedText = this.sanitizeResponse(rawText);
 
           // Clear streaming state before showing parsed result
           this.streamingText = "";
           this.streamingItems = [];
 
-          // Parse the sanitized JSON
-          const parsed = JSON.parse(sanitizedText);
-          
-          // Handle both old format (array) and new format (object with items)
-          const data = Array.isArray(parsed) ? parsed : (parsed.items || []);
+          // Try to parse the sanitized JSON, fall back to streaming items if it fails
+          let data;
+          try {
+            const parsed = JSON.parse(sanitizedText);
+            // Handle both old format (array) and new format (object with items)
+            data = Array.isArray(parsed) ? parsed : (parsed.items || []);
+          } catch (parseError) {
+            console.warn('JSON.parse failed, using streaming items instead:', parseError.message);
+            // Use the successfully parsed streaming items as fallback
+            if (streamingItemsCopy.length > 0) {
+              data = streamingItemsCopy.map(item => ({
+                shortTitle: item.shortTitle,
+                question: item.question || '',
+                answer: item.answer || ''
+              }));
+            } else {
+              throw parseError; // Re-throw if we have no fallback
+            }
+          }
 
           this.scrapingError = false;
 
@@ -752,6 +770,10 @@
 
           // Use streaming to read response
           const rawText = await this.readStreamingResponse(response);
+          
+          // Save streaming items before clearing (in case JSON.parse fails)
+          const streamingItemsCopy = [...this.validStreamingItems];
+          
           const sanitizedText = this.sanitizeResponse(rawText);
 
           // Debug: log first 200 chars of sanitized text
@@ -761,11 +783,26 @@
           this.streamingText = "";
           this.streamingItems = [];
 
-          // Parse the sanitized JSON
-          const parsed = JSON.parse(sanitizedText);
+          // Try to parse the sanitized JSON, fall back to streaming items if it fails
+          let data;
+          try {
+            const parsed = JSON.parse(sanitizedText);
+            // Handle both old format (array) and new format (object with items)
+            data = Array.isArray(parsed) ? parsed : (parsed.items || []);
+          } catch (parseError) {
+            console.warn('JSON.parse failed, using streaming items instead:', parseError.message);
+            // Use the successfully parsed streaming items as fallback
+            if (streamingItemsCopy.length > 0) {
+              data = streamingItemsCopy.map(item => ({
+                shortTitle: item.shortTitle,
+                question: item.question || '',
+                answer: item.answer || ''
+              }));
+            } else {
+              throw parseError; // Re-throw if we have no fallback
+            }
+          }
           
-          // Handle both old format (array) and new format (object with items)
-          const data = Array.isArray(parsed) ? parsed : (parsed.items || []);
           return data;
         } catch (error) {
           this.streamingText = "";
