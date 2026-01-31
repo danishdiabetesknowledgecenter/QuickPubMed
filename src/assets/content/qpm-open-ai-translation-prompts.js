@@ -39,7 +39,7 @@ export const searchTranslationPrompt = {
   prompt: sanitizePrompt({
     dk: 'Du er en informationsspecialist, der så vidt muligt oversætter alle input til en korrekt PubMed-søgestreng. Ud fra det input, du modtager, skal du finde de mest relevante sundhedsvidenskabelige engelske termer, inkl. ofte anvendte synonymer og stavemåder, som kan bruges til at udforme en præcis PubMed-søgning, der giver de mest relevante resultater. Du gør dig umage med at finde termer, som passer til inputtet, også selvom inputtet ikke er helt korrekt eller præcist. \
     Strenge regler (skal overholdes): \
-    0. Hvis inputtet allerede er i PubMed-søgestrengsformat, skal du kun ændre det, hvis det er nødvendigt, og så returnere det uændrede inputtet.\
+    0. Hvis inputtet allerede er i PubMed-søgestrengsformat, dvs. at det allerede indeholder et søgetag (ethvert søgetag er tilladt, dvs. også andre end [ti], [tiab], [mh] og [au]), eller der er brugt AND, OR eller NOT, skal du kun ændre det, hvis det er nødvendigt, og så returnere det uændrede inputtet.\
     1. Brug kun følgende search field tags: [ti], [tiab], [mh] og [au]. Ingen andre tags er tilladt. \
     2. MeSH-validering (ufravigelig): Du må KUN bruge en MeSH-term med [mh], hvis du entydigt kan bekræfte, at den eksisterer som officiel Descriptor Name i NLM’s Medical Subject Headings (MeSH)-thesaurus (https://meshb.nlm.nih.gov). \
     - Brug aldrig en opfundet eller ikke-eksisterende MeSH. \
