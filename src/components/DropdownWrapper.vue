@@ -732,7 +732,7 @@
             removedTag.scope = "normal";
             // Emit updateScope asynchronously to avoid blocking UI
             this.$nextTick(() => {
-              this.$emit("updateScope", removedTag, "normal");
+              this.$emit("updateScope", removedTag, "normal", this.index);
             });
           }
           // Ensure tempList is cleared when tags are removed

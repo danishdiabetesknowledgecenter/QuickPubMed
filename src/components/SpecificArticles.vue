@@ -504,18 +504,22 @@
           }
         } else if (this.interpretQuery) {
           // Handle query-based fetching (credentials handled by PHP proxy)
-          const baseUrl =
-            `${this.appSettings.nlm.proxyUrl}/esearch` +
-            "?db=pubmed" +
-            "&retmode=json" +
-            "&term=" +
-            encodeURIComponent(this.query) +
-            `&retmax=${this.queryResults}`;
+          const esearchParams = new URLSearchParams({
+            db: "pubmed",
+            retmode: "json",
+            term: this.query,
+            retmax: this.queryResults,
+          });
 
           try {
-            const response = await axios.get(baseUrl, {
-              retry: 3, // Number of retries
-            });
+            const response = await axios.post(
+              `${this.appSettings.nlm.proxyUrl}/esearch`,
+              esearchParams.toString(),
+              {
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                retry: 3, // Number of retries
+              }
+            );
 
             const ids = response.data.esearchresult.idlist;
             if (ids && ids.length > 0) {

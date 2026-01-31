@@ -21,7 +21,7 @@ if ($allowedOrigin) {
     // Fallback: allow all origins for GET requests (public API data)
     header('Access-Control-Allow-Origin: *');
 }
-header('Access-Control-Allow-Methods: GET, OPTIONS');
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 header('Content-Type: application/json');
 
@@ -32,22 +32,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // Build NLM API URL with server-side credentials
-$params = $_GET;
+$params = $_SERVER['REQUEST_METHOD'] === 'POST' ? $_POST : $_GET;
+if (empty($params)) {
+    $rawInput = file_get_contents('php://input');
+    if (!empty($rawInput)) {
+        parse_str($rawInput, $params);
+    }
+}
+if (empty($params)) {
+    $params = $_GET;
+}
 $params['api_key'] = NLM_API_KEY;
 $params['email'] = NLM_EMAIL;
 $params['tool'] = 'QuickPubMed';
 $params['db'] = $params['db'] ?? 'pubmed';
 $params['retmode'] = $params['retmode'] ?? 'json';
 
-$url = NLM_BASE_URL . '/esearch.fcgi?' . http_build_query($params);
+$url = NLM_BASE_URL . '/esearch.fcgi';
 
-// Make request to NLM
+// Make request to NLM (use POST to avoid long URL issues)
 $ch = curl_init($url);
 curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_FOLLOWLOCATION => true,
     CURLOPT_TIMEOUT => 30,
-    CURLOPT_USERAGENT => 'QuickPubMed/1.0'
+    CURLOPT_USERAGENT => 'QuickPubMed/1.0',
+    CURLOPT_POST => true,
+    CURLOPT_POSTFIELDS => http_build_query($params),
+    CURLOPT_HTTPHEADER => ['Content-Type: application/x-www-form-urlencoded']
 ]);
 
 $response = curl_exec($ch);

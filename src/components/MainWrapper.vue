@@ -1461,8 +1461,10 @@
             term: query,
           });
 
-          const esearchResponse = await axios.get(
-            `${nlm.proxyUrl}/esearch?${esearchParams}`
+          const esearchResponse = await axios.post(
+            `${nlm.proxyUrl}/esearch`,
+            esearchParams.toString(),
+            { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
           );
 
           const idList = esearchResponse.data.esearchresult.idlist.filter(Boolean);
@@ -1573,8 +1575,10 @@
           });
 
           // Perform the ESearch API request to retrieve PubMed IDs
-          const esearchResponse = await axios.get(
-            `${nlm.proxyUrl}/esearch?${esearchParams}`
+          const esearchResponse = await axios.post(
+            `${nlm.proxyUrl}/esearch`,
+            esearchParams.toString(),
+            { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
           );
 
           // Extract and filter the list of PubMed IDs
