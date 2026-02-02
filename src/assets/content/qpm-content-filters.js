@@ -421,7 +421,7 @@ export const filtrer = [
           dk: 3, 
           en: 3 
         },
-        simpleSearch: false,
+        simpleSearch: true,
         standardSimple: false,
         searchStrings: {
           normal: [

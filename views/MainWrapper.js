@@ -47,15 +47,24 @@ mainWrapperDivs.forEach((mainWrapperDiv, index) => {
   const domain = mainWrapperDiv.dataset.domain !== undefined ? mainWrapperDiv.dataset.domain : null;
   const useAI = mainWrapperDiv.dataset.useAI === "true";
   const useAISummarizer = mainWrapperDiv.dataset.useAISummarizer === "true";
+  const openFilters = mainWrapperDiv.dataset.openFilters === "true";
 
-  let parsedHideTopics = [];
-  if (mainWrapperDiv.dataset.hideTopics) {
+  const parseDatasetList = (value, label) => {
+    if (!value) return [];
     try {
-      parsedHideTopics = JSON.parse(mainWrapperDiv.dataset.hideTopics.replace(/'/g, '"'));
+      const parsed = JSON.parse(value.replace(/'/g, '"'));
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter((item) => typeof item === "string" && item.trim() !== "");
     } catch (e) {
-      console.warn('Could not parse hideTopics dataset:', e);
+      console.warn(`Could not parse ${label} dataset:`, e);
+      return [];
     }
-  }
+  };
+
+  const parsedHideTopics = parseDatasetList(mainWrapperDiv.dataset.hideTopics, "hideTopics");
+  const parsedHideLimits = parseDatasetList(mainWrapperDiv.dataset.hideLimits, "hideLimits");
+  const parsedCheckLimits = parseDatasetList(mainWrapperDiv.dataset.checkLimits, "checkLimits");
+  const parsedOrderLimits = parseDatasetList(mainWrapperDiv.dataset.orderLimits, "orderLimits");
   const language = mainWrapperDiv.dataset.language || undefined;
   const componentNo = mainWrapperDiv.dataset.componentNo || undefined;
 
@@ -81,6 +90,10 @@ mainWrapperDivs.forEach((mainWrapperDiv, index) => {
       h(MainWrapper, {
         props: {
           hideTopics: parsedHideTopics,
+          hideLimits: parsedHideLimits,
+          checkLimits: parsedCheckLimits,
+          orderLimits: parsedOrderLimits,
+          openFilters: openFilters,
           language: language,
           componentNo: componentNo,
           domain: domain,

@@ -77,7 +77,7 @@
 
             <!-- The radio buttons for filters to be included in the simple search -->
             <simple-search-filters
-              v-if="!advanced && hasSubjects"
+              v-if="!advanced && showSimpleFilters"
               :advanced="advanced"
               :filtered-choices="filteredChoices"
               :filter-data="filterData"
@@ -181,6 +181,22 @@
         type: Array,
         default: () => []
       },
+      hideLimits: {
+        type: Array,
+        default: () => []
+      },
+      checkLimits: {
+        type: Array,
+        default: () => []
+      },
+      orderLimits: {
+        type: Array,
+        default: () => []
+      },
+      openFilters: {
+        type: Boolean,
+        default: false,
+      },
       hideFilters: {
         type: Array,
         default() {
@@ -227,14 +243,48 @@
         subjects: [[]],
         translating: false,
         dropdownPlaceholders: [],
+        openFiltersFromUrl: false,
+        urlHideLimits: [],
+        urlCheckLimits: [],
+        urlOrderLimits: [],
       };
     },
     computed: {
+      effectiveHideLimits() {
+        return this.urlHideLimits.length > 0 ? this.urlHideLimits : this.hideLimits;
+      },
+      effectiveCheckLimits() {
+        return this.urlCheckLimits.length > 0 ? this.urlCheckLimits : this.checkLimits;
+      },
+      effectiveOrderLimits() {
+        return this.urlOrderLimits.length > 0 ? this.urlOrderLimits : this.orderLimits;
+      },
+      showSimpleFilters() {
+        return this.hasSubjects || this.openFiltersFromUrl || this.openFilters;
+      },
       filteredChoices() {
-        return this.filterOptions.map((option) => ({
-          ...option,
-          choices: option.choices.filter((choice) => choice.simpleSearch),
-        }));
+        const hiddenGroupIds = new Set(this.effectiveHideLimits);
+        const orderMap = new Map(
+          (this.effectiveOrderLimits || []).map((id, index) => [id, index])
+        );
+        return this.filterOptions.map((option) => {
+          if (hiddenGroupIds.has(option.id)) {
+            return { ...option, choices: [] };
+          }
+          const choices = option.choices.filter(
+            (choice) => choice.simpleSearch && !this.effectiveHideLimits.includes(choice.id)
+          );
+          if (orderMap.size === 0) {
+            return { ...option, choices };
+          }
+          const ordered = [...choices].sort((a, b) => {
+            const aIndex = orderMap.has(a.id) ? orderMap.get(a.id) : Number.POSITIVE_INFINITY;
+            const bIndex = orderMap.has(b.id) ? orderMap.get(b.id) : Number.POSITIVE_INFINITY;
+            if (aIndex === bIndex) return 0;
+            return aIndex - bIndex;
+          });
+          return { ...option, choices: ordered };
+        });
       },
       hasAvailableTopics() {
         if (!this.subjectOptions || this.subjectOptions.length === 0) {
@@ -410,11 +460,23 @@
 
       this.prepareFilterOptions();
       this.prepareSubjectOptions();
+
+        if (
+          !this.advanced &&
+          (this.openFiltersFromUrl || this.openFilters || this.urlCheckLimits.length > 0) &&
+          Object.keys(this.filterData).length === 0
+        ) {
+        this.selectStandardSimple();
+        this.isFirstFill = false;
+      }
       
       this.advanced = !this.advanced;
       this.advancedClick();
-      await this.search();
-      await this.searchPreselectedPmidai();
+      this.ensureCheckLimitsSelected();
+      if (this.hasSubjects) {
+        await this.search();
+        await this.searchPreselectedPmidai();
+      }
       
       // Silent focus på det første input-felt når formularen er indlæst
       this.$nextTick(() => {
@@ -665,8 +727,9 @@
         urlParams.forEach((value, key) => {
           // Split multiple values separated by ';;'
           const values = value.split(";;");
+          const keyLower = key.toLowerCase();
 
-          switch (key) {
+          switch (keyLower) {
             case "subject":
               this.processSubjects(values);
               break;
@@ -688,12 +751,30 @@
               this.scrollToID = `#${value}`;
               break;
 
-            case "pageSize":
+            case "pagesize":
               this.pageSize = parseInt(value, 10);
               break;
 
             case "pmidai":
               this.preselectedPmidai = values;
+              break;
+
+            case "openfilters": {
+              const normalized = value.trim().toLowerCase();
+              this.openFiltersFromUrl = normalized === "true" || normalized === "1";
+              break;
+            }
+
+            case "hidelimits":
+              this.urlHideLimits = this.parseIdList(values);
+              break;
+
+            case "checklimits":
+              this.urlCheckLimits = this.parseIdList(values);
+              break;
+
+            case "orderlimits":
+              this.urlOrderLimits = this.parseIdList(values);
               break;
 
             default:
@@ -706,6 +787,13 @@
         if (this.subjects.length === 0) {
           this.subjects = [[]];
         }
+      },
+      parseIdList(values) {
+        if (!Array.isArray(values)) return [];
+        return values
+          .map((value) => value.trim())
+          .filter((value) => value !== "")
+          .map((value) => value.toUpperCase());
       },
       /**
        * Processes the 'subject' parameters from the URL and populates the subjects array.
@@ -737,10 +825,12 @@
             return;
           }
 
+          const normalizedId = id.toUpperCase();
+
           // Find the subject in subjectOptions
           this.subjectOptions.forEach((subjectOption) => {
             subjectOption.groups.forEach((group) => {
-              if (group.id === id) {
+              if (group.id === normalizedId) {
                 const tmp = { ...group, scope: scopeIds[scope] };
                 const lg = this.language;
                 if (tmp.translations[lg]?.startsWith("-")) {
@@ -763,8 +853,9 @@
        * @param {string[]} values - An array of filter values extracted from the URL.
        */
       processFilter(key, values) {
+        const normalizedKey = key.toUpperCase();
         // Find the filter group
-        const filterGroup = this.filterOptions.find((filter) => filter.id === key);
+        const filterGroup = this.filterOptions.find((filter) => filter.id === normalizedKey);
         if (!filterGroup) return;
 
         if (!this.filters.includes(filterGroup)) {
@@ -802,12 +893,20 @@
           }
 
           // Find the filter choice
-          const choice = filterGroup.choices.find((item) => item.id === id);
+          const normalizedId = id.toUpperCase();
+          const choice = filterGroup.choices.find((item) => item.id === normalizedId);
           if (!choice) {
             console.warn(`parseUrl: Choice with id "${id}" not found.`);
             return;
           }
 
+          if (
+            !this.advanced &&
+            (this.effectiveHideLimits.includes(filterGroup.id) ||
+              this.effectiveHideLimits.includes(choice.id))
+          ) {
+            return;
+          }
           if (this.isUrlParsed && !this.advanced && !choice.simpleSearch) return;
 
           const tmp = { ...choice, scope: scopeIds[scope] };
@@ -839,7 +938,7 @@
 
         // If there are no subjects selected, return the base URL without parameters
 
-        if (!this.hasSubjects) {
+        if (!this.hasSubjects && !this.openFiltersFromUrl && !this.openFilters) {
           return baseUrl;
         }
 
@@ -849,16 +948,23 @@
         const advancedStr = `&advanced=${this.advanced}`;
         const sorter = `&sort=${encodeURIComponent(this.sort.method)}`;
         const collapsedStr = `&collapsed=${this.isCollapsed}`;
-        const pageSizeStr = `&pageSize=${this.pageSize}`;
+        const pageSizeStr = `&pagesize=${this.pageSize}`;
         const pmidaiStr = `&pmidai=${(this.preselectedPmidai ?? []).join(";;")}`;
         const scrolltoStr = this.scrollToID
           ? `&scrollto=${encodeURIComponent(this.scrollToID)}`
           : "";
+        const openFiltersStr = this.openFiltersFromUrl ? `&openfilters=true` : "";
+        const hideLimitsStr =
+          this.urlHideLimits.length > 0 ? `&hidelimits=${this.urlHideLimits.join(";;")}` : "";
+        const checkLimitsStr =
+          this.urlCheckLimits.length > 0 ? `&checklimits=${this.urlCheckLimits.join(";;")}` : "";
+        const orderLimitsStr =
+          this.urlOrderLimits.length > 0 ? `&orderlimits=${this.urlOrderLimits.join(";;")}` : "";
 
         // Assemble the full URL with all query parameters
-        const urlLink = `${baseUrl}?${subjectsStr}${filterStr}${advancedStr}${pmidaiStr}${sorter}${collapsedStr}${pageSizeStr}${scrolltoStr}`;
+        const urlLink = `${baseUrl}?${subjectsStr}${filterStr}${advancedStr}${pmidaiStr}${sorter}${collapsedStr}${pageSizeStr}${scrolltoStr}${openFiltersStr}${hideLimitsStr}${checkLimitsStr}${orderLimitsStr}`;
 
-        return urlLink;
+        return urlLink.replace("?&", "?");
       },
       /**
        * Constructs the query string for subjects based on selected subjects.
@@ -1207,11 +1313,23 @@
       selectStandardSimple() {
         const self = this;
         const filtersToSelect = [];
+        const useCheckLimits =
+          Array.isArray(self.effectiveCheckLimits) && self.effectiveCheckLimits.length > 0;
+        const hiddenGroupIds = new Set(self.effectiveHideLimits);
         for (let i = 0; i < self.filterOptions.length; i++) {
           const option = self.filterOptions[i];
+          if (hiddenGroupIds.has(option.id)) {
+            continue;
+          }
           for (let j = 0; j < option.choices.length; j++) {
             const choice = option.choices[j];
-            if (choice.standardSimple) {
+            if (self.effectiveHideLimits.includes(choice.id)) {
+              continue;
+            }
+            const shouldSelect = useCheckLimits
+              ? self.effectiveCheckLimits.includes(choice.id)
+              : choice.standardSimple;
+            if (shouldSelect) {
               const filterValue = Object.assign({ scope: "normal" }, choice);
               filtersToSelect.push({
                 option: option,
@@ -1231,12 +1349,29 @@
           if (!tempFilters[filterType]) {
             tempFilters[filterType] = [filtervalue];
             this.filters.push(filterToSelect.option);
-          } else if (!tempFilters[filterType].includes(filtervalue)) {
+          } else if (!tempFilters[filterType].some((item) => item.id === filtervalue.id)) {
             // Else add value to existing array of filter values.
             tempFilters[filterType].push(filtervalue);
           }
         }
         this.filterData = tempFilters;
+      },
+      ensureCheckLimitsSelected() {
+        if (this.advanced) return;
+        if (!this.effectiveCheckLimits || this.effectiveCheckLimits.length === 0) return;
+
+        const selectedIds = new Set();
+        Object.values(this.filterData).forEach((values) => {
+          if (!Array.isArray(values)) return;
+          values.forEach((item) => {
+            if (item && item.id) selectedIds.add(item.id);
+          });
+        });
+
+        const hasAll = this.effectiveCheckLimits.every((id) => selectedIds.has(id));
+        if (!hasAll) {
+          this.selectStandardSimple();
+        }
       },
       /**
        * Updates the scope filter for a given item.
@@ -1340,6 +1475,14 @@
         this.advancedString = false;
         this.isFirstFill = true;
         this.sort = order[0];
+
+        if (
+          !this.advanced &&
+          (this.openFiltersFromUrl || this.openFilters || this.effectiveCheckLimits.length > 0)
+        ) {
+          this.selectStandardSimple();
+          this.isFirstFill = false;
+        }
 
         // Reset expanded groups in dropdown. Only need to do first as the other dropdowns are deleted
         const subjectDropdown = this.$refs.subjectSelection.$refs.subjectDropdown;
