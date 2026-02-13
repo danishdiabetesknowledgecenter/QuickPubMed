@@ -38,7 +38,7 @@ export const questionHeaderHeightWatcherMixin = {
     this.updateHeaderHeights();
     window.addEventListener("resize", this.updateHeaderHeights);
   },
-  beforeDestroy() {
+  beforeUnmount() {
     window.removeEventListener("resize", this.updateHeaderHeights);
   },
   methods: {

@@ -1,27 +1,32 @@
 /**
- * Represents a topic in the application.
+ * Represents a topic category (e.g. "Skabelonkategori", "Diabetestype").
+ *
  * @typedef {Object} Topic
- * @property {string} id - The unique identifier of the topic.
- * @property {string} groupname - The name of the topic group.
- * @property {Object} translations - The translations for different languages.
- * @property {Object} ordering - The ascending sorting order, starting at 0.
- * @property {Array<SubGroup>} groups - The subgroups associated with the topic.
+ * @property {string} id - Unique identifier for the category.
+ * @property {string} groupname - Internal group name (used as CSS class).
+ * @property {Object} translations - Display names per language ({ dk, en }).
+ * @property {Object} ordering - Sort order per language ({ dk: number, en: number }).
+ * @property {Array<SubGroup>} groups - Items in this category (nested tree structure).
  */
 
 /**
- * Represents a subject group within a topic.
+ * Represents an item within a topic category.
+ *
+ * Items use a nested tree structure via the `children` property (unlimited depth).
+ * At runtime, `flattenTopicGroups()` (in topicLoaderMixin.js) converts the tree
+ * into a flat array and auto-generates all hierarchy metadata needed by the UI.
+ *
  * @typedef {Object} SubGroup
- * @property {string} id - The unique identifier of the subject group.
- * @property {string} name - The name of the subject group.
- * @property {boolean} buttons - Indicates if buttons are used.
- * @property {boolean} [maintopic] - Indicates if this is branch topic with children.
- * @property {number} [subtopiclevel] - The level of nesting for the child topic.
- * @property {string} [maintopicIdLevel1] - The ID of the parent topic.
- * @property {string} [maintopicIdLevel2] - The ID of the grand parent topic.
- * @property {Object} translations - The translations for different languages.
- * @property {Object} ordering - The ascending sorting order, starting at 0.
- * @property {Object} [searchStrings] - Search strings for different scopes.
- * @property {Object} [searchStringComment] - Comments about the search strings.
+ * @property {string} id - Unique identifier for the item.
+ * @property {string} name - Internal name (used as CSS class for search-string toggle).
+ * @property {boolean} buttons - Whether scope buttons are used.
+ * @property {Object} translations - Display names per language ({ dk, en }).
+ * @property {Object} [ordering] - Optional manual sort order. If omitted, auto-generated.
+ * @property {Array<SubGroup>} [children] - Nested child items (unlimited depth).
+ * @property {Object} [searchStrings] - Search strings per scope ({ narrow, normal, broad }).
+ *     Each scope is a string or array of strings.
+ * @property {Object} [searchStringComment] - Comments per language ({ dk, en }).
+ * @property {Object} [tooltip] - Tooltip text per language ({ dk, en }).
  */
 /** @type {Array<Topic>} */
 
@@ -45,286 +50,79 @@ export const topics = [
         id: "S000010",
         name: "S000010",
         buttons: true,
-        translations: {
-          dk: "Underemne 1",
-          en: "Subtopic 1",
-        },
-        ordering: {
-          dk: 1,
-          en: 1,
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            'xxx'
-          ],
-          broad: [
-            'xxx'
-          ],
-        },
-        searchStringComment: {
-          dk: "Dette er et eksempel på et underemne på niveau 1.",
-          en: "This is an example of a subtopic at level 1.",
-        },
-        tooltip: {
-          dk: "Dette er et eksempel på et underemne på niveau 1.",
-          en: "This is an example of a subtopic at level 1.",
-        },
+        translations: { dk: "Underemne 1", en: "Subtopic 1" },
+        ordering: { dk: 1, en: 1 },
+        searchStrings: { narrow: ['xxx'], normal: ['xxx'], broad: ['xxx'] },
+        searchStringComment: { dk: "Dette er et eksempel på et underemne på niveau 1.", en: "This is an example of a subtopic at level 1." },
+        tooltip: { dk: "Dette er et eksempel på et underemne på niveau 1.", en: "This is an example of a subtopic at level 1." },
       },
       {
         id: "S000020",
         name: "S000020",
         buttons: true,
-        maintopic: true, // Angiver at dette element er en branch og har children elementer
-        translations: {
-          dk: "Underemne 2",
-          en: "Subtopic 2",
-        },
-
-        ordering: {
-          dk: 2,
-          en: 2,
-        },
-        searchStringComment: {
-          dk: "Dette er et eksempel på et underemne på niveau 1, som har under&shy;liggende emner (indikeret med en pil). Klik for at se under&shy;liggende emner.",
-          en: "This is an example of a subtopic at level 1, that has subtopics underneath (indicated with an arrow). Click to see the subtopics.",
-        },
-        tooltip: {
-          dk: "Dette er et eksempel på et underemne på niveau 1, som har under&shy;liggende emner (indikeret med en pil). Klik for at se under&shy;liggende emner.",
-          en: "This is an example of a subtopic at level 1, that has subtopics underneath (indicated with an arrow). Click to see the subtopics.",
-        },
-      },
-      {
-        id: "S000020010",
-        name: "S000020010",
-        buttons: true,
-        maintopic: true, // Angiver at dette element er en branch og har children elementer
-        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midderste niveau)
-        maintopicIdLevel1: "S000020", // Angiver at dette element har et parent med dette id. (Emne 2)
-        translations: {
-          dk: "Underemne 2.1",
-          en: "Subtopic 2.1",
-        },
-        ordering: {
-          dk: 3,
-          en: 3,
-        },
-        searchStringComment: {
-          dk: "Dette er et eksempel på et underemne på niveau 2, som også har et under&shy;liggende emne (indikeret med en pil). Klik for at se under&shy;liggende emner.",
-          en: "This is an example of a subtopic at level 2, that also has a subtopic underneath (indicated with an arrow). Click to see the subtopics.",
-        },
-        tooltip: {
-          dk: "Dette er et eksempel på et underemne på niveau 2, som også har et under&shy;liggende emne (indikeret med en pil). Klik for at se under&shy;liggende emner.",
-          en: "This is an example of a subtopic at level 2, that also has a subtopic underneath (indicated with an arrow). Click to see the subtopics.",
-        },
-      },
-      {
-        id: "S000020010010",
-        name: "S000020010010",
-        buttons: true,
-        subtopiclevel: 2, // Angiver at dette punkt ligger på 2. niveau (nedereste niveau)
-        maintopicIdLevel1: "S000020010", // Angiver at dette element har et parent med dette id. (Emne 2.1)
-        maintopicIdLevel2: "S000020", // Angiver at dette element har et grandparent med dette id (Emne 2)
-        translations: {
-          dk: "Underemne 2.1.1",
-          en: "Subtopic 2.1.1",
-        },
-        ordering: {
-          dk: 4,
-          en: 4,
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            'xxx'
-          ],
-          broad: [
-            'xxx'
-          ],
-        },
-        searchStringComment: {
-          dk: "Dette er et eksempel på et underemne på niveau 3, som er det dybteste niveau i denne rullemenu.",
-          en: "This is an example of a subtopic at level 3, which is the deepest level in this dropdown menu.",
-        },
-        tooltip: {
-          dk: "Dette er et eksempel på et underemne på niveau 3, som er det dybteste niveau i denne rullemenu.",
-          en: "This is an example of a subtopic at level 3, which is the deepest level in this dropdown menu.",
-        },
-
-      },
-      {
-        id: "S000020010020",
-        name: "S000020010020",
-        buttons: true,
-        subtopiclevel: 2, // Angiver at dette punkt ligger på 3. niveau
-        maintopicIdLevel1: "S000020010", // Angiver at dette element har et parent med dette id. (Emne 2.1)
-        maintopicIdLevel2: "S000020", // Angiver at dette element har et grandparent med dette id (Emne 2)
-        translations: {
-          dk: "Underemne 2.1.2",
-          en: "Subtopic 2.1.2",
-        },
-        ordering: {
-          dk: 5,
-          en: 5,
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            'xxx'
-          ],
-          broad: [
-            'xxx'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
-      },
-      {
-        id: "S000020010030",
-        name: "S000020010030",
-        buttons: true,
-        subtopiclevel: 2, // Angiver at dette punkt ligger på 3. niveau
-        maintopicIdLevel1: "S000020010", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
-        maintopicIdLevel2: "S000020", // Angiver at dette er punktet på 2. niveau til punktet med det angivne name.
-        translations: {
-          dk: "Underemne 2.1.3",
-          en: "Subtopic 2.1.3",
-        },
-        ordering: {
-          dk: 6,
-          en: 6,
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            'xxx'
-          ],
-          broad: [
-            'xxx'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
-      },
-      {
-        id: "S000020020",
-        name: "S000020020",
-        buttons: true,
-        subtopiclevel: 1, // Angiver at dette punkt ligger på 2. niveau
-        maintopicIdLevel1: "S000020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
-        translations: {
-          dk: "Underemne 2.2",
-          en: "Subtopic 2.2",
-        },
-        ordering: {
-          dk: 7,
-          en: 7,
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            'xxx'
-          ],
-          broad: [
-            'xxx'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
-      },
-      {
-        id: "S000020030",
-        name: "S000020030",
-        buttons: true,
-        subtopiclevel: 1, // Angiver at dette punkt ligger på 2. niveau
-        maintopicIdLevel1: "S000020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
-        translations: {
-          dk: "Underemne 2.3",
-          en: "Subtopic 2.3",
-        },
-        ordering: {
-          dk: 8,
-          en: 8,
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            'xxx'
-          ],
-          broad: [
-            'xxx'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
+        translations: { dk: "Underemne 2", en: "Subtopic 2" },
+        ordering: { dk: 2, en: 2 },
+        searchStringComment: { dk: "Dette er et eksempel på et underemne på niveau 1, som har under&shy;liggende emner (indikeret med en pil). Klik for at se under&shy;liggende emner.", en: "This is an example of a subtopic at level 1, that has subtopics underneath (indicated with an arrow). Click to see the subtopics." },
+        tooltip: { dk: "Dette er et eksempel på et underemne på niveau 1, som har under&shy;liggende emner (indikeret med en pil). Klik for at se under&shy;liggende emner.", en: "This is an example of a subtopic at level 1, that has subtopics underneath (indicated with an arrow). Click to see the subtopics." },
+        children: [
+          {
+            id: "S000020010",
+            name: "S000020010",
+            buttons: true,
+            translations: { dk: "Underemne 2.1", en: "Subtopic 2.1" },
+            ordering: { dk: 3, en: 3 },
+            searchStringComment: { dk: "Dette er et eksempel på et underemne på niveau 2, som også har et under&shy;liggende emne (indikeret med en pil). Klik for at se under&shy;liggende emner.", en: "This is an example of a subtopic at level 2, that also has a subtopic underneath (indicated with an arrow). Click to see the subtopics." },
+            tooltip: { dk: "Dette er et eksempel på et underemne på niveau 2, som også har et under&shy;liggende emne (indikeret med en pil). Klik for at se under&shy;liggende emner.", en: "This is an example of a subtopic at level 2, that also has a subtopic underneath (indicated with an arrow). Click to see the subtopics." },
+            children: [
+              {
+                id: "S000020010010", name: "S000020010010", buttons: true,
+                translations: { dk: "Underemne 2.1.1", en: "Subtopic 2.1.1" },
+                ordering: { dk: 4, en: 4 },
+                searchStrings: { narrow: ['xxx'], normal: ['xxx'], broad: ['xxx'] },
+                searchStringComment: { dk: "Dette er et eksempel på et underemne på niveau 3, som er det dybteste niveau i denne rullemenu.", en: "This is an example of a subtopic at level 3, which is the deepest level in this dropdown menu." },
+                tooltip: { dk: "Dette er et eksempel på et underemne på niveau 3, som er det dybteste niveau i denne rullemenu.", en: "This is an example of a subtopic at level 3, which is the deepest level in this dropdown menu." },
+              },
+              {
+                id: "S000020010020", name: "S000020010020", buttons: true,
+                translations: { dk: "Underemne 2.1.2", en: "Subtopic 2.1.2" },
+                ordering: { dk: 5, en: 5 },
+                searchStrings: { narrow: ['xxx'], normal: ['xxx'], broad: ['xxx'] },
+                searchStringComment: { dk: "", en: "" }, tooltip: { dk: "", en: "" },
+              },
+              {
+                id: "S000020010030", name: "S000020010030", buttons: true,
+                translations: { dk: "Underemne 2.1.3", en: "Subtopic 2.1.3" },
+                ordering: { dk: 6, en: 6 },
+                searchStrings: { narrow: ['xxx'], normal: ['xxx'], broad: ['xxx'] },
+                searchStringComment: { dk: "", en: "" }, tooltip: { dk: "", en: "" },
+              },
+            ],
+          },
+          {
+            id: "S000020020", name: "S000020020", buttons: true,
+            translations: { dk: "Underemne 2.2", en: "Subtopic 2.2" },
+            ordering: { dk: 7, en: 7 },
+            searchStrings: { narrow: ['xxx'], normal: ['xxx'], broad: ['xxx'] },
+            searchStringComment: { dk: "", en: "" }, tooltip: { dk: "", en: "" },
+          },
+          {
+            id: "S000020030", name: "S000020030", buttons: true,
+            translations: { dk: "Underemne 2.3", en: "Subtopic 2.3" },
+            ordering: { dk: 8, en: 8 },
+            searchStrings: { narrow: ['xxx'], normal: ['xxx'], broad: ['xxx'] },
+            searchStringComment: { dk: "", en: "" }, tooltip: { dk: "", en: "" },
+          },
+        ],
       },
       {
         id: "S000030",
         name: "S000030",
         buttons: false,
-        translations: {
-          dk: "Underemne 3",
-          en: "Subtopic 3",
-        },
-        ordering: {
-          dk: 9,
-          en: 9,
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            'xxx'
-          ],
-          broad: [
-            'xxx'
-          ],
-        },
-        searchStringComment: {
-          dk: "Dette er et eksempel på, at de tre valgmuligheder 'Smal', 'Normal' og 'Bred' ikke vises i avanceret søgning.",
-          en: "This is an example of, that the three options 'Narrow', 'Standard' and 'Broad' are not shown in advanced search.",
-        },
-        tooltip: {
-          dk: "Dette er et eksempel på, at de tre valgmuligheder 'Smal', 'Normal' og 'Bred' ikke vises i avanceret søgning.",
-          en: "This is an example of, that the three options 'Narrow', 'Standard' and 'Broad' are not shown in advanced search.",
-        },
+        translations: { dk: "Underemne 3", en: "Subtopic 3" },
+        ordering: { dk: 9, en: 9 },
+        searchStrings: { narrow: ['xxx'], normal: ['xxx'], broad: ['xxx'] },
+        searchStringComment: { dk: "Dette er et eksempel på, at de tre valgmuligheder 'Smal', 'Normal' og 'Bred' ikke vises i avanceret søgning.", en: "This is an example of, that the three options 'Narrow', 'Standard' and 'Broad' are not shown in advanced search." },
+        tooltip: { dk: "Dette er et eksempel på, at de tre valgmuligheder 'Smal', 'Normal' og 'Bred' ikke vises i avanceret søgning.", en: "This is an example of, that the three options 'Narrow', 'Standard' and 'Broad' are not shown in advanced search." },
       },
     ],
     tooltip: {

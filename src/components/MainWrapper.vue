@@ -55,24 +55,23 @@
               @toggle-filter="toggle"
             />
 
-            <!-- The dropdown for selecting filters to be included in the advanced search -->
+            <!-- The dropdown(s) for selecting filters to be included in the advanced search -->
             <advanced-search-filters
-              v-if="advanced && hasSubjects"
+              v-if="advanced && (hasSubjects || openFiltersFromUrl || openFilters)"
               ref="advancedSearchFilters"
               :advanced="advanced"
-              :show-filter="showFilter"
               :filter-options="filterOptions"
+              :filter-dropdowns="filterDropdowns"
               :hide-topics="hideTopics"
-              :show-title="showTitle"
               :language="language"
               :search-with-a-i="searchWithAI"
               :get-string="getString"
-              :filter-data="filterData"
-              :filters="filters"
-              @update-advanced-filter="updateFilters"
-              @update-advanced-filter-entry="updateFilterAdvanced"
-              @update-advanced-filter-scope="updateAdvancedFilterScope"
-              @remove-filter-item="removeFilterItem"
+              :get-filter-placeholder="getFilterDropdownPlaceholder"
+              @update-filter-dropdown="updateFilterDropdown"
+              @update-filter-scope="updateFilterDropdownScope"
+              @update-filter-placeholder="updateFilterPlaceholder"
+              @add-filter-dropdown="addFilterDropdown"
+              @remove-filter-dropdown="removeFilterDropdown"
             />
 
             <!-- The radio buttons for filters to be included in the simple search -->
@@ -96,6 +95,7 @@
           <worded-search-string
             :subjects="subjects"
             :filters="filterData"
+            :filter-dropdowns="filterDropdowns"
             :searchstring="getSearchString"
             :is-collapsed="isCollapsed"
             :details="details"
@@ -133,6 +133,7 @@
         :high="getHigh"
         :preselected-entries="preselectedEntries"
         :error="searchError"
+        :search-intent="searchIntent"
         @newPageSize="setPageSize"
         @newSortMethod="newSortMethod"
         @high="nextPage"
@@ -157,9 +158,9 @@
 
   import { order } from "@/assets/content/qpm-content-order.js";
   import { filtrer } from "@/assets/content/qpm-content-filters.js";
-  import { messages } from "@/assets/content/qpm-translations.js";
-  import { topicLoaderMixin } from "@/mixins/topicLoaderMixin.js";
+  import { topicLoaderMixin, flattenTopicGroups } from "@/mixins/topicLoaderMixin.js";
   import { appSettingsMixin } from "@/mixins/appSettings";
+  import { utilitiesMixin } from "@/mixins/utilities";
   import { scopeIds, customInputTagTooltip } from "@/utils/qpm-content-helpers.js";
 
   export default {
@@ -175,7 +176,7 @@
       WordedSearchString,
       SearchResult,
     },
-    mixins: [appSettingsMixin, topicLoaderMixin],
+    mixins: [appSettingsMixin, topicLoaderMixin, utilitiesMixin],
     props: {
       hideTopics: {
         type: Array,
@@ -219,6 +220,7 @@
         count: 0,
         details: true,
         filterData: {},
+        filterDropdowns: [[]],
         filterOptions: [],
         filters: [],
         focusNextDropdownOnMount: false,
@@ -243,6 +245,11 @@
         subjects: [[]],
         translating: false,
         dropdownPlaceholders: [],
+        translatingStepKey: null,
+        translatingIndex: -1,
+        translatingSource: null,
+        loadingDots: 1,
+        placeholderDotsIntervalId: null,
         openFiltersFromUrl: false,
         urlHideLimits: [],
         urlCheckLimits: [],
@@ -333,14 +340,52 @@
           section.groups && section.groups.length > 0
         );
       },
-      showTitle() {
-        if (this.filters.length < this.filterOptions.length) {
-          return this.getString("choselimits");
-        }
-        return "";
+      hasFilterSelections() {
+        return this.filterDropdowns.some((dropdown) => dropdown.length > 0);
       },
       hasSubjects() {
         return this.subjects.some((subjectArray) => subjectArray.length > 0);
+      },
+      /**
+       * Derives the user's search intention from subjects and filters.
+       * Uses original user input (preTranslation) for AI-translated terms,
+       * or display names (translations) for predefined topics.
+       * Preserves logical structure: ELLER within groups, OG between groups.
+       */
+      searchIntent() {
+        const getItemLabel = (item) => {
+          if (item.preTranslation) return item.preTranslation;
+          if (item.translations && item.translations[this.language]) return item.translations[this.language];
+          if (item.name) return item.name;
+          return "";
+        };
+
+        // Build subject intent with logical operators
+        const subjectGroups = this.subjects
+          .filter((group) => group.length > 0)
+          .map((group) => {
+            const labels = group.map(getItemLabel).filter(Boolean);
+            if (labels.length === 0) return "";
+            if (labels.length === 1) return labels[0];
+            return "(" + labels.join(" ELLER ") + ")";
+          })
+          .filter(Boolean);
+
+        // Build filter intent with logical operators
+        const filterGroups = this.filterDropdowns
+          .filter((group) => group.length > 0)
+          .map((group) => {
+            const labels = group.map(getItemLabel).filter(Boolean);
+            if (labels.length === 0) return "";
+            if (labels.length === 1) return labels[0];
+            return "(" + labels.join(" ELLER ") + ")";
+          })
+          .filter(Boolean);
+
+        const allGroups = [...subjectGroups, ...filterGroups];
+        if (allGroups.length === 0) return "";
+        if (allGroups.length === 1) return allGroups[0];
+        return allGroups.join(" OG ");
       },
       getSearchString() {
         const hasLogicalOperators = (searchStrings) =>
@@ -397,27 +442,51 @@
           }
         });
 
-        Object.keys(this.filterData).forEach((key) => {
-          const filterGroup = this.filterData[key];
-          const hasOperators = filterGroup.some((item) =>
-            item.searchStrings && 
-            item.scope && 
-            item.searchStrings[item.scope] && 
-            item.searchStrings[item.scope][0] &&
-            hasLogicalOperators(item.searchStrings[item.scope][0])
-          );
+        if (this.advanced) {
+          // Advanced mode: process filterDropdowns per-dropdown
+          // All items in same dropdown = OR, between dropdowns = AND
+          this.filterDropdowns.forEach((dropdownItems) => {
+            if (dropdownItems.length === 0) return;
 
-          let substring = " AND ";
-          if (hasOperators || filterGroup.length > 1) substring += "(";
+            const hasOperators = dropdownItems.some((item) =>
+              item.searchStrings &&
+              item.scope &&
+              item.searchStrings[item.scope] &&
+              item.searchStrings[item.scope][0] &&
+              hasLogicalOperators(item.searchStrings[item.scope][0])
+            );
 
-          substring += buildSubstring(filterGroup);
+            let substring = " AND ";
+            if (hasOperators || dropdownItems.length > 1) substring += "(";
+            substring += buildSubstring(dropdownItems);
+            if (hasOperators || dropdownItems.length > 1) substring += ")";
 
-          if (hasOperators || filterGroup.length > 1) substring += ")";
+            if (substring !== " AND ()" && substring !== " AND ") {
+              substrings.push(substring);
+            }
+          });
+        } else {
+          // Simple mode: use filterData (category-grouped object)
+          Object.keys(this.filterData).forEach((key) => {
+            const filterGroup = this.filterData[key];
+            const hasOperators = filterGroup.some((item) =>
+              item.searchStrings &&
+              item.scope &&
+              item.searchStrings[item.scope] &&
+              item.searchStrings[item.scope][0] &&
+              hasLogicalOperators(item.searchStrings[item.scope][0])
+            );
 
-          if (substring !== " AND ()" && substring !== " AND ") {
-            substrings.push(substring);
-          }
-        });
+            let substring = " AND ";
+            if (hasOperators || filterGroup.length > 1) substring += "(";
+            substring += buildSubstring(filterGroup);
+            if (hasOperators || filterGroup.length > 1) substring += ")";
+
+            if (substring !== " AND ()" && substring !== " AND ") {
+              substrings.push(substring);
+            }
+          });
+        }
 
         return substrings.join("");
       },
@@ -440,13 +509,17 @@
     watch: {
       // Fjernet fejlagtig watch handler for subjectSelection
     },
-    beforeDestroy() {
+    beforeUnmount() {
       // Cleanup focus-visible event listeners
       if (this._focusVisibleCleanup) {
         this._focusVisibleCleanup();
       }
       // Tilføj proper cleanup for resize listener
       window.removeEventListener("resize", this.updateSubjectDropdownWidth);
+      if (this.placeholderDotsIntervalId) {
+        clearInterval(this.placeholderDotsIntervalId);
+        this.placeholderDotsIntervalId = null;
+      }
     },
     async mounted() {
       this.advanced = !this.advanced;
@@ -478,9 +551,17 @@
         await this.searchPreselectedPmidai();
       }
       
-      // Silent focus på det første input-felt når formularen er indlæst
+      // Ensure correct placeholder width after DOM is fully rendered
       this.$nextTick(() => {
         this.$nextTick(() => {
+          this.updateSubjectDropdownWidth();
+          this.updatePlaceholders();
+
+          // Silent focus on the first input — only for the first MainWrapper instance on the page
+          const allWrappers = document.querySelectorAll(".main-wrapper");
+          const isFirstInstance = allWrappers.length === 0 || allWrappers[0] === this.$el || allWrappers[0] === this.$el?.parentElement;
+          if (!isFirstInstance) return;
+
           const firstSubjectDropdown = this.$refs.subjectSelection?.$refs.subjectDropdown?.[0];
           if (firstSubjectDropdown && firstSubjectDropdown.setSilentFocusFromParent) {
             firstSubjectDropdown.setSilentFocusFromParent();
@@ -510,12 +591,10 @@
       initializeFocusVisible() {
         // Find the main wrapper element (where Vue is mounted)
         let appElement = document.getElementById('main-wrapper');
-        console.log('initializeFocusVisible: Looking for main-wrapper element:', appElement);
         
         if (!appElement) {
           // Fallback: try to find the Vue app root element
           appElement = this.$el?.parentElement || document.body;
-          console.log('initializeFocusVisible: Using fallback element:', appElement);
         }
         
         if (!appElement) {
@@ -530,15 +609,12 @@
         appElement.classList.add('qpm_mouse-mode');
         appElement.classList.remove('qpm_keyboard-mode');
         
-        console.log('initializeFocusVisible: Added classes. Element classes:', appElement.className);
-        
         // Switch to keyboard mode on any key press (especially Tab)
         const handleKeyDown = (event) => {
           // Include Tab key specifically for navigation
           if (['Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Space'].includes(event.key)) {
             appElement.classList.add('qpm_keyboard-mode');
             appElement.classList.remove('qpm_mouse-mode');
-            console.log('Switched to keyboard mode:', event.key, 'Classes:', appElement.className);
           }
         };
         
@@ -546,7 +622,6 @@
         const handleMouseDown = () => {
           appElement.classList.add('qpm_mouse-mode');
           appElement.classList.remove('qpm_keyboard-mode');
-          console.log('Switched to mouse mode. Classes:', appElement.className);
         };
         
         // Also switch to mouse mode on mouse movement (when user moves mouse after using keyboard)
@@ -578,15 +653,43 @@
         this.subjectOptions.splice(0);
         this.filterOptions.splice(0);
 
+        // Save pre-reset filterData for migration (before it gets cleared)
+        const preResetFilterData = (!this.alwaysShowFilter && Object.keys(this.filterData).length > 0)
+          ? JSON.parse(JSON.stringify(this.filterData))
+          : null;
+
         // Reset filters if necessary
         if (!this.alwaysShowFilter) {
           this.filterData = {};
           this.filters.splice(0);
+          // Don't reset filterDropdowns here - like subjects, they may contain URL data
         }
 
-        // Prepare options
+        // Prepare options FIRST (needed for getFilterCategoryId in sync)
         this.prepareFilterOptions();
         this.prepareSubjectOptions();
+
+        // Sync between filterData and filterDropdowns on mode switch
+        // (must happen AFTER prepareFilterOptions so getFilterCategoryId works)
+        if (this.advanced && this.filterDropdowns.some((d) => d.length > 0)) {
+          // Entering advanced: filterDropdowns has data → sync to filterData
+          this.syncFilterDataFromDropdowns();
+        } else if (this.advanced && preResetFilterData) {
+          // Entering advanced: filterData had data from simple mode → migrate to filterDropdowns
+          // Each category becomes its own dropdown (AND between categories, OR within)
+          const dropdowns = Object.values(preResetFilterData).filter((arr) => arr.length > 0);
+          this.filterDropdowns = dropdowns.length > 0 ? dropdowns : [[]];
+          this.syncFilterDataFromDropdowns();
+        } else if (this.advanced && Object.keys(this.filterData).length > 0) {
+          // Entering advanced: filterData has data (alwaysShowFilter) → migrate to filterDropdowns
+          const dropdowns = Object.values(this.filterData).filter((arr) => arr.length > 0);
+          this.filterDropdowns = dropdowns.length > 0 ? dropdowns : [[]];
+          this.syncFilterDataFromDropdowns();
+        } else if (!this.advanced && this.filterDropdowns.some((d) => d.length > 0)) {
+          // Entering simple: sync filterData from filterDropdowns, then reset dropdowns
+          this.syncFilterDataFromDropdowns();
+          this.filterDropdowns = [[]];
+        }
 
         // Reset subject scopes in non-advanced mode
         if (!this.advanced) {
@@ -599,8 +702,8 @@
         // Clean filter data
         this.cleanFilterData();
 
-        // Reset filters if 'filterData' is empty in advanced mode
-        if (this.advanced && Object.keys(this.filterData).length === 0) {
+        // Reset filters if empty in advanced mode
+        if (this.advanced && Object.keys(this.filterData).length === 0 && !this.hasFilterSelections) {
           this.filters = [];
         }
 
@@ -608,7 +711,7 @@
         if (!skip) this.setUrl();
 
         // Set 'showFilter' flag
-        this.showFilter = this.advanced && this.filters.length > 0;
+        this.showFilter = this.advanced && (this.filters.length > 0 || this.hasFilterSelections);
         
         this.$nextTick(() => {
           this.updateSubjectDropdownWidth();
@@ -620,6 +723,11 @@
         filterCopy.forEach((filterItem) => {
           // Skip if filterItem is null or undefined
           if (!filterItem) return;
+
+          // Flatten nested children structure (same as for topics)
+          if (filterItem.choices && Array.isArray(filterItem.choices)) {
+            filterItem.choices = flattenTopicGroups(filterItem.choices);
+          }
           
           if (!this.advanced) {
             if (filterItem.choices && Array.isArray(filterItem.choices)) {
@@ -636,6 +744,8 @@
             });
             }
           } else {
+            // Add groups property for grouped DropdownWrapper (isGroup=true)
+            filterItem.groups = filterItem.choices;
             this.filterOptions.push(filterItem);
           }
         });
@@ -744,7 +854,6 @@
 
             case "collapsed":
               this.isCollapsed = value === "true";
-              this.toggleCollapsedSearch();
               break;
 
             case "scrollto":
@@ -775,6 +884,10 @@
 
             case "orderlimits":
               this.urlOrderLimits = this.parseIdList(values);
+              break;
+
+            case "limit":
+              this.processFilterDropdownUrl(values);
               break;
 
             default:
@@ -915,11 +1028,229 @@
           this.filterData[groupId].push(tmp);
         });
       },
+      /**
+       * Processes 'limit' URL parameters (new format) and populates filterDropdowns.
+       * Each 'limit' parameter represents one filter dropdown's selections.
+       *
+       * @param {string[]} values - An array of filter values (itemId#scope) from one 'limit' parameter.
+       */
+      processFilterDropdownUrl(values) {
+        const selected = [];
+
+        values.forEach((val) => {
+          const [id, scope] = val.split("#");
+          if (!scope) return;
+
+          const isCustomInput = id.startsWith("{{") && id.endsWith("}}");
+
+          if (isCustomInput) {
+            const rawName = id.slice(2, -2);
+            const tag = {
+              name: rawName,
+              searchStrings: { normal: [rawName] },
+              preString: `${this.getString("manualInputTerm")}:\u00A0 `,
+              scope: "normal",
+              isCustom: true,
+            };
+            selected.push(tag);
+            return;
+          }
+
+          const normalizedId = id.toUpperCase();
+
+          // Find the filter choice across all filter options
+          for (const filterGroup of this.filterOptions) {
+            const choice = filterGroup.choices
+              ? filterGroup.choices.find((c) => c.id === normalizedId)
+              : null;
+            if (choice) {
+              selected.push({ ...choice, scope: scopeIds[scope] || "normal" });
+              break;
+            }
+          }
+        });
+
+        if (selected.length > 0) {
+          // Ensure filterDropdowns has at least one empty array
+          if (this.filterDropdowns.length === 1 && this.filterDropdowns[0].length === 0) {
+            this.filterDropdowns[0] = selected;
+          } else {
+            this.filterDropdowns.push(selected);
+          }
+        }
+      },
+      /**
+       * Returns the filter category ID for a given filter item.
+       *
+       * @param {Object} item - The filter item.
+       * @returns {string} The category ID (e.g., "L010").
+       */
+      getFilterCategoryId(item) {
+        if (!item.id) return "__custom__";
+        for (const option of this.filterOptions) {
+          if (option.choices && option.choices.some((c) => c.id === item.id)) {
+            return option.id;
+          }
+        }
+        // Fallback: first 4 characters of the ID
+        return item.id.substring(0, 4);
+      },
+      /**
+       * Syncs filterData (category-grouped object) from filterDropdowns (array of arrays).
+       * Merges all items from all dropdowns by their filter category.
+       * Also updates the 'filters' array to match.
+       */
+      syncFilterDataFromDropdowns() {
+        const newFilterData = {};
+        const filterSet = new Set();
+
+        this.filterDropdowns.forEach((dropdownItems) => {
+          dropdownItems.forEach((item) => {
+            const categoryId = this.getFilterCategoryId(item);
+            if (!newFilterData[categoryId]) newFilterData[categoryId] = [];
+            newFilterData[categoryId].push(item);
+            filterSet.add(categoryId);
+          });
+        });
+
+        this.filterData = newFilterData;
+
+        // Update filters array to match active categories
+        this.filters = [...filterSet]
+          .map((id) => this.filterOptions.find((f) => f.id === id))
+          .filter(Boolean);
+      },
+      /**
+       * Handles selection changes in a filter dropdown.
+       *
+       * @param {Array} value - The updated selections array.
+       * @param {number} index - The index of the filter dropdown.
+       */
+      updateFilterDropdown(value, index) {
+        value.forEach((item) => {
+          if (!item.scope) item.scope = "normal";
+        });
+
+        const updated = JSON.parse(JSON.stringify(this.filterDropdowns));
+        updated[index] = value;
+        this.filterDropdowns = updated;
+
+        // Remove extra empty dropdowns — keep at most one empty
+        this.removeExtraEmptyDropdowns("filterDropdowns");
+
+        this.syncFilterDataFromDropdowns();
+        this.setUrl();
+        this.editForm();
+      },
+      /**
+       * Removes extra empty dropdowns, keeping at most one empty.
+       * Works for both subjects and filterDropdowns.
+       *
+       * @param {string} prop - "subjects" or "filterDropdowns"
+       */
+      removeExtraEmptyDropdowns(prop) {
+        const arr = this[prop];
+        const emptyIndices = [];
+        arr.forEach((d, i) => {
+          if (d.length === 0) emptyIndices.push(i);
+        });
+        // Keep one empty, remove the rest (from end to preserve indices)
+        if (emptyIndices.length > 1) {
+          const toRemove = emptyIndices.slice(1);
+          for (let i = toRemove.length - 1; i >= 0; i--) {
+            arr.splice(toRemove[i], 1);
+          }
+          this[prop] = [...arr];
+        }
+      },
+      /**
+       * Adds a new empty filter dropdown.
+       */
+      addFilterDropdown() {
+        const hasEmpty = this.filterDropdowns.some((d) => d.length === 0);
+        if (hasEmpty) {
+          alert(this.getString("fillEmptyDropdownFirstAlert"));
+          return;
+        }
+        this.filterDropdowns = [...this.filterDropdowns, []];
+
+        this.$nextTick(() => {
+          const filterSelection = this.$refs.advancedSearchFilters?.$refs.filterSelection;
+          if (!filterSelection) return;
+          const dropdowns = filterSelection.$refs.filterDropdown;
+          const lastDropdown = Array.isArray(dropdowns) ? dropdowns[dropdowns.length - 1] : dropdowns;
+
+          if (lastDropdown && lastDropdown.$refs && lastDropdown.$refs.multiselect) {
+            const input = lastDropdown.$refs.multiselect.$refs.search;
+            if (input) {
+              input.focus();
+              if (!lastDropdown.shouldHideDropdownArrow) {
+                lastDropdown.$refs.multiselect.activate();
+              }
+            }
+          }
+
+          // Retry with small delay if first attempt failed
+          setTimeout(() => {
+            const dropdowns2 = filterSelection.$refs.filterDropdown;
+            const lastDropdown2 = Array.isArray(dropdowns2) ? dropdowns2[dropdowns2.length - 1] : dropdowns2;
+            if (lastDropdown2 && lastDropdown2.$refs && lastDropdown2.$refs.multiselect) {
+              const input2 = lastDropdown2.$refs.multiselect.$refs.search;
+              if (input2 && !lastDropdown2.shouldHideDropdownArrow && !lastDropdown2.$refs.multiselect.isOpen) {
+                lastDropdown2.$refs.multiselect.activate();
+              }
+            }
+          }, 100);
+        });
+      },
+      /**
+       * Removes a filter dropdown at the given index.
+       *
+       * @param {number} index - The index of the dropdown to remove.
+       */
+      removeFilterDropdown(index) {
+        const wasEmpty = this.filterDropdowns[index] && this.filterDropdowns[index].length === 0;
+        const updated = [...this.filterDropdowns];
+        updated.splice(index, 1);
+        if (updated.length === 0) updated.push([]);
+        this.filterDropdowns = updated;
+
+        this.syncFilterDataFromDropdowns();
+        this.setUrl();
+        if (!wasEmpty) this.editForm();
+      },
+      /**
+       * Updates the scope of a filter item within a filter dropdown.
+       *
+       * @param {Object} item - The filter item to update.
+       * @param {string} state - The new scope state.
+       * @param {number} index - The index of the filter dropdown.
+       */
+      updateFilterDropdownScope(item, state, index) {
+        const updated = JSON.parse(JSON.stringify(this.filterDropdowns));
+
+        if (updated[index] && Array.isArray(updated[index])) {
+          const targetItem = updated[index].find((i) => i.id === item.id);
+          if (targetItem) {
+            if (targetItem.scope === state) {
+              // Remove the item if clicking the same scope (toggle off)
+              const idx = updated[index].findIndex((i) => i.name === item.name);
+              updated[index].splice(idx, 1);
+            }
+            targetItem.scope = state;
+          }
+        }
+
+        this.filterDropdowns = updated;
+        this.syncFilterDataFromDropdowns();
+        this.setUrl();
+        this.editForm();
+      },
       setUrl() {
         if (history.replaceState) {
           let urlLink = this.getUrl();
           this.stateHistory.push(this.oldState);
-          window.history.replaceState(this.stateHistory, urlLink, urlLink);
+          window.history.replaceState([...this.stateHistory], urlLink, urlLink);
           this.oldState = urlLink;
         }
       },
@@ -1004,27 +1335,40 @@
        */
       constructFiltersQuery() {
         if (!this.advanced && !this.$alwaysShowFilter) {
-          return "";
-        }
-
-        if (!this.filterData || Object.keys(this.filterData).length === 0) {
-          return "";
-        }
-
-        const filterQueries = Object.entries(this.filterData)
-          .filter(([, values]) => values.length > 0)
-          .map(([key, values]) => {
-            const filterValues = values.map((value) => {
-              const scope = this.getScopeKey(value.scope);
-              const valueId = value.isCustom ? `{{${value.name}}}` : value.id;
-              const filterId = `${valueId}#${scope}`;
-              return encodeURIComponent(filterId);
+          // Simple mode: encode from filterData (category-grouped)
+          if (!this.filterData || Object.keys(this.filterData).length === 0) {
+            return "";
+          }
+          const filterQueries = Object.entries(this.filterData)
+            .filter(([, values]) => values.length > 0)
+            .map(([key, values]) => {
+              const filterValues = values.map((value) => {
+                const scope = this.getScopeKey(value.scope);
+                const valueId = value.isCustom ? `{{${value.name}}}` : value.id;
+                return encodeURIComponent(`${valueId}#${scope}`);
+              });
+              return `&${encodeURIComponent(key)}=${filterValues.join(";;")}`;
             });
+          return filterQueries.join("");
+        }
 
-            return `&${encodeURIComponent(key)}=${filterValues.join(";;")}`;
+        // Advanced mode: encode from filterDropdowns (array of arrays)
+        if (!this.filterDropdowns || !this.filterDropdowns.some((d) => d.length > 0)) {
+          return "";
+        }
+
+        const limitQueries = this.filterDropdowns
+          .filter((group) => group.length > 0)
+          .map((group) => {
+            const filterValues = group.map((item) => {
+              const scope = this.getScopeKey(this.advanced ? item.scope : "normal");
+              const valueId = item.isCustom ? `{{${item.name}}}` : item.id;
+              return encodeURIComponent(`${valueId}#${scope}`);
+            });
+            return `limit=${filterValues.join(";;")}`;
           });
 
-        return filterQueries.join("");
+        return limitQueries.length > 0 ? "&" + limitQueries.join("&") : "";
       },
       /**
        * Retrieves the scope key corresponding to the given scope value.
@@ -1060,8 +1404,15 @@
 
         // Open dropdown with a delay
         setTimeout(() => {
-          if (this.advanced) {
-            this.$refs.advancedSearchFilters.$refs.filterDropdown.$refs.multiselect.$refs.search.focus();
+          if (this.advanced && this.$refs.advancedSearchFilters) {
+            const filterSelection = this.$refs.advancedSearchFilters.$refs.filterSelection;
+            if (filterSelection) {
+              const dropdowns = filterSelection.$refs.filterDropdown;
+              const firstDropdown = Array.isArray(dropdowns) ? dropdowns[0] : dropdowns;
+              if (firstDropdown && firstDropdown.$refs.multiselect) {
+                firstDropdown.$refs.multiselect.$refs.search.focus();
+              }
+            }
           }
         }, 50);
       },
@@ -1154,6 +1505,9 @@
         updatedSubjects[index] = value;
         this.subjects = updatedSubjects;
 
+        // Remove extra empty dropdowns — keep at most one empty
+        this.removeExtraEmptyDropdowns("subjects");
+
         if (!this.advanced && this.isFirstFill) {
           this.selectStandardSimple();
           this.isFirstFill = false;
@@ -1162,6 +1516,7 @@
         if (!this.hasSubjects) {
           this.filters = [];
           this.filterData = {};
+          this.filterDropdowns = [[]];
           this.showFilter = false;
           this.subjects = [[]];
           this.isFirstFill = true;
@@ -1327,7 +1682,7 @@
               continue;
             }
             const shouldSelect = useCheckLimits
-              ? self.effectiveCheckLimits.includes(choice.id)
+              ? self.effectiveCheckLimits.includes(choice.id) || choice.standardSimple
               : choice.standardSimple;
             if (shouldSelect) {
               const filterValue = Object.assign({ scope: "normal" }, choice);
@@ -1464,6 +1819,7 @@
         this.subjects = [[]];
         this.filters = [];
         this.filterData = {};
+        this.filterDropdowns = [[]];
         this.searchresult = undefined;
         this.count = 0;
         this.page = 0;
@@ -1610,7 +1966,7 @@
             { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
           );
 
-          const idList = esearchResponse.data.esearchresult.idlist.filter(Boolean);
+          const idList = esearchResponse.data?.esearchresult?.idlist?.filter(Boolean) ?? [];
 
           if (idList.length === 0) {
             this.count = 0;
@@ -1638,9 +1994,10 @@
             return;
           }
 
-          const data = esummaryResult.uids.map((uid) => esummaryResult[uid]);
+          const uids = esummaryResult.uids ?? [];
+          const data = uids.map((uid) => esummaryResult[uid]);
 
-          this.count = parseInt(esearchResponse.data.esearchresult.count, 10);
+          this.count = parseInt(esearchResponse.data?.esearchresult?.count, 10) || 0;
           this.searchresult = data;
           // Handle any preselected PMIDs
           const preSelectedEntries = await this.searchPreselectedPmidai();
@@ -1725,9 +2082,9 @@
           );
 
           // Extract and filter the list of PubMed IDs
-          const idList = esearchResponse.data.esearchresult.idlist.filter(
+          const idList = esearchResponse.data?.esearchresult?.idlist?.filter(
             (id) => id && id.trim() !== ""
-          );
+          ) ?? [];
 
           // If no IDs are returned, update the state and exit
           if (idList.length === 0) {
@@ -1759,10 +2116,11 @@
           }
 
           // Extract the detailed data for each PubMed ID
-          const data = esummaryResult.uids.map((uid) => esummaryResult[uid]);
+          const uids = esummaryResult.uids ?? [];
+          const data = uids.map((uid) => esummaryResult[uid]);
 
           // Update the total count and append the new data to existing search results
-          this.count = parseInt(esearchResponse.data.esearchresult.count, 10);
+          this.count = parseInt(esearchResponse.data?.esearchresult?.count, 10) || 0;
 
           // Merge unique entries to prevent duplicates
           const uniqueData = this.mergeUniqueEntries(data);
@@ -1882,32 +2240,9 @@
        *
        * @returns {void}
        */
-      toggleCollapsedSearch() {
-        const coll = document.getElementsByClassName("qpm_toggleSearchFormBtn bx bx-hide")[0];
-
-        if (!coll) {
-          console.warn("Element with class 'qpm_toggleSearchFormBtn bx bx-hide' not found.");
-          return;
-        }
-
-        if (this.isCollapsed) {
-          coll.classList.add("bx-show");
-        } else {
-          coll.classList.remove("bx-show");
-        }
-      },
       toggleCollapsedController() {
         this.isCollapsed = !this.isCollapsed;
-        this.toggleCollapsedSearch();
         this.setUrl();
-      },
-      getString(string) {
-        if (!messages[string]) {
-          console.warn(`Missing translation key: ${string}`);
-          return string;
-        }
-        let constant = messages[string][this.language];
-        return constant != undefined ? constant : messages[string]["dk"];
       },
       /**
        * Returns the custom name label for the given option.
@@ -1965,11 +2300,14 @@
       },
       // passing along the index seemingly makes vue understand that
       // the dropdownwrappers can have seperate placeholders so keep it even though it is unused
-      getDropdownPlaceholder(index, translating = false) {
+      getDropdownPlaceholder(index, translating = false, stepKey) {
+        if (translating && stepKey) {
+          return this.getString(stepKey);
+        }
         if (translating) {
           return this.getString("translatingPlaceholder");
         }
-        
+
         const hasTopics = this.hasAvailableTopics;
         const width = this.subjectDropdownWidth;
         const isMobileOrSmall = this.checkIfMobile() || (width < 520 && width >= 0);
@@ -1985,12 +2323,67 @@
           }
         }
       },
-      updatePlaceholder(isTranslating, index) {
+      updatePlaceholder(isTranslating, index, stepKey) {
         if (isTranslating) {
-          this.$set(this.dropdownPlaceholders, index, this.getDropdownPlaceholder(index, true));
+          if (this.placeholderDotsIntervalId) {
+            clearInterval(this.placeholderDotsIntervalId);
+            this.placeholderDotsIntervalId = null;
+          }
+          this.translatingSource = "subject";
+          this.translatingIndex = index;
+          this.translatingStepKey = stepKey || "translatingPlaceholder";
+          this.loadingDots = 1;
+          this.dropdownPlaceholders[index] = this.getString(this.translatingStepKey) + ".";
+          const self = this;
+          this.placeholderDotsIntervalId = setInterval(() => {
+            self.loadingDots = (self.loadingDots % 3) + 1;
+            if (self.translatingSource === "subject" && self.translatingIndex >= 0 && self.translatingStepKey) {
+              self.dropdownPlaceholders[self.translatingIndex] = self.getString(self.translatingStepKey) + ".".repeat(self.loadingDots);
+            }
+          }, 450);
         } else {
-          this.$set(this.dropdownPlaceholders, index, this.getDropdownPlaceholder(index, false));
+          if (this.placeholderDotsIntervalId) {
+            clearInterval(this.placeholderDotsIntervalId);
+            this.placeholderDotsIntervalId = null;
+          }
+          this.translatingSource = null;
+          this.translatingIndex = -1;
+          this.translatingStepKey = null;
+          this.dropdownPlaceholders[index] = this.getDropdownPlaceholder(index, false);
         }
+      },
+      updateFilterPlaceholder(isTranslating, index, stepKey) {
+        if (isTranslating) {
+          if (this.placeholderDotsIntervalId) {
+            clearInterval(this.placeholderDotsIntervalId);
+            this.placeholderDotsIntervalId = null;
+          }
+          this.translatingSource = "filter";
+          this.translatingIndex = index;
+          this.translatingStepKey = stepKey || "translatingPlaceholder";
+          this.loadingDots = 1;
+          const self = this;
+          this.placeholderDotsIntervalId = setInterval(() => {
+            self.loadingDots = (self.loadingDots % 3) + 1;
+            if (self.translatingSource === "subject" && self.translatingIndex >= 0 && self.translatingStepKey) {
+              self.dropdownPlaceholders[self.translatingIndex] = self.getString(self.translatingStepKey) + ".".repeat(self.loadingDots);
+            }
+          }, 450);
+        } else {
+          if (this.placeholderDotsIntervalId) {
+            clearInterval(this.placeholderDotsIntervalId);
+            this.placeholderDotsIntervalId = null;
+          }
+          this.translatingSource = null;
+          this.translatingIndex = -1;
+          this.translatingStepKey = null;
+        }
+      },
+      getFilterDropdownPlaceholder(index) {
+        if (this.translatingSource === "filter" && this.translatingIndex === index && this.translatingStepKey) {
+          return this.getString(this.translatingStepKey) + ".".repeat(this.loadingDots);
+        }
+        return this.getString("choselimits");
       },
       updatePlaceholders() {
         this.$nextTick(() => {

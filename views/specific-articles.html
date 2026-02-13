@@ -1,65 +1,74 @@
 <!DOCTYPE html>
-<html lang="da">
+<html lang="da" style="background: white">
   <head>
     <meta charset="utf-8" />
-    <title>NemPubMed | Videncenter for Diabetes</title>
-    <link
-      rel="alternate"
-      hreflang="da"
-      href="https://videncenterfordiabetes.dk/forskning/find-forskning/nempubmed"
-    />
-    <meta
-      name="viewport"
-      content="initial-scale=1.0, maximum-scale=5.0, minimum-scale=1.0, width=device-width"
-    />
-    <link rel="stylesheet" media="all" type="text/css" href="https://videncenterfordiabetes.dk/assets/css/icons.css" />
+    <title>NemPubMed</title>
+    <meta name="viewport" content="initial-scale=1.0, maximum-scale=5.0, minimum-scale=1.0, width=device-width" />
     <link rel="stylesheet" media="all" href="https://videncenterfordiabetes.dk/css/bundle.css" />
-    <link rel="stylesheet" media="all" type="text/css" href="https://videncenterfordiabetes.dk/css/print.css" />
 
-    <script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/1000hz-bootstrap-validator/0.11.9/validator.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/js/bootstrap.bundle.min.js"></script>
-    <script src="https://ajax.aspnetcdn.com/ajax/jquery.validate/1.16.0/jquery.validate.min.js"></script>
-    <script src="https://ajax.aspnetcdn.com/ajax/mvc/5.2.3/jquery.validate.unobtrusive.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/2.2.1/js.cookie.min.js"></script>
-
-    <script src="https://videncenterfordiabetes.dk/Scripts/picturefill.min.js"></script>
-    <script src="https://videncenterfordiabetes.dk/Scripts/lazysizes.min.js"></script>
-    <script src="https://videncenterfordiabetes.dk/Scripts/ls.unveilhooks.min.js"></script>
-    <script src="https://videncenterfordiabetes.dk/js/bundle.js"></script>
-
-    <style>
-      :root {
-        --color-primary: #3d5068;
-        --color-primary-text: #ffffff;
-        --color-secondary: #9ac5d5;
-        --color-secondary-text: #000000;
-        --color-tertiary: #4d6687;
-        --color-tertiary-text: #ffffff;
-        --color-primary-decorative: #bcd9e3;
-        --color-primary-decorative-text: #000000;
-        --color-secondary-decorative: #b01a00;
-        --color-secondary-decorative-text: #ffffff;
-        --color-footer: #43484f;
-        --color-footer-text: #ffffff;
-        --color-link: #0300d1;
-        --color-tag: #323c75;
-        --color-black: #000;
-        --color-white: #fff;
-        --color-grey-light: #f4f4f4;
-        --color-grey-medium: #cfd1d3;
-        --color-grey-dark: #43484f;
-        --color-body: #f4f4f4;
-        --color-body-text: var(--color-black);
-      }
-    </style>
-
-    <link rel="stylesheet" href="https://unpkg.com/boxicons@2.0.5/css/boxicons.min.css" />
-    <link rel="stylesheet" href="https://unpkg.com/remixicon@4.6.0/fonts/remixicon.css" />
-    <link rel="stylesheet" href="https://unpkg.com/vue-multiselect@2.1.6/dist/vue-multiselect.min.css" />
+    <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" />
+    <link rel="stylesheet" href="https://unpkg.com/remixicon@4.9.1/fonts/remixicon.css" />
+    <link rel="stylesheet" href="https://unpkg.com/vue-multiselect/dist/vue-multiselect.min.css" />
     
   </head>
-  <body>
+  <body style="background: white">
+    <!--
+      Specific Articles settings (HTML data-attributes)
+      ==================================================
+      Each <div class="specific-articles"> block renders one article entry (or a
+      PubMed query result list). Multiple blocks can appear on the same page.
+      All data-* attributes are optional unless noted.
+
+      Core settings:
+      - data-domain: Content domain (e.g. "diabetes"). Affects which topic
+          data and prompt rules are loaded.
+      - data-language: UI language ("dk" or "en"). Defaults to "dk".
+      - data-component-no: Numeric identifier used to build a unique DOM id.
+          Required when multiple instances appear on the same page.
+
+      AI features:
+      - data-use-a-i: Enable the AI translation toggle ("true" or "false").
+      - data-use-a-i-summarizer: Enable the AI summarizer ("true" or "false").
+
+      Article source — use ONE of the following approaches:
+        PubMed lookup:
+        - data-ids: One or more PubMed IDs, separated by commas (e.g. "33313987").
+        PubMed query:
+        - data-query: A PubMed search query (e.g. "diabetes[mh]").
+        - data-query-results: Max number of results to return (numeric).
+        - data-sort-method: Sort order for query results
+            (e.g. "date_desc", "relevance").
+        Manual entry (no PubMed):
+        - data-title: Article title.
+        - data-authors: Author list as a single string.
+        - data-source: Journal / publisher string.
+        - data-date: Publication date as display string.
+        - data-doi: DOI identifier (without URL prefix).
+        - data-abstract: Plain-text abstract.
+        - data-sectioned-abstract: JSON object with section headings as keys
+            and section text as values.
+            Example: '{ "Aim": "...", "Methods": "...", "Results": "..." }'
+        - data-booktitle: Book title (for book chapters).
+        - data-vernaculartitle: Original-language title.
+        - data-hyper-link: Custom URL to link to instead of PubMed.
+        - data-hyper-link-text: Display text for the custom link.
+        - data-is-custom-doi: "true" if the DOI is manually provided
+            (not from PubMed).
+
+      Display options:
+      - data-hide-buttons: "true" to hide action buttons (translate, summarize, etc.).
+      - data-show-date: "true" to show the publication date.
+      - data-shown-six-authors: "true" to limit the author list to the first six.
+      - data-show-altmetric-badge: "true" to show the Altmetric donut badge.
+      - data-show-dimensions-badge: "true" to show the Dimensions citation badge.
+      - data-use-translate-title: "true" to enable title translation via AI.
+
+      Format for list/JSON attributes:
+      - data-ids uses commas: "12345678,23456789"
+      - data-sectioned-abstract uses a JSON object string (see example above).
+      - Boolean attributes accept "true" or "false" (string).
+    -->
+
     <p
       style="
         font-size: large;
@@ -78,7 +87,7 @@
       data-use-a-i-summarizer="true"
       data-ids=""
       data-query="diabetes[mh]"
-      data-query-results="2"
+      data-query-results="3"
       data-sort-method="date_desc"
       data-hide-buttons="false"
       data-show-date="true"

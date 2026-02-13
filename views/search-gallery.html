@@ -1,78 +1,57 @@
 <!DOCTYPE html>
-<html lang="da">
+<html lang="da" style="background: white">
   <head>
     <meta charset="utf-8" />
-    <title>NemPubMed | Videncenter for Diabetes</title>
-    <link
-      rel="alternate"
-      hreflang="da"
-      href="https://videncenterfordiabetes.dk/forskning/find-forskning/nempubmed"
-    />
-    <meta
-      name="viewport"
-      content="initial-scale=1.0, maximum-scale=5.0, minimum-scale=1.0, width=device-width"
-    />
-    <link rel="stylesheet" media="all" type="text/css" href="https://videncenterfordiabetes.dk/assets/css/icons.css" />
+    <title>NemPubMed</title>
+    <meta name="viewport" content="initial-scale=1.0, maximum-scale=5.0, minimum-scale=1.0, width=device-width" />
     <link rel="stylesheet" media="all" href="https://videncenterfordiabetes.dk/css/bundle.css" />
-    <link rel="stylesheet" media="all" type="text/css" href="https://videncenterfordiabetes.dk/css/print.css" />
 
-    <script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/1000hz-bootstrap-validator/0.11.9/validator.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/js/bootstrap.bundle.min.js"></script>
-    <script src="https://ajax.aspnetcdn.com/ajax/jquery.validate/1.16.0/jquery.validate.min.js"></script>
-    <script src="https://ajax.aspnetcdn.com/ajax/mvc/5.2.3/jquery.validate.unobtrusive.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/2.2.1/js.cookie.min.js"></script>
-
-    <script src="https://videncenterfordiabetes.dk/Scripts/picturefill.min.js"></script>
-    <script src="https://videncenterfordiabetes.dk/Scripts/lazysizes.min.js"></script>
-    <script src="https://videncenterfordiabetes.dk/Scripts/ls.unveilhooks.min.js"></script>
-    <script src="https://videncenterfordiabetes.dk/js/bundle.js"></script>
-
-    <style>
-      :root {
-        --color-primary: #3d5068;
-        --color-primary-text: #ffffff;
-        --color-secondary: #9ac5d5;
-        --color-secondary-text: #000000;
-        --color-tertiary: #4d6687;
-        --color-tertiary-text: #ffffff;
-        --color-primary-decorative: #bcd9e3;
-        --color-primary-decorative-text: #000000;
-        --color-secondary-decorative: #b01a00;
-        --color-secondary-decorative-text: #ffffff;
-        --color-footer: #43484f;
-        --color-footer-text: #ffffff;
-        --color-link: #0300d1;
-        --color-tag: #323c75;
-        --color-black: #000;
-        --color-white: #fff;
-        --color-grey-light: #f4f4f4;
-        --color-grey-medium: #cfd1d3;
-        --color-grey-dark: #43484f;
-        --color-body: #f4f4f4;
-        --color-body-text: var(--color-black);
-      }
-    </style>
-
-    <link rel="stylesheet" href="https://unpkg.com/boxicons@2.0.5/css/boxicons.min.css" />
-    <link rel="stylesheet" href="https://unpkg.com/remixicon@4.6.0/fonts/remixicon.css" />
-    <link rel="stylesheet" href="https://unpkg.com/vue-multiselect@2.1.6/dist/vue-multiselect.min.css" />
+    <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" />
+    <link rel="stylesheet" href="https://unpkg.com/remixicon@4.9.1/fonts/remixicon.css" />
+    <link rel="stylesheet" href="https://unpkg.com/vue-multiselect/dist/vue-multiselect.min.css" />
     
   </head>
-  <body>
+  <body style="background: white">
+    <!--
+      Search Gallery settings (HTML data-attributes)
+      ================================================
+      All data-* attributes are optional.
+
+      Core settings:
+      - data-domain: Selects the content domain (e.g. "diabetes", "dementia").
+          Empty string or omitted uses the default domain.
+      - data-language: UI language ("dk" or "en"). Defaults to "en".
+
+      Topics:
+      - data-hide-topics: JSON-like array of topic IDs to hide.
+          Format: "['S000','L10030']" (single quotes, will be parsed as JSON).
+
+      Collapse behaviour:
+      - data-collapsed-levels: Comma-separated list of level numbers that
+          should start collapsed on page load.
+          Levels NOT listed start open. If omitted, all levels start open.
+
+          Level mapping:
+            1 = Top sections (e.g. "Emner", "Afgrænsninger")
+            2 = Categories (e.g. "Skabelonkategori", "Diabetestype")
+            3 = Top-level items within categories (subtopiclevel 0)
+            4 = First nested sub-items (subtopiclevel 1)
+            5 = Second nested sub-items (subtopiclevel 2)
+            ... and so on for unlimited depth.
+
+          Search-string tables are always collapsed regardless of this setting.
+
+          Examples:
+            data-collapsed-levels="1,2,3"   → Sections, categories and top items collapsed
+            data-collapsed-levels="1,2"     → Sections and categories collapsed, items open
+            data-collapsed-levels="3"       → Only top items collapsed, sections & categories open
+            (omitted)                       → Everything open
+    -->
     <div id="search-gallery"
       data-hide-topics="['L10030']"
-      data-domain="concussion"
+      data-domain="diabetes"
       data-language="dk"
-    >
-    </div>
-    <div id="search-gallery"
-      data-hide-topics="['L10030']"
-      data-domain=""
-      data-language="dk"
-      data-domain="dementia"
-      data-hide-topics=""
-      data-language=""
+      data-collapsed-levels="1,2,3"
     >
     </div>
     <script type="module" src="./SearchGallery.js"></script>

@@ -86,9 +86,8 @@
           v-if="hasSectionedAbstract || hasValidAbstract || pmid || doi"
           v-tooltip="{
             content: getString('hoverShowAbstractButton'),
-            offset: 5,
+            distance: 5,
             delay: $helpTextDelay,
-            trigger: 'hover',
           }"
           class="qpm_button qpm_slim"
           :class="[
@@ -104,9 +103,8 @@
           v-if="pmid !== null"
           v-tooltip="{
             content: getString('hoverOpenInPubMedButton'),
-            offset: 5,
+            distance: 5,
             delay: $helpTextDelay,
-            trigger: 'hover',
           }"
           class="qpm_button qpm_slim"
           @click="gotosite(getPubMedLink)"
@@ -117,9 +115,8 @@
           v-if="getDoiLink"
           v-tooltip="{
             content: getString('hoverOpenDOIButton'),
-            offset: 5,
+            distance: 5,
             delay: $helpTextDelay,
-            trigger: 'hover',
           }"
           class="qpm_button qpm_slim"
           @click="gotosite(getDoiLink)"
@@ -175,9 +172,8 @@
           v-if="hasSectionedAbstract || hasValidAbstract || pmid || doi"
           v-tooltip="{
             content: getString('hoverShowAbstractButton'),
-            offset: 5,
+            distance: 5,
             delay: $helpTextDelay,
-            trigger: 'hover',
           }"
           class="qpm_button qpm_slim"
           :class="[
@@ -193,9 +189,8 @@
           v-if="pmid !== null"
           v-tooltip="{
             content: getString('hoverOpenInPubMedButton'),
-            offset: 5,
+            distance: 5,
             delay: $helpTextDelay,
-            trigger: 'hover',
           }"
           class="qpm_button qpm_slim"
           @click="gotosite(getPubMedLink)"
@@ -206,9 +201,8 @@
           v-if="getDoiLink"
           v-tooltip="{
             content: getString('hoverOpenDOIButton'),
-            offset: 5,
+            distance: 5,
             delay: $helpTextDelay,
-            trigger: 'hover',
           }"
           class="qpm_button qpm_slim"
           @click="gotosite(getDoiLink)"
@@ -292,9 +286,8 @@
                     <button
                       v-tooltip="{
                         content: getString('hoverselectedResultAccordionHeader'),
-                        offset: 5,
+                        distance: 5,
                         delay: $helpTextDelay,
-                        hideOnTargetClick: false,
                       }"
                       class="bx bx-info-circle"
                       aria-label="Info"
@@ -315,7 +308,6 @@
             </template>
 
             <div class="qpm_ai_hide">
-              <keep-alive>
                 <div
                   v-if="!hasAcceptedAi && hasAbstract"
                   class="qpm_searchSummaryText qpm_searchSummaryTextBackground"
@@ -329,9 +321,8 @@
                     :key="prompt.name"
                     v-tooltip="{
                       content: getString('hoverSummarizeSearchResultButton'),
-                      offset: 5,
+                      distance: 5,
                       delay: $helpTextDelay,
-                      hideOnTargetClick: false,
                     }"
                     class="qpm_button qpm_summaryButton"
                     @click="clickAcceptAi(prompt)"
@@ -369,7 +360,6 @@
                   @close="closeSummaries"
                   @ai-summaries-click-retry="onAiSummariesClickRetry"
                 />
-              </keep-alive>
             </div>
           </accordion-menu>
           <p
@@ -409,9 +399,8 @@
                   <button
                     v-tooltip="{
                       content: getString('hoverselectedResultAccordionHeaderNoAbstract'),
-                      offset: 5,
+                      distance: 5,
                       delay: $helpTextDelay,
-                      hideOnTargetClick: false,
                     }"
                     class="bx bx-info-circle"
                     aria-label="Info"
@@ -421,7 +410,6 @@
             </template>
             <div>
               <div class="qpm_ai_hide">
-                <keep-alive>
                   <div
                     v-if="!hasAcceptedAi && !hasAbstract"
                     class="qpm_searchSummaryText qpm_searchSummaryTextBackground"
@@ -435,9 +423,8 @@
                       :key="prompt.name"
                       v-tooltip="{
                         content: getString('hoverSummarizeSearchResultButton'),
-                        offset: 5,
+                        distance: 5,
                         delay: $helpTextDelay,
-                        hideOnTargetClick: false,
                       }"
                       class="qpm_button qpm_summaryButton"
                       @click="clickAcceptAi(prompt)"
@@ -469,7 +456,6 @@
                     :initial-tab-prompt="initialAiTab"
                   />
                   <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryConsentText')" />
-                </keep-alive>
               </div>
             </div>
           </accordion-menu>
@@ -486,9 +472,8 @@
                   <a
                     v-tooltip="{
                       content: getString('hoverUnpaywall_loading'),
-                      offset: 5,
+                      distance: 5,
                       delay: $helpTextDelay,
-                      trigger: 'hover',
                     }"
                     target="_blank"
                     :href="getUnpaywall"
@@ -501,9 +486,8 @@
                   <a
                     v-tooltip="{
                       content: getString('hoverUnpaywall_pdf'),
-                      offset: 5,
+                      distance: 5,
                       delay: $helpTextDelay,
-                      trigger: 'hover',
                     }"
                     target="_blank"
                     :href="getOaPdf"
@@ -517,9 +501,8 @@
                   <a
                     v-tooltip="{
                       content: getString('hoverUnpaywall_html'),
-                      offset: 5,
+                      distance: 5,
                       delay: $helpTextDelay,
-                      trigger: 'hover',
                     }"
                     target="_blank"
                     :href="getOaHtml"
@@ -533,9 +516,8 @@
                   <a
                     v-tooltip="{
                       content: getString('hoverUnpaywall_noPdf'),
-                      offset: 5,
+                      distance: 5,
                       delay: $helpTextDelay,
-                      trigger: 'hover',
                     }"
                     target="_blank"
                     :href="getUnpaywall"
@@ -595,9 +577,8 @@
               v-if="pmid !== undefined"
               v-tooltip="{
                 content: getString('hoverrelatedPubmed'),
-                offset: 5,
+                distance: 5,
                 delay: $helpTextDelay,
-                trigger: 'hover',
               }"
               target="_blank"
               :href="getPubmedRelated"
@@ -612,9 +593,8 @@
               v-if="pmid !== undefined"
               v-tooltip="{
                 content: getString('hoverrelatedPubmedReviews'),
-                offset: 5,
+                distance: 5,
                 delay: $helpTextDelay,
-                trigger: 'hover',
               }"
               target="_blank"
               :href="getPubmedRelatedReviews"
@@ -631,9 +611,8 @@
               :href="getPubmedAlsoViewed"
               v-tooltip="{
                 content: getString('hoveralsoviewedPubmed'),
-                offset: 5,
+                distance: 5,
                 delay: $helpTextDelay,
-                trigger: 'hover',
               }"
               >{{ getString("alsoviewedPubmed") }}</a
             >
@@ -645,9 +624,8 @@
               v-if="(pmid || doi) !== undefined"
               v-tooltip="{
                 content: getString('hoverGoogleScholar'),
-                offset: 5,
+                distance: 5,
                 delay: $helpTextDelay,
-                trigger: 'hover',
               }"
               target="_blank"
               :href="getGoogleScholar"
@@ -669,11 +647,13 @@
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
   import axios from "axios";
   import { config } from "@/config/config.js";
-  import { messages } from "@/assets/content/qpm-translations";
   import { eventBus } from "@/mixins/appSettings";
   import { appSettingsMixin } from "@/mixins/appSettings";
+  import { utilitiesMixin } from "@/mixins/utilities";
   import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
-  import { summarizeSingleAbstractPrompt } from "@/assets/content/qpm-open-ai-abstract-prompts";
+  import { summarizeSingleAbstractPrompt } from "@/assets/content/qpm-prompts-abstract";
+
+  let _resultEntryUid = 0;
 
   export default {
     name: "ResultEntry",
@@ -684,11 +664,7 @@
       SummarizeAbstract,
       SummarizeNoAbstract,
     },
-    mixins: [appSettingsMixin, promptRuleLoaderMixin],
-    model: {
-      prop: "modelValue",
-      event: "change",
-    },
+    mixins: [appSettingsMixin, promptRuleLoaderMixin, utilitiesMixin],
     props: {
       abstract: {
         type: String,
@@ -1184,9 +1160,7 @@
      * (Dimension and Altmetric) are loaded into the document.
      */
     created() {
-      // Listen for the 'abstractLoaded' event from the parent component
-      this.$parent.$on("abstractLoaded", this.setAbstract);
-
+      this._uid = ++_resultEntryUid;
       // Inject Dimension and Altmetric scripts if they are not already present
       this.ensureThirdPartyScripts();
     },
@@ -1203,14 +1177,13 @@
       this.checkPreload();
       this.$emit("loadAbstract", this.id);
 
-      eventBus.$on("result-entry-show-abstract", this.onEventBusShowAbstractEvent);
+      eventBus.on("result-entry-show-abstract", this.onEventBusShowAbstractEvent);
     },
     beforeUpdate() {
       this.checkPreload();
     },
     beforeUnmount() {
-      eventBus.$off("result-entry-show-abstract", this.onEventBusShowAbstractEvent);
-      this.$parent.$off("abstractLoadeds", this.setAbstract);
+      eventBus.off("result-entry-show-abstract", this.onEventBusShowAbstractEvent);
     },
     methods: {
       getFormattedPublication() {
@@ -1507,16 +1480,6 @@
           this.collapseSection(section);
         }
       },
-      getString(string) {
-        const lg = this.language;
-        // Check if the translation key exists
-        if (!messages[string]) {
-          console.warn(`Missing translation key: ${string}`);
-          return string; // Return the key as fallback
-        }
-        let constant = messages[string][lg];
-        return constant != undefined ? constant : messages[string]["dk"];
-      },
       getTranslation(value) {
         const lg = this.language;
         let constant = value.translations[lg];
@@ -1586,7 +1549,6 @@
         if (!this.abstractLoaded && this.preLoadAbstract && !this.loading) {
           let showSpinner = false;
           this.loadAbstract(showSpinner);
-          console.log("We called this.loadAbstract(showSpinner) from checkPreload()");
         }
       },
       onEventBusShowAbstractEvent(args) {

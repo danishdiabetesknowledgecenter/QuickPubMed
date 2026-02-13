@@ -236,7 +236,7 @@
       },
       updateModelsIfOnScreen() {
         if (this.models !== this.shownModels && this.isAccordionOnScreen()) {
-          this.$set(this, "shownModels", this.models);
+          this.shownModels = this.models;
         }
       },
       removePendingModelChange(uid) {

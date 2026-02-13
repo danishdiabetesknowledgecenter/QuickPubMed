@@ -1,27 +1,32 @@
 /**
- * Represents a topic in the application.
+ * Represents a topic category (e.g. "Skabelonkategori", "Diabetestype").
+ *
  * @typedef {Object} Topic
- * @property {string} id - The unique identifier of the topic.
- * @property {string} groupname - The name of the topic group.
- * @property {Object} translations - The translations for different languages.
- * @property {Object} ordering - The ascending sorting order, starting at 0.
- * @property {Array<SubGroup>} groups - The subgroups associated with the topic.
+ * @property {string} id - Unique identifier for the category.
+ * @property {string} groupname - Internal group name (used as CSS class).
+ * @property {Object} translations - Display names per language ({ dk, en }).
+ * @property {Object} ordering - Sort order per language ({ dk: number, en: number }).
+ * @property {Array<SubGroup>} groups - Items in this category (nested tree structure).
  */
 
 /**
- * Represents a subject group within a topic.
+ * Represents an item within a topic category.
+ *
+ * Items use a nested tree structure via the `children` property (unlimited depth).
+ * At runtime, `flattenTopicGroups()` (in topicLoaderMixin.js) converts the tree
+ * into a flat array and auto-generates all hierarchy metadata needed by the UI.
+ *
  * @typedef {Object} SubGroup
- * @property {string} id - The unique identifier of the subject group.
- * @property {string} name - The name of the subject group.
- * @property {boolean} buttons - Indicates if buttons are used.
- * @property {boolean} [maintopic] - Indicates if this is branch topic with children.
- * @property {number} [subtopiclevel] - The level of nesting for the child topic.
- * @property {string} [maintopicIdLevel1] - The ID of the parent topic.
- * @property {string} [maintopicIdLevel2] - The ID of the grandparent topic.
- * @property {Object} translations - The translations for different languages.
- * @property {Object} ordering - The ascending sorting order, starting at 0.
- * @property {Object} [searchStrings] - Search strings for different scopes.
- * @property {Object} [searchStringComment] - Comments about the search strings.
+ * @property {string} id - Unique identifier for the item.
+ * @property {string} name - Internal name (used as CSS class for search-string toggle).
+ * @property {boolean} buttons - Whether scope buttons are used.
+ * @property {Object} translations - Display names per language ({ dk, en }).
+ * @property {Object} [ordering] - Optional manual sort order. If omitted, auto-generated.
+ * @property {Array<SubGroup>} [children] - Nested child items (unlimited depth).
+ * @property {Object} [searchStrings] - Search strings per scope ({ narrow, normal, broad }).
+ *     Each scope is a string or array of strings.
+ * @property {Object} [searchStringComment] - Comments per language ({ dk, en }).
+ * @property {Object} [tooltip] - Tooltip text per language ({ dk, en }).
  */
 /** @type {Array<Topic>} */
 
@@ -77,7 +82,6 @@ export const topics = [
         id: "S000020",
         name: "S000020",
         buttons: true,
-        maintopic: true, // Angiver at dette element er en branch og har children elementer
         translations: {
           dk: "Underemne 2",
           en: "Subtopic 2",
@@ -95,204 +99,192 @@ export const topics = [
           dk: "Dette er et eksempel på et underemne på niveau 1, som har under&shy;liggende emner (indikeret med en pil). Klik for at se under&shy;liggende emner.",
           en: "This is an example of a subtopic at level 1, that has subtopics underneath (indicated with an arrow). Click to see the subtopics.",
         },
-      },
-      {
-        id: "S000020010",
-        name: "S000020010",
-        buttons: true,
-        maintopic: true, // Angiver at dette element er en branch og har children elementer
-        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midderste niveau)
-        maintopicIdLevel1: "S000020", // Angiver at dette element har et parent med dette id. (Emne 2)
-        translations: {
-          dk: "Underemne 2.1",
-          en: "Subtopic 2.1",
-        },
-        ordering: {
-          dk: 3,
-          en: 3,
-        },
-        searchStringComment: {
-          dk: "Dette er et eksempel på et underemne på niveau 2, som også har et under&shy;liggende emne (indikeret med en pil). Klik for at se under&shy;liggende emner.",
-          en: "This is an example of a subtopic at level 2, that also has a subtopic underneath (indicated with an arrow). Click to see the subtopics.",
-        },
-        tooltip: {
-          dk: "Dette er et eksempel på et underemne på niveau 2, som også har et under&shy;liggende emne (indikeret med en pil). Klik for at se under&shy;liggende emner.",
-          en: "This is an example of a subtopic at level 2, that also has a subtopic underneath (indicated with an arrow). Click to see the subtopics.",
-        },
-      },
-      {
-        id: "S000020010010",
-        name: "S000020010010",
-        buttons: true,
-        subtopiclevel: 2, // Angiver at dette punkt ligger på 2. niveau (nedereste niveau)
-        maintopicIdLevel1: "S000020010", // Angiver at dette element har et parent med dette id. (Emne 2.1)
-        maintopicIdLevel2: "S000020", // Angiver at dette element har et grandparent med dette id (Emne 2)
-        translations: {
-          dk: "Underemne 2.1.1",
-          en: "Subtopic 2.1.1",
-        },
-        ordering: {
-          dk: 4,
-          en: 4,
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            'xxx'
-          ],
-          broad: [
-            'xxx'
-          ],
-        },
-        searchStringComment: {
-          dk: "Dette er et eksempel på et underemne på niveau 3, som er det dybteste niveau i denne rullemenu.",
-          en: "This is an example of a subtopic at level 3, which is the deepest level in this dropdown menu.",
-        },
-        tooltip: {
-          dk: "Dette er et eksempel på et underemne på niveau 3, som er det dybteste niveau i denne rullemenu.",
-          en: "This is an example of a subtopic at level 3, which is the deepest level in this dropdown menu.",
-        },
+        children: [
+          {
+            id: "S000020010",
+            name: "S000020010",
+            buttons: true,
+            translations: {
+              dk: "Underemne 2.1",
+              en: "Subtopic 2.1",
+            },
+            ordering: {
+              dk: 3,
+              en: 3,
+            },
+            searchStringComment: {
+              dk: "Dette er et eksempel på et underemne på niveau 2, som også har et under&shy;liggende emne (indikeret med en pil). Klik for at se under&shy;liggende emner.",
+              en: "This is an example of a subtopic at level 2, that also has a subtopic underneath (indicated with an arrow). Click to see the subtopics.",
+            },
+            tooltip: {
+              dk: "Dette er et eksempel på et underemne på niveau 2, som også har et under&shy;liggende emne (indikeret med en pil). Klik for at se under&shy;liggende emner.",
+              en: "This is an example of a subtopic at level 2, that also has a subtopic underneath (indicated with an arrow). Click to see the subtopics.",
+            },
+            children: [
+              {
+                id: "S000020010010",
+                name: "S000020010010",
+                buttons: true,
+                translations: {
+                  dk: "Underemne 2.1.1",
+                  en: "Subtopic 2.1.1",
+                },
+                ordering: {
+                  dk: 4,
+                  en: 4,
+                },
+                searchStrings: {
+                  narrow: [
+                    'xxx'
+                  ],
+                  normal: [
+                    'xxx'
+                  ],
+                  broad: [
+                    'xxx'
+                  ],
+                },
+                searchStringComment: {
+                  dk: "Dette er et eksempel på et underemne på niveau 3, som er det dybteste niveau i denne rullemenu.",
+                  en: "This is an example of a subtopic at level 3, which is the deepest level in this dropdown menu.",
+                },
+                tooltip: {
+                  dk: "Dette er et eksempel på et underemne på niveau 3, som er det dybteste niveau i denne rullemenu.",
+                  en: "This is an example of a subtopic at level 3, which is the deepest level in this dropdown menu.",
+                },
 
-      },
-      {
-        id: "S000020010020",
-        name: "S000020010020",
-        buttons: true,
-        subtopiclevel: 2, // Angiver at dette punkt ligger på 3. niveau
-        maintopicIdLevel1: "S000020010", // Angiver at dette element har et parent med dette id. (Emne 2.1)
-        maintopicIdLevel2: "S000020", // Angiver at dette element har et grandparent med dette id (Emne 2)
-        translations: {
-          dk: "Underemne 2.1.2",
-          en: "Subtopic 2.1.2",
-        },
-        ordering: {
-          dk: 5,
-          en: 5,
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            'xxx'
-          ],
-          broad: [
-            'xxx'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
-      },
-      {
-        id: "S000020010030",
-        name: "S000020010030",
-        buttons: true,
-        subtopiclevel: 2, // Angiver at dette punkt ligger på 3. niveau
-        maintopicIdLevel1: "S000020010", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
-        maintopicIdLevel2: "S000020", // Angiver at dette er punktet på 2. niveau til punktet med det angivne name.
-        translations: {
-          dk: "Underemne 2.1.3",
-          en: "Subtopic 2.1.3",
-        },
-        ordering: {
-          dk: 6,
-          en: 6,
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            'xxx'
-          ],
-          broad: [
-            'xxx'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
-      },
-      {
-        id: "S000020020",
-        name: "S000020020",
-        buttons: true,
-        subtopiclevel: 1, // Angiver at dette punkt ligger på 2. niveau
-        maintopicIdLevel1: "S000020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
-        translations: {
-          dk: "Underemne 2.2",
-          en: "Subtopic 2.2",
-        },
-        ordering: {
-          dk: 7,
-          en: 7,
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            'xxx'
-          ],
-          broad: [
-            'xxx'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
-      },
-      {
-        id: "S000020030",
-        name: "S000020030",
-        buttons: true,
-        subtopiclevel: 1, // Angiver at dette punkt ligger på 2. niveau
-        maintopicIdLevel1: "S000020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
-        translations: {
-          dk: "Underemne 2",
-          en: "Subtopic 2",
-        },
-        ordering: {
-          dk: 8,
-          en: 8,
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            'xxx'
-          ],
-          broad: [
-            'xxx'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
+              },
+              {
+                id: "S000020010020",
+                name: "S000020010020",
+                buttons: true,
+                translations: {
+                  dk: "Underemne 2.1.2",
+                  en: "Subtopic 2.1.2",
+                },
+                ordering: {
+                  dk: 5,
+                  en: 5,
+                },
+                searchStrings: {
+                  narrow: [
+                    'xxx'
+                  ],
+                  normal: [
+                    'xxx'
+                  ],
+                  broad: [
+                    'xxx'
+                  ],
+                },
+                searchStringComment: {
+                  dk: "",
+                  en: "",
+                },
+                tooltip: {
+                  dk: "",
+                  en: "",
+                },
+              },
+              {
+                id: "S000020010030",
+                name: "S000020010030",
+                buttons: true,
+                translations: {
+                  dk: "Underemne 2.1.3",
+                  en: "Subtopic 2.1.3",
+                },
+                ordering: {
+                  dk: 6,
+                  en: 6,
+                },
+                searchStrings: {
+                  narrow: [
+                    'xxx'
+                  ],
+                  normal: [
+                    'xxx'
+                  ],
+                  broad: [
+                    'xxx'
+                  ],
+                },
+                searchStringComment: {
+                  dk: "",
+                  en: "",
+                },
+                tooltip: {
+                  dk: "",
+                  en: "",
+                },
+              }
+            ]
+          },
+          {
+            id: "S000020020",
+            name: "S000020020",
+            buttons: true,
+            translations: {
+              dk: "Underemne 2.2",
+              en: "Subtopic 2.2",
+            },
+            ordering: {
+              dk: 7,
+              en: 7,
+            },
+            searchStrings: {
+              narrow: [
+                'xxx'
+              ],
+              normal: [
+                'xxx'
+              ],
+              broad: [
+                'xxx'
+              ],
+            },
+            searchStringComment: {
+              dk: "",
+              en: "",
+            },
+            tooltip: {
+              dk: "",
+              en: "",
+            },
+          },
+          {
+            id: "S000020030",
+            name: "S000020030",
+            buttons: true,
+            translations: {
+              dk: "Underemne 2",
+              en: "Subtopic 2",
+            },
+            ordering: {
+              dk: 8,
+              en: 8,
+            },
+            searchStrings: {
+              narrow: [
+                'xxx'
+              ],
+              normal: [
+                'xxx'
+              ],
+              broad: [
+                'xxx'
+              ],
+            },
+            searchStringComment: {
+              dk: "",
+              en: "",
+            },
+            tooltip: {
+              dk: "",
+              en: "",
+            },
+          }
+        ]
       },
       {
         id: "S000030",
@@ -325,7 +317,7 @@ export const topics = [
           dk: "Dette er et eksempel på, at de tre valgmuligheder 'Smal', 'Normal' og 'Bred' ikke vises i avanceret søgning.",
           en: "This is an example of, that the three options 'Narrow', 'Standard' and 'Broad' are not shown in advanced search.",
         },
-      },
+      }
     ],
     tooltip: {
       dk: "Denne kategori er et eksempel, hvor man kan se brugen flere niveauer og kommentarer. Kategorien fjernes, når formularen er live. Bemærk, at det også er muligt at indsætte en kommentar som denne på de øvrige kategorier i dropdownen.",
@@ -1534,7 +1526,6 @@ export const topics = [
         id: "S040020",
         name: "S040020",
         buttons: true,
-        maintopic: true,
         translations: {
           dk: "Diæter og kure",
           en: "Diets",
@@ -1546,306 +1537,288 @@ export const topics = [
         tooltip: {
           dk: "",
           en: "",
-        }
-      },
-      {
-        id: "S040020010",
-        name: "S040020010",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S040020",
-        translations: {
-          dk: "DASH-diæt",
-          en: "DASH diet"
         },
-        ordering: {
-          dk: 3,
-          en: 3
-        },
-        searchStrings: {
-          narrow: [
-            '"Dietary Approaches to Stop Hypertension"[majr] AND ' + standardString['narrow'] + ''
-          ],
-          normal: [
-            '("Dietary Approaches to Stop Hypertension"[mh] OR DASH[ti] OR "Dietary Approaches to Stop Hypertension"[ti]) AND (' + standardString['normal'] + ')',
-          ],
-          broad: [
-            '("Dietary Approaches to Stop Hypertension"[mh] OR DASH[tiab] OR "Dietary Approaches to Stop Hypertension"[tiab]) AND (' + standardString['broad'] + ')',
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "DASH (Dietary Approaches to Stop Hypertension) er udviklet til at sænke blodtrykket. Fokus på lavt saltindtag, frugt, grøntsager og magre proteinkilder.",
-          en: "DASH (Dietary Approaches to Stop Hypertension)"
-        }
-      },
-      {
-        id: "S040020020",
-        name: "S040020020",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S040020",
-        translations: {
-          dk: "Low carb high fat (LCHF)",
-          en: "Low carb high fat (LCHF)"
-        },
-        ordering: {
-          dk: 4,
-          en: 4
-        },
-        searchStrings: {
-          narrow: [
-            '"Diet, Carbohydrate-Restricted"[majr] AND "Diet, High-Fat"[majr] AND ' + standardString['narrow'] + '',
-          ],
-          normal: [
-            '(("Diet, Carbohydrate-Restricted"[mh] AND "Diet, High-Fat"[mh]) OR (low-carb*[ti] AND high-fat[ti]) OR lchf[ti] OR vlchf[ti]) AND (' + standardString['normal'] + ')',
-          ],
-          broad: [
-            '(("Diet, Carbohydrate-Restricted"[mh] AND "Diet, High-Fat"[mh]) OR (low-carb*[tiab] AND high-fat[tiab]) OR lchf[tiab] OR vlchf[tiab]) AND (' + standardString['broad'] + ')',
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "Fokus på at reducere kulhydrater og øge fedtindtaget.",
-          en: ""
-        }
-      },
-      {
-        id: "S040020030",
-        name: "S040020030",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S040020",
-        translations: {
-          dk: "Middelhavskost",
-          en: "Mediterranean diet"
-        },
-        ordering: {
-          dk: 5,
-          en: 5
-        },
-        searchStrings: {
-          narrow: [
-            '"Diet, Mediterranean"[majr] AND ' + standardString['narrow'] + ''
-          ],
-          normal: [
-            '("Diet, Mediterranean"[mh] OR (mediterranean[ti] AND diet*[ti])) AND (' + standardString['normal'] + ')',
-          ],
-          broad: [
-            '("Diet, Mediterranean"[mh] OR (mediterranean[tiab] AND diet*[tiab])) AND (' + standardString['broad'] + ')',
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "En kost baseret på grøntsager, frugt, fuldkorn, fisk, olivenolie og nødder.",
-          en: ""
-        }
-      },
-      {
-        id: "S040020040",
-        name: "S040020040",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S040020",
-        translations: {
-          dk: "Paleo-diæt",
-          en: "Paleolithic diet"
-        },
-        ordering: {
-          dk: 6,
-          en: 6
-        },
-        searchStrings: {
-          narrow: [
-            '"Diet, Paleolithic"[majr] AND ' + standardString['narrow'] + ''
-          ],
-          normal: [
-            '("Diet, Paleolithic"[mh] OR (paleo*[ti] AND diet*[ti])) AND (' + standardString['normal'] + ')',
-          ],
-          broad: [
-            '("Diet, Paleolithic"[mh] OR (paleo*[tiab] AND diet*[tiab])) AND (' + standardString['broad'] + ')',
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: 'Fokus på "oprindelige fødevarer" som magert kød, grøntsager, nødder og frugt, mens forarbejdede fødevarer og kornprodukter undgås.',
-          en: ""
-        }
-      },
-      {
-        id: "S040020050",
-        name: "S040020050",
-        buttons: true,
-        maintopic: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S040020",
-        translations: {
-          dk: "Plantebaseret kost",
-          en: "Plant-based diet"
-        },
-        ordering: {
-          dk: 7,
-          en: 7
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "Kost der primært eller udelukkende består af planter som grøntsager, frugt, bælgfrugter, nødder og fuldkorn.",
-          en: ""
-        }
-      },
-      {
-        id: "S040020050010",
-        name: "S040020050010",
-        buttons: true,
-        subtopiclevel: 2,
-        maintopicIdLevel1: "S040020050",
-        maintopicIdLevel2: "S040020",
-        translations: {
-          dk: "Plantebaseret kost generelt",
-          en: "Plant-based diet in general"
-        },
-        ordering: {
-          dk: 8,
-          en: 8
-        },
-        searchStrings: {
-          narrow: [
-            '("Diet, Plant-Based"[majr:noexp] OR "Diet, Vegetarian"[majr:noexp] OR "Diet, Vegan"[majr:noexp]) AND ' + standardString['narrow'] + '',
-          ],
-          normal: [
-            '("Diet, Plant-Based"[mh:noexp] OR "Diet, Vegetarian"[mh:noexp] OR "Diet, Vegan"[mh:noexp] OR ((plant-based[ti] OR vegetarian*[ti] OR vegan*[ti]) AND diet*[ti])) AND (' + standardString['normal'] + ')',
-          ],
-          broad: [
-            '("Diet, Plant-Based"[mh:noexp] OR "Diet, Vegetarian"[mh:noexp] OR "Diet, Vegan"[mh:noexp] OR ((plant-based[tiab] OR vegetarian*[tiab] OR vegan*[tiab]) AND diet*[tiab])) AND (' + standardString['broad'] + ')',
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "Kost der primært består af planter som grøntsager, frugt, bælgfrugter, nødder og fuldkorn. Nogle diæter tillader også små mængder animalske produkter.",
-          en: ""
-        }
-      },
-      {
-        id: "S040020050020",
-        name: "S040020050020",
-        buttons: true,
-        subtopiclevel: 2,
-        maintopicIdLevel1: "S040020050",
-        maintopicIdLevel2: "S040020",
-        translations: {
-          dk: "Vegetarisk kost",
-          en: "Vegetarian diet"
-        },
-        ordering: {
-          dk: 9,
-          en: 9
-        },
-        searchStrings: {
-          narrow: [
-            '"Diet, Vegetarian"[majr:noexp] AND ' + standardString['narrow'] + ''
-          ],
-          normal: [
-            '("Diet, Vegetarian"[mh:noexp] OR (vegetarian*[ti] AND diet*[ti])) AND (' + standardString['normal'] + ')',
-          ],
-          broad: [
-            '("Diet, Vegetarian"[mh:noexp] OR (vegetarian*[tiab] AND diet*[tiab])) AND (' + standardString['broad'] + ')',
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "Kost der primært består af planter som grøntsager, frugt, bælgfrugter, nødder og fuldkorn, men tillader også små mængder animalske produkter.",
-          en: ""
-        }
-      },
-      {
-        id: "S040020050030",
-        name: "S040020050030",
-        buttons: true,
-        subtopiclevel: 2,
-        maintopicIdLevel1: "S040020050",
-        maintopicIdLevel2: "S040020",
-        translations: {
-          dk: "Vegansk kost",
-          en: "Vegan diet"
-        },
-        ordering: {
-          dk: 10,
-          en: 10
-        },
-        searchStrings: {
-          narrow: [
-            '"Diet, Vegan"[majr] AND ' + standardString['narrow'] + ''
-          ],
-          normal: [
-            '("Diet, Vegan"[majr] OR (vegan*[ti] AND diet*[ti])) AND (' + standardString['normal'] + ')',
-          ],
-          broad: [
-            '("Diet, Vegan"[majr] OR (vegan*[tiab] AND diet*[tiab])) AND (' + standardString['broad'] + ')',
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "Kost der primært består af planter som grøntsager, frugt, bælgfrugter, nødder og fuldkorn, men ikke tillader animalske produkter.",
-          en: ""
-        }
-      },
-      {
-        id: "S040020060",
-        name: "S040020060",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S040020",
-        translations: {
-          dk: "Tidsbegrænset spisning",
-          en: "Time-restricted eating"
-        },
-        ordering: {
-          dk: 11,
-          en: 11
-        },
-        searchStrings: {
-          narrow: [
-            '"Intermittent Fasting"[majr] AND ' + standardString['narrow'] + ''
-          ],
-          normal: [
-            '("Intermittent Fasting"[mh] OR ((intermittent[ti] OR time-restrict*[ti]) AND (diet*[ti] OR eating[ti] OR fasting[ti]))) AND (' + standardString['normal'] + ')',
-          ],
-          broad: [
-            '("Intermittent Fasting"[mh] OR ((intermittent[tiab] OR time-restrict*[tiab]) AND (diet*[tiab] OR eating[tiab] OR fasting[tiab]))) AND (' + standardString['broad'] + ')',
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "Spisemønster, hvor der skiftevis er fasteperioder og spiseperioder.",
-          en: ""
-        },
+        children: [
+          {
+            id: "S040020010",
+            name: "S040020010",
+            buttons: true,
+            translations: {
+              dk: "DASH-diæt",
+              en: "DASH diet"
+            },
+            ordering: {
+              dk: 3,
+              en: 3
+            },
+            searchStrings: {
+              narrow: [
+                '"Dietary Approaches to Stop Hypertension"[majr] AND ' + standardString['narrow'] + ''
+              ],
+              normal: [
+                '("Dietary Approaches to Stop Hypertension"[mh] OR DASH[ti] OR "Dietary Approaches to Stop Hypertension"[ti]) AND (' + standardString['normal'] + ')',
+              ],
+              broad: [
+                '("Dietary Approaches to Stop Hypertension"[mh] OR DASH[tiab] OR "Dietary Approaches to Stop Hypertension"[tiab]) AND (' + standardString['broad'] + ')',
+              ]
+            },
+            searchStringComment: {
+              dk: "",
+              en: ""
+            },
+            tooltip: {
+              dk: "DASH (Dietary Approaches to Stop Hypertension) er udviklet til at sænke blodtrykket. Fokus på lavt saltindtag, frugt, grøntsager og magre proteinkilder.",
+              en: "DASH (Dietary Approaches to Stop Hypertension)"
+            }
+          },
+          {
+            id: "S040020020",
+            name: "S040020020",
+            buttons: true,
+            translations: {
+              dk: "Low carb high fat (LCHF)",
+              en: "Low carb high fat (LCHF)"
+            },
+            ordering: {
+              dk: 4,
+              en: 4
+            },
+            searchStrings: {
+              narrow: [
+                '"Diet, Carbohydrate-Restricted"[majr] AND "Diet, High-Fat"[majr] AND ' + standardString['narrow'] + '',
+              ],
+              normal: [
+                '(("Diet, Carbohydrate-Restricted"[mh] AND "Diet, High-Fat"[mh]) OR (low-carb*[ti] AND high-fat[ti]) OR lchf[ti] OR vlchf[ti]) AND (' + standardString['normal'] + ')',
+              ],
+              broad: [
+                '(("Diet, Carbohydrate-Restricted"[mh] AND "Diet, High-Fat"[mh]) OR (low-carb*[tiab] AND high-fat[tiab]) OR lchf[tiab] OR vlchf[tiab]) AND (' + standardString['broad'] + ')',
+              ],
+            },
+            searchStringComment: {
+              dk: "",
+              en: ""
+            },
+            tooltip: {
+              dk: "Fokus på at reducere kulhydrater og øge fedtindtaget.",
+              en: ""
+            }
+          },
+          {
+            id: "S040020030",
+            name: "S040020030",
+            buttons: true,
+            translations: {
+              dk: "Middelhavskost",
+              en: "Mediterranean diet"
+            },
+            ordering: {
+              dk: 5,
+              en: 5
+            },
+            searchStrings: {
+              narrow: [
+                '"Diet, Mediterranean"[majr] AND ' + standardString['narrow'] + ''
+              ],
+              normal: [
+                '("Diet, Mediterranean"[mh] OR (mediterranean[ti] AND diet*[ti])) AND (' + standardString['normal'] + ')',
+              ],
+              broad: [
+                '("Diet, Mediterranean"[mh] OR (mediterranean[tiab] AND diet*[tiab])) AND (' + standardString['broad'] + ')',
+              ]
+            },
+            searchStringComment: {
+              dk: "",
+              en: ""
+            },
+            tooltip: {
+              dk: "En kost baseret på grøntsager, frugt, fuldkorn, fisk, olivenolie og nødder.",
+              en: ""
+            }
+          },
+          {
+            id: "S040020040",
+            name: "S040020040",
+            buttons: true,
+            translations: {
+              dk: "Paleo-diæt",
+              en: "Paleolithic diet"
+            },
+            ordering: {
+              dk: 6,
+              en: 6
+            },
+            searchStrings: {
+              narrow: [
+                '"Diet, Paleolithic"[majr] AND ' + standardString['narrow'] + ''
+              ],
+              normal: [
+                '("Diet, Paleolithic"[mh] OR (paleo*[ti] AND diet*[ti])) AND (' + standardString['normal'] + ')',
+              ],
+              broad: [
+                '("Diet, Paleolithic"[mh] OR (paleo*[tiab] AND diet*[tiab])) AND (' + standardString['broad'] + ')',
+              ]
+            },
+            searchStringComment: {
+              dk: "",
+              en: ""
+            },
+            tooltip: {
+              dk: 'Fokus på "oprindelige fødevarer" som magert kød, grøntsager, nødder og frugt, mens forarbejdede fødevarer og kornprodukter undgås.',
+              en: ""
+            }
+          },
+          {
+            id: "S040020050",
+            name: "S040020050",
+            buttons: true,
+            translations: {
+              dk: "Plantebaseret kost",
+              en: "Plant-based diet"
+            },
+            ordering: {
+              dk: 7,
+              en: 7
+            },
+            searchStringComment: {
+              dk: "",
+              en: ""
+            },
+            tooltip: {
+              dk: "Kost der primært eller udelukkende består af planter som grøntsager, frugt, bælgfrugter, nødder og fuldkorn.",
+              en: ""
+            },
+            children: [
+              {
+                id: "S040020050010",
+                name: "S040020050010",
+                buttons: true,
+                translations: {
+                  dk: "Plantebaseret kost generelt",
+                  en: "Plant-based diet in general"
+                },
+                ordering: {
+                  dk: 8,
+                  en: 8
+                },
+                searchStrings: {
+                  narrow: [
+                    '("Diet, Plant-Based"[majr:noexp] OR "Diet, Vegetarian"[majr:noexp] OR "Diet, Vegan"[majr:noexp]) AND ' + standardString['narrow'] + '',
+                  ],
+                  normal: [
+                    '("Diet, Plant-Based"[mh:noexp] OR "Diet, Vegetarian"[mh:noexp] OR "Diet, Vegan"[mh:noexp] OR ((plant-based[ti] OR vegetarian*[ti] OR vegan*[ti]) AND diet*[ti])) AND (' + standardString['normal'] + ')',
+                  ],
+                  broad: [
+                    '("Diet, Plant-Based"[mh:noexp] OR "Diet, Vegetarian"[mh:noexp] OR "Diet, Vegan"[mh:noexp] OR ((plant-based[tiab] OR vegetarian*[tiab] OR vegan*[tiab]) AND diet*[tiab])) AND (' + standardString['broad'] + ')',
+                  ]
+                },
+                searchStringComment: {
+                  dk: "",
+                  en: ""
+                },
+                tooltip: {
+                  dk: "Kost der primært består af planter som grøntsager, frugt, bælgfrugter, nødder og fuldkorn. Nogle diæter tillader også små mængder animalske produkter.",
+                  en: ""
+                }
+              },
+              {
+                id: "S040020050020",
+                name: "S040020050020",
+                buttons: true,
+                translations: {
+                  dk: "Vegetarisk kost",
+                  en: "Vegetarian diet"
+                },
+                ordering: {
+                  dk: 9,
+                  en: 9
+                },
+                searchStrings: {
+                  narrow: [
+                    '"Diet, Vegetarian"[majr:noexp] AND ' + standardString['narrow'] + ''
+                  ],
+                  normal: [
+                    '("Diet, Vegetarian"[mh:noexp] OR (vegetarian*[ti] AND diet*[ti])) AND (' + standardString['normal'] + ')',
+                  ],
+                  broad: [
+                    '("Diet, Vegetarian"[mh:noexp] OR (vegetarian*[tiab] AND diet*[tiab])) AND (' + standardString['broad'] + ')',
+                  ]
+                },
+                searchStringComment: {
+                  dk: "",
+                  en: ""
+                },
+                tooltip: {
+                  dk: "Kost der primært består af planter som grøntsager, frugt, bælgfrugter, nødder og fuldkorn, men tillader også små mængder animalske produkter.",
+                  en: ""
+                }
+              },
+              {
+                id: "S040020050030",
+                name: "S040020050030",
+                buttons: true,
+                translations: {
+                  dk: "Vegansk kost",
+                  en: "Vegan diet"
+                },
+                ordering: {
+                  dk: 10,
+                  en: 10
+                },
+                searchStrings: {
+                  narrow: [
+                    '"Diet, Vegan"[majr] AND ' + standardString['narrow'] + ''
+                  ],
+                  normal: [
+                    '("Diet, Vegan"[majr] OR (vegan*[ti] AND diet*[ti])) AND (' + standardString['normal'] + ')',
+                  ],
+                  broad: [
+                    '("Diet, Vegan"[majr] OR (vegan*[tiab] AND diet*[tiab])) AND (' + standardString['broad'] + ')',
+                  ]
+                },
+                searchStringComment: {
+                  dk: "",
+                  en: ""
+                },
+                tooltip: {
+                  dk: "Kost der primært består af planter som grøntsager, frugt, bælgfrugter, nødder og fuldkorn, men ikke tillader animalske produkter.",
+                  en: ""
+                }
+              }
+            ]
+          },
+          {
+            id: "S040020060",
+            name: "S040020060",
+            buttons: true,
+            translations: {
+              dk: "Tidsbegrænset spisning",
+              en: "Time-restricted eating"
+            },
+            ordering: {
+              dk: 11,
+              en: 11
+            },
+            searchStrings: {
+              narrow: [
+                '"Intermittent Fasting"[majr] AND ' + standardString['narrow'] + ''
+              ],
+              normal: [
+                '("Intermittent Fasting"[mh] OR ((intermittent[ti] OR time-restrict*[ti]) AND (diet*[ti] OR eating[ti] OR fasting[ti]))) AND (' + standardString['normal'] + ')',
+              ],
+              broad: [
+                '("Intermittent Fasting"[mh] OR ((intermittent[tiab] OR time-restrict*[tiab]) AND (diet*[tiab] OR eating[tiab] OR fasting[tiab]))) AND (' + standardString['broad'] + ')',
+              ]
+            },
+            searchStringComment: {
+              dk: "",
+              en: ""
+            },
+            tooltip: {
+              dk: "Spisemønster, hvor der skiftevis er fasteperioder og spiseperioder.",
+              en: ""
+            },
+          }
+        ]
       },
       {
         id: "S040030",
@@ -2093,7 +2066,6 @@ export const topics = [
         id: "S050020",
         name: "S050020",
         buttons: true,
-        maintopic: true,
         translations: {
           dk: "Konditionstræning",
           en: "Cardiorespiratory fitness"
@@ -2109,144 +2081,138 @@ export const topics = [
         tooltip: {
           dk: "",
           en: ""
-        }
-      },
-      {
-        id: "S050020010",
-        name: "S050020010",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S050020",
-        translations: {
-          dk: "Konditionstræning generelt",
-          en: "Cardiorespiratory fitness in general"
         },
-        ordering: { 
-          dk: 2, 
-          en: 2 
-        },
-        searchStrings: {
-          narrow: [
-            '("Activities of Daily Living"[majr] OR "Bicycling"[majr] OR "Physical Conditioning, Human"[majr] OR "Physical Endurance"[majr] OR "Physical Fitness"[majr] OR "Walking"[majr]) AND ' + standardString['narrow'] + ''
-          ],
-          normal: [
-            '("Activities of Daily Living"[mh] OR "Bicycling"[mh] OR "Physical Conditioning, Human"[mh] OR "Physical Endurance"[mh] OR "Physical Fitness"[mh] OR "Walking"[mh] OR aerobic*[ti] OR cardiorespiratory*[ti] OR daily-activ*[ti] OR bicycling*[ti] OR bicycle*[ti] OR cycling*[ti] OR endurance*[ti] OR fitness*[ti] OR "low-intensity training"[ti:~3] OR "moderate-intensity training"[ti:~3] OR walking[ti]) AND (' + standardString['normal'] + ')',
-          ],
-          broad: [
-            '("Activities of Daily Living"[mh] OR "Bicycling"[mh] OR "Physical Conditioning, Human"[mh] OR "Physical Endurance"[mh] OR "Physical Fitness"[mh] OR "Walking"[mh] OR aerobic*[tiab] OR cardiorespiratory*[tiab] OR daily-activ*[tiab] OR bicycling*[tiab] OR bicycle*[tiab] OR cycling*[tiab] OR endurance*[tiab] OR fitness*[tiab] OR "low-intensity training"[tiab:~3] OR "moderate-intensity training"[tiab:~3] OR walking[tiab]) AND (' + standardString['broad'] + ')',
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        id: "S050020020",
-        name: "S050020020",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S050020",
-        translations: {
-          dk: "Hverdagsaktiviteter (lav til moderat intensitet)",
-          en: "Daily activities (low to moderate intensity)"
-        },
-        ordering: { 
-          dk: 3, 
-          en: 3 
-        },
-        searchStrings: {
-          narrow: [
-            '("Activities of Daily Living"[majr] OR "Bicycling"[majr] OR "Walking"[majr]) AND ' + standardString['narrow'] + '',
-          ],
-          normal: [
-            '("Activities of Daily Living"[mh] OR "Bicycling"[mh] OR "Walking"[mh] OR bicycling*[ti] OR bicycle*[ti] OR cycling*[ti] OR daily-activ*[ti] OR "low-intensity training"[ti:~3] OR "moderate-intensity training"[ti:~3] OR walking[ti]) AND (' + standardString['normal'] + ')',
+        children: [
+          {
+            id: "S050020010",
+            name: "S050020010",
+            buttons: true,
+            translations: {
+              dk: "Konditionstræning generelt",
+              en: "Cardiorespiratory fitness in general"
+            },
+            ordering: { 
+              dk: 2, 
+              en: 2 
+            },
+            searchStrings: {
+              narrow: [
+                '("Activities of Daily Living"[majr] OR "Bicycling"[majr] OR "Physical Conditioning, Human"[majr] OR "Physical Endurance"[majr] OR "Physical Fitness"[majr] OR "Walking"[majr]) AND ' + standardString['narrow'] + ''
+              ],
+              normal: [
+                '("Activities of Daily Living"[mh] OR "Bicycling"[mh] OR "Physical Conditioning, Human"[mh] OR "Physical Endurance"[mh] OR "Physical Fitness"[mh] OR "Walking"[mh] OR aerobic*[ti] OR cardiorespiratory*[ti] OR daily-activ*[ti] OR bicycling*[ti] OR bicycle*[ti] OR cycling*[ti] OR endurance*[ti] OR fitness*[ti] OR "low-intensity training"[ti:~3] OR "moderate-intensity training"[ti:~3] OR walking[ti]) AND (' + standardString['normal'] + ')',
+              ],
+              broad: [
+                '("Activities of Daily Living"[mh] OR "Bicycling"[mh] OR "Physical Conditioning, Human"[mh] OR "Physical Endurance"[mh] OR "Physical Fitness"[mh] OR "Walking"[mh] OR aerobic*[tiab] OR cardiorespiratory*[tiab] OR daily-activ*[tiab] OR bicycling*[tiab] OR bicycle*[tiab] OR cycling*[tiab] OR endurance*[tiab] OR fitness*[tiab] OR "low-intensity training"[tiab:~3] OR "moderate-intensity training"[tiab:~3] OR walking[tiab]) AND (' + standardString['broad'] + ')',
+              ]
+            },
+            searchStringComment: {
+              dk: "",
+              en: ""
+            },
+            tooltip: {
+              dk: "",
+              en: ""
+            }
+          },
+          {
+            id: "S050020020",
+            name: "S050020020",
+            buttons: true,
+            translations: {
+              dk: "Hverdagsaktiviteter (lav til moderat intensitet)",
+              en: "Daily activities (low to moderate intensity)"
+            },
+            ordering: { 
+              dk: 3, 
+              en: 3 
+            },
+            searchStrings: {
+              narrow: [
+                '("Activities of Daily Living"[majr] OR "Bicycling"[majr] OR "Walking"[majr]) AND ' + standardString['narrow'] + '',
+              ],
+              normal: [
+                '("Activities of Daily Living"[mh] OR "Bicycling"[mh] OR "Walking"[mh] OR bicycling*[ti] OR bicycle*[ti] OR cycling*[ti] OR daily-activ*[ti] OR "low-intensity training"[ti:~3] OR "moderate-intensity training"[ti:~3] OR walking[ti]) AND (' + standardString['normal'] + ')',
 
-          ],
-          broad: [
-            '("Activities of Daily Living"[mh] OR "Bicycling"[mh] OR "Walking"[mh] OR bicycling*[tiab] OR bicycle*[tiab] OR cycling*[tiab] OR daily-activ*[tiab] OR "low-intensity training"[tiab:~3] OR "moderate-intensity training"[tiab:~3] OR walking[tiab]) AND (' + standardString['broad'] + ')',
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        id: "S050020030",
-        name: "S050020030",
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S050020",
-        buttons: true,
-        translations: {
-          dk: "Udholdenhedstræning (moderat intensitet)",
-          en: "Endurance training (moderate intensity)"
-        },
-        ordering: { 
-          dk: 4, 
-          en: 4 
-        },
-        searchStrings: {
-          narrow: [
-            '("Endurance Training"[majr] OR "Physical Endurance"[majr]) AND ' + standardString['narrow'] + '',
-          ],
-          normal: [
-            '("Endurance Training"[mh] OR "Physical Endurance"[mh] OR endurance*[ti]) AND (' + standardString['normal'] + ')',
-          ],
-          broad: [
-            '("Endurance Training"[mh] OR "Physical Endurance"[mh] OR endurance*[tiab]) AND (' + standardString['broad'] + ')',
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        id: "S050020040",
-        name: "S050020040",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S050020",
-        translations: {
-          dk: "Højintensiv intervaltræning (HIIT)",
-          en: "High-intensity interval training (HIIT)"
-        },
-        ordering: { 
-          dk: 5, 
-          en: 5 
-        },
-        searchStrings: {
-          narrow: [
-            '"High-Intensity Interval Training"[majr] AND ' + standardString['narrow'] + ''
-          ],
-          normal: [
-            '("High-Intensity Interval Training"[mh] OR "high-intensity training"[ti:~3]) AND (' + standardString['normal'] + ')',
-          ],
-          broad: [
-            '("High-Intensity Interval Training"[mh] OR "high-intensity training"[tiab:~3]) AND (' + standardString['broad'] + ')',
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
+              ],
+              broad: [
+                '("Activities of Daily Living"[mh] OR "Bicycling"[mh] OR "Walking"[mh] OR bicycling*[tiab] OR bicycle*[tiab] OR cycling*[tiab] OR daily-activ*[tiab] OR "low-intensity training"[tiab:~3] OR "moderate-intensity training"[tiab:~3] OR walking[tiab]) AND (' + standardString['broad'] + ')',
+              ]
+            },
+            searchStringComment: {
+              dk: "",
+              en: ""
+            },
+            tooltip: {
+              dk: "",
+              en: ""
+            }
+          },
+          {
+            id: "S050020030",
+            name: "S050020030",
+            buttons: true,
+            translations: {
+              dk: "Udholdenhedstræning (moderat intensitet)",
+              en: "Endurance training (moderate intensity)"
+            },
+            ordering: { 
+              dk: 4, 
+              en: 4 
+            },
+            searchStrings: {
+              narrow: [
+                '("Endurance Training"[majr] OR "Physical Endurance"[majr]) AND ' + standardString['narrow'] + '',
+              ],
+              normal: [
+                '("Endurance Training"[mh] OR "Physical Endurance"[mh] OR endurance*[ti]) AND (' + standardString['normal'] + ')',
+              ],
+              broad: [
+                '("Endurance Training"[mh] OR "Physical Endurance"[mh] OR endurance*[tiab]) AND (' + standardString['broad'] + ')',
+              ]
+            },
+            searchStringComment: {
+              dk: "",
+              en: ""
+            },
+            tooltip: {
+              dk: "",
+              en: ""
+            }
+          },
+          {
+            id: "S050020040",
+            name: "S050020040",
+            buttons: true,
+            translations: {
+              dk: "Højintensiv intervaltræning (HIIT)",
+              en: "High-intensity interval training (HIIT)"
+            },
+            ordering: { 
+              dk: 5, 
+              en: 5 
+            },
+            searchStrings: {
+              narrow: [
+                '"High-Intensity Interval Training"[majr] AND ' + standardString['narrow'] + ''
+              ],
+              normal: [
+                '("High-Intensity Interval Training"[mh] OR "high-intensity training"[ti:~3]) AND (' + standardString['normal'] + ')',
+              ],
+              broad: [
+                '("High-Intensity Interval Training"[mh] OR "high-intensity training"[tiab:~3]) AND (' + standardString['broad'] + ')',
+              ]
+            },
+            searchStringComment: {
+              dk: "",
+              en: ""
+            },
+            tooltip: {
+              dk: "",
+              en: ""
+            }
+          }
+        ]
       },
       {
         id: "S050030",
@@ -2316,7 +2282,6 @@ export const topics = [
         id: "S050050",
         name: "S050050",
         buttons: true,
-        maintopic: true,
         translations: {
           dk: "Sport",
           en: "Sports"
@@ -2332,440 +2297,413 @@ export const topics = [
         tooltip: {
           dk: "",
           en: ""
-        }
-      },
-      {
-        id: "S050050010",
-        name: "S050050010",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S050050",
-        translations: {
-          dk: "Sport generelt",
-          en: "Sports in general"
         },
-        ordering: { 
-          dk: 9, 
-          en: 9 
-        },
-        searchStrings: {
-          narrow: [
-            '("Sports"[majr] OR "Yoga"[majr]) AND ' + standardString['narrow'] + ''
-          ],
-          normal: [
-            '("Sports"[mh] OR "Yoga"[mh] OR bicycling*[ti] OR bicycle*[ti] OR cycling*[ti] OR football*[ti] OR gymnastics*[ti] OR jogging*[ti] OR marathon*[ti] OR running*[ti] OR skiing*[ti] OR soccer*[ti] OR swimming*[ti] OR walking*[ti] OR weightlifting*[ti] OR weight-lifting*[ti] OR yoga*[ti]) AND (' + standardString['normal'] + ')',
-          ],
-          broad: [
-            '("Sports"[mh] OR "Yoga"[mh] OR bicycling*[tiab] OR bicycle*[tiab] OR cycling*[tiab] OR football*[tiab] OR gymnastics*[tiab] OR jogging*[tiab] OR marathon*[tiab] OR running*[tiab] OR skiing*[tiab] OR soccer*[tiab] OR swimming*[tiab] OR walking*[tiab] OR weightlifting*[tiab] OR weight-lifting*[tiab] OR yoga*[tiab]) AND (' + standardString['broad'] + ')',
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        id: "S050050020",
-        name: "S050050020",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S050050",
-        translations: {
-          dk: "Cykling",
-          en: "Cycling"
-        },
-        ordering: { 
-          dk: 10, 
-          en: 10 
-        },
-        searchStrings: {
-          narrow: [
-            '("Bicycling"[majr]) AND ' + standardString['narrow'] + '',
-          ],
-          normal: [
-            '("Bicycling"[mh] OR bicycling*[ti] OR bicycle*[ti] OR cycling*[ti]) AND (' + standardString['normal'] + ')',
+        children: [
+          {
+            id: "S050050010",
+            name: "S050050010",
+            buttons: true,
+            translations: {
+              dk: "Sport generelt",
+              en: "Sports in general"
+            },
+            ordering: { 
+              dk: 9, 
+              en: 9 
+            },
+            searchStrings: {
+              narrow: [
+                '("Sports"[majr] OR "Yoga"[majr]) AND ' + standardString['narrow'] + ''
+              ],
+              normal: [
+                '("Sports"[mh] OR "Yoga"[mh] OR bicycling*[ti] OR bicycle*[ti] OR cycling*[ti] OR football*[ti] OR gymnastics*[ti] OR jogging*[ti] OR marathon*[ti] OR running*[ti] OR skiing*[ti] OR soccer*[ti] OR swimming*[ti] OR walking*[ti] OR weightlifting*[ti] OR weight-lifting*[ti] OR yoga*[ti]) AND (' + standardString['normal'] + ')',
+              ],
+              broad: [
+                '("Sports"[mh] OR "Yoga"[mh] OR bicycling*[tiab] OR bicycle*[tiab] OR cycling*[tiab] OR football*[tiab] OR gymnastics*[tiab] OR jogging*[tiab] OR marathon*[tiab] OR running*[tiab] OR skiing*[tiab] OR soccer*[tiab] OR swimming*[tiab] OR walking*[tiab] OR weightlifting*[tiab] OR weight-lifting*[tiab] OR yoga*[tiab]) AND (' + standardString['broad'] + ')',
+              ]
+            },
+            searchStringComment: {
+              dk: "",
+              en: ""
+            },
+            tooltip: {
+              dk: "",
+              en: ""
+            }
+          },
+          {
+            id: "S050050020",
+            name: "S050050020",
+            buttons: true,
+            translations: {
+              dk: "Cykling",
+              en: "Cycling"
+            },
+            ordering: { 
+              dk: 10, 
+              en: 10 
+            },
+            searchStrings: {
+              narrow: [
+                '("Bicycling"[majr]) AND ' + standardString['narrow'] + '',
+              ],
+              normal: [
+                '("Bicycling"[mh] OR bicycling*[ti] OR bicycle*[ti] OR cycling*[ti]) AND (' + standardString['normal'] + ')',
 
-          ],
-          broad: [
-            '("Bicycling"[mh] OR bicycling*[tiab] OR bicycle*[tiab] OR cycling*[tiab]) AND (' + standardString['broad'] + ')',
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        id: "S050050030",
-        name: "S050050030",
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S050050",
-        buttons: true,
-        translations: {
-          dk: "Fodbold",
-          en: "Football (soccer)"
-        },
-        ordering: { 
-          dk: 11, 
-          en: 11 
-        },
-        searchStrings: {
-          narrow: [
-            '("Soccer"[majr]) AND ' + standardString['narrow'] + '',
-          ],
-          normal: [
-            '("Soccer"[mh] OR football*[ti] OR soccer*[ti]) AND (' + standardString['normal'] + ')',
-          ],
-          broad: [
-            '("Soccer"[mh] OR football*[tiab] OR soccer*[tiab]) AND (' + standardString['broad'] + ')',
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        id: "S050050040",
-        name: "S050050040",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S050050",
-        translations: {
-          dk: "Gang",
-          en: "Walking"
-        },
-        ordering: { 
-          dk: 12, 
-          en: 12 
-        },
-        searchStrings: {
-          narrow: [
-            '"Walking"[majr] AND ' + standardString['narrow'] + ''
-          ],
-          normal: [
-            '("Walking"[mh] OR walking*[ti]) AND (' + standardString['normal'] + ')',
-          ],
-          broad: [
-            '("Walking"[mh] OR walking*[tiab]) AND (' + standardString['broad'] + ')',
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        id: "S050050050",
-        name: "S050050050",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S050050",
-        translations: {
-          dk: "Gymnastik",
-          en: "Gymnastics"
-        },
-        ordering: { 
-          dk: 13, 
-          en: 13 
-        },
-        searchStrings: {
-          narrow: [
-            '"Gymnastics"[majr] AND ' + standardString['narrow'] + ''
-          ],
-          normal: [
-            '("Gymnastics"[mh] OR gymnastics*[ti]) AND (' + standardString['normal'] + ')',
-          ],
-          broad: [
-            '("Gymnastics"[mh] OR gymnastics*[tiab]) AND (' + standardString['broad'] + ')',
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        id: "S050050060",
-        name: "S050050060",
-        buttons: true,
-        maintopic: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S050050",
-        translations: {
-          dk: "Løb",
-          en: "Running"
-        },
-        ordering: { 
-          dk: 14, 
-          en: 14 
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        id: "S050050060010",
-        name: "S050050060010",
-        buttons: true,
-        subtopiclevel: 2,
-        maintopicIdLevel1: "S050050",
-        maintopicIdLevel2: "S050050060",
-        translations: {
-          dk: "Løb generelt",
-          en: "Running in general"
-        },
-        ordering: { 
-          dk: 15, 
-          en: 15 
-        },
-        searchStrings: {
-          narrow: [
-            '"Running"[majr] AND ' + standardString['narrow'] + ''
-          ],
-          normal: [
-            '("Running"[mh] OR running*[ti]) AND (' + standardString['normal'] + ')',
-          ],
-          broad: [
-            '("Running"[mh] OR running*[tiab]) AND (' + standardString['broad'] + ')',
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        id: "S050050060020",
-        name: "S050050060020",
-        buttons: true,
-        subtopiclevel: 2,
-        maintopicIdLevel1: "S050050",
-        maintopicIdLevel2: "S050050060",
-        translations: {
-          dk: "Jogging",
-          en: "Jogging"
-        },
-        ordering: { 
-          dk: 16, 
-          en: 16 
-        },
-        searchStrings: {
-          narrow: [
-            '"Jogging"[majr] AND ' + standardString['narrow'] + ''
-          ],
-          normal: [
-            '("Jogging"[mh] OR jogging*[ti]) AND (' + standardString['normal'] + ')',
-          ],
-          broad: [
-            '("Jogging"[mh] OR jogging*[tiab]) AND (' + standardString['broad'] + ')',
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        id: "S050050060030",
-        name: "S050050060030",
-        buttons: true,
-        subtopiclevel: 2,
-        maintopicIdLevel1: "S050050",
-        maintopicIdLevel2: "S050050060",
-        translations: {
-          dk: "Maratonløb",
-          en: "Marathon"
-        },
-        ordering: { 
-          dk: 17, 
-          en: 17 
-        },
-        searchStrings: {
-          narrow: [
-            '"Marathon Running"[majr] AND ' + standardString['narrow'] + ''
-          ],
-          normal: [
-            '("Marathon Running"[mh] OR marathon*[ti]) AND (' + standardString['normal'] + ')',
-          ],
-          broad: [
-            '("Marathon Running"[mh] OR marathon*[tiab]) AND (' + standardString['broad'] + ')',
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        id: "S050050060",
-        name: "S050050060",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S050050",
-        maintopicIdLevel2: "S050050060",
-        translations: {
-          dk: "Skisport",
-          en: "Skiing"
-        },
-        ordering: { 
-          dk: 17, 
-          en: 17 
-        },
-        searchStrings: {
-          narrow: [
-            '"Skiing"[majr] AND ' + standardString['narrow'] + ''
-          ],
-          normal: [
-            '("Skiing"[mh] OR skiing*[ti]) AND (' + standardString['normal'] + ')',
-          ],
-          broad: [
-            '("Skiing"[mh] OR skiing*[tiab]) AND (' + standardString['broad'] + ')',
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        id: "S050050070",
-        name: "S050050070",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S050050",
-        translations: {
-          dk: "Svømning",
-          en: "Swimming"
-        },
-        ordering: { 
-          dk: 18, 
-          en: 18 
-        },
-        searchStrings: {
-          narrow: [
-            '"Swimming"[majr] AND ' + standardString['narrow'] + ''
-          ],
-          normal: [
-            '("Swimming"[mh] OR swimming*[ti]) AND (' + standardString['normal'] + ')',
-          ],
-          broad: [
-            '("Swimming"[mh] OR swimming*[tiab]) AND (' + standardString['broad'] + ')',
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        id: "S050050080",
-        name: "S050050080",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S050050",
-        translations: {
-          dk: "Vægtløftning",
-          en: "Weightlifting"
-        },
-        ordering: { 
-          dk: 19, 
-          en: 19 
-        },
-        searchStrings: {
-          narrow: [
-            '"Weight Lifting"[majr] AND ' + standardString['narrow'] + ''
-          ],
-          normal: [
-            '("Weight Lifting"[mh] OR weight-lifting*[ti] OR weightlifting*[ti]) AND (' + standardString['normal'] + ')',
-          ],
-          broad: [
-            '("Weight Lifting"[mh] OR weight-lifting*[tiab] OR weightlifting*[tiab]) AND (' + standardString['broad'] + ')',
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        id: "S050050090",
-        name: "S050050090",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S050050",
-        translations: {
-          dk: "Yoga",
-          en: "Yoga"
-        },
-        ordering: { 
-          dk: 20, 
-          en: 20 
-        },
-        searchStrings: {
-          narrow: [
-            '"Yoga"[majr] AND ' + standardString['narrow'] + ''
-          ],
-          normal: [
-            '("Yoga"[mh] OR yoga*[ti]) AND (' + standardString['normal'] + ')',
-          ],
-          broad: [
-            '("Yoga"[mh] OR yoga*[tiab]) AND (' + standardString['broad'] + ')',
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
+              ],
+              broad: [
+                '("Bicycling"[mh] OR bicycling*[tiab] OR bicycle*[tiab] OR cycling*[tiab]) AND (' + standardString['broad'] + ')',
+              ]
+            },
+            searchStringComment: {
+              dk: "",
+              en: ""
+            },
+            tooltip: {
+              dk: "",
+              en: ""
+            }
+          },
+          {
+            id: "S050050030",
+            name: "S050050030",
+            buttons: true,
+            translations: {
+              dk: "Fodbold",
+              en: "Football (soccer)"
+            },
+            ordering: { 
+              dk: 11, 
+              en: 11 
+            },
+            searchStrings: {
+              narrow: [
+                '("Soccer"[majr]) AND ' + standardString['narrow'] + '',
+              ],
+              normal: [
+                '("Soccer"[mh] OR football*[ti] OR soccer*[ti]) AND (' + standardString['normal'] + ')',
+              ],
+              broad: [
+                '("Soccer"[mh] OR football*[tiab] OR soccer*[tiab]) AND (' + standardString['broad'] + ')',
+              ]
+            },
+            searchStringComment: {
+              dk: "",
+              en: ""
+            },
+            tooltip: {
+              dk: "",
+              en: ""
+            }
+          },
+          {
+            id: "S050050040",
+            name: "S050050040",
+            buttons: true,
+            translations: {
+              dk: "Gang",
+              en: "Walking"
+            },
+            ordering: { 
+              dk: 12, 
+              en: 12 
+            },
+            searchStrings: {
+              narrow: [
+                '"Walking"[majr] AND ' + standardString['narrow'] + ''
+              ],
+              normal: [
+                '("Walking"[mh] OR walking*[ti]) AND (' + standardString['normal'] + ')',
+              ],
+              broad: [
+                '("Walking"[mh] OR walking*[tiab]) AND (' + standardString['broad'] + ')',
+              ]
+            },
+            searchStringComment: {
+              dk: "",
+              en: ""
+            },
+            tooltip: {
+              dk: "",
+              en: ""
+            }
+          },
+          {
+            id: "S050050050",
+            name: "S050050050",
+            buttons: true,
+            translations: {
+              dk: "Gymnastik",
+              en: "Gymnastics"
+            },
+            ordering: { 
+              dk: 13, 
+              en: 13 
+            },
+            searchStrings: {
+              narrow: [
+                '"Gymnastics"[majr] AND ' + standardString['narrow'] + ''
+              ],
+              normal: [
+                '("Gymnastics"[mh] OR gymnastics*[ti]) AND (' + standardString['normal'] + ')',
+              ],
+              broad: [
+                '("Gymnastics"[mh] OR gymnastics*[tiab]) AND (' + standardString['broad'] + ')',
+              ]
+            },
+            searchStringComment: {
+              dk: "",
+              en: ""
+            },
+            tooltip: {
+              dk: "",
+              en: ""
+            }
+          },
+          {
+            id: "S050050060",
+            name: "S050050060",
+            buttons: true,
+            translations: {
+              dk: "Løb",
+              en: "Running"
+            },
+            ordering: { 
+              dk: 14, 
+              en: 14 
+            },
+            tooltip: {
+              dk: "",
+              en: ""
+            },
+            children: [
+              {
+                id: "S050050060010",
+                name: "S050050060010",
+                buttons: true,
+                translations: {
+                  dk: "Løb generelt",
+                  en: "Running in general"
+                },
+                ordering: { 
+                  dk: 15, 
+                  en: 15 
+                },
+                searchStrings: {
+                  narrow: [
+                    '"Running"[majr] AND ' + standardString['narrow'] + ''
+                  ],
+                  normal: [
+                    '("Running"[mh] OR running*[ti]) AND (' + standardString['normal'] + ')',
+                  ],
+                  broad: [
+                    '("Running"[mh] OR running*[tiab]) AND (' + standardString['broad'] + ')',
+                  ]
+                },
+                searchStringComment: {
+                  dk: "",
+                  en: ""
+                },
+                tooltip: {
+                  dk: "",
+                  en: ""
+                }
+              },
+              {
+                id: "S050050060020",
+                name: "S050050060020",
+                buttons: true,
+                translations: {
+                  dk: "Jogging",
+                  en: "Jogging"
+                },
+                ordering: { 
+                  dk: 16, 
+                  en: 16 
+                },
+                searchStrings: {
+                  narrow: [
+                    '"Jogging"[majr] AND ' + standardString['narrow'] + ''
+                  ],
+                  normal: [
+                    '("Jogging"[mh] OR jogging*[ti]) AND (' + standardString['normal'] + ')',
+                  ],
+                  broad: [
+                    '("Jogging"[mh] OR jogging*[tiab]) AND (' + standardString['broad'] + ')',
+                  ]
+                },
+                searchStringComment: {
+                  dk: "",
+                  en: ""
+                },
+                tooltip: {
+                  dk: "",
+                  en: ""
+                }
+              },
+              {
+                id: "S050050060030",
+                name: "S050050060030",
+                buttons: true,
+                translations: {
+                  dk: "Maratonløb",
+                  en: "Marathon"
+                },
+                ordering: { 
+                  dk: 17, 
+                  en: 17 
+                },
+                searchStrings: {
+                  narrow: [
+                    '"Marathon Running"[majr] AND ' + standardString['narrow'] + ''
+                  ],
+                  normal: [
+                    '("Marathon Running"[mh] OR marathon*[ti]) AND (' + standardString['normal'] + ')',
+                  ],
+                  broad: [
+                    '("Marathon Running"[mh] OR marathon*[tiab]) AND (' + standardString['broad'] + ')',
+                  ]
+                },
+                searchStringComment: {
+                  dk: "",
+                  en: ""
+                },
+                tooltip: {
+                  dk: "",
+                  en: ""
+                }
+              }
+            ]
+          },
+          {
+            id: "S050050060",
+            name: "S050050060",
+            buttons: true,
+            translations: {
+              dk: "Skisport",
+              en: "Skiing"
+            },
+            ordering: { 
+              dk: 17, 
+              en: 17 
+            },
+            searchStrings: {
+              narrow: [
+                '"Skiing"[majr] AND ' + standardString['narrow'] + ''
+              ],
+              normal: [
+                '("Skiing"[mh] OR skiing*[ti]) AND (' + standardString['normal'] + ')',
+              ],
+              broad: [
+                '("Skiing"[mh] OR skiing*[tiab]) AND (' + standardString['broad'] + ')',
+              ]
+            },
+            searchStringComment: {
+              dk: "",
+              en: ""
+            },
+            tooltip: {
+              dk: "",
+              en: ""
+            }
+          },
+          {
+            id: "S050050070",
+            name: "S050050070",
+            buttons: true,
+            translations: {
+              dk: "Svømning",
+              en: "Swimming"
+            },
+            ordering: { 
+              dk: 18, 
+              en: 18 
+            },
+            searchStrings: {
+              narrow: [
+                '"Swimming"[majr] AND ' + standardString['narrow'] + ''
+              ],
+              normal: [
+                '("Swimming"[mh] OR swimming*[ti]) AND (' + standardString['normal'] + ')',
+              ],
+              broad: [
+                '("Swimming"[mh] OR swimming*[tiab]) AND (' + standardString['broad'] + ')',
+              ]
+            },
+            searchStringComment: {
+              dk: "",
+              en: ""
+            },
+            tooltip: {
+              dk: "",
+              en: ""
+            }
+          },
+          {
+            id: "S050050080",
+            name: "S050050080",
+            buttons: true,
+            translations: {
+              dk: "Vægtløftning",
+              en: "Weightlifting"
+            },
+            ordering: { 
+              dk: 19, 
+              en: 19 
+            },
+            searchStrings: {
+              narrow: [
+                '"Weight Lifting"[majr] AND ' + standardString['narrow'] + ''
+              ],
+              normal: [
+                '("Weight Lifting"[mh] OR weight-lifting*[ti] OR weightlifting*[ti]) AND (' + standardString['normal'] + ')',
+              ],
+              broad: [
+                '("Weight Lifting"[mh] OR weight-lifting*[tiab] OR weightlifting*[tiab]) AND (' + standardString['broad'] + ')',
+              ]
+            },
+            searchStringComment: {
+              dk: "",
+              en: ""
+            },
+            tooltip: {
+              dk: "",
+              en: ""
+            }
+          },
+          {
+            id: "S050050090",
+            name: "S050050090",
+            buttons: true,
+            translations: {
+              dk: "Yoga",
+              en: "Yoga"
+            },
+            ordering: { 
+              dk: 20, 
+              en: 20 
+            },
+            searchStrings: {
+              narrow: [
+                '"Yoga"[majr] AND ' + standardString['narrow'] + ''
+              ],
+              normal: [
+                '("Yoga"[mh] OR yoga*[ti]) AND (' + standardString['normal'] + ')',
+              ],
+              broad: [
+                '("Yoga"[mh] OR yoga*[tiab]) AND (' + standardString['broad'] + ')',
+              ]
+            },
+            searchStringComment: {
+              dk: "",
+              en: ""
+            },
+            tooltip: {
+              dk: "",
+              en: ""
+            }
+          }
+        ]
       },
       {
         id: "S050060",

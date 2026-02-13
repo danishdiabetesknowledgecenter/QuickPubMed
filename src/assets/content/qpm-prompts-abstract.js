@@ -19,6 +19,7 @@ export const promptTextMultipleAbstracts = [
       - Det er vigtigt, at hver gang du omtaler et studie, skal du inkludere en reference til det pågældende studie direkte i teksten. 
       - Brug reglerne fra in-text APA citation style med Markdown-format, når du indsætter referencer, dvs. de skal indsættes i parenteser på denne form: ([Reference](#PMID \"Scroll ned til denne artikel\")), hvor Reference er fremgår ved hver artikel og består af efternavn på førsteforfatteren efterfulgt af 'et al.', hvis der er flere forfattere og et årstal, og PMID er PMID-nummeret for studiet, udelukkende med tal. Indsæt IKKE et mellemrum mellem citationstegnet og parentesen. Hvis der er flere referencer placeret udmiddelbart efter hinanden, skal du bruge denne form: ([Reference](#PMID \"Scroll ned til denne artikel\"); [Reference](#PMID \"Scroll ned til denne artikel\")). Efter skrivning skal du validere, om alle referencer er formatteret korrekt. Hvis der er fejl, så omskriv, indtil de er korrekte.
       - Sørg for, at der altid er præcist ét mellemrum før referencens startparentes.
+      - Skriv ALDRIG en reference i plain text efterfulgt af den samme reference som Markdown-link. Hver reference skal KUN forekomme én gang, og det skal ALTID være som Markdown-link. FORKERT: "...svær hypoglykæmi (Zimmermann et al., 2025)([Zimmermann et al., 2025](#12345678 \\"Scroll ned til denne artikel\\"))". KORREKT: "...svær hypoglykæmi ([Zimmermann et al., 2025](#12345678 \\"Scroll ned til denne artikel\\"))".
       - Indsæt IKKE en referenceliste til sidst. 
       - Ved punktopstillinger, så brug Markdown language. Du må aldrig lave en nummereret liste med kun et punkt. 
       - Brug gerne overskrifter, men indled aldrig det allerførste afsnit med en overskrift. Overskrifter må udelukkende markeres med **asterisks**, så de tolkes som fed tekst i HTML-format, dvs. #, ##, ###, osv. ikke må bruges til overskrifter.
@@ -42,6 +43,7 @@ export const promptTextMultipleAbstracts = [
       IMPORTANT instructions:
       - When you mention a study, ALWAYS insert a reference to the individual study inside the text itself as a clickable link in Markdown format in this form:
       [(Last name of the first author + et al., if there are several authors + , year)](#PMID \"Scroll down to this article\") where PMID is equal to the PMID of the reference in question, numbers only, not letters. Do NOT include a space between the citation mark and the parentheses.
+      - NEVER write a reference in plain text followed by the same reference as a Markdown link. Each reference must appear ONLY once, and it must ALWAYS be as a Markdown link. WRONG: "...severe hypoglycemia (Zimmermann et al., 2025)([Zimmermann et al., 2025](#12345678 \\"Scroll down to this article\\"))". CORRECT: "...severe hypoglycemia ([Zimmermann et al., 2025](#12345678 \\"Scroll down to this article\\"))".
       DO NOT include a reference list at the end.
       - For bullet points, use Markdown language. You may never make a numbered list with only one point.
       - Use sentence case, never title case, in headings and subheadings. In sentence case only the first word is capitalized. Headings and subheadings must be marked with **asterisks**, so they are interpreted as bold text in HTML format, i.e. #, ##, ###, etc. must not be used for headings.
@@ -73,6 +75,7 @@ export const promptTextMultipleAbstracts = [
       Brug reglerne fra in-text APA citation style med Markdown-format, når du indsætter referencer på, 
       dvs. de skal indsættes på denne form **[(Efternavn på førsteforfatteren et al., årstal)](#PMID \"Scroll ned til denne artikel\")**, 
       hvor PMID er PMID-nummeret for studiet, udelukkende med tal. Indsæt IKKE en referenceliste til sidst. 
+      Skriv ALDRIG en reference i plain text efterfulgt af den samme reference som Markdown-link. Hver reference skal KUN forekomme én gang som Markdown-link.
       Her er et eksempel (afgrænset af triple backticks) på, hvordan du altid skal indsætte henvisninger til de enkelte studier i selve teksten, 
       hver gang du omtaler noget, som stammer fra et eller flere bestemte af studierne på listen: 
       ´´´En systematisk gennemgang og meta-analyse viser, at forekomsten af fødselsdepression er høj, især i udviklingslande. 
@@ -90,6 +93,7 @@ export const promptTextMultipleAbstracts = [
       2) IMPORTANT: When mentioning a study, ALWAYS insert a reference to the individual study within the text itself as a clickable link in Markdown format in this form:
       **[(Last name of the first author + et al., if there are more authors + , year)](#PMID \"Scroll down to this article\")** where PMID is equal to the PMID of the reference in question, numbers only, not letters.
       DO NOT include a reference list at the end.
+      NEVER write a reference in plain text followed by the same reference as a Markdown link. Each reference must appear ONLY once as a Markdown link.
       Here is an example (delimited by triple backticks) of how you should always insert references to the individual studies in the text itself, every time you mention something that originates from one or more specific studies in the list:
       ´´´A systematic review and meta-analysis shows that the incidence of postpartum depression is high, especially in developing countries.
       Six risk factors for postpartum depression have been identified, including gestational diabetes, depression during pregnancy, and previous history of depression

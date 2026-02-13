@@ -4,7 +4,7 @@
     @mousedown="handleMouseDown"
   >
     <span
-      v-tooltip="{ content: getTooltip, offset: 5, delay: helpTextDelay }"
+      v-tooltip="{ content: getTooltip, distance: 5, delay: helpTextDelay }"
       class="multiselect__tag"
       :class="getTagColor(triple.option.scope)"
       :style="isEditMode ? (isMultiLine ? 'width: 100%; display: flex; flex-direction: column;' : 'width: 100%;') : ''"
@@ -57,11 +57,12 @@
 </template>
 
 <script>
-  import { messages } from "@/assets/content/qpm-translations";
+  import { utilitiesMixin } from "@/mixins/utilities";
   import { customInputTagTooltip } from "@/utils/qpm-content-helpers.js";
 
   export default {
     name: "DropdownTag",
+    mixins: [utilitiesMixin],
     props: {
       triple: {
         type: Object,
@@ -111,7 +112,6 @@
           return label ? label : " ";
         },
         set(newName) {
-          console.log('getCustomNameLabel setter called with:', newName, 'isEditMode:', this.isEditMode);
           this.tag.name = newName;
           this.tag.searchStrings.normal = [newName];
         },
@@ -146,35 +146,18 @@
     },
     watch: {
       triple(newTriple, oldTriple) {
-        console.log('triple watcher triggered', {
-          newId: newTriple.option.id,
-          oldId: oldTriple?.option?.id,
-          isEditMode: this.isEditMode
-        });
-        
         // Only reset edit mode if it's actually a new tag (not just an update of the same tag)
         if (!oldTriple || newTriple.option.id !== oldTriple.option.id) {
-          console.log('Resetting edit mode - different tag');
           this.tag = newTriple.option;
           this.isEditMode = false;
           this.isMultiLine = false;
         } else {
           // Same tag, only update tag data without resetting edit mode
-          console.log('Same tag - keeping edit mode');
           this.tag = newTriple.option;
         }
       },
     },
     methods: {
-      getString(string) {
-        const lg = this.language;
-        if (!messages[string]) {
-          console.warn(`Missing translation key: ${string}`);
-          return string;
-        }
-        const constant = messages[string][lg];
-        return constant !== undefined ? constant : messages[string]["dk"];
-      },
       startEdit() {
         if (!this.triple.option.isCustom || this.isEditMode) return;
         this.isEditMode = true;
@@ -294,9 +277,6 @@
          const textarea = this.$refs.editInput;
          if (!textarea) return;
          
-         // Debug log to see if function is being called
-         console.log('autoResize called, scrollHeight:', textarea.scrollHeight);
-         
          // Ensure textarea has full width first
          textarea.style.width = '100%';
          textarea.style.display = 'block';
@@ -313,15 +293,11 @@
          const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight) || 16;
          const isMultipleLines = scrollHeight > lineHeight * 1.5;
          
-         console.log('lineHeight:', lineHeight, 'scrollHeight:', scrollHeight, 'isMultipleLines:', isMultipleLines);
-         
          // Update isMultiLine state
          this.isMultiLine = isMultipleLines;
          
          // Set height to scrollHeight to adapt to content
          textarea.style.height = scrollHeight + 'px';
-         
-         console.log('Final height set to:', scrollHeight + 'px');
        },
        handleInput() {
          // Call autoResize with a small delay
@@ -341,8 +317,6 @@
            event.stopPropagation();
          }
          
-         // Log for debugging
-         console.log('Textarea keydown:', event.key, 'stopped propagation');
        },
     },
   };

@@ -20,9 +20,8 @@
         <button
           v-tooltip="{
             content: getString('hoversearchToggleWithAI'),
-            offset: 5,
+            distance: 5,
             delay: $helpTextDelay,
-            hideOnTargetClick: false,
           }"
           class="bx bx-info-circle"
           style="cursor: help"
@@ -42,9 +41,8 @@
         <button
           v-tooltip="{
             content: getString('hoversearchToggleWithoutAI'),
-            offset: 5,
+            distance: 5,
             delay: $helpTextDelay,
-            hideOnTargetClick: false,
           }"
           class="bx bx-info-circle"
           style="cursor: help"
@@ -62,7 +60,7 @@
     name: "AiTranslationToggle",
     props: {
       isCollapsed: Boolean,
-      value: {
+      modelValue: {
         type: Boolean,
         default: false,
       },
@@ -82,10 +80,10 @@
       },
       localSearchWithAI: {
         get() {
-          return this.value;
+          return this.modelValue;
         },
         set(newValue) {
-          this.$emit("input", newValue);
+          this.$emit("update:modelValue", newValue);
         },
       },
     },

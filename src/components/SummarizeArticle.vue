@@ -211,11 +211,11 @@
   import { appSettingsMixin } from "@/mixins/appSettings.js";
   import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
   import { questionHeaderHeightWatcherMixin } from "@/mixins/questionHeaderHeightWatcher.js";
-  import { sanitizePrompt } from "@/utils/qpm-open-ai-prompts-helpers.js";
+  import { sanitizePrompt } from "@/utils/qpm-prompts-helpers.js";
   import {
     summarizeArticlePrompt,
     promptText,
-  } from "@/assets/content/qpm-open-ai-article-prompts.js";
+  } from "@/assets/content/qpm-prompts-article.js";
 
   export default {
     name: "SummarizeArticle",
@@ -616,12 +616,10 @@
           let articleSummaryData;
 
           if (this.pdfUrl) {
-            console.log("PDF article URL: ", this.pdfUrl);
             articleSummaryData = await this.getSummarizePDFArticle(promptLanguageType);
           }
 
           if (this.htmlUrl && !this.pdfUrl) {
-            console.log("HTML article URL: ", this.htmlUrl);
             articleSummaryData = await this.getSummarizeHTMLArticle(promptLanguageType);
           }
 
@@ -703,8 +701,6 @@
             data = Array.isArray(parsed) ? parsed : (parsed.items || []);
           } catch (parseError) {
             console.warn('JSON.parse failed, using streaming items instead:', parseError.message);
-            console.log('=== streamingItemsCopy length ===', streamingItemsCopy.length);
-            console.log('=== streamingItemsCopy ===', JSON.stringify(streamingItemsCopy, null, 2));
             // Use the successfully parsed streaming items as fallback
             if (streamingItemsCopy.length > 0) {
               data = streamingItemsCopy.map(item => ({
@@ -788,13 +784,7 @@
           // Save streaming items before clearing (in case JSON.parse fails)
           const streamingItemsCopy = [...this.validStreamingItems];
           
-          // Debug: log raw text before sanitization
-          console.log('=== PDF rawText (first 500 chars) ===', rawText.substring(0, 500));
-          
           const sanitizedText = this.sanitizeResponse(rawText);
-
-          // Debug: log sanitized text
-          console.log('=== PDF sanitizedText (first 500 chars) ===', sanitizedText.substring(0, 500));
 
           // Clear streaming state before showing parsed result
           this.streamingText = "";
@@ -808,8 +798,6 @@
             data = Array.isArray(parsed) ? parsed : (parsed.items || []);
           } catch (parseError) {
             console.warn('JSON.parse failed, using streaming items instead:', parseError.message);
-            console.log('=== streamingItemsCopy length ===', streamingItemsCopy.length);
-            console.log('=== streamingItemsCopy ===', JSON.stringify(streamingItemsCopy, null, 2));
             // Use the successfully parsed streaming items as fallback
             if (streamingItemsCopy.length > 0) {
               data = streamingItemsCopy.map(item => ({
@@ -905,7 +893,6 @@
 
         // Don't clear streaming items here - they're needed as fallback if JSON.parse fails
         // They will be cleared after copying in getSummarize*Article functions
-        console.log('=== readStreamingResponse complete ===', 'fullText length:', fullText.length, 'streamingItems count:', this.streamingItems.length);
         return fullText.trim();
       },
       
@@ -922,7 +909,6 @@
             const totalItemsMatch = text.match(/"totalItems"\s*:\s*(\d+)/);
             if (totalItemsMatch) {
               this.expectedTotalItems = parseInt(totalItemsMatch[1], 10);
-              console.log('=== totalItems parsed ===', this.expectedTotalItems);
             }
           }
           
@@ -999,10 +985,8 @@
                         answer: obj.answer,
                         isStreaming: false
                       });
-                      console.log('=== Item parsed ===', obj.shortTitle);
                     }
                   } catch (e) {
-                    console.log('=== Item parse failed at position ===', objectStart, '-', i, 'error:', e.message);
                   }
                   objectStart = -1;
                 }
@@ -1023,14 +1007,9 @@
           }
           
           if (items.length > 0) {
-            // Log when items change
-            if (items.length !== this.streamingItems.length) {
-              console.log('=== parseStreamingItems: items updated ===', items.length, 'items');
-            }
             this.streamingItems = items;
           }
         } catch (e) {
-          console.log("Parsing error:", e);
         }
       },
       
@@ -1043,7 +1022,11 @@
         // Extract shortTitle using simple string search
         const titleMatch = text.match(/"shortTitle"\s*:\s*"((?:[^"\\]|\\.)*)"/);
         if (titleMatch) {
-          item.shortTitle = JSON.parse('"' + titleMatch[1] + '"');
+          try {
+            item.shortTitle = JSON.parse('"' + titleMatch[1] + '"');
+          } catch (e) {
+            item.shortTitle = titleMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+          }
         } else {
           return null;
         }

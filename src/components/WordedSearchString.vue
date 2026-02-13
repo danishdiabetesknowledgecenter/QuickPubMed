@@ -5,7 +5,7 @@
         v-if="hasValidSubjects"
         v-tooltip="{
           content: details && getString('hoverDetailsText'),
-          offset: 5,
+          distance: 5,
           delay: $helpTextDelay,
         }"
         tabindex="0"
@@ -24,7 +24,7 @@
         v-if="!advancedString"
         v-tooltip="{
           content: getString('hoverShowSearchStringText'),
-          offset: 5,
+          distance: 5,
           delay: $helpTextDelay,
         }"
         tabindex="0"
@@ -39,7 +39,7 @@
         v-else
         v-tooltip="{
           content: getString('hoverShowPrettyStringText'),
-          offset: 5,
+          distance: 5,
           delay: $helpTextDelay,
         }"
         tabindex="0"
@@ -51,80 +51,58 @@
         <a>{{ getString("hideSearchString") }}</a>
       </p>
       <div v-if="showHeader" role="heading" aria-level="2" class="h3" style="display: inline-block">
-        {{ getString("youAreSearchingFor") }}
+        {{ getString("youAreSearchingFor") }} 
       </div>
       <div v-if="!advancedString">
-        <span>{{ getSearchPreString }} </span>
+        <span class="qpm_searchStringPreText">{{ getSearchPreString }} {{ ' ' }}</span>
         <div v-for="(group, idx) in subjects" :key="idx" class="qpm_searchStringSubjectGroup">
           <span
             v-if="idx > 0 && group.length !== 0 && idx !== checkFirstSubjectRender"
             class="qpm_searchStringGroupOperator_NotApplied"
-          >
-            {{ getString("youAreSearchingForAnd") }}
-          </span>
+          >{{ ' ' }} {{ getString("youAreSearchingForAnd") }} {{ ' ' }}</span>
           <div v-if="Object.keys(group).length !== 0" class="qpm_searchStringWordGroup">
             <div
               v-for="(subjectObj, idx2) in group"
               :key="idx2"
               class="qpm_searchStringWordGroupWrapper"
             >
-              <span class="qpm_wordedStringSubject">
-                {{ getWordedSubjectString(subjectObj) }}
-              </span>
-              <span v-if="!subjectObj.preString" class="qpm_wordedStringOperator">
-                {{ getScope(subjectObj) }}
-              </span>
-              <span v-if="idx2 < group.length - 1" class="qpm_searchStringOperator">
-                {{ getString("orOperator").toLowerCase() }}
-              </span>
+              <span class="qpm_wordedStringSubject">{{ getWordedSubjectString(subjectObj) }}</span>
+              <span v-if="!subjectObj.preString" class="qpm_wordedStringOperator">{{ getScope(subjectObj) }}</span>
+              {{ ' ' }}<span v-if="idx2 < group.length - 1" class="qpm_searchStringOperator">{{ getString("orOperator").toLowerCase() }} </span>
             </div>
             <div v-if="group.length > 0" class="qpm_halfBorder" />
           </div>
         </div>
         <br />
-        <span v-if="!filterIsEmpty">
+        <span v-if="!filterIsEmpty" class="qpm_searchStringPreText">
           <div class="qpm_hideonmobile" style="padding-top: 10px" />
-          {{ getString("where") }}
+          {{ getString("limitsPreString") }} {{ ' ' }}
         </span>
-        <template v-if="activeFilters.length > 0">
-          <div
-            v-for="([name, value], idx) in activeFilters"
-            :key="name"
-            class="qpm_searchStringFilterGroup"
-          >
-            <span v-if="idx > 0" class="qpm_searchStringGroupOperator_NotApplied">
-              {{ getString("andOperator").toLowerCase() }}
-            </span>
-            <span class="qpm_searchStringGroupWhere">
-              {{ getWordedFilterStringFromId(name) }} {{ getString("is") }}
-            </span>
-            <div v-if="value.length !== 0" class="qpm_searchStringWordGroup">
-              <div
-                v-for="(filterObj, idx2) in value"
-                :key="idx2"
-                class="qpm_searchStringWordGroupWrapper"
-              >
-                <span class="qpm_wordedStringSubject">
-                  {{ getWordedFilterString(filterObj) }}
-                </span>
-                <span class="qpm_wordedStringOperator">
-                  {{ getScope(filterObj) }}
-                </span>
-                <span v-if="idx2 < value.length - 1" class="qpm_searchStringOperator">
-                  {{ getString("orOperator").toLowerCase() }}
-                </span>
-              </div>
-              <div class="qpm_halfBorder" />
+        <div v-for="(group, idx) in activeFilterDropdowns" :key="`filter-${idx}`" class="qpm_searchStringFilterGroup">
+          <span
+            v-if="idx > 0 && group.length !== 0"
+            class="qpm_searchStringGroupOperator_NotApplied"
+          >{{ ' ' }} {{ getString("youAreSearchingForAnd") }} {{ ' ' }}</span>
+          <div v-if="group.length !== 0" class="qpm_searchStringWordGroup">
+            <div
+              v-for="(filterItem, idx2) in group"
+              :key="idx2"
+              class="qpm_searchStringWordGroupWrapper"
+            >
+              <span class="qpm_wordedStringSubject"><span v-if="showFilterCategory(group, idx2)" class="qpm_filterCategoryPrefix">{{ getFilterCategoryName(filterItem) }} = </span>{{ getWordedFilterString(filterItem) }}</span>
+              <span class="qpm_wordedStringOperator">{{ getScope(filterItem) }}</span>
+              {{ ' ' }}<span v-if="idx2 < group.length - 1" class="qpm_searchStringOperator">{{ getString("orOperator").toLowerCase() }} </span>
             </div>
+            <div v-if="group.length > 0" class="qpm_halfBorder" />
           </div>
-        </template>
+        </div>
       </div>
       <div v-else>
         <textarea
           ref="searchStringTextarea"
           v-tooltip.bottom="{
             content: getString('hoverSearchString'),
-            offset: 5,
+            distance: 5,
             delay: $helpTextDelay,
           }"
           :value="searchstring"
@@ -149,9 +127,8 @@
           <a
             v-tooltip="{
               content: getString('hoverShowPubMedLinkText'),
-              offset: 5,
+              distance: 5,
               delay: $helpTextDelay,
-              trigger: 'hover',
             }"
             target="_blank"
             :href="getPubMedLink"
@@ -163,9 +140,8 @@
           <a
             v-tooltip="{
               content: getString('hoverShowPubMedLinkCreateAlertText'),
-              offset: 5,
+              distance: 5,
               delay: $helpTextDelay,
-              trigger: 'hover',
             }"
             target="_blank"
             :href="getPubMedLinkCreateAlert"
@@ -180,14 +156,14 @@
 
 <script>
   import { appSettingsMixin } from "@/mixins/appSettings";
-  import { messages } from "@/assets/content/qpm-translations.js";
+  import { utilitiesMixin } from "@/mixins/utilities";
   import { filtrer } from "@/assets/content/qpm-content-filters.js";
   import { topics } from "@/assets/content/diabetes/qpm-content-topics-diabetes.js";
   import { order } from "@/assets/content/qpm-content-order.js";
 
   export default {
     name: "WordedSearchString",
-    mixins: [appSettingsMixin],
+    mixins: [appSettingsMixin, utilitiesMixin],
     props: {
       subjects: {
         type: Array,
@@ -196,6 +172,10 @@
       filters: {
         type: Object,
         required: true,
+      },
+      filterDropdowns: {
+        type: Array,
+        default: () => [[]],
       },
       searchstring: {
         type: String,
@@ -249,6 +229,18 @@
         return Object.entries(this.filters).filter(
           ([, value]) => Array.isArray(value) && value.length > 0
         );
+      },
+      /**
+       * Returns filter groups for display.
+       * In advanced mode: uses filterDropdowns (each dropdown = one group).
+       * In simple mode: falls back to filters (filterData), each category = one group.
+       */
+      activeFilterDropdowns() {
+        const fromDropdowns = this.filterDropdowns.filter((group) => group.length > 0);
+        if (fromDropdowns.length > 0) return fromDropdowns;
+
+        // Fallback for simple mode: convert filterData categories to groups
+        return this.activeFilters.map(([, items]) => items);
       },
       filterIsEmpty() {
         if (this.filters) {
@@ -320,21 +312,12 @@
         }
 
         if (obj.scope === "broad") {
-          return `(${this.getString("broad")})`;
+          return ` (${this.getString("broad")})`;
         } else if (obj.scope === "narrow") {
-          return `(${this.getString("narrow")})`;
+          return ` (${this.getString("narrow")})`;
         } else {
-          return `(${this.getString("normal")})`;
+          return ` (${this.getString("normal")})`;
         }
-      },
-      getString(string) {
-        const lg = this.language;
-        if (!messages[string]) {
-          console.warn(`Missing translation key: ${string}`);
-          return string;
-        }
-        const constant = messages[string][lg];
-        return constant !== undefined ? constant : messages[string]["dk"];
       },
       getWordedSubjectString(string) {
         try {
@@ -379,6 +362,7 @@
         }
       },
       getWordedFilterStringById(id) {
+        if (id === "__custom__") return this.getString("manualInputTerm") || "Søgeord";
         const type = id.substr(0, 1).toLowerCase();
         const groupId = id.substr(0, 3);
         const lg = this.language;
@@ -427,7 +411,35 @@
       selectAndCopy() {
         this.copyTextfieldFunction();
       },
+      /**
+       * Returns true if the category prefix should be shown for this filter item.
+       * If all items in the group share the same category, only the first item shows it.
+       * If categories are mixed, every item shows its category.
+       */
+      showFilterCategory(group, idx) {
+        if (idx === 0) return true;
+        // Check if all items in the group have the same category
+        const firstCategory = this.getFilterCategoryName(group[0]);
+        const allSame = group.every((item) => this.getFilterCategoryName(item) === firstCategory);
+        return !allSame;
+      },
+      getFilterCategoryName(item) {
+        if (!item.id || item.id === "__custom__") return this.getString("manualInputTerm") || "Søgeord";
+        // Find the category by checking which filter group contains this item's id
+        const groupId = item.id.substring(0, 4);
+        const group = filtrer.find((f) => f.id === groupId || (f.choices && f.choices.some((c) => c.id === item.id)));
+        if (group && group.translations) {
+          const lg = this.language;
+          const name = group.translations[lg] || group.translations["dk"] || "";
+          return name.charAt(0).toUpperCase() + name.slice(1);
+        }
+        return "";
+      },
       getWordedFilterStringFromId(id) {
+        // Handle custom filter entries (manually entered search terms)
+        if (id === "__custom__") {
+          return this.getString("manualInputTerm") || "Søgeord";
+        }
         const filterGroup = filtrer.find(group => group.id === id);
         if (filterGroup && filterGroup.translations) {
           const lg = this.language;

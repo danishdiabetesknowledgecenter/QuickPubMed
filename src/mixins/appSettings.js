@@ -1,4 +1,4 @@
-import Vue from "vue";
+import mitt from "mitt";
 import { settings } from "@/config/settings.js";
 
 // App Settings Store
@@ -66,7 +66,7 @@ export const appSettingsStore = {
 };
 
 // Event Bus
-export const eventBus = new Vue();
+export const eventBus = mitt();
 
 // Mixin Definition
 export const appSettingsMixin = {

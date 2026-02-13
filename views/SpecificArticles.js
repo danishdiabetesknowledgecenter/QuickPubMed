@@ -2,9 +2,10 @@
 import "@/assets/styles/qpm-style.css";
 import "@/assets/styles/qpm-style-strings.css";
 
-import Vue from "vue";
+import { createApp, h } from "vue";
 import VueShowdown from "vue-showdown";
-import { VTooltip } from "v-tooltip";
+import FloatingVue from "floating-vue";
+import "floating-vue/dist/style.css";
 import SpecificArticles from "@/components/SpecificArticles.vue";
 import { config } from "@/config/config";
 
@@ -13,10 +14,8 @@ import { config } from "@/config/config";
  * en-US for American, en-GB for British, de-DR for German and so on.
  * Full list https://stackoverflow.com/questions/3191664/list-of-all-locales-and-their-short-codes
  */
-Vue.prototype.$helpTextDelay = { show: 500, hide: 100 };
-Vue.prototype.$alwaysShowFilter = true;
 
-Vue.use(VueShowdown, {
+const showdownConfig = {
   flavor: "github", // Set default flavor of showdown
   options: {
     emoji: false, // Disable emoji support
@@ -30,9 +29,24 @@ Vue.use(VueShowdown, {
     underline: true, // Enable underline
     completeHTMLDocument: false, // Render only HTML fragments
   },
-});
+};
 
-Vue.directive("tooltip", VTooltip);
+function createConfiguredApp(rootComponent, props) {
+  const app = createApp({
+    render: () => h(rootComponent, props),
+  });
+  app.use(VueShowdown, showdownConfig);
+  app.use(FloatingVue, {
+    themes: {
+      tooltip: {
+        html: true,
+      },
+    },
+  });
+  app.config.globalProperties.$helpTextDelay = { show: 500, hide: 100 };
+  app.config.globalProperties.$alwaysShowFilter = true;
+  return app;
+}
 
 function parseJSON(value) {
   try {
@@ -82,35 +96,30 @@ specificArticleDivs.forEach((specificArticleDiv) => {
   config.useAISummarizer = useAISummarizer;
 
   // Initialize Vue instance for each element
-  new Vue({
-    render: (h) =>
-      h(SpecificArticles, {
-        props: {
-          ids,
-          query,
-          queryResults,
-          sortMethod,
-          hideButtons,
-          showDate,
-          date,
-          title,
-          booktitle,
-          vernaculartitle,
-          authors,
-          source,
-          abstract,
-          doi,
-          isCustomDoi,
-          language,
-          hyperLink,
-          hyperLinkText,
-          sectionedAbstract,
-          componentNo,
-          shownSixAuthors,
-          showAltmetricBadge,
-          showDimensionsBadge,
-          useTranslateTitle,
-        },
-      }),
-  }).$mount(specificArticleDiv);
+  createConfiguredApp(SpecificArticles, {
+    ids,
+    query,
+    queryResults,
+    sortMethod,
+    hideButtons,
+    showDate,
+    date,
+    title,
+    booktitle,
+    vernaculartitle,
+    authors,
+    source,
+    abstract,
+    doi,
+    isCustomDoi,
+    language,
+    hyperLink,
+    hyperLinkText,
+    sectionedAbstract,
+    componentNo,
+    shownSixAuthors,
+    showAltmetricBadge,
+    showDimensionsBadge,
+    useTranslateTitle,
+  }).mount(specificArticleDiv);
 });

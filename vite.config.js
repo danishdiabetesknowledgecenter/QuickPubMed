@@ -1,5 +1,5 @@
 // vite.config.js
-import vue from "@vitejs/plugin-vue2";
+import vue from "@vitejs/plugin-vue";
 import path from "path";
 import { defineConfig } from "vite";
 import { fileURLToPath } from "url";
@@ -25,7 +25,7 @@ export default defineConfig(({ command }) => {
     plugins: [vue()],
     resolve: {
       alias: {
-        vue: path.resolve(__dirname, "node_modules/vue/dist/vue.runtime.esm.js"),
+        vue: "vue",
         "@": path.resolve(__dirname, "./src"),
       },
     },

@@ -1,5 +1,5 @@
 <template>
-  <!-- The dropdown for selecting limits to be included in the advanced search -->
+  <!-- The dropdown(s) for selecting limits to be included in the advanced search -->
   <div style="margin: 30px 5px 10px">
     <div class="qpm_filtersHeaderContainer">
       <h4 role="heading" aria-level="3" class="h4">
@@ -8,73 +8,43 @@
       <button
         v-tooltip="{
         content: getString('hoverFiltersHeader'),
-        offset: 5,
+        distance: 5,
         delay: helpTextDelay,
-        hideOnTargetClick: false,
         }"
         class="bx bx-info-circle"
         style="cursor: help"
         aria-label="Info"
       />
     </div>
-    <div id="qpm_topofsearchbar" class="qpm_flex">
-      <dropdown-wrapper
-        ref="filterDropdown"
-        :is-multiple="true"
-        :data="filterOptions"
-        :hide-topics="hideTopics"
-        :is-group="false"
-        :placeholder="placeholderWithCount"
-        :operator="getString('andOperator')"
-        :close-on-input="false"
-        :language="language"
-        :taggable="false"
-        :selected="filters"
-        :search-with-a-i="searchWithAI"
-        :show-scope-label="advanced"
-        :no-result-string="getString('noLimitDropdownContent')"
-        :index="0"
-        qpm-button-color2="qpm_buttonColor7"
-        :hide-tags-wrap="true"
-        @input="handleFilterUpdate"
-      />
-    </div>
-    <div class="qpm_flex">
-      <div class="qpm_filters" :class="{ qpm_visibilityHidden: Object.keys(filters).length === 0 }">
-        <filter-entry
-          v-for="(id, index) in filterDataKeysReversed"
-          :key="id"
-          :language="language"
-          :filter-item="getFilters(id)"
-          :idx="id"
-          :hide-topics="hideTopics"
-          :selected="filterData[id]"
-          :is-first="index === 0"
-          @input="handleAdvancedFilterUpdate"
-          @updateScope="handleScopeUpdate"
-          @remove-filter-item="handleRemoveFilterItem"
-        />
-      </div>
-    </div>
+    <filter-selection
+      ref="filterSelection"
+      :filter-dropdowns="filterDropdowns"
+      :filter-options="filterOptions"
+      :hide-topics="hideTopics"
+      :language="language"
+      :advanced="advanced"
+      :search-with-a-i="searchWithAI"
+      :get-string="getString"
+      :get-filter-placeholder="getFilterPlaceholder"
+      @update-filter-dropdown="handleUpdateFilterDropdown"
+      @update-filter-scope="handleUpdateFilterScope"
+      @update-filter-placeholder="handleUpdateFilterPlaceholder"
+      @add-filter-dropdown="handleAddFilterDropdown"
+      @remove-filter-dropdown="handleRemoveFilterDropdown"
+    />
   </div>
 </template>
 
 <script>
-  import DropdownWrapper from "@/components/DropdownWrapper.vue";
-  import FilterEntry from "@/components/FilterEntry.vue";
+  import FilterSelection from "@/components/FilterSelection.vue";
 
   export default {
     name: "AdvancedSearchFilters",
     components: {
-      DropdownWrapper,
-      FilterEntry,
+      FilterSelection,
     },
     props: {
       advanced: {
-        type: Boolean,
-        required: true,
-      },
-      showFilter: {
         type: Boolean,
         required: true,
       },
@@ -82,13 +52,13 @@
         type: Array,
         required: true,
       },
+      filterDropdowns: {
+        type: Array,
+        required: true,
+      },
       hideTopics: {
         type: Array,
         default: () => [],
-        required: true,
-      },
-      showTitle: {
-        type: String,
         required: true,
       },
       language: {
@@ -103,79 +73,31 @@
         type: Function,
         required: true,
       },
-      filterData: {
-        type: Object,
-        required: true,
-      },
-      filters: {
-        type: Array,
-        required: true,
+      getFilterPlaceholder: {
+        type: Function,
+        default: null,
       },
     },
     data() {
       return {
-        showFilterCategory: false,
+        helpTextDelay: 300,
       };
     },
-    computed: {
-      filterDataKeysReversed() {
-        return Object.keys(this.filterData).reverse();
-      },
-      selectedCount() {
-        return Object.keys(this.filterData).length;
-      },
-      totalFilters() {
-        return this.filterOptions.length;
-      },
-      placeholderWithCount() {
-        // return `${this.showTitle} (${this.selectedCount}/${this.totalFilters})`;
-        return `${this.showTitle}`;
-      },
-    },
-
     methods: {
-      /**
-       * Retrieves the filter with the given name.
-       *
-       * @param {string} name - The name of the filter to retrieve.
-       * @returns {Object} The filter object, or an empty object if not found.
-       */
-      getFilters(name) {
-        return this.filters.find((filter) => filter.id === name) || {};
+      handleUpdateFilterDropdown(value, index) {
+        this.$emit("update-filter-dropdown", value, index);
       },
-
-      handleRemoveFilterItem(filterItemId) {
-        this.$emit("remove-filter-item", filterItemId);
+      handleUpdateFilterScope(item, state, index) {
+        this.$emit("update-filter-scope", item, state, index);
       },
-
-      /**
-       * Handles filter updates from dropdown-wrapper.
-       * Emits 'update-advanced-filter' event with updated filters.
-       * @param {Array} updatedFilters - The updated filters array.
-       */
-      handleFilterUpdate(updatedFilters) {
-        this.$emit("update-advanced-filter", updatedFilters);
+      handleAddFilterDropdown() {
+        this.$emit("add-filter-dropdown");
       },
-
-      /**
-       * Handles updates from filter-entry components.
-       * Emits 'update-advanced-filter-entry' with necessary data.
-       * @param {String} filterType - The ID of the filter group being updated.
-       * @param {Object} selectedValue - The filter option that was selected or deselected.
-       */
-      handleAdvancedFilterUpdate(filterType, selectedValue) {
-        this.$emit("update-advanced-filter-entry", filterType, selectedValue);
+      handleRemoveFilterDropdown(index) {
+        this.$emit("remove-filter-dropdown", index);
       },
-
-      /**
-       * Handles scope updates from filter-entry components.
-       * Emits 'update-advanced-filter-scope'.
-       * @param {Object} item - The item to update.
-       * @param {String} state - The new state to set.
-       * @param {String} id - The identifier of the filter.
-       */
-      handleScopeUpdate(item, state, id) {
-        this.$emit("update-advanced-filter-scope", item, state, id);
+      handleUpdateFilterPlaceholder(isTranslating, index, stepKey) {
+        this.$emit("update-filter-placeholder", isTranslating, index, stepKey);
       },
     },
   };

@@ -22,7 +22,7 @@
         v-show="!isCollapsed"
         v-tooltip="{
           content: getString('hideForm'),
-          offset: 5,
+          distance: 5,
           delay: $helpTextDelay,
         }"
         class="qpm_toggleSearchFormBtn bx bx-hide"
@@ -31,7 +31,7 @@
         v-show="isCollapsed"
         v-tooltip="{
           content: getString('showForm'),
-          offset: 5,
+          distance: 5,
           delay: $helpTextDelay,
         }"
         class="qpm_toggleSearchFormBtn bx bx-show"

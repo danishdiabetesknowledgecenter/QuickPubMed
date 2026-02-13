@@ -17,9 +17,8 @@
         v-if="writing"
         v-tooltip="{
           content: getString('hoverretryText'),
-          offset: 5,
+          distance: 5,
           delay: $helpTextDelay,
-          hideOnTargetClick: false,
         }"
         class="qpm_button"
         @click="clickStop"
@@ -30,9 +29,8 @@
         v-if="translationLoaded"
         v-tooltip="{
           content: getString('hoverretryText'),
-          offset: 5,
+          distance: 5,
           delay: $helpTextDelay,
-          hideOnTargetClick: false,
         }"
         class="qpm_button"
         @click="clickRetry"
@@ -44,9 +42,8 @@
         v-if="!loading"
         v-tooltip="{
           content: getString('hovercopyText'),
-          offset: 5,
+          distance: 5,
           delay: $helpTextDelay,
-          hideOnTargetClick: false,
         }"
         class="qpm_button"
         @click="clickCopy"
@@ -64,18 +61,18 @@
 </template>
 
 <script>
-  import { messages } from "@/assets/content/qpm-translations.js";
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
   import { appSettingsMixin } from "@/mixins/appSettings.js";
-  import { getPromptForLocale } from "@/utils/qpm-open-ai-prompts-helpers.js";
-  import { titleTranslationPrompt } from "@/assets/content/qpm-open-ai-translation-prompts.js";
+  import { utilitiesMixin } from "@/mixins/utilities";
+  import { getPromptForLocale } from "@/utils/qpm-prompts-helpers.js";
+  import { titleTranslationPrompt } from "@/assets/content/qpm-prompts-translation.js";
 
   export default {
     name: "AiTranslation",
     components: {
       LoadingSpinner,
     },
-    mixins: [appSettingsMixin],
+    mixins: [appSettingsMixin, utilitiesMixin],
     props: {
       showingTranslation: {
         type: Boolean,
@@ -124,15 +121,6 @@
           }
         }
       },
-      getString(string) {
-        const lg = this.language;
-        if (!messages[string]) {
-          console.warn(`Missing translation key: ${string}`);
-          return string;
-        }
-        const constant = messages[string][lg];
-        return constant !== undefined ? constant : messages[string]["dk"];
-      },
       async translateTitle(showSpinner = true) {
         this.loading = showSpinner;
         this.stopGeneration = false;
@@ -147,8 +135,13 @@
               body: JSON.stringify(body),
             });
             if (!response.ok) {
-              const data = await response.json();
-              throw new Error(JSON.stringify(data));
+              let errorBody;
+              try {
+                errorBody = await response.json();
+              } catch {
+                errorBody = await response.text();
+              }
+              throw new Error(typeof errorBody === "string" ? errorBody : JSON.stringify(errorBody));
             }
             const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
 
@@ -200,9 +193,9 @@
         this.showTranslation();
       },
       canRenderMarkdown() {
-        return (
-          !!this.$options.components["VueShowdown"] || !!this.$options.components["vue-showdown"]
-        );
+        // In Vue 3, globally registered components (via app.use()) are not in $options.components.
+        // VueShowdown is always registered as a plugin in all entry points.
+        return true;
       },
     },
   };

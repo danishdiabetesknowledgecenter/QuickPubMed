@@ -38,8 +38,8 @@ export const messages = {
     en: "Add",
   },
   choselimits: {
-    dk: "Vælg afgrænsning",
-    en: "Select limit",
+    dk: "Vælg afgrænsning eller indtast søgeord",
+    en: "Select limit or enter search term",
   },
   search: {
     dk: "Søg",
@@ -121,6 +121,18 @@ export const messages = {
     dk: "AI-oversættelse i gang...",
     en: "AI translation...",
   },
+  translatingStepSearchString: {
+    dk: "Laver søgestreng",
+    en: "Creating search string",
+  },
+  translatingStepMesh: {
+    dk: "Undersøger MeSH-databasen",
+    en: "Checking MeSH database",
+  },
+  translatingStepOptimize: {
+    dk: "Optimerer søgestreng",
+    en: "Optimizing search string",
+  },
   noResult: {
     dk: "Ingen resultater matcher søgningen",
     en: "No records matched your search",
@@ -138,8 +150,8 @@ export const messages = {
     en: "No matches among the available topics. Click 'Advanced search' to enter a manual input.",
   },
   noLimitDropdownContent: {
-    dk: "Ingen matchende emner i listen. Manuelt input er kun muligt under de enkelte afgrænsninger.",
-    en: "No matches among the available topics. Custom input is possible only for the individual limits.",
+    dk: "Ingen matchende afgrænsninger i listen.",
+    en: "No matches among the available limits.",
   },
   addsubjectlimit: {
     dk: "Tilføj",
@@ -232,6 +244,10 @@ export const messages = {
   where: {
     dk: "Hvor",
     en: "Where",
+  },
+  limitsPreString: {
+    dk: "Hvor afgrænsninger er",
+    en: "Where limits are",
   },
   searchresult: {
     dk: "Søgeresultat",
@@ -589,9 +605,13 @@ export const messages = {
     dk: "Vælg de artikler, du ønsker at få opsummeret, ved at markere dem. Dine valgte artikler vil blive vist under 'Markerede artikler' herunder.",
     en: "Select the records you wish to have summarised by selecting them. You can find your selected records under 'Selected records' below.",
   },
-  aiSearchSummaryConsentHeaderText: {
-    dk: "Markerer du <strong>ikke</strong> nogen, vil de første 5 artikler blive opsummeret.",
-    en: "If <strong>none</strong> are selected, the first 5 records will be summarised.",
+  aiSearchSummaryConsentHeaderTextBefore: {
+    dk: "Markerer du <strong>ikke</strong> nogen, kan du vælge at få de første",
+    en: "If <strong>none</strong> are selected, you can choose to summarise the first",
+  },
+  aiSearchSummaryConsentHeaderTextAfter: {
+    dk: "artikler opsummeret.",
+    en: "records.",
   },
   aiSearchSummarySelectedArticlesBefore: {
     dk: "Du har markeret",
@@ -756,8 +776,8 @@ export const messages = {
     en: "<p>No records have been selected yet.</p>",
   },
   aiSummarizeSearchResultExplanation: {
-    dk: "Markér de artikler, som du vil have opsummeret. Hvis du ikke markerer nogen, vil de første 5 artikler blive opsummeret.",
-    en: "Select the records that you want to summarise. If you do not select any, the first 5 records will be summarised.",
+    dk: "Markér de artikler, som du vil have opsummeret. Hvis du ikke markerer nogen, kan du vælge at få de første op til 25 artikler opsummeret.",
+    en: "Select the records that you want to summarise. If you do not select any, you can choose to summarise up to the first 25 records.",
   },
   generatePdfQuestionsButtonText: {
     dk: "Vis opsummering af artiklen",

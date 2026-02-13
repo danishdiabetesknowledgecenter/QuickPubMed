@@ -21,7 +21,6 @@ export const promptRuleLoaderMixin = {
     currentDomain: {
       handler(newDomain) {
         if (!newDomain) {
-          console.log("promptRuleLoaderMixin: No domain set, skipping load");
           return;
         }
         const loadedPromptRules = loadPromptRules(newDomain);
@@ -29,7 +28,6 @@ export const promptRuleLoaderMixin = {
           return { ...acc, ...module.promptRules };
         }, {});
         this.domainSpecificPromptRules = promptRules;
-        console.log("promptRuleLoaderMixin: Loaded rules for domain:", newDomain, promptRules);
       },
       immediate: true,
     },

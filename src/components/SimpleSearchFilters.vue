@@ -7,9 +7,8 @@
       <button
         v-tooltip="{
         content: getString('hoverFiltersHeader'),
-        offset: 5,
+        distance: 5,
         delay: helpTextDelay,
-        hideOnTargetClick: false,
         }"
         class="bx bx-info-circle"
         style="cursor: help"
@@ -48,9 +47,8 @@
                 v-if="getSimpleTooltip(choice)"
                 v-tooltip="{
                   content: getSimpleTooltip(choice),
-                  offset: 5,
+                  distance: 5,
                   delay: helpTextDelay,
-                  hideOnTargetClick: false,
                 }"
                 class="bx bx-info-circle"
                 style="cursor: help"

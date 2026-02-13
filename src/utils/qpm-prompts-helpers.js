@@ -45,7 +45,8 @@ export function sanitizePrompt(prompt) {
   var langs = Object.keys(prompt);
   for (let k = 0; k < langs.length; k++) {
     var lg = langs[k];
-    // Remove suplurflous whitespace to reduce token count
+    // Remove superfluous whitespace to reduce token count
+    if (typeof prompt[lg] !== "string") continue;
     var sanitizedPrompt = prompt[lg]
       .split(" ")
       .filter(function (e) {
@@ -72,8 +73,10 @@ export function sanitizeMessages(messages) {
   const langs = Object.keys(messages);
   for (let k = 0; k < langs.length; k++) {
     var lg = langs[k];
+    if (!Array.isArray(messages[lg])) continue;
     var sanitizedMessages = messages[lg]
       .map((message) => {
+        if (!message || typeof message.content !== "string") return null;
         const sanitizedContent = message.content
           .split(" ")
           .filter(function (e) {

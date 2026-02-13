@@ -1,27 +1,32 @@
 /**
- * Represents a topic in the application.
+ * Represents a topic category (e.g. "Skabelonkategori", "Diabetestype").
+ *
  * @typedef {Object} Topic
- * @property {string} id - The unique identifier of the topic.
- * @property {string} groupname - The name of the topic group.
- * @property {Object} translations - The translations for different languages.
- * @property {Object} ordering - The ascending sorting order, starting at 0.
- * @property {Array<SubGroup>} groups - The subgroups associated with the topic.
+ * @property {string} id - Unique identifier for the category.
+ * @property {string} groupname - Internal group name (used as CSS class).
+ * @property {Object} translations - Display names per language ({ dk, en }).
+ * @property {Object} ordering - Sort order per language ({ dk: number, en: number }).
+ * @property {Array<SubGroup>} groups - Items in this category (nested tree structure).
  */
 
 /**
- * Represents a subject group within a topic.
+ * Represents an item within a topic category.
+ *
+ * Items use a nested tree structure via the `children` property (unlimited depth).
+ * At runtime, `flattenTopicGroups()` (in topicLoaderMixin.js) converts the tree
+ * into a flat array and auto-generates all hierarchy metadata needed by the UI.
+ *
  * @typedef {Object} SubGroup
- * @property {string} id - The unique identifier of the subject group.
- * @property {string} name - The name of the subject group.
- * @property {boolean} buttons - Indicates if buttons are used.
- * @property {boolean} [maintopic] - Indicates if this is branch topic with children.
- * @property {number} [subtopiclevel] - The level of nesting for the child topic.
- * @property {string} [maintopicIdLevel1] - The ID of the parent topic.
- * @property {string} [maintopicIdLevel2] - The ID of the grand parent topic.
- * @property {Object} translations - The translations for different languages.
- * @property {Object} ordering - The ascending sorting order, starting at 0.
- * @property {Object} [searchStrings] - Search strings for different scopes.
- * @property {Object} [searchStringComment] - Comments about the search strings.
+ * @property {string} id - Unique identifier for the item.
+ * @property {string} name - Internal name (used as CSS class for search-string toggle).
+ * @property {boolean} buttons - Whether scope buttons are used.
+ * @property {Object} translations - Display names per language ({ dk, en }).
+ * @property {Object} [ordering] - Optional manual sort order. If omitted, auto-generated.
+ * @property {Array<SubGroup>} [children] - Nested child items (unlimited depth).
+ * @property {Object} [searchStrings] - Search strings per scope ({ narrow, normal, broad }).
+ *     Each scope is a string or array of strings.
+ * @property {Object} [searchStringComment] - Comments per language ({ dk, en }).
+ * @property {Object} [tooltip] - Tooltip text per language ({ dk, en }).
  */
 /** @type {Array<Topic>} */
 
@@ -77,7 +82,6 @@ export const topics = [
         id: "S000020",
         name: "S000020",
         buttons: true,
-        maintopic: true, // Angiver at dette element er en branch og har children elementer
         translations: {
           dk: "Underemne 2",
           en: "Subtopic 2",
@@ -95,204 +99,191 @@ export const topics = [
           dk: "Dette er et eksempel på et underemne på niveau 1, som har under&shy;liggende emner (indikeret med en pil). Klik for at se under&shy;liggende emner.",
           en: "This is an example of a subtopic at level 1, that has subtopics underneath (indicated with an arrow). Click to see the subtopics.",
         },
-      },
-      {
-        id: "S000020010",
-        name: "S000020010",
-        buttons: true,
-        maintopic: true, // Angiver at dette element er en branch og har children elementer
-        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midderste niveau)
-        maintopicIdLevel1: "S000020", // Angiver at dette element har et parent med dette id. (Emne 2)
-        translations: {
-          dk: "Underemne 2.1",
-          en: "Subtopic 2.1",
-        },
-        ordering: {
-          dk: 3,
-          en: 3,
-        },
-        searchStringComment: {
-          dk: "Dette er et eksempel på et underemne på niveau 2, som også har et under&shy;liggende emne (indikeret med en pil). Klik for at se under&shy;liggende emner.",
-          en: "This is an example of a subtopic at level 2, that also has a subtopic underneath (indicated with an arrow). Click to see the subtopics.",
-        },
-        tooltip: {
-          dk: "Dette er et eksempel på et underemne på niveau 2, som også har et under&shy;liggende emne (indikeret med en pil). Klik for at se under&shy;liggende emner.",
-          en: "This is an example of a subtopic at level 2, that also has a subtopic underneath (indicated with an arrow). Click to see the subtopics.",
-        },
-      },
-      {
-        id: "S000020010010",
-        name: "S000020010010",
-        buttons: true,
-        subtopiclevel: 2, // Angiver at dette punkt ligger på 2. niveau (nedereste niveau)
-        maintopicIdLevel1: "S000020010", // Angiver at dette element har et parent med dette id. (Emne 2.1)
-        maintopicIdLevel2: "S000020", // Angiver at dette element har et grandparent med dette id (Emne 2)
-        translations: {
-          dk: "Underemne 2.1.1",
-          en: "Subtopic 2.1.1",
-        },
-        ordering: {
-          dk: 4,
-          en: 4,
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            'xxx'
-          ],
-          broad: [
-            'xxx'
-          ],
-        },
-        searchStringComment: {
-          dk: "Dette er et eksempel på et underemne på niveau 3, som er det dybteste niveau i denne rullemenu.",
-          en: "This is an example of a subtopic at level 3, which is the deepest level in this dropdown menu.",
-        },
-        tooltip: {
-          dk: "Dette er et eksempel på et underemne på niveau 3, som er det dybteste niveau i denne rullemenu.",
-          en: "This is an example of a subtopic at level 3, which is the deepest level in this dropdown menu.",
-        },
-
-      },
-      {
-        id: "S000020010020",
-        name: "S000020010020",
-        buttons: true,
-        subtopiclevel: 2, // Angiver at dette punkt ligger på 3. niveau
-        maintopicIdLevel1: "S000020010", // Angiver at dette element har et parent med dette id. (Emne 2.1)
-        maintopicIdLevel2: "S000020", // Angiver at dette element har et grandparent med dette id (Emne 2)
-        translations: {
-          dk: "Underemne 2.1.2",
-          en: "Subtopic 2.1.2",
-        },
-        ordering: {
-          dk: 5,
-          en: 5,
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            'xxx'
-          ],
-          broad: [
-            'xxx'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
-      },
-      {
-        id: "S000020010030",
-        name: "S000020010030",
-        buttons: true,
-        subtopiclevel: 2, // Angiver at dette punkt ligger på 3. niveau
-        maintopicIdLevel1: "S000020010", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
-        maintopicIdLevel2: "S000020", // Angiver at dette er punktet på 2. niveau til punktet med det angivne name.
-        translations: {
-          dk: "Underemne 2.1.3",
-          en: "Subtopic 2.1.3",
-        },
-        ordering: {
-          dk: 6,
-          en: 6,
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            'xxx'
-          ],
-          broad: [
-            'xxx'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
-      },
-      {
-        id: "S000020020",
-        name: "S000020020",
-        buttons: true,
-        subtopiclevel: 1, // Angiver at dette punkt ligger på 2. niveau
-        maintopicIdLevel1: "S000020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
-        translations: {
-          dk: "Underemne 2.2",
-          en: "Subtopic 2.2",
-        },
-        ordering: {
-          dk: 7,
-          en: 7,
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            'xxx'
-          ],
-          broad: [
-            'xxx'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
-      },
-      {
-        id: "S000020030",
-        name: "S000020030",
-        buttons: true,
-        subtopiclevel: 1, // Angiver at dette punkt ligger på 2. niveau
-        maintopicIdLevel1: "S000020", // Angiver at dette er punktet på 1. niveau til punktet med det angivne name.
-        translations: {
-          dk: "Underemne 2.3",
-          en: "Subtopic 2.3",
-        },
-        ordering: {
-          dk: 8,
-          en: 8,
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            'xxx'
-          ],
-          broad: [
-            'xxx'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
+        children: [
+          {
+            id: "S000020010",
+            name: "S000020010",
+            buttons: true,
+            translations: {
+              dk: "Underemne 2.1",
+              en: "Subtopic 2.1",
+            },
+            ordering: {
+              dk: 3,
+              en: 3,
+            },
+            searchStringComment: {
+              dk: "Dette er et eksempel på et underemne på niveau 2, som også har et under&shy;liggende emne (indikeret med en pil). Klik for at se under&shy;liggende emner.",
+              en: "This is an example of a subtopic at level 2, that also has a subtopic underneath (indicated with an arrow). Click to see the subtopics.",
+            },
+            tooltip: {
+              dk: "Dette er et eksempel på et underemne på niveau 2, som også har et under&shy;liggende emne (indikeret med en pil). Klik for at se under&shy;liggende emner.",
+              en: "This is an example of a subtopic at level 2, that also has a subtopic underneath (indicated with an arrow). Click to see the subtopics.",
+            },
+            children: [
+              {
+                id: "S000020010010",
+                name: "S000020010010",
+                buttons: true,
+                translations: {
+                  dk: "Underemne 2.1.1",
+                  en: "Subtopic 2.1.1",
+                },
+                ordering: {
+                  dk: 4,
+                  en: 4,
+                },
+                searchStrings: {
+                  narrow: [
+                    'xxx'
+                  ],
+                  normal: [
+                    'xxx'
+                  ],
+                  broad: [
+                    'xxx'
+                  ],
+                },
+                searchStringComment: {
+                  dk: "Dette er et eksempel på et underemne på niveau 3, som er det dybteste niveau i denne rullemenu.",
+                  en: "This is an example of a subtopic at level 3, which is the deepest level in this dropdown menu.",
+                },
+                tooltip: {
+                  dk: "Dette er et eksempel på et underemne på niveau 3, som er det dybteste niveau i denne rullemenu.",
+                  en: "This is an example of a subtopic at level 3, which is the deepest level in this dropdown menu.",
+                },
+              },
+              {
+                id: "S000020010020",
+                name: "S000020010020",
+                buttons: true,
+                translations: {
+                  dk: "Underemne 2.1.2",
+                  en: "Subtopic 2.1.2",
+                },
+                ordering: {
+                  dk: 5,
+                  en: 5,
+                },
+                searchStrings: {
+                  narrow: [
+                    'xxx'
+                  ],
+                  normal: [
+                    'xxx'
+                  ],
+                  broad: [
+                    'xxx'
+                  ],
+                },
+                searchStringComment: {
+                  dk: "",
+                  en: "",
+                },
+                tooltip: {
+                  dk: "",
+                  en: "",
+                },
+              },
+              {
+                id: "S000020010030",
+                name: "S000020010030",
+                buttons: true,
+                translations: {
+                  dk: "Underemne 2.1.3",
+                  en: "Subtopic 2.1.3",
+                },
+                ordering: {
+                  dk: 6,
+                  en: 6,
+                },
+                searchStrings: {
+                  narrow: [
+                    'xxx'
+                  ],
+                  normal: [
+                    'xxx'
+                  ],
+                  broad: [
+                    'xxx'
+                  ],
+                },
+                searchStringComment: {
+                  dk: "",
+                  en: "",
+                },
+                tooltip: {
+                  dk: "",
+                  en: "",
+                },
+              },
+            ],
+          },
+          {
+            id: "S000020020",
+            name: "S000020020",
+            buttons: true,
+            translations: {
+              dk: "Underemne 2.2",
+              en: "Subtopic 2.2",
+            },
+            ordering: {
+              dk: 7,
+              en: 7,
+            },
+            searchStrings: {
+              narrow: [
+                'xxx'
+              ],
+              normal: [
+                'xxx'
+              ],
+              broad: [
+                'xxx'
+              ],
+            },
+            searchStringComment: {
+              dk: "",
+              en: "",
+            },
+            tooltip: {
+              dk: "",
+              en: "",
+            },
+          },
+          {
+            id: "S000020030",
+            name: "S000020030",
+            buttons: true,
+            translations: {
+              dk: "Underemne 2.3",
+              en: "Subtopic 2.3",
+            },
+            ordering: {
+              dk: 8,
+              en: 8,
+            },
+            searchStrings: {
+              narrow: [
+                'xxx'
+              ],
+              normal: [
+                'xxx'
+              ],
+              broad: [
+                'xxx'
+              ],
+            },
+            searchStringComment: {
+              dk: "",
+              en: "",
+            },
+            tooltip: {
+              dk: "",
+              en: "",
+            },
+          },
+        ],
       },
       {
         id: "S000030",
@@ -444,7 +435,6 @@ export const topics = [
         name: "S010040",
         id: "S010040",
         buttons: true,
-        maintopic: true,
         translations: {
           dk: "Vaskulær demens",
           en: "Vascular dementia",
@@ -457,114 +447,109 @@ export const topics = [
           dk: "",
           en: "",
         },
-      },
-      {
-        name: "S010040010",
-        id: "S010040010",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S010040",
-        translations: {
-          dk: "Vaskulær demens (alle typer)",
-          en: "Vascular dementia (all types)",
-        },
-        ordering: {
-          dk: 4,
-          en: 4
-        },
-        searchStrings: {
-          narrow: [
-            '"Dementia, Vascular"[majr]'
-          ],
-          normal: [
-            '"Dementia, Vascular"[mh] OR vascular dementia[ti]'
-          ],
-          broad: [
-            '"Dementia, Vascular"[mh] OR vascular dementia[tiab]'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
-      },
-      {
-        name: "S010040020",
-        id: "S010040020",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S010040",
-        translations: {
-          dk: "CADASIL",
-          en: "CADASIL",
-        },
-        ordering: {
-          dk: 5,
-          en: 5
-        },
-        searchStrings: {
-          narrow: [
-            '"CADASIL"[majr]'
-          ],
-          normal: [
-            '"CADASIL"[mh] OR "cadasil"[ti]'
-          ],
-          broad: [
-            '"CADASIL"[mh] OR "cadasil"[tiab]'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
-      },
-      {
-        name: "S010040030",
-        id: "S010040030",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S010040",
-        translations: {
-          dk: "Multiinfarkt demens",
-          en: "Multiinfarct dementia",
-        },
-        ordering: {
-          dk: 6,
-          en: 6
-        },
-        searchStrings: {
-          narrow: [
-            '"Dementia, Multi-infarct"[majr]'
-          ],
-          normal: [
-            '"Dementia, Multi-infarct"[mh] OR multiinfarct dementia[ti] OR multi-infarct dementia[ti]'
-          ],
-          broad: [
-            '"Dementia, Multi-infarct"[mh] OR multiinfarct dementia[tiab] OR multi-infarct dementia[tiab]'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
+        children: [
+          {
+            name: "S010040010",
+            id: "S010040010",
+            buttons: true,
+            translations: {
+              dk: "Vaskulær demens (alle typer)",
+              en: "Vascular dementia (all types)",
+            },
+            ordering: {
+              dk: 4,
+              en: 4
+            },
+            searchStrings: {
+              narrow: [
+                '"Dementia, Vascular"[majr]'
+              ],
+              normal: [
+                '"Dementia, Vascular"[mh] OR vascular dementia[ti]'
+              ],
+              broad: [
+                '"Dementia, Vascular"[mh] OR vascular dementia[tiab]'
+              ],
+            },
+            searchStringComment: {
+              dk: "",
+              en: "",
+            },
+            tooltip: {
+              dk: "",
+              en: "",
+            },
+          },
+          {
+            name: "S010040020",
+            id: "S010040020",
+            buttons: true,
+            translations: {
+              dk: "CADASIL",
+              en: "CADASIL",
+            },
+            ordering: {
+              dk: 5,
+              en: 5
+            },
+            searchStrings: {
+              narrow: [
+                '"CADASIL"[majr]'
+              ],
+              normal: [
+                '"CADASIL"[mh] OR "cadasil"[ti]'
+              ],
+              broad: [
+                '"CADASIL"[mh] OR "cadasil"[tiab]'
+              ],
+            },
+            searchStringComment: {
+              dk: "",
+              en: "",
+            },
+            tooltip: {
+              dk: "",
+              en: "",
+            },
+          },
+          {
+            name: "S010040030",
+            id: "S010040030",
+            buttons: true,
+            translations: {
+              dk: "Multiinfarkt demens",
+              en: "Multiinfarct dementia",
+            },
+            ordering: {
+              dk: 6,
+              en: 6
+            },
+            searchStrings: {
+              narrow: [
+                '"Dementia, Multi-infarct"[majr]'
+              ],
+              normal: [
+                '"Dementia, Multi-infarct"[mh] OR multiinfarct dementia[ti] OR multi-infarct dementia[ti]'
+              ],
+              broad: [
+                '"Dementia, Multi-infarct"[mh] OR multiinfarct dementia[tiab] OR multi-infarct dementia[tiab]'
+              ],
+            },
+            searchStringComment: {
+              dk: "",
+              en: "",
+            },
+            tooltip: {
+              dk: "",
+              en: "",
+            },
+          },
+        ],
       },
       {
         name: "S010050",
         id: "S010050",
         buttons: true,
-        maintopic: true,
         translations: {
           dk: "Frontotemporal demens",
           en: "Frontotemporal dementia",
@@ -581,108 +566,104 @@ export const topics = [
           dk: "",
           en: "",
         },
-      },
-      {
-        name: "S010050010",
-        id: "S010050010",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S010050",
-        translations: {
-          dk: "Frontotemporal demens (alle typer)",
-          en: "Frontotemporal dementia (all types)",
-        },
-        ordering: {
-          dk: 8,
-          en: 8
-        },
-        searchStrings: {
-          narrow: [
-            '"Frontotemporal Dementia"[majr]'
-          ],
-          normal: [
-            '"Frontotemporal Dementia"[mh] OR frontotemporal dementia[ti] OR fronto-temporal dementia[ti] '
-          ],
-          broad: [
-            '"Frontotemporal Dementia"[mh] OR frontotemporal dementia[tiab] OR fronto-temporal dementia[tiab]'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
-      },
-      {
-        name: "S010050020",
-        id: "S010050020",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S010050",
-        translations: {
-          dk: "Primær progressiv afasi",
-          en: "Primary progressive aphasia",
-        },
-        ordering: {
-          dk: 9,
-          en: 9
-        },
-        searchStrings: {
-          narrow: [
-            '("Aphasia, Primary Progressive"[majr] NOT "Primary Progressive Nonfluent Aphasia"[mh])'
-          ],
-          normal: [
-            '("Aphasia, Primary Progressive"[mh] NOT "Primary Progressive Nonfluent Aphasia"[mh]) OR primary progressive aphasia[ti]'
-          ],
-          broad: [
-            '("Aphasia, Primary Progressive"[mh] NOT "Primary Progressive Nonfluent Aphasia"[mh]) OR primary progressive aphasia[tiab]'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
-      },
-      {
-        name: "S010050030",
-        id: "S010050030",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S010050",
-        translations: {
-          dk: "Primær progressiv ikke-flydende afasi",
-          en: "Primary progressive nonfluent aphasia",
-        },
-        ordering: {
-          dk: 10,
-          en: 10
-        },
-        searchStrings: {
-          narrow: [
-            '"Primary Progressive Nonfluent Aphasia"[majr]'
-          ],
-          normal: [
-            '"Primary Progressive Nonfluent Aphasia"[mh] OR primary progressive nonfluent aphasia[ti]'
-          ],
-          broad: [
-            '"Primary Progressive Nonfluent Aphasia"[mh] OR primary progressive nonfluent aphasia[tiab]'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
+        children: [
+          {
+            name: "S010050010",
+            id: "S010050010",
+            buttons: true,
+            translations: {
+              dk: "Frontotemporal demens (alle typer)",
+              en: "Frontotemporal dementia (all types)",
+            },
+            ordering: {
+              dk: 8,
+              en: 8
+            },
+            searchStrings: {
+              narrow: [
+                '"Frontotemporal Dementia"[majr]'
+              ],
+              normal: [
+                '"Frontotemporal Dementia"[mh] OR frontotemporal dementia[ti] OR fronto-temporal dementia[ti] '
+              ],
+              broad: [
+                '"Frontotemporal Dementia"[mh] OR frontotemporal dementia[tiab] OR fronto-temporal dementia[tiab]'
+              ],
+            },
+            searchStringComment: {
+              dk: "",
+              en: "",
+            },
+            tooltip: {
+              dk: "",
+              en: "",
+            },
+          },
+          {
+            name: "S010050020",
+            id: "S010050020",
+            buttons: true,
+            translations: {
+              dk: "Primær progressiv afasi",
+              en: "Primary progressive aphasia",
+            },
+            ordering: {
+              dk: 9,
+              en: 9
+            },
+            searchStrings: {
+              narrow: [
+                '("Aphasia, Primary Progressive"[majr] NOT "Primary Progressive Nonfluent Aphasia"[mh])'
+              ],
+              normal: [
+                '("Aphasia, Primary Progressive"[mh] NOT "Primary Progressive Nonfluent Aphasia"[mh]) OR primary progressive aphasia[ti]'
+              ],
+              broad: [
+                '("Aphasia, Primary Progressive"[mh] NOT "Primary Progressive Nonfluent Aphasia"[mh]) OR primary progressive aphasia[tiab]'
+              ],
+            },
+            searchStringComment: {
+              dk: "",
+              en: "",
+            },
+            tooltip: {
+              dk: "",
+              en: "",
+            },
+          },
+          {
+            name: "S010050030",
+            id: "S010050030",
+            buttons: true,
+            translations: {
+              dk: "Primær progressiv ikke-flydende afasi",
+              en: "Primary progressive nonfluent aphasia",
+            },
+            ordering: {
+              dk: 10,
+              en: 10
+            },
+            searchStrings: {
+              narrow: [
+                '"Primary Progressive Nonfluent Aphasia"[majr]'
+              ],
+              normal: [
+                '"Primary Progressive Nonfluent Aphasia"[mh] OR primary progressive nonfluent aphasia[ti]'
+              ],
+              broad: [
+                '"Primary Progressive Nonfluent Aphasia"[mh] OR primary progressive nonfluent aphasia[tiab]'
+              ],
+            },
+            searchStringComment: {
+              dk: "",
+              en: "",
+            },
+            tooltip: {
+              dk: "",
+              en: "",
+            },
+          },
+        ],
       },
       {
         name: "S010060",
@@ -1928,7 +1909,6 @@ export const topics = [
         name: "S050030",
         id: "S050030",
         buttons: true,
-        maintopic: true,
         translations: {
           dk: "Medicinsk behandling",
           en: "Medical treatment",
@@ -1944,334 +1924,311 @@ export const topics = [
         tooltip: {
           dk: "",
           en: ""
-        }
-      },
-      {
-        name: "S050030010",
-        id: "S050030010",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S050030",
-        translations: {
-          dk: "Medicinsk behandling generelt",
-          en: "Medical treatment in general",
         },
-        ordering: {
-          dk: 4,
-          en: 4
-        },
-        searchStrings: {
-          narrow: [
-            '"Pharmaceutical Preparations"[majr]'
-          ],
-          normal: [
-            '"Pharmaceutical Preparations"[mh] OR medicine[ti] OR medication[ti] OR medications[ti]'
-          ],
-          broad: [
-            '"Pharmaceutical Preparations"[mh] OR medicine[tiab] OR medication[tiab] OR medications[tiab]'
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        name: "S050030020",
-        id: "S050030020",
-        buttons: false,
-        maintopic: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S050030",
-        translations: {
-          dk: "Demensmedicin",
-          en: "Dementia medication",
-        },
-        ordering: {
-          dk: 5,
-          en: 5
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        name: "S050030020010",
-        id: "S050030020010",
-        buttons: true,
-        subtopiclevel: 2,
-        maintopicIdLevel1: "S050030",
-        maintopicIdLevel2: "S050030020",
-        translations: {
-          dk: "Demensmedicin generelt",
-          en: "Dementia medication in general",
-        },
-        ordering: {
-          dk: 6,
-          en: 6
-        },
-        searchStrings: {
-          narrow: [
-            '"Cholinesterase Inhibitors"[majr]'
-          ],
-          normal: [
-            '"Cholinesterase Inhibitors"[mh] OR "cholinesterase inhibitor"[ti] OR "cholinesterase inhibitors"[ti]'
-          ],
-          broad: [
-            '"Cholinesterase Inhibitors"[mh] OR "cholinesterase inhibitor"[tiab] OR "cholinesterase inhibitors"[tiab]'
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        name: "S050030020020",
-        id: "S050030020020",
-        buttons: true,
-        subtopiclevel: 2,
-        maintopicIdLevel1: "S050030",
-        maintopicIdLevel2: "S050030020",
-        translations: {
-          dk: "Kolinesterasehæmmer",
-          en: "Cholinesterase inhibitor",
-        },
-        ordering: {
-          dk: 7,
-          en: 7
-        },
-        searchStrings: {
-          narrow: [
-            '"Cholinesterase Inhibitors"[majr]'
-          ],
-          normal: [
-            '"Cholinesterase Inhibitors"[mh] OR "cholinesterase inhibitor"[ti] OR "cholinesterase inhibitors"[ti]'
-          ],
-          broad: [
-            '"Cholinesterase Inhibitors"[mh] OR "cholinesterase inhibitor"[tiab] OR "cholinesterase inhibitors"[tiab]'
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        name: "S050030020030",
-        id: "S050030020030",
-        buttons: true,
-        subtopiclevel: 2,
-        maintopicIdLevel1: "S050030",
-        maintopicIdLevel2: "S050030020",
-        translations: {
-          dk: "Memantin",
-          en: "Memantine",
-        },
-        ordering: {
-          dk: 8,
-          en: 8
-        },
-        searchStrings: {
-          narrow: [
-            '"Memantine"[majr]'
-          ],
-          normal: [
-            '"Memantine"[mh] OR memantine[ti]'
-          ],
-          broad: [
-            '"Memantine"[mh] OR memantine[tiab]'
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        name: "S050030030",
-        id: "S050030030",
-        buttons: true,
-        maintopic: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S050030",
-        translations: {
-          dk: "Psykofarmaka",
-          en: "Psychopharmaca",
-        },
-        ordering: {
-          dk: 9,
-          en: 9
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        name: "S050030030010",
-        id: "S050030030010",
-        buttons: true,
-        subtopiclevel: 2,
-        maintopicIdLevel1: "S050030",
-        maintopicIdLevel2: "S050030030",
-        translations: {
-          dk: "Psykofarmaka generelt",
-          en: "Psychopharmaca in general",
-        },
-        ordering: {
-          dk: 10,
-          en: 10
-        },
-        searchStrings: {
-          narrow: [
-            '"Psychotropic Drugs"[majr]'
-          ],
-          normal: [
-            '"Psychotropic Drugs"[mh] OR "psychotropic drug"[ti] OR "psychotropic drugs"[ti]'
-          ],
-          broad: [
-            '"Psychotropic Drugs"[mh] OR "psychotropic drug"[tiab] OR "psychotropic drugs"[tiab]'
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        name: "S050030030020",
-        id: "S050030030020",
-        buttons: true,
-        subtopiclevel: 2,
-        maintopicIdLevel1: "S050030",
-        maintopicIdLevel2: "S050030030",
-        translations: {
-          dk: "Antidepressiv medicin",
-          en: "Antidepressant medication",
-        },
-        ordering: {
-          dk: 11,
-          en: 11
-        },
-        searchStrings: {
-          narrow: [
-            '"Antidepressants"[majr]'
-          ],
-          normal: [
-            '"Antidepressants"[mh] OR "antidepressant"[ti] OR "antidepressants"[ti]'
-          ],
-          broad: [
-            '"Antidepressants"[mh] OR "antidepressant"[tiab] OR "antidepressants"[tiab]'
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        name: "S050030030030",
-        id: "S050030030030",
-        buttons: true,
-        subtopiclevel: 2,
-        maintopicIdLevel1: "S050030",
-        maintopicIdLevel2: "S050030030",
-        translations: {
-          dk: "Antipsykotisk medicin",
-          en: "Antipsychotic medication",
-        },
-        ordering: {
-          dk: 12,
-          en: 12
-        },
-        searchStrings: {
-          narrow: [
-            '"Antipsychotics"[majr]'
-          ],
-          normal: [
-            '"Antipsychotics"[mh] OR "antipsychotic"[ti] OR "antipsychotics"[ti]'
-          ],
-          broad: [
-            '"Antipsychotics"[mh] OR "antipsychotic"[tiab] OR "antipsychotics"[tiab]'
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
-      },
-      {
-        name: "S050030030040",
-        id: "S050030030040",
-        buttons: true,
-        subtopiclevel: 2,
-        maintopicIdLevel1: "S050030",
-        maintopicIdLevel2: "S050030030",
-        translations: {
-          dk: "Angstdæmpende medicin",
-          en: "Anxiolytic medication",
-        },
-        ordering: {
-          dk: 13,
-          en: 13
-        },
-        searchStrings: {
-          narrow: [
-            '"Anxiolytics"[majr]'
-          ],
-          normal: [
-            '"Anxiolytics"[mh] OR "anxiolytic"[ti] OR "anxiolytics"[ti]'
-          ],
-          broad: [
-            '"Anxiolytics"[mh] OR "anxiolytic"[tiab] OR "anxiolytics"[tiab]'
-          ]
-        },
-        searchStringComment: {
-          dk: "",
-          en: ""
-        },
-        tooltip: {
-          dk: "",
-          en: ""
-        }
+        children: [
+          {
+            name: "S050030010",
+            id: "S050030010",
+            buttons: true,
+            translations: {
+              dk: "Medicinsk behandling generelt",
+              en: "Medical treatment in general",
+            },
+            ordering: {
+              dk: 4,
+              en: 4
+            },
+            searchStrings: {
+              narrow: [
+                '"Pharmaceutical Preparations"[majr]'
+              ],
+              normal: [
+                '"Pharmaceutical Preparations"[mh] OR medicine[ti] OR medication[ti] OR medications[ti]'
+              ],
+              broad: [
+                '"Pharmaceutical Preparations"[mh] OR medicine[tiab] OR medication[tiab] OR medications[tiab]'
+              ]
+            },
+            searchStringComment: {
+              dk: "",
+              en: ""
+            },
+            tooltip: {
+              dk: "",
+              en: ""
+            }
+          },
+          {
+            name: "S050030020",
+            id: "S050030020",
+            buttons: false,
+            translations: {
+              dk: "Demensmedicin",
+              en: "Dementia medication",
+            },
+            ordering: {
+              dk: 5,
+              en: 5
+            },
+            searchStringComment: {
+              dk: "",
+              en: ""
+            },
+            tooltip: {
+              dk: "",
+              en: ""
+            },
+            children: [
+              {
+                name: "S050030020010",
+                id: "S050030020010",
+                buttons: true,
+                translations: {
+                  dk: "Demensmedicin generelt",
+                  en: "Dementia medication in general",
+                },
+                ordering: {
+                  dk: 6,
+                  en: 6
+                },
+                searchStrings: {
+                  narrow: [
+                    '"Cholinesterase Inhibitors"[majr]'
+                  ],
+                  normal: [
+                    '"Cholinesterase Inhibitors"[mh] OR "cholinesterase inhibitor"[ti] OR "cholinesterase inhibitors"[ti]'
+                  ],
+                  broad: [
+                    '"Cholinesterase Inhibitors"[mh] OR "cholinesterase inhibitor"[tiab] OR "cholinesterase inhibitors"[tiab]'
+                  ]
+                },
+                searchStringComment: {
+                  dk: "",
+                  en: ""
+                },
+                tooltip: {
+                  dk: "",
+                  en: ""
+                }
+              },
+              {
+                name: "S050030020020",
+                id: "S050030020020",
+                buttons: true,
+                translations: {
+                  dk: "Kolinesterasehæmmer",
+                  en: "Cholinesterase inhibitor",
+                },
+                ordering: {
+                  dk: 7,
+                  en: 7
+                },
+                searchStrings: {
+                  narrow: [
+                    '"Cholinesterase Inhibitors"[majr]'
+                  ],
+                  normal: [
+                    '"Cholinesterase Inhibitors"[mh] OR "cholinesterase inhibitor"[ti] OR "cholinesterase inhibitors"[ti]'
+                  ],
+                  broad: [
+                    '"Cholinesterase Inhibitors"[mh] OR "cholinesterase inhibitor"[tiab] OR "cholinesterase inhibitors"[tiab]'
+                  ]
+                },
+                searchStringComment: {
+                  dk: "",
+                  en: ""
+                },
+                tooltip: {
+                  dk: "",
+                  en: ""
+                }
+              },
+              {
+                name: "S050030020030",
+                id: "S050030020030",
+                buttons: true,
+                translations: {
+                  dk: "Memantin",
+                  en: "Memantine",
+                },
+                ordering: {
+                  dk: 8,
+                  en: 8
+                },
+                searchStrings: {
+                  narrow: [
+                    '"Memantine"[majr]'
+                  ],
+                  normal: [
+                    '"Memantine"[mh] OR memantine[ti]'
+                  ],
+                  broad: [
+                    '"Memantine"[mh] OR memantine[tiab]'
+                  ]
+                },
+                searchStringComment: {
+                  dk: "",
+                  en: ""
+                },
+                tooltip: {
+                  dk: "",
+                  en: ""
+                }
+              },
+            ],
+          },
+          {
+            name: "S050030030",
+            id: "S050030030",
+            buttons: true,
+            translations: {
+              dk: "Psykofarmaka",
+              en: "Psychopharmaca",
+            },
+            ordering: {
+              dk: 9,
+              en: 9
+            },
+            searchStringComment: {
+              dk: "",
+              en: ""
+            },
+            tooltip: {
+              dk: "",
+              en: ""
+            },
+            children: [
+              {
+                name: "S050030030010",
+                id: "S050030030010",
+                buttons: true,
+                translations: {
+                  dk: "Psykofarmaka generelt",
+                  en: "Psychopharmaca in general",
+                },
+                ordering: {
+                  dk: 10,
+                  en: 10
+                },
+                searchStrings: {
+                  narrow: [
+                    '"Psychotropic Drugs"[majr]'
+                  ],
+                  normal: [
+                    '"Psychotropic Drugs"[mh] OR "psychotropic drug"[ti] OR "psychotropic drugs"[ti]'
+                  ],
+                  broad: [
+                    '"Psychotropic Drugs"[mh] OR "psychotropic drug"[tiab] OR "psychotropic drugs"[tiab]'
+                  ]
+                },
+                searchStringComment: {
+                  dk: "",
+                  en: ""
+                },
+                tooltip: {
+                  dk: "",
+                  en: ""
+                }
+              },
+              {
+                name: "S050030030020",
+                id: "S050030030020",
+                buttons: true,
+                translations: {
+                  dk: "Antidepressiv medicin",
+                  en: "Antidepressant medication",
+                },
+                ordering: {
+                  dk: 11,
+                  en: 11
+                },
+                searchStrings: {
+                  narrow: [
+                    '"Antidepressants"[majr]'
+                  ],
+                  normal: [
+                    '"Antidepressants"[mh] OR "antidepressant"[ti] OR "antidepressants"[ti]'
+                  ],
+                  broad: [
+                    '"Antidepressants"[mh] OR "antidepressant"[tiab] OR "antidepressants"[tiab]'
+                  ]
+                },
+                searchStringComment: {
+                  dk: "",
+                  en: ""
+                },
+                tooltip: {
+                  dk: "",
+                  en: ""
+                }
+              },
+              {
+                name: "S050030030030",
+                id: "S050030030030",
+                buttons: true,
+                translations: {
+                  dk: "Antipsykotisk medicin",
+                  en: "Antipsychotic medication",
+                },
+                ordering: {
+                  dk: 12,
+                  en: 12
+                },
+                searchStrings: {
+                  narrow: [
+                    '"Antipsychotics"[majr]'
+                  ],
+                  normal: [
+                    '"Antipsychotics"[mh] OR "antipsychotic"[ti] OR "antipsychotics"[ti]'
+                  ],
+                  broad: [
+                    '"Antipsychotics"[mh] OR "antipsychotic"[tiab] OR "antipsychotics"[tiab]'
+                  ]
+                },
+                searchStringComment: {
+                  dk: "",
+                  en: ""
+                },
+                tooltip: {
+                  dk: "",
+                  en: ""
+                }
+              },
+              {
+                name: "S050030030040",
+                id: "S050030030040",
+                buttons: true,
+                translations: {
+                  dk: "Angstdæmpende medicin",
+                  en: "Anxiolytic medication",
+                },
+                ordering: {
+                  dk: 13,
+                  en: 13
+                },
+                searchStrings: {
+                  narrow: [
+                    '"Anxiolytics"[majr]'
+                  ],
+                  normal: [
+                    '"Anxiolytics"[mh] OR "anxiolytic"[ti] OR "anxiolytics"[ti]'
+                  ],
+                  broad: [
+                    '"Anxiolytics"[mh] OR "anxiolytic"[tiab] OR "anxiolytics"[tiab]'
+                  ]
+                },
+                searchStringComment: {
+                  dk: "",
+                  en: ""
+                },
+                tooltip: {
+                  dk: "",
+                  en: ""
+                }
+              }
+            ],
+          }
+        ],
       }
     ]
   },
@@ -2473,7 +2430,6 @@ export const topics = [
         name: "S070020",
         id: "S070020",
         buttons: true,
-        maintopic: true,
         translations: {
           dk: "Fysisk helbred",
           en: "Physical health",
@@ -2481,247 +2437,230 @@ export const topics = [
         ordering: {
           dk: 1,
           en: 1
-        }
-      },
-      {
-        name: "S070020010",
-        id: "S070020010",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S070020",
-        translations: {
-          dk: "Fysisk helbred generelt",
-          en: "Physical health in general",
         },
-        ordering: {
-          dk: 2,
-          en: 2
-        },
-        searchStrings: {
-          narrow: [
-            '"Physical Health"[majr]'
-          ],
-          normal: [
-            '"Physical Health"[mh] OR physical health[ti]'
-          ],
-          broad: [
-            '"Physical Health"[mh] OR physical health[tiab]'
-          ]
-        }
-      },
-      {
-        name: "S070020020",
-        id: "S070020020",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S070020",
-        translations: {
-          dk: "Diabetes",
-          en: "Diabetes",
-        },
-        ordering: {
-          dk: 3,
-          en: 3
-        },
-        searchStrings: {
-          narrow: [
-            '"Diabetes Mellitus"[majr]'
-          ],
-          normal: [
-            '"Diabetes Mellitus"[mh] OR diabetes[ti] OR diabetic[ti]'
-          ],
-          broad: [
-            '"Diabetes Mellitus"[mh] OR diabetes[tiab] OR diabetic[tiab]'
-          ]
-        }
-      },
-      {
-        name: "S070020030",
-        id: "S070020030",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S070020",
-        translations: {
-          dk: "Blodtryk/hypertension",
-          en: "Blood pressure/hypertension",
-        },
-        ordering: {
-          dk: 4,
-          en: 4
-        },
-        searchStrings: {
-          narrow: [
-            '"Hypertension"[majr] OR "Blood Pressure"[majr]'
-          ],
-          normal: [
-            '"Hypertension"[mh] OR "Blood Pressure"[mh] OR hypertension[ti] OR "blood pressure"[ti]'
-          ],
-          broad: [
-            '"Hypertension"[mh] OR "Blood Pressure"[mh] OR hypertension[tiab] OR "blood pressure"[tiab]'
-          ]
-        }
-      },
-      {
-        name: "S070020040",
-        id: "S070020040",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S070020",
-        translations: {
-          dk: "Kolesterol",
-          en: "Cholesterol",
-        },
-        ordering: {
-          dk: 5,
-          en: 5
-        },
-        searchStrings: {
-          narrow: [
-            '"Cholesterol"[majr]'
-          ],
-          normal: [
-            '"Cholesterol"[mh] OR cholesterol[ti]'
-          ],
-          broad: [
-            '"Cholesterol"[mh] OR cholesterol[tiab]'
-          ]
-        }
-      },
-      {
-        name: "S070020050",
-        id: "S070020050",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S070020",
-        translations: {
-          dk: "Overvægt/fedme",
-          en: "Overweight/obesity",
-        },
-        ordering: {
-          dk: 6,
-          en: 6
-        },
-        searchStrings: {
-          narrow: [
-            '"Obesity"[majr] OR "Overweight"[majr]'
-          ],
-          normal: [
-            '"Obesity"[mh] OR "Overweight"[mh] OR obesity[ti] OR overweight[ti]'
-          ],
-          broad: [
-            '"Obesity"[mh] OR "Overweight"[mh] OR obesity[tiab] OR overweight[tiab]'
-          ]
-        }
-      },
-      {
-        name: "S070020060",
-        id: "S070020060",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S070020",
-        translations: {
-          dk: "Komorbiditet/multisygdom",
-          en: "Comorbidity/multiple diseases",
-        },
-        ordering: {
-          dk: 7,
-          en: 7
-        },
-        searchStrings: {
-          narrow: [
-            '"Comorbidity"[majr] OR "Multimorbidity"[majr]'
-          ],
-          normal: [
-            '"Comorbidity"[mh] OR "Multimorbidity"[mh] OR comorbidity[ti] OR multimorbidity[ti] OR "multiple diseases"[ti]'
-          ],
-          broad: [
-            '"Comorbidity"[mh] OR "Multimorbidity"[mh] OR comorbidity[tiab] OR multimorbidity[tiab] OR "multiple diseases"[tiab]'
-          ]
-        }
-      },
-      {
-        name: "S070020070",
-        id: "S070020070",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S070020",
-        translations: {
-          dk: "Traumatisk hjerneskade/hovedtraume",
-          en: "Traumatic brain injury/head trauma",
-        },
-        ordering: {
-          dk: 8,
-          en: 8
-        },
-        searchStrings: {
-          narrow: [
-            '"Brain Injuries, Traumatic"[majr] OR "Craniocerebral Trauma"[majr]'
-          ],
-          normal: [
-            '"Brain Injuries, Traumatic"[mh] OR "Craniocerebral Trauma"[mh] OR "traumatic brain injury"[ti] OR "head trauma"[ti]'
-          ],
-          broad: [
-            '"Brain Injuries, Traumatic"[mh] OR "Craniocerebral Trauma"[mh] OR "traumatic brain injury"[tiab] OR "head trauma"[tiab]'
-          ]
-        }
-      },
-      {
-        name: "S070020080",
-        id: "S070020080",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S070020",
-        translations: {
-          dk: "Høretab/hørelse",
-          en: "Hearing loss/hearing",
-        },
-        ordering: {
-          dk: 9,
-          en: 9
-        },
-        searchStrings: {
-          narrow: [
-            '"Hearing Loss"[majr] OR "Hearing"[majr]'
-          ],
-          normal: [
-            '"Hearing Loss"[mh] OR "Hearing"[mh] OR "hearing loss"[ti] OR hearing[ti]'
-          ],
-          broad: [
-            '"Hearing Loss"[mh] OR "Hearing"[mh] OR "hearing loss"[tiab] OR hearing[tiab]'
-          ]
-        }
-      },
-      {
-        name: "S070020090",
-        id: "S070020090",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S070020",
-        translations: {
-          dk: "Infektion",
-          en: "Infection",
-        },
-        ordering: {
-          dk: 10,
-          en: 10
-        },
-        searchStrings: {
-          narrow: [
-            '"Infection"[majr]'
-          ],
-          normal: [
-            '"Infection"[mh] OR infection[ti] OR infections[ti]'
-          ],
-          broad: [
-            '"Infection"[mh] OR infection[tiab] OR infections[tiab]'
-          ]
-        }
+        children: [
+          {
+            name: "S070020010",
+            id: "S070020010",
+            buttons: true,
+            translations: {
+              dk: "Fysisk helbred generelt",
+              en: "Physical health in general",
+            },
+            ordering: {
+              dk: 2,
+              en: 2
+            },
+            searchStrings: {
+              narrow: [
+                '"Physical Health"[majr]'
+              ],
+              normal: [
+                '"Physical Health"[mh] OR physical health[ti]'
+              ],
+              broad: [
+                '"Physical Health"[mh] OR physical health[tiab]'
+              ]
+            }
+          },
+          {
+            name: "S070020020",
+            id: "S070020020",
+            buttons: true,
+            translations: {
+              dk: "Diabetes",
+              en: "Diabetes",
+            },
+            ordering: {
+              dk: 3,
+              en: 3
+            },
+            searchStrings: {
+              narrow: [
+                '"Diabetes Mellitus"[majr]'
+              ],
+              normal: [
+                '"Diabetes Mellitus"[mh] OR diabetes[ti] OR diabetic[ti]'
+              ],
+              broad: [
+                '"Diabetes Mellitus"[mh] OR diabetes[tiab] OR diabetic[tiab]'
+              ]
+            }
+          },
+          {
+            name: "S070020030",
+            id: "S070020030",
+            buttons: true,
+            translations: {
+              dk: "Blodtryk/hypertension",
+              en: "Blood pressure/hypertension",
+            },
+            ordering: {
+              dk: 4,
+              en: 4
+            },
+            searchStrings: {
+              narrow: [
+                '"Hypertension"[majr] OR "Blood Pressure"[majr]'
+              ],
+              normal: [
+                '"Hypertension"[mh] OR "Blood Pressure"[mh] OR hypertension[ti] OR "blood pressure"[ti]'
+              ],
+              broad: [
+                '"Hypertension"[mh] OR "Blood Pressure"[mh] OR hypertension[tiab] OR "blood pressure"[tiab]'
+              ]
+            }
+          },
+          {
+            name: "S070020040",
+            id: "S070020040",
+            buttons: true,
+            translations: {
+              dk: "Kolesterol",
+              en: "Cholesterol",
+            },
+            ordering: {
+              dk: 5,
+              en: 5
+            },
+            searchStrings: {
+              narrow: [
+                '"Cholesterol"[majr]'
+              ],
+              normal: [
+                '"Cholesterol"[mh] OR cholesterol[ti]'
+              ],
+              broad: [
+                '"Cholesterol"[mh] OR cholesterol[tiab]'
+              ]
+            }
+          },
+          {
+            name: "S070020050",
+            id: "S070020050",
+            buttons: true,
+            translations: {
+              dk: "Overvægt/fedme",
+              en: "Overweight/obesity",
+            },
+            ordering: {
+              dk: 6,
+              en: 6
+            },
+            searchStrings: {
+              narrow: [
+                '"Obesity"[majr] OR "Overweight"[majr]'
+              ],
+              normal: [
+                '"Obesity"[mh] OR "Overweight"[mh] OR obesity[ti] OR overweight[ti]'
+              ],
+              broad: [
+                '"Obesity"[mh] OR "Overweight"[mh] OR obesity[tiab] OR overweight[tiab]'
+              ]
+            }
+          },
+          {
+            name: "S070020060",
+            id: "S070020060",
+            buttons: true,
+            translations: {
+              dk: "Komorbiditet/multisygdom",
+              en: "Comorbidity/multiple diseases",
+            },
+            ordering: {
+              dk: 7,
+              en: 7
+            },
+            searchStrings: {
+              narrow: [
+                '"Comorbidity"[majr] OR "Multimorbidity"[majr]'
+              ],
+              normal: [
+                '"Comorbidity"[mh] OR "Multimorbidity"[mh] OR comorbidity[ti] OR multimorbidity[ti] OR "multiple diseases"[ti]'
+              ],
+              broad: [
+                '"Comorbidity"[mh] OR "Multimorbidity"[mh] OR comorbidity[tiab] OR multimorbidity[tiab] OR "multiple diseases"[tiab]'
+              ]
+            }
+          },
+          {
+            name: "S070020070",
+            id: "S070020070",
+            buttons: true,
+            translations: {
+              dk: "Traumatisk hjerneskade/hovedtraume",
+              en: "Traumatic brain injury/head trauma",
+            },
+            ordering: {
+              dk: 8,
+              en: 8
+            },
+            searchStrings: {
+              narrow: [
+                '"Brain Injuries, Traumatic"[majr] OR "Craniocerebral Trauma"[majr]'
+              ],
+              normal: [
+                '"Brain Injuries, Traumatic"[mh] OR "Craniocerebral Trauma"[mh] OR "traumatic brain injury"[ti] OR "head trauma"[ti]'
+              ],
+              broad: [
+                '"Brain Injuries, Traumatic"[mh] OR "Craniocerebral Trauma"[mh] OR "traumatic brain injury"[tiab] OR "head trauma"[tiab]'
+              ]
+            }
+          },
+          {
+            name: "S070020080",
+            id: "S070020080",
+            buttons: true,
+            translations: {
+              dk: "Høretab/hørelse",
+              en: "Hearing loss/hearing",
+            },
+            ordering: {
+              dk: 9,
+              en: 9
+            },
+            searchStrings: {
+              narrow: [
+                '"Hearing Loss"[majr] OR "Hearing"[majr]'
+              ],
+              normal: [
+                '"Hearing Loss"[mh] OR "Hearing"[mh] OR "hearing loss"[ti] OR hearing[ti]'
+              ],
+              broad: [
+                '"Hearing Loss"[mh] OR "Hearing"[mh] OR "hearing loss"[tiab] OR hearing[tiab]'
+              ]
+            }
+          },
+          {
+            name: "S070020090",
+            id: "S070020090",
+            buttons: true,
+            translations: {
+              dk: "Infektion",
+              en: "Infection",
+            },
+            ordering: {
+              dk: 10,
+              en: 10
+            },
+            searchStrings: {
+              narrow: [
+                '"Infection"[majr]'
+              ],
+              normal: [
+                '"Infection"[mh] OR infection[ti] OR infections[ti]'
+              ],
+              broad: [
+                '"Infection"[mh] OR infection[tiab] OR infections[tiab]'
+              ]
+            }
+          },
+        ],
       },
       {
         name: "S070030",
         id: "S070030",
         buttons: true,
-        maintopic: true,
         translations: {
           dk: "Mentalt helbred",
           en: "Mental health",
@@ -2740,117 +2679,110 @@ export const topics = [
           broad: [
             '"Mental Health"[mh] OR "mental health"[tiab]'
           ]
-        }
-      },
-      {
-        name: "S070030010",
-        id: "S070030010",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S070030",
-        translations: {
-          dk: "Mentalt helbred generelt",
-          en: "Mental health in general",
         },
-        ordering: {
-          dk: 12,
-          en: 12
-        },
-        searchStrings: {
-          narrow: [
-            '"Mental Health"[majr]'
-          ],
-          normal: [
-            '"Mental Health"[mh] OR "mental health"[ti]'
-          ],
-          broad: [
-            '"Mental Health"[mh] OR "mental health"[tiab]'
-          ]
-        }
-      },
-      {
-        name: "S070030020",
-        id: "S070030020",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S070030",
-        translations: {
-          dk: "Stress",
-          en: "Stress",
-        },
-        ordering: {
-          dk: 13,
-          en: 13
-        },
-        searchStrings: {
-          narrow: [
-            '"Stress, Psychological"[majr]'
-          ],
-          normal: [
-            '"Stress, Psychological"[mh] OR stress[ti]'
-          ],
-          broad: [
-            '"Stress, Psychological"[mh] OR stress[tiab]'
-          ]
-        }
-      },
-      {
-        name: "S070030030",
-        id: "S070030030",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S070030",
-        translations: {
-          dk: "PTSD",
-          en: "PTSD",
-        },
-        ordering: {
-          dk: 14,
-          en: 14
-        },
-        searchStrings: {
-          narrow: [
-            '"Stress Disorders, Post-Traumatic"[majr]'
-          ],
-          normal: [
-            '"Stress Disorders, Post-Traumatic"[mh] OR PTSD[ti] OR "post traumatic stress"[ti]'
-          ],
-          broad: [
-            '"Stress Disorders, Post-Traumatic"[mh] OR PTSD[tiab] OR "post traumatic stress"[tiab]'
-          ]
-        }
-      },
-      {
-        name: "S070030040",
-        buttons: true,
-        id: "S070030040",
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S070030",
-        translations: {
-          dk: "Kognitiv reserve",
-          en: "Cognitive reserve",
-        },
-        ordering: {
-          dk: 15,
-          en: 15
-        },
-        searchStrings: {
-          narrow: [
-            '"Cognitive Reserve"[majr]'
-          ],
-          normal: [
-            '"Cognitive Reserve"[mh] OR "cognitive reserve"[ti]'
-          ],
-          broad: [
-            '"Cognitive Reserve"[mh] OR "cognitive reserve"[tiab]'
-          ]
-        }
+        children: [
+          {
+            name: "S070030010",
+            id: "S070030010",
+            buttons: true,
+            translations: {
+              dk: "Mentalt helbred generelt",
+              en: "Mental health in general",
+            },
+            ordering: {
+              dk: 12,
+              en: 12
+            },
+            searchStrings: {
+              narrow: [
+                '"Mental Health"[majr]'
+              ],
+              normal: [
+                '"Mental Health"[mh] OR "mental health"[ti]'
+              ],
+              broad: [
+                '"Mental Health"[mh] OR "mental health"[tiab]'
+              ]
+            }
+          },
+          {
+            name: "S070030020",
+            id: "S070030020",
+            buttons: true,
+            translations: {
+              dk: "Stress",
+              en: "Stress",
+            },
+            ordering: {
+              dk: 13,
+              en: 13
+            },
+            searchStrings: {
+              narrow: [
+                '"Stress, Psychological"[majr]'
+              ],
+              normal: [
+                '"Stress, Psychological"[mh] OR stress[ti]'
+              ],
+              broad: [
+                '"Stress, Psychological"[mh] OR stress[tiab]'
+              ]
+            }
+          },
+          {
+            name: "S070030030",
+            id: "S070030030",
+            buttons: true,
+            translations: {
+              dk: "PTSD",
+              en: "PTSD",
+            },
+            ordering: {
+              dk: 14,
+              en: 14
+            },
+            searchStrings: {
+              narrow: [
+                '"Stress Disorders, Post-Traumatic"[majr]'
+              ],
+              normal: [
+                '"Stress Disorders, Post-Traumatic"[mh] OR PTSD[ti] OR "post traumatic stress"[ti]'
+              ],
+              broad: [
+                '"Stress Disorders, Post-Traumatic"[mh] OR PTSD[tiab] OR "post traumatic stress"[tiab]'
+              ]
+            }
+          },
+          {
+            name: "S070030040",
+            buttons: true,
+            id: "S070030040",
+            translations: {
+              dk: "Kognitiv reserve",
+              en: "Cognitive reserve",
+            },
+            ordering: {
+              dk: 15,
+              en: 15
+            },
+            searchStrings: {
+              narrow: [
+                '"Cognitive Reserve"[majr]'
+              ],
+              normal: [
+                '"Cognitive Reserve"[mh] OR "cognitive reserve"[ti]'
+              ],
+              broad: [
+                '"Cognitive Reserve"[mh] OR "cognitive reserve"[tiab]'
+              ]
+            }
+          },
+        ],
       },
       {
         name: "S070040",
         id: "S070040",
         buttons: true,
-        maintopic: true,
         translations: {
           dk: "Livsstil",
           en: "Lifestyle",
@@ -2859,116 +2791,109 @@ export const topics = [
           dk: 16,
           en: 16
         },
-      },
-      {
-        name: "S070040010",
-        id: "S070040010",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S070040",
-        translations: {
-          dk: "Livsstil generelt",
-          en: "Lifestyle in general",
-        },
-        ordering: {
-          dk: 17,
-          en: 17
-        },
-        searchStrings: {
-          narrow: [
-            '"Lifestyle"[majr]'
-          ],
-          normal: [
-            '"Lifestyle"[mh] OR lifestyle[ti]'
-          ],
-          broad: [
-            '"Lifestyle"[mh] OR lifestyle[tiab]'
-          ]
-        }
-      },
-      {
-        name: "S070040020",
-        id: "S070040020",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S070040",
-        translations: {
-          dk: "Rygning/tobak",
-          en: "Smoking/tobacco",
-        },
-        ordering: {
-          dk: 18,
-          en: 18
-        },
-        searchStrings: {
-          narrow: [
-            '"Smoking"[majr] OR "Tobacco"[majr]'
-          ],
-          normal: [
-            '"Smoking"[mh] OR "Tobacco"[mh] OR smoking[ti] OR tobacco[ti]'
-          ],
-          broad: [
-            '"Smoking"[mh] OR "Tobacco"[mh] OR smoking[tiab] OR tobacco[tiab]'
-          ]
-        }
-      },
-      {
-        name: "S070040030",
-        buttons: true,
-        id: "S070040030",
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S070040",
-        translations: {
-          dk: "Alkohol",
-          en: "Alcohol",
-        },
-        ordering: {
-          dk: 19,
-          en: 19
-        },
-        searchStrings: {
-          narrow: [
-            '"Alcohol Drinking"[majr] OR "Alcoholic Beverages"[majr]'
-          ],
-          normal: [
-            '"Alcohol Drinking"[mh] OR "Alcoholic Beverages"[mh] OR alcohol[ti] OR alcoholic[ti]'
-          ],
-          broad: [
-            '"Alcohol Drinking"[mh] OR "Alcoholic Beverages"[mh] OR alcohol[tiab] OR alcoholic[tiab]'
-          ]
-        }
-      },
-      {
-        name: "S070040040",
-        buttons: true,
-        id: "S070040040",
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S070040",
-        translations: {
-          dk: "Fysisk aktivitet/motion",
-          en: "Physical activity/exercise",
-        },
-        ordering: {
-          dk: 20,
-          en: 20
-        },
-        searchStrings: {
-          narrow: [
-            '"Exercise"[majr] OR "Physical Activity"[majr]'
-          ],
-          normal: [
-            '"Exercise"[mh] OR "Physical Activity"[mh] OR exercise[ti] OR "physical activity"[ti]'
-          ],
-          broad: [
-            '"Exercise"[mh] OR "Physical Activity"[mh] OR exercise[tiab] OR "physical activity"[tiab]'
-          ]
-        }
+        children: [
+          {
+            name: "S070040010",
+            id: "S070040010",
+            buttons: true,
+            translations: {
+              dk: "Livsstil generelt",
+              en: "Lifestyle in general",
+            },
+            ordering: {
+              dk: 17,
+              en: 17
+            },
+            searchStrings: {
+              narrow: [
+                '"Lifestyle"[majr]'
+              ],
+              normal: [
+                '"Lifestyle"[mh] OR lifestyle[ti]'
+              ],
+              broad: [
+                '"Lifestyle"[mh] OR lifestyle[tiab]'
+              ]
+            }
+          },
+          {
+            name: "S070040020",
+            id: "S070040020",
+            buttons: true,
+            translations: {
+              dk: "Rygning/tobak",
+              en: "Smoking/tobacco",
+            },
+            ordering: {
+              dk: 18,
+              en: 18
+            },
+            searchStrings: {
+              narrow: [
+                '"Smoking"[majr] OR "Tobacco"[majr]'
+              ],
+              normal: [
+                '"Smoking"[mh] OR "Tobacco"[mh] OR smoking[ti] OR tobacco[ti]'
+              ],
+              broad: [
+                '"Smoking"[mh] OR "Tobacco"[mh] OR smoking[tiab] OR tobacco[tiab]'
+              ]
+            }
+          },
+          {
+            name: "S070040030",
+            buttons: true,
+            id: "S070040030",
+            translations: {
+              dk: "Alkohol",
+              en: "Alcohol",
+            },
+            ordering: {
+              dk: 19,
+              en: 19
+            },
+            searchStrings: {
+              narrow: [
+                '"Alcohol Drinking"[majr] OR "Alcoholic Beverages"[majr]'
+              ],
+              normal: [
+                '"Alcohol Drinking"[mh] OR "Alcoholic Beverages"[mh] OR alcohol[ti] OR alcoholic[ti]'
+              ],
+              broad: [
+                '"Alcohol Drinking"[mh] OR "Alcoholic Beverages"[mh] OR alcohol[tiab] OR alcoholic[tiab]'
+              ]
+            }
+          },
+          {
+            name: "S070040040",
+            buttons: true,
+            id: "S070040040",
+            translations: {
+              dk: "Fysisk aktivitet/motion",
+              en: "Physical activity/exercise",
+            },
+            ordering: {
+              dk: 20,
+              en: 20
+            },
+            searchStrings: {
+              narrow: [
+                '"Exercise"[majr] OR "Physical Activity"[majr]'
+              ],
+              normal: [
+                '"Exercise"[mh] OR "Physical Activity"[mh] OR exercise[ti] OR "physical activity"[ti]'
+              ],
+              broad: [
+                '"Exercise"[mh] OR "Physical Activity"[mh] OR exercise[tiab] OR "physical activity"[tiab]'
+              ]
+            }
+          },
+        ],
       },
       {
         name: "S070050",
         id: "S070050",
         buttons: true,
-        maintopic: true,
         translations: {
           dk: "Kost",
           en: "Diet",
@@ -2977,142 +2902,133 @@ export const topics = [
           dk: 21,
           en: 21
         },
-      },
-      {
-        name: "S070050010",
-        id: "S070050010",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S070050",
-        translations: {
-          dk: "Kost generelt",
-          en: "Diet in general",
-        },
-        ordering: {
-          dk: 22,
-          en: 22
-        },
-        searchStrings: {
-          narrow: [
-            '"Diet"[majr]'
-          ],
-          normal: [
-            '"Diet"[mh] OR diet[ti]'
-          ],
-          broad: [
-            '"Diet"[mh] OR diet[tiab]'
-          ]
-        }
-      },
-      {
-        name: "S070050020",
-        id: "S070050020",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S070050",
-        translations: {
-          dk: "Middelhavskost",
-          en: "Mediterranean diet",
-        },
-        ordering: {
-          dk: 23,
-          en: 23
-        },
-        searchStrings: {
-          narrow: [
-            '"Diet, Mediterranean"[majr]'
-          ],
-          normal: [
-            '"Diet, Mediterranean"[mh] OR "mediterranean diet"[ti]'
-          ],
-          broad: [
-            '"Diet, Mediterranean"[mh] OR "mediterranean diet"[tiab]'
-          ]
-        }
-      },
-      {
-        name: "S070050030",
-        id: "S070050030",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S070050",
-        translations: {
-          dk: "Fedtstof/fedtsyre",
-          en: "Fat/fatty acid",
-        },
-        ordering: {
-          dk: 24,
-          en: 24
-        },
-        searchStrings: {
-          narrow: [
-            '"Fatty Acids"[majr] OR "Dietary Fats"[majr]'
-          ],
-          normal: [
-            '"Fatty Acids"[mh] OR "Dietary Fats"[mh] OR "fatty acid"[ti] OR "fatty acids"[ti] OR fat[ti] OR fats[ti]'
-          ],
-          broad: [
-            '"Fatty Acids"[mh] OR "Dietary Fats"[mh] OR "fatty acid"[tiab] OR "fatty acids"[tiab] OR fat[tiab] OR fats[tiab]'
-          ]
-        }
-      },
-      {
-        name: "S070050040",
-        id: "S070050040",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S070050",
-        translations: {
-          dk: "Antioxidant",
-          en: "Antioxidant",
-        },
-        ordering: {
-          dk: 25,
-          en: 25
-        },
-        searchStrings: {
-          narrow: [
-            '"Antioxidants"[majr]'
-          ],
-          normal: [
-            '"Antioxidants"[mh] OR antioxidant[ti] OR antioxidants[ti]'
-          ],
-          broad: [
-            '"Antioxidants"[mh] OR antioxidant[tiab] OR antioxidants[tiab]'
-          ]
-        }
-      },
-      {
-        name: "S070050050",
-        id: "S070050050",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S070050",
-        translations: {
-          dk: "Vitamin",
-          en: "Vitamin",
-        },
-        ordering: {
-          dk: 26,
-          en: 26
-        },
-        searchStrings: {
-          narrow: [
-            '"Vitamins"[majr]'
-          ],
-          normal: [
-            '"Vitamins"[mh] OR vitamin*[ti]'
-          ],
-          broad: [
-            '"Vitamins"[mh] OR vitamin*[tiab]'
-          ]
-        }
+        children: [
+          {
+            name: "S070050010",
+            id: "S070050010",
+            buttons: true,
+            translations: {
+              dk: "Kost generelt",
+              en: "Diet in general",
+            },
+            ordering: {
+              dk: 22,
+              en: 22
+            },
+            searchStrings: {
+              narrow: [
+                '"Diet"[majr]'
+              ],
+              normal: [
+                '"Diet"[mh] OR diet[ti]'
+              ],
+              broad: [
+                '"Diet"[mh] OR diet[tiab]'
+              ]
+            }
+          },
+          {
+            name: "S070050020",
+            id: "S070050020",
+            buttons: true,
+            translations: {
+              dk: "Middelhavskost",
+              en: "Mediterranean diet",
+            },
+            ordering: {
+              dk: 23,
+              en: 23
+            },
+            searchStrings: {
+              narrow: [
+                '"Diet, Mediterranean"[majr]'
+              ],
+              normal: [
+                '"Diet, Mediterranean"[mh] OR "mediterranean diet"[ti]'
+              ],
+              broad: [
+                '"Diet, Mediterranean"[mh] OR "mediterranean diet"[tiab]'
+              ]
+            }
+          },
+          {
+            name: "S070050030",
+            id: "S070050030",
+            buttons: true,
+            translations: {
+              dk: "Fedtstof/fedtsyre",
+              en: "Fat/fatty acid",
+            },
+            ordering: {
+              dk: 24,
+              en: 24
+            },
+            searchStrings: {
+              narrow: [
+                '"Fatty Acids"[majr] OR "Dietary Fats"[majr]'
+              ],
+              normal: [
+                '"Fatty Acids"[mh] OR "Dietary Fats"[mh] OR "fatty acid"[ti] OR "fatty acids"[ti] OR fat[ti] OR fats[ti]'
+              ],
+              broad: [
+                '"Fatty Acids"[mh] OR "Dietary Fats"[mh] OR "fatty acid"[tiab] OR "fatty acids"[tiab] OR fat[tiab] OR fats[tiab]'
+              ]
+            }
+          },
+          {
+            name: "S070050040",
+            id: "S070050040",
+            buttons: true,
+            translations: {
+              dk: "Antioxidant",
+              en: "Antioxidant",
+            },
+            ordering: {
+              dk: 25,
+              en: 25
+            },
+            searchStrings: {
+              narrow: [
+                '"Antioxidants"[majr]'
+              ],
+              normal: [
+                '"Antioxidants"[mh] OR antioxidant[ti] OR antioxidants[ti]'
+              ],
+              broad: [
+                '"Antioxidants"[mh] OR antioxidant[tiab] OR antioxidants[tiab]'
+              ]
+            }
+          },
+          {
+            name: "S070050050",
+            id: "S070050050",
+            buttons: true,
+            translations: {
+              dk: "Vitamin",
+              en: "Vitamin",
+            },
+            ordering: {
+              dk: 26,
+              en: 26
+            },
+            searchStrings: {
+              narrow: [
+                '"Vitamins"[majr]'
+              ],
+              normal: [
+                '"Vitamins"[mh] OR vitamin*[ti]'
+              ],
+              broad: [
+                '"Vitamins"[mh] OR vitamin*[tiab]'
+              ]
+            }
+          },
+        ],
       },
       {
         name: "S070060",
         id: "S070060",
         buttons: true,
-        maintopic: true,
         translations: {
           dk: "Sociodemografiske faktorer",
           en: "Sociodemographic factors",
@@ -3131,91 +3047,86 @@ export const topics = [
           broad: [
             '"Socioeconomic Factors"[mh] OR "Social Class"[mh] OR "Educational Status"[mh] OR sociodemographic[tiab] OR "socio-demographic"[tiab]'
           ]
-        }
-      },
-      {
-        name: "S070060010",
-        id: "S070060010",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S070060",
-        translations: {
-          dk: "Socioøkonomiske faktorer generelt",
-          en: "Socioeconomic factors in general",
         },
-        ordering: {
-          dk: 28,
-          en: 28
-        },
-        searchStrings: {
-          narrow: [
-            '"Socioeconomic Factors"[majr] OR "Social Class"[majr] OR "Educational Status"[majr]'
-          ],
-          normal: [
-            '"Socioeconomic Factors"[mh] OR "Social Class"[mh] OR "Educational Status"[mh] OR sociodemographic[ti] OR "socio-demographic"[ti]'
-          ],
-          broad: [
-            '"Socioeconomic Factors"[mh] OR "Social Class"[mh] OR "Educational Status"[mh] OR sociodemographic[tiab] OR "socio-demographic"[tiab]'
-          ]
-        }
-      },
-      {
-        name: "S070060020",
-        id: "S070060020",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S070060",
-        translations: {
-          dk: "Uddannelse/skolegang",
-          en: "Education/schooling",
-        },
-        ordering: {
-          dk: 29,
-          en: 29
-        },
-        searchStrings: {
-          narrow: [
-            '"Education"[majr] OR "Educational Status"[majr]'
-          ],
-          normal: [
-            '"Education"[mh] OR "Educational Status"[mh] OR education[ti] OR schooling[ti] OR educational[ti]'
-          ],
-          broad: [
-            '"Education"[mh] OR "Educational Status"[mh] OR education[tiab] OR schooling[tiab] OR educational[tiab]'
-          ]
-        }
-      },
-      {
-        name: "S070060030",
-        id: "S070060030",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S070060",
-        translations: {
-          dk: "Erhverv",
-          en: "Occupation",
-        },
-        ordering: {
-          dk: 30,
-          en: 30
-        },
-        searchStrings: {
-          narrow: [
-            '"Occupations"[majr] OR "Employment"[majr]'
-          ],
-          normal: [
-            '"Occupations"[mh] OR "Employment"[mh] OR occupation[ti] OR occupational[ti] OR employment[ti]'
-          ],
-          broad: [
-            '"Occupations"[mh] OR "Employment"[mh] OR occupation[tiab] OR occupational[tiab] OR employment[tiab]'
-          ]
-        }
+        children: [
+          {
+            name: "S070060010",
+            id: "S070060010",
+            buttons: true,
+            translations: {
+              dk: "Socioøkonomiske faktorer generelt",
+              en: "Socioeconomic factors in general",
+            },
+            ordering: {
+              dk: 28,
+              en: 28
+            },
+            searchStrings: {
+              narrow: [
+                '"Socioeconomic Factors"[majr] OR "Social Class"[majr] OR "Educational Status"[majr]'
+              ],
+              normal: [
+                '"Socioeconomic Factors"[mh] OR "Social Class"[mh] OR "Educational Status"[mh] OR sociodemographic[ti] OR "socio-demographic"[ti]'
+              ],
+              broad: [
+                '"Socioeconomic Factors"[mh] OR "Social Class"[mh] OR "Educational Status"[mh] OR sociodemographic[tiab] OR "socio-demographic"[tiab]'
+              ]
+            }
+          },
+          {
+            name: "S070060020",
+            id: "S070060020",
+            buttons: true,
+            translations: {
+              dk: "Uddannelse/skolegang",
+              en: "Education/schooling",
+            },
+            ordering: {
+              dk: 29,
+              en: 29
+            },
+            searchStrings: {
+              narrow: [
+                '"Education"[majr] OR "Educational Status"[majr]'
+              ],
+              normal: [
+                '"Education"[mh] OR "Educational Status"[mh] OR education[ti] OR schooling[ti] OR educational[ti]'
+              ],
+              broad: [
+                '"Education"[mh] OR "Educational Status"[mh] OR education[tiab] OR schooling[tiab] OR educational[tiab]'
+              ]
+            }
+          },
+          {
+            name: "S070060030",
+            id: "S070060030",
+            buttons: true,
+            translations: {
+              dk: "Erhverv",
+              en: "Occupation",
+            },
+            ordering: {
+              dk: 30,
+              en: 30
+            },
+            searchStrings: {
+              narrow: [
+                '"Occupations"[majr] OR "Employment"[majr]'
+              ],
+              normal: [
+                '"Occupations"[mh] OR "Employment"[mh] OR occupation[ti] OR occupational[ti] OR employment[ti]'
+              ],
+              broad: [
+                '"Occupations"[mh] OR "Employment"[mh] OR occupation[tiab] OR occupational[tiab] OR employment[tiab]'
+              ]
+            }
+          },
+        ],
       },
       {
         name: "S070070",
         id: "S070070",
         buttons: true,
-        maintopic: true,
         translations: {
           dk: "Miljø",
           en: "Environment",
@@ -3223,59 +3134,57 @@ export const topics = [
         ordering: {
           dk: 31,
           en: 31
-        }
-      },
-      {
-        name: "S070070010",
-        id: "S070070010",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S070070",
-        translations: {
-          dk: "Miljø generelt",
-          en: "Environment in general",
         },
-        ordering: {
-          dk: 32,
-          en: 32
-        },
-        searchStrings: {
-          narrow: [
-            '"Environment"[majr]'
-          ],
-          normal: [
-            '"Environment"[mh] OR environment[ti] OR environmental[ti]'
-          ],
-          broad: [
-            '"Environment"[mh] OR environment[tiab] OR environmental[tiab]'
-          ]
-        }
-      },
-      {
-        name: "S070070020",
-        id: "S070070020",
-        buttons: true,
-        subtopiclevel: 1,
-        maintopicIdLevel1: "S070070",
-        translations: {
-          dk: "Luftforurening",
-          en: "Air pollution",
-        },
-        ordering: {
-          dk: 33,
-          en: 33
-        },
-        searchStrings: {
-          narrow: [
-            '"Air Pollution"[majr]'
-          ],
-          normal: [
-            '"Air Pollution"[mh] OR "air pollution"[ti]'
-          ],
-          broad: [
-            '"Air Pollution"[mh] OR "air pollution"[tiab]'
-          ]
-        }
+        children: [
+          {
+            name: "S070070010",
+            id: "S070070010",
+            buttons: true,
+            translations: {
+              dk: "Miljø generelt",
+              en: "Environment in general",
+            },
+            ordering: {
+              dk: 32,
+              en: 32
+            },
+            searchStrings: {
+              narrow: [
+                '"Environment"[majr]'
+              ],
+              normal: [
+                '"Environment"[mh] OR environment[ti] OR environmental[ti]'
+              ],
+              broad: [
+                '"Environment"[mh] OR environment[tiab] OR environmental[tiab]'
+              ]
+            }
+          },
+          {
+            name: "S070070020",
+            id: "S070070020",
+            buttons: true,
+            translations: {
+              dk: "Luftforurening",
+              en: "Air pollution",
+            },
+            ordering: {
+              dk: 33,
+              en: 33
+            },
+            searchStrings: {
+              narrow: [
+                '"Air Pollution"[majr]'
+              ],
+              normal: [
+                '"Air Pollution"[mh] OR "air pollution"[ti]'
+              ],
+              broad: [
+                '"Air Pollution"[mh] OR "air pollution"[tiab]'
+              ]
+            }
+          }
+        ],
       }
     ]
   },

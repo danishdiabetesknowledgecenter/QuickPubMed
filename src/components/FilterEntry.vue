@@ -23,7 +23,7 @@
           qpm-button-color1="qpm_buttonColor4"
           qpm-button-color2="qpm_buttonColor5"
           qpm-button-color3="qpm_buttonColor6"
-          v-on="$listeners"
+          v-bind="$attrs"
         />
         <i
           class="qpm_removeFilter bx bx-x"
@@ -40,10 +40,11 @@
 
 <script>
   import DropdownWrapper from "@/components/DropdownWrapper.vue";
-  import { messages } from "@/assets/content/qpm-translations";
+  import { utilitiesMixin } from "@/mixins/utilities";
 
   export default {
     name: "FilterEntry",
+    mixins: [utilitiesMixin],
     components: {
       DropdownWrapper,
     },
@@ -117,21 +118,12 @@
       this.updateDropdownWidth();
       window.addEventListener("resize", this.updateDropdownWidth);
     },
-    beforeDestroy() {
+    beforeUnmount() {
       window.removeEventListener("resize", this.updateDropdownWidth);
     },
     methods: {
       removeFilterItem(filterItemId) {
         this.$emit("remove-filter-item", filterItemId);
-      },
-      getString(string) {
-        const lg = this.language;
-        if (!messages[string]) {
-          console.warn(`Missing translation key: ${string}`);
-          return string;
-        }
-        const constant = messages[string][lg];
-        return constant !== undefined ? constant : messages[string]["dk"];
       },
       customNameLabel(option) {
         if (!option.name && !option.groupname) return;

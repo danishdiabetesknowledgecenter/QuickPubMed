@@ -5,7 +5,7 @@
       <button
         v-tooltip="{
           content: getString('hoverResetButton'),
-          offset: 5,
+          distance: 5,
           delay: $helpTextDelay,
         }"
         class="qpm_button"
@@ -19,7 +19,7 @@
       <button
         v-tooltip="{
           content: getString('hoverShareButton'),
-          offset: 5,
+          distance: 5,
           delay: $helpTextDelay,
         }"
         class="qpm_button"
@@ -34,7 +34,7 @@
     <button
       v-tooltip="{
         content: getString('hoverSearchButton'),
-        offset: 5,
+        distance: 5,
         delay: $helpTextDelay,
       }"
       :disabled="searchLoading"

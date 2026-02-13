@@ -12,14 +12,17 @@
     </p>
     <div class="qpm_searchStringStringsContainer rich-text">
       <div style="padding-top: 5px">
-        <div class="qpm_headingContainerFocus_h2"
-          @click="hideOrCollapse('qpm_subjectSearchStrings')"
-          @keyup.enter="hideOrCollapse('qpm_subjectSearchStrings')"
+        <div class="qpm_headingContainerFocus_h2 qpm_gallery_toggle"
+          @click="hideOrCollapse('qpm_subjectSearchStrings', $event)"
+          @keyup.enter="hideOrCollapse('qpm_subjectSearchStrings', $event)"
           tabindex="0"
+          data-target="qpm_subjectSearchStrings"
         >
-          <h2
-            class="qpm_heading intext-arrow-link"
-          >
+          <span :class="['qpm_toggle_icon', { qpm_toggle_expanded: !isLevelCollapsed(1) }]">
+            <span class="qpm_toggle_plus">+</span>
+            <span class="qpm_toggle_minus">&minus;</span>
+          </span>
+          <h2 class="qpm_heading">
             {{ getString("subjects") }}
           </h2>
         </div>
@@ -27,16 +30,19 @@
       <div
         v-for="subject in getSortedSubjects"
         :key="`subject-${subject.id}`"
-        class="qpm_subjectSearchStrings qpm_collapsedSection"
+        class="qpm_subjectSearchStrings"
       >
-        <div class="qpm_headingContainerFocus_h3"
-          @click="hideOrCollapse(toClassName(subject.groupname))"
-          @keyup.enter="hideOrCollapse(toClassName(subject.groupname))"
+        <div class="qpm_headingContainerFocus_h3 qpm_gallery_toggle"
+          @click="hideOrCollapse(toClassName(subject.groupname), $event)"
+          @keyup.enter="hideOrCollapse(toClassName(subject.groupname), $event)"
           tabindex="0"
+          :data-target="toClassName(subject.groupname)"
         >
-          <h3
-            class="qpm_heading intext-arrow-link"
-          >
+          <span :class="['qpm_toggle_icon', { qpm_toggle_expanded: !isLevelCollapsed(2) }]">
+            <span class="qpm_toggle_plus">+</span>
+            <span class="qpm_toggle_minus">&minus;</span>
+          </span>
+          <h3 class="qpm_heading">
             {{ customNameLabel(subject) }} 
           </h3>
           <span class="qpm_groupid">(ID: {{ subject.id }})</span>
@@ -44,27 +50,30 @@
         <div
           v-for="(group, index) in subject.groups"
           :key="`group-${group.id}-${index}`"
-          class="qpm_searchGroup qpm_collapsedSection"
-          :class="[
-            toClassName(subject.groupname),
-            {
-              qpm_maintopicDropdown: group.maintopic,
-              qpm_subtopicDropdown: group.subtopiclevel,
-              qpm_subtopicDropdownLevel2: group.subtopiclevel === 2,
-            },
-          ]"
+          :class="['qpm_searchGroup', toClassName(subject.groupname), ...getAncestorClasses(group)]"
+          :data-level="getItemLevel(group)"
+          :data-has-children="hasChildren(group) ? '1' : '0'"
+          :style="group.subtopiclevel ? { paddingLeft: (group.subtopiclevel * 30) + 'px' } : {}"
         >
-          <div class="qpm_headingContainerFocus_h4"
-            @click="hideOrCollapse(toClassName(group.name))"
-            @keyup.enter="hideOrCollapse(toClassName(group.name))"
-            tabindex="0"
+          <div
+            :class="['qpm_headingContainerFocus', isClickable(group) ? 'qpm_gallery_toggle' : '']"
+            @click="isClickable(group) && hideOrCollapse(getToggleTarget(group), $event)"
+            @keyup.enter="isClickable(group) && hideOrCollapse(getToggleTarget(group), $event)"
+            :tabindex="isClickable(group) ? 0 : -1"
+            :data-target="getToggleTarget(group)"
           >
-            <h4
-              class="qpm_heading"
-              :class="{ 'intext-arrow-link': !group.maintopic }"
+            <span
+              :class="[
+                'qpm_toggle_icon',
+                { qpm_toggle_expanded: isGroupExpanded(group), qpm_toggle_placeholder: !hasChildren(group) },
+              ]"
             >
+              <span class="qpm_toggle_plus">+</span>
+              <span class="qpm_toggle_minus">&minus;</span>
+            </span>
+            <component :is="getHeadingTag(group)" class="qpm_heading">
               {{ customNameLabel(group) }} 
-            </h4>
+            </component>
             <span class="qpm_groupid">(ID: {{ group.id }})</span>
           </div>
           <div
@@ -82,9 +91,8 @@
                   <button
                     v-tooltip="{
                       content: getString('tooltipNarrow'),
-                      offset: 5,
+                      distance: 5,
                       delay: $helpTextDelay,
-                      hideOnTargetClick: false,
                     }"
                     class="qpm_button qpm_buttonColor1"
                   >
@@ -96,9 +104,8 @@
                     <a
                       v-tooltip="{
                         content: getString('showPubMedLink'),
-                        offset: 5,
+                        distance: 5,
                         delay: $helpTextDelay,
-                        hideOnTargetClick: false,
                       }"
                       target="_blank"
                       :href="getPubMedLink(group.searchStrings.narrow)"
@@ -113,9 +120,8 @@
                   <button
                     v-tooltip="{
                       content: getString('tooltipNormal'),
-                      offset: 5,
+                      distance: 5,
                       delay: $helpTextDelay,
-                      hideOnTargetClick: false,
                     }"
                     class="qpm_button qpm_buttonColor2"
                   >
@@ -127,9 +133,8 @@
                     <a
                       v-tooltip="{
                         content: getString('showPubMedLink'),
-                        offset: 5,
+                        distance: 5,
                         delay: $helpTextDelay,
-                        hideOnTargetClick: false,
                       }"
                       target="_blank"
                       :href="getPubMedLink(group.searchStrings.normal)"
@@ -144,9 +149,8 @@
                   <button
                     v-tooltip="{
                       content: getString('tooltipBroad'),
-                      offset: 5,
+                      distance: 5,
                       delay: $helpTextDelay,
-                      hideOnTargetClick: false,
                     }"
                     class="qpm_button qpm_buttonColor3"
                   >
@@ -158,9 +162,8 @@
                     <a
                       v-tooltip="{
                         content: getString('showPubMedLink'),
-                        offset: 5,
+                        distance: 5,
                         delay: $helpTextDelay,
-                        hideOnTargetClick: false,
                       }"
                       target="_blank"
                       :href="getPubMedLink(group.searchStrings.broad)"
@@ -184,14 +187,17 @@
         </div>
       </div>
       <div class="qpm_heading_limits">
-        <div class="qpm_headingContainerFocus_h2"
-          @click="hideOrCollapse('qpm_filterSearchStrings')"
-          @keyup.enter="hideOrCollapse('qpm_filterSearchStrings')"
+        <div class="qpm_headingContainerFocus_h2 qpm_gallery_toggle"
+          @click="hideOrCollapse('qpm_filterSearchStrings', $event)"
+          @keyup.enter="hideOrCollapse('qpm_filterSearchStrings', $event)"
           tabindex="0"
+          data-target="qpm_filterSearchStrings"
         >
-          <h2
-            class="qpm_heading intext-arrow-link"
-          >
+          <span :class="['qpm_toggle_icon', { qpm_toggle_expanded: !isLevelCollapsed(1) }]">
+            <span class="qpm_toggle_plus">+</span>
+            <span class="qpm_toggle_minus">&minus;</span>
+          </span>
+          <h2 class="qpm_heading">
             {{ getString("filters") }}
           </h2>
         </div>
@@ -199,16 +205,19 @@
       <div
         v-for="filter in getSortedFilters"
         :key="filter.name"
-        class="qpm_filterSearchStrings qpm_collapsedSection"
+        class="qpm_filterSearchStrings"
       >
-        <div class="qpm_headingContainerFocus_h3"
-          @click="hideOrCollapse(toClassName(filter.name))"
-          @keyup.enter="hideOrCollapse(toClassName(filter.name))"
+        <div class="qpm_headingContainerFocus_h3 qpm_gallery_toggle"
+          @click="hideOrCollapse(toClassName(filter.name), $event)"
+          @keyup.enter="hideOrCollapse(toClassName(filter.name), $event)"
           tabindex="0"
+          :data-target="toClassName(filter.name)"
         >
-          <h3
-            class="qpm_heading intext-arrow-link"
-          >
+          <span :class="['qpm_toggle_icon', { qpm_toggle_expanded: !isLevelCollapsed(2) }]">
+            <span class="qpm_toggle_plus">+</span>
+            <span class="qpm_toggle_minus">&minus;</span>
+          </span>
+          <h3 class="qpm_heading">
             {{ customNameLabel(filter) }} 
           </h3>
           <span class="qpm_groupid">(ID: {{ filter.id }})</span>
@@ -216,27 +225,30 @@
         <div
           v-for="choice in filter.choices"
           :key="choice.id"
-          class="qpm_filterGroup qpm_collapsedSection"
-          :class="[
-            toClassName(filter.name),
-            {
-              qpm_maintopicDropdown: choice.maintopic,
-              qpm_subtopicDropdown: choice.subtopiclevel,
-              qpm_subtopicDropdownLevel2: choice.subtopiclevel === 2,
-            },
-          ]"
+          :class="['qpm_filterGroup', toClassName(filter.name), ...getAncestorClasses(choice)]"
+          :data-level="getItemLevel(choice)"
+          :data-has-children="hasChildren(choice) ? '1' : '0'"
+          :style="choice.subtopiclevel ? { paddingLeft: (choice.subtopiclevel * 30) + 'px' } : {}"
         >
-          <div class="qpm_headingContainerFocus_h4"
-            @click="hideOrCollapse(toClassName(choice.name))"
-            @keyup.enter="hideOrCollapse(toClassName(choice.name))"
-            tabindex="0"
+          <div
+            :class="['qpm_headingContainerFocus', isClickable(choice) ? 'qpm_gallery_toggle' : '']"
+            @click="isClickable(choice) && hideOrCollapse(getToggleTarget(choice), $event)"
+            @keyup.enter="isClickable(choice) && hideOrCollapse(getToggleTarget(choice), $event)"
+            :tabindex="isClickable(choice) ? 0 : -1"
+            :data-target="getToggleTarget(choice)"
           >
-            <h4
-              class="qpm_heading"
-              :class="{ 'intext-arrow-link': !choice.maintopic }"
+            <span
+              :class="[
+                'qpm_toggle_icon',
+                { qpm_toggle_expanded: isGroupExpanded(choice), qpm_toggle_placeholder: !hasChildren(choice) },
+              ]"
             >
+              <span class="qpm_toggle_plus">+</span>
+              <span class="qpm_toggle_minus">&minus;</span>
+            </span>
+            <component :is="getHeadingTag(choice)" class="qpm_heading">
               {{ customNameLabel(choice) }} 
-            </h4>
+            </component>
             <span class="qpm_groupid">(ID: {{ choice.id }})</span>
           </div>
           <div
@@ -254,9 +266,8 @@
                   <button
                     v-tooltip="{
                       content: getString('tooltipNarrow'),
-                      offset: 5,
+                      distance: 5,
                       delay: $helpTextDelay,
-                      hideOnTargetClick: false,
                     }"
                     class="qpm_button qpm_buttonColor1"
                   >
@@ -268,9 +279,8 @@
                     <a
                       v-tooltip="{
                         content: getString('showPubMedLink'),
-                        offset: 5,
+                        distance: 5,
                         delay: $helpTextDelay,
-                        hideOnTargetClick: false,
                       }"
                       target="_blank"
                       :href="getPubMedLink(choice.searchStrings.narrow)"
@@ -285,9 +295,8 @@
                   <button
                     v-tooltip="{
                       content: getString('tooltipNormal'),
-                      offset: 5,
+                      distance: 5,
                       delay: $helpTextDelay,
-                      hideOnTargetClick: false,
                     }"
                     class="qpm_button qpm_buttonColor2"
                   >
@@ -299,9 +308,8 @@
                     <a
                       v-tooltip="{
                         content: getString('showPubMedLink'),
-                        offset: 5,
+                        distance: 5,
                         delay: $helpTextDelay,
-                        hideOnTargetClick: false,
                       }"
                       target="_blank"
                       :href="getPubMedLink(choice.searchStrings.normal)"
@@ -316,9 +324,8 @@
                   <button
                     v-tooltip="{
                       content: getString('tooltipBroad'),
-                      offset: 5,
+                      distance: 5,
                       delay: $helpTextDelay,
-                      hideOnTargetClick: false,
                     }"
                     class="qpm_button qpm_buttonColor3"
                   >
@@ -330,9 +337,8 @@
                     <a
                       v-tooltip="{
                         content: getString('showPubMedLink'),
-                        offset: 5,
+                        distance: 5,
                         delay: $helpTextDelay,
-                        hideOnTargetClick: false,
                       }"
                       target="_blank"
                       :href="getPubMedLink(choice.searchStrings.broad)"
@@ -363,7 +369,7 @@
   import { appSettingsMixin } from "@/mixins/appSettings";
   import { messages } from "@/assets/content/qpm-translations.js";
   import { filtrer } from "@/assets/content/qpm-content-filters.js";
-  import { topicLoaderMixin } from "@/mixins/topicLoaderMixin.js";
+  import { topicLoaderMixin, flattenTopicGroups } from "@/mixins/topicLoaderMixin.js";
   import { order } from "@/assets/content/qpm-content-order.js";
 
   export default {
@@ -380,6 +386,10 @@
         type: String,
         default: "en",
       },
+      collapsedLevels: {
+        type: Array,
+        default: () => [],
+      },
     },
     data() {
       return {
@@ -387,6 +397,8 @@
         subjects: [],
         orders: [],
         isAllToggled: true,
+        resolvedCollapsedLevels: null,
+        hasAppliedInitialCollapse: false,
       };
     },
     computed: {
@@ -399,11 +411,45 @@
         return this.sortData(shownFilters);
       },
     },
+    watch: {
+      topics: {
+        handler(newTopics) {
+          if (!this.hasAppliedInitialCollapse && newTopics && newTopics.length > 0) {
+            this.$nextTick(() => {
+              this.applyInitialCollapsedLevels();
+              this.hasAppliedInitialCollapse = true;
+            });
+          }
+        },
+        immediate: true,
+      },
+    },
     created() {
-      this.filters = filtrer;
+      this.filters = JSON.parse(JSON.stringify(filtrer)).map((f) => ({
+        ...f,
+        choices: flattenTopicGroups(f.choices || []),
+      }));
       this.subjects = this.topics;
       this.orders = order;
+
+      const normalized = this.normalizeCollapsedLevels(this.collapsedLevels);
+      if (normalized.length > 0) {
+        this.resolvedCollapsedLevels = normalized;
+      } else {
+        const root = document.getElementById("search-gallery");
+        this.resolvedCollapsedLevels = this.normalizeCollapsedLevels(
+          root?.dataset?.collapsedLevels || []
+        );
+      }
     },
+    mounted() {
+      // Only apply if watch hasn't already done it (topics loaded synchronously)
+      if (!this.hasAppliedInitialCollapse) {
+        this.applyInitialCollapsedLevels();
+        this.hasAppliedInitialCollapse = true;
+      }
+    },
+    
     methods: {
       blockHasComment(block) {
         let language = this.language || 'en';
@@ -412,68 +458,229 @@
         }
         return false;
       },
-      hideOrCollapse(className) {
-        const elements = document.getElementsByClassName(className);
-        for (let i = 0; i < elements.length; i++) {
-          elements[i].classList.toggle("qpm_collapsedSection");
+      normalizeCollapsedLevels(value) {
+        if (!value) return [];
+        if (Array.isArray(value)) {
+          const normalized = value
+            .map((item) => (typeof item === "string" ? parseInt(item, 10) : item))
+            .filter((item) => !Number.isNaN(item));
+          return normalized;
+        }
+        if (typeof value === "string") {
+          const normalized = value
+            .split(",")
+            .map((item) => parseInt(item.trim(), 10))
+            .filter((item) => !Number.isNaN(item));
+          return normalized;
+        }
+        return [];
+      },
+      isLevelCollapsed(level) {
+        // If no collapsedLevels specified, all levels are open by default
+        const normalized = this.resolvedCollapsedLevels || this.normalizeCollapsedLevels(this.collapsedLevels);
+        if (normalized.length === 0) return false;
+
+        return normalized.includes(level);
+      },
+      getItemLevel(item) {
+        const depth = item && item.subtopiclevel ? item.subtopiclevel : 0;
+        return 3 + depth;
+      },
+      getAncestorClasses(item) {
+        // Add CSS classes for each ancestor so maintopic clicks can target descendants
+        const classes = [];
+        if (item.parentChain && item.parentChain.length > 0) {
+          item.parentChain.forEach((ancestorId) => {
+            classes.push('qpm_child_of_' + this.toClassName(ancestorId));
+          });
+        } else if (item.maintopicIdLevel1) {
+          classes.push('qpm_child_of_' + this.toClassName(item.maintopicIdLevel1));
+          if (item.maintopicIdLevel2) {
+            classes.push('qpm_child_of_' + this.toClassName(item.maintopicIdLevel2));
+          }
+        }
+        return classes;
+      },
+      getToggleTarget(item) {
+        // Maintopic items toggle their descendants; leaf items toggle their own content
+        if (item.maintopic) {
+          return 'qpm_child_of_' + this.toClassName(item.id);
+        }
+        return this.toClassName(item.name);
+      },
+      hasChildren(item) {
+        // Only items with children (maintopic) get +/- icon
+        return !!item.maintopic;
+      },
+      getHeadingTag(item) {
+        // h2 = top sections (Emner/Afgrænsninger)
+        // h3 = categories (Skabelonkategori, Diabetestype)
+        // h4 = top-level items (subtopiclevel 0)
+        // h5 = subtopiclevel 1
+        // h6 = subtopiclevel 2+
+        const depth = item && item.subtopiclevel ? item.subtopiclevel : 0;
+        const level = Math.min(4 + depth, 6); // h4..h6, capped at h6
+        return 'h' + level;
+      },
+      isClickable(item) {
+        // Items with children OR search strings are clickable
+        if (item.maintopic) return true;
+        if (item.searchStrings) {
+          return (
+            this.hasValidSearchString(item.searchStrings.narrow) ||
+            this.hasValidSearchString(item.searchStrings.normal) ||
+            this.hasValidSearchString(item.searchStrings.broad)
+          );
+        }
+        return false;
+      },
+      isGroupExpanded(item) {
+        // Initial icon state for a parent: [-] if children visible, [+] if collapsed.
+        // Children are hidden if ANY level from 1 up to own level is in collapsed list.
+        if (!this.hasChildren(item)) return false;
+        const levels = this.resolvedCollapsedLevels || [];
+        if (levels.length === 0) return true;
+        const itemLevel = this.getItemLevel(item);
+        for (let l = 1; l <= itemLevel; l++) {
+          if (levels.includes(l)) return false;
+        }
+        return true;
+      },
+      applyInitialCollapsedLevels() {
+        const levels = this.resolvedCollapsedLevels || [];
+        if (levels.length === 0) return;
+
+        // Level 1: sections
+        [
+          ...document.getElementsByClassName("qpm_subjectSearchStrings"),
+          ...document.getElementsByClassName("qpm_filterSearchStrings"),
+        ].forEach((el) => {
+          el.classList.toggle("qpm_collapsedSection", levels.includes(1));
+        });
+
+        // All items: start collapsed
+        const allGroups = [
+          ...document.getElementsByClassName("qpm_searchGroup"),
+          ...document.getElementsByClassName("qpm_filterGroup"),
+        ];
+        allGroups.forEach((el) => el.classList.add("qpm_collapsedSection"));
+
+        // If level 2 NOT in list: open all items, then enforce collapsed parents
+        if (!levels.includes(2)) {
+          allGroups.forEach((el) => el.classList.remove("qpm_collapsedSection"));
+        }
+
+        // Enforce collapsed parents at ALL levels (3, 4, 5, ...)
+        // This works even when level 2 is collapsed: it sets correct state
+        // so that when user opens categories, children are properly collapsed.
+        this.enforceCollapsedParents();
+
+        // Search string tables always start collapsed
+        [
+          ...document.getElementsByClassName("qpm_searchSubject"),
+          ...document.getElementsByClassName("qpm_searchFilter"),
+        ].forEach((el) => el.classList.add("qpm_collapsedSection"));
+
+        this.syncToggleIconsFromDom();
+      },
+      enforceCollapsedParents(elements) {
+        // For parents whose level is in collapsed list: collapse their children.
+        // If `elements` is provided, only check those elements (after user click).
+        // If not provided, check ALL groups (initial load).
+        const levels = this.resolvedCollapsedLevels || [];
+        if (levels.length === 0) return;
+
+        const toCheck = elements || [
+          ...document.getElementsByClassName("qpm_searchGroup"),
+          ...document.getElementsByClassName("qpm_filterGroup"),
+        ];
+
+        for (const el of toCheck) {
+          const hasChildren = el.getAttribute("data-has-children") === "1";
+          if (!hasChildren) continue;
+
+          const level = parseInt(el.getAttribute("data-level"), 10);
+          if (Number.isNaN(level) || !levels.includes(level)) continue;
+
+          const heading = el.querySelector("[data-target]");
+          if (!heading) continue;
+          const targetClass = heading.getAttribute("data-target");
+          if (!targetClass) continue;
+
+          const children = document.getElementsByClassName(targetClass);
+          for (let i = 0; i < children.length; i++) {
+            children[i].classList.add("qpm_collapsedSection");
+          }
         }
       },
-      toggleAll() {
-        if (this.isAllToggled) {
-          let subjectSections = document.getElementsByClassName("qpm_subjectSearchStrings");
-          for (let i = 0; i < subjectSections.length; i++) {
-            subjectSections[i].classList.remove("qpm_collapsedSection");
-          }
-          let searchGroups = document.getElementsByClassName("qpm_searchGroup");
-          for (let j = 0; j < searchGroups.length; j++) {
-            searchGroups[j].classList.remove("qpm_collapsedSection");
-          }
-          let searchSubjects = document.getElementsByClassName("qpm_searchSubject");
-          for (let k = 0; k < searchSubjects.length; k++) {
-            searchSubjects[k].classList.remove("qpm_collapsedSection");
-          }
+      syncToggleIconsFromDom() {
+        const toggles = document.querySelectorAll("[data-target]");
+        toggles.forEach((toggle) => {
+          const targetClass = toggle.getAttribute("data-target");
+          if (!targetClass) return;
+          const targets = document.getElementsByClassName(targetClass);
+          if (targets.length === 0) return;
+          const isExpanded = Array.from(targets).some(
+            (el) => !el.classList.contains("qpm_collapsedSection")
+          );
+          const icon = toggle.querySelector(".qpm_toggle_icon");
+          if (icon) icon.classList.toggle("qpm_toggle_expanded", isExpanded);
+        });
+      },
+      hideOrCollapse(className, event) {
+        const elements = document.getElementsByClassName(className);
+        if (elements.length === 0) return;
 
-          let filterSections = document.getElementsByClassName("qpm_filterSearchStrings");
-          for (let i = 0; i < filterSections.length; i++) {
-            filterSections[i].classList.remove("qpm_collapsedSection");
+        // Determine action from first element: if collapsed → open all, else → close all
+        const opening = elements[0].classList.contains("qpm_collapsedSection");
+
+        // Snapshot the elements (live HTMLCollection changes during enforcement)
+        const snapshot = Array.from(elements);
+
+        for (let i = 0; i < snapshot.length; i++) {
+          if (opening) {
+            snapshot[i].classList.remove("qpm_collapsedSection");
+          } else {
+            snapshot[i].classList.add("qpm_collapsedSection");
           }
-          let filterGroups = document.getElementsByClassName("qpm_filterGroup");
-          for (let j = 0; j < filterGroups.length; j++) {
-            filterGroups[j].classList.remove("qpm_collapsedSection");
-          }
-          let searchFilters = document.getElementsByClassName("qpm_searchFilter");
-          for (let k = 0; k < searchFilters.length; k++) {
-            searchFilters[k].classList.remove("qpm_collapsedSection");
-          }
+        }
+
+        // After OPENING, enforce only on the just-opened elements.
+        // This prevents re-collapsing siblings opened by earlier user clicks.
+        if (opening) {
+          this.enforceCollapsedParents(snapshot);
+        }
+
+        this.syncToggleIconsFromDom();
+      },
+      toggleAll() {
+        const allSections = [
+          ...document.getElementsByClassName("qpm_subjectSearchStrings"),
+          ...document.getElementsByClassName("qpm_filterSearchStrings"),
+        ];
+        const allGroups = [
+          ...document.getElementsByClassName("qpm_searchGroup"),
+          ...document.getElementsByClassName("qpm_filterGroup"),
+        ];
+        const allTables = [
+          ...document.getElementsByClassName("qpm_searchSubject"),
+          ...document.getElementsByClassName("qpm_searchFilter"),
+        ];
+
+        if (this.isAllToggled) {
+          // Open everything
+          allSections.forEach((el) => el.classList.remove("qpm_collapsedSection"));
+          allGroups.forEach((el) => el.classList.remove("qpm_collapsedSection"));
+          allTables.forEach((el) => el.classList.remove("qpm_collapsedSection"));
           this.isAllToggled = false;
         } else {
-          let subjectSections = document.getElementsByClassName("qpm_subjectSearchStrings");
-          for (let i = 0; i < subjectSections.length; i++) {
-            subjectSections[i].classList.add("qpm_collapsedSection");
-          }
-          let searchGroups = document.getElementsByClassName("qpm_searchGroup");
-          for (let j = 0; j < searchGroups.length; j++) {
-            searchGroups[j].classList.add("qpm_collapsedSection");
-          }
-          let searchSubjects = document.getElementsByClassName("qpm_searchSubject");
-          for (let k = 0; k < searchSubjects.length; k++) {
-            searchSubjects[k].classList.add("qpm_collapsedSection");
-          }
-
-          let filterSections = document.getElementsByClassName("qpm_filterSearchStrings");
-          for (let i = 0; i < filterSections.length; i++) {
-            filterSections[i].classList.add("qpm_collapsedSection");
-          }
-          let filterGroups = document.getElementsByClassName("qpm_filterGroup");
-          for (let j = 0; j < filterGroups.length; j++) {
-            filterGroups[j].classList.add("qpm_collapsedSection");
-          }
-          let searchFilters = document.getElementsByClassName("qpm_searchFilter");
-          for (let k = 0; k < searchFilters.length; k++) {
-            searchFilters[k].classList.add("qpm_collapsedSection");
-          }
+          // Close everything
+          allSections.forEach((el) => el.classList.add("qpm_collapsedSection"));
+          allGroups.forEach((el) => el.classList.add("qpm_collapsedSection"));
+          allTables.forEach((el) => el.classList.add("qpm_collapsedSection"));
           this.isAllToggled = true;
         }
+        this.syncToggleIconsFromDom();
       },
       getPubMedLink(searchString) {
         return (

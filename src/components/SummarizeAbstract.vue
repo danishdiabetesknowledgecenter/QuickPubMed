@@ -57,9 +57,7 @@
           <p>
             <strong>{{ summaryConsentHeader }}</strong>
           </p>
-          <p v-if="summarySearchSummaryConsentText != null">
-            {{ summarySearchSummaryConsentText }}
-          </p>
+          <p v-if="summarySearchSummaryConsentText != null" v-html="summarySearchSummaryConsentText" />
           <p v-html="getString('aiSummaryConsentText')" />
           <p v-html="getString('readAboutAiSummaryText')" />
         </div>
@@ -112,7 +110,7 @@
                   <vue-showdown
                     :options="{ smoothLivePreview: true }"
                     :markdown="getCurrentSummary.body"
-                    @click.native.capture="onMarkdownClick"
+                    @click.capture="onMarkdownClick"
                   />
                 </div>
                 <p v-else ref="summary">
@@ -123,9 +121,8 @@
                     v-if="getIsAbstractSummaryLoading"
                     v-tooltip="{
                       content: getString('hoverretryText'),
-                      offset: 5,
+                      distance: 5,
                       delay: $helpTextDelay,
-                      hideOnTargetClick: false,
                     }"
                     class="qpm_button"
                     @keydown.enter="clickStop($event)"
@@ -139,9 +136,8 @@
                     v-if="!getIsAbstractSummaryLoading"
                     v-tooltip="{
                       content: getString('hoverretryText'),
-                      offset: 5,
+                      distance: 5,
                       delay: $helpTextDelay,
-                      hideOnTargetClick: false,
                     }"
                     class="qpm_button"
                     @keydown.enter="clickRetry($event, true)"
@@ -155,9 +151,8 @@
                   <button
                     v-tooltip="{
                       content: getString('hovercopyText'),
-                      offset: 5,
+                      distance: 5,
                       delay: $helpTextDelay,
-                      hideOnTargetClick: false,
                     }"
                     class="qpm_button"
                     :disabled="getIsAbstractSummaryLoading"
@@ -175,45 +170,41 @@
                       isPubTypeAllowed
                     "
                   >
-                    <keep-alive>
-                      <summarize-article
-                        v-if="isInitialized"
-                        :ref="`summarizeArticleWithAbstract-${currentSummary}`"
-                        :key="`abstract-${currentSummary}`"
-                        :pdf-url="pdfUrl"
-                        :html-url="htmlUrl"
-                        :language="language"
-                        :search-result-title="searchResultTitle"
-                        :authors-list="authorsList"
-                        :publication-info="publicationInfo"
-                        :prompt-language-type="currentSummary"
-                        :domain-specific-prompt-rules="domainSpecificPromptRules"
-                        :ai-article-summaries="aiArticleSummaries"
-                        :current-summary-index="currentSummaryIndex"
-                        :loading="loadingArticleSummaries[currentSummary]"
-                        @set-loading="handleSetLoading"
-                        @unset-loading="handleUnsetLoading"
-                        @update-ai-article-summaries="updateAiArticleSummaries"
-                        @update-current-summary-index="updateCurrentSummaryIndex"
-                        @error-state-changed="handleSummarizeArticleErrorState"
-                        @last-item-streaming-started="handleLastItemStreamingStarted"
-                      />
-                    </keep-alive>
-                    <keep-alive>
-                      <question-for-article
-                        v-if="!isForbiddenError && (!loadingArticleSummaries[currentSummary] || showUserQuestionsEarly)"
-                        :pdf-url="pdfUrl"
-                        :html-url="htmlUrl"
-                        :language="language"
-                        :prompt-language-type="currentSummary"
-                        :domain-specific-prompt-rules="domainSpecificPromptRules"
-                        :is-loading-current="loadingArticleSummaries[currentSummary] && !showUserQuestionsEarly"
-                        :persisted-questions-and-answers="userQuestionsAndAnswers[currentSummary]"
-                        @set-loading-user-question="handleSetLoadingUserQuestion"
-                        @unset-loading-user-question="handleUnsetLoadingUserQuestion"
-                        @update-questions-and-answers="updateUserQuestionsAndAnswers"
-                      />
-                    </keep-alive>
+                    <summarize-article
+                      v-if="isInitialized"
+                      :ref="`summarizeArticleWithAbstract-${currentSummary}`"
+                      :key="`abstract-${currentSummary}`"
+                      :pdf-url="pdfUrl"
+                      :html-url="htmlUrl"
+                      :language="language"
+                      :search-result-title="searchResultTitle"
+                      :authors-list="authorsList"
+                      :publication-info="publicationInfo"
+                      :prompt-language-type="currentSummary"
+                      :domain-specific-prompt-rules="domainSpecificPromptRules"
+                      :ai-article-summaries="aiArticleSummaries"
+                      :current-summary-index="currentSummaryIndex"
+                      :loading="loadingArticleSummaries[currentSummary]"
+                      @set-loading="handleSetLoading"
+                      @unset-loading="handleUnsetLoading"
+                      @update-ai-article-summaries="updateAiArticleSummaries"
+                      @update-current-summary-index="updateCurrentSummaryIndex"
+                      @error-state-changed="handleSummarizeArticleErrorState"
+                      @last-item-streaming-started="handleLastItemStreamingStarted"
+                    />
+                    <question-for-article
+                      v-if="!isForbiddenError && (!loadingArticleSummaries[currentSummary] || showUserQuestionsEarly)"
+                      :pdf-url="pdfUrl"
+                      :html-url="htmlUrl"
+                      :language="language"
+                      :prompt-language-type="currentSummary"
+                      :domain-specific-prompt-rules="domainSpecificPromptRules"
+                      :is-loading-current="loadingArticleSummaries[currentSummary] && !showUserQuestionsEarly"
+                      :persisted-questions-and-answers="userQuestionsAndAnswers[currentSummary]"
+                      @set-loading-user-question="handleSetLoadingUserQuestion"
+                      @unset-loading-user-question="handleUnsetLoadingUserQuestion"
+                      @update-questions-and-answers="updateUserQuestionsAndAnswers"
+                    />
 
                     <button
                       v-if="
@@ -222,9 +213,8 @@
                       "
                       v-tooltip="{
                         content: getString('hoverretryText'),
-                        offset: 5,
+                        distance: 5,
                         delay: $helpTextDelay,
-                        hideOnTargetClick: false,
                       }"
                       class="qpm_button"
                       style="margin-top: 25px"
@@ -246,9 +236,8 @@
                       "
                       v-tooltip="{
                         content: getString('hovercopyText'),
-                        offset: 5,
+                        distance: 5,
                         delay: $helpTextDelay,
-                        hideOnTargetClick: false,
                       }"
                       class="qpm_button"
                       :disabled="
@@ -282,23 +271,24 @@
 </template>
 
 <script>
-  import Vue from "vue";
+  import { nextTick } from "vue";
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
   import SummarizeArticle from "@/components/SummarizeArticle.vue";
   import QuestionForArticle from "@/components/QuestionForArticle.vue";
   import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
 
   import { appSettingsMixin, eventBus } from "@/mixins/appSettings.js";
+  import { utilitiesMixin } from "@/mixins/utilities";
   import { messages } from "@/assets/content/qpm-translations.js";
   import { languageFormat, dateOptions } from "@/utils/qpm-content-helpers.js";
 
   import { config } from "@/config/config.js";
-  import { promptText } from "@/assets/content/qpm-open-ai-article-prompts.js";
+  import { promptText } from "@/assets/content/qpm-prompts-article.js";
   import {
     promptTextMultipleAbstracts,
     promptTextSingleAbstract,
-  } from "@/assets/content/qpm-open-ai-abstract-prompts";
-  import { sanitizePrompt } from "@/utils/qpm-open-ai-prompts-helpers.js";
+  } from "@/assets/content/qpm-prompts-abstract";
+  import { sanitizePrompt } from "@/utils/qpm-prompts-helpers.js";
 
   export default {
     name: "SummarizeAbstract",
@@ -307,7 +297,7 @@
       SummarizeArticle,
       QuestionForArticle,
     },
-    mixins: [appSettingsMixin, promptRuleLoaderMixin],
+    mixins: [appSettingsMixin, promptRuleLoaderMixin, utilitiesMixin],
     props: {
       pubType: {
         type: Array,
@@ -425,6 +415,10 @@
         type: Array,
         default: () => [],
       },
+      searchIntent: {
+        type: String,
+        default: "",
+      },
     },
     data() {
       return {
@@ -536,9 +530,9 @@
         return this.successHeader;
       },
       canRenderMarkdown() {
-        const isVueShowdownRegistered =
-          !!this.$options.components["VueShowdown"] || !!this.$options.components["vue-showdown"];
-        return isVueShowdownRegistered;
+        // In Vue 3, globally registered components (via app.use()) are not in $options.components.
+        // VueShowdown is always registered as a plugin in all entry points.
+        return true;
       },
       languageFormat() {
         // Define language formats as needed
@@ -570,13 +564,12 @@
       this.$nextTick(() => {
         this.prompts.forEach((prompt) => {
           if (!this.userQuestionsAndAnswers[prompt.name]) {
-            this.$set(this.userQuestionsAndAnswers, prompt.name, []);
+            this.userQuestionsAndAnswers[prompt.name] = [];
           }
         });
         this.isInitialized = true;
       });
-    },
-    activated() {
+      // Trigger initial tab (moved from activated() since <keep-alive> is no longer used)
       if (this.initialTabPrompt != null) {
         this.clickSummaryTab(this.initialTabPrompt);
       }
@@ -598,14 +591,14 @@
        * Set loading state based on emitted event.
        */
       handleSetLoading({ promptLanguageType }) {
-        this.$set(this.loadingArticleSummaries, promptLanguageType, true);
+        this.loadingArticleSummaries[promptLanguageType] = true;
         this.showUserQuestionsEarly = false; // Reset when new loading starts
       },
       /**
        * Unset loading state based on emitted event.
        */
       handleUnsetLoading({ promptLanguageType }) {
-        this.$set(this.loadingArticleSummaries, promptLanguageType, false);
+        this.loadingArticleSummaries[promptLanguageType] = false;
         this.showUserQuestionsEarly = false; // Reset when loading completes
       },
       /**
@@ -618,13 +611,13 @@
        * Set loading state for user question based on emitted event.
        */
       handleSetLoadingUserQuestion({ promptLanguageType }) {
-        this.$set(this.loadingQuestionsAndAnswers, promptLanguageType, true);
+        this.loadingQuestionsAndAnswers[promptLanguageType] = true;
       },
       /**
        * Unset loading state for user question based on emitted event.
        */
       handleUnsetLoadingUserQuestion({ promptLanguageType }) {
-        this.$set(this.loadingQuestionsAndAnswers, promptLanguageType, false);
+        this.loadingQuestionsAndAnswers[promptLanguageType] = false;
       },
       /**
        * Initializes aiArticleSummaries based on the current language and promptText names.
@@ -633,9 +626,9 @@
       initializeAiArticleSummaries() {
         promptText.forEach((prompt) => {
           const key = prompt.name.dk; // Always use Danish names for consistency
-          this.$set(this.aiArticleSummaries, key, []);
-          this.$set(this.loadingArticleSummaries, key, false);
-          this.$set(this.loadingQuestionsAndAnswers, key, false);
+          this.aiArticleSummaries[key] = [];
+          this.loadingArticleSummaries[key] = false;
+          this.loadingQuestionsAndAnswers[key] = false;
         });
       },
       /**
@@ -645,16 +638,16 @@
       initializeCurrentSummaryIndex() {
         promptText.forEach((prompt) => {
           const key = prompt.name.dk; // Always use Danish names for consistency
-          this.$set(this.currentSummaryIndex, key, 0);
+          this.currentSummaryIndex[key] = 0;
         });
       },
       /**
        * Handler to update aiArticleSummaries from child component.
        */
       updateAiArticleSummaries({ promptLanguageType, summaryData }) {
-        this.$set(this.loadingArticleSummaries, promptLanguageType, false); // Set loading to false
+        this.loadingArticleSummaries[promptLanguageType] = false; // Set loading to false
         if (!this.aiArticleSummaries[promptLanguageType]) {
-          this.$set(this.aiArticleSummaries, promptLanguageType, []);
+          this.aiArticleSummaries[promptLanguageType] = [];
         }
         this.aiArticleSummaries[promptLanguageType].push(summaryData);
         this.currentSummaryIndex[promptLanguageType] =
@@ -664,7 +657,7 @@
        * Handler to update currentSummaryIndex from child component.
        */
       updateCurrentSummaryIndex({ promptLanguageType, newIndex }) {
-        this.$set(this.currentSummaryIndex, promptLanguageType, newIndex);
+        this.currentSummaryIndex[promptLanguageType] = newIndex;
       },
       /**
        * Updates the userQuestionsAndAnswers state.
@@ -673,21 +666,12 @@
        */
       updateUserQuestionsAndAnswers(payload) {
         const { promptLanguageType, questionsAndAnswers } = payload;
-        this.$set(this.userQuestionsAndAnswers, promptLanguageType, questionsAndAnswers);
+        this.userQuestionsAndAnswers[promptLanguageType] = questionsAndAnswers;
       },
       getTranslation(value) {
         const lg = this.language;
         const constant = value.translations[lg];
         return constant !== undefined ? constant : value.translations["dk"];
-      },
-      getString(string) {
-        const lg = this.language;
-        if (!messages[string]) {
-          console.warn(`Missing translation key: ${string}`);
-          return string;
-        }
-        const constant = messages[string][lg];
-        return constant !== undefined ? constant : messages[string]["dk"];
       },
       getSummaryPromptByName(name) {
         return this.prompts.find(function (prompt) {
@@ -715,7 +699,6 @@
         let tempPromptText = "";
         const isMultipleAbstract = this.articlesReferences.length > 0;
 
-        console.log("isMultipleAbstract:", isMultipleAbstract);
         if (isMultipleAbstract) {
           tempPromptText = promptTextMultipleAbstracts;
         } else {
@@ -738,6 +721,11 @@
         }
         
         composedPromptText += `## INSTRUCTIONS ##\n${promptStartText}\n\n`;
+        
+        if (this.searchIntent) {
+          composedPromptText += `## BRUGERENS SØGEINTENTION ##\nBrugeren søgte efter: "${this.searchIntent}". Fokuser opsummeringen på aspekter der er relevante for denne søgeintention, og forsøg at besvare det underliggende spørgsmål, som brugeren formentlig ønsker svar på.\n\n`;
+        }
+
         composedPromptText += `## END TEXT ##\n${promptEndText}\n`;
 
 
@@ -933,7 +921,7 @@
           if (tabIndex !== -1) {
             this.loadingAbstractSummaries.splice(tabIndex, 1);
           }
-          this.$set(this.tabStates[prompt.name], "currentIndex", 0);
+          this.tabStates[prompt.name]["currentIndex"] = 0;
         }
       },
       async clickSummaryTab(tab) {
@@ -1052,18 +1040,18 @@
       pushToAiSearchSummaries(key, value) {
         const oldSummaries = this.aiAbstractSummaries[key] ?? [];
         let newSummaries = oldSummaries.toSpliced(0, 0, value);
-        Vue.set(this.aiAbstractSummaries, key, newSummaries);
+        this.aiAbstractSummaries[key] = newSummaries;
       },
       updateAiSearchSummariesEntry(summaryName, newValues, index = 0) {
         for (const [key, value] of Object.entries(newValues)) {
-          this.$set(this.aiAbstractSummaries[summaryName][index], key, value);
+          this.aiAbstractSummaries[summaryName][index][key] = value;
         }
       },
       toggleHistory() {
         this.showHistory = !this.showHistory;
       },
       clickHistoryItem(index) {
-        this.$set(this.tabStates[this.currentSummary], "currentIndex", index);
+        this.tabStates[this.currentSummary]["currentIndex"] = index;
       },
       formatDate(date) {
         const formattedDate = date.toLocaleDateString(languageFormat[this.language], dateOptions);
@@ -1094,7 +1082,7 @@
         event.preventDefault();
         event.stopPropagation();
 
-        eventBus.$emit("result-entry-show-abstract", { $el: resultEntry });
+        eventBus.emit("result-entry-show-abstract", { $el: resultEntry });
       },
       getTabTooltipContent(prompt) {
         const tooltip = prompt?.tooltip;

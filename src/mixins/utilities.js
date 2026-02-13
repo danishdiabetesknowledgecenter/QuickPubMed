@@ -65,11 +65,11 @@ export const utilitiesMixin = {
           body: JSON.stringify(body),
         });
         if (!response.ok) {
-          throw Error(JSON.stringify(this.data));
+          const body = await response.text();
+          throw new Error(body || `HTTP ${response.status}`);
         }
         return response;
       } catch (error) {
-        console.log("From: " + tag + " Error fetching:", error);
         throw error;
       }
     },

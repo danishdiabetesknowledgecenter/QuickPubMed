@@ -5,7 +5,7 @@
       v-if="!advanced"
       v-tooltip="{
         content: getString('hoverAdvancedText'),
-        offset: 5,
+        distance: 5,
         delay: $helpTextDelay,
       }"
       tabindex="0"
@@ -31,7 +31,7 @@
       v-if="advanced"
       v-tooltip="{
         content: getString('hoverBasicText'),
-        offset: 5,
+        distance: 5,
         delay: $helpTextDelay,
       }"
       tabindex="0"

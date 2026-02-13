@@ -17,7 +17,7 @@ export const dateOptions = { year: "numeric", month: "long", day: "numeric" };
 export const languageFormat = {
   da: "da-DK",
   en: "en-GB",
-  de: "de-DR",
+  de: "de-DE",
 };
 
 /**

@@ -9,7 +9,7 @@ export function loadTopics(domain) {
     eager: true,
   });
   return Object.keys(modules)
-    .filter((key) => key.includes(`/src/assets/content/${domain}/`))
+    .filter((key) => key.includes(`/src/assets/content/${domain}/`) && modules[key]?.topics)
     .map((key) => ({
       path: key,
       topics: modules[key].topics, // Access the named export 'topics'
@@ -27,7 +27,7 @@ export function loadPromptRules(domain) {
     eager: true,
   });
   return Object.keys(modules)
-    .filter((key) => key.includes(`/src/assets/content/${domain}/`))
+    .filter((key) => key.includes(`/src/assets/content/${domain}/`) && modules[key]?.promptRules)
     .map((key) => ({
       path: key,
       promptRules: modules[key].promptRules, // Access the named export 'promptRules'

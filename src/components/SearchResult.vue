@@ -22,9 +22,8 @@
                   <button
                     v-tooltip="{
                       content: getString('hoverselectedResultsAccordionHeader'),
-                      offset: 5,
+                      distance: 5,
                       delay: $helpTextDelay,
-                      hideOnTargetClick: false,
                     }"
                     class="bx bx-info-circle"
                     aria-label="Info"
@@ -46,26 +45,27 @@
         </template>
         <div>
           <div>
-            <keep-alive>
               <div
                 v-if="!hasAcceptedAi"
                 class="qpm_searchSummaryText qpm_searchSummaryTextBackground"
               >
                 <p>{{ getString("aiSearchSummaryConsentHeader") }}</p>
-                <p
-                  v-if="selectedEntries == null || selectedEntries.length == 0"
-                  v-html="getString('aiSearchSummaryConsentHeaderText')"
-                />
+                <p v-if="selectedEntries == null || selectedEntries.length == 0">
+                  <span v-html="getString('aiSearchSummaryConsentHeaderTextBefore')"></span>
+                  <select v-model="defaultSummaryCount" style="margin: 0 4px; padding: 2px 4px;">
+                    <option v-for="n in Math.min(maxSummaryArticles, 25)" :key="n" :value="n">{{ n }}</option>
+                  </select>
+                  {{ getString("aiSearchSummaryConsentHeaderTextAfter") }}
+                </p>
                 <p v-if="selectedEntries.length > 0">
                   {{ getString("aiSearchSummarySelectedArticlesBefore") }}
-                  <strong>{{ selectedEntries.length }} </strong>
+                  <strong>{{ selectedEntries.length }}{{ ' ' }}</strong>
                   <span v-if="selectedEntries.length == 1">
                     <strong>{{ getString("aiSearchSummarySelectedArticlesAfterSingular") }}</strong>
                   </span>
                   <span v-if="selectedEntries.length > 1">
                     <strong>{{ getString("aiSearchSummarySelectedArticlesAfterPlural") }}</strong>
-                  </span>
-                  {{ getString("aiSearchSummarySelectedArticlesAfter") }}
+                  </span>{{ getString("aiSearchSummarySelectedArticlesAfter") }}
                 </p>
                 <p>
                   <strong>{{ getString("aiSummarizeSearchResultButton") }}</strong>
@@ -75,9 +75,8 @@
                   :key="`prompt-${prompt.name}-${index}`"
                   v-tooltip="{
                     content: getString('hoverSummarizeSearchResultButton'),
-                    offset: 5,
+                    distance: 5,
                     delay: $helpTextDelay,
-                    hideOnTargetClick: false,
                   }"
                   class="qpm_button qpm_summaryButton"
                   @click="clickAcceptAi(prompt)"
@@ -100,15 +99,15 @@
                 :is-marked-articles="getHasSelectedArticles"
                 :articles-references="getSelectedArticlesReferences"
                 :summary-consent-header="getString('aiSearchSummaryConsentHeader')"
-                :summary-search-summary-consent-text="getString('aiSearchSummaryConsentHeaderText')"
+                :summary-search-summary-consent-text="getString('aiSearchSummaryConsentHeaderTextBefore')"
                 :error-header="getString('aiSummarizeSearchErrorHeader')"
                 :has-accepted-ai="hasAcceptedAi"
                 :initial-tab-prompt="initialAiTab"
                 :get-selected-articles="getSelectedArticles"
+                :search-intent="searchIntent"
                 @close="closeSummaries"
                 @ai-summaries-click-retry="onAiSummariesClickRetry"
               />
-            </keep-alive>
           </div>
         </div>
       </accordion-menu>
@@ -123,6 +122,7 @@
         @changed:items="loadSelectedArticleBadges"
         @open="onArticleAccordionStateChange(true)"
         @close="onArticleAccordionStateChange(false)"
+        @after-open="handleArticlesAccordionAfterOpen"
       >
         <template #header="accordionProps">
           <div class="qpm_aiAccordionHeader">
@@ -145,9 +145,8 @@
                     v-if="!config.useAI"
                     v-tooltip="{
                       content: getString('hoverselectedResultTitle'),
-                      offset: 5,
+                      distance: 5,
                       delay: $helpTextDelay,
-                      hideOnTargetClick: false,
                     }"
                     class="bx bx-info-circle"
                     aria-label="Info"
@@ -156,9 +155,8 @@
                     v-if="config.useAI"
                     v-tooltip="{
                       content: getString('hoverselectedResultTitleAI'),
-                      offset: 5,
+                      distance: 5,
                       delay: $helpTextDelay,
-                      hideOnTargetClick: false,
                     }"
                     class="bx bx-info-circle"
                     aria-label="Info"
@@ -168,28 +166,21 @@
                   <div
                     v-tooltip="{
                       content: getString('hovermarkedArticleCounter'),
-                      offset: 5,
+                      distance: 5,
                       delay: $helpTextDelay,
-                      hideOnTargetClick: false,
                     }"
                     class="qpm_markedArticleCounter"
                     tabindex="0"
                   >
-                    <span>
-                      {{ selectedEntries.length }}
-                    </span>
+                    <span>{{ selectedEntries.length }}&nbsp;</span>
                     <span 
                       v-if="selectedEntries.length == 1"
                       class="qpm_markedArticleCounterText qpm_hideonmobile"
-                    >
-                      {{ getString("aiSearchSummarySelectedArticlesAfterSingular") }}
-                    </span>
+                    >{{ getString("aiSearchSummarySelectedArticlesAfterSingular") }}</span>
                     <span 
                       v-if="selectedEntries.length > 1 || selectedEntries.length == 0"
                       class="qpm_markedArticleCounterText qpm_hideonmobile"
-                    >
-                      {{ getString("aiSearchSummarySelectedArticlesAfterPlural") }}
-                    </span>
+                    >{{ getString("aiSearchSummarySelectedArticlesAfterPlural") }}</span>
                   </div>
                 </div>
               </div>
@@ -221,9 +212,8 @@
                 :disabled="selectedEntries == null || selectedEntries.length <= 0"
                 v-tooltip="selectedEntries != null && selectedEntries.length > 0 ? {
                   content: getString('hoverselectedResultDeselectAllText'),
-                  offset: 5,
+                  distance: 5,
                   delay: $helpTextDelay,
-                  hideOnTargetClick: false,
                 } : null"
                 @click="onDeselectAllArticles"
                 tabindex="0"
@@ -267,7 +257,7 @@
             :abstract="getAbstract(value.model.uid)"
             :text="getText(value.model.uid)"
             :is-abstract-loaded="isAbstractLoaded"
-            @change="changeResultEntryModel(value.model)"
+            @change="(val, checked) => changeResultEntryModel(val, checked)"
             @change:abstractLoad="onAbstractLoad"
             @loadAbstract="addIdToLoadAbstract"
           />
@@ -394,7 +384,6 @@
 </template>
 
 <script>
-  import Vue from "vue";
   import axios from "axios";
   import { config } from "@/config/config.js";
   import ResultEntry from "@/components/ResultEntry.vue";
@@ -402,10 +391,10 @@
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
   import SummarizeAbstract from "@/components/SummarizeAbstract.vue";
   import { order } from "@/assets/content/qpm-content-order.js";
-  import { messages } from "@/assets/content/qpm-translations.js";
-  import { summarizeMultipleAbstractPrompt } from "@/assets/content/qpm-open-ai-abstract-prompts";
+  import { summarizeMultipleAbstractPrompt } from "@/assets/content/qpm-prompts-abstract";
   import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
   import { appSettingsMixin, eventBus } from "@/mixins/appSettings";
+  import { utilitiesMixin } from "@/mixins/utilities";
   import { languageFormat, dateOptions, pageSizes } from "@/utils/qpm-content-helpers";
 
   export default {
@@ -416,7 +405,7 @@
       LoadingSpinner,
       SummarizeAbstract,
     },
-    mixins: [appSettingsMixin, promptRuleLoaderMixin],
+    mixins: [appSettingsMixin, promptRuleLoaderMixin, utilitiesMixin],
     props: {
       results: {
         type: Array,
@@ -454,6 +443,10 @@
         type: Error,
         default: null,
       },
+      searchIntent: {
+        type: String,
+        default: "",
+      },
       entriesAlwaysSelectable: {
         type: Boolean,
         default: true,
@@ -463,6 +456,7 @@
       return {
         hasAcceptedAi: false,
         initialAiTab: null,
+        defaultSummaryCount: 5,
         selectedEntries: this.preselectedEntries,
         badgesAdded: false,
         altmetricsAdded: false,
@@ -537,19 +531,31 @@
       getHasSelectedArticles() {
         return this.selectedEntries.length > 0;
       },
-      firstFiveArticlesWithAbstracts() {
+      /**
+       * Max number of articles available for summarization (those with abstracts).
+       * Used to cap the dropdown options.
+       */
+      maxSummaryArticles() {
+        if (!this.results) return 0;
         const self = this;
-        const resultsWithAbstract = this.getShownSearchResults.filter(function (result) {
+        return this.results.filter(function (result) {
+          return self.getHasAbstract(result.attributes);
+        }).length;
+      },
+      firstFiveArticlesWithAbstracts() {
+        if (!this.results) return [];
+        const self = this;
+        const resultsWithAbstract = this.results.filter(function (result) {
           return self.getHasAbstract(result.attributes);
         });
-        const first5ResultsWithAbstract = resultsWithAbstract.slice(0, 5);
-        return first5ResultsWithAbstract;
+        return resultsWithAbstract.slice(0, this.defaultSummaryCount);
       },
     },
     watch: {
       loading(newVal) {
         if (newVal) {
           this.isAbstractLoaded = false;
+          this.defaultSummaryCount = 5;
         }
       },
       preselectedEntries(newVal) {
@@ -557,6 +563,25 @@
           return;
         }
         this.selectedEntries = newVal;
+      },
+      /**
+       * When user increases the summary count, load abstracts for any
+       * newly included articles that haven't been fetched yet.
+       */
+      defaultSummaryCount() {
+        this.loadMissingAbstracts();
+      },
+      /**
+       * Cap defaultSummaryCount to available articles when results change.
+       */
+      maxSummaryArticles(newMax) {
+        if (newMax > 0 && this.defaultSummaryCount > newMax) {
+          this.defaultSummaryCount = newMax;
+        } else if (newMax > 0 && newMax < 5) {
+          this.defaultSummaryCount = newMax;
+        } else if (newMax >= 5 && this.defaultSummaryCount > newMax) {
+          this.defaultSummaryCount = 5;
+        }
       },
     },
     updated() {
@@ -586,10 +611,10 @@
       }
     },
     mounted() {
-      eventBus.$on("result-entry-show-abstract", this.openArticlesAccordion);
+      eventBus.on("result-entry-show-abstract", this.openArticlesAccordion);
     },
     beforeUnmount() {
-      eventBus.$off("result-entry-show-abstract", this.openArticlesAccordion);
+      eventBus.off("result-entry-show-abstract", this.openArticlesAccordion);
     },
     methods: {
       next() {
@@ -693,15 +718,6 @@
       },
       getSource(value) {
         try {
-          if (this.source != undefined) {
-            if (value != undefined) {
-              if (value.volume != undefined) value.volume = undefined;
-              if (value.issue != undefined) value.issue = undefined;
-              if (value.pages != undefined) value.pages = undefined;
-              if (value.pubdate != undefined) value.pubdate = undefined;
-            }
-            return this.source;
-          }
           if (value.booktitle) return value.booktitle;
           return value.source;
         } catch (error) {
@@ -744,15 +760,6 @@
       isSelectedPageSize(model) {
         return model == this.pagesize;
       },
-      getString(string) {
-        const lg = this.language;
-        if (!messages[string]) {
-          console.warn(`Missing translation key: ${string}`);
-          return string;
-        }
-        let constant = messages[string][lg];
-        return constant != undefined ? constant : messages[string]["dk"];
-      },
       getTranslation(value) {
         const lg = this.language;
         let constant = value.translations[lg];
@@ -773,25 +780,40 @@
           delete this.articles[article.pmid];
         }
 
-        this.$set(this.articles, article.pmid, article);
+        this.articles[article.pmid] = article;
       },
       getSelectedArticles() {
-        var resultEntries = this.$refs.resultEntries;
         var selectedArticles = [];
-        var entriesForSummary =
-          this.selectedEntries.length > 0
-            ? this.selectedEntries
-            : resultEntries
-                .filter((e) => e.hasAbstract)
-                .slice(0, 5)
-                .map((e) => {
-                  return {
-                    uid: e.id,
-                  };
-                });
+        var entriesForSummary;
+
+        if (this.selectedEntries.length > 0) {
+          entriesForSummary = this.selectedEntries;
+        } else {
+          // Use all loaded results (not just rendered ones) to support counts > pagesize
+          entriesForSummary = this.firstFiveArticlesWithAbstracts.map((r) => ({
+            uid: r.uid,
+          }));
+        }
+
         for (let i = 0; i < entriesForSummary.length; i++) {
           let selected = entriesForSummary[i];
-          selectedArticles[i] = this.articles[selected.uid];
+          if (this.articles[selected.uid]) {
+            selectedArticles.push(this.articles[selected.uid]);
+          } else {
+            // Build article object from results data for non-rendered articles
+            const result = this.results?.find((r) => r.uid === selected.uid);
+            if (result) {
+              const abstract = this.getAbstract(selected.uid);
+              selectedArticles.push({
+                pmid: result.uid,
+                title: result.title || "",
+                abstract: abstract || "",
+                authors: result.authors || [],
+                source: result.source || result.fulljournalname || "",
+                pubdate: result.pubdate || "",
+              });
+            }
+          }
         }
         return selectedArticles;
       },
@@ -852,7 +874,7 @@
       },
       onAbstractLoad(id, abstract) {
         this.isAbstractLoaded = true;
-        Vue.set(this.abstractRecords, id, abstract);
+        this.abstractRecords[id] = abstract;
       },
       onAiSummariesClickRetry() {
         this.$el.parentElement
@@ -875,13 +897,17 @@
           articlesAccordion != null &&
           !articlesAccordion.expanded
         ) {
-          articlesAccordion.$once("afterOpen", function () {
-            $el.scrollIntoView({
-              block: "start",
-              behavior: "smooth",
-            });
-          });
+          this._pendingScrollTarget = $el;
           this.onAiSummariesAccordionStateChange(true);
+        }
+      },
+      handleArticlesAccordionAfterOpen() {
+        if (this._pendingScrollTarget) {
+          this._pendingScrollTarget.scrollIntoView({
+            block: "start",
+            behavior: "smooth",
+          });
+          this._pendingScrollTarget = null;
         }
       },
       onArticleAccordionStateChange(expanded) {
@@ -901,6 +927,51 @@
           window._altmetric_embed_init(articleBody);
         }
       },
+      /**
+       * Loads abstracts for articles in firstFiveArticlesWithAbstracts
+       * that haven't been fetched yet (e.g., beyond the current page).
+       */
+      async loadMissingAbstracts() {
+        const missingIds = this.firstFiveArticlesWithAbstracts
+          .filter((r) => !this.abstractRecords[r.uid])
+          .map((r) => r.uid);
+
+        if (missingIds.length === 0) return;
+
+        const nlm = this.appSettings.nlm;
+        const baseurl = `${nlm.proxyUrl}/efetch?db=pubmed&retmode=xml&id=`;
+        const url = baseurl + missingIds.join(",");
+
+        try {
+          const resp = await axios.get(url, { timeout: 30000 });
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(resp.data, "text/xml");
+          if (xmlDoc.getElementsByTagName("parsererror").length > 0) {
+            console.warn("loadMissingAbstracts: invalid XML response");
+            return;
+          }
+          const articles = Array.from(xmlDoc.getElementsByTagName("PubmedArticle"));
+
+          for (const article of articles) {
+            const pmidEl = article.getElementsByTagName("PMID")[0];
+            if (!pmidEl) continue;
+            const pmid = pmidEl.textContent;
+            const sections = article.getElementsByTagName("AbstractText");
+            if (sections.length === 1) {
+              this.abstractRecords[pmid] = sections[0].textContent;
+            } else if (sections.length > 1) {
+              const text = {};
+              for (let i = 0; i < sections.length; i++) {
+                const label = sections[i].getAttribute("Label");
+                text[label] = sections[i].textContent;
+              }
+              this.abstractRecords[pmid] = text;
+            }
+          }
+        } catch (error) {
+          console.warn("loadMissingAbstracts failed:", error.message);
+        }
+      },
       shouldResultArticlePreloadAbstract(article) {
         const isInFirstFive = this.firstFiveArticlesWithAbstracts.some(function (value) {
           return value.uid == article.uid;
@@ -909,7 +980,8 @@
       },
       async addIdToLoadAbstract(id) {
         this.idswithAbstractsToLoad.push(id);
-        if (this.results[this.results.length - 1].uid == id) {
+        const lastResult = this.results.length > 0 ? this.results[this.results.length - 1] : null;
+        if (lastResult?.uid == id) {
           await this.loadAbstracts();
         }
       },
@@ -967,9 +1039,14 @@
               xmlDoc.loadXML(data);
             }
 
+            if (xmlDoc.getElementsByTagName("parsererror").length > 0) {
+              return [];
+            }
             let articles = Array.from(xmlDoc.getElementsByTagName("PubmedArticle"));
             let articleData = articles.map((article) => {
-              let pmid = article.getElementsByTagName("PMID")[0].textContent;
+              const pmidEl = article.getElementsByTagName("PMID")[0];
+              if (!pmidEl) return null;
+              let pmid = pmidEl.textContent;
               let sections = article.getElementsByTagName("AbstractText");
               if (sections.length == 1) {
                 let abstractText = sections[0].textContent;
@@ -983,7 +1060,7 @@
                 }
                 return [pmid, text];
               }
-            });
+            }).filter(Boolean);
 
             return articleData;
           })
@@ -992,6 +1069,7 @@
           });
 
         loadData.then((v) => {
+          if (!Array.isArray(v)) return;
           for (let item of v) {
             this.onAbstractLoad(item[0], item[1]);
           }

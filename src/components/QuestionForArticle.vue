@@ -60,9 +60,8 @@
         v-model="userQuestionInput"
         v-tooltip="{
           content: getString('userQuestionInputHoverText'),
-          offset: 5,
+          distance: 5,
           delay: $helpTextDelay,
-          hideOnTargetClick: false,
         }"
         class="qpm_question-input"
         :disabled="isLoadingResponse || isLoadingCurrent"
@@ -92,8 +91,8 @@
   import {
     summarizeArticlePrompt,
     promptText,
-  } from "@/assets/content/qpm-open-ai-article-prompts.js";
-  import { sanitizePrompt } from "@/utils/qpm-open-ai-prompts-helpers.js";
+  } from "@/assets/content/qpm-prompts-article.js";
+  import { sanitizePrompt } from "@/utils/qpm-prompts-helpers.js";
 
   import { utilitiesMixin } from "@/mixins/utilities";
   import { appSettingsMixin } from "@/mixins/appSettings";
@@ -198,8 +197,6 @@
 
         try {
           const composedPrompt = this.getComposablePrompt(this.language, this.promptLanguageType);
-          console.log("We got the composed prompt: ", composedPrompt);
-          console.log("Composed prompt: ", composedPrompt);
           // Call Azure Function directly for article summarization
           const openAiServiceUrl = this.pdfUrl
             ? `${this.appSettings.openAi.azureFunctionUrl}/api/SummarizePDFArticle`
@@ -229,7 +226,6 @@
           }
 
           const updatedQAs = [...this.persistedQuestionsAndAnswers];
-          console.log("Updated QAs: ", updatedQAs);
           updatedQAs[index].answer = fetchedAnswer || this.getString("userQuestionsNoAnswer");
 
           // Emit the updated Q&A to the parent
@@ -238,7 +234,6 @@
             questionsAndAnswers: updatedQAs,
           });
         } catch (error) {
-          console.log("Error: ", error);
           this.errorMessage = "Failed to process the new question.";
           const updatedQAs = [...this.persistedQuestionsAndAnswers];
           updatedQAs[index].answer = "Failed to fetch answer.";

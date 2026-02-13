@@ -44,11 +44,11 @@
       :loading="false"
       :searchable="true"
       @tag="handleAddTag"
-      @input="input"
+      @update:modelValue="input"
       @close="close"
       @open="open"
     >
-      <template slot="tag" slot-scope="triple">
+      <template #tag="triple">
         <dropdown-tag
           :triple="triple"
           :custom-name-label="customNameLabel"
@@ -67,7 +67,7 @@
         />
       </template>
 
-      <template slot="option" slot-scope="props">
+      <template #option="props">
         <span
           v-if="!props.option.$groupLabel"
           :data-name="getHeader(props.option.name)"
@@ -76,18 +76,14 @@
           :maintopic="props.option.maintopic"
           :parent-id="props.option.maintopicIdLevel1"
           :grand-parent-id="props.option.maintopicIdLevel2"
+          :parent-chain="props.option.parentChain ? props.option.parentChain.join(',') : ''"
           :subtopiclevel="props.option.subtopiclevel"
         />
 
         <span
-          v-if="
-            props.option.maintopic ||
-            (props.option.maintopic && props.option.subtopiclevel !== null)
-          "
-          :class="{
-            qpm_maintopicDropdown: props.option.maintopic === true,
-            qpm_subtopicDropdown: props.option.subtopiclevel === 1,
-          }"
+          v-if="props.option.maintopic"
+          class="qpm_maintopicDropdown"
+          :style="{ marginLeft: ((props.option.subtopiclevel || 0) * 25) + 'px' }"
         >
           <i v-if="maintopicToggledMap[props.option.id]" class="bx bx-chevron-down" />
           <i v-else class="bx bx-chevron-right" />
@@ -98,11 +94,9 @@
           :class="{
             qpm_hidden: !isContainedInList(props),
             qpm_shown: props.option.$groupLabel,
-            qpm_maintopicDropdown: props.option.maintopic === true,
-            qpm_subtopicDropdown: props.option.subtopiclevel === 1,
-            qpm_subtopicDropdownLevel2: props.option.subtopiclevel === 2,
             [props.option.class]: props.option.class !== undefined,
           }"
+          :style="{ marginLeft: ((props.option.subtopiclevel || 0) * 25) + 'px' }"
         >
           &#10003;
         </span>
@@ -139,9 +133,8 @@
           v-if="props.option.tooltip && props.option.tooltip[language]"
           v-tooltip.right="{
             content: props.option.tooltip && props.option.tooltip[language],
-            offset: 5,
+            distance: 5,
             delay: $helpTextDelay,
-            hideOnTargetClick: false,
           }"
           class="bx bx-info-circle qpm_entryName"
           style="cursor: help; font-weight: 200; margin-left: -5px"
@@ -166,9 +159,8 @@
             v-if="hasScopeContent(props.option, 'narrow')"
             v-tooltip="{
               content: getString('tooltipNarrow'),
-              offset: 5,
+              distance: 5,
               delay: $helpTextDelay,
-              hideOnTargetClick: false,
             }"
             class="qpm_button qpm_scopeButton"
             :class="getButtonColor(props, 'narrow', 0)"
@@ -182,9 +174,8 @@
             v-if="hasScopeContent(props.option, 'normal')"
             v-tooltip="{
               content: getString('tooltipNormal'),
-              offset: 5,
+              distance: 5,
               delay: $helpTextDelay,
-              hideOnTargetClick: false,
             }"
             class="qpm_button qpm_scopeButton"
             :class="getButtonColor(props, 'normal', 1)"
@@ -198,9 +189,8 @@
             v-if="hasScopeContent(props.option, 'broad')"
             v-tooltip="{
               content: getString('tooltipBroad'),
-              offset: 5,
+              distance: 5,
               delay: $helpTextDelay,
-              hideOnTargetClick: false,
             }"
             class="qpm_button qpm_scopeButton"
             :class="getButtonColor(props, 'broad', 2)"
@@ -212,9 +202,9 @@
         </div>
       </template>
 
-      <span slot="noResult">
-        {{ shouldHideDropdownArrow ? '' : getNoResultString }}
-      </span>
+      <template #noResult>
+        <span>{{ shouldHideDropdownArrow ? '' : getNoResultString }}</span>
+      </template>
     </multiselect>
     
     <!-- Custom LoadingSpinner to replace vue-multiselect's spinner -->
@@ -232,12 +222,14 @@
   import Multiselect from "vue-multiselect";
   import DropdownTag from "@/components/DropdownTag.vue";
   import { appSettingsMixin } from "@/mixins/appSettings.js";
+  import { utilitiesMixin } from "@/mixins/utilities";
   import { topicLoaderMixin } from "@/mixins/topicLoaderMixin.js";
   import { filtrer } from "@/assets/content/qpm-content-filters.js";
   import { messages } from "@/assets/content/qpm-translations.js";
-  import { searchTranslationPrompt } from "@/assets/content/qpm-open-ai-translation-prompts.js";
-  import { getPromptForLocale } from "@/utils/qpm-open-ai-prompts-helpers.js";
+  import { searchTranslationPrompt } from "@/assets/content/qpm-prompts-translation.js";
+  import { getPromptForLocale } from "@/utils/qpm-prompts-helpers.js";
   import { customInputTagTooltip } from "@/utils/qpm-content-helpers.js";
+  import { validateAndEnhanceMeshTerms } from "@/utils/mesh-validator.js";
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
 
   export default {
@@ -247,7 +239,11 @@
       DropdownTag,
       LoadingSpinner,
     },
-    mixins: [appSettingsMixin, topicLoaderMixin],
+    mixins: [appSettingsMixin, topicLoaderMixin, utilitiesMixin],
+    inject: {
+      instanceUseMeshValidation: { default: false },
+    },
+    emits: ["input", "updateScope", "mounted", "translating", "searchchange"],
     props: {
       isMultiple: Boolean,
       isGroup: Boolean,
@@ -283,6 +279,10 @@
       hideTopics: {
         type: Array,
         default: () => []
+      },
+      isFilterDropdown: {
+        type: Boolean,
+        default: false,
       },
       noResultString: {
         type: String,
@@ -356,11 +356,14 @@
           if (this.hideTopics.includes(item.id)) {
             return true;
           }
-          // Check parent ID match (for nested items)
+          // Check any ancestor ID match (supports unlimited nesting via parentChain)
+          if (item.parentChain && item.parentChain.some((id) => this.hideTopics.includes(id))) {
+            return true;
+          }
+          // Fallback for legacy flat format without parentChain
           if (item.maintopicIdLevel1 && this.hideTopics.includes(item.maintopicIdLevel1)) {
             return true;
           }
-          // Check grandparent ID match (for deeply nested items)
           if (item.maintopicIdLevel2 && this.hideTopics.includes(item.maintopicIdLevel2)) {
             return true;
           }
@@ -564,6 +567,26 @@
     mounted: function () {
       this.initialSetup();
 
+      // Monkey-patch vue-multiselect's pointerAdjust to prevent $isLabel crash
+      // when pointer is out of bounds after search filtering reduces filteredOptions
+      if (this.$refs.multiselect) {
+        const ms = this.$refs.multiselect;
+        const originalPointerAdjust = ms.pointerAdjust.bind(ms);
+        ms.pointerAdjust = () => {
+          const opts = ms.filteredOptions;
+          if (opts && ms.pointer >= opts.length) {
+            ms.pointer = Math.max(0, opts.length - 1);
+          }
+          if (ms.pointer < 0 && opts && opts.length > 0) {
+            ms.pointer = 0;
+          }
+          // Only call original if pointer is in bounds and element exists
+          if (opts && opts.length > 0 && opts[ms.pointer]) {
+            originalPointerAdjust();
+          }
+        };
+      }
+
       if (Array.isArray(this.data)) {
         this.data.forEach((group) => {
           if (group.groups && Array.isArray(group.groups)) {
@@ -638,7 +661,7 @@
         }
       });
     },
-    beforeDestroy() {
+    beforeUnmount() {
       this.isUserTyping = false;
       document.removeEventListener("mousedown", this.setMouseUsed);
       document.removeEventListener("keydown", this.resetMouseUsed);
@@ -719,16 +742,10 @@
         return this.countValidScopes(option) >= 2;
       },
       onSelectedChange(newValue, oldValue) {
-        console.log('onSelectedChange called', {
-          oldLength: oldValue.length,
-          newLength: newValue.length
-        });
-        
         if (oldValue.length > newValue.length) {
           // Find the tag that was removed
           const removedTag = oldValue.find((tag) => !newValue.includes(tag));
           if (removedTag) {
-            console.log('Tag removed:', removedTag.name);
             removedTag.scope = "normal";
             // Emit updateScope asynchronously to avoid blocking UI
             this.$nextTick(() => {
@@ -749,7 +766,6 @@
           this.showOrHideElements();
         }
         
-        console.log('onSelectedChange finished');
       },
       /**
        * Sets the flag indicating the last interaction was via mouse.
@@ -826,8 +842,8 @@
         });
 
         // Stop selecting group when pressing enter during search
-        element.removeEventListener("keypress", self.handleStopEnterOnGroups, true);
-        element.addEventListener("keypress", self.handleStopEnterOnGroups, true);
+        element.removeEventListener("keydown", self.handleStopEnterOnGroups, true);
+        element.addEventListener("keydown", self.handleStopEnterOnGroups, true);
 
         if (input) {
           input.removeEventListener("keyup", this.handleSearchInput);
@@ -858,7 +874,11 @@
         }
       },
       input(value) {
-        if (!value || value.length === 0) {
+        // Ensure value is always an array (vue-multiselect may emit non-array during search)
+        if (!Array.isArray(value)) {
+          value = value ? [value] : [];
+        }
+        if (value.length === 0) {
           this.clearShownItems();
           this.$emit("input", value, this.index);
           return;
@@ -986,82 +1006,74 @@
        * Adds or removes tag either by clicking on "x" or clicking already selected item in dropdown
        * Updated 04/11/2024 handles hidding or showing elements based on the maintopicToggledMap (handles state for the chevron that a maintopic has)
        */
+      /**
+       * Checks if ALL ancestors of an entry are expanded (toggled open).
+       * Uses parentChain if available (unlimited depth), falls back to parent-id/grand-parent-id.
+       */
+      areAllAncestorsExpanded(entry) {
+        const chain = entry.getAttribute("parent-chain");
+        if (chain) {
+          return chain.split(',').filter(Boolean).every((id) => this.maintopicToggledMap[id]);
+        }
+        // Fallback for legacy items without parentChain
+        const parentId = entry.getAttribute("parent-id");
+        const grandParentId = entry.getAttribute("grand-parent-id");
+        return (!parentId || this.maintopicToggledMap[parentId]) &&
+               (!grandParentId || this.maintopicToggledMap[grandParentId]);
+      },
+      /**
+       * Returner indeks i filteredOptions for de synlige rækker i afgrænsningsdropdown (rækker uden qpm_shown).
+       */
+      getFilterVisibleIndices() {
+        const element = this.$refs.selectWrapper;
+        if (!element) return [];
+        const listItems = element.querySelectorAll("li.multiselect__element");
+        const visible = [];
+        for (let i = 0; i < listItems.length; i++) {
+          if (!listItems[i].classList.contains("qpm_shown")) {
+            visible.push(i);
+          }
+        }
+        return visible;
+      },
       showOrHideElements() {
         const element = this.$refs.selectWrapper;
         if (!element) return; // Safety check
         
         if (!this.isGroup) {
-          // Here we are dealing with filters so we omit the check on groupname
           const entries = element.querySelectorAll("[data-name]");
-          // Use requestAnimationFrame for better performance with many elements
-          if (entries.length > 50) {
-            requestAnimationFrame(() => {
-              entries.forEach((entry) => {
-                const parent = entry.parentNode.parentNode;
-                const parentId = entry.getAttribute("parent-id");
-                const grandParentId = entry.getAttribute("grand-parent-id");
-
-                // Element should be hidden if its parent or grandparent is collapsed
-                // Treat undefined as false (collapsed) since maintopics start collapsed until clicked
-                const shouldShow =
-                  (!parentId || this.maintopicToggledMap[parentId]) &&
-                  (!grandParentId || this.maintopicToggledMap[grandParentId]);
-
-                parent.classList.toggle("qpm_shown", !shouldShow);
-              });
-            });
-          } else {
+          const process = () => {
             entries.forEach((entry) => {
               const parent = entry.parentNode.parentNode;
-              const parentId = entry.getAttribute("parent-id");
-              const grandParentId = entry.getAttribute("grand-parent-id");
-
-              // Element should be hidden if its parent or grandparent is collapsed
-              // Treat undefined as false (collapsed) since maintopics start collapsed until clicked
-              const shouldShow =
-                (!parentId || this.maintopicToggledMap[parentId]) &&
-                (!grandParentId || this.maintopicToggledMap[grandParentId]);
-
+              const shouldShow = this.areAllAncestorsExpanded(entry);
               parent.classList.toggle("qpm_shown", !shouldShow);
             });
+          };
+          if (entries.length > 50) {
+            requestAnimationFrame(process);
+          } else {
+            process();
           }
           return;
         }
 
         const entries = element.querySelectorAll("[data-name]");
-        // Use requestAnimationFrame for better performance with many elements
-        if (entries.length > 50) {
-          requestAnimationFrame(() => {
-            entries.forEach((entry) => {
-              const groupName = entry.getAttribute("data-name");
-              const parent = entry.parentNode.parentNode;
-
-              const parentId = entry.getAttribute("parent-id");
-              const grandParentId = entry.getAttribute("grand-parent-id");
-
-              const shouldShow =
-                this.expandedOptionGroupName !== groupName ||
-                (parentId && !this.maintopicToggledMap[parentId]) ||
-                (grandParentId && !this.maintopicToggledMap[grandParentId]);
-
-              parent.classList.toggle("qpm_shown", shouldShow);
-            });
-          });
-        } else {
+        const processGroup = () => {
           entries.forEach((entry) => {
             const groupName = entry.getAttribute("data-name");
             const parent = entry.parentNode.parentNode;
 
-            const parentId = entry.getAttribute("parent-id");
-            const grandParentId = entry.getAttribute("grand-parent-id");
-
             const shouldShow =
               this.expandedOptionGroupName !== groupName ||
-              (parentId && !this.maintopicToggledMap[parentId]) ||
-              (grandParentId && !this.maintopicToggledMap[grandParentId]);
+              !this.areAllAncestorsExpanded(entry);
 
             parent.classList.toggle("qpm_shown", shouldShow);
           });
+        };
+        if (entries.length > 50) {
+          requestAnimationFrame(processGroup);
+        } else {
+          processGroup();
         }
       },
       /**
@@ -1071,38 +1083,44 @@
        * @param {Array} optionsInOptionGroup - The list of options in the group.
        */
       updateOptionGroupVisibility(selectedOptionIds, optionsInOptionGroup) {
-        this.showOrHideElements();
-        this.updateExpandedGroupHighlighting();
-
         // Sets to keep track of depths and parent IDs
-        const selectedDepths = new Set(); // Contains the depth levels that have a selected option
-        const parentIdsToShow = new Set();
-        const grandParentIdsToShow = new Set();
+        const selectedDepths = new Set();
+        const ancestorIdsToShow = new Set();
 
         const optionsInGroupIds = new Set(optionsInOptionGroup.map((option) => option.id));
 
+        // First, expand all ancestors in maintopicToggledMap
         selectedOptionIds.forEach((id) => {
-          // Check if the selected option is in the optiongroup
           const option = optionsInOptionGroup.find((option) => option.id === id);
           if (option) {
             selectedDepths.add(option.depth);
-            if (option.parentId) {
-              parentIdsToShow.add(option.parentId);
-              // Expand the parent maintopic
-              this.maintopicToggledMap[option.parentId] = true;
-            }
-            if (option.grandParentId) {
-              // Expand the grandparent maintopic
-              grandParentIdsToShow.add(option.grandParentId);
-              this.maintopicToggledMap[option.grandParentId] = true;
+            // Expand ALL ancestors (supports unlimited nesting)
+            if (option.parentChain && option.parentChain.length > 0) {
+              option.parentChain.forEach((ancestorId) => {
+                ancestorIdsToShow.add(ancestorId);
+                this.maintopicToggledMap[ancestorId] = true;
+              });
+            } else {
+              // Fallback for items without parentChain
+              if (option.parentId) {
+                ancestorIdsToShow.add(option.parentId);
+                this.maintopicToggledMap[option.parentId] = true;
+              }
+              if (option.grandParentId) {
+                ancestorIdsToShow.add(option.grandParentId);
+                this.maintopicToggledMap[option.grandParentId] = true;
+              }
             }
           }
         });
 
+        // Then show/hide based on the UPDATED maintopicToggledMap
+        this.showOrHideElements();
+        this.updateExpandedGroupHighlighting();
+
         this.showElementsByOptionIds(selectedOptionIds, optionsInGroupIds);
         this.showElementsByDepths(selectedDepths, optionsInGroupIds);
-        this.showElementsByOptionIds(Array.from(parentIdsToShow), optionsInGroupIds);
-        this.showElementsByOptionIds(Array.from(grandParentIdsToShow), optionsInGroupIds);
+        this.showElementsByOptionIds(Array.from(ancestorIdsToShow), optionsInGroupIds);
       },
       /**
        * Utility method to show elements by option IDs
@@ -1149,38 +1167,23 @@
        */
       getOptionsFromOptionsGroupName(groupName) {
         const result = [];
-        if (this.isGroup) {
-          this.topics.forEach((topic) => {
-            if (topic.groupname === groupName) {
-              topic.groups.forEach((group) => {
-                result.push({
-                  id: group.id,
-                  name: group.name,
-                  isBranch: group.maintopic || null,
-                  depth: group.subtopiclevel || 0, // is a base topic if 0
-                  parentId: group.maintopicIdLevel1 || null,
-                  grandParentId: group.maintopicIdLevel2 || null,
-                });
+        const groupProp = this.isGroup ? "groups" : "choices";
+        this.data.forEach((item) => {
+          if (item.groupname === groupName || item.name === groupName || item.id === groupName) {
+            const items = item[groupProp] || item.groups || item.choices || [];
+            items.forEach((entry) => {
+              result.push({
+                id: entry.id,
+                name: entry.name,
+                isBranch: entry.maintopic || null,
+                depth: entry.subtopiclevel || 0,
+                parentId: entry.maintopicIdLevel1 || null,
+                grandParentId: entry.maintopicIdLevel2 || null,
+                parentChain: entry.parentChain || [],
               });
-            }
-          });
-        } else {
-          // For the filters the naming is different so we need to handle it differently
-          filtrer.forEach((filter) => {
-            if (filter.name === groupName) {
-              filter.choices.forEach((choice) => {
-                result.push({
-                  id: choice.id,
-                  name: choice.name,
-                  isBranch: choice.maintopic || null,
-                  depth: choice.subtopiclevel || 0, // is a base topic if 0
-                  parentId: choice.maintopicIdLevel1 || null,
-                  grandParentId: choice.maintopicIdLevel2 || null,
-                });
-              });
-            }
-          });
-        }
+            });
+          }
+        });
         return result;
       },
       /**
@@ -1189,29 +1192,18 @@
        * @param {Boolean} isFilter Whether the maintopic is a filter or not
        * @returns list of children options
        */
-      getMaintopicChildren(maintopicId, isFilter = false) {
+      getMaintopicChildren(maintopicId) {
         const children = [];
+        const isDescendant = (item) =>
+          (item.parentChain && item.parentChain.includes(maintopicId)) ||
+          item.maintopicIdLevel1 === maintopicId ||
+          item.maintopicIdLevel2 === maintopicId;
 
-        if (isFilter) {
-          filtrer.forEach((filter) => {
-            filter.choices.forEach((choice) => {
-              if (
-                choice.maintopicIdLevel1 === maintopicId ||
-                choice.maintopicIdLevel2 === maintopicId
-              ) {
-                children.push(choice);
-              }
-            });
-          });
-          return children;
-        }
-        this.topics.forEach((topic) => {
-          topic.groups.forEach((group) => {
-            if (
-              group.maintopicIdLevel1 === maintopicId ||
-              group.maintopicIdLevel2 === maintopicId
-            ) {
-              children.push(group);
+        this.data.forEach((container) => {
+          const items = container.groups || container.choices || [];
+          items.forEach((entry) => {
+            if (isDescendant(entry)) {
+              children.push(entry);
             }
           });
         });
@@ -1225,52 +1217,29 @@
        * @param depth {Number} - The depth level to retrieve options from
        * @param isFilter {Boolean} - Whether the options are filters or not
        */
-      getSiblings(optionGroupId, baseTopic, depth, isFilter = false) {
+      getSiblings(optionGroupId, baseTopic, depth) {
         const siblings = [];
 
-        if (isFilter) {
-          let _filtrer;
-          if (optionGroupId !== null) {
-            _filtrer = filtrer.filter((filter) => filter.id === optionGroupId);
-          }
-          _filtrer.forEach((filter) => {
-            filter.choices.forEach((choice) => {
-              if (choice.subtopiclevel === depth) {
-                siblings.push(choice);
-              }
-            });
-          });
-
-          // Case: the topic is baseTopic since it's at depth zero
-          if (baseTopic && depth === 0) {
-            _filtrer.forEach((filter) => {
-              filter.choices.forEach((choice) => {
-                if (!choice.maintopic) siblings.push(choice);
-              });
-            });
-          }
-          return siblings;
-        }
-
-        let _topics;
+        let matched = [];
         if (optionGroupId !== null) {
-          _topics = this.topics.filter((filter) => filter.id === optionGroupId);
+          matched = this.data.filter((item) => item.id === optionGroupId);
         }
 
-        // Case: the topic is not baseTopic since it's at a depth greater than zero
-        _topics.forEach((topic) => {
-          topic.groups.forEach((group) => {
-            if (group.subtopiclevel === depth) {
-              siblings.push(group);
+        matched.forEach((container) => {
+          const items = container.groups || container.choices || [];
+          items.forEach((entry) => {
+            if (entry.subtopiclevel === depth) {
+              siblings.push(entry);
             }
           });
         });
 
         // Case: the topic is baseTopic since it's at depth zero
         if (baseTopic && depth === 0) {
-          _topics.forEach((topic) => {
-            topic.groups.forEach((group) => {
-              if (!group.maintopic) siblings.push(group);
+          matched.forEach((container) => {
+            const items = container.groups || container.choices || [];
+            items.forEach((entry) => {
+              if (!entry.maintopic) siblings.push(entry);
             });
           });
         }
@@ -1295,9 +1264,8 @@
         optionGroupId = null,
         includeChildren = false,
         baseTopic = false,
-        isFilter = false
       ) {
-        let siblings = this.getSiblings(optionGroupId, baseTopic, depth, isFilter);
+        let siblings = this.getSiblings(optionGroupId, baseTopic, depth);
 
         // Case: Include children where a maintopic is toggled
         if (includeChildren) {
@@ -1307,7 +1275,7 @@
             if (option.maintopic) {
               const isMaintopicToggled = this.maintopicToggledMap[option.id];
               if (!isMaintopicToggled) {
-                const children = this.getMaintopicChildren(option.id, isFilter);
+                const children = this.getMaintopicChildren(option.id);
                 childrenOptions.push(...children);
               }
             }
@@ -1325,30 +1293,17 @@
        * @param optionGroupId {String} - The Id (eg. S00) of the optiongroup to get maintopics for
        * @param filter {Boolean} - Whether the options are filters or not
        */
-      getMaintopics(optionGroupId, filter = false) {
+      getMaintopics(optionGroupId) {
         let maintopics = [];
-        if (filter) {
-          const _filtrer = filtrer.find((filter) => filter.id === optionGroupId);
-
-          if (_filtrer && _filtrer.choices) {
-          _filtrer.choices.forEach((group) => {
-            if (group.maintopic) {
-              maintopics.push(group);
+        const container = this.data.find((item) => item.id === optionGroupId);
+        if (container) {
+          const items = container.groups || container.choices || [];
+          items.forEach((entry) => {
+            if (entry.maintopic) {
+              maintopics.push(entry);
             }
           });
-          }
-          return maintopics;
         }
-        const _topics = this.topics.find((topic) => topic.id === optionGroupId);
-
-        if (_topics && _topics.groups) {
-        _topics.groups.forEach((group) => {
-          if (group.maintopic) {
-            maintopics.push(group);
-          }
-        });
-        }
-
         return maintopics;
       },
 
@@ -1359,9 +1314,9 @@
        * @param {Boolean} getToggled - Whether to return the toggled or not toggled maintopics
        * @param {Boolean} isFilter - Whether the options are filters or not
        */
-      areMaintopicsToggled(optionGroupId, getToggled = true, isFilter = false) {
+      areMaintopicsToggled(optionGroupId, getToggled = true) {
         // find the optiongroup
-        const maintopics = this.getMaintopics(optionGroupId, isFilter);
+        const maintopics = this.getMaintopics(optionGroupId);
 
         let allToggled = true;
         // check if all maintopics are toggled
@@ -1421,7 +1376,8 @@
             const selectedOptions = this.getSelectedOptionsByOptionGroupId(optionGroupId);
 
             const selectedOptionIds = selectedOptions.map((o) => o.id);
-            const optionsInOptionGroup = this.getOptionsFromOptionsGroupName(optionGroupName);
+            // Use the ID-based lookup (groupname matches the raw ID, not the display name)
+            const optionsInOptionGroup = this.getOptionsFromOptionsGroupName(optionGroupId || optionGroupName);
 
             if (selectedOptionIds.length <= 0) {
               this.showOrHideElements();
@@ -1429,6 +1385,10 @@
             } else {
               // Only show the tags in the clicked group
               this.updateOptionGroupVisibility(selectedOptionIds, optionsInOptionGroup);
+              // Ensure visibility is refreshed after DOM update
+              this.$nextTick(() => {
+                this.showOrHideElements();
+              });
             }
           }
         } else {
@@ -1450,7 +1410,8 @@
         const selectedOptions = this.getSelectedOptionsByOptionGroupId(optionGroupId);
 
         const selectedOptionIds = selectedOptions.map((o) => o.id);
-        const optionsInOptionGroup = this.getOptionsFromOptionsGroupName(optionGroupName);
+        // Use the ID-based lookup (groupname matches the raw ID, not the display name)
+        const optionsInOptionGroup = this.getOptionsFromOptionsGroupName(optionGroupId || optionGroupName);
 
         if (!optionGroupName && !optionGroupId) {
           const filterCategoryId = this.selected[0]?.id?.substring(0, 3);
@@ -1469,6 +1430,10 @@
         } else {
           // Only show the tags in the clicked group
           this.updateOptionGroupVisibility(selectedOptionIds, optionsInOptionGroup);
+          // Ensure visibility is refreshed after DOM update
+          this.$nextTick(() => {
+            this.showOrHideElements();
+          });
         }
 
         // New functionality: Highlight the clicked element in the dropdown
@@ -1502,11 +1467,6 @@
           if (matchingIndex !== -1) {
             // Set pointer to the matching element to highlight it
             this.$refs.multiselect.pointer = matchingIndex;
-            
-            // Scroll element into view
-            this.$nextTick(() => {
-              this.scrollToFocusedSubject();
-            });
           }
         });
       },
@@ -1573,28 +1533,89 @@
         }
       },
       handleStopEnterOnGroups(event) {
+        // Keep pointer in bounds when typing reduces filteredOptions
+        // (vue-multiselect's pointerAdjust crashes if pointer is out of bounds)
+        if (this.$refs.multiselect.isOpen) {
+          const ms = this.$refs.multiselect;
+          const opts = ms.filteredOptions;
+          if (opts && opts.length > 0) {
+            if (ms.pointer >= opts.length) {
+              ms.pointer = opts.length - 1;
+            }
+            if (ms.pointer < 0) {
+              ms.pointer = 0;
+            }
+          }
+        }
+
+        // Only handle Enter key beyond this point
+        if (event.key !== 'Enter') return;
+
+        // Når input har fokus og dropdown er lukket: Enter åbner dropdown
+        if (event.target.classList.contains("multiselect__input") && this.$refs.multiselect && !this.$refs.multiselect.isOpen) {
+          event.stopPropagation();
+          event.preventDefault();
+          if (this.isSilentFocus) {
+            this.removeSilentFocus(event.target);
+          }
+          this.$refs.multiselect.activate();
+          return;
+        }
+
         if (this.$refs.multiselect.pointer < 0) {
           // If there is no hovered element then highlight the first on as with old behavior
           // setting it to zero enabels the first element to be highlighted on enter after pasting text
           this.$refs.multiselect.pointer = 0;
         }
-        // If event is press by enter (charCode 13)
-        if (event.charCode == 13) {
+        // Handle Enter key
+        {
           if (event.target.classList.contains("multiselect__input")) {
             const element = this.$refs.selectWrapper;
             target = element.getElementsByClassName("multiselect__option--highlight")[0];
+
+            // Check if highlighted element is a maintopic (hovedkategori) – toggle åben/luk med Enter
+            if (target && target.querySelector('.qpm_maintopicDropdown')) {
+              event.stopPropagation();
+              event.preventDefault();
+              var dropdownRef = this.$refs.multiselect;
+              var option = dropdownRef.filteredOptions[dropdownRef.pointer];
+              if (option && option.maintopic) {
+                this.maintopicToggledMap = {
+                  ...this.maintopicToggledMap,
+                  [option.id]: !this.maintopicToggledMap[option.id],
+                };
+                this.showOrHideElements();
+              }
+              return;
+            }
+
             if (target == null || target.classList.contains("multiselect__option--group")) {
               event.stopPropagation();
+              event.preventDefault();
               if (target == null) return;
 
               var focusedGroup = target.querySelector(".qpm_groupLabel").textContent;
 
               if (focusedGroup === this.expandedOptionGroupName) {
+                this.hideItems(this.expandedOptionGroupName);
                 this.expandedOptionGroupName = "";
                 this.updateExpandedGroupHighlighting();
+                this.resetMaintopicToggledMap();
+                this.showOrHideElements();
               } else {
                 this.expandedOptionGroupName = focusedGroup;
-                this.updateExpandedGroupHighlighting();
+                this.resetMaintopicToggledMap();
+                const optionGroupId = this.getOptionGroupId(focusedGroup);
+                const selectedOptions = this.getSelectedOptionsByOptionGroupId(optionGroupId);
+                const selectedOptionIds = selectedOptions.map((o) => o.id);
+                const optionsInOptionGroup = this.getOptionsFromOptionsGroupName(optionGroupId || focusedGroup);
+                if (selectedOptionIds.length <= 0) {
+                  this.showOrHideElements();
+                  this.updateExpandedGroupHighlighting();
+                } else {
+                  this.updateOptionGroupVisibility(selectedOptionIds, optionsInOptionGroup);
+                  this.$nextTick(() => this.showOrHideElements());
+                }
               }
             } else if (!this.focusByHover && this.focusedButtonIndex >= 0) {
               var dropdownRef = this.$refs.multiselect;
@@ -1663,15 +1684,6 @@
         }
       },
       handleScopeButtonClick(item, state, event) {
-        console.log('handleScopeButtonClick called', {
-          itemName: item.name,
-          state: state,
-          currentScope: item.scope,
-          focusedButtonIndex: this.focusedButtonIndex,
-          focusByHover: this.focusByHover,
-          selectedLength: this.selected.length
-        });
-
         this.$emit("updateScope", item, state, this.index);
         item.scope = state;
 
@@ -1686,20 +1698,17 @@
 
         //Check if just added
         if (this.tempList.indexOf(item) >= 0) {
-          console.log('Item was just added to tempList');
           event.stopPropagation();
           return;
         }
         //Check if added previously
         for (let i = 0; i < this.selected.length; i++) {
           if (this.selected[i].name == item.name) {
-            console.log('Item was already in selected list');
             event.stopPropagation();
             return;
           }
         }
         
-        console.log('Item not found in selected or tempList - will be added');
       },
       handleOnButtonMouseover(index, event) {
         // Prevent mouse from focusing new subject. Used for auto scroll.
@@ -1716,13 +1725,26 @@
         var tag;
         if (this.searchWithAI) {
           this.isLoading = true;
-          this.$emit("translating", true, this.index);
+          this.$emit("translating", true, this.index, "translatingStepSearchString");
 
           // close the multiselect dropdown
           this.$refs.multiselect.deactivate();
           //setTimeout is to resolve the tag placeholder before starting to translate
           await new Promise((resolve) => setTimeout(resolve, 10));
           let translated = await this.translateSearch(newTag);
+          // Validate and enhance MeSH terms via NLM E-utilities if enabled
+          if (this.instanceUseMeshValidation) {
+            this.$emit("translating", true, this.index, "translatingStepMesh");
+            translated = await validateAndEnhanceMeshTerms(
+              translated,
+              newTag,
+              this.appSettings.nlm.proxyUrl,
+              this.appSettings.openAi.baseUrl,
+              this.appSettings.client,
+              this.language,
+              (stepKey) => this.$emit("translating", true, this.index, stepKey),
+            );
+          }
           tag = {
             name: translated,
             searchStrings: { normal: [translated] },
@@ -1847,6 +1869,25 @@
           return;
         }
 
+        // Afgrænsningsdropdown: kun ét synligt punkt ned (spring skjulte rækker over)
+        if (this.isFilterDropdown) {
+          const visible = this.getFilterVisibleIndices();
+          let idx = visible.indexOf(dropdownRef.pointer);
+          if (idx === -1) {
+            const nextDown = visible.filter((v) => v > dropdownRef.pointer);
+            dropdownRef.pointer = nextDown.length ? nextDown[0] : dropdownRef.pointer;
+          } else if (idx < visible.length - 1) {
+            dropdownRef.pointer = visible[idx + 1];
+          } else {
+            return;
+          }
+          var self = this;
+          this.$nextTick(function () {
+            self.scrollToFocusedSubject();
+          });
+          return;
+        }
+
         // No element selected, just select first
         if (dropdownRef.pointer < 0) {
           dropdownRef.pointer = 0;
@@ -1931,6 +1972,26 @@
           return;
         }
 
+        // Afgrænsningsdropdown: kun ét synligt punkt op (spring skjulte rækker over)
+        if (this.isFilterDropdown) {
+          const visible = this.getFilterVisibleIndices();
+          let idx = visible.indexOf(dropdownRef.pointer);
+          if (idx === -1) {
+            const nextUp = visible.filter((v) => v < dropdownRef.pointer);
+            dropdownRef.pointer = nextUp.length ? nextUp[nextUp.length - 1] : -1;
+          } else if (idx === 0) {
+            dropdownRef.pointer = -1;
+          } else {
+            dropdownRef.pointer = visible[idx - 1];
+          }
+          if (dropdownRef.pointer < 0) {
+            dropdownRef.$el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+          } else {
+            this.scrollToFocusedSubject();
+          }
+          return;
+        }
+
         var currentSubject = dropdownRef.filteredOptions[dropdownRef.pointer];
         
         // Check if we're navigating up from a collapsed maintopic's children (works for both topics and filters)
@@ -1977,10 +2038,22 @@
           }
         }
 
+        // Kun i emne-dropdown (ikke afgrænsninger): når vi står på første emne under en kategori, ét pil op = hop til forrige kategorieoverskrift
+        const itemDirectlyAbove = dropdownRef.filteredOptions[dropdownRef.pointer - 1];
+        if (!this.isFilterDropdown && currentSubject && !currentSubject.$groupLabel && itemDirectlyAbove && itemDirectlyAbove.$groupLabel) {
+          let i = dropdownRef.pointer - 2;
+          while (i >= 0 && !dropdownRef.filteredOptions[i].$groupLabel) i--;
+          if (i >= 0) {
+            dropdownRef.pointer = i;
+            this.scrollToFocusedSubject();
+            return;
+          }
+        }
+
         var isGroup = currentSubject["$groupLabel"] != null;
         var navDistance = 1;
 
-        // Logic for navigating over the topic groups
+        // Logic for navigating over the topic groups (emne-dropdown)
         if (!isGroup) {
           var currentSubjectOptionGroupId = currentSubject.id.substring(0, 3);
           const isFilter = currentSubjectOptionGroupId.startsWith("L");
@@ -2154,8 +2227,26 @@
             var groupAboveLabel = this.customGroupLabel(groupAbove);
 
             if (groupAboveLabel !== this.expandedOptionGroupName) {
-              var groupPropertyName = this.getGroupPropertyName(groupAbove);
-              navDistance = groupAbove[groupPropertyName].length + 1;
+              if (this.isFilterDropdown) {
+                // I afgrænsninger: brug faktisk position i listen, så udfoldede underkategorier (Geografi, Tilhørsforhold) springes korrekt over
+                const opts = dropdownRef.filteredOptions;
+                let prevGroupHeaderIndex = -1;
+                for (let i = dropdownRef.pointer - 1; i >= 0; i--) {
+                  if (opts[i] && opts[i].$groupLabel === groupAbove.id) {
+                    prevGroupHeaderIndex = i;
+                    break;
+                  }
+                }
+                if (prevGroupHeaderIndex >= 0) {
+                  navDistance = dropdownRef.pointer - prevGroupHeaderIndex;
+                } else {
+                  var groupPropertyName = this.getGroupPropertyName(groupAbove);
+                  navDistance = groupAbove[groupPropertyName].length + 1;
+                }
+              } else {
+                var groupPropertyName = this.getGroupPropertyName(groupAbove);
+                navDistance = groupAbove[groupPropertyName].length + 1;
+              }
             }
           }
         }
@@ -2286,8 +2377,13 @@
           });
 
           if (!response.ok) {
-            const data = await response.json();
-            throw Error(JSON.stringify(data));
+            let errorBody;
+            try {
+              errorBody = await response.json();
+            } catch {
+              errorBody = await response.text();
+            }
+            throw Error(typeof errorBody === "string" ? errorBody : JSON.stringify(errorBody));
           }
 
           const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
@@ -2323,9 +2419,14 @@
        * @returns {string|null} The ID of the group if found, otherwise null.
        */
       getOptionGroupId(groupname) {
-        for (const topic of this.topics) {
-          if (topic.groupname === groupname) {
-            return topic.id;
+        for (const item of this.data) {
+          // Match by raw groupname, display name, or group label
+          if (
+            item.groupname === groupname ||
+            this.customNameLabel(item) === groupname ||
+            this.customGroupLabel(item) === groupname
+          ) {
+            return item.groupname || item.id;
           }
         }
         return null;
@@ -2357,7 +2458,8 @@
           const groupName = this.getGroupName(item);
           if (!groupName) return false;
           return item[groupName].some((i) => {
-            const currentLabel = this.cleanLabel(i.translations[language]);
+            // Use customNameLabel for comparison to match the display label (including numbering)
+            const currentLabel = this.cleanLabel(this.customNameLabel(i));
             if (currentLabel === targetLabel) {
               name = this.customNameLabel(item);
               this.expandedOptionGroupName = name;
@@ -2424,15 +2526,6 @@
           }
         }
         return classes;
-      },
-      getString(string) {
-        const lg = this.language;
-        if (!messages[string]) {
-          console.warn(`Missing translation key: ${string}`);
-          return string;
-        }
-        let constant = messages[string][lg];
-        return constant != undefined ? constant : messages[string]["dk"];
       },
       getGroupPropertyName(group) {
         if (group.groups != undefined) {
@@ -2569,7 +2662,7 @@
         const content = data.tooltip && data.tooltip[this.language];
         const tooltip = {
           content: content,
-          offset: 5,
+          distance: 5,
           delay: this.$helpTextDelay,
         };
         return tooltip;

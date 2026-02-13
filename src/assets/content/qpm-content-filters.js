@@ -52,240 +52,123 @@ export const filtrer = [
           dk: "Afgrænsning 1",
           en: "Limit 1",
         },
-        ordering: {
-          dk: 1,
-          en: 1,
-        },
         searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            'xxx'
-          ],
-          broad: [
-            'xxx'
-          ],
+          narrow: ['xxx'],
+          normal: ['xxx'],
+          broad: ['xxx'],
         },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
+        searchStringComment: { dk: "", en: "" },
+        tooltip: { dk: "", en: "" },
       },
       {
         id: "L000020",
         name: "L000020",
         buttons: true,
-        maintopic: true, // Angiver at dette element er en branch og har children elementer
         translations: {
           dk: "Afgrænsning 2",
           en: "Limit 2",
         },
-        ordering: {
-          dk: 2,
-          en: 2,
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
-      },
-      {
-        id: "L000020010",
-        name: "L000020010",
-        buttons: true,
-        maintopic: true, // Angiver at dette element er en branch og har children elementer
-        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midderste niveau)
-        maintopicIdLevel1: "L000020", // Angiver at dette element har et parent med dette id. (Afgrænsning 2)
-        translations: {
-          dk: "Afgrænsning 2.1",
-          en: "Limit 2.1",
-        },
-        ordering: {
-          dk: 3,
-          en: 3,
-        },
-        tooltip: {
-          dk: "Kommentar til denne afgrænsning.",
-          en: "Comment about this topic.",
-        },
-      },
-      {
-        id: "L000020010010",
-        name: "L000020010010",
-        buttons: true,
-        subtopiclevel: 2, // Angiver at dette punkt ligger på 2. niveau (nedereste niveau)
-        maintopicIdLevel1: "L000020010", // Angiver at dette element har et parent med dette id. (Afgrænsning 2.1)
-        maintopicIdLevel2: "L000020", // Angiver at dette element har et grandparent med dette id (Afgrænsning 2)
-        translations: {
-          dk: "Afgrænsning 2.1.1",
-          en: "Limit 2.1.1",
-        },
-        ordering: {
-          dk: 4,
-          en: 4,
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            'xxx'
-          ],
-          broad: [
-            'xxx'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "Kommentar til denne afgrænsning.",
-          en: "Comment about this limit.",
-        },
-      },
-      {
-        id: "L000020010020",
-        name: "L000020010020",
-        buttons: true,
-        subtopiclevel: 2, // Angiver at dette punkt ligger på 2. niveau (nedereste niveau)
-        maintopicIdLevel1: "L000020010", // Angiver at dette element har et parent med dette id. (Afgrænsning 2.1)
-        maintopicIdLevel2: "L000020", // Angiver at dette element har et grandparent med dette id (Afgrænsning 2)
-        translations: {
-          dk: "Afgrænsning 2.1.2",
-          en: "Limit 2.1.2",
-        },
-        ordering: {
-          dk: 5,
-          en: 5,
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            'xxx'
-          ],
-          broad: [
-            'xxx'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
-      },
-      {
-        id: "L000020010030",
-        name: "L000020010030",
-        buttons: true,
-        subtopiclevel: 2, // Angiver at dette punkt ligger på 2. niveau (nedereste niveau)
-        maintopicIdLevel1: "L000020010", // Angiver at dette element har et parent med dette id. (Afgrænsning 2.1)
-        maintopicIdLevel2: "L000020", // Angiver at dette element har et grandparent med dette id (Afgrænsning 2)
-        translations: {
-          dk: "Afgrænsning 2.1.3",
-          en: "Limit 2.1.3",
-        },
-        ordering: {
-          dk: 6,
-          en: 6,
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            'xxx'
-          ],
-          broad: [
-            'xxx'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
-      },
-      {
-        id: "L000020020",
-        name: "L000020020",
-        buttons: true,
-        subtopiclevel: 1, // Angiver at dette punkt ligger på 1. niveau (miderste niveau)
-        maintopicIdLevel1: "L000020", // Angiver at dette element har et parent med dette id. (Afgrænsning 2)
-        translations: {
-          dk: "Afgrænsning 2.2",
-          en: "Limit 2.2",
-        },
-        ordering: {
-          dk: 7,
-          en: 7,
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            'xxx'
-          ],
-          broad: [
-            'xxx'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
-      },
-      {
-        id: "L000020030",
-        name: "L000020030",
-        buttons: true,
-        subtopiclevel: 1, // Angiver at dette punkt ligger på 2. niveau
-        maintopicIdLevel1: "L000020", // Angiver at dette element har et parent med dette id. (Afgrænsning 2)
-        translations: {
-          dk: "Afgrænsning 2.3",
-          en: "Limit 2.3",
-        },
-        ordering: {
-          dk: 8,
-          en: 8,
-        },
-        searchStrings: {
-          narrow: [
-            'xxx'
-          ],
-          normal: [
-            'xxx'
-          ],
-          broad: [
-            'xxx'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
+        tooltip: { dk: "", en: "" },
+        children: [
+          {
+            id: "L000020010",
+            name: "L000020010",
+            buttons: true,
+            translations: {
+              dk: "Afgrænsning 2.1",
+              en: "Limit 2.1",
+            },
+            tooltip: {
+              dk: "Kommentar til denne afgrænsning.",
+              en: "Comment about this topic.",
+            },
+            children: [
+              {
+                id: "L000020010010",
+                name: "L000020010010",
+                buttons: true,
+                translations: {
+                  dk: "Afgrænsning 2.1.1",
+                  en: "Limit 2.1.1",
+                },
+                searchStrings: {
+                  narrow: ['xxx'],
+                  normal: ['xxx'],
+                  broad: ['xxx'],
+                },
+                searchStringComment: { dk: "", en: "" },
+                tooltip: {
+                  dk: "Kommentar til denne afgrænsning.",
+                  en: "Comment about this limit.",
+                },
+              },
+              {
+                id: "L000020010020",
+                name: "L000020010020",
+                buttons: true,
+                translations: {
+                  dk: "Afgrænsning 2.1.2",
+                  en: "Limit 2.1.2",
+                },
+                searchStrings: {
+                  narrow: ['xxx'],
+                  normal: ['xxx'],
+                  broad: ['xxx'],
+                },
+                searchStringComment: { dk: "", en: "" },
+                tooltip: { dk: "", en: "" },
+              },
+              {
+                id: "L000020010030",
+                name: "L000020010030",
+                buttons: true,
+                translations: {
+                  dk: "Afgrænsning 2.1.3",
+                  en: "Limit 2.1.3",
+                },
+                searchStrings: {
+                  narrow: ['xxx'],
+                  normal: ['xxx'],
+                  broad: ['xxx'],
+                },
+                searchStringComment: { dk: "", en: "" },
+                tooltip: { dk: "", en: "" },
+              },
+            ],
+          },
+          {
+            id: "L000020020",
+            name: "L000020020",
+            buttons: true,
+            translations: {
+              dk: "Afgrænsning 2.2",
+              en: "Limit 2.2",
+            },
+            searchStrings: {
+              narrow: ['xxx'],
+              normal: ['xxx'],
+              broad: ['xxx'],
+            },
+            searchStringComment: { dk: "", en: "" },
+            tooltip: { dk: "", en: "" },
+          },
+          {
+            id: "L000020030",
+            name: "L000020030",
+            buttons: true,
+            translations: {
+              dk: "Afgrænsning 2.3",
+              en: "Limit 2.3",
+            },
+            searchStrings: {
+              narrow: ['xxx'],
+              normal: ['xxx'],
+              broad: ['xxx'],
+            },
+            searchStringComment: { dk: "", en: "" },
+            tooltip: { dk: "", en: "" },
+          },
+        ],
       },
       {
         id: "L000030",
@@ -294,10 +177,6 @@ export const filtrer = [
         translations: {
           dk: "Afgrænsning 3",
           en: "Limit 3",
-        },
-        ordering: {
-          dk: 9,
-          en: 9,
         },
         searchStrings: {
           narrow: [
@@ -969,311 +848,118 @@ export const filtrer = [
       {
         id: "L040030",
         name: "L040030",
-        maintopic: true,
         translations: {
           dk: "Nordiske lande",
           en: "Nordic countries",
         },
-        ordering: { 
-          dk: 3, 
-          en: 3 
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
+        searchStringComment: { dk: "", en: "" },
         tooltip: {
           dk: "Artikler, som (blandt andet) omhandler Danmark, Norge, Sverige, Finland, Island, Færøerne og Grønland",
           en: "",
         },
-      },
-      {
-        id: "L040040",
-        name: "L040040",
-        buttons: true,
-        subtopiclevel: 1, // Angiver at dette punkt ligger på 1. niveau (miderste niveau)
-        maintopicIdLevel1: "L040030", // Angiver at dette element har et parent med dette id. (Afgrænsning 2)
-        translations: {
-          dk: "Alle nordiske lande",
-          en: "All Nordic countries",
-        },
-        ordering: { 
-          dk: 4, 
-          en: 4 
-        },
-        simpleSearch: false,
-        standardSimple: false,
-        tooltip_simple: {
-          dk: "Artikler, som (blandt andet) omhandler Danmark, Norge, Sverige, Finland, Island, Færøerne og Grønland",
-          en: "",
-        },
-        searchStrings: {
-          narrow: [
-            '"Scandinavian and Nordic Countries"[mh] OR scandinavia*[ti] OR nordic-countr*[ti] OR denmark*[ti] OR danish*[ti] OR (danes*[ti] NOT (("great danes"[ti] OR "Dogs"[mh]) NOT "Denmark"[mh])) OR norway*[ti] OR norwegian*[ti] OR swed*[ti] OR finnish*[ti] OR iceland*[ti] OR greenland*[ti] OR faroe island*[ti] OR faeroe island*[ti]',
-          ],
-          normal: [
-            '"Scandinavian and Nordic Countries"[mh] OR scandinavia*[tiab] OR nordic-countr*[tiab] OR denmark*[tiab] OR danish*[tiab] OR (danes*[tiab] NOT (("great danes"[tiab] OR "Dogs"[mh]) NOT "Denmark"[mh])) OR norway*[tiab] OR norwegian*[tiab] OR swed*[tiab] OR finnish*[tiab] OR iceland*[tiab] OR greenland*[tiab] OR faroe island*[tiab] OR faeroe island*[tiab]',
-          ],
-          broad: [
-            '"Scandinavian and Nordic Countries"[mh] OR scandinavia*[all] OR denmark*[all] OR danish*[all] OR (danes*[all] NOT (("great danes"[tiab] OR "Dogs"[mh]) NOT "Denmark"[mh])) OR norway*[all] OR norwegian*[all] OR swed*[all] OR finnish*[all] OR iceland*[all] OR greenland*[all] OR faroe island*[all] OR faeroe island*[all]',
-          ],
-        },
-        searchStringComment: {
-          dk: "[majr] findes ikke for geografi - derfor [ti] -> [tiab] -> [all], da der så også søges i affiliation.",
-          en: "",
-        },
-        tooltip: {
-          dk: "Artikler, som (blandt andet) omhandler Danmark, Norge, Sverige, Finland, Island, Færøerne og Grønland",
-          en: "",
-        },
-      },
-      {
-        id: "L040050",
-        name: "L040050",
-        buttons: true,
-        subtopiclevel: 1, // Angiver at dette punkt ligger på 1. niveau (miderste niveau)
-        maintopicIdLevel1: "L040030", // Angiver at dette element har et parent med dette id. (Afgrænsning 2)
-        translations: {
-          dk: "Danmark",
-          en: "Denmark",
-        },
-        ordering: { 
-          dk: 5, 
-          en: 5 
-        },
-        simpleSearch: false,
-        standardSimple: false,
-        searchStrings: {
-          narrow: [
-            '"Denmark"[mh] OR denmark*[ti] OR danish*[ti] OR (danes*[ti] NOT (("great danes"[ti] OR "Dogs"[mh]) NOT "Denmark"[mh]))'
-          ],
-          normal: [
-            '"Denmark"[mh] OR denmark*[tiab] OR danish*[tiab] OR (danes*[tiab] NOT (("great danes"[tiab] OR "Dogs"[mh]) NOT "Denmark"[mh]))'
-          ],
-          broad: [
-            '"Denmark"[mh] OR denmark[all] OR danish[all] OR (danes*[all] NOT (("great danes"[ti] OR "Dogs"[mh]) NOT "Denmark"[mh]))'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
-      },
-      {
-        id: "L040060",
-        name: "L040060",
-        buttons: true,
-        subtopiclevel: 1, // Angiver at dette punkt ligger på 1. niveau (miderste niveau)
-        maintopicIdLevel1: "L040030", // Angiver at dette element har et parent med dette id. (Afgrænsning 2)
-        translations: {
-          dk: "Finland",
-          en: "Finland",
-        },
-        ordering: { 
-          dk: 6, 
-          en: 6 
-        },
-        simpleSearch: false,
-        standardSimple: false,
-        searchStrings: {
-          narrow: [
-            '"Finland"[mh] OR finland*[ti] OR finnish[ti]'
-          ],
-          normal: [
-            '"Finland"[mh] OR finland*[tiab] OR finnish[tiab]'
-          ],
-          broad: [
-            '"Finland"[mh] OR finland[all] OR finnish[all]'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
-      },
-      {
-        id: "L040070",
-        name: "L040070",
-        buttons: true,
-        subtopiclevel: 1, // Angiver at dette punkt ligger på 1. niveau (miderste niveau)
-        maintopicIdLevel1: "L040030", // Angiver at dette element har et parent med dette id. (Afgrænsning 2)
-        translations: {
-          dk: "Færøerne",
-          en: "Faroe Islands",
-        },
-        ordering: { 
-          dk: 7, 
-          en: 7 
-        },
-        simpleSearch: false,
-        standardSimple: false,
-        searchStrings: {
-          narrow: [
-            'faroe island*[ti] OR faeroe island*[ti]'
-          ],
-          normal: [
-            'faroe island*[tiab] OR faeroe island*[tiab]'
-          ],
-          broad: [
-            'faroe island*[all] OR faeroe island*[all]'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
-      },
-      {
-        id: "L040080",
-        name: "L040080",
-        buttons: true,
-        subtopiclevel: 1, // Angiver at dette punkt ligger på 1. niveau (miderste niveau)
-        maintopicIdLevel1: "L040030", // Angiver at dette element har et parent med dette id. (Afgrænsning 2)
-        translations: {
-          dk: "Grønland",
-          en: "Greenland",
-        },
-        ordering: { 
-          dk: 8, 
-          en: 8 
-        },
-        simpleSearch: false,
-        standardSimple: false,
-        searchStrings: {
-          narrow: [
-            '"Greenland"[mh] OR greenland*[ti]'
-          ],
-          normal: [
-            '"Greenland"[mh] OR greenland*[tiab]'
-          ],
-          broad: [
-            '"Greenland"[mh] OR greenland[all]'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
-      },
-      {
-        id: "L040090",
-        name: "L040090",
-        buttons: true,
-        subtopiclevel: 1, // Angiver at dette punkt ligger på 1. niveau (miderste niveau)
-        maintopicIdLevel1: "L040030", // Angiver at dette element har et parent med dette id. (Afgrænsning 2)
-        translations: {
-          dk: "Island",
-          en: "Iceland",
-        },
-        ordering: { 
-          dk: 9, 
-          en: 9 
-        },
-        simpleSearch: false,
-        standardSimple: false,
-        searchStrings: {
-          narrow: [
-            '"Iceland"[mh] OR iceland*[ti]'
-          ],
-          normal: [
-            '"Iceland"[mh] OR iceland*[tiab]'
-          ],
-          broad: [
-            '"Iceland"[mh] OR iceland*[all]'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
-      },
-      {
-        id: "L040100",
-        name: "L040100",
-        buttons: true,
-        subtopiclevel: 1, // Angiver at dette punkt ligger på 1. niveau (miderste niveau)
-        maintopicIdLevel1: "L040030", // Angiver at dette element har et parent med dette id. (Afgrænsning 2)
-        translations: {
-          dk: "Norge",
-          en: "Norway",
-        },
-        ordering: { 
-          dk: 10, 
-          en: 10 
-        },
-        searchStrings: {
-          narrow: [
-            '"Norway"[mh] OR norway*[ti] OR norwegian*[ti]'
-          ],
-          normal: [
-            '"Norway"[mh] OR norway*[tiab] OR norwegian*[tiab]'
-          ],
-          broad: [
-            '"Norway"[mh] OR norway*[all] OR norwegian*[all]'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
-      },
-      {
-        id: "L040110",
-        name: "L040110",
-        buttons: true,
-        subtopiclevel: 1, // Angiver at dette punkt ligger på 1. niveau (miderste niveau)
-        maintopicIdLevel1: "L040030", // Angiver at dette element har et parent med dette id. (Afgrænsning 2)
-        translations: {
-          dk: "Sverige",
-          en: "Sweden",
-        },
-        ordering: { 
-          dk: 11, 
-          en: 11 
-        },
-        searchStrings: {
-          narrow: [
-            '"Sweden"[mh] OR sweden*[ti] OR swedish*[ti]'
-          ],
-          normal: [
-            '"Sweden"[mh] OR sweden*[tiab] OR swedish*[tiab]'
-          ],
-          broad: [
-            '"Sweden"[mh] OR sweden*[all] OR swedish*[all]'
-          ],
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
+        children: [
+          {
+            id: "L040040",
+            name: "L040040",
+            buttons: true,
+            translations: { dk: "Alle nordiske lande", en: "All Nordic countries" },
+            simpleSearch: false,
+            standardSimple: false,
+            tooltip_simple: {
+              dk: "Artikler, som (blandt andet) omhandler Danmark, Norge, Sverige, Finland, Island, Færøerne og Grønland",
+              en: "",
+            },
+            searchStrings: {
+              narrow: ['"Scandinavian and Nordic Countries"[mh] OR scandinavia*[ti] OR nordic-countr*[ti] OR denmark*[ti] OR danish*[ti] OR (danes*[ti] NOT (("great danes"[ti] OR "Dogs"[mh]) NOT "Denmark"[mh])) OR norway*[ti] OR norwegian*[ti] OR swed*[ti] OR finnish*[ti] OR iceland*[ti] OR greenland*[ti] OR faroe island*[ti] OR faeroe island*[ti]'],
+              normal: ['"Scandinavian and Nordic Countries"[mh] OR scandinavia*[tiab] OR nordic-countr*[tiab] OR denmark*[tiab] OR danish*[tiab] OR (danes*[tiab] NOT (("great danes"[tiab] OR "Dogs"[mh]) NOT "Denmark"[mh])) OR norway*[tiab] OR norwegian*[tiab] OR swed*[tiab] OR finnish*[tiab] OR iceland*[tiab] OR greenland*[tiab] OR faroe island*[tiab] OR faeroe island*[tiab]'],
+              broad: ['"Scandinavian and Nordic Countries"[mh] OR scandinavia*[all] OR denmark*[all] OR danish*[all] OR (danes*[all] NOT (("great danes"[tiab] OR "Dogs"[mh]) NOT "Denmark"[mh])) OR norway*[all] OR norwegian*[all] OR swed*[all] OR finnish*[all] OR iceland*[all] OR greenland*[all] OR faroe island*[all] OR faeroe island*[all]'],
+            },
+            searchStringComment: { dk: "[majr] findes ikke for geografi - derfor [ti] -> [tiab] -> [all], da der så også søges i affiliation.", en: "" },
+            tooltip: { dk: "Artikler, som (blandt andet) omhandler Danmark, Norge, Sverige, Finland, Island, Færøerne og Grønland", en: "" },
+          },
+          {
+            id: "L040050", name: "L040050", buttons: true,
+            translations: { dk: "Danmark", en: "Denmark" },
+            simpleSearch: false, standardSimple: false,
+            searchStrings: {
+              narrow: ['"Denmark"[mh] OR denmark*[ti] OR danish*[ti] OR (danes*[ti] NOT (("great danes"[ti] OR "Dogs"[mh]) NOT "Denmark"[mh]))'],
+              normal: ['"Denmark"[mh] OR denmark*[tiab] OR danish*[tiab] OR (danes*[tiab] NOT (("great danes"[tiab] OR "Dogs"[mh]) NOT "Denmark"[mh]))'],
+              broad: ['"Denmark"[mh] OR denmark[all] OR danish[all] OR (danes*[all] NOT (("great danes"[ti] OR "Dogs"[mh]) NOT "Denmark"[mh]))'],
+            },
+            searchStringComment: { dk: "", en: "" },
+            tooltip: { dk: "", en: "" },
+          },
+          {
+            id: "L040060", name: "L040060", buttons: true,
+            translations: { dk: "Finland", en: "Finland" },
+            simpleSearch: false, standardSimple: false,
+            searchStrings: {
+              narrow: ['"Finland"[mh] OR finland*[ti] OR finnish[ti]'],
+              normal: ['"Finland"[mh] OR finland*[tiab] OR finnish[tiab]'],
+              broad: ['"Finland"[mh] OR finland[all] OR finnish[all]'],
+            },
+            searchStringComment: { dk: "", en: "" },
+            tooltip: { dk: "", en: "" },
+          },
+          {
+            id: "L040070", name: "L040070", buttons: true,
+            translations: { dk: "Færøerne", en: "Faroe Islands" },
+            simpleSearch: false, standardSimple: false,
+            searchStrings: {
+              narrow: ['faroe island*[ti] OR faeroe island*[ti]'],
+              normal: ['faroe island*[tiab] OR faeroe island*[tiab]'],
+              broad: ['faroe island*[all] OR faeroe island*[all]'],
+            },
+            searchStringComment: { dk: "", en: "" },
+            tooltip: { dk: "", en: "" },
+          },
+          {
+            id: "L040080", name: "L040080", buttons: true,
+            translations: { dk: "Grønland", en: "Greenland" },
+            simpleSearch: false, standardSimple: false,
+            searchStrings: {
+              narrow: ['"Greenland"[mh] OR greenland*[ti]'],
+              normal: ['"Greenland"[mh] OR greenland*[tiab]'],
+              broad: ['"Greenland"[mh] OR greenland[all]'],
+            },
+            searchStringComment: { dk: "", en: "" },
+            tooltip: { dk: "", en: "" },
+          },
+          {
+            id: "L040090", name: "L040090", buttons: true,
+            translations: { dk: "Island", en: "Iceland" },
+            simpleSearch: false, standardSimple: false,
+            searchStrings: {
+              narrow: ['"Iceland"[mh] OR iceland*[ti]'],
+              normal: ['"Iceland"[mh] OR iceland*[tiab]'],
+              broad: ['"Iceland"[mh] OR iceland*[all]'],
+            },
+            searchStringComment: { dk: "", en: "" },
+            tooltip: { dk: "", en: "" },
+          },
+          {
+            id: "L040100", name: "L040100", buttons: true,
+            translations: { dk: "Norge", en: "Norway" },
+            searchStrings: {
+              narrow: ['"Norway"[mh] OR norway*[ti] OR norwegian*[ti]'],
+              normal: ['"Norway"[mh] OR norway*[tiab] OR norwegian*[tiab]'],
+              broad: ['"Norway"[mh] OR norway*[all] OR norwegian*[all]'],
+            },
+            searchStringComment: { dk: "", en: "" },
+            tooltip: { dk: "", en: "" },
+          },
+          {
+            id: "L040110", name: "L040110", buttons: true,
+            translations: { dk: "Sverige", en: "Sweden" },
+            searchStrings: {
+              narrow: ['"Sweden"[mh] OR sweden*[ti] OR swedish*[ti]'],
+              normal: ['"Sweden"[mh] OR sweden*[tiab] OR swedish*[tiab]'],
+              broad: ['"Sweden"[mh] OR sweden*[all] OR swedish*[all]'],
+            },
+            searchStringComment: { dk: "", en: "" },
+            tooltip: { dk: "", en: "" },
+          },
+        ],
       }
     ],
     tooltip: {
@@ -1759,247 +1445,70 @@ export const filtrer = [
         id: "L080020",
         name: "L080020",
         buttons: true,
-        maintopic: true,
         translations: {
           dk: "Steno Diabetescentre",
           en: "Steno Diabetes Centers",
         },
-        ordering: { 
-          dk: 2, 
-          en: 2 
-        },
-        searchStringComment: {
-          dk: "",
-          en: "",
-        },
-        tooltip: {
-          dk: "",
-          en: "",
-        },
-      },
-      {
-        id: "L080020010",
-        name: "L080020010",
-        buttons: false,
-        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midterste niveau)
-        maintopicIdLevel1: "L080020", // Angiver at dette element har et parent med dette id. (Emne 2)
-        translations: {
-          dk: "Alle Steno Diabetes-centre",
-          en: "All Steno Diabetes Centers",
-        },
-        ordering: { 
-          dk: 3, 
-          en: 3 
-        },
-        searchStrings: {
-          normal: [
-            '"steno diabetes"[ad:~5]'
-          ],
-        },
-        searchStringComment: {
-          dk: "Artikler, hvor mindst en af forfatterne har afgivet tilhørsforhold til et Steno Diabetes Center.",
-          en: "",
-        },
-        tooltip: {
-          dk: "Artikler, hvor mindst en af forfatterne har afgivet tilhørsforhold til et Steno Diabetes Center.",
-          en: "",
-        },
-      },
-      {
-        id: "L080020020",
-        name: "L080020020",
-        buttons: false,
-        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midterste niveau)
-        maintopicIdLevel1: "L080020", // Angiver at dette element har et parent med dette id. (Emne 2)
-        translations: {
-          dk: "Steno Diabetes Center Copenhagen",
-          en: "Steno Diabetes Center Copenhagen",
-        },
-        ordering: { 
-          dk: 4, 
-          en: 4 
-        },
-        searchStrings: {
-          normal: [
-            '"steno copenhagen"[ad:~5] OR "steno herlev"[ad:~5] OR "steno gentofte"[ad:~5] OR "steno capital"[ad:~5]'
-          ],
-        },
-        searchStringComment: {
-          dk: "Artikler, hvor mindst en af forfatterne har afgivet tilhørsforhold til Steno Diabetes Center Copenhagen.",
-          en: "",
-        },
-        tooltip: {
-          dk: "Artikler, hvor mindst en af forfatterne har afgivet tilhørsforhold til Steno Diabetes Center Copenhagen.",
-          en: "",
-        },
-      },
-      {
-        id: "L080020030",
-        name: "L080020030",
-        buttons: false,
-        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midterste niveau)
-        maintopicIdLevel1: "L080020", // Angiver at dette element har et parent med dette id. (Emne 2)
-        translations: {
-          dk: "Steno Diabetes Center Færøerne",
-          en: "Steno Diabetes Center Faroe Islands",
-        },
-        ordering: { 
-          dk: 5, 
-          en: 5 
-        },
-        searchStrings: {
-          normal: [
-            '"steno faroe"[ad:~5] OR "steno færøerne"[ad:~5] OR "steno tórshavn"[ad:~5] OR "steno torshavn"[ad:~5]'
-          ],
-        },
-        searchStringComment: {
-          dk: "Artikler, hvor mindst en af forfatterne har afgivet tilhørsforhold til Steno Diabetes Center Færøerne.",
-          en: "",
-        },
-        tooltip: {
-          dk: "Artikler, hvor mindst en af forfatterne har afgivet tilhørsforhold til Steno Diabetes Center Færøerne.",
-          en: "",
-        },
-      },
-      {
-        id: "L080020040",
-        name: "L080020040",
-        buttons: false,
-        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midterste niveau)
-        maintopicIdLevel1: "L080020", // Angiver at dette element har et parent med dette id. (Emne 2)
-        translations: {
-          dk: "Steno Diabetes Center Grønland",
-          en: "Steno Diabetes Center Greenland",
-        },
-        ordering: { 
-          dk: 6, 
-          en: 6 
-        },
-        searchStrings: {
-          normal: [
-            '"steno greenland"[ad:~5] OR "steno grønland"[ad:~5] OR "steno gronland"[ad:~5] OR "steno groenland"[ad:~5] OR "steno nuuk"[ad:~5]'
-          ],
-        },
-        searchStringComment: {
-          dk: "Artikler, hvor mindst en af forfatterne har afgivet tilhørsforhold til Steno Diabetes Center Grønland.",
-          en: "",
-        },
-        tooltip: {
-          dk: "Artikler, hvor mindst en af forfatterne har afgivet tilhørsforhold til Steno Diabetes Center Grønland.",
-          en: "",
-        },
-      },
-      {
-        id: "L080020050",
-        name: "L080020050",
-        buttons: false,
-        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midterste niveau)
-        maintopicIdLevel1: "L080020", // Angiver at dette element har et parent med dette id. (Emne 2)
-        translations: {
-          dk: "Steno Diabetes Center Nordjylland",
-          en: "Steno Diabetes Center North Denmark",
-        },
-        ordering: { 
-          dk: 7, 
-          en: 7 
-        },
-        searchStrings: {
-          normal: [
-            '"steno north"[ad:~5] OR "steno nordjylland"[ad:~5] OR "steno northjutland"[ad:~5] OR "steno aalborg"[ad:~5]'
-          ],
-        },
-        searchStringComment: {
-          dk: "Artikler, hvor mindst en af forfatterne har afgivet tilhørsforhold til Steno Diabetes Center Nordjylland.",
-          en: "",
-        },
-        tooltip: {
-          dk: "Artikler, hvor mindst en af forfatterne har afgivet tilhørsforhold til Steno Diabetes Center Nordjylland.",
-          en: "",
-        },
-      },
-      {
-        id: "L080020060",
-        name: "L080020060",
-        buttons: false,
-        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midterste niveau)
-        maintopicIdLevel1: "L080020", // Angiver at dette element har et parent med dette id. (Emne 2)
-        translations: {
-          dk: "Steno Diabetes Center Odense",
-          en: "Steno Diabetes Center Odense",
-        },
-        ordering: { 
-          dk: 8, 
-          en: 8 
-        },
-        searchStrings: {
-          normal: [
-            '"steno odense"[ad:~5] OR "steno south"[ad:~5] OR  OR "steno southern"[ad:~5]'
-          ],
-        },
-        searchStringComment: {
-          dk: "Artikler, hvor mindst en af forfatterne har afgivet tilhørsforhold til Steno Diabetes Center Odense.",
-          en: "",
-        },
-        tooltip: {
-          dk: "Artikler, hvor mindst en af forfatterne har afgivet tilhørsforhold til Steno Diabetes Center Odense.",
-          en: "",
-        },
-      },
-      {
-        id: "L080020070",
-        name: "L080020070",
-        buttons: false,
-        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midterste niveau)
-        maintopicIdLevel1: "L080020", // Angiver at dette element har et parent med dette id. (Emne 2)
-        translations: {
-          dk: "Steno Diabetes Center Sjælland",
-          en: "Steno Diabetes Center Zealand",
-        },
-        ordering: { 
-          dk: 9, 
-          en: 9 
-        },
-        searchStrings: {
-          normal: [
-            '"steno sjælland"[ad:~5] OR "steno sjaelland"[ad:~5] OR "steno zealand"[ad:~5] OR "steno holbæk"[ad:~5] OR "steno holbaek"[ad:~5] OR "steno falster"[ad:~5]'
-          ],
-        },
-        searchStringComment: {
-          dk: "Artikler, hvor mindst en af forfatterne har afgivet tilhørsforhold til Steno Diabetes Center Sjælland.",
-          en: "",
-        },
-        tooltip: {
-          dk: "Artikler, hvor mindst en af forfatterne har afgivet tilhørsforhold til Steno Diabetes Center Sjælland.",
-          en: "",
-        },
-      },
-      {
-        id: "L080020080",
-        name: "L080020080",
-        buttons: false,
-        subtopiclevel: 1, // Angiver at dette element ligger på 1. niveau (midterste niveau)
-        maintopicIdLevel1: "L080020", // Angiver at dette element har et parent med dette id. (Emne 2)
-        translations: {
-          dk: "Steno Diabetes Center Aarhus",
-          en: "Steno Diabetes Center Aarhus",
-        },
-        ordering: { 
-          dk: 10, 
-          en: 10 
-        },
-        searchStrings: {
-          normal: [
-            '"steno aarhus"[ad:~5] OR "steno århus"[ad:~5] OR "steno arhus"[ad:~5] OR "steno central"[ad:~5]'
-          ],
-        },
-        searchStringComment: {
-          dk: "Artikler, hvor mindst en af forfatterne har afgivet tilhørsforhold til Steno Diabetes Center Aarhus.",
-          en: "",
-        },
-        tooltip: {
-          dk: "Artikler, hvor mindst en af forfatterne har afgivet tilhørsforhold til Steno Diabetes Center Aarhus.",
-          en: "",
-        },
+        searchStringComment: { dk: "", en: "" },
+        tooltip: { dk: "", en: "" },
+        children: [
+          {
+            id: "L080020010", name: "L080020010", buttons: false,
+            translations: { dk: "Alle Steno Diabetes-centre", en: "All Steno Diabetes Centers" },
+            searchStrings: { normal: ['"steno diabetes"[ad:~5]'] },
+            searchStringComment: { dk: "Artikler, hvor mindst en af forfatterne har afgivet tilhørsforhold til et Steno Diabetes Center.", en: "" },
+            tooltip: { dk: "Artikler, hvor mindst en af forfatterne har afgivet tilhørsforhold til et Steno Diabetes Center.", en: "" },
+          },
+          {
+            id: "L080020020", name: "L080020020", buttons: false,
+            translations: { dk: "Steno Diabetes Center Copenhagen", en: "Steno Diabetes Center Copenhagen" },
+            searchStrings: { normal: ['"steno copenhagen"[ad:~5] OR "steno herlev"[ad:~5] OR "steno gentofte"[ad:~5] OR "steno capital"[ad:~5]'] },
+            searchStringComment: { dk: "Artikler, hvor mindst en af forfatterne har afgivet tilhørsforhold til Steno Diabetes Center Copenhagen.", en: "" },
+            tooltip: { dk: "Artikler, hvor mindst en af forfatterne har afgivet tilhørsforhold til Steno Diabetes Center Copenhagen.", en: "" },
+          },
+          {
+            id: "L080020030", name: "L080020030", buttons: false,
+            translations: { dk: "Steno Diabetes Center Færøerne", en: "Steno Diabetes Center Faroe Islands" },
+            searchStrings: { normal: ['"steno faroe"[ad:~5] OR "steno færøerne"[ad:~5] OR "steno tórshavn"[ad:~5] OR "steno torshavn"[ad:~5]'] },
+            searchStringComment: { dk: "Artikler, hvor mindst en af forfatterne har afgivet tilhørsforhold til Steno Diabetes Center Færøerne.", en: "" },
+            tooltip: { dk: "Artikler, hvor mindst en af forfatterne har afgivet tilhørsforhold til Steno Diabetes Center Færøerne.", en: "" },
+          },
+          {
+            id: "L080020040", name: "L080020040", buttons: false,
+            translations: { dk: "Steno Diabetes Center Grønland", en: "Steno Diabetes Center Greenland" },
+            searchStrings: { normal: ['"steno greenland"[ad:~5] OR "steno grønland"[ad:~5] OR "steno gronland"[ad:~5] OR "steno groenland"[ad:~5] OR "steno nuuk"[ad:~5]'] },
+            searchStringComment: { dk: "Artikler, hvor mindst en af forfatterne har afgivet tilhørsforhold til Steno Diabetes Center Grønland.", en: "" },
+            tooltip: { dk: "Artikler, hvor mindst en af forfatterne har afgivet tilhørsforhold til Steno Diabetes Center Grønland.", en: "" },
+          },
+          {
+            id: "L080020050", name: "L080020050", buttons: false,
+            translations: { dk: "Steno Diabetes Center Nordjylland", en: "Steno Diabetes Center North Denmark" },
+            searchStrings: { normal: ['"steno north"[ad:~5] OR "steno nordjylland"[ad:~5] OR "steno northjutland"[ad:~5] OR "steno aalborg"[ad:~5]'] },
+            searchStringComment: { dk: "Artikler, hvor mindst en af forfatterne har afgivet tilhørsforhold til Steno Diabetes Center Nordjylland.", en: "" },
+            tooltip: { dk: "Artikler, hvor mindst en af forfatterne har afgivet tilhørsforhold til Steno Diabetes Center Nordjylland.", en: "" },
+          },
+          {
+            id: "L080020060", name: "L080020060", buttons: false,
+            translations: { dk: "Steno Diabetes Center Odense", en: "Steno Diabetes Center Odense" },
+            searchStrings: { normal: ['"steno odense"[ad:~5] OR "steno south"[ad:~5] OR  OR "steno southern"[ad:~5]'] },
+            searchStringComment: { dk: "Artikler, hvor mindst en af forfatterne har afgivet tilhørsforhold til Steno Diabetes Center Odense.", en: "" },
+            tooltip: { dk: "Artikler, hvor mindst en af forfatterne har afgivet tilhørsforhold til Steno Diabetes Center Odense.", en: "" },
+          },
+          {
+            id: "L080020070", name: "L080020070", buttons: false,
+            translations: { dk: "Steno Diabetes Center Sjælland", en: "Steno Diabetes Center Zealand" },
+            searchStrings: { normal: ['"steno sjælland"[ad:~5] OR "steno sjaelland"[ad:~5] OR "steno zealand"[ad:~5] OR "steno holbæk"[ad:~5] OR "steno holbaek"[ad:~5] OR "steno falster"[ad:~5]'] },
+            searchStringComment: { dk: "Artikler, hvor mindst en af forfatterne har afgivet tilhørsforhold til Steno Diabetes Center Sjælland.", en: "" },
+            tooltip: { dk: "Artikler, hvor mindst en af forfatterne har afgivet tilhørsforhold til Steno Diabetes Center Sjælland.", en: "" },
+          },
+          {
+            id: "L080020080", name: "L080020080", buttons: false,
+            translations: { dk: "Steno Diabetes Center Aarhus", en: "Steno Diabetes Center Aarhus" },
+            searchStrings: { normal: ['"steno aarhus"[ad:~5] OR "steno århus"[ad:~5] OR "steno arhus"[ad:~5] OR "steno central"[ad:~5]'] },
+            searchStringComment: { dk: "Artikler, hvor mindst en af forfatterne har afgivet tilhørsforhold til Steno Diabetes Center Aarhus.", en: "" },
+            tooltip: { dk: "Artikler, hvor mindst en af forfatterne har afgivet tilhørsforhold til Steno Diabetes Center Aarhus.", en: "" },
+          },
+        ],
       },
     ],
     tooltip: {

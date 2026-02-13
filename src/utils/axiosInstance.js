@@ -31,7 +31,6 @@ axiosInstance.interceptors.response.use(
 
     // If there's no config or retries option, reject
     if (!config || !config.retry) {
-      console.log("Request failed without retry option:", config?.url);
       return Promise.reject(error);
     }
 
@@ -50,7 +49,6 @@ axiosInstance.interceptors.response.use(
 
     // Check if max retries have been reached
     if (config.__retryCount >= config.retry) {
-      console.log(`Max retries reached for: ${config.url}`);
       return Promise.reject(error);
     }
 

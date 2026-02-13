@@ -24,12 +24,8 @@ define('NLM_BASE_URL', 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils');
 // Allowed domains for CORS
 // Supports wildcards: *.example.com matches sub.example.com and example.com
 define('ALLOWED_DOMAINS', [
-    '*.videncenterfordiabetes.dk',
-    'videncenterfordiabetes.dk',
-    'nempubmed.dk',
-    '*.nempubmed.dk',
-    'quickpubmed.dk',
-    '*.quickpubmed.dk',
+    '*.example.com',
+    'example.com',
     'localhost',
 ]);
 

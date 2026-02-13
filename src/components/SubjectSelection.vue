@@ -50,7 +50,7 @@
       <button
         v-tooltip="{
           content: getString('hoverAddSubject'),
-          offset: 5,
+          distance: 5,
           delay: $helpTextDelay,
         }"
         class="qpm_slim qpm_button"
@@ -76,7 +76,6 @@
         type: Array, 
         default: () => [],
         validator: function(value) {
-          console.log('hideTopics validator:', value);
           return Array.isArray(value);
         }
       },
@@ -97,7 +96,6 @@
       hideTopics: {
         immediate: true,
         handler(newVal) {
-          console.log('hideTopics changed in SubjectSelection:', newVal);
           this.$nextTick(() => {
             if (this.$refs.subjectDropdown) {
               // Force opdatering af alle dropdown komponenter
@@ -134,9 +132,8 @@
       handleShouldFocusNextDropdownOnMount(payload) {
         this.$emit("should-focus-next-dropdown", payload);
       },
-      handleTranslating(isTranslating, index) {
-        console.log("handleTranslating | emitting 'update-placeholder' ", isTranslating, index);
-        this.$emit("update-placeholder", isTranslating, index);
+      handleTranslating(isTranslating, index, stepKey) {
+        this.$emit("update-placeholder", isTranslating, index, stepKey);
       },
       addSubject() {
         this.$emit("add-subject");

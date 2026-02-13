@@ -99,15 +99,17 @@
 </template>
 
 <script>
-  import Vue from "vue";
+  import axios from "axios";
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
   import ResultEntry from "@/components/ResultEntry.vue";
   import axiosInstance from "@/utils/axiosInstance";
 
   import { appSettingsMixin } from "@/mixins/appSettings";
-  import { messages } from "@/assets/content/qpm-translations";
+  import { utilitiesMixin } from "@/mixins/utilities";
   import { dateOptions, languageFormat } from "@/utils/qpm-content-helpers";
   import { order } from "@/assets/content/qpm-content-order";
+
+  let _specificArticlesUid = 0;
 
   export default {
     name: "SpecificArticles",
@@ -115,7 +117,7 @@
       LoadingSpinner,
       ResultEntry,
     },
-    mixins: [appSettingsMixin],
+    mixins: [appSettingsMixin, utilitiesMixin],
     props: {
       ids: {
         type: String,
@@ -266,15 +268,12 @@
         return !this.hideButtons;
       },
       isCustom() {
-        console.log("We are custom: ", !this.loadingComponent && this.enteredIds.length === 0);
-
         return !this.loadingComponent && this.enteredIds.length === 0;
       },
       getKey() {
         return this.doi ? this.doi : null;
       },
       getId() {
-        console.log("Getting ID: ", this.ids ? this.ids : null);
         return this.ids ? this.ids : null;
       },
       getComponentId() {
@@ -282,18 +281,11 @@
       },
     },
     created() {
-      // Listen to 'loadAbstract' events from child components
-      this.$on("loadAbstract", this.addIdToLoadAbstract);
       this.fetchInitialArticles();
     },
-    beforeDestroy() {
-      // Clean up event listeners to prevent memory leaks
-      this.$off("loadAbstract", this.addIdToLoadAbstract);
-    },
     mounted() {
-      console.log("useTranslateTitle: ", this.useTranslateTitle);
       if (this.componentNo == null) {
-        this.componentId = this._uid;
+        this.componentId = ++_specificArticlesUid;
       } else {
         this.componentId = this.componentNo;
       }
@@ -416,7 +408,6 @@
         }
       },
       getSource(value) {
-        console.log("getSource | Value: ", value);
         try {
           let source = "";
           // Check if a custom source is provided
@@ -439,15 +430,6 @@
           console.error("Error in getSource:", error);
           return;
         }
-      },
-      getString(string) {
-        let lg = this.language;
-        if (!messages[string]) {
-          console.warn(`Missing translation key: ${string}`);
-          return string;
-        }
-        let constant = messages[string][lg];
-        return constant !== undefined ? constant : messages[string]["dk"];
       },
       getHyperLink() {
         return this.hyperLink;
@@ -495,11 +477,9 @@
             .filter((id) => id !== "");
 
           this.enteredIds = idArray;
-          console.log("Using provided IDs:", this.enteredIds);
           if (this.enteredIds.length > 0) {
             await this.loadWithIds();
           } else {
-            console.log("No valid IDs provided.");
             this.loadingComponent = false;
           }
         } else if (this.interpretQuery) {
@@ -521,13 +501,10 @@
               }
             );
 
-            const ids = response.data.esearchresult.idlist;
+            const ids = response.data?.esearchresult?.idlist;
             if (ids && ids.length > 0) {
               this.enteredIds = ids.slice(0, this.queryResults); // Ensure limit
-              console.log("Initial IDs added:", this.enteredIds);
               await this.loadWithIds();
-            } else {
-              console.log("No IDs found for the given query.");
             }
           } catch (error) {
             console.error("Error fetching IDs based on query:", error);
@@ -536,7 +513,6 @@
             this.loadingComponent = false;
           }
         } else {
-          console.log("No IDs or query provided.");
           this.loadingComponent = false;
         }
       },
@@ -563,11 +539,11 @@
             retry: 3, // Number of retries
           });
 
-          const dataResult = response.data.result;
+          const dataResult = response.data?.result;
           // Copy dataResult to maintain original data state
-          const dataResultCopy = { ...response.data.result };
+          const dataResultCopy = dataResult ? { ...dataResult } : null;
 
-          if (dataResultCopy && dataResultCopy.uids) {
+          if (dataResultCopy?.uids) {
             this.searchresult = dataResult.uids.map((uid) => {
               const entry = { ...dataResult[uid] };
               return {
@@ -578,10 +554,7 @@
                 pubdate: entry.pubdate || "",
               };
             });
-            console.log("this.searchresult:", this.searchresult);
             await this.loadAbstracts();
-          } else {
-            console.log("No articles found in the response.");
           }
         } catch (err) {
           console.error("Error fetching summaries:", err);
@@ -627,9 +600,14 @@
             xmlDoc.loadXML(data);
           }
 
+          if (xmlDoc.getElementsByTagName("parsererror").length > 0) {
+            throw new Error("Invalid XML response from PubMed");
+          }
           const articles = Array.from(xmlDoc.getElementsByTagName("PubmedArticle"));
           const articleData = articles.map((article) => {
-            const pmid = article.getElementsByTagName("PMID")[0].textContent;
+            const pmidEl = article.getElementsByTagName("PMID")[0];
+            if (!pmidEl) return null;
+            const pmid = pmidEl.textContent;
             const sections = article.getElementsByTagName("AbstractText");
             if (sections.length === 1) {
               const abstractText = sections[0].textContent;
@@ -643,7 +621,7 @@
               }
               return [pmid, text];
             }
-          });
+          }).filter(Boolean);
 
           for (const item of articleData) {
             this.onAbstractLoad(item[0], item[1]);
@@ -654,7 +632,6 @@
       },
       // Handle IDs emitted from child components
       addIdToLoadAbstract(id) {
-        console.log(`Adding ID to load abstract: ${id}`);
         if (!this.idswithAbstractsToLoad.includes(id)) {
           this.idswithAbstractsToLoad.push(id);
         }
@@ -663,8 +640,6 @@
           const newIds = this.idswithAbstractsToLoad.filter((id) => !this.enteredIds.includes(id));
           if (newIds.length > 0) {
             this.enteredIds.push(...newIds);
-            console.log(`New IDs added: ${newIds}`);
-            console.log(`Total entered IDs: ${this.enteredIds.length}`);
 
             if (this.enteredIds.length <= this.maxIds) {
               this.loadWithIds();
@@ -677,8 +652,7 @@
       },
       // Handle abstract load completion
       onAbstractLoad(id, abstract) {
-        console.log(`Abstract loaded for ID: ${id}`);
-        Vue.set(this.abstractRecords, id, abstract);
+        this.abstractRecords[id] = abstract;
       },
       // Handle unsuccessful API calls
       UnsuccessfullCall(value) {

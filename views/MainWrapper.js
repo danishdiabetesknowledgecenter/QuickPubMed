@@ -2,9 +2,10 @@
 import "@/assets/styles/qpm-style.css";
 import "@/assets/styles/qpm-style-strings.css";
 
-import Vue from "vue";
+import { createApp, h } from "vue";
 import VueShowdown from "vue-showdown";
-import { VTooltip } from "v-tooltip";
+import FloatingVue from "floating-vue";
+import "floating-vue/dist/style.css";
 import MainWrapper from "@/components/MainWrapper.vue";
 import { config } from "@/config/config";
 
@@ -13,10 +14,8 @@ import { config } from "@/config/config";
  * en-US for American, en-GB for British, de-DR for German and so on.
  * Full list https://stackoverflow.com/questions/3191664/list-of-all-locales-and-their-short-codes
  */
-Vue.prototype.$helpTextDelay = { show: 500, hide: 100 };
-Vue.prototype.$alwaysShowFilter = true;
 
-Vue.use(VueShowdown, {
+const showdownConfig = {
   flavor: "github", // Set default flavor of showdown
   options: {
     emoji: false, // Disable emoji support
@@ -30,9 +29,25 @@ Vue.use(VueShowdown, {
     underline: true, // Enable underline
     completeHTMLDocument: false, // Render only HTML fragments
   },
-});
+};
 
-Vue.directive("tooltip", VTooltip);
+function createConfiguredApp(rootComponent, props, provideData) {
+  const app = createApp({
+    provide: provideData,
+    render: () => h(rootComponent, props),
+  });
+  app.use(VueShowdown, showdownConfig);
+  app.use(FloatingVue, {
+    themes: {
+      tooltip: {
+        html: true,
+      },
+    },
+  });
+  app.config.globalProperties.$helpTextDelay = { show: 500, hide: 100 };
+  app.config.globalProperties.$alwaysShowFilter = true;
+  return app;
+}
 
 // Find alle elementer med klassen "main-wrapper" for at understøtte flere instanser på samme side
 const mainWrapperDivs = document.querySelectorAll(".main-wrapper");
@@ -47,6 +62,7 @@ mainWrapperDivs.forEach((mainWrapperDiv, index) => {
   const domain = mainWrapperDiv.dataset.domain !== undefined ? mainWrapperDiv.dataset.domain : null;
   const useAI = mainWrapperDiv.dataset.useAI === "true";
   const useAISummarizer = mainWrapperDiv.dataset.useAISummarizer === "true";
+  const useMeshValidation = mainWrapperDiv.dataset.useMeshValidation === "true";
   const openFilters = mainWrapperDiv.dataset.openFilters === "true";
 
   const parseDatasetList = (value, label) => {
@@ -77,27 +93,26 @@ mainWrapperDivs.forEach((mainWrapperDiv, index) => {
   }
   config.useAI = useAI;
   config.useAISummarizer = useAISummarizer;
+  config.useMeshValidation = useMeshValidation;
 
-  new Vue({
-    // Provide domain to all child components via inject
-    provide: {
+  createConfiguredApp(
+    MainWrapper,
+    {
+      hideTopics: parsedHideTopics,
+      hideLimits: parsedHideLimits,
+      checkLimits: parsedCheckLimits,
+      orderLimits: parsedOrderLimits,
+      openFilters: openFilters,
+      language: language,
+      componentNo: componentNo,
+      domain: domain,
+    },
+    {
       instanceDomain: domain,
       instanceLanguage: language,
       instanceUseAI: useAI,
       instanceUseAISummarizer: useAISummarizer,
+      instanceUseMeshValidation: useMeshValidation,
     },
-    render: (h) =>
-      h(MainWrapper, {
-        props: {
-          hideTopics: parsedHideTopics,
-          hideLimits: parsedHideLimits,
-          checkLimits: parsedCheckLimits,
-          orderLimits: parsedOrderLimits,
-          openFilters: openFilters,
-          language: language,
-          componentNo: componentNo,
-          domain: domain,
-        },
-      }),
-  }).$mount(`#${mainWrapperDiv.id}`);
+  ).mount(`#${mainWrapperDiv.id}`);
 });

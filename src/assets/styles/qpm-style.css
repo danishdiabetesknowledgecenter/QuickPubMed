@@ -31,6 +31,7 @@
   font-size: initial;
 }
 
+
 .qpm_vapp li,
 .qpm_vapp ul,
 .qpm_vapp ul:not(.filter-search__filter__alphabet):not(.fontsize):not(.sidemenu__dropdown):not(.list__timeline):not(.qpm_vapp .multiselect__content) {
@@ -106,100 +107,26 @@
   padding-right: 5px;
 }
 
-.tooltip {
-  display: block !important;
-  z-index: 10000;
+/* floating-vue v5 tooltip styling (matches old v-tooltip v2 look) */
+.v-popper--theme-tooltip .v-popper__inner {
+  background: var(--color-white) !important;
+  color: var(--color-black) !important;
+  text-align: left !important;
+  border-radius: 10px !important;
+  border: 1px solid var(--color-grey-dark) !important;
+  padding: 8px 14px 7px !important;
+  max-width: 300px !important;
+  font-size: 0.9em !important;
+  line-height: 1.5 !important;
+  box-shadow: none !important;
 }
 
-.tooltip .tooltip-inner {
-  background: var(--color-white);
-  color: var(--color-black);
-  text-align: left;
-  border-radius: 10px;
-  border: 1px solid var(--color-grey-dark);
-  padding: 5px 10px 4px;
+.v-popper--theme-tooltip .v-popper__arrow-outer {
+  border-color: var(--color-grey-dark) !important;
 }
 
-.tooltip .tooltip-arrow {
-  width: 0;
-  height: 0;
-  border-style: solid;
-  position: absolute;
-  margin: 5px;
-  border-color: var(--color-grey-dark);
-  z-index: 1;
-}
-
-.tooltip[x-placement^="top"] {
-  margin-bottom: 5px;
-}
-
-.tooltip[x-placement^="top"] .tooltip-arrow {
-  border-width: 10px 10px 0 10px;
-  border-left-color: transparent !important;
-  border-right-color: transparent !important;
-  border-bottom-color: transparent !important;
-  bottom: -10px;
-  left: calc(50% - 10px);
-  margin-top: 0;
-  margin-bottom: 0;
-}
-
-.tooltip[x-placement^="bottom"] {
-  margin-top: 5px;
-}
-
-.tooltip[x-placement^="bottom"] .tooltip-arrow {
-  border-width: 0 5px 5px 5px;
-  border-left-color: transparent !important;
-  border-right-color: transparent !important;
-  border-top-color: transparent !important;
-  top: -5px;
-  left: calc(50% - 5px);
-  margin-top: 0;
-  margin-bottom: 0;
-}
-
-.tooltip[x-placement^="right"] {
-  margin-left: 5px;
-}
-
-.tooltip[x-placement^="right"] .tooltip-arrow {
-  border-width: 5px 5px 5px 0;
-  border-left-color: transparent !important;
-  border-top-color: transparent !important;
-  border-bottom-color: transparent !important;
-  left: -5px;
-  top: calc(50% - 5px);
-  margin-left: 0;
-  margin-right: 0;
-}
-
-.tooltip[x-placement^="left"] {
-  margin-right: 5px;
-}
-
-.tooltip[x-placement^="left"] .tooltip-arrow {
-  border-width: 5px 0 5px 5px;
-  border-top-color: transparent !important;
-  border-right-color: transparent !important;
-  border-bottom-color: transparent !important;
-  right: -5px;
-  top: calc(50% - 5px);
-  margin-left: 0;
-  margin-right: 0;
-}
-
-.tooltip[aria-hidden="true"] {
-  visibility: hidden;
-  opacity: 0;
-  transition: opacity 0.15s, visibility 0.15s;
-}
-
-.tooltip[aria-hidden="false"] {
-  visibility: visible;
-  opacity: 1;
-  transition: opacity 0.15s;
+.v-popper--theme-tooltip .v-popper__arrow-inner {
+  border-color: var(--color-white) !important;
 }
 
 .qpm_loading {
@@ -643,6 +570,11 @@ button.qpm_slim.multiselect__input:focus-visible {
 }
 .qpm_subtopicDropdownLevel2 + .qpm_entryName {
   margin-left: 45px;
+}
+/* Dynamic depth-based indentation for nesting deeper than level 2 */
+.qpm_subtopicDepth + .qpm_entryName {
+  /* Fallback — actual margin set via inline style */
+  margin-left: 15px;
 }
 .multiselect__element
   .qpm_maintopicDropdown
@@ -1172,7 +1104,13 @@ button.qpm_tab {
   position: relative;
   padding-left: 9px;
   padding-right: 9px;
-  margin: 4px 0;
+  margin: 4px 2px 4px 0;
+}
+
+.qpm_searchStringPreText,
+.qpm_searchStringGroupWhere,
+.qpm_searchStringGroupOperator_NotApplied {
+  margin-right: 2px;
 }
 
 .qpm_searchStringWordGroupWrapper {
@@ -1193,6 +1131,11 @@ button.qpm_tab {
 
 .qpm_wordedStringSubject {
   font-weight: 600;
+}
+
+.qpm_filterCategoryPrefix {
+  font-weight: normal;
+  font-size: 0.9em;
 }
 
 .qpm_SearchResult {
@@ -1998,7 +1941,7 @@ button.qpm_tab {
   padding: 0 10px;
 }
 
-.collapse-enter,
+.collapse-enter-from,
 .collapse-leave-to {
   transform: scaleY(0);
   transform-origin: top center;
@@ -2012,7 +1955,7 @@ button.qpm_tab {
   display: block;
 }
 
-.list-fade-enter,
+.list-fade-enter-from,
 .list-fade-leave-to {
   opacity: 0;
   transform: translateX(30%);
@@ -2421,4 +2364,58 @@ input:checked + .qpm_slider:before {
   display: flex;
   align-items: flex-start;
   gap: 8px;
+}
+
+/* Search Gallery +/- toggle icons */
+.qpm_gallery_toggle {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  gap: 9px;
+}
+.qpm_toggle_icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border: 1.5px solid #555;
+  border-radius: 3px;
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 1;
+  color: #555;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+.qpm_gallery_toggle:hover .qpm_toggle_icon {
+  border-color: #333;
+  color: #333;
+}
+/* Default state: show + (collapsed) */
+.qpm_toggle_icon .qpm_toggle_minus {
+  display: none;
+}
+.qpm_toggle_icon .qpm_toggle_plus {
+  display: inline;
+}
+/* Expanded state: show - */
+.qpm_toggle_expanded .qpm_toggle_minus {
+  display: inline;
+}
+.qpm_toggle_expanded .qpm_toggle_plus {
+  display: none;
+}
+.qpm_toggle_placeholder {
+  border-color: transparent;
+}
+.qpm_toggle_placeholder .qpm_toggle_minus,
+.qpm_toggle_placeholder .qpm_toggle_plus {
+  display: none;
+}
+.qpm_toggle_placeholder:hover,
+.qpm_gallery_toggle:hover .qpm_toggle_placeholder {
+  border-color: transparent;
+  color: transparent;
 }
