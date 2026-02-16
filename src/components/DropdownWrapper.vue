@@ -1744,6 +1744,16 @@
         this.focusByHover = true;
       },
       async handleAddTag(newTag) {
+        const input = this.$refs.multiselect?.$refs.search || this.$el?.querySelector(".multiselect__input");
+        const appRoot = this.$el?.closest(".qpm_vapp");
+        const hadVisibleKeyboardFocus =
+          !!input &&
+          !this.isMouseUsed &&
+          document.activeElement === input &&
+          !!appRoot &&
+          appRoot.classList.contains("qpm_keyboard-mode") &&
+          !this.isSilentFocus &&
+          !input.classList.contains("qpm_silent-focus");
         var tag;
         if (this.searchWithAI) {
           this.isLoading = true;
@@ -1751,6 +1761,12 @@
 
           // close the multiselect dropdown
           this.$refs.multiselect.deactivate();
+          if (hadVisibleKeyboardFocus && input) {
+            this.$nextTick(() => {
+              input.focus({ preventScroll: true });
+              this.addKeyboardFocus();
+            });
+          }
           //setTimeout is to resolve the tag placeholder before starting to translate
           await new Promise((resolve) => setTimeout(resolve, 10));
           let translated = await this.translateSearch(newTag);
@@ -1786,6 +1802,12 @@
           this.$emit("translating", false, this.index);
 
           this.$refs.multiselect.deactivate();
+          if (hadVisibleKeyboardFocus && input) {
+            this.$nextTick(() => {
+              input.focus({ preventScroll: true });
+              this.addKeyboardFocus();
+            });
+          }
           // setTimeout is to resolve the tag placeholder before starting to translate
           // Without this the dropdown will hide category groups when adding a new tag
           await new Promise((resolve) => setTimeout(resolve, 20));
@@ -1803,6 +1825,34 @@
         this.input(this.selected, -1);
         this.loading = false;
         this.clearShownItems();
+        if (hadVisibleKeyboardFocus) {
+          this.$nextTick(() => this.focusNextFocusableElement(input));
+        }
+      },
+      focusNextFocusableElement(currentElement) {
+        if (!currentElement || this.isMouseUsed) return;
+
+        const root = this.$el?.closest(".qpm_vapp") || document.body;
+        const focusableSelector = [
+          'a[href]',
+          'button:not([disabled])',
+          'input:not([disabled]):not([type="hidden"])',
+          'select:not([disabled])',
+          'textarea:not([disabled])',
+          '[tabindex]:not([tabindex="-1"])',
+        ].join(",");
+
+        const focusables = Array.from(root.querySelectorAll(focusableSelector)).filter((el) => {
+          if (!(el instanceof HTMLElement)) return false;
+          if (el.getAttribute("aria-hidden") === "true") return false;
+          return el.offsetParent !== null || el === document.activeElement;
+        });
+
+        const currentIndex = focusables.indexOf(currentElement);
+        const next = currentIndex >= 0 ? focusables[currentIndex + 1] : null;
+        if (next instanceof HTMLElement) {
+          next.focus({ preventScroll: true });
+        }
       },
       /**
        * This is the handler for the custom tag update event.

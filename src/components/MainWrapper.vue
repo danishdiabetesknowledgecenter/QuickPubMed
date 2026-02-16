@@ -66,8 +66,10 @@
               :language="language"
               :search-with-a-i="searchWithAI"
               :get-string="getString"
+              :get-filter-placeholder="getFilterPlaceholder"
               @update-filter-dropdown="updateFilterDropdown"
               @update-filter-scope="updateFilterDropdownScope"
+              @update-filter-placeholder="updateFilterPlaceholder"
               @add-filter-dropdown="addFilterDropdown"
               @remove-filter-dropdown="removeFilterDropdown"
             />
@@ -255,6 +257,10 @@
         placeholderDotIntervalId: null,
         placeholderDotIndex: null,
         placeholderDotBaseText: "",
+        filterDropdownPlaceholders: [],
+        filterPlaceholderDotIntervalId: null,
+        filterPlaceholderDotIndex: null,
+        filterPlaceholderDotBaseText: "",
         openFiltersFromUrl: false,
         urlHideLimits: [],
         urlCheckLimits: [],
@@ -536,6 +542,7 @@
     },
     beforeUnmount() {
       this.clearPlaceholderDotInterval();
+      this.clearFilterPlaceholderDotInterval();
       // Cleanup focus-visible event listeners
       if (this._focusVisibleCleanup) {
         this._focusVisibleCleanup();
@@ -2343,6 +2350,39 @@
         }
         this.placeholderDotIndex = null;
         this.placeholderDotBaseText = "";
+      },
+      getFilterPlaceholder(index) {
+        return this.filterDropdownPlaceholders[index] || this.getString("choselimits");
+      },
+      clearFilterPlaceholderDotInterval() {
+        if (this.filterPlaceholderDotIntervalId != null) {
+          clearInterval(this.filterPlaceholderDotIntervalId);
+          this.filterPlaceholderDotIntervalId = null;
+        }
+        this.filterPlaceholderDotIndex = null;
+        this.filterPlaceholderDotBaseText = "";
+      },
+      updateFilterPlaceholder(isTranslating, index, stepKey) {
+        if (isTranslating) {
+          this.clearFilterPlaceholderDotInterval();
+          const baseText =
+            stepKey && messages[stepKey]
+              ? this.getString(stepKey)
+              : this.getString("translatingPlaceholder");
+          this.filterDropdownPlaceholders[index] = baseText;
+          this.filterPlaceholderDotIndex = index;
+          this.filterPlaceholderDotBaseText = baseText;
+          let dotCount = 0;
+          this.filterPlaceholderDotIntervalId = setInterval(() => {
+            if (this.filterPlaceholderDotIndex === null) return;
+            dotCount = (dotCount % 5) + 1;
+            this.filterDropdownPlaceholders[this.filterPlaceholderDotIndex] =
+              this.filterPlaceholderDotBaseText + ".".repeat(dotCount);
+          }, 400);
+        } else {
+          this.clearFilterPlaceholderDotInterval();
+          this.filterDropdownPlaceholders[index] = this.getString("choselimits");
+        }
       },
       updatePlaceholder(isTranslating, index, stepKey) {
         if (isTranslating) {
