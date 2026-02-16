@@ -83,6 +83,12 @@ mainWrapperDivs.forEach((mainWrapperDiv, index) => {
   const parsedOrderLimits = parseDatasetList(mainWrapperDiv.dataset.orderLimits, "orderLimits");
   const language = mainWrapperDiv.dataset.language || undefined;
   const componentNo = mainWrapperDiv.dataset.componentNo || undefined;
+  const standardStringAdd = mainWrapperDiv.dataset.standardStringAdd === "true";
+  const standardStringScopeRaw = mainWrapperDiv.dataset.standardStringScope;
+  const standardStringScope =
+    standardStringScopeRaw && ["narrow", "normal", "broad"].includes(standardStringScopeRaw)
+      ? standardStringScopeRaw
+      : "normal";
 
   // Set global config (for backward compatibility with single-instance usage)
   if (domain) {
@@ -106,6 +112,8 @@ mainWrapperDivs.forEach((mainWrapperDiv, index) => {
       language: language,
       componentNo: componentNo,
       domain: domain,
+      standardStringAdd: standardStringAdd,
+      standardStringScope: standardStringScope,
     },
     {
       instanceDomain: domain,

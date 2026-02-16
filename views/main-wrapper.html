@@ -14,7 +14,7 @@
     />
   </head>
   <body style="background: white">
-    <div style="width: 872px; max-width: 100%; margin: auto; padding: 15px">
+    <div style="width: 100%; max-width: 100%; margin: auto; padding: 15px">
       <!--
         Main wrapper settings (HTML data-attributes)
         -------------------------------------------
@@ -41,6 +41,13 @@
 
         Topics:
         - data-hide-topics: Array of topic IDs to hide in subject dropdowns.
+
+        Standard string for free-text search:
+        - data-standard-string-add: When "true", the domain's standardString (from qpm-content-topics-xxx.js)
+          is appended to all free-text (manual) search terms as: (user free text) AND (standardString).
+          If the domain has no standardString (missing or empty in the topic file), nothing is added.
+        - data-standard-string-scope: Which standardString variant to use: "narrow", "normal", or "broad".
+          Only relevant when data-standard-string-add="true". Default is "normal" if omitted.
 
         Format for list attributes:
         - Must be a JSON-like array string using single quotes, e.g. "['L010010','L010020']".
@@ -87,23 +94,32 @@
         data-use-a-i="true"
         data-use-a-i-summarizer="true"
         data-use-mesh-validation="true"
+        data-hide-topics="['L10010']"
         data-open-filters="true"
         data-hide-limits="['L010030']" 
         data-check-limits="['L010020','L010030']"
         data-order-limits="['L010030','L010020','L010010']"
-        data-hide-topics="['L10010']"
+        data-standard-string-add="true"
+        data-standard-string-scope="normal"
         data-language="dk"
         data-component-no=""
       ></div>
       <div
-      class="main-wrapper"
-      data-domain=""
-      data-use-a-i="true"
-      data-use-a-i-summarizer="true"
-      data-hide-topics="['L10010']"
-      data-language="dk"
-      data-component-no=""
-    ></div>
+        class="main-wrapper"
+        data-domain="diabetes"
+        data-use-a-i="true"
+        data-use-a-i-summarizer="true"
+        data-use-mesh-validation="true"
+        data-hide-topics="['L10010']"
+        data-open-filters="false"
+        data-hide-limits="['L010030']" 
+        data-check-limits="['L010020','L010030']"
+        data-order-limits="['L010030','L010020','L010010']"
+        data-standard-string-add=""
+        data-standard-string-scope=""
+        data-language="dk"
+        data-component-no=""
+      ></div>
     </div>
     <script type="module" src="./MainWrapper.js"></script>
   </body>

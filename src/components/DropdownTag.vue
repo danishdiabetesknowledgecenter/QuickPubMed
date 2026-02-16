@@ -6,7 +6,7 @@
     <span
       v-tooltip="{ content: getTooltip, distance: 5, delay: helpTextDelay }"
       class="multiselect__tag"
-      :class="getTagColor(triple.option.scope)"
+      :class="[getTagColor(triple.option.scope), { 'qpm_tag-freetext': triple.option.isCustom }]"
       :style="isEditMode ? (isMultiLine ? 'width: 100%; display: flex; flex-direction: column;' : 'width: 100%;') : ''"
       @click="handleTagClick"
       @keydown.enter.prevent="handleKeydown"

@@ -17,6 +17,35 @@ export function loadTopics(domain) {
 }
 
 /**
+ * Loads standardString for the specified domain (from qpm-content-topics-*.js).
+ * Used to optionally add a domain-specific base query to free-text searches.
+ *
+ * @param {string} domain - The domain name (e.g., 'diabetes', 'dementia').
+ * @returns {Object|null} - { narrow, normal, broad } or null if missing/empty.
+ */
+export function loadStandardString(domain) {
+  if (!domain) return null;
+  const modules = import.meta.glob("/src/assets/content/**/qpm-content-topics-*.js", {
+    eager: true,
+  });
+  const key = Object.keys(modules).find(
+    (k) =>
+      k.includes(`/src/assets/content/${domain}/`) &&
+      modules[k]?.standardString != null &&
+      typeof modules[k].standardString === "object"
+  );
+  if (!key) return null;
+  const standardString = modules[key].standardString;
+  if (
+    !standardString ||
+    (Object.keys(standardString).length === 0)
+  ) {
+    return null;
+  }
+  return standardString;
+}
+
+/**
  * Loads prompt rule modules for the specified domain.
  *
  * @param {string} domain - The domain name (e.g., 'diabetes', 'dementia').

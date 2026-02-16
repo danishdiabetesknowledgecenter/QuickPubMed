@@ -619,7 +619,7 @@ button.qpm_slim.multiselect__input:focus-visible {
   margin-right: 0;
   margin-bottom: 7px;
   border-radius: 5px;
-  max-width: min(775px, 100%);
+  max-width: min(100%, 100%) !important;
   cursor: pointer;
   white-space: normal;
 }
@@ -711,7 +711,7 @@ input.multiselect__input{
   margin-bottom: 7px;
   border: solid 1px lightgrey !important;
   border-radius: 5px;
-  max-width: min(700px, 100%);
+  max-width: 100%;
   cursor: pointer;
   height: 32px;
   box-sizing: border-box !important;
@@ -759,6 +759,13 @@ input.multiselect__input{
 .multiselect__tags-wrap,
 .multiselect__tags-wrap span {
   vertical-align: middle;
+}
+
+/* Fritekst-brik: bredde efter indhold, max 100% af container */
+.multiselect__tag.qpm_tag-freetext {
+  max-width: min(100%, 100%);
+  display: inline-block;
+  box-sizing: border-box;
 }
 
 .multiselect__tag input {

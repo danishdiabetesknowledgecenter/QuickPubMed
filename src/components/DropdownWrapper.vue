@@ -1551,6 +1551,28 @@
         // Only handle Enter key beyond this point
         if (event.key !== 'Enter') return;
 
+        // Fritekstfelt uden topics: Enter skal oprette tag i stedet for at åbne dropdown
+        if (
+          event.target.classList.contains("multiselect__input") &&
+          this.shouldHideDropdownArrow
+        ) {
+          event.stopPropagation();
+          event.preventDefault();
+          if (this.isSilentFocus) {
+            this.removeSilentFocus(event.target);
+          }
+          const newTag = (event.target.value || "").trim();
+          if (newTag.length > 0) {
+            this.handleAddTag(newTag);
+            event.target.value = "";
+            if (this.$refs.multiselect) {
+              this.$refs.multiselect.search = "";
+            }
+            this.isUserTyping = false;
+          }
+          return;
+        }
+
         // Når input har fokus og dropdown er lukket: Enter åbner dropdown
         if (event.target.classList.contains("multiselect__input") && this.$refs.multiselect && !this.$refs.multiselect.isOpen) {
           event.stopPropagation();

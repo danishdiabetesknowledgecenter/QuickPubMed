@@ -5,5 +5,5 @@ export const config = reactive({
   language: "", // Default language NOT USED YET
   useAI: false, // AI feature flag for all ai feature
   useAISummarizer: false, // AI feature flag for the article summarizer
-  useMeshValidation: false, // Validate AI-translated [mh] terms via NLM E-utilities MeSH database
+  useMeshValidation: true, // Validate AI-translated [mh] terms via NLM E-utilities MeSH database
 });

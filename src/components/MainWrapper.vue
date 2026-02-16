@@ -57,7 +57,7 @@
 
             <!-- The dropdown(s) for selecting filters to be included in the advanced search -->
             <advanced-search-filters
-              v-if="advanced && (hasSubjects || openFiltersFromUrl || openFilters)"
+              v-if="advanced && hasSubjects"
               ref="advancedSearchFilters"
               :advanced="advanced"
               :filter-options="filterOptions"
@@ -66,10 +66,8 @@
               :language="language"
               :search-with-a-i="searchWithAI"
               :get-string="getString"
-              :get-filter-placeholder="getFilterDropdownPlaceholder"
               @update-filter-dropdown="updateFilterDropdown"
               @update-filter-scope="updateFilterDropdownScope"
-              @update-filter-placeholder="updateFilterPlaceholder"
               @add-filter-dropdown="addFilterDropdown"
               @remove-filter-dropdown="removeFilterDropdown"
             />
@@ -158,10 +156,11 @@
 
   import { order } from "@/assets/content/qpm-content-order.js";
   import { filtrer } from "@/assets/content/qpm-content-filters.js";
+  import { messages } from "@/assets/content/qpm-translations.js";
   import { topicLoaderMixin, flattenTopicGroups } from "@/mixins/topicLoaderMixin.js";
   import { appSettingsMixin } from "@/mixins/appSettings";
-  import { utilitiesMixin } from "@/mixins/utilities";
   import { scopeIds, customInputTagTooltip } from "@/utils/qpm-content-helpers.js";
+  import { loadStandardString } from "@/utils/contentLoader";
 
   export default {
     name: "MainWrapper",
@@ -176,7 +175,7 @@
       WordedSearchString,
       SearchResult,
     },
-    mixins: [appSettingsMixin, topicLoaderMixin, utilitiesMixin],
+    mixins: [appSettingsMixin, topicLoaderMixin],
     props: {
       hideTopics: {
         type: Array,
@@ -197,6 +196,14 @@
       openFilters: {
         type: Boolean,
         default: false,
+      },
+      standardStringAdd: {
+        type: Boolean,
+        default: false,
+      },
+      standardStringScope: {
+        type: String,
+        default: "normal",
       },
       hideFilters: {
         type: Array,
@@ -245,11 +252,9 @@
         subjects: [[]],
         translating: false,
         dropdownPlaceholders: [],
-        translatingStepKey: null,
-        translatingIndex: -1,
-        translatingSource: null,
-        loadingDots: 1,
-        placeholderDotsIntervalId: null,
+        placeholderDotIntervalId: null,
+        placeholderDotIndex: null,
+        placeholderDotBaseText: "",
         openFiltersFromUrl: false,
         urlHideLimits: [],
         urlCheckLimits: [],
@@ -265,6 +270,10 @@
       },
       effectiveOrderLimits() {
         return this.urlOrderLimits.length > 0 ? this.urlOrderLimits : this.orderLimits;
+      },
+      standardStringForFreetext() {
+        const std = loadStandardString(this.currentDomain);
+        return std && typeof std === "object" && Object.keys(std).length > 0 ? std : null;
       },
       showSimpleFilters() {
         return this.hasSubjects || this.openFiltersFromUrl || this.openFilters;
@@ -393,15 +402,31 @@
 
         const buildSubstring = (items, connector = " OR ") => {
           return items
-            .filter((item) => 
-              item.searchStrings && 
-              item.scope && 
-              item.searchStrings[item.scope] && 
+            .filter((item) =>
+              item.searchStrings &&
+              item.scope &&
+              item.searchStrings[item.scope] &&
               item.searchStrings[item.scope].length > 0
             )
             .map((item) => {
               const { scope, searchStrings } = item;
-              const combined = searchStrings[scope].join(connector);
+              let combined = searchStrings[scope].join(connector);
+              if (
+                item.isCustom &&
+                this.standardStringAdd &&
+                this.standardStringForFreetext
+              ) {
+                const scopeToUse =
+                  ["narrow", "normal", "broad"].includes(this.standardStringScope) &&
+                  this.standardStringForFreetext[this.standardStringScope]
+                    ? this.standardStringScope
+                    : this.standardStringForFreetext.normal
+                      ? "normal"
+                      : null;
+                if (scopeToUse && this.standardStringForFreetext[scopeToUse]) {
+                  combined = `(${combined}) AND (${this.standardStringForFreetext[scopeToUse]})`;
+                }
+              }
               return hasLogicalOperators(searchStrings[scope][0]) && items.length > 1
                 ? `(${combined})`
                 : combined;
@@ -510,16 +535,13 @@
       // Fjernet fejlagtig watch handler for subjectSelection
     },
     beforeUnmount() {
+      this.clearPlaceholderDotInterval();
       // Cleanup focus-visible event listeners
       if (this._focusVisibleCleanup) {
         this._focusVisibleCleanup();
       }
       // Tilføj proper cleanup for resize listener
       window.removeEventListener("resize", this.updateSubjectDropdownWidth);
-      if (this.placeholderDotsIntervalId) {
-        clearInterval(this.placeholderDotsIntervalId);
-        this.placeholderDotsIntervalId = null;
-      }
     },
     async mounted() {
       this.advanced = !this.advanced;
@@ -1966,7 +1988,7 @@
             { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
           );
 
-          const idList = esearchResponse.data?.esearchresult?.idlist?.filter(Boolean) ?? [];
+          const idList = esearchResponse.data.esearchresult.idlist.filter(Boolean);
 
           if (idList.length === 0) {
             this.count = 0;
@@ -1994,10 +2016,9 @@
             return;
           }
 
-          const uids = esummaryResult.uids ?? [];
-          const data = uids.map((uid) => esummaryResult[uid]);
+          const data = esummaryResult.uids.map((uid) => esummaryResult[uid]);
 
-          this.count = parseInt(esearchResponse.data?.esearchresult?.count, 10) || 0;
+          this.count = parseInt(esearchResponse.data.esearchresult.count, 10);
           this.searchresult = data;
           // Handle any preselected PMIDs
           const preSelectedEntries = await this.searchPreselectedPmidai();
@@ -2082,9 +2103,9 @@
           );
 
           // Extract and filter the list of PubMed IDs
-          const idList = esearchResponse.data?.esearchresult?.idlist?.filter(
+          const idList = esearchResponse.data.esearchresult.idlist.filter(
             (id) => id && id.trim() !== ""
-          ) ?? [];
+          );
 
           // If no IDs are returned, update the state and exit
           if (idList.length === 0) {
@@ -2116,11 +2137,10 @@
           }
 
           // Extract the detailed data for each PubMed ID
-          const uids = esummaryResult.uids ?? [];
-          const data = uids.map((uid) => esummaryResult[uid]);
+          const data = esummaryResult.uids.map((uid) => esummaryResult[uid]);
 
           // Update the total count and append the new data to existing search results
-          this.count = parseInt(esearchResponse.data?.esearchresult?.count, 10) || 0;
+          this.count = parseInt(esearchResponse.data.esearchresult.count, 10);
 
           // Merge unique entries to prevent duplicates
           const uniqueData = this.mergeUniqueEntries(data);
@@ -2244,6 +2264,14 @@
         this.isCollapsed = !this.isCollapsed;
         this.setUrl();
       },
+      getString(string) {
+        if (!messages[string]) {
+          console.warn(`Missing translation key: ${string}`);
+          return string;
+        }
+        let constant = messages[string][this.language];
+        return constant != undefined ? constant : messages[string]["dk"];
+      },
       /**
        * Returns the custom name label for the given option.
        *
@@ -2300,14 +2328,11 @@
       },
       // passing along the index seemingly makes vue understand that
       // the dropdownwrappers can have seperate placeholders so keep it even though it is unused
-      getDropdownPlaceholder(index, translating = false, stepKey) {
-        if (translating && stepKey) {
-          return this.getString(stepKey);
-        }
+      getDropdownPlaceholder(index, translating = false) {
         if (translating) {
           return this.getString("translatingPlaceholder");
         }
-
+        
         const hasTopics = this.hasAvailableTopics;
         const width = this.subjectDropdownWidth;
         const isMobileOrSmall = this.checkIfMobile() || (width < 520 && width >= 0);
@@ -2323,67 +2348,35 @@
           }
         }
       },
+      clearPlaceholderDotInterval() {
+        if (this.placeholderDotIntervalId != null) {
+          clearInterval(this.placeholderDotIntervalId);
+          this.placeholderDotIntervalId = null;
+        }
+        this.placeholderDotIndex = null;
+        this.placeholderDotBaseText = "";
+      },
       updatePlaceholder(isTranslating, index, stepKey) {
         if (isTranslating) {
-          if (this.placeholderDotsIntervalId) {
-            clearInterval(this.placeholderDotsIntervalId);
-            this.placeholderDotsIntervalId = null;
-          }
-          this.translatingSource = "subject";
-          this.translatingIndex = index;
-          this.translatingStepKey = stepKey || "translatingPlaceholder";
-          this.loadingDots = 1;
-          this.dropdownPlaceholders[index] = this.getString(this.translatingStepKey) + ".";
-          const self = this;
-          this.placeholderDotsIntervalId = setInterval(() => {
-            self.loadingDots = (self.loadingDots % 3) + 1;
-            if (self.translatingSource === "subject" && self.translatingIndex >= 0 && self.translatingStepKey) {
-              self.dropdownPlaceholders[self.translatingIndex] = self.getString(self.translatingStepKey) + ".".repeat(self.loadingDots);
-            }
-          }, 450);
+          this.clearPlaceholderDotInterval();
+          const baseText =
+            stepKey && messages[stepKey]
+              ? this.getString(stepKey)
+              : this.getDropdownPlaceholder(index, true);
+          this.dropdownPlaceholders[index] = baseText;
+          this.placeholderDotIndex = index;
+          this.placeholderDotBaseText = baseText;
+          let dotCount = 0;
+          this.placeholderDotIntervalId = setInterval(() => {
+            if (this.placeholderDotIndex === null) return;
+            dotCount = (dotCount % 5) + 1;
+            this.dropdownPlaceholders[this.placeholderDotIndex] =
+              this.placeholderDotBaseText + ".".repeat(dotCount);
+          }, 400);
         } else {
-          if (this.placeholderDotsIntervalId) {
-            clearInterval(this.placeholderDotsIntervalId);
-            this.placeholderDotsIntervalId = null;
-          }
-          this.translatingSource = null;
-          this.translatingIndex = -1;
-          this.translatingStepKey = null;
+          this.clearPlaceholderDotInterval();
           this.dropdownPlaceholders[index] = this.getDropdownPlaceholder(index, false);
         }
-      },
-      updateFilterPlaceholder(isTranslating, index, stepKey) {
-        if (isTranslating) {
-          if (this.placeholderDotsIntervalId) {
-            clearInterval(this.placeholderDotsIntervalId);
-            this.placeholderDotsIntervalId = null;
-          }
-          this.translatingSource = "filter";
-          this.translatingIndex = index;
-          this.translatingStepKey = stepKey || "translatingPlaceholder";
-          this.loadingDots = 1;
-          const self = this;
-          this.placeholderDotsIntervalId = setInterval(() => {
-            self.loadingDots = (self.loadingDots % 3) + 1;
-            if (self.translatingSource === "subject" && self.translatingIndex >= 0 && self.translatingStepKey) {
-              self.dropdownPlaceholders[self.translatingIndex] = self.getString(self.translatingStepKey) + ".".repeat(self.loadingDots);
-            }
-          }, 450);
-        } else {
-          if (this.placeholderDotsIntervalId) {
-            clearInterval(this.placeholderDotsIntervalId);
-            this.placeholderDotsIntervalId = null;
-          }
-          this.translatingSource = null;
-          this.translatingIndex = -1;
-          this.translatingStepKey = null;
-        }
-      },
-      getFilterDropdownPlaceholder(index) {
-        if (this.translatingSource === "filter" && this.translatingIndex === index && this.translatingStepKey) {
-          return this.getString(this.translatingStepKey) + ".".repeat(this.loadingDots);
-        }
-        return this.getString("choselimits");
       },
       updatePlaceholders() {
         this.$nextTick(() => {
