@@ -631,40 +631,28 @@
         appElement.classList.add('qpm_mouse-mode');
         appElement.classList.remove('qpm_keyboard-mode');
         
-        // Switch to keyboard mode on any key press (especially Tab)
+        // Switch only on keyboard navigation keys
         const handleKeyDown = (event) => {
-          // Include Tab key specifically for navigation
-          if (['Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Space'].includes(event.key)) {
+          if (['Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
             appElement.classList.add('qpm_keyboard-mode');
             appElement.classList.remove('qpm_mouse-mode');
           }
         };
         
-        // Switch to mouse mode on any mouse click or mouse movement with buttons
+        // Switch to mouse mode on click interactions
         const handleMouseDown = () => {
           appElement.classList.add('qpm_mouse-mode');
           appElement.classList.remove('qpm_keyboard-mode');
         };
         
-        // Also switch to mouse mode on mouse movement (when user moves mouse after using keyboard)
-        const handleMouseMove = (event) => {
-          // Only switch on actual mouse movement, not programmatic events
-          if (event.isTrusted && (event.movementX !== 0 || event.movementY !== 0)) {
-            appElement.classList.add('qpm_mouse-mode');
-            appElement.classList.remove('qpm_keyboard-mode');
-          }
-        };
-        
         // Add event listeners
         document.addEventListener('keydown', handleKeyDown, true);
         document.addEventListener('mousedown', handleMouseDown, true);
-        document.addEventListener('mousemove', handleMouseMove, { passive: true });
         
         // Store cleanup function for potential future use
         this._focusVisibleCleanup = () => {
           document.removeEventListener('keydown', handleKeyDown, true);
           document.removeEventListener('mousedown', handleMouseDown, true);
-          document.removeEventListener('mousemove', handleMouseMove);
         };
       },
       advancedClick(skip = false) {
