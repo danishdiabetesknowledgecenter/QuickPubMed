@@ -1,6 +1,6 @@
 <?php
 /**
- * Simple test file to verify PHP and configuration
+ * Simple test file to verify PHP and configuration 
  */
 
 header('Content-Type: application/json');
