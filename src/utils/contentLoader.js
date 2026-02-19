@@ -24,7 +24,7 @@ async function fetchRuntimeContent(type, domain = "") {
 
   const response = await fetch(
     `${getContentApiBaseUrl()}/PublicContent.php?${params.toString()}`,
-    { credentials: "include" }
+    { credentials: "omit" }
   );
   if (!response.ok) {
     if (response.status === 404) {
