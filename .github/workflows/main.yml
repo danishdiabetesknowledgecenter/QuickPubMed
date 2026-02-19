@@ -56,14 +56,19 @@ jobs:
              *.map
              *.env
 
-      - name: 📂 Deploy php-proxy to FTP Server
+      - name: 📂 Deploy backend to FTP Server
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: ./php-proxy/
-          server-dir: ./php-proxy/
+          local-dir: ./backend/
+          server-dir: ./backend/
           protocol: ftp
           exclude: |
              config.php
+             config/config.php
+             storage/content/**
+             storage/runtime/**
+             runtime/**
+             *.lock

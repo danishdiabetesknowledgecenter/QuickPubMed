@@ -1,4 +1,4 @@
-import { loadPromptRules } from "@/utils/contentLoader";
+import { loadPromptRulesFromRuntime } from "@/utils/contentLoader";
 import { config } from "@/config/config";
 
 export const promptRuleLoaderMixin = {
@@ -19,15 +19,16 @@ export const promptRuleLoaderMixin = {
   },
   watch: {
     currentDomain: {
-      handler(newDomain) {
+      async handler(newDomain) {
         if (!newDomain) {
+          this.domainSpecificPromptRules = {};
           return;
         }
-        const loadedPromptRules = loadPromptRules(newDomain);
-        const promptRules = loadedPromptRules.reduce((acc, module) => {
-          return { ...acc, ...module.promptRules };
-        }, {});
-        this.domainSpecificPromptRules = promptRules;
+        try {
+          this.domainSpecificPromptRules = await loadPromptRulesFromRuntime(newDomain);
+        } catch (error) {
+          this.domainSpecificPromptRules = {};
+        }
       },
       immediate: true,
     },

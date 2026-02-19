@@ -158,7 +158,6 @@
   import { appSettingsMixin } from "@/mixins/appSettings";
   import { utilitiesMixin } from "@/mixins/utilities";
   import { filtrer } from "@/assets/content/qpm-content-filters.js";
-  import { topics } from "@/assets/content/diabetes/qpm-content-topics-diabetes.js";
   import { order } from "@/assets/content/qpm-content-order.js";
 
   export default {
@@ -290,7 +289,8 @@
         const filter = Object.keys(this.filters);
         for (let i = 0; i < filter.length; i++) {
           try {
-            if (this.filters[filter[i]][0].name) return i;
+            const first = this.filters[filter[i]]?.[0];
+            if (first?.id || first?.name || first?.translations) return i;
           } catch (error) {
             console.error(error);
             continue;
@@ -320,33 +320,45 @@
         }
       },
       getWordedSubjectString(string) {
-        try {
-          let constant;
-          if (string.id) {
-            constant = string.translations[this.language];
-          }
-          if (string.translations && string.translations[this.language]) {
-            constant = string.translations[this.language];
-          } else if (string.isTranslated && string.preTranslation) {
-            constant =
-              string.preTranslation +
-              " (" +
-              this.getString("manualInputTermTranslated") +
-              ": " +
-              string.name +
-              ")";
-          } else {
-            constant = string.name;
-          }
-          return constant;
-        } catch (e) {
-          return string.translations["dk"];
+        if (!string || typeof string !== "object") return "";
+
+        if (string.translations && string.translations[this.language]) {
+          return string.translations[this.language];
         }
+
+        if (string.translations && string.translations.dk) {
+          return string.translations.dk;
+        }
+
+        if (string.isTranslated && string.preTranslation) {
+          return (
+            string.preTranslation +
+            " (" +
+            this.getString("manualInputTermTranslated") +
+            ": " +
+            (string.name || "") +
+            ")"
+          );
+        }
+
+        return string.name || string.id || "";
       },
       getWordedFilterString(filter) {
         try {
           let constant;
-          if (filter.translations) {
+          if (filter?.isCustom) {
+            if (filter.isTranslated && filter.preTranslation) {
+              constant =
+                filter.preTranslation +
+                " (" +
+                this.getString("manualInputTermTranslated") +
+                ": " +
+                (filter.name || "") +
+                ")";
+            } else {
+              constant = filter.name || this.getString("manualInputTerm") || "Søgeord";
+            }
+          } else if (filter.translations) {
             constant = filter.translations[this.language];
           } else if (filter.id) {
             constant = this.getWordedFilterStringById(filter.id);
@@ -362,7 +374,9 @@
         }
       },
       getWordedFilterStringById(id) {
-        if (id === "__custom__") return this.getString("manualInputTerm") || "Søgeord";
+        if (typeof id === "string" && id.startsWith("__custom__")) {
+          return this.getString("manualInputTerm") || "Søgeord";
+        }
         const type = id.substr(0, 1).toLowerCase();
         const groupId = id.substr(0, 3);
         const lg = this.language;
@@ -373,13 +387,7 @@
         if (type === "o") {
           return order.find(byId).translations[lg];
         } else if (type === "s") {
-          const group = topics.find(byGroupId);
-          if (id.length === 3) {
-            return group.translations[lg];
-          } else {
-            const topic = group.groups.find(byId);
-            return topic.translations[lg];
-          }
+          return id;
         } else if (type === "l") {
           const group = filtrer.find(byGroupId);
           if (id.length === 3) {
@@ -424,7 +432,9 @@
         return !allSame;
       },
       getFilterCategoryName(item) {
-        if (!item.id || item.id === "__custom__") return this.getString("manualInputTerm") || "Søgeord";
+        if (!item.id || (typeof item.id === "string" && item.id.startsWith("__custom__"))) {
+          return this.getString("manualInputTerm") || "Søgeord";
+        }
         // Find the category by checking which filter group contains this item's id
         const groupId = item.id.substring(0, 4);
         const group = filtrer.find((f) => f.id === groupId || (f.choices && f.choices.some((c) => c.id === item.id)));
@@ -437,7 +447,7 @@
       },
       getWordedFilterStringFromId(id) {
         // Handle custom filter entries (manually entered search terms)
-        if (id === "__custom__") {
+        if (typeof id === "string" && id.startsWith("__custom__")) {
           return this.getString("manualInputTerm") || "Søgeord";
         }
         const filterGroup = filtrer.find(group => group.id === id);

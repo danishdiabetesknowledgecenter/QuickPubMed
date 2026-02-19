@@ -493,7 +493,7 @@
 
           try {
             const response = await axios.post(
-              `${this.appSettings.nlm.proxyUrl}/esearch`,
+              `${this.appSettings.nlm.proxyUrl}/NlmSearch.php`,
               esearchParams.toString(),
               {
                 headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -527,7 +527,7 @@
         this.loadingComponent = true;
 
         // Credentials handled by PHP proxy
-        const baseUrl = `${this.appSettings.nlm.proxyUrl}/esummary`;
+        const baseUrl = `${this.appSettings.nlm.proxyUrl}/NlmSummary.php`;
 
         try {
           const response = await axios.get(baseUrl, {
@@ -572,7 +572,7 @@
         }
 
         // Credentials handled by PHP proxy
-        const baseurl = `${this.appSettings.nlm.proxyUrl}/efetch`;
+        const baseurl = `${this.appSettings.nlm.proxyUrl}/NlmFetch.php`;
 
         try {
           const combinedIds = [...this.enteredIds, ...this.idswithAbstractsToLoad];

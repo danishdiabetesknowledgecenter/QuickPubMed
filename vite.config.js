@@ -10,9 +10,10 @@ const __dirname = path.dirname(__filename);
 export default defineConfig(({ command }) => {
   // Define common input files
   const input = {
-    MainWrapper: path.resolve(__dirname, "views/main-wrapper.html"),
-    SearchGallery: path.resolve(__dirname, "views/search-gallery.html"),
-    SpecificArticles: path.resolve(__dirname, "views/specific-articles.html"),
+    MainWrapper: path.resolve(__dirname, "entries/widgets/main-wrapper.html"),
+    SearchGallery: path.resolve(__dirname, "entries/widgets/search-gallery.html"),
+    SpecificArticles: path.resolve(__dirname, "entries/widgets/specific-articles.html"),
+    Editor: path.resolve(__dirname, "entries/widgets/editor.html"),
   };
 
   // Include index.html only in development
@@ -23,6 +24,15 @@ export default defineConfig(({ command }) => {
   return {
     base: "./",
     plugins: [vue()],
+    server: {
+      proxy: {
+        "/backend": {
+          target: "https://qpm.videncenterfordiabetes.dk/dev/latest",
+          changeOrigin: true,
+          secure: true,
+        },
+      },
+    },
     resolve: {
       alias: {
         vue: "vue",

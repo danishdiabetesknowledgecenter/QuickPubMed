@@ -1,5 +1,6 @@
-import { loadTopics } from "@/utils/contentLoader";
+import { loadTopics, loadTopicsFromRuntime } from "@/utils/contentLoader";
 import { config } from "@/config/config";
+import { normalizeTopicsList } from "@/utils/contentCanonicalizer";
 
 /**
  * Flattens nested topic groups into a flat array.
@@ -84,24 +85,33 @@ export const topicLoaderMixin = {
     },
   },
   methods: {
-    loadTopicsData() {
+    async loadTopicsData() {
       const domain = this.currentDomain;
       // Skip loading and error messages if no domain is specified
       if (!domain) {
         this.topics = [];
         return;
       }
-      
-      const loadedTopics = loadTopics(domain);
-      if (loadedTopics.length > 0) {
-        // Flatten the array if there are multiple modules, then flatten nested groups
-        this.topics = loadedTopics.flatMap((module) => module.topics || []).map((topic) => ({
-          ...topic,
-          groups: flattenTopicGroups(topic.groups),
-        }));
-      } else {
-        console.error(`No topics found for domain: ${domain}`);
+
+      let topicsSource = [];
+      try {
+        topicsSource = await loadTopicsFromRuntime(domain);
+      } catch (error) {
+        const loadedTopics = loadTopics(domain);
+        topicsSource = loadedTopics.flatMap((module) => module.topics || []);
       }
+
+      if (topicsSource.length === 0) {
+        console.error(`No topics found for domain: ${domain}`);
+        this.topics = [];
+        return;
+      }
+
+      const normalizedTopics = normalizeTopicsList(topicsSource);
+      this.topics = normalizedTopics.map((topic) => ({
+        ...topic,
+        groups: flattenTopicGroups(topic.groups || []),
+      }));
     },
   },
 };

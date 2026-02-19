@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="da" style="background: white">
+  <head>
+    <meta charset="utf-8" />
+    <title>NemPubMed</title>
+    <meta name="viewport" content="initial-scale=1.0, maximum-scale=5.0, minimum-scale=1.0, width=device-width" />
+    <link rel="stylesheet" media="all" href="https://videncenterfordiabetes.dk/css/bundle.css" />
+
+    <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" />
+    <link rel="stylesheet" href="https://unpkg.com/remixicon@4.9.1/fonts/remixicon.css" />
+    <link rel="stylesheet" href="https://unpkg.com/vue-multiselect/dist/vue-multiselect.min.css" />
+    
+  </head>
+  <body style="background: white">
+    <!--
+      Specific Articles settings (HTML data-attributes)
+      ==================================================
+      Each <div class="specific-articles"> block renders one article entry (or a
+      PubMed query result list). Multiple blocks can appear on the same page.
+      All data-* attributes are optional unless noted.
+
+      Core settings:
+      - data-domain: Content domain (e.g. "diabetes"). Affects which topic
+          data and prompt rules are loaded.
+      - data-language: UI language ("dk" or "en"). Defaults to "dk".
+      - data-component-no: Numeric identifier used to build a unique DOM id.
+          Required when multiple instances appear on the same page.
+
+      AI features:
+      - data-use-a-i: Enable the AI translation toggle ("true" or "false").
+      - data-use-a-i-summarizer: Enable the AI summarizer ("true" or "false").
+
+      Article source — use ONE of the following approaches:
+        PubMed lookup:
+        - data-ids: One or more PubMed IDs, separated by commas (e.g. "33313987").
+        PubMed query:
+        - data-query: A PubMed search query (e.g. "diabetes[mh]").
+        - data-query-results: Max number of results to return (numeric).
+        - data-sort-method: Sort order for query results
+            (e.g. "date_desc", "relevance").
+        Manual entry (no PubMed):
+        - data-title: Article title.
+        - data-authors: Author list as a single string.
+        - data-source: Journal / publisher string.
+        - data-date: Publication date as display string.
+        - data-doi: DOI identifier (without URL prefix).
+        - data-abstract: Plain-text abstract.
+        - data-sectioned-abstract: JSON object with section headings as keys
+            and section text as values.
+            Example: '{ "Aim": "...", "Methods": "...", "Results": "..." }'
+        - data-booktitle: Book title (for book chapters).
+        - data-vernaculartitle: Original-language title.
+        - data-hyper-link: Custom URL to link to instead of PubMed.
+        - data-hyper-link-text: Display text for the custom link.
+        - data-is-custom-doi: "true" if the DOI is manually provided
+            (not from PubMed).
+
+      Display options:
+      - data-hide-buttons: "true" to hide action buttons (translate, summarize, etc.).
+      - data-show-date: "true" to show the publication date.
+      - data-shown-six-authors: "true" to limit the author list to the first six.
+      - data-show-altmetric-badge: "true" to show the Altmetric donut badge.
+      - data-show-dimensions-badge: "true" to show the Dimensions citation badge.
+      - data-use-translate-title: "true" to enable title translation via AI.
+
+      Format for list/JSON attributes:
+      - data-ids uses commas: "12345678,23456789"
+      - data-sectioned-abstract uses a JSON object string (see example above).
+      - Boolean attributes accept "true" or "false" (string).
+    -->
+
+    <p
+      style="
+        font-size: large;
+        font-weight: bold;
+        background-color: #43484f;
+        color: #ffffff;
+        padding: 10px;
+      "
+    >
+      Eksempel med en simpel søgning på 'diabetes[mh]' (viser de første 3 resultater):
+    </p>
+    <div
+      class="specific-articles"
+      data-domain="diabetes"
+      data-use-a-i="true"
+      data-use-a-i-summarizer="true"
+      data-ids=""
+      data-query="diabetes[mh]"
+      data-query-results="3"
+      data-sort-method="date_desc"
+      data-hide-buttons="false"
+      data-show-date="true"
+      data-date=""
+      data-title=""
+      data-booktitle=""
+      data-vernaculartitle=""
+      data-authors=""
+      data-source=""
+      data-abstract=""
+      data-doi=""
+      data-is-custom-doi=""
+      data-language="dk"
+      data-hyper-link=""
+      data-hyper-link-text=""
+      data-sectioned-abstract=""
+      data-component-no="1"
+      data-shown-six-authors=""
+      data-show-altmetric-badge="true"
+      data-show-dimensions-badge="true"
+      data-use-translate-title="true"
+    ></div>
+
+    <p
+      style="
+        font-size: large;
+        font-weight: bold;
+        background-color: #43484f;
+        color: #ffffff;
+        padding: 10px;
+      "
+    >
+      Eksempel på brug af use-translate-title:
+    </p>
+    <div
+      class="specific-articles"
+      data-domain="diabetes"
+      data-use-a-i="true"
+      data-use-a-i-summarizer="true"
+      data-ids="33313987"
+      data-query=""
+      data-query-results=""
+      data-sort-method=""
+      data-hide-buttons=""
+      data-show-date=""
+      data-date=""
+      data-title=""
+      data-booktitle=""
+      data-vernaculartitle=""
+      data-authors=""
+      data-source=""
+      data-abstract=""
+      data-doi=""
+      data-is-custom-doi=""
+      data-language="dk"
+      data-hyper-link=""
+      data-hyper-link-text=""
+      data-sectioned-abstract=""
+      data-component-no="1"
+      data-shown-six-authors=""
+      data-show-altmetric-badge="true"
+      data-show-dimensions-badge="true"
+      data-use-translate-title="false"
+    ></div>
+
+    <div
+      class="specific-articles"
+      data-domain="diabetes"
+      data-use-a-i="true"
+      data-use-a-i-summarizer="true"
+      data-ids=""
+      data-query=""
+      data-query-results=""
+      data-sort-method=""
+      data-hide-buttons="true"
+      data-show-date="false"
+      data-date=""
+      data-title="National behandlingsvejledning: Diabetes og hjertesygdom"
+      data-booktitle=""
+      data-vernaculartitle=""
+      data-authors="Pietraszek A, Bojer AS, Søndergaard E, Wiggers H, Hansen KB, Bjerregaard-Andersen M, Jørgensen PG"
+      data-source="Dansk Cardiologisk Selskab; 2024 [online]"
+      data-abstract=""
+      data-doi=""
+      data-is-custom-doi=""
+      data-language="dk"
+      data-hyper-link="https://nbv.cardio.dk/diabetes"
+      data-hyper-link-text="Læs behandlingsvejledningen"
+      data-sectioned-abstract=""
+      data-component-no=""
+      data-shown-six-authors=""
+      data-show-altmetric-badge="false"
+      data-show-dimensions-badge="false"
+      data-use-translate-title="false"
+    ></div>
+
+    <!--
+    
+    <p
+      style="
+        font-size: large;
+        font-weight: bold;
+        background-color: #43484f;
+        color: #ffffff;
+        padding: 10px;
+      "
+    >
+      Eksempel på manuel indsættelse af data for artikel uden PMID:
+    </p>
+    <div
+      class="specific-articles"
+      data-domain="diabetes"
+      data-use-a-i="true"
+      data-use-a-i-summarizer="true"
+      data-ids=""
+      data-query=""
+      data-query-results=""
+      data-sort-method=""
+      data-hide-buttons="false"
+      data-show-date="true"
+      data-date="21. september 2009"
+      data-title="Personalized care planning for diabetes: policy lessons from systematic reviews of consultation and self-management interventions."
+      data-booktitle=""
+      data-vernaculartitle=""
+      data-authors="Graffy J, Eaton S, Sturt J, Chadwick P"
+      data-source="Primary Health Care Research & Development. Cambridge University Press; 2009;10(3):210–22"
+      data-abstract=""
+      data-doi="10.1017/S1463423609001157"
+      data-is-custom-doi=""
+      data-language="dk"
+      data-hyper-link=""
+      data-hyper-link-text=""
+      data-sectioned-abstract='{
+        "Aim": "To determine whether a process of care planning for people with diabetes, combining a patient-centred approach by practitioners with measures to promote self-management by patients, improve health outcomes. Background: Health policy, in many countries, seeks to engage people with long-term conditions in protecting their health. This review was conducted by members of a working group established by the Department of Health and Diabetes, UK to consider the potential for personalized care planning in UK diabetes services.",
+        "Methods": "Review of systematic reviews. The Cochrane Library and Database of Reviews of Effectiveness were searched to identify reviews concerned with components of care planning. Reviews conducted before 1990, and those involving education outside the consultation were excluded. Abstracts were reviewed and data extraction undertaken by reviewers working independently in pairs.",
+        "Results": "In all, 86 reviews were identified as potentially relevant and 22 included. Patient-focused interventions, such as pre-consultation prompts, enhanced the role patients played in consultations. Personalized approaches using tailored information influenced health behaviour more than uniform approaches. Decision aids and computerized knowledge management improved the process of decision-making. Although effective communication was important, focusing solely on changing practitioner behaviour appeared inadequate. Taken together, there was good evidence that the processes involved in personalized care planning would engage patients more effectively in managing their care, but little robust research on the impact on health outcomes of doing so.",
+        "Conclusions": "The present review identifies effective interventions that are available for clinicians to use in diabetes consultations, but engaging patients requires more than this. Mechanisms to share information and decision-making need further development and evaluation to assess their impact on health outcomes. Narrowly targeted interventions focused on practitioner behaviour appear less effective than whole-system approaches. Personalized care planning offers a mechanism to integrate patient-centred medicine and support for self-management to improve diabetes care."
+      }'
+      data-component-no=""
+      data-shown-six-authors=""
+      data-show-altmetric-badge="true"
+      data-show-dimensions-badge="true"
+    ></div>
+
+    <p
+      style="
+        font-size: large;
+        font-weight: bold;
+        background-color: #43484f;
+        color: #ffffff;
+        padding: 10px;
+      "
+    >
+      Eksempel på en simpel indsættelse af en dansk rapport:
+    </p>
+
+    <div
+      class="specific-articles"
+      data-domain="diabetes"
+      data-use-a-i="false"
+      data-use-a-i-summarizer="false"
+      data-ids=""
+      data-query=""
+      data-query-results=""
+      data-sort-method=""
+      data-hide-buttons="true"
+      data-show-date="false"
+      data-date=""
+      data-title="National behandlingsvejledning: Diabetes og hjertesygdom"
+      data-booktitle=""
+      data-vernaculartitle=""
+      data-authors="Pietraszek A, Bojer AS, Søndergaard E, Wiggers H, Hansen KB, Bjerregaard-Andersen M, Jørgensen PG"
+      data-source="Dansk Cardiologisk Selskab; 2024 [online]"
+      data-abstract=""
+      data-doi=""
+      data-is-custom-doi=""
+      data-language="dk"
+      data-hyper-link="https://nbv.cardio.dk/diabetes"
+      data-hyper-link-text="Læs behandlingsvejledningen"
+      data-sectioned-abstract=""
+      data-component-no=""
+      data-shown-six-authors=""
+      data-show-altmetric-badge="false"
+      data-show-dimensions-badge="false"
+    ></div>
+    <p
+      style="
+        font-size: large;
+        font-weight: bold;
+        background-color: #43484f;
+        color: #ffffff;
+        padding: 10px;
+      "
+    >
+      Eksempler MED abstract:
+    </p>
+    <div
+      class="specific-articles"
+      data-domain="diabetes"
+      data-use-a-i="true"
+      data-use-a-i-summarizer="true"
+      data-ids="33313987"
+      data-query=""
+      data-query-results=""
+      data-sort-method=""
+      data-hide-buttons=""
+      data-show-date="true"
+      data-date=""
+      data-title=""
+      data-booktitle=""
+      data-vernaculartitle=""
+      data-authors=""
+      data-source=""
+      data-abstract=""
+      data-doi=""
+      data-is-custom-doi=""
+      data-language="dk"
+      data-hyper-link=""
+      data-hyper-link-text=""
+      data-sectioned-abstract=""
+      data-component-no="1"
+      data-shown-six-authors=""
+      data-show-altmetric-badge="true"
+      data-show-dimensions-badge="true"
+    ></div>
+
+    <div
+      class="specific-articles"
+      data-domain="diabetes"
+      data-use-a-i="true"
+      data-use-a-i-summarizer="true"
+      data-ids="37246403"
+      data-query=""
+      data-query-results=""
+      data-sort-method=""
+      data-hide-buttons=""
+      data-show-date="true"
+      data-date=""
+      data-title=""
+      data-booktitle=""
+      data-vernaculartitle=""
+      data-authors=""
+      data-source=""
+      data-abstract=""
+      data-doi=""
+      data-is-custom-doi=""
+      data-language="dk"
+      data-hyper-link=""
+      data-hyper-link-text=""
+      data-sectioned-abstract=""
+      data-component-no="2"
+      data-shown-six-authors=""
+      data-show-altmetric-badge="true"
+      data-show-dimensions-badge="true"
+    ></div>
+
+    <div
+      class="specific-articles"
+      data-domain="diabetes"
+      data-use-a-i="true"
+      data-use-a-i-summarizer="true"
+      data-ids="37290429"
+      data-query=""
+      data-query-results=""
+      data-sort-method=""
+      data-hide-buttons=""
+      data-show-date="true"
+      data-date=""
+      data-title=""
+      data-booktitle=""
+      data-vernaculartitle=""
+      data-authors=""
+      data-source=""
+      data-abstract=""
+      data-doi=""
+      data-is-custom-doi=""
+      data-language="dk"
+      data-hyper-link=""
+      data-hyper-link-text=""
+      data-sectioned-abstract=""
+      data-component-no="3"
+      data-shown-six-authors=""
+      data-show-altmetric-badge="true"
+      data-show-dimensions-badge="true"
+    ></div>
+
+    <div
+      class="specific-articles"
+      data-domain="diabetes"
+      data-use-a-i="true"
+      data-use-a-i-summarizer="true"
+      data-ids="35137143"
+      data-query=""
+      data-query-results=""
+      data-sort-method=""
+      data-hide-buttons=""
+      data-show-date="true"
+      data-date=""
+      data-title=""
+      data-booktitle=""
+      data-vernaculartitle=""
+      data-authors=""
+      data-source=""
+      data-abstract=""
+      data-doi=""
+      data-is-custom-doi=""
+      data-language="dk"
+      data-hyper-link=""
+      data-hyper-link-text=""
+      data-sectioned-abstract=""
+      data-component-no="4"
+      data-shown-six-authors=""
+      data-show-altmetric-badge="true"
+      data-show-dimensions-badge="true"
+    ></div>
+
+    <div
+      class="specific-articles"
+      data-domain="diabetes"
+      data-use-a-i="true"
+      data-use-a-i-summarizer="true"
+      data-ids="36360447"
+      data-query=""
+      data-query-results=""
+      data-sort-method=""
+      data-hide-buttons=""
+      data-show-date="true"
+      data-date=""
+      data-title=""
+      data-booktitle=""
+      data-vernaculartitle=""
+      data-authors=""
+      data-source=""
+      data-abstract=""
+      data-doi=""
+      data-is-custom-doi=""
+      data-language="dk"
+      data-hyper-link=""
+      data-hyper-link-text=""
+      data-sectioned-abstract=""
+      data-component-no="5"
+      data-shown-six-authors=""
+      data-show-altmetric-badge="true"
+      data-show-dimensions-badge="true"
+    ></div>
+    <p
+      style="
+        font-size: large;
+        font-weight: bold;
+        background-color: #43484f;
+        color: #ffffff;
+        padding: 10px;
+      "
+    >
+      Eksempler UDEN abstract:
+    </p>
+
+    <div
+      class="specific-articles"
+      data-domain="diabetes"
+      data-use-a-i="true"
+      data-use-a-i-summarizer="true"
+      data-ids="29792621"
+      data-query=""
+      data-query-results=""
+      data-sort-method=""
+      data-hide-buttons=""
+      data-show-date="true"
+      data-date=""
+      data-title=""
+      data-booktitle=""
+      data-vernaculartitle=""
+      data-authors=""
+      data-source=""
+      data-abstract=""
+      data-doi=""
+      data-is-custom-doi=""
+      data-language="dk"
+      data-hyper-link=""
+      data-hyper-link-text=""
+      data-sectioned-abstract=""
+      data-component-no="6"
+      data-shown-six-authors=""
+      data-show-altmetric-badge="true"
+      data-show-dimensions-badge="true"
+    ></div>
+
+    <div
+      class="specific-articles"
+      data-domain="diabetes"
+      data-use-a-i="true"
+      data-use-a-i-summarizer="true"
+      data-ids="32576981"
+      data-query=""
+      data-query-results=""
+      data-sort-method=""
+      data-hide-buttons=""
+      data-show-date="true"
+      data-date=""
+      data-title=""
+      data-booktitle=""
+      data-vernaculartitle=""
+      data-authors=""
+      data-source=""
+      data-abstract=""
+      data-doi=""
+      data-is-custom-doi=""
+      data-language="dk"
+      data-hyper-link=""
+      data-hyper-link-text=""
+      data-sectioned-abstract=""
+      data-component-no="7"
+      data-shown-six-authors=""
+      data-show-altmetric-badge="true"
+      data-show-dimensions-badge="true"
+    ></div>
+
+    <div
+      class="specific-articles"
+      data-domain="diabetes"
+      data-use-a-i="true"
+      data-use-a-i-summarizer="true"
+      data-ids="39131791"
+      data-query=""
+      data-query-results=""
+      data-sort-method=""
+      data-hide-buttons=""
+      data-show-date="true"
+      data-date=""
+      data-title=""
+      data-booktitle=""
+      data-vernaculartitle=""
+      data-authors=""
+      data-source=""
+      data-abstract=""
+      data-doi=""
+      data-is-custom-doi=""
+      data-language="dk"
+      data-hyper-link=""
+      data-hyper-link-text=""
+      data-sectioned-abstract=""
+      data-component-no="8"
+      data-shown-six-authors=""
+      data-show-altmetric-badge="true"
+      data-show-dimensions-badge="true"
+    ></div>
+ -->
+
+    <script type="module" src="../scripts/SpecificArticles.js"></script>
+  </body>
+</html>

@@ -219,7 +219,7 @@ export async function validateMeshTerm(term, proxyUrl) {
       retmax: "1",
     });
 
-    const response = await axios.get(`${proxyUrl}/esearch?${params}`, { timeout: 10000 });
+    const response = await axios.get(`${proxyUrl}/NlmSearch.php?${params}`, { timeout: 10000 });
     const count = parseInt(response.data?.esearchresult?.count || "0", 10);
     const uid = response.data?.esearchresult?.idlist?.[0] || null;
 
@@ -248,7 +248,7 @@ async function fetchMeshDetails(uids, proxyUrl) {
       retmode: "json",
     });
 
-    const response = await axios.get(`${proxyUrl}/esummary?${params}`, { timeout: 10000 });
+    const response = await axios.get(`${proxyUrl}/NlmSummary.php?${params}`, { timeout: 10000 });
     const result = response.data?.result;
     if (!result) return {};
 
@@ -304,7 +304,7 @@ async function fetchMeshSuggestionsForInput(userInput, proxyUrl) {
       retmax: "10",
     });
 
-    const response = await axios.get(`${proxyUrl}/esearch?${params}`, { timeout: 10000 });
+    const response = await axios.get(`${proxyUrl}/NlmSearch.php?${params}`, { timeout: 10000 });
     const result = response.data?.esearchresult;
     if (!result) return { suggestions: [], uids: [] };
 
@@ -704,7 +704,7 @@ async function validateSearchString(searchString, proxyUrl, openAiServiceUrl, cl
       retmax: "0",
     });
 
-    const response = await axios.get(`${proxyUrl}/esearch?${params}`, { timeout: 10000 });
+    const response = await axios.get(`${proxyUrl}/NlmSearch.php?${params}`, { timeout: 10000 });
     const result = response.data?.esearchresult;
     const count = parseInt(result?.count || "0", 10);
     const queryTranslation = result?.querytranslation || "";

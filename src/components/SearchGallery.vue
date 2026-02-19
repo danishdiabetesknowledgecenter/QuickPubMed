@@ -33,10 +33,10 @@
         class="qpm_subjectSearchStrings"
       >
         <div class="qpm_headingContainerFocus_h3 qpm_gallery_toggle"
-          @click="hideOrCollapse(toClassName(subject.groupname), $event)"
-          @keyup.enter="hideOrCollapse(toClassName(subject.groupname), $event)"
+          @click="hideOrCollapse(toClassName(subject.id), $event)"
+          @keyup.enter="hideOrCollapse(toClassName(subject.id), $event)"
           tabindex="0"
-          :data-target="toClassName(subject.groupname)"
+          :data-target="toClassName(subject.id)"
         >
           <span :class="['qpm_toggle_icon', { qpm_toggle_expanded: !isLevelCollapsed(2) }]">
             <span class="qpm_toggle_plus">+</span>
@@ -50,7 +50,7 @@
         <div
           v-for="(group, index) in subject.groups"
           :key="`group-${group.id}-${index}`"
-          :class="['qpm_searchGroup', toClassName(subject.groupname), ...getAncestorClasses(group)]"
+          :class="['qpm_searchGroup', toClassName(subject.id), ...getAncestorClasses(group)]"
           :data-level="getItemLevel(group)"
           :data-has-children="hasChildren(group) ? '1' : '0'"
           :style="group.subtopiclevel ? { paddingLeft: (group.subtopiclevel * 30) + 'px' } : {}"
@@ -79,7 +79,7 @@
           <div
             v-if="!group.maintopic"
             class="qpm_searchGroup qpm_collapsedSection qpm_searchSubject"
-            :class="toClassName(group.name)"
+            :class="toClassName(group.id)"
           >
             <table class="qpm_table">
               <tr>
@@ -204,14 +204,14 @@
       </div>
       <div
         v-for="filter in getSortedFilters"
-        :key="filter.name"
+        :key="filter.id"
         class="qpm_filterSearchStrings"
       >
         <div class="qpm_headingContainerFocus_h3 qpm_gallery_toggle"
-          @click="hideOrCollapse(toClassName(filter.name), $event)"
-          @keyup.enter="hideOrCollapse(toClassName(filter.name), $event)"
+          @click="hideOrCollapse(toClassName(filter.id), $event)"
+          @keyup.enter="hideOrCollapse(toClassName(filter.id), $event)"
           tabindex="0"
-          :data-target="toClassName(filter.name)"
+          :data-target="toClassName(filter.id)"
         >
           <span :class="['qpm_toggle_icon', { qpm_toggle_expanded: !isLevelCollapsed(2) }]">
             <span class="qpm_toggle_plus">+</span>
@@ -225,7 +225,7 @@
         <div
           v-for="choice in filter.choices"
           :key="choice.id"
-          :class="['qpm_filterGroup', toClassName(filter.name), ...getAncestorClasses(choice)]"
+          :class="['qpm_filterGroup', toClassName(filter.id), ...getAncestorClasses(choice)]"
           :data-level="getItemLevel(choice)"
           :data-has-children="hasChildren(choice) ? '1' : '0'"
           :style="choice.subtopiclevel ? { paddingLeft: (choice.subtopiclevel * 30) + 'px' } : {}"
@@ -254,7 +254,7 @@
           <div
             v-if="!choice.maintopic"
             class="qpm_filterGroup qpm_collapsedSection qpm_searchFilter"
-            :class="toClassName(choice.name)"
+            :class="toClassName(choice.id)"
           >
             <table class="qpm_table">
               <tr>
@@ -368,8 +368,8 @@
 <script>
   import { appSettingsMixin } from "@/mixins/appSettings";
   import { messages } from "@/assets/content/qpm-translations.js";
-  import { filtrer } from "@/assets/content/qpm-content-filters.js";
   import { topicLoaderMixin, flattenTopicGroups } from "@/mixins/topicLoaderMixin.js";
+  import { loadFiltersFromRuntime } from "@/utils/contentLoader";
   import { order } from "@/assets/content/qpm-content-order.js";
 
   export default {
@@ -414,6 +414,7 @@
     watch: {
       topics: {
         handler(newTopics) {
+          this.subjects = Array.isArray(newTopics) ? newTopics : [];
           if (!this.hasAppliedInitialCollapse && newTopics && newTopics.length > 0) {
             this.$nextTick(() => {
               this.applyInitialCollapsedLevels();
@@ -425,12 +426,8 @@
       },
     },
     created() {
-      this.filters = JSON.parse(JSON.stringify(filtrer)).map((f) => ({
-        ...f,
-        choices: flattenTopicGroups(f.choices || []),
-      }));
-      this.subjects = this.topics;
       this.orders = order;
+      this.loadGalleryContent();
 
       const normalized = this.normalizeCollapsedLevels(this.collapsedLevels);
       if (normalized.length > 0) {
@@ -443,14 +440,36 @@
       }
     },
     mounted() {
-      // Only apply if watch hasn't already done it (topics loaded synchronously)
-      if (!this.hasAppliedInitialCollapse) {
+      // Only apply here when data is already present (sync/local load).
+      // For async/runtime load, the topics watcher applies collapse later.
+      if (
+        !this.hasAppliedInitialCollapse &&
+        ((Array.isArray(this.topics) && this.topics.length > 0) ||
+          (Array.isArray(this.filters) && this.filters.length > 0))
+      ) {
         this.applyInitialCollapsedLevels();
         this.hasAppliedInitialCollapse = true;
       }
     },
     
     methods: {
+      async loadGalleryContent() {
+        this.subjects = Array.isArray(this.topics) ? this.topics : [];
+
+        try {
+          const runtimeFilters = await loadFiltersFromRuntime();
+          this.filters = JSON.parse(JSON.stringify(runtimeFilters)).map((f) => ({
+            ...f,
+            choices: flattenTopicGroups(f.choices || []),
+          }));
+        } catch (error) {
+          const fallback = await import("@/assets/content/qpm-content-filters.js");
+          this.filters = JSON.parse(JSON.stringify(fallback.filtrer || [])).map((f) => ({
+            ...f,
+            choices: flattenTopicGroups(f.choices || []),
+          }));
+        }
+      },
       blockHasComment(block) {
         let language = this.language || 'en';
         if (block.searchStringComment[this.language]) {
@@ -506,7 +525,7 @@
         if (item.maintopic) {
           return 'qpm_child_of_' + this.toClassName(item.id);
         }
-        return this.toClassName(item.name);
+        return this.toClassName(item.id);
       },
       hasChildren(item) {
         // Only items with children (maintopic) get +/- icon
@@ -719,7 +738,7 @@
         return constant != undefined ? constant : messages[string]["en"];
       },
       customNameLabel(option) {
-        if (!option.name && !option.groupname) return;
+        if (!option?.translations && !option?.name && !option?.id) return;
         let constant;
         if (option.translations) {
           let lg = this.language;
@@ -728,7 +747,7 @@
               ? option.translations[lg]
               : option.translations["en"];
         } else {
-          constant = option.name;
+          constant = option.name || option.id;
         }
         return constant;
       },
@@ -736,7 +755,7 @@
         return this.hideTopics.indexOf(topicId) != -1;
       },
       toClassName(name) {
-        return name.replaceAll(" ", "-");
+        return String(name || "").replaceAll(" ", "-");
       },
       sortData(data) {
         let self = this;

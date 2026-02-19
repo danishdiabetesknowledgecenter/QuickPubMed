@@ -22,8 +22,8 @@
       :aria-expanded="isDropdownOpen"
       :aria-label="placeholder"
       open-direction="bottom"
-      track-by="name"
-      label="name"
+      track-by="id"
+      label="id"
       select-label=""
       deselect-label=""
       selected-label=""
@@ -70,7 +70,7 @@
       <template #option="props">
         <span
           v-if="!props.option.$groupLabel"
-          :data-name="getHeader(props.option.name)"
+          :data-name="getHeader(props.option.id)"
           :option-id="props.option.id"
           :option-depth="props.option.subtopiclevel || 0"
           :maintopic="props.option.maintopic"
@@ -224,7 +224,6 @@
   import { appSettingsMixin } from "@/mixins/appSettings.js";
   import { utilitiesMixin } from "@/mixins/utilities";
   import { topicLoaderMixin } from "@/mixins/topicLoaderMixin.js";
-  import { filtrer } from "@/assets/content/qpm-content-filters.js";
   import { messages } from "@/assets/content/qpm-translations.js";
   import { searchTranslationPrompt } from "@/assets/content/qpm-prompts-translation.js";
   import { getPromptForLocale } from "@/utils/qpm-prompts-helpers.js";
@@ -968,6 +967,13 @@
           this.updateAriaExpanded();
         });
       },
+      optionIdentity(option) {
+        if (!option || typeof option !== "object") return "";
+        if (option.id) return `id:${option.id}`;
+        if (option.isCustom && option.name) return `custom:${option.name}`;
+        if (option.name) return `name:${option.name}`;
+        return "";
+      },
       /**
        * Added for sanity, since we hide elements by adding qpm_shown
        */
@@ -1169,7 +1175,11 @@
         const result = [];
         const groupProp = this.isGroup ? "groups" : "choices";
         this.data.forEach((item) => {
-          if (item.groupname === groupName || item.name === groupName || item.id === groupName) {
+          if (
+            item.id === groupName ||
+            this.customNameLabel(item) === groupName ||
+            this.customGroupLabel(item) === groupName
+          ) {
             const items = item[groupProp] || item.groups || item.choices || [];
             items.forEach((entry) => {
               result.push({
@@ -1335,7 +1345,7 @@
       },
       findNextSibling(currentSubject, filteredSortedOptions) {
         const currentIndex = filteredSortedOptions.findIndex(
-          (option) => option.name === currentSubject.name
+          (option) => this.optionIdentity(option) === this.optionIdentity(currentSubject)
         );
 
         if (currentIndex > 0) {
@@ -1415,10 +1425,7 @@
 
         if (!optionGroupName && !optionGroupId) {
           const filterCategoryId = this.selected[0]?.id?.substring(0, 3);
-
-          const filterCategoryName = filtrer.find((filter) => filter.id === filterCategoryId).name;
-          const optionsInOptionGroupFilters =
-            this.getOptionsFromOptionsGroupName(filterCategoryName);
+          const optionsInOptionGroupFilters = this.getOptionsFromOptionsGroupName(filterCategoryId);
 
           const filterIds = this.selected.map((option) => option.id);
           this.updateOptionGroupVisibility(filterIds, optionsInOptionGroupFilters);
@@ -1725,7 +1732,7 @@
         }
         //Check if added previously
         for (let i = 0; i < this.selected.length; i++) {
-          if (this.selected[i].name == item.name) {
+          if (this.optionIdentity(this.selected[i]) === this.optionIdentity(item)) {
             event.stopPropagation();
             return;
           }
@@ -1784,6 +1791,7 @@
             );
           }
           tag = {
+            id: `__custom__:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`,
             name: translated,
             searchStrings: { normal: [translated] },
             preString: this.getString("manualInputTermTranslated") + ":\u00A0",
@@ -1812,6 +1820,7 @@
           // Without this the dropdown will hide category groups when adding a new tag
           await new Promise((resolve) => setTimeout(resolve, 20));
           tag = {
+            id: `__custom__:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`,
             name: newTag,
             searchStrings: { normal: [newTag] },
             preString: this.getString("manualInputTerm") + ":\u00A0",
@@ -2347,9 +2356,9 @@
       },
 
       isContainedInList(props) {
-        if (props.option && props.option.name && this.selected) {
+        if (props.option && this.selected) {
           for (let i = 0; i < this.selected.length; i++) {
-            if (this.selected[i].name == props.option.name) {
+            if (this.optionIdentity(this.selected[i]) === this.optionIdentity(props.option)) {
               return true;
             }
           }
@@ -2494,11 +2503,11 @@
         for (const item of this.data) {
           // Match by raw groupname, display name, or group label
           if (
-            item.groupname === groupname ||
+            item.id === groupname ||
             this.customNameLabel(item) === groupname ||
             this.customGroupLabel(item) === groupname
           ) {
-            return item.groupname || item.id;
+            return item.id;
           }
         }
         return null;
@@ -2549,7 +2558,7 @@
             return "single";
           }
           for (let j = 0; j < this.data[i].groups.length; j++) {
-            if (this.data[i].groups[j].name == name) {
+            if (this.data[i].groups[j].id == name) {
               return this.customGroupLabel(this.data[i]);
             }
           }
@@ -2589,9 +2598,9 @@
           classes.push("qpm_ButtonColumnFocused");
         }
 
-        if (props.option && props.option.name && this.selected) {
+        if (props.option && this.selected) {
           for (let i = 0; i < this.selected.length; i++) {
-            if (this.selected[i].name == props.option.name) {
+            if (this.optionIdentity(this.selected[i]) === this.optionIdentity(props.option)) {
               if (this.selected[i].scope == scope) classes.push("selectedButton");
               break;
             }
@@ -2706,7 +2715,7 @@
         });
       },
       customNameLabel(option) {
-        if (!option.name && !option.groupname) return;
+        if (!option?.translations && !option?.name && !option?.id) return;
         let constant;
         if (option.translations) {
           const lg = this.language;
@@ -2715,7 +2724,7 @@
               ? option.translations[lg]
               : option.translations["dk"];
         } else {
-          constant = option.name;
+          constant = option.name || option.id;
         }
         return constant;
       },

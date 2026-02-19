@@ -1,0 +1,6 @@
+{
+  "promptRules": {
+    "dk": "Følg altid disse skriveregler:\n- Dette er regel nummer 1\n- Dette er regel nummer 2\n- Dette er regel nummer 1\nDu vil blive straffet meget hårdt, hvis du ikke følger alle de instruktioner, som du har fået.",
+    "en": "Always follow these writing rules:\n- This is rule number 1\n- This is rule number 2\n- This is rule number 1\nYou will be penalized severely if you do not follow the instructions you have received."
+  }
+}

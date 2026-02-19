@@ -9,6 +9,13 @@ node_modules
 
 # PHP proxy config (indeholder API-nøgle)
 php-proxy/config.php
+php-proxy/config/config.php
+backend/config.php
+backend/config/config.php
+
+# Runtime state
+php-proxy/storage/runtime/
+backend/storage/runtime/
 
 # Log files
 npm-debug.log*

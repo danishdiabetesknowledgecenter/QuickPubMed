@@ -25,22 +25,22 @@
           </b>
           <div
             v-for="(choice, index) in option.choices"
-            :id="'qpm_topic_' + choice.name"
+            :id="'qpm_topic_' + (choice.id || choice.name)"
             :key="`choice-${choice.id}-${index}`"
             class="qpm_simpleFilters"
           >
             <input
-              :id="choice.name"
+              :id="choice.id || choice.name"
               type="checkbox"
               :title="getString('checkboxTitle')"
-              :value="choice.name"
-              :checked="isFilterUsed(filterData[option.id], choice.name)"
+              :value="choice.id || choice.name"
+              :checked="isFilterUsed(filterData[option.id], choice)"
               style="cursor: pointer"
               @change="onFilterChange(option.id, choice, $event)"
               @keyup.enter="onFilterEnter(choice)"
             />
             <div>
-              <label :for="choice.name">
+              <label :for="choice.id || choice.name">
                 {{ getCustomNameLabel(choice) }}
               </label>
               <button
@@ -136,8 +136,11 @@
        * @param {string} name - The name of the filter to check.
        * @returns {boolean} True if the filter is used, false otherwise.
        */
-      isFilterUsed(option, name) {
-        return option ? option.some((opt) => opt.name === name) : false;
+      isFilterUsed(option, choice) {
+        if (!option || !choice) return false;
+        const choiceId = choice.id || "";
+        if (choiceId) return option.some((opt) => opt.id === choiceId);
+        return option.some((opt) => opt.name === choice.name);
       },
     },
   };

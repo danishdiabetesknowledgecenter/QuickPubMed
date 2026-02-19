@@ -1486,7 +1486,7 @@
         return constant != undefined ? constant : value.translations["dk"];
       },
       customNameLabel(option) {
-        if (!option.name && !option.groupname) return;
+        if (!option?.translations && !option?.name && !option?.id) return;
         let constant;
         if (option.id) {
           const lg = this.language;
@@ -1495,7 +1495,7 @@
               ? option.translations[lg]
               : option.translations["dk"];
         } else {
-          constant = option.name;
+          constant = option.name || option.id;
         }
         return constant;
       },

@@ -939,7 +939,7 @@
         if (missingIds.length === 0) return;
 
         const nlm = this.appSettings.nlm;
-        const baseurl = `${nlm.proxyUrl}/efetch?db=pubmed&retmode=xml&id=`;
+        const baseurl = `${nlm.proxyUrl}/NlmFetch.php?db=pubmed&retmode=xml&id=`;
         const url = baseurl + missingIds.join(",");
 
         try {
@@ -989,7 +989,7 @@
         const self = this;
         let nlm = this.appSettings.nlm;
         // Credentials handled by PHP proxy
-        let baseurl = `${nlm.proxyUrl}/efetch?db=pubmed&retmode=xml&id=`;
+        let baseurl = `${nlm.proxyUrl}/NlmFetch.php?db=pubmed&retmode=xml&id=`;
 
         let url = baseurl + self.idswithAbstractsToLoad.join(",");
         let axiosInstance = axios.create({

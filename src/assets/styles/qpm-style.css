@@ -2416,14 +2416,28 @@ input:checked + .qpm_slider:before {
   display: none;
 }
 .qpm_toggle_placeholder {
-  border-color: transparent;
+  border-color: #555;
+  position: relative;
 }
 .qpm_toggle_placeholder .qpm_toggle_minus,
 .qpm_toggle_placeholder .qpm_toggle_plus {
   display: none;
 }
+.qpm_toggle_placeholder::after {
+  content: "";
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: #555;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
 .qpm_toggle_placeholder:hover,
 .qpm_gallery_toggle:hover .qpm_toggle_placeholder {
-  border-color: transparent;
-  color: transparent;
+  border-color: #333;
+}
+.qpm_gallery_toggle:hover .qpm_toggle_placeholder::after {
+  background-color: #333;
 }

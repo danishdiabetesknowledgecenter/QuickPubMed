@@ -37,7 +37,7 @@
             <subject-selection
               ref="subjectSelection"
               :subjects="subjects"
-              :hide-topics="hideTopics"
+              :hide-topics="effectiveHideTopics"
               :subject-options="subjectOptions"
               :dropdown-placeholders="dropdownPlaceholders"
               :language="language"
@@ -62,7 +62,7 @@
               :advanced="advanced"
               :filter-options="filterOptions"
               :filter-dropdowns="filterDropdowns"
-              :hide-topics="hideTopics"
+              :hide-topics="effectiveHideTopics"
               :language="language"
               :search-with-a-i="searchWithAI"
               :get-string="getString"
@@ -157,12 +157,12 @@
   import axios from "axios";
 
   import { order } from "@/assets/content/qpm-content-order.js";
-  import { filtrer } from "@/assets/content/qpm-content-filters.js";
   import { messages } from "@/assets/content/qpm-translations.js";
   import { topicLoaderMixin, flattenTopicGroups } from "@/mixins/topicLoaderMixin.js";
+  import { normalizeFiltersList } from "@/utils/contentCanonicalizer";
   import { appSettingsMixin } from "@/mixins/appSettings";
   import { scopeIds, customInputTagTooltip } from "@/utils/qpm-content-helpers.js";
-  import { loadStandardString } from "@/utils/contentLoader";
+  import { loadFiltersFromRuntime, loadStandardString } from "@/utils/contentLoader";
 
   export default {
     name: "MainWrapper",
@@ -265,6 +265,7 @@
         urlHideLimits: [],
         urlCheckLimits: [],
         urlOrderLimits: [],
+        filtersContent: [],
       };
     },
     computed: {
@@ -312,16 +313,17 @@
         if (!this.subjectOptions || this.subjectOptions.length === 0) {
           return false;
         }
+        const effectiveHideTopics = this.effectiveHideTopics;
         
         // Simuler samme logik som DropdownWrapper's shownSubjects
         const shouldHideItem = (item) => {
-          if (this.hideTopics.includes(item.id)) {
+          if (effectiveHideTopics.includes(item.id)) {
             return true;
           }
-          if (item.maintopicIdLevel1 && this.hideTopics.includes(item.maintopicIdLevel1)) {
+          if (item.maintopicIdLevel1 && effectiveHideTopics.includes(item.maintopicIdLevel1)) {
             return true;
           }
-          if (item.maintopicIdLevel2 && this.hideTopics.includes(item.maintopicIdLevel2)) {
+          if (item.maintopicIdLevel2 && effectiveHideTopics.includes(item.maintopicIdLevel2)) {
             return true;
           }
           return false;
@@ -354,6 +356,27 @@
         return availableTopics.length > 0 && availableTopics.some(section => 
           section.groups && section.groups.length > 0
         );
+      },
+      defaultHiddenTopicIds() {
+        const out = [];
+        const visit = (node) => {
+          if (!node || typeof node !== "object") return;
+          if (node.hiddenByDefault === true && typeof node.id === "string" && node.id.trim() !== "") {
+            out.push(node.id);
+          }
+          if (Array.isArray(node.groups)) {
+            node.groups.forEach(visit);
+          }
+          if (Array.isArray(node.children)) {
+            node.children.forEach(visit);
+          }
+        };
+        this.subjectOptions.forEach(visit);
+        return out;
+      },
+      effectiveHideTopics() {
+        const configured = Array.isArray(this.hideTopics) ? this.hideTopics : [];
+        return Array.from(new Set([...configured, ...this.defaultHiddenTopicIds]));
       },
       hasFilterSelections() {
         return this.filterDropdowns.some((dropdown) => dropdown.length > 0);
@@ -551,6 +574,8 @@
       window.removeEventListener("resize", this.updateSubjectDropdownWidth);
     },
     async mounted() {
+      await this.loadFiltersData();
+
       this.advanced = !this.advanced;
       this.advancedClick(true);
       this.parseUrl();
@@ -614,6 +639,21 @@
       }
     },
     methods: {
+      async loadFiltersData() {
+        try {
+          this.filtersContent = await loadFiltersFromRuntime();
+        } catch (error) {
+          const fallback = await import("@/assets/content/qpm-content-filters.js");
+          this.filtersContent = fallback.filtrer || [];
+        }
+      },
+      optionIdentity(option) {
+        if (!option || typeof option !== "object") return "";
+        if (option.id) return `id:${option.id}`;
+        if (option.isCustom && option.name) return `custom:${option.name}`;
+        if (option.name) return `name:${option.name}`;
+        return "";
+      },
       /**
        * Initialize focus-visible behavior to only show focus outline for keyboard navigation
        */
@@ -736,7 +776,7 @@
         });
       },
       prepareFilterOptions() {
-        const filterCopy = JSON.parse(JSON.stringify(filtrer));
+        const filterCopy = normalizeFiltersList(JSON.parse(JSON.stringify(this.filtersContent)));
         filterCopy.forEach((filterItem) => {
           // Skip if filterItem is null or undefined
           if (!filterItem) return;
@@ -795,7 +835,9 @@
       updateFiltersBasedOnSelection() {
         const updatedFilters = [];
         this.filters.forEach((filter) => {
-          const matchingFilter = this.filterOptions.find((option) => option.name === filter.name);
+          const matchingFilter = this.filterOptions.find(
+            (option) => this.optionIdentity(option) === this.optionIdentity(filter)
+          );
           if (matchingFilter) {
             const shouldIncludeFilter =
               this.isUrlParsed && !this.advanced
@@ -1251,7 +1293,9 @@
           if (targetItem) {
             if (targetItem.scope === state) {
               // Remove the item if clicking the same scope (toggle off)
-              const idx = updated[index].findIndex((i) => i.name === item.name);
+              const idx = updated[index].findIndex(
+                (i) => this.optionIdentity(i) === this.optionIdentity(item)
+              );
               updated[index].splice(idx, 1);
             }
             targetItem.scope = state;
@@ -1553,12 +1597,14 @@
         const updatedSubjects = JSON.parse(JSON.stringify(this.subjects));
 
         if (Array.isArray(updatedSubjects) && updatedSubjects[index]) {
-          const subject = updatedSubjects[index].find((sub) => sub.name === item.name);
+          const subject = updatedSubjects[index].find(
+            (sub) => this.optionIdentity(sub) === this.optionIdentity(item)
+          );
           if (subject) {
             if (subject.scope === state) {
               // Find the subject in the subjects array and remove it
               const subjectIndex = updatedSubjects[index].findIndex(
-                (sub) => sub.name === item.name
+                (sub) => this.optionIdentity(sub) === this.optionIdentity(item)
               );
               updatedSubjects[index].splice(subjectIndex, 1);
             }
@@ -1613,7 +1659,7 @@
        *
        * @param {string} filterType - The ID of the filter group being updated.
        * @param {Object} selectedValue - The filter option that was selected or deselected.
-       * @param {string} selectedValue.name - The name of the selected filter option.
+       * @param {string} selectedValue.name - Valgfrit custom navn for filtervalg.
        * @param {boolean} selectedValue.checked - The current checked state of the filter option.
        */
       updateFilterSimple(filterType, selectedValue) {
@@ -1634,7 +1680,9 @@
         }
 
         // Check if the selected value is already in the filter data
-        const exists = tempFilterData[filterType].some((item) => item.name === selectedValue.name);
+        const exists = tempFilterData[filterType].some(
+          (item) => this.optionIdentity(item) === this.optionIdentity(selectedValue)
+        );
 
         // Determine if the option is checked or not
         const isChecked = selectedValue.checked; // Ensure 'checked' is a property
@@ -1657,7 +1705,7 @@
           if (!exists) return; // Nothing to remove
           // Remove the selected value from the filter data
           tempFilterData[filterType] = tempFilterData[filterType].filter(
-            (item) => item.name !== selectedValue.name
+            (item) => this.optionIdentity(item) !== this.optionIdentity(selectedValue)
           );
           // If the filter type array is empty, remove it and the filter from this.filters
           if (tempFilterData[filterType].length === 0) {
@@ -1674,7 +1722,9 @@
         this.editForm();
       },
       updateFilterSimpleOnEnter(selectedValue) {
-        var checkboxId = selectedValue.name.replaceAll(" ", "\\ "); // Handle ids with whitespace
+        const baseId = selectedValue?.id || selectedValue?.name || "";
+        if (!baseId) return;
+        var checkboxId = String(baseId).replaceAll(" ", "\\ "); // Handle ids with whitespace
         var checkbox = this.$el.querySelector("#" + checkboxId);
         checkbox.click();
       },
@@ -1769,7 +1819,9 @@
           if (targetItem) {
             if (targetItem.scope === state) {
               // Find the filter in the filterData array and remove it
-              const filterIndex = sel[index].findIndex((sub) => sub.name === item.name);
+              const filterIndex = sel[index].findIndex(
+                (sub) => this.optionIdentity(sub) === this.optionIdentity(item)
+              );
               sel[index].splice(filterIndex, 1);
             }
             targetItem.scope = state;
@@ -1978,7 +2030,7 @@
           });
 
           const esearchResponse = await axios.post(
-            `${nlm.proxyUrl}/esearch`,
+            `${nlm.proxyUrl}/NlmSearch.php`,
             esearchParams.toString(),
             { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
           );
@@ -2000,7 +2052,7 @@
           });
 
           const esummaryResponse = await axios.get(
-            `${nlm.proxyUrl}/esummary?${esummaryParams}`
+            `${nlm.proxyUrl}/NlmSummary.php?${esummaryParams}`
           );
 
           const esummaryResult = esummaryResponse.data.result;
@@ -2092,7 +2144,7 @@
 
           // Perform the ESearch API request to retrieve PubMed IDs
           const esearchResponse = await axios.post(
-            `${nlm.proxyUrl}/esearch`,
+            `${nlm.proxyUrl}/NlmSearch.php`,
             esearchParams.toString(),
             { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
           );
@@ -2119,7 +2171,7 @@
 
           // Perform the ESummary API request to retrieve detailed information
           const esummaryResponse = await axios.get(
-            `${nlm.proxyUrl}/esummary?${esummaryParams}`
+            `${nlm.proxyUrl}/NlmSummary.php?${esummaryParams}`
           );
 
           const esummaryResult = esummaryResponse.data.result;
@@ -2182,7 +2234,7 @@
         }
         let nlm = this.appSettings.nlm;
         // Credentials handled by PHP proxy
-        let baseUrl = `${nlm.proxyUrl}/esummary?db=pubmed&retmode=json&id=`;
+        let baseUrl = `${nlm.proxyUrl}/NlmSummary.php?db=pubmed&retmode=json&id=`;
 
         return axios.get(baseUrl + ids.join(",")).then(function (resp) {
           //Create list of returned data
@@ -2274,10 +2326,13 @@
        * @returns {string} The custom name label.
        */
       getCustomNameLabel(option) {
-        if (!option.name && !option.groupname) return "";
+        if (!option?.translations && !option?.name && !option?.id) return "";
 
         const constant =
-          option.translations?.[this.language] ?? option.translations?.["dk"] ?? option.name;
+          option.translations?.[this.language] ??
+          option.translations?.["dk"] ??
+          option.name ??
+          option.id;
 
         return constant;
       },

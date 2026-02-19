@@ -15,7 +15,7 @@ function getProxyUrl() {
   // Remove /assets/filename.js to get the base directory
   const scriptUrl = import.meta.url;
   const baseUrl = scriptUrl.replace(/\/assets\/[^/]+$/, '');
-  return baseUrl + '/php-proxy';
+  return baseUrl + '/backend';
 }
 const API_PROXY_URL = getProxyUrl();
 
@@ -40,7 +40,8 @@ export const settings = {
   nlm: {
     // API credentials are now handled server-side via PHP proxy
     myncbishare: MY_NCBI_SHARE,
-    proxyUrl: API_PROXY_URL + '/api/nlm',
+    // Use direct PHP endpoints as fallback when rewrite rules are unavailable.
+    proxyUrl: API_PROXY_URL + '/api',
   },
   openAi: {
     baseUrl: API_PROXY_URL,

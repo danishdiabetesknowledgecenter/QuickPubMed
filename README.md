@@ -7,10 +7,9 @@ This project contains the source code for the product QuickPubMed hosted on
 
 ## Prerequisites
 
-**Backend (Azure function API)**
+**Backend (PHP)**
 
-- .NET SDK and the runtime installed locally. [Download here](https://dotnet.microsoft.com/en-us/download/dotnet)
-- Azure functions Core Tools installed locally. [Download here](https://github.com/Azure/azure-functions-core-tools)
+- PHP 8.x installed locally (recommended with `openssl` and `curl` enabled)
 
 **Frontend (Vue web app)**
 
@@ -54,31 +53,51 @@ npm run dev
 
 This will start the Vite development server at `http://localhost:5173`
 
-The app defines three entry points that can be found under /views
+The app defines entry points under `entries/widgets`
 When opening the root directory at `http://localhost:5173` you'll see a simple menu for navigating to these entry points.
 ![alt text](readme-assets/image.png)
 
+#### Local dev API modes (backend)
+
+For local frontend development, you can use one of these API modes:
+
+- **Recommended (remote backend via Vite proxy)**  
+  Set `VITE_API_PROXY_URL="/backend"` in `.env`.  
+  Vite will proxy `/backend/*` requests to `https://qpm.videncenterfordiabetes.dk/dev/latest/*` (configured in `vite.config.js`), which avoids browser CORS issues during local development.
+
+- **Local PHP backend**  
+  Set `VITE_API_PROXY_URL="http://localhost:8080/backend"` in `.env`.  
+  This requires a local PHP runtime with `openssl` and `curl` enabled.
+
+#### Runtime content and domain-specific rules
+
+To keep the frontend bundle generic, domain-specific content is loaded at runtime from backend storage:
+
+- `backend/storage/content/<domain>/topics.json`
+- `backend/storage/content/filters.json`
+- `backend/storage/content/<domain>/prompt-rules.json`
+
+Frontend reads this via `backend/api/PublicContent.php`:
+
+- `?type=topics&domain=<domain>`
+- `?type=filters`
+- `?type=prompt-rules&domain=<domain>`
+
 ### Backend project
 
-The **backend** project can be cloned as such using ssh (asuming you only use the git CLI) [See this if using GitHub Desktop](https://docs.github.com/en/desktop/adding-and-cloning-repositories/cloning-a-repository-from-github-to-github-desktop)
+The backend is part of this same repository under `backend/`.
+
+**Local PHP backend (optional for local API mode):**
 
 ```bash
-git clone git@github.com:danishdiabetesknowledgecenter/QuickPubMed-AzureFunctions.git
-cd QuickPubMed-AzureFunctions/qpm_api
+php -S localhost:8080 -t backend
 ```
 
-**Create and fill in values for local.settings.json**
-
-- check the .local.settings.example.json file to see which are needed
-
-**Start development server:**
+Then use in `.env`:
 
 ```bash
-func start
+VITE_API_PROXY_URL="http://localhost:8080/backend"
 ```
-
-This will start the azure function server at `http://localhost:7071` and the terminal logs should display the API endpoints as seen on the screenshot below.
-![alt text](readme-assets/image-1.png)
 
 ### Start developing
 
@@ -170,7 +189,7 @@ Furthermore make sure that the enviroment varibels defined in the main.yml are c
 
 ## Notes
 
-- The application is built using Vue 2 and Vite 5
+- The application is built using Vue 3 and Vite 5
 - Deployment is configured for static hosting
 - Build artifacts are optimized for production
 
@@ -188,7 +207,7 @@ Maintaining consistent code quality and style is essential for collaborative dev
 
 #### Troubleshooting
 
-Should there be any issues running any of the commands for npm or func, make sure the terminal is started with admin rights, and that you've restarted the system after downloading and install packages. 
+Should there be any issues running commands for npm or php, make sure the terminal is started with sufficient rights, and that you've restarted the system after installing required packages.
 
 If a wrong version of something is installed this might cause issues. You can check the version of node or dotnet by appending " --version" to the name of the tool.
 
