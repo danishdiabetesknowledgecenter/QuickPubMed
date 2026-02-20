@@ -15,35 +15,44 @@ $input = editorReadInput();
 $username = trim((string) ($input['user'] ?? ''));
 $password = (string) ($input['password'] ?? '');
 
-$ip = (string) ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
-$rateKey = hash('sha256', strtolower($username) . '|' . $ip);
+$rateKey = editorBuildRateLimitKey($username);
 $rateLimit = editorIsRateLimited($rateKey);
 if ($rateLimit['limited']) {
     header('Retry-After: ' . (string) $rateLimit['retry_after']);
+    editorAudit('login_rate_limited', ['username' => $username]);
     editorJsonResponse(429, ['error' => 'Too many login attempts']);
 }
 
-if (!defined('EDITOR_USER') || !defined('EDITOR_PASSWORD_HASH')) {
+if (empty(editorConfiguredUsers())) {
     editorJsonResponse(500, ['error' => 'Editor auth is not configured']);
 }
 
-$isValid = hash_equals((string) EDITOR_USER, $username)
-    && password_verify($password, (string) EDITOR_PASSWORD_HASH);
+$authResult = editorAuthenticateCredentials($username, $password);
+$isValid = !empty($authResult['ok']) && is_array($authResult['user']);
 
 if (!$isValid) {
     editorRegisterFailedAttempt($rateKey);
+    editorAudit('login_failed', ['username' => $username]);
     editorJsonResponse(401, ['error' => 'Invalid credentials']);
 }
 
+$user = $authResult['user'];
 editorResetFailedAttempts($rateKey);
 session_regenerate_id(true);
-$_SESSION['editor_authenticated'] = true;
-$_SESSION['editor_user'] = (string) EDITOR_USER;
-$_SESSION['editor_last_activity'] = time();
-$csrfToken = editorEnsureCsrfToken();
+editorSetSessionUser($user);
+$csrfToken = editorRotateCsrfToken();
+editorAudit('login_success', [
+    'username' => (string) ($user['username'] ?? $username),
+    'can_edit_filters' => !empty($user['can_edit_filters']),
+    'allowed_domains' => $user['allowed_domains'] ?? [],
+]);
 
 editorJsonResponse(200, [
     'ok' => true,
     'csrfToken' => $csrfToken,
     'user' => $_SESSION['editor_user'],
+    'capabilities' => [
+        'canEditFilters' => !empty($_SESSION['editor_can_edit_filters']),
+        'allowedDomains' => editorNormalizeDomainsList($_SESSION['editor_allowed_domains'] ?? []),
+    ],
 ]);

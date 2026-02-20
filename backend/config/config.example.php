@@ -30,11 +30,26 @@ define('ALLOWED_DOMAINS', [
 ]);
 
 // ============ Editor Authentication (No Database) ============
-// Username for editor login
+// Legacy single-user fallback (kept for backwards compatibility)
 define('EDITOR_USER', 'editor');
-// Generate with:
-// php -r "echo password_hash('CHANGE-ME', PASSWORD_BCRYPT) . PHP_EOL;"
 define('EDITOR_PASSWORD_HASH', '$2y$10$REPLACE_WITH_BCRYPT_HASH');
+// Preferred multi-user structure
+// Generate hash with:
+// php -r "echo password_hash('CHANGE-ME', PASSWORD_BCRYPT) . PHP_EOL;"
+define('EDITOR_USERS', [
+    'editor' => [
+        'password_hash' => '$2y$10$REPLACE_WITH_BCRYPT_HASH',
+        'allowed_domains' => ['diabetes', 'dementia'],
+        'can_edit_filters' => true,
+        'disabled' => false,
+    ],
+    'topics_only' => [
+        'password_hash' => '$2y$10$REPLACE_WITH_BCRYPT_HASH',
+        'allowed_domains' => ['diabetes'],
+        'can_edit_filters' => false,
+        'disabled' => false,
+    ],
+]);
 // Session timeout in seconds (default: 30 minutes)
 define('EDITOR_SESSION_TIMEOUT', 1800);
 // Set to true in production (HTTPS required for editor endpoints)
@@ -57,6 +72,16 @@ define('EDITOR_ALLOWED_CONTENT_DOMAINS', [
     'sdnu',
     'skincancer',
 ]);
+// Max accepted request body for editor endpoints (bytes)
+define('EDITOR_MAX_REQUEST_BYTES', 2 * 1024 * 1024);
+// Validation limits for nested topic/filter trees
+define('EDITOR_MAX_TREE_DEPTH', 12);
+define('EDITOR_MAX_TOTAL_NODES', 50000);
+define('EDITOR_MAX_TEXT_LENGTH', 20000);
+// Revision history and audit
+define('EDITOR_MAX_REVISIONS', 25);
+define('EDITOR_AUDIT_ENABLED', true);
+define('EDITOR_AUDIT_RETENTION_DAYS', 30);
 
 // Load helper functions
 require_once dirname(__DIR__) . '/app/helpers.php';

@@ -14,6 +14,8 @@ editorRequireAuth();
 $input = editorReadInput();
 $csrfToken = $input['csrfToken'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? null);
 editorValidateCsrfToken(is_string($csrfToken) ? $csrfToken : null);
+editorAudit('logout', ['user' => (string) ($_SESSION['editor_user'] ?? '')]);
+editorRotateCsrfToken();
 
 $_SESSION = [];
 if (ini_get('session.use_cookies')) {

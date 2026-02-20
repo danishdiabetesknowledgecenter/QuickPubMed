@@ -42,6 +42,14 @@ function ensureEditorMarkup() {
       </div>
       <p id="qpm-editor-save-hint" class="qpm-editor-note">Ingen ændringer gennemføres, før du klikker "Gem alle ændringer".</p>
       <p id="qpm-editor-save-status" class="qpm-editor-save-status"></p>
+      <div id="qpm-editor-revisions" class="qpm-editor-row qpm-editor-hidden">
+        <select id="qpm-editor-revision-list" class="qpm-editor-select"></select>
+        <button id="qpm-editor-revision-refresh-btn" class="qpm-editor-btn qpm-editor-btn-secondary" type="button">Opdater historik</button>
+        <button id="qpm-editor-revision-preview-btn" class="qpm-editor-btn qpm-editor-btn-secondary" type="button">Preview version</button>
+        <button id="qpm-editor-revert-btn" class="qpm-editor-btn qpm-editor-btn-secondary" type="button">Gendan valgt version</button>
+      </div>
+      <p id="qpm-editor-revision-status" class="qpm-editor-note qpm-editor-hidden"></p>
+      <textarea id="qpm-editor-revision-preview-json" class="qpm-editor-textarea qpm-editor-textarea-json qpm-editor-hidden" spellcheck="false" readonly></textarea>
 
       <div id="qpm-editor-topic-tools" class="qpm-editor-row">
         <input id="qpm-editor-tree-search" class="qpm-editor-input" type="text" placeholder="Søg i emner (id eller navn)" />
@@ -91,7 +99,8 @@ const apiBase = (
   getDefaultApiBaseFromScriptUrl()
 ).replace(/\/+$/, "");
 const defaultDomain = root.dataset.domain || "";
-const configuredTopicDomains = parseConfiguredTopicDomains();
+const baseConfiguredTopicDomains = parseConfiguredTopicDomains();
+let configuredTopicDomains = [...baseConfiguredTopicDomains];
 const filtersEnabled = root.dataset.filtersEnabled !== "false";
 
 const loginSection = document.getElementById("qpm-editor-login");
@@ -115,6 +124,13 @@ const collapseAllBtn = document.getElementById("qpm-editor-collapse-all-btn");
 const loginBtn = document.getElementById("qpm-editor-login-btn");
 const loadBtn = document.getElementById("qpm-editor-load-btn");
 const saveBtn = document.getElementById("qpm-editor-save-btn");
+const revisionsWrap = document.getElementById("qpm-editor-revisions");
+const revisionListInput = document.getElementById("qpm-editor-revision-list");
+const revisionRefreshBtn = document.getElementById("qpm-editor-revision-refresh-btn");
+const revisionPreviewBtn = document.getElementById("qpm-editor-revision-preview-btn");
+const revertBtn = document.getElementById("qpm-editor-revert-btn");
+const revisionStatusEl = document.getElementById("qpm-editor-revision-status");
+const revisionPreviewJson = document.getElementById("qpm-editor-revision-preview-json");
 const toggleJsonBtn = document.getElementById("qpm-editor-toggle-json-btn");
 const logoutBtn = document.getElementById("qpm-editor-logout-btn");
 
@@ -135,6 +151,7 @@ let isEditorAuthenticated = false;
 let hiddenSinceTs = null;
 let hiddenLogoutTimerId = 0;
 let unloadLogoutSent = false;
+let editorCapabilities = { canEditFilters: filtersEnabled, allowedDomains: [] };
 const editorLanguage = String(root?.dataset?.language || "dk").toLowerCase() === "en" ? "en" : "dk";
 const editorHelpTextDelay = { show: 500, hide: 100 };
 let editorTooltipEl = null;
@@ -298,8 +315,20 @@ function parseConfiguredTopicDomains() {
   return Array.from(new Set(list));
 }
 
+function normalizeDomainList(input) {
+  if (!Array.isArray(input)) return [];
+  return Array.from(
+    new Set(
+      input
+        .map((d) => String(d || "").trim().toLowerCase())
+        .filter((d) => /^[a-z0-9_-]+$/.test(d))
+    )
+  );
+}
+
 function syncDomainOptions() {
   if (!(domainInput instanceof HTMLSelectElement)) return;
+  const previousValue = (domainInput.value || "").trim().toLowerCase();
   domainInput.innerHTML = "";
   configuredTopicDomains.forEach((domain) => {
     const opt = document.createElement("option");
@@ -308,17 +337,42 @@ function syncDomainOptions() {
     domainInput.appendChild(opt);
   });
 
-  const initialDomain = configuredTopicDomains[0] || "";
-  domainInput.value = initialDomain;
+  const nextValue = configuredTopicDomains.includes(previousValue)
+    ? previousValue
+    : configuredTopicDomains[0] || "";
+  domainInput.value = nextValue;
+  if (configuredTopicDomains.length === 0) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "Ingen domæner";
+    domainInput.appendChild(opt);
+    domainInput.value = "";
+    domainInput.disabled = true;
+    domainInput.classList.remove("qpm-editor-hidden");
+    return;
+  }
   if (configuredTopicDomains.length <= 1) {
     domainInput.classList.add("qpm-editor-hidden");
   } else {
     domainInput.classList.remove("qpm-editor-hidden");
   }
+  domainInput.disabled = getSelectedType() === "filters";
 }
 
 function syncTypeOptionsVisibility() {
   if (!(typeInput instanceof HTMLSelectElement)) return;
+  const filtersOption = typeInput.querySelector('option[value="filters"]');
+  if (filtersOption && !editorCapabilities.canEditFilters) {
+    filtersOption.remove();
+  } else if (!filtersOption && editorCapabilities.canEditFilters && filtersEnabled) {
+    const opt = document.createElement("option");
+    opt.value = "filters";
+    opt.textContent = "Filters";
+    typeInput.appendChild(opt);
+  }
+  if (!editorCapabilities.canEditFilters && typeInput.value === "filters") {
+    typeInput.value = "topics";
+  }
   typeInput.classList.toggle("qpm-editor-hidden", typeInput.options.length <= 1);
 }
 
@@ -560,6 +614,201 @@ function setSaveStatus(message, isError = false) {
   el.classList.add(isError ? "qpm-editor-save-status-error" : "qpm-editor-save-status-ok");
 }
 
+function setRevisionStatus(message, isError = false) {
+  if (!(revisionStatusEl instanceof HTMLElement)) return;
+  revisionStatusEl.textContent = message || "";
+  revisionStatusEl.classList.remove("qpm-editor-status-ok", "qpm-editor-status-error", "qpm-editor-hidden");
+  if (!message) {
+    revisionStatusEl.classList.add("qpm-editor-hidden");
+    return;
+  }
+  revisionStatusEl.classList.add(isError ? "qpm-editor-status-error" : "qpm-editor-status-ok");
+}
+
+function applyCapabilities(capabilities) {
+  const normalized = capabilities && typeof capabilities === "object" ? capabilities : {};
+  const allowedDomains = normalizeDomainList(normalized.allowedDomains || []);
+  editorCapabilities = {
+    canEditFilters: filtersEnabled && normalized.canEditFilters !== false,
+    allowedDomains,
+  };
+
+  if (allowedDomains.length > 0) {
+    configuredTopicDomains =
+      baseConfiguredTopicDomains.length > 0
+        ? baseConfiguredTopicDomains.filter((d) => allowedDomains.includes(d))
+        : allowedDomains;
+  } else {
+    configuredTopicDomains = [...baseConfiguredTopicDomains];
+  }
+
+  syncTypeOptionsVisibility();
+  syncDomainOptions();
+}
+
+async function fetchDomainsForEditor() {
+  const data = await requestJson(`${apiBase}/EditorContent.php?action=domains&type=domains`);
+  return normalizeDomainList(data?.domains || []);
+}
+
+async function refreshDomainAccess() {
+  if (!isEditorAuthenticated) return;
+  try {
+    const serverDomains = await fetchDomainsForEditor();
+    if (serverDomains.length > 0) {
+      configuredTopicDomains =
+        baseConfiguredTopicDomains.length > 0
+          ? baseConfiguredTopicDomains.filter((d) => serverDomains.includes(d))
+          : serverDomains;
+      if (editorCapabilities.allowedDomains.length > 0) {
+        configuredTopicDomains = configuredTopicDomains.filter((d) =>
+          editorCapabilities.allowedDomains.includes(d)
+        );
+      }
+    } else if (editorCapabilities.allowedDomains.length > 0) {
+      configuredTopicDomains = [...editorCapabilities.allowedDomains];
+    }
+  } catch {
+    if (editorCapabilities.allowedDomains.length > 0) {
+      configuredTopicDomains = [...editorCapabilities.allowedDomains];
+    }
+  }
+  syncDomainOptions();
+}
+
+function getRevisionContext() {
+  const type = getSelectedType();
+  const domain = type === "topics" ? (domainInput?.value || "").trim().toLowerCase() : "";
+  return { type, domain };
+}
+
+function setRevisionControlsVisible(visible) {
+  if (revisionsWrap instanceof HTMLElement) {
+    revisionsWrap.classList.toggle("qpm-editor-hidden", !visible);
+  }
+  if (!visible) {
+    setRevisionStatus("");
+    if (revisionPreviewJson instanceof HTMLTextAreaElement) {
+      revisionPreviewJson.classList.add("qpm-editor-hidden");
+      revisionPreviewJson.value = "";
+    }
+  }
+}
+
+async function refreshRevisionList() {
+  if (!(revisionListInput instanceof HTMLSelectElement)) return;
+  if (revisionPreviewJson instanceof HTMLTextAreaElement) {
+    revisionPreviewJson.classList.add("qpm-editor-hidden");
+    revisionPreviewJson.value = "";
+  }
+  const { type, domain } = getRevisionContext();
+  if (!isEditorAuthenticated || (type === "topics" && !domain)) {
+    revisionListInput.innerHTML = "";
+    setRevisionControlsVisible(false);
+    return;
+  }
+
+  setRevisionControlsVisible(true);
+  revisionListInput.innerHTML = "";
+  try {
+    const params = new URLSearchParams({ action: "revisions", type });
+    if (type === "topics") {
+      params.set("domain", domain);
+    }
+    const data = await requestJson(`${apiBase}/EditorContent.php?${params.toString()}`);
+    const revisions = Array.isArray(data?.revisions) ? data.revisions : [];
+    if (revisions.length === 0) {
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "Ingen historik fundet";
+      revisionListInput.appendChild(opt);
+      revisionListInput.value = "";
+      setRevisionStatus("");
+      return;
+    }
+    revisions.forEach((rev) => {
+      const id = String(rev?.revisionId || "").trim();
+      if (!id) return;
+      const createdAt = String(rev?.createdAt || "");
+      const user = String(rev?.user || "");
+      const opt = document.createElement("option");
+      opt.value = id;
+      opt.textContent = user ? `${createdAt} · ${user}` : createdAt;
+      revisionListInput.appendChild(opt);
+    });
+    setRevisionStatus("");
+  } catch (error) {
+    setRevisionStatus(error?.message || "Kunne ikke hente historik.", true);
+  }
+}
+
+async function revertSelectedRevision() {
+  if (!(revisionListInput instanceof HTMLSelectElement)) return;
+  const revisionId = (revisionListInput.value || "").trim();
+  if (!revisionId) {
+    setRevisionStatus("Vælg en revision først.", true);
+    return;
+  }
+  const ok = window.confirm(
+    "Vil du gendanne den valgte version? Dette overskriver den nuværende fil, men nuværende version snapshots først."
+  );
+  if (!ok) return;
+
+  const { type, domain } = getRevisionContext();
+  try {
+    const result = await requestJson(`${apiBase}/EditorContent.php`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
+      body: JSON.stringify({
+        action: "revert",
+        type,
+        domain: type === "topics" ? domain : undefined,
+        revisionId,
+        csrfToken,
+      }),
+    });
+    if (result?.unchanged) {
+      setRevisionStatus("Valgt version matcher allerede den aktuelle fil.");
+    } else {
+      setRevisionStatus(`Version gendannet (${result?.savedAt || "nu"}).`);
+    }
+    await loadContent();
+    await refreshRevisionList();
+  } catch (error) {
+    setRevisionStatus(error?.message || "Gendannelse mislykkedes.", true);
+  }
+}
+
+async function previewSelectedRevision() {
+  if (!(revisionListInput instanceof HTMLSelectElement)) return;
+  if (!(revisionPreviewJson instanceof HTMLTextAreaElement)) return;
+  if (!revisionPreviewJson.classList.contains("qpm-editor-hidden")) {
+    revisionPreviewJson.classList.add("qpm-editor-hidden");
+    revisionPreviewJson.value = "";
+    setRevisionStatus("");
+    return;
+  }
+  const revisionId = (revisionListInput.value || "").trim();
+  if (!revisionId) {
+    setRevisionStatus("Vælg en revision først.", true);
+    return;
+  }
+  const { type, domain } = getRevisionContext();
+  try {
+    const params = new URLSearchParams({ action: "revision", type, revisionId });
+    if (type === "topics") {
+      params.set("domain", domain);
+    }
+    const data = await requestJson(`${apiBase}/EditorContent.php?${params.toString()}`);
+    const revision = data?.revision?.data || {};
+    revisionPreviewJson.value = JSON.stringify(revision, null, 2);
+    revisionPreviewJson.classList.remove("qpm-editor-hidden");
+    setRevisionStatus("Preview indlæst.");
+  } catch (error) {
+    setRevisionStatus(error?.message || "Kunne ikke indlæse preview.", true);
+  }
+}
+
 function setInlineEditorStatus(container, statusKey, message, isError = false) {
   if (!(container instanceof HTMLElement)) return;
   const el = container.querySelector(`[data-inline-status="${statusKey}"]`);
@@ -694,15 +943,19 @@ async function checkSession() {
     const data = await requestJson(`${apiBase}/EditorSession.php`);
     if (data.authenticated) {
       csrfToken = data.csrfToken || "";
+      applyCapabilities(data.capabilities || {});
+      await refreshDomainAccess();
       setAuthenticated(true);
       setStatus("Session aktiv.");
       await loadContent();
+      await refreshRevisionList();
       return;
     }
   } catch {
     // ignore and show login
   }
 
+  applyCapabilities({ canEditFilters: filtersEnabled, allowedDomains: [] });
   setAuthenticated(false);
   setStatus("Log ind for at fortsætte.");
 }
@@ -722,10 +975,13 @@ async function login() {
       body: JSON.stringify({ user, password }),
     });
     csrfToken = data.csrfToken || "";
+    applyCapabilities(data.capabilities || {});
+    await refreshDomainAccess();
     unloadLogoutSent = false;
     setAuthenticated(true);
     setStatus("Login lykkedes.");
     await loadContent();
+    await refreshRevisionList();
   } catch (error) {
     setStatus(error.message, true);
   }
@@ -740,7 +996,9 @@ async function logout() {
       body: JSON.stringify({ csrfToken }),
     });
     csrfToken = "";
+    applyCapabilities({ canEditFilters: filtersEnabled, allowedDomains: [] });
     setAuthenticated(false);
+    setRevisionControlsVisible(false);
     setStatus("Du er logget ud.");
   } catch (error) {
     setStatus(error.message, true);
@@ -764,6 +1022,7 @@ async function loadContent() {
     setStatus(
       type === "topics" ? `Topics hentet for domain "${domain}".` : "Filters hentet."
     );
+    await refreshRevisionList();
   } catch (error) {
     setStatus(error.message, true);
   }
@@ -808,6 +1067,12 @@ async function saveContent() {
         csrfToken,
       }),
     });
+    if (saveResult?.unchanged) {
+      setStatus("Ingen ændringer at gemme.");
+      setSaveStatus("Ingen ny version oprettet, fordi indholdet er uændret.");
+      await refreshRevisionList();
+      return;
+    }
 
     // Verify persistence by immediately reloading from server source of truth.
     const serverData = await fetchContentFromServer(type, domain);
@@ -825,6 +1090,7 @@ async function saveContent() {
         ? `Topics gemt for "${domain}"${saveStamp}.`
         : `Filters gemt${saveStamp}.`
     );
+    await refreshRevisionList();
   } catch (error) {
     setStatus(error.message, true);
     setSaveStatus(error.message, true);
@@ -1969,12 +2235,7 @@ function applyCategoryInlineEdits(categoryId, container) {
   updateJson(data);
 }
 
-if (typeInput instanceof HTMLSelectElement && !filtersEnabled) {
-  const filtersOption = typeInput.querySelector('option[value="filters"]');
-  if (filtersOption) filtersOption.remove();
-  typeInput.value = "topics";
-}
-
+applyCapabilities({ canEditFilters: filtersEnabled, allowedDomains: [] });
 domainInput.value = defaultDomain;
 syncDomainOptions();
 syncTypeOptionsVisibility();
@@ -1993,12 +2254,14 @@ typeInput?.addEventListener("change", async () => {
   selectedTopicCategoryId = "";
   selectedTopicItemId = "";
   await loadContent();
+  await refreshRevisionList();
 });
 domainInput?.addEventListener("change", async () => {
   if (getSelectedType() !== "topics") return;
   selectedTopicCategoryId = "";
   selectedTopicItemId = "";
   await loadContent();
+  await refreshRevisionList();
 });
 document.addEventListener("visibilitychange", () => {
   if (!isEditorAuthenticated) return;
@@ -2019,6 +2282,9 @@ window.addEventListener("pagehide", () => {
 loadBtn?.addEventListener("click", loadContent);
 saveBtn?.addEventListener("click", saveContent);
 logoutBtn?.addEventListener("click", logout);
+revisionRefreshBtn?.addEventListener("click", refreshRevisionList);
+revisionPreviewBtn?.addEventListener("click", previewSelectedRevision);
+revertBtn?.addEventListener("click", revertSelectedRevision);
 toggleJsonBtn?.addEventListener("click", () => {
   if (!jsonInput) return;
   const isHidden = jsonInput.classList.toggle("qpm-editor-hidden");

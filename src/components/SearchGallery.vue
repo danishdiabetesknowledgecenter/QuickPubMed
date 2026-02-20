@@ -774,22 +774,25 @@
         let self = this;
         let lang = this.language;
         function sortByPriorityOrName(a, b) {
-          if (a.ordering[lang] != null && b.ordering[lang] == null) {
+          const aOrdering = a?.ordering?.[lang] ?? null;
+          const bOrdering = b?.ordering?.[lang] ?? null;
+
+          if (aOrdering != null && bOrdering == null) {
             return -1; // a is ordered and b is not -> a first
           }
-          if (b.ordering[lang] != null && a.ordering[lang] == null) {
+          if (bOrdering != null && aOrdering == null) {
             return 1; // b is ordered and a is not -> b first
           }
 
           let aSort, bSort;
-          if (a.ordering[lang] != null) {
+          if (aOrdering != null) {
             // Both are ordered
-            aSort = a.ordering[lang];
-            bSort = b.ordering[lang];
+            aSort = aOrdering;
+            bSort = bOrdering;
           } else {
             // Both are unordered
-            aSort = self.customNameLabel(a).toLowerCase();
-            bSort = self.customNameLabel(b).toLowerCase();
+            aSort = String(self.customNameLabel(a) || "").toLowerCase();
+            bSort = String(self.customNameLabel(b) || "").toLowerCase();
           }
 
           if (aSort === bSort) {
