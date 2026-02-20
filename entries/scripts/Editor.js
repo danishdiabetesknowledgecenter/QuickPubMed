@@ -1,10 +1,69 @@
 import "@/assets/styles/qpm-style.css";
 import "@/assets/styles/qpm-style-strings.css";
+import "@/assets/styles/qpm-editor.css";
 
 const root = document.getElementById("qpm-editor");
 if (!root) {
   throw new Error("Missing #qpm-editor root");
 }
+
+function ensureEditorMarkup() {
+  root.classList.add("qpm-editor-wrap");
+  if (document.getElementById("qpm-editor-login")) return;
+
+  root.innerHTML = `
+    <h1>QuickPubMed Editor</h1>
+    <p>Login for at redigere topics og filtre fra flat files.</p>
+    <p class="qpm-editor-note">Aktiv API: <span id="qpm-editor-api-base"></span></p>
+    <p class="qpm-editor-note">Aktuelt topic: <strong id="qpm-editor-active-topic">-</strong></p>
+
+    <section id="qpm-editor-login">
+      <div class="qpm-editor-row">
+        <input id="qpm-editor-user" class="qpm-editor-input" type="text" placeholder="Brugernavn" />
+        <input id="qpm-editor-password" class="qpm-editor-input" type="password" placeholder="Password" />
+      </div>
+      <div class="qpm-editor-row">
+        <button id="qpm-editor-login-btn" class="qpm-editor-btn" type="button">Log ind</button>
+      </div>
+    </section>
+
+    <section id="qpm-editor-app" class="qpm-editor-hidden">
+      <div class="qpm-editor-row">
+        <select id="qpm-editor-domain" class="qpm-editor-select"></select>
+        <select id="qpm-editor-type" class="qpm-editor-select">
+          <option value="topics">Topics</option>
+          <option value="filters">Filters</option>
+        </select>
+      </div>
+      <div class="qpm-editor-row">
+        <button id="qpm-editor-load-btn" class="qpm-editor-btn qpm-editor-btn-secondary qpm-editor-hidden" type="button">Hent</button>
+        <button id="qpm-editor-save-btn" class="qpm-editor-btn" type="button">Gem alle ændringer</button>
+        <button id="qpm-editor-logout-btn" class="qpm-editor-btn qpm-editor-btn-secondary" type="button">Log ud</button>
+      </div>
+      <p id="qpm-editor-save-hint" class="qpm-editor-note">Ingen ændringer gennemføres, før du klikker "Gem alle ændringer".</p>
+      <p id="qpm-editor-save-status" class="qpm-editor-save-status"></p>
+
+      <div id="qpm-editor-topic-tools" class="qpm-editor-row">
+        <input id="qpm-editor-tree-search" class="qpm-editor-input" type="text" placeholder="Søg i emner (id eller navn)" />
+        <button id="qpm-editor-expand-all-btn" class="qpm-editor-btn qpm-editor-btn-secondary" type="button">Fold alle ud</button>
+        <button id="qpm-editor-collapse-all-btn" class="qpm-editor-btn qpm-editor-btn-secondary" type="button">Fold alle sammen</button>
+        <label class="qpm-editor-sort-mode-label">
+          <input id="qpm-editor-sort-mode" class="qpm-editor-sort-mode-checkbox" type="checkbox" />
+          Sorteringstilstand
+        </label>
+        <div id="qpm-editor-topic-tree" class="qpm-editor-tree"></div>
+        <p class="qpm-editor-note">Klik et emne i træet for inline redigering. Aktiver sorteringstilstand for drag-and-drop.</p>
+        <button id="qpm-editor-toggle-json-btn" class="qpm-editor-btn qpm-editor-btn-secondary" type="button">Vis rå JSON</button>
+      </div>
+
+      <textarea id="qpm-editor-json" class="qpm-editor-textarea qpm-editor-textarea-json qpm-editor-hidden" spellcheck="false"></textarea>
+    </section>
+
+    <div id="qpm-editor-status" class="qpm-editor-status"></div>
+  `;
+}
+
+ensureEditorMarkup();
 
 function getDefaultApiBaseFromScriptUrl() {
   const scriptUrl = import.meta.url || "";
@@ -68,12 +127,117 @@ let draggedTopicItemId = "";
 let draggedCategoryId = "";
 const collapsedTopicIds = new Set();
 const collapsedCategoryIds = new Set();
+let pendingCategoryInlineStatus = null;
+let pendingItemInlineStatus = null;
 const isLocalUi = ["localhost", "127.0.0.1"].includes(window.location.hostname);
 const AUTO_LOGOUT_HIDDEN_MS = 60 * 60 * 1000;
 let isEditorAuthenticated = false;
 let hiddenSinceTs = null;
 let hiddenLogoutTimerId = 0;
 let unloadLogoutSent = false;
+const editorLanguage = String(root?.dataset?.language || "dk").toLowerCase() === "en" ? "en" : "dk";
+const editorHelpTextDelay = { show: 500, hide: 100 };
+let editorTooltipEl = null;
+let activeTooltipTrigger = null;
+let showTooltipTimerId = 0;
+let hideTooltipTimerId = 0;
+const editorHelpTexts = {
+  "category.id": {
+    dk: "Unikt ID/prefix for hovedkategorien. Bruges som grundlag for underemne-ID'er.",
+    en: "Unique ID/prefix for the top category. Used as base for child item IDs.",
+  },
+  "category.translations.dk": {
+    dk: "Visningsnavn på dansk.",
+    en: "Display name in Danish.",
+  },
+  "category.translations.en": {
+    dk: "Visningsnavn på engelsk.",
+    en: "Display name in English.",
+  },
+  "category.tooltip.dk": {
+    dk: "Forklaringstekst på dansk, vist i brugerfladen.",
+    en: "Help text in Danish, shown in the UI.",
+  },
+  "category.tooltip.en": {
+    dk: "Forklaringstekst på engelsk, vist i brugerfladen.",
+    en: "Help text in English, shown in the UI.",
+  },
+  "category.hiddenByDefault": {
+    dk: "Når markeret, er kategorien skjult som standard i formularen.",
+    en: "When checked, the category is hidden by default in the form.",
+  },
+  "item.id": {
+    dk: "Unikt ID for underemnet.",
+    en: "Unique ID for the child item.",
+  },
+  "item.lockIdOnSort": {
+    dk: "Beholder ID ved sortering/flytning.",
+    en: "Keeps ID when sorting/moving.",
+  },
+  "item.hiddenByDefault": {
+    dk: "Når markeret, er underemnet skjult som standard i formularen.",
+    en: "When checked, the child item is hidden by default in the form.",
+  },
+  "item.buttons": {
+    dk: "Vis scope-knapper (n/s/b) for dette underemne i søgeformularen.",
+    en: "Show scope buttons (n/s/b) for this child item in the search form.",
+  },
+  "item.ordering.alphabetical": {
+    dk: "Når markeret bruges alfabetisk visning i stedet for fast placering.",
+    en: "When checked, alphabetical order is used instead of fixed ordering.",
+  },
+  "item.ordering.fixed": {
+    dk: "Fast placering i listen, når alfabetisk visning ikke er valgt.",
+    en: "Fixed position in the list when alphabetical mode is not enabled.",
+  },
+  "item.translations.dk": {
+    dk: "Navn på dansk.",
+    en: "Name in Danish.",
+  },
+  "item.translations.en": {
+    dk: "Navn på engelsk.",
+    en: "Name in English.",
+  },
+  "item.searchStrings.narrow": {
+    dk: "Søgestrenge for narrow-scope (én pr. linje).",
+    en: "Search strings for narrow scope (one per line).",
+  },
+  "item.searchStrings.normal": {
+    dk: "Søgestrenge for normal/standard scope (én pr. linje).",
+    en: "Search strings for normal/standard scope (one per line).",
+  },
+  "item.searchStrings.broad": {
+    dk: "Søgestrenge for broad-scope (én pr. linje).",
+    en: "Search strings for broad scope (one per line).",
+  },
+  "item.searchStringComment.dk": {
+    dk: "Kommentar på dansk til søgestrengen.",
+    en: "Danish comment for the search string.",
+  },
+  "item.searchStringComment.en": {
+    dk: "Kommentar på engelsk til søgestrengen.",
+    en: "English comment for the search string.",
+  },
+  "item.tooltip.dk": {
+    dk: "Hjælpetekst på dansk, vist i brugerfladen.",
+    en: "Help text in Danish, shown in the UI.",
+  },
+  "item.tooltip.en": {
+    dk: "Hjælpetekst på engelsk, vist i brugerfladen.",
+    en: "Help text in English, shown in the UI.",
+  },
+};
+
+function ensureBoxiconsStylesheet() {
+  if (document.querySelector('link[data-qpm-boxicons="1"]')) return;
+  const existing = document.querySelector('link[href*="boxicons.min.css"]');
+  if (existing) return;
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = "https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css";
+  link.dataset.qpmBoxicons = "1";
+  document.head.appendChild(link);
+}
 
 if (apiBaseEl) {
   apiBaseEl.textContent = apiBase;
@@ -83,6 +247,34 @@ if (toggleJsonBtn && jsonInput) {
     ? "Vis rå JSON"
     : "Skjul rå JSON";
 }
+if (saveBtn) {
+  saveBtn.textContent = "Gem alle ændringer";
+}
+if (appSection && !document.getElementById("qpm-editor-save-hint")) {
+  const hint = document.createElement("p");
+  hint.id = "qpm-editor-save-hint";
+  hint.className = "qpm-editor-note";
+  hint.textContent = 'Ingen ændringer gennemføres, før du klikker "Gem alle ændringer".';
+  const saveRow = saveBtn?.closest(".qpm-editor-row");
+  if (saveRow?.parentElement) {
+    saveRow.parentElement.insertBefore(hint, saveRow.nextSibling);
+  } else {
+    appSection.prepend(hint);
+  }
+}
+if (appSection && !document.getElementById("qpm-editor-save-status")) {
+  const saveStatus = document.createElement("p");
+  saveStatus.id = "qpm-editor-save-status";
+  saveStatus.className = "qpm-editor-save-status";
+  const saveHint = document.getElementById("qpm-editor-save-hint");
+  if (saveHint?.parentElement) {
+    saveHint.parentElement.insertBefore(saveStatus, saveHint.nextSibling);
+  } else {
+    appSection.prepend(saveStatus);
+  }
+}
+ensureBoxiconsStylesheet();
+normalizeSortModeLayout();
 
 function parseConfiguredTopicDomains() {
   const normalize = (value) => String(value || "").trim().toLowerCase();
@@ -192,6 +384,202 @@ function setStatus(message, isError = false) {
   statusEl.textContent = message || "";
   statusEl.classList.remove("qpm-editor-status-ok", "qpm-editor-status-error");
   statusEl.classList.add(isError ? "qpm-editor-status-error" : "qpm-editor-status-ok");
+}
+
+function normalizeSortModeLayout() {
+  if (!(sortModeInput instanceof HTMLInputElement)) return;
+  sortModeInput.classList.add("qpm-editor-sort-mode-checkbox");
+
+  const sortLabel = sortModeInput.closest("label");
+  if (!(sortLabel instanceof HTMLLabelElement)) return;
+  sortLabel.classList.add("qpm-editor-sort-mode-label");
+
+  const collapseBtn = document.getElementById("qpm-editor-collapse-all-btn");
+  if (collapseBtn?.parentElement === sortLabel.parentElement) {
+    collapseBtn.insertAdjacentElement("afterend", sortLabel);
+  }
+}
+
+function getEditorHelpText(key) {
+  const entry = editorHelpTexts[key];
+  if (!entry) return "";
+  return entry[editorLanguage] || entry.dk || entry.en || "";
+}
+
+function createInfoIcon(helpText) {
+  if (!helpText) return null;
+  const icon = document.createElement("button");
+  icon.type = "button";
+  icon.className = "bx bx-info-circle";
+  icon.setAttribute("aria-label", "Info");
+  icon.dataset.helpText = helpText;
+  wireTooltipIcon(icon);
+  return icon;
+}
+
+function ensureEditorTooltipEl() {
+  if (editorTooltipEl) return editorTooltipEl;
+  const tooltip = document.createElement("div");
+  tooltip.className = "v-popper--theme-tooltip qpm-editor-v-tooltip";
+  tooltip.setAttribute("role", "tooltip");
+  tooltip.style.position = "fixed";
+  tooltip.style.zIndex = "9999";
+  tooltip.style.display = "none";
+
+  const inner = document.createElement("div");
+  inner.className = "v-popper__inner";
+  tooltip.appendChild(inner);
+
+  document.body.appendChild(tooltip);
+  editorTooltipEl = tooltip;
+  return tooltip;
+}
+
+function clearTooltipTimers() {
+  if (showTooltipTimerId) {
+    window.clearTimeout(showTooltipTimerId);
+    showTooltipTimerId = 0;
+  }
+  if (hideTooltipTimerId) {
+    window.clearTimeout(hideTooltipTimerId);
+    hideTooltipTimerId = 0;
+  }
+}
+
+function hideEditorTooltip() {
+  clearTooltipTimers();
+  if (!editorTooltipEl) return;
+  editorTooltipEl.style.display = "none";
+  activeTooltipTrigger = null;
+}
+
+function positionEditorTooltip(triggerEl) {
+  if (!editorTooltipEl || !(triggerEl instanceof HTMLElement)) return;
+  const rect = triggerEl.getBoundingClientRect();
+  const tooltipRect = editorTooltipEl.getBoundingClientRect();
+  const margin = 8;
+  let top = rect.bottom + margin;
+  let left = rect.left + rect.width / 2 - tooltipRect.width / 2;
+
+  if (left < margin) left = margin;
+  const maxLeft = window.innerWidth - tooltipRect.width - margin;
+  if (left > maxLeft) left = Math.max(margin, maxLeft);
+
+  if (top + tooltipRect.height > window.innerHeight - margin) {
+    top = Math.max(margin, rect.top - tooltipRect.height - margin);
+  }
+
+  editorTooltipEl.style.top = `${Math.round(top)}px`;
+  editorTooltipEl.style.left = `${Math.round(left)}px`;
+}
+
+function showEditorTooltip(triggerEl, content) {
+  if (!(triggerEl instanceof HTMLElement) || !content) return;
+  const tooltip = ensureEditorTooltipEl();
+  const inner = tooltip.querySelector(".v-popper__inner");
+  if (!(inner instanceof HTMLElement)) return;
+  inner.textContent = content;
+  tooltip.style.display = "block";
+  activeTooltipTrigger = triggerEl;
+  positionEditorTooltip(triggerEl);
+}
+
+function scheduleShowEditorTooltip(triggerEl) {
+  const content = triggerEl?.dataset?.helpText || "";
+  if (!content) return;
+  clearTooltipTimers();
+  showTooltipTimerId = window.setTimeout(() => {
+    showEditorTooltip(triggerEl, content);
+  }, editorHelpTextDelay.show);
+}
+
+function scheduleHideEditorTooltip() {
+  clearTooltipTimers();
+  hideTooltipTimerId = window.setTimeout(() => {
+    hideEditorTooltip();
+  }, editorHelpTextDelay.hide);
+}
+
+function wireTooltipIcon(icon) {
+  if (!(icon instanceof HTMLElement)) return;
+  icon.addEventListener("mouseenter", () => scheduleShowEditorTooltip(icon));
+  icon.addEventListener("focusin", () => scheduleShowEditorTooltip(icon));
+  icon.addEventListener("mouseleave", () => {
+    if (activeTooltipTrigger === icon) scheduleHideEditorTooltip();
+    else clearTooltipTimers();
+  });
+  icon.addEventListener("focusout", () => {
+    if (activeTooltipTrigger === icon) scheduleHideEditorTooltip();
+    else clearTooltipTimers();
+  });
+  icon.addEventListener("click", (event) => {
+    event.preventDefault();
+    const content = icon.dataset.helpText || "";
+    if (!content) return;
+    if (activeTooltipTrigger === icon && editorTooltipEl?.style.display === "block") {
+      hideEditorTooltip();
+      return;
+    }
+    clearTooltipTimers();
+    showEditorTooltip(icon, content);
+  });
+}
+
+document.addEventListener("click", (event) => {
+  const target = event.target;
+  if (!(target instanceof Node)) return;
+  if (editorTooltipEl?.contains(target)) return;
+  if (target instanceof HTMLElement && target.classList.contains("bx-info-circle")) return;
+  hideEditorTooltip();
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    hideEditorTooltip();
+  }
+});
+
+window.addEventListener("resize", () => {
+  if (editorTooltipEl?.style.display === "block" && activeTooltipTrigger) {
+    positionEditorTooltip(activeTooltipTrigger);
+  }
+});
+
+window.addEventListener("scroll", () => {
+  if (editorTooltipEl?.style.display === "block" && activeTooltipTrigger) {
+    positionEditorTooltip(activeTooltipTrigger);
+  }
+}, true);
+
+function setSaveStatus(message, isError = false) {
+  const el = document.getElementById("qpm-editor-save-status");
+  if (!(el instanceof HTMLElement)) return;
+  el.textContent = message || "";
+  el.classList.remove("qpm-editor-save-status-ok", "qpm-editor-save-status-error");
+  if (!message) return;
+  el.classList.add(isError ? "qpm-editor-save-status-error" : "qpm-editor-save-status-ok");
+}
+
+function setInlineEditorStatus(container, statusKey, message, isError = false) {
+  if (!(container instanceof HTMLElement)) return;
+  const el = container.querySelector(`[data-inline-status="${statusKey}"]`);
+  if (!(el instanceof HTMLElement)) return;
+  el.textContent = message || "";
+  el.classList.remove("qpm-editor-inline-status-ok", "qpm-editor-inline-status-error");
+  el.classList.add(isError ? "qpm-editor-inline-status-error" : "qpm-editor-inline-status-ok");
+}
+
+function createInlineActions(applyBtn, deleteBtn, statusKey) {
+  const actionsRow = document.createElement("div");
+  actionsRow.className = "qpm-editor-inline-actions";
+  actionsRow.append(applyBtn, deleteBtn);
+
+  const inlineStatus = document.createElement("p");
+  inlineStatus.className = "qpm-editor-inline-status";
+  inlineStatus.dataset.inlineStatus = statusKey;
+  inlineStatus.textContent = "";
+
+  return { actionsRow, inlineStatus };
 }
 
 function setAuthenticated(authenticated) {
@@ -388,10 +776,12 @@ async function fetchContentFromServer(type, domain) {
 }
 
 async function saveContent() {
+  setSaveStatus("");
   const type = getSelectedType();
   const domain = domainInput.value.trim();
   if (type === "topics" && !domain) {
     setStatus("Domain er påkrævet for topics.", true);
+    setSaveStatus("Domain er påkrævet for topics.", true);
     return;
   }
 
@@ -400,6 +790,7 @@ async function saveContent() {
     parsed = jsonInput.value ? JSON.parse(jsonInput.value) : {};
   } catch {
     setStatus("JSON er ugyldig.", true);
+    setSaveStatus("JSON er ugyldig.", true);
     return;
   }
 
@@ -429,8 +820,14 @@ async function saveContent() {
         ? `Topics gemt og verificeret via API for domain "${domain}"${saveStamp}.`
         : `Filters gemt og verificeret via API${saveStamp}.`
     );
+    setSaveStatus(
+      type === "topics"
+        ? `Topics gemt for "${domain}"${saveStamp}.`
+        : `Filters gemt${saveStamp}.`
+    );
   } catch (error) {
     setStatus(error.message, true);
+    setSaveStatus(error.message, true);
   }
 }
 
@@ -602,15 +999,44 @@ function updateChildIdsByPrefix(item, oldPrefix, newPrefix) {
   });
 }
 
+function remapCollapsedIdsAfterCategoryRename(oldCategoryId, newCategoryId) {
+  if (!oldCategoryId || !newCategoryId || oldCategoryId === newCategoryId) return;
+
+  const nextCollapsedCategoryIds = new Set();
+  collapsedCategoryIds.forEach((id) => {
+    nextCollapsedCategoryIds.add(id === oldCategoryId ? newCategoryId : id);
+  });
+  collapsedCategoryIds.clear();
+  nextCollapsedCategoryIds.forEach((id) => collapsedCategoryIds.add(id));
+
+  remapCollapsedTopicIdsByPrefix(oldCategoryId, newCategoryId);
+}
+
+function remapCollapsedTopicIdsByPrefix(oldPrefix, newPrefix) {
+  if (!oldPrefix || !newPrefix || oldPrefix === newPrefix) return;
+  const nextCollapsedTopicIds = new Set();
+  collapsedTopicIds.forEach((id) => {
+    if (typeof id === "string" && id.startsWith(oldPrefix)) {
+      nextCollapsedTopicIds.add(`${newPrefix}${id.slice(oldPrefix.length)}`);
+      return;
+    }
+    nextCollapsedTopicIds.add(id);
+  });
+  collapsedTopicIds.clear();
+  nextCollapsedTopicIds.forEach((id) => collapsedTopicIds.add(id));
+}
+
 function createCategoryInlineEditor(topic) {
   const wrapper = document.createElement("div");
   wrapper.className = "qpm-editor-inline-editor";
   wrapper.dataset.categoryId = topic?.id || "";
 
-  const mkLabel = (text) => {
+  const mkLabel = (text, helpKey = "") => {
     const p = document.createElement("p");
     p.className = "qpm-editor-field-label";
     p.textContent = text;
+    const infoIcon = createInfoIcon(getEditorHelpText(helpKey));
+    if (infoIcon) p.append(" ", infoIcon);
     return p;
   };
   const mkInput = (value = "") => {
@@ -645,6 +1071,8 @@ function createCategoryInlineEditor(topic) {
   hiddenLabel.className = "qpm-editor-checkbox-label";
   hiddenLabel.style.width = "100%";
   hiddenLabel.append(hiddenInput, document.createTextNode("Skjul i formular som standard"));
+  const hiddenInfoIcon = createInfoIcon(getEditorHelpText("category.hiddenByDefault"));
+  if (hiddenInfoIcon) hiddenLabel.append(" ", hiddenInfoIcon);
 
   const applyBtn = document.createElement("button");
   applyBtn.type = "button";
@@ -656,21 +1084,22 @@ function createCategoryInlineEditor(topic) {
   deleteBtn.className = "qpm-editor-btn qpm-editor-btn-danger qpm-editor-tree-delete-category-inline";
   deleteBtn.dataset.categoryId = topic?.id || "";
   deleteBtn.textContent = "Slet hovedkategori";
+  const { actionsRow, inlineStatus } = createInlineActions(applyBtn, deleteBtn, "category");
 
   wrapper.append(
-    mkLabel("Kategori ID/prefix"),
+    mkLabel("Kategori ID/prefix", "category.id"),
     idInput,
-    mkLabel("Kategorinavn (dk)"),
+    mkLabel("Kategorinavn (dk)", "category.translations.dk"),
     dkInput,
-    mkLabel("Kategorinavn (en)"),
+    mkLabel("Kategorinavn (en)", "category.translations.en"),
     enInput,
-    mkLabel("Tooltip (dk)"),
+    mkLabel("Tooltip (dk)", "category.tooltip.dk"),
     tooltipDk,
-    mkLabel("Tooltip (en)"),
+    mkLabel("Tooltip (en)", "category.tooltip.en"),
     tooltipEn,
     hiddenLabel,
-    applyBtn,
-    deleteBtn
+    actionsRow,
+    inlineStatus
   );
   return wrapper;
 }
@@ -681,10 +1110,12 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   wrapper.dataset.id = item?.id || "";
   wrapper.dataset.categoryId = categoryId;
 
-  const mkLabel = (text) => {
+  const mkLabel = (text, helpKey = "") => {
     const p = document.createElement("p");
     p.className = "qpm-editor-field-label";
     p.textContent = text;
+    const infoIcon = createInfoIcon(getEditorHelpText(helpKey));
+    if (infoIcon) p.append(" ", infoIcon);
     return p;
   };
   const mkInput = (value = "") => {
@@ -713,6 +1144,8 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   lockIdLabel.className = "qpm-editor-checkbox-label";
   lockIdLabel.style.width = "100%";
   lockIdLabel.append(lockIdInput, document.createTextNode("Lås ID ved sortering"));
+  const lockIdInfoIcon = createInfoIcon(getEditorHelpText("item.lockIdOnSort"));
+  if (lockIdInfoIcon) lockIdLabel.append(" ", lockIdInfoIcon);
   const hiddenInput = document.createElement("input");
   hiddenInput.type = "checkbox";
   hiddenInput.dataset.inlineField = "hiddenByDefault";
@@ -721,6 +1154,18 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   hiddenLabel.className = "qpm-editor-checkbox-label";
   hiddenLabel.style.width = "100%";
   hiddenLabel.append(hiddenInput, document.createTextNode("Skjul i formular som standard"));
+  const hiddenInfoIcon = createInfoIcon(getEditorHelpText("item.hiddenByDefault"));
+  if (hiddenInfoIcon) hiddenLabel.append(" ", hiddenInfoIcon);
+  const buttonsInput = document.createElement("input");
+  buttonsInput.type = "checkbox";
+  buttonsInput.dataset.inlineField = "buttons";
+  buttonsInput.checked = item?.buttons !== false;
+  const buttonsLabel = document.createElement("label");
+  buttonsLabel.className = "qpm-editor-checkbox-label";
+  buttonsLabel.style.width = "100%";
+  buttonsLabel.append(buttonsInput, document.createTextNode("Vis scope-knapper (n/s/b)"));
+  const buttonsInfoIcon = createInfoIcon(getEditorHelpText("item.buttons"));
+  if (buttonsInfoIcon) buttonsLabel.append(" ", buttonsInfoIcon);
   const alphabeticalInput = document.createElement("input");
   alphabeticalInput.type = "checkbox";
   alphabeticalInput.dataset.inlineField = "ordering.alphabetical";
@@ -732,6 +1177,8 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
     alphabeticalInput,
     document.createTextNode("Vis alfabetisk (ordering = null)")
   );
+  const alphabeticalInfoIcon = createInfoIcon(getEditorHelpText("item.ordering.alphabetical"));
+  if (alphabeticalInfoIcon) alphabeticalLabel.append(" ", alphabeticalInfoIcon);
   const orderingInput = document.createElement("select");
   orderingInput.className = "qpm-editor-input";
   orderingInput.dataset.inlineField = "ordering.fixed";
@@ -794,36 +1241,38 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   deleteBtn.dataset.id = item?.id || "";
   deleteBtn.dataset.categoryId = categoryId;
   deleteBtn.textContent = "Slet underemne";
+  const { actionsRow, inlineStatus } = createInlineActions(applyBtn, deleteBtn, "item");
 
   wrapper.append(
-    mkLabel("ID"),
+    mkLabel("ID", "item.id"),
     idInput,
     lockIdLabel,
     hiddenLabel,
+    buttonsLabel,
     alphabeticalLabel,
     positionHint,
-    mkLabel("Fast placering (ordering-tal)"),
+    mkLabel("Fast placering (ordering-tal)", "item.ordering.fixed"),
     orderingInput,
-    mkLabel("Navn (dk)"),
+    mkLabel("Navn (dk)", "item.translations.dk"),
     dkInput,
-    mkLabel("Navn (en)"),
+    mkLabel("Navn (en)", "item.translations.en"),
     enInput,
-    mkLabel("Narrow (én linje pr. søgestreng)"),
+    mkLabel("Narrow (én linje pr. søgestreng)", "item.searchStrings.narrow"),
     narrow,
-    mkLabel("Normal (én linje pr. søgestreng)"),
+    mkLabel("Normal (én linje pr. søgestreng)", "item.searchStrings.normal"),
     normal,
-    mkLabel("Broad (én linje pr. søgestreng)"),
+    mkLabel("Broad (én linje pr. søgestreng)", "item.searchStrings.broad"),
     broad,
-    mkLabel("Kommentar (dk)"),
+    mkLabel("Kommentar (dk)", "item.searchStringComment.dk"),
     commentDk,
-    mkLabel("Kommentar (en)"),
+    mkLabel("Kommentar (en)", "item.searchStringComment.en"),
     commentEn,
-    mkLabel("Tooltip (dk)"),
+    mkLabel("Tooltip (dk)", "item.tooltip.dk"),
     tooltipDk,
-    mkLabel("Tooltip (en)"),
+    mkLabel("Tooltip (en)", "item.tooltip.en"),
     tooltipEn,
-    applyBtn,
-    deleteBtn
+    actionsRow,
+    inlineStatus
   );
 
   return wrapper;
@@ -889,7 +1338,21 @@ function renderTreeItems(items, categoryId, container, searchText, parentItemId 
     }
 
     if (selectedTopicItemId && selectedTopicItemId === item?.id) {
-      li.appendChild(createInlineEditor(item, categoryId, index + 1, items.length));
+      const itemEditor = createInlineEditor(item, categoryId, index + 1, items.length);
+      li.appendChild(itemEditor);
+      if (
+        pendingItemInlineStatus &&
+        pendingItemInlineStatus.categoryId === categoryId &&
+        pendingItemInlineStatus.itemId === item?.id
+      ) {
+        setInlineEditorStatus(
+          itemEditor,
+          "item",
+          pendingItemInlineStatus.message,
+          pendingItemInlineStatus.isError
+        );
+        pendingItemInlineStatus = null;
+      }
     }
 
     if (hasChildren && !isCollapsed) {
@@ -975,7 +1438,20 @@ function refreshTopicTree() {
       topicTreeInput.appendChild(categoryDropzones);
     }
     if (selectedTopicCategoryId === categoryId && !selectedTopicItemId) {
-      topicTreeInput.appendChild(createCategoryInlineEditor(topic));
+      const categoryEditor = createCategoryInlineEditor(topic);
+      topicTreeInput.appendChild(categoryEditor);
+      if (
+        pendingCategoryInlineStatus &&
+        pendingCategoryInlineStatus.categoryId === categoryId
+      ) {
+        setInlineEditorStatus(
+          categoryEditor,
+          "category",
+          pendingCategoryInlineStatus.message,
+          pendingCategoryInlineStatus.isError
+        );
+        pendingCategoryInlineStatus = null;
+      }
     }
     if (!isCollapsed) {
       renderTreeItems(categoryGroups, categoryId, topicTreeInput, searchText, "");
@@ -1350,39 +1826,42 @@ function addCategoryAtEnd() {
 function applyInlineEditorEdits(categoryId, itemId, container) {
   const data = parseCurrentJson();
   if (!data || !Array.isArray(data.topics)) {
-    setStatus("Kan ikke opdatere: JSON for topics er ugyldig.", true);
+    setInlineEditorStatus(container, "item", "Kan ikke opdatere: JSON for topics er ugyldig.", true);
     return;
   }
   const category = data.topics.find((t) => t?.id === categoryId);
   if (!category || !Array.isArray(category.groups)) {
-    setStatus("Kategori findes ikke i den aktuelle JSON.", true);
+    setInlineEditorStatus(container, "item", "Kategori findes ikke i den aktuelle JSON.", true);
     return;
   }
   const item = findItemById(category.groups, itemId);
   if (!item) {
-    setStatus("Valgt emne blev ikke fundet.", true);
+    setInlineEditorStatus(container, "item", "Valgt emne blev ikke fundet.", true);
     return;
   }
 
   const get = (field) => container.querySelector(`[data-inline-field="${field}"]`);
   const requestedId = (get("id")?.value || "").trim();
   if (!requestedId) {
-    setStatus("ID må ikke være tom.", true);
+    setInlineEditorStatus(container, "item", "ID må ikke være tom.", true);
     return;
   }
   if (requestedId !== itemId && idExistsInCategory(category, requestedId, itemId)) {
-    setStatus(`ID "${requestedId}" findes allerede i kategorien.`, true);
+    setInlineEditorStatus(container, "item", `ID "${requestedId}" findes allerede i kategorien.`, true);
     return;
   }
   if (requestedId !== itemId) {
     const oldId = item.id;
     item.id = requestedId;
     updateChildIdsByPrefix(item, oldId, requestedId);
+    remapCollapsedTopicIdsByPrefix(oldId, requestedId);
   }
   const lockIdCheckbox = get("lockIdOnSort");
   item.lockIdOnSort = lockIdCheckbox ? Boolean(lockIdCheckbox.checked) : true;
   const hiddenCheckbox = get("hiddenByDefault");
   item.hiddenByDefault = hiddenCheckbox ? Boolean(hiddenCheckbox.checked) : false;
+  const buttonsCheckbox = get("buttons");
+  item.buttons = buttonsCheckbox ? Boolean(buttonsCheckbox.checked) : item?.buttons !== false;
   const alphabeticalCheckbox = get("ordering.alphabetical");
   const orderingInput = get("ordering.fixed");
   const itemLocation = findArrayAndIndexByItemId(category.groups, item.id || itemId);
@@ -1427,32 +1906,37 @@ function applyInlineEditorEdits(categoryId, itemId, container) {
     en: (get("tooltip.en")?.value || "").trim(),
   };
 
-  updateJson(data);
   selectedTopicCategoryId = categoryId;
   selectedTopicItemId = item.id || itemId;
-  setStatus(`Ændringer gemt lokalt i editor for emne "${selectedTopicItemId}". Klik "Gem" for at skrive til fil.`);
+  pendingItemInlineStatus = {
+    categoryId,
+    itemId: selectedTopicItemId,
+    message: `Ændringer gemt lokalt i editor for emne "${selectedTopicItemId}". Klik "Gem alle ændringer" for at skrive til fil.`,
+    isError: false,
+  };
+  updateJson(data);
 }
 
 function applyCategoryInlineEdits(categoryId, container) {
   const data = parseCurrentJson();
   if (!data || !Array.isArray(data.topics)) {
-    setStatus("Kan ikke opdatere: JSON for topics er ugyldig.", true);
+    setInlineEditorStatus(container, "category", "Kan ikke opdatere: JSON for topics er ugyldig.", true);
     return;
   }
   const category = data.topics.find((t) => t?.id === categoryId);
   if (!category) {
-    setStatus("Hovedkategori blev ikke fundet.", true);
+    setInlineEditorStatus(container, "category", "Hovedkategori blev ikke fundet.", true);
     return;
   }
   const get = (field) => container.querySelector(`[data-inline-field="${field}"]`);
   const nextId = (get("category.id")?.value || "").trim();
   if (!nextId) {
-    setStatus("Hovedkategori-ID må ikke være tom.", true);
+    setInlineEditorStatus(container, "category", "Hovedkategori-ID må ikke være tom.", true);
     return;
   }
   const idTaken = data.topics.some((t) => t?.id === nextId && t?.id !== categoryId);
   if (idTaken) {
-    setStatus(`Kategori-ID "${nextId}" findes allerede.`, true);
+    setInlineEditorStatus(container, "category", `Kategori-ID "${nextId}" findes allerede.`, true);
     return;
   }
 
@@ -1472,12 +1956,17 @@ function applyCategoryInlineEdits(categoryId, container) {
   category.hiddenByDefault = hiddenCheckbox ? Boolean(hiddenCheckbox.checked) : false;
   if (oldId !== nextId) {
     renumberCategoryIds(category);
+    remapCollapsedIdsAfterCategoryRename(oldId, nextId);
   }
 
-  updateJson(data);
   selectedTopicCategoryId = category.id;
   selectedTopicItemId = "";
-  setStatus(`Hovedkategori "${category.id}" opdateret. Klik "Gem" for at skrive til fil.`);
+  pendingCategoryInlineStatus = {
+    categoryId: category.id,
+    message: `Hovedkategori "${category.id}" opdateret lokalt. Klik "Gem alle ændringer" ovenfor for at skrive til fil.`,
+    isError: false,
+  };
+  updateJson(data);
 }
 
 if (typeInput instanceof HTMLSelectElement && !filtersEnabled) {
@@ -1580,7 +2069,7 @@ topicTreeInput?.addEventListener("click", (event) => {
       return;
     }
     setStatus(
-      `Ny hovedkategori "${result.categoryId}" oprettet nederst. Klik "Gem" for at skrive til fil.`
+      `Ny hovedkategori "${result.categoryId}" oprettet nederst. Klik "Gem alle ændringer" for at skrive til fil.`
     );
     refreshTopicTree();
     return;
@@ -1596,7 +2085,7 @@ topicTreeInput?.addEventListener("click", (event) => {
       return;
     }
     const typeLabel = parentItemId ? "underemne" : "emne";
-    setStatus(`Nyt ${typeLabel} "${result.itemId}" oprettet nederst. Klik "Gem" for at skrive til fil.`);
+    setStatus(`Nyt ${typeLabel} "${result.itemId}" oprettet nederst. Klik "Gem alle ændringer" for at skrive til fil.`);
     refreshTopicTree();
     return;
   }
@@ -1658,7 +2147,7 @@ topicTreeInput?.addEventListener("click", (event) => {
       setStatus(result.error || "Sletning mislykkedes.", true);
       return;
     }
-    setStatus(`Underemne "${itemId}" er slettet. Klik "Gem" for at skrive til fil.`);
+    setStatus(`Underemne "${itemId}" er slettet. Klik "Gem alle ændringer" for at skrive til fil.`);
     refreshTopicTree();
     return;
   }
@@ -1679,7 +2168,7 @@ topicTreeInput?.addEventListener("click", (event) => {
       setStatus(result.error || "Sletning mislykkedes.", true);
       return;
     }
-    setStatus(`Hovedkategori "${categoryId}" er slettet. Klik "Gem" for at skrive til fil.`);
+    setStatus(`Hovedkategori "${categoryId}" er slettet. Klik "Gem alle ændringer" for at skrive til fil.`);
     refreshTopicTree();
   }
 });

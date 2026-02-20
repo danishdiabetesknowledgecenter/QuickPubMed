@@ -28,7 +28,7 @@ RewriteRule ^api/nlm/esearch/?$ api/NlmSearch.php [L,QSA]
 RewriteRule ^api/nlm/esummary/?$ api/NlmSummary.php [L,QSA]
 RewriteRule ^api/nlm/efetch/?$ api/NlmFetch.php [L,QSA]
 
-# Disable caching for API responses
+# Disable caching for backend PHP responses
 <IfModule mod_headers.c>
     <FilesMatch "\.(php)$">
         Header set Cache-Control "no-cache, no-store, must-revalidate"

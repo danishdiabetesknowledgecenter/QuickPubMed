@@ -1,0 +1,10 @@
+# Apache .htaccess for API-specific CORS fallback
+
+<IfModule mod_headers.c>
+    # Apply permissive CORS to non-editor API endpoints only.
+    <FilesMatch "^(?!Editor).+\.php$">
+        Header always set Access-Control-Allow-Origin "*"
+        Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+        Header always set Access-Control-Allow-Headers "Content-Type"
+    </FilesMatch>
+</IfModule>

@@ -10,12 +10,40 @@
     <link rel="stylesheet" href="https://unpkg.com/vue-multiselect/dist/vue-multiselect.min.css" />
   </head>
   <body style="background: white">
+    <!--
+      Search Gallery settings (HTML data-attributes)
+      ----------------------------------------------
+      This widget shows the predefined emner/afgrænsninger as a browsable tree.
+      All data-* attributes are optional.
+
+      Core settings:
+      - data-domain: Content domain (e.g. "diabetes").
+      - data-language: UI language ("dk" or "en"). Default is "dk".
+      - data-hide-topics: Array of topic IDs to hide.
+        Format: "['S010020','S030010']"
+
+      Initial collapsed tree levels:
+      - data-collapsed-levels: Comma-separated list of levels that should start collapsed.
+        Example: "1,2,3"
+        Level guide:
+        - 1: hovedsektioner (Emner / Afgrænsninger)
+        - 2: kategorier under sektionerne
+        - 3+: underniveauer i træet
+      Level guide (English):
+      - 1: top sections (Subjects / Limits)
+      - 2: categories under each section
+      - 3+: nested levels in the tree
+
+      Notes:
+      - Empty or missing data-collapsed-levels means expanded by default.
+      - IDs in data-hide-topics are matched case-insensitively.
+    -->
     <div
       id="search-gallery"
       data-hide-topics="['L10030']"
       data-domain="diabetes"
       data-language="dk"
-      data-collapsed-levels="1,2,3"
+      data-collapsed-levels="1,3"
     ></div>
     <script type="module" src="../scripts/SearchGallery.js"></script>
   </body>

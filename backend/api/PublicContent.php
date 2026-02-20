@@ -5,16 +5,7 @@
 
 require_once __DIR__ . '/../app/editor-content-store.php';
 
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-$allowedOrigin = editorResolveAllowedOrigin($origin);
-if (!empty($allowedOrigin)) {
-    header('Access-Control-Allow-Origin: ' . $allowedOrigin);
-    // Public endpoint does not require cookies, but keep credentials header for compatibility.
-    header('Access-Control-Allow-Credentials: true');
-} else {
-    // Public read-only content can be shared across origins.
-    header('Access-Control-Allow-Origin: *');
-}
+header('Access-Control-Allow-Origin: *');
 header('Vary: Origin');
 header('Access-Control-Allow-Methods: GET, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');

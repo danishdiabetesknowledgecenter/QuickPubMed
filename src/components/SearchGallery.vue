@@ -10,7 +10,10 @@
         @click="toggleAll()"
       >{{ isAllToggled ? getString("showAllSearchstrings") : getString("hideAllSearchstrings") }}</a>
     </p>
-    <div class="qpm_searchStringStringsContainer rich-text">
+    <div
+      class="qpm_searchStringStringsContainer rich-text"
+      v-show="!initialCollapsePending"
+    >
       <div style="padding-top: 5px">
         <div class="qpm_headingContainerFocus_h2 qpm_gallery_toggle"
           @click="hideOrCollapse('qpm_subjectSearchStrings', $event)"
@@ -399,6 +402,7 @@
         isAllToggled: true,
         resolvedCollapsedLevels: null,
         hasAppliedInitialCollapse: false,
+        initialCollapsePending: false,
       };
     },
     computed: {
@@ -415,12 +419,7 @@
       topics: {
         handler(newTopics) {
           this.subjects = Array.isArray(newTopics) ? newTopics : [];
-          if (!this.hasAppliedInitialCollapse && newTopics && newTopics.length > 0) {
-            this.$nextTick(() => {
-              this.applyInitialCollapsedLevels();
-              this.hasAppliedInitialCollapse = true;
-            });
-          }
+          this.tryApplyInitialCollapse();
         },
         immediate: true,
       },
@@ -438,18 +437,10 @@
           root?.dataset?.collapsedLevels || []
         );
       }
+      this.initialCollapsePending = this.resolvedCollapsedLevels.length > 0;
     },
     mounted() {
-      // Only apply here when data is already present (sync/local load).
-      // For async/runtime load, the topics watcher applies collapse later.
-      if (
-        !this.hasAppliedInitialCollapse &&
-        ((Array.isArray(this.topics) && this.topics.length > 0) ||
-          (Array.isArray(this.filters) && this.filters.length > 0))
-      ) {
-        this.applyInitialCollapsedLevels();
-        this.hasAppliedInitialCollapse = true;
-      }
+      this.tryApplyInitialCollapse();
     },
     
     methods: {
@@ -469,6 +460,28 @@
             choices: flattenTopicGroups(f.choices || []),
           }));
         }
+        this.$nextTick(() => {
+          this.tryApplyInitialCollapse();
+        });
+      },
+      tryApplyInitialCollapse() {
+        if (!this.initialCollapsePending) return;
+        if (this.hasAppliedInitialCollapse) {
+          this.initialCollapsePending = false;
+          return;
+        }
+
+        const hasTopics = Array.isArray(this.topics) && this.topics.length > 0;
+        const hasFilters = Array.isArray(this.filters) && this.filters.length > 0;
+        // Run initial collapse only when both datasets are ready,
+        // otherwise one branch can render later in an uncollapsed state.
+        if (!hasTopics || !hasFilters) return;
+
+        this.$nextTick(() => {
+          this.applyInitialCollapsedLevels();
+          this.hasAppliedInitialCollapse = true;
+          this.initialCollapsePending = false;
+        });
       },
       blockHasComment(block) {
         let language = this.language || 'en';

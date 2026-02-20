@@ -883,8 +883,12 @@
         // Initialize subjects
         this.subjects = [];
 
-        // Parse the current URL
+        // Parse the current URL (search + hash query fallback for CMS embeds)
         const urlParams = new URLSearchParams(window.location.search);
+        const hashParams = this.getHashUrlParams();
+        hashParams.forEach((value, key) => {
+          urlParams.append(key, value);
+        });
 
         // Check if there are query parameters
         if (![...urlParams.keys()].length) {
@@ -959,6 +963,18 @@
         if (this.subjects.length === 0) {
           this.subjects = [[]];
         }
+      },
+      getHashUrlParams() {
+        const hash = window.location.hash || "";
+        if (!hash) return new URLSearchParams();
+
+        const hashContent = hash.startsWith("#") ? hash.slice(1) : hash;
+        const queryStart = hashContent.indexOf("?");
+        const hashQuery = queryStart >= 0 ? hashContent.slice(queryStart + 1) : hashContent;
+        if (!hashQuery || !hashQuery.includes("=")) {
+          return new URLSearchParams();
+        }
+        return new URLSearchParams(hashQuery);
       },
       parseIdList(values) {
         if (!Array.isArray(values)) return [];
@@ -1375,11 +1391,14 @@
               const scope = this.getScopeKey(this.advanced ? subject.scope : "normal");
               let subjectId = "";
 
-              if (subject.id) {
-                subjectId = `${subject.id}#${scope}`;
-              } else if (subject.isCustom) {
+              if (
+                subject.isCustom ||
+                (typeof subject.id === "string" && subject.id.startsWith("__custom__:"))
+              ) {
                 const translationFlag = subject.isTranslated ? "1" : "0";
                 subjectId = `{{${subject.name}${translationFlag}}}#${scope}`;
+              } else if (subject.id) {
+                subjectId = `${subject.id}#${scope}`;
               }
               return encodeURIComponent(subjectId);
             });
@@ -1405,7 +1424,11 @@
             .map(([key, values]) => {
               const filterValues = values.map((value) => {
                 const scope = this.getScopeKey(value.scope);
-                const valueId = value.isCustom ? `{{${value.name}}}` : value.id;
+                const valueId =
+                  value.isCustom ||
+                  (typeof value.id === "string" && value.id.startsWith("__custom__:"))
+                    ? `{{${value.name}}}`
+                    : value.id;
                 return encodeURIComponent(`${valueId}#${scope}`);
               });
               return `&${encodeURIComponent(key)}=${filterValues.join(";;")}`;
@@ -1423,7 +1446,11 @@
           .map((group) => {
             const filterValues = group.map((item) => {
               const scope = this.getScopeKey(this.advanced ? item.scope : "normal");
-              const valueId = item.isCustom ? `{{${item.name}}}` : item.id;
+              const valueId =
+                item.isCustom ||
+                (typeof item.id === "string" && item.id.startsWith("__custom__:"))
+                  ? `{{${item.name}}}`
+                  : item.id;
               return encodeURIComponent(`${valueId}#${scope}`);
             });
             return `limit=${filterValues.join(";;")}`;
