@@ -1,19 +1,19 @@
 {
     "meta": {
-        "revisionId": "20260220T230751Z-bd174789d460",
-        "createdAt": "2026-02-20T23:03:43+00:00",
+        "revisionId": "20260221T204510Z-7053e257d576",
+        "createdAt": "2026-02-20T23:55:32+00:00",
         "type": "topics",
         "domain": "diabetes",
         "user": "editor",
-        "checksum": "f39244c54e60d6eee7035743859ebe9a5d44d7807ea7ad0330d5a55d522c5fdb",
-        "bytes": 220122
+        "checksum": "c43353e31cc72b6f66551095ae4d2d0c92925f84df3c501a183a76c109d3ead0",
+        "bytes": 220247
     },
     "data": {
         "topics": [
             {
                 "id": "S000",
                 "translations": {
-                    "dk": "Skabelonkategorix",
+                    "dk": "Skabelonkategori",
                     "en": "Template category"
                 },
                 "ordering": {
@@ -29,7 +29,7 @@
                         "id": "S000010",
                         "buttons": true,
                         "translations": {
-                            "dk": "Underemne 1",
+                            "dk": "Underemne 1x",
                             "en": "Subtopic 1"
                         },
                         "ordering": {
@@ -558,7 +558,9 @@
                             "dk": "",
                             "en": ""
                         },
-                        "children": []
+                        "children": [],
+                        "lockIdOnSort": true,
+                        "hiddenByDefault": false
                     },
                     {
                         "id": "S010020",
@@ -4618,7 +4620,8 @@
                         },
                         "children": []
                     }
-                ]
+                ],
+                "hiddenByDefault": true
             }
         ],
         "standardString": {

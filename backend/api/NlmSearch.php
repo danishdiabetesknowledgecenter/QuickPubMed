@@ -55,6 +55,7 @@ $params['retmode'] = $params['retmode'] ?? 'json';
 $url = NLM_BASE_URL . '/esearch.fcgi';
 
 // Make request to NLM (use POST to avoid long URL issues)
+qpmThrottleNlmRequests(10);
 $result = qpmHttpRequest($url, [
     'method' => 'POST',
     'timeout' => 30,

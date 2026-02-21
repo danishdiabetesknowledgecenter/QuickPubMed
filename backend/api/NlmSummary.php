@@ -46,6 +46,7 @@ $params['retmode'] = $params['retmode'] ?? 'json';
 $url = NLM_BASE_URL . '/esummary.fcgi?' . http_build_query($params);
 
 // Make request to NLM
+qpmThrottleNlmRequests(10);
 $result = qpmHttpRequest($url, [
     'method' => 'GET',
     'timeout' => 30,

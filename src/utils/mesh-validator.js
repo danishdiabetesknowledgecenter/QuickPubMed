@@ -15,6 +15,10 @@
 
 import axios from "axios";
 import { meshFixPrompt, meshOptimizationPrompt } from "@/assets/content/qpm-prompts-mesh.js";
+import {
+  executionIntentAlignPrompt,
+  executionIntentCheckPrompt,
+} from "@/assets/content/qpm-prompts-search-flow.js";
 import { getPromptForLocale } from "@/utils/qpm-prompts-helpers.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -101,27 +105,138 @@ function normalizeFieldTags(searchString) {
   if (!searchString) return searchString;
 
   const tagMap = {
+    "Affiliation": "ad",
+    "All Fields": "all",
+    "Article Identifier": "aid",
+    "Author": "au",
+    "Author Identifier": "auid",
+    "Book": "book",
+    "Completion Date": "dcom",
+    "Conflict of Interest Statement": "cois",
+    "Corporate Author": "cn",
+    "Create Date": "crdt",
+    "EC/RN Number": "rn",
+    "Editor": "ed",
+    "Entry Date": "edat",
+    "Filter": "filter",
+    "First Author Name": "1au",
+    "Full Author Name": "fau",
+    "Full Investigator Name": "fir",
+    "Grants and Funding": "gr",
+    "Investigator": "ir",
+    "ISBN": "isbn",
+    "Issue": "ip",
+    "Journal": "ta",
+    "Language": "la",
+    "Last Author Name": "lastau",
+    "Location ID": "lid",
+    "MeSH Date": "mhda",
+    "MeSH Major Topic": "majr",
+    "MeSH Subheadings": "sh",
     "Title/Abstract": "tiab",
     "Title": "ti",
     "MeSH Terms": "mh",
     "MeSH Subheading": "sh",
-    "MeSH Major Topic": "majr",
-    "Author": "au",
-    "Journal": "ta",
-    "Language": "la",
+    "Modification Date": "lr",
+    "NLM Unique ID": "jid",
+    "Other Term": "ot",
+    "Pagination": "pg",
+    "Personal Name as Subject": "ps",
+    "Pharmacological Action": "pa",
+    "Place of Publication": "pl",
+    "PMID": "pmid",
     "Publication Type": "pt",
     "Publication Date": "dp",
-    "Affiliation": "ad",
-    "Substance Name": "nm",
+    "Publisher": "pubn",
+    "Secondary Source ID": "si",
     "Subset": "sb",
-    "Article Identifier": "aid",
+    "Supplementary Concept": "nm",
     "Text Word": "tw",
+    "Text Words": "tw",
+    "Transliterated Title": "tt",
+    "Volume": "vi",
   };
 
   let result = searchString;
   for (const [verbose, short] of Object.entries(tagMap)) {
     result = result.replace(new RegExp(`\\[${verbose}\\]`, "gi"), `[${short}]`);
   }
+  return result;
+}
+
+/**
+ * Normalizes unsupported shorthand tags used by AI outputs.
+ * Current rule: [ab] is mapped to [tiab].
+ */
+function normalizeUnsupportedFieldTags(searchString) {
+  if (!searchString) return searchString;
+  return searchString.replace(/\[ab\]/gi, "[tiab]");
+}
+
+const ALLOWED_FIELD_TAGS = new Set([
+  "ad", "all", "aid", "au", "auid", "book", "dcom", "cois", "cn", "crdt",
+  "rn", "ed", "edat", "filter", "sb", "1au", "fau", "fir", "gr", "ir",
+  "isbn", "ip", "ta", "la", "lastau", "lid", "mhda", "majr", "sh", "mh",
+  "lr", "jid", "ot", "pg", "ps", "pa", "pl", "pmid", "dp", "pt", "pubn",
+  "si", "nm", "tw", "ti", "tiab", "tt", "vi",
+]);
+
+function fixWildcardsInQuotedTerms(searchString) {
+  if (!searchString) return searchString;
+  return searchString.replace(/"([^"]*\*[^"]*)"\[([a-z0-9]+)\]/gi, (_m, term, tag) => {
+    return `${term}[${tag}]`;
+  });
+}
+
+function assertBalancedSyntax(searchString) {
+  if (!searchString) return;
+  let inQuotes = false;
+  let parenDepth = 0;
+  for (let i = 0; i < searchString.length; i++) {
+    const ch = searchString[i];
+    if (ch === "\"") {
+      inQuotes = !inQuotes;
+      continue;
+    }
+    if (!inQuotes) {
+      if (ch === "(") parenDepth++;
+      if (ch === ")") parenDepth--;
+      if (parenDepth < 0) {
+        throw new Error("Unbalanced parentheses in search string.");
+      }
+    }
+  }
+  if (inQuotes) throw new Error("Unbalanced quotation marks in search string.");
+  if (parenDepth !== 0) throw new Error("Unbalanced parentheses in search string.");
+}
+
+function assertAllowedFieldTags(searchString) {
+  if (!searchString) return;
+  const tagRegex = /\[([a-z0-9/ ]+)\]/gi;
+  let match;
+  const invalidTags = [];
+  while ((match = tagRegex.exec(searchString)) !== null) {
+    const tag = (match[1] || "").trim().toLowerCase();
+    if (!tag) continue;
+    if (!ALLOWED_FIELD_TAGS.has(tag)) {
+      invalidTags.push(tag);
+    }
+  }
+  if (invalidTags.length > 0) {
+    throw new Error(`Invalid field tag(s): ${[...new Set(invalidTags)].join(", ")}`);
+  }
+}
+
+function sanitizeSearchStringDeterministic(searchString) {
+  let result = searchString || "";
+  result = normalizeFieldTags(result);
+  result = normalizeUnsupportedFieldTags(result);
+  result = fixWildcardsInQuotedTerms(result);
+  result = quoteMeshTerms(result);
+  result = removeDuplicateTerms(result);
+  result = normalizeBooleanOperatorsOutsideQuotes(result);
+  assertBalancedSyntax(result);
+  assertAllowedFieldTags(result);
   return result;
 }
 
@@ -198,12 +313,107 @@ function extractEnglishConcepts(searchString) {
 
   while ((match = regex.exec(searchString)) !== null) {
     const term = (match[1] || match[2] || "").trim();
-    if (term && term.length > 2) {
-      concepts.add(term.toLowerCase());
+    if (!term) continue;
+
+    // Remove leaked boolean operators from extracted concept fragments.
+    const normalized = term
+      .replace(/\b(AND|OR|NOT)\b/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    if (normalized && normalized.length > 2) {
+      concepts.add(normalized.toLowerCase());
     }
   }
 
   return [...concepts];
+}
+
+function normalizeMeshDescriptorKey(term) {
+  return (term || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+/**
+ * Restores canonical descriptor spellings for already validated [mh] terms.
+ * Prevents AI from degrading valid descriptors, e.g. "Type 2" -> "Type2".
+ */
+function restoreCanonicalValidatedMeshTerms(searchString, termContexts) {
+  if (!searchString || !Array.isArray(termContexts) || termContexts.length === 0) {
+    return searchString;
+  }
+
+  const lockedDescriptors = new Map();
+  for (const tc of termContexts) {
+    if (!tc?.valid || !tc?.term) continue;
+    const key = normalizeMeshDescriptorKey(tc.term);
+    if (!key) continue;
+    lockedDescriptors.set(key, tc.term);
+  }
+  if (lockedDescriptors.size === 0) return searchString;
+
+  return searchString.replace(/"([^"]+)"\[mh\]/gi, (match, rawDescriptor) => {
+    const descriptor = (rawDescriptor || "").trim();
+    if (!descriptor) return match;
+
+    const parts = descriptor.split("/");
+    const base = (parts.shift() || "").trim();
+    const key = normalizeMeshDescriptorKey(base);
+    const canonicalBase = lockedDescriptors.get(key);
+    if (!canonicalBase) return match;
+
+    const suffix = parts.length > 0 ? `/${parts.join("/")}` : "";
+    return `"${canonicalBase}${suffix}"[mh]`;
+  });
+}
+
+/**
+ * Canonicalizes all [mh] terms against NLM.
+ * - Valid [mh] terms are rewritten to the official Descriptor Name in quotes.
+ * - Invalid [mh] terms are downgraded to [tiab] to avoid invalid MeSH usage.
+ */
+async function canonicalizeAllMeshTermsWithNlm(searchString, proxyUrl) {
+  if (!searchString || !proxyUrl) return searchString;
+
+  const meshTerms = extractMeshTerms(searchString);
+  if (meshTerms.length === 0) return searchString;
+
+  const uniqueTerms = [...new Set(meshTerms.map((m) => m.term.toLowerCase()))];
+  const validationMap = new Map();
+  for (const termKey of uniqueTerms) {
+    const original = meshTerms.find((m) => m.term.toLowerCase() === termKey)?.term || termKey;
+    validationMap.set(termKey, await validateMeshTerm(original, proxyUrl));
+  }
+
+  const uids = [...new Set(
+    [...validationMap.values()]
+      .map((v) => v?.uid)
+      .filter(Boolean)
+      .map(String)
+  )];
+  const details = uids.length > 0 ? await fetchMeshDetails(uids, proxyUrl) : {};
+
+  let result = searchString;
+  for (const { term, fullMatch } of meshTerms) {
+    const key = term.toLowerCase();
+    const validation = validationMap.get(key);
+    if (validation?.valid && validation?.uid && details[String(validation.uid)]?.name) {
+      const canonical = details[String(validation.uid)].name;
+      const replacement = `"${canonical}"[mh]`;
+      if (replacement !== fullMatch) {
+        result = result.replace(fullMatch, replacement);
+      }
+      continue;
+    }
+
+    if (validation && !validation.valid) {
+      const replacement = `"${term}"[tiab]`;
+      result = result.replace(fullMatch, replacement);
+    }
+  }
+
+  return result;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -361,16 +571,15 @@ async function buildMeshContext(searchString, userInput, proxyUrl) {
   const meshSearchQuery = englishConcepts.length > 0 ? englishConcepts.join(" ") : userInput;
   console.info(`  MeSH search query (English concepts): "${meshSearchQuery}"`);
 
-  // Step A: Validate [mh] terms + fetch NLM suggestions in parallel
-  const [validationResults, inputSuggestions] = await Promise.all([
-    Promise.all(
-      meshTerms.map(async ({ term, fullMatch }) => {
-        const result = await validateMeshTerm(term, proxyUrl);
-        return { term, fullMatch, ...result };
-      })
-    ),
-    fetchMeshSuggestionsForInput(meshSearchQuery, proxyUrl),
-  ]);
+  // Step A: Validate [mh] terms sequentially to avoid burst traffic to NLM,
+  // while fetching NLM suggestions in parallel.
+  const inputSuggestionsPromise = fetchMeshSuggestionsForInput(meshSearchQuery, proxyUrl);
+  const validationResults = [];
+  for (const { term, fullMatch } of meshTerms) {
+    const result = await validateMeshTerm(term, proxyUrl);
+    validationResults.push({ term, fullMatch, ...result });
+  }
+  const inputSuggestions = await inputSuggestionsPromise;
 
   // Collect all UIDs we need details for
   const allUids = new Set();
@@ -597,14 +806,14 @@ async function aiOptimizeWithMeshContext(searchString, userInput, meshContext, o
 export async function validateAndEnhanceMeshTerms(searchString, userInput, proxyUrl, openAiServiceUrl, client, language = "dk", onProgress) {
   if (!searchString || !proxyUrl) return searchString;
 
-  console.group("|MeSH Validation|");
-  console.info("Input search string:", searchString);
-  console.info("User input:", userInput);
+  console.group("[MeSHFlow] validateAndEnhanceMeshTerms");
+  console.info("[MeSHFlow] Raw input search string:", searchString);
+  console.info("[MeSHFlow] User input:", userInput);
 
   let updatedString = searchString;
 
   // ── Step 1: Build rich MeSH context from NLM ──
-  console.group("Step 1: Building MeSH context from NLM...");
+  console.group("[MeSHFlow] Step 1 - Build MeSH context from NLM");
   const meshContext = await buildMeshContext(searchString, userInput, proxyUrl);
 
   // Log context details
@@ -646,41 +855,66 @@ export async function validateAndEnhanceMeshTerms(searchString, userInput, proxy
   const hasMeshData = meshContext.termContexts.length > 0 || meshContext.nlmSuggestions.length > 0;
   if (hasMeshData) {
     if (typeof onProgress === "function") onProgress("translatingStepOptimize");
-    console.group("Step 2: AI optimization with MeSH context...");
-    console.info("Sending MeSH context to AI for optimization...");
+    console.group("[MeSHFlow] Step 2 - AI optimization with MeSH context");
+    console.info("[MeSHFlow] Sending MeSH context to AI for optimization...");
     const beforeAi = updatedString;
     updatedString = await aiOptimizeWithMeshContext(updatedString, userInput, meshContext, openAiServiceUrl, client, language);
+    const beforeMeshGuard = updatedString;
+    updatedString = restoreCanonicalValidatedMeshTerms(updatedString, meshContext.termContexts);
+    if (updatedString !== beforeMeshGuard) {
+      console.info("[MeSHFlow] Canonical MeSH descriptor guard applied.");
+      console.info(`  Before guard: ${beforeMeshGuard}`);
+      console.info(`  After guard:  ${updatedString}`);
+    }
     if (updatedString !== beforeAi) {
-      console.info("AI optimized search string:");
+      console.info("[MeSHFlow] AI optimized search string:");
       console.info(`  Before: ${beforeAi}`);
       console.info(`  After:  ${updatedString}`);
     } else {
-      console.info("AI returned no changes.");
+      console.info("[MeSHFlow] AI returned no changes.");
     }
     console.groupEnd();
   } else {
-    console.info("Step 2: No MeSH data available — skipping AI optimization.");
+    console.info("[MeSHFlow] Step 2 skipped - no MeSH data available.");
   }
 
-  // ── Step 3: Validate final search string against PubMed ──
-  console.group("Step 3: Validating search string against PubMed...");
-  console.info("Search string before PubMed check:", updatedString);
-  updatedString = await validateSearchString(updatedString, proxyUrl, openAiServiceUrl, client);
-  console.info("Search string after PubMed check:", updatedString);
+  // ── Step 2b: Canonicalize ALL [mh] terms against NLM ──
+  console.group("[MeSHFlow] Step 2b - Canonicalize all [mh] terms against NLM");
+  const beforeCanonicalizeAll = updatedString;
+  updatedString = await canonicalizeAllMeshTermsWithNlm(updatedString, proxyUrl);
+  if (updatedString !== beforeCanonicalizeAll) {
+    console.info("[MeSHFlow] Canonicalization updated MeSH terms:");
+    console.info(`  Before: ${beforeCanonicalizeAll}`);
+    console.info(`  After:  ${updatedString}`);
+  } else {
+    console.info("[MeSHFlow] No global MeSH canonicalization changes needed.");
+  }
   console.groupEnd();
 
-  // ── Step 4: Normalize field tags, quote MeSH terms, remove duplicates, lowercase ──
-  updatedString = normalizeFieldTags(updatedString);
-  updatedString = quoteMeshTerms(updatedString);
-  updatedString = removeDuplicateTerms(updatedString);
+  // ── Step 3: Validate final search string against PubMed ──
+  console.group("[MeSHFlow] Step 3 - Validate against PubMed");
+  console.info("[MeSHFlow] Search string before PubMed check:", updatedString);
+  updatedString = await validateSearchString(updatedString, proxyUrl, openAiServiceUrl, client, 1, language);
+  console.info("[MeSHFlow] Search string after PubMed check:", updatedString);
+  console.groupEnd();
+
+  // ── Step 4: Deterministic post-processing (tags/syntax/wildcards/operators) ──
+  updatedString = sanitizeSearchStringDeterministic(updatedString);
   updatedString = lowercaseNonMeshTerms(updatedString);
   updatedString = normalizeBooleanOperatorsOutsideQuotes(updatedString);
 
+  // ── Step 5: Final hard gate against PubMed after all local normalizations ──
+  // Guarantees the exact final query shown in the form has been validated by NLM.
+  console.group("[MeSHFlow] Step 5 - Final gate validation against PubMed");
+  updatedString = await validateSearchString(updatedString, proxyUrl, openAiServiceUrl, client, 1, language);
+  console.info("[MeSHFlow] Final gate passed query:", updatedString);
+  console.groupEnd();
+
   // ── Summary ──
   if (updatedString !== searchString) {
-    console.info("Final result (changed):", updatedString);
+    console.info("[MeSHFlow] Final result (changed):", updatedString);
   } else {
-    console.info("Final result (unchanged):", updatedString);
+    console.info("[MeSHFlow] Final result (unchanged):", updatedString);
   }
   console.groupEnd();
 
@@ -703,62 +937,73 @@ export async function validateAndEnhanceMeshTerms(searchString, userInput, proxy
  * @param {number} [attempt=1] - Current attempt number (max 2 to avoid loops)
  * @returns {Promise<string>} The validated (and possibly corrected) search string
  */
-async function validateSearchString(searchString, proxyUrl, openAiServiceUrl, client, attempt = 1) {
+async function validateSearchString(
+  searchString,
+  proxyUrl,
+  openAiServiceUrl,
+  client,
+  attempt = 1,
+  language = "dk"
+) {
   try {
-    const params = new URLSearchParams({
-      db: "pubmed",
-      term: searchString,
-      retmode: "json",
-      retmax: "0",
-    });
+    const maxAttempts = 4;
+    let candidate = searchString;
 
-    const response = await axios.get(`${proxyUrl}/NlmSearch.php?${params}`, { timeout: 10000 });
-    const result = response.data?.esearchresult;
-    const count = parseInt(result?.count || "0", 10);
-    const queryTranslation = result?.querytranslation || "";
+    for (let i = 1; i <= maxAttempts; i++) {
+      const validation = await runPubmedValidation(candidate, proxyUrl);
+      const count = validation.count;
+      const queryTranslation = validation.queryTranslation || "";
 
-    // Collect ALL error/warning info from PubMed's response
-    const errorlist = result?.errorlist || {};
-    const warninglist = result?.warninglist || {};
-    const allErrorFields = Object.values(errorlist).flat().filter(Boolean);
-    const allWarningFields = Object.values(warninglist).flat().filter(Boolean);
-    const allIssues = [...allErrorFields, ...allWarningFields];
+      if (!validation.hasIssues) {
+        console.info(`PubMed check passed — ${count} result(s), no errors or warnings.`);
+        if (queryTranslation) console.info("PubMed query translation:", queryTranslation);
+        return candidate;
+      }
 
-    // If PubMed returned any error or warning at all, there is a problem
-    const hasErrors = allIssues.length > 0;
+      console.warn(`PubMed check found issues (attempt ${i}/${maxAttempts}):`, {
+        count,
+        queryTranslation,
+        errorlist: Object.keys(validation.errorlist || {}).length > 0 ? validation.errorlist : null,
+        warninglist: Object.keys(validation.warninglist || {}).length > 0 ? validation.warninglist : null,
+        issues: validation.issues,
+      });
 
-    if (!hasErrors) {
-      console.info(`PubMed check passed — ${count} result(s), no errors or warnings.`);
-      if (queryTranslation) console.info("PubMed query translation:", queryTranslation);
-      return searchString;
+      // First correction strategy: querytranslation from PubMed.
+      if (queryTranslation && queryTranslation !== candidate) {
+        let corrected = sanitizeSearchStringDeterministic(queryTranslation);
+        console.info("Applying querytranslation candidate and re-validating.");
+        console.info(`  Previous: ${candidate}`);
+        console.info(`  Candidate: ${corrected}`);
+        candidate = corrected;
+        continue;
+      }
+
+      // Second correction strategy: AI fix based on PubMed issues.
+      const aiFixed = await aiFixSearchString(
+        candidate,
+        validation.issues,
+        openAiServiceUrl,
+        client,
+        language
+      );
+      if (aiFixed && aiFixed !== candidate) {
+        const normalizedAiFixed = sanitizeSearchStringDeterministic(aiFixed);
+        console.info("Applying AI fix candidate and re-validating.");
+        console.info(`  Previous: ${candidate}`);
+        console.info(`  Candidate: ${normalizedAiFixed}`);
+        candidate = normalizedAiFixed;
+        continue;
+      }
+
+      // No new candidate can be produced -> stop retrying.
+      break;
     }
 
-    console.warn(`PubMed check found issues:`, {
-      count,
-      queryTranslation,
-      errorlist: Object.keys(errorlist).length > 0 ? errorlist : null,
-      warninglist: Object.keys(warninglist).length > 0 ? warninglist : null,
-      issues: allIssues,
-    });
-
-    // Use PubMed's own querytranslation as the corrected search string.
-    // This is what PubMed actually searched — guaranteed to work without errors.
-    if (queryTranslation) {
-      let corrected = normalizeFieldTags(queryTranslation);
-      corrected = removeDuplicateTerms(corrected);
-      console.info(`Using PubMed's querytranslation as corrected search string.`);
-      console.info(`  Original: ${searchString}`);
-      console.info(`  PubMed:   ${queryTranslation}`);
-      console.info(`  Cleaned:  ${corrected}`);
-      return corrected;
-    }
-
-    // Fallback: no querytranslation available, return as-is
-    console.warn("No querytranslation available — returning original search string.");
-    return searchString;
+    // Hard fail: never return an unvalidated final query to the form.
+    throw new Error("Could not produce a PubMed-valid query without errors/warnings.");
   } catch (error) {
-    console.warn("Final search string validation failed:", error.message);
-    return searchString;
+    console.error("Final search string validation failed hard:", error.message);
+    throw error;
   }
 }
 
@@ -834,32 +1079,25 @@ async function aiFixSearchString(searchString, issues, openAiServiceUrl, client,
   return callAiStreaming(prompt, "", openAiServiceUrl, client);
 }
 
-async function aiCheckIntentCoverage(intentText, searchString, openAiServiceUrl, client) {
+async function aiCheckIntentCoverage(intentText, searchString, openAiServiceUrl, client, language = "dk") {
   if (!intentText || !openAiServiceUrl) return true;
 
-  const prompt = `Vurder om PubMed-søgestrengen udtrykker brugerens søgeintention.
-Brugerens intention:
-"${intentText}"
-Søgestreng:
-${searchString}
-Svar KUN med YES eller NO.`;
+  const localePrompt = getPromptForLocale(executionIntentCheckPrompt, language);
+  const prompt = localePrompt.prompt
+    .replace(/\{intentText\}/g, intentText)
+    .replace(/\{searchString\}/g, searchString);
 
   const answer = await callAiStreaming(prompt, "", openAiServiceUrl, client);
   return /^yes\b/i.test((answer || "").trim());
 }
 
-async function aiAlignToIntent(intentText, searchString, openAiServiceUrl, client) {
+async function aiAlignToIntent(intentText, searchString, openAiServiceUrl, client, language = "dk") {
   if (!intentText || !openAiServiceUrl) return searchString;
 
-  const prompt = `Du skal justere en PubMed-søgestreng, så den matcher brugerens intention, uden at ødelægge syntaksen.
-Brugerens intention:
-"${intentText}"
-Nuværende søgestreng:
-${searchString}
-Regler:
-- Bevar boolske operatorer og parenteser så vidt muligt.
-- Brug kun gyldig PubMed-syntaks.
-- Svar KUN med den justerede søgestreng.`;
+  const localePrompt = getPromptForLocale(executionIntentAlignPrompt, language);
+  const prompt = localePrompt.prompt
+    .replace(/\{intentText\}/g, intentText)
+    .replace(/\{searchString\}/g, searchString);
 
   return callAiStreaming(prompt, "", openAiServiceUrl, client);
 }
@@ -890,25 +1128,39 @@ export async function validateQueryForExecution(
 ) {
   if (!searchString || !proxyUrl) return searchString;
 
+  const flowId = `exec-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  console.group(`[ExecutionFlow][${flowId}] validateQueryForExecution`);
+  console.info(`[ExecutionFlow][${flowId}] Raw query:`, searchString);
+  console.info(`[ExecutionFlow][${flowId}] Intent text:`, intentText || "<empty>");
+
   let candidate = searchString;
   let lastValid = "";
+  let successQuery = "";
 
   for (let attempt = 1; attempt <= Math.max(1, maxAttempts); attempt++) {
+    console.group(`[ExecutionFlow][${flowId}] Attempt ${attempt}/${maxAttempts}`);
     try {
-      candidate = normalizeBooleanOperatorsOutsideQuotes(candidate);
-      candidate = normalizeFieldTags(candidate);
-      candidate = quoteMeshTerms(candidate);
-      candidate = removeDuplicateTerms(candidate);
+      console.info("Candidate before normalize:", candidate);
+      candidate = sanitizeSearchStringDeterministic(candidate);
+      console.info("Candidate after normalize:", candidate);
 
       const validation = await runPubmedValidation(candidate, proxyUrl);
+      console.info("NLM validation summary:", {
+        count: validation.count,
+        hasIssues: validation.hasIssues,
+        issuesCount: validation.issues.length,
+        hasQueryTranslation: !!validation.queryTranslation,
+      });
+
       if (validation.hasIssues) {
-        console.warn(`Execution validation issues (attempt ${attempt}):`, validation.issues);
+        console.warn("Validation issues detected:", validation.issues);
         if (validation.queryTranslation) {
-          candidate = normalizeFieldTags(validation.queryTranslation);
-          candidate = quoteMeshTerms(candidate);
-          candidate = removeDuplicateTerms(candidate);
+          console.info("Applying PubMed querytranslation correction.");
+          candidate = sanitizeSearchStringDeterministic(validation.queryTranslation);
+          console.info("Candidate after querytranslation correction:", candidate);
           continue;
         }
+        console.info("No querytranslation available. Applying AI fix.");
         candidate = await aiFixSearchString(
           candidate,
           validation.issues,
@@ -916,6 +1168,7 @@ export async function validateQueryForExecution(
           client,
           language
         );
+        console.info("Candidate after AI fix:", candidate);
         continue;
       }
 
@@ -924,27 +1177,41 @@ export async function validateQueryForExecution(
         intentText,
         candidate,
         openAiServiceUrl,
-        client
+        client,
+        language
       );
+      console.info("Intent coverage result:", intentOk ? "YES" : "NO");
       if (intentOk) {
-        return candidate;
+        console.info(`[ExecutionFlow][${flowId}] Final status: success`);
+        successQuery = candidate;
+        break;
       }
 
       if (attempt < maxAttempts) {
-        candidate = await aiAlignToIntent(intentText, candidate, openAiServiceUrl, client);
+        console.info("Intent mismatch. Applying AI alignment.");
+        candidate = await aiAlignToIntent(intentText, candidate, openAiServiceUrl, client, language);
+        console.info("Candidate after intent alignment:", candidate);
       }
     } catch (error) {
       console.warn(`Execution validation failed on attempt ${attempt}:`, error.message);
-      break;
+      // Continue retries to handle transient failures.
+    } finally {
+      console.groupEnd();
     }
   }
 
+  if (successQuery) {
+    console.groupEnd();
+    return successQuery;
+  }
+
   if (lastValid) {
-    console.warn("Using last NLM-valid query after max retries.");
+    console.warn(`[ExecutionFlow][${flowId}] Final status: fallback_last_valid`);
+    console.groupEnd();
     return lastValid;
   }
 
-  console.warn("Falling back to original query after validation failure.");
+  console.warn(`[ExecutionFlow][${flowId}] Final status: fallback_original`);
+  console.groupEnd();
   return searchString;
 }
-

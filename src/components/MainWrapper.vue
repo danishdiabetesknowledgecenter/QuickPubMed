@@ -164,7 +164,6 @@
   import { appSettingsMixin } from "@/mixins/appSettings";
   import { scopeIds, customInputTagTooltip } from "@/utils/qpm-content-helpers.js";
   import { loadFiltersFromRuntime, loadStandardString } from "@/utils/contentLoader";
-  import { validateQueryForExecution } from "@/utils/mesh-validator.js";
 
   export default {
     name: "MainWrapper",
@@ -245,6 +244,7 @@
         preselectedPmidai: [],
         searchError: null,
         searchString: "",
+        finalValidatedQuery: "",
         searchLoading: false,
         searchWithAI: true,
         searchresult: undefined,
@@ -1377,7 +1377,7 @@
         // Assemble the full URL with all query parameters
         const urlLink = `${baseUrl}?${apiBaseStr}${apiBaseStr ? "&" : ""}${subjectsStr}${filterStr}${advancedStr}${pmidaiStr}${sorter}${collapsedStr}${pageSizeStr}${scrolltoStr}${openFiltersStr}${hideLimitsStr}${checkLimitsStr}${orderLimitsStr}`;
 
-        return urlLink.replace("?&", "?");
+        return urlLink.replace("?&", "?").replace(/&&+/g, "&");
       },
       /**
        * Constructs the query string for subjects based on selected subjects.
@@ -1922,6 +1922,7 @@
         this.filterData = {};
         this.filterDropdowns = [[]];
         this.searchresult = undefined;
+        this.finalValidatedQuery = "";
         this.count = 0;
         this.page = 0;
         this.showFilter = false;
@@ -1958,6 +1959,7 @@
       },
       editForm() {
         this.searchresult = undefined;
+        this.finalValidatedQuery = "";
         this.count = 0;
         this.page = 0;
         return true;
@@ -2042,24 +2044,24 @@
 
         const query = decodeURIComponent(this.getSearchString).trim();
         const { nlm } = this.appSettings;
+        console.group("[SearchFlow] search()");
+        console.info("[SearchFlow] Raw query from getSearchString:", query);
 
         if (!query || query === "()") {
+          console.info("[SearchFlow] Query is empty. Search aborted.");
           this.searchLoading = false;
+          console.groupEnd();
           return;
         }
 
         this.reloadScripts();
 
         try {
-          const validatedQuery = await validateQueryForExecution(
-            query,
-            this.searchIntent,
-            nlm.proxyUrl,
-            this.appSettings.openAi.baseUrl,
-            this.appSettings.client,
-            this.language,
-            10
-          );
+          // No additional validation flow on search button click.
+          // Validation is performed when free-text queries are generated.
+          const finalQuery = query;
+          this.finalValidatedQuery = finalQuery;
+          console.info("[SearchFlow] Final query (no extra flow on search):", finalQuery);
 
           // ESearch request to get list of IDs (credentials handled by PHP proxy)
           const esearchParams = new URLSearchParams({
@@ -2068,8 +2070,9 @@
             retmax: this.pageSize,
             retstart: this.page * this.pageSize,
             sort: this.sort.method,
-            term: validatedQuery,
+            term: finalQuery,
           });
+          console.info("[SearchFlow] ESearch term sent to NLM:", finalQuery);
 
           const esearchResponse = await axios.post(
             `${nlm.proxyUrl}/NlmSearch.php`,
@@ -2133,6 +2136,8 @@
         } catch (error) {
           this.showSearchError(error);
           this.searchLoading = false;
+        } finally {
+          console.groupEnd();
         }
       },
       /**
@@ -2163,10 +2168,14 @@
         // Decode and trim the search query string
         const query = decodeURIComponent(this.getSearchString).trim();
         const { nlm } = this.appSettings;
+        console.group("[SearchFlow] searchMore()");
+        console.info("[SearchFlow] Raw query from getSearchString:", query);
 
         // Validate the query string
         if (!query || query === "()") {
+          console.info("[SearchFlow] Query is empty. Pagination aborted.");
           this.searchLoading = false;
+          console.groupEnd();
           return;
         }
 
@@ -2174,14 +2183,10 @@
         this.reloadScripts();
 
         try {
-          const validatedQuery = await validateQueryForExecution(
-            query,
-            this.searchIntent,
-            nlm.proxyUrl,
-            this.appSettings.openAi.baseUrl,
-            this.appSettings.client,
-            this.language,
-            10
+          const validatedQuery = this.finalValidatedQuery || query;
+          console.info(
+            "[SearchFlow] Reusing final validated query (no revalidation in searchMore):",
+            validatedQuery
           );
 
           // Prepare parameters for the ESearch API request (credentials handled by PHP proxy)
@@ -2193,6 +2198,7 @@
             sort: this.sort.method,
             term: validatedQuery,
           });
+          console.info("[SearchFlow] ESearch term sent to NLM:", validatedQuery);
 
           // Perform the ESearch API request to retrieve PubMed IDs
           const esearchResponse = await axios.post(
@@ -2269,6 +2275,8 @@
           console.error(error);
           this.showSearchError(error);
           this.searchLoading = false;
+        } finally {
+          console.groupEnd();
         }
       },
       /**

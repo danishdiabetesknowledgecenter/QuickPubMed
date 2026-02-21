@@ -1775,20 +1775,28 @@
             });
           }
           //setTimeout is to resolve the tag placeholder before starting to translate
-          await new Promise((resolve) => setTimeout(resolve, 10));
-          let translated = await this.translateSearch(newTag);
-          // Validate and enhance MeSH terms via NLM E-utilities if enabled
-          if (this.instanceUseMeshValidation) {
-            this.$emit("translating", true, this.index, "translatingStepMesh");
-            translated = await validateAndEnhanceMeshTerms(
-              translated,
-              newTag,
-              this.appSettings.nlm.proxyUrl,
-              this.appSettings.openAi.baseUrl,
-              this.appSettings.client,
-              this.language,
-              (stepKey) => this.$emit("translating", true, this.index, stepKey),
-            );
+          let translated;
+          try {
+            await new Promise((resolve) => setTimeout(resolve, 10));
+            translated = await this.translateSearch(newTag);
+            // Validate and enhance MeSH terms via NLM E-utilities if enabled
+            if (this.instanceUseMeshValidation) {
+              this.$emit("translating", true, this.index, "translatingStepMesh");
+              translated = await validateAndEnhanceMeshTerms(
+                translated,
+                newTag,
+                this.appSettings.nlm.proxyUrl,
+                this.appSettings.openAi.baseUrl,
+                this.appSettings.client,
+                this.language,
+                (stepKey) => this.$emit("translating", true, this.index, stepKey),
+              );
+            }
+          } catch (error) {
+            console.error("[MeSHFlow] Validation failed. Query not added to form.", error);
+            this.$emit("translating", false, this.index);
+            this.isLoading = false;
+            return;
           }
           tag = {
             id: `__custom__:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`,

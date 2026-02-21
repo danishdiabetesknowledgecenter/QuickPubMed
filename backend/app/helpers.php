@@ -38,6 +38,55 @@ function getAllowedOrigin($origin) {
 }
 
 /**
+ * Global NLM request throttle using file lock.
+ * Limits outbound requests from this server to approximately maxPerSecond.
+ *
+ * @param int $maxPerSecond
+ * @return void
+ */
+function qpmThrottleNlmRequests(int $maxPerSecond = 10): void
+{
+    if ($maxPerSecond < 1) {
+        $maxPerSecond = 1;
+    }
+
+    $lockPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'qpm_nlm_rate_limit.lock';
+    $intervalUs = (int) floor(1000000 / $maxPerSecond);
+
+    $fp = @fopen($lockPath, 'c+');
+    if ($fp === false) {
+        // Fail-open to avoid breaking requests if filesystem is unavailable.
+        return;
+    }
+
+    try {
+        if (!flock($fp, LOCK_EX)) {
+            fclose($fp);
+            return;
+        }
+
+        rewind($fp);
+        $raw = stream_get_contents($fp);
+        $lastTimeUs = is_string($raw) && trim($raw) !== '' ? (int) trim($raw) : 0;
+        $nowUs = (int) floor(microtime(true) * 1000000);
+        $nextAllowedUs = $lastTimeUs + $intervalUs;
+
+        if ($nowUs < $nextAllowedUs) {
+            usleep($nextAllowedUs - $nowUs);
+            $nowUs = (int) floor(microtime(true) * 1000000);
+        }
+
+        ftruncate($fp, 0);
+        rewind($fp);
+        fwrite($fp, (string) $nowUs);
+        fflush($fp);
+        flock($fp, LOCK_UN);
+    } finally {
+        fclose($fp);
+    }
+}
+
+/**
  * HTTP request helper with cURL + stream fallback.
  *
  * @param string $url
