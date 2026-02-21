@@ -48,6 +48,40 @@ if ($method === 'GET') {
 
         $path = editorResolveContentFilePath($type, $domain);
         $revisions = editorListRevisions($path);
+        // Hide only the revision entry that represents the current live file.
+        // Keep older/newer historical entries even if payload is identical.
+        $currentPayload = editorReadJsonFile($path);
+        $currentPayloadHash = editorPayloadHash($currentPayload);
+        $currentModifiedAt = is_file($path) ? @filemtime($path) : false;
+        $currentCreatedAt = $currentModifiedAt !== false ? gmdate('c', (int) $currentModifiedAt) : '';
+        $filteredRevisions = [];
+        $seenRevisionKeys = [];
+        foreach ($revisions as $revision) {
+            $revisionId = trim((string) ($revision['revisionId'] ?? ''));
+            if ($revisionId === '') {
+                continue;
+            }
+            $revisionPayload = editorLoadRevisionPayload($path, $revisionId);
+            $revisionPayloadHash = editorPayloadHash($revisionPayload);
+            $revisionCreatedAt = (string) ($revision['createdAt'] ?? '');
+            if ($revisionPayloadHash === $currentPayloadHash && $revisionCreatedAt === $currentCreatedAt) {
+                continue;
+            }
+            $revisionKey = $revisionCreatedAt . '|' . $revisionPayloadHash;
+            if (isset($seenRevisionKeys[$revisionKey])) {
+                $existingIndex = (int) $seenRevisionKeys[$revisionKey];
+                $existingRestoredFrom = trim((string) ($filteredRevisions[$existingIndex]['restoredFromRevisionId'] ?? ''));
+                $currentRestoredFrom = trim((string) ($revision['restoredFromRevisionId'] ?? ''));
+                // Prefer the entry that carries explicit restore metadata.
+                if ($existingRestoredFrom === '' && $currentRestoredFrom !== '') {
+                    $filteredRevisions[$existingIndex] = $revision;
+                }
+                continue;
+            }
+            $seenRevisionKeys[$revisionKey] = count($filteredRevisions);
+            $filteredRevisions[] = $revision;
+        }
+        $revisions = $filteredRevisions;
         editorAudit('revisions_listed', ['type' => $type, 'domain' => $domain, 'count' => count($revisions)]);
         editorJsonResponse(200, [
             'ok' => true,
@@ -110,6 +144,30 @@ if ($method === 'GET') {
 
     $path = editorResolveContentFilePath($type, $domain);
     $data = editorReadJsonFile($path);
+    $currentModifiedAt = is_file($path) ? @filemtime($path) : false;
+    $currentChecksum = '';
+    if (is_file($path)) {
+        $rawCurrent = @file_get_contents($path);
+        if (is_string($rawCurrent) && $rawCurrent !== '') {
+            $currentChecksum = hash('sha256', $rawCurrent);
+        }
+    }
+    $currentCreatedAt = $currentModifiedAt !== false ? gmdate('c', (int) $currentModifiedAt) : '';
+    $currentRestoredFromRevisionId = '';
+    $currentRestoredFromCreatedAt = '';
+    if ($currentChecksum !== '' && $currentCreatedAt !== '') {
+        $revisionsForCurrent = editorListRevisions($path);
+        foreach ($revisionsForCurrent as $revision) {
+            $revisionChecksum = (string) ($revision['checksum'] ?? '');
+            $revisionCreatedAt = (string) ($revision['createdAt'] ?? '');
+            if ($revisionChecksum !== $currentChecksum || $revisionCreatedAt !== $currentCreatedAt) {
+                continue;
+            }
+            $currentRestoredFromRevisionId = (string) ($revision['restoredFromRevisionId'] ?? '');
+            $currentRestoredFromCreatedAt = (string) ($revision['restoredFromCreatedAt'] ?? '');
+            break;
+        }
+    }
     editorAudit('content_read', ['type' => $type, 'domain' => $domain]);
 
     editorJsonResponse(200, [
@@ -117,6 +175,10 @@ if ($method === 'GET') {
         'type' => $type,
         'domain' => $domain,
         'data' => $data,
+        'currentModifiedAt' => $currentModifiedAt !== false ? gmdate('c', (int) $currentModifiedAt) : null,
+        'currentChecksum' => $currentChecksum !== '' ? $currentChecksum : null,
+        'currentRestoredFromRevisionId' => $currentRestoredFromRevisionId !== '' ? $currentRestoredFromRevisionId : null,
+        'currentRestoredFromCreatedAt' => $currentRestoredFromCreatedAt !== '' ? $currentRestoredFromCreatedAt : null,
     ]);
 }
 
@@ -178,7 +240,9 @@ if ($method === 'POST') {
             editorJsonResponse(500, ['error' => 'Failed to create pre-revert snapshot']);
         }
         editorWriteJsonAtomic($path, $payload);
-        $restoredRevisionId = editorSnapshotCurrentFile($path, $type, $domain);
+        $restoredRevisionId = editorSnapshotCurrentFile($path, $type, $domain, [
+            'restoredFromRevisionId' => $revisionId,
+        ]);
         if ($restoredRevisionId === null) {
             editorAudit('content_revert_failed_history_write', [
                 'type' => $type,
@@ -228,7 +292,13 @@ if ($method === 'POST') {
         editorJsonResponse(500, ['error' => 'Failed to create pre-save snapshot']);
     }
     editorWriteJsonAtomic($path, $payload);
-    $revisionId = editorSnapshotCurrentFile($path, $type, $domain);
+    // Keep exactly one history entry per save operation.
+    // For existing files we use the pre-save snapshot as the revision entry.
+    $revisionId = $snapshotBeforeSave;
+    if ($revisionId === null) {
+        // First save / missing file: snapshot the newly written content once.
+        $revisionId = editorSnapshotCurrentFile($path, $type, $domain);
+    }
     if ($revisionId === null) {
         editorAudit('content_save_failed_history_write', ['type' => $type, 'domain' => $domain]);
         editorJsonResponse(500, ['error' => 'Failed to write revision history']);

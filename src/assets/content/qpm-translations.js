@@ -1,4 +1,4 @@
-import { aiURL } from "@/config/settings";
+import { aiURL } from "../../config/settings.js";
 
 export const messages = {
   standardString: {
@@ -853,5 +853,665 @@ export const messages = {
   summarizationInProgressDisclaimer: {
     dk: "Opsummeringen er i gang, vent venligst til den er færdig. Herefter kan du skifte fane.",
     en: "The summarisation is in progress, please wait until it is finished. After that, you can switch tabs.",
+  },
+  editor_typeTopics: {
+    dk: "Emner",
+    en: "Topics",
+  },
+  editor_typeFilters: {
+    dk: "Afgrænsninger",
+    en: "Limits",
+  },
+  editor_login: {
+    dk: "Log ind",
+    en: "Log in",
+  },
+  editor_logout: {
+    dk: "Log ud",
+    en: "Log out",
+  },
+  editor_saveAll: {
+    dk: "Gem alle ændringer",
+    en: "Save all changes",
+  },
+  editor_save: {
+    dk: "Gem",
+    en: "Save",
+  },
+  editor_load: {
+    dk: "Hent",
+    en: "Load",
+  },
+  editor_otherFunctions: {
+    dk: "Andre funktioner",
+    en: "Other functions",
+  },
+  editor_editJson: {
+    dk: "Rediger i JSON",
+    en: "Edit JSON",
+  },
+  editor_hideJson: {
+    dk: "Skjul JSON-redigering",
+    en: "Hide JSON editor",
+  },
+  editor_sortMode: {
+    dk: "Sorteringstilstand",
+    en: "Sort mode",
+  },
+  editor_searchPlaceholder: {
+    dk: "Søg i emner (id eller navn)",
+    en: "Search topics (id or name)",
+  },
+  editor_refreshHistory: {
+    dk: "Opdater historik",
+    en: "Refresh history",
+  },
+  editor_previewVersion: {
+    dk: "Vis version",
+    en: "Show version",
+  },
+  editor_hideVersion: {
+    dk: "Skjul version",
+    en: "Hide version",
+  },
+  editor_revertVersion: {
+    dk: "Gendan valgt version",
+    en: "Restore selected version",
+  },
+  editor_onlyDiff: {
+    dk: "Vis kun forskelle",
+    en: "Show only differences",
+  },
+  editor_saveHint: {
+    dk: 'Ingen ændringer gennemføres, før du klikker "Gem alle ændringer".',
+    en: 'No changes are applied until you click "Save all changes".',
+  },
+  editor_showAllTopics: {
+    dk: "Vis alle emner",
+    en: "Show all topics",
+  },
+  editor_hideAllTopics: {
+    dk: "Skjul alle emner",
+    en: "Hide all topics",
+  },
+  editor_noDomains: {
+    dk: "Ingen domæner",
+    en: "No domains",
+  },
+  editor_domainRequiredForTopics: {
+    dk: "Domain er påkrævet for emner.",
+    en: "Domain is required for topics.",
+  },
+  editor_itemIdLabel: {
+    dk: "ID",
+    en: "ID",
+  },
+  editor_itemOrderingFixedLabel: {
+    dk: "Fast placering (ordering-tal)",
+    en: "Fixed position (ordering number)",
+  },
+  editor_itemNameDkLabel: {
+    dk: "Navn (dk)",
+    en: "Name (dk)",
+  },
+  editor_itemNameEnLabel: {
+    dk: "Navn (en)",
+    en: "Name (en)",
+  },
+  editor_itemNarrowLabel: {
+    dk: "Narrow (en linje pr. søgestreng)",
+    en: "Narrow (one line per search string)",
+  },
+  editor_itemNormalLabel: {
+    dk: "Normal (en linje pr. søgestreng)",
+    en: "Standard (one line per search string)",
+  },
+  editor_itemBroadLabel: {
+    dk: "Broad (en linje pr. søgestreng)",
+    en: "Broad (one line per search string)",
+  },
+  editor_itemCommentDkLabel: {
+    dk: "Kommentar (dk)",
+    en: "Comment (dk)",
+  },
+  editor_itemCommentEnLabel: {
+    dk: "Kommentar (en)",
+    en: "Comment (en)",
+  },
+  editor_itemTooltipDkLabel: {
+    dk: "Tooltip (dk)",
+    en: "Tooltip (dk)",
+  },
+  editor_itemTooltipEnLabel: {
+    dk: "Tooltip (en)",
+    en: "Tooltip (en)",
+  },
+  editor_hideInFormByDefault: {
+    dk: "Skjul i formular som standard",
+    en: "Hide in form by default",
+  },
+  editor_saveMainCategory: {
+    dk: "Gem hovedkategori",
+    en: "Save main category",
+  },
+  editor_deleteMainCategory: {
+    dk: "Slet hovedkategori",
+    en: "Delete main category",
+  },
+  editor_categoryIdPrefixLabel: {
+    dk: "Kategori ID/prefix",
+    en: "Category ID/prefix",
+  },
+  editor_categoryNameDkLabel: {
+    dk: "Kategorinavn (dk)",
+    en: "Category name (dk)",
+  },
+  editor_categoryNameEnLabel: {
+    dk: "Kategorinavn (en)",
+    en: "Category name (en)",
+  },
+  editor_lockIdOnSortLabel: {
+    dk: "Lås ID ved sortering",
+    en: "Lock ID during sorting",
+  },
+  editor_showScopeButtonsLabel: {
+    dk: "Vis scope-knapper (n/s/b)",
+    en: "Show scope buttons (n/s/b)",
+  },
+  editor_showAlphabeticalOrderingLabel: {
+    dk: "Vis alfabetisk (ordering = null)",
+    en: "Show alphabetically (ordering = null)",
+  },
+  editor_currentListPositionLabel: {
+    dk: "Aktuel placering i listen",
+    en: "Current position in list",
+  },
+  editor_saveTopicFields: {
+    dk: "Gem emnefelter",
+    en: "Save topic fields",
+  },
+  editor_deleteSubtopic: {
+    dk: "Slet underemne",
+    en: "Delete subtopic",
+  },
+  editor_unknownItemLabel: {
+    dk: "Ukendt",
+    en: "Unknown",
+  },
+  editor_dropBefore: {
+    dk: "Slip før",
+    en: "Drop before",
+  },
+  editor_dropAsSubtopic: {
+    dk: "Slip som underemne",
+    en: "Drop as subtopic",
+  },
+  editor_dropAfter: {
+    dk: "Slip efter",
+    en: "Drop after",
+  },
+  editor_categoryFallbackLabel: {
+    dk: "Kategori",
+    en: "Category",
+  },
+  editor_dropCategoryBefore: {
+    dk: "Slip kategori før",
+    en: "Drop category before",
+  },
+  editor_dropCategoryAfter: {
+    dk: "Slip kategori efter",
+    en: "Drop category after",
+  },
+  editor_addSubtopic: {
+    dk: "Tilføj underemne",
+    en: "Add subtopic",
+  },
+  editor_addMainCategory: {
+    dk: "Tilføj hovedkategori",
+    en: "Add main category",
+  },
+  editor_usernamePlaceholder: {
+    dk: "Brugernavn",
+    en: "Username",
+  },
+  editor_passwordPlaceholder: {
+    dk: "Password",
+    en: "Password",
+  },
+  editor_currentVersionLabel: {
+    dk: "Aktuel version",
+    en: "Current version",
+  },
+  editor_selectedVersionLabel: {
+    dk: "Valgt version",
+    en: "Selected version",
+  },
+  editor_noDifferencesFound: {
+    dk: "Ingen forskelle fundet.",
+    en: "No differences found.",
+  },
+  editor_allDifferencesHiddenByFilter: {
+    dk: "Alle linjer er skjult af det valgte filter.",
+    en: "All differences are hidden by current filter.",
+  },
+  editor_infoAriaLabel: {
+    dk: "Info",
+    en: "Info",
+  },
+  editor_selectPreviousVersion: {
+    dk: "Vælg en anden version",
+    en: "Select another version",
+  },
+  editor_noHistoryFound: {
+    dk: "Ingen historik fundet",
+    en: "No history found",
+  },
+  editor_couldNotFetchHistory: {
+    dk: "Kunne ikke hente historik.",
+    en: "Could not fetch history.",
+  },
+  editor_selectRevisionFirst: {
+    dk: "Vælg en revision først.",
+    en: "Select a revision first.",
+  },
+  editor_selectedVersionMatchesCurrent: {
+    dk: "Valgt version matcher allerede den aktuelle fil.",
+    en: "Selected version already matches the current file.",
+  },
+  editor_couldNotLoadPreview: {
+    dk: "Kunne ikke indlæse preview.",
+    en: "Could not load preview.",
+  },
+  editor_autoLoggedOutAfterHidden: {
+    dk: "Automatisk logget ud, fordi siden har været skjult i 1 time.",
+    en: "Logged out automatically because the page was hidden for 1 hour.",
+  },
+  editor_securityBlockLocalApiOnly: {
+    dk: "Sikkerhedsblokering: localhost-editor må kun bruge lokal API (localhost/127.0.0.1).",
+    en: "Security block: localhost editor may only use local API (localhost/127.0.0.1).",
+  },
+  editor_apiReturnedPhpSource: {
+    dk: "API svarer med PHP-kildekode. Brug en PHP-server og sæt data-content-api-base-url til den rigtige API-URL.",
+    en: "API responds with PHP source code. Use a PHP server and set data-content-api-base-url to the correct API URL.",
+  },
+  editor_invalidJsonResponse: {
+    dk: "Ugyldigt JSON svar fra serveren.",
+    en: "Invalid JSON response from server.",
+  },
+  editor_requestFailed: {
+    dk: "Request fejlede",
+    en: "Request failed",
+  },
+  editor_sessionActive: {
+    dk: "Session aktiv.",
+    en: "Session active.",
+  },
+  editor_loginToContinue: {
+    dk: "Log ind for at fortsætte.",
+    en: "Log in to continue.",
+  },
+  editor_enterUsernameAndPassword: {
+    dk: "Udfyld brugernavn og password.",
+    en: "Enter username and password.",
+  },
+  editor_loginSuccessful: {
+    dk: "Login lykkedes.",
+    en: "Login successful.",
+  },
+  editor_loggedOut: {
+    dk: "Du er logget ud.",
+    en: "You are logged out.",
+  },
+  editor_loadedForDomain: {
+    dk: "hentet for domain",
+    en: "loaded for domain",
+  },
+  editor_loadedShort: {
+    dk: "hentet",
+    en: "loaded",
+  },
+  editor_invalidJson: {
+    dk: "JSON er ugyldig.",
+    en: "JSON is invalid.",
+  },
+  editor_noChangesToSave: {
+    dk: "Ingen ændringer at gemme.",
+    en: "No changes to save.",
+  },
+  editor_alreadySavedViaJsonButton: {
+    dk: "Indholdet er allerede gemt via JSON-knappen.",
+    en: "The content is already saved via the JSON button.",
+  },
+  editor_noNewVersionCreatedUnchanged: {
+    dk: "Ingen ny version oprettet, fordi indholdet er uændret.",
+    en: "No new version was created because content is unchanged.",
+  },
+  editor_savedAndVerifiedForDomain: {
+    dk: "gemt og verificeret via API for domain",
+    en: "saved and verified via API for domain",
+  },
+  editor_savedAndVerified: {
+    dk: "gemt og verificeret via API",
+    en: "saved and verified via API",
+  },
+  editor_savedFor: {
+    dk: "gemt for",
+    en: "saved for",
+  },
+  editor_savedShort: {
+    dk: "gemt",
+    en: "saved",
+  },
+  editor_topicIdPlaceholder: {
+    dk: "Emne-id",
+    en: "Topic ID",
+  },
+  editor_invalidTopicsJson: {
+    dk: "Ugyldig topics JSON.",
+    en: "Invalid topics JSON.",
+  },
+  editor_categoryNotFound: {
+    dk: "Kategori ikke fundet.",
+    en: "Category not found.",
+  },
+  editor_invalidMove: {
+    dk: "Ugyldig flytning.",
+    en: "Invalid move.",
+  },
+  editor_sourceTopicNotFound: {
+    dk: "Kildeemne blev ikke fundet.",
+    en: "Source topic not found.",
+  },
+  editor_cannotMoveTopicIntoItself: {
+    dk: "Kan ikke flytte et emne ind i sig selv/underemne.",
+    en: "Cannot move a topic into itself/subtopic.",
+  },
+  editor_couldNotExtractTopic: {
+    dk: "Kunne ikke udtrække emnet.",
+    en: "Could not extract topic.",
+  },
+  editor_targetTopicNotFound: {
+    dk: "Mål-emne blev ikke fundet.",
+    en: "Target topic not found.",
+  },
+  editor_targetPositionNotFound: {
+    dk: "Målplacering blev ikke fundet.",
+    en: "Target position not found.",
+  },
+  editor_topicUnlockedIdConfirmPrefix: {
+    dk: "Emnet",
+    en: "Topic",
+  },
+  editor_topicUnlockedIdConfirmSuffix: {
+    dk: "har ulåst ID. Vil du opdatere ID automatisk ud fra den nye placering?",
+    en: "has unlocked ID. Do you want to update ID automatically based on the new position?",
+  },
+  editor_invalidCategoryMove: {
+    dk: "Ugyldig kategori-flytning.",
+    en: "Invalid category move.",
+  },
+  editor_sourceCategoryNotFound: {
+    dk: "Kilde-kategori blev ikke fundet.",
+    en: "Source category not found.",
+  },
+  editor_targetCategoryNotFound: {
+    dk: "Mål-kategori blev ikke fundet.",
+    en: "Target category not found.",
+  },
+  editor_categoryDoesNotExist: {
+    dk: "Kategori findes ikke.",
+    en: "Category does not exist.",
+  },
+  editor_subtopicNotFound: {
+    dk: "Underemne blev ikke fundet.",
+    en: "Subtopic not found.",
+  },
+  editor_mainCategoryNotFound: {
+    dk: "Hovedkategori blev ikke fundet.",
+    en: "Main category not found.",
+  },
+  editor_parentTopicNotFound: {
+    dk: "Forældre-emne blev ikke fundet.",
+    en: "Parent topic not found.",
+  },
+  editor_cannotUpdateInvalidTopicsJson: {
+    dk: "Kan ikke opdatere: JSON for topics er ugyldig.",
+    en: "Cannot update: topics JSON is invalid.",
+  },
+  editor_categoryNotInCurrentJson: {
+    dk: "Kategori findes ikke i den aktuelle JSON.",
+    en: "Category does not exist in current JSON.",
+  },
+  editor_selectedTopicNotFound: {
+    dk: "Valgt emne blev ikke fundet.",
+    en: "Selected topic was not found.",
+  },
+  editor_idMustNotBeEmpty: {
+    dk: "ID må ikke være tom.",
+    en: "ID must not be empty.",
+  },
+  editor_idExistsInCategoryPrefix: {
+    dk: "ID",
+    en: "ID",
+  },
+  editor_idExistsInCategorySuffix: {
+    dk: "findes allerede i kategorien.",
+    en: "already exists in the category.",
+  },
+  editor_changesSavedLocallyForTopic: {
+    dk: "Ændringer gemt lokalt i editor for emne",
+    en: "Changes saved locally in editor for topic",
+  },
+  editor_clickSaveAllToWriteFile: {
+    dk: "Klik \"Gem alle ændringer\" for at skrive til fil.",
+    en: "Click \"Save all changes\" to write to file.",
+  },
+  editor_mainCategoryIdRequired: {
+    dk: "Hovedkategori-ID må ikke være tom.",
+    en: "Main category ID must not be empty.",
+  },
+  editor_categoryIdExistsPrefix: {
+    dk: "Kategori-ID",
+    en: "Category ID",
+  },
+  editor_categoryIdExistsSuffix: {
+    dk: "findes allerede.",
+    en: "already exists.",
+  },
+  editor_mainCategoryUpdatedLocallyPrefix: {
+    dk: "Hovedkategori",
+    en: "Main category",
+  },
+  editor_clickSaveAllAboveToWriteFile: {
+    dk: "opdateret lokalt. Klik \"Gem alle ændringer\" ovenfor for at skrive til fil.",
+    en: "updated locally. Click \"Save all changes\" above to write to file.",
+  },
+  editor_securityBlockActivePrefix: {
+    dk: "Sikkerhedsblokering aktiv: apiBase",
+    en: "Security block active: apiBase",
+  },
+  editor_securityBlockActiveSuffix: {
+    dk: "er ikke lokal. Brug lokal PHP API for at undgå gem på eksternt miljø.",
+    en: "is not local. Use local PHP API to avoid saving to external environment.",
+  },
+  editor_couldNotAddMainCategory: {
+    dk: "Kunne ikke tilføje hovedkategori.",
+    en: "Could not add main category.",
+  },
+  editor_newMainCategoryCreatedPrefix: {
+    dk: "Ny hovedkategori",
+    en: "New main category",
+  },
+  editor_createdAtBottomSuffix: {
+    dk: "oprettet nederst.",
+    en: "created at the bottom.",
+  },
+  editor_couldNotAddTopic: {
+    dk: "Kunne ikke tilføje emne.",
+    en: "Could not add topic.",
+  },
+  editor_subtopicLabel: {
+    dk: "underemne",
+    en: "subtopic",
+  },
+  editor_topicLabel: {
+    dk: "emne",
+    en: "topic",
+  },
+  editor_newLabelPrefix: {
+    dk: "Nyt",
+    en: "New",
+  },
+  editor_confirmDeleteSubtopicPrefix: {
+    dk: "Vil du slette underemnet",
+    en: "Do you want to delete subtopic",
+  },
+  editor_deleteFailed: {
+    dk: "Sletning mislykkedes.",
+    en: "Delete failed.",
+  },
+  editor_subtopicDeletedPrefix: {
+    dk: "Underemne",
+    en: "Subtopic",
+  },
+  editor_confirmDeleteMainCategoryPrefix: {
+    dk: "Vil du slette hovedkategorien",
+    en: "Do you want to delete main category",
+  },
+  editor_mainCategoryDeletedPrefix: {
+    dk: "Hovedkategori",
+    en: "Main category",
+  },
+  editor_moveFailed: {
+    dk: "Flytning mislykkedes.",
+    en: "Move failed.",
+  },
+  editor_mainCategoryMovedPrefix: {
+    dk: "Hovedkategori",
+    en: "Main category",
+  },
+  editor_topicMovedPrefix: {
+    dk: "Emne",
+    en: "Topic",
+  },
+  editor_movedWithPositionPrefix: {
+    dk: "flyttet",
+    en: "moved",
+  },
+  editor_activeApiLabel: {
+    dk: "Aktiv API",
+    en: "Active API",
+  },
+  editor_savedByLabel: {
+    dk: "Gemt af",
+    en: "Saved by",
+  },
+  editor_restoredFromLabel: {
+    dk: "gendannet fra",
+    en: "restored from",
+  },
+  editor_versionRestored: {
+    dk: "Version gendannet",
+    en: "Version restored",
+  },
+  editor_nowLabel: {
+    dk: "nu",
+    en: "now",
+  },
+  editor_restoreFailed: {
+    dk: "Gendannelse mislykkedes.",
+    en: "Restore failed.",
+  },
+  editor_diffPreviewLoaded: {
+    dk: "Diff-preview indlæst.",
+    en: "Diff preview loaded.",
+  },
+  editor_confirmRestoreSelectedVersion: {
+    dk: "Vil du gendanne den valgte version? Dette overskriver den nuværende fil, men nuværende version snapshots først.",
+    en: "Do you want to restore the selected version? This overwrites the current file, but the current version is snapshotted first.",
+  },
+  editor_helpCategoryId: {
+    dk: "Unikt ID/prefix for hovedkategorien. Bruges som grundlag for underemne-ID'er.",
+    en: "Unique ID/prefix for the top category. Used as base for child item IDs.",
+  },
+  editor_helpCategoryTranslationsDk: {
+    dk: "Visningsnavn på dansk.",
+    en: "Display name in Danish.",
+  },
+  editor_helpCategoryTranslationsEn: {
+    dk: "Visningsnavn på engelsk.",
+    en: "Display name in English.",
+  },
+  editor_helpCategoryTooltipDk: {
+    dk: "Forklaringstekst på dansk, vist i brugerfladen.",
+    en: "Help text in Danish, shown in the UI.",
+  },
+  editor_helpCategoryTooltipEn: {
+    dk: "Forklaringstekst på engelsk, vist i brugerfladen.",
+    en: "Help text in English, shown in the UI.",
+  },
+  editor_helpCategoryHiddenByDefault: {
+    dk: "Når markeret, er kategorien skjult som standard i formularen.",
+    en: "When checked, the category is hidden by default in the form.",
+  },
+  editor_helpItemId: {
+    dk: "Unikt ID for underemnet.",
+    en: "Unique ID for the child item.",
+  },
+  editor_helpItemLockIdOnSort: {
+    dk: "Beholder ID ved sortering/flytning.",
+    en: "Keeps ID when sorting/moving.",
+  },
+  editor_helpItemHiddenByDefault: {
+    dk: "Når markeret, er underemnet skjult som standard i formularen.",
+    en: "When checked, the child item is hidden by default in the form.",
+  },
+  editor_helpItemButtons: {
+    dk: "Vis scope-knapper (n/s/b) for dette underemne i søgeformularen.",
+    en: "Show scope buttons (n/s/b) for this child item in the search form.",
+  },
+  editor_helpItemOrderingAlphabetical: {
+    dk: "Når markeret bruges alfabetisk visning i stedet for fast placering.",
+    en: "When checked, alphabetical order is used instead of fixed ordering.",
+  },
+  editor_helpItemOrderingFixed: {
+    dk: "Fast placering i listen, når alfabetisk visning ikke er valgt.",
+    en: "Fixed position in the list when alphabetical mode is not enabled.",
+  },
+  editor_helpItemTranslationsDk: {
+    dk: "Navn på dansk.",
+    en: "Name in Danish.",
+  },
+  editor_helpItemTranslationsEn: {
+    dk: "Navn på engelsk.",
+    en: "Name in English.",
+  },
+  editor_helpItemSearchStringsNarrow: {
+    dk: "Søgestrenge for narrow-scope (én pr. linje).",
+    en: "Search strings for narrow scope (one per line).",
+  },
+  editor_helpItemSearchStringsNormal: {
+    dk: "Søgestrenge for normal/standard scope (én pr. linje).",
+    en: "Search strings for normal/standard scope (one per line).",
+  },
+  editor_helpItemSearchStringsBroad: {
+    dk: "Søgestrenge for broad-scope (én pr. linje).",
+    en: "Search strings for broad scope (one per line).",
+  },
+  editor_helpItemSearchStringCommentDk: {
+    dk: "Kommentar på dansk til søgestrengen.",
+    en: "Danish comment for the search string.",
+  },
+  editor_helpItemSearchStringCommentEn: {
+    dk: "Kommentar på engelsk til søgestrengen.",
+    en: "English comment for the search string.",
+  },
+  editor_helpItemTooltipDk: {
+    dk: "Hjælpetekst på dansk, vist i brugerfladen.",
+    en: "Help text in Danish, shown in the UI.",
+  },
+  editor_helpItemTooltipEn: {
+    dk: "Hjælpetekst på engelsk, vist i brugerfladen.",
+    en: "Help text in English, shown in the UI.",
   },
 };

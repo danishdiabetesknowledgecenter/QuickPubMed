@@ -157,7 +157,6 @@
 <script>
   import { appSettingsMixin } from "@/mixins/appSettings";
   import { utilitiesMixin } from "@/mixins/utilities";
-  import { filtrer } from "@/assets/content/qpm-content-filters.js";
   import { order } from "@/assets/content/qpm-content-order.js";
 
   export default {
@@ -171,6 +170,10 @@
       filters: {
         type: Object,
         required: true,
+      },
+      availableFilters: {
+        type: Array,
+        default: () => [],
       },
       filterDropdowns: {
         type: Array,
@@ -300,6 +303,20 @@
       },
     },
     methods: {
+      groupContainsFilterChoiceId(group, itemId) {
+        if (!group || !Array.isArray(group.choices) || !itemId) return false;
+        for (const choice of group.choices) {
+          if (!choice) continue;
+          if (choice.id === itemId) return true;
+          if (Array.isArray(choice.choices) && this.groupContainsFilterChoiceId({ choices: choice.choices }, itemId)) {
+            return true;
+          }
+          if (Array.isArray(choice.children) && this.groupContainsFilterChoiceId({ choices: choice.children }, itemId)) {
+            return true;
+          }
+        }
+        return false;
+      },
       toggleAdvanced() {
         this.$emit("toggleAdvancedString");
       },
@@ -389,12 +406,13 @@
         } else if (type === "s") {
           return id;
         } else if (type === "l") {
-          const group = filtrer.find(byGroupId);
+          const group = this.availableFilters.find(byGroupId);
+          if (!group) return id;
           if (id.length === 3) {
-            return group.translations[lg];
+            return group?.translations?.[lg] || group?.translations?.dk || group?.translations?.en || id;
           } else {
-            const choice = group.choices.find(byId);
-            return choice.translations[lg];
+            const choice = (group.choices || []).find(byId);
+            return choice?.translations?.[lg] || choice?.translations?.dk || choice?.translations?.en || id;
           }
         } else {
           throw new Error("Id not handled by getWordedFilterStringById. id: " + id);
@@ -437,7 +455,9 @@
         }
         // Find the category by checking which filter group contains this item's id
         const groupId = item.id.substring(0, 4);
-        const group = filtrer.find((f) => f.id === groupId || (f.choices && f.choices.some((c) => c.id === item.id)));
+        const group = this.availableFilters.find(
+          (f) => f.id === groupId || this.groupContainsFilterChoiceId(f, item.id)
+        );
         if (group && group.translations) {
           const lg = this.language;
           const name = group.translations[lg] || group.translations["dk"] || "";
@@ -450,7 +470,7 @@
         if (typeof id === "string" && id.startsWith("__custom__")) {
           return this.getString("manualInputTerm") || "Søgeord";
         }
-        const filterGroup = filtrer.find(group => group.id === id);
+        const filterGroup = this.availableFilters.find(group => group.id === id);
         if (filterGroup && filterGroup.translations) {
           const lg = this.language;
           return filterGroup.translations[lg] || filterGroup.translations["dk"];

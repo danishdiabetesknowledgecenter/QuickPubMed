@@ -10,6 +10,9 @@ header('Vary: Origin');
 header('Access-Control-Allow-Methods: GET, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 header('Access-Control-Max-Age: 86400');
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
 editorHandlePreflight();
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';

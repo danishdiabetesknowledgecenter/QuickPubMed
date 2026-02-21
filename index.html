@@ -52,5 +52,25 @@
     <li><a href="/entries/widgets/specific-articles.html">Specific Articles</a></li>
     <li><a href="/entries/widgets/editor.html">Editor</a></li>
   </ul>
+  <ul>
+    <li><a id="main-wrapper-local-api-link" data-widget-path="/entries/widgets/main-wrapper.html" data-local-api-port="8080" href="/entries/widgets/main-wrapper.html">Main Wrapper (lokal API)</a></li>
+    <li><a id="search-gallery-local-api-link" data-widget-path="/entries/widgets/search-gallery.html" data-local-api-port="8080" href="/entries/widgets/search-gallery.html">Search Gallery (lokal API)</a></li>
+    <li><a id="specific-articles-local-api-link" data-widget-path="/entries/widgets/specific-articles.html" data-local-api-port="8080" href="/entries/widgets/specific-articles.html">Specific Articles (lokal API)</a></li>
+    <li><a id="editor-local-api-link" data-widget-path="/entries/widgets/editor.html" data-local-api-port="8080" href="/entries/widgets/editor.html">Editor (lokal API)</a></li>
+  </ul>
+  <script>
+    (function () {
+      const links = document.querySelectorAll("a[data-widget-path][data-local-api-port]");
+      if (!links.length) return;
+      links.forEach((link) => {
+        const configuredPort = String(link.dataset.localApiPort || "").trim();
+        const port = configuredPort || "8080";
+        const widgetPath = String(link.dataset.widgetPath || "").trim();
+        if (!widgetPath) return;
+        const localApiBase = `${window.location.protocol}//${window.location.hostname}:${port}/backend/api`;
+        link.href = `${widgetPath}?apiBase=${encodeURIComponent(localApiBase)}`;
+      });
+    })();
+  </script>
 </body>
 </html>

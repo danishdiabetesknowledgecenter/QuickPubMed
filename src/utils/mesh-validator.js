@@ -14,7 +14,7 @@
  */
 
 import axios from "axios";
-import { meshOptimizationPrompt } from "@/assets/content/qpm-prompts-mesh.js";
+import { meshFixPrompt, meshOptimizationPrompt } from "@/assets/content/qpm-prompts-mesh.js";
 import { getPromptForLocale } from "@/utils/qpm-prompts-helpers.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -166,6 +166,13 @@ function lowercaseNonMeshTerms(searchString) {
         return `"${quotedTerm.toLowerCase()}"[${tag}]`;
       }
       if (unquotedTerm) {
+        // Preserve boolean operators if they were accidentally captured with the term.
+        const trimmed = unquotedTerm.trimStart();
+        const leadingWhitespace = unquotedTerm.slice(0, unquotedTerm.length - trimmed.length);
+        const boolPrefix = trimmed.match(/^(AND|OR|NOT)\s+(.+)$/i);
+        if (boolPrefix) {
+          return `${leadingWhitespace}${boolPrefix[1].toUpperCase()} ${boolPrefix[2].toLowerCase()}[${tag}]`;
+        }
         return `${unquotedTerm.toLowerCase()}[${tag}]`;
       }
       return match;
@@ -667,6 +674,7 @@ export async function validateAndEnhanceMeshTerms(searchString, userInput, proxy
   updatedString = quoteMeshTerms(updatedString);
   updatedString = removeDuplicateTerms(updatedString);
   updatedString = lowercaseNonMeshTerms(updatedString);
+  updatedString = normalizeBooleanOperatorsOutsideQuotes(updatedString);
 
   // ── Summary ──
   if (updatedString !== searchString) {
@@ -752,5 +760,191 @@ async function validateSearchString(searchString, proxyUrl, openAiServiceUrl, cl
     console.warn("Final search string validation failed:", error.message);
     return searchString;
   }
+}
+
+function normalizeBooleanOperatorsOutsideQuotes(searchString) {
+  if (!searchString) return searchString;
+  let inQuotes = false;
+  let segment = "";
+  let result = "";
+
+  const flushSegment = () => {
+    if (!segment) return;
+    segment = segment
+      .replace(/\band\b/gi, "AND")
+      .replace(/\bor\b/gi, "OR")
+      .replace(/\bnot\b/gi, "NOT");
+    result += segment;
+    segment = "";
+  };
+
+  for (let i = 0; i < searchString.length; i++) {
+    const char = searchString[i];
+    if (char === "\"") {
+      flushSegment();
+      inQuotes = !inQuotes;
+      result += char;
+      continue;
+    }
+    if (inQuotes) {
+      result += char;
+    } else {
+      segment += char;
+    }
+  }
+  flushSegment();
+  return result;
+}
+
+async function runPubmedValidation(searchString, proxyUrl) {
+  const params = new URLSearchParams({
+    db: "pubmed",
+    term: searchString,
+    retmode: "json",
+    retmax: "0",
+  });
+
+  const response = await axios.get(`${proxyUrl}/NlmSearch.php?${params}`, { timeout: 10000 });
+  const result = response.data?.esearchresult || {};
+  const count = parseInt(result?.count || "0", 10);
+  const queryTranslation = result?.querytranslation || "";
+  const errorlist = result?.errorlist || {};
+  const warninglist = result?.warninglist || {};
+  const allErrorFields = Object.values(errorlist).flat().filter(Boolean);
+  const allWarningFields = Object.values(warninglist).flat().filter(Boolean);
+  const issues = [...allErrorFields, ...allWarningFields];
+
+  return {
+    count,
+    queryTranslation,
+    errorlist,
+    warninglist,
+    issues,
+    hasIssues: issues.length > 0,
+  };
+}
+
+async function aiFixSearchString(searchString, issues, openAiServiceUrl, client, language = "dk") {
+  if (!openAiServiceUrl) return searchString;
+  const localePrompt = getPromptForLocale(meshFixPrompt, language);
+  const issuesText = issues.length > 0 ? issues.join("\n- ") : "Ukendte fejl";
+  const prompt = localePrompt.prompt
+    .replace(/\{searchString\}/g, searchString)
+    .replace(/\{issues\}/g, `- ${issuesText}`);
+  return callAiStreaming(prompt, "", openAiServiceUrl, client);
+}
+
+async function aiCheckIntentCoverage(intentText, searchString, openAiServiceUrl, client) {
+  if (!intentText || !openAiServiceUrl) return true;
+
+  const prompt = `Vurder om PubMed-søgestrengen udtrykker brugerens søgeintention.
+Brugerens intention:
+"${intentText}"
+Søgestreng:
+${searchString}
+Svar KUN med YES eller NO.`;
+
+  const answer = await callAiStreaming(prompt, "", openAiServiceUrl, client);
+  return /^yes\b/i.test((answer || "").trim());
+}
+
+async function aiAlignToIntent(intentText, searchString, openAiServiceUrl, client) {
+  if (!intentText || !openAiServiceUrl) return searchString;
+
+  const prompt = `Du skal justere en PubMed-søgestreng, så den matcher brugerens intention, uden at ødelægge syntaksen.
+Brugerens intention:
+"${intentText}"
+Nuværende søgestreng:
+${searchString}
+Regler:
+- Bevar boolske operatorer og parenteser så vidt muligt.
+- Brug kun gyldig PubMed-syntaks.
+- Svar KUN med den justerede søgestreng.`;
+
+  return callAiStreaming(prompt, "", openAiServiceUrl, client);
+}
+
+/**
+ * Hybrid validator for execution-time queries.
+ * Always checks query against NLM ESearch before the query is used.
+ * If issues are found, applies automatic corrections and retries.
+ * Additionally checks if the query still matches user intent.
+ *
+ * @param {string} searchString
+ * @param {string} intentText
+ * @param {string} proxyUrl
+ * @param {string} openAiServiceUrl
+ * @param {string} client
+ * @param {string} [language="dk"]
+ * @param {number} [maxAttempts=10]
+ * @returns {Promise<string>}
+ */
+export async function validateQueryForExecution(
+  searchString,
+  intentText,
+  proxyUrl,
+  openAiServiceUrl,
+  client,
+  language = "dk",
+  maxAttempts = 10
+) {
+  if (!searchString || !proxyUrl) return searchString;
+
+  let candidate = searchString;
+  let lastValid = "";
+
+  for (let attempt = 1; attempt <= Math.max(1, maxAttempts); attempt++) {
+    try {
+      candidate = normalizeBooleanOperatorsOutsideQuotes(candidate);
+      candidate = normalizeFieldTags(candidate);
+      candidate = quoteMeshTerms(candidate);
+      candidate = removeDuplicateTerms(candidate);
+
+      const validation = await runPubmedValidation(candidate, proxyUrl);
+      if (validation.hasIssues) {
+        console.warn(`Execution validation issues (attempt ${attempt}):`, validation.issues);
+        if (validation.queryTranslation) {
+          candidate = normalizeFieldTags(validation.queryTranslation);
+          candidate = quoteMeshTerms(candidate);
+          candidate = removeDuplicateTerms(candidate);
+          continue;
+        }
+        candidate = await aiFixSearchString(
+          candidate,
+          validation.issues,
+          openAiServiceUrl,
+          client,
+          language
+        );
+        continue;
+      }
+
+      lastValid = candidate;
+      const intentOk = await aiCheckIntentCoverage(
+        intentText,
+        candidate,
+        openAiServiceUrl,
+        client
+      );
+      if (intentOk) {
+        return candidate;
+      }
+
+      if (attempt < maxAttempts) {
+        candidate = await aiAlignToIntent(intentText, candidate, openAiServiceUrl, client);
+      }
+    } catch (error) {
+      console.warn(`Execution validation failed on attempt ${attempt}:`, error.message);
+      break;
+    }
+  }
+
+  if (lastValid) {
+    console.warn("Using last NLM-valid query after max retries.");
+    return lastValid;
+  }
+
+  console.warn("Falling back to original query after validation failure.");
+  return searchString;
 }
 

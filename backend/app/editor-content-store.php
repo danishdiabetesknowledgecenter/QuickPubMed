@@ -6,6 +6,45 @@
 require_once __DIR__ . '/editor-auth.php';
 
 /**
+ * Preferred filters file path inside a content base dir.
+ */
+function editorFiltersFilePathInBase(string $baseDir): string
+{
+    return $baseDir . DIRECTORY_SEPARATOR . 'filters' . DIRECTORY_SEPARATOR . 'filters.json';
+}
+
+/**
+ * Legacy filters file path inside a content base dir.
+ */
+function editorLegacyFiltersFilePathInBase(string $baseDir): string
+{
+    return $baseDir . DIRECTORY_SEPARATOR . 'filters.json';
+}
+
+/**
+ * Resolve filters file path and migrate legacy location once.
+ */
+function editorResolveFiltersFilePath(): string
+{
+    $baseDir = editorContentBaseDir();
+    $preferredPath = editorFiltersFilePathInBase($baseDir);
+    $legacyPath = editorLegacyFiltersFilePathInBase($baseDir);
+
+    if (!is_file($preferredPath) && is_file($legacyPath)) {
+        $preferredDir = dirname($preferredPath);
+        if (!is_dir($preferredDir)) {
+            @mkdir($preferredDir, 0750, true);
+        }
+        if (!@rename($legacyPath, $preferredPath)) {
+            // Keep legacy path working if migration fails due to permissions.
+            return $legacyPath;
+        }
+    }
+
+    return $preferredPath;
+}
+
+/**
  * Base directory for editable JSON content.
  */
 function editorContentBaseDir(): string
@@ -13,8 +52,14 @@ function editorContentBaseDir(): string
     $newBaseDir = dirname(__DIR__) . '/storage/content';
     $legacyBaseDir = dirname(__DIR__) . '/content';
 
-    $newHasData = is_file($newBaseDir . '/filters.json') || !empty(glob($newBaseDir . '/*/topics.json'));
-    $legacyHasData = is_file($legacyBaseDir . '/filters.json') || !empty(glob($legacyBaseDir . '/*/topics.json'));
+    $newHasData =
+        is_file(editorFiltersFilePathInBase($newBaseDir)) ||
+        is_file(editorLegacyFiltersFilePathInBase($newBaseDir)) ||
+        !empty(glob($newBaseDir . '/*/topics.json'));
+    $legacyHasData =
+        is_file(editorFiltersFilePathInBase($legacyBaseDir)) ||
+        is_file(editorLegacyFiltersFilePathInBase($legacyBaseDir)) ||
+        !empty(glob($legacyBaseDir . '/*/topics.json'));
 
     if ($newHasData || !$legacyHasData) {
         return $newBaseDir;
@@ -351,7 +396,7 @@ function editorPruneRevisions(string $filePath): void
 /**
  * Store pre-save snapshot.
  */
-function editorSnapshotCurrentFile(string $filePath, string $type, ?string $domain): ?string
+function editorSnapshotCurrentFile(string $filePath, string $type, ?string $domain, array $extraMeta = []): ?string
 {
     if (!is_file($filePath)) {
         return null;
@@ -367,15 +412,20 @@ function editorSnapshotCurrentFile(string $filePath, string $type, ?string $doma
 
     $user = editorGetAuthenticatedUser();
     $revisionId = editorGenerateRevisionId();
+    $fileModifiedAt = @filemtime($filePath);
+    $revisionCreatedAt = $fileModifiedAt !== false ? gmdate('c', (int) $fileModifiedAt) : gmdate('c');
     $meta = [
         'revisionId' => $revisionId,
-        'createdAt' => gmdate('c'),
+        'createdAt' => $revisionCreatedAt,
         'type' => $type,
         'domain' => $domain,
         'user' => $user['username'] ?? '',
         'checksum' => hash('sha256', $raw),
         'bytes' => strlen($raw),
     ];
+    if (!empty($extraMeta)) {
+        $meta = array_merge($meta, $extraMeta);
+    }
     $snapshot = ['meta' => $meta, 'data' => $decoded];
     $json = json_encode($snapshot, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     if ($json === false) {
@@ -435,9 +485,27 @@ function editorListRevisions(string $filePath): array
             'type' => (string) ($meta['type'] ?? ''),
             'domain' => $meta['domain'] ?? null,
             'user' => (string) ($meta['user'] ?? ''),
+            'restoredFromRevisionId' => (string) ($meta['restoredFromRevisionId'] ?? ''),
+            'restoredFromCreatedAt' => '',
             'checksum' => (string) ($meta['checksum'] ?? ''),
             'bytes' => (int) ($meta['bytes'] ?? 0),
         ];
+    }
+
+    $createdAtByRevisionId = [];
+    foreach ($out as $row) {
+        $rid = (string) ($row['revisionId'] ?? '');
+        if ($rid === '') {
+            continue;
+        }
+        $createdAtByRevisionId[$rid] = (string) ($row['createdAt'] ?? '');
+    }
+    foreach ($out as $idx => $row) {
+        $sourceRevisionId = (string) ($row['restoredFromRevisionId'] ?? '');
+        if ($sourceRevisionId === '') {
+            continue;
+        }
+        $out[$idx]['restoredFromCreatedAt'] = (string) ($createdAtByRevisionId[$sourceRevisionId] ?? '');
     }
 
     return $out;
@@ -591,7 +659,7 @@ function editorResolveContentFilePath(string $type, ?string $domain = null): str
     editorEnsureContentBaseDir();
 
     if ($type === 'filters') {
-        return editorContentBaseDir() . DIRECTORY_SEPARATOR . 'filters.json';
+        return editorResolveFiltersFilePath();
     }
 
     $normalized = editorNormalizeDomain((string) $domain);

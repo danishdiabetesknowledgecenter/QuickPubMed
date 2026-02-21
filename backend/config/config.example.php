@@ -30,10 +30,7 @@ define('ALLOWED_DOMAINS', [
 ]);
 
 // ============ Editor Authentication (No Database) ============
-// Legacy single-user fallback (kept for backwards compatibility)
-define('EDITOR_USER', 'editor');
-define('EDITOR_PASSWORD_HASH', '$2y$10$REPLACE_WITH_BCRYPT_HASH');
-// Preferred multi-user structure
+// Multi-user structure
 // Generate hash with:
 // php -r "echo password_hash('CHANGE-ME', PASSWORD_BCRYPT) . PHP_EOL;"
 define('EDITOR_USERS', [
@@ -56,7 +53,7 @@ define('EDITOR_SESSION_TIMEOUT', 1800);
 define('EDITOR_REQUIRE_HTTPS', true);
 // Cookie SameSite policy for editor session: 'Lax', 'Strict', or 'None'
 // Use 'None' only when editor UI runs on a different origin than the API.
-define('EDITOR_COOKIE_SAMESITE', 'Lax');
+define('EDITOR_COOKIE_SAMESITE', 'None');
 // Optional exact-origin allowlist for editor CORS (useful for localhost dev)
 define('EDITOR_ALLOWED_ORIGINS', [
     'http://localhost:5173',

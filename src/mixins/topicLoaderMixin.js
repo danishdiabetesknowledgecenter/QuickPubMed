@@ -1,4 +1,4 @@
-import { loadTopics, loadTopicsFromRuntime } from "@/utils/contentLoader";
+import { loadTopicsFromRuntime } from "@/utils/contentLoader";
 import { config } from "@/config/config";
 import { normalizeTopicsList } from "@/utils/contentCanonicalizer";
 
@@ -97,8 +97,8 @@ export const topicLoaderMixin = {
       try {
         topicsSource = await loadTopicsFromRuntime(domain);
       } catch (error) {
-        const loadedTopics = loadTopics(domain);
-        topicsSource = loadedTopics.flatMap((module) => module.topics || []);
+        topicsSource = [];
+        console.error("Failed to load topics from runtime content API.", error);
       }
 
       if (topicsSource.length === 0) {

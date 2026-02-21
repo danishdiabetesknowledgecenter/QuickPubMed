@@ -1,6 +1,7 @@
 import "@/assets/styles/qpm-style.css";
 import "@/assets/styles/qpm-style-strings.css";
 import "@/assets/styles/qpm-editor.css";
+import { messages } from "@/assets/content/qpm-translations.js";
 
 const root = document.getElementById("qpm-editor");
 if (!root) {
@@ -12,11 +13,6 @@ function ensureEditorMarkup() {
   if (document.getElementById("qpm-editor-login")) return;
 
   root.innerHTML = `
-    <h1>QuickPubMed Editor</h1>
-    <p>Login for at redigere topics og filtre fra flat files.</p>
-    <p class="qpm-editor-note">Aktiv API: <span id="qpm-editor-api-base"></span></p>
-    <p class="qpm-editor-note">Aktuelt topic: <strong id="qpm-editor-active-topic">-</strong></p>
-
     <section id="qpm-editor-login">
       <div class="qpm-editor-row">
         <input id="qpm-editor-user" class="qpm-editor-input" type="text" placeholder="Brugernavn" />
@@ -29,12 +25,48 @@ function ensureEditorMarkup() {
 
     <section id="qpm-editor-app" class="qpm-editor-hidden">
       <div class="qpm-editor-row">
-        <select id="qpm-editor-domain" class="qpm-editor-select"></select>
         <select id="qpm-editor-type" class="qpm-editor-select">
           <option value="topics">Topics</option>
           <option value="filters">Filters</option>
         </select>
+        <select id="qpm-editor-domain" class="qpm-editor-select"></select>
       </div>
+
+      <div id="qpm-editor-topic-tools" class="qpm-editor-row">
+        <input id="qpm-editor-tree-search" class="qpm-editor-input" type="text" placeholder="Søg i emner (id eller navn)" />
+        <button id="qpm-editor-collapse-all-btn" class="qpm-editor-btn qpm-editor-btn-secondary" type="button">Fold ud / Fold sammen</button>
+        <label class="qpm-editor-sort-mode-label">
+          <input id="qpm-editor-sort-mode" class="qpm-editor-sort-mode-checkbox" type="checkbox" />
+          <span id="qpm-editor-sort-mode-text">Sorteringstilstand</span>
+        </label>
+        <div id="qpm-editor-topic-tree" class="qpm-editor-tree"></div>
+      </div>
+
+      <details id="qpm-editor-extra-tools" class="qpm-editor-accordion">
+        <summary id="qpm-editor-extra-tools-summary" class="qpm-editor-accordion-summary">Andre funktioner</summary>
+        <div class="qpm-editor-row">
+          <button id="qpm-editor-toggle-json-btn" class="qpm-editor-btn qpm-editor-btn-secondary qpm-editor-json-toggle-btn" type="button">Rediger i JSON</button>
+        </div>
+        <textarea id="qpm-editor-json" class="qpm-editor-textarea qpm-editor-textarea-json qpm-editor-hidden" spellcheck="false"></textarea>
+        <div id="qpm-editor-json-actions" class="qpm-editor-row qpm-editor-hidden">
+          <button id="qpm-editor-save-json-btn" class="qpm-editor-btn" type="button">Gem</button>
+        </div>
+        <div id="qpm-editor-revisions" class="qpm-editor-row qpm-editor-hidden">
+          <p id="qpm-editor-current-version-note" class="qpm-editor-note qpm-editor-revision-note-line"></p>
+          <select id="qpm-editor-revision-list" class="qpm-editor-select"></select>
+          <button id="qpm-editor-revision-refresh-btn" class="qpm-editor-btn qpm-editor-btn-secondary" type="button">Opdater historik</button>
+          <button id="qpm-editor-revision-preview-btn" class="qpm-editor-btn qpm-editor-btn-secondary" type="button">Vis version</button>
+          <button id="qpm-editor-revert-btn" class="qpm-editor-btn qpm-editor-btn-secondary" type="button">Gendan valgt version</button>
+          <label class="qpm-editor-sort-mode-label qpm-editor-revision-only-diff-label qpm-editor-hidden">
+            <input id="qpm-editor-revision-only-diff" class="qpm-editor-sort-mode-checkbox" type="checkbox" />
+            <span id="qpm-editor-revision-only-diff-text">Vis kun forskelle</span>
+          </label>
+        </div>
+        <p id="qpm-editor-revision-status" class="qpm-editor-note qpm-editor-hidden"></p>
+        <textarea id="qpm-editor-revision-preview-json" class="qpm-editor-textarea qpm-editor-textarea-json qpm-editor-hidden" spellcheck="false" readonly></textarea>
+        <div id="qpm-editor-revision-diff" class="qpm-editor-revision-diff qpm-editor-hidden"></div>
+        <p class="qpm-editor-note qpm-editor-api-note"><span id="qpm-editor-api-base-label">Aktiv API</span>: <span id="qpm-editor-api-base"></span></p>
+      </details>
       <div class="qpm-editor-row">
         <button id="qpm-editor-load-btn" class="qpm-editor-btn qpm-editor-btn-secondary qpm-editor-hidden" type="button">Hent</button>
         <button id="qpm-editor-save-btn" class="qpm-editor-btn" type="button">Gem alle ændringer</button>
@@ -42,29 +74,6 @@ function ensureEditorMarkup() {
       </div>
       <p id="qpm-editor-save-hint" class="qpm-editor-note">Ingen ændringer gennemføres, før du klikker "Gem alle ændringer".</p>
       <p id="qpm-editor-save-status" class="qpm-editor-save-status"></p>
-      <div id="qpm-editor-revisions" class="qpm-editor-row qpm-editor-hidden">
-        <select id="qpm-editor-revision-list" class="qpm-editor-select"></select>
-        <button id="qpm-editor-revision-refresh-btn" class="qpm-editor-btn qpm-editor-btn-secondary" type="button">Opdater historik</button>
-        <button id="qpm-editor-revision-preview-btn" class="qpm-editor-btn qpm-editor-btn-secondary" type="button">Preview version</button>
-        <button id="qpm-editor-revert-btn" class="qpm-editor-btn qpm-editor-btn-secondary" type="button">Gendan valgt version</button>
-      </div>
-      <p id="qpm-editor-revision-status" class="qpm-editor-note qpm-editor-hidden"></p>
-      <textarea id="qpm-editor-revision-preview-json" class="qpm-editor-textarea qpm-editor-textarea-json qpm-editor-hidden" spellcheck="false" readonly></textarea>
-
-      <div id="qpm-editor-topic-tools" class="qpm-editor-row">
-        <input id="qpm-editor-tree-search" class="qpm-editor-input" type="text" placeholder="Søg i emner (id eller navn)" />
-        <button id="qpm-editor-expand-all-btn" class="qpm-editor-btn qpm-editor-btn-secondary" type="button">Fold alle ud</button>
-        <button id="qpm-editor-collapse-all-btn" class="qpm-editor-btn qpm-editor-btn-secondary" type="button">Fold alle sammen</button>
-        <label class="qpm-editor-sort-mode-label">
-          <input id="qpm-editor-sort-mode" class="qpm-editor-sort-mode-checkbox" type="checkbox" />
-          Sorteringstilstand
-        </label>
-        <div id="qpm-editor-topic-tree" class="qpm-editor-tree"></div>
-        <p class="qpm-editor-note">Klik et emne i træet for inline redigering. Aktiver sorteringstilstand for drag-and-drop.</p>
-        <button id="qpm-editor-toggle-json-btn" class="qpm-editor-btn qpm-editor-btn-secondary" type="button">Vis rå JSON</button>
-      </div>
-
-      <textarea id="qpm-editor-json" class="qpm-editor-textarea qpm-editor-textarea-json qpm-editor-hidden" spellcheck="false"></textarea>
     </section>
 
     <div id="qpm-editor-status" class="qpm-editor-status"></div>
@@ -107,31 +116,39 @@ const loginSection = document.getElementById("qpm-editor-login");
 const appSection = document.getElementById("qpm-editor-app");
 const statusEl = document.getElementById("qpm-editor-status");
 const apiBaseEl = document.getElementById("qpm-editor-api-base");
-const activeTopicEl = document.getElementById("qpm-editor-active-topic");
+const apiBaseLabelEl = document.getElementById("qpm-editor-api-base-label");
 
 const userInput = document.getElementById("qpm-editor-user");
 const passwordInput = document.getElementById("qpm-editor-password");
 const typeInput = document.getElementById("qpm-editor-type");
 const domainInput = document.getElementById("qpm-editor-domain");
 const jsonInput = document.getElementById("qpm-editor-json");
+const sortModeTextEl = document.getElementById("qpm-editor-sort-mode-text");
+const extraToolsSummaryEl = document.getElementById("qpm-editor-extra-tools-summary");
 const topicTools = document.getElementById("qpm-editor-topic-tools");
 const topicTreeInput = document.getElementById("qpm-editor-topic-tree");
 const treeSearchInput = document.getElementById("qpm-editor-tree-search");
 const sortModeInput = document.getElementById("qpm-editor-sort-mode");
-const expandAllBtn = document.getElementById("qpm-editor-expand-all-btn");
 const collapseAllBtn = document.getElementById("qpm-editor-collapse-all-btn");
 
 const loginBtn = document.getElementById("qpm-editor-login-btn");
 const loadBtn = document.getElementById("qpm-editor-load-btn");
 const saveBtn = document.getElementById("qpm-editor-save-btn");
 const revisionsWrap = document.getElementById("qpm-editor-revisions");
+const revisionCurrentNoteEl = document.getElementById("qpm-editor-current-version-note");
 const revisionListInput = document.getElementById("qpm-editor-revision-list");
 const revisionRefreshBtn = document.getElementById("qpm-editor-revision-refresh-btn");
 const revisionPreviewBtn = document.getElementById("qpm-editor-revision-preview-btn");
 const revertBtn = document.getElementById("qpm-editor-revert-btn");
+const revisionOnlyDiffInput = document.getElementById("qpm-editor-revision-only-diff");
+const revisionOnlyDiffTextEl = document.getElementById("qpm-editor-revision-only-diff-text");
+const revisionOnlyDiffLabel = revisionOnlyDiffInput?.closest("label") || null;
 const revisionStatusEl = document.getElementById("qpm-editor-revision-status");
 const revisionPreviewJson = document.getElementById("qpm-editor-revision-preview-json");
+const revisionDiffEl = document.getElementById("qpm-editor-revision-diff");
 const toggleJsonBtn = document.getElementById("qpm-editor-toggle-json-btn");
+const jsonActionsWrap = document.getElementById("qpm-editor-json-actions");
+const saveJsonBtn = document.getElementById("qpm-editor-save-json-btn");
 const logoutBtn = document.getElementById("qpm-editor-logout-btn");
 
 let csrfToken = "";
@@ -153,97 +170,88 @@ let hiddenLogoutTimerId = 0;
 let unloadLogoutSent = false;
 let editorCapabilities = { canEditFilters: filtersEnabled, allowedDomains: [] };
 const editorLanguage = String(root?.dataset?.language || "dk").toLowerCase() === "en" ? "en" : "dk";
+function t(key) {
+  const msg = messages?.[`editor_${key}`];
+  if (!msg || typeof msg !== "object") return key;
+  return msg[editorLanguage] || msg.dk || msg.en || key;
+}
+function getTypeLabel(type) {
+  return type === "filters" ? t("typeFilters") : t("typeTopics");
+}
+
+function getLocalizedText(translations, fallback = "") {
+  const preferredLang = editorLanguage === "en" ? "en" : "dk";
+  const secondaryLang = preferredLang === "en" ? "dk" : "en";
+  const preferred = translations?.[preferredLang];
+  const secondary = translations?.[secondaryLang];
+  return preferred || secondary || fallback;
+}
 const editorHelpTextDelay = { show: 500, hide: 100 };
 let editorTooltipEl = null;
 let activeTooltipTrigger = null;
 let showTooltipTimerId = 0;
 let hideTooltipTimerId = 0;
-const editorHelpTexts = {
-  "category.id": {
-    dk: "Unikt ID/prefix for hovedkategorien. Bruges som grundlag for underemne-ID'er.",
-    en: "Unique ID/prefix for the top category. Used as base for child item IDs.",
-  },
-  "category.translations.dk": {
-    dk: "Visningsnavn på dansk.",
-    en: "Display name in Danish.",
-  },
-  "category.translations.en": {
-    dk: "Visningsnavn på engelsk.",
-    en: "Display name in English.",
-  },
-  "category.tooltip.dk": {
-    dk: "Forklaringstekst på dansk, vist i brugerfladen.",
-    en: "Help text in Danish, shown in the UI.",
-  },
-  "category.tooltip.en": {
-    dk: "Forklaringstekst på engelsk, vist i brugerfladen.",
-    en: "Help text in English, shown in the UI.",
-  },
-  "category.hiddenByDefault": {
-    dk: "Når markeret, er kategorien skjult som standard i formularen.",
-    en: "When checked, the category is hidden by default in the form.",
-  },
-  "item.id": {
-    dk: "Unikt ID for underemnet.",
-    en: "Unique ID for the child item.",
-  },
-  "item.lockIdOnSort": {
-    dk: "Beholder ID ved sortering/flytning.",
-    en: "Keeps ID when sorting/moving.",
-  },
-  "item.hiddenByDefault": {
-    dk: "Når markeret, er underemnet skjult som standard i formularen.",
-    en: "When checked, the child item is hidden by default in the form.",
-  },
-  "item.buttons": {
-    dk: "Vis scope-knapper (n/s/b) for dette underemne i søgeformularen.",
-    en: "Show scope buttons (n/s/b) for this child item in the search form.",
-  },
-  "item.ordering.alphabetical": {
-    dk: "Når markeret bruges alfabetisk visning i stedet for fast placering.",
-    en: "When checked, alphabetical order is used instead of fixed ordering.",
-  },
-  "item.ordering.fixed": {
-    dk: "Fast placering i listen, når alfabetisk visning ikke er valgt.",
-    en: "Fixed position in the list when alphabetical mode is not enabled.",
-  },
-  "item.translations.dk": {
-    dk: "Navn på dansk.",
-    en: "Name in Danish.",
-  },
-  "item.translations.en": {
-    dk: "Navn på engelsk.",
-    en: "Name in English.",
-  },
-  "item.searchStrings.narrow": {
-    dk: "Søgestrenge for narrow-scope (én pr. linje).",
-    en: "Search strings for narrow scope (one per line).",
-  },
-  "item.searchStrings.normal": {
-    dk: "Søgestrenge for normal/standard scope (én pr. linje).",
-    en: "Search strings for normal/standard scope (one per line).",
-  },
-  "item.searchStrings.broad": {
-    dk: "Søgestrenge for broad-scope (én pr. linje).",
-    en: "Search strings for broad scope (one per line).",
-  },
-  "item.searchStringComment.dk": {
-    dk: "Kommentar på dansk til søgestrengen.",
-    en: "Danish comment for the search string.",
-  },
-  "item.searchStringComment.en": {
-    dk: "Kommentar på engelsk til søgestrengen.",
-    en: "English comment for the search string.",
-  },
-  "item.tooltip.dk": {
-    dk: "Hjælpetekst på dansk, vist i brugerfladen.",
-    en: "Help text in Danish, shown in the UI.",
-  },
-  "item.tooltip.en": {
-    dk: "Hjælpetekst på engelsk, vist i brugerfladen.",
-    en: "Help text in English, shown in the UI.",
-  },
+let revisionDiffRowsCache = [];
+let revisionSelectedPreviewDate = "";
+let revisionCurrentPreviewDate = "";
+let revisionCurrentRestoredFromDate = "";
+let lastSaveUsedJsonButton = false;
+const editorHelpTextKeyMap = {
+  "category.id": "helpCategoryId",
+  "category.translations.dk": "helpCategoryTranslationsDk",
+  "category.translations.en": "helpCategoryTranslationsEn",
+  "category.tooltip.dk": "helpCategoryTooltipDk",
+  "category.tooltip.en": "helpCategoryTooltipEn",
+  "category.hiddenByDefault": "helpCategoryHiddenByDefault",
+  "item.id": "helpItemId",
+  "item.lockIdOnSort": "helpItemLockIdOnSort",
+  "item.hiddenByDefault": "helpItemHiddenByDefault",
+  "item.buttons": "helpItemButtons",
+  "item.ordering.alphabetical": "helpItemOrderingAlphabetical",
+  "item.ordering.fixed": "helpItemOrderingFixed",
+  "item.translations.dk": "helpItemTranslationsDk",
+  "item.translations.en": "helpItemTranslationsEn",
+  "item.searchStrings.narrow": "helpItemSearchStringsNarrow",
+  "item.searchStrings.normal": "helpItemSearchStringsNormal",
+  "item.searchStrings.broad": "helpItemSearchStringsBroad",
+  "item.searchStringComment.dk": "helpItemSearchStringCommentDk",
+  "item.searchStringComment.en": "helpItemSearchStringCommentEn",
+  "item.tooltip.dk": "helpItemTooltipDk",
+  "item.tooltip.en": "helpItemTooltipEn",
 };
+
+function updateJsonToggleButtonLabel() {
+  if (!(toggleJsonBtn instanceof HTMLElement) || !(jsonInput instanceof HTMLElement)) return;
+  toggleJsonBtn.textContent = jsonInput.classList.contains("qpm-editor-hidden") ? t("editJson") : t("hideJson");
+}
+
+function applyEditorLanguageTexts() {
+  if (loginBtn instanceof HTMLElement) loginBtn.textContent = t("login");
+  if (logoutBtn instanceof HTMLElement) logoutBtn.textContent = t("logout");
+  if (saveBtn instanceof HTMLElement) saveBtn.textContent = t("saveAll");
+  if (saveJsonBtn instanceof HTMLElement) saveJsonBtn.textContent = t("save");
+  if (loadBtn instanceof HTMLElement) loadBtn.textContent = t("load");
+  if (userInput instanceof HTMLInputElement) userInput.placeholder = t("usernamePlaceholder");
+  if (passwordInput instanceof HTMLInputElement) passwordInput.placeholder = t("passwordPlaceholder");
+  if (apiBaseLabelEl instanceof HTMLElement) apiBaseLabelEl.textContent = t("activeApiLabel");
+  if (extraToolsSummaryEl instanceof HTMLElement) extraToolsSummaryEl.textContent = t("otherFunctions");
+  if (sortModeTextEl instanceof HTMLElement) sortModeTextEl.textContent = t("sortMode");
+  if (treeSearchInput instanceof HTMLInputElement) treeSearchInput.placeholder = t("searchPlaceholder");
+  if (revisionRefreshBtn instanceof HTMLElement) revisionRefreshBtn.textContent = t("refreshHistory");
+  if (revertBtn instanceof HTMLElement) revertBtn.textContent = t("revertVersion");
+  if (revisionOnlyDiffTextEl instanceof HTMLElement) revisionOnlyDiffTextEl.textContent = t("onlyDiff");
+  const saveHintEl = document.getElementById("qpm-editor-save-hint");
+  if (saveHintEl instanceof HTMLElement) saveHintEl.textContent = t("saveHint");
+  if (typeInput instanceof HTMLSelectElement) {
+    const topicsOption = typeInput.querySelector('option[value="topics"]');
+    if (topicsOption) topicsOption.textContent = getTypeLabel("topics");
+    const filtersOption = typeInput.querySelector('option[value="filters"]');
+    if (filtersOption) filtersOption.textContent = getTypeLabel("filters");
+  }
+  setRevisionPreviewButtonLabel(Boolean(revisionPreviewJson && !revisionPreviewJson.classList.contains("qpm-editor-hidden")));
+  updateJsonToggleButtonLabel();
+  updateCollapseToggleButtonLabel();
+}
 
 function ensureBoxiconsStylesheet() {
   if (document.querySelector('link[data-qpm-boxicons="1"]')) return;
@@ -259,19 +267,11 @@ function ensureBoxiconsStylesheet() {
 if (apiBaseEl) {
   apiBaseEl.textContent = apiBase;
 }
-if (toggleJsonBtn && jsonInput) {
-  toggleJsonBtn.textContent = jsonInput.classList.contains("qpm-editor-hidden")
-    ? "Vis rå JSON"
-    : "Skjul rå JSON";
-}
-if (saveBtn) {
-  saveBtn.textContent = "Gem alle ændringer";
-}
 if (appSection && !document.getElementById("qpm-editor-save-hint")) {
   const hint = document.createElement("p");
   hint.id = "qpm-editor-save-hint";
   hint.className = "qpm-editor-note";
-  hint.textContent = 'Ingen ændringer gennemføres, før du klikker "Gem alle ændringer".';
+  hint.textContent = t("saveHint");
   const saveRow = saveBtn?.closest(".qpm-editor-row");
   if (saveRow?.parentElement) {
     saveRow.parentElement.insertBefore(hint, saveRow.nextSibling);
@@ -292,6 +292,7 @@ if (appSection && !document.getElementById("qpm-editor-save-status")) {
 }
 ensureBoxiconsStylesheet();
 normalizeSortModeLayout();
+applyEditorLanguageTexts();
 
 function parseConfiguredTopicDomains() {
   const normalize = (value) => String(value || "").trim().toLowerCase();
@@ -344,7 +345,7 @@ function syncDomainOptions() {
   if (configuredTopicDomains.length === 0) {
     const opt = document.createElement("option");
     opt.value = "";
-    opt.textContent = "Ingen domæner";
+    opt.textContent = t("noDomains");
     domainInput.appendChild(opt);
     domainInput.value = "";
     domainInput.disabled = true;
@@ -367,7 +368,7 @@ function syncTypeOptionsVisibility() {
   } else if (!filtersOption && editorCapabilities.canEditFilters && filtersEnabled) {
     const opt = document.createElement("option");
     opt.value = "filters";
-    opt.textContent = "Filters";
+    opt.textContent = getTypeLabel("filters");
     typeInput.appendChild(opt);
   }
   if (!editorCapabilities.canEditFilters && typeInput.value === "filters") {
@@ -377,8 +378,7 @@ function syncTypeOptionsVisibility() {
 }
 
 function setActiveTopicLabel(topicValue) {
-  if (!activeTopicEl) return;
-  activeTopicEl.textContent = topicValue || "-";
+  void topicValue;
 }
 
 function isApiHostLocal(base) {
@@ -405,7 +405,6 @@ function lockEditorForSafety(reason) {
     jsonInput,
     treeSearchInput,
     sortModeInput,
-    expandAllBtn,
     collapseAllBtn,
   ];
 
@@ -454,10 +453,196 @@ function normalizeSortModeLayout() {
   }
 }
 
+function updateCollapseToggleButtonLabel() {
+  if (!(collapseAllBtn instanceof HTMLElement)) return;
+  const hasCollapsedNodes = collapsedCategoryIds.size > 0 || collapsedTopicIds.size > 0;
+  collapseAllBtn.textContent = hasCollapsedNodes ? t("showAllTopics") : t("hideAllTopics");
+}
+
 function getEditorHelpText(key) {
-  const entry = editorHelpTexts[key];
-  if (!entry) return "";
-  return entry[editorLanguage] || entry.dk || entry.en || "";
+  const translationKey = editorHelpTextKeyMap[key];
+  if (!translationKey) return "";
+  return t(translationKey);
+}
+
+function formatRevisionDate(value) {
+  const date = new Date(String(value || ""));
+  if (Number.isNaN(date.getTime())) return String(value || "");
+  const locale = editorLanguage === "en" ? "en-GB" : "da-DK";
+  return new Intl.DateTimeFormat(locale, {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(date);
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function formatJsonForDiff(value) {
+  try {
+    const parsed = JSON.parse(String(value || ""));
+    return JSON.stringify(parsed, null, 2);
+  } catch {
+    return String(value || "");
+  }
+}
+
+function buildRevisionDiffRows(currentText, selectedText) {
+  const leftLines = String(currentText || "").split("\n");
+  const rightLines = String(selectedText || "").split("\n");
+  const rows = [];
+  const lookAhead = 30;
+  let i = 0;
+  let j = 0;
+  let leftNo = 1;
+  let rightNo = 1;
+
+  const pushRow = (type, leftText, rightText, leftLineNo, rightLineNo) => {
+    rows.push({
+      type,
+      leftText: leftText == null ? "" : leftText,
+      rightText: rightText == null ? "" : rightText,
+      leftLineNo: leftLineNo ?? "",
+      rightLineNo: rightLineNo ?? "",
+    });
+  };
+
+  while (i < leftLines.length || j < rightLines.length) {
+    const leftLine = i < leftLines.length ? leftLines[i] : null;
+    const rightLine = j < rightLines.length ? rightLines[j] : null;
+
+    if (leftLine !== null && rightLine !== null && leftLine === rightLine) {
+      pushRow("same", leftLine, rightLine, leftNo, rightNo);
+      i += 1;
+      j += 1;
+      leftNo += 1;
+      rightNo += 1;
+      continue;
+    }
+
+    let rightMatchOffset = -1;
+    let leftMatchOffset = -1;
+    if (leftLine !== null) {
+      for (let k = 1; k <= lookAhead; k += 1) {
+        if (j + k >= rightLines.length) break;
+        if (rightLines[j + k] === leftLine) {
+          rightMatchOffset = k;
+          break;
+        }
+      }
+    }
+    if (rightLine !== null) {
+      for (let k = 1; k <= lookAhead; k += 1) {
+        if (i + k >= leftLines.length) break;
+        if (leftLines[i + k] === rightLine) {
+          leftMatchOffset = k;
+          break;
+        }
+      }
+    }
+
+    if (rightMatchOffset > 0 && (leftMatchOffset < 0 || rightMatchOffset <= leftMatchOffset)) {
+      for (let k = 0; k < rightMatchOffset; k += 1) {
+        pushRow("added", "", rightLines[j + k], "", rightNo);
+        rightNo += 1;
+      }
+      j += rightMatchOffset;
+      continue;
+    }
+
+    if (leftMatchOffset > 0) {
+      for (let k = 0; k < leftMatchOffset; k += 1) {
+        pushRow("removed", leftLines[i + k], "", leftNo, "");
+        leftNo += 1;
+      }
+      i += leftMatchOffset;
+      continue;
+    }
+
+    if (leftLine !== null && rightLine !== null) {
+      pushRow("changed", leftLine, rightLine, leftNo, rightNo);
+      i += 1;
+      j += 1;
+      leftNo += 1;
+      rightNo += 1;
+      continue;
+    }
+
+    if (leftLine !== null) {
+      pushRow("removed", leftLine, "", leftNo, "");
+      i += 1;
+      leftNo += 1;
+      continue;
+    }
+
+    pushRow("added", "", rightLine, "", rightNo);
+    j += 1;
+    rightNo += 1;
+  }
+
+  return rows;
+}
+
+function renderRevisionDiffRows(rows) {
+  if (!(revisionDiffEl instanceof HTMLElement)) return;
+  const onlyChanges = Boolean(revisionOnlyDiffInput?.checked);
+  const visibleRows = onlyChanges ? rows.filter((row) => row.type !== "same") : rows;
+  const hasChanges = rows.some((row) => row.type !== "same");
+  const currentLabelBase = t("currentVersionLabel");
+  const currentLabel = revisionCurrentPreviewDate
+    ? `${currentLabelBase} · ${formatRevisionDate(revisionCurrentPreviewDate)}`
+    : currentLabelBase;
+  const selectedLabelBase = t("selectedVersionLabel");
+  const selectedLabel = revisionSelectedPreviewDate
+    ? `${selectedLabelBase} · ${formatRevisionDate(revisionSelectedPreviewDate)}`
+    : selectedLabelBase;
+  const noDiffLabel = t("noDifferencesFound");
+  const noVisibleRowsLabel = t("allDifferencesHiddenByFilter");
+
+  let html = `
+    <div class="qpm-editor-revision-diff-head">
+      <div class="qpm-editor-revision-diff-col-head">${currentLabel}</div>
+      <div class="qpm-editor-revision-diff-col-head">${selectedLabel}</div>
+    </div>
+    <div class="qpm-editor-revision-diff-body">
+  `;
+
+  visibleRows.forEach((row) => {
+    html += `
+      <div class="qpm-editor-revision-diff-row is-${row.type}">
+        <div class="qpm-editor-revision-diff-cell">
+          <span class="qpm-editor-revision-diff-ln">${row.leftLineNo}</span>
+          <pre class="qpm-editor-revision-diff-text">${escapeHtml(row.leftText)}</pre>
+        </div>
+        <div class="qpm-editor-revision-diff-cell">
+          <span class="qpm-editor-revision-diff-ln">${row.rightLineNo}</span>
+          <pre class="qpm-editor-revision-diff-text">${escapeHtml(row.rightText)}</pre>
+        </div>
+      </div>
+    `;
+  });
+
+  html += `</div>`;
+  if (!hasChanges) {
+    html += `<p class="qpm-editor-note">${noDiffLabel}</p>`;
+  } else if (visibleRows.length === 0) {
+    html += `<p class="qpm-editor-note">${noVisibleRowsLabel}</p>`;
+  }
+  revisionDiffEl.innerHTML = html;
+  revisionDiffEl.classList.remove("qpm-editor-hidden");
+}
+
+function renderRevisionDiff(currentJsonText, selectedJsonText) {
+  revisionDiffRowsCache = buildRevisionDiffRows(currentJsonText, selectedJsonText);
+  renderRevisionDiffRows(revisionDiffRowsCache);
 }
 
 function createInfoIcon(helpText) {
@@ -465,7 +650,7 @@ function createInfoIcon(helpText) {
   const icon = document.createElement("button");
   icon.type = "button";
   icon.className = "bx bx-info-circle";
-  icon.setAttribute("aria-label", "Info");
+  icon.setAttribute("aria-label", t("infoAriaLabel"));
   icon.dataset.helpText = helpText;
   wireTooltipIcon(icon);
   return icon;
@@ -682,25 +867,88 @@ function getRevisionContext() {
   return { type, domain };
 }
 
+function refreshRevisionNotes() {
+  if (revisionCurrentNoteEl instanceof HTMLElement) {
+    const currentLabel = t("currentVersionLabel");
+    const restoredSuffix = revisionCurrentRestoredFromDate
+      ? ` (${t("restoredFromLabel")} ${formatRevisionDate(revisionCurrentRestoredFromDate)})`
+      : "";
+    revisionCurrentNoteEl.textContent = revisionCurrentPreviewDate
+      ? `${currentLabel}: ${formatRevisionDate(revisionCurrentPreviewDate)}${restoredSuffix}`
+      : `${currentLabel}: -`;
+  }
+}
+
+function syncRevisionActionButtonsVisibility() {
+  const hasHistoricalSelection =
+    revisionListInput instanceof HTMLSelectElement && String(revisionListInput.value || "").trim() !== "";
+  if (revisionPreviewBtn instanceof HTMLElement) {
+    revisionPreviewBtn.classList.toggle("qpm-editor-hidden", !hasHistoricalSelection);
+  }
+  if (revertBtn instanceof HTMLElement) {
+    revertBtn.classList.toggle("qpm-editor-hidden", !hasHistoricalSelection);
+  }
+}
+
+function setRevisionPreviewButtonLabel(isOpen) {
+  if (!(revisionPreviewBtn instanceof HTMLElement)) return;
+  revisionPreviewBtn.textContent = isOpen ? t("hideVersion") : t("previewVersion");
+}
+
 function setRevisionControlsVisible(visible) {
   if (revisionsWrap instanceof HTMLElement) {
     revisionsWrap.classList.toggle("qpm-editor-hidden", !visible);
   }
+  if (!visible && revisionListInput instanceof HTMLSelectElement) {
+    revisionListInput.value = "";
+  }
+  if (!visible) {
+    setRevisionPreviewButtonLabel(false);
+  }
+  syncRevisionActionButtonsVisibility();
   if (!visible) {
     setRevisionStatus("");
     if (revisionPreviewJson instanceof HTMLTextAreaElement) {
       revisionPreviewJson.classList.add("qpm-editor-hidden");
       revisionPreviewJson.value = "";
     }
+    if (revisionDiffEl instanceof HTMLElement) {
+      revisionDiffEl.classList.add("qpm-editor-hidden");
+      revisionDiffEl.innerHTML = "";
+    }
+    revisionSelectedPreviewDate = "";
+    revisionCurrentPreviewDate = "";
+    revisionCurrentRestoredFromDate = "";
+    if (revisionOnlyDiffInput instanceof HTMLInputElement) {
+      revisionOnlyDiffInput.checked = false;
+    }
+    if (revisionOnlyDiffLabel instanceof HTMLElement) {
+      revisionOnlyDiffLabel.classList.add("qpm-editor-hidden");
+    }
+    revisionDiffRowsCache = [];
   }
 }
 
 async function refreshRevisionList() {
   if (!(revisionListInput instanceof HTMLSelectElement)) return;
+  setRevisionPreviewButtonLabel(false);
   if (revisionPreviewJson instanceof HTMLTextAreaElement) {
     revisionPreviewJson.classList.add("qpm-editor-hidden");
     revisionPreviewJson.value = "";
   }
+  if (revisionDiffEl instanceof HTMLElement) {
+    revisionDiffEl.classList.add("qpm-editor-hidden");
+    revisionDiffEl.innerHTML = "";
+  }
+  revisionSelectedPreviewDate = "";
+  if (revisionOnlyDiffInput instanceof HTMLInputElement) {
+    revisionOnlyDiffInput.checked = false;
+  }
+  if (revisionOnlyDiffLabel instanceof HTMLElement) {
+    revisionOnlyDiffLabel.classList.add("qpm-editor-hidden");
+  }
+  revisionDiffRowsCache = [];
+  syncRevisionActionButtonsVisibility();
   const { type, domain } = getRevisionContext();
   if (!isEditorAuthenticated || (type === "topics" && !domain)) {
     revisionListInput.innerHTML = "";
@@ -710,7 +958,13 @@ async function refreshRevisionList() {
 
   setRevisionControlsVisible(true);
   revisionListInput.innerHTML = "";
+  refreshRevisionNotes();
   try {
+    const placeholderOpt = document.createElement("option");
+    placeholderOpt.value = "";
+    placeholderOpt.textContent = t("selectPreviousVersion");
+    revisionListInput.appendChild(placeholderOpt);
+
     const params = new URLSearchParams({ action: "revisions", type });
     if (type === "topics") {
       params.set("domain", domain);
@@ -720,25 +974,36 @@ async function refreshRevisionList() {
     if (revisions.length === 0) {
       const opt = document.createElement("option");
       opt.value = "";
-      opt.textContent = "Ingen historik fundet";
+      opt.textContent = t("noHistoryFound");
       revisionListInput.appendChild(opt);
       revisionListInput.value = "";
+      syncRevisionActionButtonsVisibility();
       setRevisionStatus("");
       return;
     }
     revisions.forEach((rev) => {
       const id = String(rev?.revisionId || "").trim();
       if (!id) return;
-      const createdAt = String(rev?.createdAt || "");
+      const createdAt = formatRevisionDate(rev?.createdAt || "");
       const user = String(rev?.user || "");
+      const restoredFromCreatedAt = String(rev?.restoredFromCreatedAt || "").trim();
+      const restoredSuffix = restoredFromCreatedAt
+        ? ` (${t("restoredFromLabel")} ${formatRevisionDate(restoredFromCreatedAt)})`
+        : "";
       const opt = document.createElement("option");
       opt.value = id;
-      opt.textContent = user ? `${createdAt} · ${user}` : createdAt;
+      opt.textContent = user
+        ? `${createdAt} · ${t("savedByLabel")} ${user}${restoredSuffix}`
+        : editorLanguage === "en"
+          ? `${createdAt}${restoredSuffix}`
+          : `${createdAt}${restoredSuffix}`;
       revisionListInput.appendChild(opt);
     });
+    revisionListInput.value = "";
+    syncRevisionActionButtonsVisibility();
     setRevisionStatus("");
   } catch (error) {
-    setRevisionStatus(error?.message || "Kunne ikke hente historik.", true);
+    setRevisionStatus(error?.message || t("couldNotFetchHistory"), true);
   }
 }
 
@@ -746,12 +1011,10 @@ async function revertSelectedRevision() {
   if (!(revisionListInput instanceof HTMLSelectElement)) return;
   const revisionId = (revisionListInput.value || "").trim();
   if (!revisionId) {
-    setRevisionStatus("Vælg en revision først.", true);
+    setRevisionStatus(t("selectRevisionFirst"), true);
     return;
   }
-  const ok = window.confirm(
-    "Vil du gendanne den valgte version? Dette overskriver den nuværende fil, men nuværende version snapshots først."
-  );
+  const ok = window.confirm(t("confirmRestoreSelectedVersion"));
   if (!ok) return;
 
   const { type, domain } = getRevisionContext();
@@ -768,29 +1031,37 @@ async function revertSelectedRevision() {
       }),
     });
     if (result?.unchanged) {
-      setRevisionStatus("Valgt version matcher allerede den aktuelle fil.");
+      setRevisionStatus(t("selectedVersionMatchesCurrent"));
     } else {
-      setRevisionStatus(`Version gendannet (${result?.savedAt || "nu"}).`);
+      setRevisionStatus(`${t("versionRestored")} (${result?.savedAt || t("nowLabel")}).`);
     }
     await loadContent();
     await refreshRevisionList();
   } catch (error) {
-    setRevisionStatus(error?.message || "Gendannelse mislykkedes.", true);
+    setRevisionStatus(error?.message || t("restoreFailed"), true);
   }
 }
 
 async function previewSelectedRevision() {
   if (!(revisionListInput instanceof HTMLSelectElement)) return;
-  if (!(revisionPreviewJson instanceof HTMLTextAreaElement)) return;
-  if (!revisionPreviewJson.classList.contains("qpm-editor-hidden")) {
-    revisionPreviewJson.classList.add("qpm-editor-hidden");
-    revisionPreviewJson.value = "";
+  if (!(revisionDiffEl instanceof HTMLElement)) return;
+  if (!revisionDiffEl.classList.contains("qpm-editor-hidden")) {
+    revisionDiffEl.classList.add("qpm-editor-hidden");
+    revisionDiffEl.innerHTML = "";
+    revisionSelectedPreviewDate = "";
+    if (revisionOnlyDiffInput instanceof HTMLInputElement) {
+      revisionOnlyDiffInput.checked = false;
+    }
+    if (revisionOnlyDiffLabel instanceof HTMLElement) {
+      revisionOnlyDiffLabel.classList.add("qpm-editor-hidden");
+    }
+    setRevisionPreviewButtonLabel(false);
     setRevisionStatus("");
     return;
   }
   const revisionId = (revisionListInput.value || "").trim();
   if (!revisionId) {
-    setRevisionStatus("Vælg en revision først.", true);
+    setRevisionStatus(t("selectRevisionFirst"), true);
     return;
   }
   const { type, domain } = getRevisionContext();
@@ -801,11 +1072,17 @@ async function previewSelectedRevision() {
     }
     const data = await requestJson(`${apiBase}/EditorContent.php?${params.toString()}`);
     const revision = data?.revision?.data || {};
-    revisionPreviewJson.value = JSON.stringify(revision, null, 2);
-    revisionPreviewJson.classList.remove("qpm-editor-hidden");
-    setRevisionStatus("Preview indlæst.");
+    revisionSelectedPreviewDate = String(data?.revision?.meta?.createdAt || "");
+    const selectedText = formatJsonForDiff(JSON.stringify(revision || {}));
+    const currentText = formatJsonForDiff(jsonInput?.value || "");
+    renderRevisionDiff(currentText, selectedText);
+    if (revisionOnlyDiffLabel instanceof HTMLElement) {
+      revisionOnlyDiffLabel.classList.remove("qpm-editor-hidden");
+    }
+    setRevisionPreviewButtonLabel(true);
+    setRevisionStatus(t("diffPreviewLoaded"));
   } catch (error) {
-    setRevisionStatus(error?.message || "Kunne ikke indlæse preview.", true);
+    setRevisionStatus(error?.message || t("couldNotLoadPreview"), true);
   }
 }
 
@@ -887,7 +1164,7 @@ async function forceAutoLogoutAfterHiddenTimeout() {
   }
   csrfToken = "";
   setAuthenticated(false);
-  setStatus("Automatisk logget ud, fordi siden har været skjult i 1 time.");
+  setStatus(t("autoLoggedOutAfterHidden"));
 }
 
 function sendUnloadLogout() {
@@ -908,9 +1185,7 @@ function sendUnloadLogout() {
 
 async function requestJson(url, options = {}) {
   if (isRemoteApiBlockedInLocal) {
-    throw new Error(
-      "Sikkerhedsblokering: localhost-editor må kun bruge lokal API (localhost/127.0.0.1)."
-    );
+    throw new Error(t("securityBlockLocalApiOnly"));
   }
   const response = await fetch(url, {
     credentials: "include",
@@ -924,15 +1199,13 @@ async function requestJson(url, options = {}) {
   } catch {
     const looksLikePhpSource = typeof text === "string" && text.includes("<?php");
     if (looksLikePhpSource) {
-      throw new Error(
-        "API svarer med PHP-kildekode. Brug en PHP-server og sæt data-content-api-base-url til den rigtige API-URL."
-      );
+      throw new Error(t("apiReturnedPhpSource"));
     }
-    throw new Error("Ugyldigt JSON svar fra serveren.");
+    throw new Error(t("invalidJsonResponse"));
   }
 
   if (!response.ok) {
-    throw new Error(data.error || `Request fejlede (${response.status})`);
+    throw new Error(data.error || `${t("requestFailed")} (${response.status})`);
   }
 
   return data;
@@ -946,7 +1219,7 @@ async function checkSession() {
       applyCapabilities(data.capabilities || {});
       await refreshDomainAccess();
       setAuthenticated(true);
-      setStatus("Session aktiv.");
+      setStatus(t("sessionActive"));
       await loadContent();
       await refreshRevisionList();
       return;
@@ -957,14 +1230,14 @@ async function checkSession() {
 
   applyCapabilities({ canEditFilters: filtersEnabled, allowedDomains: [] });
   setAuthenticated(false);
-  setStatus("Log ind for at fortsætte.");
+  setStatus(t("loginToContinue"));
 }
 
 async function login() {
   const user = userInput.value.trim();
   const password = passwordInput.value;
   if (!user || !password) {
-    setStatus("Udfyld brugernavn og password.", true);
+    setStatus(t("enterUsernameAndPassword"), true);
     return;
   }
 
@@ -979,7 +1252,7 @@ async function login() {
     await refreshDomainAccess();
     unloadLogoutSent = false;
     setAuthenticated(true);
-    setStatus("Login lykkedes.");
+    setStatus(t("loginSuccessful"));
     await loadContent();
     await refreshRevisionList();
   } catch (error) {
@@ -999,28 +1272,34 @@ async function logout() {
     applyCapabilities({ canEditFilters: filtersEnabled, allowedDomains: [] });
     setAuthenticated(false);
     setRevisionControlsVisible(false);
-    setStatus("Du er logget ud.");
+    setStatus(t("loggedOut"));
   } catch (error) {
     setStatus(error.message, true);
   }
 }
 
 async function loadContent() {
+  lastSaveUsedJsonButton = false;
   const type = getSelectedType();
   const domain = domainInput.value.trim();
   if (type === "topics" && !domain) {
-    setStatus("Domain er påkrævet for topics.", true);
+    setStatus(t("domainRequiredForTopics"), true);
     return;
   }
 
   try {
     const data = await fetchContentFromServer(type, domain);
     jsonInput.value = JSON.stringify(data.data || {}, null, 2);
+    revisionCurrentPreviewDate = String(data?.currentModifiedAt || "");
+    revisionCurrentRestoredFromDate = String(data?.currentRestoredFromCreatedAt || "");
+    refreshRevisionNotes();
     collapseAllInTree(parseCurrentJson() || {});
     refreshTopicTree();
-    setActiveTopicLabel(type === "topics" ? domain : "Filters");
+    setActiveTopicLabel(type === "topics" ? domain : getTypeLabel("filters"));
     setStatus(
-      type === "topics" ? `Topics hentet for domain "${domain}".` : "Filters hentet."
+      type === "topics"
+        ? `${getTypeLabel("topics")} ${t("loadedForDomain")} "${domain}".`
+        : `${getTypeLabel("filters")} ${t("loadedShort")}.`
     );
     await refreshRevisionList();
   } catch (error) {
@@ -1034,13 +1313,13 @@ async function fetchContentFromServer(type, domain) {
   return requestJson(`${apiBase}/EditorContent.php?${query.toString()}`);
 }
 
-async function saveContent() {
+async function saveContent(source = "main") {
   setSaveStatus("");
   const type = getSelectedType();
   const domain = domainInput.value.trim();
   if (type === "topics" && !domain) {
-    setStatus("Domain er påkrævet for topics.", true);
-    setSaveStatus("Domain er påkrævet for topics.", true);
+    setStatus(t("domainRequiredForTopics"), true);
+    setSaveStatus(t("domainRequiredForTopics"), true);
     return;
   }
 
@@ -1048,8 +1327,8 @@ async function saveContent() {
   try {
     parsed = jsonInput.value ? JSON.parse(jsonInput.value) : {};
   } catch {
-    setStatus("JSON er ugyldig.", true);
-    setSaveStatus("JSON er ugyldig.", true);
+    setStatus(t("invalidJson"), true);
+    setSaveStatus(t("invalidJson"), true);
     return;
   }
 
@@ -1068,8 +1347,12 @@ async function saveContent() {
       }),
     });
     if (saveResult?.unchanged) {
-      setStatus("Ingen ændringer at gemme.");
-      setSaveStatus("Ingen ny version oprettet, fordi indholdet er uændret.");
+      setStatus(t("noChangesToSave"));
+      setSaveStatus(
+        source === "main" && lastSaveUsedJsonButton
+          ? t("alreadySavedViaJsonButton")
+          : t("noNewVersionCreatedUnchanged")
+      );
       await refreshRevisionList();
       return;
     }
@@ -1077,19 +1360,23 @@ async function saveContent() {
     // Verify persistence by immediately reloading from server source of truth.
     const serverData = await fetchContentFromServer(type, domain);
     jsonInput.value = JSON.stringify(serverData?.data || {}, null, 2);
+    revisionCurrentPreviewDate = String(serverData?.currentModifiedAt || "");
+    revisionCurrentRestoredFromDate = String(serverData?.currentRestoredFromCreatedAt || "");
+    refreshRevisionNotes();
     refreshTopicTree();
 
     const saveStamp = saveResult?.savedAt ? ` (${saveResult.savedAt})` : "";
     setStatus(
       type === "topics"
-        ? `Topics gemt og verificeret via API for domain "${domain}"${saveStamp}.`
-        : `Filters gemt og verificeret via API${saveStamp}.`
+        ? `${getTypeLabel("topics")} ${t("savedAndVerifiedForDomain")} "${domain}"${saveStamp}.`
+        : `${getTypeLabel("filters")} ${t("savedAndVerified")}${saveStamp}.`
     );
     setSaveStatus(
       type === "topics"
-        ? `Topics gemt for "${domain}"${saveStamp}.`
-        : `Filters gemt${saveStamp}.`
+        ? `${getTypeLabel("topics")} ${t("savedFor")} "${domain}"${saveStamp}.`
+        : `${getTypeLabel("filters")} ${t("savedShort")}${saveStamp}.`
     );
+    lastSaveUsedJsonButton = source === "json";
     await refreshRevisionList();
   } catch (error) {
     setStatus(error.message, true);
@@ -1336,7 +1623,7 @@ function createCategoryInlineEditor(topic) {
   const hiddenLabel = document.createElement("label");
   hiddenLabel.className = "qpm-editor-checkbox-label";
   hiddenLabel.style.width = "100%";
-  hiddenLabel.append(hiddenInput, document.createTextNode("Skjul i formular som standard"));
+  hiddenLabel.append(hiddenInput, document.createTextNode(t("hideInFormByDefault")));
   const hiddenInfoIcon = createInfoIcon(getEditorHelpText("category.hiddenByDefault"));
   if (hiddenInfoIcon) hiddenLabel.append(" ", hiddenInfoIcon);
 
@@ -1344,25 +1631,49 @@ function createCategoryInlineEditor(topic) {
   applyBtn.type = "button";
   applyBtn.className = "qpm-editor-btn qpm-editor-btn-secondary qpm-editor-tree-apply-category-inline";
   applyBtn.dataset.categoryId = topic?.id || "";
-  applyBtn.textContent = "Gem hovedkategori";
+  applyBtn.textContent = t("saveMainCategory");
   const deleteBtn = document.createElement("button");
   deleteBtn.type = "button";
   deleteBtn.className = "qpm-editor-btn qpm-editor-btn-danger qpm-editor-tree-delete-category-inline";
   deleteBtn.dataset.categoryId = topic?.id || "";
-  deleteBtn.textContent = "Slet hovedkategori";
+  deleteBtn.textContent = t("deleteMainCategory");
   const { actionsRow, inlineStatus } = createInlineActions(applyBtn, deleteBtn, "category");
 
+  const categoryPrimaryLang = editorLanguage === "en" ? "en" : "dk";
+  const categorySecondaryLang = categoryPrimaryLang === "en" ? "dk" : "en";
+  const categoryNamePrimaryLabel =
+    categoryPrimaryLang === "en" ? t("categoryNameEnLabel") : t("categoryNameDkLabel");
+  const categoryNameSecondaryLabel =
+    categorySecondaryLang === "en" ? t("categoryNameEnLabel") : t("categoryNameDkLabel");
+  const categoryNamePrimaryInput = categoryPrimaryLang === "en" ? enInput : dkInput;
+  const categoryNameSecondaryInput = categorySecondaryLang === "en" ? enInput : dkInput;
+  const categoryNamePrimaryKey =
+    categoryPrimaryLang === "en" ? "category.translations.en" : "category.translations.dk";
+  const categoryNameSecondaryKey =
+    categorySecondaryLang === "en" ? "category.translations.en" : "category.translations.dk";
+
+  const categoryTooltipPrimaryLabel =
+    categoryPrimaryLang === "en" ? t("itemTooltipEnLabel") : t("itemTooltipDkLabel");
+  const categoryTooltipSecondaryLabel =
+    categorySecondaryLang === "en" ? t("itemTooltipEnLabel") : t("itemTooltipDkLabel");
+  const categoryTooltipPrimaryInput = categoryPrimaryLang === "en" ? tooltipEn : tooltipDk;
+  const categoryTooltipSecondaryInput = categorySecondaryLang === "en" ? tooltipEn : tooltipDk;
+  const categoryTooltipPrimaryKey =
+    categoryPrimaryLang === "en" ? "category.tooltip.en" : "category.tooltip.dk";
+  const categoryTooltipSecondaryKey =
+    categorySecondaryLang === "en" ? "category.tooltip.en" : "category.tooltip.dk";
+
   wrapper.append(
-    mkLabel("Kategori ID/prefix", "category.id"),
+    mkLabel(t("categoryIdPrefixLabel"), "category.id"),
     idInput,
-    mkLabel("Kategorinavn (dk)", "category.translations.dk"),
-    dkInput,
-    mkLabel("Kategorinavn (en)", "category.translations.en"),
-    enInput,
-    mkLabel("Tooltip (dk)", "category.tooltip.dk"),
-    tooltipDk,
-    mkLabel("Tooltip (en)", "category.tooltip.en"),
-    tooltipEn,
+    mkLabel(categoryNamePrimaryLabel, categoryNamePrimaryKey),
+    categoryNamePrimaryInput,
+    mkLabel(categoryNameSecondaryLabel, categoryNameSecondaryKey),
+    categoryNameSecondaryInput,
+    mkLabel(categoryTooltipPrimaryLabel, categoryTooltipPrimaryKey),
+    categoryTooltipPrimaryInput,
+    mkLabel(categoryTooltipSecondaryLabel, categoryTooltipSecondaryKey),
+    categoryTooltipSecondaryInput,
     hiddenLabel,
     actionsRow,
     inlineStatus
@@ -1401,7 +1712,7 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   const dkInput = mkInput(item?.translations?.dk || "");
   const idInput = mkInput(item?.id || "");
   idInput.dataset.inlineField = "id";
-  idInput.placeholder = "Emne-id";
+  idInput.placeholder = t("topicIdPlaceholder");
   const lockIdInput = document.createElement("input");
   lockIdInput.type = "checkbox";
   lockIdInput.dataset.inlineField = "lockIdOnSort";
@@ -1409,7 +1720,7 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   const lockIdLabel = document.createElement("label");
   lockIdLabel.className = "qpm-editor-checkbox-label";
   lockIdLabel.style.width = "100%";
-  lockIdLabel.append(lockIdInput, document.createTextNode("Lås ID ved sortering"));
+  lockIdLabel.append(lockIdInput, document.createTextNode(t("lockIdOnSortLabel")));
   const lockIdInfoIcon = createInfoIcon(getEditorHelpText("item.lockIdOnSort"));
   if (lockIdInfoIcon) lockIdLabel.append(" ", lockIdInfoIcon);
   const hiddenInput = document.createElement("input");
@@ -1419,7 +1730,7 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   const hiddenLabel = document.createElement("label");
   hiddenLabel.className = "qpm-editor-checkbox-label";
   hiddenLabel.style.width = "100%";
-  hiddenLabel.append(hiddenInput, document.createTextNode("Skjul i formular som standard"));
+  hiddenLabel.append(hiddenInput, document.createTextNode(t("hideInFormByDefault")));
   const hiddenInfoIcon = createInfoIcon(getEditorHelpText("item.hiddenByDefault"));
   if (hiddenInfoIcon) hiddenLabel.append(" ", hiddenInfoIcon);
   const buttonsInput = document.createElement("input");
@@ -1429,7 +1740,7 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   const buttonsLabel = document.createElement("label");
   buttonsLabel.className = "qpm-editor-checkbox-label";
   buttonsLabel.style.width = "100%";
-  buttonsLabel.append(buttonsInput, document.createTextNode("Vis scope-knapper (n/s/b)"));
+  buttonsLabel.append(buttonsInput, document.createTextNode(t("showScopeButtonsLabel")));
   const buttonsInfoIcon = createInfoIcon(getEditorHelpText("item.buttons"));
   if (buttonsInfoIcon) buttonsLabel.append(" ", buttonsInfoIcon);
   const alphabeticalInput = document.createElement("input");
@@ -1441,7 +1752,7 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   alphabeticalLabel.style.width = "100%";
   alphabeticalLabel.append(
     alphabeticalInput,
-    document.createTextNode("Vis alfabetisk (ordering = null)")
+    document.createTextNode(t("showAlphabeticalOrderingLabel"))
   );
   const alphabeticalInfoIcon = createInfoIcon(getEditorHelpText("item.ordering.alphabetical"));
   if (alphabeticalInfoIcon) alphabeticalLabel.append(" ", alphabeticalInfoIcon);
@@ -1476,7 +1787,7 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   });
   const positionHint = document.createElement("p");
   positionHint.className = "qpm-editor-field-label";
-  positionHint.textContent = `Aktuel placering i listen: ${currentPosition || "-"}`;
+  positionHint.textContent = `${t("currentListPositionLabel")}: ${currentPosition || "-"}`;
   dkInput.dataset.inlineField = "translations.dk";
   const enInput = mkInput(item?.translations?.en || "");
   enInput.dataset.inlineField = "translations.en";
@@ -1500,43 +1811,72 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   applyBtn.className = "qpm-editor-btn qpm-editor-btn-secondary qpm-editor-tree-apply-inline";
   applyBtn.dataset.id = item?.id || "";
   applyBtn.dataset.categoryId = categoryId;
-  applyBtn.textContent = "Gem emnefelter";
+  applyBtn.textContent = t("saveTopicFields");
   const deleteBtn = document.createElement("button");
   deleteBtn.type = "button";
   deleteBtn.className = "qpm-editor-btn qpm-editor-btn-danger qpm-editor-tree-delete-inline";
   deleteBtn.dataset.id = item?.id || "";
   deleteBtn.dataset.categoryId = categoryId;
-  deleteBtn.textContent = "Slet underemne";
+  deleteBtn.textContent = t("deleteSubtopic");
   const { actionsRow, inlineStatus } = createInlineActions(applyBtn, deleteBtn, "item");
 
+  const itemPrimaryLang = editorLanguage === "en" ? "en" : "dk";
+  const itemSecondaryLang = itemPrimaryLang === "en" ? "dk" : "en";
+  const itemNamePrimaryLabel = itemPrimaryLang === "en" ? t("itemNameEnLabel") : t("itemNameDkLabel");
+  const itemNameSecondaryLabel = itemSecondaryLang === "en" ? t("itemNameEnLabel") : t("itemNameDkLabel");
+  const itemNamePrimaryInput = itemPrimaryLang === "en" ? enInput : dkInput;
+  const itemNameSecondaryInput = itemSecondaryLang === "en" ? enInput : dkInput;
+  const itemNamePrimaryKey = itemPrimaryLang === "en" ? "item.translations.en" : "item.translations.dk";
+  const itemNameSecondaryKey = itemSecondaryLang === "en" ? "item.translations.en" : "item.translations.dk";
+
+  const itemCommentPrimaryLabel =
+    itemPrimaryLang === "en" ? t("itemCommentEnLabel") : t("itemCommentDkLabel");
+  const itemCommentSecondaryLabel =
+    itemSecondaryLang === "en" ? t("itemCommentEnLabel") : t("itemCommentDkLabel");
+  const itemCommentPrimaryInput = itemPrimaryLang === "en" ? commentEn : commentDk;
+  const itemCommentSecondaryInput = itemSecondaryLang === "en" ? commentEn : commentDk;
+  const itemCommentPrimaryKey =
+    itemPrimaryLang === "en" ? "item.searchStringComment.en" : "item.searchStringComment.dk";
+  const itemCommentSecondaryKey =
+    itemSecondaryLang === "en" ? "item.searchStringComment.en" : "item.searchStringComment.dk";
+
+  const itemTooltipPrimaryLabel =
+    itemPrimaryLang === "en" ? t("itemTooltipEnLabel") : t("itemTooltipDkLabel");
+  const itemTooltipSecondaryLabel =
+    itemSecondaryLang === "en" ? t("itemTooltipEnLabel") : t("itemTooltipDkLabel");
+  const itemTooltipPrimaryInput = itemPrimaryLang === "en" ? tooltipEn : tooltipDk;
+  const itemTooltipSecondaryInput = itemSecondaryLang === "en" ? tooltipEn : tooltipDk;
+  const itemTooltipPrimaryKey = itemPrimaryLang === "en" ? "item.tooltip.en" : "item.tooltip.dk";
+  const itemTooltipSecondaryKey = itemSecondaryLang === "en" ? "item.tooltip.en" : "item.tooltip.dk";
+
   wrapper.append(
-    mkLabel("ID", "item.id"),
+    mkLabel(t("itemIdLabel"), "item.id"),
     idInput,
     lockIdLabel,
     hiddenLabel,
     buttonsLabel,
     alphabeticalLabel,
     positionHint,
-    mkLabel("Fast placering (ordering-tal)", "item.ordering.fixed"),
+    mkLabel(t("itemOrderingFixedLabel"), "item.ordering.fixed"),
     orderingInput,
-    mkLabel("Navn (dk)", "item.translations.dk"),
-    dkInput,
-    mkLabel("Navn (en)", "item.translations.en"),
-    enInput,
-    mkLabel("Narrow (én linje pr. søgestreng)", "item.searchStrings.narrow"),
+    mkLabel(itemNamePrimaryLabel, itemNamePrimaryKey),
+    itemNamePrimaryInput,
+    mkLabel(itemNameSecondaryLabel, itemNameSecondaryKey),
+    itemNameSecondaryInput,
+    mkLabel(t("itemNarrowLabel"), "item.searchStrings.narrow"),
     narrow,
-    mkLabel("Normal (én linje pr. søgestreng)", "item.searchStrings.normal"),
+    mkLabel(t("itemNormalLabel"), "item.searchStrings.normal"),
     normal,
-    mkLabel("Broad (én linje pr. søgestreng)", "item.searchStrings.broad"),
+    mkLabel(t("itemBroadLabel"), "item.searchStrings.broad"),
     broad,
-    mkLabel("Kommentar (dk)", "item.searchStringComment.dk"),
-    commentDk,
-    mkLabel("Kommentar (en)", "item.searchStringComment.en"),
-    commentEn,
-    mkLabel("Tooltip (dk)", "item.tooltip.dk"),
-    tooltipDk,
-    mkLabel("Tooltip (en)", "item.tooltip.en"),
-    tooltipEn,
+    mkLabel(itemCommentPrimaryLabel, itemCommentPrimaryKey),
+    itemCommentPrimaryInput,
+    mkLabel(itemCommentSecondaryLabel, itemCommentSecondaryKey),
+    itemCommentSecondaryInput,
+    mkLabel(itemTooltipPrimaryLabel, itemTooltipPrimaryKey),
+    itemTooltipPrimaryInput,
+    mkLabel(itemTooltipSecondaryLabel, itemTooltipSecondaryKey),
+    itemTooltipSecondaryInput,
     actionsRow,
     inlineStatus
   );
@@ -1574,11 +1914,7 @@ function renderTreeItems(items, categoryId, container, searchText, parentItemId 
     if (selectedTopicItemId && selectedTopicItemId === item?.id) {
       btn.classList.add("is-selected");
     }
-    const label =
-      item?.translations?.dk ||
-      item?.translations?.en ||
-      item?.id ||
-      "Ukendt";
+    const label = getLocalizedText(item?.translations, item?.id || t("unknownItemLabel"));
     btn.textContent = `${item?.id || ""} - ${label}`;
 
     row.append(toggle, btn);
@@ -1588,9 +1924,9 @@ function renderTreeItems(items, categoryId, container, searchText, parentItemId 
       const dropzones = document.createElement("div");
       dropzones.className = "qpm-editor-dropzones";
       [
-        ["before", "Slip før"],
-        ["inside", "Slip som underemne"],
-        ["after", "Slip efter"],
+        ["before", t("dropBefore")],
+        ["inside", t("dropAsSubtopic")],
+        ["after", t("dropAfter")],
       ].forEach(([position, labelText]) => {
         const z = document.createElement("div");
         z.className = "qpm-editor-dropzone";
@@ -1635,7 +1971,7 @@ function renderTreeItems(items, categoryId, container, searchText, parentItemId 
   addBtn.className = "qpm-editor-tree-add-end-btn";
   addBtn.dataset.categoryId = categoryId;
   addBtn.dataset.parentItemId = parentItemId;
-  addBtn.textContent = "+ Tilføj underemne";
+  addBtn.textContent = `+ ${t("addSubtopic")}`;
   addLi.appendChild(addBtn);
   ul.appendChild(addLi);
 
@@ -1643,6 +1979,7 @@ function renderTreeItems(items, categoryId, container, searchText, parentItemId 
 }
 
 function refreshTopicTree() {
+  updateCollapseToggleButtonLabel();
   if (!topicTreeInput) return;
   topicTreeInput.innerHTML = "";
 
@@ -1670,7 +2007,7 @@ function refreshTopicTree() {
     categoryToggle.textContent = hasChildren ? (isCollapsed ? "+" : "-") : "•";
     categoryToggle.disabled = !hasChildren;
 
-    const categoryLabel = topic?.translations?.dk || topic?.translations?.en || topic?.id || "Kategori";
+    const categoryLabel = getLocalizedText(topic?.translations, topic?.id || t("categoryFallbackLabel"));
     const categoryBtn = document.createElement("button");
     categoryBtn.type = "button";
     categoryBtn.className = "qpm-editor-tree-category-btn";
@@ -1690,8 +2027,8 @@ function refreshTopicTree() {
       const categoryDropzones = document.createElement("div");
       categoryDropzones.className = "qpm-editor-dropzones";
       [
-        ["before", "Slip kategori før"],
-        ["after", "Slip kategori efter"],
+        ["before", t("dropCategoryBefore")],
+        ["after", t("dropCategoryAfter")],
       ].forEach(([position, labelText]) => {
         const z = document.createElement("div");
         z.className = "qpm-editor-dropzone";
@@ -1729,7 +2066,7 @@ function refreshTopicTree() {
   const addCategoryBtn = document.createElement("button");
   addCategoryBtn.type = "button";
   addCategoryBtn.className = "qpm-editor-tree-add-end-btn qpm-editor-tree-add-root-category-btn";
-  addCategoryBtn.textContent = "+ Tilføj hovedkategori";
+  addCategoryBtn.textContent = `+ ${t("addMainCategory")}`;
   addCategoryWrap.appendChild(addCategoryBtn);
   topicTreeInput.appendChild(addCategoryWrap);
 }
@@ -1864,39 +2201,39 @@ function treeContainsItemId(item, idToFind) {
 
 function moveTopicItemByDrop(categoryId, sourceId, targetId, position) {
   const data = parseCurrentJson();
-  if (!data || !Array.isArray(data.topics)) return { ok: false, error: "Ugyldig topics JSON." };
+  if (!data || !Array.isArray(data.topics)) return { ok: false, error: t("invalidTopicsJson") };
 
   const category = data.topics.find((t) => t?.id === categoryId);
   if (!category || !Array.isArray(category.groups)) {
-    return { ok: false, error: "Kategori ikke fundet." };
+    return { ok: false, error: t("categoryNotFound") };
   }
 
   if (!sourceId || !targetId || sourceId === targetId) {
-    return { ok: false, error: "Ugyldig flytning." };
+    return { ok: false, error: t("invalidMove") };
   }
 
   const source = findItemById(category.groups, sourceId);
-  if (!source) return { ok: false, error: "Kildeemne blev ikke fundet." };
+  if (!source) return { ok: false, error: t("sourceTopicNotFound") };
   if (treeContainsItemId(source, targetId)) {
-    return { ok: false, error: "Kan ikke flytte et emne ind i sig selv/underemne." };
+    return { ok: false, error: t("cannotMoveTopicIntoItself") };
   }
 
   const extracted = extractItemById(category.groups, sourceId);
-  if (!extracted) return { ok: false, error: "Kunne ikke udtrække emnet." };
+  if (!extracted) return { ok: false, error: t("couldNotExtractTopic") };
 
   let newParentId = category.id;
   let newSiblingIndex = 0;
 
   if (position === "inside") {
     const target = findItemById(category.groups, targetId);
-    if (!target) return { ok: false, error: "Mål-emne blev ikke fundet." };
+    if (!target) return { ok: false, error: t("targetTopicNotFound") };
     target.children = Array.isArray(target.children) ? target.children : [];
     target.children.push(extracted);
     newParentId = target.id || category.id;
     newSiblingIndex = target.children.length - 1;
   } else {
     const targetLocation = findArrayAndIndexByItemId(category.groups, targetId);
-    if (!targetLocation) return { ok: false, error: "Målplacering blev ikke fundet." };
+    if (!targetLocation) return { ok: false, error: t("targetPositionNotFound") };
     const insertAt = position === "before" ? targetLocation.index : targetLocation.index + 1;
     targetLocation.array.splice(insertAt, 0, extracted);
     newParentId = targetLocation.parentId || category.id;
@@ -1906,7 +2243,7 @@ function moveTopicItemByDrop(categoryId, sourceId, targetId, position) {
   const idLocked = extracted?.lockIdOnSort !== false;
   if (!idLocked) {
     const confirmIdChange = window.confirm(
-      `Emnet "${sourceId}" har ulåst ID. Vil du opdatere ID automatisk ud fra den nye placering?`
+      `${t("topicUnlockedIdConfirmPrefix")} "${sourceId}" ${t("topicUnlockedIdConfirmSuffix")}`
     );
     if (confirmIdChange) {
       const previousId = extracted.id || sourceId;
@@ -1926,18 +2263,18 @@ function moveTopicItemByDrop(categoryId, sourceId, targetId, position) {
 function moveCategoryByDrop(sourceCategoryId, targetCategoryId, position) {
   const data = parseCurrentJson();
   if (!data || !Array.isArray(data.topics)) {
-    return { ok: false, error: "Ugyldig topics JSON." };
+    return { ok: false, error: t("invalidTopicsJson") };
   }
   if (!sourceCategoryId || !targetCategoryId || sourceCategoryId === targetCategoryId) {
-    return { ok: false, error: "Ugyldig kategori-flytning." };
+    return { ok: false, error: t("invalidCategoryMove") };
   }
 
   const sourceIndex = data.topics.findIndex((t) => t?.id === sourceCategoryId);
-  if (sourceIndex < 0) return { ok: false, error: "Kilde-kategori blev ikke fundet." };
+  if (sourceIndex < 0) return { ok: false, error: t("sourceCategoryNotFound") };
   const [movedCategory] = data.topics.splice(sourceIndex, 1);
 
   const targetIndex = data.topics.findIndex((t) => t?.id === targetCategoryId);
-  if (targetIndex < 0) return { ok: false, error: "Mål-kategori blev ikke fundet." };
+  if (targetIndex < 0) return { ok: false, error: t("targetCategoryNotFound") };
 
   const insertAt = position === "before" ? targetIndex : targetIndex + 1;
   data.topics.splice(insertAt, 0, movedCategory);
@@ -1952,15 +2289,15 @@ function moveCategoryByDrop(sourceCategoryId, targetCategoryId, position) {
 function deleteTopicItem(categoryId, itemId) {
   const data = parseCurrentJson();
   if (!data || !Array.isArray(data.topics)) {
-    return { ok: false, error: "Ugyldig topics JSON." };
+    return { ok: false, error: t("invalidTopicsJson") };
   }
   const category = data.topics.find((t) => t?.id === categoryId);
   if (!category || !Array.isArray(category.groups)) {
-    return { ok: false, error: "Kategori findes ikke." };
+    return { ok: false, error: t("categoryDoesNotExist") };
   }
   const removed = extractItemById(category.groups, itemId);
   if (!removed) {
-    return { ok: false, error: "Underemne blev ikke fundet." };
+    return { ok: false, error: t("subtopicNotFound") };
   }
   renumberOrdering(category.groups);
   updateJson(data);
@@ -1972,11 +2309,11 @@ function deleteTopicItem(categoryId, itemId) {
 function deleteCategory(categoryId) {
   const data = parseCurrentJson();
   if (!data || !Array.isArray(data.topics)) {
-    return { ok: false, error: "Ugyldig topics JSON." };
+    return { ok: false, error: t("invalidTopicsJson") };
   }
   const idx = data.topics.findIndex((t) => t?.id === categoryId);
   if (idx < 0) {
-    return { ok: false, error: "Hovedkategori blev ikke fundet." };
+    return { ok: false, error: t("mainCategoryNotFound") };
   }
   data.topics.splice(idx, 1);
   renumberTopicCategoryOrdering(data.topics);
@@ -2040,12 +2377,12 @@ function createNewTopicCategory(categoryId, orderingValue) {
 function addTopicItemAtEnd(categoryId, parentItemId = "") {
   const data = parseCurrentJson();
   if (!data || !Array.isArray(data.topics)) {
-    return { ok: false, error: "Ugyldig topics JSON." };
+    return { ok: false, error: t("invalidTopicsJson") };
   }
 
   const category = data.topics.find((t) => t?.id === categoryId);
   if (!category || !Array.isArray(category.groups)) {
-    return { ok: false, error: "Kategori findes ikke." };
+    return { ok: false, error: t("categoryDoesNotExist") };
   }
 
   let targetArray = category.groups;
@@ -2053,7 +2390,7 @@ function addTopicItemAtEnd(categoryId, parentItemId = "") {
   if (parentItemId) {
     const parentItem = findItemById(category.groups, parentItemId);
     if (!parentItem) {
-      return { ok: false, error: "Forældre-emne blev ikke fundet." };
+      return { ok: false, error: t("parentTopicNotFound") };
     }
     parentItem.children = Array.isArray(parentItem.children) ? parentItem.children : [];
     targetArray = parentItem.children;
@@ -2076,7 +2413,7 @@ function addTopicItemAtEnd(categoryId, parentItemId = "") {
 function addCategoryAtEnd() {
   const data = parseCurrentJson();
   if (!data || !Array.isArray(data.topics)) {
-    return { ok: false, error: "Ugyldig topics JSON." };
+    return { ok: false, error: t("invalidTopicsJson") };
   }
   const nextId = buildNextCategoryId(data.topics);
   const nextCategory = createNewTopicCategory(nextId, data.topics.length + 1);
@@ -2092,28 +2429,33 @@ function addCategoryAtEnd() {
 function applyInlineEditorEdits(categoryId, itemId, container) {
   const data = parseCurrentJson();
   if (!data || !Array.isArray(data.topics)) {
-    setInlineEditorStatus(container, "item", "Kan ikke opdatere: JSON for topics er ugyldig.", true);
+    setInlineEditorStatus(container, "item", t("cannotUpdateInvalidTopicsJson"), true);
     return;
   }
   const category = data.topics.find((t) => t?.id === categoryId);
   if (!category || !Array.isArray(category.groups)) {
-    setInlineEditorStatus(container, "item", "Kategori findes ikke i den aktuelle JSON.", true);
+    setInlineEditorStatus(container, "item", t("categoryNotInCurrentJson"), true);
     return;
   }
   const item = findItemById(category.groups, itemId);
   if (!item) {
-    setInlineEditorStatus(container, "item", "Valgt emne blev ikke fundet.", true);
+    setInlineEditorStatus(container, "item", t("selectedTopicNotFound"), true);
     return;
   }
 
   const get = (field) => container.querySelector(`[data-inline-field="${field}"]`);
   const requestedId = (get("id")?.value || "").trim();
   if (!requestedId) {
-    setInlineEditorStatus(container, "item", "ID må ikke være tom.", true);
+    setInlineEditorStatus(container, "item", t("idMustNotBeEmpty"), true);
     return;
   }
   if (requestedId !== itemId && idExistsInCategory(category, requestedId, itemId)) {
-    setInlineEditorStatus(container, "item", `ID "${requestedId}" findes allerede i kategorien.`, true);
+    setInlineEditorStatus(
+      container,
+      "item",
+      `${t("idExistsInCategoryPrefix")} "${requestedId}" ${t("idExistsInCategorySuffix")}`,
+      true
+    );
     return;
   }
   if (requestedId !== itemId) {
@@ -2144,11 +2486,22 @@ function applyInlineEditorEdits(categoryId, itemId, container) {
     if (!Number.isInteger(fixedOrdering) || fixedOrdering < 1) {
       fixedOrdering = currentPosition;
     }
-    item.ordering = {
-      ...(item.ordering || {}),
-      dk: fixedOrdering,
-      en: fixedOrdering,
-    };
+    const siblings = itemLocation?.array;
+    if (Array.isArray(siblings) && siblings.length > 0) {
+      const fromIndex = itemLocation.index;
+      const toIndex = Math.min(Math.max(fixedOrdering - 1, 0), siblings.length - 1);
+      if (toIndex !== fromIndex) {
+        const [movedItem] = siblings.splice(fromIndex, 1);
+        siblings.splice(toIndex, 0, movedItem);
+      }
+      renumberOrdering(siblings);
+    } else {
+      item.ordering = {
+        ...(item.ordering || {}),
+        dk: fixedOrdering,
+        en: fixedOrdering,
+      };
+    }
   }
   item.translations = {
     ...(item.translations || {}),
@@ -2177,7 +2530,7 @@ function applyInlineEditorEdits(categoryId, itemId, container) {
   pendingItemInlineStatus = {
     categoryId,
     itemId: selectedTopicItemId,
-    message: `Ændringer gemt lokalt i editor for emne "${selectedTopicItemId}". Klik "Gem alle ændringer" for at skrive til fil.`,
+    message: `${t("changesSavedLocallyForTopic")} "${selectedTopicItemId}". ${t("clickSaveAllToWriteFile")}`,
     isError: false,
   };
   updateJson(data);
@@ -2186,23 +2539,28 @@ function applyInlineEditorEdits(categoryId, itemId, container) {
 function applyCategoryInlineEdits(categoryId, container) {
   const data = parseCurrentJson();
   if (!data || !Array.isArray(data.topics)) {
-    setInlineEditorStatus(container, "category", "Kan ikke opdatere: JSON for topics er ugyldig.", true);
+    setInlineEditorStatus(container, "category", t("cannotUpdateInvalidTopicsJson"), true);
     return;
   }
   const category = data.topics.find((t) => t?.id === categoryId);
   if (!category) {
-    setInlineEditorStatus(container, "category", "Hovedkategori blev ikke fundet.", true);
+    setInlineEditorStatus(container, "category", t("mainCategoryNotFound"), true);
     return;
   }
   const get = (field) => container.querySelector(`[data-inline-field="${field}"]`);
   const nextId = (get("category.id")?.value || "").trim();
   if (!nextId) {
-    setInlineEditorStatus(container, "category", "Hovedkategori-ID må ikke være tom.", true);
+    setInlineEditorStatus(container, "category", t("mainCategoryIdRequired"), true);
     return;
   }
   const idTaken = data.topics.some((t) => t?.id === nextId && t?.id !== categoryId);
   if (idTaken) {
-    setInlineEditorStatus(container, "category", `Kategori-ID "${nextId}" findes allerede.`, true);
+    setInlineEditorStatus(
+      container,
+      "category",
+      `${t("categoryIdExistsPrefix")} "${nextId}" ${t("categoryIdExistsSuffix")}`,
+      true
+    );
     return;
   }
 
@@ -2229,7 +2587,7 @@ function applyCategoryInlineEdits(categoryId, container) {
   selectedTopicItemId = "";
   pendingCategoryInlineStatus = {
     categoryId: category.id,
-    message: `Hovedkategori "${category.id}" opdateret lokalt. Klik "Gem alle ændringer" ovenfor for at skrive til fil.`,
+    message: `${t("mainCategoryUpdatedLocallyPrefix")} "${category.id}". ${t("clickSaveAllAboveToWriteFile")}`,
     isError: false,
   };
   updateJson(data);
@@ -2244,7 +2602,7 @@ setActiveTopicLabel(configuredTopicDomains[0] || defaultDomain || "");
 
 if (isRemoteApiBlockedInLocal) {
   lockEditorForSafety(
-    `Sikkerhedsblokering aktiv: apiBase "${apiBase}" er ikke lokal. Brug lokal PHP API for at undgå gem på eksternt miljø.`
+    `${t("securityBlockActivePrefix")} "${apiBase}" ${t("securityBlockActiveSuffix")}`
   );
 }
 
@@ -2280,17 +2638,26 @@ window.addEventListener("pagehide", () => {
   sendUnloadLogout();
 });
 loadBtn?.addEventListener("click", loadContent);
-saveBtn?.addEventListener("click", saveContent);
+saveBtn?.addEventListener("click", () => saveContent("main"));
+saveJsonBtn?.addEventListener("click", () => saveContent("json"));
 logoutBtn?.addEventListener("click", logout);
 revisionRefreshBtn?.addEventListener("click", refreshRevisionList);
+revisionListInput?.addEventListener("change", syncRevisionActionButtonsVisibility);
 revisionPreviewBtn?.addEventListener("click", previewSelectedRevision);
 revertBtn?.addEventListener("click", revertSelectedRevision);
+revisionOnlyDiffInput?.addEventListener("change", () => {
+  if (!(revisionDiffEl instanceof HTMLElement)) return;
+  if (revisionDiffEl.classList.contains("qpm-editor-hidden")) return;
+  if (!Array.isArray(revisionDiffRowsCache) || revisionDiffRowsCache.length === 0) return;
+  renderRevisionDiffRows(revisionDiffRowsCache);
+});
 toggleJsonBtn?.addEventListener("click", () => {
   if (!jsonInput) return;
   const isHidden = jsonInput.classList.toggle("qpm-editor-hidden");
-  if (toggleJsonBtn) {
-    toggleJsonBtn.textContent = isHidden ? "Vis rå JSON" : "Skjul rå JSON";
+  if (jsonActionsWrap instanceof HTMLElement) {
+    jsonActionsWrap.classList.toggle("qpm-editor-hidden", isHidden);
   }
+  updateJsonToggleButtonLabel();
 });
 treeSearchInput?.addEventListener("input", () => {
   treeSearchText = (treeSearchInput.value || "").trim().toLowerCase();
@@ -2300,15 +2667,16 @@ sortModeInput?.addEventListener("change", () => {
   sortModeEnabled = Boolean(sortModeInput.checked);
   refreshTopicTree();
 });
-expandAllBtn?.addEventListener("click", () => {
-  collapsedCategoryIds.clear();
-  collapsedTopicIds.clear();
-  refreshTopicTree();
-});
 collapseAllBtn?.addEventListener("click", () => {
+  const shouldExpandAll = collapsedCategoryIds.size > 0 || collapsedTopicIds.size > 0;
+  if (shouldExpandAll) {
+    collapsedCategoryIds.clear();
+    collapsedTopicIds.clear();
+    refreshTopicTree();
+    return;
+  }
+
   const data = parseCurrentJson();
-  collapsedCategoryIds.clear();
-  collapsedTopicIds.clear();
   const collect = (items) => {
     if (!Array.isArray(items)) return;
     items.forEach((item) => {
@@ -2331,11 +2699,11 @@ topicTreeInput?.addEventListener("click", (event) => {
   if (addRootCategoryBtn instanceof HTMLElement) {
     const result = addCategoryAtEnd();
     if (!result.ok) {
-      setStatus(result.error || "Kunne ikke tilføje hovedkategori.", true);
+      setStatus(result.error || t("couldNotAddMainCategory"), true);
       return;
     }
     setStatus(
-      `Ny hovedkategori "${result.categoryId}" oprettet nederst. Klik "Gem alle ændringer" for at skrive til fil.`
+      `${t("newMainCategoryCreatedPrefix")} "${result.categoryId}" ${t("createdAtBottomSuffix")} ${t("clickSaveAllToWriteFile")}`
     );
     refreshTopicTree();
     return;
@@ -2347,11 +2715,11 @@ topicTreeInput?.addEventListener("click", (event) => {
     if (!categoryId) return;
     const result = addTopicItemAtEnd(categoryId, parentItemId);
     if (!result.ok) {
-      setStatus(result.error || "Kunne ikke tilføje emne.", true);
+      setStatus(result.error || t("couldNotAddTopic"), true);
       return;
     }
-    const typeLabel = parentItemId ? "underemne" : "emne";
-    setStatus(`Nyt ${typeLabel} "${result.itemId}" oprettet nederst. Klik "Gem alle ændringer" for at skrive til fil.`);
+    const typeLabel = parentItemId ? t("subtopicLabel") : t("topicLabel");
+    setStatus(`${t("newLabelPrefix")} ${typeLabel} "${result.itemId}" ${t("createdAtBottomSuffix")} ${t("clickSaveAllToWriteFile")}`);
     refreshTopicTree();
     return;
   }
@@ -2406,14 +2774,14 @@ topicTreeInput?.addEventListener("click", (event) => {
     const itemId = (target.dataset.id || "").trim();
     const categoryId = (target.dataset.categoryId || "").trim();
     if (!itemId || !categoryId) return;
-    const ok = window.confirm(`Vil du slette underemnet "${itemId}"?`);
+    const ok = window.confirm(`${t("confirmDeleteSubtopicPrefix")} "${itemId}"?`);
     if (!ok) return;
     const result = deleteTopicItem(categoryId, itemId);
     if (!result.ok) {
-      setStatus(result.error || "Sletning mislykkedes.", true);
+      setStatus(result.error || t("deleteFailed"), true);
       return;
     }
-    setStatus(`Underemne "${itemId}" er slettet. Klik "Gem alle ændringer" for at skrive til fil.`);
+    setStatus(`${t("subtopicDeletedPrefix")} "${itemId}" ${t("clickSaveAllToWriteFile")}`);
     refreshTopicTree();
     return;
   }
@@ -2427,14 +2795,14 @@ topicTreeInput?.addEventListener("click", (event) => {
   if (target.classList.contains("qpm-editor-tree-delete-category-inline")) {
     const categoryId = (target.dataset.categoryId || "").trim();
     if (!categoryId) return;
-    const ok = window.confirm(`Vil du slette hovedkategorien "${categoryId}"?`);
+    const ok = window.confirm(`${t("confirmDeleteMainCategoryPrefix")} "${categoryId}"?`);
     if (!ok) return;
     const result = deleteCategory(categoryId);
     if (!result.ok) {
-      setStatus(result.error || "Sletning mislykkedes.", true);
+      setStatus(result.error || t("deleteFailed"), true);
       return;
     }
-    setStatus(`Hovedkategori "${categoryId}" er slettet. Klik "Gem alle ændringer" for at skrive til fil.`);
+    setStatus(`${t("mainCategoryDeletedPrefix")} "${categoryId}" ${t("clickSaveAllToWriteFile")}`);
     refreshTopicTree();
   }
 });
@@ -2481,14 +2849,14 @@ topicTreeInput?.addEventListener("drop", (event) => {
   const position = (target.dataset.position || "").trim();
   if (!position) return;
 
-  let result = { ok: false, error: "Flytning mislykkedes." };
+  let result = { ok: false, error: t("moveFailed") };
   if (scope === "category") {
     const sourceCategoryId = draggedCategoryId || event.dataTransfer?.getData("text/plain") || "";
     const targetCategoryId = (target.dataset.targetCategoryId || "").trim();
     if (!sourceCategoryId || !targetCategoryId) return;
     result = moveCategoryByDrop(sourceCategoryId, targetCategoryId, position);
     if (result.ok) {
-      setStatus(`Hovedkategori "${sourceCategoryId}" flyttet (${position}).`);
+      setStatus(`${t("mainCategoryMovedPrefix")} "${sourceCategoryId}" ${t("movedWithPositionPrefix")} (${position}).`);
       refreshTopicTree();
     }
   } else {
@@ -2498,12 +2866,12 @@ topicTreeInput?.addEventListener("drop", (event) => {
     if (!sourceId || !targetId || !categoryId) return;
     result = moveTopicItemByDrop(categoryId, sourceId, targetId, position);
     if (result.ok) {
-      setStatus(`Emne "${sourceId}" flyttet (${position}).`);
+      setStatus(`${t("topicMovedPrefix")} "${sourceId}" ${t("movedWithPositionPrefix")} (${position}).`);
       refreshTopicTree();
     }
   }
   if (!result.ok) {
-    setStatus(result.error || "Flytning mislykkedes.", true);
+    setStatus(result.error || t("moveFailed"), true);
     return;
   }
 });

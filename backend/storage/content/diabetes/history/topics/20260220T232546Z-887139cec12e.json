@@ -1,12 +1,12 @@
 {
     "meta": {
-        "revisionId": "20260220T010945Z-4758718c3446",
-        "createdAt": "2026-02-20T01:09:45+00:00",
+        "revisionId": "20260220T232546Z-887139cec12e",
+        "createdAt": "2026-02-20T23:21:08+00:00",
         "type": "topics",
         "domain": "diabetes",
         "user": "editor",
-        "checksum": "cf90fe53bc9fc50908d1b2c2f1949b29d00c67ab165e7a249f57e2695f90760e",
-        "bytes": 217054
+        "checksum": "480ec2fbd631af63ae4f66c2b12c0b0ed0c8d3ec5a62a414a0aaf60a90308493",
+        "bytes": 217180
     },
     "data": {
         "topics": [
@@ -433,8 +433,8 @@
                             "en": "Subtopic 3"
                         },
                         "ordering": {
-                            "dk": 9,
-                            "en": 9
+                            "dk": 3,
+                            "en": 3
                         },
                         "searchStrings": {
                             "narrow": [
@@ -455,9 +455,12 @@
                             "dk": "Dette er et eksempel på, at de tre valgmuligheder 'Smal', 'Normal' og 'Bred' ikke vises i avanceret søgning.",
                             "en": "This is an example of, that the three options 'Narrow', 'Standard' and 'Broad' are not shown in advanced search."
                         },
-                        "children": []
+                        "children": [],
+                        "lockIdOnSort": true,
+                        "hiddenByDefault": false
                     }
-                ]
+                ],
+                "hiddenByDefault": false
             },
             {
                 "id": "S010",

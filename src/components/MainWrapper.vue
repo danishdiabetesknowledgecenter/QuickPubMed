@@ -95,6 +95,7 @@
           <worded-search-string
             :subjects="subjects"
             :filters="filterData"
+            :available-filters="filtersContent"
             :filter-dropdowns="filterDropdowns"
             :searchstring="getSearchString"
             :is-collapsed="isCollapsed"
@@ -163,6 +164,7 @@
   import { appSettingsMixin } from "@/mixins/appSettings";
   import { scopeIds, customInputTagTooltip } from "@/utils/qpm-content-helpers.js";
   import { loadFiltersFromRuntime, loadStandardString } from "@/utils/contentLoader";
+  import { validateQueryForExecution } from "@/utils/mesh-validator.js";
 
   export default {
     name: "MainWrapper",
@@ -643,8 +645,8 @@
         try {
           this.filtersContent = await loadFiltersFromRuntime();
         } catch (error) {
-          const fallback = await import("@/assets/content/qpm-content-filters.js");
-          this.filtersContent = fallback.filtrer || [];
+          this.filtersContent = [];
+          console.error("Failed to load filters from runtime content API.", error);
         }
       },
       optionIdentity(option) {
@@ -1343,11 +1345,14 @@
           window.location.origin && window.location.origin !== "null" ? window.location.origin : "";
 
         const baseUrl = `${origin}${window.location.pathname}`;
+        const currentParams = new URLSearchParams(window.location.search);
+        const apiBaseParam = (currentParams.get("apiBase") || "").trim();
+        const apiBaseStr = apiBaseParam ? `apiBase=${encodeURIComponent(apiBaseParam)}` : "";
 
         // If there are no subjects selected, return the base URL without parameters
 
         if (!this.hasSubjects && !this.openFiltersFromUrl && !this.openFilters) {
-          return baseUrl;
+          return apiBaseStr ? `${baseUrl}?${apiBaseStr}` : baseUrl;
         }
 
         // Build query parameters
@@ -1370,7 +1375,7 @@
           this.urlOrderLimits.length > 0 ? `&orderlimits=${this.urlOrderLimits.join(";;")}` : "";
 
         // Assemble the full URL with all query parameters
-        const urlLink = `${baseUrl}?${subjectsStr}${filterStr}${advancedStr}${pmidaiStr}${sorter}${collapsedStr}${pageSizeStr}${scrolltoStr}${openFiltersStr}${hideLimitsStr}${checkLimitsStr}${orderLimitsStr}`;
+        const urlLink = `${baseUrl}?${apiBaseStr}${apiBaseStr ? "&" : ""}${subjectsStr}${filterStr}${advancedStr}${pmidaiStr}${sorter}${collapsedStr}${pageSizeStr}${scrolltoStr}${openFiltersStr}${hideLimitsStr}${checkLimitsStr}${orderLimitsStr}`;
 
         return urlLink.replace("?&", "?");
       },
@@ -2046,6 +2051,16 @@
         this.reloadScripts();
 
         try {
+          const validatedQuery = await validateQueryForExecution(
+            query,
+            this.searchIntent,
+            nlm.proxyUrl,
+            this.appSettings.openAi.baseUrl,
+            this.appSettings.client,
+            this.language,
+            10
+          );
+
           // ESearch request to get list of IDs (credentials handled by PHP proxy)
           const esearchParams = new URLSearchParams({
             db: "pubmed",
@@ -2053,7 +2068,7 @@
             retmax: this.pageSize,
             retstart: this.page * this.pageSize,
             sort: this.sort.method,
-            term: query,
+            term: validatedQuery,
           });
 
           const esearchResponse = await axios.post(
@@ -2159,6 +2174,16 @@
         this.reloadScripts();
 
         try {
+          const validatedQuery = await validateQueryForExecution(
+            query,
+            this.searchIntent,
+            nlm.proxyUrl,
+            this.appSettings.openAi.baseUrl,
+            this.appSettings.client,
+            this.language,
+            10
+          );
+
           // Prepare parameters for the ESearch API request (credentials handled by PHP proxy)
           const esearchParams = new URLSearchParams({
             db: "pubmed",
@@ -2166,7 +2191,7 @@
             retmax: Math.min(this.pageSize, targetResultLength - (this.searchresult.length || 0)),
             retstart: Math.max(this.searchresult.length || 0, this.page * this.pageSize),
             sort: this.sort.method,
-            term: query,
+            term: validatedQuery,
           });
 
           // Perform the ESearch API request to retrieve PubMed IDs

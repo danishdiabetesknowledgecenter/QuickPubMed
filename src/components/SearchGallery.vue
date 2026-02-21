@@ -454,11 +454,8 @@
             choices: flattenTopicGroups(f.choices || []),
           }));
         } catch (error) {
-          const fallback = await import("@/assets/content/qpm-content-filters.js");
-          this.filters = JSON.parse(JSON.stringify(fallback.filtrer || [])).map((f) => ({
-            ...f,
-            choices: flattenTopicGroups(f.choices || []),
-          }));
+          this.filters = [];
+          console.error("Failed to load filters from runtime content API.", error);
         }
         this.$nextTick(() => {
           this.tryApplyInitialCollapse();

@@ -3,7 +3,29 @@ let runtimeFiltersPayloadCache = null;
 const runtimePromptRulesPayloadCache = new Map();
 let runtimeContentEndpointAvailable = true;
 
+function normalizeExplicitApiBase(value) {
+  const base = String(value || "").trim().replace(/\/+$/, "");
+  if (!base) return "";
+  if (base.endsWith("/api")) return base;
+  if (base.endsWith("/backend")) return `${base}/api`;
+  return base;
+}
+
 function getContentApiBaseUrl() {
+  const urlApiBase = new URLSearchParams(window.location.search).get("apiBase");
+  const normalizedUrlApiBase = normalizeExplicitApiBase(urlApiBase);
+  if (normalizedUrlApiBase) {
+    return normalizedUrlApiBase;
+  }
+
+  const datasetApiBase = document
+    .querySelector(".main-wrapper[data-content-api-base-url], #search-gallery[data-content-api-base-url]")
+    ?.getAttribute("data-content-api-base-url");
+  const normalizedDatasetApiBase = normalizeExplicitApiBase(datasetApiBase);
+  if (normalizedDatasetApiBase) {
+    return normalizedDatasetApiBase;
+  }
+
   if (import.meta.env.VITE_API_PROXY_URL) {
     return `${import.meta.env.VITE_API_PROXY_URL}/api`;
   }
@@ -21,10 +43,11 @@ async function fetchRuntimeContent(type, domain = "") {
   if (domain) {
     params.set("domain", domain);
   }
+  params.set("_", String(Date.now()));
 
   const response = await fetch(
     `${getContentApiBaseUrl()}/PublicContent.php?${params.toString()}`,
-    { credentials: "omit" }
+    { credentials: "omit", cache: "no-store" }
   );
   if (!response.ok) {
     if (response.status === 404) {
@@ -44,21 +67,12 @@ export async function loadTopicsFromRuntime(domain) {
     return [];
   }
 
-  if (runtimeTopicPayloadCache.has(domain)) {
-    const cached = runtimeTopicPayloadCache.get(domain);
-    return Array.isArray(cached?.topics) ? cached.topics : [];
-  }
-
   const payload = await fetchRuntimeContent("topics", domain);
   runtimeTopicPayloadCache.set(domain, payload);
   return Array.isArray(payload.topics) ? payload.topics : [];
 }
 
 export async function loadFiltersFromRuntime() {
-  if (runtimeFiltersPayloadCache) {
-    return Array.isArray(runtimeFiltersPayloadCache.filters) ? runtimeFiltersPayloadCache.filters : [];
-  }
-
   const payload = await fetchRuntimeContent("filters");
   runtimeFiltersPayloadCache = payload;
   return Array.isArray(payload.filters) ? payload.filters : [];
@@ -67,11 +81,6 @@ export async function loadFiltersFromRuntime() {
 export async function loadPromptRulesFromRuntime(domain) {
   if (!domain) {
     return {};
-  }
-
-  if (runtimePromptRulesPayloadCache.has(domain)) {
-    const cached = runtimePromptRulesPayloadCache.get(domain);
-    return cached && typeof cached.promptRules === "object" ? cached.promptRules : {};
   }
 
   const payload = await fetchRuntimeContent("prompt-rules", domain);
