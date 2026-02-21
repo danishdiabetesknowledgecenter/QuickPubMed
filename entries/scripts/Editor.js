@@ -1,7 +1,9 @@
-import "@/assets/styles/qpm-style.css";
-import "@/assets/styles/qpm-style-strings.css";
-import "@/assets/styles/qpm-editor.css";
+import "@/assets/styles/styles.css";
+import "@/assets/styles/editor.css";
 import { messages } from "@/assets/content/qpm-translations.js";
+import { applyThemeFromConfig } from "@/config/config";
+
+applyThemeFromConfig();
 
 const root = document.getElementById("qpm-editor");
 if (!root) {

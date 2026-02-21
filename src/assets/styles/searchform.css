@@ -1,0 +1,390 @@
+/* Search form domain styles */
+.qpm_top {
+  background-color: var(--color-grey-light) !important;
+  padding: 15px 15px 0 15px;
+}
+
+.qpm_toggleDetails {
+  background-color: var(--color-grey-light);
+  padding: 10px 20px 15px 0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.qpm_middle {
+  border: solid var(--color-grey);
+  border-width: 0 1px 1px;
+  padding: 15px;
+}
+
+.qpm_searchFormula {
+  margin-top: 13px;
+  clear: both;
+}
+
+.qpm_filtersHeaderContainer {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.qpm_wordedStringOperator {
+  text-transform: lowercase;
+  font-size: 0.9em;
+}
+
+.qpm_searchStringOperator {
+  padding-left: 1px;
+  padding-right: 5px;
+}
+
+.qpm_searchform {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.qpm_filters {
+  margin-top: -5px;
+  background-color: var(--color-grey);
+  -webkit-box-shadow: inset 0 0 4px 0 rgba(0, 0, 0, 0.2);
+  -moz-box-shadow: inset 0 0 4px 0 rgba(0, 0, 0, 0.2);
+  box-shadow: inset 0 0 4px 0 rgba(0, 0, 0, 0.2);
+  padding: 20px 10px 20px 10px;
+  flex: 1;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.qpm_filterEntry {
+  margin-bottom: 10px;
+}
+
+.qpm_filterEntry p {
+  margin-bottom: 4px;
+}
+
+.qpm_subjectOperator {
+  margin: 3px 0 4px 12px !important;
+  font-size: 0.8em;
+  font-weight: 700;
+}
+
+.qpm_filterOperator {
+  font-size: 0.8em;
+  font-weight: 700;
+}
+
+.qpm_search,
+.qpm_search:hover {
+  background-color: var(--color-primary-button) !important;
+  color: var(--color-white) !important;
+  padding-left: 15px !important;
+  padding-right: 15px !important;
+  margin-right: 0;
+  white-space: nowrap;
+  min-width: 100px !important;
+}
+
+.qpm_subjectEntry {
+  flex: 1;
+}
+
+.qpm_removeSubject,
+.qpm_removeFilter {
+  font-size: 25px;
+  cursor: pointer;
+}
+
+.qpm_removeSubject {
+  margin-left: 7px;
+}
+
+.qpm_removeFilter {
+  padding-left: 0;
+  margin-left: 5px;
+}
+
+.qpm_searchStringFilterGroup,
+.qpm_searchStringSubjectGroup {
+  display: inline;
+  position: relative;
+}
+
+.qpm_searchStringGroupWhere {
+  text-transform: lowercase;
+}
+
+.qpm_searchStringWord {
+  margin-left: 10px;
+  margin-right: 10px;
+}
+
+.qpm_halfBorder {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  bottom: 2px;
+  left: 0;
+  border-radius: 10px;
+  border: 1px solid var(--color-grey);
+}
+
+.qpm_wordedSearchString {
+  margin-bottom: 0;
+  width: 100%;
+  padding-bottom: 15px;
+  line-height: 1.7;
+}
+
+.qpm_searchStringWordGroup {
+  display: inline-block;
+  position: relative;
+  padding-left: 9px;
+  padding-right: 9px;
+  margin: 4px 2px 4px 0;
+}
+
+.qpm_searchStringPreText,
+.qpm_searchStringGroupWhere,
+.qpm_searchStringGroupOperator_NotApplied {
+  margin-right: 2px;
+}
+
+.qpm_searchStringWordGroupWrapper {
+  padding-bottom: 7px;
+  position: relative;
+  display: inline-block;
+}
+
+.qpm_searchStringGroupOperator {
+  padding-left: 5px;
+  padding-right: 1px;
+}
+
+.qpm_searchStringGroupOperatorAnd {
+  padding-left: 3px;
+  padding-right: 8px;
+}
+
+.qpm_wordedStringSubject {
+  font-weight: 600;
+}
+
+.qpm_filterCategoryPrefix {
+  font-weight: normal;
+  font-size: 0.9em;
+}
+
+.qpm_prestring {
+  font-weight: 600;
+  display: contents !important;
+}
+
+.qpm_toggleSearchForm {
+  display: flex;
+  justify-items: center;
+  margin: 4px 0 0 20px;
+  padding: 0 20px 0 10px;
+  cursor: pointer;
+}
+
+.qpm_toggleSearchFormBtn {
+  margin-right: -10px;
+  min-height: 24px;
+  min-width: 24px;
+  cursor: pointer;
+  font-size: 20px;
+  margin-top: 9px;
+}
+
+.qpm_aiToggle {
+  display: flex;
+  width: -webkit-fill-available;
+  margin-top: -1px;
+}
+
+.qpm_aiToggle div:last-of-type {
+  margin-top: 2px;
+}
+
+.qpm_aiToggle:not(i) {
+  font-weight: 600;
+}
+
+.qpm_aiToggle i {
+  font-weight: normal;
+}
+
+.qpm_aiToggle button {
+  margin-bottom: 2px;
+}
+
+.qpm_aiToggle .ri-sparkling-fill {
+  margin-right: 6px;
+}
+
+.qpm_simpleFiltersContainer {
+  display: grid;
+  grid-template-columns: minmax(auto, 125px) 1fr 1fr;
+  column-gap: 30px;
+  width: 100%;
+}
+
+.qpm_simpleFiltersHeader {
+  font-weight: 600;
+  grid-column: 1;
+  grid-row: auto / span 4;
+  white-space: nowrap;
+  margin-bottom: 10px;
+}
+
+.qpm_simpleFiltersSpacer {
+  grid-column: 1 / -1;
+  margin-top: 5px;
+  margin-right: -5px;
+  margin-bottom: 15px;
+  margin-left: -5px;
+  border-top: 1px solid var(--color-grey);
+}
+
+.qpm_simpleFiltersSpacer:last-of-type {
+  margin-bottom: 0;
+}
+
+.qpm_simpleFilters {
+  display: flex;
+  align-items: flex-start;
+  white-space: nowrap;
+  margin-bottom: 10px;
+}
+
+.qpm_simpleFilters div {
+  padding: 0 5px 0 10px;
+}
+
+.qpm_simpleFilters label {
+  padding-right: 2px;
+}
+
+.qpm_simpleFilters label,
+.qpm_simpleFilters button {
+  vertical-align: top;
+}
+
+.qpm_simpleFilters button {
+  padding-bottom: 1px;
+}
+
+.qpm_simpleFiltersHeader .ri-sparkling-fill {
+  font-size: 1.3em !important;
+  font-weight: normal;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+.qpm_switch_wrap {
+  display: flex;
+  margin-left: 5px;
+}
+
+.qpm_switch_wrap .qpm_simpleFiltersHeader {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.qpm_switch {
+  position: relative;
+  display: inline-block;
+  width: 46px;
+  height: 26px;
+  margin-right: 15px;
+}
+
+.qpm_switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.qpm_switch input:focus-visible + .qpm_slider {
+  outline: 2px solid var(--color-black);
+  outline-offset: 0;
+}
+
+.qpm_slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: 0.4s;
+  transition: 0.4s;
+  width: inherit;
+}
+
+.qpm_slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background-color: var(--color-white);
+  -webkit-transition: 0.4s;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+
+input:checked + .qpm_slider {
+  background-color: var(--color-blue-dark);
+}
+
+input:focus:checked + .qpm_slider {
+  box-shadow: 0 0 1px var(--color-blue-dark);
+}
+
+input:checked + .qpm_slider:before {
+  -webkit-transform: translateX(20px);
+  -ms-transform: translateX(20px);
+  transform: translateX(20px);
+}
+
+/* Rounded sliders */
+.qpm_slider.qpm_round {
+  border-radius: 34px;
+}
+
+.qpm_slider.qpm_round:before {
+  border-radius: 50%;
+}
+
+@media only screen and (max-width: 750px) {
+  .qpm_simpleFiltersContainer {
+    grid-template-columns: minmax(auto, 125px) 1fr;
+  }
+}
+
+@media only screen and (max-width: 500px) {
+  .qpm_simpleFilters {
+    white-space: normal;
+  }
+
+  .qpm_simpleFiltersContainer {
+    grid-template-columns: auto;
+  }
+
+  .qpm_searchStringWordGroup {
+    display: grid;
+  }
+}
+
+@media only screen and (max-width: 300px) {
+  .qpm_wordedSearchString .h3 {
+    clear: both;
+  }
+}

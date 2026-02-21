@@ -21,6 +21,23 @@ define('NLM_API_KEY', 'INSERT-YOUR-NLM-API-KEY-HERE');
 define('NLM_EMAIL', 'your-email@example.com');
 define('NLM_BASE_URL', 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils');
 
+// ============ Theme Overrides (Frontend CSS variables) ============
+// Global overrides applied to all domains
+define('QPM_THEME_GLOBAL_OVERRIDES', [
+    // '--color-link' => '#004fa4',
+]);
+
+// Domain specific overrides. Key must match frontend domain (e.g. "diabetes")
+define('QPM_THEME_DOMAIN_OVERRIDES', [
+    'diabetes' => [
+        // '--color-primary-button' => '#0f5ba7',
+        // '--color-link' => '#0f5ba7',
+        // '--color-blue-dark' => '#1f4a7a',
+        // '--color-gallery-toggle' => '#1f4a7a',
+        // '--color-gallery-toggle-hover' => '#0c355f',
+    ],
+]);
+
 // Allowed domains for CORS
 // Supports wildcards: *.example.com matches sub.example.com and example.com
 define('ALLOWED_DOMAINS', [

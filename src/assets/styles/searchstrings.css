@@ -1,3 +1,5 @@
+/* Search strings/gallery domain styles */
+
 .qpm_collapsedSection {
     max-height: 0 !important;
     overflow: hidden;
@@ -162,7 +164,7 @@
 }
 
 .qpm_table .qpm_button {
-    color: #ffffff !important;
+    color: var(--color-white) !important;
     width: -webkit-fill-available;
     font-size: 0.8em;
     cursor: help;
@@ -215,4 +217,83 @@
         width: calc(100% + 120px);
         left: -150px;
     }
+}
+
+/* Search Gallery +/- toggle icons */
+.qpm_gallery_toggle {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  gap: 9px;
+}
+
+.qpm_toggle_icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border: 1.5px solid var(--color-gallery-toggle);
+  border-radius: 3px;
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 1;
+  color: var(--color-gallery-toggle);
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.qpm_gallery_toggle:hover .qpm_toggle_icon {
+  border-color: var(--color-gallery-toggle-hover);
+  color: var(--color-gallery-toggle-hover);
+}
+
+/* Default state: show + (collapsed) */
+.qpm_toggle_icon .qpm_toggle_minus {
+  display: none;
+}
+
+.qpm_toggle_icon .qpm_toggle_plus {
+  display: inline;
+}
+
+/* Expanded state: show - */
+.qpm_toggle_expanded .qpm_toggle_minus {
+  display: inline;
+}
+
+.qpm_toggle_expanded .qpm_toggle_plus {
+  display: none;
+}
+
+.qpm_toggle_placeholder {
+  border-color: var(--color-gallery-toggle);
+  position: relative;
+}
+
+.qpm_toggle_placeholder .qpm_toggle_minus,
+.qpm_toggle_placeholder .qpm_toggle_plus {
+  display: none;
+}
+
+.qpm_toggle_placeholder::after {
+  content: "";
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: var(--color-gallery-toggle);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.qpm_toggle_placeholder:hover,
+.qpm_gallery_toggle:hover .qpm_toggle_placeholder {
+  border-color: var(--color-gallery-toggle-hover);
+}
+
+.qpm_gallery_toggle:hover .qpm_toggle_placeholder::after {
+  background-color: var(--color-gallery-toggle-hover);
 }

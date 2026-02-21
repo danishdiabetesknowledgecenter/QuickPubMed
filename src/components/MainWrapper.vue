@@ -902,7 +902,8 @@
         urlParams.forEach((value, key) => {
           // Split multiple values separated by ';;'
           const values = value.split(";;");
-          const keyLower = key.toLowerCase();
+          const normalizedKey = key.replace(/^amp;/i, "");
+          const keyLower = normalizedKey.toLowerCase();
 
           switch (keyLower) {
             case "subject":
@@ -956,7 +957,7 @@
               break;
 
             default:
-              this.processFilter(key, values);
+              this.processFilter(normalizedKey, values);
               break;
           }
         });
@@ -1419,7 +1420,7 @@
        * @returns {string} The encoded filters query string.
        */
       constructFiltersQuery() {
-        if (!this.advanced && !this.$alwaysShowFilter) {
+        if (!this.advanced) {
           // Simple mode: encode from filterData (category-grouped)
           if (!this.filterData || Object.keys(this.filterData).length === 0) {
             return "";

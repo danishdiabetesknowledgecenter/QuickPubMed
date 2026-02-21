@@ -1,13 +1,14 @@
 // Import of existing global styles
-import "@/assets/styles/qpm-style.css";
-import "@/assets/styles/qpm-style-strings.css";
+import "@/assets/styles/styles.css";
+import "@/assets/styles/references.css";
 
 import { createApp, h } from "vue";
 import VueShowdown from "vue-showdown";
 import FloatingVue from "floating-vue";
 import "floating-vue/dist/style.css";
 import SpecificArticles from "@/components/SpecificArticles.vue";
-import { config } from "@/config/config";
+import { applyThemeFromConfig, config, loadThemeOverridesFromBackend } from "@/config/config";
+import { settings } from "@/config/settings";
 
 /**
  * Vue.prototype.$dateFormat = "da-DK";
@@ -91,6 +92,9 @@ specificArticleDivs.forEach((specificArticleDiv) => {
   const useTranslateTitle = specificArticleDiv.dataset.useTranslateTitle === "true";
 
   config.domain = domain;
+  loadThemeOverridesFromBackend(domain, settings.nlm.proxyUrl).finally(() => {
+    applyThemeFromConfig(domain);
+  });
   config.language = language;
   config.useAI = useAI;
   config.useAISummarizer = useAISummarizer;

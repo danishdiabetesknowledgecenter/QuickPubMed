@@ -1,13 +1,14 @@
 // Import of existing global styles
-import "@/assets/styles/qpm-style.css";
-import "@/assets/styles/qpm-style-strings.css";
+import "@/assets/styles/styles.css";
+import "@/assets/styles/searchstrings.css";
 
 import { createApp, h } from "vue";
 import VueShowdown from "vue-showdown";
 import FloatingVue from "floating-vue";
 import "floating-vue/dist/style.css";
 import SearchGallery from "@/components/SearchGallery.vue";
-import { config } from "@/config/config";
+import { applyThemeFromConfig, config, loadThemeOverridesFromBackend } from "@/config/config";
+import { settings } from "@/config/settings";
 
 /**
  * Vue.prototype.$dateFormat = "da-DK";
@@ -73,6 +74,9 @@ const collapsedLevels = searchGalleryDiv.dataset.collapsedLevels
   : [];
 
 config.domain = domain;
+loadThemeOverridesFromBackend(domain, settings.nlm.proxyUrl).finally(() => {
+  applyThemeFromConfig(domain);
+});
 
 createConfiguredApp(SearchGallery, {
   hideTopics: parsedHideTopics,

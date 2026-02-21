@@ -1,13 +1,15 @@
 // Import of existing global styles
-import "@/assets/styles/qpm-style.css";
-import "@/assets/styles/qpm-style-strings.css";
+import "@/assets/styles/styles.css";
+import "@/assets/styles/searchform.css";
+import "@/assets/styles/searchstrings.css";
 
 import { createApp, h } from "vue";
 import VueShowdown from "vue-showdown";
 import FloatingVue from "floating-vue";
 import "floating-vue/dist/style.css";
 import MainWrapper from "@/components/MainWrapper.vue";
-import { config } from "@/config/config";
+import { applyThemeFromConfig, config, loadThemeOverridesFromBackend } from "@/config/config";
+import { settings } from "@/config/settings";
 
 /**
  * Vue.prototype.$dateFormat = "da-DK";
@@ -94,6 +96,9 @@ mainWrapperDivs.forEach((mainWrapperDiv, index) => {
   if (domain) {
     config.domain = domain;
   }
+  loadThemeOverridesFromBackend(domain || config.domain, settings.nlm.proxyUrl).finally(() => {
+    applyThemeFromConfig(domain || config.domain);
+  });
   if (language) {
     config.language = language;
   }
