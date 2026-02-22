@@ -303,20 +303,6 @@
       },
     },
     methods: {
-      groupContainsFilterChoiceId(group, itemId) {
-        if (!group || !Array.isArray(group.choices) || !itemId) return false;
-        for (const choice of group.choices) {
-          if (!choice) continue;
-          if (choice.id === itemId) return true;
-          if (Array.isArray(choice.choices) && this.groupContainsFilterChoiceId({ choices: choice.choices }, itemId)) {
-            return true;
-          }
-          if (Array.isArray(choice.children) && this.groupContainsFilterChoiceId({ choices: choice.children }, itemId)) {
-            return true;
-          }
-        }
-        return false;
-      },
       toggleAdvanced() {
         this.$emit("toggleAdvancedString");
       },
@@ -409,10 +395,11 @@
           const group = this.availableFilters.find(byGroupId);
           if (!group) return id;
           if (id.length === 3) {
-            return group?.translations?.[lg] || group?.translations?.dk || group?.translations?.en || id;
+            return group.translations[lg];
           } else {
-            const choice = (group.choices || []).find(byId);
-            return choice?.translations?.[lg] || choice?.translations?.dk || choice?.translations?.en || id;
+            const choice = group.choices.find(byId);
+            if (!choice) return id;
+            return choice.translations[lg];
           }
         } else {
           throw new Error("Id not handled by getWordedFilterStringById. id: " + id);
@@ -456,7 +443,7 @@
         // Find the category by checking which filter group contains this item's id
         const groupId = item.id.substring(0, 4);
         const group = this.availableFilters.find(
-          (f) => f.id === groupId || this.groupContainsFilterChoiceId(f, item.id)
+          (f) => f.id === groupId || (f.choices && f.choices.some((c) => c.id === item.id))
         );
         if (group && group.translations) {
           const lg = this.language;
@@ -470,7 +457,7 @@
         if (typeof id === "string" && id.startsWith("__custom__")) {
           return this.getString("manualInputTerm") || "Søgeord";
         }
-        const filterGroup = this.availableFilters.find(group => group.id === id);
+        const filterGroup = this.availableFilters.find((group) => group.id === id);
         if (filterGroup && filterGroup.translations) {
           const lg = this.language;
           return filterGroup.translations[lg] || filterGroup.translations["dk"];
