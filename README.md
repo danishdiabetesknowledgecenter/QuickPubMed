@@ -57,6 +57,12 @@ The app defines entry points under `entries/widgets`
 When opening the root directory at `http://localhost:5173` you'll see a simple menu for navigating to these entry points.
 ![alt text](readme-assets/image.png)
 
+Public build assets for widgets are emitted in lowercase and should be referenced as:
+- `assets/searchform.js`
+- `assets/searchstrings.js`
+- `assets/references.js`
+- `assets/editor.js`
+
 #### Local dev API modes (backend)
 
 For local frontend development, you can use one of these API modes:
@@ -83,20 +89,20 @@ Frontend reads this via `backend/api/PublicContent.php`:
 - `?type=filters`
 - `?type=prompt-rules&domain=<domain>`
 
-#### Frontend naming conventions (content/prompts)
+#### Frontend naming conventions
 
-To keep naming consistent and avoid reintroducing legacy prefixes:
+Use one convention per file type and keep it consistent:
 
-- Do **not** use `qpm-` prefix for new frontend content/prompt files.
-- Keep shared UI/static content in `src/assets/content/`:
-  - `translations.js`
-  - `order.js`
-- Keep AI prompt definitions in `src/assets/prompts/` (one concern per file), e.g.:
-  - `translation.js`
-  - `mesh.js`
-  - `search-flow.js`
-  - `abstract.js`
-  - `article.js`
+- `src/components`: **PascalCase** (e.g. `SearchForm.vue`, `ResultEntry.vue`)
+- `src/utils`, `src/mixins`, `src/config`: **camelCase** (e.g. `contentLoader.js`, `meshValidator.js`, `promptsHelpers.js`)
+- `src/assets/content` and `src/assets/prompts`: **lowercase** file names (e.g. `translations.js`, `order.js`, `searchflow.js`)
+- `src/assets/styles`: **lowercase** CSS file names (e.g. `searchform.css`, `references.css`)
+- public build assets in `dist/assets`: **lowercase** for CMS-facing widget entries (e.g. `searchform.js`, `editor.js`)
+- Vue template component tags and props: **kebab-case** (lint-enforced)
+
+Additional rules:
+
+- Do **not** use `qpm-` prefix for new frontend content/prompt/helper files.
 - Runtime topics/standardString are loaded from backend runtime content only; no local `qpm-content-topics-*` fallback is used.
 
 ### Backend project

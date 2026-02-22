@@ -18,7 +18,7 @@ import { meshFixPrompt, meshOptimizationPrompt } from "@/assets/prompts/mesh.js"
 import {
   executionIntentAlignPrompt,
   executionIntentCheckPrompt,
-} from "@/assets/prompts/search-flow.js";
+} from "@/assets/prompts/searchflow.js";
 import { getPromptForLocale } from "@/utils/promptsHelpers.js";
 
 // ─────────────────────────────────────────────────────────────────────────────

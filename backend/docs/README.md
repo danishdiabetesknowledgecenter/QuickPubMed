@@ -11,6 +11,22 @@ Denne mappe er den kanoniske web-indgang (`/backend`) til server-endpoints.
 
 `php-proxy` kan bevares midlertidigt som kompatibilitetslag, men ny kode bør pege på `backend`.
 
+## CMS script-referencer (frontend assets)
+
+Ved integration i CMS skal widget-scripts refereres med lowercase filnavne:
+
+- `assets/searchform.js`
+- `assets/searchstrings.js`
+- `assets/references.js`
+- `assets/editor.js`
+
+## Naming conventions
+
+- `backend/api`: PascalCase endpoint filnavne (fx `EditorContent.php`, `PublicContent.php`)
+- `backend/app`: lowercase helper-filer (fx `helpers.php`, `editor-auth.php`)
+- `backend/config`: lowercase config-filer (`config.php`, `config.example.php`)
+- frontend widget-scripts, der kaldes fra CMS, skal refereres med lowercase assetnavne i `dist/assets` (se sektionen ovenfor)
+
 ## Editor-sikkerhed og drift
 
 ### Konfiguration
