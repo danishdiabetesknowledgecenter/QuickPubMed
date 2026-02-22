@@ -1,6 +1,6 @@
 import "@/assets/styles/styles.css";
 import "@/assets/styles/editor.css";
-import { messages } from "@/assets/content/qpm-translations.js";
+import { messages } from "@/assets/content/translations.js";
 import { applyThemeFromConfig } from "@/config/config";
 
 applyThemeFromConfig();

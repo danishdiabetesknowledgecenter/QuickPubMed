@@ -1,4 +1,4 @@
-import { messages } from "@/assets/content/qpm-translations.js";
+import { messages } from "@/assets/content/translations.js";
 
 /**
  * Mixin for utility functions that are reusable across components.

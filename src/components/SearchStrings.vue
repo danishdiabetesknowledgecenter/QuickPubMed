@@ -370,13 +370,13 @@
 
 <script>
   import { appSettingsMixin } from "@/mixins/appSettings";
-  import { messages } from "@/assets/content/qpm-translations.js";
+  import { messages } from "@/assets/content/translations.js";
   import { topicLoaderMixin, flattenTopicGroups } from "@/mixins/topicLoaderMixin.js";
   import { loadFiltersFromRuntime } from "@/utils/contentLoader";
-  import { order } from "@/assets/content/qpm-content-order.js";
+  import { order } from "@/assets/content/order.js";
 
   export default {
-    name: "SearchGallery",
+    name: "SearchStrings",
     mixins: [appSettingsMixin, topicLoaderMixin],
     props: {
       hideTopics: {
@@ -432,7 +432,7 @@
       if (normalized.length > 0) {
         this.resolvedCollapsedLevels = normalized;
       } else {
-        const root = document.getElementById("search-gallery");
+        const root = document.getElementById("searchstrings");
         this.resolvedCollapsedLevels = this.normalizeCollapsedLevels(
           root?.dataset?.collapsedLevels || []
         );

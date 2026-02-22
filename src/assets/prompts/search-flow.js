@@ -1,4 +1,4 @@
-import { sanitizePrompt } from "@/utils/qpm-prompts-helpers.js";
+import { sanitizePrompt } from "@/utils/promptsHelpers.js";
 
 /**
  * Prompt for execution-time intent coverage check.

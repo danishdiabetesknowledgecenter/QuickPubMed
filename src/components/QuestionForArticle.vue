@@ -91,8 +91,8 @@
   import {
     summarizeArticlePrompt,
     promptText,
-  } from "@/assets/content/qpm-prompts-article.js";
-  import { sanitizePrompt } from "@/utils/qpm-prompts-helpers.js";
+  } from "@/assets/prompts/article.js";
+  import { sanitizePrompt } from "@/utils/promptsHelpers.js";
 
   import { utilitiesMixin } from "@/mixins/utilities";
   import { appSettingsMixin } from "@/mixins/appSettings";

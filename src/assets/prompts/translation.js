@@ -1,4 +1,4 @@
-import { sanitizePrompt } from "@/utils/qpm-prompts-helpers.js";
+import { sanitizePrompt } from "@/utils/promptsHelpers.js";
 
 export const titleTranslationPrompt = {
   name: "translate",

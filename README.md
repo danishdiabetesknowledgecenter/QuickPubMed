@@ -83,6 +83,22 @@ Frontend reads this via `backend/api/PublicContent.php`:
 - `?type=filters`
 - `?type=prompt-rules&domain=<domain>`
 
+#### Frontend naming conventions (content/prompts)
+
+To keep naming consistent and avoid reintroducing legacy prefixes:
+
+- Do **not** use `qpm-` prefix for new frontend content/prompt files.
+- Keep shared UI/static content in `src/assets/content/`:
+  - `translations.js`
+  - `order.js`
+- Keep AI prompt definitions in `src/assets/prompts/` (one concern per file), e.g.:
+  - `translation.js`
+  - `mesh.js`
+  - `search-flow.js`
+  - `abstract.js`
+  - `article.js`
+- Runtime topics/standardString are loaded from backend runtime content only; no local `qpm-content-topics-*` fallback is used.
+
 ### Backend project
 
 The backend is part of this same repository under `backend/`.

@@ -651,7 +651,7 @@
   import { appSettingsMixin } from "@/mixins/appSettings";
   import { utilitiesMixin } from "@/mixins/utilities";
   import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
-  import { summarizeSingleAbstractPrompt } from "@/assets/content/qpm-prompts-abstract";
+  import { summarizeSingleAbstractPrompt } from "@/assets/prompts/abstract";
 
   let _resultEntryUid = 0;
 
@@ -1166,7 +1166,7 @@
     },
     mounted() {
       // This is to ensure all badges to be loaded properly
-      // given there are multiple occurrences of <specific-articles/>
+      // given there are multiple occurrences of <references/>
 
       this.self = this;
       if (this.id != null) {

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div :id="getComponentId" ref="singleComponent" class="qpm_SpecificArticle">
+    <div :id="getComponentId" ref="singleComponent" class="qpm_References">
       <loading-spinner :loading-component="loadingComponent" />
 
       <!-- Custom Case: Single Article or Custom Data -->
@@ -106,13 +106,13 @@
 
   import { appSettingsMixin } from "@/mixins/appSettings";
   import { utilitiesMixin } from "@/mixins/utilities";
-  import { dateOptions, languageFormat } from "@/utils/qpm-content-helpers";
-  import { order } from "@/assets/content/qpm-content-order";
+  import { dateOptions, languageFormat } from "@/utils/contentHelpers";
+  import { order } from "@/assets/content/order";
 
   let _specificArticlesUid = 0;
 
   export default {
-    name: "SpecificArticles",
+    name: "References",
     components: {
       LoadingSpinner,
       ResultEntry,
@@ -277,7 +277,7 @@
         return this.ids ? this.ids : null;
       },
       getComponentId() {
-        return `qpm_SpecificArticle_${this.componentId}`;
+        return `qpm_References_${this.componentId}`;
       },
     },
     created() {

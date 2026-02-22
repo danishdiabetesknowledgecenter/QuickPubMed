@@ -211,11 +211,11 @@
   import { appSettingsMixin } from "@/mixins/appSettings.js";
   import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
   import { questionHeaderHeightWatcherMixin } from "@/mixins/questionHeaderHeightWatcher.js";
-  import { sanitizePrompt } from "@/utils/qpm-prompts-helpers.js";
+  import { sanitizePrompt } from "@/utils/promptsHelpers.js";
   import {
     summarizeArticlePrompt,
     promptText,
-  } from "@/assets/content/qpm-prompts-article.js";
+  } from "@/assets/prompts/article.js";
 
   export default {
     name: "SummarizeArticle",

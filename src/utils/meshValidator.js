@@ -14,12 +14,12 @@
  */
 
 import axios from "axios";
-import { meshFixPrompt, meshOptimizationPrompt } from "@/assets/content/qpm-prompts-mesh.js";
+import { meshFixPrompt, meshOptimizationPrompt } from "@/assets/prompts/mesh.js";
 import {
   executionIntentAlignPrompt,
   executionIntentCheckPrompt,
-} from "@/assets/content/qpm-prompts-search-flow.js";
-import { getPromptForLocale } from "@/utils/qpm-prompts-helpers.js";
+} from "@/assets/prompts/search-flow.js";
+import { getPromptForLocale } from "@/utils/promptsHelpers.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Extraction helpers

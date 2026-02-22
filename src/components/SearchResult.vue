@@ -390,12 +390,12 @@
   import AccordionMenu from "@/components/AccordionMenu.vue";
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
   import SummarizeAbstract from "@/components/SummarizeAbstract.vue";
-  import { order } from "@/assets/content/qpm-content-order.js";
-  import { summarizeMultipleAbstractPrompt } from "@/assets/content/qpm-prompts-abstract";
+  import { order } from "@/assets/content/order.js";
+  import { summarizeMultipleAbstractPrompt } from "@/assets/prompts/abstract";
   import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
   import { appSettingsMixin, eventBus } from "@/mixins/appSettings";
   import { utilitiesMixin } from "@/mixins/utilities";
-  import { languageFormat, dateOptions, pageSizes } from "@/utils/qpm-content-helpers";
+  import { languageFormat, dateOptions, pageSizes } from "@/utils/contentHelpers";
 
   export default {
     name: "SearchResult",

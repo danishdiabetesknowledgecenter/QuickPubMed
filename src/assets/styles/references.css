@@ -1,14 +1,14 @@
-/* Specific articles/references domain styles */
-.qpm_SpecificArticle input {
+/* References domain styles */
+.qpm_References input {
   color: var(--color-black) !important;
 }
 
-/* Specific articles - faktabokse i Umbraco */
-.vfd_qpm_specific-articles h2 {
+/* References - faktabokse i Umbraco */
+.vfd_qpm_references h2 {
   font-size: 1.3em;
 }
 
-.vfd_qpm_specific-articles h2:before {
+.vfd_qpm_references h2:before {
   left: 0;
   content: "\e914";
   font-family: "icomoon" !important;
@@ -19,37 +19,37 @@
   margin-right: 15px;
 }
 
-.qpm_SpecificArticle {
+.qpm_References {
   margin-top: 0 !important;
   border-top: 1px solid var(--color-border-soft);
 }
 
-.qpm_SpecificArticle .qpm_ResultEntry {
+.qpm_References .qpm_ResultEntry {
   background-color: var(--color-grey-light);
   padding: 20px 30px 10px 30px;
   margin-left: 0;
 }
 
-.qpm_SpecificArticle .qpm_shadow {
+.qpm_References .qpm_shadow {
   padding: 20px;
 }
 
-.qpm_SpecificArticle .qpm_badges {
+.qpm_References .qpm_badges {
   margin-right: -10px;
 }
 
-.accordion__colored-backgrounds--1-item .qpm_SpecificArticle .qpm_badges {
+.accordion__colored-backgrounds--1-item .qpm_References .qpm_badges {
   margin-right: -10px;
 }
 
-.article-wrapper .accordion .accordion-body__contents .qpm_SpecificArticle .qpm_ResultEntry p {
+.article-wrapper .accordion .accordion-body__contents .qpm_References .qpm_ResultEntry p {
   margin-bottom: 5px !important;
 }
 
 .article-wrapper
   .accordion
   .accordion-body__contents
-  .qpm_SpecificArticle
+  .qpm_References
   .qpm_abstractWrapper
   div
   > p {
@@ -63,8 +63,8 @@
   width: auto;
 }
 
-.accordion__colored-backgrounds .vfd_qpm_specific-articles .fact-box__title,
-.accordion__colored-backgrounds .qpm_SpecificArticle .qpm_ResultEntry {
+.accordion__colored-backgrounds .vfd_qpm_references .fact-box__title,
+.accordion__colored-backgrounds .qpm_References .qpm_ResultEntry {
   padding-left: 20px;
   padding-right: 20px;
 }
@@ -75,7 +75,7 @@
 
 .link--underline-fat-lr
   .accordion-body__contents
-  .qpm_SpecificArticle
+  .qpm_References
   .qpm_badges
   a:not(.list__link) {
   border-bottom: 0;
@@ -83,7 +83,7 @@
 }
 
 @media (max-width: 767.98px) {
-  .qpm_SpecificArticle .qpm_ResultEntry {
+  .qpm_References .qpm_ResultEntry {
     padding: 20px 15px 20px 15px;
   }
 }

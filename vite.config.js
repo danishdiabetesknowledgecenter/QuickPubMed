@@ -10,9 +10,9 @@ const __dirname = path.dirname(__filename);
 export default defineConfig(({ command }) => {
   // Define common input files
   const input = {
-    MainWrapper: path.resolve(__dirname, "entries/widgets/main-wrapper.html"),
-    SearchGallery: path.resolve(__dirname, "entries/widgets/search-gallery.html"),
-    SpecificArticles: path.resolve(__dirname, "entries/widgets/specific-articles.html"),
+    SearchForm: path.resolve(__dirname, "entries/widgets/searchform.html"),
+    SearchStrings: path.resolve(__dirname, "entries/widgets/searchstrings.html"),
+    References: path.resolve(__dirname, "entries/widgets/references.html"),
     Editor: path.resolve(__dirname, "entries/widgets/editor.html"),
   };
 

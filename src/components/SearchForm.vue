@@ -32,7 +32,7 @@
             >
           </div>
 
-          <div v-show="!isCollapsed" class="qpm_searchFormula">
+          <div v-show="!isCollapsed" class="qpm_searchformoptions">
             <!-- The dropdown for selecting subjects to be included in the search -->
             <subject-selection
               ref="subjectSelection"
@@ -157,16 +157,16 @@
   import AdvancedSearchFilters from "@/components/AdvancedSearchFilters.vue";
   import axios from "axios";
 
-  import { order } from "@/assets/content/qpm-content-order.js";
-  import { messages } from "@/assets/content/qpm-translations.js";
+  import { order } from "@/assets/content/order.js";
+  import { messages } from "@/assets/content/translations.js";
   import { topicLoaderMixin, flattenTopicGroups } from "@/mixins/topicLoaderMixin.js";
   import { normalizeFiltersList } from "@/utils/contentCanonicalizer";
   import { appSettingsMixin } from "@/mixins/appSettings";
-  import { scopeIds, customInputTagTooltip } from "@/utils/qpm-content-helpers.js";
+  import { scopeIds, customInputTagTooltip } from "@/utils/contentHelpers.js";
   import { loadFiltersFromRuntime, loadStandardString } from "@/utils/contentLoader";
 
   export default {
-    name: "MainWrapper",
+    name: "SearchForm",
     components: {
       ActionButtons,
       AiTranslationToggle,
@@ -559,7 +559,7 @@
         return this.$alwaysShowFilter;
       },
       getComponentId() {
-        return "MainWrapper_" + this.componentNo.toString();
+        return "SearchForm_" + this.componentNo.toString();
       },
     },
     watch: {
@@ -613,8 +613,8 @@
           this.updateSubjectDropdownWidth();
           this.updatePlaceholders();
 
-          // Silent focus on the first input — only for the first MainWrapper instance on the page
-          const allWrappers = document.querySelectorAll(".main-wrapper");
+          // Silent focus on the first input — only for the first SearchForm instance on the page
+          const allWrappers = document.querySelectorAll(".searchform");
           const isFirstInstance = allWrappers.length === 0 || allWrappers[0] === this.$el || allWrappers[0] === this.$el?.parentElement;
           if (!isFirstInstance) return;
 
@@ -660,8 +660,8 @@
        * Initialize focus-visible behavior to only show focus outline for keyboard navigation
        */
       initializeFocusVisible() {
-        // Find the main wrapper element (where Vue is mounted)
-        let appElement = document.getElementById('main-wrapper');
+        // Find the search form element (where Vue is mounted)
+        let appElement = document.getElementById("searchform");
         
         if (!appElement) {
           // Fallback: try to find the Vue app root element

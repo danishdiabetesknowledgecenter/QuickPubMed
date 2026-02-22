@@ -1493,7 +1493,7 @@ button.qpm_tab {
 }
 
 .qpm_accordion .qpm_searchTranslatedTitle,
-.qpm_SpecificArticle .qpm_searchTranslatedTitle {
+.qpm_References .qpm_searchTranslatedTitle {
   background-color: var(--color-white);
 }
 
@@ -1789,7 +1789,7 @@ button.qpm_tab {
     padding: 2px 0 8px 10px;
   }
 
-  .vfd_qpm_specific-articles h2 {
+  .vfd_qpm_references h2 {
     font-size: 1em !important;
   }
 

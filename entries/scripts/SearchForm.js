@@ -7,7 +7,7 @@ import { createApp, h } from "vue";
 import VueShowdown from "vue-showdown";
 import FloatingVue from "floating-vue";
 import "floating-vue/dist/style.css";
-import MainWrapper from "@/components/MainWrapper.vue";
+import SearchForm from "@/components/SearchForm.vue";
 import { applyThemeFromConfig, config, loadThemeOverridesFromBackend } from "@/config/config";
 import { settings } from "@/config/settings";
 
@@ -51,21 +51,21 @@ function createConfiguredApp(rootComponent, props, provideData) {
   return app;
 }
 
-// Find alle elementer med klassen "main-wrapper" for at understøtte flere instanser på samme side
-const mainWrapperDivs = document.querySelectorAll(".main-wrapper");
+// Find alle elementer med klassen "searchform" for at understøtte flere instanser på samme side
+const searchFormDivs = document.querySelectorAll(".searchform");
 
-mainWrapperDivs.forEach((mainWrapperDiv, index) => {
+searchFormDivs.forEach((searchFormDiv, index) => {
   // Generer et unikt ID for hver instans hvis det ikke allerede har et
-  if (!mainWrapperDiv.id) {
-    mainWrapperDiv.id = `main-wrapper-${index}`;
+  if (!searchFormDiv.id) {
+    searchFormDiv.id = `searchform-${index}`;
   }
 
   // Keep empty string as-is (don't convert to undefined)
-  const domain = mainWrapperDiv.dataset.domain !== undefined ? mainWrapperDiv.dataset.domain : null;
-  const useAI = mainWrapperDiv.dataset.useAI === "true";
-  const useAISummarizer = mainWrapperDiv.dataset.useAISummarizer === "true";
-  const useMeshValidation = mainWrapperDiv.dataset.useMeshValidation === "true";
-  const openFilters = mainWrapperDiv.dataset.openFilters === "true";
+  const domain = searchFormDiv.dataset.domain !== undefined ? searchFormDiv.dataset.domain : null;
+  const useAI = searchFormDiv.dataset.useAI === "true";
+  const useAISummarizer = searchFormDiv.dataset.useAISummarizer === "true";
+  const useMeshValidation = searchFormDiv.dataset.useMeshValidation === "true";
+  const openFilters = searchFormDiv.dataset.openFilters === "true";
 
   const parseDatasetList = (value, label) => {
     if (!value) return [];
@@ -79,14 +79,14 @@ mainWrapperDivs.forEach((mainWrapperDiv, index) => {
     }
   };
 
-  const parsedHideTopics = parseDatasetList(mainWrapperDiv.dataset.hideTopics, "hideTopics");
-  const parsedHideLimits = parseDatasetList(mainWrapperDiv.dataset.hideLimits, "hideLimits");
-  const parsedCheckLimits = parseDatasetList(mainWrapperDiv.dataset.checkLimits, "checkLimits");
-  const parsedOrderLimits = parseDatasetList(mainWrapperDiv.dataset.orderLimits, "orderLimits");
-  const language = mainWrapperDiv.dataset.language || undefined;
-  const componentNo = mainWrapperDiv.dataset.componentNo || undefined;
-  const standardStringAdd = mainWrapperDiv.dataset.standardStringAdd === "true";
-  const standardStringScopeRaw = mainWrapperDiv.dataset.standardStringScope;
+  const parsedHideTopics = parseDatasetList(searchFormDiv.dataset.hideTopics, "hideTopics");
+  const parsedHideLimits = parseDatasetList(searchFormDiv.dataset.hideLimits, "hideLimits");
+  const parsedCheckLimits = parseDatasetList(searchFormDiv.dataset.checkLimits, "checkLimits");
+  const parsedOrderLimits = parseDatasetList(searchFormDiv.dataset.orderLimits, "orderLimits");
+  const language = searchFormDiv.dataset.language || undefined;
+  const componentNo = searchFormDiv.dataset.componentNo || undefined;
+  const standardStringAdd = searchFormDiv.dataset.standardStringAdd === "true";
+  const standardStringScopeRaw = searchFormDiv.dataset.standardStringScope;
   const standardStringScope =
     standardStringScopeRaw && ["narrow", "normal", "broad"].includes(standardStringScopeRaw)
       ? standardStringScopeRaw
@@ -107,7 +107,7 @@ mainWrapperDivs.forEach((mainWrapperDiv, index) => {
   config.useMeshValidation = useMeshValidation;
 
   createConfiguredApp(
-    MainWrapper,
+    SearchForm,
     {
       hideTopics: parsedHideTopics,
       hideLimits: parsedHideLimits,
@@ -127,5 +127,5 @@ mainWrapperDivs.forEach((mainWrapperDiv, index) => {
       instanceUseAISummarizer: useAISummarizer,
       instanceUseMeshValidation: useMeshValidation,
     },
-  ).mount(`#${mainWrapperDiv.id}`);
+  ).mount(`#${searchFormDiv.id}`);
 });

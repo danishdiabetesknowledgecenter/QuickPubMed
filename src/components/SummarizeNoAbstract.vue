@@ -128,9 +128,9 @@
   import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
   import { appSettingsMixin } from "@/mixins/appSettings.js";
   import { utilitiesMixin } from "@/mixins/utilities";
-  import { messages } from "@/assets/content/qpm-translations.js";
+  import { messages } from "@/assets/content/translations.js";
   import { config } from "@/config/config.js";
-  import { promptText } from "@/assets/content/qpm-prompts-article.js";
+  import { promptText } from "@/assets/prompts/article.js";
 
   export default {
     name: "SummarizeNoAbstract",

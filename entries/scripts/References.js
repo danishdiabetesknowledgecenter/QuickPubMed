@@ -6,7 +6,7 @@ import { createApp, h } from "vue";
 import VueShowdown from "vue-showdown";
 import FloatingVue from "floating-vue";
 import "floating-vue/dist/style.css";
-import SpecificArticles from "@/components/SpecificArticles.vue";
+import References from "@/components/References.vue";
 import { applyThemeFromConfig, config, loadThemeOverridesFromBackend } from "@/config/config";
 import { settings } from "@/config/settings";
 
@@ -58,38 +58,38 @@ function parseJSON(value) {
   }
 }
 
-// Select all elements with the 'specific-articles' class
-const specificArticleDivs = document.querySelectorAll(".specific-articles");
+// Select all elements with the 'references' class
+const referencesDivs = document.querySelectorAll(".references");
 
-specificArticleDivs.forEach((specificArticleDiv) => {
+referencesDivs.forEach((referencesDiv) => {
   // Manually assign each prop with appropriate type conversions
-  const domain = specificArticleDiv.dataset.domain || undefined;
-  const useAI = specificArticleDiv.dataset.useAI === "true";
-  const useAISummarizer = specificArticleDiv.dataset.useAISummarizer === "true";
-  const ids = specificArticleDiv.dataset.ids || undefined;
-  const query = specificArticleDiv.dataset.query || undefined;
-  const queryResults = Number(specificArticleDiv.dataset.queryResults) || undefined;
-  const sortMethod = specificArticleDiv.dataset.sortMethod || undefined;
-  const hideButtons = specificArticleDiv.dataset.hideButtons === "true";
-  const showDate = specificArticleDiv.dataset.showDate === "true";
-  const date = specificArticleDiv.dataset.date || undefined;
-  const title = specificArticleDiv.dataset.title || undefined;
-  const booktitle = specificArticleDiv.dataset.booktitle || undefined;
-  const vernaculartitle = specificArticleDiv.dataset.vernaculartitle || undefined;
-  const authors = specificArticleDiv.dataset.authors || undefined;
-  const source = specificArticleDiv.dataset.source || undefined;
-  const abstract = specificArticleDiv.dataset.abstract || undefined;
-  const doi = specificArticleDiv.dataset.doi || undefined;
-  const isCustomDoi = specificArticleDiv.dataset.isCustomDoi === "true";
-  const language = specificArticleDiv.dataset.language || "dk";
-  const hyperLink = specificArticleDiv.dataset.hyperLink || undefined;
-  const hyperLinkText = specificArticleDiv.dataset.hyperLinkText || undefined;
-  const sectionedAbstract = parseJSON(specificArticleDiv.dataset.sectionedAbstract);
-  const componentNo = Number(specificArticleDiv.dataset.componentNo) || undefined;
-  const shownSixAuthors = specificArticleDiv.dataset.shownSixAuthors === "true";
-  const showAltmetricBadge = specificArticleDiv.dataset.showAltmetricBadge === "true";
-  const showDimensionsBadge = specificArticleDiv.dataset.showDimensionsBadge === "true";
-  const useTranslateTitle = specificArticleDiv.dataset.useTranslateTitle === "true";
+  const domain = referencesDiv.dataset.domain || undefined;
+  const useAI = referencesDiv.dataset.useAI === "true";
+  const useAISummarizer = referencesDiv.dataset.useAISummarizer === "true";
+  const ids = referencesDiv.dataset.ids || undefined;
+  const query = referencesDiv.dataset.query || undefined;
+  const queryResults = Number(referencesDiv.dataset.queryResults) || undefined;
+  const sortMethod = referencesDiv.dataset.sortMethod || undefined;
+  const hideButtons = referencesDiv.dataset.hideButtons === "true";
+  const showDate = referencesDiv.dataset.showDate === "true";
+  const date = referencesDiv.dataset.date || undefined;
+  const title = referencesDiv.dataset.title || undefined;
+  const booktitle = referencesDiv.dataset.booktitle || undefined;
+  const vernaculartitle = referencesDiv.dataset.vernaculartitle || undefined;
+  const authors = referencesDiv.dataset.authors || undefined;
+  const source = referencesDiv.dataset.source || undefined;
+  const abstract = referencesDiv.dataset.abstract || undefined;
+  const doi = referencesDiv.dataset.doi || undefined;
+  const isCustomDoi = referencesDiv.dataset.isCustomDoi === "true";
+  const language = referencesDiv.dataset.language || "dk";
+  const hyperLink = referencesDiv.dataset.hyperLink || undefined;
+  const hyperLinkText = referencesDiv.dataset.hyperLinkText || undefined;
+  const sectionedAbstract = parseJSON(referencesDiv.dataset.sectionedAbstract);
+  const componentNo = Number(referencesDiv.dataset.componentNo) || undefined;
+  const shownSixAuthors = referencesDiv.dataset.shownSixAuthors === "true";
+  const showAltmetricBadge = referencesDiv.dataset.showAltmetricBadge === "true";
+  const showDimensionsBadge = referencesDiv.dataset.showDimensionsBadge === "true";
+  const useTranslateTitle = referencesDiv.dataset.useTranslateTitle === "true";
 
   config.domain = domain;
   loadThemeOverridesFromBackend(domain, settings.nlm.proxyUrl).finally(() => {
@@ -100,7 +100,7 @@ specificArticleDivs.forEach((specificArticleDiv) => {
   config.useAISummarizer = useAISummarizer;
 
   // Initialize Vue instance for each element
-  createConfiguredApp(SpecificArticles, {
+  createConfiguredApp(References, {
     ids,
     query,
     queryResults,
@@ -125,5 +125,5 @@ specificArticleDivs.forEach((specificArticleDiv) => {
     showAltmetricBadge,
     showDimensionsBadge,
     useTranslateTitle,
-  }).mount(specificArticleDiv);
+  }).mount(referencesDiv);
 });

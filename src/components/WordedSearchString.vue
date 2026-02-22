@@ -157,7 +157,7 @@
 <script>
   import { appSettingsMixin } from "@/mixins/appSettings";
   import { utilitiesMixin } from "@/mixins/utilities";
-  import { order } from "@/assets/content/qpm-content-order.js";
+  import { order } from "@/assets/content/order.js";
 
   export default {
     name: "WordedSearchString",

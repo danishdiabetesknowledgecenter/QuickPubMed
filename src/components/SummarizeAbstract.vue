@@ -279,16 +279,16 @@
 
   import { appSettingsMixin, eventBus } from "@/mixins/appSettings.js";
   import { utilitiesMixin } from "@/mixins/utilities";
-  import { messages } from "@/assets/content/qpm-translations.js";
-  import { languageFormat, dateOptions } from "@/utils/qpm-content-helpers.js";
+  import { messages } from "@/assets/content/translations.js";
+  import { languageFormat, dateOptions } from "@/utils/contentHelpers.js";
 
   import { config } from "@/config/config.js";
-  import { promptText } from "@/assets/content/qpm-prompts-article.js";
+  import { promptText } from "@/assets/prompts/article.js";
   import {
     promptTextMultipleAbstracts,
     promptTextSingleAbstract,
-  } from "@/assets/content/qpm-prompts-abstract";
-  import { sanitizePrompt } from "@/utils/qpm-prompts-helpers.js";
+  } from "@/assets/prompts/abstract";
+  import { sanitizePrompt } from "@/utils/promptsHelpers.js";
 
   export default {
     name: "SummarizeAbstract",

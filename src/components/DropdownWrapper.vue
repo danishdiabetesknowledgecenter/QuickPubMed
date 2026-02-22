@@ -224,11 +224,11 @@
   import { appSettingsMixin } from "@/mixins/appSettings.js";
   import { utilitiesMixin } from "@/mixins/utilities";
   import { topicLoaderMixin } from "@/mixins/topicLoaderMixin.js";
-  import { messages } from "@/assets/content/qpm-translations.js";
-  import { searchTranslationPrompt } from "@/assets/content/qpm-prompts-translation.js";
-  import { getPromptForLocale } from "@/utils/qpm-prompts-helpers.js";
-  import { customInputTagTooltip } from "@/utils/qpm-content-helpers.js";
-  import { validateAndEnhanceMeshTerms } from "@/utils/mesh-validator.js";
+  import { messages } from "@/assets/content/translations.js";
+  import { searchTranslationPrompt } from "@/assets/prompts/translation.js";
+  import { getPromptForLocale } from "@/utils/promptsHelpers.js";
+  import { customInputTagTooltip } from "@/utils/contentHelpers.js";
+  import { validateAndEnhanceMeshTerms } from "@/utils/meshValidator.js";
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
 
   export default {

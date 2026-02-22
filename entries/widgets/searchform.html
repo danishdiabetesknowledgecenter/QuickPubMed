@@ -16,7 +16,7 @@
   <body style="background: white">
     <div style="width: 100%; max-width: 100%; margin: auto; padding: 15px">
       <!--
-        Main wrapper settings (HTML data-attributes)
+        SearchForm settings (HTML data-attributes)
         -------------------------------------------
         All data-* attributes are optional and act as defaults. URL parameters can override some
         of these (see URL parameters section below).
@@ -29,7 +29,7 @@
         - data-use-mesh-validation: Enable MeSH term validation via NLM E-utilities ("true" or "false").
           When enabled, AI-translated [mh] terms are validated against NLM's MeSH database.
         - data-open-filters: Show simple limits section from the start ("true" or "false").
-        - data-component-no: Numeric identifier used to build a unique DOM id (MainWrapper_<no>).
+        - data-component-no: Numeric identifier used to build a unique DOM id (SearchForm_<no>).
           Useful when multiple instances are embedded on the same page.
 
         Simple mode limits (only affects simple search):
@@ -43,7 +43,7 @@
         - data-hide-topics: Array of topic IDs to hide in subject dropdowns.
 
         Standard string for free-text search:
-        - data-standard-string-add: When "true", the domain's standardString (from qpm-content-topics-xxx.js)
+        - data-standard-string-add: When "true", the domain's standardString (from topics runtime content)
           is appended to all free-text (manual) search terms as: (user free text) AND (standardString).
           If the domain has no standardString (missing or empty in the topic file), nothing is added.
         - data-standard-string-scope: Which standardString variant to use: "narrow", "normal", or "broad".
@@ -89,7 +89,7 @@
           ?subject=L10010#s;;L20020#n&advanced=false&L010=L010010#s;;L010030#s&sort=relevance&pagesize=25
       -->
       <div
-        class="main-wrapper"
+        class="searchform"
         data-domain="diabetes"
         data-use-a-i="true"
         data-use-a-i-summarizer="true"
@@ -105,7 +105,7 @@
         data-component-no=""
       ></div>
       <div
-        class="main-wrapper"
+        class="searchform"
         data-domain="diabetes"
         data-use-a-i="true"
         data-use-a-i-summarizer="true"
@@ -121,6 +121,6 @@
         data-component-no=""
       ></div>
     </div>
-    <script type="module" src="../scripts/MainWrapper.js"></script>
+    <script type="module" src="../scripts/SearchForm.js"></script>
   </body>
 </html>

@@ -6,7 +6,7 @@ import { createApp, h } from "vue";
 import VueShowdown from "vue-showdown";
 import FloatingVue from "floating-vue";
 import "floating-vue/dist/style.css";
-import SearchGallery from "@/components/SearchGallery.vue";
+import SearchStrings from "@/components/SearchStrings.vue";
 import { applyThemeFromConfig, config, loadThemeOverridesFromBackend } from "@/config/config";
 import { settings } from "@/config/settings";
 
@@ -49,25 +49,25 @@ function createConfiguredApp(rootComponent, props) {
   return app;
 }
 
-const searchGalleryDiv = document.getElementById("search-gallery");
+const searchStringsDiv = document.getElementById("searchstrings");
 
-const domain = searchGalleryDiv.dataset.domain || undefined;
+const domain = searchStringsDiv.dataset.domain || undefined;
 
-// Parse hideTopics på samme måde som i MainWrapper.js
+// Parse hideTopics på samme måde som i SearchForm.js
 let parsedHideTopics = [];
-if (searchGalleryDiv.dataset.hideTopics) {
+if (searchStringsDiv.dataset.hideTopics) {
   try {
-    parsedHideTopics = JSON.parse(searchGalleryDiv.dataset.hideTopics.replace(/'/g, '"'));
+    parsedHideTopics = JSON.parse(searchStringsDiv.dataset.hideTopics.replace(/'/g, '"'));
   } catch (e) {
     console.warn("Kunne ikke parse hideTopics dataset:", e);
   }
 }
 
-const language = searchGalleryDiv.dataset.language || undefined;
+const language = searchStringsDiv.dataset.language || undefined;
 
 // Parse collapsedLevels: comma-separated list of level numbers that should start collapsed
-const collapsedLevels = searchGalleryDiv.dataset.collapsedLevels
-  ? searchGalleryDiv.dataset.collapsedLevels
+const collapsedLevels = searchStringsDiv.dataset.collapsedLevels
+  ? searchStringsDiv.dataset.collapsedLevels
       .split(",")
       .map((s) => parseInt(s.trim(), 10))
       .filter((n) => !isNaN(n))
@@ -78,9 +78,9 @@ loadThemeOverridesFromBackend(domain, settings.nlm.proxyUrl).finally(() => {
   applyThemeFromConfig(domain);
 });
 
-createConfiguredApp(SearchGallery, {
+createConfiguredApp(SearchStrings, {
   hideTopics: parsedHideTopics,
   domain: domain,
   language: language,
   collapsedLevels: collapsedLevels,
-}).mount("#search-gallery");
+}).mount("#searchstrings");

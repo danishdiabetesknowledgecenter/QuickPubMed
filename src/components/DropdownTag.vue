@@ -58,7 +58,7 @@
 
 <script>
   import { utilitiesMixin } from "@/mixins/utilities";
-  import { customInputTagTooltip } from "@/utils/qpm-content-helpers.js";
+  import { customInputTagTooltip } from "@/utils/contentHelpers.js";
 
   export default {
     name: "DropdownTag",

@@ -1,4 +1,4 @@
-import { sanitizePrompt } from "@/utils/qpm-prompts-helpers.js";
+import { sanitizePrompt } from "@/utils/promptsHelpers.js";
 
 /**
  * Prompt for AI optimization of PubMed search strings using MeSH context data.
