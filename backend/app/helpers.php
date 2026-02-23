@@ -38,6 +38,115 @@ function getAllowedOrigin($origin) {
 }
 
 /**
+ * Resolve domain from request parameters.
+ *
+ * @return string|null
+ */
+function qpmResolveDomain(): ?string
+{
+    $candidates = [
+        $_GET['domain'] ?? null,
+        $_POST['domain'] ?? null,
+    ];
+
+    foreach ($candidates as $candidate) {
+        if (!is_string($candidate)) {
+            continue;
+        }
+        $normalized = strtolower(trim($candidate));
+        if ($normalized !== '') {
+            return $normalized;
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Resolve OpenAI API key for domain with default fallback.
+ *
+ * @param string|null $domain
+ * @return string
+ */
+function qpmGetOpenAIApiKey(?string $domain = null): string
+{
+    if (!empty($domain) && defined('OPENAI_DOMAIN_CREDENTIALS') && is_array(OPENAI_DOMAIN_CREDENTIALS)) {
+        $domainConfig = OPENAI_DOMAIN_CREDENTIALS[$domain] ?? null;
+        if (is_array($domainConfig)) {
+            $apiKey = $domainConfig['api_key'] ?? '';
+            if (is_string($apiKey) && $apiKey !== '') {
+                return $apiKey;
+            }
+        }
+    }
+
+    return OPENAI_API_KEY;
+}
+
+/**
+ * Resolve OpenAI organization id for domain with default fallback.
+ *
+ * @param string|null $domain
+ * @return string
+ */
+function qpmGetOpenAIOrgId(?string $domain = null): string
+{
+    if (!empty($domain) && defined('OPENAI_DOMAIN_CREDENTIALS') && is_array(OPENAI_DOMAIN_CREDENTIALS)) {
+        $domainConfig = OPENAI_DOMAIN_CREDENTIALS[$domain] ?? null;
+        if (is_array($domainConfig)) {
+            $orgId = $domainConfig['org_id'] ?? '';
+            if (is_string($orgId) && $orgId !== '') {
+                return $orgId;
+            }
+        }
+    }
+
+    return defined('OPENAI_ORG_ID') ? OPENAI_ORG_ID : '';
+}
+
+/**
+ * Resolve NLM API key for domain with default fallback.
+ *
+ * @param string|null $domain
+ * @return string
+ */
+function qpmGetNlmApiKey(?string $domain = null): string
+{
+    if (!empty($domain) && defined('NLM_DOMAIN_CREDENTIALS') && is_array(NLM_DOMAIN_CREDENTIALS)) {
+        $domainConfig = NLM_DOMAIN_CREDENTIALS[$domain] ?? null;
+        if (is_array($domainConfig)) {
+            $apiKey = $domainConfig['api_key'] ?? '';
+            if (is_string($apiKey) && $apiKey !== '') {
+                return $apiKey;
+            }
+        }
+    }
+
+    return NLM_API_KEY;
+}
+
+/**
+ * Resolve NLM email for domain with default fallback.
+ *
+ * @param string|null $domain
+ * @return string
+ */
+function qpmGetNlmEmail(?string $domain = null): string
+{
+    if (!empty($domain) && defined('NLM_DOMAIN_CREDENTIALS') && is_array(NLM_DOMAIN_CREDENTIALS)) {
+        $domainConfig = NLM_DOMAIN_CREDENTIALS[$domain] ?? null;
+        if (is_array($domainConfig)) {
+            $email = $domainConfig['email'] ?? '';
+            if (is_string($email) && $email !== '') {
+                return $email;
+            }
+        }
+    }
+
+    return NLM_EMAIL;
+}
+
+/**
  * Global NLM request throttle using file lock.
  * Limits outbound requests from this server to approximately maxPerSecond.
  *

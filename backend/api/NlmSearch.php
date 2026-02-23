@@ -46,8 +46,9 @@ if (empty($params)) {
 if (empty($params)) {
     $params = $_GET;
 }
-$params['api_key'] = NLM_API_KEY;
-$params['email'] = NLM_EMAIL;
+$domain = qpmResolveDomain();
+$params['api_key'] = qpmGetNlmApiKey($domain);
+$params['email'] = qpmGetNlmEmail($domain);
 $params['tool'] = 'QuickPubMed';
 $params['db'] = $params['db'] ?? 'pubmed';
 $params['retmode'] = $params['retmode'] ?? 'json';

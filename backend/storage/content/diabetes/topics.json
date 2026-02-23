@@ -501,7 +501,8 @@
                     "hiddenByDefault": false
                 }
             ],
-            "hiddenByDefault": true
+            "hiddenByDefault": true,
+            "internalComment": "Dette er en intern kommentar til denne kategori. Kommentaren kan kun ses i et dette redigeringsværktøj."
         },
         {
             "id": "S010",

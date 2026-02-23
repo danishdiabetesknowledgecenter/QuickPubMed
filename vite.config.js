@@ -7,6 +7,13 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+function toLowerAssetPath(fileName, fallback = "asset") {
+  const parsed = path.parse(String(fileName || fallback));
+  const normalizedName = (parsed.name || fallback).toLowerCase();
+  const normalizedExt = (parsed.ext || "").toLowerCase();
+  return `${normalizedName}${normalizedExt}`;
+}
+
 export default defineConfig(({ command }) => {
   // Define common input files
   const input = {
@@ -46,13 +53,13 @@ export default defineConfig(({ command }) => {
       rollupOptions: {
         input, // Use the conditional input
         output: {
-          entryFileNames: "assets/[name].js",
-          chunkFileNames: "assets/[name].js",
+          entryFileNames: (chunkInfo) => `assets/${String(chunkInfo.name || "entry").toLowerCase()}.js`,
+          chunkFileNames: (chunkInfo) => `assets/${String(chunkInfo.name || "chunk").toLowerCase()}.js`,
           assetFileNames: (assetInfo) => {
             if (assetInfo.name && assetInfo.name.endsWith(".css")) {
-              return "assets/appSettings.css"; // Rename all CSS to appSettings.css
+              return "assets/appsettings.css"; // Rename all CSS to appsettings.css
             }
-            return "assets/[name].[ext]";
+            return `assets/${toLowerAssetPath(assetInfo.name, "asset")}`;
           },
         },
       },

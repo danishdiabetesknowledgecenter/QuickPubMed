@@ -1,5 +1,3 @@
-import { aiURL } from "../../config/settings.js";
-
 export const messages = {
   standardString: {
     dk: "test",
@@ -636,31 +634,31 @@ export const messages = {
   readAboutAiSummaryText: {
     dk:
       "Læs mere om, <a href='" +
-      aiURL +
+      "{aiURL}" +
       "' target='_blank' title='Læs mere om, hvordan den automatiske opsummering fungerer (åbner i nyt vindue)'>hvordan den automatiske opsummering fungerer</a>",
     en:
       "Read more about <a href='" +
-      aiURL +
+      "{aiURL}" +
       "' target='_blank' title='Read more about how the AI summary works (opens in new tab)'>how the AI summary works</a>",
   },
   aiSummaryDisclaimer: {
     dk:
       "Denne opsummering er lavet med <strong>kunstig intelligens</strong> (AI). Læs mere om, <a href='" +
-      aiURL +
+      "{aiURL}" +
       "' target='_blank' title='Læs mere om, hvordan den automatiske opsummering fungerer (åbner i nyt vindue)'>hvordan den automatiske opsummering fungerer</a>",
     en:
       "This summary is made with <strong>artificial intelligence</strong> (AI). Read more about <a href='" +
-      aiURL +
+      "{aiURL}" +
       "' target='_blank' title='Read more about how the AI summary works (opens in new tab)'>how the AI summary works</a>",
   },
   translationDisclaimer: {
     dk:
       "Denne oversættelse er lavet med <strong>kunstig intelligens</strong> (AI). Læs mere om, <a href='" +
-      aiURL +
+      "{aiURL}" +
       "' target='_blank' title='Læs mere om, hvordan den automatiske oversættelse fungerer (åbner i nyt vindue)'>hvordan den automatiske oversættelse fungerer</a>",
     en:
       "This translation is made with <strong>artificial intelligence</strong> (AI). Read more about <a href='" +
-      aiURL +
+      "{aiURL}" +
       "' target='_blank' title='Read more about how the AI translation works (opens in new tab)'>how the AI translation works</a>",
   },
   aiSummaryWaitText: {
@@ -882,6 +880,10 @@ export const messages = {
     dk: "Hent",
     en: "Load",
   },
+  editor_downloadBackup: {
+    dk: "Download backup",
+    en: "Download backup",
+  },
   editor_otherFunctions: {
     dk: "Andre funktioner",
     en: "Other functions",
@@ -986,6 +988,10 @@ export const messages = {
     dk: "Tooltip (en)",
     en: "Tooltip (en)",
   },
+  editor_itemInternalCommentLabel: {
+    dk: "Intern kommentar",
+    en: "Internal comment",
+  },
   editor_hideInFormByDefault: {
     dk: "Skjul i formular som standard",
     en: "Hide in form by default",
@@ -1009,6 +1015,10 @@ export const messages = {
   editor_categoryNameEnLabel: {
     dk: "Kategorinavn (en)",
     en: "Category name (en)",
+  },
+  editor_categoryInternalCommentLabel: {
+    dk: "Intern kommentar",
+    en: "Internal comment",
   },
   editor_lockIdOnSortLabel: {
     dk: "Lås ID ved sortering",
@@ -1450,6 +1460,10 @@ export const messages = {
     dk: "Forklaringstekst på engelsk, vist i brugerfladen.",
     en: "Help text in English, shown in the UI.",
   },
+  editor_helpCategoryInternalComment: {
+    dk: "Intern kommentar til redaktionelt brug. Vises ikke i brugerfladen.",
+    en: "Internal comment for editorial use. Not shown in the end-user interface.",
+  },
   editor_helpCategoryHiddenByDefault: {
     dk: "Når markeret, er kategorien skjult som standard i formularen.",
     en: "When checked, the category is hidden by default in the form.",
@@ -1513,5 +1527,9 @@ export const messages = {
   editor_helpItemTooltipEn: {
     dk: "Hjælpetekst på engelsk, vist i brugerfladen.",
     en: "Help text in English, shown in the UI.",
+  },
+  editor_helpItemInternalComment: {
+    dk: "Intern kommentar til redaktionelt brug. Vises ikke i brugerfladen.",
+    en: "Internal comment for editorial use. Not shown in the end-user interface.",
   },
 };

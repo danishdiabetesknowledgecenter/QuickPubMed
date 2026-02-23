@@ -2,6 +2,14 @@ const runtimeTopicPayloadCache = new Map();
 let runtimeFiltersPayloadCache = null;
 const runtimePromptRulesPayloadCache = new Map();
 let runtimeContentEndpointAvailable = true;
+const RUNTIME_CACHE_TTL_MS = Number(import.meta.env.VITE_RUNTIME_CONTENT_CACHE_TTL_MS || 300000);
+
+function hasFreshCache(entry) {
+  if (!entry || typeof entry !== "object") return false;
+  if (!Number.isFinite(RUNTIME_CACHE_TTL_MS) || RUNTIME_CACHE_TTL_MS <= 0) return false;
+  const ageMs = Date.now() - Number(entry.cachedAt || 0);
+  return ageMs >= 0 && ageMs < RUNTIME_CACHE_TTL_MS;
+}
 
 function normalizeExplicitApiBase(value) {
   const base = String(value || "").trim().replace(/\/+$/, "");
@@ -69,14 +77,25 @@ export async function loadTopicsFromRuntime(domain) {
     return [];
   }
 
+  const cached = runtimeTopicPayloadCache.get(domain);
+  if (hasFreshCache(cached)) {
+    return Array.isArray(cached.data?.topics) ? cached.data.topics : [];
+  }
+
   const payload = await fetchRuntimeContent("topics", domain);
-  runtimeTopicPayloadCache.set(domain, payload);
+  runtimeTopicPayloadCache.set(domain, { data: payload, cachedAt: Date.now() });
   return Array.isArray(payload.topics) ? payload.topics : [];
 }
 
 export async function loadFiltersFromRuntime() {
+  if (hasFreshCache(runtimeFiltersPayloadCache)) {
+    return Array.isArray(runtimeFiltersPayloadCache.data?.filters)
+      ? runtimeFiltersPayloadCache.data.filters
+      : [];
+  }
+
   const payload = await fetchRuntimeContent("filters");
-  runtimeFiltersPayloadCache = payload;
+  runtimeFiltersPayloadCache = { data: payload, cachedAt: Date.now() };
   return Array.isArray(payload.filters) ? payload.filters : [];
 }
 
@@ -85,8 +104,13 @@ export async function loadPromptRulesFromRuntime(domain) {
     return {};
   }
 
+  const cached = runtimePromptRulesPayloadCache.get(domain);
+  if (hasFreshCache(cached)) {
+    return cached.data && typeof cached.data.promptRules === "object" ? cached.data.promptRules : {};
+  }
+
   const payload = await fetchRuntimeContent("prompt-rules", domain);
-  runtimePromptRulesPayloadCache.set(domain, payload);
+  runtimePromptRulesPayloadCache.set(domain, { data: payload, cachedAt: Date.now() });
   return payload && typeof payload.promptRules === "object" ? payload.promptRules : {};
 }
 
@@ -110,7 +134,7 @@ export function loadTopics(domain) {
  */
 export function loadStandardString(domain) {
   if (domain && runtimeTopicPayloadCache.has(domain)) {
-    const runtimePayload = runtimeTopicPayloadCache.get(domain);
+    const runtimePayload = runtimeTopicPayloadCache.get(domain)?.data;
     const runtimeStandardString = runtimePayload?.standardString;
     if (
       runtimeStandardString &&

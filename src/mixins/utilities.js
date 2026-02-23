@@ -1,4 +1,5 @@
 import { messages } from "@/assets/content/translations.js";
+import { getAiURL } from "@/config/settings.js";
 
 /**
  * Mixin for utility functions that are reusable across components.
@@ -6,6 +7,11 @@ import { messages } from "@/assets/content/translations.js";
  * @mixin
  */
 export const utilitiesMixin = {
+  inject: {
+    instanceAiURL: {
+      default: "",
+    },
+  },
   methods: {
     /**
      * Retrieves a localized string based on the current language.
@@ -21,7 +27,16 @@ export const utilitiesMixin = {
         return string; // Return the key as fallback
       }
       const constant = messages[string][lg];
-      return constant !== undefined ? constant : messages[string]["dk"];
+      const localized = constant !== undefined ? constant : messages[string]["dk"];
+      const shouldReplaceAiUrl =
+        string === "readAboutAiSummaryText" ||
+        string === "aiSummaryDisclaimer" ||
+        string === "translationDisclaimer";
+      if (shouldReplaceAiUrl && typeof localized === "string") {
+        const resolvedAiUrl = getAiURL(this.instanceAiURL || "");
+        return localized.replace(/\{aiURL\}/g, resolvedAiUrl);
+      }
+      return localized;
     },
     /**
      * Sanitizes the response text by removing ```json``` blocks and any surrounding whitespace.

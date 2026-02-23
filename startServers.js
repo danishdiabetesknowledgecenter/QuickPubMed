@@ -1,18 +1,28 @@
 import { spawn } from "child_process";
 import open from "open";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const projectDir = __dirname;
+const defaultFuncDir = path.resolve(__dirname, "..", "QuickPubMed-AzureFunctions", "qpm_api");
+const funcDir = process.env.QPM_FUNC_DIR || defaultFuncDir;
+const appUrl = process.env.QPM_APP_URL || "http://localhost:5173/";
+const openDelayMs = Number(process.env.QPM_OPEN_DELAY_MS || 5000);
 
 function runCommand(command, args, cwd) {
   const process = spawn(command, args, { cwd, shell: true, detached: true, stdio: "ignore" });
-  process.unref(); // Sikrer, at processen kører i baggrunden
+  process.unref(); // Keep process running in the background
 }
 
-// Start `npm run dev` i baggrunden
-runCommand("npm", ["run", "dev"], "C:\\Users\\onoe0001\\OneDrive - Region Hovedstaden\\Documents\\GitHub\\QuickPubMed");
+// Start `npm run dev` in the background
+runCommand("npm", ["run", "dev"], projectDir);
 
-// Start `func start` i baggrunden
-runCommand("func", ["start"], "C:\\Users\\onoe0001\\OneDrive - Region Hovedstaden\\Documents\\GitHub\\QuickPubMed-AzureFunctions\\qpm_api");
+// Start `func start` in the background
+runCommand("func", ["start"], funcDir);
 
-// Vent lidt og åbn URL'en
+// Wait briefly and open the app URL
 setTimeout(() => {
-  open("http://localhost:5173/");
-}, 5000); // Juster ventetiden efter behov
+  open(appUrl);
+}, Number.isFinite(openDelayMs) ? openDelayMs : 5000); // Adjust delay as needed

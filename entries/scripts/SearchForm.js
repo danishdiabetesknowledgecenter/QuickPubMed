@@ -9,7 +9,7 @@ import FloatingVue from "floating-vue";
 import "floating-vue/dist/style.css";
 import SearchForm from "@/components/SearchForm.vue";
 import { applyThemeFromConfig, config, loadThemeOverridesFromBackend } from "@/config/config";
-import { settings } from "@/config/settings";
+import { getAiURL, settings } from "@/config/settings";
 
 /**
  * Vue.prototype.$dateFormat = "da-DK";
@@ -84,7 +84,12 @@ searchFormDivs.forEach((searchFormDiv, index) => {
   const parsedCheckLimits = parseDatasetList(searchFormDiv.dataset.checkLimits, "checkLimits");
   const parsedOrderLimits = parseDatasetList(searchFormDiv.dataset.orderLimits, "orderLimits");
   const language = searchFormDiv.dataset.language || undefined;
-  const componentNo = searchFormDiv.dataset.componentNo || undefined;
+  const componentNoRaw = searchFormDiv.dataset.componentNo;
+  const componentNo =
+    componentNoRaw && componentNoRaw.trim() !== "" && Number.isFinite(Number(componentNoRaw))
+      ? Number(componentNoRaw)
+      : undefined;
+  const instanceAiURL = getAiURL(searchFormDiv.dataset.aiUrl || "");
   const standardStringAdd = searchFormDiv.dataset.standardStringAdd === "true";
   const standardStringScopeRaw = searchFormDiv.dataset.standardStringScope;
   const standardStringScope =
@@ -126,6 +131,7 @@ searchFormDivs.forEach((searchFormDiv, index) => {
       instanceUseAI: useAI,
       instanceUseAISummarizer: useAISummarizer,
       instanceUseMeshValidation: useMeshValidation,
+      instanceAiURL: instanceAiURL,
     },
   ).mount(`#${searchFormDiv.id}`);
 });

@@ -24,6 +24,9 @@
         Core settings:
         - data-domain: Selects the content domain (e.g. "diabetes"). Empty string uses default.
         - data-language: UI language ("dk" or "en").
+        - data-ai-url: Optional URL for "read more about AI" links shown in disclaimers.
+          Supports absolute URLs (e.g. "https://example.com/om-ai") and relative URLs
+          (e.g. "/om-ai" or "../om-ai"), resolved relative to the page where the widget is embedded.
         - data-use-a-i: Enable AI translation toggle ("true" or "false").
         - data-use-a-i-summarizer: Enable AI summarizer ("true" or "false").
         - data-use-mesh-validation: Enable MeSH term validation via NLM E-utilities ("true" or "false").
@@ -92,6 +95,7 @@
         id="qpm-searchform-1"
         class="qpm-searchform"
         data-domain="diabetes"
+        data-ai-url="/om-nempubmed"
         data-use-a-i="true"
         data-use-a-i-summarizer="true"
         data-use-mesh-validation="true"
@@ -103,24 +107,23 @@
         data-standard-string-add="true"
         data-standard-string-scope="normal"
         data-language="dk"
-        data-component-no=""
+        data-component-no="1"
       ></div>
       <div
         id="qpm-searchform-2"
         class="qpm-searchform"
-        data-domain="diabetes"
+        data-domain=""
         data-use-a-i="true"
         data-use-a-i-summarizer="true"
         data-use-mesh-validation="true"
-        data-hide-topics="['L10010']"
         data-open-filters="false"
         data-hide-limits="['L010030']" 
         data-check-limits="['L010020','L010030']"
         data-order-limits="['L010030','L010020','L010010']"
-        data-standard-string-add=""
-        data-standard-string-scope=""
+        data-standard-string-add="true"
+        data-standard-string-scope="normal"
         data-language="dk"
-        data-component-no=""
+        data-component-no="2"
       ></div>
     </div>
     <script type="module" src="../scripts/SearchForm.js"></script>

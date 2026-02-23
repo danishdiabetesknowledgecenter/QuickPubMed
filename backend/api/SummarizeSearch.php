@@ -138,10 +138,13 @@ header('X-Accel-Buffering: no');
 
 if (ob_get_level()) ob_end_clean();
 
+$domain = qpmResolveDomain();
+$openAiApiKey = qpmGetOpenAIApiKey($domain);
+
 // HTTP headers for OpenAI API
 $headers = [
     'Content-Type: application/json',
-    'Authorization: Bearer ' . OPENAI_API_KEY
+    'Authorization: Bearer ' . $openAiApiKey
 ];
 
 $ch = curl_init(OPENAI_API_URL);

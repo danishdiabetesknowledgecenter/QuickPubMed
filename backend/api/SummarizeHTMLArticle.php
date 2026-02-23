@@ -197,10 +197,13 @@ echo $metadata . "\n---STREAM_START---\n";
 @ob_flush();
 @flush();
 
+$domain = qpmResolveDomain();
+$openAiApiKey = qpmGetOpenAIApiKey($domain);
+
 // Call OpenAI API with streaming
 $headers = [
     'Content-Type: application/json',
-    'Authorization: Bearer ' . OPENAI_API_KEY
+    'Authorization: Bearer ' . $openAiApiKey
 ];
 
 // Track last data time for heartbeat mechanism

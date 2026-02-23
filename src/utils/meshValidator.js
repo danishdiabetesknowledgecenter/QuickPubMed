@@ -13,13 +13,101 @@
  * With API key, rate limit is 10 requests/second.
  */
 
-import axios from "axios";
+import axiosInstance from "@/utils/axiosInstance.js";
 import { meshFixPrompt, meshOptimizationPrompt } from "@/assets/prompts/mesh.js";
 import {
   executionIntentAlignPrompt,
   executionIntentCheckPrompt,
 } from "@/assets/prompts/searchflow.js";
 import { getPromptForLocale } from "@/utils/promptsHelpers.js";
+
+function envNumber(name, fallback) {
+  const raw = import.meta.env?.[name];
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : fallback;
+}
+
+const NLM_REQUEST_TIMEOUT_MS = Math.max(1000, envNumber("VITE_MESH_NLM_TIMEOUT_MS", 10000));
+const NLM_RETRY_ATTEMPTS = Math.max(0, Math.floor(envNumber("VITE_MESH_NLM_RETRY_ATTEMPTS", 2)));
+const MESH_VALIDATION_CONCURRENCY = Math.max(
+  1,
+  Math.floor(envNumber("VITE_MESH_VALIDATION_CONCURRENCY", 2))
+);
+const MESH_VALIDATION_CACHE_LIMIT = Math.max(
+  50,
+  Math.floor(envNumber("VITE_MESH_VALIDATION_CACHE_LIMIT", 500))
+);
+const MESH_VALIDATION_CACHE_TTL_MS = Math.max(
+  0,
+  Math.floor(envNumber("VITE_MESH_VALIDATION_CACHE_TTL_MS", 900000))
+);
+const meshValidationCache = new Map();
+
+function buildMeshValidationCacheKey(proxyUrl, term) {
+  return `${String(proxyUrl || "").trim()}::${String(term || "").trim().toLowerCase()}`;
+}
+
+function getCachedMeshValidation(proxyUrl, term) {
+  const key = buildMeshValidationCacheKey(proxyUrl, term);
+  if (!meshValidationCache.has(key)) return null;
+  const value = meshValidationCache.get(key);
+  if (!value) return null;
+  if (MESH_VALIDATION_CACHE_TTL_MS > 0) {
+    const ageMs = Date.now() - Number(value.cachedAt || 0);
+    if (ageMs < 0 || ageMs > MESH_VALIDATION_CACHE_TTL_MS) {
+      meshValidationCache.delete(key);
+      return null;
+    }
+  }
+  // Keep hot entries fresh in insertion order.
+  meshValidationCache.delete(key);
+  meshValidationCache.set(key, value);
+  return value.result || null;
+}
+
+function setCachedMeshValidation(proxyUrl, term, value) {
+  const key = buildMeshValidationCacheKey(proxyUrl, term);
+  if (meshValidationCache.has(key)) {
+    meshValidationCache.delete(key);
+  }
+  meshValidationCache.set(key, { result: value, cachedAt: Date.now() });
+  while (meshValidationCache.size > MESH_VALIDATION_CACHE_LIMIT) {
+    const oldestKey = meshValidationCache.keys().next().value;
+    if (!oldestKey) break;
+    meshValidationCache.delete(oldestKey);
+  }
+}
+
+async function nlmGet(proxyUrl, endpoint, params) {
+  const baseURL = String(proxyUrl || "").trim();
+  const path = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+  return axiosInstance.get(path, {
+    baseURL,
+    params,
+    timeout: NLM_REQUEST_TIMEOUT_MS,
+    retry: NLM_RETRY_ATTEMPTS,
+  });
+}
+
+async function mapWithConcurrency(items, concurrency, mapper) {
+  const safeItems = Array.isArray(items) ? items : [];
+  const limit = Math.max(1, Number(concurrency) || 1);
+  const results = new Array(safeItems.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (true) {
+      const index = nextIndex;
+      nextIndex += 1;
+      if (index >= safeItems.length) return;
+      results[index] = await mapper(safeItems[index], index);
+    }
+  }
+
+  const workers = Array.from({ length: Math.min(limit, safeItems.length) }, () => worker());
+  await Promise.all(workers);
+  return results;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Extraction helpers
@@ -381,10 +469,15 @@ async function canonicalizeAllMeshTermsWithNlm(searchString, proxyUrl) {
 
   const uniqueTerms = [...new Set(meshTerms.map((m) => m.term.toLowerCase()))];
   const validationMap = new Map();
-  for (const termKey of uniqueTerms) {
-    const original = meshTerms.find((m) => m.term.toLowerCase() === termKey)?.term || termKey;
-    validationMap.set(termKey, await validateMeshTerm(original, proxyUrl));
-  }
+  const originalTerms = uniqueTerms.map(
+    (termKey) => meshTerms.find((m) => m.term.toLowerCase() === termKey)?.term || termKey
+  );
+  const validationResults = await mapWithConcurrency(originalTerms, MESH_VALIDATION_CONCURRENCY, (original) =>
+    validateMeshTerm(original, proxyUrl)
+  );
+  uniqueTerms.forEach((termKey, idx) => {
+    validationMap.set(termKey, validationResults[idx]);
+  });
 
   const uids = [...new Set(
     [...validationMap.values()]
@@ -428,22 +521,29 @@ async function canonicalizeAllMeshTermsWithNlm(searchString, proxyUrl) {
  * @returns {Promise<{valid: boolean, uid: string|null}>}
  */
 export async function validateMeshTerm(term, proxyUrl) {
+  const cached = getCachedMeshValidation(proxyUrl, term);
+  if (cached) {
+    return cached;
+  }
   try {
-    const params = new URLSearchParams({
+    const params = {
       db: "mesh",
       term: `"${term}"[MeSH Terms]`,
       retmode: "json",
       retmax: "1",
-    });
+    };
 
-    const response = await axios.get(`${proxyUrl}/NlmSearch.php?${params}`, { timeout: 10000 });
+    const response = await nlmGet(proxyUrl, "NlmSearch.php", params);
     const count = parseInt(response.data?.esearchresult?.count || "0", 10);
     const uid = response.data?.esearchresult?.idlist?.[0] || null;
-
-    return { valid: count > 0, uid };
+    const result = { valid: count > 0, uid };
+    setCachedMeshValidation(proxyUrl, term, result);
+    return result;
   } catch (error) {
     console.warn(`MeSH validation failed for "${term}":`, error.message);
-    return { valid: true, uid: null };
+    const fallback = { valid: true, uid: null };
+    setCachedMeshValidation(proxyUrl, term, fallback);
+    return fallback;
   }
 }
 
@@ -459,13 +559,13 @@ async function fetchMeshDetails(uids, proxyUrl) {
   if (!uids || uids.length === 0) return {};
 
   try {
-    const params = new URLSearchParams({
+    const params = {
       db: "mesh",
       id: uids.join(","),
       retmode: "json",
-    });
+    };
 
-    const response = await axios.get(`${proxyUrl}/NlmSummary.php?${params}`, { timeout: 10000 });
+    const response = await nlmGet(proxyUrl, "NlmSummary.php", params);
     const result = response.data?.result;
     if (!result) return {};
 
@@ -514,14 +614,14 @@ async function fetchMeshDetails(uids, proxyUrl) {
  */
 async function fetchMeshSuggestionsForInput(userInput, proxyUrl) {
   try {
-    const params = new URLSearchParams({
+    const params = {
       db: "mesh",
       term: userInput,
       retmode: "json",
       retmax: "10",
-    });
+    };
 
-    const response = await axios.get(`${proxyUrl}/NlmSearch.php?${params}`, { timeout: 10000 });
+    const response = await nlmGet(proxyUrl, "NlmSearch.php", params);
     const result = response.data?.esearchresult;
     if (!result) return { suggestions: [], uids: [] };
 
@@ -571,14 +671,17 @@ async function buildMeshContext(searchString, userInput, proxyUrl) {
   const meshSearchQuery = englishConcepts.length > 0 ? englishConcepts.join(" ") : userInput;
   console.info(`  MeSH search query (English concepts): "${meshSearchQuery}"`);
 
-  // Step A: Validate [mh] terms sequentially to avoid burst traffic to NLM,
+  // Step A: Validate [mh] terms with controlled parallelism (small batch size)
   // while fetching NLM suggestions in parallel.
   const inputSuggestionsPromise = fetchMeshSuggestionsForInput(meshSearchQuery, proxyUrl);
-  const validationResults = [];
-  for (const { term, fullMatch } of meshTerms) {
-    const result = await validateMeshTerm(term, proxyUrl);
-    validationResults.push({ term, fullMatch, ...result });
-  }
+  const validationResultsRaw = await mapWithConcurrency(meshTerms, MESH_VALIDATION_CONCURRENCY, ({ term }) =>
+    validateMeshTerm(term, proxyUrl)
+  );
+  const validationResults = meshTerms.map(({ term, fullMatch }, idx) => ({
+    term,
+    fullMatch,
+    ...(validationResultsRaw[idx] || { valid: true, uid: null }),
+  }));
   const inputSuggestions = await inputSuggestionsPromise;
 
   // Collect all UIDs we need details for
@@ -899,16 +1002,21 @@ export async function validateAndEnhanceMeshTerms(searchString, userInput, proxy
   console.groupEnd();
 
   // ── Step 4: Deterministic post-processing (tags/syntax/wildcards/operators) ──
+  const beforeDeterministic = updatedString;
   updatedString = sanitizeSearchStringDeterministic(updatedString);
   updatedString = lowercaseNonMeshTerms(updatedString);
   updatedString = normalizeBooleanOperatorsOutsideQuotes(updatedString);
 
   // ── Step 5: Final hard gate against PubMed after all local normalizations ──
   // Guarantees the exact final query shown in the form has been validated by NLM.
-  console.group("[MeSHFlow] Step 5 - Final gate validation against PubMed");
-  updatedString = await validateSearchString(updatedString, proxyUrl, openAiServiceUrl, client, 1, language);
-  console.info("[MeSHFlow] Final gate passed query:", updatedString);
-  console.groupEnd();
+  if (updatedString !== beforeDeterministic) {
+    console.group("[MeSHFlow] Step 5 - Final gate validation against PubMed");
+    updatedString = await validateSearchString(updatedString, proxyUrl, openAiServiceUrl, client, 1, language);
+    console.info("[MeSHFlow] Final gate passed query:", updatedString);
+    console.groupEnd();
+  } else {
+    console.info("[MeSHFlow] Step 5 skipped - deterministic post-processing made no changes.");
+  }
 
   // ── Summary ──
   if (updatedString !== searchString) {
@@ -1042,14 +1150,14 @@ function normalizeBooleanOperatorsOutsideQuotes(searchString) {
 }
 
 async function runPubmedValidation(searchString, proxyUrl) {
-  const params = new URLSearchParams({
+  const params = {
     db: "pubmed",
     term: searchString,
     retmode: "json",
     retmax: "0",
-  });
+  };
 
-  const response = await axios.get(`${proxyUrl}/NlmSearch.php?${params}`, { timeout: 10000 });
+  const response = await nlmGet(proxyUrl, "NlmSearch.php", params);
   const result = response.data?.esearchresult || {};
   const count = parseInt(result?.count || "0", 10);
   const queryTranslation = result?.querytranslation || "";

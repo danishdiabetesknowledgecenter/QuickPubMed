@@ -48,6 +48,7 @@ function ensureEditorMarkup() {
         <summary id="qpm-editor-extra-tools-summary" class="qpm-editor-accordion-summary">Andre funktioner</summary>
         <div class="qpm-editor-row">
           <button id="qpm-editor-toggle-json-btn" class="qpm-editor-btn qpm-editor-btn-secondary qpm-editor-json-toggle-btn" type="button">Rediger i JSON</button>
+          <button id="qpm-editor-download-backup-btn" class="qpm-editor-btn qpm-editor-btn-secondary" type="button">Download backup</button>
         </div>
         <textarea id="qpm-editor-json" class="qpm-editor-textarea qpm-editor-textarea-json qpm-editor-hidden" spellcheck="false"></textarea>
         <div id="qpm-editor-json-actions" class="qpm-editor-row qpm-editor-hidden">
@@ -149,6 +150,7 @@ const revisionStatusEl = document.getElementById("qpm-editor-revision-status");
 const revisionPreviewJson = document.getElementById("qpm-editor-revision-preview-json");
 const revisionDiffEl = document.getElementById("qpm-editor-revision-diff");
 const toggleJsonBtn = document.getElementById("qpm-editor-toggle-json-btn");
+const downloadBackupBtn = document.getElementById("qpm-editor-download-backup-btn");
 const jsonActionsWrap = document.getElementById("qpm-editor-json-actions");
 const saveJsonBtn = document.getElementById("qpm-editor-save-json-btn");
 const logoutBtn = document.getElementById("qpm-editor-logout-btn");
@@ -204,6 +206,7 @@ const editorHelpTextKeyMap = {
   "category.translations.en": "helpCategoryTranslationsEn",
   "category.tooltip.dk": "helpCategoryTooltipDk",
   "category.tooltip.en": "helpCategoryTooltipEn",
+  "category.internalComment": "helpCategoryInternalComment",
   "category.hiddenByDefault": "helpCategoryHiddenByDefault",
   "item.id": "helpItemId",
   "item.lockIdOnSort": "helpItemLockIdOnSort",
@@ -220,6 +223,7 @@ const editorHelpTextKeyMap = {
   "item.searchStringComment.en": "helpItemSearchStringCommentEn",
   "item.tooltip.dk": "helpItemTooltipDk",
   "item.tooltip.en": "helpItemTooltipEn",
+  "item.internalComment": "helpItemInternalComment",
 };
 
 function updateJsonToggleButtonLabel() {
@@ -233,6 +237,7 @@ function applyEditorLanguageTexts() {
   if (saveBtn instanceof HTMLElement) saveBtn.textContent = t("saveAll");
   if (saveJsonBtn instanceof HTMLElement) saveJsonBtn.textContent = t("save");
   if (loadBtn instanceof HTMLElement) loadBtn.textContent = t("load");
+  if (downloadBackupBtn instanceof HTMLElement) downloadBackupBtn.textContent = t("downloadBackup");
   if (userInput instanceof HTMLInputElement) userInput.placeholder = t("usernamePlaceholder");
   if (passwordInput instanceof HTMLInputElement) passwordInput.placeholder = t("passwordPlaceholder");
   if (apiBaseLabelEl instanceof HTMLElement) apiBaseLabelEl.textContent = t("activeApiLabel");
@@ -1491,6 +1496,26 @@ function updateJson(data, refreshTree = true) {
   if (refreshTree) refreshTopicTree();
 }
 
+function downloadCurrentJsonBackup() {
+  if (!(jsonInput instanceof HTMLTextAreaElement)) return;
+  const content = String(jsonInput.value || "").trim() ? jsonInput.value : "{}";
+  const type = getSelectedType();
+  const selectedDomain = (domainInput instanceof HTMLSelectElement ? domainInput.value : "").trim();
+  const domainSegment = type === "topics" && selectedDomain ? `-${selectedDomain}` : "";
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const filename = `qpm-${type}${domainSegment}-backup-${timestamp}.json`;
+
+  const blob = new Blob([content], { type: "application/json;charset=utf-8" });
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(objectUrl);
+}
+
 function itemMatchesSearch(item, searchText) {
   if (!searchText) return true;
   const haystack = [
@@ -1618,6 +1643,8 @@ function createCategoryInlineEditor(topic) {
   tooltipDk.dataset.inlineField = "category.tooltip.dk";
   const tooltipEn = mkTextarea(topic?.tooltip?.en || "");
   tooltipEn.dataset.inlineField = "category.tooltip.en";
+  const internalComment = mkTextarea(topic?.internalComment || "");
+  internalComment.dataset.inlineField = "category.internalComment";
   const hiddenInput = document.createElement("input");
   hiddenInput.type = "checkbox";
   hiddenInput.dataset.inlineField = "category.hiddenByDefault";
@@ -1676,6 +1703,8 @@ function createCategoryInlineEditor(topic) {
     categoryTooltipPrimaryInput,
     mkLabel(categoryTooltipSecondaryLabel, categoryTooltipSecondaryKey),
     categoryTooltipSecondaryInput,
+    mkLabel(t("categoryInternalCommentLabel"), "category.internalComment"),
+    internalComment,
     hiddenLabel,
     actionsRow,
     inlineStatus
@@ -1807,6 +1836,8 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   tooltipDk.dataset.inlineField = "tooltip.dk";
   const tooltipEn = mkTextarea(item?.tooltip?.en || "");
   tooltipEn.dataset.inlineField = "tooltip.en";
+  const internalComment = mkTextarea(item?.internalComment || "");
+  internalComment.dataset.inlineField = "internalComment";
 
   const applyBtn = document.createElement("button");
   applyBtn.type = "button";
@@ -1879,6 +1910,8 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
     itemTooltipPrimaryInput,
     mkLabel(itemTooltipSecondaryLabel, itemTooltipSecondaryKey),
     itemTooltipSecondaryInput,
+    mkLabel(t("itemInternalCommentLabel"), "item.internalComment"),
+    internalComment,
     actionsRow,
     inlineStatus
   );
@@ -2333,6 +2366,7 @@ function createNewTopicItem(newId, orderingValue) {
     searchStrings: { narrow: [], normal: [], broad: [] },
     searchStringComment: { dk: "", en: "" },
     tooltip: { dk: "", en: "" },
+    internalComment: "",
     ordering: { dk: orderingValue, en: orderingValue },
     lockIdOnSort: true,
     hiddenByDefault: false,
@@ -2370,6 +2404,7 @@ function createNewTopicCategory(categoryId, orderingValue) {
     id: categoryId,
     translations: { dk: "", en: "" },
     tooltip: { dk: "", en: "" },
+    internalComment: "",
     ordering: { dk: orderingValue, en: orderingValue },
     hiddenByDefault: false,
     groups: [],
@@ -2526,6 +2561,7 @@ function applyInlineEditorEdits(categoryId, itemId, container) {
     dk: (get("tooltip.dk")?.value || "").trim(),
     en: (get("tooltip.en")?.value || "").trim(),
   };
+  item.internalComment = (get("internalComment")?.value || "").trim();
 
   selectedTopicCategoryId = categoryId;
   selectedTopicItemId = item.id || itemId;
@@ -2578,6 +2614,7 @@ function applyCategoryInlineEdits(categoryId, container) {
     dk: (get("category.tooltip.dk")?.value || "").trim(),
     en: (get("category.tooltip.en")?.value || "").trim(),
   };
+  category.internalComment = (get("category.internalComment")?.value || "").trim();
   const hiddenCheckbox = get("category.hiddenByDefault");
   category.hiddenByDefault = hiddenCheckbox ? Boolean(hiddenCheckbox.checked) : false;
   if (oldId !== nextId) {
@@ -2642,6 +2679,7 @@ window.addEventListener("pagehide", () => {
 loadBtn?.addEventListener("click", loadContent);
 saveBtn?.addEventListener("click", () => saveContent("main"));
 saveJsonBtn?.addEventListener("click", () => saveContent("json"));
+downloadBackupBtn?.addEventListener("click", downloadCurrentJsonBackup);
 logoutBtn?.addEventListener("click", logout);
 revisionRefreshBtn?.addEventListener("click", refreshRevisionList);
 revisionListInput?.addEventListener("change", syncRevisionActionButtonsVisibility);

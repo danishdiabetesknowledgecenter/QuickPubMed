@@ -59,12 +59,27 @@
                             "id": "L000020010",
                             "buttons": true,
                             "translations": {
-                                "dk": "Afgrænsning 2.1",
+                                "dk": "Afgrænsning 2.1x",
                                 "en": "Limit 2.1"
                             },
                             "tooltip": {
                                 "dk": "Kommentar til denne afgrænsning.",
                                 "en": "Comment about this topic."
+                            },
+                            "lockIdOnSort": true,
+                            "hiddenByDefault": false,
+                            "ordering": {
+                                "dk": 1,
+                                "en": 1
+                            },
+                            "searchStrings": {
+                                "narrow": [],
+                                "normal": [],
+                                "broad": []
+                            },
+                            "searchStringComment": {
+                                "dk": "",
+                                "en": ""
                             },
                             "choices": [
                                 {
@@ -179,6 +194,10 @@
                                 "dk": "",
                                 "en": ""
                             },
+                            "ordering": {
+                                "dk": 2,
+                                "en": 2
+                            },
                             "choices": []
                         },
                         {
@@ -206,6 +225,10 @@
                             "tooltip": {
                                 "dk": "",
                                 "en": ""
+                            },
+                            "ordering": {
+                                "dk": 3,
+                                "en": 3
                             },
                             "choices": []
                         }
@@ -285,7 +308,7 @@
                             "id": "L000020010",
                             "buttons": true,
                             "translations": {
-                                "dk": "Afgrænsning 2.1",
+                                "dk": "Afgrænsning 2.1x",
                                 "en": "Limit 2.1"
                             },
                             "tooltip": {
@@ -377,7 +400,22 @@
                                     },
                                     "children": []
                                 }
-                            ]
+                            ],
+                            "lockIdOnSort": true,
+                            "hiddenByDefault": false,
+                            "ordering": {
+                                "dk": 1,
+                                "en": 1
+                            },
+                            "searchStrings": {
+                                "narrow": [],
+                                "normal": [],
+                                "broad": []
+                            },
+                            "searchStringComment": {
+                                "dk": "",
+                                "en": ""
+                            }
                         },
                         {
                             "id": "L000020020",
@@ -405,7 +443,11 @@
                                 "dk": "",
                                 "en": ""
                             },
-                            "children": []
+                            "children": [],
+                            "ordering": {
+                                "dk": 2,
+                                "en": 2
+                            }
                         },
                         {
                             "id": "L000020030",
@@ -433,7 +475,11 @@
                                 "dk": "",
                                 "en": ""
                             },
-                            "children": []
+                            "children": [],
+                            "ordering": {
+                                "dk": 3,
+                                "en": 3
+                            }
                         }
                     ]
                 },

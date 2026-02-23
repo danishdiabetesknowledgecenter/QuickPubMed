@@ -10,6 +10,16 @@ export const config = reactive({
   themeByDomain: {}, // Domain-specific CSS variable overrides: { domainKey: { "--color-...": "..." } }
 });
 
+const THEME_CONFIG_CACHE_TTL_MS = (() => {
+  const raw = Number(import.meta.env.VITE_THEME_CACHE_TTL_MS);
+  if (Number.isFinite(raw) && raw >= 0) {
+    return raw;
+  }
+  return 5 * 60 * 1000;
+})();
+const themeConfigCache = new Map();
+const themeConfigInFlight = new Map();
+
 export function applyThemeFromConfig(domain = config.domain) {
   if (typeof document === "undefined") return;
   const rootStyle = document.documentElement.style;
@@ -50,33 +60,55 @@ export async function loadThemeOverridesFromBackend(domain, apiBaseUrl) {
   const resolvedApiBase = resolveThemeApiBase(apiBaseUrl);
   if (!normalizedDomain || !resolvedApiBase) return;
 
+  const cacheKey = `${resolvedApiBase}::${normalizedDomain}`;
+  const cached = themeConfigCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return;
+  }
+
+  if (themeConfigInFlight.has(cacheKey)) {
+    await themeConfigInFlight.get(cacheKey);
+    return;
+  }
+
+  const requestPromise = (async () => {
+    try {
+      const separator = resolvedApiBase.includes("?") ? "&" : "?";
+      const url = `${resolvedApiBase}/ThemeConfig.php${separator}domain=${encodeURIComponent(normalizedDomain)}`;
+      const response = await fetch(url, { method: "GET", credentials: "omit" });
+      if (!response.ok) return;
+
+      const payload = await response.json();
+      if (!payload || typeof payload !== "object") return;
+
+      if (payload.globalTheme && typeof payload.globalTheme === "object") {
+        config.theme = { ...config.theme, ...payload.globalTheme };
+      }
+
+      if (payload.themeByDomain && typeof payload.themeByDomain === "object") {
+        config.themeByDomain = { ...config.themeByDomain, ...payload.themeByDomain };
+      }
+
+      if (payload.domainTheme && typeof payload.domainTheme === "object") {
+        config.themeByDomain = {
+          ...config.themeByDomain,
+          [normalizedDomain]: {
+            ...(config.themeByDomain[normalizedDomain] || {}),
+            ...payload.domainTheme,
+          },
+        };
+      }
+
+      themeConfigCache.set(cacheKey, { expiresAt: Date.now() + THEME_CONFIG_CACHE_TTL_MS });
+    } catch (error) {
+      console.warn("[ThemeConfig] Could not load theme overrides from backend:", error);
+    }
+  })();
+
+  themeConfigInFlight.set(cacheKey, requestPromise);
   try {
-    const separator = resolvedApiBase.includes("?") ? "&" : "?";
-    const url = `${resolvedApiBase}/ThemeConfig.php${separator}domain=${encodeURIComponent(normalizedDomain)}`;
-    const response = await fetch(url, { method: "GET", credentials: "omit" });
-    if (!response.ok) return;
-
-    const payload = await response.json();
-    if (!payload || typeof payload !== "object") return;
-
-    if (payload.globalTheme && typeof payload.globalTheme === "object") {
-      config.theme = { ...config.theme, ...payload.globalTheme };
-    }
-
-    if (payload.themeByDomain && typeof payload.themeByDomain === "object") {
-      config.themeByDomain = { ...config.themeByDomain, ...payload.themeByDomain };
-    }
-
-    if (payload.domainTheme && typeof payload.domainTheme === "object") {
-      config.themeByDomain = {
-        ...config.themeByDomain,
-        [normalizedDomain]: {
-          ...(config.themeByDomain[normalizedDomain] || {}),
-          ...payload.domainTheme,
-        },
-      };
-    }
-  } catch (error) {
-    console.warn("[ThemeConfig] Could not load theme overrides from backend:", error);
+    await requestPromise;
+  } finally {
+    themeConfigInFlight.delete(cacheKey);
   }
 }

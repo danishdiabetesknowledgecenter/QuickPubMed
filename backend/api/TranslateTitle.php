@@ -95,13 +95,17 @@ if (isset($prompt['max_output_tokens']) && $prompt['max_output_tokens'] !== null
     $openaiRequest['max_output_tokens'] = (int)$prompt['max_tokens'];
 }
 
+$domain = qpmResolveDomain();
+$openAiApiKey = qpmGetOpenAIApiKey($domain);
+$openAiOrgId = qpmGetOpenAIOrgId($domain);
+
 $headers = [
     'Content-Type: application/json',
-    'Authorization: Bearer ' . OPENAI_API_KEY
+    'Authorization: Bearer ' . $openAiApiKey
 ];
 
-if (OPENAI_ORG_ID) {
-    $headers[] = 'OpenAI-Organization: ' . OPENAI_ORG_ID;
+if ($openAiOrgId) {
+    $headers[] = 'OpenAI-Organization: ' . $openAiOrgId;
 }
 
 // Streaming response

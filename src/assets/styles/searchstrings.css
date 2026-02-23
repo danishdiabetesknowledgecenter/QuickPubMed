@@ -268,7 +268,8 @@
 }
 
 .qpm_toggle_placeholder {
-  border-color: var(--color-gallery-toggle);
+  border-color: var(--color-grey-medium);
+  color: var(--color-grey-medium);
   position: relative;
 }
 
@@ -282,7 +283,7 @@
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background-color: var(--color-gallery-toggle);
+  background-color: var(--color-grey-medium);
   position: absolute;
   left: 50%;
   top: 50%;
@@ -291,9 +292,10 @@
 
 .qpm_toggle_placeholder:hover,
 .qpm_gallery_toggle:hover .qpm_toggle_placeholder {
-  border-color: var(--color-gallery-toggle-hover);
+  border-color: var(--color-grey-dark);
+  color: var(--color-grey-dark);
 }
 
 .qpm_gallery_toggle:hover .qpm_toggle_placeholder::after {
-  background-color: var(--color-gallery-toggle-hover);
+  background-color: var(--color-grey-dark);
 }

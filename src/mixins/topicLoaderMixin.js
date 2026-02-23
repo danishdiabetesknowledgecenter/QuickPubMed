@@ -14,15 +14,21 @@ import { normalizeTopicsList } from "@/utils/contentCanonicalizer";
  * - `maintopicIdLevel2` (grandparent ID, for backward compat)
  * - `parentChain` (array of ALL ancestor IDs, from nearest to farthest)
  *
- * Supports both nested (new) and flat (legacy) formats — if no `children`
- * property is found, the groups array is returned unchanged.
+ * Supports both nested (new) and flat (legacy) formats. Nested structures can
+ * use either `children` (topics) or `choices` (filters). If no nested entries
+ * are found, the groups array is returned unchanged.
  *
  * @param {Array} groups - The groups array (nested or flat)
  * @returns {Array} - A flat array of groups with hierarchy metadata
  */
 export function flattenTopicGroups(groups) {
-  // Quick check: if no item has children, return as-is (legacy flat format)
-  if (!groups.some((g) => g.children)) return groups;
+  // Quick check: if no item has nested children/choices, return as-is (legacy flat format)
+  const hasNestedStructure = groups.some(
+    (g) =>
+      (Array.isArray(g.children) && g.children.length > 0) ||
+      (Array.isArray(g.choices) && g.choices.length > 0),
+  );
+  if (!hasNestedStructure) return groups;
 
   const result = [];
   let orderCounter = 0;
@@ -30,7 +36,13 @@ export function flattenTopicGroups(groups) {
   function processLevel(items, level, ancestors, parentPath) {
     let siblingIndex = 0;
     for (const item of items) {
-      const { children, ...flatItem } = item;
+      const nestedItems =
+        Array.isArray(item.children) && item.children.length > 0
+          ? item.children
+          : Array.isArray(item.choices) && item.choices.length > 0
+            ? item.choices
+            : [];
+      const { children, choices, ...flatItem } = item;
 
       // Auto-generate sequential ordering to preserve DFS traversal order
       siblingIndex++;
@@ -39,7 +51,7 @@ export function flattenTopicGroups(groups) {
       flatItem.ordering = { dk: orderCounter, en: orderCounter, label: path };
 
       // Auto-generate hierarchy metadata
-      if (children && children.length > 0) {
+      if (nestedItems.length > 0) {
         flatItem.maintopic = true;
       }
       if (level >= 1) {
@@ -52,8 +64,8 @@ export function flattenTopicGroups(groups) {
       result.push(flatItem);
 
       // Recurse into children (DFS order)
-      if (children && children.length > 0) {
-        processLevel(children, level + 1, [flatItem.id, ...ancestors], path);
+      if (nestedItems.length > 0) {
+        processLevel(nestedItems, level + 1, [flatItem.id, ...ancestors], path);
       }
     }
   }
