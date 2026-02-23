@@ -19,7 +19,9 @@ function getContentApiBaseUrl() {
   }
 
   const datasetApiBase = document
-    .querySelector(".searchform[data-content-api-base-url], #searchstrings[data-content-api-base-url]")
+    .querySelector(
+      ".qpm-searchform[data-content-api-base-url], .searchform[data-content-api-base-url], #qpm-searchstrings[data-content-api-base-url], #searchstrings[data-content-api-base-url]",
+    )
     ?.getAttribute("data-content-api-base-url");
   const normalizedDatasetApiBase = normalizeExplicitApiBase(datasetApiBase);
   if (normalizedDatasetApiBase) {

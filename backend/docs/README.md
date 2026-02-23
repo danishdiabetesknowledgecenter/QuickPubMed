@@ -20,6 +20,12 @@ Ved integration i CMS skal widget-scripts refereres med lowercase filnavne:
 - `assets/references.js`
 - `assets/editor.js`
 
+CMS mount-containere bør bruge `qpm-` prefiks for at undgå selector-konflikter:
+- SearchForm: `class="qpm-searchform"` + `id="qpm-searchform-<n>"`
+- SearchStrings: `id="qpm-searchstrings"` + `class="qpm-searchstrings"`
+- References: `class="qpm-references"` + `id="qpm-references-<n>"`
+- Editor: `id="qpm-editor"` + `class="qpm-editor"`
+
 ## Naming conventions
 
 - `backend/api`: PascalCase endpoint filnavne (fx `EditorContent.php`, `PublicContent.php`)

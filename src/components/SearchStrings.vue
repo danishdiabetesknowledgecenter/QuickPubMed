@@ -432,7 +432,8 @@
       if (normalized.length > 0) {
         this.resolvedCollapsedLevels = normalized;
       } else {
-        const root = document.getElementById("searchstrings");
+        const root =
+          document.getElementById("qpm-searchstrings") || document.getElementById("searchstrings");
         this.resolvedCollapsedLevels = this.normalizeCollapsedLevels(
           root?.dataset?.collapsedLevels || []
         );

@@ -58,10 +58,14 @@ function parseJSON(value) {
   }
 }
 
-// Select all elements with the 'references' class
-const referencesDivs = document.querySelectorAll(".references");
+// Select all elements with the 'qpm-references' class (fallback to legacy class)
+const referencesDivs = document.querySelectorAll(".qpm-references, .references");
 
-referencesDivs.forEach((referencesDiv) => {
+referencesDivs.forEach((referencesDiv, index) => {
+  if (!referencesDiv.id) {
+    referencesDiv.id = `qpm-references-${index + 1}`;
+  }
+
   // Manually assign each prop with appropriate type conversions
   const domain = referencesDiv.dataset.domain || undefined;
   const useAI = referencesDiv.dataset.useAI === "true";

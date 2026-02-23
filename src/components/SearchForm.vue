@@ -614,7 +614,7 @@
           this.updatePlaceholders();
 
           // Silent focus on the first input — only for the first SearchForm instance on the page
-          const allWrappers = document.querySelectorAll(".searchform");
+          const allWrappers = document.querySelectorAll(".qpm-searchform, .searchform");
           const isFirstInstance = allWrappers.length === 0 || allWrappers[0] === this.$el || allWrappers[0] === this.$el?.parentElement;
           if (!isFirstInstance) return;
 
@@ -660,12 +660,15 @@
        * Initialize focus-visible behavior to only show focus outline for keyboard navigation
        */
       initializeFocusVisible() {
-        // Find the search form element (where Vue is mounted)
-        let appElement = document.getElementById("searchform");
+        // Find the mounted search form element (prefer current instance root)
+        let appElement =
+          this.$el?.parentElement ||
+          document.getElementById("qpm-searchform") ||
+          document.querySelector('[id^="qpm-searchform-"]') ||
+          document.getElementById("searchform");
         
         if (!appElement) {
-          // Fallback: try to find the Vue app root element
-          appElement = this.$el?.parentElement || document.body;
+          appElement = document.body;
         }
         
         if (!appElement) {

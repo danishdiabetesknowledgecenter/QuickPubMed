@@ -63,6 +63,12 @@ Public build assets for widgets are emitted in lowercase and should be reference
 - `assets/references.js`
 - `assets/editor.js`
 
+CMS mount containers should use `qpm-` prefixed selectors to avoid collisions:
+- SearchForm: `class="qpm-searchform"` + `id="qpm-searchform-<n>"`
+- SearchStrings: `id="qpm-searchstrings"` + `class="qpm-searchstrings"`
+- References: `class="qpm-references"` + `id="qpm-references-<n>"`
+- Editor: `id="qpm-editor"` + `class="qpm-editor"`
+
 #### Local dev API modes (backend)
 
 For local frontend development, you can use one of these API modes:

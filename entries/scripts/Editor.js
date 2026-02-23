@@ -11,7 +11,7 @@ if (!root) {
 }
 
 function ensureEditorMarkup() {
-  root.classList.add("qpm-editor-wrap");
+  root.classList.add("qpm-editor");
   if (document.getElementById("qpm-editor-login")) return;
 
   root.innerHTML = `

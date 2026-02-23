@@ -49,7 +49,8 @@ function createConfiguredApp(rootComponent, props) {
   return app;
 }
 
-const searchStringsDiv = document.getElementById("searchstrings");
+const searchStringsDiv =
+  document.getElementById("qpm-searchstrings") || document.getElementById("searchstrings");
 
 const domain = searchStringsDiv.dataset.domain || undefined;
 
@@ -83,4 +84,4 @@ createConfiguredApp(SearchStrings, {
   domain: domain,
   language: language,
   collapsedLevels: collapsedLevels,
-}).mount("#searchstrings");
+}).mount(searchStringsDiv);

@@ -51,13 +51,13 @@ function createConfiguredApp(rootComponent, props, provideData) {
   return app;
 }
 
-// Find alle elementer med klassen "searchform" for at understøtte flere instanser på samme side
-const searchFormDivs = document.querySelectorAll(".searchform");
+// Find alle elementer med klassen "qpm-searchform" (med fallback til legacy class)
+const searchFormDivs = document.querySelectorAll(".qpm-searchform, .searchform");
 
 searchFormDivs.forEach((searchFormDiv, index) => {
   // Generer et unikt ID for hver instans hvis det ikke allerede har et
   if (!searchFormDiv.id) {
-    searchFormDiv.id = `searchform-${index}`;
+    searchFormDiv.id = `qpm-searchform-${index + 1}`;
   }
 
   // Keep empty string as-is (don't convert to undefined)
