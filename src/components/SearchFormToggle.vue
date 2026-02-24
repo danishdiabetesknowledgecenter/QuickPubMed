@@ -7,8 +7,8 @@
       {{ getString("searchHeaderHidden") }}
     </div>
 
-    <div 
-      v-if="subjects != false" 
+    <div
+      v-if="subjects !== false"
       class="qpm_toggleSearchForm" 
       @click="$emit('toggle-collapsed')"
       @keydown.enter="$emit('toggle-collapsed')"
@@ -54,7 +54,7 @@
       },
       getString: {
         type: Function,
-        default: () => () => "",
+        default: () => "",
       },
     },
   };

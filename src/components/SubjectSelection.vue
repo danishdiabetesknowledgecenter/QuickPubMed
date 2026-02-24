@@ -18,10 +18,10 @@
           :show-scope-label="advanced"
           :no-result-string="getString('noTopicDropdownContent')"
           :index="n"
-          @input="handleUpdateSubjects"
-          @updateScope="handleUpdateScope"
-          @mounted="handleShouldFocusNextDropdownOnMount"
-          @translating="handleTranslating"
+          @input="(...args) => $emit('update-subjects', ...args)"
+          @updateScope="(...args) => $emit('update-scope', ...args)"
+          @mounted="(...args) => $emit('should-focus-next-dropdown', ...args)"
+          @translating="(...args) => $emit('update-placeholder', ...args)"
         />
 
         <i
@@ -84,7 +84,6 @@
       language: { type: String, default: "dk" },
       getString: {
         type: Function,
-        required: true,
         default: () => "",
       },
       advanced: Boolean,
@@ -95,45 +94,29 @@
     watch: {
       hideTopics: {
         immediate: true,
-        handler(newVal) {
+        handler() {
           this.$nextTick(() => {
-            if (this.$refs.subjectDropdown) {
-              // Force opdatering af alle dropdown komponenter
-              this.$refs.subjectDropdown.forEach(dropdown => {
-                if (dropdown) {
-                  dropdown.updateSortedSubjectOptions();
-                  dropdown.$forceUpdate();
-                }
-              });
-            }
+            this.refreshSubjectDropdownOptions();
           });
-        }
-      }
+        },
+      },
     },
     mounted() {
       // Ensures initial state
       this.$nextTick(() => {
-        if (this.$refs.subjectDropdown) {
-          this.$refs.subjectDropdown.forEach(dropdown => {
-            if (dropdown) {
-              dropdown.updateSortedSubjectOptions();
-            }
-          });
-        }
+        this.refreshSubjectDropdownOptions();
       });
     },
     methods: {
-      handleUpdateSubjects(value, index) {
-        this.$emit("update-subjects", value, index);
-      },
-      handleUpdateScope(item, state, index) {
-        this.$emit("update-scope", item, state, index);
-      },
-      handleShouldFocusNextDropdownOnMount(payload) {
-        this.$emit("should-focus-next-dropdown", payload);
-      },
-      handleTranslating(isTranslating, index, stepKey) {
-        this.$emit("update-placeholder", isTranslating, index, stepKey);
+      refreshSubjectDropdownOptions() {
+        const dropdownRefs = this.$refs?.subjectDropdown;
+        if (!dropdownRefs) return;
+        const dropdowns = Array.isArray(dropdownRefs) ? dropdownRefs : [dropdownRefs];
+        dropdowns.forEach((dropdown) => {
+          if (dropdown && typeof dropdown.updateSortedSubjectOptions === "function") {
+            dropdown.updateSortedSubjectOptions();
+          }
+        });
       },
       addSubject() {
         this.$emit("add-subject");

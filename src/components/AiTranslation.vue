@@ -98,7 +98,7 @@
     },
     watch: {
       showingTranslation: {
-        handler: async function (newValue) {
+        async handler(newValue) {
           if (newValue) {
             // Trigger when showingTranslation is true
             await this.showTranslation();
@@ -143,7 +143,14 @@
               }
               throw new Error(typeof errorBody === "string" ? errorBody : JSON.stringify(errorBody));
             }
-            const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+            const responseBody = response.body;
+            if (!responseBody || typeof responseBody.pipeThrough !== "function") {
+              answer = await response.text();
+              this.text = answer;
+              this.writing = false;
+              return;
+            }
+            const reader = responseBody.pipeThrough(new TextDecoderStream()).getReader();
 
             this.loading = false;
             let done = false;
@@ -179,7 +186,10 @@
         await readData(openAiServiceUrl, requestBody);
       },
       clickCopy() {
-        navigator.clipboard.writeText(this.text);
+        if (!this.text) return;
+        if (navigator?.clipboard?.writeText) {
+          navigator.clipboard.writeText(this.text);
+        }
       },
       clickStop() {
         this.stopGeneration = true;

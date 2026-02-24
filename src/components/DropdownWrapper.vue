@@ -228,6 +228,11 @@
   import { searchTranslationPrompt } from "@/assets/prompts/translation.js";
   import { getPromptForLocale } from "@/utils/promptsHelpers.js";
   import { customInputTagTooltip } from "@/utils/contentHelpers.js";
+  import {
+    areComparableIdsEqual,
+    cloneDeep,
+    getLocalizedTranslation,
+  } from "@/utils/componentHelpers";
   import { validateAndEnhanceMeshTerms } from "@/utils/meshValidator.js";
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
 
@@ -320,7 +325,21 @@
         isSilentFocus: false, // Track if focus is "silent" (no visual styling)
         _isEmptyDropdown: false, // Track if this is an empty dropdown with custom input handling
         isDropdownOpen: false, // Track dropdown state for aria-expanded
+        _handleKeyDownBound: null,
+        _handleInputEventBound: null,
+        _handleEmptyDropdownInputBound: null,
+        _handleEmptyDropdownKeydownBound: null,
+        _handleEmptyDropdownFocusBound: null,
+        _handleEmptyDropdownClickBound: null,
       };
+    },
+    created() {
+      this._handleKeyDownBound = this.handleKeyDown.bind(this);
+      this._handleInputEventBound = this.handleInputEvent.bind(this);
+      this._handleEmptyDropdownInputBound = this.handleEmptyDropdownInput.bind(this);
+      this._handleEmptyDropdownKeydownBound = this.handleEmptyDropdownKeydown.bind(this);
+      this._handleEmptyDropdownFocusBound = this.handleEmptyDropdownFocus.bind(this);
+      this._handleEmptyDropdownClickBound = this.handleEmptyDropdownClick.bind(this);
     },
     computed: {
       dropdownListId: function () {
@@ -375,7 +394,7 @@
             return null;
           }
 
-          const sectionCopy = JSON.parse(JSON.stringify(section));
+          const sectionCopy = cloneDeep(section);
           
           if (sectionCopy.choices) {
             sectionCopy.choices = sectionCopy.choices.filter(choice => {
@@ -393,7 +412,7 @@
           
           return sectionCopy;
         })
-        .filter(section => section !== null) // Remove hidden sections
+        .filter((section) => section !== null && section !== undefined) // Remove hidden sections
         .filter(section => {
           if (section.choices) {
             return section.choices.length > 0;
@@ -414,14 +433,24 @@
           
           let aSort, bSort;
 
-          if (a.ordering && a.ordering[lang] != null && (!b.ordering || b.ordering[lang] == null)) {
+          if (
+            a.ordering &&
+            a.ordering[lang] !== null &&
+            a.ordering[lang] !== undefined &&
+            (!b.ordering || b.ordering[lang] === null || b.ordering[lang] === undefined)
+          ) {
             return -1; // a is ordered and b is not -> a first
           }
-          if (b.ordering && b.ordering[lang] != null && (!a.ordering || a.ordering[lang] == null)) {
+          if (
+            b.ordering &&
+            b.ordering[lang] !== null &&
+            b.ordering[lang] !== undefined &&
+            (!a.ordering || a.ordering[lang] === null || a.ordering[lang] === undefined)
+          ) {
             return 1; // b is ordered and a is not -> b first
           }
 
-          if (a.ordering && a.ordering[lang] != null) {
+          if (a.ordering && a.ordering[lang] !== null && a.ordering[lang] !== undefined) {
             // We know both are non null due to earlier check
             aSort = a.ordering[lang];
             bSort = b.ordering[lang];
@@ -441,37 +470,39 @@
           }
         }
 
-        let data = JSON.parse(JSON.stringify(this.shownSubjects));
+        let data = cloneDeep(this.shownSubjects);
         
         // Filter out null/undefined items
-        data = data.filter(item => item != null);
+        data = data.filter((item) => item !== null && item !== undefined);
 
         for (let i = 0; i < data.length; i++) {
           if (!data[i]) continue;
           
           let groupName = null;
-          if (data[i]["groups"] != null) {
+          if (data[i]["groups"] !== null && data[i]["groups"] !== undefined) {
             groupName = "groups";
-          } else if (data[i]["choices"] != null) {
+          } else if (data[i]["choices"] !== null && data[i]["choices"] !== undefined) {
             groupName = "choices";
           } else {
             continue;
           }
 
           // Filter out null/undefined items before sorting
-          data[i][groupName] = data[i][groupName].filter(item => item != null);
+          data[i][groupName] = data[i][groupName].filter(
+            (item) => item !== null && item !== undefined
+          );
           data[i][groupName].sort(sortByPriorityOrName); // Sort categories in groups
         }
 
         return data;
       },
       getIdToDataMap: function () {
-        var dataMap = {};
+        const dataMap = {};
         for (let i = 0; i < this.data.length; i++) {
           const group = this.data[i];
           dataMap[group.id] = group;
 
-          var groupName = this.getGroupPropertyName(group);
+          const groupName = this.getGroupPropertyName(group);
           for (let j = 0; j < group[groupName].length; j++) {
             const element = group[groupName][j];
             dataMap[element.id] = element;
@@ -512,7 +543,7 @@
       },
       hideTopics: {
         immediate: true,
-        handler(newVal) {
+        handler() {
           this.$nextTick(() => {
             // Update data without calling refresh
             this.updateSortedSubjectOptions();
@@ -521,7 +552,7 @@
       },
       placeholder: {
         immediate: true,
-        handler(newVal) {
+        handler() {
           this.$nextTick(() => {
             const input = this.$el?.getElementsByClassName("multiselect__input")[0];
             if (input) {
@@ -532,9 +563,12 @@
       },
       isSilentFocus: {
         handler(newVal) {
-          if (newVal && this.$refs.multiselect && this.$refs.multiselect.isOpen && !this.isUserTyping) {
+          const multiselect = this.$refs.multiselect;
+          if (newVal && multiselect && multiselect.isOpen && !this.isUserTyping) {
             // Force close dropdown when silent focus is activated (but not when user is typing)
-            this.$refs.multiselect.deactivate();
+            if (typeof multiselect.deactivate === "function") {
+              multiselect.deactivate();
+            }
           }
         }
       },
@@ -610,7 +644,7 @@
         input.addEventListener('focus', this.handleFocus);
         input.addEventListener('blur', this.handleBlur);
         input.addEventListener('click', this.handleClick, { capture: true });
-        input.addEventListener('keydown', this.handleKeyDown.bind(this));
+        input.addEventListener('keydown', this._handleKeyDownBound);
         
         // For empty dropdown (no topics), completely disable multiselect's input handling
         // But only if it's not already set up as empty dropdown
@@ -639,7 +673,10 @@
       this.$watch(() => this.$refs.multiselect?.isOpen, (isOpen) => {
         if (isOpen && this.isSilentFocus && !this.isUserTyping) {
           this.$nextTick(() => {
-            this.$refs.multiselect.deactivate();
+            const multiselect = this.$refs.multiselect;
+            if (multiselect && typeof multiselect.deactivate === "function") {
+              multiselect.deactivate();
+            }
           });
         }
       });
@@ -671,12 +708,23 @@
         input.removeEventListener('blur', this.removeKeyboardFocus);
         input.removeEventListener('focus', this.handleFocus);
         input.removeEventListener('blur', this.handleBlur);
-        input.removeEventListener('click', this.handleClick);
-        input.removeEventListener('keydown', this.handleKeyDown);
+        input.removeEventListener('click', this.handleClick, { capture: true });
+        input.removeEventListener('keydown', this._handleKeyDownBound);
+        input.removeEventListener("input", this._handleInputEventBound);
+        input.removeEventListener("keyup", this.handleSearchInput);
         
         // Cleanup for empty dropdowns
         if (this._isEmptyDropdown && input.getAttribute('data-multiselect-disabled') === 'true') {
           this.restoreMultiselectInput(input);
+        }
+      }
+
+      const element = this.$refs.selectWrapper;
+      if (element) {
+        element.removeEventListener("keydown", this.handleStopEnterOnGroups, true);
+        const dropdown = element.getElementsByClassName("qpm_dropDownMenu")[0];
+        if (dropdown) {
+          dropdown.removeEventListener("mousedown", this.handleOpenMenuOnClick);
         }
       }
       
@@ -688,42 +736,42 @@
     },
     methods: {
       /**
-       * Tjekker om et searchString scope har valid indhold
-       * @param {Object} option - Option objektet fra dropdown
-       * @param {string} scope - Scope navnet ('narrow', 'normal' eller 'broad')
-       * @returns {boolean} True hvis scope har indhold, false ellers
+       * Checks whether a searchString scope has valid content.
+       * @param {Object} option - Option object from the dropdown.
+       * @param {string} scope - Scope name ('narrow', 'normal', or 'broad').
+       * @returns {boolean} True when the scope has content.
        */
       hasScopeContent(option, scope) {
-        // Tjek om option har searchStrings
+        // Check whether the option has searchStrings
         if (!option || !option.searchStrings) {
           return false;
         }
         
-        // Tjek om scope property eksisterer
-        if (!option.searchStrings.hasOwnProperty(scope)) {
+        // Check whether the scope property exists
+        if (!Object.prototype.hasOwnProperty.call(option.searchStrings, scope)) {
           return false;
         }
         
         const searchString = option.searchStrings[scope];
         
-        // Tjek om searchString er et tomt array
+        // Check whether searchString is an empty array
         if (Array.isArray(searchString) && searchString.length === 0) {
           return false;
         }
         
-        // Tjek om searchString array har indhold
+        // Check whether searchString array has content
         if (Array.isArray(searchString)) {
           const value = searchString[0];
-          return value != null && value !== '';
+          return value !== null && value !== undefined && value !== "";
         }
         
-        // Hvis det ikke er et array, tjek om det har værdi
-        return searchString != null && searchString !== '';
+        // If it is not an array, check for a non-empty value
+        return searchString !== null && searchString !== undefined && searchString !== "";
       },
       /**
-       * Tæller antal scopes med valid indhold
-       * @param {Object} option - Option objektet fra dropdown
-       * @returns {number} Antal scopes med indhold
+       * Counts scopes with valid content.
+       * @param {Object} option - Option object from the dropdown.
+       * @returns {number} Number of scopes with content.
        */
       countValidScopes(option) {
         let count = 0;
@@ -733,9 +781,9 @@
         return count;
       },
       /**
-       * Tjekker om knapperne skal vises (kun hvis der er 2 eller flere scopes)
-       * @param {Object} option - Option objektet fra dropdown
-       * @returns {boolean} True hvis knapper skal vises
+       * Checks if scope buttons should be shown (only when at least 2 scopes exist).
+       * @param {Object} option - Option object from the dropdown.
+       * @returns {boolean} True when buttons should be shown.
        */
       shouldShowScopeButtons(option) {
         return this.countValidScopes(option) >= 2;
@@ -798,6 +846,7 @@
       },
       initialSetup() {
         const element = this.$refs.selectWrapper;
+        if (!element) return;
         document.removeEventListener("mousedown", this.setMouseUsed);
         document.removeEventListener("keydown", this.resetMouseUsed);
         document.addEventListener("mousedown", this.setMouseUsed);
@@ -812,8 +861,10 @@
         const input = element.getElementsByClassName("multiselect__input")[0];
         if (input) {
           // These event listeners are necessary for all normal multiselect functionality
-          input.addEventListener("input", this.handleInputEvent.bind(this));
-          input.addEventListener("keydown", this.handleKeyDown.bind(this));
+          input.removeEventListener("input", this._handleInputEventBound);
+          input.removeEventListener("keydown", this._handleKeyDownBound);
+          input.addEventListener("input", this._handleInputEventBound);
+          input.addEventListener("keydown", this._handleKeyDownBound);
         }
 
         // Hide last operator
@@ -867,7 +918,10 @@
         this.expandedOptionGroupName = "";
         this.updateExpandedGroupHighlighting();
 
-        this.$refs.multiselect.pointer = 0; // Set highlight to first item to prevent exceptions.
+        const multiselect = this.$refs.multiselect;
+        if (multiselect) {
+          multiselect.pointer = 0; // Set highlight to first item to prevent exceptions.
+        }
         for (let key in this.maintopicToggledMap) {
           this.maintopicToggledMap[key] = false;
         }
@@ -896,10 +950,11 @@
         }
 
         // Only check for '-' in the current language
-        if (!elem.isCustom && elem.translations[lg] && elem.translations[lg].startsWith("-")) {
+        const translatedLabel = elem.translations?.[lg];
+        if (!elem.isCustom && typeof translatedLabel === "string" && translatedLabel.startsWith("-")) {
           // Only modify translations for the current language
-          let updatedTranslations = { ...elem.translations };
-          updatedTranslations[lg] = elem.translations[lg].slice(1);
+          const updatedTranslations = { ...elem.translations };
+          updatedTranslations[lg] = translatedLabel.slice(1);
 
           // Update elem with the new translations, so the change only affects the selected language
           elem.translations = updatedTranslations;
@@ -911,7 +966,10 @@
         if (this.isMouseUsed) {
           // If not a maintopic, deactivate the multiselect dropdown
           if (!elem.maintopic) {
-            this.$refs.multiselect.deactivate();
+            const multiselect = this.$refs.multiselect;
+            if (multiselect && typeof multiselect.deactivate === "function") {
+              multiselect.deactivate();
+            }
           }
         }
       },
@@ -957,7 +1015,10 @@
         }
         
         // For dropdowns with topics, reset pointer to ensure highlight logic works
-        this.$refs.multiselect.pointer = -1;
+        const multiselect = this.$refs.multiselect;
+        if (multiselect) {
+          multiselect.pointer = -1;
+        }
         
         // Update dropdown state for aria-expanded
         this.isDropdownOpen = true;
@@ -1028,7 +1089,7 @@
                (!grandParentId || this.maintopicToggledMap[grandParentId]);
       },
       /**
-       * Returner indeks i filteredOptions for de synlige rækker i afgrænsningsdropdown (rækker uden qpm_shown).
+       * Return indices in filteredOptions for visible rows in limit dropdown.
        */
       getFilterVisibleIndices() {
         const element = this.$refs.selectWrapper;
@@ -1454,11 +1515,12 @@
       highlightClickedTagInDropdown(targetLabel) {
         // Wait until next tick to ensure dropdown is open and updated
         this.$nextTick(() => {
-          if (!this.$refs.multiselect || !this.$refs.multiselect.filteredOptions) {
+          const multiselect = this.$refs.multiselect;
+          if (!multiselect || !multiselect.filteredOptions) {
             return;
           }
 
-          const filteredOptions = this.$refs.multiselect.filteredOptions;
+          const filteredOptions = multiselect.filteredOptions;
           const cleanedTargetLabel = this.cleanLabel(targetLabel);
           
           // Find the element that matches the clicked tag
@@ -1473,7 +1535,7 @@
 
           if (matchingIndex !== -1) {
             // Set pointer to the matching element to highlight it
-            this.$refs.multiselect.pointer = matchingIndex;
+            multiselect.pointer = matchingIndex;
           }
         });
       },
@@ -1542,8 +1604,8 @@
       handleStopEnterOnGroups(event) {
         // Keep pointer in bounds when typing reduces filteredOptions
         // (vue-multiselect's pointerAdjust crashes if pointer is out of bounds)
-        if (this.$refs.multiselect.isOpen) {
-          const ms = this.$refs.multiselect;
+        const ms = this.$refs.multiselect;
+        if (ms && ms.isOpen) {
           const opts = ms.filteredOptions;
           if (opts && opts.length > 0) {
             if (ms.pointer >= opts.length) {
@@ -1558,7 +1620,7 @@
         // Only handle Enter key beyond this point
         if (event.key !== 'Enter') return;
 
-        // Fritekstfelt uden topics: Enter skal oprette tag i stedet for at åbne dropdown
+        // Free-text field without topics: Enter should create a tag instead of opening dropdown
         if (
           event.target.classList.contains("multiselect__input") &&
           this.shouldHideDropdownArrow
@@ -1580,34 +1642,37 @@
           return;
         }
 
-        // Når input har fokus og dropdown er lukket: Enter åbner dropdown
+        // When input has focus and dropdown is closed, Enter opens the dropdown
         if (event.target.classList.contains("multiselect__input") && this.$refs.multiselect && !this.$refs.multiselect.isOpen) {
           event.stopPropagation();
           event.preventDefault();
           if (this.isSilentFocus) {
             this.removeSilentFocus(event.target);
           }
-          this.$refs.multiselect.activate();
+          if (typeof this.$refs.multiselect.activate === "function") {
+            this.$refs.multiselect.activate();
+          }
           return;
         }
 
-        if (this.$refs.multiselect.pointer < 0) {
+        if (ms && ms.pointer < 0) {
           // If there is no hovered element then highlight the first on as with old behavior
           // setting it to zero enabels the first element to be highlighted on enter after pasting text
-          this.$refs.multiselect.pointer = 0;
+          ms.pointer = 0;
         }
         // Handle Enter key
         {
           if (event.target.classList.contains("multiselect__input")) {
             const element = this.$refs.selectWrapper;
-            target = element.getElementsByClassName("multiselect__option--highlight")[0];
+            const target = element.getElementsByClassName("multiselect__option--highlight")[0];
 
-            // Check if highlighted element is a maintopic (hovedkategori) – toggle åben/luk med Enter
+            // Check if highlighted element is a main topic and toggle open/close with Enter
             if (target && target.querySelector('.qpm_maintopicDropdown')) {
+              event.stopImmediatePropagation();
               event.stopPropagation();
               event.preventDefault();
-              var dropdownRef = this.$refs.multiselect;
-              var option = dropdownRef.filteredOptions[dropdownRef.pointer];
+              const dropdownRef = this.$refs.multiselect;
+              const option = dropdownRef.filteredOptions[dropdownRef.pointer];
               if (option && option.maintopic) {
                 this.maintopicToggledMap = {
                   ...this.maintopicToggledMap,
@@ -1618,12 +1683,13 @@
               return;
             }
 
-            if (target == null || target.classList.contains("multiselect__option--group")) {
+            if (target === null || target.classList.contains("multiselect__option--group")) {
+              event.stopImmediatePropagation();
               event.stopPropagation();
               event.preventDefault();
-              if (target == null) return;
+              if (target === null) return;
 
-              var focusedGroup = target.querySelector(".qpm_groupLabel").textContent;
+              const focusedGroup = target.querySelector(".qpm_groupLabel").textContent;
 
               if (focusedGroup === this.expandedOptionGroupName) {
                 this.hideItems(this.expandedOptionGroupName);
@@ -1647,7 +1713,7 @@
                 }
               }
             } else if (!this.focusByHover && this.focusedButtonIndex >= 0) {
-              var dropdownRef = this.$refs.multiselect;
+              const dropdownRef = this.$refs.multiselect;
 
               // Nothing currently in focus, and therefore nothing left to do.
               if (dropdownRef.pointer < 0) {
@@ -1656,10 +1722,10 @@
               }
 
               // Find the button corresponding to the one in focus
-              var target = dropdownRef.$refs.list.getElementsByClassName(
+              const target = dropdownRef.$refs.list.getElementsByClassName(
                 "multiselect__option--highlight"
               )[0];
-              var button = target.getElementsByClassName("qpm_ButtonColumnFocused")[0];
+              const button = target.getElementsByClassName("qpm_ButtonColumnFocused")[0];
 
               // If no scope buttons exists or none are currently in focus
               // then let the default handeling occur via the input method.
@@ -1668,11 +1734,13 @@
               event.stopPropagation();
               
               // Store current focus state before clicking
-              var currentFocusedButtonIndex = this.focusedButtonIndex;
-              var currentPointer = dropdownRef.pointer;
-              var currentFocusByHover = this.focusByHover;
+              const currentFocusedButtonIndex = this.focusedButtonIndex;
+              const currentPointer = dropdownRef.pointer;
+              const currentFocusByHover = this.focusByHover;
               
-              button.click();
+              if (typeof button.click === "function") {
+                button.click();
+              }
               
               // Immediately restore focus state to prevent it from being lost
               this.focusedButtonIndex = currentFocusedButtonIndex;
@@ -1695,7 +1763,7 @@
       },
       handleOpenMenuOnClick(event) {
         //FIX FOR IE!
-        var tagText = event.target.textContent;
+        const tagText = event.target.textContent;
 
         if (
           tagText.startsWith(this.getString("manualInputTerm")) ||
@@ -1707,9 +1775,10 @@
         this.setMouseUsed();
         event.stopPropagation();
         
-        // Sikkerhedstjek for at search ref eksisterer
-        if (this.$refs.multiselect && this.$refs.multiselect.$refs.search) {
-          this.$refs.multiselect.$refs.search.focus();
+        // Guard to ensure search ref exists
+        const searchInput = this.$refs.multiselect?.$refs?.search;
+        if (searchInput && typeof searchInput.focus === "function") {
+          searchInput.focus();
         }
       },
       handleScopeButtonClick(item, state, event) {
@@ -1722,7 +1791,10 @@
         // 2. this.isMouseUsed - tracks if last interaction was via mouse
         // 3. event.detail > 0 - mouse clicks have detail > 0, programmatic clicks have detail = 0
         if (event.isTrusted && this.isMouseUsed && event.detail > 0) {
-        this.$refs.multiselect.deactivate();
+          const multiselect = this.$refs.multiselect;
+          if (multiselect && typeof multiselect.deactivate === "function") {
+            multiselect.deactivate();
+          }
         }
 
         //Check if just added
@@ -1761,13 +1833,16 @@
           appRoot.classList.contains("qpm_keyboard-mode") &&
           !this.isSilentFocus &&
           !input.classList.contains("qpm_silent-focus");
-        var tag;
+        let tag;
         if (this.searchWithAI) {
           this.isLoading = true;
           this.$emit("translating", true, this.index, "translatingStepSearchString");
 
           // close the multiselect dropdown
-          this.$refs.multiselect.deactivate();
+          const multiselect = this.$refs.multiselect;
+          if (multiselect && typeof multiselect.deactivate === "function") {
+            multiselect.deactivate();
+          }
           if (hadVisibleKeyboardFocus && input) {
             this.$nextTick(() => {
               input.focus({ preventScroll: true });
@@ -1817,7 +1892,10 @@
         } else {
           this.$emit("translating", false, this.index);
 
-          this.$refs.multiselect.deactivate();
+          const multiselect = this.$refs.multiselect;
+          if (multiselect && typeof multiselect.deactivate === "function") {
+            multiselect.deactivate();
+          }
           if (hadVisibleKeyboardFocus && input) {
             this.$nextTick(() => {
               input.focus({ preventScroll: true });
@@ -1879,9 +1957,7 @@
        * @param newTag text of the new tag
        */
       handleUpdateCustomTag(oldTag, newTag) {
-        var tagIndex = this.selected.findIndex(function (e) {
-          return oldTag == e;
-        });
+        const tagIndex = this.selected.findIndex((entry) => oldTag === entry);
         this.selected.splice(tagIndex, 1, newTag);
         this.clearShownItems();
         this.input(this.selected);
@@ -1916,7 +1992,10 @@
         if (event.target.classList.contains("qpm_scopeLabel")) {
           event.stopPropagation();
           event.preventDefault();
-          event.target.parentNode.click();
+          const parent = event.target.parentNode;
+          if (parent && typeof parent.click === "function") {
+            parent.click();
+          }
           return false;
         }
       },
@@ -1929,12 +2008,14 @@
       },
 
       scrollToFocusedSubject() {
-        var subject = this.$refs.multiselect.$refs.list.querySelector(
+        const list = this.$refs.multiselect?.$refs?.list;
+        if (!list) return;
+        const subject = list.querySelector(
           ".multiselect__option--highlight"
         );
         if (!subject) return;
 
-        var isFocusVissible = this.isSubjectVissible(subject);
+        const isFocusVissible = this.isSubjectVissible(subject);
         if (!isFocusVissible) {
           this.ignoreHover = true;
           subject.scrollIntoView({
@@ -1945,7 +2026,7 @@
         }
       },
       navDown() {
-        var dropdownRef = this.$refs.multiselect;
+        const dropdownRef = this.$refs.multiselect;
 
         // Set focused column to normal if not set
         if (this.focusedButtonIndex < 0 || this.focusByHover) {
@@ -1958,7 +2039,7 @@
           return;
         }
 
-        // Afgrænsningsdropdown: kun ét synligt punkt ned (spring skjulte rækker over)
+        // Limit dropdown: move one visible item down (skip hidden rows)
         if (this.isFilterDropdown) {
           const visible = this.getFilterVisibleIndices();
           let idx = visible.indexOf(dropdownRef.pointer);
@@ -1970,9 +2051,8 @@
           } else {
             return;
           }
-          var self = this;
-          this.$nextTick(function () {
-            self.scrollToFocusedSubject();
+          this.$nextTick(() => {
+            this.scrollToFocusedSubject();
           });
           return;
         }
@@ -1983,24 +2063,25 @@
           return;
         }
 
-        var currentSubject = dropdownRef.filteredOptions[dropdownRef.pointer];
+        const currentSubject = dropdownRef.filteredOptions[dropdownRef.pointer];
 
-        var isGroup = currentSubject["$groupLabel"] != null;
-        var isMaintopic = currentSubject.maintopic;
-        var isCurrentExpandedGroup = false;
-        var navDistance;
-        var subject;
+        const isGroup =
+          currentSubject["$groupLabel"] !== null && currentSubject["$groupLabel"] !== undefined;
+        const isMaintopic = currentSubject.maintopic;
+        let isCurrentExpandedGroup = false;
+        let navDistance;
+        let subject;
 
         // Logic for navigating over the topic groups
         if (!isGroup && isMaintopic) {
-          var currentSubjectOptionGroupId = currentSubject.id.substring(0, 3);
+          const currentSubjectOptionGroupId = currentSubject.id.substring(0, 3);
           const isFilter = currentSubjectOptionGroupId.startsWith("L");
           // Check if the ID of the currentSubject is a key in maintopicToggledMap
           const isMaintopicToggled = this.maintopicToggledMap[currentSubject.id];
 
           // If the option--group is not expanded we set navDistance to amount of non visible children
           if (!isMaintopicToggled) {
-            var maintopicChildren = this.getMaintopicChildren(currentSubject.id, isFilter);
+            const maintopicChildren = this.getMaintopicChildren(currentSubject.id, isFilter);
             dropdownRef.pointer += maintopicChildren.length + 1;
             return;
           }
@@ -2008,17 +2089,17 @@
 
         // Logic for navigating over the topic (dark blue background)
         if (isGroup) {
-          var label = this.customGroupLabelById(currentSubject.$groupLabel);
-          subject = this.getSortedSubjectOptions.find(function (e) {
-            return e.id === currentSubject.$groupLabel;
-          });
+          const label = this.customGroupLabelById(currentSubject.$groupLabel);
+          subject = this.getSortedSubjectOptions.find(
+            (entry) => entry.id === currentSubject.$groupLabel
+          );
           isCurrentExpandedGroup = label !== this.expandedOptionGroupName;
         } else {
           subject = currentSubject;
         }
 
         if (isGroup && isCurrentExpandedGroup) {
-          var groupPropertyName = this.getGroupPropertyName(subject);
+          const groupPropertyName = this.getGroupPropertyName(subject);
           navDistance = subject[groupPropertyName].length + 1;
         } else {
           navDistance = 1;
@@ -2031,13 +2112,12 @@
         dropdownRef.pointer += navDistance;
 
         // Scroll to see element if needed
-        var self = this;
-        this.$nextTick(function () {
-          self.scrollToFocusedSubject();
+        this.$nextTick(() => {
+          this.scrollToFocusedSubject();
         });
       },
       navUp() {
-        var dropdownRef = this.$refs.multiselect;
+        const dropdownRef = this.$refs.multiselect;
 
         // Set focused column to normal if not set
         if (this.focusedButtonIndex < 0 || this.focusByHover) {
@@ -2061,7 +2141,7 @@
           return;
         }
 
-        // Afgrænsningsdropdown: kun ét synligt punkt op (spring skjulte rækker over)
+        // Limit dropdown: move one visible item up (skip hidden rows)
         if (this.isFilterDropdown) {
           const visible = this.getFilterVisibleIndices();
           let idx = visible.indexOf(dropdownRef.pointer);
@@ -2081,18 +2161,18 @@
           return;
         }
 
-        var currentSubject = dropdownRef.filteredOptions[dropdownRef.pointer];
+        const currentSubject = dropdownRef.filteredOptions[dropdownRef.pointer];
         
         // Check if we're navigating up from a collapsed maintopic's children (works for both topics and filters)
         const itemAbove = dropdownRef.filteredOptions[dropdownRef.pointer - 1];
         if (itemAbove && !itemAbove["$groupLabel"] && itemAbove.maintopic) {
-          var currentSubjectOptionGroupId = itemAbove.id.substring(0, 3);
+          const currentSubjectOptionGroupId = itemAbove.id.substring(0, 3);
           const isFilter = currentSubjectOptionGroupId.startsWith("L");
           const isMaintopicToggled = this.maintopicToggledMap[itemAbove.id];
 
           // If the maintopic above is not expanded, we need to jump over all its hidden children
           if (!isMaintopicToggled) {
-            var maintopicChildren = this.getMaintopicChildren(itemAbove.id, isFilter);
+            const maintopicChildren = this.getMaintopicChildren(itemAbove.id, isFilter);
             dropdownRef.pointer -= maintopicChildren.length + 1;
             this.scrollToFocusedSubject();
             return;
@@ -2127,7 +2207,7 @@
           }
         }
 
-        // Kun i emne-dropdown (ikke afgrænsninger): når vi står på første emne under en kategori, ét pil op = hop til forrige kategorieoverskrift
+        // Only for topic dropdown: arrow up from first item under a category jumps to previous category header
         const itemDirectlyAbove = dropdownRef.filteredOptions[dropdownRef.pointer - 1];
         if (!this.isFilterDropdown && currentSubject && !currentSubject.$groupLabel && itemDirectlyAbove && itemDirectlyAbove.$groupLabel) {
           let i = dropdownRef.pointer - 2;
@@ -2139,15 +2219,16 @@
           }
         }
 
-        var isGroup = currentSubject["$groupLabel"] != null;
-        var navDistance = 1;
+        const isGroup =
+          currentSubject["$groupLabel"] !== null && currentSubject["$groupLabel"] !== undefined;
+        let navDistance = 1;
 
         // Logic for navigating over the topic groups (emne-dropdown)
         if (!isGroup) {
-          var currentSubjectOptionGroupId = currentSubject.id.substring(0, 3);
+          const currentSubjectOptionGroupId = currentSubject.id.substring(0, 3);
           const isFilter = currentSubjectOptionGroupId.startsWith("L");
 
-          var optionsAtDepth = this.getOptionsAtDepth(
+          const optionsAtDepth = this.getOptionsAtDepth(
             currentSubject.subtopiclevel || 0,
             currentSubjectOptionGroupId,
             true,
@@ -2194,7 +2275,7 @@
             // Check if the item above is a collapsed maintopic
             // Treat undefined as false (collapsed) since maintopics start collapsed until clicked
             if (itemAbove.maintopic && !this.maintopicToggledMap[itemAbove.id]) {
-              var maintopicChildren = this.getMaintopicChildren(itemAbove.id, isFilter);
+              const maintopicChildren = this.getMaintopicChildren(itemAbove.id, isFilter);
               dropdownRef.pointer -= maintopicChildren.length + 1;
               this.scrollToFocusedSubject();
               return;
@@ -2209,7 +2290,7 @@
               return;
             }
 
-            let siblings = this.getOptionsAtDepth(
+            const siblings = this.getOptionsAtDepth(
               currentSubject.subtopiclevel || 0,
               currentSubjectOptionGroupId,
               false,
@@ -2255,7 +2336,7 @@
 
               // Case: not a base topic but grandparent maintopic is toggled while parent maintopic is not toggled
               if (isGrandParentToggled && !isParentToggled) {
-                var parentChildren = this.getMaintopicChildren(
+                const parentChildren = this.getMaintopicChildren(
                   currentSubject.maintopicIdLevel2,
                   isFilter
                 );
@@ -2307,17 +2388,17 @@
 
         // Logic for navigating over the topics (dark blue background)
         if (isGroup) {
-          var groupIndex = this.getSortedSubjectOptions.findIndex(function (e) {
-            return e.id === currentSubject.$groupLabel;
-          });
+          const groupIndex = this.getSortedSubjectOptions.findIndex(
+            (entry) => entry.id === currentSubject.$groupLabel
+          );
 
           if (groupIndex > 0) {
-            var groupAbove = this.getSortedSubjectOptions[groupIndex - 1];
-            var groupAboveLabel = this.customGroupLabel(groupAbove);
+            const groupAbove = this.getSortedSubjectOptions[groupIndex - 1];
+            const groupAboveLabel = this.customGroupLabel(groupAbove);
 
             if (groupAboveLabel !== this.expandedOptionGroupName) {
               if (this.isFilterDropdown) {
-                // I afgrænsninger: brug faktisk position i listen, så udfoldede underkategorier (Geografi, Tilhørsforhold) springes korrekt over
+                // For limits: use the actual list position so expanded subcategories are skipped correctly
                 const opts = dropdownRef.filteredOptions;
                 let prevGroupHeaderIndex = -1;
                 for (let i = dropdownRef.pointer - 1; i >= 0; i--) {
@@ -2329,11 +2410,11 @@
                 if (prevGroupHeaderIndex >= 0) {
                   navDistance = dropdownRef.pointer - prevGroupHeaderIndex;
                 } else {
-                  var groupPropertyName = this.getGroupPropertyName(groupAbove);
+                  const groupPropertyName = this.getGroupPropertyName(groupAbove);
                   navDistance = groupAbove[groupPropertyName].length + 1;
                 }
               } else {
-                var groupPropertyName = this.getGroupPropertyName(groupAbove);
+                const groupPropertyName = this.getGroupPropertyName(groupAbove);
                 navDistance = groupAbove[groupPropertyName].length + 1;
               }
             }
@@ -2343,9 +2424,8 @@
         dropdownRef.pointer -= navDistance;
 
         // Scroll to see element if needed
-        var self = this;
-        this.$nextTick(function () {
-          self.scrollToFocusedSubject();
+        this.$nextTick(() => {
+          this.scrollToFocusedSubject();
         });
       },
       navLeft(event) {
@@ -2377,21 +2457,20 @@
         return this.selected.some((selectedOption) => selectedOption.id === option.id);
       },
       isHiddenTopic(topicId) {
-        return this.hideTopics.indexOf(topicId) != -1;
+        return this.hideTopics.indexOf(topicId) !== -1;
       },
       isSubjectVissible(subject) {
-        var subjectRect = subject.getBoundingClientRect();
+        const subjectRect = subject.getBoundingClientRect();
 
-        var viewHeight = window.innerHeight || document.documentElement.clientHeight;
+        const viewHeight = window.innerHeight || document.documentElement.clientHeight;
 
-        var isSubjectVissible = subjectRect.top >= 0 && subjectRect.bottom <= viewHeight;
-        return isSubjectVissible;
+        return subjectRect.top >= 0 && subjectRect.bottom <= viewHeight;
       },
       updateExpandedGroupHighlighting() {
         // Safety check
         if (!this.$refs.multiselect || !this.$refs.multiselect.$refs.list) return;
         
-        var listItems = this.$refs.multiselect.$refs.list;
+        const listItems = this.$refs.multiselect.$refs.list;
 
         // Remove highlighting due to group being open from all groups
         let itemsToUnHighlight = listItems.querySelectorAll(".qpm_groupExpanded");
@@ -2401,10 +2480,10 @@
           item.classList.remove("qpm_groupExpanded");
         });
 
-        if (this.expandedOptionGroupName == "") return;
+        if (this.expandedOptionGroupName === "") return;
 
         // Add highlighting due to group being open
-        var expandedElement = listItems.querySelector(
+        const expandedElement = listItems.querySelector(
           'li.multiselect__element span.multiselect__option--group span[group-name="' +
             this.expandedOptionGroupName +
             '"]'
@@ -2446,7 +2525,7 @@
        */
       async translateSearch(wordsToTranslate) {
         const openAiServiceUrl = this.appSettings.openAi.baseUrl + "/api/TranslateTitle";
-        var localePrompt = getPromptForLocale(searchTranslationPrompt, "dk");
+        const localePrompt = getPromptForLocale(searchTranslationPrompt, "dk");
 
         const requestBody = {
           prompt: localePrompt,
@@ -2566,7 +2645,7 @@
             return "single";
           }
           for (let j = 0; j < this.data[i].groups.length; j++) {
-            if (this.data[i].groups[j].id == name) {
+            if (areComparableIdsEqual(this.data[i].groups[j].id, name)) {
               return this.customGroupLabel(this.data[i]);
             }
           }
@@ -2578,10 +2657,10 @@
         return option.cssClass ? `qpm_${option.cssClass}` : "";
       },
       getShouldPreventLeftRightDefault() {
-        var dropdownRef = this.$refs.multiselect;
-        var isWritingSearch = dropdownRef.search.length > 0;
+        const dropdownRef = this.$refs.multiselect;
+        const isWritingSearch = dropdownRef.search.length > 0;
 
-        var hasFocusedSubject = isWritingSearch
+        const hasFocusedSubject = isWritingSearch
           ? dropdownRef.pointer >= 1
           : dropdownRef.pointer >= 0;
 
@@ -2589,17 +2668,17 @@
       },
       getButtonColor(props, scope, index) {
         let classes = [];
-        if (scope == "narrow") {
+        if (scope === "narrow") {
           classes.push(this.qpmButtonColor1);
         }
-        if (!scope || scope == "normal") {
+        if (!scope || scope === "normal") {
           classes.push(this.qpmButtonColor2);
         }
-        if (scope == "broad") {
+        if (scope === "broad") {
           classes.push(this.qpmButtonColor3);
         }
 
-        // Set class to distinguish the collum currently in 'focus' for
+        // Set class to distinguish the column currently in 'focus' for
         // selection via keyboard. This class together with the
         // multiselect__option--highlight class defines the highlighted button.
         if (!this.focusByHover && index === this.focusedButtonIndex) {
@@ -2609,7 +2688,7 @@
         if (props.option && this.selected) {
           for (let i = 0; i < this.selected.length; i++) {
             if (this.optionIdentity(this.selected[i]) === this.optionIdentity(props.option)) {
-              if (this.selected[i].scope == scope) classes.push("selectedButton");
+              if (this.selected[i].scope === scope) classes.push("selectedButton");
               break;
             }
           }
@@ -2617,9 +2696,9 @@
         return classes;
       },
       getGroupPropertyName(group) {
-        if (group.groups != undefined) {
+        if (group.groups !== undefined) {
           return "groups";
-        } else if (group.choices != undefined) {
+        } else if (group.choices !== undefined) {
           return "choices";
         }
 
@@ -2724,26 +2803,16 @@
       },
       customNameLabel(option) {
         if (!option?.translations && !option?.name && !option?.id) return;
-        let constant;
         if (option.translations) {
-          const lg = this.language;
-          constant =
-            option.translations[lg] != undefined
-              ? option.translations[lg]
-              : option.translations["dk"];
-        } else {
-          constant = option.name || option.id;
+          return getLocalizedTranslation(option, this.language);
         }
-        return constant;
+        return option.name || option.id;
       },
       customGroupLabel(option) {
-        if (!option.translations) return;
-        const lg = this.language;
-        let constant = option.translations[lg];
-        return constant != undefined ? constant : option.translations["dk"];
+        return getLocalizedTranslation(option, this.language);
       },
       customGroupLabelById(id) {
-        var data = this.getIdToDataMap[id];
+        const data = this.getIdToDataMap[id];
         return this.customGroupLabel(data);
       },
       customGroupTooltipById(id) {
@@ -2780,8 +2849,12 @@
         input.style.boxShadow = 'none !important';
         
         // Temporarily disable multiselect activation to prevent dropdown opening
-        const originalActivate = this.$refs.multiselect.activate;
-        this.$refs.multiselect.activate = () => {};
+        const multiselect = this.$refs.multiselect;
+        const originalActivate =
+          multiselect && typeof multiselect.activate === "function" ? multiselect.activate : null;
+        if (multiselect) {
+          multiselect.activate = () => {};
+        }
         
         // Focus the input
         input.setAttribute('tabindex', '0');
@@ -2789,12 +2862,16 @@
         
         // Restore multiselect activation after a short delay
         setTimeout(() => {
-          this.$refs.multiselect.activate = originalActivate;
+          if (multiselect && originalActivate) {
+            multiselect.activate = originalActivate;
+          }
         }, 100);
         
         // Ensure dropdown is closed
         if (this.$refs.multiselect && this.$refs.multiselect.isOpen) {
-          this.$refs.multiselect.deactivate();
+          if (typeof this.$refs.multiselect.deactivate === "function") {
+            this.$refs.multiselect.deactivate();
+          }
         }
       },
       /**
@@ -2822,7 +2899,9 @@
           // Prevent multiselect from opening dropdown during silent focus
           setTimeout(() => {
             if (this.$refs.multiselect && this.$refs.multiselect.isOpen) {
-              this.$refs.multiselect.deactivate();
+              if (typeof this.$refs.multiselect.deactivate === "function") {
+                this.$refs.multiselect.deactivate();
+              }
             }
           }, 0);
           return;
@@ -2864,7 +2943,11 @@
           
           // Force dropdown to open after silent focus is removed
           this.$nextTick(() => {
-            if (this.$refs.multiselect && !this.$refs.multiselect.isOpen) {
+            if (
+              this.$refs.multiselect &&
+              !this.$refs.multiselect.isOpen &&
+              typeof this.$refs.multiselect.activate === "function"
+            ) {
               this.$refs.multiselect.activate();
             }
           });
@@ -2884,10 +2967,14 @@
           // Remove silent focus immediately before the character is processed
           this.removeSilentFocus(input);
           
-          // For printable characters, ensure dropdown opens (kun for dropdowns med topics)
+          // For printable characters, ensure dropdown opens (only for dropdowns with topics)
           if (event.key.length === 1 && !this.shouldHideDropdownArrow) {
             this.$nextTick(() => {
-              if (this.$refs.multiselect && !this.$refs.multiselect.isOpen) {
+              if (
+                this.$refs.multiselect &&
+                !this.$refs.multiselect.isOpen &&
+                typeof this.$refs.multiselect.activate === "function"
+              ) {
                 this.$refs.multiselect.activate();
               }
             });
@@ -2915,10 +3002,10 @@
         input.setAttribute('data-multiselect-disabled', 'true');
         
         // Add our own event listeners with capture: true for highest priority
-        input.addEventListener("input", this.handleEmptyDropdownInput.bind(this), { capture: true });
-        input.addEventListener("keydown", this.handleEmptyDropdownKeydown.bind(this), { capture: true });
-        input.addEventListener("focus", this.handleEmptyDropdownFocus.bind(this), { capture: true });
-        input.addEventListener("click", this.handleEmptyDropdownClick.bind(this), { capture: true });
+        input.addEventListener("input", this._handleEmptyDropdownInputBound, { capture: true });
+        input.addEventListener("keydown", this._handleEmptyDropdownKeydownBound, { capture: true });
+        input.addEventListener("focus", this._handleEmptyDropdownFocusBound, { capture: true });
+        input.addEventListener("click", this._handleEmptyDropdownClickBound, { capture: true });
         
         // Let CSS handle styling - remove all inline styles
         input.style.removeProperty('width');
@@ -3017,10 +3104,10 @@
         */
        restoreMultiselectInput(input) {
          // Remove our custom event listeners
-         input.removeEventListener("input", this.handleEmptyDropdownInput, { capture: true });
-         input.removeEventListener("keydown", this.handleEmptyDropdownKeydown, { capture: true });
-         input.removeEventListener("focus", this.handleEmptyDropdownFocus, { capture: true });
-         input.removeEventListener("click", this.handleEmptyDropdownClick, { capture: true });
+         input.removeEventListener("input", this._handleEmptyDropdownInputBound, { capture: true });
+         input.removeEventListener("keydown", this._handleEmptyDropdownKeydownBound, { capture: true });
+         input.removeEventListener("focus", this._handleEmptyDropdownFocusBound, { capture: true });
+         input.removeEventListener("click", this._handleEmptyDropdownClickBound, { capture: true });
          
          // Remove marker
          input.removeAttribute('data-multiselect-disabled');
@@ -3048,7 +3135,7 @@
           }
         }
       },
-      // Ny method til keyboard handling
+      // New method for keyboard handling
       handleTagKeyDown(event) {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();

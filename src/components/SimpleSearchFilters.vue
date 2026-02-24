@@ -16,7 +16,7 @@
       />
     </div>
     <div id="qpm_topofsearchbar" class="qpm_simpleFiltersContainer">
-      <!-- Tilføj denne linje for spacer mellem hovedoverskrift og første filtergruppe -->
+      <!-- Spacer between main header and first filter group -->
       <div class="qpm_simpleFiltersSpacer" />
       <template v-for="option in filteredChoices">
         <template v-if="hasVisibleSimpleFilterOption(option.choices)">
@@ -85,7 +85,7 @@
       },
       getString: {
         type: Function,
-        default: () => () => "",
+        default: () => "",
       },
       getCustomNameLabel: {
         type: Function,
@@ -123,11 +123,7 @@
       },
       hasVisibleSimpleFilterOption(filters) {
         if (!filters) return false;
-
-        var hasVisibleFilter = filters.some(function (e) {
-          return e.simpleSearch;
-        });
-        return hasVisibleFilter;
+        return filters.some((entry) => entry.simpleSearch);
       },
       /**
        * Checks if a filter with the given name is used in the provided options.

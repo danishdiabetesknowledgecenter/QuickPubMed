@@ -41,6 +41,7 @@
 <script>
   import DropdownWrapper from "@/components/DropdownWrapper.vue";
   import { utilitiesMixin } from "@/mixins/utilities";
+  import { debounce, getLocalizedTranslation } from "@/utils/componentHelpers";
 
   export default {
     name: "FilterEntry",
@@ -67,9 +68,7 @@
       },
       hideTopics: {
         type: Array,
-        default: function () {
-          return [];
-        },
+        default: () => [],
       },
       isFirst: {
         type: Boolean,
@@ -116,10 +115,13 @@
     },
     mounted() {
       this.updateDropdownWidth();
-      window.addEventListener("resize", this.updateDropdownWidth);
+      this._updateDropdownWidthDebounced = debounce(this.updateDropdownWidth.bind(this), 120);
+      window.addEventListener("resize", this._updateDropdownWidthDebounced);
     },
     beforeUnmount() {
-      window.removeEventListener("resize", this.updateDropdownWidth);
+      if (this._updateDropdownWidthDebounced) {
+        window.removeEventListener("resize", this._updateDropdownWidthDebounced);
+      }
     },
     methods: {
       removeFilterItem(filterItemId) {
@@ -127,21 +129,14 @@
       },
       customNameLabel(option) {
         if (!option?.translations && !option?.name && !option?.id) return;
-        let constant;
         if (option.id) {
-          const lg = this.language;
-          constant =
-            option.translations[lg] !== undefined
-              ? option.translations[lg]
-              : option.translations["dk"];
-        } else {
-          constant = option.name || option.id;
+          return getLocalizedTranslation(option, this.language);
         }
-        return constant;
+        return option.name || option.id;
       },
       updateDropdownWidth() {
-        const dropdown = this.$refs.dropdown.$refs.selectWrapper;
-        if (!dropdown.innerHTML) return;
+        const dropdown = this.$refs?.dropdown?.$refs?.selectWrapper;
+        if (!dropdown || !dropdown.innerHTML) return;
         this.dropdownWidth = parseInt(dropdown.offsetWidth);
       },
       /**

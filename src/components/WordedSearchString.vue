@@ -1,5 +1,5 @@
 <template>
-  <div v-if="!details || details" class="qpm_wordedSearchString">
+  <div class="qpm_wordedSearchString">
     <div v-if="!isCollapsed" class="qpm_toggleDetails">
       <p
         v-if="hasValidSubjects"
@@ -158,6 +158,7 @@
   import { appSettingsMixin } from "@/mixins/appSettings";
   import { utilitiesMixin } from "@/mixins/utilities";
   import { order } from "@/assets/content/order.js";
+  import { getLocalizedTranslation } from "@/utils/componentHelpers";
 
   export default {
     name: "WordedSearchString",
@@ -238,7 +239,8 @@
        * In simple mode: falls back to filters (filterData), each category = one group.
        */
       activeFilterDropdowns() {
-        const fromDropdowns = this.filterDropdowns.filter((group) => group.length > 0);
+        const safeDropdowns = Array.isArray(this.filterDropdowns) ? this.filterDropdowns : [];
+        const fromDropdowns = safeDropdowns.filter((group) => Array.isArray(group) && group.length > 0);
         if (fromDropdowns.length > 0) return fromDropdowns;
 
         // Fallback for simple mode: convert filterData categories to groups
@@ -255,8 +257,9 @@
         return true;
       },
       getPubMedLink() {
+        const myncbiShare = this.appSettings?.nlm?.myncbishare || "";
         return `https://pubmed.ncbi.nlm.nih.gov/?myncbishare=${
-          this.appSettings.nlm.myncbishare
+          myncbiShare
         }&term=${encodeURIComponent(this.searchstring)}`;
       },
       getPubMedLinkCreateAlert() {
@@ -325,12 +328,9 @@
       getWordedSubjectString(string) {
         if (!string || typeof string !== "object") return "";
 
-        if (string.translations && string.translations[this.language]) {
-          return string.translations[this.language];
-        }
-
-        if (string.translations && string.translations.dk) {
-          return string.translations.dk;
+        if (string.translations) {
+          const translated = getLocalizedTranslation(string, this.language);
+          if (translated) return translated;
         }
 
         if (string.isTranslated && string.preTranslation) {
@@ -362,7 +362,7 @@
               constant = filter.name || this.getString("manualInputTerm") || "Søgeord";
             }
           } else if (filter.translations) {
-            constant = filter.translations[this.language];
+          constant = getLocalizedTranslation(filter, this.language) || filter.id;
           } else if (filter.id) {
             constant = this.getWordedFilterStringById(filter.id);
           } else if (typeof filter === "string" || filter instanceof String) {
@@ -388,18 +388,21 @@
         const byGroupId = (e) => e.id === groupId;
 
         if (type === "o") {
-          return order.find(byId).translations[lg];
+          const orderEntry = order.find(byId);
+          if (!orderEntry || !orderEntry.translations) return id;
+          const translated = getLocalizedTranslation(orderEntry, lg);
+          return translated || id;
         } else if (type === "s") {
           return id;
         } else if (type === "l") {
           const group = this.availableFilters.find(byGroupId);
           if (!group) return id;
           if (id.length === 3) {
-            return group.translations[lg];
+            return getLocalizedTranslation(group, lg) || id;
           } else {
             const choice = group.choices.find(byId);
             if (!choice) return id;
-            return choice.translations[lg];
+            return getLocalizedTranslation(choice, lg) || id;
           }
         } else {
           throw new Error("Id not handled by getWordedFilterStringById. id: " + id);
@@ -417,6 +420,7 @@
       },
       copyTextfieldFunction() {
         const textarea = this.$refs.searchStringTextarea;
+        if (!textarea) return;
         textarea.select();
         textarea.setSelectionRange(0, 99999);
         document.execCommand("copy");
@@ -447,7 +451,7 @@
         );
         if (group && group.translations) {
           const lg = this.language;
-          const name = group.translations[lg] || group.translations["dk"] || "";
+          const name = getLocalizedTranslation(group, lg);
           return name.charAt(0).toUpperCase() + name.slice(1);
         }
         return "";
@@ -459,8 +463,7 @@
         }
         const filterGroup = this.availableFilters.find((group) => group.id === id);
         if (filterGroup && filterGroup.translations) {
-          const lg = this.language;
-          return filterGroup.translations[lg] || filterGroup.translations["dk"];
+          return getLocalizedTranslation(filterGroup, this.language);
         }
         return this.getWordedFilterStringById(id);
       },

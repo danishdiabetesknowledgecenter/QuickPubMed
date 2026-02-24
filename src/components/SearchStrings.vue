@@ -16,8 +16,8 @@
     >
       <div style="padding-top: 5px">
         <div class="qpm_headingContainerFocus_h2 qpm_gallery_toggle"
-          @click="hideOrCollapse('qpm_subjectSearchStrings', $event)"
-          @keyup.enter="hideOrCollapse('qpm_subjectSearchStrings', $event)"
+          @click="hideOrCollapse('qpm_subjectSearchStrings')"
+          @keyup.enter="hideOrCollapse('qpm_subjectSearchStrings')"
           tabindex="0"
           data-target="qpm_subjectSearchStrings"
         >
@@ -36,8 +36,8 @@
         class="qpm_subjectSearchStrings"
       >
         <div class="qpm_headingContainerFocus_h3 qpm_gallery_toggle"
-          @click="hideOrCollapse(toClassName(subject.id), $event)"
-          @keyup.enter="hideOrCollapse(toClassName(subject.id), $event)"
+          @click="hideOrCollapse(toClassName(subject.id))"
+          @keyup.enter="hideOrCollapse(toClassName(subject.id))"
           tabindex="0"
           :data-target="toClassName(subject.id)"
         >
@@ -60,8 +60,8 @@
         >
           <div
             :class="['qpm_headingContainerFocus', isClickable(group) ? 'qpm_gallery_toggle' : '']"
-            @click="isClickable(group) && hideOrCollapse(getToggleTarget(group), $event)"
-            @keyup.enter="isClickable(group) && hideOrCollapse(getToggleTarget(group), $event)"
+            @click="isClickable(group) && hideOrCollapse(getToggleTarget(group))"
+            @keyup.enter="isClickable(group) && hideOrCollapse(getToggleTarget(group))"
             :tabindex="isClickable(group) ? 0 : -1"
             :data-target="getToggleTarget(group)"
           >
@@ -191,8 +191,8 @@
       </div>
       <div class="qpm_heading_limits">
         <div class="qpm_headingContainerFocus_h2 qpm_gallery_toggle"
-          @click="hideOrCollapse('qpm_filterSearchStrings', $event)"
-          @keyup.enter="hideOrCollapse('qpm_filterSearchStrings', $event)"
+          @click="hideOrCollapse('qpm_filterSearchStrings')"
+          @keyup.enter="hideOrCollapse('qpm_filterSearchStrings')"
           tabindex="0"
           data-target="qpm_filterSearchStrings"
         >
@@ -211,8 +211,8 @@
         class="qpm_filterSearchStrings"
       >
         <div class="qpm_headingContainerFocus_h3 qpm_gallery_toggle"
-          @click="hideOrCollapse(toClassName(filter.id), $event)"
-          @keyup.enter="hideOrCollapse(toClassName(filter.id), $event)"
+          @click="hideOrCollapse(toClassName(filter.id))"
+          @keyup.enter="hideOrCollapse(toClassName(filter.id))"
           tabindex="0"
           :data-target="toClassName(filter.id)"
         >
@@ -235,8 +235,8 @@
         >
           <div
             :class="['qpm_headingContainerFocus', isClickable(choice) ? 'qpm_gallery_toggle' : '']"
-            @click="isClickable(choice) && hideOrCollapse(getToggleTarget(choice), $event)"
-            @keyup.enter="isClickable(choice) && hideOrCollapse(getToggleTarget(choice), $event)"
+            @click="isClickable(choice) && hideOrCollapse(getToggleTarget(choice))"
+            @keyup.enter="isClickable(choice) && hideOrCollapse(getToggleTarget(choice))"
             :tabindex="isClickable(choice) ? 0 : -1"
             :data-target="getToggleTarget(choice)"
           >
@@ -374,6 +374,7 @@
   import { topicLoaderMixin, flattenTopicGroups } from "@/mixins/topicLoaderMixin.js";
   import { loadFiltersFromRuntime } from "@/utils/contentLoader";
   import { order } from "@/assets/content/order.js";
+  import { cloneDeep, getLocalizedTranslation } from "@/utils/componentHelpers";
 
   export default {
     name: "SearchStrings",
@@ -381,9 +382,7 @@
     props: {
       hideTopics: {
         type: Array,
-        default: function () {
-          return [];
-        },
+        default: () => [],
       },
       language: {
         type: String,
@@ -407,18 +406,18 @@
     },
     computed: {
       getSortedSubjects() {
-        let shownSubjects = this.getShownData(this.subjects, "groups");
+        const shownSubjects = this.getShownData(this.subjects, "groups");
         return this.sortData(shownSubjects);
       },
       getSortedFilters() {
-        let shownFilters = this.getShownData(this.filters, "choices");
+        const shownFilters = this.getShownData(this.filters, "choices");
         return this.sortData(shownFilters);
       },
     },
     watch: {
       topics: {
         handler(newTopics) {
-          this.subjects = Array.isArray(newTopics) ? newTopics : [];
+          this.subjects = Array.isArray(newTopics) ? [...newTopics] : [];
           this.tryApplyInitialCollapse();
         },
         immediate: true,
@@ -446,11 +445,12 @@
     
     methods: {
       async loadGalleryContent() {
-        this.subjects = Array.isArray(this.topics) ? this.topics : [];
+        this.subjects = Array.isArray(this.topics) ? [...this.topics] : [];
 
         try {
           const runtimeFilters = await loadFiltersFromRuntime();
-          this.filters = JSON.parse(JSON.stringify(runtimeFilters)).map((f) => ({
+          const safeRuntimeFilters = Array.isArray(runtimeFilters) ? runtimeFilters : [];
+          this.filters = cloneDeep(safeRuntimeFilters).map((f) => ({
             ...f,
             choices: flattenTopicGroups(f.choices || []),
           }));
@@ -482,11 +482,8 @@
         });
       },
       blockHasComment(block) {
-        let language = this.language || 'en';
-        if (block.searchStringComment[this.language]) {
-          return true;
-        }
-        return false;
+        if (!block || !block.searchStringComment) return false;
+        return Boolean(block.searchStringComment[this.language]);
       },
       normalizeCollapsedLevels(value) {
         if (!value) return [];
@@ -517,6 +514,7 @@
         return 3 + depth;
       },
       getAncestorClasses(item) {
+        if (!item || typeof item !== "object") return [];
         // Add CSS classes for each ancestor so maintopic clicks can target descendants
         const classes = [];
         if (item.parentChain && item.parentChain.length > 0) {
@@ -540,11 +538,11 @@
       },
       hasChildren(item) {
         // Only items with children (maintopic) get +/- icon
-        return !!item.maintopic;
+        return Boolean(item && item.maintopic);
       },
       getHeadingTag(item) {
-        // h2 = top sections (Emner/Afgrænsninger)
-        // h3 = categories (Skabelonkategori, Diabetestype)
+        // h2 = top sections (topics/limits)
+        // h3 = categories
         // h4 = top-level items (subtopiclevel 0)
         // h5 = subtopiclevel 1
         // h6 = subtopiclevel 2+
@@ -554,6 +552,7 @@
       },
       isClickable(item) {
         // Items with children OR search strings are clickable
+        if (!item || typeof item !== "object") return false;
         if (item.maintopic) return true;
         if (item.searchStrings) {
           return (
@@ -620,12 +619,13 @@
         const levels = this.resolvedCollapsedLevels || [];
         if (levels.length === 0) return;
 
-        const toCheck = elements || [
+        const toCheck = elements ? Array.from(elements) : [
           ...document.getElementsByClassName("qpm_searchGroup"),
           ...document.getElementsByClassName("qpm_filterGroup"),
         ];
 
         for (const el of toCheck) {
+          if (!el || typeof el.getAttribute !== "function") continue;
           const hasChildren = el.getAttribute("data-has-children") === "1";
           if (!hasChildren) continue;
 
@@ -646,6 +646,7 @@
       syncToggleIconsFromDom() {
         const toggles = document.querySelectorAll("[data-target]");
         toggles.forEach((toggle) => {
+          if (!toggle || typeof toggle.getAttribute !== "function") return;
           const targetClass = toggle.getAttribute("data-target");
           if (!targetClass) return;
           const targets = document.getElementsByClassName(targetClass);
@@ -657,7 +658,8 @@
           if (icon) icon.classList.toggle("qpm_toggle_expanded", isExpanded);
         });
       },
-      hideOrCollapse(className, event) {
+      hideOrCollapse(className) {
+        if (!className) return;
         const elements = document.getElementsByClassName(className);
         if (elements.length === 0) return;
 
@@ -683,6 +685,13 @@
 
         this.syncToggleIconsFromDom();
       },
+      setCollapsedState(elements, collapsed) {
+        if (!Array.isArray(elements)) return;
+        elements.forEach((el) => {
+          if (!el || !el.classList) return;
+          el.classList.toggle("qpm_collapsedSection", collapsed);
+        });
+      },
       toggleAll() {
         const allSections = [
           ...document.getElementsByClassName("qpm_subjectSearchStrings"),
@@ -699,24 +708,25 @@
 
         if (this.isAllToggled) {
           // Open everything
-          allSections.forEach((el) => el.classList.remove("qpm_collapsedSection"));
-          allGroups.forEach((el) => el.classList.remove("qpm_collapsedSection"));
-          allTables.forEach((el) => el.classList.remove("qpm_collapsedSection"));
+          this.setCollapsedState(allSections, false);
+          this.setCollapsedState(allGroups, false);
+          this.setCollapsedState(allTables, false);
           this.isAllToggled = false;
         } else {
           // Close everything
-          allSections.forEach((el) => el.classList.add("qpm_collapsedSection"));
-          allGroups.forEach((el) => el.classList.add("qpm_collapsedSection"));
-          allTables.forEach((el) => el.classList.add("qpm_collapsedSection"));
+          this.setCollapsedState(allSections, true);
+          this.setCollapsedState(allGroups, true);
+          this.setCollapsedState(allTables, true);
           this.isAllToggled = true;
         }
         this.syncToggleIconsFromDom();
       },
       getPubMedLink(searchString) {
+        const myncbiShare = this.appSettings?.nlm?.myncbishare || "";
         return (
           "https://pubmed.ncbi.nlm.nih.gov/?" +
           "myncbishare=" +
-          this.appSettings.nlm.myncbishare +
+          myncbiShare +
           "&term=" +
           encodeURIComponent(searchString)
         );
@@ -735,62 +745,56 @@
         if (!searchString) return false;
         if (Array.isArray(searchString)) {
           if (searchString.length === 0) return false;
-          return searchString[0] != null && searchString[0] !== '';
+          return searchString[0] !== null && searchString[0] !== undefined && searchString[0] !== "";
         }
-        return searchString !== '';
+        return searchString !== "";
       },
       getString(string) {
-        let lg = this.language;
+        const lg = this.language;
         if (!messages[string]) {
           console.warn(`Missing translation key: ${string}`);
           return string;
         }
-        let constant = messages[string][lg];
-        return constant != undefined ? constant : messages[string]["en"];
+        const constant = messages[string][lg];
+        return constant !== undefined ? constant : messages[string]["en"];
       },
       customNameLabel(option) {
         if (!option?.translations && !option?.name && !option?.id) return;
-        let constant;
         if (option.translations) {
-          let lg = this.language;
-          constant =
-            option.translations[lg] != undefined
-              ? option.translations[lg]
-              : option.translations["en"];
-        } else {
-          constant = option.name || option.id;
+          return getLocalizedTranslation(option, this.language, "en");
         }
-        return constant;
+        return option.name || option.id;
       },
       isHiddenTopic(topicId) {
-        return this.hideTopics.indexOf(topicId) != -1;
+        if (!Array.isArray(this.hideTopics)) return false;
+        return this.hideTopics.includes(topicId);
       },
       toClassName(name) {
         return String(name || "").replaceAll(" ", "-");
       },
       sortData(data) {
-        let self = this;
-        let lang = this.language;
-        function sortByPriorityOrName(a, b) {
+        if (!Array.isArray(data)) return [];
+        const lang = this.language;
+        const sortByPriorityOrName = (a, b) => {
           const aOrdering = a?.ordering?.[lang] ?? null;
           const bOrdering = b?.ordering?.[lang] ?? null;
 
-          if (aOrdering != null && bOrdering == null) {
+          if (aOrdering !== null && bOrdering === null) {
             return -1; // a is ordered and b is not -> a first
           }
-          if (bOrdering != null && aOrdering == null) {
+          if (bOrdering !== null && aOrdering === null) {
             return 1; // b is ordered and a is not -> b first
           }
 
           let aSort, bSort;
-          if (aOrdering != null) {
+          if (aOrdering !== null) {
             // Both are ordered
             aSort = aOrdering;
             bSort = bOrdering;
           } else {
             // Both are unordered
-            aSort = String(self.customNameLabel(a) || "").toLowerCase();
-            bSort = String(self.customNameLabel(b) || "").toLowerCase();
+            aSort = String(this.customNameLabel(a) || "").toLowerCase();
+            bSort = String(this.customNameLabel(b) || "").toLowerCase();
           }
 
           if (aSort === bSort) {
@@ -801,38 +805,40 @@
           } else {
             return -1;
           }
-        }
+        };
 
         data.forEach((item) => {
-          let groupName = null;
-          if (item.groups != null) {
-            groupName = "groups";
-          } else if (item.choices != null) {
-            groupName = "choices";
-          } else {
+          const groupName =
+            item.groups !== null && item.groups !== undefined
+              ? "groups"
+              : item.choices !== null && item.choices !== undefined
+                ? "choices"
+                : null;
+          if (!groupName) {
             return;
           }
 
-          item[groupName].sort(sortByPriorityOrName); // Sort categories in groups
+          if (Array.isArray(item[groupName])) {
+            item[groupName].sort(sortByPriorityOrName); // Sort categories in groups
+          }
         });
         data.sort(sortByPriorityOrName); // Sort groups
         return data;
       },
       getShownData(data, groupName) {
-        let self = this;
-        function isNotHidden(e) {
-          return !self.isHiddenTopic(e.id);
-        }
+        if (!Array.isArray(data)) return [];
+        if (!groupName) return [];
+        const isNotHidden = (entry) => !this.isHiddenTopic(entry.id);
 
-        let shown = data.filter(isNotHidden).map(function (e) {
-          let copy = JSON.parse(JSON.stringify(e));
-          copy[groupName] = copy[groupName].filter(isNotHidden);
+        const shown = data.filter(isNotHidden).map((entry) => {
+          const copy = cloneDeep(entry);
+          const nestedItems = Array.isArray(copy[groupName]) ? copy[groupName] : [];
+          copy[groupName] = nestedItems.filter(isNotHidden);
           return copy;
         });
 
         return shown;
       },
-      // Added by Ole
     },
   };
 </script>

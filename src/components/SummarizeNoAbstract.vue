@@ -12,7 +12,7 @@
             delay: $helpTextDelay,
           }"
           class="qpm_tab"
-          :class="{ qpm_tab_active: prompt.name == currentSummary }"
+          :class="{ qpm_tab_active: prompt.name === currentSummary }"
           @click="clickSummaryTab(prompt)"
         >
           {{ getTranslation(prompt) }}
@@ -24,97 +24,100 @@
         <div class="qpm_summary_icon_row"></div>
 
         <div class="qpm_searchSummaryResponseBox">
-          <template>
-            <div class="qpm_searchSummaryText">
-              <div>
-                <div style="margin: 20px 5px">
-                  <div
+          <div class="qpm_searchSummaryText">
+            <div>
+              <div style="margin: 20px 5px">
+                <div
+                  v-if="
+                    showSummarizeArticle &&
+                    config.useAISummarizer &&
+                    isLicenseAllowed &&
+                    isResourceAllowed &&
+                    isPubTypeAllowed
+                  "
+                >
+                  <summarize-article
+                    v-if="isInitialized"
+                    :ref="`summarizeArticleNoAbstract-${currentSummary}`"
+                    :key="`no-abstract-${currentSummary}`"
+                    :pdf-url="pdfUrl"
+                    :html-url="htmlUrl"
+                    :language="language"
+                    :search-result-title="searchResultTitle"
+                    :authors-list="authorsList"
+                    :publication-info="publicationInfo"
+                    :prompt-language-type="currentSummary"
+                    :domain-specific-prompt-rules="domainSpecificPromptRules"
+                    :ai-article-summaries="aiArticleSummaries"
+                    :current-summary-index="currentSummaryIndex"
+                    :loading="loadingArticleSummaries[currentSummary]"
+                    @set-loading="handleSetLoading"
+                    @unset-loading="handleUnsetLoading"
+                    @update-ai-article-summaries="updateAiArticleSummaries"
+                    @update-current-summary-index="updateCurrentSummaryIndex"
+                    @error-state-changed="handleSummarizeArticleErrorState"
+                    @last-item-streaming-started="handleLastItemStreamingStarted"
+                  />
+                  <question-for-article
                     v-if="
-                      showSummarizeArticle &&
-                      config.useAISummarizer &&
-                      isLicenseAllowed &&
-                      isResourceAllowed &&
-                      isPubTypeAllowed
+                      !localIsForbiddenError &&
+                      (!loadingArticleSummaries[currentSummary] || showUserQuestionsEarly)
                     "
+                    :pdf-url="pdfUrl"
+                    :html-url="htmlUrl"
+                    :language="language"
+                    :prompt-language-type="currentSummary"
+                    :domain-specific-prompt-rules="domainSpecificPromptRules"
+                    :is-loading-current="
+                      loadingArticleSummaries[currentSummary] && !showUserQuestionsEarly
+                    "
+                    :persisted-questions-and-answers="userQuestionsAndAnswers[currentSummary]"
+                    @update-questions-and-answers="updateUserQuestionsAndAnswers"
+                  />
+                  <button
+                    v-if="
+                      !loadingArticleSummaries[currentSummary] || currentSummary.length !== 0
+                    "
+                    v-tooltip="{
+                      content: getString('hoverretryText'),
+                      distance: 5,
+                      delay: $helpTextDelay,
+                    }"
+                    class="qpm_button"
+                    style="margin-top: 25px"
+                    :disabled="
+                      loadingArticleSummaries[currentSummary] || currentSummary.length === 0
+                    "
+                    @keydown.enter="handleRetryArticleSummary"
+                    @click="handleRetryArticleSummary"
                   >
-                    <summarize-article
-                      v-if="isInitialized"
-                      :ref="`summarizeArticleNoAbstract-${currentSummary}`"
-                      :key="`no-abstract-${currentSummary}`"
-                      :pdf-url="pdfUrl"
-                      :html-url="htmlUrl"
-                      :language="language"
-                      :search-result-title="searchResultTitle"
-                      :authors-list="authorsList"
-                      :publication-info="publicationInfo"
-                      :prompt-language-type="currentSummary"
-                      :domain-specific-prompt-rules="domainSpecificPromptRules"
-                      :ai-article-summaries="aiArticleSummaries"
-                      :current-summary-index="currentSummaryIndex"
-                      :loading="loadingArticleSummaries[currentSummary]"
-                      @set-loading="handleSetLoading"
-                      @unset-loading="handleUnsetLoading"
-                      @update-ai-article-summaries="updateAiArticleSummaries"
-                      @update-current-summary-index="updateCurrentSummaryIndex"
-                      @error-state-changed="handleSummarizeArticleErrorState"
-                      @last-item-streaming-started="handleLastItemStreamingStarted"
-                    />
-                    <question-for-article
-                      v-if="!isForbiddenError && (!loadingArticleSummaries[currentSummary] || showUserQuestionsEarly)"
-                      :pdf-url="pdfUrl"
-                      :html-url="htmlUrl"
-                      :language="language"
-                      :prompt-language-type="currentSummary"
-                      :domain-specific-prompt-rules="domainSpecificPromptRules"
-                      :is-loading-current="loadingArticleSummaries[currentSummary] && !showUserQuestionsEarly"
-                      :persisted-questions-and-answers="userQuestionsAndAnswers[currentSummary]"
-                      @update-questions-and-answers="updateUserQuestionsAndAnswers"
-                    />
-                    <button
-                      v-if="
-                        !loadingArticleSummaries[currentSummary] || !currentSummary.length === 0
-                      "
-                      v-tooltip="{
-                        content: getString('hoverretryText'),
-                        distance: 5,
-                        delay: $helpTextDelay,
-                      }"
-                      class="qpm_button"
-                      style="margin-top: 25px"
-                      :disabled="
-                        loadingArticleSummaries[currentSummary] || currentSummary.length === 0
-                      "
-                      @keydown.enter="handleRetryArticleSummary"
-                      @click="handleRetryArticleSummary"
-                    >
-                      <i class="bx bx-refresh" style="vertical-align: baseline; font-size: 1em"></i>
-                      {{ getString("retryText") }}
-                    </button>
-                    <button
-                      v-if="
-                        !loadingArticleSummaries[currentSummary] || !currentSummary.length === 0
-                      "
-                      v-tooltip="{
-                        content: getString('hovercopyText'),
-                        distance: 5,
-                        delay: $helpTextDelay,
-                      }"
-                      class="qpm_button"
-                      :disabled="
-                        loadingArticleSummaries[currentSummary] || currentSummary.length === 0
-                      "
-                      @keydown.enter="clickCopyArticleSummary"
-                      @click="clickCopyArticleSummary"
-                    >
-                      <i class="bx bx-copy" style="vertical-align: baseline" />
-                      {{ getString("copyText") }}
-                    </button>
-                  </div>
+                    <i class="bx bx-refresh" style="vertical-align: baseline; font-size: 1em"></i>
+                    {{ getString("retryText") }}
+                  </button>
+                  <button
+                    v-if="
+                      !loadingArticleSummaries[currentSummary] || currentSummary.length !== 0
+                    "
+                    v-tooltip="{
+                      content: getString('hovercopyText'),
+                      distance: 5,
+                      delay: $helpTextDelay,
+                    }"
+                    class="qpm_button"
+                    :disabled="
+                      loadingArticleSummaries[currentSummary] || currentSummary.length === 0
+                    "
+                    @keydown.enter="clickCopyArticleSummary"
+                    @click="clickCopyArticleSummary"
+                  >
+                    <i class="bx bx-copy" style="vertical-align: baseline" />
+                    {{ getString("copyText") }}
+                  </button>
                 </div>
-                <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryDisclaimer')" />
               </div>
+              <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryDisclaimer')" />
             </div>
-          </template>
+          </div>
         </div>
       </template>
     </div>
@@ -122,7 +125,6 @@
 </template>
 
 <script>
-  import LoadingSpinner from "@/components/LoadingSpinner.vue";
   import SummarizeArticle from "@/components/SummarizeArticle.vue";
   import QuestionForArticle from "@/components/QuestionForArticle.vue";
   import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
@@ -131,11 +133,15 @@
   import { messages } from "@/assets/content/translations.js";
   import { config } from "@/config/config.js";
   import { promptText } from "@/assets/prompts/article.js";
+  import {
+    buildArticleSummaryClipboardText,
+    getLocalizedErrorTranslation,
+    getLocalizedTranslation,
+  } from "@/utils/componentHelpers";
 
   export default {
     name: "SummarizeNoAbstract",
     components: {
-      LoadingSpinner,
       SummarizeArticle,
       QuestionForArticle,
     },
@@ -220,23 +226,20 @@
         aiArticleSummaries: {},
         currentSummaryIndex: {},
         isInitialized: false,
+        localIsForbiddenError: this.isForbiddenError,
         loadingArticleSummaries: {},
         userQuestionsAndAnswers: {},
         showUserQuestionsEarly: false, // Show user questions section when last item starts streaming
       };
     },
-    watch: {
-      currentSummary(newVal, oldVal) {
-      },
-      loadingArticleSummaries: {
-        deep: true,
-        handler(newVal, oldVal) {
-        },
-      },
-    },
     computed: {
       config() {
         return config;
+      },
+    },
+    watch: {
+      isForbiddenError(newValue) {
+        this.localIsForbiddenError = newValue;
       },
     },
     created() {
@@ -254,14 +257,15 @@
         this.isInitialized = true;
       });
       // Trigger initial tab (moved from activated() since <keep-alive> is no longer used)
-      if (this.initialTabPrompt != null) {
+      if (this.initialTabPrompt !== null && this.initialTabPrompt !== undefined) {
         this.clickSummaryTab(this.initialTabPrompt);
       }
     },
     methods: {
       handleRetryArticleSummary() {
         const refName = `summarizeArticleNoAbstract-${this.currentSummary}`;
-        const summarizeArticleComponent = this.$refs[refName];
+        const refEntry = this.$refs[refName];
+        const summarizeArticleComponent = Array.isArray(refEntry) ? refEntry[0] : refEntry;
 
         if (
           summarizeArticleComponent &&
@@ -274,53 +278,26 @@
       },
       async clickCopyArticleSummary() {
         if (this.currentSummary !== "") {
-          // Get the user questions and answers for the current summary
-          const userQuestionsAndAnswers = this.userQuestionsAndAnswers[this.currentSummary];
-          const questionsSection = userQuestionsAndAnswers
-            .map((qa) => `${qa.question}\n${qa.answer}`)
-            .join("\n\n");
-
-          // Get the current summary index
+          const userQuestionsAndAnswers = this.userQuestionsAndAnswers[this.currentSummary] || [];
           const idx = this.currentSummaryIndex[this.currentSummary];
-          // Get the summary data for the current summary
-          const summaryData = this.aiArticleSummaries[this.currentSummary][idx].articleSummaryData;
+          const summaryEntry = this.aiArticleSummaries?.[this.currentSummary]?.[idx];
+          const summaryData = Array.isArray(summaryEntry?.articleSummaryData)
+            ? summaryEntry.articleSummaryData
+            : [];
+          const textToCopy = buildArticleSummaryClipboardText({
+            authorsList: this.authorsList,
+            searchResultTitle: this.searchResultTitle,
+            publicationInfo: this.publicationInfo,
+            summaryData,
+            userQuestionsAndAnswers,
+            getString: this.getString,
+            includeEmptyUserQuestionsSection: true,
+          });
+          if (!textToCopy) return;
 
-          const firstSeven = summaryData
-            .slice(0, 7)
-            .map((qa) => `${qa.shortTitle}\n${qa.answer}`)
-            .join("\n\n");
-
-          const remaining = summaryData
-            .slice(7)
-            .map((qa) => `${qa.question}\n${qa.answer}`)
-            .join("\n\n");
-
-          // Construct the text to copy
-          const textToCopy =
-            this.authorsList.trim() +
-            ". " +
-            this.searchResultTitle +
-            " " +
-            this.publicationInfo +
-            ". " +
-            "\n\n" +
-            this.getString("summarizeArticleHeader") +
-            ": " +
-            "\n\n" +
-            firstSeven +
-            "\n\n" +
-            this.getString("generateQuestionsHeader") +
-            ": " +
-            "\n\n" +
-            remaining +
-            "\n\n" +
-            this.getString("userQuestionsHeader") +
-            ": " +
-            "\n\n" +
-            questionsSection +
-            "\n\n";
-          // Write to clipboard
-          await navigator.clipboard.writeText(textToCopy);
+          if (navigator?.clipboard?.writeText) {
+            await navigator.clipboard.writeText(textToCopy);
+          }
         } else {
           console.error("No current summary to copy.");
         }
@@ -331,11 +308,7 @@
        * @param {boolean} isError - The current error state.
        */
       handleSummarizeArticleErrorState(isError) {
-        if (isError) {
-          this.isForbiddenError = true;
-        } else {
-          this.isForbiddenError = false;
-        }
+        this.localIsForbiddenError = !!isError;
       },
 
       /**
@@ -422,18 +395,10 @@
       },
 
       getTranslation(value) {
-        const lg = this.language;
-        const constant = value.translations[lg];
-        return constant !== undefined ? constant : value.translations["dk"];
+        return getLocalizedTranslation(value, this.language);
       },
       getErrorTranslation(error) {
-        const lg = this.language;
-        try {
-          const constant = messages[error][lg];
-          return constant !== undefined ? constant : messages["unknownError"][lg];
-        } catch {
-          return messages["unknownError"][lg];
-        }
+        return getLocalizedErrorTranslation(messages, error, this.language);
       },
       async clickSummaryTab(prompt) {
         this.currentSummary = prompt.name;
@@ -442,7 +407,7 @@
         const tooltip = prompt?.tooltip;
         if (!tooltip) return null;
 
-        return tooltip[this.language];
+        return tooltip[this.language] ?? tooltip.dk ?? null;
       },
     },
   };

@@ -1,7 +1,15 @@
 <template>
   <div class="column is-half">
-    <div class="qpm_accordion" :class="{ 'not-expanded': !getIsExpanded, 'qpm_accordion-open': getIsExpanded }">
-      <div class="qpm_accordion-toggle" tabindex="0" @click="toggleAccordionState" @keypress.enter="toggleAccordionState">
+    <div
+      class="qpm_accordion"
+      :class="{ 'not-expanded': !getIsExpanded, 'qpm_accordion-open': getIsExpanded }"
+    >
+      <div
+        class="qpm_accordion-toggle"
+        tabindex="0"
+        @click="toggleAccordionState"
+        @keypress.enter="toggleAccordionState"
+      >
         <slot
           name="header"
           :expanded="getIsExpanded"
@@ -32,7 +40,7 @@
           <div class="content">
             <slot />
             <transition-group
-              v-if="shownModels !== null && shownModels.length !== 0"
+              v-if="shownModels && shownModels.length !== 0"
               appear
               name="list-fade"
               tag="div"
@@ -63,6 +71,8 @@
 </template>
 
 <script>
+  import { throttle } from "@/utils/componentHelpers";
+
   export default {
     name: "AccordionMenu",
     props: {
@@ -90,11 +100,13 @@
         required: false,
       },
     },
+    emits: ["expanded-changed", "close", "open", "changed:items", "afterOpen", "afterClose"],
     data() {
       return {
         expanded: this.openByDefault,
         shownModels: [],
         modelsChangesPending: [],
+        onScrollThrottled: null,
       };
     },
     computed: {
@@ -102,29 +114,34 @@
         return this.title || (this.expanded ? "close" : "open");
       },
       getIsExpanded() {
-        const newState = this.isExpanded ?? this.expanded;
-        this.$emit("expanded-changed", newState);
-        return newState;
+        return this.isExpanded ?? this.expanded;
       },
     },
     watch: {
+      getIsExpanded: {
+        immediate: true,
+        handler(newState) {
+          this.$emit("expanded-changed", newState);
+        },
+      },
       models(newModelState, oldModelState) {
-        const oldIds = oldModelState.map((model) => model.uid);
-        const newModels = newModelState
-          .map((model) => model.uid)
-          .filter((uid) => oldIds.includes(uid));
-        this.modelsChangesPending.splice(this.models.length, 0, ...newModels);
+        const safeOld = Array.isArray(oldModelState) ? oldModelState : [];
+        const safeNew = Array.isArray(newModelState) ? newModelState : [];
+        const oldIds = safeOld.map((model) => model.uid);
+        const newModels = safeNew.map((model) => model.uid).filter((uid) => oldIds.includes(uid));
+        this.modelsChangesPending.splice(safeNew.length, 0, ...newModels);
 
         if (this.onlyUpdateModelWhenVisible) {
           this.updateModelsIfOnScreen();
         } else {
-          this.shownModels = newModelState;
+          this.shownModels = safeNew;
         }
       },
     },
     mounted() {
       if (this.onlyUpdateModelWhenVisible) {
-        window.addEventListener("scroll", this.updateModelsIfOnScreen, {
+        this.onScrollThrottled = throttle(this.updateModelsIfOnScreen.bind(this), 120);
+        window.addEventListener("scroll", this.onScrollThrottled, {
           passive: true,
         });
         if (this.openByDefault) {
@@ -133,10 +150,8 @@
       }
     },
     beforeUnmount() {
-      if (this.onlyUpdateModelWhenVisible) {
-        window.removeEventListener("scroll", this.updateModelsIfOnScreen, {
-          passive: true,
-        });
+      if (this.onlyUpdateModelWhenVisible && this.onScrollThrottled) {
+        window.removeEventListener("scroll", this.onScrollThrottled);
       }
     },
     methods: {
@@ -160,20 +175,25 @@
         }
       },
       calcHeight() {
-        const content = this.$refs.body.firstElementChild;
+        const body = this.$refs.body;
+        if (!body?.firstElementChild) return 0;
+        const content = body.firstElementChild;
         const height = content.scrollHeight;
         return height;
       },
       setFixedHeight() {
         const body = this.$refs.body;
+        if (!body) return;
         body.style.height = `${this.calcHeight()}px`;
       },
       removeFixedHeight() {
         const body = this.$refs.body;
+        if (!body) return;
         body.style.height = null;
       },
       subtractElementHeight(el) {
         const body = this.$refs.body;
+        if (!body || !el) return;
         const newHeight = body.scrollHeight - el.scrollHeight;
         body.style.height = `${newHeight}px`;
       },
@@ -200,6 +220,7 @@
         el.addEventListener("transitionend", done, { once: true });
       },
       afterEnterListItem(el) {
+        if (!el) return;
         const elUid = el.getAttribute("name");
         this.removePendingModelChange(elUid);
         this.$emit("changed:items", el);
@@ -227,6 +248,7 @@
       },
       isAccordionOnScreen() {
         const subject = this.$el;
+        if (!subject || typeof subject.getBoundingClientRect !== "function") return false;
         const subjectRect = subject?.getBoundingClientRect();
         const viewHeight = window.innerHeight || document.documentElement.clientHeight;
 
@@ -235,8 +257,9 @@
         return isSubjectVisible;
       },
       updateModelsIfOnScreen() {
-        if (this.models !== this.shownModels && this.isAccordionOnScreen()) {
-          this.shownModels = this.models;
+        const safeModels = Array.isArray(this.models) ? this.models : [];
+        if (safeModels !== this.shownModels && this.isAccordionOnScreen()) {
+          this.shownModels = safeModels;
         }
       },
       removePendingModelChange(uid) {

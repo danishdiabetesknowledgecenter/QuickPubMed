@@ -10,7 +10,7 @@
     
     <!-- Show streaming items progressively while loading -->
     <div v-if="loading && validStreamingItems.length > 0">
-      <!-- Opsummering af hele artiklen (first 7 items) -->
+      <!-- Full-article summary (first 7 items) -->
       <p style="padding-top: 10px">
         <strong>{{ getString("summarizeArticleHeader") }}</strong>
       </p>
@@ -47,7 +47,7 @@
         </accordion-menu>
       </div>
       
-      <!-- Spørgsmål til denne artikel (items from index 7+) - only show when question is fully parsed to avoid flicker -->
+      <!-- Questions for this article (items from index 7+) - only show when question is fully parsed to avoid flicker -->
       <template v-if="validQuestionItems.length > 0">
         <p style="padding-top: 10px">
           <strong>{{ getString("generateQuestionsHeader") }}</strong>
@@ -386,7 +386,7 @@
         }
         
         // Fallback: clean up raw JSON to be more readable
-        let cleanText = text
+        const cleanText = text
           .replace(/^\s*\[\s*/, "")
           .replace(/\{"shortTitle":/g, "\n<strong>")
           .replace(/"question"\s*:\s*"/g, "</strong><br><em>")

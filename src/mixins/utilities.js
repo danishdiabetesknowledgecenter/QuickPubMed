@@ -46,14 +46,14 @@ export const utilitiesMixin = {
      */
     sanitizeResponse(text) {
       let sanitizedText = text.trim();
-      
+
       // Remove metadata and stream separator if present (from streaming API)
       const STREAM_SEPARATOR = "---STREAM_START---";
       if (sanitizedText.includes(STREAM_SEPARATOR)) {
         const separatorIndex = sanitizedText.indexOf(STREAM_SEPARATOR);
         sanitizedText = sanitizedText.substring(separatorIndex + STREAM_SEPARATOR.length).trim();
       }
-      
+
       // Remove ```json and ``` if present
       if (sanitizedText.startsWith("```json")) {
         sanitizedText = sanitizedText.replace(/```json\s*/, "").replace(/```\s*$/, "");
@@ -70,23 +70,19 @@ export const utilitiesMixin = {
      * @returns {Promise<Response>} - A promise that resolves to the fetch response.
      * @throws {Error} - Throws an error if the fetch request fails.
      */
-    async handleFetch(url, body, method = "POST", tag = "default") {
-      try {
-        const response = await fetch(url, {
-          method: method,
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-        });
-        if (!response.ok) {
-          const body = await response.text();
-          throw new Error(body || `HTTP ${response.status}`);
-        }
-        return response;
-      } catch (error) {
-        throw error;
+    async handleFetch(url, body, method = "POST") {
+      const response = await fetch(url, {
+        method: method,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) {
+        const responseBody = await response.text();
+        throw new Error(responseBody || `HTTP ${response.status}`);
       }
+      return response;
     },
   },
 };

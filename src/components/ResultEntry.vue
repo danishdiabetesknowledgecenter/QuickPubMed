@@ -36,7 +36,7 @@
                 class="qpm_resultTitle qpm_resultTitleHover"
                 @click="showAbstract"
               >
-                <span v-if="getVernacularTitle && getVernacularTitle != getTitle">
+                <span v-if="getVernacularTitle && getVernacularTitle !== getTitle">
                   {{ getVernacularTitle }}<br />
                 </span>
                 {{ getTitle }}<span v-if="!getTitle">{{ getBookTitle }}</span>
@@ -47,7 +47,7 @@
               style="display: inline"
               class="qpm_translateTitleLink qpm_ai_hide"
             >
-              <a v-if="language != 'en'" href="#" @click.prevent="toggleTranslation"
+              <a v-if="language !== 'en'" href="#" @click.prevent="toggleTranslation"
                 >{{
                   translationShowing
                     ? getString("hideTranslatedTitle")
@@ -254,7 +254,7 @@
       </div>
     </div>
     <p
-      v-if="hyperLink != null && hyperLink.length > 0"
+      v-if="hyperLink !== null && hyperLink !== undefined && hyperLink.length > 0"
       class="intext-arrow-link onHoverJS qpm_pubmedLink"
     >
       <a target="_blank" :href="getHyperLink">
@@ -604,9 +604,12 @@
           </p>
 
           <!-- Other people also viewed -->
-          <p class="intext-arrow-link onHoverJS qpm_pubmedLink" v-if="pmid != undefined">
+          <p
+            class="intext-arrow-link onHoverJS qpm_pubmedLink"
+            v-if="pmid !== undefined && pmid !== null"
+          >
             <a
-              v-if="pmid != undefined"
+              v-if="pmid !== undefined && pmid !== null"
               target="_blank"
               :href="getPubmedAlsoViewed"
               v-tooltip="{
@@ -652,6 +655,11 @@
   import { utilitiesMixin } from "@/mixins/utilities";
   import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
   import { summarizeSingleAbstractPrompt } from "@/assets/prompts/abstract";
+  import {
+    areComparableIdsEqual,
+    getLocalizedTranslation,
+    isMobileViewport,
+  } from "@/utils/componentHelpers";
 
   let _resultEntryUid = 0;
 
@@ -807,9 +815,9 @@
       },
     },
     data() {
-      // Added by Ole
-      if (document.getElementById("qpm_start") != null) {
-        document.getElementById("qpm_start").scrollIntoView({ behavior: "smooth" });
+      const startElement = document.getElementById("qpm_start");
+      if (startElement !== null) {
+        startElement.scrollIntoView({ behavior: "smooth" });
       }
       return {
         showingAbstract: false,
@@ -820,7 +828,7 @@
         mostOuterWidth: 0,
         shouldNotUpdate: false,
         unpaywallResponse: undefined,
-        unpaywallResponseLoaded: this.doi == null,
+        unpaywallResponseLoaded: this.doi === null || this.doi === undefined,
         hasAcceptedAi: false,
         initialAiTab: {},
         pdfQuestions: [],
@@ -885,7 +893,10 @@
         }
       },
       getComponentWidth() {
-        return this.checkIfMobile || (this.parentWidth < 520 && this.parentWidth != 0);
+        return isMobileViewport() || (this.parentWidth < 520 && this.parentWidth !== 0);
+      },
+      getMyncbiShare() {
+        return this.appSettings?.nlm?.myncbishare || "";
       },
       getPubMedLink() {
         return (
@@ -893,7 +904,7 @@
           this.pmid +
           "/?" +
           "myncbishare=" +
-          this.appSettings.nlm.myncbishare +
+          this.getMyncbiShare +
           ""
         );
       },
@@ -906,7 +917,7 @@
         return (
           "https://pubmed.ncbi.nlm.nih.gov/?" +
           "myncbishare=" +
-          this.appSettings.nlm.myncbishare +
+          this.getMyncbiShare +
           "&linkname=pubmed_pubmed&sort=relevance&from_uid=" +
           this.pmid
         );
@@ -915,7 +926,7 @@
         return (
           "https://pubmed.ncbi.nlm.nih.gov/?" +
           "myncbishare=" +
-          this.appSettings.nlm.myncbishare +
+          this.getMyncbiShare +
           "&filter=pubt.systematicreview&linkname=pubmed_pubmed&sort=relevance&from_uid=" +
           this.pmid
         );
@@ -924,7 +935,7 @@
         return (
           "https://pubmed.ncbi.nlm.nih.gov/?" +
           "myncbishare=" +
-          this.appSettings.nlm.myncbishare +
+          this.getMyncbiShare +
           "&linkname=pubmed_pubmed_alsoviewed&sort=relevance&from_uid=" +
           this.pmid
         );
@@ -984,36 +995,35 @@
         } else return "";
       },
       getGoogleScholar() {
-        if (this.pmid != null) {
+        if (this.pmid !== null && this.pmid !== undefined) {
           return "https://scholar.google.com/scholar_lookup?pmid=" + this.pmid;
         } else {
           return "https://scholar.google.com/scholar_lookup?doi=" + this.doi;
         }
       },
       getTitle() {
-        var div = document.createElement("div");
+        const div = document.createElement("div");
         div.innerHTML = this.title;
-        var text = div.textContent || div.innerText || "";
+        const text = div.textContent || div.innerText || "";
 
         return text.replace(/<\/?[^>]+(>|$)/g, "");
       },
-      // Added by Ole (getBookTitle and getVernacularTitle also added in template)
       getBookTitle() {
-        var div = document.createElement("div");
+        const div = document.createElement("div");
         div.innerHTML = this.booktitle;
-        var text = div.textContent || div.innerText || "";
+        const text = div.textContent || div.innerText || "";
         return text.replace(/<\/?[^>]+(>|$)/g, "");
       },
       getVernacularTitle() {
         if (this.vernaculartitle) {
-          var div = document.createElement("div");
+          const div = document.createElement("div");
           div.innerHTML = this.vernaculartitle;
-          var text = div.textContent || div.innerText || "";
+          const text = div.textContent || div.innerText || "";
           return text.replace(/<\/?[^>]+(>|$)/g, "");
         } else return "";
       },
       calculateAuthors() {
-        let authorArray = this.author.split(",");
+        const authorArray = this.author.split(",");
 
         if (!this.shownSixAuthors || authorArray.length <= 6) return this.author;
         let shownAuthors = "";
@@ -1025,24 +1035,9 @@
         return shownAuthors;
       },
       getScreenWidth() {
-        var width =
+        const width =
           window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
         return width;
-      },
-      checkIfMobile() {
-        let check = false;
-        (function (a) {
-          if (
-            /(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino/i.test(
-              a
-            ) ||
-            /1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw-(n|u)|c55\/|capi|ccwa|cdm-|cell|chtm|cldc|cmd-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc-s|devi|dica|dmob|do(c|p)o|ds(12|-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(-|_)|g1 u|g560|gene|gf-5|g-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd-(m|p|t)|hei-|hi(pt|ta)|hp( i|ip)|hs-c|ht(c(-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i-(20|go|ma)|i230|iac( |-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|-[a-w])|libw|lynx|m1-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|-([1-8]|c))|phil|pire|pl(ay|uc)|pn-2|po(ck|rt|se)|prox|psio|pt-g|qa-a|qc(07|12|21|32|60|-[2-7]|i-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h-|oo|p-)|sdk\/|se(c(-|0|1)|47|mc|nd|ri)|sgh-|shar|sie(-|m)|sk-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h-|v-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl-|tdg-|tel(i|m)|tim-|t-mo|to(pl|sh)|ts(70|m-|m3|m5)|tx-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas-|your|zeto|zte-/i.test(
-              a.substr(0, 4)
-            )
-          )
-            check = true;
-        })(navigator.userAgent || navigator.vendor || window.opera);
-        return check;
       },
       mobileResult() {
         if (this.getDoiLink) return { "flex-direction": "row" };
@@ -1052,26 +1047,24 @@
         return this.showButtons;
       },
       usePubMed() {
-        if (this.id == this.pmid) return true;
-        return false;
+        return areComparableIdsEqual(this.id, this.pmid);
       },
       getAbstractId() {
-        let divName = this.getAbstractDivName;
-        return divName + "_" + this._uid;
+        return this.getAbstractDivName + "_" + this._uid;
       },
       getHyperLink() {
         return this.hyperLink;
       },
       getAbstractDivName() {
-        return this.id != null ? "abstract_" + this.id : "custom";
+        return this.id !== null && this.id !== undefined ? "abstract_" + this.id : "custom";
       },
       getSource() {
-        var source = this.source || "";
-        var pubDate = this.pubDate || "";
-        var sourceDateSeperator = source && pubDate ? ". " : "";
-        var volume = ";" + this.volume || "";
-        var issue = "(" + this.issue + ")" || "";
-        var pages = ":" + this.pages || "";
+        const source = this.source || "";
+        const pubDate = this.pubDate || "";
+        const sourceDateSeperator = source && pubDate ? ". " : "";
+        const volume = ";" + this.volume || "";
+        const issue = "(" + this.issue + ")" || "";
+        const pages = ":" + this.pages || "";
         return source + sourceDateSeperator + pubDate + volume + issue + pages;
       },
       getSectionAbstract() {
@@ -1084,17 +1077,17 @@
           .join("");
       },
       getAbstract() {
-        var abstract = "";
+        let abstract = "";
 
         if (this.abstract) {
           abstract = this.abstract;
         } else {
-          for (var section in this.text) {
-            var header =
+          for (const section in this.text) {
+            const header =
               section !== "UNLABELLED" && section !== "null"
                 ? section[0].toUpperCase() + section.slice(1).toLowerCase()
                 : "Abstract";
-            var body = this.text[section];
+            const body = this.text[section];
 
             abstract = abstract + "\n\n" + header + "\n" + body;
           }
@@ -1103,31 +1096,26 @@
         return abstract.trim();
       },
       getArticle() {
-        var article = JSON.parse(
-          JSON.stringify({
-            title: this.getTitle,
-            authors: this.calculateAuthors,
-            source: this.getSource,
-            pmid: this.pmid,
-            pubdate: this.pubDate,
-            abstract: this.getAbstract,
-          })
-        );
-        return article;
+        return {
+          title: this.getTitle,
+          authors: this.calculateAuthors,
+          source: this.getSource,
+          pmid: this.pmid,
+          pubdate: this.pubDate,
+          abstract: this.getAbstract,
+        };
       },
       isChecked() {
-        if (this.modelValue instanceof Array) {
-          let self = this;
-          return this.modelValue.some(function (e) {
-            return e == self.value || e.uid == self.pmid;
+        if (Array.isArray(this.modelValue)) {
+          return this.modelValue.some((entry) => {
+            if (entry === this.value) return true;
+            if (entry?.uid !== undefined && entry?.uid !== null) {
+              return areComparableIdsEqual(entry.uid, this.pmid);
+            }
+            return areComparableIdsEqual(entry, this.pmid);
           });
         }
         return this.modelValue;
-      },
-      getArticles() {
-        var articles = [this.getArticle];
-        // eslint-disable-next-line vue/no-async-in-computed-properties
-        return articles;
       },
     },
     watch: {
@@ -1168,8 +1156,7 @@
       // This is to ensure all badges to be loaded properly
       // given there are multiple occurrences of <references/>
 
-      this.self = this;
-      if (this.id != null) {
+      if (this.id !== null && this.id !== undefined) {
         this.abstractId = `abstract${this.id}`;
       } else {
         this.abstractId = "custom";
@@ -1406,18 +1393,26 @@
         if (!this.showingAbstract && this.abstractLoaded && this.id) {
           // Get the div containing the abstract and then select
           // the <specific-article> containing it.
-          document.getElementById(this.getAbstractId).parentElement.scrollIntoView({
-            block: "nearest",
-            behavior: "smooth",
-          });
+          const abstractContainer = document.getElementById(this.getAbstractId);
+          const parentElement = abstractContainer?.parentElement;
+          if (parentElement) {
+            parentElement.scrollIntoView({
+              block: "nearest",
+              behavior: "smooth",
+            });
+          }
         } else {
           if (this.getAbstractId) {
             // Get the div containing the abstract and then select
             // the <specific-article> containing it.
-            document.getElementById(this.getAbstractId).parentElement.scrollIntoView({
-              block: "start",
-              behavior: "smooth",
-            });
+            const abstractContainer = document.getElementById(this.getAbstractId);
+            const parentElement = abstractContainer?.parentElement;
+            if (parentElement) {
+              parentElement.scrollIntoView({
+                block: "start",
+                behavior: "smooth",
+              });
+            }
           }
         }
 
@@ -1429,49 +1424,49 @@
         window.open(url, "_blank");
       },
       collapseSection(element) {
-        // get the height of the element's inner content, regardless of its actual size
-        //var sectionHeight = element.scrollHeight;
-
         // temporarily disable all css transitions
-        element.style.height = 0 + "px";
+        element.style.height = "0px";
 
         // on the next frame (as soon as the previous style change has taken effect),
         // explicitly set the element's height to its current pixel height, so we
         // aren't transitioning out of 'auto'
-        element.addEventListener("transitionend", function () {
+        const onTransitionEnd = () => {
           // remove this event listener so it only gets triggered once
-          element.removeEventListener("transitionend", arguments.callee);
+          element.removeEventListener("transitionend", onTransitionEnd);
 
           // remove "height" from the element's inline styles, so it can return to its initial value
           element.style.height = null;
-        });
+        };
+        element.addEventListener("transitionend", onTransitionEnd);
 
         // mark the section as "currently collapsed"
         element.setAttribute("data-collapsed", "true");
       },
       expandSection(element) {
         // get the height of the element's inner content, regardless of its actual size
-        var sectionHeight = element.scrollHeight;
+        const sectionHeight = element.scrollHeight;
 
         // have the element transition to the height of its inner content
         element.style.height = sectionHeight + "px";
 
         // when the next css transition finishes (which should be the one we just triggered)
-        element.addEventListener("transitionend", function () {
+        const onTransitionEnd = () => {
           // remove this event listener so it only gets triggered once
-          element.removeEventListener("transitionend", arguments.callee);
+          element.removeEventListener("transitionend", onTransitionEnd);
 
           // remove "height" from the element's inline styles, so it can return to its initial value
           element.style.height = null;
-        });
+        };
+        element.addEventListener("transitionend", onTransitionEnd);
 
         // mark the section as "currently not collapsed"
         element.setAttribute("data-collapsed", "false");
       },
       handleClickEvent() {
-        let eventClass = this.abstractLoaded ? "qpm_shadow" : "qpm_abstractContainer";
-        var section = document.querySelector(eventClass);
-        var isCollapsed = section.getAttribute("data-collapsed") === "true";
+        const eventClass = this.abstractLoaded ? "qpm_shadow" : "qpm_abstractContainer";
+        const section = document.querySelector(eventClass);
+        if (!section) return;
+        const isCollapsed = section.getAttribute("data-collapsed") === "true";
 
         if (isCollapsed) {
           this.expandSection(section);
@@ -1481,65 +1476,50 @@
         }
       },
       getTranslation(value) {
-        const lg = this.language;
-        let constant = value.translations[lg];
-        return constant != undefined ? constant : value.translations["dk"];
+        return getLocalizedTranslation(value, this.language);
       },
       customNameLabel(option) {
         if (!option?.translations && !option?.name && !option?.id) return;
-        let constant;
         if (option.id) {
-          const lg = this.language;
-          constant =
-            option.translations[lg] != undefined
-              ? option.translations[lg]
-              : option.translations["dk"];
-        } else {
-          constant = option.name || option.id;
+          return getLocalizedTranslation(option, this.language);
         }
-        return constant;
+        return option.name || option.id;
       },
       customGroupLabel(option) {
-        if (!option) return;
-        const lg = this.language;
-        let constant = option.translations[lg];
-        return constant != undefined ? constant : option.translations["dk"];
+        return getLocalizedTranslation(option, this.language);
       },
       async loadUnpaywallApiResponse() {
         if (!this.doi) return undefined;
 
-        let self = this;
-        let url =
+        const url =
           "https://api.unpaywall.org/v2/" + this.doi + "?email=admin@videncenterfordiabetes.dk";
-        let timeout = 15 * 1000; //15 second timeout
+        const timeout = 15 * 1000; //15 second timeout
         await axios
-          .get(url, { timeout: timeout })
-          .then(function (resp) {
-            self.unpaywallResponse = resp.data;
-            self.unpaywallResponseLoaded = true;
+          .get(url, { timeout })
+          .then((resp) => {
+            this.unpaywallResponse = resp.data;
+            this.unpaywallResponseLoaded = true;
             if (resp.data?.best_oa_location?.url) {
-              self.defaultUrl = resp.data.best_oa_location.url;
-              self.pdfUrl = resp.data.best_oa_location.url_for_pdf;
-              self.htmlUrl = resp.data.best_oa_location.url_for_landing_page;
-              self.license = resp.data.best_oa_location.license;
+              this.defaultUrl = resp.data.best_oa_location.url;
+              this.pdfUrl = resp.data.best_oa_location.url_for_pdf;
+              this.htmlUrl = resp.data.best_oa_location.url_for_landing_page;
+              this.license = resp.data.best_oa_location.license;
             }
           })
-          .catch(function (err) {
-            self.unpaywallResponseLoaded = true;
+          .catch((err) => {
+            this.unpaywallResponseLoaded = true;
             console.debug(err);
           });
       },
       getsummarizeSingleAbstractPrompt() {
-        let temp = summarizeSingleAbstractPrompt;
-        return temp;
+        return summarizeSingleAbstractPrompt;
       },
       updateInput(event) {
-        let isChecked = event.target.checked;
+        const isChecked = event.target.checked;
         this.$emit("change", this.value, isChecked);
       },
       clickAcceptAi(prompt) {
         this.hasAcceptedAi = true;
-        this.getArticles;
         this.initialAiTab = prompt;
       },
       closeSummaries() {
@@ -1547,19 +1527,23 @@
       },
       checkPreload() {
         if (!this.abstractLoaded && this.preLoadAbstract && !this.loading) {
-          let showSpinner = false;
-          this.loadAbstract(showSpinner);
+          this.loadAbstract(false);
         }
       },
       onEventBusShowAbstractEvent(args) {
-        if (args.$el != this.$el) return;
+        if (!args || args.$el !== this.$el) return;
         this.showAbstract(true);
       },
-      onAiSummariesClickRetry(value) {
-        this.$el.scrollIntoView({ behavior: "smooth" });
+      onAiSummariesClickRetry() {
+        if (this.$el && typeof this.$el.scrollIntoView === "function") {
+          this.$el.scrollIntoView({ behavior: "smooth" });
+        }
       },
       changeOnEnter(event) {
-        event.target.click();
+        const target = event?.target;
+        if (target && typeof target.click === "function") {
+          target.click();
+        }
       },
     },
   };

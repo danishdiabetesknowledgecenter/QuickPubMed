@@ -26,7 +26,7 @@ export function flattenTopicGroups(groups) {
   const hasNestedStructure = groups.some(
     (g) =>
       (Array.isArray(g.children) && g.children.length > 0) ||
-      (Array.isArray(g.choices) && g.choices.length > 0),
+      (Array.isArray(g.choices) && g.choices.length > 0)
   );
   if (!hasNestedStructure) return groups;
 
@@ -36,13 +36,15 @@ export function flattenTopicGroups(groups) {
   function processLevel(items, level, ancestors, parentPath) {
     let siblingIndex = 0;
     for (const item of items) {
-      const nestedItems =
-        Array.isArray(item.children) && item.children.length > 0
-          ? item.children
-          : Array.isArray(item.choices) && item.choices.length > 0
-            ? item.choices
-            : [];
-      const { children, choices, ...flatItem } = item;
+      let nestedItems = [];
+      if (Array.isArray(item.children) && item.children.length > 0) {
+        nestedItems = item.children;
+      } else if (Array.isArray(item.choices) && item.choices.length > 0) {
+        nestedItems = item.choices;
+      }
+      const flatItem = { ...item };
+      delete flatItem.children;
+      delete flatItem.choices;
 
       // Auto-generate sequential ordering to preserve DFS traversal order
       siblingIndex++;

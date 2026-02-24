@@ -10,8 +10,8 @@
       }"
       tabindex="0"
       class="qpm_tab"
-      @click="toggleAdvanced()"
-      @keyup.enter="toggleAdvanced()"
+      @click="toggleAdvanced"
+      @keyup.enter="toggleAdvanced"
     >
       {{ getString("advancedSearch") }}
       <span class="qpm_hideonmobile">
@@ -36,8 +36,8 @@
       }"
       tabindex="0"
       class="qpm_tab"
-      @click="toggleAdvanced()"
-      @keyup.enter="toggleAdvanced()"
+      @click="toggleAdvanced"
+      @keyup.enter="toggleAdvanced"
     >
       {{ getString("simpleSearch") }}
       <span class="qpm_hideonmobile">
@@ -68,7 +68,6 @@
       },
       getString: {
         type: Function,
-        required: true,
         default: () => "",
       },
     },

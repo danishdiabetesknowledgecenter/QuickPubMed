@@ -50,20 +50,20 @@
                 class="qpm_searchSummaryText qpm_searchSummaryTextBackground"
               >
                 <p>{{ getString("aiSearchSummaryConsentHeader") }}</p>
-                <p v-if="selectedEntries == null || selectedEntries.length == 0">
+                <p v-if="hasNoSelectedArticles">
                   <span v-html="getString('aiSearchSummaryConsentHeaderTextBefore')"></span>
                   <select v-model="defaultSummaryCount" style="margin: 0 4px; padding: 2px 4px;">
                     <option v-for="n in Math.min(maxSummaryArticles, 25)" :key="n" :value="n">{{ n }}</option>
                   </select>
                   {{ getString("aiSearchSummaryConsentHeaderTextAfter") }}
                 </p>
-                <p v-if="selectedEntries.length > 0">
+                <p v-if="getHasSelectedArticles">
                   {{ getString("aiSearchSummarySelectedArticlesBefore") }}
-                  <strong>{{ selectedEntries.length }}{{ ' ' }}</strong>
-                  <span v-if="selectedEntries.length == 1">
+                  <strong>{{ selectedEntriesCount }}{{ ' ' }}</strong>
+                  <span v-if="selectedEntriesCount === 1">
                     <strong>{{ getString("aiSearchSummarySelectedArticlesAfterSingular") }}</strong>
                   </span>
-                  <span v-if="selectedEntries.length > 1">
+                  <span v-if="selectedEntriesCount > 1">
                     <strong>{{ getString("aiSearchSummarySelectedArticlesAfterPlural") }}</strong>
                   </span>{{ getString("aiSearchSummarySelectedArticlesAfter") }}
                 </p>
@@ -117,7 +117,7 @@
         ref="articlesAccordion"
         :is-expanded="isSelectedArticleAccordionExpanded"
         :models="selectedEntries"
-        :open-by-default="preselectedEntries != null && preselectedEntries.length > 0"
+        :open-by-default="hasPreselectedEntries"
         :only-update-model-when-visible="true"
         @changed:items="loadSelectedArticleBadges"
         @open="onArticleAccordionStateChange(true)"
@@ -172,13 +172,13 @@
                     class="qpm_markedArticleCounter"
                     tabindex="0"
                   >
-                    <span>{{ selectedEntries.length }}&nbsp;</span>
+                    <span>{{ selectedEntriesCount }}&nbsp;</span>
                     <span 
-                      v-if="selectedEntries.length == 1"
+                      v-if="selectedEntriesCount === 1"
                       class="qpm_markedArticleCounterText qpm_hideonmobile"
                     >{{ getString("aiSearchSummarySelectedArticlesAfterSingular") }}</span>
                     <span 
-                      v-if="selectedEntries.length > 1 || selectedEntries.length == 0"
+                      v-if="selectedEntriesCount > 1 || selectedEntriesCount === 0"
                       class="qpm_markedArticleCounterText qpm_hideonmobile"
                     >{{ getString("aiSearchSummarySelectedArticlesAfterPlural") }}</span>
                   </div>
@@ -209,8 +209,8 @@
               <button
                 id="qpm_selectedResultDeselectAll"
                 class="qpm_button qpm_selectArticleCheckbox"
-                :disabled="selectedEntries == null || selectedEntries.length <= 0"
-                v-tooltip="selectedEntries != null && selectedEntries.length > 0 ? {
+                :disabled="hasNoSelectedArticles"
+                v-tooltip="getHasSelectedArticles ? {
                   content: getString('hoverselectedResultDeselectAllText'),
                   distance: 5,
                   delay: $helpTextDelay,
@@ -223,7 +223,7 @@
             </div>
             <div
               class="qpm_searchSummaryText qpm_searchSummaryTextBackground"
-              v-if="selectedEntries == null || selectedEntries.length == 0"
+              v-if="hasNoSelectedArticles"
               v-html="getString('selectedResultEmptyText')"
             />
           </div>
@@ -282,7 +282,7 @@
           ><strong>{{ getPrettyTotal }}</strong> {{ getString("searchMatches") }}</span
         >
       </p>
-      <div v-if="results && results.length != 0" class="qpm_searchHeaderSort qpm_spaceEvenly">
+      <div v-if="results && results.length !== 0" class="qpm_searchHeaderSort qpm_spaceEvenly">
         <div class="qpm_sortSelect" style="padding-right: 7px">
           <select v-model="currentSortMethod" :aria-label="getString('sortBy')" @change="newSortMethod">
             <option v-for="sorter in getOrderMethods" :key="sorter.id" :value="sorter.method">
@@ -352,7 +352,7 @@
         />
       </div>
       <loading-spinner :loading="loading" class="qpm_searchMore" :size="44" />
-      <div v-if="error != null" class="qpm_flex">
+      <div v-if="error !== null && error !== undefined" class="qpm_flex">
         <div class="qpm_errorBox">
           {{ error.message ?? error.toString() }}
         </div>
@@ -395,7 +395,16 @@
   import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
   import { appSettingsMixin, eventBus } from "@/mixins/appSettings";
   import { utilitiesMixin } from "@/mixins/utilities";
-  import { languageFormat, dateOptions, pageSizes } from "@/utils/contentHelpers";
+  import { languageFormat, pageSizes } from "@/utils/contentHelpers";
+  import {
+    areComparableIdsEqual,
+    extractDoi,
+    getArticleSource,
+    getAuthorNames,
+    getFormattedEntrezDate,
+    getLocalizedTranslation,
+    hasAbstractAttribute,
+  } from "@/utils/componentHelpers";
 
   export default {
     name: "SearchResult",
@@ -405,6 +414,7 @@
       LoadingSpinner,
       SummarizeAbstract,
     },
+    emits: ["newSortMethod", "high", "low", "newPageSize", "change:selectedEntries"],
     mixins: [appSettingsMixin, promptRuleLoaderMixin, utilitiesMixin],
     props: {
       results: {
@@ -457,7 +467,7 @@
         hasAcceptedAi: false,
         initialAiTab: null,
         defaultSummaryCount: 5,
-        selectedEntries: this.preselectedEntries,
+        selectedEntries: Array.isArray(this.preselectedEntries) ? [...this.preselectedEntries] : [],
         badgesAdded: false,
         altmetricsAdded: false,
         idswithAbstractsToLoad: [],
@@ -466,6 +476,8 @@
         articles: {},
         isSummarizeArticlesAcordionExpanded: false,
         isSelectedArticleAccordionExpanded: false,
+        hadVisibleResultEntries: false,
+        _pendingScrollTarget: null,
       };
     },
     computed: {
@@ -475,18 +487,10 @@
        * @returns {Array} Array of objects with authors, publicationInfo and title
        */
       getSelectedArticlesReferences() {
-        // No selected entries, use the first five articles with abstracts
-        if (this.selectedEntries.length == 0) {
-          return this.firstFiveArticlesWithAbstracts.map((entry) => {
-            return {
-              authors: this.getAuthor(entry.authors),
-              publicationInfo: this.getPublicationInfo(entry),
-              title: entry.title,
-            };
-          });
-        }
-        // Selected entries are available
-        return this.selectedEntries.map((entry) => {
+        const selected = this.safeSelectedEntries;
+        const sourceEntries =
+          selected.length === 0 ? this.firstFiveArticlesWithAbstracts : selected;
+        return sourceEntries.map((entry) => {
           return {
             authors: this.getAuthor(entry.authors),
             publicationInfo: this.getPublicationInfo(entry),
@@ -509,13 +513,13 @@
         },
       },
       lowDisabled() {
-        return this.low == 0 || this.loading;
+        return this.low === 0 || this.loading;
       },
       highDisabled() {
         return this.high >= this.total || this.loading;
       },
       getPrettyTotal() {
-        let format = languageFormat[this.language];
+        const format = languageFormat[this.language];
         return this.total.toLocaleString(format);
       },
       getOrderMethods() {
@@ -525,30 +529,40 @@
         return pageSizes;
       },
       getShownSearchResults() {
-        if (this.results == null) return null;
-        return this.results.slice(0, this.high + this.preselectedEntries.length);
+        if (!Array.isArray(this.results)) return [];
+        const preselectedCount = Array.isArray(this.preselectedEntries)
+          ? this.preselectedEntries.length
+          : 0;
+        return this.results.slice(0, this.high + preselectedCount);
       },
       getHasSelectedArticles() {
-        return this.selectedEntries.length > 0;
+        return this.safeSelectedEntries.length > 0;
+      },
+      selectedEntriesCount() {
+        return this.safeSelectedEntries.length;
+      },
+      hasNoSelectedArticles() {
+        return this.selectedEntriesCount === 0;
+      },
+      hasPreselectedEntries() {
+        return Array.isArray(this.preselectedEntries) && this.preselectedEntries.length > 0;
+      },
+      safeSelectedEntries() {
+        return Array.isArray(this.selectedEntries) ? this.selectedEntries : [];
+      },
+      resultsWithAbstracts() {
+        if (!Array.isArray(this.results)) return [];
+        return this.results.filter((result) => this.getHasAbstract(result.attributes));
       },
       /**
        * Max number of articles available for summarization (those with abstracts).
        * Used to cap the dropdown options.
        */
       maxSummaryArticles() {
-        if (!this.results) return 0;
-        const self = this;
-        return this.results.filter(function (result) {
-          return self.getHasAbstract(result.attributes);
-        }).length;
+        return this.resultsWithAbstracts.length;
       },
       firstFiveArticlesWithAbstracts() {
-        if (!this.results) return [];
-        const self = this;
-        const resultsWithAbstract = this.results.filter(function (result) {
-          return self.getHasAbstract(result.attributes);
-        });
-        return resultsWithAbstract.slice(0, this.defaultSummaryCount);
+        return this.resultsWithAbstracts.slice(0, this.defaultSummaryCount);
       },
     },
     watch: {
@@ -559,10 +573,10 @@
         }
       },
       preselectedEntries(newVal) {
-        if (this.selectedEntries != null && this.selectedEntries.length > 0) {
+        if (this.safeSelectedEntries.length > 0) {
           return;
         }
-        this.selectedEntries = newVal;
+        this.selectedEntries = Array.isArray(newVal) ? [...newVal] : [];
       },
       /**
        * When user increases the summary count, load abstracts for any
@@ -586,14 +600,22 @@
     },
     updated() {
       // Guards to avoid badges re-rendering on select/deselect
-      if (!this.$refs.resultEntries || this.$refs.resultEntries.length == 0) {
-        this.hasAcceptedAi = false;
-        this.badgesAdded = false;
-        this.altmetricsAdded = false;
-        this.isSummarizeArticlesAcordionExpanded = false;
-        this.reloadScripts();
+      const resultEntries = this.$refs.resultEntries;
+      const hasVisibleResultEntries =
+        Array.isArray(resultEntries) && resultEntries.length > 0;
+
+      if (!hasVisibleResultEntries) {
+        if (this.hadVisibleResultEntries) {
+          this.hasAcceptedAi = false;
+          this.badgesAdded = false;
+          this.altmetricsAdded = false;
+          this.isSummarizeArticlesAcordionExpanded = false;
+          this.reloadScripts();
+        }
+        this.hadVisibleResultEntries = false;
         return;
       }
+      this.hadVisibleResultEntries = true;
       if (!this.badgesAdded && !this.loading) {
         if (window.__dimensions_embed) {
           window.__dimensions_embed.addBadges();
@@ -627,8 +649,8 @@
       },
       reloadScripts() {
         //Remove divs and scripts from body so they wont affect performance
-        let scripts = document.body.getElementsByTagName("script");
-        var scriptArray = Array.from(scripts);
+        const scripts = document.body.getElementsByTagName("script");
+        const scriptArray = Array.from(scripts);
         scriptArray.splice(0, 1);
         let is = scriptArray.length;
         //ial = is; Unused variable
@@ -640,10 +662,10 @@
             scriptArray[is].parentNode.removeChild(scriptArray[is]);
           }
         }
-        var containers = document.body.getElementsByClassName(
+        const containers = document.body.getElementsByClassName(
           "altmetric-embed altmetric-popover altmetric-left"
         );
-        var containerArray = Array.from(containers);
+        const containerArray = Array.from(containers);
         is = containerArray.length;
         //(ial = is); Unused variable
 
@@ -652,7 +674,7 @@
         }
       },
       getAbstract(id) {
-        if (this.abstractRecords[id] != undefined) {
+        if (this.abstractRecords[id] !== undefined) {
           if (typeof this.abstractRecords[id] !== "string") {
             return "";
           }
@@ -662,53 +684,22 @@
       },
       // Writes out all names of the authors array, split by comma
       getAuthor(authors) {
-        let authorString = "";
-        for (let i = 0; i < authors.length; i++) {
-          if (i > 0) {
-            authorString += ", ";
-          }
-          authorString += authors[i].name;
-        }
-        return authorString;
+        return getAuthorNames(authors);
       },
       getHasAbstract(attributes) {
-        if (!attributes) {
-          return false;
-        }
-        let found = false;
-        Object.keys(attributes).forEach(function (key) {
-          let value = attributes[key];
-          if (key == "Has Abstract" || value == "Has Abstract") {
-            found = true;
-            return;
-          }
-        });
-        return found;
+        return hasAbstractAttribute(attributes);
       },
       getDate(history) {
-        for (let i = 0; i < history.length; i++) {
-          if (history[i].pubstatus == "entrez") {
-            let date = new Date(history[i].date);
-            let formattedDate = date.toLocaleDateString(languageFormat[this.language], dateOptions);
-            return formattedDate;
-          }
-        }
-        return "";
+        return getFormattedEntrezDate(history, this.language);
       },
-      // getDoi ændret af Ole
+      // Read DOI from the article identifiers list
       getDoi(articleids) {
-        for (let i = 0; i < articleids.length; i++) {
-          if (articleids[i].idtype == "doi") {
-            let doi = articleids[i].value;
-            return doi;
-          }
-        }
-        return "";
+        return extractDoi(articleids);
       },
       getText(id) {
-        if (id != undefined) {
+        if (id !== undefined && id !== null) {
           if (
-            this.abstractRecords[id] != undefined &&
+            this.abstractRecords[id] !== undefined &&
             typeof this.abstractRecords[id] === "object"
           ) {
             return this.abstractRecords[id];
@@ -718,8 +709,7 @@
       },
       getSource(value) {
         try {
-          if (value.booktitle) return value.booktitle;
-          return value.source;
+          return getArticleSource(value);
         } catch (error) {
           return error;
         }
@@ -745,37 +735,32 @@
         return formatted;
       },
       newSortMethod(event) {
-        let obj = {};
-        for (let j = 0; j < order.length; j++) {
-          if (order[j].method == event.target.value) {
-            obj = order[j];
-            break;
-          }
-        }
+        const obj = order.find((entry) => entry.method === event.target.value) || {};
         this.$emit("newSortMethod", obj);
       },
       isSelected(model) {
-        return model == this.sort;
+        return model === this.sort;
       },
       isSelectedPageSize(model) {
-        return model == this.pagesize;
+        return model === this.pagesize;
       },
       getTranslation(value) {
-        const lg = this.language;
-        let constant = value.translations[lg];
-        return constant != undefined ? constant : value.translations["dk"];
+        return getLocalizedTranslation(value, this.language);
       },
       changePageNumber(event) {
-        const newPageSize = pageSizes[parseInt(event.target.options.selectedIndex)];
+        const selectedIndex = parseInt(event.target.options.selectedIndex, 10);
+        const newPageSize = pageSizes[selectedIndex];
+        if (newPageSize === undefined) return;
         this.$emit("newPageSize", newPageSize);
       },
       getComponentWidth() {
-        let container = this.$refs.searchResult;
+        const container = this.$refs.searchResult;
         if (!container) return;
 
         return parseInt(container.offsetWidth);
       },
       addArticle(article) {
+        if (!article || !article.pmid) return;
         if (Object.prototype.hasOwnProperty.call(this.articles, article.pmid)) {
           delete this.articles[article.pmid];
         }
@@ -783,20 +768,18 @@
         this.articles[article.pmid] = article;
       },
       getSelectedArticles() {
-        var selectedArticles = [];
-        var entriesForSummary;
-
-        if (this.selectedEntries.length > 0) {
-          entriesForSummary = this.selectedEntries;
-        } else {
-          // Use all loaded results (not just rendered ones) to support counts > pagesize
-          entriesForSummary = this.firstFiveArticlesWithAbstracts.map((r) => ({
-            uid: r.uid,
-          }));
-        }
+        const selectedArticles = [];
+        const selectedEntries = this.safeSelectedEntries;
+        const entriesForSummary =
+          selectedEntries.length > 0
+            ? selectedEntries
+            : // Use all loaded results (not just rendered ones) to support counts > pagesize
+              this.firstFiveArticlesWithAbstracts.map((r) => ({
+                uid: r.uid,
+              }));
 
         for (let i = 0; i < entriesForSummary.length; i++) {
-          let selected = entriesForSummary[i];
+          const selected = entriesForSummary[i];
           if (this.articles[selected.uid]) {
             selectedArticles.push(this.articles[selected.uid]);
           } else {
@@ -821,25 +804,23 @@
         return this.getArticleDtos;
       },
       getSummarizeMultipleAbstractsPrompt() {
-        let multiple = summarizeMultipleAbstractPrompt;
-        return multiple;
+        return summarizeMultipleAbstractPrompt;
       },
       getSummarySuccessHeader() {
-        const self = this;
-
         return (selected, isMarkedArticlesSearch) => {
+          const safeSelected = Array.isArray(selected) ? selected : [];
           if (!isMarkedArticlesSearch) {
-            let selectedWithAbstracts = selected.filter(
-              (e) => e.abstract != null && e.abstract.trim() != ""
+            const selectedWithAbstracts = safeSelected.filter(
+              (e) => e.abstract !== null && e.abstract.trim() !== ""
             );
-            let before = self.getString("aiSummarizeFirstFewSearchResultHeaderBeforeCount");
-            let after = self.getString("aiSummarizeFirstFewSearchResultHeaderAfterCount");
+            const before = this.getString("aiSummarizeFirstFewSearchResultHeaderBeforeCount");
+            const after = this.getString("aiSummarizeFirstFewSearchResultHeaderAfterCount");
             return before + selectedWithAbstracts.length + after;
           }
 
-          let before = self.getString("aiSummarizeSelectedSearchResultHeaderBeforeCount");
-          let after = self.getString("aiSummarizeSelectedSearchResultHeaderAfterCount");
-          return before + selected.length + after;
+          const before = this.getString("aiSummarizeSelectedSearchResultHeaderBeforeCount");
+          const after = this.getString("aiSummarizeSelectedSearchResultHeaderAfterCount");
+          return before + safeSelected.length + after;
         };
       },
       clickAcceptAi(initialTab = null) {
@@ -850,10 +831,9 @@
         this.hasAcceptedAi = false;
       },
       changeResultEntryModel(value, isChecked) {
-        let newValue = [...this.selectedEntries];
-        let valueIndex = newValue.findIndex(function (e) {
-          return e === value || e.uid === value.uid;
-        });
+        const currentSelected = this.safeSelectedEntries;
+        const newValue = [...currentSelected];
+        const valueIndex = newValue.findIndex((e) => e === value || e.uid === value.uid);
 
         if (isChecked && valueIndex === -1) {
           newValue.push(value);
@@ -873,13 +853,16 @@
         this.$emit("change:selectedEntries", newValue);
       },
       onAbstractLoad(id, abstract) {
+        if (id === undefined || id === null) return;
         this.isAbstractLoaded = true;
         this.abstractRecords[id] = abstract;
       },
       onAiSummariesClickRetry() {
-        this.$el.parentElement
-          .querySelector("#qpm_topofsearchbar")
-          .scrollIntoView({ behavior: "smooth" });
+        const container = this.$el?.parentElement;
+        const target = container?.querySelector("#qpm_topofsearchbar");
+        if (target) {
+          target.scrollIntoView({ behavior: "smooth" });
+        }
       },
       /**
        * @param {boolean} expanded
@@ -890,14 +873,17 @@
         this.isSummarizeArticlesAcordionExpanded = expanded;
         this.isSelectedArticleAccordionExpanded = expanded;
       },
-      openArticlesAccordion({ $el }) {
+      openArticlesAccordion(payload) {
+        const targetEl = payload?.$el;
+        if (!targetEl) return;
         const articlesAccordion = this.$refs.articlesAccordion;
         if (
           !this.isSummarizeArticlesAcordionExpanded &&
-          articlesAccordion != null &&
+          articlesAccordion !== null &&
+          articlesAccordion !== undefined &&
           !articlesAccordion.expanded
         ) {
-          this._pendingScrollTarget = $el;
+          this._pendingScrollTarget = targetEl;
           this.onAiSummariesAccordionStateChange(true);
         }
       },
@@ -922,7 +908,7 @@
           window.__dimensions_embed.addBadges();
         }
 
-        let articleBody = article ? article : this.$refs?.articlesAccordion?.$refs?.body;
+        const articleBody = article ? article : this.$refs?.articlesAccordion?.$refs?.body;
         if (articleBody && window._altmetric_embed_init) {
           window._altmetric_embed_init(articleBody);
         }
@@ -973,26 +959,29 @@
         }
       },
       shouldResultArticlePreloadAbstract(article) {
-        const isInFirstFive = this.firstFiveArticlesWithAbstracts.some(function (value) {
-          return value.uid == article.uid;
-        });
+        const isInFirstFive = this.firstFiveArticlesWithAbstracts.some((value) =>
+          areComparableIdsEqual(value?.uid, article?.uid)
+        );
         return isInFirstFive;
       },
       async addIdToLoadAbstract(id) {
         this.idswithAbstractsToLoad.push(id);
-        const lastResult = this.results.length > 0 ? this.results[this.results.length - 1] : null;
-        if (lastResult?.uid == id) {
+        const safeResults = Array.isArray(this.results) ? this.results : [];
+        const lastResult = safeResults.length > 0 ? safeResults[safeResults.length - 1] : null;
+        if (lastResult?.uid === id) {
           await this.loadAbstracts();
         }
       },
       async loadAbstracts() {
-        const self = this;
-        let nlm = this.appSettings.nlm;
+        if (!Array.isArray(this.idswithAbstractsToLoad) || this.idswithAbstractsToLoad.length === 0) {
+          return;
+        }
+        const nlm = this.appSettings.nlm;
         // Credentials handled by PHP proxy
-        let baseurl = `${nlm.proxyUrl}/NlmFetch.php?db=pubmed&retmode=xml&id=`;
+        const baseurl = `${nlm.proxyUrl}/NlmFetch.php?db=pubmed&retmode=xml&id=`;
 
-        let url = baseurl + self.idswithAbstractsToLoad.join(",");
-        let axiosInstance = axios.create({
+        const url = baseurl + this.idswithAbstractsToLoad.join(",");
+        const axiosInstance = axios.create({
           headers: { Accept: "application/json, text/plain, */*" },
         });
         axiosInstance.interceptors.response.use(undefined, (err) => {
@@ -1023,13 +1012,13 @@
           );
         });
 
-        let loadData = axiosInstance
+        const loadData = axiosInstance
           .get(url, { retry: 10 })
-          .then(function (resp) {
-            let data = resp.data;
+          .then((resp) => {
+            const data = resp.data;
             let xmlDoc;
             if (window.DOMParser) {
-              let parser = new DOMParser();
+              const parser = new DOMParser();
               xmlDoc = parser.parseFromString(data, "text/xml");
             } else {
               // https://www.npmjs.com/package/winax?activeTab=readme 13 yo package for ActiveXObject
@@ -1042,35 +1031,37 @@
             if (xmlDoc.getElementsByTagName("parsererror").length > 0) {
               return [];
             }
-            let articles = Array.from(xmlDoc.getElementsByTagName("PubmedArticle"));
-            let articleData = articles.map((article) => {
+            const articles = Array.from(xmlDoc.getElementsByTagName("PubmedArticle"));
+            const articleData = articles
+              .map((article) => {
               const pmidEl = article.getElementsByTagName("PMID")[0];
               if (!pmidEl) return null;
-              let pmid = pmidEl.textContent;
-              let sections = article.getElementsByTagName("AbstractText");
-              if (sections.length == 1) {
-                let abstractText = sections[0].textContent;
+              const pmid = pmidEl.textContent;
+              const sections = article.getElementsByTagName("AbstractText");
+              if (sections.length === 1) {
+                const abstractText = sections[0].textContent;
                 return [pmid, abstractText];
               } else {
-                let text = {};
+                const text = {};
                 for (let i = 0; i < sections.length; i++) {
-                  let sectionName = sections[i].getAttribute("Label");
-                  let sectionText = sections[i].textContent;
+                  const sectionName = sections[i].getAttribute("Label");
+                  const sectionText = sections[i].textContent;
                   text[sectionName] = sectionText;
                 }
                 return [pmid, text];
               }
-            }).filter(Boolean);
+            })
+              .filter(Boolean);
 
             return articleData;
           })
-          .catch(function (err) {
+          .catch((err) => {
             console.error("Error in fetch from pubMed:", err);
           });
 
         loadData.then((v) => {
           if (!Array.isArray(v)) return;
-          for (let item of v) {
+          for (const item of v) {
             this.onAbstractLoad(item[0], item[1]);
           }
         });

@@ -164,6 +164,7 @@
   import { appSettingsMixin } from "@/mixins/appSettings";
   import { scopeIds, customInputTagTooltip } from "@/utils/contentHelpers.js";
   import { loadFiltersFromRuntime, loadStandardString } from "@/utils/contentLoader";
+  import { cloneDeep, debounce, isMobileViewport } from "@/utils/componentHelpers";
 
   export default {
     name: "SearchForm",
@@ -268,6 +269,8 @@
         urlCheckLimits: [],
         urlOrderLimits: [],
         filtersContent: [],
+        normalizedHideTopicsFromProp: null,
+        hasAvailableTopicsCached: false,
       };
     },
     computed: {
@@ -312,52 +315,7 @@
         });
       },
       hasAvailableTopics() {
-        if (!this.subjectOptions || this.subjectOptions.length === 0) {
-          return false;
-        }
-        const effectiveHideTopics = this.effectiveHideTopics;
-        
-        // Simuler samme logik som DropdownWrapper's shownSubjects
-        const shouldHideItem = (item) => {
-          if (effectiveHideTopics.includes(item.id)) {
-            return true;
-          }
-          if (item.maintopicIdLevel1 && effectiveHideTopics.includes(item.maintopicIdLevel1)) {
-            return true;
-          }
-          if (item.maintopicIdLevel2 && effectiveHideTopics.includes(item.maintopicIdLevel2)) {
-            return true;
-          }
-          return false;
-        };
-
-        const availableTopics = this.subjectOptions
-          .map(section => {
-            if (shouldHideItem(section)) {
-              return null;
-            }
-
-            const sectionCopy = JSON.parse(JSON.stringify(section));
-            
-            if (sectionCopy.groups) {
-              sectionCopy.groups = sectionCopy.groups.filter(group => {
-                return !shouldHideItem(group);
-              });
-            }
-            
-            return sectionCopy;
-          })
-          .filter(section => section !== null)
-          .filter(section => {
-            if (section.groups) {
-              return section.groups.length > 0;
-            }
-            return true;
-          });
-
-        return availableTopics.length > 0 && availableTopics.some(section => 
-          section.groups && section.groups.length > 0
-        );
+        return this.hasAvailableTopicsCached;
       },
       defaultHiddenTopicIds() {
         const out = [];
@@ -377,7 +335,11 @@
         return out;
       },
       effectiveHideTopics() {
-        const configured = Array.isArray(this.hideTopics) ? this.hideTopics : [];
+        const configured = Array.isArray(this.normalizedHideTopicsFromProp)
+          ? this.normalizedHideTopicsFromProp
+          : Array.isArray(this.hideTopics)
+            ? this.hideTopics
+            : [];
         return Array.from(new Set([...configured, ...this.defaultHiddenTopicIds]));
       },
       hasFilterSelections() {
@@ -395,7 +357,8 @@
       searchIntent() {
         const getItemLabel = (item) => {
           if (item.preTranslation) return item.preTranslation;
-          if (item.translations && item.translations[this.language]) return item.translations[this.language];
+          const translated = item.translations?.[this.language];
+          if (translated) return translated;
           if (item.name) return item.name;
           return "";
         };
@@ -563,7 +526,16 @@
       },
     },
     watch: {
-      // Fjernet fejlagtig watch handler for subjectSelection
+      subjectOptions: {
+        deep: true,
+        immediate: true,
+        handler() {
+          this.recomputeHasAvailableTopics();
+        },
+      },
+      effectiveHideTopics() {
+        this.recomputeHasAvailableTopics();
+      },
     },
     beforeUnmount() {
       this.clearPlaceholderDotInterval();
@@ -572,8 +544,10 @@
       if (this._focusVisibleCleanup) {
         this._focusVisibleCleanup();
       }
-      // Tilføj proper cleanup for resize listener
-      window.removeEventListener("resize", this.updateSubjectDropdownWidth);
+      // Add proper cleanup for resize listener
+      if (this._updateSubjectDropdownWidthDebounced) {
+        window.removeEventListener("resize", this._updateSubjectDropdownWidthDebounced);
+      }
     },
     async mounted() {
       await this.loadFiltersData();
@@ -585,7 +559,11 @@
 
       this.updatePlaceholders();
       this.updateSubjectDropdownWidth();
-      window.addEventListener("resize", this.updateSubjectDropdownWidth);
+      this._updateSubjectDropdownWidthDebounced = debounce(
+        this.updateSubjectDropdownWidth.bind(this),
+        120
+      );
+      window.addEventListener("resize", this._updateSubjectDropdownWidthDebounced);
 
       this.prepareFilterOptions();
       this.prepareSubjectOptions();
@@ -609,20 +587,21 @@
       
       // Ensure correct placeholder width after DOM is fully rendered
       this.$nextTick(() => {
-        this.$nextTick(() => {
-          this.updateSubjectDropdownWidth();
-          this.updatePlaceholders();
+        this.updateSubjectDropdownWidth();
+        this.updatePlaceholders();
 
-          // Silent focus on the first input — only for the first SearchForm instance on the page
-          const allWrappers = document.querySelectorAll(".qpm-searchform, .searchform");
-          const isFirstInstance = allWrappers.length === 0 || allWrappers[0] === this.$el || allWrappers[0] === this.$el?.parentElement;
-          if (!isFirstInstance) return;
+        // Silent focus on the first input — only for the first SearchForm instance on the page
+        const allWrappers = document.querySelectorAll(".qpm-searchform, .searchform");
+        const isFirstInstance =
+          allWrappers.length === 0 ||
+          allWrappers[0] === this.$el ||
+          allWrappers[0] === this.$el?.parentElement;
+        if (!isFirstInstance) return;
 
-          const firstSubjectDropdown = this.$refs.subjectSelection?.$refs.subjectDropdown?.[0];
-          if (firstSubjectDropdown && firstSubjectDropdown.setSilentFocusFromParent) {
-            firstSubjectDropdown.setSilentFocusFromParent();
-          }
-        });
+        const firstSubjectDropdown = this.$refs.subjectSelection?.$refs.subjectDropdown?.[0];
+        if (firstSubjectDropdown && firstSubjectDropdown.setSilentFocusFromParent) {
+          firstSubjectDropdown.setSilentFocusFromParent();
+        }
       });
       
       // Initialize focus-visible behavior
@@ -632,15 +611,64 @@
     },
     created() {
       // If hideTopics comes as string, convert it to array
-      if (typeof this.hideTopics === 'string') {
+      if (typeof this.hideTopics === "string") {
         try {
-          this.hideTopics = JSON.parse(this.hideTopics.replace(/'/g, '"'));
+          this.normalizedHideTopicsFromProp = JSON.parse(this.hideTopics.replace(/'/g, '"'));
         } catch (e) {
-          this.hideTopics = [];
+          this.normalizedHideTopicsFromProp = [];
         }
       }
     },
     methods: {
+      recomputeHasAvailableTopics() {
+        if (!this.subjectOptions || this.subjectOptions.length === 0) {
+          this.hasAvailableTopicsCached = false;
+          return;
+        }
+        const effectiveHideTopics = this.effectiveHideTopics;
+
+        // Simulate the same logic as DropdownWrapper's shownSubjects
+        const shouldHideItem = (item) => {
+          if (effectiveHideTopics.includes(item.id)) {
+            return true;
+          }
+          if (item.maintopicIdLevel1 && effectiveHideTopics.includes(item.maintopicIdLevel1)) {
+            return true;
+          }
+          if (item.maintopicIdLevel2 && effectiveHideTopics.includes(item.maintopicIdLevel2)) {
+            return true;
+          }
+          return false;
+        };
+
+        const availableTopics = this.subjectOptions
+          .map((section) => {
+            if (shouldHideItem(section)) {
+              return null;
+            }
+
+            const sectionCopy = cloneDeep(section);
+
+            if (sectionCopy.groups) {
+              sectionCopy.groups = sectionCopy.groups.filter((group) => {
+                return !shouldHideItem(group);
+              });
+            }
+
+            return sectionCopy;
+          })
+          .filter((section) => section !== null && section !== undefined)
+          .filter((section) => {
+            if (section.groups) {
+              return section.groups.length > 0;
+            }
+            return true;
+          });
+
+        this.hasAvailableTopicsCached = availableTopics.length > 0 && availableTopics.some((section) => {
+          return section.groups && section.groups.length > 0;
+        });
+      },
       async loadFiltersData() {
         try {
           this.filtersContent = await loadFiltersFromRuntime();
@@ -717,7 +745,7 @@
 
         // Save pre-reset filterData for migration (before it gets cleared)
         const preResetFilterData = (!this.alwaysShowFilter && Object.keys(this.filterData).length > 0)
-          ? JSON.parse(JSON.stringify(this.filterData))
+          ? cloneDeep(this.filterData)
           : null;
 
         // Reset filters if necessary
@@ -781,7 +809,7 @@
         });
       },
       prepareFilterOptions() {
-        const filterCopy = normalizeFiltersList(JSON.parse(JSON.stringify(this.filtersContent)));
+        const filterCopy = normalizeFiltersList(cloneDeep(this.filtersContent));
         filterCopy.forEach((filterItem) => {
           // Skip if filterItem is null or undefined
           if (!filterItem) return;
@@ -813,7 +841,7 @@
         });
       },
       prepareSubjectOptions() {
-        const subjectCopy = JSON.parse(JSON.stringify(this.topics));
+        const subjectCopy = cloneDeep(this.topics);
         subjectCopy.forEach((subjectItem) => {
           // Skip if subjectItem is null or undefined
           if (!subjectItem) return;
@@ -1212,7 +1240,7 @@
           if (!item.scope) item.scope = "normal";
         });
 
-        const updated = JSON.parse(JSON.stringify(this.filterDropdowns));
+        const updated = cloneDeep(this.filterDropdowns);
         updated[index] = value;
         this.filterDropdowns = updated;
 
@@ -1258,29 +1286,13 @@
         this.$nextTick(() => {
           const filterSelection = this.$refs.advancedSearchFilters?.$refs.filterSelection;
           if (!filterSelection) return;
-          const dropdowns = filterSelection.$refs.filterDropdown;
-          const lastDropdown = Array.isArray(dropdowns) ? dropdowns[dropdowns.length - 1] : dropdowns;
-
-          if (lastDropdown && lastDropdown.$refs && lastDropdown.$refs.multiselect) {
-            const input = lastDropdown.$refs.multiselect.$refs.search;
-            if (input) {
-              input.focus();
-              if (!lastDropdown.shouldHideDropdownArrow) {
-                lastDropdown.$refs.multiselect.activate();
-              }
-            }
-          }
+          const lastDropdown = this.getLastDropdownRef(filterSelection.$refs.filterDropdown);
+          this.tryActivateDropdown(lastDropdown, { focusInput: true });
 
           // Retry with small delay if first attempt failed
           setTimeout(() => {
-            const dropdowns2 = filterSelection.$refs.filterDropdown;
-            const lastDropdown2 = Array.isArray(dropdowns2) ? dropdowns2[dropdowns2.length - 1] : dropdowns2;
-            if (lastDropdown2 && lastDropdown2.$refs && lastDropdown2.$refs.multiselect) {
-              const input2 = lastDropdown2.$refs.multiselect.$refs.search;
-              if (input2 && !lastDropdown2.shouldHideDropdownArrow && !lastDropdown2.$refs.multiselect.isOpen) {
-                lastDropdown2.$refs.multiselect.activate();
-              }
-            }
+            const lastDropdown = this.getLastDropdownRef(filterSelection.$refs.filterDropdown);
+            this.tryActivateDropdown(lastDropdown, { onlyWhenClosed: true });
           }, 100);
         });
       },
@@ -1308,7 +1320,7 @@
        * @param {number} index - The index of the filter dropdown.
        */
       updateFilterDropdownScope(item, state, index) {
-        const updated = JSON.parse(JSON.stringify(this.filterDropdowns));
+        const updated = cloneDeep(this.filterDropdowns);
 
         if (updated[index] && Array.isArray(updated[index])) {
           const targetItem = updated[index].find((i) => i.id === item.id);
@@ -1502,13 +1514,11 @@
         // Open dropdown with a delay
         setTimeout(() => {
           if (this.advanced && this.$refs.advancedSearchFilters) {
-            const filterSelection = this.$refs.advancedSearchFilters.$refs.filterSelection;
+            const filterSelection = this.$refs.advancedSearchFilters?.$refs?.filterSelection;
             if (filterSelection) {
               const dropdowns = filterSelection.$refs.filterDropdown;
               const firstDropdown = Array.isArray(dropdowns) ? dropdowns[0] : dropdowns;
-              if (firstDropdown && firstDropdown.$refs.multiselect) {
-                firstDropdown.$refs.multiselect.$refs.search.focus();
-              }
+              this.tryActivateDropdown(firstDropdown, { focusInput: true, shouldActivate: false });
             }
           }
         }, 50);
@@ -1524,11 +1534,9 @@
        * 4. Sets a timeout to focus on the search input of the newly added subject dropdown.
        */
       addSubject() {
-        var hasEmptySubject = this.subjects.some(function (e) {
-          return e.length === 0;
-        });
+        const hasEmptySubject = this.subjects.some((entry) => entry.length === 0);
         if (hasEmptySubject) {
-          var message = this.getString("fillEmptyDropdownFirstAlert");
+          const message = this.getString("fillEmptyDropdownFirstAlert");
           alert(message);
           return;
         }
@@ -1536,36 +1544,19 @@
         this.updatePlaceholders();
         this.subjects = [...this.subjects, []];
 
-        this.$nextTick(function () {
-          const subjectDropdown = this.$refs.subjectSelection.$refs.subjectDropdown;
-          const lastDropdown = subjectDropdown[subjectDropdown.length - 1];
-          
-          if (lastDropdown && lastDropdown.$refs && lastDropdown.$refs.multiselect) {
-            // Focus on the input and open the dropdown
-            const input = lastDropdown.$refs.multiselect.$refs.search;
-            if (input) {
-              input.focus();
-              // Open the dropdown if it has topics
-              if (!lastDropdown.shouldHideDropdownArrow) {
-                lastDropdown.$refs.multiselect.activate();
-              }
-            }
-          }
+        this.$nextTick(() => {
+          const subjectDropdownRef = this.$refs?.subjectSelection?.$refs?.subjectDropdown;
+          const lastDropdown = this.getLastDropdownRef(subjectDropdownRef);
+          this.tryActivateDropdown(lastDropdown, { focusInput: true });
 
           // Update placeholders after DOM update
           this.updatePlaceholders();
           
           // Try again with a small delay if first attempt failed
           setTimeout(() => {
-            const subjectDropdown = this.$refs.subjectSelection.$refs.subjectDropdown;
-            const lastDropdown = subjectDropdown[subjectDropdown.length - 1];
-            
-            if (lastDropdown && lastDropdown.$refs && lastDropdown.$refs.multiselect) {
-              const input = lastDropdown.$refs.multiselect.$refs.search;
-              if (input && !lastDropdown.shouldHideDropdownArrow && !lastDropdown.$refs.multiselect.isOpen) {
-                lastDropdown.$refs.multiselect.activate();
-              }
-            }
+            const subjectDropdownRef = this.$refs?.subjectSelection?.$refs?.subjectDropdown;
+            const lastDropdown = this.getLastDropdownRef(subjectDropdownRef);
+            this.tryActivateDropdown(lastDropdown, { onlyWhenClosed: true });
           }, 100);
         });
       },
@@ -1575,7 +1566,7 @@
        * @param {number} id - The index of the subject to remove.
        */
       removeSubject(id) {
-        var isEmptySubject = this.subjects[id] && this.subjects[id].length === 0;
+        const isEmptySubject = this.subjects[id] && this.subjects[id].length === 0;
 
         this.subjects.splice(id, 1);
         this.setUrl();
@@ -1598,7 +1589,7 @@
 
         if (this.subjects.length > 1) this.isFirstFill = false;
 
-        const updatedSubjects = JSON.parse(JSON.stringify(this.subjects));
+        const updatedSubjects = cloneDeep(this.subjects);
         updatedSubjects[index] = value;
         this.subjects = updatedSubjects;
 
@@ -1630,7 +1621,7 @@
        * @param {number} index - The index of the subjects array where the item resides.
        */
       updateSubjectScope(item, state, index) {
-        const updatedSubjects = JSON.parse(JSON.stringify(this.subjects));
+        const updatedSubjects = cloneDeep(this.subjects);
 
         if (Array.isArray(updatedSubjects) && updatedSubjects[index]) {
           const subject = updatedSubjects[index].find(
@@ -1660,7 +1651,7 @@
        * @param {Array<Object>} value - The list of filter items to update.
        */
       updateFilters(value) {
-        this.filters = JSON.parse(JSON.stringify(value));
+        this.filters = cloneDeep(value);
 
         this.filterData = this.filters.reduce((acc, filter) => {
           acc[filter.id] = this.filterData[filter.id] || [];
@@ -1681,7 +1672,7 @@
           if (!item.scope) item.scope = "normal";
         });
 
-        const updatedFilterData = JSON.parse(JSON.stringify(this.filterData));
+        const updatedFilterData = cloneDeep(this.filterData);
         updatedFilterData[index] = value;
         this.filterData = updatedFilterData;
 
@@ -1760,32 +1751,33 @@
       updateFilterSimpleOnEnter(selectedValue) {
         const baseId = selectedValue?.id || selectedValue?.name || "";
         if (!baseId) return;
-        var checkboxId = String(baseId).replaceAll(" ", "\\ "); // Handle ids with whitespace
-        var checkbox = this.$el.querySelector("#" + checkboxId);
-        checkbox.click();
+        const checkboxId = String(baseId).replaceAll(" ", "\\ "); // Handle ids with whitespace
+        const checkbox = this.$el?.querySelector("#" + checkboxId);
+        if (checkbox && typeof checkbox.click === "function") {
+          checkbox.click();
+        }
       },
       /**
        * This methods can only be called once.
        * It prefills some of the filter options in simple search.
        */
       selectStandardSimple() {
-        const self = this;
         const filtersToSelect = [];
         const useCheckLimits =
-          Array.isArray(self.effectiveCheckLimits) && self.effectiveCheckLimits.length > 0;
-        const hiddenGroupIds = new Set(self.effectiveHideLimits);
-        for (let i = 0; i < self.filterOptions.length; i++) {
-          const option = self.filterOptions[i];
+          Array.isArray(this.effectiveCheckLimits) && this.effectiveCheckLimits.length > 0;
+        const hiddenGroupIds = new Set(this.effectiveHideLimits);
+        for (let i = 0; i < this.filterOptions.length; i++) {
+          const option = this.filterOptions[i];
           if (hiddenGroupIds.has(option.id)) {
             continue;
           }
           for (let j = 0; j < option.choices.length; j++) {
             const choice = option.choices[j];
-            if (self.effectiveHideLimits.includes(choice.id)) {
+            if (this.effectiveHideLimits.includes(choice.id)) {
               continue;
             }
             const shouldSelect = useCheckLimits
-              ? self.effectiveCheckLimits.includes(choice.id) || choice.standardSimple
+              ? this.effectiveCheckLimits.includes(choice.id) || choice.standardSimple
               : choice.standardSimple;
             if (shouldSelect) {
               const filterValue = Object.assign({ scope: "normal" }, choice);
@@ -1797,7 +1789,7 @@
           }
         }
 
-        const tempFilters = JSON.parse(JSON.stringify(this.filterData));
+        const tempFilters = cloneDeep(this.filterData);
         // Update selected filters here.
         for (let i = 0; i < filtersToSelect.length; i++) {
           const filterToSelect = filtersToSelect[i];
@@ -1841,7 +1833,7 @@
        */
       updateAdvancedFilterScope(item, state, index) {
         // Create a deep copy of the filter data
-        const sel = JSON.parse(JSON.stringify(this.filterData));
+        const sel = cloneDeep(this.filterData);
 
         // Check if sel[index] exists and is an array
         if (sel[index] && Array.isArray(sel[index])) {
@@ -1947,7 +1939,7 @@
         }
 
         // Reset expanded groups in dropdown. Only need to do first as the other dropdowns are deleted
-        const subjectDropdown = this.$refs.subjectSelection.$refs.subjectDropdown;
+        const subjectDropdown = this.$refs?.subjectSelection?.$refs?.subjectDropdown;
         if (subjectDropdown && subjectDropdown[0]) {
           subjectDropdown[0].clearShownItems();
         }
@@ -1955,7 +1947,7 @@
         
         // Focus on the first input field after reset
         this.$nextTick(() => {
-          const subjectDropdown = this.$refs.subjectSelection.$refs.subjectDropdown;
+          const subjectDropdown = this.$refs?.subjectSelection?.$refs?.subjectDropdown;
           if (subjectDropdown && subjectDropdown[0] && subjectDropdown[0].setSilentFocusFromParent) {
             subjectDropdown[0].setSilentFocusFromParent();
           }
@@ -1969,9 +1961,10 @@
         return true;
       },
       scrollToTop() {
-        document
-          .getElementById(this.scrollToID)
-          .scrollIntoView({ block: "start", behavior: "smooth" });
+        const target = document.getElementById(this.scrollToID);
+        if (target) {
+          target.scrollIntoView({ block: "start", behavior: "smooth" });
+        }
       },
       /**
        * Reloads certain scripts and removes specific script and div elements from the DOM.
@@ -2126,7 +2119,7 @@
 
           // Update UI and focus
           this.$nextTick(() => {
-            const searchButton = this.$el.querySelector(".qpm_search");
+            const searchButton = this.$el?.querySelector(".qpm_search");
             if (searchButton) searchButton.focus();
 
             const topOfSearch = document.getElementById("qpm_topofsearch");
@@ -2266,7 +2259,7 @@
           this.searchLoading = false;
 
           // Find the first result entry from the new data and focus on it
-          const currentResultEntries = this.$refs.searchResultList.$refs.resultEntries;
+          const currentResultEntries = this.$refs?.searchResultList?.$refs?.resultEntries || [];
 
           const resultEntryIndexToFocus = targetResultLength - this.pageSize;
 
@@ -2292,18 +2285,18 @@
        * @returns {Promise<Object[]>} A promise that resolves to an array of article data objects.
        */
       async searchByIds(ids) {
-        ids = ids.filter((id) => id && id.trim() != "");
-        if (ids.length == 0) {
+        ids = ids.filter((id) => id && id.trim() !== "");
+        if (ids.length === 0) {
           return [];
         }
-        let nlm = this.appSettings.nlm;
+        const nlm = this.appSettings.nlm;
         // Credentials handled by PHP proxy
-        let baseUrl = `${nlm.proxyUrl}/NlmSummary.php?db=pubmed&retmode=json&id=`;
+        const baseUrl = `${nlm.proxyUrl}/NlmSummary.php?db=pubmed&retmode=json&id=`;
 
-        return axios.get(baseUrl + ids.join(",")).then(function (resp) {
+        return axios.get(baseUrl + ids.join(",")).then((resp) => {
           //Create list of returned data
-          let data = [];
-          let obj = resp.data.result;
+          const data = [];
+          const obj = resp.data.result;
           if (!obj) {
             throw Error("Search failed", resp);
           }
@@ -2333,8 +2326,8 @@
        * @param {Error} err - The error object representing the cause of the search failure.
        */
       showSearchError(err) {
-        let message = this.getString("searchErrorGeneric");
-        let option = { cause: err };
+        const message = this.getString("searchErrorGeneric");
+        const option = { cause: err };
         this.searchError = Error(message, option);
       },
       async setPageSize(pageSize) {
@@ -2360,7 +2353,8 @@
         this.advancedString = !this.advancedString;
       },
       async newSortMethod(newVal) {
-        this.sort = newVal;
+        this.sort =
+          newVal && typeof newVal === "object" ? { ...newVal } : newVal;
         this.page = 0;
         this.setUrl();
         this.count = 0;
@@ -2380,8 +2374,8 @@
           console.warn(`Missing translation key: ${string}`);
           return string;
         }
-        let constant = messages[string][this.language];
-        return constant != undefined ? constant : messages[string]["dk"];
+        const constant = messages[string][this.language];
+        return constant !== undefined ? constant : messages[string]["dk"];
       },
       /**
        * Returns the custom name label for the given option.
@@ -2406,37 +2400,46 @@
         if (!dropdown) return;
         this.subjectDropdownWidth = parseInt(dropdown.offsetWidth);
 
-        // Opdater placeholders automatisk ved resize
+        // Update placeholders automatically on resize
         this.updatePlaceholders();
       },
-      checkIfMobile() {
-        let check = false;
-        (function (a) {
-          if (
-            /(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino/i.test(
-              a
-            ) ||
-            /1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw-(n|u)|c55\/|capi|ccwa|cdm-|cell|chtm|cldc|cmd-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc-s|devi|dica|dmob|do(c|p)o|ds(12|-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(-|_)|g1 u|g560|gene|gf-5|g-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd-(m|p|t)|hei-|hi(pt|ta)|hp( i|ip)|hs-c|ht(c(-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i-(20|go|ma)|i230|iac( |-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|-[a-w])|libw|lynx|m1-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|-([1-8]|c))|phil|pire|pl(ay|uc)|pn-2|po(ck|rt|se)|prox|psio|pt-g|qa-a|qc(07|12|21|32|60|-[2-7]|i-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h-|oo|p-)|sdk\/|se(c(-|0|1)|47|mc|nd|ri)|sgh-|shar|sie(-|m)|sk-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h-|v-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl-|tdg-|tel(i|m)|tim-|t-mo|to(pl|sh)|ts(70|m-|m3|m5)|tx-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas-|your|zeto|zte-/i.test(
-              a.substr(0, 4)
-            )
-          )
-            check = true;
-        })(navigator.userAgent || navigator.vendor || window.opera);
-        return check;
+      getLastDropdownRef(refEntry) {
+        const refs = Array.isArray(refEntry) ? refEntry : refEntry ? [refEntry] : [];
+        return refs[refs.length - 1];
+      },
+      tryActivateDropdown(
+        dropdown,
+        { focusInput = false, onlyWhenClosed = false, shouldActivate = true } = {}
+      ) {
+        const multiselect = dropdown?.$refs?.multiselect;
+        const input = multiselect?.$refs?.search;
+        if (!input) return;
+        if (focusInput && typeof input.focus === "function") {
+          input.focus();
+        }
+        if (
+          shouldActivate &&
+          !dropdown?.shouldHideDropdownArrow &&
+          (!onlyWhenClosed || !multiselect.isOpen) &&
+          typeof multiselect.activate === "function"
+        ) {
+          multiselect.activate();
+        }
       },
       shouldFocusNextDropdownOnMount(source) {
         if (!this.focusNextDropdownOnMount) return;
         this.focusNextDropdownOnMount = false;
-        source.$refs.multiselect.activate();
+        const multiselect = source?.$refs?.multiselect;
+        if (multiselect && typeof multiselect.activate === "function") {
+          multiselect.activate();
+        }
       },
       getSimpleTooltip(choice) {
         if (!choice.tooltip_simple) return null;
         return choice.tooltip_simple[this.language];
       },
       async updatePreselectedPmidai(newValue) {
-        this.preselectedPmidai = (newValue ?? []).map(function (e) {
-          return e.uid;
-        });
+        this.preselectedPmidai = (newValue ?? []).map((entry) => entry.uid);
 
         this.setUrl();
       },
@@ -2449,9 +2452,9 @@
         
         const hasTopics = this.hasAvailableTopics;
         const width = this.subjectDropdownWidth;
-        const isMobileOrSmall = this.checkIfMobile() || (width < 520 && width >= 0);
+        const isMobileOrSmall = isMobileViewport() || (width < 520 && width >= 0);
         
-        // Brug samme mobile logic for både simple og advanced
+        // Use the same mobile logic for both simple and advanced modes
         if (isMobileOrSmall) {
           return this.getString(hasTopics ? "subjectadvancedplaceholder_mobile" : "subjectadvancedplaceholder_mobile_notopics");
         } else {
@@ -2463,7 +2466,7 @@
         }
       },
       clearPlaceholderDotInterval() {
-        if (this.placeholderDotIntervalId != null) {
+        if (this.placeholderDotIntervalId !== null && this.placeholderDotIntervalId !== undefined) {
           clearInterval(this.placeholderDotIntervalId);
           this.placeholderDotIntervalId = null;
         }
@@ -2474,7 +2477,10 @@
         return this.filterDropdownPlaceholders[index] || this.getString("choselimits");
       },
       clearFilterPlaceholderDotInterval() {
-        if (this.filterPlaceholderDotIntervalId != null) {
+        if (
+          this.filterPlaceholderDotIntervalId !== null &&
+          this.filterPlaceholderDotIntervalId !== undefined
+        ) {
           clearInterval(this.filterPlaceholderDotIntervalId);
           this.filterPlaceholderDotIntervalId = null;
         }

@@ -19,9 +19,9 @@
           :no-result-string="getString('noLimitDropdownContent')"
           :is-filter-dropdown="true"
           :index="n"
-          @input="handleUpdateFilters"
-          @updateScope="handleUpdateScope"
-          @translating="handleTranslating"
+          @input="(...args) => $emit('update-filter-dropdown', ...args)"
+          @updateScope="(...args) => $emit('update-filter-scope', ...args)"
+          @translating="(...args) => $emit('update-filter-placeholder', ...args)"
         />
 
         <i
@@ -79,7 +79,6 @@
       language: { type: String, default: "dk" },
       getString: {
         type: Function,
-        required: true,
         default: () => "",
       },
       advanced: Boolean,
@@ -91,13 +90,15 @@
     },
     computed: {
       groupedFilterOptions() {
-        return this.filterOptions.map((f) => ({
+        const safeOptions = Array.isArray(this.filterOptions) ? this.filterOptions : [];
+        return safeOptions.map((f) => ({
           ...f,
           groups: f.choices || f.groups || [],
         }));
       },
       hasFilterSelections() {
-        return this.filterDropdowns.some((dropdown) => dropdown.length > 0);
+        if (!Array.isArray(this.filterDropdowns)) return false;
+        return this.filterDropdowns.some((dropdown) => Array.isArray(dropdown) && dropdown.length > 0);
       },
     },
     watch: {
@@ -105,47 +106,29 @@
         immediate: true,
         handler() {
           this.$nextTick(() => {
-            if (this.$refs.filterDropdown) {
-              const dropdowns = Array.isArray(this.$refs.filterDropdown)
-                ? this.$refs.filterDropdown
-                : [this.$refs.filterDropdown];
-              dropdowns.forEach((dropdown) => {
-                if (dropdown) {
-                  dropdown.updateSortedSubjectOptions();
-                  dropdown.$forceUpdate();
-                }
-              });
-            }
+            this.refreshFilterDropdownOptions();
           });
         },
       },
     },
     mounted() {
       this.$nextTick(() => {
-        if (this.$refs.filterDropdown) {
-          const dropdowns = Array.isArray(this.$refs.filterDropdown)
-            ? this.$refs.filterDropdown
-            : [this.$refs.filterDropdown];
-          dropdowns.forEach((dropdown) => {
-            if (dropdown) {
-              dropdown.updateSortedSubjectOptions();
-            }
-          });
-        }
+        this.refreshFilterDropdownOptions();
       });
     },
     methods: {
+      refreshFilterDropdownOptions() {
+        const dropdownRefs = this.$refs?.filterDropdown;
+        if (!dropdownRefs) return;
+        const dropdowns = Array.isArray(dropdownRefs) ? dropdownRefs : [dropdownRefs];
+        dropdowns.forEach((dropdown) => {
+          if (dropdown && typeof dropdown.updateSortedSubjectOptions === "function") {
+            dropdown.updateSortedSubjectOptions();
+          }
+        });
+      },
       filterPlaceholderFor(index) {
         return this.getFilterPlaceholder ? this.getFilterPlaceholder(index) : this.getString("choselimits");
-      },
-      handleTranslating(isTranslating, index, stepKey) {
-        this.$emit("update-filter-placeholder", isTranslating, index, stepKey);
-      },
-      handleUpdateFilters(value, index) {
-        this.$emit("update-filter-dropdown", value, index);
-      },
-      handleUpdateScope(item, state, index) {
-        this.$emit("update-filter-scope", item, state, index);
       },
       addFilterDropdown() {
         this.$emit("add-filter-dropdown");

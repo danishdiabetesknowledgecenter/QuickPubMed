@@ -106,8 +106,14 @@
 
   import { appSettingsMixin } from "@/mixins/appSettings";
   import { utilitiesMixin } from "@/mixins/utilities";
-  import { dateOptions, languageFormat } from "@/utils/contentHelpers";
   import { order } from "@/assets/content/order";
+  import {
+    extractDoi,
+    getArticleSource,
+    getAuthorNames,
+    getFormattedEntrezDate,
+    hasAbstractAttribute,
+  } from "@/utils/componentHelpers";
 
   let _specificArticlesUid = 0;
 
@@ -252,10 +258,11 @@
     },
     computed: {
       getPubMedLink() {
+        const myncbiShare = this.appSettings?.nlm?.myncbishare || "";
         return (
           "https://pubmed.ncbi.nlm.nih.gov/?" +
           "myncbishare=" +
-          this.appSettings.nlm.myncbishare +
+          myncbiShare +
           "&term=" +
           encodeURIComponent(this.interpretQuery)
         );
@@ -284,7 +291,7 @@
       this.fetchInitialArticles();
     },
     mounted() {
-      if (this.componentNo == null) {
+      if (this.componentNo === null || this.componentNo === undefined) {
         this.componentId = ++_specificArticlesUid;
       } else {
         this.componentId = this.componentNo;
@@ -309,12 +316,7 @@
         }
         try {
           if (this.authors) return this.authors;
-          let str = "";
-          for (let i = 0; i < authors.length; i++) {
-            if (i > 0) str += ",";
-            str += " " + authors[i].name;
-          }
-          return str;
+          return getAuthorNames(authors);
         } catch (error) {
           console.error("Error in getAuthor: ", error);
           return;
@@ -324,33 +326,12 @@
         if (this.abstract || this.sectionedAbstract) {
           return true;
         }
-        if (!attributes) {
-          return false;
-        }
-        let found = false;
-        Object.keys(attributes).forEach((key) => {
-          let value = attributes[key];
-          if (key === "Has Abstract" || value === "Has Abstract") {
-            found = true;
-          }
-        });
-        return found;
+        return hasAbstractAttribute(attributes);
       },
       getDate(history) {
         try {
           if (this.date) return this.date;
-          if (!history) return "";
-          for (let i = 0; i < history.length; i++) {
-            if (history[i].pubstatus === "entrez") {
-              let date = new Date(history[i].date);
-              let formattedDate = date.toLocaleDateString(
-                languageFormat[this.language],
-                dateOptions
-              );
-              return formattedDate;
-            }
-          }
-          return "";
+          return getFormattedEntrezDate(history, this.language);
         } catch (error) {
           console.error("Error in getDate: ", error);
           return;
@@ -372,14 +353,7 @@
         try {
           if (this.doi || this.isCustomDoi) return this.doi;
           if (!searchResult) return "";
-          let articleids = searchResult.articleids;
-          for (let i = 0; i < articleids.length; i++) {
-            if (articleids[i].idtype === "doi") {
-              let doi = articleids[i].value;
-              return doi;
-            }
-          }
-          return "";
+          return extractDoi(searchResult.articleids);
         } catch (error) {
           console.error("Error in getDoi ", error);
           return undefined;
@@ -409,23 +383,17 @@
       },
       getSource(value) {
         try {
-          let source = "";
           // Check if a custom source is provided
           if (this.source !== "") {
-            if (value !== undefined) {
+            if (value && typeof value === "object") {
               if (value.volume !== undefined) value.volume = undefined;
               if (value.issue !== undefined) value.issue = undefined;
               if (value.pages !== undefined) value.pages = undefined;
               if (value.pubdate !== undefined) value.pubdate = undefined;
             }
-            // Return the custom source
-            source = this.source;
-          } else if (value.booktitle) {
-            source = value.booktitle;
-          } else {
-            source = value.source;
+            return this.source;
           }
-          return source;
+          return getArticleSource(value);
         } catch (error) {
           console.error("Error in getSource:", error);
           return;
@@ -452,7 +420,7 @@
         return "";
       },
       getText(id) {
-        if (id !== undefined) {
+        if (id !== undefined && id !== null) {
           if (
             this.abstractRecords[id] !== undefined &&
             typeof this.abstractRecords[id] === "object"

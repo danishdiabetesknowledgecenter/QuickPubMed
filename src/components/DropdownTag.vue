@@ -59,6 +59,7 @@
 <script>
   import { utilitiesMixin } from "@/mixins/utilities";
   import { customInputTagTooltip } from "@/utils/contentHelpers.js";
+  import { cloneDeep } from "@/utils/componentHelpers";
 
   export default {
     name: "DropdownTag",
@@ -100,7 +101,7 @@
          data() {
        return {
          isEditMode: false,
-         tag: JSON.parse(JSON.stringify(this.triple.option)),
+         tag: cloneDeep(this.triple.option),
          helpTextDelay: 300,
          isMultiLine: false,
        };
@@ -198,7 +199,8 @@
           editInput.blur();
         }
 
-        if (!this.tag.name.trim()) return;
+        const tagName = typeof this.tag.name === "string" ? this.tag.name : "";
+        if (!tagName.trim()) return;
         this.updateTag(this.tag);
       },
       getTagColor(scope) {
@@ -226,7 +228,7 @@
           return;
         }
         
-        // For normale tags: find parent DropdownWrapper
+        // For normal tags: find parent DropdownWrapper
         let parent = this.$parent;
         while (parent && parent.$options.name !== 'DropdownWrapper') {
           parent = parent.$parent;
@@ -271,7 +273,10 @@
       },
       handleCrossKeydown(event) {
         // Simulate click on the cross when Enter is pressed
-        event.target.click();
+        const target = event?.target;
+        if (target && typeof target.click === "function") {
+          target.click();
+        }
       },
              autoResize() {
          const textarea = this.$refs.editInput;

@@ -96,10 +96,10 @@ async function mapWithConcurrency(items, concurrency, mapper) {
   let nextIndex = 0;
 
   async function worker() {
-    while (true) {
+    while (nextIndex < safeItems.length) {
       const index = nextIndex;
       nextIndex += 1;
-      if (index >= safeItems.length) return;
+      if (index >= safeItems.length) break;
       results[index] = await mapper(safeItems[index], index);
     }
   }

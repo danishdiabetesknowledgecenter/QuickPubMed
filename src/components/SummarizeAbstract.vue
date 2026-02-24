@@ -12,7 +12,7 @@
             delay: $helpTextDelay,
           }"
           class="qpm_tab"
-          :class="{ qpm_tab_active: prompt.name == currentSummary }"
+          :class="{ qpm_tab_active: prompt.name === currentSummary }"
           :style="{
             cursor:
               showSummarizeArticle && getAreSummariesLoading && prompt.name !== currentSummary
@@ -29,7 +29,13 @@
     <div class="qpm_searchSummaryTextBackground">
       <template v-if="hasAcceptedAi">
         <div class="qpm_summary_icon_row">
-          <template v-if="getCurrentSummary != null && getCurrentSummaryHistory.length > 1">
+          <template
+            v-if="
+              getCurrentSummary !== null &&
+              getCurrentSummary !== undefined &&
+              getCurrentSummaryHistory.length > 1
+            "
+          >
             <button
               class="qpm_summary_icon bx bx-chevron-left"
               style="margin-right: -12px; margin-top: -3px; border: 0"
@@ -57,7 +63,13 @@
           <p>
             <strong>{{ summaryConsentHeader }}</strong>
           </p>
-          <p v-if="summarySearchSummaryConsentText != null" v-html="summarySearchSummaryConsentText" />
+          <p
+            v-if="
+              summarySearchSummaryConsentText !== null &&
+              summarySearchSummaryConsentText !== undefined
+            "
+            v-html="summarySearchSummaryConsentText"
+          />
           <p v-html="getString('aiSummaryConsentText')" />
           <p v-html="getString('readAboutAiSummaryText')" />
         </div>
@@ -209,7 +221,7 @@
                     <button
                       v-if="
                         !isForbiddenError &&
-                        (!loadingArticleSummaries[currentSummary] || !currentSummary.length === 0)
+                        (!loadingArticleSummaries[currentSummary] || currentSummary.length !== 0)
                       "
                       v-tooltip="{
                         content: getString('hoverretryText'),
@@ -232,7 +244,7 @@
                     <button
                       v-if="
                         !isForbiddenError &&
-                        (!loadingArticleSummaries[currentSummary] || !currentSummary.length === 0)
+                        (!loadingArticleSummaries[currentSummary] || currentSummary.length !== 0)
                       "
                       v-tooltip="{
                         content: getString('hovercopyText'),
@@ -281,6 +293,11 @@
   import { utilitiesMixin } from "@/mixins/utilities";
   import { messages } from "@/assets/content/translations.js";
   import { languageFormat, dateOptions } from "@/utils/contentHelpers.js";
+  import {
+    buildArticleSummaryClipboardText,
+    getLocalizedErrorTranslation,
+    getLocalizedTranslation,
+  } from "@/utils/componentHelpers";
 
   import { config } from "@/config/config.js";
   import { promptText } from "@/assets/prompts/article.js";
@@ -479,18 +496,15 @@
       },
       getCurrentSummaryHistory() {
         if (!this.currentSummary) return null;
-
-        let currentSummaries = this.aiAbstractSummaries[this.currentSummary];
-        return currentSummaries;
+        return this.aiAbstractSummaries[this.currentSummary];
       },
       getCurrentIndex() {
-        let tabState = this.tabStates[this.currentSummary];
-        let index = tabState?.currentIndex ?? 0;
-        return index;
+        const tabState = this.tabStates[this.currentSummary];
+        return tabState?.currentIndex ?? 0;
       },
       getCurrentSummary() {
         let summaries = this.getCurrentSummaryHistory;
-        if (!summaries || summaries.length == 0) return undefined;
+        if (!summaries || summaries.length === 0) return undefined;
 
         let index = this.getCurrentIndex;
 
@@ -498,15 +512,15 @@
       },
       getDidCurrentSummaryError() {
         const summary = this.getCurrentSummary;
-        return summary?.status == "error";
+        return summary?.status === "error";
       },
       isCurrentSummaryWaitingForResponse() {
         const summary = this.getCurrentSummary;
-        return summary?.status == "loading" && (!summary?.body || summary.body.length == 0);
+        return summary?.status === "loading" && (!summary?.body || summary.body.length === 0);
       },
       getWaitTimeString() {
         const currentSummary = this.getCurrentSummary;
-        if (currentSummary == undefined || !currentSummary.showWaitDisclaimer) return "";
+        if (currentSummary === undefined || currentSummary === null || !currentSummary.showWaitDisclaimer) return "";
 
         const longAbstractLengthLimit = this.appSettings.openAi.longAbstractLengthLimit ?? 5000;
 
@@ -570,7 +584,7 @@
         this.isInitialized = true;
       });
       // Trigger initial tab (moved from activated() since <keep-alive> is no longer used)
-      if (this.initialTabPrompt != null) {
+      if (this.initialTabPrompt !== null && this.initialTabPrompt !== undefined) {
         this.clickSummaryTab(this.initialTabPrompt);
       }
     },
@@ -669,23 +683,13 @@
         this.userQuestionsAndAnswers[promptLanguageType] = questionsAndAnswers;
       },
       getTranslation(value) {
-        const lg = this.language;
-        const constant = value.translations[lg];
-        return constant !== undefined ? constant : value.translations["dk"];
+        return getLocalizedTranslation(value, this.language);
       },
       getSummaryPromptByName(name) {
-        return this.prompts.find(function (prompt) {
-          return prompt.name == name;
-        });
+        return this.prompts.find((prompt) => prompt.name === name);
       },
       getErrorTranslation(error) {
-        const lg = this.language;
-        try {
-          const constant = messages[error][lg];
-          return constant !== undefined ? constant : messages["unknownError"][lg];
-        } catch {
-          return messages["unknownError"][lg];
-        }
+        return getLocalizedErrorTranslation(messages, error, this.language);
       },
       /**
        * Constructs a composable abstract prompt with the necessary fields.
@@ -937,7 +941,8 @@
       },
       handleRetryArticleSummary() {
         const refName = `summarizeArticleWithAbstract-${this.currentSummary}`;
-        const summarizeArticleComponent = this.$refs[refName];
+        const refEntry = this.$refs[refName];
+        const summarizeArticleComponent = Array.isArray(refEntry) ? refEntry[0] : refEntry;
 
         if (
           summarizeArticleComponent &&
@@ -955,70 +960,45 @@
         this.$emit("ai-summaries-click-retry", this);
 
         const tab = this.getSummaryPromptByName(this.currentSummary);
+        if (!tab) return;
         if (moveFocus) {
-          this.$el.querySelector(`#${tab.name}`).focus();
+          const tabElement = this.$el?.querySelector(`#${tab.name}`);
+          if (tabElement && typeof tabElement.focus === "function") {
+            tabElement.focus();
+          }
         }
         await this.generateAbstractSummary(tab);
       },
       async clickCopyArticleSummary() {
         console.info("Current article summary copied to the clipboard.");
         if (this.currentSummary !== "") {
-          // Get the user questions and answers for the current summary
-          const userQuestionsAndAnswers = this.userQuestionsAndAnswers[this.currentSummary];
-          const questionsSection = userQuestionsAndAnswers
-            .map((qa) => `${qa.question}\n${qa.answer}`)
-            .join("\n\n");
-
-          // Get the current summary index
+          const userQuestionsAndAnswers = this.userQuestionsAndAnswers[this.currentSummary] || [];
           const idx = this.currentSummaryIndex[this.currentSummary];
-          // Get the summary data for the current summary
-          const summaryData = this.aiArticleSummaries[this.currentSummary][idx].articleSummaryData;
+          const summaryEntry = this.aiArticleSummaries?.[this.currentSummary]?.[idx];
+          const summaryData = Array.isArray(summaryEntry?.articleSummaryData)
+            ? summaryEntry.articleSummaryData
+            : [];
+          const textToCopy = buildArticleSummaryClipboardText({
+            authorsList: this.authorsList,
+            searchResultTitle: this.searchResultTitle,
+            publicationInfo: this.publicationInfo,
+            summaryData,
+            userQuestionsAndAnswers,
+            getString: this.getString,
+            includeEmptyUserQuestionsSection: false,
+          });
+          if (!textToCopy) return;
 
-          const firstSeven = summaryData
-            .slice(0, 7)
-            .map((qa) => `${qa.shortTitle}\n${qa.answer}`)
-            .join("\n\n");
-
-          const remaining = summaryData
-            .slice(7)
-            .map((qa) => `${qa.question}\n${qa.answer}`)
-            .join("\n\n");
-
-          // Construct the text to copy
-          let userQuestionsSection = "";
-          const textToCopy =
-            this.authorsList.trim() +
-            ". " +
-            this.searchResultTitle +
-            " " +
-            this.publicationInfo +
-            ". " +
-            "\n\n" +
-            this.getString("summarizeArticleHeader") +
-            ": " +
-            "\n\n" +
-            firstSeven +
-            "\n\n" +
-            this.getString("generateQuestionsHeader") +
-            ": " +
-            "\n\n" +
-            remaining +
-            "\n\n";
-
-          // If there are user questions, add them to the text to copy
-          if (this.userQuestionsAndAnswers[this.currentSummary].length > 0) {
-            userQuestionsSection =
-              this.getString("userQuestionsHeader") + ": " + "\n\n" + questionsSection + "\n\n";
+          if (navigator?.clipboard?.writeText) {
+            await navigator.clipboard.writeText(textToCopy);
           }
-
-          // Write to clipboard
-          await navigator.clipboard.writeText(textToCopy + userQuestionsSection);
         } else {
           console.error("No current summary to copy.");
         }
       },
       clickCopy() {
         const summary = this.$refs.summary;
+        if (!summary || typeof summary.innerText !== "string") return;
         let textToCopy = "";
         if (this.articlesReferences.length > 0) {
           const articlesReferencesString = this.articlesReferences
@@ -1032,7 +1012,9 @@
             this.publicationInfo
           }.\n\n${summary.innerText.trim()}`;
         }
-        navigator.clipboard.writeText(textToCopy);
+        if (navigator?.clipboard?.writeText) {
+          navigator.clipboard.writeText(textToCopy);
+        }
       },
       clickCloseSummary() {
         this.$emit("close");
@@ -1063,16 +1045,17 @@
         if (target.tagName !== "A") return;
 
         const hrefValue = target.getAttribute("href");
+        if (typeof hrefValue !== "string" || !hrefValue.startsWith("#")) return;
         const hrefNumber = Number.parseInt(hrefValue.slice(1));
 
-        if (!hrefValue.startsWith("#") || !Number.isInteger(hrefNumber)) return;
+        if (!Number.isInteger(hrefNumber)) return;
 
         const selectedArticlesSelectorString = `.qpm_accordion *:where(#${hrefNumber}, [name="${hrefNumber}"])`;
         const searchResultSelectorString = `.qpm_SearchResult *:where(#${hrefNumber}, [name="${hrefNumber}"])`;
         let resultEntry =
           document.querySelector(selectedArticlesSelectorString) ??
           document.querySelector(searchResultSelectorString);
-        if (resultEntry == null) {
+        if (resultEntry === null || resultEntry === undefined) {
           console.debug(
             `onMarkdownClick: no article with the name or id '${hrefNumber}' could be found. ref: '${hrefValue}'.`
           );
@@ -1090,7 +1073,7 @@
         if (this.getAreSummariesLoading && prompt.name !== this.currentSummary) {
           return this.getString("summarizationInProgressDisclaimer");
         }
-        return tooltip[this.language];
+        return tooltip[this.language] ?? tooltip.dk ?? null;
       },
     },
   };
