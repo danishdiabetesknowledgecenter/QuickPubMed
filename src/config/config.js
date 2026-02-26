@@ -1,4 +1,5 @@
 import { reactive } from "vue";
+import { settings } from "@/config/settings.js";
 
 export const config = reactive({
   domain: "", // Default domain
@@ -97,6 +98,17 @@ export async function loadThemeOverridesFromBackend(domain, apiBaseUrl) {
             ...payload.domainTheme,
           },
         };
+      }
+
+      if (payload.unpaywall && typeof payload.unpaywall === "object") {
+        const backendUnpaywallBaseUrl = String(payload.unpaywall.baseUrl || "").trim();
+        const backendUnpaywallEmail = String(payload.unpaywall.email || "").trim();
+        if (backendUnpaywallBaseUrl) {
+          settings.unpaywall.baseUrl = backendUnpaywallBaseUrl;
+        }
+        if (backendUnpaywallEmail) {
+          settings.unpaywall.email = backendUnpaywallEmail;
+        }
       }
 
       themeConfigCache.set(cacheKey, { expiresAt: Date.now() + THEME_CONFIG_CACHE_TTL_MS });

@@ -83,11 +83,12 @@ For local frontend development, you can use one of these API modes:
 
 #### Runtime content and domain-specific rules
 
-To keep the frontend bundle generic, domain-specific content is loaded at runtime from backend storage:
+To keep the frontend bundle generic, domain-specific content is loaded at runtime from data storage:
 
-- `backend/storage/content/<domain>/topics.json`
-- `backend/storage/content/filters.json`
-- `backend/storage/content/<domain>/prompt-rules.json`
+- `data/content/<domain>/topics.json`
+- `data/content/filters.json`
+- `data/content/<domain>/prompt-rules.json`
+- `data/content/<domain>/domain-config.json` (optional domain-specific backend overrides)
 
 Frontend reads this via `backend/api/PublicContent.php`:
 

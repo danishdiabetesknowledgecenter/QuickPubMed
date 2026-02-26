@@ -1,6 +1,6 @@
 <template>
-  <div class="qpm_flex qpm_bottom" style="justify-content: space-between">
-    <div style="position: relative">
+  <div class="qpm_flex qpm_bottom qpm_actionButtonsRow">
+    <div class="qpm_actionButtonsGroup">
       <!-- The reset button -->
       <button
         v-tooltip="{
@@ -11,7 +11,7 @@
         class="qpm_button"
         @click="clear"
       >
-        <i class="bx bx-reset" style="vertical-align: baseline" />
+        <i class="bx bx-reset qpm_iconBaseline" />
         {{ getString("reset") }}
       </button>
 
@@ -25,7 +25,7 @@
         class="qpm_button"
         @click="copyUrl"
       >
-        <i class="bx bx-link" style="vertical-align: baseline" />
+        <i class="bx bx-link qpm_iconBaseline" />
         {{ getString("getUrl") }}
       </button>
     </div>
@@ -42,7 +42,7 @@
       class="qpm_button qpm_search"
       @click="searchsetLowStart"
     >
-      <i class="bx bx-search bx-flip-horizontal" style="position: relative; margin-right: 5px" />
+      <i class="bx bx-search bx-flip-horizontal qpm_searchIcon" />
       {{ getString("search") }}
     </button>
   </div>
@@ -74,3 +74,4 @@
     },
   };
 </script>
+

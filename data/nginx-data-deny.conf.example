@@ -1,0 +1,7 @@
+# Deny direct web access to runtime data.
+# Add this inside your server { ... } block.
+
+location ^~ /data/ {
+    deny all;
+    return 403;
+}

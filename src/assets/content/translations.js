@@ -39,6 +39,10 @@ export const messages = {
     dk: "Vælg afgrænsning eller indtast søgeord",
     en: "Select limit or enter search term",
   },
+  choselimits_mobile: {
+    dk: "Vælg afgrænsning/søgeord",
+    en: "Select limit/search term",
+  },
   search: {
     dk: "Søg",
     en: "Search",
@@ -972,6 +976,10 @@ export const messages = {
     dk: "Broad (en linje pr. søgestreng)",
     en: "Broad (one line per search string)",
   },
+  editor_itemCombineWithStandardStringLabel: {
+    dk: "Kombinér med standardsøgestreng",
+    en: "Combine with standard search string",
+  },
   editor_itemCommentDkLabel: {
     dk: "Kommentar (dk)",
     en: "Comment (dk)",
@@ -1079,6 +1087,14 @@ export const messages = {
   editor_addMainCategory: {
     dk: "Tilføj hovedkategori",
     en: "Add main category",
+  },
+  editor_standardStringsCategoryLabel: {
+    dk: "Standardsøgestrenge",
+    en: "Standard search strings",
+  },
+  editor_standardStringsOptionalHint: {
+    dk: "Valgfrit: Hvis felterne er tomme, tilføjes ingen standardsøgestreng.",
+    en: "Optional: If fields are empty, no standard search string is added.",
   },
   editor_usernamePlaceholder: {
     dk: "Brugernavn",
@@ -1511,6 +1527,26 @@ export const messages = {
   editor_helpItemSearchStringsBroad: {
     dk: "Søgestrenge for broad-scope (én pr. linje).",
     en: "Search strings for broad scope (one per line).",
+  },
+  editor_helpItemCombineWithStandardString: {
+    dk: "Når slået til, kombineres underemnets søgestreng automatisk med standardsøgestrengen for samme scope.",
+    en: "When enabled, the subtopic search string is automatically combined with the standard search string for the same scope.",
+  },
+  editor_tooltipScopeLabel: {
+    dk: "Omfang",
+    en: "Scope",
+  },
+  editor_tooltipCurrentStringLabel: {
+    dk: "Aktuel streng",
+    en: "Current string",
+  },
+  editor_tooltipStandardStringLabel: {
+    dk: "Standardsøgestreng",
+    en: "Standard search string",
+  },
+  editor_tooltipCombinedStringLabel: {
+    dk: "Kombineret streng",
+    en: "Combined string",
   },
   editor_helpItemSearchStringCommentDk: {
     dk: "Kommentar på dansk til søgestrengen.",

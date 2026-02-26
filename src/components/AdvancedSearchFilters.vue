@@ -1,6 +1,6 @@
 <template>
   <!-- The dropdown(s) for selecting limits to be included in the advanced search -->
-  <div style="margin: 30px 5px 10px">
+  <div class="qpm_advancedFiltersRoot">
     <div class="qpm_filtersHeaderContainer">
       <h4 role="heading" aria-level="3" class="h4">
         {{ getString("AdvancedFiltersHeader") }}
@@ -11,8 +11,7 @@
         distance: 5,
         delay: helpTextDelay,
         }"
-        class="bx bx-info-circle"
-        style="cursor: help"
+        class="bx bx-info-circle qpm_cursorHelp"
         aria-label="Info"
       />
     </div>
@@ -102,3 +101,4 @@
     },
   };
 </script>
+

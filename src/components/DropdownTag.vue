@@ -18,7 +18,7 @@
           {{ getCustomNameLabel }}
         </p>
         <div v-if="isEditMode" :style="getEditContainerStyle" @click.stop @mousedown.stop>
-          <div v-if="isMultiLine" style="margin-bottom: 4px;">
+          <div v-if="isMultiLine" class="qpm_multilinePrestringSpacing">
             <span class="qpm_prestring">{{ triple.option.preString }}</span>
           </div>
           <span v-if="!isMultiLine" class="qpm_prestring">{{ triple.option.preString }}</span>
@@ -326,3 +326,4 @@
     },
   };
 </script>
+

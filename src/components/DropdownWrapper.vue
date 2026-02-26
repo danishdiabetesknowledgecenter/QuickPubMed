@@ -115,8 +115,7 @@
             customGroupTooltipById(props.option.$groupLabel).content.trim() !== ''
           "
           v-tooltip.right="customGroupTooltipById(props.option.$groupLabel)"
-          class="bx bx-info-circle qpm_groupLabel"
-          style="cursor: help; font-weight: 200; margin-left: 10px"
+          class="bx bx-info-circle qpm_groupLabel qpm_groupInfoIcon"
           aria-label="Info"
         />
 
@@ -136,8 +135,7 @@
             distance: 5,
             delay: $helpTextDelay,
           }"
-          class="bx bx-info-circle qpm_entryName"
-          style="cursor: help; font-weight: 200; margin-left: -5px"
+          class="bx bx-info-circle qpm_entryName qpm_entryInfoIcon"
           aria-label="Info"
         />
 
@@ -211,9 +209,8 @@
     <loading-spinner 
       v-if="isLoading" 
       :loading="isLoading" 
-      class="qpm_multiselect_custom_spinner"
+      class="qpm_multiselect_custom_spinner qpm_inlineBlock"
       :size="30"
-      style="display: inline-block"
     />
   </div>
 </template>
@@ -1089,9 +1086,9 @@
                (!grandParentId || this.maintopicToggledMap[grandParentId]);
       },
       /**
-       * Return indices in filteredOptions for visible rows in limit dropdown.
+       * Return indices in filteredOptions for currently visible rows.
        */
-      getFilterVisibleIndices() {
+      getVisibleIndices() {
         const element = this.$refs.selectWrapper;
         if (!element) return [];
         const listItems = element.querySelectorAll("li.multiselect__element");
@@ -1102,6 +1099,12 @@
           }
         }
         return visible;
+      },
+      /**
+       * Backward-compatible alias used by limit dropdown logic.
+       */
+      getFilterVisibleIndices() {
+        return this.getVisibleIndices();
       },
       showOrHideElements() {
         const element = this.$refs.selectWrapper;
@@ -2141,6 +2144,26 @@
           return;
         }
 
+        // Use the previous visible row for stable keyboard navigation across all dropdowns.
+        if (!this.isFilterDropdown) {
+          const visible = this.getVisibleIndices();
+          let idx = visible.indexOf(dropdownRef.pointer);
+          if (idx === -1) {
+            const nextUp = visible.filter((v) => v < dropdownRef.pointer);
+            dropdownRef.pointer = nextUp.length ? nextUp[nextUp.length - 1] : -1;
+          } else if (idx === 0) {
+            dropdownRef.pointer = -1;
+          } else {
+            dropdownRef.pointer = visible[idx - 1];
+          }
+          if (dropdownRef.pointer < 0) {
+            dropdownRef.$el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+          } else {
+            this.scrollToFocusedSubject();
+          }
+          return;
+        }
+
         // Limit dropdown: move one visible item up (skip hidden rows)
         if (this.isFilterDropdown) {
           const visible = this.getFilterVisibleIndices();
@@ -2165,6 +2188,35 @@
         
         // Check if we're navigating up from a collapsed maintopic's children (works for both topics and filters)
         const itemAbove = dropdownRef.filteredOptions[dropdownRef.pointer - 1];
+        const itemAboveId = String(itemAbove?.id ?? "");
+        const currentParentChain = Array.isArray(currentSubject?.parentChain)
+          ? currentSubject.parentChain.map((id) => String(id))
+          : typeof currentSubject?.parentChain === "string"
+            ? currentSubject.parentChain.split(",").map((id) => String(id).trim()).filter(Boolean)
+            : [];
+        const currentDepth = Number(currentSubject?.subtopiclevel ?? currentSubject?.depth ?? 0);
+        // If the item above is the current item's own parent maintopic, stop there.
+        // This prevents jumping past the parent to the previous maintopic when navigating up.
+        if (
+          currentSubject &&
+          itemAbove &&
+          !currentSubject["$groupLabel"] &&
+          !itemAbove["$groupLabel"] &&
+          itemAbove.maintopic &&
+          (
+            String(currentSubject.maintopicIdLevel1 ?? "") === itemAboveId ||
+            String(currentSubject.maintopicIdLevel2 ?? "") === itemAboveId ||
+            String(currentSubject.parentId ?? "") === itemAboveId ||
+            String(currentSubject.grandParentId ?? "") === itemAboveId ||
+            currentParentChain.includes(itemAboveId) ||
+            // Top-level fallback: when moving from level-1 child to its visible maintopic above.
+            currentDepth === 1
+          )
+        ) {
+          dropdownRef.pointer -= 1;
+          this.scrollToFocusedSubject();
+          return;
+        }
         if (itemAbove && !itemAbove["$groupLabel"] && itemAbove.maintopic) {
           const currentSubjectOptionGroupId = itemAbove.id.substring(0, 3);
           const isFilter = currentSubjectOptionGroupId.startsWith("L");
@@ -3145,3 +3197,4 @@
     },
   };
 </script>
+

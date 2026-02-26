@@ -18,7 +18,7 @@ function getProxyUrl() {
   // Get base URL from the JS file location (import.meta.url)
   // Remove /assets/filename.js to get the base directory
   const scriptUrl = import.meta.url;
-  const baseUrl = scriptUrl.replace(/\/assets\/[^/]+$/, "");
+  const baseUrl = scriptUrl.replace(/\/assets\/.*$/, "");
   return `${normalizeBaseUrl(baseUrl)}/backend`;
 }
 const API_PROXY_URL = getProxyUrl();

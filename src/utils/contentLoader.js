@@ -36,11 +36,12 @@ function getContentApiBaseUrl() {
     return normalizedDatasetApiBase;
   }
 
-  if (import.meta.env.VITE_API_PROXY_URL) {
-    return `${import.meta.env.VITE_API_PROXY_URL}/api`;
+  const envApiBase = normalizeExplicitApiBase(import.meta.env.VITE_API_PROXY_URL);
+  if (envApiBase) {
+    return envApiBase;
   }
   const scriptUrl = import.meta.url;
-  const baseUrl = scriptUrl.replace(/\/assets\/[^/]+$/, "");
+  const baseUrl = scriptUrl.replace(/\/assets\/.*$/, "");
   return `${baseUrl}/backend/api`;
 }
 

@@ -1,8 +1,7 @@
 <template>
   <div class="qpm_searchStringCollection">
     <p
-      class="qpm_advancedSearch qpm_showHideAll"
-      style="display: flex; justify-content: flex-end"
+      class="qpm_advancedSearch qpm_showHideAll qpm_showHideAllRow"
     >
       <a 
         tabindex="0"
@@ -14,7 +13,7 @@
       class="qpm_searchStringStringsContainer rich-text"
       v-show="!initialCollapsePending"
     >
-      <div style="padding-top: 5px">
+      <div class="qpm_searchStringsTopPadding">
         <div class="qpm_headingContainerFocus_h2 qpm_gallery_toggle"
           @click="hideOrCollapse('qpm_subjectSearchStrings')"
           @keyup.enter="hideOrCollapse('qpm_subjectSearchStrings')"
@@ -637,9 +636,9 @@
           const targetClass = heading.getAttribute("data-target");
           if (!targetClass) continue;
 
-          const children = document.getElementsByClassName(targetClass);
-          for (let i = 0; i < children.length; i++) {
-            children[i].classList.add("qpm_collapsedSection");
+          const children = Array.from(document.getElementsByClassName(targetClass));
+          for (const child of children) {
+            child.classList.add("qpm_collapsedSection");
           }
         }
       },
@@ -669,11 +668,11 @@
         // Snapshot the elements (live HTMLCollection changes during enforcement)
         const snapshot = Array.from(elements);
 
-        for (let i = 0; i < snapshot.length; i++) {
+        for (const item of snapshot) {
           if (opening) {
-            snapshot[i].classList.remove("qpm_collapsedSection");
+            item.classList.remove("qpm_collapsedSection");
           } else {
-            snapshot[i].classList.add("qpm_collapsedSection");
+            item.classList.add("qpm_collapsedSection");
           }
         }
 
@@ -775,6 +774,11 @@
       sortData(data) {
         if (!Array.isArray(data)) return [];
         const lang = this.language;
+        const getSortValue = (item) => {
+          const ordering = item?.ordering?.[lang] ?? null;
+          if (ordering !== null) return ordering;
+          return String(this.customNameLabel(item) || "").toLowerCase();
+        };
         const sortByPriorityOrName = (a, b) => {
           const aOrdering = a?.ordering?.[lang] ?? null;
           const bOrdering = b?.ordering?.[lang] ?? null;
@@ -786,16 +790,8 @@
             return 1; // b is ordered and a is not -> b first
           }
 
-          let aSort, bSort;
-          if (aOrdering !== null) {
-            // Both are ordered
-            aSort = aOrdering;
-            bSort = bOrdering;
-          } else {
-            // Both are unordered
-            aSort = String(this.customNameLabel(a) || "").toLowerCase();
-            bSort = String(this.customNameLabel(b) || "").toLowerCase();
-          }
+          const aSort = getSortValue(a);
+          const bSort = getSortValue(b);
 
           if (aSort === bSort) {
             return 0;
@@ -842,3 +838,4 @@
     },
   };
 </script>
+

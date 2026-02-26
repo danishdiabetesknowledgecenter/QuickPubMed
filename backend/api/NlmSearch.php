@@ -21,12 +21,15 @@ $allowedOrigin = getAllowedOrigin($origin);
 if ($allowedOrigin) {
     header('Access-Control-Allow-Origin: ' . $allowedOrigin);
     header('Access-Control-Allow-Credentials: true');
-} else {
-    // Fallback: allow all origins for GET requests (public API data)
-    header('Access-Control-Allow-Origin: *');
+} elseif ($origin !== '') {
+    http_response_code(403);
+    header('Content-Type: application/json');
+    echo json_encode(['error' => 'Origin is not allowed']);
+    exit;
 }
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
+header('Vary: Origin');
 header('Content-Type: application/json');
 
 // Handle preflight
@@ -52,8 +55,9 @@ $params['email'] = qpmGetNlmEmail($domain);
 $params['tool'] = 'QuickPubMed';
 $params['db'] = $params['db'] ?? 'pubmed';
 $params['retmode'] = $params['retmode'] ?? 'json';
+$nlmBaseUrl = qpmGetNlmBaseUrl($domain);
 
-$url = NLM_BASE_URL . '/esearch.fcgi';
+$url = $nlmBaseUrl . '/esearch.fcgi';
 
 // Make request to NLM (use POST to avoid long URL issues)
 qpmThrottleNlmRequests(10);

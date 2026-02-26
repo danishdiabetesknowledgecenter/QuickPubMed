@@ -10,8 +10,7 @@
         }"
         tabindex="0"
         data-html="true"
-        class="qpm_advancedSearch"
-        style="float: none"
+        class="qpm_advancedSearch qpm_noFloat"
         @click="toggleDetails"
         @keyup.enter="toggleDetails"
       >
@@ -28,8 +27,7 @@
           delay: $helpTextDelay,
         }"
         tabindex="0"
-        class="qpm_advancedSearch"
-        style="margin: -5px 0 5px 30px"
+        class="qpm_advancedSearch qpm_toggleAdvancedSpacing"
         @click="toggleAdvanced"
         @keyup.enter="toggleAdvanced"
       >
@@ -43,14 +41,18 @@
           delay: $helpTextDelay,
         }"
         tabindex="0"
-        class="qpm_advancedSearch"
-        style="margin: -5px 0 5px 30px"
+        class="qpm_advancedSearch qpm_toggleAdvancedSpacing"
         @click="toggleAdvanced"
         @keyup.enter="toggleAdvanced"
       >
         <a>{{ getString("hideSearchString") }}</a>
       </p>
-      <div v-if="showHeader" role="heading" aria-level="2" class="h3" style="display: inline-block">
+      <div
+        v-if="showHeader"
+        role="heading"
+        aria-level="2"
+        class="h3 qpm_inlineHeading"
+      >
         {{ getString("youAreSearchingFor") }} 
       </div>
       <div v-if="!advancedString">
@@ -75,7 +77,7 @@
         </div>
         <br />
         <span v-if="!filterIsEmpty" class="qpm_searchStringPreText">
-          <div class="qpm_hideonmobile" style="padding-top: 10px" />
+          <div class="qpm_hideonmobile qpm_limitsTopPadding" />
           {{ getString("limitsPreString") }} {{ ' ' }}
         </span>
         <div v-for="(group, idx) in activeFilterDropdowns" :key="`filter-${idx}`" class="qpm_searchStringFilterGroup">
@@ -106,14 +108,7 @@
             delay: $helpTextDelay,
           }"
           :value="searchstring"
-          style="
-            width: 100%;
-            resize: vertical;
-            line-height: 1.6em;
-            border: solid 1px #e7e7e7;
-            padding: 10px;
-            margin-bottom: 4px;
-          "
+          class="qpm_searchStringTextarea"
           readonly
           name="searchstring"
           rows="6"
@@ -122,7 +117,7 @@
         />
       </div>
       <div v-if="!isCollapsed || (isCollapsed && advancedString)">
-        <div v-if="!advancedString" style="border-top: solid 1px #e7e7e7; margin: 15px 0" />
+        <div v-if="!advancedString" class="qpm_searchStringDivider" />
         <p class="intext-arrow-link onHoverJS qpm_pubmedLink">
           <a
             v-tooltip="{
@@ -247,14 +242,11 @@
         return this.activeFilters.map(([, items]) => items);
       },
       filterIsEmpty() {
-        if (this.filters) {
-          let count = 0;
-          Object.keys(this.filters).forEach((key) => {
-            count += this.filters[key].length;
-          });
-          return count === 0;
-        }
-        return true;
+        if (!this.filters || typeof this.filters !== "object") return true;
+        const count = Object.values(this.filters).reduce((sum, values) => {
+          return sum + (Array.isArray(values) ? values.length : 0);
+        }, 0);
+        return count === 0;
       },
       getPubMedLink() {
         const myncbiShare = this.appSettings?.nlm?.myncbishare || "";
@@ -270,10 +262,9 @@
         )}`;
       },
       getSearchPreString() {
-        let count = 0;
-        for (let i = 0; i < this.subjects.length; i++) {
-          count += this.subjects[i].length;
-        }
+        const count = this.subjects.reduce((sum, group) => {
+          return sum + (Array.isArray(group) ? group.length : 0);
+        }, 0);
         if (count > 1) {
           return this.getString("searchPreStringPlural");
         } else {
@@ -317,13 +308,12 @@
           return "";
         }
 
-        if (obj.scope === "broad") {
-          return ` (${this.getString("broad")})`;
-        } else if (obj.scope === "narrow") {
-          return ` (${this.getString("narrow")})`;
-        } else {
-          return ` (${this.getString("normal")})`;
-        }
+        const scopeToLabelKey = {
+          broad: "broad",
+          narrow: "narrow",
+        };
+        const labelKey = scopeToLabelKey[obj.scope] || "normal";
+        return ` (${this.getString(labelKey)})`;
       },
       getWordedSubjectString(string) {
         if (!string || typeof string !== "object") return "";
@@ -348,37 +338,37 @@
       },
       getWordedFilterString(filter) {
         try {
-          let constant;
           if (filter?.isCustom) {
             if (filter.isTranslated && filter.preTranslation) {
-              constant =
+              return (
                 filter.preTranslation +
                 " (" +
                 this.getString("manualInputTermTranslated") +
                 ": " +
                 (filter.name || "") +
-                ")";
-            } else {
-              constant = filter.name || this.getString("manualInputTerm") || "Søgeord";
+                ")"
+              );
             }
-          } else if (filter.translations) {
-          constant = getLocalizedTranslation(filter, this.language) || filter.id;
-          } else if (filter.id) {
-            constant = this.getWordedFilterStringById(filter.id);
-          } else if (typeof filter === "string" || filter instanceof String) {
-            constant = this.getWordedFilterStringById(filter);
-          } else {
-            constant = filter.name;
+            return filter.name || this.getManualInputTermLabel();
           }
-          return constant;
+          if (filter?.translations) {
+            return getLocalizedTranslation(filter, this.language) || filter.id;
+          }
+          if (filter?.id) {
+            return this.getWordedFilterStringById(filter.id);
+          }
+          if (typeof filter === "string" || filter instanceof String) {
+            return this.getWordedFilterStringById(filter);
+          }
+          return filter?.name;
         } catch (e) {
           console.error(filter, e);
           return filter;
         }
       },
       getWordedFilterStringById(id) {
-        if (typeof id === "string" && id.startsWith("__custom__")) {
-          return this.getString("manualInputTerm") || "Søgeord";
+        if (this.isCustomFilterId(id)) {
+          return this.getManualInputTermLabel();
         }
         const type = id.substr(0, 1).toLowerCase();
         const groupId = id.substr(0, 3);
@@ -411,10 +401,9 @@
       isSingleScoped(obj) {
         if (!obj.searchStrings) return false;
 
-        let count = 0;
-        if (obj.searchStrings["broad"]) count++;
-        if (obj.searchStrings["narrow"]) count++;
-        if (obj.searchStrings["normal"]) count++;
+        const count = ["broad", "narrow", "normal"].reduce((sum, scope) => {
+          return sum + (obj.searchStrings[scope] ? 1 : 0);
+        }, 0);
 
         return count === 1;
       },
@@ -441,8 +430,8 @@
         return !allSame;
       },
       getFilterCategoryName(item) {
-        if (!item.id || (typeof item.id === "string" && item.id.startsWith("__custom__"))) {
-          return this.getString("manualInputTerm") || "Søgeord";
+        if (!item.id || this.isCustomFilterId(item.id)) {
+          return this.getManualInputTermLabel();
         }
         // Find the category by checking which filter group contains this item's id
         const groupId = item.id.substring(0, 4);
@@ -458,8 +447,8 @@
       },
       getWordedFilterStringFromId(id) {
         // Handle custom filter entries (manually entered search terms)
-        if (typeof id === "string" && id.startsWith("__custom__")) {
-          return this.getString("manualInputTerm") || "Søgeord";
+        if (this.isCustomFilterId(id)) {
+          return this.getManualInputTermLabel();
         }
         const filterGroup = this.availableFilters.find((group) => group.id === id);
         if (filterGroup && filterGroup.translations) {
@@ -467,6 +456,13 @@
         }
         return this.getWordedFilterStringById(id);
       },
+      isCustomFilterId(id) {
+        return typeof id === "string" && id.startsWith("__custom__");
+      },
+      getManualInputTermLabel() {
+        return this.getString("manualInputTerm") || "Søgeord";
+      },
     },
   };
 </script>
+

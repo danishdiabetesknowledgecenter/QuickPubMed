@@ -49,24 +49,7 @@ function editorResolveFiltersFilePath(): string
  */
 function editorContentBaseDir(): string
 {
-    $newBaseDir = dirname(__DIR__) . '/storage/content';
-    $legacyBaseDir = dirname(__DIR__) . '/content';
-
-    $newHasData =
-        is_file(editorFiltersFilePathInBase($newBaseDir)) ||
-        is_file(editorLegacyFiltersFilePathInBase($newBaseDir)) ||
-        !empty(glob($newBaseDir . '/*/topics.json'));
-    $legacyHasData =
-        is_file(editorFiltersFilePathInBase($legacyBaseDir)) ||
-        is_file(editorLegacyFiltersFilePathInBase($legacyBaseDir)) ||
-        !empty(glob($legacyBaseDir . '/*/topics.json'));
-
-    if ($newHasData || !$legacyHasData) {
-        return $newBaseDir;
-    }
-
-    // Compatibility fallback while legacy content folder is still in use.
-    return $legacyBaseDir;
+    return dirname(__DIR__, 2) . '/data/content';
 }
 
 /**
@@ -306,8 +289,7 @@ function editorValidateTopicNodeShape(array $node): void
  */
 function editorRevisionDirForFile(string $filePath): string
 {
-    $baseName = pathinfo($filePath, PATHINFO_FILENAME);
-    return dirname($filePath) . DIRECTORY_SEPARATOR . 'history' . DIRECTORY_SEPARATOR . $baseName;
+    return dirname($filePath) . DIRECTORY_SEPARATOR . 'history';
 }
 
 /**
