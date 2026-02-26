@@ -63,6 +63,65 @@ function qpmResolveDomain(): ?string
 }
 
 /**
+ * Normalize a domain key used for runtime content/config lookup.
+ *
+ * @param string|null $domain
+ * @return string
+ */
+function qpmNormalizeDomainKey(?string $domain): string
+{
+    if (!is_string($domain)) {
+        return '';
+    }
+    $normalized = strtolower(trim($domain));
+    if ($normalized === '') {
+        return '';
+    }
+    return preg_match('/^[a-z0-9_-]+$/', $normalized) ? $normalized : '';
+}
+
+/**
+ * Load optional domain-specific runtime config from:
+ * data/content/<domain>/domain-config.json
+ *
+ * @param string|null $domain
+ * @return array<string, mixed>
+ */
+function qpmGetDomainRuntimeConfig(?string $domain = null): array
+{
+    static $cache = [];
+
+    $normalized = qpmNormalizeDomainKey($domain);
+    if ($normalized === '') {
+        return [];
+    }
+    if (array_key_exists($normalized, $cache)) {
+        return $cache[$normalized];
+    }
+
+    $path = dirname(__DIR__, 2) . '/data/content/' . $normalized . '/domain-config.json';
+    if (!is_file($path)) {
+        $cache[$normalized] = [];
+        return $cache[$normalized];
+    }
+
+    $raw = @file_get_contents($path);
+    if (!is_string($raw) || trim($raw) === '') {
+        $cache[$normalized] = [];
+        return $cache[$normalized];
+    }
+
+    $decoded = json_decode($raw, true);
+    if (!is_array($decoded)) {
+        $cache[$normalized] = [];
+        return $cache[$normalized];
+    }
+
+    $cache[$normalized] = $decoded;
+    return $cache[$normalized];
+}
+
+/**
  * Resolve OpenAI API key for domain with default fallback.
  *
  * @param string|null $domain
@@ -70,6 +129,14 @@ function qpmResolveDomain(): ?string
  */
 function qpmGetOpenAIApiKey(?string $domain = null): string
 {
+    $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
+    if (isset($runtimeConfig['openai']) && is_array($runtimeConfig['openai'])) {
+        $apiKey = $runtimeConfig['openai']['api_key'] ?? '';
+        if (is_string($apiKey) && $apiKey !== '') {
+            return $apiKey;
+        }
+    }
+
     if (!empty($domain) && defined('OPENAI_DOMAIN_CREDENTIALS') && is_array(OPENAI_DOMAIN_CREDENTIALS)) {
         $domainConfig = OPENAI_DOMAIN_CREDENTIALS[$domain] ?? null;
         if (is_array($domainConfig)) {
@@ -91,6 +158,14 @@ function qpmGetOpenAIApiKey(?string $domain = null): string
  */
 function qpmGetOpenAIOrgId(?string $domain = null): string
 {
+    $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
+    if (isset($runtimeConfig['openai']) && is_array($runtimeConfig['openai'])) {
+        $orgId = $runtimeConfig['openai']['org_id'] ?? '';
+        if (is_string($orgId) && $orgId !== '') {
+            return $orgId;
+        }
+    }
+
     if (!empty($domain) && defined('OPENAI_DOMAIN_CREDENTIALS') && is_array(OPENAI_DOMAIN_CREDENTIALS)) {
         $domainConfig = OPENAI_DOMAIN_CREDENTIALS[$domain] ?? null;
         if (is_array($domainConfig)) {
@@ -105,6 +180,25 @@ function qpmGetOpenAIOrgId(?string $domain = null): string
 }
 
 /**
+ * Resolve OpenAI API URL for domain with default fallback.
+ *
+ * @param string|null $domain
+ * @return string
+ */
+function qpmGetOpenAIApiUrl(?string $domain = null): string
+{
+    $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
+    if (isset($runtimeConfig['openai']) && is_array($runtimeConfig['openai'])) {
+        $apiUrl = $runtimeConfig['openai']['api_url'] ?? '';
+        if (is_string($apiUrl) && $apiUrl !== '') {
+            return $apiUrl;
+        }
+    }
+
+    return OPENAI_API_URL;
+}
+
+/**
  * Resolve NLM API key for domain with default fallback.
  *
  * @param string|null $domain
@@ -112,6 +206,14 @@ function qpmGetOpenAIOrgId(?string $domain = null): string
  */
 function qpmGetNlmApiKey(?string $domain = null): string
 {
+    $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
+    if (isset($runtimeConfig['nlm']) && is_array($runtimeConfig['nlm'])) {
+        $apiKey = $runtimeConfig['nlm']['api_key'] ?? '';
+        if (is_string($apiKey) && $apiKey !== '') {
+            return $apiKey;
+        }
+    }
+
     if (!empty($domain) && defined('NLM_DOMAIN_CREDENTIALS') && is_array(NLM_DOMAIN_CREDENTIALS)) {
         $domainConfig = NLM_DOMAIN_CREDENTIALS[$domain] ?? null;
         if (is_array($domainConfig)) {
@@ -133,6 +235,14 @@ function qpmGetNlmApiKey(?string $domain = null): string
  */
 function qpmGetNlmEmail(?string $domain = null): string
 {
+    $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
+    if (isset($runtimeConfig['nlm']) && is_array($runtimeConfig['nlm'])) {
+        $email = $runtimeConfig['nlm']['email'] ?? '';
+        if (is_string($email) && $email !== '') {
+            return $email;
+        }
+    }
+
     if (!empty($domain) && defined('NLM_DOMAIN_CREDENTIALS') && is_array(NLM_DOMAIN_CREDENTIALS)) {
         $domainConfig = NLM_DOMAIN_CREDENTIALS[$domain] ?? null;
         if (is_array($domainConfig)) {
@@ -144,6 +254,76 @@ function qpmGetNlmEmail(?string $domain = null): string
     }
 
     return NLM_EMAIL;
+}
+
+/**
+ * Resolve NLM base URL for domain with default fallback.
+ *
+ * @param string|null $domain
+ * @return string
+ */
+function qpmGetNlmBaseUrl(?string $domain = null): string
+{
+    return NLM_BASE_URL;
+}
+
+/**
+ * Resolve Unpaywall email for domain with default fallback.
+ *
+ * @param string|null $domain
+ * @return string
+ */
+function qpmGetUnpaywallEmail(?string $domain = null): string
+{
+    $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
+    if (isset($runtimeConfig['unpaywall']) && is_array($runtimeConfig['unpaywall'])) {
+        $email = $runtimeConfig['unpaywall']['email'] ?? '';
+        if (is_string($email) && $email !== '') {
+            return $email;
+        }
+    }
+
+    if (!empty($domain) && defined('UNPAYWALL_DOMAIN_CREDENTIALS') && is_array(UNPAYWALL_DOMAIN_CREDENTIALS)) {
+        $domainConfig = UNPAYWALL_DOMAIN_CREDENTIALS[$domain] ?? null;
+        if (is_array($domainConfig)) {
+            $email = $domainConfig['email'] ?? '';
+            if (is_string($email) && $email !== '') {
+                return $email;
+            }
+        }
+    }
+
+    return defined('UNPAYWALL_EMAIL') ? (string) UNPAYWALL_EMAIL : '';
+}
+
+/**
+ * Resolve domain theme overrides from runtime config.
+ *
+ * @param string|null $domain
+ * @return array<string, string>
+ */
+function qpmGetDomainThemeOverrides(?string $domain = null): array
+{
+    $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
+    $overrides = $runtimeConfig['theme_overrides'] ?? null;
+    if (!is_array($overrides)) {
+        return [];
+    }
+
+    $result = [];
+    foreach ($overrides as $key => $value) {
+        if (!is_string($key) || !is_string($value)) {
+            continue;
+        }
+        $trimmedKey = trim($key);
+        $trimmedValue = trim($value);
+        if ($trimmedKey === '' || $trimmedValue === '') {
+            continue;
+        }
+        $result[$trimmedKey] = $trimmedValue;
+    }
+
+    return $result;
 }
 
 /**

@@ -198,7 +198,7 @@
 }
 
 
-/* Justeringer til mobilskærme */
+/* Mobile screen adjustments */
 
 @media only screen and (max-width: 800px) {
     .qpm_searchSubject, 
@@ -298,4 +298,14 @@
 
 .qpm_gallery_toggle:hover .qpm_toggle_placeholder::after {
   background-color: var(--color-grey-dark);
+}
+
+/* SearchStrings component-level utility classes */
+.qpm_showHideAllRow {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.qpm_searchStringsTopPadding {
+  padding-top: 5px;
 }

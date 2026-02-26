@@ -1,17 +1,17 @@
 <template>
-  <div v-if="!isError" ref="container" style="margin-top: 20px">  
+  <div v-if="!isError" ref="container" class="qpm_summaryArticleContainer">
     <!-- Heading telling that summarize entire article is being checked - shown while waiting for response -->
-    <p v-if="loading && !isError && streamingItems.length === 0" style="padding-top: 10px">
+    <p v-if="loading && !isError && streamingItems.length === 0" class="qpm_summarySectionTopPadding">
       <strong>{{ getString("summarizeArticleAvailable") }}</strong>
-      <span style="display: inline-flex; align-items: center; margin-left: 8px;">
-        <loading-spinner :loading="true" :size="16" style="display: inline-block;" />
+      <span class="qpm_inlineSpinnerWrap">
+        <loading-spinner :loading="true" :size="16" class="qpm_inlineBlock" />
       </span>
     </p>
     
     <!-- Show streaming items progressively while loading -->
     <div v-if="loading && validStreamingItems.length > 0">
       <!-- Full-article summary (first 7 items) -->
-      <p style="padding-top: 10px">
+      <p class="qpm_summarySectionTopPadding">
         <strong>{{ getString("summarizeArticleHeader") }}</strong>
       </p>
       <div v-for="(qa, index) in validStreamingItems.slice(0, 7)" :key="'streaming-' + index">
@@ -20,14 +20,21 @@
           :open-by-default="false"
         >
           <template #header="accordionProps">
-            <div class="qpm_aiAccordionHeader" style="display: flex; justify-content: space-between; align-items: center;">
-              <div style="display: flex; align-items: center;">
+            <div class="qpm_aiAccordionHeader qpm_headerRow">
+              <div class="qpm_headerRowStart">
                 <!-- Show spinner instead of icon while streaming -->
-                <loading-spinner v-if="qa.isStreaming" :loading="true" :size="22" class="qpm_streaming-icon" style="margin-right: 5px;" />
-                <i v-else class="bx bx-detail" style="font-size: 22px; margin-right: 5px;"></i>
-                {{ qa.shortTitle || '...' }}
+                <span class="qpm_headerIconSlot">
+                  <loading-spinner
+                    v-if="qa.isStreaming"
+                    :loading="true"
+                    :size="22"
+                    class="qpm_streaming-icon qpm_headerLoadingSpinner"
+                  />
+                  <i v-else class="bx bx-detail qpm_summaryIcon"></i>
+                </span>
+                <span class="qpm_headerTitleText">{{ qa.shortTitle || '...' }}</span>
               </div>
-              <div>
+              <div class="qpm_headerRowEnd">
                 <i
                   v-if="accordionProps.expanded"
                   class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
@@ -40,7 +47,13 @@
             </div>
           </template>
           <template #default>
-            <div class="qpm_answer-text">
+            <div v-if="useMarkdown && canRenderMarkdown" class="qpm_answer-text">
+              <vue-showdown
+                :options="{ smoothLivePreview: true }"
+                :markdown="qa.answer || ''"
+              />
+            </div>
+            <div v-else class="qpm_answer-text">
               {{ qa.answer || '' }}
             </div>
           </template>
@@ -49,7 +62,7 @@
       
       <!-- Questions for this article (items from index 7+) - only show when question is fully parsed to avoid flicker -->
       <template v-if="validQuestionItems.length > 0">
-        <p style="padding-top: 10px">
+        <p class="qpm_summarySectionTopPadding">
           <strong>{{ getString("generateQuestionsHeader") }}</strong>
         </p>
         <div v-for="(qa, index) in validQuestionItems" :key="'streaming-extra-' + index">
@@ -58,18 +71,24 @@
             :open-by-default="false"
           >
             <template #header="accordionProps">
-              <div class="qpm_aiAccordionHeader" style="display: flex; justify-content: space-between; align-items: center;">
-                <div style="display: flex; align-items: center;">
+              <div class="qpm_aiAccordionHeader qpm_headerRow">
+                <div class="qpm_headerRowStart">
                   <!-- Show spinner instead of icon while streaming -->
-                  <loading-spinner v-if="qa.isStreaming" :loading="true" :size="22" class="qpm_streaming-icon" style="margin-right: 5px;" />
-                  <i
-                    v-else
-                    class="bx bx-help-circle"
-                    style="font-size: 22px; vertical-align: text-bottom; margin-right: 5px;"
-                  ></i>
-                  {{ qa.question || qa.shortTitle || '...' }}
+                  <span class="qpm_headerIconSlot">
+                    <loading-spinner
+                      v-if="qa.isStreaming"
+                      :loading="true"
+                      :size="22"
+                      class="qpm_streaming-icon qpm_headerLoadingSpinner"
+                    />
+                    <i
+                      v-else
+                      class="bx bx-help-circle qpm_helpCircleIcon"
+                    ></i>
+                  </span>
+                  <span class="qpm_headerTitleText">{{ qa.question || qa.shortTitle || '...' }}</span>
                 </div>
-                <div>
+                <div class="qpm_headerRowEnd">
                   <i
                     v-if="accordionProps.expanded"
                     class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
@@ -82,7 +101,13 @@
               </div>
             </template>
             <template #default>
-              <div class="qpm_answer-text">
+              <div v-if="useMarkdown && canRenderMarkdown" class="qpm_answer-text">
+                <vue-showdown
+                  :options="{ smoothLivePreview: true }"
+                  :markdown="qa.answer || ''"
+                />
+              </div>
+              <div v-else class="qpm_answer-text">
                 {{ qa.answer || '' }}
               </div>
             </template>
@@ -97,24 +122,25 @@
     </div>
     
     <!-- TITLE summarize entire article -->
-    <p v-if="!loading && currentSummary.length > 0 && !isError" style="padding-top: 10px">
+    <p
+      v-if="!loading && currentSummary.length > 0 && !isError"
+      class="qpm_summarySectionTopPadding"
+    >
       <strong>{{ getString("summarizeArticleHeader") }}</strong>
     </p>
 
     <div v-if="!loading && currentSummary.length > 0 && !isError && getTotalSummaries() > 1">
       <button
-        style="margin-top: -3px; border: 0px"
-        class="qpm_summary_icon bx bx-chevron-left"
+        class="qpm_summary_icon bx bx-chevron-left qpm_summaryNavButton"
         :disabled="currentSummaryIndex[promptLanguageType] === 0"
         @click="navigateHistory('previous')"
       />
-      <span style="padding: 0px 3px">
+      <span class="qpm_summaryNavCounter">
         {{ currentSummaryIndex[promptLanguageType] + 1 }} /
         {{ getTotalSummaries() }}
       </span>
       <button
-        style="margin-top: -3px; border: 0px"
-        class="qpm_summary_icon bx bx-chevron-right"
+        class="qpm_summary_icon bx bx-chevron-right qpm_summaryNavButton"
         :disabled="currentSummaryIndex[promptLanguageType] === getTotalSummaries() - 1"
         @click="navigateHistory('next')"
       />
@@ -129,24 +155,36 @@
           :open-by-default="false"
         >
           <template #header="accordionProps">
-            <div class="qpm_aiAccordionHeader">
-              <i
-                v-if="accordionProps.expanded"
-                class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
-              ></i>
-              <i 
-                v-else 
-                class="bx bx-chevron-down qpm_aiAccordionHeaderArrows" 
-              ></i>
-              <i
-                class="bx bx-detail"
-              ></i>
-              {{ qa.shortTitle }}
+            <div class="qpm_aiAccordionHeader qpm_headerRow">
+              <div class="qpm_headerRowStart">
+                <span class="qpm_headerIconSlot">
+                  <i
+                    class="bx bx-detail qpm_summaryIcon"
+                  ></i>
+                </span>
+                <span class="qpm_headerTitleText">{{ qa.shortTitle }}</span>
+              </div>
+              <div class="qpm_headerRowEnd">
+                <i
+                  v-if="accordionProps.expanded"
+                  class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
+                ></i>
+                <i
+                  v-else
+                  class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
+                ></i>
+              </div>
             </div>
           </template>
 
           <template #default>
-            <div class="qpm_answer-text">
+            <div v-if="useMarkdown && canRenderMarkdown" class="qpm_answer-text">
+              <vue-showdown
+                :options="{ smoothLivePreview: true }"
+                :markdown="qa.answer || ''"
+              />
+            </div>
+            <div v-else class="qpm_answer-text">
               {{ qa.answer }}
             </div>
           </template>
@@ -154,7 +192,10 @@
       </div>
 
       <!-- TITLE additional questions for the article -->
-      <p v-if="!loading && currentSummary.length > 0 && !isError" style="padding-top: 10px">
+      <p
+        v-if="!loading && currentSummary.length > 0 && !isError"
+        class="qpm_summarySectionTopPadding"
+      >
         <strong>{{ getString("generateQuestionsHeader") }}</strong>
       </p>
       <div v-for="(qa, index) in currentSummary.slice(7)" :key="index + 7">
@@ -164,21 +205,16 @@
           :open-by-default="false"
         >
           <template #header="accordionProps">
-            <div ref="headerText" class="qpm_aiAccordionHeader" style="display: flex; justify-content: space-between; align-items: center;">
-              <div style="display: flex;">
-                <i
-                class="bx bx-help-circle"
-                style="
-                  font-size: 22px;
-                  vertical-align: text-bottom;
-                  margin-right: 5px;
-                "
-                ></i>
-                <div>
-                  {{ qa.question }}
-                </div>
+            <div ref="headerText" class="qpm_aiAccordionHeader qpm_headerRow">
+              <div class="qpm_headerRowStart">
+                <span class="qpm_headerIconSlot">
+                  <i
+                  class="bx bx-help-circle qpm_helpCircleIcon"
+                  ></i>
+                </span>
+                <span class="qpm_headerTitleText">{{ qa.question }}</span>
               </div>
-              <div>
+              <div class="qpm_headerRowEnd">
                 <i
                   v-if="accordionProps.expanded"
                   class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
@@ -193,7 +229,13 @@
 
           <template #default>
 <!--        <div :style="getAnswerStyle(index)" class="qpm_answer-text"> -->
-            <div class="qpm_answer-text">
+            <div v-if="useMarkdown && canRenderMarkdown" class="qpm_answer-text">
+              <vue-showdown
+                :options="{ smoothLivePreview: true }"
+                :markdown="qa.answer || ''"
+              />
+            </div>
+            <div v-else class="qpm_answer-text">
               {{ qa.answer }}
             </div>
           </template>
@@ -260,6 +302,10 @@
       loading: {
         type: Boolean,
         required: true,
+      },
+      useMarkdown: {
+        type: Boolean,
+        default: true,
       },
       authorsList: {
         type: String,
@@ -398,6 +444,10 @@
           .replace(/,\s*{/g, "<br><br>");
         
         return cleanText;
+      },
+      canRenderMarkdown() {
+        // VueShowdown is globally registered via plugin in all entry points.
+        return true;
       },
     },
     async mounted() {
@@ -1062,107 +1112,3 @@
   };
 </script>
 
-<style scoped>
-.qpm_streaming-container {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border-radius: 12px;
-  margin: 15px 0;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  border-left: 4px solid var(--qpm-primary-color, #007bff);
-}
-
-.qpm_streaming-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 15px;
-  color: var(--qpm-primary-color, #007bff);
-  font-weight: 600;
-  font-size: 0.95em;
-}
-
-.qpm_streaming-header i {
-  font-size: 1.2em;
-}
-
-.qpm_streaming-content {
-  background: white;
-  border-radius: 8px;
-  padding: 15px;
-  max-height: 350px;
-  overflow-y: auto;
-  line-height: 1.7;
-  font-size: 0.95em;
-  color: #333;
-}
-
-.qpm_streaming-content strong {
-  color: var(--qpm-primary-color, #007bff);
-  display: block;
-  margin-top: 10px;
-  margin-bottom: 5px;
-}
-
-.qpm_streaming-content em {
-  color: #555;
-  font-style: italic;
-}
-
-.qpm_streaming-cursor {
-  animation: blink 0.8s infinite;
-  color: var(--qpm-primary-color, #007bff);
-  font-weight: bold;
-}
-
-@keyframes blink {
-  0%, 40% { opacity: 1; }
-  41%, 100% { opacity: 0; }
-}
-
-.qpm_streaming-loading {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 15px;
-  font-size: 0.9em;
-}
-
-.qpm_animated-dots::after {
-  content: '';
-  animation: dots 2.5s steps(5, end) infinite;
-}
-
-@keyframes dots {
-  0% { content: '.'; }
-  20% { content: '..'; }
-  40% { content: '...'; }
-  60% { content: '....'; }
-  80%, 100% { content: '.....'; }
-}
-
-/* Scrollbar styling */
-.qpm_streaming-content::-webkit-scrollbar {
-  width: 6px;
-}
-
-.qpm_streaming-content::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
-}
-
-.qpm_streaming-content::-webkit-scrollbar-thumb {
-  background: #ccc;
-  border-radius: 3px;
-}
-
-.qpm_streaming-content::-webkit-scrollbar-thumb:hover {
-  background: #aaa;
-}
-
-/* Spinner icon styling to match boxicons placement */
-.qpm_streaming-icon {
-  display: inline-block;
-  vertical-align: middle;
-}
-</style>

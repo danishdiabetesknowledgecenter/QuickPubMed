@@ -44,7 +44,7 @@
     </div>
     <div
       v-if="hasSubjects"
-      style="margin: 5px 0 20px 0"
+      class="qpm_subjectSelectionActions"
       @keydown.enter.capture.passive="focusNextDropdownOnMount = true"
     >
       <button
@@ -130,3 +130,4 @@
     },
   };
 </script>
+

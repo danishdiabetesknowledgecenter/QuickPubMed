@@ -1,5 +1,5 @@
 <template>
-  <div v-if="!isLoadingCurrent" style="margin-top: 20px">
+  <div v-if="!isLoadingCurrent" class="qpm_questionContainer">
     <p>
       <strong>{{ getString("userQuestionsHeader") }}</strong>
     </p>
@@ -11,36 +11,58 @@
       :open-by-default="true"
     >
       <template #header="accordionProps">
-        <div ref="headerText" class="qpm_aiAccordionHeader">
-          <i
-            v-if="accordionProps.expanded"
-            class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
-          ></i>
-          <i v-else class="bx bx-chevron-right qpm_aiAccordionHeaderArrows"></i>
-          <i
-            class="bx bx-help-circle"
-            style="
-              font-size: 22px;
-              vertical-align: text-bottom;
-              margin-left: 3px;
-              margin-right: 5px;
-            "
-          ></i>
-          {{ qa.question }}
-          <!-- Show spinner next to question when streaming -->
-          <span v-if="streamingIndex === idx && isLoadingResponse" style="display: inline-flex; align-items: center; margin-left: 8px;">
-            <loading-spinner :loading="true" :size="16" style="display: inline-block;" />
-          </span>
+        <div ref="headerText" class="qpm_aiAccordionHeader qpm_headerRow">
+          <div class="qpm_headerRowStart">
+            <span class="qpm_headerIconSlot">
+              <loading-spinner
+                v-if="streamingIndex === idx && isLoadingResponse"
+                :loading="true"
+                :size="16"
+                class="qpm_streaming-icon qpm_headerLoadingSpinner"
+              />
+              <i
+                v-else
+                class="bx bx-help-circle qpm_questionIcon"
+              ></i>
+            </span>
+            <span class="qpm_headerTitleText">{{ qa.question }}</span>
+          </div>
+          <div class="qpm_headerRowEnd">
+            <i
+              v-if="accordionProps.expanded"
+              class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
+            ></i>
+            <i
+              v-else
+              class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
+            ></i>
+          </div>
         </div>
       </template>
       <template #default>
-        <div :style="getAnswerStyle(idx)" class="qpm_answer-text">
+        <div class="qpm_answer-text">
           <!-- Show streaming answer if this is the currently streaming question -->
           <template v-if="streamingIndex === idx && streamingAnswer">
-            {{ streamingAnswer }}
+            <div v-if="useMarkdown && canRenderMarkdown">
+              <vue-showdown
+                :options="{ smoothLivePreview: true }"
+                :markdown="streamingAnswer"
+              />
+            </div>
+            <template v-else>
+              {{ streamingAnswer }}
+            </template>
           </template>
           <template v-else>
-            {{ qa.answer }}
+            <div v-if="useMarkdown && canRenderMarkdown">
+              <vue-showdown
+                :options="{ smoothLivePreview: true }"
+                :markdown="qa.answer || ''"
+              />
+            </div>
+            <template v-else>
+              {{ qa.answer }}
+            </template>
           </template>
         </div>
       </template>
@@ -55,7 +77,7 @@
       :size="35"
     />
 
-    <div style="display: flex">
+    <div class="qpm_questionInputRow">
       <input
         v-model="userQuestionInput"
         v-tooltip="{
@@ -70,8 +92,7 @@
         @keyup.enter="handleQuestionForArticle"
       />
       <button
-        class="qpm_button"
-        style="margin: 10px"
+        class="qpm_button qpm_questionSubmitSpacing"
         :disabled="isLoadingResponse || isLoadingCurrent"
         @click="handleQuestionForArticle"
       >
@@ -97,7 +118,6 @@
   import { utilitiesMixin } from "@/mixins/utilities";
   import { appSettingsMixin } from "@/mixins/appSettings";
   import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
-  import { questionHeaderHeightWatcherMixin } from "@/mixins/questionHeaderHeightWatcher";
 
   export default {
     name: "QuestionForArticle",
@@ -109,7 +129,6 @@
       utilitiesMixin,
       promptRuleLoaderMixin,
       appSettingsMixin,
-      questionHeaderHeightWatcherMixin,
     ],
     props: {
       promptLanguageType: {
@@ -142,6 +161,10 @@
           return ["dk", "en", "es"].includes(value);
         },
       },
+      useMarkdown: {
+        type: Boolean,
+        default: true,
+      },
     },
     data() {
       return {
@@ -152,6 +175,12 @@
         streamingAnswer: "", // Current streaming answer text
         streamingIndex: -1, // Index of the question being streamed
       };
+    },
+    computed: {
+      canRenderMarkdown() {
+        // VueShowdown is globally registered via plugin in all entry points.
+        return true;
+      },
     },
     methods: {
       /**
@@ -367,3 +396,4 @@
     },
   };
 </script>
+

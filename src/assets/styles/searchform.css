@@ -47,9 +47,9 @@
 .qpm_filters {
   margin-top: -5px;
   background-color: var(--color-grey);
-  -webkit-box-shadow: inset 0 0 4px 0 rgba(0, 0, 0, 0.2);
-  -moz-box-shadow: inset 0 0 4px 0 rgba(0, 0, 0, 0.2);
-  box-shadow: inset 0 0 4px 0 rgba(0, 0, 0, 0.2);
+  -webkit-box-shadow: inset 0 0 4px 0 var(--color-shadow-soft);
+  -moz-box-shadow: inset 0 0 4px 0 var(--color-shadow-soft);
+  box-shadow: inset 0 0 4px 0 var(--color-shadow-soft);
   padding: 20px 10px 20px 10px;
   flex: 1;
   max-width: 100%;
@@ -221,7 +221,7 @@
   margin-bottom: 2px;
 }
 
-.qpm_aiToggle .ri-sparkling-fill {
+.qpm_aiToggle .bx-sparkles-alt {
   margin-right: 6px;
 }
 
@@ -277,7 +277,7 @@
   padding-bottom: 1px;
 }
 
-.qpm_simpleFiltersHeader .ri-sparkling-fill {
+.qpm_simpleFiltersHeader .bx-sparkles-alt {
   font-size: 1.3em !important;
   font-weight: normal;
   vertical-align: middle;
@@ -321,7 +321,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #ccc;
+  background-color: var(--color-switch-track-default);
   -webkit-transition: 0.4s;
   transition: 0.4s;
   width: inherit;
@@ -387,4 +387,89 @@ input:checked + .qpm_slider:before {
   .qpm_wordedSearchString .h3 {
     clear: both;
   }
+}
+
+/* Search form component-level utility classes */
+.qpm_actionButtonsRow {
+  justify-content: space-between;
+}
+
+.qpm_actionButtonsGroup {
+  position: relative;
+}
+
+.qpm_searchIcon {
+  position: relative;
+  margin-right: 5px;
+}
+
+.qpm_simpleFiltersRoot {
+  margin: 30px 5px 0;
+}
+
+.qpm_filterEntryFullWidth {
+  width: 100%;
+}
+
+.qpm_filterEntryLabel {
+  font-size: 0.9em;
+}
+
+.qpm_collapsedSpacerPadding {
+  padding-bottom: 10px;
+}
+
+.qpm_searchFormToggleHeading {
+  margin-top: 5px;
+}
+
+.qpm_noFloat {
+  float: none;
+}
+
+.qpm_toggleAdvancedSpacing {
+  margin: -5px 0 5px 30px;
+}
+
+.qpm_inlineHeading {
+  display: inline-block;
+}
+
+.qpm_limitsTopPadding {
+  padding-top: 10px;
+}
+
+.qpm_searchStringTextarea {
+  width: 100%;
+  resize: vertical;
+  line-height: 1.6em;
+  border: solid 1px var(--color-grey);
+  padding: 10px;
+  margin-bottom: 4px;
+}
+
+.qpm_searchStringDivider {
+  border-top: solid 1px var(--color-grey);
+  margin: 15px 0;
+}
+
+.qpm_aiIconMuted {
+  color: var(--color-unpaywall-muted);
+}
+
+.qpm_advancedFiltersRoot {
+  margin: 30px 5px 10px;
+}
+
+.qpm_subjectSelectionActions,
+.qpm_filterSelectionActions {
+  margin: 5px 0 20px 0;
+}
+
+.qpm_cursorHelp {
+  cursor: help;
+}
+
+.qpm_cursorPointer {
+  cursor: pointer;
 }

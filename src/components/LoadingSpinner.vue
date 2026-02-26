@@ -3,7 +3,7 @@
     v-if="loading || condition"
     class="qpm_loading d-flex flex-column align-items-center justify-items-center"
   >
-    <p v-if="waitText" style="margin-bottom: 15px">
+    <p v-if="waitText" class="qpm_waitText">
       {{ waitText }}
     </p>
     <svg
@@ -110,3 +110,4 @@
     },
   };
 </script>
+

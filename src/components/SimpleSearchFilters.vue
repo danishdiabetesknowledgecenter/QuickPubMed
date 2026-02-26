@@ -1,5 +1,5 @@
 <template>
-  <div style="margin: 30px 5px 0">
+  <div class="qpm_simpleFiltersRoot">
     <div class="qpm_filtersHeaderContainer">
       <h4 role="heading" aria-level="3" class="h4">
         {{ getString("SimpleFiltersHeader") }}
@@ -10,8 +10,7 @@
         distance: 5,
         delay: helpTextDelay,
         }"
-        class="bx bx-info-circle"
-        style="cursor: help"
+        class="bx bx-info-circle qpm_cursorHelp"
         aria-label="Info"
       />
     </div>
@@ -35,7 +34,7 @@
               :title="getString('checkboxTitle')"
               :value="choice.id || choice.name"
               :checked="isFilterUsed(filterData[option.id], choice)"
-              style="cursor: pointer"
+              class="qpm_cursorPointer"
               @change="onFilterChange(option.id, choice, $event)"
               @keyup.enter="onFilterEnter(choice)"
             />
@@ -50,8 +49,7 @@
                   distance: 5,
                   delay: helpTextDelay,
                 }"
-                class="bx bx-info-circle"
-                style="cursor: help"
+                class="bx bx-info-circle qpm_cursorHelp"
                 aria-label="Info"
               />
             </div>
@@ -141,3 +139,4 @@
     },
   };
 </script>
+

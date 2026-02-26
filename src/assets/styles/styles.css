@@ -1,70 +1,100 @@
+/* ==========================================================================
+   Theme tokens
+   Defines design variables (colors, typography, spacing, and state palettes).
+   ========================================================================== */
 :root {
+  /* Typography */
   --font-primary: "Open Sans";
   --font-secondary: "Open Sans";
-  --color-primary-button: var(--color-primary);
-  --color-white: #fff;
-  --color-black: #000;
+
+  /* Core neutrals */
+  --color-black: #000000;
+  --color-white: #ffffff;
   --color-grey-dark: #919191;
-  --color-grey-medium: var(--color-grey-dark);
-  --color-grey-light: #f4f4f4;
   --color-grey: #e7e7e7;
+  --color-grey-light: #f4f4f4;
+  --color-grey-medium: var(--color-grey-dark);
+  --color-primary-button: var(--color-primary);
+
+  /* Brand / accent colors */
+  --color-accent-blue-light: #87cefa;
   --color-blue-dark: #3d5068;
-  --color-blue-light: lightskyblue;
-  --color-red-dark: #932833;
-  --color-red-light: #ba4343;
+  --color-blue-light: var(--color-accent-blue-light);
   --color-green-light: #799d93;
   --color-link: #004fa4;
-  --color-border-soft: var(--color-grey);
-  --color-gallery-toggle: var(--color-text-secondary);
-  --color-gallery-toggle-hover: #333;
-  --color-editor-border-soft: #ced4da;
-  --color-editor-border-divider: var(--color-grey);
-  --color-editor-border-subtle: #f1f5f9;
-  --color-editor-text-muted: #64748b;
-  --color-editor-text-subtle: var(--color-editor-text-muted);
-  --color-editor-text-secondary: #5b6470;
-  --color-editor-text-tertiary: var(--color-editor-text-secondary);
-  --color-editor-text-strong: #334155;
-  --color-editor-success: #137333;
-  --color-editor-danger: #b42318;
-  --color-editor-danger-strong: #dc3545;
-  --color-editor-info: #315e94;
-  --color-editor-surface-soft: var(--color-editor-surface-muted);
-  --color-editor-surface-muted: #f8fafc;
-  --color-editor-surface-accent: #f3f8ff;
-  --color-editor-surface-accent-light: var(--color-editor-surface-accent);
-  --color-editor-surface-accent-hover: #dcecff;
-  --color-editor-success-bg: #ecfdf3;
-  --color-editor-danger-bg: #fef2f2;
-  --color-editor-info-bg: #eff6ff;
-  --color-editor-dropzone-border: #9fb7d9;
-  --color-editor-primary-ring: rgba(13, 110, 253, 0.3);
-  --color-text-muted: #8f8f9f;
-  --color-text-secondary: #575757;
-  --color-text-disabled: #808080;
-  --color-border-light: #ddd;
-  --color-border-subtle: lightgrey;
-  --color-border-subtle-hover: darkgrey;
-  --color-border-medium: #bbbbbb;
+  --color-red-dark: #932833;
+  --color-red-light: #ba4343;
+
+  /* Borders and surfaces */
   --color-border-disabled: var(--color-border-subtle);
-  --color-shadow-soft: rgba(0, 0, 0, 0.2);
-  --color-overlay-dark: rgba(0, 0, 0, 0.3);
-  --color-surface-hover: #d8e8ef;
-  --color-surface-neutral: var(--color-grey-light);
-  --color-tag-bg: #6c5b7b;
-  --color-group-header-bg: var(--color-blue-dark);
-  --color-option-highlight: #9ac5d5;
+  --color-border-light: #ddd;
+  --color-border-medium: #bbbbbb;
+  --color-border-soft: var(--color-grey);
+  --color-border-subtle: #d3d3d3;
+  --color-border-subtle-hover: #a9a9a9;
   --color-button-big: #4d6687;
+  --color-button-color-green: var(--color-button-scope-green);
   --color-button-disabled: #a0a0a0;
-  --color-button-color-green: #285709;
-  --color-switch-active: #2196f3;
+  --color-button-scope-green: #285709;
+  --color-editor-border-divider: var(--color-grey);
+  --color-editor-border-soft: var(--color-border-subtle);
+  --color-editor-border-subtle: #f1f5f9;
+  --color-editor-danger: #b42318;
+  --color-editor-danger-bg: #fef2f2;
+  --color-editor-danger-strong: #dc3545;
+  --color-editor-dropzone-border: var(--color-option-highlight);
+  --color-editor-info: #315e94;
+  --color-editor-info-bg: #eff6ff;
+  --color-editor-primary-ring: rgba(13, 110, 253, 0.3);
+  --color-editor-success: #137333;
+  --color-editor-success-bg: #ecfdf3;
+  --color-editor-surface-accent: #f3f8ff;
+  --color-editor-surface-accent-hover: #dcecff;
+  --color-editor-surface-accent-light: var(--color-editor-surface-accent);
+  --color-editor-surface-muted: #f8fafc;
+  --color-editor-surface-soft: var(--color-editor-surface-muted);
+  --color-editor-text-muted: #64748b;
+  --color-editor-text-secondary: var(--color-text-secondary);
+  --color-editor-text-strong: #334155;
+  --color-editor-text-subtle: var(--color-editor-text-muted);
+  --color-editor-text-tertiary: var(--color-editor-text-secondary);
+  --color-error: #ff0000;
+  --color-focus-outline: #0000ff;
   --color-focus-ring-input: var(--color-switch-active);
   --color-focus-shadow-input: hsla(207, 75%, 66%, 0.6);
-  --color-focus-outline: blue;
-  --color-error: red;
-  --color-icon-info: darkslategrey;
+  --color-gallery-toggle: var(--color-text-secondary);
+  --color-gallery-toggle-hover: #333;
+  --color-group-header-bg: var(--color-blue-dark);
+  --color-icon-info: var(--color-icon-info-default);
+  --color-icon-info-default: #2f4f4f;
+  --color-option-highlight: #9ac5d5;
+  --color-overlay-dark: rgba(0, 0, 0, 0.3);
+  --color-shadow-soft: rgba(0, 0, 0, 0.2);
+  --color-stream-body-text: var(--color-gallery-toggle-hover);
+  --color-stream-emphasis-text: #555;
+  --color-stream-panel-end: #e9ecef;
+  --color-stream-panel-start: #f8f9fa;
+  --color-stream-primary: #007bff;
+  --color-stream-scroll-thumb: var(--color-switch-track-default);
+  --color-stream-scroll-thumb-hover: #aaa;
+  --color-stream-scroll-track: #f1f1f1;
+  --color-stream-shadow: rgba(0, 0, 0, 0.08);
+  --color-surface-hover: #d8e8ef;
+  --color-surface-neutral: var(--color-grey-light);
+  --color-switch-active: #2196f3;
+  --color-switch-track-default: #ccc;
+  --color-tag-bg: #6c5b7b;
+  --color-text-disabled: #808080;
+  --color-text-muted: #8f8f9f;
+  --color-text-secondary: #575757;
+  --color-unpaywall-muted: #a8a8a8;
+  --color-unpaywall-pdf: #d20a0a;
 }
 
+/* ==========================================================================
+   Global base and reset rules
+   Establishes default typography and neutral element behavior across widgets.
+   ========================================================================== */
 .qpm_vapp * {
   font-family: var(--font-secondary);
 }
@@ -119,10 +149,10 @@
   color: inherit;
 }
 
-.qpm_bottom {
-  /* background-color: yellow !important;*/
-}
-
+/* ==========================================================================
+   Tooltip theme overrides (FloatingVue)
+   Keeps tooltip visuals aligned with the legacy widget design.
+   ========================================================================== */
 /* floating-vue v5 tooltip styling (matches old v-tooltip v2 look) */
 .v-popper--theme-tooltip .v-popper__inner {
   background: var(--color-white) !important;
@@ -146,6 +176,10 @@
   border-color: var(--color-white) !important;
 }
 
+/* ==========================================================================
+   Loading and spinner states
+   Positions loaders consistently in lists, links, summaries, and dropdowns.
+   ========================================================================== */
 .qpm_loading {
   position: absolute;
   left: 50%;
@@ -232,10 +266,6 @@ input.qpm_selectArticleCheckbox[type="checkbox"] {
   text-align: left;
 }
 
-.qpm_abstract .qpm_summaryButton {
-  /* margin: 2px 20px; */
-}
-
 .qpm_abstractsummaryButton {
   padding-bottom: 40px;
 }
@@ -259,6 +289,10 @@ input.qpm_selectArticleCheckbox[type="checkbox"] {
   }
 }
 
+/* ==========================================================================
+   Shared layout helpers
+   Utility-level layout classes used across multiple components/widgets.
+   ========================================================================== */
 .qpm_flex {
   display: flex;
   justify-content: center;
@@ -268,10 +302,6 @@ input.qpm_selectArticleCheckbox[type="checkbox"] {
 .qpm_spaceEvenly {
   display: flex;
   justify-content: space-between;
-}
-
-.qpm_top .qpm_spaceEvenly {
-  /*    flex-direction: row-reverse; */
 }
 
 .qpm_headerText {
@@ -318,6 +348,10 @@ p.qpm_shownumber {
   display: none;
 }
 
+/* ==========================================================================
+   Result entry surface and abstract container
+   Governs article card, abstract area, and related link region structure.
+   ========================================================================== */
 .qpm_abstract {
   background-color: var(--color-white);
   margin-top: 10px;
@@ -334,11 +368,6 @@ p.qpm_shownumber {
   min-width: 225px;
   min-height: 20px;
   z-index: 10;
-}
-
-.qpm_unpaywall .qpm_pubmedLink {
-  /* display: inline-flex;
-	align-items: end; */
 }
 
 .qpm_pdf-icon {
@@ -406,6 +435,10 @@ p.qpm_shownumber {
   box-shadow: 0 0 4px 1px var(--color-shadow-soft);
 }
 
+/* ==========================================================================
+   Button system and keyboard focus behavior
+   Base button styles plus keyboard/mouse mode accessibility handling.
+   ========================================================================== */
 .qpm_button {
   border: 1px solid var(--color-border-light) !important;
   background-color: var(--color-white);
@@ -520,9 +553,10 @@ button.qpm_slim.multiselect__input:focus-visible {
   border: 1px solid var(--color-border-disabled);
 }
 
-.qpm_getUrlToolTip {
-}
-
+/* ==========================================================================
+   Dropdown and multiselect foundation
+   Core structure and interaction styling for the shared dropdown control.
+   ========================================================================== */
 .qpm_dropdown {
   flex: 1;
   width: 90%;
@@ -700,11 +734,6 @@ input.multiselect__input{
   border: solid 1px var(--color-border-subtle-hover) !important;
 }
 
-.multiselect__input:focus,
-.multiselect__input:not(:placeholder-shown) {
-  /* padding: 0 15px !important; */
-}
-
 .multiselect__input.qpm_silent-focus {
   outline: none !important;
   border: solid 1px var(--color-border-subtle) !important;
@@ -740,7 +769,7 @@ input.multiselect__input{
   vertical-align: middle;
 }
 
-/* Fritekst-brik: bredde efter indhold, max 100% af container */
+/* Free-text tag: content-sized width, capped at container width */
 .multiselect__tag.qpm_tag-freetext {
   max-width: min(100%, 100%);
   display: inline-block;
@@ -837,11 +866,6 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 
 .qpm_button.qpm_dark.qpm_disabled {
   visibility: hidden;
-}
-
-.qpm_button.qpm_slim {
-  /* background-color: var(--color-white) !important; */
-  /* padding: 5px; */
 }
 
 .qpm_button.qpm_slim.qpm_abstract {
@@ -1238,7 +1262,7 @@ button.qpm_tab {
   text-align: center;
 }
 
-/* Sikrer at hver knap type får sin faste grid position */
+/* Ensure each scope button type keeps a fixed grid column */
 .qpm_dropdownButtons .qpm_buttonColor1 {
   grid-column: 1;
 }
@@ -1308,6 +1332,10 @@ button.qpm_tab {
 }
 
 
+/* ==========================================================================
+   Icons and badge alignment
+   Harmonizes icon sizes, inline alignment, and metric badge placement.
+   ========================================================================== */
 .qpm_furtherReading {
   display: flex;
   flex-direction: row;
@@ -1353,14 +1381,13 @@ button.qpm_tab {
   min-height: 24px;
   min-width: 24px;
   vertical-align: middle;
-  margin-right: 13px;
+  margin-right: 11px;
 }
 
 .ri-sparkling-fill {
   font-size: 1.7em !important;
-  min-height: 24px;
   min-width: 24px;
-  /* margin: -4px 19px 0 0; */
+  margin-bottom: 2px;
   margin-right: 15px;
   vertical-align: middle;
   line-height: 0;
@@ -1449,6 +1476,10 @@ button.qpm_tab {
 }
 
 
+/* ==========================================================================
+   AI summary and translation panels
+   Structures tabs, summary content, translated titles, and text formatting.
+   ========================================================================== */
 .qpm_searchSummaryBox {
   display: flex;
   justify-content: center;
@@ -1590,6 +1621,10 @@ button.qpm_tab {
   border-color: var(--color-red-light);
 }
 
+/* ==========================================================================
+   Accordion and transition behavior
+   Handles accordion shell styling plus enter/leave animation primitives.
+   ========================================================================== */
 .qpm_accordion {
   /* margin-bottom: 10px; */
   width: 100%;
@@ -1623,13 +1658,11 @@ button.qpm_tab {
 }
 
 .qpm_accordion .qpm_accordion-content {
-  /* box-sizing: content-box; */
-  /*	transition: all 0.5s ease-in-out; */
   transition: height 0.3s linear;
   overflow: hidden;
-  margin-bottom: 10px;
+  margin-top: -10px;
+  margin-bottom: 15px;
   font-family: var(--font-primary);
-  /*	border-bottom: 1px solid var(--color-grey); */
 }
 
 .qpm_accordion-content .list-fade-item:last-child > .qpm_ResultEntry {
@@ -1718,7 +1751,11 @@ button.qpm_tab {
   align-items: flex-start;
 }
 
-/* Justeringer til mobilskærme */
+/* ==========================================================================
+   Responsive overrides
+   Adjusts compact layout behavior for tablet and mobile breakpoints.
+   ========================================================================== */
+/* Mobile screen adjustments */
 
 @media only screen and (max-width: 1199px) {
   .qpm_headerText .h3 {
@@ -1752,6 +1789,12 @@ button.qpm_tab {
   .qpm_searchSummaryText p strong {
     hyphens: none;
     -webkit-hyphens: none;
+  }
+
+  .qpm_summaryArticleContainer .qpm_answer-text,
+  .qpm_questionContainer .qpm_answer-text {
+    margin-left: 0;
+    margin-right: 0;
   }
 }
 
@@ -1863,10 +1906,12 @@ button.qpm_tab {
 .qpm_answer-text {
   word-wrap: break-word; /* Break long words */
   font-family: inherit; /* Use the inherited font family */
-  padding-top: 10px;
   text-align: start;
-  margin-left: 38px;
-  margin-right: 25px;
+  margin-left: 40px;
+  margin-right: 40px;
+}
+.qpm_answer-text * {
+  font-size: 1em !important;
 }
 
 .qpm_error-message {
@@ -1885,11 +1930,477 @@ button.qpm_tab {
   border-radius: 4px;
   box-sizing: border-box;
   font-size: 16px;
+  line-height: 1.5;
+  min-height: 44px;
 }
 
 .qpm_question-input:focus {
   border-color: var(--color-focus-ring-input);
   outline: none;
   box-shadow: 0 0 8px var(--color-focus-shadow-input);
+}
+
+/* ==========================================================================
+   Shared utility classes migrated from components
+   Small helper classes extracted from SFC templates to central stylesheet.
+   ========================================================================== */
+/* Migrated from component scoped styles */
+.qpm_iconBaseline,
+.qpm_iconBaselineSize {
+  vertical-align: baseline;
+}
+
+.qpm_iconBaselineSize {
+  font-size: 1em;
+}
+
+.qpm_waitText {
+  margin-bottom: 15px;
+}
+
+.qpm_translationLoadingSpacer {
+  margin: 30px 0;
+  min-height: 1px;
+}
+
+.qpm_translationActions {
+  margin-top: 20px;
+  margin-left: 5px;
+}
+
+.qpm_noAbstractContentSpacing,
+.qpm_summaryActionsGroup {
+  margin: 20px 5px;
+}
+
+.qpm_retryButtonSpacing,
+.qpm_articleRetryButtonSpacing {
+  margin-top: 25px;
+}
+
+.qpm_multilinePrestringSpacing {
+  margin-bottom: 4px;
+}
+
+.qpm_groupInfoIcon,
+.qpm_entryInfoIcon {
+  cursor: help;
+  font-weight: 200;
+}
+
+.qpm_groupInfoIcon {
+  margin-left: 10px;
+}
+
+.qpm_entryInfoIcon {
+  margin-left: -5px;
+}
+
+.qpm_inlineBlock {
+  display: inline-block;
+}
+
+.qpm_questionContainer,
+.qpm_summaryArticleContainer {
+  margin-top: 20px;
+}
+
+.qpm_questionIcon {
+  font-size: 22px;
+  vertical-align: text-bottom;
+  margin-left: 3px;
+  margin-right: 5px;
+}
+
+.qpm_streamingSpinner {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+}
+
+.qpm_questionInputRow {
+  display: flex;
+}
+
+.qpm_questionSubmitSpacing {
+  margin: 10px;
+}
+
+.qpm_aiHeaderRow {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.qpm_aiHeaderLeft,
+.qpm_resultAiHeaderLeft {
+  display: flex;
+}
+
+.qpm_aiHeaderTitleWrap,
+.qpm_resultAiHeaderTitleWrap {
+  align-content: center;
+}
+
+.qpm_summaryCountSelect {
+  margin: 0 4px;
+  padding: 2px 4px;
+}
+
+.qpm_selectedHeaderOuter {
+  display: inline-flex;
+  width: 100%;
+}
+
+.qpm_selectedHeaderInner {
+  display: inline-flex;
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+  margin-left: -1px;
+}
+
+.qpm_searchResultHeading {
+  padding-top: 30px;
+  margin-left: 5px;
+}
+
+.qpm_searchResultCount {
+  margin-left: 5px;
+}
+
+.qpm_sortSelectSpacing {
+  padding-right: 7px;
+}
+
+.qpm_resultEntriesLayer {
+  z-index: 0;
+}
+
+.qpm_paginationContainer {
+  justify-content: center;
+  margin-top: 25px;
+  flex-direction: column;
+}
+
+.qpm_streaming-container {
+  background: linear-gradient(135deg, var(--color-stream-panel-start) 0%, var(--color-stream-panel-end) 100%);
+  border-radius: 12px;
+  margin: 15px 0;
+  padding: 20px;
+  box-shadow: 0 2px 8px var(--color-stream-shadow);
+  border-left: 4px solid var(--qpm-primary-color, var(--color-stream-primary));
+}
+
+.qpm_streaming-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+  color: var(--qpm-primary-color, var(--color-stream-primary));
+  font-weight: 600;
+  font-size: 0.95em;
+}
+
+.qpm_streaming-header i {
+  font-size: 1.2em;
+}
+
+.qpm_streaming-content {
+  background: var(--color-white);
+  border-radius: 8px;
+  padding: 15px;
+  max-height: 350px;
+  overflow-y: auto;
+  line-height: 1.7;
+  font-size: 0.95em;
+  color: var(--color-stream-body-text);
+}
+
+.qpm_streaming-content strong {
+  color: var(--qpm-primary-color, var(--color-stream-primary));
+  display: block;
+  margin-top: 10px;
+  margin-bottom: 5px;
+}
+
+.qpm_streaming-content em {
+  color: var(--color-stream-emphasis-text);
+  font-style: italic;
+}
+
+.qpm_streaming-cursor {
+  animation: blink 0.8s infinite;
+  color: var(--qpm-primary-color, var(--color-stream-primary));
+  font-weight: bold;
+}
+
+@keyframes blink {
+  0%,
+  40% {
+    opacity: 1;
+  }
+  41%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.qpm_streaming-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 15px;
+  font-size: 0.9em;
+}
+
+.qpm_animated-dots::after {
+  content: "";
+  animation: dots 2.5s steps(5, end) infinite;
+}
+
+@keyframes dots {
+  0% {
+    content: ".";
+  }
+  20% {
+    content: "..";
+  }
+  40% {
+    content: "...";
+  }
+  60% {
+    content: "....";
+  }
+  80%,
+  100% {
+    content: ".....";
+  }
+}
+
+.qpm_streaming-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.qpm_streaming-content::-webkit-scrollbar-track {
+  background: var(--color-stream-scroll-track);
+  border-radius: 3px;
+}
+
+.qpm_streaming-content::-webkit-scrollbar-thumb {
+  background: var(--color-stream-scroll-thumb);
+  border-radius: 3px;
+}
+
+.qpm_streaming-content::-webkit-scrollbar-thumb:hover {
+  background: var(--color-stream-scroll-thumb-hover);
+}
+
+.qpm_streaming-icon {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.qpm_headerIconSlot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  min-width: 28px;
+  flex: 0 0 28px;
+  margin-right: 7px;
+  vertical-align: middle;
+}
+
+.qpm_headerIconSlot .qpm_summaryIcon,
+.qpm_headerIconSlot .qpm_helpCircleIcon,
+.qpm_headerIconSlot .qpm_questionIcon,
+.qpm_headerIconSlot .qpm_streaming-icon {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* Keep spinner in normal flow inside accordion headers (prevents jump while streaming). */
+.qpm_headerLoadingSpinner.qpm_loading {
+  position: relative;
+  top: unset;
+  left: unset;
+  transform: none;
+  z-index: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qpm_summarySectionTopPadding {
+  padding-top: 10px;
+}
+
+.qpm_inlineSpinnerWrap {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+}
+
+.qpm_headerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.qpm_headerRowStart {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.qpm_headerRowEnd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  margin-left: 8px;
+}
+
+.qpm_headerTitleText {
+  display: inline;
+  min-width: 0;
+}
+
+.qpm_headerRow .qpm_aiAccordionHeaderArrows {
+  float: none;
+  right: 0;
+  margin-left: 0;
+}
+
+.qpm_headerRowStart div {
+  margin-right: 15px;
+}
+
+.qpm_iconRightSpacing {
+  margin-right: 5px;
+}
+
+.qpm_summaryIcon {
+  font-size: 22px;
+  margin-top: 2px
+}
+
+.qpm_helpCircleIcon {
+  font-size: 22px;
+  vertical-align: text-bottom;
+  margin-right: 5px;
+}
+
+.qpm_summaryNavButton,
+.qpm_historyNavLeft,
+.qpm_historyNavRight {
+  margin-top: -3px;
+  border: 0;
+}
+
+.qpm_summaryNavCounter,
+.qpm_historyNavDivider {
+  padding: 0 3px;
+}
+
+.qpm_historyNavLeft {
+  margin-right: -12px;
+}
+
+.qpm_historyNavRight {
+  margin-left: -12px;
+}
+
+.qpm_summaryCloseButton {
+  margin-left: 20px;
+  margin-top: -5px;
+  border: 1px solid var(--color-grey);
+}
+
+.qpm_summaryErrorText {
+  color: var(--color-red-dark);
+}
+
+.qpm_summaryErrorIcon {
+  font-size: 30px;
+  line-height: 0;
+  margin: -4px 4px 0 0;
+}
+
+.qpm_summaryRetryGroupError {
+  margin: 20px 5px 5px;
+}
+
+.qpm_summaryWarningBox {
+  background-color: var(--color-border-subtle);
+  padding: 3px 10px 10px;
+  margin: 5px;
+  font-size: 0.9em;
+}
+
+.qpm_summaryLoadingSpinner {
+  align-self: center;
+  min-height: 1px;
+  padding-bottom: 30px;
+}
+
+.qpm_resultTitleWrap {
+  margin-bottom: 10px;
+}
+
+.qpm_inlineDisplay {
+  display: inline;
+}
+
+.qpm_resultTextLineHeight {
+  line-height: 1.5em;
+}
+
+.qpm_mobileResultLayout {
+  display: flex;
+  flex-direction: column-reverse;
+}
+
+.qpm_abstractShownContainer {
+  position: relative;
+  margin-top: 0;
+}
+
+.qpm_resultAiHeader {
+  padding-left: 18px;
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  gap: 5px;
+}
+
+.qpm_resultLoadingText {
+  margin-left: 20px;
+  margin-top: 15px;
+}
+
+.qpm_resultAiNoAbstractHeader {
+  padding-left: 15px;
+  display: inline-flex;
+}
+
+.qpm_unpaywallLoadingSpinner {
+  display: inline-block !important;
+  margin-right: 5px;
+}
+
+.qpm_pdfIconRed {
+  color: var(--color-unpaywall-pdf);
+}
+
+.qpm_pdfIconMuted {
+  color: var(--color-unpaywall-muted);
+}
+
+.qpm_noAbstractPadding {
+  padding-bottom: 10px;
 }
 

@@ -140,6 +140,7 @@ if (ob_get_level()) ob_end_clean();
 
 $domain = qpmResolveDomain();
 $openAiApiKey = qpmGetOpenAIApiKey($domain);
+$openAiApiUrl = qpmGetOpenAIApiUrl($domain);
 
 // HTTP headers for OpenAI API
 $headers = [
@@ -147,7 +148,7 @@ $headers = [
     'Authorization: Bearer ' . $openAiApiKey
 ];
 
-$ch = curl_init(OPENAI_API_URL);
+$ch = curl_init($openAiApiUrl);
 
 curl_setopt_array($ch, [
     CURLOPT_POST => true,

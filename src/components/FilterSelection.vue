@@ -44,7 +44,7 @@
     </div>
     <div
       v-if="hasFilterSelections"
-      style="margin: 5px 0 20px 0"
+      class="qpm_filterSelectionActions"
     >
       <button
         v-tooltip="{
@@ -139,3 +139,4 @@
     },
   };
 </script>
+

@@ -85,10 +85,93 @@ export function getArticleSource(value = {}) {
   return value?.source || "";
 }
 
+export function formatPublicationInfo(value = {}) {
+  const source = value?.source || "";
+  const pubDate = value?.pubDate || value?.pubdate || "";
+  const volume = value?.volume || "";
+  const issue = value?.issue || "";
+  const pages = value?.pages || "";
+
+  let formatted = "";
+  if (source) {
+    formatted += `${source}. `;
+  }
+  if (pubDate) {
+    formatted += `${pubDate};`;
+  }
+  if (volume) {
+    formatted += `${volume}`;
+  }
+  if (issue) {
+    formatted += `(${issue})`;
+  }
+  if (pages) {
+    formatted += `:${pages}`;
+  }
+  return formatted;
+}
+
+export function parsePubMedXml(data) {
+  let xmlDoc;
+  if (window.DOMParser) {
+    const parser = new DOMParser();
+    xmlDoc = parser.parseFromString(data, "text/xml");
+  } else {
+    // eslint-disable-next-line no-undef
+    xmlDoc = new ActiveXObject("Microsoft.XMLDOM");
+    xmlDoc.async = false;
+    xmlDoc.loadXML(data);
+  }
+  return xmlDoc;
+}
+
+export function hasXmlParserError(xmlDoc) {
+  return Boolean(xmlDoc?.getElementsByTagName?.("parsererror")?.length > 0);
+}
+
+export function getAbstractEntriesFromPubMedXml(
+  xmlDoc,
+  { includeEmptySections = false, getSectionName } = {}
+) {
+  const articles = Array.from(xmlDoc?.getElementsByTagName?.("PubmedArticle") || []);
+  return articles
+    .map((article) => {
+      const pmidEl = article.getElementsByTagName("PMID")[0];
+      if (!pmidEl) return null;
+
+      const pmid = pmidEl.textContent;
+      const sections = article.getElementsByTagName("AbstractText");
+
+      if (sections.length === 1) {
+        return [pmid, sections[0].textContent];
+      }
+
+      if (sections.length > 1 || includeEmptySections) {
+        const text = {};
+        Array.from(sections).forEach((section, index) => {
+          const sectionName =
+            typeof getSectionName === "function"
+              ? getSectionName(section, index)
+              : section.getAttribute("Label");
+          const sectionText = section.textContent;
+          text[sectionName] = sectionText;
+        });
+        return [pmid, text];
+      }
+
+      return null;
+    })
+    .filter(Boolean);
+}
+
 export function normalizeComparableId(value) {
   if (value === null || value === undefined) return null;
   const normalized = String(value).trim();
   return normalized === "" ? null : normalized;
+}
+
+export function hasDefinedValue(value) {
+  return value !== null && value !== undefined;
 }
 
 export function areComparableIdsEqual(left, right) {

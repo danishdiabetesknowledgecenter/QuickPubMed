@@ -9,10 +9,10 @@
     <div v-else>
       <p>{{ text }}</p>
     </div>
-    <div v-if="loading" style="margin: 30px 0; min-height: 1px;">
-      <loading-spinner :loading="loading"/>
+    <div v-if="loading" class="qpm_translationLoadingSpacer">
+      <loading-spinner :loading="loading" />
     </div>
-    <div style="margin-top: 20px; margin-left: 5px">
+    <div class="qpm_translationActions">
       <button
         v-if="writing"
         v-tooltip="{
@@ -35,7 +35,7 @@
         class="qpm_button"
         @click="clickRetry"
       >
-        <i class="bx bx-refresh" style="vertical-align: baseline; font-size: 1em" />
+        <i class="bx bx-refresh qpm_iconBaselineSize" />
         {{ getString("retryText") }}
       </button>
       <button
@@ -48,7 +48,7 @@
         class="qpm_button"
         @click="clickCopy"
       >
-        <i class="bx bx-copy" style="vertical-align: baseline" />
+        <i class="bx bx-copy qpm_iconBaseline" />
         {{ getString("copyText") }}
       </button>
     </div>
@@ -210,3 +210,4 @@
     },
   };
 </script>
+

@@ -15,7 +15,12 @@ backend/config/config.php
 
 # Runtime state
 php-proxy/storage/runtime/
-backend/storage/runtime/
+data/runtime/
+data/cache/
+
+# Domain-specific runtime secrets/config
+data/content/*/domain-config.json
+!data/content/domain-config.example.json
 
 # Log files
 npm-debug.log*

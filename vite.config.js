@@ -14,6 +14,15 @@ function toLowerAssetPath(fileName, fallback = "asset") {
   return `${normalizedName}${normalizedExt}`;
 }
 
+function toOutputName(name, fallback = "chunk") {
+  const normalized = String(name || fallback)
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  return normalized || fallback;
+}
+
 export default defineConfig(({ command }) => {
   // Define common input files
   const input = {
@@ -53,13 +62,23 @@ export default defineConfig(({ command }) => {
       rollupOptions: {
         input, // Use the conditional input
         output: {
-          entryFileNames: (chunkInfo) => `assets/${String(chunkInfo.name || "entry").toLowerCase()}.js`,
-          chunkFileNames: (chunkInfo) => `assets/${String(chunkInfo.name || "chunk").toLowerCase()}.js`,
+          entryFileNames: (chunkInfo) =>
+            `assets/entries/${toOutputName(chunkInfo.name, "entry")}.js`,
+          chunkFileNames: (chunkInfo) =>
+            `assets/chunks/${toOutputName(chunkInfo.name, "chunk")}.js`,
           assetFileNames: (assetInfo) => {
             if (assetInfo.name && assetInfo.name.endsWith(".css")) {
-              return "assets/appsettings.css"; // Rename all CSS to appsettings.css
+              return "assets/styles.css"; // Rename all CSS to styles.css
             }
             return `assets/${toLowerAssetPath(assetInfo.name, "asset")}`;
+          },
+          manualChunks: (id) => {
+            if (!id.includes("node_modules")) return undefined;
+            if (id.includes("axios")) return "vendor-http";
+            if (id.includes("floating-vue") || id.includes("vue-showdown") || id.includes("/vue/")) {
+              return "vendor-vue";
+            }
+            return "vendor-misc";
           },
         },
       },

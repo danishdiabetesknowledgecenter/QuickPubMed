@@ -23,18 +23,14 @@
             distance: 5,
             delay: $helpTextDelay,
           }"
-          class="bx bx-info-circle"
-          style="cursor: help"
+          class="bx bx-info-circle qpm_cursorHelp"
           aria-label="Info"
         />
       </div>
     </span>
     <span v-else class="qpm_aiToggle">
       <div>
-        <i
-          style="color: darkgray"
-          class="ri-sparkling-fill"
-        />
+        <i class="ri-sparkling-fill qpm_aiIconMuted" />
       </div>
       <div>
         {{ getString("searchToggleWithoutAI") }}
@@ -44,8 +40,7 @@
             distance: 5,
             delay: $helpTextDelay,
           }"
-          class="bx bx-info-circle"
-          style="cursor: help"
+          class="bx bx-info-circle qpm_cursorHelp"
           aria-label="Info"
         />
       </div>
@@ -94,3 +89,4 @@
     },
   };
 </script>
+

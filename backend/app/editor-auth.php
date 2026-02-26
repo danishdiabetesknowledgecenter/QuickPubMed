@@ -311,7 +311,7 @@ function editorValidateCsrfToken(?string $token): void
  */
 function editorRateLimitFilePath(): string
 {
-    $runtimeDir = dirname(__DIR__) . '/storage/runtime';
+    $runtimeDir = dirname(__DIR__, 2) . '/data/runtime';
     if (!is_dir($runtimeDir)) {
         @mkdir($runtimeDir, 0750, true);
     }
@@ -629,7 +629,7 @@ function editorRequireAuth(): void
  */
 function editorRuntimeDir(): string
 {
-    $runtimeDir = dirname(__DIR__) . '/storage/runtime';
+    $runtimeDir = dirname(__DIR__, 2) . '/data/runtime';
     if (!is_dir($runtimeDir)) {
         @mkdir($runtimeDir, 0750, true);
     }

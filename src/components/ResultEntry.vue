@@ -21,19 +21,17 @@
             @change="updateInput"
             @keyup.enter="changeOnEnter"
           />
-          <div style="margin-bottom: 10px">
+          <div class="qpm_resultTitleWrap">
             <label :for="selectable && hasAbstract ? 'qpm_selectArticleCheckbox_' + id : null">
               <p
                 v-if="showArticleButtons || !hasAbstract"
-                style="display: inline"
-                class="qpm_resultTitle"
+                class="qpm_resultTitle qpm_inlineDisplay"
               >
                 {{ getTitle }}<span v-if="!getTitle">{{ getBookTitle }}</span>
               </p>
               <p
                 v-if="!showArticleButtons && hasAbstract"
-                style="display: inline"
-                class="qpm_resultTitle qpm_resultTitleHover"
+                class="qpm_resultTitle qpm_resultTitleHover qpm_inlineDisplay"
                 @click="showAbstract"
               >
                 <span v-if="getVernacularTitle && getVernacularTitle !== getTitle">
@@ -44,8 +42,7 @@
             </label>
             <p
               v-if="config.useAI && useTranslateTitle"
-              style="display: inline"
-              class="qpm_translateTitleLink qpm_ai_hide"
+              class="qpm_translateTitleLink qpm_ai_hide qpm_inlineDisplay"
             >
               <a v-if="language !== 'en'" href="#" @click.prevent="toggleTranslation"
                 >{{
@@ -58,7 +55,7 @@
           </div>
         </div>
         <ai-translation :showing-translation="translationShowing" :title="computedTitle" />
-        <div style="line-height: 1.5em">
+        <div class="qpm_resultTextLineHeight">
           <p class="qpm_resultAuthors">
             <span v-if="calculateAuthors">{{ calculateAuthors }}.</span>
             <span v-if="!calculateAuthors"
@@ -68,7 +65,7 @@
           </p>
         </div>
       </div>
-      <div style="line-height: 1.5em">
+      <div class="qpm_resultTextLineHeight">
         <p class="qpm_resultSource">
           <span v-if="source">{{ source }}</span>
           <span v-if="source && pubDate">. </span>
@@ -80,7 +77,7 @@
       </div>
     </div>
     <!-- Case for small screen sizes -->
-    <div v-if="getComponentWidth" style="display: flex; flex-direction: column-reverse">
+    <div v-if="getComponentWidth" class="qpm_mobileResultLayout">
       <div v-if="showArticleButtons" class="qpm_resultButtons_mobile" :style="mobileResult">
         <button
           v-if="hasSectionedAbstract || hasValidAbstract || pmid || doi"
@@ -268,20 +265,20 @@
       :class="{ qpm_toggleAbstract: showingAbstract }"
     >
       <div>
-        <div v-show="showingAbstract" lang="en" style="position: relative; margin-top: 0">
+        <div v-show="showingAbstract" lang="en" class="qpm_abstractShownContainer">
           <accordion-menu
             v-if="config.useAI && hasValidAbstract"
             class="qpm_ai_hide qpm_accordions"
           >
             <template #header="accordionProps">
-              <div class="qpm_aiAccordionHeader" style="padding-left: 18px; display: flex; flex-wrap: nowrap; justify-content: space-between;gap: 5px;">
-                <div style="display: flex">
+              <div class="qpm_aiAccordionHeader qpm_resultAiHeader">
+                <div class="qpm_resultAiHeaderLeft">
                   <div>
                     <i
                       class="ri-sparkling-fill"
                     />
                   </div>
-                  <div style="align-content: center;">
+                  <div class="qpm_resultAiHeaderTitleWrap">
                     <strong>{{ getString("selectedResultAccordionHeader") }}</strong>
                     <button
                       v-tooltip="{
@@ -369,7 +366,7 @@
                 isPubTypeAllowed === undefined ||
                 isLicenseAllowed === undefined)
             "
-            style="margin-left: 20px; margin-top: 15px"
+            class="qpm_resultLoadingText"
           >
             {{ getString("loadingText") }}
           </p>
@@ -385,7 +382,7 @@
             class="qpm_ai_hide qpm_accordions"
           >
             <template #header="accordionProps">
-              <div class="qpm_aiAccordionHeader" style="padding-left: 15px; display: inline-flex">
+              <div class="qpm_aiAccordionHeader qpm_resultAiNoAbstractHeader">
                 <i
                   v-if="accordionProps.expanded"
                   class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
@@ -467,7 +464,7 @@
                   <loading-spinner
                     :loading="true"
                     :size="15"
-                    style="display: inline-block !important; margin-right: 5px"
+                    class="qpm_unpaywallLoadingSpinner"
                   />
                   <a
                     v-tooltip="{
@@ -482,7 +479,7 @@
                 </template>
 
                 <template v-else-if="getHasOaPdf">
-                  <i class="bx bxs-file-pdf qpm_pdf-icon" style="color: #d20a0a" />
+                  <i class="bx bxs-file-pdf qpm_pdf-icon qpm_pdfIconRed" />
                   <a
                     v-tooltip="{
                       content: getString('hoverUnpaywall_pdf'),
@@ -497,7 +494,7 @@
                 </template>
 
                 <template v-else-if="getHasOaHtml">
-                  <i class="bx bxs-file-html qpm_pdf-icon" style="color: #a8a8a8" />
+                  <i class="bx bxs-file-html qpm_pdf-icon qpm_pdfIconMuted" />
                   <a
                     v-tooltip="{
                       content: getString('hoverUnpaywall_html'),
@@ -512,7 +509,7 @@
                 </template>
 
                 <template v-else>
-                  <i class="bx bxs-file-pdf qpm_pdf-icon" style="color: #a8a8a8" />
+                  <i class="bx bxs-file-pdf qpm_pdf-icon qpm_pdfIconMuted" />
                   <a
                     v-tooltip="{
                       content: getString('hoverUnpaywall_noPdf'),
@@ -554,7 +551,7 @@
 
             <!-- there is no abstract-->
             <template v-if="!hasAbstract || (!isDocTypeAllowed && !hasSectionedAbstract)">
-              <p style="padding-bottom: 10px">
+              <p class="qpm_noAbstractPadding">
                 {{ getString("noAbstract") }}
               </p>
             </template>
@@ -650,6 +647,7 @@
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
   import axios from "axios";
   import { config } from "@/config/config.js";
+  import { settings } from "@/config/settings.js";
   import { eventBus } from "@/mixins/appSettings";
   import { appSettingsMixin } from "@/mixins/appSettings";
   import { utilitiesMixin } from "@/mixins/utilities";
@@ -657,7 +655,9 @@
   import { summarizeSingleAbstractPrompt } from "@/assets/prompts/abstract";
   import {
     areComparableIdsEqual,
+    formatPublicationInfo,
     getLocalizedTranslation,
+    hasDefinedValue,
     isMobileViewport,
   } from "@/utils/componentHelpers";
 
@@ -878,19 +878,13 @@
           return this.getString("showAbstract");
         }
 
-        if (this.hasSectionedAbstract) {
+        if (this.hasSectionedAbstract || this.hasValidAbstract) {
           return this.showingAbstract
             ? this.getString("hideAbstract")
             : this.getString("showAbstract");
         }
 
-        if (this.hasValidAbstract) {
-          return this.showingAbstract
-            ? this.getString("hideAbstract")
-            : this.getString("showAbstract");
-        } else {
-          return this.showingAbstract ? this.getString("hideInfo") : this.getString("showInfo");
-        }
+        return this.showingAbstract ? this.getString("hideInfo") : this.getString("showInfo");
       },
       getComponentWidth() {
         return isMobileViewport() || (this.parentWidth < 520 && this.parentWidth !== 0);
@@ -909,9 +903,7 @@
         );
       },
       getDoiLink() {
-        if (this.doi) {
-          return "https://doi.org/" + this.doi;
-        } else return "";
+        return this.doi ? "https://doi.org/" + this.doi : "";
       },
       getPubmedRelated() {
         return (
@@ -941,9 +933,7 @@
         );
       },
       getUnpaywall() {
-        if (this.doi) {
-          return "https://unpaywall.org/" + this.doi;
-        } else return "";
+        return this.doi ? "https://unpaywall.org/" + this.doi : "";
       },
       /**
        * Check api response for the url for the pdf version of the article
@@ -985,54 +975,33 @@
       },
 
       getOaHtml() {
-        if (this.getHasOaHtml) {
-          return this.unpaywallResponse.best_oa_location.url_for_landing_page;
-        } else return "";
+        return this.getHasOaHtml
+          ? this.unpaywallResponse.best_oa_location.url_for_landing_page
+          : "";
       },
       getOaPdf() {
-        if (this.getHasOaPdf) {
-          return this.unpaywallResponse.best_oa_location.url;
-        } else return "";
+        return this.getHasOaPdf ? this.unpaywallResponse.best_oa_location.url : "";
       },
       getGoogleScholar() {
-        if (this.pmid !== null && this.pmid !== undefined) {
-          return "https://scholar.google.com/scholar_lookup?pmid=" + this.pmid;
-        } else {
-          return "https://scholar.google.com/scholar_lookup?doi=" + this.doi;
-        }
+        return hasDefinedValue(this.pmid)
+          ? "https://scholar.google.com/scholar_lookup?pmid=" + this.pmid
+          : "https://scholar.google.com/scholar_lookup?doi=" + this.doi;
       },
       getTitle() {
-        const div = document.createElement("div");
-        div.innerHTML = this.title;
-        const text = div.textContent || div.innerText || "";
-
-        return text.replace(/<\/?[^>]+(>|$)/g, "");
+        return this.stripHtmlToText(this.title);
       },
       getBookTitle() {
-        const div = document.createElement("div");
-        div.innerHTML = this.booktitle;
-        const text = div.textContent || div.innerText || "";
-        return text.replace(/<\/?[^>]+(>|$)/g, "");
+        return this.stripHtmlToText(this.booktitle);
       },
       getVernacularTitle() {
-        if (this.vernaculartitle) {
-          const div = document.createElement("div");
-          div.innerHTML = this.vernaculartitle;
-          const text = div.textContent || div.innerText || "";
-          return text.replace(/<\/?[^>]+(>|$)/g, "");
-        } else return "";
+        return this.vernaculartitle ? this.stripHtmlToText(this.vernaculartitle) : "";
       },
       calculateAuthors() {
         const authorArray = this.author.split(",");
 
         if (!this.shownSixAuthors || authorArray.length <= 6) return this.author;
-        let shownAuthors = "";
-        for (let i = 0; i < 6; i++) {
-          if (i > 0) shownAuthors += ",";
-          shownAuthors += " " + authorArray[i];
-        }
-        shownAuthors += ", et al";
-        return shownAuthors;
+        const firstSixAuthors = authorArray.slice(0, 6).map((author) => ` ${author}`).join(",");
+        return `${firstSixAuthors}, et al`;
       },
       getScreenWidth() {
         const width =
@@ -1040,8 +1009,7 @@
         return width;
       },
       mobileResult() {
-        if (this.getDoiLink) return { "flex-direction": "row" };
-        else return "";
+        return this.getDoiLink ? { "flex-direction": "row" } : "";
       },
       showArticleButtons() {
         return this.showButtons;
@@ -1056,7 +1024,7 @@
         return this.hyperLink;
       },
       getAbstractDivName() {
-        return this.id !== null && this.id !== undefined ? "abstract_" + this.id : "custom";
+        return hasDefinedValue(this.id) ? `abstract_${this.id}` : "custom";
       },
       getSource() {
         const source = this.source || "";
@@ -1077,23 +1045,20 @@
           .join("");
       },
       getAbstract() {
-        let abstract = "";
-
         if (this.abstract) {
-          abstract = this.abstract;
-        } else {
-          for (const section in this.text) {
-            const header =
-              section !== "UNLABELLED" && section !== "null"
-                ? section[0].toUpperCase() + section.slice(1).toLowerCase()
-                : "Abstract";
-            const body = this.text[section];
-
-            abstract = abstract + "\n\n" + header + "\n" + body;
-          }
+          return this.abstract.trim();
         }
 
-        return abstract.trim();
+        const sections = [];
+        for (const section in this.text) {
+          const header =
+            section !== "UNLABELLED" && section !== "null"
+              ? section[0].toUpperCase() + section.slice(1).toLowerCase()
+              : "Abstract";
+          const body = this.text[section];
+          sections.push(`${header}\n${body}`);
+        }
+        return sections.join("\n\n").trim();
       },
       getArticle() {
         return {
@@ -1156,7 +1121,7 @@
       // This is to ensure all badges to be loaded properly
       // given there are multiple occurrences of <references/>
 
-      if (this.id !== null && this.id !== undefined) {
+      if (hasDefinedValue(this.id)) {
         this.abstractId = `abstract${this.id}`;
       } else {
         this.abstractId = "custom";
@@ -1173,25 +1138,14 @@
       eventBus.off("result-entry-show-abstract", this.onEventBusShowAbstractEvent);
     },
     methods: {
+      stripHtmlToText(value) {
+        const div = document.createElement("div");
+        div.innerHTML = value || "";
+        const text = div.textContent || div.innerText || "";
+        return text.replace(/<\/?[^>]+(>|$)/g, "");
+      },
       getFormattedPublication() {
-        let formatted = "";
-
-        if (this.source) {
-          formatted += `${this.source}. `;
-        }
-        if (this.pubDate) {
-          formatted += `${this.pubDate};`;
-        }
-        if (this.volume) {
-          formatted += `${this.volume}`;
-        }
-        if (this.issue) {
-          formatted += `(${this.issue})`;
-        }
-        if (this.pages) {
-          formatted += `:${this.pages}`;
-        }
-        return formatted;
+        return formatPublicationInfo(this);
       },
 
       /**
@@ -1491,8 +1445,13 @@
       async loadUnpaywallApiResponse() {
         if (!this.doi) return undefined;
 
-        const url =
-          "https://api.unpaywall.org/v2/" + this.doi + "?email=admin@videncenterfordiabetes.dk";
+        const baseUrl = String(settings?.unpaywall?.baseUrl || "").replace(/\/+$/, "");
+        const email = String(settings?.unpaywall?.email || "");
+        if (!baseUrl || !email) {
+          this.unpaywallResponseLoaded = true;
+          return undefined;
+        }
+        const url = `${baseUrl}/${this.doi}?email=${encodeURIComponent(email)}`;
         const timeout = 15 * 1000; //15 second timeout
         await axios
           .get(url, { timeout })
@@ -1548,3 +1507,4 @@
     },
   };
 </script>
+

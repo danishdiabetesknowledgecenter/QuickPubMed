@@ -26,7 +26,7 @@
         <div class="qpm_searchSummaryResponseBox">
           <div class="qpm_searchSummaryText">
             <div>
-              <div style="margin: 20px 5px">
+              <div class="qpm_noAbstractContentSpacing">
                 <div
                   v-if="
                     showSummarizeArticle &&
@@ -36,83 +36,89 @@
                     isPubTypeAllowed
                   "
                 >
-                  <summarize-article
-                    v-if="isInitialized"
-                    :ref="`summarizeArticleNoAbstract-${currentSummary}`"
-                    :key="`no-abstract-${currentSummary}`"
-                    :pdf-url="pdfUrl"
-                    :html-url="htmlUrl"
-                    :language="language"
-                    :search-result-title="searchResultTitle"
-                    :authors-list="authorsList"
-                    :publication-info="publicationInfo"
-                    :prompt-language-type="currentSummary"
-                    :domain-specific-prompt-rules="domainSpecificPromptRules"
-                    :ai-article-summaries="aiArticleSummaries"
-                    :current-summary-index="currentSummaryIndex"
-                    :loading="loadingArticleSummaries[currentSummary]"
-                    @set-loading="handleSetLoading"
-                    @unset-loading="handleUnsetLoading"
-                    @update-ai-article-summaries="updateAiArticleSummaries"
-                    @update-current-summary-index="updateCurrentSummaryIndex"
-                    @error-state-changed="handleSummarizeArticleErrorState"
-                    @last-item-streaming-started="handleLastItemStreamingStarted"
-                  />
-                  <question-for-article
-                    v-if="
-                      !localIsForbiddenError &&
-                      (!loadingArticleSummaries[currentSummary] || showUserQuestionsEarly)
-                    "
-                    :pdf-url="pdfUrl"
-                    :html-url="htmlUrl"
-                    :language="language"
-                    :prompt-language-type="currentSummary"
-                    :domain-specific-prompt-rules="domainSpecificPromptRules"
-                    :is-loading-current="
-                      loadingArticleSummaries[currentSummary] && !showUserQuestionsEarly
-                    "
-                    :persisted-questions-and-answers="userQuestionsAndAnswers[currentSummary]"
-                    @update-questions-and-answers="updateUserQuestionsAndAnswers"
-                  />
-                  <button
-                    v-if="
-                      !loadingArticleSummaries[currentSummary] || currentSummary.length !== 0
-                    "
-                    v-tooltip="{
-                      content: getString('hoverretryText'),
-                      distance: 5,
-                      delay: $helpTextDelay,
-                    }"
-                    class="qpm_button"
-                    style="margin-top: 25px"
-                    :disabled="
-                      loadingArticleSummaries[currentSummary] || currentSummary.length === 0
-                    "
-                    @keydown.enter="handleRetryArticleSummary"
-                    @click="handleRetryArticleSummary"
-                  >
-                    <i class="bx bx-refresh" style="vertical-align: baseline; font-size: 1em"></i>
-                    {{ getString("retryText") }}
-                  </button>
-                  <button
-                    v-if="
-                      !loadingArticleSummaries[currentSummary] || currentSummary.length !== 0
-                    "
-                    v-tooltip="{
-                      content: getString('hovercopyText'),
-                      distance: 5,
-                      delay: $helpTextDelay,
-                    }"
-                    class="qpm_button"
-                    :disabled="
-                      loadingArticleSummaries[currentSummary] || currentSummary.length === 0
-                    "
-                    @keydown.enter="clickCopyArticleSummary"
-                    @click="clickCopyArticleSummary"
-                  >
-                    <i class="bx bx-copy" style="vertical-align: baseline" />
-                    {{ getString("copyText") }}
-                  </button>
+                  <template v-for="prompt in prompts" :key="`no-abstract-flow-${prompt.name}`">
+                    <div v-show="prompt.name === currentSummary">
+                      <summarize-article
+                        v-if="isInitialized && activeArticleTabs[prompt.name]"
+                        :ref="`summarizeArticleNoAbstract-${prompt.name}`"
+                        :key="`no-abstract-${prompt.name}`"
+                        :pdf-url="pdfUrl"
+                        :html-url="htmlUrl"
+                        :language="language"
+                        :search-result-title="searchResultTitle"
+                        :authors-list="authorsList"
+                        :publication-info="publicationInfo"
+                        :prompt-language-type="prompt.name"
+                        :domain-specific-prompt-rules="domainSpecificPromptRules"
+                        :ai-article-summaries="aiArticleSummaries"
+                        :current-summary-index="currentSummaryIndex"
+                        :loading="loadingArticleSummaries[prompt.name]"
+                        @set-loading="handleSetLoading"
+                        @unset-loading="handleUnsetLoading"
+                        @update-ai-article-summaries="updateAiArticleSummaries"
+                        @update-current-summary-index="updateCurrentSummaryIndex"
+                        @error-state-changed="handleSummarizeArticleErrorState"
+                        @last-item-streaming-started="handleLastItemStreamingStarted"
+                      />
+                      <question-for-article
+                        v-if="
+                          activeArticleTabs[prompt.name] &&
+                          !localIsForbiddenError &&
+                          (!loadingArticleSummaries[prompt.name] || showUserQuestionsEarly)
+                        "
+                        :pdf-url="pdfUrl"
+                        :html-url="htmlUrl"
+                        :language="language"
+                        :prompt-language-type="prompt.name"
+                        :domain-specific-prompt-rules="domainSpecificPromptRules"
+                        :is-loading-current="
+                          loadingArticleSummaries[prompt.name] && !showUserQuestionsEarly
+                        "
+                        :persisted-questions-and-answers="userQuestionsAndAnswers[prompt.name]"
+                        @update-questions-and-answers="updateUserQuestionsAndAnswers"
+                      />
+                      <button
+                        v-if="
+                          activeArticleTabs[prompt.name] &&
+                          (!loadingArticleSummaries[prompt.name] || prompt.name.length !== 0)
+                        "
+                        v-tooltip="{
+                          content: getString('hoverretryText'),
+                          distance: 5,
+                          delay: $helpTextDelay,
+                        }"
+                        class="qpm_button qpm_retryButtonSpacing"
+                        :disabled="
+                          loadingArticleSummaries[prompt.name] || prompt.name.length === 0
+                        "
+                        @keydown.enter="handleRetryArticleSummary"
+                        @click="handleRetryArticleSummary"
+                      >
+                        <i class="bx bx-refresh qpm_iconBaselineSize"></i>
+                        {{ getString("retryText") }}
+                      </button>
+                      <button
+                        v-if="
+                          activeArticleTabs[prompt.name] &&
+                          (!loadingArticleSummaries[prompt.name] || prompt.name.length !== 0)
+                        "
+                        v-tooltip="{
+                          content: getString('hovercopyText'),
+                          distance: 5,
+                          delay: $helpTextDelay,
+                        }"
+                        class="qpm_button"
+                        :disabled="
+                          loadingArticleSummaries[prompt.name] || prompt.name.length === 0
+                        "
+                        @keydown.enter="clickCopyArticleSummary"
+                        @click="clickCopyArticleSummary"
+                      >
+                        <i class="bx bx-copy qpm_iconBaseline" />
+                        {{ getString("copyText") }}
+                      </button>
+                    </div>
+                  </template>
                 </div>
               </div>
               <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryDisclaimer')" />
@@ -230,6 +236,10 @@
         loadingArticleSummaries: {},
         userQuestionsAndAnswers: {},
         showUserQuestionsEarly: false, // Show user questions section when last item starts streaming
+        activeArticleTabs: this.prompts.reduce((acc, prompt) => {
+          acc[prompt.name] = false;
+          return acc;
+        }, {}),
       };
     },
     computed: {
@@ -402,6 +412,7 @@
       },
       async clickSummaryTab(prompt) {
         this.currentSummary = prompt.name;
+        this.activeArticleTabs[prompt.name] = true;
       },
       getTabTooltipContent(prompt) {
         const tooltip = prompt?.tooltip;
@@ -412,3 +423,4 @@
     },
   };
 </script>
+
