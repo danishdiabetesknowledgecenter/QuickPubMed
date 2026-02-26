@@ -1,0 +1,21 @@
+{
+  "openai": {
+    "api_key": "",
+    "org_id": "",
+    "api_url": ""
+  },
+  "nlm": {
+    "api_key": "",
+    "email": ""
+  },
+  "unpaywall": {
+    "email": ""
+  },
+  "theme_overrides": {
+    "--color-primary-button": "#0f5ba7",
+    "--color-link": "#0f5ba7",
+    "--color-blue-dark": "#1f4a7a",
+    "--color-gallery-toggle": "#1f4a7a",
+    "--color-gallery-toggle-hover": "#0c355f"
+  }
+}

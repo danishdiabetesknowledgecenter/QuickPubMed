@@ -1,0 +1,15 @@
+{
+  "openai": {
+    "api_key": "",
+    "org_id": "",
+    "api_url": ""
+  },
+  "nlm": {
+    "api_key": "",
+    "email": ""
+  },
+  "unpaywall": {
+    "email": ""
+  },
+  "theme_overrides": {}
+}

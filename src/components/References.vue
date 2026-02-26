@@ -109,10 +109,14 @@
   import { order } from "@/assets/content/order";
   import {
     extractDoi,
+    getAbstractEntriesFromPubMedXml,
     getArticleSource,
     getAuthorNames,
     getFormattedEntrezDate,
+    hasDefinedValue,
+    hasXmlParserError,
     hasAbstractAttribute,
+    parsePubMedXml,
   } from "@/utils/componentHelpers";
 
   let _specificArticlesUid = 0;
@@ -278,10 +282,10 @@
         return !this.loadingComponent && this.enteredIds.length === 0;
       },
       getKey() {
-        return this.doi ? this.doi : null;
+        return this.doi || null;
       },
       getId() {
-        return this.ids ? this.ids : null;
+        return this.ids || null;
       },
       getComponentId() {
         return `qpm_References_${this.componentId}`;
@@ -291,11 +295,7 @@
       this.fetchInitialArticles();
     },
     mounted() {
-      if (this.componentNo === null || this.componentNo === undefined) {
-        this.componentId = ++_specificArticlesUid;
-      } else {
-        this.componentId = this.componentNo;
-      }
+      this.componentId = this.componentNo ?? ++_specificArticlesUid;
     },
     updated() {
       if (this.loadingComponent) return;
@@ -323,10 +323,7 @@
         }
       },
       getHasAbstract(attributes) {
-        if (this.abstract || this.sectionedAbstract) {
-          return true;
-        }
-        return hasAbstractAttribute(attributes);
+        return Boolean(this.abstract || this.sectionedAbstract) || hasAbstractAttribute(attributes);
       },
       getDate(history) {
         try {
@@ -338,16 +335,16 @@
         }
       },
       getTitle(std) {
-        if (this.title) return this.title;
-        return std;
+        return this.getPreferredValue(this.title, std);
       },
       getBookTitle(std) {
-        if (this.booktitle) return this.booktitle;
-        return std;
+        return this.getPreferredValue(this.booktitle, std);
       },
       getVernacularTitle(std) {
-        if (this.vernaculartitle) return this.vernaculartitle;
-        return std;
+        return this.getPreferredValue(this.vernaculartitle, std);
+      },
+      getPreferredValue(preferred, fallback) {
+        return preferred || fallback;
       },
       getDoi(searchResult) {
         try {
@@ -406,29 +403,21 @@
         return this.hyperLinkText;
       },
       getComponentWidth() {
-        let container = this.$refs.singleComponent;
+        const container = this.$refs.singleComponent;
         if (!container?.innerHTML) return;
-        return parseInt(container.offsetWidth);
+        return container.offsetWidth;
       },
       getAbstract(id) {
-        if (this.abstractRecords[id] !== undefined) {
-          if (typeof this.abstractRecords[id] !== "string") {
-            return "";
-          }
-          return this.abstractRecords[id];
-        }
-        return "";
+        const record = this.getAbstractRecord(id);
+        return typeof record === "string" ? record : "";
       },
       getText(id) {
-        if (id !== undefined && id !== null) {
-          if (
-            this.abstractRecords[id] !== undefined &&
-            typeof this.abstractRecords[id] === "object"
-          ) {
-            return this.abstractRecords[id];
-          }
-        }
-        return {};
+        const record = this.getAbstractRecord(id);
+        return record && typeof record === "object" ? record : {};
+      },
+      getAbstractRecord(id) {
+        if (!hasDefinedValue(id)) return undefined;
+        return this.abstractRecords[id];
       },
       // Fetch initial articles based on ids or query
       async fetchInitialArticles() {
@@ -556,43 +545,19 @@
           });
 
           const data = response.data;
-          let xmlDoc;
+          const xmlDoc = parsePubMedXml(data);
 
-          if (window.DOMParser) {
-            const parser = new DOMParser();
-            xmlDoc = parser.parseFromString(data, "text/xml");
-          } else {
-            // For older IE versions
-            xmlDoc = new ActiveXObject("Microsoft.XMLDOM");
-            xmlDoc.async = false;
-            xmlDoc.loadXML(data);
-          }
-
-          if (xmlDoc.getElementsByTagName("parsererror").length > 0) {
+          if (hasXmlParserError(xmlDoc)) {
             throw new Error("Invalid XML response from PubMed");
           }
-          const articles = Array.from(xmlDoc.getElementsByTagName("PubmedArticle"));
-          const articleData = articles.map((article) => {
-            const pmidEl = article.getElementsByTagName("PMID")[0];
-            if (!pmidEl) return null;
-            const pmid = pmidEl.textContent;
-            const sections = article.getElementsByTagName("AbstractText");
-            if (sections.length === 1) {
-              const abstractText = sections[0].textContent;
-              return [pmid, abstractText];
-            } else {
-              const text = {};
-              for (let i = 0; i < sections.length; i++) {
-                const sectionName = sections[i].getAttribute("Label") || `Section ${i + 1}`;
-                const sectionText = sections[i].textContent;
-                text[sectionName] = sectionText;
-              }
-              return [pmid, text];
-            }
-          }).filter(Boolean);
+          const articleData = getAbstractEntriesFromPubMedXml(xmlDoc, {
+            includeEmptySections: true,
+            getSectionName: (section, index) =>
+              section.getAttribute("Label") || `Section ${index + 1}`,
+          });
 
-          for (const item of articleData) {
-            this.onAbstractLoad(item[0], item[1]);
+          for (const [articleId, abstractValue] of articleData) {
+            this.onAbstractLoad(articleId, abstractValue);
           }
         } catch (err) {
           console.error("Error in fetch from PubMed:", err);
@@ -620,6 +585,7 @@
       },
       // Handle abstract load completion
       onAbstractLoad(id, abstract) {
+        if (!hasDefinedValue(id)) return;
         this.abstractRecords[id] = abstract;
       },
       // Handle unsuccessful API calls
@@ -628,11 +594,9 @@
       },
       // Set sorting order based on input
       setOrder(input) {
-        for (let i = 0; i < order.length; i++) {
-          if (order[i].method === input) {
-            this.sort = order[i];
-            return;
-          }
+        const selectedOrder = order.find((entry) => entry.method === input);
+        if (selectedOrder) {
+          this.sort = selectedOrder;
         }
       },
     },

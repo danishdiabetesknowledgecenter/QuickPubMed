@@ -21,12 +21,15 @@ $allowedOrigin = getAllowedOrigin($origin);
 if ($allowedOrigin) {
     header('Access-Control-Allow-Origin: ' . $allowedOrigin);
     header('Access-Control-Allow-Credentials: true');
-} else {
-    // Public, read-only response
-    header('Access-Control-Allow-Origin: *');
+} elseif ($origin !== '') {
+    http_response_code(403);
+    header('Content-Type: application/json');
+    echo json_encode(['error' => 'Origin is not allowed']);
+    exit;
 }
 header('Access-Control-Allow-Methods: GET, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
+header('Vary: Origin');
 header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -34,22 +37,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-$domain = strtolower(trim((string) ($_GET['domain'] ?? '')));
+$domain = qpmNormalizeDomainKey((string) ($_GET['domain'] ?? ''));
 $globalTheme = defined('QPM_THEME_GLOBAL_OVERRIDES') && is_array(QPM_THEME_GLOBAL_OVERRIDES)
     ? QPM_THEME_GLOBAL_OVERRIDES
     : [];
 $themeByDomain = defined('QPM_THEME_DOMAIN_OVERRIDES') && is_array(QPM_THEME_DOMAIN_OVERRIDES)
     ? QPM_THEME_DOMAIN_OVERRIDES
     : [];
+$unpaywall = [
+    'baseUrl' => defined('UNPAYWALL_BASE_URL') ? (string) UNPAYWALL_BASE_URL : '',
+    'email' => qpmGetUnpaywallEmail($domain),
+];
 
 $domainTheme = [];
 if ($domain !== '' && isset($themeByDomain[$domain]) && is_array($themeByDomain[$domain])) {
     $domainTheme = $themeByDomain[$domain];
 }
+$domainTheme = array_merge($domainTheme, qpmGetDomainThemeOverrides($domain));
 
 echo json_encode([
     'globalTheme' => $globalTheme,
     'themeByDomain' => $themeByDomain,
     'domain' => $domain,
     'domainTheme' => $domainTheme,
+    'unpaywall' => $unpaywall,
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

@@ -1,0 +1,15 @@
+{
+  "openai": {
+    "api_key": "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",
+    "org_id": "",
+    "api_url": ""
+  },
+  "nlm": {
+    "api_key": "",
+    "email": ""
+  },
+  "unpaywall": {
+    "email": ""
+  },
+  "theme_overrides": {}
+}

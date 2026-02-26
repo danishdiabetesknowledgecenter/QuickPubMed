@@ -21,12 +21,15 @@ $allowedOrigin = getAllowedOrigin($origin);
 if ($allowedOrigin) {
     header('Access-Control-Allow-Origin: ' . $allowedOrigin);
     header('Access-Control-Allow-Credentials: true');
-} else {
-    // Fallback: allow all origins for GET requests (public API data)
-    header('Access-Control-Allow-Origin: *');
+} elseif ($origin !== '') {
+    http_response_code(403);
+    header('Content-Type: application/json');
+    echo json_encode(['error' => 'Origin is not allowed']);
+    exit;
 }
 header('Access-Control-Allow-Methods: GET, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
+header('Vary: Origin');
 
 // Handle preflight
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -41,6 +44,7 @@ $params['api_key'] = qpmGetNlmApiKey($domain);
 $params['email'] = qpmGetNlmEmail($domain);
 $params['tool'] = 'QuickPubMed';
 $params['db'] = $params['db'] ?? 'pubmed';
+$nlmBaseUrl = qpmGetNlmBaseUrl($domain);
 
 // Set content type based on retmode
 $retmode = $params['retmode'] ?? 'xml';
@@ -50,7 +54,7 @@ if ($retmode === 'json') {
     header('Content-Type: application/xml');
 }
 
-$url = NLM_BASE_URL . '/efetch.fcgi?' . http_build_query($params);
+$url = $nlmBaseUrl . '/efetch.fcgi?' . http_build_query($params);
 
 // Make request to NLM
 qpmThrottleNlmRequests(10);

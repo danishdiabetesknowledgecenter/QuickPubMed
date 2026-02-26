@@ -68,7 +68,5 @@ jobs:
           exclude: |
              config.php
              config/config.php
-             storage/content/**
-             storage/runtime/**
              runtime/**
              *.lock

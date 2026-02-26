@@ -21,6 +21,7 @@ if (!file_exists($configPath)) {
     exit;
 }
 require_once $configPath;
+require_once __DIR__ . '/TextFetchCache.php';
 
 // Azure Function URL for fetching PDF text only
 define('AZURE_FETCH_PDF_URL', 'https://qpm-openai-service.azurewebsites.net/api/FetchPDFText');
@@ -32,12 +33,21 @@ if (function_exists('getAllowedOrigin')) {
     if ($allowedOrigin) {
         header('Access-Control-Allow-Origin: ' . $allowedOrigin);
         header('Access-Control-Allow-Credentials: true');
+    } elseif ($origin !== '') {
+        http_response_code(403);
+        header('Content-Type: application/json');
+        echo json_encode(['error' => 'Origin is not allowed']);
+        exit;
     }
-} else {
-    header('Access-Control-Allow-Origin: *');
+} elseif ($origin !== '') {
+    http_response_code(403);
+    header('Content-Type: application/json');
+    echo json_encode(['error' => 'Origin is not allowed']);
+    exit;
 }
 header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
+header('Vary: Origin');
 
 // Handle preflight
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -82,37 +92,47 @@ if (!$prompt) {
 // ============================================================
 // Step 1: Fetch PDF text from Azure Function
 // ============================================================
-$ch = curl_init(AZURE_FETCH_PDF_URL);
-curl_setopt_array($ch, [
-    CURLOPT_POST => true,
-    CURLOPT_POSTFIELDS => json_encode(['pdfurl' => $pdfUrl]),
-    CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_TIMEOUT => 120,
-    CURLOPT_FOLLOWLOCATION => true
-]);
+$cacheHit = false;
+$extractedText = qpmReadTextFetchCache('pdf', $pdfUrl);
+if (is_string($extractedText) && $extractedText !== '') {
+    $cacheHit = true;
+} else {
+    $ch = curl_init(AZURE_FETCH_PDF_URL);
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => json_encode(['pdfurl' => $pdfUrl]),
+        CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 120,
+        CURLOPT_FOLLOWLOCATION => true
+    ]);
 
-$azureResponse = curl_exec($ch);
-$azureHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-$curlError = curl_error($ch);
-curl_close($ch);
+    $azureResponse = curl_exec($ch);
+    $azureHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+    curl_close($ch);
 
-if ($curlError) {
-    http_response_code(500);
-    header('Content-Type: application/json');
-    echo json_encode(['error' => 'Failed to fetch PDF: ' . $curlError]);
-    exit;
+    if ($curlError) {
+        http_response_code(500);
+        header('Content-Type: application/json');
+        echo json_encode(['error' => 'Failed to fetch PDF: ' . $curlError]);
+        exit;
+    }
+
+    if ($azureHttpCode !== 200) {
+        http_response_code($azureHttpCode);
+        header('Content-Type: application/json');
+        echo $azureResponse;
+        exit;
+    }
+
+    $azureData = json_decode($azureResponse, true);
+    $extractedText = $azureData['text'] ?? '';
+
+    if (is_string($extractedText) && $extractedText !== '') {
+        qpmWriteTextFetchCache('pdf', $pdfUrl, $extractedText);
+    }
 }
-
-if ($azureHttpCode !== 200) {
-    http_response_code($azureHttpCode);
-    header('Content-Type: application/json');
-    echo $azureResponse;
-    exit;
-}
-
-$azureData = json_decode($azureResponse, true);
-$extractedText = $azureData['text'] ?? '';
 
 if (empty($extractedText)) {
     http_response_code(400);
@@ -195,7 +215,8 @@ $metadata = json_encode([
     'extractedTextLength' => strlen($extractedText),
     'extractedText' => $extractedText,
     'pdfUrl' => $pdfUrl,
-    'jsonModeEnabled' => $jsonModeEnabled
+    'jsonModeEnabled' => $jsonModeEnabled,
+    'cacheHit' => $cacheHit
 ]);
 echo $metadata . "\n---STREAM_START---\n";
 @ob_flush();
@@ -203,6 +224,7 @@ echo $metadata . "\n---STREAM_START---\n";
 
 $domain = qpmResolveDomain();
 $openAiApiKey = qpmGetOpenAIApiKey($domain);
+$openAiApiUrl = qpmGetOpenAIApiUrl($domain);
 
 // Call OpenAI API with streaming
 $headers = [
@@ -214,7 +236,7 @@ $headers = [
 $GLOBALS['lastDataTime'] = time();
 $GLOBALS['heartbeatInterval'] = 10; // Send heartbeat every 10 seconds of inactivity
 
-$ch = curl_init(OPENAI_API_URL);
+$ch = curl_init($openAiApiUrl);
 curl_setopt_array($ch, [
     CURLOPT_POST => true,
     CURLOPT_POSTFIELDS => json_encode($openaiRequest),

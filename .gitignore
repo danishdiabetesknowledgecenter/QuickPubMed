@@ -15,7 +15,8 @@ backend/config/config.php
 
 # Runtime state
 php-proxy/storage/runtime/
-backend/storage/runtime/
+data/runtime/
+data/cache/
 
 # Log files
 npm-debug.log*

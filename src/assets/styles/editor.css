@@ -42,16 +42,13 @@
 }
 
 .qpm-editor-sort-mode-checkbox {
-  accent-color: var(--color-blue-dark);
+  accent-color: var(--color-switch-active);
   min-height: 24px;
   min-width: 24px;
   cursor: pointer;
 }
 
-.qpm-editor-revision-only-diff-label {
-  flex-basis: 100%;
-}
-
+.qpm-editor-revision-only-diff-label,
 .qpm-editor-revision-note-line {
   flex-basis: 100%;
 }
@@ -223,14 +220,6 @@
   min-height: 16px;
 }
 
-.qpm-editor-inline-status-ok {
-  color: var(--color-editor-success);
-}
-
-.qpm-editor-inline-status-error {
-  color: var(--color-editor-danger);
-}
-
 .qpm-editor-field-label {
   margin: 4px 0 0;
   font-size: 0.9em;
@@ -242,12 +231,33 @@
   background: transparent;
 }
 
+.qpm-editor-v-tooltip .v-popper__inner {
+  white-space: pre-line;
+  line-height: 1.45;
+}
+
 .qpm-editor-checkbox-label {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 0.9em;
   color: var(--color-editor-text-strong);
+}
+
+.qpm-editor-scope-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.qpm-editor-scope-header-label {
+  margin: 4px 0 0;
+}
+
+.qpm-editor-scope-header-toggle {
+  margin-top: 4px;
 }
 
 .qpm-editor-btn-danger {
@@ -290,11 +300,25 @@
   cursor: pointer;
 }
 
-.qpm-editor-status-ok {
+.qpm-editor-inline-status-ok,
+.qpm-editor-status-ok,
+.qpm-editor-save-status-ok {
   color: var(--color-editor-success);
 }
 
-.qpm-editor-status-error {
+.qpm-editor-status-ok p,
+.qpm-editor-save-status-ok p {
+  color: var(--color-editor-success);
+}
+
+.qpm-editor-inline-status-error,
+.qpm-editor-status-error,
+.qpm-editor-save-status-error {
+  color: var(--color-editor-danger);
+}
+
+.qpm-editor-status-error p,
+.qpm-editor-save-status-error p {
   color: var(--color-editor-danger);
 }
 
@@ -314,17 +338,14 @@
   min-height: 16px;
 }
 
-.qpm-editor-save-status-ok {
-  color: var(--color-editor-success);
-}
-
-.qpm-editor-save-status-error {
-  color: var(--color-editor-danger);
-}
-
 .qpm-editor-status {
   margin-top: 8px;
   font-size: 14px;
+}
+
+.qpm-editor-status p,
+.qpm-editor-save-status p {
+  margin: 0;
 }
 
 .qpm-editor-json-toggle-btn {

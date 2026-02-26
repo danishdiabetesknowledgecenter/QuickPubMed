@@ -98,6 +98,7 @@ if (isset($prompt['max_output_tokens']) && $prompt['max_output_tokens'] !== null
 $domain = qpmResolveDomain();
 $openAiApiKey = qpmGetOpenAIApiKey($domain);
 $openAiOrgId = qpmGetOpenAIOrgId($domain);
+$openAiApiUrl = qpmGetOpenAIApiUrl($domain);
 
 $headers = [
     'Content-Type: application/json',
@@ -115,7 +116,7 @@ header('X-Accel-Buffering: no');
 
 if (ob_get_level()) ob_end_clean();
 
-$ch = curl_init(OPENAI_API_URL);
+$ch = curl_init($openAiApiUrl);
 
 curl_setopt_array($ch, [
     CURLOPT_POST => true,
