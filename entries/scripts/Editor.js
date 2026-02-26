@@ -89,7 +89,7 @@ function getDefaultApiBaseFromScriptUrl() {
   const scriptUrl = import.meta.url || "";
 
   if (scriptUrl.includes("/assets/")) {
-    return scriptUrl.replace(/\/assets\/[^/]+$/, "/backend/api");
+    return scriptUrl.replace(/\/assets\/.*$/, "/backend/api");
   }
 
   if (scriptUrl.includes("/entries/scripts/")) {
