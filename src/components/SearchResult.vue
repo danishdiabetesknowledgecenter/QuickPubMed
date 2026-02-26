@@ -10,14 +10,14 @@
       >
         <template #header="accordionProps">
           <div class="qpm_aiAccordionHeader">
-            <div style="display: flex;flex-wrap: nowrap;justify-content: space-between; align-items: center;">
-              <div style="display: flex">
+            <div class="qpm_aiHeaderRow">
+              <div class="qpm_aiHeaderLeft">
                 <div>
                   <i
                   class="ri-sparkling-fill"
                   />
                 </div>
-                <div style="align-content: center;">
+                <div class="qpm_aiHeaderTitleWrap">
                   <strong>{{ getString("selectedResultsAccordionHeader") }}</strong>
                   <button
                     v-tooltip="{
@@ -52,7 +52,7 @@
                 <p>{{ getString("aiSearchSummaryConsentHeader") }}</p>
                 <p v-if="hasNoSelectedArticles">
                   <span v-html="getString('aiSearchSummaryConsentHeaderTextBefore')"></span>
-                  <select v-model="defaultSummaryCount" style="margin: 0 4px; padding: 2px 4px;">
+                  <select v-model="defaultSummaryCount" class="qpm_summaryCountSelect">
                     <option v-for="n in Math.min(maxSummaryArticles, 25)" :key="n" :value="n">{{ n }}</option>
                   </select>
                   {{ getString("aiSearchSummaryConsentHeaderTextAfter") }}
@@ -126,15 +126,9 @@
       >
         <template #header="accordionProps">
           <div class="qpm_aiAccordionHeader">
-            <div style="display: inline-flex; width: 100%">
+            <div class="qpm_selectedHeaderOuter">
               <div
-                style="
-                  display: inline-flex;
-                  width: 100%;
-                  justify-content: space-between;
-                  align-items: center;
-                  margin-left: -1px;
-                "
+                class="qpm_selectedHeaderInner"
               >
                 <div>
                   <i
@@ -269,13 +263,12 @@
       v-if="results && results.length > 0 && total > 0"
       role="heading"
       aria-level="2"
-      class="h3"
-      style="padding-top: 30px; margin-left: 5px"
+      class="h3 qpm_searchResultHeading"
     >
       {{ getString("searchresult") }}
     </div>
     <div v-if="results && results.length > 0 && total > 0" class="qpm_searchHeader qpm_spaceEvenly">
-      <p class="qpm_nomargin" style="margin-left: 5px">
+      <p class="qpm_nomargin qpm_searchResultCount">
         {{ getString("showing") }} {{ 1 }}-{{ results.length }}
         {{ getString("of") }}
         <span
@@ -283,7 +276,7 @@
         >
       </p>
       <div v-if="results && results.length !== 0" class="qpm_searchHeaderSort qpm_spaceEvenly">
-        <div class="qpm_sortSelect" style="padding-right: 7px">
+        <div class="qpm_sortSelect qpm_sortSelectSpacing">
           <select v-model="currentSortMethod" :aria-label="getString('sortBy')" @change="newSortMethod">
             <option v-for="sorter in getOrderMethods" :key="sorter.id" :value="sorter.method">
               {{ getTranslation(sorter) }}
@@ -313,7 +306,7 @@
       <div class="h3"><br />{{ getString("noResult") }}</div>
       <p>{{ getString("noResultTip") }}</p>
     </div>
-    <div style="z-index: 0">
+    <div class="qpm_resultEntriesLayer">
       <div
         v-for="(value, index) in getShownSearchResults"
         :key="value.uid || `result-${index}`"
@@ -360,8 +353,7 @@
     </div>
     <div
       v-if="total > 0"
-      class="qpm_flex"
-      style="justify-content: center; margin-top: 25px; flex-direction: column"
+      class="qpm_flex qpm_paginationContainer"
     >
       <button
         v-if="!loading && results && results.length < total"
@@ -399,11 +391,16 @@
   import {
     areComparableIdsEqual,
     extractDoi,
+    formatPublicationInfo,
+    getAbstractEntriesFromPubMedXml,
     getArticleSource,
     getAuthorNames,
     getFormattedEntrezDate,
+    hasDefinedValue,
+    hasXmlParserError,
     getLocalizedTranslation,
     hasAbstractAttribute,
+    parsePubMedXml,
   } from "@/utils/componentHelpers";
 
   export default {
@@ -652,35 +649,26 @@
         const scripts = document.body.getElementsByTagName("script");
         const scriptArray = Array.from(scripts);
         scriptArray.splice(0, 1);
-        let is = scriptArray.length;
-        //ial = is; Unused variable
-        while (is--) {
-          if (
-            scriptArray[is].src.startsWith("https://api.altmetric.com/v1/pmid") ||
-            scriptArray[is].src.startsWith("https://api.altmetric.com/v1/doi")
-          ) {
-            scriptArray[is].parentNode.removeChild(scriptArray[is]);
+        const isAltmetricScript = (script) =>
+          script?.src?.startsWith("https://api.altmetric.com/v1/pmid") ||
+          script?.src?.startsWith("https://api.altmetric.com/v1/doi");
+
+        for (const script of scriptArray.slice().reverse()) {
+          if (isAltmetricScript(script)) {
+            script.parentNode.removeChild(script);
           }
         }
         const containers = document.body.getElementsByClassName(
           "altmetric-embed altmetric-popover altmetric-left"
         );
         const containerArray = Array.from(containers);
-        is = containerArray.length;
-        //(ial = is); Unused variable
-
-        while (is--) {
-          containerArray[is].parentNode.removeChild(containerArray[is]);
+        for (const container of containerArray.slice().reverse()) {
+          container.parentNode.removeChild(container);
         }
       },
       getAbstract(id) {
-        if (this.abstractRecords[id] !== undefined) {
-          if (typeof this.abstractRecords[id] !== "string") {
-            return "";
-          }
-          return this.abstractRecords[id];
-        }
-        return "";
+        const record = this.getAbstractRecord(id);
+        return typeof record === "string" ? record : "";
       },
       // Writes out all names of the authors array, split by comma
       getAuthor(authors) {
@@ -697,15 +685,12 @@
         return extractDoi(articleids);
       },
       getText(id) {
-        if (id !== undefined && id !== null) {
-          if (
-            this.abstractRecords[id] !== undefined &&
-            typeof this.abstractRecords[id] === "object"
-          ) {
-            return this.abstractRecords[id];
-          }
-        }
-        return {};
+        const record = this.getAbstractRecord(id);
+        return record && typeof record === "object" ? record : {};
+      },
+      getAbstractRecord(id) {
+        if (!hasDefinedValue(id)) return undefined;
+        return this.abstractRecords[id];
       },
       getSource(value) {
         try {
@@ -715,24 +700,7 @@
         }
       },
       getPublicationInfo(entry) {
-        let formatted = "";
-
-        if (entry.source) {
-          formatted += `${entry.source}. `;
-        }
-        if (entry.pubDate) {
-          formatted += `${entry.pubDate};`;
-        }
-        if (entry.volume) {
-          formatted += `${entry.volume}`;
-        }
-        if (entry.issue) {
-          formatted += `(${entry.issue})`;
-        }
-        if (entry.pages) {
-          formatted += `:${entry.pages}`;
-        }
-        return formatted;
+        return formatPublicationInfo(entry);
       },
       newSortMethod(event) {
         const obj = order.find((entry) => entry.method === event.target.value) || {};
@@ -757,7 +725,7 @@
         const container = this.$refs.searchResult;
         if (!container) return;
 
-        return parseInt(container.offsetWidth);
+        return container.offsetWidth;
       },
       addArticle(article) {
         if (!article || !article.pmid) return;
@@ -778,8 +746,7 @@
                 uid: r.uid,
               }));
 
-        for (let i = 0; i < entriesForSummary.length; i++) {
-          const selected = entriesForSummary[i];
+        for (const selected of entriesForSummary) {
           if (this.articles[selected.uid]) {
             selectedArticles.push(this.articles[selected.uid]);
           } else {
@@ -853,7 +820,7 @@
         this.$emit("change:selectedEntries", newValue);
       },
       onAbstractLoad(id, abstract) {
-        if (id === undefined || id === null) return;
+        if (!hasDefinedValue(id)) return;
         this.isAbstractLoaded = true;
         this.abstractRecords[id] = abstract;
       },
@@ -877,12 +844,11 @@
         const targetEl = payload?.$el;
         if (!targetEl) return;
         const articlesAccordion = this.$refs.articlesAccordion;
-        if (
+        const shouldOpenAccordion =
           !this.isSummarizeArticlesAcordionExpanded &&
-          articlesAccordion !== null &&
-          articlesAccordion !== undefined &&
-          !articlesAccordion.expanded
-        ) {
+          articlesAccordion &&
+          !articlesAccordion.expanded;
+        if (shouldOpenAccordion) {
           this._pendingScrollTarget = targetEl;
           this.onAiSummariesAccordionStateChange(true);
         }
@@ -908,7 +874,7 @@
           window.__dimensions_embed.addBadges();
         }
 
-        const articleBody = article ? article : this.$refs?.articlesAccordion?.$refs?.body;
+        const articleBody = article ?? this.$refs?.articlesAccordion?.$refs?.body;
         if (articleBody && window._altmetric_embed_init) {
           window._altmetric_embed_init(articleBody);
         }
@@ -930,39 +896,23 @@
 
         try {
           const resp = await axios.get(url, { timeout: 30000 });
-          const parser = new DOMParser();
-          const xmlDoc = parser.parseFromString(resp.data, "text/xml");
-          if (xmlDoc.getElementsByTagName("parsererror").length > 0) {
+          const xmlDoc = parsePubMedXml(resp.data);
+          if (hasXmlParserError(xmlDoc)) {
             console.warn("loadMissingAbstracts: invalid XML response");
             return;
           }
-          const articles = Array.from(xmlDoc.getElementsByTagName("PubmedArticle"));
-
-          for (const article of articles) {
-            const pmidEl = article.getElementsByTagName("PMID")[0];
-            if (!pmidEl) continue;
-            const pmid = pmidEl.textContent;
-            const sections = article.getElementsByTagName("AbstractText");
-            if (sections.length === 1) {
-              this.abstractRecords[pmid] = sections[0].textContent;
-            } else if (sections.length > 1) {
-              const text = {};
-              for (let i = 0; i < sections.length; i++) {
-                const label = sections[i].getAttribute("Label");
-                text[label] = sections[i].textContent;
-              }
-              this.abstractRecords[pmid] = text;
-            }
+          const abstractEntries = getAbstractEntriesFromPubMedXml(xmlDoc);
+          for (const [articleId, abstractValue] of abstractEntries) {
+            this.abstractRecords[articleId] = abstractValue;
           }
         } catch (error) {
           console.warn("loadMissingAbstracts failed:", error.message);
         }
       },
       shouldResultArticlePreloadAbstract(article) {
-        const isInFirstFive = this.firstFiveArticlesWithAbstracts.some((value) =>
+        return this.firstFiveArticlesWithAbstracts.some((value) =>
           areComparableIdsEqual(value?.uid, article?.uid)
         );
-        return isInFirstFive;
       },
       async addIdToLoadAbstract(id) {
         this.idswithAbstractsToLoad.push(id);
@@ -1016,44 +966,12 @@
           .get(url, { retry: 10 })
           .then((resp) => {
             const data = resp.data;
-            let xmlDoc;
-            if (window.DOMParser) {
-              const parser = new DOMParser();
-              xmlDoc = parser.parseFromString(data, "text/xml");
-            } else {
-              // https://www.npmjs.com/package/winax?activeTab=readme 13 yo package for ActiveXObject
-              // eslint-disable-next-line no-undef
-              xmlDoc = new ActiveXObject("Microsoft.XMLDOM");
-              xmlDoc.async = false;
-              xmlDoc.loadXML(data);
-            }
+            const xmlDoc = parsePubMedXml(data);
 
-            if (xmlDoc.getElementsByTagName("parsererror").length > 0) {
+            if (hasXmlParserError(xmlDoc)) {
               return [];
             }
-            const articles = Array.from(xmlDoc.getElementsByTagName("PubmedArticle"));
-            const articleData = articles
-              .map((article) => {
-              const pmidEl = article.getElementsByTagName("PMID")[0];
-              if (!pmidEl) return null;
-              const pmid = pmidEl.textContent;
-              const sections = article.getElementsByTagName("AbstractText");
-              if (sections.length === 1) {
-                const abstractText = sections[0].textContent;
-                return [pmid, abstractText];
-              } else {
-                const text = {};
-                for (let i = 0; i < sections.length; i++) {
-                  const sectionName = sections[i].getAttribute("Label");
-                  const sectionText = sections[i].textContent;
-                  text[sectionName] = sectionText;
-                }
-                return [pmid, text];
-              }
-            })
-              .filter(Boolean);
-
-            return articleData;
+            return getAbstractEntriesFromPubMedXml(xmlDoc, { includeEmptySections: true });
           })
           .catch((err) => {
             console.error("Error in fetch from pubMed:", err);
@@ -1061,11 +979,12 @@
 
         loadData.then((v) => {
           if (!Array.isArray(v)) return;
-          for (const item of v) {
-            this.onAbstractLoad(item[0], item[1]);
+          for (const [articleId, abstractValue] of v) {
+            this.onAbstractLoad(articleId, abstractValue);
           }
         });
       },
     },
   };
 </script>
+

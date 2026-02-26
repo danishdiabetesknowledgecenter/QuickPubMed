@@ -5,7 +5,24 @@
 
 require_once __DIR__ . '/../app/editor-content-store.php';
 
-header('Access-Control-Allow-Origin: *');
+// CORS headers - check both Origin and Referer for compatibility
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+if (empty($origin) && !empty($_SERVER['HTTP_REFERER'])) {
+    $parsed = parse_url($_SERVER['HTTP_REFERER']);
+    $origin = ($parsed['scheme'] ?? 'https') . '://' . ($parsed['host'] ?? '');
+}
+$allowedOrigin = getAllowedOrigin($origin);
+
+if ($allowedOrigin) {
+    header('Access-Control-Allow-Origin: ' . $allowedOrigin);
+    header('Access-Control-Allow-Credentials: true');
+} elseif ($origin !== '') {
+    http_response_code(403);
+    header('Content-Type: application/json');
+    echo json_encode(['error' => 'Origin is not allowed']);
+    exit;
+}
+
 header('Vary: Origin');
 header('Access-Control-Allow-Methods: GET, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');

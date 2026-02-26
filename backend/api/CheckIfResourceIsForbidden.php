@@ -27,12 +27,21 @@ if (function_exists('getAllowedOrigin')) {
     if ($allowedOrigin) {
         header('Access-Control-Allow-Origin: ' . $allowedOrigin);
         header('Access-Control-Allow-Credentials: true');
+    } elseif ($origin !== '') {
+        http_response_code(403);
+        header('Content-Type: application/json');
+        echo json_encode(['error' => 'Origin is not allowed']);
+        exit;
     }
-} else {
-    header('Access-Control-Allow-Origin: *');
+} elseif ($origin !== '') {
+    http_response_code(403);
+    header('Content-Type: application/json');
+    echo json_encode(['error' => 'Origin is not allowed']);
+    exit;
 }
 header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
+header('Vary: Origin');
 
 // Handle preflight
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {

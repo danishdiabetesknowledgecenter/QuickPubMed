@@ -6,7 +6,7 @@ Denne mappe er den kanoniske web-indgang (`/backend`) til server-endpoints.
 - `api/`: HTTP-endpoints.
 - `app/`: intern delt kode (auth, content-store, helpers).
 - `config/`: konfiguration og secrets (`config.php` holdes udenfor git).
-- `storage/`: data der ændres i drift (editor content + runtime filer).
+- Data ligger i repo-roden under `data/` (editor content + runtime filer).
 - `docs/`: dokumentation.
 
 `php-proxy` kan bevares midlertidigt som kompatibilitetslag, men ny kode bør pege på `backend`.
@@ -46,6 +46,11 @@ Editoren styres via `backend/config/config.php` (ikke i git):
 - `EDITOR_MAX_REVISIONS`: antal gemte revisioner pr. fil.
 - `EDITOR_AUDIT_ENABLED`, `EDITOR_AUDIT_RETENTION_DAYS`: auditlog.
 
+Derudover kan hvert domæne have egen backend-override i:
+- `data/content/<domain>/domain-config.json`
+- Mulige sektioner: `openai`, `nlm`, `unpaywall`, `theme_overrides`.
+- Manglende værdier falder automatisk tilbage til `backend/config/config.php`.
+
 Eksempel på `EDITOR_USERS`:
 
 ```php
@@ -69,12 +74,12 @@ define('EDITOR_USERS', [
 
 - Ved hver `save` oprettes snapshot af den tidligere version automatisk.
 - Revisionsfiler gemmes under `history/` ved siden af den redigerede content-fil.
-- `filters` ligger i `backend/storage/content/filters/filters.json`.
+- `filters` ligger i `data/content/filters/filters.json`.
 - Kun de seneste `EDITOR_MAX_REVISIONS` beholdes (standard: 25).
 - Revert kan udføres via editor-API (`action=revert`) og kræver auth + CSRF + samme rettigheder som save.
 
 ### Audit-log
 
-- Audit events skrives til `backend/storage/runtime/editor-audit-YYYY-MM-DD.log`.
+- Audit events skrives til `data/runtime/editor-audit-YYYY-MM-DD.log`.
 - Loggen inkluderer bl.a. event-type, bruger, IP/origin, path og kontekst.
 - Ældre logfiler roteres automatisk ud fra `EDITOR_AUDIT_RETENTION_DAYS`.

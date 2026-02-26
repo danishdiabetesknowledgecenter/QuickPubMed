@@ -26,10 +26,10 @@
             :get-string="getString"
           />
 
-          <div 
-            v-show="isCollapsed" 
-            style="padding-bottom: 10px;"
-            >
+          <div
+            v-show="isCollapsed"
+            class="qpm_collapsedSpacerPadding"
+          >
           </div>
 
           <div v-show="!isCollapsed" class="qpm_searchformoptions">
@@ -164,7 +164,12 @@
   import { appSettingsMixin } from "@/mixins/appSettings";
   import { scopeIds, customInputTagTooltip } from "@/utils/contentHelpers.js";
   import { loadFiltersFromRuntime, loadStandardString } from "@/utils/contentLoader";
-  import { cloneDeep, debounce, isMobileViewport } from "@/utils/componentHelpers";
+  import {
+    cloneDeep,
+    debounce,
+    getLocalizedTranslation,
+    isMobileViewport,
+  } from "@/utils/componentHelpers";
 
   export default {
     name: "SearchForm",
@@ -394,7 +399,24 @@
         const hasLogicalOperators = (searchStrings) =>
           ["AND", "OR", "NOT"].some((op) => searchStrings.includes(op));
 
-        const buildSubstring = (items, connector = " OR ") => {
+        const resolveStandardScope = (itemScope) => {
+          const standard = this.standardStringForFreetext;
+          if (!standard) return null;
+          if (["narrow", "normal", "broad"].includes(itemScope) && standard[itemScope]) {
+            return itemScope;
+          }
+          if (standard.normal) return "normal";
+          if (standard.narrow) return "narrow";
+          if (standard.broad) return "broad";
+          return null;
+        };
+        const normalizeForContainsCheck = (value) =>
+          String(value || "")
+            .replace(/\s+/g, " ")
+            .trim()
+            .toLowerCase();
+
+        const buildSubstring = (items, connector = " OR ", allowStandardString = false) => {
           return items
             .filter((item) =>
               item.searchStrings &&
@@ -405,20 +427,31 @@
             .map((item) => {
               const { scope, searchStrings } = item;
               let combined = searchStrings[scope].join(connector);
-              if (
-                item.isCustom &&
-                this.standardStringAdd &&
-                this.standardStringForFreetext
-              ) {
-                const scopeToUse =
-                  ["narrow", "normal", "broad"].includes(this.standardStringScope) &&
-                  this.standardStringForFreetext[this.standardStringScope]
-                    ? this.standardStringScope
-                    : this.standardStringForFreetext.normal
-                      ? "normal"
-                      : null;
-                if (scopeToUse && this.standardStringForFreetext[scopeToUse]) {
-                  combined = `(${combined}) AND (${this.standardStringForFreetext[scopeToUse]})`;
+
+              const scopeCombineValue =
+                item.combineWithStandardStringScopes &&
+                typeof item.combineWithStandardStringScopes === "object"
+                  ? item.combineWithStandardStringScopes[scope]
+                  : undefined;
+              const shouldCombineWithStandard =
+                allowStandardString &&
+                (item.isCustom
+                  ? this.standardStringAdd
+                  : typeof scopeCombineValue === "boolean"
+                    ? scopeCombineValue
+                    : item.combineWithStandardString !== false);
+              const scopeToUse = item.isCustom
+                ? resolveStandardScope(this.standardStringScope)
+                : resolveStandardScope(scope);
+              const standardStringValue =
+                scopeToUse && this.standardStringForFreetext
+                  ? this.standardStringForFreetext[scopeToUse]
+                  : "";
+              if (shouldCombineWithStandard && standardStringValue) {
+                const combinedNorm = normalizeForContainsCheck(combined);
+                const standardNorm = normalizeForContainsCheck(standardStringValue);
+                if (standardNorm && !combinedNorm.includes(standardNorm)) {
+                  combined = `(${combined}) AND (${standardStringValue})`;
                 }
               }
               return hasLogicalOperators(searchStrings[scope][0]) && items.length > 1
@@ -447,7 +480,7 @@
             substring += "(";
           }
 
-          substring += buildSubstring(subjectGroup);
+          substring += buildSubstring(subjectGroup, " OR ", true);
 
           if (
             (hasOperators && (this.subjects.length > 1 || this.filters.length > 0)) ||
@@ -477,7 +510,7 @@
 
             let substring = " AND ";
             if (hasOperators || dropdownItems.length > 1) substring += "(";
-            substring += buildSubstring(dropdownItems);
+            substring += buildSubstring(dropdownItems, " OR ", false);
             if (hasOperators || dropdownItems.length > 1) substring += ")";
 
             if (substring !== " AND ()" && substring !== " AND ") {
@@ -498,7 +531,7 @@
 
             let substring = " AND ";
             if (hasOperators || filterGroup.length > 1) substring += "(";
-            substring += buildSubstring(filterGroup);
+            substring += buildSubstring(filterGroup, " OR ", false);
             if (hasOperators || filterGroup.length > 1) substring += ")";
 
             if (substring !== " AND ()" && substring !== " AND ") {
@@ -2293,18 +2326,17 @@
         // Credentials handled by PHP proxy
         const baseUrl = `${nlm.proxyUrl}/NlmSummary.php?db=pubmed&retmode=json&id=`;
 
-        return axios.get(baseUrl + ids.join(",")).then((resp) => {
-          //Create list of returned data
-          const data = [];
-          const obj = resp.data.result;
-          if (!obj) {
-            throw Error("Search failed", resp);
-          }
-          for (let i = 0; i < obj.uids.length; i++) {
-            data.push(obj[obj.uids[i]]);
-          }
-          return data;
-        });
+        const resp = await axios.get(baseUrl + ids.join(","));
+        //Create list of returned data
+        const data = [];
+        const obj = resp.data.result;
+        if (!obj) {
+          throw Error("Search failed", resp);
+        }
+        for (let i = 0; i < obj.uids.length; i++) {
+          data.push(obj[obj.uids[i]]);
+        }
+        return data;
       },
       /**
        * Searches for preselected articles using PMIDs with AI assistance.
@@ -2386,19 +2418,16 @@
       getCustomNameLabel(option) {
         if (!option?.translations && !option?.name && !option?.id) return "";
 
-        const constant =
-          option.translations?.[this.language] ??
-          option.translations?.["dk"] ??
-          option.name ??
-          option.id;
-
-        return constant;
+        if (option.translations) {
+          return getLocalizedTranslation(option, this.language, "dk") || option.name || option.id;
+        }
+        return option.name || option.id;
       },
       updateSubjectDropdownWidth() {
         const dropdown = this.$refs?.subjectSelection?.$refs?.subjectDropdown[0]?.$refs?.selectWrapper;
         
         if (!dropdown) return;
-        this.subjectDropdownWidth = parseInt(dropdown.offsetWidth);
+        this.subjectDropdownWidth = dropdown.offsetWidth;
 
         // Update placeholders automatically on resize
         this.updatePlaceholders();
@@ -2474,7 +2503,11 @@
         this.placeholderDotBaseText = "";
       },
       getFilterPlaceholder(index) {
-        return this.filterDropdownPlaceholders[index] || this.getString("choselimits");
+        return this.filterDropdownPlaceholders[index] || this.getDefaultFilterPlaceholder();
+      },
+      getDefaultFilterPlaceholder() {
+        const isMobileOrSmall = isMobileViewport() || window.innerWidth < 520;
+        return this.getString(isMobileOrSmall ? "choselimits_mobile" : "choselimits");
       },
       clearFilterPlaceholderDotInterval() {
         if (
@@ -2506,7 +2539,7 @@
           }, 400);
         } else {
           this.clearFilterPlaceholderDotInterval();
-          this.filterDropdownPlaceholders[index] = this.getString("choselimits");
+          this.filterDropdownPlaceholders[index] = this.getDefaultFilterPlaceholder();
         }
       },
       updatePlaceholder(isTranslating, index, stepKey) {
@@ -2550,3 +2583,4 @@
     },
   };
 </script>
+

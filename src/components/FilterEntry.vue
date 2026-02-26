@@ -1,10 +1,10 @@
 <template>
   <div class="qpm_flex">
-    <div class="qpm_filterEntry" style="width: 100%">
+    <div class="qpm_filterEntry qpm_filterEntryFullWidth">
       <p v-if="!isFirst" class="qpm_filterOperator">
         {{ getString("andOperator") }}
       </p>
-      <p style="font-size: 0.9em">{{ customNameLabelWithCount }}</p>
+      <p class="qpm_filterEntryLabel">{{ customNameLabelWithCount }}</p>
       <div class="qpm_flex">
         <dropdown-wrapper
           ref="dropdown"
@@ -137,7 +137,7 @@
       updateDropdownWidth() {
         const dropdown = this.$refs?.dropdown?.$refs?.selectWrapper;
         if (!dropdown || !dropdown.innerHTML) return;
-        this.dropdownWidth = parseInt(dropdown.offsetWidth);
+        this.dropdownWidth = dropdown.offsetWidth;
       },
       /**
        * Emits the input event with updated filters.
@@ -157,3 +157,4 @@
     },
   };
 </script>
+

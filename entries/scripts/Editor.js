@@ -158,6 +158,7 @@ const logoutBtn = document.getElementById("qpm-editor-logout-btn");
 let csrfToken = "";
 let selectedTopicItemId = "";
 let selectedTopicCategoryId = "";
+const STANDARD_STRINGS_CATEGORY_ID = "__QPM_STANDARD_STRINGS__";
 let treeSearchText = "";
 let sortModeEnabled = false;
 let draggedTopicItemId = "";
@@ -219,6 +220,7 @@ const editorHelpTextKeyMap = {
   "item.searchStrings.narrow": "helpItemSearchStringsNarrow",
   "item.searchStrings.normal": "helpItemSearchStringsNormal",
   "item.searchStrings.broad": "helpItemSearchStringsBroad",
+  "item.combineWithStandardString": "helpItemCombineWithStandardString",
   "item.searchStringComment.dk": "helpItemSearchStringCommentDk",
   "item.searchStringComment.en": "helpItemSearchStringCommentEn",
   "item.tooltip.dk": "helpItemTooltipDk",
@@ -441,9 +443,23 @@ function syncFormByType() {
 }
 
 function setStatus(message, isError = false) {
-  statusEl.textContent = message || "";
+  setInsertedText(statusEl, message);
   statusEl.classList.remove("qpm-editor-status-ok", "qpm-editor-status-error");
   statusEl.classList.add(isError ? "qpm-editor-status-error" : "qpm-editor-status-ok");
+}
+
+function setInsertedText(el, message) {
+  if (!(el instanceof HTMLElement)) return;
+  const text = message || "";
+  if (el.tagName === "P") {
+    el.textContent = text;
+    return;
+  }
+  el.replaceChildren();
+  if (!text) return;
+  const p = document.createElement("p");
+  p.textContent = text;
+  el.append(p);
 }
 
 function normalizeSortModeLayout() {
@@ -724,7 +740,7 @@ function showEditorTooltip(triggerEl, content) {
   const tooltip = ensureEditorTooltipEl();
   const inner = tooltip.querySelector(".v-popper__inner");
   if (!(inner instanceof HTMLElement)) return;
-  inner.textContent = content;
+  inner.innerHTML = content;
   tooltip.style.display = "block";
   activeTooltipTrigger = triggerEl;
   positionEditorTooltip(triggerEl);
@@ -800,7 +816,7 @@ window.addEventListener("scroll", () => {
 function setSaveStatus(message, isError = false) {
   const el = document.getElementById("qpm-editor-save-status");
   if (!(el instanceof HTMLElement)) return;
-  el.textContent = message || "";
+  setInsertedText(el, message);
   el.classList.remove("qpm-editor-save-status-ok", "qpm-editor-save-status-error");
   if (!message) return;
   el.classList.add(isError ? "qpm-editor-save-status-error" : "qpm-editor-save-status-ok");
@@ -808,7 +824,7 @@ function setSaveStatus(message, isError = false) {
 
 function setRevisionStatus(message, isError = false) {
   if (!(revisionStatusEl instanceof HTMLElement)) return;
-  revisionStatusEl.textContent = message || "";
+  setInsertedText(revisionStatusEl, message);
   revisionStatusEl.classList.remove("qpm-editor-status-ok", "qpm-editor-status-error", "qpm-editor-hidden");
   if (!message) {
     revisionStatusEl.classList.add("qpm-editor-hidden");
@@ -1097,7 +1113,7 @@ function setInlineEditorStatus(container, statusKey, message, isError = false) {
   if (!(container instanceof HTMLElement)) return;
   const el = container.querySelector(`[data-inline-status="${statusKey}"]`);
   if (!(el instanceof HTMLElement)) return;
-  el.textContent = message || "";
+  setInsertedText(el, message);
   el.classList.remove("qpm-editor-inline-status-ok", "qpm-editor-inline-status-error");
   el.classList.add(isError ? "qpm-editor-inline-status-error" : "qpm-editor-inline-status-ok");
 }
@@ -1113,6 +1129,64 @@ function createInlineActions(applyBtn, deleteBtn, statusKey) {
   inlineStatus.textContent = "";
 
   return { actionsRow, inlineStatus };
+}
+
+function createStandardStringsInlineEditor(standardString) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "qpm-editor-inline-editor";
+  wrapper.dataset.categoryId = STANDARD_STRINGS_CATEGORY_ID;
+
+  const mkLabel = (text) => {
+    const p = document.createElement("p");
+    p.className = "qpm-editor-field-label";
+    p.textContent = text;
+    return p;
+  };
+  const mkTextarea = (value = "") => {
+    const ta = document.createElement("textarea");
+    ta.className = "qpm-editor-textarea";
+    ta.value = String(value || "");
+    return ta;
+  };
+
+  const narrow = mkTextarea(standardString?.narrow || "");
+  narrow.dataset.inlineField = "standardString.narrow";
+  const normal = mkTextarea(standardString?.normal || "");
+  normal.dataset.inlineField = "standardString.normal";
+  const broad = mkTextarea(standardString?.broad || "");
+  broad.dataset.inlineField = "standardString.broad";
+
+  const hint = document.createElement("p");
+  hint.className = "qpm-editor-field-label";
+  hint.textContent = t("standardStringsOptionalHint");
+
+  const applyBtn = document.createElement("button");
+  applyBtn.type = "button";
+  applyBtn.className = "qpm-editor-btn qpm-editor-btn-secondary qpm-editor-tree-apply-standard-inline";
+  applyBtn.textContent = t("saveTopicFields");
+
+  const actionsRow = document.createElement("div");
+  actionsRow.className = "qpm-editor-inline-actions";
+  actionsRow.append(applyBtn);
+
+  const inlineStatus = document.createElement("p");
+  inlineStatus.className = "qpm-editor-inline-status";
+  inlineStatus.dataset.inlineStatus = "standardString";
+  inlineStatus.textContent = "";
+
+  wrapper.append(
+    mkLabel(t("itemNarrowLabel")),
+    narrow,
+    mkLabel(t("itemNormalLabel")),
+    normal,
+    mkLabel(t("itemBroadLabel")),
+    broad,
+    hint,
+    actionsRow,
+    inlineStatus
+  );
+
+  return wrapper;
 }
 
 function setAuthenticated(authenticated) {
@@ -1828,6 +1902,62 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   normal.dataset.inlineField = "searchStrings.normal";
   const broad = mkTextarea(normalizeToLines(item?.searchStrings?.broad));
   broad.dataset.inlineField = "searchStrings.broad";
+  const createScopeCombineControl = (scope, sourceInput) => {
+    const scopeCheckbox = document.createElement("input");
+    scopeCheckbox.type = "checkbox";
+    scopeCheckbox.dataset.inlineField = `combineWithStandardStringScopes.${scope}`;
+    scopeCheckbox.checked = resolveCombineWithStandardScopeValue(item, scope);
+
+    const scopeLabel = document.createElement("label");
+    scopeLabel.className = "qpm-editor-checkbox-label";
+    scopeLabel.append(scopeCheckbox, document.createTextNode(t("itemCombineWithStandardStringLabel")));
+
+    const scopeInfoIcon = createInfoIcon(
+      buildScopeCombinationHelpText(scope, sourceInput.value || "", Boolean(scopeCheckbox.checked))
+    );
+    if (scopeInfoIcon) {
+      const updateScopeHelpText = () => {
+        scopeInfoIcon.dataset.helpText = buildScopeCombinationHelpText(
+          scope,
+          sourceInput.value || "",
+          Boolean(scopeCheckbox.checked)
+        );
+      };
+      updateScopeHelpText();
+      sourceInput.addEventListener("input", updateScopeHelpText);
+      scopeCheckbox.addEventListener("change", updateScopeHelpText);
+      scopeLabel.append(" ", scopeInfoIcon);
+    }
+
+    return scopeLabel;
+  };
+  const createScopeHeaderRow = (labelText, labelHelpKey, scopeLabel) => {
+    const row = document.createElement("div");
+    row.className = "qpm-editor-scope-header-row";
+    const label = mkLabel(labelText, labelHelpKey);
+    label.classList.add("qpm-editor-scope-header-label");
+    scopeLabel.classList.add("qpm-editor-scope-header-toggle");
+    row.append(label, scopeLabel);
+    return row;
+  };
+  const narrowCombineLabel = createScopeCombineControl("narrow", narrow);
+  const normalCombineLabel = createScopeCombineControl("normal", normal);
+  const broadCombineLabel = createScopeCombineControl("broad", broad);
+  const narrowHeaderRow = createScopeHeaderRow(
+    t("itemNarrowLabel"),
+    "item.searchStrings.narrow",
+    narrowCombineLabel
+  );
+  const normalHeaderRow = createScopeHeaderRow(
+    t("itemNormalLabel"),
+    "item.searchStrings.normal",
+    normalCombineLabel
+  );
+  const broadHeaderRow = createScopeHeaderRow(
+    t("itemBroadLabel"),
+    "item.searchStrings.broad",
+    broadCombineLabel
+  );
   const commentDk = mkTextarea(item?.searchStringComment?.dk || "");
   commentDk.dataset.inlineField = "searchStringComment.dk";
   const commentEn = mkTextarea(item?.searchStringComment?.en || "");
@@ -1896,11 +2026,11 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
     itemNamePrimaryInput,
     mkLabel(itemNameSecondaryLabel, itemNameSecondaryKey),
     itemNameSecondaryInput,
-    mkLabel(t("itemNarrowLabel"), "item.searchStrings.narrow"),
+    narrowHeaderRow,
     narrow,
-    mkLabel(t("itemNormalLabel"), "item.searchStrings.normal"),
+    normalHeaderRow,
     normal,
-    mkLabel(t("itemBroadLabel"), "item.searchStrings.broad"),
+    broadHeaderRow,
     broad,
     mkLabel(itemCommentPrimaryLabel, itemCommentPrimaryKey),
     itemCommentPrimaryInput,
@@ -2022,6 +2152,33 @@ function refreshTopicTree() {
   if (!data || !Array.isArray(data.topics)) return;
   const searchText = (treeSearchText || "").trim().toLowerCase();
 
+  if (getSelectedType() === "topics") {
+    const standardStringsRow = document.createElement("div");
+    standardStringsRow.className = "qpm-editor-tree-item-row";
+    const standardStringsToggle = document.createElement("button");
+    standardStringsToggle.type = "button";
+    standardStringsToggle.className = "qpm-editor-tree-toggle";
+    standardStringsToggle.textContent = "•";
+    standardStringsToggle.disabled = true;
+    const standardStringsBtn = document.createElement("button");
+    standardStringsBtn.type = "button";
+    standardStringsBtn.className = "qpm-editor-tree-category-btn";
+    standardStringsBtn.dataset.categoryId = STANDARD_STRINGS_CATEGORY_ID;
+    if (selectedTopicCategoryId === STANDARD_STRINGS_CATEGORY_ID && !selectedTopicItemId) {
+      standardStringsBtn.classList.add("is-selected");
+    }
+    standardStringsBtn.textContent = t("standardStringsCategoryLabel");
+    standardStringsRow.append(standardStringsToggle, standardStringsBtn);
+    const standardStringsDiv = document.createElement("div");
+    standardStringsDiv.className = "qpm-editor-tree-category";
+    standardStringsDiv.appendChild(standardStringsRow);
+    topicTreeInput.appendChild(standardStringsDiv);
+    if (selectedTopicCategoryId === STANDARD_STRINGS_CATEGORY_ID && !selectedTopicItemId) {
+      const standardStringsEditor = createStandardStringsInlineEditor(data.standardString || {});
+      topicTreeInput.appendChild(standardStringsEditor);
+    }
+  }
+
   data.topics.forEach((topic) => {
     const categoryGroups = Array.isArray(topic?.groups) ? topic.groups : [];
     const categoryId = topic?.id || "";
@@ -2131,6 +2288,53 @@ function linesToArray(value) {
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => line !== "");
+}
+
+function resolveCombineWithStandardScopeValue(item, scope) {
+  const scopeSettings = item?.combineWithStandardStringScopes;
+  if (
+    scopeSettings &&
+    typeof scopeSettings === "object" &&
+    Object.prototype.hasOwnProperty.call(scopeSettings, scope) &&
+    typeof scopeSettings[scope] === "boolean"
+  ) {
+    return scopeSettings[scope];
+  }
+  return item?.combineWithStandardString !== false;
+}
+
+function getStandardStringValueForScope(scope) {
+  const data = parseCurrentJson();
+  const value = data?.standardString?.[scope];
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function buildScopeCombinationHelpText(scope, rawValue, combineEnabled) {
+  const baseCombined = linesToArray(rawValue).join(" OR ");
+  const standardValue = getStandardStringValueForScope(scope);
+  let combinedPreview = baseCombined;
+  if (combineEnabled && standardValue) {
+    combinedPreview = baseCombined
+      ? `(${baseCombined}) AND (${standardValue})`
+      : standardValue;
+  }
+  const scopeLabel = escapeHtml(scope || "-");
+  const baseLabel = escapeHtml(baseCombined || "-");
+  const standardLabel = escapeHtml(standardValue || "-");
+  const combinedLabel = escapeHtml(combinedPreview || "-");
+  return [
+    `${escapeHtml(t("helpItemCombineWithStandardString"))}<br />`,
+    `<strong>${escapeHtml(t("tooltipScopeLabel"))}:</strong> ${scopeLabel}`,
+    "",
+    `<strong>${escapeHtml(t("tooltipCurrentStringLabel"))}:</strong>`,
+    `${baseLabel}`,
+    "",
+    `<strong>${escapeHtml(t("tooltipStandardStringLabel"))}:</strong>`,
+    `${standardLabel}`,
+    "",
+    `<strong>${escapeHtml(t("tooltipCombinedStringLabel"))}:</strong>`,
+    `${combinedLabel}`,
+  ].join("\n");
 }
 
 function selectTopicItem(categoryId, itemId) {
@@ -2368,6 +2572,7 @@ function createNewTopicItem(newId, orderingValue) {
     tooltip: { dk: "", en: "" },
     internalComment: "",
     ordering: { dk: orderingValue, en: orderingValue },
+    combineWithStandardStringScopes: { narrow: true, normal: true, broad: true },
     lockIdOnSort: true,
     hiddenByDefault: false,
     children: [],
@@ -2507,6 +2712,19 @@ function applyInlineEditorEdits(categoryId, itemId, container) {
   item.hiddenByDefault = hiddenCheckbox ? Boolean(hiddenCheckbox.checked) : false;
   const buttonsCheckbox = get("buttons");
   item.buttons = buttonsCheckbox ? Boolean(buttonsCheckbox.checked) : item?.buttons !== false;
+  item.combineWithStandardStringScopes = {
+    ...(item.combineWithStandardStringScopes || {}),
+    narrow: get("combineWithStandardStringScopes.narrow")
+      ? Boolean(get("combineWithStandardStringScopes.narrow").checked)
+      : resolveCombineWithStandardScopeValue(item, "narrow"),
+    normal: get("combineWithStandardStringScopes.normal")
+      ? Boolean(get("combineWithStandardStringScopes.normal").checked)
+      : resolveCombineWithStandardScopeValue(item, "normal"),
+    broad: get("combineWithStandardStringScopes.broad")
+      ? Boolean(get("combineWithStandardStringScopes.broad").checked)
+      : resolveCombineWithStandardScopeValue(item, "broad"),
+  };
+  delete item.combineWithStandardString;
   const alphabeticalCheckbox = get("ordering.alphabetical");
   const orderingInput = get("ordering.fixed");
   const itemLocation = findArrayAndIndexByItemId(category.groups, item.id || itemId);
@@ -2572,6 +2790,34 @@ function applyInlineEditorEdits(categoryId, itemId, container) {
     isError: false,
   };
   updateJson(data);
+}
+
+function applyStandardStringsInlineEdits(container) {
+  const data = parseCurrentJson();
+  if (!data || !Array.isArray(data.topics)) {
+    setInlineEditorStatus(container, "standardString", t("cannotUpdateInvalidTopicsJson"), true);
+    return;
+  }
+
+  const get = (field) => container.querySelector(`[data-inline-field="${field}"]`);
+  const read = (field) => String(get(field)?.value || "").trim();
+
+  data.standardString = {
+    narrow: read("standardString.narrow"),
+    normal: read("standardString.normal"),
+    broad: read("standardString.broad"),
+  };
+
+  selectedTopicCategoryId = STANDARD_STRINGS_CATEGORY_ID;
+  selectedTopicItemId = "";
+  updateJson(data);
+  setInlineEditorStatus(
+    container,
+    "standardString",
+    `${t("changesSavedLocallyForTopic")} "${t("standardStringsCategoryLabel")}". ${t(
+      "clickSaveAllToWriteFile"
+    )}`
+  );
 }
 
 function applyCategoryInlineEdits(categoryId, container) {
@@ -2646,6 +2892,11 @@ if (isRemoteApiBlockedInLocal) {
 }
 
 loginBtn?.addEventListener("click", login);
+passwordInput?.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter") return;
+  event.preventDefault();
+  void login();
+});
 typeInput?.addEventListener("change", async () => {
   syncFormByType();
   selectedTopicCategoryId = "";
@@ -2808,6 +3059,12 @@ topicTreeInput?.addEventListener("click", (event) => {
     const container = target.closest(".qpm-editor-inline-editor");
     if (!itemId || !categoryId || !container) return;
     applyInlineEditorEdits(categoryId, itemId, container);
+    return;
+  }
+  if (target.classList.contains("qpm-editor-tree-apply-standard-inline")) {
+    const container = target.closest(".qpm-editor-inline-editor");
+    if (!container) return;
+    applyStandardStringsInlineEdits(container);
     return;
   }
   if (target.classList.contains("qpm-editor-tree-delete-inline")) {

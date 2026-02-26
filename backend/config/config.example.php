@@ -11,32 +11,40 @@
  */
 
 // ============ OpenAI Configuration ============
+// Optional domain override file:
+// data/content/<domain>/domain-config.json -> openai.api_key / openai.org_id / openai.api_url
+// Missing values automatically fall back to this backend config.
 define('OPENAI_API_KEY', 'sk-INSERT-YOUR-API-KEY-HERE');
 define('OPENAI_ORG_ID', '');
 // Use Responses API for GPT-5.2 and newer models with JSON mode support
 define('OPENAI_API_URL', 'https://api.openai.com/v1/responses');
 
 // ============ NLM/PubMed Configuration ============
+// Optional domain override file:
+// data/content/<domain>/domain-config.json -> nlm.api_key / nlm.email
+// Missing values automatically fall back to this backend config.
 define('NLM_API_KEY', 'INSERT-YOUR-NLM-API-KEY-HERE');
 define('NLM_EMAIL', 'your-email@example.com');
 define('NLM_BASE_URL', 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils');
 
+// ============ Unpaywall Configuration ============
+// Optional domain override file:
+// data/content/<domain>/domain-config.json -> unpaywall.email
+// Missing values automatically fall back to this backend config.
+define('UNPAYWALL_BASE_URL', 'https://api.unpaywall.org/v2');
+define('UNPAYWALL_EMAIL', 'your-unpaywall-email@example.com');
+
 // ============ Theme Overrides (Frontend CSS variables) ============
+// Optional domain override file:
+// data/content/<domain>/domain-config.json -> theme_overrides
+// Missing values automatically fall back to this backend config.
 // Global overrides applied to all domains
 define('QPM_THEME_GLOBAL_OVERRIDES', [
     // '--color-link' => '#004fa4',
 ]);
 
-// Domain specific overrides. Key must match frontend domain (e.g. "diabetes")
-define('QPM_THEME_DOMAIN_OVERRIDES', [
-    'diabetes' => [
-        // '--color-primary-button' => '#0f5ba7',
-        // '--color-link' => '#0f5ba7',
-        // '--color-blue-dark' => '#1f4a7a',
-        // '--color-gallery-toggle' => '#1f4a7a',
-        // '--color-gallery-toggle-hover' => '#0c355f',
-    ],
-]);
+// Domain specific theme overrides are now expected in:
+// data/content/<domain>/domain-config.json -> theme_overrides
 
 // Allowed domains for CORS
 // Supports wildcards: *.example.com matches sub.example.com and example.com
@@ -76,7 +84,7 @@ define('EDITOR_ALLOWED_ORIGINS', [
     'http://localhost:5173',
 ]);
 // Optional allowlist for editable content domains
-// If empty, domains are discovered from backend/storage/content/<domain>/topics.json
+// If empty, domains are discovered from data/content/<domain>/topics.json
 define('EDITOR_ALLOWED_CONTENT_DOMAINS', [
     'diabetes',
     'dementia',

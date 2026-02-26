@@ -1,9 +1,19 @@
 <template>
   <div class="qpm_spaceEvenly qpm_headerText">
-    <div v-show="!isCollapsed" role="heading" aria-level="2" class="h3" style="margin-top: 5px">
+    <div
+      v-show="!isCollapsed"
+      role="heading"
+      aria-level="2"
+      class="h3 qpm_searchFormToggleHeading"
+    >
       {{ getString("searchHeaderShown") }}
     </div>
-    <div v-show="isCollapsed" role="heading" aria-level="2" class="h3" style="margin-top: 5px">
+    <div
+      v-show="isCollapsed"
+      role="heading"
+      aria-level="2"
+      class="h3 qpm_searchFormToggleHeading"
+    >
       {{ getString("searchHeaderHidden") }}
     </div>
 
@@ -59,3 +69,4 @@
     },
   };
 </script>
+
