@@ -3,6 +3,18 @@ export const messages = {
     dk: "test",
     en: "test",
   },
+  mobileActionCancel: {
+    dk: "Annuller",
+    en: "Cancel",
+  },
+  mobileActionFreeText: {
+    dk: "Indtast fritekst",
+    en: "Enter free text",
+  },
+  mobileActionPickFromList: {
+    dk: "Vælg fra liste",
+    en: "Pick from list",
+  },
   tooltiptext: {
     dk: "Dansk",
     en: "English",

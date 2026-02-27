@@ -587,16 +587,90 @@ button.qpm_slim.multiselect__input:focus-visible {
   color: var(--color-black);
 }
 
+.qpm_nativeSelectHidden {
+  position: absolute !important;
+  opacity: 0 !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+}
+
 @media (pointer: coarse) {
-  .qpm_nativeSelect {
-    display: block;
-  }
   .qpm_dropdown .multiselect__content-wrapper {
     display: none !important;
   }
   .qpm_dropdown .multiselect__select {
     display: none !important;
   }
+}
+
+.qpm_actionSheetBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 999999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.qpm_actionSheetPanel {
+  width: 100%;
+  max-width: 500px;
+  padding: 8px;
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.qpm_actionSheetBtn {
+  width: 100%;
+  padding: 16px;
+  font-size: 17px;
+  font-weight: 500;
+  border: none;
+  border-radius: 14px;
+  background: var(--color-white, #fff);
+  color: var(--color-blue-dark, #007aff);
+  cursor: pointer;
+  text-align: center;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.qpm_actionSheetBtn:active {
+  background: var(--color-surface-hover, #e5e5ea);
+}
+
+.qpm_actionSheetCancel {
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+.qpm_actionSheet-enter-active {
+  transition: opacity 0.2s ease;
+}
+.qpm_actionSheet-enter-active .qpm_actionSheetPanel {
+  transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+.qpm_actionSheet-leave-active {
+  transition: opacity 0.15s ease;
+}
+.qpm_actionSheet-leave-active .qpm_actionSheetPanel {
+  transition: transform 0.15s ease-in;
+}
+.qpm_actionSheet-enter-from {
+  opacity: 0;
+}
+.qpm_actionSheet-enter-from .qpm_actionSheetPanel {
+  transform: translateY(100%);
+}
+.qpm_actionSheet-leave-to {
+  opacity: 0;
+}
+.qpm_actionSheet-leave-to .qpm_actionSheetPanel {
+  transform: translateY(100%);
 }
 
 .qpm_dropdown .qpm_button {

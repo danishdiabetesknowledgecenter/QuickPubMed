@@ -213,11 +213,13 @@
       :size="30"
     />
 
-    <!-- Native select for touch devices — opens iOS/Android picker instead of vue-multiselect dropdown -->
+    <!-- Hidden native select — triggered programmatically from action sheet -->
     <select
       v-if="isTouchDevice && !shouldHideDropdownArrow && getSortedSubjectOptions.length > 0"
       ref="nativeSelect"
-      class="qpm_nativeSelect"
+      class="qpm_nativeSelect qpm_nativeSelectHidden"
+      tabindex="-1"
+      aria-hidden="true"
       @change="handleNativeSelect($event)"
     >
       <option value="" disabled selected>{{ placeholder }}</option>
@@ -232,6 +234,34 @@
         </optgroup>
       </template>
     </select>
+
+    <!-- Mobile action sheet overlay -->
+    <teleport to="body">
+      <transition name="qpm_actionSheet">
+        <div
+          v-if="showMobileActionSheet"
+          class="qpm_actionSheetBackdrop"
+          @click.self="closeMobileActionSheet"
+        >
+          <div class="qpm_actionSheetPanel">
+            <button
+              v-if="taggable"
+              class="qpm_actionSheetBtn"
+              @click="handleActionFreeText"
+            >{{ getString("mobileActionFreeText") }}</button>
+            <button
+              v-if="getSortedSubjectOptions.length > 0"
+              class="qpm_actionSheetBtn"
+              @click="handleActionPickFromList"
+            >{{ getString("mobileActionPickFromList") }}</button>
+            <button
+              class="qpm_actionSheetBtn qpm_actionSheetCancel"
+              @click="closeMobileActionSheet"
+            >{{ getString("mobileActionCancel") }}</button>
+          </div>
+        </div>
+      </transition>
+    </teleport>
   </div>
 </template>
 
@@ -345,6 +375,8 @@
         _preventDeactivate: false,
         isTouchDevice: false,
         _touchMql: null,
+        showMobileActionSheet: false,
+        _skipActionSheet: false,
         _handleKeyDownBound: null,
         _handleInputEventBound: null,
         _handleEmptyDropdownInputBound: null,
@@ -729,6 +761,26 @@
         this.setupInputWidthObserver(input);
       }
       
+      // On touch devices, intercept multiselect open to show action sheet instead
+      this.$watch(() => this.$refs.multiselect?.isOpen, (isOpen) => {
+        if (isOpen && this.isTouchDevice && !this.shouldHideDropdownArrow && !this._skipActionSheet) {
+          const hasOptions = this.getSortedSubjectOptions.length > 0;
+          const canFreeText = this.taggable;
+          if (hasOptions && canFreeText) {
+            this.$refs.multiselect.deactivate();
+            this.showMobileActionSheet = true;
+            return;
+          }
+          if (hasOptions && !canFreeText) {
+            this.$refs.multiselect.deactivate();
+            this.$nextTick(() => {
+              if (this.$refs.nativeSelect) this.$refs.nativeSelect.focus();
+            });
+            return;
+          }
+        }
+      });
+
       // Watch for multiselect opening and prevent it during silent focus (unless user is typing)
       this.$watch(() => this.$refs.multiselect?.isOpen, (isOpen) => {
         if (isOpen && this.isSilentFocus && !this.isUserTyping) {
@@ -824,6 +876,28 @@
           });
         }
         return result;
+      },
+      closeMobileActionSheet() {
+        this.showMobileActionSheet = false;
+      },
+      handleActionFreeText() {
+        this.showMobileActionSheet = false;
+        this._skipActionSheet = true;
+        this.$nextTick(() => {
+          const input = this.$el.querySelector(".multiselect__input");
+          if (input) {
+            input.focus();
+          }
+          setTimeout(() => { this._skipActionSheet = false; }, 500);
+        });
+      },
+      handleActionPickFromList() {
+        this.showMobileActionSheet = false;
+        this.$nextTick(() => {
+          if (this.$refs.nativeSelect) {
+            this.$refs.nativeSelect.focus();
+          }
+        });
       },
       handleNativeSelect(event) {
         const selectedId = event.target.value;
