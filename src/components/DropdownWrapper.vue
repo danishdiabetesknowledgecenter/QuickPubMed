@@ -1006,6 +1006,8 @@
             ...this.maintopicToggledMap,
             [elem.id]: !this.maintopicToggledMap[elem.id],
           };
+          // Keep dropdown open when user toggles maintopic rows.
+          this.ignoreCloseUntilMs = Date.now() + 250;
           value.pop();
         }
 
@@ -1500,6 +1502,8 @@
         const optionGroupName = target.getElementsByClassName("qpm_groupLabel")[0].textContent;
 
         if (target.classList.contains("multiselect__option--group")) {
+          // Clicking a category header should only expand/collapse, never close dropdown.
+          this.ignoreCloseUntilMs = Date.now() + 250;
           if (this.expandedOptionGroupName === optionGroupName) {
             this.hideItems(this.expandedOptionGroupName);
             this.expandedOptionGroupName = "";
