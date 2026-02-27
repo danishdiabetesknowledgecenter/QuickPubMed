@@ -1241,14 +1241,22 @@
 
         const entries = element.querySelectorAll("[data-name]");
         const expandedGroupId = this.getOptionGroupId(this.expandedOptionGroupName);
+
+        // Hard reset: hide all option rows first to avoid stale visibility state.
+        entries.forEach((entry) => {
+          const parent = entry.parentNode.parentNode;
+          parent.classList.add("qpm_shown");
+        });
+
         entries.forEach((entry) => {
           const optionId = entry.getAttribute("option-id");
           const optionGroupId = this.getOptionGroupIdByOptionId(optionId);
           const parent = entry.parentNode.parentNode;
           const isInExpandedGroup =
             !!expandedGroupId && !!optionGroupId && optionGroupId === expandedGroupId;
-          const shouldShow = isInExpandedGroup && this.areAllAncestorsExpanded(entry);
-          parent.classList.toggle("qpm_shown", !shouldShow);
+          if (isInExpandedGroup && this.areAllAncestorsExpanded(entry)) {
+            parent.classList.remove("qpm_shown");
+          }
         });
       },
       /**
