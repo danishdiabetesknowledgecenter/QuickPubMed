@@ -767,11 +767,15 @@
           const hasOptions = this.getSortedSubjectOptions.length > 0;
           const canFreeText = this.taggable;
           if (hasOptions && canFreeText) {
+            this._preventDeactivate = false;
+            clearTimeout(this._deactivateGuardTimer);
             this.$refs.multiselect.deactivate();
             this.showMobileActionSheet = true;
             return;
           }
           if (hasOptions && !canFreeText) {
+            this._preventDeactivate = false;
+            clearTimeout(this._deactivateGuardTimer);
             this.$refs.multiselect.deactivate();
             this.$nextTick(() => {
               if (this.$refs.nativeSelect) this.$refs.nativeSelect.focus();
