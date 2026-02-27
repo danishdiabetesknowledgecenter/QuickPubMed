@@ -33,7 +33,7 @@
       selected-label=""
       :options="shouldHideDropdownArrow ? [] : getSortedSubjectOptions"
       :multiple="isMultiple"
-      :group-select="true"
+      :group-select="!hasTouchInteraction"
       :group-values="isGroup ? 'groups' : undefined"
       :group-label="isGroup ? 'id' : undefined"
       :placeholder="placeholder"
@@ -339,6 +339,7 @@
         isTouchScrolling: false,
         preventCloseFromTouchScroll: false,
         touchEndResetTimeoutId: null,
+        hasTouchInteraction: false,
       };
     },
     created() {
@@ -749,6 +750,7 @@
       handleTouchStart(event) {
         const touch = event?.touches?.[0];
         if (!touch) return;
+        this.hasTouchInteraction = true;
         if (this.touchEndResetTimeoutId) {
           clearTimeout(this.touchEndResetTimeoutId);
           this.touchEndResetTimeoutId = null;
