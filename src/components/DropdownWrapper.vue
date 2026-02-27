@@ -322,6 +322,7 @@
         isSilentFocus: false, // Track if focus is "silent" (no visual styling)
         _isEmptyDropdown: false, // Track if this is an empty dropdown with custom input handling
         isDropdownOpen: false, // Track dropdown state for aria-expanded
+        _preventDeactivate: false,
         _handleKeyDownBound: null,
         _handleInputEventBound: null,
         _handleEmptyDropdownInputBound: null,
@@ -614,6 +615,17 @@
           if (opts && opts.length > 0 && opts[ms.pointer]) {
             originalPointerAdjust();
           }
+        };
+
+        // Monkey-patch deactivate to prevent unintended close during
+        // maintopic toggle and group header expand/collapse operations.
+        // DOM changes from these operations can cause the search input to
+        // briefly lose focus, which triggers blur → deactivate → dropdown closes.
+        const self = this;
+        const originalDeactivate = ms.deactivate.bind(ms);
+        ms.deactivate = () => {
+          if (self._preventDeactivate) return;
+          originalDeactivate();
         };
       }
 
@@ -938,12 +950,13 @@
         let lg = this.language; // Use this.language to get the current language code
 
         if (elem.maintopic) {
-          //toggle the maintopic
+          this._preventDeactivate = true;
           this.maintopicToggledMap = {
             ...this.maintopicToggledMap,
             [elem.id]: !this.maintopicToggledMap[elem.id],
           };
           value.pop();
+          setTimeout(() => { this._preventDeactivate = false; }, 300);
         }
 
         // Only check for '-' in the current language
@@ -1445,6 +1458,7 @@
         const optionGroupName = groupLabelElement.textContent;
 
         if (target.classList.contains("multiselect__option--group")) {
+          this._preventDeactivate = true;
           if (this.expandedOptionGroupName === optionGroupName) {
             this.hideItems(this.expandedOptionGroupName);
             this.expandedOptionGroupName = "";
@@ -1476,6 +1490,7 @@
               });
             }
           }
+          setTimeout(() => { this._preventDeactivate = false; }, 300);
         } else {
           // This is when we are adding a new tag
         }
@@ -1688,11 +1703,13 @@
               const dropdownRef = this.$refs.multiselect;
               const option = dropdownRef.filteredOptions[dropdownRef.pointer];
               if (option && option.maintopic) {
+                this._preventDeactivate = true;
                 this.maintopicToggledMap = {
                   ...this.maintopicToggledMap,
                   [option.id]: !this.maintopicToggledMap[option.id],
                 };
                 this.showOrHideElements();
+                setTimeout(() => { this._preventDeactivate = false; }, 300);
               }
               return;
             }
@@ -1990,27 +2007,6 @@
        * @returns {boolean} Always returns false to indicate the event has been handled.
        */
       handleStopEvent(event) {
-        // Maintainopic rows should only expand/collapse branches, not trigger default selection/close behavior.
-        // We detect the row from event.currentTarget because event.target can be any nested child element.
-        const rowElement = event.currentTarget;
-        if (rowElement && typeof rowElement.querySelector === "function") {
-          const rowMeta = rowElement.querySelector("span[option-id][maintopic]");
-          if (rowMeta && rowMeta.getAttribute("maintopic") === "true") {
-            const optionId = rowMeta.getAttribute("option-id");
-            if (optionId) {
-              this.maintopicToggledMap = {
-                ...this.maintopicToggledMap,
-                [optionId]: !this.maintopicToggledMap[optionId],
-              };
-              this.showOrHideElements();
-            }
-            event.stopImmediatePropagation();
-            event.stopPropagation();
-            event.preventDefault();
-            return false;
-          }
-        }
-
         // Click event was on the parent multiselect group
         if (event.target.classList.contains("multiselect__option--group")) {
           event.stopPropagation();
