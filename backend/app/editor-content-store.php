@@ -14,34 +14,12 @@ function editorLimitsFilePathInBase(string $baseDir): string
 }
 
 /**
- * Legacy limits file path inside a content base dir.
- */
-function editorLegacyLimitsFilePathInBase(string $baseDir): string
-{
-    return $baseDir . DIRECTORY_SEPARATOR . 'limits.json';
-}
-
-/**
- * Resolve limits file path and migrate legacy location once.
+ * Resolve limits file path.
  */
 function editorResolveLimitsFilePath(): string
 {
     $baseDir = editorContentBaseDir();
-    $preferredPath = editorLimitsFilePathInBase($baseDir);
-    $legacyPath = editorLegacyLimitsFilePathInBase($baseDir);
-
-    if (!is_file($preferredPath) && is_file($legacyPath)) {
-        $preferredDir = dirname($preferredPath);
-        if (!is_dir($preferredDir)) {
-            @mkdir($preferredDir, 0750, true);
-        }
-        if (!@rename($legacyPath, $preferredPath)) {
-            // Keep legacy path working if migration fails due to permissions.
-            return $legacyPath;
-        }
-    }
-
-    return $preferredPath;
+    return editorLimitsFilePathInBase($baseDir);
 }
 
 /**
