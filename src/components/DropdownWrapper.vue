@@ -737,10 +737,6 @@
         if (dropdown) {
           dropdown.removeEventListener("mousedown", this.handleOpenMenuOnClick);
         }
-        const headers = Array.from(element.getElementsByClassName("multiselect__element"));
-        headers.forEach((header) => {
-          header.removeEventListener("touchend", this.handleCategoryGroupTouch);
-        });
       }
       
       // Clean up observer
@@ -977,11 +973,6 @@
           // Add click handler for category groups
           header.removeEventListener("click", self.handleCategoryGroupClick);
           header.addEventListener("click", self.handleCategoryGroupClick);
-          // On touch devices, run group logic directly and cancel synthetic click
-          header.removeEventListener("touchend", self.handleCategoryGroupTouch);
-          header.addEventListener("touchend", self.handleCategoryGroupTouch, {
-            passive: false,
-          });
         });
 
         // Stop selecting group when pressing enter during search
@@ -1572,25 +1563,6 @@
         } else {
           // This is when we are adding a new tag
         }
-      },
-      handleCategoryGroupTouch(event) {
-        let target = event.target;
-        if (target && target.nodeType === 3) {
-          target = target.parentElement;
-        }
-        if (!target) return;
-
-        const groupTarget = target.closest?.(".multiselect__option--group");
-        if (!groupTarget) {
-          // Not a group tap: let normal option selection run unchanged.
-          return;
-        }
-
-        if (event.cancelable) {
-          event.preventDefault();
-        }
-        event.stopPropagation();
-        this.handleCategoryGroupClick(event);
       },
       /**
        * Handles the click event on a tag (an option that has been selected),
