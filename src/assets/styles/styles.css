@@ -817,6 +817,12 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   z-index: 99999 !important;
 }
 
+@media (max-width: 768px) {
+  .multiselect__content-wrapper {
+    max-height: 40vh !important;
+  }
+}
+
 .qpm_dropdown .multiselect--active {
   z-index: 99999 !important;
 }
