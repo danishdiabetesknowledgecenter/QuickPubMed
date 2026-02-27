@@ -814,6 +814,11 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 .multiselect__content-wrapper {
   border-color: var(--color-border-medium);
   max-height: none !important;
+  z-index: 99999 !important;
+}
+
+.qpm_dropdown .multiselect--active {
+  z-index: 99999 !important;
 }
 
 .multiselect__content {

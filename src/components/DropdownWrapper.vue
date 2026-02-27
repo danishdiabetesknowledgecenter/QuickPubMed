@@ -649,6 +649,7 @@
       }
 
       this.$el.addEventListener("mousedown", this._handleDropdownMousedownGuard, true);
+      this.$el.addEventListener("touchstart", this._handleDropdownMousedownGuard, true);
 
       if (Array.isArray(this.data)) {
         this.data.forEach((group) => {
@@ -731,6 +732,7 @@
     beforeUnmount() {
       this.isUserTyping = false;
       this.$el.removeEventListener("mousedown", this._handleDropdownMousedownGuard, true);
+      this.$el.removeEventListener("touchstart", this._handleDropdownMousedownGuard, true);
       clearTimeout(this._deactivateGuardTimer);
       document.removeEventListener("mousedown", this.setMouseUsed);
       document.removeEventListener("keydown", this.resetMouseUsed);
