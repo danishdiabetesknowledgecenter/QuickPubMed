@@ -598,14 +598,6 @@ button.qpm_slim.multiselect__input:focus-visible {
   -webkit-tap-highlight-color: transparent;
 }
 
-.qpm_nativeSelectHidden {
-  position: absolute !important;
-  opacity: 0 !important;
-  height: 0 !important;
-  padding: 0 !important;
-  border: 0 !important;
-  overflow: hidden !important;
-}
 
 @media (pointer: coarse) {
   .qpm_dropdown .multiselect__content-wrapper {
@@ -652,6 +644,14 @@ button.qpm_slim.multiselect__input:focus-visible {
 
 .qpm_actionSheetBtn:active {
   background: var(--color-surface-hover, #e5e5ea);
+}
+
+.qpm_actionSheetSelect {
+  appearance: none;
+  -webkit-appearance: none;
+  text-align: center;
+  text-align-last: center;
+  font-size: 17px;
 }
 
 .qpm_actionSheetCancel {

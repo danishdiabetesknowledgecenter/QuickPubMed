@@ -220,28 +220,6 @@
       :size="30"
     />
 
-    <!-- Hidden native select — triggered programmatically from action sheet -->
-    <select
-      v-if="isTouchDevice && !shouldHideDropdownArrow && getSortedSubjectOptions.length > 0"
-      ref="nativeSelect"
-      class="qpm_nativeSelect qpm_nativeSelectHidden"
-      tabindex="-1"
-      aria-hidden="true"
-      @change="handleNativeSelect($event)"
-    >
-      <option value="" disabled selected>{{ placeholder }}</option>
-      <template v-for="group in getSortedSubjectOptions" :key="group.id">
-        <optgroup :label="customGroupLabelById(group.id)">
-          <option
-            v-for="item in flattenGroupForNative(group)"
-            :key="item.id"
-            :value="item.id"
-            :disabled="item.isBranch"
-          >{{ item.displayLabel }}</option>
-        </optgroup>
-      </template>
-    </select>
-
     <!-- Mobile action sheet overlay -->
     <teleport to="body">
       <transition name="qpm_actionSheet">
@@ -256,11 +234,24 @@
               class="qpm_actionSheetBtn"
               @click="handleActionFreeText"
             >{{ getString("mobileActionFreeText") }}</button>
-            <button
+            <select
               v-if="getSortedSubjectOptions.length > 0"
-              class="qpm_actionSheetBtn"
-              @click="handleActionPickFromList"
-            >{{ getString("mobileActionPickFromList") }}</button>
+              ref="nativeSelect"
+              class="qpm_actionSheetBtn qpm_actionSheetSelect"
+              @change="handleNativeSelect($event)"
+            >
+              <option value="" disabled selected>{{ getString("mobileActionPickFromList") }}</option>
+              <template v-for="group in getSortedSubjectOptions" :key="group.id">
+                <optgroup :label="customGroupLabelById(group.id)">
+                  <option
+                    v-for="item in flattenGroupForNative(group)"
+                    :key="item.id"
+                    :value="item.id"
+                    :disabled="item.isBranch"
+                  >{{ item.displayLabel }}</option>
+                </optgroup>
+              </template>
+            </select>
             <button
               class="qpm_actionSheetBtn qpm_actionSheetCancel"
               @click="closeMobileActionSheet"
@@ -867,11 +858,8 @@
       handleMobileTap() {
         const hasOptions = this.getSortedSubjectOptions.length > 0;
         const canFreeText = this.taggable;
-        if (hasOptions && canFreeText) {
+        if (hasOptions) {
           this.showMobileActionSheet = true;
-        } else if (hasOptions) {
-          const sel = this.$refs.nativeSelect;
-          if (sel) { sel.focus(); sel.click(); }
         } else if (canFreeText) {
           this.mobileOverlayHidden = true;
           this.$nextTick(() => {
@@ -891,14 +879,6 @@
           if (input) input.focus();
         });
       },
-      handleActionPickFromList() {
-        this.showMobileActionSheet = false;
-        const sel = this.$refs.nativeSelect;
-        if (sel) {
-          sel.focus();
-          sel.click();
-        }
-      },
       handleNativeSelect(event) {
         const selectedId = event.target.value;
         if (!selectedId) return;
@@ -909,6 +889,7 @@
         }
         const newSelected = [...this.selected, optionObj];
         this.$emit("input", newSelected, this.index);
+        this.showMobileActionSheet = false;
         this.$nextTick(() => {
           if (this.$refs.nativeSelect) {
             this.$refs.nativeSelect.value = "";
