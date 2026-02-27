@@ -14,7 +14,7 @@
           <!-- Show or hide the search form -->
           <search-form-toggle
             :is-collapsed="isCollapsed"
-            :subjects="subjects"
+            :topics="topics"
             :get-string="getString"
             @toggle-collapsed="toggleCollapsedController"
           />
@@ -26,52 +26,48 @@
             :get-string="getString"
           />
 
-          <div
-            v-show="isCollapsed"
-            class="qpm_collapsedSpacerPadding"
-          >
-          </div>
+          <div v-show="isCollapsed" class="qpm_collapsedSpacerPadding"></div>
 
           <div v-show="!isCollapsed" class="qpm_searchformoptions">
             <!-- The dropdown for selecting subjects to be included in the search -->
             <subject-selection
               ref="subjectSelection"
-              :subjects="subjects"
+              :topics="topics"
               :hide-topics="effectiveHideTopics"
-              :subject-options="subjectOptions"
+              :topic-options="topicOptions"
               :dropdown-placeholders="dropdownPlaceholders"
               :language="language"
               :advanced="advanced"
               :show-filter="showFilter"
-              :has-subjects="hasSubjects"
+              :has-topics="hasTopics"
               :search-with-a-i="searchWithAI"
               :get-string="getString"
-              @update-subjects="updateSubjects"
-              @update-scope="updateSubjectScope"
+              @update-topics="updateTopics"
+              @update-scope="updateTopicScope"
               @should-focus-next-dropdown="shouldFocusNextDropdownOnMount"
               @update-placeholder="updatePlaceholder"
-              @add-subject="addSubject"
-              @remove-subject="removeSubject"
+              @add-topic="addTopic"
+              @remove-topic="removeTopic"
               @toggle-filter="toggle"
             />
 
             <!-- The dropdown(s) for selecting filters to be included in the advanced search -->
             <advanced-search-filters
-              v-if="advanced && hasSubjects"
+              v-if="advanced && hasTopics"
               ref="advancedSearchFilters"
               :advanced="advanced"
-              :filter-options="filterOptions"
-              :filter-dropdowns="filterDropdowns"
+              :limit-options="limitOptions"
+              :limit-dropdowns="limitDropdowns"
               :hide-topics="effectiveHideTopics"
               :language="language"
               :search-with-a-i="searchWithAI"
               :get-string="getString"
-              :get-filter-placeholder="getFilterPlaceholder"
-              @update-filter-dropdown="updateFilterDropdown"
-              @update-filter-scope="updateFilterDropdownScope"
-              @update-filter-placeholder="updateFilterPlaceholder"
-              @add-filter-dropdown="addFilterDropdown"
-              @remove-filter-dropdown="removeFilterDropdown"
+              :get-limit-placeholder="getLimitPlaceholder"
+              @update-limit-dropdown="updateLimitDropdown"
+              @update-limit-scope="updateLimitDropdownScope"
+              @update-limit-placeholder="updateLimitPlaceholder"
+              @add-limit-dropdown="addLimitDropdown"
+              @remove-limit-dropdown="removeLimitDropdown"
             />
 
             <!-- The radio buttons for filters to be included in the simple search -->
@@ -79,13 +75,13 @@
               v-if="!advanced && showSimpleFilters"
               :advanced="advanced"
               :filtered-choices="filteredChoices"
-              :filter-data="filterData"
+              :limit-data="limitData"
               :help-text-delay="300"
               :get-string="getString"
               :get-custom-name-label="getCustomNameLabel"
               :get-simple-tooltip="getSimpleTooltip"
-              @update-filter="updateFilterSimple"
-              @update-filter-enter="updateFilterSimpleOnEnter"
+              @update-limit="updateLimitSimple"
+              @update-limit-enter="updateLimitSimpleOnEnter"
             />
           </div>
         </div>
@@ -93,10 +89,10 @@
         <div id="qpm_topofsearch" class="qpm_flex">
           <!-- The search query written out as human readable text-->
           <worded-search-string
-            :subjects="subjects"
-            :filters="filterData"
-            :available-filters="filtersContent"
-            :filter-dropdowns="filterDropdowns"
+            :topics="topics"
+            :limits="limitData"
+            :available-limits="limitsContent"
+            :limit-dropdowns="limitDropdowns"
             :searchstring="getSearchString"
             :is-collapsed="isCollapsed"
             :details="details"
@@ -104,19 +100,19 @@
             :advanced-search="advanced"
             :show-header="!isCollapsed"
             :language="language"
-            @toggleDetailsBox="toggleDetailsBox"
-            @toggleAdvancedString="toggleAdvancedString"
+            @toggle-details-box="toggleDetailsBox"
+            @toggle-advanced-string="toggleAdvancedString"
           />
         </div>
 
-        <div v-show="hasSubjects && !isCollapsed">
+        <div v-show="hasTopics && !isCollapsed">
           <!-- Buttons for reset, copy url and search -->
           <action-buttons
             :search-loading="searchLoading"
             :get-string="getString"
             @clear="clear"
-            @copyUrl="copyUrl"
-            @searchsetLowStart="searchsetLowStart"
+            @copy-url="copyUrl"
+            @searchset-low-start="searchsetLowStart"
           />
         </div>
       </div>
@@ -135,11 +131,11 @@
         :preselected-entries="preselectedEntries"
         :error="searchError"
         :search-intent="searchIntent"
-        @newPageSize="setPageSize"
-        @newSortMethod="newSortMethod"
+        @new-page-size="setPageSize"
+        @new-sort-method="newSortMethod"
         @high="nextPage"
         @low="previousPage"
-        @change:selectedEntries="updatePreselectedPmidai"
+        @change:selected-entries="updatePreselectedPmidai"
       />
     </div>
   </div>
@@ -160,10 +156,10 @@
   import { order } from "@/assets/content/order.js";
   import { messages } from "@/assets/content/translations.js";
   import { topicLoaderMixin, flattenTopicGroups } from "@/mixins/topicLoaderMixin.js";
-  import { normalizeFiltersList } from "@/utils/contentCanonicalizer";
+  import { normalizeLimitsList } from "@/utils/contentCanonicalizer";
   import { appSettingsMixin } from "@/mixins/appSettings";
   import { scopeIds, customInputTagTooltip } from "@/utils/contentHelpers.js";
-  import { loadFiltersFromRuntime, loadStandardString } from "@/utils/contentLoader";
+  import { loadLimitsFromRuntime, loadStandardString } from "@/utils/contentLoader";
   import {
     cloneDeep,
     debounce,
@@ -188,21 +184,21 @@
     props: {
       hideTopics: {
         type: Array,
-        default: () => []
+        default: () => [],
       },
       hideLimits: {
         type: Array,
-        default: () => []
+        default: () => [],
       },
       checkLimits: {
         type: Array,
-        default: () => []
+        default: () => [],
       },
       orderLimits: {
         type: Array,
-        default: () => []
+        default: () => [],
       },
-      openFilters: {
+      openLimits: {
         type: Boolean,
         default: false,
       },
@@ -235,10 +231,10 @@
         advancedString: false,
         count: 0,
         details: true,
-        filterData: {},
-        filterDropdowns: [[]],
-        filterOptions: [],
-        filters: [],
+        limitData: {},
+        limitDropdowns: [[]],
+        limitOptions: [],
+        limits: [],
         focusNextDropdownOnMount: false,
         isFirstFill: true,
         isCollapsed: false,
@@ -257,23 +253,23 @@
         showFilter: false,
         sort: order[0],
         stateHistory: [],
-        subjectDropdownWidth: 0,
-        subjectOptions: [],
-        subjects: [[]],
+        topicDropdownWidth: 0,
+        topicOptions: [],
+        topics: [[]],
         translating: false,
         dropdownPlaceholders: [],
         placeholderDotIntervalId: null,
         placeholderDotIndex: null,
         placeholderDotBaseText: "",
-        filterDropdownPlaceholders: [],
+        limitDropdownPlaceholders: [],
         filterPlaceholderDotIntervalId: null,
         filterPlaceholderDotIndex: null,
         filterPlaceholderDotBaseText: "",
-        openFiltersFromUrl: false,
+        openLimitsFromUrl: false,
         urlHideLimits: [],
         urlCheckLimits: [],
         urlOrderLimits: [],
-        filtersContent: [],
+        limitsContent: [],
         normalizedHideTopicsFromProp: null,
         hasAvailableTopicsCached: false,
       };
@@ -293,14 +289,12 @@
         return std && typeof std === "object" && Object.keys(std).length > 0 ? std : null;
       },
       showSimpleFilters() {
-        return this.hasSubjects || this.openFiltersFromUrl || this.openFilters;
+        return this.hasTopics || this.openLimitsFromUrl || this.openLimits;
       },
       filteredChoices() {
         const hiddenGroupIds = new Set(this.effectiveHideLimits);
-        const orderMap = new Map(
-          (this.effectiveOrderLimits || []).map((id, index) => [id, index])
-        );
-        return this.filterOptions.map((option) => {
+        const orderMap = new Map((this.effectiveOrderLimits || []).map((id, index) => [id, index]));
+        return this.limitOptions.map((option) => {
           if (hiddenGroupIds.has(option.id)) {
             return { ...option, choices: [] };
           }
@@ -326,7 +320,11 @@
         const out = [];
         const visit = (node) => {
           if (!node || typeof node !== "object") return;
-          if (node.hiddenByDefault === true && typeof node.id === "string" && node.id.trim() !== "") {
+          if (
+            node.hiddenByDefault === true &&
+            typeof node.id === "string" &&
+            node.id.trim() !== ""
+          ) {
             out.push(node.id);
           }
           if (Array.isArray(node.groups)) {
@@ -336,22 +334,22 @@
             node.children.forEach(visit);
           }
         };
-        this.subjectOptions.forEach(visit);
+        this.topicOptions.forEach(visit);
         return out;
       },
       effectiveHideTopics() {
         const configured = Array.isArray(this.normalizedHideTopicsFromProp)
           ? this.normalizedHideTopicsFromProp
           : Array.isArray(this.hideTopics)
-            ? this.hideTopics
-            : [];
+          ? this.hideTopics
+          : [];
         return Array.from(new Set([...configured, ...this.defaultHiddenTopicIds]));
       },
-      hasFilterSelections() {
-        return this.filterDropdowns.some((dropdown) => dropdown.length > 0);
+      hasLimitSelections() {
+        return this.limitDropdowns.some((dropdown) => dropdown.length > 0);
       },
-      hasSubjects() {
-        return this.subjects.some((subjectArray) => subjectArray.length > 0);
+      hasTopics() {
+        return this.topics.some((subjectArray) => subjectArray.length > 0);
       },
       /**
        * Derives the user's search intention from subjects and filters.
@@ -369,7 +367,7 @@
         };
 
         // Build subject intent with logical operators
-        const subjectGroups = this.subjects
+        const subjectGroups = this.topics
           .filter((group) => group.length > 0)
           .map((group) => {
             const labels = group.map(getItemLabel).filter(Boolean);
@@ -380,7 +378,7 @@
           .filter(Boolean);
 
         // Build filter intent with logical operators
-        const filterGroups = this.filterDropdowns
+        const filterGroups = this.limitDropdowns
           .filter((group) => group.length > 0)
           .map((group) => {
             const labels = group.map(getItemLabel).filter(Boolean);
@@ -418,11 +416,12 @@
 
         const buildSubstring = (items, connector = " OR ", allowStandardString = false) => {
           return items
-            .filter((item) =>
-              item.searchStrings &&
-              item.scope &&
-              item.searchStrings[item.scope] &&
-              item.searchStrings[item.scope].length > 0
+            .filter(
+              (item) =>
+                item.searchStrings &&
+                item.scope &&
+                item.searchStrings[item.scope] &&
+                item.searchStrings[item.scope].length > 0
             )
             .map((item) => {
               const { scope, searchStrings } = item;
@@ -438,8 +437,8 @@
                 (item.isCustom
                   ? this.standardStringAdd
                   : typeof scopeCombineValue === "boolean"
-                    ? scopeCombineValue
-                    : item.combineWithStandardString !== false);
+                  ? scopeCombineValue
+                  : item.combineWithStandardString !== false);
               const scopeToUse = item.isCustom
                 ? resolveStandardScope(this.standardStringScope)
                 : resolveStandardScope(scope);
@@ -462,19 +461,21 @@
         };
         let substrings = [];
 
-        this.subjects.forEach((subjectGroup, index) => {
+        this.topics.forEach((subjectGroup, index) => {
+          if (!Array.isArray(subjectGroup)) return;
           const subjectsToIterate = subjectGroup.length;
-          const hasOperators = subjectGroup.some((item) =>
-            item.searchStrings && 
-            item.scope && 
-            item.searchStrings[item.scope] && 
-            item.searchStrings[item.scope][0] &&
-            hasLogicalOperators(item.searchStrings[item.scope][0])
+          const hasOperators = subjectGroup.some(
+            (item) =>
+              item.searchStrings &&
+              item.scope &&
+              item.searchStrings[item.scope] &&
+              item.searchStrings[item.scope][0] &&
+              hasLogicalOperators(item.searchStrings[item.scope][0])
           );
 
           let substring = index > 0 ? " AND " : "";
           if (
-            (hasOperators && (this.subjects.length > 1 || this.filters.length > 0)) ||
+            (hasOperators && (this.topics.length > 1 || this.limits.length > 0)) ||
             subjectsToIterate > 1
           ) {
             substring += "(";
@@ -483,7 +484,7 @@
           substring += buildSubstring(subjectGroup, " OR ", true);
 
           if (
-            (hasOperators && (this.subjects.length > 1 || this.filters.length > 0)) ||
+            (hasOperators && (this.topics.length > 1 || this.limits.length > 0)) ||
             subjectsToIterate > 1
           ) {
             substring += ")";
@@ -495,17 +496,18 @@
         });
 
         if (this.advanced) {
-          // Advanced mode: process filterDropdowns per-dropdown
+          // Advanced mode: process limitDropdowns per-dropdown
           // All items in same dropdown = OR, between dropdowns = AND
-          this.filterDropdowns.forEach((dropdownItems) => {
+          this.limitDropdowns.forEach((dropdownItems) => {
             if (dropdownItems.length === 0) return;
 
-            const hasOperators = dropdownItems.some((item) =>
-              item.searchStrings &&
-              item.scope &&
-              item.searchStrings[item.scope] &&
-              item.searchStrings[item.scope][0] &&
-              hasLogicalOperators(item.searchStrings[item.scope][0])
+            const hasOperators = dropdownItems.some(
+              (item) =>
+                item.searchStrings &&
+                item.scope &&
+                item.searchStrings[item.scope] &&
+                item.searchStrings[item.scope][0] &&
+                hasLogicalOperators(item.searchStrings[item.scope][0])
             );
 
             let substring = " AND ";
@@ -518,15 +520,16 @@
             }
           });
         } else {
-          // Simple mode: use filterData (category-grouped object)
-          Object.keys(this.filterData).forEach((key) => {
-            const filterGroup = this.filterData[key];
-            const hasOperators = filterGroup.some((item) =>
-              item.searchStrings &&
-              item.scope &&
-              item.searchStrings[item.scope] &&
-              item.searchStrings[item.scope][0] &&
-              hasLogicalOperators(item.searchStrings[item.scope][0])
+          // Simple mode: use limitData (category-grouped object)
+          Object.keys(this.limitData).forEach((key) => {
+            const filterGroup = this.limitData[key];
+            const hasOperators = filterGroup.some(
+              (item) =>
+                item.searchStrings &&
+                item.scope &&
+                item.searchStrings[item.scope] &&
+                item.searchStrings[item.scope][0] &&
+                hasLogicalOperators(item.searchStrings[item.scope][0])
             );
 
             let substring = " AND ";
@@ -559,7 +562,7 @@
       },
     },
     watch: {
-      subjectOptions: {
+      topicOptions: {
         deep: true,
         immediate: true,
         handler() {
@@ -578,12 +581,12 @@
         this._focusVisibleCleanup();
       }
       // Add proper cleanup for resize listener
-      if (this._updateSubjectDropdownWidthDebounced) {
-        window.removeEventListener("resize", this._updateSubjectDropdownWidthDebounced);
+      if (this._updateTopicDropdownWidthDebounced) {
+        window.removeEventListener("resize", this._updateTopicDropdownWidthDebounced);
       }
     },
     async mounted() {
-      await this.loadFiltersData();
+      await this.loadLimitsData();
 
       this.advanced = !this.advanced;
       this.advancedClick(true);
@@ -591,36 +594,36 @@
       this.isUrlParsed = true;
 
       this.updatePlaceholders();
-      this.updateSubjectDropdownWidth();
-      this._updateSubjectDropdownWidthDebounced = debounce(
-        this.updateSubjectDropdownWidth.bind(this),
+      this.updateTopicDropdownWidth();
+      this._updateTopicDropdownWidthDebounced = debounce(
+        this.updateTopicDropdownWidth.bind(this),
         120
       );
-      window.addEventListener("resize", this._updateSubjectDropdownWidthDebounced);
+      window.addEventListener("resize", this._updateTopicDropdownWidthDebounced);
 
-      this.prepareFilterOptions();
-      this.prepareSubjectOptions();
+      this.prepareLimitOptions();
+      this.prepareTopicOptions();
 
-        if (
-          !this.advanced &&
-          (this.openFiltersFromUrl || this.openFilters || this.urlCheckLimits.length > 0) &&
-          Object.keys(this.filterData).length === 0
-        ) {
+      if (
+        !this.advanced &&
+        (this.openLimitsFromUrl || this.openLimits || this.urlCheckLimits.length > 0) &&
+        Object.keys(this.limitData).length === 0
+      ) {
         this.selectStandardSimple();
         this.isFirstFill = false;
       }
-      
+
       this.advanced = !this.advanced;
       this.advancedClick();
       this.ensureCheckLimitsSelected();
-      if (this.hasSubjects) {
+      if (this.hasTopics) {
         await this.search();
         await this.searchPreselectedPmidai();
       }
-      
+
       // Ensure correct placeholder width after DOM is fully rendered
       this.$nextTick(() => {
-        this.updateSubjectDropdownWidth();
+        this.updateTopicDropdownWidth();
         this.updatePlaceholders();
 
         // Silent focus on the first input — only for the first SearchForm instance on the page
@@ -631,12 +634,12 @@
           allWrappers[0] === this.$el?.parentElement;
         if (!isFirstInstance) return;
 
-        const firstSubjectDropdown = this.$refs.subjectSelection?.$refs.subjectDropdown?.[0];
+        const firstSubjectDropdown = this.$refs.subjectSelection?.$refs.topicDropdown?.[0];
         if (firstSubjectDropdown && firstSubjectDropdown.setSilentFocusFromParent) {
           firstSubjectDropdown.setSilentFocusFromParent();
         }
       });
-      
+
       // Initialize focus-visible behavior
       this.$nextTick(() => {
         this.initializeFocusVisible();
@@ -654,7 +657,7 @@
     },
     methods: {
       recomputeHasAvailableTopics() {
-        if (!this.subjectOptions || this.subjectOptions.length === 0) {
+        if (!this.topicOptions || this.topicOptions.length === 0) {
           this.hasAvailableTopicsCached = false;
           return;
         }
@@ -674,7 +677,7 @@
           return false;
         };
 
-        const availableTopics = this.subjectOptions
+        const availableTopics = this.topicOptions
           .map((section) => {
             if (shouldHideItem(section)) {
               return null;
@@ -698,16 +701,18 @@
             return true;
           });
 
-        this.hasAvailableTopicsCached = availableTopics.length > 0 && availableTopics.some((section) => {
-          return section.groups && section.groups.length > 0;
-        });
+        this.hasAvailableTopicsCached =
+          availableTopics.length > 0 &&
+          availableTopics.some((section) => {
+            return section.groups && section.groups.length > 0;
+          });
       },
-      async loadFiltersData() {
+      async loadLimitsData() {
         try {
-          this.filtersContent = await loadFiltersFromRuntime();
+          this.limitsContent = await loadLimitsFromRuntime();
         } catch (error) {
-          this.filtersContent = [];
-          console.error("Failed to load filters from runtime content API.", error);
+          this.limitsContent = [];
+          console.error("Failed to load limits from runtime content API.", error);
         }
       },
       optionIdentity(option) {
@@ -727,45 +732,45 @@
           document.getElementById("qpm-searchform") ||
           document.querySelector('[id^="qpm-searchform-"]') ||
           document.getElementById("searchform");
-        
+
         if (!appElement) {
           appElement = document.body;
         }
-        
+
         if (!appElement) {
-          console.error('initializeFocusVisible: Could not find any suitable element!');
+          console.error("initializeFocusVisible: Could not find any suitable element!");
           return;
         }
-        
+
         // Add qpm_vapp class to match CSS selectors
-        appElement.classList.add('qpm_vapp');
-        
+        appElement.classList.add("qpm_vapp");
+
         // Start in mouse mode - only show focus outlines when user uses keyboard
-        appElement.classList.add('qpm_mouse-mode');
-        appElement.classList.remove('qpm_keyboard-mode');
-        
+        appElement.classList.add("qpm_mouse-mode");
+        appElement.classList.remove("qpm_keyboard-mode");
+
         // Switch only on keyboard navigation keys
         const handleKeyDown = (event) => {
-          if (['Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
-            appElement.classList.add('qpm_keyboard-mode');
-            appElement.classList.remove('qpm_mouse-mode');
+          if (["Tab", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) {
+            appElement.classList.add("qpm_keyboard-mode");
+            appElement.classList.remove("qpm_mouse-mode");
           }
         };
-        
+
         // Switch to mouse mode on click interactions
         const handleMouseDown = () => {
-          appElement.classList.add('qpm_mouse-mode');
-          appElement.classList.remove('qpm_keyboard-mode');
+          appElement.classList.add("qpm_mouse-mode");
+          appElement.classList.remove("qpm_keyboard-mode");
         };
-        
+
         // Add event listeners
-        document.addEventListener('keydown', handleKeyDown, true);
-        document.addEventListener('mousedown', handleMouseDown, true);
-        
+        document.addEventListener("keydown", handleKeyDown, true);
+        document.addEventListener("mousedown", handleMouseDown, true);
+
         // Store cleanup function for potential future use
         this._focusVisibleCleanup = () => {
-          document.removeEventListener('keydown', handleKeyDown, true);
-          document.removeEventListener('mousedown', handleMouseDown, true);
+          document.removeEventListener("keydown", handleKeyDown, true);
+          document.removeEventListener("mousedown", handleMouseDown, true);
         };
       },
       advancedClick(skip = false) {
@@ -773,76 +778,77 @@
         this.advanced = !this.advanced;
 
         // Reset options with proper cleanup
-        this.subjectOptions.splice(0);
-        this.filterOptions.splice(0);
+        this.topicOptions.splice(0);
+        this.limitOptions.splice(0);
 
-        // Save pre-reset filterData for migration (before it gets cleared)
-        const preResetFilterData = (!this.alwaysShowFilter && Object.keys(this.filterData).length > 0)
-          ? cloneDeep(this.filterData)
-          : null;
+        // Save pre-reset limitData for migration (before it gets cleared)
+        const preResetFilterData =
+          !this.alwaysShowFilter && Object.keys(this.limitData).length > 0
+            ? cloneDeep(this.limitData)
+            : null;
 
         // Reset filters if necessary
         if (!this.alwaysShowFilter) {
-          this.filterData = {};
-          this.filters.splice(0);
-          // Don't reset filterDropdowns here - like subjects, they may contain URL data
+          this.limitData = {};
+          this.limits.splice(0);
+          // Don't reset limitDropdowns here - like subjects, they may contain URL data
         }
 
-        // Prepare options FIRST (needed for getFilterCategoryId in sync)
-        this.prepareFilterOptions();
-        this.prepareSubjectOptions();
+        // Prepare options FIRST (needed for getLimitCategoryId in sync)
+        this.prepareLimitOptions();
+        this.prepareTopicOptions();
 
-        // Sync between filterData and filterDropdowns on mode switch
-        // (must happen AFTER prepareFilterOptions so getFilterCategoryId works)
-        if (this.advanced && this.filterDropdowns.some((d) => d.length > 0)) {
-          // Entering advanced: filterDropdowns has data → sync to filterData
-          this.syncFilterDataFromDropdowns();
+        // Sync between limitData and limitDropdowns on mode switch
+        // (must happen AFTER prepareLimitOptions so getLimitCategoryId works)
+        if (this.advanced && this.limitDropdowns.some((d) => d.length > 0)) {
+          // Entering advanced: limitDropdowns has data → sync to limitData
+          this.syncLimitDataFromDropdowns();
         } else if (this.advanced && preResetFilterData) {
-          // Entering advanced: filterData had data from simple mode → migrate to filterDropdowns
+          // Entering advanced: limitData had data from simple mode → migrate to limitDropdowns
           // Each category becomes its own dropdown (AND between categories, OR within)
           const dropdowns = Object.values(preResetFilterData).filter((arr) => arr.length > 0);
-          this.filterDropdowns = dropdowns.length > 0 ? dropdowns : [[]];
-          this.syncFilterDataFromDropdowns();
-        } else if (this.advanced && Object.keys(this.filterData).length > 0) {
-          // Entering advanced: filterData has data (alwaysShowFilter) → migrate to filterDropdowns
-          const dropdowns = Object.values(this.filterData).filter((arr) => arr.length > 0);
-          this.filterDropdowns = dropdowns.length > 0 ? dropdowns : [[]];
-          this.syncFilterDataFromDropdowns();
-        } else if (!this.advanced && this.filterDropdowns.some((d) => d.length > 0)) {
-          // Entering simple: sync filterData from filterDropdowns, then reset dropdowns
-          this.syncFilterDataFromDropdowns();
-          this.filterDropdowns = [[]];
+          this.limitDropdowns = dropdowns.length > 0 ? dropdowns : [[]];
+          this.syncLimitDataFromDropdowns();
+        } else if (this.advanced && Object.keys(this.limitData).length > 0) {
+          // Entering advanced: limitData has data (alwaysShowFilter) → migrate to limitDropdowns
+          const dropdowns = Object.values(this.limitData).filter((arr) => arr.length > 0);
+          this.limitDropdowns = dropdowns.length > 0 ? dropdowns : [[]];
+          this.syncLimitDataFromDropdowns();
+        } else if (!this.advanced && this.limitDropdowns.some((d) => d.length > 0)) {
+          // Entering simple: sync limitData from limitDropdowns, then reset dropdowns
+          this.syncLimitDataFromDropdowns();
+          this.limitDropdowns = [[]];
         }
 
         // Reset subject scopes in non-advanced mode
         if (!this.advanced) {
-          this.resetSubjectScopes();
+          this.resetTopicScopes();
         }
 
         // Update filters
-        this.updateFiltersBasedOnSelection();
+        this.updateLimitsBasedOnSelection();
 
         // Clean filter data
-        this.cleanFilterData();
+        this.cleanLimitData();
 
         // Reset filters if empty in advanced mode
-        if (this.advanced && Object.keys(this.filterData).length === 0 && !this.hasFilterSelections) {
-          this.filters = [];
+        if (this.advanced && Object.keys(this.limitData).length === 0 && !this.hasLimitSelections) {
+          this.limits = [];
         }
 
         // Update URL
         if (!skip) this.setUrl();
 
         // Set 'showFilter' flag
-        this.showFilter = this.advanced && (this.filters.length > 0 || this.hasFilterSelections);
-        
+        this.showFilter = this.advanced && (this.limits.length > 0 || this.hasLimitSelections);
+
         this.$nextTick(() => {
-          this.updateSubjectDropdownWidth();
+          this.updateTopicDropdownWidth();
           this.updatePlaceholders();
         });
       },
-      prepareFilterOptions() {
-        const filterCopy = normalizeFiltersList(cloneDeep(this.filtersContent));
+      prepareLimitOptions() {
+        const filterCopy = normalizeLimitsList(cloneDeep(this.limitsContent));
         filterCopy.forEach((filterItem) => {
           // Skip if filterItem is null or undefined
           if (!filterItem) return;
@@ -851,57 +857,57 @@
           if (filterItem.choices && Array.isArray(filterItem.choices)) {
             filterItem.choices = flattenTopicGroups(filterItem.choices);
           }
-          
+
           if (!this.advanced) {
             if (filterItem.choices && Array.isArray(filterItem.choices)) {
-            filterItem.choices.forEach((choice) => {
+              filterItem.choices.forEach((choice) => {
                 if (choice) {
-              choice.buttons = false;
-              if (
-                (!this.isUrlParsed || choice.simpleSearch || choice.standardSimple) &&
-                !this.filterOptions.includes(filterItem)
-              ) {
-                this.filterOptions.push(filterItem);
+                  choice.buttons = false;
+                  if (
+                    (!this.isUrlParsed || choice.simpleSearch || choice.standardSimple) &&
+                    !this.limitOptions.includes(filterItem)
+                  ) {
+                    this.limitOptions.push(filterItem);
                   }
-              }
-            });
+                }
+              });
             }
           } else {
             // Add groups property for grouped DropdownWrapper (isGroup=true)
             filterItem.groups = filterItem.choices;
-            this.filterOptions.push(filterItem);
+            this.limitOptions.push(filterItem);
           }
         });
       },
-      prepareSubjectOptions() {
-        const subjectCopy = cloneDeep(this.topics);
+      prepareTopicOptions() {
+        const subjectCopy = cloneDeep(this.topicCatalog);
         subjectCopy.forEach((subjectItem) => {
           // Skip if subjectItem is null or undefined
           if (!subjectItem) return;
-          
+
           if (!this.advanced) {
             if (subjectItem.groups && Array.isArray(subjectItem.groups)) {
-            subjectItem.groups.forEach((group) => {
+              subjectItem.groups.forEach((group) => {
                 if (group) {
-              group.buttons = false;
+                  group.buttons = false;
                 }
-            });
+              });
             }
           }
-          this.subjectOptions.push(subjectItem);
+          this.topicOptions.push(subjectItem);
         });
       },
-      resetSubjectScopes() {
-        this.subjects.forEach((subjectGroup) => {
+      resetTopicScopes() {
+        this.topics.forEach((subjectGroup) => {
           subjectGroup.forEach((subject) => {
             subject.scope = "normal";
           });
         });
       },
-      updateFiltersBasedOnSelection() {
+      updateLimitsBasedOnSelection() {
         const updatedFilters = [];
-        this.filters.forEach((filter) => {
-          const matchingFilter = this.filterOptions.find(
+        this.limits.forEach((filter) => {
+          const matchingFilter = this.limitOptions.find(
             (option) => this.optionIdentity(option) === this.optionIdentity(filter)
           );
           if (matchingFilter) {
@@ -909,20 +915,20 @@
               this.isUrlParsed && !this.advanced
                 ? filter.choices.some(
                     (choice) =>
-                      (choice.simpleSearch || choice.standardSimple) && this.filterData[filter.id]
+                      (choice.simpleSearch || choice.standardSimple) && this.limitData[filter.id]
                   )
-                : this.filterData[filter.id];
+                : this.limitData[filter.id];
             if (shouldIncludeFilter && !updatedFilters.includes(matchingFilter)) {
               updatedFilters.push(matchingFilter);
             }
           }
         });
-        this.filters = updatedFilters;
+        this.limits = updatedFilters;
       },
-      cleanFilterData() {
-        const filterDataCopy = { ...this.filterData };
-        Object.keys(filterDataCopy).forEach((key) => {
-          let values = filterDataCopy[key];
+      cleanLimitData() {
+        const limitDataCopy = { ...this.limitData };
+        Object.keys(limitDataCopy).forEach((key) => {
+          let values = limitDataCopy[key];
           values = values.filter((value) => {
             if (!this.advanced) value.scope = "normal";
             return !(
@@ -933,12 +939,12 @@
             );
           });
           if (values.length > 0) {
-            filterDataCopy[key] = values;
+            limitDataCopy[key] = values;
           } else {
-            delete filterDataCopy[key];
+            delete limitDataCopy[key];
           }
         });
-        this.filterData = filterDataCopy;
+        this.limitData = limitDataCopy;
       },
       /**
        * Parses the current URL's query parameters and updates the component's state accordingly.
@@ -946,8 +952,8 @@
        * preselected PMIDs, and scroll position.
        */
       parseUrl() {
-        // Initialize subjects
-        this.subjects = [];
+        // Initialize topics
+        this.topics = [];
 
         // Parse the current URL (search + hash query fallback for CMS embeds)
         const urlParams = new URLSearchParams(window.location.search);
@@ -958,7 +964,7 @@
 
         // Check if there are query parameters
         if (![...urlParams.keys()].length) {
-          this.subjects = [[]];
+          this.topics = [[]];
           return;
         }
 
@@ -970,8 +976,8 @@
           const keyLower = normalizedKey.toLowerCase();
 
           switch (keyLower) {
-            case "subject":
-              this.processSubjects(values);
+            case "topic":
+              this.processTopics(values);
               break;
 
             case "advanced":
@@ -998,9 +1004,9 @@
               this.preselectedPmidai = values;
               break;
 
-            case "openfilters": {
+            case "openlimits": {
               const normalized = value.trim().toLowerCase();
-              this.openFiltersFromUrl = normalized === "true" || normalized === "1";
+              this.openLimitsFromUrl = normalized === "true" || normalized === "1";
               break;
             }
 
@@ -1026,9 +1032,9 @@
           }
         });
 
-        // Ensure subjects is not empty
-        if (this.subjects.length === 0) {
-          this.subjects = [[]];
+        // Ensure topics is not empty
+        if (this.topics.length === 0) {
+          this.topics = [[]];
         }
       },
       getHashUrlParams() {
@@ -1051,11 +1057,11 @@
           .map((value) => value.toUpperCase());
       },
       /**
-       * Processes the 'subject' parameters from the URL and populates the subjects array.
+       * Processes the 'topic' parameters from the URL and populates the topics array.
        *
-       * @param {string[]} values - An array of subject values extracted from the URL.
+       * @param {string[]} values - An array of topic values extracted from the URL.
        */
-      processSubjects(values) {
+      processTopics(values) {
         const selected = [];
 
         values.forEach((val) => {
@@ -1082,9 +1088,9 @@
 
           const normalizedId = id.toUpperCase();
 
-          // Find the subject in subjectOptions
-          this.subjectOptions.forEach((subjectOption) => {
-            subjectOption.groups.forEach((group) => {
+          // Find the topic in topicOptions
+          this.topicOptions.forEach((topicOption) => {
+            topicOption.groups.forEach((group) => {
               if (group.id === normalizedId) {
                 const tmp = { ...group, scope: scopeIds[scope] };
                 const lg = this.language;
@@ -1098,11 +1104,11 @@
         });
 
         if (selected.length > 0) {
-          this.subjects.push(selected);
+          this.topics.push(selected);
         }
       },
       /**
-       * Processes filter parameters from the URL and updates the filterData object.
+       * Processes filter parameters from the URL and updates the limitData object.
        *
        * @param {string} key - The filter group ID extracted from the URL parameter key.
        * @param {string[]} values - An array of filter values extracted from the URL.
@@ -1110,11 +1116,11 @@
       processFilter(key, values) {
         const normalizedKey = key.toUpperCase();
         // Find the filter group
-        const filterGroup = this.filterOptions.find((filter) => filter.id === normalizedKey);
+        const filterGroup = this.limitOptions.find((filter) => filter.id === normalizedKey);
         if (!filterGroup) return;
 
-        if (!this.filters.includes(filterGroup)) {
-          this.filters.push({ ...filterGroup });
+        if (!this.limits.includes(filterGroup)) {
+          this.limits.push({ ...filterGroup });
           this.showFilter = true;
         }
 
@@ -1133,7 +1139,7 @@
             const translationFlag = rawName.slice(-1);
             const isTranslated = translationFlag === "1";
             const name = isTranslated || translationFlag === "0" ? rawName.slice(0, -1) : rawName;
-            
+
             const tag = {
               name: name,
               searchStrings: { normal: [name] },
@@ -1142,8 +1148,8 @@
               isCustom: true,
               tooltip: customInputTagTooltip,
             };
-            if (!this.filterData[groupId]) this.filterData[groupId] = [];
-            this.filterData[groupId].push(tag);
+            if (!this.limitData[groupId]) this.limitData[groupId] = [];
+            this.limitData[groupId].push(tag);
             return;
           }
 
@@ -1166,12 +1172,12 @@
 
           const tmp = { ...choice, scope: scopeIds[scope] };
 
-          if (!this.filterData[groupId]) this.filterData[groupId] = [];
-          this.filterData[groupId].push(tmp);
+          if (!this.limitData[groupId]) this.limitData[groupId] = [];
+          this.limitData[groupId].push(tmp);
         });
       },
       /**
-       * Processes 'limit' URL parameters (new format) and populates filterDropdowns.
+       * Processes 'limit' URL parameters (new format) and populates limitDropdowns.
        * Each 'limit' parameter represents one filter dropdown's selections.
        *
        * @param {string[]} values - An array of filter values (itemId#scope) from one 'limit' parameter.
@@ -1201,7 +1207,7 @@
           const normalizedId = id.toUpperCase();
 
           // Find the filter choice across all filter options
-          for (const filterGroup of this.filterOptions) {
+          for (const filterGroup of this.limitOptions) {
             const choice = filterGroup.choices
               ? filterGroup.choices.find((c) => c.id === normalizedId)
               : null;
@@ -1213,11 +1219,11 @@
         });
 
         if (selected.length > 0) {
-          // Ensure filterDropdowns has at least one empty array
-          if (this.filterDropdowns.length === 1 && this.filterDropdowns[0].length === 0) {
-            this.filterDropdowns[0] = selected;
+          // Ensure limitDropdowns has at least one empty array
+          if (this.limitDropdowns.length === 1 && this.limitDropdowns[0].length === 0) {
+            this.limitDropdowns[0] = selected;
           } else {
-            this.filterDropdowns.push(selected);
+            this.limitDropdowns.push(selected);
           }
         }
       },
@@ -1227,9 +1233,9 @@
        * @param {Object} item - The filter item.
        * @returns {string} The category ID (e.g., "L010").
        */
-      getFilterCategoryId(item) {
+      getLimitCategoryId(item) {
         if (!item.id) return "__custom__";
-        for (const option of this.filterOptions) {
+        for (const option of this.limitOptions) {
           if (option.choices && option.choices.some((c) => c.id === item.id)) {
             return option.id;
           }
@@ -1238,28 +1244,28 @@
         return item.id.substring(0, 4);
       },
       /**
-       * Syncs filterData (category-grouped object) from filterDropdowns (array of arrays).
+       * Syncs limitData (category-grouped object) from limitDropdowns (array of arrays).
        * Merges all items from all dropdowns by their filter category.
        * Also updates the 'filters' array to match.
        */
-      syncFilterDataFromDropdowns() {
+      syncLimitDataFromDropdowns() {
         const newFilterData = {};
         const filterSet = new Set();
 
-        this.filterDropdowns.forEach((dropdownItems) => {
+        this.limitDropdowns.forEach((dropdownItems) => {
           dropdownItems.forEach((item) => {
-            const categoryId = this.getFilterCategoryId(item);
+            const categoryId = this.getLimitCategoryId(item);
             if (!newFilterData[categoryId]) newFilterData[categoryId] = [];
             newFilterData[categoryId].push(item);
             filterSet.add(categoryId);
           });
         });
 
-        this.filterData = newFilterData;
+        this.limitData = newFilterData;
 
         // Update filters array to match active categories
-        this.filters = [...filterSet]
-          .map((id) => this.filterOptions.find((f) => f.id === id))
+        this.limits = [...filterSet]
+          .map((id) => this.limitOptions.find((f) => f.id === id))
           .filter(Boolean);
       },
       /**
@@ -1268,27 +1274,27 @@
        * @param {Array} value - The updated selections array.
        * @param {number} index - The index of the filter dropdown.
        */
-      updateFilterDropdown(value, index) {
+      updateLimitDropdown(value, index) {
         value.forEach((item) => {
           if (!item.scope) item.scope = "normal";
         });
 
-        const updated = cloneDeep(this.filterDropdowns);
+        const updated = cloneDeep(this.limitDropdowns);
         updated[index] = value;
-        this.filterDropdowns = updated;
+        this.limitDropdowns = updated;
 
         // Remove extra empty dropdowns — keep at most one empty
-        this.removeExtraEmptyDropdowns("filterDropdowns");
+        this.removeExtraEmptyDropdowns("limitDropdowns");
 
-        this.syncFilterDataFromDropdowns();
+        this.syncLimitDataFromDropdowns();
         this.setUrl();
         this.editForm();
       },
       /**
        * Removes extra empty dropdowns, keeping at most one empty.
-       * Works for both subjects and filterDropdowns.
+       * Works for both subjects and limitDropdowns.
        *
-       * @param {string} prop - "subjects" or "filterDropdowns"
+       * @param {string} prop - "subjects" or "limitDropdowns"
        */
       removeExtraEmptyDropdowns(prop) {
         const arr = this[prop];
@@ -1308,23 +1314,23 @@
       /**
        * Adds a new empty filter dropdown.
        */
-      addFilterDropdown() {
-        const hasEmpty = this.filterDropdowns.some((d) => d.length === 0);
+      addLimitDropdown() {
+        const hasEmpty = this.limitDropdowns.some((d) => d.length === 0);
         if (hasEmpty) {
           alert(this.getString("fillEmptyDropdownFirstAlert"));
           return;
         }
-        this.filterDropdowns = [...this.filterDropdowns, []];
+        this.limitDropdowns = [...this.limitDropdowns, []];
 
         this.$nextTick(() => {
-          const filterSelection = this.$refs.advancedSearchFilters?.$refs.filterSelection;
-          if (!filterSelection) return;
-          const lastDropdown = this.getLastDropdownRef(filterSelection.$refs.filterDropdown);
+          const limitSelection = this.$refs.advancedSearchFilters?.$refs.limitSelection;
+          if (!limitSelection) return;
+          const lastDropdown = this.getLastDropdownRef(limitSelection.$refs.limitDropdown);
           this.tryActivateDropdown(lastDropdown, { focusInput: true });
 
           // Retry with small delay if first attempt failed
           setTimeout(() => {
-            const lastDropdown = this.getLastDropdownRef(filterSelection.$refs.filterDropdown);
+            const lastDropdown = this.getLastDropdownRef(limitSelection.$refs.limitDropdown);
             this.tryActivateDropdown(lastDropdown, { onlyWhenClosed: true });
           }, 100);
         });
@@ -1334,14 +1340,14 @@
        *
        * @param {number} index - The index of the dropdown to remove.
        */
-      removeFilterDropdown(index) {
-        const wasEmpty = this.filterDropdowns[index] && this.filterDropdowns[index].length === 0;
-        const updated = [...this.filterDropdowns];
+      removeLimitDropdown(index) {
+        const wasEmpty = this.limitDropdowns[index] && this.limitDropdowns[index].length === 0;
+        const updated = [...this.limitDropdowns];
         updated.splice(index, 1);
         if (updated.length === 0) updated.push([]);
-        this.filterDropdowns = updated;
+        this.limitDropdowns = updated;
 
-        this.syncFilterDataFromDropdowns();
+        this.syncLimitDataFromDropdowns();
         this.setUrl();
         if (!wasEmpty) this.editForm();
       },
@@ -1352,8 +1358,8 @@
        * @param {string} state - The new scope state.
        * @param {number} index - The index of the filter dropdown.
        */
-      updateFilterDropdownScope(item, state, index) {
-        const updated = cloneDeep(this.filterDropdowns);
+      updateLimitDropdownScope(item, state, index) {
+        const updated = cloneDeep(this.limitDropdowns);
 
         if (updated[index] && Array.isArray(updated[index])) {
           const targetItem = updated[index].find((i) => i.id === item.id);
@@ -1369,8 +1375,8 @@
           }
         }
 
-        this.filterDropdowns = updated;
-        this.syncFilterDataFromDropdowns();
+        this.limitDropdowns = updated;
+        this.syncLimitDataFromDropdowns();
         this.setUrl();
         this.editForm();
       },
@@ -1400,13 +1406,13 @@
 
         // If there are no subjects selected, return the base URL without parameters
 
-        if (!this.hasSubjects && !this.openFiltersFromUrl && !this.openFilters) {
+        if (!this.hasTopics && !this.openLimitsFromUrl && !this.openLimits) {
           return apiBaseStr ? `${baseUrl}?${apiBaseStr}` : baseUrl;
         }
 
         // Build query parameters
-        const subjectsStr = this.constructSubjectsQuery();
-        const filterStr = this.constructFiltersQuery();
+        const topicsStr = this.constructTopicsQuery();
+        const limitsStr = this.constructLimitsQuery();
         const advancedStr = `&advanced=${this.advanced}`;
         const sorter = `&sort=${encodeURIComponent(this.sort.method)}`;
         const collapsedStr = `&collapsed=${this.isCollapsed}`;
@@ -1415,7 +1421,7 @@
         const scrolltoStr = this.scrollToID
           ? `&scrollto=${encodeURIComponent(this.scrollToID)}`
           : "";
-        const openFiltersStr = this.openFiltersFromUrl ? `&openfilters=true` : "";
+        const openLimitsStr = this.openLimitsFromUrl ? `&openlimits=true` : "";
         const hideLimitsStr =
           this.urlHideLimits.length > 0 ? `&hidelimits=${this.urlHideLimits.join(";;")}` : "";
         const checkLimitsStr =
@@ -1424,7 +1430,9 @@
           this.urlOrderLimits.length > 0 ? `&orderlimits=${this.urlOrderLimits.join(";;")}` : "";
 
         // Assemble the full URL with all query parameters
-        const urlLink = `${baseUrl}?${apiBaseStr}${apiBaseStr ? "&" : ""}${subjectsStr}${filterStr}${advancedStr}${pmidaiStr}${sorter}${collapsedStr}${pageSizeStr}${scrolltoStr}${openFiltersStr}${hideLimitsStr}${checkLimitsStr}${orderLimitsStr}`;
+        const urlLink = `${baseUrl}?${apiBaseStr}${
+          apiBaseStr ? "&" : ""
+        }${topicsStr}${limitsStr}${advancedStr}${pmidaiStr}${sorter}${collapsedStr}${pageSizeStr}${scrolltoStr}${openLimitsStr}${hideLimitsStr}${checkLimitsStr}${orderLimitsStr}`;
 
         return urlLink.replace("?&", "?").replace(/&&+/g, "&");
       },
@@ -1433,12 +1441,12 @@
        *
        * @returns {string} The encoded subjects query string.
        */
-      constructSubjectsQuery() {
-        if (!this.subjects || this.subjects.length === 0) {
+      constructTopicsQuery() {
+        if (!this.topics || this.topics.length === 0) {
           return "";
         }
 
-        const subjectQueries = this.subjects
+        const subjectQueries = this.topics
           .filter((group) => group.length > 0)
           .map((group) => {
             const subjectValues = group.map((subject) => {
@@ -1457,7 +1465,7 @@
               return encodeURIComponent(subjectId);
             });
 
-            return `subject=${subjectValues.join(";;")}`;
+            return `topic=${subjectValues.join(";;")}`;
           });
 
         return subjectQueries.join("&");
@@ -1467,13 +1475,13 @@
        *
        * @returns {string} The encoded filters query string.
        */
-      constructFiltersQuery() {
+      constructLimitsQuery() {
         if (!this.advanced) {
-          // Simple mode: encode from filterData (category-grouped)
-          if (!this.filterData || Object.keys(this.filterData).length === 0) {
+          // Simple mode: encode from limitData (category-grouped)
+          if (!this.limitData || Object.keys(this.limitData).length === 0) {
             return "";
           }
-          const filterQueries = Object.entries(this.filterData)
+          const filterQueries = Object.entries(this.limitData)
             .filter(([, values]) => values.length > 0)
             .map(([key, values]) => {
               const filterValues = values.map((value) => {
@@ -1490,19 +1498,18 @@
           return filterQueries.join("");
         }
 
-        // Advanced mode: encode from filterDropdowns (array of arrays)
-        if (!this.filterDropdowns || !this.filterDropdowns.some((d) => d.length > 0)) {
+        // Advanced mode: encode from limitDropdowns (array of arrays)
+        if (!this.limitDropdowns || !this.limitDropdowns.some((d) => d.length > 0)) {
           return "";
         }
 
-        const limitQueries = this.filterDropdowns
+        const limitQueries = this.limitDropdowns
           .filter((group) => group.length > 0)
           .map((group) => {
             const filterValues = group.map((item) => {
               const scope = this.getScopeKey(this.advanced ? item.scope : "normal");
               const valueId =
-                item.isCustom ||
-                (typeof item.id === "string" && item.id.startsWith("__custom__:"))
+                item.isCustom || (typeof item.id === "string" && item.id.startsWith("__custom__:"))
                   ? `{{${item.name}}}`
                   : item.id;
               return encodeURIComponent(`${valueId}#${scope}`);
@@ -1542,14 +1549,14 @@
        * @returns {void}
        */
       toggle() {
-        this.showFilter = !this.showFilter || this.filters.length > 0 || !this.advanced;
+        this.showFilter = !this.showFilter || this.limits.length > 0 || !this.advanced;
 
         // Open dropdown with a delay
         setTimeout(() => {
           if (this.advanced && this.$refs.advancedSearchFilters) {
-            const filterSelection = this.$refs.advancedSearchFilters?.$refs?.filterSelection;
-            if (filterSelection) {
-              const dropdowns = filterSelection.$refs.filterDropdown;
+            const limitSelection = this.$refs.advancedSearchFilters?.$refs.limitSelection;
+            if (limitSelection) {
+              const dropdowns = limitSelection.$refs.limitDropdown;
               const firstDropdown = Array.isArray(dropdowns) ? dropdowns[0] : dropdowns;
               this.tryActivateDropdown(firstDropdown, { focusInput: true, shouldActivate: false });
             }
@@ -1566,8 +1573,8 @@
        * 3. Adds a new empty subject to the subjects array.
        * 4. Sets a timeout to focus on the search input of the newly added subject dropdown.
        */
-      addSubject() {
-        const hasEmptySubject = this.subjects.some((entry) => entry.length === 0);
+      addTopic() {
+        const hasEmptySubject = this.topics.some((entry) => entry.length === 0);
         if (hasEmptySubject) {
           const message = this.getString("fillEmptyDropdownFirstAlert");
           alert(message);
@@ -1575,19 +1582,19 @@
         }
 
         this.updatePlaceholders();
-        this.subjects = [...this.subjects, []];
+        this.topics = [...this.topics, []];
 
         this.$nextTick(() => {
-          const subjectDropdownRef = this.$refs?.subjectSelection?.$refs?.subjectDropdown;
+          const subjectDropdownRef = this.$refs?.subjectSelection?.$refs?.topicDropdown;
           const lastDropdown = this.getLastDropdownRef(subjectDropdownRef);
           this.tryActivateDropdown(lastDropdown, { focusInput: true });
 
           // Update placeholders after DOM update
           this.updatePlaceholders();
-          
+
           // Try again with a small delay if first attempt failed
           setTimeout(() => {
-            const subjectDropdownRef = this.$refs?.subjectSelection?.$refs?.subjectDropdown;
+            const subjectDropdownRef = this.$refs?.subjectSelection?.$refs?.topicDropdown;
             const lastDropdown = this.getLastDropdownRef(subjectDropdownRef);
             this.tryActivateDropdown(lastDropdown, { onlyWhenClosed: true });
           }, 100);
@@ -1598,10 +1605,10 @@
        *
        * @param {number} id - The index of the subject to remove.
        */
-      removeSubject(id) {
-        const isEmptySubject = this.subjects[id] && this.subjects[id].length === 0;
+      removeTopic(id) {
+        const isEmptySubject = this.topics[id] && this.topics[id].length === 0;
 
-        this.subjects.splice(id, 1);
+        this.topics.splice(id, 1);
         this.setUrl();
 
         if (!isEmptySubject) {
@@ -1614,32 +1621,32 @@
        * @param {Array<Object>} value - The list of subject items to update.
        * @param {number} index - The index of the subjects array to update.
        */
-      updateSubjects(value, index) {
+      updateTopics(value, index) {
         value.forEach((item, i) => {
           if (i > 0) this.isFirstFill = false;
           if (!item.scope) item.scope = "normal";
         });
 
-        if (this.subjects.length > 1) this.isFirstFill = false;
+        if (this.topics.length > 1) this.isFirstFill = false;
 
-        const updatedSubjects = cloneDeep(this.subjects);
+        const updatedSubjects = cloneDeep(this.topics);
         updatedSubjects[index] = value;
-        this.subjects = updatedSubjects;
+        this.topics = updatedSubjects;
 
         // Remove extra empty dropdowns — keep at most one empty
-        this.removeExtraEmptyDropdowns("subjects");
+        this.removeExtraEmptyDropdowns("topics");
 
         if (!this.advanced && this.isFirstFill) {
           this.selectStandardSimple();
           this.isFirstFill = false;
         }
 
-        if (!this.hasSubjects) {
-          this.filters = [];
-          this.filterData = {};
-          this.filterDropdowns = [[]];
+        if (!this.hasTopics) {
+          this.limits = [];
+          this.limitData = {};
+          this.limitDropdowns = [[]];
           this.showFilter = false;
-          this.subjects = [[]];
+          this.topics = [[]];
           this.isFirstFill = true;
         }
 
@@ -1653,8 +1660,8 @@
        * @param {string} state - The new scope state.
        * @param {number} index - The index of the subjects array where the item resides.
        */
-      updateSubjectScope(item, state, index) {
-        const updatedSubjects = cloneDeep(this.subjects);
+      updateTopicScope(item, state, index) {
+        const updatedSubjects = cloneDeep(this.topics);
 
         if (Array.isArray(updatedSubjects) && updatedSubjects[index]) {
           const subject = updatedSubjects[index].find(
@@ -1670,12 +1677,12 @@
             }
             subject.scope = state;
           }
-          this.subjects = updatedSubjects;
+          this.topics = updatedSubjects;
           this.setUrl();
           this.editForm();
         } else {
           console.warn();
-          `updateSubjectScope: subjects[${index}] is undefined or not an array. No subjects are chosen.`;
+          `updateTopicScope: subjects[${index}] is undefined or not an array. No subjects are chosen.`;
         }
       },
       /**
@@ -1684,10 +1691,10 @@
        * @param {Array<Object>} value - The list of filter items to update.
        */
       updateFilters(value) {
-        this.filters = cloneDeep(value);
+        this.limits = cloneDeep(value);
 
-        this.filterData = this.filters.reduce((acc, filter) => {
-          acc[filter.id] = this.filterData[filter.id] || [];
+        this.limitData = this.limits.reduce((acc, filter) => {
+          acc[filter.id] = this.limitData[filter.id] || [];
           return acc;
         }, {});
 
@@ -1705,16 +1712,16 @@
           if (!item.scope) item.scope = "normal";
         });
 
-        const updatedFilterData = cloneDeep(this.filterData);
+        const updatedFilterData = cloneDeep(this.limitData);
         updatedFilterData[index] = value;
-        this.filterData = updatedFilterData;
+        this.limitData = updatedFilterData;
 
         this.setUrl();
         this.editForm();
       },
       /**
        * Updates the filter data when a user selects or deselects a simple filter option.
-       * Manages the filterData and filters arrays based on the user's interaction.
+       * Manages the limitData and filters arrays based on the user's interaction.
        * Also updates the URL and form accordingly.
        *
        * @param {string} filterType - The ID of the filter group being updated.
@@ -1722,9 +1729,9 @@
        * @param {string} selectedValue.name - Valgfrit custom navn for filtervalg.
        * @param {boolean} selectedValue.checked - The current checked state of the filter option.
        */
-      updateFilterSimple(filterType, selectedValue) {
+      updateLimitSimple(filterType, selectedValue) {
         if (!filterType || !selectedValue) {
-          console.warn("updateFilterSimple: Missing filterType or selectedValue");
+          console.warn("updateLimitSimple: Missing filterType or selectedValue");
           return;
         }
 
@@ -1732,7 +1739,7 @@
         selectedValue.scope = "normal";
 
         // Clone the current filter data
-        const tempFilterData = { ...this.filterData };
+        const tempFilterData = { ...this.limitData };
 
         // Initialize the filter type array if it doesn't exist
         if (!tempFilterData[filterType]) {
@@ -1751,14 +1758,14 @@
           if (exists) return; // Already added
           tempFilterData[filterType].push(selectedValue);
 
-          // Add the filter to this.filters if not already present
-          const filterExists = this.filters.some((filter) => filter.id === filterType);
+          // Add the filter to this.limits if not already present
+          const filterExists = this.limits.some((filter) => filter.id === filterType);
           if (!filterExists) {
-            const filterOption = this.filterOptions.find((option) => option.id === filterType);
+            const filterOption = this.limitOptions.find((option) => option.id === filterType);
             if (filterOption) {
-              this.filters.push({ ...filterOption });
+              this.limits.push({ ...filterOption });
             } else {
-              console.warn(`updateFilterSimple: Filter option with id "${filterType}" not found.`);
+              console.warn(`updateLimitSimple: Filter option with id "${filterType}" not found.`);
             }
           }
         } else {
@@ -1767,21 +1774,21 @@
           tempFilterData[filterType] = tempFilterData[filterType].filter(
             (item) => this.optionIdentity(item) !== this.optionIdentity(selectedValue)
           );
-          // If the filter type array is empty, remove it and the filter from this.filters
+          // If the filter type array is empty, remove it and the filter from this.limits
           if (tempFilterData[filterType].length === 0) {
             delete tempFilterData[filterType];
-            this.filters = this.filters.filter((filter) => filter.id !== filterType);
+            this.limits = this.limits.filter((filter) => filter.id !== filterType);
           }
         }
 
         // Update the filter data
-        this.filterData = tempFilterData;
+        this.limitData = tempFilterData;
 
         // Update the URL and the form
         this.setUrl();
         this.editForm();
       },
-      updateFilterSimpleOnEnter(selectedValue) {
+      updateLimitSimpleOnEnter(selectedValue) {
         const baseId = selectedValue?.id || selectedValue?.name || "";
         if (!baseId) return;
         const checkboxId = String(baseId).replaceAll(" ", "\\ "); // Handle ids with whitespace
@@ -1799,8 +1806,8 @@
         const useCheckLimits =
           Array.isArray(this.effectiveCheckLimits) && this.effectiveCheckLimits.length > 0;
         const hiddenGroupIds = new Set(this.effectiveHideLimits);
-        for (let i = 0; i < this.filterOptions.length; i++) {
-          const option = this.filterOptions[i];
+        for (let i = 0; i < this.limitOptions.length; i++) {
+          const option = this.limitOptions[i];
           if (hiddenGroupIds.has(option.id)) {
             continue;
           }
@@ -1822,7 +1829,7 @@
           }
         }
 
-        const tempFilters = cloneDeep(this.filterData);
+        const tempFilters = cloneDeep(this.limitData);
         // Update selected filters here.
         for (let i = 0; i < filtersToSelect.length; i++) {
           const filterToSelect = filtersToSelect[i];
@@ -1831,20 +1838,20 @@
           // If no array exists, create array with value.
           if (!tempFilters[filterType]) {
             tempFilters[filterType] = [filtervalue];
-            this.filters.push(filterToSelect.option);
+            this.limits.push(filterToSelect.option);
           } else if (!tempFilters[filterType].some((item) => item.id === filtervalue.id)) {
             // Else add value to existing array of filter values.
             tempFilters[filterType].push(filtervalue);
           }
         }
-        this.filterData = tempFilters;
+        this.limitData = tempFilters;
       },
       ensureCheckLimitsSelected() {
         if (this.advanced) return;
         if (!this.effectiveCheckLimits || this.effectiveCheckLimits.length === 0) return;
 
         const selectedIds = new Set();
-        Object.values(this.filterData).forEach((values) => {
+        Object.values(this.limitData).forEach((values) => {
           if (!Array.isArray(values)) return;
           values.forEach((item) => {
             if (item && item.id) selectedIds.add(item.id);
@@ -1866,7 +1873,7 @@
        */
       updateAdvancedFilterScope(item, state, index) {
         // Create a deep copy of the filter data
-        const sel = cloneDeep(this.filterData);
+        const sel = cloneDeep(this.limitData);
 
         // Check if sel[index] exists and is an array
         if (sel[index] && Array.isArray(sel[index])) {
@@ -1879,7 +1886,7 @@
 
           if (targetItem) {
             if (targetItem.scope === state) {
-              // Find the filter in the filterData array and remove it
+              // Find the filter in the limitData array and remove it
               const filterIndex = sel[index].findIndex(
                 (sub) => this.optionIdentity(sub) === this.optionIdentity(item)
               );
@@ -1895,21 +1902,21 @@
         }
 
         // Update the filter data and other states
-        this.filterData = sel;
+        this.limitData = sel;
         this.setUrl();
         this.editForm();
       },
 
       /**
-       * Removes a filter item from filterData based on the provided filterItemId.
+       * Removes a filter item from limitData based on the provided filterItemId.
        *
        * @param {String} filterItemId - The ID of the filter item to remove.
        */
       removeFilterItem(filterItemId) {
-        // Create a shallow copy of filterData to avoid direct mutations
-        const updatedFilterData = { ...this.filterData };
+        // Create a shallow copy of limitData to avoid direct mutations
+        const updatedFilterData = { ...this.limitData };
 
-        // Iterate through each key in filterData
+        // Iterate through each key in limitData
         Object.keys(updatedFilterData).forEach((key) => {
           // Filter out the item with the matching filterItemId
           if (key === filterItemId)
@@ -1917,11 +1924,11 @@
             delete updatedFilterData[key];
         });
 
-        // Update the filterData with the filtered results
-        this.filterData = updatedFilterData;
+        // Update the limitData with the filtered results
+        this.limitData = updatedFilterData;
 
         // Create a shallow copy of filters to avoid direct mutations
-        const updatedFilters = [...this.filters];
+        const updatedFilters = [...this.limits];
 
         // Iterate through each index of updatedFilters
         updatedFilters.forEach((filter, index) => {
@@ -1932,9 +1939,9 @@
         });
 
         // Update the filters with the filtered results
-        this.filters = updatedFilters;
+        this.limits = updatedFilters;
 
-        // Update the URL and form based on the new filterData
+        // Update the URL and form based on the new limitData
         this.setUrl();
         this.editForm();
       },
@@ -1946,10 +1953,10 @@
        */
       clear() {
         this.reloadScripts();
-        this.subjects = [[]];
-        this.filters = [];
-        this.filterData = {};
-        this.filterDropdowns = [[]];
+        this.topics = [[]];
+        this.limits = [];
+        this.limitData = {};
+        this.limitDropdowns = [[]];
         this.searchresult = undefined;
         this.finalValidatedQuery = "";
         this.count = 0;
@@ -1965,23 +1972,27 @@
 
         if (
           !this.advanced &&
-          (this.openFiltersFromUrl || this.openFilters || this.effectiveCheckLimits.length > 0)
+          (this.openLimitsFromUrl || this.openLimits || this.effectiveCheckLimits.length > 0)
         ) {
           this.selectStandardSimple();
           this.isFirstFill = false;
         }
 
         // Reset expanded groups in dropdown. Only need to do first as the other dropdowns are deleted
-        const subjectDropdown = this.$refs?.subjectSelection?.$refs?.subjectDropdown;
+        const subjectDropdown = this.$refs?.subjectSelection?.$refs?.topicDropdown;
         if (subjectDropdown && subjectDropdown[0]) {
           subjectDropdown[0].clearShownItems();
         }
         this.setUrl();
-        
+
         // Focus on the first input field after reset
         this.$nextTick(() => {
-          const subjectDropdown = this.$refs?.subjectSelection?.$refs?.subjectDropdown;
-          if (subjectDropdown && subjectDropdown[0] && subjectDropdown[0].setSilentFocusFromParent) {
+          const subjectDropdown = this.$refs?.subjectSelection?.$refs?.topicDropdown;
+          if (
+            subjectDropdown &&
+            subjectDropdown[0] &&
+            subjectDropdown[0].setSilentFocusFromParent
+          ) {
             subjectDropdown[0].setSilentFocusFromParent();
           }
         });
@@ -2385,8 +2396,7 @@
         this.advancedString = !this.advancedString;
       },
       async newSortMethod(newVal) {
-        this.sort =
-          newVal && typeof newVal === "object" ? { ...newVal } : newVal;
+        this.sort = newVal && typeof newVal === "object" ? { ...newVal } : newVal;
         this.page = 0;
         this.setUrl();
         this.count = 0;
@@ -2423,11 +2433,12 @@
         }
         return option.name || option.id;
       },
-      updateSubjectDropdownWidth() {
-        const dropdown = this.$refs?.subjectSelection?.$refs?.subjectDropdown[0]?.$refs?.selectWrapper;
-        
+      updateTopicDropdownWidth() {
+        const dropdown =
+          this.$refs?.subjectSelection?.$refs?.topicDropdown?.[0]?.$refs?.selectWrapper;
+
         if (!dropdown) return;
-        this.subjectDropdownWidth = dropdown.offsetWidth;
+        this.topicDropdownWidth = dropdown.offsetWidth;
 
         // Update placeholders automatically on resize
         this.updatePlaceholders();
@@ -2478,19 +2489,27 @@
         if (translating) {
           return this.getString("translatingPlaceholder");
         }
-        
+
         const hasTopics = this.hasAvailableTopics;
-        const width = this.subjectDropdownWidth;
+        const width = this.topicDropdownWidth;
         const isMobileOrSmall = isMobileViewport() || (width < 520 && width >= 0);
-        
+
         // Use the same mobile logic for both simple and advanced modes
         if (isMobileOrSmall) {
-          return this.getString(hasTopics ? "subjectadvancedplaceholder_mobile" : "subjectadvancedplaceholder_mobile_notopics");
+          return this.getString(
+            hasTopics
+              ? "topicadvancedplaceholder_mobile"
+              : "topicadvancedplaceholder_mobile_notopics"
+          );
         } else {
           if (this.advanced) {
-            return this.getString(hasTopics ? "subjectadvancedplaceholder" : "subjectadvancedplaceholder_notopics");
+            return this.getString(
+              hasTopics ? "topicadvancedplaceholder" : "topicadvancedplaceholder_notopics"
+            );
           } else {
-            return this.getString(hasTopics ? "subjectsimpleplaceholder" : "subjectsimpleplaceholder_notopics");
+            return this.getString(
+              hasTopics ? "topicsimpleplaceholder" : "topicsimpleplaceholder_notopics"
+            );
           }
         }
       },
@@ -2502,8 +2521,8 @@
         this.placeholderDotIndex = null;
         this.placeholderDotBaseText = "";
       },
-      getFilterPlaceholder(index) {
-        return this.filterDropdownPlaceholders[index] || this.getDefaultFilterPlaceholder();
+      getLimitPlaceholder(index) {
+        return this.limitDropdownPlaceholders[index] || this.getDefaultFilterPlaceholder();
       },
       getDefaultFilterPlaceholder() {
         const isMobileOrSmall = isMobileViewport() || window.innerWidth < 520;
@@ -2520,26 +2539,26 @@
         this.filterPlaceholderDotIndex = null;
         this.filterPlaceholderDotBaseText = "";
       },
-      updateFilterPlaceholder(isTranslating, index, stepKey) {
+      updateLimitPlaceholder(isTranslating, index, stepKey) {
         if (isTranslating) {
           this.clearFilterPlaceholderDotInterval();
           const baseText =
             stepKey && messages[stepKey]
               ? this.getString(stepKey)
               : this.getString("translatingPlaceholder");
-          this.filterDropdownPlaceholders[index] = baseText;
+          this.limitDropdownPlaceholders[index] = baseText;
           this.filterPlaceholderDotIndex = index;
           this.filterPlaceholderDotBaseText = baseText;
           let dotCount = 0;
           this.filterPlaceholderDotIntervalId = setInterval(() => {
             if (this.filterPlaceholderDotIndex === null) return;
             dotCount = (dotCount % 5) + 1;
-            this.filterDropdownPlaceholders[this.filterPlaceholderDotIndex] =
+            this.limitDropdownPlaceholders[this.filterPlaceholderDotIndex] =
               this.filterPlaceholderDotBaseText + ".".repeat(dotCount);
           }, 400);
         } else {
           this.clearFilterPlaceholderDotInterval();
-          this.filterDropdownPlaceholders[index] = this.getDefaultFilterPlaceholder();
+          this.limitDropdownPlaceholders[index] = this.getDefaultFilterPlaceholder();
         }
       },
       updatePlaceholder(isTranslating, index, stepKey) {
@@ -2567,8 +2586,8 @@
       updatePlaceholders() {
         this.$nextTick(() => {
           const subjectSelectionRef = this.$refs.subjectSelection;
-          if (subjectSelectionRef && subjectSelectionRef.$refs.subjectDropdown) {
-            const subjectDropdowns = subjectSelectionRef.$refs.subjectDropdown;
+          if (subjectSelectionRef && subjectSelectionRef.$refs.topicDropdown) {
+            const subjectDropdowns = subjectSelectionRef.$refs.topicDropdown;
             if (Array.isArray(subjectDropdowns)) {
               subjectDropdowns.forEach((_, index) => {
                 this.updatePlaceholder(false, index);
@@ -2583,4 +2602,3 @@
     },
   };
 </script>
-

@@ -31,7 +31,7 @@ if ($method === 'GET') {
     }
 
     if ($action === 'revisions') {
-        if (!in_array($type, ['topics', 'filters'], true)) {
+        if (!in_array($type, ['topics', 'limits'], true)) {
             editorJsonResponse(400, ['error' => 'Invalid or missing type']);
         }
         $domain = null;
@@ -41,9 +41,9 @@ if ($method === 'GET') {
                 editorAudit('revisions_forbidden', ['type' => $type, 'domain' => $domain]);
                 editorJsonResponse(403, ['error' => 'Forbidden for this domain']);
             }
-        } elseif (!editorCanEditFilters()) {
+        } elseif (!editorCanEditLimits()) {
             editorAudit('revisions_forbidden', ['type' => $type, 'domain' => null]);
-            editorJsonResponse(403, ['error' => 'Forbidden for filters']);
+            editorJsonResponse(403, ['error' => 'Forbidden for limits']);
         }
 
         $path = editorResolveContentFilePath($type, $domain);
@@ -91,7 +91,7 @@ if ($method === 'GET') {
         ]);
     }
     if ($action === 'revision') {
-        if (!in_array($type, ['topics', 'filters'], true)) {
+        if (!in_array($type, ['topics', 'limits'], true)) {
             editorJsonResponse(400, ['error' => 'Invalid or missing type']);
         }
         $revisionId = trim((string) ($_GET['revisionId'] ?? ''));
@@ -105,9 +105,9 @@ if ($method === 'GET') {
                 editorAudit('revision_read_forbidden', ['type' => $type, 'domain' => $domain, 'revisionId' => $revisionId]);
                 editorJsonResponse(403, ['error' => 'Forbidden for this domain']);
             }
-        } elseif (!editorCanEditFilters()) {
+        } elseif (!editorCanEditLimits()) {
             editorAudit('revision_read_forbidden', ['type' => $type, 'domain' => null, 'revisionId' => $revisionId]);
-            editorJsonResponse(403, ['error' => 'Forbidden for filters']);
+            editorJsonResponse(403, ['error' => 'Forbidden for limits']);
         }
 
         $path = editorResolveContentFilePath($type, $domain);
@@ -124,7 +124,7 @@ if ($method === 'GET') {
         ]);
     }
 
-    if (!in_array($type, ['topics', 'filters'], true)) {
+    if (!in_array($type, ['topics', 'limits'], true)) {
         editorJsonResponse(400, ['error' => 'Invalid or missing type']);
     }
 
@@ -136,9 +136,9 @@ if ($method === 'GET') {
             editorJsonResponse(403, ['error' => 'Forbidden for this domain']);
         }
     } else {
-        if (!editorCanEditFilters()) {
+        if (!editorCanEditLimits()) {
             editorAudit('content_read_forbidden', ['type' => $type, 'domain' => null]);
-            editorJsonResponse(403, ['error' => 'Forbidden for filters']);
+            editorJsonResponse(403, ['error' => 'Forbidden for limits']);
         }
     }
 
@@ -189,7 +189,7 @@ if ($method === 'POST') {
 
     $action = strtolower(trim((string) ($input['action'] ?? 'save')));
     $type = strtolower(trim((string) ($input['type'] ?? '')));
-    if (!in_array($type, ['topics', 'filters'], true)) {
+    if (!in_array($type, ['topics', 'limits'], true)) {
         editorJsonResponse(400, ['error' => 'Invalid or missing type']);
     }
 
@@ -201,9 +201,9 @@ if ($method === 'POST') {
             editorJsonResponse(403, ['error' => 'Forbidden for this domain']);
         }
     } else {
-        if (!editorCanEditFilters()) {
+        if (!editorCanEditLimits()) {
             editorAudit('content_write_forbidden', ['type' => $type, 'domain' => null, 'action' => $action]);
-            editorJsonResponse(403, ['error' => 'Forbidden for filters']);
+            editorJsonResponse(403, ['error' => 'Forbidden for limits']);
         }
     }
 

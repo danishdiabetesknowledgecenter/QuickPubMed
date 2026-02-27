@@ -86,14 +86,14 @@ For local frontend development, you can use one of these API modes:
 To keep the frontend bundle generic, domain-specific content is loaded at runtime from data storage:
 
 - `data/content/<domain>/topics.json`
-- `data/content/filters.json`
+- `data/content/limits/limits.json`
 - `data/content/<domain>/prompt-rules.json`
 - `data/content/<domain>/domain-config.json` (optional domain-specific backend overrides)
 
 Frontend reads this via `backend/api/PublicContent.php`:
 
 - `?type=topics&domain=<domain>`
-- `?type=filters`
+- `?type=limits`
 - `?type=prompt-rules&domain=<domain>`
 
 #### Frontend naming conventions

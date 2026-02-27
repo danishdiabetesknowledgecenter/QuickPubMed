@@ -462,7 +462,7 @@ function editorNormalizeDomainsList($value): array
 /**
  * Resolve configured editor users with legacy fallback.
  *
- * @return array<string, array{username: string, password_hash: string, allowed_domains: array<int, string>, can_edit_filters: bool, disabled: bool}>
+ * @return array<string, array{username: string, password_hash: string, allowed_domains: array<int, string>, can_edit_limits: bool, disabled: bool}>
  */
 function editorConfiguredUsers(): array
 {
@@ -487,7 +487,7 @@ function editorConfiguredUsers(): array
                 'username' => $name,
                 'password_hash' => $passwordHash,
                 'allowed_domains' => editorNormalizeDomainsList($userConfig['allowed_domains'] ?? []),
-                'can_edit_filters' => !empty($userConfig['can_edit_filters']),
+                'can_edit_limits' => !empty($userConfig['can_edit_limits']),
                 'disabled' => !empty($userConfig['disabled']),
             ];
         }
@@ -509,7 +509,7 @@ function editorConfiguredUsers(): array
                 'username' => $legacyUser,
                 'password_hash' => $legacyHash,
                 'allowed_domains' => $allowedDomains,
-                'can_edit_filters' => true,
+                'can_edit_limits' => true,
                 'disabled' => false,
             ];
         }
@@ -551,14 +551,14 @@ function editorSetSessionUser(array $user): void
     $_SESSION['editor_authenticated'] = true;
     $_SESSION['editor_user'] = (string) ($user['username'] ?? '');
     $_SESSION['editor_allowed_domains'] = editorNormalizeDomainsList($user['allowed_domains'] ?? []);
-    $_SESSION['editor_can_edit_filters'] = !empty($user['can_edit_filters']);
+    $_SESSION['editor_can_edit_limits'] = !empty($user['can_edit_limits']);
     $_SESSION['editor_last_activity'] = time();
 }
 
 /**
  * Return authenticated user context from session.
  *
- * @return array{username: string, allowed_domains: array<int, string>, can_edit_filters: bool}|null
+ * @return array{username: string, allowed_domains: array<int, string>, can_edit_limits: bool}|null
  */
 function editorGetAuthenticatedUser(): ?array
 {
@@ -568,7 +568,7 @@ function editorGetAuthenticatedUser(): ?array
     return [
         'username' => (string) ($_SESSION['editor_user'] ?? ''),
         'allowed_domains' => editorNormalizeDomainsList($_SESSION['editor_allowed_domains'] ?? []),
-        'can_edit_filters' => !empty($_SESSION['editor_can_edit_filters']),
+        'can_edit_limits' => !empty($_SESSION['editor_can_edit_limits']),
     ];
 }
 
@@ -589,10 +589,10 @@ function editorAllowedDomainsForCurrentUser(): array
 /**
  * Check if current user can edit filters.
  */
-function editorCanEditFilters(): bool
+function editorCanEditLimits(): bool
 {
     $user = editorGetAuthenticatedUser();
-    return $user ? (bool) $user['can_edit_filters'] : false;
+    return $user ? (bool) $user['can_edit_limits'] : false;
 }
 
 /**

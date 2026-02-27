@@ -83,7 +83,7 @@ export const topicLoaderMixin = {
   },
   data() {
     return {
-      topics: [],
+      topicCatalog: [],
     };
   },
   computed: {
@@ -103,7 +103,7 @@ export const topicLoaderMixin = {
       const domain = this.currentDomain;
       // Skip loading and error messages if no domain is specified
       if (!domain) {
-        this.topics = [];
+        this.topicCatalog = [];
         return;
       }
 
@@ -117,12 +117,12 @@ export const topicLoaderMixin = {
 
       if (topicsSource.length === 0) {
         console.error(`No topics found for domain: ${domain}`);
-        this.topics = [];
+        this.topicCatalog = [];
         return;
       }
 
       const normalizedTopics = normalizeTopicsList(topicsSource);
-      this.topics = normalizedTopics.map((topic) => ({
+      this.topicCatalog = normalizedTopics.map((topic) => ({
         ...topic,
         groups: flattenTopicGroups(topic.groups || []),
       }));

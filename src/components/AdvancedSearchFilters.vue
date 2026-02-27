@@ -3,33 +3,33 @@
   <div class="qpm_advancedFiltersRoot">
     <div class="qpm_filtersHeaderContainer">
       <h4 role="heading" aria-level="3" class="h4">
-        {{ getString("AdvancedFiltersHeader") }}
+        {{ getString("AdvancedLimitsHeader") }}
       </h4>
       <button
         v-tooltip="{
-        content: getString('hoverFiltersHeader'),
-        distance: 5,
-        delay: helpTextDelay,
+          content: getString('hoverFiltersHeader'),
+          distance: 5,
+          delay: helpTextDelay,
         }"
         class="bx bx-info-circle qpm_cursorHelp"
         aria-label="Info"
       />
     </div>
     <filter-selection
-      ref="filterSelection"
-      :filter-dropdowns="filterDropdowns"
-      :filter-options="filterOptions"
+      ref="limitSelection"
+      :limit-dropdowns="limitDropdowns"
+      :limit-options="limitOptions"
       :hide-topics="hideTopics"
       :language="language"
       :advanced="advanced"
       :search-with-a-i="searchWithAI"
       :get-string="getString"
-      :get-filter-placeholder="getFilterPlaceholder"
-      @update-filter-dropdown="handleUpdateFilterDropdown"
-      @update-filter-scope="handleUpdateFilterScope"
-      @update-filter-placeholder="handleUpdateFilterPlaceholder"
-      @add-filter-dropdown="handleAddFilterDropdown"
-      @remove-filter-dropdown="handleRemoveFilterDropdown"
+      :get-limit-placeholder="getLimitPlaceholder"
+      @update-limit-dropdown="handleUpdateLimitDropdown"
+      @update-limit-scope="handleUpdateLimitScope"
+      @update-limit-placeholder="handleUpdateLimitPlaceholder"
+      @add-limit-dropdown="handleAddLimitDropdown"
+      @remove-limit-dropdown="handleRemoveLimitDropdown"
     />
   </div>
 </template>
@@ -47,11 +47,11 @@
         type: Boolean,
         required: true,
       },
-      filterOptions: {
+      limitOptions: {
         type: Array,
         required: true,
       },
-      filterDropdowns: {
+      limitDropdowns: {
         type: Array,
         required: true,
       },
@@ -72,33 +72,39 @@
         type: Function,
         required: true,
       },
-      getFilterPlaceholder: {
+      getLimitPlaceholder: {
         type: Function,
         default: null,
       },
     },
+    emits: [
+      "update-limit-dropdown",
+      "update-limit-scope",
+      "update-limit-placeholder",
+      "add-limit-dropdown",
+      "remove-limit-dropdown",
+    ],
     data() {
       return {
         helpTextDelay: 300,
       };
     },
     methods: {
-      handleUpdateFilterDropdown(value, index) {
-        this.$emit("update-filter-dropdown", value, index);
+      handleUpdateLimitDropdown(value, index) {
+        this.$emit("update-limit-dropdown", value, index);
       },
-      handleUpdateFilterScope(item, state, index) {
-        this.$emit("update-filter-scope", item, state, index);
+      handleUpdateLimitScope(item, state, index) {
+        this.$emit("update-limit-scope", item, state, index);
       },
-      handleAddFilterDropdown() {
-        this.$emit("add-filter-dropdown");
+      handleAddLimitDropdown() {
+        this.$emit("add-limit-dropdown");
       },
-      handleRemoveFilterDropdown(index) {
-        this.$emit("remove-filter-dropdown", index);
+      handleRemoveLimitDropdown(index) {
+        this.$emit("remove-limit-dropdown", index);
       },
-      handleUpdateFilterPlaceholder(isTranslating, index, stepKey) {
-        this.$emit("update-filter-placeholder", isTranslating, index, stepKey);
+      handleUpdateLimitPlaceholder(isTranslating, index, stepKey) {
+        this.$emit("update-limit-placeholder", isTranslating, index, stepKey);
       },
     },
   };
 </script>
-

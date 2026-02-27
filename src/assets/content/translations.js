@@ -95,27 +95,27 @@ export const messages = {
     dk: "Nulstil",
     en: "Reset",
   },
-  subjectadvancedplaceholder: {
+  topicadvancedplaceholder: {
     dk: "Vælg emne eller indtast søgeord",
     en: "Select topic or enter search term",
   },
-  subjectadvancedplaceholder_mobile: {
+  topicadvancedplaceholder_mobile: {
     dk: "Vælg emne/indtast søgeord",
     en: "Select topic/enter search term",
   },
-  subjectsimpleplaceholder: {
+  topicsimpleplaceholder: {
     dk: "Vælg emne eller indtast søgeord",
     en: "Select topic or enter search term",
   },
-  subjectadvancedplaceholder_notopics: {
+  topicadvancedplaceholder_notopics: {
     dk: "Indtast søgeord",
     en: "Enter search term",
   },
-  subjectadvancedplaceholder_mobile_notopics: {
+  topicadvancedplaceholder_mobile_notopics: {
     dk: "Indtast søgeord",
     en: "Enter search term",
   },
-  subjectsimpleplaceholder_notopics: {
+  topicsimpleplaceholder_notopics: {
     dk: "Indtast søgeord",
     en: "Enter search term",
   },
@@ -155,9 +155,17 @@ export const messages = {
     dk: "Ingen matchende afgrænsninger i listen.",
     en: "No matches among the available limits.",
   },
+  addtopiclimit: {
+    dk: "Tilføj",
+    en: "Add",
+  },
   addsubjectlimit: {
     dk: "Tilføj",
     en: "Add",
+  },
+  addtopic: {
+    dk: "emne",
+    en: "topic",
   },
   addsubject: {
     dk: "emne",
@@ -455,6 +463,10 @@ export const messages = {
     dk: "Klik på feltet for at kopiere søgestrengen",
     en: "Click on the input box to copy the search string",
   },
+  hoverAddTopic: {
+    dk: "Klik for at tilføje emne",
+    en: "Click to add topic",
+  },
   hoverAddSubject: {
     dk: "Klik for at tilføje emne",
     en: "Click to add topic",
@@ -495,19 +507,19 @@ export const messages = {
     dk: "Vis søgeformularen",
     en: "Show search form",
   },
-  subjects: {
+  topics: {
     dk: "Emner",
     en: "Topics",
   },
-  filters: {
+  limits: {
     dk: "Afgrænsninger",
     en: "Limits",
   },
-  SimpleFiltersHeader: {
+  SimpleLimitsHeader: {
     dk: "Afgrænsninger",
     en: "Limits",
   },
-  AdvancedFiltersHeader: {
+  AdvancedLimitsHeader: {
     dk: "Afgrænsninger",
     en: "Limits",
   },
@@ -860,7 +872,7 @@ export const messages = {
     dk: "Emner",
     en: "Topics",
   },
-  editor_typeFilters: {
+  editor_typeLimits: {
     dk: "Afgrænsninger",
     en: "Limits",
   },
@@ -1329,8 +1341,8 @@ export const messages = {
     en: "Changes saved locally in editor for topic",
   },
   editor_clickSaveAllToWriteFile: {
-    dk: "Klik \"Gem alle ændringer\" for at skrive til fil.",
-    en: "Click \"Save all changes\" to write to file.",
+    dk: 'Klik "Gem alle ændringer" for at skrive til fil.',
+    en: 'Click "Save all changes" to write to file.',
   },
   editor_mainCategoryIdRequired: {
     dk: "Hovedkategori-ID må ikke være tom.",
@@ -1349,8 +1361,8 @@ export const messages = {
     en: "Main category",
   },
   editor_clickSaveAllAboveToWriteFile: {
-    dk: "opdateret lokalt. Klik \"Gem alle ændringer\" ovenfor for at skrive til fil.",
-    en: "updated locally. Click \"Save all changes\" above to write to file.",
+    dk: 'opdateret lokalt. Klik "Gem alle ændringer" ovenfor for at skrive til fil.',
+    en: 'updated locally. Click "Save all changes" above to write to file.',
   },
   editor_securityBlockActivePrefix: {
     dk: "Sikkerhedsblokering aktiv: apiBase",

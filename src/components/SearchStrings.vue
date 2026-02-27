@@ -1,31 +1,25 @@
 <template>
   <div class="qpm_searchStringCollection">
-    <p
-      class="qpm_advancedSearch qpm_showHideAll qpm_showHideAllRow"
-    >
-      <a 
-        tabindex="0"
-        @keyup.enter="toggleAll()"
-        @click="toggleAll()"
-      >{{ isAllToggled ? getString("showAllSearchstrings") : getString("hideAllSearchstrings") }}</a>
+    <p class="qpm_advancedSearch qpm_showHideAll qpm_showHideAllRow">
+      <a tabindex="0" @keyup.enter="toggleAll()" @click="toggleAll()">{{
+        isAllToggled ? getString("showAllSearchstrings") : getString("hideAllSearchstrings")
+      }}</a>
     </p>
-    <div
-      class="qpm_searchStringStringsContainer rich-text"
-      v-show="!initialCollapsePending"
-    >
+    <div v-show="!initialCollapsePending" class="qpm_searchStringStringsContainer rich-text">
       <div class="qpm_searchStringsTopPadding">
-        <div class="qpm_headingContainerFocus_h2 qpm_gallery_toggle"
-          @click="hideOrCollapse('qpm_subjectSearchStrings')"
-          @keyup.enter="hideOrCollapse('qpm_subjectSearchStrings')"
+        <div
+          class="qpm_headingContainerFocus_h2 qpm_gallery_toggle"
           tabindex="0"
           data-target="qpm_subjectSearchStrings"
+          @click="hideOrCollapse('qpm_subjectSearchStrings')"
+          @keyup.enter="hideOrCollapse('qpm_subjectSearchStrings')"
         >
           <span :class="['qpm_toggle_icon', { qpm_toggle_expanded: !isLevelCollapsed(1) }]">
             <span class="qpm_toggle_plus">+</span>
             <span class="qpm_toggle_minus">&minus;</span>
           </span>
           <h2 class="qpm_heading">
-            {{ getString("subjects") }}
+            {{ getString("topics") }}
           </h2>
         </div>
       </div>
@@ -34,18 +28,19 @@
         :key="`subject-${subject.id}`"
         class="qpm_subjectSearchStrings"
       >
-        <div class="qpm_headingContainerFocus_h3 qpm_gallery_toggle"
-          @click="hideOrCollapse(toClassName(subject.id))"
-          @keyup.enter="hideOrCollapse(toClassName(subject.id))"
+        <div
+          class="qpm_headingContainerFocus_h3 qpm_gallery_toggle"
           tabindex="0"
           :data-target="toClassName(subject.id)"
+          @click="hideOrCollapse(toClassName(subject.id))"
+          @keyup.enter="hideOrCollapse(toClassName(subject.id))"
         >
           <span :class="['qpm_toggle_icon', { qpm_toggle_expanded: !isLevelCollapsed(2) }]">
             <span class="qpm_toggle_plus">+</span>
             <span class="qpm_toggle_minus">&minus;</span>
           </span>
           <h3 class="qpm_heading">
-            {{ customNameLabel(subject) }} 
+            {{ customNameLabel(subject) }}
           </h3>
           <span class="qpm_groupid">(ID: {{ subject.id }})</span>
         </div>
@@ -55,26 +50,29 @@
           :class="['qpm_searchGroup', toClassName(subject.id), ...getAncestorClasses(group)]"
           :data-level="getItemLevel(group)"
           :data-has-children="hasChildren(group) ? '1' : '0'"
-          :style="group.subtopiclevel ? { paddingLeft: (group.subtopiclevel * 30) + 'px' } : {}"
+          :style="group.subtopiclevel ? { paddingLeft: group.subtopiclevel * 30 + 'px' } : {}"
         >
           <div
             :class="['qpm_headingContainerFocus', isClickable(group) ? 'qpm_gallery_toggle' : '']"
-            @click="isClickable(group) && hideOrCollapse(getToggleTarget(group))"
-            @keyup.enter="isClickable(group) && hideOrCollapse(getToggleTarget(group))"
             :tabindex="isClickable(group) ? 0 : -1"
             :data-target="getToggleTarget(group)"
+            @click="isClickable(group) && hideOrCollapse(getToggleTarget(group))"
+            @keyup.enter="isClickable(group) && hideOrCollapse(getToggleTarget(group))"
           >
             <span
               :class="[
                 'qpm_toggle_icon',
-                { qpm_toggle_expanded: isGroupExpanded(group), qpm_toggle_placeholder: !hasChildren(group) },
+                {
+                  qpm_toggle_expanded: isGroupExpanded(group),
+                  qpm_toggle_placeholder: !hasChildren(group),
+                },
               ]"
             >
               <span class="qpm_toggle_plus">+</span>
               <span class="qpm_toggle_minus">&minus;</span>
             </span>
             <component :is="getHeadingTag(group)" class="qpm_heading">
-              {{ customNameLabel(group) }} 
+              {{ customNameLabel(group) }}
             </component>
             <span class="qpm_groupid">(ID: {{ group.id }})</span>
           </div>
@@ -181,46 +179,44 @@
                 </th>
               </tr>
               <tr v-if="group && group.searchStringComment && blockHasComment(group)">
-                <td colspan="2" v-html="group.searchStringComment[language]">
-                </td>
+                <!-- eslint-disable-next-line vue/no-v-html -->
+                <td colspan="2" v-html="group.searchStringComment[language]"></td>
               </tr>
             </table>
           </div>
         </div>
       </div>
       <div class="qpm_heading_limits">
-        <div class="qpm_headingContainerFocus_h2 qpm_gallery_toggle"
-          @click="hideOrCollapse('qpm_filterSearchStrings')"
-          @keyup.enter="hideOrCollapse('qpm_filterSearchStrings')"
+        <div
+          class="qpm_headingContainerFocus_h2 qpm_gallery_toggle"
           tabindex="0"
           data-target="qpm_filterSearchStrings"
+          @click="hideOrCollapse('qpm_filterSearchStrings')"
+          @keyup.enter="hideOrCollapse('qpm_filterSearchStrings')"
         >
           <span :class="['qpm_toggle_icon', { qpm_toggle_expanded: !isLevelCollapsed(1) }]">
             <span class="qpm_toggle_plus">+</span>
             <span class="qpm_toggle_minus">&minus;</span>
           </span>
           <h2 class="qpm_heading">
-            {{ getString("filters") }}
+            {{ getString("limits") }}
           </h2>
         </div>
       </div>
-      <div
-        v-for="filter in getSortedFilters"
-        :key="filter.id"
-        class="qpm_filterSearchStrings"
-      >
-        <div class="qpm_headingContainerFocus_h3 qpm_gallery_toggle"
-          @click="hideOrCollapse(toClassName(filter.id))"
-          @keyup.enter="hideOrCollapse(toClassName(filter.id))"
+      <div v-for="filter in getSortedFilters" :key="filter.id" class="qpm_filterSearchStrings">
+        <div
+          class="qpm_headingContainerFocus_h3 qpm_gallery_toggle"
           tabindex="0"
           :data-target="toClassName(filter.id)"
+          @click="hideOrCollapse(toClassName(filter.id))"
+          @keyup.enter="hideOrCollapse(toClassName(filter.id))"
         >
           <span :class="['qpm_toggle_icon', { qpm_toggle_expanded: !isLevelCollapsed(2) }]">
             <span class="qpm_toggle_plus">+</span>
             <span class="qpm_toggle_minus">&minus;</span>
           </span>
           <h3 class="qpm_heading">
-            {{ customNameLabel(filter) }} 
+            {{ customNameLabel(filter) }}
           </h3>
           <span class="qpm_groupid">(ID: {{ filter.id }})</span>
         </div>
@@ -230,26 +226,29 @@
           :class="['qpm_filterGroup', toClassName(filter.id), ...getAncestorClasses(choice)]"
           :data-level="getItemLevel(choice)"
           :data-has-children="hasChildren(choice) ? '1' : '0'"
-          :style="choice.subtopiclevel ? { paddingLeft: (choice.subtopiclevel * 30) + 'px' } : {}"
+          :style="choice.subtopiclevel ? { paddingLeft: choice.subtopiclevel * 30 + 'px' } : {}"
         >
           <div
             :class="['qpm_headingContainerFocus', isClickable(choice) ? 'qpm_gallery_toggle' : '']"
-            @click="isClickable(choice) && hideOrCollapse(getToggleTarget(choice))"
-            @keyup.enter="isClickable(choice) && hideOrCollapse(getToggleTarget(choice))"
             :tabindex="isClickable(choice) ? 0 : -1"
             :data-target="getToggleTarget(choice)"
+            @click="isClickable(choice) && hideOrCollapse(getToggleTarget(choice))"
+            @keyup.enter="isClickable(choice) && hideOrCollapse(getToggleTarget(choice))"
           >
             <span
               :class="[
                 'qpm_toggle_icon',
-                { qpm_toggle_expanded: isGroupExpanded(choice), qpm_toggle_placeholder: !hasChildren(choice) },
+                {
+                  qpm_toggle_expanded: isGroupExpanded(choice),
+                  qpm_toggle_placeholder: !hasChildren(choice),
+                },
               ]"
             >
               <span class="qpm_toggle_plus">+</span>
               <span class="qpm_toggle_minus">&minus;</span>
             </span>
             <component :is="getHeadingTag(choice)" class="qpm_heading">
-              {{ customNameLabel(choice) }} 
+              {{ customNameLabel(choice) }}
             </component>
             <span class="qpm_groupid">(ID: {{ choice.id }})</span>
           </div>
@@ -356,8 +355,8 @@
                 </th>
               </tr>
               <tr v-if="choice && choice.searchStringComment && blockHasComment(choice)">
-                <td colspan="2" v-html="choice.searchStringComment[language]">
-                </td>
+                <!-- eslint-disable-next-line vue/no-v-html -->
+                <td colspan="2" v-html="choice.searchStringComment[language]"></td>
               </tr>
             </table>
           </div>
@@ -371,7 +370,7 @@
   import { appSettingsMixin } from "@/mixins/appSettings";
   import { messages } from "@/assets/content/translations.js";
   import { topicLoaderMixin, flattenTopicGroups } from "@/mixins/topicLoaderMixin.js";
-  import { loadFiltersFromRuntime } from "@/utils/contentLoader";
+  import { loadLimitsFromRuntime } from "@/utils/contentLoader";
   import { order } from "@/assets/content/order.js";
   import { cloneDeep, getLocalizedTranslation } from "@/utils/componentHelpers";
 
@@ -414,7 +413,7 @@
       },
     },
     watch: {
-      topics: {
+      topicCatalog: {
         handler(newTopics) {
           this.subjects = Array.isArray(newTopics) ? [...newTopics] : [];
           this.tryApplyInitialCollapse();
@@ -441,14 +440,14 @@
     mounted() {
       this.tryApplyInitialCollapse();
     },
-    
+
     methods: {
       async loadGalleryContent() {
-        this.subjects = Array.isArray(this.topics) ? [...this.topics] : [];
+        this.subjects = Array.isArray(this.topicCatalog) ? [...this.topicCatalog] : [];
 
         try {
-          const runtimeFilters = await loadFiltersFromRuntime();
-          const safeRuntimeFilters = Array.isArray(runtimeFilters) ? runtimeFilters : [];
+          const runtimeLimits = await loadLimitsFromRuntime();
+          const safeRuntimeFilters = Array.isArray(runtimeLimits) ? runtimeLimits : [];
           this.filters = cloneDeep(safeRuntimeFilters).map((f) => ({
             ...f,
             choices: flattenTopicGroups(f.choices || []),
@@ -468,7 +467,7 @@
           return;
         }
 
-        const hasTopics = Array.isArray(this.topics) && this.topics.length > 0;
+        const hasTopics = Array.isArray(this.topicCatalog) && this.topicCatalog.length > 0;
         const hasFilters = Array.isArray(this.filters) && this.filters.length > 0;
         // Run initial collapse only when both datasets are ready,
         // otherwise one branch can render later in an uncollapsed state.
@@ -503,7 +502,8 @@
       },
       isLevelCollapsed(level) {
         // If no collapsedLevels specified, all levels are open by default
-        const normalized = this.resolvedCollapsedLevels || this.normalizeCollapsedLevels(this.collapsedLevels);
+        const normalized =
+          this.resolvedCollapsedLevels || this.normalizeCollapsedLevels(this.collapsedLevels);
         if (normalized.length === 0) return false;
 
         return normalized.includes(level);
@@ -518,12 +518,12 @@
         const classes = [];
         if (item.parentChain && item.parentChain.length > 0) {
           item.parentChain.forEach((ancestorId) => {
-            classes.push('qpm_child_of_' + this.toClassName(ancestorId));
+            classes.push("qpm_child_of_" + this.toClassName(ancestorId));
           });
         } else if (item.maintopicIdLevel1) {
-          classes.push('qpm_child_of_' + this.toClassName(item.maintopicIdLevel1));
+          classes.push("qpm_child_of_" + this.toClassName(item.maintopicIdLevel1));
           if (item.maintopicIdLevel2) {
-            classes.push('qpm_child_of_' + this.toClassName(item.maintopicIdLevel2));
+            classes.push("qpm_child_of_" + this.toClassName(item.maintopicIdLevel2));
           }
         }
         return classes;
@@ -531,7 +531,7 @@
       getToggleTarget(item) {
         // Maintopic items toggle their descendants; leaf items toggle their own content
         if (item.maintopic) {
-          return 'qpm_child_of_' + this.toClassName(item.id);
+          return "qpm_child_of_" + this.toClassName(item.id);
         }
         return this.toClassName(item.id);
       },
@@ -547,7 +547,7 @@
         // h6 = subtopiclevel 2+
         const depth = item && item.subtopiclevel ? item.subtopiclevel : 0;
         const level = Math.min(4 + depth, 6); // h4..h6, capped at h6
-        return 'h' + level;
+        return "h" + level;
       },
       isClickable(item) {
         // Items with children OR search strings are clickable
@@ -618,10 +618,12 @@
         const levels = this.resolvedCollapsedLevels || [];
         if (levels.length === 0) return;
 
-        const toCheck = elements ? Array.from(elements) : [
-          ...document.getElementsByClassName("qpm_searchGroup"),
-          ...document.getElementsByClassName("qpm_filterGroup"),
-        ];
+        const toCheck = elements
+          ? Array.from(elements)
+          : [
+              ...document.getElementsByClassName("qpm_searchGroup"),
+              ...document.getElementsByClassName("qpm_filterGroup"),
+            ];
 
         for (const el of toCheck) {
           if (!el || typeof el.getAttribute !== "function") continue;
@@ -731,11 +733,11 @@
         );
       },
       trimSearchString(searchString) {
-        if (!searchString) return '';
+        if (!searchString) return "";
         if (Array.isArray(searchString)) {
-          if (searchString.length === 0) return '';
+          if (searchString.length === 0) return "";
           const value = searchString[0];
-          if (!value) return '';
+          if (!value) return "";
           return value.toString();
         }
         return searchString.toString();
@@ -744,7 +746,9 @@
         if (!searchString) return false;
         if (Array.isArray(searchString)) {
           if (searchString.length === 0) return false;
-          return searchString[0] !== null && searchString[0] !== undefined && searchString[0] !== "";
+          return (
+            searchString[0] !== null && searchString[0] !== undefined && searchString[0] !== ""
+          );
         }
         return searchString !== "";
       },
@@ -808,8 +812,8 @@
             item.groups !== null && item.groups !== undefined
               ? "groups"
               : item.choices !== null && item.choices !== undefined
-                ? "choices"
-                : null;
+              ? "choices"
+              : null;
           if (!groupName) {
             return;
           }
@@ -838,4 +842,3 @@
     },
   };
 </script>
-

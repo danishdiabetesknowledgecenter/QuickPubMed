@@ -58,13 +58,13 @@ define('EDITOR_USERS', [
     'editor' => [
         'password_hash' => '$2y$10$...',
         'allowed_domains' => ['diabetes', 'dementia'],
-        'can_edit_filters' => true,
+        'can_edit_limits' => true,
         'disabled' => false,
     ],
     'topics_only' => [
         'password_hash' => '$2y$10$...',
         'allowed_domains' => ['diabetes'],
-        'can_edit_filters' => false,
+        'can_edit_limits' => false,
         'disabled' => false,
     ],
 ]);
@@ -74,7 +74,7 @@ define('EDITOR_USERS', [
 
 - Ved hver `save` oprettes snapshot af den tidligere version automatisk.
 - Revisionsfiler gemmes under `history/` ved siden af den redigerede content-fil.
-- `filters` ligger i `data/content/filters/filters.json`.
+- `limits` ligger i `data/content/limits/limits.json`.
 - Kun de seneste `EDITOR_MAX_REVISIONS` beholdes (standard: 25).
 - Revert kan udføres via editor-API (`action=revert`) og kræver auth + CSRF + samme rettigheder som save.
 

@@ -1,32 +1,22 @@
 <template>
   <div class="qpm_spaceEvenly qpm_headerText">
-    <div
-      v-show="!isCollapsed"
-      role="heading"
-      aria-level="2"
-      class="h3 qpm_searchFormToggleHeading"
-    >
+    <div v-show="!isCollapsed" role="heading" aria-level="2" class="h3 qpm_searchFormToggleHeading">
       {{ getString("searchHeaderShown") }}
     </div>
-    <div
-      v-show="isCollapsed"
-      role="heading"
-      aria-level="2"
-      class="h3 qpm_searchFormToggleHeading"
-    >
+    <div v-show="isCollapsed" role="heading" aria-level="2" class="h3 qpm_searchFormToggleHeading">
       {{ getString("searchHeaderHidden") }}
     </div>
 
     <div
-      v-if="subjects !== false"
-      class="qpm_toggleSearchForm" 
-      @click="$emit('toggle-collapsed')"
-      @keydown.enter="$emit('toggle-collapsed')"
-      @keydown.space.prevent="$emit('toggle-collapsed')"
+      v-if="topics !== false"
+      class="qpm_toggleSearchForm"
       role="button"
       tabindex="0"
       :aria-label="isCollapsed ? getString('showForm') : getString('hideForm')"
       :aria-expanded="!isCollapsed"
+      @click="$emit('toggle-collapsed')"
+      @keydown.enter="$emit('toggle-collapsed')"
+      @keydown.space.prevent="$emit('toggle-collapsed')"
     >
       <div
         v-show="!isCollapsed"
@@ -58,7 +48,7 @@
         type: Boolean,
         default: false,
       },
-      subjects: {
+      topics: {
         type: Array,
         default: () => [],
       },
@@ -67,6 +57,6 @@
         default: () => "",
       },
     },
+    emits: ["toggle-collapsed"],
   };
 </script>
-

@@ -29,7 +29,7 @@ function ensureEditorMarkup() {
       <div class="qpm-editor-row">
         <select id="qpm-editor-type" class="qpm-editor-select">
           <option value="topics">Topics</option>
-          <option value="filters">Filters</option>
+          <option value="limits">Limits</option>
         </select>
         <select id="qpm-editor-domain" class="qpm-editor-select"></select>
       </div>
@@ -113,7 +113,7 @@ const apiBase = (
 const defaultDomain = root.dataset.domain || "";
 const baseConfiguredTopicDomains = parseConfiguredTopicDomains();
 let configuredTopicDomains = [...baseConfiguredTopicDomains];
-const filtersEnabled = root.dataset.filtersEnabled !== "false";
+const limitsEnabled = root.dataset.limitsEnabled !== "false";
 
 const loginSection = document.getElementById("qpm-editor-login");
 const appSection = document.getElementById("qpm-editor-app");
@@ -173,7 +173,7 @@ let isEditorAuthenticated = false;
 let hiddenSinceTs = null;
 let hiddenLogoutTimerId = 0;
 let unloadLogoutSent = false;
-let editorCapabilities = { canEditFilters: filtersEnabled, allowedDomains: [] };
+let editorCapabilities = { canEditLimits: limitsEnabled, allowedDomains: [] };
 const editorLanguage = String(root?.dataset?.language || "dk").toLowerCase() === "en" ? "en" : "dk";
 function t(key) {
   const msg = messages?.[`editor_${key}`];
@@ -181,7 +181,7 @@ function t(key) {
   return msg[editorLanguage] || msg.dk || msg.en || key;
 }
 function getTypeLabel(type) {
-  return type === "filters" ? t("typeFilters") : t("typeTopics");
+  return type === "limits" ? t("typeLimits") : t("typeTopics");
 }
 
 function getLocalizedText(translations, fallback = "") {
@@ -230,7 +230,9 @@ const editorHelpTextKeyMap = {
 
 function updateJsonToggleButtonLabel() {
   if (!(toggleJsonBtn instanceof HTMLElement) || !(jsonInput instanceof HTMLElement)) return;
-  toggleJsonBtn.textContent = jsonInput.classList.contains("qpm-editor-hidden") ? t("editJson") : t("hideJson");
+  toggleJsonBtn.textContent = jsonInput.classList.contains("qpm-editor-hidden")
+    ? t("editJson")
+    : t("hideJson");
 }
 
 function applyEditorLanguageTexts() {
@@ -241,23 +243,30 @@ function applyEditorLanguageTexts() {
   if (loadBtn instanceof HTMLElement) loadBtn.textContent = t("load");
   if (downloadBackupBtn instanceof HTMLElement) downloadBackupBtn.textContent = t("downloadBackup");
   if (userInput instanceof HTMLInputElement) userInput.placeholder = t("usernamePlaceholder");
-  if (passwordInput instanceof HTMLInputElement) passwordInput.placeholder = t("passwordPlaceholder");
+  if (passwordInput instanceof HTMLInputElement)
+    passwordInput.placeholder = t("passwordPlaceholder");
   if (apiBaseLabelEl instanceof HTMLElement) apiBaseLabelEl.textContent = t("activeApiLabel");
-  if (extraToolsSummaryEl instanceof HTMLElement) extraToolsSummaryEl.textContent = t("otherFunctions");
+  if (extraToolsSummaryEl instanceof HTMLElement)
+    extraToolsSummaryEl.textContent = t("otherFunctions");
   if (sortModeTextEl instanceof HTMLElement) sortModeTextEl.textContent = t("sortMode");
-  if (treeSearchInput instanceof HTMLInputElement) treeSearchInput.placeholder = t("searchPlaceholder");
-  if (revisionRefreshBtn instanceof HTMLElement) revisionRefreshBtn.textContent = t("refreshHistory");
+  if (treeSearchInput instanceof HTMLInputElement)
+    treeSearchInput.placeholder = t("searchPlaceholder");
+  if (revisionRefreshBtn instanceof HTMLElement)
+    revisionRefreshBtn.textContent = t("refreshHistory");
   if (revertBtn instanceof HTMLElement) revertBtn.textContent = t("revertVersion");
-  if (revisionOnlyDiffTextEl instanceof HTMLElement) revisionOnlyDiffTextEl.textContent = t("onlyDiff");
+  if (revisionOnlyDiffTextEl instanceof HTMLElement)
+    revisionOnlyDiffTextEl.textContent = t("onlyDiff");
   const saveHintEl = document.getElementById("qpm-editor-save-hint");
   if (saveHintEl instanceof HTMLElement) saveHintEl.textContent = t("saveHint");
   if (typeInput instanceof HTMLSelectElement) {
     const topicsOption = typeInput.querySelector('option[value="topics"]');
     if (topicsOption) topicsOption.textContent = getTypeLabel("topics");
-    const filtersOption = typeInput.querySelector('option[value="filters"]');
-    if (filtersOption) filtersOption.textContent = getTypeLabel("filters");
+    const limitsOption = typeInput.querySelector('option[value="limits"]');
+    if (limitsOption) limitsOption.textContent = getTypeLabel("limits");
   }
-  setRevisionPreviewButtonLabel(Boolean(revisionPreviewJson && !revisionPreviewJson.classList.contains("qpm-editor-hidden")));
+  setRevisionPreviewButtonLabel(
+    Boolean(revisionPreviewJson && !revisionPreviewJson.classList.contains("qpm-editor-hidden"))
+  );
   updateJsonToggleButtonLabel();
   updateCollapseToggleButtonLabel();
 }
@@ -304,7 +313,10 @@ normalizeSortModeLayout();
 applyEditorLanguageTexts();
 
 function parseConfiguredTopicDomains() {
-  const normalize = (value) => String(value || "").trim().toLowerCase();
+  const normalize = (value) =>
+    String(value || "")
+      .trim()
+      .toLowerCase();
   const fromDataset = root.dataset.topicDomains || "";
   const list = [];
   if (fromDataset) {
@@ -330,7 +342,11 @@ function normalizeDomainList(input) {
   return Array.from(
     new Set(
       input
-        .map((d) => String(d || "").trim().toLowerCase())
+        .map((d) =>
+          String(d || "")
+            .trim()
+            .toLowerCase()
+        )
         .filter((d) => /^[a-z0-9_-]+$/.test(d))
     )
   );
@@ -366,21 +382,21 @@ function syncDomainOptions() {
   } else {
     domainInput.classList.remove("qpm-editor-hidden");
   }
-  domainInput.disabled = getSelectedType() === "filters";
+  domainInput.disabled = getSelectedType() === "limits";
 }
 
 function syncTypeOptionsVisibility() {
   if (!(typeInput instanceof HTMLSelectElement)) return;
-  const filtersOption = typeInput.querySelector('option[value="filters"]');
-  if (filtersOption && !editorCapabilities.canEditFilters) {
-    filtersOption.remove();
-  } else if (!filtersOption && editorCapabilities.canEditFilters && filtersEnabled) {
+  const limitsOption = typeInput.querySelector('option[value="limits"]');
+  if (limitsOption && !editorCapabilities.canEditLimits) {
+    limitsOption.remove();
+  } else if (!limitsOption && editorCapabilities.canEditLimits && limitsEnabled) {
     const opt = document.createElement("option");
-    opt.value = "filters";
-    opt.textContent = getTypeLabel("filters");
+    opt.value = "limits";
+    opt.textContent = getTypeLabel("limits");
     typeInput.appendChild(opt);
   }
-  if (!editorCapabilities.canEditFilters && typeInput.value === "filters") {
+  if (!editorCapabilities.canEditLimits && typeInput.value === "limits") {
     typeInput.value = "topics";
   }
   typeInput.classList.toggle("qpm-editor-hidden", typeInput.options.length <= 1);
@@ -425,12 +441,12 @@ function lockEditorForSafety(reason) {
 }
 
 function getSelectedType() {
-  return typeInput.value === "filters" ? "filters" : "topics";
+  return typeInput.value === "limits" ? "limits" : "topics";
 }
 
 function syncFormByType() {
   const type = getSelectedType();
-  const isFilters = type === "filters";
+  const isFilters = type === "limits";
   domainInput.disabled = isFilters;
   if (isFilters) {
     domainInput.classList.add("qpm-editor-hidden");
@@ -807,11 +823,15 @@ window.addEventListener("resize", () => {
   }
 });
 
-window.addEventListener("scroll", () => {
-  if (editorTooltipEl?.style.display === "block" && activeTooltipTrigger) {
-    positionEditorTooltip(activeTooltipTrigger);
-  }
-}, true);
+window.addEventListener(
+  "scroll",
+  () => {
+    if (editorTooltipEl?.style.display === "block" && activeTooltipTrigger) {
+      positionEditorTooltip(activeTooltipTrigger);
+    }
+  },
+  true
+);
 
 function setSaveStatus(message, isError = false) {
   const el = document.getElementById("qpm-editor-save-status");
@@ -825,7 +845,11 @@ function setSaveStatus(message, isError = false) {
 function setRevisionStatus(message, isError = false) {
   if (!(revisionStatusEl instanceof HTMLElement)) return;
   setInsertedText(revisionStatusEl, message);
-  revisionStatusEl.classList.remove("qpm-editor-status-ok", "qpm-editor-status-error", "qpm-editor-hidden");
+  revisionStatusEl.classList.remove(
+    "qpm-editor-status-ok",
+    "qpm-editor-status-error",
+    "qpm-editor-hidden"
+  );
   if (!message) {
     revisionStatusEl.classList.add("qpm-editor-hidden");
     return;
@@ -837,7 +861,7 @@ function applyCapabilities(capabilities) {
   const normalized = capabilities && typeof capabilities === "object" ? capabilities : {};
   const allowedDomains = normalizeDomainList(normalized.allowedDomains || []);
   editorCapabilities = {
-    canEditFilters: filtersEnabled && normalized.canEditFilters !== false,
+    canEditLimits: limitsEnabled && normalized.canEditLimits !== false,
     allowedDomains,
   };
 
@@ -904,7 +928,8 @@ function refreshRevisionNotes() {
 
 function syncRevisionActionButtonsVisibility() {
   const hasHistoricalSelection =
-    revisionListInput instanceof HTMLSelectElement && String(revisionListInput.value || "").trim() !== "";
+    revisionListInput instanceof HTMLSelectElement &&
+    String(revisionListInput.value || "").trim() !== "";
   if (revisionPreviewBtn instanceof HTMLElement) {
     revisionPreviewBtn.classList.toggle("qpm-editor-hidden", !hasHistoricalSelection);
   }
@@ -1018,8 +1043,8 @@ async function refreshRevisionList() {
       opt.textContent = user
         ? `${createdAt} · ${t("savedByLabel")} ${user}${restoredSuffix}`
         : editorLanguage === "en"
-          ? `${createdAt}${restoredSuffix}`
-          : `${createdAt}${restoredSuffix}`;
+        ? `${createdAt}${restoredSuffix}`
+        : `${createdAt}${restoredSuffix}`;
       revisionListInput.appendChild(opt);
     });
     revisionListInput.value = "";
@@ -1162,7 +1187,8 @@ function createStandardStringsInlineEditor(standardString) {
 
   const applyBtn = document.createElement("button");
   applyBtn.type = "button";
-  applyBtn.className = "qpm-editor-btn qpm-editor-btn-secondary qpm-editor-tree-apply-standard-inline";
+  applyBtn.className =
+    "qpm-editor-btn qpm-editor-btn-secondary qpm-editor-tree-apply-standard-inline";
   applyBtn.textContent = t("saveTopicFields");
 
   const actionsRow = document.createElement("div");
@@ -1309,7 +1335,7 @@ async function checkSession() {
     // ignore and show login
   }
 
-  applyCapabilities({ canEditFilters: filtersEnabled, allowedDomains: [] });
+  applyCapabilities({ canEditLimits: limitsEnabled, allowedDomains: [] });
   setAuthenticated(false);
   setStatus(t("loginToContinue"));
 }
@@ -1350,7 +1376,7 @@ async function logout() {
       body: JSON.stringify({ csrfToken }),
     });
     csrfToken = "";
-    applyCapabilities({ canEditFilters: filtersEnabled, allowedDomains: [] });
+    applyCapabilities({ canEditLimits: limitsEnabled, allowedDomains: [] });
     setAuthenticated(false);
     setRevisionControlsVisible(false);
     setStatus(t("loggedOut"));
@@ -1376,11 +1402,11 @@ async function loadContent() {
     refreshRevisionNotes();
     collapseAllInTree(parseCurrentJson() || {});
     refreshTopicTree();
-    setActiveTopicLabel(type === "topics" ? domain : getTypeLabel("filters"));
+    setActiveTopicLabel(type === "topics" ? domain : getTypeLabel("limits"));
     setStatus(
       type === "topics"
         ? `${getTypeLabel("topics")} ${t("loadedForDomain")} "${domain}".`
-        : `${getTypeLabel("filters")} ${t("loadedShort")}.`
+        : `${getTypeLabel("limits")} ${t("loadedShort")}.`
     );
     await refreshRevisionList();
   } catch (error) {
@@ -1422,7 +1448,7 @@ async function saveContent(source = "main") {
       },
       body: JSON.stringify({
         type,
-        domain: type === "topics" ? (domain || undefined) : undefined,
+        domain: type === "topics" ? domain || undefined : undefined,
         data: parsed,
         csrfToken,
       }),
@@ -1450,12 +1476,12 @@ async function saveContent(source = "main") {
     setStatus(
       type === "topics"
         ? `${getTypeLabel("topics")} ${t("savedAndVerifiedForDomain")} "${domain}"${saveStamp}.`
-        : `${getTypeLabel("filters")} ${t("savedAndVerified")}${saveStamp}.`
+        : `${getTypeLabel("limits")} ${t("savedAndVerified")}${saveStamp}.`
     );
     setSaveStatus(
       type === "topics"
         ? `${getTypeLabel("topics")} ${t("savedFor")} "${domain}"${saveStamp}.`
-        : `${getTypeLabel("filters")} ${t("savedShort")}${saveStamp}.`
+        : `${getTypeLabel("limits")} ${t("savedShort")}${saveStamp}.`
     );
     lastSaveUsedJsonButton = source === "json";
     await refreshRevisionList();
@@ -1490,7 +1516,10 @@ function collapseAllInTree(data) {
 function mapFilterChoicesToTopicChildren(choices) {
   if (!Array.isArray(choices)) return [];
   return choices.map((choice) => {
-    const { name: _name, groupname: _groupname, choices: _choices, ...rest } = choice || {};
+    const rest = { ...(choice || {}) };
+    delete rest.name;
+    delete rest.groupname;
+    delete rest.choices;
     const nestedChildren = Array.isArray(choice?.children) ? choice.children : choice?.choices;
     return {
       ...rest,
@@ -1502,7 +1531,10 @@ function mapFilterChoicesToTopicChildren(choices) {
 function mapTopicChildrenToFilterChoices(children) {
   if (!Array.isArray(children)) return [];
   return children.map((child) => {
-    const { name: _name, groupname: _groupname, children: _children, ...rest } = child || {};
+    const rest = { ...(child || {}) };
+    delete rest.name;
+    delete rest.groupname;
+    delete rest.children;
     return {
       ...rest,
       choices: mapTopicChildrenToFilterChoices(child?.children),
@@ -1511,12 +1543,14 @@ function mapTopicChildrenToFilterChoices(children) {
 }
 
 function normalizePayloadForEditor(type, rawData) {
-  if (type !== "filters") {
+  if (type !== "limits") {
     const topics = Array.isArray(rawData?.topics) ? rawData.topics : [];
     return {
       ...(rawData || {}),
       topics: topics.map((topic) => {
-        const { name: _name, groupname: _groupname, ...rest } = topic || {};
+        const rest = { ...(topic || {}) };
+        delete rest.name;
+        delete rest.groupname;
         return {
           ...rest,
           groups: mapFilterChoicesToTopicChildren(topic?.groups),
@@ -1524,25 +1558,27 @@ function normalizePayloadForEditor(type, rawData) {
       }),
     };
   }
-  const filters = Array.isArray(rawData?.filters) ? rawData.filters : [];
+  const limits = Array.isArray(rawData?.limits) ? rawData.limits : [];
   return {
-    topics: filters.map((filterItem) => ({
+    topics: limits.map((limitItem) => ({
       ...(() => {
-        const { name: _name, groupname: _groupname, ...rest } = filterItem || {};
+        const rest = { ...(limitItem || {}) };
+        delete rest.name;
+        delete rest.groupname;
         return rest;
       })(),
-      groups: mapFilterChoicesToTopicChildren(filterItem?.choices),
+      groups: mapFilterChoicesToTopicChildren(limitItem?.choices),
     })),
   };
 }
 
 function denormalizePayloadFromEditor(type, editorData, currentRawData) {
-  if (type !== "filters") return editorData || {};
+  if (type !== "limits") return editorData || {};
   const currentRaw = currentRawData && typeof currentRawData === "object" ? currentRawData : {};
   const topics = Array.isArray(editorData?.topics) ? editorData.topics : [];
   return {
     ...currentRaw,
-    filters: topics.map((topicLike) => ({
+    limits: topics.map((topicLike) => ({
       ...topicLike,
       choices: mapTopicChildrenToFilterChoices(topicLike?.groups),
     })),
@@ -1592,11 +1628,7 @@ function downloadCurrentJsonBackup() {
 
 function itemMatchesSearch(item, searchText) {
   if (!searchText) return true;
-  const haystack = [
-    item?.id,
-    item?.translations?.dk,
-    item?.translations?.en,
-  ]
+  const haystack = [item?.id, item?.translations?.dk, item?.translations?.en]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
@@ -1732,12 +1764,14 @@ function createCategoryInlineEditor(topic) {
 
   const applyBtn = document.createElement("button");
   applyBtn.type = "button";
-  applyBtn.className = "qpm-editor-btn qpm-editor-btn-secondary qpm-editor-tree-apply-category-inline";
+  applyBtn.className =
+    "qpm-editor-btn qpm-editor-btn-secondary qpm-editor-tree-apply-category-inline";
   applyBtn.dataset.categoryId = topic?.id || "";
   applyBtn.textContent = t("saveMainCategory");
   const deleteBtn = document.createElement("button");
   deleteBtn.type = "button";
-  deleteBtn.className = "qpm-editor-btn qpm-editor-btn-danger qpm-editor-tree-delete-category-inline";
+  deleteBtn.className =
+    "qpm-editor-btn qpm-editor-btn-danger qpm-editor-tree-delete-category-inline";
   deleteBtn.dataset.categoryId = topic?.id || "";
   deleteBtn.textContent = t("deleteMainCategory");
   const { actionsRow, inlineStatus } = createInlineActions(applyBtn, deleteBtn, "category");
@@ -1876,8 +1910,8 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
     Number.isInteger(Number(item?.ordering?.dk)) && Number(item?.ordering?.dk) > 0
       ? Number(item.ordering.dk)
       : Number.isInteger(Number(item?.ordering?.en)) && Number(item?.ordering?.en) > 0
-        ? Number(item.ordering.en)
-        : "";
+      ? Number(item.ordering.en)
+      : "";
   let selectedOrdering = fixedOrdering === "" ? null : fixedOrdering;
   if (!selectedOrdering || selectedOrdering > maxSelectable) {
     selectedOrdering =
@@ -1910,7 +1944,10 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
 
     const scopeLabel = document.createElement("label");
     scopeLabel.className = "qpm-editor-checkbox-label";
-    scopeLabel.append(scopeCheckbox, document.createTextNode(t("itemCombineWithStandardStringLabel")));
+    scopeLabel.append(
+      scopeCheckbox,
+      document.createTextNode(t("itemCombineWithStandardStringLabel"))
+    );
 
     const scopeInfoIcon = createInfoIcon(
       buildScopeCombinationHelpText(scope, sourceInput.value || "", Boolean(scopeCheckbox.checked))
@@ -1985,12 +2022,16 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
 
   const itemPrimaryLang = editorLanguage === "en" ? "en" : "dk";
   const itemSecondaryLang = itemPrimaryLang === "en" ? "dk" : "en";
-  const itemNamePrimaryLabel = itemPrimaryLang === "en" ? t("itemNameEnLabel") : t("itemNameDkLabel");
-  const itemNameSecondaryLabel = itemSecondaryLang === "en" ? t("itemNameEnLabel") : t("itemNameDkLabel");
+  const itemNamePrimaryLabel =
+    itemPrimaryLang === "en" ? t("itemNameEnLabel") : t("itemNameDkLabel");
+  const itemNameSecondaryLabel =
+    itemSecondaryLang === "en" ? t("itemNameEnLabel") : t("itemNameDkLabel");
   const itemNamePrimaryInput = itemPrimaryLang === "en" ? enInput : dkInput;
   const itemNameSecondaryInput = itemSecondaryLang === "en" ? enInput : dkInput;
-  const itemNamePrimaryKey = itemPrimaryLang === "en" ? "item.translations.en" : "item.translations.dk";
-  const itemNameSecondaryKey = itemSecondaryLang === "en" ? "item.translations.en" : "item.translations.dk";
+  const itemNamePrimaryKey =
+    itemPrimaryLang === "en" ? "item.translations.en" : "item.translations.dk";
+  const itemNameSecondaryKey =
+    itemSecondaryLang === "en" ? "item.translations.en" : "item.translations.dk";
 
   const itemCommentPrimaryLabel =
     itemPrimaryLang === "en" ? t("itemCommentEnLabel") : t("itemCommentDkLabel");
@@ -2010,7 +2051,8 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   const itemTooltipPrimaryInput = itemPrimaryLang === "en" ? tooltipEn : tooltipDk;
   const itemTooltipSecondaryInput = itemSecondaryLang === "en" ? tooltipEn : tooltipDk;
   const itemTooltipPrimaryKey = itemPrimaryLang === "en" ? "item.tooltip.en" : "item.tooltip.dk";
-  const itemTooltipSecondaryKey = itemSecondaryLang === "en" ? "item.tooltip.en" : "item.tooltip.dk";
+  const itemTooltipSecondaryKey =
+    itemSecondaryLang === "en" ? "item.tooltip.en" : "item.tooltip.dk";
 
   wrapper.append(
     mkLabel(t("itemIdLabel"), "item.id"),
@@ -2199,7 +2241,10 @@ function refreshTopicTree() {
     categoryToggle.textContent = hasChildren ? (isCollapsed ? "+" : "-") : "•";
     categoryToggle.disabled = !hasChildren;
 
-    const categoryLabel = getLocalizedText(topic?.translations, topic?.id || t("categoryFallbackLabel"));
+    const categoryLabel = getLocalizedText(
+      topic?.translations,
+      topic?.id || t("categoryFallbackLabel")
+    );
     const categoryBtn = document.createElement("button");
     categoryBtn.type = "button";
     categoryBtn.className = "qpm-editor-tree-category-btn";
@@ -2235,10 +2280,7 @@ function refreshTopicTree() {
     if (selectedTopicCategoryId === categoryId && !selectedTopicItemId) {
       const categoryEditor = createCategoryInlineEditor(topic);
       topicTreeInput.appendChild(categoryEditor);
-      if (
-        pendingCategoryInlineStatus &&
-        pendingCategoryInlineStatus.categoryId === categoryId
-      ) {
+      if (pendingCategoryInlineStatus && pendingCategoryInlineStatus.categoryId === categoryId) {
         setInlineEditorStatus(
           categoryEditor,
           "category",
@@ -2314,9 +2356,7 @@ function buildScopeCombinationHelpText(scope, rawValue, combineEnabled) {
   const standardValue = getStandardStringValueForScope(scope);
   let combinedPreview = baseCombined;
   if (combineEnabled && standardValue) {
-    combinedPreview = baseCombined
-      ? `(${baseCombined}) AND (${standardValue})`
-      : standardValue;
+    combinedPreview = baseCombined ? `(${baseCombined}) AND (${standardValue})` : standardValue;
   }
   const scopeLabel = escapeHtml(scope || "-");
   const baseLabel = escapeHtml(baseCombined || "-");
@@ -2786,7 +2826,9 @@ function applyInlineEditorEdits(categoryId, itemId, container) {
   pendingItemInlineStatus = {
     categoryId,
     itemId: selectedTopicItemId,
-    message: `${t("changesSavedLocallyForTopic")} "${selectedTopicItemId}". ${t("clickSaveAllToWriteFile")}`,
+    message: `${t("changesSavedLocallyForTopic")} "${selectedTopicItemId}". ${t(
+      "clickSaveAllToWriteFile"
+    )}`,
     isError: false,
   };
   updateJson(data);
@@ -2872,13 +2914,15 @@ function applyCategoryInlineEdits(categoryId, container) {
   selectedTopicItemId = "";
   pendingCategoryInlineStatus = {
     categoryId: category.id,
-    message: `${t("mainCategoryUpdatedLocallyPrefix")} "${category.id}". ${t("clickSaveAllAboveToWriteFile")}`,
+    message: `${t("mainCategoryUpdatedLocallyPrefix")} "${category.id}". ${t(
+      "clickSaveAllAboveToWriteFile"
+    )}`,
     isError: false,
   };
   updateJson(data);
 }
 
-applyCapabilities({ canEditFilters: filtersEnabled, allowedDomains: [] });
+applyCapabilities({ canEditLimits: limitsEnabled, allowedDomains: [] });
 domainInput.value = defaultDomain;
 syncDomainOptions();
 syncTypeOptionsVisibility();
@@ -2994,7 +3038,9 @@ topicTreeInput?.addEventListener("click", (event) => {
       return;
     }
     setStatus(
-      `${t("newMainCategoryCreatedPrefix")} "${result.categoryId}" ${t("createdAtBottomSuffix")} ${t("clickSaveAllToWriteFile")}`
+      `${t("newMainCategoryCreatedPrefix")} "${result.categoryId}" ${t(
+        "createdAtBottomSuffix"
+      )} ${t("clickSaveAllToWriteFile")}`
     );
     refreshTopicTree();
     return;
@@ -3010,7 +3056,11 @@ topicTreeInput?.addEventListener("click", (event) => {
       return;
     }
     const typeLabel = parentItemId ? t("subtopicLabel") : t("topicLabel");
-    setStatus(`${t("newLabelPrefix")} ${typeLabel} "${result.itemId}" ${t("createdAtBottomSuffix")} ${t("clickSaveAllToWriteFile")}`);
+    setStatus(
+      `${t("newLabelPrefix")} ${typeLabel} "${result.itemId}" ${t("createdAtBottomSuffix")} ${t(
+        "clickSaveAllToWriteFile"
+      )}`
+    );
     refreshTopicTree();
     return;
   }
@@ -3153,7 +3203,11 @@ topicTreeInput?.addEventListener("drop", (event) => {
     if (!sourceCategoryId || !targetCategoryId) return;
     result = moveCategoryByDrop(sourceCategoryId, targetCategoryId, position);
     if (result.ok) {
-      setStatus(`${t("mainCategoryMovedPrefix")} "${sourceCategoryId}" ${t("movedWithPositionPrefix")} (${position}).`);
+      setStatus(
+        `${t("mainCategoryMovedPrefix")} "${sourceCategoryId}" ${t(
+          "movedWithPositionPrefix"
+        )} (${position}).`
+      );
       refreshTopicTree();
     }
   } else {
@@ -3163,7 +3217,9 @@ topicTreeInput?.addEventListener("drop", (event) => {
     if (!sourceId || !targetId || !categoryId) return;
     result = moveTopicItemByDrop(categoryId, sourceId, targetId, position);
     if (result.ok) {
-      setStatus(`${t("topicMovedPrefix")} "${sourceId}" ${t("movedWithPositionPrefix")} (${position}).`);
+      setStatus(
+        `${t("topicMovedPrefix")} "${sourceId}" ${t("movedWithPositionPrefix")} (${position}).`
+      );
       refreshTopicTree();
     }
   }

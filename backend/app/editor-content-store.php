@@ -6,29 +6,29 @@
 require_once __DIR__ . '/editor-auth.php';
 
 /**
- * Preferred filters file path inside a content base dir.
+ * Preferred limits file path inside a content base dir.
  */
-function editorFiltersFilePathInBase(string $baseDir): string
+function editorLimitsFilePathInBase(string $baseDir): string
 {
-    return $baseDir . DIRECTORY_SEPARATOR . 'filters' . DIRECTORY_SEPARATOR . 'filters.json';
+    return $baseDir . DIRECTORY_SEPARATOR . 'limits' . DIRECTORY_SEPARATOR . 'limits.json';
 }
 
 /**
- * Legacy filters file path inside a content base dir.
+ * Legacy limits file path inside a content base dir.
  */
-function editorLegacyFiltersFilePathInBase(string $baseDir): string
+function editorLegacyLimitsFilePathInBase(string $baseDir): string
 {
-    return $baseDir . DIRECTORY_SEPARATOR . 'filters.json';
+    return $baseDir . DIRECTORY_SEPARATOR . 'limits.json';
 }
 
 /**
- * Resolve filters file path and migrate legacy location once.
+ * Resolve limits file path and migrate legacy location once.
  */
-function editorResolveFiltersFilePath(): string
+function editorResolveLimitsFilePath(): string
 {
     $baseDir = editorContentBaseDir();
-    $preferredPath = editorFiltersFilePathInBase($baseDir);
-    $legacyPath = editorLegacyFiltersFilePathInBase($baseDir);
+    $preferredPath = editorLimitsFilePathInBase($baseDir);
+    $legacyPath = editorLegacyLimitsFilePathInBase($baseDir);
 
     if (!is_file($preferredPath) && is_file($legacyPath)) {
         $preferredDir = dirname($preferredPath);
@@ -593,7 +593,7 @@ function editorWriteJsonAtomic(string $filePath, array $payload): void
  */
 function editorValidateContentPayload(string $type, array $data): void
 {
-    if (!in_array($type, ['topics', 'filters'], true)) {
+    if (!in_array($type, ['topics', 'limits'], true)) {
         editorJsonResponse(400, ['error' => 'Invalid content type']);
     }
 
@@ -620,14 +620,14 @@ function editorValidateContentPayload(string $type, array $data): void
         return;
     }
 
-    if (!isset($data['filters']) || !is_array($data['filters'])) {
-        editorJsonResponse(400, ['error' => 'filters payload must include filters array']);
+    if (!isset($data['limits']) || !is_array($data['limits'])) {
+        editorJsonResponse(400, ['error' => 'limits payload must include limits array']);
     }
     $nodeCount = 0;
-    editorValidateTreeLimits($data['filters'], 1, $maxDepth, $maxItems, $nodeCount);
-    foreach ($data['filters'] as $filter) {
-        if (is_array($filter)) {
-            editorValidateTopicNodeShape($filter);
+    editorValidateTreeLimits($data['limits'], 1, $maxDepth, $maxItems, $nodeCount);
+    foreach ($data['limits'] as $limit) {
+        if (is_array($limit)) {
+            editorValidateTopicNodeShape($limit);
         }
     }
     editorSanitizePayloadValue($data, $maxTextLength);
@@ -640,8 +640,8 @@ function editorResolveContentFilePath(string $type, ?string $domain = null): str
 {
     editorEnsureContentBaseDir();
 
-    if ($type === 'filters') {
-        return editorResolveFiltersFilePath();
+    if ($type === 'limits') {
+        return editorResolveLimitsFilePath();
     }
 
     $normalized = editorNormalizeDomain((string) $domain);

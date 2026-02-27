@@ -43,7 +43,7 @@ editorSetSessionUser($user);
 $csrfToken = editorRotateCsrfToken();
 editorAudit('login_success', [
     'username' => (string) ($user['username'] ?? $username),
-    'can_edit_filters' => !empty($user['can_edit_filters']),
+    'can_edit_limits' => !empty($user['can_edit_limits']),
     'allowed_domains' => $user['allowed_domains'] ?? [],
 ]);
 
@@ -52,7 +52,7 @@ editorJsonResponse(200, [
     'csrfToken' => $csrfToken,
     'user' => $_SESSION['editor_user'],
     'capabilities' => [
-        'canEditFilters' => !empty($_SESSION['editor_can_edit_filters']),
+        'canEditLimits' => !empty($_SESSION['editor_can_edit_limits']),
         'allowedDomains' => editorNormalizeDomainsList($_SESSION['editor_allowed_domains'] ?? []),
     ],
 ]);

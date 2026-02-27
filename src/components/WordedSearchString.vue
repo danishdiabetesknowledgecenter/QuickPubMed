@@ -2,7 +2,7 @@
   <div class="qpm_wordedSearchString">
     <div v-if="!isCollapsed" class="qpm_toggleDetails">
       <p
-        v-if="hasValidSubjects"
+        v-if="hasValidTopics"
         v-tooltip="{
           content: details && getString('hoverDetailsText'),
           distance: 5,
@@ -18,7 +18,7 @@
         <a v-else>{{ getString("hideDetails") }}</a>
       </p>
     </div>
-    <div v-if="hasValidSubjects && (!details || isCollapsed)" class="qpm_middle">
+    <div v-if="hasValidTopics && (!details || isCollapsed)" class="qpm_middle">
       <p
         v-if="!advancedString"
         v-tooltip="{
@@ -47,53 +47,66 @@
       >
         <a>{{ getString("hideSearchString") }}</a>
       </p>
-      <div
-        v-if="showHeader"
-        role="heading"
-        aria-level="2"
-        class="h3 qpm_inlineHeading"
-      >
-        {{ getString("youAreSearchingFor") }} 
+      <div v-if="showHeader" role="heading" aria-level="2" class="h3 qpm_inlineHeading">
+        {{ getString("youAreSearchingFor") }}
       </div>
       <div v-if="!advancedString">
-        <span class="qpm_searchStringPreText">{{ getSearchPreString }} {{ ' ' }}</span>
-        <div v-for="(group, idx) in subjects" :key="idx" class="qpm_searchStringSubjectGroup">
+        <span class="qpm_searchStringPreText">{{ getSearchPreString }} {{ " " }}</span>
+        <div v-for="(group, idx) in topics" :key="idx" class="qpm_searchStringSubjectGroup">
           <span
             v-if="idx > 0 && group.length !== 0 && idx !== checkFirstSubjectRender"
             class="qpm_searchStringGroupOperator_NotApplied"
-          >{{ ' ' }} {{ getString("youAreSearchingForAnd") }} {{ ' ' }}</span>
+            >{{ " " }} {{ getString("youAreSearchingForAnd") }} {{ " " }}</span
+          >
           <div v-if="Object.keys(group).length !== 0" class="qpm_searchStringWordGroup">
             <div
               v-for="(subjectObj, idx2) in group"
               :key="idx2"
               class="qpm_searchStringWordGroupWrapper"
             >
-              <span class="qpm_wordedStringSubject">{{ getWordedSubjectString(subjectObj) }}</span>
-              <span v-if="!subjectObj.preString" class="qpm_wordedStringOperator">{{ getScope(subjectObj) }}</span>
-              {{ ' ' }}<span v-if="idx2 < group.length - 1" class="qpm_searchStringOperator">{{ getString("orOperator").toLowerCase() }} </span>
+              <span class="qpm_wordedStringSubject">{{ getWordedTopicString(subjectObj) }}</span>
+              <span v-if="!subjectObj.preString" class="qpm_wordedStringOperator">{{
+                getScope(subjectObj)
+              }}</span>
+              {{ " "
+              }}<span v-if="idx2 < group.length - 1" class="qpm_searchStringOperator"
+                >{{ getString("orOperator").toLowerCase() }}
+              </span>
             </div>
             <div v-if="group.length > 0" class="qpm_halfBorder" />
           </div>
         </div>
         <br />
-        <span v-if="!filterIsEmpty" class="qpm_searchStringPreText">
+        <span v-if="!limitsIsEmpty" class="qpm_searchStringPreText">
           <div class="qpm_hideonmobile qpm_limitsTopPadding" />
-          {{ getString("limitsPreString") }} {{ ' ' }}
+          {{ getString("limitsPreString") }} {{ " " }}
         </span>
-        <div v-for="(group, idx) in activeFilterDropdowns" :key="`filter-${idx}`" class="qpm_searchStringFilterGroup">
+        <div
+          v-for="(group, idx) in activeLimitDropdowns"
+          :key="`filter-${idx}`"
+          class="qpm_searchStringFilterGroup"
+        >
           <span
             v-if="idx > 0 && group.length !== 0"
             class="qpm_searchStringGroupOperator_NotApplied"
-          >{{ ' ' }} {{ getString("youAreSearchingForAnd") }} {{ ' ' }}</span>
+            >{{ " " }} {{ getString("youAreSearchingForAnd") }} {{ " " }}</span
+          >
           <div v-if="group.length !== 0" class="qpm_searchStringWordGroup">
             <div
               v-for="(filterItem, idx2) in group"
               :key="idx2"
               class="qpm_searchStringWordGroupWrapper"
             >
-              <span class="qpm_wordedStringSubject"><span v-if="showFilterCategory(group, idx2)" class="qpm_filterCategoryPrefix">{{ getFilterCategoryName(filterItem) }} = </span>{{ getWordedFilterString(filterItem) }}</span>
+              <span class="qpm_wordedStringSubject"
+                ><span v-if="showLimitCategory(group, idx2)" class="qpm_filterCategoryPrefix"
+                  >{{ getLimitCategoryName(filterItem) }} = </span
+                >{{ getWordedLimitString(filterItem) }}</span
+              >
               <span class="qpm_wordedStringOperator">{{ getScope(filterItem) }}</span>
-              {{ ' ' }}<span v-if="idx2 < group.length - 1" class="qpm_searchStringOperator">{{ getString("orOperator").toLowerCase() }} </span>
+              {{ " "
+              }}<span v-if="idx2 < group.length - 1" class="qpm_searchStringOperator"
+                >{{ getString("orOperator").toLowerCase() }}
+              </span>
             </div>
             <div v-if="group.length > 0" class="qpm_halfBorder" />
           </div>
@@ -159,19 +172,19 @@
     name: "WordedSearchString",
     mixins: [appSettingsMixin, utilitiesMixin],
     props: {
-      subjects: {
+      topics: {
         type: Array,
         required: true,
       },
-      filters: {
+      limits: {
         type: Object,
         required: true,
       },
-      availableFilters: {
+      availableLimits: {
         type: Array,
         default: () => [],
       },
-      filterDropdowns: {
+      limitDropdowns: {
         type: Array,
         default: () => [[]],
       },
@@ -204,18 +217,19 @@
         default: "dk",
       },
     },
+    emits: ["toggleAdvancedString", "toggleDetailsBox"],
     computed: {
       /**
-       * Determines if the subjects prop contains at least one non-empty entry.
+       * Determines if the topics prop contains at least one non-empty entry.
        *
-       * @returns {boolean} True if subjects contain meaningful data, else false.
+       * @returns {boolean} True if topics contain meaningful data, else false.
        */
-      hasValidSubjects() {
+      hasValidTopics() {
         return (
-          Array.isArray(this.subjects) &&
-          this.subjects.length > 0 &&
-          Array.isArray(this.subjects[0]) &&
-          this.subjects[0].length > 0
+          Array.isArray(this.topics) &&
+          this.topics.length > 0 &&
+          Array.isArray(this.topics[0]) &&
+          this.topics[0].length > 0
         );
       },
 
@@ -223,8 +237,8 @@
        * Returns an array of [key, value] pairs from the filters object
        * where the value array is not empty.
        */
-      activeFilters() {
-        return Object.entries(this.filters).filter(
+      activeLimits() {
+        return Object.entries(this.limits).filter(
           ([, value]) => Array.isArray(value) && value.length > 0
         );
       },
@@ -233,26 +247,28 @@
        * In advanced mode: uses filterDropdowns (each dropdown = one group).
        * In simple mode: falls back to filters (filterData), each category = one group.
        */
-      activeFilterDropdowns() {
-        const safeDropdowns = Array.isArray(this.filterDropdowns) ? this.filterDropdowns : [];
-        const fromDropdowns = safeDropdowns.filter((group) => Array.isArray(group) && group.length > 0);
+      activeLimitDropdowns() {
+        const safeDropdowns = Array.isArray(this.limitDropdowns) ? this.limitDropdowns : [];
+        const fromDropdowns = safeDropdowns.filter(
+          (group) => Array.isArray(group) && group.length > 0
+        );
         if (fromDropdowns.length > 0) return fromDropdowns;
 
         // Fallback for simple mode: convert filterData categories to groups
-        return this.activeFilters.map(([, items]) => items);
+        return this.activeLimits.map(([, items]) => items);
       },
-      filterIsEmpty() {
-        if (!this.filters || typeof this.filters !== "object") return true;
-        const count = Object.values(this.filters).reduce((sum, values) => {
+      limitsIsEmpty() {
+        if (!this.limits || typeof this.limits !== "object") return true;
+        const count = Object.values(this.limits).reduce((sum, values) => {
           return sum + (Array.isArray(values) ? values.length : 0);
         }, 0);
         return count === 0;
       },
       getPubMedLink() {
         const myncbiShare = this.appSettings?.nlm?.myncbishare || "";
-        return `https://pubmed.ncbi.nlm.nih.gov/?myncbishare=${
-          myncbiShare
-        }&term=${encodeURIComponent(this.searchstring)}`;
+        return `https://pubmed.ncbi.nlm.nih.gov/?myncbishare=${myncbiShare}&term=${encodeURIComponent(
+          this.searchstring
+        )}`;
       },
       getPubMedLinkCreateAlert() {
         return `https://account.ncbi.nlm.nih.gov/?back_url=${encodeURIComponent(
@@ -262,7 +278,7 @@
         )}`;
       },
       getSearchPreString() {
-        const count = this.subjects.reduce((sum, group) => {
+        const count = this.topics.reduce((sum, group) => {
           return sum + (Array.isArray(group) ? group.length : 0);
         }, 0);
         if (count > 1) {
@@ -272,9 +288,9 @@
         }
       },
       checkFirstSubjectRender() {
-        for (let i = 0; i < this.subjects.length; i++) {
+        for (let i = 0; i < this.topics.length; i++) {
           try {
-            if (this.subjects[i].length > 0) return i;
+            if (this.topics[i].length > 0) return i;
           } catch (error) {
             console.error(error);
             continue;
@@ -283,10 +299,10 @@
         return -1;
       },
       checkFirstFilterRender() {
-        const filter = Object.keys(this.filters);
+        const filter = Object.keys(this.limits);
         for (let i = 0; i < filter.length; i++) {
           try {
-            const first = this.filters[filter[i]]?.[0];
+            const first = this.limits[filter[i]]?.[0];
             if (first?.id || first?.name || first?.translations) return i;
           } catch (error) {
             console.error(error);
@@ -315,7 +331,7 @@
         const labelKey = scopeToLabelKey[obj.scope] || "normal";
         return ` (${this.getString(labelKey)})`;
       },
-      getWordedSubjectString(string) {
+      getWordedTopicString(string) {
         if (!string || typeof string !== "object") return "";
 
         if (string.translations) {
@@ -336,7 +352,7 @@
 
         return string.name || string.id || "";
       },
-      getWordedFilterString(filter) {
+      getWordedLimitString(filter) {
         try {
           if (filter?.isCustom) {
             if (filter.isTranslated && filter.preTranslation) {
@@ -355,10 +371,10 @@
             return getLocalizedTranslation(filter, this.language) || filter.id;
           }
           if (filter?.id) {
-            return this.getWordedFilterStringById(filter.id);
+            return this.getWordedLimitStringById(filter.id);
           }
           if (typeof filter === "string" || filter instanceof String) {
-            return this.getWordedFilterStringById(filter);
+            return this.getWordedLimitStringById(filter);
           }
           return filter?.name;
         } catch (e) {
@@ -366,7 +382,7 @@
           return filter;
         }
       },
-      getWordedFilterStringById(id) {
+      getWordedLimitStringById(id) {
         if (this.isCustomFilterId(id)) {
           return this.getManualInputTermLabel();
         }
@@ -385,7 +401,7 @@
         } else if (type === "s") {
           return id;
         } else if (type === "l") {
-          const group = this.availableFilters.find(byGroupId);
+          const group = this.availableLimits.find(byGroupId);
           if (!group) return id;
           if (id.length === 3) {
             return getLocalizedTranslation(group, lg) || id;
@@ -395,7 +411,7 @@
             return getLocalizedTranslation(choice, lg) || id;
           }
         } else {
-          throw new Error("Id not handled by getWordedFilterStringById. id: " + id);
+          throw new Error("Id not handled by getWordedLimitStringById. id: " + id);
         }
       },
       isSingleScoped(obj) {
@@ -422,20 +438,20 @@
        * If all items in the group share the same category, only the first item shows it.
        * If categories are mixed, every item shows its category.
        */
-      showFilterCategory(group, idx) {
+      showLimitCategory(group, idx) {
         if (idx === 0) return true;
         // Check if all items in the group have the same category
-        const firstCategory = this.getFilterCategoryName(group[0]);
-        const allSame = group.every((item) => this.getFilterCategoryName(item) === firstCategory);
+        const firstCategory = this.getLimitCategoryName(group[0]);
+        const allSame = group.every((item) => this.getLimitCategoryName(item) === firstCategory);
         return !allSame;
       },
-      getFilterCategoryName(item) {
+      getLimitCategoryName(item) {
         if (!item.id || this.isCustomFilterId(item.id)) {
           return this.getManualInputTermLabel();
         }
         // Find the category by checking which filter group contains this item's id
         const groupId = item.id.substring(0, 4);
-        const group = this.availableFilters.find(
+        const group = this.availableLimits.find(
           (f) => f.id === groupId || (f.choices && f.choices.some((c) => c.id === item.id))
         );
         if (group && group.translations) {
@@ -445,16 +461,16 @@
         }
         return "";
       },
-      getWordedFilterStringFromId(id) {
+      getWordedLimitStringFromId(id) {
         // Handle custom filter entries (manually entered search terms)
         if (this.isCustomFilterId(id)) {
           return this.getManualInputTermLabel();
         }
-        const filterGroup = this.availableFilters.find((group) => group.id === id);
+        const filterGroup = this.availableLimits.find((group) => group.id === id);
         if (filterGroup && filterGroup.translations) {
           return getLocalizedTranslation(filterGroup, this.language);
         }
-        return this.getWordedFilterStringById(id);
+        return this.getWordedLimitStringById(id);
       },
       isCustomFilterId(id) {
         return typeof id === "string" && id.startsWith("__custom__");
@@ -465,4 +481,3 @@
     },
   };
 </script>
-

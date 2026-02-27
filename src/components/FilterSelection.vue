@@ -1,11 +1,11 @@
 <template>
   <div>
-    <div v-for="(item, n) in filterDropdowns" :key="`filter-${n}`" class="qpm_subjects">
+    <div v-for="(item, n) in limitDropdowns" :key="`filter-${n}`" class="qpm_subjects">
       <div class="qpm_flex">
-          <dropdown-wrapper
-          ref="filterDropdown"
+        <dropdown-wrapper
+          ref="limitDropdown"
           :is-multiple="true"
-          :data="groupedFilterOptions"
+          :data="groupedLimitOptions"
           :hide-topics="hideTopics"
           :is-group="true"
           :placeholder="filterPlaceholderFor(n)"
@@ -19,43 +19,40 @@
           :no-result-string="getString('noLimitDropdownContent')"
           :is-filter-dropdown="true"
           :index="n"
-          @input="(...args) => $emit('update-filter-dropdown', ...args)"
-          @updateScope="(...args) => $emit('update-filter-scope', ...args)"
-          @translating="(...args) => $emit('update-filter-placeholder', ...args)"
+          @input="(...args) => $emit('update-limit-dropdown', ...args)"
+          @update-scope="(...args) => $emit('update-limit-scope', ...args)"
+          @translating="(...args) => $emit('update-limit-placeholder', ...args)"
         />
 
         <i
-          v-if="filterDropdowns.length > 1"
+          v-if="limitDropdowns.length > 1"
           class="qpm_removeSubject bx bx-x"
           role="button"
           tabindex="0"
           aria-label="Remove filter"
-          @click="removeFilterDropdown(n)"
-          @keydown.enter.prevent="removeFilterDropdown(n)"
+          @click="removeLimitDropdown(n)"
+          @keydown.enter.prevent="removeLimitDropdown(n)"
         />
       </div>
       <p
-        v-if="n >= 0 && hasFilterSelections"
+        v-if="n >= 0 && hasLimitSelections"
         class="qpm_subjectOperator"
-        :style="{ color: n < filterDropdowns.length - 1 ? '#000000' : 'darkgrey' }"
+        :style="{ color: n < limitDropdowns.length - 1 ? '#000000' : 'darkgrey' }"
       >
         {{ getString("andOperator") }}
       </p>
     </div>
-    <div
-      v-if="hasFilterSelections"
-      class="qpm_filterSelectionActions"
-    >
+    <div v-if="hasLimitSelections" class="qpm_filterSelectionActions">
       <button
         v-tooltip="{
-          content: getString('hoverAddSubject'),
+          content: getString('hoverAddTopic'),
           distance: 5,
           delay: $helpTextDelay,
         }"
         class="qpm_slim qpm_button"
-        @click="addFilterDropdown"
+        @click="addLimitDropdown"
       >
-        {{ getString("addsubjectlimit") }} {{ getString("addlimit") }}
+        {{ getString("addtopiclimit") }} {{ getString("addlimit") }}
       </button>
     </div>
   </div>
@@ -70,8 +67,8 @@
       DropdownWrapper,
     },
     props: {
-      filterDropdowns: { type: Array, required: true, default: () => [[]] },
-      filterOptions: { type: Array, required: true, default: () => [] },
+      limitDropdowns: { type: Array, required: true, default: () => [[]] },
+      limitOptions: { type: Array, required: true, default: () => [] },
       hideTopics: {
         type: Array,
         default: () => [],
@@ -83,22 +80,31 @@
       },
       advanced: Boolean,
       searchWithAI: Boolean,
-      getFilterPlaceholder: {
+      getLimitPlaceholder: {
         type: Function,
         default: null,
       },
     },
+    emits: [
+      "update-limit-dropdown",
+      "update-limit-scope",
+      "update-limit-placeholder",
+      "add-limit-dropdown",
+      "remove-limit-dropdown",
+    ],
     computed: {
-      groupedFilterOptions() {
-        const safeOptions = Array.isArray(this.filterOptions) ? this.filterOptions : [];
+      groupedLimitOptions() {
+        const safeOptions = Array.isArray(this.limitOptions) ? this.limitOptions : [];
         return safeOptions.map((f) => ({
           ...f,
           groups: f.choices || f.groups || [],
         }));
       },
-      hasFilterSelections() {
-        if (!Array.isArray(this.filterDropdowns)) return false;
-        return this.filterDropdowns.some((dropdown) => Array.isArray(dropdown) && dropdown.length > 0);
+      hasLimitSelections() {
+        if (!Array.isArray(this.limitDropdowns)) return false;
+        return this.limitDropdowns.some(
+          (dropdown) => Array.isArray(dropdown) && dropdown.length > 0
+        );
       },
     },
     watch: {
@@ -106,19 +112,19 @@
         immediate: true,
         handler() {
           this.$nextTick(() => {
-            this.refreshFilterDropdownOptions();
+            this.refreshLimitDropdownOptions();
           });
         },
       },
     },
     mounted() {
       this.$nextTick(() => {
-        this.refreshFilterDropdownOptions();
+        this.refreshLimitDropdownOptions();
       });
     },
     methods: {
-      refreshFilterDropdownOptions() {
-        const dropdownRefs = this.$refs?.filterDropdown;
+      refreshLimitDropdownOptions() {
+        const dropdownRefs = this.$refs?.limitDropdown;
         if (!dropdownRefs) return;
         const dropdowns = Array.isArray(dropdownRefs) ? dropdownRefs : [dropdownRefs];
         dropdowns.forEach((dropdown) => {
@@ -128,15 +134,16 @@
         });
       },
       filterPlaceholderFor(index) {
-        return this.getFilterPlaceholder ? this.getFilterPlaceholder(index) : this.getString("choselimits");
+        return this.getLimitPlaceholder
+          ? this.getLimitPlaceholder(index)
+          : this.getString("choselimits");
       },
-      addFilterDropdown() {
-        this.$emit("add-filter-dropdown");
+      addLimitDropdown() {
+        this.$emit("add-limit-dropdown");
       },
-      removeFilterDropdown(index) {
-        this.$emit("remove-filter-dropdown", index);
+      removeLimitDropdown(index) {
+        this.$emit("remove-limit-dropdown", index);
       },
     },
   };
 </script>
-

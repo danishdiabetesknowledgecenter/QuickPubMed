@@ -27,7 +27,7 @@ function normalizeTopicNode(node = {}) {
   return normalized;
 }
 
-function normalizeFilterChoiceNode(node = {}) {
+function normalizeLimitChoiceNode(node = {}) {
   const normalized = {
     ...node,
     id: normalizeText(node?.id),
@@ -39,10 +39,10 @@ function normalizeFilterChoiceNode(node = {}) {
   const children = Array.isArray(node?.children)
     ? node.children
     : Array.isArray(node?.choices)
-      ? node.choices
-      : [];
+    ? node.choices
+    : [];
   if (children.length > 0) {
-    normalized.children = children.map(normalizeFilterChoiceNode);
+    normalized.children = children.map(normalizeLimitChoiceNode);
   } else {
     delete normalized.children;
   }
@@ -67,20 +67,19 @@ export function normalizeTopicsList(topics = []) {
   });
 }
 
-export function normalizeFiltersList(filters = []) {
-  if (!Array.isArray(filters)) return [];
-  return filters.map((filter) => {
+export function normalizeLimitsList(limits = []) {
+  if (!Array.isArray(limits)) return [];
+  return limits.map((limit) => {
     const normalized = {
-      ...filter,
-      id: normalizeText(filter?.id),
-      translations: normalizeTranslations(filter?.translations),
+      ...limit,
+      id: normalizeText(limit?.id),
+      translations: normalizeTranslations(limit?.translations),
     };
     delete normalized.name;
     delete normalized.groupname;
 
-    const choices = Array.isArray(filter?.choices) ? filter.choices : [];
-    normalized.choices = choices.map(normalizeFilterChoiceNode);
+    const choices = Array.isArray(limit?.choices) ? limit.choices : [];
+    normalized.choices = choices.map(normalizeLimitChoiceNode);
     return normalized;
   });
 }
-

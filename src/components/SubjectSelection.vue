@@ -1,11 +1,11 @@
 <template>
   <div>
-    <div v-for="(item, n) in subjects" :key="`item-${item.id}-${n}`" class="qpm_subjects">
+    <div v-for="(item, n) in topics" :key="`item-${item.id}-${n}`" class="qpm_topics">
       <div class="qpm_flex">
         <dropdown-wrapper
-          ref="subjectDropdown"
+          ref="topicDropdown"
           :is-multiple="true"
-          :data="subjectOptions"
+          :data="topicOptions"
           :hide-topics="hideTopics"
           :is-group="true"
           :placeholder="dropdownPlaceholders[n]"
@@ -18,14 +18,14 @@
           :show-scope-label="advanced"
           :no-result-string="getString('noTopicDropdownContent')"
           :index="n"
-          @input="(...args) => $emit('update-subjects', ...args)"
-          @updateScope="(...args) => $emit('update-scope', ...args)"
+          @input="(...args) => $emit('update-topics', ...args)"
+          @update-scope="(...args) => $emit('update-scope', ...args)"
           @mounted="(...args) => $emit('should-focus-next-dropdown', ...args)"
           @translating="(...args) => $emit('update-placeholder', ...args)"
         />
 
         <i
-          v-if="subjects.length > 1"
+          v-if="topics.length > 1"
           class="qpm_removeSubject bx bx-x"
           role="button"
           tabindex="0"
@@ -35,15 +35,15 @@
         />
       </div>
       <p
-        v-if="n >= 0 && hasSubjects"
+        v-if="n >= 0 && hasTopics"
         class="qpm_subjectOperator"
-        :style="{ color: n < subjects.length - 1 ? '#000000' : 'darkgrey' }"
+        :style="{ color: n < topics.length - 1 ? '#000000' : 'darkgrey' }"
       >
         {{ getString("andOperator") }}
       </p>
     </div>
     <div
-      v-if="hasSubjects"
+      v-if="hasTopics"
       class="qpm_subjectSelectionActions"
       @keydown.enter.capture.passive="focusNextDropdownOnMount = true"
     >
@@ -71,15 +71,15 @@
       DropdownWrapper,
     },
     props: {
-      subjects: { type: Array, required: true, default: () => [] },
-      hideTopics: { 
-        type: Array, 
+      topics: { type: Array, required: true, default: () => [] },
+      hideTopics: {
+        type: Array,
         default: () => [],
-        validator: function(value) {
+        validator: function (value) {
           return Array.isArray(value);
-        }
+        },
       },
-      subjectOptions: { type: Array, required: true, default: () => [] },
+      topicOptions: { type: Array, required: true, default: () => [] },
       dropdownPlaceholders: { type: Array, required: true, default: () => [] },
       language: { type: String, default: "dk" },
       getString: {
@@ -88,15 +88,24 @@
       },
       advanced: Boolean,
       showFilter: Boolean,
-      hasSubjects: Boolean,
+      hasTopics: Boolean,
       searchWithAI: Boolean,
     },
+    emits: [
+      "update-topics",
+      "update-scope",
+      "should-focus-next-dropdown",
+      "update-placeholder",
+      "add-topic",
+      "remove-topic",
+      "toggle-filter",
+    ],
     watch: {
       hideTopics: {
         immediate: true,
         handler() {
           this.$nextTick(() => {
-            this.refreshSubjectDropdownOptions();
+            this.refreshTopicDropdownOptions();
           });
         },
       },
@@ -104,12 +113,12 @@
     mounted() {
       // Ensures initial state
       this.$nextTick(() => {
-        this.refreshSubjectDropdownOptions();
+        this.refreshTopicDropdownOptions();
       });
     },
     methods: {
-      refreshSubjectDropdownOptions() {
-        const dropdownRefs = this.$refs?.subjectDropdown;
+      refreshTopicDropdownOptions() {
+        const dropdownRefs = this.$refs?.topicDropdown;
         if (!dropdownRefs) return;
         const dropdowns = Array.isArray(dropdownRefs) ? dropdownRefs : [dropdownRefs];
         dropdowns.forEach((dropdown) => {
@@ -119,10 +128,10 @@
         });
       },
       addSubject() {
-        this.$emit("add-subject");
+        this.$emit("add-topic");
       },
       removeSubject(index) {
-        this.$emit("remove-subject", index);
+        this.$emit("remove-topic", index);
       },
       toggle() {
         this.$emit("toggle-filter");
@@ -130,4 +139,3 @@
     },
   };
 </script>
-

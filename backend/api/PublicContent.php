@@ -47,7 +47,7 @@ if ($action === 'domains' || $type === 'domains') {
     ]);
 }
 
-if (!in_array($type, ['topics', 'filters', 'prompt-rules'], true)) {
+if (!in_array($type, ['topics', 'limits', 'prompt-rules'], true)) {
     editorJsonResponse(400, ['error' => 'Invalid or missing type']);
 }
 

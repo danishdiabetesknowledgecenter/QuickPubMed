@@ -65,7 +65,7 @@ searchFormDivs.forEach((searchFormDiv, index) => {
   const useAI = searchFormDiv.dataset.useAI === "true";
   const useAISummarizer = searchFormDiv.dataset.useAISummarizer === "true";
   const useMeshValidation = searchFormDiv.dataset.useMeshValidation === "true";
-  const openFilters = searchFormDiv.dataset.openFilters === "true";
+  const openLimits = searchFormDiv.dataset.openLimits === "true";
 
   const parseDatasetList = (value, label) => {
     if (!value) return [];
@@ -118,7 +118,7 @@ searchFormDivs.forEach((searchFormDiv, index) => {
       hideLimits: parsedHideLimits,
       checkLimits: parsedCheckLimits,
       orderLimits: parsedOrderLimits,
-      openFilters: openFilters,
+      openLimits: openLimits,
       language: language,
       componentNo: componentNo,
       domain: domain,
@@ -132,6 +132,6 @@ searchFormDivs.forEach((searchFormDiv, index) => {
       instanceUseAISummarizer: useAISummarizer,
       instanceUseMeshValidation: useMeshValidation,
       instanceAiURL: instanceAiURL,
-    },
+    }
   ).mount(`#${searchFormDiv.id}`);
 });

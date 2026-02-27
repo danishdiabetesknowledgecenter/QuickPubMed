@@ -62,13 +62,13 @@ define('EDITOR_USERS', [
     'editor' => [
         'password_hash' => '$2y$10$REPLACE_WITH_BCRYPT_HASH',
         'allowed_domains' => ['diabetes', 'dementia'],
-        'can_edit_filters' => true,
+        'can_edit_limits' => true,
         'disabled' => false,
     ],
     'topics_only' => [
         'password_hash' => '$2y$10$REPLACE_WITH_BCRYPT_HASH',
         'allowed_domains' => ['diabetes'],
-        'can_edit_filters' => false,
+        'can_edit_limits' => false,
         'disabled' => false,
     ],
 ]);

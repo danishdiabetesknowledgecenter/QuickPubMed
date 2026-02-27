@@ -1,5 +1,5 @@
 const runtimeTopicPayloadCache = new Map();
-let runtimeFiltersPayloadCache = null;
+let runtimeLimitsPayloadCache = null;
 const runtimePromptRulesPayloadCache = new Map();
 let runtimeContentEndpointAvailable = true;
 const RUNTIME_CACHE_TTL_MS = Number(import.meta.env.VITE_RUNTIME_CONTENT_CACHE_TTL_MS || 300000);
@@ -12,7 +12,9 @@ function hasFreshCache(entry) {
 }
 
 function normalizeExplicitApiBase(value) {
-  const base = String(value || "").trim().replace(/\/+$/, "");
+  const base = String(value || "")
+    .trim()
+    .replace(/\/+$/, "");
   if (!base) return "";
   if (base.endsWith("/api")) return base;
   if (base.endsWith("/backend")) return `${base}/api`;
@@ -28,7 +30,7 @@ function getContentApiBaseUrl() {
 
   const datasetApiBase = document
     .querySelector(
-      ".qpm-searchform[data-content-api-base-url], .searchform[data-content-api-base-url], #qpm-searchstrings[data-content-api-base-url], #searchstrings[data-content-api-base-url]",
+      ".qpm-searchform[data-content-api-base-url], .searchform[data-content-api-base-url], #qpm-searchstrings[data-content-api-base-url], #searchstrings[data-content-api-base-url]"
     )
     ?.getAttribute("data-content-api-base-url");
   const normalizedDatasetApiBase = normalizeExplicitApiBase(datasetApiBase);
@@ -56,10 +58,10 @@ async function fetchRuntimeContent(type, domain = "") {
   }
   params.set("_", String(Date.now()));
 
-  const response = await fetch(
-    `${getContentApiBaseUrl()}/PublicContent.php?${params.toString()}`,
-    { credentials: "omit", cache: "no-store" }
-  );
+  const response = await fetch(`${getContentApiBaseUrl()}/PublicContent.php?${params.toString()}`, {
+    credentials: "omit",
+    cache: "no-store",
+  });
   if (!response.ok) {
     if (response.status === 404) {
       runtimeContentEndpointAvailable = false;
@@ -88,16 +90,25 @@ export async function loadTopicsFromRuntime(domain) {
   return Array.isArray(payload.topics) ? payload.topics : [];
 }
 
-export async function loadFiltersFromRuntime() {
-  if (hasFreshCache(runtimeFiltersPayloadCache)) {
-    return Array.isArray(runtimeFiltersPayloadCache.data?.filters)
-      ? runtimeFiltersPayloadCache.data.filters
+export async function loadLimitsFromRuntime() {
+  if (hasFreshCache(runtimeLimitsPayloadCache)) {
+    return Array.isArray(runtimeLimitsPayloadCache.data?.limits)
+      ? runtimeLimitsPayloadCache.data.limits
       : [];
   }
 
-  const payload = await fetchRuntimeContent("filters");
-  runtimeFiltersPayloadCache = { data: payload, cachedAt: Date.now() };
-  return Array.isArray(payload.filters) ? payload.filters : [];
+  let payload = null;
+  try {
+    // Try legacy runtime type first to avoid 400 spam in older backends.
+    payload = await fetchRuntimeContent("filters");
+  } catch (error) {
+    // Fallback for newer backends exposing the renamed "limits" type.
+    payload = await fetchRuntimeContent("limits");
+  }
+  runtimeLimitsPayloadCache = { data: payload, cachedAt: Date.now() };
+  if (Array.isArray(payload?.limits)) return payload.limits;
+  if (Array.isArray(payload?.filters)) return payload.filters;
+  return [];
 }
 
 export async function loadPromptRulesFromRuntime(domain) {
@@ -107,7 +118,9 @@ export async function loadPromptRulesFromRuntime(domain) {
 
   const cached = runtimePromptRulesPayloadCache.get(domain);
   if (hasFreshCache(cached)) {
-    return cached.data && typeof cached.data.promptRules === "object" ? cached.data.promptRules : {};
+    return cached.data && typeof cached.data.promptRules === "object"
+      ? cached.data.promptRules
+      : {};
   }
 
   const payload = await fetchRuntimeContent("prompt-rules", domain);
@@ -148,4 +161,3 @@ export function loadStandardString(domain) {
 
   return null;
 }
-

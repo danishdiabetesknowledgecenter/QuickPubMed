@@ -2,13 +2,13 @@
   <div class="qpm_simpleFiltersRoot">
     <div class="qpm_filtersHeaderContainer">
       <h4 role="heading" aria-level="3" class="h4">
-        {{ getString("SimpleFiltersHeader") }}
+        {{ getString("SimpleLimitsHeader") }}
       </h4>
       <button
         v-tooltip="{
-        content: getString('hoverFiltersHeader'),
-        distance: 5,
-        delay: helpTextDelay,
+          content: getString('hoverFiltersHeader'),
+          distance: 5,
+          delay: helpTextDelay,
         }"
         class="bx bx-info-circle qpm_cursorHelp"
         aria-label="Info"
@@ -33,7 +33,7 @@
               type="checkbox"
               :title="getString('checkboxTitle')"
               :value="choice.id || choice.name"
-              :checked="isFilterUsed(filterData[option.id], choice)"
+              :checked="isFilterUsed(limitData[option.id], choice)"
               class="qpm_cursorPointer"
               @change="onFilterChange(option.id, choice, $event)"
               @keyup.enter="onFilterEnter(choice)"
@@ -73,7 +73,7 @@
         type: Array,
         required: true,
       },
-      filterData: {
+      limitData: {
         type: Object,
         required: true,
       },
@@ -94,6 +94,7 @@
         required: true,
       },
     },
+    emits: ["update-limit", "update-limit-enter"],
     data() {
       return {
         titleCheckBoxTranslate: this.getString("checkboxTitle") || "",
@@ -102,22 +103,22 @@
     methods: {
       /**
        * Handles the change event for a filter checkbox.
-       * Emits the 'update-filter' event with filterType and selectedValue.
+       * Emits the 'update-limit' event with filterType and selectedValue.
        * @param {String} filterType - The type/category of the filter (e.g., optionId).
        * @param {Object} selectedValue - The selected filter object.
        * @param {Event} event - The change event.
        */
       onFilterChange(filterType, selectedValue, event) {
         const isChecked = event.target.checked;
-        this.$emit("update-filter", filterType, { ...selectedValue, checked: isChecked });
+        this.$emit("update-limit", filterType, { ...selectedValue, checked: isChecked });
       },
       /**
        * Handles the Enter key event on a filter checkbox.
-       * Emits the 'update-filter-enter' event with the selectedValue (choice).
+       * Emits the 'update-limit-enter' event with the selectedValue (choice).
        * @param {String} selectedValue - The selected choice from the filter.
        */
       onFilterEnter(selectedValue) {
-        this.$emit("update-filter-enter", selectedValue);
+        this.$emit("update-limit-enter", selectedValue);
       },
       hasVisibleSimpleFilterOption(filters) {
         if (!filters) return false;
@@ -139,4 +140,3 @@
     },
   };
 </script>
-

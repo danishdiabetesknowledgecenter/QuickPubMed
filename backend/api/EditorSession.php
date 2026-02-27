@@ -20,7 +20,7 @@ if (!empty($_SESSION['editor_authenticated']) && $_SESSION['editor_authenticated
         'user' => $_SESSION['editor_user'] ?? '',
         'csrfToken' => $csrfToken,
         'capabilities' => [
-            'canEditFilters' => $user ? !empty($user['can_edit_filters']) : false,
+            'canEditLimits' => $user ? !empty($user['can_edit_limits']) : false,
             'allowedDomains' => $user ? editorNormalizeDomainsList($user['allowed_domains'] ?? []) : [],
         ],
     ]);
