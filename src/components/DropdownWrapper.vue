@@ -737,6 +737,10 @@
         if (dropdown) {
           dropdown.removeEventListener("mousedown", this.handleOpenMenuOnClick);
         }
+        const headers = Array.from(element.getElementsByClassName("multiselect__element"));
+        headers.forEach((header) => {
+          header.removeEventListener("click", this.handleGroupHeaderClickCapture, true);
+        });
       }
       
       // Clean up observer
@@ -969,6 +973,9 @@
           // Stop existing mousedown events
           header.removeEventListener("mousedown", self.handleStopEvent, true);
           header.addEventListener("mousedown", self.handleStopEvent, true);
+          // Intercept group header clicks early to prevent native group-select behavior
+          header.removeEventListener("click", self.handleGroupHeaderClickCapture, true);
+          header.addEventListener("click", self.handleGroupHeaderClickCapture, true);
 
           // Add click handler for category groups
           header.removeEventListener("click", self.handleCategoryGroupClick);
@@ -1575,6 +1582,23 @@
         } else {
           // This is when we are adding a new tag
         }
+      },
+      handleGroupHeaderClickCapture(event) {
+        let target = event.target;
+        if (target && target.nodeType === 3) {
+          target = target.parentElement;
+        }
+        if (!target) return;
+
+        const groupTarget = target.closest?.(".multiselect__option--group");
+        if (!groupTarget) return;
+
+        if (event.cancelable) {
+          event.preventDefault();
+        }
+        event.stopImmediatePropagation();
+        event.stopPropagation();
+        this.handleCategoryGroupClick(event);
       },
       /**
        * Handles the click event on a tag (an option that has been selected),
