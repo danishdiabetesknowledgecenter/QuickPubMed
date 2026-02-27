@@ -1424,14 +1424,25 @@
        * @param {HTMLElement} target - The target element.
        */
       handleCategoryGroupClick(event) {
-        let target = event.target;
-
-        // Check if the click is on the optiongroup name or elsewhere within the multiselect__option__option--group element
-        if (target.classList.contains("qpm_groupLabel")) {
-          target = target.parentElement;
+        const rawTarget = event.target;
+        if (!rawTarget || typeof rawTarget.closest !== "function") {
+          return;
         }
 
-        const optionGroupName = target.getElementsByClassName("qpm_groupLabel")[0].textContent;
+        // Only process true group header clicks.
+        // Clicking regular option rows (including maintopic rows) should not run this path.
+        const target = rawTarget.classList?.contains("multiselect__option--group")
+          ? rawTarget
+          : rawTarget.closest(".multiselect__option--group");
+        if (!target) {
+          return;
+        }
+
+        const groupLabelElement = target.getElementsByClassName("qpm_groupLabel")[0];
+        if (!groupLabelElement) {
+          return;
+        }
+        const optionGroupName = groupLabelElement.textContent;
 
         if (target.classList.contains("multiselect__option--group")) {
           if (this.expandedOptionGroupName === optionGroupName) {
@@ -1979,6 +1990,27 @@
        * @returns {boolean} Always returns false to indicate the event has been handled.
        */
       handleStopEvent(event) {
+        // Maintainopic rows should only expand/collapse branches, not trigger default selection/close behavior.
+        // We detect the row from event.currentTarget because event.target can be any nested child element.
+        const rowElement = event.currentTarget;
+        if (rowElement && typeof rowElement.querySelector === "function") {
+          const rowMeta = rowElement.querySelector("span[option-id][maintopic]");
+          if (rowMeta && rowMeta.getAttribute("maintopic") === "true") {
+            const optionId = rowMeta.getAttribute("option-id");
+            if (optionId) {
+              this.maintopicToggledMap = {
+                ...this.maintopicToggledMap,
+                [optionId]: !this.maintopicToggledMap[optionId],
+              };
+              this.showOrHideElements();
+            }
+            event.stopImmediatePropagation();
+            event.stopPropagation();
+            event.preventDefault();
+            return false;
+          }
+        }
+
         // Click event was on the parent multiselect group
         if (event.target.classList.contains("multiselect__option--group")) {
           event.stopPropagation();
