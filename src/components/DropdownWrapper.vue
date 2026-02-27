@@ -1028,6 +1028,24 @@
           // Keep only one expanded maintopic branch at a time
           this.toggleMaintopic(elem);
           value.pop();
+          const maintopicGroupName = this.getHeader(elem.id);
+          if (maintopicGroupName && maintopicGroupName !== "unknown") {
+            this.expandedOptionGroupName = maintopicGroupName;
+            this.updateExpandedGroupHighlighting();
+            this.$nextTick(() => {
+              this.showOrHideElements();
+            });
+          }
+        } else {
+          // Keep one active category context when selecting a sub-item.
+          const selectedGroupName = this.getHeader(elem.id);
+          if (selectedGroupName && selectedGroupName !== "unknown") {
+            this.expandedOptionGroupName = selectedGroupName;
+            this.updateExpandedGroupHighlighting();
+            this.$nextTick(() => {
+              this.showOrHideElements();
+            });
+          }
         }
 
         // Only check for '-' in the current language
