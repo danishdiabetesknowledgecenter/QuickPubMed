@@ -3,6 +3,10 @@
     ref="selectWrapper"
     class="qpm_dropdown"
     :class="{ 'qpm_hide-tags-wrap': hideTagsWrap }"
+    @touchstart.passive="handleTouchStart"
+    @touchmove.passive="handleTouchMove"
+    @touchend.passive="handleTouchEnd"
+    @touchcancel.passive="handleTouchEnd"
     @keydown.up.capture.prevent.stop="navUp"
     @keydown.down.capture.prevent.stop="navDown"
     @keydown.left.stop="navLeft"
@@ -328,6 +332,13 @@
         _handleEmptyDropdownKeydownBound: null,
         _handleEmptyDropdownFocusBound: null,
         _handleEmptyDropdownClickBound: null,
+        touchStartX: 0,
+        touchStartY: 0,
+        touchScrollThreshold: 10,
+        isTouchInteracting: false,
+        isTouchScrolling: false,
+        preventCloseFromTouchScroll: false,
+        touchEndResetTimeoutId: null,
       };
     },
     created() {
@@ -696,6 +707,9 @@
     },
     beforeUnmount() {
       this.isUserTyping = false;
+      if (this.touchEndResetTimeoutId) {
+        clearTimeout(this.touchEndResetTimeoutId);
+      }
       document.removeEventListener("mousedown", this.setMouseUsed);
       document.removeEventListener("keydown", this.resetMouseUsed);
 
@@ -732,6 +746,39 @@
       }
     },
     methods: {
+      handleTouchStart(event) {
+        const touch = event?.touches?.[0];
+        if (!touch) return;
+        if (this.touchEndResetTimeoutId) {
+          clearTimeout(this.touchEndResetTimeoutId);
+          this.touchEndResetTimeoutId = null;
+        }
+        this.touchStartX = touch.clientX;
+        this.touchStartY = touch.clientY;
+        this.isTouchInteracting = true;
+        this.isTouchScrolling = false;
+      },
+      handleTouchMove(event) {
+        if (!this.isTouchInteracting) return;
+        const touch = event?.touches?.[0];
+        if (!touch) return;
+        const deltaX = Math.abs(touch.clientX - this.touchStartX);
+        const deltaY = Math.abs(touch.clientY - this.touchStartY);
+        if (deltaX >= this.touchScrollThreshold || deltaY >= this.touchScrollThreshold) {
+          this.isTouchScrolling = true;
+          this.preventCloseFromTouchScroll = true;
+        }
+      },
+      handleTouchEnd() {
+        if (this.touchEndResetTimeoutId) {
+          clearTimeout(this.touchEndResetTimeoutId);
+        }
+        this.touchEndResetTimeoutId = setTimeout(() => {
+          this.isTouchInteracting = false;
+          this.isTouchScrolling = false;
+          this.touchEndResetTimeoutId = null;
+        }, 80);
+      },
       /**
        * Checks whether a searchString scope has valid content.
        * @param {Object} option - Option object from the dropdown.
@@ -971,6 +1018,23 @@
         }
       },
       close() {
+        if (this.preventCloseFromTouchScroll) {
+          this.preventCloseFromTouchScroll = false;
+          this.isDropdownOpen = true;
+          this.$nextTick(() => {
+            const multiselect = this.$refs.multiselect;
+            if (
+              multiselect &&
+              !multiselect.isOpen &&
+              typeof multiselect.activate === "function"
+            ) {
+              multiselect.activate();
+            }
+            this.updateAriaExpanded();
+          });
+          return;
+        }
+
         // Clear tempList if it contains items that are being removed (not being added)
         // This fixes the issue where tag removal requires double-click
         if (this.tempList.length > 0) {
@@ -2969,6 +3033,9 @@
        * Handles blur events
        */
       handleBlur(event) {
+        if (this.isTouchInteracting || this.isTouchScrolling) {
+          return;
+        }
         const input = event.target;
         
         // Always remove silent focus on blur
