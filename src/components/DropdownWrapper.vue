@@ -766,17 +766,12 @@
         if (isOpen && this.isTouchDevice && !this.shouldHideDropdownArrow && !this._skipActionSheet) {
           const hasOptions = this.getSortedSubjectOptions.length > 0;
           const canFreeText = this.taggable;
+          this._skipActionSheet = true;
           if (hasOptions && canFreeText) {
-            this._preventDeactivate = false;
-            clearTimeout(this._deactivateGuardTimer);
-            this.$refs.multiselect.deactivate();
             this.showMobileActionSheet = true;
             return;
           }
           if (hasOptions && !canFreeText) {
-            this._preventDeactivate = false;
-            clearTimeout(this._deactivateGuardTimer);
-            this.$refs.multiselect.deactivate();
             this.$nextTick(() => {
               if (this.$refs.nativeSelect) this.$refs.nativeSelect.focus();
             });
@@ -883,10 +878,16 @@
       },
       closeMobileActionSheet() {
         this.showMobileActionSheet = false;
+        const ms = this.$refs.multiselect;
+        if (ms && ms.isOpen) {
+          this._preventDeactivate = false;
+          clearTimeout(this._deactivateGuardTimer);
+          ms.deactivate();
+        }
+        setTimeout(() => { this._skipActionSheet = false; }, 300);
       },
       handleActionFreeText() {
         this.showMobileActionSheet = false;
-        this._skipActionSheet = true;
         this.$nextTick(() => {
           const input = this.$el.querySelector(".multiselect__input");
           if (input) {
@@ -897,10 +898,15 @@
       },
       handleActionPickFromList() {
         this.showMobileActionSheet = false;
+        const ms = this.$refs.multiselect;
+        if (ms && ms.isOpen) {
+          this._preventDeactivate = false;
+          clearTimeout(this._deactivateGuardTimer);
+          ms.deactivate();
+        }
         this.$nextTick(() => {
-          if (this.$refs.nativeSelect) {
-            this.$refs.nativeSelect.focus();
-          }
+          if (this.$refs.nativeSelect) this.$refs.nativeSelect.focus();
+          setTimeout(() => { this._skipActionSheet = false; }, 300);
         });
       },
       handleNativeSelect(event) {
