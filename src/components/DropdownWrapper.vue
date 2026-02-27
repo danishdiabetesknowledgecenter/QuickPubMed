@@ -1231,39 +1231,25 @@
         
         if (!this.isGroup) {
           const entries = element.querySelectorAll("[data-name]");
-          const process = () => {
-            entries.forEach((entry) => {
-              const parent = entry.parentNode.parentNode;
-              const shouldShow = this.areAllAncestorsExpanded(entry);
-              parent.classList.toggle("qpm_shown", !shouldShow);
-            });
-          };
-          if (entries.length > 50) {
-            requestAnimationFrame(process);
-          } else {
-            process();
-          }
+          entries.forEach((entry) => {
+            const parent = entry.parentNode.parentNode;
+            const shouldShow = this.areAllAncestorsExpanded(entry);
+            parent.classList.toggle("qpm_shown", !shouldShow);
+          });
           return;
         }
 
         const entries = element.querySelectorAll("[data-name]");
-        const processGroup = () => {
-          entries.forEach((entry) => {
-            const groupName = entry.getAttribute("data-name");
-            const parent = entry.parentNode.parentNode;
+        entries.forEach((entry) => {
+          const groupName = entry.getAttribute("data-name");
+          const parent = entry.parentNode.parentNode;
 
-            const shouldShow =
-              this.expandedOptionGroupName !== groupName ||
-              !this.areAllAncestorsExpanded(entry);
+          const shouldShow =
+            this.expandedOptionGroupName !== groupName ||
+            !this.areAllAncestorsExpanded(entry);
 
-            parent.classList.toggle("qpm_shown", shouldShow);
-          });
-        };
-        if (entries.length > 50) {
-          requestAnimationFrame(processGroup);
-        } else {
-          processGroup();
-        }
+          parent.classList.toggle("qpm_shown", shouldShow);
+        });
       },
       /**
        * Updates visibility of options contained in an optiongroup.
