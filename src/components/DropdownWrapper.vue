@@ -870,7 +870,8 @@
         if (hasOptions && canFreeText) {
           this.showMobileActionSheet = true;
         } else if (hasOptions) {
-          if (this.$refs.nativeSelect) this.$refs.nativeSelect.focus();
+          const sel = this.$refs.nativeSelect;
+          if (sel) { sel.focus(); sel.click(); }
         } else if (canFreeText) {
           this.mobileOverlayHidden = true;
           this.$nextTick(() => {
@@ -892,9 +893,11 @@
       },
       handleActionPickFromList() {
         this.showMobileActionSheet = false;
-        this.$nextTick(() => {
-          if (this.$refs.nativeSelect) this.$refs.nativeSelect.focus();
-        });
+        const sel = this.$refs.nativeSelect;
+        if (sel) {
+          sel.focus();
+          sel.click();
+        }
       },
       handleNativeSelect(event) {
         const selectedId = event.target.value;
