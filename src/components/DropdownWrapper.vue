@@ -329,6 +329,7 @@
         _handleEmptyDropdownKeydownBound: null,
         _handleEmptyDropdownFocusBound: null,
         _handleEmptyDropdownClickBound: null,
+        _deactivateGuardTimer: null,
       };
     },
     created() {
@@ -338,6 +339,13 @@
       this._handleEmptyDropdownKeydownBound = this.handleEmptyDropdownKeydown.bind(this);
       this._handleEmptyDropdownFocusBound = this.handleEmptyDropdownFocus.bind(this);
       this._handleEmptyDropdownClickBound = this.handleEmptyDropdownClick.bind(this);
+      this._handleDropdownMousedownGuard = () => {
+        if (this.$refs.multiselect?.isOpen) {
+          this._preventDeactivate = true;
+          clearTimeout(this._deactivateGuardTimer);
+          this._deactivateGuardTimer = setTimeout(() => { this._preventDeactivate = false; }, 400);
+        }
+      };
     },
     computed: {
       dropdownListId: function () {
@@ -629,6 +637,8 @@
         };
       }
 
+      this.$el.addEventListener("mousedown", this._handleDropdownMousedownGuard, true);
+
       if (Array.isArray(this.data)) {
         this.data.forEach((group) => {
           if (group.groups && Array.isArray(group.groups)) {
@@ -708,6 +718,8 @@
     },
     beforeUnmount() {
       this.isUserTyping = false;
+      this.$el.removeEventListener("mousedown", this._handleDropdownMousedownGuard, true);
+      clearTimeout(this._deactivateGuardTimer);
       document.removeEventListener("mousedown", this.setMouseUsed);
       document.removeEventListener("keydown", this.resetMouseUsed);
 
@@ -976,6 +988,8 @@
         if (this.isMouseUsed) {
           // If not a maintopic, deactivate the multiselect dropdown
           if (!elem.maintopic) {
+            this._preventDeactivate = false;
+            clearTimeout(this._deactivateGuardTimer);
             const multiselect = this.$refs.multiselect;
             if (multiselect && typeof multiselect.deactivate === "function") {
               multiselect.deactivate();
