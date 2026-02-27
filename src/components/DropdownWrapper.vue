@@ -14,6 +14,13 @@
     @mouseenter.capture="handleOnButtonMouseover(-1, $event)"
     @mousemove.capture.passive="ignoreHover = false"
   >
+    <!-- Mobile tap interceptor: prevents multiselect from opening, shows action sheet instead -->
+    <div
+      v-if="isTouchDevice && !shouldHideDropdownArrow && !mobileOverlayHidden"
+      class="qpm_mobileTapOverlay"
+      @click.prevent.stop="handleMobileTap"
+    />
+
     <multiselect
       ref="multiselect"
       v-model="getStateCopy"
@@ -376,7 +383,7 @@
         isTouchDevice: false,
         _touchMql: null,
         showMobileActionSheet: false,
-        _skipActionSheet: false,
+        mobileOverlayHidden: false,
         _handleKeyDownBound: null,
         _handleInputEventBound: null,
         _handleEmptyDropdownInputBound: null,
@@ -761,25 +768,6 @@
         this.setupInputWidthObserver(input);
       }
       
-      // On touch devices, intercept multiselect open to show action sheet instead
-      this.$watch(() => this.$refs.multiselect?.isOpen, (isOpen) => {
-        if (isOpen && this.isTouchDevice && !this.shouldHideDropdownArrow && !this._skipActionSheet) {
-          const hasOptions = this.getSortedSubjectOptions.length > 0;
-          const canFreeText = this.taggable;
-          this._skipActionSheet = true;
-          if (hasOptions && canFreeText) {
-            this.showMobileActionSheet = true;
-            return;
-          }
-          if (hasOptions && !canFreeText) {
-            this.$nextTick(() => {
-              if (this.$refs.nativeSelect) this.$refs.nativeSelect.focus();
-            });
-            return;
-          }
-        }
-      });
-
       // Watch for multiselect opening and prevent it during silent focus (unless user is typing)
       this.$watch(() => this.$refs.multiselect?.isOpen, (isOpen) => {
         if (isOpen && this.isSilentFocus && !this.isUserTyping) {
@@ -876,37 +864,36 @@
         }
         return result;
       },
+      handleMobileTap() {
+        const hasOptions = this.getSortedSubjectOptions.length > 0;
+        const canFreeText = this.taggable;
+        if (hasOptions && canFreeText) {
+          this.showMobileActionSheet = true;
+        } else if (hasOptions) {
+          if (this.$refs.nativeSelect) this.$refs.nativeSelect.focus();
+        } else if (canFreeText) {
+          this.mobileOverlayHidden = true;
+          this.$nextTick(() => {
+            const input = this.$el.querySelector(".multiselect__input");
+            if (input) input.focus();
+          });
+        }
+      },
       closeMobileActionSheet() {
         this.showMobileActionSheet = false;
-        const ms = this.$refs.multiselect;
-        if (ms && ms.isOpen) {
-          this._preventDeactivate = false;
-          clearTimeout(this._deactivateGuardTimer);
-          ms.deactivate();
-        }
-        setTimeout(() => { this._skipActionSheet = false; }, 300);
       },
       handleActionFreeText() {
         this.showMobileActionSheet = false;
+        this.mobileOverlayHidden = true;
         this.$nextTick(() => {
           const input = this.$el.querySelector(".multiselect__input");
-          if (input) {
-            input.focus();
-          }
-          setTimeout(() => { this._skipActionSheet = false; }, 500);
+          if (input) input.focus();
         });
       },
       handleActionPickFromList() {
         this.showMobileActionSheet = false;
-        const ms = this.$refs.multiselect;
-        if (ms && ms.isOpen) {
-          this._preventDeactivate = false;
-          clearTimeout(this._deactivateGuardTimer);
-          ms.deactivate();
-        }
         this.$nextTick(() => {
           if (this.$refs.nativeSelect) this.$refs.nativeSelect.focus();
-          setTimeout(() => { this._skipActionSheet = false; }, 300);
         });
       },
       handleNativeSelect(event) {
@@ -1167,6 +1154,7 @@
         }
       },
       close() {
+        this.mobileOverlayHidden = false;
         // Clear tempList if it contains items that are being removed (not being added)
         // This fixes the issue where tag removal requires double-click
         if (this.tempList.length > 0) {

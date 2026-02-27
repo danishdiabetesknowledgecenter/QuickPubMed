@@ -587,6 +587,17 @@ button.qpm_slim.multiselect__input:focus-visible {
   color: var(--color-black);
 }
 
+.qpm_mobileTapOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
 .qpm_nativeSelectHidden {
   position: absolute !important;
   opacity: 0 !important;
