@@ -750,6 +750,46 @@
       }
     },
     methods: {
+      getOptionParentChainIds(option) {
+        if (!option || typeof option !== "object") return [];
+        if (Array.isArray(option.parentChain) && option.parentChain.length > 0) {
+          return option.parentChain.map((id) => String(id));
+        }
+        const ids = [];
+        if (option.grandParentId) ids.push(String(option.grandParentId));
+        if (option.parentId) ids.push(String(option.parentId));
+        if (option.maintopicIdLevel2) ids.push(String(option.maintopicIdLevel2));
+        if (option.maintopicIdLevel1) ids.push(String(option.maintopicIdLevel1));
+        return ids;
+      },
+      setExclusiveMaintopicChain(chainIds = [], activeMaintopicId = null) {
+        const nextMap = {};
+        Object.keys(this.maintopicToggledMap).forEach((key) => {
+          nextMap[key] = false;
+        });
+
+        chainIds.forEach((id) => {
+          const key = String(id);
+          nextMap[key] = true;
+        });
+
+        if (activeMaintopicId) {
+          nextMap[String(activeMaintopicId)] = true;
+        }
+
+        this.maintopicToggledMap = nextMap;
+      },
+      toggleMaintopic(option) {
+        if (!option || !option.id) return;
+        const optionId = String(option.id);
+        const isCurrentlyOpen = !!this.maintopicToggledMap[optionId];
+        if (isCurrentlyOpen) {
+          this.setExclusiveMaintopicChain([]);
+          return;
+        }
+        const chainIds = this.getOptionParentChainIds(option);
+        this.setExclusiveMaintopicChain(chainIds, optionId);
+      },
       handleTouchStart(event) {
         const touch = event?.touches?.[0];
         if (!touch) return;
@@ -994,11 +1034,8 @@
         let lg = this.language; // Use this.language to get the current language code
 
         if (elem.maintopic) {
-          //toggle the maintopic
-          this.maintopicToggledMap = {
-            ...this.maintopicToggledMap,
-            [elem.id]: !this.maintopicToggledMap[elem.id],
-          };
+          // Keep only one expanded maintopic branch at a time
+          this.toggleMaintopic(elem);
           value.pop();
         }
 
@@ -1226,36 +1263,25 @@
        * @param {Array} optionsInOptionGroup - The list of options in the group.
        */
       updateOptionGroupVisibility(selectedOptionIds, optionsInOptionGroup) {
-        // Sets to keep track of depths and parent IDs
+        // Sets to keep track of depths
         const selectedDepths = new Set();
-        const ancestorIdsToShow = new Set();
 
         const optionsInGroupIds = new Set(optionsInOptionGroup.map((option) => option.id));
 
-        // First, expand all ancestors in maintopicToggledMap
+        // Build visibility metadata from selected options
         selectedOptionIds.forEach((id) => {
           const option = optionsInOptionGroup.find((option) => option.id === id);
           if (option) {
             selectedDepths.add(option.depth);
-            // Expand ALL ancestors (supports unlimited nesting)
-            if (option.parentChain && option.parentChain.length > 0) {
-              option.parentChain.forEach((ancestorId) => {
-                ancestorIdsToShow.add(ancestorId);
-                this.maintopicToggledMap[ancestorId] = true;
-              });
-            } else {
-              // Fallback for items without parentChain
-              if (option.parentId) {
-                ancestorIdsToShow.add(option.parentId);
-                this.maintopicToggledMap[option.parentId] = true;
-              }
-              if (option.grandParentId) {
-                ancestorIdsToShow.add(option.grandParentId);
-                this.maintopicToggledMap[option.grandParentId] = true;
-              }
-            }
           }
         });
+
+        // Keep only one expanded maintopic branch.
+        // We use the last selected option as the active branch context.
+        const activeSelectedId = selectedOptionIds[selectedOptionIds.length - 1];
+        const activeOption = optionsInOptionGroup.find((option) => option.id === activeSelectedId);
+        const activeChain = this.getOptionParentChainIds(activeOption);
+        this.setExclusiveMaintopicChain(activeChain);
 
         // Then show/hide based on the UPDATED maintopicToggledMap
         this.showOrHideElements();
@@ -1263,7 +1289,7 @@
 
         this.showElementsByOptionIds(selectedOptionIds, optionsInGroupIds);
         this.showElementsByDepths(selectedDepths, optionsInGroupIds);
-        this.showElementsByOptionIds(Array.from(ancestorIdsToShow), optionsInGroupIds);
+        this.showElementsByOptionIds(activeChain, optionsInGroupIds);
       },
       /**
        * Utility method to show elements by option IDs
@@ -1548,6 +1574,18 @@
         }
       },
       handleCategoryGroupTouch(event) {
+        let target = event.target;
+        if (target && target.nodeType === 3) {
+          target = target.parentElement;
+        }
+        if (!target) return;
+
+        const groupTarget = target.closest?.(".multiselect__option--group");
+        if (!groupTarget) {
+          // Not a group tap: let normal option selection run unchanged.
+          return;
+        }
+
         if (event.cancelable) {
           event.preventDefault();
         }
@@ -1762,10 +1800,7 @@
               const dropdownRef = this.$refs.multiselect;
               const option = dropdownRef.filteredOptions[dropdownRef.pointer];
               if (option && option.maintopic) {
-                this.maintopicToggledMap = {
-                  ...this.maintopicToggledMap,
-                  [option.id]: !this.maintopicToggledMap[option.id],
-                };
+                this.toggleMaintopic(option);
                 this.showOrHideElements();
               }
               return;
