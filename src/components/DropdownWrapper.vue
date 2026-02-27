@@ -346,6 +346,17 @@
           this._deactivateGuardTimer = setTimeout(() => { this._preventDeactivate = false; }, 400);
         }
       };
+      this._handleBlurGuard = (e) => {
+        if (this._preventDeactivate && this.$refs.multiselect?.isOpen) {
+          e.stopImmediatePropagation();
+          setTimeout(() => {
+            const s = this.$refs.multiselect?.$refs?.search;
+            if (s && this.$refs.multiselect?.isOpen) {
+              s.focus({ preventScroll: true });
+            }
+          }, 10);
+        }
+      };
     },
     computed: {
       dropdownListId: function () {
@@ -658,6 +669,7 @@
 
       const input = this.$el.querySelector('.multiselect__input');
       if (input) {
+        input.addEventListener('blur', this._handleBlurGuard, true);
         input.addEventListener('focus', this.addKeyboardFocus);
         input.addEventListener('blur', this.removeKeyboardFocus);
         input.addEventListener('focus', this.handleFocus);
@@ -725,6 +737,7 @@
 
       const input = this.$el.querySelector('.multiselect__input');
       if (input) {
+        input.removeEventListener('blur', this._handleBlurGuard, true);
         input.removeEventListener('focus', this.addKeyboardFocus);
         input.removeEventListener('blur', this.removeKeyboardFocus);
         input.removeEventListener('focus', this.handleFocus);
