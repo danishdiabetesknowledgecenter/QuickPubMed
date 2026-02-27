@@ -18,7 +18,8 @@
     <div
       v-if="isTouchDevice && !shouldHideDropdownArrow && !mobileOverlayHidden"
       class="qpm_mobileTapOverlay"
-      @click.prevent.stop="handleMobileTap"
+      @touchstart.prevent.stop="handleMobileTap"
+      @mousedown.prevent.stop="handleMobileTap"
     />
 
     <multiselect
