@@ -33,7 +33,7 @@
       selected-label=""
       :options="shouldHideDropdownArrow ? [] : getSortedSubjectOptions"
       :multiple="isMultiple"
-      :group-select="!hasTouchInteraction"
+      :group-select="true"
       :group-values="isGroup ? 'groups' : undefined"
       :group-label="isGroup ? 'id' : undefined"
       :placeholder="placeholder"
@@ -339,7 +339,6 @@
         isTouchScrolling: false,
         preventCloseFromTouchScroll: false,
         touchEndResetTimeoutId: null,
-        hasTouchInteraction: false,
       };
     },
     created() {
@@ -738,6 +737,10 @@
         if (dropdown) {
           dropdown.removeEventListener("mousedown", this.handleOpenMenuOnClick);
         }
+        const headers = Array.from(element.getElementsByClassName("multiselect__element"));
+        headers.forEach((header) => {
+          header.removeEventListener("touchend", this.handleCategoryGroupTouch);
+        });
       }
       
       // Clean up observer
@@ -750,7 +753,6 @@
       handleTouchStart(event) {
         const touch = event?.touches?.[0];
         if (!touch) return;
-        this.hasTouchInteraction = true;
         if (this.touchEndResetTimeoutId) {
           clearTimeout(this.touchEndResetTimeoutId);
           this.touchEndResetTimeoutId = null;
@@ -935,6 +937,11 @@
           // Add click handler for category groups
           header.removeEventListener("click", self.handleCategoryGroupClick);
           header.addEventListener("click", self.handleCategoryGroupClick);
+          // On touch devices, run group logic directly and cancel synthetic click
+          header.removeEventListener("touchend", self.handleCategoryGroupTouch);
+          header.addEventListener("touchend", self.handleCategoryGroupTouch, {
+            passive: false,
+          });
         });
 
         // Stop selecting group when pressing enter during search
@@ -1491,15 +1498,20 @@
        */
       handleCategoryGroupClick(event) {
         let target = event.target;
-
-        // Check if the click is on the optiongroup name or elsewhere within the multiselect__option__option--group element
-        if (target.classList.contains("qpm_groupLabel")) {
+        if (target && target.nodeType === 3) {
           target = target.parentElement;
         }
+        if (!target) return;
 
-        const optionGroupName = target.getElementsByClassName("qpm_groupLabel")[0].textContent;
+        const groupTarget = target.closest?.(".multiselect__option--group");
+        if (!groupTarget) return;
 
-        if (target.classList.contains("multiselect__option--group")) {
+        const groupLabelElement = groupTarget.getElementsByClassName("qpm_groupLabel")[0];
+        if (!groupLabelElement) return;
+
+        const optionGroupName = groupLabelElement.textContent;
+
+        if (groupTarget.classList.contains("multiselect__option--group")) {
           if (this.expandedOptionGroupName === optionGroupName) {
             this.hideItems(this.expandedOptionGroupName);
             this.expandedOptionGroupName = "";
@@ -1534,6 +1546,13 @@
         } else {
           // This is when we are adding a new tag
         }
+      },
+      handleCategoryGroupTouch(event) {
+        if (event.cancelable) {
+          event.preventDefault();
+        }
+        event.stopPropagation();
+        this.handleCategoryGroupClick(event);
       },
       /**
        * Handles the click event on a tag (an option that has been selected),
