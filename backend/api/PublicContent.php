@@ -1,6 +1,6 @@
 <?php
 /**
- * Public read-only content API for topics/filters.
+ * Public read-only content API for topics/limits.
  */
 
 require_once __DIR__ . '/../app/editor-content-store.php';

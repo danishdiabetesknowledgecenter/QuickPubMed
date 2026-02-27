@@ -1289,7 +1289,7 @@
        * @param optionGroupId {String} - The Id (eg. S00) of the optiongroup to get siblings for
        * @param baseTopic {Boolean} - Whether the topic is a base topic or not
        * @param depth {Number} - The depth level to retrieve options from
-       * @param isFilter {Boolean} - Whether the options are filters or not
+       * @param isFilter {Boolean} - Whether the options are limits or not
        */
       getSiblings(optionGroupId, baseTopic, depth) {
         const siblings = [];
@@ -1323,14 +1323,14 @@
 
       /**
        * Retrieves options at a specific depth.
-       * If optionGroupId is provided, filters the options accordingly.
+       * If optionGroupId is provided, narrows the options accordingly.
        * If includeChildren is true, includes children of maintopic options.
        *
        * @param {number} depth - The depth level to retrieve options from.
        * @param {string} [optionGroupId=null] - (Optional) The group ID to filter options.
        * @param {boolean} [includeChildren=false] - (Optional) Whether to include maintopic children.
        * @param {boolean} [baseTopic=false] - (Optional) Whether to include siblings for base topics.
-       * @param {boolean} [isFilter=false] - (Optional) Whether the options are filters or not.
+       * @param {boolean} [isFilter=false] - (Optional) Whether the options are limits or not.
        * @returns {Array} - The filtered and possibly expanded options.
        */
       getOptionsAtDepth(
@@ -1365,7 +1365,7 @@
       /**
        * Utility method to get the state of maintopics from the dropdown.
        * @param optionGroupId {String} - The Id (eg. S00) of the optiongroup to get maintopics for
-       * @param filter {Boolean} - Whether the options are filters or not
+       * @param filter {Boolean} - Whether the options are limits or not
        */
       getMaintopics(optionGroupId) {
         let maintopics = [];
@@ -1386,7 +1386,7 @@
        * return true if all maintopics are toggled
        * @param {String} optionGroupId - The Id (eg. S00) of the optiongroup to check
        * @param {Boolean} getToggled - Whether to return the toggled or not toggled maintopics
-       * @param {Boolean} isFilter - Whether the options are filters or not
+       * @param {Boolean} isFilter - Whether the options are limits or not
        */
       areMaintopicsToggled(optionGroupId, getToggled = true) {
         // find the optiongroup
@@ -2186,7 +2186,7 @@
 
         const currentSubject = dropdownRef.filteredOptions[dropdownRef.pointer];
         
-        // Check if we're navigating up from a collapsed maintopic's children (works for both topics and filters)
+        // Check if we're navigating up from a collapsed maintopic's children (works for both topics and limits)
         const itemAbove = dropdownRef.filteredOptions[dropdownRef.pointer - 1];
         const itemAboveId = String(itemAbove?.id ?? "");
         const currentParentChain = Array.isArray(currentSubject?.parentChain)
@@ -2654,7 +2654,7 @@
       /**
        * Gets the group name for a given item.
        * Needed since we operate with two different sets of naming.
-       * For filters we have 'choices' and for topics we have 'groups'.
+       * For limits we have 'choices' and for topics we have 'groups'.
        *
        * @param {Object} item - The item to get the group name for.
        * @returns {string|null} The group name or null if not found.

@@ -29,7 +29,7 @@
           <div v-show="isCollapsed" class="qpm_collapsedSpacerPadding"></div>
 
           <div v-show="!isCollapsed" class="qpm_searchformoptions">
-            <!-- The dropdown for selecting subjects to be included in the search -->
+          <!-- The dropdown for selecting topics to be included in the search -->
             <subject-selection
               ref="subjectSelection"
               :topics="topics"
@@ -51,10 +51,10 @@
               @toggle-filter="toggle"
             />
 
-            <!-- The dropdown(s) for selecting filters to be included in the advanced search -->
-            <advanced-search-filters
+            <!-- The dropdown(s) for selecting limits to be included in the advanced search -->
+            <advanced-search-limits
               v-if="advanced && hasTopics"
-              ref="advancedSearchFilters"
+              ref="advancedSearchLimits"
               :advanced="advanced"
               :limit-options="limitOptions"
               :limit-dropdowns="limitDropdowns"
@@ -70,8 +70,8 @@
               @remove-limit-dropdown="removeLimitDropdown"
             />
 
-            <!-- The radio buttons for filters to be included in the simple search -->
-            <simple-search-filters
+            <!-- The radio buttons for limits to be included in the simple search -->
+            <simple-search-limits
               v-if="!advanced && showSimpleFilters"
               :advanced="advanced"
               :filtered-choices="filteredChoices"
@@ -174,8 +174,8 @@
       AiTranslationToggle,
       SearchFormToggle,
       AdvancedSearchToggle,
-      SimpleSearchFilters,
-      AdvancedSearchFilters,
+      SimpleSearchLimits: SimpleSearchFilters,
+      AdvancedSearchLimits: AdvancedSearchFilters,
       SubjectSelection,
       WordedSearchString,
       SearchResult,
@@ -352,7 +352,7 @@
         return this.topics.some((subjectArray) => subjectArray.length > 0);
       },
       /**
-       * Derives the user's search intention from subjects and filters.
+       * Derives the user's search intention from topics and limits.
        * Uses original user input (preTranslation) for AI-translated terms,
        * or display names (translations) for predefined topics.
        * Preserves logical structure: ELLER within groups, OG between groups.
@@ -463,7 +463,7 @@
 
         this.topics.forEach((subjectGroup, index) => {
           if (!Array.isArray(subjectGroup)) return;
-          const subjectsToIterate = subjectGroup.length;
+          const topicsToIterate = subjectGroup.length;
           const hasOperators = subjectGroup.some(
             (item) =>
               item.searchStrings &&
@@ -476,7 +476,7 @@
           let substring = index > 0 ? " AND " : "";
           if (
             (hasOperators && (this.topics.length > 1 || this.limits.length > 0)) ||
-            subjectsToIterate > 1
+            topicsToIterate > 1
           ) {
             substring += "(";
           }
@@ -485,7 +485,7 @@
 
           if (
             (hasOperators && (this.topics.length > 1 || this.limits.length > 0)) ||
-            subjectsToIterate > 1
+            topicsToIterate > 1
           ) {
             substring += ")";
           }
@@ -787,11 +787,11 @@
             ? cloneDeep(this.limitData)
             : null;
 
-        // Reset filters if necessary
+        // Reset limits if necessary
         if (!this.alwaysShowFilter) {
           this.limitData = {};
           this.limits.splice(0);
-          // Don't reset limitDropdowns here - like subjects, they may contain URL data
+          // Don't reset limitDropdowns here - like topics, they may contain URL data
         }
 
         // Prepare options FIRST (needed for getLimitCategoryId in sync)
@@ -825,13 +825,13 @@
           this.resetTopicScopes();
         }
 
-        // Update filters
+        // Update limits
         this.updateLimitsBasedOnSelection();
 
         // Clean filter data
         this.cleanLimitData();
 
-        // Reset filters if empty in advanced mode
+        // Reset limits if empty in advanced mode
         if (this.advanced && Object.keys(this.limitData).length === 0 && !this.hasLimitSelections) {
           this.limits = [];
         }
@@ -948,7 +948,7 @@
       },
       /**
        * Parses the current URL's query parameters and updates the component's state accordingly.
-       * Handles subjects, filters, advanced mode, sorting, collapsed state, page size,
+       * Handles topics, limits, advanced mode, sorting, collapsed state, page size,
        * preselected PMIDs, and scroll position.
        */
       parseUrl() {
@@ -1246,7 +1246,7 @@
       /**
        * Syncs limitData (category-grouped object) from limitDropdowns (array of arrays).
        * Merges all items from all dropdowns by their filter category.
-       * Also updates the 'filters' array to match.
+       * Also updates the 'limits' array to match.
        */
       syncLimitDataFromDropdowns() {
         const newFilterData = {};
@@ -1263,7 +1263,7 @@
 
         this.limitData = newFilterData;
 
-        // Update filters array to match active categories
+        // Update limits array to match active categories
         this.limits = [...filterSet]
           .map((id) => this.limitOptions.find((f) => f.id === id))
           .filter(Boolean);
@@ -1292,9 +1292,9 @@
       },
       /**
        * Removes extra empty dropdowns, keeping at most one empty.
-       * Works for both subjects and limitDropdowns.
+       * Works for both topics and limitDropdowns.
        *
-       * @param {string} prop - "subjects" or "limitDropdowns"
+       * @param {string} prop - "topics" or "limitDropdowns"
        */
       removeExtraEmptyDropdowns(prop) {
         const arr = this[prop];
@@ -1323,7 +1323,7 @@
         this.limitDropdowns = [...this.limitDropdowns, []];
 
         this.$nextTick(() => {
-          const limitSelection = this.$refs.advancedSearchFilters?.$refs.limitSelection;
+          const limitSelection = this.$refs.advancedSearchLimits?.$refs.limitSelection;
           if (!limitSelection) return;
           const lastDropdown = this.getLastDropdownRef(limitSelection.$refs.limitDropdown);
           this.tryActivateDropdown(lastDropdown, { focusInput: true });
@@ -1390,7 +1390,7 @@
       },
       /**
        * Constructs the full URL based on the current application state.
-       * Includes parameters for subjects, filters, advanced mode, sorting,
+       * Includes parameters for topics, limits, advanced mode, sorting,
        * collapsed state, page size, preselected PMIDs, and scroll position.
        *
        * @returns {string} The constructed URL reflecting the current state.
@@ -1404,7 +1404,7 @@
         const apiBaseParam = (currentParams.get("apiBase") || "").trim();
         const apiBaseStr = apiBaseParam ? `apiBase=${encodeURIComponent(apiBaseParam)}` : "";
 
-        // If there are no subjects selected, return the base URL without parameters
+        // If there are no topics selected, return the base URL without parameters
 
         if (!this.hasTopics && !this.openLimitsFromUrl && !this.openLimits) {
           return apiBaseStr ? `${baseUrl}?${apiBaseStr}` : baseUrl;
@@ -1437,9 +1437,9 @@
         return urlLink.replace("?&", "?").replace(/&&+/g, "&");
       },
       /**
-       * Constructs the query string for subjects based on selected subjects.
+       * Constructs the query string for topics based on selected topics.
        *
-       * @returns {string} The encoded subjects query string.
+       * @returns {string} The encoded topics query string.
        */
       constructTopicsQuery() {
         if (!this.topics || this.topics.length === 0) {
@@ -1471,9 +1471,9 @@
         return subjectQueries.join("&");
       },
       /**
-       * Constructs the query string for filters based on selected filters.
+       * Constructs the query string for limits based on selected limits.
        *
-       * @returns {string} The encoded filters query string.
+       * @returns {string} The encoded limits query string.
        */
       constructLimitsQuery() {
         if (!this.advanced) {
@@ -1553,8 +1553,8 @@
 
         // Open dropdown with a delay
         setTimeout(() => {
-          if (this.advanced && this.$refs.advancedSearchFilters) {
-            const limitSelection = this.$refs.advancedSearchFilters?.$refs.limitSelection;
+          if (this.advanced && this.$refs.advancedSearchLimits) {
+            const limitSelection = this.$refs.advancedSearchLimits?.$refs.limitSelection;
             if (limitSelection) {
               const dropdowns = limitSelection.$refs.limitDropdown;
               const firstDropdown = Array.isArray(dropdowns) ? dropdowns[0] : dropdowns;
@@ -1564,14 +1564,14 @@
         }, 50);
       },
       /**
-       * Adds a new subject to the subjects array and updates the UI accordingly by rendering another dropdown wrapper.
+       * Adds a new topic to the topics array and updates the UI accordingly by rendering another dropdown wrapper.
        *
        * This function performs the following steps:
-       * 1. Checks if there is any empty subject in the subjects array.
+       * 1. Checks if there is any empty topic in the topics array.
        *    - If an empty subject is found, it alerts the user to fill the empty dropdown first and exits the function.
-       * 2. Updates the placeholders for the subjects.
-       * 3. Adds a new empty subject to the subjects array.
-       * 4. Sets a timeout to focus on the search input of the newly added subject dropdown.
+       * 2. Updates the placeholders for the topics.
+       * 3. Adds a new empty topic to the topics array.
+       * 4. Sets a timeout to focus on the search input of the newly added topic dropdown.
        */
       addTopic() {
         const hasEmptySubject = this.topics.some((entry) => entry.length === 0);
@@ -1601,7 +1601,7 @@
         });
       },
       /**
-       * Removes a subject from the subjects array and updates the UI accordingly.
+       * Removes a topic from the topics array and updates the UI accordingly.
        *
        * @param {number} id - The index of the subject to remove.
        */
@@ -1616,10 +1616,10 @@
         }
       },
       /**
-       * Updates the subjects array and manages related state.
+       * Updates the topics array and manages related state.
        *
        * @param {Array<Object>} value - The list of subject items to update.
-       * @param {number} index - The index of the subjects array to update.
+       * @param {number} index - The index of the topics array to update.
        */
       updateTopics(value, index) {
         value.forEach((item, i) => {
@@ -1658,7 +1658,7 @@
        *
        * @param {Object} item - The subject item to update.
        * @param {string} state - The new scope state.
-       * @param {number} index - The index of the subjects array where the item resides.
+       * @param {number} index - The index of the topics array where the item resides.
        */
       updateTopicScope(item, state, index) {
         const updatedSubjects = cloneDeep(this.topics);
@@ -1669,7 +1669,7 @@
           );
           if (subject) {
             if (subject.scope === state) {
-              // Find the subject in the subjects array and remove it
+              // Find the topic in the topics array and remove it
               const subjectIndex = updatedSubjects[index].findIndex(
                 (sub) => this.optionIdentity(sub) === this.optionIdentity(item)
               );
@@ -1682,11 +1682,11 @@
           this.editForm();
         } else {
           console.warn();
-          `updateTopicScope: subjects[${index}] is undefined or not an array. No subjects are chosen.`;
+          `updateTopicScope: topics[${index}] is undefined or not an array. No topics are chosen.`;
         }
       },
       /**
-       * Updates the filters array and initializes filter data.
+       * Updates the limits array and initializes limit data.
        *
        * @param {Array<Object>} value - The list of filter items to update.
        */
@@ -1721,7 +1721,7 @@
       },
       /**
        * Updates the filter data when a user selects or deselects a simple filter option.
-       * Manages the limitData and filters arrays based on the user's interaction.
+       * Manages the limitData and limits arrays based on the user's interaction.
        * Also updates the URL and form accordingly.
        *
        * @param {string} filterType - The ID of the filter group being updated.
@@ -1802,7 +1802,7 @@
        * It prefills some of the filter options in simple search.
        */
       selectStandardSimple() {
-        const filtersToSelect = [];
+        const limitsToSelect = [];
         const useCheckLimits =
           Array.isArray(this.effectiveCheckLimits) && this.effectiveCheckLimits.length > 0;
         const hiddenGroupIds = new Set(this.effectiveHideLimits);
@@ -1821,7 +1821,7 @@
               : choice.standardSimple;
             if (shouldSelect) {
               const filterValue = Object.assign({ scope: "normal" }, choice);
-              filtersToSelect.push({
+              limitsToSelect.push({
                 option: option,
                 value: filterValue,
               });
@@ -1830,9 +1830,9 @@
         }
 
         const tempFilters = cloneDeep(this.limitData);
-        // Update selected filters here.
-        for (let i = 0; i < filtersToSelect.length; i++) {
-          const filterToSelect = filtersToSelect[i];
+        // Update selected limits here.
+        for (let i = 0; i < limitsToSelect.length; i++) {
+          const filterToSelect = limitsToSelect[i];
           const filterType = filterToSelect.option.id;
           const filtervalue = filterToSelect.value;
           // If no array exists, create array with value.
@@ -1927,7 +1927,7 @@
         // Update the limitData with the filtered results
         this.limitData = updatedFilterData;
 
-        // Create a shallow copy of filters to avoid direct mutations
+        // Create a shallow copy of limits to avoid direct mutations
         const updatedFilters = [...this.limits];
 
         // Iterate through each index of updatedFilters
@@ -1938,7 +1938,7 @@
             updatedFilters.splice(index, 1);
         });
 
-        // Update the filters with the filtered results
+        // Update the limits with the filtered results
         this.limits = updatedFilters;
 
         // Update the URL and form based on the new limitData

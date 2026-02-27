@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div v-for="(item, n) in limitDropdowns" :key="`filter-${n}`" class="qpm_subjects">
+    <div v-for="(item, n) in limitDropdowns" :key="`limit-${n}`" class="qpm_topics">
       <div class="qpm_flex">
         <dropdown-wrapper
           ref="limitDropdown"

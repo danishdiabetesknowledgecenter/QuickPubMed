@@ -234,7 +234,7 @@
       },
 
       /**
-       * Returns an array of [key, value] pairs from the filters object
+       * Returns an array of [key, value] pairs from the limits object
        * where the value array is not empty.
        */
       activeLimits() {
@@ -243,9 +243,9 @@
         );
       },
       /**
-       * Returns filter groups for display.
-       * In advanced mode: uses filterDropdowns (each dropdown = one group).
-       * In simple mode: falls back to filters (filterData), each category = one group.
+       * Returns limit groups for display.
+       * In advanced mode: uses limitDropdowns (each dropdown = one group).
+       * In simple mode: falls back to limits (limitData), each category = one group.
        */
       activeLimitDropdowns() {
         const safeDropdowns = Array.isArray(this.limitDropdowns) ? this.limitDropdowns : [];

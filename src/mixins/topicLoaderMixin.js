@@ -15,7 +15,7 @@ import { normalizeTopicsList } from "@/utils/contentCanonicalizer";
  * - `parentChain` (array of ALL ancestor IDs, from nearest to farthest)
  *
  * Supports both nested (new) and flat (legacy) formats. Nested structures can
- * use either `children` (topics) or `choices` (filters). If no nested entries
+ * use either `children` (topics) or `choices` (limits). If no nested entries
  * are found, the groups array is returned unchanged.
  *
  * @param {Array} groups - The groups array (nested or flat)

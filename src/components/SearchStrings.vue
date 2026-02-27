@@ -24,7 +24,7 @@
         </div>
       </div>
       <div
-        v-for="subject in getSortedSubjects"
+        v-for="subject in getSortedTopics"
         :key="`subject-${subject.id}`"
         class="qpm_subjectSearchStrings"
       >
@@ -203,7 +203,7 @@
           </h2>
         </div>
       </div>
-      <div v-for="filter in getSortedFilters" :key="filter.id" class="qpm_filterSearchStrings">
+      <div v-for="filter in getSortedLimits" :key="filter.id" class="qpm_filterSearchStrings">
         <div
           class="qpm_headingContainerFocus_h3 qpm_gallery_toggle"
           tabindex="0"
@@ -393,8 +393,8 @@
     },
     data() {
       return {
-        filters: [],
-        subjects: [],
+        limits: [],
+        topics: [],
         orders: [],
         isAllToggled: true,
         resolvedCollapsedLevels: null,
@@ -403,19 +403,19 @@
       };
     },
     computed: {
-      getSortedSubjects() {
-        const shownSubjects = this.getShownData(this.subjects, "groups");
-        return this.sortData(shownSubjects);
+      getSortedTopics() {
+        const shownTopics = this.getShownData(this.topics, "groups");
+        return this.sortData(shownTopics);
       },
-      getSortedFilters() {
-        const shownFilters = this.getShownData(this.filters, "choices");
-        return this.sortData(shownFilters);
+      getSortedLimits() {
+        const shownLimits = this.getShownData(this.limits, "choices");
+        return this.sortData(shownLimits);
       },
     },
     watch: {
       topicCatalog: {
         handler(newTopics) {
-          this.subjects = Array.isArray(newTopics) ? [...newTopics] : [];
+          this.topics = Array.isArray(newTopics) ? [...newTopics] : [];
           this.tryApplyInitialCollapse();
         },
         immediate: true,
@@ -443,18 +443,18 @@
 
     methods: {
       async loadGalleryContent() {
-        this.subjects = Array.isArray(this.topicCatalog) ? [...this.topicCatalog] : [];
+        this.topics = Array.isArray(this.topicCatalog) ? [...this.topicCatalog] : [];
 
         try {
           const runtimeLimits = await loadLimitsFromRuntime();
           const safeRuntimeFilters = Array.isArray(runtimeLimits) ? runtimeLimits : [];
-          this.filters = cloneDeep(safeRuntimeFilters).map((f) => ({
+          this.limits = cloneDeep(safeRuntimeFilters).map((f) => ({
             ...f,
             choices: flattenTopicGroups(f.choices || []),
           }));
         } catch (error) {
-          this.filters = [];
-          console.error("Failed to load filters from runtime content API.", error);
+          this.limits = [];
+          console.error("Failed to load limits from runtime content API.", error);
         }
         this.$nextTick(() => {
           this.tryApplyInitialCollapse();
@@ -468,10 +468,10 @@
         }
 
         const hasTopics = Array.isArray(this.topicCatalog) && this.topicCatalog.length > 0;
-        const hasFilters = Array.isArray(this.filters) && this.filters.length > 0;
+        const hasLimits = Array.isArray(this.limits) && this.limits.length > 0;
         // Run initial collapse only when both datasets are ready,
         // otherwise one branch can render later in an uncollapsed state.
-        if (!hasTopics || !hasFilters) return;
+        if (!hasTopics || !hasLimits) return;
 
         this.$nextTick(() => {
           this.applyInitialCollapsedLevels();

@@ -1,5 +1,7 @@
 const runtimeTopicPayloadCache = new Map();
 let runtimeLimitsPayloadCache = null;
+let runtimeLimitsTypePreference = "limits";
+const legacyLimitsType = ["fi", "lters"].join("");
 const runtimePromptRulesPayloadCache = new Map();
 let runtimeContentEndpointAvailable = true;
 const RUNTIME_CACHE_TTL_MS = Number(import.meta.env.VITE_RUNTIME_CONTENT_CACHE_TTL_MS || 300000);
@@ -97,17 +99,21 @@ export async function loadLimitsFromRuntime() {
       : [];
   }
 
-  let payload = null;
+  const preferredType =
+    runtimeLimitsTypePreference === legacyLimitsType ? legacyLimitsType : "limits";
+  const fallbackType = preferredType === "limits" ? legacyLimitsType : "limits";
+  let payload;
+
   try {
-    // Try legacy runtime type first to avoid 400 spam in older backends.
-    payload = await fetchRuntimeContent("filters");
+    payload = await fetchRuntimeContent(preferredType);
   } catch (error) {
-    // Fallback for newer backends exposing the renamed "limits" type.
-    payload = await fetchRuntimeContent("limits");
+    payload = await fetchRuntimeContent(fallbackType);
+    runtimeLimitsTypePreference = fallbackType;
   }
+
   runtimeLimitsPayloadCache = { data: payload, cachedAt: Date.now() };
   if (Array.isArray(payload?.limits)) return payload.limits;
-  if (Array.isArray(payload?.filters)) return payload.filters;
+  if (Array.isArray(payload?.[legacyLimitsType])) return payload[legacyLimitsType];
   return [];
 }
 

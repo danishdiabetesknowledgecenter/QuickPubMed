@@ -1,6 +1,6 @@
 <?php
 /**
- * Editor content API for flat-file topics/filters.
+ * Editor content API for flat-file topics/limits.
  */
 
 require_once __DIR__ . '/../app/editor-content-store.php';

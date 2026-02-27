@@ -1,6 +1,6 @@
 <template>
   <div class="qpm_simpleFiltersRoot">
-    <div class="qpm_filtersHeaderContainer">
+    <div class="qpm_limitsHeaderContainer">
       <h4 role="heading" aria-level="3" class="h4">
         {{ getString("SimpleLimitsHeader") }}
       </h4>
@@ -120,9 +120,9 @@
       onFilterEnter(selectedValue) {
         this.$emit("update-limit-enter", selectedValue);
       },
-      hasVisibleSimpleFilterOption(filters) {
-        if (!filters) return false;
-        return filters.some((entry) => entry.simpleSearch);
+      hasVisibleSimpleFilterOption(limits) {
+        if (!limits) return false;
+        return limits.some((entry) => entry.simpleSearch);
       },
       /**
        * Checks if a filter with the given name is used in the provided options.

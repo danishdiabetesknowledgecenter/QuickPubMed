@@ -140,11 +140,11 @@
         this.dropdownWidth = dropdown.offsetWidth;
       },
       /**
-       * Emits the input event with updated filters.
-       * @param {Array} updatedFilters
+       * Emits the input event with updated limits.
+       * @param {Array} updatedLimits
        */
-      handleInput(updatedFilters) {
-        this.$emit("input", updatedFilters);
+      handleInput(updatedLimits) {
+        this.$emit("input", updatedLimits);
       },
       /**
        * Emits the updateScope event with item, state, and id.

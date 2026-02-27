@@ -587,7 +587,7 @@ function editorAllowedDomainsForCurrentUser(): array
 }
 
 /**
- * Check if current user can edit filters.
+ * Check if current user can edit limits.
  */
 function editorCanEditLimits(): bool
 {
