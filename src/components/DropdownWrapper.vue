@@ -1240,15 +1240,15 @@
         }
 
         const entries = element.querySelectorAll("[data-name]");
+        const expandedGroupId = this.getOptionGroupId(this.expandedOptionGroupName);
         entries.forEach((entry) => {
-          const groupName = entry.getAttribute("data-name");
+          const optionId = entry.getAttribute("option-id");
+          const optionGroupId = this.getOptionGroupIdByOptionId(optionId);
           const parent = entry.parentNode.parentNode;
-
-          const shouldShow =
-            this.expandedOptionGroupName !== groupName ||
-            !this.areAllAncestorsExpanded(entry);
-
-          parent.classList.toggle("qpm_shown", shouldShow);
+          const isInExpandedGroup =
+            !!expandedGroupId && !!optionGroupId && optionGroupId === expandedGroupId;
+          const shouldShow = isInExpandedGroup && this.areAllAncestorsExpanded(entry);
+          parent.classList.toggle("qpm_shown", !shouldShow);
         });
       },
       /**
@@ -2743,6 +2743,19 @@
             this.customGroupLabel(item) === groupname
           ) {
             return item.id;
+          }
+        }
+        return null;
+      },
+      getOptionGroupIdByOptionId(optionId) {
+        if (!optionId) return null;
+        for (const item of this.data) {
+          const groupName = this.getGroupName(item);
+          if (!groupName || !Array.isArray(item[groupName])) continue;
+          for (const entry of item[groupName]) {
+            if (areComparableIdsEqual(entry?.id, optionId)) {
+              return item.id;
+            }
           }
         }
         return null;
