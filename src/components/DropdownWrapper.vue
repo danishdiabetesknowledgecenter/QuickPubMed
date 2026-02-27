@@ -212,6 +212,26 @@
       class="qpm_multiselect_custom_spinner qpm_inlineBlock"
       :size="30"
     />
+
+    <!-- Native select for touch devices — opens iOS/Android picker instead of vue-multiselect dropdown -->
+    <select
+      v-if="isTouchDevice && !shouldHideDropdownArrow && getSortedSubjectOptions.length > 0"
+      ref="nativeSelect"
+      class="qpm_nativeSelect"
+      @change="handleNativeSelect($event)"
+    >
+      <option value="" disabled selected>{{ placeholder }}</option>
+      <template v-for="group in getSortedSubjectOptions" :key="group.id">
+        <optgroup :label="customGroupLabelById(group.id)">
+          <option
+            v-for="item in flattenGroupForNative(group)"
+            :key="item.id"
+            :value="item.id"
+            :disabled="item.isBranch"
+          >{{ item.displayLabel }}</option>
+        </optgroup>
+      </template>
+    </select>
   </div>
 </template>
 
@@ -323,6 +343,8 @@
         _isEmptyDropdown: false, // Track if this is an empty dropdown with custom input handling
         isDropdownOpen: false, // Track dropdown state for aria-expanded
         _preventDeactivate: false,
+        isTouchDevice: false,
+        _touchMql: null,
         _handleKeyDownBound: null,
         _handleInputEventBound: null,
         _handleEmptyDropdownInputBound: null,
@@ -333,6 +355,12 @@
       };
     },
     created() {
+      if (typeof window !== "undefined" && window.matchMedia) {
+        this._touchMql = window.matchMedia("(pointer: coarse)");
+        this.isTouchDevice = this._touchMql.matches;
+        this._touchMqlHandler = (e) => { this.isTouchDevice = e.matches; };
+        this._touchMql.addEventListener("change", this._touchMqlHandler);
+      }
       this._handleKeyDownBound = this.handleKeyDown.bind(this);
       this._handleInputEventBound = this.handleInputEvent.bind(this);
       this._handleEmptyDropdownInputBound = this.handleEmptyDropdownInput.bind(this);
@@ -731,6 +759,9 @@
     },
     beforeUnmount() {
       this.isUserTyping = false;
+      if (this._touchMql && this._touchMqlHandler) {
+        this._touchMql.removeEventListener("change", this._touchMqlHandler);
+      }
       this.$el.removeEventListener("mousedown", this._handleDropdownMousedownGuard, true);
       this.$el.removeEventListener("touchstart", this._handleDropdownMousedownGuard, true);
       clearTimeout(this._deactivateGuardTimer);
@@ -771,6 +802,45 @@
       }
     },
     methods: {
+      flattenGroupForNative(group) {
+        const groupProp = group.groups ? "groups" : group.choices ? "choices" : null;
+        if (!groupProp) return [];
+        const items = group[groupProp];
+        const result = [];
+        const NBSP = "\u00A0";
+        const DASH = "\u2014 ";
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          if (!item) continue;
+          const depth = item.subtopiclevel || 0;
+          const indent = NBSP.repeat(depth * 3);
+          const prefix = depth > 0 ? DASH : "";
+          const label = this.customNameLabel(item) || item.id;
+          result.push({
+            id: item.id,
+            displayLabel: indent + prefix + label,
+            isBranch: !!item.maintopic,
+            original: item,
+          });
+        }
+        return result;
+      },
+      handleNativeSelect(event) {
+        const selectedId = event.target.value;
+        if (!selectedId) return;
+        const optionObj = this.getIdToDataMap[selectedId];
+        if (!optionObj || optionObj.maintopic) {
+          event.target.value = "";
+          return;
+        }
+        const newSelected = [...this.selected, optionObj];
+        this.$emit("input", newSelected, this.index);
+        this.$nextTick(() => {
+          if (this.$refs.nativeSelect) {
+            this.$refs.nativeSelect.value = "";
+          }
+        });
+      },
       /**
        * Checks whether a searchString scope has valid content.
        * @param {Object} option - Option object from the dropdown.
