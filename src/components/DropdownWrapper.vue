@@ -3,10 +3,6 @@
     ref="selectWrapper"
     class="qpm_dropdown"
     :class="{ 'qpm_hide-tags-wrap': hideTagsWrap }"
-    @touchstart.passive="handleTouchStart"
-    @touchmove.passive="handleTouchMove"
-    @touchend.passive="handleTouchEnd"
-    @touchcancel.passive="handleTouchEnd"
     @keydown.up.capture.prevent.stop="navUp"
     @keydown.down.capture.prevent.stop="navDown"
     @keydown.left.stop="navLeft"
@@ -332,13 +328,6 @@
         _handleEmptyDropdownKeydownBound: null,
         _handleEmptyDropdownFocusBound: null,
         _handleEmptyDropdownClickBound: null,
-        touchStartX: 0,
-        touchStartY: 0,
-        touchScrollThreshold: 10,
-        isTouchInteracting: false,
-        isTouchScrolling: false,
-        preventCloseFromTouchScroll: false,
-        touchEndResetTimeoutId: null,
       };
     },
     created() {
@@ -707,9 +696,6 @@
     },
     beforeUnmount() {
       this.isUserTyping = false;
-      if (this.touchEndResetTimeoutId) {
-        clearTimeout(this.touchEndResetTimeoutId);
-      }
       document.removeEventListener("mousedown", this.setMouseUsed);
       document.removeEventListener("keydown", this.resetMouseUsed);
 
@@ -737,10 +723,6 @@
         if (dropdown) {
           dropdown.removeEventListener("mousedown", this.handleOpenMenuOnClick);
         }
-        const headers = Array.from(element.getElementsByClassName("multiselect__element"));
-        headers.forEach((header) => {
-          header.removeEventListener("click", this.handleGroupHeaderClickCapture, true);
-        });
       }
       
       // Clean up observer
@@ -750,79 +732,6 @@
       }
     },
     methods: {
-      getOptionParentChainIds(option) {
-        if (!option || typeof option !== "object") return [];
-        if (Array.isArray(option.parentChain) && option.parentChain.length > 0) {
-          return option.parentChain.map((id) => String(id));
-        }
-        const ids = [];
-        if (option.grandParentId) ids.push(String(option.grandParentId));
-        if (option.parentId) ids.push(String(option.parentId));
-        if (option.maintopicIdLevel2) ids.push(String(option.maintopicIdLevel2));
-        if (option.maintopicIdLevel1) ids.push(String(option.maintopicIdLevel1));
-        return ids;
-      },
-      setExclusiveMaintopicChain(chainIds = [], activeMaintopicId = null) {
-        const nextMap = {};
-        Object.keys(this.maintopicToggledMap).forEach((key) => {
-          nextMap[key] = false;
-        });
-
-        chainIds.forEach((id) => {
-          const key = String(id);
-          nextMap[key] = true;
-        });
-
-        if (activeMaintopicId) {
-          nextMap[String(activeMaintopicId)] = true;
-        }
-
-        this.maintopicToggledMap = nextMap;
-      },
-      toggleMaintopic(option) {
-        if (!option || !option.id) return;
-        const optionId = String(option.id);
-        const isCurrentlyOpen = !!this.maintopicToggledMap[optionId];
-        if (isCurrentlyOpen) {
-          this.setExclusiveMaintopicChain([]);
-          return;
-        }
-        const chainIds = this.getOptionParentChainIds(option);
-        this.setExclusiveMaintopicChain(chainIds, optionId);
-      },
-      handleTouchStart(event) {
-        const touch = event?.touches?.[0];
-        if (!touch) return;
-        if (this.touchEndResetTimeoutId) {
-          clearTimeout(this.touchEndResetTimeoutId);
-          this.touchEndResetTimeoutId = null;
-        }
-        this.touchStartX = touch.clientX;
-        this.touchStartY = touch.clientY;
-        this.isTouchInteracting = true;
-        this.isTouchScrolling = false;
-      },
-      handleTouchMove(event) {
-        if (!this.isTouchInteracting) return;
-        const touch = event?.touches?.[0];
-        if (!touch) return;
-        const deltaX = Math.abs(touch.clientX - this.touchStartX);
-        const deltaY = Math.abs(touch.clientY - this.touchStartY);
-        if (deltaX >= this.touchScrollThreshold || deltaY >= this.touchScrollThreshold) {
-          this.isTouchScrolling = true;
-          this.preventCloseFromTouchScroll = true;
-        }
-      },
-      handleTouchEnd() {
-        if (this.touchEndResetTimeoutId) {
-          clearTimeout(this.touchEndResetTimeoutId);
-        }
-        this.touchEndResetTimeoutId = setTimeout(() => {
-          this.isTouchInteracting = false;
-          this.isTouchScrolling = false;
-          this.touchEndResetTimeoutId = null;
-        }, 80);
-      },
       /**
        * Checks whether a searchString scope has valid content.
        * @param {Object} option - Option object from the dropdown.
@@ -973,9 +882,6 @@
           // Stop existing mousedown events
           header.removeEventListener("mousedown", self.handleStopEvent, true);
           header.addEventListener("mousedown", self.handleStopEvent, true);
-          // Intercept group header clicks early to prevent native group-select behavior
-          header.removeEventListener("click", self.handleGroupHeaderClickCapture, true);
-          header.addEventListener("click", self.handleGroupHeaderClickCapture, true);
 
           // Add click handler for category groups
           header.removeEventListener("click", self.handleCategoryGroupClick);
@@ -1032,27 +938,12 @@
         let lg = this.language; // Use this.language to get the current language code
 
         if (elem.maintopic) {
-          // Keep only one expanded maintopic branch at a time
-          this.toggleMaintopic(elem);
+          //toggle the maintopic
+          this.maintopicToggledMap = {
+            ...this.maintopicToggledMap,
+            [elem.id]: !this.maintopicToggledMap[elem.id],
+          };
           value.pop();
-          const maintopicGroupName = this.getHeader(elem.id);
-          if (maintopicGroupName && maintopicGroupName !== "unknown") {
-            this.expandedOptionGroupName = maintopicGroupName;
-            this.updateExpandedGroupHighlighting();
-            this.$nextTick(() => {
-              this.showOrHideElements();
-            });
-          }
-        } else {
-          // Keep one active category context when selecting a sub-item.
-          const selectedGroupName = this.getHeader(elem.id);
-          if (selectedGroupName && selectedGroupName !== "unknown") {
-            this.expandedOptionGroupName = selectedGroupName;
-            this.updateExpandedGroupHighlighting();
-            this.$nextTick(() => {
-              this.showOrHideElements();
-            });
-          }
         }
 
         // Only check for '-' in the current language
@@ -1080,23 +971,6 @@
         }
       },
       close() {
-        if (this.preventCloseFromTouchScroll) {
-          this.preventCloseFromTouchScroll = false;
-          this.isDropdownOpen = true;
-          this.$nextTick(() => {
-            const multiselect = this.$refs.multiselect;
-            if (
-              multiselect &&
-              !multiselect.isOpen &&
-              typeof multiselect.activate === "function"
-            ) {
-              multiselect.activate();
-            }
-            this.updateAriaExpanded();
-          });
-          return;
-        }
-
         // Clear tempList if it contains items that are being removed (not being added)
         // This fixes the issue where tag removal requires double-click
         if (this.tempList.length > 0) {
@@ -1238,33 +1112,39 @@
         
         if (!this.isGroup) {
           const entries = element.querySelectorAll("[data-name]");
-          entries.forEach((entry) => {
-            const parent = entry.parentNode.parentNode;
-            const shouldShow = this.areAllAncestorsExpanded(entry);
-            parent.classList.toggle("qpm_shown", !shouldShow);
-          });
+          const process = () => {
+            entries.forEach((entry) => {
+              const parent = entry.parentNode.parentNode;
+              const shouldShow = this.areAllAncestorsExpanded(entry);
+              parent.classList.toggle("qpm_shown", !shouldShow);
+            });
+          };
+          if (entries.length > 50) {
+            requestAnimationFrame(process);
+          } else {
+            process();
+          }
           return;
         }
 
         const entries = element.querySelectorAll("[data-name]");
-        const expandedGroupId = this.getOptionGroupId(this.expandedOptionGroupName);
+        const processGroup = () => {
+          entries.forEach((entry) => {
+            const groupName = entry.getAttribute("data-name");
+            const parent = entry.parentNode.parentNode;
 
-        // Hard reset: hide all option rows first to avoid stale visibility state.
-        entries.forEach((entry) => {
-          const parent = entry.parentNode.parentNode;
-          parent.classList.add("qpm_shown");
-        });
+            const shouldShow =
+              this.expandedOptionGroupName !== groupName ||
+              !this.areAllAncestorsExpanded(entry);
 
-        entries.forEach((entry) => {
-          const optionId = entry.getAttribute("option-id");
-          const optionGroupId = this.getOptionGroupIdByOptionId(optionId);
-          const parent = entry.parentNode.parentNode;
-          const isInExpandedGroup =
-            !!expandedGroupId && !!optionGroupId && optionGroupId === expandedGroupId;
-          if (isInExpandedGroup && this.areAllAncestorsExpanded(entry)) {
-            parent.classList.remove("qpm_shown");
-          }
-        });
+            parent.classList.toggle("qpm_shown", shouldShow);
+          });
+        };
+        if (entries.length > 50) {
+          requestAnimationFrame(processGroup);
+        } else {
+          processGroup();
+        }
       },
       /**
        * Updates visibility of options contained in an optiongroup.
@@ -1273,25 +1153,36 @@
        * @param {Array} optionsInOptionGroup - The list of options in the group.
        */
       updateOptionGroupVisibility(selectedOptionIds, optionsInOptionGroup) {
-        // Sets to keep track of depths
+        // Sets to keep track of depths and parent IDs
         const selectedDepths = new Set();
+        const ancestorIdsToShow = new Set();
 
         const optionsInGroupIds = new Set(optionsInOptionGroup.map((option) => option.id));
 
-        // Build visibility metadata from selected options
+        // First, expand all ancestors in maintopicToggledMap
         selectedOptionIds.forEach((id) => {
           const option = optionsInOptionGroup.find((option) => option.id === id);
           if (option) {
             selectedDepths.add(option.depth);
+            // Expand ALL ancestors (supports unlimited nesting)
+            if (option.parentChain && option.parentChain.length > 0) {
+              option.parentChain.forEach((ancestorId) => {
+                ancestorIdsToShow.add(ancestorId);
+                this.maintopicToggledMap[ancestorId] = true;
+              });
+            } else {
+              // Fallback for items without parentChain
+              if (option.parentId) {
+                ancestorIdsToShow.add(option.parentId);
+                this.maintopicToggledMap[option.parentId] = true;
+              }
+              if (option.grandParentId) {
+                ancestorIdsToShow.add(option.grandParentId);
+                this.maintopicToggledMap[option.grandParentId] = true;
+              }
+            }
           }
         });
-
-        // Keep only one expanded maintopic branch.
-        // We use the last selected option as the active branch context.
-        const activeSelectedId = selectedOptionIds[selectedOptionIds.length - 1];
-        const activeOption = optionsInOptionGroup.find((option) => option.id === activeSelectedId);
-        const activeChain = this.getOptionParentChainIds(activeOption);
-        this.setExclusiveMaintopicChain(activeChain);
 
         // Then show/hide based on the UPDATED maintopicToggledMap
         this.showOrHideElements();
@@ -1299,7 +1190,7 @@
 
         this.showElementsByOptionIds(selectedOptionIds, optionsInGroupIds);
         this.showElementsByDepths(selectedDepths, optionsInGroupIds);
-        this.showElementsByOptionIds(activeChain, optionsInGroupIds);
+        this.showElementsByOptionIds(Array.from(ancestorIdsToShow), optionsInGroupIds);
       },
       /**
        * Utility method to show elements by option IDs
@@ -1534,20 +1425,15 @@
        */
       handleCategoryGroupClick(event) {
         let target = event.target;
-        if (target && target.nodeType === 3) {
+
+        // Check if the click is on the optiongroup name or elsewhere within the multiselect__option__option--group element
+        if (target.classList.contains("qpm_groupLabel")) {
           target = target.parentElement;
         }
-        if (!target) return;
 
-        const groupTarget = target.closest?.(".multiselect__option--group");
-        if (!groupTarget) return;
+        const optionGroupName = target.getElementsByClassName("qpm_groupLabel")[0].textContent;
 
-        const groupLabelElement = groupTarget.getElementsByClassName("qpm_groupLabel")[0];
-        if (!groupLabelElement) return;
-
-        const optionGroupName = groupLabelElement.textContent;
-
-        if (groupTarget.classList.contains("multiselect__option--group")) {
+        if (target.classList.contains("multiselect__option--group")) {
           if (this.expandedOptionGroupName === optionGroupName) {
             this.hideItems(this.expandedOptionGroupName);
             this.expandedOptionGroupName = "";
@@ -1582,23 +1468,6 @@
         } else {
           // This is when we are adding a new tag
         }
-      },
-      handleGroupHeaderClickCapture(event) {
-        let target = event.target;
-        if (target && target.nodeType === 3) {
-          target = target.parentElement;
-        }
-        if (!target) return;
-
-        const groupTarget = target.closest?.(".multiselect__option--group");
-        if (!groupTarget) return;
-
-        if (event.cancelable) {
-          event.preventDefault();
-        }
-        event.stopImmediatePropagation();
-        event.stopPropagation();
-        this.handleCategoryGroupClick(event);
       },
       /**
        * Handles the click event on a tag (an option that has been selected),
@@ -1808,7 +1677,10 @@
               const dropdownRef = this.$refs.multiselect;
               const option = dropdownRef.filteredOptions[dropdownRef.pointer];
               if (option && option.maintopic) {
-                this.toggleMaintopic(option);
+                this.maintopicToggledMap = {
+                  ...this.maintopicToggledMap,
+                  [option.id]: !this.maintopicToggledMap[option.id],
+                };
                 this.showOrHideElements();
               }
               return;
@@ -2779,19 +2651,6 @@
         }
         return null;
       },
-      getOptionGroupIdByOptionId(optionId) {
-        if (!optionId) return null;
-        for (const item of this.data) {
-          const groupName = this.getGroupName(item);
-          if (!groupName || !Array.isArray(item[groupName])) continue;
-          for (const entry of item[groupName]) {
-            if (areComparableIdsEqual(entry?.id, optionId)) {
-              return item.id;
-            }
-          }
-        }
-        return null;
-      },
       /**
        * Gets the group name for a given item.
        * Needed since we operate with two different sets of naming.
@@ -3110,9 +2969,6 @@
        * Handles blur events
        */
       handleBlur(event) {
-        if (this.isTouchInteracting || this.isTouchScrolling) {
-          return;
-        }
         const input = event.target;
         
         // Always remove silent focus on blur
