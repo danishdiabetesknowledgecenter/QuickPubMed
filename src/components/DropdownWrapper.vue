@@ -328,6 +328,13 @@
         _handleEmptyDropdownKeydownBound: null,
         _handleEmptyDropdownFocusBound: null,
         _handleEmptyDropdownClickBound: null,
+        _handleTouchStartGuardBound: null,
+        _handleTouchMoveGuardBound: null,
+        _handleTouchEndGuardBound: null,
+        touchStartX: null,
+        touchStartY: null,
+        touchIsScrollGesture: false,
+        ignoreCloseUntilMs: 0,
       };
     },
     created() {
@@ -337,6 +344,9 @@
       this._handleEmptyDropdownKeydownBound = this.handleEmptyDropdownKeydown.bind(this);
       this._handleEmptyDropdownFocusBound = this.handleEmptyDropdownFocus.bind(this);
       this._handleEmptyDropdownClickBound = this.handleEmptyDropdownClick.bind(this);
+      this._handleTouchStartGuardBound = this.handleTouchStartGuard.bind(this);
+      this._handleTouchMoveGuardBound = this.handleTouchMoveGuard.bind(this);
+      this._handleTouchEndGuardBound = this.handleTouchEndGuard.bind(this);
     },
     computed: {
       dropdownListId: function () {
@@ -633,6 +643,22 @@
         console.warn("this.data is not an array or is undefined");
       }
       this.$emit("mounted", this);
+      this.$el.addEventListener("touchstart", this._handleTouchStartGuardBound, {
+        capture: true,
+        passive: true,
+      });
+      this.$el.addEventListener("touchmove", this._handleTouchMoveGuardBound, {
+        capture: true,
+        passive: true,
+      });
+      this.$el.addEventListener("touchend", this._handleTouchEndGuardBound, {
+        capture: true,
+        passive: true,
+      });
+      this.$el.addEventListener("touchcancel", this._handleTouchEndGuardBound, {
+        capture: true,
+        passive: true,
+      });
 
       const input = this.$el.querySelector('.multiselect__input');
       if (input) {
@@ -696,6 +722,18 @@
     },
     beforeUnmount() {
       this.isUserTyping = false;
+      this.$el.removeEventListener("touchstart", this._handleTouchStartGuardBound, {
+        capture: true,
+      });
+      this.$el.removeEventListener("touchmove", this._handleTouchMoveGuardBound, {
+        capture: true,
+      });
+      this.$el.removeEventListener("touchend", this._handleTouchEndGuardBound, {
+        capture: true,
+      });
+      this.$el.removeEventListener("touchcancel", this._handleTouchEndGuardBound, {
+        capture: true,
+      });
       document.removeEventListener("mousedown", this.setMouseUsed);
       document.removeEventListener("keydown", this.resetMouseUsed);
 
@@ -732,6 +770,31 @@
       }
     },
     methods: {
+      handleTouchStartGuard(event) {
+        const touch = event.touches && event.touches[0];
+        if (!touch) return;
+        this.touchStartX = touch.clientX;
+        this.touchStartY = touch.clientY;
+        this.touchIsScrollGesture = false;
+      },
+      handleTouchMoveGuard(event) {
+        const touch = event.touches && event.touches[0];
+        if (!touch || this.touchStartX === null || this.touchStartY === null) return;
+        const deltaX = Math.abs(touch.clientX - this.touchStartX);
+        const deltaY = Math.abs(touch.clientY - this.touchStartY);
+        if (deltaX > 10 || deltaY > 10) {
+          this.touchIsScrollGesture = true;
+          this.ignoreCloseUntilMs = Date.now() + 250;
+        }
+      },
+      handleTouchEndGuard() {
+        if (this.touchIsScrollGesture) {
+          this.ignoreCloseUntilMs = Date.now() + 250;
+        }
+        this.touchStartX = null;
+        this.touchStartY = null;
+        this.touchIsScrollGesture = false;
+      },
       /**
        * Checks whether a searchString scope has valid content.
        * @param {Object} option - Option object from the dropdown.
@@ -971,6 +1034,9 @@
         }
       },
       close() {
+        if (Date.now() < this.ignoreCloseUntilMs) {
+          return;
+        }
         // Clear tempList if it contains items that are being removed (not being added)
         // This fixes the issue where tag removal requires double-click
         if (this.tempList.length > 0) {
