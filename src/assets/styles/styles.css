@@ -599,6 +599,17 @@ button.qpm_slim.multiselect__input:focus-visible {
   -webkit-tap-highlight-color: transparent;
 }
 
+@media (pointer: coarse) {
+  .qpm_dropdown .multiselect__tag {
+    position: relative;
+    z-index: 11;
+  }
+  .qpm_dropdown .multiselect__tag-icon {
+    position: absolute;
+    z-index: 12;
+  }
+}
+
 
 @media (pointer: coarse) {
   .qpm_dropdown .multiselect__content-wrapper {
@@ -621,7 +632,7 @@ button.qpm_slim.multiselect__input:focus-visible {
 
 .qpm_actionSheetPanel {
   width: 100%;
-  max-width: 500px;
+  max-width: 600px;
   padding: 8px;
   padding-bottom: max(8px, env(safe-area-inset-bottom));
   display: flex;

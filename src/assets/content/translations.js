@@ -8,12 +8,16 @@ export const messages = {
     en: "Cancel",
   },
   mobileActionFreeText: {
-    dk: "Indtast fritekst",
-    en: "Enter free text",
+    dk: "Indtast søgeord",
+    en: "Enter search term",
   },
-  mobileActionPickFromList: {
-    dk: "Vælg fra liste",
-    en: "Pick from list",
+  mobileActionPickTopic: {
+    dk: "Vælg emne fra liste",
+    en: "Pick topic from list",
+  },
+  mobileActionPickLimit: {
+    dk: "Vælg afgrænsning fra liste",
+    en: "Pick limit from list",
   },
   tooltiptext: {
     dk: "Dansk",

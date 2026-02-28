@@ -230,18 +230,13 @@
           @click.self="closeMobileActionSheet"
         >
           <div class="qpm_actionSheetPanel">
-            <button
-              v-if="taggable"
-              class="qpm_actionSheetBtn"
-              @click="handleActionFreeText"
-            >{{ getString("mobileActionFreeText") }}</button>
             <select
               v-if="getSortedSubjectOptions.length > 0"
               ref="nativeSelect"
               class="qpm_actionSheetBtn qpm_actionSheetSelect"
               @change="handleNativeSelect($event)"
             >
-              <option value="" disabled selected>{{ getString("mobileActionPickFromList") }}</option>
+              <option value="" disabled selected>{{ isFilterDropdown ? getString("mobileActionPickLimit") : getString("mobileActionPickTopic") }}</option>
               <template v-for="group in getSortedSubjectOptions" :key="group.id">
                 <optgroup :label="customGroupLabelById(group.id)">
                   <option
@@ -253,6 +248,11 @@
                 </optgroup>
               </template>
             </select>
+            <button
+              v-if="taggable"
+              class="qpm_actionSheetBtn"
+              @click="handleActionFreeText"
+            >{{ getString("mobileActionFreeText") }}</button>
             <button
               class="qpm_actionSheetBtn qpm_actionSheetCancel"
               @click="closeMobileActionSheet"
@@ -839,17 +839,26 @@
         const items = group[groupProp];
         const result = [];
         const NBSP = "\u00A0";
-        const DASH = "\u2014 ";
+        const CHEVRON = "\u203A ";
+        const selectedIds = new Set((this.selected || []).map(s => s?.id).filter(Boolean));
         for (let i = 0; i < items.length; i++) {
           const item = items[i];
           if (!item) continue;
           const depth = item.subtopiclevel || 0;
           const indent = NBSP.repeat(depth * 3);
-          const prefix = depth > 0 ? DASH : "";
+          const prefix = depth > 0 ? CHEVRON : "";
           const label = this.customNameLabel(item) || item.id;
+          const isSelected = selectedIds.has(item.id);
+          const check = isSelected ? "\u2713 " : "";
+          let displayLabel;
+          if (item.maintopic) {
+            displayLabel = indent + "\u25B8 " + label.toUpperCase();
+          } else {
+            displayLabel = indent + prefix + check + label;
+          }
           result.push({
             id: item.id,
-            displayLabel: indent + prefix + label,
+            displayLabel,
             isBranch: !!item.maintopic,
             original: item,
           });
@@ -888,7 +897,15 @@
           event.target.value = "";
           return;
         }
-        const newSelected = [...this.selected, optionObj];
+        const alreadyIndex = this.selected.findIndex(
+          s => s && s.id === selectedId
+        );
+        let newSelected;
+        if (alreadyIndex >= 0) {
+          newSelected = this.selected.filter((_, i) => i !== alreadyIndex);
+        } else {
+          newSelected = [...this.selected, optionObj];
+        }
         this.$emit("input", newSelected, this.index);
         this.showMobileActionSheet = false;
         this.$nextTick(() => {
