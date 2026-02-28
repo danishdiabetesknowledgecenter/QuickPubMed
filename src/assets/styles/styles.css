@@ -601,7 +601,11 @@ button.qpm_slim.multiselect__input:focus-visible {
 
 @media (pointer: coarse) {
   .qpm_dropdown {
-    width: 100%;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .qpm_dropdown .multiselect {
+    width: 100% !important;
   }
   .qpm_dropdown .multiselect__tag {
     position: relative;
@@ -620,6 +624,7 @@ button.qpm_slim.multiselect__input:focus-visible {
   }
   .qpm_dropdown .multiselect__tags {
     padding-right: 8px !important;
+    width: 100% !important;
   }
 }
 

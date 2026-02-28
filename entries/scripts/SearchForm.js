@@ -46,9 +46,18 @@ function createConfiguredApp(rootComponent, props, provideData) {
         html: true,
         triggers: isTouch ? ["click"] : ["hover", "focus"],
         hideTriggers: isTouch ? ["click"] : ["hover"],
+        autoHide: true,
       },
     },
   });
+  if (isTouch) {
+    document.addEventListener("scroll", () => {
+      document.querySelectorAll(".v-popper--shown").forEach((el) => {
+        if (el.__vue__?.[0]?.$refs?.popper) el.__vue__[0].$refs.popper.hide();
+      });
+      document.body.click();
+    }, { passive: true, capture: true });
+  }
   app.config.globalProperties.$helpTextDelay = { show: 500, hide: 100 };
   app.config.globalProperties.$alwaysShowFilter = true;
   return app;

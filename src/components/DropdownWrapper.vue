@@ -853,15 +853,11 @@
           const isSelected = selectedIds.has(item.id);
           let displayLabel;
           if (item.maintopic) {
-            if (depth === 0) {
-              displayLabel = label.toUpperCase();
-            } else {
-              const indent = NBSP.repeat(depth * 2);
-              displayLabel = indent + label;
-            }
+            const indent = depth > 0 ? NBSP.repeat(depth * 2) : "";
+            displayLabel = indent + label;
           } else {
-            if (depth >= 2) {
-              const indent = NBSP.repeat((depth - 1) * 2);
+            if (depth >= 1) {
+              const indent = NBSP.repeat(Math.max(0, depth - 1) * 2);
               displayLabel = indent + CORNER + label;
             } else {
               displayLabel = label;
