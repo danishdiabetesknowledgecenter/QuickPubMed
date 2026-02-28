@@ -600,6 +600,9 @@ button.qpm_slim.multiselect__input:focus-visible {
 }
 
 @media (pointer: coarse) {
+  .qpm_dropdown {
+    width: 100%;
+  }
   .qpm_dropdown .multiselect__tag {
     position: relative;
     z-index: 11;
