@@ -603,20 +603,20 @@ button.qpm_slim.multiselect__input:focus-visible {
   .qpm_dropdown .multiselect__tag {
     position: relative;
     z-index: 11;
+    max-width: 100%;
   }
   .qpm_dropdown .multiselect__tag-icon {
     position: absolute;
     z-index: 12;
   }
-}
-
-
-@media (pointer: coarse) {
   .qpm_dropdown .multiselect__content-wrapper {
     display: none !important;
   }
   .qpm_dropdown .multiselect__select {
     display: none !important;
+  }
+  .qpm_dropdown .multiselect__tags {
+    padding-right: 8px !important;
   }
 }
 

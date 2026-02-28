@@ -18,7 +18,9 @@
     <div
       v-if="isTouchDevice && !shouldHideDropdownArrow && !mobileOverlayHidden"
       class="qpm_mobileTapOverlay"
-      @touchstart.prevent.stop="handleMobileTap"
+      @touchstart.stop="onOverlayTouchStart"
+      @touchmove.passive="onOverlayTouchMove"
+      @touchend.stop="onOverlayTouchEnd"
       @mousedown.prevent.stop="handleMobileTap"
     />
 
@@ -376,6 +378,8 @@
         _touchMql: null,
         showMobileActionSheet: false,
         mobileOverlayHidden: false,
+        _overlayTouchY: null,
+        _overlayTouchMoved: false,
         _handleKeyDownBound: null,
         _handleInputEventBound: null,
         _handleEmptyDropdownInputBound: null,
@@ -839,22 +843,26 @@
         const items = group[groupProp];
         const result = [];
         const NBSP = "\u00A0";
-        const CHEVRON = "\u203A ";
+        const CORNER = "\u2514\u2500 ";
         const selectedIds = new Set((this.selected || []).map(s => s?.id).filter(Boolean));
         for (let i = 0; i < items.length; i++) {
           const item = items[i];
           if (!item) continue;
           const depth = item.subtopiclevel || 0;
-          const indent = NBSP.repeat(depth * 3);
-          const prefix = depth > 0 ? CHEVRON : "";
           const label = this.customNameLabel(item) || item.id;
           const isSelected = selectedIds.has(item.id);
           const check = isSelected ? "\u2713 " : "";
           let displayLabel;
           if (item.maintopic) {
-            displayLabel = indent + "\u25B8 " + label.toUpperCase();
+            if (depth === 0) {
+              displayLabel = label.toUpperCase();
+            } else {
+              const indent = NBSP.repeat(depth * 2);
+              displayLabel = indent + label;
+            }
           } else {
-            displayLabel = indent + prefix + check + label;
+            const indent = NBSP.repeat(Math.max(0, depth - 1) * 2);
+            displayLabel = indent + CORNER + check + label;
           }
           result.push({
             id: item.id,
@@ -864,6 +872,26 @@
           });
         }
         return result;
+      },
+      onOverlayTouchStart(e) {
+        const t = e.touches[0];
+        this._overlayTouchY = t ? t.clientY : null;
+        this._overlayTouchMoved = false;
+      },
+      onOverlayTouchMove(e) {
+        if (this._overlayTouchY === null) return;
+        const t = e.touches[0];
+        if (t && Math.abs(t.clientY - this._overlayTouchY) > 8) {
+          this._overlayTouchMoved = true;
+        }
+      },
+      onOverlayTouchEnd(e) {
+        if (!this._overlayTouchMoved) {
+          e.preventDefault();
+          this.handleMobileTap();
+        }
+        this._overlayTouchY = null;
+        this._overlayTouchMoved = false;
       },
       handleMobileTap() {
         const hasOptions = this.getSortedSubjectOptions.length > 0;

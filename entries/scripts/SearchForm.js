@@ -39,10 +39,13 @@ function createConfiguredApp(rootComponent, props, provideData) {
     render: () => h(rootComponent, props),
   });
   app.use(VueShowdown, showdownConfig);
+  const isTouch = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
   app.use(FloatingVue, {
     themes: {
       tooltip: {
         html: true,
+        triggers: isTouch ? ["click"] : ["hover", "focus"],
+        hideTriggers: isTouch ? ["click"] : ["hover"],
       },
     },
   });
