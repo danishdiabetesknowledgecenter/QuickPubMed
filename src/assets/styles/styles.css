@@ -600,11 +600,19 @@ button.qpm_slim.multiselect__input:focus-visible {
 }
 
 @media (pointer: coarse) {
+  .qpm_flex {
+    flex-wrap: wrap;
+  }
   .qpm_dropdown {
     width: 100% !important;
     max-width: 100% !important;
+    flex-basis: 100% !important;
   }
   .qpm_dropdown .multiselect {
+    width: 100% !important;
+  }
+  .qpm_subjectEntry,
+  .qpm_filterEntry {
     width: 100% !important;
   }
   .qpm_dropdown .multiselect__tag {
