@@ -243,12 +243,14 @@
                 <div class="qpm_actionSheetStepTitle">
                   {{
                     mobileListStep === "root"
-                      ? (isFilterDropdown
-                        ? getString("mobileActionSelectLimitCategory")
-                        : getString("mobileActionSelectTopicCategory"))
+                      ? getMobileRootTitle()
                       : getMobileActiveGroupLabel()
                   }}
                 </div>
+                <div
+                  v-if="mobileListStep === 'children' && getMobileBreadcrumb()"
+                  class="qpm_actionSheetBreadcrumb"
+                >{{ getMobileBreadcrumb() }}</div>
               </div>
               <div v-if="mobileListStep === 'root'" class="qpm_actionSheetList">
                 <button
@@ -263,10 +265,15 @@
                   v-for="item in getMobileChildrenForGroup(mobileActiveGroupId)"
                   :key="item.id"
                   class="qpm_actionSheetBtn qpm_actionSheetListItem"
-                  :class="{ 'qpm_actionSheetListItemDisabled': item.isBranch }"
-                  :disabled="item.isBranch"
-                  @click="handleNativeSelect({ target: { value: item.id } })"
-                >{{ item.displayLabel }}</button>
+                  @click="handleMobileListItemClick(item)"
+                >
+                  <span>{{ item.displayLabel }}</span>
+                  <i
+                    v-if="item.isBranch"
+                    class="bx bx-chevron-right qpm_actionSheetListChevron"
+                    aria-hidden="true"
+                  />
+                </button>
               </div>
             </div>
             <div v-if="taggable" class="qpm_actionSheetSecondaryGroup">
@@ -399,6 +406,7 @@
         showMobileActionSheet: false,
         mobileListStep: "root",
         mobileActiveGroupId: "",
+        mobileParentStack: [],
         mobileOverlayHidden: false,
         _overlayTouchY: null,
         _overlayTouchMoved: false,
@@ -872,42 +880,69 @@
           window.matchMedia("(max-width: 900px)").matches;
         return this.isTouchDevice || hasTouchPoints || smallViewport;
       },
-      flattenGroupForNative(group) {
+      getMobileGroupItems(groupId) {
+        if (!groupId) return [];
+        const group = this.getSortedSubjectOptions.find((item) => item.id === groupId);
+        if (!group) return [];
         const groupProp = group.groups ? "groups" : group.choices ? "choices" : null;
-        if (!groupProp) return [];
-        const items = group[groupProp];
-        const result = [];
-        const NBSP = "\u00A0";
-        const CORNER = "\u2514 ";
-        const selectedIds = new Set((this.selected || []).map(s => s?.id).filter(Boolean));
-        for (let i = 0; i < items.length; i++) {
-          const item = items[i];
-          if (!item) continue;
-          const depth = item.subtopiclevel || 0;
-          const label = this.customNameLabel(item) || item.id;
-          const isSelected = selectedIds.has(item.id);
-          let displayLabel;
-          if (item.maintopic) {
-            const indent = depth > 0 ? NBSP.repeat(depth * 2) : "";
-            displayLabel = indent + label;
-          } else {
-            if (depth >= 1) {
-              const indent = NBSP.repeat(Math.max(0, depth - 1) * 2);
-              displayLabel = indent + CORNER + label;
-            } else {
-              displayLabel = label;
-            }
-          }
-          const checkPrefix = (!item.maintopic && isSelected) ? "\u2713 " : "";
-          result.push({
-            id: item.id,
-            displayLabel: checkPrefix + displayLabel,
-            isBranch: !!item.maintopic,
-            isSelected,
-            original: item,
-          });
+        if (!groupProp || !Array.isArray(group[groupProp])) return [];
+        return group[groupProp].filter(Boolean);
+      },
+      getMobileParentId(item) {
+        if (!item) return null;
+        if (item.maintopicIdLevel1) return item.maintopicIdLevel1;
+        if (Array.isArray(item.parentChain) && item.parentChain.length > 0) {
+          // parentChain is stored nearest -> farthest for normalized content.
+          // Use the nearest ancestor as direct parent in mobile drilldown.
+          return item.parentChain[0];
         }
-        return result;
+        if (item.maintopicIdLevel2) return item.maintopicIdLevel2;
+        return null;
+      },
+      getMobileCurrentParentId() {
+        if (!Array.isArray(this.mobileParentStack) || this.mobileParentStack.length === 0) {
+          return null;
+        }
+        return this.mobileParentStack[this.mobileParentStack.length - 1];
+      },
+      hasMobileChildren(groupId, id) {
+        if (!id) return false;
+        const items = this.getMobileGroupItems(groupId);
+        return items.some((entry) => this.getMobileParentId(entry) === id);
+      },
+      buildMobileDisplayLabel(item) {
+        if (!item) return "";
+        const selectedIds = new Set((this.selected || []).map((s) => s?.id).filter(Boolean));
+        const label = this.customNameLabel(item) || item.id;
+        const isSelected = selectedIds.has(item.id);
+        return (!item.maintopic && isSelected ? "\u2713 " : "") + label;
+      },
+      getMobileChildrenForGroup(groupId) {
+        if (!groupId) return [];
+        const items = this.getMobileGroupItems(groupId);
+        const parentId = this.getMobileCurrentParentId();
+        return items
+          .filter((entry) => this.getMobileParentId(entry) === parentId)
+          .map((entry) => ({
+            id: entry.id,
+            displayLabel: this.buildMobileDisplayLabel(entry),
+            isBranch: this.hasMobileChildren(groupId, entry.id) || !!entry.maintopic,
+            original: entry,
+          }));
+      },
+      handleMobileListItemClick(item) {
+        if (!item || !item.id) return;
+        if (item.isBranch) {
+          this.mobileParentStack = [...this.mobileParentStack, item.id];
+          return;
+        }
+        this.handleNativeSelect({ target: { value: item.id } });
+      },
+      getMobileLabelById(groupId, id) {
+        if (!groupId || !id) return "";
+        const items = this.getMobileGroupItems(groupId);
+        const match = items.find((entry) => entry.id === id);
+        return match ? this.customNameLabel(match) || match.id : "";
       },
       getMobileRootGroups() {
         return this.getSortedSubjectOptions.map((group) => ({
@@ -915,25 +950,59 @@
           label: this.customGroupLabelById(group.id),
         }));
       },
-      getMobileChildrenForGroup(groupId) {
-        if (!groupId) return [];
-        const group = this.getSortedSubjectOptions.find((item) => item.id === groupId);
-        if (!group) return [];
-        return this.flattenGroupForNative(group);
-      },
       openMobileChildren(groupId) {
         if (!groupId) return;
         this.mobileActiveGroupId = groupId;
+        this.mobileParentStack = [];
         this.mobileListStep = "children";
       },
       backToMobileRoot() {
+        if (this.mobileListStep !== "children") {
+          this.mobileListStep = "root";
+          this.mobileActiveGroupId = "";
+          this.mobileParentStack = [];
+          return;
+        }
+        if (this.mobileParentStack.length > 0) {
+          this.mobileParentStack = this.mobileParentStack.slice(0, -1);
+          return;
+        }
         this.mobileListStep = "root";
         this.mobileActiveGroupId = "";
+        this.mobileParentStack = [];
       },
       getMobileActiveGroupLabel() {
         if (!this.mobileActiveGroupId) return "";
+        const currentParentId = this.getMobileCurrentParentId();
+        if (currentParentId) {
+          return this.getMobileLabelById(this.mobileActiveGroupId, currentParentId);
+        }
         const group = this.getMobileRootGroups().find((item) => item.id === this.mobileActiveGroupId);
         return group ? group.label : "";
+      },
+      getMobileRootTitle() {
+        return this.isFilterDropdown
+          ? this.getString("mobileActionSelectLimitCategory")
+          : this.getString("mobileActionSelectTopicCategory");
+      },
+      getMobileBreadcrumb() {
+        if (!this.mobileActiveGroupId) return "";
+        const crumbs = [];
+        const rootTitle = this.getMobileRootTitle();
+        if (rootTitle) {
+          crumbs.push(rootTitle);
+        }
+        const group = this.getMobileRootGroups().find((item) => item.id === this.mobileActiveGroupId);
+        if (group?.label) {
+          crumbs.push(group.label);
+        }
+        if (Array.isArray(this.mobileParentStack) && this.mobileParentStack.length > 0) {
+          this.mobileParentStack.forEach((id) => {
+            const label = this.getMobileLabelById(this.mobileActiveGroupId, id);
+            if (label) crumbs.push(label);
+          });
+        }
+        return crumbs.join(" > ");
       },
       onOverlayTouchStart(e) {
         const t = e.touches[0];
@@ -961,6 +1030,7 @@
         if (hasOptions) {
           this.mobileListStep = "root";
           this.mobileActiveGroupId = "";
+          this.mobileParentStack = [];
           this.showMobileActionSheet = true;
         } else if (canFreeText) {
           this.mobileOverlayHidden = true;
@@ -974,12 +1044,14 @@
         this.showMobileActionSheet = false;
         this.mobileListStep = "root";
         this.mobileActiveGroupId = "";
+        this.mobileParentStack = [];
         this.mobileOverlayHidden = false;
       },
       handleActionFreeText() {
         this.showMobileActionSheet = false;
         this.mobileListStep = "root";
         this.mobileActiveGroupId = "";
+        this.mobileParentStack = [];
         this.mobileOverlayHidden = true;
         this.$nextTick(() => {
           const input = this.$el.querySelector(".multiselect__input");
@@ -1007,6 +1079,7 @@
         this.showMobileActionSheet = false;
         this.mobileListStep = "root";
         this.mobileActiveGroupId = "";
+        this.mobileParentStack = [];
         this.mobileOverlayHidden = false;
       },
       /**

@@ -676,8 +676,8 @@ button.qpm_slim.multiselect__input:focus-visible {
   display: grid;
   grid-template-columns: 80px 1fr 80px;
   align-items: center;
-  min-height: 44px;
-  padding: 6px 12px;
+  min-height: 56px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--color-border-subtle, #d1d1d6);
 }
 
@@ -688,6 +688,18 @@ button.qpm_slim.multiselect__input:focus-visible {
   font-weight: 700;
   letter-spacing: 0;
   color: var(--color-text-strong, #1c1c1e);
+}
+
+.qpm_actionSheetBreadcrumb {
+  grid-column: 1 / 4;
+  text-align: center;
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--color-text-muted, #8e8e93);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .qpm_actionSheetBack {
@@ -770,13 +782,21 @@ button.qpm_slim.multiselect__input:focus-visible {
 }
 
 .qpm_actionSheetListItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   text-align: left;
   white-space: normal;
   word-break: break-word;
+  gap: 12px;
 }
 
-.qpm_actionSheetListItemDisabled {
-  color: var(--color-text-muted, #8e8e93);
+.qpm_actionSheetListChevron {
+  flex: 0 0 auto;
+  font-size: 30px;
+  line-height: 1;
+  color: var(--color-blue-dark, #007aff);
+  vertical-align: -4px;
 }
 
 .qpm_actionSheetCancel {
