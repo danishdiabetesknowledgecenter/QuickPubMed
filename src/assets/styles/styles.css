@@ -637,6 +637,12 @@ button.qpm_slim.multiselect__input:focus-visible {
     padding-right: 8px !important;
     width: 100% !important;
   }
+  .qpm_dropdown .multiselect__input {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 0 10px 0 10px !important;
+  }
 }
 
 .qpm_actionSheetBackdrop {
