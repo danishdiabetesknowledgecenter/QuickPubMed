@@ -233,27 +233,45 @@
         >
           <div class="qpm_actionSheetPanel">
             <div class="qpm_actionSheetPrimaryGroup">
-              <select
-                v-if="getSortedSubjectOptions.length > 0"
-                ref="nativeSelect"
-                class="qpm_actionSheetBtn qpm_actionSheetSelect"
-                @change="handleNativeSelect($event)"
-              >
-                <option value="" disabled selected>{{ isFilterDropdown ? getString("mobileActionPickLimit") : getString("mobileActionPickTopic") }}</option>
-                <template v-for="group in getSortedSubjectOptions" :key="group.id">
-                  <optgroup :label="customGroupLabelById(group.id)">
-                    <option
-                      v-for="item in flattenGroupForNative(group)"
-                      :key="item.id"
-                      :value="item.id"
-                      :disabled="item.isBranch"
-                    >{{ item.displayLabel }}</option>
-                  </optgroup>
-                </template>
-              </select>
+              <div class="qpm_actionSheetStepHeader">
+                <button
+                  v-if="mobileListStep === 'children'"
+                  class="qpm_actionSheetBack"
+                  :aria-label="getString('mobileActionBack')"
+                  @click="backToMobileRoot"
+                ><i class="bx bx-chevron-left qpm_actionSheetBackIcon" aria-hidden="true" /></button>
+                <div class="qpm_actionSheetStepTitle">
+                  {{
+                    mobileListStep === "root"
+                      ? (isFilterDropdown
+                        ? getString("mobileActionSelectLimitCategory")
+                        : getString("mobileActionSelectTopicCategory"))
+                      : getMobileActiveGroupLabel()
+                  }}
+                </div>
+              </div>
+              <div v-if="mobileListStep === 'root'" class="qpm_actionSheetList">
+                <button
+                  v-for="group in getMobileRootGroups()"
+                  :key="group.id"
+                  class="qpm_actionSheetBtn qpm_actionSheetListItem"
+                  @click="openMobileChildren(group.id)"
+                >{{ group.label }}</button>
+              </div>
+              <div v-else class="qpm_actionSheetList">
+                <button
+                  v-for="item in getMobileChildrenForGroup(mobileActiveGroupId)"
+                  :key="item.id"
+                  class="qpm_actionSheetBtn qpm_actionSheetListItem"
+                  :class="{ 'qpm_actionSheetListItemDisabled': item.isBranch }"
+                  :disabled="item.isBranch"
+                  @click="handleNativeSelect({ target: { value: item.id } })"
+                >{{ item.displayLabel }}</button>
+              </div>
+            </div>
+            <div v-if="taggable" class="qpm_actionSheetSecondaryGroup">
               <button
-                v-if="taggable"
-                class="qpm_actionSheetBtn"
+                class="qpm_actionSheetBtn qpm_actionSheetSecondaryBtn"
                 @click="handleActionFreeText"
               >{{ getString("mobileActionFreeText") }}</button>
             </div>
@@ -379,6 +397,8 @@
         isTouchDevice: false,
         _touchMql: null,
         showMobileActionSheet: false,
+        mobileListStep: "root",
+        mobileActiveGroupId: "",
         mobileOverlayHidden: false,
         _overlayTouchY: null,
         _overlayTouchMoved: false,
@@ -889,6 +909,32 @@
         }
         return result;
       },
+      getMobileRootGroups() {
+        return this.getSortedSubjectOptions.map((group) => ({
+          id: group.id,
+          label: this.customGroupLabelById(group.id),
+        }));
+      },
+      getMobileChildrenForGroup(groupId) {
+        if (!groupId) return [];
+        const group = this.getSortedSubjectOptions.find((item) => item.id === groupId);
+        if (!group) return [];
+        return this.flattenGroupForNative(group);
+      },
+      openMobileChildren(groupId) {
+        if (!groupId) return;
+        this.mobileActiveGroupId = groupId;
+        this.mobileListStep = "children";
+      },
+      backToMobileRoot() {
+        this.mobileListStep = "root";
+        this.mobileActiveGroupId = "";
+      },
+      getMobileActiveGroupLabel() {
+        if (!this.mobileActiveGroupId) return "";
+        const group = this.getMobileRootGroups().find((item) => item.id === this.mobileActiveGroupId);
+        return group ? group.label : "";
+      },
       onOverlayTouchStart(e) {
         const t = e.touches[0];
         this._overlayTouchY = t ? t.clientY : null;
@@ -913,6 +959,8 @@
         const hasOptions = this.getSortedSubjectOptions.length > 0;
         const canFreeText = this.taggable;
         if (hasOptions) {
+          this.mobileListStep = "root";
+          this.mobileActiveGroupId = "";
           this.showMobileActionSheet = true;
         } else if (canFreeText) {
           this.mobileOverlayHidden = true;
@@ -924,10 +972,14 @@
       },
       closeMobileActionSheet() {
         this.showMobileActionSheet = false;
+        this.mobileListStep = "root";
+        this.mobileActiveGroupId = "";
         this.mobileOverlayHidden = false;
       },
       handleActionFreeText() {
         this.showMobileActionSheet = false;
+        this.mobileListStep = "root";
+        this.mobileActiveGroupId = "";
         this.mobileOverlayHidden = true;
         this.$nextTick(() => {
           const input = this.$el.querySelector(".multiselect__input");
@@ -953,12 +1005,9 @@
         }
         this.$emit("input", newSelected, this.index);
         this.showMobileActionSheet = false;
+        this.mobileListStep = "root";
+        this.mobileActiveGroupId = "";
         this.mobileOverlayHidden = false;
-        this.$nextTick(() => {
-          if (this.$refs.nativeSelect) {
-            this.$refs.nativeSelect.value = "";
-          }
-        });
       },
       /**
        * Checks whether a searchString scope has valid content.

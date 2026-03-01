@@ -19,6 +19,18 @@ export const messages = {
     dk: "Vælg afgrænsning fra liste",
     en: "Pick limit from list",
   },
+  mobileActionSelectTopicCategory: {
+    dk: "Vælg emnekategori",
+    en: "Select topic category",
+  },
+  mobileActionSelectLimitCategory: {
+    dk: "Vælg afgrænsningskategori",
+    en: "Select limit category",
+  },
+  mobileActionBack: {
+    dk: "Tilbage",
+    en: "Back",
+  },
   tooltiptext: {
     dk: "Dansk",
     en: "English",

@@ -672,6 +672,59 @@ button.qpm_slim.multiselect__input:focus-visible {
   overflow: hidden;
 }
 
+.qpm_actionSheetStepHeader {
+  display: grid;
+  grid-template-columns: 80px 1fr 80px;
+  align-items: center;
+  min-height: 44px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--color-border-subtle, #d1d1d6);
+}
+
+.qpm_actionSheetStepTitle {
+  grid-column: 2;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--color-text-strong, #1c1c1e);
+}
+
+.qpm_actionSheetBack {
+  grid-column: 1;
+  justify-self: start;
+  border: none;
+  background: none;
+  color: var(--color-blue-dark, #007aff);
+  font-size: 16px;
+  font-weight: 500;
+  padding: 6px 0;
+}
+
+.qpm_actionSheetBackIcon {
+  display: inline-block;
+  margin-right: 0;
+  font-size: 30px;
+  line-height: 1;
+  vertical-align: -4px;
+}
+
+.qpm_actionSheetList {
+  max-height: 45vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.qpm_actionSheetSecondaryGroup {
+  background: var(--color-white, #fff);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.qpm_actionSheetSecondaryBtn {
+  border-radius: 0;
+}
+
 .qpm_actionSheetBtn {
   width: 100%;
   height: auto;
@@ -696,7 +749,11 @@ button.qpm_slim.multiselect__input:focus-visible {
   border-radius: 0;
 }
 
-.qpm_actionSheetPrimaryGroup .qpm_actionSheetBtn + .qpm_actionSheetBtn {
+.qpm_actionSheetPrimaryGroup > .qpm_actionSheetBtn {
+  border-top: 1px solid var(--color-border-subtle, #d1d1d6);
+}
+
+.qpm_actionSheetList .qpm_actionSheetListItem + .qpm_actionSheetListItem {
   border-top: 1px solid var(--color-border-subtle, #d1d1d6);
 }
 
@@ -710,6 +767,16 @@ button.qpm_slim.multiselect__input:focus-visible {
   line-height: 1.3;
   padding-top: 17px;
   padding-bottom: 17px;
+}
+
+.qpm_actionSheetListItem {
+  text-align: left;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.qpm_actionSheetListItemDisabled {
+  color: var(--color-text-muted, #8e8e93);
 }
 
 .qpm_actionSheetCancel {
