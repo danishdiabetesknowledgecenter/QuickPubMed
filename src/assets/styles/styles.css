@@ -640,6 +640,7 @@ button.qpm_slim.multiselect__input:focus-visible {
   .qpm_dropdown .multiselect__input {
     width: 100% !important;
     max-width: 100% !important;
+    position: static !important;
     box-sizing: border-box !important;
     padding: 0 10px 0 10px !important;
   }
@@ -665,10 +666,18 @@ button.qpm_slim.multiselect__input:focus-visible {
   gap: 6px;
 }
 
+.qpm_actionSheetPrimaryGroup {
+  background: var(--color-white, #fff);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
 .qpm_actionSheetBtn {
   width: 100%;
+  height: auto;
   padding: 16px;
   font-size: 17px;
+  line-height: 1.3;
   font-weight: 500;
   border: none;
   border-radius: 14px;
@@ -683,12 +692,24 @@ button.qpm_slim.multiselect__input:focus-visible {
   background: var(--color-surface-hover, #e5e5ea);
 }
 
+.qpm_actionSheetPrimaryGroup .qpm_actionSheetBtn {
+  border-radius: 0;
+}
+
+.qpm_actionSheetPrimaryGroup .qpm_actionSheetBtn + .qpm_actionSheetBtn {
+  border-top: 1px solid var(--color-border-subtle, #d1d1d6);
+}
+
 .qpm_actionSheetSelect {
+  height: auto;
   appearance: none;
   -webkit-appearance: none;
   text-align: center;
   text-align-last: center;
   font-size: 17px;
+  line-height: 1.3;
+  padding-top: 17px;
+  padding-bottom: 17px;
 }
 
 .qpm_actionSheetCancel {

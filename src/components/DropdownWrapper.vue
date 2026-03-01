@@ -232,29 +232,31 @@
           @click.self="closeMobileActionSheet"
         >
           <div class="qpm_actionSheetPanel">
-            <select
-              v-if="getSortedSubjectOptions.length > 0"
-              ref="nativeSelect"
-              class="qpm_actionSheetBtn qpm_actionSheetSelect"
-              @change="handleNativeSelect($event)"
-            >
-              <option value="" disabled selected>{{ isFilterDropdown ? getString("mobileActionPickLimit") : getString("mobileActionPickTopic") }}</option>
-              <template v-for="group in getSortedSubjectOptions" :key="group.id">
-                <optgroup :label="customGroupLabelById(group.id)">
-                  <option
-                    v-for="item in flattenGroupForNative(group)"
-                    :key="item.id"
-                    :value="item.id"
-                    :disabled="item.isBranch"
-                  >{{ item.displayLabel }}</option>
-                </optgroup>
-              </template>
-            </select>
-            <button
-              v-if="taggable"
-              class="qpm_actionSheetBtn"
-              @click="handleActionFreeText"
-            >{{ getString("mobileActionFreeText") }}</button>
+            <div class="qpm_actionSheetPrimaryGroup">
+              <select
+                v-if="getSortedSubjectOptions.length > 0"
+                ref="nativeSelect"
+                class="qpm_actionSheetBtn qpm_actionSheetSelect"
+                @change="handleNativeSelect($event)"
+              >
+                <option value="" disabled selected>{{ isFilterDropdown ? getString("mobileActionPickLimit") : getString("mobileActionPickTopic") }}</option>
+                <template v-for="group in getSortedSubjectOptions" :key="group.id">
+                  <optgroup :label="customGroupLabelById(group.id)">
+                    <option
+                      v-for="item in flattenGroupForNative(group)"
+                      :key="item.id"
+                      :value="item.id"
+                      :disabled="item.isBranch"
+                    >{{ item.displayLabel }}</option>
+                  </optgroup>
+                </template>
+              </select>
+              <button
+                v-if="taggable"
+                class="qpm_actionSheetBtn"
+                @click="handleActionFreeText"
+              >{{ getString("mobileActionFreeText") }}</button>
+            </div>
             <button
               class="qpm_actionSheetBtn qpm_actionSheetCancel"
               @click="closeMobileActionSheet"
@@ -390,11 +392,15 @@
       };
     },
     created() {
+      const hasTouchPoints =
+        typeof navigator !== "undefined" && Number(navigator.maxTouchPoints || 0) > 0;
       if (typeof window !== "undefined" && window.matchMedia) {
         this._touchMql = window.matchMedia("(pointer: coarse)");
-        this.isTouchDevice = this._touchMql.matches;
-        this._touchMqlHandler = (e) => { this.isTouchDevice = e.matches; };
+        this.isTouchDevice = this._touchMql.matches || hasTouchPoints;
+        this._touchMqlHandler = (e) => { this.isTouchDevice = e.matches || hasTouchPoints; };
         this._touchMql.addEventListener("change", this._touchMqlHandler);
+      } else {
+        this.isTouchDevice = hasTouchPoints;
       }
       this._handleKeyDownBound = this.handleKeyDown.bind(this);
       this._handleInputEventBound = this.handleInputEvent.bind(this);
@@ -837,6 +843,15 @@
       }
     },
     methods: {
+      isMobileInputMode() {
+        const hasTouchPoints =
+          typeof navigator !== "undefined" && Number(navigator.maxTouchPoints || 0) > 0;
+        const smallViewport =
+          typeof window !== "undefined" &&
+          window.matchMedia &&
+          window.matchMedia("(max-width: 900px)").matches;
+        return this.isTouchDevice || hasTouchPoints || smallViewport;
+      },
       flattenGroupForNative(group) {
         const groupProp = group.groups ? "groups" : group.choices ? "choices" : null;
         if (!groupProp) return [];
@@ -2995,7 +3010,7 @@
         if (!placeholder) return;
 
         // On touch devices or when dropdown arrow is hidden, use 100% width
-        if (this.shouldHideDropdownArrow || this.isTouchDevice) {
+        if (this.shouldHideDropdownArrow || this.isMobileInputMode()) {
           input.style.removeProperty('width');
           return;
         }
@@ -3032,7 +3047,7 @@
        */
       setWidthToTextWidth(input, text) {
         if (!input || !text) return;
-        if (this.isTouchDevice) return;
+        if (this.isMobileInputMode()) return;
 
         // Create a temporary span to measure text width
         let tempSpan = document.createElement("span");
@@ -3065,7 +3080,7 @@
         input.style.setProperty('width', minWidth + 'px', 'important');
       },
       setupInputWidthObserver(input) {
-        if (this.isTouchDevice) return;
+        if (this.isMobileInputMode()) return;
         // Create a MutationObserver to monitor changes in the input field's style
         this.inputWidthObserver = new MutationObserver((mutations) => {
           mutations.forEach((mutation) => {
