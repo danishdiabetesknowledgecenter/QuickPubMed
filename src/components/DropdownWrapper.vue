@@ -2994,9 +2994,8 @@
         const placeholder = input.getAttribute("placeholder");
         if (!placeholder) return;
 
-        // If dropdown arrow is hidden (no topics), always use 100% width
-        if (this.shouldHideDropdownArrow) {
-          // Remove any inline width style to let CSS handle 100% width
+        // On touch devices or when dropdown arrow is hidden, use 100% width
+        if (this.shouldHideDropdownArrow || this.isTouchDevice) {
           input.style.removeProperty('width');
           return;
         }
@@ -3033,6 +3032,7 @@
        */
       setWidthToTextWidth(input, text) {
         if (!input || !text) return;
+        if (this.isTouchDevice) return;
 
         // Create a temporary span to measure text width
         let tempSpan = document.createElement("span");
@@ -3065,6 +3065,7 @@
         input.style.setProperty('width', minWidth + 'px', 'important');
       },
       setupInputWidthObserver(input) {
+        if (this.isTouchDevice) return;
         // Create a MutationObserver to monitor changes in the input field's style
         this.inputWidthObserver = new MutationObserver((mutations) => {
           mutations.forEach((mutation) => {
