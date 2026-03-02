@@ -5,7 +5,7 @@ import "@/assets/styles/searchstrings.css";
 
 import { createApp, h } from "vue";
 import VueShowdown from "vue-showdown";
-import FloatingVue from "floating-vue";
+import FloatingVue, { hideAllPoppers } from "floating-vue";
 import "floating-vue/dist/style.css";
 import SearchForm from "@/components/SearchForm.vue";
 import { applyThemeFromConfig, config, loadThemeOverridesFromBackend } from "@/config/config";
@@ -33,30 +33,130 @@ const showdownConfig = {
   },
 };
 
+let mobileTooltipScrollGuardInstalled = false;
+
+function hideShownTooltips() {
+  const activeElement = document.activeElement;
+  if (
+    activeElement &&
+    typeof activeElement.closest === "function" &&
+    activeElement.closest(".v-popper__popper") &&
+    typeof activeElement.blur === "function"
+  ) {
+    activeElement.blur();
+  }
+  if (typeof hideAllPoppers === "function") {
+    hideAllPoppers();
+    return;
+  }
+  document.querySelectorAll(".v-popper--shown").forEach((el) => {
+    const popperComponent = el.__vue__?.[0]?.$refs?.popper;
+    if (popperComponent && typeof popperComponent.hide === "function") {
+      popperComponent.hide();
+    }
+  });
+}
+
+function getDocumentScrollTop() {
+  const scrollingElement = document.scrollingElement || document.documentElement;
+  return Number(scrollingElement?.scrollTop || window.scrollY || 0);
+}
+
+function installMobileTooltipScrollGuard() {
+  if (mobileTooltipScrollGuardInstalled) return;
+  mobileTooltipScrollGuardInstalled = true;
+
+  let touchStartY = null;
+  let maxTouchDelta = 0;
+  let lastScrollTop = getDocumentScrollTop();
+  let accumulatedScrollDelta = 0;
+
+  document.addEventListener(
+    "touchstart",
+    (event) => {
+      const touch = event.touches?.[0];
+      touchStartY = touch ? touch.clientY : null;
+      maxTouchDelta = 0;
+      accumulatedScrollDelta = 0;
+      lastScrollTop = getDocumentScrollTop();
+    },
+    { passive: true, capture: true }
+  );
+
+  document.addEventListener(
+    "touchmove",
+    (event) => {
+      if (touchStartY === null) return;
+      const touch = event.touches?.[0];
+      if (!touch) return;
+      maxTouchDelta = Math.max(maxTouchDelta, Math.abs(touch.clientY - touchStartY));
+      // Close tooltips only for real scroll gestures (ignore tiny finger jitter).
+      if (maxTouchDelta >= 24) {
+        hideShownTooltips();
+        touchStartY = touch.clientY;
+        maxTouchDelta = 0;
+      }
+    },
+    { passive: true, capture: true }
+  );
+
+  document.addEventListener(
+    "scroll",
+    () => {
+      const currentScrollTop = getDocumentScrollTop();
+      const delta = Math.abs(currentScrollTop - lastScrollTop);
+      lastScrollTop = currentScrollTop;
+      accumulatedScrollDelta += delta;
+      // DevTools mobile emulation often emits scroll without touchmove.
+      // Close only after a meaningful accumulated scroll distance.
+      if (accumulatedScrollDelta >= 16) {
+        hideShownTooltips();
+        accumulatedScrollDelta = 0;
+      }
+    },
+    { passive: true, capture: true }
+  );
+}
+
 function createConfiguredApp(rootComponent, props, provideData) {
   const app = createApp({
     provide: provideData,
     render: () => h(rootComponent, props),
   });
   app.use(VueShowdown, showdownConfig);
-  const isTouch = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+  const hasTouchPoints =
+    typeof navigator !== "undefined" && Number(navigator.maxTouchPoints || 0) > 0;
+  const hasNoHover =
+    typeof window !== "undefined" &&
+    window.matchMedia &&
+    window.matchMedia("(hover: none)").matches;
+  const hasCoarsePointer =
+    typeof window !== "undefined" &&
+    window.matchMedia &&
+    window.matchMedia("(pointer: coarse)").matches;
+  const isTouchLike = hasNoHover || hasCoarsePointer || hasTouchPoints;
   app.use(FloatingVue, {
     themes: {
       tooltip: {
         html: true,
-        triggers: isTouch ? ["click"] : ["hover", "focus"],
-        hideTriggers: isTouch ? ["click"] : ["hover"],
+        // Default tooltips: desktop hover/focus only (no mobile tap).
+        triggers: ["hover", "focus"],
+        hideTriggers: ["hover"],
+        autoHide: true,
+        noAutoFocus: true,
+      },
+      infoTooltip: {
+        $extend: "tooltip",
+        html: true,
+        // Info icons: always support desktop hover and mobile tap.
+        triggers: ["hover", "focus", "click"],
+        hideTriggers: ["hover", "click"],
         autoHide: true,
       },
     },
   });
-  if (isTouch) {
-    document.addEventListener("scroll", () => {
-      document.querySelectorAll(".v-popper--shown").forEach((el) => {
-        if (el.__vue__?.[0]?.$refs?.popper) el.__vue__[0].$refs.popper.hide();
-      });
-      document.body.click();
-    }, { passive: true, capture: true });
+  if (isTouchLike) {
+    installMobileTooltipScrollGuard();
   }
   app.config.globalProperties.$helpTextDelay = { show: 500, hide: 100 };
   app.config.globalProperties.$alwaysShowFilter = true;

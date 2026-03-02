@@ -176,6 +176,10 @@
   border-color: var(--color-white) !important;
 }
 
+.v-popper__popper.v-popper--theme-infoTooltip {
+  z-index: 1000001 !important;
+}
+
 /* ==========================================================================
    Loading and spinner states
    Positions loaders consistently in lists, links, summaries, and dropdowns.
@@ -599,7 +603,7 @@ button.qpm_slim.multiselect__input:focus-visible {
   -webkit-tap-highlight-color: transparent;
 }
 
-@media (pointer: coarse) {
+@media (pointer: coarse) and (hover: none) and (max-width: 1024px) {
   .qpm_topics,
   .qpm_flex,
   .qpm_subjectEntry,
@@ -608,12 +612,19 @@ button.qpm_slim.multiselect__input:focus-visible {
     max-width: 100% !important;
   }
   .qpm_flex {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    align-items: center;
   }
   .qpm_dropdown {
     width: 100% !important;
     max-width: 100% !important;
-    flex-basis: 100% !important;
+    flex: 1 1 auto !important;
+    min-width: 0;
+    flex-basis: auto !important;
+  }
+  .qpm_removeSubject,
+  .qpm_removeFilter {
+    flex: 0 0 auto;
   }
   .qpm_dropdown .multiselect {
     width: 100% !important;
@@ -654,6 +665,7 @@ button.qpm_slim.multiselect__input:focus-visible {
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  overscroll-behavior: none;
 }
 
 .qpm_actionSheetPanel {
@@ -684,10 +696,11 @@ button.qpm_slim.multiselect__input:focus-visible {
 .qpm_actionSheetStepTitle {
   grid-column: 2;
   text-align: center;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: 0;
   color: var(--color-text-strong, #1c1c1e);
+  white-space: nowrap;
 }
 
 .qpm_actionSheetBreadcrumb {
@@ -725,6 +738,7 @@ button.qpm_slim.multiselect__input:focus-visible {
   max-height: 45vh;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .qpm_actionSheetSecondaryGroup {
@@ -785,18 +799,28 @@ button.qpm_slim.multiselect__input:focus-visible {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-height: 56px;
   text-align: left;
   white-space: normal;
   word-break: break-word;
   gap: 12px;
 }
 
+.qpm_actionSheetListItem > span {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .qpm_actionSheetListChevron {
-  flex: 0 0 auto;
-  font-size: 30px;
+  flex: 0 0 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  font-size: 24px;
   line-height: 1;
   color: var(--color-blue-dark, #007aff);
-  vertical-align: -4px;
 }
 
 .qpm_actionSheetCancel {
@@ -873,6 +897,9 @@ button.qpm_slim.multiselect__input:focus-visible {
   .qpm_subtopicDropdown {
   margin-left: 15px !important;
 }
+.qpm_maintopicDropdown {
+  margin-bottom: 2px;
+}
 .qpm_maintopicDropdown + .qpm_entryName {
   font-weight: normal;
   margin-left: 3px;
@@ -881,6 +908,7 @@ button.qpm_slim.multiselect__input:focus-visible {
   text-decoration: none !important;
   pointer-events: none !important;
 }
+
 .qpm_maintopicDropdown_active + .qpm_entryName:after {
   position: relative;
   content: "";
@@ -1051,12 +1079,20 @@ input.multiselect__input{
 
 .qpm_groupLabel {
   z-index: 1;
+  margin-right: 7px;
 }
 
 li.multiselect__element.qpm_groupExpanded span.multiselect__option--group,
 li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
-  background: var(--color-group-header-bg);
   color: var(--color-white) !important;
+}
+
+li.multiselect__element.qpm_groupExpanded span.multiselect__option--group {
+  background: var(--color-group-header-bg);
+}
+
+li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
+  background: transparent;
 }
 
 .multiselect__option--group-selected.multiselect__option--highlight,
@@ -1064,7 +1100,16 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 .multiselect__option--group.multiselect__option--highlight span,
 .multiselect__option--group.multiselect__option--highlight i {
   color: var(--color-white) !important;
+}
+
+.multiselect__option--group-selected.multiselect__option--highlight,
+.multiselect__option--group-selected.multiselect__option--highlight:after {
   background: var(--color-group-header-bg);
+}
+
+.multiselect__option--group.multiselect__option--highlight span,
+.multiselect__option--group.multiselect__option--highlight i {
+  background: transparent;
 }
 
 .multiselect__option--group {
@@ -1106,6 +1151,11 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 }
 .multiselect__option:after {
   line-height: 48px;
+  pointer-events: none;
+}
+
+.multiselect__option--group:after {
+  pointer-events: none;
 }
 
 .qpm_forceRight {
@@ -1121,7 +1171,7 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 
 .qpm_entryName {
   margin-left: 7px;
-  margin-right: 15px;
+  margin-right: 7px;
 }
 
 .qpm_entryManual {
@@ -1629,13 +1679,40 @@ button.qpm_tab {
 }
 
 .bx-info-circle {
-  font-size: 1.4em !important;
-  vertical-align: middle;
+  font-size: 1.25em !important;
+  line-height: 1;
+  vertical-align: -0.08em;
   color: var(--color-icon-info) !important;
   padding: 0;
   cursor: help !important;
-  min-width: 24px !important;
-  min-height: 24px !important;
+  min-width: 1em !important;
+  min-height: 1em !important;
+}
+
+.qpm_infoIcon {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  line-height: 1;
+  margin-left: 0.2em;
+  transform: translateY(1px);
+  flex-shrink: 0;
+}
+
+.qpm_infoInline {
+  display: inline;
+  white-space: normal;
+}
+
+.qpm_keepWithIcon {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.qpm_keepWithIcon .qpm_infoIcon {
+  margin-left: 0.4em;
 }
 
 .bx-detail {
@@ -2089,6 +2166,7 @@ button.qpm_tab {
 
   .qpm_operator {
     padding-bottom: 7px;
+    padding-top: 4px;
   }
 
   .qpm_SearchResult .qpm_searchHeaderSort {
@@ -2262,14 +2340,17 @@ button.qpm_tab {
 .qpm_entryInfoIcon {
   cursor: help;
   font-weight: 200;
+  pointer-events: auto;
+  position: relative;
+  z-index: 2;
 }
 
 .qpm_groupInfoIcon {
-  margin-left: 10px;
+  margin-left: 5px;
 }
 
 .qpm_entryInfoIcon {
-  margin-left: -5px;
+  margin-left: 5px;
 }
 
 .qpm_inlineBlock {
@@ -2316,7 +2397,7 @@ button.qpm_tab {
 
 .qpm_aiHeaderTitleWrap,
 .qpm_resultAiHeaderTitleWrap {
-  align-content: center;
+  display: inline;
 }
 
 .qpm_summaryCountSelect {

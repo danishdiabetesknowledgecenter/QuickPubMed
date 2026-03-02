@@ -18,16 +18,24 @@
                   />
                 </div>
                 <div class="qpm_aiHeaderTitleWrap">
-                  <strong>{{ getString("selectedResultsAccordionHeader") }}</strong>
-                  <button
-                    v-tooltip="{
-                      content: getString('hoverselectedResultsAccordionHeader'),
-                      distance: 5,
-                      delay: $helpTextDelay,
-                    }"
-                    class="bx bx-info-circle"
-                    aria-label="Info"
-                  />
+                  <strong>
+                    <template v-if="getSelectedResultsAccordionHeaderParts().prefix">
+                      {{ getSelectedResultsAccordionHeaderParts().prefix }}
+                    </template>
+                    <span class="qpm_keepWithIcon">
+                      {{ getSelectedResultsAccordionHeaderParts().last }}
+                      <button
+                        v-tooltip="{
+                          content: getString('hoverselectedResultsAccordionHeader'),
+                          distance: 5,
+                          delay: $helpTextDelay,
+                          theme: 'infoTooltip',
+                        }"
+                        class="bx bx-info-circle qpm_infoIcon"
+                        aria-label="Info"
+                      />
+                    </span>
+                  </strong>
                 </div>
               </div>
               <div>
@@ -130,31 +138,40 @@
               <div
                 class="qpm_selectedHeaderInner"
               >
-                <div>
+                <div class="qpm_infoInline">
                   <i
                     class="bx bx-check-square"
                   />
-                  <strong>{{ getString("selectedResultTitle") }}</strong>
-                  <button
-                    v-if="!config.useAI"
-                    v-tooltip="{
-                      content: getString('hoverselectedResultTitle'),
-                      distance: 5,
-                      delay: $helpTextDelay,
-                    }"
-                    class="bx bx-info-circle"
-                    aria-label="Info"
-                  />
-                  <button
-                    v-if="config.useAI"
-                    v-tooltip="{
-                      content: getString('hoverselectedResultTitleAI'),
-                      distance: 5,
-                      delay: $helpTextDelay,
-                    }"
-                    class="bx bx-info-circle"
-                    aria-label="Info"
-                  />
+                  <strong>
+                    <template v-if="getSelectedResultTitleParts().prefix">
+                      {{ getSelectedResultTitleParts().prefix }}
+                    </template>
+                    <span class="qpm_keepWithIcon">
+                      {{ getSelectedResultTitleParts().last }}
+                      <button
+                        v-if="!config.useAI"
+                        v-tooltip="{
+                          content: getString('hoverselectedResultTitle'),
+                          distance: 5,
+                          delay: $helpTextDelay,
+                          theme: 'infoTooltip',
+                        }"
+                        class="bx bx-info-circle qpm_infoIcon"
+                        aria-label="Info"
+                      />
+                      <button
+                        v-if="config.useAI"
+                        v-tooltip="{
+                          content: getString('hoverselectedResultTitleAI'),
+                          distance: 5,
+                          delay: $helpTextDelay,
+                          theme: 'infoTooltip',
+                        }"
+                        class="bx bx-info-circle qpm_infoIcon"
+                        aria-label="Info"
+                      />
+                    </span>
+                  </strong>
                 </div>
                 <div>
                   <div
@@ -714,6 +731,23 @@
       },
       getTranslation(value) {
         return getLocalizedTranslation(value, this.language);
+      },
+      splitLastWord(text) {
+        const normalized = String(text || "").trim();
+        const lastSpace = normalized.lastIndexOf(" ");
+        if (lastSpace < 0) {
+          return { prefix: "", last: normalized };
+        }
+        return {
+          prefix: normalized.slice(0, lastSpace) + " ",
+          last: normalized.slice(lastSpace + 1),
+        };
+      },
+      getSelectedResultsAccordionHeaderParts() {
+        return this.splitLastWord(this.getString("selectedResultsAccordionHeader"));
+      },
+      getSelectedResultTitleParts() {
+        return this.splitLastWord(this.getString("selectedResultTitle"));
       },
       changePageNumber(event) {
         const selectedIndex = parseInt(event.target.options.selectedIndex, 10);

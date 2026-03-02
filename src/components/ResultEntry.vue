@@ -279,16 +279,24 @@
                     />
                   </div>
                   <div class="qpm_resultAiHeaderTitleWrap">
-                    <strong>{{ getString("selectedResultAccordionHeader") }}</strong>
-                    <button
-                      v-tooltip="{
-                        content: getString('hoverselectedResultAccordionHeader'),
-                        distance: 5,
-                        delay: $helpTextDelay,
-                      }"
-                      class="bx bx-info-circle"
-                      aria-label="Info"
-                    />
+                    <strong>
+                      <template v-if="getSelectedResultAccordionHeaderParts().prefix">
+                        {{ getSelectedResultAccordionHeaderParts().prefix }}
+                      </template>
+                      <span class="qpm_keepWithIcon">
+                        {{ getSelectedResultAccordionHeaderParts().last }}
+                        <button
+                          v-tooltip="{
+                            content: getString('hoverselectedResultAccordionHeader'),
+                            distance: 5,
+                            delay: $helpTextDelay,
+                            theme: 'infoTooltip',
+                          }"
+                          class="bx bx-info-circle qpm_infoIcon"
+                          aria-label="Info"
+                        />
+                      </span>
+                    </strong>
                   </div>
                 </div>
                 <div>
@@ -391,17 +399,25 @@
                 <i
                   class="ri-sparkling-fill"
                 />
-                <div>
-                  <strong>{{ getString("selectedResultAccordionHeaderNoAbstract") }}</strong>
-                  <button
-                    v-tooltip="{
-                      content: getString('hoverselectedResultAccordionHeaderNoAbstract'),
-                      distance: 5,
-                      delay: $helpTextDelay,
-                    }"
-                    class="bx bx-info-circle"
-                    aria-label="Info"
-                  />
+                <div class="qpm_infoInline">
+                  <strong>
+                    <template v-if="getSelectedResultNoAbstractHeaderParts().prefix">
+                      {{ getSelectedResultNoAbstractHeaderParts().prefix }}
+                    </template>
+                    <span class="qpm_keepWithIcon">
+                      {{ getSelectedResultNoAbstractHeaderParts().last }}
+                      <button
+                        v-tooltip="{
+                          content: getString('hoverselectedResultAccordionHeaderNoAbstract'),
+                          distance: 5,
+                          delay: $helpTextDelay,
+                          theme: 'infoTooltip',
+                        }"
+                        class="bx bx-info-circle qpm_infoIcon"
+                        aria-label="Info"
+                      />
+                    </span>
+                  </strong>
                 </div>
               </div>
             </template>
@@ -1138,6 +1154,23 @@
       eventBus.off("result-entry-show-abstract", this.onEventBusShowAbstractEvent);
     },
     methods: {
+      splitLastWord(text) {
+        const normalized = String(text || "").trim();
+        const lastSpace = normalized.lastIndexOf(" ");
+        if (lastSpace < 0) {
+          return { prefix: "", last: normalized };
+        }
+        return {
+          prefix: normalized.slice(0, lastSpace) + " ",
+          last: normalized.slice(lastSpace + 1),
+        };
+      },
+      getSelectedResultAccordionHeaderParts() {
+        return this.splitLastWord(this.getString("selectedResultAccordionHeader"));
+      },
+      getSelectedResultNoAbstractHeaderParts() {
+        return this.splitLastWord(this.getString("selectedResultAccordionHeaderNoAbstract"));
+      },
       stripHtmlToText(value) {
         const div = document.createElement("div");
         div.innerHTML = value || "";

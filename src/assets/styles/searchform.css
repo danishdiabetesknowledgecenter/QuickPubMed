@@ -23,9 +23,13 @@
 }
 
 .qpm_limitsHeaderContainer {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
+  display: inline-flex;
+  align-items: flex-start;  
+  gap: 5px;
+}
+
+.qpm_limitsHeaderContainer .qpm_infoIcon {
+  transform: translateY(2px);
 }
 
 .qpm_wordedStringOperator {
@@ -152,6 +156,10 @@
   margin-right: 2px;
 }
 
+.qpm_searchStringGroupOperator_NotApplied {
+  margin-bottom: 0;
+}
+
 .qpm_searchStringWordGroupWrapper {
   padding-bottom: 7px;
   position: relative;
@@ -202,11 +210,17 @@
 .qpm_aiToggle {
   display: flex;
   width: -webkit-fill-available;
+  align-items: flex-start;
   margin-top: -1px;
 }
 
 .qpm_aiToggle div:last-of-type {
-  margin-top: 2px;
+  margin-top: 0;
+}
+
+.qpm_aiToggle .qpm_infoInline {
+  display: inline;
+  white-space: normal;
 }
 
 .qpm_aiToggle:not(i) {
@@ -218,7 +232,7 @@
 }
 
 .qpm_aiToggle button {
-  margin-bottom: 2px;
+  margin-bottom: 1px;
 }
 
 .qpm_aiToggle .bx-sparkles-alt {
@@ -256,12 +270,17 @@
 .qpm_simpleFilters {
   display: flex;
   align-items: flex-start;
-  white-space: nowrap;
+  white-space: normal;
   margin-bottom: 10px;
 }
 
 .qpm_simpleFilters div {
   padding: 0 5px 0 10px;
+}
+
+.qpm_simpleFilters .qpm_infoInline {
+  display: inline;
+  white-space: normal;
 }
 
 .qpm_simpleFilters label {
@@ -379,7 +398,24 @@ input:checked + .qpm_slider:before {
   }
 
   .qpm_searchStringWordGroup {
-    display: grid;
+    display: inline-block;
+    padding-bottom: 6px;
+  }
+
+  .qpm_searchStringWordGroupWrapper {
+    display: inline;
+    padding-bottom: 4px;
+  }
+
+  .qpm_searchStringGroupOperator_NotApplied {
+    display: block;
+    margin-top: 4px;
+    margin-bottom: 8px;
+  }
+
+  .qpm_searchStringPreTextLimits {
+    display: block;
+    margin-top: 10px;
   }
 }
 

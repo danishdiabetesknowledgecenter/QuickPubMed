@@ -16,7 +16,7 @@
   >
     <!-- Mobile tap interceptor: prevents multiselect from opening, shows action sheet instead -->
     <div
-      v-if="isTouchDevice && !shouldHideDropdownArrow && !mobileOverlayHidden"
+      v-if="isMobileUi && !shouldHideDropdownArrow && !mobileOverlayHidden"
       class="qpm_mobileTapOverlay"
       @touchstart.stop="onOverlayTouchStart"
       @touchmove.passive="onOverlayTouchMove"
@@ -124,9 +124,12 @@
             customGroupTooltipById(props.option.$groupLabel).content &&
             customGroupTooltipById(props.option.$groupLabel).content.trim() !== ''
           "
-          v-tooltip.right="customGroupTooltipById(props.option.$groupLabel)"
-          class="bx bx-info-circle qpm_groupLabel qpm_groupInfoIcon"
+          v-tooltip.right="{ ...customGroupTooltipById(props.option.$groupLabel), theme: 'infoTooltip', triggers: ['hover', 'focus'], hideTriggers: ['hover'] }"
+          class="bx bx-info-circle qpm_infoIcon qpm_groupInfoIcon"
           aria-label="Info"
+          @mousedown.stop
+          @click.stop.prevent="forwardGroupHeaderClick($event)"
+          @touchstart.stop.prevent
         />
 
         <span
@@ -138,15 +141,20 @@
 
         <span class="qpm_entryName">{{ customNameLabel(props.option) }} </span>
 
-        <i
+        <button
           v-if="props.option.tooltip && props.option.tooltip[language]"
+          type="button"
           v-tooltip.right="{
             content: props.option.tooltip && props.option.tooltip[language],
             distance: 5,
-            delay: $helpTextDelay,
+            delay: 0,
+            theme: 'infoTooltip',
           }"
-          class="bx bx-info-circle qpm_entryName qpm_entryInfoIcon"
+          class="bx bx-info-circle qpm_infoIcon qpm_entryInfoIcon"
           aria-label="Info"
+          @mousedown.stop
+          @click.stop.prevent="forwardOptionRowClick($event)"
+          @touchstart.stop
         />
 
         <span v-if="props.option.isTag" class="qpm_entryManual"
@@ -230,6 +238,7 @@
           v-if="showMobileActionSheet"
           class="qpm_actionSheetBackdrop"
           @click.self="closeMobileActionSheet"
+          @touchmove="handleActionSheetTouchMove"
         >
           <div class="qpm_actionSheetPanel">
             <div class="qpm_actionSheetPrimaryGroup">
@@ -258,7 +267,13 @@
                   :key="group.id"
                   class="qpm_actionSheetBtn qpm_actionSheetListItem"
                   @click="openMobileChildren(group.id)"
-                >{{ group.label }}</button>
+                >
+                  <span>{{ group.label }}</span>
+                  <i
+                    class="bx bx-chevron-right qpm_actionSheetListChevron"
+                    aria-hidden="true"
+                  />
+                </button>
               </div>
               <div v-else class="qpm_actionSheetList">
                 <button
@@ -402,7 +417,11 @@
         isDropdownOpen: false, // Track dropdown state for aria-expanded
         _preventDeactivate: false,
         isTouchDevice: false,
+        isMobileUi: false,
         _touchMql: null,
+        _hoverMql: null,
+        _widthMql: null,
+        _mobileUiMqlHandler: null,
         showMobileActionSheet: false,
         mobileListStep: "root",
         mobileActiveGroupId: "",
@@ -417,6 +436,10 @@
         _handleEmptyDropdownFocusBound: null,
         _handleEmptyDropdownClickBound: null,
         _deactivateGuardTimer: null,
+        _bodyScrollY: 0,
+        _bodyScrollLocked: false,
+        _bodyOriginalStyles: null,
+        _htmlOriginalOverscrollBehavior: "",
       };
     },
     created() {
@@ -424,11 +447,16 @@
         typeof navigator !== "undefined" && Number(navigator.maxTouchPoints || 0) > 0;
       if (typeof window !== "undefined" && window.matchMedia) {
         this._touchMql = window.matchMedia("(pointer: coarse)");
-        this.isTouchDevice = this._touchMql.matches || hasTouchPoints;
-        this._touchMqlHandler = (e) => { this.isTouchDevice = e.matches || hasTouchPoints; };
-        this._touchMql.addEventListener("change", this._touchMqlHandler);
+        this._hoverMql = window.matchMedia("(hover: none)");
+        this._widthMql = window.matchMedia("(max-width: 1024px)");
+        this._mobileUiMqlHandler = () => this.updateMobileUiState();
+        this._touchMql.addEventListener("change", this._mobileUiMqlHandler);
+        this._hoverMql.addEventListener("change", this._mobileUiMqlHandler);
+        this._widthMql.addEventListener("change", this._mobileUiMqlHandler);
+        this.updateMobileUiState();
       } else {
         this.isTouchDevice = hasTouchPoints;
+        this.isMobileUi = hasTouchPoints;
       }
       this._handleKeyDownBound = this.handleKeyDown.bind(this);
       this._handleInputEventBound = this.handleInputEvent.bind(this);
@@ -436,7 +464,19 @@
       this._handleEmptyDropdownKeydownBound = this.handleEmptyDropdownKeydown.bind(this);
       this._handleEmptyDropdownFocusBound = this.handleEmptyDropdownFocus.bind(this);
       this._handleEmptyDropdownClickBound = this.handleEmptyDropdownClick.bind(this);
-      this._handleDropdownMousedownGuard = () => {
+      this._handleDropdownMousedownGuard = (event) => {
+        const isArrowClick =
+          !!event &&
+          !!event.target &&
+          typeof event.target.closest === "function" &&
+          !!event.target.closest(".multiselect__select");
+
+        if (isArrowClick) {
+          this._preventDeactivate = false;
+          clearTimeout(this._deactivateGuardTimer);
+          return;
+        }
+
         if (this.$refs.multiselect?.isOpen) {
           this._preventDeactivate = true;
           clearTimeout(this._deactivateGuardTimer);
@@ -710,6 +750,13 @@
         },
         immediate: false,
       },
+      showMobileActionSheet(newVal) {
+        if (newVal) {
+          this.lockBodyScrollForActionSheet();
+        } else {
+          this.unlockBodyScrollForActionSheet();
+        }
+      },
     },
     mounted: function () {
       this.initialSetup();
@@ -827,9 +874,16 @@
       });
     },
     beforeUnmount() {
+      this.unlockBodyScrollForActionSheet();
       this.isUserTyping = false;
-      if (this._touchMql && this._touchMqlHandler) {
-        this._touchMql.removeEventListener("change", this._touchMqlHandler);
+      if (this._touchMql && this._mobileUiMqlHandler) {
+        this._touchMql.removeEventListener("change", this._mobileUiMqlHandler);
+      }
+      if (this._hoverMql && this._mobileUiMqlHandler) {
+        this._hoverMql.removeEventListener("change", this._mobileUiMqlHandler);
+      }
+      if (this._widthMql && this._mobileUiMqlHandler) {
+        this._widthMql.removeEventListener("change", this._mobileUiMqlHandler);
       }
       this.$el.removeEventListener("mousedown", this._handleDropdownMousedownGuard, true);
       this.$el.removeEventListener("touchstart", this._handleDropdownMousedownGuard, true);
@@ -871,14 +925,17 @@
       }
     },
     methods: {
-      isMobileInputMode() {
+      updateMobileUiState() {
         const hasTouchPoints =
           typeof navigator !== "undefined" && Number(navigator.maxTouchPoints || 0) > 0;
-        const smallViewport =
-          typeof window !== "undefined" &&
-          window.matchMedia &&
-          window.matchMedia("(max-width: 900px)").matches;
-        return this.isTouchDevice || hasTouchPoints || smallViewport;
+        const coarsePointer = !!this._touchMql?.matches;
+        const noHover = !!this._hoverMql?.matches;
+        const smallViewport = !!this._widthMql?.matches;
+        this.isTouchDevice = hasTouchPoints || coarsePointer;
+        this.isMobileUi = (hasTouchPoints || (coarsePointer && noHover)) && smallViewport;
+      },
+      isMobileInputMode() {
+        return this.isMobileUi;
       },
       getMobileGroupItems(groupId) {
         if (!groupId) return [];
@@ -1023,6 +1080,63 @@
         }
         this._overlayTouchY = null;
         this._overlayTouchMoved = false;
+      },
+      handleActionSheetTouchMove(event) {
+        const target = event.target;
+        const isInsideScrollableList =
+          !!target &&
+          typeof target.closest === "function" &&
+          !!target.closest(".qpm_actionSheetList");
+        if (!isInsideScrollableList) {
+          event.preventDefault();
+        }
+      },
+      lockBodyScrollForActionSheet() {
+        if (typeof window === "undefined" || typeof document === "undefined" || this._bodyScrollLocked) {
+          return;
+        }
+        const body = document.body;
+        const html = document.documentElement;
+        if (!body || !html) return;
+
+        this._bodyScrollY = window.scrollY || window.pageYOffset || 0;
+        this._bodyOriginalStyles = {
+          position: body.style.position,
+          top: body.style.top,
+          left: body.style.left,
+          right: body.style.right,
+          width: body.style.width,
+          overflow: body.style.overflow,
+        };
+        this._htmlOriginalOverscrollBehavior = html.style.overscrollBehavior;
+
+        body.style.position = "fixed";
+        body.style.top = `-${this._bodyScrollY}px`;
+        body.style.left = "0";
+        body.style.right = "0";
+        body.style.width = "100%";
+        body.style.overflow = "hidden";
+        html.style.overscrollBehavior = "none";
+        this._bodyScrollLocked = true;
+      },
+      unlockBodyScrollForActionSheet() {
+        if (typeof window === "undefined" || typeof document === "undefined" || !this._bodyScrollLocked) {
+          return;
+        }
+        const body = document.body;
+        const html = document.documentElement;
+        if (!body || !html) return;
+
+        const original = this._bodyOriginalStyles || {};
+        body.style.position = original.position || "";
+        body.style.top = original.top || "";
+        body.style.left = original.left || "";
+        body.style.right = original.right || "";
+        body.style.width = original.width || "";
+        body.style.overflow = original.overflow || "";
+        html.style.overscrollBehavior = this._htmlOriginalOverscrollBehavior || "";
+        window.scrollTo(0, this._bodyScrollY || 0);
+        this._bodyScrollLocked = false;
       },
       handleMobileTap() {
         const hasOptions = this.getSortedSubjectOptions.length > 0;
@@ -1835,6 +1949,27 @@
         } else {
           // This is when we are adding a new tag
         }
+      },
+      forwardGroupHeaderClick(event) {
+        const target = event?.target;
+        if (!target || typeof target.closest !== "function") return;
+        const groupHeader = target.closest(".multiselect__option--group");
+        if (!groupHeader) return;
+        this.handleCategoryGroupClick({ target: groupHeader });
+      },
+      forwardOptionRowClick(event) {
+        const target = event?.target;
+        if (!target || typeof target.closest !== "function") return;
+        const row = target.closest("li.multiselect__element");
+        if (!row) return;
+        const optionElement = row.querySelector(".multiselect__option:not(.multiselect__option--group)");
+        if (!optionElement) return;
+        optionElement.dispatchEvent(
+          new MouseEvent("mousedown", { bubbles: true, cancelable: true })
+        );
+        optionElement.dispatchEvent(
+          new MouseEvent("click", { bubbles: true, cancelable: true })
+        );
       },
       /**
        * Handles the click event on a tag (an option that has been selected),
@@ -3243,7 +3378,7 @@
         const tooltip = {
           content: content,
           distance: 5,
-          delay: this.$helpTextDelay,
+          delay: 0,
         };
         return tooltip;
       },

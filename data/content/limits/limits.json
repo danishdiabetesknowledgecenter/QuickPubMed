@@ -59,7 +59,7 @@
                             "id": "L000020010",
                             "buttons": true,
                             "translations": {
-                                "dk": "Afgrænsning 2.1x",
+                                "dk": "Afgrænsning 2.1",
                                 "en": "Limit 2.1"
                             },
                             "tooltip": {
@@ -81,6 +81,12 @@
                                 "dk": "",
                                 "en": ""
                             },
+                            "combineWithStandardStringScopes": {
+                                "narrow": true,
+                                "normal": true,
+                                "broad": true
+                            },
+                            "internalComment": "",
                             "choices": [
                                 {
                                     "id": "L000020010010",
@@ -308,7 +314,7 @@
                             "id": "L000020010",
                             "buttons": true,
                             "translations": {
-                                "dk": "Afgrænsning 2.1x",
+                                "dk": "Afgrænsning 2.1",
                                 "en": "Limit 2.1"
                             },
                             "tooltip": {
@@ -415,7 +421,13 @@
                                     },
                                     "children": []
                                 }
-                            ]
+                            ],
+                            "combineWithStandardStringScopes": {
+                                "narrow": true,
+                                "normal": true,
+                                "broad": true
+                            },
+                            "internalComment": ""
                         },
                         {
                             "id": "L000020020",

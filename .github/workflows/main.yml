@@ -68,5 +68,40 @@ jobs:
           exclude: |
              config.php
              config/config.php
+             config.example.php
+             config/config.example.php
              runtime/**
              *.lock
+
+      - name: 📂 Deploy entries to FTP Server
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./entries/
+          server-dir: ./entries/
+          protocol: ftp
+          exclude: |
+             .git*
+             *.map
+
+      - name: 📂 Deploy data to FTP Server
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./data/
+          server-dir: ./data/
+          protocol: ftp
+          exclude: |
+             history/**
+             **/history/**
+             config/**
+             **/config/**
+             *.example.json
+             **/*.example.json
+             cache/**
+             runtime/**
+             **/*config*.json

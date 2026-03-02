@@ -10,8 +10,9 @@
           content: getString('hoverFiltersHeader'),
           distance: 5,
           delay: helpTextDelay,
+          theme: 'infoTooltip',
         }"
-        class="bx bx-info-circle qpm_cursorHelp"
+        class="bx bx-info-circle qpm_cursorHelp qpm_infoIcon"
         aria-label="Info"
       />
     </div>

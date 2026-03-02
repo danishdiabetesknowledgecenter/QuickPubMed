@@ -9,8 +9,9 @@
           content: getString('hoverFiltersHeader'),
           distance: 5,
           delay: helpTextDelay,
+          theme: 'infoTooltip',
         }"
-        class="bx bx-info-circle qpm_cursorHelp"
+        class="bx bx-info-circle qpm_cursorHelp qpm_infoIcon"
         aria-label="Info"
       />
     </div>
@@ -38,20 +39,28 @@
               @change="onFilterChange(option.id, choice, $event)"
               @keyup.enter="onFilterEnter(choice)"
             />
-            <div>
+            <div class="qpm_infoInline">
               <label :for="choice.id || choice.name">
-                {{ getCustomNameLabel(choice) }}
+                <template v-if="getChoiceLabelParts(choice).prefix">
+                  {{ getChoiceLabelParts(choice).prefix }}
+                </template>
+                <span class="qpm_keepWithIcon">
+                  {{ getChoiceLabelParts(choice).last }}
+                  <button
+                    v-if="getSimpleTooltip(choice)"
+                    type="button"
+                    v-tooltip="{
+                      content: getSimpleTooltip(choice),
+                      distance: 5,
+                      delay: helpTextDelay,
+                      theme: 'infoTooltip',
+                    }"
+                    class="bx bx-info-circle qpm_cursorHelp qpm_infoIcon"
+                    aria-label="Info"
+                    @click.stop
+                  />
+                </span>
               </label>
-              <button
-                v-if="getSimpleTooltip(choice)"
-                v-tooltip="{
-                  content: getSimpleTooltip(choice),
-                  distance: 5,
-                  delay: helpTextDelay,
-                }"
-                class="bx bx-info-circle qpm_cursorHelp"
-                aria-label="Info"
-              />
             </div>
           </div>
           <div :key="`spacer-${option.id}`" class="qpm_simpleFiltersSpacer" />
@@ -101,6 +110,20 @@
       };
     },
     methods: {
+      splitLastWord(text) {
+        const normalized = String(text || "").trim();
+        const lastSpace = normalized.lastIndexOf(" ");
+        if (lastSpace < 0) {
+          return { prefix: "", last: normalized };
+        }
+        return {
+          prefix: normalized.slice(0, lastSpace) + " ",
+          last: normalized.slice(lastSpace + 1),
+        };
+      },
+      getChoiceLabelParts(choice) {
+        return this.splitLastWord(this.getCustomNameLabel(choice));
+      },
       /**
        * Handles the change event for a filter checkbox.
        * Emits the 'update-limit' event with filterType and selectedValue.

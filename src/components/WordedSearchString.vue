@@ -77,7 +77,7 @@
           </div>
         </div>
         <br />
-        <span v-if="!limitsIsEmpty" class="qpm_searchStringPreText">
+        <span v-if="!limitsIsEmpty" class="qpm_searchStringPreText qpm_searchStringPreTextLimits">
           <div class="qpm_hideonmobile qpm_limitsTopPadding" />
           {{ getString("limitsPreString") }} {{ " " }}
         </span>

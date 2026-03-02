@@ -1315,6 +1315,7 @@
        * Adds a new empty filter dropdown.
        */
       addLimitDropdown() {
+        const isMobile = isMobileViewport();
         const hasEmpty = this.limitDropdowns.some((d) => d.length === 0);
         if (hasEmpty) {
           alert(this.getString("fillEmptyDropdownFirstAlert"));
@@ -1326,12 +1327,18 @@
           const limitSelection = this.$refs.advancedSearchLimits?.$refs.limitSelection;
           if (!limitSelection) return;
           const lastDropdown = this.getLastDropdownRef(limitSelection.$refs.limitDropdown);
-          this.tryActivateDropdown(lastDropdown, { focusInput: true });
+          this.tryActivateDropdown(lastDropdown, {
+            focusInput: !isMobile,
+            shouldActivate: !isMobile,
+          });
 
           // Retry with small delay if first attempt failed
           setTimeout(() => {
             const lastDropdown = this.getLastDropdownRef(limitSelection.$refs.limitDropdown);
-            this.tryActivateDropdown(lastDropdown, { onlyWhenClosed: true });
+            this.tryActivateDropdown(lastDropdown, {
+              onlyWhenClosed: true,
+              shouldActivate: !isMobile,
+            });
           }, 100);
         });
       },
@@ -1574,6 +1581,7 @@
        * 4. Sets a timeout to focus on the search input of the newly added topic dropdown.
        */
       addTopic() {
+        const isMobile = isMobileViewport();
         const hasEmptySubject = this.topics.some((entry) => entry.length === 0);
         if (hasEmptySubject) {
           const message = this.getString("fillEmptyDropdownFirstAlert");
@@ -1587,7 +1595,10 @@
         this.$nextTick(() => {
           const subjectDropdownRef = this.$refs?.subjectSelection?.$refs?.topicDropdown;
           const lastDropdown = this.getLastDropdownRef(subjectDropdownRef);
-          this.tryActivateDropdown(lastDropdown, { focusInput: true });
+          this.tryActivateDropdown(lastDropdown, {
+            focusInput: !isMobile,
+            shouldActivate: !isMobile,
+          });
 
           // Update placeholders after DOM update
           this.updatePlaceholders();
@@ -1596,7 +1607,10 @@
           setTimeout(() => {
             const subjectDropdownRef = this.$refs?.subjectSelection?.$refs?.topicDropdown;
             const lastDropdown = this.getLastDropdownRef(subjectDropdownRef);
-            this.tryActivateDropdown(lastDropdown, { onlyWhenClosed: true });
+            this.tryActivateDropdown(lastDropdown, {
+              onlyWhenClosed: true,
+              shouldActivate: !isMobile,
+            });
           }, 100);
         });
       },
