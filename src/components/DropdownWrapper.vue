@@ -759,6 +759,11 @@
           this.unlockBodyScrollForActionSheet();
         }
       },
+      isMobileUi() {
+        this.$nextTick(() => {
+          this.applyMobileUiDomOverrides();
+        });
+      },
     },
     mounted: function () {
       this.initialSetup();
@@ -863,16 +868,17 @@
       this.$nextTick(() => {
         this.fixAriaControls();
         this.updateAriaExpanded();
+        this.applyMobileUiDomOverrides();
       });
     },
     updated: function () {
       this.initialSetup();
-      // Update width when component updates
       this.$nextTick(() => {
         const input = this.$el?.getElementsByClassName("multiselect__input")[0];
         if (input) {
           this.setWidthToPlaceholderWidth(input);
         }
+        this.applyMobileUiDomOverrides();
       });
     },
     beforeUnmount() {
@@ -948,6 +954,18 @@
       },
       isMobileInputMode() {
         return this.isMobileUi;
+      },
+      applyMobileUiDomOverrides() {
+        if (!this.$el) return;
+        const arrow = this.$el.querySelector(".multiselect__select");
+        const contentWrapper = this.$el.querySelector(".multiselect__content-wrapper");
+        if (this.isMobileUi && !this.shouldHideDropdownArrow) {
+          if (arrow) arrow.style.setProperty("display", "none", "important");
+          if (contentWrapper) contentWrapper.style.setProperty("display", "none", "important");
+        } else if (!this.shouldHideDropdownArrow) {
+          if (arrow) arrow.style.removeProperty("display");
+          if (contentWrapper) contentWrapper.style.removeProperty("display");
+        }
       },
       getMobileGroupItems(groupId) {
         if (!groupId) return [];
