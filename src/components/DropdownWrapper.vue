@@ -933,14 +933,18 @@
             ? navigator.userAgent
             : "";
         const mobileUserAgent = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
+        const windowsDesktopUserAgent = /Windows NT/i.test(userAgent);
         const hasTouchPoints =
           typeof navigator !== "undefined" && Number(navigator.maxTouchPoints || 0) > 0;
         const coarsePointer = !!this._touchMql?.matches;
         const noHover = !!this._hoverMql?.matches;
-        const smallViewport = !!this._widthMql?.matches;
         this.isTouchDevice = hasTouchPoints || coarsePointer;
-        this.isMobileUi =
-          mobileUserAgent || ((hasTouchPoints || (coarsePointer && noHover)) && smallViewport);
+
+        // Do not rely on viewport width alone: Android/Samsung can report
+        // desktop-like viewport/media values while still being touch phones.
+        const touchOnlyLikeDevice = coarsePointer && (noHover || hasTouchPoints);
+        const nonWindowsTouchDevice = hasTouchPoints && !windowsDesktopUserAgent;
+        this.isMobileUi = mobileUserAgent || touchOnlyLikeDevice || nonWindowsTouchDevice;
       },
       isMobileInputMode() {
         return this.isMobileUi;
