@@ -2,7 +2,7 @@
   <div
     ref="selectWrapper"
     class="qpm_dropdown"
-    :class="{ 'qpm_hide-tags-wrap': hideTagsWrap }"
+    :class="{ 'qpm_hide-tags-wrap': hideTagsWrap, qpm_mobileUiDropdown: isMobileUi }"
     @keydown.up.capture.prevent.stop="navUp"
     @keydown.down.capture.prevent.stop="navDown"
     @keydown.left.stop="navLeft"
@@ -16,7 +16,7 @@
   >
     <!-- Mobile tap interceptor: prevents multiselect from opening, shows action sheet instead -->
     <div
-      v-if="isMobileUi && !shouldHideDropdownArrow && !mobileOverlayHidden"
+      v-if="isMobileUi && !shouldHideDropdownArrow && !mobileOverlayHidden && getStateCopy.length === 0"
       class="qpm_mobileTapOverlay"
       @touchstart.stop="onOverlayTouchStart"
       @touchmove.passive="onOverlayTouchMove"
@@ -2272,6 +2272,12 @@
         }
       },
       handleOpenMenuOnClick(event) {
+        const target = event?.target;
+        if (target && typeof target.closest === "function" && target.closest(".multiselect__tag-icon")) {
+          event.stopPropagation();
+          return;
+        }
+
         //FIX FOR IE!
         const tagText = event.target.textContent;
 
