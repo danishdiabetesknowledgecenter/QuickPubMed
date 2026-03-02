@@ -629,9 +629,15 @@ button.qpm_slim.multiselect__input:focus-visible {
   max-width: 100% !important;
 }
 
+.qpm_dropdown.qpm_mobileUiDropdown .multiselect__tags-wrap {
+  display: block;
+  width: 100%;
+}
+
 .qpm_dropdown.qpm_mobileUiDropdown .multiselect__input {
   position: static !important;
   box-sizing: border-box !important;
+  display: block !important;
 }
 
 @media (pointer: coarse) and (hover: none) and (max-width: 1024px) {

@@ -947,8 +947,10 @@
           this.$nextTick(() => {
             const input = this.$el?.querySelector(".multiselect__input");
             if (input) {
-              input.style.removeProperty("width");
-              input.style.removeProperty("max-width");
+              input.style.setProperty("width", "100%", "important");
+              input.style.setProperty("max-width", "100%", "important");
+              input.style.setProperty("display", "block", "important");
+              input.style.setProperty("position", "static", "important");
             }
           });
         }
@@ -3544,6 +3546,13 @@
        */
       handleClick(event) {
         const input = event.target;
+
+        if (this.isMobileInputMode() && !this.mobileOverlayHidden) {
+          event.preventDefault();
+          event.stopPropagation();
+          this.handleMobileTap();
+          return;
+        }
         
         // If this is a silent focus, remove it immediately to allow dropdown opening
         if (this.isSilentFocus) {
