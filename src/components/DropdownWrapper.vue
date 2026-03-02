@@ -2,7 +2,7 @@
   <div
     ref="selectWrapper"
     class="qpm_dropdown"
-    :class="{ 'qpm_hide-tags-wrap': hideTagsWrap, qpm_mobileUi: isMobileUi }"
+    :class="{ 'qpm_hide-tags-wrap': hideTagsWrap }"
     @keydown.up.capture.prevent.stop="navUp"
     @keydown.down.capture.prevent.stop="navDown"
     @keydown.left.stop="navLeft"
@@ -18,11 +18,9 @@
     <div
       v-if="isMobileUi && !shouldHideDropdownArrow && !mobileOverlayHidden"
       class="qpm_mobileTapOverlay"
-      @touchstart.prevent.stop="onOverlayTouchStart"
+      @touchstart.stop="onOverlayTouchStart"
       @touchmove.passive="onOverlayTouchMove"
       @touchend.stop="onOverlayTouchEnd"
-      @touchcancel.stop="onOverlayTouchCancel"
-      @click.prevent.stop
       @mousedown.prevent.stop="handleMobileTap"
     />
 
@@ -759,11 +757,6 @@
           this.unlockBodyScrollForActionSheet();
         }
       },
-      isMobileUi() {
-        this.$nextTick(() => {
-          this.applyMobileUiDomOverrides();
-        });
-      },
     },
     mounted: function () {
       this.initialSetup();
@@ -868,17 +861,16 @@
       this.$nextTick(() => {
         this.fixAriaControls();
         this.updateAriaExpanded();
-        this.applyMobileUiDomOverrides();
       });
     },
     updated: function () {
       this.initialSetup();
+      // Update width when component updates
       this.$nextTick(() => {
         const input = this.$el?.getElementsByClassName("multiselect__input")[0];
         if (input) {
           this.setWidthToPlaceholderWidth(input);
         }
-        this.applyMobileUiDomOverrides();
       });
     },
     beforeUnmount() {
@@ -934,38 +926,19 @@
     },
     methods: {
       updateMobileUiState() {
-        const userAgent =
-          typeof navigator !== "undefined" && typeof navigator.userAgent === "string"
-            ? navigator.userAgent
-            : "";
-        const mobileUserAgent = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
-        const windowsDesktopUserAgent = /Windows NT/i.test(userAgent);
         const hasTouchPoints =
           typeof navigator !== "undefined" && Number(navigator.maxTouchPoints || 0) > 0;
         const coarsePointer = !!this._touchMql?.matches;
         const noHover = !!this._hoverMql?.matches;
+        const smallViewport = !!this._widthMql?.matches;
+        const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
+        const isAndroid = /Android/i.test(userAgent);
         this.isTouchDevice = hasTouchPoints || coarsePointer;
-
-        // Do not rely on viewport width alone: Android/Samsung can report
-        // desktop-like viewport/media values while still being touch phones.
-        const touchOnlyLikeDevice = coarsePointer && (noHover || hasTouchPoints);
-        const nonWindowsTouchDevice = hasTouchPoints && !windowsDesktopUserAgent;
-        this.isMobileUi = mobileUserAgent || touchOnlyLikeDevice || nonWindowsTouchDevice;
+        const isLikelyMobileTouch = hasTouchPoints && (coarsePointer || noHover || smallViewport);
+        this.isMobileUi = isLikelyMobileTouch || (isAndroid && (hasTouchPoints || coarsePointer));
       },
       isMobileInputMode() {
         return this.isMobileUi;
-      },
-      applyMobileUiDomOverrides() {
-        if (!this.$el) return;
-        const arrow = this.$el.querySelector(".multiselect__select");
-        const contentWrapper = this.$el.querySelector(".multiselect__content-wrapper");
-        if (this.isMobileUi && !this.shouldHideDropdownArrow) {
-          if (arrow) arrow.style.setProperty("display", "none", "important");
-          if (contentWrapper) contentWrapper.style.setProperty("display", "none", "important");
-        } else if (!this.shouldHideDropdownArrow) {
-          if (arrow) arrow.style.removeProperty("display");
-          if (contentWrapper) contentWrapper.style.removeProperty("display");
-        }
       },
       getMobileGroupItems(groupId) {
         if (!groupId) return [];
@@ -1106,13 +1079,8 @@
       onOverlayTouchEnd(e) {
         if (!this._overlayTouchMoved) {
           e.preventDefault();
-          e.stopPropagation();
           this.handleMobileTap();
         }
-        this._overlayTouchY = null;
-        this._overlayTouchMoved = false;
-      },
-      onOverlayTouchCancel() {
         this._overlayTouchY = null;
         this._overlayTouchMoved = false;
       },
@@ -1174,15 +1142,6 @@
         this._bodyScrollLocked = false;
       },
       handleMobileTap() {
-        const active = document.activeElement;
-        if (
-          active &&
-          active.classList &&
-          active.classList.contains("multiselect__input") &&
-          typeof active.blur === "function"
-        ) {
-          active.blur();
-        }
         const hasOptions = this.getSortedSubjectOptions.length > 0;
         const canFreeText = this.taggable;
         if (hasOptions) {
@@ -1509,31 +1468,6 @@
         });
       },
       open() {
-        const multiselect = this.$refs.multiselect;
-
-        // Android browsers can still trigger multiselect open via synthetic click/touch sequences.
-        // Keep mobile flow strict: if mobile overlay mode is active, force action sheet instead.
-        if (this.isMobileUi && !this.mobileOverlayHidden && !this.shouldHideDropdownArrow) {
-          const searchInput = multiselect?.$refs?.search;
-          if (searchInput && typeof searchInput.blur === "function") {
-            searchInput.blur();
-          }
-          if (multiselect && typeof multiselect.deactivate === "function") {
-            multiselect.deactivate();
-          }
-          if (!this.showMobileActionSheet) {
-            this.mobileListStep = "root";
-            this.mobileActiveGroupId = "";
-            this.mobileParentStack = [];
-            this.showMobileActionSheet = true;
-          }
-          this.isDropdownOpen = false;
-          this.$nextTick(() => {
-            this.updateAriaExpanded();
-          });
-          return;
-        }
-
         // If this is an empty dropdown, don't allow opening
         if (this._isEmptyDropdown) {
           // Do nothing, handled by custom event handlers
@@ -1549,6 +1483,7 @@
         }
         
         // For dropdowns with topics, reset pointer to ensure highlight logic works
+        const multiselect = this.$refs.multiselect;
         if (multiselect) {
           multiselect.pointer = -1;
         }
@@ -2349,6 +2284,17 @@
         }
         this.setMouseUsed();
         event.stopPropagation();
+
+        // On mobile/touch, avoid forcing focus into multiselect input.
+        // This prevents Android from opening keyboard together with dropdown menu.
+        if (this.isMobileInputMode() && !this.mobileOverlayHidden) {
+          event.preventDefault();
+          this.handleMobileTap();
+          return;
+        }
+        if (this.isTouchDevice && !this.mobileOverlayHidden) {
+          return;
+        }
         
         // Guard to ensure search ref exists
         const searchInput = this.$refs.multiselect?.$refs?.search;
