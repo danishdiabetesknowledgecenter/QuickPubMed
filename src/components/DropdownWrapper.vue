@@ -931,11 +931,16 @@
         const coarsePointer = !!this._touchMql?.matches;
         const noHover = !!this._hoverMql?.matches;
         const smallViewport = !!this._widthMql?.matches;
+        const hasTouchEvent =
+          typeof window !== "undefined" &&
+          ("ontouchstart" in window || ("DocumentTouch" in window && document instanceof window.DocumentTouch));
         const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
         const isAndroid = /Android/i.test(userAgent);
-        this.isTouchDevice = hasTouchPoints || coarsePointer;
-        const isLikelyMobileTouch = hasTouchPoints && (coarsePointer || noHover || smallViewport);
-        this.isMobileUi = isLikelyMobileTouch || (isAndroid && (hasTouchPoints || coarsePointer));
+        const isMobileAgent = /Android|iPhone|iPad|iPod|Mobile|SamsungBrowser/i.test(userAgent);
+        this.isTouchDevice = hasTouchPoints || coarsePointer || hasTouchEvent;
+        this.isMobileUi =
+          (this.isTouchDevice && (noHover || smallViewport || isAndroid || isMobileAgent)) ||
+          (isAndroid && (hasTouchPoints || coarsePointer || hasTouchEvent));
       },
       isMobileInputMode() {
         return this.isMobileUi;
@@ -2293,12 +2298,17 @@
 
         // On mobile/touch, avoid forcing focus into multiselect input.
         // This prevents Android from opening keyboard together with dropdown menu.
+        const hasTouchEvent =
+          typeof window !== "undefined" &&
+          ("ontouchstart" in window || ("DocumentTouch" in window && document instanceof window.DocumentTouch));
+        const isTouchLike = this.isTouchDevice || hasTouchEvent;
         if (this.isMobileInputMode() && !this.mobileOverlayHidden) {
           event.preventDefault();
           this.handleMobileTap();
           return;
         }
-        if (this.isTouchDevice && !this.mobileOverlayHidden) {
+        if (isTouchLike && !this.mobileOverlayHidden) {
+          event.preventDefault();
           return;
         }
         
@@ -3287,7 +3297,7 @@
         if (!placeholder) return;
 
         // On touch devices or when dropdown arrow is hidden, use 100% width
-        if (this.shouldHideDropdownArrow || this.isMobileInputMode()) {
+        if (this.shouldHideDropdownArrow || this.isMobileInputMode() || this.isTouchDevice) {
           input.style.removeProperty('width');
           return;
         }
