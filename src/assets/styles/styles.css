@@ -1779,8 +1779,6 @@ button.qpm_tab {
 }
 
 .qpm_badges {
-  /* display: flex;
-    flex-direction: row; */
   float: right;
 }
 
