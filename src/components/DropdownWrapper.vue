@@ -1465,6 +1465,31 @@
         });
       },
       open() {
+        const multiselect = this.$refs.multiselect;
+
+        // Android browsers can still trigger multiselect open via synthetic click/touch sequences.
+        // Keep mobile flow strict: if mobile overlay mode is active, force action sheet instead.
+        if (this.isMobileUi && !this.mobileOverlayHidden && !this.shouldHideDropdownArrow) {
+          const searchInput = multiselect?.$refs?.search;
+          if (searchInput && typeof searchInput.blur === "function") {
+            searchInput.blur();
+          }
+          if (multiselect && typeof multiselect.deactivate === "function") {
+            multiselect.deactivate();
+          }
+          if (!this.showMobileActionSheet) {
+            this.mobileListStep = "root";
+            this.mobileActiveGroupId = "";
+            this.mobileParentStack = [];
+            this.showMobileActionSheet = true;
+          }
+          this.isDropdownOpen = false;
+          this.$nextTick(() => {
+            this.updateAriaExpanded();
+          });
+          return;
+        }
+
         // If this is an empty dropdown, don't allow opening
         if (this._isEmptyDropdown) {
           // Do nothing, handled by custom event handlers
@@ -1480,7 +1505,6 @@
         }
         
         // For dropdowns with topics, reset pointer to ensure highlight logic works
-        const multiselect = this.$refs.multiselect;
         if (multiselect) {
           multiselect.pointer = -1;
         }
