@@ -607,6 +607,46 @@ button.qpm_slim.multiselect__input:focus-visible {
   display: none !important;
 }
 
+.qpm_dropdown.qpm_mobileUi {
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: 1 1 auto !important;
+  min-width: 0;
+  flex-basis: auto !important;
+}
+
+.qpm_dropdown.qpm_mobileUi .multiselect {
+  width: 100% !important;
+}
+
+.qpm_dropdown.qpm_mobileUi .multiselect__tags {
+  width: 100% !important;
+}
+
+.qpm_dropdown.qpm_mobileUi .multiselect__tags-wrap {
+  position: relative;
+  z-index: 11;
+}
+
+.qpm_dropdown.qpm_mobileUi .multiselect__tag {
+  position: relative;
+  z-index: 11;
+  max-width: 100%;
+}
+
+.qpm_dropdown.qpm_mobileUi .multiselect__tag-icon {
+  position: absolute;
+  z-index: 12;
+}
+
+.qpm_dropdown.qpm_mobileUi .multiselect__input {
+  width: 100% !important;
+  max-width: 100% !important;
+  position: static !important;
+  box-sizing: border-box !important;
+  padding: 0 10px 0 10px !important;
+}
+
 @media (pointer: coarse) and (hover: none) and (max-width: 1024px) {
   .qpm_topics,
   .qpm_flex,
