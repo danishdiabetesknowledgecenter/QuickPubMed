@@ -928,13 +928,19 @@
     },
     methods: {
       updateMobileUiState() {
+        const userAgent =
+          typeof navigator !== "undefined" && typeof navigator.userAgent === "string"
+            ? navigator.userAgent
+            : "";
+        const mobileUserAgent = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
         const hasTouchPoints =
           typeof navigator !== "undefined" && Number(navigator.maxTouchPoints || 0) > 0;
         const coarsePointer = !!this._touchMql?.matches;
         const noHover = !!this._hoverMql?.matches;
         const smallViewport = !!this._widthMql?.matches;
         this.isTouchDevice = hasTouchPoints || coarsePointer;
-        this.isMobileUi = (hasTouchPoints || (coarsePointer && noHover)) && smallViewport;
+        this.isMobileUi =
+          mobileUserAgent || ((hasTouchPoints || (coarsePointer && noHover)) && smallViewport);
       },
       isMobileInputMode() {
         return this.isMobileUi;
