@@ -322,6 +322,7 @@
     areComparableIdsEqual,
     cloneDeep,
     getLocalizedTranslation,
+    isMobileViewport,
   } from "@/utils/componentHelpers";
   import { validateAndEnhanceMeshTerms } from "@/utils/meshValidator.js";
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
@@ -936,11 +937,21 @@
           ("ontouchstart" in window || ("DocumentTouch" in window && document instanceof window.DocumentTouch));
         const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
         const isAndroid = /Android/i.test(userAgent);
-        const isMobileAgent = /Android|iPhone|iPad|iPod|Mobile|SamsungBrowser/i.test(userAgent);
+        const isMobileAgent = /Android|iPhone|iPad|iPod|Mobile|SamsungBrowser/i.test(userAgent) || isMobileViewport();
         this.isTouchDevice = hasTouchPoints || coarsePointer || hasTouchEvent;
         this.isMobileUi =
           (this.isTouchDevice && (noHover || smallViewport || isAndroid || isMobileAgent)) ||
           (isAndroid && (hasTouchPoints || coarsePointer || hasTouchEvent));
+
+        if (this.isMobileUi) {
+          this.$nextTick(() => {
+            const input = this.$el?.querySelector(".multiselect__input");
+            if (input) {
+              input.style.removeProperty("width");
+              input.style.removeProperty("max-width");
+            }
+          });
+        }
       },
       isMobileInputMode() {
         return this.isMobileUi;
@@ -3480,6 +3491,18 @@
        */
       handleFocus(event) {
         const input = event.target;
+
+        // On mobile, do not keep focus on input unless user explicitly chose free text.
+        // Prevents first tap from triggering both menu and keyboard.
+        if (this.isMobileInputMode() && !this.mobileOverlayHidden) {
+          if (!this.showMobileActionSheet) {
+            this.handleMobileTap();
+          }
+          this.$nextTick(() => {
+            if (typeof input.blur === "function") input.blur();
+          });
+          return;
+        }
         
         // If this is a silent focus, don't show focus styling or open dropdown
         if (this.isSilentFocus) {

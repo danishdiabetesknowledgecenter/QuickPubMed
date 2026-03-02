@@ -1,6 +1,6 @@
 /* ==========================================================================
    Theme tokens
-   Defines design variables (colors, typography, spacing and state palettes).
+   Defines design variables (colors, typography, spacing, and state palettes).
    ========================================================================== */
 :root {
   /* Typography */
@@ -621,6 +621,17 @@ button.qpm_slim.multiselect__input:focus-visible {
 
 .qpm_dropdown.qpm_mobileUiDropdown .multiselect {
   width: 100% !important;
+}
+
+.qpm_dropdown.qpm_mobileUiDropdown .multiselect__tags,
+.qpm_dropdown.qpm_mobileUiDropdown .multiselect__input {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.qpm_dropdown.qpm_mobileUiDropdown .multiselect__input {
+  position: static !important;
+  box-sizing: border-box !important;
 }
 
 @media (pointer: coarse) and (hover: none) and (max-width: 1024px) {
