@@ -611,6 +611,18 @@ button.qpm_slim.multiselect__input:focus-visible {
   display: none !important;
 }
 
+.qpm_dropdown.qpm_mobileUiDropdown {
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: 1 1 auto !important;
+  min-width: 0;
+  flex-basis: auto !important;
+}
+
+.qpm_dropdown.qpm_mobileUiDropdown .multiselect {
+  width: 100% !important;
+}
+
 @media (pointer: coarse) and (hover: none) and (max-width: 1024px) {
   .qpm_topics,
   .qpm_flex,
