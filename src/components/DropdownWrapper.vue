@@ -18,9 +18,11 @@
     <div
       v-if="isMobileUi && !shouldHideDropdownArrow && !mobileOverlayHidden"
       class="qpm_mobileTapOverlay"
-      @touchstart.stop="onOverlayTouchStart"
+      @touchstart.prevent.stop="onOverlayTouchStart"
       @touchmove.passive="onOverlayTouchMove"
       @touchend.stop="onOverlayTouchEnd"
+      @touchcancel.stop="onOverlayTouchCancel"
+      @click.prevent.stop
       @mousedown.prevent.stop="handleMobileTap"
     />
 
@@ -1076,8 +1078,13 @@
       onOverlayTouchEnd(e) {
         if (!this._overlayTouchMoved) {
           e.preventDefault();
+          e.stopPropagation();
           this.handleMobileTap();
         }
+        this._overlayTouchY = null;
+        this._overlayTouchMoved = false;
+      },
+      onOverlayTouchCancel() {
         this._overlayTouchY = null;
         this._overlayTouchMoved = false;
       },
@@ -1139,6 +1146,15 @@
         this._bodyScrollLocked = false;
       },
       handleMobileTap() {
+        const active = document.activeElement;
+        if (
+          active &&
+          active.classList &&
+          active.classList.contains("multiselect__input") &&
+          typeof active.blur === "function"
+        ) {
+          active.blur();
+        }
         const hasOptions = this.getSortedSubjectOptions.length > 0;
         const canFreeText = this.taggable;
         if (hasOptions) {
