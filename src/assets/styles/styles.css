@@ -6,6 +6,7 @@
   /* Typography */
   --font-primary: "Open Sans";
   --font-secondary: "Open Sans";
+  --color-link: var(--color-link);
 
   /* Core neutrals */
   --color-black: #000000;

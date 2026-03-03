@@ -9,10 +9,12 @@
       <div class="qpm_searchStringsTopPadding">
         <div
           class="qpm_headingContainerFocus_h2 qpm_gallery_toggle"
+          role="button"
           tabindex="0"
           data-target="qpm_subjectSearchStrings"
           @click="hideOrCollapse('qpm_subjectSearchStrings')"
           @keyup.enter="hideOrCollapse('qpm_subjectSearchStrings')"
+          @keyup.space.prevent="hideOrCollapse('qpm_subjectSearchStrings')"
         >
           <span :class="['qpm_toggle_icon', { qpm_toggle_expanded: !isLevelCollapsed(1) }]">
             <span class="qpm_toggle_plus">+</span>
@@ -30,19 +32,23 @@
       >
         <div
           class="qpm_headingContainerFocus_h3 qpm_gallery_toggle"
+          role="button"
           tabindex="0"
           :data-target="toClassName(subject.id)"
           @click="hideOrCollapse(toClassName(subject.id))"
           @keyup.enter="hideOrCollapse(toClassName(subject.id))"
+          @keyup.space.prevent="hideOrCollapse(toClassName(subject.id))"
         >
           <span :class="['qpm_toggle_icon', { qpm_toggle_expanded: !isLevelCollapsed(2) }]">
             <span class="qpm_toggle_plus">+</span>
             <span class="qpm_toggle_minus">&minus;</span>
           </span>
-          <h3 class="qpm_heading">
-            {{ customNameLabel(subject) }}
-          </h3>
-          <span class="qpm_groupid">(ID: {{ subject.id }})</span>
+          <div class="qpm_headingWithId">
+            <h3 class="qpm_heading">
+              {{ customNameLabel(subject) }}
+            </h3>
+            <span class="qpm_groupid">(ID: {{ subject.id }})</span>
+          </div>
         </div>
         <div
           v-for="(group, index) in subject.groups"
@@ -54,10 +60,12 @@
         >
           <div
             :class="['qpm_headingContainerFocus', isClickable(group) ? 'qpm_gallery_toggle' : '']"
+            :role="isClickable(group) ? 'button' : undefined"
             :tabindex="isClickable(group) ? 0 : -1"
             :data-target="getToggleTarget(group)"
             @click="isClickable(group) && hideOrCollapse(getToggleTarget(group))"
             @keyup.enter="isClickable(group) && hideOrCollapse(getToggleTarget(group))"
+            @keyup.space.prevent="isClickable(group) && hideOrCollapse(getToggleTarget(group))"
           >
             <span
               :class="[
@@ -71,10 +79,12 @@
               <span class="qpm_toggle_plus">+</span>
               <span class="qpm_toggle_minus">&minus;</span>
             </span>
-            <component :is="getHeadingTag(group)" class="qpm_heading">
-              {{ customNameLabel(group) }}
-            </component>
-            <span class="qpm_groupid">(ID: {{ group.id }})</span>
+            <div class="qpm_headingWithId">
+              <component :is="getHeadingTag(group)" class="qpm_heading">
+                {{ customNameLabel(group) }}
+              </component>
+              <span class="qpm_groupid">(ID: {{ group.id }})</span>
+            </div>
           </div>
           <div
             v-if="!group.maintopic"
@@ -189,10 +199,12 @@
       <div class="qpm_heading_limits">
         <div
           class="qpm_headingContainerFocus_h2 qpm_gallery_toggle"
+          role="button"
           tabindex="0"
           data-target="qpm_filterSearchStrings"
           @click="hideOrCollapse('qpm_filterSearchStrings')"
           @keyup.enter="hideOrCollapse('qpm_filterSearchStrings')"
+          @keyup.space.prevent="hideOrCollapse('qpm_filterSearchStrings')"
         >
           <span :class="['qpm_toggle_icon', { qpm_toggle_expanded: !isLevelCollapsed(1) }]">
             <span class="qpm_toggle_plus">+</span>
@@ -206,19 +218,23 @@
       <div v-for="filter in getSortedLimits" :key="filter.id" class="qpm_filterSearchStrings">
         <div
           class="qpm_headingContainerFocus_h3 qpm_gallery_toggle"
+          role="button"
           tabindex="0"
           :data-target="toClassName(filter.id)"
           @click="hideOrCollapse(toClassName(filter.id))"
           @keyup.enter="hideOrCollapse(toClassName(filter.id))"
+          @keyup.space.prevent="hideOrCollapse(toClassName(filter.id))"
         >
           <span :class="['qpm_toggle_icon', { qpm_toggle_expanded: !isLevelCollapsed(2) }]">
             <span class="qpm_toggle_plus">+</span>
             <span class="qpm_toggle_minus">&minus;</span>
           </span>
-          <h3 class="qpm_heading">
-            {{ customNameLabel(filter) }}
-          </h3>
-          <span class="qpm_groupid">(ID: {{ filter.id }})</span>
+          <div class="qpm_headingWithId">
+            <h3 class="qpm_heading">
+              {{ customNameLabel(filter) }}
+            </h3>
+            <span class="qpm_groupid">(ID: {{ filter.id }})</span>
+          </div>
         </div>
         <div
           v-for="choice in filter.choices"
@@ -230,10 +246,12 @@
         >
           <div
             :class="['qpm_headingContainerFocus', isClickable(choice) ? 'qpm_gallery_toggle' : '']"
+            :role="isClickable(choice) ? 'button' : undefined"
             :tabindex="isClickable(choice) ? 0 : -1"
             :data-target="getToggleTarget(choice)"
             @click="isClickable(choice) && hideOrCollapse(getToggleTarget(choice))"
             @keyup.enter="isClickable(choice) && hideOrCollapse(getToggleTarget(choice))"
+            @keyup.space.prevent="isClickable(choice) && hideOrCollapse(getToggleTarget(choice))"
           >
             <span
               :class="[
@@ -247,10 +265,12 @@
               <span class="qpm_toggle_plus">+</span>
               <span class="qpm_toggle_minus">&minus;</span>
             </span>
-            <component :is="getHeadingTag(choice)" class="qpm_heading">
-              {{ customNameLabel(choice) }}
-            </component>
-            <span class="qpm_groupid">(ID: {{ choice.id }})</span>
+            <div class="qpm_headingWithId">
+              <component :is="getHeadingTag(choice)" class="qpm_heading">
+                {{ customNameLabel(choice) }}
+              </component>
+              <span class="qpm_groupid">(ID: {{ choice.id }})</span>
+            </div>
           </div>
           <div
             v-if="!choice.maintopic"
