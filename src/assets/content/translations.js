@@ -32,7 +32,7 @@ export const messages = {
     en: "Back",
   },
   mobileActionScrollHint: {
-    dk: "Rul for flere muligheder",
+    dk: "Scroll for flere muligheder",
     en: "Scroll for more options",
   },
   tooltiptext: {

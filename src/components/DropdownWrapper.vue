@@ -264,8 +264,7 @@
               <div
                 v-if="mobileListStep === 'root'"
                 ref="mobileActionSheetList"
-                class="qpm_actionSheetList"
-                :class="{ 'qpm_actionSheetList--fade': showMobileScrollFade }"
+                class="qpm_actionSheetList qpm_actionSheetList--scrollable"
                 @scroll.passive="handleMobileListScroll"
               >
                 <button
@@ -284,8 +283,7 @@
               <div
                 v-else
                 ref="mobileActionSheetList"
-                class="qpm_actionSheetList"
-                :class="{ 'qpm_actionSheetList--fade': showMobileScrollFade }"
+                class="qpm_actionSheetList qpm_actionSheetList--scrollable"
                 @scroll.passive="handleMobileListScroll"
               >
                 <button
@@ -303,8 +301,8 @@
                 </button>
               </div>
               <div
-                v-if="showMobileScrollHint"
                 class="qpm_actionSheetScrollHint"
+                :class="{ 'qpm_actionSheetScrollHint--hidden': !showMobileScrollHint }"
               >{{ getString("mobileActionScrollHint") }}</div>
             </div>
             <div v-if="taggable" class="qpm_actionSheetSecondaryGroup">
@@ -457,7 +455,6 @@
         _bodyScrollLocked: false,
         _bodyOriginalStyles: null,
         _htmlOriginalOverscrollBehavior: "",
-        mobileHintDismissed: false,
         mobileCanScroll: false,
         mobileAtBottom: false,
       };
@@ -706,9 +703,6 @@
         return result;
       },
       showMobileScrollHint() {
-        return this.showMobileActionSheet && this.mobileCanScroll && !this.mobileHintDismissed;
-      },
-      showMobileScrollFade() {
         return this.showMobileActionSheet && this.mobileCanScroll && !this.mobileAtBottom;
       },
     },
@@ -778,7 +772,6 @@
       },
       showMobileActionSheet(newVal) {
         if (newVal) {
-          this.mobileHintDismissed = false;
           this.lockBodyScrollForActionSheet();
           this.$nextTick(() => this.updateMobileListIndicators());
         } else {
@@ -1176,9 +1169,6 @@
         this.mobileAtBottom = !canScroll || (listEl.scrollTop + listEl.clientHeight >= listEl.scrollHeight - 1);
       },
       handleMobileListScroll(event) {
-        if (!this.mobileHintDismissed) {
-          this.mobileHintDismissed = true;
-        }
         const listEl = event?.target;
         if (!listEl) {
           this.updateMobileListIndicators();
