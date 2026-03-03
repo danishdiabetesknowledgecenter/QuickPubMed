@@ -108,7 +108,7 @@
         <div v-show="hasTopics && !isCollapsed">
           <!-- Buttons for reset, copy url and search -->
           <action-buttons
-            :search-loading="searchLoading"
+            :search-loading="isSearchActionDisabled"
             :get-string="getString"
             @clear="clear"
             @copy-url="copyUrl"
@@ -350,6 +350,11 @@
       },
       hasTopics() {
         return this.topics.some((subjectArray) => subjectArray.length > 0);
+      },
+      isSearchActionDisabled() {
+        const topicSearchStringGenerating = this.placeholderDotIntervalId !== null;
+        const limitSearchStringGenerating = this.filterPlaceholderDotIntervalId !== null;
+        return this.searchLoading || topicSearchStringGenerating || limitSearchStringGenerating;
       },
       /**
        * Derives the user's search intention from topics and limits.

@@ -91,6 +91,16 @@
   min-width: 100px !important;
 }
 
+.qpm_search:disabled,
+.qpm_search:disabled:hover,
+.qpm_search.qpm_disabled,
+.qpm_search.qpm_disabled:hover {
+  background-color: var(--color-button-disabled) !important;
+  color: var(--color-white) !important;
+  border-color: var(--color-border-light) !important;
+  cursor: not-allowed !important;
+}
+
 .qpm_subjectEntry {
   flex: 1;
 }
