@@ -31,6 +31,10 @@ export const messages = {
     dk: "Tilbage",
     en: "Back",
   },
+  mobileActionScrollHint: {
+    dk: "Rul for flere muligheder",
+    en: "Scroll for more options",
+  },
   tooltiptext: {
     dk: "Dansk",
     en: "English",

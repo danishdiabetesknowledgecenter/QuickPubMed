@@ -261,7 +261,13 @@
                   class="qpm_actionSheetBreadcrumb"
                 >{{ getMobileBreadcrumb() }}</div>
               </div>
-              <div v-if="mobileListStep === 'root'" class="qpm_actionSheetList">
+              <div
+                v-if="mobileListStep === 'root'"
+                ref="mobileActionSheetList"
+                class="qpm_actionSheetList"
+                :class="{ 'qpm_actionSheetList--fade': showMobileScrollFade }"
+                @scroll.passive="handleMobileListScroll"
+              >
                 <button
                   v-for="group in getMobileRootGroups()"
                   :key="group.id"
@@ -275,7 +281,13 @@
                   />
                 </button>
               </div>
-              <div v-else class="qpm_actionSheetList">
+              <div
+                v-else
+                ref="mobileActionSheetList"
+                class="qpm_actionSheetList"
+                :class="{ 'qpm_actionSheetList--fade': showMobileScrollFade }"
+                @scroll.passive="handleMobileListScroll"
+              >
                 <button
                   v-for="item in getMobileChildrenForGroup(mobileActiveGroupId)"
                   :key="item.id"
@@ -290,6 +302,10 @@
                   />
                 </button>
               </div>
+              <div
+                v-if="showMobileScrollHint"
+                class="qpm_actionSheetScrollHint"
+              >{{ getString("mobileActionScrollHint") }}</div>
             </div>
             <div v-if="taggable" class="qpm_actionSheetSecondaryGroup">
               <button
@@ -441,6 +457,9 @@
         _bodyScrollLocked: false,
         _bodyOriginalStyles: null,
         _htmlOriginalOverscrollBehavior: "",
+        mobileHintDismissed: false,
+        mobileCanScroll: false,
+        mobileAtBottom: false,
       };
     },
     created() {
@@ -686,6 +705,12 @@
         
         return result;
       },
+      showMobileScrollHint() {
+        return this.showMobileActionSheet && this.mobileCanScroll && !this.mobileHintDismissed;
+      },
+      showMobileScrollFade() {
+        return this.showMobileActionSheet && this.mobileCanScroll && !this.mobileAtBottom;
+      },
     },
     watch: {
       selected: {
@@ -753,10 +778,32 @@
       },
       showMobileActionSheet(newVal) {
         if (newVal) {
+          this.mobileHintDismissed = false;
           this.lockBodyScrollForActionSheet();
+          this.$nextTick(() => this.updateMobileListIndicators());
         } else {
           this.unlockBodyScrollForActionSheet();
+          this.mobileCanScroll = false;
+          this.mobileAtBottom = false;
         }
+      },
+      mobileListStep() {
+        if (this.showMobileActionSheet) {
+          this.$nextTick(() => this.updateMobileListIndicators());
+        }
+      },
+      mobileActiveGroupId() {
+        if (this.showMobileActionSheet) {
+          this.$nextTick(() => this.updateMobileListIndicators());
+        }
+      },
+      mobileParentStack: {
+        deep: true,
+        handler() {
+          if (this.showMobileActionSheet) {
+            this.$nextTick(() => this.updateMobileListIndicators());
+          }
+        },
       },
     },
     mounted: function () {
@@ -1111,6 +1158,35 @@
         if (!isInsideScrollableList) {
           event.preventDefault();
         }
+      },
+      getMobileActionSheetListEl() {
+        const ref = this.$refs.mobileActionSheetList;
+        if (Array.isArray(ref)) return ref[0] || null;
+        return ref || null;
+      },
+      updateMobileListIndicators() {
+        const listEl = this.getMobileActionSheetListEl();
+        if (!listEl) {
+          this.mobileCanScroll = false;
+          this.mobileAtBottom = false;
+          return;
+        }
+        const canScroll = listEl.scrollHeight - listEl.clientHeight > 1;
+        this.mobileCanScroll = canScroll;
+        this.mobileAtBottom = !canScroll || (listEl.scrollTop + listEl.clientHeight >= listEl.scrollHeight - 1);
+      },
+      handleMobileListScroll(event) {
+        if (!this.mobileHintDismissed) {
+          this.mobileHintDismissed = true;
+        }
+        const listEl = event?.target;
+        if (!listEl) {
+          this.updateMobileListIndicators();
+          return;
+        }
+        const canScroll = listEl.scrollHeight - listEl.clientHeight > 1;
+        this.mobileCanScroll = canScroll;
+        this.mobileAtBottom = !canScroll || (listEl.scrollTop + listEl.clientHeight >= listEl.scrollHeight - 1);
       },
       lockBodyScrollForActionSheet() {
         if (typeof window === "undefined" || typeof document === "undefined" || this._bodyScrollLocked) {
@@ -1603,7 +1679,11 @@
           const entries = element.querySelectorAll("[data-name]");
           const process = () => {
             entries.forEach((entry) => {
-              const parent = entry.parentNode.parentNode;
+              const parent =
+                entry.closest?.(".multiselect__element") ||
+                entry.parentElement?.parentElement ||
+                null;
+              if (!parent || !parent.classList) return;
               const shouldShow = this.areAllAncestorsExpanded(entry);
               parent.classList.toggle("qpm_shown", !shouldShow);
             });
@@ -1620,7 +1700,11 @@
         const processGroup = () => {
           entries.forEach((entry) => {
             const groupName = entry.getAttribute("data-name");
-            const parent = entry.parentNode.parentNode;
+            const parent =
+              entry.closest?.(".multiselect__element") ||
+              entry.parentElement?.parentElement ||
+              null;
+            if (!parent || !parent.classList) return;
 
             const shouldShow =
               this.expandedOptionGroupName !== groupName ||
@@ -3496,10 +3580,8 @@
 
         // On mobile, do not keep focus on input unless user explicitly chose free text.
         // Prevents first tap from triggering both menu and keyboard.
+        // Do not open action sheet from focus events (can happen on initial load).
         if (this.isMobileInputMode() && !this.mobileOverlayHidden) {
-          if (!this.showMobileActionSheet) {
-            this.handleMobileTap();
-          }
           this.$nextTick(() => {
             if (typeof input.blur === "function") input.blur();
           });

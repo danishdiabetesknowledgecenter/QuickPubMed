@@ -409,7 +409,6 @@ input:checked + .qpm_slider:before {
 
   .qpm_searchStringGroupOperator_NotApplied {
     display: block;
-    margin-top: 4px;
     margin-bottom: 8px;
   }
 
