@@ -2,7 +2,7 @@
   <div
     ref="selectWrapper"
     class="qpm_dropdown"
-    :class="{ 'qpm_hide-tags-wrap': hideTagsWrap, qpm_mobileUiDropdown: isMobileUi }"
+    :class="{ 'qpm_hide-tags-wrap': hideTagsWrap, qpm_mobileUiDropdown: (isMobileUi || isTouchDevice) }"
     @keydown.up.capture.prevent.stop="navUp"
     @keydown.down.capture.prevent.stop="navDown"
     @keydown.left.stop="navLeft"
