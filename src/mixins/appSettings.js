@@ -14,7 +14,7 @@ export const appSettingsStore = {
   /**
    * Get the appSettings state.
    *
-   * @returns {Settings} A settings object merging production and local settings
+   * @returns {Settings} A settings object
    */
   getAppSettings() {
     if (this._state.appSettings == null) {
@@ -30,38 +30,7 @@ export const appSettingsStore = {
    * Initializes the state of this store.
    */
   _initState() {
-    //const mergedSettings = this._mergeSettings(settings, localSettings);
-    //this._state.appSettings = mergedSettings;
     this._state.appSettings = settings;
-  },
-
-  /**
-   * **!!Meant for internal use only!!**
-   *
-   * Deep merge objects, later arguments will override earlier ones in cases of duplicate keys.
-   *
-   * Based on this [Stack Overflow answer](https://stackoverflow.com/a/48218209).
-   * @param  {...any} objects The settings objects to merge
-   * @returns A new deep merged object of the input objects
-   */
-  _mergeSettings(...objects) {
-    const isObject = (val) => val !== null && typeof val === "object";
-
-    return objects.reduce((acc, e) => {
-      Object.keys(e).forEach((key) => {
-        const accVal = acc[key];
-        const eVal = e[key];
-
-        if (Array.isArray(accVal) && Array.isArray(eVal)) {
-          acc[key] = accVal.concat(...eVal);
-        } else if (isObject(accVal) && isObject(eVal)) {
-          acc[key] = this._mergeSettings(accVal, eVal);
-        } else {
-          acc[key] = eVal;
-        }
-      });
-      return acc;
-    }, {});
   },
 };
 

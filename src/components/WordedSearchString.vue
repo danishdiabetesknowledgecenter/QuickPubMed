@@ -139,6 +139,7 @@
               delay: $helpTextDelay,
             }"
             target="_blank"
+            rel="noopener noreferrer"
             :href="getPubMedLink"
           >
             {{ getString("showPubMedLink") }}
@@ -152,6 +153,7 @@
               delay: $helpTextDelay,
             }"
             target="_blank"
+            rel="noopener noreferrer"
             :href="getPubMedLinkCreateAlert"
           >
             {{ getString("createPubMedAlert") }}

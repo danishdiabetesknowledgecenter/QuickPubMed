@@ -39,7 +39,12 @@ function resolveUrlAgainstCurrentPage(value) {
   if (!trimmed) return "";
   try {
     const baseHref = typeof window !== "undefined" ? window.location.href : "http://localhost/";
-    return new URL(trimmed, baseHref).toString();
+    const resolved = new URL(trimmed, baseHref);
+    const protocol = String(resolved.protocol || "").toLowerCase();
+    if (protocol !== "http:" && protocol !== "https:") {
+      return "";
+    }
+    return resolved.toString();
   } catch (_) {
     return "";
   }

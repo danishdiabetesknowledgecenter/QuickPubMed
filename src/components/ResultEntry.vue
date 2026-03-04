@@ -250,11 +250,8 @@
         </div>
       </div>
     </div>
-    <p
-      v-if="hyperLink !== null && hyperLink !== undefined && hyperLink.length > 0"
-      class="intext-arrow-link onHoverJS qpm_pubmedLink"
-    >
-      <a target="_blank" :href="getHyperLink">
+    <p v-if="getHyperLink" class="intext-arrow-link onHoverJS qpm_pubmedLink">
+      <a target="_blank" rel="noopener noreferrer" :href="getHyperLink">
         {{ hyperLinkText !== undefined ? hyperLinkText : hyperLink }}
       </a>
     </p>
@@ -489,6 +486,7 @@
                       delay: $helpTextDelay,
                     }"
                     target="_blank"
+                    rel="noopener noreferrer"
                     :href="getUnpaywall"
                     >{{ getString("UnpaywallLoading") }}
                   </a>
@@ -503,6 +501,7 @@
                       delay: $helpTextDelay,
                     }"
                     target="_blank"
+                    rel="noopener noreferrer"
                     :href="getOaPdf"
                     download
                     >{{ getString("UnpaywallWithPdf") }}
@@ -518,6 +517,7 @@
                       delay: $helpTextDelay,
                     }"
                     target="_blank"
+                    rel="noopener noreferrer"
                     :href="getOaHtml"
                     download
                     >{{ getString("UnpaywallWithHtml") }}
@@ -533,6 +533,7 @@
                       delay: $helpTextDelay,
                     }"
                     target="_blank"
+                    rel="noopener noreferrer"
                     :href="getUnpaywall"
                     >{{ getString("UnpaywallNoPdf") }}
                   </a>
@@ -594,6 +595,7 @@
                 delay: $helpTextDelay,
               }"
               target="_blank"
+              rel="noopener noreferrer"
               :href="getPubmedRelated"
             >
               {{ getString("relatedPubmed") }}
@@ -610,6 +612,7 @@
                 delay: $helpTextDelay,
               }"
               target="_blank"
+              rel="noopener noreferrer"
               :href="getPubmedRelatedReviews"
             >
               {{ getString("relatedPubmedReviews") }}
@@ -624,6 +627,7 @@
             <a
               v-if="pmid !== undefined && pmid !== null"
               target="_blank"
+              rel="noopener noreferrer"
               :href="getPubmedAlsoViewed"
               v-tooltip="{
                 content: getString('hoveralsoviewedPubmed'),
@@ -644,6 +648,7 @@
                 delay: $helpTextDelay,
               }"
               target="_blank"
+              rel="noopener noreferrer"
               :href="getGoogleScholar"
             >
               {{ getString("GoogleScholar") }}
@@ -996,7 +1001,7 @@
           : "";
       },
       getOaPdf() {
-        return this.getHasOaPdf ? this.unpaywallResponse.best_oa_location.url : "";
+        return this.getHasOaPdf ? this.unpaywallResponse.best_oa_location.url_for_pdf : "";
       },
       getGoogleScholar() {
         return hasDefinedValue(this.pmid)
@@ -1037,7 +1042,7 @@
         return this.getAbstractDivName + "_" + this._uid;
       },
       getHyperLink() {
-        return this.hyperLink;
+        return this.getSafeExternalUrl(this.hyperLink);
       },
       getAbstractDivName() {
         return hasDefinedValue(this.id) ? `abstract_${this.id}` : "custom";
@@ -1056,7 +1061,9 @@
 
         return Object.keys(this.sectionedAbstract)
           .map((key) => {
-            return `<p><strong>${key}</strong></p><p>${this.sectionedAbstract[key]}</p>`;
+            const safeKey = this.escapeHtml(key);
+            const safeValue = this.escapeHtml(this.sectionedAbstract[key]);
+            return `<p><strong>${safeKey}</strong></p><p>${safeValue}</p>`;
           })
           .join("");
       },
@@ -1176,6 +1183,28 @@
         div.innerHTML = value || "";
         const text = div.textContent || div.innerText || "";
         return text.replace(/<\/?[^>]+(>|$)/g, "");
+      },
+      escapeHtml(value) {
+        return String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      },
+      getSafeExternalUrl(value) {
+        const candidate = String(value ?? "").trim();
+        if (!candidate) return "";
+        try {
+          const parsed = new URL(candidate, window.location.origin);
+          const protocol = String(parsed.protocol || "").toLowerCase();
+          if (protocol !== "http:" && protocol !== "https:") {
+            return "";
+          }
+          return parsed.toString();
+        } catch (_) {
+          return "";
+        }
       },
       getFormattedPublication() {
         return formatPublicationInfo(this);
@@ -1408,7 +1437,12 @@
         }
       },
       gotosite(url) {
-        window.open(url, "_blank");
+        const safeUrl = this.getSafeExternalUrl(url);
+        if (!safeUrl) return;
+        const openedWindow = window.open(safeUrl, "_blank", "noopener,noreferrer");
+        if (openedWindow) {
+          openedWindow.opener = null;
+        }
       },
       collapseSection(element) {
         // temporarily disable all css transitions

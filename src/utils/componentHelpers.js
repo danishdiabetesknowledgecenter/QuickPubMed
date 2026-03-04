@@ -164,7 +164,7 @@ export function getAbstractEntriesFromPubMedXml(
     .filter(Boolean);
 }
 
-export function normalizeComparableId(value) {
+function normalizeComparableId(value) {
   if (value === null || value === undefined) return null;
   const normalized = String(value).trim();
   return normalized === "" ? null : normalized;

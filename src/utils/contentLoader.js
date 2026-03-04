@@ -135,17 +135,6 @@ export async function loadPromptRulesFromRuntime(domain) {
 }
 
 /**
- * Loads topic modules for the specified domain.
- *
- * @param {string} domain - The domain name (e.g., 'diabetes', 'dementia').
- * @returns {Array<Object>} - Always empty (runtime API is required).
- */
-export function loadTopics(domain) {
-  void domain;
-  return [];
-}
-
-/**
  * Loads standardString for the specified domain from runtime payload cache only.
  * Runtime API is required; no local fallback modules are used.
  *

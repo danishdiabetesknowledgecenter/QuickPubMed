@@ -181,19 +181,6 @@
     flex-direction: column;
 }
 
-.background {
-    background-color: transparent;
-    min-height: 100vh;
-}
-
-.qpm_header {
-    margin-top: 15px;
-    align-self: center;
-    width: fit-content;
-    border-bottom: solid;
-    font-size: 4.5vw;
-}
-
 .qpm_showHideAll {
     min-width: 200px !important;
 }

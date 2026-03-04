@@ -13,6 +13,14 @@ export const utilitiesMixin = {
     },
   },
   methods: {
+    escapeHtmlAttribute(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    },
     /**
      * Retrieves a localized string based on the current language.
      *
@@ -33,7 +41,7 @@ export const utilitiesMixin = {
         string === "aiSummaryDisclaimer" ||
         string === "translationDisclaimer";
       if (shouldReplaceAiUrl && typeof localized === "string") {
-        const resolvedAiUrl = getAiURL(this.instanceAiURL || "");
+        const resolvedAiUrl = this.escapeHtmlAttribute(getAiURL(this.instanceAiURL || ""));
         return localized.replace(/\{aiURL\}/g, resolvedAiUrl);
       }
       return localized;

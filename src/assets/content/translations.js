@@ -683,31 +683,31 @@ export const messages = {
     dk:
       "Læs mere om, <a href='" +
       "{aiURL}" +
-      "' target='_blank' title='Læs mere om, hvordan den automatiske opsummering fungerer (åbner i nyt vindue)'>hvordan den automatiske opsummering fungerer</a>",
+      "' target='_blank' rel='noopener noreferrer' title='Læs mere om, hvordan den automatiske opsummering fungerer (åbner i nyt vindue)'>hvordan den automatiske opsummering fungerer</a>",
     en:
       "Read more about <a href='" +
       "{aiURL}" +
-      "' target='_blank' title='Read more about how the AI summary works (opens in new tab)'>how the AI summary works</a>",
+      "' target='_blank' rel='noopener noreferrer' title='Read more about how the AI summary works (opens in new tab)'>how the AI summary works</a>",
   },
   aiSummaryDisclaimer: {
     dk:
       "Denne opsummering er lavet med <strong>kunstig intelligens</strong> (AI). Læs mere om, <a href='" +
       "{aiURL}" +
-      "' target='_blank' title='Læs mere om, hvordan den automatiske opsummering fungerer (åbner i nyt vindue)'>hvordan den automatiske opsummering fungerer</a>",
+      "' target='_blank' rel='noopener noreferrer' title='Læs mere om, hvordan den automatiske opsummering fungerer (åbner i nyt vindue)'>hvordan den automatiske opsummering fungerer</a>",
     en:
       "This summary is made with <strong>artificial intelligence</strong> (AI). Read more about <a href='" +
       "{aiURL}" +
-      "' target='_blank' title='Read more about how the AI summary works (opens in new tab)'>how the AI summary works</a>",
+      "' target='_blank' rel='noopener noreferrer' title='Read more about how the AI summary works (opens in new tab)'>how the AI summary works</a>",
   },
   translationDisclaimer: {
     dk:
       "Denne oversættelse er lavet med <strong>kunstig intelligens</strong> (AI). Læs mere om, <a href='" +
       "{aiURL}" +
-      "' target='_blank' title='Læs mere om, hvordan den automatiske oversættelse fungerer (åbner i nyt vindue)'>hvordan den automatiske oversættelse fungerer</a>",
+      "' target='_blank' rel='noopener noreferrer' title='Læs mere om, hvordan den automatiske oversættelse fungerer (åbner i nyt vindue)'>hvordan den automatiske oversættelse fungerer</a>",
     en:
       "This translation is made with <strong>artificial intelligence</strong> (AI). Read more about <a href='" +
       "{aiURL}" +
-      "' target='_blank' title='Read more about how the AI translation works (opens in new tab)'>how the AI translation works</a>",
+      "' target='_blank' rel='noopener noreferrer' title='Read more about how the AI translation works (opens in new tab)'>how the AI translation works</a>",
   },
   aiSummaryWaitText: {
     dk: "Den kunstige intelligens er i gang med at opsummere...",

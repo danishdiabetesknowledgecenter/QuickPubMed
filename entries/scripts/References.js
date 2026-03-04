@@ -2,52 +2,16 @@
 import "@/assets/styles/styles.css";
 import "@/assets/styles/references.css";
 
-import { createApp, h } from "vue";
-import VueShowdown from "vue-showdown";
-import FloatingVue from "floating-vue";
-import "floating-vue/dist/style.css";
 import References from "@/components/References.vue";
 import { applyThemeFromConfig, config, loadThemeOverridesFromBackend } from "@/config/config";
 import { settings } from "@/config/settings";
+import { createConfiguredApp } from "./createConfiguredApp";
 
 /**
  * Vue.prototype.$dateFormat = "da-DK";
  * en-US for American, en-GB for British, de-DR for German and so on.
  * Full list https://stackoverflow.com/questions/3191664/list-of-all-locales-and-their-short-codes
  */
-
-const showdownConfig = {
-  flavor: "github", // Set default flavor of showdown
-  options: {
-    emoji: false, // Disable emoji support
-    tables: true, // Enable table support
-    strikethrough: true, // Enable strikethrough
-    simpleLineBreaks: true, // Enable simple line breaks
-    tasklists: true, // Enable task lists
-    smartIndentationFix: true, // Fix indentation issues
-    smartypants: true, // Enable smart punctuation
-    ghMentions: true, // Enable GitHub mentions
-    underline: true, // Enable underline
-    completeHTMLDocument: false, // Render only HTML fragments
-  },
-};
-
-function createConfiguredApp(rootComponent, props) {
-  const app = createApp({
-    render: () => h(rootComponent, props),
-  });
-  app.use(VueShowdown, showdownConfig);
-  app.use(FloatingVue, {
-    themes: {
-      tooltip: {
-        html: true,
-      },
-    },
-  });
-  app.config.globalProperties.$helpTextDelay = { show: 500, hide: 100 };
-  app.config.globalProperties.$alwaysShowFilter = true;
-  return app;
-}
 
 function parseJSON(value) {
   try {

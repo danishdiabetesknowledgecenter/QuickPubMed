@@ -3,35 +3,17 @@ import "@/assets/styles/styles.css";
 import "@/assets/styles/searchform.css";
 import "@/assets/styles/searchstrings.css";
 
-import { createApp, h } from "vue";
-import VueShowdown from "vue-showdown";
-import FloatingVue, { hideAllPoppers } from "floating-vue";
-import "floating-vue/dist/style.css";
+import { hideAllPoppers } from "floating-vue";
 import SearchForm from "@/components/SearchForm.vue";
 import { applyThemeFromConfig, config, loadThemeOverridesFromBackend } from "@/config/config";
 import { getAiURL, settings } from "@/config/settings";
+import { createConfiguredAppWithOptions } from "./createConfiguredApp";
 
 /**
  * Vue.prototype.$dateFormat = "da-DK";
  * en-US for American, en-GB for British, de-DR for German and so on.
  * Full list https://stackoverflow.com/questions/3191664/list-of-all-locales-and-their-short-codes
  */
-
-const showdownConfig = {
-  flavor: "github", // Set default flavor of showdown
-  options: {
-    emoji: false, // Disable emoji support
-    tables: true, // Enable table support
-    strikethrough: true, // Enable strikethrough
-    simpleLineBreaks: true, // Enable simple line breaks
-    tasklists: true, // Enable task lists
-    smartIndentationFix: true, // Fix indentation issues
-    smartypants: true, // Enable smart punctuation
-    ghMentions: true, // Enable GitHub mentions
-    underline: true, // Enable underline
-    completeHTMLDocument: false, // Render only HTML fragments
-  },
-};
 
 let mobileTooltipScrollGuardInstalled = false;
 
@@ -118,51 +100,6 @@ function installMobileTooltipScrollGuard() {
   );
 }
 
-function createConfiguredApp(rootComponent, props, provideData) {
-  const app = createApp({
-    provide: provideData,
-    render: () => h(rootComponent, props),
-  });
-  app.use(VueShowdown, showdownConfig);
-  const hasTouchPoints =
-    typeof navigator !== "undefined" && Number(navigator.maxTouchPoints || 0) > 0;
-  const hasNoHover =
-    typeof window !== "undefined" &&
-    window.matchMedia &&
-    window.matchMedia("(hover: none)").matches;
-  const hasCoarsePointer =
-    typeof window !== "undefined" &&
-    window.matchMedia &&
-    window.matchMedia("(pointer: coarse)").matches;
-  const isTouchLike = hasNoHover || hasCoarsePointer || hasTouchPoints;
-  app.use(FloatingVue, {
-    themes: {
-      tooltip: {
-        html: true,
-        // Default tooltips: desktop hover/focus only (no mobile tap).
-        triggers: ["hover", "focus"],
-        hideTriggers: ["hover"],
-        autoHide: true,
-        noAutoFocus: true,
-      },
-      infoTooltip: {
-        $extend: "tooltip",
-        html: true,
-        // Info icons: always support desktop hover and mobile tap.
-        triggers: ["hover", "focus", "click"],
-        hideTriggers: ["hover", "click"],
-        autoHide: true,
-      },
-    },
-  });
-  if (isTouchLike) {
-    installMobileTooltipScrollGuard();
-  }
-  app.config.globalProperties.$helpTextDelay = { show: 500, hide: 100 };
-  app.config.globalProperties.$alwaysShowFilter = true;
-  return app;
-}
-
 // Find alle elementer med klassen "qpm-searchform" (med fallback til legacy class)
 const searchFormDivs = document.querySelectorAll(".qpm-searchform, .searchform");
 
@@ -223,7 +160,19 @@ searchFormDivs.forEach((searchFormDiv, index) => {
   config.useAISummarizer = useAISummarizer;
   config.useMeshValidation = useMeshValidation;
 
-  createConfiguredApp(
+  const hasTouchPoints =
+    typeof navigator !== "undefined" && Number(navigator.maxTouchPoints || 0) > 0;
+  const hasNoHover =
+    typeof window !== "undefined" &&
+    window.matchMedia &&
+    window.matchMedia("(hover: none)").matches;
+  const hasCoarsePointer =
+    typeof window !== "undefined" &&
+    window.matchMedia &&
+    window.matchMedia("(pointer: coarse)").matches;
+  const isTouchLike = hasNoHover || hasCoarsePointer || hasTouchPoints;
+
+  createConfiguredAppWithOptions(
     SearchForm,
     {
       hideTopics: parsedHideTopics,
@@ -238,12 +187,39 @@ searchFormDivs.forEach((searchFormDiv, index) => {
       standardStringScope: standardStringScope,
     },
     {
-      instanceDomain: domain,
-      instanceLanguage: language,
-      instanceUseAI: useAI,
-      instanceUseAISummarizer: useAISummarizer,
-      instanceUseMeshValidation: useMeshValidation,
-      instanceAiURL: instanceAiURL,
+      provide: {
+        instanceDomain: domain,
+        instanceLanguage: language,
+        instanceUseAI: useAI,
+        instanceUseAISummarizer: useAISummarizer,
+        instanceUseMeshValidation: useMeshValidation,
+        instanceAiURL: instanceAiURL,
+      },
+      floatingVueOptions: {
+        themes: {
+          tooltip: {
+            html: true,
+            // Default tooltips: desktop hover/focus only (no mobile tap).
+            triggers: ["hover", "focus"],
+            hideTriggers: ["hover"],
+            autoHide: true,
+            noAutoFocus: true,
+          },
+          infoTooltip: {
+            $extend: "tooltip",
+            html: true,
+            // Info icons: always support desktop hover and mobile tap.
+            triggers: ["hover", "focus", "click"],
+            hideTriggers: ["hover", "click"],
+            autoHide: true,
+          },
+        },
+      },
+      afterFloatingVueInstalled: () => {
+        if (isTouchLike) {
+          installMobileTooltipScrollGuard();
+        }
+      },
     }
   ).mount(`#${searchFormDiv.id}`);
 });

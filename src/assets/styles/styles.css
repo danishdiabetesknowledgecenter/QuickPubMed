@@ -119,7 +119,8 @@
   padding-left: 0 !important;
 }
 
-.qpm_visibilityHidden {
+.qpm_visibilityHidden,
+.qpm_hidden {
   visibility: hidden;
 }
 
@@ -338,10 +339,6 @@ p.qpm_shownumber {
   font-size: 1em;
   text-align: center;
   padding-top: 10px;
-}
-
-.qpm_hidden {
-  visibility: hidden;
 }
 
 /* TODO this should be renamed to qpm_hidden */
@@ -1203,7 +1200,6 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
 
 .multiselect__option--selected {
   font-weight: 600 !important;
-  background: var(--color-surface-neutral);
 }
 
 .multiselect__content-wrapper {
@@ -1689,14 +1685,22 @@ button.qpm_tab {
 .qpm_buttonColor1,
 .qpm_buttonColor1.multiselect__tag,
 .qpm_buttonColor1.qpm_selectedButton,
-.qpm_buttonColor1:hover {
+.qpm_buttonColor1:hover,
+.qpm_buttonColor4,
+.qpm_buttonColor4.multiselect__tag,
+.qpm_buttonColor4.qpm_selectedButton,
+.qpm_buttonColor4:hover {
   background-color: var(--color-button-color-green) !important;
 }
 
 .qpm_buttonColor2,
 .qpm_buttonColor2.multiselect__tag,
 .qpm_buttonColor2.qpm_selectedButton,
-.qpm_buttonColor2:hover {
+.qpm_buttonColor2:hover,
+.qpm_buttonColor5,
+.qpm_buttonColor5.multiselect__tag,
+.qpm_buttonColor5.qpm_selectedButton,
+.qpm_buttonColor5:hover {
   background-color: var(--color-blue-dark) !important;
 }
 
@@ -1710,24 +1714,7 @@ button.qpm_tab {
 .qpm_buttonColor3,
 .qpm_buttonColor3.multiselect__tag,
 .qpm_buttonColor3.qpm_selectedButton,
-.qpm_buttonColor3:hover {
-  background-color: var(--color-red-dark) !important;
-}
-
-.qpm_buttonColor4,
-.qpm_buttonColor4.multiselect__tag,
-.qpm_buttonColor4.qpm_selectedButton,
-.qpm_buttonColor4:hover {
-  background-color: var(--color-button-color-green) !important;
-}
-
-.qpm_buttonColor5,
-.qpm_buttonColor5.multiselect__tag,
-.qpm_buttonColor5.qpm_selectedButton,
-.qpm_buttonColor5:hover {
-  background-color: var(--color-blue-dark) !important;
-}
-
+.qpm_buttonColor3:hover,
 .qpm_buttonColor6,
 .qpm_buttonColor6.multiselect__tag,
 .qpm_buttonColor6.qpm_selectedButton,
