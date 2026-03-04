@@ -4329,7 +4329,15 @@
                         "dk": "",
                         "en": ""
                     },
-                    "children": []
+                    "children": [],
+                    "lockIdOnSort": false,
+                    "hiddenByDefault": false,
+                    "combineWithStandardStringScopes": {
+                        "narrow": true,
+                        "normal": true,
+                        "broad": true
+                    },
+                    "internalComment": ""
                 },
                 {
                     "id": "SXXX020",
@@ -4361,7 +4369,15 @@
                         "dk": "",
                         "en": ""
                     },
-                    "children": []
+                    "children": [],
+                    "lockIdOnSort": false,
+                    "hiddenByDefault": false,
+                    "combineWithStandardStringScopes": {
+                        "narrow": true,
+                        "normal": true,
+                        "broad": true
+                    },
+                    "internalComment": ""
                 },
                 {
                     "id": "SXXX030",
@@ -4393,7 +4409,15 @@
                         "dk": "",
                         "en": ""
                     },
-                    "children": []
+                    "children": [],
+                    "lockIdOnSort": false,
+                    "hiddenByDefault": false,
+                    "combineWithStandardStringScopes": {
+                        "narrow": true,
+                        "normal": true,
+                        "broad": true
+                    },
+                    "internalComment": ""
                 },
                 {
                     "id": "SXXX040",
@@ -4425,7 +4449,15 @@
                         "dk": "",
                         "en": ""
                     },
-                    "children": []
+                    "children": [],
+                    "lockIdOnSort": false,
+                    "hiddenByDefault": false,
+                    "combineWithStandardStringScopes": {
+                        "narrow": true,
+                        "normal": true,
+                        "broad": true
+                    },
+                    "internalComment": ""
                 },
                 {
                     "id": "SXXX050",
@@ -4457,7 +4489,15 @@
                         "dk": "",
                         "en": ""
                     },
-                    "children": []
+                    "children": [],
+                    "lockIdOnSort": false,
+                    "hiddenByDefault": false,
+                    "combineWithStandardStringScopes": {
+                        "narrow": true,
+                        "normal": true,
+                        "broad": true
+                    },
+                    "internalComment": ""
                 },
                 {
                     "id": "SXXX060",
@@ -4489,7 +4529,15 @@
                         "dk": "",
                         "en": ""
                     },
-                    "children": []
+                    "children": [],
+                    "lockIdOnSort": false,
+                    "hiddenByDefault": false,
+                    "combineWithStandardStringScopes": {
+                        "narrow": true,
+                        "normal": true,
+                        "broad": true
+                    },
+                    "internalComment": ""
                 },
                 {
                     "id": "SXXX070",
@@ -4521,7 +4569,15 @@
                         "dk": "",
                         "en": ""
                     },
-                    "children": []
+                    "children": [],
+                    "lockIdOnSort": false,
+                    "hiddenByDefault": false,
+                    "combineWithStandardStringScopes": {
+                        "narrow": true,
+                        "normal": true,
+                        "broad": true
+                    },
+                    "internalComment": ""
                 },
                 {
                     "id": "SXXX080",
@@ -4553,7 +4609,15 @@
                         "dk": "",
                         "en": ""
                     },
-                    "children": []
+                    "children": [],
+                    "lockIdOnSort": false,
+                    "hiddenByDefault": false,
+                    "combineWithStandardStringScopes": {
+                        "narrow": true,
+                        "normal": true,
+                        "broad": true
+                    },
+                    "internalComment": ""
                 },
                 {
                     "id": "SXXX090",
@@ -4585,7 +4649,15 @@
                         "dk": "",
                         "en": ""
                     },
-                    "children": []
+                    "children": [],
+                    "lockIdOnSort": false,
+                    "hiddenByDefault": false,
+                    "combineWithStandardStringScopes": {
+                        "narrow": true,
+                        "normal": true,
+                        "broad": true
+                    },
+                    "internalComment": ""
                 }
             ]
         },

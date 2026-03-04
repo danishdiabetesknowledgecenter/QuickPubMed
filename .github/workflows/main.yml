@@ -79,6 +79,7 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
+          # Deploys whole entries tree, including entries/widgets/*.html
           local-dir: ./entries/
           server-dir: ./entries/
           protocol: ftp
