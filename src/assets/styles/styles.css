@@ -149,8 +149,13 @@
   font-weight: normal;
   font-size: 1em;
   color: inherit;
+}
+
+.qpm_ResultEntry button.qpm_summaryCloseButton {
   border: solid 1px var(--color-border-subtle);
 }
+
+qpm_infoIcon
 
 /* ==========================================================================
    Tooltip theme overrides (FloatingVue)
