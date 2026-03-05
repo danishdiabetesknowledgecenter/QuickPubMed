@@ -149,6 +149,7 @@
   font-weight: normal;
   font-size: 1em;
   color: inherit;
+  border: solid 1px var(--color-border-subtle);
 }
 
 /* ==========================================================================
@@ -1498,6 +1499,16 @@ button.qpm_tab {
   color: var(--color-text-secondary);
 }
 
+.qpm_resultTopMeta {
+  display: flex;
+  align-items: center;
+  column-gap: 10px;
+}
+
+.qpm_resultentryDateMobile {
+  margin: 0;
+}
+
 .qpm_resultTitle {
   padding: 0 5px 0 0;
   font-weight: 700;
@@ -2265,6 +2276,29 @@ button.qpm_tab {
     font-size: 0.9em;
   }
 
+  .qpm_SearchResult .qpm_ResultEntryWrapper {
+    padding-left: 0;
+  }
+
+  .qpm_resultTopMeta {
+    width: 100%;
+  }
+
+  .qpm_resultTopMeta .qpm_resultentryDateMobile {
+    flex: 1 1 auto;
+  }
+
+  .qpm_ResultEntry .qpm_resultChangeOrder > .d-flex,
+  .qpm_ResultEntry .qpm_resultTitleWrap {
+    width: 100%;
+  }
+
+  .qpm_SearchResult .qpm_ResultEntry {
+    margin-left: 0;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
   .qpm_ResultEntry button {
     max-width: 32%;
   }
@@ -2273,8 +2307,21 @@ button.qpm_tab {
     width: 32%;
   }
 
+  .qpm_ResultEntry .qpm_aiAccordionHeader {
+    margin-left: -6px;
+  }
+
+  .qpm_ResultEntry .qpm_searchSummaryText,
+  .qpm_abstract .qpm_searchSummaryBox {    
+    margin-left: 10px;
+    width: calc(100% - 20px);
+  }
+  input.qpm_selectArticleCheckbox[type="checkbox"] {
+    margin: 5px 0 10px 0;
+  }
+
   .qpm_abstractContainer {
-    margin-left: -40px;
+    margin-left: -10px;
     margin-right: -10px;
   }
 
@@ -2287,7 +2334,7 @@ button.qpm_tab {
     position: relative;
     float: left;
     top: 6px;
-    left: 18px;
+    left: 12px;
     text-align: left;
     padding-bottom: 16px;
     min-height: unset;
@@ -2308,7 +2355,8 @@ button.qpm_tab {
   }
 
   .qpm_abstractWrapper {
-    margin-top: 0;
+    margin: 0 0 20px 15px;
+    width: calc(100% - 30px);
   }
 
   .qpm_resultButtons button {

@@ -2,14 +2,31 @@
 <template>
   <div ref="result" class="qpm_ResultEntry" :name="id">
     <loading-spinner :loading="loading" />
-    <p v-if="showDate" class="qpm_resultentryDate">
+    <div v-if="getComponentWidth && (showDate || (selectable && hasAbstract))" class="qpm_resultTopMeta">
+      <input
+        v-if="selectable && hasAbstract"
+        :id="'qpm_selectArticleCheckbox_' + id"
+        type="checkbox"
+        class="qpm_selectArticleCheckbox"
+        :name="'qpm_selectArticleCheckbox_' + id"
+        :checked="isChecked"
+        :value="value"
+        :aria-label="'Select: ' + getTitle"
+        @change="updateInput"
+        @keyup.enter="changeOnEnter"
+      />
+      <p v-if="showDate" class="qpm_resultentryDate qpm_resultentryDateMobile">
+        {{ date }}
+      </p>
+    </div>
+    <p v-else-if="showDate" class="qpm_resultentryDate">
       {{ date }}
     </p>
     <div lang="en">
       <div class="qpm_resultChangeOrder">
         <div class="d-flex">
           <input
-            v-if="selectable && hasAbstract"
+            v-if="selectable && hasAbstract && !getComponentWidth"
             :id="'qpm_selectArticleCheckbox_' + id"
             type="checkbox"
             class="qpm_selectArticleCheckbox"
