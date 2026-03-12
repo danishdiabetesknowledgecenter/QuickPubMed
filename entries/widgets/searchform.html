@@ -49,6 +49,8 @@
         - data-standard-string-add: When "true", the domain's standardString (from topics runtime content)
           is appended to all free-text (manual) search terms as: (user free text) AND (standardString).
           If the domain has no standardString (missing or empty in the topic file), nothing is added.
+        - data-standard-string: Optional custom standardString text.
+          If set, it is used as standardString (overrides domain standardString) and also works when data-domain is empty.
         - data-standard-string-scope: Which standardString variant to use: "narrow", "normal", or "broad".
           Only relevant when data-standard-string-add="true". Default is "normal" if omitted.
 
@@ -66,7 +68,7 @@
         - sort: sort method key
         - collapsed: true|false (collapse the search form)
         - pagesize: number of results per page
-        - pmidai: preselected PMID-AI ids, separated by ";;"
+        - pmid: preselected PMID-AI ids, separated by ";;"
         - scrollto: anchor id to scroll to (without #)
 
         Simple mode extras:
@@ -103,8 +105,9 @@
         data-open-limits="true"
         data-hide-limits="['L010030']" 
         data-check-limits="['L010020','L010030']"
-        data-order-limits="['L010030','L010020','L010010']"
+        data-order-limits="['L010010','L010020','L010030','L020050','L020020']"
         data-standard-string-add="true"
+        data-standard-string=""
         data-standard-string-scope="normal"
         data-language="dk"
         data-component-no="1"
@@ -121,6 +124,7 @@
         data-check-limits="['L010020','L010030']"
         data-order-limits="['L010030','L010020','L010010']"
         data-standard-string-add="true"
+        data-standard-string="diabet*[tiab]"
         data-standard-string-scope="normal"
         data-language="dk"
         data-component-no="2"

@@ -96,6 +96,26 @@ Frontend reads this via `backend/api/PublicContent.php`:
 - `?type=limits`
 - `?type=prompt-rules&domain=<domain>`
 
+#### SearchForm standard string override
+
+`SearchForm` supports an optional HTML attribute `data-standard-string` for free-text searches.
+
+- If `data-standard-string-add="true"` and `data-standard-string` is set, this value is used as the standard string.
+- `data-standard-string` overrides domain `standardString` from runtime topics.
+- It also works when `data-domain=""` (empty domain).
+
+Example:
+
+```html
+<div
+  class="qpm-searchform"
+  data-domain=""
+  data-standard-string-add="true"
+  data-standard-string="diabet*[tiab]"
+  data-standard-string-scope="normal"
+></div>
+```
+
 #### Frontend naming conventions
 
 Use one convention per file type and keep it consistent:

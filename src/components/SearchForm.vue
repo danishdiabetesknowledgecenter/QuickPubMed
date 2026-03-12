@@ -210,6 +210,10 @@
         type: String,
         default: "normal",
       },
+      standardString: {
+        type: String,
+        default: "",
+      },
       hideFilters: {
         type: Array,
         default() {
@@ -285,7 +289,18 @@
         return this.urlOrderLimits.length > 0 ? this.urlOrderLimits : this.orderLimits;
       },
       standardStringForFreetext() {
-        const std = loadStandardString(this.currentDomain);
+        const overrideStandardString = String(this.standardString || "").trim();
+        if (overrideStandardString) {
+          return {
+            narrow: overrideStandardString,
+            normal: overrideStandardString,
+            broad: overrideStandardString,
+          };
+        }
+        const domain = this.currentDomain;
+        const hasLoadedTopics = Array.isArray(this.topicCatalog) && this.topicCatalog.length > 0;
+        if (!domain || !hasLoadedTopics) return null;
+        const std = loadStandardString(domain);
         return std && typeof std === "object" && Object.keys(std).length > 0 ? std : null;
       },
       showSimpleFilters() {
@@ -567,6 +582,17 @@
       },
     },
     watch: {
+      topicCatalog: {
+        deep: true,
+        handler() {
+          this.topicOptions = [];
+          this.prepareTopicOptions();
+          this.$nextTick(() => {
+            this.updateTopicDropdownWidth();
+            this.updatePlaceholders();
+          });
+        },
+      },
       topicOptions: {
         deep: true,
         immediate: true,
@@ -1005,7 +1031,7 @@
               this.pageSize = parseInt(value, 10);
               break;
 
-            case "pmidai":
+            case "pmid":
               this.preselectedPmidai = values;
               break;
 
@@ -1429,7 +1455,7 @@
         const sorter = `&sort=${encodeURIComponent(this.sort.method)}`;
         const collapsedStr = `&collapsed=${this.isCollapsed}`;
         const pageSizeStr = `&pagesize=${this.pageSize}`;
-        const pmidaiStr = `&pmidai=${(this.preselectedPmidai ?? []).join(";;")}`;
+        const pmidStr = `&pmid=${(this.preselectedPmidai ?? []).join(";;")}`;
         const scrolltoStr = this.scrollToID
           ? `&scrollto=${encodeURIComponent(this.scrollToID)}`
           : "";
@@ -1444,7 +1470,7 @@
         // Assemble the full URL with all query parameters
         const urlLink = `${baseUrl}?${apiBaseStr}${
           apiBaseStr ? "&" : ""
-        }${topicsStr}${limitsStr}${advancedStr}${pmidaiStr}${sorter}${collapsedStr}${pageSizeStr}${scrolltoStr}${openLimitsStr}${hideLimitsStr}${checkLimitsStr}${orderLimitsStr}`;
+        }${topicsStr}${limitsStr}${advancedStr}${pmidStr}${sorter}${collapsedStr}${pageSizeStr}${scrolltoStr}${openLimitsStr}${hideLimitsStr}${checkLimitsStr}${orderLimitsStr}`;
 
         return urlLink.replace("?&", "?").replace(/&&+/g, "&");
       },

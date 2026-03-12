@@ -489,6 +489,17 @@
           !!event.target.closest(".multiselect__select");
 
         if (isArrowClick) {
+          if (this.isMobileInputMode()) {
+            if (event && typeof event.preventDefault === "function" && event.cancelable) {
+              event.preventDefault();
+            }
+            if (event && typeof event.stopPropagation === "function") {
+              event.stopPropagation();
+            }
+            this.mobileOverlayHidden = false;
+            this.handleMobileTap();
+            return;
+          }
           this._preventDeactivate = false;
           clearTimeout(this._deactivateGuardTimer);
           return;

@@ -184,6 +184,91 @@ function getTypeLabel(type) {
   return type === "limits" ? t("typeLimits") : t("typeTopics");
 }
 
+function deepClone(value) {
+  return value === undefined ? undefined : JSON.parse(JSON.stringify(value));
+}
+
+function normalizeTypeValue(type) {
+  return type === "limits" ? "limits" : "topics";
+}
+
+function sortKeysDeep(value) {
+  if (Array.isArray(value)) {
+    return value.map(sortKeysDeep);
+  }
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+  const out = {};
+  Object.keys(value)
+    .sort()
+    .forEach((key) => {
+      out[key] = sortKeysDeep(value[key]);
+    });
+  return out;
+}
+
+function stableStringify(value) {
+  return JSON.stringify(sortKeysDeep(value));
+}
+
+function parseEditorJsonByType(type, jsonText) {
+  try {
+    const raw = jsonText ? JSON.parse(jsonText) : {};
+    return normalizePayloadForEditor(normalizeTypeValue(type), raw);
+  } catch {
+    return null;
+  }
+}
+
+function getCurrentEditorType() {
+  return normalizeTypeValue(getSelectedType());
+}
+
+function rememberBaselineForType(type, normalizedData) {
+  const normalizedType = normalizeTypeValue(type);
+  editorBaselineByType[normalizedType] = JSON.stringify(normalizedData || {}, null, 2);
+}
+
+function getBaselineDataForType(type) {
+  const normalizedType = normalizeTypeValue(type);
+  return parseEditorJsonByType(normalizedType, editorBaselineByType[normalizedType] || "{}");
+}
+
+function getCurrentDraftDataForType(type) {
+  const normalizedType = normalizeTypeValue(type);
+  if (normalizedType === getCurrentEditorType()) {
+    return parseCurrentJson();
+  }
+  return parseEditorJsonByType(normalizedType, jsonInput?.value || "{}");
+}
+
+function hasUnsavedChangesForType(type) {
+  const normalizedType = normalizeTypeValue(type);
+  const current = getCurrentDraftDataForType(normalizedType);
+  const baseline = getBaselineDataForType(normalizedType);
+  if (!current || !baseline) return false;
+  return stableStringify(current) !== stableStringify(baseline);
+}
+
+function hasUnsavedChangesInCurrentType() {
+  if (hasUnsavedChangesForType(getCurrentEditorType())) return true;
+  return hasOpenInlineDirtyState();
+}
+
+function clearInlineHistoryForType(type) {
+  const prefix = `${normalizeTypeValue(type)}::`;
+  Array.from(inlineHistoryStateByKey.keys()).forEach((key) => {
+    if (key.startsWith(prefix)) {
+      inlineHistoryStateByKey.delete(key);
+    }
+  });
+}
+
+function buildInlineEditorHistoryKey(mode, categoryId = "", itemId = "") {
+  return `${getCurrentEditorType()}::${mode}::${categoryId || ""}::${itemId || ""}`;
+}
+
 function getLocalizedText(translations, fallback = "") {
   const preferredLang = editorLanguage === "en" ? "en" : "dk";
   const secondaryLang = preferredLang === "en" ? "dk" : "en";
@@ -201,6 +286,9 @@ let revisionSelectedPreviewDate = "";
 let revisionCurrentPreviewDate = "";
 let revisionCurrentRestoredFromDate = "";
 let lastSaveUsedJsonButton = false;
+const editorBaselineByType = { topics: "", limits: "" };
+const inlineHistoryStateByKey = new Map();
+let isApplyingInlineSnapshot = false;
 const editorHelpTextKeyMap = {
   "category.id": "helpCategoryId",
   "category.translations.dk": "helpCategoryTranslationsDk",
@@ -239,7 +327,7 @@ function applyEditorLanguageTexts() {
   if (loginBtn instanceof HTMLElement) loginBtn.textContent = t("login");
   if (logoutBtn instanceof HTMLElement) logoutBtn.textContent = t("logout");
   if (saveBtn instanceof HTMLElement) saveBtn.textContent = t("saveAll");
-  if (saveJsonBtn instanceof HTMLElement) saveJsonBtn.textContent = t("save");
+  if (saveJsonBtn instanceof HTMLElement) saveJsonBtn.textContent = t("saveJsonFile");
   if (loadBtn instanceof HTMLElement) loadBtn.textContent = t("load");
   if (downloadBackupBtn instanceof HTMLElement) downloadBackupBtn.textContent = t("downloadBackup");
   if (userInput instanceof HTMLInputElement) userInput.placeholder = t("usernamePlaceholder");
@@ -842,6 +930,20 @@ function setSaveStatus(message, isError = false) {
   el.classList.add(isError ? "qpm-editor-save-status-error" : "qpm-editor-save-status-ok");
 }
 
+function updateSaveButtonsState() {
+  const currentType = getCurrentEditorType();
+  const hasValidJson = parseCurrentJson() !== null;
+  const hasDomain = currentType !== "topics" || Boolean((domainInput?.value || "").trim());
+  const hasChanges = hasUnsavedChangesInCurrentType();
+  const shouldEnable = Boolean(isEditorAuthenticated && hasValidJson && hasDomain && hasChanges);
+  if (saveBtn instanceof HTMLButtonElement) {
+    saveBtn.disabled = !shouldEnable;
+  }
+  if (saveJsonBtn instanceof HTMLButtonElement) {
+    saveJsonBtn.disabled = !shouldEnable;
+  }
+}
+
 function setRevisionStatus(message, isError = false) {
   if (!(revisionStatusEl instanceof HTMLElement)) return;
   setInsertedText(revisionStatusEl, message);
@@ -1143,17 +1245,210 @@ function setInlineEditorStatus(container, statusKey, message, isError = false) {
   el.classList.add(isError ? "qpm-editor-inline-status-error" : "qpm-editor-inline-status-ok");
 }
 
-function createInlineActions(applyBtn, deleteBtn, statusKey) {
+function createInlineActions(deleteBtn, statusKey) {
   const actionsRow = document.createElement("div");
   actionsRow.className = "qpm-editor-inline-actions";
-  actionsRow.append(applyBtn, deleteBtn);
+  const undoBtn = document.createElement("button");
+  undoBtn.type = "button";
+  undoBtn.className =
+    "qpm-editor-btn qpm-editor-btn-secondary qpm-editor-tree-undo-inline qpm-editor-hidden";
+  undoBtn.textContent = t("undo");
+  const cancelBtn = document.createElement("button");
+  cancelBtn.type = "button";
+  cancelBtn.className =
+    "qpm-editor-btn qpm-editor-btn-secondary qpm-editor-tree-cancel-inline qpm-editor-hidden";
+  cancelBtn.textContent = t("cancel");
+  actionsRow.append(undoBtn, cancelBtn);
+  if (deleteBtn) {
+    actionsRow.append(deleteBtn);
+  }
 
   const inlineStatus = document.createElement("p");
   inlineStatus.className = "qpm-editor-inline-status";
   inlineStatus.dataset.inlineStatus = statusKey;
   inlineStatus.textContent = "";
 
-  return { actionsRow, inlineStatus };
+  return { actionsRow, inlineStatus, undoBtn, cancelBtn };
+}
+
+function readInlineFieldValue(fieldElement) {
+  if (!(fieldElement instanceof HTMLElement)) return "";
+  if (fieldElement instanceof HTMLInputElement && fieldElement.type === "checkbox") {
+    return Boolean(fieldElement.checked);
+  }
+  if (
+    fieldElement instanceof HTMLInputElement ||
+    fieldElement instanceof HTMLTextAreaElement ||
+    fieldElement instanceof HTMLSelectElement
+  ) {
+    return fieldElement.value;
+  }
+  return "";
+}
+
+function writeInlineFieldValue(fieldElement, value) {
+  if (!(fieldElement instanceof HTMLElement)) return;
+  if (fieldElement instanceof HTMLInputElement && fieldElement.type === "checkbox") {
+    fieldElement.checked = Boolean(value);
+    return;
+  }
+  if (
+    fieldElement instanceof HTMLInputElement ||
+    fieldElement instanceof HTMLTextAreaElement ||
+    fieldElement instanceof HTMLSelectElement
+  ) {
+    fieldElement.value = value === undefined || value === null ? "" : String(value);
+  }
+}
+
+function captureInlineEditorSnapshot(container) {
+  const snapshot = {};
+  if (!(container instanceof HTMLElement)) return snapshot;
+  container.querySelectorAll("[data-inline-field]").forEach((fieldElement) => {
+    const field = fieldElement.dataset.inlineField;
+    if (!field) return;
+    snapshot[field] = readInlineFieldValue(fieldElement);
+  });
+  return snapshot;
+}
+
+function applyInlineEditorSnapshot(container, snapshot = {}) {
+  if (!(container instanceof HTMLElement)) return;
+  isApplyingInlineSnapshot = true;
+  container.querySelectorAll("[data-inline-field]").forEach((fieldElement) => {
+    const field = fieldElement.dataset.inlineField;
+    if (!field) return;
+    writeInlineFieldValue(fieldElement, snapshot[field]);
+  });
+  isApplyingInlineSnapshot = false;
+}
+
+function snapshotsEqual(a, b) {
+  return stableStringify(a || {}) === stableStringify(b || {});
+}
+
+function getOrCreateInlineHistoryState(historyKey, baselineSnapshot, currentSnapshot, options = {}) {
+  const { coalesce = false, fieldName = "" } = options;
+  const safeBaseline = deepClone(baselineSnapshot || {});
+  const safeCurrent = deepClone(currentSnapshot || {});
+  const existing = inlineHistoryStateByKey.get(historyKey);
+  if (!existing) {
+    const history = [deepClone(safeBaseline)];
+    let index = 0;
+    if (!snapshotsEqual(safeCurrent, safeBaseline)) {
+      history.push(deepClone(safeCurrent));
+      index = history.length - 1;
+    }
+    const created = {
+      baseline: safeBaseline,
+      history,
+      index,
+      lastInputField: "",
+    };
+    inlineHistoryStateByKey.set(historyKey, created);
+    return created;
+  }
+  if (!snapshotsEqual(existing.baseline, safeBaseline)) {
+    existing.baseline = safeBaseline;
+  }
+  if (!snapshotsEqual(existing.history[existing.index], safeCurrent)) {
+    const canCoalesce =
+      coalesce &&
+      existing.index > 0 &&
+      fieldName &&
+      existing.lastInputField &&
+      existing.lastInputField === fieldName;
+    if (canCoalesce) {
+      existing.history[existing.index] = deepClone(safeCurrent);
+    } else {
+      existing.history = existing.history.slice(0, existing.index + 1);
+      existing.history.push(deepClone(safeCurrent));
+      existing.index = existing.history.length - 1;
+    }
+  }
+  existing.lastInputField = coalesce ? fieldName || existing.lastInputField || "" : "";
+  inlineHistoryStateByKey.set(historyKey, existing);
+  return existing;
+}
+
+function updateInlineActionButtons(container, state) {
+  if (!(container instanceof HTMLElement) || !state) return;
+  const undoBtn = container.querySelector(".qpm-editor-tree-undo-inline");
+  const cancelBtn = container.querySelector(".qpm-editor-tree-cancel-inline");
+  const canUndo = state.index > 0;
+  const isDirty = !snapshotsEqual(state.history[state.index], state.baseline);
+  if (undoBtn instanceof HTMLElement) {
+    undoBtn.classList.toggle("qpm-editor-hidden", !canUndo);
+  }
+  if (cancelBtn instanceof HTMLElement) {
+    cancelBtn.classList.toggle("qpm-editor-hidden", !isDirty);
+  }
+}
+
+function setupInlineHistoryTracking(container, historyKey, baselineSnapshot) {
+  if (!(container instanceof HTMLElement) || !historyKey) return;
+  container.dataset.historyKey = historyKey;
+  const syncState = (options = {}) => {
+    const currentSnapshot = captureInlineEditorSnapshot(container);
+    const state = getOrCreateInlineHistoryState(
+      historyKey,
+      baselineSnapshot,
+      currentSnapshot,
+      options
+    );
+    updateInlineActionButtons(container, state);
+    updateSaveButtonsState();
+  };
+  syncState();
+  const onFieldInput = (event) => {
+    if (isApplyingInlineSnapshot) return;
+    const fieldName =
+      event?.target instanceof HTMLElement ? event.target.dataset.inlineField || "" : "";
+    syncState({ coalesce: true, fieldName });
+  };
+  const onFieldChange = () => {
+    if (isApplyingInlineSnapshot) return;
+    syncState({ coalesce: false, fieldName: "" });
+  };
+  container.addEventListener("input", onFieldInput);
+  container.addEventListener("change", onFieldChange);
+  const undoBtn = container.querySelector(".qpm-editor-tree-undo-inline");
+  if (undoBtn instanceof HTMLButtonElement) {
+    undoBtn.addEventListener("click", () => {
+      const state = inlineHistoryStateByKey.get(historyKey);
+      if (!state || state.index <= 0) return;
+      state.index -= 1;
+      state.lastInputField = "";
+      const snapshot = deepClone(state.history[state.index]);
+      applyInlineEditorSnapshot(container, snapshot);
+      updateInlineActionButtons(container, state);
+      updateSaveButtonsState();
+    });
+  }
+  const cancelBtn = container.querySelector(".qpm-editor-tree-cancel-inline");
+  if (cancelBtn instanceof HTMLButtonElement) {
+    cancelBtn.addEventListener("click", () => {
+      const state = inlineHistoryStateByKey.get(historyKey);
+      if (!state) return;
+      const baseline = deepClone(state.baseline || {});
+      state.history = [deepClone(baseline)];
+      state.index = 0;
+      state.lastInputField = "";
+      applyInlineEditorSnapshot(container, baseline);
+      updateInlineActionButtons(container, state);
+      updateSaveButtonsState();
+    });
+  }
+}
+
+function hasOpenInlineDirtyState() {
+  const container = getOpenInlineEditorContainer();
+  if (!(container instanceof HTMLElement)) return false;
+  const historyKey = container.dataset.historyKey || "";
+  if (!historyKey) return false;
+  const state = inlineHistoryStateByKey.get(historyKey);
+  if (!state) return false;
+  return !snapshotsEqual(state.history[state.index], state.baseline);
 }
 
 function createStandardStringsInlineEditor(standardString) {
@@ -1185,20 +1480,7 @@ function createStandardStringsInlineEditor(standardString) {
   hint.className = "qpm-editor-field-label";
   hint.textContent = t("standardStringsOptionalHint");
 
-  const applyBtn = document.createElement("button");
-  applyBtn.type = "button";
-  applyBtn.className =
-    "qpm-editor-btn qpm-editor-btn-secondary qpm-editor-tree-apply-standard-inline";
-  applyBtn.textContent = t("saveTopicFields");
-
-  const actionsRow = document.createElement("div");
-  actionsRow.className = "qpm-editor-inline-actions";
-  actionsRow.append(applyBtn);
-
-  const inlineStatus = document.createElement("p");
-  inlineStatus.className = "qpm-editor-inline-status";
-  inlineStatus.dataset.inlineStatus = "standardString";
-  inlineStatus.textContent = "";
+  const { actionsRow, inlineStatus } = createInlineActions(null, "standardString");
 
   wrapper.append(
     mkLabel(t("itemNarrowLabel")),
@@ -1212,6 +1494,15 @@ function createStandardStringsInlineEditor(standardString) {
     inlineStatus
   );
 
+  const historyKey = buildInlineEditorHistoryKey("standard", STANDARD_STRINGS_CATEGORY_ID, "");
+  const baselineData = getBaselineDataForType(getCurrentEditorType());
+  const baselineSnapshot = {
+    "standardString.narrow": String(baselineData?.standardString?.narrow || ""),
+    "standardString.normal": String(baselineData?.standardString?.normal || ""),
+    "standardString.broad": String(baselineData?.standardString?.broad || ""),
+  };
+  setupInlineHistoryTracking(wrapper, historyKey, baselineSnapshot);
+
   return wrapper;
 }
 
@@ -1223,6 +1514,7 @@ function setAuthenticated(authenticated) {
     hiddenSinceTs = null;
   }
   scheduleHiddenAutoLogout();
+  updateSaveButtonsState();
 }
 
 function clearHiddenLogoutTimer() {
@@ -1397,10 +1689,13 @@ async function loadContent() {
   try {
     const data = await fetchContentFromServer(type, domain);
     jsonInput.value = JSON.stringify(data.data || {}, null, 2);
+    const normalizedData = parseCurrentJson() || {};
+    rememberBaselineForType(type, normalizedData);
+    clearInlineHistoryForType(type);
     revisionCurrentPreviewDate = String(data?.currentModifiedAt || "");
     revisionCurrentRestoredFromDate = String(data?.currentRestoredFromCreatedAt || "");
     refreshRevisionNotes();
-    collapseAllInTree(parseCurrentJson() || {});
+    collapseAllInTree(normalizedData);
     refreshTopicTree();
     setActiveTopicLabel(type === "topics" ? domain : getTypeLabel("limits"));
     setStatus(
@@ -1408,9 +1703,11 @@ async function loadContent() {
         ? `${getTypeLabel("topics")} ${t("loadedForDomain")} "${domain}".`
         : `${getTypeLabel("limits")} ${t("loadedShort")}.`
     );
+    updateSaveButtonsState();
     await refreshRevisionList();
   } catch (error) {
     setStatus(error.message, true);
+    updateSaveButtonsState();
   }
 }
 
@@ -1424,6 +1721,10 @@ async function saveContent(source = "main") {
   setSaveStatus("");
   const type = getSelectedType();
   const domain = domainInput.value.trim();
+  if (!commitOpenInlineEditorDraft({ silent: false, refreshTree: false })) {
+    setSaveStatus(t("saveBlockedByInlineValidation"), true);
+    return;
+  }
   if (type === "topics" && !domain) {
     setStatus(t("domainRequiredForTopics"), true);
     setSaveStatus(t("domainRequiredForTopics"), true);
@@ -1436,6 +1737,21 @@ async function saveContent(source = "main") {
   } catch {
     setStatus(t("invalidJson"), true);
     setSaveStatus(t("invalidJson"), true);
+    return;
+  }
+
+  const changedPaths = buildCurrentTypeChangeList();
+  if (changedPaths.length === 0) {
+    setStatus(t("noChangesToSave"));
+    setSaveStatus(t("noChangesToSave"));
+    return;
+  }
+  const previewLines = changedPaths.join("\n");
+  const shouldSave = window.confirm(
+    `${t("confirmGlobalSaveTitle")}\n\n${t("confirmGlobalSaveBody")}\n${previewLines}\n\n${t("confirmGlobalSavePrompt")}`
+  );
+  if (!shouldSave) {
+    setSaveStatus(t("saveCancelled"));
     return;
   }
 
@@ -1467,6 +1783,9 @@ async function saveContent(source = "main") {
     // Verify persistence by immediately reloading from server source of truth.
     const serverData = await fetchContentFromServer(type, domain);
     jsonInput.value = JSON.stringify(serverData?.data || {}, null, 2);
+    const normalizedServerData = parseCurrentJson() || {};
+    rememberBaselineForType(type, normalizedServerData);
+    clearInlineHistoryForType(type);
     revisionCurrentPreviewDate = String(serverData?.currentModifiedAt || "");
     revisionCurrentRestoredFromDate = String(serverData?.currentRestoredFromCreatedAt || "");
     refreshRevisionNotes();
@@ -1484,10 +1803,12 @@ async function saveContent(source = "main") {
         : `${getTypeLabel("limits")} ${t("savedShort")}${saveStamp}.`
     );
     lastSaveUsedJsonButton = source === "json";
+    updateSaveButtonsState();
     await refreshRevisionList();
   } catch (error) {
     setStatus(error.message, true);
     setSaveStatus(error.message, true);
+    updateSaveButtonsState();
   }
 }
 
@@ -1604,6 +1925,7 @@ function updateJson(data, refreshTree = true) {
   const rawToStore = denormalizePayloadFromEditor(getSelectedType(), data, currentRaw);
   jsonInput.value = JSON.stringify(rawToStore, null, 2);
   if (refreshTree) refreshTopicTree();
+  updateSaveButtonsState();
 }
 
 function downloadCurrentJsonBackup() {
@@ -1762,19 +2084,13 @@ function createCategoryInlineEditor(topic) {
   const hiddenInfoIcon = createInfoIcon(getEditorHelpText("category.hiddenByDefault"));
   if (hiddenInfoIcon) hiddenLabel.append(" ", hiddenInfoIcon);
 
-  const applyBtn = document.createElement("button");
-  applyBtn.type = "button";
-  applyBtn.className =
-    "qpm-editor-btn qpm-editor-btn-secondary qpm-editor-tree-apply-category-inline";
-  applyBtn.dataset.categoryId = topic?.id || "";
-  applyBtn.textContent = t("saveMainCategory");
   const deleteBtn = document.createElement("button");
   deleteBtn.type = "button";
   deleteBtn.className =
     "qpm-editor-btn qpm-editor-btn-danger qpm-editor-tree-delete-category-inline";
   deleteBtn.dataset.categoryId = topic?.id || "";
   deleteBtn.textContent = t("deleteMainCategory");
-  const { actionsRow, inlineStatus } = createInlineActions(applyBtn, deleteBtn, "category");
+  const { actionsRow, inlineStatus } = createInlineActions(deleteBtn, "category");
 
   const categoryPrimaryLang = editorLanguage === "en" ? "en" : "dk";
   const categorySecondaryLang = categoryPrimaryLang === "en" ? "dk" : "en";
@@ -1817,6 +2133,22 @@ function createCategoryInlineEditor(topic) {
     actionsRow,
     inlineStatus
   );
+  const historyKey = buildInlineEditorHistoryKey("category", topic?.id || "", "");
+  const baselineData = getBaselineDataForType(getCurrentEditorType());
+  const baselineCategory =
+    Array.isArray(baselineData?.topics) && topic?.id
+      ? baselineData.topics.find((entry) => entry?.id === topic.id)
+      : null;
+  const baselineSnapshot = {
+    "category.id": baselineCategory?.id || topic?.id || "",
+    "category.translations.dk": baselineCategory?.translations?.dk || "",
+    "category.translations.en": baselineCategory?.translations?.en || "",
+    "category.tooltip.dk": baselineCategory?.tooltip?.dk || "",
+    "category.tooltip.en": baselineCategory?.tooltip?.en || "",
+    "category.internalComment": baselineCategory?.internalComment || "",
+    "category.hiddenByDefault": baselineCategory?.hiddenByDefault === true,
+  };
+  setupInlineHistoryTracking(wrapper, historyKey, baselineSnapshot);
   return wrapper;
 }
 
@@ -1936,6 +2268,7 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   normal.dataset.inlineField = "searchStrings.normal";
   const broad = mkTextarea(normalizeToLines(item?.searchStrings?.broad));
   broad.dataset.inlineField = "searchStrings.broad";
+  const showScopeCombineControls = getSelectedType() !== "limits";
   const createScopeCombineControl = (scope, sourceInput) => {
     const scopeCheckbox = document.createElement("input");
     scopeCheckbox.type = "checkbox";
@@ -1968,18 +2301,28 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
 
     return scopeLabel;
   };
-  const createScopeHeaderRow = (labelText, labelHelpKey, scopeLabel) => {
+  const createScopeHeaderRow = (labelText, labelHelpKey, scopeLabel = null) => {
     const row = document.createElement("div");
     row.className = "qpm-editor-scope-header-row";
     const label = mkLabel(labelText, labelHelpKey);
     label.classList.add("qpm-editor-scope-header-label");
-    scopeLabel.classList.add("qpm-editor-scope-header-toggle");
-    row.append(label, scopeLabel);
+    if (scopeLabel) {
+      scopeLabel.classList.add("qpm-editor-scope-header-toggle");
+      row.append(label, scopeLabel);
+    } else {
+      row.append(label);
+    }
     return row;
   };
-  const narrowCombineLabel = createScopeCombineControl("narrow", narrow);
-  const normalCombineLabel = createScopeCombineControl("normal", normal);
-  const broadCombineLabel = createScopeCombineControl("broad", broad);
+  const narrowCombineLabel = showScopeCombineControls
+    ? createScopeCombineControl("narrow", narrow)
+    : null;
+  const normalCombineLabel = showScopeCombineControls
+    ? createScopeCombineControl("normal", normal)
+    : null;
+  const broadCombineLabel = showScopeCombineControls
+    ? createScopeCombineControl("broad", broad)
+    : null;
   const narrowHeaderRow = createScopeHeaderRow(
     t("itemNarrowLabel"),
     "item.searchStrings.narrow",
@@ -2006,19 +2349,13 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   const internalComment = mkTextarea(item?.internalComment || "");
   internalComment.dataset.inlineField = "internalComment";
 
-  const applyBtn = document.createElement("button");
-  applyBtn.type = "button";
-  applyBtn.className = "qpm-editor-btn qpm-editor-btn-secondary qpm-editor-tree-apply-inline";
-  applyBtn.dataset.id = item?.id || "";
-  applyBtn.dataset.categoryId = categoryId;
-  applyBtn.textContent = t("saveTopicFields");
   const deleteBtn = document.createElement("button");
   deleteBtn.type = "button";
   deleteBtn.className = "qpm-editor-btn qpm-editor-btn-danger qpm-editor-tree-delete-inline";
   deleteBtn.dataset.id = item?.id || "";
   deleteBtn.dataset.categoryId = categoryId;
   deleteBtn.textContent = t("deleteSubtopic");
-  const { actionsRow, inlineStatus } = createInlineActions(applyBtn, deleteBtn, "item");
+  const { actionsRow, inlineStatus } = createInlineActions(deleteBtn, "item");
 
   const itemPrimaryLang = editorLanguage === "en" ? "en" : "dk";
   const itemSecondaryLang = itemPrimaryLang === "en" ? "dk" : "en";
@@ -2087,6 +2424,55 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
     actionsRow,
     inlineStatus
   );
+  const historyKey = buildInlineEditorHistoryKey("item", categoryId, item?.id || "");
+  const baselineData = getBaselineDataForType(getCurrentEditorType());
+  const baselineCategory =
+    Array.isArray(baselineData?.topics) && categoryId
+      ? baselineData.topics.find((entry) => entry?.id === categoryId)
+      : null;
+  const baselineItem = baselineCategory ? findItemById(baselineCategory.groups, item?.id || "") : null;
+  const baselineOrderingFixed =
+    Number.isInteger(Number(baselineItem?.ordering?.dk)) && Number(baselineItem?.ordering?.dk) > 0
+      ? Number(baselineItem.ordering.dk)
+      : Number.isInteger(Number(baselineItem?.ordering?.en)) && Number(baselineItem?.ordering?.en) > 0
+      ? Number(baselineItem.ordering.en)
+      : Number.isInteger(Number(currentPosition)) && Number(currentPosition) > 0
+      ? Number(currentPosition)
+      : 1;
+  const baselineSnapshot = {
+    id: baselineItem?.id || item?.id || "",
+    lockIdOnSort: baselineItem?.lockIdOnSort !== false,
+    hiddenByDefault: baselineItem?.hiddenByDefault === true,
+    buttons: baselineItem?.buttons !== false,
+    "ordering.alphabetical":
+      baselineItem?.ordering?.dk === null || baselineItem?.ordering?.en === null,
+    "ordering.fixed": String(baselineOrderingFixed),
+    "translations.dk": baselineItem?.translations?.dk || "",
+    "translations.en": baselineItem?.translations?.en || "",
+    "searchStrings.narrow": normalizeToLines(baselineItem?.searchStrings?.narrow),
+    "searchStrings.normal": normalizeToLines(baselineItem?.searchStrings?.normal),
+    "searchStrings.broad": normalizeToLines(baselineItem?.searchStrings?.broad),
+    "searchStringComment.dk": baselineItem?.searchStringComment?.dk || "",
+    "searchStringComment.en": baselineItem?.searchStringComment?.en || "",
+    "tooltip.dk": baselineItem?.tooltip?.dk || "",
+    "tooltip.en": baselineItem?.tooltip?.en || "",
+    internalComment: baselineItem?.internalComment || "",
+  };
+  if (showScopeCombineControls) {
+    baselineSnapshot["combineWithStandardStringScopes.narrow"] = resolveCombineWithStandardScopeValue(
+      baselineItem || item,
+      "narrow"
+    );
+    baselineSnapshot["combineWithStandardStringScopes.normal"] = resolveCombineWithStandardScopeValue(
+      baselineItem || item,
+      "normal"
+    );
+    baselineSnapshot["combineWithStandardStringScopes.broad"] = resolveCombineWithStandardScopeValue(
+      baselineItem || item,
+      "broad"
+    );
+  }
+  setupInlineHistoryTracking(wrapper, historyKey, baselineSnapshot);
 
   return wrapper;
 }
@@ -2394,6 +2780,280 @@ function deselectTopicItem() {
   selectedTopicCategoryId = "";
   selectedTopicItemId = "";
   refreshTopicTree();
+}
+
+function getOpenInlineEditorContainer() {
+  if (!(topicTreeInput instanceof HTMLElement)) return null;
+  return topicTreeInput.querySelector(".qpm-editor-inline-editor");
+}
+
+function commitOpenInlineEditorDraft(options = {}) {
+  const { silent = false, refreshTree = false } = options;
+  const container = getOpenInlineEditorContainer();
+  if (!(container instanceof HTMLElement)) return true;
+  if (selectedTopicCategoryId === STANDARD_STRINGS_CATEGORY_ID && !selectedTopicItemId) {
+    return applyStandardStringsInlineEdits(container, { silent, refreshTree });
+  }
+  if (selectedTopicCategoryId && selectedTopicItemId) {
+    return applyInlineEditorEdits(selectedTopicCategoryId, selectedTopicItemId, container, {
+      silent,
+      refreshTree,
+    });
+  }
+  if (selectedTopicCategoryId && !selectedTopicItemId) {
+    return applyCategoryInlineEdits(selectedTopicCategoryId, container, { silent, refreshTree });
+  }
+  return true;
+}
+
+function collectDiffEntries(beforeValue, afterValue, basePath = "", out = []) {
+  if (stableStringify(beforeValue) === stableStringify(afterValue)) {
+    return out;
+  }
+  const beforeIsObject = beforeValue && typeof beforeValue === "object" && !Array.isArray(beforeValue);
+  const afterIsObject = afterValue && typeof afterValue === "object" && !Array.isArray(afterValue);
+  if (beforeIsObject && afterIsObject) {
+    const keySet = new Set([...Object.keys(beforeValue), ...Object.keys(afterValue)]);
+    Array.from(keySet)
+      .sort()
+      .forEach((key) => {
+        const nextPath = basePath ? `${basePath}.${key}` : key;
+        collectDiffEntries(beforeValue[key], afterValue[key], nextPath, out);
+      });
+    return out;
+  }
+  if (Array.isArray(beforeValue) && Array.isArray(afterValue)) {
+    if (beforeValue.length !== afterValue.length) {
+      out.push({ path: basePath || "root", before: beforeValue, after: afterValue });
+      return out;
+    }
+    for (let i = 0; i < beforeValue.length; i += 1) {
+      collectDiffEntries(beforeValue[i], afterValue[i], `${basePath}[${i}]`, out);
+    }
+    return out;
+  }
+  out.push({ path: basePath || "root", before: beforeValue, after: afterValue });
+  return out;
+}
+
+function parsePathTokens(path) {
+  const tokens = [];
+  String(path || "").replace(/([^[.\]]+)|\[(\d+)\]/g, (_, key, index) => {
+    if (key !== undefined) tokens.push({ type: "key", value: key });
+    if (index !== undefined) tokens.push({ type: "index", value: Number(index) });
+    return "";
+  });
+  return tokens;
+}
+
+function scopeLabelFromKey(scopeKey) {
+  if (scopeKey === "narrow") return t("itemNarrowLabel");
+  if (scopeKey === "normal") return t("itemNormalLabel");
+  if (scopeKey === "broad") return t("itemBroadLabel");
+  return scopeKey;
+}
+
+function humanizeChangePath(path) {
+  if (!path || path === "root") return t("changeRootLabel");
+  const tokens = parsePathTokens(path);
+  if (tokens.length === 0) return String(path);
+  const parts = [];
+
+  for (let i = 0; i < tokens.length; i += 1) {
+    const token = tokens[i];
+    const next = tokens[i + 1];
+    if (token.type !== "key") continue;
+
+    if (token.value === "topics" && next?.type === "index") {
+      parts.push(`${getTypeLabel(getCurrentEditorType())} ${next.value + 1}`);
+      i += 1;
+      continue;
+    }
+    if (token.value === "topics" && !next) {
+      parts.push(getTypeLabel(getCurrentEditorType()));
+      continue;
+    }
+    if ((token.value === "groups" || token.value === "children") && next?.type === "index") {
+      parts.push(`${t("subtopicLabel")} ${next.value + 1}`);
+      i += 1;
+      continue;
+    }
+    if (token.value === "searchStrings") {
+      const scopeKey = tokens[i + 1]?.type === "key" ? tokens[i + 1].value : "";
+      const maybeLine = tokens[i + 2]?.type === "index" ? tokens[i + 2].value : null;
+      const scopeLabel = scopeLabelFromKey(scopeKey);
+      if (scopeLabel) {
+        parts.push(scopeLabel);
+      }
+      if (maybeLine !== null) {
+        parts.push(`${t("changePathLine")} ${maybeLine + 1}`);
+      }
+      i += maybeLine !== null ? 2 : 1;
+      continue;
+    }
+    if (token.value === "standardString") {
+      const scopeKey = tokens[i + 1]?.type === "key" ? tokens[i + 1].value : "";
+      parts.push(t("standardStringsCategoryLabel"));
+      if (scopeKey) parts.push(scopeLabelFromKey(scopeKey));
+      i += scopeKey ? 1 : 0;
+      continue;
+    }
+    if (token.value === "translations") {
+      const langKey = tokens[i + 1]?.type === "key" ? tokens[i + 1].value : "";
+      if (langKey === "dk") {
+        parts.push(t("itemNameDkLabel"));
+      } else if (langKey === "en") {
+        parts.push(t("itemNameEnLabel"));
+      } else {
+        parts.push(t("itemNameDkLabel"));
+      }
+      i += langKey ? 1 : 0;
+      continue;
+    }
+    if (token.value === "searchStringComment") {
+      const langKey = tokens[i + 1]?.type === "key" ? tokens[i + 1].value : "";
+      if (langKey === "dk") {
+        parts.push(t("itemCommentDkLabel"));
+      } else if (langKey === "en") {
+        parts.push(t("itemCommentEnLabel"));
+      } else {
+        parts.push(t("itemCommentDkLabel"));
+      }
+      i += langKey ? 1 : 0;
+      continue;
+    }
+    if (token.value === "tooltip") {
+      const langKey = tokens[i + 1]?.type === "key" ? tokens[i + 1].value : "";
+      if (langKey === "dk") {
+        parts.push(t("itemTooltipDkLabel"));
+      } else if (langKey === "en") {
+        parts.push(t("itemTooltipEnLabel"));
+      } else {
+        parts.push(t("itemTooltipDkLabel"));
+      }
+      i += langKey ? 1 : 0;
+      continue;
+    }
+    if (token.value === "internalComment") {
+      parts.push(t("itemInternalCommentLabel"));
+      continue;
+    }
+    if (token.value === "id") {
+      parts.push(t("itemIdLabel"));
+      continue;
+    }
+    if (token.value === "ordering") {
+      parts.push(t("itemOrderingFixedLabel"));
+      continue;
+    }
+    if (token.value === "hiddenByDefault") {
+      parts.push(t("hideInFormByDefault"));
+      continue;
+    }
+    if (token.value === "buttons") {
+      parts.push(t("showScopeButtonsLabel"));
+      continue;
+    }
+    if (token.value === "lockIdOnSort") {
+      parts.push(t("lockIdOnSortLabel"));
+      continue;
+    }
+    if (token.value === "combineWithStandardStringScopes") {
+      parts.push(t("itemCombineWithStandardStringLabel"));
+      continue;
+    }
+    if (token.value === "root") {
+      continue;
+    }
+    parts.push(token.value);
+  }
+
+  return parts.length > 0 ? parts.join(" > ") : String(path);
+}
+
+function formatDiffValue(value) {
+  if (value === null || value === undefined) return t("changeEmptyValue");
+  if (typeof value === "string") {
+    const normalized = value.replace(/\n/g, " \\n ").trim();
+    if (!normalized) return t("changeEmptyValue");
+    return `"${normalized}"`;
+  }
+  if (typeof value === "boolean" || typeof value === "number") {
+    return String(value);
+  }
+  if (Array.isArray(value)) {
+    if (value.length === 0) return t("changeEmptyValue");
+    return `${t("changeListLabel")} (${value.length})`;
+  }
+  if (value && typeof value === "object") {
+    const keys = Object.keys(value);
+    if (keys.length === 0) return t("changeEmptyValue");
+    return `${t("changeObjectLabel")} (${keys.length})`;
+  }
+  return t("changeEmptyValue");
+}
+
+function formatDiffEntry(entry) {
+  const pathLabel = humanizeChangePath(entry?.path || "root");
+  const segments = String(pathLabel || "")
+    .split(" > ")
+    .map((part) => part.trim())
+    .filter((part) => part !== "");
+  let groupSegments = [];
+  if (segments.length > 0) {
+    groupSegments = [segments[0]];
+    if (segments.length > 1) {
+      const second = segments[1].toLowerCase();
+      const subtopicDk = String(t("subtopicLabel") || "").toLowerCase();
+      const subtopicEn = "subtopic";
+      if (second.startsWith(subtopicDk) || second.startsWith(subtopicEn)) {
+        groupSegments.push(segments[1]);
+      }
+    }
+  }
+  const groupLabel = groupSegments.join(" > ") || t("changeRootLabel");
+  const fieldLabel = segments.slice(groupSegments.length).join(" > ") || t("changeFieldLabel");
+  const beforeLabel = formatDiffValue(entry?.before);
+  const afterLabel = formatDiffValue(entry?.after);
+  return {
+    groupLabel,
+    fieldLabel,
+    beforeLabel,
+    afterLabel,
+  };
+}
+
+function buildCurrentTypeChangeList() {
+  const type = getCurrentEditorType();
+  const baseline = getBaselineDataForType(type) || {};
+  const current = parseCurrentJson() || {};
+  const entries = collectDiffEntries(baseline, current, "", []);
+  const dedup = new Map();
+  entries.forEach((entry) => {
+    const key = `${entry.path}|${stableStringify(entry.before)}|${stableStringify(entry.after)}`;
+    if (!dedup.has(key)) dedup.set(key, entry);
+  });
+  const grouped = new Map();
+  Array.from(dedup.values())
+    .map(formatDiffEntry)
+    .forEach((entry) => {
+      const key = entry.groupLabel || t("changeRootLabel");
+      if (!grouped.has(key)) grouped.set(key, []);
+      grouped.get(key).push(entry);
+    });
+
+  const out = [];
+  grouped.forEach((items, groupLabel) => {
+    out.push(`${t("changeGroupLabel")}: ${groupLabel}`);
+    items.forEach((entry) => {
+      out.push(
+        `  - ${entry.fieldLabel}\n    ${t("changeFromLabel")}: ${entry.beforeLabel}\n    ${t(
+          "changeToLabel"
+        )}: ${entry.afterLabel}`
+      );
+    });
+  });
+  return out.slice(0, 400);
 }
 
 function renumberOrdering(items = []) {
@@ -2708,37 +3368,40 @@ function addCategoryAtEnd() {
   return { ok: true, categoryId: nextId };
 }
 
-function applyInlineEditorEdits(categoryId, itemId, container) {
+function applyInlineEditorEdits(categoryId, itemId, container, options = {}) {
+  const { silent = false, refreshTree = true } = options;
   const data = parseCurrentJson();
   if (!data || !Array.isArray(data.topics)) {
-    setInlineEditorStatus(container, "item", t("cannotUpdateInvalidTopicsJson"), true);
-    return;
+    if (!silent) setInlineEditorStatus(container, "item", t("cannotUpdateInvalidTopicsJson"), true);
+    return false;
   }
   const category = data.topics.find((t) => t?.id === categoryId);
   if (!category || !Array.isArray(category.groups)) {
-    setInlineEditorStatus(container, "item", t("categoryNotInCurrentJson"), true);
-    return;
+    if (!silent) setInlineEditorStatus(container, "item", t("categoryNotInCurrentJson"), true);
+    return false;
   }
   const item = findItemById(category.groups, itemId);
   if (!item) {
-    setInlineEditorStatus(container, "item", t("selectedTopicNotFound"), true);
-    return;
+    if (!silent) setInlineEditorStatus(container, "item", t("selectedTopicNotFound"), true);
+    return false;
   }
 
   const get = (field) => container.querySelector(`[data-inline-field="${field}"]`);
   const requestedId = (get("id")?.value || "").trim();
   if (!requestedId) {
-    setInlineEditorStatus(container, "item", t("idMustNotBeEmpty"), true);
-    return;
+    if (!silent) setInlineEditorStatus(container, "item", t("idMustNotBeEmpty"), true);
+    return false;
   }
   if (requestedId !== itemId && idExistsInCategory(category, requestedId, itemId)) {
-    setInlineEditorStatus(
-      container,
-      "item",
-      `${t("idExistsInCategoryPrefix")} "${requestedId}" ${t("idExistsInCategorySuffix")}`,
-      true
-    );
-    return;
+    if (!silent) {
+      setInlineEditorStatus(
+        container,
+        "item",
+        `${t("idExistsInCategoryPrefix")} "${requestedId}" ${t("idExistsInCategorySuffix")}`,
+        true
+      );
+    }
+    return false;
   }
   if (requestedId !== itemId) {
     const oldId = item.id;
@@ -2752,18 +3415,22 @@ function applyInlineEditorEdits(categoryId, itemId, container) {
   item.hiddenByDefault = hiddenCheckbox ? Boolean(hiddenCheckbox.checked) : false;
   const buttonsCheckbox = get("buttons");
   item.buttons = buttonsCheckbox ? Boolean(buttonsCheckbox.checked) : item?.buttons !== false;
-  item.combineWithStandardStringScopes = {
-    ...(item.combineWithStandardStringScopes || {}),
-    narrow: get("combineWithStandardStringScopes.narrow")
-      ? Boolean(get("combineWithStandardStringScopes.narrow").checked)
-      : resolveCombineWithStandardScopeValue(item, "narrow"),
-    normal: get("combineWithStandardStringScopes.normal")
-      ? Boolean(get("combineWithStandardStringScopes.normal").checked)
-      : resolveCombineWithStandardScopeValue(item, "normal"),
-    broad: get("combineWithStandardStringScopes.broad")
-      ? Boolean(get("combineWithStandardStringScopes.broad").checked)
-      : resolveCombineWithStandardScopeValue(item, "broad"),
-  };
+  if (getSelectedType() === "limits") {
+    delete item.combineWithStandardStringScopes;
+  } else {
+    item.combineWithStandardStringScopes = {
+      ...(item.combineWithStandardStringScopes || {}),
+      narrow: get("combineWithStandardStringScopes.narrow")
+        ? Boolean(get("combineWithStandardStringScopes.narrow").checked)
+        : resolveCombineWithStandardScopeValue(item, "narrow"),
+      normal: get("combineWithStandardStringScopes.normal")
+        ? Boolean(get("combineWithStandardStringScopes.normal").checked)
+        : resolveCombineWithStandardScopeValue(item, "normal"),
+      broad: get("combineWithStandardStringScopes.broad")
+        ? Boolean(get("combineWithStandardStringScopes.broad").checked)
+        : resolveCombineWithStandardScopeValue(item, "broad"),
+    };
+  }
   delete item.combineWithStandardString;
   const alphabeticalCheckbox = get("ordering.alphabetical");
   const orderingInput = get("ordering.fixed");
@@ -2823,22 +3490,28 @@ function applyInlineEditorEdits(categoryId, itemId, container) {
 
   selectedTopicCategoryId = categoryId;
   selectedTopicItemId = item.id || itemId;
-  pendingItemInlineStatus = {
-    categoryId,
-    itemId: selectedTopicItemId,
-    message: `${t("changesSavedLocallyForTopic")} "${selectedTopicItemId}". ${t(
-      "clickSaveAllToWriteFile"
-    )}`,
-    isError: false,
-  };
-  updateJson(data);
+  if (!silent) {
+    pendingItemInlineStatus = {
+      categoryId,
+      itemId: selectedTopicItemId,
+      message: `${t("changesSavedLocallyForTopic")} "${selectedTopicItemId}". ${t(
+        "clickSaveAllToWriteFile"
+      )}`,
+      isError: false,
+    };
+  }
+  updateJson(data, refreshTree);
+  return true;
 }
 
-function applyStandardStringsInlineEdits(container) {
+function applyStandardStringsInlineEdits(container, options = {}) {
+  const { silent = false, refreshTree = true } = options;
   const data = parseCurrentJson();
   if (!data || !Array.isArray(data.topics)) {
-    setInlineEditorStatus(container, "standardString", t("cannotUpdateInvalidTopicsJson"), true);
-    return;
+    if (!silent) {
+      setInlineEditorStatus(container, "standardString", t("cannotUpdateInvalidTopicsJson"), true);
+    }
+    return false;
   }
 
   const get = (field) => container.querySelector(`[data-inline-field="${field}"]`);
@@ -2852,42 +3525,48 @@ function applyStandardStringsInlineEdits(container) {
 
   selectedTopicCategoryId = STANDARD_STRINGS_CATEGORY_ID;
   selectedTopicItemId = "";
-  updateJson(data);
-  setInlineEditorStatus(
-    container,
-    "standardString",
-    `${t("changesSavedLocallyForTopic")} "${t("standardStringsCategoryLabel")}". ${t(
-      "clickSaveAllToWriteFile"
-    )}`
-  );
+  updateJson(data, refreshTree);
+  if (!silent) {
+    setInlineEditorStatus(
+      container,
+      "standardString",
+      `${t("changesSavedLocallyForTopic")} "${t("standardStringsCategoryLabel")}". ${t(
+        "clickSaveAllToWriteFile"
+      )}`
+    );
+  }
+  return true;
 }
 
-function applyCategoryInlineEdits(categoryId, container) {
+function applyCategoryInlineEdits(categoryId, container, options = {}) {
+  const { silent = false, refreshTree = true } = options;
   const data = parseCurrentJson();
   if (!data || !Array.isArray(data.topics)) {
-    setInlineEditorStatus(container, "category", t("cannotUpdateInvalidTopicsJson"), true);
-    return;
+    if (!silent) setInlineEditorStatus(container, "category", t("cannotUpdateInvalidTopicsJson"), true);
+    return false;
   }
   const category = data.topics.find((t) => t?.id === categoryId);
   if (!category) {
-    setInlineEditorStatus(container, "category", t("mainCategoryNotFound"), true);
-    return;
+    if (!silent) setInlineEditorStatus(container, "category", t("mainCategoryNotFound"), true);
+    return false;
   }
   const get = (field) => container.querySelector(`[data-inline-field="${field}"]`);
   const nextId = (get("category.id")?.value || "").trim();
   if (!nextId) {
-    setInlineEditorStatus(container, "category", t("mainCategoryIdRequired"), true);
-    return;
+    if (!silent) setInlineEditorStatus(container, "category", t("mainCategoryIdRequired"), true);
+    return false;
   }
   const idTaken = data.topics.some((t) => t?.id === nextId && t?.id !== categoryId);
   if (idTaken) {
-    setInlineEditorStatus(
-      container,
-      "category",
-      `${t("categoryIdExistsPrefix")} "${nextId}" ${t("categoryIdExistsSuffix")}`,
-      true
-    );
-    return;
+    if (!silent) {
+      setInlineEditorStatus(
+        container,
+        "category",
+        `${t("categoryIdExistsPrefix")} "${nextId}" ${t("categoryIdExistsSuffix")}`,
+        true
+      );
+    }
+    return false;
   }
 
   const oldId = category.id;
@@ -2912,14 +3591,17 @@ function applyCategoryInlineEdits(categoryId, container) {
 
   selectedTopicCategoryId = category.id;
   selectedTopicItemId = "";
-  pendingCategoryInlineStatus = {
-    categoryId: category.id,
-    message: `${t("mainCategoryUpdatedLocallyPrefix")} "${category.id}". ${t(
-      "clickSaveAllAboveToWriteFile"
-    )}`,
-    isError: false,
-  };
-  updateJson(data);
+  if (!silent) {
+    pendingCategoryInlineStatus = {
+      categoryId: category.id,
+      message: `${t("mainCategoryUpdatedLocallyPrefix")} "${category.id}". ${t(
+        "clickSaveAllAboveToWriteFile"
+      )}`,
+      isError: false,
+    };
+  }
+  updateJson(data, refreshTree);
+  return true;
 }
 
 applyCapabilities({ canEditLimits: limitsEnabled, allowedDomains: [] });
@@ -2941,7 +3623,13 @@ passwordInput?.addEventListener("keydown", (event) => {
   event.preventDefault();
   void login();
 });
+function confirmDiscardUnsavedCurrentType() {
+  if (!hasUnsavedChangesInCurrentType()) return true;
+  return window.confirm(t("confirmDiscardUnsavedChanges"));
+}
 typeInput?.addEventListener("change", async () => {
+  if (!commitOpenInlineEditorDraft({ silent: false, refreshTree: false })) return;
+  if (!confirmDiscardUnsavedCurrentType()) return;
   syncFormByType();
   selectedTopicCategoryId = "";
   selectedTopicItemId = "";
@@ -2950,6 +3638,8 @@ typeInput?.addEventListener("change", async () => {
 });
 domainInput?.addEventListener("change", async () => {
   if (getSelectedType() !== "topics") return;
+  if (!commitOpenInlineEditorDraft({ silent: false, refreshTree: false })) return;
+  if (!confirmDiscardUnsavedCurrentType()) return;
   selectedTopicCategoryId = "";
   selectedTopicItemId = "";
   await loadContent();
@@ -2965,15 +3655,29 @@ document.addEventListener("visibilitychange", () => {
   }
   scheduleHiddenAutoLogout();
 });
-window.addEventListener("beforeunload", () => {
-  sendUnloadLogout();
+window.addEventListener("beforeunload", (event) => {
+  if (hasUnsavedChangesInCurrentType()) {
+    event.preventDefault();
+    event.returnValue = t("leavePageWarningUnsaved");
+    return;
+  }
 });
 window.addEventListener("pagehide", () => {
   sendUnloadLogout();
 });
-loadBtn?.addEventListener("click", loadContent);
+loadBtn?.addEventListener("click", async () => {
+  if (!commitOpenInlineEditorDraft({ silent: false, refreshTree: false })) return;
+  if (!confirmDiscardUnsavedCurrentType()) return;
+  await loadContent();
+});
 saveBtn?.addEventListener("click", () => saveContent("main"));
-saveJsonBtn?.addEventListener("click", () => saveContent("json"));
+saveJsonBtn?.addEventListener("click", () => {
+  if (!commitOpenInlineEditorDraft({ silent: false, refreshTree: false })) return;
+  saveContent("json");
+});
+jsonInput?.addEventListener("input", () => {
+  updateSaveButtonsState();
+});
 downloadBackupBtn?.addEventListener("click", downloadCurrentJsonBackup);
 logoutBtn?.addEventListener("click", logout);
 revisionRefreshBtn?.addEventListener("click", refreshRevisionList);
@@ -2995,14 +3699,17 @@ toggleJsonBtn?.addEventListener("click", () => {
   updateJsonToggleButtonLabel();
 });
 treeSearchInput?.addEventListener("input", () => {
+  if (!commitOpenInlineEditorDraft({ silent: false, refreshTree: false })) return;
   treeSearchText = (treeSearchInput.value || "").trim().toLowerCase();
   refreshTopicTree();
 });
 sortModeInput?.addEventListener("change", () => {
+  if (!commitOpenInlineEditorDraft({ silent: false, refreshTree: false })) return;
   sortModeEnabled = Boolean(sortModeInput.checked);
   refreshTopicTree();
 });
 collapseAllBtn?.addEventListener("click", () => {
+  if (!commitOpenInlineEditorDraft({ silent: false, refreshTree: false })) return;
   const shouldExpandAll = collapsedCategoryIds.size > 0 || collapsedTopicIds.size > 0;
   if (shouldExpandAll) {
     collapsedCategoryIds.clear();
@@ -3032,6 +3739,7 @@ topicTreeInput?.addEventListener("click", (event) => {
   if (!(target instanceof HTMLElement)) return;
   const addRootCategoryBtn = target.closest(".qpm-editor-tree-add-root-category-btn");
   if (addRootCategoryBtn instanceof HTMLElement) {
+    if (!commitOpenInlineEditorDraft({ silent: false, refreshTree: false })) return;
     const result = addCategoryAtEnd();
     if (!result.ok) {
       setStatus(result.error || t("couldNotAddMainCategory"), true);
@@ -3047,6 +3755,7 @@ topicTreeInput?.addEventListener("click", (event) => {
   }
   const addEndBtn = target.closest(".qpm-editor-tree-add-end-btn");
   if (addEndBtn instanceof HTMLElement) {
+    if (!commitOpenInlineEditorDraft({ silent: false, refreshTree: false })) return;
     const categoryId = (addEndBtn.dataset.categoryId || "").trim();
     const parentItemId = (addEndBtn.dataset.parentItemId || "").trim();
     if (!categoryId) return;
@@ -3066,6 +3775,7 @@ topicTreeInput?.addEventListener("click", (event) => {
   }
   const itemBtn = target.closest(".qpm-editor-tree-item");
   if (itemBtn instanceof HTMLElement) {
+    if (!commitOpenInlineEditorDraft({ silent: false, refreshTree: false })) return;
     const itemId = (itemBtn.dataset.id || "").trim();
     const categoryId = (itemBtn.dataset.categoryId || "").trim();
     if (!itemId || !categoryId) return;
@@ -3078,6 +3788,7 @@ topicTreeInput?.addEventListener("click", (event) => {
   }
   const categoryBtn = target.closest(".qpm-editor-tree-category-btn");
   if (categoryBtn instanceof HTMLElement) {
+    if (!commitOpenInlineEditorDraft({ silent: false, refreshTree: false })) return;
     const categoryId = (categoryBtn.dataset.categoryId || "").trim();
     if (!categoryId) return;
     if (selectedTopicCategoryId === categoryId && !selectedTopicItemId) {
@@ -3089,6 +3800,7 @@ topicTreeInput?.addEventListener("click", (event) => {
   }
   const toggleBtn = target.closest(".qpm-editor-tree-toggle");
   if (toggleBtn instanceof HTMLElement) {
+    if (!commitOpenInlineEditorDraft({ silent: false, refreshTree: false })) return;
     const categoryToggleId = (toggleBtn.dataset.categoryId || "").trim();
     if (categoryToggleId) {
       if (collapsedCategoryIds.has(categoryToggleId)) collapsedCategoryIds.delete(categoryToggleId);
@@ -3103,21 +3815,8 @@ topicTreeInput?.addEventListener("click", (event) => {
     refreshTopicTree();
     return;
   }
-  if (target.classList.contains("qpm-editor-tree-apply-inline")) {
-    const itemId = (target.dataset.id || "").trim();
-    const categoryId = (target.dataset.categoryId || "").trim();
-    const container = target.closest(".qpm-editor-inline-editor");
-    if (!itemId || !categoryId || !container) return;
-    applyInlineEditorEdits(categoryId, itemId, container);
-    return;
-  }
-  if (target.classList.contains("qpm-editor-tree-apply-standard-inline")) {
-    const container = target.closest(".qpm-editor-inline-editor");
-    if (!container) return;
-    applyStandardStringsInlineEdits(container);
-    return;
-  }
   if (target.classList.contains("qpm-editor-tree-delete-inline")) {
+    if (!commitOpenInlineEditorDraft({ silent: false, refreshTree: false })) return;
     const itemId = (target.dataset.id || "").trim();
     const categoryId = (target.dataset.categoryId || "").trim();
     if (!itemId || !categoryId) return;
@@ -3132,14 +3831,8 @@ topicTreeInput?.addEventListener("click", (event) => {
     refreshTopicTree();
     return;
   }
-  if (target.classList.contains("qpm-editor-tree-apply-category-inline")) {
-    const categoryId = (target.dataset.categoryId || "").trim();
-    const container = target.closest(".qpm-editor-inline-editor");
-    if (!categoryId || !container) return;
-    applyCategoryInlineEdits(categoryId, container);
-    return;
-  }
   if (target.classList.contains("qpm-editor-tree-delete-category-inline")) {
+    if (!commitOpenInlineEditorDraft({ silent: false, refreshTree: false })) return;
     const categoryId = (target.dataset.categoryId || "").trim();
     if (!categoryId) return;
     const ok = window.confirm(`${t("confirmDeleteMainCategoryPrefix")} "${categoryId}"?`);
@@ -3191,6 +3884,7 @@ topicTreeInput?.addEventListener("drop", (event) => {
   if (!target.classList.contains("qpm-editor-dropzone")) return;
   event.preventDefault();
   target.classList.remove("is-over");
+  if (!commitOpenInlineEditorDraft({ silent: false, refreshTree: false })) return;
 
   const scope = (target.dataset.scope || "item").trim();
   const position = (target.dataset.position || "").trim();
@@ -3236,6 +3930,7 @@ topicTreeInput?.addEventListener("dragend", () => {
   });
 });
 
+updateSaveButtonsState();
 if (!isRemoteApiBlockedInLocal) {
   checkSession();
 }

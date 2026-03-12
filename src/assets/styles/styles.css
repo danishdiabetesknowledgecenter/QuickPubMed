@@ -243,6 +243,14 @@
   left: calc(100% - 37px);
 }
 
+.qpm_dropdown.qpm_mobileUiDropdown .qpm_multiselect_custom_spinner {
+  left: calc(100% - 22px);
+}
+
+.qpm_dropdown.qpm_mobileUiDropdown .qpm_hideDropdownArrow + .qpm_multiselect_custom_spinner {
+  left: calc(100% - 32px);
+}
+
 .qpm_multiselect_custom_spinner .qpm_loading {
   position: relative;
   top: unset;
@@ -605,8 +613,14 @@ button.qpm_slim.multiselect__input:focus-visible {
   -webkit-tap-highlight-color: transparent;
 }
 
-.qpm_dropdown.qpm_mobileUiDropdown .multiselect__select {
+.qpm_dropdown.qpm_mobileUiDropdown .multiselect.qpm_hideDropdownArrow .multiselect__select {
   display: none !important;
+}
+
+.qpm_dropdown.qpm_mobileUiDropdown .multiselect:not(.qpm_hideDropdownArrow) .multiselect__select {
+  display: block !important;
+  top: auto !important;
+  bottom: 10px !important;
 }
 
 .qpm_dropdown.qpm_mobileUiDropdown .multiselect__content-wrapper {
@@ -647,6 +661,11 @@ button.qpm_slim.multiselect__input:focus-visible {
   padding: 0 10px 0 10px !important;
 }
 
+.qpm_dropdown.qpm_mobileUiDropdown .multiselect:not(.qpm_hideDropdownArrow) .multiselect__input {
+  width: calc(100% - 34px) !important;
+  max-width: calc(100% - 34px) !important;
+}
+
 @media (pointer: coarse) and (hover: none) and (max-width: 1024px) {
   .qpm_topics,
   .qpm_flex,
@@ -685,8 +704,13 @@ button.qpm_slim.multiselect__input:focus-visible {
   .qpm_dropdown .multiselect__content-wrapper {
     display: none !important;
   }
-  .qpm_dropdown .multiselect__select {
+  .qpm_dropdown .multiselect.qpm_hideDropdownArrow .multiselect__select {
     display: none !important;
+  }
+  .qpm_dropdown .multiselect:not(.qpm_hideDropdownArrow) .multiselect__select {
+    display: block !important;
+    top: auto !important;
+    bottom: 10px !important;
   }
   .qpm_dropdown .multiselect__tags {
     padding-right: 8px !important;
@@ -698,6 +722,10 @@ button.qpm_slim.multiselect__input:focus-visible {
     position: static !important;
     box-sizing: border-box !important;
     padding: 0 10px 0 10px !important;
+  }
+  .qpm_dropdown .multiselect:not(.qpm_hideDropdownArrow) .multiselect__input {
+    width: calc(100% - 34px) !important;
+    max-width: calc(100% - 34px) !important;
   }
 }
 

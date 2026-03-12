@@ -924,6 +924,86 @@ export const messages = {
     dk: "Gem",
     en: "Save",
   },
+  editor_saveJsonFile: {
+    dk: "Gem JSON-fil",
+    en: "Save JSON file",
+  },
+  editor_undo: {
+    dk: "Fortryd seneste ændring",
+    en: "Undo latest change",
+  },
+  editor_cancel: {
+    dk: "Annuller",
+    en: "Cancel",
+  },
+  editor_confirmDiscardUnsavedChanges: {
+    dk: "Du har ændringer, der ikke er gemt. Vil du fortsætte og kassere dem?",
+    en: "You have unsaved changes. Do you want to continue and discard them?",
+  },
+  editor_leavePageWarningUnsaved: {
+    dk: "Du har ændringer, der ikke er gemt.",
+    en: "You have unsaved changes.",
+  },
+  editor_confirmGlobalSaveTitle: {
+    dk: "Bekræft gemning af ændringer",
+    en: "Confirm saving changes",
+  },
+  editor_confirmGlobalSaveBody: {
+    dk: "Følgende ændringer bliver gemt:",
+    en: "The following changes will be saved:",
+  },
+  editor_confirmGlobalSavePrompt: {
+    dk: "Vil du fortsætte?",
+    en: "Do you want to continue?",
+  },
+  editor_saveCancelled: {
+    dk: "Gemning annulleret.",
+    en: "Save cancelled.",
+  },
+  editor_saveBlockedByInlineValidation: {
+    dk: "Ret fejl i det åbne emne, før du gemmer.",
+    en: "Fix errors in the open item before saving.",
+  },
+  editor_changeArrayLengthChanged: {
+    dk: "antal elementer ændret",
+    en: "array length changed",
+  },
+  editor_changePathLine: {
+    dk: "Linje",
+    en: "Line",
+  },
+  editor_changeFromLabel: {
+    dk: "Fra",
+    en: "From",
+  },
+  editor_changeToLabel: {
+    dk: "Til",
+    en: "To",
+  },
+  editor_changeEmptyValue: {
+    dk: "(tom værdi)",
+    en: "(empty value)",
+  },
+  editor_changeRootLabel: {
+    dk: "Overordnet indhold",
+    en: "Overall content",
+  },
+  editor_changeGroupLabel: {
+    dk: "Emne",
+    en: "Item",
+  },
+  editor_changeFieldLabel: {
+    dk: "Felt",
+    en: "Field",
+  },
+  editor_changeListLabel: {
+    dk: "Liste",
+    en: "List",
+  },
+  editor_changeObjectLabel: {
+    dk: "Objekt",
+    en: "Object",
+  },
   editor_load: {
     dk: "Hent",
     en: "Load",

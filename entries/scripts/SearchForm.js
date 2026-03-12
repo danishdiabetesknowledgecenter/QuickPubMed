@@ -145,6 +145,7 @@ searchFormDivs.forEach((searchFormDiv, index) => {
     standardStringScopeRaw && ["narrow", "normal", "broad"].includes(standardStringScopeRaw)
       ? standardStringScopeRaw
       : "normal";
+  const standardString = (searchFormDiv.dataset.standardString || "").trim();
 
   // Set global config (for backward compatibility with single-instance usage)
   if (domain) {
@@ -185,6 +186,7 @@ searchFormDivs.forEach((searchFormDiv, index) => {
       domain: domain,
       standardStringAdd: standardStringAdd,
       standardStringScope: standardStringScope,
+      standardString: standardString,
     },
     {
       provide: {

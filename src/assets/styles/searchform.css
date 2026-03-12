@@ -251,8 +251,8 @@
 
 .qpm_simpleFiltersContainer {
   display: grid;
-  grid-template-columns: minmax(auto, 125px) 1fr 1fr;
-  column-gap: 30px;
+  grid-template-columns: minmax(auto, 100px) 1fr 1fr;
+  column-gap: 15px;
   width: 100%;
 }
 

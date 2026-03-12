@@ -47,7 +47,13 @@
                     },
                     "children": [],
                     "lockIdOnSort": true,
-                    "hiddenByDefault": false
+                    "hiddenByDefault": false,
+                    "combineWithStandardStringScopes": {
+                        "narrow": true,
+                        "normal": true,
+                        "broad": true
+                    },
+                    "internalComment": ""
                 },
                 {
                     "id": "S000020",
@@ -461,10 +467,18 @@
                     "lockIdOnSort": true,
                     "hiddenByDefault": false,
                     "searchStrings": {
-                        "narrow": [],
+                        "narrow": [
+                            "x"
+                        ],
                         "normal": [],
                         "broad": []
-                    }
+                    },
+                    "combineWithStandardStringScopes": {
+                        "narrow": true,
+                        "normal": true,
+                        "broad": true
+                    },
+                    "internalComment": ""
                 },
                 {
                     "id": "S000030",
