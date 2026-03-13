@@ -317,7 +317,26 @@
             (choice) => choice.simpleSearch && !this.effectiveHideLimits.includes(choice.id)
           );
           if (orderMap.size === 0) {
-            return { ...option, choices };
+            const localizedOrder = (choice) => {
+              const pref = this.language === "en" ? "en" : "dk";
+              const alt = pref === "en" ? "dk" : "en";
+              const prefValue = Number(choice?.simpleOrdering?.[pref]);
+              if (Number.isFinite(prefValue) && prefValue > 0) return prefValue;
+              const altValue = Number(choice?.simpleOrdering?.[alt]);
+              if (Number.isFinite(altValue) && altValue > 0) return altValue;
+              const prefDefaultValue = Number(choice?.ordering?.[pref]);
+              if (Number.isFinite(prefDefaultValue) && prefDefaultValue > 0) return prefDefaultValue;
+              const altDefaultValue = Number(choice?.ordering?.[alt]);
+              if (Number.isFinite(altDefaultValue) && altDefaultValue > 0) return altDefaultValue;
+              return Number.POSITIVE_INFINITY;
+            };
+            const orderedByContent = [...choices].sort((a, b) => {
+              const aOrder = localizedOrder(a);
+              const bOrder = localizedOrder(b);
+              if (aOrder === bOrder) return 0;
+              return aOrder - bOrder;
+            });
+            return { ...option, choices: orderedByContent };
           }
           const ordered = [...choices].sort((a, b) => {
             const aIndex = orderMap.has(a.id) ? orderMap.get(a.id) : Number.POSITIVE_INFINITY;

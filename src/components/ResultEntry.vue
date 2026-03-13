@@ -711,6 +711,7 @@
       SummarizeNoAbstract,
     },
     mixins: [appSettingsMixin, promptRuleLoaderMixin, utilitiesMixin],
+    emits: ["change", "articleUpdated", "loadAbstract"],
     props: {
       abstract: {
         type: String,

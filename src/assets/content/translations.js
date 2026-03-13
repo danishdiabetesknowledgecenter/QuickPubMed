@@ -1032,6 +1032,10 @@ export const messages = {
     dk: "Søg i emner (id eller navn)",
     en: "Search topics (id or name)",
   },
+  editor_clearSearch: {
+    dk: "Nulstil søgning",
+    en: "Clear search",
+  },
   editor_refreshHistory: {
     dk: "Opdater historik",
     en: "Refresh history",
@@ -1159,6 +1163,18 @@ export const messages = {
   editor_showScopeButtonsLabel: {
     dk: "Vis scope-knapper (n/s/b)",
     en: "Show scope buttons (n/s/b)",
+  },
+  editor_showInSimpleModeLabel: {
+    dk: "Vis i simple mode",
+    en: "Show in simple mode",
+  },
+  editor_preselectInSimpleModeLabel: {
+    dk: "Marker som standard i simple mode",
+    en: "Preselect by default in simple mode",
+  },
+  editor_itemSimpleOrderingFixedLabel: {
+    dk: "Fast placering i simple mode",
+    en: "Fixed position in simple mode",
   },
   editor_showAlphabeticalOrderingLabel: {
     dk: "Vis alfabetisk (ordering = null)",
@@ -1624,6 +1640,18 @@ export const messages = {
     dk: "Vis scope-knapper (n/s/b) for dette underemne i søgeformularen.",
     en: "Show scope buttons (n/s/b) for this child item in the search form.",
   },
+  editor_helpItemSimpleSearch: {
+    dk: "Når markeret, vises afgrænsningen i simple mode.",
+    en: "When checked, the limit is shown in simple mode.",
+  },
+  editor_helpItemStandardSimple: {
+    dk: "Når markeret, vælges afgrænsningen som standard i simple mode.",
+    en: "When checked, the limit is selected by default in simple mode.",
+  },
+  editor_helpItemSimpleOrderingFixed: {
+    dk: "Fast placering for afgrænsningen i simple mode. Bruges når data-order-limits ikke er sat.",
+    en: "Fixed position for the limit in simple mode. Used when data-order-limits is not set.",
+  },
   editor_helpItemOrderingAlphabetical: {
     dk: "Når markeret bruges alfabetisk visning i stedet for fast placering.",
     en: "When checked, alphabetical order is used instead of fixed ordering.",
@@ -1691,5 +1719,21 @@ export const messages = {
   editor_helpItemInternalComment: {
     dk: "Intern kommentar til redaktionelt brug. Vises ikke i brugerfladen.",
     en: "Internal comment for editorial use. Not shown in the end-user interface.",
+  },
+  editor_helpStandardStringNarrow: {
+    dk: "Standardsøgestreng for narrow-scope. Bruges ved kombination med underemner i narrow.",
+    en: "Standard search string for narrow scope. Used when combining with subtopics in narrow.",
+  },
+  editor_helpStandardStringNormal: {
+    dk: "Standardsøgestreng for normal-scope. Bruges ved kombination med underemner i normal.",
+    en: "Standard search string for normal scope. Used when combining with subtopics in normal.",
+  },
+  editor_helpStandardStringBroad: {
+    dk: "Standardsøgestreng for broad-scope. Bruges ved kombination med underemner i broad.",
+    en: "Standard search string for broad scope. Used when combining with subtopics in broad.",
+  },
+  editor_helpStandardStringHint: {
+    dk: "Valgfrit: Tomme felter betyder, at der ikke tilføjes standardsøgestreng for det scope.",
+    en: "Optional: Empty fields mean no standard search string is added for that scope.",
   },
 };

@@ -25,6 +25,39 @@
   min-height: 44px;
 }
 
+.qpm-editor-search-wrap {
+  position: relative;
+  flex: 1 1 320px;
+}
+
+.qpm-editor-search-input {
+  padding-right: 34px;
+}
+
+.qpm-editor-search-clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  color: var(--color-editor-text-subtle);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.qpm-editor-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 36px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23666' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: calc(100% - 18px) center;
+}
+
 .qpm-editor-input::placeholder {
   font-size: 14px;
   opacity: 1;
@@ -206,6 +239,12 @@
 
 .qpm-editor-tree-item.is-selected,
 .qpm-editor-tree-category-btn.is-selected {
+  border-color: var(--color-primary-button);
+  box-shadow: 0 0 0 1px var(--color-editor-primary-ring) inset;
+  background: var(--color-editor-surface-accent);
+}
+
+.qpm-editor-tree-item.qpm-editor-search-hit {
   border-color: var(--color-primary-button);
   box-shadow: 0 0 0 1px var(--color-editor-primary-ring) inset;
   background: var(--color-editor-surface-accent);

@@ -492,6 +492,7 @@
         isSelectedArticleAccordionExpanded: false,
         hadVisibleResultEntries: false,
         _pendingScrollTarget: null,
+        _selectedBadgesRetryTimeouts: [],
       };
     },
     computed: {
@@ -651,6 +652,7 @@
     },
     beforeUnmount() {
       eventBus.off("result-entry-show-abstract", this.openArticlesAccordion);
+      this.clearSelectedBadgeRetries();
     },
     methods: {
       next() {
@@ -832,6 +834,14 @@
         this.hasAcceptedAi = false;
       },
       changeResultEntryModel(value, isChecked) {
+        // Guard against accidental native DOM change events bubbling from child roots.
+        // We only handle the component-emitted payload: (articleValue, booleanChecked).
+        if (value && typeof value === "object" && value.type === "change" && value.target) {
+          return;
+        }
+        if (typeof isChecked !== "boolean") {
+          return;
+        }
         const currentSelected = this.safeSelectedEntries;
         const newValue = [...currentSelected];
         const valueIndex = newValue.findIndex((e) => e === value || e.uid === value.uid);
@@ -898,17 +908,39 @@
       },
       onArticleAccordionStateChange(expanded) {
         this.isSelectedArticleAccordionExpanded = expanded;
+        if (expanded) {
+          this.loadSelectedArticleBadges();
+        }
       },
       onDeselectAllArticles() {
         this.selectedEntries = [];
         this.$emit("change:selectedEntries", this.selectedEntries);
       },
       loadSelectedArticleBadges(article) {
+        const articleBody = article ?? this.$refs?.articlesAccordion?.$refs?.body;
+        this.clearSelectedBadgeRetries();
+        this.refreshSelectedArticleBadges(articleBody);
+
+        // Harden dynamic rendering: retry badge init a few times
+        // because selected entries can be mounted asynchronously.
+        const retryDelays = [200, 500, 900, 1400, 2000];
+        this._selectedBadgesRetryTimeouts = retryDelays.map((delay) =>
+          setTimeout(() => this.refreshSelectedArticleBadges(articleBody), delay)
+        );
+      },
+      clearSelectedBadgeRetries() {
+        if (!Array.isArray(this._selectedBadgesRetryTimeouts)) {
+          this._selectedBadgesRetryTimeouts = [];
+          return;
+        }
+        this._selectedBadgesRetryTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
+        this._selectedBadgesRetryTimeouts = [];
+      },
+      refreshSelectedArticleBadges(articleBody) {
         if (window.__dimensions_embed) {
           window.__dimensions_embed.addBadges();
         }
 
-        const articleBody = article ?? this.$refs?.articlesAccordion?.$refs?.body;
         if (articleBody && window._altmetric_embed_init) {
           window._altmetric_embed_init(articleBody);
         }

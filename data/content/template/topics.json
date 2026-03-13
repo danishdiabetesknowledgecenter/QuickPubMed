@@ -7,8 +7,8 @@
                 "en": "Template category"
             },
             "ordering": {
-                "dk": 0,
-                "en": 0
+                "dk": 1,
+                "en": 1
             },
             "tooltip": {
                 "dk": "Denne kategori er et eksempel, hvor man kan se brugen flere niveauer og kommentarer. Kategorien fjernes, når formularen er live. Bemærk, at det også er muligt at indsætte en kommentar som denne på de øvrige kategorier i dropdownen.",
@@ -525,8 +525,8 @@
                 "en": "Diabetes type"
             },
             "ordering": {
-                "dk": 1,
-                "en": 1
+                "dk": 2,
+                "en": 2
             },
             "tooltip": {
                 "dk": "",
@@ -800,8 +800,8 @@
                 "en": "Complications"
             },
             "ordering": {
-                "dk": 2,
-                "en": 2
+                "dk": 3,
+                "en": 3
             },
             "tooltip": {
                 "dk": "",
@@ -1329,8 +1329,8 @@
                 "en": "Medical treatment"
             },
             "ordering": {
-                "dk": 3,
-                "en": 3
+                "dk": 4,
+                "en": 4
             },
             "tooltip": {
                 "dk": "",
@@ -1602,8 +1602,8 @@
                 "en": "Nutrition"
             },
             "ordering": {
-                "dk": 4,
-                "en": 4
+                "dk": 5,
+                "en": 5
             },
             "tooltip": {
                 "dk": "",
@@ -2139,8 +2139,8 @@
                 "en": "Physical activity"
             },
             "ordering": {
-                "dk": 5,
-                "en": 5
+                "dk": 6,
+                "en": 6
             },
             "tooltip": {
                 "dk": "",
@@ -2955,8 +2955,8 @@
                 "en": "Technology"
             },
             "ordering": {
-                "dk": 6,
-                "en": 6
+                "dk": 7,
+                "en": 7
             },
             "tooltip": {
                 "dk": "",
@@ -3132,8 +3132,8 @@
                 "en": "Clinical measures"
             },
             "ordering": {
-                "dk": 7,
-                "en": 7
+                "dk": 8,
+                "en": 8
             },
             "tooltip": {
                 "dk": "",
@@ -3405,8 +3405,8 @@
                 "en": "Mental health"
             },
             "ordering": {
-                "dk": 8,
-                "en": 8
+                "dk": 9,
+                "en": 9
             },
             "tooltip": {
                 "dk": "",
@@ -3614,8 +3614,8 @@
                 "en": "Prevention and risk factors"
             },
             "ordering": {
-                "dk": 9,
-                "en": 9
+                "dk": 10,
+                "en": 10
             },
             "tooltip": {
                 "dk": "",
@@ -3791,8 +3791,8 @@
                 "en": "Gender and diabetes"
             },
             "ordering": {
-                "dk": 10,
-                "en": 10
+                "dk": 11,
+                "en": 11
             },
             "tooltip": {
                 "dk": "",
@@ -4000,8 +4000,8 @@
                 "en": "Special groups"
             },
             "ordering": {
-                "dk": 11,
-                "en": 11
+                "dk": 12,
+                "en": 12
             },
             "tooltip": {
                 "dk": "",
@@ -4305,8 +4305,8 @@
                 "en": "Other topics"
             },
             "ordering": {
-                "dk": 100,
-                "en": 100
+                "dk": 13,
+                "en": 13
             },
             "tooltip": {
                 "dk": "",
@@ -4682,8 +4682,8 @@
                 "en": "COVID-19"
             },
             "ordering": {
-                "dk": 1000,
-                "en": 1000
+                "dk": 14,
+                "en": 14
             },
             "tooltip": {
                 "dk": "",

@@ -998,8 +998,9 @@
           this.$nextTick(() => {
             const input = this.$el?.querySelector(".multiselect__input");
             if (input) {
-              input.style.setProperty("width", "100%", "important");
-              input.style.setProperty("max-width", "100%", "important");
+              const mobileInputWidth = this.shouldHideDropdownArrow ? "100%" : "calc(100% - 34px)";
+              input.style.setProperty("width", mobileInputWidth, "important");
+              input.style.setProperty("max-width", mobileInputWidth, "important");
               input.style.setProperty("display", "block", "important");
               input.style.setProperty("position", "static", "important");
             }

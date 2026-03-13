@@ -35,7 +35,10 @@ function ensureEditorMarkup() {
       </div>
 
       <div id="qpm-editor-topic-tools" class="qpm-editor-row">
-        <input id="qpm-editor-tree-search" class="qpm-editor-input" type="text" placeholder="Søg i emner (id eller navn)" />
+        <div class="qpm-editor-search-wrap">
+          <input id="qpm-editor-tree-search" class="qpm-editor-input qpm-editor-search-input" type="text" placeholder="Søg i emner (id eller navn)" />
+          <button id="qpm-editor-tree-search-clear" class="qpm-editor-search-clear qpm-editor-hidden" type="button" aria-label="Nulstil søgning">×</button>
+        </div>
         <button id="qpm-editor-collapse-all-btn" class="qpm-editor-btn qpm-editor-btn-secondary" type="button">Fold ud / Fold sammen</button>
         <label class="qpm-editor-sort-mode-label">
           <input id="qpm-editor-sort-mode" class="qpm-editor-sort-mode-checkbox" type="checkbox" />
@@ -131,6 +134,7 @@ const extraToolsSummaryEl = document.getElementById("qpm-editor-extra-tools-summ
 const topicTools = document.getElementById("qpm-editor-topic-tools");
 const topicTreeInput = document.getElementById("qpm-editor-topic-tree");
 const treeSearchInput = document.getElementById("qpm-editor-tree-search");
+const treeSearchClearBtn = document.getElementById("qpm-editor-tree-search-clear");
 const sortModeInput = document.getElementById("qpm-editor-sort-mode");
 const collapseAllBtn = document.getElementById("qpm-editor-collapse-all-btn");
 
@@ -174,11 +178,27 @@ let hiddenSinceTs = null;
 let hiddenLogoutTimerId = 0;
 let unloadLogoutSent = false;
 let editorCapabilities = { canEditLimits: limitsEnabled, allowedDomains: [] };
-const editorLanguage = String(root?.dataset?.language || "dk").toLowerCase() === "en" ? "en" : "dk";
+const editorLanguageRaw = String(root?.dataset?.language || "dk")
+  .trim()
+  .toLowerCase();
+const editorLanguage = editorLanguageRaw.split(/[-_]/)[0] || "dk";
+const editorLanguageFallbacks = Array.from(new Set([editorLanguage, "dk", "en"]));
+
+function getLocalizedMessageValue(msg, fallback = "") {
+  if (!msg || typeof msg !== "object") return fallback;
+  for (const lang of editorLanguageFallbacks) {
+    const value = msg?.[lang];
+    if (typeof value === "string" && value.trim() !== "") return value;
+  }
+  const firstString = Object.values(msg).find(
+    (value) => typeof value === "string" && value.trim() !== ""
+  );
+  return firstString || fallback;
+}
+
 function t(key) {
   const msg = messages?.[`editor_${key}`];
-  if (!msg || typeof msg !== "object") return key;
-  return msg[editorLanguage] || msg.dk || msg.en || key;
+  return getLocalizedMessageValue(msg, key);
 }
 function getTypeLabel(type) {
   return type === "limits" ? t("typeLimits") : t("typeTopics");
@@ -230,9 +250,24 @@ function rememberBaselineForType(type, normalizedData) {
   editorBaselineByType[normalizedType] = JSON.stringify(normalizedData || {}, null, 2);
 }
 
+function parseStoredBaselineDataForType(type, jsonText) {
+  const normalizedType = normalizeTypeValue(type);
+  try {
+    const parsed = jsonText ? JSON.parse(jsonText) : {};
+    // Baselines are already stored in editor-normalized shape.
+    // Avoid re-normalizing limits baselines, which can otherwise drop data.
+    if (parsed && typeof parsed === "object" && Array.isArray(parsed.topics)) {
+      return parsed;
+    }
+    return normalizePayloadForEditor(normalizedType, parsed);
+  } catch {
+    return null;
+  }
+}
+
 function getBaselineDataForType(type) {
   const normalizedType = normalizeTypeValue(type);
-  return parseEditorJsonByType(normalizedType, editorBaselineByType[normalizedType] || "{}");
+  return parseStoredBaselineDataForType(normalizedType, editorBaselineByType[normalizedType] || "{}");
 }
 
 function getCurrentDraftDataForType(type) {
@@ -270,11 +305,7 @@ function buildInlineEditorHistoryKey(mode, categoryId = "", itemId = "") {
 }
 
 function getLocalizedText(translations, fallback = "") {
-  const preferredLang = editorLanguage === "en" ? "en" : "dk";
-  const secondaryLang = preferredLang === "en" ? "dk" : "en";
-  const preferred = translations?.[preferredLang];
-  const secondary = translations?.[secondaryLang];
-  return preferred || secondary || fallback;
+  return getLocalizedMessageValue(translations, fallback);
 }
 const editorHelpTextDelay = { show: 500, hide: 100 };
 let editorTooltipEl = null;
@@ -286,6 +317,7 @@ let revisionSelectedPreviewDate = "";
 let revisionCurrentPreviewDate = "";
 let revisionCurrentRestoredFromDate = "";
 let lastSaveUsedJsonButton = false;
+let activeEditorType = "topics";
 const editorBaselineByType = { topics: "", limits: "" };
 const inlineHistoryStateByKey = new Map();
 let isApplyingInlineSnapshot = false;
@@ -301,6 +333,9 @@ const editorHelpTextKeyMap = {
   "item.lockIdOnSort": "helpItemLockIdOnSort",
   "item.hiddenByDefault": "helpItemHiddenByDefault",
   "item.buttons": "helpItemButtons",
+  "item.simpleSearch": "helpItemSimpleSearch",
+  "item.standardSimple": "helpItemStandardSimple",
+  "item.simpleOrdering.fixed": "helpItemSimpleOrderingFixed",
   "item.ordering.alphabetical": "helpItemOrderingAlphabetical",
   "item.ordering.fixed": "helpItemOrderingFixed",
   "item.translations.dk": "helpItemTranslationsDk",
@@ -314,6 +349,10 @@ const editorHelpTextKeyMap = {
   "item.tooltip.dk": "helpItemTooltipDk",
   "item.tooltip.en": "helpItemTooltipEn",
   "item.internalComment": "helpItemInternalComment",
+  "standardString.narrow": "helpStandardStringNarrow",
+  "standardString.normal": "helpStandardStringNormal",
+  "standardString.broad": "helpStandardStringBroad",
+  "standardString.hint": "helpStandardStringHint",
 };
 
 function updateJsonToggleButtonLabel() {
@@ -339,6 +378,10 @@ function applyEditorLanguageTexts() {
   if (sortModeTextEl instanceof HTMLElement) sortModeTextEl.textContent = t("sortMode");
   if (treeSearchInput instanceof HTMLInputElement)
     treeSearchInput.placeholder = t("searchPlaceholder");
+  if (treeSearchClearBtn instanceof HTMLButtonElement) {
+    treeSearchClearBtn.setAttribute("aria-label", t("clearSearch"));
+    treeSearchClearBtn.title = t("clearSearch");
+  }
   if (revisionRefreshBtn instanceof HTMLElement)
     revisionRefreshBtn.textContent = t("refreshHistory");
   if (revertBtn instanceof HTMLElement) revertBtn.textContent = t("revertVersion");
@@ -357,6 +400,12 @@ function applyEditorLanguageTexts() {
   );
   updateJsonToggleButtonLabel();
   updateCollapseToggleButtonLabel();
+}
+
+function updateTreeSearchClearButtonVisibility() {
+  if (!(treeSearchClearBtn instanceof HTMLButtonElement)) return;
+  const hasValue = Boolean((treeSearchInput?.value || "").trim());
+  treeSearchClearBtn.classList.toggle("qpm-editor-hidden", !hasValue);
 }
 
 function ensureBoxiconsStylesheet() {
@@ -595,7 +644,12 @@ function getEditorHelpText(key) {
 function formatRevisionDate(value) {
   const date = new Date(String(value || ""));
   if (Number.isNaN(date.getTime())) return String(value || "");
-  const locale = editorLanguage === "en" ? "en-GB" : "da-DK";
+  const locale =
+    editorLanguage === "en"
+      ? "en-GB"
+      : editorLanguage === "dk"
+      ? "da-DK"
+      : editorLanguageRaw || "da-DK";
   return new Intl.DateTimeFormat(locale, {
     year: "numeric",
     month: "2-digit",
@@ -1448,7 +1502,14 @@ function hasOpenInlineDirtyState() {
   if (!historyKey) return false;
   const state = inlineHistoryStateByKey.get(historyKey);
   if (!state) return false;
-  return !snapshotsEqual(state.history[state.index], state.baseline);
+  const currentSnapshot = captureInlineEditorSnapshot(container);
+  const historySnapshot = deepClone(state.history[state.index] || {});
+  // Defensive: some select interactions can update DOM value before history sync.
+  // Compare live snapshot as source of truth so commits are not skipped.
+  if (!snapshotsEqual(currentSnapshot, historySnapshot)) {
+    return !snapshotsEqual(currentSnapshot, state.baseline);
+  }
+  return !snapshotsEqual(historySnapshot, state.baseline);
 }
 
 function createStandardStringsInlineEditor(standardString) {
@@ -1456,10 +1517,12 @@ function createStandardStringsInlineEditor(standardString) {
   wrapper.className = "qpm-editor-inline-editor";
   wrapper.dataset.categoryId = STANDARD_STRINGS_CATEGORY_ID;
 
-  const mkLabel = (text) => {
+  const mkLabel = (text, helpKey = "") => {
     const p = document.createElement("p");
     p.className = "qpm-editor-field-label";
     p.textContent = text;
+    const infoIcon = createInfoIcon(getEditorHelpText(helpKey));
+    if (infoIcon) p.append(" ", infoIcon);
     return p;
   };
   const mkTextarea = (value = "") => {
@@ -1476,18 +1539,16 @@ function createStandardStringsInlineEditor(standardString) {
   const broad = mkTextarea(standardString?.broad || "");
   broad.dataset.inlineField = "standardString.broad";
 
-  const hint = document.createElement("p");
-  hint.className = "qpm-editor-field-label";
-  hint.textContent = t("standardStringsOptionalHint");
+  const hint = mkLabel(t("standardStringsOptionalHint"), "standardString.hint");
 
   const { actionsRow, inlineStatus } = createInlineActions(null, "standardString");
 
   wrapper.append(
-    mkLabel(t("itemNarrowLabel")),
+    mkLabel(t("itemNarrowLabel"), "standardString.narrow"),
     narrow,
-    mkLabel(t("itemNormalLabel")),
+    mkLabel(t("itemNormalLabel"), "standardString.normal"),
     normal,
-    mkLabel(t("itemBroadLabel")),
+    mkLabel(t("itemBroadLabel"), "standardString.broad"),
     broad,
     hint,
     actionsRow,
@@ -1691,6 +1752,7 @@ async function loadContent() {
     jsonInput.value = JSON.stringify(data.data || {}, null, 2);
     const normalizedData = parseCurrentJson() || {};
     rememberBaselineForType(type, normalizedData);
+    activeEditorType = normalizeTypeValue(type);
     clearInlineHistoryForType(type);
     revisionCurrentPreviewDate = String(data?.currentModifiedAt || "");
     revisionCurrentRestoredFromDate = String(data?.currentRestoredFromCreatedAt || "");
@@ -1738,6 +1800,18 @@ async function saveContent(source = "main") {
     setStatus(t("invalidJson"), true);
     setSaveStatus(t("invalidJson"), true);
     return;
+  }
+
+  const normalizedForSave = normalizePayloadForEditor(type, parsed);
+  if (enforceOrderingIntegrity(normalizedForSave, type)) {
+    updateJson(normalizedForSave, false);
+    try {
+      parsed = jsonInput.value ? JSON.parse(jsonInput.value) : {};
+    } catch {
+      setStatus(t("invalidJson"), true);
+      setSaveStatus(t("invalidJson"), true);
+      return;
+    }
   }
 
   const changedPaths = buildCurrentTypeChangeList();
@@ -2119,6 +2193,7 @@ function createCategoryInlineEditor(topic) {
   wrapper.append(
     mkLabel(t("categoryIdPrefixLabel"), "category.id"),
     idInput,
+    hiddenLabel,
     mkLabel(categoryNamePrimaryLabel, categoryNamePrimaryKey),
     categoryNamePrimaryInput,
     mkLabel(categoryNameSecondaryLabel, categoryNameSecondaryKey),
@@ -2129,7 +2204,6 @@ function createCategoryInlineEditor(topic) {
     categoryTooltipSecondaryInput,
     mkLabel(t("categoryInternalCommentLabel"), "category.internalComment"),
     internalComment,
-    hiddenLabel,
     actionsRow,
     inlineStatus
   );
@@ -2204,6 +2278,70 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   hiddenLabel.append(hiddenInput, document.createTextNode(t("hideInFormByDefault")));
   const hiddenInfoIcon = createInfoIcon(getEditorHelpText("item.hiddenByDefault"));
   if (hiddenInfoIcon) hiddenLabel.append(" ", hiddenInfoIcon);
+  const simpleSearchInput = document.createElement("input");
+  simpleSearchInput.type = "checkbox";
+  simpleSearchInput.dataset.inlineField = "simpleSearch";
+  simpleSearchInput.checked = item?.simpleSearch === true;
+  const simpleSearchLabel = document.createElement("label");
+  simpleSearchLabel.className = "qpm-editor-checkbox-label";
+  simpleSearchLabel.style.width = "100%";
+  simpleSearchLabel.append(simpleSearchInput, document.createTextNode(t("showInSimpleModeLabel")));
+  const simpleSearchInfoIcon = createInfoIcon(getEditorHelpText("item.simpleSearch"));
+  if (simpleSearchInfoIcon) simpleSearchLabel.append(" ", simpleSearchInfoIcon);
+  const standardSimpleInput = document.createElement("input");
+  standardSimpleInput.type = "checkbox";
+  standardSimpleInput.dataset.inlineField = "standardSimple";
+  standardSimpleInput.checked = item?.standardSimple === true;
+  const standardSimpleLabel = document.createElement("label");
+  standardSimpleLabel.className = "qpm-editor-checkbox-label";
+  standardSimpleLabel.style.width = "100%";
+  standardSimpleLabel.append(
+    standardSimpleInput,
+    document.createTextNode(t("preselectInSimpleModeLabel"))
+  );
+  const standardSimpleInfoIcon = createInfoIcon(getEditorHelpText("item.standardSimple"));
+  if (standardSimpleInfoIcon) standardSimpleLabel.append(" ", standardSimpleInfoIcon);
+  const standardSimpleRow = document.createElement("div");
+  standardSimpleRow.append(standardSimpleLabel);
+  const simpleOrderingInput = document.createElement("select");
+  simpleOrderingInput.className = "qpm-editor-input";
+  simpleOrderingInput.dataset.inlineField = "simpleOrdering.fixed";
+  const maxSimpleSelectable =
+    Number.isInteger(Number(maxPosition)) && Number(maxPosition) > 0 ? Number(maxPosition) : 1;
+  for (let i = 1; i <= maxSimpleSelectable; i += 1) {
+    const opt = document.createElement("option");
+    opt.value = String(i);
+    opt.textContent = String(i);
+    simpleOrderingInput.appendChild(opt);
+  }
+  const fixedSimpleOrdering =
+    Number.isInteger(Number(item?.simpleOrdering?.dk)) && Number(item?.simpleOrdering?.dk) > 0
+      ? Number(item.simpleOrdering.dk)
+      : Number.isInteger(Number(item?.simpleOrdering?.en)) && Number(item?.simpleOrdering?.en) > 0
+      ? Number(item.simpleOrdering.en)
+      : Number.isInteger(Number(item?.ordering?.dk)) && Number(item?.ordering?.dk) > 0
+      ? Number(item.ordering.dk)
+      : Number.isInteger(Number(item?.ordering?.en)) && Number(item?.ordering?.en) > 0
+      ? Number(item.ordering.en)
+      : "";
+  let selectedSimpleOrdering = fixedSimpleOrdering === "" ? null : fixedSimpleOrdering;
+  if (!selectedSimpleOrdering || selectedSimpleOrdering > maxSimpleSelectable) {
+    selectedSimpleOrdering =
+      Number.isInteger(Number(currentPosition)) && Number(currentPosition) > 0
+        ? Math.min(Number(currentPosition), maxSimpleSelectable)
+        : 1;
+  }
+  simpleOrderingInput.value = String(selectedSimpleOrdering);
+  const simpleOrderingRow = document.createElement("div");
+  const simpleOrderingLabel = mkLabel(t("itemSimpleOrderingFixedLabel"), "item.simpleOrdering.fixed");
+  simpleOrderingRow.append(simpleOrderingLabel, simpleOrderingInput);
+  const updateSimpleModeDependentRows = () => {
+    const showSimpleModeDependent = Boolean(simpleSearchInput.checked);
+    standardSimpleRow.classList.toggle("qpm-editor-hidden", !showSimpleModeDependent);
+    simpleOrderingRow.classList.toggle("qpm-editor-hidden", !showSimpleModeDependent);
+  };
+  simpleSearchInput.addEventListener("change", updateSimpleModeDependentRows);
+  updateSimpleModeDependentRows();
   const buttonsInput = document.createElement("input");
   buttonsInput.type = "checkbox";
   buttonsInput.dataset.inlineField = "buttons";
@@ -2394,8 +2532,15 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   wrapper.append(
     mkLabel(t("itemIdLabel"), "item.id"),
     idInput,
-    lockIdLabel,
     hiddenLabel,
+    lockIdLabel,
+    ...(getSelectedType() === "limits"
+      ? [
+          simpleSearchLabel,
+          standardSimpleRow,
+          simpleOrderingRow,
+        ]
+      : []),
     buttonsLabel,
     alphabeticalLabel,
     positionHint,
@@ -2444,6 +2589,21 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
     lockIdOnSort: baselineItem?.lockIdOnSort !== false,
     hiddenByDefault: baselineItem?.hiddenByDefault === true,
     buttons: baselineItem?.buttons !== false,
+    ...(getSelectedType() === "limits"
+      ? {
+          simpleSearch: baselineItem?.simpleSearch === true,
+          standardSimple: baselineItem?.standardSimple === true,
+          "simpleOrdering.fixed": String(
+            Number.isInteger(Number(baselineItem?.simpleOrdering?.dk)) &&
+              Number(baselineItem?.simpleOrdering?.dk) > 0
+              ? Number(baselineItem.simpleOrdering.dk)
+              : Number.isInteger(Number(baselineItem?.simpleOrdering?.en)) &&
+                Number(baselineItem?.simpleOrdering?.en) > 0
+              ? Number(baselineItem.simpleOrdering.en)
+              : baselineOrderingFixed
+          ),
+        }
+      : {}),
     "ordering.alphabetical":
       baselineItem?.ordering?.dk === null || baselineItem?.ordering?.en === null,
     "ordering.fixed": String(baselineOrderingFixed),
@@ -2483,13 +2643,14 @@ function renderTreeItems(items, categoryId, container, searchText, parentItemId 
 
   items.forEach((item, index) => {
     if (!hasMatchInTree(item, searchText)) return;
+    const isDirectMatch = itemMatchesSearch(item, searchText);
 
     const li = document.createElement("li");
     const row = document.createElement("div");
     row.className = "qpm-editor-tree-item-row";
 
     const hasChildren = Array.isArray(item?.children) && item.children.length > 0;
-    const isCollapsed = collapsedTopicIds.has(item?.id);
+    const isCollapsed = !searchText && collapsedTopicIds.has(item?.id);
     const toggle = document.createElement("button");
     toggle.type = "button";
     toggle.className = "qpm-editor-tree-toggle";
@@ -2506,6 +2667,9 @@ function renderTreeItems(items, categoryId, container, searchText, parentItemId 
     btn.draggable = sortModeEnabled;
     if (selectedTopicItemId && selectedTopicItemId === item?.id) {
       btn.classList.add("is-selected");
+    }
+    if (searchText && isDirectMatch) {
+      btn.classList.add("qpm-editor-search-hit");
     }
     const label = getLocalizedText(item?.translations, item?.id || t("unknownItemLabel"));
     btn.textContent = `${item?.id || ""} - ${label}`;
@@ -2580,7 +2744,7 @@ function refreshTopicTree() {
   if (!data || !Array.isArray(data.topics)) return;
   const searchText = (treeSearchText || "").trim().toLowerCase();
 
-  if (getSelectedType() === "topics") {
+  if (getSelectedType() === "topics" && !searchText) {
     const standardStringsRow = document.createElement("div");
     standardStringsRow.className = "qpm-editor-tree-item-row";
     const standardStringsToggle = document.createElement("button");
@@ -2618,7 +2782,7 @@ function refreshTopicTree() {
     const categoryRow = document.createElement("div");
     categoryRow.className = "qpm-editor-tree-item-row";
     const hasChildren = categoryGroups.length > 0;
-    const isCollapsed = collapsedCategoryIds.has(categoryId);
+    const isCollapsed = !searchText && collapsedCategoryIds.has(categoryId);
     const categoryToggle = document.createElement("button");
     categoryToggle.type = "button";
     categoryToggle.className = "qpm-editor-tree-toggle";
@@ -2791,6 +2955,7 @@ function commitOpenInlineEditorDraft(options = {}) {
   const { silent = false, refreshTree = false } = options;
   const container = getOpenInlineEditorContainer();
   if (!(container instanceof HTMLElement)) return true;
+  if (!hasOpenInlineDirtyState()) return true;
   if (selectedTopicCategoryId === STANDARD_STRINGS_CATEGORY_ID && !selectedTopicItemId) {
     return applyStandardStringsInlineEdits(container, { silent, refreshTree });
   }
@@ -2954,6 +3119,18 @@ function humanizeChangePath(path) {
       parts.push(t("showScopeButtonsLabel"));
       continue;
     }
+    if (token.value === "simpleSearch") {
+      parts.push(t("showInSimpleModeLabel"));
+      continue;
+    }
+    if (token.value === "standardSimple") {
+      parts.push(t("preselectInSimpleModeLabel"));
+      continue;
+    }
+    if (token.value === "simpleOrdering") {
+      parts.push(t("itemSimpleOrderingFixedLabel"));
+      continue;
+    }
     if (token.value === "lockIdOnSort") {
       parts.push(t("lockIdOnSortLabel"));
       continue;
@@ -3072,6 +3249,56 @@ function setItemOrdering(item, nextValue) {
   };
 }
 
+function getSimpleOrderingValue(item) {
+  const dk = Number(item?.simpleOrdering?.dk);
+  if (Number.isFinite(dk) && dk > 0) return dk;
+  const en = Number(item?.simpleOrdering?.en);
+  if (Number.isFinite(en) && en > 0) return en;
+  const defaultDk = Number(item?.ordering?.dk);
+  if (Number.isFinite(defaultDk) && defaultDk > 0) return defaultDk;
+  const defaultEn = Number(item?.ordering?.en);
+  if (Number.isFinite(defaultEn) && defaultEn > 0) return defaultEn;
+  return Number.POSITIVE_INFINITY;
+}
+
+function renumberSimpleOrdering(items = [], movedItemId = "", requestedPosition = null) {
+  if (!Array.isArray(items) || items.length === 0) return;
+  const indexedItems = items.map((item, index) => ({ item, index }));
+  let simpleItems = indexedItems
+    .filter((entry) => entry?.item?.simpleSearch === true)
+    .sort((a, b) => {
+      const aOrder = getSimpleOrderingValue(a.item);
+      const bOrder = getSimpleOrderingValue(b.item);
+      if (aOrder !== bOrder) return aOrder - bOrder;
+      return a.index - b.index;
+    })
+    .map((entry) => entry.item);
+
+  if (movedItemId && simpleItems.length > 0) {
+    const fromIndex = simpleItems.findIndex((entry) => entry?.id === movedItemId);
+    if (fromIndex >= 0) {
+      let toIndex = Number.parseInt(String(requestedPosition || ""), 10) - 1;
+      if (!Number.isInteger(toIndex)) {
+        toIndex = fromIndex;
+      }
+      toIndex = Math.min(Math.max(toIndex, 0), simpleItems.length - 1);
+      if (toIndex !== fromIndex) {
+        const [movedItem] = simpleItems.splice(fromIndex, 1);
+        simpleItems.splice(toIndex, 0, movedItem);
+      }
+    }
+  }
+
+  simpleItems.forEach((entry, index) => {
+    const next = index + 1;
+    entry.simpleOrdering = {
+      ...(entry.simpleOrdering || {}),
+      dk: next,
+      en: next,
+    };
+  });
+}
+
 function extractItemById(items, idToExtract) {
   if (!Array.isArray(items)) return null;
   const idx = items.findIndex((item) => item?.id === idToExtract);
@@ -3129,6 +3356,25 @@ function renumberTopicCategoryOrdering(topics = []) {
       en: index + 1,
     };
   });
+}
+
+function enforceOrderingIntegrity(editorData, type) {
+  if (!editorData || !Array.isArray(editorData.topics)) return false;
+  const before = stableStringify(editorData);
+
+  renumberTopicCategoryOrdering(editorData.topics);
+
+  const visit = (items) => {
+    if (!Array.isArray(items) || items.length === 0) return;
+    renumberOrdering(items);
+    if (type === "limits") {
+      renumberSimpleOrdering(items);
+    }
+    items.forEach((item) => visit(item?.children));
+  };
+
+  editorData.topics.forEach((topic) => visit(topic?.groups));
+  return before !== stableStringify(editorData);
 }
 
 function treeContainsItemId(item, idToFind) {
@@ -3415,6 +3661,37 @@ function applyInlineEditorEdits(categoryId, itemId, container, options = {}) {
   item.hiddenByDefault = hiddenCheckbox ? Boolean(hiddenCheckbox.checked) : false;
   const buttonsCheckbox = get("buttons");
   item.buttons = buttonsCheckbox ? Boolean(buttonsCheckbox.checked) : item?.buttons !== false;
+  const itemLocation = findArrayAndIndexByItemId(category.groups, item.id || itemId);
+  const currentPosition = itemLocation ? itemLocation.index + 1 : 1;
+  if (getSelectedType() === "limits") {
+    item.simpleSearch = get("simpleSearch")
+      ? Boolean(get("simpleSearch").checked)
+      : item?.simpleSearch === true;
+    item.standardSimple = get("standardSimple")
+      ? Boolean(get("standardSimple").checked)
+      : item?.standardSimple === true;
+    let fixedSimpleOrdering = Number.parseInt((get("simpleOrdering.fixed")?.value || "").trim(), 10);
+    if (!Number.isInteger(fixedSimpleOrdering) || fixedSimpleOrdering < 1) {
+      fixedSimpleOrdering =
+        Number.isInteger(Number(item?.simpleOrdering?.dk)) && Number(item?.simpleOrdering?.dk) > 0
+          ? Number(item.simpleOrdering.dk)
+          : Number.isInteger(Number(item?.simpleOrdering?.en)) && Number(item?.simpleOrdering?.en) > 0
+          ? Number(item.simpleOrdering.en)
+          : currentPosition;
+    }
+    item.simpleOrdering = {
+      ...(item.simpleOrdering || {}),
+      dk: fixedSimpleOrdering,
+      en: fixedSimpleOrdering,
+    };
+    if (Array.isArray(itemLocation?.array) && itemLocation.array.length > 0) {
+      if (item.simpleSearch === true) {
+        renumberSimpleOrdering(itemLocation.array, item.id || itemId, fixedSimpleOrdering);
+      } else {
+        renumberSimpleOrdering(itemLocation.array);
+      }
+    }
+  }
   if (getSelectedType() === "limits") {
     delete item.combineWithStandardStringScopes;
   } else {
@@ -3434,8 +3711,6 @@ function applyInlineEditorEdits(categoryId, itemId, container, options = {}) {
   delete item.combineWithStandardString;
   const alphabeticalCheckbox = get("ordering.alphabetical");
   const orderingInput = get("ordering.fixed");
-  const itemLocation = findArrayAndIndexByItemId(category.groups, item.id || itemId);
-  const currentPosition = itemLocation ? itemLocation.index + 1 : 1;
   const alphabetical = alphabeticalCheckbox ? Boolean(alphabeticalCheckbox.checked) : false;
   if (alphabetical) {
     item.ordering = {
@@ -3624,12 +3899,19 @@ passwordInput?.addEventListener("keydown", (event) => {
   void login();
 });
 function confirmDiscardUnsavedCurrentType() {
-  if (!hasUnsavedChangesInCurrentType()) return true;
+  const typeToCheck = normalizeTypeValue(activeEditorType);
+  if (!hasUnsavedChangesForType(typeToCheck) && !hasOpenInlineDirtyState()) return true;
   return window.confirm(t("confirmDiscardUnsavedChanges"));
 }
 typeInput?.addEventListener("change", async () => {
-  if (!commitOpenInlineEditorDraft({ silent: false, refreshTree: false })) return;
-  if (!confirmDiscardUnsavedCurrentType()) return;
+  const previousType = normalizeTypeValue(activeEditorType);
+  const nextType = getSelectedType();
+  if (nextType === previousType) return;
+  if (!confirmDiscardUnsavedCurrentType()) {
+    typeInput.value = previousType;
+    syncFormByType();
+    return;
+  }
   syncFormByType();
   selectedTopicCategoryId = "";
   selectedTopicItemId = "";
@@ -3701,6 +3983,17 @@ toggleJsonBtn?.addEventListener("click", () => {
 treeSearchInput?.addEventListener("input", () => {
   if (!commitOpenInlineEditorDraft({ silent: false, refreshTree: false })) return;
   treeSearchText = (treeSearchInput.value || "").trim().toLowerCase();
+  updateTreeSearchClearButtonVisibility();
+  refreshTopicTree();
+});
+treeSearchClearBtn?.addEventListener("click", () => {
+  if (!commitOpenInlineEditorDraft({ silent: false, refreshTree: false })) return;
+  if (treeSearchInput instanceof HTMLInputElement) {
+    treeSearchInput.value = "";
+    treeSearchInput.focus();
+  }
+  treeSearchText = "";
+  updateTreeSearchClearButtonVisibility();
   refreshTopicTree();
 });
 sortModeInput?.addEventListener("change", () => {
@@ -3933,4 +4226,5 @@ topicTreeInput?.addEventListener("dragend", () => {
 updateSaveButtonsState();
 if (!isRemoteApiBlockedInLocal) {
   checkSession();
+updateTreeSearchClearButtonVisibility();
 }
