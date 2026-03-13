@@ -1169,8 +1169,8 @@ export const messages = {
     en: "Show in simple mode",
   },
   editor_preselectInSimpleModeLabel: {
-    dk: "Marker som standard i simple mode",
-    en: "Preselect by default in simple mode",
+    dk: "Marker som standard",
+    en: "Preselect by default",
   },
   editor_itemSimpleOrderingFixedLabel: {
     dk: "Fast placering i simple mode",

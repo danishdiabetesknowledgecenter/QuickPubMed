@@ -2337,7 +2337,6 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   simpleOrderingRow.append(simpleOrderingLabel, simpleOrderingInput);
   const updateSimpleModeDependentRows = () => {
     const showSimpleModeDependent = Boolean(simpleSearchInput.checked);
-    standardSimpleRow.classList.toggle("qpm-editor-hidden", !showSimpleModeDependent);
     simpleOrderingRow.classList.toggle("qpm-editor-hidden", !showSimpleModeDependent);
   };
   simpleSearchInput.addEventListener("change", updateSimpleModeDependentRows);
