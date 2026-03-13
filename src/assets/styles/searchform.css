@@ -251,8 +251,8 @@
 
 .qpm_simpleFiltersContainer {
   display: grid;
-  grid-template-columns: minmax(auto, 100px) 1fr 1fr;
-  column-gap: 15px;
+  grid-template-columns: minmax(auto, 100px) auto auto;
+  column-gap: 30px;
   width: 100%;
 }
 
@@ -394,7 +394,7 @@ input:checked + .qpm_slider:before {
 
 @media only screen and (max-width: 750px) {
   .qpm_simpleFiltersContainer {
-    grid-template-columns: minmax(auto, 125px) 1fr;
+    grid-template-columns: minmax(auto, 125px) auto;
   }
 }
 

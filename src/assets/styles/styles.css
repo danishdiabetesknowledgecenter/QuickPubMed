@@ -621,6 +621,7 @@ button.qpm_slim.multiselect__input:focus-visible {
   display: block !important;
   top: auto !important;
   bottom: 10px !important;
+  right: 3px !important;
 }
 
 .qpm_dropdown.qpm_mobileUiDropdown .multiselect__content-wrapper {
@@ -711,6 +712,7 @@ button.qpm_slim.multiselect__input:focus-visible {
     display: block !important;
     top: auto !important;
     bottom: 10px !important;
+    right: 3px !important;
   }
   .qpm_dropdown .multiselect__tags {
     padding-right: 8px !important;
@@ -763,6 +765,12 @@ button.qpm_slim.multiselect__input:focus-visible {
   min-height: 56px;
   padding: 10px 12px;
   border-bottom: 1px solid var(--color-border-subtle, #d1d1d6);
+}
+
+.qpm_actionSheetStepTitle, 
+.qpm_actionSheetBreadcrumb,
+.qpm_actionSheetScrollHint {
+  font-family: var(--font-secondary);
 }
 
 .qpm_actionSheetStepTitle {
