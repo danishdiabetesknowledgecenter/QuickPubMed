@@ -604,7 +604,7 @@
                         "en": 1
                     },
                     "simpleSearch": true,
-                    "standardSimple": false,
+                    "standardSimple": true,
                     "tooltip_simple": {
                         "dk": "Artikler, hvor forskning systematisk er blevet indsamlet og gennemgået for at kunne vurdere, hvad man samlet set ved om et bestemt område.",
                         "en": "Articles where research has been systematically collected and reviewed to be able to evaluate what has been gathered as a whole about a specific area."
@@ -649,7 +649,7 @@
                         "en": 2
                     },
                     "simpleSearch": true,
-                    "standardSimple": false,
+                    "standardSimple": true,
                     "tooltip_simple": {
                         "dk": "En særlig type forsk&shy;nings&shy;over&shy;sigter, som er ud&shy;arbej&shy;det efter strin&shy;gente metoder. Udgives af Cochrane Collaboration.",
                         "en": "A special type of systematic reviews, which are made according to strict methods. Published by the Cochrane Collaboration."
@@ -672,15 +672,15 @@
                     "lockIdOnSort": false,
                     "hiddenByDefault": false,
                     "simpleOrdering": {
-                        "dk": 3,
-                        "en": 3
+                        "dk": 2,
+                        "en": 2
                     },
                     "internalComment": "",
                     "choices": []
                 },
                 {
                     "id": "L010030",
-                    "buttons": false,
+                    "buttons": true,
                     "translations": {
                         "dk": "Health Evidence",
                         "en": "Health Evidence"
@@ -689,7 +689,7 @@
                         "dk": 3,
                         "en": 3
                     },
-                    "simpleSearch": true,
+                    "simpleSearch": false,
                     "standardSimple": false,
                     "tooltip_simple": {
                         "dk": "<a href='https://www.healthevidence.org' target='_blank'>Health Evidence</a> er en service fra canadiske McMaster University, der samler og kvalitets&shy;vurderer forsknings&shy;oversigter inden for folke&shy;sundheds&shy;området. Når denne afgræsning vælges, søges kun blandt de forsknings&shy;oversigter fra Health Evidence, som er <strong>relateret til diabetes</strong> og har en høj score for kvalitets&shy;vurdering (8-10). Kun artikler, som er mindre end 10 år gamle, og som ikke er trukket tilbage, vises. Opdateret med tilgængelige artikler i Health Evidence den 31. januar 2026.",
@@ -711,8 +711,8 @@
                         "en": "<a href='https://www.healthevidence.org' target='_blank'>Health Evidence</a> is a service from McMaster University, Canada, which collects and quality assesses systematic reviews within the field of public health. When this limit is selected, only systematic reviews from Health Evidence are searched that are related to diabetes and have a high score for quality assessment (8-10). Only articles that are less than 10 years old and that have not been withdrawn are shown. Updated with available articles in Health Evidence on 31 January 2026."
                     },
                     "simpleOrdering": {
-                        "dk": 2,
-                        "en": 2
+                        "dk": 3,
+                        "en": 3
                     },
                     "lockIdOnSort": true,
                     "hiddenByDefault": false,
@@ -789,7 +789,7 @@
                         "en": 1
                     },
                     "simpleSearch": true,
-                    "standardSimple": false,
+                    "standardSimple": true,
                     "tooltip_simple": {
                         "dk": "Artikler, hvor forskning systematisk er blevet indsamlet og gennemgået for at kunne vurdere, hvad man samlet set ved om et bestemt område.",
                         "en": "Articles where research has been systematically collected and reviewed to be able to evaluate what has been gathered as a whole about a specific area."
@@ -834,7 +834,7 @@
                         "en": 2
                     },
                     "simpleSearch": true,
-                    "standardSimple": false,
+                    "standardSimple": true,
                     "tooltip_simple": {
                         "dk": "En særlig type forsk&shy;nings&shy;over&shy;sigter, som er ud&shy;arbej&shy;det efter strin&shy;gente metoder. Udgives af Cochrane Collaboration.",
                         "en": "A special type of systematic reviews, which are made according to strict methods. Published by the Cochrane Collaboration."
@@ -857,15 +857,15 @@
                     "lockIdOnSort": false,
                     "hiddenByDefault": false,
                     "simpleOrdering": {
-                        "dk": 3,
-                        "en": 3
+                        "dk": 2,
+                        "en": 2
                     },
                     "internalComment": "",
                     "children": []
                 },
                 {
                     "id": "L010030",
-                    "buttons": false,
+                    "buttons": true,
                     "translations": {
                         "dk": "Health Evidence",
                         "en": "Health Evidence"
@@ -874,7 +874,7 @@
                         "dk": 3,
                         "en": 3
                     },
-                    "simpleSearch": true,
+                    "simpleSearch": false,
                     "standardSimple": false,
                     "tooltip_simple": {
                         "dk": "<a href='https://www.healthevidence.org' target='_blank'>Health Evidence</a> er en service fra canadiske McMaster University, der samler og kvalitets&shy;vurderer forsknings&shy;oversigter inden for folke&shy;sundheds&shy;området. Når denne afgræsning vælges, søges kun blandt de forsknings&shy;oversigter fra Health Evidence, som er <strong>relateret til diabetes</strong> og har en høj score for kvalitets&shy;vurdering (8-10). Kun artikler, som er mindre end 10 år gamle, og som ikke er trukket tilbage, vises. Opdateret med tilgængelige artikler i Health Evidence den 31. januar 2026.",
@@ -896,8 +896,8 @@
                         "en": "<a href='https://www.healthevidence.org' target='_blank'>Health Evidence</a> is a service from McMaster University, Canada, which collects and quality assesses systematic reviews within the field of public health. When this limit is selected, only systematic reviews from Health Evidence are searched that are related to diabetes and have a high score for quality assessment (8-10). Only articles that are less than 10 years old and that have not been withdrawn are shown. Updated with available articles in Health Evidence on 31 January 2026."
                     },
                     "simpleOrdering": {
-                        "dk": 2,
-                        "en": 2
+                        "dk": 3,
+                        "en": 3
                     },
                     "lockIdOnSort": true,
                     "hiddenByDefault": false,
@@ -1015,8 +1015,8 @@
                         "en": "Studies where participants are randomly (randomized) assigned to an intervention group and a control group, so that the effect of an intervention can be compared and the cause-effect relationships can be evaluated."
                     },
                     "simpleOrdering": {
-                        "dk": 2,
-                        "en": 2
+                        "dk": 1,
+                        "en": 1
                     },
                     "lockIdOnSort": true,
                     "hiddenByDefault": false,
@@ -1060,9 +1060,12 @@
                         "en": ""
                     },
                     "simpleOrdering": {
-                        "dk": 1,
-                        "en": 1
+                        "dk": 2,
+                        "en": 2
                     },
+                    "lockIdOnSort": true,
+                    "hiddenByDefault": false,
+                    "internalComment": "",
                     "choices": []
                 },
                 {
@@ -1256,8 +1259,8 @@
                         "en": "Studies where participants are randomly (randomized) assigned to an intervention group and a control group, so that the effect of an intervention can be compared and the cause-effect relationships can be evaluated."
                     },
                     "simpleOrdering": {
-                        "dk": 2,
-                        "en": 2
+                        "dk": 1,
+                        "en": 1
                     },
                     "lockIdOnSort": true,
                     "hiddenByDefault": false,
@@ -1301,9 +1304,12 @@
                         "en": ""
                     },
                     "simpleOrdering": {
-                        "dk": 1,
-                        "en": 1
+                        "dk": 2,
+                        "en": 2
                     },
+                    "lockIdOnSort": true,
+                    "hiddenByDefault": false,
+                    "internalComment": "",
                     "children": []
                 },
                 {
@@ -1595,8 +1601,8 @@
                     },
                     "lockIdOnSort": true,
                     "hiddenByDefault": false,
-                    "simpleSearch": true,
-                    "standardSimple": true,
+                    "simpleSearch": false,
+                    "standardSimple": false,
                     "internalComment": "",
                     "simpleOrdering": {
                         "dk": 1,
@@ -1724,8 +1730,8 @@
                     },
                     "lockIdOnSort": true,
                     "hiddenByDefault": false,
-                    "simpleSearch": true,
-                    "standardSimple": true,
+                    "simpleSearch": false,
+                    "standardSimple": false,
                     "internalComment": "",
                     "simpleOrdering": {
                         "dk": 1,
@@ -3417,7 +3423,7 @@
                             "lockIdOnSort": true,
                             "hiddenByDefault": false,
                             "simpleSearch": false,
-                            "standardSimple": true,
+                            "standardSimple": false,
                             "simpleOrdering": {
                                 "dk": 1,
                                 "en": 1
@@ -3698,7 +3704,7 @@
                             "lockIdOnSort": true,
                             "hiddenByDefault": false,
                             "simpleSearch": false,
-                            "standardSimple": true,
+                            "standardSimple": false,
                             "simpleOrdering": {
                                 "dk": 1,
                                 "en": 1
