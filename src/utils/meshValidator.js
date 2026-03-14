@@ -782,7 +782,7 @@ async function buildMeshContext(searchString, userInput, proxyUrl) {
 async function callAiStreaming(prompt, title, openAiServiceUrl, client) {
   const requestBody = {
     prompt: {
-      model: "gpt-5.2",
+      model: "gpt-5.4",
       max_output_tokens: 500,
       stream: true,
       reasoning: { effort: "none" },

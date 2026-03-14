@@ -236,7 +236,7 @@ export const summarizeArticlePrompt = [
       en: "Plain language",
     },
     model_token_limit: 128000,
-    model: "gpt-5.2",
+    model: "gpt-5.4",
     reasoning: { effort: "none" },      // none, low, medium, high, xhigh
     text: { verbosity: "medium" },     // low, medium, high
     max_output_tokens: 4000,
@@ -254,7 +254,7 @@ export const summarizeArticlePrompt = [
       en: "Professional language",
     },
     model_token_limit: 128000,
-    model: "gpt-5.2",
+    model: "gpt-5.4",
     reasoning: { effort: "none" },      // none, low, medium, high, xhigh
     text: { verbosity: "medium" },     // low, medium, high
     max_output_tokens: 4000,
