@@ -1334,6 +1334,34 @@
         });
         return categoryIds.size > 1;
       },
+      limitSelectionIdentity(item) {
+        const baseKey = this.optionIdentity(item);
+        if (!baseKey) return "";
+        const scopeKey = item?.scope || "normal";
+        return `${baseKey}::scope:${scopeKey}`;
+      },
+      hasDuplicateLimitAcrossDropdowns(items, currentDropdownIndex) {
+        if (!Array.isArray(items) || items.length === 0) return false;
+        const currentBeforeChange = new Set(
+          (this.limitDropdowns[currentDropdownIndex] || [])
+            .map((item) => this.limitSelectionIdentity(item))
+            .filter(Boolean)
+        );
+        const selectedInOtherDropdowns = new Set();
+        this.limitDropdowns.forEach((dropdownItems, index) => {
+          if (index === currentDropdownIndex || !Array.isArray(dropdownItems)) return;
+          dropdownItems.forEach((item) => {
+            const key = this.limitSelectionIdentity(item);
+            if (key) selectedInOtherDropdowns.add(key);
+          });
+        });
+        return items.some((item) => {
+          const key = this.limitSelectionIdentity(item);
+          if (!key) return false;
+          if (currentBeforeChange.has(key)) return false;
+          return selectedInOtherDropdowns.has(key);
+        });
+      },
       /**
        * Syncs limitData (category-grouped object) from limitDropdowns (array of arrays).
        * Merges all items from all dropdowns by their filter category.
@@ -1371,8 +1399,21 @@
           if (!item.scope) item.scope = "normal";
         });
 
-        if (this.hasMixedLimitCategories(uniqueValue)) {
+        const previousValue = Array.isArray(this.limitDropdowns[index]) ? this.limitDropdowns[index] : [];
+        const previousKeys = new Set(
+          previousValue.map((item) => this.limitSelectionIdentity(item)).filter(Boolean)
+        );
+        const hasNewSelection = uniqueValue.some((item) => {
+          const key = this.limitSelectionIdentity(item);
+          return key && !previousKeys.has(key);
+        });
+
+        if (hasNewSelection && this.hasMixedLimitCategories(uniqueValue)) {
           const shouldContinue = confirm(this.getString("mixedLimitCategoriesWarning"));
+          if (!shouldContinue) return;
+        }
+        if (hasNewSelection && this.hasDuplicateLimitAcrossDropdowns(uniqueValue, index)) {
+          const shouldContinue = confirm(this.getString("duplicateLimitAcrossDropdownsWarning"));
           if (!shouldContinue) return;
         }
 

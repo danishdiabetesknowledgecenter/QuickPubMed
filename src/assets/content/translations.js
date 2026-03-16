@@ -355,6 +355,10 @@ export const messages = {
     dk: "Det kan give utilsigtede resultater at kombinere afgrænsninger fra forskellige kategorier i samme rullemenu (ELLER). Vil du fortsætte?",
     en: "Combining limits from different categories in the same dropdown (OR) can lead to unintended results. Do you want to continue?",
   },
+  duplicateLimitAcrossDropdownsWarning: {
+    dk: "Denne afgrænsning er allerede valgt i en anden rullemenu. Det ændrer ikke søgeresultatet at vælge samme afgrænsning i flere rullemenuer. Vil du fortsætte?",
+    en: "This limit is already selected in another dropdown. Selecting the same limit in multiple dropdowns does not change the search result. Do you want to continue?",
+  },
   noAuthorsListed: {
     dk: "Ingen forfattere angivet",
     en: "No authors listed",
