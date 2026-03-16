@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div :id="getComponentId">
+    <div :id="getComponentId" :class="{ qpm_formCollapsed: isCollapsed }">
       <div class="qpm_searchform">
         <!-- The tabs for toggling between advanced or simple search -->
         <advanced-search-toggle
@@ -15,6 +15,7 @@
           <search-form-toggle
             :is-collapsed="isCollapsed"
             :topics="topics"
+            :show-toggle-icon="hasVisibleSearchResults"
             :get-string="getString"
             @toggle-collapsed="toggleCollapsedController"
           />
@@ -53,7 +54,7 @@
 
             <!-- The dropdown(s) for selecting limits to be included in the advanced search -->
             <advanced-search-limits
-              v-if="advanced && hasTopics"
+              v-if="advanced && (hasTopics || openLimits || openLimitsFromUrl)"
               ref="advancedSearchLimits"
               :advanced="advanced"
               :limit-options="limitOptions"
@@ -384,6 +385,9 @@
       },
       hasTopics() {
         return this.topics.some((subjectArray) => subjectArray.length > 0);
+      },
+      hasVisibleSearchResults() {
+        return Array.isArray(this.searchresult) && this.searchresult.length > 0;
       },
       isSearchActionDisabled() {
         const topicSearchStringGenerating = this.placeholderDotIntervalId !== null;
@@ -772,6 +776,25 @@
         if (option.name) return `name:${option.name}`;
         return "";
       },
+      dedupeLimitDropdownItems(items) {
+        if (!Array.isArray(items) || items.length === 0) return [];
+        const seen = new Set();
+        const unique = [];
+        items.forEach((item) => {
+          const key = this.optionIdentity(item);
+          if (!key || seen.has(key)) return;
+          seen.add(key);
+          unique.push(item);
+        });
+        return unique;
+      },
+      normalizeLimitDropdowns(dropdowns) {
+        if (!Array.isArray(dropdowns) || dropdowns.length === 0) return [[]];
+        const normalized = dropdowns
+          .map((items) => this.dedupeLimitDropdownItems(items))
+          .filter((items) => items.length > 0);
+        return normalized.length > 0 ? normalized : [[]];
+      },
       /**
        * Initialize focus-visible behavior to only show focus outline for keyboard navigation
        */
@@ -852,20 +875,22 @@
         // (must happen AFTER prepareLimitOptions so getLimitCategoryId works)
         if (this.advanced && this.limitDropdowns.some((d) => d.length > 0)) {
           // Entering advanced: limitDropdowns has data → sync to limitData
+          this.limitDropdowns = this.normalizeLimitDropdowns(this.limitDropdowns);
           this.syncLimitDataFromDropdowns();
         } else if (this.advanced && preResetFilterData) {
           // Entering advanced: limitData had data from simple mode → migrate to limitDropdowns
           // Each category becomes its own dropdown (AND between categories, OR within)
           const dropdowns = Object.values(preResetFilterData).filter((arr) => arr.length > 0);
-          this.limitDropdowns = dropdowns.length > 0 ? dropdowns : [[]];
+          this.limitDropdowns = this.normalizeLimitDropdowns(dropdowns);
           this.syncLimitDataFromDropdowns();
         } else if (this.advanced && Object.keys(this.limitData).length > 0) {
           // Entering advanced: limitData has data (alwaysShowFilter) → migrate to limitDropdowns
           const dropdowns = Object.values(this.limitData).filter((arr) => arr.length > 0);
-          this.limitDropdowns = dropdowns.length > 0 ? dropdowns : [[]];
+          this.limitDropdowns = this.normalizeLimitDropdowns(dropdowns);
           this.syncLimitDataFromDropdowns();
         } else if (!this.advanced && this.limitDropdowns.some((d) => d.length > 0)) {
           // Entering simple: sync limitData from limitDropdowns, then reset dropdowns
+          this.limitDropdowns = this.normalizeLimitDropdowns(this.limitDropdowns);
           this.syncLimitDataFromDropdowns();
           this.limitDropdowns = [[]];
         }
@@ -889,8 +914,13 @@
         // Update URL
         if (!skip) this.setUrl();
 
-        // Set 'showFilter' flag
-        this.showFilter = this.advanced && (this.limits.length > 0 || this.hasLimitSelections);
+        // Set 'showFilter' flag (vises som default i avanceret mode når data-open-limits="true")
+        this.showFilter =
+          this.advanced &&
+          (this.limits.length > 0 ||
+            this.hasLimitSelections ||
+            this.openLimits ||
+            this.openLimitsFromUrl);
 
         this.$nextTick(() => {
           this.updateTopicDropdownWidth();
@@ -1268,12 +1298,13 @@
           }
         });
 
-        if (selected.length > 0) {
+        const uniqueSelected = this.dedupeLimitDropdownItems(selected);
+        if (uniqueSelected.length > 0) {
           // Ensure limitDropdowns has at least one empty array
           if (this.limitDropdowns.length === 1 && this.limitDropdowns[0].length === 0) {
-            this.limitDropdowns[0] = selected;
+            this.limitDropdowns[0] = uniqueSelected;
           } else {
-            this.limitDropdowns.push(selected);
+            this.limitDropdowns.push(uniqueSelected);
           }
         }
       },
@@ -1292,6 +1323,16 @@
         }
         // Fallback: first 4 characters of the ID
         return item.id.substring(0, 4);
+      },
+      hasMixedLimitCategories(items) {
+        if (!Array.isArray(items) || items.length < 2) return false;
+        const categoryIds = new Set();
+        items.forEach((item) => {
+          const categoryId = this.getLimitCategoryId(item);
+          if (!categoryId || categoryId === "__custom__") return;
+          categoryIds.add(categoryId);
+        });
+        return categoryIds.size > 1;
       },
       /**
        * Syncs limitData (category-grouped object) from limitDropdowns (array of arrays).
@@ -1325,12 +1366,18 @@
        * @param {number} index - The index of the filter dropdown.
        */
       updateLimitDropdown(value, index) {
-        value.forEach((item) => {
+        const uniqueValue = this.dedupeLimitDropdownItems(value);
+        uniqueValue.forEach((item) => {
           if (!item.scope) item.scope = "normal";
         });
 
+        if (this.hasMixedLimitCategories(uniqueValue)) {
+          const shouldContinue = confirm(this.getString("mixedLimitCategoriesWarning"));
+          if (!shouldContinue) return;
+        }
+
         const updated = cloneDeep(this.limitDropdowns);
-        updated[index] = value;
+        updated[index] = uniqueValue;
         this.limitDropdowns = updated;
 
         // Remove extra empty dropdowns — keep at most one empty
@@ -1700,15 +1747,24 @@
         // Remove extra empty dropdowns — keep at most one empty
         this.removeExtraEmptyDropdowns("topics");
 
-        if (!this.advanced && this.isFirstFill) {
+        if (
+          !this.advanced &&
+          this.isFirstFill &&
+          Object.keys(this.limitData).length === 0
+        ) {
           this.selectStandardSimple();
           this.isFirstFill = false;
         }
 
         if (!this.hasTopics) {
-          this.limits = [];
-          this.limitData = {};
-          this.limitDropdowns = [[]];
+          const keepOpenLimits =
+            this.openLimitsFromUrl || this.openLimits || this.effectiveCheckLimits.length > 0;
+          if (!keepOpenLimits) {
+            this.limits = [];
+            this.limitData = {};
+            this.limitDropdowns = [[]];
+          }
+          // Når keepOpenLimits: behold nuværende limitData/limits uændret (brugerens fravalg bevares)
           this.showFilter = false;
           this.topics = [[]];
           this.isFirstFill = true;
@@ -2038,8 +2094,10 @@
           !this.advanced &&
           (this.openLimitsFromUrl || this.openLimits || this.effectiveCheckLimits.length > 0)
         ) {
-          this.selectStandardSimple();
-          this.isFirstFill = false;
+          this.$nextTick(() => {
+            this.selectStandardSimple();
+            this.isFirstFill = false;
+          });
         }
 
         // Reset expanded groups in dropdown. Only need to do first as the other dropdowns are deleted

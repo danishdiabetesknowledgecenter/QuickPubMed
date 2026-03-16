@@ -8,7 +8,7 @@
     </div>
 
     <div
-      v-if="topics !== false"
+      v-if="showToggleIcon && topics !== false"
       class="qpm_toggleSearchForm"
       role="button"
       tabindex="0"
@@ -51,6 +51,10 @@
       topics: {
         type: Array,
         default: () => [],
+      },
+      showToggleIcon: {
+        type: Boolean,
+        default: true,
       },
       getString: {
         type: Function,

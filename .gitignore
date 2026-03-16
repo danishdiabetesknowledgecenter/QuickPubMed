@@ -21,6 +21,7 @@ data/cache/
 # Domain-specific runtime secrets/config
 data/content/*/domain-config.json
 !data/content/domain-config.example.json
+data/content/*/history/
 
 # Log files
 npm-debug.log*

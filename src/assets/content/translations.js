@@ -351,6 +351,10 @@ export const messages = {
     dk: "Tilføj et eller flere emner eller indtast søgeord i den tomme rullemenu først.",
     en: "Add one or more topics or enter search terms in the empty dropdown first.",
   },
+  mixedLimitCategoriesWarning: {
+    dk: "Det kan give utilsigtede resultater at kombinere afgrænsninger fra forskellige kategorier i samme rullemenu (ELLER). Vil du fortsætte?",
+    en: "Combining limits from different categories in the same dropdown (OR) can lead to unintended results. Do you want to continue?",
+  },
   noAuthorsListed: {
     dk: "Ingen forfattere angivet",
     en: "No authors listed",
