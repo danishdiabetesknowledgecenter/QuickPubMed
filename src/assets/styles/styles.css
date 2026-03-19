@@ -667,7 +667,95 @@ button.qpm_slim.multiselect__input:focus-visible {
   max-width: calc(100% - 34px) !important;
 }
 
-@media (pointer: coarse) and (hover: none) and (max-width: 1024px) {
+/*
+ * DevTools tablet/mobile emulation can render input borders unevenly in the
+ * nested multiselect input for freetext mode (hidden arrow). Keep border on
+ * the outer tags box there, and keep normal input border for regular dropdowns.
+ */
+.qpm_dropdown.qpm_mobileUiDropdown .multiselect.qpm_hideDropdownArrow .multiselect__tags {
+  border: 1px solid var(--color-border-subtle, #c7c7c7) !important;
+  background-color: var(--color-white) !important;
+  border-radius: 5px;
+  overflow: visible;
+  box-sizing: border-box;
+}
+
+.qpm_dropdown.qpm_mobileUiDropdown .multiselect.qpm_hideDropdownArrow .multiselect__tags {
+  padding: 8px 10px !important;
+}
+
+.qpm_dropdown.qpm_mobileUiDropdown .multiselect.qpm_hideDropdownArrow .multiselect__input {
+  border: none !important;
+  border-radius: 0;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.qpm_dropdown.qpm_mobileUiDropdown .multiselect.qpm_hideDropdownArrow .multiselect__tags:hover {
+  border-color: var(--color-border-subtle-hover) !important;
+}
+
+.qpm_dropdown.qpm_mobileUiDropdown .multiselect.qpm_hideDropdownArrow .multiselect__input:hover {
+  border: none !important;
+}
+
+.qpm_dropdown.qpm_mobileUiDropdown .multiselect.qpm_hideDropdownArrow .multiselect__input.qpm_silent-focus,
+.qpm_dropdown.qpm_mobileUiDropdown .multiselect.qpm_hideDropdownArrow .multiselect__input.qpm_silent-focus:hover,
+.qpm_dropdown.qpm_mobileUiDropdown .multiselect.qpm_hideDropdownArrow .multiselect__input.qpm_silent-focus:focus {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.qpm_vapp.qpm_keyboard-mode
+  .qpm_dropdown.qpm_mobileUiDropdown
+  .multiselect.qpm_hideDropdownArrow
+  .multiselect__input:focus {
+  border: none !important;
+}
+
+.qpm_vapp.qpm_keyboard-mode
+  .qpm_dropdown.qpm_mobileUiDropdown
+  .multiselect.qpm_hideDropdownArrow
+  .multiselect__tags:has(.multiselect__input:focus) {
+  border: 2px solid var(--color-black) !important;
+}
+
+.qpm_vapp.qpm_mouse-mode
+  .qpm_dropdown.qpm_mobileUiDropdown
+  .multiselect.qpm_hideDropdownArrow
+  .multiselect__input:focus {
+  border: none !important;
+}
+
+.qpm_vapp.qpm_mouse-mode
+  .qpm_dropdown.qpm_mobileUiDropdown
+  .multiselect.qpm_hideDropdownArrow
+  .multiselect__tags:has(.multiselect__input:focus) {
+  border-color: var(--color-border-subtle) !important;
+}
+
+/* Tablet m.m.: samme mobil-action sheet, men valgte emner som indholdsbrede brikker (ikke fuld dropdown-bredde) */
+@media (min-width: 600px) {
+  .qpm_dropdown.qpm_mobileUiDropdown .multiselect__tags-wrap {
+    display: flex !important;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 6px 8px;
+    width: 100%;
+  }
+
+  .qpm_dropdown.qpm_mobileUiDropdown .multiselect__tag {
+    width: fit-content !important;
+    max-width: 100% !important;
+    flex: 0 1 auto;
+    align-self: flex-start;
+    margin-right: 0;
+    margin-bottom: 0;
+    box-sizing: border-box;
+  }
+}
+
+@media (pointer: coarse) and (hover: none) and (max-width: 768px) {
   .qpm_topics,
   .qpm_flex,
   .qpm_subjectEntry,
@@ -1138,7 +1226,7 @@ input.multiselect__input{
   position: relative !important;
   margin-right: 0 !important;
   margin-bottom: 7px;
-  border: solid 1px var(--color-border-subtle) !important;
+  border: solid 1px var(--color-border-subtle, #c7c7c7) !important;
   border-radius: 5px;
   max-width: 100%;
   cursor: pointer;
@@ -1147,22 +1235,22 @@ input.multiselect__input{
 }
 
 .multiselect__input:hover {
-  border: solid 1px var(--color-border-subtle-hover) !important;
+  border: solid 1px var(--color-border-subtle-hover, #b6b6b6) !important;
 }
 
 .multiselect__input.qpm_silent-focus {
   outline: none !important;
-  border: solid 1px var(--color-border-subtle) !important;
+  border: solid 1px var(--color-border-subtle, #c7c7c7) !important;
   box-shadow: none !important;
 }
 
 .multiselect__input.qpm_silent-focus:hover {
-  border: solid 1px var(--color-border-subtle-hover) !important;
+  border: solid 1px var(--color-border-subtle-hover, #b6b6b6) !important;
 }
 
 .multiselect__input.qpm_silent-focus:focus {
   outline: none !important;
-  border: solid 1px var(--color-border-subtle) !important;
+  border: solid 1px var(--color-border-subtle, #c7c7c7) !important;
   box-shadow: none !important;
 }
 

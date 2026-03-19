@@ -465,7 +465,7 @@
       if (typeof window !== "undefined" && window.matchMedia) {
         this._touchMql = window.matchMedia("(pointer: coarse)");
         this._hoverMql = window.matchMedia("(hover: none)");
-        this._widthMql = window.matchMedia("(max-width: 1024px)");
+        this._widthMql = window.matchMedia("(max-width: 768px)");
         this._mobileUiMqlHandler = () => this.updateMobileUiState();
         this._touchMql.addEventListener("change", this._mobileUiMqlHandler);
         this._hoverMql.addEventListener("change", this._mobileUiMqlHandler);
@@ -977,6 +977,9 @@
       }
     },
     methods: {
+      shouldUseDesktopInputWidthInMobileUi() {
+        return this.isMobileUi && typeof window !== "undefined" && window.innerWidth >= 600;
+      },
       updateMobileUiState() {
         const hasTouchPoints =
           typeof navigator !== "undefined" && Number(navigator.maxTouchPoints || 0) > 0;
@@ -998,6 +1001,14 @@
           this.$nextTick(() => {
             const input = this.$el?.querySelector(".multiselect__input");
             if (input) {
+              if (!this.shouldHideDropdownArrow && this.shouldUseDesktopInputWidthInMobileUi()) {
+                // Keep mobile action sheet behavior, but use desktop-like compact input width on tablet.
+                input.style.setProperty("display", "inline-block", "important");
+                input.style.setProperty("position", "relative", "important");
+                input.style.removeProperty("max-width");
+                this.setWidthToPlaceholderWidth(input);
+                return;
+              }
               const mobileInputWidth = this.shouldHideDropdownArrow ? "100%" : "calc(100% - 34px)";
               input.style.setProperty("width", mobileInputWidth, "important");
               input.style.setProperty("max-width", mobileInputWidth, "important");
@@ -3395,8 +3406,10 @@
         const placeholder = input.getAttribute("placeholder");
         if (!placeholder) return;
 
-        // On touch devices or when dropdown arrow is hidden, use 100% width
-        if (this.shouldHideDropdownArrow || this.isMobileInputMode() || this.isTouchDevice) {
+        const keepDesktopLikeWidth = !this.shouldHideDropdownArrow && this.shouldUseDesktopInputWidthInMobileUi();
+
+        // On touch/mobile use 100% width unless we explicitly keep desktop-like width for tablet.
+        if (this.shouldHideDropdownArrow || (!keepDesktopLikeWidth && (this.isMobileInputMode() || this.isTouchDevice))) {
           input.style.removeProperty('width');
           return;
         }
@@ -3433,7 +3446,7 @@
        */
       setWidthToTextWidth(input, text) {
         if (!input || !text) return;
-        if (this.isMobileInputMode()) return;
+        if (this.isMobileInputMode() && !this.shouldUseDesktopInputWidthInMobileUi()) return;
 
         // Create a temporary span to measure text width
         let tempSpan = document.createElement("span");
@@ -3466,7 +3479,7 @@
         input.style.setProperty('width', minWidth + 'px', 'important');
       },
       setupInputWidthObserver(input) {
-        if (this.isMobileInputMode()) return;
+        if (this.isMobileInputMode() && !this.shouldUseDesktopInputWidthInMobileUi()) return;
         // Create a MutationObserver to monitor changes in the input field's style
         this.inputWidthObserver = new MutationObserver((mutations) => {
           mutations.forEach((mutation) => {
