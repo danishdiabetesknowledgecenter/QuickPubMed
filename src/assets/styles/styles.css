@@ -655,6 +655,18 @@ button.qpm_slim.multiselect__input:focus-visible {
   padding-right: 8px !important;
 }
 
+.qpm_dropdown.qpm_mobileUiDropdown .multiselect__tag {
+  padding-right: 56px;
+}
+
+.qpm_dropdown.qpm_mobileUiDropdown .multiselect__tag-icon {
+  width: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .qpm_dropdown.qpm_mobileUiDropdown .multiselect__input {
   position: static !important;
   box-sizing: border-box !important;
