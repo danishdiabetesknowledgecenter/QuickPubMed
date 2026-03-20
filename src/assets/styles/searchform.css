@@ -506,6 +506,12 @@ input:checked + .qpm_slider:before {
   margin: 30px 5px 10px;
 }
 
+@media only screen and (max-width: 800px) {
+  .qpm_advancedFiltersRoot {
+    margin: 28px 0px 10px;
+  }
+}
+
 .qpm_subjectSelectionActions,
 .qpm_filterSelectionActions {
   margin: 5px 0 20px 0;

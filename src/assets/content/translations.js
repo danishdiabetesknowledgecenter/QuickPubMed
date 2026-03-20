@@ -132,8 +132,8 @@ export const messages = {
     en: "Select topic or enter search term",
   },
   topicadvancedplaceholder_mobile: {
-    dk: "Vælg emne/indtast søgeord",
-    en: "Select topic/enter search term",
+    dk: "Vælg emne/søgeord",
+    en: "Select topic/search term",
   },
   topicsimpleplaceholder: {
     dk: "Vælg emne eller indtast søgeord",

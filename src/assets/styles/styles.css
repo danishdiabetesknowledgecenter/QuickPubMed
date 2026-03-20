@@ -622,6 +622,20 @@ button.qpm_slim.multiselect__input:focus-visible {
   top: auto !important;
   bottom: 10px !important;
   right: 3px !important;
+  width: 44px;
+  min-width: 44px;
+}
+
+.qpm_dropdown.qpm_mobileUiDropdown .multiselect:not(.qpm_hideDropdownArrow) .multiselect__select:before {
+  margin-left: -8px;
+}
+
+.qpm_dropdown.qpm_mobileUiDropdown .multiselect.multiselect--active:not(.qpm_hideDropdownArrow) .multiselect__select {
+  transform: none !important;
+}
+
+.qpm_dropdown.qpm_mobileUiDropdown .multiselect.multiselect--active:not(.qpm_hideDropdownArrow) .multiselect__select:before {
+  transform: rotate(-45deg);
 }
 
 .qpm_dropdown.qpm_mobileUiDropdown .multiselect__content-wrapper {
@@ -675,8 +689,8 @@ button.qpm_slim.multiselect__input:focus-visible {
 }
 
 .qpm_dropdown.qpm_mobileUiDropdown .multiselect:not(.qpm_hideDropdownArrow) .multiselect__input {
-  width: calc(100% - 34px) !important;
-  max-width: calc(100% - 34px) !important;
+  width: calc(100% - 44px) !important;
+  max-width: calc(100% - 44px) !important;
 }
 
 /*
@@ -813,6 +827,17 @@ button.qpm_slim.multiselect__input:focus-visible {
     top: auto !important;
     bottom: 10px !important;
     right: 3px !important;
+    width: 44px;
+    min-width: 44px;
+  }
+  .qpm_dropdown .multiselect:not(.qpm_hideDropdownArrow) .multiselect__select:before {
+    margin-left: -8px;
+  }
+  .qpm_dropdown .multiselect.multiselect--active:not(.qpm_hideDropdownArrow) .multiselect__select {
+    transform: none !important;
+  }
+  .qpm_dropdown .multiselect.multiselect--active:not(.qpm_hideDropdownArrow) .multiselect__select:before {
+    transform: rotate(-45deg);
   }
   .qpm_dropdown .multiselect__tags {
     padding-right: 8px !important;
@@ -826,8 +851,8 @@ button.qpm_slim.multiselect__input:focus-visible {
     padding: 0 10px 0 10px !important;
   }
   .qpm_dropdown .multiselect:not(.qpm_hideDropdownArrow) .multiselect__input {
-    width: calc(100% - 34px) !important;
-    max-width: calc(100% - 34px) !important;
+    width: calc(100% - 44px) !important;
+    max-width: calc(100% - 44px) !important;
   }
 }
 
