@@ -18,6 +18,9 @@
         <accordion-menu
           :title="qa.shortTitle || '...'"
           :open-by-default="false"
+          :is-expanded="getAccordionExpanded(getAccordionStateId('summary', index, qa.shortTitle))"
+          @open="setAccordionExpanded(getAccordionStateId('summary', index, qa.shortTitle), true)"
+          @close="setAccordionExpanded(getAccordionStateId('summary', index, qa.shortTitle), false)"
         >
           <template #header="accordionProps">
             <div class="qpm_aiAccordionHeader qpm_headerRow">
@@ -69,6 +72,15 @@
           <accordion-menu
             :title="qa.question || qa.shortTitle || '...'"
             :open-by-default="false"
+            :is-expanded="
+              getAccordionExpanded(
+                getAccordionStateId('question', index + 7, qa.shortTitle)
+              )
+            "
+            @open="setAccordionExpanded(getAccordionStateId('question', index + 7, qa.shortTitle), true)"
+            @close="
+              setAccordionExpanded(getAccordionStateId('question', index + 7, qa.shortTitle), false)
+            "
           >
             <template #header="accordionProps">
               <div class="qpm_aiAccordionHeader qpm_headerRow">
@@ -153,6 +165,9 @@
           :key="`${promptLanguageType}-${currentSummaryIndex[promptLanguageType]}-${index}`"
           :title="qa.shortTitle"
           :open-by-default="false"
+          :is-expanded="getAccordionExpanded(getAccordionStateId('summary', index, qa.shortTitle))"
+          @open="setAccordionExpanded(getAccordionStateId('summary', index, qa.shortTitle), true)"
+          @close="setAccordionExpanded(getAccordionStateId('summary', index, qa.shortTitle), false)"
         >
           <template #header="accordionProps">
             <div class="qpm_aiAccordionHeader qpm_headerRow">
@@ -203,6 +218,15 @@
           :key="`${promptLanguageType}-extra-${currentSummaryIndex[promptLanguageType]}-${index}`"
           :title="qa.shortTitle"
           :open-by-default="false"
+          :is-expanded="
+            getAccordionExpanded(
+              getAccordionStateId('question', index + 7, qa.shortTitle)
+            )
+          "
+          @open="setAccordionExpanded(getAccordionStateId('question', index + 7, qa.shortTitle), true)"
+          @close="
+            setAccordionExpanded(getAccordionStateId('question', index + 7, qa.shortTitle), false)
+          "
         >
           <template #header="accordionProps">
             <div ref="headerText" class="qpm_aiAccordionHeader qpm_headerRow">
@@ -329,6 +353,7 @@
         streamingItems: [], // Parsed Q&A items shown progressively
         streamingComplete: false, // True when JSON array is fully received
         expectedTotalItems: null, // Total items expected from LLM (parsed from totalItems field)
+        expandedAccordionState: {},
       };
     },
     computed: {
@@ -547,6 +572,25 @@
        */
       fetchShortTitle(qa) {
         return qa.shortTitle || "Untitled";
+      },
+
+      getAccordionStateId(section, index, title = "") {
+        const safeSection = section === "question" ? "question" : "summary";
+        const safeIndex = Number.isFinite(Number(index)) ? Number(index) : 0;
+        const safeTitle = String(title || "").trim();
+        return `${this.promptLanguageType}:${safeSection}:${safeIndex}:${safeTitle}`;
+      },
+
+      getAccordionExpanded(stateId) {
+        return Boolean(this.expandedAccordionState[stateId]);
+      },
+
+      setAccordionExpanded(stateId, expanded) {
+        if (!stateId) return;
+        this.expandedAccordionState = {
+          ...this.expandedAccordionState,
+          [stateId]: Boolean(expanded),
+        };
       },
 
       /**

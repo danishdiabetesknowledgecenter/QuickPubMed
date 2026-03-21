@@ -95,6 +95,19 @@
   min-height: 320px;
 }
 
+.qpm-editor-prompt-rules-field {
+  display: flex;
+  flex: 1 1 100%;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.qpm-editor-textarea-prompt-rules {
+  min-height: 220px;
+  font-family: inherit;
+}
+
 .qpm-editor-btn {
   background: var(--color-primary-button);
   color: var(--color-white);
@@ -279,6 +292,11 @@
   margin: 4px 0 0;
   font-size: 0.9em;
   color: var(--color-editor-text-secondary);
+  display: flex;
+}
+
+.qpm-editor-field-label .bx-info-circle {
+  margin-left: 7px;
 }
 
 .qpm-editor-inline-editor .bx-info-circle {

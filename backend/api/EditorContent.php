@@ -23,19 +23,21 @@ if ($method === 'GET') {
         if (!empty($allowed)) {
             $domains = array_values(array_intersect($domains, $allowed));
         }
+        $domainLabels = editorGetDomainDisplayLabels($domains);
         editorAudit('content_domains_listed', ['domains_count' => count($domains)]);
         editorJsonResponse(200, [
             'ok' => true,
             'domains' => $domains,
+            'domainLabels' => $domainLabels,
         ]);
     }
 
     if ($action === 'revisions') {
-        if (!in_array($type, ['topics', 'limits'], true)) {
+        if (!in_array($type, ['topics', 'limits', 'prompt-rules'], true)) {
             editorJsonResponse(400, ['error' => 'Invalid or missing type']);
         }
         $domain = null;
-        if ($type === 'topics') {
+        if ($type === 'topics' || $type === 'prompt-rules') {
             $domain = (string) ($_GET['domain'] ?? '');
             if (!editorCanEditDomain($domain)) {
                 editorAudit('revisions_forbidden', ['type' => $type, 'domain' => $domain]);
@@ -48,6 +50,18 @@ if ($method === 'GET') {
 
         $path = editorResolveContentFilePath($type, $domain);
         $revisions = editorListRevisions($path);
+        $normalizedDomain = editorNormalizeDomain((string) $domain);
+        $revisions = array_values(array_filter($revisions, static function ($revision) use ($type, $normalizedDomain) {
+            $revisionType = strtolower(trim((string) ($revision['type'] ?? '')));
+            if ($revisionType !== $type) {
+                return false;
+            }
+            if ($type === 'limits') {
+                return true;
+            }
+            $revisionDomain = editorNormalizeDomain((string) ($revision['domain'] ?? ''));
+            return $revisionDomain !== '' && $revisionDomain === $normalizedDomain;
+        }));
         // Hide only the revision entry that represents the current live file.
         // Keep older/newer historical entries even if payload is identical.
         $currentPayload = editorReadJsonFile($path);
@@ -91,7 +105,7 @@ if ($method === 'GET') {
         ]);
     }
     if ($action === 'revision') {
-        if (!in_array($type, ['topics', 'limits'], true)) {
+        if (!in_array($type, ['topics', 'limits', 'prompt-rules'], true)) {
             editorJsonResponse(400, ['error' => 'Invalid or missing type']);
         }
         $revisionId = trim((string) ($_GET['revisionId'] ?? ''));
@@ -99,7 +113,7 @@ if ($method === 'GET') {
             editorJsonResponse(400, ['error' => 'revisionId is required']);
         }
         $domain = null;
-        if ($type === 'topics') {
+        if ($type === 'topics' || $type === 'prompt-rules') {
             $domain = (string) ($_GET['domain'] ?? '');
             if (!editorCanEditDomain($domain)) {
                 editorAudit('revision_read_forbidden', ['type' => $type, 'domain' => $domain, 'revisionId' => $revisionId]);
@@ -112,6 +126,15 @@ if ($method === 'GET') {
 
         $path = editorResolveContentFilePath($type, $domain);
         $record = editorLoadRevisionRecord($path, $revisionId);
+        $recordType = strtolower(trim((string) ($record['meta']['type'] ?? '')));
+        $recordDomain = editorNormalizeDomain((string) ($record['meta']['domain'] ?? ''));
+        $normalizedDomain = editorNormalizeDomain((string) $domain);
+        if (
+            $recordType !== $type ||
+            (($type === 'topics' || $type === 'prompt-rules') && $recordDomain !== $normalizedDomain)
+        ) {
+            editorJsonResponse(404, ['error' => 'Revision not found']);
+        }
         editorAudit('revision_read', ['type' => $type, 'domain' => $domain, 'revisionId' => $revisionId]);
         editorJsonResponse(200, [
             'ok' => true,
@@ -124,12 +147,12 @@ if ($method === 'GET') {
         ]);
     }
 
-    if (!in_array($type, ['topics', 'limits'], true)) {
+    if (!in_array($type, ['topics', 'limits', 'prompt-rules'], true)) {
         editorJsonResponse(400, ['error' => 'Invalid or missing type']);
     }
 
     $domain = null;
-    if ($type === 'topics') {
+    if ($type === 'topics' || $type === 'prompt-rules') {
         $domain = (string) ($_GET['domain'] ?? '');
         if (!editorCanEditDomain($domain)) {
             editorAudit('content_read_forbidden', ['type' => $type, 'domain' => $domain]);
@@ -189,12 +212,12 @@ if ($method === 'POST') {
 
     $action = strtolower(trim((string) ($input['action'] ?? 'save')));
     $type = strtolower(trim((string) ($input['type'] ?? '')));
-    if (!in_array($type, ['topics', 'limits'], true)) {
+    if (!in_array($type, ['topics', 'limits', 'prompt-rules'], true)) {
         editorJsonResponse(400, ['error' => 'Invalid or missing type']);
     }
 
     $domain = null;
-    if ($type === 'topics') {
+    if ($type === 'topics' || $type === 'prompt-rules') {
         $domain = (string) ($input['domain'] ?? '');
         if (!editorCanEditDomain($domain)) {
             editorAudit('content_write_forbidden', ['type' => $type, 'domain' => $domain, 'action' => $action]);
@@ -213,7 +236,17 @@ if ($method === 'POST') {
         if ($revisionId === '') {
             editorJsonResponse(400, ['error' => 'revisionId is required']);
         }
-        $payload = editorLoadRevisionPayload($path, $revisionId);
+        $record = editorLoadRevisionRecord($path, $revisionId);
+        $recordType = strtolower(trim((string) ($record['meta']['type'] ?? '')));
+        $recordDomain = editorNormalizeDomain((string) ($record['meta']['domain'] ?? ''));
+        $normalizedDomain = editorNormalizeDomain((string) $domain);
+        if (
+            $recordType !== $type ||
+            (($type === 'topics' || $type === 'prompt-rules') && $recordDomain !== $normalizedDomain)
+        ) {
+            editorJsonResponse(404, ['error' => 'Revision not found']);
+        }
+        $payload = is_array($record['data']) ? $record['data'] : [];
         editorValidateContentPayload($type, $payload);
         $currentData = editorReadJsonFile($path);
         if (editorPayloadHash($currentData) === editorPayloadHash($payload)) {

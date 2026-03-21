@@ -11,5 +11,28 @@
   "unpaywall": {
     "email": ""
   },
-  "theme_overrides": {}
+  "class_overrides": {
+    "qpm_pubmedLink": {
+      "mode": "append",
+      "classes": "cms-inline-link cms-hover-target"
+    },
+    "qpm_button": {
+      "mode": "replace",
+      "classes": "cms-btn cms-btn--primary"
+    },
+    "qpm_abstractContainer": {
+      "mode": "append",
+      "classes": [
+        "cms-article-body",
+        "cms-article-body--wide"
+      ]
+    }
+  },
+  "theme_overrides": {
+    "--color-primary-button": "#0f5ba7",
+    "--color-link": "#0f5ba7",
+    "--color-blue-dark": "#1f4a7a",
+    "--color-gallery-toggle": "#1f4a7a",
+    "--color-gallery-toggle-hover": "#0c355f"
+  }
 }

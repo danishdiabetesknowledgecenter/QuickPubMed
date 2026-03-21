@@ -803,6 +803,7 @@ button.qpm_slim.multiselect__input:focus-visible {
   .qpm_removeSubject,
   .qpm_removeFilter {
     flex: 0 0 auto;
+    margin-right: -3px;
   }
   .qpm_dropdown .multiselect {
     width: 100% !important;

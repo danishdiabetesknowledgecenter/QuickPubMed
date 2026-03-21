@@ -131,7 +131,7 @@
       </div>
       <div v-if="!isCollapsed || (isCollapsed && advancedString)">
         <div v-if="!advancedString" class="qpm_searchStringDivider" />
-        <p class="intext-arrow-link onHoverJS qpm_pubmedLink">
+        <p class="qpm_pubmedLink qpm_pubmedLinkArrow">
           <a
             v-tooltip="{
               content: getString('hoverShowPubMedLinkText'),
@@ -145,7 +145,7 @@
             {{ getString("showPubMedLink") }}
           </a>
         </p>
-        <p class="intext-arrow-link onHoverJS qpm_pubmedLink">
+        <p class="qpm_pubmedLink qpm_pubmedLinkArrow">
           <a
             v-tooltip="{
               content: getString('hoverShowPubMedLinkCreateAlertText'),

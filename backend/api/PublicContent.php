@@ -41,9 +41,11 @@ $type = strtolower(trim((string) ($_GET['type'] ?? '')));
 $action = strtolower(trim((string) ($_GET['action'] ?? '')));
 
 if ($action === 'domains' || $type === 'domains') {
+    $domains = editorListContentDomains();
     editorJsonResponse(200, [
         'ok' => true,
-        'domains' => editorListContentDomains(),
+        'domains' => $domains,
+        'domainLabels' => editorGetDomainDisplayLabels($domains),
     ]);
 }
 

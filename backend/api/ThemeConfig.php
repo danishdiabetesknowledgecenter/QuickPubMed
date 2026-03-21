@@ -44,6 +44,9 @@ $globalTheme = defined('QPM_THEME_GLOBAL_OVERRIDES') && is_array(QPM_THEME_GLOBA
 $themeByDomain = defined('QPM_THEME_DOMAIN_OVERRIDES') && is_array(QPM_THEME_DOMAIN_OVERRIDES)
     ? QPM_THEME_DOMAIN_OVERRIDES
     : [];
+$globalClassOverrides = defined('QPM_CLASS_OVERRIDES_GLOBAL') && is_array(QPM_CLASS_OVERRIDES_GLOBAL)
+    ? qpmNormalizeClassOverridesMap(QPM_CLASS_OVERRIDES_GLOBAL)
+    : [];
 $unpaywall = [
     'baseUrl' => defined('UNPAYWALL_BASE_URL') ? (string) UNPAYWALL_BASE_URL : '',
     'email' => qpmGetUnpaywallEmail($domain),
@@ -54,11 +57,17 @@ if ($domain !== '' && isset($themeByDomain[$domain]) && is_array($themeByDomain[
     $domainTheme = $themeByDomain[$domain];
 }
 $domainTheme = array_merge($domainTheme, qpmGetDomainThemeOverrides($domain));
+$domainClassOverrides = qpmGetDomainClassOverrides($domain);
+if (!empty($globalClassOverrides)) {
+    $domainClassOverrides = array_merge($globalClassOverrides, $domainClassOverrides);
+}
 
 echo json_encode([
     'globalTheme' => $globalTheme,
     'themeByDomain' => $themeByDomain,
     'domain' => $domain,
     'domainTheme' => $domainTheme,
+    'globalClassOverrides' => $globalClassOverrides,
+    'domainClassOverrides' => $domainClassOverrides,
     'unpaywall' => $unpaywall,
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

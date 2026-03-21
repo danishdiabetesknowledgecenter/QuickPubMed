@@ -9,6 +9,8 @@ export const config = reactive({
   useMeshValidation: true, // Validate AI-translated [mh] terms via NLM E-utilities MeSH database
   theme: {}, // Global CSS custom properties to override :root defaults
   themeByDomain: {}, // Domain-specific CSS variable overrides: { domainKey: { "--color-...": "..." } }
+  classOverrides: {}, // Global class overrides: { baseClass: { mode, classes[] } }
+  classOverridesByDomain: {}, // Domain class overrides: { domainKey: { baseClass: { mode, classes[] } } }
 });
 
 const THEME_CONFIG_CACHE_TTL_MS = (() => {
@@ -20,6 +22,150 @@ const THEME_CONFIG_CACHE_TTL_MS = (() => {
 })();
 const themeConfigCache = new Map();
 const themeConfigInFlight = new Map();
+let classOverrideObserver = null;
+let activeClassOverrides = {};
+let isApplyingClassOverrides = false;
+
+function normalizeClassTokens(value) {
+  const rawTokens = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+    ? value.split(/\s+/)
+    : [];
+  return Array.from(
+    new Set(
+      rawTokens
+        .map((token) => String(token || "").trim())
+        .filter((token) => token && /^[A-Za-z0-9_-]+$/.test(token))
+    )
+  );
+}
+
+function normalizeClassOverrideRule(rawRule) {
+  if (typeof rawRule === "string" || Array.isArray(rawRule)) {
+    const classes = normalizeClassTokens(rawRule);
+    if (classes.length === 0) return null;
+    return { mode: "append", classes };
+  }
+  if (!rawRule || typeof rawRule !== "object" || Array.isArray(rawRule)) return null;
+  const mode = String(rawRule.mode || "append").trim().toLowerCase() === "replace"
+    ? "replace"
+    : "append";
+  const classes = normalizeClassTokens(rawRule.classes ?? rawRule.class_list ?? rawRule.class);
+  if (mode === "append" && classes.length === 0) return null;
+  return { mode, classes };
+}
+
+function normalizeClassOverridesMap(rawMap) {
+  if (!rawMap || typeof rawMap !== "object" || Array.isArray(rawMap)) return {};
+  const out = {};
+  Object.entries(rawMap).forEach(([baseClass, rawRule]) => {
+    const normalizedBaseClass = String(baseClass || "").trim();
+    if (!normalizedBaseClass || !/^[A-Za-z0-9_-]+$/.test(normalizedBaseClass)) return;
+    const normalizedRule = normalizeClassOverrideRule(rawRule);
+    if (!normalizedRule) return;
+    out[normalizedBaseClass] = normalizedRule;
+  });
+  return out;
+}
+
+function escapeClassSelector(value) {
+  if (typeof CSS !== "undefined" && typeof CSS.escape === "function") {
+    return CSS.escape(value);
+  }
+  return String(value).replace(/[^A-Za-z0-9_-]/g, "\\$&");
+}
+
+function resetManagedClassOverrides(root = document) {
+  if (typeof document === "undefined") return;
+  root
+    .querySelectorAll("[data-qpm-class-override-original]")
+    .forEach((el) => {
+      const original = el.getAttribute("data-qpm-class-override-original");
+      if (original !== null) {
+        el.className = original;
+      }
+      el.removeAttribute("data-qpm-class-override-original");
+    });
+}
+
+function applyClassRuleToElement(el, baseClass, rule) {
+  if (!(el instanceof HTMLElement)) return;
+  if (!el.hasAttribute("data-qpm-class-override-original")) {
+    el.setAttribute("data-qpm-class-override-original", el.className || "");
+  }
+  const current = new Set(normalizeClassTokens(el.className || ""));
+  if (rule.mode === "replace") {
+    current.delete(baseClass);
+  }
+  (rule.classes || []).forEach((className) => current.add(className));
+  const nextClassName = Array.from(current).join(" ");
+  if (el.className !== nextClassName) {
+    el.className = nextClassName;
+  }
+}
+
+function applyClassOverridesToNode(node, classOverrides) {
+  if (!(node instanceof Element)) return;
+  Object.entries(classOverrides).forEach(([baseClass, rule]) => {
+    if (node.classList.contains(baseClass)) {
+      applyClassRuleToElement(node, baseClass, rule);
+    }
+    const selector = `.${escapeClassSelector(baseClass)}`;
+    node.querySelectorAll(selector).forEach((el) => applyClassRuleToElement(el, baseClass, rule));
+  });
+}
+
+function ensureClassOverrideObserver() {
+  if (typeof document === "undefined") return;
+  if (classOverrideObserver) return;
+  classOverrideObserver = new MutationObserver((mutations) => {
+    if (isApplyingClassOverrides) return;
+    if (!activeClassOverrides || Object.keys(activeClassOverrides).length === 0) return;
+    isApplyingClassOverrides = true;
+    try {
+      mutations.forEach((mutation) => {
+        if (mutation.type === "childList") {
+          mutation.addedNodes.forEach((node) => applyClassOverridesToNode(node, activeClassOverrides));
+        } else if (mutation.type === "attributes" && mutation.target instanceof Element) {
+          applyClassOverridesToNode(mutation.target, activeClassOverrides);
+        }
+      });
+    } finally {
+      isApplyingClassOverrides = false;
+    }
+  });
+  classOverrideObserver.observe(document.documentElement, {
+    subtree: true,
+    childList: true,
+  });
+}
+
+function applyClassOverridesFromConfig(domain = config.domain) {
+  if (typeof document === "undefined") return;
+  const normalizedDomain = String(domain || "").trim().toLowerCase();
+  const domainClassOverrides =
+    (normalizedDomain &&
+      config.classOverridesByDomain &&
+      config.classOverridesByDomain[normalizedDomain]) ||
+    {};
+  const resolvedClassOverrides = {
+    ...(config.classOverrides || {}),
+    ...domainClassOverrides,
+  };
+
+  isApplyingClassOverrides = true;
+  try {
+    resetManagedClassOverrides(document);
+    activeClassOverrides = resolvedClassOverrides;
+    if (Object.keys(resolvedClassOverrides).length > 0) {
+      ensureClassOverrideObserver();
+      applyClassOverridesToNode(document.documentElement, resolvedClassOverrides);
+    }
+  } finally {
+    isApplyingClassOverrides = false;
+  }
+}
 
 export function applyThemeFromConfig(domain = config.domain) {
   if (typeof document === "undefined") return;
@@ -37,6 +183,7 @@ export function applyThemeFromConfig(domain = config.domain) {
       rootStyle.setProperty(cssVar, String(value));
     }
   });
+  applyClassOverridesFromConfig(domain);
 }
 
 function normalizeApiBase(value) {
@@ -97,6 +244,20 @@ export async function loadThemeOverridesFromBackend(domain, apiBaseUrl) {
             ...(config.themeByDomain[normalizedDomain] || {}),
             ...payload.domainTheme,
           },
+        };
+      }
+
+      if (payload.globalClassOverrides && typeof payload.globalClassOverrides === "object") {
+        config.classOverrides = {
+          ...config.classOverrides,
+          ...normalizeClassOverridesMap(payload.globalClassOverrides),
+        };
+      }
+
+      if (payload.domainClassOverrides && typeof payload.domainClassOverrides === "object") {
+        config.classOverridesByDomain = {
+          ...config.classOverridesByDomain,
+          [normalizedDomain]: normalizeClassOverridesMap(payload.domainClassOverrides),
         };
       }
 

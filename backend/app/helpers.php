@@ -327,6 +327,121 @@ function qpmGetDomainThemeOverrides(?string $domain = null): array
 }
 
 /**
+ * Normalize class token list from string or array input.
+ *
+ * @param mixed $value
+ * @return array<int, string>
+ */
+function qpmNormalizeClassTokenList($value): array
+{
+    $tokens = [];
+    if (is_string($value)) {
+        $tokens = preg_split('/\s+/', trim($value)) ?: [];
+    } elseif (is_array($value)) {
+        foreach ($value as $entry) {
+            if (!is_string($entry)) {
+                continue;
+            }
+            $parts = preg_split('/\s+/', trim($entry)) ?: [];
+            foreach ($parts as $part) {
+                $tokens[] = $part;
+            }
+        }
+    } else {
+        return [];
+    }
+
+    $normalized = [];
+    foreach ($tokens as $token) {
+        if (!is_string($token)) {
+            continue;
+        }
+        $className = trim($token);
+        if ($className === '') {
+            continue;
+        }
+        if (!preg_match('/^[A-Za-z0-9_-]+$/', $className)) {
+            continue;
+        }
+        $normalized[] = $className;
+    }
+
+    return array_values(array_unique($normalized));
+}
+
+/**
+ * Normalize class overrides map.
+ *
+ * Shape:
+ * {
+ *   "qpm_pubmedLink": { "mode": "append|replace", "classes": "class-a class-b" }
+ * }
+ *
+ * @param mixed $overrides
+ * @return array<string, array{mode: string, classes: array<int, string>}>
+ */
+function qpmNormalizeClassOverridesMap($overrides): array
+{
+    if (!is_array($overrides)) {
+        return [];
+    }
+
+    $result = [];
+    foreach ($overrides as $baseClass => $rawRule) {
+        if (!is_string($baseClass)) {
+            continue;
+        }
+        $normalizedBaseClass = trim($baseClass);
+        if ($normalizedBaseClass === '' || !preg_match('/^[A-Za-z0-9_-]+$/', $normalizedBaseClass)) {
+            continue;
+        }
+
+        $mode = 'append';
+        $classes = [];
+        if (is_string($rawRule)) {
+            $classes = qpmNormalizeClassTokenList($rawRule);
+        } elseif (is_array($rawRule)) {
+            if (array_is_list($rawRule)) {
+                $classes = qpmNormalizeClassTokenList($rawRule);
+            } else {
+                $rawMode = strtolower(trim((string) ($rawRule['mode'] ?? 'append')));
+                if ($rawMode === 'replace') {
+                    $mode = 'replace';
+                }
+                $classes = qpmNormalizeClassTokenList(
+                    $rawRule['classes'] ?? ($rawRule['class_list'] ?? ($rawRule['class'] ?? ''))
+                );
+            }
+        } else {
+            continue;
+        }
+
+        if ($mode === 'append' && empty($classes)) {
+            continue;
+        }
+
+        $result[$normalizedBaseClass] = [
+            'mode' => $mode,
+            'classes' => $classes,
+        ];
+    }
+
+    return $result;
+}
+
+/**
+ * Resolve domain class overrides from runtime config.
+ *
+ * @param string|null $domain
+ * @return array<string, array{mode: string, classes: array<int, string>}>
+ */
+function qpmGetDomainClassOverrides(?string $domain = null): array
+{
+    $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
+    return qpmNormalizeClassOverridesMap($runtimeConfig['class_overrides'] ?? null);
+}
+
+/**
  * Global NLM request throttle using file lock.
  * Limits outbound requests from this server to approximately maxPerSecond.
  *

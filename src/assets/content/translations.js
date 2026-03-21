@@ -916,6 +916,18 @@ export const messages = {
     dk: "Afgrænsninger",
     en: "Limits",
   },
+  editor_typePromptRules: {
+    dk: "Promptregler",
+    en: "Prompt rules",
+  },
+  editor_promptRulesLabelDk: {
+    dk: "Promptregler (dansk)",
+    en: "Prompt rules (Danish)",
+  },
+  editor_promptRulesLabelEn: {
+    dk: "Promptregler (engelsk)",
+    en: "Prompt rules (English)",
+  },
   editor_login: {
     dk: "Log ind",
     en: "Log in",
@@ -1743,5 +1755,13 @@ export const messages = {
   editor_helpStandardStringHint: {
     dk: "Valgfrit: Tomme felter betyder, at der ikke tilføjes standardsøgestreng for det scope.",
     en: "Optional: Empty fields mean no standard search string is added for that scope.",
+  },
+  editor_helpPromptRulesDk: {
+    dk: "Ret domænets danske prompt-regler. Teksten bruges af AI-funktioner for dansk output.",
+    en: "Edit the domain's Danish prompt rules. This text is used by AI features for Danish output.",
+  },
+  editor_helpPromptRulesEn: {
+    dk: "Ret domænets engelske prompt-regler. Teksten bruges af AI-funktioner for English output.",
+    en: "Edit the domain's English prompt rules. This text is used by AI features for English output.",
   },
 };

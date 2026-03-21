@@ -102,6 +102,77 @@ function editorListContentDomains(): array
 }
 
 /**
+ * Read localized domain display labels from domain-config.json.
+ *
+ * Expected shape:
+ * {
+ *   "domain_name": {
+ *     "dk": "Skabelon",
+ *     "en": "Template"
+ *   }
+ * }
+ *
+ * @param array<int, string> $domains
+ * @return array<string, array<string, string>>
+ */
+function editorGetDomainDisplayLabels(array $domains): array
+{
+    if (!function_exists('qpmGetDomainRuntimeConfig')) {
+        return [];
+    }
+
+    $result = [];
+    foreach ($domains as $domain) {
+        if (!is_string($domain) || $domain === '') {
+            continue;
+        }
+
+        $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
+        if (!is_array($runtimeConfig)) {
+            continue;
+        }
+
+        $domainNameConfig = $runtimeConfig['domain_name'] ?? null;
+        if (is_string($domainNameConfig)) {
+            $label = trim($domainNameConfig);
+            if ($label !== '') {
+                $result[$domain] = [
+                    'dk' => $label,
+                    'en' => $label,
+                ];
+            }
+            continue;
+        }
+
+        if (!is_array($domainNameConfig)) {
+            continue;
+        }
+
+        $localized = [];
+        foreach ($domainNameConfig as $lang => $label) {
+            if (!is_string($lang) || !is_string($label)) {
+                continue;
+            }
+            $langKey = strtolower(trim($lang));
+            $labelText = trim($label);
+            if ($langKey === '' || $labelText === '') {
+                continue;
+            }
+            if (!preg_match('/^[a-z0-9_-]+$/', $langKey)) {
+                continue;
+            }
+            $localized[$langKey] = $labelText;
+        }
+
+        if (!empty($localized)) {
+            $result[$domain] = $localized;
+        }
+    }
+
+    return $result;
+}
+
+/**
  * Normalize and validate domain name.
  */
 function editorNormalizeDomain(string $domain): string
@@ -571,7 +642,7 @@ function editorWriteJsonAtomic(string $filePath, array $payload): void
  */
 function editorValidateContentPayload(string $type, array $data): void
 {
-    if (!in_array($type, ['topics', 'limits'], true)) {
+    if (!in_array($type, ['topics', 'limits', 'prompt-rules'], true)) {
         editorJsonResponse(400, ['error' => 'Invalid content type']);
     }
 
@@ -593,6 +664,14 @@ function editorValidateContentPayload(string $type, array $data): void
             if (is_array($topic)) {
                 editorValidateTopicNodeShape($topic);
             }
+        }
+        editorSanitizePayloadValue($data, $maxTextLength);
+        return;
+    }
+
+    if ($type === 'prompt-rules') {
+        if (!isset($data['promptRules']) || !is_array($data['promptRules'])) {
+            editorJsonResponse(400, ['error' => 'prompt-rules payload must include promptRules object']);
         }
         editorSanitizePayloadValue($data, $maxTextLength);
         return;
@@ -622,11 +701,19 @@ function editorResolveContentFilePath(string $type, ?string $domain = null): str
         return editorResolveLimitsFilePath();
     }
 
+    if (!in_array($type, ['topics', 'prompt-rules'], true)) {
+        editorJsonResponse(400, ['error' => 'Invalid content type']);
+    }
+
     $normalized = editorNormalizeDomain((string) $domain);
     if ($normalized === '') {
-        editorJsonResponse(400, ['error' => 'Domain is required for topics']);
+        $label = $type === 'prompt-rules' ? 'prompt-rules' : 'topics';
+        editorJsonResponse(400, ['error' => 'Domain is required for ' . $label]);
     }
 
     $domainDir = editorEnsureDomainDirectory($normalized);
+    if ($type === 'prompt-rules') {
+        return $domainDir . DIRECTORY_SEPARATOR . 'prompt-rules.json';
+    }
     return $domainDir . DIRECTORY_SEPARATOR . 'topics.json';
 }

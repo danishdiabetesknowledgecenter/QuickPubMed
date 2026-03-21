@@ -267,7 +267,7 @@
         </div>
       </div>
     </div>
-    <p v-if="getHyperLink" class="intext-arrow-link onHoverJS qpm_pubmedLink">
+    <p v-if="getHyperLink" class="qpm_pubmedLink qpm_pubmedLinkArrow">
       <a target="_blank" rel="noopener noreferrer" :href="getHyperLink">
         {{ hyperLinkText !== undefined ? hyperLinkText : hyperLink }}
       </a>
@@ -489,7 +489,7 @@
 
           <div class="qpm_unpaywall">
             <template v-if="doi">
-              <p class="onHoverJS qpm_pubmedLink">
+              <p class="qpm_pubmedLink">
                 <template v-if="!unpaywallResponseLoaded">
                   <loading-spinner
                     :loading="true"
@@ -603,7 +603,7 @@
         <!-- links for related content below abstract -->
         <div v-if="(pmid !== undefined || doi) && showingAbstract" class="qpm_relatedLinks">
           <!-- Find related articles -->
-          <p v-if="pmid !== undefined" class="intext-arrow-link onHoverJS qpm_pubmedLink">
+          <p v-if="pmid !== undefined" class="qpm_pubmedLink qpm_pubmedLinkArrow">
             <a
               v-if="pmid !== undefined"
               v-tooltip="{
@@ -620,7 +620,7 @@
           </p>
 
           <!-- Find related systematic reviews -->
-          <p v-if="pmid !== undefined" class="intext-arrow-link onHoverJS qpm_pubmedLink">
+          <p v-if="pmid !== undefined" class="qpm_pubmedLink qpm_pubmedLinkArrow">
             <a
               v-if="pmid !== undefined"
               v-tooltip="{
@@ -638,7 +638,7 @@
 
           <!-- Other people also viewed -->
           <p
-            class="intext-arrow-link onHoverJS qpm_pubmedLink"
+            class="qpm_pubmedLink qpm_pubmedLinkArrow"
             v-if="pmid !== undefined && pmid !== null"
           >
             <a
@@ -656,7 +656,7 @@
           </p>
 
           <!-- Search on Google Scholar -->
-          <p v-if="(pmid || doi) !== undefined" class="intext-arrow-link onHoverJS qpm_pubmedLink">
+          <p v-if="(pmid || doi) !== undefined" class="qpm_pubmedLink qpm_pubmedLinkArrow">
             <a
               v-if="(pmid || doi) !== undefined"
               v-tooltip="{

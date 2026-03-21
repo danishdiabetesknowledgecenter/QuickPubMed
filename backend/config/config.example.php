@@ -34,6 +34,23 @@ define('NLM_BASE_URL', 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils');
 define('UNPAYWALL_BASE_URL', 'https://api.unpaywall.org/v2');
 define('UNPAYWALL_EMAIL', 'your-unpaywall-email@example.com');
 
+// ============ Frontend Class Overrides (Optional) ============
+// Optional global fallback (applies to all domains):
+// - mode "append": keep existing element classes and add these
+// - mode "replace": remove base class and add these
+// Domain-specific overrides can be set in:
+// data/content/<domain>/domain-config.json -> class_overrides
+define('QPM_CLASS_OVERRIDES_GLOBAL', [
+    // 'qpm_pubmedLink' => [
+    //     'mode' => 'append',
+    //     'classes' => 'onHoverJS',
+    // ],
+    // 'qpm_pubmedLinkArrow' => [
+    //     'mode' => 'append',
+    //     'classes' => 'intext-arrow-link',
+    // ],
+]);
+
 // ============ Theme Overrides (Frontend CSS variables) ============
 // Optional domain override file:
 // data/content/<domain>/domain-config.json -> theme_overrides

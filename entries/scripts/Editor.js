@@ -30,6 +30,7 @@ function ensureEditorMarkup() {
         <select id="qpm-editor-type" class="qpm-editor-select">
           <option value="topics">Topics</option>
           <option value="limits">Limits</option>
+          <option value="prompt-rules">Prompt rules</option>
         </select>
         <select id="qpm-editor-domain" class="qpm-editor-select"></select>
       </div>
@@ -45,6 +46,16 @@ function ensureEditorMarkup() {
           <span id="qpm-editor-sort-mode-text">Sorteringstilstand</span>
         </label>
         <div id="qpm-editor-topic-tree" class="qpm-editor-tree"></div>
+      </div>
+      <div id="qpm-editor-prompt-rules-tools" class="qpm-editor-row qpm-editor-hidden">
+        <label class="qpm-editor-prompt-rules-field">
+          <span id="qpm-editor-prompt-rules-dk-label" class="qpm-editor-field-label">Promptregler (dansk)</span>
+          <textarea id="qpm-editor-prompt-rules-dk" class="qpm-editor-textarea qpm-editor-textarea-prompt-rules" spellcheck="false"></textarea>
+        </label>
+        <label class="qpm-editor-prompt-rules-field">
+          <span id="qpm-editor-prompt-rules-en-label" class="qpm-editor-field-label">Prompt rules (English)</span>
+          <textarea id="qpm-editor-prompt-rules-en" class="qpm-editor-textarea qpm-editor-textarea-prompt-rules" spellcheck="false"></textarea>
+        </label>
       </div>
 
       <details id="qpm-editor-extra-tools" class="qpm-editor-accordion">
@@ -116,6 +127,7 @@ const apiBase = (
 const defaultDomain = root.dataset.domain || "";
 const baseConfiguredTopicDomains = parseConfiguredTopicDomains();
 let configuredTopicDomains = [...baseConfiguredTopicDomains];
+let domainLabelsByDomain = {};
 const limitsEnabled = root.dataset.limitsEnabled !== "false";
 
 const loginSection = document.getElementById("qpm-editor-login");
@@ -132,6 +144,11 @@ const jsonInput = document.getElementById("qpm-editor-json");
 const sortModeTextEl = document.getElementById("qpm-editor-sort-mode-text");
 const extraToolsSummaryEl = document.getElementById("qpm-editor-extra-tools-summary");
 const topicTools = document.getElementById("qpm-editor-topic-tools");
+const promptRulesTools = document.getElementById("qpm-editor-prompt-rules-tools");
+const promptRulesDkLabelEl = document.getElementById("qpm-editor-prompt-rules-dk-label");
+const promptRulesEnLabelEl = document.getElementById("qpm-editor-prompt-rules-en-label");
+const promptRulesDkInput = document.getElementById("qpm-editor-prompt-rules-dk");
+const promptRulesEnInput = document.getElementById("qpm-editor-prompt-rules-en");
 const topicTreeInput = document.getElementById("qpm-editor-topic-tree");
 const treeSearchInput = document.getElementById("qpm-editor-tree-search");
 const treeSearchClearBtn = document.getElementById("qpm-editor-tree-search-clear");
@@ -178,6 +195,7 @@ let hiddenSinceTs = null;
 let hiddenLogoutTimerId = 0;
 let unloadLogoutSent = false;
 let editorCapabilities = { canEditLimits: limitsEnabled, allowedDomains: [] };
+let isSyncingPromptRulesForm = false;
 const editorLanguageRaw = String(root?.dataset?.language || "dk")
   .trim()
   .toLowerCase();
@@ -201,7 +219,9 @@ function t(key) {
   return getLocalizedMessageValue(msg, key);
 }
 function getTypeLabel(type) {
-  return type === "limits" ? t("typeLimits") : t("typeTopics");
+  if (type === "limits") return t("typeLimits");
+  if (type === "prompt-rules") return t("typePromptRules");
+  return t("typeTopics");
 }
 
 function deepClone(value) {
@@ -209,7 +229,9 @@ function deepClone(value) {
 }
 
 function normalizeTypeValue(type) {
-  return type === "limits" ? "limits" : "topics";
+  if (type === "limits") return "limits";
+  if (type === "prompt-rules") return "prompt-rules";
+  return "topics";
 }
 
 function sortKeysDeep(value) {
@@ -318,10 +340,12 @@ let revisionCurrentPreviewDate = "";
 let revisionCurrentRestoredFromDate = "";
 let lastSaveUsedJsonButton = false;
 let activeEditorType = "topics";
-const editorBaselineByType = { topics: "", limits: "" };
+const editorBaselineByType = { topics: "", "prompt-rules": "", limits: "" };
 const inlineHistoryStateByKey = new Map();
 let isApplyingInlineSnapshot = false;
 const editorHelpTextKeyMap = {
+  "promptRules.dk": "helpPromptRulesDk",
+  "promptRules.en": "helpPromptRulesEn",
   "category.id": "helpCategoryId",
   "category.translations.dk": "helpCategoryTranslationsDk",
   "category.translations.en": "helpCategoryTranslationsEn",
@@ -362,6 +386,13 @@ function updateJsonToggleButtonLabel() {
     : t("hideJson");
 }
 
+function setPromptRulesFieldLabel(labelEl, text, helpKey) {
+  if (!(labelEl instanceof HTMLElement)) return;
+  labelEl.textContent = text;
+  const infoIcon = createInfoIcon(getEditorHelpText(helpKey));
+  if (infoIcon) labelEl.append(" ", infoIcon);
+}
+
 function applyEditorLanguageTexts() {
   if (loginBtn instanceof HTMLElement) loginBtn.textContent = t("login");
   if (logoutBtn instanceof HTMLElement) logoutBtn.textContent = t("logout");
@@ -378,6 +409,8 @@ function applyEditorLanguageTexts() {
   if (sortModeTextEl instanceof HTMLElement) sortModeTextEl.textContent = t("sortMode");
   if (treeSearchInput instanceof HTMLInputElement)
     treeSearchInput.placeholder = t("searchPlaceholder");
+  setPromptRulesFieldLabel(promptRulesDkLabelEl, t("promptRulesLabelDk"), "promptRules.dk");
+  setPromptRulesFieldLabel(promptRulesEnLabelEl, t("promptRulesLabelEn"), "promptRules.en");
   if (treeSearchClearBtn instanceof HTMLButtonElement) {
     treeSearchClearBtn.setAttribute("aria-label", t("clearSearch"));
     treeSearchClearBtn.title = t("clearSearch");
@@ -392,6 +425,8 @@ function applyEditorLanguageTexts() {
   if (typeInput instanceof HTMLSelectElement) {
     const topicsOption = typeInput.querySelector('option[value="topics"]');
     if (topicsOption) topicsOption.textContent = getTypeLabel("topics");
+    const promptRulesOption = typeInput.querySelector('option[value="prompt-rules"]');
+    if (promptRulesOption) promptRulesOption.textContent = getTypeLabel("prompt-rules");
     const limitsOption = typeInput.querySelector('option[value="limits"]');
     if (limitsOption) limitsOption.textContent = getTypeLabel("limits");
   }
@@ -489,6 +524,51 @@ function normalizeDomainList(input) {
   );
 }
 
+function normalizeDomainLabelsMap(input) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return {};
+  const out = {};
+  Object.entries(input).forEach(([rawDomain, rawLabelConfig]) => {
+    const domain = String(rawDomain || "")
+      .trim()
+      .toLowerCase();
+    if (!/^[a-z0-9_-]+$/.test(domain)) return;
+
+    if (typeof rawLabelConfig === "string") {
+      const label = rawLabelConfig.trim();
+      if (!label) return;
+      out[domain] = { dk: label, en: label };
+      return;
+    }
+
+    if (!rawLabelConfig || typeof rawLabelConfig !== "object" || Array.isArray(rawLabelConfig)) {
+      return;
+    }
+
+    const localized = {};
+    Object.entries(rawLabelConfig).forEach(([rawLang, rawLabel]) => {
+      if (typeof rawLabel !== "string") return;
+      const lang = String(rawLang || "")
+        .trim()
+        .toLowerCase();
+      const label = rawLabel.trim();
+      if (!lang || !label) return;
+      localized[lang] = label;
+    });
+    if (Object.keys(localized).length > 0) {
+      out[domain] = localized;
+    }
+  });
+  return out;
+}
+
+function getDomainOptionLabel(domain) {
+  const localizedLabel = domainLabelsByDomain?.[domain];
+  if (localizedLabel && typeof localizedLabel === "object" && !Array.isArray(localizedLabel)) {
+    return getLocalizedMessageValue(localizedLabel, domain);
+  }
+  return domain;
+}
+
 function syncDomainOptions() {
   if (!(domainInput instanceof HTMLSelectElement)) return;
   const previousValue = (domainInput.value || "").trim().toLowerCase();
@@ -496,7 +576,7 @@ function syncDomainOptions() {
   configuredTopicDomains.forEach((domain) => {
     const opt = document.createElement("option");
     opt.value = domain;
-    opt.textContent = domain;
+    opt.textContent = getDomainOptionLabel(domain);
     domainInput.appendChild(opt);
   });
 
@@ -536,6 +616,11 @@ function syncTypeOptionsVisibility() {
   if (!editorCapabilities.canEditLimits && typeInput.value === "limits") {
     typeInput.value = "topics";
   }
+  const typeOrder = ["topics", "limits", "prompt-rules"];
+  typeOrder.forEach((value) => {
+    const option = typeInput.querySelector(`option[value="${value}"]`);
+    if (option) typeInput.appendChild(option);
+  });
   typeInput.classList.toggle("qpm-editor-hidden", typeInput.options.length <= 1);
 }
 
@@ -578,7 +663,55 @@ function lockEditorForSafety(reason) {
 }
 
 function getSelectedType() {
-  return typeInput.value === "limits" ? "limits" : "topics";
+  if (typeInput.value === "limits") return "limits";
+  if (typeInput.value === "prompt-rules") return "prompt-rules";
+  return "topics";
+}
+
+function isDomainScopedType(type) {
+  return type === "topics" || type === "prompt-rules";
+}
+
+function syncPromptRulesInputsFromJson() {
+  if (!(promptRulesDkInput instanceof HTMLTextAreaElement)) return;
+  if (!(promptRulesEnInput instanceof HTMLTextAreaElement)) return;
+  const parsed = parseCurrentJson();
+  if (!parsed || typeof parsed !== "object") return;
+  const promptRules = parsed?.promptRules;
+  isSyncingPromptRulesForm = true;
+  promptRulesDkInput.value =
+    promptRules && typeof promptRules.dk === "string" ? promptRules.dk : "";
+  promptRulesEnInput.value =
+    promptRules && typeof promptRules.en === "string" ? promptRules.en : "";
+  isSyncingPromptRulesForm = false;
+}
+
+function syncPromptRulesJsonFromInputs() {
+  if (isSyncingPromptRulesForm) return;
+  if (!(promptRulesDkInput instanceof HTMLTextAreaElement)) return;
+  if (!(promptRulesEnInput instanceof HTMLTextAreaElement)) return;
+  let currentRaw = {};
+  try {
+    currentRaw = jsonInput.value ? JSON.parse(jsonInput.value) : {};
+  } catch {
+    currentRaw = {};
+  }
+  const safeRaw =
+    currentRaw && typeof currentRaw === "object" && !Array.isArray(currentRaw) ? currentRaw : {};
+  const previousPromptRules =
+    safeRaw.promptRules && typeof safeRaw.promptRules === "object" && !Array.isArray(safeRaw.promptRules)
+      ? safeRaw.promptRules
+      : {};
+  const nextRaw = {
+    ...safeRaw,
+    promptRules: {
+      ...previousPromptRules,
+      dk: promptRulesDkInput.value || "",
+      en: promptRulesEnInput.value || "",
+    },
+  };
+  jsonInput.value = JSON.stringify(nextRaw, null, 2);
+  updateSaveButtonsState();
 }
 
 function syncFormByType() {
@@ -592,7 +725,8 @@ function syncFormByType() {
   } else {
     domainInput.classList.add("qpm-editor-hidden");
   }
-  topicTools?.classList.remove("qpm-editor-hidden");
+  topicTools?.classList.toggle("qpm-editor-hidden", type === "prompt-rules");
+  promptRulesTools?.classList.toggle("qpm-editor-hidden", type !== "prompt-rules");
 }
 
 function setStatus(message, isError = false) {
@@ -987,7 +1121,7 @@ function setSaveStatus(message, isError = false) {
 function updateSaveButtonsState() {
   const currentType = getCurrentEditorType();
   const hasValidJson = parseCurrentJson() !== null;
-  const hasDomain = currentType !== "topics" || Boolean((domainInput?.value || "").trim());
+  const hasDomain = !isDomainScopedType(currentType) || Boolean((domainInput?.value || "").trim());
   const hasChanges = hasUnsavedChangesInCurrentType();
   const shouldEnable = Boolean(isEditorAuthenticated && hasValidJson && hasDomain && hasChanges);
   if (saveBtn instanceof HTMLButtonElement) {
@@ -1016,6 +1150,7 @@ function setRevisionStatus(message, isError = false) {
 function applyCapabilities(capabilities) {
   const normalized = capabilities && typeof capabilities === "object" ? capabilities : {};
   const allowedDomains = normalizeDomainList(normalized.allowedDomains || []);
+  domainLabelsByDomain = {};
   editorCapabilities = {
     canEditLimits: limitsEnabled && normalized.canEditLimits !== false,
     allowedDomains,
@@ -1036,13 +1171,18 @@ function applyCapabilities(capabilities) {
 
 async function fetchDomainsForEditor() {
   const data = await requestJson(`${apiBase}/EditorContent.php?action=domains&type=domains`);
-  return normalizeDomainList(data?.domains || []);
+  return {
+    domains: normalizeDomainList(data?.domains || []),
+    domainLabels: normalizeDomainLabelsMap(data?.domainLabels || {}),
+  };
 }
 
 async function refreshDomainAccess() {
-  if (!isEditorAuthenticated) return;
+  if (!isEditorAuthenticated && !csrfToken) return;
   try {
-    const serverDomains = await fetchDomainsForEditor();
+    const serverResult = await fetchDomainsForEditor();
+    const serverDomains = serverResult.domains || [];
+    domainLabelsByDomain = serverResult.domainLabels || {};
     if (serverDomains.length > 0) {
       configuredTopicDomains =
         baseConfiguredTopicDomains.length > 0
@@ -1066,7 +1206,7 @@ async function refreshDomainAccess() {
 
 function getRevisionContext() {
   const type = getSelectedType();
-  const domain = type === "topics" ? (domainInput?.value || "").trim().toLowerCase() : "";
+  const domain = isDomainScopedType(type) ? (domainInput?.value || "").trim().toLowerCase() : "";
   return { type, domain };
 }
 
@@ -1154,7 +1294,7 @@ async function refreshRevisionList() {
   revisionDiffRowsCache = [];
   syncRevisionActionButtonsVisibility();
   const { type, domain } = getRevisionContext();
-  if (!isEditorAuthenticated || (type === "topics" && !domain)) {
+  if (!isEditorAuthenticated || (isDomainScopedType(type) && !domain)) {
     revisionListInput.innerHTML = "";
     setRevisionControlsVisible(false);
     return;
@@ -1170,7 +1310,7 @@ async function refreshRevisionList() {
     revisionListInput.appendChild(placeholderOpt);
 
     const params = new URLSearchParams({ action: "revisions", type });
-    if (type === "topics") {
+    if (isDomainScopedType(type)) {
       params.set("domain", domain);
     }
     const data = await requestJson(`${apiBase}/EditorContent.php?${params.toString()}`);
@@ -1229,7 +1369,7 @@ async function revertSelectedRevision() {
       body: JSON.stringify({
         action: "revert",
         type,
-        domain: type === "topics" ? domain : undefined,
+        domain: isDomainScopedType(type) ? domain : undefined,
         revisionId,
         csrfToken,
       }),
@@ -1271,7 +1411,7 @@ async function previewSelectedRevision() {
   const { type, domain } = getRevisionContext();
   try {
     const params = new URLSearchParams({ action: "revision", type, revisionId });
-    if (type === "topics") {
+    if (isDomainScopedType(type)) {
       params.set("domain", domain);
     }
     const data = await requestJson(`${apiBase}/EditorContent.php?${params.toString()}`);
@@ -1742,7 +1882,7 @@ async function loadContent() {
   lastSaveUsedJsonButton = false;
   const type = getSelectedType();
   const domain = domainInput.value.trim();
-  if (type === "topics" && !domain) {
+  if (isDomainScopedType(type) && !domain) {
     setStatus(t("domainRequiredForTopics"), true);
     return;
   }
@@ -1759,11 +1899,14 @@ async function loadContent() {
     refreshRevisionNotes();
     collapseAllInTree(normalizedData);
     refreshTopicTree();
-    setActiveTopicLabel(type === "topics" ? domain : getTypeLabel("limits"));
+    if (type === "prompt-rules") {
+      syncPromptRulesInputsFromJson();
+    }
+    setActiveTopicLabel(isDomainScopedType(type) ? domain : getTypeLabel(type));
     setStatus(
-      type === "topics"
-        ? `${getTypeLabel("topics")} ${t("loadedForDomain")} "${domain}".`
-        : `${getTypeLabel("limits")} ${t("loadedShort")}.`
+      isDomainScopedType(type)
+        ? `${getTypeLabel(type)} ${t("loadedForDomain")} "${domain}".`
+        : `${getTypeLabel(type)} ${t("loadedShort")}.`
     );
     updateSaveButtonsState();
     await refreshRevisionList();
@@ -1775,7 +1918,7 @@ async function loadContent() {
 
 async function fetchContentFromServer(type, domain) {
   const query = new URLSearchParams({ type });
-  if (type === "topics" && domain) query.set("domain", domain);
+  if (isDomainScopedType(type) && domain) query.set("domain", domain);
   return requestJson(`${apiBase}/EditorContent.php?${query.toString()}`);
 }
 
@@ -1787,7 +1930,7 @@ async function saveContent(source = "main") {
     setSaveStatus(t("saveBlockedByInlineValidation"), true);
     return;
   }
-  if (type === "topics" && !domain) {
+  if (isDomainScopedType(type) && !domain) {
     setStatus(t("domainRequiredForTopics"), true);
     setSaveStatus(t("domainRequiredForTopics"), true);
     return;
@@ -1838,7 +1981,7 @@ async function saveContent(source = "main") {
       },
       body: JSON.stringify({
         type,
-        domain: type === "topics" ? domain || undefined : undefined,
+        domain: isDomainScopedType(type) ? domain || undefined : undefined,
         data: parsed,
         csrfToken,
       }),
@@ -1864,17 +2007,20 @@ async function saveContent(source = "main") {
     revisionCurrentRestoredFromDate = String(serverData?.currentRestoredFromCreatedAt || "");
     refreshRevisionNotes();
     refreshTopicTree();
+    if (type === "prompt-rules") {
+      syncPromptRulesInputsFromJson();
+    }
 
     const saveStamp = saveResult?.savedAt ? ` (${saveResult.savedAt})` : "";
     setStatus(
-      type === "topics"
-        ? `${getTypeLabel("topics")} ${t("savedAndVerifiedForDomain")} "${domain}"${saveStamp}.`
-        : `${getTypeLabel("limits")} ${t("savedAndVerified")}${saveStamp}.`
+      isDomainScopedType(type)
+        ? `${getTypeLabel(type)} ${t("savedAndVerifiedForDomain")} "${domain}"${saveStamp}.`
+        : `${getTypeLabel(type)} ${t("savedAndVerified")}${saveStamp}.`
     );
     setSaveStatus(
-      type === "topics"
-        ? `${getTypeLabel("topics")} ${t("savedFor")} "${domain}"${saveStamp}.`
-        : `${getTypeLabel("limits")} ${t("savedShort")}${saveStamp}.`
+      isDomainScopedType(type)
+        ? `${getTypeLabel(type)} ${t("savedFor")} "${domain}"${saveStamp}.`
+        : `${getTypeLabel(type)} ${t("savedShort")}${saveStamp}.`
     );
     lastSaveUsedJsonButton = source === "json";
     updateSaveButtonsState();
@@ -1938,6 +2084,9 @@ function mapTopicChildrenToFilterChoices(children) {
 }
 
 function normalizePayloadForEditor(type, rawData) {
+  if (type === "prompt-rules") {
+    return rawData && typeof rawData === "object" && !Array.isArray(rawData) ? { ...rawData } : {};
+  }
   if (type !== "limits") {
     const topics = Array.isArray(rawData?.topics) ? rawData.topics : [];
     return {
@@ -1968,6 +2117,11 @@ function normalizePayloadForEditor(type, rawData) {
 }
 
 function denormalizePayloadFromEditor(type, editorData, currentRawData) {
+  if (type === "prompt-rules") {
+    return editorData && typeof editorData === "object" && !Array.isArray(editorData)
+      ? editorData
+      : {};
+  }
   if (type !== "limits") return editorData || {};
   const currentRaw = currentRawData && typeof currentRawData === "object" ? currentRawData : {};
   const topics = Array.isArray(editorData?.topics) ? editorData.topics : [];
@@ -2007,7 +2161,7 @@ function downloadCurrentJsonBackup() {
   const content = String(jsonInput.value || "").trim() ? jsonInput.value : "{}";
   const type = getSelectedType();
   const selectedDomain = (domainInput instanceof HTMLSelectElement ? domainInput.value : "").trim();
-  const domainSegment = type === "topics" && selectedDomain ? `-${selectedDomain}` : "";
+  const domainSegment = isDomainScopedType(type) && selectedDomain ? `-${selectedDomain}` : "";
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   const filename = `qpm-${type}${domainSegment}-backup-${timestamp}.json`;
 
@@ -2738,6 +2892,7 @@ function refreshTopicTree() {
   updateCollapseToggleButtonLabel();
   if (!topicTreeInput) return;
   topicTreeInput.innerHTML = "";
+  if (getSelectedType() === "prompt-rules") return;
 
   const data = parseCurrentJson();
   if (!data || !Array.isArray(data.topics)) return;
@@ -3358,6 +3513,7 @@ function renumberTopicCategoryOrdering(topics = []) {
 }
 
 function enforceOrderingIntegrity(editorData, type) {
+  if (type === "prompt-rules") return false;
   if (!editorData || !Array.isArray(editorData.topics)) return false;
   const before = stableStringify(editorData);
 
@@ -3918,7 +4074,7 @@ typeInput?.addEventListener("change", async () => {
   await refreshRevisionList();
 });
 domainInput?.addEventListener("change", async () => {
-  if (getSelectedType() !== "topics") return;
+  if (!isDomainScopedType(getSelectedType())) return;
   if (!commitOpenInlineEditorDraft({ silent: false, refreshTree: false })) return;
   if (!confirmDiscardUnsavedCurrentType()) return;
   selectedTopicCategoryId = "";
@@ -3957,7 +4113,18 @@ saveJsonBtn?.addEventListener("click", () => {
   saveContent("json");
 });
 jsonInput?.addEventListener("input", () => {
+  if (getSelectedType() === "prompt-rules") {
+    syncPromptRulesInputsFromJson();
+  }
   updateSaveButtonsState();
+});
+promptRulesDkInput?.addEventListener("input", () => {
+  if (getSelectedType() !== "prompt-rules") return;
+  syncPromptRulesJsonFromInputs();
+});
+promptRulesEnInput?.addEventListener("input", () => {
+  if (getSelectedType() !== "prompt-rules") return;
+  syncPromptRulesJsonFromInputs();
 });
 downloadBackupBtn?.addEventListener("click", downloadCurrentJsonBackup);
 logoutBtn?.addEventListener("click", logout);
