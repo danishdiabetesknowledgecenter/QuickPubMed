@@ -401,7 +401,10 @@ function qpmNormalizeClassOverridesMap($overrides): array
         if (is_string($rawRule)) {
             $classes = qpmNormalizeClassTokenList($rawRule);
         } elseif (is_array($rawRule)) {
-            if (array_is_list($rawRule)) {
+            $isList = function_exists('array_is_list')
+                ? array_is_list($rawRule)
+                : ($rawRule === [] || array_keys($rawRule) === range(0, count($rawRule) - 1));
+            if ($isList) {
                 $classes = qpmNormalizeClassTokenList($rawRule);
             } else {
                 $rawMode = strtolower(trim((string) ($rawRule['mode'] ?? 'append')));
