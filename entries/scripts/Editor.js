@@ -376,6 +376,8 @@ const editorHelpTextKeyMap = {
   "standardString.narrow": "helpStandardStringNarrow",
   "standardString.normal": "helpStandardStringNormal",
   "standardString.broad": "helpStandardStringBroad",
+  "standardString.comment.dk": "helpStandardStringCommentDk",
+  "standardString.comment.en": "helpStandardStringCommentEn",
   "standardString.hint": "helpStandardStringHint",
 };
 
@@ -1652,7 +1654,7 @@ function hasOpenInlineDirtyState() {
   return !snapshotsEqual(historySnapshot, state.baseline);
 }
 
-function createStandardStringsInlineEditor(standardString) {
+function createStandardStringsInlineEditor(standardString, standardStringComment = {}) {
   const wrapper = document.createElement("div");
   wrapper.className = "qpm-editor-inline-editor";
   wrapper.dataset.categoryId = STANDARD_STRINGS_CATEGORY_ID;
@@ -1678,8 +1680,24 @@ function createStandardStringsInlineEditor(standardString) {
   normal.dataset.inlineField = "standardString.normal";
   const broad = mkTextarea(standardString?.broad || "");
   broad.dataset.inlineField = "standardString.broad";
+  const commentDk = mkTextarea(standardStringComment?.dk || "");
+  commentDk.dataset.inlineField = "standardString.comment.dk";
+  const commentEn = mkTextarea(standardStringComment?.en || "");
+  commentEn.dataset.inlineField = "standardString.comment.en";
 
   const hint = mkLabel(t("standardStringsOptionalHint"), "standardString.hint");
+  const primaryLang = editorLanguage === "en" ? "en" : "dk";
+  const secondaryLang = primaryLang === "en" ? "dk" : "en";
+  const commentPrimaryLabel =
+    primaryLang === "en" ? t("itemCommentEnLabel") : t("itemCommentDkLabel");
+  const commentSecondaryLabel =
+    secondaryLang === "en" ? t("itemCommentEnLabel") : t("itemCommentDkLabel");
+  const commentPrimaryInput = primaryLang === "en" ? commentEn : commentDk;
+  const commentSecondaryInput = secondaryLang === "en" ? commentEn : commentDk;
+  const commentPrimaryKey =
+    primaryLang === "en" ? "standardString.comment.en" : "standardString.comment.dk";
+  const commentSecondaryKey =
+    secondaryLang === "en" ? "standardString.comment.en" : "standardString.comment.dk";
 
   const { actionsRow, inlineStatus } = createInlineActions(null, "standardString");
 
@@ -1690,6 +1708,10 @@ function createStandardStringsInlineEditor(standardString) {
     normal,
     mkLabel(t("itemBroadLabel"), "standardString.broad"),
     broad,
+    mkLabel(commentPrimaryLabel, commentPrimaryKey),
+    commentPrimaryInput,
+    mkLabel(commentSecondaryLabel, commentSecondaryKey),
+    commentSecondaryInput,
     hint,
     actionsRow,
     inlineStatus
@@ -1701,6 +1723,8 @@ function createStandardStringsInlineEditor(standardString) {
     "standardString.narrow": String(baselineData?.standardString?.narrow || ""),
     "standardString.normal": String(baselineData?.standardString?.normal || ""),
     "standardString.broad": String(baselineData?.standardString?.broad || ""),
+    "standardString.comment.dk": String(baselineData?.standardStringComment?.dk || ""),
+    "standardString.comment.en": String(baselineData?.standardStringComment?.en || ""),
   };
   setupInlineHistoryTracking(wrapper, historyKey, baselineSnapshot);
 
@@ -2920,7 +2944,10 @@ function refreshTopicTree() {
     standardStringsDiv.appendChild(standardStringsRow);
     topicTreeInput.appendChild(standardStringsDiv);
     if (selectedTopicCategoryId === STANDARD_STRINGS_CATEGORY_ID && !selectedTopicItemId) {
-      const standardStringsEditor = createStandardStringsInlineEditor(data.standardString || {});
+      const standardStringsEditor = createStandardStringsInlineEditor(
+        data.standardString || {},
+        data.standardStringComment || {}
+      );
       topicTreeInput.appendChild(standardStringsEditor);
     }
   }
@@ -3046,7 +3073,7 @@ function resolveCombineWithStandardScopeValue(item, scope) {
   ) {
     return scopeSettings[scope];
   }
-  return item?.combineWithStandardString !== false;
+  return item?.combineWithStandardString === true;
 }
 
 function getStandardStringValueForScope(scope) {
@@ -3951,6 +3978,10 @@ function applyStandardStringsInlineEdits(container, options = {}) {
     narrow: read("standardString.narrow"),
     normal: read("standardString.normal"),
     broad: read("standardString.broad"),
+  };
+  data.standardStringComment = {
+    dk: read("standardString.comment.dk"),
+    en: read("standardString.comment.en"),
   };
 
   selectedTopicCategoryId = STANDARD_STRINGS_CATEGORY_ID;

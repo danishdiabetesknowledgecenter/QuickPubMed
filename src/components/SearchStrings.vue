@@ -25,6 +25,134 @@
           </h2>
         </div>
       </div>
+      <div v-if="hasStandardSearchStrings" class="qpm_subjectSearchStrings">
+        <div
+          class="qpm_headingContainerFocus_h3 qpm_gallery_toggle"
+          role="button"
+          tabindex="0"
+          data-target="qpm_standardSearchStrings"
+          @click="hideOrCollapse('qpm_standardSearchStrings')"
+          @keyup.enter="hideOrCollapse('qpm_standardSearchStrings')"
+          @keyup.space.prevent="hideOrCollapse('qpm_standardSearchStrings')"
+        >
+          <span :class="['qpm_toggle_icon', 'qpm_toggle_placeholder']">
+            <span class="qpm_toggle_plus">+</span>
+            <span class="qpm_toggle_minus">&minus;</span>
+          </span>
+          <div class="qpm_headingWithId">
+            <h3 class="qpm_heading">
+              {{ getString("standardSearchStrings") }}
+            </h3>
+          </div>
+        </div>
+        <div class="qpm_standardSearchStrings qpm_searchGroup qpm_searchSubject">
+          <table class="qpm_table">
+            <tr>
+              <th>{{ getString("scope") }}</th>
+              <th>{{ getString("searchString") }}</th>
+            </tr>
+            <tr v-if="hasValidSearchString(getStandaloneStandardScopeString('narrow'))">
+              <td>
+                <button
+                  v-tooltip="{
+                    content: getString('tooltipNarrow'),
+                    distance: 5,
+                    delay: $helpTextDelay,
+                  }"
+                  class="qpm_button qpm_buttonColor1"
+                >
+                  {{ getString("narrow") }}
+                </button>
+              </td>
+              <td lang="en">
+                <p class="qpm_table_p">
+                  <a
+                    v-tooltip="{
+                      content: getString('showPubMedLink'),
+                      distance: 5,
+                      delay: $helpTextDelay,
+                    }"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    :href="getPubMedLink(getStandaloneStandardScopeString('narrow'))"
+                  >
+                    {{ getStandaloneStandardScopeString("narrow") }}
+                  </a>
+                </p>
+              </td>
+            </tr>
+            <tr v-if="hasValidSearchString(getStandaloneStandardScopeString('normal'))">
+              <td>
+                <button
+                  v-tooltip="{
+                    content: getString('tooltipNormal'),
+                    distance: 5,
+                    delay: $helpTextDelay,
+                  }"
+                  class="qpm_button qpm_buttonColor2"
+                >
+                  {{ getString("normal") }}
+                </button>
+              </td>
+              <td lang="en">
+                <p class="qpm_table_p">
+                  <a
+                    v-tooltip="{
+                      content: getString('showPubMedLink'),
+                      distance: 5,
+                      delay: $helpTextDelay,
+                    }"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    :href="getPubMedLink(getStandaloneStandardScopeString('normal'))"
+                  >
+                    {{ getStandaloneStandardScopeString("normal") }}
+                  </a>
+                </p>
+              </td>
+            </tr>
+            <tr v-if="hasValidSearchString(getStandaloneStandardScopeString('broad'))">
+              <td>
+                <button
+                  v-tooltip="{
+                    content: getString('tooltipBroad'),
+                    distance: 5,
+                    delay: $helpTextDelay,
+                  }"
+                  class="qpm_button qpm_buttonColor3"
+                >
+                  {{ getString("broad") }}
+                </button>
+              </td>
+              <td lang="en">
+                <p class="qpm_table_p">
+                  <a
+                    v-tooltip="{
+                      content: getString('showPubMedLink'),
+                      distance: 5,
+                      delay: $helpTextDelay,
+                    }"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    :href="getPubMedLink(getStandaloneStandardScopeString('broad'))"
+                  >
+                    {{ getStandaloneStandardScopeString("broad") }}
+                  </a>
+                </p>
+              </td>
+            </tr>
+            <tr v-if="standardBlockHasComment()">
+              <th colspan="2">
+                {{ getString("comment") }}
+              </th>
+            </tr>
+            <tr v-if="standardBlockHasComment()">
+              <!-- eslint-disable-next-line vue/no-v-html -->
+              <td colspan="2" v-html="getStandardSearchStringCommentHtml()"></td>
+            </tr>
+          </table>
+        </div>
+      </div>
       <div
         v-for="subject in getSortedTopics"
         :key="`subject-${subject.id}`"
@@ -56,7 +184,14 @@
           :class="['qpm_searchGroup', toClassName(subject.id), ...getAncestorClasses(group)]"
           :data-level="getItemLevel(group)"
           :data-has-children="hasChildren(group) ? '1' : '0'"
-          :style="group.subtopiclevel ? { paddingLeft: group.subtopiclevel * 30 + 'px' } : {}"
+          :style="
+            group.subtopiclevel
+              ? {
+                  '--qpm-group-indent': group.subtopiclevel * 34 + 'px',
+                  paddingLeft: group.subtopiclevel * 34 + 'px',
+                }
+              : {}
+          "
         >
           <div
             :class="['qpm_headingContainerFocus', isClickable(group) ? 'qpm_gallery_toggle' : '']"
@@ -123,6 +258,43 @@
                     >
                       {{ trimSearchString(group.searchStrings.narrow) }}
                     </a>
+                    <span v-if="hasStandardSuffix(group, 'narrow')" class="qpm_standardSuffix">
+                      AND
+                      {{ getString("standardSearchStringLabel") }} ({{
+                        getStandardScopeLabelLowercase(group, "narrow")
+                      }})
+                      <a
+                        v-tooltip="{
+                          content: getToggleStandardTooltip(group, 'narrow'),
+                          distance: 5,
+                          delay: $helpTextDelay,
+                        }"
+                        href="#"
+                        class="qpm_standardSuffixLink"
+                        @click.prevent="toggleStandardExpanded(group, 'narrow')"
+                      >
+                        [{{ getToggleStandardActionLabel(group, "narrow") }}]
+                      </a>
+                    </span>
+                    <span
+                      v-if="
+                        hasStandardSuffix(group, 'narrow') && isStandardExpanded(group, 'narrow')
+                      "
+                      class="qpm_standardSuffixValue"
+                    >
+                      <a
+                        v-tooltip="{
+                          content: getString('tooltipOpenCombinedStandardSearch'),
+                          distance: 5,
+                          delay: $helpTextDelay,
+                        }"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        :href="getStandardCombinedPubMedLink(group, 'narrow')"
+                      >
+                        {{ getStandardScopeString(group, "narrow") }}
+                      </a>
+                    </span>
                   </p>
                 </td>
               </tr>
@@ -153,6 +325,43 @@
                     >
                       {{ trimSearchString(group.searchStrings.normal) }}
                     </a>
+                    <span v-if="hasStandardSuffix(group, 'normal')" class="qpm_standardSuffix">
+                      AND
+                      {{ getString("standardSearchStringLabel") }} ({{
+                        getStandardScopeLabelLowercase(group, "normal")
+                      }})
+                      <a
+                        v-tooltip="{
+                          content: getToggleStandardTooltip(group, 'normal'),
+                          distance: 5,
+                          delay: $helpTextDelay,
+                        }"
+                        href="#"
+                        class="qpm_standardSuffixLink"
+                        @click.prevent="toggleStandardExpanded(group, 'normal')"
+                      >
+                        [{{ getToggleStandardActionLabel(group, "normal") }}]
+                      </a>
+                    </span>
+                    <span
+                      v-if="
+                        hasStandardSuffix(group, 'normal') && isStandardExpanded(group, 'normal')
+                      "
+                      class="qpm_standardSuffixValue"
+                    >
+                      <a
+                        v-tooltip="{
+                          content: getString('tooltipOpenCombinedStandardSearch'),
+                          distance: 5,
+                          delay: $helpTextDelay,
+                        }"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        :href="getStandardCombinedPubMedLink(group, 'normal')"
+                      >
+                        {{ getStandardScopeString(group, "normal") }}
+                      </a>
+                    </span>
                   </p>
                 </td>
               </tr>
@@ -183,6 +392,41 @@
                     >
                       {{ trimSearchString(group.searchStrings.broad) }}
                     </a>
+                    <span v-if="hasStandardSuffix(group, 'broad')" class="qpm_standardSuffix">
+                      AND
+                      {{ getString("standardSearchStringLabel") }} ({{
+                        getStandardScopeLabelLowercase(group, "broad")
+                      }})
+                      <a
+                        v-tooltip="{
+                          content: getToggleStandardTooltip(group, 'broad'),
+                          distance: 5,
+                          delay: $helpTextDelay,
+                        }"
+                        href="#"
+                        class="qpm_standardSuffixLink"
+                        @click.prevent="toggleStandardExpanded(group, 'broad')"
+                      >
+                        [{{ getToggleStandardActionLabel(group, "broad") }}]
+                      </a>
+                    </span>
+                    <span
+                      v-if="hasStandardSuffix(group, 'broad') && isStandardExpanded(group, 'broad')"
+                      class="qpm_standardSuffixValue"
+                    >
+                      <a
+                        v-tooltip="{
+                          content: getString('tooltipOpenCombinedStandardSearch'),
+                          distance: 5,
+                          delay: $helpTextDelay,
+                        }"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        :href="getStandardCombinedPubMedLink(group, 'broad')"
+                      >
+                        {{ getStandardScopeString(group, "broad") }}
+                      </a>
+                    </span>
                   </p>
                 </td>
               </tr>
@@ -245,7 +489,14 @@
           :class="['qpm_filterGroup', toClassName(filter.id), ...getAncestorClasses(choice)]"
           :data-level="getItemLevel(choice)"
           :data-has-children="hasChildren(choice) ? '1' : '0'"
-          :style="choice.subtopiclevel ? { paddingLeft: choice.subtopiclevel * 30 + 'px' } : {}"
+          :style="
+            choice.subtopiclevel
+              ? {
+                  '--qpm-group-indent': choice.subtopiclevel * 34 + 'px',
+                  paddingLeft: choice.subtopiclevel * 34 + 'px',
+                }
+              : {}
+          "
         >
           <div
             :class="['qpm_headingContainerFocus', isClickable(choice) ? 'qpm_gallery_toggle' : '']"
@@ -312,6 +563,43 @@
                     >
                       {{ trimSearchString(choice.searchStrings.narrow) }}
                     </a>
+                    <span v-if="hasStandardSuffix(choice, 'narrow')" class="qpm_standardSuffix">
+                      AND
+                      {{ getString("standardSearchStringLabel") }} ({{
+                        getStandardScopeLabelLowercase(choice, "narrow")
+                      }})
+                      <a
+                        v-tooltip="{
+                          content: getToggleStandardTooltip(choice, 'narrow'),
+                          distance: 5,
+                          delay: $helpTextDelay,
+                        }"
+                        href="#"
+                        class="qpm_standardSuffixLink"
+                        @click.prevent="toggleStandardExpanded(choice, 'narrow')"
+                      >
+                        [{{ getToggleStandardActionLabel(choice, "narrow") }}]
+                      </a>
+                    </span>
+                    <span
+                      v-if="
+                        hasStandardSuffix(choice, 'narrow') && isStandardExpanded(choice, 'narrow')
+                      "
+                      class="qpm_standardSuffixValue"
+                    >
+                      <a
+                        v-tooltip="{
+                          content: getString('tooltipOpenCombinedStandardSearch'),
+                          distance: 5,
+                          delay: $helpTextDelay,
+                        }"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        :href="getStandardCombinedPubMedLink(choice, 'narrow')"
+                      >
+                        {{ getStandardScopeString(choice, "narrow") }}
+                      </a>
+                    </span>
                   </p>
                 </td>
               </tr>
@@ -342,6 +630,43 @@
                     >
                       {{ trimSearchString(choice.searchStrings.normal) }}
                     </a>
+                    <span v-if="hasStandardSuffix(choice, 'normal')" class="qpm_standardSuffix">
+                      AND
+                      {{ getString("standardSearchStringLabel") }} ({{
+                        getStandardScopeLabelLowercase(choice, "normal")
+                      }})
+                      <a
+                        v-tooltip="{
+                          content: getToggleStandardTooltip(choice, 'normal'),
+                          distance: 5,
+                          delay: $helpTextDelay,
+                        }"
+                        href="#"
+                        class="qpm_standardSuffixLink"
+                        @click.prevent="toggleStandardExpanded(choice, 'normal')"
+                      >
+                        [{{ getToggleStandardActionLabel(choice, "normal") }}]
+                      </a>
+                    </span>
+                    <span
+                      v-if="
+                        hasStandardSuffix(choice, 'normal') && isStandardExpanded(choice, 'normal')
+                      "
+                      class="qpm_standardSuffixValue"
+                    >
+                      <a
+                        v-tooltip="{
+                          content: getString('tooltipOpenCombinedStandardSearch'),
+                          distance: 5,
+                          delay: $helpTextDelay,
+                        }"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        :href="getStandardCombinedPubMedLink(choice, 'normal')"
+                      >
+                        {{ getStandardScopeString(choice, "normal") }}
+                      </a>
+                    </span>
                   </p>
                 </td>
               </tr>
@@ -372,6 +697,43 @@
                     >
                       {{ trimSearchString(choice.searchStrings.broad) }}
                     </a>
+                    <span v-if="hasStandardSuffix(choice, 'broad')" class="qpm_standardSuffix">
+                      AND
+                      {{ getString("standardSearchStringLabel") }} ({{
+                        getStandardScopeLabelLowercase(choice, "broad")
+                      }})
+                      <a
+                        v-tooltip="{
+                          content: getToggleStandardTooltip(choice, 'broad'),
+                          distance: 5,
+                          delay: $helpTextDelay,
+                        }"
+                        href="#"
+                        class="qpm_standardSuffixLink"
+                        @click.prevent="toggleStandardExpanded(choice, 'broad')"
+                      >
+                        [{{ getToggleStandardActionLabel(choice, "broad") }}]
+                      </a>
+                    </span>
+                    <span
+                      v-if="
+                        hasStandardSuffix(choice, 'broad') && isStandardExpanded(choice, 'broad')
+                      "
+                      class="qpm_standardSuffixValue"
+                    >
+                      <a
+                        v-tooltip="{
+                          content: getString('tooltipOpenCombinedStandardSearch'),
+                          distance: 5,
+                          delay: $helpTextDelay,
+                        }"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        :href="getStandardCombinedPubMedLink(choice, 'broad')"
+                      >
+                        {{ getStandardScopeString(choice, "broad") }}
+                      </a>
+                    </span>
                   </p>
                 </td>
               </tr>
@@ -396,7 +758,11 @@
   import { appSettingsMixin } from "@/mixins/appSettings";
   import { messages } from "@/assets/content/translations.js";
   import { topicLoaderMixin, flattenTopicGroups } from "@/mixins/topicLoaderMixin.js";
-  import { loadLimitsFromRuntime } from "@/utils/contentLoader";
+  import {
+    loadLimitsFromRuntime,
+    loadStandardString,
+    loadStandardStringComment,
+  } from "@/utils/contentLoader";
   import { order } from "@/assets/content/order.js";
   import { cloneDeep, getLocalizedTranslation } from "@/utils/componentHelpers";
 
@@ -426,9 +792,30 @@
         resolvedCollapsedLevels: null,
         hasAppliedInitialCollapse: false,
         initialCollapsePending: false,
+        standardStringToggleState: {},
       };
     },
     computed: {
+      standardStringConfig() {
+        // Recompute after topic runtime payload has been loaded/cached.
+        void this.topicCatalog;
+        return this.getStandardStringConfig();
+      },
+      standardStringCommentConfig() {
+        // Recompute after topic runtime payload has been loaded/cached.
+        void this.topicCatalog;
+        if (!this.currentDomain) return null;
+        return loadStandardStringComment(this.currentDomain);
+      },
+      hasStandardSearchStrings() {
+        const standardString = this.standardStringConfig;
+        if (!standardString) return false;
+        return (
+          this.hasValidSearchString(standardString.narrow) ||
+          this.hasValidSearchString(standardString.normal) ||
+          this.hasValidSearchString(standardString.broad)
+        );
+      },
       getSortedTopics() {
         const shownTopics = this.getShownData(this.topics, "groups");
         return this.sortData(shownTopics);
@@ -474,7 +861,19 @@
 
         const container = document.createElement("div");
         container.innerHTML = rawHtml;
-        const allowedTags = new Set(["A", "B", "BR", "EM", "I", "LI", "OL", "P", "STRONG", "U", "UL"]);
+        const allowedTags = new Set([
+          "A",
+          "B",
+          "BR",
+          "EM",
+          "I",
+          "LI",
+          "OL",
+          "P",
+          "STRONG",
+          "U",
+          "UL",
+        ]);
         const allowedSchemes = new Set(["http:", "https:", "mailto:"]);
 
         const sanitizeNode = (node) => {
@@ -541,6 +940,124 @@
       getSearchStringCommentHtml(block) {
         if (!block || !block.searchStringComment) return "";
         return this.sanitizeCommentHtml(block.searchStringComment[this.language]);
+      },
+      getStandardSearchStringCommentHtml() {
+        const comments = this.standardStringCommentConfig;
+        if (!comments) return "";
+        return this.sanitizeCommentHtml(comments[this.language]);
+      },
+      standardBlockHasComment() {
+        const comments = this.standardStringCommentConfig;
+        if (!comments) return false;
+        return Boolean(comments[this.language]);
+      },
+      getStandardStringConfig() {
+        if (!this.currentDomain) return null;
+        const standardString = loadStandardString(this.currentDomain);
+        return standardString && typeof standardString === "object" ? standardString : null;
+      },
+      normalizeSearchStringValue(value) {
+        if (!this.hasValidSearchString(value)) return "";
+        return this.trimSearchString(value).trim();
+      },
+      resolveStandardScope(scope, standardString) {
+        if (!standardString || typeof standardString !== "object") return "";
+        if (["narrow", "normal", "broad"].includes(scope)) {
+          const directValue = this.normalizeSearchStringValue(standardString[scope]);
+          if (directValue) return scope;
+        }
+        if (this.normalizeSearchStringValue(standardString.normal)) return "normal";
+        if (this.normalizeSearchStringValue(standardString.narrow)) return "narrow";
+        if (this.normalizeSearchStringValue(standardString.broad)) return "broad";
+        return "";
+      },
+      isStandardScopeEnabled(item, scope) {
+        if (!item || typeof item !== "object") return false;
+        const scopeSettings = item.combineWithStandardStringScopes;
+        if (
+          scopeSettings &&
+          typeof scopeSettings === "object" &&
+          Object.prototype.hasOwnProperty.call(scopeSettings, scope) &&
+          typeof scopeSettings[scope] === "boolean"
+        ) {
+          return scopeSettings[scope] === true;
+        }
+        // Show only when explicitly enabled (scope-specific or legacy flag).
+        return item.combineWithStandardString === true;
+      },
+      getStandardSuffixInfo(item, scope) {
+        if (!this.isStandardScopeEnabled(item, scope)) return null;
+        const standardString = this.getStandardStringConfig();
+        if (!standardString) return null;
+        const resolvedScope = this.resolveStandardScope(scope, standardString);
+        if (!resolvedScope) return null;
+        const standardValue = this.normalizeSearchStringValue(standardString[resolvedScope]);
+        if (!standardValue) return null;
+        return { resolvedScope, standardValue };
+      },
+      hasStandardSuffix(item, scope) {
+        return this.getStandardSuffixInfo(item, scope) !== null;
+      },
+      getStandardScopeLabel(item, scope) {
+        const info = this.getStandardSuffixInfo(item, scope);
+        if (!info) return "";
+        return this.getString(info.resolvedScope);
+      },
+      getStandardScopeLabelLowercase(item, scope) {
+        return String(this.getStandardScopeLabel(item, scope) || "").toLowerCase();
+      },
+      getStandardScopeString(item, scope) {
+        const info = this.getStandardSuffixInfo(item, scope);
+        return info ? info.standardValue : "";
+      },
+      getStandaloneStandardScopeString(scope) {
+        if (!["narrow", "normal", "broad"].includes(scope)) return "";
+        return this.normalizeSearchStringValue(this.standardStringConfig?.[scope]);
+      },
+      getCombinedSearchStringWithStandard(item, scope) {
+        if (!item || typeof item !== "object") return "";
+        const specificSearchString = this.normalizeSearchStringValue(item?.searchStrings?.[scope]);
+        const standardSearchString = this.getStandardScopeString(item, scope);
+        if (!specificSearchString || !standardSearchString) return "";
+
+        const normalizeForContainsCheck = (value) =>
+          String(value || "")
+            .replace(/\s+/g, " ")
+            .trim()
+            .toLowerCase();
+        const specificNorm = normalizeForContainsCheck(specificSearchString);
+        const standardNorm = normalizeForContainsCheck(standardSearchString);
+        if (standardNorm && specificNorm.includes(standardNorm)) {
+          return specificSearchString;
+        }
+        return `(${specificSearchString}) AND (${standardSearchString})`;
+      },
+      getStandardCombinedPubMedLink(item, scope) {
+        const combinedSearchString = this.getCombinedSearchStringWithStandard(item, scope);
+        if (!combinedSearchString) return "#";
+        return this.getPubMedLink(combinedSearchString);
+      },
+      getToggleStandardTooltip(item, scope) {
+        return this.isStandardExpanded(item, scope)
+          ? this.getString("tooltipHideStandardString")
+          : this.getString("tooltipShowStandardString");
+      },
+      getToggleStandardActionLabel(item, scope) {
+        return this.isStandardExpanded(item, scope)
+          ? this.getString("hideShort")
+          : this.getString("showShort");
+      },
+      getStandardToggleKey(item, scope) {
+        const itemId = item?.id ? String(item.id) : "";
+        return `${itemId}::${scope}`;
+      },
+      isStandardExpanded(item, scope) {
+        const key = this.getStandardToggleKey(item, scope);
+        return this.standardStringToggleState[key] === true;
+      },
+      toggleStandardExpanded(item, scope) {
+        const key = this.getStandardToggleKey(item, scope);
+        this.standardStringToggleState[key] = !this.standardStringToggleState[key];
       },
       async loadGalleryContent() {
         this.topics = Array.isArray(this.topicCatalog) ? [...this.topicCatalog] : [];
@@ -680,6 +1197,7 @@
 
         // Level 1: sections
         [
+          ...document.getElementsByClassName("qpm_standardSearchStrings"),
           ...document.getElementsByClassName("qpm_subjectSearchStrings"),
           ...document.getElementsByClassName("qpm_filterSearchStrings"),
         ].forEach((el) => {
@@ -795,6 +1313,7 @@
       },
       toggleAll() {
         const allSections = [
+          ...document.getElementsByClassName("qpm_standardSearchStrings"),
           ...document.getElementsByClassName("qpm_subjectSearchStrings"),
           ...document.getElementsByClassName("qpm_filterSearchStrings"),
         ];

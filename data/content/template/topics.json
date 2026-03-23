@@ -83,8 +83,8 @@
                                 "en": "Subtopic 2.1"
                             },
                             "ordering": {
-                                "dk": 3,
-                                "en": 3
+                                "dk": 1,
+                                "en": 1
                             },
                             "searchStringComment": {
                                 "dk": "Dette er et eksempel på et underemne på niveau 2, som også har et under&shy;liggende emne (indikeret med en pil). Klik for at se under&shy;liggende emner.",
@@ -870,7 +870,15 @@
                         "dk": "",
                         "en": ""
                     },
-                    "children": []
+                    "children": [],
+                    "lockIdOnSort": true,
+                    "hiddenByDefault": false,
+                    "combineWithStandardStringScopes": {
+                        "narrow": false,
+                        "normal": false,
+                        "broad": false
+                    },
+                    "internalComment": ""
                 },
                 {
                     "id": "S020030",
@@ -902,7 +910,15 @@
                         "dk": "",
                         "en": ""
                     },
-                    "children": []
+                    "children": [],
+                    "lockIdOnSort": true,
+                    "hiddenByDefault": false,
+                    "combineWithStandardStringScopes": {
+                        "narrow": false,
+                        "normal": false,
+                        "broad": false
+                    },
+                    "internalComment": ""
                 },
                 {
                     "id": "S020040",
@@ -934,7 +950,15 @@
                         "dk": "",
                         "en": ""
                     },
-                    "children": []
+                    "children": [],
+                    "lockIdOnSort": true,
+                    "hiddenByDefault": false,
+                    "combineWithStandardStringScopes": {
+                        "narrow": false,
+                        "normal": false,
+                        "broad": false
+                    },
+                    "internalComment": ""
                 },
                 {
                     "id": "S020050",
@@ -1367,7 +1391,15 @@
                         "dk": "",
                         "en": ""
                     },
-                    "children": []
+                    "children": [],
+                    "lockIdOnSort": true,
+                    "hiddenByDefault": false,
+                    "combineWithStandardStringScopes": {
+                        "narrow": true,
+                        "normal": true,
+                        "broad": true
+                    },
+                    "internalComment": ""
                 },
                 {
                     "id": "S030020",
@@ -1382,13 +1414,13 @@
                     },
                     "searchStrings": {
                         "narrow": [
-                            "\"Dipeptidyl-Peptidase IV Inhibitors\"[majr] AND \"Diabetes Mellitus\"[majr]"
+                            "\"Dipeptidyl-Peptidase IV Inhibitors\"[majr]"
                         ],
                         "normal": [
-                            "(\"Dipeptidyl-Peptidase IV Inhibitors\"[mh] OR dpp[ti] OR dipeptyl*[ti]) AND (\"Diabetes Mellitus\"[mh] OR diabet*[ti])"
+                            "\"Dipeptidyl-Peptidase IV Inhibitors\"[mh] OR dpp[ti] OR dipeptyl*[ti]"
                         ],
                         "broad": [
-                            "(\"Dipeptidyl-Peptidase IV Inhibitors\"[mh] OR \"Dipeptidyl-Peptidase IV Inhibitors\"[pa] OR dpp[tiab] OR dipeptyl*[tiab]) AND (\"Diabetes Mellitus\"[mh] OR diabet*[tiab])"
+                            "\"Dipeptidyl-Peptidase IV Inhibitors\"[mh] OR \"Dipeptidyl-Peptidase IV Inhibitors\"[pa] OR dpp[tiab] OR dipeptyl*[tiab]"
                         ]
                     },
                     "searchStringComment": {
@@ -1399,7 +1431,15 @@
                         "dk": "",
                         "en": ""
                     },
-                    "children": []
+                    "children": [],
+                    "lockIdOnSort": true,
+                    "hiddenByDefault": false,
+                    "combineWithStandardStringScopes": {
+                        "narrow": true,
+                        "normal": true,
+                        "broad": true
+                    },
+                    "internalComment": ""
                 },
                 {
                     "id": "S030030",
@@ -1666,8 +1706,8 @@
                                 "en": "DASH diet"
                             },
                             "ordering": {
-                                "dk": 3,
-                                "en": 3
+                                "dk": 1,
+                                "en": 1
                             },
                             "searchStrings": {
                                 "narrow": [
@@ -1698,8 +1738,8 @@
                                 "en": "Low carb high fat (LCHF)"
                             },
                             "ordering": {
-                                "dk": 4,
-                                "en": 4
+                                "dk": 2,
+                                "en": 2
                             },
                             "searchStrings": {
                                 "narrow": [
@@ -1730,8 +1770,8 @@
                                 "en": "Mediterranean diet"
                             },
                             "ordering": {
-                                "dk": 5,
-                                "en": 5
+                                "dk": 3,
+                                "en": 3
                             },
                             "searchStrings": {
                                 "narrow": [
@@ -1762,8 +1802,8 @@
                                 "en": "Paleolithic diet"
                             },
                             "ordering": {
-                                "dk": 6,
-                                "en": 6
+                                "dk": 4,
+                                "en": 4
                             },
                             "searchStrings": {
                                 "narrow": [
@@ -1794,8 +1834,8 @@
                                 "en": "Plant-based diet"
                             },
                             "ordering": {
-                                "dk": 7,
-                                "en": 7
+                                "dk": 5,
+                                "en": 5
                             },
                             "searchStringComment": {
                                 "dk": "",
@@ -1814,8 +1854,8 @@
                                         "en": "Plant-based diet in general"
                                     },
                                     "ordering": {
-                                        "dk": 8,
-                                        "en": 8
+                                        "dk": 1,
+                                        "en": 1
                                     },
                                     "searchStrings": {
                                         "narrow": [
@@ -1846,8 +1886,8 @@
                                         "en": "Vegetarian diet"
                                     },
                                     "ordering": {
-                                        "dk": 9,
-                                        "en": 9
+                                        "dk": 2,
+                                        "en": 2
                                     },
                                     "searchStrings": {
                                         "narrow": [
@@ -1878,8 +1918,8 @@
                                         "en": "Vegan diet"
                                     },
                                     "ordering": {
-                                        "dk": 10,
-                                        "en": 10
+                                        "dk": 3,
+                                        "en": 3
                                     },
                                     "searchStrings": {
                                         "narrow": [
@@ -1912,8 +1952,8 @@
                                 "en": "Time-restricted eating"
                             },
                             "ordering": {
-                                "dk": 11,
-                                "en": 11
+                                "dk": 6,
+                                "en": 6
                             },
                             "searchStrings": {
                                 "narrow": [
@@ -2207,8 +2247,8 @@
                                 "en": "Cardiorespiratory fitness in general"
                             },
                             "ordering": {
-                                "dk": 2,
-                                "en": 2
+                                "dk": 1,
+                                "en": 1
                             },
                             "searchStrings": {
                                 "narrow": [
@@ -2239,8 +2279,8 @@
                                 "en": "Daily activities (low to moderate intensity)"
                             },
                             "ordering": {
-                                "dk": 3,
-                                "en": 3
+                                "dk": 2,
+                                "en": 2
                             },
                             "searchStrings": {
                                 "narrow": [
@@ -2271,8 +2311,8 @@
                                 "en": "Endurance training (moderate intensity)"
                             },
                             "ordering": {
-                                "dk": 4,
-                                "en": 4
+                                "dk": 3,
+                                "en": 3
                             },
                             "searchStrings": {
                                 "narrow": [
@@ -2303,8 +2343,8 @@
                                 "en": "High-intensity interval training (HIIT)"
                             },
                             "ordering": {
-                                "dk": 5,
-                                "en": 5
+                                "dk": 4,
+                                "en": 4
                             },
                             "searchStrings": {
                                 "narrow": [
@@ -2760,8 +2800,8 @@
                                 "en": "Skiing"
                             },
                             "ordering": {
-                                "dk": 8,
-                                "en": 8
+                                "dk": 7,
+                                "en": 7
                             },
                             "searchStrings": {
                                 "narrow": [
@@ -2800,8 +2840,8 @@
                                 "en": "Swimming"
                             },
                             "ordering": {
-                                "dk": 7,
-                                "en": 7
+                                "dk": 8,
+                                "en": 8
                             },
                             "searchStrings": {
                                 "narrow": [
@@ -4802,5 +4842,9 @@
         "narrow": "\"Diabetes Mellitus\"[majr]",
         "normal": "\"Diabetes Mellitus\"[mh] OR diabet*[ti]",
         "broad": "\"Diabetes Mellitus\"[mh] OR diabet*[tiab]"
+    },
+    "standardStringComment": {
+        "dk": "Dette er kommentar til standardsøgestrengene.",
+        "en": ""
     }
 }

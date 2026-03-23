@@ -103,6 +103,8 @@ Frontend reads this via `backend/api/PublicContent.php`:
 - If `data-standard-string-add="true"` and `data-standard-string` is set, this value is used as the standard string.
 - `data-standard-string` overrides domain `standardString` from runtime topics.
 - It also works when `data-domain=""` (empty domain).
+- Domain topics payload can also include `standardStringComment` for DK/EN comment text shown in SearchStrings:
+  - `"standardStringComment": { "dk": "...", "en": "..." }`
 
 Example:
 

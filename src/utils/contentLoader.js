@@ -156,3 +156,24 @@ export function loadStandardString(domain) {
 
   return null;
 }
+
+/**
+ * Loads standard search string comment for the specified domain from runtime payload cache only.
+ *
+ * @param {string} domain - The domain name (e.g., 'diabetes', 'dementia').
+ * @returns {Object|null} - { dk, en } or null if missing/empty.
+ */
+export function loadStandardStringComment(domain) {
+  if (domain && runtimeTopicPayloadCache.has(domain)) {
+    const runtimePayload = runtimeTopicPayloadCache.get(domain)?.data;
+    const runtimeComment =
+      runtimePayload?.standardStringComment || runtimePayload?.standardString?.comment;
+    if (runtimeComment && typeof runtimeComment === "object") {
+      return {
+        dk: String(runtimeComment.dk || ""),
+        en: String(runtimeComment.en || ""),
+      };
+    }
+  }
+  return null;
+}

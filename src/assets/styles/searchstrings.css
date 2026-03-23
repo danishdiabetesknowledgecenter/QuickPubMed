@@ -17,8 +17,8 @@
 .qpm_subjectSearchStrings, 
 .qpm_filterSearchStrings {
     border-top: 1px solid var(--color-grey-light);
-    padding-top: 10px;
-    margin: 20px 0 0 0;
+    padding-top: 25px;
+    margin: 5px 0 0 0;
 }
 
 .qpm_heading_limits {
@@ -103,26 +103,26 @@
 
 .qpm_subjectSearchStrings, 
 .qpm_searchGroup, 
-.qpm_searchSubject, 
 .qpm_filterSearchStrings, 
 .qpm_filterGroup, 
 .qpm_searchFilter {
-    margin-left: 31px;
+    margin-left: 35px;
 }
 .qpm_searchGroup.qpm_maintopicDropdown,
 .qpm_filterGroup.qpm_maintopicDropdown {
-	margin-left: 60px;
+	margin-left: 69px;
 }
 .qpm_searchGroup.qpm_maintopicDropdown.qpm_subtopicDropdown,
 .qpm_filterGroup.qpm_maintopicDropdown.qpm_subtopicDropdown {
-	margin-left: 60px;
+	margin-left: 69px;
 }
 .qpm_searchGroup.qpm_subtopicDropdown.qpm_subtopicDropdownLevel2,
 .qpm_filterGroup.qpm_subtopicDropdown.qpm_subtopicDropdownLevel2 {
-	margin-left: 60px;
+	margin-left: 69px;
 }
 .qpm_searchSubject, 
 .qpm_searchFilter {
+    margin-left: 34px;
     margin-bottom: 20px;
 }
 
@@ -148,6 +148,21 @@
     margin-bottom: 0 !important;
 }
 
+.qpm_standardSuffix {
+    margin-left: 0;
+}
+
+.qpm_standardSuffixLink {
+    text-decoration: underline;
+}
+
+.qpm_standardSuffixValue {
+    display: block;
+    margin-top: 6px;
+    color: var(--color-grey-dark);
+    word-break: break-word;
+}
+
 .qpm_searchSubject th:first-child, 
 .qpm_searchFilter th:first-child {
     width: 1%;
@@ -165,7 +180,7 @@
 }
 
 .qpm_table {
-    margin-top: 15px !important;
+    margin-top: -5px !important;
     margin-bottom: 35px !important;
 }
 
@@ -199,21 +214,34 @@
 /* Mobile screen adjustments */
 
 @media only screen and (max-width: 800px) {
+    .qpm_searchGroup,
+    .qpm_filterGroup {
+        padding-left: 0 !important;
+    }
+    .qpm_searchGroup > .qpm_headingContainerFocus,
+    .qpm_filterGroup > .qpm_headingContainerFocus {
+        padding-left: var(--qpm-group-indent, 0px);
+    }
     .qpm_searchSubject, 
     .qpm_searchFilter {
-        width: calc(100% + 60px);
+        width: calc(100% + 82px);
         position: relative;
-        left: -90px;
+        left: -110px;
     }
-    .qpm_subtopicDropdown .qpm_searchGroup,
-    .qpm_subtopicDropdown .qpm_filterGroup {
+    .qpm_subtopicDropdown .qpm_searchGroup:not(.qpm_searchSubject),
+    .qpm_subtopicDropdown .qpm_filterGroup:not(.qpm_searchFilter) {
         width: calc(100% + 90px);
         left: -120px;
     }
-    .qpm_subtopicDropdownLevel2 .qpm_searchGroup,
-    .qpm_subtopicDropdownLevel2 .qpm_filterGroup {
+    .qpm_subtopicDropdownLevel2 .qpm_searchGroup:not(.qpm_searchSubject),
+    .qpm_subtopicDropdownLevel2 .qpm_filterGroup:not(.qpm_searchFilter) {
         width: calc(100% + 120px);
         left: -150px;
+    }
+    .qpm_standardSearchStrings.qpm_searchGroup.qpm_searchSubject {
+        width: calc(100% + 47px);
+        position: relative;
+        left: -75px;
     }
 }
 

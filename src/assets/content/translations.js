@@ -3,6 +3,38 @@ export const messages = {
     dk: "test",
     en: "test",
   },
+  standardLabel: {
+    dk: "Standard",
+    en: "Standard",
+  },
+  standardSearchStringLabel: {
+    dk: "Standardsøgestreng",
+    en: "Standard search string",
+  },
+  standardSearchStrings: {
+    dk: "Standardsøgestrenge",
+    en: "Standard search strings",
+  },
+  showShort: {
+    dk: "vis",
+    en: "show",
+  },
+  hideShort: {
+    dk: "skjul",
+    en: "hide",
+  },
+  tooltipShowStandardString: {
+    dk: "Klik for at vise standardsøgestrengen.",
+    en: "Click to show the standard search string.",
+  },
+  tooltipHideStandardString: {
+    dk: "Klik for at skjule standardsøgestrengen.",
+    en: "Click to hide the standard search string.",
+  },
+  tooltipOpenCombinedStandardSearch: {
+    dk: "Klik for at åbne PubMed med den specifikke søgestreng kombineret med standardsøgestrengen.",
+    en: "Click to open PubMed with the specific search string combined with the standard search string.",
+  },
   mobileActionCancel: {
     dk: "Annuller",
     en: "Cancel",
@@ -1751,6 +1783,14 @@ export const messages = {
   editor_helpStandardStringBroad: {
     dk: "Standardsøgestreng for broad-scope. Bruges ved kombination med underemner i broad.",
     en: "Standard search string for broad scope. Used when combining with subtopics in broad.",
+  },
+  editor_helpStandardStringCommentDk: {
+    dk: "Kommentar på dansk til standardsøgestrengene.",
+    en: "Danish comment for the standard search strings.",
+  },
+  editor_helpStandardStringCommentEn: {
+    dk: "Kommentar på engelsk til standardsøgestrengene.",
+    en: "English comment for the standard search strings.",
   },
   editor_helpStandardStringHint: {
     dk: "Valgfrit: Tomme felter betyder, at der ikke tilføjes standardsøgestreng for det scope.",
