@@ -709,7 +709,23 @@ function editorWriteJsonAtomic(string $filePath, array $payload): void
     $tmpFile = $filePath . '.tmp';
     $fp = @fopen($tmpFile, 'wb');
     if ($fp === false) {
-        editorJsonResponse(500, ['error' => 'Failed to write content file']);
+        // Fallback for environments where creating temp files in target dir is blocked.
+        // We still lock and truncate the target file to keep writes consistent.
+        $direct = @fopen($filePath, 'c+b');
+        if ($direct === false) {
+            editorJsonResponse(500, ['error' => 'Failed to write content file']);
+        }
+        if (!flock($direct, LOCK_EX)) {
+            fclose($direct);
+            editorJsonResponse(500, ['error' => 'Failed to lock content file']);
+        }
+        ftruncate($direct, 0);
+        rewind($direct);
+        fwrite($direct, $json . PHP_EOL);
+        fflush($direct);
+        flock($direct, LOCK_UN);
+        fclose($direct);
+        return;
     }
 
     if (!flock($fp, LOCK_EX)) {
