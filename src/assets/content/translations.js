@@ -945,6 +945,18 @@ export const messages = {
     en: "Topics",
   },
   editor_typeLimits: {
+    dk: "Afgrænsninger (fælles)",
+    en: "Limits (shared)",
+  },
+  editor_typeLimitsSettings: {
+    dk: "Afgrænsninger (domæneindstillinger)",
+    en: "Limits (domain settings)",
+  },
+  editor_typeLimitsSettingsRestricted: {
+    dk: "Afgræsninger",
+    en: "Limits",
+  },
+  editor_typeLimitsSettingsFullAccess: {
     dk: "Afgrænsninger",
     en: "Limits",
   },
@@ -1176,6 +1188,14 @@ export const messages = {
     dk: "Tooltip (en)",
     en: "Tooltip (en)",
   },
+  editor_itemTooltipSimpleDkLabel: {
+    dk: "Tooltip simple (dk)",
+    en: "Tooltip simple (dk)",
+  },
+  editor_itemTooltipSimpleEnLabel: {
+    dk: "Tooltip simple (en)",
+    en: "Tooltip simple (en)",
+  },
   editor_itemInternalCommentLabel: {
     dk: "Intern kommentar",
     en: "Internal comment",
@@ -1213,8 +1233,8 @@ export const messages = {
     en: "Lock ID during sorting",
   },
   editor_showScopeButtonsLabel: {
-    dk: "Vis scope-knapper (n/s/b)",
-    en: "Show scope buttons (n/s/b)",
+    dk: "Vis omfangs-knapper ('smal', 'normal' og 'bred')",
+    en: "Show scope buttons ('narrow', 'standard' and 'broad')",
   },
   editor_showInSimpleModeLabel: {
     dk: "Vis i simple mode",
@@ -1689,8 +1709,8 @@ export const messages = {
     en: "When checked, the child item is hidden by default in the form.",
   },
   editor_helpItemButtons: {
-    dk: "Vis scope-knapper (n/s/b) for dette underemne i søgeformularen.",
-    en: "Show scope buttons (n/s/b) for this child item in the search form.",
+    dk: "Hvis slået fra vises ingen omfangs-knapper, og søgestregen for 'normal' anvendes som standard for dette emne.",
+    en: "If disabled, no scope buttons are shown, and the search string for 'normal' is used as standard for this item.",
   },
   editor_helpItemSimpleSearch: {
     dk: "Når markeret, vises afgrænsningen i simple mode.",
@@ -1767,6 +1787,14 @@ export const messages = {
   editor_helpItemTooltipEn: {
     dk: "Hjælpetekst på engelsk, vist i brugerfladen.",
     en: "Help text in English, shown in the UI.",
+  },
+  editor_helpItemTooltipSimpleDk: {
+    dk: "Hjælpetekst i simple mode på dansk, vist i brugerfladen.",
+    en: "Simple mode help text in Danish, shown in the UI.",
+  },
+  editor_helpItemTooltipSimpleEn: {
+    dk: "Hjælpetekst i simple mode på engelsk, vist i brugerfladen.",
+    en: "Simple mode help text in English, shown in the UI.",
   },
   editor_helpItemInternalComment: {
     dk: "Intern kommentar til redaktionelt brug. Vises ikke i brugerfladen.",

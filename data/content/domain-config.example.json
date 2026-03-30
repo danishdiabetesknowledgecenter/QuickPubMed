@@ -11,6 +11,10 @@
   "unpaywall": {
     "email": ""
   },
+  "domain_name": {
+    "dk": "Domænenavn",
+    "en": "Domain name"
+  },
   "class_overrides": {
     "qpm_pubmedLink": {
       "mode": "append",

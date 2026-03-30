@@ -10,6 +10,7 @@ node_modules
 # PHP proxy config (indeholder API-nøgle)
 php-proxy/config.php
 php-proxy/config/config.php
+# Backend secrets — ikke i git (brug config.example.php / config/config.example.php som skabelon)
 backend/config.php
 backend/config/config.php
 

@@ -14,6 +14,10 @@ RewriteEngine On
     Order Allow,Deny
     Deny from all
 </Files>
+<Files "config.example.php">
+    Order Allow,Deny
+    Deny from all
+</Files>
 RewriteRule ^config/ - [F,L]
 RewriteRule ^app/ - [F,L]
 RewriteRule ^storage/ - [F,L]

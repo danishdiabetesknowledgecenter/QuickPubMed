@@ -68,8 +68,6 @@ jobs:
           exclude: |
              config.php
              config/config.php
-             config.example.php
-             config/config.example.php
              runtime/**
              *.lock
 

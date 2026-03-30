@@ -33,11 +33,11 @@ if ($method === 'GET') {
     }
 
     if ($action === 'revisions') {
-        if (!in_array($type, ['topics', 'limits', 'prompt-rules'], true)) {
+        if (!in_array($type, ['topics', 'limits', 'prompt-rules', 'limits-settings'], true)) {
             editorJsonResponse(400, ['error' => 'Invalid or missing type']);
         }
         $domain = null;
-        if ($type === 'topics' || $type === 'prompt-rules') {
+        if ($type === 'topics' || $type === 'prompt-rules' || $type === 'limits-settings') {
             $domain = (string) ($_GET['domain'] ?? '');
             if (!editorCanEditDomain($domain)) {
                 editorAudit('revisions_forbidden', ['type' => $type, 'domain' => $domain]);
@@ -105,7 +105,7 @@ if ($method === 'GET') {
         ]);
     }
     if ($action === 'revision') {
-        if (!in_array($type, ['topics', 'limits', 'prompt-rules'], true)) {
+        if (!in_array($type, ['topics', 'limits', 'prompt-rules', 'limits-settings'], true)) {
             editorJsonResponse(400, ['error' => 'Invalid or missing type']);
         }
         $revisionId = trim((string) ($_GET['revisionId'] ?? ''));
@@ -113,7 +113,7 @@ if ($method === 'GET') {
             editorJsonResponse(400, ['error' => 'revisionId is required']);
         }
         $domain = null;
-        if ($type === 'topics' || $type === 'prompt-rules') {
+        if ($type === 'topics' || $type === 'prompt-rules' || $type === 'limits-settings') {
             $domain = (string) ($_GET['domain'] ?? '');
             if (!editorCanEditDomain($domain)) {
                 editorAudit('revision_read_forbidden', ['type' => $type, 'domain' => $domain, 'revisionId' => $revisionId]);
@@ -131,7 +131,7 @@ if ($method === 'GET') {
         $normalizedDomain = editorNormalizeDomain((string) $domain);
         if (
             $recordType !== $type ||
-            (($type === 'topics' || $type === 'prompt-rules') && $recordDomain !== $normalizedDomain)
+            (($type === 'topics' || $type === 'prompt-rules' || $type === 'limits-settings') && $recordDomain !== $normalizedDomain)
         ) {
             editorJsonResponse(404, ['error' => 'Revision not found']);
         }
@@ -147,12 +147,12 @@ if ($method === 'GET') {
         ]);
     }
 
-    if (!in_array($type, ['topics', 'limits', 'prompt-rules'], true)) {
+    if (!in_array($type, ['topics', 'limits', 'prompt-rules', 'limits-settings'], true)) {
         editorJsonResponse(400, ['error' => 'Invalid or missing type']);
     }
 
     $domain = null;
-    if ($type === 'topics' || $type === 'prompt-rules') {
+    if ($type === 'topics' || $type === 'prompt-rules' || $type === 'limits-settings') {
         $domain = (string) ($_GET['domain'] ?? '');
         if (!editorCanEditDomain($domain)) {
             editorAudit('content_read_forbidden', ['type' => $type, 'domain' => $domain]);
@@ -212,12 +212,12 @@ if ($method === 'POST') {
 
     $action = strtolower(trim((string) ($input['action'] ?? 'save')));
     $type = strtolower(trim((string) ($input['type'] ?? '')));
-    if (!in_array($type, ['topics', 'limits', 'prompt-rules'], true)) {
+    if (!in_array($type, ['topics', 'limits', 'prompt-rules', 'limits-settings'], true)) {
         editorJsonResponse(400, ['error' => 'Invalid or missing type']);
     }
 
     $domain = null;
-    if ($type === 'topics' || $type === 'prompt-rules') {
+    if ($type === 'topics' || $type === 'prompt-rules' || $type === 'limits-settings') {
         $domain = (string) ($input['domain'] ?? '');
         if (!editorCanEditDomain($domain)) {
             editorAudit('content_write_forbidden', ['type' => $type, 'domain' => $domain, 'action' => $action]);
@@ -242,7 +242,7 @@ if ($method === 'POST') {
         $normalizedDomain = editorNormalizeDomain((string) $domain);
         if (
             $recordType !== $type ||
-            (($type === 'topics' || $type === 'prompt-rules') && $recordDomain !== $normalizedDomain)
+            (($type === 'topics' || $type === 'prompt-rules' || $type === 'limits-settings') && $recordDomain !== $normalizedDomain)
         ) {
             editorJsonResponse(404, ['error' => 'Revision not found']);
         }
@@ -307,6 +307,9 @@ if ($method === 'POST') {
     }
 
     $payload = $input['data'];
+    if ($type === 'limits' || $type === 'limits-settings') {
+        $payload = editorCanonicalizeLimitsPayloadToGroups($payload);
+    }
     editorValidateContentPayload($type, $payload);
     $currentData = editorReadJsonFile($path);
     if (editorPayloadHash($currentData) === editorPayloadHash($payload)) {

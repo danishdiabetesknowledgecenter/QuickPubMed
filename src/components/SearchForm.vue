@@ -763,7 +763,7 @@
       },
       async loadLimitsData() {
         try {
-          this.limitsContent = await loadLimitsFromRuntime();
+          this.limitsContent = await loadLimitsFromRuntime(this.currentDomain);
         } catch (error) {
           this.limitsContent = [];
           console.error("Failed to load limits from runtime content API.", error);

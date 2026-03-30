@@ -30,6 +30,7 @@ function ensureEditorMarkup() {
         <select id="qpm-editor-type" class="qpm-editor-select">
           <option value="topics">Topics</option>
           <option value="limits">Limits</option>
+          <option value="limits-settings">Limits settings</option>
           <option value="prompt-rules">Prompt rules</option>
         </select>
         <select id="qpm-editor-domain" class="qpm-editor-select"></select>
@@ -195,6 +196,7 @@ let hiddenSinceTs = null;
 let hiddenLogoutTimerId = 0;
 let unloadLogoutSent = false;
 let editorCapabilities = { canEditLimits: limitsEnabled, allowedDomains: [] };
+let sharedLimitsFallbackEditorData = null;
 let isSyncingPromptRulesForm = false;
 const editorLanguageRaw = String(root?.dataset?.language || "dk")
   .trim()
@@ -220,6 +222,11 @@ function t(key) {
 }
 function getTypeLabel(type) {
   if (type === "limits") return t("typeLimits");
+  if (type === "limits-settings") {
+    return editorCapabilities.canEditLimits
+      ? t("typeLimitsSettingsFullAccess")
+      : t("typeLimitsSettingsRestricted");
+  }
   if (type === "prompt-rules") return t("typePromptRules");
   return t("typeTopics");
 }
@@ -230,6 +237,7 @@ function deepClone(value) {
 
 function normalizeTypeValue(type) {
   if (type === "limits") return "limits";
+  if (type === "limits-settings") return "limits-settings";
   if (type === "prompt-rules") return "prompt-rules";
   return "topics";
 }
@@ -340,7 +348,7 @@ let revisionCurrentPreviewDate = "";
 let revisionCurrentRestoredFromDate = "";
 let lastSaveUsedJsonButton = false;
 let activeEditorType = "topics";
-const editorBaselineByType = { topics: "", "prompt-rules": "", limits: "" };
+const editorBaselineByType = { topics: "", "prompt-rules": "", limits: "", "limits-settings": "" };
 const inlineHistoryStateByKey = new Map();
 let isApplyingInlineSnapshot = false;
 const editorHelpTextKeyMap = {
@@ -372,6 +380,8 @@ const editorHelpTextKeyMap = {
   "item.searchStringComment.en": "helpItemSearchStringCommentEn",
   "item.tooltip.dk": "helpItemTooltipDk",
   "item.tooltip.en": "helpItemTooltipEn",
+  "item.tooltip_simple.dk": "helpItemTooltipSimpleDk",
+  "item.tooltip_simple.en": "helpItemTooltipSimpleEn",
   "item.internalComment": "helpItemInternalComment",
   "standardString.narrow": "helpStandardStringNarrow",
   "standardString.normal": "helpStandardStringNormal",
@@ -431,6 +441,8 @@ function applyEditorLanguageTexts() {
     if (promptRulesOption) promptRulesOption.textContent = getTypeLabel("prompt-rules");
     const limitsOption = typeInput.querySelector('option[value="limits"]');
     if (limitsOption) limitsOption.textContent = getTypeLabel("limits");
+    const limitsSettingsOption = typeInput.querySelector('option[value="limits-settings"]');
+    if (limitsSettingsOption) limitsSettingsOption.textContent = getTypeLabel("limits-settings");
   }
   setRevisionPreviewButtonLabel(
     Boolean(revisionPreviewJson && !revisionPreviewJson.classList.contains("qpm-editor-hidden"))
@@ -601,7 +613,7 @@ function syncDomainOptions() {
   } else {
     domainInput.classList.remove("qpm-editor-hidden");
   }
-  domainInput.disabled = getSelectedType() === "limits";
+  domainInput.disabled = !isDomainScopedType(getSelectedType());
 }
 
 function syncTypeOptionsVisibility() {
@@ -618,7 +630,7 @@ function syncTypeOptionsVisibility() {
   if (!editorCapabilities.canEditLimits && typeInput.value === "limits") {
     typeInput.value = "topics";
   }
-  const typeOrder = ["topics", "limits", "prompt-rules"];
+  const typeOrder = ["topics", "limits-settings", "prompt-rules", "limits"];
   typeOrder.forEach((value) => {
     const option = typeInput.querySelector(`option[value="${value}"]`);
     if (option) typeInput.appendChild(option);
@@ -666,12 +678,23 @@ function lockEditorForSafety(reason) {
 
 function getSelectedType() {
   if (typeInput.value === "limits") return "limits";
+  if (typeInput.value === "limits-settings") return "limits-settings";
   if (typeInput.value === "prompt-rules") return "prompt-rules";
   return "topics";
 }
 
 function isDomainScopedType(type) {
-  return type === "topics" || type === "prompt-rules";
+  return type === "topics" || type === "prompt-rules" || type === "limits-settings";
+}
+
+function canDeleteLimitsInCurrentType() {
+  const type = getSelectedType();
+  if (type !== "limits-settings") return true;
+  return Boolean(editorCapabilities.canEditLimits);
+}
+
+function isRestrictedLimitsSettingsMode() {
+  return getSelectedType() === "limits-settings" && !editorCapabilities.canEditLimits;
 }
 
 function syncPromptRulesInputsFromJson() {
@@ -718,9 +741,9 @@ function syncPromptRulesJsonFromInputs() {
 
 function syncFormByType() {
   const type = getSelectedType();
-  const isFilters = type === "limits";
-  domainInput.disabled = isFilters;
-  if (isFilters) {
+  const domainScoped = isDomainScopedType(type);
+  domainInput.disabled = !domainScoped;
+  if (!domainScoped) {
     domainInput.classList.add("qpm-editor-hidden");
   } else if (configuredTopicDomains.length > 1) {
     domainInput.classList.remove("qpm-editor-hidden");
@@ -1162,7 +1185,10 @@ function applyCapabilities(capabilities) {
     configuredTopicDomains =
       baseConfiguredTopicDomains.length > 0
         ? baseConfiguredTopicDomains.filter((d) => allowedDomains.includes(d))
-        : allowedDomains;
+        : [...allowedDomains];
+    if (configuredTopicDomains.length === 0) {
+      configuredTopicDomains = [...allowedDomains];
+    }
   } else {
     configuredTopicDomains = [...baseConfiguredTopicDomains];
   }
@@ -1189,11 +1215,17 @@ async function refreshDomainAccess() {
       configuredTopicDomains =
         baseConfiguredTopicDomains.length > 0
           ? baseConfiguredTopicDomains.filter((d) => serverDomains.includes(d))
-          : serverDomains;
+          : [...serverDomains];
       if (editorCapabilities.allowedDomains.length > 0) {
         configuredTopicDomains = configuredTopicDomains.filter((d) =>
           editorCapabilities.allowedDomains.includes(d)
         );
+      }
+      if (configuredTopicDomains.length === 0) {
+        configuredTopicDomains =
+          editorCapabilities.allowedDomains.length > 0
+            ? [...editorCapabilities.allowedDomains]
+            : [...serverDomains];
       }
     } else if (editorCapabilities.allowedDomains.length > 0) {
       configuredTopicDomains = [...editorCapabilities.allowedDomains];
@@ -1913,7 +1945,18 @@ async function loadContent() {
 
   try {
     const data = await fetchContentFromServer(type, domain);
-    jsonInput.value = JSON.stringify(data.data || {}, null, 2);
+    let payloadForEditor = data.data || {};
+    if (type === "limits-settings") {
+      const query = new URLSearchParams({ type: "limits" });
+      if (domain) query.set("domain", domain);
+      const mergedLimitsData = await requestJson(`${apiBase}/PublicContent.php?${query.toString()}`);
+      payloadForEditor = mergedLimitsData?.data || {};
+      const sharedLimitsData = await requestJson(`${apiBase}/PublicContent.php?type=limits`);
+      sharedLimitsFallbackEditorData = normalizePayloadForEditor("limits", sharedLimitsData?.data || {});
+    } else if (type === "limits") {
+      sharedLimitsFallbackEditorData = normalizePayloadForEditor("limits", payloadForEditor || {});
+    }
+    jsonInput.value = JSON.stringify(payloadForEditor, null, 2);
     const normalizedData = parseCurrentJson() || {};
     rememberBaselineForType(type, normalizedData);
     activeEditorType = normalizeTypeValue(type);
@@ -1980,9 +2023,19 @@ async function saveContent(source = "main") {
       return;
     }
   }
+  if (type === "limits-settings") {
+    parsed = stripSearchStringsFromLimitsPayload(parsed);
+  }
+  const shouldCanonicalizeLimitsPayload = type === "limits" || type === "limits-settings";
+  let hadCanonicalizationDelta = false;
+  if (shouldCanonicalizeLimitsPayload) {
+    const canonicalized = canonicalizeLimitsPayloadToGroups(parsed);
+    hadCanonicalizationDelta = stableStringify(parsed) !== stableStringify(canonicalized);
+    parsed = canonicalized;
+  }
 
   const changedPaths = buildCurrentTypeChangeList();
-  if (changedPaths.length === 0) {
+  if (changedPaths.length === 0 && !hadCanonicalizationDelta) {
     setStatus(t("noChangesToSave"));
     setSaveStatus(t("noChangesToSave"));
     return;
@@ -2023,7 +2076,16 @@ async function saveContent(source = "main") {
 
     // Verify persistence by immediately reloading from server source of truth.
     const serverData = await fetchContentFromServer(type, domain);
-    jsonInput.value = JSON.stringify(serverData?.data || {}, null, 2);
+    let payloadForEditorAfterSave = serverData?.data || {};
+    if (type === "limits-settings") {
+      const query = new URLSearchParams({ type: "limits" });
+      if (domain) query.set("domain", domain);
+      const mergedLimitsData = await requestJson(`${apiBase}/PublicContent.php?${query.toString()}`);
+      payloadForEditorAfterSave = mergedLimitsData?.data || {};
+      const sharedLimitsData = await requestJson(`${apiBase}/PublicContent.php?type=limits`);
+      sharedLimitsFallbackEditorData = normalizePayloadForEditor("limits", sharedLimitsData?.data || {});
+    }
+    jsonInput.value = JSON.stringify(payloadForEditorAfterSave, null, 2);
     const normalizedServerData = parseCurrentJson() || {};
     rememberBaselineForType(type, normalizedServerData);
     clearInlineHistoryForType(type);
@@ -2085,7 +2147,12 @@ function mapFilterChoicesToTopicChildren(choices) {
     delete rest.name;
     delete rest.groupname;
     delete rest.choices;
-    const nestedChildren = Array.isArray(choice?.children) ? choice.children : choice?.choices;
+    delete rest.groups;
+    const nestedChildren = Array.isArray(choice?.children)
+      ? choice.children
+      : Array.isArray(choice?.choices)
+      ? choice.choices
+      : choice?.groups;
     return {
       ...rest,
       children: mapFilterChoicesToTopicChildren(nestedChildren),
@@ -2111,7 +2178,7 @@ function normalizePayloadForEditor(type, rawData) {
   if (type === "prompt-rules") {
     return rawData && typeof rawData === "object" && !Array.isArray(rawData) ? { ...rawData } : {};
   }
-  if (type !== "limits") {
+  if (type !== "limits" && type !== "limits-settings") {
     const topics = Array.isArray(rawData?.topics) ? rawData.topics : [];
     return {
       ...(rawData || {}),
@@ -2133,9 +2200,12 @@ function normalizePayloadForEditor(type, rawData) {
         const rest = { ...(limitItem || {}) };
         delete rest.name;
         delete rest.groupname;
+        delete rest.choices;
         return rest;
       })(),
-      groups: mapFilterChoicesToTopicChildren(limitItem?.choices),
+      groups: mapFilterChoicesToTopicChildren(
+        Array.isArray(limitItem?.groups) ? limitItem.groups : limitItem?.choices
+      ),
     })),
   };
 }
@@ -2146,16 +2216,93 @@ function denormalizePayloadFromEditor(type, editorData, currentRawData) {
       ? editorData
       : {};
   }
-  if (type !== "limits") return editorData || {};
+  if (type !== "limits" && type !== "limits-settings") return editorData || {};
   const currentRaw = currentRawData && typeof currentRawData === "object" ? currentRawData : {};
   const topics = Array.isArray(editorData?.topics) ? editorData.topics : [];
   return {
     ...currentRaw,
-    limits: topics.map((topicLike) => ({
-      ...topicLike,
-      choices: mapTopicChildrenToFilterChoices(topicLike?.groups),
-    })),
+    limits: topics.map((topicLike) => {
+      const rest = { ...(topicLike || {}) };
+      delete rest.groups;
+      delete rest.choices;
+      return {
+        ...rest,
+        groups: mapFilterChoicesToTopicChildren(topicLike?.groups),
+      };
+    }),
   };
+}
+
+function getSharedLimitsFallbackCategory(categoryId) {
+  if (!categoryId) return null;
+  const topics = Array.isArray(sharedLimitsFallbackEditorData?.topics)
+    ? sharedLimitsFallbackEditorData.topics
+    : [];
+  return topics.find((topic) => topic?.id === categoryId) || null;
+}
+
+function getSharedLimitsFallbackItem(categoryId, itemId) {
+  const fallbackCategory = getSharedLimitsFallbackCategory(categoryId);
+  if (!fallbackCategory) return null;
+  return findItemById(fallbackCategory?.groups || [], itemId) || null;
+}
+
+function stripSearchStringsFromLimitNode(node) {
+  if (Array.isArray(node)) {
+    return node.map((entry) => stripSearchStringsFromLimitNode(entry));
+  }
+  if (!node || typeof node !== "object") {
+    return node;
+  }
+  const copy = {};
+  Object.entries(node).forEach(([key, value]) => {
+    if (key === "searchStrings") return;
+    copy[key] = stripSearchStringsFromLimitNode(value);
+  });
+  return copy;
+}
+
+function stripSearchStringsFromLimitsPayload(payload) {
+  const safePayload =
+    payload && typeof payload === "object" && !Array.isArray(payload) ? { ...payload } : {};
+  const limits = Array.isArray(safePayload?.limits) ? safePayload.limits : [];
+  safePayload.limits = limits.map((limitNode) => stripSearchStringsFromLimitNode(limitNode));
+  return safePayload;
+}
+
+function canonicalizeLimitNodeToGroups(node, isRootNode = false) {
+  if (Array.isArray(node)) {
+    return node.map((entry) => canonicalizeLimitNodeToGroups(entry, isRootNode));
+  }
+  if (!node || typeof node !== "object") {
+    return node;
+  }
+  const sourceChildren = isRootNode
+    ? Array.isArray(node?.groups)
+      ? node.groups
+      : node?.choices
+    : Array.isArray(node?.children)
+    ? node.children
+    : node?.choices;
+  const copy = { ...node };
+  delete copy.groups;
+  delete copy.choices;
+  delete copy.children;
+  const normalizedChildren = mapFilterChoicesToTopicChildren(sourceChildren);
+  if (isRootNode) {
+    copy.groups = normalizedChildren;
+  } else {
+    copy.children = normalizedChildren;
+  }
+  return copy;
+}
+
+function canonicalizeLimitsPayloadToGroups(payload) {
+  const safePayload =
+    payload && typeof payload === "object" && !Array.isArray(payload) ? { ...payload } : {};
+  const limits = Array.isArray(safePayload?.limits) ? safePayload.limits : [];
+  safePayload.limits = limits.map((limitNode) => canonicalizeLimitNodeToGroups(limitNode, true));
+  return safePayload;
 }
 
 function parseCurrentJson() {
@@ -2312,7 +2459,32 @@ function createCategoryInlineEditor(topic) {
     ta.value = value;
     return ta;
   };
-
+  const isRestrictedLimitsSettings = isRestrictedLimitsSettingsMode();
+  const isLimitsSettings = getSelectedType() === "limits-settings";
+  const fallbackCategory = getSharedLimitsFallbackCategory(topic?.id || "");
+  const mkRestoreActionButton = (targetInput, fallbackValue) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "qpm-editor-btn qpm-editor-btn-secondary";
+    button.style.padding = "4px 8px";
+    button.style.fontSize = "12px";
+    button.textContent = "Gendan original";
+    button.addEventListener("click", () => {
+      targetInput.value = String(fallbackValue || "");
+      targetInput.dispatchEvent(new Event("input", { bubbles: true }));
+      targetInput.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    return button;
+  };
+  const mkLabelWithRestore = (text, helpKey, targetInput, fallbackValue) => {
+    if (!isRestrictedLimitsSettings) return mkLabel(text, helpKey);
+    const row = document.createElement("div");
+    row.className = "qpm-editor-scope-header-row";
+    const label = mkLabel(text, helpKey);
+    label.classList.add("qpm-editor-scope-header-label");
+    row.append(label, mkRestoreActionButton(targetInput, fallbackValue));
+    return row;
+  };
   const idInput = mkInput(topic?.id || "");
   idInput.dataset.inlineField = "category.id";
   const dkInput = mkInput(topic?.translations?.dk || "");
@@ -2342,7 +2514,10 @@ function createCategoryInlineEditor(topic) {
     "qpm-editor-btn qpm-editor-btn-danger qpm-editor-tree-delete-category-inline";
   deleteBtn.dataset.categoryId = topic?.id || "";
   deleteBtn.textContent = t("deleteMainCategory");
-  const { actionsRow, inlineStatus } = createInlineActions(deleteBtn, "category");
+  const { actionsRow, inlineStatus } = createInlineActions(
+    canDeleteLimitsInCurrentType() ? deleteBtn : null,
+    "category"
+  );
 
   const categoryPrimaryLang = editorLanguage === "en" ? "en" : "dk";
   const categorySecondaryLang = categoryPrimaryLang === "en" ? "dk" : "en";
@@ -2369,19 +2544,39 @@ function createCategoryInlineEditor(topic) {
     categorySecondaryLang === "en" ? "category.tooltip.en" : "category.tooltip.dk";
 
   wrapper.append(
-    mkLabel(t("categoryIdPrefixLabel"), "category.id"),
-    idInput,
+    ...(!isRestrictedLimitsSettings ? [mkLabel(t("categoryIdPrefixLabel"), "category.id"), idInput] : []),
     hiddenLabel,
-    mkLabel(categoryNamePrimaryLabel, categoryNamePrimaryKey),
+    mkLabelWithRestore(
+      categoryNamePrimaryLabel,
+      categoryNamePrimaryKey,
+      categoryNamePrimaryInput,
+      fallbackCategory?.translations?.[categoryPrimaryLang] || ""
+    ),
     categoryNamePrimaryInput,
-    mkLabel(categoryNameSecondaryLabel, categoryNameSecondaryKey),
+    mkLabelWithRestore(
+      categoryNameSecondaryLabel,
+      categoryNameSecondaryKey,
+      categoryNameSecondaryInput,
+      fallbackCategory?.translations?.[categorySecondaryLang] || ""
+    ),
     categoryNameSecondaryInput,
-    mkLabel(categoryTooltipPrimaryLabel, categoryTooltipPrimaryKey),
+    mkLabelWithRestore(
+      categoryTooltipPrimaryLabel,
+      categoryTooltipPrimaryKey,
+      categoryTooltipPrimaryInput,
+      fallbackCategory?.tooltip?.[categoryPrimaryLang] || ""
+    ),
     categoryTooltipPrimaryInput,
-    mkLabel(categoryTooltipSecondaryLabel, categoryTooltipSecondaryKey),
+    mkLabelWithRestore(
+      categoryTooltipSecondaryLabel,
+      categoryTooltipSecondaryKey,
+      categoryTooltipSecondaryInput,
+      fallbackCategory?.tooltip?.[categorySecondaryLang] || ""
+    ),
     categoryTooltipSecondaryInput,
-    mkLabel(t("categoryInternalCommentLabel"), "category.internalComment"),
-    internalComment,
+    ...(!isLimitsSettings
+      ? [mkLabel(t("categoryInternalCommentLabel"), "category.internalComment"), internalComment]
+      : []),
     actionsRow,
     inlineStatus
   );
@@ -2392,12 +2587,12 @@ function createCategoryInlineEditor(topic) {
       ? baselineData.topics.find((entry) => entry?.id === topic.id)
       : null;
   const baselineSnapshot = {
-    "category.id": baselineCategory?.id || topic?.id || "",
+    ...(!isRestrictedLimitsSettings ? { "category.id": baselineCategory?.id || topic?.id || "" } : {}),
     "category.translations.dk": baselineCategory?.translations?.dk || "",
     "category.translations.en": baselineCategory?.translations?.en || "",
     "category.tooltip.dk": baselineCategory?.tooltip?.dk || "",
     "category.tooltip.en": baselineCategory?.tooltip?.en || "",
-    "category.internalComment": baselineCategory?.internalComment || "",
+    ...(!isLimitsSettings ? { "category.internalComment": baselineCategory?.internalComment || "" } : {}),
     "category.hiddenByDefault": baselineCategory?.hiddenByDefault === true,
   };
   setupInlineHistoryTracking(wrapper, historyKey, baselineSnapshot);
@@ -2430,6 +2625,40 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
     ta.className = "qpm-editor-textarea";
     ta.value = value;
     return ta;
+  };
+  const mkReadonlySearchStringText = (value = "") => {
+    const block = document.createElement("div");
+    block.className = "qpm-editor-readonly-text";
+    block.style.whiteSpace = "pre-wrap";
+    block.style.overflowWrap = "anywhere";
+    block.textContent = String(value || "").trim() || "—";
+    return block;
+  };
+  const isRestrictedLimitsSettings = isRestrictedLimitsSettingsMode();
+  const isLimitsSettings = getSelectedType() === "limits-settings";
+  const fallbackItem = getSharedLimitsFallbackItem(categoryId, item?.id || "");
+  const mkRestoreActionButton = (targetInput, fallbackValue) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "qpm-editor-btn qpm-editor-btn-secondary";
+    button.style.padding = "4px 8px";
+    button.style.fontSize = "12px";
+    button.textContent = "Gendan original";
+    button.addEventListener("click", () => {
+      targetInput.value = String(fallbackValue || "");
+      targetInput.dispatchEvent(new Event("input", { bubbles: true }));
+      targetInput.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    return button;
+  };
+  const mkLabelWithRestore = (text, helpKey, targetInput, fallbackValue) => {
+    if (!isRestrictedLimitsSettings) return mkLabel(text, helpKey);
+    const row = document.createElement("div");
+    row.className = "qpm-editor-scope-header-row";
+    const label = mkLabel(text, helpKey);
+    label.classList.add("qpm-editor-scope-header-label");
+    row.append(label, mkRestoreActionButton(targetInput, fallbackValue));
+    return row;
   };
 
   const dkInput = mkInput(item?.translations?.dk || "");
@@ -2583,7 +2812,21 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   normal.dataset.inlineField = "searchStrings.normal";
   const broad = mkTextarea(normalizeToLines(item?.searchStrings?.broad));
   broad.dataset.inlineField = "searchStrings.broad";
-  const showScopeCombineControls = getSelectedType() !== "limits";
+  const stringsReadOnly = isLimitsSettings;
+  const showSearchStringsAsText = stringsReadOnly && !editorCapabilities.canEditLimits;
+  const showSearchStringEditors = !showSearchStringsAsText;
+  narrow.readOnly = stringsReadOnly;
+  normal.readOnly = stringsReadOnly;
+  broad.readOnly = stringsReadOnly;
+  if (!showSearchStringEditors) {
+    narrow.classList.add("qpm-editor-hidden");
+    normal.classList.add("qpm-editor-hidden");
+    broad.classList.add("qpm-editor-hidden");
+  }
+  const narrowReadonly = mkReadonlySearchStringText(normalizeToLines(item?.searchStrings?.narrow));
+  const normalReadonly = mkReadonlySearchStringText(normalizeToLines(item?.searchStrings?.normal));
+  const broadReadonly = mkReadonlySearchStringText(normalizeToLines(item?.searchStrings?.broad));
+  const showScopeCombineControls = getSelectedType() !== "limits" && !isLimitsSettings;
   const createScopeCombineControl = (scope, sourceInput) => {
     const scopeCheckbox = document.createElement("input");
     scopeCheckbox.type = "checkbox";
@@ -2661,6 +2904,10 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   tooltipDk.dataset.inlineField = "tooltip.dk";
   const tooltipEn = mkTextarea(item?.tooltip?.en || "");
   tooltipEn.dataset.inlineField = "tooltip.en";
+  const tooltipSimpleDk = mkTextarea(item?.tooltip_simple?.dk || "");
+  tooltipSimpleDk.dataset.inlineField = "tooltip_simple.dk";
+  const tooltipSimpleEn = mkTextarea(item?.tooltip_simple?.en || "");
+  tooltipSimpleEn.dataset.inlineField = "tooltip_simple.en";
   const internalComment = mkTextarea(item?.internalComment || "");
   internalComment.dataset.inlineField = "internalComment";
 
@@ -2670,7 +2917,10 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   deleteBtn.dataset.id = item?.id || "";
   deleteBtn.dataset.categoryId = categoryId;
   deleteBtn.textContent = t("deleteSubtopic");
-  const { actionsRow, inlineStatus } = createInlineActions(deleteBtn, "item");
+  const { actionsRow, inlineStatus } = createInlineActions(
+    canDeleteLimitsInCurrentType() ? deleteBtn : null,
+    "item"
+  );
 
   const itemPrimaryLang = editorLanguage === "en" ? "en" : "dk";
   const itemSecondaryLang = itemPrimaryLang === "en" ? "dk" : "en";
@@ -2705,13 +2955,23 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   const itemTooltipPrimaryKey = itemPrimaryLang === "en" ? "item.tooltip.en" : "item.tooltip.dk";
   const itemTooltipSecondaryKey =
     itemSecondaryLang === "en" ? "item.tooltip.en" : "item.tooltip.dk";
+  const itemTooltipSimplePrimaryLabel =
+    itemPrimaryLang === "en" ? t("itemTooltipSimpleEnLabel") : t("itemTooltipSimpleDkLabel");
+  const itemTooltipSimpleSecondaryLabel =
+    itemSecondaryLang === "en" ? t("itemTooltipSimpleEnLabel") : t("itemTooltipSimpleDkLabel");
+  const itemTooltipSimplePrimaryInput = itemPrimaryLang === "en" ? tooltipSimpleEn : tooltipSimpleDk;
+  const itemTooltipSimpleSecondaryInput =
+    itemSecondaryLang === "en" ? tooltipSimpleEn : tooltipSimpleDk;
+  const itemTooltipSimplePrimaryKey =
+    itemPrimaryLang === "en" ? "item.tooltip_simple.en" : "item.tooltip_simple.dk";
+  const itemTooltipSimpleSecondaryKey =
+    itemSecondaryLang === "en" ? "item.tooltip_simple.en" : "item.tooltip_simple.dk";
 
   wrapper.append(
-    mkLabel(t("itemIdLabel"), "item.id"),
-    idInput,
+    ...(!isRestrictedLimitsSettings ? [mkLabel(t("itemIdLabel"), "item.id"), idInput] : []),
     hiddenLabel,
-    lockIdLabel,
-    ...(getSelectedType() === "limits"
+    ...(!isRestrictedLimitsSettings ? [lockIdLabel] : []),
+    ...(getSelectedType() === "limits" || getSelectedType() === "limits-settings"
       ? [
           simpleSearchLabel,
           standardSimpleRow,
@@ -2723,26 +2983,72 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
     positionHint,
     mkLabel(t("itemOrderingFixedLabel"), "item.ordering.fixed"),
     orderingInput,
-    mkLabel(itemNamePrimaryLabel, itemNamePrimaryKey),
+    mkLabelWithRestore(
+      itemNamePrimaryLabel,
+      itemNamePrimaryKey,
+      itemNamePrimaryInput,
+      fallbackItem?.translations?.[itemPrimaryLang] || ""
+    ),
     itemNamePrimaryInput,
-    mkLabel(itemNameSecondaryLabel, itemNameSecondaryKey),
+    mkLabelWithRestore(
+      itemNameSecondaryLabel,
+      itemNameSecondaryKey,
+      itemNameSecondaryInput,
+      fallbackItem?.translations?.[itemSecondaryLang] || ""
+    ),
     itemNameSecondaryInput,
     narrowHeaderRow,
-    narrow,
+    ...(showSearchStringEditors ? [narrow] : [narrowReadonly]),
+    ...(!showSearchStringEditors ? [narrow] : []),
     normalHeaderRow,
-    normal,
+    ...(showSearchStringEditors ? [normal] : [normalReadonly]),
+    ...(!showSearchStringEditors ? [normal] : []),
     broadHeaderRow,
-    broad,
-    mkLabel(itemCommentPrimaryLabel, itemCommentPrimaryKey),
+    ...(showSearchStringEditors ? [broad] : [broadReadonly]),
+    ...(!showSearchStringEditors ? [broad] : []),
+    mkLabelWithRestore(
+      itemCommentPrimaryLabel,
+      itemCommentPrimaryKey,
+      itemCommentPrimaryInput,
+      fallbackItem?.searchStringComment?.[itemPrimaryLang] || ""
+    ),
     itemCommentPrimaryInput,
-    mkLabel(itemCommentSecondaryLabel, itemCommentSecondaryKey),
+    mkLabelWithRestore(
+      itemCommentSecondaryLabel,
+      itemCommentSecondaryKey,
+      itemCommentSecondaryInput,
+      fallbackItem?.searchStringComment?.[itemSecondaryLang] || ""
+    ),
     itemCommentSecondaryInput,
-    mkLabel(itemTooltipPrimaryLabel, itemTooltipPrimaryKey),
+    mkLabelWithRestore(
+      itemTooltipPrimaryLabel,
+      itemTooltipPrimaryKey,
+      itemTooltipPrimaryInput,
+      fallbackItem?.tooltip?.[itemPrimaryLang] || ""
+    ),
     itemTooltipPrimaryInput,
-    mkLabel(itemTooltipSecondaryLabel, itemTooltipSecondaryKey),
+    mkLabelWithRestore(
+      itemTooltipSecondaryLabel,
+      itemTooltipSecondaryKey,
+      itemTooltipSecondaryInput,
+      fallbackItem?.tooltip?.[itemSecondaryLang] || ""
+    ),
     itemTooltipSecondaryInput,
-    mkLabel(t("itemInternalCommentLabel"), "item.internalComment"),
-    internalComment,
+    mkLabelWithRestore(
+      itemTooltipSimplePrimaryLabel,
+      itemTooltipSimplePrimaryKey,
+      itemTooltipSimplePrimaryInput,
+      fallbackItem?.tooltip_simple?.[itemPrimaryLang] || ""
+    ),
+    itemTooltipSimplePrimaryInput,
+    mkLabelWithRestore(
+      itemTooltipSimpleSecondaryLabel,
+      itemTooltipSimpleSecondaryKey,
+      itemTooltipSimpleSecondaryInput,
+      fallbackItem?.tooltip_simple?.[itemSecondaryLang] || ""
+    ),
+    itemTooltipSimpleSecondaryInput,
+    ...(!isLimitsSettings ? [mkLabel(t("itemInternalCommentLabel"), "item.internalComment"), internalComment] : []),
     actionsRow,
     inlineStatus
   );
@@ -2762,11 +3068,11 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
       ? Number(currentPosition)
       : 1;
   const baselineSnapshot = {
-    id: baselineItem?.id || item?.id || "",
-    lockIdOnSort: baselineItem?.lockIdOnSort !== false,
+    ...(!isRestrictedLimitsSettings ? { id: baselineItem?.id || item?.id || "" } : {}),
+    ...(!isRestrictedLimitsSettings ? { lockIdOnSort: baselineItem?.lockIdOnSort !== false } : {}),
     hiddenByDefault: baselineItem?.hiddenByDefault === true,
     buttons: baselineItem?.buttons !== false,
-    ...(getSelectedType() === "limits"
+    ...(getSelectedType() === "limits" || getSelectedType() === "limits-settings"
       ? {
           simpleSearch: baselineItem?.simpleSearch === true,
           standardSimple: baselineItem?.standardSimple === true,
@@ -2793,7 +3099,9 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
     "searchStringComment.en": baselineItem?.searchStringComment?.en || "",
     "tooltip.dk": baselineItem?.tooltip?.dk || "",
     "tooltip.en": baselineItem?.tooltip?.en || "",
-    internalComment: baselineItem?.internalComment || "",
+    "tooltip_simple.dk": baselineItem?.tooltip_simple?.dk || "",
+    "tooltip_simple.en": baselineItem?.tooltip_simple?.en || "",
+    ...(!isLimitsSettings ? { internalComment: baselineItem?.internalComment || "" } : {}),
   };
   if (showScopeCombineControls) {
     baselineSnapshot["combineWithStandardStringScopes.narrow"] = resolveCombineWithStandardScopeValue(
@@ -2874,20 +3182,25 @@ function renderTreeItems(items, categoryId, container, searchText, parentItemId 
     }
 
     if (selectedTopicItemId && selectedTopicItemId === item?.id) {
-      const itemEditor = createInlineEditor(item, categoryId, index + 1, items.length);
-      li.appendChild(itemEditor);
-      if (
-        pendingItemInlineStatus &&
-        pendingItemInlineStatus.categoryId === categoryId &&
-        pendingItemInlineStatus.itemId === item?.id
-      ) {
-        setInlineEditorStatus(
-          itemEditor,
-          "item",
-          pendingItemInlineStatus.message,
-          pendingItemInlineStatus.isError
-        );
-        pendingItemInlineStatus = null;
+      try {
+        const itemEditor = createInlineEditor(item, categoryId, index + 1, items.length);
+        li.appendChild(itemEditor);
+        if (
+          pendingItemInlineStatus &&
+          pendingItemInlineStatus.categoryId === categoryId &&
+          pendingItemInlineStatus.itemId === item?.id
+        ) {
+          setInlineEditorStatus(
+            itemEditor,
+            "item",
+            pendingItemInlineStatus.message,
+            pendingItemInlineStatus.isError
+          );
+          pendingItemInlineStatus = null;
+        }
+      } catch (error) {
+        console.error("Failed to render item inline editor.", error);
+        setStatus("Kunne ikke vise emneindstillinger.", true);
       }
     }
 
@@ -2898,16 +3211,18 @@ function renderTreeItems(items, categoryId, container, searchText, parentItemId 
     ul.appendChild(li);
   });
 
-  const addLi = document.createElement("li");
-  addLi.className = "qpm-editor-tree-add-row";
-  const addBtn = document.createElement("button");
-  addBtn.type = "button";
-  addBtn.className = "qpm-editor-tree-add-end-btn";
-  addBtn.dataset.categoryId = categoryId;
-  addBtn.dataset.parentItemId = parentItemId;
-  addBtn.textContent = `+ ${t("addSubtopic")}`;
-  addLi.appendChild(addBtn);
-  ul.appendChild(addLi);
+  if (canDeleteLimitsInCurrentType()) {
+    const addLi = document.createElement("li");
+    addLi.className = "qpm-editor-tree-add-row";
+    const addBtn = document.createElement("button");
+    addBtn.type = "button";
+    addBtn.className = "qpm-editor-tree-add-end-btn";
+    addBtn.dataset.categoryId = categoryId;
+    addBtn.dataset.parentItemId = parentItemId;
+    addBtn.textContent = `+ ${t("addSubtopic")}`;
+    addLi.appendChild(addBtn);
+    ul.appendChild(addLi);
+  }
 
   container.appendChild(ul);
 }
@@ -3009,31 +3324,77 @@ function refreshTopicTree() {
       topicTreeInput.appendChild(categoryDropzones);
     }
     if (selectedTopicCategoryId === categoryId && !selectedTopicItemId) {
-      const categoryEditor = createCategoryInlineEditor(topic);
-      topicTreeInput.appendChild(categoryEditor);
-      if (pendingCategoryInlineStatus && pendingCategoryInlineStatus.categoryId === categoryId) {
-        setInlineEditorStatus(
-          categoryEditor,
-          "category",
-          pendingCategoryInlineStatus.message,
-          pendingCategoryInlineStatus.isError
-        );
-        pendingCategoryInlineStatus = null;
+      try {
+        const categoryEditor = createCategoryInlineEditor(topic);
+        topicTreeInput.appendChild(categoryEditor);
+        if (pendingCategoryInlineStatus && pendingCategoryInlineStatus.categoryId === categoryId) {
+          setInlineEditorStatus(
+            categoryEditor,
+            "category",
+            pendingCategoryInlineStatus.message,
+            pendingCategoryInlineStatus.isError
+          );
+          pendingCategoryInlineStatus = null;
+        }
+      } catch (error) {
+        console.error("Failed to render category inline editor.", error);
+        setStatus("Kunne ikke vise kategoriindstillinger.", true);
       }
     }
     if (!isCollapsed) {
-      renderTreeItems(categoryGroups, categoryId, topicTreeInput, searchText, "");
+      try {
+        renderTreeItems(categoryGroups, categoryId, topicTreeInput, searchText, "");
+      } catch (error) {
+        console.error("Failed to render topic tree items.", error);
+        setStatus("Kunne ikke vise underemner.", true);
+      }
     }
   });
 
-  const addCategoryWrap = document.createElement("div");
-  addCategoryWrap.className = "qpm-editor-tree-add-row";
-  const addCategoryBtn = document.createElement("button");
-  addCategoryBtn.type = "button";
-  addCategoryBtn.className = "qpm-editor-tree-add-end-btn qpm-editor-tree-add-root-category-btn";
-  addCategoryBtn.textContent = `+ ${t("addMainCategory")}`;
-  addCategoryWrap.appendChild(addCategoryBtn);
-  topicTreeInput.appendChild(addCategoryWrap);
+  // Fallback: ensure selected item editor is rendered even if tree rendering
+  // skipped it (e.g., collapsed branch or filtered structure edge-cases).
+  if (selectedTopicCategoryId && selectedTopicItemId) {
+    const hasRenderedSelectedItemEditor = Array.from(
+      topicTreeInput.querySelectorAll(".qpm-editor-inline-editor")
+    ).some(
+      (el) =>
+        (el?.dataset?.categoryId || "") === selectedTopicCategoryId &&
+        (el?.dataset?.id || "") === selectedTopicItemId
+    );
+    if (!hasRenderedSelectedItemEditor) {
+      const selectedCategory = data.topics.find((topic) => topic?.id === selectedTopicCategoryId);
+      const selectedItem = selectedCategory
+        ? findItemById(selectedCategory?.groups || [], selectedTopicItemId)
+        : null;
+      const selectedItemLocation = selectedCategory
+        ? findArrayAndIndexByItemId(selectedCategory?.groups || [], selectedTopicItemId)
+        : null;
+      if (selectedCategory && selectedItem && selectedItemLocation) {
+        try {
+          const fallbackEditor = createInlineEditor(
+            selectedItem,
+            selectedTopicCategoryId,
+            selectedItemLocation.index + 1,
+            Array.isArray(selectedItemLocation.array) ? selectedItemLocation.array.length : null
+          );
+          topicTreeInput.appendChild(fallbackEditor);
+        } catch (error) {
+          console.error("Failed to render fallback item editor.", error);
+        }
+      }
+    }
+  }
+
+  if (canDeleteLimitsInCurrentType()) {
+    const addCategoryWrap = document.createElement("div");
+    addCategoryWrap.className = "qpm-editor-tree-add-row";
+    const addCategoryBtn = document.createElement("button");
+    addCategoryBtn.type = "button";
+    addCategoryBtn.className = "qpm-editor-tree-add-end-btn qpm-editor-tree-add-root-category-btn";
+    addCategoryBtn.textContent = `+ ${t("addMainCategory")}`;
+    addCategoryWrap.appendChild(addCategoryBtn);
+    topicTreeInput.appendChild(addCategoryWrap);
+  }
 }
 
 function findItemById(items, id) {
@@ -3276,6 +3637,18 @@ function humanizeChangePath(path) {
         parts.push(t("itemTooltipEnLabel"));
       } else {
         parts.push(t("itemTooltipDkLabel"));
+      }
+      i += langKey ? 1 : 0;
+      continue;
+    }
+    if (token.value === "tooltip_simple") {
+      const langKey = tokens[i + 1]?.type === "key" ? tokens[i + 1].value : "";
+      if (langKey === "dk") {
+        parts.push(t("itemTooltipSimpleDkLabel"));
+      } else if (langKey === "en") {
+        parts.push(t("itemTooltipSimpleEnLabel"));
+      } else {
+        parts.push(t("itemTooltipSimpleDkLabel"));
       }
       i += langKey ? 1 : 0;
       continue;
@@ -3549,7 +3922,7 @@ function enforceOrderingIntegrity(editorData, type) {
   const visit = (items) => {
     if (!Array.isArray(items) || items.length === 0) return;
     renumberOrdering(items);
-    if (type === "limits") {
+    if (type === "limits" || type === "limits-settings") {
       renumberSimpleOrdering(items);
     }
     items.forEach((item) => visit(item?.children));
@@ -3695,12 +4068,16 @@ function createNewTopicItem(newId, orderingValue) {
   return {
     id: newId,
     translations: { dk: "", en: "" },
-    searchStrings: { narrow: [], normal: [], broad: [] },
+    ...(getSelectedType() === "limits-settings"
+      ? {}
+      : { searchStrings: { narrow: [], normal: [], broad: [] } }),
     searchStringComment: { dk: "", en: "" },
     tooltip: { dk: "", en: "" },
     internalComment: "",
     ordering: { dk: orderingValue, en: orderingValue },
-    combineWithStandardStringScopes: { narrow: true, normal: true, broad: true },
+    ...(getSelectedType() === "limits" || getSelectedType() === "limits-settings"
+      ? {}
+      : { combineWithStandardStringScopes: { narrow: true, normal: true, broad: true } }),
     lockIdOnSort: true,
     hiddenByDefault: false,
     children: [],
@@ -3815,37 +4192,41 @@ function applyInlineEditorEdits(categoryId, itemId, container, options = {}) {
   }
 
   const get = (field) => container.querySelector(`[data-inline-field="${field}"]`);
-  const requestedId = (get("id")?.value || "").trim();
-  if (!requestedId) {
-    if (!silent) setInlineEditorStatus(container, "item", t("idMustNotBeEmpty"), true);
-    return false;
-  }
-  if (requestedId !== itemId && idExistsInCategory(category, requestedId, itemId)) {
-    if (!silent) {
-      setInlineEditorStatus(
-        container,
-        "item",
-        `${t("idExistsInCategoryPrefix")} "${requestedId}" ${t("idExistsInCategorySuffix")}`,
-        true
-      );
+  const isRestrictedLimitsSettings = isRestrictedLimitsSettingsMode();
+  const isLimitsSettings = getSelectedType() === "limits-settings";
+  if (!isRestrictedLimitsSettings) {
+    const requestedId = (get("id")?.value || "").trim();
+    if (!requestedId) {
+      if (!silent) setInlineEditorStatus(container, "item", t("idMustNotBeEmpty"), true);
+      return false;
     }
-    return false;
+    if (requestedId !== itemId && idExistsInCategory(category, requestedId, itemId)) {
+      if (!silent) {
+        setInlineEditorStatus(
+          container,
+          "item",
+          `${t("idExistsInCategoryPrefix")} "${requestedId}" ${t("idExistsInCategorySuffix")}`,
+          true
+        );
+      }
+      return false;
+    }
+    if (requestedId !== itemId) {
+      const oldId = item.id;
+      item.id = requestedId;
+      updateChildIdsByPrefix(item, oldId, requestedId);
+      remapCollapsedTopicIdsByPrefix(oldId, requestedId);
+    }
+    const lockIdCheckbox = get("lockIdOnSort");
+    item.lockIdOnSort = lockIdCheckbox ? Boolean(lockIdCheckbox.checked) : true;
   }
-  if (requestedId !== itemId) {
-    const oldId = item.id;
-    item.id = requestedId;
-    updateChildIdsByPrefix(item, oldId, requestedId);
-    remapCollapsedTopicIdsByPrefix(oldId, requestedId);
-  }
-  const lockIdCheckbox = get("lockIdOnSort");
-  item.lockIdOnSort = lockIdCheckbox ? Boolean(lockIdCheckbox.checked) : true;
   const hiddenCheckbox = get("hiddenByDefault");
   item.hiddenByDefault = hiddenCheckbox ? Boolean(hiddenCheckbox.checked) : false;
   const buttonsCheckbox = get("buttons");
   item.buttons = buttonsCheckbox ? Boolean(buttonsCheckbox.checked) : item?.buttons !== false;
   const itemLocation = findArrayAndIndexByItemId(category.groups, item.id || itemId);
   const currentPosition = itemLocation ? itemLocation.index + 1 : 1;
-  if (getSelectedType() === "limits") {
+  if (getSelectedType() === "limits" || getSelectedType() === "limits-settings") {
     item.simpleSearch = get("simpleSearch")
       ? Boolean(get("simpleSearch").checked)
       : item?.simpleSearch === true;
@@ -3874,7 +4255,7 @@ function applyInlineEditorEdits(categoryId, itemId, container, options = {}) {
       }
     }
   }
-  if (getSelectedType() === "limits") {
+  if (getSelectedType() === "limits" || getSelectedType() === "limits-settings") {
     delete item.combineWithStandardStringScopes;
   } else {
     item.combineWithStandardStringScopes = {
@@ -3927,12 +4308,16 @@ function applyInlineEditorEdits(categoryId, itemId, container, options = {}) {
     dk: (get("translations.dk")?.value || "").trim(),
     en: (get("translations.en")?.value || "").trim(),
   };
-  item.searchStrings = {
-    ...(item.searchStrings || {}),
-    narrow: linesToArray(get("searchStrings.narrow")?.value),
-    normal: linesToArray(get("searchStrings.normal")?.value),
-    broad: linesToArray(get("searchStrings.broad")?.value),
-  };
+  if (getSelectedType() === "limits-settings") {
+    delete item.searchStrings;
+  } else {
+    item.searchStrings = {
+      ...(item.searchStrings || {}),
+      narrow: linesToArray(get("searchStrings.narrow")?.value),
+      normal: linesToArray(get("searchStrings.normal")?.value),
+      broad: linesToArray(get("searchStrings.broad")?.value),
+    };
+  }
   item.searchStringComment = {
     ...(item.searchStringComment || {}),
     dk: (get("searchStringComment.dk")?.value || "").trim(),
@@ -3943,7 +4328,16 @@ function applyInlineEditorEdits(categoryId, itemId, container, options = {}) {
     dk: (get("tooltip.dk")?.value || "").trim(),
     en: (get("tooltip.en")?.value || "").trim(),
   };
-  item.internalComment = (get("internalComment")?.value || "").trim();
+  item.tooltip_simple = {
+    ...(item.tooltip_simple || {}),
+    dk: (get("tooltip_simple.dk")?.value || "").trim(),
+    en: (get("tooltip_simple.en")?.value || "").trim(),
+  };
+  if (isLimitsSettings) {
+    delete item.internalComment;
+  } else {
+    item.internalComment = (get("internalComment")?.value || "").trim();
+  }
 
   selectedTopicCategoryId = categoryId;
   selectedTopicItemId = item.id || itemId;
@@ -4012,26 +4406,32 @@ function applyCategoryInlineEdits(categoryId, container, options = {}) {
     return false;
   }
   const get = (field) => container.querySelector(`[data-inline-field="${field}"]`);
-  const nextId = (get("category.id")?.value || "").trim();
-  if (!nextId) {
-    if (!silent) setInlineEditorStatus(container, "category", t("mainCategoryIdRequired"), true);
-    return false;
-  }
-  const idTaken = data.topics.some((t) => t?.id === nextId && t?.id !== categoryId);
-  if (idTaken) {
-    if (!silent) {
-      setInlineEditorStatus(
-        container,
-        "category",
-        `${t("categoryIdExistsPrefix")} "${nextId}" ${t("categoryIdExistsSuffix")}`,
-        true
-      );
+  const isRestrictedLimitsSettings = isRestrictedLimitsSettingsMode();
+  const isLimitsSettings = getSelectedType() === "limits-settings";
+  const nextId = isRestrictedLimitsSettings ? category.id : (get("category.id")?.value || "").trim();
+  if (!isRestrictedLimitsSettings) {
+    if (!nextId) {
+      if (!silent) setInlineEditorStatus(container, "category", t("mainCategoryIdRequired"), true);
+      return false;
     }
-    return false;
+    const idTaken = data.topics.some((t) => t?.id === nextId && t?.id !== categoryId);
+    if (idTaken) {
+      if (!silent) {
+        setInlineEditorStatus(
+          container,
+          "category",
+          `${t("categoryIdExistsPrefix")} "${nextId}" ${t("categoryIdExistsSuffix")}`,
+          true
+        );
+      }
+      return false;
+    }
   }
 
   const oldId = category.id;
-  category.id = nextId;
+  if (!isRestrictedLimitsSettings) {
+    category.id = nextId;
+  }
   category.translations = {
     ...(category.translations || {}),
     dk: (get("category.translations.dk")?.value || "").trim(),
@@ -4042,10 +4442,14 @@ function applyCategoryInlineEdits(categoryId, container, options = {}) {
     dk: (get("category.tooltip.dk")?.value || "").trim(),
     en: (get("category.tooltip.en")?.value || "").trim(),
   };
-  category.internalComment = (get("category.internalComment")?.value || "").trim();
+  if (isLimitsSettings) {
+    delete category.internalComment;
+  } else {
+    category.internalComment = (get("category.internalComment")?.value || "").trim();
+  }
   const hiddenCheckbox = get("category.hiddenByDefault");
   category.hiddenByDefault = hiddenCheckbox ? Boolean(hiddenCheckbox.checked) : false;
-  if (oldId !== nextId) {
+  if (!isRestrictedLimitsSettings && oldId !== nextId) {
     renumberCategoryIds(category);
     remapCollapsedIdsAfterCategoryRename(oldId, nextId);
   }
@@ -4229,6 +4633,7 @@ topicTreeInput?.addEventListener("click", (event) => {
   if (!(target instanceof HTMLElement)) return;
   const addRootCategoryBtn = target.closest(".qpm-editor-tree-add-root-category-btn");
   if (addRootCategoryBtn instanceof HTMLElement) {
+    if (!canDeleteLimitsInCurrentType()) return;
     if (!commitOpenInlineEditorDraft({ silent: false, refreshTree: false })) return;
     const result = addCategoryAtEnd();
     if (!result.ok) {
@@ -4245,6 +4650,7 @@ topicTreeInput?.addEventListener("click", (event) => {
   }
   const addEndBtn = target.closest(".qpm-editor-tree-add-end-btn");
   if (addEndBtn instanceof HTMLElement) {
+    if (!canDeleteLimitsInCurrentType()) return;
     if (!commitOpenInlineEditorDraft({ silent: false, refreshTree: false })) return;
     const categoryId = (addEndBtn.dataset.categoryId || "").trim();
     const parentItemId = (addEndBtn.dataset.parentItemId || "").trim();
@@ -4306,6 +4712,7 @@ topicTreeInput?.addEventListener("click", (event) => {
     return;
   }
   if (target.classList.contains("qpm-editor-tree-delete-inline")) {
+    if (!canDeleteLimitsInCurrentType()) return;
     if (!commitOpenInlineEditorDraft({ silent: false, refreshTree: false })) return;
     const itemId = (target.dataset.id || "").trim();
     const categoryId = (target.dataset.categoryId || "").trim();
@@ -4322,6 +4729,7 @@ topicTreeInput?.addEventListener("click", (event) => {
     return;
   }
   if (target.classList.contains("qpm-editor-tree-delete-category-inline")) {
+    if (!canDeleteLimitsInCurrentType()) return;
     if (!commitOpenInlineEditorDraft({ silent: false, refreshTree: false })) return;
     const categoryId = (target.dataset.categoryId || "").trim();
     if (!categoryId) return;

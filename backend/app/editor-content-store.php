@@ -10,7 +10,7 @@ require_once __DIR__ . '/editor-auth.php';
  */
 function editorLimitsFilePathInBase(string $baseDir): string
 {
-    return $baseDir . DIRECTORY_SEPARATOR . 'limits' . DIRECTORY_SEPARATOR . 'limits.json';
+    return $baseDir . DIRECTORY_SEPARATOR . 'shared' . DIRECTORY_SEPARATOR . 'limits.json';
 }
 
 /**
@@ -20,6 +20,15 @@ function editorResolveLimitsFilePath(): string
 {
     $baseDir = editorContentBaseDir();
     return editorLimitsFilePathInBase($baseDir);
+}
+
+/**
+ * Resolve per-domain limits settings file path.
+ */
+function editorResolveLimitsSettingsFilePath(string $domain): string
+{
+    $domainDir = editorEnsureDomainDirectory($domain);
+    return $domainDir . DIRECTORY_SEPARATOR . 'limits-settings.json';
 }
 
 /**
@@ -295,7 +304,7 @@ function editorValidateTreeLimits(array $nodes, int $depth, int $maxDepth, int $
         if (!is_array($node)) {
             continue;
         }
-        $children = $node['children'] ?? ($node['choices'] ?? []);
+        $children = $node['children'] ?? ($node['groups'] ?? ($node['choices'] ?? []));
         if (is_array($children) && !empty($children)) {
             editorValidateTreeLimits($children, $depth + 1, $maxDepth, $maxNodes, $count);
         }
@@ -316,6 +325,9 @@ function editorValidateTopicNodeShape(array $node): void
     if (isset($node['tooltip']) && !is_array($node['tooltip'])) {
         editorJsonResponse(400, ['error' => 'tooltip must be object']);
     }
+    if (isset($node['tooltip_simple']) && !is_array($node['tooltip_simple'])) {
+        editorJsonResponse(400, ['error' => 'tooltip_simple must be object']);
+    }
     if (isset($node['buttons']) && !is_bool($node['buttons'])) {
         editorJsonResponse(400, ['error' => 'buttons must be boolean']);
     }
@@ -331,6 +343,85 @@ function editorValidateTopicNodeShape(array $node): void
     if (isset($node['choices']) && !is_array($node['choices'])) {
         editorJsonResponse(400, ['error' => 'choices must be array']);
     }
+}
+
+/**
+ * Ensure limits settings payload does not include searchStrings at any depth.
+ *
+ * @param mixed $value
+ */
+function editorAssertNoSearchStringsInPayload($value): void
+{
+    if (!is_array($value)) {
+        return;
+    }
+    foreach ($value as $key => $child) {
+        if ((string) $key === 'searchStrings') {
+            editorJsonResponse(400, ['error' => 'limits-settings must not include searchStrings']);
+        }
+        editorAssertNoSearchStringsInPayload($child);
+    }
+}
+
+/**
+ * Canonicalize limits payload node to groups/children tree structure.
+ *
+ * @param mixed $value
+ * @return mixed
+ */
+function editorCanonicalizeLimitsNodeToGroups($value, bool $isRootNode = false)
+{
+    if (!is_array($value) || array_is_list($value)) {
+        return $value;
+    }
+
+    $out = $value;
+    $sourceChildren = [];
+    if ($isRootNode) {
+        if (isset($value['groups']) && is_array($value['groups'])) {
+            $sourceChildren = $value['groups'];
+        } elseif (isset($value['choices']) && is_array($value['choices'])) {
+            $sourceChildren = $value['choices'];
+        }
+    } else {
+        if (isset($value['children']) && is_array($value['children'])) {
+            $sourceChildren = $value['children'];
+        } elseif (isset($value['choices']) && is_array($value['choices'])) {
+            $sourceChildren = $value['choices'];
+        } elseif (isset($value['groups']) && is_array($value['groups'])) {
+            $sourceChildren = $value['groups'];
+        }
+    }
+    unset($out['groups'], $out['choices'], $out['children']);
+    $normalizedChildren = [];
+    foreach ($sourceChildren as $child) {
+        if (!is_array($child) || array_is_list($child)) {
+            continue;
+        }
+        $normalizedChildren[] = editorCanonicalizeLimitsNodeToGroups($child, false);
+    }
+    if ($isRootNode) {
+        $out['groups'] = $normalizedChildren;
+    } else {
+        $out['children'] = $normalizedChildren;
+    }
+    return $out;
+}
+
+/**
+ * Canonicalize complete limits payload to groups/children structure.
+ *
+ * @param array<string, mixed> $payload
+ * @return array<string, mixed>
+ */
+function editorCanonicalizeLimitsPayloadToGroups(array $payload): array
+{
+    $safePayload = $payload;
+    $limits = isset($safePayload['limits']) && is_array($safePayload['limits']) ? $safePayload['limits'] : [];
+    $safePayload['limits'] = array_map(static function ($node) {
+        return editorCanonicalizeLimitsNodeToGroups($node, true);
+    }, $limits);
+    return $safePayload;
 }
 
 /**
@@ -642,7 +733,7 @@ function editorWriteJsonAtomic(string $filePath, array $payload): void
  */
 function editorValidateContentPayload(string $type, array $data): void
 {
-    if (!in_array($type, ['topics', 'limits', 'prompt-rules'], true)) {
+    if (!in_array($type, ['topics', 'limits', 'prompt-rules', 'limits-settings'], true)) {
         editorJsonResponse(400, ['error' => 'Invalid content type']);
     }
 
@@ -677,6 +768,22 @@ function editorValidateContentPayload(string $type, array $data): void
         return;
     }
 
+    if ($type === 'limits-settings') {
+        if (!isset($data['limits']) || !is_array($data['limits'])) {
+            editorJsonResponse(400, ['error' => 'limits-settings payload must include limits array']);
+        }
+        $nodeCount = 0;
+        editorValidateTreeLimits($data['limits'], 1, $maxDepth, $maxItems, $nodeCount);
+        foreach ($data['limits'] as $limit) {
+            if (is_array($limit)) {
+                editorValidateTopicNodeShape($limit);
+            }
+        }
+        editorAssertNoSearchStringsInPayload($data['limits']);
+        editorSanitizePayloadValue($data, $maxTextLength);
+        return;
+    }
+
     if (!isset($data['limits']) || !is_array($data['limits'])) {
         editorJsonResponse(400, ['error' => 'limits payload must include limits array']);
     }
@@ -699,6 +806,14 @@ function editorResolveContentFilePath(string $type, ?string $domain = null): str
 
     if ($type === 'limits') {
         return editorResolveLimitsFilePath();
+    }
+
+    if ($type === 'limits-settings') {
+        $normalized = editorNormalizeDomain((string) $domain);
+        if ($normalized === '') {
+            editorJsonResponse(400, ['error' => 'Domain is required for limits-settings']);
+        }
+        return editorResolveLimitsSettingsFilePath($normalized);
     }
 
     if (!in_array($type, ['topics', 'prompt-rules'], true)) {

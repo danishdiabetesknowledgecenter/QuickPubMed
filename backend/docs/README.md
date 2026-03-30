@@ -74,7 +74,7 @@ define('EDITOR_USERS', [
 
 - Ved hver `save` oprettes snapshot af den tidligere version automatisk.
 - Revisionsfiler gemmes under `history/` ved siden af den redigerede content-fil.
-- `limits` ligger i `data/content/limits/limits.json`.
+- `limits` ligger i `data/content/shared/limits.json`.
 - Kun de seneste `EDITOR_MAX_REVISIONS` beholdes (standard: 25).
 - Revert kan udføres via editor-API (`action=revert`) og kræver auth + CSRF + samme rettigheder som save.
 

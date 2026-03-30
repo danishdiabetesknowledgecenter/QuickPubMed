@@ -1,6 +1,6 @@
 const runtimeTopicPayloadCache = new Map();
-let runtimeLimitsPayloadCache = null;
-let runtimeLimitsTypePreference = "limits";
+const runtimeLimitsPayloadCache = new Map();
+const runtimeLimitsTypePreferenceByDomain = new Map();
 const legacyLimitsType = ["fi", "lters"].join("");
 const runtimePromptRulesPayloadCache = new Map();
 let runtimeContentEndpointAvailable = true;
@@ -77,6 +77,37 @@ async function fetchRuntimeContent(type, domain = "") {
   return payload.data;
 }
 
+function normalizeLimitChoiceTreeForRuntime(nodes) {
+  if (!Array.isArray(nodes)) return [];
+  return nodes.map((node) => {
+    const copy = { ...(node || {}) };
+    const childSource = Array.isArray(copy?.choices)
+      ? copy.choices
+      : Array.isArray(copy?.children)
+      ? copy.children
+      : copy?.groups;
+    delete copy.children;
+    delete copy.groups;
+    copy.choices = normalizeLimitChoiceTreeForRuntime(childSource);
+    return copy;
+  });
+}
+
+function normalizeLimitsPayloadForRuntime(payload) {
+  if (!payload || typeof payload !== "object") return payload;
+  const next = { ...payload };
+  if (Array.isArray(next?.limits)) {
+    next.limits = next.limits.map((limitItem) => {
+      const copy = { ...(limitItem || {}) };
+      const source = Array.isArray(copy?.choices) ? copy.choices : copy?.groups;
+      delete copy.groups;
+      copy.choices = normalizeLimitChoiceTreeForRuntime(source);
+      return copy;
+    });
+  }
+  return next;
+}
+
 export async function loadTopicsFromRuntime(domain) {
   if (!domain) {
     return [];
@@ -92,26 +123,29 @@ export async function loadTopicsFromRuntime(domain) {
   return Array.isArray(payload.topics) ? payload.topics : [];
 }
 
-export async function loadLimitsFromRuntime() {
-  if (hasFreshCache(runtimeLimitsPayloadCache)) {
-    return Array.isArray(runtimeLimitsPayloadCache.data?.limits)
-      ? runtimeLimitsPayloadCache.data.limits
-      : [];
+export async function loadLimitsFromRuntime(domain = "") {
+  const domainKey = String(domain || "")
+    .trim()
+    .toLowerCase();
+  const cached = runtimeLimitsPayloadCache.get(domainKey);
+  if (hasFreshCache(cached)) {
+    return Array.isArray(cached.data?.limits) ? cached.data.limits : [];
   }
 
-  const preferredType =
-    runtimeLimitsTypePreference === legacyLimitsType ? legacyLimitsType : "limits";
+  const preferredTypeValue = runtimeLimitsTypePreferenceByDomain.get(domainKey);
+  const preferredType = preferredTypeValue === legacyLimitsType ? legacyLimitsType : "limits";
   const fallbackType = preferredType === "limits" ? legacyLimitsType : "limits";
   let payload;
 
   try {
-    payload = await fetchRuntimeContent(preferredType);
+    payload = await fetchRuntimeContent(preferredType, domainKey);
   } catch (error) {
-    payload = await fetchRuntimeContent(fallbackType);
-    runtimeLimitsTypePreference = fallbackType;
+    payload = await fetchRuntimeContent(fallbackType, domainKey);
+    runtimeLimitsTypePreferenceByDomain.set(domainKey, fallbackType);
   }
 
-  runtimeLimitsPayloadCache = { data: payload, cachedAt: Date.now() };
+  payload = normalizeLimitsPayloadForRuntime(payload);
+  runtimeLimitsPayloadCache.set(domainKey, { data: payload, cachedAt: Date.now() });
   if (Array.isArray(payload?.limits)) return payload.limits;
   if (Array.isArray(payload?.[legacyLimitsType])) return payload[legacyLimitsType];
   return [];

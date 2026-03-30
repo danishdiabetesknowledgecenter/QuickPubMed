@@ -1063,7 +1063,7 @@
         this.topics = Array.isArray(this.topicCatalog) ? [...this.topicCatalog] : [];
 
         try {
-          const runtimeLimits = await loadLimitsFromRuntime();
+          const runtimeLimits = await loadLimitsFromRuntime(this.currentDomain);
           const safeRuntimeFilters = Array.isArray(runtimeLimits) ? runtimeLimits : [];
           this.limits = cloneDeep(safeRuntimeFilters).map((f) => ({
             ...f,
