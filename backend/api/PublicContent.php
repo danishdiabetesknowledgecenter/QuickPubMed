@@ -222,8 +222,38 @@ if ($type === 'prompt-rules') {
 } else {
     $path = editorResolveContentFilePath($type, $domain);
 }
+
+if ($type === 'limits') {
+    if (!is_file($path)) {
+        editorJsonResponse(500, [
+            'error' => 'Limits file not found',
+            'details' => [
+                'path' => $path,
+            ],
+        ]);
+    }
+    if (!is_readable($path)) {
+        editorJsonResponse(500, [
+            'error' => 'Limits file is not readable',
+            'details' => [
+                'path' => $path,
+            ],
+        ]);
+    }
+}
+
 $data = editorReadJsonFile($path);
 if ($type === 'limits') {
+    if (!isset($data['limits']) || !is_array($data['limits'])) {
+        editorJsonResponse(500, [
+            'error' => 'Invalid limits payload',
+            'details' => [
+                'path' => $path,
+                'bytes' => is_file($path) ? (int) (@filesize($path) ?: 0) : 0,
+                'hasLimitsKey' => array_key_exists('limits', $data),
+            ],
+        ]);
+    }
     $rawDomain = trim((string) $domain);
     $normalizedDomain = editorNormalizeDomain((string) $domain);
     if ($rawDomain !== '' && $normalizedDomain === '') {

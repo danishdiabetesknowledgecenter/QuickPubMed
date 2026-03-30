@@ -14,12 +14,31 @@ function editorLimitsFilePathInBase(string $baseDir): string
 }
 
 /**
+ * Legacy limits file path inside a content base dir.
+ */
+function editorLegacyLimitsFilePathInBase(string $baseDir): string
+{
+    return $baseDir . DIRECTORY_SEPARATOR . 'limits' . DIRECTORY_SEPARATOR . 'limits.json';
+}
+
+/**
  * Resolve limits file path.
  */
 function editorResolveLimitsFilePath(): string
 {
     $baseDir = editorContentBaseDir();
-    return editorLimitsFilePathInBase($baseDir);
+    $preferredPath = editorLimitsFilePathInBase($baseDir);
+    if (is_file($preferredPath)) {
+        return $preferredPath;
+    }
+
+    $legacyPath = editorLegacyLimitsFilePathInBase($baseDir);
+    if (is_file($legacyPath)) {
+        return $legacyPath;
+    }
+
+    // Default to preferred path for first-write scenarios.
+    return $preferredPath;
 }
 
 /**
