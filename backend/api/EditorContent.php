@@ -324,8 +324,11 @@ if ($method === 'POST') {
     }
     $snapshotBeforeSave = editorSnapshotCurrentFile($path, $type, $domain);
     if ($snapshotBeforeSave === null && is_file($path)) {
-        editorAudit('content_save_failed_no_history', ['type' => $type, 'domain' => $domain]);
-        editorJsonResponse(500, ['error' => 'Failed to create pre-save snapshot']);
+        editorAudit('content_save_history_unavailable', [
+            'type' => $type,
+            'domain' => $domain,
+            'stage' => 'pre-save',
+        ]);
     }
     editorWriteJsonAtomic($path, $payload);
     // Keep exactly one history entry per save operation.
@@ -336,8 +339,11 @@ if ($method === 'POST') {
         $revisionId = editorSnapshotCurrentFile($path, $type, $domain);
     }
     if ($revisionId === null) {
-        editorAudit('content_save_failed_history_write', ['type' => $type, 'domain' => $domain]);
-        editorJsonResponse(500, ['error' => 'Failed to write revision history']);
+        editorAudit('content_save_history_unavailable', [
+            'type' => $type,
+            'domain' => $domain,
+            'stage' => 'post-save',
+        ]);
     }
     editorAudit('content_saved', [
         'type' => $type,
@@ -352,7 +358,7 @@ if ($method === 'POST') {
         'type' => $type,
         'domain' => $domain,
         'savedAt' => gmdate('c'),
-        'revisionId' => $revisionId,
+        'revisionId' => $revisionId !== null ? $revisionId : null,
     ]);
 }
 
