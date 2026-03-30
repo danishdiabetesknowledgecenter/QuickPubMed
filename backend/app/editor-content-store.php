@@ -6,6 +6,27 @@
 require_once __DIR__ . '/editor-auth.php';
 
 /**
+ * Compatibility wrapper for array_is_list (PHP < 8.1).
+ */
+function editorArrayIsListCompat($value): bool
+{
+    if (!is_array($value)) {
+        return false;
+    }
+    if (function_exists('array_is_list')) {
+        return array_is_list($value);
+    }
+    $expectedKey = 0;
+    foreach (array_keys($value) as $key) {
+        if ($key !== $expectedKey) {
+            return false;
+        }
+        $expectedKey++;
+    }
+    return true;
+}
+
+/**
  * Preferred limits file path inside a content base dir.
  */
 function editorLimitsFilePathInBase(string $baseDir): string
@@ -371,7 +392,7 @@ function editorAssertNoSearchStringsInPayload($value): void
  */
 function editorCanonicalizeLimitsNodeToGroups($value, bool $isRootNode = false)
 {
-    if (!is_array($value) || array_is_list($value)) {
+    if (!is_array($value) || editorArrayIsListCompat($value)) {
         return $value;
     }
 
@@ -395,7 +416,7 @@ function editorCanonicalizeLimitsNodeToGroups($value, bool $isRootNode = false)
     unset($out['groups'], $out['choices'], $out['children']);
     $normalizedChildren = [];
     foreach ($sourceChildren as $child) {
-        if (!is_array($child) || array_is_list($child)) {
+        if (!is_array($child) || editorArrayIsListCompat($child)) {
             continue;
         }
         $normalizedChildren[] = editorCanonicalizeLimitsNodeToGroups($child, false);
