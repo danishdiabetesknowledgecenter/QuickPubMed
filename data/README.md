@@ -2,7 +2,7 @@
 
 Denne mappe indeholder driftsdata, som ikke skal overskrives ved backend-deploy:
 
-- `content/` - editorindhold (`topics.json`, `limits.json`, `prompt-rules.json`)
+- `content/` - editorindhold (`<domain>/topics.json`, `<domain>/prompt-rules.json`, `shared/limits.json`, `<domain>/limits-settings.json`)
 - `runtime/` - audit-logs og rate-limit-filer
 - `cache/` - backend-cache (fx text-fetch cache)
 
