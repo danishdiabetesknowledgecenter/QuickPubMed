@@ -23,6 +23,12 @@ data/cache/
 data/content/*/domain-config.json
 !data/content/domain-config.example.json
 data/content/*/history/
+data/content/*/topics.json
+data/content/*/prompt-rules.json
+data/content/*/limits-settings.json
+!data/content/template/topics.json
+!data/content/template/prompt-rules.json
+!data/content/template/limits-settings.json
 
 # Log files
 npm-debug.log*

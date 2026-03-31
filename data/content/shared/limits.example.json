@@ -1,0 +1,53 @@
+{
+  "limits": [
+    {
+      "id": "L000",
+      "translations": {
+        "dk": "Eksempel kategori",
+        "en": "Example category"
+      },
+      "ordering": {
+        "dk": 1,
+        "en": 1
+      },
+      "tooltip": {
+        "dk": "",
+        "en": ""
+      },
+      "groups": [
+        {
+          "id": "L000010",
+          "buttons": true,
+          "translations": {
+            "dk": "Eksempel afgrænsning",
+            "en": "Example limit"
+          },
+          "searchStrings": {
+            "narrow": [
+              "example narrow query"
+            ],
+            "normal": [
+              "example normal query"
+            ],
+            "broad": [
+              "example broad query"
+            ]
+          },
+          "searchStringComment": {
+            "dk": "",
+            "en": ""
+          },
+          "tooltip": {
+            "dk": "",
+            "en": ""
+          },
+          "ordering": {
+            "dk": 1,
+            "en": 1
+          },
+          "children": []
+        }
+      ]
+    }
+  ]
+}

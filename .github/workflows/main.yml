@@ -85,22 +85,28 @@ jobs:
              .git*
              *.map
 
-      - name: 📂 Deploy data to FTP Server
+      - name: 📂 Deploy shared content data to FTP Server
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: ./data/
-          server-dir: ./data/
+          local-dir: ./data/content/shared/
+          server-dir: ./data/content/shared/
           protocol: ftp
           exclude: |
              history/**
              **/history/**
-             config/**
-             **/config/**
-             *.example.json
-             **/*.example.json
-             cache/**
-             runtime/**
-             **/*config*.json
+
+      - name: 📂 Deploy template content data to FTP Server
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./data/content/template/
+          server-dir: ./data/content/template/
+          protocol: ftp
+          exclude: |
+             history/**
+             **/history/**
