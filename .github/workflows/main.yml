@@ -91,9 +91,12 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
+          # Scope deploy strictly to shared content only.
           local-dir: ./data/content/shared/
           server-dir: ./data/content/shared/
           protocol: ftp
+          state-name: .ftp-deploy-sync-state-data-shared.json
+          dangerous-clean-slate: false
           exclude: |
              history/**
              **/history/**
@@ -104,9 +107,12 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
+          # Scope deploy strictly to template content only.
           local-dir: ./data/content/template/
           server-dir: ./data/content/template/
           protocol: ftp
+          state-name: .ftp-deploy-sync-state-data-template.json
+          dangerous-clean-slate: false
           exclude: |
              history/**
              **/history/**
