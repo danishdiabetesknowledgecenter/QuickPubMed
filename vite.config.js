@@ -47,6 +47,36 @@ export default defineConfig(({ command }) => {
           changeOrigin: true,
           secure: true,
         },
+        "/semantic-scholar-api": {
+          target: "https://api.semanticscholar.org",
+          changeOrigin: true,
+          secure: true,
+          rewrite: (path) => path.replace(/^\/semantic-scholar-api/, ""),
+        },
+        "/openalex-api": {
+          target: "https://api.openalex.org",
+          changeOrigin: true,
+          secure: true,
+          rewrite: (path) => path.replace(/^\/openalex-api/, ""),
+        },
+        "/elicit-api": {
+          target: "https://elicit.com",
+          changeOrigin: true,
+          secure: true,
+          rewrite: (path) => path.replace(/^\/elicit-api/, ""),
+        },
+        "/core-api": {
+          target: "https://api.core.ac.uk",
+          changeOrigin: true,
+          secure: true,
+          rewrite: (path) => path.replace(/^\/core-api/, ""),
+        },
+        "/nlm-api": {
+          target: "https://eutils.ncbi.nlm.nih.gov",
+          changeOrigin: true,
+          secure: true,
+          rewrite: (path) => path.replace(/^\/nlm-api/, ""),
+        },
       },
     },
     resolve: {

@@ -1,5 +1,135 @@
 import { sanitizePrompt } from "@/utils/promptsHelpers.js";
 
+const semanticIntentResponseSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: [
+    "semanticIntent",
+    "hardFilterHints",
+    "softFilterHints",
+    "sourceSpecificHints",
+    "sourceQueryPlan",
+  ],
+  properties: {
+    semanticIntent: {
+      type: "string",
+    },
+    hardFilterHints: {
+      type: "object",
+      additionalProperties: false,
+      required: ["publicationType", "studyDesign", "ageGroup", "language", "sourceFormat"],
+      properties: {
+        publicationType: { type: "array", items: { type: "string" } },
+        studyDesign: { type: "array", items: { type: "string" } },
+        ageGroup: { type: "array", items: { type: "string" } },
+        language: { type: "array", items: { type: "string" } },
+        sourceFormat: { type: "array", items: { type: "string" } },
+      },
+    },
+    softFilterHints: {
+      type: "array",
+      items: { type: "string" },
+    },
+    sourceSpecificHints: {
+      type: "object",
+      additionalProperties: false,
+      required: ["semanticScholar", "openAlex", "elicit", "scite", "core"],
+      properties: {
+        semanticScholar: { type: "array", items: { type: "string" } },
+        openAlex: { type: "array", items: { type: "string" } },
+        elicit: { type: "array", items: { type: "string" } },
+        scite: { type: "array", items: { type: "string" } },
+        core: { type: "array", items: { type: "string" } },
+      },
+    },
+    sourceQueryPlan: {
+      type: "object",
+      additionalProperties: false,
+      required: ["semanticScholar", "openAlex", "elicit", "scite", "core"],
+      properties: {
+        semanticScholar: {
+          type: "object",
+          additionalProperties: false,
+          required: ["query", "filters"],
+          properties: {
+            query: { type: "string" },
+            filters: {
+              type: "object",
+              additionalProperties: false,
+              required: [],
+              properties: {},
+            },
+          },
+        },
+        openAlex: {
+          type: "object",
+          additionalProperties: false,
+          required: ["query", "filters"],
+          properties: {
+            query: { type: "string" },
+            filters: {
+              type: "object",
+              additionalProperties: false,
+              required: ["language", "sourceType", "workType"],
+              properties: {
+                language: { type: "array", items: { type: "string" } },
+                sourceType: { type: "array", items: { type: "string" } },
+                workType: { type: "array", items: { type: "string" } },
+              },
+            },
+          },
+        },
+        elicit: {
+          type: "object",
+          additionalProperties: false,
+          required: ["query", "filters"],
+          properties: {
+            query: { type: "string" },
+            filters: {
+              type: "object",
+              additionalProperties: false,
+              required: ["typeTags", "includeKeywords", "excludeKeywords"],
+              properties: {
+                typeTags: { type: "array", items: { type: "string" } },
+                includeKeywords: { type: "array", items: { type: "string" } },
+                excludeKeywords: { type: "array", items: { type: "string" } },
+              },
+            },
+          },
+        },
+        scite: {
+          type: "object",
+          additionalProperties: false,
+          required: ["query", "filters"],
+          properties: {
+            query: { type: "string" },
+            filters: {
+              type: "object",
+              additionalProperties: false,
+              required: [],
+              properties: {},
+            },
+          },
+        },
+        core: {
+          type: "object",
+          additionalProperties: false,
+          required: ["query", "filters"],
+          properties: {
+            query: { type: "string" },
+            filters: {
+              type: "object",
+              additionalProperties: false,
+              required: [],
+              properties: {},
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
 export const titleTranslationPrompt = {
   name: "translate",
   translations: {
@@ -68,5 +198,65 @@ export const searchTranslationPrompt = {
     en: 'You are a translator who translates a given input into a correct PubMed search string. Based on the input you receive, you must identify the most relevant health science English terms, including commonly used synonyms and spellings, which can be used to create a correct PubMed search that yields the most relevant results matching the input. The terms you choose to use in the PubMed search string must be terms frequently used in titles or abstracts in health science literature, making them suitable for use in a PubMed search. If the input is phrased as a question, you must identify the most central terms in the question and then use these terms to construct the PubMed search string. You must never use search field tags such as [ti], [tiab], and [mh]. If you use MeSH terms, you must always first use your knowledge to check whether the particular MeSH term actually exists, i.e., whether it is published in NLM\'s The Medical Subject Headings (MeSH) thesaurus (https://meshb.nlm.nih.gov). It is forbidden for you to use MeSH terms that do not exist in NLM\'s The Medical Subject Headings (MeSH) thesaurus. If the input is a DOI, always return an output formatted like this: "DOI"[aid], e.g., "10.1080/10408398.2018.1430019"[aid]. Use only the Boolean operators OR and AND, but never NOT. Use quotation marks only when they are essential for the correct understanding of the concept by PubMed\'s automatic term mapping; otherwise, avoid using quotation marks. Feel free to use parentheses, but place them correctly to always create a correct and usable PubMed search string. You must respond with a PubMed search string that can be immediately inserted as a search in PubMed, and nothing else. Be aware of common spelling mistakes that a layperson might make when you need to understand what is meant - i.e. you must particularly be able to interpret when the input phonetically resembles a correct and relevant English word. If you do not know how to translate the input, or something goes wrong, you must respond with the following words and nothing else: \'The input cannot be translated into a search. Please try again.\'. \
     You will be penalized severely if you do not follow the instructions you have received. \
     Here is the input you must translate into a PubMed search string: ',
+  }),
+};
+
+export const semanticScholarSearchPrompt = {
+  name: "translate",
+  translations: {
+    dk: "dansk",
+    en: "English",
+  },
+  model_token_limit: 128000,
+  model: "gpt-5.4",
+  reasoning: { effort: "none" },
+  text: { verbosity: "medium" },
+  max_output_tokens: 120,
+  stream: true,
+  prompt: sanitizePrompt({
+    dk: "Du er en informationsspecialist. Oversæt brugerens input til en kort, præcis engelsk søgesætning, der er egnet som plain-text query i Semantic Scholar. \
+    Strenge regler (skal overholdes): \
+    1. Returnér kun engelsk tekst. \
+    2. Brug aldrig PubMed-tags som [ti], [tiab], [mh] eller lignende. \
+    3. Brug aldrig boolske operatorer (AND, OR, NOT), parenteser eller citationstegn, medmindre det er absolut nødvendigt i almindeligt engelsk. \
+    4. Hold output kort og fokuseret på de vigtigste fagtermer. \
+    5. Hvis input allerede er på godt engelsk, kan du returnere det i let normaliseret form. \
+    6. Hvis noget går galt, returnér inputtet så neutralt som muligt på engelsk. \
+    Her er inputtet, som du skal omskrive til en engelsk plain-text søgesætning: ",
+    en: "You are an information specialist. Rewrite the user input into a short, precise English plain-text search query suitable for Semantic Scholar. \
+    Strict rules: \
+    1. Return only English text. \
+    2. Never use PubMed field tags like [ti], [tiab], [mh], etc. \
+    3. Do not use Boolean operators (AND, OR, NOT), parentheses, or query syntax unless absolutely necessary in normal English. \
+    4. Keep output short and focused on the core scientific terms. \
+    5. If the input is already good English, return a lightly normalized version. \
+    6. If something fails, return a neutral English version of the input. \
+    Here is the input you must rewrite as an English plain-text search query: ",
+  }),
+};
+
+export const semanticIntentPrompt = {
+  name: "translate",
+  translations: {
+    dk: "dansk",
+    en: "English",
+  },
+  model_token_limit: 128000,
+  model: "gpt-5.4",
+  reasoning: { effort: "none" },
+  text: {
+    verbosity: "low",
+    format: {
+      type: "json_schema",
+      name: "semantic_intent_response",
+      strict: true,
+      schema: semanticIntentResponseSchema,
+    },
+  },
+  max_output_tokens: 520,
+  stream: true,
+  prompt: sanitizePrompt({
+    dk: 'Du er en informationsspecialist. Du modtager et JSON-input med brugerens fritekst, valgte emner, valgte afgrænsninger, strukturerede semantiske blokke og hårde filtre. Hvis felterne `semanticWordedIntent`, `semanticCoreText` eller `sourceSpecificContext` findes, skal de bruges som den foretrukne engelske opsummering af søgeintentionen. Returnér KUN gyldig JSON med præcis disse topfelter: "semanticIntent", "hardFilterHints", "softFilterHints", "sourceSpecificHints", "sourceQueryPlan". Regler: 1) "semanticIntent" er en kort engelsk fallback-query uden PubMed-tags og uden boolske operatorer. 2) "hardFilterHints" er et objekt med arrays for publicationType, studyDesign, ageGroup, language og sourceFormat, når input tydeligt understøtter det; ellers tomme arrays. 3) "softFilterHints" er korte arrays af synonymer eller tematiske signaler. 4) "sourceSpecificHints" er et objekt med nøglerne semanticScholar, openAlex, elicit, scite og core, hvor hver værdi er et kort array af hints. 5) "sourceQueryPlan" er et objekt med nøglerne semanticScholar, openAlex, elicit, scite og core. Hver værdi skal være et objekt med felterne "query" og "filters". 6) "sourceQueryPlan.semanticScholar.query" skal være en kort begrebsnær engelsksproget query. 7) "sourceQueryPlan.openAlex.query" skal være en kort konceptuel engelsksproget query egnet til `search.semantic`. 8) "sourceQueryPlan.elicit.query" skal være et kort engelsksproget forskningsspørgsmål i naturligt sprog. 9) "sourceQueryPlan.scite.query" skal være en kort konceptuel engelsksproget query egnet til Scites papers-søgning. 10) "sourceQueryPlan.core.query" skal være en kort konceptuel engelsksproget query egnet til COREs fritekstsøgning i works. 11) "sourceQueryPlan.openAlex.filters" må kun bruge felterne language, sourceType og workType. 12) "sourceQueryPlan.elicit.filters" må kun bruge felterne typeTags, includeKeywords og excludeKeywords. Tilladte typeTags er kun "Review", "Meta-Analysis", "Systematic Review", "RCT" og "Longitudinal". 13) "sourceQueryPlan.scite.filters" og "sourceQueryPlan.core.filters" skal være tomme objekter. 14) Hvis et sprogfilter er kendt, skal det kun placeres i hardFilterHints.language og eventuelt sourceQueryPlan.openAlex.filters.language, ikke skrives direkte ind i semanticIntent. 15) Hvis input er uklart, vær konservativ og brug tomme felter frem for gæt. 16) Svar med JSON alene uden markdown, forklaring eller ekstra tekst. Her er input-JSON:',
+    en: 'You are an information specialist. You receive a JSON input with user free text, selected topics, selected limits, structured semantic blocks, and hard filters. If the fields `semanticWordedIntent`, `semanticCoreText`, or `sourceSpecificContext` are present, use them as the preferred English summary of the search intent. Return ONLY valid JSON with exactly these top-level fields: "semanticIntent", "hardFilterHints", "softFilterHints", "sourceSpecificHints", "sourceQueryPlan". Rules: 1) "semanticIntent" is a short English fallback query without PubMed tags and without Boolean operators. 2) "hardFilterHints" is an object with arrays for publicationType, studyDesign, ageGroup, language, and sourceFormat when clearly supported by the input; otherwise use empty arrays. 3) "softFilterHints" contains short arrays of synonyms or thematic signals. 4) "sourceSpecificHints" is an object with keys semanticScholar, openAlex, elicit, scite, and core, where each value is a short hint array. 5) "sourceQueryPlan" is an object with keys semanticScholar, openAlex, elicit, scite, and core. Each value must be an object with fields "query" and "filters". 6) "sourceQueryPlan.semanticScholar.query" must be a short concept-focused English query. 7) "sourceQueryPlan.openAlex.query" must be a short conceptual English query suitable for `search.semantic`. 8) "sourceQueryPlan.elicit.query" must be a short English research question in natural language. 9) "sourceQueryPlan.scite.query" must be a short conceptual English query suitable for Scite paper search. 10) "sourceQueryPlan.core.query" must be a short conceptual English query suitable for CORE free-text work search. 11) "sourceQueryPlan.openAlex.filters" may only use the fields language, sourceType, and workType. 12) "sourceQueryPlan.elicit.filters" may only use the fields typeTags, includeKeywords, and excludeKeywords. Allowed typeTags are only "Review", "Meta-Analysis", "Systematic Review", "RCT", and "Longitudinal". 13) "sourceQueryPlan.scite.filters" and "sourceQueryPlan.core.filters" must be empty objects. 14) If a language filter is known, place it only in hardFilterHints.language and optionally sourceQueryPlan.openAlex.filters.language, and do not write it directly into semanticIntent. 15) If the input is ambiguous, be conservative and prefer empty fields over guessing. 16) Respond with JSON only, no markdown, no explanation, no extra text. Input JSON:',
   }),
 };

@@ -132,6 +132,10 @@ searchFormDivs.forEach((searchFormDiv, index) => {
   const parsedHideLimits = parseDatasetList(searchFormDiv.dataset.hideLimits, "hideLimits");
   const parsedCheckLimits = parseDatasetList(searchFormDiv.dataset.checkLimits, "checkLimits");
   const parsedOrderLimits = parseDatasetList(searchFormDiv.dataset.orderLimits, "orderLimits");
+  const parsedTranslationSources =
+    searchFormDiv.dataset.translationSources !== undefined
+      ? parseDatasetList(searchFormDiv.dataset.translationSources, "translationSources")
+      : null;
   const language = searchFormDiv.dataset.language || undefined;
   const componentNoRaw = searchFormDiv.dataset.componentNo;
   const componentNo =
@@ -184,6 +188,7 @@ searchFormDivs.forEach((searchFormDiv, index) => {
       language: language,
       componentNo: componentNo,
       domain: domain,
+      translationSources: parsedTranslationSources,
       standardStringAdd: standardStringAdd,
       standardStringScope: standardStringScope,
       standardString: standardString,

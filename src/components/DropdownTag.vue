@@ -115,6 +115,7 @@
         set(newName) {
           this.tag.name = newName;
           this.tag.searchStrings.normal = [newName];
+          this.tag.preTranslation = newName;
         },
       },
              getTooltip() {

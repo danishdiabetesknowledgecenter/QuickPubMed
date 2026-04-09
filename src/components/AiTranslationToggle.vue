@@ -1,62 +1,69 @@
 <template>
-  <div v-show="!isCollapsed && config.useAI" class="qpm_switch_wrap qpm_ai_hide">
-    <label class="qpm_switch">
-      <input
-        v-model="localSearchWithAI"
-        type="checkbox"
-        :title="titleSearchWithAI"
-        @keyup.enter="toggleAiSearch"
-      />
-      <span class="qpm_slider qpm_round" />
-    </label>
-    <span v-if="localSearchWithAI" class="qpm_aiToggle">
-      <div>
-        <i
-          class="ri-sparkling-fill"
+  <div v-show="!isCollapsed && config.useAI" :class="wrapperClass">
+    <template v-if="displayMode === 'switch'">
+      <label class="qpm_switch">
+        <input
+          v-model="localSearchWithAI"
+          type="checkbox"
+          :disabled="disabled"
+          :title="titleSearchWithAI"
+          @keyup.enter="toggleAiSearch"
         />
-      </div>
-      <div class="qpm_infoInline">
-        <template v-if="getSearchToggleWithAIParts().prefix">
-          {{ getSearchToggleWithAIParts().prefix }}
-        </template>
-        <span class="qpm_keepWithIcon">
-          {{ getSearchToggleWithAIParts().last }}
-          <button
-            v-tooltip="{
-              content: getString('hoversearchToggleWithAI'),
-              distance: 5,
-              delay: $helpTextDelay,
-            theme: 'infoTooltip',
-            }"
-            class="bx bx-info-circle qpm_cursorHelp qpm_infoIcon"
-            aria-label="Info"
-          />
+        <span class="qpm_slider qpm_round" />
+      </label>
+      <span class="qpm_aiToggle">
+        <div v-if="iconClass">
+          <i :class="localSearchWithAI ? iconClass : `${iconClass} qpm_aiIconMuted`" />
+        </div>
+        <div class="qpm_infoInline">
+          <span class="qpm_keepWithIcon">
+            {{ activeLabel }}
+            <button
+              v-tooltip="{
+                content: localSearchWithAI ? activeTooltipContent : inactiveTooltipContent,
+                distance: 5,
+                delay: $helpTextDelay,
+                theme: 'infoTooltip',
+              }"
+              class="bx bx-info-circle qpm_cursorHelp qpm_infoIcon"
+              aria-label="Info"
+            />
+          </span>
+        </div>
+      </span>
+    </template>
+    <template v-else>
+      <label class="qpm_sourceCheckboxLabel">
+        <input
+          v-model="localSearchWithAI"
+          class="qpm_sourceCheckboxInput"
+          type="checkbox"
+          :disabled="disabled"
+          :title="titleSearchWithAI"
+          @keyup.enter="toggleAiSearch"
+        />
+        <span class="qpm_sourceCheckboxText qpm_aiToggle">
+          <span v-if="iconClass" class="qpm_sourceCheckboxIcon">
+            <i :class="localSearchWithAI ? iconClass : `${iconClass} qpm_aiIconMuted`" />
+          </span>
+          <span class="qpm_infoInline">
+            <span class="qpm_keepWithIcon">
+              {{ activeLabel }}
+              <button
+                v-tooltip="{
+                  content: localSearchWithAI ? activeTooltipContent : inactiveTooltipContent,
+                  distance: 5,
+                  delay: $helpTextDelay,
+                  theme: 'infoTooltip',
+                }"
+                class="bx bx-info-circle qpm_cursorHelp qpm_infoIcon"
+                aria-label="Info"
+              />
+            </span>
+          </span>
         </span>
-      </div>
-    </span>
-    <span v-else class="qpm_aiToggle">
-      <div>
-        <i class="ri-sparkling-fill qpm_aiIconMuted" />
-      </div>
-      <div class="qpm_infoInline">
-        <template v-if="getSearchToggleWithoutAIParts().prefix">
-          {{ getSearchToggleWithoutAIParts().prefix }}
-        </template>
-        <span class="qpm_keepWithIcon">
-          {{ getSearchToggleWithoutAIParts().last }}
-          <button
-            v-tooltip="{
-              content: getString('hoversearchToggleWithoutAI'),
-              distance: 5,
-              delay: $helpTextDelay,
-            theme: 'infoTooltip',
-            }"
-            class="bx bx-info-circle qpm_cursorHelp qpm_infoIcon"
-            aria-label="Info"
-          />
-        </span>
-      </div>
-    </span>
+      </label>
+    </template>
   </div>
 </template>
 
@@ -71,19 +78,69 @@
         type: Boolean,
         default: false,
       },
+      disabled: {
+        type: Boolean,
+        default: false,
+      },
+      displayMode: {
+        type: String,
+        default: "checkbox",
+      },
+      showOffStateLabel: {
+        type: Boolean,
+        default: true,
+      },
+      labelWithKey: {
+        type: String,
+        default: "searchToggleWithAI",
+      },
+      labelWithoutKey: {
+        type: String,
+        default: "searchToggleWithoutAI",
+      },
+      hoverWithKey: {
+        type: String,
+        default: "hoversearchToggleWithAI",
+      },
+      hoverWithoutKey: {
+        type: String,
+        default: "hoversearchToggleWithoutAI",
+      },
+      iconClass: {
+        type: String,
+        default: "ri-sparkling-fill",
+      },
       getString: {
         type: Function,
         default: () => "",
       },
-    },
-    data: function () {
-      return {
-        titleSearchWithAI: this.getString("searchToggleWithAI"),
-      };
+      tooltipSuffix: {
+        type: String,
+        default: "",
+      },
     },
     computed: {
       config() {
         return config;
+      },
+      wrapperClass() {
+        return this.displayMode === "switch"
+          ? "qpm_switch_wrap qpm_ai_hide"
+          : "qpm_sourceCheckboxWrap qpm_ai_hide";
+      },
+      activeLabel() {
+        return this.getString(
+          this.localSearchWithAI || !this.showOffStateLabel ? this.labelWithKey : this.labelWithoutKey
+        );
+      },
+      activeTooltipContent() {
+        return `${this.getString(this.hoverWithKey)}${this.tooltipSuffix || ""}`;
+      },
+      inactiveTooltipContent() {
+        return `${this.getString(this.hoverWithoutKey)}${this.tooltipSuffix || ""}`;
+      },
+      titleSearchWithAI() {
+        return this.activeLabel;
       },
       localSearchWithAI: {
         get() {
@@ -95,23 +152,6 @@
       },
     },
     methods: {
-      splitLastWord(text) {
-        const normalized = String(text || "").trim();
-        const lastSpace = normalized.lastIndexOf(" ");
-        if (lastSpace < 0) {
-          return { prefix: "", last: normalized };
-        }
-        return {
-          prefix: normalized.slice(0, lastSpace) + " ",
-          last: normalized.slice(lastSpace + 1),
-        };
-      },
-      getSearchToggleWithAIParts() {
-        return this.splitLastWord(this.getString("searchToggleWithAI"));
-      },
-      getSearchToggleWithoutAIParts() {
-        return this.splitLastWord(this.getString("searchToggleWithoutAI"));
-      },
       toggleAiSearch() {
         this.localSearchWithAI = !this.localSearchWithAI;
       },

@@ -132,6 +132,8 @@ function qpmMergeLimitNode(array $sharedNode, array $overrideNode): array
         'tooltip',
         'tooltip_simple',
         'searchStringComment',
+        'semanticConfig',
+        'semanticQueryHints',
         'ordering',
         'simpleOrdering',
         'simpleSearch',

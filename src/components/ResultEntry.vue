@@ -1,10 +1,17 @@
 <!-- eslint-disable vue/no-v-html -->
 <template>
-  <div ref="result" class="qpm_ResultEntry" :name="id">
+  <div
+    ref="result"
+    class="qpm_ResultEntry"
+    :name="id"
+    :data-reference-anchor="referenceAnchorId"
+    :data-reference-pmid="hasValidPmid ? normalizedPmid : null"
+    :data-reference-doi="normalizedDoi || null"
+  >
     <loading-spinner :loading="loading" />
-    <div v-if="getComponentWidth && (showDate || (selectable && hasAbstract))" class="qpm_resultTopMeta">
+    <div v-if="getComponentWidth && (showDate || canShowSelectionCheckbox)" class="qpm_resultTopMeta">
       <input
-        v-if="selectable && hasAbstract"
+        v-if="canShowSelectionCheckbox"
         :id="'qpm_selectArticleCheckbox_' + id"
         type="checkbox"
         class="qpm_selectArticleCheckbox"
@@ -26,7 +33,7 @@
       <div class="qpm_resultChangeOrder">
         <div class="d-flex">
           <input
-            v-if="selectable && hasAbstract && !getComponentWidth"
+            v-if="canShowSelectionCheckbox && !getComponentWidth"
             :id="'qpm_selectArticleCheckbox_' + id"
             type="checkbox"
             class="qpm_selectArticleCheckbox"
@@ -39,15 +46,15 @@
             @keyup.enter="changeOnEnter"
           />
           <div class="qpm_resultTitleWrap">
-            <label :for="selectable && hasAbstract ? 'qpm_selectArticleCheckbox_' + id : null">
+            <label :for="canShowSelectionCheckbox ? 'qpm_selectArticleCheckbox_' + id : null">
               <p
-                v-if="showArticleButtons || !hasAbstract"
+                v-if="showArticleButtons || !hasValidAbstract"
                 class="qpm_resultTitle qpm_inlineDisplay"
               >
                 {{ getTitle }}<span v-if="!getTitle">{{ getBookTitle }}</span>
               </p>
               <p
-                v-if="!showArticleButtons && hasAbstract"
+                v-if="!showArticleButtons && hasValidAbstract"
                 class="qpm_resultTitle qpm_resultTitleHover qpm_inlineDisplay"
                 @click="showAbstract"
               >
@@ -114,7 +121,7 @@
           {{ getButtonText }}
         </button>
         <button
-          v-if="pmid !== null"
+          v-if="hasValidPmid"
           v-tooltip="{
             content: getString('hoverOpenInPubMedButton'),
             distance: 5,
@@ -200,7 +207,7 @@
           {{ getButtonText }}
         </button>
         <button
-          v-if="pmid !== null"
+          v-if="hasValidPmid"
           v-tooltip="{
             content: getString('hoverOpenInPubMedButton'),
             distance: 5,
@@ -328,7 +335,7 @@
 
             <div class="qpm_ai_hide">
                 <div
-                  v-if="!hasAcceptedAi && hasAbstract"
+                  v-if="!hasAcceptedAi && hasValidAbstract"
                   class="qpm_searchSummaryText qpm_searchSummaryTextBackground"
                 >
                   <p>{{ getString("aiSummarizeAbstractButton") }}</p>
@@ -438,7 +445,7 @@
             <div>
               <div class="qpm_ai_hide">
                   <div
-                    v-if="!hasAcceptedAi && !hasAbstract"
+                    v-if="!hasAcceptedAi && !hasValidAbstract"
                     class="qpm_searchSummaryText qpm_searchSummaryTextBackground"
                   >
                     <p>{{ getString("aiSummarizeArticleButton") }}</p>
@@ -569,7 +576,7 @@
             </template>
 
             <!-- abstract is provided manually through sectionedAbstract prop-->
-            <template v-if="hasAbstract && !hasSectionedAbstract">
+            <template v-if="hasValidAbstract && !hasSectionedAbstract">
               <div v-for="(abstractValue, name) in text" :key="name">
                 <p v-if="name !== 'UNLABELLED' && name !== 'null'">
                   <strong>{{ name }}</strong>
@@ -584,7 +591,7 @@
             </template>
 
             <!-- there is no abstract-->
-            <template v-if="!hasAbstract || (!isDocTypeAllowed && !hasSectionedAbstract)">
+            <template v-if="!hasValidAbstract || (!isDocTypeAllowed && !hasSectionedAbstract)">
               <p class="qpm_noAbstractPadding">
                 {{ getString("noAbstract") }}
               </p>
@@ -601,11 +608,11 @@
         </div>
 
         <!-- links for related content below abstract -->
-        <div v-if="(pmid !== undefined || doi) && showingAbstract" class="qpm_relatedLinks">
+        <div v-if="(hasValidPmid || doi) && showingAbstract" class="qpm_relatedLinks">
           <!-- Find related articles -->
-          <p v-if="pmid !== undefined" class="qpm_pubmedLink qpm_pubmedLinkArrow">
+          <p v-if="hasValidPmid" class="qpm_pubmedLink qpm_pubmedLinkArrow">
             <a
-              v-if="pmid !== undefined"
+              v-if="hasValidPmid"
               v-tooltip="{
                 content: getString('hoverrelatedPubmed'),
                 distance: 5,
@@ -620,9 +627,9 @@
           </p>
 
           <!-- Find related systematic reviews -->
-          <p v-if="pmid !== undefined" class="qpm_pubmedLink qpm_pubmedLinkArrow">
+          <p v-if="hasValidPmid" class="qpm_pubmedLink qpm_pubmedLinkArrow">
             <a
-              v-if="pmid !== undefined"
+              v-if="hasValidPmid"
               v-tooltip="{
                 content: getString('hoverrelatedPubmedReviews'),
                 distance: 5,
@@ -639,10 +646,10 @@
           <!-- Other people also viewed -->
           <p
             class="qpm_pubmedLink qpm_pubmedLinkArrow"
-            v-if="pmid !== undefined && pmid !== null"
+            v-if="hasValidPmid"
           >
             <a
-              v-if="pmid !== undefined && pmid !== null"
+              v-if="hasValidPmid"
               target="_blank"
               rel="noopener noreferrer"
               :href="getPubmedAlsoViewed"
@@ -698,6 +705,7 @@
     hasDefinedValue,
     isMobileViewport,
   } from "@/utils/componentHelpers";
+  import { normalizeDoiValue } from "@/utils/resultAdapters";
 
   let _resultEntryUid = 0;
 
@@ -931,10 +939,30 @@
       getMyncbiShare() {
         return this.appSettings?.nlm?.myncbishare || "";
       },
+      normalizedPmid() {
+        const pmid = String(this.pmid || "").trim();
+        return /^[0-9]+$/.test(pmid) ? pmid : "";
+      },
+      normalizedDoi() {
+        return normalizeDoiValue(this.doi || "");
+      },
+      hasValidPmid() {
+        return this.normalizedPmid !== "";
+      },
+      referenceAnchorId() {
+        return this.hasValidPmid ? this.normalizedPmid : this.normalizedDoi || this.id;
+      },
+      canShowSelectionCheckbox() {
+        return (
+          this.selectable &&
+          (this.hasValidAbstract || this.hasSectionedAbstract || this.hasValidPmid || this.doi !== "")
+        );
+      },
       getPubMedLink() {
+        if (!this.hasValidPmid) return "";
         return (
           "https://pubmed.ncbi.nlm.nih.gov/" +
-          this.pmid +
+          this.normalizedPmid +
           "/?" +
           "myncbishare=" +
           this.getMyncbiShare +
@@ -945,30 +973,33 @@
         return this.doi ? "https://doi.org/" + this.doi : "";
       },
       getPubmedRelated() {
+        if (!this.hasValidPmid) return "";
         return (
           "https://pubmed.ncbi.nlm.nih.gov/?" +
           "myncbishare=" +
           this.getMyncbiShare +
           "&linkname=pubmed_pubmed&sort=relevance&from_uid=" +
-          this.pmid
+          this.normalizedPmid
         );
       },
       getPubmedRelatedReviews() {
+        if (!this.hasValidPmid) return "";
         return (
           "https://pubmed.ncbi.nlm.nih.gov/?" +
           "myncbishare=" +
           this.getMyncbiShare +
           "&filter=pubt.systematicreview&linkname=pubmed_pubmed&sort=relevance&from_uid=" +
-          this.pmid
+          this.normalizedPmid
         );
       },
       getPubmedAlsoViewed() {
+        if (!this.hasValidPmid) return "";
         return (
           "https://pubmed.ncbi.nlm.nih.gov/?" +
           "myncbishare=" +
           this.getMyncbiShare +
           "&linkname=pubmed_pubmed_alsoviewed&sort=relevance&from_uid=" +
-          this.pmid
+          this.normalizedPmid
         );
       },
       getUnpaywall() {
@@ -1022,8 +1053,8 @@
         return this.getHasOaPdf ? this.unpaywallResponse.best_oa_location.url_for_pdf : "";
       },
       getGoogleScholar() {
-        return hasDefinedValue(this.pmid)
-          ? "https://scholar.google.com/scholar_lookup?pmid=" + this.pmid
+        return this.hasValidPmid
+          ? "https://scholar.google.com/scholar_lookup?pmid=" + this.normalizedPmid
           : "https://scholar.google.com/scholar_lookup?doi=" + this.doi;
       },
       getTitle() {
@@ -1103,10 +1134,13 @@
       },
       getArticle() {
         return {
+          id: this.id,
+          referenceId: this.referenceAnchorId,
           title: this.getTitle,
           authors: this.calculateAuthors,
           source: this.getSource,
           pmid: this.pmid,
+          doi: this.doi,
           pubdate: this.pubDate,
           abstract: this.getAbstract,
         };
@@ -1116,9 +1150,12 @@
           return this.modelValue.some((entry) => {
             if (entry === this.value) return true;
             if (entry?.uid !== undefined && entry?.uid !== null) {
-              return areComparableIdsEqual(entry.uid, this.pmid);
+              return areComparableIdsEqual(entry.uid, this.id);
             }
-            return areComparableIdsEqual(entry, this.pmid);
+            if (entry?.id !== undefined && entry?.id !== null) {
+              return areComparableIdsEqual(entry.id, this.id);
+            }
+            return areComparableIdsEqual(entry, this.id);
           });
         }
         return this.modelValue;

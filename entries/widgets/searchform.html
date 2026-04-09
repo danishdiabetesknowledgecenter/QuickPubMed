@@ -31,6 +31,9 @@
         - data-use-a-i-summarizer: Enable AI summarizer ("true" or "false").
         - data-use-mesh-validation: Enable MeSH term validation via NLM E-utilities ("true" or "false").
           When enabled, AI-translated [mh] terms are validated against NLM's MeSH database.
+        - data-translation-sources: Array of enabled free-text source ids.
+          Supported values: 'pubmed', 'pubmedBestMatch', 'semanticScholar', 'openAlex', 'elicit'.
+          Example: "['pubmedBestMatch','semanticScholar','openAlex']"
         - data-open-limits: Show simple limits section from the start ("true" or "false").
         - data-component-no: Numeric identifier used to build a unique DOM id (SearchForm_<no>).
           Useful when multiple instances are embedded on the same page.
@@ -101,6 +104,7 @@
         data-use-a-i="true"
         data-use-a-i-summarizer="true"
         data-use-mesh-validation="true"
+        data-translation-sources="['semanticScholar','openAlex']"
         data-hide-topics="['L10010']"
         data-open-limits="true"
         data-hide-limits="" 
@@ -119,6 +123,7 @@
         data-use-a-i="true"
         data-use-a-i-summarizer="true"
         data-use-mesh-validation="true"
+        data-translation-sources="['semanticScholar','openAlex']"
         data-open-limits="false"
         data-hide-limits="['L010030']" 
         data-check-limits="['L010020','L010030']"

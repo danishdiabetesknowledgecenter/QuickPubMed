@@ -11,6 +11,24 @@
   "unpaywall": {
     "email": ""
   },
+  "scite": {
+    "api_key": "",
+    "api_url": ""
+  },
+  "core": {
+    "api_key": "",
+    "api_url": ""
+  },
+  "search": {
+    "translation_sources": [
+      "pubmedBestMatch",
+      "semanticScholar",
+      "openAlex",
+      "elicit",
+      "scite",
+      "core"
+    ]
+  },
   "domain_name": {
     "dk": "Domænenavn",
     "en": "Domain name"

@@ -243,20 +243,20 @@
           <!-- These result-entries are shown under the marked articles accordion -->
           <!-- Do not provide a ref to this intance as it will override and mess up with the existing resultEntries ref-->
           <result-entry
-            :key="value.model.uid"
-            :id="value.model.uid"
-            :pmid="value.model.uid"
+            :key="getResultId(value.model)"
+            :id="getResultId(value.model)"
+            :pmid="getResultPmid(value.model)"
             :pub-date="value.model.pubdate"
             :volume="value.model.volume"
             :issue="value.model.issue"
             :pages="value.model.pages"
-            :doi="getDoi(value.model.articleids)"
+            :doi="getResultDoi(value.model)"
             :title="value.model.title"
             :pub-type="value.model.pubtype"
             :doc-type="value.model.doctype"
             :booktitle="value.model.booktitle"
             :vernaculartitle="value.model.vernaculartitle"
-            :date="getDate(value.model.history)"
+            :date="getDate(value.model)"
             :source="getSource(value.model)"
             :has-abstract="getHasAbstract(value.model.attributes)"
             :author="getAuthor(value.model.authors)"
@@ -264,9 +264,9 @@
             :parent-width="getComponentWidth()"
             :model-value="selectedEntries"
             :value="value.model"
-            :selectable="entriesAlwaysSelectable || hasAcceptedAi"
-            :abstract="getAbstract(value.model.uid)"
-            :text="getText(value.model.uid)"
+            :selectable="isResultSelectable(value.model)"
+            :abstract="getResultInlineAbstract(value.model) || getAbstract(getResultId(value.model))"
+            :text="getText(getResultId(value.model))"
             :is-abstract-loaded="isAbstractLoaded"
             @change="(val, checked) => changeResultEntryModel(val, checked)"
             @change:abstractLoad="onAbstractLoad"
@@ -326,33 +326,33 @@
     <div class="qpm_resultEntriesLayer">
       <div
         v-for="(value, index) in getShownSearchResults"
-        :key="value.uid || `result-${index}`"
+        :key="getResultId(value) || `result-${index}`"
         class="qpm_ResultEntryWrapper"
       >
         <result-entry
-          :id="value.uid"
+          :id="getResultId(value)"
           ref="resultEntries"
-          :pmid="value.uid"
+          :pmid="getResultPmid(value)"
           :volume="value.volume"
           :issue="value.issue"
           :pages="value.pages"
-          :doi="getDoi(value.articleids)"
+          :doi="getResultDoi(value)"
           :title="value.title"
           :pub-date="value.pubdate"
           :pub-type="value.pubtype"
           :doc-type="value.doctype"
           :booktitle="value.booktitle"
           :vernaculartitle="value.vernaculartitle"
-          :date="getDate(value.history)"
+          :date="getDate(value)"
           :source="getSource(value)"
           :has-abstract="getHasAbstract(value.attributes)"
           :author="getAuthor(value.authors)"
           :language="language"
           :parent-width="getComponentWidth()"
           :model-value="selectedEntries"
-          :selectable="entriesAlwaysSelectable || hasAcceptedAi"
-          :abstract="getAbstract(value.uid)"
-          :text="getText(value.uid)"
+          :selectable="isResultSelectable(value)"
+          :abstract="getResultInlineAbstract(value) || getAbstract(getResultId(value))"
+          :text="getText(getResultId(value))"
           :value="value"
           :is-abstract-loaded="isAbstractLoaded"
           @change="changeResultEntryModel"
@@ -361,7 +361,27 @@
           @loadAbstract="addIdToLoadAbstract"
         />
       </div>
-      <loading-spinner :loading="loading" class="qpm_searchMore" :size="44" />
+      <div
+        v-if="showLoadingProcessList"
+        class="qpm_searchProcessBox qpm_box"
+      >
+        <ol class="qpm_searchProcessList">
+          <li
+            v-for="step in loadingProcessSteps"
+            :key="step.id"
+            :class="['qpm_searchProcessItem', `is-${step.status || 'pending'}`]"
+          >
+            <span class="qpm_searchProcessLabel">{{ getProcessStepLabel(step) }}</span>
+            <span class="qpm_searchProcessDots" aria-hidden="true">{{ getProcessStepDots(step) }}</span>
+          </li>
+        </ol>
+      </div>
+      <loading-spinner
+        :loading="loading"
+        :wait-text="showLoadingProcessList ? '' : loadingStatusText"
+        class="qpm_searchMore"
+        :size="44"
+      />
       <div v-if="error !== null && error !== undefined" class="qpm_flex">
         <div class="qpm_errorBox">
           {{ error.message ?? error.toString() }}
@@ -404,7 +424,7 @@
   import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
   import { appSettingsMixin, eventBus } from "@/mixins/appSettings";
   import { utilitiesMixin } from "@/mixins/utilities";
-  import { languageFormat, pageSizes } from "@/utils/contentHelpers";
+  import { dateOptions, languageFormat, pageSizes } from "@/utils/contentHelpers";
   import {
     areComparableIdsEqual,
     extractDoi,
@@ -471,6 +491,14 @@
         type: String,
         default: "",
       },
+      loadingStatusText: {
+        type: String,
+        default: "",
+      },
+      loadingProcessSteps: {
+        type: Array,
+        default: () => [],
+      },
       entriesAlwaysSelectable: {
         type: Boolean,
         default: true,
@@ -493,9 +521,14 @@
         hadVisibleResultEntries: false,
         _pendingScrollTarget: null,
         _selectedBadgesRetryTimeouts: [],
+        processDotCount: 3,
+        _processDotsIntervalId: null,
       };
     },
     computed: {
+      showLoadingProcessList() {
+        return this.loading && Array.isArray(this.loadingProcessSteps) && this.loadingProcessSteps.length > 0;
+      },
       /**
        * Gets the text that composes the references. Consists of authors title and publicationInfo
        * If no entries are selected, it will use the first five results
@@ -567,7 +600,15 @@
       },
       resultsWithAbstracts() {
         if (!Array.isArray(this.results)) return [];
-        return this.results.filter((result) => this.getHasAbstract(result.attributes));
+        return this.results.filter((result) => {
+          const resultId = this.getResultId(result);
+          const hasInlineAbstract = this.getResultInlineAbstract(result) !== "";
+          const hasLoadedAbstractSections =
+            hasDefinedValue(resultId) && Object.keys(this.getText(resultId)).length > 0;
+          const canLoadPubMedAbstract =
+            this.getHasAbstract(result.attributes) && this.canFetchPubMedAbstractForResult(result);
+          return hasInlineAbstract || hasLoadedAbstractSections || canLoadPubMedAbstract;
+        });
       },
       /**
        * Max number of articles available for summarization (those with abstracts).
@@ -612,6 +653,13 @@
           this.defaultSummaryCount = 5;
         }
       },
+      showLoadingProcessList(newVal) {
+        if (newVal) {
+          this.startProcessDotsInterval();
+        } else {
+          this.clearProcessDotsInterval();
+        }
+      },
     },
     updated() {
       // Guards to avoid badges re-rendering on select/deselect
@@ -649,12 +697,84 @@
     },
     mounted() {
       eventBus.on("result-entry-show-abstract", this.openArticlesAccordion);
+      if (this.showLoadingProcessList) {
+        this.startProcessDotsInterval();
+      }
     },
     beforeUnmount() {
       eventBus.off("result-entry-show-abstract", this.openArticlesAccordion);
       this.clearSelectedBadgeRetries();
+      this.clearProcessDotsInterval();
     },
     methods: {
+      startProcessDotsInterval() {
+        this.clearProcessDotsInterval();
+        this.processDotCount = 3;
+        this._processDotsIntervalId = setInterval(() => {
+          this.processDotCount = (this.processDotCount % 5) + 1;
+        }, 400);
+      },
+      clearProcessDotsInterval() {
+        if (this._processDotsIntervalId !== null) {
+          clearInterval(this._processDotsIntervalId);
+          this._processDotsIntervalId = null;
+        }
+      },
+      getProcessStepLabel(step) {
+        return String(step?.label || "")
+          .replace(/\s*[.!?]+\s*$/, "")
+          .trimEnd();
+      },
+      getProcessStepDots(step) {
+        const status = String(step?.status || "").trim();
+        if (status === "completed") {
+          return ".";
+        }
+        if (status === "current") {
+          return ".".repeat(Math.max(1, Math.min(5, this.processDotCount)));
+        }
+        return "...";
+      },
+      getResultId(result) {
+        return result?.id ?? result?.uid ?? null;
+      },
+      getResultPmid(result) {
+        const pmid = result?.pmid ?? result?.uid;
+        const normalized = String(pmid ?? "").trim();
+        return /^[0-9]+$/.test(normalized) ? normalized : undefined;
+      },
+      getResultDoi(result) {
+        const directDoi = String(result?.doi || "").trim();
+        if (directDoi) return directDoi;
+        return extractDoi(result?.articleids);
+      },
+      getResultReferenceId(result) {
+        const pmid = this.getResultPmid(result);
+        if (pmid) return pmid;
+        const doi = this.getResultDoi(result);
+        if (doi) return doi;
+        return this.getResultId(result);
+      },
+      getResultInlineAbstract(result) {
+        const abstract = result?.abstract;
+        return typeof abstract === "string" ? abstract : "";
+      },
+      getSelectionEntryId(entry) {
+        if (!entry || typeof entry !== "object") {
+          const fallback = String(entry ?? "").trim();
+          return fallback || null;
+        }
+        return entry?.id ?? entry?.uid ?? entry?.pmid ?? null;
+      },
+      canFetchPubMedAbstractForResult(result) {
+        if (!result || typeof result !== "object") return false;
+        if (result.canFetchPubMedAbstract === false) return false;
+        const pmid = this.getResultPmid(result);
+        return hasDefinedValue(pmid);
+      },
+      isResultSelectable(result) {
+        return this.entriesAlwaysSelectable || this.hasAcceptedAi;
+      },
       next() {
         this.$emit("high");
         this.badgesAdded = false;
@@ -696,8 +816,19 @@
       getHasAbstract(attributes) {
         return hasAbstractAttribute(attributes);
       },
-      getDate(history) {
-        return getFormattedEntrezDate(history, this.language);
+      getDate(value) {
+        const history = Array.isArray(value?.history) ? value.history : [];
+        if (history.length > 0) {
+          return getFormattedEntrezDate(history, this.language);
+        }
+        const publicationDate = String(value?.publicationDate || "").trim();
+        if (publicationDate) {
+          const parsedDate = new Date(publicationDate);
+          if (!Number.isNaN(parsedDate.getTime())) {
+            return parsedDate.toLocaleDateString(languageFormat[this.language], dateOptions);
+          }
+        }
+        return "";
       },
       // Read DOI from the article identifiers list
       getDoi(articleids) {
@@ -764,12 +895,13 @@
         return container.offsetWidth;
       },
       addArticle(article) {
-        if (!article || !article.pmid) return;
-        if (Object.prototype.hasOwnProperty.call(this.articles, article.pmid)) {
-          delete this.articles[article.pmid];
+        const articleId = this.getSelectionEntryId(article);
+        if (!articleId) return;
+        if (Object.prototype.hasOwnProperty.call(this.articles, articleId)) {
+          delete this.articles[articleId];
         }
 
-        this.articles[article.pmid] = article;
+        this.articles[articleId] = article;
       },
       getSelectedArticles() {
         const selectedArticles = [];
@@ -779,19 +911,27 @@
             ? selectedEntries
             : // Use all loaded results (not just rendered ones) to support counts > pagesize
               this.firstFiveArticlesWithAbstracts.map((r) => ({
-                uid: r.uid,
+                id: this.getResultId(r),
+                uid: this.getResultId(r),
               }));
 
         for (const selected of entriesForSummary) {
-          if (this.articles[selected.uid]) {
-            selectedArticles.push(this.articles[selected.uid]);
+          const selectedId = this.getSelectionEntryId(selected);
+          if (selectedId && this.articles[selectedId]) {
+            selectedArticles.push(this.articles[selectedId]);
           } else {
             // Build article object from results data for non-rendered articles
-            const result = this.results?.find((r) => r.uid === selected.uid);
+            const result = this.results?.find((r) =>
+              areComparableIdsEqual(this.getResultId(r), this.getResultId(selected))
+            );
             if (result) {
-              const abstract = this.getAbstract(selected.uid);
+              const resultId = this.getResultId(result);
+              const abstract = this.getResultInlineAbstract(result) || this.getAbstract(resultId);
               selectedArticles.push({
-                pmid: result.uid,
+                id: resultId,
+                referenceId: this.getResultReferenceId(result),
+                pmid: this.getResultPmid(result),
+                doi: this.getResultDoi(result),
                 title: result.title || "",
                 abstract: abstract || "",
                 authors: result.authors || [],
@@ -801,7 +941,7 @@
             }
           }
         }
-        return selectedArticles;
+        return selectedArticles.filter((article) => String(article?.abstract || "").trim() !== "");
       },
       getArticleDtoProvider() {
         return this.getArticleDtos;
@@ -844,7 +984,10 @@
         }
         const currentSelected = this.safeSelectedEntries;
         const newValue = [...currentSelected];
-        const valueIndex = newValue.findIndex((e) => e === value || e.uid === value.uid);
+        const targetId = this.getSelectionEntryId(value);
+        const valueIndex = newValue.findIndex(
+          (entry) => entry === value || areComparableIdsEqual(this.getSelectionEntryId(entry), targetId)
+        );
 
         if (isChecked && valueIndex === -1) {
           newValue.push(value);
@@ -951,8 +1094,15 @@
        */
       async loadMissingAbstracts() {
         const missingIds = this.firstFiveArticlesWithAbstracts
-          .filter((r) => !this.abstractRecords[r.uid])
-          .map((r) => r.uid);
+          .filter((r) => {
+            const resultId = this.getResultId(r);
+            if (!hasDefinedValue(resultId)) return false;
+            if (!this.canFetchPubMedAbstractForResult(r)) return false;
+            if (this.getResultInlineAbstract(r)) return false;
+            return !this.abstractRecords[resultId];
+          })
+          .map((r) => this.getResultId(r))
+          .filter((id) => hasDefinedValue(id));
 
         if (missingIds.length === 0) return;
 
@@ -977,19 +1127,33 @@
       },
       shouldResultArticlePreloadAbstract(article) {
         return this.firstFiveArticlesWithAbstracts.some((value) =>
-          areComparableIdsEqual(value?.uid, article?.uid)
+          areComparableIdsEqual(this.getResultId(value), this.getResultId(article))
         );
       },
       async addIdToLoadAbstract(id) {
+        if (!/^[0-9]+$/.test(String(id || "").trim())) {
+          return;
+        }
         this.idswithAbstractsToLoad.push(id);
         const safeResults = Array.isArray(this.results) ? this.results : [];
-        const lastResult = safeResults.length > 0 ? safeResults[safeResults.length - 1] : null;
-        if (lastResult?.uid === id) {
+        const lastFetchableResult = [...safeResults]
+          .reverse()
+          .find((result) => this.canFetchPubMedAbstractForResult(result));
+        const lastFetchableResultId = this.getResultId(lastFetchableResult);
+        if (lastFetchableResultId === id) {
           await this.loadAbstracts();
         }
       },
       async loadAbstracts() {
         if (!Array.isArray(this.idswithAbstractsToLoad) || this.idswithAbstractsToLoad.length === 0) {
+          return;
+        }
+        this.idswithAbstractsToLoad = Array.from(
+          new Set(
+            this.idswithAbstractsToLoad.filter((id) => /^[0-9]+$/.test(String(id || "").trim()))
+          )
+        );
+        if (this.idswithAbstractsToLoad.length === 0) {
           return;
         }
         const nlm = this.appSettings.nlm;

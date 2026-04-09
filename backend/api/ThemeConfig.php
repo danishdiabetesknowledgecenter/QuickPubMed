@@ -51,6 +51,19 @@ $unpaywall = [
     'baseUrl' => defined('UNPAYWALL_BASE_URL') ? (string) UNPAYWALL_BASE_URL : '',
     'email' => qpmGetUnpaywallEmail($domain),
 ];
+$translationSources = qpmGetDomainTranslationSources($domain);
+$translationSourcesConfigured = qpmHasDomainTranslationSourcesConfig($domain);
+$semanticSourceLimits = [
+    'semanticScholar' => qpmGetSemanticSourceLimit('semanticScholar', 400),
+    'openAlex' => qpmGetSemanticSourceLimit('openAlex', 100),
+    'elicit' => qpmGetSemanticSourceLimit('elicit', 100),
+    'scite' => qpmGetSemanticSourceLimit('scite', 100),
+    'core' => qpmGetSemanticSourceLimit('core', 100),
+    'pubmedBestMatch' => qpmGetSemanticSourceLimit('pubmedBestMatch', 200),
+];
+$rerankConfig = defined('QPM_RERANK_CONFIG') && is_array(QPM_RERANK_CONFIG)
+    ? QPM_RERANK_CONFIG
+    : [];
 
 $domainTheme = [];
 if ($domain !== '' && isset($themeByDomain[$domain]) && is_array($themeByDomain[$domain])) {
@@ -70,4 +83,8 @@ echo json_encode([
     'globalClassOverrides' => $globalClassOverrides,
     'domainClassOverrides' => $domainClassOverrides,
     'unpaywall' => $unpaywall,
+    'translationSources' => $translationSources,
+    'translationSourcesConfigured' => $translationSourcesConfigured,
+    'semanticSourceLimits' => $semanticSourceLimits,
+    'rerankConfig' => $rerankConfig,
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

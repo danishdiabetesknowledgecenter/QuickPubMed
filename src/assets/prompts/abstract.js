@@ -17,7 +17,7 @@ export const promptTextMultipleAbstracts = [
       - Skriv dernæst selve opsummeringen af studierne - gerne ved brug af korrekt punktopstilling. Anvend kun et niveau i punktopstillinger. 
       VIGTIGE instrukser: 
       - Det er vigtigt, at hver gang du omtaler et studie, skal du inkludere en reference til det pågældende studie direkte i teksten. 
-      - Brug reglerne fra in-text APA citation style med Markdown-format, når du indsætter referencer, dvs. de skal indsættes i parenteser på denne form: ([Reference](#PMID \"Scroll ned til denne artikel\")), hvor Reference er fremgår ved hver artikel og består af efternavn på førsteforfatteren efterfulgt af 'et al.', hvis der er flere forfattere og et årstal, og PMID er PMID-nummeret for studiet, udelukkende med tal. Indsæt IKKE et mellemrum mellem citationstegnet og parentesen. Hvis der er flere referencer placeret udmiddelbart efter hinanden, skal du bruge denne form: ([Reference](#PMID \"Scroll ned til denne artikel\"); [Reference](#PMID \"Scroll ned til denne artikel\")). Efter skrivning skal du validere, om alle referencer er formatteret korrekt. Hvis der er fejl, så omskriv, indtil de er korrekte.
+      - Brug reglerne fra in-text APA citation style med Markdown-format, når du indsætter referencer, dvs. de skal indsættes i parenteser på denne form: ([Reference](#REFERENCE_ID \"Scroll ned til denne artikel\")), hvor Reference fremgår ved hver artikel og består af efternavn på førsteforfatteren efterfulgt af 'et al.', hvis der er flere forfattere, og et årstal. REFERENCE_ID skal være lig værdien i feltet "Reference ID" for det pågældende studie. Hvis studiet har en PMID, vil "Reference ID" være PMID-nummeret. Hvis studiet ikke har en PMID, vil "Reference ID" være DOI'en. Indsæt IKKE et mellemrum mellem citationstegnet og parentesen. Hvis der er flere referencer placeret udmiddelbart efter hinanden, skal du bruge denne form: ([Reference](#REFERENCE_ID \"Scroll ned til denne artikel\"); [Reference](#REFERENCE_ID \"Scroll ned til denne artikel\")). Efter skrivning skal du validere, om alle referencer er formatteret korrekt. Hvis der er fejl, så omskriv, indtil de er korrekte.
       - Sørg for, at der altid er præcist ét mellemrum før referencens startparentes.
       - Skriv ALDRIG en reference i plain text efterfulgt af den samme reference som Markdown-link. Hver reference skal KUN forekomme én gang, og det skal ALTID være som Markdown-link. FORKERT: "...svær hypoglykæmi (Zimmermann et al., 2025)([Zimmermann et al., 2025](#12345678 \\"Scroll ned til denne artikel\\"))". KORREKT: "...svær hypoglykæmi ([Zimmermann et al., 2025](#12345678 \\"Scroll ned til denne artikel\\"))".
       - Indsæt IKKE en referenceliste til sidst. 
@@ -42,7 +42,7 @@ export const promptTextMultipleAbstracts = [
       - Next, write the actual summary of the studies.
       IMPORTANT instructions:
       - When you mention a study, ALWAYS insert a reference to the individual study inside the text itself as a clickable link in Markdown format in this form:
-      [(Last name of the first author + et al., if there are several authors + , year)](#PMID \"Scroll down to this article\") where PMID is equal to the PMID of the reference in question, numbers only, not letters. Do NOT include a space between the citation mark and the parentheses.
+      [(Last name of the first author + et al., if there are several authors + , year)](#REFERENCE_ID \"Scroll down to this article\") where REFERENCE_ID is equal to the value of "Reference ID" for the study in question. If a PMID exists, "Reference ID" is the PMID. If no PMID exists, "Reference ID" is the DOI. Do NOT include a space between the citation mark and the parentheses.
       - NEVER write a reference in plain text followed by the same reference as a Markdown link. Each reference must appear ONLY once, and it must ALWAYS be as a Markdown link. WRONG: "...severe hypoglycemia (Zimmermann et al., 2025)([Zimmermann et al., 2025](#12345678 \\"Scroll down to this article\\"))". CORRECT: "...severe hypoglycemia ([Zimmermann et al., 2025](#12345678 \\"Scroll down to this article\\"))".
       DO NOT include a reference list at the end.
       - For bullet points, use Markdown language. You may never make a numbered list with only one point.
@@ -73,8 +73,8 @@ export const promptTextMultipleAbstracts = [
       Brug altid dansk tusindtalsseparator, dvs. f.eks. '1.234', ikke '1,234'.
       2) Det er vigtigt, at hver gang du omtaler et studie, skal du inkludere en reference til det pågældende studie direkte i teksten. 
       Brug reglerne fra in-text APA citation style med Markdown-format, når du indsætter referencer på, 
-      dvs. de skal indsættes på denne form **[(Efternavn på førsteforfatteren et al., årstal)](#PMID \"Scroll ned til denne artikel\")**, 
-      hvor PMID er PMID-nummeret for studiet, udelukkende med tal. Indsæt IKKE en referenceliste til sidst. 
+      dvs. de skal indsættes på denne form **[(Efternavn på førsteforfatteren et al., årstal)](#REFERENCE_ID \"Scroll ned til denne artikel\")**, 
+      hvor REFERENCE_ID er lig værdien i feltet "Reference ID" for studiet. Hvis der findes en PMID, er det PMID'en. Hvis der ikke findes en PMID, er det DOI'en. Indsæt IKKE en referenceliste til sidst. 
       Skriv ALDRIG en reference i plain text efterfulgt af den samme reference som Markdown-link. Hver reference skal KUN forekomme én gang som Markdown-link.
       Her er et eksempel (afgrænset af triple backticks) på, hvordan du altid skal indsætte henvisninger til de enkelte studier i selve teksten, 
       hver gang du omtaler noget, som stammer fra et eller flere bestemte af studierne på listen: 
@@ -91,7 +91,7 @@ export const promptTextMultipleAbstracts = [
       Make the text as simple and clear as possible. The summary must be structured as follows:
       1) Do NOT use bullet points, ie. '1)', '2)' etc.
       2) IMPORTANT: When mentioning a study, ALWAYS insert a reference to the individual study within the text itself as a clickable link in Markdown format in this form:
-      **[(Last name of the first author + et al., if there are more authors + , year)](#PMID \"Scroll down to this article\")** where PMID is equal to the PMID of the reference in question, numbers only, not letters.
+      **[(Last name of the first author + et al., if there are more authors + , year)](#REFERENCE_ID \"Scroll down to this article\")** where REFERENCE_ID is equal to the value of "Reference ID" for the study in question. If a PMID exists, use the PMID. Otherwise use the DOI.
       DO NOT include a reference list at the end.
       NEVER write a reference in plain text followed by the same reference as a Markdown link. Each reference must appear ONLY once as a Markdown link.
       Here is an example (delimited by triple backticks) of how you should always insert references to the individual studies in the text itself, every time you mention something that originates from one or more specific studies in the list:

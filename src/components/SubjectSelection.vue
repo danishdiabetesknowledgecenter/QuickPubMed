@@ -15,6 +15,14 @@
           :close-on-input="false"
           :language="language"
           :search-with-a-i="searchWithAI"
+          :search-with-pub-med-query="searchWithPubMedQuery"
+          :search-with-pub-med-best-match="searchWithPubMedBestMatch"
+          :search-with-semantic-scholar="searchWithSemanticScholar"
+          :search-with-open-alex="searchWithOpenAlex"
+          :search-with-elicit="searchWithElicit"
+          :search-with-scite="searchWithScite"
+          :search-with-core="searchWithCore"
+          :semantic-worded-intent-context="semanticWordedIntentContext"
           :show-scope-label="advanced"
           :no-result-string="getString('noTopicDropdownContent')"
           :index="n"
@@ -90,6 +98,17 @@
       showFilter: Boolean,
       hasTopics: Boolean,
       searchWithAI: Boolean,
+      searchWithPubMedQuery: Boolean,
+      searchWithPubMedBestMatch: Boolean,
+      searchWithSemanticScholar: Boolean,
+      searchWithOpenAlex: Boolean,
+      searchWithElicit: Boolean,
+      searchWithScite: Boolean,
+      searchWithCore: Boolean,
+      semanticWordedIntentContext: {
+        type: Object,
+        default: null,
+      },
     },
     emits: [
       "update-topics",

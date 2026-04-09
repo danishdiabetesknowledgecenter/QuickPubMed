@@ -24,6 +24,14 @@
       :language="language"
       :advanced="advanced"
       :search-with-a-i="searchWithAI"
+      :search-with-pub-med-query="searchWithPubMedQuery"
+      :search-with-pub-med-best-match="searchWithPubMedBestMatch"
+      :search-with-semantic-scholar="searchWithSemanticScholar"
+      :search-with-open-alex="searchWithOpenAlex"
+      :search-with-elicit="searchWithElicit"
+      :search-with-scite="searchWithScite"
+      :search-with-core="searchWithCore"
+      :semantic-worded-intent-context="semanticWordedIntentContext"
       :get-string="getString"
       :get-limit-placeholder="getLimitPlaceholder"
       @update-limit-dropdown="handleUpdateLimitDropdown"
@@ -68,6 +76,38 @@
       searchWithAI: {
         type: Boolean,
         required: true,
+      },
+      searchWithPubMedQuery: {
+        type: Boolean,
+        required: true,
+      },
+      searchWithPubMedBestMatch: {
+        type: Boolean,
+        required: true,
+      },
+      searchWithSemanticScholar: {
+        type: Boolean,
+        required: true,
+      },
+      searchWithOpenAlex: {
+        type: Boolean,
+        required: true,
+      },
+      searchWithElicit: {
+        type: Boolean,
+        required: true,
+      },
+      searchWithScite: {
+        type: Boolean,
+        required: true,
+      },
+      searchWithCore: {
+        type: Boolean,
+        required: true,
+      },
+      semanticWordedIntentContext: {
+        type: Object,
+        default: null,
       },
       getString: {
         type: Function,

@@ -27,6 +27,98 @@ define('NLM_API_KEY', 'INSERT-YOUR-NLM-API-KEY-HERE');
 define('NLM_EMAIL', 'your-email@example.com');
 define('NLM_BASE_URL', 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils');
 
+// ============ Semantic Scholar Configuration ============
+// Optional but recommended to avoid strict public rate limits.
+// Apply for key: https://www.semanticscholar.org/product/api#api-key-form
+define('SEMANTIC_SCHOLAR_API_KEY', '');
+
+// ============ OpenAlex Configuration ============
+// Optional domain override file:
+// data/content/<domain>/domain-config.json -> openalex.api_key / openalex.email
+// Missing values automatically fall back to this backend config.
+// API key is recommended to reduce public rate limiting:
+// https://developers.openalex.org/api-reference/introduction
+define('OPENALEX_API_KEY', '');
+define('OPENALEX_EMAIL', '');
+
+// ============ Elicit Configuration ============
+// Requires an API key from https://docs.elicit.com/
+define('ELICIT_API_KEY', '');
+
+// ============ Scite Configuration ============
+// Optional domain override file:
+// data/content/<domain>/domain-config.json -> scite.api_key / scite.api_url
+// Missing values automatically fall back to this backend config.
+// API docs: https://api.scite.ai/docs#tag/search/GET/api_partner/search
+define('SCITE_API_KEY', '');
+define('SCITE_API_URL', 'https://api.scite.ai/api_partner/search');
+
+// ============ CORE Configuration ============
+// Optional domain override file:
+// data/content/<domain>/domain-config.json -> core.api_key / core.api_url
+// Missing values automatically fall back to this backend config.
+// API docs: https://api.core.ac.uk/docs/v3#tag/Search
+define('CORE_API_KEY', '');
+define('CORE_API_URL', 'https://api.core.ac.uk/v3/search/works');
+
+// ============ Semantic Source Limits ============
+// Frontend-safe values exposed to the widget via ThemeConfig.php
+define('QPM_SEMANTIC_SOURCE_LIMITS', [
+    'semanticScholar' => 400,
+    'openAlex' => 50,
+    'elicit' => 100,
+    'scite' => 100,
+    'core' => 100,
+    'pubmedBestMatch' => 200,
+]);
+
+// ============ Rerank Configuration ============
+// Frontend-safe values exposed to the widget via ThemeConfig.php
+// Current model:
+// - RRF is the main ranking signal
+// - overlap across multiple sources gets an explicit bonus
+// - PMID records get an explicit bonus
+// - native source scores are only used as tie-breakers
+// rrfK controls how quickly the RRF rank contribution falls as rank gets lower.
+// Lower values make top ranks matter more. Higher values flatten the rank effect.
+// 60 is a common, safe default and is usually a sensible value to keep unless you
+// deliberately want a more aggressive or flatter fusion curve.
+// Practical guidance:
+// - sourceWeights, pmidBonus and overlapBonusPerExtraSource are the most natural values to tune
+// - rrfK can be tuned, but should usually be changed with care
+// - rankScale and scoreScale are more technical calibration values and should usually be left alone
+// - fallbackSourceWeight is mostly a safety fallback and should rarely need changing
+define('QPM_RERANK_CONFIG', [
+    'sourceWeights' => [
+        // Per-source weight applied to the RRF contribution, and also to the score tie-breaker.
+        // This is a normal place to tune source preferences.
+        'pubmed' => 1.0,
+        'semanticScholar' => 0.92,
+        'openAlex' => 0.88,
+        'elicit' => 0.9,
+        'scite' => 0.88,
+        'core' => 0.86,
+    ],
+    // Extra score added when a candidate has a PMID.
+    // This is a normal value to tune.
+    'pmidBonus' => 10,
+    // RRF damping parameter. Lower = stronger emphasis on very high ranks. Higher = flatter fusion.
+    // Advanced parameter: change with care.
+    'rrfK' => 60,
+    // Global scale for the RRF part of the score.
+    // Technical calibration value: usually best left unchanged.
+    'rankScale' => 100,
+    // Scale for source-native score normalization; used only as tie-breaker.
+    // Technical calibration value: usually best left unchanged.
+    'scoreScale' => 20,
+    // Fallback weight if a source appears without an explicit weight above.
+    // Safety fallback: rarely needs changing.
+    'fallbackSourceWeight' => 0.8,
+    // Extra score added for each additional source that contains the same record.
+    // This is a normal value to tune.
+    'overlapBonusPerExtraSource' => 35,
+]);
+
 // ============ Unpaywall Configuration ============
 // Optional domain override file:
 // data/content/<domain>/domain-config.json -> unpaywall.email

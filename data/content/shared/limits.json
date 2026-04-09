@@ -39,6 +39,13 @@
                         "dk": "",
                         "en": ""
                     },
+                    "semanticConfig": {
+                        "softHints": {
+                            "general": [
+                                "template limit"
+                            ]
+                        }
+                    },
                     "tooltip": {
                         "dk": "",
                         "en": ""
@@ -337,7 +344,7 @@
                         "dk": 1,
                         "en": 1
                     },
-                    "simpleSearch": true,
+                    "simpleSearch": false,
                     "standardSimple": true,
                     "tooltip_simple": {
                         "dk": "Artikler, hvor forskning systematisk er blevet indsamlet og gennemgået for at kunne vurdere, hvad man samlet set ved om et bestemt område.",
@@ -357,6 +364,54 @@
                     "searchStringComment": {
                         "dk": "Inkluderer udover systematiske reviews også metaanalyser, men ikke protokoller og artikler, som er trukket tilbage.",
                         "en": "Includes systematic reviews in addition to meta-analyses, but not protocols and articles that have been withdrawn."
+                    },
+                    "semanticConfig": {
+                        "doiOnlyRules": [
+                            {
+                                "id": "systematic-review",
+                                "exclusiveGroup": "publication-profile",
+                                "textScopes": [
+                                    "candidateTitle",
+                                    "sourceCandidateTitles"
+                                ],
+                                "requireAnyTextSignals": [
+                                    "systematic review",
+                                    "meta-analysis",
+                                    "cochrane"
+                                ],
+                                "excludeAnyTextSignals": [
+                                    "protocol",
+                                    "withdrawn",
+                                    "retracted",
+                                    "comment"
+                                ]
+                            }
+                        ],
+                        "hardFilters": {
+                            "filterProfile": [
+                                "systematic-review-only"
+                            ],
+                            "publicationType": [
+                                "systematic review",
+                                "meta-analysis"
+                            ]
+                        },
+                        "sourceFilters": {
+                            "openAlex": {
+                                "workType": [
+                                    "review"
+                                ]
+                            },
+                            "elicit": {
+                                "typeTags": [
+                                    "Systematic Review",
+                                    "Meta-Analysis"
+                                ]
+                            }
+                        },
+                        "sourceContext": {
+                            "en": "systematic reviews and meta-analyses that synthesize existing research"
+                        }
                     },
                     "tooltip": {
                         "dk": "Artikler, hvor forskning systematisk er blevet indsamlet og gennemgået for at kunne vurdere, hvad man samlet set ved om et bestemt område. Inkluderer udover systematiske reviews også metaanalyser, men ikke protokoller og artikler, som er trukket tilbage.",
@@ -382,7 +437,7 @@
                         "dk": 2,
                         "en": 2
                     },
-                    "simpleSearch": true,
+                    "simpleSearch": false,
                     "standardSimple": true,
                     "tooltip_simple": {
                         "dk": "En særlig type forsk&shy;nings&shy;over&shy;sigter, som er ud&shy;arbej&shy;det efter strin&shy;gente metoder. Udgives af Cochrane Collaboration.",
@@ -398,6 +453,82 @@
                     "searchStringComment": {
                         "dk": "",
                         "en": ""
+                    },
+                    "semanticConfig": {
+                        "doiOnlyRules": [
+                            {
+                                "id": "cochrane-review",
+                                "exclusiveGroup": "publication-profile",
+                                "matchStrategy": "any",
+                                "metadataFieldConditionMode": "any",
+                                "textScopes": [
+                                    "candidateTitle",
+                                    "sourceCandidateTitles"
+                                ],
+                                "requireAnyTextSignals": [
+                                    "cochrane",
+                                    "systematic review"
+                                ],
+                                "metadataFieldConditions": [
+                                    {
+                                        "field": "candidateVenue",
+                                        "operator": "includesAny",
+                                        "values": [
+                                            "cochrane"
+                                        ]
+                                    },
+                                    {
+                                        "field": "semanticSourceVenues",
+                                        "operator": "includesAny",
+                                        "values": [
+                                            "cochrane"
+                                        ]
+                                    },
+                                    {
+                                        "field": "openAlexSourceDisplayName",
+                                        "operator": "includesAny",
+                                        "values": [
+                                            "cochrane"
+                                        ]
+                                    },
+                                    {
+                                        "field": "openAlexSourceAbbreviatedTitle",
+                                        "operator": "includesAny",
+                                        "values": [
+                                            "cochrane"
+                                        ]
+                                    }
+                                ],
+                                "excludeAnyTextSignals": [
+                                    "protocol",
+                                    "withdrawn",
+                                    "retracted",
+                                    "comment"
+                                ]
+                            }
+                        ],
+                        "hardFilters": {
+                            "filterProfile": [
+                                "systematic-review-only"
+                            ],
+                            "publicationType": [
+                                "cochrane review",
+                                "systematic review"
+                            ]
+                        },
+                        "sourceFilters": {
+                            "openAlex": {
+                                "workType": [
+                                    "review"
+                                ]
+                            },
+                            "elicit": {
+                                "typeTags": [
+                                    "Systematic Review",
+                                    "Review"
+                                ]
+                            }
+                        }
                     },
                     "tooltip": {
                         "dk": "",
@@ -428,6 +559,13 @@
                     "tooltip_simple": {
                         "dk": "<a href='https://www.healthevidence.org' target='_blank'>Health Evidence</a> er en service fra canadiske McMaster University, der samler og kvalitets&shy;vurderer forsknings&shy;oversigter inden for folke&shy;sundheds&shy;området. Når denne afgræsning vælges, søges kun blandt de forsknings&shy;oversigter fra Health Evidence, som er <strong>relateret til diabetes</strong> og har en høj score for kvalitets&shy;vurdering (8-10). Kun artikler, som er mindre end 10 år gamle, og som ikke er trukket tilbage, vises. Opdateret med tilgængelige artikler i Health Evidence den 31. januar 2026.",
                         "en": "<a href='https://www.healthevidence.org' target='_blank'>Health Evidence</a> is a service from McMaster University, Canada, which collects and quality assesses systematic reviews within the field of public health. When this limit is selected, only systematic reviews from Health Evidence are searched that are <strong>related to diabetes</strong> and have a high score for quality assessment (8-10). Only articles that are less than 10 years old and that have not been withdrawn are shown. Updated with available articles in Health Evidence on 31 January 2026."
+                    },
+                    "semanticConfig": {
+                        "hardFilters": {
+                            "publicationDateYears": [
+                                10
+                            ]
+                        }
                     },
                     "tooltip": {
                         "dk": "Health Evidence er en service fra canadiske McMaster University, der samler og kvalitets&shy;vurderer forsknings&shy;oversigter inden for folke&shy;sundheds&shy;området. Når denne afgræsning vælges, søges kun blandt de forsknings&shy;oversigter fra Health Evidence, som er relateret til diabetes og har en høj score for kvalitets&shy;vurdering (8-10). Kun artikler, som er mindre end 10 år gamle, og som ikke er trukket tilbage, vises.",
@@ -475,6 +613,53 @@
                         "dk": "Kun guidelines, der er udgivet i videnskabelige tidsskrifter, kan findes via PubMed. Guidelines, som er udgivet andre steder, vises ikke.",
                         "en": "Only guidelines published in scientific journals can be found via PubMed. Guidelines published elsewhere are not shown."
                     },
+                    "semanticConfig": {
+                        "doiOnlyRules": [
+                            {
+                                "id": "guideline",
+                                "exclusiveGroup": "publication-profile",
+                                "matchStrategy": "any",
+                                "metadataFieldConditionMode": "any",
+                                "textScopes": [
+                                    "candidateTitle",
+                                    "sourceCandidateTitles"
+                                ],
+                                "requireAnyTextSignals": [
+                                    "guideline",
+                                    "practice guideline",
+                                    "consensus statement",
+                                    "recommendation"
+                                ],
+                                "metadataFieldConditions": [
+                                    {
+                                        "field": "candidatePublicationTypes",
+                                        "operator": "includesAny",
+                                        "values": [
+                                            "guideline",
+                                            "practice guideline"
+                                        ]
+                                    },
+                                    {
+                                        "field": "semanticSourcePublicationTypes",
+                                        "operator": "includesAny",
+                                        "values": [
+                                            "guideline",
+                                            "practice guideline"
+                                        ]
+                                    }
+                                ]
+                            }
+                        ],
+                        "hardFilters": {
+                            "filterProfile": [
+                                "guideline-only"
+                            ],
+                            "publicationType": [
+                                "guideline",
+                                "practice guideline"
+                            ]
+                        }
+                    },
                     "tooltip": {
                         "dk": "Kun guidelines, der er udgivet i videnskabelige tidsskrifter, kan findes via PubMed. Guidelines, som er udgivet andre steder, vises ikke.",
                         "en": "Only guidelines published in scientific journals can be found via PubMed. Guidelines published elsewhere are not shown."
@@ -502,6 +687,50 @@
                     "searchStringComment": {
                         "dk": "",
                         "en": ""
+                    },
+                    "semanticConfig": {
+                        "doiOnlyRules": [
+                            {
+                                "id": "other-review",
+                                "exclusiveGroup": "publication-profile",
+                                "textScopes": [
+                                    "candidateTitle",
+                                    "sourceCandidateTitles"
+                                ],
+                                "requireAnyTextSignals": [
+                                    "review"
+                                ],
+                                "excludeAnyTextSignals": [
+                                    "systematic review",
+                                    "meta-analysis",
+                                    "cochrane",
+                                    "protocol",
+                                    "withdrawn",
+                                    "retracted",
+                                    "comment"
+                                ]
+                            }
+                        ],
+                        "hardFilters": {
+                            "filterProfile": [
+                                "other-review-only"
+                            ],
+                            "publicationType": [
+                                "review"
+                            ]
+                        },
+                        "sourceFilters": {
+                            "openAlex": {
+                                "workType": [
+                                    "review"
+                                ]
+                            },
+                            "elicit": {
+                                "typeTags": [
+                                    "Review"
+                                ]
+                            }
+                        }
                     },
                     "tooltip": {
                         "dk": "",
@@ -538,7 +767,7 @@
                         "dk": null,
                         "en": null
                     },
-                    "simpleSearch": true,
+                    "simpleSearch": false,
                     "standardSimple": false,
                     "tooltip_simple": {
                         "dk": "Studier, hvor deltagere tilfældigt (randomiseres) fordeles til en interven&shy;tionsgruppe og en kontrol&shy;gruppe, så man kan sammenligne effekten af en indsats og dermed vurdere årsags&shy;sammen&shy;hænge.",
@@ -558,6 +787,23 @@
                     "searchStringComment": {
                         "dk": "",
                         "en": ""
+                    },
+                    "semanticConfig": {
+                        "hardFilters": {
+                            "studyDesign": [
+                                "randomized controlled trial"
+                            ]
+                        },
+                        "sourceFilters": {
+                            "elicit": {
+                                "typeTags": [
+                                    "RCT"
+                                ]
+                            }
+                        },
+                        "sourceContext": {
+                            "en": "randomized controlled trials that compare an intervention with a control group"
+                        }
                     },
                     "tooltip": {
                         "dk": "Studier, hvor deltagere tilfældigt (randomiseres) fordeles til en interven&shy;tionsgruppe og en kontrol&shy;gruppe, så man kan sammenligne effekten af en indsats og dermed vurdere årsags&shy;sammen&shy;hænge.",
@@ -648,6 +894,11 @@
                     "searchStringComment": {
                         "dk": "",
                         "en": ""
+                    },
+                    "semanticConfig": {
+                        "sourceContext": {
+                            "en": "cohort and other longitudinal observational studies that follow people over time"
+                        }
                     },
                     "tooltip": {
                         "dk": "",
@@ -772,6 +1023,270 @@
             ]
         },
         {
+            "id": "L025",
+            "isDefault": true,
+            "translations": {
+                "dk": "Kildeformat",
+                "en": "Source format"
+            },
+            "ordering": {
+                "dk": 3.5,
+                "en": 3.5
+            },
+            "allowCustomInput": false,
+            "tooltip": {
+                "dk": "Afgrænser de semantiske kilder efter publikationens eller kildens format. Påvirker ikke den almindelige PubMed-søgestreng direkte.",
+                "en": "Limits semantic sources by publication or source format. Does not directly change the regular PubMed search string."
+            },
+            "groups": [
+                {
+                    "id": "L025010",
+                    "buttons": false,
+                    "translations": {
+                        "dk": "Videnskabelig artikel",
+                        "en": "Scientific article"
+                    },
+                    "ordering": {
+                        "dk": 1,
+                        "en": 1
+                    },
+                    "simpleSearch": false,
+                    "standardSimple": true,
+                    "tooltip_simple": {
+                        "dk": "Afgrænser primært til tidsskriftbaserede videnskabelige artikler i de semantiske kilder.",
+                        "en": "Primarily limits to journal-based scientific articles in the semantic sources."
+                    },
+                    "searchStrings": {
+                        "narrow": [],
+                        "normal": [],
+                        "broad": []
+                    },
+                    "searchStringComment": {
+                        "dk": "",
+                        "en": ""
+                    },
+                    "semanticConfig": {
+                        "doiOnlyRules": [
+                            {
+                                "id": "source-format-journal",
+                                "exclusiveGroup": "source-format",
+                                "matchStrategy": "any",
+                                "metadataFieldConditionMode": "any",
+                                "metadataFieldConditions": [
+                                    {
+                                        "field": "candidateSourceType",
+                                        "operator": "equalsAny",
+                                        "values": [
+                                            "journal"
+                                        ]
+                                    },
+                                    {
+                                        "field": "semanticSourceTypes",
+                                        "operator": "equalsAny",
+                                        "values": [
+                                            "journal"
+                                        ]
+                                    },
+                                    {
+                                        "field": "openAlexSourceType",
+                                        "operator": "equalsAny",
+                                        "values": [
+                                            "journal"
+                                        ]
+                                    }
+                                ]
+                            }
+                        ],
+                        "hardFilters": {
+                            "sourceFormat": [
+                                "journal"
+                            ]
+                        },
+                        "sourceFilters": {
+                            "openAlex": {
+                                "workType": [
+                                    "article"
+                                ]
+                            }
+                        },
+                        "sourceContext": {
+                            "en": "journal-based scientific articles"
+                        }
+                    },
+                    "tooltip": {
+                        "dk": "Afgrænser primært til tidsskriftbaserede videnskabelige artikler i de semantiske kilder.",
+                        "en": "Primarily limits to journal-based scientific articles in the semantic sources."
+                    },
+                    "simpleOrdering": {
+                        "dk": 1,
+                        "en": 1
+                    },
+                    "children": []
+                },
+                {
+                    "id": "L025020",
+                    "buttons": false,
+                    "translations": {
+                        "dk": "Konferencepublikation",
+                        "en": "Conference publication"
+                    },
+                    "ordering": {
+                        "dk": 2,
+                        "en": 2
+                    },
+                    "simpleSearch": false,
+                    "standardSimple": false,
+                    "tooltip_simple": {
+                        "dk": "Afgrænser primært til konferencemateriale og konferencerelaterede publikationer i de semantiske kilder.",
+                        "en": "Primarily limits to conference materials and conference-related publications in the semantic sources."
+                    },
+                    "searchStrings": {
+                        "narrow": [],
+                        "normal": [],
+                        "broad": []
+                    },
+                    "searchStringComment": {
+                        "dk": "",
+                        "en": ""
+                    },
+                    "semanticConfig": {
+                        "doiOnlyRules": [
+                            {
+                                "id": "source-format-conference",
+                                "exclusiveGroup": "source-format",
+                                "matchStrategy": "any",
+                                "metadataFieldConditionMode": "any",
+                                "metadataFieldConditions": [
+                                    {
+                                        "field": "candidateSourceType",
+                                        "operator": "equalsAny",
+                                        "values": [
+                                            "conference"
+                                        ]
+                                    },
+                                    {
+                                        "field": "semanticSourceTypes",
+                                        "operator": "equalsAny",
+                                        "values": [
+                                            "conference"
+                                        ]
+                                    },
+                                    {
+                                        "field": "openAlexSourceType",
+                                        "operator": "equalsAny",
+                                        "values": [
+                                            "conference"
+                                        ]
+                                    }
+                                ]
+                            }
+                        ],
+                        "hardFilters": {
+                            "sourceFormat": [
+                                "conference"
+                            ]
+                        },
+                        "sourceContext": {
+                            "en": "conference abstracts and conference-related publications"
+                        }
+                    },
+                    "tooltip": {
+                        "dk": "Afgrænser primært til konferencemateriale og konferencerelaterede publikationer i de semantiske kilder.",
+                        "en": "Primarily limits to conference materials and conference-related publications in the semantic sources."
+                    },
+                    "simpleOrdering": {
+                        "dk": 2,
+                        "en": 2
+                    },
+                    "children": []
+                },
+                {
+                    "id": "L025030",
+                    "buttons": false,
+                    "translations": {
+                        "dk": "Preprint",
+                        "en": "Preprint"
+                    },
+                    "ordering": {
+                        "dk": 3,
+                        "en": 3
+                    },
+                    "simpleSearch": false,
+                    "standardSimple": false,
+                    "tooltip_simple": {
+                        "dk": "Afgrænser primært til preprints i de semantiske kilder.",
+                        "en": "Primarily limits to preprints in the semantic sources."
+                    },
+                    "searchStrings": {
+                        "narrow": [],
+                        "normal": [],
+                        "broad": []
+                    },
+                    "searchStringComment": {
+                        "dk": "",
+                        "en": ""
+                    },
+                    "semanticConfig": {
+                        "doiOnlyRules": [
+                            {
+                                "id": "source-format-preprint",
+                                "exclusiveGroup": "source-format",
+                                "matchStrategy": "any",
+                                "metadataFieldConditionMode": "any",
+                                "metadataFieldConditions": [
+                                    {
+                                        "field": "candidateSourceType",
+                                        "operator": "equalsAny",
+                                        "values": [
+                                            "repository"
+                                        ]
+                                    },
+                                    {
+                                        "field": "semanticSourceTypes",
+                                        "operator": "equalsAny",
+                                        "values": [
+                                            "repository"
+                                        ]
+                                    },
+                                    {
+                                        "field": "openAlexSourceType",
+                                        "operator": "equalsAny",
+                                        "values": [
+                                            "repository"
+                                        ]
+                                    }
+                                ]
+                            }
+                        ],
+                        "hardFilters": {
+                            "sourceFormat": [
+                                "preprint"
+                            ]
+                        },
+                        "sourceFilters": {
+                            "openAlex": {
+                                "workType": [
+                                    "preprint"
+                                ]
+                            }
+                        },
+                        "sourceContext": {
+                            "en": "preprints and non-peer-reviewed manuscript versions"
+                        }
+                    },
+                    "tooltip": {
+                        "dk": "Afgrænser primært til preprints i de semantiske kilder.",
+                        "en": "Primarily limits to preprints in the semantic sources."
+                    },
+                    "simpleOrdering": {
+                        "dk": 3,
+                        "en": 3
+                    },
+                    "children": []
+                }
+            ]
+        },
+        {
             "id": "L030",
             "isDefault": true,
             "translations": {
@@ -814,6 +1329,20 @@
                         "dk": "",
                         "en": ""
                     },
+                    "semanticConfig": {
+                        "hardFilters": {
+                            "language": [
+                                "english"
+                            ]
+                        },
+                        "sourceFilters": {
+                            "openAlex": {
+                                "language": [
+                                    "en"
+                                ]
+                            }
+                        }
+                    },
                     "tooltip": {
                         "dk": "",
                         "en": ""
@@ -846,6 +1375,20 @@
                         "dk": "",
                         "en": ""
                     },
+                    "semanticConfig": {
+                        "hardFilters": {
+                            "language": [
+                                "danish"
+                            ]
+                        },
+                        "sourceFilters": {
+                            "openAlex": {
+                                "language": [
+                                    "da"
+                                ]
+                            }
+                        }
+                    },
                     "tooltip": {
                         "dk": "",
                         "en": ""
@@ -871,6 +1414,20 @@
                     "searchStringComment": {
                         "dk": "",
                         "en": ""
+                    },
+                    "semanticConfig": {
+                        "hardFilters": {
+                            "language": [
+                                "norwegian"
+                            ]
+                        },
+                        "sourceFilters": {
+                            "openAlex": {
+                                "language": [
+                                    "no"
+                                ]
+                            }
+                        }
                     },
                     "tooltip": {
                         "dk": "",
@@ -899,6 +1456,20 @@
                     "searchStringComment": {
                         "dk": "",
                         "en": ""
+                    },
+                    "semanticConfig": {
+                        "hardFilters": {
+                            "language": [
+                                "swedish"
+                            ]
+                        },
+                        "sourceFilters": {
+                            "openAlex": {
+                                "language": [
+                                    "sv"
+                                ]
+                            }
+                        }
                     },
                     "tooltip": {
                         "dk": "",
@@ -965,6 +1536,13 @@
                     "searchStringComment": {
                         "dk": "Vestlige lande er her defineret som lande i Europa, USA, Canada, Australien og New Zealand. Der er udelukkende brugt [mh], at det er ikke muligt er bruge [majr], når man søger efter lande. En stor del af referencerne i PubMed er ikke indekseret under et land, og man risikerer derfor er ekskludere referencer unødigt ved at afgrænse søgningen til referencer, som er indekseret under et land. Derfor er normal og bred søgning (som er ens) konstrueret, så referencer, der IKKE er indekseret under et land, også inkluderes i resultatet. Samtidig frasorteres referencer, som er indekseret under et land, der ikke er defineret som vestligt (dog kun, hvis referencen ikke samtidig er indekseret under et vestligt land).",
                         "en": ""
+                    },
+                    "semanticConfig": {
+                        "hardFilters": {
+                            "filterProfile": [
+                                "western-countries"
+                            ]
+                        }
                     },
                     "tooltip": {
                         "dk": "",
@@ -1497,6 +2075,14 @@
                         "dk": "NLM's definition af unge (\"Adolescent\"[mh]) er personer i alderen 13-18 år.",
                         "en": ""
                     },
+                    "semanticConfig": {
+                        "hardFilters": {
+                            "ageGroup": [
+                                "adolescent",
+                                "teen"
+                            ]
+                        }
+                    },
                     "tooltip": {
                         "dk": "",
                         "en": ""
@@ -1671,6 +2257,13 @@
                         "dk": "",
                         "en": ""
                     },
+                    "semanticConfig": {
+                        "hardFilters": {
+                            "publicationDateYears": [
+                                1
+                            ]
+                        }
+                    },
                     "tooltip": {
                         "dk": "",
                         "en": ""
@@ -1697,6 +2290,13 @@
                         "dk": "",
                         "en": ""
                     },
+                    "semanticConfig": {
+                        "hardFilters": {
+                            "publicationDateYears": [
+                                5
+                            ]
+                        }
+                    },
                     "tooltip": {
                         "dk": "",
                         "en": ""
@@ -1722,6 +2322,13 @@
                     "searchStringComment": {
                         "dk": "",
                         "en": ""
+                    },
+                    "semanticConfig": {
+                        "hardFilters": {
+                            "publicationDateYears": [
+                                10
+                            ]
+                        }
                     },
                     "tooltip": {
                         "dk": "",
@@ -2148,6 +2755,13 @@
                     "searchStringComment": {
                         "dk": "",
                         "en": ""
+                    },
+                    "semanticConfig": {
+                        "hardFilters": {
+                            "filterProfile": [
+                                "remove-animal-studies"
+                            ]
+                        }
                     },
                     "tooltip": {
                         "dk": "",

@@ -199,6 +199,120 @@ function qpmGetOpenAIApiUrl(?string $domain = null): string
 }
 
 /**
+ * Resolve OpenAlex API key for domain with default fallback.
+ *
+ * @param string|null $domain
+ * @return string
+ */
+function qpmGetOpenAlexApiKey(?string $domain = null): string
+{
+    $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
+    if (isset($runtimeConfig['openalex']) && is_array($runtimeConfig['openalex'])) {
+        $apiKey = $runtimeConfig['openalex']['api_key'] ?? '';
+        if (is_string($apiKey) && $apiKey !== '') {
+            return $apiKey;
+        }
+    }
+
+    return defined('OPENALEX_API_KEY') ? OPENALEX_API_KEY : '';
+}
+
+/**
+ * Resolve OpenAlex contact email for domain with default fallback.
+ *
+ * @param string|null $domain
+ * @return string
+ */
+function qpmGetOpenAlexEmail(?string $domain = null): string
+{
+    $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
+    if (isset($runtimeConfig['openalex']) && is_array($runtimeConfig['openalex'])) {
+        $email = $runtimeConfig['openalex']['email'] ?? '';
+        if (is_string($email) && $email !== '') {
+            return $email;
+        }
+    }
+
+    return defined('OPENALEX_EMAIL') ? OPENALEX_EMAIL : '';
+}
+
+/**
+ * Resolve Scite API key for domain with default fallback.
+ *
+ * @param string|null $domain
+ * @return string
+ */
+function qpmGetSciteApiKey(?string $domain = null): string
+{
+    $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
+    if (isset($runtimeConfig['scite']) && is_array($runtimeConfig['scite'])) {
+        $apiKey = $runtimeConfig['scite']['api_key'] ?? '';
+        if (is_string($apiKey) && $apiKey !== '') {
+            return $apiKey;
+        }
+    }
+
+    return defined('SCITE_API_KEY') ? (string) SCITE_API_KEY : '';
+}
+
+/**
+ * Resolve Scite API URL for domain with default fallback.
+ *
+ * @param string|null $domain
+ * @return string
+ */
+function qpmGetSciteApiUrl(?string $domain = null): string
+{
+    $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
+    if (isset($runtimeConfig['scite']) && is_array($runtimeConfig['scite'])) {
+        $apiUrl = $runtimeConfig['scite']['api_url'] ?? '';
+        if (is_string($apiUrl) && $apiUrl !== '') {
+            return $apiUrl;
+        }
+    }
+
+    return defined('SCITE_API_URL') ? (string) SCITE_API_URL : 'https://api.scite.ai/api_partner/search';
+}
+
+/**
+ * Resolve CORE API key for domain with default fallback.
+ *
+ * @param string|null $domain
+ * @return string
+ */
+function qpmGetCoreApiKey(?string $domain = null): string
+{
+    $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
+    if (isset($runtimeConfig['core']) && is_array($runtimeConfig['core'])) {
+        $apiKey = $runtimeConfig['core']['api_key'] ?? '';
+        if (is_string($apiKey) && $apiKey !== '') {
+            return $apiKey;
+        }
+    }
+
+    return defined('CORE_API_KEY') ? (string) CORE_API_KEY : '';
+}
+
+/**
+ * Resolve CORE API URL for domain with default fallback.
+ *
+ * @param string|null $domain
+ * @return string
+ */
+function qpmGetCoreApiUrl(?string $domain = null): string
+{
+    $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
+    if (isset($runtimeConfig['core']) && is_array($runtimeConfig['core'])) {
+        $apiUrl = $runtimeConfig['core']['api_url'] ?? '';
+        if (is_string($apiUrl) && $apiUrl !== '') {
+            return $apiUrl;
+        }
+    }
+
+    return defined('CORE_API_URL') ? (string) CORE_API_URL : 'https://api.core.ac.uk/v3/search/works';
+}
+
+/**
  * Resolve NLM API key for domain with default fallback.
  *
  * @param string|null $domain
@@ -294,6 +408,127 @@ function qpmGetUnpaywallEmail(?string $domain = null): string
     }
 
     return defined('UNPAYWALL_EMAIL') ? (string) UNPAYWALL_EMAIL : '';
+}
+
+/**
+ * Normalize a configured translation/search source key.
+ *
+ * @param mixed $value
+ * @return string|null
+ */
+function qpmNormalizeTranslationSourceKey($value): ?string
+{
+    if (!is_string($value)) {
+        return null;
+    }
+    $normalized = strtolower(trim($value));
+    if ($normalized === '') {
+        return null;
+    }
+
+    $aliasMap = [
+        'pubmed' => 'pubmed',
+        'pubmedbestmatch' => 'pubmedBestMatch',
+        'pubmed-best-match' => 'pubmedBestMatch',
+        'pubmed_best_match' => 'pubmedBestMatch',
+        'semanticscholar' => 'semanticScholar',
+        'semantic-scholar' => 'semanticScholar',
+        'semantic_scholar' => 'semanticScholar',
+        'openalex' => 'openAlex',
+        'open-alex' => 'openAlex',
+        'open_alex' => 'openAlex',
+        'elicit' => 'elicit',
+        'scite' => 'scite',
+        'core' => 'core',
+    ];
+
+    return $aliasMap[$normalized] ?? null;
+}
+
+/**
+ * Resolve a configured semantic source limit from backend config.
+ *
+ * @param mixed $sourceKey
+ * @param int $default
+ * @return int
+ */
+function qpmGetSemanticSourceLimit($sourceKey, int $default): int
+{
+    $normalizedSourceKey = qpmNormalizeTranslationSourceKey($sourceKey);
+    $fallback = $default > 0 ? $default : 1;
+    if (
+        $normalizedSourceKey === null ||
+        !defined('QPM_SEMANTIC_SOURCE_LIMITS') ||
+        !is_array(QPM_SEMANTIC_SOURCE_LIMITS)
+    ) {
+        return $fallback;
+    }
+
+    $configured = QPM_SEMANTIC_SOURCE_LIMITS[$normalizedSourceKey] ?? null;
+    $resolved = is_numeric($configured) ? (int) $configured : $fallback;
+    return $resolved > 0 ? $resolved : $fallback;
+}
+
+/**
+ * Resolve frontend-safe translation/search source defaults from runtime config.
+ *
+ * Supported runtime keys:
+ * - search.translation_sources
+ * - features.translation_sources
+ *
+ * @param string|null $domain
+ * @return array<int, string>
+ */
+function qpmGetDomainTranslationSources(?string $domain = null): array
+{
+    $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
+    $candidates = [];
+
+    if (isset($runtimeConfig['search']) && is_array($runtimeConfig['search'])) {
+        $candidates[] = $runtimeConfig['search']['translation_sources'] ?? null;
+    }
+    if (isset($runtimeConfig['features']) && is_array($runtimeConfig['features'])) {
+        $candidates[] = $runtimeConfig['features']['translation_sources'] ?? null;
+    }
+
+    foreach ($candidates as $candidate) {
+        if (!is_array($candidate)) {
+            continue;
+        }
+        $normalized = [];
+        foreach ($candidate as $entry) {
+            $sourceKey = qpmNormalizeTranslationSourceKey($entry);
+            if ($sourceKey !== null) {
+                $normalized[$sourceKey] = true;
+            }
+        }
+        return array_values(array_keys($normalized));
+    }
+
+    return [];
+}
+
+/**
+ * Check whether runtime config explicitly defines translation/search sources.
+ *
+ * @param string|null $domain
+ * @return bool
+ */
+function qpmHasDomainTranslationSourcesConfig(?string $domain = null): bool
+{
+    $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
+    if (isset($runtimeConfig['search']) && is_array($runtimeConfig['search'])) {
+        if (array_key_exists('translation_sources', $runtimeConfig['search'])) {
+            return is_array($runtimeConfig['search']['translation_sources']);
+        }
+    }
+    if (isset($runtimeConfig['features']) && is_array($runtimeConfig['features'])) {
+        if (array_key_exists('translation_sources', $runtimeConfig['features'])) {
+            return is_array($runtimeConfig['features']['translation_sources']);
+        }
+    }
+
+    return false;
 }
 
 /**
@@ -445,19 +680,24 @@ function qpmGetDomainClassOverrides(?string $domain = null): array
 }
 
 /**
- * Global NLM request throttle using file lock.
- * Limits outbound requests from this server to approximately maxPerSecond.
+ * Global request throttle using file lock.
+ * Limits outbound requests per namespace to approximately maxPerSecond.
  *
+ * @param string $namespace
  * @param int $maxPerSecond
  * @return void
  */
-function qpmThrottleNlmRequests(int $maxPerSecond = 10): void
+function qpmThrottleRequestRate(string $namespace, int $maxPerSecond = 10): void
 {
     if ($maxPerSecond < 1) {
         $maxPerSecond = 1;
     }
 
-    $lockPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'qpm_nlm_rate_limit.lock';
+    $normalizedNamespace = preg_replace('/[^a-z0-9_-]+/i', '_', trim($namespace));
+    if ($normalizedNamespace === '' || $normalizedNamespace === null) {
+        $normalizedNamespace = 'default';
+    }
+    $lockPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'qpm_' . $normalizedNamespace . '_rate_limit.lock';
     $intervalUs = (int) floor(1000000 / $maxPerSecond);
 
     $fp = @fopen($lockPath, 'c+');
@@ -491,6 +731,18 @@ function qpmThrottleNlmRequests(int $maxPerSecond = 10): void
     } finally {
         fclose($fp);
     }
+}
+
+/**
+ * Global NLM request throttle using file lock.
+ * Limits outbound requests from this server to approximately maxPerSecond.
+ *
+ * @param int $maxPerSecond
+ * @return void
+ */
+function qpmThrottleNlmRequests(int $maxPerSecond = 10): void
+{
+    qpmThrottleRequestRate('nlm', $maxPerSecond);
 }
 
 /**

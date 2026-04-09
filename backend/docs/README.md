@@ -9,6 +9,11 @@ Denne mappe er den kanoniske web-indgang (`/backend`) til server-endpoints.
 - Data ligger i repo-roden under `data/` (editor content + runtime filer).
 - `docs/`: dokumentation.
 
+## Relevante docs
+
+- `backend/docs/semantic-doi-only-rules.md`: vedligeholdelse af semantiske DOI-only filterregler, schema, motor og eksempler på `doiOnlyFilterRules`.
+- `backend/docs/semantic-source-filters.md`: vedligeholdelse af `semanticConfig.sourceFilters`, kilde-specifikke filterværdier og hvornår de bør bruges.
+
 `php-proxy` kan bevares midlertidigt som kompatibilitetslag, men ny kode bør pege på `backend`.
 
 ## CMS script-referencer (frontend assets)

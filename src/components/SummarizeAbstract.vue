@@ -822,6 +822,8 @@
           const abstract = article.Abstract || article.abstract || '';
           const title = article.Title || article.title || '';
           const pmid = article.PMID || article.pmid || article.uid || '';
+          const doi = article.DOI || article.doi || '';
+          const referenceId = article.ReferenceId || article.referenceId || article.id || pmid || doi || '';
           const source = article.Source || article.source || article.fulljournalname || '';
           const authorList = article.AuthorList || article.authorList || article.Authors || article.authors || [];
           const pubDate = article.PubDate || article.pubDate || article.pubdate || article.PublicationDate || article.publicationDate || '';
@@ -877,7 +879,9 @@
           articleText += `Authors: ${authorsStr}\n`;
           articleText += `Source: ${source}\n`;
           articleText += `Reference: ${reference}\n`;
+          articleText += `Reference ID: ${referenceId}\n`;
           articleText += `PMID: ${pmid}\n`;
+          articleText += `DOI: ${doi}\n`;
           articleText += `Abstract:\n${abstract}\n`;
         });
 
@@ -1043,18 +1047,32 @@
 
         const hrefValue = target.getAttribute("href");
         if (typeof hrefValue !== "string" || !hrefValue.startsWith("#")) return;
-        const hrefNumber = Number.parseInt(hrefValue.slice(1));
+        let referenceTarget = hrefValue.slice(1).trim();
+        if (!referenceTarget) return;
+        try {
+          referenceTarget = decodeURIComponent(referenceTarget);
+        } catch {
+          // Keep raw value if decoding fails.
+        }
 
-        if (!Number.isInteger(hrefNumber)) return;
-
-        const selectedArticlesSelectorString = `.qpm_accordion *:where(#${hrefNumber}, [name="${hrefNumber}"])`;
-        const searchResultSelectorString = `.qpm_SearchResult *:where(#${hrefNumber}, [name="${hrefNumber}"])`;
-        let resultEntry =
-          document.querySelector(selectedArticlesSelectorString) ??
-          document.querySelector(searchResultSelectorString);
+        const normalizedReferenceTarget = referenceTarget.toLowerCase();
+        const candidateEntries = Array.from(
+          document.querySelectorAll(".qpm_accordion .qpm_ResultEntry, .qpm_SearchResult .qpm_ResultEntry")
+        );
+        const resultEntry = candidateEntries.find((entry) => {
+          const anchorValues = [
+            entry.getAttribute("data-reference-anchor"),
+            entry.getAttribute("data-reference-pmid"),
+            entry.getAttribute("data-reference-doi"),
+            entry.getAttribute("name"),
+          ]
+            .map((value) => String(value || "").trim().toLowerCase())
+            .filter(Boolean);
+          return anchorValues.includes(normalizedReferenceTarget);
+        });
         if (resultEntry === null || resultEntry === undefined) {
           console.debug(
-            `onMarkdownClick: no article with the name or id '${hrefNumber}' could be found. ref: '${hrefValue}'.`
+            `onMarkdownClick: no article with the reference id '${referenceTarget}' could be found. ref: '${hrefValue}'.`
           );
           return;
         }

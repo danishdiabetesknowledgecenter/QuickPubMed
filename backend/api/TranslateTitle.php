@@ -71,7 +71,7 @@ if (isset($prompt['messages']) && is_array($prompt['messages'])) {
 $openaiRequest = [
     'model' => $prompt['model'] ?? 'gpt-5.4',
     'input' => $messages,  // Responses API uses 'input' instead of 'messages'
-    'stream' => true
+    'stream' => isset($prompt['stream']) ? (bool)$prompt['stream'] : true
 ];
 
 // gpt-5.4 reasoning parameter
@@ -81,12 +81,23 @@ if (isset($prompt['reasoning']['effort'])) {
     $openaiRequest['reasoning'] = ['effort' => 'low']; // Default - faster
 }
 
-// gpt-5.4 text/verbosity parameter
-if (isset($prompt['text']['verbosity'])) {
-    $openaiRequest['text'] = ['verbosity' => $prompt['text']['verbosity']];
-} else {
-    $openaiRequest['text'] = ['verbosity' => 'medium']; // Default
+// gpt-5.4 text configuration (verbosity + optional structured output format)
+$textConfig = [];
+if (isset($prompt['text']) && is_array($prompt['text'])) {
+    if (isset($prompt['text']['verbosity'])) {
+        $textConfig['verbosity'] = $prompt['text']['verbosity'];
+    }
+    if (isset($prompt['text']['format']) && is_array($prompt['text']['format'])) {
+        $textConfig['format'] = $prompt['text']['format'];
+    }
 }
+if (!isset($textConfig['format']) && isset($prompt['response_format']) && is_array($prompt['response_format'])) {
+    $textConfig['format'] = $prompt['response_format'];
+}
+if (!isset($textConfig['verbosity'])) {
+    $textConfig['verbosity'] = 'medium'; // Default
+}
+$openaiRequest['text'] = $textConfig;
 
 // max_output_tokens for gpt-5.4
 if (isset($prompt['max_output_tokens']) && $prompt['max_output_tokens'] !== null) {

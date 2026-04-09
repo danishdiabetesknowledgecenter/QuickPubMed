@@ -2,6 +2,8 @@ name: 🚀 Deploy Website on Push
 
 on:
   push:
+    branches:
+      - dev
     tags:
       - 'v*.*.*'
       
@@ -9,10 +11,20 @@ jobs:
   build-and-deploy:
     name: 🛠️ Build and Deploy
     runs-on: ubuntu-latest
+    env:
+      DEPLOY_ROOT: ${{ github.ref == 'refs/heads/dev' && './dev/latest' || './current' }}
 
     steps:
       - name: 🚚 Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: ✅ Verify production tag is on main
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          git fetch origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
 
       - name: 🟢 Set up Node.js
         uses: actions/setup-node@v3
@@ -48,7 +60,7 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./dist/
-          server-dir: ./
+          server-dir: ${{ env.DEPLOY_ROOT }}/
           protocol: ftp  
           exclude: |
              .git*
@@ -63,7 +75,7 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./backend/
-          server-dir: ./backend/
+          server-dir: ${{ env.DEPLOY_ROOT }}/backend/
           protocol: ftp
           exclude: |
              config.php
@@ -79,7 +91,7 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           # Deploys whole entries tree, including entries/widgets/*.html
           local-dir: ./entries/
-          server-dir: ./entries/
+          server-dir: ${{ env.DEPLOY_ROOT }}/entries/
           protocol: ftp
           exclude: |
              .git*
@@ -93,7 +105,7 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           # Scope deploy strictly to shared content only.
           local-dir: ./data/content/shared/
-          server-dir: ./data/content/shared/
+          server-dir: ${{ env.DEPLOY_ROOT }}/data/content/shared/
           protocol: ftp
           state-name: .ftp-deploy-sync-state-data-shared.json
           dangerous-clean-slate: false
@@ -109,7 +121,7 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           # Scope deploy strictly to template content only.
           local-dir: ./data/content/template/
-          server-dir: ./data/content/template/
+          server-dir: ${{ env.DEPLOY_ROOT }}/data/content/template/
           protocol: ftp
           state-name: .ftp-deploy-sync-state-data-template.json
           dangerous-clean-slate: false

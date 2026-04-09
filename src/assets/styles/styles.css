@@ -223,6 +223,58 @@
   margin-top: 25px;
 }
 
+.qpm_searchProcessBox {
+  position: relative;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, 0%);
+  width: min(100%, 760px);
+  margin-top: 18px;
+  margin-bottom: 12px;
+  padding: 14px 18px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+}
+
+.qpm_searchProcessList {
+  margin: 0;
+  padding-left: 1.5rem;
+  text-align: left;
+}
+
+.qpm_searchProcessItem {
+  margin: 0.35rem 0;
+  color: var(--color-grey-dark);
+}
+
+.qpm_searchProcessDots {
+  display: inline-block;
+  margin-left: 0;
+  min-width: 3.2em;
+  letter-spacing: 0.04em;
+}
+
+.qpm_searchProcessItem.is-current {
+  color: var(--color-black);
+  font-weight: 600;
+}
+
+.qpm_searchProcessItem.is-completed {
+  color: var(--color-black);
+}
+
+.qpm_searchProcessItem.is-pending {
+  opacity: 0.8;
+}
+
+.qpm_searchProcessItem.is-completed .qpm_searchProcessDots {
+  min-width: 0;
+}
+
+.qpm_searchProcessItem.is-current .qpm_searchProcessDots {
+  opacity: 0.75;
+}
+
 /* Custom spinner to replace vue-multiselect's built-in spinner */
 
 .qpm_multiselect_custom_spinner {

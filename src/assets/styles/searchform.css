@@ -318,6 +318,122 @@
   margin-left: 5px;
 }
 
+.qpm_aiModeRadios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-left: 66px;
+  padding-top: 4px;
+}
+
+.qpm_aiModeRadioLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.qpm_aiModeRadioInput {
+  margin: 0;
+}
+
+.qpm_translationSourcesPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-left: 5px;
+  width: 100%;
+  max-width: none;
+  padding-top: 6px;
+}
+
+.qpm_translationSourcesToggleWrap {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.qpm_translationSourcesToggleWrap .qpm_advancedSearch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  float: none;
+}
+
+.qpm_translationSourcesCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 2px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--color-grey);
+  font-size: 0.85em;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.qpm_translationSourcesContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 6px 0 0;
+}
+
+.qpm_translationSourcesPrimary {
+  width: 100%;
+}
+
+.qpm_translationSourcesSpacer {
+  margin-bottom: 10px;
+}
+
+.qpm_translationSourcesSecondary {
+  width: 100%;
+}
+
+.qpm_translationSourcesGrid {
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  column-gap: 30px;
+  row-gap: 10px;
+  width: 100%;
+}
+
+.qpm_sourceCheckboxWrap {
+  display: flex;
+  align-items: flex-start;
+  min-width: 0;
+  width: 100%;
+}
+
+.qpm_sourceCheckboxLabel {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+  width: 100%;
+}
+
+.qpm_sourceCheckboxInput {
+  margin: 4px 0 0;
+  flex: 0 0 auto;
+}
+
+.qpm_sourceCheckboxText {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+}
+
+.qpm_sourceCheckboxIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  margin-top: 1px;
+}
+
 .qpm_switch_wrap .qpm_simpleFiltersHeader {
   display: flex;
   gap: 5px;
@@ -396,6 +512,14 @@ input:checked + .qpm_slider:before {
   .qpm_simpleFiltersContainer {
     grid-template-columns: minmax(auto, 125px) auto;
   }
+
+  .qpm_translationSourcesGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .qpm_semanticSearchFiltersGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media only screen and (max-width: 500px) {
@@ -420,6 +544,10 @@ input:checked + .qpm_slider:before {
   .qpm_searchStringGroupOperator_NotApplied {
     display: block;
     margin-bottom: 8px;
+  }
+
+  .qpm_aiModeRadios {
+    margin-left: 0;
   }
 
   .qpm_searchStringPreTextLimits {
@@ -451,6 +579,15 @@ input:checked + .qpm_slider:before {
 .qpm_simpleFiltersRoot {
   margin: 30px 5px 0;
 }
+
+.qpm_semanticSearchFiltersRoot {
+  margin-top: 0;
+}
+
+.qpm_semanticSearchFiltersContainer {
+  align-items: start;
+}
+
 
 .qpm_filterEntryFullWidth {
   width: 100%;

@@ -7,6 +7,9 @@ export const config = reactive({
   useAI: false, // AI feature flag for all ai feature
   useAISummarizer: false, // AI feature flag for the article summarizer
   useMeshValidation: true, // Validate AI-translated [mh] terms via NLM E-utilities MeSH database
+  semanticSourceLimits: {}, // Frontend-safe semantic source limits from backend config
+  rerankConfig: {}, // Frontend-safe rerank settings from backend config
+  translationSourcesByDomain: {}, // Domain-specific default source selection: { domainKey: ["pubmed", ...] }
   theme: {}, // Global CSS custom properties to override :root defaults
   themeByDomain: {}, // Domain-specific CSS variable overrides: { domainKey: { "--color-...": "..." } }
   classOverrides: {}, // Global class overrides: { baseClass: { mode, classes[] } }
@@ -270,6 +273,52 @@ export async function loadThemeOverridesFromBackend(domain, apiBaseUrl) {
         if (backendUnpaywallEmail) {
           settings.unpaywall.email = backendUnpaywallEmail;
         }
+      }
+
+      if (payload.translationSourcesConfigured === true && Array.isArray(payload.translationSources)) {
+        const allowed = new Set([
+          "pubmed",
+          "pubmedBestMatch",
+          "semanticScholar",
+          "openAlex",
+          "elicit",
+          "scite",
+          "core",
+        ]);
+        const normalizedSources = Array.from(
+          new Set(
+            payload.translationSources
+              .map((source) => String(source || "").trim())
+              .filter((source) => allowed.has(source))
+          )
+        );
+        config.translationSourcesByDomain = {
+          ...config.translationSourcesByDomain,
+          [normalizedDomain]: normalizedSources,
+        };
+      }
+
+      if (payload.semanticSourceLimits && typeof payload.semanticSourceLimits === "object") {
+        const parsedLimits = Object.fromEntries(
+          Object.entries(payload.semanticSourceLimits)
+            .map(([sourceKey, rawLimit]) => [sourceKey, Number.parseInt(rawLimit, 10)])
+            .filter(([, limit]) => Number.isFinite(limit) && limit > 0)
+        );
+        config.semanticSourceLimits = {
+          ...config.semanticSourceLimits,
+          ...parsedLimits,
+        };
+      }
+
+      if (payload.rerankConfig && typeof payload.rerankConfig === "object") {
+        config.rerankConfig = {
+          ...config.rerankConfig,
+          ...payload.rerankConfig,
+          sourceWeights: {
+            ...(config.rerankConfig?.sourceWeights || {}),
+            ...(payload.rerankConfig?.sourceWeights || {}),
+          },
+        };
       }
 
       themeConfigCache.set(cacheKey, { expiresAt: Date.now() + THEME_CONFIG_CACHE_TTL_MS });

@@ -127,21 +127,153 @@ export const messages = {
     dk: "OBS! Søgeord på engelsk kan indtastes.",
     en: "NB! Your can enter your search terms.",
   },
+  freeTextOptionsToggle: {
+    dk: "Muligheder for fritekstsøgning",
+    en: "Free-text search options",
+  },
+  aiSearchModeLabel: {
+    dk: "Vælg AI-søgetilstand",
+    en: "Choose AI search mode",
+  },
+  semanticSearchSectionHeader: {
+    dk: "Semantisk søgning",
+    en: "Semantic search",
+  },
+  hoverSemanticSearchSectionHeader: {
+    dk: "Semantisk søgning finder artikler ud fra betydning og relevans i stedet for kun præcise ordmatch. De valgte kilder forsøger at fortolke din samlede søgeintention og finde relevante studier, også når de ikke bruger helt de samme ord som i din søgning.",
+    en: "Semantic search finds articles based on meaning and relevance rather than only exact word matches. The selected sources try to interpret your overall search intent and find relevant studies even when they do not use exactly the same words as in your query.",
+  },
+  selectedCountSuffix: {
+    dk: "valgt",
+    en: "selected",
+  },
   searchToggleWithAI: {
     dk: "Indtast med AI-oversættelse",
     en: "AI-assisted input",
   },
   hoversearchToggleWithAI: {
-    dk: "Hvis du selv indtaster søgeord, kan du bruge kunstig intelligens (AI) til at oversætte fra fx dansk til en søgning, som fungerer i PubMed. <br><br><strong>Du har slået denne funktion til</strong>.",
-    en: "If you enter search terms manually, you can use artificial intelligence (AI) to translate from any language into a search query that works in PubMed.<br><br><strong>You have enabled this feature</strong>.",
+    dk: "Hvis du selv indtaster søgeord, kan du bruge kunstig intelligens (AI) til at oversætte fritekst og finde relevante resultater via de valgte fritekstmuligheder.<br><br><strong>Du har slået denne funktion til</strong>.",
+    en: "If you enter search terms manually, you can use artificial intelligence (AI) to translate free text and find relevant results through the selected free-text options.<br><br><strong>You have enabled this feature</strong>.",
   },
   searchToggleWithoutAI: {
     dk: "Indtast med AI-oversættelse (slået fra)",
     en: "AI-assisted input (disabled)",
   },
   hoversearchToggleWithoutAI: {
-    dk: "Hvis du selv indtaster søgeord, kan du bruge kunstig intelligens (AI) til at oversætte fra fx dansk til en søgning, som fungerer i PubMed. <br><br><strong>Du har <i>ikke</i> slået denne funktion til</strong>. Derfor bliver dine søgeord brugt, som de er indtastet. Dvs. at de skal skrives på engelsk, da de ellers ikke fungerer i PubMed.",
-    en: "If you enter search terms manually, you can use artificial intelligence (AI) to translate from any language into a search query that works in PubMed.<br><br><strong>You have <i>not</i> enabled this feature</strong>. Therefore, your search terms will be used exactly as entered. This means they must be written in English, as they will not work in PubMed otherwise.",
+    dk: "Når denne funktion er slået fra, bruges din indtastede tekst direkte, som den står, uden AI-oversættelse eller fritekstkilder.",
+    en: "When this feature is disabled, your typed text is used directly as entered, without AI translation or free-text sources.",
+  },
+  searchToggleWithPubMedQuery: {
+    dk: "PubMed-søgestreng med AI",
+    en: "PubMed query with AI",
+  },
+  hoversearchToggleWithPubMedQuery: {
+    dk: "Hvis du selv indtaster søgeord, bruges kunstig intelligens (AI) til at oversætte teksten til en PubMed-søgestreng, som indgår direkte i QuickPubMed-søgningen.<br><br><strong>Du har slået denne funktion til</strong>.",
+    en: "If you enter search terms manually, artificial intelligence (AI) is used to translate the text into a PubMed query, which is used directly in the QuickPubMed search.<br><br><strong>You have enabled this feature</strong>.",
+  },
+  searchToggleWithoutPubMedQuery: {
+    dk: "PubMed-søgestreng med AI (slået fra)",
+    en: "PubMed query with AI (disabled)",
+  },
+  hoversearchToggleWithoutPubMedQuery: {
+    dk: "Når denne funktion er slået fra, bruges denne AI-genererede PubMed-søgestreng ikke som direkte søgestreng i QuickPubMed.",
+    en: "When this feature is disabled, this AI-generated PubMed query is not used directly as the search string in QuickPubMed.",
+  },
+  searchToggleWithPubMedBestMatch: {
+    dk: "Relevanssøgning (PubMed)",
+    en: "Relevance search (PubMed)",
+  },
+  hoversearchToggleWithPubMedBestMatch: {
+    dk: "Den indtastede fritekst oversættes først til en PubMed-søgestreng. Denne søgestreng bruges derefter til et PubMed API-opslag med relevanssortering (Best Match), og de fundne PMID'er indgår i den samlede reranking.",
+    en: "The entered free text is first translated into a PubMed query. That query is then used for a PubMed API lookup with relevance sorting (Best Match), and the returned PMIDs are included in the combined reranking.",
+  },
+  searchToggleWithoutPubMedBestMatch: {
+    dk: "Relevanssøgning (PubMed) (slået fra)",
+    en: "Relevance search (PubMed) (disabled)",
+  },
+  hoversearchToggleWithoutPubMedBestMatch: {
+    dk: "Når denne funktion er slået fra, bruges PubMed Best Match ikke som kilde til ekstra PMID'er.",
+    en: "When this feature is disabled, PubMed Best Match is not used as a source of additional PMIDs.",
+  },
+  searchToggleWithSemanticScholar: {
+    dk: "Semantic Scholar",
+    en: "Search with Semantic Scholar",
+  },
+  hoversearchToggleWithSemanticScholar: {
+    dk: "Når du indtaster fritekst, oversættes teksten først til engelsk og bruges som forespørgsel i Semantic Scholar. De fundne PubMed-ID'er bruges derefter i QuickPubMed.",
+    en: "When you enter free text, the text is first translated into English and used as a query in Semantic Scholar. The returned PubMed IDs are then used in QuickPubMed.",
+  },
+  searchToggleWithoutSemanticScholar: {
+    dk: "Semantic Scholar (slået fra)",
+    en: "Search with Semantic Scholar (disabled)",
+  },
+  hoversearchToggleWithoutSemanticScholar: {
+    dk: "Når denne funktion er slået fra, bruges Semantic Scholar ikke til fritekstinput.",
+    en: "When this feature is disabled, Semantic Scholar is not used for free-text input.",
+  },
+  searchToggleWithOpenAlex: {
+    dk: "OpenAlex",
+    en: "Search with OpenAlex",
+  },
+  hoversearchToggleWithOpenAlex: {
+    dk: "Når du indtaster fritekst, oversættes teksten til engelsk og bruges i OpenAlex' semantiske søgning. Relevante PubMed-ID'er indgår derefter i QuickPubMed.",
+    en: "When you enter free text, the text is translated into English and used in OpenAlex semantic search. Relevant PubMed IDs are then included in QuickPubMed.",
+  },
+  searchToggleWithoutOpenAlex: {
+    dk: "OpenAlex (slået fra)",
+    en: "Search with OpenAlex (disabled)",
+  },
+  hoversearchToggleWithoutOpenAlex: {
+    dk: "Når denne funktion er slået fra, bruges OpenAlex ikke som semantisk fritekstkilde. OpenAlex kan stadig bruges internt til metadata-opslag for DOI-only resultater fundet via andre kilder.",
+    en: "When this feature is disabled, OpenAlex is not used as a semantic free-text source. OpenAlex may still be used internally for DOI-only metadata lookup for results found via other sources.",
+  },
+  searchToggleWithElicit: {
+    dk: "Elicit",
+    en: "Search with Elicit",
+  },
+  hoversearchToggleWithElicit: {
+    dk: "Når du indtaster fritekst, bruges teksten i Elicits semantiske søgning. Relevante PubMed-ID'er indgår derefter i QuickPubMed.",
+    en: "When you enter free text, the text is used in Elicit semantic search. Relevant PubMed IDs are then included in QuickPubMed.",
+  },
+  searchToggleWithoutElicit: {
+    dk: "Elicit (slået fra)",
+    en: "Search with Elicit (disabled)",
+  },
+  hoversearchToggleWithoutElicit: {
+    dk: "Når denne funktion er slået fra, bruges Elicit ikke til fritekstinput.",
+    en: "When this feature is disabled, Elicit is not used for free-text input.",
+  },
+  searchToggleWithScite: {
+    dk: "Scite",
+    en: "Search with Scite",
+  },
+  hoversearchToggleWithScite: {
+    dk: "Når du indtaster fritekst, bruges teksten i Scites artikelsøgning. Relevante DOI'er indgår derefter i QuickPubMed.",
+    en: "When you enter free text, the text is used in Scite paper search. Relevant DOIs are then included in QuickPubMed.",
+  },
+  searchToggleWithoutScite: {
+    dk: "Scite (slået fra)",
+    en: "Search with Scite (disabled)",
+  },
+  hoversearchToggleWithoutScite: {
+    dk: "Når denne funktion er slået fra, bruges Scite ikke til fritekstinput.",
+    en: "When this feature is disabled, Scite is not used for free-text input.",
+  },
+  searchToggleWithCore: {
+    dk: "CORE",
+    en: "Search with CORE",
+  },
+  hoversearchToggleWithCore: {
+    dk: "Når du indtaster fritekst, bruges teksten i COREs works-søgning på tværs af søgbare felter. Relevante DOI'er og eventuelle PMID'er indgår derefter i QuickPubMed.",
+    en: "When you enter free text, the text is used in CORE work search across searchable fields. Relevant DOIs and any PMIDs are then included in QuickPubMed.",
+  },
+  searchToggleWithoutCore: {
+    dk: "CORE (slået fra)",
+    en: "Search with CORE (disabled)",
+  },
+  hoversearchToggleWithoutCore: {
+    dk: "Når denne funktion er slået fra, bruges CORE ikke til fritekstinput.",
+    en: "When this feature is disabled, CORE is not used for free-text input.",
   },
   advancedSearch: {
     dk: "Avanceret",
@@ -198,6 +330,126 @@ export const messages = {
   translatingStepOptimize: {
     dk: "Optimerer søgestreng",
     en: "Optimizing search string",
+  },
+  translatingStepSemanticScholar: {
+    dk: "Finder PubMed-ID'er i Semantic Scholar",
+    en: "Finding PubMed IDs in Semantic Scholar",
+  },
+  translatingStepPubMedBestMatch: {
+    dk: "Finder PubMed-resultater efter relevans",
+    en: "Finding PubMed results by relevance",
+  },
+  translatingStepOpenAlex: {
+    dk: "Finder resultater i OpenAlex",
+    en: "Finding results in OpenAlex",
+  },
+  translatingStepElicit: {
+    dk: "Finder resultater i Elicit",
+    en: "Finding results in Elicit",
+  },
+  translatingStepScite: {
+    dk: "Finder resultater i Scite",
+    en: "Finding results in Scite",
+  },
+  translatingStepCore: {
+    dk: "Finder resultater i CORE",
+    en: "Finding results in CORE",
+  },
+  semanticSearchProgressPreparing: {
+    dk: "Forbereder den semantiske søgning ud fra dine valgte søgeord og afgrænsninger.",
+    en: "Preparing the semantic search from your selected terms and filters.",
+  },
+  semanticSearchProgressSearchString: {
+    dk: "Oversætter din fritekst til en søgestreng, som kan bruges i søgningen.",
+    en: "Translating your free text into a search string that can be used in the search.",
+  },
+  semanticSearchProgressMesh: {
+    dk: "Kontrollerer centrale begreber mod MeSH for at gøre søgningen mere præcis.",
+    en: "Checking key concepts against MeSH to make the search more precise.",
+  },
+  semanticSearchProgressOptimize: {
+    dk: "Forfiner søgestrengen, så den passer bedre til emnet.",
+    en: "Refining the search string so it fits the topic better.",
+  },
+  semanticSearchProgressPubMedBestMatch: {
+    dk: "Bruger PubMed's relevanssøgning til at finde de mest relevante artikler.",
+    en: "Using PubMed relevance search to find the most relevant articles.",
+  },
+  semanticSearchProgressSemanticScholar: {
+    dk: "Søger efter relaterede artikler i Semantic Scholar.",
+    en: "Searching for related articles in Semantic Scholar.",
+  },
+  semanticSearchProgressOpenAlex: {
+    dk: "Søger efter relaterede artikler i OpenAlex.",
+    en: "Searching for related articles in OpenAlex.",
+  },
+  semanticSearchProgressElicit: {
+    dk: "Søger efter relaterede artikler i Elicit.",
+    en: "Searching for related articles in Elicit.",
+  },
+  semanticSearchProgressScite: {
+    dk: "Søger efter relaterede artikler i Scite.",
+    en: "Searching for related articles in Scite.",
+  },
+  semanticSearchProgressCore: {
+    dk: "Søger efter relaterede artikler i CORE.",
+    en: "Searching for related articles in CORE.",
+  },
+  semanticSearchProgressFinalize: {
+    dk: "Samler resultaterne og gør dem klar til visning.",
+    en: "Collecting the results and preparing them for display.",
+  },
+  semanticSearchProgressFinalizeCollect: {
+    dk: "Matcher og filtrerer resultaterne.",
+    en: "Matching and filtering the results.",
+  },
+  semanticSearchProgressFinalizeValidateDoi: {
+    dk: "Kontrollerer DOI-resultater mod OpenAlex.",
+    en: "Validating DOI results against OpenAlex.",
+  },
+  semanticSearchProgressFinalizeValidatePmid: {
+    dk: "Kontrollerer PMID-resultater mod PubMed.",
+    en: "Validating PMID results against PubMed.",
+  },
+  semanticSearchProgressFinalizeValidateDoiFetch: {
+    dk: "Henter DOI-oplysninger fra OpenAlex.",
+    en: "Fetching DOI details from OpenAlex.",
+  },
+  semanticSearchProgressFinalizeValidateDoiSource: {
+    dk: "Henter tidsskriftoplysninger fra OpenAlex.",
+    en: "Fetching journal details from OpenAlex.",
+  },
+  semanticSearchProgressFinalizeValidateDoiRules: {
+    dk: "Tjekker hvilke DOI-resultater der opfylder filtrene.",
+    en: "Checking which DOI results satisfy the filters.",
+  },
+  semanticSearchProgressFinalizeHydrate: {
+    dk: "Henter artikeloplysninger fra kilderne.",
+    en: "Fetching article details from the sources.",
+  },
+  semanticSearchProgressFinalizeHydratePubMed: {
+    dk: "Henter artikeloplysninger fra PubMed.",
+    en: "Fetching article details from PubMed.",
+  },
+  semanticSearchProgressFinalizeHydrateOpenAlex: {
+    dk: "Henter DOI-oplysninger fra OpenAlex.",
+    en: "Fetching DOI details from OpenAlex.",
+  },
+  semanticSearchProgressFinalizeHydrateMixed: {
+    dk: "Henter artikeloplysninger fra PubMed og DOI-oplysninger fra OpenAlex.",
+    en: "Fetching article details from PubMed and DOI details from OpenAlex.",
+  },
+  semanticSearchProgressFinalizeSort: {
+    dk: "Sorterer resultaterne efter dato.",
+    en: "Sorting the results by date.",
+  },
+  semanticSearchProgressFinalizeSelected: {
+    dk: "Tilføjer allerede valgte artikler.",
+    en: "Adding already selected articles.",
+  },
+  semanticSearchProgressFinalizeRender: {
+    dk: "Gør resultaterne klar til visning.",
+    en: "Preparing the results for display.",
   },
   noResult: {
     dk: "Ingen resultater matcher søgningen",

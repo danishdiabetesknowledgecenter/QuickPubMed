@@ -325,11 +325,15 @@
 <script>
   import Multiselect from "vue-multiselect";
   import DropdownTag from "@/components/DropdownTag.vue";
+  import { config as runtimeConfig } from "@/config/config.js";
   import { appSettingsMixin } from "@/mixins/appSettings.js";
   import { utilitiesMixin } from "@/mixins/utilities";
   import { topicLoaderMixin } from "@/mixins/topicLoaderMixin.js";
-  import { messages } from "@/assets/content/translations.js";
-  import { searchTranslationPrompt } from "@/assets/prompts/translation.js";
+  import {
+    searchTranslationPrompt,
+    semanticScholarSearchPrompt,
+    semanticIntentPrompt,
+  } from "@/assets/prompts/translation.js";
   import { getPromptForLocale } from "@/utils/promptsHelpers.js";
   import { customInputTagTooltip } from "@/utils/contentHelpers.js";
   import {
@@ -339,7 +343,19 @@
     isMobileViewport,
   } from "@/utils/componentHelpers";
   import { validateAndEnhanceMeshTerms } from "@/utils/meshValidator.js";
+  import { buildOpenAlexPublicationYearFilter } from "@/utils/semanticWordedIntent.js";
+  import { rerankSemanticCandidates } from "@/utils/semanticReranking.js";
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
+  const TRANSLATION_REQUEST_TIMEOUT_MS = 60000;
+  const BACKEND_REQUEST_TIMEOUT_MS = 45000;
+  const SEMANTIC_INTENT_CACHE_TTL_MS = 5 * 60 * 1000;
+  const SEMANTIC_SOURCE_RESPONSE_CACHE_TTL_MS = 5 * 60 * 1000;
+  const DEFAULT_SEMANTIC_SCHOLAR_LIMIT = 400;
+  const DEFAULT_OPENALEX_LIMIT = 100;
+  const DEFAULT_ELICIT_LIMIT = 100;
+  const DEFAULT_SCITE_LIMIT = 100;
+  const DEFAULT_CORE_LIMIT = 100;
+  const DEFAULT_PUBMED_BEST_MATCH_LIMIT = 200;
 
   export default {
     name: "DropdownWrapper",
@@ -359,6 +375,17 @@
       taggable: Boolean,
       closeOnInput: Boolean,
       searchWithAI: Boolean,
+      searchWithPubMedQuery: Boolean,
+      searchWithPubMedBestMatch: Boolean,
+      searchWithSemanticScholar: Boolean,
+      searchWithOpenAlex: Boolean,
+      searchWithElicit: Boolean,
+      searchWithScite: Boolean,
+      searchWithCore: Boolean,
+      semanticWordedIntentContext: {
+        type: Object,
+        default: null,
+      },
       showScopeLabel: Boolean,
       hideTagsWrap: {
         type: Boolean,
@@ -453,10 +480,13 @@
         _deactivateGuardTimer: null,
         _bodyScrollY: 0,
         _bodyScrollLocked: false,
+        _lastElicitRateLimitLogSignature: "",
         _bodyOriginalStyles: null,
         _htmlOriginalOverscrollBehavior: "",
         mobileCanScroll: false,
         mobileAtBottom: false,
+        semanticIntentCache: {},
+        semanticSourceResponseCache: {},
       };
     },
     created() {
@@ -2469,6 +2499,347 @@
         this.focusedButtonIndex = index;
         this.focusByHover = true;
       },
+      buildPendingSemanticTag(newTag) {
+        return {
+          id: `__custom__:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`,
+          name: newTag,
+          searchStrings: { normal: [newTag] },
+          preString: this.getString("manualInputTerm") + ":\u00A0",
+          isCustom: true,
+          isTranslated: false,
+          preTranslation: newTag,
+          semanticFlowType: "deferred",
+          isPendingSemanticSearch: true,
+          semanticScholarQuery: "",
+          semanticIntentPayload: null,
+          llmSemanticIntent: null,
+          semanticIntentMeta: null,
+          semanticSourceQueryPlan: null,
+          pubmedGeneratedQuery: "",
+          semanticScholarPmids: [],
+          semanticScholarDois: [],
+          semanticScholarCandidates: [],
+          semanticSourceResults: [],
+          semanticScholarError: "",
+          useSemanticScholar: false,
+          includeTranslatedTextInQuery: false,
+          tooltip: customInputTagTooltip,
+        };
+      },
+      buildTranslatedPendingSemanticTag(translatedTag, originalInput) {
+        return {
+          id: `__custom__:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`,
+          name: translatedTag,
+          searchStrings: { normal: [translatedTag] },
+          preString: this.getString("manualInputTermTranslated") + ":\u00A0",
+          isCustom: true,
+          isTranslated: true,
+          preTranslation: originalInput,
+          semanticFlowType: "deferred",
+          isPendingSemanticSearch: true,
+          semanticScholarQuery: "",
+          semanticIntentPayload: null,
+          llmSemanticIntent: null,
+          semanticIntentMeta: null,
+          semanticSourceQueryPlan: null,
+          pubmedGeneratedQuery: "",
+          semanticScholarPmids: [],
+          semanticScholarDois: [],
+          semanticScholarCandidates: [],
+          semanticSourceResults: [],
+          semanticScholarError: "",
+          useSemanticScholar: false,
+          includeTranslatedTextInQuery: true,
+          tooltip: {
+            dk:
+              customInputTagTooltip.dk +
+              " &ndash; denne søgning er oversat fra: <strong>" +
+              originalInput +
+              "</strong>",
+            en:
+              customInputTagTooltip.en +
+              " &ndash; this search is translated from: <strong>" +
+              originalInput +
+              "</strong>",
+          },
+        };
+      },
+      async buildResolvedSemanticTagState(newTag) {
+        const usePubmedBestMatchSource = this.searchWithPubMedBestMatch;
+        const useSemanticScholarSource = this.searchWithSemanticScholar;
+        const useOpenAlexSource = this.isOpenAlexSemanticSearchEnabled();
+        const useElicitSource = this.searchWithElicit;
+        const useSciteSource = this.searchWithScite;
+        const useCoreSource = this.searchWithCore;
+        const hasSemanticSource =
+          useSemanticScholarSource ||
+          useOpenAlexSource ||
+          useElicitSource ||
+          useSciteSource ||
+          useCoreSource;
+        let pubmedTranslated = "";
+        let semanticQuery = "";
+        let semanticIntentPayload = null;
+        let llmSemanticIntent = null;
+        let semanticIntentMeta = null;
+        let semanticSourceQueryPlan = null;
+        const sourceResults = [];
+        const sourceErrors = [];
+
+        console.info("[MultiSourceFlow] Starting deferred semantic source flow.", {
+          input: newTag,
+          sources: {
+            pubmedBestMatch: usePubmedBestMatchSource,
+            semanticScholar: useSemanticScholarSource,
+            openAlex: useOpenAlexSource,
+            elicit: useElicitSource,
+            scite: useSciteSource,
+            core: useCoreSource,
+          },
+        });
+
+        const [pubmedBestMatchOutcome, semanticQueryOutcome] = await Promise.allSettled([
+          usePubmedBestMatchSource
+            ? this.findRelevantPubMedResults(newTag)
+            : Promise.resolve(null),
+          hasSemanticSource
+            ? this.measureAsync(
+                "Semantic intent/query translation",
+                () => this.deriveSemanticQueryForSources(newTag),
+                { input: newTag, flow: "intent-first" }
+              )
+            : Promise.resolve(null),
+        ]);
+
+        if (usePubmedBestMatchSource) {
+          if (pubmedBestMatchOutcome.status === "fulfilled" && pubmedBestMatchOutcome.value) {
+            const { generatedSearchString, pubmedResult } = pubmedBestMatchOutcome.value;
+            pubmedTranslated = generatedSearchString;
+            sourceResults.push(pubmedResult);
+          } else if (!hasSemanticSource) {
+            throw pubmedBestMatchOutcome.reason;
+          } else {
+            sourceErrors.push(String(pubmedBestMatchOutcome.reason || ""));
+          }
+        }
+
+        if (hasSemanticSource) {
+          if (semanticQueryOutcome.status === "fulfilled") {
+            const semanticOutcomeValue = semanticQueryOutcome.value || {};
+            semanticQuery = String(semanticOutcomeValue.semanticQuery || "").trim();
+            semanticIntentPayload = semanticOutcomeValue.semanticIntentPayload || null;
+            llmSemanticIntent = semanticOutcomeValue.llmSemanticIntent || null;
+            semanticIntentMeta = semanticOutcomeValue.semanticIntentMeta || null;
+            semanticSourceQueryPlan = semanticOutcomeValue.semanticSourceQueryPlan || null;
+          } else if (!usePubmedBestMatchSource) {
+            throw semanticQueryOutcome.reason;
+          } else {
+            sourceErrors.push(String(semanticQueryOutcome.reason || ""));
+          }
+
+          if (semanticQuery) {
+            const semanticSourceRequests = [];
+            if (useSemanticScholarSource) {
+              semanticSourceRequests.push({
+                source: "semanticScholar",
+                run: async () => {
+                  this.$emit("translating", true, this.index, "translatingStepSemanticScholar");
+                  try {
+                    return await this.fetchSemanticScholarResults(semanticQuery, {
+                      semanticIntentPayload,
+                      llmSemanticIntent,
+                      semanticSourceQueryPlan,
+                    });
+                  } finally {
+                    this.$emit("translating", false, this.index, "translatingStepSemanticScholar");
+                  }
+                },
+              });
+            }
+            if (useOpenAlexSource) {
+              semanticSourceRequests.push({
+                source: "openAlex",
+                run: async () => {
+                  this.$emit("translating", true, this.index, "translatingStepOpenAlex");
+                  try {
+                    return await this.fetchOpenAlexResults(semanticQuery, {
+                      semanticIntentPayload,
+                      llmSemanticIntent,
+                      semanticSourceQueryPlan,
+                    });
+                  } finally {
+                    this.$emit("translating", false, this.index, "translatingStepOpenAlex");
+                  }
+                },
+              });
+            }
+            if (useElicitSource) {
+              semanticSourceRequests.push({
+                source: "elicit",
+                run: async () => {
+                  this.$emit("translating", true, this.index, "translatingStepElicit");
+                  try {
+                    return await this.fetchElicitResults(semanticQuery, {
+                      semanticIntentPayload,
+                      llmSemanticIntent,
+                      semanticSourceQueryPlan,
+                    });
+                  } finally {
+                    this.$emit("translating", false, this.index, "translatingStepElicit");
+                  }
+                },
+              });
+            }
+            if (useSciteSource) {
+              semanticSourceRequests.push({
+                source: "scite",
+                run: async () => {
+                  this.$emit("translating", true, this.index, "translatingStepScite");
+                  try {
+                    return await this.fetchSciteResults(semanticQuery, {
+                      semanticIntentPayload,
+                      llmSemanticIntent,
+                      semanticSourceQueryPlan,
+                    });
+                  } finally {
+                    this.$emit("translating", false, this.index, "translatingStepScite");
+                  }
+                },
+              });
+            }
+            if (useCoreSource) {
+              semanticSourceRequests.push({
+                source: "core",
+                run: async () => {
+                  this.$emit("translating", true, this.index, "translatingStepCore");
+                  try {
+                    return await this.fetchCoreResults(semanticQuery, {
+                      semanticIntentPayload,
+                      llmSemanticIntent,
+                      semanticSourceQueryPlan,
+                    });
+                  } finally {
+                    this.$emit("translating", false, this.index, "translatingStepCore");
+                  }
+                },
+              });
+            }
+
+            const semanticApiOutcomes = await Promise.allSettled(
+              semanticSourceRequests.map((request) => request.run())
+            );
+
+            semanticApiOutcomes.forEach((outcome, index) => {
+              const request = semanticSourceRequests[index];
+              if (!request) return;
+              if (outcome.status === "fulfilled") {
+                sourceResults.push(outcome.value);
+              } else {
+                sourceErrors.push(String(outcome.reason || ""));
+                sourceResults.push(
+                  this.buildSourceErrorResult(request.source, semanticQuery, outcome.reason)
+                );
+              }
+            });
+          }
+        }
+
+        const reranked = rerankSemanticCandidates(sourceResults, runtimeConfig?.rerankConfig || {});
+        const rerankDiagnostics =
+          reranked?.diagnostics && typeof reranked.diagnostics === "object"
+            ? reranked.diagnostics
+            : {};
+        console.info("[RerankFlow] Source result summary before merge.", {
+          sources: rerankDiagnostics.sourceSummary || [],
+          sourceStats: rerankDiagnostics.sourceStats || {},
+          rerankMode: reranked?.rerankMode || "multi",
+          rerankConfig: rerankDiagnostics.rerankConfig || {},
+        });
+        console.info("[RerankFlow] Merge summary.", {
+          rawCandidateCount: sourceResults.reduce(
+            (sum, sourceResult) =>
+              sum + (Array.isArray(sourceResult?.candidates) ? sourceResult.candidates.length : 0),
+            0
+          ),
+          mergedCandidateCount: Array.isArray(reranked?.candidates) ? reranked.candidates.length : 0,
+          overlapSummary: rerankDiagnostics.overlapSummary || {},
+          rerankMode: reranked?.rerankMode || "multi",
+        });
+        console.info(
+          "[RerankFlow] Top ranked candidates.",
+          (Array.isArray(reranked?.candidates) ? reranked.candidates : []).slice(0, 10).map((candidate) => ({
+            pmid: candidate.pmid,
+            doi: candidate.doi,
+            title: candidate.title,
+            sources: candidate.sources,
+            combinedScore: candidate.combinedScore,
+            scoreBreakdown: candidate.scoreBreakdown,
+            scoreTieBreaker: candidate.scoreTieBreaker,
+            sourceBreakdown: candidate.sourceBreakdown,
+            contributions: candidate.contributions,
+          }))
+        );
+        const semanticScholarPmids = reranked.pmids;
+        const semanticScholarDois = reranked.dois;
+        const semanticScholarCandidates = Array.isArray(reranked.candidates)
+          ? reranked.candidates
+          : [];
+        const semanticScholarError = sourceErrors.filter(Boolean).join("\n");
+        const useSemanticScholar =
+          semanticScholarPmids.length > 0 ||
+          semanticScholarDois.length > 0 ||
+          semanticScholarCandidates.length > 0;
+
+        return {
+          semanticFlowType: "deferred",
+          isPendingSemanticSearch: false,
+          useSemanticScholar,
+          includeTranslatedTextInQuery: false,
+          semanticScholarQuery: semanticQuery || pubmedTranslated || newTag,
+          semanticIntentPayload,
+          llmSemanticIntent,
+          semanticIntentMeta,
+          semanticSourceQueryPlan,
+          pubmedGeneratedQuery: pubmedTranslated,
+          semanticScholarPmids,
+          semanticScholarDois,
+          semanticScholarCandidates,
+          semanticSourceResults: sourceResults,
+          semanticScholarError,
+        };
+      },
+      async preparePendingSemanticTags() {
+        const pendingTags = (Array.isArray(this.selected) ? this.selected : []).filter(
+          (item) => item?.isPendingSemanticSearch === true
+        );
+        if (pendingTags.length === 0) {
+          return;
+        }
+
+        this.isLoading = true;
+        try {
+          const resolvedTags = await Promise.all(
+            pendingTags.map(async (tag) => {
+              const inputText = String(tag?.preTranslation || tag?.name || "").trim();
+              if (!inputText) {
+                return { tag, resolvedState: { isPendingSemanticSearch: false } };
+              }
+              const resolvedState = await this.buildResolvedSemanticTagState(inputText);
+              return { tag, resolvedState };
+            })
+          );
+          resolvedTags.forEach(({ tag, resolvedState }) => {
+            Object.assign(tag, resolvedState);
+            if (tag?.isTranslated === true) {
+              tag.includeTranslatedTextInQuery = true;
+            }
+          });
+          this.input(this.selected, -1);
+        } finally {
+          this.$emit("translating", false, this.index);
+          this.isLoading = false;
+        }
+      },
       async handleAddTag(newTag) {
         const input = this.$refs.multiselect?.$refs.search || this.$el?.querySelector(".multiselect__input");
         const appRoot = this.$el?.closest(".qpm_vapp");
@@ -2481,11 +2852,23 @@
           !this.isSilentFocus &&
           !input.classList.contains("qpm_silent-focus");
         let tag;
-        if (this.searchWithAI) {
+        const useAiTranslationOptions = this.searchWithAI;
+        const usePubmedQuerySource = this.searchWithPubMedQuery;
+        const usePubmedBestMatchSource = this.searchWithPubMedBestMatch;
+        const useSemanticScholarSource = this.searchWithSemanticScholar;
+        const useOpenAlexSource = this.isOpenAlexSemanticSearchEnabled();
+        const useElicitSource = this.searchWithElicit;
+        const useAnyIdSource =
+          usePubmedBestMatchSource ||
+          useSemanticScholarSource ||
+          useOpenAlexSource ||
+          useElicitSource;
+        const overallFlowStartedAt = this.getTimingNow();
+
+        if (useAiTranslationOptions && usePubmedQuerySource) {
           this.isLoading = true;
           this.$emit("translating", true, this.index, "translatingStepSearchString");
 
-          // close the multiselect dropdown
           const multiselect = this.$refs.multiselect;
           if (multiselect && typeof multiselect.deactivate === "function") {
             multiselect.deactivate();
@@ -2496,46 +2879,61 @@
               this.addKeyboardFocus();
             });
           }
-          //setTimeout is to resolve the tag placeholder before starting to translate
+
           let translated;
           try {
             await new Promise((resolve) => setTimeout(resolve, 10));
-            translated = await this.translateSearch(newTag);
-            // Validate and enhance MeSH terms via NLM E-utilities if enabled
-            if (this.instanceUseMeshValidation) {
-              this.$emit("translating", true, this.index, "translatingStepMesh");
-              translated = await validateAndEnhanceMeshTerms(
-                translated,
-                newTag,
-                this.appSettings.nlm.proxyUrl,
-                this.appSettings.openAi.baseUrl,
-                this.appSettings.client,
-                this.language,
-                (stepKey) => this.$emit("translating", true, this.index, stepKey),
-              );
-            }
+            translated = await this.buildPubMedSearchStringFromFreeText(newTag);
           } catch (error) {
-            console.error("[MeSHFlow] Validation failed. Query not added to form.", error);
+            console.error("[PubMedTranslateFlow] Search string generation failed.", error);
             this.$emit("translating", false, this.index);
             this.isLoading = false;
             return;
           }
-          tag = {
-            id: `__custom__:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`,
-            name: translated,
-            searchStrings: { normal: [translated] },
-            preString: this.getString("manualInputTermTranslated") + ":\u00A0",
-            isCustom: true,
-            //IsTranslated is true when it is an unedited translation
-            isTranslated: true,
-            preTranslation: newTag,
-            tooltip: {
-              dk: customInputTagTooltip.dk + " &ndash; denne søgning er oversat fra: <strong>" + newTag + "</strong>",
-              en: customInputTagTooltip.en + " &ndash; this search is translated from: <strong>" + newTag + "</strong>",
-            },
-          };
+
+          tag = useAnyIdSource
+            ? this.buildTranslatedPendingSemanticTag(translated, newTag)
+            : {
+                id: `__custom__:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`,
+                name: translated,
+                searchStrings: { normal: [translated] },
+                preString: this.getString("manualInputTermTranslated") + ":\u00A0",
+                isCustom: true,
+                isTranslated: true,
+                preTranslation: newTag,
+                tooltip: {
+                  dk:
+                    customInputTagTooltip.dk +
+                    " &ndash; denne søgning er oversat fra: <strong>" +
+                    newTag +
+                    "</strong>",
+                  en:
+                    customInputTagTooltip.en +
+                    " &ndash; this search is translated from: <strong>" +
+                    newTag +
+                    "</strong>",
+                },
+              };
+          console.info("[Timing] PubMed query source total flow", {
+            input: newTag,
+            elapsedMs: this.roundTimingMs(this.getTimingNow() - overallFlowStartedAt),
+          });
           this.$emit("translating", false, this.index);
           this.isLoading = false;
+        } else if (useAnyIdSource) {
+          this.$emit("translating", false, this.index);
+          const multiselect = this.$refs.multiselect;
+          if (multiselect && typeof multiselect.deactivate === "function") {
+            multiselect.deactivate();
+          }
+          if (hadVisibleKeyboardFocus && input) {
+            this.$nextTick(() => {
+              input.focus({ preventScroll: true });
+              this.addKeyboardFocus();
+            });
+          }
+          await new Promise((resolve) => setTimeout(resolve, 20));
+          tag = this.buildPendingSemanticTag(newTag);
         } else {
           this.$emit("translating", false, this.index);
 
@@ -2605,9 +3003,49 @@
        */
       handleUpdateCustomTag(oldTag, newTag) {
         const tagIndex = this.selected.findIndex((entry) => oldTag === entry);
-        this.selected.splice(tagIndex, 1, newTag);
+        const isDeferredSemanticTag = oldTag?.semanticFlowType === "deferred";
+        const normalizedPreTranslation =
+          typeof newTag?.name === "string" && newTag.name.trim()
+            ? newTag.name
+            : oldTag?.preTranslation || "";
+        const shouldRestartDeferredSemanticFlow =
+          this.searchWithPubMedBestMatch ||
+          this.searchWithSemanticScholar ||
+          this.isOpenAlexSemanticSearchEnabled() ||
+          this.searchWithElicit;
+
+        const updatedTag = isDeferredSemanticTag
+          ? {
+              ...newTag,
+              preTranslation: normalizedPreTranslation,
+              semanticFlowType: "deferred",
+              isPendingSemanticSearch: shouldRestartDeferredSemanticFlow,
+              useSemanticScholar: false,
+              includeTranslatedTextInQuery: false,
+              semanticScholarQuery: "",
+              semanticIntentPayload: null,
+              llmSemanticIntent: null,
+              semanticIntentMeta: null,
+              semanticSourceQueryPlan: null,
+              pubmedGeneratedQuery: "",
+              semanticScholarPmids: [],
+              semanticScholarDois: [],
+              semanticScholarCandidates: [],
+              semanticSourceResults: [],
+              semanticScholarError: "",
+              includeTranslatedTextInQuery: oldTag?.isTranslated === true,
+            }
+          : {
+              ...newTag,
+              preTranslation: normalizedPreTranslation,
+            };
+
+        this.selected.splice(tagIndex, 1, updatedTag);
         this.clearShownItems();
         this.input(this.selected);
+      },
+      isOpenAlexSemanticSearchEnabled() {
+        return this.searchWithOpenAlex === true;
       },
       handleEditTag() {
         console.info("handleEditTag");
@@ -3220,8 +3658,976 @@
        * @returns {Promise<string>} The translated text.
        */
       async translateSearch(wordsToTranslate) {
+        return this.translateByPrompt(wordsToTranslate, searchTranslationPrompt);
+      },
+      async translateSemanticScholarSearch(wordsToTranslate) {
+        return this.translateByPrompt(wordsToTranslate, semanticScholarSearchPrompt);
+      },
+      getSemanticHintValues(input) {
+        if (!input) return [];
+        if (Array.isArray(input)) {
+          return input
+            .map((value) => String(value || "").trim())
+            .filter((value) => value !== "");
+        }
+        if (typeof input === "object") {
+          return Object.values(input).flatMap((value) => this.getSemanticHintValues(value));
+        }
+        const value = String(input || "").trim();
+        return value ? [value] : [];
+      },
+      getItemSemanticHints(item) {
+        if (!item || typeof item !== "object") return [];
+        const directHints = this.getSemanticHintValues(item?.semanticConfig?.softHints);
+        const providerHints = this.getSemanticHintValues(item.semanticQueryHints);
+        const combined = [...directHints, ...providerHints];
+        const seen = new Set();
+        return combined.filter((value) => {
+          const key = value.toLowerCase();
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+      },
+      buildSemanticIntentPayload(freeTextInput) {
+        const selectedItems = Array.isArray(this.selected) ? this.selected : [];
+        const labels = selectedItems
+          .map((item) => {
+            const localized = item?.translations?.[this.language];
+            const fallback = item?.preTranslation || item?.name || "";
+            return String(localized || fallback || "").trim();
+          })
+          .filter((value) => value !== "");
+        const semanticHints = selectedItems.flatMap((item) => this.getItemSemanticHints(item));
+        const globalSemanticContext =
+          this.semanticWordedIntentContext && typeof this.semanticWordedIntentContext === "object"
+            ? this.semanticWordedIntentContext
+            : {};
+        return {
+          freeTextInput: String(freeTextInput || "").trim(),
+          language: String(this.language || "dk").trim(),
+          domain: String(this.currentDomain || "").trim(),
+          selectedTopics: Array.isArray(globalSemanticContext.selectedTopicsEnglish)
+            ? globalSemanticContext.selectedTopicsEnglish
+            : this.isFilterDropdown
+            ? []
+            : labels,
+          selectedLimits: Array.isArray(globalSemanticContext.selectedLimitsEnglish)
+            ? globalSemanticContext.selectedLimitsEnglish
+            : this.isFilterDropdown
+            ? labels
+            : [],
+          selectedTopicIntent: Array.isArray(globalSemanticContext.selectedTopicIntentEnglish)
+            ? globalSemanticContext.selectedTopicIntentEnglish
+            : [],
+          selectedSemanticLimitIntent: Array.isArray(globalSemanticContext.selectedSemanticLimitIntentEnglish)
+            ? globalSemanticContext.selectedSemanticLimitIntentEnglish
+            : [],
+          semanticWordedIntent: String(globalSemanticContext.semanticWordedIntent || "").trim(),
+          semanticCoreText: String(globalSemanticContext.semanticCoreText || "").trim(),
+          semanticBlocks: Array.isArray(globalSemanticContext.semanticBlocks)
+            ? globalSemanticContext.semanticBlocks
+            : [],
+          sourceSpecificContext:
+            globalSemanticContext.sourceSpecificBlocks &&
+            typeof globalSemanticContext.sourceSpecificBlocks === "object"
+              ? globalSemanticContext.sourceSpecificBlocks
+              : {},
+          hardFilters:
+            globalSemanticContext.hardFilters && typeof globalSemanticContext.hardFilters === "object"
+              ? globalSemanticContext.hardFilters
+              : {},
+          sourceFilters:
+            globalSemanticContext.sourceFilters && typeof globalSemanticContext.sourceFilters === "object"
+              ? globalSemanticContext.sourceFilters
+              : {},
+          softHints: this.dedupeNormalizedValues(
+            [
+              ...(Array.isArray(globalSemanticContext.softHintsEnglish)
+                ? globalSemanticContext.softHintsEnglish
+                : []),
+              ...semanticHints,
+            ],
+            (value) => String(value || "").trim()
+          ),
+          excludedFromSemanticText: Array.isArray(globalSemanticContext.excludedFromSemanticText)
+            ? globalSemanticContext.excludedFromSemanticText
+            : [],
+          untranslatedSelections: Array.isArray(globalSemanticContext.untranslatedSelections)
+            ? globalSemanticContext.untranslatedSelections
+            : [],
+          semanticHints: {
+            fromSelectedItems: semanticHints,
+          },
+          sourceSelection: {
+            semanticScholar: this.searchWithSemanticScholar === true,
+            openAlex: this.searchWithOpenAlex === true,
+            elicit: this.searchWithElicit === true,
+            scite: this.searchWithScite === true,
+            core: this.searchWithCore === true,
+          },
+        };
+      },
+      hashIntentKey(value) {
+        const input = String(value || "");
+        let hash = 0;
+        for (let index = 0; index < input.length; index += 1) {
+          hash = (hash << 5) - hash + input.charCodeAt(index);
+          hash |= 0;
+        }
+        return `intent-${Math.abs(hash)}`;
+      },
+      getCachedSemanticIntent(cacheKey) {
+        const entry = this.semanticIntentCache?.[cacheKey];
+        if (!entry || typeof entry !== "object") return null;
+        if (Number(entry.expiresAt || 0) <= Date.now()) {
+          delete this.semanticIntentCache[cacheKey];
+          return null;
+        }
+        return entry.value || null;
+      },
+      setCachedSemanticIntent(cacheKey, value) {
+        if (!cacheKey) return;
+        this.semanticIntentCache[cacheKey] = {
+          value,
+          expiresAt: Date.now() + SEMANTIC_INTENT_CACHE_TTL_MS,
+        };
+      },
+      normalizeStringArray(value) {
+        return (Array.isArray(value) ? value : [])
+          .map((entry) => String(entry || "").trim())
+          .filter((entry) => entry !== "");
+      },
+      normalizeSemanticQueryText(value) {
+        return String(value || "")
+          .replace(/\s+/g, " ")
+          .trim();
+      },
+      normalizeSemanticSourceFormatValue(value) {
+        const normalized = String(value || "").trim().toLowerCase();
+        if (!normalized) return "";
+        const compact = normalized.replace(/[\s_-]+/g, "");
+        const aliasMap = {
+          journal: "journal",
+          journalarticle: "journal",
+          scientificarticle: "journal",
+          peerreviewedjournalarticle: "journal",
+          videnskabeligartikel: "journal",
+          conference: "conference",
+          conferenceabstract: "conference",
+          conferencepaper: "conference",
+          conferenceproceeding: "conference",
+          konferenceabstract: "conference",
+          konferencepublikation: "conference",
+          preprint: "preprint",
+          repositorypreprint: "preprint",
+        };
+        return aliasMap[compact] || normalized;
+      },
+      normalizeOpenAlexSourceTypeValue(value) {
+        const normalized = this.normalizeSemanticSourceFormatValue(value);
+        const aliasMap = {
+          bookseries: "book series",
+          journal: "journal",
+          conference: "conference",
+          ebookplatform: "ebook platform",
+          other: "other",
+          repository: "repository",
+        };
+        return (
+          aliasMap[normalized] ||
+          ([
+            "book series",
+            "journal",
+            "conference",
+            "ebook platform",
+            "other",
+            "repository",
+          ].includes(normalized)
+            ? normalized
+            : "")
+        );
+      },
+      normalizeOpenAlexWorkTypeValue(value) {
+        const normalized = String(value || "").trim().toLowerCase();
+        if (!normalized) return "";
+        const compact = normalized.replace(/[\s_-]+/g, "");
+        const aliasMap = {
+          article: "article",
+          book: "book",
+          bookchapter: "book-chapter",
+          dataset: "dataset",
+          dissertation: "dissertation",
+          review: "review",
+          preprint: "preprint",
+          editorial: "editorial",
+          erratum: "erratum",
+          letter: "letter",
+          libguides: "libguides",
+          other: "other",
+          paratext: "paratext",
+          peerreview: "peer-review",
+          referenceentry: "reference-entry",
+          report: "report",
+          retraction: "retraction",
+          standard: "standard",
+          supplementarymaterials: "supplementary-materials",
+        };
+        return aliasMap[compact] || "";
+      },
+      normalizeOpenAlexPublicationYearFilterValue(value) {
+        const normalized = String(value || "").trim();
+        return /^\d{4}(?:-\d{4})?$/.test(normalized) ? normalized : "";
+      },
+      normalizeElicitTypeTagValue(value) {
+        const normalized = String(value || "").trim().toLowerCase();
+        if (!normalized) return "";
+        const compact = normalized.replace(/[\s_-]+/g, "");
+        const aliasMap = {
+          review: "Review",
+          metaanalysis: "Meta-Analysis",
+          systematicreview: "Systematic Review",
+          rct: "RCT",
+          randomizedcontrolledtrial: "RCT",
+          randomisedcontrolledtrial: "RCT",
+          longitudinal: "Longitudinal",
+          longitudinalstudy: "Longitudinal",
+          cohortstudy: "Longitudinal",
+          cohortstudies: "Longitudinal",
+        };
+        return aliasMap[compact] || "";
+      },
+      dedupeNormalizedValues(values, normalizer = (entry) => String(entry || "").trim()) {
+        const seen = new Set();
+        return (Array.isArray(values) ? values : []).filter((entry) => {
+          const normalized = normalizer(entry);
+          if (!normalized) return false;
+          const key = String(normalized).toLowerCase();
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+      },
+      getCachedSemanticSourceResponse(cacheKey) {
+        const entry = this.semanticSourceResponseCache?.[cacheKey];
+        if (!entry || typeof entry !== "object") return null;
+        if (Number(entry.expiresAt || 0) <= Date.now()) {
+          delete this.semanticSourceResponseCache[cacheKey];
+          return null;
+        }
+        return cloneDeep(entry.value || null);
+      },
+      setCachedSemanticSourceResponse(cacheKey, value) {
+        if (!cacheKey) return;
+        this.semanticSourceResponseCache[cacheKey] = {
+          value: cloneDeep(value),
+          expiresAt: Date.now() + SEMANTIC_SOURCE_RESPONSE_CACHE_TTL_MS,
+        };
+      },
+      buildSemanticSourceCacheKey(source, params = {}) {
+        return this.hashIntentKey(`source:${source}:${JSON.stringify(params)}`);
+      },
+      extractSourceSpecificHintList(value) {
+        if (Array.isArray(value)) {
+          return this.normalizeStringArray(value);
+        }
+        if (!value || typeof value !== "object") {
+          return [];
+        }
+        return this.normalizeStringArray(value.hints || value.values || []);
+      },
+      normalizeSourceQueryPlanEntry(rawEntry, sourceKey, fallbackHints = []) {
+        const entry = rawEntry && typeof rawEntry === "object" ? rawEntry : {};
+        const fallbackHintList = this.normalizeStringArray(fallbackHints);
+        const hints = this.dedupeNormalizedValues(
+          [
+            ...fallbackHintList,
+            ...this.extractSourceSpecificHintList(entry.hints || entry.values || []),
+          ],
+          (value) => String(value || "").trim()
+        );
+        if (sourceKey === "openAlex") {
+          const rawFilters = entry.filters && typeof entry.filters === "object" ? entry.filters : {};
+          return {
+            query: this.normalizeSemanticQueryText(entry.query || entry.searchQuery || ""),
+            hints,
+            filters: {
+              language: this.dedupeNormalizedValues(
+                this.normalizeStringArray(rawFilters.language).map((value) =>
+                  this.normalizeOpenAlexLanguageFilterValue(value)
+                ),
+                (value) => value
+              ),
+              sourceType: this.dedupeNormalizedValues(
+                this.normalizeStringArray(rawFilters.sourceType).map((value) =>
+                  this.normalizeOpenAlexSourceTypeValue(value)
+                ),
+                (value) => value
+              ),
+              workType: this.dedupeNormalizedValues(
+                this.normalizeStringArray(rawFilters.workType).map((value) =>
+                  this.normalizeOpenAlexWorkTypeValue(value)
+                ),
+                (value) => value
+              ),
+            },
+          };
+        }
+        if (sourceKey === "elicit") {
+          const rawFilters = entry.filters && typeof entry.filters === "object" ? entry.filters : {};
+          return {
+            query: this.normalizeSemanticQueryText(entry.query || entry.searchQuery || ""),
+            hints,
+            filters: {
+              typeTags: this.dedupeNormalizedValues(
+                this.normalizeStringArray(rawFilters.typeTags).map((value) =>
+                  this.normalizeElicitTypeTagValue(value)
+                ),
+                (value) => value
+              ),
+              includeKeywords: this.dedupeNormalizedValues(
+                this.normalizeStringArray(rawFilters.includeKeywords),
+                (value) => String(value || "").trim()
+              ),
+              excludeKeywords: this.dedupeNormalizedValues(
+                this.normalizeStringArray(rawFilters.excludeKeywords),
+                (value) => String(value || "").trim()
+              ),
+            },
+          };
+        }
+        return {
+          query: this.normalizeSemanticQueryText(entry.query || entry.searchQuery || ""),
+          hints,
+          filters: {},
+        };
+      },
+      normalizeSemanticIntentOutput(raw) {
+        const source = raw && typeof raw === "object" ? raw : {};
+        const explicitSemanticIntent = String(source.semanticIntent || "").trim();
+        const hardFilterHintsInput =
+          source.hardFilterHints && typeof source.hardFilterHints === "object"
+            ? source.hardFilterHints
+            : {};
+        const hardFilterHints = {
+          publicationType: this.normalizeStringArray(hardFilterHintsInput.publicationType),
+          studyDesign: this.normalizeStringArray(hardFilterHintsInput.studyDesign),
+          ageGroup: this.normalizeStringArray(hardFilterHintsInput.ageGroup),
+          language: this.normalizeStringArray(hardFilterHintsInput.language),
+          sourceFormat: this.dedupeNormalizedValues(
+            this.normalizeStringArray(hardFilterHintsInput.sourceFormat).map((value) =>
+              this.normalizeSemanticSourceFormatValue(value)
+            ),
+            (value) => value
+          ),
+        };
+        const openAlexLanguageCodes = new Set(
+          hardFilterHints.language
+            .map((entry) => this.normalizeOpenAlexLanguageFilterValue(entry))
+            .filter(Boolean)
+        );
+        const softFilterHints = this.normalizeStringArray(source.softFilterHints);
+        const sourceSpecificInput =
+          source.sourceSpecificHints && typeof source.sourceSpecificHints === "object"
+            ? source.sourceSpecificHints
+            : {};
+        const sourceQueryPlanInput =
+          source.sourceQueryPlan && typeof source.sourceQueryPlan === "object"
+            ? source.sourceQueryPlan
+            : {};
+        const sourceSpecificHints = {
+          semanticScholar: this.extractSourceSpecificHintList(sourceSpecificInput.semanticScholar),
+          openAlex: this.extractSourceSpecificHintList(sourceSpecificInput.openAlex).filter((entry) => {
+            const normalizedLanguageCode = this.normalizeOpenAlexLanguageFilterValue(entry);
+            if (!normalizedLanguageCode) return true;
+            if (openAlexLanguageCodes.size === 0) return false;
+            return !openAlexLanguageCodes.has(normalizedLanguageCode);
+          }),
+          elicit: this.extractSourceSpecificHintList(sourceSpecificInput.elicit),
+          scite: this.extractSourceSpecificHintList(sourceSpecificInput.scite),
+          core: this.extractSourceSpecificHintList(sourceSpecificInput.core),
+        };
+        const sourceQueryPlan = {
+          semanticScholar: this.normalizeSourceQueryPlanEntry(
+            sourceQueryPlanInput.semanticScholar || sourceSpecificInput.semanticScholar,
+            "semanticScholar",
+            sourceSpecificHints.semanticScholar
+          ),
+          openAlex: this.normalizeSourceQueryPlanEntry(
+            sourceQueryPlanInput.openAlex || sourceSpecificInput.openAlex,
+            "openAlex",
+            sourceSpecificHints.openAlex
+          ),
+          elicit: this.normalizeSourceQueryPlanEntry(
+            sourceQueryPlanInput.elicit || sourceSpecificInput.elicit,
+            "elicit",
+            sourceSpecificHints.elicit
+          ),
+          scite: this.normalizeSourceQueryPlanEntry(
+            sourceQueryPlanInput.scite || sourceSpecificInput.scite,
+            "scite",
+            sourceSpecificHints.scite
+          ),
+          core: this.normalizeSourceQueryPlanEntry(
+            sourceQueryPlanInput.core || sourceSpecificInput.core,
+            "core",
+            sourceSpecificHints.core
+          ),
+        };
+        const recoveredSemanticIntent =
+          this.normalizeSemanticQueryText(sourceQueryPlan?.semanticScholar?.query) ||
+          this.normalizeSemanticQueryText(sourceQueryPlan?.openAlex?.query) ||
+          this.normalizeSemanticQueryText(sourceQueryPlan?.elicit?.query) ||
+          this.normalizeSemanticQueryText(sourceQueryPlan?.scite?.query) ||
+          this.normalizeSemanticQueryText(sourceQueryPlan?.core?.query);
+        const semanticIntent = explicitSemanticIntent || recoveredSemanticIntent;
+        const semanticIntentSource = explicitSemanticIntent ? "semanticIntent" : recoveredSemanticIntent ? "sourceQueryPlan" : "";
+        return {
+          semanticIntent,
+          semanticIntentSource,
+          hardFilterHints,
+          softFilterHints,
+          sourceSpecificHints,
+          sourceQueryPlan,
+        };
+      },
+      parseSemanticIntentResponse(rawResponse) {
+        const rawText = String(rawResponse || "").trim();
+        if (!rawText) return null;
+        const withoutCodeFence = rawText
+          .replace(/^```(?:json)?\s*/i, "")
+          .replace(/\s*```$/i, "")
+          .trim();
+        const startIndex = withoutCodeFence.indexOf("{");
+        const endIndex = withoutCodeFence.lastIndexOf("}");
+        if (startIndex < 0 || endIndex <= startIndex) {
+          return null;
+        }
+        const candidateJson = withoutCodeFence.slice(startIndex, endIndex + 1);
+        let parsed;
+        try {
+          parsed = JSON.parse(candidateJson);
+        } catch {
+          return null;
+        }
+        const normalized = this.normalizeSemanticIntentOutput(parsed);
+        if (!normalized.semanticIntent) return null;
+        return normalized;
+      },
+      collectSemanticHardFilters(semanticIntentPayload = {}, llmSemanticIntent = {}) {
+        const payloadHardFilters =
+          semanticIntentPayload?.hardFilters && typeof semanticIntentPayload.hardFilters === "object"
+            ? semanticIntentPayload.hardFilters
+            : {};
+        const llmHardFilters =
+          llmSemanticIntent?.hardFilterHints && typeof llmSemanticIntent.hardFilterHints === "object"
+            ? llmSemanticIntent.hardFilterHints
+            : {};
+        return {
+          filterProfiles: this.dedupeNormalizedValues(
+            [
+              ...(Array.isArray(payloadHardFilters.filterProfiles) ? payloadHardFilters.filterProfiles : []),
+            ],
+            (value) => String(value || "").trim()
+          ),
+          publicationTypes: this.dedupeNormalizedValues(
+            [
+              ...(Array.isArray(payloadHardFilters.publicationTypes)
+                ? payloadHardFilters.publicationTypes
+                : []),
+              ...(Array.isArray(llmHardFilters.publicationType) ? llmHardFilters.publicationType : []),
+            ],
+            (value) => String(value || "").trim()
+          ),
+          studyDesigns: this.dedupeNormalizedValues(
+            [
+              ...(Array.isArray(payloadHardFilters.studyDesigns) ? payloadHardFilters.studyDesigns : []),
+              ...(Array.isArray(llmHardFilters.studyDesign) ? llmHardFilters.studyDesign : []),
+            ],
+            (value) => String(value || "").trim()
+          ),
+          ageGroups: this.dedupeNormalizedValues(
+            [
+              ...(Array.isArray(payloadHardFilters.ageGroups) ? payloadHardFilters.ageGroups : []),
+              ...(Array.isArray(llmHardFilters.ageGroup) ? llmHardFilters.ageGroup : []),
+            ],
+            (value) => String(value || "").trim()
+          ),
+          languages: this.dedupeNormalizedValues(
+            [
+              ...(Array.isArray(payloadHardFilters.languages) ? payloadHardFilters.languages : []),
+              ...(Array.isArray(llmHardFilters.language) ? llmHardFilters.language : []),
+            ].map((value) => this.normalizeOpenAlexLanguageFilterValue(value) || String(value || "").trim()),
+            (value) => String(value || "").trim()
+          ),
+          sourceFormats: this.dedupeNormalizedValues(
+            [
+              ...(Array.isArray(payloadHardFilters.sourceFormats) ? payloadHardFilters.sourceFormats : []),
+              ...(Array.isArray(llmHardFilters.sourceFormat) ? llmHardFilters.sourceFormat : []),
+            ].map((value) => this.normalizeSemanticSourceFormatValue(value)),
+            (value) => value
+          ),
+          publicationDateYears: Array.from(
+            new Set(
+              (Array.isArray(payloadHardFilters.publicationDateYears)
+                ? payloadHardFilters.publicationDateYears
+                : []
+              )
+                .map((value) => Number.parseInt(value, 10))
+                .filter((value) => Number.isInteger(value) && value > 0)
+            )
+          ).sort((a, b) => a - b),
+        };
+      },
+      mapSourceFormatsToOpenAlexFilters(sourceFormats = []) {
+        const sourceTypeValues = [];
+        const workTypeValues = [];
+        (Array.isArray(sourceFormats) ? sourceFormats : []).forEach((value) => {
+          const normalized = this.normalizeSemanticSourceFormatValue(value);
+          if (normalized === "journal") {
+            sourceTypeValues.push("journal");
+            workTypeValues.push("article");
+          } else if (normalized === "conference") {
+            sourceTypeValues.push("conference");
+          } else if (normalized === "preprint") {
+            workTypeValues.push("preprint");
+          }
+        });
+        return {
+          sourceType: this.dedupeNormalizedValues(sourceTypeValues, (value) => value),
+          workType: this.dedupeNormalizedValues(workTypeValues, (value) => value),
+        };
+      },
+      mapPublicationTypesToOpenAlexWorkTypes(publicationTypes = []) {
+        const workTypes = [];
+        (Array.isArray(publicationTypes) ? publicationTypes : []).forEach((value) => {
+          const normalized = String(value || "").trim().toLowerCase();
+          if (
+            normalized === "systematic review" ||
+            normalized === "meta-analysis" ||
+            normalized === "review" ||
+            normalized === "cochrane review"
+          ) {
+            workTypes.push("review");
+          }
+        });
+        return this.dedupeNormalizedValues(
+          workTypes.map((value) => this.normalizeOpenAlexWorkTypeValue(value)),
+          (value) => value
+        );
+      },
+      mapHardFiltersToElicitTypeTags(hardFilters = {}) {
+        const output = [];
+        const filterProfiles = Array.isArray(hardFilters?.filterProfiles) ? hardFilters.filterProfiles : [];
+        const publicationTypes = Array.isArray(hardFilters?.publicationTypes)
+          ? hardFilters.publicationTypes
+          : [];
+        const studyDesigns = Array.isArray(hardFilters?.studyDesigns) ? hardFilters.studyDesigns : [];
+        if (filterProfiles.includes("systematic-review-only")) {
+          output.push("Systematic Review");
+        }
+        publicationTypes.forEach((value) => {
+          const normalized = String(value || "").trim().toLowerCase();
+          if (normalized === "systematic review") {
+            output.push("Systematic Review");
+          } else if (normalized === "meta-analysis") {
+            output.push("Meta-Analysis");
+          } else if (normalized === "review" || normalized === "cochrane review") {
+            output.push("Review");
+          }
+        });
+        studyDesigns.forEach((value) => {
+          const normalized = String(value || "").trim().toLowerCase();
+          if (
+            normalized === "randomized controlled trial" ||
+            normalized === "randomised controlled trial" ||
+            normalized === "rct"
+          ) {
+            output.push("RCT");
+          } else if (
+            normalized === "cohort study" ||
+            normalized === "cohort studies" ||
+            normalized === "longitudinal study" ||
+            normalized === "longitudinal"
+          ) {
+            output.push("Longitudinal");
+          }
+        });
+        return this.dedupeNormalizedValues(
+          output.map((value) => this.normalizeElicitTypeTagValue(value)),
+          (value) => value
+        );
+      },
+      mapHardFiltersToCoreDocumentTypes(hardFilters = {}) {
+        const output = [];
+        const filterProfiles = Array.isArray(hardFilters?.filterProfiles) ? hardFilters.filterProfiles : [];
+        const publicationTypes = Array.isArray(hardFilters?.publicationTypes)
+          ? hardFilters.publicationTypes
+          : [];
+        const sourceFormats = Array.isArray(hardFilters?.sourceFormats) ? hardFilters.sourceFormats : [];
+        if (filterProfiles.includes("systematic-review-only")) {
+          output.push("review", "review article");
+        }
+        publicationTypes.forEach((value) => {
+          const normalized = String(value || "").trim().toLowerCase();
+          if (
+            normalized === "systematic review" ||
+            normalized === "meta-analysis" ||
+            normalized === "review" ||
+            normalized === "cochrane review"
+          ) {
+            output.push("review", "review article");
+          }
+        });
+        sourceFormats.forEach((value) => {
+          const normalized = this.normalizeSemanticSourceFormatValue(value);
+          if (normalized === "journal") {
+            output.push("research article", "journal article");
+          } else if (normalized === "conference") {
+            output.push("conference paper", "conference proceedings");
+          } else if (normalized === "preprint") {
+            output.push("preprint");
+          }
+        });
+        return this.dedupeNormalizedValues(output, (value) => String(value || "").trim().toLowerCase());
+      },
+      buildElicitFallbackQuery(value) {
+        const normalized = this.normalizeSemanticQueryText(value);
+        if (!normalized) return "";
+        if (/\?$/.test(normalized) || /^(what|how|which|when|why|does|do|is|are|can)\b/i.test(normalized)) {
+          return normalized;
+        }
+        return `What is known about ${normalized}?`;
+      },
+      buildSemanticSourceQueryPlan({
+        semanticQuery = "",
+        semanticIntentPayload = null,
+        llmSemanticIntent = null,
+        fallbackQuery = "",
+      } = {}) {
+        const payload =
+          semanticIntentPayload && typeof semanticIntentPayload === "object" ? semanticIntentPayload : {};
+        const llmIntent =
+          llmSemanticIntent && typeof llmSemanticIntent === "object" ? llmSemanticIntent : {};
+        const hardFilters = this.collectSemanticHardFilters(payload, llmIntent);
+        const payloadSourceFilters =
+          payload?.sourceFilters && typeof payload.sourceFilters === "object" ? payload.sourceFilters : {};
+        const payloadOpenAlexFilters =
+          payloadSourceFilters?.openAlex && typeof payloadSourceFilters.openAlex === "object"
+            ? payloadSourceFilters.openAlex
+            : {};
+        const payloadElicitFilters =
+          payloadSourceFilters?.elicit && typeof payloadSourceFilters.elicit === "object"
+            ? payloadSourceFilters.elicit
+            : {};
+        const sourceSpecificContext =
+          payload?.sourceSpecificContext && typeof payload.sourceSpecificContext === "object"
+            ? payload.sourceSpecificContext
+            : {};
+        const llmPlan =
+          llmIntent?.sourceQueryPlan && typeof llmIntent.sourceQueryPlan === "object"
+            ? llmIntent.sourceQueryPlan
+            : {};
+        const commonQuery =
+          this.normalizeSemanticQueryText(semanticQuery) ||
+          this.normalizeSemanticQueryText(payload.semanticCoreText) ||
+          this.normalizeSemanticQueryText(fallbackQuery);
+        const openAlexSourceFormatFilters = this.mapSourceFormatsToOpenAlexFilters(
+          hardFilters.sourceFormats
+        );
+        const fallbackOpenAlexWorkTypes = this.dedupeNormalizedValues(
+          [
+            ...openAlexSourceFormatFilters.workType,
+            ...this.mapPublicationTypesToOpenAlexWorkTypes(hardFilters.publicationTypes),
+          ],
+          (value) => value
+        );
+        const configuredOpenAlexWorkTypes = this.dedupeNormalizedValues(
+          (Array.isArray(payloadOpenAlexFilters.workType) ? payloadOpenAlexFilters.workType : []).map((value) =>
+            this.normalizeOpenAlexWorkTypeValue(value)
+          ),
+          (value) => value
+        );
+        const openAlexWorkTypes = this.dedupeNormalizedValues(
+          [
+            ...(configuredOpenAlexWorkTypes.length > 0
+              ? configuredOpenAlexWorkTypes
+              : fallbackOpenAlexWorkTypes),
+            ...((Array.isArray(llmPlan?.openAlex?.filters?.workType) ? llmPlan.openAlex.filters.workType : []).map(
+              (value) => this.normalizeOpenAlexWorkTypeValue(value)
+            )),
+          ],
+          (value) => value
+        );
+        const fallbackOpenAlexSourceTypes = this.dedupeNormalizedValues(
+          [...openAlexSourceFormatFilters.sourceType],
+          (value) => value
+        );
+        const configuredOpenAlexSourceTypes = this.dedupeNormalizedValues(
+          (Array.isArray(payloadOpenAlexFilters.sourceType) ? payloadOpenAlexFilters.sourceType : []).map((value) =>
+            this.normalizeOpenAlexSourceTypeValue(value)
+          ),
+          (value) => value
+        );
+        const openAlexSourceTypes = this.dedupeNormalizedValues(
+          [
+            ...(configuredOpenAlexSourceTypes.length > 0
+              ? configuredOpenAlexSourceTypes
+              : fallbackOpenAlexSourceTypes),
+            ...((Array.isArray(llmPlan?.openAlex?.filters?.sourceType)
+              ? llmPlan.openAlex.filters.sourceType
+              : []
+            ).map((value) => this.normalizeOpenAlexSourceTypeValue(value))),
+          ],
+          (value) => value
+        );
+        const fallbackOpenAlexLanguages = hardFilters.languages.map((value) =>
+          this.normalizeOpenAlexLanguageFilterValue(value)
+        );
+        const configuredOpenAlexLanguages = this.dedupeNormalizedValues(
+          (Array.isArray(payloadOpenAlexFilters.language) ? payloadOpenAlexFilters.language : []).map((value) =>
+            this.normalizeOpenAlexLanguageFilterValue(value)
+          ),
+          (value) => value
+        );
+        const openAlexLanguages = this.dedupeNormalizedValues(
+          [
+            ...(configuredOpenAlexLanguages.length > 0
+              ? configuredOpenAlexLanguages
+              : fallbackOpenAlexLanguages),
+            ...((Array.isArray(llmPlan?.openAlex?.filters?.language)
+              ? llmPlan.openAlex.filters.language
+              : []
+            ).map((value) => this.normalizeOpenAlexLanguageFilterValue(value))),
+          ],
+          (value) => value
+        );
+        const openAlexPublicationYear =
+          this.normalizeOpenAlexPublicationYearFilterValue(payloadOpenAlexFilters.publicationYear) ||
+          buildOpenAlexPublicationYearFilter(hardFilters.publicationDateYears);
+        const semanticScholarContextQuery = this.normalizeSemanticQueryText(
+          (Array.isArray(sourceSpecificContext.semanticScholar)
+            ? sourceSpecificContext.semanticScholar
+            : []
+          ).join(". ")
+        );
+        const openAlexContextQuery = this.normalizeSemanticQueryText(
+          (Array.isArray(sourceSpecificContext.openAlex) ? sourceSpecificContext.openAlex : []).join(". ")
+        );
+        const elicitContextQuery = this.normalizeSemanticQueryText(
+          (Array.isArray(sourceSpecificContext.elicit) ? sourceSpecificContext.elicit : []).join(". ")
+        );
+        const sciteContextQuery = this.normalizeSemanticQueryText(
+          (Array.isArray(sourceSpecificContext.scite) ? sourceSpecificContext.scite : []).join(". ")
+        );
+        const coreContextQuery = this.normalizeSemanticQueryText(
+          (Array.isArray(sourceSpecificContext.core) ? sourceSpecificContext.core : []).join(". ")
+        );
+        const semanticScholarQuery =
+          this.normalizeSemanticQueryText(llmPlan?.semanticScholar?.query) ||
+          commonQuery ||
+          semanticScholarContextQuery;
+        const openAlexQuery =
+          this.normalizeSemanticQueryText(llmPlan?.openAlex?.query) ||
+          commonQuery ||
+          openAlexContextQuery;
+        const elicitBaseQuery =
+          this.normalizeSemanticQueryText(llmPlan?.elicit?.query) ||
+          commonQuery ||
+          this.normalizeSemanticQueryText(payload.semanticWordedIntent) ||
+          elicitContextQuery;
+        const sciteQuery =
+          this.normalizeSemanticQueryText(llmPlan?.scite?.query) || commonQuery || sciteContextQuery;
+        const coreQuery =
+          this.normalizeSemanticQueryText(llmPlan?.core?.query) || commonQuery || coreContextQuery;
+        const fallbackElicitTypeTags = this.mapHardFiltersToElicitTypeTags(hardFilters);
+        const coreDocumentTypes = this.mapHardFiltersToCoreDocumentTypes(hardFilters);
+        const configuredElicitTypeTags = this.dedupeNormalizedValues(
+          (Array.isArray(payloadElicitFilters.typeTags) ? payloadElicitFilters.typeTags : []).map((value) =>
+            this.normalizeElicitTypeTagValue(value)
+          ),
+          (value) => value
+        );
+        return {
+          semanticScholar: {
+            query: semanticScholarQuery,
+            hints: Array.isArray(llmPlan?.semanticScholar?.hints) ? llmPlan.semanticScholar.hints : [],
+            filters: {},
+          },
+          openAlex: {
+            query: openAlexQuery,
+            hints: Array.isArray(llmPlan?.openAlex?.hints) ? llmPlan.openAlex.hints : [],
+            filters: {
+              language: openAlexLanguages,
+              sourceType: openAlexSourceTypes,
+              workType: openAlexWorkTypes,
+              publicationYear: openAlexPublicationYear,
+            },
+          },
+          elicit: {
+            query: this.buildElicitFallbackQuery(elicitBaseQuery),
+            hints: Array.isArray(llmPlan?.elicit?.hints) ? llmPlan.elicit.hints : [],
+            filters: {
+              typeTags: this.dedupeNormalizedValues(
+                [
+                  ...(configuredElicitTypeTags.length > 0 ? configuredElicitTypeTags : fallbackElicitTypeTags),
+                  ...((Array.isArray(llmPlan?.elicit?.filters?.typeTags)
+                    ? llmPlan.elicit.filters.typeTags
+                    : []
+                  ).map((value) => this.normalizeElicitTypeTagValue(value))),
+                ],
+                (value) => value
+              ),
+              includeKeywords: this.dedupeNormalizedValues(
+                [
+                  ...(Array.isArray(payloadElicitFilters.includeKeywords)
+                    ? payloadElicitFilters.includeKeywords
+                    : []),
+                  ...(Array.isArray(llmPlan?.elicit?.filters?.includeKeywords)
+                    ? llmPlan.elicit.filters.includeKeywords
+                    : []),
+                ],
+                (value) => String(value || "").trim()
+              ),
+              excludeKeywords: this.dedupeNormalizedValues(
+                [
+                  ...(Array.isArray(payloadElicitFilters.excludeKeywords)
+                    ? payloadElicitFilters.excludeKeywords
+                    : []),
+                  ...(Array.isArray(llmPlan?.elicit?.filters?.excludeKeywords)
+                    ? llmPlan.elicit.filters.excludeKeywords
+                    : []),
+                ],
+                (value) => String(value || "").trim()
+              ),
+            },
+          },
+          scite: {
+            query: sciteQuery,
+            hints: Array.isArray(llmPlan?.scite?.hints) ? llmPlan.scite.hints : [],
+            filters: {},
+          },
+          core: {
+            query: coreQuery,
+            hints: Array.isArray(llmPlan?.core?.hints) ? llmPlan.core.hints : [],
+            filters: {
+              documentType: coreDocumentTypes,
+              publicationYear: Array.isArray(hardFilters.publicationDateYears)
+                ? hardFilters.publicationDateYears
+                : [],
+            },
+          },
+        };
+      },
+      async deriveSemanticQueryForSources(freeTextInput) {
+        const semanticIntentPayload = this.buildSemanticIntentPayload(freeTextInput);
+        const promptVersion = "phase2-v3";
+        const cacheKey = this.hashIntentKey(
+          `${promptVersion}:${JSON.stringify(semanticIntentPayload)}`
+        );
+        const requestId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const cached = this.getCachedSemanticIntent(cacheKey);
+        if (cached) {
+          console.info("[SemanticIntentFlow] Using cached semantic intent.", {
+            requestId,
+            cacheKey,
+            fallbackUsed: false,
+          });
+          return {
+            semanticQuery: cached.semanticIntent,
+            semanticIntentPayload,
+            llmSemanticIntent: cached,
+            semanticSourceQueryPlan: this.buildSemanticSourceQueryPlan({
+              semanticQuery: cached.semanticIntent,
+              semanticIntentPayload,
+              llmSemanticIntent: cached,
+              fallbackQuery: freeTextInput,
+            }),
+            semanticIntentMeta: {
+              requestId,
+              cacheHit: true,
+              fallbackUsed: false,
+              promptVersion,
+            },
+          };
+        }
+
+        let parsedIntent = null;
+        let parseAttempts = 0;
+        const maxParseAttempts = 2;
+        while (parseAttempts < maxParseAttempts && !parsedIntent) {
+          parseAttempts += 1;
+          const responseText = await this.translateByPrompt(
+            JSON.stringify(semanticIntentPayload),
+            semanticIntentPrompt
+          );
+          parsedIntent = this.parseSemanticIntentResponse(responseText);
+        }
+
+        if (!parsedIntent) {
+          const fallbackQuery = await this.translateSemanticScholarSearch(freeTextInput);
+          const normalizedFallback = String(fallbackQuery || freeTextInput || "").trim();
+          console.warn("[SemanticIntentFlow] Falling back to semantic query translation.", {
+            requestId,
+            parseAttempts,
+          });
+          return {
+            semanticQuery: normalizedFallback,
+            semanticIntentPayload,
+            llmSemanticIntent: null,
+            semanticSourceQueryPlan: this.buildSemanticSourceQueryPlan({
+              semanticQuery: normalizedFallback,
+              semanticIntentPayload,
+              llmSemanticIntent: null,
+              fallbackQuery: freeTextInput,
+            }),
+            semanticIntentMeta: {
+              requestId,
+              cacheHit: false,
+              fallbackUsed: true,
+              parseAttempts,
+              promptVersion,
+            },
+          };
+        }
+
+        this.setCachedSemanticIntent(cacheKey, parsedIntent);
+        if (parsedIntent.semanticIntentSource === "sourceQueryPlan") {
+          console.info("[SemanticIntentFlow] Recovered semantic intent from sourceQueryPlan.", {
+            requestId,
+            parseAttempts,
+            semanticIntent: parsedIntent.semanticIntent,
+          });
+        }
+        console.info("[SemanticIntentFlow] Intent generated.", {
+          requestId,
+          cacheKey,
+          fallbackUsed: false,
+          parseAttempts,
+          semanticIntent: parsedIntent.semanticIntent,
+        });
+        return {
+          semanticQuery: parsedIntent.semanticIntent,
+          semanticIntentPayload,
+          llmSemanticIntent: parsedIntent,
+          semanticSourceQueryPlan: this.buildSemanticSourceQueryPlan({
+            semanticQuery: parsedIntent.semanticIntent,
+            semanticIntentPayload,
+            llmSemanticIntent: parsedIntent,
+            fallbackQuery: freeTextInput,
+          }),
+          semanticIntentMeta: {
+            requestId,
+            cacheHit: false,
+            fallbackUsed: false,
+            parseAttempts,
+            promptVersion,
+          },
+        };
+      },
+      async translateByPrompt(wordsToTranslate, promptConfig) {
         const openAiServiceUrl = this.appSettings.openAi.baseUrl + "/api/TranslateTitle";
-        const localePrompt = getPromptForLocale(searchTranslationPrompt, "dk");
+        const localePrompt = getPromptForLocale(promptConfig, "dk");
 
         const requestBody = {
           prompt: localePrompt,
@@ -3235,36 +4641,972 @@
 
         try {
           let answer = "";
-          const response = await fetch(openAiServiceUrl, {
-            method: "POST",
-            body: JSON.stringify(requestBody),
-          });
+          const translationController = new AbortController();
+          let timeoutId = null;
+          let response = null;
+          try {
+            timeoutId = setTimeout(
+              () => translationController.abort(),
+              TRANSLATION_REQUEST_TIMEOUT_MS
+            );
+            response = await fetch(openAiServiceUrl, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(requestBody),
+              signal: translationController.signal,
+            });
+          } finally {
+            if (timeoutId !== null) {
+              clearTimeout(timeoutId);
+            }
+          }
 
-          if (!response.ok) {
+          if (!response || !response.ok) {
             let errorBody;
             try {
-              errorBody = await response.json();
+              errorBody = response ? await response.json() : "no response";
             } catch {
-              errorBody = await response.text();
+              errorBody = response ? await response.text() : "no response";
             }
             throw Error(typeof errorBody === "string" ? errorBody : JSON.stringify(errorBody));
+          }
+
+          if (!response.body || typeof TextDecoderStream === "undefined") {
+            const fallbackText = await response.text();
+            return String(fallbackText || "").trim() || wordsToTranslate;
           }
 
           const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
 
           let done = false;
-          while (!done && !this.stopGeneration) {
-            const { done: readerDone, value } = await reader.read();
-            done = readerDone;
-            if (value) {
-              answer += value;
+          try {
+            while (!done && !this.stopGeneration) {
+              const { done: readerDone, value } = await reader.read();
+              done = readerDone;
+              if (value) {
+                answer += value;
+              }
             }
+          } finally {
+            try {
+              await reader.cancel();
+            } catch {
+              // Ignore cleanup errors from aborted/closed streams.
+            }
+            reader.releaseLock();
           }
           return answer;
         } catch (error) {
           this.text = "An unknown error occurred: \n" + error.toString();
           return wordsToTranslate;
         }
+      },
+      getConfiguredSemanticSourceLimit(sourceKey, fallback) {
+        const configuredLimit = Number(runtimeConfig?.semanticSourceLimits?.[sourceKey]);
+        if (Number.isFinite(configuredLimit) && configuredLimit > 0) {
+          return Math.floor(configuredLimit);
+        }
+        return fallback;
+      },
+      normalizePmidValue(value) {
+        const pmid = String(value || "").trim();
+        return /^[0-9]+$/.test(pmid) ? pmid : "";
+      },
+      normalizeDoiValue(value) {
+        const normalized = String(value || "")
+          .trim()
+          .replace(/^https?:\/\/(dx\.)?doi\.org\//i, "")
+          .replace(/^doi:\s*/i, "");
+        return normalized.trim();
+      },
+      dedupeStringValues(values, normalizer = (value) => String(value || "").trim()) {
+        const seen = new Set();
+        const deduped = [];
+        for (const value of Array.isArray(values) ? values : []) {
+          const normalized = normalizer(value);
+          if (!normalized) continue;
+          const key = normalized.toLowerCase();
+          if (seen.has(key)) continue;
+          seen.add(key);
+          deduped.push(normalized);
+        }
+        return deduped;
+      },
+      normalizeSourceCandidate(candidate, source, fallbackRank) {
+        if (!candidate || typeof candidate !== "object") return null;
+        const pmid = this.normalizePmidValue(candidate.pmid);
+        const doi = this.normalizeDoiValue(candidate.doi);
+        if (!pmid && !doi) return null;
+        const parsedRank = Number(candidate.rank);
+        const parsedScore = Number(candidate.score);
+        const metadata =
+          candidate.metadata && typeof candidate.metadata === "object" ? candidate.metadata : {};
+        return {
+          source,
+          rank: Number.isFinite(parsedRank) && parsedRank > 0 ? parsedRank : fallbackRank,
+          pmid,
+          doi,
+          title: String(candidate.title || "").trim(),
+          score: Number.isFinite(parsedScore) ? parsedScore : null,
+          openAlexId: String(candidate.openAlexId || "").trim(),
+          metadata: {
+            publicationYear: String(metadata.publicationYear || metadata.year || "").trim(),
+            venue: String(
+              metadata.venue || metadata.sourceDisplayName || metadata.sourceAbbreviatedTitle || ""
+            ).trim(),
+            workType: String(metadata.workType || "").trim(),
+            sourceType: String(metadata.sourceType || "").trim(),
+            sourceDisplayName: String(metadata.sourceDisplayName || "").trim(),
+            sourceAbbreviatedTitle: String(metadata.sourceAbbreviatedTitle || "").trim(),
+            publicationTypes: Array.isArray(metadata.publicationTypes)
+              ? metadata.publicationTypes.map((value) => String(value || "").trim()).filter(Boolean)
+              : [],
+          },
+        };
+      },
+      createEmptySourceResult(source, query, error = "") {
+        return {
+          source,
+          query,
+          total: 0,
+          pmids: [],
+          dois: [],
+          candidates: [],
+          error: error ? String(error) : "",
+        };
+      },
+      publishElicitRateLimitInfo(rateLimit) {
+        if (!rateLimit || typeof window === "undefined") {
+          return;
+        }
+        const normalized = {
+          limit:
+            rateLimit?.limit === null || rateLimit?.limit === undefined
+              ? null
+              : Number(rateLimit.limit),
+          remaining:
+            rateLimit?.remaining === null || rateLimit?.remaining === undefined
+              ? null
+              : Number(rateLimit.remaining),
+          resetAt: String(rateLimit?.resetAt || "").trim(),
+          resetInSeconds:
+            rateLimit?.resetInSeconds === null || rateLimit?.resetInSeconds === undefined
+              ? null
+              : Number(rateLimit.resetInSeconds),
+          status: Number(rateLimit?.status) || 0,
+          isLimited: rateLimit?.isLimited === true,
+        };
+        this.logElicitRateLimitInfo(normalized);
+        try {
+          window.localStorage.setItem("qpmElicitRateLimitInfo", JSON.stringify(normalized));
+        } catch {
+          // Ignore localStorage write errors.
+        }
+        window.dispatchEvent(
+          new CustomEvent("qpm:elicit-rate-limit-update", {
+            detail: normalized,
+          })
+        );
+      },
+      getElicitRateLimitResetDate(rateLimit) {
+        const resetAt = String(rateLimit?.resetAt || "").trim();
+        const resetTimestamp = Date.parse(resetAt);
+        if (Number.isFinite(resetTimestamp)) {
+          return new Date(resetTimestamp);
+        }
+        const resetInSeconds = Number(rateLimit?.resetInSeconds);
+        if (Number.isFinite(resetInSeconds)) {
+          return new Date(Date.now() + Math.max(0, Math.floor(resetInSeconds)) * 1000);
+        }
+        return null;
+      },
+      logElicitRateLimitInfo(rateLimit) {
+        const signature = JSON.stringify([
+          rateLimit?.limit ?? null,
+          rateLimit?.remaining ?? null,
+          rateLimit?.resetAt ?? "",
+          rateLimit?.resetInSeconds ?? null,
+          rateLimit?.status ?? 0,
+          rateLimit?.isLimited === true,
+        ]);
+        if (signature === this._lastElicitRateLimitLogSignature) {
+          return;
+        }
+        this._lastElicitRateLimitLogSignature = signature;
+
+        const resetDate = this.getElicitRateLimitResetDate(rateLimit);
+        const resetAtLocal = resetDate
+          ? resetDate.toLocaleString(this.language === "en" ? "en-US" : "da-DK")
+          : null;
+        const nextSearchAvailableAt = rateLimit?.isLimited === true && resetDate
+          ? resetDate.toLocaleString(this.language === "en" ? "en-US" : "da-DK")
+          : null;
+
+        console.info("[ElicitRateLimit] Opdateret rate limit-info.", {
+          limit: Number.isFinite(rateLimit?.limit) ? Number(rateLimit.limit) : null,
+          remaining: Number.isFinite(rateLimit?.remaining) ? Number(rateLimit.remaining) : null,
+          status: Number.isFinite(rateLimit?.status) ? Number(rateLimit.status) : 0,
+          isLimited: rateLimit?.isLimited === true,
+          resetAtIso: String(rateLimit?.resetAt || "").trim() || null,
+          resetAtLocal,
+          resetInSeconds: Number.isFinite(rateLimit?.resetInSeconds)
+            ? Number(rateLimit.resetInSeconds)
+            : null,
+          nextSearchAvailableAt,
+          windowType: "rolling 24-hour window",
+          resetMeaning: "X-RateLimit-Reset angiver, hvornår den ældste request falder ud af vinduet, så én ny plads bliver ledig.",
+        });
+      },
+      normalizeSourceResult(source, query, payload, error = "") {
+        if (!payload || typeof payload !== "object") {
+          return this.createEmptySourceResult(source, query, error);
+        }
+
+        const candidates = (Array.isArray(payload.candidates) ? payload.candidates : [])
+          .map((candidate, index) => this.normalizeSourceCandidate(candidate, source, index + 1))
+          .filter(Boolean);
+        const pmids = this.dedupeStringValues(
+          Array.isArray(payload.pmids) ? payload.pmids : candidates.map((candidate) => candidate.pmid),
+          (value) => this.normalizePmidValue(value)
+        );
+        const dois = this.dedupeStringValues(
+          Array.isArray(payload.dois) ? payload.dois : candidates.map((candidate) => candidate.doi),
+          (value) => this.normalizeDoiValue(value)
+        );
+        const total = Number(payload.total);
+
+        return {
+          source,
+          query,
+          total: Number.isFinite(total) ? total : candidates.length,
+          pmids,
+          dois,
+          candidates,
+          error: error ? String(error) : "",
+        };
+      },
+      getBackendEndpointUrls(endpointFile) {
+        const normalizeApiBase = (value) => {
+          const base = String(value || "")
+            .trim()
+            .replace(/\/+$/, "");
+          if (!base) return "";
+          if (base.endsWith("/api")) return base;
+          if (base.endsWith("/backend")) return `${base}/api`;
+          return base;
+        };
+        const apiBaseFromUrl = normalizeApiBase(
+          typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("apiBase") : ""
+        );
+        const endpointUrls = [];
+        if (apiBaseFromUrl) {
+          endpointUrls.push(`${apiBaseFromUrl}/${endpointFile}`);
+        }
+        if (!apiBaseFromUrl) {
+          const appProxy = `${this.appSettings.nlm.proxyUrl}/${endpointFile}`;
+          if (!endpointUrls.includes(appProxy)) {
+            endpointUrls.push(appProxy);
+          }
+        }
+        return endpointUrls;
+      },
+      async requestBackendJson(endpointFile, body) {
+        let payload = null;
+        const errors = [];
+        for (const endpointUrl of this.getBackendEndpointUrls(endpointFile)) {
+          let timeoutId = null;
+          try {
+            const controller = new AbortController();
+            timeoutId = setTimeout(() => controller.abort(), BACKEND_REQUEST_TIMEOUT_MS);
+            const response = await fetch(endpointUrl, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(body),
+              signal: controller.signal,
+            });
+            if (!response.ok) {
+              const rawError = await response.text();
+              errors.push(
+                `${endpointUrl} -> ${response.status}: ${
+                  rawError || response.statusText || "unknown error"
+                }`
+              );
+              continue;
+            }
+
+            const rawPayload = await response.text();
+            try {
+              payload = JSON.parse(rawPayload);
+            } catch {
+              errors.push(`${endpointUrl} -> invalid JSON response: ${rawPayload.slice(0, 300)}`);
+              continue;
+            }
+            break;
+          } catch (error) {
+            const isTimeout = error && error.name === "AbortError";
+            errors.push(
+              `${endpointUrl} -> ${
+                isTimeout ? `request timeout after ${BACKEND_REQUEST_TIMEOUT_MS}ms` : String(error)
+              }`
+            );
+          } finally {
+            if (timeoutId !== null) {
+              clearTimeout(timeoutId);
+            }
+          }
+        }
+
+        if (!payload) {
+          throw Error(errors.join("\n") || `${endpointFile} request failed`);
+        }
+
+        return payload;
+      },
+      async requestBackendForm(endpointFile, formData) {
+        let payload = null;
+        const errors = [];
+        const body = new URLSearchParams(formData).toString();
+        for (const endpointUrl of this.getBackendEndpointUrls(endpointFile)) {
+          let timeoutId = null;
+          try {
+            const controller = new AbortController();
+            timeoutId = setTimeout(() => controller.abort(), BACKEND_REQUEST_TIMEOUT_MS);
+            const response = await fetch(endpointUrl, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+              },
+              body,
+              signal: controller.signal,
+            });
+            if (!response.ok) {
+              const rawError = await response.text();
+              errors.push(
+                `${endpointUrl} -> ${response.status}: ${
+                  rawError || response.statusText || "unknown error"
+                }`
+              );
+              continue;
+            }
+
+            const rawPayload = await response.text();
+            try {
+              payload = JSON.parse(rawPayload);
+            } catch {
+              errors.push(`${endpointUrl} -> invalid JSON response: ${rawPayload.slice(0, 300)}`);
+              continue;
+            }
+            break;
+          } catch (error) {
+            const isTimeout = error && error.name === "AbortError";
+            errors.push(
+              `${endpointUrl} -> ${
+                isTimeout ? `request timeout after ${BACKEND_REQUEST_TIMEOUT_MS}ms` : String(error)
+              }`
+            );
+          } finally {
+            if (timeoutId !== null) {
+              clearTimeout(timeoutId);
+            }
+          }
+        }
+
+        if (!payload) {
+          throw Error(errors.join("\n") || `${endpointFile} request failed`);
+        }
+
+        return payload;
+      },
+      getTimingNow() {
+        if (typeof performance !== "undefined" && typeof performance.now === "function") {
+          return performance.now();
+        }
+        return Date.now();
+      },
+      roundTimingMs(value) {
+        return Math.round(Number(value || 0));
+      },
+      async measureAsync(label, task, meta = {}) {
+        const startedAt = this.getTimingNow();
+        try {
+          const result = await task();
+          console.info(`[Timing] ${label}`, {
+            ...meta,
+            status: "ok",
+            elapsedMs: this.roundTimingMs(this.getTimingNow() - startedAt),
+          });
+          return result;
+        } catch (error) {
+          console.warn(`[Timing] ${label}`, {
+            ...meta,
+            status: "error",
+            elapsedMs: this.roundTimingMs(this.getTimingNow() - startedAt),
+            error: String(error || ""),
+          });
+          throw error;
+        }
+      },
+      getResolvedSemanticSourceQueryPlan(query, options = {}) {
+        const semanticIntentPayload =
+          options?.semanticIntentPayload && typeof options.semanticIntentPayload === "object"
+            ? options.semanticIntentPayload
+            : {};
+        const llmSemanticIntent =
+          options?.llmSemanticIntent && typeof options.llmSemanticIntent === "object"
+            ? options.llmSemanticIntent
+            : {};
+        const providedPlan =
+          options?.semanticSourceQueryPlan && typeof options.semanticSourceQueryPlan === "object"
+            ? options.semanticSourceQueryPlan
+            : null;
+        if (providedPlan) {
+          return providedPlan;
+        }
+        return this.buildSemanticSourceQueryPlan({
+          semanticQuery: query,
+          semanticIntentPayload,
+          llmSemanticIntent,
+          fallbackQuery: query,
+        });
+      },
+      async fetchSemanticScholarResults(query, options = {}) {
+        const sourceQueryPlan = this.getResolvedSemanticSourceQueryPlan(query, options);
+        const requestQuery =
+          this.normalizeSemanticQueryText(sourceQueryPlan?.semanticScholar?.query) ||
+          this.normalizeSemanticQueryText(query);
+        const requestLimit = this.getConfiguredSemanticSourceLimit(
+          "semanticScholar",
+          DEFAULT_SEMANTIC_SCHOLAR_LIMIT
+        );
+        const cacheKey = this.buildSemanticSourceCacheKey("semanticScholar", {
+          query: requestQuery,
+          limit: requestLimit,
+        });
+        const cached = this.getCachedSemanticSourceResponse(cacheKey);
+        if (cached) {
+          return cached;
+        }
+        const payload = await this.measureAsync(
+          "SemanticScholar request",
+          () =>
+            this.requestBackendJson("SemanticScholarSearch.php", {
+              query: requestQuery,
+              limit: requestLimit,
+              domain: this.currentDomain || "",
+            }),
+          { query: requestQuery, limit: requestLimit }
+        );
+        if (payload?.warning) {
+          console.warn("[SemanticScholarFlow] Using degraded Semantic Scholar result.", {
+            query: requestQuery,
+            warning: payload.warning,
+            partial: payload.partial === true,
+            total: payload.total,
+            pmids: Array.isArray(payload.pmids) ? payload.pmids.length : 0,
+            dois: Array.isArray(payload.dois) ? payload.dois.length : 0,
+          });
+        }
+        const normalized = this.normalizeSourceResult("semanticScholar", requestQuery, payload);
+        this.setCachedSemanticSourceResponse(cacheKey, normalized);
+        return normalized;
+      },
+      normalizeOpenAlexLanguageFilterValue(value) {
+        const normalized = String(value || "").trim().toLowerCase();
+        if (!normalized) return "";
+        const aliasMap = {
+          english: "en",
+          eng: "en",
+          danish: "da",
+          dansk: "da",
+          german: "de",
+          deutsch: "de",
+          french: "fr",
+          spanish: "es",
+          italian: "it",
+          dutch: "nl",
+          norwegian: "no",
+          norwegianbokmal: "nb",
+          norwegiannynorsk: "nn",
+          swedish: "sv",
+          portuguese: "pt",
+        };
+        const compact = normalized.replace(/[\s_-]+/g, "");
+        if (aliasMap[compact]) return aliasMap[compact];
+        return /^[a-z]{2}$/.test(normalized) ? normalized : "";
+      },
+      getOpenAlexLanguageFilters(options = {}) {
+        const sourceQueryPlan = this.getResolvedSemanticSourceQueryPlan(
+          options?.query || "",
+          options
+        );
+        const languageFilters = Array.isArray(sourceQueryPlan?.openAlex?.filters?.language)
+          ? sourceQueryPlan.openAlex.filters.language
+          : [];
+        return this.dedupeNormalizedValues(
+          languageFilters.map((value) => this.normalizeOpenAlexLanguageFilterValue(value)),
+          (value) => value
+        );
+      },
+      canUseLocalOpenAlexBrowserProxy() {
+        if (typeof window === "undefined" || !window.location) return false;
+        const { hostname = "", port = "" } = window.location;
+        return port === "5173" && (hostname === "localhost" || hostname === "127.0.0.1");
+      },
+      buildOpenAlexBrowserProxyParams(query, options = {}) {
+        const params = new URLSearchParams();
+        params.set("search.semantic", String(query || "").trim());
+        params.set(
+          "per_page",
+          String(options?.limit || this.getConfiguredSemanticSourceLimit("openAlex", DEFAULT_OPENALEX_LIMIT))
+        );
+        params.set(
+          "select",
+          "id,display_name,doi,ids,publication_year,relevance_score,type"
+        );
+        const filterParts = [];
+        const languageFilters = Array.isArray(options?.languageFilters) ? options.languageFilters : [];
+        const workTypes = Array.isArray(options?.workTypes) ? options.workTypes : [];
+        const publicationYearFilter = String(options?.publicationYearFilter || "").trim();
+        if (languageFilters.length) {
+          filterParts.push(`language:${languageFilters.join("|")}`);
+        }
+        if (workTypes.length) {
+          filterParts.push(`type:${workTypes.join("|")}`);
+        }
+        if (publicationYearFilter) {
+          filterParts.push(`publication_year:${publicationYearFilter}`);
+        }
+        if (filterParts.length) {
+          params.set("filter", filterParts.join(","));
+        }
+        return params;
+      },
+      mapOpenAlexApiPayloadToSearchPayload(query, rawPayload) {
+        const results = Array.isArray(rawPayload?.results) ? rawPayload.results : [];
+        const pmids = [];
+        const dois = [];
+        const candidates = [];
+        results.forEach((work, index) => {
+          if (!work || typeof work !== "object") return;
+          const ids = work?.ids && typeof work.ids === "object" ? work.ids : {};
+          const pmidValue = this.normalizePmidValue(work?.pmid || ids?.pmid || ids?.PubMed);
+          const doiValue = this.normalizeDoiValue(work?.doi || ids?.doi || ids?.DOI);
+          if (pmidValue) {
+            pmids.push(pmidValue);
+          } else if (doiValue) {
+            dois.push(doiValue);
+          }
+          candidates.push({
+            source: "openAlex",
+            rank: index + 1,
+            score: Number(work?.relevance_score) || 0,
+            pmid: pmidValue,
+            doi: doiValue,
+            title: work?.display_name || "",
+            year: work?.publication_year || null,
+            metadata: {
+              workId: work?.id || "",
+              workType: work?.type || "",
+              sourceType: "",
+              sourceDisplayName: "",
+            },
+          });
+        });
+        return {
+          query,
+          pmids: [...new Set(pmids)],
+          dois: [...new Set(dois)],
+          candidates,
+          total: Number(rawPayload?.meta?.count) || candidates.length,
+        };
+      },
+      async fetchOpenAlexBrowserProxyPayload(query, options = {}) {
+        if (!this.canUseLocalOpenAlexBrowserProxy()) {
+          return null;
+        }
+        const params = this.buildOpenAlexBrowserProxyParams(query, options);
+        const response = await fetch(`/openalex-api/works?${params.toString()}`, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+          },
+        });
+        if (!response.ok) {
+          throw new Error(`OpenAlex browser proxy failed with HTTP ${response.status}`);
+        }
+        const rawPayload = await response.json();
+        return this.mapOpenAlexApiPayloadToSearchPayload(query, rawPayload);
+      },
+      logOpenAlexRequestSummary({
+        query = "",
+        languageFilters = [],
+        sourceTypes = [],
+        workTypes = [],
+        publicationYearFilter = "",
+        payload = null,
+        browserFallbackTried = false,
+        browserFallbackSucceeded = false,
+        browserFallbackError = "",
+      } = {}) {
+        const normalizedPayload = payload && typeof payload === "object" ? payload : {};
+        console.info("[OpenAlexFlow] Request summary.", {
+          query,
+          languageFilters,
+          sourceTypes,
+          workTypes,
+          publicationYearFilter,
+          browserFallbackTried,
+          browserFallbackSucceeded,
+          browserFallbackError: browserFallbackError ? String(browserFallbackError) : "",
+          degraded: normalizedPayload.partial === true || !!normalizedPayload.warning,
+          total: Number(normalizedPayload.total || 0),
+          pmids: Array.isArray(normalizedPayload.pmids) ? normalizedPayload.pmids.length : 0,
+          dois: Array.isArray(normalizedPayload.dois) ? normalizedPayload.dois.length : 0,
+          warning: String(normalizedPayload.warning || ""),
+        });
+      },
+      async fetchOpenAlexResults(query, options = {}) {
+        const sourceQueryPlan = this.getResolvedSemanticSourceQueryPlan(query, options);
+        const requestQuery =
+          this.normalizeSemanticQueryText(sourceQueryPlan?.openAlex?.query) ||
+          this.normalizeSemanticQueryText(query);
+        const requestLimit = this.getConfiguredSemanticSourceLimit("openAlex", DEFAULT_OPENALEX_LIMIT);
+        const languageFilters = this.getOpenAlexLanguageFilters(options);
+        const sourceTypes = this.dedupeNormalizedValues(
+          Array.isArray(sourceQueryPlan?.openAlex?.filters?.sourceType)
+            ? sourceQueryPlan.openAlex.filters.sourceType.map((value) =>
+                this.normalizeOpenAlexSourceTypeValue(value)
+              )
+            : [],
+          (value) => value
+        );
+        const workTypes = this.dedupeNormalizedValues(
+          Array.isArray(sourceQueryPlan?.openAlex?.filters?.workType)
+            ? sourceQueryPlan.openAlex.filters.workType.map((value) =>
+                this.normalizeOpenAlexWorkTypeValue(value)
+              )
+            : [],
+          (value) => value
+        );
+        const publicationYearFilter = String(
+          sourceQueryPlan?.openAlex?.filters?.publicationYear || ""
+        ).trim();
+        if (sourceTypes.length > 0) {
+          console.info(
+            "[OpenAlexFlow] Source type filters are deferred to downstream hard-filtering and were not sent with search.semantic.",
+            {
+              query: requestQuery,
+              sourceTypes,
+            }
+          );
+        }
+        const cacheKey = this.buildSemanticSourceCacheKey("openAlex", {
+          query: requestQuery,
+          limit: requestLimit,
+          languageFilters,
+          sourceTypes,
+          workTypes,
+          publicationYearFilter,
+        });
+        const cached = this.getCachedSemanticSourceResponse(cacheKey);
+        if (cached) {
+          return cached;
+        }
+        let browserFallbackTried = false;
+        let browserFallbackSucceeded = false;
+        let browserFallbackError = "";
+        let payload = await this.measureAsync(
+          "OpenAlex request",
+          () =>
+            this.requestBackendJson("OpenAlexSearch.php", {
+              query: requestQuery,
+              limit: requestLimit,
+              domain: this.currentDomain || "",
+              languages: languageFilters,
+              workTypes,
+              publicationYear: publicationYearFilter,
+            }),
+          { query: requestQuery, languageFilters, sourceTypes, workTypes, publicationYearFilter }
+        );
+        if (payload?.warning && this.canUseLocalOpenAlexBrowserProxy()) {
+          browserFallbackTried = true;
+          try {
+            const browserProxyPayload = await this.measureAsync(
+              "OpenAlex browser proxy fallback",
+              () =>
+                this.fetchOpenAlexBrowserProxyPayload(requestQuery, {
+                  limit: requestLimit,
+                  languageFilters,
+                  workTypes,
+                  publicationYearFilter,
+                }),
+              { query: requestQuery, languageFilters, sourceTypes, workTypes, publicationYearFilter }
+            );
+            if (browserProxyPayload) {
+              payload = browserProxyPayload;
+              browserFallbackSucceeded = true;
+            }
+          } catch (error) {
+            browserFallbackError = String(error || "");
+            console.warn("[OpenAlexFlow] Browser proxy fallback failed.", {
+              query: requestQuery,
+              error: browserFallbackError,
+            });
+          }
+        }
+        if (payload?.warning) {
+          this.logOpenAlexRequestSummary({
+            query: requestQuery,
+            languageFilters,
+            sourceTypes,
+            workTypes,
+            publicationYearFilter,
+            payload,
+            browserFallbackTried,
+            browserFallbackSucceeded,
+            browserFallbackError,
+          });
+        } else {
+          this.logOpenAlexRequestSummary({
+            query: requestQuery,
+            languageFilters,
+            sourceTypes,
+            workTypes,
+            publicationYearFilter,
+            payload,
+            browserFallbackTried,
+            browserFallbackSucceeded,
+            browserFallbackError,
+          });
+        }
+        const normalized = this.normalizeSourceResult("openAlex", requestQuery, payload);
+        this.setCachedSemanticSourceResponse(cacheKey, normalized);
+        return normalized;
+      },
+      async fetchElicitResults(query, options = {}) {
+        const sourceQueryPlan = this.getResolvedSemanticSourceQueryPlan(query, options);
+        const requestQuery =
+          this.normalizeSemanticQueryText(sourceQueryPlan?.elicit?.query) ||
+          this.buildElicitFallbackQuery(query);
+        const requestLimit = this.getConfiguredSemanticSourceLimit("elicit", DEFAULT_ELICIT_LIMIT);
+        const filters =
+          sourceQueryPlan?.elicit?.filters && typeof sourceQueryPlan.elicit.filters === "object"
+            ? sourceQueryPlan.elicit.filters
+            : {};
+        const normalizedFilters = {
+          typeTags: this.dedupeNormalizedValues(
+            (Array.isArray(filters.typeTags) ? filters.typeTags : []).map((value) =>
+              this.normalizeElicitTypeTagValue(value)
+            ),
+            (value) => value
+          ),
+          includeKeywords: this.dedupeNormalizedValues(
+            Array.isArray(filters.includeKeywords) ? filters.includeKeywords : [],
+            (value) => String(value || "").trim()
+          ),
+          excludeKeywords: this.dedupeNormalizedValues(
+            Array.isArray(filters.excludeKeywords) ? filters.excludeKeywords : [],
+            (value) => String(value || "").trim()
+          ),
+        };
+        const cacheKey = this.buildSemanticSourceCacheKey("elicit", {
+          query: requestQuery,
+          limit: requestLimit,
+          filters: normalizedFilters,
+        });
+        const cached = this.getCachedSemanticSourceResponse(cacheKey);
+        if (cached) {
+          return cached;
+        }
+        const payload = await this.measureAsync(
+          "Elicit request",
+          () =>
+            this.requestBackendJson("ElicitSearch.php", {
+              query: requestQuery,
+              limit: requestLimit,
+              domain: this.currentDomain || "",
+              filters: normalizedFilters,
+            }),
+          { query: requestQuery, filters: normalizedFilters }
+        );
+        this.publishElicitRateLimitInfo(payload?.rateLimit || null);
+        if (String(payload?.error || "").trim()) {
+          return this.createEmptySourceResult("elicit", requestQuery, String(payload.error || "").trim());
+        }
+        const normalized = this.normalizeSourceResult("elicit", requestQuery, payload);
+        this.setCachedSemanticSourceResponse(cacheKey, normalized);
+        return normalized;
+      },
+      async fetchSciteResults(query, options = {}) {
+        const sourceQueryPlan = this.getResolvedSemanticSourceQueryPlan(query, options);
+        const requestQuery =
+          this.normalizeSemanticQueryText(sourceQueryPlan?.scite?.query) ||
+          this.normalizeSemanticQueryText(query);
+        const requestLimit = this.getConfiguredSemanticSourceLimit("scite", DEFAULT_SCITE_LIMIT);
+        const cacheKey = this.buildSemanticSourceCacheKey("scite", {
+          query: requestQuery,
+          limit: requestLimit,
+        });
+        const cached = this.getCachedSemanticSourceResponse(cacheKey);
+        if (cached) {
+          return cached;
+        }
+        const payload = await this.measureAsync(
+          "Scite request",
+          () =>
+            this.requestBackendJson("SciteSearch.php", {
+              query: requestQuery,
+              limit: requestLimit,
+              domain: this.currentDomain || "",
+            }),
+          { query: requestQuery }
+        );
+        if (String(payload?.error || "").trim()) {
+          return this.createEmptySourceResult("scite", requestQuery, String(payload.error || "").trim());
+        }
+        const normalized = this.normalizeSourceResult("scite", requestQuery, payload);
+        this.setCachedSemanticSourceResponse(cacheKey, normalized);
+        return normalized;
+      },
+      async fetchCoreResults(query, options = {}) {
+        const sourceQueryPlan = this.getResolvedSemanticSourceQueryPlan(query, options);
+        const requestQuery =
+          this.normalizeSemanticQueryText(sourceQueryPlan?.core?.query) ||
+          this.normalizeSemanticQueryText(query);
+        const requestFilters =
+          sourceQueryPlan?.core?.filters && typeof sourceQueryPlan.core.filters === "object"
+            ? sourceQueryPlan.core.filters
+            : {};
+        const requestLimit = this.getConfiguredSemanticSourceLimit("core", DEFAULT_CORE_LIMIT);
+        const cacheKey = this.buildSemanticSourceCacheKey("core", {
+          query: requestQuery,
+          filters: requestFilters,
+          limit: requestLimit,
+        });
+        const cached = this.getCachedSemanticSourceResponse(cacheKey);
+        if (cached) {
+          return cached;
+        }
+        const payload = await this.measureAsync(
+          "CORE request",
+          () =>
+            this.requestBackendJson("CoreSearch.php", {
+              query: requestQuery,
+              filters: requestFilters,
+              limit: requestLimit,
+              domain: this.currentDomain || "",
+            }),
+          { query: requestQuery }
+        );
+        if (String(payload?.error || "").trim()) {
+          return this.createEmptySourceResult("core", requestQuery, String(payload.error || "").trim());
+        }
+        const normalized = this.normalizeSourceResult("core", requestQuery, payload);
+        this.setCachedSemanticSourceResponse(cacheKey, normalized);
+        return normalized;
+      },
+      async fetchPubMedBestMatchResults(query) {
+        const requestLimit = this.getConfiguredSemanticSourceLimit(
+          "pubmedBestMatch",
+          DEFAULT_PUBMED_BEST_MATCH_LIMIT
+        );
+        const requestParams = {
+          term: query,
+          sort: "relevance",
+          retmax: String(requestLimit),
+          retmode: "json",
+          db: "pubmed",
+          domain: this.currentDomain || "",
+        };
+        console.info("[PubMedBestMatchFlow] NLM Best Match request params.", requestParams);
+        const payload = await this.measureAsync(
+          "PubMed Best Match request",
+          () => this.requestBackendForm("NlmSearch.php", requestParams),
+          { query }
+        );
+        const idList = Array.isArray(payload?.esearchresult?.idlist) ? payload.esearchresult.idlist : [];
+        const candidates = idList
+          .map((pmid, index) => {
+            const normalizedPmid = this.normalizePmidValue(pmid);
+            if (!normalizedPmid) return null;
+            return {
+              source: "pubmed",
+              rank: index + 1,
+              pmid: normalizedPmid,
+              doi: "",
+              title: "",
+              score: null,
+            };
+          })
+          .filter(Boolean);
+
+        return this.normalizeSourceResult("pubmed", query, {
+          total: Number(payload?.esearchresult?.count || candidates.length),
+          pmids: idList,
+          dois: [],
+          candidates,
+        });
+      },
+      async buildPubMedSearchStringFromFreeText(freeTextInput) {
+        let translated = await this.measureAsync(
+          "PubMed query translation",
+          () => this.translateSearch(freeTextInput),
+          { input: freeTextInput }
+        );
+        if (this.instanceUseMeshValidation) {
+          this.$emit("translating", true, this.index, "translatingStepMesh");
+          translated = await this.measureAsync(
+            "MeSH validation",
+            () =>
+              validateAndEnhanceMeshTerms(
+                translated,
+                freeTextInput,
+                this.appSettings.nlm.proxyUrl,
+                this.appSettings.openAi.baseUrl,
+                this.appSettings.client,
+                this.language,
+                (stepKey) => this.$emit("translating", true, this.index, stepKey)
+              ),
+            { input: freeTextInput }
+          );
+        }
+        return translated;
+      },
+      async findRelevantPubMedResults(freeTextInput) {
+        const flowStartedAt = this.getTimingNow();
+        const generatedSearchString = await this.buildPubMedSearchStringFromFreeText(freeTextInput);
+        this.$emit("translating", true, this.index, "translatingStepPubMedBestMatch");
+        const pubmedResult = await this.fetchPubMedBestMatchResults(generatedSearchString);
+        console.info("[Timing] PubMed Best Match total flow", {
+          input: freeTextInput,
+          query: generatedSearchString,
+          elapsedMs: this.roundTimingMs(this.getTimingNow() - flowStartedAt),
+        });
+        return {
+          generatedSearchString,
+          pubmedResult,
+        };
+      },
+      buildSourceErrorResult(source, query, error) {
+        const message = String(error || "");
+        const prefixMap = {
+          pubmed: "PubMedBestMatchFlow",
+          semanticScholar: "SemanticScholarFlow",
+          openAlex: "OpenAlexFlow",
+          elicit: "ElicitFlow",
+          scite: "SciteFlow",
+          core: "CoreFlow",
+        };
+        console.warn(`[${prefixMap[source] || "MultiSourceFlow"}] Source request failed.`, error);
+        return this.createEmptySourceResult(source, query, message);
+      },
+      async fetchSemanticScholarPmids(query) {
+        const result = await this.fetchSemanticScholarResults(query);
+        return result.pmids;
       },
       /**
        * Get selected options for an optiongroup by optiongroup id.
