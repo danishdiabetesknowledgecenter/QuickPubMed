@@ -2521,12 +2521,17 @@
           tooltip: customInputTagTooltip,
         };
       },
-      buildTranslatedPendingSemanticTag(translatedTag, originalInput) {
+      buildTranslatedPendingSemanticTag(translatedTag, originalInput, options = {}) {
+        const showOriginalInput = options?.showOriginalInput === true;
+        const visibleName = showOriginalInput ? originalInput : translatedTag;
+        const visiblePreString = showOriginalInput
+          ? this.getString("manualInputTerm") + ":\u00A0"
+          : this.getString("manualInputTermTranslated") + ":\u00A0";
         return {
           id: `__custom__:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`,
-          name: translatedTag,
-          searchStrings: { normal: [translatedTag] },
-          preString: this.getString("manualInputTermTranslated") + ":\u00A0",
+          name: visibleName,
+          searchStrings: { normal: [visibleName] },
+          preString: visiblePreString,
           isCustom: true,
           isTranslated: true,
           preTranslation: originalInput,
@@ -2537,7 +2542,7 @@
           llmSemanticIntent: null,
           semanticIntentMeta: null,
           semanticSourceQueryPlan: null,
-          pubmedGeneratedQuery: "",
+          pubmedGeneratedQuery: translatedTag,
           semanticScholarPmids: [],
           semanticScholarDois: [],
           semanticScholarCandidates: [],
@@ -2545,21 +2550,23 @@
           semanticScholarError: "",
           useSemanticScholar: false,
           includeTranslatedTextInQuery: true,
-          tooltip: {
-            dk:
-              customInputTagTooltip.dk +
-              " &ndash; denne søgning er oversat fra: <strong>" +
-              originalInput +
-              "</strong>",
-            en:
-              customInputTagTooltip.en +
-              " &ndash; this search is translated from: <strong>" +
-              originalInput +
-              "</strong>",
-          },
+          tooltip: showOriginalInput
+            ? customInputTagTooltip
+            : {
+                dk:
+                  customInputTagTooltip.dk +
+                  " &ndash; denne søgning er oversat fra: <strong>" +
+                  originalInput +
+                  "</strong>",
+                en:
+                  customInputTagTooltip.en +
+                  " &ndash; this search is translated from: <strong>" +
+                  originalInput +
+                  "</strong>",
+              },
         };
       },
-      async buildResolvedSemanticTagState(newTag) {
+      async buildResolvedSemanticTagState(newTag, existingTag = null) {
         const useSemanticScholarSource = this.searchWithSemanticScholar;
         const useOpenAlexSource = this.isOpenAlexSemanticSearchEnabled();
         const useElicitSource = this.searchWithElicit;
@@ -2567,11 +2574,15 @@
           useSemanticScholarSource ||
           useOpenAlexSource ||
           useElicitSource;
+        const shouldUseAiSemanticFlow = this.searchWithAI === true && hasSemanticSource;
+        const shouldGeneratePubmedQuery =
+          this.searchWithAI === true && this.searchWithPubMedBestMatch === true;
         let semanticQuery = "";
         let semanticIntentPayload = null;
         let llmSemanticIntent = null;
         let semanticIntentMeta = null;
         let semanticSourceQueryPlan = null;
+        let pubmedGeneratedQuery = String(existingTag?.pubmedGeneratedQuery || "").trim();
         const sourceResults = [];
         const sourceErrors = [];
 
@@ -2582,10 +2593,21 @@
             openAlex: useOpenAlexSource,
             elicit: useElicitSource,
           },
+          useAiSemanticFlow: shouldUseAiSemanticFlow,
+          shouldGeneratePubmedQuery,
         });
 
+        if (shouldGeneratePubmedQuery && !pubmedGeneratedQuery) {
+          this.$emit("translating", true, this.index, "translatingStepSearchString");
+          try {
+            pubmedGeneratedQuery = await this.buildPubMedSearchStringFromFreeText(newTag);
+          } finally {
+            this.$emit("translating", false, this.index, "translatingStepSearchString");
+          }
+        }
+
         const [semanticQueryOutcome] = await Promise.allSettled([
-          hasSemanticSource
+          shouldUseAiSemanticFlow
             ? this.measureAsync(
                 "Semantic intent/query translation",
                 () => this.deriveSemanticQueryForSources(newTag),
@@ -2595,15 +2617,17 @@
         ]);
 
         if (hasSemanticSource) {
-          if (semanticQueryOutcome.status === "fulfilled") {
+          if (shouldUseAiSemanticFlow && semanticQueryOutcome.status === "fulfilled") {
             const semanticOutcomeValue = semanticQueryOutcome.value || {};
             semanticQuery = String(semanticOutcomeValue.semanticQuery || "").trim();
             semanticIntentPayload = semanticOutcomeValue.semanticIntentPayload || null;
             llmSemanticIntent = semanticOutcomeValue.llmSemanticIntent || null;
             semanticIntentMeta = semanticOutcomeValue.semanticIntentMeta || null;
             semanticSourceQueryPlan = semanticOutcomeValue.semanticSourceQueryPlan || null;
-          } else {
+          } else if (shouldUseAiSemanticFlow) {
             throw semanticQueryOutcome.reason;
+          } else {
+            semanticQuery = String(newTag || "").trim();
           }
 
           if (semanticQuery) {
@@ -2734,7 +2758,7 @@
           llmSemanticIntent,
           semanticIntentMeta,
           semanticSourceQueryPlan,
-          pubmedGeneratedQuery: "",
+          pubmedGeneratedQuery,
           semanticScholarPmids,
           semanticScholarDois,
           semanticScholarCandidates,
@@ -2758,7 +2782,7 @@
               if (!inputText) {
                 return { tag, resolvedState: { isPendingSemanticSearch: false } };
               }
-              const resolvedState = await this.buildResolvedSemanticTagState(inputText);
+              const resolvedState = await this.buildResolvedSemanticTagState(inputText, tag);
               return { tag, resolvedState };
             })
           );
@@ -2824,7 +2848,9 @@
           }
 
           tag = useAnyIdSource
-            ? this.buildTranslatedPendingSemanticTag(translated, newTag)
+            ? this.buildTranslatedPendingSemanticTag(translated, newTag, {
+                showOriginalInput: true,
+              })
             : {
                 id: `__custom__:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`,
                 name: translated,
@@ -2833,6 +2859,7 @@
                 isCustom: true,
                 isTranslated: true,
                 preTranslation: newTag,
+                pubmedGeneratedQuery: translated,
                 tooltip: {
                   dk:
                     customInputTagTooltip.dk +
@@ -2941,7 +2968,6 @@
             ? newTag.name
             : oldTag?.preTranslation || "";
         const shouldRestartDeferredSemanticFlow =
-          this.searchWithPubMedBestMatch ||
           this.searchWithSemanticScholar ||
           this.isOpenAlexSemanticSearchEnabled() ||
           this.searchWithElicit;
@@ -2953,7 +2979,6 @@
               semanticFlowType: "deferred",
               isPendingSemanticSearch: shouldRestartDeferredSemanticFlow,
               useSemanticScholar: false,
-              includeTranslatedTextInQuery: false,
               semanticScholarQuery: "",
               semanticIntentPayload: null,
               llmSemanticIntent: null,
@@ -2965,7 +2990,7 @@
               semanticScholarCandidates: [],
               semanticSourceResults: [],
               semanticScholarError: "",
-              includeTranslatedTextInQuery: oldTag?.isTranslated === true,
+              includeTranslatedTextInQuery: this.searchWithPubMedBestMatch === true,
             }
           : {
               ...newTag,

@@ -366,7 +366,7 @@
         isFirstFill: true,
         isCollapsed: false,
         translationSourcesExpanded: false,
-        manualAiTranslationEnabled: false,
+        manualAiTranslationEnabled: true,
         isUrlParsed: false,
         oldState: "",
         page: 0,
@@ -728,6 +728,21 @@
             .replace(/\s+/g, " ")
             .trim()
             .toLowerCase();
+        const resolvePubMedSearchValues = (item) => {
+          const scope = item?.scope;
+          const scopedSearchStrings =
+            item?.searchStrings && scope && Array.isArray(item.searchStrings[scope])
+              ? item.searchStrings[scope]
+              : [];
+          if (scopedSearchStrings.length === 0) {
+            return [];
+          }
+          const pubmedGeneratedQuery = String(item?.pubmedGeneratedQuery || "").trim();
+          if (item?.includeTranslatedTextInQuery === true && pubmedGeneratedQuery) {
+            return [pubmedGeneratedQuery];
+          }
+          return scopedSearchStrings;
+        };
 
         const buildSubstring = (items, connector = " OR ", allowStandardString = false) => {
           return items
@@ -735,12 +750,12 @@
               (item) =>
                 item.searchStrings &&
                 item.scope &&
-                item.searchStrings[item.scope] &&
-                item.searchStrings[item.scope].length > 0
+                resolvePubMedSearchValues(item).length > 0
             )
             .map((item) => {
-              const { scope, searchStrings } = item;
-              let combined = searchStrings[scope].join(connector);
+              const { scope } = item;
+              const scopedSearchValues = resolvePubMedSearchValues(item);
+              let combined = scopedSearchValues.join(connector);
 
               const scopeCombineValue =
                 item.combineWithStandardStringScopes &&
@@ -768,7 +783,7 @@
                   combined = `(${combined}) AND (${standardStringValue})`;
                 }
               }
-              return hasLogicalOperators(searchStrings[scope][0]) && items.length > 1
+              return hasLogicalOperators(scopedSearchValues[0]) && items.length > 1
                 ? `(${combined})`
                 : combined;
             })
@@ -785,9 +800,8 @@
             (item) =>
               item.searchStrings &&
               item.scope &&
-              item.searchStrings[item.scope] &&
-              item.searchStrings[item.scope][0] &&
-              hasLogicalOperators(item.searchStrings[item.scope][0])
+              resolvePubMedSearchValues(item)[0] &&
+              hasLogicalOperators(resolvePubMedSearchValues(item)[0])
           );
 
           let substring = index > 0 ? " AND " : "";
@@ -823,9 +837,8 @@
               (item) =>
                 item.searchStrings &&
                 item.scope &&
-                item.searchStrings[item.scope] &&
-                item.searchStrings[item.scope][0] &&
-                hasLogicalOperators(item.searchStrings[item.scope][0])
+                resolvePubMedSearchValues(item)[0] &&
+                hasLogicalOperators(resolvePubMedSearchValues(item)[0])
             );
 
             let substring = " AND ";
@@ -847,9 +860,8 @@
               (item) =>
                 item.searchStrings &&
                 item.scope &&
-                item.searchStrings[item.scope] &&
-                item.searchStrings[item.scope][0] &&
-                hasLogicalOperators(item.searchStrings[item.scope][0])
+                resolvePubMedSearchValues(item)[0] &&
+                hasLogicalOperators(resolvePubMedSearchValues(item)[0])
             );
 
             let substring = " AND ";
@@ -1223,6 +1235,9 @@
         );
       },
       getGlobalSemanticIntentInput() {
+        if (!this.searchWithAI) {
+          return String(this.searchIntent || "").trim();
+        }
         const semanticContext =
           this.semanticWordedIntentContext && typeof this.semanticWordedIntentContext === "object"
             ? this.semanticWordedIntentContext
@@ -3277,7 +3292,7 @@
        */
       clear() {
         this.reloadScripts();
-        this.manualAiTranslationEnabled = false;
+        this.manualAiTranslationEnabled = true;
         this.translationSourcesUserTouched = false;
         this.applyConfiguredTranslationSources(true);
         this.topics = [[]];
@@ -5288,6 +5303,9 @@
         const isMobileOrSmall = isMobileViewport() || window.innerWidth < 520;
         return this.getString(isMobileOrSmall ? "choselimits_mobile" : "choselimits");
       },
+      shouldSuppressDropdownProgressPlaceholder() {
+        return this.searchWithAI && this.activeTranslationSourcesCount > 1 && !this.searchLoading;
+      },
       clearFilterPlaceholderDotInterval() {
         if (
           this.filterPlaceholderDotIntervalId !== null &&
@@ -5303,6 +5321,11 @@
         if (isTranslating) {
           if (this.searchLoading) {
             this.updateSearchLoadingStatus(stepKey, true);
+            return;
+          }
+          if (this.shouldSuppressDropdownProgressPlaceholder()) {
+            this.clearFilterPlaceholderDotInterval();
+            this.limitDropdownPlaceholders[index] = this.getDefaultFilterPlaceholder();
             return;
           }
           this.clearFilterPlaceholderDotInterval();
@@ -5332,6 +5355,11 @@
         if (isTranslating) {
           if (this.searchLoading) {
             this.updateSearchLoadingStatus(stepKey, true);
+            return;
+          }
+          if (this.shouldSuppressDropdownProgressPlaceholder()) {
+            this.clearPlaceholderDotInterval();
+            this.dropdownPlaceholders[index] = this.getDropdownPlaceholder(index, false);
             return;
           }
           this.clearPlaceholderDotInterval();
