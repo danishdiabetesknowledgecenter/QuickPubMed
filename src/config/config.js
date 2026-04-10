@@ -9,7 +9,7 @@ export const config = reactive({
   useMeshValidation: true, // Validate AI-translated [mh] terms via NLM E-utilities MeSH database
   semanticSourceLimits: {}, // Frontend-safe semantic source limits from backend config
   rerankConfig: {}, // Frontend-safe rerank settings from backend config
-  translationSourcesByDomain: {}, // Domain-specific default source selection: { domainKey: ["pubmed", ...] }
+  translationSourcesByDomain: {}, // Domain-specific source availability fallback: { domainKey: ["pubmed", ...] }
   theme: {}, // Global CSS custom properties to override :root defaults
   themeByDomain: {}, // Domain-specific CSS variable overrides: { domainKey: { "--color-...": "..." } }
   classOverrides: {}, // Global class overrides: { baseClass: { mode, classes[] } }
@@ -282,8 +282,6 @@ export async function loadThemeOverridesFromBackend(domain, apiBaseUrl) {
           "semanticScholar",
           "openAlex",
           "elicit",
-          "scite",
-          "core",
         ]);
         const normalizedSources = Array.from(
           new Set(

@@ -6,8 +6,6 @@ const DEFAULT_SEMANTIC_RERANK_CONFIG = Object.freeze({
     semanticScholar: 0.92,
     openAlex: 0.88,
     elicit: 0.9,
-    scite: 0.88,
-    core: 0.86,
   },
   pmidBonus: 10,
   rankScale: 100,

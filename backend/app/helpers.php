@@ -237,82 +237,6 @@ function qpmGetOpenAlexEmail(?string $domain = null): string
 }
 
 /**
- * Resolve Scite API key for domain with default fallback.
- *
- * @param string|null $domain
- * @return string
- */
-function qpmGetSciteApiKey(?string $domain = null): string
-{
-    $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
-    if (isset($runtimeConfig['scite']) && is_array($runtimeConfig['scite'])) {
-        $apiKey = $runtimeConfig['scite']['api_key'] ?? '';
-        if (is_string($apiKey) && $apiKey !== '') {
-            return $apiKey;
-        }
-    }
-
-    return defined('SCITE_API_KEY') ? (string) SCITE_API_KEY : '';
-}
-
-/**
- * Resolve Scite API URL for domain with default fallback.
- *
- * @param string|null $domain
- * @return string
- */
-function qpmGetSciteApiUrl(?string $domain = null): string
-{
-    $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
-    if (isset($runtimeConfig['scite']) && is_array($runtimeConfig['scite'])) {
-        $apiUrl = $runtimeConfig['scite']['api_url'] ?? '';
-        if (is_string($apiUrl) && $apiUrl !== '') {
-            return $apiUrl;
-        }
-    }
-
-    return defined('SCITE_API_URL') ? (string) SCITE_API_URL : 'https://api.scite.ai/api_partner/search';
-}
-
-/**
- * Resolve CORE API key for domain with default fallback.
- *
- * @param string|null $domain
- * @return string
- */
-function qpmGetCoreApiKey(?string $domain = null): string
-{
-    $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
-    if (isset($runtimeConfig['core']) && is_array($runtimeConfig['core'])) {
-        $apiKey = $runtimeConfig['core']['api_key'] ?? '';
-        if (is_string($apiKey) && $apiKey !== '') {
-            return $apiKey;
-        }
-    }
-
-    return defined('CORE_API_KEY') ? (string) CORE_API_KEY : '';
-}
-
-/**
- * Resolve CORE API URL for domain with default fallback.
- *
- * @param string|null $domain
- * @return string
- */
-function qpmGetCoreApiUrl(?string $domain = null): string
-{
-    $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
-    if (isset($runtimeConfig['core']) && is_array($runtimeConfig['core'])) {
-        $apiUrl = $runtimeConfig['core']['api_url'] ?? '';
-        if (is_string($apiUrl) && $apiUrl !== '') {
-            return $apiUrl;
-        }
-    }
-
-    return defined('CORE_API_URL') ? (string) CORE_API_URL : 'https://api.core.ac.uk/v3/search/works';
-}
-
-/**
  * Resolve NLM API key for domain with default fallback.
  *
  * @param string|null $domain
@@ -438,8 +362,6 @@ function qpmNormalizeTranslationSourceKey($value): ?string
         'open-alex' => 'openAlex',
         'open_alex' => 'openAlex',
         'elicit' => 'elicit',
-        'scite' => 'scite',
-        'core' => 'core',
     ];
 
     return $aliasMap[$normalized] ?? null;

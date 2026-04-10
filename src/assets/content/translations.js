@@ -136,12 +136,12 @@ export const messages = {
     en: "Choose AI search mode",
   },
   semanticSearchSectionHeader: {
-    dk: "Semantisk søgning",
-    en: "Semantic search",
+    dk: "Databaser",
+    en: "Databases",
   },
   hoverSemanticSearchSectionHeader: {
-    dk: "Semantisk søgning finder artikler ud fra betydning og relevans i stedet for kun præcise ordmatch. De valgte kilder forsøger at fortolke din samlede søgeintention og finde relevante studier, også når de ikke bruger helt de samme ord som i din søgning.",
-    en: "Semantic search finds articles based on meaning and relevance rather than only exact word matches. The selected sources try to interpret your overall search intent and find relevant studies even when they do not use exactly the same words as in your query.",
+    dk: "Vælg hvilke databaser der skal bruges til din søgning. PubMed bruger den almindelige QuickPubMed-søgning med dine valgte emner og afgrænsninger, mens de øvrige databaser kan bruges som ekstra kilder til fritekstinput.",
+    en: "Choose which databases to use for your search. PubMed uses the regular QuickPubMed search with your selected topics and filters, while the other databases can be used as additional sources for free-text input.",
   },
   selectedCountSuffix: {
     dk: "valgt",
@@ -180,100 +180,68 @@ export const messages = {
     en: "When this feature is disabled, this AI-generated PubMed query is not used directly as the search string in QuickPubMed.",
   },
   searchToggleWithPubMedBestMatch: {
-    dk: "Relevanssøgning (PubMed)",
-    en: "Relevance search (PubMed)",
+    dk: "PubMed",
+    en: "PubMed",
   },
   hoversearchToggleWithPubMedBestMatch: {
-    dk: "Den indtastede fritekst oversættes først til en PubMed-søgestreng. Denne søgestreng bruges derefter til et PubMed API-opslag med relevanssortering (Best Match), og de fundne PMID'er indgår i den samlede reranking.",
-    en: "The entered free text is first translated into a PubMed query. That query is then used for a PubMed API lookup with relevance sorting (Best Match), and the returned PMIDs are included in the combined reranking.",
+    dk: "Når denne database er valgt, søges der i PubMed med dine valgte emner, fritekst og afgrænsninger.",
+    en: "When this database is selected, the search runs in PubMed using your selected topics, free text, and filters.",
   },
   searchToggleWithoutPubMedBestMatch: {
-    dk: "Relevanssøgning (PubMed) (slået fra)",
-    en: "Relevance search (PubMed) (disabled)",
+    dk: "PubMed (slået fra)",
+    en: "PubMed (disabled)",
   },
   hoversearchToggleWithoutPubMedBestMatch: {
-    dk: "Når denne funktion er slået fra, bruges PubMed Best Match ikke som kilde til ekstra PMID'er.",
-    en: "When this feature is disabled, PubMed Best Match is not used as a source of additional PMIDs.",
+    dk: "Når denne database er slået fra, indgår PubMed ikke i søgningen. Hvis alle databaser fravælges, vælges PubMed automatisk igen.",
+    en: "When this database is disabled, PubMed is not included in the search. If all databases are deselected, PubMed is selected again automatically.",
   },
   searchToggleWithSemanticScholar: {
     dk: "Semantic Scholar",
     en: "Search with Semantic Scholar",
   },
   hoversearchToggleWithSemanticScholar: {
-    dk: "Når du indtaster fritekst, oversættes teksten først til engelsk og bruges som forespørgsel i Semantic Scholar. De fundne PubMed-ID'er bruges derefter i QuickPubMed.",
-    en: "When you enter free text, the text is first translated into English and used as a query in Semantic Scholar. The returned PubMed IDs are then used in QuickPubMed.",
+    dk: "Når denne database er valgt, bruges din fritekst som grundlag for en søgning i Semantic Scholar efter relevante videnskabelige artikler.",
+    en: "When this database is selected, your free text is used as the basis for a search in Semantic Scholar for relevant scientific articles.",
   },
   searchToggleWithoutSemanticScholar: {
     dk: "Semantic Scholar (slået fra)",
     en: "Search with Semantic Scholar (disabled)",
   },
   hoversearchToggleWithoutSemanticScholar: {
-    dk: "Når denne funktion er slået fra, bruges Semantic Scholar ikke til fritekstinput.",
-    en: "When this feature is disabled, Semantic Scholar is not used for free-text input.",
+    dk: "Når denne database er slået fra, bruges Semantic Scholar ikke som ekstra kilde til fritekstsøgning.",
+    en: "When this database is disabled, Semantic Scholar is not used as an additional source for free-text search.",
   },
   searchToggleWithOpenAlex: {
     dk: "OpenAlex",
     en: "Search with OpenAlex",
   },
   hoversearchToggleWithOpenAlex: {
-    dk: "Når du indtaster fritekst, oversættes teksten til engelsk og bruges i OpenAlex' semantiske søgning. Relevante PubMed-ID'er indgår derefter i QuickPubMed.",
-    en: "When you enter free text, the text is translated into English and used in OpenAlex semantic search. Relevant PubMed IDs are then included in QuickPubMed.",
+    dk: "Når denne database er valgt, bruges din fritekst i OpenAlex' søgning for at finde relevante forskningsartikler og tilknyttede oplysninger.",
+    en: "When this database is selected, your free text is used in OpenAlex search to find relevant research articles and related metadata.",
   },
   searchToggleWithoutOpenAlex: {
     dk: "OpenAlex (slået fra)",
     en: "Search with OpenAlex (disabled)",
   },
   hoversearchToggleWithoutOpenAlex: {
-    dk: "Når denne funktion er slået fra, bruges OpenAlex ikke som semantisk fritekstkilde. OpenAlex kan stadig bruges internt til metadata-opslag for DOI-only resultater fundet via andre kilder.",
-    en: "When this feature is disabled, OpenAlex is not used as a semantic free-text source. OpenAlex may still be used internally for DOI-only metadata lookup for results found via other sources.",
+    dk: "Når denne database er slået fra, bruges OpenAlex ikke som ekstra kilde til fritekstsøgning.",
+    en: "When this database is disabled, OpenAlex is not used as an additional source for free-text search.",
   },
   searchToggleWithElicit: {
     dk: "Elicit",
     en: "Search with Elicit",
   },
   hoversearchToggleWithElicit: {
-    dk: "Når du indtaster fritekst, bruges teksten i Elicits semantiske søgning. Relevante PubMed-ID'er indgår derefter i QuickPubMed.",
-    en: "When you enter free text, the text is used in Elicit semantic search. Relevant PubMed IDs are then included in QuickPubMed.",
+    dk: "Når denne database er valgt, bruges din fritekst i Elicits søgning for at finde relevante forskningsartikler.",
+    en: "When this database is selected, your free text is used in Elicit search to find relevant research articles.",
   },
   searchToggleWithoutElicit: {
     dk: "Elicit (slået fra)",
     en: "Search with Elicit (disabled)",
   },
   hoversearchToggleWithoutElicit: {
-    dk: "Når denne funktion er slået fra, bruges Elicit ikke til fritekstinput.",
-    en: "When this feature is disabled, Elicit is not used for free-text input.",
-  },
-  searchToggleWithScite: {
-    dk: "Scite",
-    en: "Search with Scite",
-  },
-  hoversearchToggleWithScite: {
-    dk: "Når du indtaster fritekst, bruges teksten i Scites artikelsøgning. Relevante DOI'er indgår derefter i QuickPubMed.",
-    en: "When you enter free text, the text is used in Scite paper search. Relevant DOIs are then included in QuickPubMed.",
-  },
-  searchToggleWithoutScite: {
-    dk: "Scite (slået fra)",
-    en: "Search with Scite (disabled)",
-  },
-  hoversearchToggleWithoutScite: {
-    dk: "Når denne funktion er slået fra, bruges Scite ikke til fritekstinput.",
-    en: "When this feature is disabled, Scite is not used for free-text input.",
-  },
-  searchToggleWithCore: {
-    dk: "CORE",
-    en: "Search with CORE",
-  },
-  hoversearchToggleWithCore: {
-    dk: "Når du indtaster fritekst, bruges teksten i COREs works-søgning på tværs af søgbare felter. Relevante DOI'er og eventuelle PMID'er indgår derefter i QuickPubMed.",
-    en: "When you enter free text, the text is used in CORE work search across searchable fields. Relevant DOIs and any PMIDs are then included in QuickPubMed.",
-  },
-  searchToggleWithoutCore: {
-    dk: "CORE (slået fra)",
-    en: "Search with CORE (disabled)",
-  },
-  hoversearchToggleWithoutCore: {
-    dk: "Når denne funktion er slået fra, bruges CORE ikke til fritekstinput.",
-    en: "When this feature is disabled, CORE is not used for free-text input.",
+    dk: "Når denne database er slået fra, bruges Elicit ikke som ekstra kilde til fritekstsøgning.",
+    en: "When this database is disabled, Elicit is not used as an additional source for free-text search.",
   },
   advancedSearch: {
     dk: "Avanceret",
@@ -347,14 +315,6 @@ export const messages = {
     dk: "Finder resultater i Elicit",
     en: "Finding results in Elicit",
   },
-  translatingStepScite: {
-    dk: "Finder resultater i Scite",
-    en: "Finding results in Scite",
-  },
-  translatingStepCore: {
-    dk: "Finder resultater i CORE",
-    en: "Finding results in CORE",
-  },
   semanticSearchProgressPreparing: {
     dk: "Forbereder den semantiske søgning ud fra dine valgte søgeord og afgrænsninger.",
     en: "Preparing the semantic search from your selected terms and filters.",
@@ -386,14 +346,6 @@ export const messages = {
   semanticSearchProgressElicit: {
     dk: "Søger efter relaterede artikler i Elicit.",
     en: "Searching for related articles in Elicit.",
-  },
-  semanticSearchProgressScite: {
-    dk: "Søger efter relaterede artikler i Scite.",
-    en: "Searching for related articles in Scite.",
-  },
-  semanticSearchProgressCore: {
-    dk: "Søger efter relaterede artikler i CORE.",
-    en: "Searching for related articles in CORE.",
   },
   semanticSearchProgressFinalize: {
     dk: "Samler resultaterne og gør dem klar til visning.",
@@ -1175,6 +1127,14 @@ export const messages = {
   loadingText: {
     dk: "Indlæser...",
     en: "Loading...",
+  },
+  sortResultsLoadingText: {
+    dk: "Sorterer resultater...",
+    en: "Sorting results...",
+  },
+  loadMoreResultsLoadingText: {
+    dk: "Indlæser flere resultater...",
+    en: "Loading more results...",
   },
   summarizeArticleNotAvailable: {
     dk: "Det er desværre ikke muligt at opsummere hele artiklen.",

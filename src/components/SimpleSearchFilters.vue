@@ -192,13 +192,9 @@
         type: Boolean,
         default: false,
       },
-      searchWithScite: {
-        type: Boolean,
-        default: false,
-      },
-      searchWithCore: {
-        type: Boolean,
-        default: false,
+      availableTranslationSources: {
+        type: Array,
+        default: () => [],
       },
     },
     emits: ["update-limit", "update-limit-enter", "update-semantic-source"],
@@ -209,9 +205,9 @@
     },
     computed: {
       semanticOptions() {
-        return [
+        const options = [
           {
-            id: "pubmedBestMatch",
+            id: "pubmed",
             labelKey: "searchToggleWithPubMedBestMatch",
             hoverKey: "hoversearchToggleWithPubMedBestMatch",
           },
@@ -230,17 +226,15 @@
             labelKey: "searchToggleWithElicit",
             hoverKey: "hoversearchToggleWithElicit",
           },
-          {
-            id: "scite",
-            labelKey: "searchToggleWithScite",
-            hoverKey: "hoversearchToggleWithScite",
-          },
-          {
-            id: "core",
-            labelKey: "searchToggleWithCore",
-            hoverKey: "hoversearchToggleWithCore",
-          },
         ];
+        const allowedSources = new Set(
+          (Array.isArray(this.availableTranslationSources) ? this.availableTranslationSources : []).map((value) =>
+            String(value || "").trim()
+          )
+        );
+        return allowedSources.size > 0
+          ? options.filter((option) => allowedSources.has(option.id))
+          : options;
       },
     },
     methods: {
@@ -310,7 +304,7 @@
         if (!option?.id) return false;
         const key = option.id;
         const propName =
-          key === "pubmedBestMatch"
+          key === "pubmed"
             ? "searchWithPubMedBestMatch"
             : `searchWith${key.charAt(0).toUpperCase()}${key.slice(1)}`;
         return Boolean(this[propName]);

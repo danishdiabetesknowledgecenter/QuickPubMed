@@ -57,8 +57,6 @@ $semanticSourceLimits = [
     'semanticScholar' => qpmGetSemanticSourceLimit('semanticScholar', 400),
     'openAlex' => qpmGetSemanticSourceLimit('openAlex', 100),
     'elicit' => qpmGetSemanticSourceLimit('elicit', 100),
-    'scite' => qpmGetSemanticSourceLimit('scite', 100),
-    'core' => qpmGetSemanticSourceLimit('core', 100),
     'pubmedBestMatch' => qpmGetSemanticSourceLimit('pubmedBestMatch', 200),
 ];
 $rerankConfig = defined('QPM_RERANK_CONFIG') && is_array(QPM_RERANK_CONFIG)

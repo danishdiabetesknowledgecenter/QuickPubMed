@@ -20,8 +20,6 @@
           :search-with-semantic-scholar="searchWithSemanticScholar"
           :search-with-open-alex="searchWithOpenAlex"
           :search-with-elicit="searchWithElicit"
-          :search-with-scite="searchWithScite"
-          :search-with-core="searchWithCore"
           :semantic-worded-intent-context="semanticWordedIntentContext"
           :show-scope-label="advanced"
           :no-result-string="getString('noTopicDropdownContent')"
@@ -103,8 +101,6 @@
       searchWithSemanticScholar: Boolean,
       searchWithOpenAlex: Boolean,
       searchWithElicit: Boolean,
-      searchWithScite: Boolean,
-      searchWithCore: Boolean,
       semanticWordedIntentContext: {
         type: Object,
         default: null,

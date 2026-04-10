@@ -29,8 +29,6 @@
       :search-with-semantic-scholar="searchWithSemanticScholar"
       :search-with-open-alex="searchWithOpenAlex"
       :search-with-elicit="searchWithElicit"
-      :search-with-scite="searchWithScite"
-      :search-with-core="searchWithCore"
       :semantic-worded-intent-context="semanticWordedIntentContext"
       :get-string="getString"
       :get-limit-placeholder="getLimitPlaceholder"
@@ -94,14 +92,6 @@
         required: true,
       },
       searchWithElicit: {
-        type: Boolean,
-        required: true,
-      },
-      searchWithScite: {
-        type: Boolean,
-        required: true,
-      },
-      searchWithCore: {
         type: Boolean,
         required: true,
       },

@@ -128,43 +128,53 @@ header('X-Accel-Buffering: no');
 if (ob_get_level()) ob_end_clean();
 
 $ch = curl_init($openAiApiUrl);
+$sseBuffer = '';
+$processSseLine = function($line) {
+    $line = trim((string) $line);
+    if ($line === '') return;
+    if (strpos($line, 'data: ') !== 0) return;
+
+    $jsonData = substr($line, 6);
+    if ($jsonData === '[DONE]') return;
+
+    $parsed = json_decode($jsonData, true);
+    if (!$parsed) return;
+
+    if (isset($parsed['type']) && $parsed['type'] === 'response.output_text.delta') {
+        $content = $parsed['delta'] ?? '';
+        echo $content;
+        flush();
+        return;
+    }
+
+    if (isset($parsed['choices'][0]['delta']['content'])) {
+        $content = $parsed['choices'][0]['delta']['content'];
+        echo $content;
+        flush();
+    }
+};
 
 curl_setopt_array($ch, [
     CURLOPT_POST => true,
     CURLOPT_POSTFIELDS => json_encode($openaiRequest),
     CURLOPT_HTTPHEADER => $headers,
     CURLOPT_RETURNTRANSFER => false,
-    CURLOPT_WRITEFUNCTION => function($ch, $data) {
-        $lines = explode("\n", $data);
+    CURLOPT_WRITEFUNCTION => function($ch, $data) use (&$sseBuffer, $processSseLine) {
+        $sseBuffer .= $data;
+        $lines = preg_split("/\r\n|\n|\r/", $sseBuffer);
+        if ($lines === false) {
+            return strlen($data);
+        }
+
+        $endsWithLineBreak = preg_match("/\r\n|\n|\r$/", $sseBuffer) === 1;
+        if ($endsWithLineBreak) {
+            $sseBuffer = '';
+        } else {
+            $sseBuffer = (string) array_pop($lines);
+        }
+
         foreach ($lines as $line) {
-            $line = trim($line);
-            if (empty($line)) continue;
-            
-            if (strpos($line, 'data: ') === 0) {
-                $jsonData = substr($line, 6);
-                
-                if ($jsonData === '[DONE]') {
-                    break;
-                }
-                
-                $parsed = json_decode($jsonData, true);
-                
-                // Responses API streaming format
-                if ($parsed) {
-                    // Check for text delta in Responses API format
-                    if (isset($parsed['type']) && $parsed['type'] === 'response.output_text.delta') {
-                        $content = $parsed['delta'] ?? '';
-                        echo $content;
-                        flush();
-                    }
-                    // Fallback to Chat Completions format (for compatibility)
-                    elseif (isset($parsed['choices'][0]['delta']['content'])) {
-                        $content = $parsed['choices'][0]['delta']['content'];
-                        echo $content;
-                        flush();
-                    }
-                }
-            }
+            $processSseLine($line);
         }
         return strlen($data);
     },
@@ -172,6 +182,10 @@ curl_setopt_array($ch, [
 ]);
 
 curl_exec($ch);
+
+if (trim($sseBuffer) !== '') {
+    $processSseLine($sseBuffer);
+}
 
 if (curl_errno($ch)) {
     echo "\n\nError: " . curl_error($ch);

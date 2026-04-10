@@ -183,8 +183,6 @@ function normalizeSemanticIntentContext(item) {
       semanticScholar: "",
       openAlex: "",
       elicit: "",
-      scite: "",
-      core: "",
     };
   }
   if (typeof raw === "string") {
@@ -194,8 +192,6 @@ function normalizeSemanticIntentContext(item) {
       semanticScholar: "",
       openAlex: "",
       elicit: "",
-      scite: "",
-      core: "",
     };
   }
   if (typeof raw !== "object") {
@@ -204,8 +200,6 @@ function normalizeSemanticIntentContext(item) {
       semanticScholar: "",
       openAlex: "",
       elicit: "",
-      scite: "",
-      core: "",
     };
   }
   return {
@@ -213,8 +207,6 @@ function normalizeSemanticIntentContext(item) {
     semanticScholar: normalizeString(raw.semanticScholar || raw.semantic_scholar || ""),
     openAlex: normalizeString(raw.openAlex || raw.openalex || ""),
     elicit: normalizeString(raw.elicit || ""),
-    scite: normalizeString(raw.scite || ""),
-    core: normalizeString(raw.core || ""),
   };
 }
 
@@ -384,12 +376,6 @@ function buildSourceSpecificBlocks(items) {
     elicit: dedupeStrings(
       (Array.isArray(items) ? items : []).map((item) => getSemanticIntentText(item, "elicit"))
     ),
-    scite: dedupeStrings(
-      (Array.isArray(items) ? items : []).map((item) => getSemanticIntentText(item, "scite"))
-    ),
-    core: dedupeStrings(
-      (Array.isArray(items) ? items : []).map((item) => getSemanticIntentText(item, "core"))
-    ),
   };
 }
 
@@ -440,6 +426,7 @@ export function buildSemanticWordedIntentContext({ topicGroups, limitDropdowns, 
   const semanticBlocks = dedupeStrings([
     ...selectedTopicIntentEnglish,
     ...selectedSemanticLimitIntentEnglish,
+    ...untranslatedSelections,
   ]);
 
   const semanticCoreText = semanticBlocks.join(". ");

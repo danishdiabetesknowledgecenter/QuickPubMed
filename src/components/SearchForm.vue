@@ -53,8 +53,6 @@
               :search-with-semantic-scholar="searchWithSemanticScholar"
               :search-with-open-alex="searchWithOpenAlex"
               :search-with-elicit="searchWithElicit"
-              :search-with-scite="searchWithScite"
-              :search-with-core="searchWithCore"
               :semantic-worded-intent-context="semanticWordedIntentContext"
               :get-string="getString"
               @update-topics="updateTopics"
@@ -81,8 +79,6 @@
               :search-with-semantic-scholar="searchWithSemanticScholar"
               :search-with-open-alex="searchWithOpenAlex"
               :search-with-elicit="searchWithElicit"
-              :search-with-scite="searchWithScite"
-              :search-with-core="searchWithCore"
               :semantic-worded-intent-context="semanticWordedIntentContext"
               :get-string="getString"
               :get-limit-placeholder="getLimitPlaceholder"
@@ -104,8 +100,7 @@
               :search-with-semantic-scholar="searchWithSemanticScholar"
               :search-with-open-alex="searchWithOpenAlex"
               :search-with-elicit="searchWithElicit"
-              :search-with-scite="searchWithScite"
-              :search-with-core="searchWithCore"
+              :available-translation-sources="availableTranslationSourceKeys"
               :help-text-delay="300"
               :get-string="getString"
               :get-custom-name-label="getCustomNameLabel"
@@ -125,6 +120,7 @@
                 </div>
                 <div class="qpm_semanticSearchFiltersGrid">
                   <ai-translation-toggle
+                    v-if="isTranslationSourceAvailable('pubmed')"
                     v-model="searchWithPubMedBestMatch"
                     :is-collapsed="false"
                     :display-mode="'checkbox'"
@@ -137,6 +133,7 @@
                     :get-string="getString"
                   />
                   <ai-translation-toggle
+                    v-if="isTranslationSourceAvailable('semanticScholar')"
                     v-model="searchWithSemanticScholar"
                     :is-collapsed="false"
                     :display-mode="'checkbox'"
@@ -149,6 +146,7 @@
                     :get-string="getString"
                   />
                   <ai-translation-toggle
+                    v-if="isTranslationSourceAvailable('openAlex')"
                     v-model="searchWithOpenAlex"
                     :is-collapsed="false"
                     :display-mode="'checkbox'"
@@ -161,6 +159,7 @@
                     :get-string="getString"
                   />
                   <ai-translation-toggle
+                    v-if="isTranslationSourceAvailable('elicit')"
                     v-model="searchWithElicit"
                     :is-collapsed="false"
                     :display-mode="'checkbox'"
@@ -172,30 +171,6 @@
                     :hover-without-key="'hoversearchToggleWithoutElicit'"
                     :icon-class="''"
                     :tooltip-suffix="getElicitTooltipSuffix()"
-                    :get-string="getString"
-                  />
-                  <ai-translation-toggle
-                    v-model="searchWithScite"
-                    :is-collapsed="false"
-                    :display-mode="'checkbox'"
-                    :show-off-state-label="false"
-                    :label-with-key="'searchToggleWithScite'"
-                    :label-without-key="'searchToggleWithoutScite'"
-                    :hover-with-key="'hoversearchToggleWithScite'"
-                    :hover-without-key="'hoversearchToggleWithoutScite'"
-                    :icon-class="''"
-                    :get-string="getString"
-                  />
-                  <ai-translation-toggle
-                    v-model="searchWithCore"
-                    :is-collapsed="false"
-                    :display-mode="'checkbox'"
-                    :show-off-state-label="false"
-                    :label-with-key="'searchToggleWithCore'"
-                    :label-without-key="'searchToggleWithoutCore'"
-                    :hover-with-key="'hoversearchToggleWithCore'"
-                    :hover-without-key="'hoversearchToggleWithoutCore'"
-                    :icon-class="''"
                     :get-string="getString"
                   />
                 </div>
@@ -243,6 +218,8 @@
         :sort="sort"
         :results="searchresult"
         :loading="searchLoading"
+        :compact-loading-ui="compactLoadingUi"
+        :hide-results-during-compact-loading="compactLoadingHideResults"
         :pagesize="getPageSize"
         :low="getLow"
         :high="getHigh"
@@ -370,6 +347,10 @@
         type: Array,
         default: undefined,
       },
+      defaultTranslationSources: {
+        type: Array,
+        default: undefined,
+      },
     },
     data() {
       return {
@@ -400,6 +381,7 @@
         openAlexDoiPromiseCache: {},
         openAlexSourceCache: {},
         openAlexSourcePromiseCache: {},
+        urlTranslationSources: [],
         globalSemanticSearchInput: "",
         globalSemanticSearchState: null,
         semanticMetadataByDoiCache: null,
@@ -414,6 +396,8 @@
         searchresult: undefined,
         searchLoadingStatusText: "",
         loadingProcessSteps: [],
+        compactLoadingUi: false,
+        compactLoadingHideResults: false,
         elicitRateLimitInfo: null,
         semanticDoiValidationActive: false,
         loadingStatusDotIntervalId: null,
@@ -455,14 +439,27 @@
       isAiFeatureEnabled() {
         return !!runtimeConfig.useAI;
       },
-      hasExplicitTranslationSources() {
+      hasExplicitAvailableTranslationSources() {
         return Array.isArray(this.translationSources);
+      },
+      hasExplicitDefaultTranslationSources() {
+        return Array.isArray(this.defaultTranslationSources);
       },
       domainTranslationSources() {
         const domainKey = String(this.currentDomain || "").trim().toLowerCase();
         if (!domainKey) return null;
         const configuredSources = runtimeConfig.translationSourcesByDomain?.[domainKey];
         return Array.isArray(configuredSources) ? configuredSources : null;
+      },
+      availableTranslationSourceKeys() {
+        if (!this.isAiFeatureEnabled) return [];
+        const configuredSources = this.hasExplicitAvailableTranslationSources
+          ? this.translationSources
+          : this.domainTranslationSources;
+        const normalizedSources = this.normalizeTranslationSourcesList(
+          Array.isArray(configuredSources) ? configuredSources : this.getSupportedTranslationSources()
+        );
+        return this.normalizeTranslationSourcesList(["pubmed", ...normalizedSources]);
       },
       searchWithAI: {
         get() {
@@ -474,18 +471,21 @@
       },
       searchWithPubMedBestMatch: {
         get() {
-          return this.hasTranslationSource("pubmedBestMatch");
+          return this.hasTranslationSource("pubmed");
         },
         set(newValue) {
-          this.updateTranslationSourceSelection("pubmedBestMatch", newValue);
+          this.updateTranslationSourceSelection("pubmed", newValue);
         },
       },
       searchWithPubMedQuery: {
         get() {
-          return this.searchWithAI;
+          return this.searchWithAI && this.searchWithPubMedBestMatch;
         },
         set(newValue) {
           this.searchWithAI = !!newValue;
+          if (newValue && !this.searchWithPubMedBestMatch) {
+            this.updateTranslationSourceSelection("pubmed", true);
+          }
         },
       },
       searchWithSemanticScholar: {
@@ -510,22 +510,6 @@
         },
         set(newValue) {
           this.updateTranslationSourceSelection("elicit", newValue);
-        },
-      },
-      searchWithScite: {
-        get() {
-          return this.hasTranslationSource("scite");
-        },
-        set(newValue) {
-          this.updateTranslationSourceSelection("scite", newValue);
-        },
-      },
-      searchWithCore: {
-        get() {
-          return this.hasTranslationSource("core");
-        },
-        set(newValue) {
-          this.updateTranslationSourceSelection("core", newValue);
         },
       },
       isElicitUnavailable() {
@@ -557,7 +541,7 @@
         return this.hasTopics || this.openLimitsFromUrl || this.openLimits;
       },
       showSemanticSearchSection() {
-        return this.isAiFeatureEnabled;
+        return this.isAiFeatureEnabled && this.availableTranslationSourceKeys.length > 0;
       },
       filteredChoices() {
         const hiddenGroupIds = new Set(this.effectiveHideLimits);
@@ -898,6 +882,11 @@
           }
         }
 
+        if (semanticClause && semanticScholarPmids.length > 0) {
+          const hardFilterQuery = this.getSemanticHardFilterValidationQuery();
+          return hardFilterQuery ? `${semanticClause} AND (${hardFilterQuery})` : semanticClause;
+        }
+
         if (semanticClause && baseQuery) {
           return `${semanticClause} AND ${baseQuery}`;
         }
@@ -925,9 +914,15 @@
         this.translationSourcesUserTouched = false;
         this.applyConfiguredTranslationSources(true);
       },
+      defaultTranslationSources() {
+        this.translationSourcesUserTouched = false;
+        this.applyConfiguredTranslationSources(true);
+      },
       domainTranslationSources() {
-        if (!this.hasExplicitTranslationSources && !this.translationSourcesUserTouched) {
+        if (!this.hasExplicitAvailableTranslationSources && !this.translationSourcesUserTouched) {
           this.applyConfiguredTranslationSources(true);
+        } else {
+          this.setSelectedTranslationSources(this.selectedTranslationSources, false);
         }
       },
       isAiFeatureEnabled(newValue) {
@@ -1015,7 +1010,13 @@
       this.advancedClick();
       this.ensureCheckLimitsSelected();
       if (this.hasTopics) {
-        await this.search();
+        if (!this.shouldBlockAutoSearchFromUrlTranslationSources()) {
+          await this.search();
+        } else {
+          console.info("[SearchFlow] Skipped auto-search because URL selected non-PubMed databases.", {
+            urlTranslationSources: this.urlTranslationSources,
+          });
+        }
         await this.searchPreselectedPmidai();
       }
 
@@ -1058,10 +1059,11 @@
       normalizeTranslationSourcesList(value) {
         if (!Array.isArray(value)) return [];
         const aliasMap = {
-          pubmedBestMatch: "pubmedBestMatch",
-          pubmedbestmatch: "pubmedBestMatch",
-          "pubmed-best-match": "pubmedBestMatch",
-          pubmed_best_match: "pubmedBestMatch",
+          pubmed: "pubmed",
+          pubmedBestMatch: "pubmed",
+          pubmedbestmatch: "pubmed",
+          "pubmed-best-match": "pubmed",
+          pubmed_best_match: "pubmed",
           semanticScholar: "semanticScholar",
           semanticscholar: "semanticScholar",
           "semantic-scholar": "semanticScholar",
@@ -1071,8 +1073,6 @@
           "open-alex": "openAlex",
           open_alex: "openAlex",
           elicit: "elicit",
-          scite: "scite",
-          core: "core",
         };
         const normalizedSources = Array.from(
           new Set(
@@ -1083,15 +1083,25 @@
         );
         return normalizedSources;
       },
+      getSupportedTranslationSources() {
+        return ["pubmed", "semanticScholar", "openAlex", "elicit"];
+      },
+      filterAvailableTranslationSources(value) {
+        const allowedSources = new Set(this.availableTranslationSourceKeys);
+        return this.normalizeTranslationSourcesList(value).filter((sourceKey) => allowedSources.has(sourceKey));
+      },
+      isTranslationSourceAvailable(sourceKey) {
+        return this.availableTranslationSourceKeys.includes(String(sourceKey || "").trim());
+      },
+      shouldBlockAutoSearchFromUrlTranslationSources() {
+        return this.urlTranslationSources.some((sourceKey) => String(sourceKey || "").trim() !== "pubmed");
+      },
       getTranslationSourceOrder(sourceKey) {
         const order = {
           pubmed: 0,
-          pubmedBestMatch: 1,
-          semanticScholar: 2,
-          openAlex: 3,
-          elicit: 4,
-          scite: 5,
-          core: 6,
+          semanticScholar: 1,
+          openAlex: 2,
+          elicit: 3,
         };
         return Number.isFinite(order[sourceKey]) ? order[sourceKey] : Number.MAX_SAFE_INTEGER;
       },
@@ -1112,13 +1122,18 @@
       },
       setSelectedTranslationSources(value, markTouched = false) {
         this.isApplyingTranslationSources = true;
-        const normalizedSources = this.normalizeTranslationSourcesList(value).filter(
+        const normalizedSources = this.filterAvailableTranslationSources(value).filter(
           (sourceKey) => !(sourceKey === "elicit" && this.isElicitUnavailable)
         );
-        this.selectedTranslationSources = normalizedSources;
-        this.previousNonPubmedTranslationSources = [...normalizedSources];
+        const nextSources =
+          this.isAiFeatureEnabled && normalizedSources.length === 0
+            ? this.filterAvailableTranslationSources(["pubmed"])
+            : normalizedSources;
+        const nonPubmedSources = nextSources.filter((sourceKey) => sourceKey !== "pubmed");
+        this.selectedTranslationSources = nextSources;
+        this.previousNonPubmedTranslationSources = [...nonPubmedSources];
         this.isApplyingTranslationSources = false;
-        this.syncDeferredSemanticTagsForMode(normalizedSources.length > 0 ? "semantic" : "pubmedQuery");
+        this.syncDeferredSemanticTagsForMode(nonPubmedSources.length > 0 ? "semantic" : "pubmedQuery");
         this.clearGlobalSemanticSearchState();
         this.semanticMetadataByDoiCache = null;
         if (markTouched) {
@@ -1129,31 +1144,39 @@
         }
       },
       updateTranslationSourceSelection(sourceKey, enabled) {
-        if (sourceKey === "elicit" && enabled && this.isElicitUnavailable) {
+        const normalizedSourceKey = this.normalizeTranslationSourcesList([sourceKey])[0] || "";
+        if (!normalizedSourceKey) {
+          return;
+        }
+        if (!this.isTranslationSourceAvailable(normalizedSourceKey)) {
+          return;
+        }
+        if (normalizedSourceKey === "elicit" && enabled && this.isElicitUnavailable) {
           return;
         }
         let next = new Set(this.selectedTranslationSources);
         if (enabled) {
-          next.add(sourceKey);
+          next.add(normalizedSourceKey);
         } else {
-          next.delete(sourceKey);
+          next.delete(normalizedSourceKey);
+        }
+        if (next.size === 0 && this.isAiFeatureEnabled) {
+          next.add("pubmed");
         }
         this.setSelectedTranslationSources(Array.from(next), true);
       },
       getDefaultTranslationSources() {
         return this.isAiFeatureEnabled
-          ? ["semanticScholar", "openAlex"]
+          ? this.filterAvailableTranslationSources(["pubmed"])
           : [];
       },
       getConfiguredTranslationSources() {
         if (!this.isAiFeatureEnabled) {
           return [];
         }
-        if (this.hasExplicitTranslationSources) {
-          return this.translationSources;
-        }
-        if (Array.isArray(this.domainTranslationSources)) {
-          return this.domainTranslationSources;
+        if (this.hasExplicitDefaultTranslationSources) {
+          const explicitDefaults = this.filterAvailableTranslationSources(this.defaultTranslationSources);
+          return explicitDefaults.length > 0 ? explicitDefaults : this.getDefaultTranslationSources();
         }
         return this.getDefaultTranslationSources();
       },
@@ -1189,12 +1212,9 @@
       },
       hasSelectedSemanticSources() {
         return (
-          this.searchWithPubMedBestMatch ||
           this.searchWithSemanticScholar ||
           this.searchWithOpenAlex ||
-          this.searchWithElicit ||
-          this.searchWithScite ||
-          this.searchWithCore
+          this.searchWithElicit
         );
       },
       hasDeferredSemanticTags() {
@@ -1403,12 +1423,9 @@
           "searchString",
           "mesh",
           "optimize",
-          "pubmedBestMatch",
           "semanticScholar",
           "openAlex",
           "elicit",
-          "scite",
-          "core",
           "finalizeCollect",
           "finalizeHydrate",
         ];
@@ -1452,12 +1469,9 @@
           searchString: "semanticSearchProgressSearchString",
           mesh: "semanticSearchProgressMesh",
           optimize: "semanticSearchProgressOptimize",
-          pubmedBestMatch: "semanticSearchProgressPubMedBestMatch",
           semanticScholar: "semanticSearchProgressSemanticScholar",
           openAlex: "semanticSearchProgressOpenAlex",
           elicit: "semanticSearchProgressElicit",
-          scite: "semanticSearchProgressScite",
-          core: "semanticSearchProgressCore",
           finalizeCollect: "semanticSearchProgressFinalizeCollect",
           finalizeValidatePmid: "semanticSearchProgressFinalizeValidatePmid",
           finalizeValidateDoiFetch: "semanticSearchProgressFinalizeValidateDoiFetch",
@@ -1475,23 +1489,17 @@
           translatingStepSearchString: "searchString",
           translatingStepMesh: "mesh",
           translatingStepOptimize: "optimize",
-          translatingStepPubMedBestMatch: "pubmedBestMatch",
           translatingStepSemanticScholar: "semanticScholar",
           translatingStepOpenAlex: "openAlex",
           translatingStepElicit: "elicit",
-          translatingStepScite: "scite",
-          translatingStepCore: "core",
         };
         return keyMap[String(stepKey || "").trim()] || "prepare";
       },
       buildInitialSemanticLoadingProcessSteps() {
         const stepIds = ["prepare"];
-        if (this.searchWithPubMedBestMatch) stepIds.push("pubmedBestMatch");
         if (this.searchWithSemanticScholar) stepIds.push("semanticScholar");
         if (this.searchWithOpenAlex) stepIds.push("openAlex");
         if (this.searchWithElicit) stepIds.push("elicit");
-        if (this.searchWithScite) stepIds.push("scite");
-        if (this.searchWithCore) stepIds.push("core");
         stepIds.push("finalizeCollect", "finalizeHydrate");
         return stepIds.map((stepId, index) => ({
           id: stepId,
@@ -1580,8 +1588,40 @@
         this.clearLoadingStatusDotInterval();
         this.searchLoadingStatusText = "";
         this.loadingProcessSteps = [];
+        this.compactLoadingUi = false;
+        this.compactLoadingHideResults = false;
         this.semanticDoiValidationActive = false;
         this.resetLoadingProcessPlaceholders();
+      },
+      startCompactLoading(textKey = "loadingText", hideResults = false) {
+        this.searchLoading = true;
+        this.searchError = null;
+        this.compactLoadingUi = true;
+        this.compactLoadingHideResults = hideResults;
+        this.clearLoadingStatusDotInterval();
+        this.loadingProcessSteps = [];
+        this.searchLoadingStatusText = this.getString(textKey);
+        return Date.now();
+      },
+      async finishCompactLoading(startedAt = 0) {
+        const minimumSpinnerMs = 280;
+        const elapsedMs = Math.max(0, Date.now() - Number(startedAt || 0));
+        const remainingMs = Math.max(0, minimumSpinnerMs - elapsedMs);
+        if (remainingMs > 0) {
+          await new Promise((resolve) => setTimeout(resolve, remainingMs));
+        }
+        this.searchLoading = false;
+        this.clearSearchLoadingStatus();
+      },
+      async waitForCompactLoadingPaint() {
+        await this.$nextTick();
+        await new Promise((resolve) => {
+          if (typeof requestAnimationFrame === "function") {
+            requestAnimationFrame(() => resolve());
+          } else {
+            setTimeout(resolve, 0);
+          }
+        });
       },
       resetLoadingProcessPlaceholders() {
         this.clearPlaceholderDotInterval();
@@ -1598,19 +1638,14 @@
           translatingStepSearchString: "semanticSearchProgressSearchString",
           translatingStepMesh: "semanticSearchProgressMesh",
           translatingStepOptimize: "semanticSearchProgressOptimize",
-          translatingStepPubMedBestMatch: "semanticSearchProgressPubMedBestMatch",
           translatingStepSemanticScholar: "semanticSearchProgressSemanticScholar",
           translatingStepOpenAlex: "semanticSearchProgressOpenAlex",
           translatingStepElicit: "semanticSearchProgressElicit",
-          translatingStepScite: "semanticSearchProgressScite",
-          translatingStepCore: "semanticSearchProgressCore",
         };
         return keyMap[String(stepKey || "").trim()] || "semanticSearchProgressPreparing";
       },
       isConcurrentSemanticLoadingStep(stepId = "") {
-        return ["semanticScholar", "openAlex", "elicit", "scite", "core"].includes(
-          String(stepId || "").trim()
-        );
+        return ["semanticScholar", "openAlex", "elicit"].includes(String(stepId || "").trim());
       },
       activateConcurrentSemanticLoadingStep(stepId, translationKey = "") {
         if (!this.searchLoading || !this.hasSelectedSemanticSources()) {
@@ -1666,6 +1701,9 @@
         this.loadingProcessSteps = nextSteps;
       },
       updateSearchLoadingStatus(stepKey = "", isTranslating = true) {
+        if (this.compactLoadingUi) {
+          return;
+        }
         if (!this.searchLoading || !this.hasSelectedSemanticSources()) {
           this.clearSearchLoadingStatus();
           return;
@@ -1687,6 +1725,9 @@
         }
       },
       startAnimatedLoadingStatus(stepId, translationKey) {
+        if (this.compactLoadingUi) {
+          return;
+        }
         if (!this.searchLoading || !this.hasSelectedSemanticSources()) {
           return;
         }
@@ -1706,6 +1747,9 @@
         this.loadingStatusDotIntervalId = setInterval(updateText, 400);
       },
       setSemanticFinalizeLoadingStatus(stageKey = "", { hasPmids = false, hasDois = false } = {}) {
+        if (this.compactLoadingUi) {
+          return;
+        }
         if (!this.searchLoading || !this.hasSelectedSemanticSources()) {
           return;
         }
@@ -1742,6 +1786,7 @@
       },
       syncDeferredSemanticTagsForMode(mode) {
         this.clearGlobalSemanticSearchState();
+        const includePubmedBaseQuery = this.selectedTranslationSources.includes("pubmed");
         this.getAllSelectedSearchItems().forEach((item) => {
           if (item?.semanticFlowType !== "deferred") return;
           item.useSemanticScholar = false;
@@ -1756,7 +1801,7 @@
           item.semanticScholarCandidates = [];
           item.semanticSourceResults = [];
           item.semanticScholarError = "";
-          item.includeTranslatedTextInQuery = item?.isTranslated === true;
+          item.includeTranslatedTextInQuery = includePubmedBaseQuery;
           item.isPendingSemanticSearch = mode === "semantic";
         });
       },
@@ -2140,6 +2185,7 @@
       parseUrl() {
         // Initialize topics
         this.topics = [];
+        this.urlTranslationSources = [];
 
         // Parse the current URL (search + hash query fallback for CMS embeds)
         const urlParams = new URLSearchParams(window.location.search);
@@ -2188,7 +2234,10 @@
 
             case "translationsources":
             case "semanticsources":
-              this.setSelectedTranslationSources(values.filter((entry) => entry.trim() !== ""), true);
+              this.urlTranslationSources = this.normalizeTranslationSourcesList(
+                values.filter((entry) => entry.trim() !== "")
+              );
+              this.setSelectedTranslationSources(this.urlTranslationSources, true);
               break;
 
             case "pmid":
@@ -4563,7 +4612,11 @@
           } else if (rerankedPmids.length > 0) {
             this.matchedRerankedResultRefs = [];
             this.setSemanticFinalizeLoadingStatus("collect");
-            const orderedSearch = await this.resolveOrderedSearchPmids(finalQuery, nlm, rerankedPmids);
+            const orderedSearch = await this.resolveOrderedSearchPmids(
+              hardFilterQuery,
+              nlm,
+              rerankedPmids
+            );
             this.matchedRerankedPmids = orderedSearch.orderedIds;
             this.count = orderedSearch.orderedIds.length;
             idList = orderedSearch.orderedIds.slice(
@@ -4717,10 +4770,14 @@
         }
 
         // Set loading state and reset any existing errors
-        this.searchLoading = true;
-        this.searchError = null;
-        this.loadingProcessSteps = [];
-        this.updateSearchLoadingStatus();
+        if (!this.compactLoadingUi) {
+          this.searchLoading = true;
+          this.searchError = null;
+          this.loadingProcessSteps = [];
+          this.updateSearchLoadingStatus();
+        } else {
+          this.searchError = null;
+        }
         const { nlm } = this.appSettings;
         console.group("[SearchFlow] searchMore()");
 
@@ -4733,7 +4790,9 @@
           // Validate the query string
           if (!query || query === "()") {
             console.info("[SearchFlow] Query is empty. Pagination aborted.");
-            this.searchLoading = false;
+            if (!this.compactLoadingUi) {
+              this.searchLoading = false;
+            }
             console.groupEnd();
             return;
           }
@@ -4790,7 +4849,7 @@
             if (this.matchedRerankedPmids.length === 0) {
               this.setSemanticFinalizeLoadingStatus("collect");
               const orderedSearch = await this.resolveOrderedSearchPmids(
-                validatedQuery,
+                hardFilterQuery,
                 nlm,
                 rerankedPmids
               );
@@ -4842,8 +4901,10 @@
               this.count = 0;
               this.searchresult = [];
             }
-            this.searchLoading = false;
-            this.clearSearchLoadingStatus();
+            if (!this.compactLoadingUi) {
+              this.searchLoading = false;
+              this.clearSearchLoadingStatus();
+            }
             return;
           }
 
@@ -4907,8 +4968,10 @@
           }
 
           // Reset the loading state
-          this.searchLoading = false;
-          this.clearSearchLoadingStatus();
+          if (!this.compactLoadingUi) {
+            this.searchLoading = false;
+            this.clearSearchLoadingStatus();
+          }
 
           // Find the first result entry from the new data and focus on it
           const currentResultEntries = this.$refs?.searchResultList?.$refs?.resultEntries || [];
@@ -4923,8 +4986,10 @@
           // Handle and log any errors that occur during the API requests
           console.error(error);
           this.showSearchError(error);
-          this.searchLoading = false;
-          this.clearSearchLoadingStatus();
+          if (!this.compactLoadingUi) {
+            this.searchLoading = false;
+            this.clearSearchLoadingStatus();
+          }
         } finally {
           console.groupEnd();
         }
@@ -4982,6 +5047,83 @@
         const option = { cause: err };
         this.searchError = Error(message, option);
       },
+      canApplyLocalSemanticSort() {
+        return (
+          this.hasSelectedSemanticSources() &&
+          Array.isArray(this.matchedRerankedResultRefs) &&
+          this.matchedRerankedResultRefs.length > 0
+        );
+      },
+      async applyLocalSemanticSort() {
+        if (!this.canApplyLocalSemanticSort()) {
+          return false;
+        }
+
+        const compactLoadingStartedAt = this.startCompactLoading("sortResultsLoadingText", true);
+        await this.waitForCompactLoadingPaint();
+        const { nlm } = this.appSettings;
+        const resultRefs = this.matchedRerankedResultRefs;
+        let data = [];
+        try {
+          if (this.shouldUseSemanticDateOrdering(resultRefs)) {
+            const sortedData = await this.getSemanticSortedHydratedResults(resultRefs, nlm);
+            this.count = sortedData.length;
+            data = sortedData.slice(0, this.pageSize);
+          } else {
+            const visibleRefs = resultRefs.slice(0, this.pageSize);
+            const pmidRefs = visibleRefs.filter((entry) => entry.type === "pmid");
+            const doiRefs = visibleRefs.filter((entry) => entry.type === "doi");
+            const [pmidData, doiData] = await Promise.all([
+              this.fetchSummaryRecordsByIds(
+                pmidRefs.map((entry) => entry.pmid),
+                nlm
+              ),
+              this.fetchOpenAlexWorksByCandidates(doiRefs, nlm),
+            ]);
+            const pmidMap = new Map(pmidData.map((entry) => [String(entry.uid), entry]));
+            const doiMap = new Map();
+            doiRefs.forEach((entry, index) => {
+              const mapped = doiData[index];
+              if (mapped) {
+                doiMap.set(entry.key, mapped);
+              }
+            });
+            data = visibleRefs
+              .map((entry) =>
+                entry.type === "pmid" ? pmidMap.get(String(entry.pmid)) : doiMap.get(entry.key)
+              )
+              .filter(Boolean);
+            this.count = resultRefs.length;
+            this.logHybridRenderSummary("Hybrid local sort hydration summary.", visibleRefs, data);
+          }
+
+          this.searchresult = data;
+          const preSelectedEntries = await this.searchPreselectedPmidai();
+          if (preSelectedEntries && preSelectedEntries.length > 0) {
+            const uniquePreselected = this.mergeUniqueEntries(preSelectedEntries);
+            this.searchresult = [...this.searchresult, ...uniquePreselected];
+          }
+
+          console.info("[SearchFlow] Applied local semantic sort without rerunning semantic source search.", {
+            sort: this.sort.method,
+            page: this.page,
+            pageSize: this.pageSize,
+            semanticDateOrdering: this.shouldUseSemanticDateOrdering(resultRefs),
+            visibleRefs: Array.isArray(data)
+              ? data.map((entry) => {
+                  const pmid = String(entry?.pmid || entry?.uid || "").trim();
+                  if (/^[0-9]+$/.test(pmid)) return pmid;
+                  const doi = normalizeDoiValue(entry?.doi || "");
+                  if (doi) return doi;
+                  return String(entry?.id || entry?.uid || "").trim();
+                })
+              : [],
+          });
+          return true;
+        } finally {
+          await this.finishCompactLoading(compactLoadingStartedAt);
+        }
+      },
       async setPageSize(pageSize) {
         this.pageSize = pageSize;
         this.page = 0;
@@ -4991,7 +5133,13 @@
       async nextPage() {
         this.page++;
         this.setUrl();
-        await this.searchMore();
+        const compactLoadingStartedAt = this.startCompactLoading("loadMoreResultsLoadingText", false);
+        try {
+          await this.waitForCompactLoadingPaint();
+          await this.searchMore();
+        } finally {
+          await this.finishCompactLoading(compactLoadingStartedAt);
+        }
       },
       async previousPage() {
         this.page--;
@@ -5008,6 +5156,9 @@
         this.sort = newVal && typeof newVal === "object" ? { ...newVal } : newVal;
         this.page = 0;
         this.setUrl();
+        if (await this.applyLocalSemanticSort()) {
+          return;
+        }
         this.count = 0;
         await this.search();
       },

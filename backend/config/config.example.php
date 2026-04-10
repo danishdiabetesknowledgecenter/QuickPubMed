@@ -45,30 +45,12 @@ define('OPENALEX_EMAIL', '');
 // Requires an API key from https://docs.elicit.com/
 define('ELICIT_API_KEY', '');
 
-// ============ Scite Configuration ============
-// Optional domain override file:
-// data/content/<domain>/domain-config.json -> scite.api_key / scite.api_url
-// Missing values automatically fall back to this backend config.
-// API docs: https://api.scite.ai/docs#tag/search/GET/api_partner/search
-define('SCITE_API_KEY', '');
-define('SCITE_API_URL', 'https://api.scite.ai/api_partner/search');
-
-// ============ CORE Configuration ============
-// Optional domain override file:
-// data/content/<domain>/domain-config.json -> core.api_key / core.api_url
-// Missing values automatically fall back to this backend config.
-// API docs: https://api.core.ac.uk/docs/v3#tag/Search
-define('CORE_API_KEY', '');
-define('CORE_API_URL', 'https://api.core.ac.uk/v3/search/works');
-
 // ============ Semantic Source Limits ============
 // Frontend-safe values exposed to the widget via ThemeConfig.php
 define('QPM_SEMANTIC_SOURCE_LIMITS', [
     'semanticScholar' => 400,
     'openAlex' => 50,
     'elicit' => 100,
-    'scite' => 100,
-    'core' => 100,
     'pubmedBestMatch' => 200,
 ]);
 
@@ -96,8 +78,6 @@ define('QPM_RERANK_CONFIG', [
         'semanticScholar' => 0.92,
         'openAlex' => 0.88,
         'elicit' => 0.9,
-        'scite' => 0.88,
-        'core' => 0.86,
     ],
     // Extra score added when a candidate has a PMID.
     // This is a normal value to tune.

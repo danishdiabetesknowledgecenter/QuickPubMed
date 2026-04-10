@@ -136,6 +136,10 @@ searchFormDivs.forEach((searchFormDiv, index) => {
     searchFormDiv.dataset.translationSources !== undefined
       ? parseDatasetList(searchFormDiv.dataset.translationSources, "translationSources")
       : null;
+  const parsedDefaultTranslationSources =
+    searchFormDiv.dataset.defaultTranslationSources !== undefined
+      ? parseDatasetList(searchFormDiv.dataset.defaultTranslationSources, "defaultTranslationSources")
+      : null;
   const language = searchFormDiv.dataset.language || undefined;
   const componentNoRaw = searchFormDiv.dataset.componentNo;
   const componentNo =
@@ -189,6 +193,7 @@ searchFormDivs.forEach((searchFormDiv, index) => {
       componentNo: componentNo,
       domain: domain,
       translationSources: parsedTranslationSources,
+      defaultTranslationSources: parsedDefaultTranslationSources,
       standardStringAdd: standardStringAdd,
       standardStringScope: standardStringScope,
       standardString: standardString,

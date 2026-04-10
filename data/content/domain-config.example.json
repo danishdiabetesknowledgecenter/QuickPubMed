@@ -11,22 +11,12 @@
   "unpaywall": {
     "email": ""
   },
-  "scite": {
-    "api_key": "",
-    "api_url": ""
-  },
-  "core": {
-    "api_key": "",
-    "api_url": ""
-  },
   "search": {
     "translation_sources": [
       "pubmedBestMatch",
       "semanticScholar",
       "openAlex",
-      "elicit",
-      "scite",
-      "core"
+      "elicit"
     ]
   },
   "domain_name": {

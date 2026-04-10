@@ -284,7 +284,10 @@
     >
       {{ getString("searchresult") }}
     </div>
-    <div v-if="results && results.length > 0 && total > 0" class="qpm_searchHeader qpm_spaceEvenly">
+    <div
+      v-if="results && results.length > 0 && total > 0"
+      class="qpm_searchHeader qpm_spaceEvenly"
+    >
       <p class="qpm_nomargin qpm_searchResultCount">
         {{ getString("showing") }} {{ 1 }}-{{ results.length }}
         {{ getString("of") }}
@@ -294,7 +297,7 @@
       </p>
       <div v-if="results && results.length !== 0" class="qpm_searchHeaderSort qpm_spaceEvenly">
         <div class="qpm_sortSelect qpm_sortSelectSpacing">
-          <select v-model="currentSortMethod" :aria-label="getString('sortBy')" @change="newSortMethod">
+          <select :value="currentSortMethod" :aria-label="getString('sortBy')" @change="handleSortMethodChange">
             <option v-for="sorter in getOrderMethods" :key="sorter.id" :value="sorter.method">
               {{ getTranslation(sorter) }}
             </option>
@@ -323,91 +326,124 @@
       <div class="h3"><br />{{ getString("noResult") }}</div>
       <p>{{ getString("noResultTip") }}</p>
     </div>
-    <div class="qpm_resultEntriesLayer">
+    <div
+      class="qpm_compactLoadingRegion"
+      :class="{ 'is-overlay-loading': shouldHideResultsDuringCompactLoading }"
+    >
       <div
-        v-for="(value, index) in getShownSearchResults"
-        :key="getResultId(value) || `result-${index}`"
-        class="qpm_ResultEntryWrapper"
+        v-if="results && results.length > 0 && shouldShowCompactLoadingOverlay"
+        class="qpm_compactLoadingOverlay"
       >
-        <result-entry
-          :id="getResultId(value)"
-          ref="resultEntries"
-          :pmid="getResultPmid(value)"
-          :volume="value.volume"
-          :issue="value.issue"
-          :pages="value.pages"
-          :doi="getResultDoi(value)"
-          :title="value.title"
-          :pub-date="value.pubdate"
-          :pub-type="value.pubtype"
-          :doc-type="value.doctype"
-          :booktitle="value.booktitle"
-          :vernaculartitle="value.vernaculartitle"
-          :date="getDate(value)"
-          :source="getSource(value)"
-          :has-abstract="getHasAbstract(value.attributes)"
-          :author="getAuthor(value.authors)"
-          :language="language"
-          :parent-width="getComponentWidth()"
-          :model-value="selectedEntries"
-          :selectable="isResultSelectable(value)"
-          :abstract="getResultInlineAbstract(value) || getAbstract(getResultId(value))"
-          :text="getText(getResultId(value))"
-          :value="value"
-          :is-abstract-loaded="isAbstractLoaded"
-          @change="changeResultEntryModel"
-          @change:abstractLoad="onAbstractLoad"
-          @articleUpdated="addArticle"
-          @loadAbstract="addIdToLoadAbstract"
+        <loading-spinner
+          :loading="true"
+          :wait-text="compactOverlayLoadingText"
+          class="qpm_compactLoadingSpinner"
+          :size="32"
         />
       </div>
       <div
-        v-if="showLoadingProcessList"
-        class="qpm_searchProcessBox qpm_box"
+        ref="resultsBodyWrapper"
+        :class="{ 'qpm_compactLoadingHidden': shouldHideResultsDuringCompactLoading }"
       >
-        <ol class="qpm_searchProcessList">
-          <li
-            v-for="step in loadingProcessSteps"
-            :key="step.id"
-            :class="['qpm_searchProcessItem', `is-${step.status || 'pending'}`]"
+        <div class="qpm_resultEntriesLayer">
+          <div
+            v-for="(value, index) in getShownSearchResults"
+            :key="getResultId(value) || `result-${index}`"
+            class="qpm_ResultEntryWrapper"
           >
-            <span class="qpm_searchProcessLabel">{{ getProcessStepLabel(step) }}</span>
-            <span class="qpm_searchProcessDots" aria-hidden="true">{{ getProcessStepDots(step) }}</span>
-          </li>
-        </ol>
-      </div>
-      <loading-spinner
-        :loading="loading"
-        :wait-text="showLoadingProcessList ? '' : loadingStatusText"
-        class="qpm_searchMore"
-        :size="44"
-      />
-      <div v-if="error !== null && error !== undefined" class="qpm_flex">
-        <div class="qpm_errorBox">
-          {{ error.message ?? error.toString() }}
+            <result-entry
+              :id="getResultId(value)"
+              ref="resultEntries"
+              :pmid="getResultPmid(value)"
+              :volume="value.volume"
+              :issue="value.issue"
+              :pages="value.pages"
+              :doi="getResultDoi(value)"
+              :title="value.title"
+              :pub-date="value.pubdate"
+              :pub-type="value.pubtype"
+              :doc-type="value.doctype"
+              :booktitle="value.booktitle"
+              :vernaculartitle="value.vernaculartitle"
+              :date="getDate(value)"
+              :source="getSource(value)"
+              :has-abstract="getHasAbstract(value.attributes)"
+              :author="getAuthor(value.authors)"
+              :language="language"
+              :parent-width="getComponentWidth()"
+              :model-value="selectedEntries"
+              :selectable="isResultSelectable(value)"
+              :abstract="getResultInlineAbstract(value) || getAbstract(getResultId(value))"
+              :text="getText(getResultId(value))"
+              :value="value"
+              :is-abstract-loaded="isAbstractLoaded"
+              @change="changeResultEntryModel"
+              @change:abstractLoad="onAbstractLoad"
+              @articleUpdated="addArticle"
+              @loadAbstract="addIdToLoadAbstract"
+            />
+          </div>
+          <div
+            v-if="showLoadingProcessList"
+            class="qpm_searchProcessBox qpm_box"
+          >
+            <ol class="qpm_searchProcessList">
+              <li
+                v-for="step in loadingProcessSteps"
+                :key="step.id"
+                :class="['qpm_searchProcessItem', `is-${step.status || 'pending'}`]"
+              >
+                <span class="qpm_searchProcessLabel">{{ getProcessStepLabel(step) }}</span>
+                <span class="qpm_searchProcessDots" aria-hidden="true">{{ getProcessStepDots(step) }}</span>
+              </li>
+            </ol>
+          </div>
+          <loading-spinner
+            v-if="!compactLoadingUi"
+            :loading="loading"
+            :wait-text="showLoadingProcessList ? '' : loadingStatusText"
+            class="qpm_searchMore"
+            :size="44"
+          />
+          <div v-if="error !== null && error !== undefined" class="qpm_flex">
+            <div class="qpm_errorBox">
+              {{ error.message ?? error.toString() }}
+            </div>
+          </div>
+        </div>
+        <div
+          v-if="total > 0"
+          class="qpm_flex qpm_paginationContainer"
+        >
+          <button
+            v-if="results && results.length < total"
+            :disabled="highDisabled"
+            :class="{ qpm_disabled: highDisabled }"
+            class="qpm_button qpm_dark"
+            @click="next"
+          >
+            <span>{{ getString("next") }}</span>
+            {{ pagesize }}
+          </button>
+          <div
+            v-if="compactLoadingUi && !hideResultsDuringCompactLoading && loading"
+            class="qpm_paginationInlineSpinner"
+          >
+            <loading-spinner
+              :loading="loading"
+              :wait-text="loadingStatusText"
+              class="qpm_searchMore"
+              :size="32"
+            />
+          </div>
+          <p v-if="!loading || (results && high && total)" class="qpm_nomargin qpm_shownumber">
+            {{ getString("showing") }} 1-{{ results.length }} {{ getString("of") }}
+            <span
+              ><strong>{{ getPrettyTotal }}</strong> {{ getString("searchMatches") }}</span
+            >
+          </p>
         </div>
       </div>
-    </div>
-    <div
-      v-if="total > 0"
-      class="qpm_flex qpm_paginationContainer"
-    >
-      <button
-        v-if="!loading && results && results.length < total"
-        :disabled="highDisabled"
-        :class="{ qpm_disabled: highDisabled }"
-        class="qpm_button qpm_dark"
-        @click="next"
-      >
-        <span>{{ getString("next") }}</span>
-        {{ pagesize }}
-      </button>
-      <p v-if="!loading || (results && high && total)" class="qpm_nomargin qpm_shownumber">
-        {{ getString("showing") }} 1-{{ results.length }} {{ getString("of") }}
-        <span
-          ><strong>{{ getPrettyTotal }}</strong> {{ getString("searchMatches") }}</span
-        >
-      </p>
     </div>
   </div>
 </template>
@@ -471,6 +507,14 @@
         default: 0,
       },
       loading: Boolean,
+      compactLoadingUi: {
+        type: Boolean,
+        default: false,
+      },
+      hideResultsDuringCompactLoading: {
+        type: Boolean,
+        default: false,
+      },
       sort: {
         type: Object,
         default: () => {},
@@ -509,6 +553,7 @@
         hasAcceptedAi: false,
         initialAiTab: null,
         defaultSummaryCount: 5,
+        localSortLoadingHideResults: false,
         selectedEntries: Array.isArray(this.preselectedEntries) ? [...this.preselectedEntries] : [],
         badgesAdded: false,
         altmetricsAdded: false,
@@ -528,6 +573,18 @@
     computed: {
       showLoadingProcessList() {
         return this.loading && Array.isArray(this.loadingProcessSteps) && this.loadingProcessSteps.length > 0;
+      },
+      shouldHideResultsDuringCompactLoading() {
+        return (
+          (this.compactLoadingUi && this.hideResultsDuringCompactLoading && this.loading) ||
+          this.localSortLoadingHideResults
+        );
+      },
+      shouldShowCompactLoadingOverlay() {
+        return this.results && this.results.length > 0 && this.shouldHideResultsDuringCompactLoading;
+      },
+      compactOverlayLoadingText() {
+        return this.loadingStatusText || this.getString("sortResultsLoadingText");
       },
       /**
        * Gets the text that composes the references. Consists of authors title and publicationInfo
@@ -549,16 +606,8 @@
       config() {
         return config;
       },
-      currentSortMethod: {
-        get() {
-          return this.sort.method;
-        },
-        set(value) {
-          const selectedSorter = this.getOrderMethods.find((sorter) => sorter.method === value);
-          if (selectedSorter) {
-            this.$emit("newSortMethod", selectedSorter);
-          }
-        },
+      currentSortMethod() {
+        return this.sort.method;
       },
       lowDisabled() {
         return this.low === 0 || this.loading;
@@ -620,12 +669,21 @@
       firstFiveArticlesWithAbstracts() {
         return this.resultsWithAbstracts.slice(0, this.defaultSummaryCount);
       },
+      firstFiveArticlesWithAbstractIdsSignature() {
+        return this.firstFiveArticlesWithAbstracts
+          .map((result) => this.getResultId(result))
+          .filter((id) => hasDefinedValue(id))
+          .join("|");
+      },
     },
     watch: {
       loading(newVal) {
         if (newVal) {
           this.isAbstractLoaded = false;
           this.defaultSummaryCount = 5;
+        } else {
+          this.setImmediateSortLoadingVisibility(false);
+          this.localSortLoadingHideResults = false;
         }
       },
       preselectedEntries(newVal) {
@@ -640,6 +698,11 @@
        */
       defaultSummaryCount() {
         this.loadMissingAbstracts();
+      },
+      firstFiveArticlesWithAbstractIdsSignature() {
+        if (!this.loading) {
+          this.loadMissingAbstracts();
+        }
       },
       /**
        * Cap defaultSummaryCount to available articles when results change.
@@ -707,6 +770,12 @@
       this.clearProcessDotsInterval();
     },
     methods: {
+      setImmediateSortLoadingVisibility(hidden) {
+        const wrapper = this.$refs?.resultsBodyWrapper;
+        if (!wrapper || !wrapper.style) return;
+        wrapper.style.opacity = hidden ? "0" : "";
+        wrapper.style.pointerEvents = hidden ? "none" : "";
+      },
       startProcessDotsInterval() {
         this.clearProcessDotsInterval();
         this.processDotCount = 3;
@@ -852,9 +921,28 @@
       getPublicationInfo(entry) {
         return formatPublicationInfo(entry);
       },
-      newSortMethod(event) {
-        const obj = order.find((entry) => entry.method === event.target.value) || {};
+      async handleSortMethodChange(event) {
+        const nextMethod = String(event?.target?.value || "").trim();
+        if (!nextMethod || nextMethod === this.sort.method) {
+          return;
+        }
+
+        this.setImmediateSortLoadingVisibility(true);
+        this.localSortLoadingHideResults = true;
+        await this.$nextTick();
+        await new Promise((resolve) => {
+          if (typeof requestAnimationFrame === "function") {
+            requestAnimationFrame(() => resolve());
+          } else {
+            setTimeout(resolve, 0);
+          }
+        });
+
+        const obj = order.find((entry) => entry.method === nextMethod) || {};
         this.$emit("newSortMethod", obj);
+      },
+      newSortMethod(event) {
+        this.handleSortMethodChange(event);
       },
       isSelected(model) {
         return model === this.sort;
@@ -1217,4 +1305,39 @@
     },
   };
 </script>
+
+<style scoped>
+.qpm_compactLoadingRegion {
+  position: relative;
+}
+
+.qpm_compactLoadingOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 28px;
+  z-index: 2;
+}
+
+.qpm_compactLoadingHidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.qpm_paginationInlineSpinner {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.qpm_paginationInlineSpinner :deep(.qpm_searchMore.qpm_loading) {
+  position: static;
+  top: auto;
+  left: auto;
+  transform: none;
+  margin-top: 0;
+}
+</style>
 

@@ -33,19 +33,17 @@ const semanticIntentResponseSchema = {
     sourceSpecificHints: {
       type: "object",
       additionalProperties: false,
-      required: ["semanticScholar", "openAlex", "elicit", "scite", "core"],
+      required: ["semanticScholar", "openAlex", "elicit"],
       properties: {
         semanticScholar: { type: "array", items: { type: "string" } },
         openAlex: { type: "array", items: { type: "string" } },
         elicit: { type: "array", items: { type: "string" } },
-        scite: { type: "array", items: { type: "string" } },
-        core: { type: "array", items: { type: "string" } },
       },
     },
     sourceQueryPlan: {
       type: "object",
       additionalProperties: false,
-      required: ["semanticScholar", "openAlex", "elicit", "scite", "core"],
+      required: ["semanticScholar", "openAlex", "elicit"],
       properties: {
         semanticScholar: {
           type: "object",
@@ -94,34 +92,6 @@ const semanticIntentResponseSchema = {
                 includeKeywords: { type: "array", items: { type: "string" } },
                 excludeKeywords: { type: "array", items: { type: "string" } },
               },
-            },
-          },
-        },
-        scite: {
-          type: "object",
-          additionalProperties: false,
-          required: ["query", "filters"],
-          properties: {
-            query: { type: "string" },
-            filters: {
-              type: "object",
-              additionalProperties: false,
-              required: [],
-              properties: {},
-            },
-          },
-        },
-        core: {
-          type: "object",
-          additionalProperties: false,
-          required: ["query", "filters"],
-          properties: {
-            query: { type: "string" },
-            filters: {
-              type: "object",
-              additionalProperties: false,
-              required: [],
-              properties: {},
             },
           },
         },
@@ -256,7 +226,7 @@ export const semanticIntentPrompt = {
   max_output_tokens: 520,
   stream: true,
   prompt: sanitizePrompt({
-    dk: 'Du er en informationsspecialist. Du modtager et JSON-input med brugerens fritekst, valgte emner, valgte afgrænsninger, strukturerede semantiske blokke og hårde filtre. Hvis felterne `semanticWordedIntent`, `semanticCoreText` eller `sourceSpecificContext` findes, skal de bruges som den foretrukne engelske opsummering af søgeintentionen. Returnér KUN gyldig JSON med præcis disse topfelter: "semanticIntent", "hardFilterHints", "softFilterHints", "sourceSpecificHints", "sourceQueryPlan". Regler: 1) "semanticIntent" er en kort engelsk fallback-query uden PubMed-tags og uden boolske operatorer. 2) "hardFilterHints" er et objekt med arrays for publicationType, studyDesign, ageGroup, language og sourceFormat, når input tydeligt understøtter det; ellers tomme arrays. 3) "softFilterHints" er korte arrays af synonymer eller tematiske signaler. 4) "sourceSpecificHints" er et objekt med nøglerne semanticScholar, openAlex, elicit, scite og core, hvor hver værdi er et kort array af hints. 5) "sourceQueryPlan" er et objekt med nøglerne semanticScholar, openAlex, elicit, scite og core. Hver værdi skal være et objekt med felterne "query" og "filters". 6) "sourceQueryPlan.semanticScholar.query" skal være en kort begrebsnær engelsksproget query. 7) "sourceQueryPlan.openAlex.query" skal være en kort konceptuel engelsksproget query egnet til `search.semantic`. 8) "sourceQueryPlan.elicit.query" skal være et kort engelsksproget forskningsspørgsmål i naturligt sprog. 9) "sourceQueryPlan.scite.query" skal være en kort konceptuel engelsksproget query egnet til Scites papers-søgning. 10) "sourceQueryPlan.core.query" skal være en kort konceptuel engelsksproget query egnet til COREs fritekstsøgning i works. 11) "sourceQueryPlan.openAlex.filters" må kun bruge felterne language, sourceType og workType. 12) "sourceQueryPlan.elicit.filters" må kun bruge felterne typeTags, includeKeywords og excludeKeywords. Tilladte typeTags er kun "Review", "Meta-Analysis", "Systematic Review", "RCT" og "Longitudinal". 13) "sourceQueryPlan.scite.filters" og "sourceQueryPlan.core.filters" skal være tomme objekter. 14) Hvis et sprogfilter er kendt, skal det kun placeres i hardFilterHints.language og eventuelt sourceQueryPlan.openAlex.filters.language, ikke skrives direkte ind i semanticIntent. 15) Hvis input er uklart, vær konservativ og brug tomme felter frem for gæt. 16) Svar med JSON alene uden markdown, forklaring eller ekstra tekst. Her er input-JSON:',
-    en: 'You are an information specialist. You receive a JSON input with user free text, selected topics, selected limits, structured semantic blocks, and hard filters. If the fields `semanticWordedIntent`, `semanticCoreText`, or `sourceSpecificContext` are present, use them as the preferred English summary of the search intent. Return ONLY valid JSON with exactly these top-level fields: "semanticIntent", "hardFilterHints", "softFilterHints", "sourceSpecificHints", "sourceQueryPlan". Rules: 1) "semanticIntent" is a short English fallback query without PubMed tags and without Boolean operators. 2) "hardFilterHints" is an object with arrays for publicationType, studyDesign, ageGroup, language, and sourceFormat when clearly supported by the input; otherwise use empty arrays. 3) "softFilterHints" contains short arrays of synonyms or thematic signals. 4) "sourceSpecificHints" is an object with keys semanticScholar, openAlex, elicit, scite, and core, where each value is a short hint array. 5) "sourceQueryPlan" is an object with keys semanticScholar, openAlex, elicit, scite, and core. Each value must be an object with fields "query" and "filters". 6) "sourceQueryPlan.semanticScholar.query" must be a short concept-focused English query. 7) "sourceQueryPlan.openAlex.query" must be a short conceptual English query suitable for `search.semantic`. 8) "sourceQueryPlan.elicit.query" must be a short English research question in natural language. 9) "sourceQueryPlan.scite.query" must be a short conceptual English query suitable for Scite paper search. 10) "sourceQueryPlan.core.query" must be a short conceptual English query suitable for CORE free-text work search. 11) "sourceQueryPlan.openAlex.filters" may only use the fields language, sourceType, and workType. 12) "sourceQueryPlan.elicit.filters" may only use the fields typeTags, includeKeywords, and excludeKeywords. Allowed typeTags are only "Review", "Meta-Analysis", "Systematic Review", "RCT", and "Longitudinal". 13) "sourceQueryPlan.scite.filters" and "sourceQueryPlan.core.filters" must be empty objects. 14) If a language filter is known, place it only in hardFilterHints.language and optionally sourceQueryPlan.openAlex.filters.language, and do not write it directly into semanticIntent. 15) If the input is ambiguous, be conservative and prefer empty fields over guessing. 16) Respond with JSON only, no markdown, no explanation, no extra text. Input JSON:',
+    dk: 'Du er en informationsspecialist. Du modtager et JSON-input med brugerens fritekst, valgte emner, valgte afgrænsninger, strukturerede semantiske blokke og hårde filtre. Hvis felterne `semanticWordedIntent`, `semanticCoreText` eller `sourceSpecificContext` findes, skal de bruges som den foretrukne engelske opsummering af søgeintentionen. Returnér KUN gyldig JSON med præcis disse topfelter: "semanticIntent", "hardFilterHints", "softFilterHints", "sourceSpecificHints", "sourceQueryPlan". Regler: 1) "semanticIntent" er en kort engelsk fallback-query uden PubMed-tags og uden boolske operatorer. 2) "hardFilterHints" er et objekt med arrays for publicationType, studyDesign, ageGroup, language og sourceFormat, når input tydeligt understøtter det; ellers tomme arrays. 3) "softFilterHints" er korte arrays af synonymer eller tematiske signaler. 4) "sourceSpecificHints" er et objekt med nøglerne semanticScholar, openAlex og elicit, hvor hver værdi er et kort array af hints. 5) "sourceQueryPlan" er et objekt med nøglerne semanticScholar, openAlex og elicit. Hver værdi skal være et objekt med felterne "query" og "filters". 6) "sourceQueryPlan.semanticScholar.query" skal være en kort begrebsnær engelsksproget query. 7) "sourceQueryPlan.openAlex.query" skal være en kort konceptuel engelsksproget query egnet til `search.semantic`. 8) "sourceQueryPlan.elicit.query" skal være et kort engelsksproget forskningsspørgsmål i naturligt sprog. 9) "sourceQueryPlan.openAlex.filters" må kun bruge felterne language, sourceType og workType. 10) "sourceQueryPlan.elicit.filters" må kun bruge felterne typeTags, includeKeywords og excludeKeywords. Tilladte typeTags er kun "Review", "Meta-Analysis", "Systematic Review", "RCT" og "Longitudinal". 11) Hvis et sprogfilter er kendt, skal det kun placeres i hardFilterHints.language og eventuelt sourceQueryPlan.openAlex.filters.language, ikke skrives direkte ind i semanticIntent. 12) Hvis input er uklart, vær konservativ og brug tomme felter frem for gæt. 13) Svar med JSON alene uden markdown, forklaring eller ekstra tekst. Her er input-JSON:',
+    en: 'You are an information specialist. You receive a JSON input with user free text, selected topics, selected limits, structured semantic blocks, and hard filters. If the fields `semanticWordedIntent`, `semanticCoreText`, or `sourceSpecificContext` are present, use them as the preferred English summary of the search intent. Return ONLY valid JSON with exactly these top-level fields: "semanticIntent", "hardFilterHints", "softFilterHints", "sourceSpecificHints", "sourceQueryPlan". Rules: 1) "semanticIntent" is a short English fallback query without PubMed tags and without Boolean operators. 2) "hardFilterHints" is an object with arrays for publicationType, studyDesign, ageGroup, language, and sourceFormat when clearly supported by the input; otherwise use empty arrays. 3) "softFilterHints" contains short arrays of synonyms or thematic signals. 4) "sourceSpecificHints" is an object with keys semanticScholar, openAlex, and elicit, where each value is a short hint array. 5) "sourceQueryPlan" is an object with keys semanticScholar, openAlex, and elicit. Each value must be an object with fields "query" and "filters". 6) "sourceQueryPlan.semanticScholar.query" must be a short concept-focused English query. 7) "sourceQueryPlan.openAlex.query" must be a short conceptual English query suitable for `search.semantic`. 8) "sourceQueryPlan.elicit.query" must be a short English research question in natural language. 9) "sourceQueryPlan.openAlex.filters" may only use the fields language, sourceType, and workType. 10) "sourceQueryPlan.elicit.filters" may only use the fields typeTags, includeKeywords, and excludeKeywords. Allowed typeTags are only "Review", "Meta-Analysis", "Systematic Review", "RCT", and "Longitudinal". 11) If a language filter is known, place it only in hardFilterHints.language and optionally sourceQueryPlan.openAlex.filters.language, and do not write it directly into semanticIntent. 12) If the input is ambiguous, be conservative and prefer empty fields over guessing. 13) Respond with JSON only, no markdown, no explanation, no extra text. Input JSON:',
   }),
 };

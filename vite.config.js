@@ -65,12 +65,6 @@ export default defineConfig(({ command }) => {
           secure: true,
           rewrite: (path) => path.replace(/^\/elicit-api/, ""),
         },
-        "/core-api": {
-          target: "https://api.core.ac.uk",
-          changeOrigin: true,
-          secure: true,
-          rewrite: (path) => path.replace(/^\/core-api/, ""),
-        },
         "/nlm-api": {
           target: "https://eutils.ncbi.nlm.nih.gov",
           changeOrigin: true,
