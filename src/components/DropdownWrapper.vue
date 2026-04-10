@@ -2821,7 +2821,7 @@
           useElicitSource;
         const overallFlowStartedAt = this.getTimingNow();
 
-        if (useAiTranslationOptions && usePubmedQuerySource) {
+        if (useAiTranslationOptions && usePubmedQuerySource && !useAnyIdSource) {
           this.isLoading = true;
           this.$emit("translating", true, this.index, "translatingStepSearchString");
 
