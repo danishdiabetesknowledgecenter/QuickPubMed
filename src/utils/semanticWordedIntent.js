@@ -54,6 +54,14 @@ function getItemSemanticHardFilters(item) {
 
 function getItemDoiOnlyRules(item) {
   const semanticConfig = getItemSemanticConfig(item);
+  const postValidation =
+    semanticConfig?.postValidation && typeof semanticConfig.postValidation === "object"
+      ? semanticConfig.postValidation
+      : {};
+  const postValidationRules = Array.isArray(postValidation.rules) ? postValidation.rules : [];
+  if (postValidationRules.length > 0) {
+    return postValidationRules;
+  }
   return Array.isArray(semanticConfig?.doiOnlyRules) ? semanticConfig.doiOnlyRules : [];
 }
 
@@ -110,7 +118,33 @@ function normalizeElicitSourceFilterConfig(input) {
   };
 }
 
+function normalizeSemanticScholarSourceFilterConfig(input) {
+  const safeInput = input && typeof input === "object" ? input : {};
+  const years = dedupeStrings(
+    Array.isArray(safeInput.year) ? safeInput.year : safeInput.year ? [safeInput.year] : []
+  );
+  const publicationDateOrYears = dedupeStrings(
+    Array.isArray(safeInput.publicationDateOrYear)
+      ? safeInput.publicationDateOrYear
+      : safeInput.publicationDateOrYear
+      ? [safeInput.publicationDateOrYear]
+      : []
+  );
+
+  return {
+    publicationTypes: dedupeStrings(
+      Array.isArray(safeInput.publicationTypes) ? safeInput.publicationTypes : []
+    ),
+    year: years.length === 1 ? years[0] : "",
+    publicationDateOrYear:
+      publicationDateOrYears.length === 1 ? publicationDateOrYears[0] : "",
+  };
+}
+
 function collectSourceFilters(items) {
+  const semanticScholarPublicationTypes = [];
+  const semanticScholarYears = [];
+  const semanticScholarPublicationDateOrYears = [];
   const openAlexLanguage = [];
   const openAlexSourceType = [];
   const openAlexWorkType = [];
@@ -121,8 +155,18 @@ function collectSourceFilters(items) {
 
   (Array.isArray(items) ? items : []).forEach((item) => {
     const itemSourceFilters = getItemSourceFilters(item);
+    const semanticScholarFilters = normalizeSemanticScholarSourceFilterConfig(
+      itemSourceFilters.semanticScholar
+    );
     const openAlexFilters = normalizeOpenAlexSourceFilterConfig(itemSourceFilters.openAlex);
     const elicitFilters = normalizeElicitSourceFilterConfig(itemSourceFilters.elicit);
+    semanticScholarPublicationTypes.push(...semanticScholarFilters.publicationTypes);
+    if (semanticScholarFilters.year) {
+      semanticScholarYears.push(semanticScholarFilters.year);
+    }
+    if (semanticScholarFilters.publicationDateOrYear) {
+      semanticScholarPublicationDateOrYears.push(semanticScholarFilters.publicationDateOrYear);
+    }
     openAlexLanguage.push(...openAlexFilters.language);
     openAlexSourceType.push(...openAlexFilters.sourceType);
     openAlexWorkType.push(...openAlexFilters.workType);
@@ -133,8 +177,20 @@ function collectSourceFilters(items) {
     elicitIncludeKeywords.push(...elicitFilters.includeKeywords);
     elicitExcludeKeywords.push(...elicitFilters.excludeKeywords);
   });
+  const dedupedSemanticScholarYears = dedupeStrings(semanticScholarYears);
+  const dedupedSemanticScholarPublicationDateOrYears = dedupeStrings(
+    semanticScholarPublicationDateOrYears
+  );
   const dedupedOpenAlexPublicationYears = dedupeStrings(openAlexPublicationYears);
 
+  const semanticScholar = {
+    publicationTypes: dedupeStrings(semanticScholarPublicationTypes),
+    year: dedupedSemanticScholarYears.length === 1 ? dedupedSemanticScholarYears[0] : "",
+    publicationDateOrYear:
+      dedupedSemanticScholarPublicationDateOrYears.length === 1
+        ? dedupedSemanticScholarPublicationDateOrYears[0]
+        : "",
+  };
   const openAlex = {
     language: dedupeStrings(openAlexLanguage),
     sourceType: dedupeStrings(openAlexSourceType),
@@ -149,6 +205,13 @@ function collectSourceFilters(items) {
   };
 
   const sourceFilters = {};
+  if (
+    semanticScholar.publicationTypes.length > 0 ||
+    semanticScholar.year ||
+    semanticScholar.publicationDateOrYear
+  ) {
+    sourceFilters.semanticScholar = semanticScholar;
+  }
   if (
     openAlex.language.length > 0 ||
     openAlex.sourceType.length > 0 ||
@@ -314,6 +377,7 @@ function collectHardFilterValues(items) {
     sourceFormats: [],
     publicationDateYears: [],
     doiOnlyRuleIds: [],
+    postValidationRuleIds: [],
   };
   const hardFilterLabelsEnglish = [];
 
@@ -342,6 +406,7 @@ function collectHardFilterValues(items) {
       .map((rule) => normalizeString(rule?.id || ""))
       .filter(Boolean);
     hardFilters.doiOnlyRuleIds.push(...ruleIds);
+    hardFilters.postValidationRuleIds.push(...ruleIds);
     hardFilters.publicationDateYears.push(...publicationDateYears);
 
     const englishLabel = getEnglishItemLabel(item);
@@ -360,6 +425,7 @@ function collectHardFilterValues(items) {
       sourceFormats: dedupeStrings(hardFilters.sourceFormats),
       publicationDateYears: dedupePositiveIntegers(hardFilters.publicationDateYears),
       doiOnlyRuleIds: dedupeStrings(hardFilters.doiOnlyRuleIds),
+      postValidationRuleIds: dedupeStrings(hardFilters.postValidationRuleIds),
     },
     hardFilterLabelsEnglish: dedupeStrings(hardFilterLabelsEnglish),
   };
@@ -385,40 +451,45 @@ export function buildSemanticWordedIntentContext({ topicGroups, limitDropdowns, 
     ...flattenItemGroups(limitDropdowns),
     ...flattenItemGroups(Object.values(limitData || {})),
   ]);
+  const allSelectedItems = dedupeItems([...topicItems, ...limitItems]);
+  const semanticTopicItems = topicItems.filter((item) => !hasHardSemanticHandling(item));
+  const semanticLimitItems = limitItems.filter((item) => !hasHardSemanticHandling(item));
+  const semanticTextItems = dedupeItems([...semanticTopicItems, ...semanticLimitItems]);
+  const hardSelectedItems = allSelectedItems.filter((item) => hasHardSemanticHandling(item));
 
   const selectedTopicsEnglish = dedupeStrings(topicItems.map((item) => getEnglishItemLabel(item)));
   const selectedLimitsEnglish = dedupeStrings(limitItems.map((item) => getEnglishItemLabel(item)));
   const untranslatedSelections = dedupeStrings(
-    [...topicItems, ...limitItems]
+    semanticTextItems
       .filter((item) => getEnglishItemLabel(item) === "")
       .map((item) => getRawFallbackLabel(item))
   );
 
-  const hardLimitItems = limitItems.filter((item) => hasHardSemanticHandling(item));
-  const semanticLimitItems = limitItems.filter((item) => !hasHardSemanticHandling(item));
   const semanticLimitLabelsEnglish = dedupeStrings(
     semanticLimitItems.map((item) => getEnglishItemLabel(item))
   );
   const selectedTopicIntentEnglish = dedupeStrings(
-    topicItems.map((item) => getSemanticIntentText(item))
+    semanticTopicItems.map((item) => getSemanticIntentText(item))
   );
   const selectedSemanticLimitIntentEnglish = dedupeStrings(
     semanticLimitItems.map((item) => getSemanticIntentText(item))
   );
-  const { hardFilters, hardFilterLabelsEnglish } = collectHardFilterValues(hardLimitItems);
-  const explicitSoftHintsEnglish = dedupeStrings(limitItems.flatMap((item) => getItemSoftHints(item)));
-  const sourceFilters = collectSourceFilters([...topicItems, ...limitItems]);
+  const { hardFilters, hardFilterLabelsEnglish } = collectHardFilterValues(hardSelectedItems);
+  const explicitSoftHintsEnglish = dedupeStrings(
+    allSelectedItems.flatMap((item) => getItemSoftHints(item))
+  );
+  const sourceFilters = collectSourceFilters(allSelectedItems);
   const sourceSpecificBlocks = {
     semanticScholar: dedupeStrings([
-      ...buildSourceSpecificBlocks(topicItems).semanticScholar,
+      ...buildSourceSpecificBlocks(semanticTopicItems).semanticScholar,
       ...buildSourceSpecificBlocks(semanticLimitItems).semanticScholar,
     ]),
     openAlex: dedupeStrings([
-      ...buildSourceSpecificBlocks(topicItems).openAlex,
+      ...buildSourceSpecificBlocks(semanticTopicItems).openAlex,
       ...buildSourceSpecificBlocks(semanticLimitItems).openAlex,
     ]),
     elicit: dedupeStrings([
-      ...buildSourceSpecificBlocks(topicItems).elicit,
+      ...buildSourceSpecificBlocks(semanticTopicItems).elicit,
       ...buildSourceSpecificBlocks(semanticLimitItems).elicit,
     ]),
   };
@@ -451,6 +522,11 @@ export function buildSemanticWordedIntentContext({ topicGroups, limitDropdowns, 
     semanticLimitLabelsEnglish,
     hardFilterLabelsEnglish,
     hardFilters,
+    postValidation: {
+      ruleIds: Array.isArray(hardFilters.postValidationRuleIds)
+        ? hardFilters.postValidationRuleIds
+        : [],
+    },
     sourceFilters,
     sourceSpecificBlocks,
     softHintsEnglish: dedupeStrings([...semanticLimitLabelsEnglish, ...explicitSoftHintsEnglish]),

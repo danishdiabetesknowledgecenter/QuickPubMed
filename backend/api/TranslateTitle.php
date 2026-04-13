@@ -129,7 +129,39 @@ if (ob_get_level()) ob_end_clean();
 
 $ch = curl_init($openAiApiUrl);
 $sseBuffer = '';
-$processSseLine = function($line) {
+$hasStreamedText = false;
+/**
+ * @param array<string,mixed> $responsePayload
+ * @return string
+ */
+$extractResponseText = static function(array $responsePayload): string {
+    if (isset($responsePayload['output_text']) && is_string($responsePayload['output_text'])) {
+        return trim($responsePayload['output_text']);
+    }
+
+    $parts = [];
+    $outputs = isset($responsePayload['output']) && is_array($responsePayload['output'])
+        ? $responsePayload['output']
+        : [];
+    foreach ($outputs as $output) {
+        if (!is_array($output)) {
+            continue;
+        }
+        $contentItems = isset($output['content']) && is_array($output['content']) ? $output['content'] : [];
+        foreach ($contentItems as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $text = $item['text'] ?? ($item['content'] ?? '');
+            if (is_string($text) && trim($text) !== '') {
+                $parts[] = trim($text);
+            }
+        }
+    }
+
+    return trim(implode("\n", $parts));
+};
+$processSseLine = function($line) use (&$hasStreamedText, $extractResponseText) {
     $line = trim((string) $line);
     if ($line === '') return;
     if (strpos($line, 'data: ') !== 0) return;
@@ -142,15 +174,31 @@ $processSseLine = function($line) {
 
     if (isset($parsed['type']) && $parsed['type'] === 'response.output_text.delta') {
         $content = $parsed['delta'] ?? '';
-        echo $content;
-        flush();
+        if ($content !== '') {
+            $hasStreamedText = true;
+            echo $content;
+            flush();
+        }
         return;
     }
 
     if (isset($parsed['choices'][0]['delta']['content'])) {
         $content = $parsed['choices'][0]['delta']['content'];
-        echo $content;
-        flush();
+        if ($content !== '') {
+            $hasStreamedText = true;
+            echo $content;
+            flush();
+        }
+        return;
+    }
+
+    if (!$hasStreamedText) {
+        $content = $extractResponseText($parsed);
+        if ($content !== '') {
+            $hasStreamedText = true;
+            echo $content;
+            flush();
+        }
     }
 };
 
@@ -185,6 +233,18 @@ curl_exec($ch);
 
 if (trim($sseBuffer) !== '') {
     $processSseLine($sseBuffer);
+    if (!$hasStreamedText) {
+        $rawTail = trim($sseBuffer);
+        $parsedTail = json_decode($rawTail, true);
+        if (is_array($parsedTail)) {
+            $tailText = $extractResponseText($parsedTail);
+            if ($tailText !== '') {
+                $hasStreamedText = true;
+                echo $tailText;
+                flush();
+            }
+        }
+    }
 }
 
 if (curl_errno($ch)) {

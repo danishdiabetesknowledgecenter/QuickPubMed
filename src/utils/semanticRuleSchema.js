@@ -1,9 +1,10 @@
 /**
- * Central contract for semantic DOI-only filter rules.
+ * Central contract for semantic post-validation rules.
  *
  * The actual rule instances live in `data/content/shared/limits.json`
- * under `semanticConfig.doiOnlyRules`, while SearchForm.vue
- * consumes and evaluates them.
+ * under `semanticConfig.postValidation.rules` (with legacy fallback
+ * from `semanticConfig.doiOnlyRules`), while SearchForm.vue
+ * consumes and evaluates them as metadata rules for non-PMID records.
  *
  * Supported top-level rule fields:
  * - id
@@ -206,7 +207,14 @@ export function normalizeSemanticDoiOnlyFilterRule(rule) {
 export function buildActiveSemanticDoiOnlyRuleState(selectedItems) {
   const dedupedRules = new Map();
   (Array.isArray(selectedItems) ? selectedItems : []).forEach((item) => {
-    const rawRules = item?.semanticConfig?.doiOnlyRules;
+    const postValidation =
+      item?.semanticConfig?.postValidation && typeof item.semanticConfig.postValidation === "object"
+        ? item.semanticConfig.postValidation
+        : {};
+    const rawRules =
+      Array.isArray(postValidation.rules) && postValidation.rules.length > 0
+        ? postValidation.rules
+        : item?.semanticConfig?.doiOnlyRules;
     const rules = Array.isArray(rawRules) ? rawRules : rawRules ? [rawRules] : [];
     rules.forEach((rule) => {
       const normalizedRule = normalizeSemanticDoiOnlyFilterRule(rule);

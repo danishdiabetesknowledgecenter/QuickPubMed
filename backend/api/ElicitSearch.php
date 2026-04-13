@@ -570,6 +570,90 @@ function qpmNormalizeElicitKeywords($value): array
     return $output;
 }
 
+/**
+ * Extract an upstream Elicit error message from a decoded response body.
+ *
+ * @param array<string,mixed> $decoded
+ * @return string
+ */
+function qpmExtractElicitErrorMessage(array $decoded): string
+{
+    $error = $decoded['error'] ?? '';
+    if (is_string($error) && trim($error) !== '') {
+        return trim($error);
+    }
+    if (is_array($error)) {
+        $nestedMessage = $error['message'] ?? $error['detail'] ?? $error['code'] ?? '';
+        if (is_string($nestedMessage) && trim($nestedMessage) !== '') {
+            return trim($nestedMessage);
+        }
+    }
+
+    foreach ([$decoded['message'] ?? '', $decoded['detail'] ?? ''] as $candidate) {
+        if (is_string($candidate) && trim($candidate) !== '') {
+            return trim($candidate);
+        }
+    }
+
+    return '';
+}
+
+/**
+ * Build structured retry hints for filter-specific Elicit request failures.
+ *
+ * @param string $message
+ * @param array<string,mixed> $filters
+ * @return array<string,mixed>
+ */
+function qpmBuildElicitRetryHints(string $message, array $filters): array
+{
+    $normalized = strtolower(trim($message));
+    if ($normalized === '') {
+        return [];
+    }
+
+    $requestFields = [];
+    if (
+        !empty($filters['typeTags']) &&
+        (
+            strpos($normalized, 'typetags') !== false ||
+            strpos($normalized, 'type_tags') !== false ||
+            strpos($normalized, 'type tags') !== false
+        )
+    ) {
+        $requestFields[] = 'typeTags';
+    }
+    if (
+        !empty($filters['includeKeywords']) &&
+        (
+            strpos($normalized, 'includekeywords') !== false ||
+            strpos($normalized, 'include_keywords') !== false ||
+            strpos($normalized, 'include keywords') !== false
+        )
+    ) {
+        $requestFields[] = 'includeKeywords';
+    }
+    if (
+        !empty($filters['excludeKeywords']) &&
+        (
+            strpos($normalized, 'excludekeywords') !== false ||
+            strpos($normalized, 'exclude_keywords') !== false ||
+            strpos($normalized, 'exclude keywords') !== false
+        )
+    ) {
+        $requestFields[] = 'excludeKeywords';
+    }
+
+    $requestFields = array_values(array_unique($requestFields));
+    if (empty($requestFields)) {
+        return [];
+    }
+
+    return [
+        'requestFields' => $requestFields,
+    ];
+}
+
 $params = $_SERVER['REQUEST_METHOD'] === 'POST' ? $_POST : $_GET;
 if (empty($params)) {
     $rawInput = file_get_contents('php://input');
@@ -587,6 +671,7 @@ $query = trim((string) ($params['query'] ?? ''));
 $configuredLimit = qpmGetSemanticSourceLimit('elicit', 100);
 $limit = (int) ($params['limit'] ?? $configuredLimit);
 $rawFilters = isset($params['filters']) && is_array($params['filters']) ? $params['filters'] : [];
+$debugSearchFlow = qpmIsSearchFlowDebugRequest($params);
 if ($limit <= 0) {
     $limit = $configuredLimit;
 }
@@ -717,14 +802,8 @@ $rateLimit = qpmElicitBuildRateLimitInfo(
     is_array($result['response_headers'] ?? null) ? $result['response_headers'] : [],
     (int)($result['status'] ?? 0)
 );
-$upstreamError = '';
-if (isset($decoded['error'])) {
-    if (is_array($decoded['error'])) {
-        $upstreamError = trim((string)($decoded['error']['message'] ?? $decoded['error']['code'] ?? ''));
-    } else {
-        $upstreamError = trim((string)$decoded['error']);
-    }
-}
+$upstreamError = qpmExtractElicitErrorMessage($decoded);
+$retryHints = qpmBuildElicitRetryHints($upstreamError, $filters);
 
 $papers = $decoded['papers'] ?? [];
 if (!is_array($papers)) {
@@ -734,6 +813,8 @@ if (!is_array($papers)) {
 $pmids = [];
 $dois = [];
 $candidates = [];
+$debugDroppedRecords = [];
+$debugDroppedReasons = [];
 
 foreach ($papers as $index => $paper) {
     if (!is_array($paper)) {
@@ -742,6 +823,17 @@ foreach ($papers as $index => $paper) {
     $pmid = qpmNormalizeElicitPmid($paper['pmid'] ?? '');
     $doi = qpmNormalizeElicitDoi($paper['doi'] ?? '');
     if ($pmid === '' && $doi === '') {
+        if ($debugSearchFlow) {
+            $debugDroppedReasons['missing_pmid_and_doi'] = (int) ($debugDroppedReasons['missing_pmid_and_doi'] ?? 0) + 1;
+            $debugDroppedRecords[] = [
+                'source' => 'elicit',
+                'rank' => $index + 1,
+                'pmid' => '',
+                'doi' => '',
+                'title' => trim((string) ($paper['title'] ?? '')),
+                'reason' => 'missing_pmid_and_doi',
+            ];
+        }
         continue;
     }
 
@@ -776,5 +868,13 @@ echo json_encode([
     'candidates' => $candidates,
     'total' => count($papers),
     'error' => $upstreamError,
+    'retryHints' => !empty($retryHints) ? $retryHints : (object)[],
     'rateLimit' => $rateLimit,
+    'debug' => $debugSearchFlow ? [
+        'upstreamTotal' => count($papers),
+        'normalizedTotal' => count($candidates),
+        'droppedBeforeReturn' => count($debugDroppedRecords),
+        'droppedReasons' => (object) $debugDroppedReasons,
+        'droppedRecords' => $debugDroppedRecords,
+    ] : (object) [],
 ]);

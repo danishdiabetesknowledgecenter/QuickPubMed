@@ -1,10 +1,10 @@
-# Semantiske DOI-only regler
+# Semantiske post-valideringsregler
 
-Denne note beskriver, hvordan den semantiske DOI-only filtrering er bygget op i QuickPubMed, og hvordan nye regler vedligeholdes.
+Denne note beskriver, hvordan den semantiske post-validering er bygget op i QuickPubMed, og hvordan nye regler vedligeholdes.
 
 ## Formål
 
-Den semantiske søgning kan finde kandidater uden PMID, men med DOI. Disse DOI-only kandidater kan ikke valideres mod PubMed på samme måde som PMID-kandidater. Derfor bruges et separat, konservativt regel-lag til at filtrere DOI-only kandidater, før de vises i hybridresultater.
+Den semantiske søgning kan finde kandidater, som ikke kan valideres direkte mod PubMed-hardfilterqueryen. Derfor bruges et separat, konservativt metadataregel-lag til at filtrere ikke-PMID-kandidater, før de vises i hybridresultater.
 
 Reglerne er bevidst:
 
@@ -16,14 +16,14 @@ Reglerne er bevidst:
 ## Hvor vedligeholdes hvad
 
 - `src/utils/semanticRuleSchema.js`
-  - Kanonisk schema/kontrakt for `doiOnlyFilterRules`
+  - Kanonisk schema/kontrakt for post-valideringsregler
   - Defaults
   - Understøttede felter og operatorer
   - Normalisering af regeldata
   - Opbygning af aktiv rule-state
 
 - `src/utils/semanticRuleEngine.js`
-  - Evaluering af regler mod konkrete DOI-only kandidater
+  - Evaluering af regler mod konkrete ikke-PMID-kandidater
   - Tekstsignaler
   - Kilde-signaler
   - Metadata snapshot
@@ -36,7 +36,8 @@ Reglerne er bevidst:
   - Orkestrerer hybridflowet
 
 - `data/content/shared/limits.json`
-  - Her ligger de konkrete regler under `semanticConfig.doiOnlyRules`
+  - Her ligger de konkrete regler under `semanticConfig.postValidation.rules`
+  - Der er fortsat legacy-fallback fra `semanticConfig.doiOnlyRules`
 
 - `backend/api/PublicContent.php`
   - Sørger for, at `semanticConfig` kan merges fra fælles limits og domæneoverrides
@@ -45,11 +46,11 @@ Reglerne er bevidst:
 
 1. Brugeren vælger emner og afgrænsninger.
 2. `SearchForm.vue` samler de valgte items.
-3. `buildActiveSemanticDoiOnlyRuleState()` laver et aktivt regelsæt ud fra `semanticConfig.doiOnlyRules`.
+3. `buildActiveSemanticDoiOnlyRuleState()` laver et aktivt regelsæt ud fra `semanticConfig.postValidation.rules`.
 4. Semantiske kilder returnerer kandidater med PMID og/eller DOI.
-5. DOI-only kandidater vurderes af `semanticRuleEngine.js`.
+5. Ikke-PMID-kandidater vurderes af `semanticRuleEngine.js`.
 6. Kun kandidater, der matcher de aktive regler, går videre til hybridlisten.
-7. OpenAlex kan stadig bruges som DOI-only metadataresolver, selv når `searchWithOpenAlex = false`.
+7. OpenAlex kan stadig bruges som metadataresolver for ikke-PMID-records, selv når `searchWithOpenAlex = false`.
 
 ## Vigtig produktregel
 
@@ -59,9 +60,9 @@ Reglerne er bevidst:
 
 Det betyder ikke:
 
-- at OpenAlex DOI-only metadataresolver er slået fra
+- at OpenAlex metadataresolveren for ikke-PMID-records er slået fra
 
-Det er bevidst, fordi OpenAlex fortsat bruges til metadata for DOI-only poster fundet via andre kilder.
+Det er bevidst, fordi OpenAlex fortsat bruges til metadata for ikke-PMID-poster fundet via andre kilder.
 
 ## Regel-format
 
@@ -70,32 +71,35 @@ Regler ligger på en limit-node sådan her:
 ```json
 {
   "semanticConfig": {
-    "doiOnlyRules": [
-      {
-        "id": "guideline",
-        "exclusiveGroup": "publication-profile",
-        "matchStrategy": "any",
-        "metadataFieldConditionMode": "any",
-        "textScopes": ["candidateTitle", "sourceCandidateTitles"],
-        "requireAnyTextSignals": [
-          "guideline",
-          "practice guideline",
-          "consensus statement",
-          "recommendation"
-        ],
-        "requireAllTextSignals": [],
-        "excludeAnyTextSignals": [],
-        "allowSourceProviders": [],
-        "excludeSourceProviders": [],
-        "metadataFieldConditions": [
-          {
-            "field": "candidatePublicationTypes",
-            "operator": "includesAny",
-            "values": ["guideline", "practice guideline"]
-          }
-        ]
-      }
-    ]
+    "postValidation": {
+      "mode": "metadata",
+      "rules": [
+        {
+          "id": "guideline",
+          "exclusiveGroup": "publication-profile",
+          "matchStrategy": "any",
+          "metadataFieldConditionMode": "any",
+          "textScopes": ["candidateTitle", "sourceCandidateTitles"],
+          "requireAnyTextSignals": [
+            "guideline",
+            "practice guideline",
+            "consensus statement",
+            "recommendation"
+          ],
+          "requireAllTextSignals": [],
+          "excludeAnyTextSignals": [],
+          "allowSourceProviders": [],
+          "excludeSourceProviders": [],
+          "metadataFieldConditions": [
+            {
+              "field": "candidatePublicationTypes",
+              "operator": "includesAny",
+              "values": ["guideline", "practice guideline"]
+            }
+          ]
+        }
+      ]
+    }
   }
 }
 ```
@@ -175,7 +179,7 @@ Eksempler:
 
 1. Vælg den relevante limit i `data/content/shared/limits.json`.
 2. Tilføj eller udvid `semanticConfig`.
-3. Tilføj en ny `doiOnlyFilterRules`-regel.
+3. Tilføj en ny regel under `semanticConfig.postValidation.rules`.
 4. Brug titel-signaler først, hvis metadata er usikre.
 5. Brug `metadataFieldConditions`, hvis du ved, at feltet er stabilt nok.
 6. Brug `exclusiveGroup`, hvis flere regler skal høre til samme profilkategori og fungere som `OR`.
@@ -190,14 +194,14 @@ Eksempler:
   - `cochrane`
   - `guideline`
 - Undgå svage eller tvetydige signaler som eneste filter.
-- Gør ikke PubMed-only flowet afhængigt af DOI-only regler.
+- Gør ikke PubMed-only flowet afhængigt af post-valideringsregler.
 - Lad hellere en regel være for smal end for aggressiv.
 
 ## Kendte begrænsninger
 
-- DOI-only regler er ikke en erstatning for PubMed-filtrering.
+- Post-valideringsregler er ikke en erstatning for PubMed-filtrering.
 - Ikke alle kilder leverer stabile metadatafelter.
-- Sprog og aldersgrupper er typisk for svage til hård DOI-only filtrering uden ekstra evidens.
+- Sprog og aldersgrupper er typisk for svage til hård metadata-baseret post-validering uden ekstra evidens.
 - OpenAlex metadata kan være nødvendige for endelig visning, men regler forsøger at arbejde så tidligt som muligt med det, der allerede er kendt.
 
 ## Fejlsøgning
@@ -213,5 +217,5 @@ Hvis regler opfører sig uventet, så tjek:
 
 - om de valgte limits faktisk har `semanticConfig`
 - om regler i samme `exclusiveGroup` faktisk er tænkt som alternativer (`OR`)
-- om kandidaten er PMID-baseret eller DOI-only
+- om kandidaten er PMID-baseret eller ikke-PMID
 - om metadatafeltet, du filtrerer på, faktisk findes på kilden

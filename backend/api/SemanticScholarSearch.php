@@ -159,7 +159,14 @@ function qpmSemanticScholarShellCurlRequest(string $url, array $headers, int $ti
  * @param int $limit
  * @return array{ok: bool, status: int, body: string, error: string}
  */
-function qpmSemanticScholarLocalDevProxyRequest(string $query, int $limit, int $offset = 0): array
+function qpmSemanticScholarLocalDevProxyRequest(
+    string $query,
+    int $limit,
+    int $offset = 0,
+    string $year = '',
+    array $publicationTypes = [],
+    string $publicationDateOrYear = ''
+): array
 {
     $hosts = ['localhost', '127.0.0.1'];
     $isLocalRequest = qpmIsLocalSemanticScholarRequest();
@@ -172,12 +179,14 @@ function qpmSemanticScholarLocalDevProxyRequest(string $query, int $limit, int $
         ];
     }
 
-    $queryString = http_build_query([
-        'query' => $query,
-        'limit' => $limit,
-        'offset' => $offset,
-        'fields' => 'externalIds,title,venue,year,publicationTypes',
-    ]);
+    $queryString = qpmBuildSemanticScholarSearchQueryString(
+        $query,
+        $limit,
+        $offset,
+        $year,
+        $publicationTypes,
+        $publicationDateOrYear
+    );
 
     $headerCandidates = [
         ['Accept: application/json'],
@@ -217,6 +226,104 @@ function qpmSemanticScholarLocalDevProxyRequest(string $query, int $limit, int $
         'body' => '',
         'error' => implode(' | ', $errors),
     ];
+}
+
+/**
+ * Normalize a Semantic Scholar year filter.
+ *
+ * @param mixed $value
+ * @return string
+ */
+function qpmNormalizeSemanticScholarYearFilter($value): string
+{
+    $normalized = trim((string)$value);
+    return preg_match('/^\d{4}(?:-\d{4})?$/', $normalized) ? $normalized : '';
+}
+
+/**
+ * Normalize a Semantic Scholar publicationDateOrYear filter.
+ *
+ * @param mixed $value
+ * @return string
+ */
+function qpmNormalizeSemanticScholarPublicationDateOrYearFilter($value): string
+{
+    $normalized = trim((string)$value);
+    if ($normalized === '') {
+        return '';
+    }
+    return preg_match('/^(\d{4}(?:-\d{2}(?:-\d{2})?)?)?(?::(\d{4}(?:-\d{2}(?:-\d{2})?)?)?)?$/', $normalized)
+        ? $normalized
+        : '';
+}
+
+/**
+ * Normalize publication type list input for Semantic Scholar.
+ *
+ * @param mixed $value
+ * @return array<int,string>
+ */
+function qpmNormalizeSemanticScholarPublicationTypes($value): array
+{
+    $rawValues = [];
+    if (is_array($value)) {
+        $rawValues = $value;
+    } elseif (is_string($value)) {
+        $rawValues = explode(',', $value);
+    } elseif ($value !== null && $value !== '') {
+        $rawValues = [(string)$value];
+    }
+
+    $normalized = [];
+    foreach ($rawValues as $entry) {
+        $trimmed = trim((string)$entry);
+        if ($trimmed === '') {
+            continue;
+        }
+        $normalized[$trimmed] = true;
+    }
+
+    return array_values(array_keys($normalized));
+}
+
+/**
+ * Build Semantic Scholar relevance-search query string.
+ *
+ * @param string $query
+ * @param int $limit
+ * @param int $offset
+ * @param string $year
+ * @param array<int,string> $publicationTypes
+ * @param string $publicationDateOrYear
+ * @return string
+ */
+function qpmBuildSemanticScholarSearchQueryString(
+    string $query,
+    int $limit,
+    int $offset,
+    string $year = '',
+    array $publicationTypes = [],
+    string $publicationDateOrYear = ''
+): string
+{
+    $queryString = http_build_query([
+        'query' => $query,
+        'limit' => $limit,
+        'offset' => $offset,
+        'fields' => 'externalIds,title,abstract,venue,year,publicationTypes',
+    ]);
+
+    if ($year !== '') {
+        $queryString .= '&year=' . rawurlencode($year);
+    }
+    if (!empty($publicationTypes)) {
+        $queryString .= '&publicationTypes=' . rawurlencode(implode(',', $publicationTypes));
+    }
+    if ($publicationDateOrYear !== '') {
+        $queryString .= '&publicationDateOrYear=' . rawurlencode($publicationDateOrYear);
+    }
+
+    return $queryString;
 }
 
 /**
@@ -276,7 +383,7 @@ function qpmNormalizeSemanticScholarDoi($value): string
  *
  * @param array<string,mixed> $decoded
  * @param int $rankOffset
- * @return array<int,array{source:string,rank:int,pmid:string,doi:string,title:string,score:null}>
+ * @return array<int,array{source:string,rank:int,pmid:string,doi:string,title:string,abstract:string,score:null}>
  */
 function qpmExtractSemanticScholarCandidates(array $decoded, int $rankOffset = 0): array
 {
@@ -310,6 +417,7 @@ function qpmExtractSemanticScholarCandidates(array $decoded, int $rankOffset = 0
             'pmid' => $pmid,
             'doi' => $doi,
             'title' => trim((string) ($paper['title'] ?? '')),
+            'abstract' => trim((string) ($paper['abstract'] ?? '')),
             'score' => null,
             'metadata' => [
                 'year' => isset($paper['year']) ? (string) $paper['year'] : '',
@@ -325,6 +433,59 @@ function qpmExtractSemanticScholarCandidates(array $decoded, int $rankOffset = 0
 }
 
 /**
+ * Collect debug-only dropped records from Semantic Scholar normalization.
+ *
+ * @param array<string,mixed> $decoded
+ * @param int $rankOffset
+ * @return array{records: array<int,array<string,mixed>>, reasons: array<string,int>}
+ */
+function qpmCollectSemanticScholarDroppedRecords(array $decoded, int $rankOffset = 0): array
+{
+    $records = [];
+    $reasons = [];
+    $data = $decoded['data'] ?? [];
+    if (!is_array($data)) {
+        return [
+            'records' => [],
+            'reasons' => [],
+        ];
+    }
+
+    foreach ($data as $index => $paper) {
+        if (!is_array($paper)) {
+            continue;
+        }
+        $externalIds = $paper['externalIds'] ?? null;
+        if (!is_array($externalIds)) {
+            $externalIds = [];
+        }
+        $pmid = trim((string) ($externalIds['PubMed'] ?? ''));
+        if ($pmid !== '' && !preg_match('/^[0-9]+$/', $pmid)) {
+            $pmid = '';
+        }
+        $doi = qpmNormalizeSemanticScholarDoi($externalIds['DOI'] ?? '');
+        if ($pmid !== '' || $doi !== '') {
+            continue;
+        }
+        $reason = 'missing_pmid_and_doi';
+        $reasons[$reason] = (int) ($reasons[$reason] ?? 0) + 1;
+        $records[] = [
+            'source' => 'semanticScholar',
+            'rank' => $rankOffset + $index + 1,
+            'pmid' => '',
+            'doi' => '',
+            'title' => trim((string) ($paper['title'] ?? '')),
+            'reason' => $reason,
+        ];
+    }
+
+    return [
+        'records' => $records,
+        'reasons' => $reasons,
+    ];
+}
+
+/**
  * Fetch one Semantic Scholar search batch with all available fallbacks.
  *
  * @param string $query
@@ -333,21 +494,39 @@ function qpmExtractSemanticScholarCandidates(array $decoded, int $rankOffset = 0
  * @param array<int,array<int,string>> $headerCandidates
  * @return array{ok: bool, status: int, body: string, error: string}
  */
-function qpmSemanticScholarFetchBatch(string $query, int $limit, int $offset, array $headerCandidates): array
+function qpmSemanticScholarFetchBatch(
+    string $query,
+    int $limit,
+    int $offset,
+    array $headerCandidates,
+    string $year = '',
+    array $publicationTypes = [],
+    string $publicationDateOrYear = ''
+): array
 {
     qpmThrottleRequestRate('semantic_scholar', 3);
 
-    $url = 'https://api.semanticscholar.org/graph/v1/paper/search?' . http_build_query([
-        'query' => $query,
-        'limit' => $limit,
-        'offset' => $offset,
-        'fields' => 'externalIds,title,venue,year,publicationTypes',
-    ]);
+    $url = 'https://api.semanticscholar.org/graph/v1/paper/search?' .
+        qpmBuildSemanticScholarSearchQueryString(
+            $query,
+            $limit,
+            $offset,
+            $year,
+            $publicationTypes,
+            $publicationDateOrYear
+        );
 
     $requestErrors = [];
 
     if (qpmIsLocalSemanticScholarRequest()) {
-        $localDevProxyResult = qpmSemanticScholarLocalDevProxyRequest($query, $limit, $offset);
+        $localDevProxyResult = qpmSemanticScholarLocalDevProxyRequest(
+            $query,
+            $limit,
+            $offset,
+            $year,
+            $publicationTypes,
+            $publicationDateOrYear
+        );
         if ($localDevProxyResult['ok']) {
             return [
                 'ok' => true,
@@ -462,6 +641,14 @@ if (empty($params)) {
 }
 
 $query = trim((string)($params['query'] ?? ''));
+$debugSearchFlow = qpmIsSearchFlowDebugRequest($params);
+$year = qpmNormalizeSemanticScholarYearFilter($params['year'] ?? '');
+$publicationTypes = qpmNormalizeSemanticScholarPublicationTypes(
+    $params['publicationTypes'] ?? ($params['publication_types'] ?? [])
+);
+$publicationDateOrYear = qpmNormalizeSemanticScholarPublicationDateOrYearFilter(
+    $params['publicationDateOrYear'] ?? ($params['publication_date_or_year'] ?? '')
+);
 $configuredLimit = qpmGetSemanticSourceLimit('semanticScholar', 400);
 $limit = (int)($params['limit'] ?? $configuredLimit);
 if ($limit <= 0) {
@@ -497,10 +684,20 @@ $offset = 0;
 $batchSize = 100;
 $requestErrors = [];
 $warning = '';
+$debugDroppedRecords = [];
+$debugDroppedReasons = [];
 
 while ($offset < $limit) {
     $currentLimit = min($batchSize, $limit - $offset);
-    $result = qpmSemanticScholarFetchBatch($query, $currentLimit, $offset, $headerCandidates);
+    $result = qpmSemanticScholarFetchBatch(
+        $query,
+        $currentLimit,
+        $offset,
+        $headerCandidates,
+        $year,
+        $publicationTypes,
+        $publicationDateOrYear
+    );
     if (!$result['ok']) {
         $requestErrors[] = (string) $result['error'];
         $hasPartialData = !empty($candidates) || !empty($pmids) || !empty($dois);
@@ -528,6 +725,13 @@ while ($offset < $limit) {
         }
         if ($candidate['doi'] !== '') {
             $dois[$candidate['doi']] = true;
+        }
+    }
+    if ($debugSearchFlow) {
+        $debugBatch = qpmCollectSemanticScholarDroppedRecords($decoded, $offset);
+        $debugDroppedRecords = array_merge($debugDroppedRecords, $debugBatch['records']);
+        foreach ($debugBatch['reasons'] as $reason => $count) {
+            $debugDroppedReasons[$reason] = (int) ($debugDroppedReasons[$reason] ?? 0) + (int) $count;
         }
     }
 
@@ -560,4 +764,11 @@ echo json_encode([
     'total' => $total,
     'partial' => $warning !== '',
     'warning' => $warning,
+    'debug' => $debugSearchFlow ? [
+        'upstreamTotal' => $total === null ? count($candidates) + count($debugDroppedRecords) : (int) $total,
+        'normalizedTotal' => count($candidates),
+        'droppedBeforeReturn' => count($debugDroppedRecords),
+        'droppedReasons' => (object) $debugDroppedReasons,
+        'droppedRecords' => $debugDroppedRecords,
+    ] : (object) [],
 ]);

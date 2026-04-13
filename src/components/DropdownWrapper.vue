@@ -339,10 +339,14 @@
   import {
     areComparableIdsEqual,
     cloneDeep,
+    getAbstractEntriesFromPubMedXml,
     getLocalizedTranslation,
+    hasXmlParserError,
     isMobileViewport,
+    parsePubMedXml,
   } from "@/utils/componentHelpers";
   import { validateAndEnhanceMeshTerms } from "@/utils/meshValidator.js";
+  import { summarizeSearchFlowRecord } from "@/utils/searchFlowDebug";
   import { buildOpenAlexPublicationYearFilter } from "@/utils/semanticWordedIntent.js";
   import { rerankSemanticCandidates } from "@/utils/semanticReranking.js";
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
@@ -352,7 +356,16 @@
   const SEMANTIC_SOURCE_RESPONSE_CACHE_TTL_MS = 5 * 60 * 1000;
   const DEFAULT_SEMANTIC_SCHOLAR_LIMIT = 400;
   const DEFAULT_OPENALEX_LIMIT = 100;
+  const OPENALEX_SEMANTIC_RESULT_CAP = 50;
   const DEFAULT_ELICIT_LIMIT = 100;
+  const DEFAULT_SEMANTIC_RESCUE_CONFIG = {
+    mode: "configurable_default_sparse",
+    minMergedCandidates: 25,
+    minSourceCandidates: 12,
+    searchLimit: 80,
+    maxCandidates: 20,
+    minLexicalScore: 3,
+  };
 
   export default {
     name: "DropdownWrapper",
@@ -364,6 +377,7 @@
     mixins: [appSettingsMixin, topicLoaderMixin, utilitiesMixin],
     inject: {
       instanceUseMeshValidation: { default: false },
+      qpmSearchFlowDebugApi: { default: null },
     },
     emits: ["input", "updateScope", "mounted", "translating", "searchchange"],
     props: {
@@ -2515,6 +2529,8 @@
           semanticScholarDois: [],
           semanticScholarCandidates: [],
           semanticSourceResults: [],
+          semanticRerankDiagnostics: null,
+          semanticMergeDebug: null,
           semanticScholarError: "",
           useSemanticScholar: false,
           includeTranslatedTextInQuery: false,
@@ -2547,6 +2563,8 @@
           semanticScholarDois: [],
           semanticScholarCandidates: [],
           semanticSourceResults: [],
+          semanticRerankDiagnostics: null,
+          semanticMergeDebug: null,
           semanticScholarError: "",
           useSemanticScholar: false,
           includeTranslatedTextInQuery: true,
@@ -2566,7 +2584,7 @@
               },
         };
       },
-      async buildResolvedSemanticTagState(newTag, existingTag = null) {
+      async buildResolvedSemanticTagState(newTag, existingTag = null, options = {}) {
         const useSemanticScholarSource = this.searchWithSemanticScholar;
         const useOpenAlexSource = this.isOpenAlexSemanticSearchEnabled();
         const useElicitSource = this.searchWithElicit;
@@ -2574,15 +2592,23 @@
           useSemanticScholarSource ||
           useOpenAlexSource ||
           useElicitSource;
+        const isPubMedSourceSelected = this.searchWithPubMedBestMatch === true;
+        const allowPubmedQueryGeneration = options?.allowPubmedQueryGeneration !== false;
+        const pubmedSourceQuery = String(options?.pubmedSourceQuery || "").trim();
+        const shouldFetchPubmedSource =
+          pubmedSourceQuery !== "" && isPubMedSourceSelected;
         const shouldUseAiSemanticFlow = this.searchWithAI === true && hasSemanticSource;
         const shouldGeneratePubmedQuery =
-          this.searchWithAI === true && this.searchWithPubMedBestMatch === true;
+          allowPubmedQueryGeneration &&
+          this.searchWithAI === true &&
+          isPubMedSourceSelected;
         let semanticQuery = "";
         let semanticIntentPayload = null;
         let llmSemanticIntent = null;
         let semanticIntentMeta = null;
         let semanticSourceQueryPlan = null;
         let pubmedGeneratedQuery = String(existingTag?.pubmedGeneratedQuery || "").trim();
+        let semanticRescueMeta = null;
         const sourceResults = [];
         const sourceErrors = [];
 
@@ -2594,7 +2620,11 @@
             elicit: useElicitSource,
           },
           useAiSemanticFlow: shouldUseAiSemanticFlow,
+          allowPubmedQueryGeneration,
           shouldGeneratePubmedQuery,
+          pubmedSourceQuery,
+          isPubMedSourceSelected,
+          shouldFetchPubmedSource,
         });
 
         if (shouldGeneratePubmedQuery && !pubmedGeneratedQuery) {
@@ -2630,112 +2660,256 @@
             semanticQuery = String(newTag || "").trim();
           }
 
-          if (semanticQuery) {
-            const semanticSourceRequests = [];
-            if (useSemanticScholarSource) {
-              semanticSourceRequests.push({
-                source: "semanticScholar",
-                run: async () => {
-                  this.$emit("translating", true, this.index, "translatingStepSemanticScholar");
-                  try {
-                    return await this.fetchSemanticScholarResults(semanticQuery, {
-                      semanticIntentPayload,
-                      llmSemanticIntent,
-                      semanticSourceQueryPlan,
-                    });
-                  } finally {
-                    this.$emit("translating", false, this.index, "translatingStepSemanticScholar");
-                  }
-                },
-              });
-            }
-            if (useOpenAlexSource) {
-              semanticSourceRequests.push({
-                source: "openAlex",
-                run: async () => {
-                  this.$emit("translating", true, this.index, "translatingStepOpenAlex");
-                  try {
-                    return await this.fetchOpenAlexResults(semanticQuery, {
-                      semanticIntentPayload,
-                      llmSemanticIntent,
-                      semanticSourceQueryPlan,
-                    });
-                  } finally {
-                    this.$emit("translating", false, this.index, "translatingStepOpenAlex");
-                  }
-                },
-              });
-            }
-            if (useElicitSource) {
-              semanticSourceRequests.push({
-                source: "elicit",
-                run: async () => {
-                  this.$emit("translating", true, this.index, "translatingStepElicit");
-                  try {
-                    return await this.fetchElicitResults(semanticQuery, {
-                      semanticIntentPayload,
-                      llmSemanticIntent,
-                      semanticSourceQueryPlan,
-                    });
-                  } finally {
-                    this.$emit("translating", false, this.index, "translatingStepElicit");
-                  }
-                },
-              });
-            }
-            const semanticApiOutcomes = await Promise.allSettled(
-              semanticSourceRequests.map((request) => request.run())
-            );
+          this.logSearchFlowDebugInfo("03 Semantic intent", {
+            input: newTag,
+            semanticQuery,
+            pubmedGeneratedQuery,
+            pubmedSourceQuery,
+            useAiSemanticFlow: shouldUseAiSemanticFlow,
+            semanticIntentMeta,
+            semanticSourceQueryPlan,
+          });
 
-            semanticApiOutcomes.forEach((outcome, index) => {
-              const request = semanticSourceRequests[index];
-              if (!request) return;
-              if (outcome.status === "fulfilled") {
-                sourceResults.push(outcome.value);
-              } else {
-                sourceErrors.push(String(outcome.reason || ""));
-                sourceResults.push(
-                  this.buildSourceErrorResult(request.source, semanticQuery, outcome.reason)
+          if (semanticQuery) {
+            await this.runSearchFlowDebugSection(
+              `04 Source retrieval • ${String(newTag || "").trim()}`,
+              async () => {
+                const semanticSourceRequests = [];
+                if (useSemanticScholarSource) {
+                  semanticSourceRequests.push({
+                    source: "semanticScholar",
+                    run: async () => {
+                      this.$emit("translating", true, this.index, "translatingStepSemanticScholar");
+                      try {
+                        return await this.fetchSemanticScholarResults(semanticQuery, {
+                          semanticIntentPayload,
+                          llmSemanticIntent,
+                          semanticSourceQueryPlan,
+                        });
+                      } finally {
+                        this.$emit("translating", false, this.index, "translatingStepSemanticScholar");
+                      }
+                    },
+                  });
+                }
+                if (useOpenAlexSource) {
+                  semanticSourceRequests.push({
+                    source: "openAlex",
+                    run: async () => {
+                      this.$emit("translating", true, this.index, "translatingStepOpenAlex");
+                      try {
+                        return await this.fetchOpenAlexResults(semanticQuery, {
+                          semanticIntentPayload,
+                          llmSemanticIntent,
+                          semanticSourceQueryPlan,
+                        });
+                      } finally {
+                        this.$emit("translating", false, this.index, "translatingStepOpenAlex");
+                      }
+                    },
+                  });
+                }
+                if (useElicitSource) {
+                  semanticSourceRequests.push({
+                    source: "elicit",
+                    run: async () => {
+                      this.$emit("translating", true, this.index, "translatingStepElicit");
+                      try {
+                        return await this.fetchElicitResults(semanticQuery, {
+                          semanticIntentPayload,
+                          llmSemanticIntent,
+                          semanticSourceQueryPlan,
+                        });
+                      } finally {
+                        this.$emit("translating", false, this.index, "translatingStepElicit");
+                      }
+                    },
+                  });
+                }
+                const semanticApiOutcomes = await Promise.allSettled(
+                  semanticSourceRequests.map((request) => request.run())
                 );
+
+                semanticApiOutcomes.forEach((outcome, index) => {
+                  const request = semanticSourceRequests[index];
+                  if (!request) return;
+                  if (outcome.status === "fulfilled") {
+                    sourceResults.push(outcome.value);
+                  } else {
+                    sourceErrors.push(String(outcome.reason || ""));
+                    sourceResults.push(
+                      this.buildSourceErrorResult(request.source, semanticQuery, outcome.reason)
+                    );
+                  }
+                });
+
+                const lexicalRescuePubmedQuery = isPubMedSourceSelected && allowPubmedQueryGeneration
+                  ? pubmedGeneratedQuery || String(newTag || "").trim()
+                  : "";
+                if (!isPubMedSourceSelected) {
+                  semanticRescueMeta = {
+                    triggered: false,
+                    triggerReason: "skipped-pubmed-not-selected",
+                    pubmedQuery: "",
+                  };
+                  this.logSearchFlowDebugInfo("PubMed lexical rescue skipped", semanticRescueMeta);
+                } else if (shouldFetchPubmedSource) {
+                  const requestPayload = {
+                    query: pubmedSourceQuery,
+                    limit: this.getConfiguredSemanticSourceLimit("pubmedBestMatch", 200),
+                  };
+                  this.$emit("translating", true, this.index, "translatingStepPubMedBestMatch");
+                  try {
+                    const pubmedSourceResult = await this.measureAsync(
+                      "PubMed best match request",
+                      () =>
+                        this.fetchPubMedBestMatchSourceResult({
+                          pubmedQuery: pubmedSourceQuery,
+                        }),
+                      requestPayload
+                    );
+                    sourceResults.push(pubmedSourceResult);
+                    await this.logSearchFlowDebugSourceResultGroup(
+                      "PubMed",
+                      requestPayload,
+                      pubmedSourceResult,
+                      pubmedSourceResult,
+                      {
+                        mode: "rerank-source",
+                      }
+                    );
+                  } catch (error) {
+                    sourceErrors.push(String(error || ""));
+                    sourceResults.push(
+                      this.buildSourceErrorResult("pubmed", pubmedSourceQuery, error)
+                    );
+                    this.logSearchFlowDebugWarn("PubMed source retrieval failed", {
+                      query: pubmedSourceQuery,
+                      error: String(error || ""),
+                    });
+                  } finally {
+                    this.$emit("translating", false, this.index, "translatingStepPubMedBestMatch");
+                  }
+                }
+                if (shouldFetchPubmedSource) {
+                  semanticRescueMeta = {
+                    triggered: false,
+                    triggerReason: "skipped-standard-pubmed-retrieval",
+                    pubmedQuery: pubmedSourceQuery,
+                  };
+                  this.logSearchFlowDebugInfo("PubMed lexical rescue skipped", semanticRescueMeta);
+                } else if (isPubMedSourceSelected) {
+                  const rescueDecision = this.shouldRunPubMedLexicalRescue({
+                    sourceResults,
+                    semanticQuery: semanticQuery || newTag,
+                    pubmedQuery: lexicalRescuePubmedQuery,
+                    usePubMedBestMatch: isPubMedSourceSelected,
+                  });
+                  semanticRescueMeta = {
+                    ...(rescueDecision?.diagnostics || {}),
+                    activeSourceFilters: {
+                      openAlex:
+                        semanticSourceQueryPlan?.openAlex?.filters &&
+                        typeof semanticSourceQueryPlan.openAlex.filters === "object"
+                          ? semanticSourceQueryPlan.openAlex.filters
+                          : {},
+                      elicit:
+                        semanticSourceQueryPlan?.elicit?.filters &&
+                        typeof semanticSourceQueryPlan.elicit.filters === "object"
+                          ? semanticSourceQueryPlan.elicit.filters
+                          : {},
+                    },
+                    triggered: rescueDecision?.shouldRun === true,
+                    triggerReason: String(rescueDecision?.reason || "").trim(),
+                  };
+                  console.info("[PubMedLexicalRescue] Trigger evaluation.", semanticRescueMeta);
+                  this.logSearchFlowDebugInfo("PubMed lexical rescue trigger", semanticRescueMeta);
+                  if (rescueDecision?.shouldRun === true) {
+                    try {
+                      const rescueResult = await this.measureAsync(
+                        "PubMed lexical rescue",
+                        () =>
+                          this.fetchPubMedLexicalRescueResult({
+                            semanticQuery: semanticQuery || newTag,
+                            pubmedQuery: lexicalRescuePubmedQuery,
+                            sourceResults,
+                            triggerReason: rescueDecision.reason,
+                          }),
+                        rescueDecision?.diagnostics || {}
+                      );
+                      semanticRescueMeta = {
+                        ...semanticRescueMeta,
+                        ...(rescueResult?.rescueMeta || {}),
+                      };
+                      sourceResults.push(rescueResult);
+                      console.info("[PubMedLexicalRescue] Rescue result accepted.", semanticRescueMeta);
+                      this.logSearchFlowDebugInfo("PubMed lexical rescue accepted", semanticRescueMeta);
+                    } catch (error) {
+                      semanticRescueMeta = {
+                        ...semanticRescueMeta,
+                        error: String(error || ""),
+                      };
+                      console.warn("[PubMedLexicalRescue] Rescue request failed.", {
+                        ...semanticRescueMeta,
+                      });
+                      this.logSearchFlowDebugWarn("PubMed lexical rescue failed", semanticRescueMeta);
+                    }
+                  }
+                }
               }
-            });
+            );
           }
         }
 
-        const reranked = rerankSemanticCandidates(sourceResults, runtimeConfig?.rerankConfig || {});
-        const rerankDiagnostics =
-          reranked?.diagnostics && typeof reranked.diagnostics === "object"
-            ? reranked.diagnostics
-            : {};
-        console.info("[RerankFlow] Source result summary before merge.", {
-          sources: rerankDiagnostics.sourceSummary || [],
-          sourceStats: rerankDiagnostics.sourceStats || {},
-          rerankMode: reranked?.rerankMode || "multi",
-          rerankConfig: rerankDiagnostics.rerankConfig || {},
-        });
-        console.info("[RerankFlow] Merge summary.", {
-          rawCandidateCount: sourceResults.reduce(
-            (sum, sourceResult) =>
-              sum + (Array.isArray(sourceResult?.candidates) ? sourceResult.candidates.length : 0),
-            0
-          ),
-          mergedCandidateCount: Array.isArray(reranked?.candidates) ? reranked.candidates.length : 0,
-          overlapSummary: rerankDiagnostics.overlapSummary || {},
-          rerankMode: reranked?.rerankMode || "multi",
-        });
-        console.info(
-          "[RerankFlow] Top ranked candidates.",
-          (Array.isArray(reranked?.candidates) ? reranked.candidates : []).slice(0, 10).map((candidate) => ({
-            pmid: candidate.pmid,
-            doi: candidate.doi,
-            title: candidate.title,
-            sources: candidate.sources,
-            combinedScore: candidate.combinedScore,
-            scoreBreakdown: candidate.scoreBreakdown,
-            scoreTieBreaker: candidate.scoreTieBreaker,
-            sourceBreakdown: candidate.sourceBreakdown,
-            contributions: candidate.contributions,
-          }))
+        const { reranked, rerankDiagnostics } = await this.runSearchFlowDebugSection(
+          `05 Merge and rerank • ${String(newTag || "").trim()}`,
+          async () => {
+            const rerankedValue = rerankSemanticCandidates(sourceResults, runtimeConfig?.rerankConfig || {});
+            const rerankDiagnosticsValue =
+              rerankedValue?.diagnostics && typeof rerankedValue.diagnostics === "object"
+                ? rerankedValue.diagnostics
+                : {};
+            console.info("[RerankFlow] Source result summary before merge.", {
+              sources: rerankDiagnosticsValue.sourceSummary || [],
+              sourceStats: rerankDiagnosticsValue.sourceStats || {},
+              rerankMode: rerankedValue?.rerankMode || "multi",
+              rerankConfig: rerankDiagnosticsValue.rerankConfig || {},
+            });
+            console.info("[RerankFlow] Merge summary.", {
+              rawCandidateCount: sourceResults.reduce(
+                (sum, sourceResult) =>
+                  sum + (Array.isArray(sourceResult?.candidates) ? sourceResult.candidates.length : 0),
+                0
+              ),
+              mergedCandidateCount: Array.isArray(rerankedValue?.candidates) ? rerankedValue.candidates.length : 0,
+              overlapSummary: rerankDiagnosticsValue.overlapSummary || {},
+              rerankMode: rerankedValue?.rerankMode || "multi",
+              semanticRescueMeta,
+            });
+            this.logSearchFlowDebugInfo("Rerank summary", {
+              sources: rerankDiagnosticsValue.sourceSummary || [],
+              sourceStats: rerankDiagnosticsValue.sourceStats || {},
+              overlapSummary: rerankDiagnosticsValue.overlapSummary || {},
+              rerankMode: rerankedValue?.rerankMode || "multi",
+              semanticRescueMeta,
+            });
+            this.logSearchFlowDebugTable(
+              "Top ranked candidates",
+              (Array.isArray(rerankedValue?.candidates) ? rerankedValue.candidates : [])
+                .slice(0, 10)
+                .map((candidate) => ({
+                  ...summarizeSearchFlowRecord(candidate),
+                  sources: Array.isArray(candidate?.sources) ? candidate.sources.join(", ") : "",
+                  combinedScore: Number(candidate?.combinedScore || 0),
+                  bestRank: Number(candidate?.bestRank || 0),
+                  sourceCount: Number(candidate?.sourceCount || 0),
+                }))
+            );
+            return {
+              reranked: rerankedValue,
+              rerankDiagnostics: rerankDiagnosticsValue,
+            };
+          }
         );
         const semanticScholarPmids = reranked.pmids;
         const semanticScholarDois = reranked.dois;
@@ -2752,12 +2926,23 @@
           semanticFlowType: "deferred",
           isPendingSemanticSearch: false,
           useSemanticScholar,
-          includeTranslatedTextInQuery: this.searchWithPubMedBestMatch === true,
+          includeTranslatedTextInQuery:
+            allowPubmedQueryGeneration && this.searchWithPubMedBestMatch === true,
           semanticScholarQuery: semanticQuery || newTag,
           semanticIntentPayload,
           llmSemanticIntent,
           semanticIntentMeta,
           semanticSourceQueryPlan,
+          semanticRescueMeta,
+          semanticRerankDiagnostics: this.isSearchFlowDebugEnabled() ? rerankDiagnostics : null,
+          semanticMergeDebug: this.isSearchFlowDebugEnabled()
+            ? {
+                ...(rerankDiagnostics?.mergeSummary || {}),
+                mergeEvents: Array.isArray(rerankDiagnostics?.mergeEvents)
+                  ? rerankDiagnostics.mergeEvents
+                  : [],
+              }
+            : null,
           pubmedGeneratedQuery,
           semanticScholarPmids,
           semanticScholarDois,
@@ -2989,6 +3174,8 @@
               semanticScholarDois: [],
               semanticScholarCandidates: [],
               semanticSourceResults: [],
+              semanticRerankDiagnostics: null,
+              semanticMergeDebug: null,
               semanticScholarError: "",
               includeTranslatedTextInQuery: this.searchWithPubMedBestMatch === true,
             }
@@ -3698,6 +3885,11 @@
             globalSemanticContext.sourceFilters && typeof globalSemanticContext.sourceFilters === "object"
               ? globalSemanticContext.sourceFilters
               : {},
+          postValidation:
+            globalSemanticContext.postValidation &&
+            typeof globalSemanticContext.postValidation === "object"
+              ? globalSemanticContext.postValidation
+              : {},
           softHints: this.dedupeNormalizedValues(
             [
               ...(Array.isArray(globalSemanticContext.softHintsEnglish)
@@ -3834,6 +4026,40 @@
         const normalized = String(value || "").trim();
         return /^\d{4}(?:-\d{4})?$/.test(normalized) ? normalized : "";
       },
+      normalizeSemanticScholarPublicationTypeValue(value) {
+        const trimmed = String(value || "").trim();
+        if (!trimmed) return "";
+        const compact = trimmed.toLowerCase().replace(/[\s_-]+/g, "");
+        const canonicalMap = {
+          review: "Review",
+          metaanalysis: "Meta-Analysis",
+          journalarticle: "JournalArticle",
+          conference: "Conference",
+          conferenceabstract: "Conference",
+          conferencepaper: "Conference",
+          conferenceproceeding: "Conference",
+          preprint: "Preprint",
+          repositorypreprint: "Preprint",
+          casereport: "CaseReport",
+          clinicaltrial: "ClinicalTrial",
+          editorial: "Editorial",
+          letter: "Letter",
+        };
+        return canonicalMap[compact] || trimmed;
+      },
+      normalizeSemanticScholarYearFilterValue(value) {
+        const normalized = String(value || "").trim();
+        return /^\d{4}(?:-\d{4})?$/.test(normalized) ? normalized : "";
+      },
+      normalizeSemanticScholarPublicationDateOrYearFilterValue(value) {
+        const normalized = String(value || "").trim();
+        if (!normalized) return "";
+        return /^(\d{4}(?:-\d{2}(?:-\d{2})?)?)?(?::(\d{4}(?:-\d{2}(?:-\d{2})?)?)?)?$/.test(
+          normalized
+        )
+          ? normalized
+          : "";
+      },
       normalizeElicitTypeTagValue(value) {
         const normalized = String(value || "").trim().toLowerCase();
         if (!normalized) return "";
@@ -3907,6 +4133,25 @@
           ],
           (value) => String(value || "").trim()
         );
+        if (sourceKey === "semanticScholar") {
+          const rawFilters = entry.filters && typeof entry.filters === "object" ? entry.filters : {};
+          return {
+            query: this.normalizeSemanticQueryText(entry.query || entry.searchQuery || ""),
+            hints,
+            filters: {
+              publicationTypes: this.dedupeNormalizedValues(
+                this.normalizeStringArray(rawFilters.publicationTypes).map((value) =>
+                  this.normalizeSemanticScholarPublicationTypeValue(value)
+                ),
+                (value) => String(value || "").trim().toLowerCase()
+              ),
+              publicationDateOrYear: this.normalizeSemanticScholarPublicationDateOrYearFilterValue(
+                rawFilters.publicationDateOrYear
+              ),
+              year: this.normalizeSemanticScholarYearFilterValue(rawFilters.year),
+            },
+          };
+        }
         if (sourceKey === "openAlex") {
           const rawFilters = entry.filters && typeof entry.filters === "object" ? entry.filters : {};
           return {
@@ -4061,14 +4306,10 @@
         if (!normalized.semanticIntent) return null;
         return normalized;
       },
-      collectSemanticHardFilters(semanticIntentPayload = {}, llmSemanticIntent = {}) {
+      collectSemanticHardFilters(semanticIntentPayload = {}) {
         const payloadHardFilters =
           semanticIntentPayload?.hardFilters && typeof semanticIntentPayload.hardFilters === "object"
             ? semanticIntentPayload.hardFilters
-            : {};
-        const llmHardFilters =
-          llmSemanticIntent?.hardFilterHints && typeof llmSemanticIntent.hardFilterHints === "object"
-            ? llmSemanticIntent.hardFilterHints
             : {};
         return {
           filterProfiles: this.dedupeNormalizedValues(
@@ -4082,35 +4323,30 @@
               ...(Array.isArray(payloadHardFilters.publicationTypes)
                 ? payloadHardFilters.publicationTypes
                 : []),
-              ...(Array.isArray(llmHardFilters.publicationType) ? llmHardFilters.publicationType : []),
             ],
             (value) => String(value || "").trim()
           ),
           studyDesigns: this.dedupeNormalizedValues(
             [
               ...(Array.isArray(payloadHardFilters.studyDesigns) ? payloadHardFilters.studyDesigns : []),
-              ...(Array.isArray(llmHardFilters.studyDesign) ? llmHardFilters.studyDesign : []),
             ],
             (value) => String(value || "").trim()
           ),
           ageGroups: this.dedupeNormalizedValues(
             [
               ...(Array.isArray(payloadHardFilters.ageGroups) ? payloadHardFilters.ageGroups : []),
-              ...(Array.isArray(llmHardFilters.ageGroup) ? llmHardFilters.ageGroup : []),
             ],
             (value) => String(value || "").trim()
           ),
           languages: this.dedupeNormalizedValues(
             [
               ...(Array.isArray(payloadHardFilters.languages) ? payloadHardFilters.languages : []),
-              ...(Array.isArray(llmHardFilters.language) ? llmHardFilters.language : []),
             ].map((value) => this.normalizeOpenAlexLanguageFilterValue(value) || String(value || "").trim()),
             (value) => String(value || "").trim()
           ),
           sourceFormats: this.dedupeNormalizedValues(
             [
               ...(Array.isArray(payloadHardFilters.sourceFormats) ? payloadHardFilters.sourceFormats : []),
-              ...(Array.isArray(llmHardFilters.sourceFormat) ? llmHardFilters.sourceFormat : []),
             ].map((value) => this.normalizeSemanticSourceFormatValue(value)),
             (value) => value
           ),
@@ -4133,7 +4369,6 @@
           const normalized = this.normalizeSemanticSourceFormatValue(value);
           if (normalized === "journal") {
             sourceTypeValues.push("journal");
-            workTypeValues.push("article");
           } else if (normalized === "conference") {
             sourceTypeValues.push("conference");
           } else if (normalized === "preprint") {
@@ -4161,6 +4396,42 @@
         return this.dedupeNormalizedValues(
           workTypes.map((value) => this.normalizeOpenAlexWorkTypeValue(value)),
           (value) => value
+        );
+      },
+      mapSourceFormatsToSemanticScholarPublicationTypes(sourceFormats = []) {
+        const output = [];
+        (Array.isArray(sourceFormats) ? sourceFormats : []).forEach((value) => {
+          const normalized = this.normalizeSemanticSourceFormatValue(value);
+          if (normalized === "journal") {
+            output.push("JournalArticle");
+          } else if (normalized === "conference") {
+            output.push("Conference");
+          } else if (normalized === "preprint") {
+            output.push("Preprint");
+          }
+        });
+        return this.dedupeNormalizedValues(
+          output.map((value) => this.normalizeSemanticScholarPublicationTypeValue(value)),
+          (value) => String(value || "").trim().toLowerCase()
+        );
+      },
+      mapHardFiltersToSemanticScholarPublicationTypes(publicationTypes = []) {
+        const output = [];
+        (Array.isArray(publicationTypes) ? publicationTypes : []).forEach((value) => {
+          const normalized = String(value || "").trim().toLowerCase();
+          if (
+            normalized === "review" ||
+            normalized === "systematic review" ||
+            normalized === "cochrane review"
+          ) {
+            output.push("Review");
+          } else if (normalized === "meta-analysis") {
+            output.push("Meta-Analysis");
+          }
+        });
+        return this.dedupeNormalizedValues(
+          output.map((value) => this.normalizeSemanticScholarPublicationTypeValue(value)),
+          (value) => String(value || "").trim().toLowerCase()
         );
       },
       mapHardFiltersToElicitTypeTags(hardFilters = {}) {
@@ -4223,12 +4494,17 @@
           semanticIntentPayload && typeof semanticIntentPayload === "object" ? semanticIntentPayload : {};
         const llmIntent =
           llmSemanticIntent && typeof llmSemanticIntent === "object" ? llmSemanticIntent : {};
-        const hardFilters = this.collectSemanticHardFilters(payload, llmIntent);
+        const hardFilters = this.collectSemanticHardFilters(payload);
         const payloadSourceFilters =
           payload?.sourceFilters && typeof payload.sourceFilters === "object" ? payload.sourceFilters : {};
         const payloadOpenAlexFilters =
           payloadSourceFilters?.openAlex && typeof payloadSourceFilters.openAlex === "object"
             ? payloadSourceFilters.openAlex
+            : {};
+        const payloadSemanticScholarFilters =
+          payloadSourceFilters?.semanticScholar &&
+          typeof payloadSourceFilters.semanticScholar === "object"
+            ? payloadSourceFilters.semanticScholar
             : {};
         const payloadElicitFilters =
           payloadSourceFilters?.elicit && typeof payloadSourceFilters.elicit === "object"
@@ -4267,9 +4543,6 @@
             ...(configuredOpenAlexWorkTypes.length > 0
               ? configuredOpenAlexWorkTypes
               : fallbackOpenAlexWorkTypes),
-            ...((Array.isArray(llmPlan?.openAlex?.filters?.workType) ? llmPlan.openAlex.filters.workType : []).map(
-              (value) => this.normalizeOpenAlexWorkTypeValue(value)
-            )),
           ],
           (value) => value
         );
@@ -4288,10 +4561,6 @@
             ...(configuredOpenAlexSourceTypes.length > 0
               ? configuredOpenAlexSourceTypes
               : fallbackOpenAlexSourceTypes),
-            ...((Array.isArray(llmPlan?.openAlex?.filters?.sourceType)
-              ? llmPlan.openAlex.filters.sourceType
-              : []
-            ).map((value) => this.normalizeOpenAlexSourceTypeValue(value))),
           ],
           (value) => value
         );
@@ -4309,10 +4578,6 @@
             ...(configuredOpenAlexLanguages.length > 0
               ? configuredOpenAlexLanguages
               : fallbackOpenAlexLanguages),
-            ...((Array.isArray(llmPlan?.openAlex?.filters?.language)
-              ? llmPlan.openAlex.filters.language
-              : []
-            ).map((value) => this.normalizeOpenAlexLanguageFilterValue(value))),
           ],
           (value) => value
         );
@@ -4335,6 +4600,33 @@
           this.normalizeSemanticQueryText(llmPlan?.semanticScholar?.query) ||
           commonQuery ||
           semanticScholarContextQuery;
+        const fallbackSemanticScholarPublicationTypes =
+          this.mapHardFiltersToSemanticScholarPublicationTypes(hardFilters.publicationTypes);
+        const fallbackSemanticScholarFormatProxyPublicationTypes =
+          this.mapSourceFormatsToSemanticScholarPublicationTypes(hardFilters.sourceFormats);
+        const configuredSemanticScholarPublicationTypes = this.dedupeNormalizedValues(
+          (
+            Array.isArray(payloadSemanticScholarFilters.publicationTypes)
+              ? payloadSemanticScholarFilters.publicationTypes
+              : []
+          ).map((value) => this.normalizeSemanticScholarPublicationTypeValue(value)),
+          (value) => String(value || "").trim().toLowerCase()
+        );
+        const semanticScholarPublicationTypes = this.dedupeNormalizedValues(
+          [
+            ...configuredSemanticScholarPublicationTypes,
+            ...fallbackSemanticScholarPublicationTypes,
+            ...fallbackSemanticScholarFormatProxyPublicationTypes,
+          ],
+          (value) => String(value || "").trim().toLowerCase()
+        );
+        const semanticScholarPublicationDateOrYear =
+          this.normalizeSemanticScholarPublicationDateOrYearFilterValue(
+            payloadSemanticScholarFilters.publicationDateOrYear
+          );
+        const semanticScholarYear =
+          this.normalizeSemanticScholarYearFilterValue(payloadSemanticScholarFilters.year) ||
+          buildOpenAlexPublicationYearFilter(hardFilters.publicationDateYears);
         const openAlexQuery =
           this.normalizeSemanticQueryText(llmPlan?.openAlex?.query) ||
           commonQuery ||
@@ -4355,7 +4647,11 @@
           semanticScholar: {
             query: semanticScholarQuery,
             hints: Array.isArray(llmPlan?.semanticScholar?.hints) ? llmPlan.semanticScholar.hints : [],
-            filters: {},
+            filters: {
+              publicationTypes: semanticScholarPublicationTypes,
+              publicationDateOrYear: semanticScholarPublicationDateOrYear,
+              year: semanticScholarYear,
+            },
           },
           openAlex: {
             query: openAlexQuery,
@@ -4374,10 +4670,6 @@
               typeTags: this.dedupeNormalizedValues(
                 [
                   ...(configuredElicitTypeTags.length > 0 ? configuredElicitTypeTags : fallbackElicitTypeTags),
-                  ...((Array.isArray(llmPlan?.elicit?.filters?.typeTags)
-                    ? llmPlan.elicit.filters.typeTags
-                    : []
-                  ).map((value) => this.normalizeElicitTypeTagValue(value))),
                 ],
                 (value) => value
               ),
@@ -4386,9 +4678,6 @@
                   ...(Array.isArray(payloadElicitFilters.includeKeywords)
                     ? payloadElicitFilters.includeKeywords
                     : []),
-                  ...(Array.isArray(llmPlan?.elicit?.filters?.includeKeywords)
-                    ? llmPlan.elicit.filters.includeKeywords
-                    : []),
                 ],
                 (value) => String(value || "").trim()
               ),
@@ -4396,9 +4685,6 @@
                 [
                   ...(Array.isArray(payloadElicitFilters.excludeKeywords)
                     ? payloadElicitFilters.excludeKeywords
-                    : []),
-                  ...(Array.isArray(llmPlan?.elicit?.filters?.excludeKeywords)
-                    ? llmPlan.elicit.filters.excludeKeywords
                     : []),
                 ],
                 (value) => String(value || "").trim()
@@ -4641,6 +4927,7 @@
           pmid,
           doi,
           title: String(candidate.title || "").trim(),
+          abstract: String(candidate.abstract || "").trim(),
           score: Number.isFinite(parsedScore) ? parsedScore : null,
           openAlexId: String(candidate.openAlexId || "").trim(),
           metadata: {
@@ -4655,6 +4942,9 @@
             publicationTypes: Array.isArray(metadata.publicationTypes)
               ? metadata.publicationTypes.map((value) => String(value || "").trim()).filter(Boolean)
               : [],
+            lexicalRescue: metadata.lexicalRescue === true,
+            lexicalRescueAbstractAvailable: metadata.lexicalRescueAbstractAvailable === true,
+            lexicalRescueTriggerReason: String(metadata.lexicalRescueTriggerReason || "").trim(),
           },
         };
       },
@@ -4667,6 +4957,11 @@
           dois: [],
           candidates: [],
           error: error ? String(error) : "",
+          warning: "",
+          partial: false,
+          retryHints: {},
+          rateLimit: null,
+          debug: null,
         };
       },
       publishElicitRateLimitInfo(rateLimit) {
@@ -4777,6 +5072,13 @@
           dois,
           candidates,
           error: error ? String(error) : "",
+          warning: String(payload.warning || "").trim(),
+          partial: payload.partial === true,
+          retryHints:
+            payload.retryHints && typeof payload.retryHints === "object" ? payload.retryHints : {},
+          rateLimit:
+            payload.rateLimit && typeof payload.rateLimit === "object" ? payload.rateLimit : null,
+          debug: payload.debug && typeof payload.debug === "object" ? payload.debug : null,
         };
       },
       getBackendEndpointUrls(endpointFile) {
@@ -4804,7 +5106,121 @@
         }
         return endpointUrls;
       },
+      isSearchFlowDebugEnabled() {
+        return this.qpmSearchFlowDebugApi?.isEnabled?.() === true;
+      },
+      isSearchFlowDebugRunActive() {
+        return this.qpmSearchFlowDebugApi?.isRunActive?.() === true;
+      },
+      getSearchFlowDebugConsolePrefix() {
+        return this.qpmSearchFlowDebugApi?.getConsolePrefix?.() || "[SearchFlowDebug][DropdownWrapper]";
+      },
+      beginSearchFlowDebugStep(title) {
+        return this.qpmSearchFlowDebugApi?.beginStep?.(title) || null;
+      },
+      endSearchFlowDebugStep(step, status = "ok", meta = {}) {
+        this.qpmSearchFlowDebugApi?.endStep?.(step, status, meta);
+      },
+      recordSearchFlowDebugEntry(level = "info", label, payload = undefined) {
+        this.qpmSearchFlowDebugApi?.logEntry?.(level, label, payload);
+      },
+      async runSearchFlowDebugSection(title, task, collapsed = true) {
+        void collapsed;
+        if (!(this.isSearchFlowDebugEnabled() && this.isSearchFlowDebugRunActive())) {
+          return await task();
+        }
+        const step = this.beginSearchFlowDebugStep(title);
+        try {
+          const result = await task();
+          this.endSearchFlowDebugStep(step, "ok");
+          return result;
+        } catch (error) {
+          this.endSearchFlowDebugStep(step, "error", {
+            error: String(error || ""),
+          });
+          throw error;
+        }
+      },
+      logSearchFlowDebugInfo(label, payload = undefined) {
+        if (!(this.isSearchFlowDebugEnabled() && this.isSearchFlowDebugRunActive())) {
+          return;
+        }
+        this.recordSearchFlowDebugEntry("info", label, payload);
+      },
+      logSearchFlowDebugWarn(label, payload = undefined) {
+        if (!(this.isSearchFlowDebugEnabled() && this.isSearchFlowDebugRunActive())) {
+          return;
+        }
+        this.recordSearchFlowDebugEntry("warn", label, payload);
+      },
+      logSearchFlowDebugTable(label, rows = []) {
+        if (!(this.isSearchFlowDebugEnabled() && this.isSearchFlowDebugRunActive())) {
+          return;
+        }
+        const safeRows = Array.isArray(rows) ? rows : [];
+        this.logSearchFlowDebugInfo(label, {
+          count: safeRows.length,
+          rows: safeRows,
+        });
+      },
+      async logSearchFlowDebugSourceResultGroup(sourceLabel, requestPayload, payload, normalized, extra = {}) {
+        if (!(this.isSearchFlowDebugEnabled() && this.isSearchFlowDebugRunActive())) {
+          return;
+        }
+        await this.runSearchFlowDebugSection(`04 Source retrieval • ${sourceLabel}`, async () => {
+          const sourceDebug = payload?.debug && typeof payload.debug === "object" ? payload.debug : {};
+          const fetchedRows = (Array.isArray(normalized?.candidates) ? normalized.candidates : []).map((candidate) =>
+            summarizeSearchFlowRecord({
+              ...candidate,
+              stage: "fetchedFromSource",
+            })
+          );
+          const droppedRows = (Array.isArray(sourceDebug?.droppedRecords) ? sourceDebug.droppedRecords : []).map(
+            (record) =>
+              summarizeSearchFlowRecord({
+                ...record,
+                stage: "droppedInBackendNormalization",
+              })
+          );
+          this.logSearchFlowDebugInfo(`${sourceLabel} request`, {
+            request: requestPayload,
+            ...extra,
+          });
+          this.logSearchFlowDebugInfo(`${sourceLabel} response summary`, {
+            query: normalized?.query || requestPayload?.query || "",
+            total: Number(normalized?.total || 0),
+            candidateCount: Array.isArray(normalized?.candidates) ? normalized.candidates.length : 0,
+            pmidCount: Array.isArray(normalized?.pmids) ? normalized.pmids.length : 0,
+            doiCount: Array.isArray(normalized?.dois) ? normalized.dois.length : 0,
+            partial: payload?.partial === true,
+            warning: String(payload?.warning || "").trim(),
+            error: String(normalized?.error || payload?.error || "").trim(),
+            retryHints:
+              payload?.retryHints && typeof payload.retryHints === "object" ? payload.retryHints : null,
+            upstreamTotal:
+              Number(sourceDebug?.upstreamTotal ?? sourceDebug?.rawTotal ?? normalized?.total ?? 0) || 0,
+            normalizedTotal:
+              Number(sourceDebug?.normalizedTotal ?? (Array.isArray(normalized?.candidates) ? normalized.candidates.length : 0)) || 0,
+            droppedBeforeReturn:
+              Number(sourceDebug?.droppedBeforeReturn ?? droppedRows.length) || 0,
+          });
+          this.logSearchFlowDebugTable(`${sourceLabel} fetched records`, fetchedRows);
+          if (droppedRows.length > 0) {
+            this.logSearchFlowDebugTable(`${sourceLabel} dropped records`, droppedRows);
+          }
+        });
+      },
       async requestBackendJson(endpointFile, body) {
+        const requestBody =
+          this.isSearchFlowDebugEnabled() &&
+          body &&
+          typeof body === "object" &&
+          !Array.isArray(body)
+            ? {
+                ...body,
+                debugSearchFlow: true,
+              }
+            : body;
         let payload = null;
         const errors = [];
         for (const endpointUrl of this.getBackendEndpointUrls(endpointFile)) {
@@ -4817,7 +5233,7 @@
               headers: {
                 "Content-Type": "application/json",
               },
-              body: JSON.stringify(body),
+              body: JSON.stringify(requestBody),
               signal: controller.signal,
             });
             if (!response.ok) {
@@ -4913,6 +5329,477 @@
 
         return payload;
       },
+      async requestBackendGet(endpointFile, queryParams = {}, responseType = "json") {
+        let payload = null;
+        let hasPayload = false;
+        const errors = [];
+        const params = new URLSearchParams();
+        Object.entries(queryParams || {}).forEach(([key, value]) => {
+          if (value === undefined || value === null) return;
+          const normalizedValue = String(value).trim();
+          if (!normalizedValue) return;
+          params.set(key, normalizedValue);
+        });
+        for (const endpointUrl of this.getBackendEndpointUrls(endpointFile)) {
+          let timeoutId = null;
+          try {
+            const controller = new AbortController();
+            const url = params.size > 0 ? `${endpointUrl}?${params.toString()}` : endpointUrl;
+            timeoutId = setTimeout(() => controller.abort(), BACKEND_REQUEST_TIMEOUT_MS);
+            const response = await fetch(url, {
+              method: "GET",
+              signal: controller.signal,
+            });
+            if (!response.ok) {
+              const rawError = await response.text();
+              errors.push(`${url} -> ${response.status}: ${rawError || response.statusText || "unknown error"}`);
+              continue;
+            }
+
+            const rawPayload = await response.text();
+            if (responseType === "json") {
+              try {
+                payload = JSON.parse(rawPayload);
+              } catch {
+                errors.push(`${url} -> invalid JSON response: ${rawPayload.slice(0, 300)}`);
+                continue;
+              }
+            } else {
+              payload = rawPayload;
+            }
+            hasPayload = true;
+            break;
+          } catch (error) {
+            const isTimeout = error && error.name === "AbortError";
+            errors.push(
+              `${endpointUrl} -> ${
+                isTimeout ? `request timeout after ${BACKEND_REQUEST_TIMEOUT_MS}ms` : String(error)
+              }`
+            );
+          } finally {
+            if (timeoutId !== null) {
+              clearTimeout(timeoutId);
+            }
+          }
+        }
+
+        if (!hasPayload) {
+          throw Error(errors.join("\n") || `${endpointFile} request failed`);
+        }
+
+        return payload;
+      },
+      async requestBackendGetJson(endpointFile, queryParams = {}) {
+        return this.requestBackendGet(endpointFile, queryParams, "json");
+      },
+      async requestBackendText(endpointFile, queryParams = {}) {
+        return this.requestBackendGet(endpointFile, queryParams, "text");
+      },
+      getSemanticRescueConfig() {
+        const rawConfig =
+          runtimeConfig?.semanticRescueConfig && typeof runtimeConfig.semanticRescueConfig === "object"
+            ? runtimeConfig.semanticRescueConfig
+            : {};
+        const mode = String(rawConfig.mode || DEFAULT_SEMANTIC_RESCUE_CONFIG.mode).trim();
+        const normalized = {
+          mode: mode || DEFAULT_SEMANTIC_RESCUE_CONFIG.mode,
+        };
+        ["minMergedCandidates", "minSourceCandidates", "searchLimit", "maxCandidates", "minLexicalScore"].forEach(
+          (key) => {
+            const parsed = Number(rawConfig[key]);
+            normalized[key] =
+              Number.isFinite(parsed) && parsed > 0
+                ? Math.floor(parsed)
+                : DEFAULT_SEMANTIC_RESCUE_CONFIG[key];
+          }
+        );
+        return normalized;
+      },
+      buildSemanticCandidateKey(candidate) {
+        const pmid = this.normalizePmidValue(candidate?.pmid || "");
+        if (pmid) return `pmid:${pmid}`;
+        const doi = this.normalizeDoiValue(candidate?.doi || "");
+        if (doi) return `doi:${doi.toLowerCase()}`;
+        const openAlexId = String(candidate?.openAlexId || candidate?.metadata?.workId || "").trim();
+        if (openAlexId) return `oa:${openAlexId.toLowerCase()}`;
+        const title = String(candidate?.title || "").trim().toLowerCase();
+        return title ? `title:${title}` : "";
+      },
+      normalizeLexicalSearchText(value) {
+        return String(value || "")
+          .toLowerCase()
+          .replace(/[\u0000-\u001f]+/g, " ")
+          .replace(/[^\p{L}\p{N}]+/gu, " ")
+          .trim();
+      },
+      tokenizeLexicalSearchText(value) {
+        const stopWords = new Set([
+          "a",
+          "an",
+          "and",
+          "as",
+          "at",
+          "by",
+          "for",
+          "from",
+          "in",
+          "into",
+          "is",
+          "of",
+          "on",
+          "or",
+          "the",
+          "to",
+          "with",
+        ]);
+        return this.dedupeNormalizedValues(
+          this.normalizeLexicalSearchText(value)
+            .split(/\s+/)
+            .filter((token) => token.length >= 2 && !stopWords.has(token)),
+          (token) => token
+        );
+      },
+      scoreLexicalTextWithQuery({ queryTokens = [], queryText = "", title = "", abstractText = "" } = {}) {
+        if (!Array.isArray(queryTokens) || queryTokens.length === 0) {
+          return 0;
+        }
+        const normalizedTitle = this.normalizeLexicalSearchText(title);
+        const normalizedAbstract = this.normalizeLexicalSearchText(abstractText);
+        const titleTokenSet = new Set(normalizedTitle ? normalizedTitle.split(/\s+/) : []);
+        const abstractTokenSet = new Set(normalizedAbstract ? normalizedAbstract.split(/\s+/) : []);
+        let score = 0;
+        queryTokens.forEach((token) => {
+          if (titleTokenSet.has(token)) {
+            score += 3;
+          }
+          if (abstractTokenSet.has(token)) {
+            score += 1;
+          }
+        });
+        if (queryText && normalizedTitle.includes(queryText)) {
+          score += 4;
+        }
+        if (queryText && normalizedAbstract.includes(queryText)) {
+          score += 2;
+        }
+        return score;
+      },
+      flattenPubMedAbstractText(value) {
+        if (!value) return "";
+        if (typeof value === "string") {
+          return value.trim();
+        }
+        if (typeof value !== "object") {
+          return "";
+        }
+        return Object.values(value)
+          .map((entry) => String(entry || "").trim())
+          .filter(Boolean)
+          .join(" ");
+      },
+      extractPubMedSummaryPublicationYear(summaryRecord) {
+        const candidates = [
+          summaryRecord?.sortpubdate,
+          summaryRecord?.pubdate,
+          summaryRecord?.epubdate,
+          summaryRecord?.history?.pubmed,
+        ];
+        for (const value of candidates) {
+          const match = String(value || "").match(/\b(\d{4})\b/);
+          if (match) {
+            return match[1];
+          }
+        }
+        return "";
+      },
+      shouldRunPubMedLexicalRescue({
+        sourceResults = [],
+        semanticQuery = "",
+        pubmedQuery = "",
+        usePubMedBestMatch = false,
+      } = {}) {
+        const rescueConfig = this.getSemanticRescueConfig();
+        const mode = String(rescueConfig.mode || "").toLowerCase();
+        const normalizedPubMedQuery = String(pubmedQuery || "").trim();
+        const normalizedSemanticQuery = String(semanticQuery || "").trim();
+        const activeSourceResults = (Array.isArray(sourceResults) ? sourceResults : []).filter(
+          (result) => result && typeof result === "object" && result.source !== "pubmed"
+        );
+        if (!usePubMedBestMatch) {
+          return { shouldRun: false, reason: "pubmed-not-selected" };
+        }
+        if (activeSourceResults.length === 0 || !normalizedPubMedQuery) {
+          return { shouldRun: false, reason: "inactive" };
+        }
+        if (mode === "off" || mode === "disabled" || mode === "none") {
+          return { shouldRun: false, reason: "disabled" };
+        }
+        if (mode === "always" || mode === "always_multi_source") {
+          return {
+            shouldRun: true,
+            reason: "mode-always",
+            diagnostics: {
+              semanticQuery: normalizedSemanticQuery,
+              pubmedQuery: normalizedPubMedQuery,
+            },
+          };
+        }
+
+        const candidateKeys = new Set();
+        let sourceCandidateCount = 0;
+        activeSourceResults.forEach((result) => {
+          const candidates = Array.isArray(result?.candidates) ? result.candidates : [];
+          sourceCandidateCount += candidates.length;
+          candidates.forEach((candidate) => {
+            const key = this.buildSemanticCandidateKey(candidate);
+            if (key) {
+              candidateKeys.add(key);
+            }
+          });
+        });
+        const mergedCandidateCount = candidateKeys.size;
+        const isSparse =
+          mergedCandidateCount < rescueConfig.minMergedCandidates ||
+          sourceCandidateCount < rescueConfig.minSourceCandidates;
+
+        return {
+          shouldRun: isSparse,
+          reason: isSparse ? "sparse-first-harvest" : "sufficient-first-harvest",
+          diagnostics: {
+            semanticQuery: normalizedSemanticQuery,
+            pubmedQuery: normalizedPubMedQuery,
+            mergedCandidateCount,
+            sourceCandidateCount,
+            thresholds: {
+              minMergedCandidates: rescueConfig.minMergedCandidates,
+              minSourceCandidates: rescueConfig.minSourceCandidates,
+            },
+          },
+        };
+      },
+      async fetchPubMedAbstractMap(pmids = []) {
+        const normalizedPmids = this.dedupeStringValues(pmids, (value) => this.normalizePmidValue(value));
+        if (normalizedPmids.length === 0) {
+          return {};
+        }
+        const chunkSize = 20;
+        const abstractMap = {};
+        for (let index = 0; index < normalizedPmids.length; index += chunkSize) {
+          const chunk = normalizedPmids.slice(index, index + chunkSize);
+          const xmlPayload = await this.requestBackendText("NlmFetch.php", {
+            db: "pubmed",
+            id: chunk.join(","),
+            retmode: "xml",
+            rettype: "abstract",
+          });
+          const xmlDoc = parsePubMedXml(xmlPayload);
+          if (!xmlDoc || hasXmlParserError(xmlDoc)) {
+            continue;
+          }
+          getAbstractEntriesFromPubMedXml(xmlDoc, { includeEmptySections: true }).forEach(
+            ([pmid, abstractValue]) => {
+              const normalizedPmid = this.normalizePmidValue(pmid);
+              if (!normalizedPmid) return;
+              abstractMap[normalizedPmid] = this.flattenPubMedAbstractText(abstractValue);
+            }
+          );
+        }
+        return abstractMap;
+      },
+      async fetchPubMedSearchIds({ query = "", limit = 20 } = {}) {
+        const normalizedQuery = String(query || "").trim();
+        const searchLimit = Math.max(1, Math.floor(Number(limit) || 1));
+        if (!normalizedQuery) {
+          return {
+            query: normalizedQuery,
+            searchCount: 0,
+            pmids: [],
+          };
+        }
+        const searchPayload = await this.requestBackendForm("NlmSearch.php", {
+          db: "pubmed",
+          term: normalizedQuery,
+          retmax: searchLimit,
+          retmode: "json",
+          sort: "relevance",
+        });
+        const esearchResult =
+          searchPayload?.esearchresult && typeof searchPayload.esearchresult === "object"
+            ? searchPayload.esearchresult
+            : {};
+        const searchCount = Number.parseInt(esearchResult.count, 10) || 0;
+        const pmids = this.dedupeStringValues(esearchResult.idlist || [], (value) =>
+          this.normalizePmidValue(value)
+        ).slice(0, searchLimit);
+        return {
+          query: normalizedQuery,
+          searchCount,
+          pmids,
+        };
+      },
+      async fetchPubMedSummaryRecords(pmids = []) {
+        const normalizedPmids = this.dedupeStringValues(pmids, (value) => this.normalizePmidValue(value));
+        if (normalizedPmids.length === 0) {
+          return {};
+        }
+        const summaryPayload = await this.requestBackendGetJson("NlmSummary.php", {
+          db: "pubmed",
+          id: normalizedPmids.join(","),
+          retmode: "json",
+        });
+        return summaryPayload?.result && typeof summaryPayload.result === "object"
+          ? summaryPayload.result
+          : {};
+      },
+      async fetchPubMedBestMatchSourceResult({ pubmedQuery = "" } = {}) {
+        const normalizedPubMedQuery = String(pubmedQuery || "").trim();
+        const emptyResult = this.createEmptySourceResult("pubmed", normalizedPubMedQuery);
+        if (!normalizedPubMedQuery) {
+          return emptyResult;
+        }
+        const searchLimit = this.getConfiguredSemanticSourceLimit("pubmedBestMatch", 200);
+        const { searchCount, pmids } = await this.fetchPubMedSearchIds({
+          query: normalizedPubMedQuery,
+          limit: searchLimit,
+        });
+        if (pmids.length === 0) {
+          return {
+            ...emptyResult,
+            total: searchCount,
+          };
+        }
+        const summaryResult = await this.fetchPubMedSummaryRecords(pmids);
+        const candidates = pmids.map((pmid, index) => {
+          const summaryRecord =
+            summaryResult?.[pmid] && typeof summaryResult[pmid] === "object"
+              ? summaryResult[pmid]
+              : {};
+          return {
+            source: "pubmed",
+            rank: index + 1,
+            pmid,
+            title: String(summaryRecord?.title || "").trim(),
+            metadata: {
+              publicationYear: this.extractPubMedSummaryPublicationYear(summaryRecord),
+              venue: String(summaryRecord?.fulljournalname || summaryRecord?.source || "").trim(),
+              publicationTypes: Array.isArray(summaryRecord?.pubtype)
+                ? summaryRecord.pubtype.map((value) => String(value || "").trim()).filter(Boolean)
+                : [],
+            },
+          };
+        });
+        return this.normalizeSourceResult("pubmed", normalizedPubMedQuery, {
+          total: searchCount,
+          pmids,
+          candidates,
+        });
+      },
+      async fetchPubMedLexicalRescueResult({
+        semanticQuery = "",
+        pubmedQuery = "",
+        sourceResults = [],
+        triggerReason = "",
+      } = {}) {
+        const rescueConfig = this.getSemanticRescueConfig();
+        const normalizedPubMedQuery = String(pubmedQuery || "").trim();
+        const normalizedSemanticQuery = String(semanticQuery || "").trim();
+        const resultQuery = normalizedPubMedQuery || normalizedSemanticQuery;
+        const emptyResult = this.createEmptySourceResult("pubmed", resultQuery);
+        const existingPmids = this.dedupeStringValues(
+          (Array.isArray(sourceResults) ? sourceResults : []).flatMap((result) => [
+            ...(Array.isArray(result?.pmids) ? result.pmids : []),
+            ...(Array.isArray(result?.candidates) ? result.candidates.map((candidate) => candidate?.pmid) : []),
+          ]),
+          (value) => this.normalizePmidValue(value)
+        );
+        const existingPmidSet = new Set(existingPmids);
+        const searchLimit = Math.max(1, rescueConfig.searchLimit);
+        const maxCandidates = Math.max(1, rescueConfig.maxCandidates);
+        const minLexicalScore = Math.max(1, rescueConfig.minLexicalScore);
+        const { searchCount, pmids: retrievedPmids } = await this.fetchPubMedSearchIds({
+          query: normalizedPubMedQuery,
+          limit: searchLimit,
+        });
+        const rescuePmids = retrievedPmids
+          .filter((pmid) => !existingPmidSet.has(pmid))
+          .slice(0, searchLimit);
+        if (rescuePmids.length === 0) {
+          return {
+            ...emptyResult,
+            rescueMeta: {
+              triggered: true,
+              triggerReason,
+              consideredPmids: 0,
+              acceptedCandidates: 0,
+              totalPubMedHits: searchCount,
+            },
+          };
+        }
+
+        const summaryResult = await this.fetchPubMedSummaryRecords(rescuePmids);
+        const abstractMap = await this.fetchPubMedAbstractMap(rescuePmids);
+        const lexicalQueryText = this.normalizeLexicalSearchText(normalizedSemanticQuery || normalizedPubMedQuery);
+        const lexicalQueryTokens = this.tokenizeLexicalSearchText(normalizedSemanticQuery || normalizedPubMedQuery);
+        const acceptedCandidates = rescuePmids
+          .map((pmid, index) => {
+            const summaryRecord =
+              summaryResult?.[pmid] && typeof summaryResult[pmid] === "object" ? summaryResult[pmid] : {};
+            const title = String(summaryRecord?.title || "").trim();
+            const abstractText = String(abstractMap?.[pmid] || "").trim();
+            const lexicalScore = this.scoreLexicalTextWithQuery({
+              queryTokens: lexicalQueryTokens,
+              queryText: lexicalQueryText,
+              title,
+              abstractText,
+            });
+            if (!title || lexicalScore < minLexicalScore) {
+              return null;
+            }
+            return {
+              source: "pubmed",
+              rank: index + 1,
+              pmid,
+              title,
+              score: lexicalScore,
+              metadata: {
+                publicationYear: this.extractPubMedSummaryPublicationYear(summaryRecord),
+                venue: String(summaryRecord?.fulljournalname || summaryRecord?.source || "").trim(),
+                publicationTypes: Array.isArray(summaryRecord?.pubtype)
+                  ? summaryRecord.pubtype.map((value) => String(value || "").trim()).filter(Boolean)
+                  : [],
+                lexicalRescue: true,
+                lexicalRescueAbstractAvailable: abstractText !== "",
+                lexicalRescueTriggerReason: String(triggerReason || "").trim(),
+              },
+            };
+          })
+          .filter(Boolean)
+          .sort((left, right) => {
+            const scoreDiff = Number(right?.score || 0) - Number(left?.score || 0);
+            if (scoreDiff !== 0) return scoreDiff;
+            return Number(left?.rank || 0) - Number(right?.rank || 0);
+          })
+          .slice(0, maxCandidates)
+          .map((candidate, index) => ({
+            ...candidate,
+            rank: index + 1,
+          }));
+
+        const result = this.normalizeSourceResult("pubmed", resultQuery, {
+          total: searchCount,
+          pmids: acceptedCandidates.map((candidate) => candidate.pmid),
+          candidates: acceptedCandidates,
+        });
+        result.rescueMeta = {
+          triggered: true,
+          triggerReason,
+          consideredPmids: rescuePmids.length,
+          acceptedCandidates: acceptedCandidates.length,
+          totalPubMedHits: searchCount,
+          minLexicalScore,
+        };
+        return result;
+      },
       getTimingNow() {
         if (typeof performance !== "undefined" && typeof performance.now === "function") {
           return performance.now();
@@ -4970,6 +5857,12 @@
         const requestQuery =
           this.normalizeSemanticQueryText(sourceQueryPlan?.semanticScholar?.query) ||
           this.normalizeSemanticQueryText(query);
+        const publicationTypes = Array.isArray(sourceQueryPlan?.semanticScholar?.filters?.publicationTypes)
+          ? sourceQueryPlan.semanticScholar.filters.publicationTypes
+          : [];
+        const publicationDateOrYear =
+          sourceQueryPlan?.semanticScholar?.filters?.publicationDateOrYear || "";
+        const year = sourceQueryPlan?.semanticScholar?.filters?.year || "";
         const requestLimit = this.getConfiguredSemanticSourceLimit(
           "semanticScholar",
           DEFAULT_SEMANTIC_SCHOLAR_LIMIT
@@ -4977,11 +5870,17 @@
         const cacheKey = this.buildSemanticSourceCacheKey("semanticScholar", {
           query: requestQuery,
           limit: requestLimit,
+          publicationTypes,
+          publicationDateOrYear,
+          year,
         });
         const cached = this.getCachedSemanticSourceResponse(cacheKey);
         const requestPayload = {
           query: requestQuery,
           limit: requestLimit,
+          publicationTypes,
+          publicationDateOrYear,
+          year,
           domain: this.currentDomain || "",
         };
         this.logSemanticSourceRequest("semanticScholar", {
@@ -4990,13 +5889,26 @@
           request: requestPayload,
         });
         if (cached) {
+          await this.logSearchFlowDebugSourceResultGroup(
+            "Semantic Scholar",
+            requestPayload,
+            cached,
+            cached,
+            { transport: "cache" }
+          );
           return cached;
         }
         const payload = await this.measureAsync(
           "SemanticScholar request",
           () =>
             this.requestBackendJson("SemanticScholarSearch.php", requestPayload),
-          { query: requestQuery, limit: requestLimit }
+          {
+            query: requestQuery,
+            limit: requestLimit,
+            publicationTypes,
+            publicationDateOrYear,
+            year,
+          }
         );
         if (payload?.warning) {
           console.warn("[SemanticScholarFlow] Using degraded Semantic Scholar result.", {
@@ -5009,6 +5921,13 @@
           });
         }
         const normalized = this.normalizeSourceResult("semanticScholar", requestQuery, payload);
+        await this.logSearchFlowDebugSourceResultGroup(
+          "Semantic Scholar",
+          requestPayload,
+          payload,
+          normalized,
+          { transport: "network" }
+        );
         this.setCachedSemanticSourceResponse(cacheKey, normalized);
         return normalized;
       },
@@ -5054,23 +5973,34 @@
         const { hostname = "", port = "" } = window.location;
         return port === "5173" && (hostname === "localhost" || hostname === "127.0.0.1");
       },
+      getOpenAlexSearchMode(options = {}) {
+        return options?.searchMode === "keyword" ? "keyword" : "semantic";
+      },
+      getOpenAlexSearchParamKey(searchMode = "semantic") {
+        return searchMode === "keyword" ? "search" : "search.semantic";
+      },
       buildOpenAlexBrowserProxyParams(query, options = {}) {
+        const searchMode = this.getOpenAlexSearchMode(options);
         const params = new URLSearchParams();
-        params.set("search.semantic", String(query || "").trim());
+        params.set(this.getOpenAlexSearchParamKey(searchMode), String(query || "").trim());
         params.set(
           "per_page",
           String(options?.limit || this.getConfiguredSemanticSourceLimit("openAlex", DEFAULT_OPENALEX_LIMIT))
         );
         params.set(
           "select",
-          "id,display_name,doi,ids,publication_year,relevance_score,type"
+          "id,display_name,doi,ids,publication_year,relevance_score,type,primary_location"
         );
         const filterParts = [];
         const languageFilters = Array.isArray(options?.languageFilters) ? options.languageFilters : [];
+        const sourceTypes = Array.isArray(options?.sourceTypes) ? options.sourceTypes : [];
         const workTypes = Array.isArray(options?.workTypes) ? options.workTypes : [];
         const publicationYearFilter = String(options?.publicationYearFilter || "").trim();
         if (languageFilters.length) {
           filterParts.push(`language:${languageFilters.join("|")}`);
+        }
+        if (sourceTypes.length) {
+          filterParts.push(`primary_location.source.type:${sourceTypes.join("|")}`);
         }
         if (workTypes.length) {
           filterParts.push(`type:${workTypes.join("|")}`);
@@ -5083,7 +6013,107 @@
         }
         return params;
       },
-      mapOpenAlexApiPayloadToSearchPayload(query, rawPayload) {
+      getRequestRetryHintFields(payload, allowedFields = [], availability = {}) {
+        const retryHints = payload?.retryHints && typeof payload.retryHints === "object" ? payload.retryHints : {};
+        return this.dedupeNormalizedValues(
+          Array.isArray(retryHints.requestFields) ? retryHints.requestFields : [],
+          (value) => String(value || "").trim()
+        ).filter((field) => allowedFields.includes(field) && availability?.[field]);
+      },
+      buildOpenAlexRequestRetryAttempt(requestPayload, context = {}, requestField = "") {
+        const normalizedField = String(requestField || "").trim();
+        if (!normalizedField) return null;
+        const nextPayload = { ...requestPayload };
+        const nextContext = {
+          ...context,
+          languageFilters: Array.isArray(context?.languageFilters) ? [...context.languageFilters] : [],
+          sourceTypes: Array.isArray(context?.sourceTypes) ? [...context.sourceTypes] : [],
+          workTypes: Array.isArray(context?.workTypes) ? [...context.workTypes] : [],
+          publicationYearFilter: String(context?.publicationYearFilter || "").trim(),
+        };
+        if (normalizedField === "languages") {
+          nextPayload.languages = [];
+          nextContext.languageFilters = [];
+        } else if (normalizedField === "sourceTypes") {
+          nextPayload.sourceTypes = [];
+          nextContext.sourceTypes = [];
+        } else if (normalizedField === "workTypes") {
+          nextPayload.workTypes = [];
+          nextContext.workTypes = [];
+        } else if (normalizedField === "publicationYear") {
+          nextPayload.publicationYear = "";
+          nextContext.publicationYearFilter = "";
+        } else {
+          return null;
+        }
+        return {
+          requestPayload: nextPayload,
+          context: nextContext,
+        };
+      },
+      buildOpenAlexDeferredRetryFilters(context = {}, disabledRequestFields = []) {
+        const deferredFilters = {};
+        const normalizedDisabledFields = Array.isArray(disabledRequestFields) ? disabledRequestFields : [];
+        if (
+          normalizedDisabledFields.includes("languages") &&
+          Array.isArray(context?.languageFilters) &&
+          context.languageFilters.length > 0
+        ) {
+          deferredFilters.languages = context.languageFilters;
+        }
+        if (
+          normalizedDisabledFields.includes("sourceTypes") &&
+          Array.isArray(context?.sourceTypes) &&
+          context.sourceTypes.length > 0
+        ) {
+          deferredFilters.sourceTypes = context.sourceTypes;
+        }
+        if (
+          normalizedDisabledFields.includes("workTypes") &&
+          Array.isArray(context?.workTypes) &&
+          context.workTypes.length > 0
+        ) {
+          deferredFilters.workTypes = context.workTypes;
+        }
+        if (
+          normalizedDisabledFields.includes("publicationYear") &&
+          String(context?.publicationYearFilter || "").trim()
+        ) {
+          deferredFilters.publicationYear = String(context.publicationYearFilter || "").trim();
+        }
+        return deferredFilters;
+      },
+      buildElicitRequestRetryAttempt(requestPayload, requestField = "") {
+        const normalizedField = String(requestField || "").trim();
+        if (!normalizedField) return null;
+        const nextFilters =
+          requestPayload?.filters && typeof requestPayload.filters === "object"
+            ? { ...requestPayload.filters }
+            : {};
+        if (normalizedField === "typeTags") {
+          nextFilters.typeTags = [];
+        } else if (normalizedField === "includeKeywords") {
+          nextFilters.includeKeywords = [];
+        } else if (normalizedField === "excludeKeywords") {
+          nextFilters.excludeKeywords = [];
+        } else {
+          return null;
+        }
+        const nextPayload = {
+          ...requestPayload,
+          filters: Object.fromEntries(
+            Object.entries(nextFilters).filter(
+              ([, value]) => Array.isArray(value) ? value.length > 0 : !!String(value || "").trim()
+            )
+          ),
+        };
+        if (Object.keys(nextPayload.filters).length === 0) {
+          delete nextPayload.filters;
+        }
+        return nextPayload;
+      },
+      mapOpenAlexApiPayloadToSearchPayload(query, rawPayload, options = {}) {
+        const searchMode = this.getOpenAlexSearchMode(options);
         const results = Array.isArray(rawPayload?.results) ? rawPayload.results : [];
         const pmids = [];
         const dois = [];
@@ -5093,6 +6123,12 @@
           const ids = work?.ids && typeof work.ids === "object" ? work.ids : {};
           const pmidValue = this.normalizePmidValue(work?.pmid || ids?.pmid || ids?.PubMed);
           const doiValue = this.normalizeDoiValue(work?.doi || ids?.doi || ids?.DOI);
+          const primaryLocation =
+            work?.primary_location && typeof work.primary_location === "object" ? work.primary_location : {};
+          const source =
+            primaryLocation?.source && typeof primaryLocation.source === "object"
+              ? primaryLocation.source
+              : {};
           if (pmidValue) {
             pmids.push(pmidValue);
           } else if (doiValue) {
@@ -5101,7 +6137,7 @@
           candidates.push({
             source: "openAlex",
             rank: index + 1,
-            score: Number(work?.relevance_score) || 0,
+            score: searchMode === "semantic" ? Number(work?.relevance_score) || 0 : null,
             pmid: pmidValue,
             doi: doiValue,
             title: work?.display_name || "",
@@ -5109,13 +6145,16 @@
             metadata: {
               workId: work?.id || "",
               workType: work?.type || "",
-              sourceType: "",
-              sourceDisplayName: "",
+              sourceType: source?.type || "",
+              sourceDisplayName: source?.display_name || "",
+              sourceAbbreviatedTitle: source?.abbreviated_title || "",
+              searchMode,
             },
           });
         });
         return {
           query,
+          searchMode,
           pmids: [...new Set(pmids)],
           dois: [...new Set(dois)],
           candidates,
@@ -5137,10 +6176,202 @@
           throw new Error(`OpenAlex browser proxy failed with HTTP ${response.status}`);
         }
         const rawPayload = await response.json();
-        return this.mapOpenAlexApiPayloadToSearchPayload(query, rawPayload);
+        return this.mapOpenAlexApiPayloadToSearchPayload(query, rawPayload, options);
+      },
+      buildOpenAlexCandidateKey(candidate) {
+        const pmid = this.normalizePmidValue(candidate?.pmid || "");
+        if (pmid) return `pmid:${pmid}`;
+        const doi = this.normalizeDoiValue(candidate?.doi || "");
+        if (doi) return `doi:${doi.toLowerCase()}`;
+        const openAlexId = String(candidate?.openAlexId || candidate?.metadata?.workId || "").trim();
+        return openAlexId ? `oa:${openAlexId.toLowerCase()}` : "";
+      },
+      shouldSupplementOpenAlexSemanticResults(payload, requestLimit) {
+        const limit = Number(requestLimit || 0);
+        if (!Number.isFinite(limit) || limit < OPENALEX_SEMANTIC_RESULT_CAP) {
+          return false;
+        }
+        const candidates = Array.isArray(payload?.candidates) ? payload.candidates : [];
+        return candidates.length >= OPENALEX_SEMANTIC_RESULT_CAP;
+      },
+      mergeOpenAlexSearchPayloads(primaryPayload, supplementPayload) {
+        const primary = primaryPayload && typeof primaryPayload === "object" ? primaryPayload : {};
+        const supplement = supplementPayload && typeof supplementPayload === "object" ? supplementPayload : {};
+        const mergedCandidates = [];
+        const seen = new Set();
+        const appendCandidates = (candidates, rankOffset = 0, preserveScores = true) => {
+          (Array.isArray(candidates) ? candidates : []).forEach((candidate, index) => {
+            if (!candidate || typeof candidate !== "object") {
+              return;
+            }
+            const key = this.buildOpenAlexCandidateKey(candidate);
+            if (!key || seen.has(key)) {
+              return;
+            }
+            seen.add(key);
+            const parsedRank = Number(candidate.rank);
+            mergedCandidates.push({
+              ...candidate,
+              rank: Number.isFinite(parsedRank) && parsedRank > 0 ? parsedRank + rankOffset : index + 1 + rankOffset,
+              score: preserveScores ? candidate.score : null,
+              metadata:
+                candidate?.metadata && typeof candidate.metadata === "object"
+                  ? { ...candidate.metadata }
+                  : {},
+            });
+          });
+        };
+        const primaryCandidates = Array.isArray(primary.candidates) ? primary.candidates : [];
+        appendCandidates(primaryCandidates, 0, true);
+        appendCandidates(supplement.candidates, primaryCandidates.length, false);
+        return {
+          ...primary,
+          query: String(primary.query || supplement.query || "").trim(),
+          searchMode: "semantic+keyword",
+          candidates: mergedCandidates,
+          pmids: this.dedupeNormalizedValues(
+            mergedCandidates.map((candidate) => candidate?.pmid),
+            (value) => this.normalizePmidValue(value)
+          ),
+          dois: this.dedupeNormalizedValues(
+            mergedCandidates.map((candidate) => candidate?.doi),
+            (value) => this.normalizeDoiValue(value)
+          ),
+          total: mergedCandidates.length,
+        };
+      },
+      async requestOpenAlexSearchPayload(query, requestPayload, context = {}) {
+        const searchMode = this.getOpenAlexSearchMode(context);
+        const languageFilters = Array.isArray(context?.languageFilters) ? context.languageFilters : [];
+        const sourceTypes = Array.isArray(context?.sourceTypes) ? context.sourceTypes : [];
+        const workTypes = Array.isArray(context?.workTypes) ? context.workTypes : [];
+        const publicationYearFilter = String(context?.publicationYearFilter || "").trim();
+        const timingLabel =
+          searchMode === "keyword" ? "OpenAlex keyword supplement request" : "OpenAlex request";
+        const timingMeta = {
+          query,
+          searchMode,
+          languageFilters,
+          sourceTypes,
+          workTypes,
+          publicationYearFilter,
+        };
+        let browserFallbackTried = false;
+        let browserFallbackSucceeded = false;
+        let browserFallbackError = "";
+        let disabledRequestFields = [];
+        let activeRequestPayload = { ...requestPayload };
+        let activeContext = {
+          ...context,
+          languageFilters: [...languageFilters],
+          sourceTypes: [...sourceTypes],
+          workTypes: [...workTypes],
+          publicationYearFilter,
+        };
+        let payload = await this.measureAsync(
+          timingLabel,
+          () => this.requestBackendJson("OpenAlexSearch.php", requestPayload),
+          timingMeta
+        );
+        const hintedRetryFields = this.getRequestRetryHintFields(
+          payload,
+          ["languages", "sourceTypes", "workTypes", "publicationYear"],
+          {
+            languages: languageFilters.length > 0,
+            sourceTypes: sourceTypes.length > 0,
+            workTypes: workTypes.length > 0,
+            publicationYear: publicationYearFilter !== "",
+          }
+        );
+        if (payload?.warning && hintedRetryFields.length > 0) {
+          for (const requestField of hintedRetryFields) {
+            const retryAttempt = this.buildOpenAlexRequestRetryAttempt(requestPayload, activeContext, requestField);
+            if (!retryAttempt) continue;
+            const retryPayload = await this.measureAsync(
+              `${timingLabel} without ${requestField}`,
+              () => this.requestBackendJson("OpenAlexSearch.php", retryAttempt.requestPayload),
+              {
+                ...timingMeta,
+                languageFilters: retryAttempt.context.languageFilters,
+                sourceTypes: retryAttempt.context.sourceTypes,
+                workTypes: retryAttempt.context.workTypes,
+                publicationYearFilter: retryAttempt.context.publicationYearFilter,
+                disabledRequestFields: [requestField],
+              }
+            );
+            if (!retryPayload?.warning) {
+              payload = retryPayload;
+              activeRequestPayload = retryAttempt.requestPayload;
+              activeContext = retryAttempt.context;
+              disabledRequestFields = [requestField];
+              break;
+            }
+          }
+        }
+        if (payload?.warning && this.canUseLocalOpenAlexBrowserProxy()) {
+          browserFallbackTried = true;
+          try {
+            const browserProxyParams = this.buildOpenAlexBrowserProxyParams(query, {
+              limit: activeRequestPayload.limit,
+              languageFilters: activeContext.languageFilters,
+              sourceTypes: activeContext.sourceTypes,
+              workTypes: activeContext.workTypes,
+              publicationYearFilter: activeContext.publicationYearFilter,
+              searchMode,
+            });
+            this.logSemanticSourceRequest("openAlex", {
+              transport: "browser-proxy",
+              endpoint: "/openalex-api/works",
+              request: Object.fromEntries(browserProxyParams.entries()),
+              searchMode,
+              disabledRequestFields,
+              deferredFilters: this.buildOpenAlexDeferredRetryFilters(context, disabledRequestFields),
+            });
+            const browserProxyPayload = await this.measureAsync(
+              `${timingLabel} browser proxy fallback`,
+              () =>
+                this.fetchOpenAlexBrowserProxyPayload(query, {
+                  limit: activeRequestPayload.limit,
+                  languageFilters: activeContext.languageFilters,
+                  sourceTypes: activeContext.sourceTypes,
+                  workTypes: activeContext.workTypes,
+                  publicationYearFilter: activeContext.publicationYearFilter,
+                  searchMode,
+                }),
+              {
+                ...timingMeta,
+                languageFilters: activeContext.languageFilters,
+                sourceTypes: activeContext.sourceTypes,
+                workTypes: activeContext.workTypes,
+                publicationYearFilter: activeContext.publicationYearFilter,
+                disabledRequestFields,
+              }
+            );
+            if (browserProxyPayload) {
+              payload = browserProxyPayload;
+              browserFallbackSucceeded = true;
+            }
+          } catch (error) {
+            browserFallbackError = String(error || "");
+            console.warn("[OpenAlexFlow] Browser proxy fallback failed.", {
+              query,
+              searchMode,
+              error: browserFallbackError,
+            });
+          }
+        }
+        return {
+          payload,
+          browserFallbackTried,
+          browserFallbackSucceeded,
+          browserFallbackError,
+          sourceTypeFallbackUsed: disabledRequestFields.includes("sourceTypes"),
+          disabledRequestFields,
+        };
       },
       logOpenAlexRequestSummary({
         query = "",
+        searchMode = "semantic",
         languageFilters = [],
         sourceTypes = [],
         workTypes = [],
@@ -5149,10 +6380,18 @@
         browserFallbackTried = false,
         browserFallbackSucceeded = false,
         browserFallbackError = "",
+        sourceTypeFallbackUsed = false,
+        disabledRequestFields = [],
+        semanticCapReached = false,
+        semanticCandidateCount = 0,
+        keywordSupplementAttempted = false,
+        keywordSupplementUsed = false,
+        keywordSupplementCandidates = 0,
       } = {}) {
         const normalizedPayload = payload && typeof payload === "object" ? payload : {};
         console.info("[OpenAlexFlow] Request summary.", {
           query,
+          searchMode,
           languageFilters,
           sourceTypes,
           workTypes,
@@ -5160,6 +6399,13 @@
           browserFallbackTried,
           browserFallbackSucceeded,
           browserFallbackError: browserFallbackError ? String(browserFallbackError) : "",
+          sourceTypeFallbackUsed,
+          disabledRequestFields,
+          semanticCapReached,
+          semanticCandidateCount,
+          keywordSupplementAttempted,
+          keywordSupplementUsed,
+          keywordSupplementCandidates,
           degraded: normalizedPayload.partial === true || !!normalizedPayload.warning,
           total: Number(normalizedPayload.total || 0),
           pmids: Array.isArray(normalizedPayload.pmids) ? normalizedPayload.pmids.length : 0,
@@ -5193,15 +6439,6 @@
         const publicationYearFilter = String(
           sourceQueryPlan?.openAlex?.filters?.publicationYear || ""
         ).trim();
-        if (sourceTypes.length > 0) {
-          console.info(
-            "[OpenAlexFlow] Source type filters are deferred to downstream hard-filtering and were not sent with search.semantic.",
-            {
-              query: requestQuery,
-              sourceTypes,
-            }
-          );
-        }
         const cacheKey = this.buildSemanticSourceCacheKey("openAlex", {
           query: requestQuery,
           limit: requestLimit,
@@ -5216,95 +6453,123 @@
           limit: requestLimit,
           domain: this.currentDomain || "",
           languages: languageFilters,
+          sourceTypes,
           workTypes,
           publicationYear: publicationYearFilter,
+          searchMode: "semantic",
         };
         this.logSemanticSourceRequest("openAlex", {
           transport: cached ? "cache" : "network",
           endpoint: "OpenAlexSearch.php",
           request: requestPayload,
-          deferredFilters: {
-            sourceTypes,
-          },
+          searchMode: "semantic",
         });
         if (cached) {
+          await this.logSearchFlowDebugSourceResultGroup("OpenAlex", requestPayload, cached, cached, {
+            transport: "cache",
+            searchMode: "semantic",
+          });
           return cached;
         }
-        let browserFallbackTried = false;
-        let browserFallbackSucceeded = false;
-        let browserFallbackError = "";
-        let payload = await this.measureAsync(
-          "OpenAlex request",
-          () =>
-            this.requestBackendJson("OpenAlexSearch.php", requestPayload),
-          { query: requestQuery, languageFilters, sourceTypes, workTypes, publicationYearFilter }
-        );
-        if (payload?.warning && this.canUseLocalOpenAlexBrowserProxy()) {
-          browserFallbackTried = true;
-          try {
-            const browserProxyParams = this.buildOpenAlexBrowserProxyParams(requestQuery, {
-              limit: requestLimit,
+        const semanticResult = await this.requestOpenAlexSearchPayload(requestQuery, requestPayload, {
+          searchMode: "semantic",
+          languageFilters,
+          sourceTypes,
+          workTypes,
+          publicationYearFilter,
+        });
+        let payload = semanticResult.payload;
+        const semanticCandidateCount = Array.isArray(payload?.candidates) ? payload.candidates.length : 0;
+        const semanticCapReached =
+          !payload?.warning && this.shouldSupplementOpenAlexSemanticResults(payload, requestLimit);
+        let keywordSupplementAttempted = false;
+        let keywordSupplementUsed = false;
+        let keywordSupplementCandidates = 0;
+        console.info("[OpenAlexFlow] Semantic cap check.", {
+          query: requestQuery,
+          requestLimit,
+          semanticCapReached,
+          semanticCandidateCount,
+          semanticWarning: String(payload?.warning || ""),
+        });
+        if (semanticCapReached) {
+          keywordSupplementAttempted = true;
+          const keywordRequestPayload = {
+            ...requestPayload,
+            searchMode: "keyword",
+          };
+          this.logSemanticSourceRequest("openAlex", {
+            transport: "network",
+            endpoint: "OpenAlexSearch.php",
+            request: keywordRequestPayload,
+            searchMode: "keyword",
+            reason: "semantic-cap-reached",
+          });
+          console.info(
+            "[OpenAlexFlow] Triggering keyword supplement because semantic search reached OpenAlex's cap.",
+            {
+              query: requestQuery,
+              semanticCap: OPENALEX_SEMANTIC_RESULT_CAP,
+              semanticCandidateCount,
+            }
+          );
+          const keywordResult = await this.requestOpenAlexSearchPayload(
+            requestQuery,
+            keywordRequestPayload,
+            {
+              searchMode: "keyword",
               languageFilters,
+              sourceTypes,
               workTypes,
               publicationYearFilter,
-            });
-            this.logSemanticSourceRequest("openAlex", {
-              transport: "browser-proxy",
-              endpoint: "/openalex-api/works",
-              request: Object.fromEntries(browserProxyParams.entries()),
-              deferredFilters: {
-                sourceTypes,
-              },
-            });
-            const browserProxyPayload = await this.measureAsync(
-              "OpenAlex browser proxy fallback",
-              () =>
-                this.fetchOpenAlexBrowserProxyPayload(requestQuery, {
-                  limit: requestLimit,
-                  languageFilters,
-                  workTypes,
-                  publicationYearFilter,
-                }),
-              { query: requestQuery, languageFilters, sourceTypes, workTypes, publicationYearFilter }
-            );
-            if (browserProxyPayload) {
-              payload = browserProxyPayload;
-              browserFallbackSucceeded = true;
             }
-          } catch (error) {
-            browserFallbackError = String(error || "");
-            console.warn("[OpenAlexFlow] Browser proxy fallback failed.", {
+          );
+          if (!keywordResult.payload?.warning) {
+            payload = this.mergeOpenAlexSearchPayloads(payload, keywordResult.payload);
+            keywordSupplementCandidates = Math.max(
+              0,
+              (Array.isArray(payload?.candidates) ? payload.candidates.length : 0) - semanticCandidateCount
+            );
+            keywordSupplementUsed = keywordSupplementCandidates > 0;
+            console.info("[OpenAlexFlow] Added keyword supplement after semantic result cap was reached.", {
               query: requestQuery,
-              error: browserFallbackError,
+              semanticCandidates: semanticCandidateCount,
+              keywordSupplementCandidates,
+              mergedCandidates: Array.isArray(payload?.candidates) ? payload.candidates.length : 0,
             });
           }
         }
-        if (payload?.warning) {
-          this.logOpenAlexRequestSummary({
-            query: requestQuery,
-            languageFilters,
-            sourceTypes,
-            workTypes,
-            publicationYearFilter,
-            payload,
-            browserFallbackTried,
-            browserFallbackSucceeded,
-            browserFallbackError,
-          });
-        } else {
-          this.logOpenAlexRequestSummary({
-            query: requestQuery,
-            languageFilters,
-            sourceTypes,
-            workTypes,
-            publicationYearFilter,
-            payload,
-            browserFallbackTried,
-            browserFallbackSucceeded,
-            browserFallbackError,
-          });
-        }
+        this.logOpenAlexRequestSummary({
+          query: requestQuery,
+          searchMode: "semantic",
+          languageFilters,
+          sourceTypes,
+          workTypes,
+          publicationYearFilter,
+          payload,
+          browserFallbackTried: semanticResult.browserFallbackTried,
+          browserFallbackSucceeded: semanticResult.browserFallbackSucceeded,
+          browserFallbackError: semanticResult.browserFallbackError,
+          sourceTypeFallbackUsed: semanticResult.sourceTypeFallbackUsed,
+          disabledRequestFields: semanticResult.disabledRequestFields,
+          semanticCapReached,
+          semanticCandidateCount,
+          keywordSupplementAttempted,
+          keywordSupplementUsed,
+          keywordSupplementCandidates,
+        });
         const normalized = this.normalizeSourceResult("openAlex", requestQuery, payload);
+        await this.logSearchFlowDebugSourceResultGroup("OpenAlex", requestPayload, payload, normalized, {
+          transport: "network",
+          searchMode: "semantic",
+          browserFallbackTried: semanticResult.browserFallbackTried,
+          browserFallbackSucceeded: semanticResult.browserFallbackSucceeded,
+          disabledRequestFields: semanticResult.disabledRequestFields,
+          semanticCapReached,
+          keywordSupplementAttempted,
+          keywordSupplementUsed,
+          keywordSupplementCandidates,
+        });
         this.setCachedSemanticSourceResponse(cacheKey, normalized);
         return normalized;
       },
@@ -5352,46 +6617,103 @@
           request: requestPayload,
         });
         if (cached) {
+          await this.logSearchFlowDebugSourceResultGroup("Elicit", requestPayload, cached, cached, {
+            transport: "cache",
+          });
           return cached;
         }
-        const payload = await this.measureAsync(
+        let payload = await this.measureAsync(
           "Elicit request",
           () =>
             this.requestBackendJson("ElicitSearch.php", requestPayload),
           { query: requestQuery, filters: normalizedFilters }
         );
         this.publishElicitRateLimitInfo(payload?.rateLimit || null);
+        const hintedRetryFields = this.getRequestRetryHintFields(
+          payload,
+          ["typeTags", "includeKeywords", "excludeKeywords"],
+          {
+            typeTags: normalizedFilters.typeTags.length > 0,
+            includeKeywords: normalizedFilters.includeKeywords.length > 0,
+            excludeKeywords: normalizedFilters.excludeKeywords.length > 0,
+          }
+        );
+        let disabledRequestFields = [];
+        if (String(payload?.error || "").trim() && hintedRetryFields.length > 0) {
+          for (const requestField of hintedRetryFields) {
+            const retryPayloadRequest = this.buildElicitRequestRetryAttempt(requestPayload, requestField);
+            if (!retryPayloadRequest) continue;
+            this.logSemanticSourceRequest("elicit", {
+              transport: "network",
+              endpoint: "ElicitSearch.php",
+              request: retryPayloadRequest,
+              reason: "retry-disable-filter",
+              disabledRequestFields: [requestField],
+            });
+            const retryPayload = await this.measureAsync(
+              `Elicit request without ${requestField}`,
+              () => this.requestBackendJson("ElicitSearch.php", retryPayloadRequest),
+              { query: requestQuery, disabledRequestFields: [requestField] }
+            );
+            this.publishElicitRateLimitInfo(retryPayload?.rateLimit || null);
+            if (!String(retryPayload?.error || "").trim()) {
+              payload = retryPayload;
+              disabledRequestFields = [requestField];
+              break;
+            }
+          }
+        }
         if (String(payload?.error || "").trim()) {
           return this.createEmptySourceResult("elicit", requestQuery, String(payload.error || "").trim());
         }
+        if (disabledRequestFields.length > 0) {
+          console.info("[ElicitFlow] Recovered request by disabling hinted filter.", {
+            query: requestQuery,
+            disabledRequestFields,
+          });
+        }
         const normalized = this.normalizeSourceResult("elicit", requestQuery, payload);
+        await this.logSearchFlowDebugSourceResultGroup("Elicit", requestPayload, payload, normalized, {
+          transport: "network",
+          disabledRequestFields,
+        });
         this.setCachedSemanticSourceResponse(cacheKey, normalized);
         return normalized;
       },
       async buildPubMedSearchStringFromFreeText(freeTextInput) {
-        let translated = await this.measureAsync(
-          "PubMed query translation",
-          () => this.translateSearch(freeTextInput),
-          { input: freeTextInput }
-        );
-        if (this.instanceUseMeshValidation) {
-          this.$emit("translating", true, this.index, "translatingStepMesh");
-          translated = await this.measureAsync(
-            "MeSH validation",
-            () =>
-              validateAndEnhanceMeshTerms(
-                translated,
-                freeTextInput,
-                this.appSettings.nlm.proxyUrl,
-                this.appSettings.openAi.baseUrl,
-                this.appSettings.client,
-                this.language,
-                (stepKey) => this.$emit("translating", true, this.index, stepKey)
-              ),
+        return this.runSearchFlowDebugSection(`02 PubMed query build • ${freeTextInput}`, async () => {
+          let translated = await this.measureAsync(
+            "PubMed query translation",
+            () => this.translateSearch(freeTextInput),
             { input: freeTextInput }
           );
-        }
-        return translated;
+          this.logSearchFlowDebugInfo("PubMed query translation", {
+            input: freeTextInput,
+            translated,
+          });
+          if (this.instanceUseMeshValidation) {
+            this.$emit("translating", true, this.index, "translatingStepMesh");
+            translated = await this.measureAsync(
+              "MeSH validation",
+              () =>
+                validateAndEnhanceMeshTerms(
+                  translated,
+                  freeTextInput,
+                  this.appSettings.nlm.proxyUrl,
+                  this.appSettings.openAi.baseUrl,
+                  this.appSettings.client,
+                  this.language,
+                  (stepKey) => this.$emit("translating", true, this.index, stepKey)
+                ),
+              { input: freeTextInput }
+            );
+            this.logSearchFlowDebugInfo("PubMed query after MeSH validation", {
+              input: freeTextInput,
+              translated,
+            });
+          }
+          return translated;
+        });
       },
       buildSourceErrorResult(source, query, error) {
         const message = String(error || "");
@@ -5402,6 +6724,10 @@
           elicit: "ElicitFlow",
         };
         console.warn(`[${prefixMap[source] || "MultiSourceFlow"}] Source request failed.`, error);
+        this.logSearchFlowDebugWarn(`04 Source retrieval • ${source} failed`, {
+          query,
+          error: message,
+        });
         return this.createEmptySourceResult(source, query, message);
       },
       async fetchSemanticScholarPmids(query) {

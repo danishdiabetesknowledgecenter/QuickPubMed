@@ -31,6 +31,8 @@
         - data-use-a-i-summarizer: Enable AI summarizer ("true" or "false").
         - data-use-mesh-validation: Enable MeSH term validation via NLM E-utilities ("true" or "false").
           When enabled, AI-translated [mh] terms are validated against NLM's MeSH database.
+        - data-debug-search-flow: Enable detailed hierarchical search-flow debug logs in the browser console
+          ("true" or "false"). Default is off and should normally stay off outside troubleshooting.
         - data-translation-sources: Array of database ids that may be shown/selected in the UI.
           PubMed can be included explicitly for clarity and is used as fallback when no explicit default is given.
           Supported values: 'pubmed', 'pubmedBestMatch', 'semanticScholar', 'openAlex', 'elicit'.
@@ -78,6 +80,8 @@
         - pagesize: number of results per page
         - pmid: preselected PMID-AI ids, separated by ";;"
         - scrollto: anchor id to scroll to (without #)
+        - qpmDebug=searchflow: turns on the hierarchical search-flow debug mode in the browser console.
+          Can be combined with normal search parameters and also works through hash-based embeds.
 
         Simple mode extras:
         - openlimits: true|false. When true, show limits section even without selected topics.
@@ -109,8 +113,9 @@
         data-use-a-i="true"
         data-use-a-i-summarizer="true"
         data-use-mesh-validation="true"
+        data-debug-search-flow="false"
         data-translation-sources="['pubmed','semanticScholar','openAlex','elicit']"
-        data-default-translation-sources="['pubmed']"
+        data-default-translation-sources="['pubmed','semanticScholar','openAlex']"
         data-hide-topics="['L10010']"
         data-open-limits="true"
         data-hide-limits="" 
@@ -129,6 +134,7 @@
         data-use-a-i="true"
         data-use-a-i-summarizer="true"
         data-use-mesh-validation="true"
+        data-debug-search-flow="false"
         data-translation-sources="['pubmed','semanticScholar','openAlex','elicit']"
         data-default-translation-sources="['pubmed','semanticScholar']"
         data-open-limits="false"

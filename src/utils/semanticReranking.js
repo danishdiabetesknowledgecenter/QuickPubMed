@@ -76,14 +76,18 @@ function getSourceStats(sourceResults) {
 
 function mergeSourceCandidates(sourceResults) {
   const mergedCandidates = new Map();
+  const mergeEvents = [];
+  let rawCandidateCount = 0;
 
   (Array.isArray(sourceResults) ? sourceResults : []).forEach((sourceResult) => {
     (Array.isArray(sourceResult?.candidates) ? sourceResult.candidates : []).forEach((candidate) => {
+      rawCandidateCount += 1;
       const pmid = normalizePmidValue(candidate?.pmid);
       const doi = normalizeDoiValue(candidate?.doi);
       const key = pmid ? `pmid:${pmid}` : doi ? `doi:${doi.toLowerCase()}` : "";
       if (!key) return;
 
+      const existingEntry = mergedCandidates.get(key);
       if (!mergedCandidates.has(key)) {
         mergedCandidates.set(key, {
           pmid,
@@ -91,6 +95,16 @@ function mergeSourceCandidates(sourceResults) {
           title: String(candidate?.title || "").trim(),
           openAlexId: String(candidate?.openAlexId || "").trim(),
           sources: new Map(),
+        });
+      } else {
+        mergeEvents.push({
+          key,
+          mergedIntoKey: key,
+          source: String(candidate?.source || "").trim(),
+          pmid,
+          doi,
+          title: String(candidate?.title || "").trim(),
+          existingSources: Array.from(existingEntry?.sources?.keys?.() || []),
         });
       }
 
@@ -125,7 +139,11 @@ function mergeSourceCandidates(sourceResults) {
     });
   });
 
-  return mergedCandidates;
+  return {
+    mergedCandidates,
+    mergeEvents,
+    rawCandidateCount,
+  };
 }
 
 function getBestRank(entry) {
@@ -311,8 +329,8 @@ export function rerankSemanticCandidates(sourceResults, runtimeRerankConfig = {}
   const sourceSummary = getSourceSummary(activeSourceResults);
   const rerankMode = activeSourceResults.length <= 1 ? "single" : "multi";
 
-  const mergedCandidates = mergeSourceCandidates(activeSourceResults);
-  let rankedCandidates = Array.from(mergedCandidates.values()).map((entry) =>
+  const mergeResult = mergeSourceCandidates(activeSourceResults);
+  let rankedCandidates = Array.from(mergeResult.mergedCandidates.values()).map((entry) =>
     buildDebugEntry(entry, rerankConfig, sourceStats, rerankMode)
   );
 
@@ -357,6 +375,12 @@ export function rerankSemanticCandidates(sourceResults, runtimeRerankConfig = {}
       sourceStats,
       sourceSummary,
       overlapSummary: buildOverlapSummary(rankedCandidates),
+      mergeSummary: {
+        rawCandidateCount: mergeResult.rawCandidateCount,
+        mergedCandidateCount: rankedCandidates.length,
+        duplicateCount: mergeResult.mergeEvents.length,
+      },
+      mergeEvents: mergeResult.mergeEvents,
     },
   };
 }

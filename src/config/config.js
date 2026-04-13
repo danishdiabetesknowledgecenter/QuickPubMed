@@ -8,6 +8,8 @@ export const config = reactive({
   useAISummarizer: false, // AI feature flag for the article summarizer
   useMeshValidation: true, // Validate AI-translated [mh] terms via NLM E-utilities MeSH database
   semanticSourceLimits: {}, // Frontend-safe semantic source limits from backend config
+  semanticRescueConfig: {}, // Frontend-safe PubMed lexical rescue settings from backend config
+  semanticLlmRerankConfig: {}, // Frontend-safe semantic final rerank settings from backend config
   rerankConfig: {}, // Frontend-safe rerank settings from backend config
   translationSourcesByDomain: {}, // Domain-specific source availability fallback: { domainKey: ["pubmed", ...] }
   theme: {}, // Global CSS custom properties to override :root defaults
@@ -305,6 +307,20 @@ export async function loadThemeOverridesFromBackend(domain, apiBaseUrl) {
         config.semanticSourceLimits = {
           ...config.semanticSourceLimits,
           ...parsedLimits,
+        };
+      }
+
+      if (payload.semanticRescueConfig && typeof payload.semanticRescueConfig === "object") {
+        config.semanticRescueConfig = {
+          ...config.semanticRescueConfig,
+          ...payload.semanticRescueConfig,
+        };
+      }
+
+      if (payload.semanticLlmRerankConfig && typeof payload.semanticLlmRerankConfig === "object") {
+        config.semanticLlmRerankConfig = {
+          ...config.semanticLlmRerankConfig,
+          ...payload.semanticLlmRerankConfig,
         };
       }
 

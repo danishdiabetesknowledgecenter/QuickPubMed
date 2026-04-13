@@ -44,3 +44,24 @@ function qpmApplyNlmCorsHeaders($allowedMethods, $contentType = null) {
         exit(0);
     }
 }
+
+function qpmNormalizeSearchFlowDebugFlag($value): bool {
+    if ($value === true || $value === 1) {
+        return true;
+    }
+    $normalized = strtolower(trim((string) $value));
+    return in_array($normalized, ['1', 'true', 'yes', 'on', 'searchflow', 'all'], true);
+}
+
+function qpmIsSearchFlowDebugRequest(array $params): bool {
+    if (array_key_exists('debugSearchFlow', $params)) {
+        return qpmNormalizeSearchFlowDebugFlag($params['debugSearchFlow']);
+    }
+    if (array_key_exists('debug_search_flow', $params)) {
+        return qpmNormalizeSearchFlowDebugFlag($params['debug_search_flow']);
+    }
+    if (isset($params['debug']) && is_array($params['debug']) && array_key_exists('searchFlow', $params['debug'])) {
+        return qpmNormalizeSearchFlowDebugFlag($params['debug']['searchFlow']);
+    }
+    return false;
+}

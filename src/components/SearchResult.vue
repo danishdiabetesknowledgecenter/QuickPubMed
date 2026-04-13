@@ -276,6 +276,47 @@
       </accordion-menu>
     </div>
 
+    <div v-if="showLoadingProcessList" class="qpm_searchProcessWrapper">
+      <p class="qpm_advancedSearch qpm_searchProcessToggleLink">
+        <a
+          href="#"
+          :aria-expanded="String(isProcessBoxExpanded)"
+          @click.prevent="toggleProcessBox"
+        >
+          {{ getString(isProcessBoxExpanded ? "semanticSearchProcessHide" : "semanticSearchProcessShow") }}
+        </a>
+      </p>
+      <div
+        v-if="isProcessBoxExpanded"
+        class="qpm_searchProcessBox qpm_box"
+      >
+        <div class="qpm_searchProcessContent">
+          <ul class="qpm_searchProcessList">
+            <li
+              v-for="group in groupedProcessSteps"
+              :key="group.id"
+              :class="['qpm_searchProcessGroup', `is-${group.status || 'pending'}`]"
+            >
+              <div class="qpm_searchProcessGroupLabel">{{ group.label }}</div>
+              <ul v-if="group.showChildren" class="qpm_searchProcessSubList">
+                <li
+                  v-for="step in group.children"
+                  :key="step.id"
+                  :class="['qpm_searchProcessItem', `is-${step.status || 'pending'}`]"
+                >
+                  <div class="qpm_searchProcessRow">
+                    <span class="qpm_searchProcessLabel">{{ getProcessStepLabel(step) }}</span>
+                    <span class="qpm_searchProcessDots" aria-hidden="true">
+                      {{ getProcessStepDots(step) }}
+                    </span>
+                  </div>
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
     <div
       v-if="results && results.length > 0 && total > 0"
       role="heading"
@@ -328,7 +369,6 @@
     </div>
     <div
       class="qpm_compactLoadingRegion"
-      :class="{ 'is-overlay-loading': shouldHideResultsDuringCompactLoading }"
     >
       <div
         v-if="results && results.length > 0 && shouldShowCompactLoadingOverlay"
@@ -382,21 +422,6 @@
               @articleUpdated="addArticle"
               @loadAbstract="addIdToLoadAbstract"
             />
-          </div>
-          <div
-            v-if="showLoadingProcessList"
-            class="qpm_searchProcessBox qpm_box"
-          >
-            <ol class="qpm_searchProcessList">
-              <li
-                v-for="step in loadingProcessSteps"
-                :key="step.id"
-                :class="['qpm_searchProcessItem', `is-${step.status || 'pending'}`]"
-              >
-                <span class="qpm_searchProcessLabel">{{ getProcessStepLabel(step) }}</span>
-                <span class="qpm_searchProcessDots" aria-hidden="true">{{ getProcessStepDots(step) }}</span>
-              </li>
-            </ol>
           </div>
           <loading-spinner
             v-if="!compactLoadingUi"
@@ -484,7 +509,7 @@
       LoadingSpinner,
       SummarizeAbstract,
     },
-    emits: ["newSortMethod", "high", "low", "newPageSize", "change:selectedEntries"],
+    emits: ["newSortMethod", "high", "newPageSize", "change:selectedEntries"],
     mixins: [appSettingsMixin, promptRuleLoaderMixin, utilitiesMixin],
     props: {
       results: {
@@ -497,10 +522,6 @@
       pagesize: {
         type: Number,
         default: 25,
-      },
-      low: {
-        type: Number,
-        default: 0,
       },
       high: {
         type: Number,
@@ -566,13 +587,78 @@
         hadVisibleResultEntries: false,
         _pendingScrollTarget: null,
         _selectedBadgesRetryTimeouts: [],
+        _abstractLoadTimerId: null,
+        _abstractLoadInFlight: false,
         processDotCount: 3,
         _processDotsIntervalId: null,
+        persistedLoadingProcessSteps: [],
+        isProcessBoxExpanded: true,
       };
     },
     computed: {
+      activeLoadingProcessSteps() {
+        return Array.isArray(this.loadingProcessSteps) ? this.loadingProcessSteps : [];
+      },
+      visibleLoadingProcessSteps() {
+        if (this.loading && this.activeLoadingProcessSteps.length > 0) {
+          return this.activeLoadingProcessSteps;
+        }
+        return !this.loading && Array.isArray(this.persistedLoadingProcessSteps)
+          ? this.persistedLoadingProcessSteps
+          : [];
+      },
       showLoadingProcessList() {
-        return this.loading && Array.isArray(this.loadingProcessSteps) && this.loadingProcessSteps.length > 0;
+        return this.visibleLoadingProcessSteps.length > 0;
+      },
+      hasAnimatedProcessSteps() {
+        return this.visibleLoadingProcessSteps.some((step) => String(step?.status || "").trim() === "current");
+      },
+      groupedProcessSteps() {
+        const groupDefinitions = [
+          {
+            id: "prepare",
+            label: this.getString("semanticSearchProcessGroupPrepare"),
+            childIds: ["prepare", "searchString", "mesh", "optimize"],
+          },
+          {
+            id: "sources",
+            label: this.getString("semanticSearchProcessGroupSources"),
+            childIds: ["pubmed", "semanticScholar", "openAlex", "elicit"],
+          },
+          {
+            id: "finalizeCollect",
+            label: this.getString("semanticSearchProcessGroupMatch"),
+            childIds: [
+              "finalizeCollect",
+              "finalizeValidatePmid",
+              "finalizeValidateDoiFetch",
+              "finalizeValidateDoiRules",
+            ],
+          },
+          {
+            id: "finalizeHydrate",
+            label: this.getString("semanticSearchProcessGroupDisplay"),
+            childIds: ["finalizeHydrate", "finalizeSort", "finalizeRender", "finalizeSelected"],
+          },
+        ];
+        return groupDefinitions
+          .map((group) => {
+            const children = this.visibleLoadingProcessSteps.filter((step) =>
+              group.childIds.includes(step.id)
+            );
+            if (children.length === 0) {
+              return null;
+            }
+            const visibleChildren = this.getVisibleProcessGroupChildren(children);
+            return {
+              id: group.id,
+              label: group.label,
+              status: this.getProcessGroupStatus(children),
+              showChildren: this.shouldShowProcessGroupChildren(children),
+              children: visibleChildren,
+            };
+          })
+          .filter(Boolean);
       },
       shouldHideResultsDuringCompactLoading() {
         return (
@@ -608,9 +694,6 @@
       },
       currentSortMethod() {
         return this.sort.method;
-      },
-      lowDisabled() {
-        return this.low === 0 || this.loading;
       },
       highDisabled() {
         return this.high >= this.total || this.loading;
@@ -675,15 +758,55 @@
           .filter((id) => hasDefinedValue(id))
           .join("|");
       },
+      shownFetchableAbstractIdsSignature() {
+        return this.getShownSearchResults
+          .filter((result) => {
+            const resultId = this.getResultId(result);
+            if (!hasDefinedValue(resultId)) return false;
+            if (!this.canFetchPubMedAbstractForResult(result)) return false;
+            if (this.getResultInlineAbstract(result)) return false;
+            return !this.abstractRecords[resultId];
+          })
+          .map((result) => this.getResultId(result))
+          .filter((id) => hasDefinedValue(id))
+          .join("|");
+      },
     },
     watch: {
       loading(newVal) {
         if (newVal) {
+          if (!this.compactLoadingUi) {
+            this.persistedLoadingProcessSteps = [];
+            this.isProcessBoxExpanded = true;
+          }
           this.isAbstractLoaded = false;
           this.defaultSummaryCount = 5;
+          this.idswithAbstractsToLoad = [];
+          this.clearScheduledAbstractLoad();
         } else {
-          this.setImmediateSortLoadingVisibility(false);
-          this.localSortLoadingHideResults = false;
+          this.persistedLoadingProcessSteps = this.normalizePersistedLoadingProcessSteps(
+            this.persistedLoadingProcessSteps
+          );
+          if (this.persistedLoadingProcessSteps.length > 0) {
+            this.isProcessBoxExpanded = false;
+          }
+          this.setLocalSortLoadingState(false);
+          this.queueVisibleAbstractLoads();
+        }
+      },
+      loadingProcessSteps: {
+        handler(newVal) {
+          if (!Array.isArray(newVal) || newVal.length === 0) {
+            return;
+          }
+          this.persistedLoadingProcessSteps = this.cloneLoadingProcessSteps(newVal);
+        },
+        immediate: true,
+      },
+      results(newVal) {
+        if (!this.loading && !Array.isArray(newVal)) {
+          this.persistedLoadingProcessSteps = [];
+          this.isProcessBoxExpanded = false;
         }
       },
       preselectedEntries(newVal) {
@@ -704,6 +827,11 @@
           this.loadMissingAbstracts();
         }
       },
+      shownFetchableAbstractIdsSignature() {
+        if (!this.loading) {
+          this.queueVisibleAbstractLoads();
+        }
+      },
       /**
        * Cap defaultSummaryCount to available articles when results change.
        */
@@ -716,7 +844,7 @@
           this.defaultSummaryCount = 5;
         }
       },
-      showLoadingProcessList(newVal) {
+      hasAnimatedProcessSteps(newVal) {
         if (newVal) {
           this.startProcessDotsInterval();
         } else {
@@ -760,21 +888,38 @@
     },
     mounted() {
       eventBus.on("result-entry-show-abstract", this.openArticlesAccordion);
-      if (this.showLoadingProcessList) {
+      if (this.hasAnimatedProcessSteps) {
         this.startProcessDotsInterval();
       }
     },
     beforeUnmount() {
       eventBus.off("result-entry-show-abstract", this.openArticlesAccordion);
       this.clearSelectedBadgeRetries();
+      this.clearScheduledAbstractLoad();
       this.clearProcessDotsInterval();
     },
     methods: {
-      setImmediateSortLoadingVisibility(hidden) {
+      // Sorting needs an immediate visual hide to avoid the staggered fade we saw with reactive-only updates.
+      setResultsBodyVisibility(hidden) {
         const wrapper = this.$refs?.resultsBodyWrapper;
         if (!wrapper || !wrapper.style) return;
         wrapper.style.opacity = hidden ? "0" : "";
         wrapper.style.pointerEvents = hidden ? "none" : "";
+      },
+      setLocalSortLoadingState(hidden) {
+        this.setResultsBodyVisibility(hidden);
+        this.localSortLoadingHideResults = hidden;
+      },
+      // Wait for Vue + the browser to paint before emitting the sort change, so the compact spinner is visible first.
+      async waitForNextPaint() {
+        await this.$nextTick();
+        await new Promise((resolve) => {
+          if (typeof requestAnimationFrame === "function") {
+            requestAnimationFrame(() => resolve());
+          } else {
+            setTimeout(resolve, 0);
+          }
+        });
       },
       startProcessDotsInterval() {
         this.clearProcessDotsInterval();
@@ -788,6 +933,57 @@
           clearInterval(this._processDotsIntervalId);
           this._processDotsIntervalId = null;
         }
+      },
+      clearScheduledAbstractLoad() {
+        if (this._abstractLoadTimerId !== null) {
+          clearTimeout(this._abstractLoadTimerId);
+          this._abstractLoadTimerId = null;
+        }
+      },
+      cloneLoadingProcessSteps(steps = []) {
+        return (Array.isArray(steps) ? steps : [])
+          .filter((step) => step && step.id)
+          .map((step) => ({
+            id: String(step.id || "").trim(),
+            label: String(step.label || "").trim(),
+            status: String(step.status || "pending").trim() || "pending",
+          }));
+      },
+      normalizePersistedLoadingProcessSteps(steps = []) {
+        return this.cloneLoadingProcessSteps(steps).map((step) => ({
+          ...step,
+          status: step.status === "current" ? "completed" : step.status,
+        }));
+      },
+      getProcessGroupStatus(children = []) {
+        const normalizedChildren = Array.isArray(children) ? children : [];
+        if (normalizedChildren.some((child) => child?.status === "current")) {
+          return "current";
+        }
+        if (normalizedChildren.length > 0 && normalizedChildren.every((child) => child?.status === "completed")) {
+          return "completed";
+        }
+        if (normalizedChildren.some((child) => child?.status === "completed")) {
+          return "current";
+        }
+        return "pending";
+      },
+      shouldShowProcessGroupChildren(children = []) {
+        const normalizedChildren = Array.isArray(children) ? children : [];
+        if (!this.loading) {
+          return this.getVisibleProcessGroupChildren(normalizedChildren).length > 0;
+        }
+        return normalizedChildren.some((child) => child?.status === "current" || child?.status === "completed");
+      },
+      getVisibleProcessGroupChildren(children = []) {
+        const normalizedChildren = Array.isArray(children) ? children : [];
+        if (this.loading) {
+          return normalizedChildren;
+        }
+        return normalizedChildren.filter((child) => child?.status !== "pending");
+      },
+      toggleProcessBox() {
+        this.isProcessBoxExpanded = !this.isProcessBoxExpanded;
       },
       getProcessStepLabel(step) {
         return String(step?.label || "")
@@ -848,9 +1044,6 @@
         this.$emit("high");
         this.badgesAdded = false;
         this.altmetricsAdded = false;
-      },
-      previous() {
-        this.$emit("low");
       },
       reloadScripts() {
         //Remove divs and scripts from body so they wont affect performance
@@ -927,25 +1120,11 @@
           return;
         }
 
-        this.setImmediateSortLoadingVisibility(true);
-        this.localSortLoadingHideResults = true;
-        await this.$nextTick();
-        await new Promise((resolve) => {
-          if (typeof requestAnimationFrame === "function") {
-            requestAnimationFrame(() => resolve());
-          } else {
-            setTimeout(resolve, 0);
-          }
-        });
+        this.setLocalSortLoadingState(true);
+        await this.waitForNextPaint();
 
         const obj = order.find((entry) => entry.method === nextMethod) || {};
         this.$emit("newSortMethod", obj);
-      },
-      newSortMethod(event) {
-        this.handleSortMethodChange(event);
-      },
-      isSelected(model) {
-        return model === this.sort;
       },
       isSelectedPageSize(model) {
         return model === this.pagesize;
@@ -1192,26 +1371,55 @@
           .map((r) => this.getResultId(r))
           .filter((id) => hasDefinedValue(id));
 
-        if (missingIds.length === 0) return;
-
-        const nlm = this.appSettings.nlm;
-        const baseurl = `${nlm.proxyUrl}/NlmFetch.php?db=pubmed&retmode=xml&id=`;
-        const url = baseurl + missingIds.join(",");
-
-        try {
-          const resp = await axios.get(url, { timeout: 30000 });
-          const xmlDoc = parsePubMedXml(resp.data);
-          if (hasXmlParserError(xmlDoc)) {
-            console.warn("loadMissingAbstracts: invalid XML response");
-            return;
-          }
-          const abstractEntries = getAbstractEntriesFromPubMedXml(xmlDoc);
-          for (const [articleId, abstractValue] of abstractEntries) {
-            this.abstractRecords[articleId] = abstractValue;
-          }
-        } catch (error) {
-          console.warn("loadMissingAbstracts failed:", error.message);
+        this.queueAbstractLoadIds(missingIds);
+      },
+      queueVisibleAbstractLoads() {
+        const visibleIds = this.getShownSearchResults
+          .filter((result) => {
+            const resultId = this.getResultId(result);
+            if (!hasDefinedValue(resultId)) return false;
+            if (!this.canFetchPubMedAbstractForResult(result)) return false;
+            if (this.getResultInlineAbstract(result)) return false;
+            return !this.abstractRecords[resultId];
+          })
+          .map((result) => this.getResultId(result))
+          .filter((id) => hasDefinedValue(id));
+        this.queueAbstractLoadIds(visibleIds);
+      },
+      queueAbstractLoadIds(ids = []) {
+        const normalizedIds = Array.from(
+          new Set(
+            (Array.isArray(ids) ? ids : [])
+              .map((id) => String(id || "").trim())
+              .filter((id) => /^[0-9]+$/.test(id) && !this.abstractRecords[id])
+          )
+        );
+        if (normalizedIds.length === 0) {
+          return;
         }
+        const pendingIds = new Set(
+          (Array.isArray(this.idswithAbstractsToLoad) ? this.idswithAbstractsToLoad : [])
+            .map((id) => String(id || "").trim())
+            .filter((id) => /^[0-9]+$/.test(id) && !this.abstractRecords[id])
+        );
+        normalizedIds.forEach((id) => pendingIds.add(id));
+        this.idswithAbstractsToLoad = Array.from(pendingIds);
+        this.scheduleAbstractLoad();
+      },
+      scheduleAbstractLoad() {
+        if (this.loading || this._abstractLoadInFlight) {
+          return;
+        }
+        if (!Array.isArray(this.idswithAbstractsToLoad) || this.idswithAbstractsToLoad.length === 0) {
+          return;
+        }
+        if (this._abstractLoadTimerId !== null) {
+          return;
+        }
+        this._abstractLoadTimerId = setTimeout(() => {
+          this._abstractLoadTimerId = null;
+          this.loadAbstracts();
+        }, 0);
       },
       shouldResultArticlePreloadAbstract(article) {
         return this.firstFiveArticlesWithAbstracts.some((value) =>
@@ -1219,36 +1427,31 @@
         );
       },
       async addIdToLoadAbstract(id) {
-        if (!/^[0-9]+$/.test(String(id || "").trim())) {
-          return;
-        }
-        this.idswithAbstractsToLoad.push(id);
-        const safeResults = Array.isArray(this.results) ? this.results : [];
-        const lastFetchableResult = [...safeResults]
-          .reverse()
-          .find((result) => this.canFetchPubMedAbstractForResult(result));
-        const lastFetchableResultId = this.getResultId(lastFetchableResult);
-        if (lastFetchableResultId === id) {
-          await this.loadAbstracts();
-        }
+        this.queueAbstractLoadIds([id]);
       },
       async loadAbstracts() {
+        if (this._abstractLoadInFlight) {
+          return;
+        }
         if (!Array.isArray(this.idswithAbstractsToLoad) || this.idswithAbstractsToLoad.length === 0) {
           return;
         }
-        this.idswithAbstractsToLoad = Array.from(
+        const pendingIds = Array.from(
           new Set(
             this.idswithAbstractsToLoad.filter((id) => /^[0-9]+$/.test(String(id || "").trim()))
           )
         );
-        if (this.idswithAbstractsToLoad.length === 0) {
+        const batchIds = pendingIds.filter((id) => !this.abstractRecords[id]);
+        this.idswithAbstractsToLoad = [];
+        if (batchIds.length === 0) {
           return;
         }
+        this._abstractLoadInFlight = true;
         const nlm = this.appSettings.nlm;
         // Credentials handled by PHP proxy
         const baseurl = `${nlm.proxyUrl}/NlmFetch.php?db=pubmed&retmode=xml&id=`;
 
-        const url = baseurl + this.idswithAbstractsToLoad.join(",");
+        const url = baseurl + batchIds.join(",");
         const axiosInstance = axios.create({
           headers: { Accept: "application/json, text/plain, */*" },
         });
@@ -1280,27 +1483,27 @@
           );
         });
 
-        const loadData = axiosInstance
-          .get(url, { retry: 10 })
-          .then((resp) => {
-            const data = resp.data;
-            const xmlDoc = parsePubMedXml(data);
+        try {
+          const resp = await axiosInstance.get(url, { retry: 10 });
+          const data = resp.data;
+          const xmlDoc = parsePubMedXml(data);
 
-            if (hasXmlParserError(xmlDoc)) {
-              return [];
-            }
-            return getAbstractEntriesFromPubMedXml(xmlDoc, { includeEmptySections: true });
-          })
-          .catch((err) => {
-            console.error("Error in fetch from pubMed:", err);
-          });
-
-        loadData.then((v) => {
-          if (!Array.isArray(v)) return;
-          for (const [articleId, abstractValue] of v) {
+          if (hasXmlParserError(xmlDoc)) {
+            console.warn("loadAbstracts: invalid XML response");
+            return;
+          }
+          const abstractEntries = getAbstractEntriesFromPubMedXml(xmlDoc, { includeEmptySections: true });
+          for (const [articleId, abstractValue] of abstractEntries) {
             this.onAbstractLoad(articleId, abstractValue);
           }
-        });
+        } catch (err) {
+          console.error("Error in fetch from pubMed:", err);
+        } finally {
+          this._abstractLoadInFlight = false;
+          if (Array.isArray(this.idswithAbstractsToLoad) && this.idswithAbstractsToLoad.length > 0) {
+            this.scheduleAbstractLoad();
+          }
+        }
       },
     },
   };

@@ -61,6 +61,35 @@ function qpmMergeLimitNodes(array $sharedNodes, array $overrideNodes): array
 }
 
 /**
+ * Deep-merge semanticConfig objects while treating lists as full overrides.
+ *
+ * @param mixed $sharedValue
+ * @param mixed $overrideValue
+ * @return mixed
+ */
+function qpmMergeSemanticConfigValue($sharedValue, $overrideValue)
+{
+    if (!is_array($sharedValue) || !is_array($overrideValue)) {
+        return $overrideValue;
+    }
+
+    if (editorArrayIsListCompat($sharedValue) || editorArrayIsListCompat($overrideValue)) {
+        return $overrideValue;
+    }
+
+    $merged = $sharedValue;
+    foreach ($overrideValue as $key => $value) {
+        if (array_key_exists($key, $merged)) {
+            $merged[$key] = qpmMergeSemanticConfigValue($merged[$key], $value);
+        } else {
+            $merged[$key] = $value;
+        }
+    }
+
+    return $merged;
+}
+
+/**
  * Resolve child key used by a limits node.
  *
  * @param array<string, mixed> $node
@@ -145,6 +174,13 @@ function qpmMergeLimitNode(array $sharedNode, array $overrideNode): array
 
     foreach ($allowedOverrideFields as $field) {
         if (array_key_exists($field, $overrideNode)) {
+            if ($field === 'semanticConfig' && is_array($overrideNode[$field] ?? null)) {
+                $sharedSemanticConfig = isset($merged[$field]) && is_array($merged[$field])
+                    ? $merged[$field]
+                    : [];
+                $merged[$field] = qpmMergeSemanticConfigValue($sharedSemanticConfig, $overrideNode[$field]);
+                continue;
+            }
             $merged[$field] = $overrideNode[$field];
         }
     }

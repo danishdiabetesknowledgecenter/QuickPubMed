@@ -59,6 +59,12 @@ $semanticSourceLimits = [
     'elicit' => qpmGetSemanticSourceLimit('elicit', 100),
     'pubmedBestMatch' => qpmGetSemanticSourceLimit('pubmedBestMatch', 200),
 ];
+$semanticRescueConfig = defined('QPM_SEMANTIC_RESCUE_CONFIG') && is_array(QPM_SEMANTIC_RESCUE_CONFIG)
+    ? QPM_SEMANTIC_RESCUE_CONFIG
+    : [];
+$semanticLlmRerankConfig = defined('QPM_SEMANTIC_LLM_RERANK_CONFIG') && is_array(QPM_SEMANTIC_LLM_RERANK_CONFIG)
+    ? QPM_SEMANTIC_LLM_RERANK_CONFIG
+    : [];
 $rerankConfig = defined('QPM_RERANK_CONFIG') && is_array(QPM_RERANK_CONFIG)
     ? QPM_RERANK_CONFIG
     : [];
@@ -84,5 +90,7 @@ echo json_encode([
     'translationSources' => $translationSources,
     'translationSourcesConfigured' => $translationSourcesConfigured,
     'semanticSourceLimits' => $semanticSourceLimits,
+    'semanticRescueConfig' => $semanticRescueConfig,
+    'semanticLlmRerankConfig' => $semanticLlmRerankConfig,
     'rerankConfig' => $rerankConfig,
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

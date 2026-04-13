@@ -11,8 +11,10 @@ Denne mappe er den kanoniske web-indgang (`/backend`) til server-endpoints.
 
 ## Relevante docs
 
-- `backend/docs/semantic-doi-only-rules.md`: vedligeholdelse af semantiske DOI-only filterregler, schema, motor og eksempler på `doiOnlyFilterRules`.
+- `backend/docs/semantic-doi-only-rules.md`: vedligeholdelse af semantiske post-valideringsregler, schema, motor og eksempler på `postValidation.rules`.
 - `backend/docs/semantic-source-filters.md`: vedligeholdelse af `semanticConfig.sourceFilters`, kilde-specifikke filterværdier og hvornår de bør bruges.
+- `backend/docs/search-flow-readme.md`: pædagogisk gennemgang af det samlede search flow fra UI-valg til PubMed- og semantisk retrieval.
+- `backend/docs/semantic-filter-regression-checklist.md`: fast manuel regressionscheckliste for de vigtigste kanoniske semantiske filtercases.
 
 `php-proxy` kan bevares midlertidigt som kompatibilitetslag, men ny kode bør pege på `backend`.
 

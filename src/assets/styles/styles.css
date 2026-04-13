@@ -225,44 +225,117 @@
 
 .qpm_searchProcessBox {
   position: relative;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, 0%);
-  width: min(100%, 760px);
-  margin-top: 18px;
-  margin-bottom: 12px;
-  padding: 14px 18px;
+  top: auto;
+  left: auto;
+  transform: none;
+  width: 100%;
+  margin-bottom: 14px;
+  padding: 20px 24px;
   border: 1px solid var(--color-border-subtle);
   border-radius: 8px;
 }
 
 .qpm_searchProcessList {
   margin: 0;
-  padding-left: 1.5rem;
+  padding-left: 0;
+  list-style: none;
   text-align: left;
 }
 
-.qpm_searchProcessItem {
-  margin: 0.35rem 0;
+.qpm_searchProcessWrapper {
+  width: 100%;
+  margin-top: 15px;
+}
+
+.qpm_advancedSearch.qpm_searchProcessToggleLink {
+  float: none;
+  display: inline-block;
+  clear: both;
+  margin: 0 0 8px;
+  padding: 0 6px;
+}
+
+.qpm_advancedSearch.qpm_searchProcessToggleLink a {
+  display: inline-block;
+}
+
+.qpm_searchProcessToggleLink {
+  margin-bottom: 8px;
+}
+
+.qpm_searchProcessContent {
+  width: 100%;
+  margin-top: 0;
+  padding: 10px 5px 20px;
+}
+
+.qpm_searchProcessBox {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.qpm_searchProcessGroup {
+  margin: 0.5rem 0 0.8rem;
   color: var(--color-grey-dark);
 }
 
+.qpm_searchProcessGroup:last-child {
+  margin-bottom: 0;
+}
+
+.qpm_searchProcessGroupLabel {
+  font-weight: 600;
+}
+
+.qpm_searchProcessSubList {
+  margin: 0.4rem 0 0;
+  padding-left: 0;
+  margin-left: 1.4rem;
+  list-style: none;
+}
+
+.qpm_searchProcessSubList .qpm_searchProcessRow {
+  padding-left: 0.65rem;
+}
+
+.qpm_searchProcessItem {
+  margin: 0.3rem 0;
+  color: var(--color-grey-dark);
+}
+
+.qpm_searchProcessRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 0.04rem;
+  flex-wrap: wrap;
+}
+
+.qpm_searchProcessLabel {
+  flex: 0 1 auto;
+}
+
 .qpm_searchProcessDots {
+  flex: 0 0 auto;
   display: inline-block;
-  margin-left: 0;
-  min-width: 3.2em;
+  margin-left: -0.02rem;
+  min-width: 0;
+  text-align: left;
   letter-spacing: 0.04em;
 }
 
+.qpm_searchProcessGroup.is-current .qpm_searchProcessGroupLabel,
 .qpm_searchProcessItem.is-current {
   color: var(--color-black);
   font-weight: 600;
 }
 
+.qpm_searchProcessGroup.is-completed .qpm_searchProcessGroupLabel,
 .qpm_searchProcessItem.is-completed {
   color: var(--color-black);
 }
 
+.qpm_searchProcessGroup.is-pending .qpm_searchProcessGroupLabel,
 .qpm_searchProcessItem.is-pending {
   opacity: 0.8;
 }

@@ -292,11 +292,11 @@ export const messages = {
     en: "Creating search string",
   },
   translatingStepMesh: {
-    dk: "Undersøger MeSH-databasen",
+    dk: "Kontrollerer MeSH-termer",
     en: "Checking MeSH database",
   },
   translatingStepOptimize: {
-    dk: "Optimerer søgestreng",
+    dk: "Forfiner søgestreng",
     en: "Optimizing search string",
   },
   translatingStepSemanticScholar: {
@@ -304,7 +304,7 @@ export const messages = {
     en: "Finding PubMed IDs in Semantic Scholar",
   },
   translatingStepPubMedBestMatch: {
-    dk: "Finder PubMed-resultater efter relevans",
+    dk: "Søger i PubMed",
     en: "Finding PubMed results by relevance",
   },
   translatingStepOpenAlex: {
@@ -316,11 +316,11 @@ export const messages = {
     en: "Finding results in Elicit",
   },
   semanticSearchProgressPreparing: {
-    dk: "Forbereder den semantiske søgning ud fra dine valgte søgeord og afgrænsninger.",
+    dk: "Forbereder søgningen ud fra dine valgte søgeord, afgrænsninger og databaser.",
     en: "Preparing the semantic search from your selected terms and filters.",
   },
   semanticSearchProgressSearchString: {
-    dk: "Oversætter din fritekst til en søgestreng, som kan bruges i søgningen.",
+    dk: "Laver en søgestreng ud fra din fritekst.",
     en: "Translating your free text into a search string that can be used in the search.",
   },
   semanticSearchProgressMesh: {
@@ -332,19 +332,19 @@ export const messages = {
     en: "Refining the search string so it fits the topic better.",
   },
   semanticSearchProgressPubMedBestMatch: {
-    dk: "Bruger PubMed's relevanssøgning til at finde de mest relevante artikler.",
+    dk: "Søger i PubMed.",
     en: "Using PubMed relevance search to find the most relevant articles.",
   },
   semanticSearchProgressSemanticScholar: {
-    dk: "Søger efter relaterede artikler i Semantic Scholar.",
+    dk: "Søger i Semantic Scholar.",
     en: "Searching for related articles in Semantic Scholar.",
   },
   semanticSearchProgressOpenAlex: {
-    dk: "Søger efter relaterede artikler i OpenAlex.",
+    dk: "Søger i OpenAlex.",
     en: "Searching for related articles in OpenAlex.",
   },
   semanticSearchProgressElicit: {
-    dk: "Søger efter relaterede artikler i Elicit.",
+    dk: "Søger i Elicit.",
     en: "Searching for related articles in Elicit.",
   },
   semanticSearchProgressFinalize: {
@@ -352,7 +352,7 @@ export const messages = {
     en: "Collecting the results and preparing them for display.",
   },
   semanticSearchProgressFinalizeCollect: {
-    dk: "Matcher og filtrerer resultaterne.",
+    dk: "Matcher kandidaterne og anvender de valgte filtre.",
     en: "Matching and filtering the results.",
   },
   semanticSearchProgressFinalizeValidateDoi: {
@@ -360,11 +360,11 @@ export const messages = {
     en: "Validating DOI results against OpenAlex.",
   },
   semanticSearchProgressFinalizeValidatePmid: {
-    dk: "Kontrollerer PMID-resultater mod PubMed.",
+    dk: "Kontrollerer PMID-resultater mod PubMed-søgningen.",
     en: "Validating PMID results against PubMed.",
   },
   semanticSearchProgressFinalizeValidateDoiFetch: {
-    dk: "Henter DOI-oplysninger fra OpenAlex.",
+    dk: "Henter metadata for DOI-resultater fra OpenAlex.",
     en: "Fetching DOI details from OpenAlex.",
   },
   semanticSearchProgressFinalizeValidateDoiSource: {
@@ -372,11 +372,11 @@ export const messages = {
     en: "Fetching journal details from OpenAlex.",
   },
   semanticSearchProgressFinalizeValidateDoiRules: {
-    dk: "Tjekker hvilke DOI-resultater der opfylder filtrene.",
+    dk: "Kontrollerer hvilke DOI-resultater der opfylder filtrene.",
     en: "Checking which DOI results satisfy the filters.",
   },
   semanticSearchProgressFinalizeHydrate: {
-    dk: "Henter artikeloplysninger fra kilderne.",
+    dk: "Henter artikeloplysninger fra databaserne.",
     en: "Fetching article details from the sources.",
   },
   semanticSearchProgressFinalizeHydratePubMed: {
@@ -384,11 +384,11 @@ export const messages = {
     en: "Fetching article details from PubMed.",
   },
   semanticSearchProgressFinalizeHydrateOpenAlex: {
-    dk: "Henter DOI-oplysninger fra OpenAlex.",
+    dk: "Henter artikeloplysninger fra OpenAlex.",
     en: "Fetching DOI details from OpenAlex.",
   },
   semanticSearchProgressFinalizeHydrateMixed: {
-    dk: "Henter artikeloplysninger fra PubMed og DOI-oplysninger fra OpenAlex.",
+    dk: "Henter artikeloplysninger fra PubMed og OpenAlex.",
     en: "Fetching article details from PubMed and DOI details from OpenAlex.",
   },
   semanticSearchProgressFinalizeSort: {
@@ -396,12 +396,36 @@ export const messages = {
     en: "Sorting the results by date.",
   },
   semanticSearchProgressFinalizeSelected: {
-    dk: "Tilføjer allerede valgte artikler.",
+    dk: "Bevarer allerede markerede artikler i resultatlisten.",
     en: "Adding already selected articles.",
   },
   semanticSearchProgressFinalizeRender: {
     dk: "Gør resultaterne klar til visning.",
     en: "Preparing the results for display.",
+  },
+  semanticSearchProcessShow: {
+    dk: "Vis søgeprocessen",
+    en: "Show search process",
+  },
+  semanticSearchProcessHide: {
+    dk: "Skjul søgeprocessen",
+    en: "Hide search process",
+  },
+  semanticSearchProcessGroupPrepare: {
+    dk: "Forbereder søgningen",
+    en: "Preparing search",
+  },
+  semanticSearchProcessGroupSources: {
+    dk: "Søger i databaser",
+    en: "Searching sources",
+  },
+  semanticSearchProcessGroupMatch: {
+    dk: "Matcher og filtrerer resultaterne",
+    en: "Matching and filtering the results",
+  },
+  semanticSearchProcessGroupDisplay: {
+    dk: "Samler resultaterne og gør dem klar til visning",
+    en: "Collecting the results and preparing them for display",
   },
   noResult: {
     dk: "Ingen resultater matcher søgningen",

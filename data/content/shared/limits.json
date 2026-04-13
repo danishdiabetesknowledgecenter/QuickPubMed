@@ -366,27 +366,30 @@
                         "en": "Includes systematic reviews in addition to meta-analyses, but not protocols and articles that have been withdrawn."
                     },
                     "semanticConfig": {
-                        "doiOnlyRules": [
-                            {
-                                "id": "systematic-review",
-                                "exclusiveGroup": "publication-profile",
-                                "textScopes": [
-                                    "candidateTitle",
-                                    "sourceCandidateTitles"
-                                ],
-                                "requireAnyTextSignals": [
-                                    "systematic review",
-                                    "meta-analysis",
-                                    "cochrane"
-                                ],
-                                "excludeAnyTextSignals": [
-                                    "protocol",
-                                    "withdrawn",
-                                    "retracted",
-                                    "comment"
-                                ]
-                            }
-                        ],
+                        "postValidation": {
+                            "mode": "metadata",
+                            "rules": [
+                                {
+                                    "id": "systematic-review",
+                                    "exclusiveGroup": "publication-profile",
+                                    "textScopes": [
+                                        "candidateTitle",
+                                        "sourceCandidateTitles"
+                                    ],
+                                    "requireAnyTextSignals": [
+                                        "systematic review",
+                                        "meta-analysis",
+                                        "cochrane"
+                                    ],
+                                    "excludeAnyTextSignals": [
+                                        "protocol",
+                                        "withdrawn",
+                                        "retracted",
+                                        "comment"
+                                    ]
+                                }
+                            ]
+                        },
                         "hardFilters": {
                             "filterProfile": [
                                 "systematic-review-only"
@@ -397,6 +400,12 @@
                             ]
                         },
                         "sourceFilters": {
+                            "semanticScholar": {
+                                "publicationTypes": [
+                                    "Review",
+                                    "Meta-Analysis"
+                                ]
+                            },
                             "openAlex": {
                                 "workType": [
                                     "review"
@@ -455,58 +464,61 @@
                         "en": ""
                     },
                     "semanticConfig": {
-                        "doiOnlyRules": [
-                            {
-                                "id": "cochrane-review",
-                                "exclusiveGroup": "publication-profile",
-                                "matchStrategy": "any",
-                                "metadataFieldConditionMode": "any",
-                                "textScopes": [
-                                    "candidateTitle",
-                                    "sourceCandidateTitles"
-                                ],
-                                "requireAnyTextSignals": [
-                                    "cochrane",
-                                    "systematic review"
-                                ],
-                                "metadataFieldConditions": [
-                                    {
-                                        "field": "candidateVenue",
-                                        "operator": "includesAny",
-                                        "values": [
-                                            "cochrane"
-                                        ]
-                                    },
-                                    {
-                                        "field": "semanticSourceVenues",
-                                        "operator": "includesAny",
-                                        "values": [
-                                            "cochrane"
-                                        ]
-                                    },
-                                    {
-                                        "field": "openAlexSourceDisplayName",
-                                        "operator": "includesAny",
-                                        "values": [
-                                            "cochrane"
-                                        ]
-                                    },
-                                    {
-                                        "field": "openAlexSourceAbbreviatedTitle",
-                                        "operator": "includesAny",
-                                        "values": [
-                                            "cochrane"
-                                        ]
-                                    }
-                                ],
-                                "excludeAnyTextSignals": [
-                                    "protocol",
-                                    "withdrawn",
-                                    "retracted",
-                                    "comment"
-                                ]
-                            }
-                        ],
+                        "postValidation": {
+                            "mode": "metadata",
+                            "rules": [
+                                {
+                                    "id": "cochrane-review",
+                                    "exclusiveGroup": "publication-profile",
+                                    "matchStrategy": "any",
+                                    "metadataFieldConditionMode": "any",
+                                    "textScopes": [
+                                        "candidateTitle",
+                                        "sourceCandidateTitles"
+                                    ],
+                                    "requireAnyTextSignals": [
+                                        "cochrane",
+                                        "systematic review"
+                                    ],
+                                    "metadataFieldConditions": [
+                                        {
+                                            "field": "candidateVenue",
+                                            "operator": "includesAny",
+                                            "values": [
+                                                "cochrane"
+                                            ]
+                                        },
+                                        {
+                                            "field": "semanticSourceVenues",
+                                            "operator": "includesAny",
+                                            "values": [
+                                                "cochrane"
+                                            ]
+                                        },
+                                        {
+                                            "field": "openAlexSourceDisplayName",
+                                            "operator": "includesAny",
+                                            "values": [
+                                                "cochrane"
+                                            ]
+                                        },
+                                        {
+                                            "field": "openAlexSourceAbbreviatedTitle",
+                                            "operator": "includesAny",
+                                            "values": [
+                                                "cochrane"
+                                            ]
+                                        }
+                                    ],
+                                    "excludeAnyTextSignals": [
+                                        "protocol",
+                                        "withdrawn",
+                                        "retracted",
+                                        "comment"
+                                    ]
+                                }
+                            ]
+                        },
                         "hardFilters": {
                             "filterProfile": [
                                 "systematic-review-only"
@@ -517,6 +529,11 @@
                             ]
                         },
                         "sourceFilters": {
+                            "semanticScholar": {
+                                "publicationTypes": [
+                                    "Review"
+                                ]
+                            },
                             "openAlex": {
                                 "workType": [
                                     "review"
@@ -614,42 +631,45 @@
                         "en": "Only guidelines published in scientific journals can be found via PubMed. Guidelines published elsewhere are not shown."
                     },
                     "semanticConfig": {
-                        "doiOnlyRules": [
-                            {
-                                "id": "guideline",
-                                "exclusiveGroup": "publication-profile",
-                                "matchStrategy": "any",
-                                "metadataFieldConditionMode": "any",
-                                "textScopes": [
-                                    "candidateTitle",
-                                    "sourceCandidateTitles"
-                                ],
-                                "requireAnyTextSignals": [
-                                    "guideline",
-                                    "practice guideline",
-                                    "consensus statement",
-                                    "recommendation"
-                                ],
-                                "metadataFieldConditions": [
-                                    {
-                                        "field": "candidatePublicationTypes",
-                                        "operator": "includesAny",
-                                        "values": [
-                                            "guideline",
-                                            "practice guideline"
-                                        ]
-                                    },
-                                    {
-                                        "field": "semanticSourcePublicationTypes",
-                                        "operator": "includesAny",
-                                        "values": [
-                                            "guideline",
-                                            "practice guideline"
-                                        ]
-                                    }
-                                ]
-                            }
-                        ],
+                        "postValidation": {
+                            "mode": "metadata",
+                            "rules": [
+                                {
+                                    "id": "guideline",
+                                    "exclusiveGroup": "publication-profile",
+                                    "matchStrategy": "any",
+                                    "metadataFieldConditionMode": "any",
+                                    "textScopes": [
+                                        "candidateTitle",
+                                        "sourceCandidateTitles"
+                                    ],
+                                    "requireAnyTextSignals": [
+                                        "guideline",
+                                        "practice guideline",
+                                        "consensus statement",
+                                        "recommendation"
+                                    ],
+                                    "metadataFieldConditions": [
+                                        {
+                                            "field": "candidatePublicationTypes",
+                                            "operator": "includesAny",
+                                            "values": [
+                                                "guideline",
+                                                "practice guideline"
+                                            ]
+                                        },
+                                        {
+                                            "field": "semanticSourcePublicationTypes",
+                                            "operator": "includesAny",
+                                            "values": [
+                                                "guideline",
+                                                "practice guideline"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
                         "hardFilters": {
                             "filterProfile": [
                                 "guideline-only"
@@ -689,28 +709,31 @@
                         "en": ""
                     },
                     "semanticConfig": {
-                        "doiOnlyRules": [
-                            {
-                                "id": "other-review",
-                                "exclusiveGroup": "publication-profile",
-                                "textScopes": [
-                                    "candidateTitle",
-                                    "sourceCandidateTitles"
-                                ],
-                                "requireAnyTextSignals": [
-                                    "review"
-                                ],
-                                "excludeAnyTextSignals": [
-                                    "systematic review",
-                                    "meta-analysis",
-                                    "cochrane",
-                                    "protocol",
-                                    "withdrawn",
-                                    "retracted",
-                                    "comment"
-                                ]
-                            }
-                        ],
+                        "postValidation": {
+                            "mode": "metadata",
+                            "rules": [
+                                {
+                                    "id": "other-review",
+                                    "exclusiveGroup": "publication-profile",
+                                    "textScopes": [
+                                        "candidateTitle",
+                                        "sourceCandidateTitles"
+                                    ],
+                                    "requireAnyTextSignals": [
+                                        "review"
+                                    ],
+                                    "excludeAnyTextSignals": [
+                                        "systematic review",
+                                        "meta-analysis",
+                                        "cochrane",
+                                        "protocol",
+                                        "withdrawn",
+                                        "retracted",
+                                        "comment"
+                                    ]
+                                }
+                            ]
+                        },
                         "hardFilters": {
                             "filterProfile": [
                                 "other-review-only"
@@ -720,6 +743,11 @@
                             ]
                         },
                         "sourceFilters": {
+                            "semanticScholar": {
+                                "publicationTypes": [
+                                    "Review"
+                                ]
+                            },
                             "openAlex": {
                                 "workType": [
                                     "review"
@@ -1066,46 +1094,54 @@
                         "en": ""
                     },
                     "semanticConfig": {
-                        "doiOnlyRules": [
-                            {
-                                "id": "source-format-journal",
-                                "exclusiveGroup": "source-format",
-                                "matchStrategy": "any",
-                                "metadataFieldConditionMode": "any",
-                                "metadataFieldConditions": [
-                                    {
-                                        "field": "candidateSourceType",
-                                        "operator": "equalsAny",
-                                        "values": [
-                                            "journal"
-                                        ]
-                                    },
-                                    {
-                                        "field": "semanticSourceTypes",
-                                        "operator": "equalsAny",
-                                        "values": [
-                                            "journal"
-                                        ]
-                                    },
-                                    {
-                                        "field": "openAlexSourceType",
-                                        "operator": "equalsAny",
-                                        "values": [
-                                            "journal"
-                                        ]
-                                    }
-                                ]
-                            }
-                        ],
+                        "postValidation": {
+                            "mode": "metadata",
+                            "rules": [
+                                {
+                                    "id": "source-format-journal",
+                                    "exclusiveGroup": "source-format",
+                                    "matchStrategy": "any",
+                                    "metadataFieldConditionMode": "any",
+                                    "metadataFieldConditions": [
+                                        {
+                                            "field": "candidateSourceType",
+                                            "operator": "equalsAny",
+                                            "values": [
+                                                "journal"
+                                            ]
+                                        },
+                                        {
+                                            "field": "semanticSourceTypes",
+                                            "operator": "equalsAny",
+                                            "values": [
+                                                "journal"
+                                            ]
+                                        },
+                                        {
+                                            "field": "openAlexSourceType",
+                                            "operator": "equalsAny",
+                                            "values": [
+                                                "journal"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
                         "hardFilters": {
                             "sourceFormat": [
                                 "journal"
                             ]
                         },
                         "sourceFilters": {
+                            "semanticScholar": {
+                                "publicationTypes": [
+                                    "JournalArticle"
+                                ]
+                            },
                             "openAlex": {
-                                "workType": [
-                                    "article"
+                                "sourceType": [
+                                    "journal"
                                 ]
                             }
                         },
@@ -1150,41 +1186,56 @@
                         "en": ""
                     },
                     "semanticConfig": {
-                        "doiOnlyRules": [
-                            {
-                                "id": "source-format-conference",
-                                "exclusiveGroup": "source-format",
-                                "matchStrategy": "any",
-                                "metadataFieldConditionMode": "any",
-                                "metadataFieldConditions": [
-                                    {
-                                        "field": "candidateSourceType",
-                                        "operator": "equalsAny",
-                                        "values": [
-                                            "conference"
-                                        ]
-                                    },
-                                    {
-                                        "field": "semanticSourceTypes",
-                                        "operator": "equalsAny",
-                                        "values": [
-                                            "conference"
-                                        ]
-                                    },
-                                    {
-                                        "field": "openAlexSourceType",
-                                        "operator": "equalsAny",
-                                        "values": [
-                                            "conference"
-                                        ]
-                                    }
-                                ]
-                            }
-                        ],
+                        "postValidation": {
+                            "mode": "metadata",
+                            "rules": [
+                                {
+                                    "id": "source-format-conference",
+                                    "exclusiveGroup": "source-format",
+                                    "matchStrategy": "any",
+                                    "metadataFieldConditionMode": "any",
+                                    "metadataFieldConditions": [
+                                        {
+                                            "field": "candidateSourceType",
+                                            "operator": "equalsAny",
+                                            "values": [
+                                                "conference"
+                                            ]
+                                        },
+                                        {
+                                            "field": "semanticSourceTypes",
+                                            "operator": "equalsAny",
+                                            "values": [
+                                                "conference"
+                                            ]
+                                        },
+                                        {
+                                            "field": "openAlexSourceType",
+                                            "operator": "equalsAny",
+                                            "values": [
+                                                "conference"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
                         "hardFilters": {
                             "sourceFormat": [
                                 "conference"
                             ]
+                        },
+                        "sourceFilters": {
+                            "semanticScholar": {
+                                "publicationTypes": [
+                                    "Conference"
+                                ]
+                            },
+                            "openAlex": {
+                                "sourceType": [
+                                    "conference"
+                                ]
+                            }
                         },
                         "sourceContext": {
                             "en": "conference abstracts and conference-related publications"
@@ -1227,44 +1278,55 @@
                         "en": ""
                     },
                     "semanticConfig": {
-                        "doiOnlyRules": [
-                            {
-                                "id": "source-format-preprint",
-                                "exclusiveGroup": "source-format",
-                                "matchStrategy": "any",
-                                "metadataFieldConditionMode": "any",
-                                "metadataFieldConditions": [
-                                    {
-                                        "field": "candidateSourceType",
-                                        "operator": "equalsAny",
-                                        "values": [
-                                            "repository"
-                                        ]
-                                    },
-                                    {
-                                        "field": "semanticSourceTypes",
-                                        "operator": "equalsAny",
-                                        "values": [
-                                            "repository"
-                                        ]
-                                    },
-                                    {
-                                        "field": "openAlexSourceType",
-                                        "operator": "equalsAny",
-                                        "values": [
-                                            "repository"
-                                        ]
-                                    }
-                                ]
-                            }
-                        ],
+                        "postValidation": {
+                            "mode": "metadata",
+                            "rules": [
+                                {
+                                    "id": "source-format-preprint",
+                                    "exclusiveGroup": "source-format",
+                                    "matchStrategy": "any",
+                                    "metadataFieldConditionMode": "any",
+                                    "metadataFieldConditions": [
+                                        {
+                                            "field": "candidateSourceType",
+                                            "operator": "equalsAny",
+                                            "values": [
+                                                "repository"
+                                            ]
+                                        },
+                                        {
+                                            "field": "semanticSourceTypes",
+                                            "operator": "equalsAny",
+                                            "values": [
+                                                "repository"
+                                            ]
+                                        },
+                                        {
+                                            "field": "openAlexSourceType",
+                                            "operator": "equalsAny",
+                                            "values": [
+                                                "repository"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
                         "hardFilters": {
                             "sourceFormat": [
                                 "preprint"
                             ]
                         },
                         "sourceFilters": {
+                            "semanticScholar": {
+                                "publicationTypes": [
+                                    "Preprint"
+                                ]
+                            },
                             "openAlex": {
+                                "sourceType": [
+                                    "repository"
+                                ],
                                 "workType": [
                                     "preprint"
                                 ]

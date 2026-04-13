@@ -7,6 +7,7 @@ import { hideAllPoppers } from "floating-vue";
 import SearchForm from "@/components/SearchForm.vue";
 import { applyThemeFromConfig, config, loadThemeOverridesFromBackend } from "@/config/config";
 import { getAiURL, settings } from "@/config/settings";
+import { getSearchFlowDebugFlagFromLocation, normalizeSearchFlowDebugValue } from "@/utils/searchFlowDebug";
 import { createConfiguredAppWithOptions } from "./createConfiguredApp";
 
 /**
@@ -114,6 +115,9 @@ searchFormDivs.forEach((searchFormDiv, index) => {
   const useAI = searchFormDiv.dataset.useAI === "true";
   const useAISummarizer = searchFormDiv.dataset.useAISummarizer === "true";
   const useMeshValidation = searchFormDiv.dataset.useMeshValidation === "true";
+  const datasetDebugSearchFlow = normalizeSearchFlowDebugValue(searchFormDiv.dataset.debugSearchFlow);
+  const urlDebugSearchFlow = getSearchFlowDebugFlagFromLocation();
+  const debugSearchFlow = datasetDebugSearchFlow || urlDebugSearchFlow;
   const openLimits = searchFormDiv.dataset.openLimits === "true";
 
   const parseDatasetList = (value, label) => {
@@ -194,6 +198,7 @@ searchFormDivs.forEach((searchFormDiv, index) => {
       domain: domain,
       translationSources: parsedTranslationSources,
       defaultTranslationSources: parsedDefaultTranslationSources,
+      debugSearchFlow: debugSearchFlow,
       standardStringAdd: standardStringAdd,
       standardStringScope: standardStringScope,
       standardString: standardString,

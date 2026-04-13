@@ -1,6 +1,6 @@
 <?php
 /**
- * OpenAlex semantic search proxy.
+ * OpenAlex search proxy.
  * Accepts a plain-text query and returns normalized PMID/DOI candidates.
  */
 
@@ -347,13 +347,107 @@ function qpmNormalizeOpenAlexPublicationYearFilter($value): string
 }
 
 /**
+ * Extract an upstream OpenAlex error message from a decoded response body.
+ *
+ * @param array<string,mixed> $decoded
+ * @return string
+ */
+function qpmExtractOpenAlexErrorMessage(array $decoded): string
+{
+    $candidates = [
+        $decoded['error'] ?? '',
+        $decoded['message'] ?? '',
+        $decoded['detail'] ?? '',
+    ];
+
+    foreach ($candidates as $candidate) {
+        if (is_string($candidate) && trim($candidate) !== '') {
+            return trim($candidate);
+        }
+        if (is_array($candidate)) {
+            $nestedMessage = $candidate['message'] ?? $candidate['detail'] ?? $candidate['error'] ?? '';
+            if (is_string($nestedMessage) && trim($nestedMessage) !== '') {
+                return trim($nestedMessage);
+            }
+        }
+    }
+
+    return '';
+}
+
+/**
+ * Build structured retry hints for filter-specific OpenAlex request failures.
+ *
+ * @param string $message
+ * @param array<string,mixed> $requestState
+ * @return array<string,mixed>
+ */
+function qpmBuildOpenAlexRetryHints(string $message, array $requestState): array
+{
+    $normalized = strtolower(trim($message));
+    if ($normalized === '') {
+        return [];
+    }
+
+    $requestFields = [];
+    if (
+        !empty($requestState['sourceTypes']) &&
+        (
+            strpos($normalized, 'primary_location.source.type') !== false ||
+            strpos($normalized, 'source.type:') !== false ||
+            strpos($normalized, 'source type') !== false
+        )
+    ) {
+        $requestFields[] = 'sourceTypes';
+    }
+    if (
+        !empty($requestState['languages']) &&
+        (
+            preg_match('/(^|[,\s])language:/', $normalized) === 1 ||
+            strpos($normalized, 'language filter') !== false
+        )
+    ) {
+        $requestFields[] = 'languages';
+    }
+    if (
+        !empty($requestState['workTypes']) &&
+        (
+            preg_match('/(^|[,\s])type:/', $normalized) === 1 ||
+            strpos($normalized, 'work type') !== false ||
+            strpos($normalized, 'worktype') !== false
+        )
+    ) {
+        $requestFields[] = 'workTypes';
+    }
+    if (
+        !empty($requestState['publicationYear']) &&
+        (
+            strpos($normalized, 'publication_year') !== false ||
+            strpos($normalized, 'publication year') !== false
+        )
+    ) {
+        $requestFields[] = 'publicationYear';
+    }
+
+    $requestFields = array_values(array_unique($requestFields));
+    if (empty($requestFields)) {
+        return [];
+    }
+
+    return [
+        'requestFields' => $requestFields,
+    ];
+}
+
+/**
  * Emit a degraded OpenAlex payload instead of hard-failing.
  *
  * @param string $query
  * @param string $warning
+ * @param array<string,mixed> $retryHints
  * @return void
  */
-function qpmRespondWithOpenAlexWarning(string $query, string $warning): void
+function qpmRespondWithOpenAlexWarning(string $query, string $warning, array $retryHints = []): void
 {
     echo json_encode([
         'query' => $query,
@@ -363,6 +457,7 @@ function qpmRespondWithOpenAlexWarning(string $query, string $warning): void
         'total' => 0,
         'partial' => true,
         'warning' => $warning,
+        'retryHints' => !empty($retryHints) ? $retryHints : (object)[],
     ]);
     exit;
 }
@@ -382,8 +477,12 @@ if (empty($params)) {
 
 $query = trim((string) ($params['query'] ?? ''));
 $domain = trim((string) ($params['domain'] ?? ''));
+$debugSearchFlow = qpmIsSearchFlowDebugRequest($params);
+$searchMode = strtolower(trim((string) ($params['searchMode'] ?? ($params['search_mode'] ?? 'semantic'))));
+$searchMode = $searchMode === 'keyword' ? 'keyword' : 'semantic';
 $configuredLimit = qpmGetSemanticSourceLimit('openAlex', 50);
 $limit = (int) ($params['limit'] ?? $configuredLimit);
+$apiLimitCap = $searchMode === 'keyword' ? 100 : 50;
 $languageFilters = qpmNormalizeOpenAlexLanguageFilters($params['languages'] ?? ($params['language'] ?? []));
 $sourceTypes = qpmNormalizeOpenAlexEnumFilters(
     $params['sourceTypes'] ?? ($params['sourceType'] ?? []),
@@ -429,6 +528,9 @@ if ($limit <= 0) {
 if ($limit > $configuredLimit) {
     $limit = $configuredLimit;
 }
+if ($limit > $apiLimitCap) {
+    $limit = $apiLimitCap;
+}
 
 if ($query === '') {
     echo json_encode([
@@ -442,14 +544,17 @@ if ($query === '') {
 }
 
 $requestParams = [
-    'search.semantic' => $query,
+    $searchMode === 'keyword' ? 'search' : 'search.semantic' => $query,
     'per_page' => $limit,
-    'select' => 'id,display_name,doi,ids,publication_year,relevance_score,type',
+    'select' => 'id,display_name,doi,ids,publication_year,relevance_score,type,primary_location',
 ];
-if (!empty($languageFilters) || !empty($workTypes) || $publicationYearFilter !== '') {
+if (!empty($languageFilters) || !empty($sourceTypes) || !empty($workTypes) || $publicationYearFilter !== '') {
     $filterParts = [];
     if (!empty($languageFilters)) {
         $filterParts[] = 'language:' . implode('|', $languageFilters);
+    }
+    if (!empty($sourceTypes)) {
+        $filterParts[] = 'primary_location.source.type:' . implode('|', $sourceTypes);
     }
     if (!empty($workTypes)) {
         $filterParts[] = 'type:' . implode('|', $workTypes);
@@ -520,7 +625,16 @@ if (
 }
 
 if (!$result['ok']) {
-    qpmRespondWithOpenAlexWarning($query, (string) $result['error']);
+    qpmRespondWithOpenAlexWarning(
+        $query,
+        (string) $result['error'],
+        qpmBuildOpenAlexRetryHints((string) $result['error'], [
+            'languages' => $languageFilters,
+            'sourceTypes' => $sourceTypes,
+            'workTypes' => $workTypes,
+            'publicationYear' => $publicationYearFilter,
+        ])
+    );
 }
 
 $decoded = json_decode($result['body'], true);
@@ -528,6 +642,22 @@ if (!is_array($decoded)) {
     http_response_code(502);
     echo json_encode(['error' => 'Invalid response from OpenAlex']);
     exit;
+}
+
+$status = (int) ($result['status'] ?? 0);
+if ($status < 200 || $status >= 300) {
+    $upstreamError = qpmExtractOpenAlexErrorMessage($decoded);
+    $warning = $upstreamError !== '' ? $upstreamError : ('OpenAlex returned HTTP ' . (string) $status);
+    qpmRespondWithOpenAlexWarning(
+        $query,
+        $warning,
+        qpmBuildOpenAlexRetryHints($warning, [
+            'languages' => $languageFilters,
+            'sourceTypes' => $sourceTypes,
+            'workTypes' => $workTypes,
+            'publicationYear' => $publicationYearFilter,
+        ])
+    );
 }
 
 $results = $decoded['results'] ?? [];
@@ -538,6 +668,8 @@ if (!is_array($results)) {
 $pmids = [];
 $dois = [];
 $candidates = [];
+$debugDroppedRecords = [];
+$debugDroppedReasons = [];
 
 foreach ($results as $index => $work) {
     if (!is_array($work)) {
@@ -547,6 +679,18 @@ foreach ($results as $index => $work) {
     $pmid = qpmNormalizeOpenAlexPmid($work['pmid'] ?? ($ids['pmid'] ?? ''));
     $doi = qpmNormalizeOpenAlexDoi($work['doi'] ?? ($ids['doi'] ?? ''));
     if ($pmid === '' && $doi === '') {
+        if ($debugSearchFlow) {
+            $debugDroppedReasons['missing_pmid_and_doi'] = (int) ($debugDroppedReasons['missing_pmid_and_doi'] ?? 0) + 1;
+            $debugDroppedRecords[] = [
+                'source' => 'openAlex',
+                'rank' => $index + 1,
+                'pmid' => '',
+                'doi' => '',
+                'openAlexId' => trim((string) ($work['id'] ?? '')),
+                'title' => trim((string) ($work['display_name'] ?? $work['title'] ?? '')),
+                'reason' => 'missing_pmid_and_doi',
+            ];
+        }
         continue;
     }
 
@@ -584,8 +728,16 @@ foreach ($results as $index => $work) {
 
 echo json_encode([
     'query' => $query,
+    'searchMode' => $searchMode,
     'pmids' => array_values(array_keys($pmids)),
     'dois' => array_values(array_keys($dois)),
     'candidates' => $candidates,
     'total' => isset($decoded['meta']['count']) ? (int) $decoded['meta']['count'] : count($results),
+    'debug' => $debugSearchFlow ? [
+        'upstreamTotal' => isset($decoded['meta']['count']) ? (int) $decoded['meta']['count'] : count($results),
+        'normalizedTotal' => count($candidates),
+        'droppedBeforeReturn' => count($debugDroppedRecords),
+        'droppedReasons' => (object) $debugDroppedReasons,
+        'droppedRecords' => $debugDroppedRecords,
+    ] : (object) [],
 ]);

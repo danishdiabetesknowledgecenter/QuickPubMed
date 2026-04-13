@@ -202,19 +202,137 @@ export function evaluateSemanticMetadataFieldCondition(snapshot, condition) {
   return condition.negate ? !passed : passed;
 }
 
-export function candidateMatchesActiveSemanticDoiOnlyRules({
+function evaluateCandidateSemanticRule({
+  candidate,
+  metadataByDoi,
+  rule,
+  sourceProviders,
+  metadataSnapshot,
+}) {
+  const signalTexts = getCandidateSemanticSignalTexts(
+    candidate,
+    metadataByDoi,
+    rule?.textScopes
+  );
+  const hasRequiredAnySignal =
+    !Array.isArray(rule?.requireAnyTextSignals) ||
+    rule.requireAnyTextSignals.length === 0 ||
+    rule.requireAnyTextSignals.some((signal) => signalTexts.some((text) => text.includes(signal)));
+  const hasRequiredAllSignals =
+    !Array.isArray(rule?.requireAllTextSignals) ||
+    rule.requireAllTextSignals.length === 0 ||
+    rule.requireAllTextSignals.every((signal) => signalTexts.some((text) => text.includes(signal)));
+  const hasExcludedSignal =
+    Array.isArray(rule?.excludeAnyTextSignals) &&
+    rule.excludeAnyTextSignals.some((signal) => signalTexts.some((text) => text.includes(signal)));
+  const hasAllowedProvider =
+    !Array.isArray(rule?.allowSourceProviders) ||
+    rule.allowSourceProviders.length === 0 ||
+    rule.allowSourceProviders.some((provider) => sourceProviders.includes(provider));
+  const hasExcludedProvider =
+    Array.isArray(rule?.excludeSourceProviders) &&
+    rule.excludeSourceProviders.some((provider) => sourceProviders.includes(provider));
+  const metadataConditions = Array.isArray(rule?.metadataFieldConditions)
+    ? rule.metadataFieldConditions
+    : [];
+  const metadataFieldResults = metadataConditions.map((condition) => ({
+    condition,
+    passed: evaluateSemanticMetadataFieldCondition(metadataSnapshot, condition),
+  }));
+  const matchesMetadataFieldConditions =
+    metadataFieldResults.length === 0
+      ? true
+      : rule?.metadataFieldConditionMode === "any"
+      ? metadataFieldResults.some((result) => result.passed)
+      : metadataFieldResults.every((result) => result.passed);
+
+  const positiveChecks = [];
+  if (Array.isArray(rule?.requireAnyTextSignals) && rule.requireAnyTextSignals.length > 0) {
+    positiveChecks.push(hasRequiredAnySignal);
+  }
+  if (Array.isArray(rule?.requireAllTextSignals) && rule.requireAllTextSignals.length > 0) {
+    positiveChecks.push(hasRequiredAllSignals);
+  }
+  if (Array.isArray(rule?.allowSourceProviders) && rule.allowSourceProviders.length > 0) {
+    positiveChecks.push(hasAllowedProvider);
+  }
+  if (metadataConditions.length > 0) {
+    positiveChecks.push(matchesMetadataFieldConditions);
+  }
+
+  const negativeChecks = [];
+  if (Array.isArray(rule?.excludeAnyTextSignals) && rule.excludeAnyTextSignals.length > 0) {
+    negativeChecks.push(!hasExcludedSignal);
+  }
+  if (Array.isArray(rule?.excludeSourceProviders) && rule.excludeSourceProviders.length > 0) {
+    negativeChecks.push(!hasExcludedProvider);
+  }
+
+  const positivePassed =
+    positiveChecks.length === 0
+      ? true
+      : rule?.matchStrategy === "any"
+      ? positiveChecks.some(Boolean)
+      : positiveChecks.every(Boolean);
+  const negativePassed = negativeChecks.every(Boolean);
+  const passed = positivePassed && negativePassed;
+  const failures = [];
+
+  if (!hasRequiredAnySignal) {
+    failures.push("missing_any_text_signal");
+  }
+  if (!hasRequiredAllSignals) {
+    failures.push("missing_required_text_signals");
+  }
+  if (hasExcludedSignal) {
+    failures.push("matched_excluded_text_signal");
+  }
+  if (!hasAllowedProvider) {
+    failures.push("provider_not_allowed");
+  }
+  if (hasExcludedProvider) {
+    failures.push("provider_excluded");
+  }
+  if (!matchesMetadataFieldConditions) {
+    failures.push("metadata_conditions_failed");
+  }
+
+  return {
+    passed,
+    ruleId: String(rule?.id || rule?.key || rule?.label || "").trim(),
+    ruleLabel: String(rule?.label || rule?.id || "").trim(),
+    failures,
+    signalTexts,
+    sourceProviders,
+    metadataFieldResults,
+  };
+}
+
+export function explainCandidateActiveSemanticDoiOnlyRules({
   candidate,
   metadataByDoi,
   ruleState,
   openAlexCachedValue = null,
 }) {
-  if (!candidate || String(candidate?.pmid || "").trim() !== "") {
-    return true;
+  if (!candidate) {
+    return {
+      matches: true,
+      ruleResults: [],
+      groupResults: [],
+      sourceProviders: [],
+      metadataSnapshot: {},
+    };
   }
   const activeRules = Array.isArray(ruleState?.activeRules) ? ruleState.activeRules : [];
   const ruleGroups = Array.isArray(ruleState?.ruleGroups) ? ruleState.ruleGroups : [];
   if (activeRules.length === 0) {
-    return true;
+    return {
+      matches: true,
+      ruleResults: [],
+      groupResults: [],
+      sourceProviders: [],
+      metadataSnapshot: {},
+    };
   }
 
   const sourceProviders = getCandidateSemanticSourceProviders(candidate, metadataByDoi);
@@ -223,88 +341,44 @@ export function candidateMatchesActiveSemanticDoiOnlyRules({
     metadataByDoi,
     openAlexCachedValue
   );
-
-  const evaluateRule = (rule) => {
-    const signalTexts = getCandidateSemanticSignalTexts(
+  const evaluateRule = (rule) =>
+    evaluateCandidateSemanticRule({
       candidate,
       metadataByDoi,
-      rule.textScopes
-    );
-    const hasRequiredAnySignal =
-      !Array.isArray(rule.requireAnyTextSignals) ||
-      rule.requireAnyTextSignals.length === 0 ||
-      rule.requireAnyTextSignals.some((signal) =>
-        signalTexts.some((text) => text.includes(signal))
-      );
-    const hasRequiredAllSignals =
-      !Array.isArray(rule.requireAllTextSignals) ||
-      rule.requireAllTextSignals.length === 0 ||
-      rule.requireAllTextSignals.every((signal) =>
-        signalTexts.some((text) => text.includes(signal))
-      );
-    const hasExcludedSignal =
-      Array.isArray(rule.excludeAnyTextSignals) &&
-      rule.excludeAnyTextSignals.some((signal) =>
-        signalTexts.some((text) => text.includes(signal))
-      );
-    const hasAllowedProvider =
-      !Array.isArray(rule.allowSourceProviders) ||
-      rule.allowSourceProviders.length === 0 ||
-      rule.allowSourceProviders.some((provider) => sourceProviders.includes(provider));
-    const hasExcludedProvider =
-      Array.isArray(rule.excludeSourceProviders) &&
-      rule.excludeSourceProviders.some((provider) => sourceProviders.includes(provider));
-    const metadataConditions = Array.isArray(rule.metadataFieldConditions)
-      ? rule.metadataFieldConditions
-      : [];
-    const metadataFieldResults = metadataConditions.map((condition) =>
-      evaluateSemanticMetadataFieldCondition(metadataSnapshot, condition)
-    );
-    const matchesMetadataFieldConditions =
-      metadataFieldResults.length === 0
-        ? true
-        : rule.metadataFieldConditionMode === "any"
-        ? metadataFieldResults.some(Boolean)
-        : metadataFieldResults.every(Boolean);
-
-    const positiveChecks = [];
-    if (Array.isArray(rule.requireAnyTextSignals) && rule.requireAnyTextSignals.length > 0) {
-      positiveChecks.push(hasRequiredAnySignal);
-    }
-    if (Array.isArray(rule.requireAllTextSignals) && rule.requireAllTextSignals.length > 0) {
-      positiveChecks.push(hasRequiredAllSignals);
-    }
-    if (Array.isArray(rule.allowSourceProviders) && rule.allowSourceProviders.length > 0) {
-      positiveChecks.push(hasAllowedProvider);
-    }
-    if (metadataConditions.length > 0) {
-      positiveChecks.push(matchesMetadataFieldConditions);
-    }
-
-    const negativeChecks = [];
-    if (Array.isArray(rule.excludeAnyTextSignals) && rule.excludeAnyTextSignals.length > 0) {
-      negativeChecks.push(!hasExcludedSignal);
-    }
-    if (Array.isArray(rule.excludeSourceProviders) && rule.excludeSourceProviders.length > 0) {
-      negativeChecks.push(!hasExcludedProvider);
-    }
-
-    const positivePassed =
-      positiveChecks.length === 0
-        ? true
-        : rule.matchStrategy === "any"
-        ? positiveChecks.some(Boolean)
-        : positiveChecks.every(Boolean);
-    const negativePassed = negativeChecks.every(Boolean);
-
-    return positivePassed && negativePassed;
-  };
+      rule,
+      sourceProviders,
+      metadataSnapshot,
+    });
 
   if (ruleGroups.length > 0) {
-    return ruleGroups.every((group) =>
-      (Array.isArray(group?.rules) ? group.rules : []).some((rule) => evaluateRule(rule))
-    );
+    const groupResults = ruleGroups.map((group) => {
+      const ruleResults = (Array.isArray(group?.rules) ? group.rules : []).map((rule) => evaluateRule(rule));
+      return {
+        groupId: String(group?.id || group?.label || "").trim(),
+        groupLabel: String(group?.label || group?.id || "").trim(),
+        passed: ruleResults.some((result) => result.passed),
+        ruleResults,
+      };
+    });
+    return {
+      matches: groupResults.every((group) => group.passed),
+      ruleResults: groupResults.flatMap((group) => group.ruleResults),
+      groupResults,
+      sourceProviders,
+      metadataSnapshot,
+    };
   }
 
-  return activeRules.every((rule) => evaluateRule(rule));
+  const ruleResults = activeRules.map((rule) => evaluateRule(rule));
+  return {
+    matches: ruleResults.every((result) => result.passed),
+    ruleResults,
+    groupResults: [],
+    sourceProviders,
+    metadataSnapshot,
+  };
+}
+
+export function candidateMatchesActiveSemanticDoiOnlyRules(args) {
+  return explainCandidateActiveSemanticDoiOnlyRules(args).matches;
 }

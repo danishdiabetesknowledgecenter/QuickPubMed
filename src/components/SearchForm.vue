@@ -186,7 +186,7 @@
             :limits="limitData"
             :available-limits="limitsContent"
             :limit-dropdowns="limitDropdowns"
-            :searchstring="getSearchString"
+            :searchstring="displaySearchString"
             :is-collapsed="isCollapsed"
             :details="details"
             :advanced-string="advancedString"
@@ -221,7 +221,6 @@
         :compact-loading-ui="compactLoadingUi"
         :hide-results-during-compact-loading="compactLoadingHideResults"
         :pagesize="getPageSize"
-        :low="getLow"
         :high="getHigh"
         :preselected-entries="preselectedEntries"
         :error="searchError"
@@ -231,7 +230,6 @@
         @new-page-size="setPageSize"
         @new-sort-method="newSortMethod"
         @high="nextPage"
-        @low="previousPage"
         @change:selected-entries="updatePreselectedPmidai"
       />
     </div>
@@ -261,8 +259,11 @@
   import {
     cloneDeep,
     debounce,
+    getAbstractEntriesFromPubMedXml,
     getLocalizedTranslation,
+    hasXmlParserError,
     isMobileViewport,
+    parsePubMedXml,
   } from "@/utils/componentHelpers";
   import {
     mapOpenAlexWorkToResultDto,
@@ -274,13 +275,32 @@
     hasHardSemanticHandling,
     matchesSemanticPublicationDateYears,
   } from "@/utils/semanticWordedIntent";
-  import { candidateMatchesActiveSemanticDoiOnlyRules } from "@/utils/semanticRuleEngine";
+  import {
+    candidateMatchesActiveSemanticDoiOnlyRules,
+    explainCandidateActiveSemanticDoiOnlyRules,
+  } from "@/utils/semanticRuleEngine";
+  import {
+    buildSearchFlowRecordKey,
+    buildSearchFlowDebugQueryParam,
+    closeSearchFlowDebugConsoleGroup,
+    getSearchFlowDebugFlagFromLocation,
+    getSearchFlowDebugUrlParams,
+    normalizeSearchFlowDebugValue,
+    openSearchFlowDebugConsoleGroup,
+    summarizeSearchFlowRecord,
+  } from "@/utils/searchFlowDebug";
   import {
     buildActiveSemanticDoiOnlyRuleState,
   } from "@/utils/semanticRuleSchema";
 
   const OPENALEX_CACHE_TTL_MS = 30 * 60 * 1000;
   const OPENALEX_LOOKUP_CONCURRENCY = 3;
+  const DEFAULT_SEMANTIC_LLM_RERANK_CONFIG = {
+    enabled: false,
+    model: "gpt-5.4-nano",
+    topN: 10,
+    maxOutputTokens: 400,
+  };
 
   export default {
     name: "SearchForm",
@@ -296,6 +316,20 @@
       SearchResult,
     },
     mixins: [appSettingsMixin, topicLoaderMixin],
+    provide() {
+      return {
+        qpmSearchFlowDebugApi: {
+          isEnabled: () => this.isSearchFlowDebugEnabled,
+          isRunActive: () => !!this.searchFlowDebugRun,
+          getConsolePrefix: () => this.getSearchFlowDebugConsolePrefix(),
+          beginStep: (title) => this.beginSearchFlowDebugStep(title),
+          endStep: (step, status = "ok", meta = {}) =>
+            this.endSearchFlowDebugStep(step, status, meta),
+          logEntry: (level, label, payload = undefined) =>
+            this.recordSearchFlowDebugEntry(level, label, payload),
+        },
+      };
+    },
     props: {
       hideTopics: {
         type: Array,
@@ -351,8 +385,13 @@
         type: Array,
         default: undefined,
       },
+      debugSearchFlow: {
+        type: Boolean,
+        default: false,
+      },
     },
     data() {
+      const debugSearchFlowFromUrl = getSearchFlowDebugFlagFromLocation();
       return {
         advanced: false,
         advancedString: false,
@@ -393,6 +432,11 @@
         previousNonPubmedTranslationSources: [],
         translationSourcesUserTouched: false,
         isApplyingTranslationSources: false,
+        isPreparingSemanticTagRefresh: false,
+        searchFlowDebugEnabledFromUrl: debugSearchFlowFromUrl,
+        searchFlowDebugEnabled: this.debugSearchFlow === true || debugSearchFlowFromUrl,
+        searchFlowDebugRunCounter: 0,
+        searchFlowDebugRun: null,
         searchresult: undefined,
         searchLoadingStatusText: "",
         loadingProcessSteps: [],
@@ -441,6 +485,9 @@
       },
       hasExplicitAvailableTranslationSources() {
         return Array.isArray(this.translationSources);
+      },
+      isSearchFlowDebugEnabled() {
+        return this.searchFlowDebugEnabled === true;
       },
       hasExplicitDefaultTranslationSources() {
         return Array.isArray(this.defaultTranslationSources);
@@ -683,233 +730,15 @@
         });
       },
       getSearchString() {
-        const hasLogicalOperators = (searchStrings) =>
-          ["AND", "OR", "NOT"].some((op) => searchStrings.includes(op));
-        const isSemanticScholarItem = (item) =>
-          !!item?.useSemanticScholar ||
-          (Array.isArray(item?.semanticScholarPmids) && item.semanticScholarPmids.length > 0) ||
-          (Array.isArray(item?.semanticScholarDois) && item.semanticScholarDois.length > 0) ||
-          (Array.isArray(item?.semanticScholarCandidates) && item.semanticScholarCandidates.length > 0);
-        const shouldExcludeFromBaseQuery = (item) =>
-          item?.isPendingSemanticSearch === true ||
-          (isSemanticScholarItem(item) && item?.includeTranslatedTextInQuery !== true);
-        const collectPmidsFromItems = (items) =>
-          (Array.isArray(items) ? items : [])
-            .filter((item) => isSemanticScholarItem(item))
-            .flatMap((item) =>
-              Array.isArray(item.semanticScholarPmids) ? item.semanticScholarPmids : []
-            )
-            .map((pmid) => String(pmid || "").trim())
-            .filter((pmid) => /^[0-9]+$/.test(pmid));
-        const semanticScholarPmids = Array.from(
-          new Set([
-            ...this.topics.flatMap((group) => collectPmidsFromItems(group)),
-            ...this.limitDropdowns.flatMap((group) => collectPmidsFromItems(group)),
-            ...Object.values(this.limitData || {}).flatMap((group) => collectPmidsFromItems(group)),
-            ...collectPmidsFromItems(
-              this.globalSemanticSearchState ? [this.globalSemanticSearchState] : []
-            ),
-          ])
-        );
-
-        const resolveStandardScope = (itemScope) => {
-          const standard = this.standardStringForFreetext;
-          if (!standard) return null;
-          if (["narrow", "normal", "broad"].includes(itemScope) && standard[itemScope]) {
-            return itemScope;
-          }
-          if (standard.normal) return "normal";
-          if (standard.narrow) return "narrow";
-          if (standard.broad) return "broad";
-          return null;
-        };
-        const normalizeForContainsCheck = (value) =>
-          String(value || "")
-            .replace(/\s+/g, " ")
-            .trim()
-            .toLowerCase();
-        const resolvePubMedSearchValues = (item) => {
-          const scope = item?.scope;
-          const scopedSearchStrings =
-            item?.searchStrings && scope && Array.isArray(item.searchStrings[scope])
-              ? item.searchStrings[scope]
-              : [];
-          if (scopedSearchStrings.length === 0) {
-            return [];
-          }
-          const pubmedGeneratedQuery = String(item?.pubmedGeneratedQuery || "").trim();
-          if (item?.includeTranslatedTextInQuery === true && pubmedGeneratedQuery) {
-            return [pubmedGeneratedQuery];
-          }
-          return scopedSearchStrings;
-        };
-
-        const buildSubstring = (items, connector = " OR ", allowStandardString = false) => {
-          return items
-            .filter(
-              (item) =>
-                item.searchStrings &&
-                item.scope &&
-                resolvePubMedSearchValues(item).length > 0
-            )
-            .map((item) => {
-              const { scope } = item;
-              const scopedSearchValues = resolvePubMedSearchValues(item);
-              let combined = scopedSearchValues.join(connector);
-
-              const scopeCombineValue =
-                item.combineWithStandardStringScopes &&
-                typeof item.combineWithStandardStringScopes === "object"
-                  ? item.combineWithStandardStringScopes[scope]
-                  : undefined;
-              const shouldCombineWithStandard =
-                allowStandardString &&
-                (item.isCustom
-                  ? this.standardStringAdd
-                  : typeof scopeCombineValue === "boolean"
-                  ? scopeCombineValue
-                  : item.combineWithStandardString !== false);
-              const scopeToUse = item.isCustom
-                ? resolveStandardScope(this.standardStringScope)
-                : resolveStandardScope(scope);
-              const standardStringValue =
-                scopeToUse && this.standardStringForFreetext
-                  ? this.standardStringForFreetext[scopeToUse]
-                  : "";
-              if (shouldCombineWithStandard && standardStringValue) {
-                const combinedNorm = normalizeForContainsCheck(combined);
-                const standardNorm = normalizeForContainsCheck(standardStringValue);
-                if (standardNorm && !combinedNorm.includes(standardNorm)) {
-                  combined = `(${combined}) AND (${standardStringValue})`;
-                }
-              }
-              return hasLogicalOperators(scopedSearchValues[0]) && items.length > 1
-                ? `(${combined})`
-                : combined;
-            })
-            .join(connector);
-        };
-        let substrings = [];
-
-        this.topics.forEach((subjectGroup, index) => {
-          if (!Array.isArray(subjectGroup)) return;
-          const nonSemanticItems = subjectGroup.filter((item) => !shouldExcludeFromBaseQuery(item));
-          const topicsToIterate = nonSemanticItems.length;
-          if (topicsToIterate === 0) return;
-          const hasOperators = nonSemanticItems.some(
-            (item) =>
-              item.searchStrings &&
-              item.scope &&
-              resolvePubMedSearchValues(item)[0] &&
-              hasLogicalOperators(resolvePubMedSearchValues(item)[0])
-          );
-
-          let substring = index > 0 ? " AND " : "";
-          if (
-            (hasOperators && (this.topics.length > 1 || this.limits.length > 0)) ||
-            topicsToIterate > 1
-          ) {
-            substring += "(";
-          }
-
-          substring += buildSubstring(nonSemanticItems, " OR ", true);
-
-          if (
-            (hasOperators && (this.topics.length > 1 || this.limits.length > 0)) ||
-            topicsToIterate > 1
-          ) {
-            substring += ")";
-          }
-
-          if (substring !== "()" && substring !== " AND ()" && substring !== " AND ") {
-            substrings.push(substring);
-          }
-        });
-
-        if (this.advanced) {
-          // Advanced mode: process limitDropdowns per-dropdown
-          // All items in same dropdown = OR, between dropdowns = AND
-          this.limitDropdowns.forEach((dropdownItems) => {
-            const nonSemanticItems = dropdownItems.filter((item) => !shouldExcludeFromBaseQuery(item));
-            if (nonSemanticItems.length === 0) return;
-
-            const hasOperators = nonSemanticItems.some(
-              (item) =>
-                item.searchStrings &&
-                item.scope &&
-                resolvePubMedSearchValues(item)[0] &&
-                hasLogicalOperators(resolvePubMedSearchValues(item)[0])
-            );
-
-            let substring = " AND ";
-            if (hasOperators || nonSemanticItems.length > 1) substring += "(";
-            substring += buildSubstring(nonSemanticItems, " OR ", false);
-            if (hasOperators || nonSemanticItems.length > 1) substring += ")";
-
-            if (substring !== " AND ()" && substring !== " AND ") {
-              substrings.push(substring);
-            }
-          });
-        } else {
-          // Simple mode: use limitData (category-grouped object)
-          Object.keys(this.limitData).forEach((key) => {
-            const filterGroup = this.limitData[key];
-            const nonSemanticItems = filterGroup.filter((item) => !shouldExcludeFromBaseQuery(item));
-            if (nonSemanticItems.length === 0) return;
-            const hasOperators = nonSemanticItems.some(
-              (item) =>
-                item.searchStrings &&
-                item.scope &&
-                resolvePubMedSearchValues(item)[0] &&
-                hasLogicalOperators(resolvePubMedSearchValues(item)[0])
-            );
-
-            let substring = " AND ";
-            if (hasOperators || nonSemanticItems.length > 1) substring += "(";
-            substring += buildSubstring(nonSemanticItems, " OR ", false);
-            if (hasOperators || nonSemanticItems.length > 1) substring += ")";
-
-            if (substring !== " AND ()" && substring !== " AND ") {
-              substrings.push(substring);
-            }
-          });
-        }
-
-        const baseQuery = substrings.join("").replace(/^\s*AND\s+/, "").trim();
-        let semanticClause = "";
-
-        if (semanticScholarPmids.length > 0) {
-          semanticClause = `(${semanticScholarPmids.join(" ")})`;
-        } else {
-          const hasSemanticScholarTag =
-            this.topics.some((group) => (Array.isArray(group) ? group.some(isSemanticScholarItem) : false)) ||
-            this.limitDropdowns.some((group) =>
-              Array.isArray(group) ? group.some(isSemanticScholarItem) : false
-            ) ||
-            Object.values(this.limitData || {}).some((group) =>
-              Array.isArray(group) ? group.some(isSemanticScholarItem) : false
-            );
-          if (hasSemanticScholarTag) {
-            semanticClause = '("__qpm_semantic_scholar_no_match__"[ti])';
-          }
-        }
-
-        if (semanticClause && semanticScholarPmids.length > 0) {
-          const hardFilterQuery = this.getSemanticHardFilterValidationQuery();
-          return hardFilterQuery ? `${semanticClause} AND (${hardFilterQuery})` : semanticClause;
-        }
-
-        if (semanticClause && baseQuery) {
-          return `${semanticClause} AND ${baseQuery}`;
-        }
-
-        return semanticClause || baseQuery;
+        const baseQuery = this.buildPubMedBaseQuery();
+        const semanticClause = this.buildSemanticPmidClause();
+        return baseQuery || semanticClause;
+      },
+      displaySearchString() {
+        return String(this.finalValidatedQuery || this.getSearchString || "").trim();
       },
       getPageSize() {
         return this.pageSize;
-      },
-      getLow() {
-        return this.pageSize * this.page;
       },
       getHigh() {
         return Math.min(this.pageSize * this.page + this.pageSize, this.count);
@@ -1133,6 +962,7 @@
         return this.selectedTranslationSources.includes(sourceKey);
       },
       setSelectedTranslationSources(value, markTouched = false) {
+        const previousSources = this.sortTranslationSourcesList(this.selectedTranslationSources);
         this.isApplyingTranslationSources = true;
         const normalizedSources = this.filterAvailableTranslationSources(value).filter(
           (sourceKey) => !(sourceKey === "elicit" && this.isElicitUnavailable)
@@ -1148,6 +978,10 @@
         this.syncDeferredSemanticTagsForMode(nonPubmedSources.length > 0 ? "semantic" : "pubmedQuery");
         this.clearGlobalSemanticSearchState();
         this.semanticMetadataByDoiCache = null;
+        const sourcesChanged = !this.translationSourcesListsEqual(previousSources, nextSources);
+        if (markTouched && this.isUrlParsed && sourcesChanged) {
+          this.editForm();
+        }
         if (markTouched) {
           this.translationSourcesUserTouched = true;
           if (this.isUrlParsed) {
@@ -1229,9 +1063,12 @@
           this.searchWithElicit
         );
       },
+      shouldShowPubMedRelatedSemanticProcessSteps() {
+        return this.selectedTranslationSources.includes("pubmed");
+      },
       hasDeferredSemanticTags() {
         return this.getAllSelectedSearchItems().some(
-          (item) => item?.semanticFlowType === "deferred"
+          (item) => item?.semanticFlowType === "deferred" && item?.isPendingSemanticSearch === true
         );
       },
       getGlobalSemanticIntentInput() {
@@ -1247,6 +1084,243 @@
         if (semanticCoreText) return semanticCoreText;
         if (semanticWordedIntent) return semanticWordedIntent;
         return String(this.searchIntent || "").trim();
+      },
+      isSemanticSourceItem(item) {
+        return (
+          item?.semanticFlowType === "deferred" ||
+          !!item?.useSemanticScholar ||
+          (Array.isArray(item?.semanticScholarPmids) && item.semanticScholarPmids.length > 0) ||
+          (Array.isArray(item?.semanticScholarDois) && item.semanticScholarDois.length > 0) ||
+          (Array.isArray(item?.semanticScholarCandidates) && item.semanticScholarCandidates.length > 0)
+        );
+      },
+      collectSemanticPmidsFromItems(items) {
+        return (Array.isArray(items) ? items : [])
+          .filter((item) => this.isSemanticSourceItem(item))
+          .flatMap((item) =>
+            Array.isArray(item?.semanticScholarPmids) ? item.semanticScholarPmids : []
+          )
+          .map((pmid) => String(pmid || "").trim())
+          .filter((pmid) => /^[0-9]+$/.test(pmid));
+      },
+      buildSemanticPmidClause() {
+        const semanticScholarPmids = Array.from(
+          new Set([
+            ...this.topics.flatMap((group) => this.collectSemanticPmidsFromItems(group)),
+            ...this.limitDropdowns.flatMap((group) => this.collectSemanticPmidsFromItems(group)),
+            ...Object.values(this.limitData || {}).flatMap((group) =>
+              this.collectSemanticPmidsFromItems(group)
+            ),
+            ...this.collectSemanticPmidsFromItems(
+              this.globalSemanticSearchState ? [this.globalSemanticSearchState] : []
+            ),
+          ])
+        );
+        if (semanticScholarPmids.length > 0) {
+          return `(${semanticScholarPmids.join(" ")})`;
+        }
+        const hasSemanticScholarTag =
+          this.topics.some((group) =>
+            Array.isArray(group) ? group.some((item) => this.isSemanticSourceItem(item)) : false
+          ) ||
+          this.limitDropdowns.some((group) =>
+            Array.isArray(group) ? group.some((item) => this.isSemanticSourceItem(item)) : false
+          ) ||
+          Object.values(this.limitData || {}).some((group) =>
+            Array.isArray(group) ? group.some((item) => this.isSemanticSourceItem(item)) : false
+          );
+        return hasSemanticScholarTag ? '("__qpm_semantic_scholar_no_match__"[ti])' : "";
+      },
+      buildPubMedBaseQuery() {
+        const hasLogicalOperators = (searchStrings) =>
+          ["AND", "OR", "NOT"].some((op) => searchStrings.includes(op));
+        const shouldExcludeFromBaseQuery = (item) =>
+          item?.isPendingSemanticSearch === true ||
+          (this.isSemanticSourceItem(item) && item?.includeTranslatedTextInQuery !== true);
+        const resolveStandardScope = (itemScope) => {
+          const standard = this.standardStringForFreetext;
+          if (!standard) return null;
+          if (["narrow", "normal", "broad"].includes(itemScope) && standard[itemScope]) {
+            return itemScope;
+          }
+          if (standard.normal) return "normal";
+          if (standard.narrow) return "narrow";
+          if (standard.broad) return "broad";
+          return null;
+        };
+        const normalizeForContainsCheck = (value) =>
+          String(value || "")
+            .replace(/\s+/g, " ")
+            .trim()
+            .toLowerCase();
+        const resolvePubMedSearchValues = (item) => {
+          const scope = item?.scope;
+          const scopedSearchStrings =
+            item?.searchStrings && scope && Array.isArray(item.searchStrings[scope])
+              ? item.searchStrings[scope]
+              : [];
+          if (scopedSearchStrings.length === 0) {
+            return [];
+          }
+          const pubmedGeneratedQuery = String(item?.pubmedGeneratedQuery || "").trim();
+          if (item?.includeTranslatedTextInQuery === true && pubmedGeneratedQuery) {
+            return [pubmedGeneratedQuery];
+          }
+          return scopedSearchStrings;
+        };
+        const buildSubstring = (items, connector = " OR ", allowStandardString = false) => {
+          return items
+            .filter(
+              (item) =>
+                item.searchStrings &&
+                item.scope &&
+                resolvePubMedSearchValues(item).length > 0
+            )
+            .map((item) => {
+              const { scope } = item;
+              const scopedSearchValues = resolvePubMedSearchValues(item);
+              let combined = scopedSearchValues.join(connector);
+
+              const scopeCombineValue =
+                item.combineWithStandardStringScopes &&
+                typeof item.combineWithStandardStringScopes === "object"
+                  ? item.combineWithStandardStringScopes[scope]
+                  : undefined;
+              const shouldCombineWithStandard =
+                allowStandardString &&
+                (item.isCustom
+                  ? this.standardStringAdd
+                  : typeof scopeCombineValue === "boolean"
+                  ? scopeCombineValue
+                  : item.combineWithStandardString !== false);
+              const scopeToUse = item.isCustom
+                ? resolveStandardScope(this.standardStringScope)
+                : resolveStandardScope(scope);
+              const standardStringValue =
+                scopeToUse && this.standardStringForFreetext
+                  ? this.standardStringForFreetext[scopeToUse]
+                  : "";
+              if (shouldCombineWithStandard && standardStringValue) {
+                const combinedNorm = normalizeForContainsCheck(combined);
+                const standardNorm = normalizeForContainsCheck(standardStringValue);
+                if (standardNorm && !combinedNorm.includes(standardNorm)) {
+                  combined = `(${combined}) AND (${standardStringValue})`;
+                }
+              }
+              return hasLogicalOperators(scopedSearchValues[0]) && items.length > 1
+                ? `(${combined})`
+                : combined;
+            })
+            .join(connector);
+        };
+        const substrings = [];
+
+        this.topics.forEach((subjectGroup, index) => {
+          if (!Array.isArray(subjectGroup)) return;
+          const nonSemanticItems = subjectGroup.filter((item) => !shouldExcludeFromBaseQuery(item));
+          const topicsToIterate = nonSemanticItems.length;
+          if (topicsToIterate === 0) return;
+          const hasOperators = nonSemanticItems.some(
+            (item) =>
+              item.searchStrings &&
+              item.scope &&
+              resolvePubMedSearchValues(item)[0] &&
+              hasLogicalOperators(resolvePubMedSearchValues(item)[0])
+          );
+
+          let substring = index > 0 ? " AND " : "";
+          if (
+            (hasOperators && (this.topics.length > 1 || this.limits.length > 0)) ||
+            topicsToIterate > 1
+          ) {
+            substring += "(";
+          }
+
+          substring += buildSubstring(nonSemanticItems, " OR ", true);
+
+          if (
+            (hasOperators && (this.topics.length > 1 || this.limits.length > 0)) ||
+            topicsToIterate > 1
+          ) {
+            substring += ")";
+          }
+
+          if (substring !== "()" && substring !== " AND ()" && substring !== " AND ") {
+            substrings.push(substring);
+          }
+        });
+
+        if (this.advanced) {
+          this.limitDropdowns.forEach((dropdownItems) => {
+            const nonSemanticItems = dropdownItems.filter((item) => !shouldExcludeFromBaseQuery(item));
+            if (nonSemanticItems.length === 0) return;
+
+            const hasOperators = nonSemanticItems.some(
+              (item) =>
+                item.searchStrings &&
+                item.scope &&
+                resolvePubMedSearchValues(item)[0] &&
+                hasLogicalOperators(resolvePubMedSearchValues(item)[0])
+            );
+
+            let substring = " AND ";
+            if (hasOperators || nonSemanticItems.length > 1) substring += "(";
+            substring += buildSubstring(nonSemanticItems, " OR ", false);
+            if (hasOperators || nonSemanticItems.length > 1) substring += ")";
+
+            if (substring !== " AND ()" && substring !== " AND ") {
+              substrings.push(substring);
+            }
+          });
+        } else {
+          Object.keys(this.limitData).forEach((key) => {
+            const filterGroup = this.limitData[key];
+            const nonSemanticItems = filterGroup.filter((item) => !shouldExcludeFromBaseQuery(item));
+            if (nonSemanticItems.length === 0) return;
+            const hasOperators = nonSemanticItems.some(
+              (item) =>
+                item.searchStrings &&
+                item.scope &&
+                resolvePubMedSearchValues(item)[0] &&
+                hasLogicalOperators(resolvePubMedSearchValues(item)[0])
+            );
+
+            let substring = " AND ";
+            if (hasOperators || nonSemanticItems.length > 1) substring += "(";
+            substring += buildSubstring(nonSemanticItems, " OR ", false);
+            if (hasOperators || nonSemanticItems.length > 1) substring += ")";
+
+            if (substring !== " AND ()" && substring !== " AND ") {
+              substrings.push(substring);
+            }
+          });
+        }
+
+        return substrings.join("").replace(/^\s*AND\s+/, "").trim();
+      },
+      hasSelectedPredefinedTopicForPubMedSource() {
+        return (Array.isArray(this.topics) ? this.topics : []).some((group) =>
+          (Array.isArray(group) ? group : []).some((item) => {
+            const scope = String(item?.scope || "").trim();
+            return (
+              item &&
+              item.isCustom !== true &&
+              scope !== "" &&
+              item.searchStrings &&
+              Array.isArray(item.searchStrings[scope]) &&
+              item.searchStrings[scope].length > 0
+            );
+          })
+        );
+      },
+      getGlobalSemanticPubMedSourceQuery() {
+        if (!this.shouldShowPubMedRelatedSemanticProcessSteps()) {
+          return "";
+        }
+        if (!this.hasSelectedPredefinedTopicForPubMedSource()) {
+          return "";
+        }
+        return this.buildPubMedBaseQuery();
       },
       buildGlobalSemanticSearchState(inputText, resolvedState) {
         return {
@@ -1438,39 +1512,31 @@
           "searchString",
           "mesh",
           "optimize",
+          "pubmed",
           "semanticScholar",
           "openAlex",
           "elicit",
           "finalizeCollect",
+          "finalizeValidatePmid",
+          "finalizeValidateDoiFetch",
+          "finalizeValidateDoiSource",
+          "finalizeValidateDoiRules",
           "finalizeHydrate",
+          "finalizeSort",
+          "finalizeRender",
+          "finalizeSelected",
         ];
       },
       getVisibleSemanticLoadingProcessStep(stepId = "", translationKey = "") {
         const normalizedStepId = String(stepId || "").trim();
         const normalizedTranslationKey = String(translationKey || "").trim();
         if (
-          [
-            "finalizeValidatePmid",
-            "finalizeValidateDoiFetch",
-            "finalizeValidateDoiSource",
-            "finalizeValidateDoiRules",
-          ].includes(normalizedStepId)
+          !this.shouldShowPubMedRelatedSemanticProcessSteps() &&
+          ["searchString", "mesh", "optimize", "finalizeValidatePmid"].includes(normalizedStepId)
         ) {
           return {
-            stepId: "finalizeCollect",
-            translationKey: "semanticSearchProgressFinalizeCollect",
-          };
-        }
-        if (normalizedStepId === "finalizeHydrate") {
-          return {
-            stepId: "finalizeHydrate",
-            translationKey: "semanticSearchProgressFinalizeHydrate",
-          };
-        }
-        if (["finalizeSort", "finalizeRender", "finalizeSelected"].includes(normalizedStepId)) {
-          return {
-            stepId: "finalizeHydrate",
-            translationKey: "semanticSearchProgressFinalizeHydrate",
+            stepId: "",
+            translationKey: "",
           };
         }
         return {
@@ -1484,6 +1550,7 @@
           searchString: "semanticSearchProgressSearchString",
           mesh: "semanticSearchProgressMesh",
           optimize: "semanticSearchProgressOptimize",
+          pubmed: "semanticSearchProgressPubMedBestMatch",
           semanticScholar: "semanticSearchProgressSemanticScholar",
           openAlex: "semanticSearchProgressOpenAlex",
           elicit: "semanticSearchProgressElicit",
@@ -1504,18 +1571,48 @@
           translatingStepSearchString: "searchString",
           translatingStepMesh: "mesh",
           translatingStepOptimize: "optimize",
+          translatingStepPubMedBestMatch: "pubmed",
           translatingStepSemanticScholar: "semanticScholar",
           translatingStepOpenAlex: "openAlex",
           translatingStepElicit: "elicit",
         };
         return keyMap[String(stepKey || "").trim()] || "prepare";
       },
-      buildInitialSemanticLoadingProcessSteps() {
+      getPlannedSemanticLoadingProcessStepIds() {
         const stepIds = ["prepare"];
+        if (this.shouldShowPubMedRelatedSemanticProcessSteps()) {
+          stepIds.push("searchString", "mesh", "optimize", "pubmed");
+        }
         if (this.searchWithSemanticScholar) stepIds.push("semanticScholar");
         if (this.searchWithOpenAlex) stepIds.push("openAlex");
         if (this.searchWithElicit) stepIds.push("elicit");
-        stepIds.push("finalizeCollect", "finalizeHydrate");
+
+        stepIds.push("finalizeCollect");
+
+        if (this.shouldShowPubMedRelatedSemanticProcessSteps()) {
+          stepIds.push("finalizeValidatePmid");
+        }
+
+        const hasPostValidationRules = this.getAllSelectedSearchItems().some((item) => {
+          const rules = this.getItemSemanticPostValidationRules(item);
+          return Array.isArray(rules) && rules.length > 0;
+        });
+        const hasPublicationDateFilters = this.getSemanticPublicationDateYears().length > 0;
+        if (hasPostValidationRules || hasPublicationDateFilters) {
+          stepIds.push("finalizeValidateDoiFetch", "finalizeValidateDoiRules");
+        }
+
+        stepIds.push("finalizeHydrate");
+
+        if (this.sort?.method === "date_desc" || this.sort?.method === "date_asc") {
+          stepIds.push("finalizeSort");
+        }
+
+        stepIds.push("finalizeRender", "finalizeSelected");
+        return stepIds;
+      },
+      buildInitialSemanticLoadingProcessSteps() {
+        const stepIds = this.getPlannedSemanticLoadingProcessStepIds();
         return stepIds.map((stepId, index) => ({
           id: stepId,
           label: this.getString(this.getSemanticLoadingProcessDefaultTranslationKey(stepId)),
@@ -1627,6 +1724,16 @@
         }
         this.searchLoading = false;
         this.clearSearchLoadingStatus();
+      },
+      // Shared wrapper for local sort/pagination updates so spinner timing stays consistent in one place.
+      async runWithCompactLoading(textKey = "loadingText", hideResults = false, callback = null) {
+        const compactLoadingStartedAt = this.startCompactLoading(textKey, hideResults);
+        try {
+          await this.waitForCompactLoadingPaint();
+          return await callback?.();
+        } finally {
+          await this.finishCompactLoading(compactLoadingStartedAt);
+        }
       },
       async waitForCompactLoadingPaint() {
         await this.$nextTick();
@@ -1777,7 +1884,9 @@
           processStepId = "finalizeCollect";
         } else if (normalizedStageKey === "hydrate") {
           processStepId = "finalizeHydrate";
-          if (hasPmids && hasDois) {
+          if (!this.shouldShowPubMedRelatedSemanticProcessSteps()) {
+            translationKey = hasDois ? "semanticSearchProgressFinalizeHydrateOpenAlex" : "semanticSearchProgressFinalizeHydrate";
+          } else if (hasPmids && hasDois) {
             translationKey = "semanticSearchProgressFinalizeHydrateMixed";
           } else if (hasPmids) {
             translationKey = "semanticSearchProgressFinalizeHydratePubMed";
@@ -1830,9 +1939,14 @@
           this.clearGlobalSemanticSearchState();
           return;
         }
-        await Promise.all(
-          dropdowns.map((dropdown) => dropdown.preparePendingSemanticTags())
-        );
+        this.isPreparingSemanticTagRefresh = true;
+        try {
+          await Promise.all(
+            dropdowns.map((dropdown) => dropdown.preparePendingSemanticTags())
+          );
+        } finally {
+          this.isPreparingSemanticTagRefresh = false;
+        }
         if (this.hasDeferredSemanticTags()) {
           this.clearGlobalSemanticSearchState();
           this.semanticMetadataByDoiCache = null;
@@ -1855,11 +1969,19 @@
           return;
         }
         const semanticRunner = dropdowns[0];
+        const pubmedSourceQuery = this.getGlobalSemanticPubMedSourceQuery();
         if (
           semanticRunner &&
           typeof semanticRunner.buildResolvedSemanticTagState === "function"
         ) {
-          const resolvedState = await semanticRunner.buildResolvedSemanticTagState(intentInput);
+          const resolvedState = await semanticRunner.buildResolvedSemanticTagState(
+            intentInput,
+            null,
+            {
+              allowPubmedQueryGeneration: false,
+              pubmedSourceQuery,
+            }
+          );
           this.globalSemanticSearchInput = intentInput;
           this.globalSemanticSearchState = this.buildGlobalSemanticSearchState(
             intentInput,
@@ -2192,6 +2314,552 @@
         });
         this.limitData = limitDataCopy;
       },
+      getSearchFlowDebugConsolePrefix() {
+        return `[SearchFlowDebug][SearchForm_${this.componentNo}]`;
+      },
+      getActiveSearchFlowDebugRun() {
+        return this.isSearchFlowDebugEnabled ? this.searchFlowDebugRun : null;
+      },
+      startSearchFlowDebugRun(mode = "search") {
+        if (!this.isSearchFlowDebugEnabled) {
+          return null;
+        }
+        const nextRunId = this.searchFlowDebugRunCounter + 1;
+        this.searchFlowDebugRunCounter = nextRunId;
+        const label = `${this.getSearchFlowDebugConsolePrefix()} ${mode} #${nextRunId}`;
+        this.searchFlowDebugRun = {
+          id: nextRunId,
+          mode,
+          startedAt: Date.now(),
+          label,
+          consolePrefix: this.getSearchFlowDebugConsolePrefix(),
+          sourceSnapshots: [],
+          ledger: new Map(),
+          filterEvents: [],
+          finalRecords: [],
+          rootItems: [],
+          sectionStack: [],
+        };
+        this.logSearchFlowDebugInfo("Run context", {
+          mode,
+          componentNo: this.componentNo,
+          debugFromWidget: this.debugSearchFlow === true,
+          debugFromUrl: this.searchFlowDebugEnabledFromUrl === true,
+        });
+        return this.searchFlowDebugRun;
+      },
+      finishSearchFlowDebugRun(status = "completed", details = {}) {
+        const run = this.getActiveSearchFlowDebugRun();
+        if (!run) {
+          return;
+        }
+        this.logSearchFlowDebugInfo("Run status", {
+          status,
+          elapsedMs: Math.max(0, Date.now() - Number(run.startedAt || Date.now())),
+          ...details,
+        });
+        this.flushSearchFlowDebugRun(run);
+        this.searchFlowDebugRun = null;
+      },
+      getActiveSearchFlowDebugSection() {
+        const run = this.getActiveSearchFlowDebugRun();
+        if (!run || !Array.isArray(run.sectionStack) || run.sectionStack.length === 0) {
+          return null;
+        }
+        return run.sectionStack[run.sectionStack.length - 1] || null;
+      },
+      getSearchFlowDebugNow() {
+        if (typeof performance !== "undefined" && typeof performance.now === "function") {
+          return performance.now();
+        }
+        return Date.now();
+      },
+      roundSearchFlowDebugElapsedMs(value) {
+        return Math.max(0, Math.round(Number(value || 0)));
+      },
+      buildSearchFlowDebugPayloadObject(payload = undefined) {
+        if (payload === undefined) {
+          return undefined;
+        }
+        if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+          return { ...payload };
+        }
+        return {
+          value: payload,
+        };
+      },
+      buildSearchFlowDebugNestedEntry(entry = {}) {
+        const payloadObject = this.buildSearchFlowDebugPayloadObject(entry.payload);
+        const nestedEntry = {
+          label: String(entry.label || "").trim(),
+        };
+        if (entry.level && entry.level !== "info") {
+          nestedEntry.level = entry.level;
+        }
+        if (payloadObject && typeof payloadObject === "object") {
+          Object.assign(nestedEntry, payloadObject);
+        }
+        return nestedEntry;
+      },
+      buildSearchFlowDebugStepPayload(step = {}) {
+        const stepPayload = {
+          status: String(step.status || "ok").trim() || "ok",
+          elapsedMs: this.roundSearchFlowDebugElapsedMs(step.elapsedMs),
+        };
+        if (step.level && step.level !== "info") {
+          stepPayload.level = step.level;
+        }
+        const metaObject = this.buildSearchFlowDebugPayloadObject(step.meta);
+        if (metaObject && typeof metaObject === "object") {
+          Object.assign(stepPayload, metaObject);
+        }
+        const items = Array.isArray(step.items) ? step.items : [];
+        if (items.length > 0) {
+          stepPayload.details = items.map((item) => {
+            if (item?.kind === "step") {
+              return {
+                step: String(item.step?.title || "").trim(),
+                ...this.buildSearchFlowDebugStepPayload(item.step),
+              };
+            }
+            return this.buildSearchFlowDebugNestedEntry(item?.entry || {});
+          });
+        }
+        return stepPayload;
+      },
+      emitSearchFlowDebugConsoleEntry(run, entry = {}) {
+        const label = String(entry.label || "").trim();
+        if (!label) {
+          return;
+        }
+        const method = entry.level === "warn" || entry.level === "error" ? "warn" : "info";
+        const payloadObject = this.buildSearchFlowDebugPayloadObject(entry.payload);
+        const prefix = String(run?.consolePrefix || this.getSearchFlowDebugConsolePrefix()).trim();
+        if (payloadObject === undefined) {
+          console[method](`${prefix} ${label}`);
+          return;
+        }
+        console[method](`${prefix} ${label}`, payloadObject);
+      },
+      emitSearchFlowDebugConsoleStep(run, step = {}) {
+        const title = String(step.title || "").trim();
+        if (!title) {
+          return;
+        }
+        const method = step.level === "warn" || step.level === "error" ? "warn" : "info";
+        const prefix = String(run?.consolePrefix || this.getSearchFlowDebugConsolePrefix()).trim();
+        console[method](`${prefix} ${title}`, this.buildSearchFlowDebugStepPayload(step));
+      },
+      flushSearchFlowDebugRun(run) {
+        if (!run || !Array.isArray(run.rootItems)) {
+          return;
+        }
+        const openedRootGroup = openSearchFlowDebugConsoleGroup(
+          true,
+          String(run.label || `${this.getSearchFlowDebugConsolePrefix()} ${run.mode || "run"}`).trim(),
+          true
+        );
+        try {
+          run.rootItems.forEach((item) => {
+            if (item?.kind === "step") {
+              this.emitSearchFlowDebugConsoleStep(run, item.step);
+              return;
+            }
+            this.emitSearchFlowDebugConsoleEntry(run, item?.entry || {});
+          });
+        } finally {
+          closeSearchFlowDebugConsoleGroup(openedRootGroup);
+        }
+      },
+      recordSearchFlowDebugEntry(level = "info", label, payload = undefined) {
+        const run = this.getActiveSearchFlowDebugRun();
+        if (!run) {
+          return;
+        }
+        const entry = {
+          level: level === "warn" || level === "error" ? level : "info",
+          label: String(label || "").trim(),
+          payload,
+        };
+        if (!entry.label) {
+          return;
+        }
+        const section = this.getActiveSearchFlowDebugSection();
+        if (section) {
+          section.items.push({
+            kind: "entry",
+            entry,
+          });
+          return;
+        }
+        run.rootItems.push({
+          kind: "entry",
+          entry,
+        });
+      },
+      beginSearchFlowDebugStep(title) {
+        const run = this.getActiveSearchFlowDebugRun();
+        if (!run) {
+          return null;
+        }
+        const step = {
+          title: String(title || "").trim(),
+          startedAt: this.getSearchFlowDebugNow(),
+          elapsedMs: 0,
+          status: "ok",
+          level: "info",
+          meta: {},
+          items: [],
+        };
+        if (!step.title) {
+          return null;
+        }
+        const parent = this.getActiveSearchFlowDebugSection();
+        const targetItems = parent ? parent.items : run.rootItems;
+        targetItems.push({
+          kind: "step",
+          step,
+        });
+        run.sectionStack.push(step);
+        return step;
+      },
+      endSearchFlowDebugStep(step, status = "ok", meta = {}) {
+        const run = this.getActiveSearchFlowDebugRun();
+        if (!run || !step) {
+          return;
+        }
+        const stackIndex = run.sectionStack.lastIndexOf(step);
+        if (stackIndex >= 0) {
+          run.sectionStack.splice(stackIndex, 1);
+        }
+        step.status = String(status || "ok").trim() || "ok";
+        step.level = step.status === "error" ? "warn" : "info";
+        step.elapsedMs = this.roundSearchFlowDebugElapsedMs(
+          this.getSearchFlowDebugNow() - Number(step.startedAt || this.getSearchFlowDebugNow())
+        );
+        step.meta = meta && typeof meta === "object" ? { ...meta } : {};
+      },
+      async runSearchFlowDebugSection(title, task, collapsed = true) {
+        void collapsed;
+        if (!this.getActiveSearchFlowDebugRun()) {
+          return await task();
+        }
+        const step = this.beginSearchFlowDebugStep(title);
+        try {
+          const result = await task();
+          this.endSearchFlowDebugStep(step, "ok");
+          return result;
+        } catch (error) {
+          this.endSearchFlowDebugStep(step, "error", {
+            error: String(error || ""),
+          });
+          throw error;
+        }
+      },
+      logSearchFlowDebugInfo(label, payload = undefined) {
+        this.recordSearchFlowDebugEntry("info", label, payload);
+      },
+      logSearchFlowDebugWarn(label, payload = undefined) {
+        this.recordSearchFlowDebugEntry("warn", label, payload);
+      },
+      logSearchFlowDebugTable(label, rows = []) {
+        const safeRows = Array.isArray(rows) ? rows : [];
+        this.recordSearchFlowDebugEntry("info", label, {
+          count: safeRows.length,
+          rows: safeRows,
+        });
+      },
+      getSearchFlowDebugSemanticItems() {
+        const selectedItems = [
+          ...this.getAllSelectedSearchItems(),
+          ...(this.globalSemanticSearchState ? [this.globalSemanticSearchState] : []),
+        ];
+        const seen = new Set();
+        return selectedItems.filter((item) => {
+          const key = String(item?.id || item?.preTranslation || item?.name || "")
+            .trim()
+            .toLowerCase();
+          if (!key || seen.has(key)) {
+            return false;
+          }
+          seen.add(key);
+          return (
+            item?.semanticFlowType === "deferred" ||
+            item?.semanticFlowType === "global-intent" ||
+            Array.isArray(item?.semanticSourceResults) ||
+            Array.isArray(item?.semanticScholarCandidates)
+          );
+        });
+      },
+      ensureSearchFlowDebugLedgerEntry(record = {}) {
+        const run = this.getActiveSearchFlowDebugRun();
+        if (!run) {
+          return null;
+        }
+        const key = buildSearchFlowRecordKey(record);
+        if (!key) {
+          return null;
+        }
+        if (!run.ledger.has(key)) {
+          run.ledger.set(key, {
+            key,
+            pmid: "",
+            doi: "",
+            openAlexId: "",
+            title: "",
+            sources: new Set(),
+            stages: [],
+            stageKeys: new Set(),
+            final: false,
+            finalPosition: null,
+          });
+        }
+        const entry = run.ledger.get(key);
+        if (!entry.pmid) {
+          entry.pmid = String(record?.pmid ?? record?.uid ?? "").trim();
+        }
+        if (!entry.doi) {
+          entry.doi = normalizeDoiValue(record?.doi || "");
+        }
+        if (!entry.openAlexId) {
+          entry.openAlexId = String(record?.openAlexId || "").trim();
+        }
+        if (!entry.title) {
+          entry.title = String(record?.title || "").trim();
+        }
+        return entry;
+      },
+      recordSearchFlowDebugLedgerStage(record = {}, stage = "", meta = {}) {
+        const entry = this.ensureSearchFlowDebugLedgerEntry(record);
+        if (!entry || !stage) {
+          return;
+        }
+        const sources = [
+          ...(Array.isArray(record?.sources) ? record.sources : []),
+          ...(Array.isArray(meta?.sources) ? meta.sources : []),
+          meta?.source,
+          record?.source,
+          record?.originSource,
+        ]
+          .map((value) => String(value || "").trim())
+          .filter(Boolean);
+        sources.forEach((source) => entry.sources.add(source));
+        const reason = String(meta?.reason || record?.reason || "").trim();
+        const detailValue = meta?.detail;
+        const detail =
+          detailValue && typeof detailValue === "object"
+            ? JSON.stringify(detailValue)
+            : String(detailValue || "").trim();
+        const stageKey = JSON.stringify([stage, sources.join("|"), reason, detail]);
+        if (entry.stageKeys.has(stageKey)) {
+          return;
+        }
+        entry.stageKeys.add(stageKey);
+        entry.stages.push({
+          stage,
+          sources,
+          reason,
+          detail,
+        });
+        if (meta?.final === true) {
+          entry.final = true;
+          if (Number.isFinite(Number(meta?.position))) {
+            entry.finalPosition = Number(meta.position);
+          }
+        }
+      },
+      captureSearchFlowDebugSourceSnapshots() {
+        const run = this.getActiveSearchFlowDebugRun();
+        if (!run) {
+          return [];
+        }
+        const snapshots = this.getSearchFlowDebugSemanticItems().map((item) => ({
+          itemKey: String(item?.id || item?.preTranslation || item?.name || "")
+            .trim()
+            .toLowerCase(),
+          itemLabel: String(item?.preTranslation || item?.name || "").trim(),
+          semanticQuery: String(item?.semanticScholarQuery || "").trim(),
+          pubmedGeneratedQuery: String(item?.pubmedGeneratedQuery || "").trim(),
+          sourceResults: Array.isArray(item?.semanticSourceResults) ? item.semanticSourceResults : [],
+          semanticScholarCandidates: Array.isArray(item?.semanticScholarCandidates)
+            ? item.semanticScholarCandidates
+            : [],
+          semanticMergeDebug:
+            item?.semanticMergeDebug && typeof item.semanticMergeDebug === "object"
+              ? item.semanticMergeDebug
+              : null,
+        }));
+        run.sourceSnapshots = snapshots;
+        snapshots.forEach((snapshot) => {
+          snapshot.sourceResults.forEach((sourceResult) => {
+            const source = String(sourceResult?.source || "").trim();
+            (Array.isArray(sourceResult?.candidates) ? sourceResult.candidates : []).forEach((candidate) => {
+              this.recordSearchFlowDebugLedgerStage(candidate, "fetchedFromSource", {
+                source,
+                detail: {
+                  tag: snapshot.itemLabel,
+                  query: snapshot.semanticQuery || sourceResult?.query || "",
+                },
+              });
+            });
+            (Array.isArray(sourceResult?.debug?.droppedRecords) ? sourceResult.debug.droppedRecords : []).forEach(
+              (record) => {
+                this.recordSearchFlowDebugLedgerStage(record, "droppedInBackendNormalization", {
+                  source,
+                  reason: String(record?.reason || "").trim(),
+                  detail: {
+                    tag: snapshot.itemLabel,
+                    query: snapshot.semanticQuery || sourceResult?.query || "",
+                  },
+                });
+              }
+            );
+          });
+          (Array.isArray(snapshot?.semanticMergeDebug?.mergeEvents) ? snapshot.semanticMergeDebug.mergeEvents : []).forEach(
+            (event) => {
+              this.recordSearchFlowDebugLedgerStage(event, "mergedIntoExistingRecord", {
+                source: String(event?.source || "").trim(),
+                reason: "duplicate-key",
+                detail: {
+                  tag: snapshot.itemLabel,
+                  mergedIntoKey: String(event?.mergedIntoKey || "").trim(),
+                },
+              });
+            }
+          );
+          snapshot.semanticScholarCandidates.forEach((candidate) => {
+            this.recordSearchFlowDebugLedgerStage(candidate, "keptAfterMerge", {
+              sources: Array.isArray(candidate?.sources) ? candidate.sources : [],
+              detail: {
+                tag: snapshot.itemLabel,
+              },
+            });
+          });
+        });
+        return snapshots;
+      },
+      recordSearchFlowDebugFilterDecisions(entries = []) {
+        const run = this.getActiveSearchFlowDebugRun();
+        if (!run) {
+          return;
+        }
+        const safeEntries = Array.isArray(entries) ? entries : [];
+        run.filterEvents = safeEntries;
+        safeEntries.forEach((entry) => {
+          const stage = entry?.allowed
+            ? "keptForHydration"
+            : entry?.reason === "publication-date-mismatch"
+            ? "rejectedByPublicationDate"
+            : entry?.reason === "rule-mismatch"
+            ? "rejectedByDoiRule"
+            : "rejectedByMetadataValidation";
+          this.recordSearchFlowDebugLedgerStage(entry?.candidate || entry, stage, {
+            source: String(entry?.candidate?.source || "").trim(),
+            sources: Array.isArray(entry?.candidate?.sources) ? entry.candidate.sources : [],
+            reason: String(entry?.reason || "").trim(),
+            detail:
+              entry?.ruleExplanation && typeof entry.ruleExplanation === "object"
+                ? entry.ruleExplanation
+                : "",
+          });
+        });
+      },
+      recordSearchFlowDebugHydrationRefs(resultRefs = [], orderedCandidates = []) {
+        const run = this.getActiveSearchFlowDebugRun();
+        if (!run) {
+          return;
+        }
+        const refKeys = new Set(
+          (Array.isArray(resultRefs) ? resultRefs : [])
+            .map((entry) => String(entry?.key || "").trim().toLowerCase())
+            .filter(Boolean)
+        );
+        (Array.isArray(orderedCandidates) ? orderedCandidates : []).forEach((candidate) => {
+          const key = buildSearchFlowRecordKey(candidate).toLowerCase();
+          if (!key || !refKeys.has(key)) {
+            return;
+          }
+          this.recordSearchFlowDebugLedgerStage(candidate, "keptForHydration", {
+            sources: Array.isArray(candidate?.sources) ? candidate.sources : [],
+            source: String(candidate?.source || "").trim(),
+          });
+        });
+      },
+      recordSearchFlowDebugRenderedResults(data = []) {
+        (Array.isArray(data) ? data : []).forEach((entry, index) => {
+          this.recordSearchFlowDebugLedgerStage(entry, "renderedInFinalResults", {
+            source: String(entry?.originSource || entry?.source || "").trim(),
+            final: true,
+            position: index + 1,
+          });
+        });
+      },
+      buildSearchFlowDebugLedgerRows() {
+        const run = this.getActiveSearchFlowDebugRun();
+        if (!run) {
+          return [];
+        }
+        return Array.from(run.ledger.values())
+          .map((entry) => ({
+            key: entry.key,
+            pmid: entry.pmid,
+            doi: entry.doi,
+            openAlexId: entry.openAlexId,
+            sources: Array.from(entry.sources).join(", "),
+            final: entry.final ? "yes" : "",
+            finalPosition: entry.finalPosition ?? "",
+            stages: entry.stages.map((stage) => stage.stage).join(" -> "),
+            reasons: Array.from(new Set(entry.stages.map((stage) => stage.reason).filter(Boolean))).join(" | "),
+            title: String(entry.title || "").slice(0, 160),
+          }))
+          .sort((left, right) => {
+            if (left.final && !right.final) return -1;
+            if (!left.final && right.final) return 1;
+            return String(left.key).localeCompare(String(right.key));
+          });
+      },
+      buildSearchFlowDebugFinalRows(data = []) {
+        return (Array.isArray(data) ? data : []).map((entry, index) => ({
+          position: index + 1,
+          ...summarizeSearchFlowRecord(entry),
+          source: String(entry?.originSource || entry?.source || "").trim(),
+          canOpenInPubMed: entry?.canOpenInPubMed === true,
+        }));
+      },
+      logSearchFlowDebugFinalSummary({ query = "", resultRefs = [], orderedCandidates = [], data = [] } = {}) {
+        const run = this.getActiveSearchFlowDebugRun();
+        if (!run) {
+          return;
+        }
+        const snapshots = this.captureSearchFlowDebugSourceSnapshots();
+        this.recordSearchFlowDebugHydrationRefs(resultRefs, orderedCandidates);
+        this.recordSearchFlowDebugRenderedResults(data);
+        const sourceRows = snapshots.flatMap((snapshot) =>
+          snapshot.sourceResults.map((sourceResult) => ({
+            tag: snapshot.itemLabel,
+            source: String(sourceResult?.source || "").trim(),
+            query: String(sourceResult?.query || snapshot.semanticQuery || "").trim(),
+            pubmedQuery: snapshot.pubmedGeneratedQuery,
+            total: Number(sourceResult?.total || 0),
+            candidateCount: Array.isArray(sourceResult?.candidates) ? sourceResult.candidates.length : 0,
+            pmidCount: Array.isArray(sourceResult?.pmids) ? sourceResult.pmids.length : 0,
+            doiCount: Array.isArray(sourceResult?.dois) ? sourceResult.dois.length : 0,
+            droppedBeforeReturn: Number(sourceResult?.debug?.droppedBeforeReturn || 0),
+            warning: String(sourceResult?.warning || "").trim(),
+            error: String(sourceResult?.error || "").trim(),
+          }))
+        );
+        this.logSearchFlowDebugInfo("Final result summary", {
+          query,
+          renderedCount: Array.isArray(data) ? data.length : 0,
+          resultRefCount: Array.isArray(resultRefs) ? resultRefs.length : 0,
+          ledgerRecordCount: run.ledger.size,
+          semanticTagCount: snapshots.length,
+        });
+        this.logSearchFlowDebugTable("Source summary", sourceRows);
+        this.logSearchFlowDebugTable("Record ledger", this.buildSearchFlowDebugLedgerRows());
+        this.logSearchFlowDebugTable("Rendered result composition", this.buildSearchFlowDebugFinalRows(data));
+      },
       /**
        * Parses the current URL's query parameters and updates the component's state accordingly.
        * Handles topics, limits, advanced mode, sorting, collapsed state, page size,
@@ -2201,13 +2869,11 @@
         // Initialize topics
         this.topics = [];
         this.urlTranslationSources = [];
+        this.searchFlowDebugEnabledFromUrl = false;
+        this.searchFlowDebugEnabled = this.debugSearchFlow === true;
 
         // Parse the current URL (search + hash query fallback for CMS embeds)
-        const urlParams = new URLSearchParams(window.location.search);
-        const hashParams = this.getHashUrlParams();
-        hashParams.forEach((value, key) => {
-          urlParams.append(key, value);
-        });
+        const urlParams = getSearchFlowDebugUrlParams();
 
         // Check if there are query parameters
         if (![...urlParams.keys()].length) {
@@ -2246,6 +2912,13 @@
             case "pagesize":
               this.pageSize = parseInt(value, 10);
               break;
+
+            case "qpmdebug": {
+              const debugEnabled = normalizeSearchFlowDebugValue(value);
+              this.searchFlowDebugEnabledFromUrl = debugEnabled;
+              this.searchFlowDebugEnabled = this.debugSearchFlow === true || debugEnabled;
+              break;
+            }
 
             case "translationsources":
             case "semanticsources":
@@ -2291,6 +2964,8 @@
         if (this.topics.length === 0) {
           this.topics = [[]];
         }
+        this.searchFlowDebugEnabled =
+          this.debugSearchFlow === true || this.searchFlowDebugEnabledFromUrl === true;
       },
       getHashUrlParams() {
         const hash = window.location.hash || "";
@@ -2601,7 +3276,9 @@
 
         this.syncLimitDataFromDropdowns();
         this.setUrl();
-        this.editForm();
+        if (!this.isPreparingSemanticTagRefresh) {
+          this.editForm();
+        }
       },
       /**
        * Removes extra empty dropdowns, keeping at most one empty.
@@ -2698,7 +3375,9 @@
         this.limitDropdowns = updated;
         this.syncLimitDataFromDropdowns();
         this.setUrl();
-        this.editForm();
+        if (!this.isPreparingSemanticTagRefresh) {
+          this.editForm();
+        }
       },
       setUrl() {
         if (history.replaceState) {
@@ -2720,9 +3399,11 @@
           window.location.origin && window.location.origin !== "null" ? window.location.origin : "";
 
         const baseUrl = `${origin}${window.location.pathname}`;
-        const currentParams = new URLSearchParams(window.location.search);
+        const currentParams = getSearchFlowDebugUrlParams();
         const apiBaseParam = (currentParams.get("apiBase") || "").trim();
         const apiBaseStr = apiBaseParam ? `apiBase=${encodeURIComponent(apiBaseParam)}` : "";
+        const debugParamStr = this.searchFlowDebugEnabledFromUrl ? buildSearchFlowDebugQueryParam(true) : "";
+        const initialParams = [apiBaseStr, debugParamStr].filter(Boolean).join("&");
         const translationSourcesParam = this.getTranslationSourcesUrlParamValue();
         const translationSourcesStr =
           translationSourcesParam !== null ? `&semanticsources=${translationSourcesParam}` : "";
@@ -2730,7 +3411,7 @@
         // If there are no topics selected, return the base URL without parameters
 
         if (!this.hasTopics && !this.openLimitsFromUrl && !this.openLimits && !translationSourcesStr) {
-          return apiBaseStr ? `${baseUrl}?${apiBaseStr}` : baseUrl;
+          return initialParams ? `${baseUrl}?${initialParams}` : baseUrl;
         }
 
         // Build query parameters
@@ -2753,8 +3434,8 @@
           this.urlOrderLimits.length > 0 ? `&orderlimits=${this.urlOrderLimits.join(";;")}` : "";
 
         // Assemble the full URL with all query parameters
-        const urlLink = `${baseUrl}?${apiBaseStr}${
-          apiBaseStr ? "&" : ""
+        const urlLink = `${baseUrl}?${initialParams}${
+          initialParams ? "&" : ""
         }${topicsStr}${limitsStr}${translationSourcesStr}${advancedStr}${pmidStr}${sorter}${collapsedStr}${pageSizeStr}${scrolltoStr}${openLimitsStr}${hideLimitsStr}${checkLimitsStr}${orderLimitsStr}`;
 
         return urlLink.replace("?&", "?").replace(/&&+/g, "&");
@@ -2990,7 +3671,9 @@
         }
 
         this.setUrl();
-        this.editForm();
+        if (!this.isPreparingSemanticTagRefresh) {
+          this.editForm();
+        }
       },
       /**
        * Updates the scope of a specific subject item.
@@ -3356,6 +4039,7 @@
         this.openAlexDoiPromiseCache = {};
         this.openAlexSourceCache = {};
         this.openAlexSourcePromiseCache = {};
+        this.syncDeferredSemanticTagsForMode(this.hasSelectedSemanticSources() ? "semantic" : "pubmedQuery");
         this.clearGlobalSemanticSearchState();
         this.clearSearchLoadingStatus();
         this.semanticMetadataByDoiCache = null;
@@ -3499,6 +4183,79 @@
         await Promise.all(workers);
         return output;
       },
+      getItemSemanticPostValidationRules(item) {
+        const semanticConfig =
+          item?.semanticConfig && typeof item.semanticConfig === "object" ? item.semanticConfig : {};
+        const postValidation =
+          semanticConfig?.postValidation && typeof semanticConfig.postValidation === "object"
+            ? semanticConfig.postValidation
+            : {};
+        const rules = Array.isArray(postValidation.rules) ? postValidation.rules : [];
+        if (rules.length > 0) {
+          return rules;
+        }
+        return Array.isArray(semanticConfig?.doiOnlyRules) ? semanticConfig.doiOnlyRules : [];
+      },
+      getSelectedHardSemanticItemGroups() {
+        const topicGroups = (Array.isArray(this.topics) ? this.topics : []).map((group) =>
+          (Array.isArray(group) ? group : []).filter((item) => hasHardSemanticHandling(item))
+        );
+        const limitGroups = (
+          this.advanced ? this.limitDropdowns : Object.values(this.limitData || {})
+        ).map((group) =>
+          (Array.isArray(group) ? group : []).filter((item) => hasHardSemanticHandling(item))
+        );
+        return [...topicGroups, ...limitGroups].filter((group) => group.length > 0);
+      },
+      buildSemanticHardFilterValidationQueryFromGroups(groupedItems) {
+        const hasLogicalOperators = (searchStrings) =>
+          ["AND", "OR", "NOT"].some((op) => searchStrings.includes(op));
+        const buildSubstring = (items, connector = " OR ") =>
+          (Array.isArray(items) ? items : [])
+            .filter(
+              (item) =>
+                item?.searchStrings &&
+                item?.scope &&
+                item.searchStrings[item.scope] &&
+                item.searchStrings[item.scope].length > 0 &&
+                hasHardSemanticHandling(item)
+            )
+            .map((item, _, filteredItems) => {
+              const { scope, searchStrings } = item;
+              const combined = searchStrings[scope].join(connector);
+              return hasLogicalOperators(searchStrings[scope][0]) && filteredItems.length > 1
+                ? `(${combined})`
+                : combined;
+            })
+            .join(connector);
+
+        const substrings = [];
+        (Array.isArray(groupedItems) ? groupedItems : []).forEach((group) => {
+          const hardItems = (Array.isArray(group) ? group : []).filter((item) =>
+            hasHardSemanticHandling(item)
+          );
+          if (hardItems.length === 0) return;
+          const hasOperators = hardItems.some(
+            (item) =>
+              item?.searchStrings &&
+              item?.scope &&
+              item.searchStrings[item.scope] &&
+              item.searchStrings[item.scope][0] &&
+              hasLogicalOperators(item.searchStrings[item.scope][0])
+          );
+
+          let substring = " AND ";
+          if (hasOperators || hardItems.length > 1) substring += "(";
+          substring += buildSubstring(hardItems, " OR ");
+          if (hasOperators || hardItems.length > 1) substring += ")";
+
+          if (substring !== " AND ()" && substring !== " AND ") {
+            substrings.push(substring);
+          }
+        });
+
+        return substrings.join("").replace(/^\s*AND\s+/, "").trim();
+      },
       buildSemanticMetadataByDoi() {
         if (this.semanticMetadataByDoiCache instanceof Map) {
           return this.semanticMetadataByDoiCache;
@@ -3527,6 +4284,7 @@
               entry.bySource[source].push({
                 rank: Number(candidate?.rank) || null,
                 title: String(candidate?.title || "").trim(),
+                abstract: String(candidate?.abstract || "").trim(),
                 score: Number.isFinite(Number(candidate?.score)) ? Number(candidate?.score) : null,
                 metadata:
                   candidate?.metadata && typeof candidate.metadata === "object"
@@ -3538,6 +4296,35 @@
         });
         this.semanticMetadataByDoiCache = metadataByDoi;
         return metadataByDoi;
+      },
+      getCanonicalSemanticFilterState() {
+        const selectedItems = this.getAllSelectedSearchItems();
+        const unsupportedItems = selectedItems
+          .filter((item) => {
+            const filterProfiles = Array.isArray(item?.semanticConfig?.hardFilters?.filterProfile)
+              ? item.semanticConfig.hardFilters.filterProfile
+              : [];
+            const postValidationRules = this.getItemSemanticPostValidationRules(item);
+            return filterProfiles.length > 0 && postValidationRules.length === 0;
+          })
+          .map((item) => ({
+            label:
+              getLocalizedTranslation(item, this.language, "dk") ||
+              String(item?.name || item?.id || "").trim(),
+            filterProfiles: Array.isArray(item?.semanticConfig?.hardFilters?.filterProfile)
+              ? item.semanticConfig.hardFilters.filterProfile
+              : [],
+          }));
+        return {
+          selectedItems,
+          hardFilterQuery: this.buildSemanticHardFilterValidationQueryFromGroups(
+            this.getSelectedHardSemanticItemGroups()
+          ),
+          publicationDateYears: this.getSemanticPublicationDateYears(),
+          semanticMetadataByDoi: this.buildSemanticMetadataByDoi(),
+          activeDoiOnlyRuleState: buildActiveSemanticDoiOnlyRuleState(selectedItems),
+          unsupportedItems,
+        };
       },
       flattenSemanticHintValues(value) {
         if (Array.isArray(value)) {
@@ -3596,58 +4383,197 @@
           ...collectTags(this.globalSemanticSearchState ? [this.globalSemanticSearchState] : []),
         ];
       },
-      getSemanticHardFilterValidationQuery() {
-        const hasLogicalOperators = (searchStrings) =>
-          ["AND", "OR", "NOT"].some((op) => searchStrings.includes(op));
-        const buildSubstring = (items, connector = " OR ") =>
-          (Array.isArray(items) ? items : [])
-            .filter(
-              (item) =>
-                item?.searchStrings &&
-                item?.scope &&
-                item.searchStrings[item.scope] &&
-                item.searchStrings[item.scope].length > 0 &&
-                hasHardSemanticHandling(item)
-            )
-            .map((item, _, filteredItems) => {
-              const { scope, searchStrings } = item;
-              const combined = searchStrings[scope].join(connector);
-              return hasLogicalOperators(searchStrings[scope][0]) && filteredItems.length > 1
-                ? `(${combined})`
-                : combined;
-            })
-            .join(connector);
-
-        const substrings = [];
-        const groupedLimits = this.advanced
-          ? this.limitDropdowns
-          : Object.values(this.limitData || {});
-
-        groupedLimits.forEach((group) => {
-          const hardItems = (Array.isArray(group) ? group : []).filter((item) =>
-            hasHardSemanticHandling(item)
-          );
-          if (hardItems.length === 0) return;
-          const hasOperators = hardItems.some(
-            (item) =>
-              item?.searchStrings &&
-              item?.scope &&
-              item.searchStrings[item.scope] &&
-              item.searchStrings[item.scope][0] &&
-              hasLogicalOperators(item.searchStrings[item.scope][0])
-          );
-
-          let substring = " AND ";
-          if (hasOperators || hardItems.length > 1) substring += "(";
-          substring += buildSubstring(hardItems, " OR ");
-          if (hasOperators || hardItems.length > 1) substring += ")";
-
-          if (substring !== " AND ()" && substring !== " AND ") {
-            substrings.push(substring);
-          }
+      getSemanticLlmRerankConfig() {
+        const rawConfig =
+          runtimeConfig?.semanticLlmRerankConfig && typeof runtimeConfig.semanticLlmRerankConfig === "object"
+            ? runtimeConfig.semanticLlmRerankConfig
+            : {};
+        const enabledValue = rawConfig.enabled;
+        const enabled =
+          enabledValue === true ||
+          enabledValue === 1 ||
+          String(enabledValue || "")
+            .trim()
+            .toLowerCase() === "true";
+        const topN = Number(rawConfig.topN);
+        const maxOutputTokens = Number(rawConfig.maxOutputTokens);
+        return {
+          enabled,
+          model: String(rawConfig.model || DEFAULT_SEMANTIC_LLM_RERANK_CONFIG.model).trim(),
+          topN:
+            Number.isFinite(topN) && topN > 1
+              ? Math.min(15, Math.floor(topN))
+              : DEFAULT_SEMANTIC_LLM_RERANK_CONFIG.topN,
+          maxOutputTokens:
+            Number.isFinite(maxOutputTokens) && maxOutputTokens > 0
+              ? Math.floor(maxOutputTokens)
+              : DEFAULT_SEMANTIC_LLM_RERANK_CONFIG.maxOutputTokens,
+        };
+      },
+      shouldUseSemanticLlmFinalRerank(data) {
+        const config = this.getSemanticLlmRerankConfig();
+        return (
+          config.enabled === true &&
+          this.page === 0 &&
+          this.hasSelectedSemanticSources() &&
+          this.sort?.method !== "date_desc" &&
+          this.sort?.method !== "date_asc" &&
+          Array.isArray(data) &&
+          data.length > 1
+        );
+      },
+      getSemanticLlmRerankQueryText() {
+        const tagQueries = this.getSemanticSourceTags()
+          .map((item) =>
+            String(
+              item?.semanticScholarQuery || item?.pubmedGeneratedQuery || item?.preTranslation || item?.name || ""
+            ).trim()
+          )
+          .filter(Boolean);
+        return tagQueries.join(" | ") || String(this.finalValidatedQuery || "").trim();
+      },
+      getSemanticLlmCandidateId(entry) {
+        const pmid = String(entry?.pmid || entry?.uid || "").trim();
+        if (/^[0-9]+$/.test(pmid)) {
+          return `pmid:${pmid}`;
+        }
+        const doi = normalizeDoiValue(entry?.doi || "");
+        if (doi) {
+          return `doi:${doi.toLowerCase()}`;
+        }
+        return String(entry?.id || entry?.uid || "").trim();
+      },
+      flattenSemanticLlmAbstractText(value) {
+        if (!value) return "";
+        if (typeof value === "string") return value.trim();
+        if (typeof value !== "object") return "";
+        return Object.values(value)
+          .map((entry) => String(entry || "").trim())
+          .filter(Boolean)
+          .join(" ");
+      },
+      async fetchSemanticLlmPubMedAbstractMap(pmids) {
+        const normalizedPmids = Array.from(
+          new Set(
+            (Array.isArray(pmids) ? pmids : [])
+              .map((pmid) => String(pmid || "").trim())
+              .filter((pmid) => /^[0-9]+$/.test(pmid))
+          )
+        );
+        if (normalizedPmids.length === 0) {
+          return {};
+        }
+        const response = await axios.get(this.getBackendApiUrl("NlmFetch.php"), {
+          params: {
+            db: "pubmed",
+            retmode: "xml",
+            rettype: "abstract",
+            id: normalizedPmids.join(","),
+          },
+          timeout: 30000,
         });
+        const xmlDoc = parsePubMedXml(response?.data || "");
+        if (!xmlDoc || hasXmlParserError(xmlDoc)) {
+          return {};
+        }
+        return Object.fromEntries(
+          getAbstractEntriesFromPubMedXml(xmlDoc, { includeEmptySections: true }).map(
+            ([pmid, abstractValue]) => [String(pmid || "").trim(), this.flattenSemanticLlmAbstractText(abstractValue)]
+          )
+        );
+      },
+      async maybeApplySemanticLlmFinalRerank(data) {
+        const safeData = Array.isArray(data) ? data : [];
+        if (!this.shouldUseSemanticLlmFinalRerank(safeData)) {
+          return safeData;
+        }
+        const config = this.getSemanticLlmRerankConfig();
+        const topN = Math.min(config.topN, safeData.length);
+        if (topN < 2) {
+          return safeData;
+        }
 
-        return substrings.join("").replace(/^\s*AND\s+/, "").trim();
+        try {
+          const topEntries = safeData.slice(0, topN);
+          const pmidsToHydrate = topEntries
+            .filter((entry) => !this.flattenSemanticLlmAbstractText(entry?.abstract))
+            .map((entry) => String(entry?.pmid || entry?.uid || "").trim())
+            .filter((pmid) => /^[0-9]+$/.test(pmid));
+          const abstractMap = await this.fetchSemanticLlmPubMedAbstractMap(pmidsToHydrate);
+          const requestCandidates = [];
+          const deferredTopEntries = [];
+
+          topEntries.forEach((entry) => {
+            const candidateId = this.getSemanticLlmCandidateId(entry);
+            const title = String(entry?.title || "").trim();
+            if (!candidateId || !title) {
+              deferredTopEntries.push(entry);
+              return;
+            }
+            const pmid = String(entry?.pmid || entry?.uid || "").trim();
+            const abstractText = this.flattenSemanticLlmAbstractText(
+              entry?.abstract || abstractMap?.[pmid] || ""
+            );
+            requestCandidates.push({
+              id: candidateId,
+              title,
+              abstract: abstractText,
+              publicationDate: String(entry?.publicationDate || entry?.pubDate || entry?.pubdate || "").trim(),
+              source: String(entry?.originSource || entry?.source || "").trim(),
+              sourceLabel: String(entry?.fulljournalname || entry?.source || "").trim(),
+              entry,
+            });
+          });
+
+          if (requestCandidates.length < 2) {
+            return safeData;
+          }
+
+          const response = await axios.post(
+            this.getBackendApiUrl("SemanticFinalRerank.php"),
+            {
+              query: this.getSemanticLlmRerankQueryText(),
+              hardFilterQuery: this.getSemanticHardFilterValidationQuery(),
+              model: config.model,
+              maxOutputTokens: config.maxOutputTokens,
+              candidates: requestCandidates.map(({ entry, ...candidate }) => candidate),
+            },
+            { headers: { "Content-Type": "application/json" }, timeout: 60000 }
+          );
+          const orderedIds = Array.isArray(response?.data?.orderedIds)
+            ? response.data.orderedIds.map((id) => String(id || "").trim()).filter(Boolean)
+            : [];
+          const expectedIds = requestCandidates.map((candidate) => candidate.id);
+          if (
+            orderedIds.length !== expectedIds.length ||
+            orderedIds.some((id) => !expectedIds.includes(id)) ||
+            new Set(orderedIds).size !== orderedIds.length
+          ) {
+            console.warn("[SemanticLlmRerank] Ignoring invalid permutation from backend.", {
+              orderedIds,
+              expectedIds,
+            });
+            return safeData;
+          }
+
+          const candidateMap = new Map(requestCandidates.map((candidate) => [candidate.id, candidate.entry]));
+          const reorderedTopEntries = orderedIds.map((id) => candidateMap.get(id)).filter(Boolean);
+          const rerankedData = [...reorderedTopEntries, ...deferredTopEntries, ...safeData.slice(topN)];
+          console.info("[SemanticLlmRerank] Applied final rerank to hydrated first-page results.", {
+            topN,
+            model: config.model,
+            orderedIds,
+          });
+          return rerankedData;
+        } catch (error) {
+          console.warn("[SemanticLlmRerank] Falling back to deterministic order.", error);
+          return safeData;
+        }
+      },
+      getSemanticHardFilterValidationQuery() {
+        return this.buildSemanticHardFilterValidationQueryFromGroups(
+          this.getSelectedHardSemanticItemGroups()
+        );
       },
       getResultDebugDoi(entry) {
         const directDoi = normalizeDoiValue(entry?.doi || "");
@@ -3702,29 +4628,11 @@
         });
       },
       getSemanticDoiOnlyFilterState() {
-        const selectedItems = this.getAllSelectedSearchItems();
-        const unsupportedItems = selectedItems
-          .filter((item) => {
-            const filterProfiles = Array.isArray(item?.semanticConfig?.hardFilters?.filterProfile)
-              ? item.semanticConfig.hardFilters.filterProfile
-              : [];
-            const doiOnlyRules = Array.isArray(item?.semanticConfig?.doiOnlyRules)
-              ? item.semanticConfig.doiOnlyRules
-              : [];
-            return filterProfiles.length > 0 && doiOnlyRules.length === 0;
-          })
-          .map((item) => ({
-            label:
-              getLocalizedTranslation(item, this.language, "dk") ||
-              String(item?.name || item?.id || "").trim(),
-            filterProfiles: Array.isArray(item?.semanticConfig?.hardFilters?.filterProfile)
-              ? item.semanticConfig.hardFilters.filterProfile
-              : [],
-          }));
+        const canonicalFilterState = this.getCanonicalSemanticFilterState();
         return {
-          semanticMetadataByDoi: this.buildSemanticMetadataByDoi(),
-          activeDoiOnlyRuleState: buildActiveSemanticDoiOnlyRuleState(selectedItems),
-          unsupportedItems,
+          semanticMetadataByDoi: canonicalFilterState.semanticMetadataByDoi,
+          activeDoiOnlyRuleState: canonicalFilterState.activeDoiOnlyRuleState,
+          unsupportedItems: canonicalFilterState.unsupportedItems,
         };
       },
       getSemanticPublicationDateYears() {
@@ -3758,36 +4666,54 @@
           publicationDateYears
         );
       },
-      async buildAllowedDoiOnlyRefKeys(orderedCandidates, nlm) {
-        const doiOnlyCandidates = (Array.isArray(orderedCandidates) ? orderedCandidates : []).filter(
-          (candidate) => !String(candidate?.pmid || "").trim() && normalizeDoiValue(candidate?.doi || "")
+      async buildAllowedSemanticRefKeys(orderedCandidates, nlm, options = {}) {
+        const candidatesToValidate = (Array.isArray(orderedCandidates) ? orderedCandidates : []).filter(
+          (candidate) =>
+            String(candidate?.pmid || "").trim() || normalizeDoiValue(candidate?.doi || "")
         );
-        const publicationDateYears = this.getSemanticPublicationDateYears();
-        const {
-          semanticMetadataByDoi,
-          activeDoiOnlyRuleState,
-          unsupportedItems,
-        } = this.getSemanticDoiOnlyFilterState();
+        const trustedPmidSet = new Set(
+          (Array.isArray(options?.trustedPmids) ? options.trustedPmids : [])
+            .map((pmid) => String(pmid || "").trim())
+            .filter((pmid) => /^[0-9]+$/.test(pmid))
+        );
+        const canonicalFilterState = this.getCanonicalSemanticFilterState();
+        const publicationDateYears = canonicalFilterState.publicationDateYears;
+        const { semanticMetadataByDoi, activeDoiOnlyRuleState, unsupportedItems } =
+          canonicalFilterState;
         if (unsupportedItems.length > 0) {
           console.info(
-            "[SemanticFilterFlow] Some hard filters do not have exact DOI-only mappings and are not enforced for OpenAlex-only records.",
+            "[SemanticFilterFlow] Some hard filters do not have exact semantic metadata mappings and are not enforced outside the PubMed hard-filter query.",
             {
               filters: unsupportedItems,
             }
           );
         }
-        if (doiOnlyCandidates.length === 0) {
+        this.captureSearchFlowDebugSourceSnapshots();
+        if (candidatesToValidate.length === 0) {
           return new Set();
         }
         const hasDoiOnlyRules =
           Array.isArray(activeDoiOnlyRuleState.activeRules) && activeDoiOnlyRuleState.activeRules.length > 0;
         if (!hasDoiOnlyRules && publicationDateYears.length === 0) {
-          return new Set(
-            doiOnlyCandidates
-              .map((candidate) => normalizeDoiValue(candidate?.doi || ""))
-              .filter(Boolean)
-              .map((doi) => `doi:${doi.toLowerCase()}`)
-          );
+          const allowedEntries = candidatesToValidate
+            .map((candidate) => {
+              const pmid = String(candidate?.pmid || "").trim();
+              const doi = normalizeDoiValue(candidate?.doi || "");
+              const key = pmid ? `pmid:${pmid}` : doi ? `doi:${doi.toLowerCase()}` : "";
+              return key
+                ? {
+                    key,
+                    candidate,
+                    hydrated: null,
+                    allowed: true,
+                    reason: "",
+                    ruleExplanation: null,
+                  }
+                : null;
+            })
+            .filter(Boolean);
+          this.recordSearchFlowDebugFilterDecisions(allowedEntries);
+          return new Set(allowedEntries.map((entry) => entry.key));
         }
 
         this.ensureSemanticLoadingProcessStepPresence(
@@ -3805,7 +4731,7 @@
             "finalizeValidateDoiFetch",
             "semanticSearchProgressFinalizeValidateDoiFetch"
           );
-          hydratedWorks = await this.fetchOpenAlexWorksByCandidates(doiOnlyCandidates, nlm);
+          hydratedWorks = await this.fetchOpenAlexWorksByCandidates(candidatesToValidate, nlm);
         } finally {
           this.semanticDoiValidationActive = false;
         }
@@ -3813,17 +4739,22 @@
           "finalizeValidateDoiRules",
           "semanticSearchProgressFinalizeValidateDoiRules"
         );
-        const hydratedResults = hydratedWorks.map((hydrated, index) => {
-          const candidate = doiOnlyCandidates[index];
+        const hydratedResults = candidatesToValidate.map((candidate, index) => {
+          const hydrated = hydratedWorks[index] || null;
+          const pmid = String(candidate?.pmid || "").trim();
           const normalizedDoi = normalizeDoiValue(candidate?.doi || hydrated?.doi || "");
-          const key = normalizedDoi ? `doi:${normalizedDoi.toLowerCase()}` : "";
-          if (!key || !hydrated) {
+          const key = pmid ? `pmid:${pmid}` : normalizedDoi ? `doi:${normalizedDoi.toLowerCase()}` : "";
+          if (!key) {
+            return { key: "", candidate, hydrated, allowed: false, reason: "missing-ref-key" };
+          }
+          if (pmid && trustedPmidSet.has(pmid)) {
             return {
               key,
               candidate,
               hydrated,
-              allowed: false,
-              reason: hydrated ? "missing-doi" : "lookup-failed",
+              allowed: true,
+              ruleExplanation: null,
+              reason: "",
             };
           }
           const candidateMetadata =
@@ -3837,14 +4768,25 @@
                 candidateMetadata.publicationYear ||
                 String(hydrated?.pubDate || "").slice(0, 4) ||
                 String(candidate?.year || "").trim(),
-              sourceType: hydrated?.sourceType || candidateMetadata.sourceType || "",
-              sourceDisplayName: hydrated?.sourceDisplayName || candidateMetadata.sourceDisplayName || "",
+              sourceType: candidateMetadata.sourceType || hydrated?.sourceType || "",
+              sourceDisplayName: candidateMetadata.sourceDisplayName || hydrated?.sourceDisplayName || "",
               sourceAbbreviatedTitle:
-                hydrated?.sourceAbbreviatedTitle || candidateMetadata.sourceAbbreviatedTitle || "",
+                candidateMetadata.sourceAbbreviatedTitle || hydrated?.sourceAbbreviatedTitle || "",
             },
           };
+          const ruleExplanation =
+            hasDoiOnlyRules && this.isSearchFlowDebugEnabled
+              ? explainCandidateActiveSemanticDoiOnlyRules({
+                  candidate: hydratedCandidate,
+                  metadataByDoi: semanticMetadataByDoi,
+                  ruleState: activeDoiOnlyRuleState,
+                  openAlexCachedValue: hydrated,
+                })
+              : null;
           const matchesDoiOnlyRules = !hasDoiOnlyRules
             ? true
+            : ruleExplanation
+            ? ruleExplanation.matches
             : candidateMatchesActiveSemanticDoiOnlyRules({
                 candidate: hydratedCandidate,
                 metadataByDoi: semanticMetadataByDoi,
@@ -3861,6 +4803,7 @@
             candidate: hydratedCandidate,
             hydrated,
             allowed,
+            ruleExplanation,
             reason: allowed
               ? ""
               : !matchesPublicationDate
@@ -3868,29 +4811,44 @@
               : "rule-mismatch",
           };
         });
+        this.recordSearchFlowDebugFilterDecisions(hydratedResults);
 
         const allowedKeys = new Set();
-        const excludedDoiCandidates = [];
+        const excludedCandidates = [];
         hydratedResults.forEach((entry) => {
           if (!entry?.key) return;
           if (entry.allowed) {
             allowedKeys.add(entry.key);
             return;
           }
-          excludedDoiCandidates.push({
+          excludedCandidates.push({
+            pmid: String(entry?.candidate?.pmid || "").trim(),
             doi: normalizeDoiValue(entry?.candidate?.doi || ""),
             source: String(entry?.candidate?.source || "").trim(),
             title: String(entry?.candidate?.title || "").trim(),
             reason: String(entry?.reason || "").trim(),
+            ruleExplanation: entry?.ruleExplanation || null,
           });
         });
-        if (excludedDoiCandidates.length > 0) {
-          console.info("[SemanticFilterFlow] Excluded DOI-only candidates after OpenAlex hydration.", {
+        if (excludedCandidates.length > 0) {
+          console.info("[SemanticFilterFlow] Excluded semantic candidates after metadata validation.", {
             activeRules: activeDoiOnlyRuleState.activeRules,
             ruleGroups: activeDoiOnlyRuleState.ruleGroups,
-            excludedCount: excludedDoiCandidates.length,
-            examples: excludedDoiCandidates.slice(0, 10),
+            excludedCount: excludedCandidates.length,
+            examples: excludedCandidates.slice(0, 10),
           });
+          this.logSearchFlowDebugTable(
+            "06 Filter and validation rejections",
+            excludedCandidates.slice(0, 50).map((entry) => ({
+              ...summarizeSearchFlowRecord(entry),
+              ruleFailures: Array.isArray(entry?.ruleExplanation?.ruleResults)
+                ? entry.ruleExplanation.ruleResults
+                    .filter((result) => result?.passed === false)
+                    .flatMap((result) => result.failures || [])
+                    .join(", ")
+                : "",
+            }))
+          );
         }
         return allowedKeys;
       },
@@ -3950,6 +4908,77 @@
           ? `oa:${openAlexId}`
           : "";
       },
+      getPreferredSemanticScholarDisplayMetadataByDoi(doi) {
+        const doiKey = normalizeDoiValue(doi || "").toLowerCase();
+        if (!doiKey) return null;
+        const semanticByDoi = this.buildSemanticMetadataByDoi();
+        const semanticScholarEntries = Array.isArray(semanticByDoi.get(doiKey)?.bySource?.semanticScholar)
+          ? semanticByDoi.get(doiKey).bySource.semanticScholar
+          : [];
+        if (semanticScholarEntries.length === 0) {
+          return null;
+        }
+        const sortedEntries = [...semanticScholarEntries].sort((left, right) => {
+          const leftRank = Number(left?.rank);
+          const rightRank = Number(right?.rank);
+          const safeLeftRank = Number.isFinite(leftRank) && leftRank > 0 ? leftRank : Number.MAX_SAFE_INTEGER;
+          const safeRightRank =
+            Number.isFinite(rightRank) && rightRank > 0 ? rightRank : Number.MAX_SAFE_INTEGER;
+          return safeLeftRank - safeRightRank;
+        });
+        const title =
+          String(sortedEntries.find((entry) => String(entry?.title || "").trim())?.title || "").trim();
+        const abstract =
+          String(
+            sortedEntries.find((entry) => String(entry?.abstract || "").trim())?.abstract || ""
+          ).trim();
+        if (!title && !abstract) {
+          return null;
+        }
+        return {
+          source: "semanticScholar",
+          title,
+          abstract,
+        };
+      },
+      applyPreferredDisplayMetadataToHydratedRecord(mapped, normalizedDoi = "") {
+        if (!mapped || typeof mapped !== "object") {
+          return mapped;
+        }
+        if (String(mapped?.pmid || "").trim() !== "") {
+          return mapped;
+        }
+        const displayMetadata = this.getPreferredSemanticScholarDisplayMetadataByDoi(
+          mapped?.doi || normalizedDoi
+        );
+        if (!displayMetadata) {
+          return mapped;
+        }
+        const resolvedAbstract = String(displayMetadata.abstract || "").trim();
+        const nextAttributes =
+          resolvedAbstract !== ""
+            ? {
+                ...(mapped?.attributes && typeof mapped.attributes === "object" ? mapped.attributes : {}),
+                "Has Abstract": "Has Abstract",
+              }
+            : mapped?.attributes && typeof mapped.attributes === "object"
+            ? { ...mapped.attributes }
+            : {};
+        return {
+          ...mapped,
+          title: String(displayMetadata.title || mapped.title || "").trim(),
+          abstract: resolvedAbstract || String(mapped?.abstract || "").trim(),
+          hasAbstract: resolvedAbstract !== "" || Boolean(mapped?.hasAbstract),
+          attributes: nextAttributes,
+          mergedDoiMetadata:
+            mapped?.mergedDoiMetadata && typeof mapped.mergedDoiMetadata === "object"
+              ? {
+                  ...mapped.mergedDoiMetadata,
+                  displayMetadataSource: displayMetadata.source,
+                }
+              : mapped?.mergedDoiMetadata || null,
+        };
+      },
       async finalizeOpenAlexMappedWork(mapped, candidate, normalizedDoi = "") {
         if (mapped) {
           const doiKey = normalizeDoiValue(mapped?.doi || normalizedDoi).toLowerCase();
@@ -3968,6 +4997,7 @@
             secondarySignals: semanticSignals ? semanticSignals.bySource : {},
             candidateSignal: candidate?.semanticCandidate || null,
           };
+          mapped = this.applyPreferredDisplayMetadataToHydratedRecord(mapped, normalizedDoi);
         }
 
         return mapped;
@@ -4005,6 +5035,16 @@
           ...safePubMedRecord,
           doi: resolvedDoi || safePubMedRecord?.doi || "",
           articleids: articleIds,
+          openAlexId: String(fallbackRecord?.openAlexId || "").trim(),
+          source: String(fallbackRecord?.source || safePubMedRecord?.source || "").trim(),
+          sourceType: String(fallbackRecord?.sourceType || "").trim(),
+          sourceDisplayName: String(fallbackRecord?.sourceDisplayName || "").trim(),
+          sourceAbbreviatedTitle: String(fallbackRecord?.sourceAbbreviatedTitle || "").trim(),
+          pubDate: String(fallbackRecord?.pubDate || safePubMedRecord?.pubDate || "").trim(),
+          mergedDoiMetadata:
+            fallbackRecord?.mergedDoiMetadata && typeof fallbackRecord.mergedDoiMetadata === "object"
+              ? { ...fallbackRecord.mergedDoiMetadata }
+              : safePubMedRecord?.mergedDoiMetadata || null,
         };
       },
       async fetchOpenAlexWorksByCandidates(candidates, nlm) {
@@ -4283,12 +5323,13 @@
         const orderedPmids = orderedCandidates
           .map((candidate) => String(candidate?.pmid || "").trim())
           .filter((value) => /^[0-9]+$/.test(value));
-        const allowedDoiOnlyRefKeys = await this.buildAllowedDoiOnlyRefKeys(orderedCandidates, nlm);
-
         const orderedSearch =
           orderedPmids.length > 0
             ? await this.resolveOrderedSearchPmids(hardFilterQuery, nlm, orderedPmids)
             : { count: 0, orderedIds: [] };
+        const allowedSemanticRefKeys = await this.buildAllowedSemanticRefKeys(orderedCandidates, nlm, {
+          trustedPmids: hardFilterQuery ? orderedSearch.orderedIds : [],
+        });
         const matchedPmidSet = new Set(orderedSearch.orderedIds);
         const refs = [];
         const seenRefKeys = new Set();
@@ -4300,6 +5341,7 @@
           if (pmid) {
             if (!matchedPmidSet.has(pmid)) return;
             const key = `pmid:${pmid}`;
+            if (!allowedSemanticRefKeys.has(key)) return;
             if (seenRefKeys.has(key)) return;
             seenRefKeys.add(key);
             usedPmids.add(pmid);
@@ -4313,7 +5355,7 @@
           }
           if (!pmid && doi) {
             const key = `doi:${doi.toLowerCase()}`;
-            if (!allowedDoiOnlyRefKeys.has(key)) return;
+            if (!allowedSemanticRefKeys.has(key)) return;
             if (seenRefKeys.has(key)) return;
             seenRefKeys.add(key);
             refs.push({
@@ -4339,10 +5381,13 @@
         orderedSearch.orderedIds.forEach((pmid) => {
           if (usedPmids.has(pmid)) return;
           const key = `pmid:${pmid}`;
+          if (!allowedSemanticRefKeys.has(key)) return;
           if (seenRefKeys.has(key)) return;
           seenRefKeys.add(key);
           refs.push({ type: "pmid", pmid, key });
         });
+
+        this.recordSearchFlowDebugHydrationRefs(refs, orderedCandidates);
 
         return {
           refs,
@@ -4365,10 +5410,20 @@
             orderedIds: [],
           };
         }
+        this.finalValidatedQuery = validationQuery;
+        if (this.shouldShowPubMedRelatedSemanticProcessSteps()) {
+          this.activateSemanticLoadingProcessStep("pubmed", "semanticSearchProgressPubMedBestMatch");
+        }
         this.startAnimatedLoadingStatus(
           "finalizeValidatePmid",
           "semanticSearchProgressFinalizeValidatePmid"
         );
+        console.info("[SearchFlow] PMID validation query sent to NLM:", validationQuery);
+        this.logSearchFlowDebugInfo("PMID validation query", {
+          validationQuery,
+          orderedPmidCount: orderedPmids.length,
+          hardFilterQuery,
+        });
         const esearchParams = new URLSearchParams({
           db: "pubmed",
           retmode: "json",
@@ -4397,6 +5452,17 @@
           validationMode: hardFilterQuery ? "hard-filter-only" : "candidate-whitelist-only",
           topOrderedPmids: orderedMatchedIds.slice(0, 10),
         });
+        orderedPmids
+          .filter((pmid) => !matchedSet.has(pmid))
+          .forEach((pmid) => {
+            this.recordSearchFlowDebugLedgerStage({ pmid }, "rejectedByPubMedHardFilter", {
+              source: "pubmed",
+              reason: hardFilterQuery ? "pubmed-hard-filter-no-match" : "candidate-whitelist-no-match",
+              detail: {
+                validationQuery,
+              },
+            });
+          });
 
         return {
           count: Number.parseInt(esearchResponse?.data?.esearchresult?.count, 10) || orderedMatchedIds.length,
@@ -4567,16 +5633,19 @@
         this.updateSearchLoadingStatus();
         const { nlm } = this.appSettings;
         console.group("[SearchFlow] search()");
+        this.startSearchFlowDebugRun("search");
 
         try {
-          await this.prepareSemanticSearchStateBeforeSearch();
+          await this.runSearchFlowDebugSection("01 Prepare", async () => {
+            await this.prepareSemanticSearchStateBeforeSearch();
+          });
           const query = decodeURIComponent(this.getSearchString).trim();
           console.info("[SearchFlow] Raw query from getSearchString:", query);
+          this.logSearchFlowDebugInfo("Raw query from getSearchString", { query });
 
           if (!query || query === "()") {
             console.info("[SearchFlow] Query is empty. Search aborted.");
             this.searchLoading = false;
-            console.groupEnd();
             return;
           }
 
@@ -4584,161 +5653,180 @@
           // No additional validation flow on search button click.
           // Validation is performed when free-text queries are generated.
           const finalQuery = query;
-          if (this.hasSelectedSemanticSources()) {
-            this.setSemanticFinalizeLoadingStatus("collect");
-          }
-          const hardFilterQuery = this.getSemanticHardFilterValidationQuery();
-          const rerankedPmids = this.getOrderedRerankedPmids();
           this.finalValidatedQuery = finalQuery;
           console.info("[SearchFlow] Final query (no extra flow on search):", finalQuery);
-          console.info("[SearchFlow] Hard-filter validation query:", hardFilterQuery || "(none)");
-
-          const orderedCandidates = this.getOrderedRerankedCandidates();
-          const hasDoiOnlyCandidates = orderedCandidates.some(
-            (candidate) => !candidate.pmid && normalizeDoiValue(candidate.doi)
-          );
+          let hardFilterQuery = "";
+          let rerankedPmids = [];
+          let orderedCandidates = [];
           let idList = [];
           let resultRefs = [];
-          if (orderedCandidates.length > 0) {
-            this.setSemanticFinalizeLoadingStatus("collect");
-            const hybridOrdering = await this.buildHybridOrderedResultRefs(
-              hardFilterQuery,
-              nlm,
-              orderedCandidates
-            );
-            this.matchedRerankedPmids = hybridOrdering.pmids;
-            this.matchedRerankedResultRefs = hybridOrdering.refs;
-            this.count = hybridOrdering.count;
-            resultRefs = this.shouldUseSemanticDateOrdering(hybridOrdering.refs)
-              ? hybridOrdering.refs
-              : hybridOrdering.refs.slice(
-                  this.page * this.pageSize,
-                  this.page * this.pageSize + this.pageSize
-                );
-            console.info("[SearchFlow] Display mode: hybrid reranked semantic order.", {
-              page: this.page,
-              pageSize: this.pageSize,
-              sort: this.sort.method,
-              visibleRefs: this.shouldUseSemanticDateOrdering(hybridOrdering.refs)
-                ? []
-                : resultRefs.map((entry) => entry.key),
-              semanticDateOrdering: this.shouldUseSemanticDateOrdering(hybridOrdering.refs),
-            });
-          } else if (rerankedPmids.length > 0) {
-            this.matchedRerankedResultRefs = [];
-            this.setSemanticFinalizeLoadingStatus("collect");
-            const orderedSearch = await this.resolveOrderedSearchPmids(
-              hardFilterQuery,
-              nlm,
-              rerankedPmids
-            );
-            this.matchedRerankedPmids = orderedSearch.orderedIds;
-            this.count = orderedSearch.orderedIds.length;
-            idList = orderedSearch.orderedIds.slice(
-              this.page * this.pageSize,
-              this.page * this.pageSize + this.pageSize
-            );
-            console.info("[SearchFlow] Display mode: custom reranked PMID order.", {
-              page: this.page,
-              pageSize: this.pageSize,
-              visiblePmids: idList,
-            });
-          } else {
-            this.matchedRerankedResultRefs = [];
-            this.matchedRerankedPmids = [];
-            // ESearch request to get list of IDs (credentials handled by PHP proxy)
-            const esearchParams = new URLSearchParams({
-              db: "pubmed",
-              retmode: "json",
-              retmax: this.pageSize,
-              retstart: this.page * this.pageSize,
-              sort: this.sort.method,
-              term: finalQuery,
-            });
-            console.info("[SearchFlow] ESearch term sent to NLM:", finalQuery);
+          await this.runSearchFlowDebugSection("06 Filter and validation", async () => {
+            if (this.hasSelectedSemanticSources()) {
+              this.setSemanticFinalizeLoadingStatus("collect");
+            }
+            hardFilterQuery = this.getSemanticHardFilterValidationQuery();
+            rerankedPmids = this.getOrderedRerankedPmids();
+            console.info("[SearchFlow] Hard-filter validation query:", hardFilterQuery || "(none)");
 
-            const esearchResponse = await axios.post(
-              this.getBackendApiUrl("NlmSearch.php"),
-              esearchParams.toString(),
-              { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
-            );
+            orderedCandidates = this.getOrderedRerankedCandidates();
+            if (orderedCandidates.length > 0) {
+              this.setSemanticFinalizeLoadingStatus("collect");
+              const hybridOrdering = await this.buildHybridOrderedResultRefs(
+                hardFilterQuery,
+                nlm,
+                orderedCandidates
+              );
+              this.matchedRerankedPmids = hybridOrdering.pmids;
+              this.matchedRerankedResultRefs = hybridOrdering.refs;
+              this.count = hybridOrdering.count;
+              resultRefs = this.shouldUseSemanticDateOrdering(hybridOrdering.refs)
+                ? hybridOrdering.refs
+                : hybridOrdering.refs.slice(
+                    this.page * this.pageSize,
+                    this.page * this.pageSize + this.pageSize
+                  );
+              console.info("[SearchFlow] Display mode: hybrid reranked semantic order.", {
+                page: this.page,
+                pageSize: this.pageSize,
+                sort: this.sort.method,
+                visibleRefs: this.shouldUseSemanticDateOrdering(hybridOrdering.refs)
+                  ? []
+                  : resultRefs.map((entry) => entry.key),
+                semanticDateOrdering: this.shouldUseSemanticDateOrdering(hybridOrdering.refs),
+              });
+            } else if (rerankedPmids.length > 0) {
+              this.matchedRerankedResultRefs = [];
+              this.setSemanticFinalizeLoadingStatus("collect");
+              const orderedSearch = await this.resolveOrderedSearchPmids(
+                hardFilterQuery,
+                nlm,
+                rerankedPmids
+              );
+              this.matchedRerankedPmids = orderedSearch.orderedIds;
+              this.count = orderedSearch.orderedIds.length;
+              idList = orderedSearch.orderedIds.slice(
+                this.page * this.pageSize,
+                this.page * this.pageSize + this.pageSize
+              );
+              console.info("[SearchFlow] Display mode: custom reranked PMID order.", {
+                page: this.page,
+                pageSize: this.pageSize,
+                visiblePmids: idList,
+              });
+            } else {
+              this.matchedRerankedResultRefs = [];
+              this.matchedRerankedPmids = [];
+              // ESearch request to get list of IDs (credentials handled by PHP proxy)
+              const esearchParams = new URLSearchParams({
+                db: "pubmed",
+                retmode: "json",
+                retmax: this.pageSize,
+                retstart: this.page * this.pageSize,
+                sort: this.sort.method,
+                term: finalQuery,
+              });
+              console.info("[SearchFlow] ESearch term sent to NLM:", finalQuery);
 
-            idList = esearchResponse.data.esearchresult.idlist.filter(Boolean);
-            this.count = parseInt(esearchResponse.data.esearchresult.count, 10);
-            console.info("[SearchFlow] Display mode: PubMed API sort order.", {
-              sort: this.sort.method,
-              page: this.page,
-              pageSize: this.pageSize,
-              visiblePmids: idList,
-            });
-          }
+              const esearchResponse = await axios.post(
+                this.getBackendApiUrl("NlmSearch.php"),
+                esearchParams.toString(),
+                { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
+              );
+
+              idList = esearchResponse.data.esearchresult.idlist.filter(Boolean);
+              this.count = parseInt(esearchResponse.data.esearchresult.count, 10);
+              console.info("[SearchFlow] Display mode: PubMed API sort order.", {
+                sort: this.sort.method,
+                page: this.page,
+                pageSize: this.pageSize,
+                visiblePmids: idList,
+              });
+            }
+          });
 
           if (idList.length === 0 && resultRefs.length === 0) {
             if (rerankedPmids.length === 0 || orderedCandidates.length > 0) {
               this.count = 0;
             }
             this.searchresult = [];
+            this.logSearchFlowDebugFinalSummary({
+              query: finalQuery,
+              resultRefs: [],
+              orderedCandidates,
+              data: [],
+            });
             this.searchLoading = false;
             this.clearSearchLoadingStatus();
             return;
           }
 
           let data = [];
-          if (resultRefs.length > 0) {
-            if (this.shouldUseSemanticDateOrdering(resultRefs)) {
-              const sortedData = await this.getSemanticSortedHydratedResults(resultRefs, nlm);
-              this.count = sortedData.length;
-              data = sortedData.slice(
-                this.page * this.pageSize,
-                this.page * this.pageSize + this.pageSize
-              );
+          await this.runSearchFlowDebugSection("07 Hydration", async () => {
+            if (resultRefs.length > 0) {
+              if (this.shouldUseSemanticDateOrdering(resultRefs)) {
+                const sortedData = await this.getSemanticSortedHydratedResults(resultRefs, nlm);
+                this.count = sortedData.length;
+                data = sortedData.slice(
+                  this.page * this.pageSize,
+                  this.page * this.pageSize + this.pageSize
+                );
+              } else {
+                const pmidRefs = resultRefs.filter((entry) => entry.type === "pmid");
+                const doiRefs = resultRefs.filter((entry) => entry.type === "doi");
+                this.setSemanticFinalizeLoadingStatus("hydrate", {
+                  hasPmids: pmidRefs.length > 0,
+                  hasDois: doiRefs.length > 0,
+                });
+                const [pmidData, doiData] = await Promise.all([
+                  this.fetchSummaryRecordsByIds(
+                    pmidRefs.map((entry) => entry.pmid),
+                    nlm
+                  ),
+                  this.fetchOpenAlexWorksByCandidates(doiRefs, nlm),
+                ]);
+                const pmidMap = new Map(pmidData.map((entry) => [String(entry.uid), entry]));
+                const doiMap = new Map();
+                doiRefs.forEach((entry, index) => {
+                  const mapped = doiData[index];
+                  if (mapped) {
+                    doiMap.set(entry.key, mapped);
+                  }
+                });
+                data = resultRefs
+                  .map((entry) =>
+                    entry.type === "pmid" ? pmidMap.get(String(entry.pmid)) : doiMap.get(entry.key)
+                  )
+                  .filter(Boolean);
+              }
             } else {
-              const pmidRefs = resultRefs.filter((entry) => entry.type === "pmid");
-              const doiRefs = resultRefs.filter((entry) => entry.type === "doi");
               this.setSemanticFinalizeLoadingStatus("hydrate", {
-                hasPmids: pmidRefs.length > 0,
-                hasDois: doiRefs.length > 0,
+                hasPmids: idList.length > 0,
+                hasDois: false,
               });
-              const [pmidData, doiData] = await Promise.all([
-                this.fetchSummaryRecordsByIds(
-                  pmidRefs.map((entry) => entry.pmid),
-                  nlm
-                ),
-                this.fetchOpenAlexWorksByCandidates(doiRefs, nlm),
-              ]);
-              const pmidMap = new Map(pmidData.map((entry) => [String(entry.uid), entry]));
-              const doiMap = new Map();
-              doiRefs.forEach((entry, index) => {
-                const mapped = doiData[index];
-                if (mapped) {
-                  doiMap.set(entry.key, mapped);
-                }
-              });
-              data = resultRefs
-                .map((entry) =>
-                  entry.type === "pmid" ? pmidMap.get(String(entry.pmid)) : doiMap.get(entry.key)
-                )
-                .filter(Boolean);
+              data = await this.fetchSummaryRecordsByIds(idList, nlm);
             }
-          } else {
-            this.setSemanticFinalizeLoadingStatus("hydrate", {
-              hasPmids: idList.length > 0,
-              hasDois: false,
+            data = await this.maybeApplySemanticLlmFinalRerank(data);
+          });
+          await this.runSearchFlowDebugSection("08 Final result composition", async () => {
+            this.setSemanticFinalizeLoadingStatus("render");
+            this.searchresult = data;
+            if (resultRefs.length > 0 && !this.shouldUseSemanticDateOrdering(resultRefs)) {
+              this.logHybridRenderSummary("Hybrid page hydration summary.", resultRefs, data);
+            }
+            // Handle any preselected PMIDs
+            this.setSemanticFinalizeLoadingStatus("selected");
+            const preSelectedEntries = await this.searchPreselectedPmidai();
+            if (preSelectedEntries && preSelectedEntries.length > 0) {
+              const uniquePreselected = this.mergeUniqueEntries(preSelectedEntries);
+              this.searchresult = [...this.searchresult, ...uniquePreselected];
+            }
+            this.logSearchFlowDebugFinalSummary({
+              query: finalQuery,
+              resultRefs,
+              orderedCandidates,
+              data: this.searchresult,
             });
-            data = await this.fetchSummaryRecordsByIds(idList, nlm);
-          }
-          this.setSemanticFinalizeLoadingStatus("render");
-          this.searchresult = data;
-          if (resultRefs.length > 0 && !this.shouldUseSemanticDateOrdering(resultRefs)) {
-            this.logHybridRenderSummary("Hybrid page hydration summary.", resultRefs, data);
-          }
-          // Handle any preselected PMIDs
-          this.setSemanticFinalizeLoadingStatus("selected");
-          const preSelectedEntries = await this.searchPreselectedPmidai();
-          if (preSelectedEntries && preSelectedEntries.length > 0) {
-            const uniquePreselected = this.mergeUniqueEntries(preSelectedEntries);
-            this.searchresult = [...this.searchresult, ...uniquePreselected];
-          }
+          });
           this.searchLoading = false;
           this.clearSearchLoadingStatus();
 
@@ -4757,9 +5845,16 @@
           });
         } catch (error) {
           this.showSearchError(error);
+          this.logSearchFlowDebugWarn("Search failed", {
+            error: String(error || ""),
+          });
           this.searchLoading = false;
           this.clearSearchLoadingStatus();
         } finally {
+          this.finishSearchFlowDebugRun(this.searchError ? "error" : "completed", {
+            resultCount: Array.isArray(this.searchresult) ? this.searchresult.length : 0,
+            totalCount: Number(this.count || 0),
+          });
           console.groupEnd();
         }
       },
@@ -4795,12 +5890,16 @@
         }
         const { nlm } = this.appSettings;
         console.group("[SearchFlow] searchMore()");
+        this.startSearchFlowDebugRun("searchMore");
 
         try {
-          await this.prepareSemanticSearchStateBeforeSearch();
+          await this.runSearchFlowDebugSection("01 Prepare", async () => {
+            await this.prepareSemanticSearchStateBeforeSearch();
+          });
           // Decode and trim the search query string
           const query = decodeURIComponent(this.getSearchString).trim();
           console.info("[SearchFlow] Raw query from getSearchString:", query);
+          this.logSearchFlowDebugInfo("Raw query from getSearchString", { query });
 
           // Validate the query string
           if (!query || query === "()") {
@@ -4808,107 +5907,111 @@
             if (!this.compactLoadingUi) {
               this.searchLoading = false;
             }
-            console.groupEnd();
             return;
           }
 
           // Reload necessary scripts to ensure a clean environment
           this.reloadScripts();
           const validatedQuery = this.finalValidatedQuery || query;
-          if (this.hasSelectedSemanticSources()) {
-            this.setSemanticFinalizeLoadingStatus("collect");
-          }
-          const hardFilterQuery = this.getSemanticHardFilterValidationQuery();
-          const rerankedPmids =
-            Array.isArray(this.matchedRerankedPmids) && this.matchedRerankedPmids.length > 0
-              ? this.matchedRerankedPmids
-              : this.getOrderedRerankedPmids();
           console.info(
             "[SearchFlow] Reusing final validated query (no revalidation in searchMore):",
             validatedQuery
           );
 
-          const orderedCandidates = this.getOrderedRerankedCandidates();
-          const hasDoiOnlyCandidates = orderedCandidates.some(
-            (candidate) => !candidate.pmid && normalizeDoiValue(candidate.doi)
-          );
+          let hardFilterQuery = "";
+          let rerankedPmids = [];
+          let orderedCandidates = [];
           let idList = [];
           let resultRefs = [];
-          if (orderedCandidates.length > 0) {
-            if (!Array.isArray(this.matchedRerankedResultRefs) || this.matchedRerankedResultRefs.length === 0) {
+          await this.runSearchFlowDebugSection("06 Filter and validation", async () => {
+            if (this.hasSelectedSemanticSources()) {
               this.setSemanticFinalizeLoadingStatus("collect");
-              const hybridOrdering = await this.buildHybridOrderedResultRefs(
-                hardFilterQuery,
-                nlm,
-                orderedCandidates
-              );
-              this.matchedRerankedPmids = hybridOrdering.pmids;
-              this.matchedRerankedResultRefs = hybridOrdering.refs;
-              this.count = hybridOrdering.count;
             }
-            const currentLength = Array.isArray(this.searchresult) ? this.searchresult.length : 0;
-            resultRefs = this.shouldUseSemanticDateOrdering(this.matchedRerankedResultRefs)
-              ? this.matchedRerankedResultRefs
-              : this.matchedRerankedResultRefs.slice(currentLength, targetResultLength);
-            console.info("[SearchFlow] Display mode: hybrid reranked semantic order (pagination).", {
-              page: this.page,
-              pageSize: this.pageSize,
-              sort: this.sort.method,
-              appendedRefs: this.shouldUseSemanticDateOrdering(this.matchedRerankedResultRefs)
-                ? []
-                : resultRefs.map((entry) => entry.key),
-              semanticDateOrdering: this.shouldUseSemanticDateOrdering(this.matchedRerankedResultRefs),
-            });
-          } else if (rerankedPmids.length > 0) {
-            this.matchedRerankedResultRefs = [];
-            if (this.matchedRerankedPmids.length === 0) {
-              this.setSemanticFinalizeLoadingStatus("collect");
-              const orderedSearch = await this.resolveOrderedSearchPmids(
-                hardFilterQuery,
-                nlm,
-                rerankedPmids
+            hardFilterQuery = this.getSemanticHardFilterValidationQuery();
+            rerankedPmids =
+              Array.isArray(this.matchedRerankedPmids) && this.matchedRerankedPmids.length > 0
+                ? this.matchedRerankedPmids
+                : this.getOrderedRerankedPmids();
+            orderedCandidates = this.getOrderedRerankedCandidates();
+            if (orderedCandidates.length > 0) {
+              if (
+                !Array.isArray(this.matchedRerankedResultRefs) ||
+                this.matchedRerankedResultRefs.length === 0
+              ) {
+                this.setSemanticFinalizeLoadingStatus("collect");
+                const hybridOrdering = await this.buildHybridOrderedResultRefs(
+                  hardFilterQuery,
+                  nlm,
+                  orderedCandidates
+                );
+                this.matchedRerankedPmids = hybridOrdering.pmids;
+                this.matchedRerankedResultRefs = hybridOrdering.refs;
+                this.count = hybridOrdering.count;
+              }
+              const currentLength = Array.isArray(this.searchresult) ? this.searchresult.length : 0;
+              resultRefs = this.shouldUseSemanticDateOrdering(this.matchedRerankedResultRefs)
+                ? this.matchedRerankedResultRefs
+                : this.matchedRerankedResultRefs.slice(currentLength, targetResultLength);
+              console.info("[SearchFlow] Display mode: hybrid reranked semantic order (pagination).", {
+                page: this.page,
+                pageSize: this.pageSize,
+                sort: this.sort.method,
+                appendedRefs: this.shouldUseSemanticDateOrdering(this.matchedRerankedResultRefs)
+                  ? []
+                  : resultRefs.map((entry) => entry.key),
+                semanticDateOrdering: this.shouldUseSemanticDateOrdering(this.matchedRerankedResultRefs),
+              });
+            } else if (rerankedPmids.length > 0) {
+              this.matchedRerankedResultRefs = [];
+              if (this.matchedRerankedPmids.length === 0) {
+                this.setSemanticFinalizeLoadingStatus("collect");
+                const orderedSearch = await this.resolveOrderedSearchPmids(
+                  hardFilterQuery,
+                  nlm,
+                  rerankedPmids
+                );
+                this.matchedRerankedPmids = orderedSearch.orderedIds;
+                this.count = orderedSearch.orderedIds.length;
+              }
+              idList = this.matchedRerankedPmids.slice(this.searchresult.length || 0, targetResultLength);
+              console.info("[SearchFlow] Display mode: custom reranked PMID order (pagination).", {
+                page: this.page,
+                pageSize: this.pageSize,
+                appendedPmids: idList,
+              });
+            } else {
+              this.matchedRerankedResultRefs = [];
+              // Prepare parameters for the ESearch API request (credentials handled by PHP proxy)
+              const esearchParams = new URLSearchParams({
+                db: "pubmed",
+                retmode: "json",
+                retmax: Math.min(this.pageSize, targetResultLength - (this.searchresult.length || 0)),
+                retstart: Math.max(this.searchresult.length || 0, this.page * this.pageSize),
+                sort: this.sort.method,
+                term: validatedQuery,
+              });
+              console.info("[SearchFlow] ESearch term sent to NLM:", validatedQuery);
+
+              // Perform the ESearch API request to retrieve PubMed IDs
+              const esearchResponse = await axios.post(
+                this.getBackendApiUrl("NlmSearch.php"),
+                esearchParams.toString(),
+                { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
               );
-              this.matchedRerankedPmids = orderedSearch.orderedIds;
-              this.count = orderedSearch.orderedIds.length;
+
+              // Extract and filter the list of PubMed IDs
+              idList = esearchResponse.data.esearchresult.idlist.filter(
+                (id) => id && id.trim() !== ""
+              );
+              this.count = parseInt(esearchResponse.data.esearchresult.count, 10);
+              console.info("[SearchFlow] Display mode: PubMed API sort order (pagination).", {
+                sort: this.sort.method,
+                page: this.page,
+                pageSize: this.pageSize,
+                appendedPmids: idList,
+              });
             }
-            idList = this.matchedRerankedPmids.slice(this.searchresult.length || 0, targetResultLength);
-            console.info("[SearchFlow] Display mode: custom reranked PMID order (pagination).", {
-              page: this.page,
-              pageSize: this.pageSize,
-              appendedPmids: idList,
-            });
-          } else {
-            this.matchedRerankedResultRefs = [];
-            // Prepare parameters for the ESearch API request (credentials handled by PHP proxy)
-            const esearchParams = new URLSearchParams({
-              db: "pubmed",
-              retmode: "json",
-              retmax: Math.min(this.pageSize, targetResultLength - (this.searchresult.length || 0)),
-              retstart: Math.max(this.searchresult.length || 0, this.page * this.pageSize),
-              sort: this.sort.method,
-              term: validatedQuery,
-            });
-            console.info("[SearchFlow] ESearch term sent to NLM:", validatedQuery);
-
-            // Perform the ESearch API request to retrieve PubMed IDs
-            const esearchResponse = await axios.post(
-              this.getBackendApiUrl("NlmSearch.php"),
-              esearchParams.toString(),
-              { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
-            );
-
-            // Extract and filter the list of PubMed IDs
-            idList = esearchResponse.data.esearchresult.idlist.filter(
-              (id) => id && id.trim() !== ""
-            );
-            this.count = parseInt(esearchResponse.data.esearchresult.count, 10);
-            console.info("[SearchFlow] Display mode: PubMed API sort order (pagination).", {
-              sort: this.sort.method,
-              page: this.page,
-              pageSize: this.pageSize,
-              appendedPmids: idList,
-            });
-          }
+          });
 
           // If no IDs are returned, update the state and exit
           if (idList.length === 0 && resultRefs.length === 0) {
@@ -4916,6 +6019,12 @@
               this.count = 0;
               this.searchresult = [];
             }
+            this.logSearchFlowDebugFinalSummary({
+              query: validatedQuery,
+              resultRefs: [],
+              orderedCandidates,
+              data: Array.isArray(this.searchresult) ? this.searchresult : [],
+            });
             if (!this.compactLoadingUi) {
               this.searchLoading = false;
               this.clearSearchLoadingStatus();
@@ -4924,63 +6033,74 @@
           }
 
           let data = [];
-          if (resultRefs.length > 0) {
-            if (this.shouldUseSemanticDateOrdering(resultRefs)) {
-              const sortedData = await this.getSemanticSortedHydratedResults(resultRefs, nlm);
-              const currentLength = Math.min(this.page * this.pageSize, sortedData.length);
-              this.count = sortedData.length;
-              data = sortedData.slice(currentLength, targetResultLength);
+          await this.runSearchFlowDebugSection("07 Hydration", async () => {
+            if (resultRefs.length > 0) {
+              if (this.shouldUseSemanticDateOrdering(resultRefs)) {
+                const sortedData = await this.getSemanticSortedHydratedResults(resultRefs, nlm);
+                const currentLength = Math.min(this.page * this.pageSize, sortedData.length);
+                this.count = sortedData.length;
+                data = sortedData.slice(currentLength, targetResultLength);
+              } else {
+                const pmidRefs = resultRefs.filter((entry) => entry.type === "pmid");
+                const doiRefs = resultRefs.filter((entry) => entry.type === "doi");
+                this.setSemanticFinalizeLoadingStatus("hydrate", {
+                  hasPmids: pmidRefs.length > 0,
+                  hasDois: doiRefs.length > 0,
+                });
+                const [pmidData, doiData] = await Promise.all([
+                  this.fetchSummaryRecordsByIds(
+                    pmidRefs.map((entry) => entry.pmid),
+                    nlm
+                  ),
+                  this.fetchOpenAlexWorksByCandidates(doiRefs, nlm),
+                ]);
+                const pmidMap = new Map(pmidData.map((entry) => [String(entry.uid), entry]));
+                const doiMap = new Map();
+                doiRefs.forEach((entry, index) => {
+                  const mapped = doiData[index];
+                  if (mapped) {
+                    doiMap.set(entry.key, mapped);
+                  }
+                });
+                data = resultRefs
+                  .map((entry) =>
+                    entry.type === "pmid" ? pmidMap.get(String(entry.pmid)) : doiMap.get(entry.key)
+                  )
+                  .filter(Boolean);
+              }
             } else {
-              const pmidRefs = resultRefs.filter((entry) => entry.type === "pmid");
-              const doiRefs = resultRefs.filter((entry) => entry.type === "doi");
               this.setSemanticFinalizeLoadingStatus("hydrate", {
-                hasPmids: pmidRefs.length > 0,
-                hasDois: doiRefs.length > 0,
+                hasPmids: idList.length > 0,
+                hasDois: false,
               });
-              const [pmidData, doiData] = await Promise.all([
-                this.fetchSummaryRecordsByIds(
-                  pmidRefs.map((entry) => entry.pmid),
-                  nlm
-                ),
-                this.fetchOpenAlexWorksByCandidates(doiRefs, nlm),
-              ]);
-              const pmidMap = new Map(pmidData.map((entry) => [String(entry.uid), entry]));
-              const doiMap = new Map();
-              doiRefs.forEach((entry, index) => {
-                const mapped = doiData[index];
-                if (mapped) {
-                  doiMap.set(entry.key, mapped);
-                }
-              });
-              data = resultRefs
-                .map((entry) =>
-                  entry.type === "pmid" ? pmidMap.get(String(entry.pmid)) : doiMap.get(entry.key)
-                )
-                .filter(Boolean);
+              data = await this.fetchSummaryRecordsByIds(idList, nlm);
             }
-          } else {
-            this.setSemanticFinalizeLoadingStatus("hydrate", {
-              hasPmids: idList.length > 0,
-              hasDois: false,
+            data = await this.maybeApplySemanticLlmFinalRerank(data);
+          });
+
+          await this.runSearchFlowDebugSection("08 Final result composition", async () => {
+            // Merge unique entries to prevent duplicates
+            if (resultRefs.length > 0 && !this.shouldUseSemanticDateOrdering(resultRefs)) {
+              this.logHybridRenderSummary("Hybrid pagination hydration summary.", resultRefs, data);
+            }
+            this.setSemanticFinalizeLoadingStatus("render");
+            const uniqueData = this.mergeUniqueEntries(data);
+            this.searchresult = [...this.searchresult, ...uniqueData];
+
+            // Handle any preselected PMIDs
+            this.setSemanticFinalizeLoadingStatus("selected");
+            const preSelectedEntries = await this.searchPreselectedPmidai();
+            if (preSelectedEntries && preSelectedEntries.length > 0) {
+              const uniquePreselected = this.mergeUniqueEntries(preSelectedEntries);
+              this.searchresult = [...this.searchresult, ...uniquePreselected];
+            }
+            this.logSearchFlowDebugFinalSummary({
+              query: validatedQuery,
+              resultRefs,
+              orderedCandidates,
+              data: this.searchresult,
             });
-            data = await this.fetchSummaryRecordsByIds(idList, nlm);
-          }
-
-          // Merge unique entries to prevent duplicates
-          if (resultRefs.length > 0 && !this.shouldUseSemanticDateOrdering(resultRefs)) {
-            this.logHybridRenderSummary("Hybrid pagination hydration summary.", resultRefs, data);
-          }
-          this.setSemanticFinalizeLoadingStatus("render");
-          const uniqueData = this.mergeUniqueEntries(data);
-          this.searchresult = [...this.searchresult, ...uniqueData];
-
-          // Handle any preselected PMIDs
-          this.setSemanticFinalizeLoadingStatus("selected");
-          const preSelectedEntries = await this.searchPreselectedPmidai();
-          if (preSelectedEntries && preSelectedEntries.length > 0) {
-            const uniquePreselected = this.mergeUniqueEntries(preSelectedEntries);
-            this.searchresult = [...this.searchresult, ...uniquePreselected];
-          }
+          });
 
           // Reset the loading state
           if (!this.compactLoadingUi) {
@@ -5001,11 +6121,18 @@
           // Handle and log any errors that occur during the API requests
           console.error(error);
           this.showSearchError(error);
+          this.logSearchFlowDebugWarn("Pagination failed", {
+            error: String(error || ""),
+          });
           if (!this.compactLoadingUi) {
             this.searchLoading = false;
             this.clearSearchLoadingStatus();
           }
         } finally {
+          this.finishSearchFlowDebugRun(this.searchError ? "error" : "completed", {
+            resultCount: Array.isArray(this.searchresult) ? this.searchresult.length : 0,
+            totalCount: Number(this.count || 0),
+          });
           console.groupEnd();
         }
       },
@@ -5073,13 +6200,10 @@
         if (!this.canApplyLocalSemanticSort()) {
           return false;
         }
-
-        const compactLoadingStartedAt = this.startCompactLoading("sortResultsLoadingText", true);
-        await this.waitForCompactLoadingPaint();
-        const { nlm } = this.appSettings;
-        const resultRefs = this.matchedRerankedResultRefs;
-        let data = [];
-        try {
+        return this.runWithCompactLoading("sortResultsLoadingText", true, async () => {
+          const { nlm } = this.appSettings;
+          const resultRefs = this.matchedRerankedResultRefs;
+          let data = [];
           if (this.shouldUseSemanticDateOrdering(resultRefs)) {
             const sortedData = await this.getSemanticSortedHydratedResults(resultRefs, nlm);
             this.count = sortedData.length;
@@ -5111,6 +6235,7 @@
             this.count = resultRefs.length;
             this.logHybridRenderSummary("Hybrid local sort hydration summary.", visibleRefs, data);
           }
+          data = await this.maybeApplySemanticLlmFinalRerank(data);
 
           this.searchresult = data;
           const preSelectedEntries = await this.searchPreselectedPmidai();
@@ -5135,9 +6260,7 @@
               : [],
           });
           return true;
-        } finally {
-          await this.finishCompactLoading(compactLoadingStartedAt);
-        }
+        });
       },
       async setPageSize(pageSize) {
         this.pageSize = pageSize;
@@ -5148,18 +6271,9 @@
       async nextPage() {
         this.page++;
         this.setUrl();
-        const compactLoadingStartedAt = this.startCompactLoading("loadMoreResultsLoadingText", false);
-        try {
-          await this.waitForCompactLoadingPaint();
+        await this.runWithCompactLoading("loadMoreResultsLoadingText", false, async () => {
           await this.searchMore();
-        } finally {
-          await this.finishCompactLoading(compactLoadingStartedAt);
-        }
-      },
-      async previousPage() {
-        this.page--;
-        this.setUrl();
-        await this.search();
+        });
       },
       toggleDetailsBox() {
         this.details = !this.details;

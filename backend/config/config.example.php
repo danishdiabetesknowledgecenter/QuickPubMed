@@ -45,6 +45,13 @@ define('OPENALEX_EMAIL', '');
 // Requires an API key from https://docs.elicit.com/
 define('ELICIT_API_KEY', '');
 
+// ============ Unpaywall Configuration ============
+// Optional domain override file:
+// data/content/<domain>/domain-config.json -> unpaywall.email
+// Missing values automatically fall back to this backend config.
+define('UNPAYWALL_BASE_URL', 'https://api.unpaywall.org/v2');
+define('UNPAYWALL_EMAIL', 'your-unpaywall-email@example.com');
+
 // ============ Semantic Source Limits ============
 // Frontend-safe values exposed to the widget via ThemeConfig.php
 define('QPM_SEMANTIC_SOURCE_LIMITS', [
@@ -99,12 +106,25 @@ define('QPM_RERANK_CONFIG', [
     'overlapBonusPerExtraSource' => 35,
 ]);
 
-// ============ Unpaywall Configuration ============
-// Optional domain override file:
-// data/content/<domain>/domain-config.json -> unpaywall.email
-// Missing values automatically fall back to this backend config.
-define('UNPAYWALL_BASE_URL', 'https://api.unpaywall.org/v2');
-define('UNPAYWALL_EMAIL', 'your-unpaywall-email@example.com');
+// ============ PubMed Lexical Rescue Configuration ============
+// Frontend-safe values exposed to the widget via ThemeConfig.php
+define('QPM_SEMANTIC_RESCUE_CONFIG', [
+    'mode' => 'configurable_default_sparse',
+    'minMergedCandidates' => 25,
+    'minSourceCandidates' => 12,
+    'searchLimit' => 80,
+    'maxCandidates' => 20,
+    'minLexicalScore' => 3,
+]);
+
+// ============ Semantic LLM Final Rerank Configuration ============
+// Frontend-safe values exposed to the widget via ThemeConfig.php
+define('QPM_SEMANTIC_LLM_RERANK_CONFIG', [
+    'enabled' => false,
+    'model' => 'gpt-5.4-nano',
+    'topN' => 25,
+    'maxOutputTokens' => 400,
+]);
 
 // ============ Frontend Class Overrides (Optional) ============
 // Optional global fallback (applies to all domains):
