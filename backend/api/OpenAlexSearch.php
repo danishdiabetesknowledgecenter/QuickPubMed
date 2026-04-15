@@ -35,7 +35,7 @@ function qpmIsLocalOpenAlexRequest(): bool
  * @param string $url
  * @param array<int,string> $headers
  * @param int $timeout
- * @return array{ok: bool, status: int, body: string, error: string}
+ * @return array{ok: bool, status: int, body: string, error: string, response_headers: array<int,string>}
  */
 function qpmOpenAlexFallbackRequest(string $url, array $headers, int $timeout = 30): array
 {
@@ -76,6 +76,7 @@ function qpmOpenAlexFallbackRequest(string $url, array $headers, int $timeout = 
             'status' => $status,
             'body' => '',
             'error' => $message !== '' ? $message : 'OpenAlex fallback request failed',
+            'response_headers' => is_array($responseHeaders) ? array_values($responseHeaders) : [],
         ];
     }
 
@@ -84,6 +85,7 @@ function qpmOpenAlexFallbackRequest(string $url, array $headers, int $timeout = 
         'status' => $status,
         'body' => (string)$body,
         'error' => '',
+        'response_headers' => is_array($responseHeaders) ? array_values($responseHeaders) : [],
     ];
 }
 
@@ -93,7 +95,7 @@ function qpmOpenAlexFallbackRequest(string $url, array $headers, int $timeout = 
  * @param string $url
  * @param array<int,string> $headers
  * @param int $timeout
- * @return array{ok: bool, status: int, body: string, error: string}
+ * @return array{ok: bool, status: int, body: string, error: string, response_headers: array<int,string>}
  */
 function qpmOpenAlexShellCurlRequest(string $url, array $headers, int $timeout = 30): array
 {
@@ -103,6 +105,7 @@ function qpmOpenAlexShellCurlRequest(string $url, array $headers, int $timeout =
             'status' => 0,
             'body' => '',
             'error' => 'exec() is disabled',
+            'response_headers' => [],
         ];
     }
 
@@ -127,6 +130,7 @@ function qpmOpenAlexShellCurlRequest(string $url, array $headers, int $timeout =
             'status' => 0,
             'body' => '',
             'error' => 'curl binary produced no output',
+            'response_headers' => [],
         ];
     }
 
@@ -143,6 +147,7 @@ function qpmOpenAlexShellCurlRequest(string $url, array $headers, int $timeout =
             'status' => $status,
             'body' => $body,
             'error' => 'curl binary failed with exit code ' . (string)$exitCode,
+            'response_headers' => [],
         ];
     }
 
@@ -151,6 +156,7 @@ function qpmOpenAlexShellCurlRequest(string $url, array $headers, int $timeout =
         'status' => $status,
         'body' => (string)$body,
         'error' => $status >= 200 && $status < 300 ? '' : 'curl binary returned HTTP ' . (string)$status,
+        'response_headers' => [],
     ];
 }
 
@@ -158,7 +164,7 @@ function qpmOpenAlexShellCurlRequest(string $url, array $headers, int $timeout =
  * Local dev fallback through Vite proxy (http), still backend-initiated.
  *
  * @param array<string,mixed> $requestParams
- * @return array{ok: bool, status: int, body: string, error: string}
+ * @return array{ok: bool, status: int, body: string, error: string, response_headers: array<int,string>}
  */
 function qpmOpenAlexLocalDevProxyRequest(array $requestParams): array
 {
@@ -170,6 +176,7 @@ function qpmOpenAlexLocalDevProxyRequest(array $requestParams): array
             'status' => 0,
             'body' => '',
             'error' => 'local dev proxy fallback disabled for non-local host',
+            'response_headers' => [],
         ];
     }
 
@@ -193,6 +200,9 @@ function qpmOpenAlexLocalDevProxyRequest(array $requestParams): array
                     'status' => $lastStatus,
                     'body' => (string)$result['body'],
                     'error' => '',
+                    'response_headers' => is_array($result['response_headers'] ?? null)
+                        ? array_values($result['response_headers'])
+                        : [],
                 ];
             }
             if ($lastStatus !== 429 || $attempt === 2) {
@@ -208,6 +218,9 @@ function qpmOpenAlexLocalDevProxyRequest(array $requestParams): array
         'status' => $lastStatus,
         'body' => '',
         'error' => implode(' | ', $errors),
+        'response_headers' => is_array($result['response_headers'] ?? null)
+            ? array_values($result['response_headers'])
+            : [],
     ];
 }
 
@@ -445,9 +458,15 @@ function qpmBuildOpenAlexRetryHints(string $message, array $requestState): array
  * @param string $query
  * @param string $warning
  * @param array<string,mixed> $retryHints
+ * @param array<string,mixed> $rateLimit
  * @return void
  */
-function qpmRespondWithOpenAlexWarning(string $query, string $warning, array $retryHints = []): void
+function qpmRespondWithOpenAlexWarning(
+    string $query,
+    string $warning,
+    array $retryHints = [],
+    array $rateLimit = []
+): void
 {
     echo json_encode([
         'query' => $query,
@@ -458,8 +477,58 @@ function qpmRespondWithOpenAlexWarning(string $query, string $warning, array $re
         'partial' => true,
         'warning' => $warning,
         'retryHints' => !empty($retryHints) ? $retryHints : (object)[],
+        'rateLimit' => !empty($rateLimit) ? $rateLimit : (object)[],
     ]);
     exit;
+}
+
+/**
+ * Extract OpenAlex rate limit metadata from response headers.
+ *
+ * @param array<int,string> $headers
+ * @param int $status
+ * @return array<string,mixed>
+ */
+function qpmBuildOpenAlexRateLimitInfo(array $headers, int $status): array
+{
+    $headerMap = qpmBuildResponseHeaderMap($headers);
+    $limit = qpmParseIntegerHeaderValue($headerMap['x-ratelimit-limit'] ?? '');
+    if ($limit !== null && $limit <= 0) {
+        $limit = null;
+    }
+
+    $remaining = qpmParseIntegerHeaderValue($headerMap['x-ratelimit-remaining'] ?? '');
+    if ($remaining !== null) {
+        $remaining = max(0, $remaining);
+    } elseif ($status === 429) {
+        $remaining = 0;
+    }
+
+    $resetWindow = qpmParseRateLimitResetWindow(
+        $headerMap['x-ratelimit-reset'] ?? '',
+        $headerMap['retry-after'] ?? ''
+    );
+    $isLimited = $status === 429 || ($remaining !== null && $remaining <= 0);
+
+    if (
+        $limit === null &&
+        $remaining === null &&
+        $resetWindow['resetAt'] === '' &&
+        $resetWindow['resetInSeconds'] === null &&
+        $status <= 0 &&
+        !$isLimited
+    ) {
+        return [];
+    }
+
+    return [
+        'limit' => $limit,
+        'remaining' => $remaining,
+        'resetAt' => $resetWindow['resetAt'],
+        'resetInSeconds' => $resetWindow['resetInSeconds'],
+        'status' => $status,
+        'isLimited' => $isLimited,
+    ];
 }
 
 $params = $_SERVER['REQUEST_METHOD'] === 'POST' ? $_POST : $_GET;
@@ -577,7 +646,15 @@ qpmThrottleNlmRequests(1);
 $url = 'https://api.openalex.org/works?' . http_build_query($requestParams);
 $result = qpmOpenAlexLocalDevProxyRequest($requestParams);
 if (!$result['ok'] && (int) ($result['status'] ?? 0) === 429) {
-    qpmRespondWithOpenAlexWarning($query, 'OpenAlex request was rate limited');
+    qpmRespondWithOpenAlexWarning(
+        $query,
+        'OpenAlex request was rate limited',
+        [],
+        qpmBuildOpenAlexRateLimitInfo(
+            is_array($result['response_headers'] ?? null) ? $result['response_headers'] : [],
+            (int) ($result['status'] ?? 0)
+        )
+    );
 }
 if (!$result['ok']) {
     $result = qpmHttpRequest($url, [
@@ -600,6 +677,7 @@ if (
             'body' => $fallbackResult['body'],
             'content_type' => 'application/json',
             'error' => '',
+            'response_headers' => $fallbackResult['response_headers'],
         ];
     } else {
         $result['error'] = trim((string)$result['error'] . ' | ' . (string)$fallbackResult['error'], ' |');
@@ -618,6 +696,7 @@ if (
             'body' => $shellCurlResult['body'],
             'content_type' => 'application/json',
             'error' => '',
+            'response_headers' => $shellCurlResult['response_headers'],
         ];
     } else {
         $result['error'] = trim((string)$result['error'] . ' | ' . (string)$shellCurlResult['error'], ' |');
@@ -633,7 +712,11 @@ if (!$result['ok']) {
             'sourceTypes' => $sourceTypes,
             'workTypes' => $workTypes,
             'publicationYear' => $publicationYearFilter,
-        ])
+        ]),
+        qpmBuildOpenAlexRateLimitInfo(
+            is_array($result['response_headers'] ?? null) ? $result['response_headers'] : [],
+            (int) ($result['status'] ?? 0)
+        )
     );
 }
 
@@ -645,6 +728,10 @@ if (!is_array($decoded)) {
 }
 
 $status = (int) ($result['status'] ?? 0);
+$rateLimit = qpmBuildOpenAlexRateLimitInfo(
+    is_array($result['response_headers'] ?? null) ? $result['response_headers'] : [],
+    $status
+);
 if ($status < 200 || $status >= 300) {
     $upstreamError = qpmExtractOpenAlexErrorMessage($decoded);
     $warning = $upstreamError !== '' ? $upstreamError : ('OpenAlex returned HTTP ' . (string) $status);
@@ -656,7 +743,8 @@ if ($status < 200 || $status >= 300) {
             'sourceTypes' => $sourceTypes,
             'workTypes' => $workTypes,
             'publicationYear' => $publicationYearFilter,
-        ])
+        ]),
+        $rateLimit
     );
 }
 
@@ -733,6 +821,7 @@ echo json_encode([
     'dois' => array_values(array_keys($dois)),
     'candidates' => $candidates,
     'total' => isset($decoded['meta']['count']) ? (int) $decoded['meta']['count'] : count($results),
+    'rateLimit' => !empty($rateLimit) ? $rateLimit : (object) [],
     'debug' => $debugSearchFlow ? [
         'upstreamTotal' => isset($decoded['meta']['count']) ? (int) $decoded['meta']['count'] : count($results),
         'normalizedTotal' => count($candidates),

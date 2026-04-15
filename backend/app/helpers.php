@@ -672,7 +672,7 @@ function qpmThrottleNlmRequests(int $maxPerSecond = 10): void
  *
  * @param string $url
  * @param array $options
- * @return array{ok: bool, status: int, body: string, content_type: string, error: string}
+ * @return array{ok: bool, status: int, body: string, content_type: string, error: string, response_headers: array<int,string>}
  */
 function qpmHttpRequest(string $url, array $options = []): array
 {
@@ -695,6 +695,7 @@ function qpmHttpRequest(string $url, array $options = []): array
             $curlHeaders[] = 'User-Agent: ' . $userAgent;
         }
 
+        $responseHeaders = [];
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
@@ -703,6 +704,13 @@ function qpmHttpRequest(string $url, array $options = []): array
             CURLOPT_CUSTOMREQUEST => $method,
             CURLOPT_HTTPHEADER => $curlHeaders,
             CURLOPT_POSTFIELDS => $body,
+            CURLOPT_HEADERFUNCTION => static function ($curl, $line) use (&$responseHeaders) {
+                $trimmed = trim((string) $line);
+                if ($trimmed !== '') {
+                    $responseHeaders[] = $trimmed;
+                }
+                return strlen((string) $line);
+            },
         ]);
 
         $responseBody = curl_exec($ch);
@@ -721,6 +729,7 @@ function qpmHttpRequest(string $url, array $options = []): array
             'body' => (string) $responseBody,
             'content_type' => $contentType,
             'error' => $error,
+            'response_headers' => $responseHeaders,
         ];
     }
 
@@ -775,5 +784,109 @@ function qpmHttpRequest(string $url, array $options = []): array
         'body' => (string) $responseBody,
         'content_type' => $contentType,
         'error' => $error,
+        'response_headers' => is_array($responseHeaders) ? array_values($responseHeaders) : [],
+    ];
+}
+
+/**
+ * Convert raw response headers to a lower-cased map.
+ *
+ * @param array<int,string> $headers
+ * @return array<string,string>
+ */
+function qpmBuildResponseHeaderMap(array $headers): array
+{
+    $headerMap = [];
+    foreach ($headers as $line) {
+        $separatorPos = strpos((string) $line, ':');
+        if ($separatorPos === false) {
+            continue;
+        }
+        $name = strtolower(trim(substr((string) $line, 0, $separatorPos)));
+        $value = trim(substr((string) $line, $separatorPos + 1));
+        if ($name === '') {
+            continue;
+        }
+        if (isset($headerMap[$name]) && $headerMap[$name] !== '' && $value === '') {
+            continue;
+        }
+        $headerMap[$name] = $value;
+    }
+    return $headerMap;
+}
+
+/**
+ * Extract the first integer value from a response header.
+ *
+ * @param mixed $value
+ * @return ?int
+ */
+function qpmParseIntegerHeaderValue($value): ?int
+{
+    $normalizedValue = trim((string) $value);
+    if ($normalizedValue === '') {
+        return null;
+    }
+
+    if (preg_match('/-?\d+/', $normalizedValue, $matches)) {
+        return (int) $matches[0];
+    }
+
+    return null;
+}
+
+/**
+ * Parse rate-limit reset information into ISO datetime and seconds remaining.
+ *
+ * @param mixed $resetValue
+ * @param mixed $retryAfterValue
+ * @return array{resetAt: string, resetInSeconds: ?int}
+ */
+function qpmParseRateLimitResetWindow($resetValue, $retryAfterValue = ''): array
+{
+    $nowTs = time();
+    $targetTs = 0;
+    $normalizedResetValue = trim((string) $resetValue);
+    $normalizedRetryAfterValue = trim((string) $retryAfterValue);
+
+    if ($normalizedResetValue !== '') {
+        $numericReset = qpmParseIntegerHeaderValue($normalizedResetValue);
+        if ($numericReset !== null) {
+            if ($numericReset > 1000000000000) {
+                $targetTs = (int) floor($numericReset / 1000);
+            } elseif ($numericReset > 1000000000) {
+                $targetTs = $numericReset;
+            } elseif ($numericReset > 0) {
+                $targetTs = $nowTs + $numericReset;
+            }
+        } else {
+            $parsedTs = strtotime($normalizedResetValue);
+            if ($parsedTs !== false) {
+                $targetTs = (int) $parsedTs;
+            }
+        }
+    }
+
+    if ($targetTs <= 0 && $normalizedRetryAfterValue !== '') {
+        if (preg_match('/^\d+$/', $normalizedRetryAfterValue)) {
+            $targetTs = $nowTs + (int) $normalizedRetryAfterValue;
+        } else {
+            $parsedTs = strtotime($normalizedRetryAfterValue);
+            if ($parsedTs !== false) {
+                $targetTs = (int) $parsedTs;
+            }
+        }
+    }
+
+    if ($targetTs <= 0) {
+        return [
+            'resetAt' => '',
+            'resetInSeconds' => null,
+        ];
+    }
+
+    return [
+        'resetAt' => gmdate('c', $targetTs),
+        'resetInSeconds' => max(0, $targetTs - $nowTs),
     ];
 }

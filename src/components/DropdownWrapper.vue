@@ -489,7 +489,7 @@
         _deactivateGuardTimer: null,
         _bodyScrollY: 0,
         _bodyScrollLocked: false,
-        _lastElicitRateLimitLogSignature: "",
+        _lastSourceRateLimitLogSignatures: {},
         _bodyOriginalStyles: null,
         _htmlOriginalOverscrollBehavior: "",
         mobileCanScroll: false,
@@ -4964,11 +4964,35 @@
           debug: null,
         };
       },
-      publishElicitRateLimitInfo(rateLimit) {
-        if (!rateLimit || typeof window === "undefined") {
-          return;
+      getSourceRateLimitStorageKey(sourceKey) {
+        switch (String(sourceKey || "").trim()) {
+          case "elicit":
+            return "qpmElicitRateLimitInfo";
+          case "openAlex":
+            return "qpmOpenAlexRateLimitInfo";
+          case "semanticScholar":
+            return "qpmSemanticScholarRateLimitInfo";
+          default:
+            return "";
         }
-        const normalized = {
+      },
+      getSourceRateLimitLabel(sourceKey) {
+        switch (String(sourceKey || "").trim()) {
+          case "elicit":
+            return "Elicit";
+          case "openAlex":
+            return "OpenAlex";
+          case "semanticScholar":
+            return "Semantic Scholar";
+          default:
+            return "Source";
+        }
+      },
+      normalizeSourceRateLimitInfo(rateLimit) {
+        if (!rateLimit || typeof window === "undefined") {
+          return null;
+        }
+        return {
           limit:
             rateLimit?.limit === null || rateLimit?.limit === undefined
               ? null
@@ -4985,19 +5009,44 @@
           status: Number(rateLimit?.status) || 0,
           isLimited: rateLimit?.isLimited === true,
         };
-        this.logElicitRateLimitInfo(normalized);
+      },
+      publishSourceRateLimitInfo(sourceKey, rateLimit) {
+        if (typeof window === "undefined") {
+          return;
+        }
+        const normalized = this.normalizeSourceRateLimitInfo(rateLimit);
+        if (!normalized) {
+          return;
+        }
+        this.logSourceRateLimitInfo(sourceKey, normalized);
+        const storageKey = this.getSourceRateLimitStorageKey(sourceKey);
         try {
-          window.localStorage.setItem("qpmElicitRateLimitInfo", JSON.stringify(normalized));
+          if (storageKey) {
+            window.localStorage.setItem(storageKey, JSON.stringify(normalized));
+          }
         } catch {
           // Ignore localStorage write errors.
         }
+        if (String(sourceKey || "").trim() === "elicit") {
+          window.dispatchEvent(
+            new CustomEvent("qpm:elicit-rate-limit-update", {
+              detail: normalized,
+            })
+          );
+        }
         window.dispatchEvent(
-          new CustomEvent("qpm:elicit-rate-limit-update", {
-            detail: normalized,
+          new CustomEvent("qpm:semantic-source-rate-limit-update", {
+            detail: {
+              sourceKey: String(sourceKey || "").trim(),
+              rateLimit: normalized,
+            },
           })
         );
       },
-      getElicitRateLimitResetDate(rateLimit) {
+      publishElicitRateLimitInfo(rateLimit) {
+        this.publishSourceRateLimitInfo("elicit", rateLimit);
+      },
+      getSourceRateLimitResetDate(rateLimit) {
         const resetAt = String(rateLimit?.resetAt || "").trim();
         const resetTimestamp = Date.parse(resetAt);
         if (Number.isFinite(resetTimestamp)) {
@@ -5009,7 +5058,10 @@
         }
         return null;
       },
-      logElicitRateLimitInfo(rateLimit) {
+      getElicitRateLimitResetDate(rateLimit) {
+        return this.getSourceRateLimitResetDate(rateLimit);
+      },
+      logSourceRateLimitInfo(sourceKey, rateLimit) {
         const signature = JSON.stringify([
           rateLimit?.limit ?? null,
           rateLimit?.remaining ?? null,
@@ -5018,20 +5070,38 @@
           rateLimit?.status ?? 0,
           rateLimit?.isLimited === true,
         ]);
-        if (signature === this._lastElicitRateLimitLogSignature) {
+        const normalizedSourceKey = String(sourceKey || "").trim();
+        const lastSignature = this._lastSourceRateLimitLogSignatures[normalizedSourceKey] || "";
+        if (signature === lastSignature) {
           return;
         }
-        this._lastElicitRateLimitLogSignature = signature;
+        this._lastSourceRateLimitLogSignatures = {
+          ...this._lastSourceRateLimitLogSignatures,
+          [normalizedSourceKey]: signature,
+        };
 
-        const resetDate = this.getElicitRateLimitResetDate(rateLimit);
+        const resetDate = this.getSourceRateLimitResetDate(rateLimit);
         const resetAtLocal = resetDate
           ? resetDate.toLocaleString(this.language === "en" ? "en-US" : "da-DK")
           : null;
         const nextSearchAvailableAt = rateLimit?.isLimited === true && resetDate
           ? resetDate.toLocaleString(this.language === "en" ? "en-US" : "da-DK")
           : null;
+        const sourceLabel = this.getSourceRateLimitLabel(normalizedSourceKey);
+        const windowType =
+          normalizedSourceKey === "openAlex"
+            ? "daily reset at midnight UTC"
+            : normalizedSourceKey === "semanticScholar"
+              ? "provider-defined / not fully exposed"
+              : "rolling 24-hour window";
+        const resetMeaning =
+          normalizedSourceKey === "openAlex"
+            ? "X-RateLimit-Reset angiver sekunder til OpenAlex nulstiller den daglige kvote."
+            : normalizedSourceKey === "semanticScholar"
+              ? "Semantic Scholar eksponerer ikke altid brugbare rate limit-oplysninger, saa kun bekraeftede felter logges."
+              : "X-RateLimit-Reset angiver, hvornår den ældste request falder ud af vinduet, så én ny plads bliver ledig.";
 
-        console.info("[ElicitRateLimit] Opdateret rate limit-info.", {
+        console.info(`[${sourceLabel}RateLimit] Opdateret rate limit-info.`, {
           limit: Number.isFinite(rateLimit?.limit) ? Number(rateLimit.limit) : null,
           remaining: Number.isFinite(rateLimit?.remaining) ? Number(rateLimit.remaining) : null,
           status: Number.isFinite(rateLimit?.status) ? Number(rateLimit.status) : 0,
@@ -5042,9 +5112,12 @@
             ? Number(rateLimit.resetInSeconds)
             : null,
           nextSearchAvailableAt,
-          windowType: "rolling 24-hour window",
-          resetMeaning: "X-RateLimit-Reset angiver, hvornår den ældste request falder ud af vinduet, så én ny plads bliver ledig.",
+          windowType,
+          resetMeaning,
         });
+      },
+      logElicitRateLimitInfo(rateLimit) {
+        this.logSourceRateLimitInfo("elicit", rateLimit);
       },
       normalizeSourceResult(source, query, payload, error = "") {
         if (!payload || typeof payload !== "object") {
@@ -5920,6 +5993,7 @@
             dois: Array.isArray(payload.dois) ? payload.dois.length : 0,
           });
         }
+        this.publishSourceRateLimitInfo("semanticScholar", payload?.rateLimit || null);
         const normalized = this.normalizeSourceResult("semanticScholar", requestQuery, payload);
         await this.logSearchFlowDebugSourceResultGroup(
           "Semantic Scholar",
@@ -6228,6 +6302,11 @@
           ...primary,
           query: String(primary.query || supplement.query || "").trim(),
           searchMode: "semantic+keyword",
+          rateLimit:
+            (primary?.rateLimit && typeof primary.rateLimit === "object" ? primary.rateLimit : null) ||
+            (supplement?.rateLimit && typeof supplement.rateLimit === "object"
+              ? supplement.rateLimit
+              : null),
           candidates: mergedCandidates,
           pmids: this.dedupeNormalizedValues(
             mergedCandidates.map((candidate) => candidate?.pmid),
@@ -6558,6 +6637,7 @@
           keywordSupplementUsed,
           keywordSupplementCandidates,
         });
+        this.publishSourceRateLimitInfo("openAlex", payload?.rateLimit || null);
         const normalized = this.normalizeSourceResult("openAlex", requestQuery, payload);
         await this.logSearchFlowDebugSourceResultGroup("OpenAlex", requestPayload, payload, normalized, {
           transport: "network",

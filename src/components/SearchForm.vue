@@ -143,6 +143,7 @@
                     :hover-with-key="'hoversearchToggleWithSemanticScholar'"
                     :hover-without-key="'hoversearchToggleWithoutSemanticScholar'"
                     :icon-class="''"
+                    :tooltip-suffix="getSemanticScholarTooltipSuffix()"
                     :get-string="getString"
                   />
                   <ai-translation-toggle
@@ -150,12 +151,14 @@
                     v-model="searchWithOpenAlex"
                     :is-collapsed="false"
                     :display-mode="'checkbox'"
+                    :disabled="isOpenAlexUnavailable"
                     :show-off-state-label="false"
                     :label-with-key="'searchToggleWithOpenAlex'"
                     :label-without-key="'searchToggleWithoutOpenAlex'"
                     :hover-with-key="'hoversearchToggleWithOpenAlex'"
                     :hover-without-key="'hoversearchToggleWithoutOpenAlex'"
                     :icon-class="''"
+                    :tooltip-suffix="getOpenAlexTooltipSuffix()"
                     :get-string="getString"
                   />
                   <ai-translation-toggle
@@ -443,6 +446,8 @@
         compactLoadingUi: false,
         compactLoadingHideResults: false,
         elicitRateLimitInfo: null,
+        openAlexRateLimitInfo: null,
+        semanticScholarRateLimitInfo: null,
         semanticDoiValidationActive: false,
         loadingStatusDotIntervalId: null,
         loadingStatusDotBaseText: "",
@@ -560,14 +565,12 @@
         },
       },
       isElicitUnavailable() {
-        const info = this.elicitRateLimitInfo;
-        if (!info) {
-          return false;
-        }
-        if (Number.isFinite(info.remaining)) {
-          return info.remaining <= 0;
-        }
-        return info.isLimited === true;
+        return this.shouldDisableSemanticSourceOnRateLimit("elicit") &&
+          this.isSemanticSourceUnavailable("elicit");
+      },
+      isOpenAlexUnavailable() {
+        return this.shouldDisableSemanticSourceOnRateLimit("openAlex") &&
+          this.isSemanticSourceUnavailable("openAlex");
       },
       standardStringForFreetext() {
         const overrideStandardString = String(this.standardString || "").trim();
@@ -800,8 +803,11 @@
     beforeUnmount() {
       this.clearPlaceholderDotInterval();
       this.clearFilterPlaceholderDotInterval();
-      if (this._elicitRateLimitListener) {
-        window.removeEventListener("qpm:elicit-rate-limit-update", this._elicitRateLimitListener);
+      if (this._semanticSourceRateLimitListener) {
+        window.removeEventListener(
+          "qpm:semantic-source-rate-limit-update",
+          this._semanticSourceRateLimitListener
+        );
       }
       // Cleanup focus-visible event listeners
       if (this._focusVisibleCleanup) {
@@ -823,12 +829,21 @@
       this.updatePlaceholders();
       this.updateTopicDropdownWidth();
       if (typeof window !== "undefined") {
-        this._elicitRateLimitListener = (event) => {
-          this.setElicitRateLimitInfo(event?.detail);
+        this._semanticSourceRateLimitListener = (event) => {
+          const sourceKey = String(event?.detail?.sourceKey || "").trim();
+          if (!sourceKey) {
+            return;
+          }
+          this.setSourceRateLimitInfo(sourceKey, event?.detail?.rateLimit);
         };
-        window.addEventListener("qpm:elicit-rate-limit-update", this._elicitRateLimitListener);
+        window.addEventListener(
+          "qpm:semantic-source-rate-limit-update",
+          this._semanticSourceRateLimitListener
+        );
       }
-      this.restoreStoredElicitRateLimitInfo();
+      this.restoreStoredSourceRateLimitInfo("elicit");
+      this.restoreStoredSourceRateLimitInfo("openAlex");
+      this.restoreStoredSourceRateLimitInfo("semanticScholar");
       this._updateTopicDropdownWidthDebounced = debounce(
         this.updateTopicDropdownWidth.bind(this),
         120
@@ -965,7 +980,11 @@
         const previousSources = this.sortTranslationSourcesList(this.selectedTranslationSources);
         this.isApplyingTranslationSources = true;
         const normalizedSources = this.filterAvailableTranslationSources(value).filter(
-          (sourceKey) => !(sourceKey === "elicit" && this.isElicitUnavailable)
+          (sourceKey) =>
+            !(
+              this.shouldDisableSemanticSourceOnRateLimit(sourceKey) &&
+              this.isSemanticSourceUnavailable(sourceKey)
+            )
         );
         const nextSources =
           this.isAiFeatureEnabled && normalizedSources.length === 0
@@ -997,7 +1016,11 @@
         if (!this.isTranslationSourceAvailable(normalizedSourceKey)) {
           return;
         }
-        if (normalizedSourceKey === "elicit" && enabled && this.isElicitUnavailable) {
+        if (
+          enabled &&
+          this.shouldDisableSemanticSourceOnRateLimit(normalizedSourceKey) &&
+          this.isSemanticSourceUnavailable(normalizedSourceKey)
+        ) {
           return;
         }
         let next = new Set(this.selectedTranslationSources);
@@ -1332,10 +1355,51 @@
           ...(resolvedState && typeof resolvedState === "object" ? resolvedState : {}),
         };
       },
-      getElicitRateLimitStorageKey() {
-        return "qpmElicitRateLimitInfo";
+      getSourceRateLimitStorageKey(sourceKey) {
+        switch (String(sourceKey || "").trim()) {
+          case "elicit":
+            return "qpmElicitRateLimitInfo";
+          case "openAlex":
+            return "qpmOpenAlexRateLimitInfo";
+          case "semanticScholar":
+            return "qpmSemanticScholarRateLimitInfo";
+          default:
+            return "";
+        }
       },
-      normalizeElicitRateLimitInfo(value) {
+      getSourceRateLimitStateProperty(sourceKey) {
+        switch (String(sourceKey || "").trim()) {
+          case "elicit":
+            return "elicitRateLimitInfo";
+          case "openAlex":
+            return "openAlexRateLimitInfo";
+          case "semanticScholar":
+            return "semanticScholarRateLimitInfo";
+          default:
+            return "";
+        }
+      },
+      getSourceRateLimitLabel(sourceKey) {
+        switch (String(sourceKey || "").trim()) {
+          case "elicit":
+            return "Elicit";
+          case "openAlex":
+            return "OpenAlex";
+          case "semanticScholar":
+            return "Semantic Scholar";
+          default:
+            return "API";
+        }
+      },
+      getSourceRateLimitInfo(sourceKey) {
+        const stateProperty = this.getSourceRateLimitStateProperty(sourceKey);
+        return stateProperty ? this[stateProperty] : null;
+      },
+      shouldDisableSemanticSourceOnRateLimit(sourceKey) {
+        const normalizedSourceKey = String(sourceKey || "").trim();
+        return normalizedSourceKey === "elicit" || normalizedSourceKey === "openAlex";
+      },
+      normalizeSourceRateLimitInfo(value) {
         if (!value || typeof value !== "object") {
           return null;
         }
@@ -1379,34 +1443,58 @@
           isLimited: value.isLimited === true || (Number.isFinite(remaining) && remaining <= 0),
         };
       },
-      setElicitRateLimitInfo(value) {
-        const normalized = this.normalizeElicitRateLimitInfo(value);
+      getElicitRateLimitStorageKey() {
+        return this.getSourceRateLimitStorageKey("elicit");
+      },
+      normalizeElicitRateLimitInfo(value) {
+        return this.normalizeSourceRateLimitInfo(value);
+      },
+      setSourceRateLimitInfo(sourceKey, value) {
+        const stateProperty = this.getSourceRateLimitStateProperty(sourceKey);
+        if (!stateProperty) {
+          return;
+        }
+        const normalized = this.normalizeSourceRateLimitInfo(value);
         if (!normalized) {
           return;
         }
-        this.elicitRateLimitInfo = normalized;
-        if (this.isElicitUnavailable && this.selectedTranslationSources.includes("elicit")) {
+        this[stateProperty] = normalized;
+        if (
+          this.shouldDisableSemanticSourceOnRateLimit(sourceKey) &&
+          this.isSemanticSourceUnavailable(sourceKey) &&
+          this.selectedTranslationSources.includes(sourceKey)
+        ) {
           this.setSelectedTranslationSources(
-            this.selectedTranslationSources.filter((sourceKey) => sourceKey !== "elicit"),
+            this.selectedTranslationSources.filter((entry) => entry !== sourceKey),
             false
           );
         }
       },
-      restoreStoredElicitRateLimitInfo() {
+      setElicitRateLimitInfo(value) {
+        this.setSourceRateLimitInfo("elicit", value);
+      },
+      restoreStoredSourceRateLimitInfo(sourceKey) {
         if (typeof window === "undefined") {
           return;
         }
+        const storageKey = this.getSourceRateLimitStorageKey(sourceKey);
+        if (!storageKey) {
+          return;
+        }
         try {
-          const rawValue = window.localStorage.getItem(this.getElicitRateLimitStorageKey());
+          const rawValue = window.localStorage.getItem(storageKey);
           if (!rawValue) {
             return;
           }
-          this.setElicitRateLimitInfo(JSON.parse(rawValue));
+          this.setSourceRateLimitInfo(sourceKey, JSON.parse(rawValue));
         } catch {
           // Ignore malformed local cache values.
         }
       },
-      getElicitResetDate(resetAt, resetInSeconds = null) {
+      restoreStoredElicitRateLimitInfo() {
+        this.restoreStoredSourceRateLimitInfo("elicit");
+      },
+      getSourceResetDate(resetAt, resetInSeconds = null) {
         const resetTimestamp = Date.parse(String(resetAt || "").trim());
         if (Number.isFinite(resetTimestamp)) {
           return new Date(resetTimestamp);
@@ -1417,8 +1505,11 @@
         }
         return null;
       },
-      formatElicitResetCountdown(resetAt, resetInSeconds = null) {
-        const resetDate = this.getElicitResetDate(resetAt, resetInSeconds);
+      getElicitResetDate(resetAt, resetInSeconds = null) {
+        return this.getSourceResetDate(resetAt, resetInSeconds);
+      },
+      formatSourceResetCountdown(resetAt, resetInSeconds = null) {
+        const resetDate = this.getSourceResetDate(resetAt, resetInSeconds);
         const diffSeconds = resetDate
           ? Math.max(0, Math.round((resetDate.getTime() - Date.now()) / 1000))
           : null;
@@ -1443,8 +1534,11 @@
         }
         return parts.slice(0, 2).join(", ");
       },
-      formatElicitResetClockTime(resetAt, resetInSeconds = null) {
-        const resetDate = this.getElicitResetDate(resetAt, resetInSeconds);
+      formatElicitResetCountdown(resetAt, resetInSeconds = null) {
+        return this.formatSourceResetCountdown(resetAt, resetInSeconds);
+      },
+      formatSourceResetClockTime(resetAt, resetInSeconds = null) {
+        const resetDate = this.getSourceResetDate(resetAt, resetInSeconds);
         if (!resetDate) {
           return "";
         }
@@ -1454,12 +1548,42 @@
           minute: "2-digit",
         }).format(resetDate);
       },
-      getElicitTooltipSuffix() {
-        const info = this.elicitRateLimitInfo;
+      formatElicitResetClockTime(resetAt, resetInSeconds = null) {
+        return this.formatSourceResetClockTime(resetAt, resetInSeconds);
+      },
+      isSemanticSourceUnavailable(sourceKey) {
+        const info = this.getSourceRateLimitInfo(sourceKey);
         if (!info) {
+          return false;
+        }
+        const resetDate = this.getSourceResetDate(info.resetAt, info.resetInSeconds);
+        if (resetDate && resetDate.getTime() <= Date.now()) {
+          return false;
+        }
+        if (Number.isFinite(info.remaining)) {
+          return info.remaining <= 0;
+        }
+        return info.isLimited === true;
+      },
+      getSourceRateLimitTooltipSuffix(sourceKey) {
+        const normalizedSourceKey = String(sourceKey || "").trim();
+        if (
+          !normalizedSourceKey ||
+          !this.getSourceRateLimitStateProperty(normalizedSourceKey)
+        ) {
+          return "";
+        }
+        const sourceLabel = this.getSourceRateLimitLabel(normalizedSourceKey);
+        const info = this.getSourceRateLimitInfo(normalizedSourceKey);
+        if (!info) {
+          if (normalizedSourceKey === "semanticScholar") {
+            return this.language === "en"
+              ? `<br><br><strong>${sourceLabel} API usage:</strong> Remaining requests are not exposed by the API. If ${sourceLabel} rate limits this widget, that status will be shown here.`
+              : `<br><br><strong>${sourceLabel} API-forbrug:</strong> API'et eksponerer ikke det resterende antal kald. Hvis ${sourceLabel} rate limiter widgeten, vises den status her.`;
+          }
           return this.language === "en"
-            ? "<br><br><strong>Elicit API usage:</strong> Remaining requests are shown after Elicit returns rate limit information."
-            : "<br><br><strong>Elicit API-forbrug:</strong> Resterende kald vises, når Elicit har returneret rate limit-oplysninger.";
+            ? `<br><br><strong>${sourceLabel} API usage:</strong> Remaining requests are shown after ${sourceLabel} returns rate limit information.`
+            : `<br><br><strong>${sourceLabel} API-forbrug:</strong> Resterende kald vises, når ${sourceLabel} har returneret rate limit-oplysninger.`;
         }
         const remainingText = Number.isFinite(info.remaining)
           ? this.language === "en"
@@ -1476,35 +1600,50 @@
             : Number.isFinite(info.limit)
               ? `det resterende antal kald er i øjeblikket ukendt ud af ${info.limit}`
               : "det resterende antal kald er i øjeblikket ukendt";
-        const shouldShowNextSearchTime = Number.isFinite(info.remaining) && info.remaining <= 0;
+        const unknownUsageText = this.language === "en"
+          ? `${sourceLabel} does not expose remaining request counts`
+          : `${sourceLabel} eksponerer ikke det resterende antal kald`;
+        const shouldShowNextSearchTime = this.isSemanticSourceUnavailable(normalizedSourceKey);
         const resetCountdown = shouldShowNextSearchTime
-          ? this.formatElicitResetCountdown(info.resetAt, info.resetInSeconds)
+          ? this.formatSourceResetCountdown(info.resetAt, info.resetInSeconds)
           : "";
         const resetClockTime = shouldShowNextSearchTime
-          ? this.formatElicitResetClockTime(info.resetAt, info.resetInSeconds)
+          ? this.formatSourceResetClockTime(info.resetAt, info.resetInSeconds)
           : "";
         const resetText = shouldShowNextSearchTime
           ? resetCountdown
             ? this.language === "en"
-              ? `Next Elicit search can be completed in ${resetCountdown}${resetClockTime ? ` (${resetClockTime})` : ""}.`
-              : `Næste søgning i Elicit kan gennemføres om ${resetCountdown}${resetClockTime ? ` (${resetClockTime})` : ""}.`
+              ? `Next ${sourceLabel} search can be completed in ${resetCountdown}${resetClockTime ? ` (${resetClockTime})` : ""}.`
+              : `Næste søgning i ${sourceLabel} kan gennemføres om ${resetCountdown}${resetClockTime ? ` (${resetClockTime})` : ""}.`
             : this.language === "en"
-              ? "Elicit is temporarily unavailable."
-              : "Elicit er midlertidigt utilgængelig."
+              ? `${sourceLabel} is temporarily unavailable.`
+              : `${sourceLabel} er midlertidigt utilgængelig.`
           : "";
+        const usageText =
+          Number.isFinite(info.remaining) || Number.isFinite(info.limit)
+            ? remainingText
+            : unknownUsageText;
         return this.language === "en"
-          ? `<br><br><strong>Elicit API usage:</strong> ${remainingText}.${resetText ? `<br>${resetText}` : ""}`
-          : `<br><br><strong>Elicit API-forbrug:</strong> ${remainingText}.${resetText ? `<br>${resetText}` : ""}`;
+          ? `<br><br><strong>${sourceLabel} API usage:</strong> ${usageText}.${resetText ? `<br>${resetText}` : ""}`
+          : `<br><br><strong>${sourceLabel} API-forbrug:</strong> ${usageText}.${resetText ? `<br>${resetText}` : ""}`;
+      },
+      getElicitTooltipSuffix() {
+        return this.getSourceRateLimitTooltipSuffix("elicit");
+      },
+      getOpenAlexTooltipSuffix() {
+        return this.getSourceRateLimitTooltipSuffix("openAlex");
+      },
+      getSemanticScholarTooltipSuffix() {
+        return this.getSourceRateLimitTooltipSuffix("semanticScholar");
       },
       isSemanticOptionDisabled(option) {
-        return String(option?.id || "").trim() === "elicit" && this.isElicitUnavailable;
+        const sourceKey = String(option?.id || "").trim();
+        return this.shouldDisableSemanticSourceOnRateLimit(sourceKey) &&
+          this.isSemanticSourceUnavailable(sourceKey);
       },
       getSemanticOptionTooltipContent(option) {
         const baseTooltip = this.getString(option?.hoverKey || "");
-        if (String(option?.id || "").trim() !== "elicit") {
-          return baseTooltip;
-        }
-        return `${baseTooltip}${this.getElicitTooltipSuffix()}`;
+        return `${baseTooltip}${this.getSourceRateLimitTooltipSuffix(option?.id || "")}`;
       },
       getSemanticLoadingProcessStepOrder() {
         return [

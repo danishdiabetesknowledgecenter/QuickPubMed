@@ -32,7 +32,7 @@ function qpmIsLocalSemanticScholarRequest(): bool
  * @param string $url
  * @param array<int,string> $headers
  * @param int $timeout
- * @return array{ok: bool, status: int, body: string, error: string}
+ * @return array{ok: bool, status: int, body: string, error: string, response_headers: array<int,string>}
  */
 function qpmSemanticScholarFallbackRequest(string $url, array $headers, int $timeout = 30): array
 {
@@ -73,6 +73,7 @@ function qpmSemanticScholarFallbackRequest(string $url, array $headers, int $tim
             'status' => $status,
             'body' => '',
             'error' => $message !== '' ? $message : 'Semantic Scholar fallback request failed',
+            'response_headers' => is_array($responseHeaders) ? array_values($responseHeaders) : [],
         ];
     }
 
@@ -81,6 +82,7 @@ function qpmSemanticScholarFallbackRequest(string $url, array $headers, int $tim
         'status' => $status,
         'body' => (string)$body,
         'error' => '',
+        'response_headers' => is_array($responseHeaders) ? array_values($responseHeaders) : [],
     ];
 }
 
@@ -91,7 +93,7 @@ function qpmSemanticScholarFallbackRequest(string $url, array $headers, int $tim
  * @param string $url
  * @param array<int,string> $headers
  * @param int $timeout
- * @return array{ok: bool, status: int, body: string, error: string}
+ * @return array{ok: bool, status: int, body: string, error: string, response_headers: array<int,string>}
  */
 function qpmSemanticScholarShellCurlRequest(string $url, array $headers, int $timeout = 30): array
 {
@@ -101,6 +103,7 @@ function qpmSemanticScholarShellCurlRequest(string $url, array $headers, int $ti
             'status' => 0,
             'body' => '',
             'error' => 'exec() is disabled',
+            'response_headers' => [],
         ];
     }
 
@@ -125,6 +128,7 @@ function qpmSemanticScholarShellCurlRequest(string $url, array $headers, int $ti
             'status' => 0,
             'body' => '',
             'error' => 'curl binary produced no output',
+            'response_headers' => [],
         ];
     }
 
@@ -141,6 +145,7 @@ function qpmSemanticScholarShellCurlRequest(string $url, array $headers, int $ti
             'status' => $status,
             'body' => $body,
             'error' => 'curl binary failed with exit code ' . (string)$exitCode,
+            'response_headers' => [],
         ];
     }
 
@@ -149,6 +154,7 @@ function qpmSemanticScholarShellCurlRequest(string $url, array $headers, int $ti
         'status' => $status,
         'body' => (string)$body,
         'error' => $status >= 200 && $status < 300 ? '' : 'curl binary returned HTTP ' . (string)$status,
+        'response_headers' => [],
     ];
 }
 
@@ -157,7 +163,7 @@ function qpmSemanticScholarShellCurlRequest(string $url, array $headers, int $ti
  *
  * @param string $query
  * @param int $limit
- * @return array{ok: bool, status: int, body: string, error: string}
+ * @return array{ok: bool, status: int, body: string, error: string, response_headers: array<int,string>}
  */
 function qpmSemanticScholarLocalDevProxyRequest(
     string $query,
@@ -170,12 +176,15 @@ function qpmSemanticScholarLocalDevProxyRequest(
 {
     $hosts = ['localhost', '127.0.0.1'];
     $isLocalRequest = qpmIsLocalSemanticScholarRequest();
+    $lastStatus = 0;
+    $lastResponseHeaders = [];
     if (!$isLocalRequest) {
         return [
             'ok' => false,
             'status' => 0,
             'body' => '',
             'error' => 'local dev proxy fallback disabled for non-local host',
+            'response_headers' => [],
         ];
     }
 
@@ -208,12 +217,19 @@ function qpmSemanticScholarLocalDevProxyRequest(
                 'user_agent' => 'QuickPubMed/1.0',
                 'headers' => $headers,
             ]);
+            $lastStatus = (int) ($result['status'] ?? 0);
+            $lastResponseHeaders = is_array($result['response_headers'] ?? null)
+                ? array_values($result['response_headers'])
+                : [];
             if ($result['ok'] && (int)$result['status'] >= 200 && (int)$result['status'] < 300) {
                 return [
                     'ok' => true,
                     'status' => (int)$result['status'],
                     'body' => (string)$result['body'],
                     'error' => '',
+                    'response_headers' => is_array($result['response_headers'] ?? null)
+                        ? array_values($result['response_headers'])
+                        : [],
                 ];
             }
             $errors[] = $host . ': ' . ($result['error'] !== '' ? $result['error'] : ('HTTP ' . (string)$result['status']));
@@ -222,9 +238,61 @@ function qpmSemanticScholarLocalDevProxyRequest(
 
     return [
         'ok' => false,
-        'status' => 0,
+        'status' => $lastStatus,
         'body' => '',
         'error' => implode(' | ', $errors),
+        'response_headers' => $lastResponseHeaders,
+    ];
+}
+
+/**
+ * Extract Semantic Scholar rate limit metadata from response headers.
+ *
+ * @param array<int,string> $headers
+ * @param int $status
+ * @return array<string,mixed>
+ */
+function qpmBuildSemanticScholarRateLimitInfo(array $headers, int $status): array
+{
+    $headerMap = qpmBuildResponseHeaderMap($headers);
+    $limit = qpmParseIntegerHeaderValue(
+        $headerMap['x-ratelimit-limit'] ?? ($headerMap['ratelimit-limit'] ?? '')
+    );
+    if ($limit !== null && $limit <= 0) {
+        $limit = null;
+    }
+
+    $remaining = qpmParseIntegerHeaderValue(
+        $headerMap['x-ratelimit-remaining'] ?? ($headerMap['ratelimit-remaining'] ?? '')
+    );
+    if ($remaining !== null) {
+        $remaining = max(0, $remaining);
+    }
+
+    $resetWindow = qpmParseRateLimitResetWindow(
+        $headerMap['x-ratelimit-reset'] ?? ($headerMap['ratelimit-reset'] ?? ''),
+        $headerMap['retry-after'] ?? ''
+    );
+    $isLimited = $status === 429 || ($remaining !== null && $remaining <= 0);
+
+    if (
+        $limit === null &&
+        $remaining === null &&
+        $resetWindow['resetAt'] === '' &&
+        $resetWindow['resetInSeconds'] === null &&
+        $status <= 0 &&
+        !$isLimited
+    ) {
+        return [];
+    }
+
+    return [
+        'limit' => $limit,
+        'remaining' => $remaining,
+        'resetAt' => $resetWindow['resetAt'],
+        'resetInSeconds' => $resetWindow['resetInSeconds'],
+        'status' => $status,
+        'isLimited' => $isLimited,
     ];
 }
 
@@ -492,7 +560,7 @@ function qpmCollectSemanticScholarDroppedRecords(array $decoded, int $rankOffset
  * @param int $limit
  * @param int $offset
  * @param array<int,array<int,string>> $headerCandidates
- * @return array{ok: bool, status: int, body: string, error: string}
+ * @return array{ok: bool, status: int, body: string, error: string, response_headers: array<int,string>}
  */
 function qpmSemanticScholarFetchBatch(
     string $query,
@@ -517,6 +585,8 @@ function qpmSemanticScholarFetchBatch(
         );
 
     $requestErrors = [];
+    $lastStatus = 0;
+    $lastResponseHeaders = [];
 
     if (qpmIsLocalSemanticScholarRequest()) {
         $localDevProxyResult = qpmSemanticScholarLocalDevProxyRequest(
@@ -533,8 +603,15 @@ function qpmSemanticScholarFetchBatch(
                 'status' => $localDevProxyResult['status'],
                 'body' => $localDevProxyResult['body'],
                 'error' => '',
+                'response_headers' => is_array($localDevProxyResult['response_headers'] ?? null)
+                    ? array_values($localDevProxyResult['response_headers'])
+                    : [],
             ];
         }
+        $lastStatus = (int) ($localDevProxyResult['status'] ?? 0);
+        $lastResponseHeaders = is_array($localDevProxyResult['response_headers'] ?? null)
+            ? array_values($localDevProxyResult['response_headers'])
+            : [];
         $requestErrors[] = (string)$localDevProxyResult['error'];
     }
 
@@ -558,6 +635,7 @@ function qpmSemanticScholarFetchBatch(
                     'body' => $fallbackResult['body'],
                     'content_type' => 'application/json',
                     'error' => '',
+                    'response_headers' => $fallbackResult['response_headers'],
                 ];
             } else {
                 $attemptResult['error'] = trim((string)$attemptResult['error'] . ' | ' . (string)$fallbackResult['error'], ' |');
@@ -576,18 +654,24 @@ function qpmSemanticScholarFetchBatch(
                     'body' => $shellCurlResult['body'],
                     'content_type' => 'application/json',
                     'error' => '',
+                    'response_headers' => $shellCurlResult['response_headers'],
                 ];
             } else {
                 $attemptResult['error'] = trim((string)$attemptResult['error'] . ' | ' . (string)$shellCurlResult['error'], ' |');
             }
         }
 
+        $lastStatus = (int) ($attemptResult['status'] ?? 0);
+        $lastResponseHeaders = is_array($attemptResult['response_headers'] ?? null)
+            ? array_values($attemptResult['response_headers'])
+            : [];
         if ($attemptResult['ok'] && (int)$attemptResult['status'] >= 200 && (int)$attemptResult['status'] < 300) {
             return [
                 'ok' => true,
                 'status' => (int)$attemptResult['status'],
                 'body' => (string)$attemptResult['body'],
                 'error' => '',
+                'response_headers' => $lastResponseHeaders,
             ];
         }
 
@@ -600,9 +684,10 @@ function qpmSemanticScholarFetchBatch(
 
     return [
         'ok' => false,
-        'status' => 500,
+        'status' => $lastStatus,
         'body' => '',
         'error' => implode(' | ', array_filter($requestErrors)) ?: 'Semantic Scholar request failed',
+        'response_headers' => $lastResponseHeaders,
     ];
 }
 
@@ -686,6 +771,7 @@ $requestErrors = [];
 $warning = '';
 $debugDroppedRecords = [];
 $debugDroppedReasons = [];
+$rateLimit = [];
 
 while ($offset < $limit) {
     $currentLimit = min($batchSize, $limit - $offset);
@@ -698,6 +784,13 @@ while ($offset < $limit) {
         $publicationTypes,
         $publicationDateOrYear
     );
+    $batchRateLimit = qpmBuildSemanticScholarRateLimitInfo(
+        is_array($result['response_headers'] ?? null) ? $result['response_headers'] : [],
+        (int) ($result['status'] ?? 0)
+    );
+    if (!empty($batchRateLimit)) {
+        $rateLimit = $batchRateLimit;
+    }
     if (!$result['ok']) {
         $requestErrors[] = (string) $result['error'];
         $hasPartialData = !empty($candidates) || !empty($pmids) || !empty($dois);
@@ -764,6 +857,7 @@ echo json_encode([
     'total' => $total,
     'partial' => $warning !== '',
     'warning' => $warning,
+    'rateLimit' => !empty($rateLimit) ? $rateLimit : (object) [],
     'debug' => $debugSearchFlow ? [
         'upstreamTotal' => $total === null ? count($candidates) + count($debugDroppedRecords) : (int) $total,
         'normalizedTotal' => count($candidates),
