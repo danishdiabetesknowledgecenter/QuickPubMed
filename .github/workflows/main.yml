@@ -83,6 +83,20 @@ jobs:
              runtime/**
              *.lock
 
+      - name: 📂 Deploy public API to FTP Server
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./public-api/
+          server-dir: ${{ env.DEPLOY_ROOT }}/public-api/
+          protocol: ftp
+          state-name: .ftp-deploy-sync-state-public-api.json
+          exclude: |
+             .git*
+             *.map
+
       - name: 📂 Deploy entries to FTP Server
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
