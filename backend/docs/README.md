@@ -15,6 +15,10 @@ Denne mappe er den kanoniske web-indgang (`/backend`) til server-endpoints.
 - `backend/docs/semantic-source-filters.md`: vedligeholdelse af `semanticConfig.sourceFilters`, kilde-specifikke filterværdier og hvornår de bør bruges.
 - `backend/docs/search-flow-readme.md`: pædagogisk gennemgang af det samlede search flow fra UI-valg til PubMed- og semantisk retrieval.
 - `backend/docs/semantic-filter-regression-checklist.md`: fast manuel regressionscheckliste for de vigtigste kanoniske semantiske filtercases.
+- `backend/docs/public-search-api.md`: kontrakt og eksempler for det offentlige NemPubMed search API.
+- `backend/docs/public-search-openapi.yaml`: formel OpenAPI-spec for det offentlige search API.
+- `backend/docs/public-search-security.md`: auth, CORS, rate limits, audit og driftsregler for public API.
+- `backend/docs/public-search-parity.md`: principper og teststrategi for rangering/paritet mellem web og API.
 
 `php-proxy` kan bevares midlertidigt som kompatibilitetslag, men ny kode bør pege på `backend`.
 

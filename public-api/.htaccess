@@ -1,0 +1,6 @@
+Options -Indexes
+RewriteEngine On
+
+RewriteRule ^v1/search/?$ v1/search.php [L,QSA]
+RewriteRule ^v1/health/?$ v1/health.php [L,QSA]
+RewriteRule ^v1/openapi\.yaml/?$ v1/openapi.php [L,QSA]

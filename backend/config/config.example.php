@@ -126,6 +126,56 @@ define('QPM_SEMANTIC_LLM_RERANK_CONFIG', [
     'maxOutputTokens' => 400,
 ]);
 
+// ============ Public Search API Configuration ============
+// External API clients. Keep real keys only in config.php, never in git.
+define('NEMPUBMED_API_CLIENTS', [
+    'example-client' => [
+        'api_key' => 'replace-with-production-api-key',
+        'url_api_key' => 'replace-with-separate-low-privilege-test-key',
+        'enabled' => false,
+        // Model B: allow browser calls from arbitrary origins for this client.
+        'allow_all_origins' => false,
+        'allowed_origins' => [
+            'https://app.example.com',
+        ],
+        'rate_limit_per_minute' => 60,
+        'get_rate_limit_per_minute' => 15,
+        'allow_primary_api_key_in_url' => false,
+    ],
+]);
+
+define('NEMPUBMED_PUBLIC_API', [
+    'basePath' => '/v1',
+    'docroot' => 'public-api',
+    'defaultPageSize' => 25,
+    'maxPageSize' => 100,
+    'includeAbstractsByDefault' => true,
+    'includeResolvedQueriesByDefault' => true,
+    'includeDiagnosticsByDefault' => false,
+    'getSearchEnabled' => true,
+    'urlApiKeyEnabled' => false,
+    'urlApiKeyMode' => 'configurable',
+    'urlApiKeyDefaultDisabled' => true,
+    'responseCachePolicy' => 'no-store',
+    'postRateLimit' => 60,
+    'getRateLimit' => 15,
+    'matchesWebOrderingByDefault' => false,
+]);
+
+define('NEMPUBMED_PUBLIC_API_BASE_PATH', '/v1');
+define('NEMPUBMED_PUBLIC_API_DOCROOT', 'public-api');
+define('NEMPUBMED_PUBLIC_API_GET_SEARCH_ENABLED', true);
+define('NEMPUBMED_PUBLIC_API_URL_API_KEY_ENABLED', false);
+define('NEMPUBMED_PUBLIC_API_URL_API_KEY_MODE', 'configurable');
+define('NEMPUBMED_PUBLIC_API_URL_API_KEY_DEFAULT_DISABLED', true);
+define('NEMPUBMED_PUBLIC_API_RESPONSE_CACHE_POLICY', 'no-store');
+define('NEMPUBMED_PUBLIC_API_GET_RATE_LIMIT', 15);
+
+define('NEMPUBMED_AUDIT', [
+    'enabled' => true,
+    'retentionDays' => 30,
+]);
+
 // ============ Frontend Class Overrides (Optional) ============
 // Optional global fallback (applies to all domains):
 // - mode "append": keep existing element classes and add these

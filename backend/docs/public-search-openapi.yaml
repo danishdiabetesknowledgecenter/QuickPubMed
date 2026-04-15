@@ -1,0 +1,456 @@
+openapi: 3.1.0
+info:
+  title: NemPubMed Public Search API
+  version: "1.0.0"
+  description: |
+    Host-uafhængig versioneret søge-API for NemPubMed.
+    POST /v1/search er den officielle kontrakt. GET /v1/search er en begrænset testvariant.
+servers:
+  - url: https://{api-host}
+    variables:
+      api-host:
+        default: api.example.com
+paths:
+  /v1/search:
+    get:
+      summary: Enkel URL-baseret testsøgning
+      description: |
+        Begrænset testvariant. Avancerede filtre understøttes ikke her.
+        Query-string-baseret apiKey er kun tilgængelig når deploymenten tillader det.
+      security:
+        - ApiKeyHeader: []
+        - BearerAuth: []
+        - ApiKeyQuery: []
+      parameters:
+        - in: query
+          name: q
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: sources
+          required: true
+          schema:
+            type: string
+          description: Kommasepareret liste, fx `pubmed,openAlex`
+        - in: query
+          name: sort
+          required: false
+          schema:
+            $ref: '#/components/schemas/SortMethod'
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - in: query
+          name: pageSize
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+        - in: query
+          name: apiKey
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Search response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "405":
+          $ref: '#/components/responses/MethodNotAllowed'
+        "422":
+          $ref: '#/components/responses/ValidationError'
+        "429":
+          $ref: '#/components/responses/RateLimited'
+        "502":
+          $ref: '#/components/responses/BadGateway'
+    post:
+      summary: Officiel integrationssøgning
+      security:
+        - ApiKeyHeader: []
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchRequest'
+      responses:
+        "200":
+          description: Search response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "422":
+          $ref: '#/components/responses/ValidationError'
+        "429":
+          $ref: '#/components/responses/RateLimited'
+        "502":
+          $ref: '#/components/responses/BadGateway'
+  /v1/health:
+    get:
+      summary: Health endpoint
+      responses:
+        "200":
+          description: Health response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  status:
+                    type: string
+                  service:
+                    type: string
+                  version:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+                  config:
+                    type: object
+  /v1/openapi.yaml:
+    get:
+      summary: OpenAPI dokument
+      responses:
+        "200":
+          description: OpenAPI YAML
+          content:
+            application/yaml:
+              schema:
+                type: string
+components:
+  securitySchemes:
+    ApiKeyHeader:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    ApiKeyQuery:
+      type: apiKey
+      in: query
+      name: apiKey
+    BearerAuth:
+      type: http
+      scheme: bearer
+  responses:
+    Unauthorized:
+      description: Missing or invalid API key
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Client origin is not allowed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    MethodNotAllowed:
+      description: Method or route variant is disabled
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    RateLimited:
+      description: Client rate limit exceeded
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ErrorResponse'
+              - type: object
+                properties:
+                  rateLimit:
+                    $ref: '#/components/schemas/RateLimit'
+    BadGateway:
+      description: Upstream provider error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    Source:
+      type: string
+      enum:
+        - pubmed
+        - semanticScholar
+        - openAlex
+        - elicit
+    SortMethod:
+      type: string
+      enum:
+        - relevance
+        - date_desc
+        - date_asc
+      default: relevance
+    SearchRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - apiVersion
+        - query
+        - sources
+      properties:
+        apiVersion:
+          type: string
+          const: "1"
+        query:
+          type: object
+          additionalProperties: false
+          required:
+            - text
+          properties:
+            text:
+              type: string
+            language:
+              type: string
+              enum: [auto, da, en]
+        domain:
+          type: string
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/Source'
+          minItems: 1
+          uniqueItems: true
+        sort:
+          type: object
+          additionalProperties: false
+          properties:
+            method:
+              $ref: '#/components/schemas/SortMethod'
+        page:
+          type: object
+          additionalProperties: false
+          properties:
+            number:
+              type: integer
+              minimum: 1
+              default: 1
+            size:
+              type: integer
+              minimum: 1
+              maximum: 100
+              default: 25
+        translation:
+          type: object
+          additionalProperties: false
+          properties:
+            mode:
+              type: string
+              enum: [auto, none]
+              default: auto
+        responseOptions:
+          type: object
+          additionalProperties: false
+          properties:
+            includeAbstracts:
+              type: boolean
+            includeResolvedQueries:
+              type: boolean
+            includeDiagnostics:
+              type: boolean
+        hardFilters:
+          type: object
+          additionalProperties: false
+          properties:
+            languages:
+              type: array
+              items:
+                type: string
+            publicationYear:
+              type: string
+              description: YYYY or YYYY-YYYY
+            publicationTypes:
+              type: array
+              items:
+                type: string
+            sourceFormats:
+              type: array
+              items:
+                type: string
+        sourceFilters:
+          type: object
+          additionalProperties: false
+          properties:
+            semanticScholar:
+              type: object
+              additionalProperties: false
+              properties:
+                publicationTypes:
+                  type: array
+                  items:
+                    type: string
+                publicationDateOrYear:
+                  type: string
+                year:
+                  type: string
+            openAlex:
+              type: object
+              additionalProperties: false
+              properties:
+                language:
+                  type: array
+                  items:
+                    type: string
+                sourceType:
+                  type: array
+                  items:
+                    type: string
+                workType:
+                  type: array
+                  items:
+                    type: string
+                publicationYear:
+                  type: string
+            elicit:
+              type: object
+              additionalProperties: false
+              properties:
+                typeTags:
+                  type: array
+                  items:
+                    type: string
+                includeKeywords:
+                  type: array
+                  items:
+                    type: string
+                excludeKeywords:
+                  type: array
+                  items:
+                    type: string
+    SearchResponse:
+      type: object
+      additionalProperties: true
+      properties:
+        apiVersion:
+          type: string
+        query:
+          type: object
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/Source'
+        page:
+          type: object
+        total:
+          type: integer
+        partial:
+          type: boolean
+        warnings:
+          type: array
+          items:
+            type: string
+        order:
+          type: object
+          additionalProperties: false
+          properties:
+            requestedMethod:
+              $ref: '#/components/schemas/SortMethod'
+            appliedMethod:
+              $ref: '#/components/schemas/SortMethod'
+            finalStage:
+              type: string
+            matchesWebOrdering:
+              type: boolean
+        resolvedQueries:
+          type: object
+          additionalProperties: true
+        diagnostics:
+          type: object
+          additionalProperties: true
+        rateLimit:
+          $ref: '#/components/schemas/RateLimit'
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchResult'
+    SearchResult:
+      type: object
+      additionalProperties: false
+      properties:
+        rank:
+          type: integer
+        resultKey:
+          type: string
+        type:
+          type: string
+          enum: [pmid, doi]
+        pmid:
+          type: string
+        doi:
+          type: string
+        title:
+          type: string
+        abstract:
+          type: string
+        hasAbstract:
+          type: boolean
+        abstractSource:
+          type: string
+        publicationDate:
+          type: string
+        year:
+          type: string
+        originSource:
+          type: string
+        mergedSources:
+          type: array
+          items:
+            $ref: '#/components/schemas/Source'
+        trustedPmid:
+          type: boolean
+        canOpenInPubMed:
+          type: boolean
+        sourceLabel:
+          type: string
+    RateLimit:
+      type: object
+      additionalProperties: false
+      properties:
+        limit:
+          type: integer
+          nullable: true
+        remaining:
+          type: integer
+          nullable: true
+        resetAt:
+          type: string
+        resetInSeconds:
+          type: integer
+          nullable: true
+        status:
+          type: integer
+        isLimited:
+          type: boolean
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        error:
+          type: string
