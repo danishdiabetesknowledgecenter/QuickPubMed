@@ -66,6 +66,13 @@ paths:
           required: false
           schema:
             type: string
+        - in: query
+          name: stream
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: "true returnerer text/event-stream med progress-events og et afsluttende result-event."
       responses:
         "200":
           description: Search response
@@ -73,6 +80,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SearchResponse'
+            text/event-stream:
+              schema:
+                type: string
         "401":
           $ref: '#/components/responses/Unauthorized'
         "403":
@@ -85,11 +95,21 @@ paths:
           $ref: '#/components/responses/RateLimited'
         "502":
           $ref: '#/components/responses/BadGateway'
+        "503":
+          $ref: '#/components/responses/Busy'
     post:
       summary: Officiel integrationssøgning
       security:
         - ApiKeyHeader: []
         - BearerAuth: []
+      parameters:
+        - in: query
+          name: stream
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: "URL-override for streaming. Hvis sat, vinder den over responseOptions.stream."
       requestBody:
         required: true
         content:
@@ -103,6 +123,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SearchResponse'
+            text/event-stream:
+              schema:
+                type: string
         "401":
           $ref: '#/components/responses/Unauthorized'
         "403":
@@ -113,6 +136,8 @@ paths:
           $ref: '#/components/responses/RateLimited'
         "502":
           $ref: '#/components/responses/BadGateway'
+        "503":
+          $ref: '#/components/responses/Busy'
   /v1/health:
     get:
       summary: Health endpoint
@@ -201,6 +226,23 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+    Busy:
+      description: Serveren er midlertidigt fuldt optaget
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ErrorResponse'
+              - type: object
+                properties:
+                  retryAfterSeconds:
+                    type: integer
+                  concurrentSearchLimit:
+                    type: integer
   schemas:
     Source:
       type: string
@@ -282,6 +324,8 @@ components:
             includeResolvedQueries:
               type: boolean
             includeDiagnostics:
+              type: boolean
+            stream:
               type: boolean
         hardFilters:
           type: object

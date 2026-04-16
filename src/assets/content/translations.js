@@ -43,6 +43,10 @@ export const messages = {
     dk: "Indtast søgeord",
     en: "Enter search term",
   },
+  mobileActionEdit: {
+    dk: "Redigér",
+    en: "Edit",
+  },
   mobileActionPickTopic: {
     dk: "Vælg emne fra liste",
     en: "Pick topic from list",

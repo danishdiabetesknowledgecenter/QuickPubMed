@@ -1120,6 +1120,20 @@ button.qpm_slim.multiselect__input:focus-visible {
   overflow: hidden;
 }
 
+.qpm_actionSheetSecondaryGroup--split {
+  display: flex;
+}
+
+.qpm_actionSheetSecondaryGroup--split .qpm_actionSheetSecondaryBtn {
+  flex: 1 1 0;
+  width: auto;
+  border-radius: 0;
+}
+
+.qpm_actionSheetSecondaryGroup--split .qpm_actionSheetSecondaryBtn + .qpm_actionSheetSecondaryBtn {
+  border-left: 1px solid var(--color-border-subtle, #d1d1d6);
+}
+
 .qpm_actionSheetSecondaryBtn {
   border-radius: 0;
 }

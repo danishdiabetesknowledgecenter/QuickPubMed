@@ -41,6 +41,20 @@ $clientForAudit = [
     'auth_source' => '',
     'masked_api_key' => '',
 ];
+$streamStarted = false;
+$streamEnabled = false;
+$executionSlot = null;
+$rateLimit = [
+    'limit' => null,
+    'remaining' => null,
+    'resetAt' => '',
+    'resetInSeconds' => null,
+    'status' => 0,
+    'isLimited' => false,
+];
+register_shutdown_function(static function () use (&$executionSlot): void {
+    qpmPublicSearchReleaseExecutionSlot($executionSlot);
+});
 
 try {
     $client = qpmPublicSearchResolveAuthenticatedClient();
@@ -51,6 +65,7 @@ try {
 
     $rateLimit = qpmPublicSearchConsumeRateLimit($client, $method);
     if (($rateLimit['isLimited'] ?? false) === true) {
+        qpmPublicSearchApplyRetryAfterHeader((int) ($rateLimit['resetInSeconds'] ?? 60));
         qpmPublicSearchAudit([
             'clientId' => $client['client_id'] ?? '',
             'method' => $method,
@@ -70,7 +85,30 @@ try {
 
     $request = qpmPublicSearchParseRequest();
     $requestForAudit = $request;
-    $response = qpmPublicSearchRunSearch($request);
+    $streamEnabled = (($request['responseOptions']['stream'] ?? false) === true);
+    $executionSlot = qpmPublicSearchAcquireExecutionSlot((int) ($config['concurrentSearchLimit'] ?? 10));
+
+    $progressCallback = null;
+    if ($streamEnabled) {
+        qpmPublicSearchStartEventStream();
+        $streamStarted = true;
+        qpmPublicSearchEmitSseEvent('progress', [
+            'stage' => 'connected',
+            'message' => 'Search stream connected',
+            'timestamp' => gmdate('c'),
+        ]);
+        $progressCallback = static function (string $stage, string $message, array $context = []) use (&$executionSlot): void {
+            qpmPublicSearchRefreshExecutionSlot($executionSlot);
+            qpmPublicSearchEmitSseEvent('progress', array_merge([
+                'stage' => $stage,
+                'message' => $message,
+                'timestamp' => gmdate('c'),
+            ], $context));
+        };
+    }
+
+    qpmPublicSearchRefreshExecutionSlot($executionSlot);
+    $response = qpmPublicSearchRunSearch($request, $progressCallback);
     $response['rateLimit'] = $rateLimit;
 
     qpmPublicSearchAudit([
@@ -90,6 +128,15 @@ try {
         'latencyMs' => (int) round((microtime(true) - $startedAt) * 1000),
     ]);
 
+    if ($streamStarted) {
+        qpmPublicSearchEmitSseEvent('result', $response);
+        qpmPublicSearchReleaseExecutionSlot($executionSlot);
+        $executionSlot = null;
+        exit;
+    }
+
+    qpmPublicSearchReleaseExecutionSlot($executionSlot);
+    $executionSlot = null;
     qpmPublicSearchRespondJson(200, $response);
 } catch (InvalidArgumentException $exception) {
     $status = stripos($exception->getMessage(), 'Method not allowed') !== false ? 405 : 422;
@@ -110,13 +157,37 @@ try {
         'latencyMs' => (int) round((microtime(true) - $startedAt) * 1000),
         'error' => $exception->getMessage(),
     ]);
+    if ($streamStarted) {
+        qpmPublicSearchEmitSseEvent('error', [
+            'status' => $status,
+            'error' => $exception->getMessage(),
+            'timestamp' => gmdate('c'),
+        ]);
+        qpmPublicSearchReleaseExecutionSlot($executionSlot);
+        $executionSlot = null;
+        exit;
+    }
+    qpmPublicSearchReleaseExecutionSlot($executionSlot);
+    $executionSlot = null;
     qpmPublicSearchRespondJson($status, [
         'error' => $exception->getMessage(),
     ]);
 } catch (RuntimeException $exception) {
     $status = $exception->getCode();
-    if (!in_array($status, [401, 403, 429, 502], true)) {
+    if (!in_array($status, [401, 403, 429, 502, 503], true)) {
         $status = 500;
+    }
+    $errorPayload = [
+        'error' => $exception->getMessage(),
+    ];
+    if ($status === 429) {
+        qpmPublicSearchApplyRetryAfterHeader((int) ($rateLimit['resetInSeconds'] ?? 60));
+        $errorPayload['rateLimit'] = $rateLimit;
+    } elseif ($status === 503) {
+        $retryAfterSeconds = (int) ($config['busyRetryAfterSeconds'] ?? 120);
+        qpmPublicSearchApplyRetryAfterHeader($retryAfterSeconds);
+        $errorPayload['retryAfterSeconds'] = $retryAfterSeconds;
+        $errorPayload['concurrentSearchLimit'] = (int) ($config['concurrentSearchLimit'] ?? 10);
     }
     qpmPublicSearchAudit([
         'clientId' => $clientForAudit['client_id'] ?? '',
@@ -135,9 +206,18 @@ try {
         'latencyMs' => (int) round((microtime(true) - $startedAt) * 1000),
         'error' => $exception->getMessage(),
     ]);
-    qpmPublicSearchRespondJson($status, [
-        'error' => $exception->getMessage(),
-    ]);
+    if ($streamStarted) {
+        qpmPublicSearchEmitSseEvent('error', array_merge($errorPayload, [
+            'status' => $status,
+            'timestamp' => gmdate('c'),
+        ]));
+        qpmPublicSearchReleaseExecutionSlot($executionSlot);
+        $executionSlot = null;
+        exit;
+    }
+    qpmPublicSearchReleaseExecutionSlot($executionSlot);
+    $executionSlot = null;
+    qpmPublicSearchRespondJson($status, $errorPayload);
 } catch (Throwable $throwable) {
     qpmPublicSearchAudit([
         'clientId' => $clientForAudit['client_id'] ?? '',
@@ -156,6 +236,18 @@ try {
         'latencyMs' => (int) round((microtime(true) - $startedAt) * 1000),
         'error' => $throwable->getMessage(),
     ]);
+    if ($streamStarted) {
+        qpmPublicSearchEmitSseEvent('error', [
+            'status' => 500,
+            'error' => 'Internal server error',
+            'timestamp' => gmdate('c'),
+        ]);
+        qpmPublicSearchReleaseExecutionSlot($executionSlot);
+        $executionSlot = null;
+        exit;
+    }
+    qpmPublicSearchReleaseExecutionSlot($executionSlot);
+    $executionSlot = null;
     qpmPublicSearchRespondJson(500, [
         'error' => 'Internal server error',
     ]);

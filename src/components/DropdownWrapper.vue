@@ -62,6 +62,9 @@
         <dropdown-tag
           :triple="triple"
           :custom-name-label="customNameLabel"
+          :use-mobile-action-sheet-for-custom-tags="shouldUseMobileActionSheetForCustomTags"
+          :open-mobile-custom-tag-actions="openMobileCustomTagActions"
+          :requested-edit-tag-id="requestedMobileEditTagId"
           :update-tag="
             function (newTag) {
               return handleUpdateCustomTag(triple.option, newTag);
@@ -305,11 +308,20 @@
                 :class="{ 'qpm_actionSheetScrollHint--hidden': !showMobileScrollHint }"
               >{{ getString("mobileActionScrollHint") }}</div>
             </div>
-            <div v-if="taggable" class="qpm_actionSheetSecondaryGroup">
+            <div
+              v-if="taggable"
+              class="qpm_actionSheetSecondaryGroup"
+              :class="{ 'qpm_actionSheetSecondaryGroup--split': mobileEditableCustomTag }"
+            >
               <button
                 class="qpm_actionSheetBtn qpm_actionSheetSecondaryBtn"
                 @click="handleActionFreeText"
               >{{ getString("mobileActionFreeText") }}</button>
+              <button
+                v-if="mobileEditableCustomTag"
+                class="qpm_actionSheetBtn qpm_actionSheetSecondaryBtn"
+                @click="handleActionEditCustomTag"
+              >{{ getString("mobileActionEdit") }}</button>
             </div>
             <button
               class="qpm_actionSheetBtn qpm_actionSheetCancel"
@@ -478,6 +490,8 @@
         mobileActiveGroupId: "",
         mobileParentStack: [],
         mobileOverlayHidden: false,
+        mobileActionCustomTagId: "",
+        requestedMobileEditTagId: "",
         _overlayTouchY: null,
         _overlayTouchMoved: false,
         _handleKeyDownBound: null,
@@ -494,6 +508,7 @@
         _htmlOriginalOverscrollBehavior: "",
         mobileCanScroll: false,
         mobileAtBottom: false,
+        pendingTagInputValue: "",
         semanticIntentCache: {},
         semanticSourceResponseCache: {},
       };
@@ -755,6 +770,17 @@
       showMobileScrollHint() {
         return this.showMobileActionSheet && this.mobileCanScroll && !this.mobileAtBottom;
       },
+      shouldUseMobileActionSheetForCustomTags() {
+        return this.isMobileInputMode() && !this.mobileOverlayHidden;
+      },
+      mobileEditableCustomTag() {
+        if (!this.mobileActionCustomTagId) return null;
+        return (
+          (this.selected || []).find(
+            (entry) => entry?.isCustom && entry.id === this.mobileActionCustomTagId
+          ) || null
+        );
+      },
     },
     watch: {
       selected: {
@@ -980,6 +1006,7 @@
       this.$el.removeEventListener("touchstart", this._handleDropdownMousedownGuard, true);
       clearTimeout(this._deactivateGuardTimer);
       document.removeEventListener("mousedown", this.setMouseUsed);
+      document.removeEventListener("touchstart", this.setMouseUsed);
       document.removeEventListener("keydown", this.resetMouseUsed);
 
       const input = this.$el.querySelector('.multiselect__input');
@@ -1290,6 +1317,7 @@
       handleMobileTap() {
         const hasOptions = this.getSortedSubjectOptions.length > 0;
         const canFreeText = this.taggable;
+        this.mobileActionCustomTagId = "";
         if (hasOptions) {
           this.mobileListStep = "root";
           this.mobileActiveGroupId = "";
@@ -1303,12 +1331,21 @@
           });
         }
       },
+      openMobileCustomTagActions(tag) {
+        if (!tag?.isCustom || !this.shouldUseMobileActionSheetForCustomTags) return;
+        this.mobileActionCustomTagId = tag.id;
+        this.mobileListStep = "root";
+        this.mobileActiveGroupId = "";
+        this.mobileParentStack = [];
+        this.showMobileActionSheet = true;
+      },
       closeMobileActionSheet() {
         this.showMobileActionSheet = false;
         this.mobileListStep = "root";
         this.mobileActiveGroupId = "";
         this.mobileParentStack = [];
         this.mobileOverlayHidden = false;
+        this.mobileActionCustomTagId = "";
       },
       handleActionFreeText() {
         this.showMobileActionSheet = false;
@@ -1316,9 +1353,31 @@
         this.mobileActiveGroupId = "";
         this.mobileParentStack = [];
         this.mobileOverlayHidden = true;
+        this.mobileActionCustomTagId = "";
         this.$nextTick(() => {
           const input = this.$el.querySelector(".multiselect__input");
           if (input) input.focus();
+        });
+      },
+      handleActionEditCustomTag() {
+        const targetTag = this.mobileEditableCustomTag;
+        if (!targetTag) {
+          this.closeMobileActionSheet();
+          return;
+        }
+        this.showMobileActionSheet = false;
+        this.mobileListStep = "root";
+        this.mobileActiveGroupId = "";
+        this.mobileParentStack = [];
+        this.mobileOverlayHidden = false;
+        this.mobileActionCustomTagId = "";
+        this.requestedMobileEditTagId = targetTag.id;
+        this.$nextTick(() => {
+          setTimeout(() => {
+            if (this.requestedMobileEditTagId === targetTag.id) {
+              this.requestedMobileEditTagId = "";
+            }
+          }, 0);
         });
       },
       handleNativeSelect(event) {
@@ -1344,6 +1403,7 @@
         this.mobileActiveGroupId = "";
         this.mobileParentStack = [];
         this.mobileOverlayHidden = false;
+        this.mobileActionCustomTagId = "";
       },
       /**
        * Checks whether a searchString scope has valid content.
@@ -1425,10 +1485,51 @@
         
       },
       /**
+       * Commits pending free text as a tag.
+       * Returns true when a tag commit was triggered.
+       */
+      commitPendingTagInput(input = null) {
+        const resolvedInput = input || this.$el?.querySelector(".multiselect__input");
+        const pendingValue = String(resolvedInput?.value || this.pendingTagInputValue || "").trim();
+        if (!this.taggable || pendingValue.length === 0) {
+          this.pendingTagInputValue = "";
+          return false;
+        }
+
+        this.pendingTagInputValue = "";
+        if (resolvedInput) {
+          resolvedInput.value = "";
+        }
+        if (this.$refs.multiselect) {
+          this.$refs.multiselect.search = "";
+        }
+        this.isUserTyping = false;
+        this.handleAddTag(pendingValue);
+        return true;
+      },
+      /**
        * Sets the flag indicating the last interaction was via mouse.
        */
-      setMouseUsed() {
+      setMouseUsed(event) {
         this.isMouseUsed = true;
+        const input = this.$el?.querySelector(".multiselect__input");
+        const target = event?.target;
+        const targetIsElement = target instanceof Element;
+        const isCurrentInputFocused =
+          !!input && typeof document !== "undefined" && document.activeElement === input;
+        const clickedInsideInput =
+          !!input &&
+          !!target &&
+          (target === input || (typeof input.contains === "function" && input.contains(target)));
+        const clickedDropdownOption =
+          targetIsElement &&
+          !!target.closest(
+            ".multiselect__content-wrapper, .multiselect__option, .multiselect__element, .qpm_actionSheetPanel"
+          );
+
+        if (isCurrentInputFocused && !clickedInsideInput && !clickedDropdownOption) {
+          this.commitPendingTagInput(input);
+        }
         this.removeKeyboardFocus();
       },
       /**
@@ -1458,8 +1559,10 @@
         const element = this.$refs.selectWrapper;
         if (!element) return;
         document.removeEventListener("mousedown", this.setMouseUsed);
+        document.removeEventListener("touchstart", this.setMouseUsed);
         document.removeEventListener("keydown", this.resetMouseUsed);
         document.addEventListener("mousedown", this.setMouseUsed);
+        document.addEventListener("touchstart", this.setMouseUsed);
         document.addEventListener("keydown", this.resetMouseUsed);
 
         // Click on anywhere on dropdown opens (fix for IE)
@@ -1471,8 +1574,20 @@
         const input = element.getElementsByClassName("multiselect__input")[0];
         if (input) {
           // These event listeners are necessary for all normal multiselect functionality
+          input.removeEventListener("blur", this._handleBlurGuard, true);
+          input.removeEventListener("focus", this.addKeyboardFocus);
+          input.removeEventListener("blur", this.removeKeyboardFocus);
+          input.removeEventListener("focus", this.handleFocus);
+          input.removeEventListener("blur", this.handleBlur);
+          input.removeEventListener("click", this.handleClick, { capture: true });
           input.removeEventListener("input", this._handleInputEventBound);
           input.removeEventListener("keydown", this._handleKeyDownBound);
+          input.addEventListener("blur", this._handleBlurGuard, true);
+          input.addEventListener("focus", this.addKeyboardFocus);
+          input.addEventListener("blur", this.removeKeyboardFocus);
+          input.addEventListener("focus", this.handleFocus);
+          input.addEventListener("blur", this.handleBlur);
+          input.addEventListener("click", this.handleClick, { capture: true });
           input.addEventListener("input", this._handleInputEventBound);
           input.addEventListener("keydown", this._handleKeyDownBound);
         }
@@ -1537,6 +1652,7 @@
         }
       },
       input(value) {
+        this.pendingTagInputValue = "";
         // Ensure value is always an array (vue-multiselect may emit non-array during search)
         if (!Array.isArray(value)) {
           value = value ? [value] : [];
@@ -2227,6 +2343,7 @@
        * @param {Event} event - The input event object.
        */
       handleInputEvent(event) {
+        this.pendingTagInputValue = event.target.value || "";
         // Update typing state regardless of dropdown state
         this.isUserTyping = event.target.value.length > 0;
 
@@ -2267,6 +2384,15 @@
         // Keep pointer in bounds when typing reduces filteredOptions
         // (vue-multiselect's pointerAdjust crashes if pointer is out of bounds)
         const ms = this.$refs.multiselect;
+        const isInputField = event.target.classList.contains("multiselect__input");
+        const hasPendingFreeText =
+          String(event.target?.value || this.pendingTagInputValue || "").trim().length > 0;
+        const shouldCommitPendingTagOnTab =
+          isInputField &&
+          this.taggable &&
+          event.key === "Tab" &&
+          !event.shiftKey &&
+          hasPendingFreeText;
         if (ms && ms.isOpen) {
           const opts = ms.filteredOptions;
           if (opts && opts.length > 0) {
@@ -2279,33 +2405,37 @@
           }
         }
 
+        if (shouldCommitPendingTagOnTab) {
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+          event.preventDefault();
+          if (this.isSilentFocus) {
+            this.removeSilentFocus(event.target);
+          }
+          this.commitPendingTagInput(event.target);
+          return;
+        }
+
         // Only handle Enter key beyond this point
         if (event.key !== 'Enter') return;
 
         // Free-text field without topics: Enter should create a tag instead of opening dropdown
         if (
-          event.target.classList.contains("multiselect__input") &&
+          isInputField &&
           this.shouldHideDropdownArrow
         ) {
           event.stopPropagation();
+          event.stopImmediatePropagation();
           event.preventDefault();
           if (this.isSilentFocus) {
             this.removeSilentFocus(event.target);
           }
-          const newTag = (event.target.value || "").trim();
-          if (newTag.length > 0) {
-            this.handleAddTag(newTag);
-            event.target.value = "";
-            if (this.$refs.multiselect) {
-              this.$refs.multiselect.search = "";
-            }
-            this.isUserTyping = false;
-          }
+          this.commitPendingTagInput(event.target);
           return;
         }
 
         // When input has focus and dropdown is closed, Enter opens the dropdown
-        if (event.target.classList.contains("multiselect__input") && this.$refs.multiselect && !this.$refs.multiselect.isOpen) {
+        if (isInputField && this.$refs.multiselect && !this.$refs.multiselect.isOpen) {
           event.stopPropagation();
           event.preventDefault();
           if (this.isSilentFocus) {
@@ -2984,6 +3114,7 @@
         }
       },
       async handleAddTag(newTag) {
+        this.pendingTagInputValue = "";
         const input = this.$refs.multiselect?.$refs.search || this.$el?.querySelector(".multiselect__input");
         const appRoot = this.$el?.closest(".qpm_vapp");
         const hadVisibleKeyboardFocus =
@@ -7178,6 +7309,12 @@
         
         // Always remove silent focus on blur
         this.removeSilentFocus(input);
+
+        if (this.commitPendingTagInput(input)) {
+          return;
+        }
+
+        this.pendingTagInputValue = "";
         
         // If input is empty, restore placeholder width
         if (!input.value || input.value.length === 0) {
@@ -7291,6 +7428,7 @@
         event.stopImmediatePropagation();
         
         const currentValue = event.target.value;
+        this.pendingTagInputValue = currentValue;
         
         // Remove silent focus if active
         if (this.isSilentFocus) {

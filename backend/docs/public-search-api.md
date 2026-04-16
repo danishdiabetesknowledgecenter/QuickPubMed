@@ -9,6 +9,8 @@ Det offentlige search API eksponeres via en dedikeret public docroot, så de off
 
 `POST /v1/search` er den officielle integrationskontrakt. `GET /v1/search` er kun en enkel testvariant med et bevidst begrænset sæt URL-parametre.
 
+Samme `v1/search` endpoint kan nu ogsaa returnere progress-events som `text/event-stream`, naar streaming er slaaet til.
+
 ## Auth
 
 Den officielle auth-mekanisme er `X-API-Key`.
@@ -82,7 +84,8 @@ Ukendte felter afvises eksplicit.
   "responseOptions": {
     "includeAbstracts": true,
     "includeResolvedQueries": true,
-    "includeDiagnostics": false
+    "includeDiagnostics": false,
+    "stream": false
   },
   "hardFilters": {
     "languages": ["en"],
@@ -115,6 +118,7 @@ Den simple URL-kontrakt accepterer kun:
 - `pageSize`
 - `translation`
 - `apiKey` når konfigurationen tillader det
+- `stream`
 
 Eksempel:
 
@@ -129,10 +133,19 @@ Avancerede filtre understøttes ikke i `GET`-varianten.
 - `translation=auto`: AI-oversættelse slået til
 - `translation=none`: AI-oversættelse slået fra, så input håndteres som skrevet
 
+`stream` styrer progress-streaming:
+
+- `stream=1`, `stream=true`: returner `text/event-stream`
+- `stream=0`, `stream=false`: returner normalt JSON-svar
+
 URL-`apiKey` kan slås til og fra via:
 
 - `NEMPUBMED_PUBLIC_API['urlApiKeyEnabled']`
 - `NEMPUBMED_PUBLIC_API_URL_API_KEY_ENABLED`
+
+For `POST /v1/search` kan streaming ogsaa slaas til i body via `responseOptions.stream`.
+
+Hvis `stream` findes baade i URL og i JSON body, vinder URL-parameteren.
 
 ## Tilladte værdier
 
@@ -212,6 +225,39 @@ API'et returnerer den endelige ordnede liste i `results`.
 }
 ```
 
+## Streaming
+
+Hvis streaming er slaaet til, returnerer `v1/search` `text/event-stream` i stedet for et enkelt JSON-svar.
+
+Typiske events:
+
+- `progress`: loebende status, fx `01 Prepare`, `04 Source retrieval - PubMed`, `07 Hydration`
+- `result`: det endelige normale search-response som JSON payload
+- `error`: fejl payload, hvis soegningen fejler efter streamen er startet
+
+Eksempel:
+
+```text
+GET /v1/search?q=exercise+type+2+diabetes&sources=pubmed,openAlex&stream=1
+```
+
+```text
+event: progress
+data: {"stage":"prepare","message":"01 Prepare","timestamp":"2026-04-16T12:00:00Z"}
+
+event: result
+data: {"apiVersion":"1","results":[...]}
+```
+
+## Samtidighedsloft
+
+Public search-laget har nu et loft for samtidige aktive soegninger.
+
+- standard: `10` samtidige aktive soegninger
+- naar loftet er naaet, returneres `503`
+- serveren sender `Retry-After`
+- klienten boer vise en besked om at vente og proeve igen senere
+
 ## `matchesWebOrdering`
 
 `order.matchesWebOrdering` må kun være `true`, når deploymenten eksplicit er sat op til det. Den leveres derfor konservativt som `false` som standard, indtil web og public API reelt kører på samme kanoniske backend-pipeline.
@@ -235,6 +281,7 @@ Typiske fejlstatuskoder:
 - `422`: request-validering fejlede
 - `429`: rate limit overskredet
 - `502`: upstream-kilde fejlede
+- `503`: serveren er midlertidigt fuldt optaget
 
 ## Cache
 

@@ -18,10 +18,6 @@
           {{ getCustomNameLabel }}
         </p>
         <div v-if="isEditMode" :style="getEditContainerStyle" @click.stop @mousedown.stop>
-          <div v-if="isMultiLine" class="qpm_multilinePrestringSpacing">
-            <span class="qpm_prestring">{{ triple.option.preString }}</span>
-          </div>
-          <span v-if="!isMultiLine" class="qpm_prestring">{{ triple.option.preString }}</span>
           <textarea
             ref="editInput"
             v-model="getCustomNameLabel"
@@ -76,6 +72,18 @@
       updateTag: {
         type: Function,
         required: true,
+      },
+      useMobileActionSheetForCustomTags: {
+        type: Boolean,
+        default: false,
+      },
+      openMobileCustomTagActions: {
+        type: Function,
+        default: null,
+      },
+      requestedEditTagId: {
+        type: [String, Number],
+        default: "",
       },
       operator: {
         type: String,
@@ -158,6 +166,17 @@
           this.tag = newTriple.option;
         }
       },
+      requestedEditTagId(newId) {
+        if (
+          !newId ||
+          !this.triple?.option?.isCustom ||
+          this.triple.option.id !== newId ||
+          this.isEditMode
+        ) {
+          return;
+        }
+        this.startEdit();
+      },
     },
     methods: {
       startEdit() {
@@ -219,6 +238,14 @@
       handleTagClick(event) {
         // If it's a custom tag and we're not already in edit mode, start edit mode
         if (this.triple.option.isCustom && !this.isEditMode) {
+          if (
+            this.useMobileActionSheetForCustomTags &&
+            typeof this.openMobileCustomTagActions === "function"
+          ) {
+            event.stopPropagation();
+            this.openMobileCustomTagActions(this.triple.option);
+            return;
+          }
           this.startEdit();
           return;
         }
@@ -250,6 +277,14 @@
       handleKeydown(event) {
         // If custom tag, start edit
         if (this.triple.option.isCustom && !this.isEditMode) {
+          if (
+            this.useMobileActionSheetForCustomTags &&
+            typeof this.openMobileCustomTagActions === "function"
+          ) {
+            event.stopPropagation();
+            this.openMobileCustomTagActions(this.triple.option);
+            return;
+          }
           // Add a small delay to avoid conflict with keyup.enter on input
           this.$nextTick(() => {
             this.startEdit();
@@ -266,7 +301,10 @@
           the dropdown), but block for custom-tags when they are in edit-mode. */
       handleMouseDown(event) {
         // If we're in edit mode, stop event propagation
-        if (this.isEditMode) {
+        if (
+          this.isEditMode ||
+          (this.triple.option.isCustom && this.useMobileActionSheetForCustomTags)
+        ) {
           event.stopPropagation();
           return;
         }
