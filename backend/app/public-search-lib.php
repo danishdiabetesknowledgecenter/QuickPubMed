@@ -822,7 +822,7 @@ if (!function_exists('qpmPublicSearchBuildGetRequestFromQuery')) {
     function qpmPublicSearchBuildGetRequestFromQuery(array $queryParams): array
     {
         $request = qpmPublicSearchBuildDefaultRequest();
-        $allowed = ['q', 'sources', 'sort', 'page', 'pageSize', 'apiKey'];
+        $allowed = ['q', 'sources', 'sort', 'page', 'pageSize', 'translation', 'apiKey'];
         $unexpected = array_diff(array_keys($queryParams), $allowed);
         if (!empty($unexpected)) {
             throw new InvalidArgumentException('Unsupported GET query parameter(s): ' . implode(', ', $unexpected));
@@ -832,6 +832,7 @@ if (!function_exists('qpmPublicSearchBuildGetRequestFromQuery')) {
         $request['sources'] = qpmPublicSearchNormalizeSources($queryParams['sources'] ?? []);
         $request['sort']['method'] = qpmPublicSearchNormalizeSortMethod($queryParams['sort'] ?? 'relevance');
         $request['page']['number'] = max(1, (int) ($queryParams['page'] ?? 1));
+        $request['translation']['mode'] = qpmPublicSearchNormalizeTranslationMode($queryParams['translation'] ?? 'auto');
 
         $config = qpmPublicSearchGetConfig();
         $pageSize = (int) ($queryParams['pageSize'] ?? $request['page']['size']);

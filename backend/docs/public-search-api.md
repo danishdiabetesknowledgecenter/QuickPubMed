@@ -113,15 +113,21 @@ Den simple URL-kontrakt accepterer kun:
 - `sort`
 - `page`
 - `pageSize`
+- `translation`
 - `apiKey` når konfigurationen tillader det
 
 Eksempel:
 
 ```text
-GET /v1/search?q=exercise+type+2+diabetes&sources=pubmed,openAlex&sort=relevance&page=1&pageSize=10
+GET /v1/search?q=exercise+type+2+diabetes&sources=pubmed,openAlex&sort=relevance&page=1&pageSize=10&translation=auto
 ```
 
 Avancerede filtre understøttes ikke i `GET`-varianten.
+
+`translation` styrer AI-oversættelsen:
+
+- `translation=auto`: AI-oversættelse slået til
+- `translation=none`: AI-oversættelse slået fra, så input håndteres som skrevet
 
 URL-`apiKey` kan slås til og fra via:
 
