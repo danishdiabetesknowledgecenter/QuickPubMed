@@ -45,6 +45,24 @@ if (!function_exists('qpmPublicSearchNormalizeString')) {
     }
 }
 
+if (!function_exists('qpmPublicSearchNormalizeResponseLanguage')) {
+    /**
+     * @param mixed $value
+     * @return string
+     */
+    function qpmPublicSearchNormalizeResponseLanguage($value): string
+    {
+        $normalized = strtolower(trim((string) $value));
+        if (in_array($normalized, ['en', 'english'], true)) {
+            return 'en';
+        }
+        if (in_array($normalized, ['da', 'dk', 'danish', 'dansk'], true)) {
+            return 'da';
+        }
+        return 'da';
+    }
+}
+
 if (!function_exists('qpmPublicSearchSafeJsonEncode')) {
     /**
      * @param mixed $value
@@ -53,6 +71,18 @@ if (!function_exists('qpmPublicSearchSafeJsonEncode')) {
     function qpmPublicSearchSafeJsonEncode($value): string
     {
         $encoded = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        return is_string($encoded) ? $encoded : '{}';
+    }
+}
+
+if (!function_exists('qpmPublicSearchSafePrettyJsonEncode')) {
+    /**
+     * @param mixed $value
+     * @return string
+     */
+    function qpmPublicSearchSafePrettyJsonEncode($value): string
+    {
+        $encoded = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
         return is_string($encoded) ? $encoded : '{}';
     }
 }
@@ -519,7 +549,7 @@ if (!function_exists('qpmPublicSearchEmitSseEvent')) {
     function qpmPublicSearchEmitSseEvent(string $event, array $payload): void
     {
         echo 'event: ' . trim($event) . "\n";
-        $encoded = qpmPublicSearchSafeJsonEncode($payload);
+        $encoded = qpmPublicSearchSafePrettyJsonEncode($payload);
         foreach (preg_split("/\r\n|\r|\n/", $encoded) ?: [] as $line) {
             echo 'data: ' . $line . "\n";
         }
@@ -543,6 +573,149 @@ if (!function_exists('qpmPublicSearchEmitProgress')) {
             return;
         }
         $progressCallback($stage, $message, $context);
+    }
+}
+
+if (!function_exists('qpmPublicSearchDecodeJsQuotedString')) {
+    /**
+     * @param string $value
+     * @return string
+     */
+    function qpmPublicSearchDecodeJsQuotedString(string $value): string
+    {
+        $decoded = json_decode('"' . $value . '"', true);
+        return is_string($decoded) ? $decoded : stripcslashes($value);
+    }
+}
+
+if (!function_exists('qpmPublicSearchGetFrontendTranslationMap')) {
+    /**
+     * @return array<string,array<string,string>>
+     */
+    function qpmPublicSearchGetFrontendTranslationMap(): array
+    {
+        static $map = null;
+        if (is_array($map)) {
+            return $map;
+        }
+
+        $map = [];
+        $path = dirname(__DIR__, 2)
+            . DIRECTORY_SEPARATOR . 'src'
+            . DIRECTORY_SEPARATOR . 'assets'
+            . DIRECTORY_SEPARATOR . 'content'
+            . DIRECTORY_SEPARATOR . 'translations.js';
+        if (!is_file($path)) {
+            return $map;
+        }
+
+        $content = @file_get_contents($path);
+        if (!is_string($content) || $content === '') {
+            return $map;
+        }
+
+        $pattern = '/^\s*([A-Za-z0-9_]+)\s*:\s*\{\s*\R\s*dk:\s*"((?:\\\\.|[^"\\\\])*)",\s*\R\s*en:\s*"((?:\\\\.|[^"\\\\])*)"/m';
+        preg_match_all($pattern, $content, $matches, PREG_SET_ORDER);
+        foreach ($matches as $match) {
+            $key = trim((string) ($match[1] ?? ''));
+            if ($key === '') {
+                continue;
+            }
+            $map[$key] = [
+                'dk' => qpmPublicSearchDecodeJsQuotedString((string) ($match[2] ?? '')),
+                'en' => qpmPublicSearchDecodeJsQuotedString((string) ($match[3] ?? '')),
+            ];
+        }
+
+        return $map;
+    }
+}
+
+if (!function_exists('qpmPublicSearchGetFrontendTranslation')) {
+    /**
+     * @param string $key
+     * @param string $language
+     * @param string $fallback
+     * @return string
+     */
+    function qpmPublicSearchGetFrontendTranslation(string $key, string $language, string $fallback = ''): string
+    {
+        $map = qpmPublicSearchGetFrontendTranslationMap();
+        $normalizedLanguage = $language === 'en' ? 'en' : 'dk';
+        if (isset($map[$key][$normalizedLanguage]) && trim((string) $map[$key][$normalizedLanguage]) !== '') {
+            return trim((string) $map[$key][$normalizedLanguage]);
+        }
+        if (isset($map[$key]['dk']) && trim((string) $map[$key]['dk']) !== '') {
+            return trim((string) $map[$key]['dk']);
+        }
+        return trim($fallback);
+    }
+}
+
+if (!function_exists('qpmPublicSearchResolveProgressLanguage')) {
+    /**
+     * @param array<string,mixed> $request
+     * @return string
+     */
+    function qpmPublicSearchResolveProgressLanguage(array $request): string
+    {
+        $candidate = $request['responseOptions']['language'] ?? ($request['query']['language'] ?? 'da');
+        return qpmPublicSearchNormalizeResponseLanguage($candidate);
+    }
+}
+
+if (!function_exists('qpmPublicSearchBuildStreamProgressPayload')) {
+    /**
+     * @param array<string,mixed> $request
+     * @param string $stage
+     * @param string $fallbackMessage
+     * @param array<string,mixed> $context
+     * @return array<string,mixed>
+     */
+    function qpmPublicSearchBuildStreamProgressPayload(
+        array $request,
+        string $stage,
+        string $fallbackMessage = '',
+        array $context = []
+    ): array {
+        $language = qpmPublicSearchResolveProgressLanguage($request);
+        $frontendLanguage = $language === 'en' ? 'en' : 'dk';
+        $messageKey = trim((string) ($context['messageKey'] ?? ''));
+        $groupKey = trim((string) ($context['groupKey'] ?? ''));
+        $stepId = trim((string) ($context['stepId'] ?? $stage));
+        $groupId = trim((string) ($context['groupId'] ?? ''));
+        $source = trim((string) ($context['source'] ?? ''));
+        $message = $messageKey !== ''
+            ? qpmPublicSearchGetFrontendTranslation($messageKey, $frontendLanguage, $fallbackMessage)
+            : trim($fallbackMessage);
+        $groupLabel = $groupKey !== ''
+            ? qpmPublicSearchGetFrontendTranslation($groupKey, $frontendLanguage, '')
+            : '';
+
+        $payload = [
+            'stage' => $stepId !== '' ? $stepId : trim($stage),
+            'language' => $language,
+            'messageKey' => $messageKey,
+            'message' => $message,
+        ];
+        if ($stepId !== '') {
+            $payload['stepId'] = $stepId;
+        }
+        if ($groupId !== '') {
+            $payload['groupId'] = $groupId;
+        }
+        if ($groupKey !== '') {
+            $payload['groupKey'] = $groupKey;
+        }
+        if ($groupLabel !== '') {
+            $payload['groupLabel'] = $groupLabel;
+            $payload['label'] = $groupLabel;
+        }
+        if ($source !== '') {
+            $payload['source'] = $source;
+        }
+
+        return $payload;
     }
 }
 
@@ -1076,6 +1249,7 @@ if (!function_exists('qpmPublicSearchBuildDefaultRequest')) {
                 'includeResolvedQueries' => $config['includeResolvedQueriesByDefault'],
                 'includeDiagnostics' => $config['includeDiagnosticsByDefault'],
                 'stream' => false,
+                'language' => 'da',
             ],
             'hardFilters' => [
                 'languages' => [],
@@ -1118,6 +1292,9 @@ if (!function_exists('qpmPublicSearchApplyQueryResponseOptionOverrides')) {
                 (bool) ($request['responseOptions']['stream'] ?? false)
             );
         }
+        if (array_key_exists('lang', $_GET)) {
+            $request['responseOptions']['language'] = qpmPublicSearchNormalizeResponseLanguage($_GET['lang']);
+        }
         return $request;
     }
 }
@@ -1130,7 +1307,7 @@ if (!function_exists('qpmPublicSearchBuildGetRequestFromQuery')) {
     function qpmPublicSearchBuildGetRequestFromQuery(array $queryParams): array
     {
         $request = qpmPublicSearchBuildDefaultRequest();
-        $allowed = ['q', 'sources', 'sort', 'page', 'pageSize', 'translation', 'apiKey', 'stream'];
+        $allowed = ['q', 'sources', 'sort', 'page', 'pageSize', 'translation', 'apiKey', 'stream', 'lang'];
         $unexpected = array_diff(array_keys($queryParams), $allowed);
         if (!empty($unexpected)) {
             throw new InvalidArgumentException('Unsupported GET query parameter(s): ' . implode(', ', $unexpected));
@@ -1144,6 +1321,9 @@ if (!function_exists('qpmPublicSearchBuildGetRequestFromQuery')) {
         $request['responseOptions']['stream'] = qpmPublicSearchBoolValue(
             $queryParams['stream'] ?? $request['responseOptions']['stream'],
             (bool) $request['responseOptions']['stream']
+        );
+        $request['responseOptions']['language'] = qpmPublicSearchNormalizeResponseLanguage(
+            $queryParams['lang'] ?? $request['responseOptions']['language']
         );
 
         $config = qpmPublicSearchGetConfig();
@@ -1235,6 +1415,7 @@ if (!function_exists('qpmPublicSearchNormalizePostRequest')) {
             'includeResolvedQueries',
             'includeDiagnostics',
             'stream',
+            'language',
         ]);
         if (!empty($responseUnexpected)) {
             throw new InvalidArgumentException(
@@ -1256,6 +1437,9 @@ if (!function_exists('qpmPublicSearchNormalizePostRequest')) {
         $request['responseOptions']['stream'] = qpmPublicSearchBoolValue(
             $responseOptions['stream'] ?? $request['responseOptions']['stream'],
             $request['responseOptions']['stream']
+        );
+        $request['responseOptions']['language'] = qpmPublicSearchNormalizeResponseLanguage(
+            $responseOptions['language'] ?? $request['responseOptions']['language']
         );
 
         $hardFilters = isset($payload['hardFilters']) && is_array($payload['hardFilters']) ? $payload['hardFilters'] : [];
@@ -4030,8 +4214,7 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
             $cacheEntry = qpmPublicSearchReadCacheValue('search-response', $searchCacheKey);
             if (($cacheEntry['hit'] ?? false) === true && is_array($cacheEntry['value'] ?? null)) {
                 qpmPublicSearchEmitProgress($progressCallback, 'cache', 'Cache hit', [
-                    'step' => 'cache',
-                    'label' => 'Cache hit',
+                    'stepId' => 'cache',
                 ]);
                 $cachedResponse = $cacheEntry['value'];
                 if ($includeDiagnostics) {
@@ -4049,9 +4232,11 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
         $pageNumber = max(1, (int) ($request['page']['number'] ?? 1));
         $pageSize = max(1, (int) ($request['page']['size'] ?? 25));
         $pageOffset = ($pageNumber - 1) * $pageSize;
-        qpmPublicSearchEmitProgress($progressCallback, 'prepare', '01 Prepare', [
-            'step' => 'prepare',
-            'label' => '01 Prepare',
+        qpmPublicSearchEmitProgress($progressCallback, 'prepare', '', [
+            'stepId' => 'prepare',
+            'groupId' => 'prepare',
+            'groupKey' => 'semanticSearchProcessGroupPrepare',
+            'messageKey' => 'semanticSearchProgressPreparing',
         ]);
         $resolvedQueries = qpmPublicSearchBuildResolvedQueries($request);
         $warnings = qpmPublicSearchDedupeStrings((array) ($resolvedQueries['warnings'] ?? []));
@@ -4066,9 +4251,11 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
                 (string) ($resolvedQueries['pubmedQuery'] ?? ''),
                 (string) ($resolvedQueries['hardFilterQuery'] ?? '')
             );
-            qpmPublicSearchEmitProgress($progressCallback, 'source_retrieval', '04 Source retrieval - PubMed', [
-                'step' => 'source_retrieval',
-                'label' => '04 Source retrieval - PubMed',
+            qpmPublicSearchEmitProgress($progressCallback, 'pubmed', '', [
+                'stepId' => 'pubmed',
+                'groupId' => 'sources',
+                'groupKey' => 'semanticSearchProcessGroupSources',
+                'messageKey' => 'semanticSearchProgressPubMedBestMatch',
                 'source' => 'pubmed',
             ]);
             $searchPayload = qpmPublicSearchNlmGetJson('esearch.fcgi', [
@@ -4083,9 +4270,11 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
                 ? $searchPayload['esearchresult']
                 : [];
             $pmids = qpmPublicSearchDedupeStrings((array) ($esearch['idlist'] ?? []), 'qpmPublicSearchNormalizePmid');
-            qpmPublicSearchEmitProgress($progressCallback, 'hydration', '07 Hydration', [
-                'step' => 'hydration',
-                'label' => '07 Hydration',
+            qpmPublicSearchEmitProgress($progressCallback, 'finalizeHydratePubMed', '', [
+                'stepId' => 'finalizeHydratePubMed',
+                'groupId' => 'finalizeHydrate',
+                'groupKey' => 'semanticSearchProcessGroupDisplay',
+                'messageKey' => 'semanticSearchProgressFinalizeHydratePubMed',
             ]);
             $summaryMap = qpmPublicSearchFetchPubMedSummaryRecords($pmids, $domain);
             $abstractMap = ($request['responseOptions']['includeAbstracts'] ?? true) === true
@@ -4106,9 +4295,11 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
                 );
             }
 
-            qpmPublicSearchEmitProgress($progressCallback, 'finalize', '08 Final result composition', [
-                'step' => 'finalize',
-                'label' => '08 Final result composition',
+            qpmPublicSearchEmitProgress($progressCallback, 'finalizeRender', '', [
+                'stepId' => 'finalizeRender',
+                'groupId' => 'finalizeHydrate',
+                'groupKey' => 'semanticSearchProcessGroupDisplay',
+                'messageKey' => 'semanticSearchProgressFinalizeRender',
             ]);
             $response = qpmPublicSearchBuildFinalResponse(
                 $request,
@@ -4129,17 +4320,21 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
 
         $sourceResults = [];
         if (in_array('pubmed', (array) $request['sources'], true)) {
-            qpmPublicSearchEmitProgress($progressCallback, 'source_retrieval', '04 Source retrieval - PubMed', [
-                'step' => 'source_retrieval',
-                'label' => '04 Source retrieval - PubMed',
+            qpmPublicSearchEmitProgress($progressCallback, 'pubmed', '', [
+                'stepId' => 'pubmed',
+                'groupId' => 'sources',
+                'groupKey' => 'semanticSearchProcessGroupSources',
+                'messageKey' => 'semanticSearchProgressPubMedBestMatch',
                 'source' => 'pubmed',
             ]);
             $sourceResults[] = qpmPublicSearchFetchPubMedBestMatchSourceResult((string) ($resolvedQueries['pubmedQuery'] ?? ''), $domain);
         }
         if (in_array('semanticScholar', (array) $request['sources'], true)) {
-            qpmPublicSearchEmitProgress($progressCallback, 'source_retrieval', '04 Source retrieval - Semantic Scholar', [
-                'step' => 'source_retrieval',
-                'label' => '04 Source retrieval - Semantic Scholar',
+            qpmPublicSearchEmitProgress($progressCallback, 'semanticScholar', '', [
+                'stepId' => 'semanticScholar',
+                'groupId' => 'sources',
+                'groupKey' => 'semanticSearchProcessGroupSources',
+                'messageKey' => 'semanticSearchProgressSemanticScholar',
                 'source' => 'semanticScholar',
             ]);
             $sourceResults[] = qpmPublicSearchFetchSemanticScholarSourceResult(
@@ -4148,9 +4343,11 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
             );
         }
         if (in_array('openAlex', (array) $request['sources'], true)) {
-            qpmPublicSearchEmitProgress($progressCallback, 'source_retrieval', '04 Source retrieval - OpenAlex', [
-                'step' => 'source_retrieval',
-                'label' => '04 Source retrieval - OpenAlex',
+            qpmPublicSearchEmitProgress($progressCallback, 'openAlex', '', [
+                'stepId' => 'openAlex',
+                'groupId' => 'sources',
+                'groupKey' => 'semanticSearchProcessGroupSources',
+                'messageKey' => 'semanticSearchProgressOpenAlex',
                 'source' => 'openAlex',
             ]);
             $sourceResults[] = qpmPublicSearchFetchOpenAlexSourceResult(
@@ -4160,9 +4357,11 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
             );
         }
         if (in_array('elicit', (array) $request['sources'], true)) {
-            qpmPublicSearchEmitProgress($progressCallback, 'source_retrieval', '04 Source retrieval - Elicit', [
-                'step' => 'source_retrieval',
-                'label' => '04 Source retrieval - Elicit',
+            qpmPublicSearchEmitProgress($progressCallback, 'elicit', '', [
+                'stepId' => 'elicit',
+                'groupId' => 'sources',
+                'groupKey' => 'semanticSearchProcessGroupSources',
+                'messageKey' => 'semanticSearchProgressElicit',
                 'source' => 'elicit',
             ]);
             $sourceResults[] = qpmPublicSearchFetchElicitSourceResult(
@@ -4187,18 +4386,16 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
             throw new RuntimeException('All selected search sources failed or returned no candidates', 502);
         }
 
-        qpmPublicSearchEmitProgress($progressCallback, 'rerank', '05 Merge and rerank', [
-            'step' => 'rerank',
-            'label' => '05 Merge and rerank',
+        qpmPublicSearchEmitProgress($progressCallback, 'finalizeCollect', '', [
+            'stepId' => 'finalizeCollect',
+            'groupId' => 'finalizeCollect',
+            'groupKey' => 'semanticSearchProcessGroupMatch',
+            'messageKey' => 'semanticSearchProgressFinalizeCollect',
         ]);
         $reranked = qpmPublicSearchRerankSemanticCandidates($sourceResults);
         $orderedCandidates = (array) ($reranked['candidates'] ?? []);
         $diagnostics['rerank'] = $reranked['diagnostics'] ?? [];
 
-        qpmPublicSearchEmitProgress($progressCallback, 'filter_validation', '06 Filter and validation', [
-            'step' => 'filter_validation',
-            'label' => '06 Filter and validation',
-        ]);
         $hybridOrdering = qpmPublicSearchBuildHybridOrderedResultRefs(
             (string) ($resolvedQueries['hardFilterQuery'] ?? ''),
             $orderedCandidates,
@@ -4234,9 +4431,19 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
             }
         }
 
-        qpmPublicSearchEmitProgress($progressCallback, 'hydration', '07 Hydration', [
-            'step' => 'hydration',
-            'label' => '07 Hydration',
+        $hydrateMessageKey = 'semanticSearchProgressFinalizeHydrate';
+        if (!empty($pmidsToHydrate) && !empty($doiRefs)) {
+            $hydrateMessageKey = 'semanticSearchProgressFinalizeHydrateMixed';
+        } elseif (!empty($pmidsToHydrate)) {
+            $hydrateMessageKey = 'semanticSearchProgressFinalizeHydratePubMed';
+        } elseif (!empty($doiRefs)) {
+            $hydrateMessageKey = 'semanticSearchProgressFinalizeHydrateOpenAlex';
+        }
+        qpmPublicSearchEmitProgress($progressCallback, 'finalizeHydrate', '', [
+            'stepId' => 'finalizeHydrate',
+            'groupId' => 'finalizeHydrate',
+            'groupKey' => 'semanticSearchProcessGroupDisplay',
+            'messageKey' => $hydrateMessageKey,
         ]);
         $summaryMap = qpmPublicSearchFetchPubMedSummaryRecords($pmidsToHydrate, $domain);
         $abstractMap = ($request['responseOptions']['includeAbstracts'] ?? true) === true
@@ -4279,6 +4486,12 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
         }
 
         if (qpmPublicSearchShouldUseSemanticDateOrdering($sortMethod)) {
+            qpmPublicSearchEmitProgress($progressCallback, 'finalizeSort', '', [
+                'stepId' => 'finalizeSort',
+                'groupId' => 'finalizeHydrate',
+                'groupKey' => 'semanticSearchProcessGroupDisplay',
+                'messageKey' => 'semanticSearchProgressFinalizeSort',
+            ]);
             $results = qpmPublicSearchSortResultsByDate($results, $sortMethod);
             $totalCount = count($results);
             $results = array_slice($results, $pageOffset, $pageSize);
@@ -4294,9 +4507,11 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
         }
         unset($result);
 
-        qpmPublicSearchEmitProgress($progressCallback, 'finalize', '08 Final result composition', [
-            'step' => 'finalize',
-            'label' => '08 Final result composition',
+        qpmPublicSearchEmitProgress($progressCallback, 'finalizeRender', '', [
+            'stepId' => 'finalizeRender',
+            'groupId' => 'finalizeHydrate',
+            'groupKey' => 'semanticSearchProcessGroupDisplay',
+            'messageKey' => 'semanticSearchProgressFinalizeRender',
         ]);
         $response = qpmPublicSearchBuildFinalResponse(
             $request,

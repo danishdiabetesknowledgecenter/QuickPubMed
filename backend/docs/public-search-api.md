@@ -85,7 +85,8 @@ Ukendte felter afvises eksplicit.
     "includeAbstracts": true,
     "includeResolvedQueries": true,
     "includeDiagnostics": false,
-    "stream": false
+    "stream": false,
+    "language": "da"
   },
   "hardFilters": {
     "languages": ["en"],
@@ -119,6 +120,7 @@ Den simple URL-kontrakt accepterer kun:
 - `translation`
 - `apiKey` når konfigurationen tillader det
 - `stream`
+- `lang`
 
 Eksempel:
 
@@ -138,6 +140,11 @@ Avancerede filtre understøttes ikke i `GET`-varianten.
 - `stream=1`, `stream=true`: returner `text/event-stream`
 - `stream=0`, `stream=false`: returner normalt JSON-svar
 
+`lang` styrer sproget for progress-tekster i streamen:
+
+- `lang=da`
+- `lang=en`
+
 URL-`apiKey` kan slås til og fra via:
 
 - `NEMPUBMED_PUBLIC_API['urlApiKeyEnabled']`
@@ -145,7 +152,9 @@ URL-`apiKey` kan slås til og fra via:
 
 For `POST /v1/search` kan streaming ogsaa slaas til i body via `responseOptions.stream`.
 
-Hvis `stream` findes baade i URL og i JSON body, vinder URL-parameteren.
+Progress-sproget kan ogsaa saettes i body via `responseOptions.language`.
+
+Hvis `stream` eller `lang` findes baade i URL og i JSON body, vinder URL-parameteren.
 
 ## Tilladte værdier
 
@@ -231,7 +240,8 @@ Hvis streaming er slaaet til, returnerer `v1/search` `text/event-stream` i stede
 
 Typiske events:
 
-- `progress`: loebende status, fx `01 Prepare`, `04 Source retrieval - PubMed`, `07 Hydration`
+- `connected`: streamen er etableret
+- `progress`: loebende status med samme oversaettelsesnoegler som webudgaven
 - `result`: det endelige normale search-response som JSON payload
 - `error`: fejl payload, hvis soegningen fejler efter streamen er startet
 
@@ -243,11 +253,24 @@ GET /v1/search?q=exercise+type+2+diabetes&sources=pubmed,openAlex&stream=1
 
 ```text
 event: progress
-data: {"stage":"prepare","message":"01 Prepare","timestamp":"2026-04-16T12:00:00Z"}
+data: {
+data:   "stage": "prepare",
+data:   "language": "da",
+data:   "messageKey": "semanticSearchProgressPreparing",
+data:   "message": "Forbereder soegningen ud fra dine valgte soegeord, afgraensninger og databaser.",
+data:   "stepId": "prepare",
+data:   "groupId": "prepare",
+data:   "groupKey": "semanticSearchProcessGroupPrepare",
+data:   "groupLabel": "Forbereder soegningen",
+data:   "label": "Forbereder soegningen",
+data:   "timestamp": "2026-04-16T12:00:00Z"
+data: }
 
 event: result
 data: {"apiVersion":"1","results":[...]}
 ```
+
+Bemærk: naar `stream=1`, er svaret ikke laengere `application/json` men `text/event-stream`. Derfor viser Chrome normalt ikke den saedvanlige JSON "Pretty" toggle for hele responsen.
 
 ## Samtidighedsloft
 

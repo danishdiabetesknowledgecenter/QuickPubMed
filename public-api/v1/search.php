@@ -92,18 +92,19 @@ try {
     if ($streamEnabled) {
         qpmPublicSearchStartEventStream();
         $streamStarted = true;
-        qpmPublicSearchEmitSseEvent('progress', [
+        qpmPublicSearchEmitSseEvent('connected', [
             'stage' => 'connected',
-            'message' => 'Search stream connected',
+            'language' => qpmPublicSearchResolveProgressLanguage($request),
             'timestamp' => gmdate('c'),
         ]);
-        $progressCallback = static function (string $stage, string $message, array $context = []) use (&$executionSlot): void {
+        $progressCallback = static function (string $stage, string $message, array $context = []) use (&$executionSlot, $request): void {
             qpmPublicSearchRefreshExecutionSlot($executionSlot);
-            qpmPublicSearchEmitSseEvent('progress', array_merge([
-                'stage' => $stage,
-                'message' => $message,
+            qpmPublicSearchEmitSseEvent('progress', array_merge(
+                qpmPublicSearchBuildStreamProgressPayload($request, $stage, $message, $context),
+                [
                 'timestamp' => gmdate('c'),
-            ], $context));
+                ]
+            ));
         };
     }
 

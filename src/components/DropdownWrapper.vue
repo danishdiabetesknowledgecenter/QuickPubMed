@@ -509,6 +509,7 @@
         mobileCanScroll: false,
         mobileAtBottom: false,
         pendingTagInputValue: "",
+        pendingTagBlurFocusStrategy: "",
         semanticIntentCache: {},
         semanticSourceResponseCache: {},
       };
@@ -1488,7 +1489,7 @@
        * Commits pending free text as a tag.
        * Returns true when a tag commit was triggered.
        */
-      commitPendingTagInput(input = null) {
+      commitPendingTagInput(input = null, options = {}) {
         const resolvedInput = input || this.$el?.querySelector(".multiselect__input");
         const pendingValue = String(resolvedInput?.value || this.pendingTagInputValue || "").trim();
         if (!this.taggable || pendingValue.length === 0) {
@@ -1504,7 +1505,8 @@
           this.$refs.multiselect.search = "";
         }
         this.isUserTyping = false;
-        this.handleAddTag(pendingValue);
+        this.pendingTagBlurFocusStrategy = "";
+        this.handleAddTag(pendingValue, options);
         return true;
       },
       /**
@@ -2412,7 +2414,7 @@
           if (this.isSilentFocus) {
             this.removeSilentFocus(event.target);
           }
-          this.commitPendingTagInput(event.target);
+          this.commitPendingTagInput(event.target, { focusStrategy: "nextInput" });
           return;
         }
 
@@ -2423,6 +2425,23 @@
         if (
           isInputField &&
           this.shouldHideDropdownArrow
+        ) {
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+          event.preventDefault();
+          if (this.isSilentFocus) {
+            this.removeSilentFocus(event.target);
+          }
+          this.commitPendingTagInput(event.target);
+          return;
+        }
+
+        const highlightedOption = ms?.filteredOptions?.[ms.pointer];
+        if (
+          isInputField &&
+          this.taggable &&
+          hasPendingFreeText &&
+          highlightedOption?.isTag
         ) {
           event.stopPropagation();
           event.stopImmediatePropagation();
@@ -3113,7 +3132,7 @@
           this.isLoading = false;
         }
       },
-      async handleAddTag(newTag) {
+      async handleAddTag(newTag, options = {}) {
         this.pendingTagInputValue = "";
         const input = this.$refs.multiselect?.$refs.search || this.$el?.querySelector(".multiselect__input");
         const appRoot = this.$el?.closest(".qpm_vapp");
@@ -3240,9 +3259,69 @@
         this.input(this.selected, -1);
         this.loading = false;
         this.clearShownItems();
-        if (hadVisibleKeyboardFocus) {
-          this.$nextTick(() => this.focusNextFocusableElement(input));
+        if (options.focusStrategy === "nextInput") {
+          this.$nextTick(() => {
+            if (this.focusNextInputElement(input)) {
+              return;
+            }
+            this.focusNextFocusableElement(input);
+          });
+          return;
         }
+        if (hadVisibleKeyboardFocus) {
+          this.$nextTick(() => {
+            this.focusNextFocusableElement(input);
+          });
+        }
+      },
+      focusNextInputElement(currentElement) {
+        if (!currentElement || this.isMouseUsed) return false;
+
+        const localRoot = this.$el?.closest(".qpm_vapp") || document.body;
+        const referenceElement = this.$el instanceof HTMLElement ? this.$el : currentElement;
+        const inputSelector = [
+          'input:not([disabled]):not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"])',
+          'select:not([disabled])',
+          'textarea:not([disabled])',
+        ].join(",");
+
+        const focusNextInputWithinRoot = (root) => {
+          const inputs = Array.from(root.querySelectorAll(inputSelector)).filter((el) => {
+            if (!(el instanceof HTMLElement)) return false;
+            if (el.getAttribute("aria-hidden") === "true") return false;
+            return el.offsetParent !== null || el === document.activeElement;
+          });
+
+          const nextInputByPosition = inputs.find((el) => {
+            if (!(referenceElement instanceof HTMLElement)) return false;
+            if (referenceElement.contains(el)) return false;
+            const position = referenceElement.compareDocumentPosition(el);
+            return Boolean(position & Node.DOCUMENT_POSITION_FOLLOWING);
+          });
+          if (nextInputByPosition instanceof HTMLElement) {
+            nextInputByPosition.focus({ preventScroll: true });
+            return true;
+          }
+
+          const currentIndex = inputs.indexOf(currentElement);
+          const nextInput = currentIndex >= 0 ? inputs[currentIndex + 1] : null;
+          if (nextInput instanceof HTMLElement) {
+            nextInput.focus({ preventScroll: true });
+            return true;
+          }
+
+          return false;
+        };
+
+        if (focusNextInputWithinRoot(localRoot)) {
+          return true;
+        }
+
+        if (localRoot !== document.body) {
+          return focusNextInputWithinRoot(document.body);
+        }
+
+        return false;
       },
       focusNextFocusableElement(currentElement) {
         if (!currentElement || this.isMouseUsed) return;
@@ -7306,11 +7385,15 @@
        */
       handleBlur(event) {
         const input = event.target;
+        const commitOptions = this.pendingTagBlurFocusStrategy
+          ? { focusStrategy: this.pendingTagBlurFocusStrategy }
+          : {};
+        this.pendingTagBlurFocusStrategy = "";
         
         // Always remove silent focus on blur
         this.removeSilentFocus(input);
 
-        if (this.commitPendingTagInput(input)) {
+        if (this.commitPendingTagInput(input, commitOptions)) {
           return;
         }
 
@@ -7362,6 +7445,12 @@
         // Only handle printable characters and common input keys
         const isPrintableKey = event.key.length === 1 || 
                                ['Backspace', 'Delete', 'Enter', 'Tab'].includes(event.key);
+        const hasPendingFreeText =
+          String(event.target?.value || this.pendingTagInputValue || "").trim().length > 0;
+        this.pendingTagBlurFocusStrategy =
+          event.key === "Tab" && !event.shiftKey && this.taggable && hasPendingFreeText
+            ? "nextInput"
+            : "";
         
         if (this.isSilentFocus && isPrintableKey && event.key !== 'Tab') {
           const input = event.target;

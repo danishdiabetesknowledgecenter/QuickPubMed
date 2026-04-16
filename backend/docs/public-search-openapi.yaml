@@ -73,6 +73,14 @@ paths:
             type: boolean
             default: false
           description: "true returnerer text/event-stream med progress-events og et afsluttende result-event."
+        - in: query
+          name: lang
+          required: false
+          schema:
+            type: string
+            enum: [da, en]
+            default: da
+          description: "Sprog for progress-tekster i streamen."
       responses:
         "200":
           description: Search response
@@ -110,6 +118,14 @@ paths:
             type: boolean
             default: false
           description: "URL-override for streaming. Hvis sat, vinder den over responseOptions.stream."
+        - in: query
+          name: lang
+          required: false
+          schema:
+            type: string
+            enum: [da, en]
+            default: da
+          description: "URL-override for sproget i progress-tekster."
       requestBody:
         required: true
         content:
@@ -327,6 +343,9 @@ components:
               type: boolean
             stream:
               type: boolean
+            language:
+              type: string
+              enum: [da, en]
         hardFilters:
           type: object
           additionalProperties: false
