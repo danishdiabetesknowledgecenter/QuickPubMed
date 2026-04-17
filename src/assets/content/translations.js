@@ -107,6 +107,10 @@ export const messages = {
     dk: "Vælg afgrænsning eller indtast søgeord",
     en: "Select limit or enter search term",
   },
+  chooseDatabase: {
+    dk: "Vælg database",
+    en: "Select database",
+  },
   choselimits_mobile: {
     dk: "Vælg afgrænsning/søgeord",
     en: "Select limit/search term",

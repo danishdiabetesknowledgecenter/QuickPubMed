@@ -49,7 +49,7 @@
         @keydown.enter.prevent="handleCrossKeydown"
       />
     </span>
-    <span class="qpm_operator">{{ operator }}</span>
+    <span class="qpm_operator">{{ displayOperator }}</span>
   </div>
 </template>
 
@@ -116,6 +116,12 @@
        };
      },
     computed: {
+      displayOperator() {
+        if (this.triple?.option?.translationSourceKey) {
+          return String(this.getString("andOperator") || this.operator);
+        }
+        return this.operator;
+      },
       getCustomNameLabel: {
         get() {
           if (this.isEditMode && this.triple.option.isCustom) {

@@ -1057,6 +1057,50 @@
       shouldUseDesktopInputWidthInMobileUi() {
         return this.isMobileUi && typeof window !== "undefined" && window.innerWidth >= 600;
       },
+      isDatabaseOption(option) {
+        return String(option?.translationSourceKey || "").trim() !== "";
+      },
+      getAvailableDatabaseOptionIdentities() {
+        return (Array.isArray(this.data) ? this.data : [])
+          .flatMap((group) => {
+            const groupPropertyName = this.getGroupPropertyName(group);
+            const options = groupPropertyName ? group[groupPropertyName] : [];
+            return Array.isArray(options) ? options : [];
+          })
+          .filter((option) => this.isDatabaseOption(option))
+          .map((option) => this.optionIdentity(option))
+          .filter(Boolean);
+      },
+      shouldHideTrailingDatabaseControls() {
+        if (!this.isFilterDropdown) return false;
+        const selectedOptions = Array.isArray(this.selected) ? this.selected.filter(Boolean) : [];
+        if (selectedOptions.length === 0) return false;
+        if (!selectedOptions.every((option) => this.isDatabaseOption(option))) {
+          return false;
+        }
+        const availableDatabaseIds = [...new Set(this.getAvailableDatabaseOptionIdentities())];
+        if (availableDatabaseIds.length === 0) return false;
+        const selectedIds = new Set(
+          selectedOptions.map((option) => this.optionIdentity(option)).filter(Boolean)
+        );
+        return availableDatabaseIds.every((id) => selectedIds.has(id));
+      },
+      getSingleAvailableDatabaseGroupLabel() {
+        if (!this.isFilterDropdown || !this.isGroup) return "";
+        const availableGroups = (Array.isArray(this.shownSubjects) ? this.shownSubjects : [])
+          .filter((group) => {
+            const groupPropertyName = this.getGroupPropertyName(group);
+            const options = groupPropertyName ? group[groupPropertyName] : [];
+            return Array.isArray(options) && options.length > 0;
+          });
+        if (availableGroups.length !== 1) return "";
+        const [group] = availableGroups;
+        const groupPropertyName = this.getGroupPropertyName(group);
+        const options = groupPropertyName ? group[groupPropertyName] : [];
+        if (!Array.isArray(options) || options.length === 0) return "";
+        if (!options.every((option) => this.isDatabaseOption(option))) return "";
+        return this.customGroupLabel(group) || "";
+      },
       updateMobileUiState() {
         const hasTouchPoints =
           typeof navigator !== "undefined" && Number(navigator.maxTouchPoints || 0) > 0;
@@ -1570,6 +1614,7 @@
       initialSetup() {
         const element = this.$refs.selectWrapper;
         if (!element) return;
+        const shouldHideTrailingDatabaseControls = this.shouldHideTrailingDatabaseControls();
         document.removeEventListener("mousedown", this.setMouseUsed);
         document.removeEventListener("touchstart", this.setMouseUsed);
         document.removeEventListener("keydown", this.resetMouseUsed);
@@ -1602,13 +1647,19 @@
           input.addEventListener("click", this.handleClick, { capture: true });
           input.addEventListener("input", this._handleInputEventBound);
           input.addEventListener("keydown", this._handleKeyDownBound);
+          if (shouldHideTrailingDatabaseControls) {
+            input.style.setProperty("display", "none", "important");
+          } else {
+            input.style.removeProperty("display");
+          }
         }
 
         // Hide last operator
         const operators = element.getElementsByClassName("qpm_operator");
         Array.from(operators).forEach((operator, index) => {
           if (index === operators.length - 1) {
-            operator.style.color = "darkgrey";
+            operator.style.color = shouldHideTrailingDatabaseControls ? "" : "darkgrey";
+            operator.style.display = shouldHideTrailingDatabaseControls ? "none" : "inline-block";
           } else {
             operator.style.color = "";
             operator.style.display = "inline-block";
@@ -1876,6 +1927,10 @@
           return;
         }
 
+        const autoExpandedDatabaseGroupLabel = this.getSingleAvailableDatabaseGroupLabel();
+        if (autoExpandedDatabaseGroupLabel) {
+          this.expandedOptionGroupName = autoExpandedDatabaseGroupLabel;
+        }
         const entries = element.querySelectorAll("[data-name]");
         const processGroup = () => {
           entries.forEach((entry) => {
@@ -1892,6 +1947,9 @@
 
             parent.classList.toggle("qpm_shown", shouldShow);
           });
+          if (autoExpandedDatabaseGroupLabel) {
+            this.updateExpandedGroupHighlighting();
+          }
         };
         if (entries.length > 50) {
           requestAnimationFrame(processGroup);
@@ -2196,10 +2254,19 @@
           return;
         }
         const optionGroupName = groupLabelElement.textContent;
+        const singleDatabaseGroupLabel = this.getSingleAvailableDatabaseGroupLabel();
+        const keepSingleDatabaseGroupExpanded =
+          singleDatabaseGroupLabel !== "" && singleDatabaseGroupLabel === optionGroupName;
 
         if (target.classList.contains("multiselect__option--group")) {
           this._preventDeactivate = true;
           if (this.expandedOptionGroupName === optionGroupName) {
+            if (keepSingleDatabaseGroupExpanded) {
+              this.showOrHideElements();
+              this.updateExpandedGroupHighlighting();
+              setTimeout(() => { this._preventDeactivate = false; }, 300);
+              return;
+            }
             this.hideItems(this.expandedOptionGroupName);
             this.expandedOptionGroupName = "";
             this.updateExpandedGroupHighlighting();

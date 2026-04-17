@@ -121,7 +121,7 @@
             :topics="topics"
             :limits="limitData"
             :available-limits="limitsContent"
-            :limit-dropdowns="searchDisplayLimitDropdowns"
+            :limit-dropdowns="wordedSearchLimitDropdowns"
             :searchstring="displaySearchString"
             :is-collapsed="isCollapsed"
             :details="details"
@@ -610,6 +610,13 @@
             (Array.isArray(group) ? group : []).filter((item) => !this.isDatabaseLimitItem(item))
           )
           .filter((group) => group.length > 0);
+      },
+      wordedSearchLimitDropdowns() {
+        const databaseDropdown = this.buildDatabaseLimitDropdownFromSelectedSources();
+        if (databaseDropdown.length === 0) {
+          return this.searchDisplayLimitDropdowns;
+        }
+        return [...this.searchDisplayLimitDropdowns, databaseDropdown];
       },
       hasTopics() {
         return this.topics.some((subjectArray) => subjectArray.length > 0);
@@ -1836,8 +1843,8 @@
         this.dropdownPlaceholders = this.dropdownPlaceholders.map((_, index) =>
           this.getDropdownPlaceholder(index, false)
         );
-        this.limitDropdownPlaceholders = this.limitDropdownPlaceholders.map(() =>
-          this.getDefaultFilterPlaceholder()
+        this.limitDropdownPlaceholders = this.limitDropdownPlaceholders.map((_, index) =>
+          this.getDefaultFilterPlaceholder(index)
         );
       },
       getSemanticSearchLoadingTranslationKey(stepKey) {
@@ -2198,6 +2205,17 @@
           .map((item) => String(item?.translationSourceKey || "").trim())
           .filter(Boolean);
         return this.sortTranslationSourcesList(selectedSources);
+      },
+      isDatabaseLimitDropdown(index) {
+        const dropdownItems = Array.isArray(this.limitDropdowns[index]) ? this.limitDropdowns[index] : [];
+        return dropdownItems.some((item) => this.isDatabaseLimitItem(item));
+      },
+      hasAllAvailableDatabasesSelected(index) {
+        if (!this.isDatabaseLimitDropdown(index)) return false;
+        const dropdownItems = Array.isArray(this.limitDropdowns[index]) ? this.limitDropdowns[index] : [];
+        const selectedDatabaseCount = dropdownItems.filter((item) => this.isDatabaseLimitItem(item)).length;
+        const availableDatabaseCount = this.getDatabaseLimitChoicesCatalog().length;
+        return availableDatabaseCount > 0 && selectedDatabaseCount >= availableDatabaseCount;
       },
       limitDropdownsEqual(left, right) {
         const normalize = (dropdowns) =>
@@ -3521,11 +3539,13 @@
           if (!shouldContinue) return;
         }
 
-        const previousDatabaseSources = this.getTranslationSourcesFromLimitDropdowns(this.limitDropdowns);
+        const previousDatabaseSources = this.sortTranslationSourcesList(this.selectedTranslationSources);
         const updated = cloneDeep(this.limitDropdowns);
         updated[index] = uniqueValue;
         const normalizedDropdowns = this.normalizeLimitDropdowns(updated);
-        const nextDatabaseSources = this.getTranslationSourcesFromLimitDropdowns(normalizedDropdowns);
+        const nextDatabaseSources = this.resolveSelectedTranslationSources(
+          this.getTranslationSourcesFromLimitDropdowns(normalizedDropdowns)
+        );
         this.limitDropdowns = normalizedDropdowns;
 
         // Remove extra empty dropdowns — keep at most one empty
@@ -3606,13 +3626,15 @@
        */
       removeLimitDropdown(index) {
         const wasEmpty = this.limitDropdowns[index] && this.limitDropdowns[index].length === 0;
-        const previousDatabaseSources = this.getTranslationSourcesFromLimitDropdowns(this.limitDropdowns);
+        const previousDatabaseSources = this.sortTranslationSourcesList(this.selectedTranslationSources);
         const updated = [...this.limitDropdowns];
         updated.splice(index, 1);
         this.limitDropdowns = this.normalizeLimitDropdowns(updated);
 
         this.syncLimitDataFromDropdowns();
-        const nextDatabaseSources = this.getTranslationSourcesFromLimitDropdowns(this.limitDropdowns);
+        const nextDatabaseSources = this.resolveSelectedTranslationSources(
+          this.getTranslationSourcesFromLimitDropdowns(this.limitDropdowns)
+        );
         if (!this.translationSourcesListsEqual(previousDatabaseSources, nextDatabaseSources)) {
           const didSyncSources = this.syncTranslationSourcesFromLimitDropdowns(true, this.limitDropdowns);
           if (!didSyncSources) {
@@ -6686,9 +6708,12 @@
         this.placeholderDotBaseText = "";
       },
       getLimitPlaceholder(index) {
-        return this.limitDropdownPlaceholders[index] || this.getDefaultFilterPlaceholder();
+        return this.limitDropdownPlaceholders[index] ?? this.getDefaultFilterPlaceholder(index);
       },
-      getDefaultFilterPlaceholder() {
+      getDefaultFilterPlaceholder(index = -1) {
+        if (index >= 0 && this.isDatabaseLimitDropdown(index)) {
+          return this.hasAllAvailableDatabasesSelected(index) ? "" : this.getString("chooseDatabase");
+        }
         const isMobileOrSmall = isMobileViewport() || window.innerWidth < 520;
         return this.getString(isMobileOrSmall ? "choselimits_mobile" : "choselimits");
       },
@@ -6714,7 +6739,7 @@
           }
           if (this.shouldSuppressDropdownProgressPlaceholder()) {
             this.clearFilterPlaceholderDotInterval();
-            this.limitDropdownPlaceholders[index] = this.getDefaultFilterPlaceholder();
+            this.limitDropdownPlaceholders[index] = this.getDefaultFilterPlaceholder(index);
             return;
           }
           this.clearFilterPlaceholderDotInterval();
@@ -6737,7 +6762,7 @@
             this.updateSearchLoadingStatus(stepKey, false);
           }
           this.clearFilterPlaceholderDotInterval();
-          this.limitDropdownPlaceholders[index] = this.getDefaultFilterPlaceholder();
+          this.limitDropdownPlaceholders[index] = this.getDefaultFilterPlaceholder(index);
         }
       },
       updatePlaceholder(isTranslating, index, stepKey) {

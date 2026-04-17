@@ -105,7 +105,7 @@
               <span class="qpm_wordedStringOperator">{{ getScope(filterItem) }}</span>
               {{ " "
               }}<span v-if="idx2 < group.length - 1" class="qpm_searchStringOperator"
-                >{{ getString("orOperator").toLowerCase() }}
+                >{{ getLimitItemsOperator(group) }}
               </span>
             </div>
             <div v-if="group.length > 0" class="qpm_halfBorder" />
@@ -251,20 +251,18 @@
        */
       activeLimitDropdowns() {
         const safeDropdowns = Array.isArray(this.limitDropdowns) ? this.limitDropdowns : [];
-        const fromDropdowns = safeDropdowns.filter(
+        const dropdownGroups = safeDropdowns.filter(
           (group) => Array.isArray(group) && group.length > 0
         );
-        if (fromDropdowns.length > 0) return fromDropdowns;
-
-        // Fallback for simple mode: convert filterData categories to groups
-        return this.activeLimits.map(([, items]) => items);
+        const simpleGroups = this.activeLimits.map(([, items]) => items);
+        if (this.advancedSearch) {
+          if (dropdownGroups.length > 0) return dropdownGroups;
+          return simpleGroups;
+        }
+        return [...simpleGroups, ...dropdownGroups];
       },
       limitsIsEmpty() {
-        if (!this.limits || typeof this.limits !== "object") return true;
-        const count = Object.values(this.limits).reduce((sum, values) => {
-          return sum + (Array.isArray(values) ? values.length : 0);
-        }, 0);
-        return count === 0;
+        return this.activeLimitDropdowns.length === 0;
       },
       getPubMedLink() {
         const myncbiShare = this.appSettings?.nlm?.myncbishare || "";
@@ -417,6 +415,7 @@
         }
       },
       isSingleScoped(obj) {
+        if (obj?.translationSourceKey) return true;
         if (!obj.searchStrings) return false;
 
         const count = ["broad", "narrow", "normal"].reduce((sum, scope) => {
@@ -446,6 +445,12 @@
         const firstCategory = this.getLimitCategoryName(group[0]);
         const allSame = group.every((item) => this.getLimitCategoryName(item) === firstCategory);
         return !allSame;
+      },
+      getLimitItemsOperator(group) {
+        const safeGroup = Array.isArray(group) ? group : [];
+        const isDatabaseGroup =
+          safeGroup.length > 0 && safeGroup.every((item) => !!item?.translationSourceKey);
+        return this.getString(isDatabaseGroup ? "andOperator" : "orOperator").toLowerCase();
       },
       getLimitCategoryName(item) {
         if (!item.id || this.isCustomFilterId(item.id)) {
