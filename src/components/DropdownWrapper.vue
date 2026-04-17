@@ -127,7 +127,7 @@
             customGroupTooltipById(props.option.$groupLabel).content &&
             customGroupTooltipById(props.option.$groupLabel).content.trim() !== ''
           "
-          v-tooltip.right="{ ...customGroupTooltipById(props.option.$groupLabel), theme: 'infoTooltip', triggers: ['hover', 'focus'], hideTriggers: ['hover'] }"
+          v-tooltip.right="{ ...customGroupTooltipById(props.option.$groupLabel), theme: 'infoTooltip', triggers: ['hover', 'focus'], hideTriggers: ['hover', 'focus'] }"
           class="bx bx-info-circle qpm_infoIcon qpm_groupInfoIcon"
           aria-label="Info"
           @mousedown.stop
@@ -152,6 +152,8 @@
             distance: 5,
             delay: 0,
             theme: 'infoTooltip',
+            triggers: ['hover', 'focus'],
+            hideTriggers: ['hover', 'focus'],
           }"
           class="bx bx-info-circle qpm_infoIcon qpm_entryInfoIcon"
           aria-label="Info"
@@ -542,6 +544,11 @@
           !!event.target &&
           typeof event.target.closest === "function" &&
           !!event.target.closest(".multiselect__select");
+        const isCustomTagClick =
+          !!event &&
+          !!event.target &&
+          typeof event.target.closest === "function" &&
+          !!event.target.closest(".qpm_tag-freetext");
 
         if (isArrowClick) {
           if (this.isMobileInputMode()) {
@@ -555,6 +562,12 @@
             this.handleMobileTap();
             return;
           }
+          this._preventDeactivate = false;
+          clearTimeout(this._deactivateGuardTimer);
+          return;
+        }
+
+        if (isCustomTagClick) {
           this._preventDeactivate = false;
           clearTimeout(this._deactivateGuardTimer);
           return;
@@ -889,11 +902,8 @@
           if (opts && ms.pointer >= opts.length) {
             ms.pointer = Math.max(0, opts.length - 1);
           }
-          if (ms.pointer < 0 && opts && opts.length > 0) {
-            ms.pointer = 0;
-          }
           // Only call original if pointer is in bounds and element exists
-          if (opts && opts.length > 0 && opts[ms.pointer]) {
+          if (opts && ms.pointer >= 0 && opts.length > 0 && opts[ms.pointer]) {
             originalPointerAdjust();
           }
         };
@@ -1625,7 +1635,7 @@
         if (input) {
           input.removeEventListener("keyup", this.handleSearchInput);
           input.addEventListener("keyup", this.handleSearchInput);
-          if (!input.value) {
+          if (!String(input.value || "").trim()) {
             // Hide what needs to be hidden only if groups and only if we are not currently doing a search
             this.showOrHideElements();
           }
@@ -1647,7 +1657,7 @@
 
         const multiselect = this.$refs.multiselect;
         if (multiselect) {
-          multiselect.pointer = 0; // Set highlight to first item to prevent exceptions.
+          multiselect.pointer = -1; // Keep input focused without auto-highlighting the first option.
         }
         for (let key in this.maintopicToggledMap) {
           this.maintopicToggledMap[key] = false;
@@ -2254,6 +2264,9 @@
        */
       handleTagClick(event) {
         const target = event.target;
+        if (target && typeof target.closest === "function" && target.closest(".qpm_tag-freetext")) {
+          return;
+        }
         const targetLabel = target.textContent.trim();
         const optionGroupName = this.getOptionGroupName(this.data, targetLabel, this.language);
 
@@ -2323,8 +2336,9 @@
         if (!this.isGroup) return;
         const target = event.target;
         const element = this.$refs.selectWrapper;
+        const hasMeaningfulSearch = String(target.value || "").trim().length > 0;
 
-        if (target.value) {
+        if (hasMeaningfulSearch) {
           //search input, save current state of shown element, and show all elements
           const entries = element.querySelectorAll(".multiselect__element.qpm_shown");
           for (let i = 0; i < entries.length; i++) {
@@ -2401,9 +2415,6 @@
             if (ms.pointer >= opts.length) {
               ms.pointer = opts.length - 1;
             }
-            if (ms.pointer < 0) {
-              ms.pointer = 0;
-            }
           }
         }
 
@@ -2414,7 +2425,7 @@
           if (this.isSilentFocus) {
             this.removeSilentFocus(event.target);
           }
-          this.commitPendingTagInput(event.target, { focusStrategy: "nextInput" });
+          this.commitPendingTagInput(event.target, { focusStrategy: "currentDropdownInput" });
           return;
         }
 
@@ -2432,16 +2443,22 @@
           if (this.isSilentFocus) {
             this.removeSilentFocus(event.target);
           }
-          this.commitPendingTagInput(event.target);
+          this.commitPendingTagInput(event.target, { focusStrategy: "currentDropdownInput" });
           return;
         }
 
         const highlightedOption = ms?.filteredOptions?.[ms.pointer];
+        const hasManualTagOption =
+          Array.isArray(ms?.filteredOptions) &&
+          ms.filteredOptions.some((option) => option?.isTag === true);
         if (
           isInputField &&
           this.taggable &&
           hasPendingFreeText &&
-          highlightedOption?.isTag
+          (
+            highlightedOption?.isTag ||
+            ((ms?.pointer ?? -1) < 0 && hasManualTagOption)
+          )
         ) {
           event.stopPropagation();
           event.stopImmediatePropagation();
@@ -2449,7 +2466,7 @@
           if (this.isSilentFocus) {
             this.removeSilentFocus(event.target);
           }
-          this.commitPendingTagInput(event.target);
+          this.commitPendingTagInput(event.target, { focusStrategy: "currentDropdownInput" });
           return;
         }
 
@@ -2475,7 +2492,7 @@
         {
           if (event.target.classList.contains("multiselect__input")) {
             const element = this.$refs.selectWrapper;
-            const target = element.getElementsByClassName("multiselect__option--highlight")[0];
+            const target = element.getElementsByClassName("multiselect__option--highlight")[0] || null;
 
             // Check if highlighted element is a main topic and toggle open/close with Enter
             if (target && target.querySelector('.qpm_maintopicDropdown')) {
@@ -2577,6 +2594,10 @@
       handleOpenMenuOnClick(event) {
         const target = event?.target;
         if (target && typeof target.closest === "function" && target.closest(".multiselect__tag-icon")) {
+          event.stopPropagation();
+          return;
+        }
+        if (target && typeof target.closest === "function" && target.closest(".qpm_tag-freetext")) {
           event.stopPropagation();
           return;
         }
@@ -3259,12 +3280,9 @@
         this.input(this.selected, -1);
         this.loading = false;
         this.clearShownItems();
-        if (options.focusStrategy === "nextInput") {
+        if (options.focusStrategy === "currentDropdownInput") {
           this.$nextTick(() => {
-            if (this.focusNextInputElement(input)) {
-              return;
-            }
-            this.focusNextFocusableElement(input);
+            this.focusCurrentDropdownInput();
           });
           return;
         }
@@ -3274,54 +3292,24 @@
           });
         }
       },
-      focusNextInputElement(currentElement) {
-        if (!currentElement || this.isMouseUsed) return false;
-
-        const localRoot = this.$el?.closest(".qpm_vapp") || document.body;
-        const referenceElement = this.$el instanceof HTMLElement ? this.$el : currentElement;
-        const inputSelector = [
-          'input:not([disabled]):not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"])',
-          'select:not([disabled])',
-          'textarea:not([disabled])',
-        ].join(",");
-
-        const focusNextInputWithinRoot = (root) => {
-          const inputs = Array.from(root.querySelectorAll(inputSelector)).filter((el) => {
-            if (!(el instanceof HTMLElement)) return false;
-            if (el.getAttribute("aria-hidden") === "true") return false;
-            return el.offsetParent !== null || el === document.activeElement;
-          });
-
-          const nextInputByPosition = inputs.find((el) => {
-            if (!(referenceElement instanceof HTMLElement)) return false;
-            if (referenceElement.contains(el)) return false;
-            const position = referenceElement.compareDocumentPosition(el);
-            return Boolean(position & Node.DOCUMENT_POSITION_FOLLOWING);
-          });
-          if (nextInputByPosition instanceof HTMLElement) {
-            nextInputByPosition.focus({ preventScroll: true });
-            return true;
-          }
-
-          const currentIndex = inputs.indexOf(currentElement);
-          const nextInput = currentIndex >= 0 ? inputs[currentIndex + 1] : null;
-          if (nextInput instanceof HTMLElement) {
-            nextInput.focus({ preventScroll: true });
-            return true;
-          }
-
+      focusCurrentDropdownInput() {
+        const input = this.$refs.multiselect?.$refs?.search || this.$el?.querySelector(".multiselect__input");
+        if (!(input instanceof HTMLElement) || typeof input.focus !== "function") {
           return false;
-        };
-
-        if (focusNextInputWithinRoot(localRoot)) {
-          return true;
+        }
+        const appRoot = this.$el?.closest(".qpm_vapp");
+        if (appRoot instanceof HTMLElement) {
+          appRoot.classList.add("qpm_keyboard-mode");
+          appRoot.classList.remove("qpm_mouse-mode");
         }
 
-        if (localRoot !== document.body) {
-          return focusNextInputWithinRoot(document.body);
+        if (this.isSilentFocus || input.classList.contains("qpm_silent-focus")) {
+          this.removeSilentFocus(input);
         }
 
-        return false;
+        input.focus({ preventScroll: true });
+        this.addKeyboardFocus();
+        return true;
       },
       focusNextFocusableElement(currentElement) {
         if (!currentElement || this.isMouseUsed) return;
@@ -7449,7 +7437,7 @@
           String(event.target?.value || this.pendingTagInputValue || "").trim().length > 0;
         this.pendingTagBlurFocusStrategy =
           event.key === "Tab" && !event.shiftKey && this.taggable && hasPendingFreeText
-            ? "nextInput"
+            ? "currentDropdownInput"
             : "";
         
         if (this.isSilentFocus && isPrintableKey && event.key !== 'Tab') {
@@ -7552,7 +7540,7 @@
           const currentValue = event.target.value;
           if (currentValue && currentValue.trim().length > 0) {
             // Trigger custom tag creation (same as normal multiselect)
-            this.handleAddTag(currentValue.trim());
+            this.handleAddTag(currentValue.trim(), { focusStrategy: "currentDropdownInput" });
             // Clear input field
             event.target.value = '';
             if (this.$refs.multiselect) {

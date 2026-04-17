@@ -17,6 +17,8 @@ import { createConfiguredAppWithOptions } from "./createConfiguredApp";
  */
 
 let mobileTooltipScrollGuardInstalled = false;
+let keyboardInfoTooltipBehaviorInstalled = false;
+const INFO_TOOLTIP_KEYBOARD_CLICK_SUPPRESSION_MS = 250;
 
 function hideShownTooltips() {
   const activeElement = document.activeElement;
@@ -38,6 +40,101 @@ function hideShownTooltips() {
       popperComponent.hide();
     }
   });
+}
+
+function getInfoTooltipTrigger(target) {
+  if (!(target instanceof Element) || typeof target.closest !== "function") {
+    return null;
+  }
+  const trigger = target.closest(".qpm_infoIcon");
+  return trigger instanceof HTMLElement && trigger.$_popper ? trigger : null;
+}
+
+function isInfoTooltipShown(element) {
+  return Boolean(element?.$_popper?.item?.shown?.value);
+}
+
+function hideShownInfoTooltips() {
+  document.querySelectorAll(".qpm_infoIcon").forEach((element) => {
+    if (!(element instanceof HTMLElement) || !element.$_popper) return;
+    if (!isInfoTooltipShown(element)) return;
+    element.$_popper.hide();
+  });
+}
+
+function toggleInfoTooltip(element) {
+  if (!(element instanceof HTMLElement) || !element.$_popper) return;
+  const wasShown = isInfoTooltipShown(element);
+  hideShownInfoTooltips();
+  if (!wasShown) {
+    element.$_popper.show();
+  }
+}
+
+function suppressNextInfoTooltipClick(element) {
+  if (!(element instanceof HTMLElement)) return;
+  element._qpmSuppressTooltipClickUntil = Date.now() + INFO_TOOLTIP_KEYBOARD_CLICK_SUPPRESSION_MS;
+}
+
+function shouldSuppressInfoTooltipClick(element) {
+  if (!(element instanceof HTMLElement)) return false;
+  return Number(element._qpmSuppressTooltipClickUntil || 0) > Date.now();
+}
+
+function installKeyboardInfoTooltipBehavior() {
+  if (keyboardInfoTooltipBehaviorInstalled) return;
+  keyboardInfoTooltipBehaviorInstalled = true;
+
+  document.addEventListener(
+    "keydown",
+    (event) => {
+      const trigger =
+        getInfoTooltipTrigger(event.target) || getInfoTooltipTrigger(document.activeElement);
+      if (!trigger || event.key !== "Enter") return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      if (typeof event.stopImmediatePropagation === "function") {
+        event.stopImmediatePropagation();
+      }
+      suppressNextInfoTooltipClick(trigger);
+      hideShownTooltips();
+    },
+    true
+  );
+
+  document.addEventListener(
+    "click",
+    (event) => {
+      const trigger = getInfoTooltipTrigger(event.target);
+      if (!trigger || !shouldSuppressInfoTooltipClick(trigger)) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      if (typeof event.stopImmediatePropagation === "function") {
+        event.stopImmediatePropagation();
+      }
+      trigger._qpmSuppressTooltipClickUntil = 0;
+    },
+    true
+  );
+
+  document.addEventListener(
+    "focusin",
+    (event) => {
+      const trigger = getInfoTooltipTrigger(event.target);
+      if (trigger) {
+        hideShownInfoTooltips();
+        return;
+      }
+
+      const target = event.target;
+      if (!(target instanceof Element) || !target.closest(".v-popper__popper")) {
+        hideShownInfoTooltips();
+      }
+    },
+    true
+  );
 }
 
 function getDocumentScrollTop() {
@@ -225,9 +322,9 @@ searchFormDivs.forEach((searchFormDiv, index) => {
           infoTooltip: {
             $extend: "tooltip",
             html: true,
-            // Info icons: always support desktop hover and mobile tap.
+            // Info icons should open on keyboard focus, but still be keyboard-toggleable.
             triggers: ["hover", "focus", "click"],
-            hideTriggers: ["hover", "click"],
+            hideTriggers: ["hover", "focus", "click"],
             autoHide: true,
           },
         },
@@ -236,6 +333,7 @@ searchFormDivs.forEach((searchFormDiv, index) => {
         if (isTouchLike) {
           installMobileTooltipScrollGuard();
         }
+        installKeyboardInfoTooltipBehavior();
       },
     }
   ).mount(`#${searchFormDiv.id}`);

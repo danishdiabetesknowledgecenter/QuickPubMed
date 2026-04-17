@@ -32,6 +32,7 @@
             @focus.stop
             @blur.stop="endEdit"
             @keydown.enter.stop="endEdit"
+            @keydown.tab.stop="endEdit"
             @input="handleInput"
             @keyup="autoResize"
             @paste="handlePaste"
