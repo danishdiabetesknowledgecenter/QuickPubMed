@@ -2770,6 +2770,141 @@
             ]
         },
         {
+            "id": "L095",
+            "isDefault": true,
+            "translations": {
+                "dk": "Databaser",
+                "en": "Databases"
+            },
+            "ordering": {
+                "dk": 10.5,
+                "en": 10.5
+            },
+            "allowCustomInput": false,
+            "tooltip": {
+                "dk": "Vælg hvilke databaser der skal indgå i den avancerede søgning.",
+                "en": "Choose which databases to include in the advanced search."
+            },
+            "groups": [
+                {
+                    "id": "L095010",
+                    "buttons": false,
+                    "translations": {
+                        "dk": "PubMed",
+                        "en": "PubMed"
+                    },
+                    "ordering": {
+                        "dk": 1,
+                        "en": 1
+                    },
+                    "translationSourceKey": "pubmed",
+                    "simpleSearch": false,
+                    "standardSimple": false,
+                    "searchStrings": {
+                        "narrow": [],
+                        "normal": [],
+                        "broad": []
+                    },
+                    "searchStringComment": {
+                        "dk": "",
+                        "en": ""
+                    },
+                    "tooltip": {
+                        "dk": "Når denne database er valgt, søges der i PubMed med dine valgte emner, fritekst og afgrænsninger.",
+                        "en": "When this database is selected, the search runs in PubMed using your selected topics, free text, and filters."
+                    },
+                    "children": []
+                },
+                {
+                    "id": "L095020",
+                    "buttons": false,
+                    "translations": {
+                        "dk": "Semantic Scholar",
+                        "en": "Semantic Scholar"
+                    },
+                    "ordering": {
+                        "dk": 2,
+                        "en": 2
+                    },
+                    "translationSourceKey": "semanticScholar",
+                    "simpleSearch": false,
+                    "standardSimple": false,
+                    "searchStrings": {
+                        "narrow": [],
+                        "normal": [],
+                        "broad": []
+                    },
+                    "searchStringComment": {
+                        "dk": "",
+                        "en": ""
+                    },
+                    "tooltip": {
+                        "dk": "Når denne database er valgt, bruges din fritekst som grundlag for en søgning i Semantic Scholar efter relevante videnskabelige artikler.",
+                        "en": "When this database is selected, your free text is used as the basis for a search in Semantic Scholar for relevant scientific articles."
+                    },
+                    "children": []
+                },
+                {
+                    "id": "L095030",
+                    "buttons": false,
+                    "translations": {
+                        "dk": "OpenAlex",
+                        "en": "OpenAlex"
+                    },
+                    "ordering": {
+                        "dk": 3,
+                        "en": 3
+                    },
+                    "translationSourceKey": "openAlex",
+                    "simpleSearch": false,
+                    "standardSimple": false,
+                    "searchStrings": {
+                        "narrow": [],
+                        "normal": [],
+                        "broad": []
+                    },
+                    "searchStringComment": {
+                        "dk": "",
+                        "en": ""
+                    },
+                    "tooltip": {
+                        "dk": "Når denne database er valgt, bruges din fritekst i OpenAlex' søgning for at finde relevante forskningsartikler og tilknyttede oplysninger.",
+                        "en": "When this database is selected, your free text is used in OpenAlex search to find relevant research articles and related metadata."
+                    },
+                    "children": []
+                },
+                {
+                    "id": "L095040",
+                    "buttons": false,
+                    "translations": {
+                        "dk": "Elicit",
+                        "en": "Elicit"
+                    },
+                    "ordering": {
+                        "dk": 4,
+                        "en": 4
+                    },
+                    "translationSourceKey": "elicit",
+                    "simpleSearch": false,
+                    "standardSimple": false,
+                    "searchStrings": {
+                        "narrow": [],
+                        "normal": [],
+                        "broad": []
+                    },
+                    "searchStringComment": {
+                        "dk": "",
+                        "en": ""
+                    },
+                    "tooltip": {
+                        "dk": "Når denne database er valgt, bruges din fritekst i Elicits søgning for at finde relevante forskningsartikler.",
+                        "en": "When this database is selected, your free text is used in Elicit search to find relevant research articles."
+                    },
+                    "children": []
+                }
+            ]
+        },
+        {
             "id": "LXXX",
             "isDefault": true,
             "translations": {

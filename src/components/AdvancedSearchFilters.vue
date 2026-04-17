@@ -20,6 +20,7 @@
       ref="limitSelection"
       :limit-dropdowns="limitDropdowns"
       :limit-options="limitOptions"
+      :get-limit-options-for-dropdown="getLimitOptionsForDropdown"
       :hide-topics="hideTopics"
       :language="language"
       :advanced="advanced"
@@ -57,6 +58,10 @@
       limitOptions: {
         type: Array,
         required: true,
+      },
+      getLimitOptionsForDropdown: {
+        type: Function,
+        default: null,
       },
       limitDropdowns: {
         type: Array,

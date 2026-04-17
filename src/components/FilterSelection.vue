@@ -5,7 +5,7 @@
         <dropdown-wrapper
           ref="limitDropdown"
           :is-multiple="true"
-          :data="groupedLimitOptions"
+          :data="groupedLimitOptionsFor(n)"
           :hide-topics="hideTopics"
           :is-group="true"
           :placeholder="filterPlaceholderFor(n)"
@@ -75,6 +75,10 @@
     props: {
       limitDropdowns: { type: Array, required: true, default: () => [[]] },
       limitOptions: { type: Array, required: true, default: () => [] },
+      getLimitOptionsForDropdown: {
+        type: Function,
+        default: null,
+      },
       hideTopics: {
         type: Array,
         default: () => [],
@@ -108,13 +112,6 @@
       "remove-limit-dropdown",
     ],
     computed: {
-      groupedLimitOptions() {
-        const safeOptions = Array.isArray(this.limitOptions) ? this.limitOptions : [];
-        return safeOptions.map((f) => ({
-          ...f,
-          groups: f.choices || f.groups || [],
-        }));
-      },
       hasLimitSelections() {
         if (!Array.isArray(this.limitDropdowns)) return false;
         return this.limitDropdowns.some(
@@ -138,6 +135,16 @@
       });
     },
     methods: {
+      groupedLimitOptionsFor(index) {
+        const options = this.getLimitOptionsForDropdown
+          ? this.getLimitOptionsForDropdown(index)
+          : this.limitOptions;
+        const safeOptions = Array.isArray(options) ? options : [];
+        return safeOptions.map((f) => ({
+          ...f,
+          groups: f.choices || f.groups || [],
+        }));
+      },
       refreshLimitDropdownOptions() {
         const dropdownRefs = this.$refs?.limitDropdown;
         if (!dropdownRefs) return;

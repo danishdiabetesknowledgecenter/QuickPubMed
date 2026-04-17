@@ -66,11 +66,12 @@
 
             <!-- The dropdown(s) for selecting limits to be included in the advanced search -->
             <advanced-search-limits
-              v-if="advanced && (hasTopics || openLimits || openLimitsFromUrl)"
+              v-if="advanced && (hasTopics || hasLimitSelections || openLimits || openLimitsFromUrl)"
               ref="advancedSearchLimits"
               :advanced="advanced"
               :limit-options="limitOptions"
               :limit-dropdowns="limitDropdowns"
+              :get-limit-options-for-dropdown="getLimitOptionsForDropdown"
               :hide-topics="effectiveHideTopics"
               :language="language"
               :search-with-a-i="searchWithAI"
@@ -111,23 +112,6 @@
               @update-limit-enter="updateLimitSimpleOnEnter"
               @update-semantic-source="updateTranslationSourceSelection"
             />
-
-            <div v-if="showSemanticSearchSection && advanced" class="qpm_simpleFiltersRoot qpm_semanticSearchFiltersRoot">
-              <div class="qpm_simpleFiltersContainer qpm_semanticSearchFiltersContainer">
-                <semantic-search-filters
-                  :available-translation-sources="availableTranslationSourceKeys"
-                  :help-text-delay="300"
-                  :get-string="getString"
-                  :get-semantic-option-tooltip-content="getSemanticOptionTooltipContent"
-                  :get-semantic-option-disabled-state="isSemanticOptionDisabled"
-                  :search-with-pub-med-best-match="searchWithPubMedBestMatch"
-                  :search-with-semantic-scholar="searchWithSemanticScholar"
-                  :search-with-open-alex="searchWithOpenAlex"
-                  :search-with-elicit="searchWithElicit"
-                  @update-semantic-source="updateTranslationSourceSelection"
-                />
-              </div>
-            </div>
           </div>
         </div>
 
@@ -137,7 +121,7 @@
             :topics="topics"
             :limits="limitData"
             :available-limits="limitsContent"
-            :limit-dropdowns="limitDropdowns"
+            :limit-dropdowns="searchDisplayLimitDropdowns"
             :searchstring="displaySearchString"
             :is-collapsed="isCollapsed"
             :details="details"
@@ -620,6 +604,13 @@
       hasLimitSelections() {
         return this.limitDropdowns.some((dropdown) => dropdown.length > 0);
       },
+      searchDisplayLimitDropdowns() {
+        return this.limitDropdowns
+          .map((group) =>
+            (Array.isArray(group) ? group : []).filter((item) => !this.isDatabaseLimitItem(item))
+          )
+          .filter((group) => group.length > 0);
+      },
       hasTopics() {
         return this.topics.some((subjectArray) => subjectArray.length > 0);
       },
@@ -661,8 +652,7 @@
           .filter(Boolean);
 
         // Build filter intent with logical operators
-        const filterGroups = this.limitDropdowns
-          .filter((group) => group.length > 0)
+        const filterGroups = this.searchDisplayLimitDropdowns
           .map((group) => {
             const labels = group.map(getItemLabel).filter(Boolean);
             if (labels.length === 0) return "";
@@ -679,7 +669,7 @@
       semanticWordedIntentContext() {
         return buildSemanticWordedIntentContext({
           topicGroups: this.topics,
-          limitDropdowns: this.limitDropdowns,
+          limitDropdowns: this.searchDisplayLimitDropdowns,
           limitData: this.limitData,
         });
       },
@@ -927,9 +917,7 @@
         if (!this.isAiFeatureEnabled) return false;
         return this.selectedTranslationSources.includes(sourceKey);
       },
-      setSelectedTranslationSources(value, markTouched = false) {
-        const previousSources = this.sortTranslationSourcesList(this.selectedTranslationSources);
-        this.isApplyingTranslationSources = true;
+      resolveSelectedTranslationSources(value) {
         const normalizedSources = this.filterAvailableTranslationSources(value).filter(
           (sourceKey) =>
             !(
@@ -937,14 +925,21 @@
               this.isSemanticSourceUnavailable(sourceKey)
             )
         );
-        const nextSources =
-          this.isAiFeatureEnabled && normalizedSources.length === 0
-            ? this.filterAvailableTranslationSources(["pubmed"])
-            : normalizedSources;
+        return this.isAiFeatureEnabled && normalizedSources.length === 0
+          ? this.filterAvailableTranslationSources(["pubmed"])
+          : normalizedSources;
+      },
+      setSelectedTranslationSources(value, markTouched = false) {
+        const previousSources = this.sortTranslationSourcesList(this.selectedTranslationSources);
+        this.isApplyingTranslationSources = true;
+        const nextSources = this.resolveSelectedTranslationSources(value);
         const nonPubmedSources = nextSources.filter((sourceKey) => sourceKey !== "pubmed");
         this.selectedTranslationSources = nextSources;
         this.previousNonPubmedTranslationSources = [...nonPubmedSources];
         this.isApplyingTranslationSources = false;
+        if (this.advanced) {
+          this.syncAdvancedDatabaseDropdownsFromTranslationSources();
+        }
         this.syncDeferredSemanticTagsForMode(nonPubmedSources.length > 0 ? "semantic" : "pubmedQuery");
         this.clearGlobalSemanticSearchState();
         this.semanticMetadataByDoiCache = null;
@@ -2147,6 +2142,138 @@
           console.error("Failed to load limits from runtime content API.", error);
         }
       },
+      isDatabaseLimitItem(item) {
+        return String(item?.translationSourceKey || "").trim() !== "";
+      },
+      isDatabaseLimitGroup(group) {
+        const choices = Array.isArray(group?.choices)
+          ? group.choices
+          : Array.isArray(group?.groups)
+          ? group.groups
+          : [];
+        return choices.some((item) => this.isDatabaseLimitItem(item));
+      },
+      filterAvailableDatabaseChoices(items) {
+        return (Array.isArray(items) ? items : []).filter((item) => {
+          if (!this.isDatabaseLimitItem(item)) return true;
+          return this.isTranslationSourceAvailable(item.translationSourceKey);
+        });
+      },
+      getDatabaseLimitChoicesCatalog() {
+        const databaseGroup = (Array.isArray(this.limitsContent) ? this.limitsContent : []).find((group) =>
+          this.isDatabaseLimitGroup(group)
+        );
+        if (!databaseGroup) return [];
+        const choices = Array.isArray(databaseGroup?.choices)
+          ? databaseGroup.choices
+          : Array.isArray(databaseGroup?.groups)
+          ? databaseGroup.groups
+          : [];
+        return this.filterAvailableDatabaseChoices(choices).map((item) => cloneDeep(item));
+      },
+      buildDatabaseLimitDropdownFromSelectedSources() {
+        const choicesBySource = new Map(
+          this.getDatabaseLimitChoicesCatalog()
+            .map((item) => [String(item?.translationSourceKey || "").trim(), item])
+            .filter(([key]) => key !== "")
+        );
+        return this.sortTranslationSourcesList(this.selectedTranslationSources)
+          .map((sourceKey) => {
+            const choice = choicesBySource.get(sourceKey);
+            return choice ? { ...choice, scope: "normal" } : null;
+          })
+          .filter(Boolean);
+      },
+      stripDatabaseLimitItemsFromDropdowns(dropdowns) {
+        return (Array.isArray(dropdowns) ? dropdowns : [])
+          .map((group) =>
+            (Array.isArray(group) ? group : []).filter((item) => !this.isDatabaseLimitItem(item))
+          )
+          .filter((group) => group.length > 0);
+      },
+      getTranslationSourcesFromLimitDropdowns(dropdowns = this.limitDropdowns) {
+        const selectedSources = (Array.isArray(dropdowns) ? dropdowns : [])
+          .flatMap((group) => (Array.isArray(group) ? group : []))
+          .filter((item) => this.isDatabaseLimitItem(item))
+          .map((item) => String(item?.translationSourceKey || "").trim())
+          .filter(Boolean);
+        return this.sortTranslationSourcesList(selectedSources);
+      },
+      limitDropdownsEqual(left, right) {
+        const normalize = (dropdowns) =>
+          (Array.isArray(dropdowns) ? dropdowns : [])
+            .map((group) =>
+              (Array.isArray(group) ? group : [])
+                .map((item) => this.limitSelectionIdentity(item))
+                .filter(Boolean)
+            )
+            .filter((group) => group.length > 0);
+        const leftNormalized = normalize(left);
+        const rightNormalized = normalize(right);
+        if (leftNormalized.length !== rightNormalized.length) return false;
+        return leftNormalized.every((group, index) => {
+          const other = rightNormalized[index] || [];
+          if (group.length !== other.length) return false;
+          return group.every((key, keyIndex) => key === other[keyIndex]);
+        });
+      },
+      syncAdvancedDatabaseDropdownsFromTranslationSources() {
+        if (!this.advanced) return;
+        const nonDatabaseDropdowns = this.stripDatabaseLimitItemsFromDropdowns(this.limitDropdowns);
+        const databaseDropdown = this.buildDatabaseLimitDropdownFromSelectedSources();
+        const nextDropdowns = this.normalizeLimitDropdowns(
+          databaseDropdown.length > 0 ? [...nonDatabaseDropdowns, databaseDropdown] : nonDatabaseDropdowns
+        );
+        if (!this.limitDropdownsEqual(this.limitDropdowns, nextDropdowns)) {
+          this.limitDropdowns = nextDropdowns;
+        }
+        this.syncLimitDataFromDropdowns();
+      },
+      syncTranslationSourcesFromLimitDropdowns(markTouched = false, dropdowns = this.limitDropdowns) {
+        const nextSources = this.resolveSelectedTranslationSources(
+          this.getTranslationSourcesFromLimitDropdowns(dropdowns)
+        );
+        if (this.translationSourcesListsEqual(this.selectedTranslationSources, nextSources)) {
+          return false;
+        }
+        this.setSelectedTranslationSources(nextSources, markTouched);
+        return true;
+      },
+      getLimitOptionsForDropdown(index) {
+        const currentDropdown = Array.isArray(this.limitDropdowns[index]) ? this.limitDropdowns[index] : [];
+        const hasDatabaseSelections = currentDropdown.some((item) => this.isDatabaseLimitItem(item));
+        const hasRegularSelections = currentDropdown.some((item) => !this.isDatabaseLimitItem(item));
+        const activeDatabaseDropdownIndex = this.limitDropdowns.findIndex(
+          (group) => Array.isArray(group) && group.some((item) => this.isDatabaseLimitItem(item))
+        );
+        return (Array.isArray(this.limitOptions) ? this.limitOptions : [])
+          .map((option) => {
+            if (!this.isDatabaseLimitGroup(option)) {
+              return option;
+            }
+            return {
+              ...option,
+              choices: this.filterAvailableDatabaseChoices(option.choices),
+            };
+          })
+          .filter((option) => {
+            const isDatabaseGroup = this.isDatabaseLimitGroup(option);
+            if (isDatabaseGroup) {
+              if (hasRegularSelections) {
+                return false;
+              }
+              if (
+                activeDatabaseDropdownIndex >= 0 &&
+                activeDatabaseDropdownIndex !== index &&
+                !hasDatabaseSelections
+              ) {
+                return false;
+              }
+              return Array.isArray(option.choices) && option.choices.length > 0;
+            }
+            return !hasDatabaseSelections;
+          });
+      },
       optionIdentity(option) {
         if (!option || typeof option !== "object") return "";
         if (option.id) return `id:${option.id}`;
@@ -2169,7 +2296,30 @@
       normalizeLimitDropdowns(dropdowns) {
         if (!Array.isArray(dropdowns) || dropdowns.length === 0) return [[]];
         const normalized = dropdowns
-          .map((items) => this.dedupeLimitDropdownItems(items))
+          .flatMap((items) => {
+            const uniqueItems = this.dedupeLimitDropdownItems(
+              (Array.isArray(items) ? items : []).filter((item) => {
+                if (!this.isDatabaseLimitItem(item)) {
+                  return true;
+                }
+                return this.isTranslationSourceAvailable(item.translationSourceKey);
+              })
+            );
+            const regularItems = uniqueItems.filter((item) => !this.isDatabaseLimitItem(item));
+            const databaseItems = uniqueItems
+              .filter((item) => this.isDatabaseLimitItem(item))
+              .map((item) => ({ ...item, scope: "normal" }));
+            if (regularItems.length > 0 && databaseItems.length > 0) {
+              return [regularItems, databaseItems];
+            }
+            if (regularItems.length > 0) {
+              return [regularItems];
+            }
+            if (databaseItems.length > 0) {
+              return [databaseItems];
+            }
+            return [];
+          })
           .filter((items) => items.length > 0);
         return normalized.length > 0 ? normalized : [[]];
       },
@@ -2273,6 +2423,10 @@
           this.limitDropdowns = [[]];
         }
 
+        if (this.advanced) {
+          this.syncAdvancedDatabaseDropdownsFromTranslationSources();
+        }
+
         // Reset subject scopes in non-advanced mode
         if (!this.advanced) {
           this.resetTopicScopes();
@@ -2314,6 +2468,13 @@
           // Flatten nested children structure (same as for topics)
           if (filterItem.choices && Array.isArray(filterItem.choices)) {
             filterItem.choices = flattenTopicGroups(filterItem.choices);
+          }
+
+          if (this.isDatabaseLimitGroup(filterItem)) {
+            filterItem.choices = this.filterAvailableDatabaseChoices(filterItem.choices);
+            if (!Array.isArray(filterItem.choices) || filterItem.choices.length === 0) {
+              return;
+            }
           }
 
           if (!this.advanced) {
@@ -3312,12 +3473,14 @@
         const filterSet = new Set();
 
         this.limitDropdowns.forEach((dropdownItems) => {
-          dropdownItems.forEach((item) => {
-            const categoryId = this.getLimitCategoryId(item);
-            if (!newFilterData[categoryId]) newFilterData[categoryId] = [];
-            newFilterData[categoryId].push(item);
-            filterSet.add(categoryId);
-          });
+          dropdownItems
+            .filter((item) => !this.isDatabaseLimitItem(item))
+            .forEach((item) => {
+              const categoryId = this.getLimitCategoryId(item);
+              if (!newFilterData[categoryId]) newFilterData[categoryId] = [];
+              newFilterData[categoryId].push(item);
+              filterSet.add(categoryId);
+            });
         });
 
         this.limitData = newFilterData;
@@ -3338,6 +3501,7 @@
         uniqueValue.forEach((item) => {
           if (!item.scope) item.scope = "normal";
         });
+        const nonDatabaseValue = uniqueValue.filter((item) => !this.isDatabaseLimitItem(item));
 
         const previousValue = Array.isArray(this.limitDropdowns[index]) ? this.limitDropdowns[index] : [];
         const previousKeys = new Set(
@@ -3348,7 +3512,7 @@
           return key && !previousKeys.has(key);
         });
 
-        if (hasNewSelection && this.hasMixedLimitCategories(uniqueValue)) {
+        if (hasNewSelection && this.hasMixedLimitCategories(nonDatabaseValue)) {
           const shouldContinue = confirm(this.getString("mixedLimitCategoriesWarning"));
           if (!shouldContinue) return;
         }
@@ -3357,14 +3521,27 @@
           if (!shouldContinue) return;
         }
 
+        const previousDatabaseSources = this.getTranslationSourcesFromLimitDropdowns(this.limitDropdowns);
         const updated = cloneDeep(this.limitDropdowns);
         updated[index] = uniqueValue;
-        this.limitDropdowns = updated;
+        const normalizedDropdowns = this.normalizeLimitDropdowns(updated);
+        const nextDatabaseSources = this.getTranslationSourcesFromLimitDropdowns(normalizedDropdowns);
+        this.limitDropdowns = normalizedDropdowns;
 
         // Remove extra empty dropdowns — keep at most one empty
         this.removeExtraEmptyDropdowns("limitDropdowns");
 
         this.syncLimitDataFromDropdowns();
+        if (!this.translationSourcesListsEqual(previousDatabaseSources, nextDatabaseSources)) {
+          const didSyncSources = this.syncTranslationSourcesFromLimitDropdowns(true, normalizedDropdowns);
+          if (!didSyncSources) {
+            this.setUrl();
+            if (!this.isPreparingSemanticTagRefresh) {
+              this.editForm();
+            }
+          }
+          return;
+        }
         this.setUrl();
         if (!this.isPreparingSemanticTagRefresh) {
           this.editForm();
@@ -3429,12 +3606,21 @@
        */
       removeLimitDropdown(index) {
         const wasEmpty = this.limitDropdowns[index] && this.limitDropdowns[index].length === 0;
+        const previousDatabaseSources = this.getTranslationSourcesFromLimitDropdowns(this.limitDropdowns);
         const updated = [...this.limitDropdowns];
         updated.splice(index, 1);
-        if (updated.length === 0) updated.push([]);
-        this.limitDropdowns = updated;
+        this.limitDropdowns = this.normalizeLimitDropdowns(updated);
 
         this.syncLimitDataFromDropdowns();
+        const nextDatabaseSources = this.getTranslationSourcesFromLimitDropdowns(this.limitDropdowns);
+        if (!this.translationSourcesListsEqual(previousDatabaseSources, nextDatabaseSources)) {
+          const didSyncSources = this.syncTranslationSourcesFromLimitDropdowns(true, this.limitDropdowns);
+          if (!didSyncSources) {
+            this.setUrl();
+            if (!wasEmpty) this.editForm();
+          }
+          return;
+        }
         this.setUrl();
         if (!wasEmpty) this.editForm();
       },
@@ -3593,12 +3779,11 @@
         }
 
         // Advanced mode: encode from limitDropdowns (array of arrays)
-        if (!this.limitDropdowns || !this.limitDropdowns.some((d) => d.length > 0)) {
+        if (!this.searchDisplayLimitDropdowns || !this.searchDisplayLimitDropdowns.some((d) => d.length > 0)) {
           return "";
         }
 
-        const limitQueries = this.limitDropdowns
-          .filter((group) => group.length > 0)
+        const limitQueries = this.searchDisplayLimitDropdowns
           .map((group) => {
             const filterValues = group.map((item) => {
               const scope = this.getScopeKey(this.advanced ? item.scope : "normal");
