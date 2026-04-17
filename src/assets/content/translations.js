@@ -96,8 +96,8 @@ export const messages = {
     en: "AI translation",
   },
   manualInputTerm: {
-    dk: "Søgeord",
-    en: "Search term",
+    dk: "Fritekst",
+    en: "Free text",
   },
   select: {
     dk: "Tilføj",

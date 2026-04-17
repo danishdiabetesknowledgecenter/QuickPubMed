@@ -114,69 +114,18 @@
 
             <div v-if="showSemanticSearchSection && advanced" class="qpm_simpleFiltersRoot qpm_semanticSearchFiltersRoot">
               <div class="qpm_simpleFiltersContainer qpm_semanticSearchFiltersContainer">
-                <div class="qpm_simpleFiltersSpacer" />
-                <div class="qpm_simpleFiltersHeader">
-                  {{ getString("semanticSearchSectionHeader") }}:
-                </div>
-                <div class="qpm_semanticSearchFiltersGrid">
-                  <ai-translation-toggle
-                    v-if="isTranslationSourceAvailable('pubmed')"
-                    v-model="searchWithPubMedBestMatch"
-                    :is-collapsed="false"
-                    :display-mode="'checkbox'"
-                    :show-off-state-label="false"
-                    :label-with-key="'searchToggleWithPubMedBestMatch'"
-                    :label-without-key="'searchToggleWithoutPubMedBestMatch'"
-                    :hover-with-key="'hoversearchToggleWithPubMedBestMatch'"
-                    :hover-without-key="'hoversearchToggleWithoutPubMedBestMatch'"
-                    :icon-class="''"
-                    :get-string="getString"
-                  />
-                  <ai-translation-toggle
-                    v-if="isTranslationSourceAvailable('semanticScholar')"
-                    v-model="searchWithSemanticScholar"
-                    :is-collapsed="false"
-                    :display-mode="'checkbox'"
-                    :show-off-state-label="false"
-                    :label-with-key="'searchToggleWithSemanticScholar'"
-                    :label-without-key="'searchToggleWithoutSemanticScholar'"
-                    :hover-with-key="'hoversearchToggleWithSemanticScholar'"
-                    :hover-without-key="'hoversearchToggleWithoutSemanticScholar'"
-                    :icon-class="''"
-                    :tooltip-suffix="getSemanticScholarTooltipSuffix()"
-                    :get-string="getString"
-                  />
-                  <ai-translation-toggle
-                    v-if="isTranslationSourceAvailable('openAlex')"
-                    v-model="searchWithOpenAlex"
-                    :is-collapsed="false"
-                    :display-mode="'checkbox'"
-                    :disabled="isOpenAlexUnavailable"
-                    :show-off-state-label="false"
-                    :label-with-key="'searchToggleWithOpenAlex'"
-                    :label-without-key="'searchToggleWithoutOpenAlex'"
-                    :hover-with-key="'hoversearchToggleWithOpenAlex'"
-                    :hover-without-key="'hoversearchToggleWithoutOpenAlex'"
-                    :icon-class="''"
-                    :tooltip-suffix="getOpenAlexTooltipSuffix()"
-                    :get-string="getString"
-                  />
-                  <ai-translation-toggle
-                    v-if="isTranslationSourceAvailable('elicit')"
-                    v-model="searchWithElicit"
-                    :is-collapsed="false"
-                    :display-mode="'checkbox'"
-                    :disabled="isElicitUnavailable"
-                    :show-off-state-label="false"
-                    :label-with-key="'searchToggleWithElicit'"
-                    :label-without-key="'searchToggleWithoutElicit'"
-                    :hover-with-key="'hoversearchToggleWithElicit'"
-                    :hover-without-key="'hoversearchToggleWithoutElicit'"
-                    :icon-class="''"
-                    :tooltip-suffix="getElicitTooltipSuffix()"
-                    :get-string="getString"
-                  />
-                </div>
+                <semantic-search-filters
+                  :available-translation-sources="availableTranslationSourceKeys"
+                  :help-text-delay="300"
+                  :get-string="getString"
+                  :get-semantic-option-tooltip-content="getSemanticOptionTooltipContent"
+                  :get-semantic-option-disabled-state="isSemanticOptionDisabled"
+                  :search-with-pub-med-best-match="searchWithPubMedBestMatch"
+                  :search-with-semantic-scholar="searchWithSemanticScholar"
+                  :search-with-open-alex="searchWithOpenAlex"
+                  :search-with-elicit="searchWithElicit"
+                  @update-semantic-source="updateTranslationSourceSelection"
+                />
               </div>
             </div>
           </div>
@@ -247,6 +196,7 @@
   import WordedSearchString from "@/components/WordedSearchString.vue";
   import AiTranslationToggle from "@/components/AiTranslationToggle.vue";
   import SimpleSearchFilters from "@/components/SimpleSearchFilters.vue";
+  import SemanticSearchFilters from "@/components/SemanticSearchFilters.vue";
   import AdvancedSearchToggle from "@/components/AdvancedSearchToggle.vue";
   import AdvancedSearchFilters from "@/components/AdvancedSearchFilters.vue";
   import axios from "axios";
@@ -312,6 +262,7 @@
       AiTranslationToggle,
       SearchFormToggle,
       AdvancedSearchToggle,
+      SemanticSearchFilters,
       SimpleSearchLimits: SimpleSearchFilters,
       AdvancedSearchLimits: AdvancedSearchFilters,
       SubjectSelection,

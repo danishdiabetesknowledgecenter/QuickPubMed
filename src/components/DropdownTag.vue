@@ -118,6 +118,9 @@
     computed: {
       getCustomNameLabel: {
         get() {
+          if (this.isEditMode && this.triple.option.isCustom) {
+            return typeof this.tag.name === "string" ? this.tag.name : "";
+          }
           const label = this.customNameLabel(this.tag);
           return label ? label : " ";
         },
@@ -221,7 +224,10 @@
         }
 
         const tagName = typeof this.tag.name === "string" ? this.tag.name : "";
-        if (!tagName.trim()) return;
+        if (!tagName.trim()) {
+          this.tag = cloneDeep(this.triple.option);
+          return;
+        }
         this.updateTag(this.tag);
       },
       getTagColor(scope) {
