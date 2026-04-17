@@ -208,12 +208,71 @@ function resolveThemeApiBase(explicitApiBaseUrl) {
   return normalizeApiBase(explicitApiBaseUrl);
 }
 
+const ELICIT_UNLOCK_STORAGE_KEY = "qpmElicitUnlockKey";
+
+function safeGetLocalStorage(key) {
+  try {
+    if (typeof window === "undefined" || !window.localStorage) return null;
+    return window.localStorage.getItem(key);
+  } catch (_error) {
+    return null;
+  }
+}
+
+function safeSetLocalStorage(key, value) {
+  try {
+    if (typeof window === "undefined" || !window.localStorage) return;
+    if (value === null || value === undefined || value === "") {
+      window.localStorage.removeItem(key);
+    } else {
+      window.localStorage.setItem(key, String(value));
+    }
+  } catch (_error) {
+    /* ignore quota/privacy errors */
+  }
+}
+
+export function getStoredElicitUnlockKey() {
+  const stored = safeGetLocalStorage(ELICIT_UNLOCK_STORAGE_KEY);
+  return typeof stored === "string" ? stored.trim() : "";
+}
+
+export function setStoredElicitUnlockKey(value) {
+  const normalized = typeof value === "string" ? value.trim() : "";
+  safeSetLocalStorage(ELICIT_UNLOCK_STORAGE_KEY, normalized || null);
+}
+
+// Capture ?elicitKey=... from the URL once on load, persist it and strip it
+// from the visible URL so it isn't shared accidentally.
+function captureElicitKeyFromUrl() {
+  if (typeof window === "undefined" || !window.location) return;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has("elicitKey")) return;
+    const value = (params.get("elicitKey") || "").trim();
+    if (value) {
+      setStoredElicitUnlockKey(value);
+    }
+    params.delete("elicitKey");
+    const query = params.toString();
+    const newUrl =
+      window.location.pathname + (query ? `?${query}` : "") + (window.location.hash || "");
+    if (window.history && typeof window.history.replaceState === "function") {
+      window.history.replaceState(window.history.state, "", newUrl);
+    }
+  } catch (_error) {
+    /* ignore URL parsing failures */
+  }
+}
+captureElicitKeyFromUrl();
+
 export async function loadThemeOverridesFromBackend(domain, apiBaseUrl) {
   const normalizedDomain = String(domain || "").trim().toLowerCase();
   const resolvedApiBase = resolveThemeApiBase(apiBaseUrl);
   if (!normalizedDomain || !resolvedApiBase) return;
 
-  const cacheKey = `${resolvedApiBase}::${normalizedDomain}`;
+  const elicitKey = getStoredElicitUnlockKey();
+  const cacheKey = `${resolvedApiBase}::${normalizedDomain}::${elicitKey ? "k" : ""}`;
   const cached = themeConfigCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
     return;
@@ -227,12 +286,21 @@ export async function loadThemeOverridesFromBackend(domain, apiBaseUrl) {
   const requestPromise = (async () => {
     try {
       const separator = resolvedApiBase.includes("?") ? "&" : "?";
-      const url = `${resolvedApiBase}/ThemeConfig.php${separator}domain=${encodeURIComponent(normalizedDomain)}`;
+      let url = `${resolvedApiBase}/ThemeConfig.php${separator}domain=${encodeURIComponent(normalizedDomain)}`;
+      if (elicitKey) {
+        url += `&elicitKey=${encodeURIComponent(elicitKey)}`;
+      }
       const response = await fetch(url, { method: "GET", credentials: "omit" });
       if (!response.ok) return;
 
       const payload = await response.json();
       if (!payload || typeof payload !== "object") return;
+
+      // If the user sent an elicit unlock code but the backend rejected it,
+      // clear the stored key so the user isn't stuck sending an invalid value.
+      if (elicitKey && payload.elicitUnlocked === false) {
+        setStoredElicitUnlockKey("");
+      }
 
       if (payload.globalTheme && typeof payload.globalTheme === "object") {
         config.theme = { ...config.theme, ...payload.globalTheme };

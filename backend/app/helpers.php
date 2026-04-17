@@ -454,6 +454,123 @@ function qpmHasDomainTranslationSourcesConfig(?string $domain = null): bool
 }
 
 /**
+ * Resolve the best-effort client IP for the current request.
+ *
+ * Uses REMOTE_ADDR by default. If QPM_ELICIT_UNLOCK['trust_forwarded_for'] is true
+ * the first entry from X-Forwarded-For is honored (only enable behind a trusted proxy).
+ *
+ * @return string
+ */
+function qpmGetClientIp(): string
+{
+    $trustForwarded = false;
+    if (defined('QPM_ELICIT_UNLOCK') && is_array(QPM_ELICIT_UNLOCK)) {
+        $trustForwarded = !empty(QPM_ELICIT_UNLOCK['trust_forwarded_for']);
+    }
+    if ($trustForwarded && !empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        $parts = explode(',', (string) $_SERVER['HTTP_X_FORWARDED_FOR']);
+        $candidate = trim($parts[0] ?? '');
+        if ($candidate !== '') {
+            return $candidate;
+        }
+    }
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+    return is_string($ip) ? trim($ip) : '';
+}
+
+/**
+ * Check whether an IP matches a pattern. Pattern may be a plain IP or a CIDR
+ * range (IPv4 or IPv6).
+ */
+function qpmIpMatchesPattern(string $ip, string $pattern): bool
+{
+    $pattern = trim($pattern);
+    if ($pattern === '' || $ip === '') {
+        return false;
+    }
+    if (strpos($pattern, '/') === false) {
+        return $ip === $pattern;
+    }
+    [$subnet, $bitsRaw] = explode('/', $pattern, 2);
+    $bits = (int) $bitsRaw;
+    $ipBin = @inet_pton($ip);
+    $subnetBin = @inet_pton(trim($subnet));
+    if ($ipBin === false || $subnetBin === false) {
+        return false;
+    }
+    if (strlen($ipBin) !== strlen($subnetBin)) {
+        return false;
+    }
+    $maxBits = strlen($ipBin) * 8;
+    if ($bits < 0 || $bits > $maxBits) {
+        return false;
+    }
+    $byteLen = intdiv($bits, 8);
+    $bitLen = $bits % 8;
+    if ($byteLen > 0 && substr($ipBin, 0, $byteLen) !== substr($subnetBin, 0, $byteLen)) {
+        return false;
+    }
+    if ($bitLen === 0) {
+        return true;
+    }
+    $mask = chr((0xFF << (8 - $bitLen)) & 0xFF);
+    return (ord($ipBin[$byteLen]) & ord($mask)) === (ord($subnetBin[$byteLen]) & ord($mask));
+}
+
+/**
+ * Returns true when QPM_ELICIT_UNLOCK contains at least one IP pattern or a
+ * non-empty code. When this is true, Elicit is considered "gated": it is only
+ * offered to clients whose IP or code matches the config. When it is false
+ * (no gating configured), Elicit is offered based on the regular domain
+ * translation_sources only.
+ */
+function qpmIsElicitUnlockConfigured(): bool
+{
+    if (!defined('QPM_ELICIT_UNLOCK') || !is_array(QPM_ELICIT_UNLOCK)) {
+        return false;
+    }
+    $cfg = QPM_ELICIT_UNLOCK;
+    $hasIps = !empty($cfg['ips']) && is_array($cfg['ips']);
+    $hasCode = isset($cfg['code']) && is_string($cfg['code']) && trim($cfg['code']) !== '';
+    return $hasIps || $hasCode;
+}
+
+/**
+ * Decide whether Elicit should be force-unlocked for the current request.
+ *
+ * Returns true when QPM_ELICIT_UNLOCK is configured and either:
+ *   - the client IP matches an entry in 'ips' (plain IPs or CIDR ranges), or
+ *   - the provided code matches 'code' (constant-time compare).
+ */
+function qpmIsElicitUnlocked(?string $providedCode = null): bool
+{
+    if (!defined('QPM_ELICIT_UNLOCK') || !is_array(QPM_ELICIT_UNLOCK)) {
+        return false;
+    }
+    $config = QPM_ELICIT_UNLOCK;
+
+    $expectedCode = isset($config['code']) ? (string) $config['code'] : '';
+    $code = is_string($providedCode) ? trim($providedCode) : '';
+    if ($code !== '' && $expectedCode !== '' && hash_equals($expectedCode, $code)) {
+        return true;
+    }
+
+    $ips = isset($config['ips']) && is_array($config['ips']) ? $config['ips'] : [];
+    if (!empty($ips)) {
+        $clientIp = qpmGetClientIp();
+        if ($clientIp !== '') {
+            foreach ($ips as $pattern) {
+                if (is_string($pattern) && qpmIpMatchesPattern($clientIp, $pattern)) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
+/**
  * Resolve domain theme overrides from runtime config.
  *
  * @param string|null $domain

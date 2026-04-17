@@ -15,6 +15,19 @@
         aria-label="Info"
         @click.stop
       />
+      <button
+        v-if="showElicitUnlockButton"
+        type="button"
+        v-tooltip="{
+          content: getString('elicitUnlockTooltip') || 'Lås op for ekstra AI-kilde',
+          distance: 5,
+          delay: helpTextDelay,
+          theme: 'infoTooltip',
+        }"
+        class="bx bx-lock-alt qpm_cursorPointer qpm_infoIcon"
+        :aria-label="getString('elicitUnlockButtonLabel') || 'Lås op'"
+        @click.stop="onElicitUnlockClick"
+      />
     </span>
   </div>
   <div
@@ -62,6 +75,8 @@
 </template>
 
 <script>
+  import { getStoredElicitUnlockKey, setStoredElicitUnlockKey } from "@/config/config.js";
+
   export default {
     name: "SemanticSearchFilters",
     props: {
@@ -136,8 +151,31 @@
           ? options.filter((option) => allowedSources.has(option.id))
           : options;
       },
+      showElicitUnlockButton() {
+        const allowedSources = Array.isArray(this.availableTranslationSources)
+          ? this.availableTranslationSources.map((value) => String(value || "").trim())
+          : [];
+        return !allowedSources.includes("elicit");
+      },
     },
     methods: {
+      onElicitUnlockClick() {
+        if (typeof window === "undefined" || typeof window.prompt !== "function") {
+          return;
+        }
+        const promptText =
+          this.getString("elicitUnlockPromptMessage") ||
+          "Indtast kode for at låse op for ekstra AI-kilde (Elicit):";
+        const existing = getStoredElicitUnlockKey();
+        const input = window.prompt(promptText, existing || "");
+        if (input === null) return; // user cancelled
+        const normalized = String(input).trim();
+        setStoredElicitUnlockKey(normalized);
+        // Reload so ThemeConfig.php is re-fetched and the semantic source list is refreshed.
+        if (window.location && typeof window.location.reload === "function") {
+          window.location.reload();
+        }
+      },
       splitLastWord(text) {
         const normalized = String(text || "").trim();
         const lastSpace = normalized.lastIndexOf(" ");

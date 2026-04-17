@@ -45,6 +45,27 @@ define('OPENALEX_EMAIL', '');
 // Requires an API key from https://docs.elicit.com/
 define('ELICIT_API_KEY', '');
 
+// ============ Elicit Unlock (optional) ============
+// If configured, the Elicit source is added to the available semantic sources
+// returned by ThemeConfig.php when EITHER of the following is true:
+//   - the request's client IP matches one of the listed IPs/CIDR ranges
+//   - the frontend sends a matching "elicitKey" query parameter
+// When not configured (constant not defined, or both lists empty), Elicit
+// availability is controlled solely by the normal domain translation_sources.
+// Frontend can deliver the code via:
+//   - URL parameter: ?elicitKey=YOUR-SECRET (stored in localStorage afterwards)
+//   - A small "Unlock" button in the search UI that prompts for the code
+// Set 'trust_forwarded_for' => true only when running behind a trusted proxy
+// that correctly sets the X-Forwarded-For header.
+define('QPM_ELICIT_UNLOCK', [
+    'ips' => [
+        // '192.168.1.0/24',
+        // '10.0.0.5',
+    ],
+    'code' => '', // e.g. 'some-long-random-secret'
+    'trust_forwarded_for' => false,
+]);
+
 // ============ Unpaywall Configuration ============
 // Optional domain override file:
 // data/content/<domain>/domain-config.json -> unpaywall.email

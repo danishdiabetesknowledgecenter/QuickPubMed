@@ -53,6 +53,25 @@ $unpaywall = [
 ];
 $translationSources = qpmGetDomainTranslationSources($domain);
 $translationSourcesConfigured = qpmHasDomainTranslationSourcesConfig($domain);
+
+$elicitKeyRaw = $_GET['elicitKey'] ?? null;
+$elicitKey = is_string($elicitKeyRaw) ? trim($elicitKeyRaw) : '';
+$elicitUnlocked = qpmIsElicitUnlocked($elicitKey !== '' ? $elicitKey : null);
+if (qpmIsElicitUnlockConfigured()) {
+    // When gating is configured, Elicit availability is controlled entirely by
+    // the unlock check: add it when unlocked, remove it otherwise. This ignores
+    // the domain's translation_sources for the 'elicit' entry only.
+    if (!$translationSourcesConfigured) {
+        $translationSources = ['pubmed', 'semanticScholar', 'openAlex'];
+        $translationSourcesConfigured = true;
+    }
+    $translationSources = array_values(
+        array_filter($translationSources, static fn($source) => $source !== 'elicit')
+    );
+    if ($elicitUnlocked) {
+        $translationSources[] = 'elicit';
+    }
+}
 $semanticSourceLimits = [
     'semanticScholar' => qpmGetSemanticSourceLimit('semanticScholar', 400),
     'openAlex' => qpmGetSemanticSourceLimit('openAlex', 100),
@@ -79,7 +98,7 @@ if (!empty($globalClassOverrides)) {
     $domainClassOverrides = array_merge($globalClassOverrides, $domainClassOverrides);
 }
 
-echo json_encode([
+$response = [
     'globalTheme' => $globalTheme,
     'themeByDomain' => $themeByDomain,
     'domain' => $domain,
@@ -89,8 +108,37 @@ echo json_encode([
     'unpaywall' => $unpaywall,
     'translationSources' => $translationSources,
     'translationSourcesConfigured' => $translationSourcesConfigured,
+    'elicitUnlocked' => $elicitUnlocked,
     'semanticSourceLimits' => $semanticSourceLimits,
     'semanticRescueConfig' => $semanticRescueConfig,
     'semanticLlmRerankConfig' => $semanticLlmRerankConfig,
     'rerankConfig' => $rerankConfig,
-], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+];
+
+// Opt-in diagnostic for the Elicit unlock feature. Visit:
+//   <api>/ThemeConfig.php?domain=<domain>&elicitDiag=1
+// to see which client IP and configured IPs the backend sees. This never
+// exposes the configured unlock code, only IP/patterns + an elicitUnlocked flag.
+if (!empty($_GET['elicitDiag'])) {
+    $configuredIps = [];
+    $hasCode = false;
+    $trustForwardedFor = false;
+    if (defined('QPM_ELICIT_UNLOCK') && is_array(QPM_ELICIT_UNLOCK)) {
+        $cfg = QPM_ELICIT_UNLOCK;
+        $configuredIps = isset($cfg['ips']) && is_array($cfg['ips']) ? array_values($cfg['ips']) : [];
+        $hasCode = !empty($cfg['code']);
+        $trustForwardedFor = !empty($cfg['trust_forwarded_for']);
+    }
+    $response['elicitDiag'] = [
+        'clientIp' => qpmGetClientIp(),
+        'remoteAddr' => $_SERVER['REMOTE_ADDR'] ?? '',
+        'xForwardedFor' => $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '',
+        'trustForwardedFor' => $trustForwardedFor,
+        'configuredIps' => $configuredIps,
+        'hasConfiguredCode' => $hasCode,
+        'codeSent' => $elicitKey !== '',
+        'elicitUnlocked' => $elicitUnlocked,
+    ];
+}
+
+echo json_encode($response, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

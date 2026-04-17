@@ -598,14 +598,14 @@
       },
       getStateCopy: {
         get: function () {
-          if (!this.selected) {
+          if (!Array.isArray(this.selected)) {
             return [];
           }
-          return this.selected;
+          return [...this.selected];
         },
         set: function (newValue) {
           //temp list because the this.selected is only updated after methods in this component is called
-          this.tempList = newValue;
+          this.tempList = Array.isArray(newValue) ? [...newValue] : [];
         },
       },
       getSelectGroupLabel: function () {
@@ -1514,10 +1514,18 @@
         return this.countValidScopes(option) >= 2;
       },
       onSelectedChange(newValue, oldValue) {
-        if (oldValue.length > newValue.length) {
+        const normalizedNewValue = Array.isArray(newValue) ? newValue : [];
+        const normalizedOldValue = Array.isArray(oldValue) ? oldValue : [];
+        if (normalizedOldValue.length > normalizedNewValue.length) {
+          const nextSelectionKeys = new Set(
+            normalizedNewValue.map((tag) => this.optionIdentity(tag)).filter(Boolean)
+          );
           // Find the tag that was removed
-          const removedTag = oldValue.find((tag) => !newValue.includes(tag));
-          if (removedTag) {
+          const removedTag = normalizedOldValue.find((tag) => {
+            const key = this.optionIdentity(tag);
+            return key && !nextSelectionKeys.has(key);
+          });
+          if (removedTag && !removedTag.translationSourceKey) {
             removedTag.scope = "normal";
             // Emit updateScope asynchronously to avoid blocking UI
             this.$nextTick(() => {

@@ -251,6 +251,18 @@ export const messages = {
     dk: "Når denne database er slået fra, bruges Elicit ikke som ekstra kilde til fritekstsøgning.",
     en: "When this database is disabled, Elicit is not used as an additional source for free-text search.",
   },
+  elicitUnlockButtonLabel: {
+    dk: "Lås op",
+    en: "Unlock",
+  },
+  elicitUnlockTooltip: {
+    dk: "Lås op for ekstra AI-kilde (kræver kode eller godkendt IP).",
+    en: "Unlock extra AI source (requires a code or an approved IP).",
+  },
+  elicitUnlockPromptMessage: {
+    dk: "Indtast kode for at låse op for ekstra AI-kilde (Elicit). Lad feltet være tomt for at fjerne en gemt kode.",
+    en: "Enter code to unlock the extra AI source (Elicit). Leave empty to clear a saved code.",
+  },
   advancedSearch: {
     dk: "Avanceret",
     en: "Advanced",

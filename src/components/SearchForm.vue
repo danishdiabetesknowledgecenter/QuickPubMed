@@ -1010,7 +1010,7 @@
       },
       getTranslationSourcesUrlParamValue() {
         if (!this.isAiFeatureEnabled) return null;
-        const selectedSources = this.sortTranslationSourcesList(this.selectedTranslationSources);
+        const selectedSources = this.normalizeTranslationSourcesList(this.selectedTranslationSources);
         const configuredSources = this.sortTranslationSourcesList(this.getConfiguredTranslationSources());
         if (this.translationSourcesListsEqual(selectedSources, configuredSources)) {
           return null;
@@ -2184,7 +2184,7 @@
             .map((item) => [String(item?.translationSourceKey || "").trim(), item])
             .filter(([key]) => key !== "")
         );
-        return this.sortTranslationSourcesList(this.selectedTranslationSources)
+        return this.normalizeTranslationSourcesList(this.selectedTranslationSources)
           .map((sourceKey) => {
             const choice = choicesBySource.get(sourceKey);
             return choice ? { ...choice, scope: "normal" } : null;
@@ -2204,7 +2204,7 @@
           .filter((item) => this.isDatabaseLimitItem(item))
           .map((item) => String(item?.translationSourceKey || "").trim())
           .filter(Boolean);
-        return this.sortTranslationSourcesList(selectedSources);
+        return this.normalizeTranslationSourcesList(selectedSources);
       },
       isDatabaseLimitDropdown(index) {
         const dropdownItems = Array.isArray(this.limitDropdowns[index]) ? this.limitDropdowns[index] : [];
