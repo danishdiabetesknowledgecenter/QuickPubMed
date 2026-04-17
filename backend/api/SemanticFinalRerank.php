@@ -108,7 +108,8 @@ foreach ($rawCandidates as $rawCandidate) {
         continue;
     }
     $seenIds[$id] = true;
-    $candidates[] = [
+
+    $candidate = [
         'id' => $id,
         'title' => $title,
         'abstract' => qpmSemanticRerankNormalizeString($rawCandidate['abstract'] ?? ''),
@@ -116,6 +117,64 @@ foreach ($rawCandidates as $rawCandidate) {
         'source' => qpmSemanticRerankNormalizeString($rawCandidate['source'] ?? ''),
         'sourceLabel' => qpmSemanticRerankNormalizeString($rawCandidate['sourceLabel'] ?? ''),
     ];
+
+    // Optional quality signals — passed through when available so the LLM can use
+    // them as additional context. The strict permutation contract still applies:
+    // the LLM cannot exclude or add records.
+    $qualitySignals = [];
+    $signalFields = [
+        'fwci' => 'float',
+        'rcr' => 'float',
+        'nihPercentile' => 'float',
+        'citationCount' => 'int',
+        'influentialCitationCount' => 'int',
+        'citedByClin' => 'int',
+        'year' => 'int',
+        'isRetracted' => 'bool',
+        'isClinical' => 'bool',
+        'isOpenAccess' => 'bool',
+        'venue' => 'string',
+    ];
+    foreach ($signalFields as $field => $type) {
+        if (!array_key_exists($field, $rawCandidate)) {
+            continue;
+        }
+        $value = $rawCandidate[$field];
+        if ($value === null || $value === '') {
+            continue;
+        }
+        switch ($type) {
+            case 'float':
+                if (is_numeric($value)) $qualitySignals[$field] = (float) $value;
+                break;
+            case 'int':
+                if (is_numeric($value)) $qualitySignals[$field] = (int) $value;
+                break;
+            case 'bool':
+                if (is_bool($value)) $qualitySignals[$field] = $value;
+                break;
+            case 'string':
+                $normalized = qpmSemanticRerankNormalizeString($value);
+                if ($normalized !== '') $qualitySignals[$field] = $normalized;
+                break;
+        }
+    }
+    if (isset($rawCandidate['pubTypes']) && is_array($rawCandidate['pubTypes'])) {
+        $pubTypes = [];
+        foreach ($rawCandidate['pubTypes'] as $pubType) {
+            $normalized = qpmSemanticRerankNormalizeString($pubType);
+            if ($normalized !== '') $pubTypes[$normalized] = true;
+        }
+        if (!empty($pubTypes)) {
+            $qualitySignals['pubTypes'] = array_values(array_keys($pubTypes));
+        }
+    }
+
+    if (!empty($qualitySignals)) {
+        $candidate['qualitySignals'] = $qualitySignals;
+    }
+
+    $candidates[] = $candidate;
 }
 
 if ($query === '' || count($candidates) < 2) {
@@ -151,6 +210,7 @@ $systemPrompt = implode("\n", [
     'Prefer candidates that best match the query intent using title and abstract together.',
     'Treat missing abstracts conservatively.',
     'Do not try to override publication-type, date, or other hard filters because they have already been applied.',
+    'When signals such as FWCI, RCR, citation counts, retraction status, publication type or recency are provided on a candidate, you may use them to inform relevance, but never to override prior hard filters and never to exclude or add candidates. Prefer non-retracted records over retracted ones when all other evidence is comparable.',
 ]);
 
 $userPayload = [

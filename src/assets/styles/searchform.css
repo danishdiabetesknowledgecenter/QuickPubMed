@@ -306,6 +306,37 @@
   padding-bottom: 1px;
 }
 
+/* Locked semantic search option (e.g. Elicit when backend-gated):
+   checkbox + label are greyed out, the lock icon stays fully visible, and
+   the whole row is clickable to open the unlock prompt. */
+.qpm_semanticFilterLocked {
+  cursor: pointer;
+}
+
+.qpm_semanticFilterLocked .qpm_semanticFilterCheckbox,
+.qpm_semanticFilterLocked .qpm_semanticFilterLabel {
+  opacity: 0.5;
+  cursor: pointer;
+}
+
+.qpm_semanticFilterLocked .qpm_semanticFilterLockIcon {
+  opacity: 1;
+  font-size: 1.3em;
+}
+
+/* Locked database option in the advanced-mode DropdownWrapper list: mirrors
+   the simple-mode treatment — checkmark slot and label are greyed out while
+   the lock icon stays fully visible. */
+.qpm_lockedDbOptionCheck,
+.qpm_lockedDbOptionLabel {
+  opacity: 0.5;
+}
+
+.qpm_lockedDbOptionIcon {
+  opacity: 1;
+  font-size: 1.3em;
+}
+
 .qpm_simpleFiltersHeader .bx-sparkles-alt {
   font-size: 1.3em !important;
   font-weight: normal;

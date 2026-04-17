@@ -407,24 +407,48 @@ Prioriteten er:
 
 Det betyder, at OpenAlex gerne må være den vigtigste metadata-kilde til filtrering og hydrering, uden at OpenAlex nødvendigvis også er førstevalg til den tekst, brugeren ser i resultatlisten.
 
+### Enrichment inden genrangering
+
+Før selve genrangeringen kører et enrichment-lag (`04b Enrichment` i search-flow-debug). Det beriger kandidaterne med ekstra kvalitetssignaler, som senere bruges af både den deterministiske rerank og LLM-rerank. Enrichment består af to parallelle kald fra `DropdownWrapper.vue`:
+
+- `ICiteLookup.php` — batch-kald (op til 500 PMIDs pr. batch) til NIH iCite, der leverer Relative Citation Ratio (RCR), NIH percentile, `is_clinical`, `cited_by_clin`, `apt` og `field_citation_rate`. iCite dækker kun PMIDs; DOI-only kandidater får `null` og falder tilbage på FWCI.
+- `OpenAlexAuthorityLookup.php` — batch-kald (50 ids pr. batch) til OpenAlex for forfatter-h-index (`authorityAuthors.maxHIndex`) og journal-metrics (`authorityJournal.meanCitedness`, `hIndex`, `isInDoaj`).
+
+Derudover bæres følgende signaler allerede direkte i retrieval-responsen uden ekstra kald:
+
+- OpenAlex: `fwci`, `cited_by_count`, `counts_by_year`, `is_retracted`, `open_access.is_oa`, `primary_topic`, `authorships[].author.id`, `primary_location.source.id`.
+- Semantic Scholar: `citationCount`, `influentialCitationCount`, `s2FieldsOfStudy`, `tldr`, `isOpenAccess`.
+
+Ved fejl i enrichment (fx iCite nede) logges en warning, men rerank kører videre uden de manglende signaler.
+
+### Mergeregler for enrichment-felter
+
+`mergeSourceCandidates()` samler enrichment pr. merged record i `entry.enriched` med disse regler:
+
+- `isRetracted` = `any(sources)` — enhver kilde der siger retracted vinder.
+- `citedByCount` = `max(sources)` — højeste tal vinder.
+- `fwci` = prioritet OpenAlex → S2.
+- `rcr`, `nihPercentile`, `isClinical`, `citedByClin`, `apt` = kun iCite.
+- `influentialCitationCount` = kun S2.
+- `publicationYear` = prioritet OpenAlex → S2 → Elicit.
+- `pubTypes` = union af alle kilder.
+- `primaryTopicDisplayName` = OpenAlex.
+- `s2FieldsOfStudy` = S2.
+- `isOpenAccess` = `any(sources)`.
+- `authorityAuthors`, `authorityJournal` = OpenAlex.
+
 ### Deterministisk genrangering
 
-Den primære genrangering ligger i `src/utils/semanticReranking.js`.
+Den primære genrangering ligger i `src/utils/semanticReranking.js` og bruger en hybrid formel:
 
-Den bruger flere signaler:
+- `baseScore = sum(weightedRrf_sources) + pmidBonus + overlapBonus`  *(uændret RRF-kerne)*
+- `additiveQualityBonus = pubTypeBonus + recencyBonus + oaBonus + clinicalBonus + topicOverlapBonus`
+- `qualityMultiplier = citationImpactMultiplier * authorityMultiplier * retractionMultiplier`
+- `combinedScore = (baseScore + additiveQualityBonus) * qualityMultiplier`
 
-- vægtet RRF som hovedsignal
-- PMID-bonus
-- overlap-bonus, når flere kilder peger på samme kandidat
-- kilde-score som tie-breaker
+Alle nye signaler defaulter til neutrale værdier så en uopdateret installation har 1:1 samme adfærd som før.
 
-Ved multi-source-retrieval bruges en vægtet version af Reciprocal Rank Fusion:
-
-- en kandidat får et bidrag fra hver kilde, den optræder i
-- høj placering i en kilde giver større bidrag end lav placering
-- hver kilde har sin egen vægt
-
-Formlen i praksis er:
+Den vægtede RRF er stadig hovedsignalet. Formlen er:
 
 - `weightedRrf = (sourceWeight * rankScale * rrfK) / (rrfK + rank)`
 
@@ -432,19 +456,37 @@ Hvis en kandidat har et PMID, får den en ekstra bonus (`pmidBonus`). Hvis samme
 
 Hvis kun én kilde faktisk leverer kandidater, skifter systemet til `single`-tilstand. Her bruges der ikke overlap-bonus, og sorteringen bliver i praksis bedste rank først og derefter score-tie-breaker.
 
+### Citation-impact fallback-kaskade
+
+`computeCitationImpactMultiplier` vælger det bedste tilgængelige citation-signal pr. kandidat i denne rækkefølge:
+
+1. RCR (kun PMID, kommer fra iCite)
+2. FWCI (OpenAlex, log-dæmpet)
+3. `influentialCitationCount` (S2)
+4. `citedByCount` (log-dæmpet)
+5. Intet signal → neutral multiplier 1.0
+
+Det sikrer, at DOI-only kandidater stadig får et citation-signal via FWCI, selv om iCite ikke kan nås via DOI.
+
+### Retraction-håndtering
+
+Retraction-flag styres via `retractionAction` i config, tri-state:
+
+- `'none'` (default): ingen effekt.
+- `'penalty'`: `combinedScore` ganges med `retractionPenalty`.
+- `'filter'`: kandidaten fjernes fra resultatet før sortering. Tællingen eksponeres som `diagnostics.enrichmentSummary.filteredByRetraction`.
+
 ### Standardkonfiguration for genrangering
 
 Genrangeringskonfigurationen ligger i `QPM_RERANK_CONFIG`.
 
 De vigtigste parametre er:
 
-- `sourceWeights`
-- `pmidBonus`
-- `overlapBonusPerExtraSource`
-- `rrfK`
-- `rankScale`
-- `scoreScale`
-- `fallbackSourceWeight`
+- RRF-kerne: `sourceWeights`, `pmidBonus`, `overlapBonusPerExtraSource`, `rrfK`, `rankScale`, `scoreScale`, `fallbackSourceWeight`
+- Kvalitets-bonus (additive): `pubTypeWeights`, `recencyHalfLifeYears`, `recencyBonusMax`, `oaBonus`, `clinicalBonus`, `clinicalCitedByThreshold`, `topicOverlapBonus`
+- Kvalitets-multiplier: `citationImpactClamp`, `authorityClamp`, `retractionAction`, `retractionPenalty`
+
+Alle kvalitetsparametre defaulter til neutrale værdier, så installationer der ikke har opdateret deres config får præcis samme rangering som før.
 
 ### Diagnostik for genrangering
 
@@ -453,9 +495,10 @@ Den deterministiske genrangerer producerer også diagnostik:
 - `sourceSummary`
 - `sourceStats`
 - `overlapSummary`
-- detaljerede scorebidrag pr. kandidat
+- `enrichmentSummary` — tællere for `withFwci`, `withRcr`, `withInfluentialCitations`, `withCitedByCount`, `withRetractionFlag`, `filteredByRetraction`, `withClinicalFlag`, `withCitedByClin`, `withPubTypeMatch`, `withOpenAccess`, `withTopicOverlap`, `withAuthorityData`, `withRecencySignal`
+- detaljerede scorebidrag pr. kandidat (`contributions[]`, `scoreBreakdown`)
 
-Det er nyttigt ved tuning, fordi man kan se, om en kandidat blev løftet af høj rank i én kilde, overlap på tværs af kilder, PMID-bonus eller tie-breaker-score.
+Det er nyttigt ved tuning, fordi man kan se, om en kandidat blev løftet af høj rank i én kilde, overlap på tværs af kilder, PMID-bonus, kvalitets-bonus eller kvalitets-multiplier.
 
 ### Fra genrangering til endelig visning
 

@@ -12,6 +12,7 @@ export const config = reactive({
   semanticLlmRerankConfig: {}, // Frontend-safe semantic final rerank settings from backend config
   rerankConfig: {}, // Frontend-safe rerank settings from backend config
   translationSourcesByDomain: {}, // Domain-specific source availability fallback: { domainKey: ["pubmed", ...] }
+  elicitGated: false, // Global: backend says Elicit is gated and caller is not unlocked
   theme: {}, // Global CSS custom properties to override :root defaults
   themeByDomain: {}, // Domain-specific CSS variable overrides: { domainKey: { "--color-...": "..." } }
   classOverrides: {}, // Global class overrides: { baseClass: { mode, classes[] } }
@@ -209,6 +210,43 @@ function resolveThemeApiBase(explicitApiBaseUrl) {
 }
 
 const ELICIT_UNLOCK_STORAGE_KEY = "qpmElicitUnlockKey";
+const ELICIT_AUTOSELECT_STORAGE_KEY = "qpmElicitAutoSelectAfterUnlock";
+
+function safeGetSessionStorage(key) {
+  try {
+    if (typeof window === "undefined" || !window.sessionStorage) return null;
+    return window.sessionStorage.getItem(key);
+  } catch (_error) {
+    return null;
+  }
+}
+
+function safeSetSessionStorage(key, value) {
+  try {
+    if (typeof window === "undefined" || !window.sessionStorage) return;
+    if (value === null || value === undefined || value === "") {
+      window.sessionStorage.removeItem(key);
+    } else {
+      window.sessionStorage.setItem(key, String(value));
+    }
+  } catch (_error) {
+    /* ignore quota/privacy errors */
+  }
+}
+
+// Session-scoped flag used to signal that Elicit should be auto-selected
+// after the next reload (set just before reloading from the unlock prompt).
+export function markElicitAutoSelectAfterUnlock() {
+  safeSetSessionStorage(ELICIT_AUTOSELECT_STORAGE_KEY, "1");
+}
+
+// Reads the auto-select flag and clears it in the same call, so SearchForm
+// only reacts to it once per successful unlock.
+export function consumeElicitAutoSelectAfterUnlockFlag() {
+  const value = safeGetSessionStorage(ELICIT_AUTOSELECT_STORAGE_KEY) === "1";
+  if (value) safeSetSessionStorage(ELICIT_AUTOSELECT_STORAGE_KEY, null);
+  return value;
+}
 
 function safeGetLocalStorage(key) {
   try {
@@ -242,6 +280,35 @@ export function setStoredElicitUnlockKey(value) {
   safeSetLocalStorage(ELICIT_UNLOCK_STORAGE_KEY, normalized || null);
 }
 
+// Shared prompt helper used wherever a locked Elicit option is surfaced in the
+// UI. Shows a prompt for the unlock code, persists it, and reloads the page so
+// ThemeConfig.php is re-fetched and the semantic source list refreshes.
+export function promptForElicitUnlockKey(getString) {
+  if (typeof window === "undefined" || typeof window.prompt !== "function") {
+    return;
+  }
+  const fallback =
+    "Indtast kode for at låse op for ekstra AI-kilde (Elicit). Lad feltet være tomt for at fjerne en gemt kode.";
+  const promptText =
+    (typeof getString === "function" && getString("elicitUnlockPromptMessage")) || fallback;
+  const existing = getStoredElicitUnlockKey();
+  const input = window.prompt(promptText, existing || "");
+  if (input === null) return;
+  const trimmed = String(input).trim();
+  setStoredElicitUnlockKey(trimmed);
+  // When a non-empty code is submitted, flag that Elicit should be auto-
+  // selected after the page reloads. If the backend rejects the code the
+  // stored key is cleared (in loadThemeOverridesFromBackend) and the flag is
+  // still consumed on the next load but the auto-select is a no-op because
+  // runtimeConfig.elicitGated stays true.
+  if (trimmed) {
+    markElicitAutoSelectAfterUnlock();
+  }
+  if (window.location && typeof window.location.reload === "function") {
+    window.location.reload();
+  }
+}
+
 // Capture ?elicitKey=... from the URL once on load, persist it and strip it
 // from the visible URL so it isn't shared accidentally.
 function captureElicitKeyFromUrl() {
@@ -250,9 +317,9 @@ function captureElicitKeyFromUrl() {
     const params = new URLSearchParams(window.location.search);
     if (!params.has("elicitKey")) return;
     const value = (params.get("elicitKey") || "").trim();
-    if (value) {
-      setStoredElicitUnlockKey(value);
-    }
+    // Always call the setter, so passing an empty ?elicitKey= explicitly clears
+    // any previously stored key (useful as a reset/escape-hatch from the URL).
+    setStoredElicitUnlockKey(value);
     params.delete("elicitKey");
     const query = params.toString();
     const newUrl =
@@ -269,7 +336,9 @@ captureElicitKeyFromUrl();
 export async function loadThemeOverridesFromBackend(domain, apiBaseUrl) {
   const normalizedDomain = String(domain || "").trim().toLowerCase();
   const resolvedApiBase = resolveThemeApiBase(apiBaseUrl);
-  if (!normalizedDomain || !resolvedApiBase) return;
+  // We still fetch when no domain is set, so the global elicit gate flag is
+  // retrieved even on domain-less pages.
+  if (!resolvedApiBase) return;
 
   const elicitKey = getStoredElicitUnlockKey();
   const cacheKey = `${resolvedApiBase}::${normalizedDomain}::${elicitKey ? "k" : ""}`;
@@ -301,6 +370,7 @@ export async function loadThemeOverridesFromBackend(domain, apiBaseUrl) {
       if (elicitKey && payload.elicitUnlocked === false) {
         setStoredElicitUnlockKey("");
       }
+      config.elicitGated = payload.elicitGated === true;
 
       if (payload.globalTheme && typeof payload.globalTheme === "object") {
         config.theme = { ...config.theme, ...payload.globalTheme };
@@ -310,7 +380,7 @@ export async function loadThemeOverridesFromBackend(domain, apiBaseUrl) {
         config.themeByDomain = { ...config.themeByDomain, ...payload.themeByDomain };
       }
 
-      if (payload.domainTheme && typeof payload.domainTheme === "object") {
+      if (normalizedDomain && payload.domainTheme && typeof payload.domainTheme === "object") {
         config.themeByDomain = {
           ...config.themeByDomain,
           [normalizedDomain]: {
@@ -327,7 +397,11 @@ export async function loadThemeOverridesFromBackend(domain, apiBaseUrl) {
         };
       }
 
-      if (payload.domainClassOverrides && typeof payload.domainClassOverrides === "object") {
+      if (
+        normalizedDomain &&
+        payload.domainClassOverrides &&
+        typeof payload.domainClassOverrides === "object"
+      ) {
         config.classOverridesByDomain = {
           ...config.classOverridesByDomain,
           [normalizedDomain]: normalizeClassOverridesMap(payload.domainClassOverrides),
@@ -345,7 +419,11 @@ export async function loadThemeOverridesFromBackend(domain, apiBaseUrl) {
         }
       }
 
-      if (payload.translationSourcesConfigured === true && Array.isArray(payload.translationSources)) {
+      if (
+        normalizedDomain &&
+        payload.translationSourcesConfigured === true &&
+        Array.isArray(payload.translationSources)
+      ) {
         const allowed = new Set([
           "pubmed",
           "pubmedBestMatch",

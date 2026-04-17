@@ -69,6 +69,8 @@
       <semantic-search-filters
         v-if="showSemanticSearchSection"
         :available-translation-sources="availableTranslationSources"
+        :locked-translation-sources="lockedTranslationSources"
+        :show-elicit-unlock-button="showElicitUnlockButton"
         :help-text-delay="helpTextDelay"
         :get-string="getString"
         :get-semantic-option-tooltip-content="getSemanticOptionTooltipContent"
@@ -151,6 +153,14 @@
       availableTranslationSources: {
         type: Array,
         default: () => [],
+      },
+      lockedTranslationSources: {
+        type: Array,
+        default: () => [],
+      },
+      showElicitUnlockButton: {
+        type: Boolean,
+        default: false,
       },
     },
     emits: ["update-limit", "update-limit-enter", "update-semantic-source"],

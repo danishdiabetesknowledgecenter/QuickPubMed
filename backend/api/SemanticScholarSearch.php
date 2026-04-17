@@ -378,7 +378,7 @@ function qpmBuildSemanticScholarSearchQueryString(
         'query' => $query,
         'limit' => $limit,
         'offset' => $offset,
-        'fields' => 'externalIds,title,abstract,venue,year,publicationTypes',
+        'fields' => 'externalIds,title,abstract,venue,year,publicationTypes,publicationDate,citationCount,influentialCitationCount,isOpenAccess,s2FieldsOfStudy,tldr',
     ]);
 
     if ($year !== '') {
@@ -479,6 +479,32 @@ function qpmExtractSemanticScholarCandidates(array $decoded, int $rankOffset = 0
             continue;
         }
 
+        $citationCountRaw = $paper['citationCount'] ?? null;
+        $influentialCitationCountRaw = $paper['influentialCitationCount'] ?? null;
+        $isOpenAccessRaw = $paper['isOpenAccess'] ?? null;
+
+        $s2Fields = [];
+        if (isset($paper['s2FieldsOfStudy']) && is_array($paper['s2FieldsOfStudy'])) {
+            foreach ($paper['s2FieldsOfStudy'] as $fieldEntry) {
+                if (is_array($fieldEntry) && isset($fieldEntry['category'])) {
+                    $categoryName = trim((string) $fieldEntry['category']);
+                    if ($categoryName !== '') {
+                        $s2Fields[$categoryName] = true;
+                    }
+                } elseif (is_string($fieldEntry)) {
+                    $categoryName = trim($fieldEntry);
+                    if ($categoryName !== '') {
+                        $s2Fields[$categoryName] = true;
+                    }
+                }
+            }
+        }
+
+        $tldrText = '';
+        if (isset($paper['tldr']) && is_array($paper['tldr']) && isset($paper['tldr']['text'])) {
+            $tldrText = trim((string) $paper['tldr']['text']);
+        }
+
         $candidates[] = [
             'source' => 'semanticScholar',
             'rank' => $rankOffset + $index + 1,
@@ -489,10 +515,16 @@ function qpmExtractSemanticScholarCandidates(array $decoded, int $rankOffset = 0
             'score' => null,
             'metadata' => [
                 'year' => isset($paper['year']) ? (string) $paper['year'] : '',
+                'publicationDate' => trim((string) ($paper['publicationDate'] ?? '')),
                 'venue' => trim((string) ($paper['venue'] ?? '')),
                 'publicationTypes' => isset($paper['publicationTypes']) && is_array($paper['publicationTypes'])
                     ? array_values(array_map('strval', $paper['publicationTypes']))
                     : [],
+                'citationCount' => is_numeric($citationCountRaw) ? (int) $citationCountRaw : null,
+                'influentialCitationCount' => is_numeric($influentialCitationCountRaw) ? (int) $influentialCitationCountRaw : null,
+                'isOpenAccess' => is_bool($isOpenAccessRaw) ? $isOpenAccessRaw : null,
+                's2FieldsOfStudy' => array_values(array_keys($s2Fields)),
+                'tldr' => $tldrText,
             ],
         ];
     }

@@ -615,7 +615,7 @@ if ($query === '') {
 $requestParams = [
     $searchMode === 'keyword' ? 'search' : 'search.semantic' => $query,
     'per_page' => $limit,
-    'select' => 'id,display_name,doi,ids,publication_year,relevance_score,type,primary_location',
+    'select' => 'id,display_name,doi,ids,publication_year,publication_date,relevance_score,type,type_crossref,primary_location,fwci,cited_by_count,counts_by_year,is_retracted,open_access,primary_topic,authorships',
 ];
 if (!empty($languageFilters) || !empty($sourceTypes) || !empty($workTypes) || $publicationYearFilter !== '') {
     $filterParts = [];
@@ -796,6 +796,51 @@ foreach ($results as $index => $work) {
     $source = isset($primaryLocation['source']) && is_array($primaryLocation['source'])
         ? $primaryLocation['source']
         : [];
+
+    $fwciRaw = $work['fwci'] ?? null;
+    $citedByCountRaw = $work['cited_by_count'] ?? null;
+    $isRetractedRaw = $work['is_retracted'] ?? null;
+
+    $openAccess = isset($work['open_access']) && is_array($work['open_access'])
+        ? $work['open_access']
+        : [];
+    $isOpenAccess = isset($openAccess['is_oa']) ? (bool) $openAccess['is_oa'] : null;
+
+    $primaryTopic = isset($work['primary_topic']) && is_array($work['primary_topic'])
+        ? $work['primary_topic']
+        : [];
+    $primaryTopicId = trim((string) ($primaryTopic['id'] ?? ''));
+    $primaryTopicDisplayName = trim((string) ($primaryTopic['display_name'] ?? ''));
+
+    $pubTypesSet = [];
+    $workType = trim((string) ($work['type'] ?? ''));
+    if ($workType !== '') {
+        $pubTypesSet[$workType] = true;
+    }
+    $crossrefType = trim((string) ($work['type_crossref'] ?? ''));
+    if ($crossrefType !== '' && !isset($pubTypesSet[$crossrefType])) {
+        $pubTypesSet[$crossrefType] = true;
+    }
+    $pubTypesList = array_keys($pubTypesSet);
+
+    $authorIds = [];
+    if (isset($work['authorships']) && is_array($work['authorships'])) {
+        foreach ($work['authorships'] as $authorship) {
+            if (!is_array($authorship)) {
+                continue;
+            }
+            $author = isset($authorship['author']) && is_array($authorship['author'])
+                ? $authorship['author']
+                : [];
+            $authorId = trim((string) ($author['id'] ?? ''));
+            if ($authorId !== '') {
+                $authorIds[$authorId] = true;
+            }
+        }
+    }
+
+    $journalSourceId = trim((string) ($source['id'] ?? ''));
+
     $candidates[] = [
         'source' => 'openAlex',
         'rank' => $index + 1,
@@ -806,10 +851,20 @@ foreach ($results as $index => $work) {
         'score' => is_numeric($relevanceScore) ? (float) $relevanceScore : null,
         'metadata' => [
             'publicationYear' => isset($work['publication_year']) ? (string) $work['publication_year'] : '',
-            'workType' => trim((string) ($work['type'] ?? '')),
+            'publicationDate' => trim((string) ($work['publication_date'] ?? '')),
+            'workType' => $workType,
+            'pubTypes' => $pubTypesList,
             'sourceType' => trim((string) ($source['type'] ?? '')),
             'sourceDisplayName' => trim((string) ($source['display_name'] ?? '')),
             'sourceAbbreviatedTitle' => trim((string) ($source['abbreviated_title'] ?? '')),
+            'journalSourceId' => $journalSourceId,
+            'fwci' => is_numeric($fwciRaw) ? (float) $fwciRaw : null,
+            'citedByCount' => is_numeric($citedByCountRaw) ? (int) $citedByCountRaw : null,
+            'isRetracted' => is_bool($isRetractedRaw) ? $isRetractedRaw : null,
+            'isOpenAccess' => $isOpenAccess,
+            'primaryTopicId' => $primaryTopicId,
+            'primaryTopicDisplayName' => $primaryTopicDisplayName,
+            'authorIds' => array_values(array_keys($authorIds)),
         ],
     ];
 }

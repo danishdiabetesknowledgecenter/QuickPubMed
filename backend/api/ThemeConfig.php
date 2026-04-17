@@ -98,6 +98,12 @@ if (!empty($globalClassOverrides)) {
     $domainClassOverrides = array_merge($globalClassOverrides, $domainClassOverrides);
 }
 
+// Global gate flag: true when QPM_ELICIT_UNLOCK is configured and the
+// current caller is not unlocked. Used by the frontend to strip 'elicit'
+// from availableTranslationSourceKeys regardless of domain config or the
+// ?semanticsources URL fallback list.
+$elicitGated = qpmIsElicitUnlockConfigured() && !$elicitUnlocked;
+
 $response = [
     'globalTheme' => $globalTheme,
     'themeByDomain' => $themeByDomain,
@@ -109,6 +115,7 @@ $response = [
     'translationSources' => $translationSources,
     'translationSourcesConfigured' => $translationSourcesConfigured,
     'elicitUnlocked' => $elicitUnlocked,
+    'elicitGated' => $elicitGated,
     'semanticSourceLimits' => $semanticSourceLimits,
     'semanticRescueConfig' => $semanticRescueConfig,
     'semanticLlmRerankConfig' => $semanticLlmRerankConfig,

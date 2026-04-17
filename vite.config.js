@@ -71,6 +71,12 @@ export default defineConfig(({ command }) => {
           secure: true,
           rewrite: (path) => path.replace(/^\/nlm-api/, ""),
         },
+        "/icite-api": {
+          target: "https://icite.od.nih.gov",
+          changeOrigin: true,
+          secure: true,
+          rewrite: (path) => path.replace(/^\/icite-api/, ""),
+        },
       },
     },
     resolve: {

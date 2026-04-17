@@ -102,6 +102,8 @@
               :search-with-open-alex="searchWithOpenAlex"
               :search-with-elicit="searchWithElicit"
               :available-translation-sources="availableTranslationSourceKeys"
+              :locked-translation-sources="lockedTranslationSourceKeys"
+              :show-elicit-unlock-button="showElicitUnlockButton"
               :help-text-delay="300"
               :get-string="getString"
               :get-custom-name-label="getCustomNameLabel"
@@ -190,7 +192,10 @@
   import { topicLoaderMixin, flattenTopicGroups } from "@/mixins/topicLoaderMixin.js";
   import { normalizeLimitsList } from "@/utils/contentCanonicalizer";
   import { appSettingsMixin } from "@/mixins/appSettings";
-  import { config as runtimeConfig } from "@/config/config.js";
+  import {
+    config as runtimeConfig,
+    consumeElicitAutoSelectAfterUnlockFlag,
+  } from "@/config/config.js";
   import { scopeIds, customInputTagTooltip } from "@/utils/contentHelpers.js";
   import { loadLimitsFromRuntime, loadStandardString } from "@/utils/contentLoader";
   import {
@@ -323,6 +328,10 @@
         type: Array,
         default: undefined,
       },
+      showElicitUnlockButton: {
+        type: Boolean,
+        default: false,
+      },
       debugSearchFlow: {
         type: Boolean,
         default: false,
@@ -446,7 +455,31 @@
         const normalizedSources = this.normalizeTranslationSourcesList(
           Array.isArray(configuredSources) ? configuredSources : this.getSupportedTranslationSources()
         );
-        return this.normalizeTranslationSourcesList(["pubmed", ...normalizedSources]);
+        const merged = this.normalizeTranslationSourcesList(["pubmed", ...normalizedSources]);
+        // Global elicit gate: backend exposes runtimeConfig.elicitGated=true when
+        // the caller is not unlocked via QPM_ELICIT_UNLOCK. Strip 'elicit' from the
+        // list of query-available sources; the UI still renders it via
+        // lockedTranslationSourceKeys so users can see and unlock it.
+        if (runtimeConfig.elicitGated === true) {
+          return merged.filter((sourceKey) => sourceKey !== "elicit");
+        }
+        return merged;
+      },
+      lockedTranslationSourceKeys() {
+        // Sources that are visible in the UI but locked (disabled + lock icon).
+        // Currently only Elicit can be gated. Only include it if it was part of
+        // the widget's configured source list; otherwise the locked row would
+        // appear in widgets that never intended to offer Elicit.
+        if (!this.isAiFeatureEnabled) return [];
+        if (runtimeConfig.elicitGated !== true) return [];
+        const configuredSources = this.hasExplicitAvailableTranslationSources
+          ? this.translationSources
+          : this.domainTranslationSources;
+        const sourceList = Array.isArray(configuredSources)
+          ? configuredSources
+          : this.getSupportedTranslationSources();
+        const normalized = this.normalizeTranslationSourcesList(sourceList);
+        return normalized.includes("elicit") ? ["elicit"] : [];
       },
       searchWithAI: {
         get() {
@@ -813,6 +846,7 @@
       this.advanced = !this.advanced;
       this.advancedClick();
       this.ensureCheckLimitsSelected();
+      this.autoSelectElicitAfterUnlockIfRequested();
       if (this.hasTopics) {
         if (!this.shouldBlockAutoSearchFromUrlTranslationSources()) {
           await this.search();
@@ -2166,6 +2200,79 @@
           return this.isTranslationSourceAvailable(item.translationSourceKey);
         });
       },
+      autoSelectElicitAfterUnlockIfRequested() {
+        if (!consumeElicitAutoSelectAfterUnlockFlag()) return;
+
+        const trySelect = () => {
+          if (!this.isAiFeatureEnabled) return false;
+          if (runtimeConfig.elicitGated === true) return false;
+          if (!this.isTranslationSourceAvailable("elicit")) return false;
+          if (this.searchWithElicit) return true;
+          this.searchWithElicit = true;
+          return true;
+        };
+
+        // The backend theme config is fetched asynchronously, so elicitGated
+        // may still be its pre-unlock value here. Attempt to select right away
+        // and, if Elicit is not yet available, watch reactively until the
+        // gate/availability flips (or abort after a timeout).
+        if (trySelect()) return;
+        const unwatch = this.$watch(
+          () => ({
+            gated: runtimeConfig.elicitGated,
+            aiEnabled: this.isAiFeatureEnabled,
+            available: this.isTranslationSourceAvailable("elicit"),
+          }),
+          () => {
+            if (trySelect()) {
+              unwatch();
+              if (this._elicitAutoSelectTimeoutId) {
+                clearTimeout(this._elicitAutoSelectTimeoutId);
+                this._elicitAutoSelectTimeoutId = null;
+              }
+            }
+          },
+          { deep: true }
+        );
+        this._elicitAutoSelectTimeoutId = setTimeout(() => {
+          unwatch();
+          this._elicitAutoSelectTimeoutId = null;
+        }, 10000);
+      },
+      augmentDatabaseChoicesWithLocked(items) {
+        // Mirrors the simple-search behaviour: when Elicit is gated by the
+        // backend and the integration opted in via data-show-elicit-unlock-button,
+        // keep the Elicit choice visible in the advanced-mode database dropdown
+        // but flag it as `locked: true` so DropdownWrapper can render a lock
+        // icon and open the unlock prompt instead of selecting it.
+        const filtered = this.filterAvailableDatabaseChoices(items);
+        if (this.showElicitUnlockButton !== true) return filtered;
+        if (!this.isAiFeatureEnabled) return filtered;
+        if (runtimeConfig.elicitGated !== true) return filtered;
+        if (
+          filtered.some(
+            (item) => String(item?.translationSourceKey || "").trim() === "elicit"
+          )
+        ) {
+          return filtered;
+        }
+        // prepareLimitOptions already strips the Elicit database choice via
+        // filterAvailableDatabaseChoices, so the passed-in `items` won't contain
+        // it. Grab the original choice from the raw limits content.
+        const databaseGroup = (Array.isArray(this.limitsContent) ? this.limitsContent : []).find(
+          (group) => this.isDatabaseLimitGroup(group)
+        );
+        const rawChoices = Array.isArray(databaseGroup?.choices)
+          ? databaseGroup.choices
+          : Array.isArray(databaseGroup?.groups)
+          ? databaseGroup.groups
+          : [];
+        const elicitChoice = rawChoices.find(
+          (item) => String(item?.translationSourceKey || "").trim() === "elicit"
+        );
+        if (!elicitChoice) return filtered;
+        return [...filtered, { ...cloneDeep(elicitChoice), locked: true }];
+      },
       getDatabaseLimitChoicesCatalog() {
         const databaseGroup = (Array.isArray(this.limitsContent) ? this.limitsContent : []).find((group) =>
           this.isDatabaseLimitGroup(group)
@@ -2215,7 +2322,19 @@
         const dropdownItems = Array.isArray(this.limitDropdowns[index]) ? this.limitDropdowns[index] : [];
         const selectedDatabaseCount = dropdownItems.filter((item) => this.isDatabaseLimitItem(item)).length;
         const availableDatabaseCount = this.getDatabaseLimitChoicesCatalog().length;
-        return availableDatabaseCount > 0 && selectedDatabaseCount >= availableDatabaseCount;
+        if (availableDatabaseCount <= 0) return false;
+        if (selectedDatabaseCount < availableDatabaseCount) return false;
+        // When Elicit is gated but shown as a locked option in the dropdown,
+        // there is still a visible (non-selectable) entry left, so treat the
+        // selection as not fully complete to keep the "Vælg database" placeholder.
+        if (
+          this.showElicitUnlockButton === true &&
+          this.isAiFeatureEnabled &&
+          runtimeConfig.elicitGated === true
+        ) {
+          return false;
+        }
+        return true;
       },
       limitDropdownsEqual(left, right) {
         const normalize = (dropdowns) =>
@@ -2271,7 +2390,7 @@
             }
             return {
               ...option,
-              choices: this.filterAvailableDatabaseChoices(option.choices),
+              choices: this.augmentDatabaseChoicesWithLocked(option.choices),
             };
           })
           .filter((option) => {
@@ -4779,6 +4898,64 @@
           )
         );
       },
+      buildSemanticEnrichmentLookup() {
+        const lookup = new Map();
+        this.getSemanticSourceTags().forEach((item) => {
+          const candidates = Array.isArray(item?.semanticScholarCandidates)
+            ? item.semanticScholarCandidates
+            : [];
+          candidates.forEach((candidate) => {
+            const enriched = candidate?.enriched;
+            if (!enriched || typeof enriched !== "object") return;
+            const pmid = String(candidate?.pmid || "").trim();
+            if (/^[0-9]+$/.test(pmid)) {
+              lookup.set(`pmid:${pmid}`, enriched);
+            }
+            const doi = normalizeDoiValue(candidate?.doi || "");
+            if (doi) {
+              lookup.set(`doi:${doi.toLowerCase()}`, enriched);
+            }
+          });
+        });
+        return lookup;
+      },
+      extractLlmRerankQualitySignals(enriched) {
+        if (!enriched || typeof enriched !== "object") return {};
+        const signals = {};
+        if (enriched.fwci !== null && enriched.fwci !== undefined) signals.fwci = enriched.fwci;
+        if (enriched.rcr !== null && enriched.rcr !== undefined) signals.rcr = enriched.rcr;
+        if (enriched.nihPercentile !== null && enriched.nihPercentile !== undefined) {
+          signals.nihPercentile = enriched.nihPercentile;
+        }
+        if (enriched.citedByCount !== null && enriched.citedByCount !== undefined) {
+          signals.citationCount = enriched.citedByCount;
+        }
+        if (
+          enriched.influentialCitationCount !== null &&
+          enriched.influentialCitationCount !== undefined
+        ) {
+          signals.influentialCitationCount = enriched.influentialCitationCount;
+        }
+        if (enriched.citedByClin !== null && enriched.citedByClin !== undefined) {
+          signals.citedByClin = enriched.citedByClin;
+        }
+        if (enriched.publicationYear !== null && enriched.publicationYear !== undefined) {
+          signals.year = enriched.publicationYear;
+        }
+        if (enriched.isRetracted === true || enriched.isRetracted === false) {
+          signals.isRetracted = enriched.isRetracted;
+        }
+        if (enriched.isClinical === true || enriched.isClinical === false) {
+          signals.isClinical = enriched.isClinical;
+        }
+        if (enriched.isOpenAccess === true || enriched.isOpenAccess === false) {
+          signals.isOpenAccess = enriched.isOpenAccess;
+        }
+        if (Array.isArray(enriched.pubTypes) && enriched.pubTypes.length > 0) {
+          signals.pubTypes = enriched.pubTypes;
+        }
+        return signals;
+      },
       async maybeApplySemanticLlmFinalRerank(data) {
         const safeData = Array.isArray(data) ? data : [];
         if (!this.shouldUseSemanticLlmFinalRerank(safeData)) {
@@ -4797,6 +4974,7 @@
             .map((entry) => String(entry?.pmid || entry?.uid || "").trim())
             .filter((pmid) => /^[0-9]+$/.test(pmid));
           const abstractMap = await this.fetchSemanticLlmPubMedAbstractMap(pmidsToHydrate);
+          const enrichmentLookup = this.buildSemanticEnrichmentLookup();
           const requestCandidates = [];
           const deferredTopEntries = [];
 
@@ -4811,6 +4989,17 @@
             const abstractText = this.flattenSemanticLlmAbstractText(
               entry?.abstract || abstractMap?.[pmid] || ""
             );
+            const entryDoi = this.getResultDebugDoi(entry);
+            const enrichedEntry =
+              (pmid && enrichmentLookup.get(`pmid:${pmid}`)) ||
+              (entryDoi && enrichmentLookup.get(`doi:${entryDoi.toLowerCase()}`)) ||
+              null;
+            const qualitySignals = this.extractLlmRerankQualitySignals(enrichedEntry);
+            const venue = String(
+              entry?.fulljournalname || entry?.source || enrichedEntry?.authorityJournal?.displayName || ""
+            ).trim();
+            if (venue && !qualitySignals.venue) qualitySignals.venue = venue;
+
             requestCandidates.push({
               id: candidateId,
               title,
@@ -4818,6 +5007,7 @@
               publicationDate: String(entry?.publicationDate || entry?.pubDate || entry?.pubdate || "").trim(),
               source: String(entry?.originSource || entry?.source || "").trim(),
               sourceLabel: String(entry?.fulljournalname || entry?.source || "").trim(),
+              ...qualitySignals,
               entry,
             });
           });

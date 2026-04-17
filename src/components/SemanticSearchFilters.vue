@@ -15,19 +15,6 @@
         aria-label="Info"
         @click.stop
       />
-      <button
-        v-if="showElicitUnlockButton"
-        type="button"
-        v-tooltip="{
-          content: getString('elicitUnlockTooltip') || 'Lås op for ekstra AI-kilde',
-          distance: 5,
-          delay: helpTextDelay,
-          theme: 'infoTooltip',
-        }"
-        class="bx bx-lock-alt qpm_cursorPointer qpm_infoIcon"
-        :aria-label="getString('elicitUnlockButtonLabel') || 'Lås op'"
-        @click.stop="onElicitUnlockClick"
-      />
     </span>
   </div>
   <div
@@ -35,20 +22,30 @@
     :id="'qpm_topic_' + option.id"
     :key="`semantic-${option.id}`"
     class="qpm_simpleFilters"
+    :class="{ qpm_semanticFilterLocked: option.locked }"
+    @click="onSemanticOptionRowClick(option, $event)"
   >
     <input
       :id="option.id"
       type="checkbox"
-      :disabled="getSemanticOptionDisabled(option)"
-      :title="getString('checkboxTitle')"
+      :disabled="!option.locked && getSemanticOptionDisabled(option)"
+      :aria-disabled="option.locked ? 'true' : null"
+      :title="option.locked ? null : getString('checkboxTitle')"
       :value="option.id"
-      :checked="isSemanticOptionChecked(option)"
-      class="qpm_cursorPointer"
+      :checked="!option.locked && isSemanticOptionChecked(option)"
+      class="qpm_cursorPointer qpm_semanticFilterCheckbox"
+      v-tooltip="getLockTooltipBinding(option)"
+      @click="onSemanticOptionInputClick(option, $event)"
       @change="onSemanticOptionChange(option, $event)"
       @keyup.enter="onSemanticOptionEnter(option)"
     />
     <div class="qpm_infoInline">
-      <label :for="option.id">
+      <label
+        :for="option.id"
+        class="qpm_semanticFilterLabel"
+        v-tooltip="getLockTooltipBinding(option)"
+        @click="onSemanticOptionLabelClick(option, $event)"
+      >
         <template v-if="getSemanticOptionLabelParts(option).prefix">
           {{ getSemanticOptionLabelParts(option).prefix }}
         </template>
@@ -69,13 +66,21 @@
           />
         </span>
       </label>
+      <button
+        v-if="option.locked"
+        type="button"
+        v-tooltip="elicitUnlockTooltipBinding"
+        class="bx bx-lock-alt qpm_cursorPointer qpm_infoIcon qpm_semanticFilterLockIcon"
+        :aria-label="getString('elicitUnlockButtonLabel') || 'Lås op'"
+        @click.stop="onElicitUnlockClick"
+      />
     </div>
   </div>
   <div class="qpm_simpleFiltersSpacer" />
 </template>
 
 <script>
-  import { getStoredElicitUnlockKey, setStoredElicitUnlockKey } from "@/config/config.js";
+  import { promptForElicitUnlockKey } from "@/config/config.js";
 
   export default {
     name: "SemanticSearchFilters",
@@ -116,9 +121,35 @@
         type: Array,
         default: () => [],
       },
+      lockedTranslationSources: {
+        type: Array,
+        default: () => [],
+      },
+      showElicitUnlockButton: {
+        type: Boolean,
+        default: false,
+      },
     },
     emits: ["update-semantic-source"],
     computed: {
+      elicitUnlockTooltipBinding() {
+        return {
+          content: this.getString("elicitUnlockTooltip") || "Lås op for ekstra AI-kilde",
+          distance: 5,
+          delay: this.helpTextDelay,
+          theme: "infoTooltip",
+        };
+      },
+      normalizedLockedSources() {
+        // Locked sources are only surfaced when the integration opted in via
+        // data-show-elicit-unlock-button; otherwise the locked row is omitted
+        // entirely (which keeps the UI clean on widgets that shouldn't show it).
+        if (this.showElicitUnlockButton !== true) return new Set();
+        const list = Array.isArray(this.lockedTranslationSources)
+          ? this.lockedTranslationSources
+          : [];
+        return new Set(list.map((value) => String(value || "").trim()).filter(Boolean));
+      },
       semanticOptions() {
         const options = [
           {
@@ -147,34 +178,33 @@
             (value) => String(value || "").trim()
           )
         );
-        return allowedSources.size > 0
-          ? options.filter((option) => allowedSources.has(option.id))
+        const lockedSources = this.normalizedLockedSources;
+        const visibleIds =
+          allowedSources.size > 0 || lockedSources.size > 0
+            ? new Set([...allowedSources, ...lockedSources])
+            : null;
+        const visibleOptions = visibleIds
+          ? options.filter((option) => visibleIds.has(option.id))
           : options;
-      },
-      showElicitUnlockButton() {
-        const allowedSources = Array.isArray(this.availableTranslationSources)
-          ? this.availableTranslationSources.map((value) => String(value || "").trim())
-          : [];
-        return !allowedSources.includes("elicit");
+        return visibleOptions.map((option) => ({
+          ...option,
+          locked: lockedSources.has(option.id),
+        }));
       },
     },
     methods: {
+      getLockTooltipBinding(option) {
+        // Always return an object (with a `disabled` flag) instead of toggling
+        // between `null` and an object. floating-vue's v-tooltip doesn't always
+        // attach hover listeners when the initial value is falsy, so keeping a
+        // stable object shape ensures the tooltip shows reliably on re-renders.
+        return {
+          ...this.elicitUnlockTooltipBinding,
+          disabled: !option?.locked,
+        };
+      },
       onElicitUnlockClick() {
-        if (typeof window === "undefined" || typeof window.prompt !== "function") {
-          return;
-        }
-        const promptText =
-          this.getString("elicitUnlockPromptMessage") ||
-          "Indtast kode for at låse op for ekstra AI-kilde (Elicit):";
-        const existing = getStoredElicitUnlockKey();
-        const input = window.prompt(promptText, existing || "");
-        if (input === null) return; // user cancelled
-        const normalized = String(input).trim();
-        setStoredElicitUnlockKey(normalized);
-        // Reload so ThemeConfig.php is re-fetched and the semantic source list is refreshed.
-        if (window.location && typeof window.location.reload === "function") {
-          window.location.reload();
-        }
+        promptForElicitUnlockKey(this.getString);
       },
       splitLastWord(text) {
         const normalized = String(text || "").trim();
@@ -215,18 +245,43 @@
         return false;
       },
       onSemanticOptionChange(option, event) {
-        if (this.getSemanticOptionDisabled(option)) {
+        if (option?.locked || this.getSemanticOptionDisabled(option)) {
           return;
         }
         const isChecked = event.target.checked;
         this.updateSemanticSource(option.id, isChecked);
       },
       onSemanticOptionEnter(option) {
-        if (this.getSemanticOptionDisabled(option)) {
+        if (option?.locked || this.getSemanticOptionDisabled(option)) {
           return;
         }
         const nextValue = !this.isSemanticOptionChecked(option);
         this.updateSemanticSource(option.id, nextValue);
+      },
+      onSemanticOptionRowClick(option) {
+        // Clicks anywhere on a locked row (checkbox, label, lock icon, surrounding
+        // area) open the unlock prompt. Non-locked rows handle their own inputs.
+        if (option?.locked) {
+          this.onElicitUnlockClick();
+        }
+      },
+      onSemanticOptionInputClick(option, event) {
+        // Locked checkboxes must not toggle; they open the unlock prompt instead.
+        // The checkbox is intentionally not `disabled` (disabled inputs swallow
+        // all mouse events including hover, which would break the tooltip).
+        if (option?.locked) {
+          event.preventDefault();
+          event.stopPropagation();
+          this.onElicitUnlockClick();
+        }
+      },
+      onSemanticOptionLabelClick(option, event) {
+        // The browser fires the associated <input>'s click when a <label> is
+        // clicked, so onSemanticOptionInputClick already opens the prompt. Stop
+        // the label's own click from bubbling to the row to avoid a second prompt.
+        if (option?.locked) {
+          event.stopPropagation();
+        }
       },
       updateSemanticSource(sourceKey, value) {
         this.$emit("update-semantic-source", sourceKey, value);

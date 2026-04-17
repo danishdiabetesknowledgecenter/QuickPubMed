@@ -41,6 +41,14 @@
         - data-default-translation-sources: Array of database ids selected by default.
           If omitted, only `pubmed` is selected by default.
           Example: "['pubmed','openAlex']"
+        - data-show-elicit-unlock-button: Show a lock icon on the Elicit option when the Elicit
+          source is gated by the backend (QPM_ELICIT_UNLOCK configured on the server). In simple
+          mode the Elicit checkbox appears greyed out with a lock icon next to it; in advanced
+          mode the Elicit entry is added to the database dropdown list (greyed out with a lock
+          icon) even though it cannot be selected. Clicking the locked entry or the icon opens
+          a prompt for the unlock code and remembers it in localStorage. IP-based unlock and
+          URL-based ?elicitKey= always work regardless of this attribute.
+          Default: "false" (no lock icon is shown).
         - data-open-limits: Show simple limits section from the start ("true" or "false").
         - data-component-no: Numeric identifier used to build a unique DOM id (SearchForm_<no>).
           Useful when multiple instances are embedded on the same page.
@@ -116,6 +124,7 @@
         data-debug-search-flow="false"
         data-translation-sources="['pubmed','semanticScholar','openAlex','elicit']"
         data-default-translation-sources="['pubmed','semanticScholar','openAlex']"
+        data-show-elicit-unlock-button="true"
         data-hide-topics="['L10010']"
         data-open-limits="true"
         data-hide-limits="" 

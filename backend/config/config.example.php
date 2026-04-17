@@ -125,6 +125,102 @@ define('QPM_RERANK_CONFIG', [
     // Extra score added for each additional source that contains the same record.
     // This is a normal value to tune.
     'overlapBonusPerExtraSource' => 35,
+    // ---------- Hybrid quality signals (Phase 1+) ----------
+    // All defaults below are NEUTRAL so an unchanged installation behaves 1:1 like before.
+    // Tuning these values opts in to the new signals. For reference, a top-ranked
+    // multi-source candidate typically scores ~200-300, so additive bonuses of 5-15 are
+    // a soft nudge, 20-40 a clear lift, and >50 risks dominating the RRF fusion.
+    //
+    // Hybrid formula:
+    //   combinedScore = (baseScore + additiveQualityBonus) * qualityMultiplier
+    //   additiveQualityBonus = pubTypeBonus + recencyBonus + oaBonus + clinicalBonus + topicOverlapBonus
+    //   qualityMultiplier  = citationImpactMultiplier * authorityMultiplier * retractionMultiplier
+
+    // Additive bonus per publication type. Keys match OpenAlex `type`/`type_crossref`
+    // and Semantic Scholar `publicationTypes` (normalized to lowercase). Max value
+    // across matched types is used (not sum) so overlapping labels don't double-count.
+    //
+    //   []                                           no effect (default, recommended baseline)
+    //   conservative evidence-based profile:
+    //     ['review' => 5, 'systematic-review' => 12, 'meta-analysis' => 12,
+    //      'randomized-controlled-trial' => 10, 'guideline' => 10]
+    //   moderate evidence-based profile:
+    //     ['review' => 10, 'systematic-review' => 25, 'meta-analysis' => 25,
+    //      'randomized-controlled-trial' => 18, 'guideline' => 20, 'clinical-trial' => 12]
+    //   aggressive evidence hierarchy:
+    //     ['systematic-review' => 40, 'meta-analysis' => 40, 'guideline' => 35,
+    //      'randomized-controlled-trial' => 25, 'review' => 15,
+    //      'editorial' => -10, 'letter' => -15]
+    'pubTypeWeights' => [],
+    // Exponential recency decay. halfLife in years is how fast the bonus decays.
+    // null or 0 disables recency. Typical ranges:
+    //   3     strong recency bias (fast-moving fields: AI, genomics)
+    //   5-7   typical for clinical biomedicine
+    //   10-15 slow-moving fields (pharmacology, physiology)
+    //   null  disabled (default)
+    'recencyHalfLifeYears' => null,
+    // Max additive recency bonus for current-year papers (decays towards 0 with age).
+    // Suggested sizing: 50-75% of your largest pubTypeWeight so pubType dominates.
+    //   0       disabled (default)
+    //   5-10    conservative nudge
+    //   15-20   moderate
+    //   25-35   aggressive (matches overlapBonus scale)
+    'recencyBonusMax' => 0,
+    // Additive bonus applied when `isOpenAccess=true`. This is a readability nudge,
+    // not a quality signal — keep small.
+    //   0    disabled (default; use if you have institutional full-text access)
+    //   2-3  soft nudge
+    //   4-6  moderate
+    //   >10  not recommended (risks dominating relevance)
+    'oaBonus' => 0,
+    // Multiplier clamp for citation impact (cascade: RCR -> FWCI -> influentialCitationCount -> citedByCount).
+    // The multiplier is log-dampened so common values land near 1.0; the clamp caps extreme scores.
+    //   [1.0, 1.0]   disabled (default). Reference examples at RCR=3.0 or FWCI=3.0:
+    //   [0.95, 1.10] very conservative; top record gets ~1.10x
+    //   [0.9, 1.20]  moderate; typical production setting
+    //   [0.85, 1.30] aggressive; can noticeably reorder — validate with regression checklist
+    'citationImpactClamp' => [1.0, 1.0],
+    // How retracted papers are handled.
+    //   'none'    no effect (default; NOT recommended for clinical tools)
+    //   'penalty' multiplies combinedScore by retractionPenalty; paper still visible
+    //   'filter'  drops retracted candidates before sorting; never shown to users
+    //             (recommended for clinician-facing apps like QuickPubMed)
+    'retractionAction' => 'none',
+    // Multiplier applied when retractionAction='penalty'. Only used in 'penalty' mode.
+    //   1.0  neutral (default)
+    //   0.5  halves the score; visible but clearly demoted
+    //   0.2  strong demotion; typically bottom of results
+    //   0.1  practically hidden (used in tests)
+    'retractionPenalty' => 1.0,
+    // Additive bonus for clinically relevant records (requires NIH iCite enrichment).
+    // Only PMIDs get iCite data; DOI-only candidates ignore this bonus.
+    //   0      disabled (default)
+    //   5-8    conservative clinical nudge
+    //   10-15  moderate (recommended for clinical apps)
+    //   20+    aggressive; clinical papers visibly dominate
+    'clinicalBonus' => 0,
+    // Secondary trigger for clinicalBonus when `isClinical=false` but the paper has
+    // clinical citations. Value = minimum `cited_by_clin` count to qualify.
+    //   1000000 effectively disabled (default)
+    //   2-5     captures "rank-adjacent" clinical studies (typical tuning)
+    //   10+     strict: only papers cited by many clinical works
+    'clinicalCitedByThreshold' => 1000000,
+    // Additive bonus multiplied by query-topic overlap ratio (0..1). Signal strength
+    // depends on how specific the query is. Vague queries produce many weak matches;
+    // specific queries produce few strong matches.
+    //   0       disabled (default)
+    //   10      conservative (vague queries dominate)
+    //   20-25   moderate (balanced)
+    //   35-40   aggressive (topical relevance strongly rewarded)
+    'topicOverlapBonus' => 0,
+    // Clamp for authority multiplier (author h-index and journal mean citedness).
+    // WARNING: h-index favors senior researchers and large fields, can cement
+    // Matthew effects in ranking. Keep disabled unless you have a specific reason.
+    //   [1.0, 1.0]   disabled (default; recommended)
+    //   [0.98, 1.05] very conservative; max 5% lift to high-authority records
+    //   [0.95, 1.10] standard "if you must"; max 10% lift
+    //   >[0.9, 1.15] not recommended; risks overriding actual relevance
+    'authorityClamp' => [1.0, 1.0],
 ]);
 
 // ============ PubMed Lexical Rescue Configuration ============

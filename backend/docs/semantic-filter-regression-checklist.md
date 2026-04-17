@@ -167,6 +167,72 @@ Det er en hurtig smoke-test af den særskilte visningspolitik:
 - `Semantic Scholar` derefter
 - `OpenAlex` kun som fallback til visning
 
+## Reranking signals
+
+Dette afsnit dækker det hybride rerank-lag (RRF + kvalitetssignaler) og enrichment-sektionen `04b`. Brug som smoke-test efter ændringer i:
+
+- `src/utils/semanticReranking.js`
+- `backend/api/ICiteLookup.php`
+- `backend/api/OpenAlexAuthorityLookup.php`
+- `backend/api/SemanticFinalRerank.php`
+- `backend/config/config.example.php` og `backend/config/config.php` under `QPM_RERANK_CONFIG`
+
+### Baseline-parity (default config)
+
+Kør `node scripts/verify-rerank-parity.js`.
+
+Bestået når:
+
+- Scriptet udskriver `Rerank parity check passed.` og afslutter med exit-kode 0.
+- Neutral config giver identisk rækkefølge og `combinedScore` for de indbyggede scenarier.
+- Retraction-filter-mode fjerner nøjagtigt én kandidat i test-scenariet, og `enrichmentSummary.filteredByRetraction` er 1.
+- Retraction-penalty-mode med `retractionPenalty=0.1` degraderer den retracted kandidat under den clean.
+- RCR-cascade-scenariet placerer klinisk high-RCR-record over low-RCR-record selv ved højere FWCI på sidstnævnte.
+- Topic-overlap-scenariet placerer den emne-matchende kandidat øverst og eksponerer `contributions[].matches`.
+
+### Enrichment-sektion (search-flow-debug)
+
+1. Åbn case 1 fra denne checkliste og aktivér `debugSearchFlow=true`.
+2. I browserens console-log skal `04b Enrichment` dukke op før `05 Merge and rerank`.
+
+Bestået når console viser:
+
+- `[Enrichment] iCite lookup completed.` med `requestedPmids`, `records`, `withRcr`, `withClinical`.
+- `[Enrichment] Authority lookup completed.` med `requestedAuthors`, `requestedSources`, `attachedAuthors`, `attachedJournals` (kan være 0 hvis kandidaterne mangler OpenAlex-ids — det er tilladt).
+- Ved simuleret nedbrud (fx tilføj en midlertidig error-throw i `enrichSemanticSourceResultsWithICite`) logges `iCite enrichment failed` men rerank fortsætter og resultater vises.
+
+### Contributions og scoreBreakdown
+
+Med default config (alle neutrale):
+
+- `contributions[]` må kun indeholde `pmidBonus`, `weightedRrfRank`, `overlapBonus` og `sourceScoreTieBreaker` — præcis som før enrichment-laget blev indført.
+- `scoreBreakdown.citationImpactMultiplier`, `authorityMultiplier`, `retractionMultiplier` og `qualityMultiplier` må alle være `1.0`.
+- `scoreBreakdown.additiveQualityBonus` må være `0`.
+
+Med tuned config (fx `citationImpactClamp=[0.9, 1.25]`, `retractionAction='penalty'`, `recencyHalfLifeYears=7`, `recencyBonusMax=30`):
+
+- Enabled signaler må dukke op som tydelige typer i `contributions[]` (`citationImpactMultiplier`, `recencyBonus`, `retractionImpact`, osv.).
+- `scoreBreakdown.qualityMultiplier` må afvige fra `1.0` kun hvis kandidaten har gyldigt signal.
+
+### DOI-only iCite-fallback
+
+1. Vælg en case hvor OpenAlex returnerer en DOI-only kandidat.
+2. Tjek `candidate.enriched`.
+
+Bestået når:
+
+- `rcr`, `nihPercentile`, `isClinical`, `citedByClin` er `null` for DOI-only records.
+- `fwci` eller `citedByCount` alligevel kan udfylde citation-impact-multiplier via fallback-kaskaden.
+
+### LLM-rerank beriget kontekst
+
+Med `QPM_SEMANTIC_LLM_RERANK_CONFIG.enabled=true` og en semantisk case:
+
+1. Åbn netværksfanen og find POST-requesten til `SemanticFinalRerank.php`.
+2. Inspicer request body.
+
+Bestået når `candidates[*]` rummer de berigede felter (`fwci`, `rcr`, `citationCount`, `isRetracted`, `isClinical`, `pubTypes`, `venue`, `year`) når data er tilgængelige, og LLM'ens respons stadig er en gyldig permutation af alle ids.
+
 ## Hvis en case fejler
 
 Start med at sammenholde fejlen med disse docs:

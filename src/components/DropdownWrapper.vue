@@ -107,6 +107,7 @@
           :class="{
             qpm_hidden: !isContainedInList(props),
             qpm_shown: props.option.$groupLabel,
+            qpm_lockedDbOptionCheck: props.option.locked,
             [props.option.class]: props.option.class !== undefined,
           }"
           :style="{ marginLeft: ((props.option.subtopiclevel || 0) * 25) + 'px' }"
@@ -142,7 +143,12 @@
           >{{ getString("scope") }}</span
         >
 
-        <span class="qpm_entryName">{{ customNameLabel(props.option) }} </span>
+        <span
+          class="qpm_entryName"
+          :class="{ qpm_lockedDbOptionLabel: props.option.locked }"
+          v-tooltip.right="getLockedDbOptionTooltipBinding(props.option)"
+          >{{ customNameLabel(props.option) }} </span
+        >
 
         <button
           v-if="props.option.tooltip && props.option.tooltip[language]"
@@ -156,9 +162,21 @@
             hideTriggers: ['hover', 'focus'],
           }"
           class="bx bx-info-circle qpm_infoIcon qpm_entryInfoIcon"
+          :class="{ qpm_lockedDbOptionLabel: props.option.locked }"
           aria-label="Info"
           @mousedown.stop
           @click.stop.prevent="forwardOptionRowClick($event)"
+          @touchstart.stop
+        />
+
+        <button
+          v-if="props.option.locked"
+          type="button"
+          v-tooltip.right="elicitUnlockTooltipBinding"
+          class="bx bx-lock-alt qpm_infoIcon qpm_entryInfoIcon qpm_lockedDbOptionIcon"
+          :aria-label="getString('elicitUnlockButtonLabel') || 'Lås op'"
+          @mousedown.stop
+          @click.stop.prevent="onLockedDatabaseClick"
           @touchstart.stop
         />
 
@@ -339,7 +357,7 @@
 <script>
   import Multiselect from "vue-multiselect";
   import DropdownTag from "@/components/DropdownTag.vue";
-  import { config as runtimeConfig } from "@/config/config.js";
+  import { config as runtimeConfig, promptForElicitUnlockKey } from "@/config/config.js";
   import { appSettingsMixin } from "@/mixins/appSettings.js";
   import { utilitiesMixin } from "@/mixins/utilities";
   import { topicLoaderMixin } from "@/mixins/topicLoaderMixin.js";
@@ -595,6 +613,18 @@
       dropdownListId: function () {
         // Generate a unique ID for the listbox based on the component's index or use fallback
         return `listbox-${this.index || 'default'}`;
+      },
+      elicitUnlockTooltipBinding() {
+        // Reused for the gated Elicit entry in the advanced-mode database
+        // dropdown (see SemanticSearchFilters.vue for the simple-mode version).
+        return {
+          content: this.getString("elicitUnlockTooltip") || "Lås op for ekstra AI-kilde",
+          distance: 5,
+          delay: this.$helpTextDelay,
+          theme: "infoTooltip",
+          triggers: ["hover", "focus"],
+          hideTriggers: ["hover", "focus"],
+        };
       },
       getStateCopy: {
         get: function () {
@@ -1059,6 +1089,18 @@
       },
       isDatabaseOption(option) {
         return String(option?.translationSourceKey || "").trim() !== "";
+      },
+      getLockedDbOptionTooltipBinding(option) {
+        // Keep a stable object shape for v-tooltip so floating-vue always
+        // attaches hover listeners; flip `disabled` for non-locked options
+        // instead of toggling between object and null (see SemanticSearchFilters).
+        return {
+          ...this.elicitUnlockTooltipBinding,
+          disabled: !option?.locked,
+        };
+      },
+      onLockedDatabaseClick() {
+        promptForElicitUnlockKey(this.getString);
       },
       getAvailableDatabaseOptionIdentities() {
         return (Array.isArray(this.data) ? this.data : [])
@@ -1727,6 +1769,16 @@
         // Ensure value is always an array (vue-multiselect may emit non-array during search)
         if (!Array.isArray(value)) {
           value = value ? [value] : [];
+        }
+        // Clicks on a locked option (e.g. the gated Elicit database in advanced
+        // mode) should open the unlock prompt instead of selecting the option.
+        // Strip locked items before they're emitted as real selections.
+        const lockedInValue = value.some((item) => item?.locked === true);
+        if (lockedInValue) {
+          const filtered = value.filter((item) => item?.locked !== true);
+          this.onLockedDatabaseClick();
+          this.$emit("input", filtered, this.index);
+          return;
         }
         if (value.length === 0) {
           this.clearShownItems();
@@ -3106,10 +3158,24 @@
           }
         }
 
+        await this.runSearchFlowDebugSection(
+          `04b Enrichment • ${String(newTag || "").trim()}`,
+          async () => {
+            await Promise.all([
+              this.enrichSemanticSourceResultsWithICite(sourceResults, newTag),
+              this.enrichSemanticSourceResultsWithAuthority(sourceResults, newTag),
+            ]);
+          }
+        );
+
         const { reranked, rerankDiagnostics } = await this.runSearchFlowDebugSection(
           `05 Merge and rerank • ${String(newTag || "").trim()}`,
           async () => {
-            const rerankedValue = rerankSemanticCandidates(sourceResults, runtimeConfig?.rerankConfig || {});
+            const rerankedValue = rerankSemanticCandidates(
+              sourceResults,
+              runtimeConfig?.rerankConfig || {},
+              { queryIntent: this.buildRerankQueryIntent(newTag) }
+            );
             const rerankDiagnosticsValue =
               rerankedValue?.diagnostics && typeof rerankedValue.diagnostics === "object"
                 ? rerankedValue.diagnostics
@@ -5555,6 +5621,244 @@
             this.logSearchFlowDebugTable(`${sourceLabel} dropped records`, droppedRows);
           }
         });
+      },
+      buildRerankQueryIntent(newTag) {
+        const context =
+          this.semanticWordedIntentContext && typeof this.semanticWordedIntentContext === "object"
+            ? this.semanticWordedIntentContext
+            : {};
+        const topicsEnglish = Array.isArray(context.selectedTopicsEnglish)
+          ? context.selectedTopicsEnglish
+          : [];
+        const topicIntents = Array.isArray(context.selectedTopicIntentEnglish)
+          ? context.selectedTopicIntentEnglish
+          : [];
+        const softHints = [];
+        const sourceBlocks =
+          context.sourceSpecificBlocks && typeof context.sourceSpecificBlocks === "object"
+            ? context.sourceSpecificBlocks
+            : {};
+        Object.values(sourceBlocks).forEach((entry) => {
+          if (Array.isArray(entry)) softHints.push(...entry);
+        });
+        const rawPhrases = [];
+        const tagText = String(newTag || "").trim();
+        if (tagText) rawPhrases.push(tagText);
+        const coreText = String(context.semanticCoreText || "").trim();
+        if (coreText) rawPhrases.push(coreText);
+        return {
+          topicsEnglish,
+          topicIntents,
+          softHints,
+          rawPhrases,
+        };
+      },
+      async enrichSemanticSourceResultsWithAuthority(sourceResults, newTag) {
+        const safeResults = Array.isArray(sourceResults) ? sourceResults : [];
+        if (safeResults.length === 0) {
+          return { requestedAuthors: 0, requestedSources: 0, skipped: true };
+        }
+
+        const authorSet = new Set();
+        const sourceSet = new Set();
+        safeResults.forEach((sourceResult) => {
+          const candidates = Array.isArray(sourceResult?.candidates) ? sourceResult.candidates : [];
+          candidates.forEach((candidate) => {
+            const metadata = candidate?.metadata && typeof candidate.metadata === "object" ? candidate.metadata : {};
+            const authorIds = Array.isArray(metadata.authorIds) ? metadata.authorIds : [];
+            authorIds.forEach((id) => {
+              const short = this.normalizeOpenAlexShortId(id);
+              if (short) authorSet.add(short);
+            });
+            const journalId = this.normalizeOpenAlexShortId(metadata.journalSourceId || "");
+            if (journalId) sourceSet.add(journalId);
+          });
+        });
+
+        if (authorSet.size === 0 && sourceSet.size === 0) {
+          this.logSearchFlowDebugInfo("Authority enrichment skipped (no OpenAlex ids)", {
+            tag: String(newTag || "").trim(),
+          });
+          return { requestedAuthors: 0, requestedSources: 0, skipped: true };
+        }
+
+        const authorIds = Array.from(authorSet);
+        const sourceIds = Array.from(sourceSet);
+
+        let authorRecords = {};
+        let sourceRecords = {};
+        try {
+          const payload = await this.requestBackendJson("OpenAlexAuthorityLookup.php", {
+            authorIds,
+            sourceIds,
+          });
+          if (payload && typeof payload === "object") {
+            authorRecords = payload.authors && typeof payload.authors === "object" ? payload.authors : {};
+            sourceRecords = payload.sources && typeof payload.sources === "object" ? payload.sources : {};
+          }
+        } catch (error) {
+          const errorMessage = String(error || "");
+          console.warn("[Enrichment] Authority lookup failed. Proceeding without authority signals.", {
+            error: errorMessage,
+            authorCount: authorIds.length,
+            sourceCount: sourceIds.length,
+          });
+          this.logSearchFlowDebugWarn("Authority enrichment failed", {
+            error: errorMessage,
+            authorCount: authorIds.length,
+            sourceCount: sourceIds.length,
+          });
+          return {
+            requestedAuthors: authorIds.length,
+            requestedSources: sourceIds.length,
+            error: errorMessage,
+          };
+        }
+
+        let attachedAuthors = 0;
+        let attachedJournals = 0;
+        safeResults.forEach((sourceResult) => {
+          const candidates = Array.isArray(sourceResult?.candidates) ? sourceResult.candidates : [];
+          candidates.forEach((candidate) => {
+            const metadata = candidate?.metadata && typeof candidate.metadata === "object" ? candidate.metadata : {};
+            const candidateAuthorIds = Array.isArray(metadata.authorIds) ? metadata.authorIds : [];
+            let maxHIndex = null;
+            candidateAuthorIds.forEach((id) => {
+              const short = this.normalizeOpenAlexShortId(id);
+              if (!short) return;
+              const record = authorRecords[short];
+              if (!record) return;
+              const hIndex = Number(record.hIndex);
+              if (Number.isFinite(hIndex) && (maxHIndex === null || hIndex > maxHIndex)) {
+                maxHIndex = hIndex;
+              }
+            });
+            if (maxHIndex !== null) {
+              metadata.authorityAuthors = { maxHIndex };
+              candidate.metadata = metadata;
+              attachedAuthors += 1;
+            }
+
+            const journalId = this.normalizeOpenAlexShortId(metadata.journalSourceId || "");
+            if (journalId && sourceRecords[journalId]) {
+              const record = sourceRecords[journalId];
+              const meanCitedness = Number(record.meanCitedness);
+              const journalHIndex = Number(record.hIndex);
+              metadata.authorityJournal = {
+                meanCitedness: Number.isFinite(meanCitedness) ? meanCitedness : null,
+                hIndex: Number.isFinite(journalHIndex) ? journalHIndex : null,
+                isInDoaj: record.isInDoaj === true ? true : record.isInDoaj === false ? false : null,
+              };
+              candidate.metadata = metadata;
+              attachedJournals += 1;
+            }
+          });
+        });
+
+        const summary = {
+          tag: String(newTag || "").trim(),
+          requestedAuthors: authorIds.length,
+          requestedSources: sourceIds.length,
+          returnedAuthors: Object.keys(authorRecords).length,
+          returnedSources: Object.keys(sourceRecords).length,
+          attachedAuthors,
+          attachedJournals,
+        };
+        console.info("[Enrichment] Authority lookup completed.", summary);
+        this.logSearchFlowDebugInfo("Authority enrichment summary", summary);
+        return summary;
+      },
+      normalizeOpenAlexShortId(value) {
+        const raw = String(value || "").trim();
+        if (!raw) return "";
+        const stripped = raw
+          .replace(/^https?:\/\/openalex\.org\//i, "")
+          .replace(/^\/+/, "")
+          .toUpperCase();
+        return /^[A-Z][0-9]+$/.test(stripped) ? stripped : "";
+      },
+      async enrichSemanticSourceResultsWithICite(sourceResults, newTag) {
+        const safeResults = Array.isArray(sourceResults) ? sourceResults : [];
+        if (safeResults.length === 0) {
+          return { requestedPmids: 0, records: 0, skipped: true };
+        }
+
+        const pmidSet = new Set();
+        safeResults.forEach((sourceResult) => {
+          const candidates = Array.isArray(sourceResult?.candidates) ? sourceResult.candidates : [];
+          candidates.forEach((candidate) => {
+            const pmid = String(candidate?.pmid || "").trim();
+            if (pmid && /^[0-9]+$/.test(pmid)) {
+              pmidSet.add(pmid);
+            }
+          });
+        });
+        if (pmidSet.size === 0) {
+          this.logSearchFlowDebugInfo("iCite enrichment skipped (no PMIDs)", {
+            tag: String(newTag || "").trim(),
+          });
+          return { requestedPmids: 0, records: 0, skipped: true };
+        }
+
+        const pmids = Array.from(pmidSet);
+        let records = {};
+        let warning = "";
+        let batchCount = 0;
+        try {
+          const payload = await this.requestBackendJson("ICiteLookup.php", { pmids });
+          if (payload && typeof payload === "object") {
+            records = payload.records && typeof payload.records === "object" ? payload.records : {};
+            warning = String(payload.warnings || "").trim();
+            batchCount = Number(payload.batchCount || 0) || 0;
+          }
+        } catch (error) {
+          const errorMessage = String(error || "");
+          console.warn("[Enrichment] iCite lookup failed. Proceeding without RCR signals.", {
+            error: errorMessage,
+            pmidCount: pmids.length,
+          });
+          this.logSearchFlowDebugWarn("iCite enrichment failed", {
+            error: errorMessage,
+            pmidCount: pmids.length,
+          });
+          return { requestedPmids: pmids.length, records: 0, error: errorMessage };
+        }
+
+        let attachedCount = 0;
+        safeResults.forEach((sourceResult) => {
+          const candidates = Array.isArray(sourceResult?.candidates) ? sourceResult.candidates : [];
+          candidates.forEach((candidate) => {
+            const pmid = String(candidate?.pmid || "").trim();
+            if (!pmid || !records[pmid]) return;
+            if (!candidate.metadata || typeof candidate.metadata !== "object") {
+              candidate.metadata = {};
+            }
+            candidate.metadata.icite = records[pmid];
+            attachedCount += 1;
+          });
+        });
+
+        const recordCount = Object.keys(records).length;
+        const withRcr = Object.values(records).filter(
+          (record) => record && record.relativeCitationRatio !== null && record.relativeCitationRatio !== undefined
+        ).length;
+        const withClinical = Object.values(records).filter(
+          (record) => record && record.isClinical === true
+        ).length;
+
+        const summary = {
+          tag: String(newTag || "").trim(),
+          requestedPmids: pmids.length,
+          records: recordCount,
+          attached: attachedCount,
+          batchCount,
+          withRcr,
+          withClinical,
+          warning,
+        };
+        console.info("[Enrichment] iCite lookup completed.", summary);
+        this.logSearchFlowDebugInfo("iCite enrichment summary", summary);
+        return summary;
       },
       async requestBackendJson(endpointFile, body) {
         const requestBody =
