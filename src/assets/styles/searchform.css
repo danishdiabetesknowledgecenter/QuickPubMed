@@ -147,18 +147,30 @@
 }
 
 /* Used on a <button> that visually replaces a bare <a> inside a
-   .qpm_advancedSearch / .qpm_translateTitleLink wrapper. Matches the
-   previous <a> behavior (link color, no underline, pointer on hover)
-   so the visual appearance is preserved when swapping semantics. */
+   .qpm_advancedSearch / .qpm_translateTitleLink wrapper. Recreates the
+   CMS link underline animation so semantic <button>s still look and
+   feel like the previous text links on hover. */
 .qpm_advancedSearch .qpm_linkButtonAsAnchor,
 .qpm_translateTitleLink .qpm_linkButtonAsAnchor {
   color: var(--color-link);
   text-decoration: none;
+  background-image: linear-gradient(var(--color-link), var(--color-link));
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  background-size: 0 1px;
+  border-bottom: none;
+  transition: background-size 0.16s ease;
 }
 
 .qpm_advancedSearch .qpm_linkButtonAsAnchor:hover,
 .qpm_translateTitleLink .qpm_linkButtonAsAnchor:hover {
+  background-size: 100% 1px;
   cursor: pointer;
+}
+
+.qpm_advancedSearch .qpm_linkButtonAsAnchor:focus,
+.qpm_translateTitleLink .qpm_linkButtonAsAnchor:focus {
+  background-size: 100% 0;
 }
 
 .qpm_vapp .qpm_linkButton:focus-visible,
