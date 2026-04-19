@@ -1128,8 +1128,7 @@
       getTranslationSourcesUrlParamValue() {
         if (!this.isAiFeatureEnabled) return null;
         const selectedSources = this.normalizeTranslationSourcesList(this.selectedTranslationSources);
-        const configuredSources = this.sortTranslationSourcesList(this.getConfiguredTranslationSources());
-        if (this.translationSourcesListsEqual(selectedSources, configuredSources)) {
+        if (selectedSources.length === 0) {
           return null;
         }
         return selectedSources.map((sourceKey) => String(sourceKey || "").toLowerCase()).join(";;");
