@@ -163,6 +163,7 @@
   background-repeat: no-repeat;
   background-size: 0 1px;
   border-bottom: none;
+  transition: background-size 0.12s ease;
 }
 
 .qpm_vapp .qpm_linkButton:focus-visible,
