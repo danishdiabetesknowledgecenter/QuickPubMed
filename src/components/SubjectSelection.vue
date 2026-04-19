@@ -35,7 +35,7 @@
             v-if="topics.length > 1"
             type="button"
             class="qpm_iconButton qpm_removeSubject bx bx-x"
-            :aria-label="getString('removeSubjectLabel')"
+            :aria-label="getRemoveSubjectAriaLabel(item, n)"
             @click="removeSubject(n)"
           />
         </div>
@@ -145,6 +145,19 @@
       },
       addSubject() {
         this.$emit("add-topic");
+      },
+      getTopicLabel(item) {
+        if (!item) return "";
+        return item?.translations?.[this.language] || item?.label || item?.name || item?.id || "";
+      },
+      getRemoveSubjectAriaLabel(selectedTopics, index) {
+        const baseLabel = this.getString("removeSubjectLabel");
+        if (!Array.isArray(selectedTopics) || selectedTopics.length === 0) {
+          return `${baseLabel} ${index + 1}`;
+        }
+
+        const firstLabel = this.getTopicLabel(selectedTopics[0]);
+        return firstLabel ? `${baseLabel}: ${firstLabel}` : `${baseLabel} ${index + 1}`;
       },
       removeSubject(index) {
         this.$emit("remove-topic", index);

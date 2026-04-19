@@ -181,6 +181,8 @@
   import { order } from "@/assets/content/order.js";
   import { getLocalizedTranslation } from "@/utils/componentHelpers";
 
+  let wordedSearchStringUid = 0;
+
   export default {
     name: "WordedSearchString",
     mixins: [appSettingsMixin, utilitiesMixin],
@@ -231,12 +233,17 @@
       },
     },
     emits: ["toggleAdvancedString", "toggleDetailsBox"],
+    data() {
+      return {
+        componentUid: ++wordedSearchStringUid,
+      };
+    },
     computed: {
       detailsPanelId() {
-        return `qpm_wordedSearchDetails_${this._uid}`;
+        return `qpm_wordedSearchDetails_${this.componentUid}`;
       },
       searchStringPanelId() {
-        return `qpm_wordedSearchString_${this._uid}`;
+        return `qpm_wordedSearchString_${this.componentUid}`;
       },
       /**
        * Determines if the topics prop contains at least one non-empty entry.

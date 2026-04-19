@@ -48,7 +48,7 @@
       <button
         type="button"
         class="multiselect__tag-icon qpm_iconButton"
-        :aria-label="`${getString('removeTagLabel')} ${getCustomNameLabel}`"
+        :aria-label="removeTagAriaLabel"
         @click.stop="triple.remove(triple.option)"
       />
     </span>
@@ -166,6 +166,29 @@
            return "display: flex; align-items: center; width: 100%;";
          }
        },
+      removeTagAriaLabel() {
+        const tagLabel = String(this.getCustomNameLabel || "").trim();
+        const removeLabel = String(this.getString("removeTagLabel") || "Remove").trim();
+
+        if (!tagLabel) {
+          return removeLabel;
+        }
+
+        const normalizedTagLabel = tagLabel.toLocaleLowerCase();
+        const normalizedRemoveLabel = removeLabel.toLocaleLowerCase();
+
+        if (
+          normalizedTagLabel === normalizedRemoveLabel ||
+          normalizedTagLabel.startsWith(`${normalizedRemoveLabel} `)
+        ) {
+          const deselectLabel = String(
+            this.getString("deselectTagLabel") || removeLabel
+          ).trim();
+          return `${deselectLabel} ${tagLabel}`.trim();
+        }
+
+        return `${removeLabel} ${tagLabel}`.trim();
+      },
     },
     watch: {
       triple(newTriple, oldTriple) {

@@ -612,30 +612,6 @@ function qpmDecodeElicitResponseBody(array $result): ?array
 }
 
 /**
- * Build a helpful error payload when Elicit returns non-JSON.
- *
- * @param array<string,mixed> $result
- * @return array<string,mixed>
- */
-function qpmBuildInvalidElicitResponsePayload(array $result): array
-{
-    $payload = [
-        'error' => 'Invalid response from Elicit',
-        'upstreamStatus' => (int)($result['status'] ?? 0),
-    ];
-    $contentType = trim((string)($result['content_type'] ?? ''));
-    if ($contentType !== '') {
-        $payload['upstreamContentType'] = $contentType;
-    }
-    $snippet = substr((string)($result['body'] ?? ''), 0, 300);
-    $snippet = trim((string)preg_replace('/\s+/', ' ', $snippet));
-    if ($snippet !== '') {
-        $payload['upstreamBodySnippet'] = $snippet;
-    }
-    return $payload;
-}
-
-/**
  * Build structured retry hints for filter-specific Elicit request failures.
  *
  * @param string $message
@@ -879,7 +855,7 @@ if (!is_array($decoded)) {
 }
 if (!is_array($decoded)) {
     http_response_code(502);
-    echo json_encode(qpmBuildInvalidElicitResponsePayload($result));
+    echo json_encode(['error' => 'Invalid response from Elicit']);
     exit;
 }
 

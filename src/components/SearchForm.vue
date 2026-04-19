@@ -3443,6 +3443,9 @@
           .filter((value) => value !== "")
           .map((value) => value.toUpperCase());
       },
+      createUrlCustomTagId() {
+        return `__custom__:url:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+      },
       /**
        * Processes the 'topic' parameters from the URL and populates the topics array.
        *
@@ -3462,6 +3465,7 @@
             const name = isTranslated || translationFlag === "0" ? rawName.slice(0, -1) : rawName;
 
             const tag = {
+              id: this.createUrlCustomTagId(),
               name: name,
               searchStrings: { normal: [name] },
               preString: `${this.getString("manualInputTerm")}:\u00A0 `,
@@ -3528,6 +3532,7 @@
             const name = isTranslated || translationFlag === "0" ? rawName.slice(0, -1) : rawName;
 
             const tag = {
+              id: this.createUrlCustomTagId(),
               name: name,
               searchStrings: { normal: [name] },
               preString: `${this.getString("manualInputTerm")}:\u00A0 `,
@@ -3581,6 +3586,7 @@
           if (isCustomInput) {
             const rawName = id.slice(2, -2);
             const tag = {
+              id: this.createUrlCustomTagId(),
               name: rawName,
               searchStrings: { normal: [rawName] },
               preString: `${this.getString("manualInputTerm")}:\u00A0 `,

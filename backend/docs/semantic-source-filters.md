@@ -13,8 +13,10 @@ Det betyder:
 - `hardFilters` beskriver intentionen i et internt format
 - `sourceFilters` beskriver den konkrete værdi, der sendes til en bestemt kilde
 - `sourceFilters` bruges først, men eksisterende fallback fra `hardFilters` bevares
-- `softHints` bruges kun til retrieval og reranking
+- `softHints` bruges kun til retrieval og som input til topic-overlap-signalet i den hybride rerank
 - `postValidation.rules` bruges bagefter til metadata-baseret håndhævelse på ikke-PMID-records
+
+Den hybride rerank kan ydermere paavirke slutrangeringen via kvalitetssignaler (pubtype, recency, citationsimpact, retraction, klinisk relevans). Se `backend/docs/search-flow-readme.md` og `QPM_RERANK_CONFIG` i `backend/config/config.example.php`.
 
 ## Hvor vedligeholdes hvad
 

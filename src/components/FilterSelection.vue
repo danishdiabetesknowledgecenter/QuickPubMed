@@ -35,7 +35,7 @@
             v-if="limitDropdowns.length > 1"
             type="button"
             class="qpm_iconButton qpm_removeSubject bx bx-x"
-            :aria-label="getString('removeFilterLabel')"
+            :aria-label="getRemoveLimitDropdownAriaLabel(item, n)"
             @click="removeLimitDropdown(n)"
           />
         </div>
@@ -163,6 +163,19 @@
       },
       addLimitDropdown() {
         this.$emit("add-limit-dropdown");
+      },
+      getSelectedItemLabel(item) {
+        if (!item) return "";
+        return item?.translations?.[this.language] || item?.label || item?.name || item?.id || "";
+      },
+      getRemoveLimitDropdownAriaLabel(selectedItems, index) {
+        const baseLabel = this.getString("removeFilterLabel");
+        if (!Array.isArray(selectedItems) || selectedItems.length === 0) {
+          return `${baseLabel} ${index + 1}`;
+        }
+
+        const firstLabel = this.getSelectedItemLabel(selectedItems[0]);
+        return firstLabel ? `${baseLabel}: ${firstLabel}` : `${baseLabel} ${index + 1}`;
       },
       removeLimitDropdown(index) {
         this.$emit("remove-limit-dropdown", index);

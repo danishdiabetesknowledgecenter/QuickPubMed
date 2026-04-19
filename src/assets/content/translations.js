@@ -67,6 +67,10 @@ export const messages = {
     dk: "Fjern",
     en: "Remove",
   },
+  deselectTagLabel: {
+    dk: "Fravælg",
+    en: "Deselect",
+  },
   standardString: {
     dk: "test",
     en: "test",

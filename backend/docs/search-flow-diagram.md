@@ -5,8 +5,10 @@ Dette dokument beskriver det nuvaerende search flow i `QuickPubMed` ud fra den a
 - `src/components/SearchForm.vue`
 - `src/components/DropdownWrapper.vue`
 - `src/utils/semanticReranking.js`
+- `backend/api/ICiteLookup.php` (NIH iCite enrichment)
+- `backend/api/OpenAlexAuthorityLookup.php` (forfatter/journal enrichment)
 
-Maalet er at vise alle de vigtigste grene i det nuvaerende flow: klassisk PubMed-soegning, hybridsoegning, semantiske kilder, PubMed som tidlig kilde, PubMed lexical rescue, hard-filtervalidering, DOI-only-regler og pagination.
+Maalet er at vise alle de vigtigste grene i det nuvaerende flow: klassisk PubMed-soegning, hybridsoegning, semantiske kilder, PubMed som tidlig kilde, PubMed lexical rescue, enrichment af kandidater, hybrid rerank, hard-filtervalidering, DOI-only-regler og pagination.
 
 ## 1. Overblik Over Hovedflowet
 
@@ -77,15 +79,31 @@ flowchart TD
   PM3 -- "Ja" --> PM4["PubMedLexicalRescue<br/>ekstra PubMed-soegning<br/>+ lexical scoring"]
   PM3 -- "Nej" --> PM5["Ingen rescue"]
 
-  SS --> M["Merge + rerank<br/>rerankSemanticCandidates()"]
-  OA --> M
-  EL --> M
-  PM0 --> M
-  PM2 --> M
-  PM4 --> M
-  PM5 --> M
+  SS --> EN["04b Enrichment<br/>ICiteLookup + OpenAlexAuthorityLookup<br/>(parallel batch)"]
+  OA --> EN
+  EL --> EN
+  PM0 --> EN
+  PM2 --> EN
+  PM4 --> EN
+  PM5 --> EN
 
+  EN --> M["05 Merge + hybrid rerank<br/>rerankSemanticCandidates()"]
   M --> N["Gem rerankede candidates / PMIDs / DOIs<br/>paa tag eller global semantic state"]
+```
+
+### Enrichment-detalje (`04b`)
+
+```mermaid
+flowchart LR
+  A["Kandidater fra kilder"] --> B1["Saml unikke PMIDs"]
+  A --> B2["Saml unikke OpenAlex<br/>author-ids og source-ids"]
+  B1 --> C1["ICiteLookup.php<br/>batch 500 PMIDs"]
+  B2 --> C2["OpenAlexAuthorityLookup.php<br/>batch 50 ids"]
+  C1 --> D1["RCR, nih_percentile,<br/>is_clinical, cited_by_clin, apt"]
+  C2 --> D2["h_index, 2yr_mean_citedness,<br/>is_in_doaj"]
+  D1 --> E["Injicer i candidate.metadata"]
+  D2 --> E
+  E --> F["mergeSourceCandidates()<br/>flytter til entry.enriched"]
 ```
 
 ## 3. PMID- Og DOI-Validering I Hybridflowet
@@ -149,12 +167,16 @@ flowchart TD
 - DOI-only og ikke-trusted refs gaar stadig gennem OpenAlex-baseret metadata-validering.
 - Ved dato-sortering kan hybridrefs blive hydreres bredere og derefter sorteret paa dato.
 - `searchMore()` genbruger caches og `finalValidatedQuery`, saa pagination ikke genstarter hele retrievallogikken fra bunden.
+- Enrichment-sektionen `04b` koerer iCite og OpenAlex Authority parallelt og fejler graceful; ved fejl fortsaetter rerank uden de manglende signaler.
+- iCite daekker kun PMIDs. DOI-only kandidater faar `null` paa RCR og falder tilbage til FWCI/citation count i `computeCitationImpactMultiplier`.
+- Den hybride rerank bruger formlen `(baseScore + additiveQualityBonus) * qualityMultiplier`, hvor `baseScore` er den klassiske RRF og resten er kvalitetssignaler der defaulter til neutrale vaerdier.
 
 ## 7. Kort Opsummering
 
-Det nuvaerende flow er et hybridt search flow med fire centrale principper:
+Det nuvaerende flow er et hybridt search flow med fem centrale principper:
 
 1. Klassiske PubMed-soegestrenge er stadig det kanoniske query-lag.
-2. Semantiske kilder kan udvide kandidatfeltet og derefter flettes i en samlet reranking.
-3. PubMed bruges som valideringslag for PMID-baserede candidates.
-4. DOI-only records kan stadig komme med, hvis de overlever de metadataregler, der er defineret for det aktive filterset.
+2. Semantiske kilder kan udvide kandidatfeltet, beriges og derefter flettes i en samlet reranking.
+3. Enrichment (`04b`) tilfoejer field-normaliserede citation- og klinikere-relevante signaler uden at aendre retrieval-resultatet.
+4. PubMed bruges som valideringslag for PMID-baserede candidates.
+5. DOI-only records kan stadig komme med, hvis de overlever de metadataregler, der er defineret for det aktive filterset.

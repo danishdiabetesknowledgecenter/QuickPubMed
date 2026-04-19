@@ -11,14 +11,27 @@ Denne mappe er den kanoniske web-indgang (`/backend`) til server-endpoints.
 
 ## Relevante docs
 
+- `backend/docs/saadan-virker-soegningen.md`: intro-venlig forklaring af søgeflow og rerank i helt almindeligt sprog — god som introduktion eller til at forklare kodens opførsel til ikke-teknikere.
 - `backend/docs/semantic-doi-only-rules.md`: vedligeholdelse af semantiske post-valideringsregler, schema, motor og eksempler på `postValidation.rules`.
 - `backend/docs/semantic-source-filters.md`: vedligeholdelse af `semanticConfig.sourceFilters`, kilde-specifikke filterværdier og hvornår de bør bruges.
-- `backend/docs/search-flow-readme.md`: pædagogisk gennemgang af det samlede search flow fra UI-valg til PubMed- og semantisk retrieval.
-- `backend/docs/semantic-filter-regression-checklist.md`: fast manuel regressionscheckliste for de vigtigste kanoniske semantiske filtercases.
+- `backend/docs/search-flow-readme.md`: pædagogisk gennemgang af det samlede search flow fra UI-valg til PubMed- og semantisk retrieval inkl. enrichment-laget og den hybride rerank-formel.
+- `backend/docs/search-flow-diagram.md`: mermaid-diagrammer af hoveflowet, retrieval-subflow, enrichment og hybridvalidering.
+- `backend/docs/semantic-filter-regression-checklist.md`: fast manuel regressionscheckliste for de vigtigste kanoniske semantiske filtercases, inkl. afsnittet `Reranking signals`.
 - `backend/docs/public-search-api.md`: kontrakt og eksempler for det offentlige NemPubMed search API.
 - `backend/docs/public-search-openapi.yaml`: formel OpenAPI-spec for det offentlige search API.
 - `backend/docs/public-search-security.md`: auth, CORS, rate limits, audit og driftsregler for public API.
-- `backend/docs/public-search-parity.md`: principper og teststrategi for rangering/paritet mellem web og API.
+- `backend/docs/public-search-parity.md`: principper og teststrategi for rangering/paritet mellem web og API, inkl. hybride kvalitetssignaler.
+
+### Rerank og enrichment
+
+Den hybride rerank-model lever i:
+
+- `src/utils/semanticReranking.js` — deterministisk rerank med RRF + kvalitetssignaler.
+- `backend/api/ICiteLookup.php` — batch-lookup til NIH iCite (RCR, nih_percentile, is_clinical, cited_by_clin, apt).
+- `backend/api/OpenAlexAuthorityLookup.php` — batch-lookup til OpenAlex (forfatter-h-index, journal 2yr_mean_citedness).
+- `backend/api/SemanticFinalRerank.php` — valgfri LLM-slutrerank med berigede kvalitetssignaler.
+- `QPM_RERANK_CONFIG` i `backend/config/config.php` — styrer alle vægte. Se `backend/config/config.example.php` for tuning-profiler (konservativ, moderat, aggressiv).
+- `scripts/verify-rerank-parity.js` — Node-script der beviser at neutrale defaults giver 1:1 samme rangering som før kvalitetslaget.
 
 `php-proxy` kan bevares midlertidigt som kompatibilitetslag, men ny kode bør pege på `backend`.
 
