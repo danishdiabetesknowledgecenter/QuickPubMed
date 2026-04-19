@@ -152,9 +152,22 @@
     margin-left: 0;
 }
 
-.qpm_standardSuffixLink {
-    text-decoration: underline;
+.qpm_vapp button.qpm_standardSuffixLink {
+    display: inline-block;
     color: var(--color-link);
+    text-decoration: none;
+    background-image: linear-gradient(var(--color-link), var(--color-link));
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+    background-size: 0 1px;
+}
+
+.qpm_vapp button.qpm_standardSuffixLink:focus-visible {
+    background-size: 100% 0 !important;
+}
+
+.qpm_vapp button.qpm_standardSuffixLink:hover {
+    background-size: 100% 1px !important;
 }
 
 .qpm_vapp button.qpm_standardSuffixLink:focus-visible {

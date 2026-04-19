@@ -135,8 +135,11 @@
    parent. Padding and margin are intentionally NOT reset so that
    outer classes (e.g. .qpm_advancedSearch) can control layout. */
 .qpm_linkButton {
+  -webkit-appearance: none;
+  appearance: none;
   background: transparent;
   border: 0;
+  border-radius: 0;
   padding: 0;
   margin: 0;
   color: inherit;
@@ -147,11 +150,12 @@
 }
 
 /* Used on a <button> that visually replaces a bare <a> inside a
-   .qpm_advancedSearch / .qpm_translateTitleLink wrapper. Recreates the
-   CMS link underline animation so semantic <button>s still look and
-   feel like the previous text links on hover. */
+   .qpm_advancedSearch / .qpm_translateTitleLink wrapper. The actual
+   hover/focus behavior is defined alongside the existing <a> rules in
+   styles.css so the button variant follows the same CMS cascade. */
 .qpm_advancedSearch .qpm_linkButtonAsAnchor,
 .qpm_translateTitleLink .qpm_linkButtonAsAnchor {
+  display: inline-block;
   color: var(--color-link);
   text-decoration: none;
   background-image: linear-gradient(var(--color-link), var(--color-link));
@@ -159,18 +163,6 @@
   background-repeat: no-repeat;
   background-size: 0 1px;
   border-bottom: none;
-  transition: background-size 0.16s ease;
-}
-
-.qpm_advancedSearch .qpm_linkButtonAsAnchor:hover,
-.qpm_translateTitleLink .qpm_linkButtonAsAnchor:hover {
-  background-size: 100% 1px;
-  cursor: pointer;
-}
-
-.qpm_advancedSearch .qpm_linkButtonAsAnchor:focus,
-.qpm_translateTitleLink .qpm_linkButtonAsAnchor:focus {
-  background-size: 100% 0;
 }
 
 .qpm_vapp .qpm_linkButton:focus-visible,
