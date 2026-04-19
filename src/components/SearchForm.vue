@@ -667,7 +667,7 @@
         return Array.from(new Set([...configured, ...this.defaultHiddenTopicIds]));
       },
       hasLimitSelections() {
-        return this.limitDropdowns.some((dropdown) => dropdown.length > 0);
+        return this.searchDisplayLimitDropdowns.length > 0;
       },
       searchDisplayLimitDropdowns() {
         return this.limitDropdowns
@@ -3378,6 +3378,7 @@
             }
 
             case "translationsources":
+            case "databases":
             case "semanticsources":
               this.urlTranslationSources = this.normalizeTranslationSourcesList(
                 values.filter((entry) => entry.trim() !== "")
@@ -3898,7 +3899,7 @@
         const initialParams = [apiBaseStr, debugParamStr].filter(Boolean).join("&");
         const translationSourcesParam = this.getTranslationSourcesUrlParamValue();
         const translationSourcesStr =
-          translationSourcesParam !== null ? `&semanticsources=${translationSourcesParam}` : "";
+          translationSourcesParam !== null ? `&databases=${translationSourcesParam}` : "";
 
         // If there are no topics selected, return the base URL without parameters
 

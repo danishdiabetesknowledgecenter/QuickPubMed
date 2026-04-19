@@ -32,7 +32,7 @@ Brug den som smoke-test efter ændringer i:
 URL:
 
 ```text
-http://127.0.0.1:<vite-port>/entries/widgets/searchform.html?apiBase=http%3A%2F%2F127.0.0.1%3A8080%2Fbackend%2Fapi&topic=%7B%7Bhvad%20virker%20bedst%3A%20online%20eller%20digital%20patientuddannelse%3F0%7D%7D%23s&L010=L010010%23s&semanticsources=semanticscholar&advanced=false&sort=relevance&collapsed=false&pagesize=25
+http://127.0.0.1:<vite-port>/entries/widgets/searchform.html?apiBase=http%3A%2F%2F127.0.0.1%3A8080%2Fbackend%2Fapi&topic=%7B%7Bhvad%20virker%20bedst%3A%20online%20eller%20digital%20patientuddannelse%3F0%7D%7D%23s&L010=L010010%23s&databases=semanticscholar&advanced=false&sort=relevance&collapsed=false&pagesize=25
 ```
 
 Kør:
@@ -73,7 +73,7 @@ Bestået når UI viser resultater, selv om `PubMed` ikke var valgt som retrieval
 URL:
 
 ```text
-http://127.0.0.1:<vite-port>/entries/widgets/searchform.html?apiBase=http%3A%2F%2F127.0.0.1%3A8080%2Fbackend%2Fapi&topic=%7B%7Bhvad%20virker%20bedst%3A%20online%20eller%20digital%20patientuddannelse%3F0%7D%7D%23s&L010=L010010%23s&semanticsources=openalex&advanced=false&sort=relevance&collapsed=false&pagesize=25
+http://127.0.0.1:<vite-port>/entries/widgets/searchform.html?apiBase=http%3A%2F%2F127.0.0.1%3A8080%2Fbackend%2Fapi&topic=%7B%7Bhvad%20virker%20bedst%3A%20online%20eller%20digital%20patientuddannelse%3F0%7D%7D%23s&L010=L010010%23s&databases=openalex&advanced=false&sort=relevance&collapsed=false&pagesize=25
 ```
 
 Kør:
@@ -112,7 +112,7 @@ Dette bekræfter, at den samme kanoniske filtertilstand også projiceres korrekt
 URL:
 
 ```text
-http://127.0.0.1:<vite-port>/entries/widgets/searchform.html?apiBase=http%3A%2F%2F127.0.0.1%3A8080%2Fbackend%2Fapi&topic=%7B%7Bhvad%20virker%20bedst%3A%20online%20eller%20digital%20patientuddannelse%3F0%7D%7D%23s&limit=L010010%23s&limit=L025020%23s&semanticsources=semanticscholar&advanced=true&sort=relevance&collapsed=false&pagesize=25
+http://127.0.0.1:<vite-port>/entries/widgets/searchform.html?apiBase=http%3A%2F%2F127.0.0.1%3A8080%2Fbackend%2Fapi&topic=%7B%7Bhvad%20virker%20bedst%3A%20online%20eller%20digital%20patientuddannelse%3F0%7D%7D%23s&limit=L010010%23s&limit=L025020%23s&databases=semanticscholar&advanced=true&sort=relevance&collapsed=false&pagesize=25
 ```
 
 Kør:

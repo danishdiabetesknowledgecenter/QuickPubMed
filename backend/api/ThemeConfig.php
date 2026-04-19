@@ -101,7 +101,7 @@ if (!empty($globalClassOverrides)) {
 // Global gate flag: true when QPM_ELICIT_UNLOCK is configured and the
 // current caller is not unlocked. Used by the frontend to strip 'elicit'
 // from availableTranslationSourceKeys regardless of domain config or the
-// ?semanticsources URL fallback list.
+// ?databases URL fallback list (legacy aliases: ?semanticsources / ?translationsources).
 $elicitGated = qpmIsElicitUnlockConfigured() && !$elicitUnlocked;
 
 $response = [

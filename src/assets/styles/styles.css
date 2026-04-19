@@ -1542,6 +1542,15 @@ li.multiselect__element.qpm_groupExpanded span.multiselect__option--group i {
   margin-bottom: 0 !important;
 }
 
+.qpm_vapp .multiselect__content,
+.qpm_vapp .multiselect__content > .multiselect__element {
+  list-style: none !important;
+  padding-left: 0 !important;
+  padding-inline-start: 0 !important;
+  margin-left: 0 !important;
+  margin-inline-start: 0 !important;
+}
+
 .multiselect__option {
   margin-bottom: 0 !important;
   display: flex;
