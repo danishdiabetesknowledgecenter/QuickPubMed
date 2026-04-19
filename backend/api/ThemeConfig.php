@@ -133,7 +133,7 @@ if (!empty($_GET['elicitDiag'])) {
     if (defined('QPM_ELICIT_UNLOCK') && is_array(QPM_ELICIT_UNLOCK)) {
         $cfg = QPM_ELICIT_UNLOCK;
         $configuredIps = isset($cfg['ips']) && is_array($cfg['ips']) ? array_values($cfg['ips']) : [];
-        $hasCode = !empty($cfg['code']);
+        $hasCode = !empty(qpmGetElicitUnlockCodes());
         $trustForwardedFor = !empty($cfg['trust_forwarded_for']);
     }
     $response['elicitDiag'] = [

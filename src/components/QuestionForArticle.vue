@@ -23,6 +23,7 @@
               <i
                 v-else
                 class="bx bx-help-circle qpm_questionIcon"
+                aria-hidden="true"
               ></i>
             </span>
             <span class="qpm_headerTitleText">{{ qa.question }}</span>
@@ -31,10 +32,12 @@
             <i
               v-if="accordionProps.expanded"
               class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
+                aria-hidden="true"
             ></i>
             <i
               v-else
               class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
+                aria-hidden="true"
             ></i>
           </div>
         </div>
@@ -87,11 +90,13 @@
         }"
         class="qpm_question-input"
         :disabled="isLoadingResponse || isLoadingCurrent"
+        :aria-label="getString('userQuestionInputHoverText')"
         :placeholder="getString('userQuestionInputPlaceholder')"
         :title="getString('userQuestionInputHoverText')"
         @keyup.enter="handleQuestionForArticle"
       />
       <button
+        type="button"
         class="qpm_button qpm_questionSubmitSpacing"
         :disabled="isLoadingResponse || isLoadingCurrent"
         @click="handleQuestionForArticle"

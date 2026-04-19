@@ -7,6 +7,7 @@
           v-for="prompt in prompts"
           :id="prompt.name"
           :key="prompt.name"
+          type="button"
           v-tooltip="{
             content: getTabTooltipContent(prompt),
             delay: $helpTextDelay,
@@ -78,6 +79,7 @@
                         @update-questions-and-answers="updateUserQuestionsAndAnswers"
                       />
                       <button
+                        type="button"
                         v-if="
                           activeArticleTabs[prompt.name] &&
                           (!loadingArticleSummaries[prompt.name] || prompt.name.length !== 0)
@@ -94,10 +96,11 @@
                         @keydown.enter="handleRetryArticleSummary"
                         @click="handleRetryArticleSummary"
                       >
-                        <i class="bx bx-refresh qpm_iconBaselineSize"></i>
+                        <i class="bx bx-refresh qpm_iconBaselineSize" aria-hidden="true"></i>
                         {{ getString("retryText") }}
                       </button>
                       <button
+                        type="button"
                         v-if="
                           activeArticleTabs[prompt.name] &&
                           (!loadingArticleSummaries[prompt.name] || prompt.name.length !== 0)
@@ -114,7 +117,7 @@
                         @keydown.enter="clickCopyArticleSummary"
                         @click="clickCopyArticleSummary"
                       >
-                        <i class="bx bx-copy qpm_iconBaseline" />
+                        <i class="bx bx-copy qpm_iconBaseline" aria-hidden="true" />
                         {{ getString("copyText") }}
                       </button>
                     </div>

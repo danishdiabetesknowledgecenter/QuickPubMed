@@ -11,7 +11,7 @@
   /* Core neutrals */
   --color-black: #000000;
   --color-white: #ffffff;
-  --color-grey-dark: #919191;
+  --color-grey-dark: #555555;
   --color-grey: #e7e7e7;
   --color-grey-light: #f4f4f4;
   --color-grey-medium: var(--color-grey-dark);
@@ -24,7 +24,7 @@
   --color-green-light: #799d93;
   --color-link: #004fa4;
   --color-red-dark: #932833;
-  --color-red-light: #ba4343;
+  --color-red-light: #9a2a2a;
 
   /* Borders and surfaces */
   --color-border-disabled: var(--color-border-subtle);
@@ -35,7 +35,7 @@
   --color-border-subtle-hover: #a9a9a9;
   --color-button-big: #4d6687;
   --color-button-color-green: var(--color-button-scope-green);
-  --color-button-disabled: #a0a0a0;
+  --color-button-disabled: #767676;
   --color-button-scope-green: #285709;
   --color-editor-border-divider: var(--color-grey);
   --color-editor-border-soft: var(--color-border-subtle);
@@ -54,12 +54,12 @@
   --color-editor-surface-accent-light: var(--color-editor-surface-accent);
   --color-editor-surface-muted: #f8fafc;
   --color-editor-surface-soft: var(--color-editor-surface-muted);
-  --color-editor-text-muted: #64748b;
+  --color-editor-text-muted: #475569;
   --color-editor-text-secondary: var(--color-text-secondary);
   --color-editor-text-strong: #334155;
   --color-editor-text-subtle: var(--color-editor-text-muted);
   --color-editor-text-tertiary: var(--color-editor-text-secondary);
-  --color-error: #ff0000;
+  --color-error: #b30000;
   --color-focus-outline: #0000ff;
   --color-focus-ring-input: var(--color-switch-active);
   --color-focus-shadow-input: hsla(207, 75%, 66%, 0.6);
@@ -84,12 +84,38 @@
   --color-surface-neutral: var(--color-grey-light);
   --color-switch-active: #2196f3;
   --color-switch-track-default: #ccc;
-  --color-tag-bg: #6c5b7b;
+  --color-tag-bg: #4f3e5e;
   --color-text-disabled: #808080;
-  --color-text-muted: #8f8f9f;
+  --color-text-muted: #5f5f6f;
   --color-text-secondary: #575757;
   --color-unpaywall-muted: #a8a8a8;
   --color-unpaywall-pdf: #d20a0a;
+}
+
+/* ==========================================================================
+   Reduced-motion preference (WCAG 2.3.3 AAA).
+   When the user has requested reduced motion at the OS level, disable
+   all animations and transitions inside the widget. Scoped to .qpm_vapp
+   so host-site animations outside the widget are not affected.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .v-popper__popper,
+  .v-popper__popper * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qpm_vapp,
+  .qpm_vapp *,
+  .qpm_vapp *::before,
+  .qpm_vapp *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* ==========================================================================
@@ -393,7 +419,16 @@ input.qpm_selectArticleCheckbox[type="checkbox"] {
   /* -webkit-transform: scale(1.15); */
   /* width: auto; */
   /* flex: 0 0 17px; */
+  width: 20px;
+  min-width: 20px;
+  height: 20px;
+  min-height: 20px;
   margin: 2px 15px 5px 5px;
+}
+
+input.qpm_selectArticleCheckbox[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--color-black);
+  outline-offset: 2px;
 }
 
 .qpm_box input.qpm_selectArticleCheckbox[type="checkbox"] {
@@ -600,39 +635,29 @@ button.qpm_tab:hover,
   border-color: transparent;
 }
 
-/* Simplified focus-visible styling - only show focus outline for keyboard navigation */
+/* Focus styling via native :focus-visible. Browsers automatically
+   decide whether to show the focus ring based on input modality
+   (keyboard = shown, mouse click = hidden on buttons). This replaces
+   the previous .qpm_keyboard-mode / .qpm_mouse-mode tracking hack
+   while preserving the identical visual outcome for both modes. */
 
-/* KEYBOARD MODE: Show focus styling only for input field */
-.qpm_vapp.qpm_keyboard-mode .multiselect__input:focus {
+.qpm_vapp .multiselect__input:focus-visible {
   outline: none !important;
   border: 2px solid var(--color-black) !important;
 }
 
-/* KEYBOARD MODE: Show focus styling for buttons */
-.qpm_vapp.qpm_keyboard-mode .qpm_button:focus,
-.qpm_vapp.qpm_keyboard-mode button:focus,
-.qpm_vapp.qpm_keyboard-mode .multiselect__option--highlight .qpm_button.qpm_ButtonColumnFocused {
+.qpm_vapp .qpm_button:focus-visible,
+.qpm_vapp button:focus-visible,
+.qpm_vapp .multiselect__option--highlight .qpm_button.qpm_ButtonColumnFocused {
   outline: 2px solid var(--color-black) !important;
   outline-offset: 0 !important;
-  position: relative; 
-  z-index: 100;  
+  position: relative;
+  z-index: 100;
 }
 
-.qpm_vapp.qpm_keyboard-mode button.qpm_tab:focus,
-.qpm_vapp.qpm_keyboard-mode button.qpm_summary_icon:focus {
+.qpm_vapp button.qpm_tab:focus-visible,
+.qpm_vapp button.qpm_summary_icon:focus-visible {
   outline-offset: -2px !important;
-}
-
-/* MOUSE MODE: Hide focus styling */
-.qpm_vapp.qpm_mouse-mode .multiselect__input:focus {
-  outline: none !important;
-  border: 1px solid var(--color-border-subtle) !important;
-}
-
-.qpm_vapp.qpm_mouse-mode .qpm_button:focus,
-.qpm_vapp.qpm_mouse-mode button:focus,
-.qpm_vapp.qpm_mouse-mode .multiselect__option--highlight .qpm_button.qpm_ButtonColumnFocused {
-  outline: none !important;
 }
 
 /* Keep focus-visible for browsers that support it as fallback */
@@ -857,32 +882,18 @@ button.qpm_slim.multiselect__input:focus-visible {
   box-shadow: none !important;
 }
 
-.qpm_vapp.qpm_keyboard-mode
+.qpm_vapp
   .qpm_dropdown.qpm_mobileUiDropdown
   .multiselect.qpm_hideDropdownArrow
   .multiselect__input:focus {
   border: none !important;
 }
 
-.qpm_vapp.qpm_keyboard-mode
+.qpm_vapp
   .qpm_dropdown.qpm_mobileUiDropdown
   .multiselect.qpm_hideDropdownArrow
-  .multiselect__tags:has(.multiselect__input:focus) {
+  .multiselect__tags:has(.multiselect__input:focus-visible) {
   border: 2px solid var(--color-black) !important;
-}
-
-.qpm_vapp.qpm_mouse-mode
-  .qpm_dropdown.qpm_mobileUiDropdown
-  .multiselect.qpm_hideDropdownArrow
-  .multiselect__input:focus {
-  border: none !important;
-}
-
-.qpm_vapp.qpm_mouse-mode
-  .qpm_dropdown.qpm_mobileUiDropdown
-  .multiselect.qpm_hideDropdownArrow
-  .multiselect__tags:has(.multiselect__input:focus) {
-  border-color: var(--color-border-subtle) !important;
 }
 
 /* Tablet m.m.: samme mobil-action sheet, men valgte emner som indholdsbrede brikker (ikke fuld dropdown-bredde) */
@@ -1394,6 +1405,9 @@ input.multiselect__input{
   padding-top: min(10px, 10px);
   padding-bottom: min(10px, 10px);
   font-weight: 700;
+  /* Lightest grey that meets AAA 7:1 contrast on both white
+     (dropdown input area) and grey-light #f4f4f4 (form background). */
+  color: #555555;
 }
 
 .multiselect__input {
@@ -1760,6 +1774,20 @@ button.qpm_tab {
   cursor: pointer;
 }
 
+/* Semantiske lister: fjern bullets/margin uden at ændre layout */
+ul.qpm_resetList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+ul.qpm_resetList > li {
+  display: block;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
 .qpm_SearchResult {
   min-height: 15px;
   padding-bottom: 50px;
@@ -1819,6 +1847,21 @@ button.qpm_tab {
   font-weight: 700;
 }
 
+h3.qpm_resultTitle {
+  margin: 0;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.qpm_resultTitleLabel {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: inherit;
+}
+
 .qpm_resultTitleHover:hover {
   cursor: pointer;
 }
@@ -1838,7 +1881,8 @@ button.qpm_tab {
   font-size: 0.9rem !important;
 }
 
-.accordion .accordion-body__contents .qpm_ArticleReference p {
+.accordion .accordion-body__contents .qpm_ArticleReference p,
+.accordion .accordion-body__contents .qpm_ArticleReference h3.qpm_resultTitle {
   margin-bottom: 0 !important;
 }
 
@@ -2093,14 +2137,30 @@ button.qpm_tab {
   white-space: normal;
 }
 
+/* Visually hidden, but available to assistive technology. */
+.qpm_srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .qpm_keepWithIcon {
   display: inline-flex;
   align-items: center;
-  white-space: nowrap;
+  flex-wrap: wrap;
+  white-space: normal;
+  row-gap: 2px;
 }
 
 .qpm_keepWithIcon .qpm_infoIcon {
   margin-left: 0.4em;
+  flex-shrink: 0;
 }
 
 .bx-detail {

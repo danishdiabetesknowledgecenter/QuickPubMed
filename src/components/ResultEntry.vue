@@ -18,7 +18,8 @@
         :name="'qpm_selectArticleCheckbox_' + id"
         :checked="isChecked"
         :value="value"
-        :aria-label="'Select: ' + getTitle"
+        :aria-label="selectArticleCheckboxAriaLabel"
+        aria-describedby="qpm_selectArticleCheckboxDescription"
         @change="updateInput"
         @keyup.enter="changeOnEnter"
       />
@@ -41,40 +42,59 @@
             :name="'qpm_selectArticleCheckbox_' + id"
             :checked="isChecked"
             :value="value"
-            :aria-label="'Select: ' + getTitle"
+            :aria-label="selectArticleCheckboxAriaLabel"
+            aria-describedby="qpm_selectArticleCheckboxDescription"
             @change="updateInput"
             @keyup.enter="changeOnEnter"
           />
           <div class="qpm_resultTitleWrap">
-            <label :for="canShowSelectionCheckbox ? 'qpm_selectArticleCheckbox_' + id : null">
-              <p
-                v-if="showArticleButtons || !hasValidAbstract"
-                class="qpm_resultTitle qpm_inlineDisplay"
-              >
-                {{ getTitle }}<span v-if="!getTitle">{{ getBookTitle }}</span>
-              </p>
-              <p
-                v-if="!showArticleButtons && hasValidAbstract"
-                class="qpm_resultTitle qpm_resultTitleHover qpm_inlineDisplay"
-                @click="showAbstract"
-              >
-                <span v-if="getVernacularTitle && getVernacularTitle !== getTitle">
-                  {{ getVernacularTitle }}<br />
-                </span>
-                {{ getTitle }}<span v-if="!getTitle">{{ getBookTitle }}</span>
-              </p>
-            </label>
+            <h3
+              class="qpm_resultTitle qpm_inlineDisplay"
+              :class="{ qpm_resultTitleHover: !showArticleButtons && hasValidAbstract }"
+              @click="handleResultTitleClick"
+            >
+              <template v-if="canShowSelectionCheckbox">
+                <label :for="'qpm_selectArticleCheckbox_' + id" class="qpm_resultTitleLabel">
+                  <template v-if="!showArticleButtons && hasValidAbstract">
+                    <span v-if="getVernacularTitle && getVernacularTitle !== getTitle">
+                      {{ getVernacularTitle }}<br />
+                    </span>
+                    {{ getTitle }}<span v-if="!getTitle">{{ getBookTitle }}</span>
+                  </template>
+                  <template v-else>
+                    {{ getTitle }}<span v-if="!getTitle">{{ getBookTitle }}</span>
+                  </template>
+                </label>
+              </template>
+              <template v-else>
+                <template v-if="!showArticleButtons && hasValidAbstract">
+                  <span v-if="getVernacularTitle && getVernacularTitle !== getTitle">
+                    {{ getVernacularTitle }}<br />
+                  </span>
+                  {{ getTitle }}<span v-if="!getTitle">{{ getBookTitle }}</span>
+                </template>
+                <template v-else>
+                  {{ getTitle }}<span v-if="!getTitle">{{ getBookTitle }}</span>
+                </template>
+              </template>
+            </h3>
             <p
               v-if="config.useAI && useTranslateTitle"
               class="qpm_translateTitleLink qpm_ai_hide qpm_inlineDisplay"
             >
-              <a v-if="language !== 'en'" href="#" @click.prevent="toggleTranslation"
-                >{{
+              <button
+                v-if="language !== 'en'"
+                type="button"
+                class="qpm_linkButton qpm_linkButtonAsAnchor"
+                :aria-label="translateTitleToggleAriaLabel"
+                @click="toggleTranslation"
+              >
+                {{
                   translationShowing
                     ? getString("hideTranslatedTitle")
                     : getString("showTranslatedTitle")
                 }}
-              </a>
+              </button>
             </p>
           </div>
         </div>
@@ -105,11 +125,14 @@
       <div v-if="showArticleButtons" class="qpm_resultButtons_mobile" :style="mobileResult">
         <button
           v-if="hasSectionedAbstract || hasValidAbstract || pmid || doi"
+          type="button"
           v-tooltip="{
             content: getString('hoverShowAbstractButton'),
             distance: 5,
             delay: $helpTextDelay,
           }"
+          :aria-expanded="String(showingAbstract)"
+          :aria-controls="getAbstractId"
           class="qpm_button qpm_slim"
           :class="[
             !isAbstractLoaded ? 'qpm_abstract' : '',
@@ -122,6 +145,7 @@
         </button>
         <button
           v-if="hasValidPmid"
+          type="button"
           v-tooltip="{
             content: getString('hoverOpenInPubMedButton'),
             distance: 5,
@@ -134,6 +158,7 @@
         </button>
         <button
           v-if="getDoiLink"
+          type="button"
           v-tooltip="{
             content: getString('hoverOpenDOIButton'),
             distance: 5,
@@ -191,11 +216,14 @@
       <div v-if="showArticleButtons" class="qpm_resultButtons">
         <button
           v-if="hasSectionedAbstract || hasValidAbstract || pmid || doi"
+          type="button"
           v-tooltip="{
             content: getString('hoverShowAbstractButton'),
             distance: 5,
             delay: $helpTextDelay,
           }"
+          :aria-expanded="String(showingAbstract)"
+          :aria-controls="getAbstractId"
           class="qpm_button qpm_slim"
           :class="[
             !isAbstractLoaded ? 'qpm_abstract' : '',
@@ -208,6 +236,7 @@
         </button>
         <button
           v-if="hasValidPmid"
+          type="button"
           v-tooltip="{
             content: getString('hoverOpenInPubMedButton'),
             distance: 5,
@@ -220,6 +249,7 @@
         </button>
         <button
           v-if="getDoiLink"
+          type="button"
           v-tooltip="{
             content: getString('hoverOpenDOIButton'),
             distance: 5,
@@ -297,6 +327,7 @@
                   <div>
                     <i
                       class="ri-sparkling-fill"
+                      aria-hidden="true"
                     />
                   </div>
                   <div class="qpm_resultAiHeaderTitleWrap">
@@ -307,6 +338,7 @@
                       <span class="qpm_keepWithIcon">
                         {{ getSelectedResultAccordionHeaderParts().last }}
                         <button
+                          type="button"
                           v-tooltip="{
                             content: getString('hoverselectedResultAccordionHeader'),
                             distance: 5,
@@ -314,7 +346,7 @@
                             theme: 'infoTooltip',
                           }"
                           class="bx bx-info-circle qpm_infoIcon"
-                          aria-label="Info"
+                          :aria-label="getString('infoResultAccordionLabel')"
                         />
                       </span>
                     </strong>
@@ -324,10 +356,12 @@
                   <i
                     v-if="accordionProps.expanded"
                     class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
+                    aria-hidden="true"
                   />
                   <i 
                     v-else 
                     class="bx bx-chevron-down qpm_aiAccordionHeaderArrows" 
+                    aria-hidden="true"
                   />
                 </div>
               </div>
@@ -345,6 +379,7 @@
                   <button
                     v-for="prompt in getsummarizeSingleAbstractPrompt()"
                     :key="prompt.name"
+                    type="button"
                     v-tooltip="{
                       content: getString('hoverSummarizeSearchResultButton'),
                       distance: 5,
@@ -355,6 +390,7 @@
                   >
                     <i
                       class="bx bx-detail"
+                      aria-hidden="true"
                     />
                     {{ getTranslation(prompt) }}
                   </button>
@@ -415,10 +451,12 @@
                 <i
                   v-if="accordionProps.expanded"
                   class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
+                  aria-hidden="true"
                 />
-                <i v-else class="bx bx-chevron-right qpm_aiAccordionHeaderArrows" />
+                <i v-else class="bx bx-chevron-right qpm_aiAccordionHeaderArrows" aria-hidden="true" />
                 <i
                   class="ri-sparkling-fill"
+                  aria-hidden="true"
                 />
                 <div class="qpm_infoInline">
                   <strong>
@@ -428,6 +466,7 @@
                     <span class="qpm_keepWithIcon">
                       {{ getSelectedResultNoAbstractHeaderParts().last }}
                       <button
+                        type="button"
                         v-tooltip="{
                           content: getString('hoverselectedResultAccordionHeaderNoAbstract'),
                           distance: 5,
@@ -435,7 +474,7 @@
                           theme: 'infoTooltip',
                         }"
                         class="bx bx-info-circle qpm_infoIcon"
-                        aria-label="Info"
+                        :aria-label="getString('infoResultAccordionNoAbstractLabel')"
                       />
                     </span>
                   </strong>
@@ -455,6 +494,7 @@
                     <button
                       v-for="prompt in getsummarizeSingleAbstractPrompt()"
                       :key="prompt.name"
+                      type="button"
                       v-tooltip="{
                         content: getString('hoverSummarizeSearchResultButton'),
                         distance: 5,
@@ -465,6 +505,7 @@
                     >
                       <i
                         class="bx bx-detail"
+                        aria-hidden="true"
                       />
                       {{ getTranslation(prompt) }}
                     </button>
@@ -517,7 +558,7 @@
                 </template>
 
                 <template v-else-if="getHasOaPdf">
-                  <i class="bx bxs-file-pdf qpm_pdf-icon qpm_pdfIconRed" />
+                  <i class="bx bxs-file-pdf qpm_pdf-icon qpm_pdfIconRed" aria-hidden="true" />
                   <a
                     v-tooltip="{
                       content: getString('hoverUnpaywall_pdf'),
@@ -533,7 +574,7 @@
                 </template>
 
                 <template v-else-if="getHasOaHtml">
-                  <i class="bx bxs-file-html qpm_pdf-icon qpm_pdfIconMuted" />
+                  <i class="bx bxs-file-html qpm_pdf-icon qpm_pdfIconMuted" aria-hidden="true" />
                   <a
                     v-tooltip="{
                       content: getString('hoverUnpaywall_html'),
@@ -549,7 +590,7 @@
                 </template>
 
                 <template v-else>
-                  <i class="bx bxs-file-pdf qpm_pdf-icon qpm_pdfIconMuted" />
+                  <i class="bx bxs-file-pdf qpm_pdf-icon qpm_pdfIconMuted" aria-hidden="true" />
                   <a
                     v-tooltip="{
                       content: getString('hoverUnpaywall_noPdf'),
@@ -888,6 +929,7 @@
         defaultUrl: "",
         license: "",
         showExtendedPrompts: false, // Show extended prompts for summarizing the article
+        altmetricBadgeObserver: null,
       };
     },
     computed: {
@@ -1060,6 +1102,14 @@
       getTitle() {
         return this.stripHtmlToText(this.title);
       },
+      selectArticleCheckboxAriaLabel() {
+        const prefix = this.getString("selectArticleCheckboxPrefix") || "Select:";
+        return `${prefix} ${this.getTitle || this.getBookTitle}`;
+      },
+      translateTitleToggleAriaLabel() {
+        const key = this.translationShowing ? "hideTranslatedTitle" : "showTranslatedTitle";
+        return `${this.getString(key)}: ${this.getTitle || this.getBookTitle}`;
+      },
       getBookTitle() {
         return this.stripHtmlToText(this.booktitle);
       },
@@ -1208,12 +1258,17 @@
       this.$emit("loadAbstract", this.id);
 
       eventBus.on("result-entry-show-abstract", this.onEventBusShowAbstractEvent);
+      this.syncAltmetricBadgeAccessibility();
     },
     beforeUpdate() {
       this.checkPreload();
     },
+    updated() {
+      this.syncAltmetricBadgeAccessibility();
+    },
     beforeUnmount() {
       eventBus.off("result-entry-show-abstract", this.onEventBusShowAbstractEvent);
+      this.disconnectAltmetricBadgeObserver();
     },
     methods: {
       splitLastWord(text) {
@@ -1263,6 +1318,49 @@
       },
       getFormattedPublication() {
         return formatPublicationInfo(this);
+      },
+      getAltmetricBadgeAccessibleLabel() {
+        const base =
+          this.getString("altmetricBadgeLinkLabel") || "View Altmetric attention for this record";
+        const title = String(this.computedTitle || "").trim();
+        return title ? `${base}: ${title}` : base;
+      },
+      applyAltmetricBadgeAccessibility() {
+        if (!this.showAltmetricBadge || !this.$el) return;
+        const ariaLabel = this.getAltmetricBadgeAccessibleLabel();
+        this.$el.querySelectorAll(".qpm_altmetrics a").forEach((link) => {
+          link.setAttribute("aria-label", ariaLabel);
+          if (!link.getAttribute("title")) {
+            link.setAttribute("title", ariaLabel);
+          }
+        });
+      },
+      disconnectAltmetricBadgeObserver() {
+        if (this.altmetricBadgeObserver) {
+          this.altmetricBadgeObserver.disconnect();
+          this.altmetricBadgeObserver = null;
+        }
+      },
+      syncAltmetricBadgeAccessibility() {
+        this.applyAltmetricBadgeAccessibility();
+        this.disconnectAltmetricBadgeObserver();
+        if (!this.showAltmetricBadge || !this.$el || typeof MutationObserver === "undefined") {
+          return;
+        }
+
+        const badgeNodes = this.$el.querySelectorAll(".qpm_altmetrics");
+        if (badgeNodes.length === 0) return;
+
+        this.altmetricBadgeObserver = new MutationObserver(() => {
+          this.applyAltmetricBadgeAccessibility();
+        });
+
+        badgeNodes.forEach((badgeNode) => {
+          this.altmetricBadgeObserver.observe(badgeNode, {
+            childList: true,
+            subtree: true,
+          });
+        });
       },
 
       /**
@@ -1451,6 +1549,11 @@
       //This is needed because AI-summaries expects a function to get the article and it gets stuck in a loop if you pass the articles directly
       getArticleAsArray() {
         return [this.getArticle];
+      },
+      handleResultTitleClick() {
+        if (!this.showArticleButtons && this.hasValidAbstract) {
+          this.showAbstract();
+        }
       },
       async showAbstract(ignoreToggle = false) {
         this.showingAbstract = ignoreToggle === true || !this.showingAbstract;

@@ -3,6 +3,7 @@
     <div class="qpm_actionButtonsGroup">
       <!-- The reset button -->
       <button
+        type="button"
         v-tooltip="{
           content: getString('hoverResetButton'),
           distance: 5,
@@ -11,12 +12,13 @@
         class="qpm_button"
         @click="clear"
       >
-        <i class="bx bx-reset qpm_iconBaseline" />
+        <i class="bx bx-reset qpm_iconBaseline" aria-hidden="true" />
         {{ getString("reset") }}
       </button>
 
       <!-- The copy link button -->
       <button
+        type="button"
         v-tooltip="{
           content: getString('hoverShareButton'),
           distance: 5,
@@ -25,24 +27,26 @@
         class="qpm_button"
         @click="copyUrl"
       >
-        <i class="bx bx-link qpm_iconBaseline" />
+        <i class="bx bx-link qpm_iconBaseline" aria-hidden="true" />
         {{ getString("getUrl") }}
       </button>
     </div>
 
     <!-- The search button -->
     <button
+      type="button"
       v-tooltip="{
         content: getString('hoverSearchButton'),
         distance: 5,
         delay: $helpTextDelay,
       }"
       :disabled="searchLoading"
+      :aria-busy="searchLoading"
       :class="{ qpm_disabled: searchLoading }"
       class="qpm_button qpm_search"
       @click="searchsetLowStart"
     >
-      <i class="bx bx-search bx-flip-horizontal qpm_searchIcon" />
+      <i class="bx bx-search bx-flip-horizontal qpm_searchIcon" aria-hidden="true" />
       {{ getString("search") }}
     </button>
   </div>

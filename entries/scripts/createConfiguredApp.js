@@ -1,7 +1,19 @@
 import { createApp, h } from "vue";
 import VueShowdown from "vue-showdown";
-import FloatingVue from "floating-vue";
+import FloatingVue, { hideAllPoppers } from "floating-vue";
 import "floating-vue/dist/style.css";
+
+// WCAG 1.4.13: Tooltips vist via hover/fokus skal kunne afvises uden at flytte
+// fokus. floating-vue lukker ved blur, men ikke som standard ved Escape, så vi
+// lytter globalt én gang og gemmer alle åbne poppers.
+if (typeof document !== "undefined" && !window.__qpmTooltipEscBound) {
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" || event.key === "Esc") {
+      hideAllPoppers();
+    }
+  });
+  window.__qpmTooltipEscBound = true;
+}
 
 const showdownConfig = {
   flavor: "github",
@@ -36,6 +48,8 @@ export function createConfiguredAppWithOptions(rootComponent, props, options = {
         html: true,
         triggers: ["hover", "focus", "touch"],
         hideTriggers: (triggers) => [...triggers, "click"],
+        instantMove: true,
+        distance: 8,
         delay: {
           show: 200,
           hide: 0,
@@ -44,6 +58,7 @@ export function createConfiguredAppWithOptions(rootComponent, props, options = {
       infoTooltip: {
         $extend: "tooltip",
         html: true,
+        instantMove: true,
         triggers: ["hover", "focus", "click", "touch"],
         hideTriggers: ["hover", "click", "touch"],
         autoHide: true,

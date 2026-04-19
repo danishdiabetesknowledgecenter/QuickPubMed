@@ -12,7 +12,7 @@
           theme: 'infoTooltip',
         }"
         class="bx bx-info-circle qpm_cursorHelp qpm_infoIcon"
-        aria-label="Info"
+        :aria-label="getString('infoSemanticSectionLabel')"
         @click.stop
       />
     </span>
@@ -61,7 +61,7 @@
               theme: 'infoTooltip',
             }"
             class="bx bx-info-circle qpm_cursorHelp qpm_infoIcon"
-            aria-label="Info"
+            :aria-label="getString('infoSemanticOptionLabel')"
             @click.stop
           />
         </span>

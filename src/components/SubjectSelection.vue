@@ -1,59 +1,60 @@
 <template>
   <div>
-    <div v-for="(item, n) in topics" :key="`item-${item.id}-${n}`" class="qpm_topics">
-      <div class="qpm_flex">
-        <dropdown-wrapper
-          ref="topicDropdown"
-          :is-multiple="true"
-          :data="topicOptions"
-          :hide-topics="hideTopics"
-          :is-group="true"
-          :placeholder="dropdownPlaceholders[n]"
-          :operator="getString('orOperator')"
-          :taggable="true"
-          :selected="item"
-          :close-on-input="false"
-          :language="language"
-          :search-with-a-i="searchWithAI"
-          :search-with-pub-med-query="searchWithPubMedQuery"
-          :search-with-pub-med-best-match="searchWithPubMedBestMatch"
-          :search-with-semantic-scholar="searchWithSemanticScholar"
-          :search-with-open-alex="searchWithOpenAlex"
-          :search-with-elicit="searchWithElicit"
-          :semantic-worded-intent-context="semanticWordedIntentContext"
-          :show-scope-label="advanced"
-          :no-result-string="getString('noTopicDropdownContent')"
-          :index="n"
-          @input="(...args) => $emit('update-topics', ...args)"
-          @update-scope="(...args) => $emit('update-scope', ...args)"
-          @mounted="(...args) => $emit('should-focus-next-dropdown', ...args)"
-          @translating="(...args) => $emit('update-placeholder', ...args)"
-        />
+    <ul class="qpm_resetList">
+      <li v-for="(item, n) in topics" :key="`item-${item.id}-${n}`" class="qpm_topics">
+        <div class="qpm_flex">
+          <dropdown-wrapper
+            ref="topicDropdown"
+            :is-multiple="true"
+            :data="topicOptions"
+            :hide-topics="hideTopics"
+            :is-group="true"
+            :placeholder="dropdownPlaceholders[n]"
+            :operator="getString('orOperator')"
+            :taggable="true"
+            :selected="item"
+            :close-on-input="false"
+            :language="language"
+            :search-with-a-i="searchWithAI"
+            :search-with-pub-med-query="searchWithPubMedQuery"
+            :search-with-pub-med-best-match="searchWithPubMedBestMatch"
+            :search-with-semantic-scholar="searchWithSemanticScholar"
+            :search-with-open-alex="searchWithOpenAlex"
+            :search-with-elicit="searchWithElicit"
+            :semantic-worded-intent-context="semanticWordedIntentContext"
+            :show-scope-label="advanced"
+            :no-result-string="getString('noTopicDropdownContent')"
+            :index="n"
+            @input="(...args) => $emit('update-topics', ...args)"
+            @update-scope="(...args) => $emit('update-scope', ...args)"
+            @mounted="(...args) => $emit('should-focus-next-dropdown', ...args)"
+            @translating="(...args) => $emit('update-placeholder', ...args)"
+          />
 
-        <i
-          v-if="topics.length > 1"
-          class="qpm_removeSubject bx bx-x"
-          role="button"
-          tabindex="0"
-          aria-label="Remove subject"
-          @click="removeSubject(n)"
-          @keydown.enter.prevent="removeSubject(n)"
-        />
-      </div>
-      <p
-        v-if="n >= 0 && hasTopics"
-        class="qpm_subjectOperator"
-        :style="{ color: n < topics.length - 1 ? '#000000' : 'darkgrey' }"
-      >
-        {{ getString("andOperator") }}
-      </p>
-    </div>
+          <button
+            v-if="topics.length > 1"
+            type="button"
+            class="qpm_iconButton qpm_removeSubject bx bx-x"
+            :aria-label="getString('removeSubjectLabel')"
+            @click="removeSubject(n)"
+          />
+        </div>
+        <p
+          v-if="n >= 0 && hasTopics"
+          class="qpm_subjectOperator"
+          :class="{ 'qpm_subjectOperator--trailing': n >= topics.length - 1 }"
+        >
+          {{ getString("andOperator") }}
+        </p>
+      </li>
+    </ul>
     <div
       v-if="hasTopics"
       class="qpm_subjectSelectionActions"
       @keydown.enter.capture.passive="focusNextDropdownOnMount = true"
     >
       <button
+        type="button"
         v-tooltip="{
           content: getString('hoverAddSubject'),
           distance: 5,

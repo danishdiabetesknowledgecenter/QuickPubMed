@@ -1,9 +1,14 @@
 <template>
   <div class="qpm_searchStringCollection">
     <p class="qpm_advancedSearch qpm_showHideAll qpm_showHideAllRow">
-      <a tabindex="0" @keyup.enter="toggleAll()" @click="toggleAll()">{{
+      <button
+        type="button"
+        class="qpm_linkButton qpm_linkButtonAsAnchor"
+        :aria-expanded="!isAllToggled"
+        @click="toggleAll()"
+      >{{
         isAllToggled ? getString("showAllSearchstrings") : getString("hideAllSearchstrings")
-      }}</a>
+      }}</button>
     </p>
     <div v-show="!initialCollapsePending" class="qpm_searchStringStringsContainer rich-text">
       <div class="qpm_searchStringsTopPadding">
@@ -11,12 +16,13 @@
           class="qpm_headingContainerFocus_h2 qpm_gallery_toggle"
           role="button"
           tabindex="0"
+          :aria-expanded="isTargetExpanded('qpm_subjectSearchStrings')"
           data-target="qpm_subjectSearchStrings"
           @click="hideOrCollapse('qpm_subjectSearchStrings')"
-          @keyup.enter="hideOrCollapse('qpm_subjectSearchStrings')"
-          @keyup.space.prevent="hideOrCollapse('qpm_subjectSearchStrings')"
+          @keydown.enter.prevent="hideOrCollapse('qpm_subjectSearchStrings')"
+          @keydown.space.prevent="hideOrCollapse('qpm_subjectSearchStrings')"
         >
-          <span :class="['qpm_toggle_icon', { qpm_toggle_expanded: !isLevelCollapsed(1) }]">
+          <span :class="['qpm_toggle_icon', { qpm_toggle_expanded: isTargetExpanded('qpm_subjectSearchStrings') }]">
             <span class="qpm_toggle_plus">+</span>
             <span class="qpm_toggle_minus">&minus;</span>
           </span>
@@ -30,12 +36,19 @@
           class="qpm_headingContainerFocus_h3 qpm_gallery_toggle"
           role="button"
           tabindex="0"
+          :aria-expanded="isTargetExpanded('qpm_standardSearchStrings')"
           data-target="qpm_standardSearchStrings"
           @click="hideOrCollapse('qpm_standardSearchStrings')"
-          @keyup.enter="hideOrCollapse('qpm_standardSearchStrings')"
-          @keyup.space.prevent="hideOrCollapse('qpm_standardSearchStrings')"
+          @keydown.enter.prevent="hideOrCollapse('qpm_standardSearchStrings')"
+          @keydown.space.prevent="hideOrCollapse('qpm_standardSearchStrings')"
         >
-          <span :class="['qpm_toggle_icon', 'qpm_toggle_placeholder']">
+          <span
+            :class="[
+              'qpm_toggle_icon',
+              'qpm_toggle_placeholder',
+              { qpm_toggle_expanded: isTargetExpanded('qpm_standardSearchStrings') },
+            ]"
+          >
             <span class="qpm_toggle_plus">+</span>
             <span class="qpm_toggle_minus">&minus;</span>
           </span>
@@ -53,7 +66,7 @@
             </tr>
             <tr v-if="hasValidSearchString(getStandaloneStandardScopeString('narrow'))">
               <td>
-                <button
+                <span
                   v-tooltip="{
                     content: getString('tooltipNarrow'),
                     distance: 5,
@@ -62,7 +75,7 @@
                   class="qpm_button qpm_buttonColor1"
                 >
                   {{ getString("narrow") }}
-                </button>
+                </span>
               </td>
               <td lang="en">
                 <p class="qpm_table_p">
@@ -83,7 +96,7 @@
             </tr>
             <tr v-if="hasValidSearchString(getStandaloneStandardScopeString('normal'))">
               <td>
-                <button
+                <span
                   v-tooltip="{
                     content: getString('tooltipNormal'),
                     distance: 5,
@@ -92,7 +105,7 @@
                   class="qpm_button qpm_buttonColor2"
                 >
                   {{ getString("normal") }}
-                </button>
+                </span>
               </td>
               <td lang="en">
                 <p class="qpm_table_p">
@@ -113,7 +126,7 @@
             </tr>
             <tr v-if="hasValidSearchString(getStandaloneStandardScopeString('broad'))">
               <td>
-                <button
+                <span
                   v-tooltip="{
                     content: getString('tooltipBroad'),
                     distance: 5,
@@ -122,7 +135,7 @@
                   class="qpm_button qpm_buttonColor3"
                 >
                   {{ getString("broad") }}
-                </button>
+                </span>
               </td>
               <td lang="en">
                 <p class="qpm_table_p">
@@ -162,12 +175,13 @@
           class="qpm_headingContainerFocus_h3 qpm_gallery_toggle"
           role="button"
           tabindex="0"
+          :aria-expanded="isTargetExpanded(toClassName(subject.id))"
           :data-target="toClassName(subject.id)"
           @click="hideOrCollapse(toClassName(subject.id))"
-          @keyup.enter="hideOrCollapse(toClassName(subject.id))"
-          @keyup.space.prevent="hideOrCollapse(toClassName(subject.id))"
+          @keydown.enter.prevent="hideOrCollapse(toClassName(subject.id))"
+          @keydown.space.prevent="hideOrCollapse(toClassName(subject.id))"
         >
-          <span :class="['qpm_toggle_icon', { qpm_toggle_expanded: !isLevelCollapsed(2) }]">
+          <span :class="['qpm_toggle_icon', { qpm_toggle_expanded: isTargetExpanded(toClassName(subject.id)) }]">
             <span class="qpm_toggle_plus">+</span>
             <span class="qpm_toggle_minus">&minus;</span>
           </span>
@@ -197,16 +211,17 @@
             :class="['qpm_headingContainerFocus', isClickable(group) ? 'qpm_gallery_toggle' : '']"
             :role="isClickable(group) ? 'button' : undefined"
             :tabindex="isClickable(group) ? 0 : -1"
+            :aria-expanded="isClickable(group) ? isTargetExpanded(getToggleTarget(group)) : undefined"
             :data-target="getToggleTarget(group)"
             @click="isClickable(group) && hideOrCollapse(getToggleTarget(group))"
-            @keyup.enter="isClickable(group) && hideOrCollapse(getToggleTarget(group))"
-            @keyup.space.prevent="isClickable(group) && hideOrCollapse(getToggleTarget(group))"
+            @keydown.enter.prevent="isClickable(group) && hideOrCollapse(getToggleTarget(group))"
+            @keydown.space.prevent="isClickable(group) && hideOrCollapse(getToggleTarget(group))"
           >
             <span
               :class="[
                 'qpm_toggle_icon',
                 {
-                  qpm_toggle_expanded: isGroupExpanded(group),
+                  qpm_toggle_expanded: isTargetExpanded(getToggleTarget(group)),
                   qpm_toggle_placeholder: !hasChildren(group),
                 },
               ]"
@@ -233,7 +248,7 @@
               </tr>
               <tr v-if="group.searchStrings && hasValidSearchString(group.searchStrings.narrow)">
                 <td>
-                  <button
+                  <span
                     v-tooltip="{
                       content: getString('tooltipNarrow'),
                       distance: 5,
@@ -242,7 +257,7 @@
                     class="qpm_button qpm_buttonColor1"
                   >
                     {{ getString("narrow") }}
-                  </button>
+                  </span>
                 </td>
                 <td lang="en">
                   <p class="qpm_table_p">
@@ -263,18 +278,19 @@
                       {{ getString("standardSearchStringLabel") }} ({{
                         getStandardScopeLabelLowercase(group, "narrow")
                       }})
-                      <a
+                      <button
+                        type="button"
                         v-tooltip="{
                           content: getToggleStandardTooltip(group, 'narrow'),
                           distance: 5,
                           delay: $helpTextDelay,
                         }"
-                        href="#"
-                        class="qpm_standardSuffixLink"
-                        @click.prevent="toggleStandardExpanded(group, 'narrow')"
+                        class="qpm_linkButton qpm_standardSuffixLink"
+                        :aria-expanded="isStandardExpanded(group, 'narrow')"
+                        @click="toggleStandardExpanded(group, 'narrow')"
                       >
                         [{{ getToggleStandardActionLabel(group, "narrow") }}]
-                      </a>
+                      </button>
                     </span>
                     <span
                       v-if="
@@ -300,7 +316,7 @@
               </tr>
               <tr v-if="group.searchStrings && hasValidSearchString(group.searchStrings.normal)">
                 <td>
-                  <button
+                  <span
                     v-tooltip="{
                       content: getString('tooltipNormal'),
                       distance: 5,
@@ -309,7 +325,7 @@
                     class="qpm_button qpm_buttonColor2"
                   >
                     {{ getString("normal") }}
-                  </button>
+                  </span>
                 </td>
                 <td lang="en">
                   <p class="qpm_table_p">
@@ -330,18 +346,19 @@
                       {{ getString("standardSearchStringLabel") }} ({{
                         getStandardScopeLabelLowercase(group, "normal")
                       }})
-                      <a
+                      <button
+                        type="button"
                         v-tooltip="{
                           content: getToggleStandardTooltip(group, 'normal'),
                           distance: 5,
                           delay: $helpTextDelay,
                         }"
-                        href="#"
-                        class="qpm_standardSuffixLink"
-                        @click.prevent="toggleStandardExpanded(group, 'normal')"
+                        class="qpm_linkButton qpm_standardSuffixLink"
+                        :aria-expanded="isStandardExpanded(group, 'normal')"
+                        @click="toggleStandardExpanded(group, 'normal')"
                       >
                         [{{ getToggleStandardActionLabel(group, "normal") }}]
-                      </a>
+                      </button>
                     </span>
                     <span
                       v-if="
@@ -367,7 +384,7 @@
               </tr>
               <tr v-if="group.searchStrings && hasValidSearchString(group.searchStrings.broad)">
                 <td>
-                  <button
+                  <span
                     v-tooltip="{
                       content: getString('tooltipBroad'),
                       distance: 5,
@@ -376,7 +393,7 @@
                     class="qpm_button qpm_buttonColor3"
                   >
                     {{ getString("broad") }}
-                  </button>
+                  </span>
                 </td>
                 <td lang="en">
                   <p class="qpm_table_p">
@@ -397,18 +414,19 @@
                       {{ getString("standardSearchStringLabel") }} ({{
                         getStandardScopeLabelLowercase(group, "broad")
                       }})
-                      <a
+                      <button
+                        type="button"
                         v-tooltip="{
                           content: getToggleStandardTooltip(group, 'broad'),
                           distance: 5,
                           delay: $helpTextDelay,
                         }"
-                        href="#"
-                        class="qpm_standardSuffixLink"
-                        @click.prevent="toggleStandardExpanded(group, 'broad')"
+                        class="qpm_linkButton qpm_standardSuffixLink"
+                        :aria-expanded="isStandardExpanded(group, 'broad')"
+                        @click="toggleStandardExpanded(group, 'broad')"
                       >
                         [{{ getToggleStandardActionLabel(group, "broad") }}]
-                      </a>
+                      </button>
                     </span>
                     <span
                       v-if="hasStandardSuffix(group, 'broad') && isStandardExpanded(group, 'broad')"
@@ -448,12 +466,13 @@
           class="qpm_headingContainerFocus_h2 qpm_gallery_toggle"
           role="button"
           tabindex="0"
+          :aria-expanded="isTargetExpanded('qpm_filterSearchStrings')"
           data-target="qpm_filterSearchStrings"
           @click="hideOrCollapse('qpm_filterSearchStrings')"
-          @keyup.enter="hideOrCollapse('qpm_filterSearchStrings')"
-          @keyup.space.prevent="hideOrCollapse('qpm_filterSearchStrings')"
+          @keydown.enter.prevent="hideOrCollapse('qpm_filterSearchStrings')"
+          @keydown.space.prevent="hideOrCollapse('qpm_filterSearchStrings')"
         >
-          <span :class="['qpm_toggle_icon', { qpm_toggle_expanded: !isLevelCollapsed(1) }]">
+          <span :class="['qpm_toggle_icon', { qpm_toggle_expanded: isTargetExpanded('qpm_filterSearchStrings') }]">
             <span class="qpm_toggle_plus">+</span>
             <span class="qpm_toggle_minus">&minus;</span>
           </span>
@@ -467,12 +486,13 @@
           class="qpm_headingContainerFocus_h3 qpm_gallery_toggle"
           role="button"
           tabindex="0"
+          :aria-expanded="isTargetExpanded(toClassName(filter.id))"
           :data-target="toClassName(filter.id)"
           @click="hideOrCollapse(toClassName(filter.id))"
-          @keyup.enter="hideOrCollapse(toClassName(filter.id))"
-          @keyup.space.prevent="hideOrCollapse(toClassName(filter.id))"
+          @keydown.enter.prevent="hideOrCollapse(toClassName(filter.id))"
+          @keydown.space.prevent="hideOrCollapse(toClassName(filter.id))"
         >
-          <span :class="['qpm_toggle_icon', { qpm_toggle_expanded: !isLevelCollapsed(2) }]">
+          <span :class="['qpm_toggle_icon', { qpm_toggle_expanded: isTargetExpanded(toClassName(filter.id)) }]">
             <span class="qpm_toggle_plus">+</span>
             <span class="qpm_toggle_minus">&minus;</span>
           </span>
@@ -502,16 +522,17 @@
             :class="['qpm_headingContainerFocus', isClickable(choice) ? 'qpm_gallery_toggle' : '']"
             :role="isClickable(choice) ? 'button' : undefined"
             :tabindex="isClickable(choice) ? 0 : -1"
+            :aria-expanded="isClickable(choice) ? isTargetExpanded(getToggleTarget(choice)) : undefined"
             :data-target="getToggleTarget(choice)"
             @click="isClickable(choice) && hideOrCollapse(getToggleTarget(choice))"
-            @keyup.enter="isClickable(choice) && hideOrCollapse(getToggleTarget(choice))"
-            @keyup.space.prevent="isClickable(choice) && hideOrCollapse(getToggleTarget(choice))"
+            @keydown.enter.prevent="isClickable(choice) && hideOrCollapse(getToggleTarget(choice))"
+            @keydown.space.prevent="isClickable(choice) && hideOrCollapse(getToggleTarget(choice))"
           >
             <span
               :class="[
                 'qpm_toggle_icon',
                 {
-                  qpm_toggle_expanded: isGroupExpanded(choice),
+                  qpm_toggle_expanded: isTargetExpanded(getToggleTarget(choice)),
                   qpm_toggle_placeholder: !hasChildren(choice),
                 },
               ]"
@@ -538,7 +559,7 @@
               </tr>
               <tr v-if="choice.searchStrings && hasValidSearchString(choice.searchStrings.narrow)">
                 <td>
-                  <button
+                  <span
                     v-tooltip="{
                       content: getString('tooltipNarrow'),
                       distance: 5,
@@ -547,7 +568,7 @@
                     class="qpm_button qpm_buttonColor1"
                   >
                     {{ getString("narrow") }}
-                  </button>
+                  </span>
                 </td>
                 <td lang="en">
                   <p class="qpm_table_p">
@@ -568,18 +589,19 @@
                       {{ getString("standardSearchStringLabel") }} ({{
                         getStandardScopeLabelLowercase(choice, "narrow")
                       }})
-                      <a
+                      <button
+                        type="button"
                         v-tooltip="{
                           content: getToggleStandardTooltip(choice, 'narrow'),
                           distance: 5,
                           delay: $helpTextDelay,
                         }"
-                        href="#"
-                        class="qpm_standardSuffixLink"
-                        @click.prevent="toggleStandardExpanded(choice, 'narrow')"
+                        class="qpm_linkButton qpm_standardSuffixLink"
+                        :aria-expanded="isStandardExpanded(choice, 'narrow')"
+                        @click="toggleStandardExpanded(choice, 'narrow')"
                       >
                         [{{ getToggleStandardActionLabel(choice, "narrow") }}]
-                      </a>
+                      </button>
                     </span>
                     <span
                       v-if="
@@ -605,7 +627,7 @@
               </tr>
               <tr v-if="choice.searchStrings && hasValidSearchString(choice.searchStrings.normal)">
                 <td>
-                  <button
+                  <span
                     v-tooltip="{
                       content: getString('tooltipNormal'),
                       distance: 5,
@@ -614,7 +636,7 @@
                     class="qpm_button qpm_buttonColor2"
                   >
                     {{ getString("normal") }}
-                  </button>
+                  </span>
                 </td>
                 <td lang="en">
                   <p class="qpm_table_p">
@@ -635,18 +657,19 @@
                       {{ getString("standardSearchStringLabel") }} ({{
                         getStandardScopeLabelLowercase(choice, "normal")
                       }})
-                      <a
+                      <button
+                        type="button"
                         v-tooltip="{
                           content: getToggleStandardTooltip(choice, 'normal'),
                           distance: 5,
                           delay: $helpTextDelay,
                         }"
-                        href="#"
-                        class="qpm_standardSuffixLink"
-                        @click.prevent="toggleStandardExpanded(choice, 'normal')"
+                        class="qpm_linkButton qpm_standardSuffixLink"
+                        :aria-expanded="isStandardExpanded(choice, 'normal')"
+                        @click="toggleStandardExpanded(choice, 'normal')"
                       >
                         [{{ getToggleStandardActionLabel(choice, "normal") }}]
-                      </a>
+                      </button>
                     </span>
                     <span
                       v-if="
@@ -672,7 +695,7 @@
               </tr>
               <tr v-if="choice.searchStrings && hasValidSearchString(choice.searchStrings.broad)">
                 <td>
-                  <button
+                  <span
                     v-tooltip="{
                       content: getString('tooltipBroad'),
                       distance: 5,
@@ -681,7 +704,7 @@
                     class="qpm_button qpm_buttonColor3"
                   >
                     {{ getString("broad") }}
-                  </button>
+                  </span>
                 </td>
                 <td lang="en">
                   <p class="qpm_table_p">
@@ -702,18 +725,19 @@
                       {{ getString("standardSearchStringLabel") }} ({{
                         getStandardScopeLabelLowercase(choice, "broad")
                       }})
-                      <a
+                      <button
+                        type="button"
                         v-tooltip="{
                           content: getToggleStandardTooltip(choice, 'broad'),
                           distance: 5,
                           delay: $helpTextDelay,
                         }"
-                        href="#"
-                        class="qpm_standardSuffixLink"
-                        @click.prevent="toggleStandardExpanded(choice, 'broad')"
+                        class="qpm_linkButton qpm_standardSuffixLink"
+                        :aria-expanded="isStandardExpanded(choice, 'broad')"
+                        @click="toggleStandardExpanded(choice, 'broad')"
                       >
                         [{{ getToggleStandardActionLabel(choice, "broad") }}]
-                      </a>
+                      </button>
                     </span>
                     <span
                       v-if="
@@ -789,6 +813,7 @@
         topics: [],
         orders: [],
         isAllToggled: true,
+        toggleStateVersion: 0,
         resolvedCollapsedLevels: null,
         hasAppliedInitialCollapse: false,
         initialCollapsePending: false,
@@ -1303,6 +1328,7 @@
         }
 
         this.syncToggleIconsFromDom();
+        this.touchToggleState();
       },
       setCollapsedState(elements, collapsed) {
         if (!Array.isArray(elements)) return;
@@ -1310,6 +1336,16 @@
           if (!el || !el.classList) return;
           el.classList.toggle("qpm_collapsedSection", collapsed);
         });
+      },
+      isTargetExpanded(className) {
+        void this.toggleStateVersion;
+        if (!className || typeof document === "undefined") return false;
+        return Array.from(document.getElementsByClassName(className)).some(
+          (el) => !el.classList.contains("qpm_collapsedSection")
+        );
+      },
+      touchToggleState() {
+        this.toggleStateVersion += 1;
       },
       toggleAll() {
         const allSections = [
@@ -1340,6 +1376,7 @@
           this.isAllToggled = true;
         }
         this.syncToggleIconsFromDom();
+        this.touchToggleState();
       },
       getPubMedLink(searchString) {
         const myncbiShare = this.appSettings?.nlm?.myncbishare || "";

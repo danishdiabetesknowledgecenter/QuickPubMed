@@ -154,6 +154,13 @@
 
 .qpm_standardSuffixLink {
     text-decoration: underline;
+    color: var(--color-link);
+}
+
+.qpm_vapp button.qpm_standardSuffixLink:focus-visible {
+    outline: 2px solid var(--color-black);
+    outline-offset: 2px;
+    border-radius: 2px;
 }
 
 .qpm_standardSuffixValue {

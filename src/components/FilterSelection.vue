@@ -1,55 +1,56 @@
 <template>
   <div>
-    <div v-for="(item, n) in limitDropdowns" :key="`limit-${n}`" class="qpm_topics">
-      <div class="qpm_flex">
-        <dropdown-wrapper
-          ref="limitDropdown"
-          :is-multiple="true"
-          :data="groupedLimitOptionsFor(n)"
-          :hide-topics="hideTopics"
-          :is-group="true"
-          :placeholder="filterPlaceholderFor(n)"
-          :operator="getString('orOperator')"
-          :taggable="true"
-          :selected="item"
-          :close-on-input="false"
-          :language="language"
-          :search-with-a-i="searchWithAI"
-          :search-with-pub-med-query="searchWithPubMedQuery"
-          :search-with-pub-med-best-match="searchWithPubMedBestMatch"
-          :search-with-semantic-scholar="searchWithSemanticScholar"
-          :search-with-open-alex="searchWithOpenAlex"
-          :search-with-elicit="searchWithElicit"
-          :semantic-worded-intent-context="semanticWordedIntentContext"
-          :show-scope-label="advanced"
-          :no-result-string="getString('noLimitDropdownContent')"
-          :is-filter-dropdown="true"
-          :index="n"
-          @input="(...args) => $emit('update-limit-dropdown', ...args)"
-          @update-scope="(...args) => $emit('update-limit-scope', ...args)"
-          @translating="(...args) => $emit('update-limit-placeholder', ...args)"
-        />
+    <ul class="qpm_resetList">
+      <li v-for="(item, n) in limitDropdowns" :key="`limit-${n}`" class="qpm_topics">
+        <div class="qpm_flex">
+          <dropdown-wrapper
+            ref="limitDropdown"
+            :is-multiple="true"
+            :data="groupedLimitOptionsFor(n)"
+            :hide-topics="hideTopics"
+            :is-group="true"
+            :placeholder="filterPlaceholderFor(n)"
+            :operator="getString('orOperator')"
+            :taggable="true"
+            :selected="item"
+            :close-on-input="false"
+            :language="language"
+            :search-with-a-i="searchWithAI"
+            :search-with-pub-med-query="searchWithPubMedQuery"
+            :search-with-pub-med-best-match="searchWithPubMedBestMatch"
+            :search-with-semantic-scholar="searchWithSemanticScholar"
+            :search-with-open-alex="searchWithOpenAlex"
+            :search-with-elicit="searchWithElicit"
+            :semantic-worded-intent-context="semanticWordedIntentContext"
+            :show-scope-label="advanced"
+            :no-result-string="getString('noLimitDropdownContent')"
+            :is-filter-dropdown="true"
+            :index="n"
+            @input="(...args) => $emit('update-limit-dropdown', ...args)"
+            @update-scope="(...args) => $emit('update-limit-scope', ...args)"
+            @translating="(...args) => $emit('update-limit-placeholder', ...args)"
+          />
 
-        <i
-          v-if="limitDropdowns.length > 1"
-          class="qpm_removeSubject bx bx-x"
-          role="button"
-          tabindex="0"
-          aria-label="Remove filter"
-          @click="removeLimitDropdown(n)"
-          @keydown.enter.prevent="removeLimitDropdown(n)"
-        />
-      </div>
-      <p
-        v-if="n >= 0 && hasLimitSelections"
-        class="qpm_subjectOperator"
-        :style="{ color: n < limitDropdowns.length - 1 ? '#000000' : 'darkgrey' }"
-      >
-        {{ getString("andOperator") }}
-      </p>
-    </div>
+          <button
+            v-if="limitDropdowns.length > 1"
+            type="button"
+            class="qpm_iconButton qpm_removeSubject bx bx-x"
+            :aria-label="getString('removeFilterLabel')"
+            @click="removeLimitDropdown(n)"
+          />
+        </div>
+        <p
+          v-if="n >= 0 && hasLimitSelections"
+          class="qpm_subjectOperator"
+          :class="{ 'qpm_subjectOperator--trailing': n >= limitDropdowns.length - 1 }"
+        >
+          {{ getString("andOperator") }}
+        </p>
+      </li>
+    </ul>
     <div v-if="hasLimitSelections" class="qpm_filterSelectionActions">
       <button
+        type="button"
         v-tooltip="{
           content: getString('hoverAddTopic'),
           distance: 5,

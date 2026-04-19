@@ -1,4 +1,72 @@
 export const messages = {
+  removeSubjectLabel: {
+    dk: "Fjern emne",
+    en: "Remove subject",
+  },
+  removeFilterLabel: {
+    dk: "Fjern afgrænsning",
+    en: "Remove filter",
+  },
+  infoGroupLabel: {
+    dk: "Information om kategori",
+    en: "Information about category",
+  },
+  infoOptionLabel: {
+    dk: "Information om valgmulighed",
+    en: "Information about option",
+  },
+  infoSemanticSectionLabel: {
+    dk: "Information om semantisk søgning",
+    en: "Information about semantic search",
+  },
+  infoSemanticOptionLabel: {
+    dk: "Information om database",
+    en: "Information about database",
+  },
+  infoAiTranslationLabel: {
+    dk: "Information om AI-oversættelse",
+    en: "Information about AI translation",
+  },
+  infoAdvancedLimitsLabel: {
+    dk: "Information om afgrænsninger",
+    en: "Information about filters",
+  },
+  infoSimpleLimitsLabel: {
+    dk: "Information om afgrænsninger",
+    en: "Information about filters",
+  },
+  infoSimpleChoiceLabel: {
+    dk: "Information om afgrænsning",
+    en: "Information about limit",
+  },
+  infoAiSummariesLabel: {
+    dk: "Information om AI-opsummeringer",
+    en: "Information about AI summaries",
+  },
+  infoSelectedResultsLabel: {
+    dk: "Information om markerede resultater",
+    en: "Information about selected results",
+  },
+  infoSelectedResultsAiLabel: {
+    dk: "Information om markerede resultater",
+    en: "Information about selected results",
+  },
+  infoResultAccordionLabel: {
+    dk: "Information om markeret artikel",
+    en: "Information about selected article",
+  },
+  infoResultAccordionNoAbstractLabel: {
+    dk: "Information om markeret artikel uden abstrakt",
+    en: "Information about selected article without abstract",
+  },
+  searchStringTextareaLabel: {
+    dk: "Søgestreng (skrivebeskyttet) — klik eller tryk Enter for at kopiere",
+    en: "Search string (read-only) — click or press Enter to copy",
+  },
+  removeTagLabel: {
+    dk: "Fjern",
+    en: "Remove",
+  },
   standardString: {
     dk: "test",
     en: "test",
@@ -260,8 +328,12 @@ export const messages = {
     en: "Unlock extra AI source (requires a code or an approved IP).",
   },
   elicitUnlockPromptMessage: {
-    dk: "Indtast kode for at låse op for ekstra AI-kilde (Elicit). Lad feltet være tomt for at fjerne en gemt kode.",
-    en: "Enter code to unlock the extra AI source (Elicit). Leave empty to clear a saved code.",
+    dk: "Indtast kode for at låse op for ekstra AI-kilde (Elicit).",
+    en: "Enter code to unlock the extra AI source (Elicit).",
+  },
+  elicitUnlockInvalidCodeMessage: {
+    dk: "Forkert kode – ekstra AI-kilde (Elicit) er fortsat låst.",
+    en: "Incorrect code – the extra AI source (Elicit) is still locked.",
   },
   advancedSearch: {
     dk: "Avanceret",
@@ -274,6 +346,26 @@ export const messages = {
   searchMode: {
     dk: "søgning",
     en: "search",
+  },
+  searchModeTablistLabel: {
+    dk: "Vælg søgetilstand: simpel eller avanceret",
+    en: "Choose search mode: simple or advanced",
+  },
+  selectArticleCheckboxPrefix: {
+    dk: "Vælg artikel:",
+    en: "Select article:",
+  },
+  selectArticleCheckboxDescription: {
+    dk: "Marker artikler for at inkludere dem i en samlet AI-opsummering.",
+    en: "Select articles to include them in a combined AI summary.",
+  },
+  closeSummaryButtonLabel: {
+    dk: "Luk AI-opsummering",
+    en: "Close AI summary",
+  },
+  semanticSearchProcessToggleAria: {
+    dk: "Vis eller skjul status for semantisk søgning",
+    en: "Show or hide semantic search status",
   },
   reset: {
     dk: "Nulstil",
@@ -714,6 +806,10 @@ export const messages = {
   openDoi: {
     dk: "Åbn tidsskrift",
     en: "Open journal",
+  },
+  altmetricBadgeLinkLabel: {
+    dk: "Se Altmetric-opmærksomhed for denne artikel",
+    en: "View Altmetric attention for this record",
   },
   searchMatches: {
     dk: "",

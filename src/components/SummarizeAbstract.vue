@@ -7,6 +7,7 @@
           v-for="prompt in prompts"
           :id="prompt.name"
           :key="prompt.name"
+          type="button"
           v-tooltip="{
             content: getTabTooltipContent(prompt),
             delay: $helpTextDelay,
@@ -30,6 +31,7 @@
             "
           >
             <button
+              type="button"
               class="qpm_summary_icon bx bx-chevron-left qpm_historyNavLeft"
               :disabled="getCurrentIndex + 1 >= getCurrentSummaryHistory.length"
               @click="clickHistoryItem(getCurrentIndex + 1)"
@@ -37,6 +39,7 @@
             {{ getCurrentSummaryHistory.length - getCurrentIndex
             }}<span class="qpm_historyNavDivider">/</span>{{ getCurrentSummaryHistory.length }}
             <button
+              type="button"
               class="qpm_summary_icon bx bx-chevron-right qpm_historyNavRight"
               :disabled="getCurrentIndex <= 0"
               @click="clickHistoryItem(getCurrentIndex - 1)"
@@ -44,8 +47,9 @@
           </template>
 
           <button
+            type="button"
             class="qpm_summary_icon bx bx-x qpm_summaryCloseButton"
-            aria-label="Close"
+            :aria-label="getString('closeSummaryButtonLabel') || 'Close'"
             @click="clickCloseSummary"
           />
         </div>
@@ -70,7 +74,7 @@
           >
             <div>
               <p class="qpm_summaryErrorText">
-                <i class="bx bx-error qpm_summaryErrorIcon" />
+                <i class="bx bx-error qpm_summaryErrorIcon" aria-hidden="true" />
                 <strong>{{ errorHeader }}</strong>
               </p>
               <p>{{ getCurrentSummary?.body }}</p>
@@ -80,6 +84,7 @@
               </template>
               <div class="qpm_summaryRetryGroupError">
                 <button
+                  type="button"
                   class="qpm_button"
                   @keydown.enter="clickRetry($event, true)"
                   @click="clickRetry($event, true)"
@@ -113,6 +118,7 @@
                 <div class="qpm_summaryActionsGroup">
                   <button
                     v-if="getIsAbstractSummaryLoading"
+                    type="button"
                     v-tooltip="{
                       content: getString('hoverretryText'),
                       distance: 5,
@@ -122,12 +128,13 @@
                     @keydown.enter="clickStop($event)"
                     @click="clickStop"
                   >
-                    <i class="bx bx-stop-circle" />
+                    <i class="bx bx-stop-circle" aria-hidden="true" />
                     {{ getString("stopText") }}
                   </button>
 
                   <button
                     v-if="!getIsAbstractSummaryLoading"
+                    type="button"
                     v-tooltip="{
                       content: getString('hoverretryText'),
                       distance: 5,
@@ -138,11 +145,12 @@
                     :disabled="getAreSummariesLoading"
                     @click="clickRetry($event, true)"
                   >
-                    <i class="bx bx-refresh qpm_iconBaselineSize" />
+                    <i class="bx bx-refresh qpm_iconBaselineSize" aria-hidden="true" />
                     {{ getString("retryText") }}
                   </button>
 
                   <button
+                    type="button"
                     v-tooltip="{
                       content: getString('hovercopyText'),
                       distance: 5,
@@ -152,7 +160,7 @@
                     :disabled="getIsAbstractSummaryLoading"
                     @click="clickCopy"
                   >
-                    <i class="bx bx-copy qpm_iconBaseline" />
+                    <i class="bx bx-copy qpm_iconBaseline" aria-hidden="true" />
                     {{ getString("copyText") }}
                   </button>
                   <div
@@ -209,6 +217,7 @@
                         />
 
                         <button
+                          type="button"
                           v-if="
                             activeArticleTabs[prompt.name] &&
                             !isForbiddenError &&
@@ -228,10 +237,11 @@
                           @keydown.enter="handleRetryArticleSummary"
                           @click="handleRetryArticleSummary"
                         >
-                          <i class="bx bx-refresh qpm_iconBaselineSize"></i>
+                          <i class="bx bx-refresh qpm_iconBaselineSize" aria-hidden="true"></i>
                           {{ getString("retryText") }}
                         </button>
                         <button
+                          type="button"
                           v-if="
                             activeArticleTabs[prompt.name] &&
                             !isForbiddenError &&
@@ -251,7 +261,7 @@
                           @keydown.enter="clickCopyArticleSummary"
                           @click="clickCopyArticleSummary"
                         >
-                          <i class="bx bx-copy qpm_iconBaseline" />
+                          <i class="bx bx-copy qpm_iconBaseline" aria-hidden="true" />
                           {{ getString("copyText") }}
                         </button>
                       </div>

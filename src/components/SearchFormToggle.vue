@@ -1,24 +1,22 @@
 <template>
   <div class="qpm_spaceEvenly qpm_headerText">
-    <div v-show="!isCollapsed" role="heading" aria-level="2" class="h3 qpm_searchFormToggleHeading">
+    <h2 v-show="!isCollapsed" class="h3 qpm_searchFormToggleHeading">
       {{ getString("searchHeaderShown") }}
-    </div>
-    <div v-show="isCollapsed" role="heading" aria-level="2" class="h3 qpm_searchFormToggleHeading">
+    </h2>
+    <h2 v-show="isCollapsed" class="h3 qpm_searchFormToggleHeading">
       {{ getString("searchHeaderHidden") }}
-    </div>
+    </h2>
 
-    <div
+    <button
       v-if="showToggleIcon && topics !== false"
-      class="qpm_toggleSearchForm"
-      role="button"
-      tabindex="0"
+      type="button"
+      class="qpm_toggleSearchForm qpm_iconButton"
       :aria-label="isCollapsed ? getString('showForm') : getString('hideForm')"
       :aria-expanded="!isCollapsed"
+      :aria-controls="panelId || null"
       @click="$emit('toggle-collapsed')"
-      @keydown.enter="$emit('toggle-collapsed')"
-      @keydown.space.prevent="$emit('toggle-collapsed')"
     >
-      <div
+      <span
         v-show="!isCollapsed"
         v-tooltip="{
           content: getString('hideForm'),
@@ -27,7 +25,7 @@
         }"
         class="qpm_toggleSearchFormBtn bx bx-hide"
       />
-      <div
+      <span
         v-show="isCollapsed"
         v-tooltip="{
           content: getString('showForm'),
@@ -36,7 +34,7 @@
         }"
         class="qpm_toggleSearchFormBtn bx bx-show"
       />
-    </div>
+    </button>
   </div>
 </template>
 
@@ -59,6 +57,10 @@
       getString: {
         type: Function,
         default: () => "",
+      },
+      panelId: {
+        type: String,
+        default: "",
       },
     },
     emits: ["toggle-collapsed"],

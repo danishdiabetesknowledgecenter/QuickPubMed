@@ -6,9 +6,13 @@
     >
       <div
         class="qpm_accordion-toggle"
+        role="button"
         tabindex="0"
+        :aria-expanded="getIsExpanded"
+        :aria-controls="accordionBodyId"
         @click="toggleAccordionState"
-        @keypress.enter="toggleAccordionState"
+        @keydown.enter.prevent="toggleAccordionState"
+        @keydown.space.prevent="toggleAccordionState"
       >
         <slot
           name="header"
@@ -20,11 +24,11 @@
             <p class="qpm_accordion-header-title">
               {{ getTitle }}
             </p>
-            <a class="qpm_accordion-header-icon">
+            <span class="qpm_accordion-header-icon">
               <span class="icon">
-                <i class="fa fa-angle-up" />
+                <i class="fa fa-angle-up" aria-hidden="true" />
               </span>
-            </a>
+            </span>
           </header>
         </slot>
       </div>
@@ -36,15 +40,15 @@
         @after-enter="afterEnterContent"
         @leave="leaveContent"
       >
-        <div v-show="getIsExpanded" ref="body" class="qpm_accordion-content">
+        <div v-show="getIsExpanded" :id="accordionBodyId" ref="body" class="qpm_accordion-content">
           <div class="content">
             <slot />
             <transition-group
               v-if="shownModels && shownModels.length !== 0"
               appear
               name="list-fade"
-              tag="div"
-              class="qpm_box"
+              tag="ul"
+              class="qpm_box qpm_resetList"
               :css="true"
               @before-leave="beforeLeaveListItem"
               @leave="leaveListItem"
@@ -53,7 +57,7 @@
               @enter="enterListItem"
               @after-enter="afterEnterListItem"
             >
-              <div
+              <li
                 v-for="item in shownModels"
                 :key="item.uid"
                 ref="listItems"
@@ -61,7 +65,7 @@
                 :name="'transition-item-' + item.uid"
               >
                 <slot name="listItem" :model="item" />
-              </div>
+              </li>
             </transition-group>
           </div>
         </div>
@@ -107,6 +111,7 @@
         shownModels: [],
         modelsChangesPending: [],
         onScrollThrottled: null,
+        accordionBodyId: `qpm-accordion-body-${Math.random().toString(36).slice(2, 10)}`,
       };
     },
     computed: {

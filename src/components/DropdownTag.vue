@@ -8,9 +8,12 @@
       class="multiselect__tag"
       :class="[getTagColor(triple.option.scope), { 'qpm_tag-freetext': triple.option.isCustom }]"
       :style="isEditMode ? (isMultiLine ? 'width: 100%; display: flex; flex-direction: column;' : 'width: 100%;') : ''"
+      role="button"
+      tabindex="0"
+      :aria-label="getCustomNameLabel"
       @click="handleTagClick"
       @keydown.enter.prevent="handleKeydown"
-      tabindex="0"
+      @keydown.space.prevent="handleKeydown"
     >
       <span v-if="triple.option.isCustom" :style="isEditMode ? 'width: 100%;' : ''">
         <p v-if="!isEditMode">
@@ -42,11 +45,11 @@
         </div>
       </span>
       <span v-else> {{ triple.option.preString }}{{ getCustomNameLabel }} </span>
-      <i
-        tabindex="0"
-        class="multiselect__tag-icon"
+      <button
+        type="button"
+        class="multiselect__tag-icon qpm_iconButton"
+        :aria-label="`${getString('removeTagLabel')} ${getCustomNameLabel}`"
         @click.stop="triple.remove(triple.option)"
-        @keydown.enter.prevent="handleCrossKeydown"
       />
     </span>
     <span class="qpm_operator">{{ displayOperator }}</span>

@@ -1,10 +1,11 @@
 <template>
   <div class="qpm_simpleFiltersRoot">
     <div class="qpm_limitsHeaderContainer">
-      <h4 role="heading" aria-level="3" class="h4">
+      <h3 class="h4">
         {{ getString("SimpleLimitsHeader") }}
-      </h4>
+      </h3>
       <button
+        type="button"
         v-tooltip="{
           content: getString('hoverFiltersHeader'),
           distance: 5,
@@ -12,7 +13,7 @@
           theme: 'infoTooltip',
         }"
         class="bx bx-info-circle qpm_cursorHelp qpm_infoIcon"
-        aria-label="Info"
+        :aria-label="getString('infoSimpleLimitsLabel')"
       />
     </div>
     <div id="qpm_topofsearchbar" class="qpm_simpleFiltersContainer">
@@ -56,7 +57,7 @@
                       theme: 'infoTooltip',
                     }"
                     class="bx bx-info-circle qpm_cursorHelp qpm_infoIcon"
-                    aria-label="Info"
+                    :aria-label="getString('infoSimpleChoiceLabel')"
                     @click.stop
                   />
                 </span>

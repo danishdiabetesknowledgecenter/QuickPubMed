@@ -1,6 +1,10 @@
 <!-- eslint-disable vue/no-v-html -->
 <template>
   <div ref="searchResult" class="qpm_SearchResult">
+    <!-- Screen-reader only live region. Announces loading status text
+         (e.g. "Søger i PubMed…") so assistive tech users hear progress
+         updates without needing to move focus. Visually hidden. -->
+    <div class="qpm_srOnly" aria-live="polite" aria-atomic="true">{{ loading ? loadingStatusText : "" }}</div>
     <div v-if="results && results.length > 0" class="qpm_accordions">
       <!-- Accordion menu for using the AI summaries of abstracts from marked result entries -->
       <accordion-menu
@@ -15,6 +19,7 @@
                 <div>
                   <i
                   class="ri-sparkling-fill"
+                  aria-hidden="true"
                   />
                 </div>
                 <div class="qpm_aiHeaderTitleWrap">
@@ -25,6 +30,7 @@
                     <span class="qpm_keepWithIcon">
                       {{ getSelectedResultsAccordionHeaderParts().last }}
                       <button
+                        type="button"
                         v-tooltip="{
                           content: getString('hoverselectedResultsAccordionHeader'),
                           distance: 5,
@@ -32,7 +38,7 @@
                           theme: 'infoTooltip',
                         }"
                         class="bx bx-info-circle qpm_infoIcon"
-                        aria-label="Info"
+                        :aria-label="getString('infoAiSummariesLabel')"
                       />
                     </span>
                   </strong>
@@ -42,10 +48,12 @@
                 <i
                   v-if="accordionProps.expanded"
                   class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
+                  aria-hidden="true"
                 />
                 <i 
                   v-else 
                   class="bx bx-chevron-down qpm_aiAccordionHeaderArrows" 
+                  aria-hidden="true"
                 />
               </div>
             </div>
@@ -81,6 +89,7 @@
                 <button
                   v-for="(prompt, index) in getSummarizeMultipleAbstractsPrompt()"
                   :key="`prompt-${prompt.name}-${index}`"
+                  type="button"
                   v-tooltip="{
                     content: getString('hoverSummarizeSearchResultButton'),
                     distance: 5,
@@ -91,6 +100,7 @@
                 >
                   <i
                     class="bx bx-detail"
+                    aria-hidden="true"
                   />
                   {{ getTranslation(prompt) }}
                 </button>
@@ -141,6 +151,7 @@
                 <div class="qpm_infoInline">
                   <i
                     class="bx bx-check-square"
+                    aria-hidden="true"
                   />
                   <strong>
                     <template v-if="getSelectedResultTitleParts().prefix">
@@ -150,6 +161,7 @@
                       {{ getSelectedResultTitleParts().last }}
                       <button
                         v-if="!config.useAI"
+                        type="button"
                         v-tooltip="{
                           content: getString('hoverselectedResultTitle'),
                           distance: 5,
@@ -157,10 +169,11 @@
                           theme: 'infoTooltip',
                         }"
                         class="bx bx-info-circle qpm_infoIcon"
-                        aria-label="Info"
+                        :aria-label="getString('infoSelectedResultsLabel')"
                       />
                       <button
                         v-if="config.useAI"
+                        type="button"
                         v-tooltip="{
                           content: getString('hoverselectedResultTitleAI'),
                           distance: 5,
@@ -168,7 +181,7 @@
                           theme: 'infoTooltip',
                         }"
                         class="bx bx-info-circle qpm_infoIcon"
-                        aria-label="Info"
+                        :aria-label="getString('infoSelectedResultsAiLabel')"
                       />
                     </span>
                   </strong>
@@ -181,7 +194,7 @@
                       delay: $helpTextDelay,
                     }"
                     class="qpm_markedArticleCounter"
-                    tabindex="0"
+                    :aria-label="getString('hovermarkedArticleCounter')"
                   >
                     <span>{{ selectedEntriesCount }}&nbsp;</span>
                     <span 
@@ -199,10 +212,12 @@
                 <i
                   v-if="accordionProps.expanded"
                   class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
+                    aria-hidden="true"
                 />
                 <i 
                   v-else 
                   class="bx bx-chevron-down qpm_aiAccordionHeaderArrows" 
+                    aria-hidden="true"
                 />
               </div>  
             </div>
@@ -216,9 +231,11 @@
             <div>
               <i
                   class="bx bxs-minus-square"
+                  aria-hidden="true"
               />
               <button
                 id="qpm_selectedResultDeselectAll"
+                type="button"
                 class="qpm_button qpm_selectArticleCheckbox"
                 :disabled="hasNoSelectedArticles"
                 v-tooltip="getHasSelectedArticles ? {
@@ -227,7 +244,6 @@
                   delay: $helpTextDelay,
                 } : null"
                 @click="onDeselectAllArticles"
-                tabindex="0"
               >
                 {{ getString("selectedResultDeselectAllText") }}
               </button>
@@ -278,16 +294,20 @@
 
     <div v-if="showLoadingProcessList" class="qpm_searchProcessWrapper">
       <p class="qpm_advancedSearch qpm_searchProcessToggleLink">
-        <a
-          href="#"
-          :aria-expanded="String(isProcessBoxExpanded)"
-          @click.prevent="toggleProcessBox"
+        <button
+          type="button"
+          class="qpm_linkButton qpm_linkButtonAsAnchor"
+          :aria-expanded="isProcessBoxExpanded"
+          :aria-controls="`${srLabelUid}-process`"
+          :aria-label="getString('semanticSearchProcessToggleAria')"
+          @click="toggleProcessBox"
         >
           {{ getString(isProcessBoxExpanded ? "semanticSearchProcessHide" : "semanticSearchProcessShow") }}
-        </a>
+        </button>
       </p>
       <div
         v-if="isProcessBoxExpanded"
+        :id="`${srLabelUid}-process`"
         class="qpm_searchProcessBox qpm_box"
       >
         <div class="qpm_searchProcessContent">
@@ -317,19 +337,17 @@
         </div>
       </div>
     </div>
-    <div
+    <h2
       v-if="results && results.length > 0 && total > 0"
-      role="heading"
-      aria-level="2"
       class="h3 qpm_searchResultHeading"
     >
       {{ getString("searchresult") }}
-    </div>
+    </h2>
     <div
       v-if="results && results.length > 0 && total > 0"
       class="qpm_searchHeader qpm_spaceEvenly"
     >
-      <p class="qpm_nomargin qpm_searchResultCount">
+      <p class="qpm_nomargin qpm_searchResultCount" aria-live="polite" aria-atomic="true">
         {{ getString("showing") }} {{ 1 }}-{{ results.length }}
         {{ getString("of") }}
         <span
@@ -338,19 +356,17 @@
       </p>
       <div v-if="results && results.length !== 0" class="qpm_searchHeaderSort qpm_spaceEvenly">
         <div class="qpm_sortSelect qpm_sortSelectSpacing">
-          <select :value="currentSortMethod" :aria-label="getString('sortBy')" @change="handleSortMethodChange">
+          <span :id="`${srLabelUid}-sort`" class="qpm_srOnly">{{ getString('sortBy') }}</span>
+          <select :value="currentSortMethod" :aria-labelledby="`${srLabelUid}-sort`" @change="handleSortMethodChange">
             <option v-for="sorter in getOrderMethods" :key="sorter.id" :value="sorter.method">
               {{ getTranslation(sorter) }}
             </option>
           </select>
         </div>
 
-        <div
-          role="heading"
-          aria-level="2"
-          class="qpm_sortSelect qpm_spaceEvenly"
-        >
-          <select :aria-label="getString('pagesizePerPage')" @change="changePageNumber($event)">
+        <div class="qpm_sortSelect qpm_spaceEvenly">
+          <span :id="`${srLabelUid}-pagesize`" class="qpm_srOnly">{{ getString('pagesizePerPage') }}</span>
+          <select :aria-labelledby="`${srLabelUid}-pagesize`" @change="changePageNumber($event)">
             <option
               v-for="size in getPageSizeProps"
               :key="size"
@@ -364,7 +380,7 @@
       </div>
     </div>
     <div v-if="results && results.length === 0">
-      <div class="h3"><br />{{ getString("noResult") }}</div>
+      <h3 class="h3"><br />{{ getString("noResult") }}</h3>
       <p>{{ getString("noResultTip") }}</p>
     </div>
     <div
@@ -386,43 +402,48 @@
         :class="{ 'qpm_compactLoadingHidden': shouldHideResultsDuringCompactLoading }"
       >
         <div class="qpm_resultEntriesLayer">
-          <div
-            v-for="(value, index) in getShownSearchResults"
-            :key="getResultId(value) || `result-${index}`"
-            class="qpm_ResultEntryWrapper"
-          >
-            <result-entry
-              :id="getResultId(value)"
-              ref="resultEntries"
-              :pmid="getResultPmid(value)"
-              :volume="value.volume"
-              :issue="value.issue"
-              :pages="value.pages"
-              :doi="getResultDoi(value)"
-              :title="value.title"
-              :pub-date="value.pubdate"
-              :pub-type="value.pubtype"
-              :doc-type="value.doctype"
-              :booktitle="value.booktitle"
-              :vernaculartitle="value.vernaculartitle"
-              :date="getDate(value)"
-              :source="getSource(value)"
-              :has-abstract="getHasAbstract(value.attributes)"
-              :author="getAuthor(value.authors)"
-              :language="language"
-              :parent-width="getComponentWidth()"
-              :model-value="selectedEntries"
-              :selectable="isResultSelectable(value)"
-              :abstract="getResultInlineAbstract(value) || getAbstract(getResultId(value))"
-              :text="getText(getResultId(value))"
-              :value="value"
-              :is-abstract-loaded="isAbstractLoaded"
-              @change="changeResultEntryModel"
-              @change:abstractLoad="onAbstractLoad"
-              @articleUpdated="addArticle"
-              @loadAbstract="addIdToLoadAbstract"
-            />
-          </div>
+          <span id="qpm_selectArticleCheckboxDescription" class="qpm_srOnly">
+            {{ getString("selectArticleCheckboxDescription") }}
+          </span>
+          <ul class="qpm_resetList qpm_resultEntriesList">
+            <li
+              v-for="(value, index) in getShownSearchResults"
+              :key="getResultId(value) || `result-${index}`"
+              class="qpm_ResultEntryWrapper"
+            >
+              <result-entry
+                :id="getResultId(value)"
+                ref="resultEntries"
+                :pmid="getResultPmid(value)"
+                :volume="value.volume"
+                :issue="value.issue"
+                :pages="value.pages"
+                :doi="getResultDoi(value)"
+                :title="value.title"
+                :pub-date="value.pubdate"
+                :pub-type="value.pubtype"
+                :doc-type="value.doctype"
+                :booktitle="value.booktitle"
+                :vernaculartitle="value.vernaculartitle"
+                :date="getDate(value)"
+                :source="getSource(value)"
+                :has-abstract="getHasAbstract(value.attributes)"
+                :author="getAuthor(value.authors)"
+                :language="language"
+                :parent-width="getComponentWidth()"
+                :model-value="selectedEntries"
+                :selectable="isResultSelectable(value)"
+                :abstract="getResultInlineAbstract(value) || getAbstract(getResultId(value))"
+                :text="getText(getResultId(value))"
+                :value="value"
+                :is-abstract-loaded="isAbstractLoaded"
+                @change="changeResultEntryModel"
+                @change:abstractLoad="onAbstractLoad"
+                @articleUpdated="addArticle"
+                @loadAbstract="addIdToLoadAbstract"
+              />
+            </li>
+          </ul>
           <loading-spinner
             v-if="!compactLoadingUi"
             :loading="loading"
@@ -431,7 +452,7 @@
             :size="44"
           />
           <div v-if="error !== null && error !== undefined" class="qpm_flex">
-            <div class="qpm_errorBox">
+            <div class="qpm_errorBox" role="alert" aria-live="assertive">
               {{ error.message ?? error.toString() }}
             </div>
           </div>
@@ -442,6 +463,7 @@
         >
           <button
             v-if="results && results.length < total"
+            type="button"
             :disabled="highDisabled"
             :class="{ qpm_disabled: highDisabled }"
             class="qpm_button qpm_dark"
@@ -571,6 +593,7 @@
     },
     data() {
       return {
+        srLabelUid: `qpm-sr-${Math.random().toString(36).slice(2, 10)}`,
         hasAcceptedAi: false,
         initialAiTab: null,
         defaultSummaryCount: 5,
@@ -784,11 +807,20 @@
           this.idswithAbstractsToLoad = [];
           this.clearScheduledAbstractLoad();
         } else {
-          this.persistedLoadingProcessSteps = this.normalizePersistedLoadingProcessSteps(
-            this.persistedLoadingProcessSteps
-          );
-          if (this.persistedLoadingProcessSteps.length > 0) {
+          // If the search was cancelled mid-flight (e.g. the user edited the
+          // form), the parent resets `results` to undefined/null. In that case
+          // also drop the persisted process steps so the "Vis søgeprocessen"
+          // toggle disappears together with the rest of the search UI.
+          if (this.results === undefined || this.results === null) {
+            this.persistedLoadingProcessSteps = [];
             this.isProcessBoxExpanded = false;
+          } else {
+            this.persistedLoadingProcessSteps = this.normalizePersistedLoadingProcessSteps(
+              this.persistedLoadingProcessSteps
+            );
+            if (this.persistedLoadingProcessSteps.length > 0) {
+              this.isProcessBoxExpanded = false;
+            }
           }
           this.setLocalSortLoadingState(false);
           this.queueVisibleAbstractLoads();

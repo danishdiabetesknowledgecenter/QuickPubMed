@@ -80,6 +80,15 @@
   font-weight: 700;
 }
 
+/* De-emphasized trailing OG operator shown before an "Add ..." button.
+   Color #555 is the lightest grey that still meets AAA 7:1 contrast
+   on both white and grey-light backgrounds. Font-weight is reduced
+   from 700 (bold) to 400 (normal) to visually signal a pending slot. */
+.qpm_subjectOperator--trailing {
+  color: #555555;
+  font-weight: 400;
+}
+
 .qpm_search,
 .qpm_search:hover {
   background-color: var(--color-primary-button) !important;
@@ -105,19 +114,91 @@
   flex: 1;
 }
 
-.qpm_removeSubject,
-.qpm_removeFilter {
-  font-size: 25px;
+/* Icon-only button reset. Neutralizes native <button> styling so a
+   <button class="qpm_iconButton bx bx-..."> renders visually identical
+   to the previous <i class="bx bx-..."> while keeping semantic button
+   role (Enter/Space activation, correct focus behavior). */
+.qpm_iconButton {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-block;
+}
+
+/* Text link-style button reset. Makes a native <button> look like the
+   surrounding text / link, inheriting color/font/alignment from its
+   parent. Padding and margin are intentionally NOT reset so that
+   outer classes (e.g. .qpm_advancedSearch) can control layout. */
+.qpm_linkButton {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  cursor: pointer;
+  text-align: inherit;
+}
+
+/* Used on a <button> that visually replaces a bare <a> inside a
+   .qpm_advancedSearch / .qpm_translateTitleLink wrapper. Matches the
+   previous <a> behavior (link color, no underline, pointer on hover)
+   so the visual appearance is preserved when swapping semantics. */
+.qpm_advancedSearch .qpm_linkButtonAsAnchor,
+.qpm_translateTitleLink .qpm_linkButtonAsAnchor {
+  color: var(--color-link);
+  text-decoration: none;
+}
+
+.qpm_advancedSearch .qpm_linkButtonAsAnchor:hover,
+.qpm_translateTitleLink .qpm_linkButtonAsAnchor:hover {
   cursor: pointer;
 }
 
-.qpm_removeSubject {
+.qpm_vapp .qpm_linkButton:focus-visible,
+.qpm_vapp .qpm_linkButtonAsAnchor:focus-visible {
+  outline: 2px solid var(--color-black);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.qpm_vapp .qpm_removeSubject,
+.qpm_vapp .qpm_removeFilter {
+  font-size: 25px;
+  cursor: pointer;
+  position: relative;
+}
+
+.qpm_vapp .qpm_removeSubject {
   margin-left: 7px;
 }
 
-.qpm_removeFilter {
+.qpm_vapp .qpm_removeFilter {
   padding-left: 0;
   margin-left: 5px;
+}
+
+/* Invisible tap-target extension (WCAG 2.5.5 AAA, 44x44 min target
+   size). Keeps the icon visually unchanged but enlarges the
+   clickable area to meet AAA for stand-alone icon buttons. The
+   pseudo-element inherits pointer events from its parent <button>,
+   so a click anywhere in the 44x44 box activates the button. */
+.qpm_vapp .qpm_removeSubject::after,
+.qpm_vapp .qpm_removeFilter::after,
+.qpm_vapp .qpm_scopeButton::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
 }
 
 .qpm_searchStringFilterGroup,
@@ -553,13 +634,18 @@ input:checked + .qpm_slider:before {
   }
 }
 
-@media only screen and (max-width: 500px) {
+@media only screen and (max-width: 600px) {
   .qpm_simpleFilters {
     white-space: normal;
   }
 
   .qpm_simpleFiltersContainer {
-    grid-template-columns: auto;
+    grid-template-columns: 1fr;
+  }
+
+  .qpm_simpleFiltersHeader {
+    grid-row: auto;
+    white-space: normal;
   }
 
   .qpm_searchStringWordGroup {

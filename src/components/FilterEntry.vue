@@ -25,13 +25,11 @@
           qpm-button-color3="qpm_buttonColor6"
           v-bind="$attrs"
         />
-        <i
-          class="qpm_removeFilter bx bx-x"
-          role="button"
-          tabindex="0"
-          aria-label="Remove filter"
+        <button
+          type="button"
+          class="qpm_iconButton qpm_removeFilter bx bx-x"
+          :aria-label="getString('removeFilterLabel')"
           @click="removeFilterItem(filterItem.id)"
-          @keydown.enter.prevent="removeFilterItem(filterItem.id)"
         />
       </div>
     </div>

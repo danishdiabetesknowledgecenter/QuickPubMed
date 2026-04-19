@@ -7,18 +7,20 @@
           type="checkbox"
           :disabled="disabled"
           :title="titleSearchWithAI"
+          :aria-label="titleSearchWithAI"
           @keyup.enter="toggleAiSearch"
         />
         <span class="qpm_slider qpm_round" />
       </label>
       <span class="qpm_aiToggle">
         <div v-if="iconClass">
-          <i :class="localSearchWithAI ? iconClass : `${iconClass} qpm_aiIconMuted`" />
+          <i :class="localSearchWithAI ? iconClass : `${iconClass} qpm_aiIconMuted`" aria-hidden="true" />
         </div>
         <div class="qpm_infoInline">
           <span class="qpm_keepWithIcon">
             {{ activeLabel }}
             <button
+              type="button"
               v-tooltip="{
                 content: localSearchWithAI ? activeTooltipContent : inactiveTooltipContent,
                 distance: 5,
@@ -26,7 +28,7 @@
                 theme: 'infoTooltip',
               }"
               class="bx bx-info-circle qpm_cursorHelp qpm_infoIcon"
-              aria-label="Info"
+              :aria-label="getString('infoAiTranslationLabel')"
             />
           </span>
         </div>
@@ -40,16 +42,18 @@
           type="checkbox"
           :disabled="disabled"
           :title="titleSearchWithAI"
+          :aria-label="titleSearchWithAI"
           @keyup.enter="toggleAiSearch"
         />
         <span class="qpm_sourceCheckboxText qpm_aiToggle">
           <span v-if="iconClass" class="qpm_sourceCheckboxIcon">
-            <i :class="localSearchWithAI ? iconClass : `${iconClass} qpm_aiIconMuted`" />
+            <i :class="localSearchWithAI ? iconClass : `${iconClass} qpm_aiIconMuted`" aria-hidden="true" />
           </span>
           <span class="qpm_infoInline">
             <span class="qpm_keepWithIcon">
               {{ activeLabel }}
               <button
+                type="button"
                 v-tooltip="{
                   content: localSearchWithAI ? activeTooltipContent : inactiveTooltipContent,
                   distance: 5,
@@ -57,7 +61,7 @@
                   theme: 'infoTooltip',
                 }"
                 class="bx bx-info-circle qpm_cursorHelp qpm_infoIcon"
-                aria-label="Info"
+                :aria-label="getString('infoAiTranslationLabel')"
               />
             </span>
           </span>

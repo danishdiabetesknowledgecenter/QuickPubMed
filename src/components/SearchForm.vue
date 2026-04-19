@@ -1,12 +1,16 @@
 <template>
-  <div>
+  <div :lang="language === 'en' ? 'en' : 'da'">
     <div :id="getComponentId" :class="{ qpm_formCollapsed: isCollapsed }">
-      <div class="qpm_searchform">
+      <form class="qpm_searchform" role="search" @submit.prevent>
         <!-- The tabs for toggling between advanced or simple search -->
         <advanced-search-toggle
           :advanced="advanced"
           :is-collapsed="isCollapsed"
           :get-string="getString"
+          :simple-tab-id="getSearchModeSimpleTabId"
+          :advanced-tab-id="getSearchModeAdvancedTabId"
+          :simple-panel-id="getSearchModeSimplePanelId"
+          :advanced-panel-id="getSearchModeAdvancedPanelId"
           @toggle-advanced="advancedClick"
         />
 
@@ -17,6 +21,7 @@
             :topics="topics"
             :show-toggle-icon="hasVisibleSearchResults"
             :get-string="getString"
+            :panel-id="getSearchPanelId"
             @toggle-collapsed="toggleCollapsedController"
           />
 
@@ -35,7 +40,7 @@
 
           <div v-show="isCollapsed" class="qpm_collapsedSpacerPadding"></div>
 
-          <div v-show="!isCollapsed" class="qpm_searchformoptions">
+          <div :id="getSearchPanelId" v-show="!isCollapsed" class="qpm_searchformoptions">
           <!-- The dropdown for selecting topics to be included in the search -->
             <subject-selection
               ref="subjectSelection"
@@ -65,55 +70,67 @@
             />
 
             <!-- The dropdown(s) for selecting limits to be included in the advanced search -->
-            <advanced-search-limits
+            <div
               v-if="advanced && (hasTopics || hasLimitSelections || openLimits || openLimitsFromUrl)"
-              ref="advancedSearchLimits"
-              :advanced="advanced"
-              :limit-options="limitOptions"
-              :limit-dropdowns="limitDropdowns"
-              :get-limit-options-for-dropdown="getLimitOptionsForDropdown"
-              :hide-topics="effectiveHideTopics"
-              :language="language"
-              :search-with-a-i="searchWithAI"
-              :search-with-pub-med-query="searchWithPubMedQuery"
-              :search-with-pub-med-best-match="searchWithPubMedBestMatch"
-              :search-with-semantic-scholar="searchWithSemanticScholar"
-              :search-with-open-alex="searchWithOpenAlex"
-              :search-with-elicit="searchWithElicit"
-              :semantic-worded-intent-context="semanticWordedIntentContext"
-              :get-string="getString"
-              :get-limit-placeholder="getLimitPlaceholder"
-              @update-limit-dropdown="updateLimitDropdown"
-              @update-limit-scope="updateLimitDropdownScope"
-              @update-limit-placeholder="updateLimitPlaceholder"
-              @add-limit-dropdown="addLimitDropdown"
-              @remove-limit-dropdown="removeLimitDropdown"
-            />
+              :id="getSearchModeAdvancedPanelId"
+              role="tabpanel"
+              :aria-labelledby="getSearchModeAdvancedTabId"
+            >
+              <advanced-search-limits
+                ref="advancedSearchLimits"
+                :advanced="advanced"
+                :limit-options="limitOptions"
+                :limit-dropdowns="limitDropdowns"
+                :get-limit-options-for-dropdown="getLimitOptionsForDropdown"
+                :hide-topics="effectiveHideTopics"
+                :language="language"
+                :search-with-a-i="searchWithAI"
+                :search-with-pub-med-query="searchWithPubMedQuery"
+                :search-with-pub-med-best-match="searchWithPubMedBestMatch"
+                :search-with-semantic-scholar="searchWithSemanticScholar"
+                :search-with-open-alex="searchWithOpenAlex"
+                :search-with-elicit="searchWithElicit"
+                :semantic-worded-intent-context="semanticWordedIntentContext"
+                :get-string="getString"
+                :get-limit-placeholder="getLimitPlaceholder"
+                @update-limit-dropdown="updateLimitDropdown"
+                @update-limit-scope="updateLimitDropdownScope"
+                @update-limit-placeholder="updateLimitPlaceholder"
+                @add-limit-dropdown="addLimitDropdown"
+                @remove-limit-dropdown="removeLimitDropdown"
+              />
+            </div>
 
             <!-- The radio buttons for limits to be included in the simple search -->
-            <simple-search-limits
+            <div
               v-if="!advanced && showSimpleFilters"
-              :advanced="advanced"
-              :filtered-choices="filteredChoices"
-              :limit-data="limitData"
-              :show-semantic-search-section="showSemanticSearchSection"
-              :search-with-pub-med-best-match="searchWithPubMedBestMatch"
-              :search-with-semantic-scholar="searchWithSemanticScholar"
-              :search-with-open-alex="searchWithOpenAlex"
-              :search-with-elicit="searchWithElicit"
-              :available-translation-sources="availableTranslationSourceKeys"
-              :locked-translation-sources="lockedTranslationSourceKeys"
-              :show-elicit-unlock-button="showElicitUnlockButton"
-              :help-text-delay="300"
-              :get-string="getString"
-              :get-custom-name-label="getCustomNameLabel"
-              :get-simple-tooltip="getSimpleTooltip"
-              :get-semantic-option-tooltip-content="getSemanticOptionTooltipContent"
-              :get-semantic-option-disabled-state="isSemanticOptionDisabled"
-              @update-limit="updateLimitSimple"
-              @update-limit-enter="updateLimitSimpleOnEnter"
-              @update-semantic-source="updateTranslationSourceSelection"
-            />
+              :id="getSearchModeSimplePanelId"
+              role="tabpanel"
+              :aria-labelledby="getSearchModeSimpleTabId"
+            >
+              <simple-search-limits
+                :advanced="advanced"
+                :filtered-choices="filteredChoices"
+                :limit-data="limitData"
+                :show-semantic-search-section="showSemanticSearchSection"
+                :search-with-pub-med-best-match="searchWithPubMedBestMatch"
+                :search-with-semantic-scholar="searchWithSemanticScholar"
+                :search-with-open-alex="searchWithOpenAlex"
+                :search-with-elicit="searchWithElicit"
+                :available-translation-sources="availableTranslationSourceKeys"
+                :locked-translation-sources="lockedTranslationSourceKeys"
+                :show-elicit-unlock-button="showElicitUnlockButton"
+                :help-text-delay="300"
+                :get-string="getString"
+                :get-custom-name-label="getCustomNameLabel"
+                :get-simple-tooltip="getSimpleTooltip"
+                :get-semantic-option-tooltip-content="getSemanticOptionTooltipContent"
+                :get-semantic-option-disabled-state="isSemanticOptionDisabled"
+                @update-limit="updateLimitSimple"
+                @update-limit-enter="updateLimitSimpleOnEnter"
+                @update-semantic-source="updateTranslationSourceSelection"
+              />
+            </div>
           </div>
         </div>
 
@@ -146,7 +163,7 @@
             @searchset-low-start="searchsetLowStart"
           />
         </div>
-      </div>
+      </form>
 
       <!-- The list of results from searching -->
       <search-result
@@ -194,7 +211,7 @@
   import { appSettingsMixin } from "@/mixins/appSettings";
   import {
     config as runtimeConfig,
-    consumeElicitAutoSelectAfterUnlockFlag,
+    ELICIT_UNLOCK_CHANGED_EVENT,
   } from "@/config/config.js";
   import { scopeIds, customInputTagTooltip } from "@/utils/contentHelpers.js";
   import { loadLimitsFromRuntime, loadStandardString } from "@/utils/contentLoader";
@@ -375,6 +392,10 @@
         searchString: "",
         finalValidatedQuery: "",
         searchLoading: false,
+        // Incremented whenever a running search is cancelled (e.g. the user
+        // edits the form mid-flight) so async continuations can detect that
+        // their run is stale and avoid mutating component state.
+        searchGeneration: 0,
         selectedTranslationSources: [],
         previousNonPubmedTranslationSources: [],
         translationSourcesUserTouched: false,
@@ -486,7 +507,18 @@
           return this.manualAiTranslationEnabled;
         },
         set(newValue) {
-          this.manualAiTranslationEnabled = !!newValue;
+          const normalized = !!newValue;
+          const changed = this.manualAiTranslationEnabled !== normalized;
+          this.manualAiTranslationEnabled = normalized;
+          // When the user actually toggles "Indtast med AI-oversættelse"
+          // after the form has been initialised, treat it like any other
+          // form change: reflect it in the URL, cancel any running search
+          // and clear the process UI so it matches the behaviour of editing
+          // topics / sources.
+          if (changed && this.isUrlParsed) {
+            this.setUrl();
+            this.editForm();
+          }
         },
       },
       searchWithPubMedBestMatch: {
@@ -733,6 +765,21 @@
       getComponentId() {
         return "SearchForm_" + this.componentNo.toString();
       },
+      getSearchPanelId() {
+        return this.getComponentId + "__panel";
+      },
+      getSearchModeSimpleTabId() {
+        return this.getComponentId + "__tab-search-simple";
+      },
+      getSearchModeAdvancedTabId() {
+        return this.getComponentId + "__tab-search-advanced";
+      },
+      getSearchModeSimplePanelId() {
+        return this.getComponentId + "__panel-search-simple";
+      },
+      getSearchModeAdvancedPanelId() {
+        return this.getComponentId + "__panel-search-advanced";
+      },
     },
     watch: {
       translationSources() {
@@ -790,6 +837,13 @@
           this._semanticSourceRateLimitListener
         );
       }
+      if (this._elicitUnlockChangedListener) {
+        window.removeEventListener(
+          ELICIT_UNLOCK_CHANGED_EVENT,
+          this._elicitUnlockChangedListener
+        );
+        this._elicitUnlockChangedListener = null;
+      }
       // Cleanup focus-visible event listeners
       if (this._focusVisibleCleanup) {
         this._focusVisibleCleanup();
@@ -846,13 +900,23 @@
       this.advanced = !this.advanced;
       this.advancedClick();
       this.ensureCheckLimitsSelected();
-      this.autoSelectElicitAfterUnlockIfRequested();
+      if (typeof window !== "undefined") {
+        this._elicitUnlockChangedListener = (event) => {
+          this.handleElicitUnlockChanged(event);
+        };
+        window.addEventListener(
+          ELICIT_UNLOCK_CHANGED_EVENT,
+          this._elicitUnlockChangedListener
+        );
+      }
       if (this.hasTopics) {
-        if (!this.shouldBlockAutoSearchFromUrlTranslationSources()) {
+        if (this.shouldAutoSearchOnMount()) {
           await this.search();
         } else {
-          console.info("[SearchFlow] Skipped auto-search because URL selected non-PubMed databases.", {
+          console.info("[SearchFlow] Skipped auto-search on mount.", {
             urlTranslationSources: this.urlTranslationSources,
+            selectedTranslationSources: this.selectedTranslationSources,
+            searchWithAI: this.searchWithAI,
           });
         }
         await this.searchPreselectedPmidai();
@@ -933,6 +997,25 @@
       },
       shouldBlockAutoSearchFromUrlTranslationSources() {
         return this.urlTranslationSources.some((sourceKey) => String(sourceKey || "").trim() !== "pubmed");
+      },
+      /**
+       * Auto-search on initial mount is only performed when the form is in a
+       * minimal "PubMed-only + AI translation" state. Any other combination
+       * (additional semantic sources, AI translation disabled, explicit
+       * non-PubMed URL sources) skips the auto-run so the user can review the
+       * pre-filled form before triggering a potentially costly search.
+       */
+      shouldAutoSearchOnMount() {
+        if (!this.hasTopics) return false;
+        if (!this.searchWithAI) return false;
+        if (this.shouldBlockAutoSearchFromUrlTranslationSources()) return false;
+        const selected = Array.isArray(this.selectedTranslationSources)
+          ? this.selectedTranslationSources
+          : [];
+        const onlyPubmed =
+          selected.length === 1 &&
+          String(selected[0] || "").trim() === "pubmed";
+        return onlyPubmed;
       },
       getTranslationSourceOrder(sourceKey) {
         const order = {
@@ -2200,44 +2283,17 @@
           return this.isTranslationSourceAvailable(item.translationSourceKey);
         });
       },
-      autoSelectElicitAfterUnlockIfRequested() {
-        if (!consumeElicitAutoSelectAfterUnlockFlag()) return;
-
-        const trySelect = () => {
-          if (!this.isAiFeatureEnabled) return false;
-          if (runtimeConfig.elicitGated === true) return false;
-          if (!this.isTranslationSourceAvailable("elicit")) return false;
-          if (this.searchWithElicit) return true;
-          this.searchWithElicit = true;
-          return true;
-        };
-
-        // The backend theme config is fetched asynchronously, so elicitGated
-        // may still be its pre-unlock value here. Attempt to select right away
-        // and, if Elicit is not yet available, watch reactively until the
-        // gate/availability flips (or abort after a timeout).
-        if (trySelect()) return;
-        const unwatch = this.$watch(
-          () => ({
-            gated: runtimeConfig.elicitGated,
-            aiEnabled: this.isAiFeatureEnabled,
-            available: this.isTranslationSourceAvailable("elicit"),
-          }),
-          () => {
-            if (trySelect()) {
-              unwatch();
-              if (this._elicitAutoSelectTimeoutId) {
-                clearTimeout(this._elicitAutoSelectTimeoutId);
-                this._elicitAutoSelectTimeoutId = null;
-              }
-            }
-          },
-          { deep: true }
-        );
-        this._elicitAutoSelectTimeoutId = setTimeout(() => {
-          unwatch();
-          this._elicitAutoSelectTimeoutId = null;
-        }, 10000);
+      handleElicitUnlockChanged(event) {
+        // Fired by promptForElicitUnlockKey after the backend theme config has
+        // been re-fetched with the new code. When the unlock actually took
+        // effect we mirror the previous reload-based UX by auto-selecting
+        // Elicit so the user doesn't have to click it separately.
+        if (!event?.detail?.unlocked) return;
+        if (!this.isAiFeatureEnabled) return;
+        if (runtimeConfig.elicitGated === true) return;
+        if (!this.isTranslationSourceAvailable("elicit")) return;
+        if (this.searchWithElicit) return;
+        this.searchWithElicit = true;
       },
       augmentDatabaseChoicesWithLocked(items) {
         // Mirrors the simple-search behaviour: when Elicit is gated by the
@@ -2245,7 +2301,13 @@
         // keep the Elicit choice visible in the advanced-mode database dropdown
         // but flag it as `locked: true` so DropdownWrapper can render a lock
         // icon and open the unlock prompt instead of selecting it.
-        const filtered = this.filterAvailableDatabaseChoices(items);
+        //
+        // Using getDatabaseLimitChoicesCatalog() (which derives from the
+        // canonical limitsContent) rather than the passed-in `items` means the
+        // list reacts to runtime-state changes (e.g. elicitGated flipping to
+        // false after a successful in-place unlock) without needing to
+        // re-run prepareLimitOptions / reload the page.
+        const filtered = this.getDatabaseLimitChoicesCatalog();
         if (this.showElicitUnlockButton !== true) return filtered;
         if (!this.isAiFeatureEnabled) return filtered;
         if (runtimeConfig.elicitGated !== true) return filtered;
@@ -2256,9 +2318,6 @@
         ) {
           return filtered;
         }
-        // prepareLimitOptions already strips the Elicit database choice via
-        // filterAvailableDatabaseChoices, so the passed-in `items` won't contain
-        // it. Grab the original choice from the raw limits content.
         const databaseGroup = (Array.isArray(this.limitsContent) ? this.limitsContent : []).find(
           (group) => this.isDatabaseLimitGroup(group)
         );
@@ -3285,6 +3344,16 @@
               this.advanced = value === "true";
               break;
 
+            case "ai":
+              // "Indtast med AI-oversættelse" is enabled by default; only an
+              // explicit "false"/"0" disables it from the URL. Assign the
+              // underlying data property directly so we don't accidentally
+              // trigger the setter's editForm() side-effect during parsing.
+              this.manualAiTranslationEnabled = !(
+                value === "false" || value === "0"
+              );
+              break;
+
             case "sort":
               this.sort = order.find((o) => o.method === value) || this.sort;
               break;
@@ -3835,6 +3904,7 @@
         const topicsStr = this.constructTopicsQuery();
         const limitsStr = this.constructLimitsQuery();
         const advancedStr = `&advanced=${this.advanced}`;
+        const aiStr = `&ai=${this.searchWithAI}`;
         const sorter = `&sort=${encodeURIComponent(this.sort.method)}`;
         const collapsedStr = `&collapsed=${this.isCollapsed}`;
         const pageSizeStr = `&pagesize=${this.pageSize}`;
@@ -3853,7 +3923,7 @@
         // Assemble the full URL with all query parameters
         const urlLink = `${baseUrl}?${initialParams}${
           initialParams ? "&" : ""
-        }${topicsStr}${limitsStr}${translationSourcesStr}${advancedStr}${pmidStr}${sorter}${collapsedStr}${pageSizeStr}${scrolltoStr}${openLimitsStr}${hideLimitsStr}${checkLimitsStr}${orderLimitsStr}`;
+        }${topicsStr}${limitsStr}${translationSourcesStr}${advancedStr}${aiStr}${pmidStr}${sorter}${collapsedStr}${pageSizeStr}${scrolltoStr}${openLimitsStr}${hideLimitsStr}${checkLimitsStr}${orderLimitsStr}`;
 
         return urlLink.replace("?&", "?").replace(/&&+/g, "&");
       },
@@ -4450,6 +4520,17 @@
         });
       },
       editForm() {
+        // If the user edits the form while a search is running, cancel it so
+        // the process-step texts and loading UI disappear immediately and no
+        // late-arriving result overwrites the reset state. Existing search
+        // checkpoints already bail out when `searchLoading` flips to false;
+        // the generation counter covers the few remaining continuations that
+        // don't gate on that flag (they compare against the generation they
+        // captured at the start of the run).
+        if (this.searchLoading) {
+          this.searchLoading = false;
+          this.searchGeneration = (this.searchGeneration || 0) + 1;
+        }
         this.matchedRerankedPmids = [];
         this.matchedRerankedResultRefs = [];
         this.openAlexDoiPromiseCache = {};
@@ -6118,6 +6199,11 @@
         this.semanticSortedResultCache = [];
         this.semanticSortedResultCacheKey = "";
         this.updateSearchLoadingStatus();
+        // Snapshot the current search generation so later continuations can
+        // detect that the user cancelled this run (via editForm) and avoid
+        // overwriting the reset state.
+        const mySearchGeneration = this.searchGeneration;
+        const isCancelled = () => this.searchGeneration !== mySearchGeneration;
         const { nlm } = this.appSettings;
         console.group("[SearchFlow] search()");
         this.startSearchFlowDebugRun("search");
@@ -6231,6 +6317,7 @@
             }
           });
 
+          if (isCancelled()) return;
           if (idList.length === 0 && resultRefs.length === 0) {
             if (rerankedPmids.length === 0 || orderedCandidates.length > 0) {
               this.count = 0;
@@ -6294,7 +6381,9 @@
             }
             data = await this.maybeApplySemanticLlmFinalRerank(data);
           });
+          if (isCancelled()) return;
           await this.runSearchFlowDebugSection("08 Final result composition", async () => {
+            if (isCancelled()) return;
             this.setSemanticFinalizeLoadingStatus("render");
             this.searchresult = data;
             if (resultRefs.length > 0 && !this.shouldUseSemanticDateOrdering(resultRefs)) {
@@ -6314,11 +6403,13 @@
               data: this.searchresult,
             });
           });
+          if (isCancelled()) return;
           this.searchLoading = false;
           this.clearSearchLoadingStatus();
 
           // Update UI and focus
           this.$nextTick(() => {
+            if (isCancelled()) return;
             const searchButton = this.$el?.querySelector(".qpm_search");
             if (searchButton) searchButton.focus();
 
@@ -6331,6 +6422,7 @@
             }
           });
         } catch (error) {
+          if (isCancelled()) return;
           this.showSearchError(error);
           this.logSearchFlowDebugWarn("Search failed", {
             error: String(error || ""),

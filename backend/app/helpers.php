@@ -531,8 +531,38 @@ function qpmIsElicitUnlockConfigured(): bool
     }
     $cfg = QPM_ELICIT_UNLOCK;
     $hasIps = !empty($cfg['ips']) && is_array($cfg['ips']);
-    $hasCode = isset($cfg['code']) && is_string($cfg['code']) && trim($cfg['code']) !== '';
+    $hasCode = !empty(qpmGetElicitUnlockCodes());
     return $hasIps || $hasCode;
+}
+
+/**
+ * Normalises the QPM_ELICIT_UNLOCK 'code' entry into a list of non-empty
+ * codes. The config value may be a single string (legacy single-code form) or
+ * an array of strings (multiple codes, any of which unlock Elicit).
+ *
+ * @return array<int, string>
+ */
+function qpmGetElicitUnlockCodes(): array
+{
+    if (!defined('QPM_ELICIT_UNLOCK') || !is_array(QPM_ELICIT_UNLOCK)) {
+        return [];
+    }
+    $raw = QPM_ELICIT_UNLOCK['code'] ?? null;
+    if ($raw === null) {
+        return [];
+    }
+    $values = is_array($raw) ? $raw : [$raw];
+    $codes = [];
+    foreach ($values as $value) {
+        if (!is_string($value)) {
+            continue;
+        }
+        $trimmed = trim($value);
+        if ($trimmed !== '') {
+            $codes[] = $trimmed;
+        }
+    }
+    return $codes;
 }
 
 /**
@@ -540,7 +570,8 @@ function qpmIsElicitUnlockConfigured(): bool
  *
  * Returns true when QPM_ELICIT_UNLOCK is configured and either:
  *   - the client IP matches an entry in 'ips' (plain IPs or CIDR ranges), or
- *   - the provided code matches 'code' (constant-time compare).
+ *   - the provided code matches any entry in 'code' (constant-time compare).
+ *     'code' may be a single string or an array of strings.
  */
 function qpmIsElicitUnlocked(?string $providedCode = null): bool
 {
@@ -549,10 +580,13 @@ function qpmIsElicitUnlocked(?string $providedCode = null): bool
     }
     $config = QPM_ELICIT_UNLOCK;
 
-    $expectedCode = isset($config['code']) ? (string) $config['code'] : '';
     $code = is_string($providedCode) ? trim($providedCode) : '';
-    if ($code !== '' && $expectedCode !== '' && hash_equals($expectedCode, $code)) {
-        return true;
+    if ($code !== '') {
+        foreach (qpmGetElicitUnlockCodes() as $expectedCode) {
+            if (hash_equals($expectedCode, $code)) {
+                return true;
+            }
+        }
     }
 
     $ips = isset($config['ips']) && is_array($config['ips']) ? $config['ips'] : [];

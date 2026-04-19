@@ -98,8 +98,8 @@
           class="qpm_maintopicDropdown"
           :style="{ marginLeft: ((props.option.subtopiclevel || 0) * 25) + 'px' }"
         >
-          <i v-if="maintopicToggledMap[props.option.id]" class="bx bx-chevron-down" />
-          <i v-else class="bx bx-chevron-right" />
+          <i v-if="maintopicToggledMap[props.option.id]" class="bx bx-chevron-down" aria-hidden="true" />
+          <i v-else class="bx bx-chevron-right" aria-hidden="true" />
         </span>
 
         <span
@@ -130,7 +130,7 @@
           "
           v-tooltip.right="{ ...customGroupTooltipById(props.option.$groupLabel), theme: 'infoTooltip', triggers: ['hover', 'focus'], hideTriggers: ['hover', 'focus'] }"
           class="bx bx-info-circle qpm_infoIcon qpm_groupInfoIcon"
-          aria-label="Info"
+          :aria-label="getString('infoGroupLabel')"
           @mousedown.stop
           @click.stop.prevent="forwardGroupHeaderClick($event)"
           @touchstart.stop.prevent
@@ -163,7 +163,7 @@
           }"
           class="bx bx-info-circle qpm_infoIcon qpm_entryInfoIcon"
           :class="{ qpm_lockedDbOptionLabel: props.option.locked }"
-          aria-label="Info"
+          :aria-label="getString('infoOptionLabel')"
           @mousedown.stop
           @click.stop.prevent="forwardOptionRowClick($event)"
           @touchstart.stop
@@ -196,6 +196,7 @@
         >
           <button
             v-if="hasScopeContent(props.option, 'narrow')"
+            type="button"
             v-tooltip="{
               content: getString('tooltipNarrow'),
               distance: 5,
@@ -203,7 +204,6 @@
             }"
             class="qpm_button qpm_scopeButton"
             :class="getButtonColor(props, 'narrow', 0)"
-            tabindex="-1"
             @click="handleScopeButtonClick(props.option, 'narrow', $event)"
           >
             {{ getString("narrow") }}
@@ -211,6 +211,7 @@
 
           <button
             v-if="hasScopeContent(props.option, 'normal')"
+            type="button"
             v-tooltip="{
               content: getString('tooltipNormal'),
               distance: 5,
@@ -218,7 +219,6 @@
             }"
             class="qpm_button qpm_scopeButton"
             :class="getButtonColor(props, 'normal', 1)"
-            tabindex="-1"
             @click="handleScopeButtonClick(props.option, 'normal', $event)"
           >
             {{ getString("normal") }}
@@ -226,6 +226,7 @@
 
           <button
             v-if="hasScopeContent(props.option, 'broad')"
+            type="button"
             v-tooltip="{
               content: getString('tooltipBroad'),
               distance: 5,
@@ -233,7 +234,6 @@
             }"
             class="qpm_button qpm_scopeButton"
             :class="getButtonColor(props, 'broad', 2)"
-            tabindex="-1"
             @click="handleScopeButtonClick(props.option, 'broad', $event)"
           >
             {{ getString("broad") }}
@@ -268,6 +268,7 @@
               <div class="qpm_actionSheetStepHeader">
                 <button
                   v-if="mobileListStep === 'children'"
+                  type="button"
                   class="qpm_actionSheetBack"
                   :aria-label="getString('mobileActionBack')"
                   @click="backToMobileRoot"
@@ -293,6 +294,7 @@
                 <button
                   v-for="group in getMobileRootGroups()"
                   :key="group.id"
+                  type="button"
                   class="qpm_actionSheetBtn qpm_actionSheetListItem"
                   @click="openMobileChildren(group.id)"
                 >
@@ -312,6 +314,7 @@
                 <button
                   v-for="item in getMobileChildrenForGroup(mobileActiveGroupId)"
                   :key="item.id"
+                  type="button"
                   class="qpm_actionSheetBtn qpm_actionSheetListItem"
                   @click="handleMobileListItemClick(item)"
                 >
@@ -334,16 +337,19 @@
               :class="{ 'qpm_actionSheetSecondaryGroup--split': mobileEditableCustomTag }"
             >
               <button
+                type="button"
                 class="qpm_actionSheetBtn qpm_actionSheetSecondaryBtn"
                 @click="handleActionFreeText"
               >{{ getString("mobileActionFreeText") }}</button>
               <button
                 v-if="mobileEditableCustomTag"
+                type="button"
                 class="qpm_actionSheetBtn qpm_actionSheetSecondaryBtn"
                 @click="handleActionEditCustomTag"
               >{{ getString("mobileActionEdit") }}</button>
             </div>
             <button
+              type="button"
               class="qpm_actionSheetBtn qpm_actionSheetCancel"
               @click="closeMobileActionSheet"
             >{{ getString("mobileActionCancel") }}</button>
@@ -514,6 +520,13 @@
         requestedMobileEditTagId: "",
         _overlayTouchY: null,
         _overlayTouchMoved: false,
+        // Document-level listeners installed after an Enter-triggered
+        // free-text tag commit. The very next Tab press is redirected to
+        // the host's "Tilføj emne" / "Tilføj filter" button; any other
+        // interaction (other key, pointer input) cancels the redirect so
+        // normal keyboard navigation is restored.
+        _postEnterTabKeydownHandler: null,
+        _postEnterTabCancelHandler: null,
         _handleKeyDownBound: null,
         _handleInputEventBound: null,
         _handleEmptyDropdownInputBound: null,
@@ -852,6 +865,7 @@
             if (input) {
               this.setWidthToPlaceholderWidth(input);
             }
+            this.fixSearchboxAriaLabel();
           });
         }
       },
@@ -1019,6 +1033,7 @@
       this.$nextTick(() => {
         this.fixAriaControls();
         this.updateAriaExpanded();
+        this.fixSearchboxAriaLabel();
       });
     },
     updated: function () {
@@ -1032,6 +1047,7 @@
       });
     },
     beforeUnmount() {
+      this.clearPostEnterTabRedirect();
       this.unlockBodyScrollForActionSheet();
       this.isUserTyping = false;
       if (this._touchMql && this._mobileUiMqlHandler) {
@@ -1708,10 +1724,8 @@
         const operators = element.getElementsByClassName("qpm_operator");
         Array.from(operators).forEach((operator, index) => {
           if (index === operators.length - 1) {
-            operator.style.color = shouldHideTrailingDatabaseControls ? "" : "darkgrey";
             operator.style.display = shouldHideTrailingDatabaseControls ? "none" : "inline-block";
           } else {
-            operator.style.color = "";
             operator.style.display = "inline-block";
           }
         });
@@ -2570,7 +2584,13 @@
           if (this.isSilentFocus) {
             this.removeSilentFocus(event.target);
           }
-          this.commitPendingTagInput(event.target, { focusStrategy: "currentDropdownInput" });
+          // Enter keeps focus on the current input, but arms a one-shot
+          // Tab redirect so the next Tab press jumps to the host's
+          // "Tilføj emne" / "Tilføj filter" button.
+          this.commitPendingTagInput(event.target, {
+            focusStrategy: "currentDropdownInput",
+            armAddTopicTabRedirect: true,
+          });
           return;
         }
 
@@ -2593,7 +2613,13 @@
           if (this.isSilentFocus) {
             this.removeSilentFocus(event.target);
           }
-          this.commitPendingTagInput(event.target, { focusStrategy: "currentDropdownInput" });
+          // Enter keeps focus on the current input, but arms a one-shot
+          // Tab redirect so the next Tab press jumps to the host's
+          // "Tilføj emne" / "Tilføj filter" button.
+          this.commitPendingTagInput(event.target, {
+            focusStrategy: "currentDropdownInput",
+            armAddTopicTabRedirect: true,
+          });
           return;
         }
 
@@ -3422,6 +3448,19 @@
         this.loading = false;
         this.clearShownItems();
         if (options.focusStrategy === "currentDropdownInput") {
+          // When the commit was triggered by Enter we don't want any
+          // element to hold focus afterwards – the user should be able to
+          // press Tab to land on the host's "Tilføj emne" / "Tilføj filter"
+          // button without first stepping through the tag input or sibling
+          // dropdowns. Blur the current input and arm a one-shot, document
+          // level Tab redirect that steers the very next Tab to that
+          // button and cancels itself on any other interaction.
+          if (options.armAddTopicTabRedirect === true) {
+            this.$nextTick(() => {
+              this.armPostEnterTabRedirect();
+            });
+            return;
+          }
           this.$nextTick(() => {
             this.focusCurrentDropdownInput();
           });
@@ -3451,6 +3490,102 @@
         input.focus({ preventScroll: true });
         this.addKeyboardFocus();
         return true;
+      },
+      /**
+       * After an Enter-triggered free-text commit, remove focus from the
+       * current dropdown input and install one-shot document listeners so
+       * the very next Tab press moves focus to the natural next focusable
+       * element in the DOM (as if the user had tabbed from the input
+       * itself). That may be the host's "Tilføj emne" / "Tilføj filter"
+       * button, a sibling dropdown row, a remove-X icon, etc. – whatever
+       * comes next in tab order. The listeners self-destruct on any
+       * interaction so normal keyboard behaviour resumes immediately
+       * afterwards.
+       */
+      armPostEnterTabRedirect() {
+        this.clearPostEnterTabRedirect();
+        const input =
+          this.$refs.multiselect?.$refs?.search ||
+          this.$el?.querySelector(".multiselect__input");
+        if (input instanceof HTMLElement && typeof input.blur === "function") {
+          input.blur();
+        }
+        if (typeof document === "undefined") return;
+
+        const anchorInput = input instanceof HTMLElement ? input : null;
+
+        const keydownHandler = (event) => {
+          if (event.key === "Tab" && !event.shiftKey) {
+            if (this.focusElementAfter(anchorInput)) {
+              event.preventDefault();
+              event.stopPropagation();
+            }
+            this.clearPostEnterTabRedirect();
+            return;
+          }
+          // Ignore pure modifier presses so Shift+Tab etc. can still be
+          // composed without cancelling the armed redirect.
+          if (["Shift", "Control", "Alt", "Meta"].includes(event.key)) {
+            return;
+          }
+          this.clearPostEnterTabRedirect();
+        };
+        const cancelHandler = () => {
+          this.clearPostEnterTabRedirect();
+        };
+        this._postEnterTabKeydownHandler = keydownHandler;
+        this._postEnterTabCancelHandler = cancelHandler;
+        document.addEventListener("keydown", keydownHandler, true);
+        document.addEventListener("mousedown", cancelHandler, true);
+        document.addEventListener("touchstart", cancelHandler, true);
+      },
+      /**
+       * Focuses the next focusable element in document tab order after the
+       * given anchor element. Mirrors the selector set used by
+       * focusNextFocusableElement but is intentionally usable when the
+       * anchor has already been blurred (post-Enter scenario) and without
+       * the mouse-mode guard, since we only call it in response to a
+       * keyboard Tab press.
+       */
+      focusElementAfter(anchorElement) {
+        if (!(anchorElement instanceof HTMLElement)) return false;
+        const root = this.$el?.closest(".qpm_vapp") || document.body;
+        const focusableSelector = [
+          'a[href]',
+          'button:not([disabled])',
+          'input:not([disabled]):not([type="hidden"])',
+          'select:not([disabled])',
+          'textarea:not([disabled])',
+          '[tabindex]:not([tabindex="-1"])',
+        ].join(",");
+        const focusables = Array.from(root.querySelectorAll(focusableSelector)).filter((el) => {
+          if (!(el instanceof HTMLElement)) return false;
+          if (el.getAttribute("aria-hidden") === "true") return false;
+          return el.offsetParent !== null || el === document.activeElement;
+        });
+        const currentIndex = focusables.indexOf(anchorElement);
+        const next = currentIndex >= 0 ? focusables[currentIndex + 1] : null;
+        if (!(next instanceof HTMLElement)) return false;
+        const appRoot = this.$el?.closest(".qpm_vapp");
+        if (appRoot instanceof HTMLElement) {
+          appRoot.classList.add("qpm_keyboard-mode");
+          appRoot.classList.remove("qpm_mouse-mode");
+        }
+        next.focus({ preventScroll: true });
+        this.addKeyboardFocus();
+        return true;
+      },
+      clearPostEnterTabRedirect() {
+        if (typeof document === "undefined") return;
+        if (this._postEnterTabKeydownHandler) {
+          document.removeEventListener("keydown", this._postEnterTabKeydownHandler, true);
+          this._postEnterTabKeydownHandler = null;
+        }
+        if (this._postEnterTabCancelHandler) {
+          document.removeEventListener("mousedown", this._postEnterTabCancelHandler, true);
+          document.removeEventListener("touchstart", this._postEnterTabCancelHandler, true);
+          this._postEnterTabCancelHandler = null;
+        }
       },
       focusNextFocusableElement(currentElement) {
         if (!currentElement || this.isMouseUsed) return;
@@ -7918,8 +8053,14 @@
           
           const currentValue = event.target.value;
           if (currentValue && currentValue.trim().length > 0) {
-            // Trigger custom tag creation (same as normal multiselect)
-            this.handleAddTag(currentValue.trim(), { focusStrategy: "currentDropdownInput" });
+            // Trigger custom tag creation (same as normal multiselect).
+            // Enter keeps focus on the current input but arms a one-shot
+            // Tab redirect to the host's "Tilføj emne" / "Tilføj filter"
+            // button.
+            this.handleAddTag(currentValue.trim(), {
+              focusStrategy: "currentDropdownInput",
+              armAddTopicTabRedirect: true,
+            });
             // Clear input field
             event.target.value = '';
             if (this.$refs.multiselect) {
@@ -7991,6 +8132,16 @@
             combobox.setAttribute('aria-controls', actualId);
             combobox.setAttribute('aria-expanded', this.isDropdownOpen ? 'true' : 'false');
           }
+        }
+      },
+      fixSearchboxAriaLabel() {
+        // vue-multiselect sets the inner input's aria-label to `${name}-searchbox`,
+        // which defaults to the meaningless "-searchbox" when no name is provided.
+        // Replace it with the localized placeholder so screen readers get a
+        // descriptive label (e.g. "Vælg emne eller indtast søgeord").
+        const input = this.$el.querySelector(".multiselect__input");
+        if (input && this.placeholder) {
+          input.setAttribute("aria-label", this.placeholder);
         }
       },
       // New method for keyboard handling

@@ -33,7 +33,7 @@
                     :size="22"
                     class="qpm_streaming-icon qpm_headerLoadingSpinner"
                   />
-                  <i v-else class="bx bx-detail qpm_summaryIcon"></i>
+                  <i v-else class="bx bx-detail qpm_summaryIcon" aria-hidden="true"></i>
                 </span>
                 <span class="qpm_headerTitleText">{{ qa.shortTitle || '...' }}</span>
               </div>
@@ -41,10 +41,12 @@
                 <i
                   v-if="accordionProps.expanded"
                   class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
+                  aria-hidden="true"
                 ></i>
                 <i 
                   v-else 
                   class="bx bx-chevron-down qpm_aiAccordionHeaderArrows" 
+                  aria-hidden="true"
                 ></i>
               </div>
             </div>
@@ -96,6 +98,7 @@
                     <i
                       v-else
                       class="bx bx-help-circle qpm_helpCircleIcon"
+                    aria-hidden="true"
                     ></i>
                   </span>
                   <span class="qpm_headerTitleText">{{ qa.question || qa.shortTitle || '...' }}</span>
@@ -104,10 +107,12 @@
                   <i
                     v-if="accordionProps.expanded"
                     class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
+                  aria-hidden="true"
                   ></i>
                   <i 
                     v-else 
                     class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
+                  aria-hidden="true"
                   ></i>
                 </div>
               </div>
@@ -143,6 +148,7 @@
 
     <div v-if="!loading && currentSummary.length > 0 && !isError && getTotalSummaries() > 1">
       <button
+        type="button"
         class="qpm_summary_icon bx bx-chevron-left qpm_summaryNavButton"
         :disabled="currentSummaryIndex[promptLanguageType] === 0"
         @click="navigateHistory('previous')"
@@ -152,6 +158,7 @@
         {{ getTotalSummaries() }}
       </span>
       <button
+        type="button"
         class="qpm_summary_icon bx bx-chevron-right qpm_summaryNavButton"
         :disabled="currentSummaryIndex[promptLanguageType] === getTotalSummaries() - 1"
         @click="navigateHistory('next')"
@@ -175,6 +182,7 @@
                 <span class="qpm_headerIconSlot">
                   <i
                     class="bx bx-detail qpm_summaryIcon"
+                    aria-hidden="true"
                   ></i>
                 </span>
                 <span class="qpm_headerTitleText">{{ qa.shortTitle }}</span>
@@ -183,10 +191,12 @@
                 <i
                   v-if="accordionProps.expanded"
                   class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
+                  aria-hidden="true"
                 ></i>
                 <i
                   v-else
                   class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
+                  aria-hidden="true"
                 ></i>
               </div>
             </div>
@@ -234,6 +244,7 @@
                 <span class="qpm_headerIconSlot">
                   <i
                   class="bx bx-help-circle qpm_helpCircleIcon"
+                  aria-hidden="true"
                   ></i>
                 </span>
                 <span class="qpm_headerTitleText">{{ qa.question }}</span>
@@ -242,10 +253,12 @@
                 <i
                   v-if="accordionProps.expanded"
                   class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
+                  aria-hidden="true"
                 ></i>
                 <i 
                   v-else 
                   class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
+                  aria-hidden="true"
                 ></i>
               </div>
             </div>

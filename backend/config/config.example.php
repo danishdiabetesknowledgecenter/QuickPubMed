@@ -60,9 +60,14 @@ define('ELICIT_API_KEY', '');
 define('QPM_ELICIT_UNLOCK', [
     'ips' => [
         // '192.168.1.0/24',
-        // '10.0.0.5',
+        // '127.0.0.1',
     ],
-    'code' => '', // e.g. 'some-long-random-secret'
+    // 'code' may be either a single string (single shared code) or an array of
+    // strings (multiple codes, any of which unlocks Elicit). Empty / whitespace
+    // entries are ignored. Examples:
+    //   'code' => 'some-long-random-secret',
+    //   'code' => ['code-for-site-a', 'code-for-site-b'],
+    'code' => '',
     'trust_forwarded_for' => false,
 ]);
 

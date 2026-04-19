@@ -2,10 +2,11 @@
   <!-- The dropdown(s) for selecting limits to be included in the advanced search -->
   <div class="qpm_advancedFiltersRoot">
     <div class="qpm_limitsHeaderContainer">
-      <h4 role="heading" aria-level="3" class="h4">
+      <h3 class="h4">
         {{ getString("AdvancedLimitsHeader") }}
-      </h4>
+      </h3>
       <button
+        type="button"
         v-tooltip="{
           content: getString('hoverFiltersHeader'),
           distance: 5,
@@ -13,7 +14,7 @@
           theme: 'infoTooltip',
         }"
         class="bx bx-info-circle qpm_cursorHelp qpm_infoIcon"
-        aria-label="Info"
+        :aria-label="getString('infoAdvancedLimitsLabel')"
       />
     </div>
     <filter-selection

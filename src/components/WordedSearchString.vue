@@ -3,132 +3,143 @@
     <div v-if="!isCollapsed" class="qpm_toggleDetails">
       <p
         v-if="hasValidTopics"
-        v-tooltip="{
-          content: details && getString('hoverDetailsText'),
-          distance: 5,
-          delay: $helpTextDelay,
-        }"
-        tabindex="0"
         data-html="true"
         class="qpm_advancedSearch qpm_noFloat"
-        @click="toggleDetails"
-        @keyup.enter="toggleDetails"
       >
-        <a v-if="details">{{ getString("showDetails") }}</a>
-        <a v-else>{{ getString("hideDetails") }}</a>
-      </p>
-    </div>
-    <div v-if="hasValidTopics && (!details || isCollapsed)" class="qpm_middle">
-      <p
-        v-if="!advancedString"
-        v-tooltip="{
-          content: getString('hoverShowSearchStringText'),
-          distance: 5,
-          delay: $helpTextDelay,
-        }"
-        tabindex="0"
-        class="qpm_advancedSearch qpm_toggleAdvancedSpacing"
-        @click="toggleAdvanced"
-        @keyup.enter="toggleAdvanced"
-      >
-        <a>{{ getString("showSearchString") }}</a>
-      </p>
-      <p
-        v-else
-        v-tooltip="{
-          content: getString('hoverShowPrettyStringText'),
-          distance: 5,
-          delay: $helpTextDelay,
-        }"
-        tabindex="0"
-        class="qpm_advancedSearch qpm_toggleAdvancedSpacing"
-        @click="toggleAdvanced"
-        @keyup.enter="toggleAdvanced"
-      >
-        <a>{{ getString("hideSearchString") }}</a>
-      </p>
-      <div v-if="showHeader" role="heading" aria-level="2" class="h3 qpm_inlineHeading">
-        {{ getString("youAreSearchingFor") }}
-      </div>
-      <div v-if="!advancedString">
-        <span class="qpm_searchStringPreText">{{ getSearchPreString }} {{ " " }}</span>
-        <div v-for="(group, idx) in topics" :key="idx" class="qpm_searchStringSubjectGroup">
-          <span
-            v-if="idx > 0 && group.length !== 0 && idx !== checkFirstSubjectRender"
-            class="qpm_searchStringGroupOperator_NotApplied"
-            >{{ " " }} {{ getString("youAreSearchingForAnd") }} {{ " " }}</span
-          >
-          <div v-if="Object.keys(group).length !== 0" class="qpm_searchStringWordGroup">
-            <div
-              v-for="(subjectObj, idx2) in group"
-              :key="idx2"
-              class="qpm_searchStringWordGroupWrapper"
-            >
-              <span class="qpm_wordedStringSubject">{{ getWordedTopicString(subjectObj) }}</span>
-              <span v-if="!subjectObj.preString" class="qpm_wordedStringOperator">{{
-                getScope(subjectObj)
-              }}</span>
-              {{ " "
-              }}<span v-if="idx2 < group.length - 1" class="qpm_searchStringOperator"
-                >{{ getString("orOperator").toLowerCase() }}
-              </span>
-            </div>
-            <div v-if="group.length > 0" class="qpm_halfBorder" />
-          </div>
-        </div>
-        <br />
-        <span v-if="!limitsIsEmpty" class="qpm_searchStringPreText qpm_searchStringPreTextLimits">
-          <div class="qpm_hideonmobile qpm_limitsTopPadding" />
-          {{ getString("limitsPreString") }} {{ " " }}
-        </span>
-        <div
-          v-for="(group, idx) in activeLimitDropdowns"
-          :key="`filter-${idx}`"
-          class="qpm_searchStringFilterGroup"
-        >
-          <span
-            v-if="idx > 0 && group.length !== 0"
-            class="qpm_searchStringGroupOperator_NotApplied"
-            >{{ " " }} {{ getString("youAreSearchingForAnd") }} {{ " " }}</span
-          >
-          <div v-if="group.length !== 0" class="qpm_searchStringWordGroup">
-            <div
-              v-for="(filterItem, idx2) in group"
-              :key="idx2"
-              class="qpm_searchStringWordGroupWrapper"
-            >
-              <span class="qpm_wordedStringSubject"
-                ><span v-if="showLimitCategory(group, idx2)" class="qpm_filterCategoryPrefix"
-                  >{{ getLimitCategoryName(filterItem) }} = </span
-                >{{ getWordedLimitString(filterItem) }}</span
-              >
-              <span class="qpm_wordedStringOperator">{{ getScope(filterItem) }}</span>
-              {{ " "
-              }}<span v-if="idx2 < group.length - 1" class="qpm_searchStringOperator"
-                >{{ getLimitItemsOperator(group) }}
-              </span>
-            </div>
-            <div v-if="group.length > 0" class="qpm_halfBorder" />
-          </div>
-        </div>
-      </div>
-      <div v-else>
-        <textarea
-          ref="searchStringTextarea"
-          v-tooltip.bottom="{
-            content: getString('hoverSearchString'),
+        <button
+          type="button"
+          v-tooltip="{
+            content: details && getString('hoverDetailsText'),
             distance: 5,
             delay: $helpTextDelay,
           }"
-          :value="searchstring"
-          class="qpm_searchStringTextarea"
-          readonly
-          name="searchstring"
-          rows="6"
-          @keyup.enter="copyTextfieldFunction()"
-          @click="selectAndCopy"
-        />
-      </div>
+          :aria-expanded="String(!details)"
+          :aria-controls="detailsPanelId"
+          class="qpm_linkButton qpm_linkButtonAsAnchor"
+          @click="toggleDetails"
+        >{{ details ? getString("showDetails") : getString("hideDetails") }}</button>
+      </p>
+    </div>
+    <div v-if="hasValidTopics" v-show="!details || isCollapsed" :id="detailsPanelId" class="qpm_middle">
+      <p
+        v-if="!advancedString"
+        class="qpm_advancedSearch qpm_toggleAdvancedSpacing"
+      >
+        <button
+          type="button"
+          v-tooltip="{
+            content: getString('hoverShowSearchStringText'),
+            distance: 5,
+            delay: $helpTextDelay,
+          }"
+          :aria-expanded="String(advancedString)"
+          :aria-controls="searchStringPanelId"
+          class="qpm_linkButton qpm_linkButtonAsAnchor"
+          @click="toggleAdvanced"
+        >{{ getString("showSearchString") }}</button>
+      </p>
+      <p
+        v-else
+        class="qpm_advancedSearch qpm_toggleAdvancedSpacing"
+      >
+        <button
+          type="button"
+          v-tooltip="{
+            content: getString('hoverShowPrettyStringText'),
+            distance: 5,
+            delay: $helpTextDelay,
+          }"
+          :aria-expanded="String(advancedString)"
+          :aria-controls="searchStringPanelId"
+          class="qpm_linkButton qpm_linkButtonAsAnchor"
+          @click="toggleAdvanced"
+        >{{ getString("hideSearchString") }}</button>
+      </p>
+      <h2 v-if="showHeader" class="h3 qpm_inlineHeading">
+        {{ getString("youAreSearchingFor") }}
+      </h2>
+      <div :id="searchStringPanelId">
+          <div v-if="!advancedString">
+            <span class="qpm_searchStringPreText">{{ getSearchPreString }} {{ " " }}</span>
+            <div v-for="(group, idx) in topics" :key="idx" class="qpm_searchStringSubjectGroup">
+              <span
+                v-if="idx > 0 && group.length !== 0 && idx !== checkFirstSubjectRender"
+                class="qpm_searchStringGroupOperator_NotApplied"
+                >{{ " " }} {{ getString("youAreSearchingForAnd") }} {{ " " }}</span
+              >
+              <div v-if="Object.keys(group).length !== 0" class="qpm_searchStringWordGroup">
+                <div
+                  v-for="(subjectObj, idx2) in group"
+                  :key="idx2"
+                  class="qpm_searchStringWordGroupWrapper"
+                >
+                  <span class="qpm_wordedStringSubject">{{ getWordedTopicString(subjectObj) }}</span>
+                  <span v-if="!subjectObj.preString" class="qpm_wordedStringOperator">{{
+                    getScope(subjectObj)
+                  }}</span>
+                  {{ " "
+                  }}<span v-if="idx2 < group.length - 1" class="qpm_searchStringOperator"
+                    >{{ getString("orOperator").toLowerCase() }}
+                  </span>
+                </div>
+                <div v-if="group.length > 0" class="qpm_halfBorder" />
+              </div>
+            </div>
+            <br />
+            <span v-if="!limitsIsEmpty" class="qpm_searchStringPreText qpm_searchStringPreTextLimits">
+              <div class="qpm_hideonmobile qpm_limitsTopPadding" />
+              {{ getString("limitsPreString") }} {{ " " }}
+            </span>
+            <div
+              v-for="(group, idx) in activeLimitDropdowns"
+              :key="`filter-${idx}`"
+              class="qpm_searchStringFilterGroup"
+            >
+              <span
+                v-if="idx > 0 && group.length !== 0"
+                class="qpm_searchStringGroupOperator_NotApplied"
+                >{{ " " }} {{ getString("youAreSearchingForAnd") }} {{ " " }}</span
+              >
+              <div v-if="group.length !== 0" class="qpm_searchStringWordGroup">
+                <div
+                  v-for="(filterItem, idx2) in group"
+                  :key="idx2"
+                  class="qpm_searchStringWordGroupWrapper"
+                >
+                  <span class="qpm_wordedStringSubject"
+                    ><span v-if="showLimitCategory(group, idx2)" class="qpm_filterCategoryPrefix"
+                      >{{ getLimitCategoryName(filterItem) }} = </span
+                    >{{ getWordedLimitString(filterItem) }}</span
+                  >
+                  <span class="qpm_wordedStringOperator">{{ getScope(filterItem) }}</span>
+                  {{ " "
+                  }}<span v-if="idx2 < group.length - 1" class="qpm_searchStringOperator"
+                    >{{ getLimitItemsOperator(group) }}
+                  </span>
+                </div>
+                <div v-if="group.length > 0" class="qpm_halfBorder" />
+              </div>
+            </div>
+          </div>
+          <div v-else>
+            <textarea
+              ref="searchStringTextarea"
+              v-tooltip.bottom="{
+                content: getString('hoverSearchString'),
+                distance: 5,
+                delay: $helpTextDelay,
+              }"
+              :value="searchstring"
+              :aria-label="getString('searchStringTextareaLabel')"
+              class="qpm_searchStringTextarea"
+              readonly
+              name="searchstring"
+              rows="6"
+              @keyup.enter="copyTextfieldFunction()"
+              @click="selectAndCopy"
+            />
+          </div>
+        </div>
       <div v-if="!isCollapsed || (isCollapsed && advancedString)">
         <div v-if="!advancedString" class="qpm_searchStringDivider" />
         <p class="qpm_pubmedLink qpm_pubmedLinkArrow">
@@ -221,6 +232,12 @@
     },
     emits: ["toggleAdvancedString", "toggleDetailsBox"],
     computed: {
+      detailsPanelId() {
+        return `qpm_wordedSearchDetails_${this._uid}`;
+      },
+      searchStringPanelId() {
+        return `qpm_wordedSearchString_${this._uid}`;
+      },
       /**
        * Determines if the topics prop contains at least one non-empty entry.
        *

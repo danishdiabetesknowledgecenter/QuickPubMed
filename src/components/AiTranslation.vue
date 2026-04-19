@@ -3,10 +3,10 @@
     v-if="showingTranslation"
     class="qpm_searchSummaryText qpm_searchSummaryTextBackground qpm_searchTranslatedTitle"
   >
-    <div v-if="useMarkdown && canRenderMarkdown">
+    <div v-if="useMarkdown && canRenderMarkdown" lang="da">
       <vue-showdown :options="{ smoothLivePreview: true }" :markdown="text" />
     </div>
-    <div v-else>
+    <div v-else lang="da">
       <p>{{ text }}</p>
     </div>
     <div v-if="loading" class="qpm_translationLoadingSpacer">
@@ -15,6 +15,7 @@
     <div class="qpm_translationActions">
       <button
         v-if="writing"
+        type="button"
         v-tooltip="{
           content: getString('hoverretryText'),
           distance: 5,
@@ -23,10 +24,11 @@
         class="qpm_button"
         @click="clickStop"
       >
-        <i class="bx bx-stop-circle" /> {{ getString("stopText") }}
+        <i class="bx bx-stop-circle" aria-hidden="true" /> {{ getString("stopText") }}
       </button>
       <button
         v-if="translationLoaded"
+        type="button"
         v-tooltip="{
           content: getString('hoverretryText'),
           distance: 5,
@@ -35,11 +37,12 @@
         class="qpm_button"
         @click="clickRetry"
       >
-        <i class="bx bx-refresh qpm_iconBaselineSize" />
+        <i class="bx bx-refresh qpm_iconBaselineSize" aria-hidden="true" />
         {{ getString("retryText") }}
       </button>
       <button
         v-if="!loading"
+        type="button"
         v-tooltip="{
           content: getString('hovercopyText'),
           distance: 5,
@@ -48,7 +51,7 @@
         class="qpm_button"
         @click="clickCopy"
       >
-        <i class="bx bx-copy qpm_iconBaseline" />
+        <i class="bx bx-copy qpm_iconBaseline" aria-hidden="true" />
         {{ getString("copyText") }}
       </button>
     </div>
