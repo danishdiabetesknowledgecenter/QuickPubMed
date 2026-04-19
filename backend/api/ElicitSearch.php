@@ -128,6 +128,7 @@ function qpmElicitHttpRequest(string $url, array $options = []): array
             CURLOPT_CUSTOMREQUEST => $method,
             CURLOPT_HTTPHEADER => $curlHeaders,
             CURLOPT_POSTFIELDS => $body,
+            CURLOPT_ENCODING => '',
             CURLOPT_HEADERFUNCTION => static function ($curl, $line) use (&$responseHeaders) {
                 $trimmed = trim((string)$line);
                 if ($trimmed !== '') {
@@ -233,7 +234,7 @@ function qpmElicitShellCurlRequest(string $url, array $headers, string $body, in
         ];
     }
 
-    $parts = ['curl', '-sS', '-L', '--max-time', (string)max(1, (int)$timeout), '-X', 'POST'];
+    $parts = ['curl', '-sS', '-L', '--compressed', '--max-time', (string)max(1, (int)$timeout), '-X', 'POST'];
     foreach ($headers as $header) {
         $parts[] = '-H';
         $parts[] = (string)$header;
@@ -599,6 +600,42 @@ function qpmExtractElicitErrorMessage(array $decoded): string
 }
 
 /**
+ * Decode an Elicit response body to an array when possible.
+ *
+ * @param array<string,mixed> $result
+ * @return ?array<string,mixed>
+ */
+function qpmDecodeElicitResponseBody(array $result): ?array
+{
+    $decoded = json_decode((string)($result['body'] ?? ''), true);
+    return is_array($decoded) ? $decoded : null;
+}
+
+/**
+ * Build a helpful error payload when Elicit returns non-JSON.
+ *
+ * @param array<string,mixed> $result
+ * @return array<string,mixed>
+ */
+function qpmBuildInvalidElicitResponsePayload(array $result): array
+{
+    $payload = [
+        'error' => 'Invalid response from Elicit',
+        'upstreamStatus' => (int)($result['status'] ?? 0),
+    ];
+    $contentType = trim((string)($result['content_type'] ?? ''));
+    if ($contentType !== '') {
+        $payload['upstreamContentType'] = $contentType;
+    }
+    $snippet = substr((string)($result['body'] ?? ''), 0, 300);
+    $snippet = trim((string)preg_replace('/\s+/', ' ', $snippet));
+    if ($snippet !== '') {
+        $payload['upstreamBodySnippet'] = $snippet;
+    }
+    return $payload;
+}
+
+/**
  * Build structured retry hints for filter-specific Elicit request failures.
  *
  * @param string $message
@@ -791,10 +828,58 @@ if (!$result['ok']) {
     exit;
 }
 
-$decoded = json_decode($result['body'], true);
+$decoded = qpmDecodeElicitResponseBody($result);
+if (!is_array($decoded)) {
+    $fallbackResult = qpmElicitFallbackRequest(
+        $elicitUrl,
+        $requestHeaders,
+        $requestBody,
+        45
+    );
+    if ($fallbackResult['ok']) {
+        $fallbackDecoded = qpmDecodeElicitResponseBody([
+            'body' => $fallbackResult['body'],
+        ]);
+        if (is_array($fallbackDecoded)) {
+            $result = [
+                'ok' => true,
+                'status' => $fallbackResult['status'],
+                'body' => $fallbackResult['body'],
+                'content_type' => 'application/json',
+                'error' => '',
+                'response_headers' => $fallbackResult['response_headers'],
+            ];
+            $decoded = $fallbackDecoded;
+        }
+    }
+}
+if (!is_array($decoded)) {
+    $shellCurlResult = qpmElicitShellCurlRequest(
+        $elicitUrl,
+        $requestHeaders,
+        $requestBody,
+        45
+    );
+    if ($shellCurlResult['ok']) {
+        $shellCurlDecoded = qpmDecodeElicitResponseBody([
+            'body' => $shellCurlResult['body'],
+        ]);
+        if (is_array($shellCurlDecoded)) {
+            $result = [
+                'ok' => true,
+                'status' => $shellCurlResult['status'],
+                'body' => $shellCurlResult['body'],
+                'content_type' => 'application/json',
+                'error' => '',
+                'response_headers' => $shellCurlResult['response_headers'],
+            ];
+            $decoded = $shellCurlDecoded;
+        }
+    }
+}
 if (!is_array($decoded)) {
     http_response_code(502);
-    echo json_encode(['error' => 'Invalid response from Elicit']);
+    echo json_encode(qpmBuildInvalidElicitResponsePayload($result));
     exit;
 }
 
