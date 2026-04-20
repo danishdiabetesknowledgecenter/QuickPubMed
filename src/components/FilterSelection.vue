@@ -140,11 +140,7 @@
         const options = this.getLimitOptionsForDropdown
           ? this.getLimitOptionsForDropdown(index)
           : this.limitOptions;
-        const safeOptions = Array.isArray(options) ? options : [];
-        return safeOptions.map((f) => ({
-          ...f,
-          groups: f.choices || f.groups || [],
-        }));
+        return Array.isArray(options) ? options : [];
       },
       refreshLimitDropdownOptions() {
         const dropdownRefs = this.$refs?.limitDropdown;

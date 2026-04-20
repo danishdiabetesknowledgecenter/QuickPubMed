@@ -1,3 +1,9 @@
+import {
+  classifyPublicationType,
+  computePubTypeTierBonus,
+  isExcludedClassification,
+} from "./pubTypeClassifier.js";
+
 // Code-level defaults are kept as a safe fallback if backend/runtime config is missing,
 // partially configured, or comes from an older install that does not expose every field yet.
 //
@@ -19,6 +25,19 @@ const DEFAULT_SEMANTIC_RERANK_CONFIG = Object.freeze({
   pubTypeWeights: {},
   recencyHalfLifeYears: null,
   recencyBonusMax: 0,
+  // Trappet recency-kurve (global, piecewise linear).
+  //   - Format: [[maxAge1, multiplier1], [maxAge2, multiplier2], ...]
+  //   - Første trin definerer plateau (fuld multiplier op til maxAge1).
+  //   - Mellem trin interpoleres lineært.
+  //   - Efter sidste trin bruges sidste trin's multiplier som gulv.
+  // Bruges kun når recencyCurveEnabled === true. Når disabled bruges
+  // den klassiske eksponentielle halfLife-logik (uændret adfærd).
+  recencyCurveEnabled: false,
+  recencyCurve: [
+    [5, 1.0],
+    [10, 0.6],
+    [25, 0.25],
+  ],
   oaBonus: 0,
   citationImpactClamp: [1.0, 1.0],
   retractionAction: "none",
@@ -27,6 +46,19 @@ const DEFAULT_SEMANTIC_RERANK_CONFIG = Object.freeze({
   clinicalCitedByThreshold: 1000000,
   topicOverlapBonus: 0,
   authorityClamp: [1.0, 1.0],
+  dataQualityPenalties: {
+    missingAbstract: 1.0,
+    shortAbstract: 1.0,
+    veryShortAbstract: 1.0,
+    missingAuthor: 1.0,
+    missingYear: 1.0,
+  },
+  abstractMinLength: {
+    short: 100,
+    veryShort: 250,
+  },
+  pubTypeTiers: {},
+  guidelinePublisherAllowList: [],
 });
 
 function toFiniteNumber(value) {
@@ -155,6 +187,11 @@ function createEnrichedRecord() {
     fieldCitationRate: null,
     authorityAuthors: null,
     authorityJournal: null,
+    abstractLength: null,
+    hasAuthor: false,
+    language: "",
+    publisher: "",
+    venue: "",
   };
 }
 
@@ -333,6 +370,64 @@ function mergeEnrichedFromCandidate(enriched, candidate) {
     }
   }
 
+  const abstractCandidates = [
+    metadata.abstract,
+    metadata.abstractText,
+    metadata.tldr && typeof metadata.tldr === "object" ? metadata.tldr.text : null,
+  ];
+  for (const raw of abstractCandidates) {
+    const text = String(raw || "").trim();
+    if (!text) continue;
+    const length = text.length;
+    if (enriched.abstractLength === null || length > enriched.abstractLength) {
+      enriched.abstractLength = length;
+    }
+  }
+
+  const authorCandidates = [
+    Array.isArray(metadata.authors) ? metadata.authors : null,
+    Array.isArray(metadata.authorships) ? metadata.authorships : null,
+    Array.isArray(metadata.authorNames) ? metadata.authorNames : null,
+  ];
+  for (const list of authorCandidates) {
+    if (!list) continue;
+    for (const author of list) {
+      if (!author) continue;
+      if (typeof author === "string" && author.trim()) {
+        enriched.hasAuthor = true;
+        break;
+      }
+      if (typeof author === "object") {
+        const name = String(
+          author?.name || author?.displayName || author?.display_name || author?.author?.display_name || ""
+        ).trim();
+        if (name) {
+          enriched.hasAuthor = true;
+          break;
+        }
+      }
+    }
+    if (enriched.hasAuthor) break;
+  }
+  if (!enriched.hasAuthor && Array.isArray(enriched.authorIds) && enriched.authorIds.length > 0) {
+    enriched.hasAuthor = true;
+  }
+
+  const languageValue = String(metadata.language || "").trim();
+  if (languageValue && !enriched.language) {
+    enriched.language = languageValue;
+  }
+  const publisherValue = String(metadata.publisher || metadata.hostPublisher || "").trim();
+  if (publisherValue && !enriched.publisher) {
+    enriched.publisher = publisherValue;
+  }
+  const venueValue = String(
+    metadata.venue || metadata.fulljournalname || metadata.sourceDisplayName || ""
+  ).trim();
+  if (venueValue && !enriched.venue) {
+    enriched.venue = venueValue;
+  }
+
   const authorityJournalIncoming = metadata.authorityJournal && typeof metadata.authorityJournal === "object"
     ? metadata.authorityJournal
     : null;
@@ -353,7 +448,7 @@ function mergeEnrichedFromCandidate(enriched, candidate) {
   }
 }
 
-function mergeSourceCandidates(sourceResults) {
+function mergeSourceCandidates(sourceResults, options = {}) {
   const mergedCandidates = new Map();
   const mergeEvents = [];
   let rawCandidateCount = 0;
@@ -363,7 +458,17 @@ function mergeSourceCandidates(sourceResults) {
       rawCandidateCount += 1;
       const pmid = normalizePmidValue(candidate?.pmid);
       const doi = normalizeDoiValue(candidate?.doi);
-      const key = pmid ? `pmid:${pmid}` : doi ? `doi:${doi.toLowerCase()}` : "";
+      const openAlexIdRaw = String(
+        candidate?.openAlexId || candidate?.metadata?.workId || ""
+      ).trim();
+      const openAlexIdNormalized = openAlexIdRaw.toLowerCase();
+      const key = pmid
+        ? `pmid:${pmid}`
+        : doi
+        ? `doi:${doi.toLowerCase()}`
+        : openAlexIdNormalized
+        ? `oa:${openAlexIdNormalized}`
+        : "";
       if (!key) return;
 
       const existingEntry = mergedCandidates.get(key);
@@ -372,7 +477,7 @@ function mergeSourceCandidates(sourceResults) {
           pmid,
           doi,
           title: String(candidate?.title || "").trim(),
-          openAlexId: String(candidate?.openAlexId || "").trim(),
+          openAlexId: openAlexIdRaw,
           sources: new Map(),
           enriched: createEnrichedRecord(),
         });
@@ -413,13 +518,22 @@ function mergeSourceCandidates(sourceResults) {
       if (!entry.pmid && pmid) entry.pmid = pmid;
       if (!entry.doi && doi) entry.doi = doi;
       if (!entry.title && candidate?.title) entry.title = String(candidate.title).trim();
-      if (!entry.openAlexId && candidate?.openAlexId) {
-        entry.openAlexId = String(candidate.openAlexId).trim();
+      if (!entry.openAlexId && openAlexIdRaw) {
+        entry.openAlexId = openAlexIdRaw;
       }
 
       mergeEnrichedFromCandidate(entry.enriched, candidate);
     });
   });
+
+  const guidelinePublisherAllowList = Array.isArray(options.guidelinePublisherAllowList)
+    ? options.guidelinePublisherAllowList
+    : [];
+  for (const entry of mergedCandidates.values()) {
+    entry.pubTypeClassification = classifyPublicationType(entry, {
+      guidelinePublisherAllowList,
+    });
+  }
 
   return {
     mergedCandidates,
@@ -474,9 +588,64 @@ function buildScoreTieBreaker(sourceData, sourceKey, sourceStats, rerankConfig) 
   };
 }
 
+function normalizeRecencyCurve(curve) {
+  if (!Array.isArray(curve) || curve.length === 0) return null;
+  const points = [];
+  for (const entry of curve) {
+    if (!Array.isArray(entry) || entry.length < 2) continue;
+    const age = toFiniteNumber(entry[0]);
+    const multiplier = toFiniteNumber(entry[1]);
+    if (age === null || multiplier === null || age < 0 || multiplier < 0) continue;
+    points.push([age, multiplier]);
+  }
+  if (points.length === 0) return null;
+  points.sort((a, b) => a[0] - b[0]);
+  return points;
+}
+
+function computeRecencyCurveMultiplier(age, normalizedCurve) {
+  if (!Array.isArray(normalizedCurve) || normalizedCurve.length === 0) return 1;
+  if (age <= normalizedCurve[0][0]) return normalizedCurve[0][1];
+  const last = normalizedCurve[normalizedCurve.length - 1];
+  if (age >= last[0]) return last[1];
+  for (let i = 0; i < normalizedCurve.length - 1; i += 1) {
+    const [ageA, multA] = normalizedCurve[i];
+    const [ageB, multB] = normalizedCurve[i + 1];
+    if (age >= ageA && age <= ageB) {
+      const span = ageB - ageA;
+      if (span <= 0) return multB;
+      const t = (age - ageA) / span;
+      return multA + t * (multB - multA);
+    }
+  }
+  return last[1];
+}
+
 function computeRecencyBonus(enriched, rerankConfig, currentYear) {
-  const halfLife = toFiniteNumber(rerankConfig?.recencyHalfLifeYears);
   const maxBonus = toFiniteNumber(rerankConfig?.recencyBonusMax);
+  const curveEnabled = rerankConfig?.recencyCurveEnabled === true;
+  const normalizedCurve = curveEnabled ? normalizeRecencyCurve(rerankConfig?.recencyCurve) : null;
+
+  if (curveEnabled && normalizedCurve) {
+    if (!maxBonus || maxBonus <= 0) {
+      return { value: 0, age: null, halfLife: null, curveMultiplier: null };
+    }
+    const year = toFiniteInt(enriched?.publicationYear);
+    if (year === null) {
+      return { value: 0, age: null, halfLife: null, curveMultiplier: null };
+    }
+    const reference = toFiniteInt(currentYear) ?? new Date().getFullYear();
+    const age = Math.max(0, reference - year);
+    const multiplier = computeRecencyCurveMultiplier(age, normalizedCurve);
+    return {
+      value: maxBonus * multiplier,
+      age,
+      halfLife: null,
+      curveMultiplier: multiplier,
+    };
+  }
+
+  const halfLife = toFiniteNumber(rerankConfig?.recencyHalfLifeYears);
   if (!halfLife || halfLife <= 0 || !maxBonus || maxBonus <= 0) {
     return { value: 0, age: null, halfLife: halfLife || 0 };
   }
@@ -702,6 +871,68 @@ function computeRetractionImpact(enriched, rerankConfig) {
   return { action: "none", multiplier: 1.0, retracted: true };
 }
 
+function computeDataQualityMultiplier(entry, rerankConfig) {
+  const penalties =
+    rerankConfig?.dataQualityPenalties && typeof rerankConfig.dataQualityPenalties === "object"
+      ? rerankConfig.dataQualityPenalties
+      : {};
+  const thresholds =
+    rerankConfig?.abstractMinLength && typeof rerankConfig.abstractMinLength === "object"
+      ? rerankConfig.abstractMinLength
+      : { short: 100, veryShort: 250 };
+
+  const missingAbstractPenalty = toFiniteNumber(penalties.missingAbstract);
+  const shortAbstractPenalty = toFiniteNumber(penalties.shortAbstract);
+  const veryShortAbstractPenalty = toFiniteNumber(penalties.veryShortAbstract);
+  const missingAuthorPenalty = toFiniteNumber(penalties.missingAuthor);
+  const missingYearPenalty = toFiniteNumber(penalties.missingYear);
+
+  const applied = {};
+  let multiplier = 1.0;
+
+  const enriched = entry?.enriched || {};
+  const abstractLength = toFiniteInt(enriched.abstractLength);
+  const shortThreshold = toFiniteInt(thresholds.short) ?? 100;
+  const veryShortThreshold = toFiniteInt(thresholds.veryShort) ?? 250;
+
+  if (abstractLength === null || abstractLength === 0) {
+    if (missingAbstractPenalty !== null && missingAbstractPenalty !== 1.0) {
+      multiplier *= missingAbstractPenalty;
+      applied.missingAbstract = missingAbstractPenalty;
+    }
+  } else if (abstractLength < shortThreshold) {
+    if (shortAbstractPenalty !== null && shortAbstractPenalty !== 1.0) {
+      multiplier *= shortAbstractPenalty;
+      applied.shortAbstract = shortAbstractPenalty;
+    }
+  } else if (abstractLength < veryShortThreshold) {
+    if (veryShortAbstractPenalty !== null && veryShortAbstractPenalty !== 1.0) {
+      multiplier *= veryShortAbstractPenalty;
+      applied.veryShortAbstract = veryShortAbstractPenalty;
+    }
+  }
+
+  if (!enriched.hasAuthor) {
+    if (missingAuthorPenalty !== null && missingAuthorPenalty !== 1.0) {
+      multiplier *= missingAuthorPenalty;
+      applied.missingAuthor = missingAuthorPenalty;
+    }
+  }
+
+  if (!enriched.publicationYear) {
+    if (missingYearPenalty !== null && missingYearPenalty !== 1.0) {
+      multiplier *= missingYearPenalty;
+      applied.missingYear = missingYearPenalty;
+    }
+  }
+
+  return {
+    multiplier,
+    applied,
+    abstractLength,
+  };
+}
+
 function buildDebugEntry(entry, rerankConfig, sourceStats, mode = "multi", currentYear, intentTokens) {
   const contributions = [];
   let baseScore = 0;
@@ -778,13 +1009,17 @@ function buildDebugEntry(entry, rerankConfig, sourceStats, mode = "multi", curre
 
   const recencyInfo = computeRecencyBonus(enriched, rerankConfig, currentYear);
   if (recencyInfo.value !== 0) {
-    contributions.push({
+    const recencyContribution = {
       type: "recencyBonus",
       year: enriched.publicationYear,
       age: recencyInfo.age,
       halfLife: recencyInfo.halfLife,
       value: Number(recencyInfo.value.toFixed(4)),
-    });
+    };
+    if (typeof recencyInfo.curveMultiplier === "number") {
+      recencyContribution.curveMultiplier = Number(recencyInfo.curveMultiplier.toFixed(4));
+    }
+    contributions.push(recencyContribution);
   }
 
   const pubTypeInfo = computePubTypeBonus(enriched, rerankConfig);
@@ -793,6 +1028,18 @@ function buildDebugEntry(entry, rerankConfig, sourceStats, mode = "multi", curre
       type: "pubTypeBonus",
       matchedType: pubTypeInfo.matchedType,
       value: Number(pubTypeInfo.value.toFixed(4)),
+    });
+  }
+
+  const tierBonusInfo = computePubTypeTierBonus(entry.pubTypeClassification, rerankConfig);
+  if (tierBonusInfo.value !== 0) {
+    contributions.push({
+      type: "pubTypeTier",
+      tier: tierBonusInfo.tier,
+      confidence: tierBonusInfo.confidence,
+      baseBonus: Number((tierBonusInfo.baseBonus || 0).toFixed(4)),
+      adjustedBonus: Number(tierBonusInfo.adjustedBonus.toFixed(4)),
+      value: Number(tierBonusInfo.value.toFixed(4)),
     });
   }
 
@@ -825,7 +1072,12 @@ function buildDebugEntry(entry, rerankConfig, sourceStats, mode = "multi", curre
   }
 
   const additiveQualityBonus =
-    recencyInfo.value + pubTypeInfo.value + oaBonus + clinicalInfo.value + topicOverlapBonus;
+    recencyInfo.value +
+    pubTypeInfo.value +
+    tierBonusInfo.value +
+    oaBonus +
+    clinicalInfo.value +
+    topicOverlapBonus;
 
   const citationImpactInfo = computeCitationImpactMultiplier(enriched, rerankConfig);
   if (citationImpactInfo.multiplier !== 1.0) {
@@ -855,8 +1107,21 @@ function buildDebugEntry(entry, rerankConfig, sourceStats, mode = "multi", curre
     });
   }
 
+  const dataQualityInfo = computeDataQualityMultiplier(entry, rerankConfig);
+  if (dataQualityInfo.multiplier !== 1.0) {
+    contributions.push({
+      type: "dataQualityMultiplier",
+      applied: dataQualityInfo.applied,
+      abstractLength: dataQualityInfo.abstractLength,
+      multiplier: Number(dataQualityInfo.multiplier.toFixed(4)),
+    });
+  }
+
   const qualityMultiplier =
-    citationImpactInfo.multiplier * authorityInfo.multiplier * retractionInfo.multiplier;
+    citationImpactInfo.multiplier *
+    authorityInfo.multiplier *
+    retractionInfo.multiplier *
+    dataQualityInfo.multiplier;
   const combinedScore = (baseScore + additiveQualityBonus) * qualityMultiplier;
 
   return {
@@ -877,12 +1142,16 @@ function buildDebugEntry(entry, rerankConfig, sourceStats, mode = "multi", curre
       additiveQualityBonus: Number(additiveQualityBonus.toFixed(4)),
       recencyBonus: Number(recencyInfo.value.toFixed(4)),
       pubTypeBonus: Number(pubTypeInfo.value.toFixed(4)),
+      pubTypeTierBonus: Number(tierBonusInfo.value.toFixed(4)),
+      pubTypeTier: tierBonusInfo.tier || entry?.pubTypeClassification?.tier || "",
+      pubTypeConfidence: tierBonusInfo.confidence || entry?.pubTypeClassification?.confidence || "",
       oaBonus: Number(oaBonus.toFixed(4)),
       clinicalBonus: Number(clinicalInfo.value.toFixed(4)),
       topicOverlapBonus: Number(topicOverlapBonus.toFixed(4)),
       citationImpactMultiplier: Number(citationImpactInfo.multiplier.toFixed(4)),
       authorityMultiplier: Number(authorityInfo.multiplier.toFixed(4)),
       retractionMultiplier: Number(retractionInfo.multiplier.toFixed(4)),
+      dataQualityMultiplier: Number(dataQualityInfo.multiplier.toFixed(4)),
       qualityMultiplier: Number(qualityMultiplier.toFixed(4)),
     },
     sourceBreakdown,
@@ -940,10 +1209,39 @@ export function resolveSemanticRerankConfig(runtimeRerankConfig = {}) {
       safeRuntimeConfig.authorityClamp,
       DEFAULT_SEMANTIC_RERANK_CONFIG.authorityClamp
     ),
+    dataQualityPenalties: {
+      ...DEFAULT_SEMANTIC_RERANK_CONFIG.dataQualityPenalties,
+      ...(safeRuntimeConfig.dataQualityPenalties &&
+      typeof safeRuntimeConfig.dataQualityPenalties === "object"
+        ? safeRuntimeConfig.dataQualityPenalties
+        : {}),
+    },
+    abstractMinLength: {
+      ...DEFAULT_SEMANTIC_RERANK_CONFIG.abstractMinLength,
+      ...(safeRuntimeConfig.abstractMinLength &&
+      typeof safeRuntimeConfig.abstractMinLength === "object"
+        ? safeRuntimeConfig.abstractMinLength
+        : {}),
+    },
+    pubTypeTiers: {
+      ...DEFAULT_SEMANTIC_RERANK_CONFIG.pubTypeTiers,
+      ...(safeRuntimeConfig.pubTypeTiers &&
+      typeof safeRuntimeConfig.pubTypeTiers === "object"
+        ? safeRuntimeConfig.pubTypeTiers
+        : {}),
+    },
+    guidelinePublisherAllowList: Array.isArray(safeRuntimeConfig.guidelinePublisherAllowList)
+      ? safeRuntimeConfig.guidelinePublisherAllowList
+      : DEFAULT_SEMANTIC_RERANK_CONFIG.guidelinePublisherAllowList,
+    recencyCurveEnabled: safeRuntimeConfig.recencyCurveEnabled === true,
+    recencyCurve:
+      Array.isArray(safeRuntimeConfig.recencyCurve) && safeRuntimeConfig.recencyCurve.length > 0
+        ? safeRuntimeConfig.recencyCurve
+        : DEFAULT_SEMANTIC_RERANK_CONFIG.recencyCurve,
   };
 }
 
-function buildEnrichmentSummary(candidates, rerankConfig, filteredCount) {
+function buildEnrichmentSummary(candidates, rerankConfig, filteredCount, extraCounters = {}) {
   const summary = {
     withFwci: 0,
     withRcr: 0,
@@ -958,6 +1256,16 @@ function buildEnrichmentSummary(candidates, rerankConfig, filteredCount) {
     withTopicOverlap: 0,
     withAuthorityData: 0,
     withRecencySignal: 0,
+    withoutAbstract: 0,
+    withShortAbstract: 0,
+    withoutAuthor: 0,
+    withoutYear: 0,
+    totalDowngradedByQuality: 0,
+    withoutTitleDropped: toFiniteInt(extraCounters.withoutTitleDropped) || 0,
+    excludedByTier: extraCounters.excludedByTier && typeof extraCounters.excludedByTier === "object"
+      ? { ...extraCounters.excludedByTier }
+      : {},
+    byPubTypeTier: {},
   };
 
   const pubTypeWeights =
@@ -997,6 +1305,25 @@ function buildEnrichmentSummary(candidates, rerankConfig, filteredCount) {
       if (hasMatch) summary.withPubTypeMatch += 1;
     }
     if (Number(candidate?.scoreBreakdown?.topicOverlapBonus) > 0) summary.withTopicOverlap += 1;
+
+    const abstractLength = toFiniteInt(enriched.abstractLength);
+    const shortThreshold = toFiniteInt(rerankConfig?.abstractMinLength?.short) ?? 100;
+    if (abstractLength === null || abstractLength === 0) {
+      summary.withoutAbstract += 1;
+    } else if (abstractLength < shortThreshold) {
+      summary.withShortAbstract += 1;
+    }
+    if (!enriched.hasAuthor) summary.withoutAuthor += 1;
+    if (!enriched.publicationYear) summary.withoutYear += 1;
+    const dataQualityMult = Number(candidate?.scoreBreakdown?.dataQualityMultiplier);
+    if (Number.isFinite(dataQualityMult) && dataQualityMult < 1.0) {
+      summary.totalDowngradedByQuality += 1;
+    }
+
+    const tier = String(candidate?.pubTypeClassification?.tier || "").trim();
+    if (tier) {
+      summary.byPubTypeTier[tier] = (summary.byPubTypeTier[tier] || 0) + 1;
+    }
   });
 
   return summary;
@@ -1013,8 +1340,33 @@ export function rerankSemanticCandidates(sourceResults, runtimeRerankConfig = {}
   const currentYear = new Date().getFullYear();
   const intentTokens = buildIntentTokenSet(options?.queryIntent);
 
-  const mergeResult = mergeSourceCandidates(activeSourceResults);
-  const builtCandidates = Array.from(mergeResult.mergedCandidates.values()).map((entry) =>
+  const mergeResult = mergeSourceCandidates(activeSourceResults, {
+    guidelinePublisherAllowList: rerankConfig.guidelinePublisherAllowList,
+  });
+
+  const entries = Array.from(mergeResult.mergedCandidates.values());
+  const titlelessEntries = entries.filter((entry) => !String(entry?.title || "").trim());
+  const entriesWithTitle = entries.filter((entry) => String(entry?.title || "").trim() !== "");
+
+  const pubTypeTiersConfig =
+    rerankConfig?.pubTypeTiers && typeof rerankConfig.pubTypeTiers === "object"
+      ? rerankConfig.pubTypeTiers
+      : {};
+  const pubTypeTiersActive = Object.keys(pubTypeTiersConfig).length > 0;
+  const excludedByTier = {};
+  const excludedEntries = [];
+  const retainedEntries = [];
+  for (const entry of entriesWithTitle) {
+    if (pubTypeTiersActive && isExcludedClassification(entry.pubTypeClassification)) {
+      const subtype = String(entry.pubTypeClassification?.subtype || "unknown");
+      excludedByTier[subtype] = (excludedByTier[subtype] || 0) + 1;
+      excludedEntries.push(entry);
+      continue;
+    }
+    retainedEntries.push(entry);
+  }
+
+  const builtCandidates = retainedEntries.map((entry) =>
     buildDebugEntry(entry, rerankConfig, sourceStats, rerankMode, currentYear, intentTokens)
   );
 
@@ -1049,7 +1401,8 @@ export function rerankSemanticCandidates(sourceResults, runtimeRerankConfig = {}
   const enrichmentSummary = buildEnrichmentSummary(
     rankedCandidates,
     rerankConfig,
-    filteredCandidates.length
+    filteredCandidates.length,
+    { withoutTitleDropped: titlelessEntries.length, excludedByTier }
   );
 
   return {
@@ -1075,6 +1428,8 @@ export function rerankSemanticCandidates(sourceResults, runtimeRerankConfig = {}
         mergedCandidateCount: rankedCandidates.length,
         duplicateCount: mergeResult.mergeEvents.length,
         filteredCount: filteredCandidates.length,
+        excludedByTierCount: excludedEntries.length,
+        titlelessDroppedCount: titlelessEntries.length,
       },
       mergeEvents: mergeResult.mergeEvents,
     },

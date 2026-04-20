@@ -171,6 +171,26 @@ define('QPM_RERANK_CONFIG', [
     //   15-20   moderate
     //   25-35   aggressive (matches overlapBonus scale)
     'recencyBonusMax' => 0,
+    // Optional tiered recency curve (piecewise linear, global).
+    // Use this when you want a plateau for recent papers, smooth decay in the middle,
+    // and a non-zero floor so older seminal research is not treated as irrelevant.
+    // Format: ordered pairs [maxAge, multiplier]. The first point defines the plateau
+    // (full multiplier up to that age); between points the multiplier is linearly
+    // interpolated; after the last point the multiplier is constant (floor).
+    // The final bonus = recencyBonusMax * multiplier(age).
+    //   recencyCurveEnabled = false   disabled (default). Falls back to exponential halfLife model.
+    //   recencyCurveEnabled = true    uses recencyCurve below.
+    // Recommended global default (0-5 full, 5-10 decays to 60%, 10-25 decays to 25%, >25 floors at 25%):
+    //   [[5, 1.0], [10, 0.6], [25, 0.25]]
+    // Tuning hints:
+    //   - For fast-moving fields tighten to e.g. [[3, 1.0], [7, 0.5], [15, 0.15]]
+    //   - For slow-moving fields relax to e.g. [[7, 1.0], [15, 0.7], [40, 0.35]]
+    'recencyCurveEnabled' => false,
+    'recencyCurve' => [
+        [5, 1.0],
+        [10, 0.6],
+        [25, 0.25],
+    ],
     // Additive bonus applied when `isOpenAccess=true`. This is a readability nudge,
     // not a quality signal — keep small.
     //   0    disabled (default; use if you have institutional full-text access)
@@ -226,6 +246,63 @@ define('QPM_RERANK_CONFIG', [
     //   [0.95, 1.10] standard "if you must"; max 10% lift
     //   >[0.9, 1.15] not recommended; risks overriding actual relevance
     'authorityClamp' => [1.0, 1.0],
+    // ---------- Data quality (downgrade, not filter) ----------
+    // Per-field multipliers applied to combinedScore when a record has incomplete
+    // metadata. Records without a title are always dropped (cannot be rendered);
+    // all other missing fields downgrade instead of exclude.
+    //
+    //   missingAbstract      0.80 strong downgrade (abstract entirely missing)
+    //   shortAbstract        0.90 abstract shorter than abstractMinLength.short
+    //   veryShortAbstract    0.95 abstract between short and veryShort thresholds
+    //   missingAuthor        0.95 no author name from any source
+    //   missingYear          0.90 no publication year resolved
+    //
+    // All values must be in (0.0, 1.0]. Value 1.0 = disabled (default).
+    // Combined multiplicatively: missing abstract + missing author = 0.80 * 0.95 = 0.76.
+    // Recommended profiles:
+    //   conservative: ['missingAbstract' => 0.90, 'shortAbstract' => 0.95, 'missingAuthor' => 0.98, 'missingYear' => 0.95]
+    //   moderate:     ['missingAbstract' => 0.80, 'shortAbstract' => 0.90, 'veryShortAbstract' => 0.95, 'missingAuthor' => 0.95, 'missingYear' => 0.90]
+    //   aggressive:   ['missingAbstract' => 0.70, 'shortAbstract' => 0.85, 'veryShortAbstract' => 0.92, 'missingAuthor' => 0.90, 'missingYear' => 0.85]
+    'dataQualityPenalties' => [
+        'missingAbstract' => 1.0,
+        'shortAbstract' => 1.0,
+        'veryShortAbstract' => 1.0,
+        'missingAuthor' => 1.0,
+        'missingYear' => 1.0,
+    ],
+    // Abstract length thresholds (in characters). Used only when dataQualityPenalties
+    // has non-neutral values.
+    'abstractMinLength' => [
+        'short' => 100,
+        'veryShort' => 250,
+    ],
+    // ---------- Publication-type tier scoring (M1B: classifier-based) ----------
+    // Per-tier additive bonus applied after the classifier assigns a canonical tier.
+    // Tier names come from src/utils/pubTypeClassifier.js. The `excluded` tier
+    // causes records to be dropped entirely before sorting (similar to retraction filter).
+    // An empty map ([]) means classifier runs but no tier bonus is applied — safe default.
+    //
+    // Conservative:
+    //   ['guideline_verified' => 30, 'guideline_candidate' => 15,
+    //    'systematic_review_or_meta' => 20, 'randomized_controlled_trial' => 12,
+    //    'editorial_or_letter' => -5]
+    // Moderate:
+    //   ['guideline_verified' => 40, 'guideline_candidate' => 20,
+    //    'systematic_review_or_meta' => 30, 'randomized_controlled_trial' => 18,
+    //    'clinical_trial' => 10, 'review' => 8,
+    //    'book_chapter' => -5, 'dissertation' => -10, 'editorial_or_letter' => -10]
+    // Aggressive:
+    //   ['guideline_verified' => 60, 'guideline_candidate' => 30,
+    //    'systematic_review_or_meta' => 45, 'randomized_controlled_trial' => 25,
+    //    'clinical_trial' => 15, 'review' => 10,
+    //    'book_chapter' => -15, 'dissertation' => -15, 'editorial_or_letter' => -20]
+    'pubTypeTiers' => [],
+    // Curated list of trusted publishers/organisations whose non-PubMed guidelines
+    // and reports should be promoted to the `guideline_verified` or `report_verified` tier.
+    // Actual data lives in data/content/shared/limits.json under `guidelinePublisherAllowList`
+    // and can be overridden per-domain under `rerank.guidelinePublisherAllowList`.
+    // Leave this array empty when the allow-list is managed entirely via limits.json.
+    'guidelinePublisherAllowList' => [],
 ]);
 
 // ============ PubMed Lexical Rescue Configuration ============

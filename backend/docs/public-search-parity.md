@@ -46,7 +46,10 @@ Signaler der indgår i multiplikatoren og bonuserne:
 - `citationImpactMultiplier` — RCR (iCite) → FWCI (OpenAlex) → influentialCitationCount (S2) → citedByCount
 - `authorityMultiplier` — forfatter-h-index og journal 2yr_mean_citedness (default disabled)
 - `retractionMultiplier` — styret af `retractionAction` (`none`/`penalty`/`filter`)
-- `pubTypeBonus`, `recencyBonus`, `oaBonus`, `clinicalBonus`, `topicOverlapBonus` — additive bidrag
+- `dataQualityMultiplier` *(M2)* — nedgraderer records uden abstract/forfatter/årstal via `dataQualityPenalties`
+- `pubTypeTierBonus` *(M2)*, `recencyBonus`, `oaBonus`, `clinicalBonus`, `topicOverlapBonus` — additive bidrag
+
+`pubTypeTierBonus` afhænger af en deterministisk klassifikator (`pubTypeClassifier.js`), som bl.a. læser `guidelinePublisherAllowList` fra `data/content/shared/limits.json` og `QPM_RERANK_CONFIG`. For at opnå parity skal **allow-listen være identisk** i web og public API — ellers vil en record fra fx WHO eller NICE blive klassificeret forskelligt (`guideline_verified` vs. `report_verified`), og `combinedScore` vil afvige.
 
 Se `backend/docs/search-flow-readme.md` og `backend/config/config.example.php` for fulde detaljer om vægte og profilforslag.
 
@@ -78,7 +81,9 @@ Anbefalet paritetscheck:
 Aktivér kun `matchesWebOrdering=true`, når alle disse betingelser er opfyldt:
 
 - webudgaven bruger samme backend-orchestrator som public API'et
-- samme konfiguration bruges begge steder (inkl. `QPM_RERANK_CONFIG` og alle hybride kvalitetssignaler)
+- samme konfiguration bruges begge steder (inkl. `QPM_RERANK_CONFIG`, `pubTypeTiers`, `pubTypeConfidenceCoefficients`, `dataQualityPenalties` og alle hybride kvalitetssignaler)
+- samme `guidelinePublisherAllowList` er deployet til begge (normalt via samme `data/content/shared/limits.json` + `ThemeConfig.php`)
 - samme enrichment-kilder er tilgængelige begge steder (iCite + OpenAlex Authority)
 - samme request-normalisering bruges begge steder
 - LLM-relaterede feature flags er ens
+- samme OpenAlex batch-hydration er aktiv, inkl. `openAlexIds[]`-parameteren i `OpenAlexWorkLookup.php` (vigtigt for `openAlexId`-only guidelines)

@@ -105,11 +105,16 @@ Det her er de smarte dommere vi har tilføjet:
 - Giver flere point til nyere artikler
 - Bruger en halveringstid: hvis halveringstiden er 5 år, giver en artikel fra i år fuld bonus, mens en fra 5 år siden får halv bonus, og en fra 10 år siden får en fjerdedel.
 
-**Artikel-type-dommeren** (pubType)
-- Nogle artikel-typer er mere værd end andre i medicin
-- Systematiske reviews og meta-analyser er "guld-standarden" — de samler viden fra mange studier
-- Randomiserede kliniske forsøg er også stærke
-- Editorials og læserbreve har mindre videnskabelig vægt
+**Artikel-type-dommeren** (pubTypeTier + klassifikator)
+- Hver artikel får en etiket (en "tier") ud fra sine signaler — det gør en lille klassifikator-funktion i baggrunden.
+- Etiketterne er: `guideline_verified` (bekræftet retningslinje), `guideline_candidate` (muligt retningslinje), `systematic_review_or_meta`, `clinical_trial`, `review`, `research_article`, `preprint`, `report_verified`, `book_chapter`, `dissertation`, `other`, eller `excluded` (fx errata som sorteres helt væk).
+- Klassifikatoren bruger flere signaler: hvem udgiveren er (er det WHO, NICE, CDC, Sundhedsstyrelsen?), hvad PubMed/Semantic Scholar kalder artiklen, og hvad OpenAlex kalder "workType". Hvis signalerne peger hver sin vej, giver klassifikatoren en lav `confidence` og dommeren lægger mindre vægt på beslutningen.
+- Nogle artikel-typer er mere værd end andre i medicin: retningslinjer, systematiske reviews og meta-analyser er "guld-standarden". Preprints, dissertationer og bogkapitler får færre point — men de bliver stadig vist, bare længere nede på listen.
+
+**Data-kvalitets-dommeren** (dataQualityMultiplier)
+- Hvis en artikel mangler abstract, forfatter eller årstal, ganger vi totalscoren med et tal under 1 (fx 0.9 eller 0.5). Det er en **nedgradering**, ikke en eksklusion.
+- Det betyder at artikler med mangelfulde data ikke forsvinder helt — de bare synker lidt ned på listen, så de bedste og fyldigst udfyldte artikler kommer først.
+- Den eneste undtagelse: en artikel helt uden titel bliver droppet, fordi vi så ikke har noget at vise.
 
 **Citat-dommeren** (citation impact)
 - Kigger på, hvor populær artiklen er målt mod andre artikler i samme felt (det er vigtigt, så vi ikke straffer nye forskningsområder)
@@ -176,6 +181,16 @@ Slutresultat: 277 * 1.20 = 332.4
 ```
 
 En sammenlignelig editorial uden mange citationer ville måske få 85 point. Derfor står den ene øverst og den anden nederst.
+
+## Del 5b: Retningslinjer uden PMID eller DOI
+
+Før i tiden viste QuickPubMed kun artikler, der havde et PMID eller et DOI. Det betød, at kliniske retningslinjer fra WHO, NICE, CDC og Sundhedsstyrelsen — som ofte udgives som rapporter på deres egne hjemmesider uden at få et DOI — ikke dukkede op.
+
+Det er nu ændret. OpenAlex indekserer mange af de her retningslinjer og giver dem et unikt OpenAlex-id (fx `W2088009199`). Når vores klassifikator genkender, at en sådan record er fra et allow-list-forlag (som WHO eller NICE), mærker den den som `guideline_verified`. Så kommer den med i resultatlisten, får et tydeligt **Retningslinje-badge** i UI'et, og linker til OpenAlex i stedet for PubMed.
+
+Det samme gælder for bogkapitler, dissertationer og andre relevante records uden PMID/DOI. De filtreres ikke væk, men bliver nedgraderet ved sortering (deres tier giver færre eller negative point), så de kun dukker op, hvis der er få bedre alternativer.
+
+Det vigtige: **kvaliteten af resultatet** holdes op ved at vi stiller krav om at der **skal være en titel**. Hvis der ikke er et abstract, viser vi en pæn "ingen abstract"-placeholder i stedet for en tom boks.
 
 ## Del 6: Den sidste justering (valgfri LLM-rerank)
 

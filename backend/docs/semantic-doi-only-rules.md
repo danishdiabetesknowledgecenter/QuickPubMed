@@ -2,9 +2,11 @@
 
 Denne note beskriver, hvordan den semantiske post-validering er bygget op i QuickPubMed, og hvordan nye regler vedligeholdes.
 
+> **Navngivning (M2):** Historisk hed dette lag "DOI-only-regler", fordi de kun var nødvendige for kandidater uden PMID. Fra M2 dækker reglerne også kandidater, der kun har et `openAlexId` — dvs. records hentet fra OpenAlex, som hverken har PMID eller DOI (typisk kliniske retningslinjer fra WHO/NICE/CDC/Sundhedsstyrelsen, bogkapitler, dissertationer og andre rapporter). Regelmotor, regel-format og evaluering er uændrede; det er kun *hvilke* kandidater, der løber gennem laget, som er udvidet.
+
 ## Formål
 
-Den semantiske søgning kan finde kandidater, som ikke kan valideres direkte mod PubMed-hardfilterqueryen. Derfor bruges et separat, konservativt metadataregel-lag til at filtrere ikke-PMID-kandidater, før de vises i hybridresultater.
+Den semantiske søgning kan finde kandidater, som ikke kan valideres direkte mod PubMed-hardfilterqueryen. Derfor bruges et separat, konservativt metadataregel-lag til at filtrere ikke-PMID-kandidater (inklusive `openAlexId`-only records), før de vises i hybridresultater.
 
 Reglerne er bevidst:
 
@@ -47,10 +49,10 @@ Reglerne er bevidst:
 1. Brugeren vælger emner og afgrænsninger.
 2. `SearchForm.vue` samler de valgte items.
 3. `buildActiveSemanticDoiOnlyRuleState()` laver et aktivt regelsæt ud fra `semanticConfig.postValidation.rules`.
-4. Semantiske kilder returnerer kandidater med PMID og/eller DOI.
-5. Ikke-PMID-kandidater vurderes af `semanticRuleEngine.js`.
+4. Semantiske kilder returnerer kandidater med PMID, DOI og/eller `openAlexId`.
+5. Ikke-PMID-kandidater (både DOI-only og `openAlexId`-only) vurderes af `semanticRuleEngine.js`.
 6. Kun kandidater, der matcher de aktive regler, går videre til hybridlisten.
-7. OpenAlex kan stadig bruges som metadataresolver for ikke-PMID-records, selv når `searchWithOpenAlex = false`.
+7. OpenAlex kan stadig bruges som metadataresolver for ikke-PMID-records, selv når `searchWithOpenAlex = false`. Hydration sker via `OpenAlexWorkLookup.php` batch-parameteren `dois[]` eller — for records uden DOI — `openAlexIds[]`.
 
 ## Vigtig produktregel
 
@@ -168,6 +170,8 @@ Eksempler:
 - `openAlexSourceAbbreviatedTitle`
 - `openAlexPrimarySource`
 - `openAlexPubDate`
+- `candidatePubTypeTier` *(M2: tier fra `pubTypeClassifier.js`, fx `guideline_verified`, `systematic_review_or_meta`, `clinical_trial`, `book_chapter`)*
+- `candidatePubTypeConfidence` *(M2: `high`, `medium` eller `low`)*
 
 ## Understøttede metadata-operatorer
 
@@ -217,5 +221,6 @@ Hvis regler opfører sig uventet, så tjek:
 
 - om de valgte limits faktisk har `semanticConfig`
 - om regler i samme `exclusiveGroup` faktisk er tænkt som alternativer (`OR`)
-- om kandidaten er PMID-baseret eller ikke-PMID
+- om kandidaten er PMID-baseret, DOI-only eller `openAlexId`-only (regelmotoren bruger samme kodeflow for de sidste to)
 - om metadatafeltet, du filtrerer på, faktisk findes på kilden
+- for `openAlexId`-only records: om `candidatePubTypeTier` matcher dine forventninger (inspicer snapshot via `buildCandidateSemanticMetadataSnapshot` eller debug-logning)

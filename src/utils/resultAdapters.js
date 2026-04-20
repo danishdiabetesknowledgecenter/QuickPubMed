@@ -9,13 +9,16 @@ export function normalizeDoiValue(value) {
     .trim();
 }
 
-function buildPubMedArticleIds(pmid, doi) {
+function buildPubMedArticleIds(pmid, doi, openAlexId = "") {
   const articleids = [];
   if (pmid) {
     articleids.push({ idtype: "pubmed", value: pmid });
   }
   if (doi) {
     articleids.push({ idtype: "doi", value: doi });
+  }
+  if (openAlexId) {
+    articleids.push({ idtype: "openalex", value: openAlexId });
   }
   return articleids;
 }
@@ -141,7 +144,10 @@ export function mapPubMedSummaryToResultDto(summary) {
   };
 }
 
-export function mapOpenAlexWorkToResultDto(work, { doi = "", openAlexId = "" } = {}) {
+export function mapOpenAlexWorkToResultDto(
+  work,
+  { doi = "", openAlexId = "", pubTypeClassification = null } = {}
+) {
   const safeWork = work && typeof work === "object" ? work : {};
   const sourceObject =
     safeWork?.primary_location?.source && typeof safeWork.primary_location.source === "object"
@@ -153,12 +159,16 @@ export function mapOpenAlexWorkToResultDto(work, { doi = "", openAlexId = "" } =
   const pmid = normalizeStringValue(
     safeWork?.pmid || safeWork?.ids?.pmid || ""
   ).replace(/[^\d]/g, "");
-  const fallbackId = normalizeStringValue(openAlexId || safeWork?.id || normalizedDoi);
+  const resolvedOpenAlexId = normalizeStringValue(safeWork?.id || openAlexId);
+  const fallbackId = resolvedOpenAlexId || normalizedDoi;
   const uid = normalizedDoi ? `doi:${normalizedDoi.toLowerCase()}` : `oa:${fallbackId}`;
   const sourceDisplayName = normalizeStringValue(sourceObject?.display_name || "");
   const sourceAbbreviatedTitle = normalizeStringValue(sourceObject?.abbreviated_title || "");
   const sourceId = normalizeStringValue(sourceObject?.id || "");
   const sourceType = normalizeStringValue(sourceObject?.type || "");
+  const publisher = normalizeStringValue(
+    sourceObject?.host_organization_name || sourceObject?.publisher || ""
+  );
   const source = sourceAbbreviatedTitle || sourceDisplayName;
   const abstract = reconstructOpenAlexAbstract(safeWork?.abstract_inverted_index);
   const publicationDate = normalizeStringValue(safeWork?.publication_date || "");
@@ -167,6 +177,18 @@ export function mapOpenAlexWorkToResultDto(work, { doi = "", openAlexId = "" } =
   const lastPage = normalizeStringValue(safeWork?.biblio?.last_page || "");
   const pages =
     firstPage && lastPage ? `${firstPage}-${lastPage}` : firstPage || lastPage || "";
+  const language = normalizeStringValue(safeWork?.language || "");
+  const workType = normalizeStringValue(safeWork?.type || safeWork?.type_crossref || "");
+  const normalizedClassification =
+    pubTypeClassification && typeof pubTypeClassification === "object"
+      ? {
+          tier: normalizeStringValue(pubTypeClassification.tier || ""),
+          confidence: normalizeStringValue(pubTypeClassification.confidence || ""),
+          signals: Array.isArray(pubTypeClassification.signals)
+            ? pubTypeClassification.signals.map((entry) => String(entry || ""))
+            : [],
+        }
+      : null;
 
   return {
     id: uid,
@@ -185,14 +207,14 @@ export function mapOpenAlexWorkToResultDto(work, { doi = "", openAlexId = "" } =
     pages,
     abstract,
     hasAbstract: abstract !== "",
-    pubType: "",
-    pubtype: [],
-    docType: "",
-    doctype: "",
+    pubType: workType,
+    pubtype: workType ? [workType] : [],
+    docType: workType,
+    doctype: workType,
     booktitle: "",
     vernaculartitle: "",
     history: [],
-    articleids: buildPubMedArticleIds(pmid, normalizedDoi),
+    articleids: buildPubMedArticleIds(pmid, normalizedDoi, resolvedOpenAlexId),
     attributes: abstract !== "" ? { "Has Abstract": "Has Abstract" } : {},
     originSource: "openAlex",
     isPubMedNative: false,
@@ -211,10 +233,13 @@ export function mapOpenAlexWorkToResultDto(work, { doi = "", openAlexId = "" } =
       secondarySignals: {},
       candidateSignal: null,
     },
-    openAlexId: normalizeStringValue(safeWork?.id || openAlexId),
+    openAlexId: resolvedOpenAlexId,
     sourceId,
     sourceType,
     sourceDisplayName,
     sourceAbbreviatedTitle,
+    publisher,
+    language,
+    pubTypeClassification: normalizedClassification,
   };
 }

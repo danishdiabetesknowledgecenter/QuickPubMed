@@ -105,9 +105,37 @@ function normalizeOpenAlexSourceFilterConfig(input) {
   };
 }
 
+function coerceFiniteInteger(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isInteger(parsed) ? parsed : null;
+}
+
+function coerceBoolean(value) {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value !== 0;
+  const normalized = String(value).trim().toLowerCase();
+  if (["true", "yes", "1", "on"].includes(normalized)) return true;
+  if (["false", "no", "0", "off"].includes(normalized)) return false;
+  return null;
+}
+
+function coerceElicitRetracted(value) {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, "");
+  if (!normalized) return "";
+  if (normalized === "excluderetracted" || normalized === "exclude") return "exclude_retracted";
+  if (normalized === "includeretracted" || normalized === "include") return "include_retracted";
+  if (normalized === "onlyretracted" || normalized === "only") return "only_retracted";
+  return "";
+}
+
 function normalizeElicitSourceFilterConfig(input) {
   const safeInput = input && typeof input === "object" ? input : {};
-  return {
+  const output = {
     typeTags: dedupeStrings(Array.isArray(safeInput.typeTags) ? safeInput.typeTags : []),
     includeKeywords: dedupeStrings(
       Array.isArray(safeInput.includeKeywords) ? safeInput.includeKeywords : []
@@ -116,6 +144,23 @@ function normalizeElicitSourceFilterConfig(input) {
       Array.isArray(safeInput.excludeKeywords) ? safeInput.excludeKeywords : []
     ),
   };
+  const minYear = coerceFiniteInteger(safeInput.minYear);
+  if (minYear !== null) output.minYear = minYear;
+  const maxYear = coerceFiniteInteger(safeInput.maxYear);
+  if (maxYear !== null) output.maxYear = maxYear;
+  const minEpochS = coerceFiniteInteger(safeInput.minEpochS);
+  if (minEpochS !== null) output.minEpochS = minEpochS;
+  const maxEpochS = coerceFiniteInteger(safeInput.maxEpochS);
+  if (maxEpochS !== null) output.maxEpochS = maxEpochS;
+  const maxQuartile = coerceFiniteInteger(safeInput.maxQuartile);
+  if (maxQuartile !== null) output.maxQuartile = maxQuartile;
+  const hasPdf = coerceBoolean(safeInput.hasPdf);
+  if (hasPdf !== null) output.hasPdf = hasPdf;
+  const pubmedOnly = coerceBoolean(safeInput.pubmedOnly);
+  if (pubmedOnly !== null) output.pubmedOnly = pubmedOnly;
+  const retracted = coerceElicitRetracted(safeInput.retracted);
+  if (retracted) output.retracted = retracted;
+  return output;
 }
 
 function normalizeSemanticScholarSourceFilterConfig(input) {
@@ -152,6 +197,14 @@ function collectSourceFilters(items) {
   const elicitTypeTags = [];
   const elicitIncludeKeywords = [];
   const elicitExcludeKeywords = [];
+  const elicitMinYears = [];
+  const elicitMaxYears = [];
+  const elicitMinEpochS = [];
+  const elicitMaxEpochS = [];
+  const elicitMaxQuartiles = [];
+  const elicitHasPdfValues = [];
+  const elicitPubmedOnlyValues = [];
+  const elicitRetractedValues = [];
 
   (Array.isArray(items) ? items : []).forEach((item) => {
     const itemSourceFilters = getItemSourceFilters(item);
@@ -176,6 +229,14 @@ function collectSourceFilters(items) {
     elicitTypeTags.push(...elicitFilters.typeTags);
     elicitIncludeKeywords.push(...elicitFilters.includeKeywords);
     elicitExcludeKeywords.push(...elicitFilters.excludeKeywords);
+    if (Number.isInteger(elicitFilters.minYear)) elicitMinYears.push(elicitFilters.minYear);
+    if (Number.isInteger(elicitFilters.maxYear)) elicitMaxYears.push(elicitFilters.maxYear);
+    if (Number.isInteger(elicitFilters.minEpochS)) elicitMinEpochS.push(elicitFilters.minEpochS);
+    if (Number.isInteger(elicitFilters.maxEpochS)) elicitMaxEpochS.push(elicitFilters.maxEpochS);
+    if (Number.isInteger(elicitFilters.maxQuartile)) elicitMaxQuartiles.push(elicitFilters.maxQuartile);
+    if (typeof elicitFilters.hasPdf === "boolean") elicitHasPdfValues.push(elicitFilters.hasPdf);
+    if (typeof elicitFilters.pubmedOnly === "boolean") elicitPubmedOnlyValues.push(elicitFilters.pubmedOnly);
+    if (elicitFilters.retracted) elicitRetractedValues.push(elicitFilters.retracted);
   });
   const dedupedSemanticScholarYears = dedupeStrings(semanticScholarYears);
   const dedupedSemanticScholarPublicationDateOrYears = dedupeStrings(
@@ -203,6 +264,33 @@ function collectSourceFilters(items) {
     includeKeywords: dedupeStrings(elicitIncludeKeywords),
     excludeKeywords: dedupeStrings(elicitExcludeKeywords),
   };
+  if (elicitMinYears.length > 0) {
+    elicit.minYear = Math.max(...elicitMinYears);
+  }
+  if (elicitMaxYears.length > 0) {
+    elicit.maxYear = Math.min(...elicitMaxYears);
+  }
+  if (elicitMinEpochS.length > 0) {
+    elicit.minEpochS = Math.max(...elicitMinEpochS);
+  }
+  if (elicitMaxEpochS.length > 0) {
+    elicit.maxEpochS = Math.min(...elicitMaxEpochS);
+  }
+  if (elicitMaxQuartiles.length > 0) {
+    elicit.maxQuartile = Math.min(...elicitMaxQuartiles);
+  }
+  if (elicitHasPdfValues.length > 0) {
+    elicit.hasPdf = elicitHasPdfValues.every(Boolean);
+  }
+  if (elicitPubmedOnlyValues.length > 0) {
+    elicit.pubmedOnly = elicitPubmedOnlyValues.every(Boolean);
+  }
+  if (elicitRetractedValues.length > 0) {
+    const priority = { only_retracted: 3, include_retracted: 2, exclude_retracted: 1 };
+    elicit.retracted = elicitRetractedValues.reduce((best, current) =>
+      (priority[current] || 0) > (priority[best] || 0) ? current : best
+    );
+  }
 
   const sourceFilters = {};
   if (
@@ -220,10 +308,21 @@ function collectSourceFilters(items) {
   ) {
     sourceFilters.openAlex = openAlex;
   }
+  const elicitHasScalarField = [
+    "minYear",
+    "maxYear",
+    "minEpochS",
+    "maxEpochS",
+    "maxQuartile",
+    "hasPdf",
+    "pubmedOnly",
+    "retracted",
+  ].some((key) => key in elicit);
   if (
     elicit.typeTags.length > 0 ||
     elicit.includeKeywords.length > 0 ||
-    elicit.excludeKeywords.length > 0
+    elicit.excludeKeywords.length > 0 ||
+    elicitHasScalarField
   ) {
     sourceFilters.elicit = elicit;
   }

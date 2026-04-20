@@ -1750,10 +1750,7 @@
         if (input) {
           input.removeEventListener("keyup", this.handleSearchInput);
           input.addEventListener("keyup", this.handleSearchInput);
-          if (!String(input.value || "").trim()) {
-            // Hide what needs to be hidden only if groups and only if we are not currently doing a search
-            this.showOrHideElements();
-          }
+          this.syncGroupedSearchVisibility(input.value);
         }
 
         const labels = element.getElementsByClassName("multiselect__tag");
@@ -1863,6 +1860,7 @@
         
         // Update aria-expanded directly on DOM
         this.$nextTick(() => {
+          this.syncGroupedSearchVisibility();
           this.updateAriaExpanded();
         });
       },
@@ -1892,6 +1890,7 @@
         
         // Update aria-expanded directly on DOM
         this.$nextTick(() => {
+          this.syncGroupedSearchVisibility();
           this.updateAriaExpanded();
         });
       },
@@ -1975,6 +1974,29 @@
        */
       getFilterVisibleIndices() {
         return this.getVisibleIndices();
+      },
+      syncGroupedSearchVisibility(rawValue = null) {
+        if (!this.isGroup) return;
+        const element = this.$refs.selectWrapper;
+        if (!element) return;
+
+        const searchValue =
+          rawValue ??
+          this.$refs.multiselect?.$refs?.search?.value ??
+          this.$el?.querySelector(".multiselect__input")?.value ??
+          "";
+        const hasMeaningfulSearch = String(searchValue || "").trim().length > 0;
+
+        if (hasMeaningfulSearch) {
+          const entries = element.querySelectorAll(".multiselect__element.qpm_shown");
+          entries.forEach((entry) => {
+            this.showElement(entry);
+          });
+          return;
+        }
+
+        this.showOrHideElements();
+        this.updateExpandedGroupHighlighting();
       },
       showOrHideElements() {
         const element = this.$refs.selectWrapper;
@@ -2102,7 +2124,7 @@
        */
       showElementsByDepths(depths, optionsInGroupIds) {
         depths.forEach((depth) => {
-          const depthElements = document.querySelectorAll(`span[option-id="${depth}"]`);
+          const depthElements = document.querySelectorAll(`span[option-depth="${depth}"]`);
           depthElements.forEach((element) => {
             const optionId = element.getAttribute("option-id");
             if (optionsInGroupIds.has(optionId)) {
@@ -2409,22 +2431,40 @@
           return;
         }
         const targetLabel = target.textContent.trim();
-        const optionGroupName = this.getOptionGroupName(this.data, targetLabel, this.language);
+        let optionGroupName = this.getOptionGroupName(this.data, targetLabel, this.language);
+        let optionGroupId = this.getOptionGroupId(optionGroupName);
 
-        const optionGroupId = this.getOptionGroupId(optionGroupName);
+        if (!optionGroupName && !optionGroupId) {
+          const selectedOptionsList = Array.isArray(this.selected) ? this.selected.filter(Boolean) : [];
+          const cleanedTargetLabel = this.cleanLabel(targetLabel);
+          const fallbackSelectedOption =
+            selectedOptionsList.find(
+              (option) => this.cleanLabel(this.customNameLabel(option)) === cleanedTargetLabel
+            ) ||
+            selectedOptionsList[0] ||
+            null;
+          const fallbackGroup = this.data.find((group) => {
+            const groupPropertyName = this.getGroupPropertyName(group);
+            const items = groupPropertyName ? group[groupPropertyName] : [];
+            return (
+              Array.isArray(items) &&
+              fallbackSelectedOption?.id &&
+              items.some((entry) => entry?.id === fallbackSelectedOption.id)
+            );
+          });
+
+          if (fallbackGroup) {
+            optionGroupName = this.customGroupLabel(fallbackGroup);
+            optionGroupId = fallbackGroup.id;
+            this.expandedOptionGroupName = optionGroupName;
+          }
+        }
+
         const selectedOptions = this.getSelectedOptionsByOptionGroupId(optionGroupId);
 
         const selectedOptionIds = selectedOptions.map((o) => o.id);
         // Use the ID-based lookup (groupname matches the raw ID, not the display name)
         const optionsInOptionGroup = this.getOptionsFromOptionsGroupName(optionGroupId || optionGroupName);
-
-        if (!optionGroupName && !optionGroupId) {
-          const filterCategoryId = this.selected[0]?.id?.substring(0, 3);
-          const optionsInOptionGroupFilters = this.getOptionsFromOptionsGroupName(filterCategoryId);
-
-          const filterIds = this.selected.map((option) => option.id);
-          this.updateOptionGroupVisibility(filterIds, optionsInOptionGroupFilters);
-        }
 
         if (selectedOptionIds.length <= 0) {
           this.showOrHideElements();
@@ -2476,18 +2516,8 @@
       handleSearchInput(event) {
         if (!this.isGroup) return;
         const target = event.target;
-        const element = this.$refs.selectWrapper;
-        const hasMeaningfulSearch = String(target.value || "").trim().length > 0;
-
-        if (hasMeaningfulSearch) {
-          //search input, save current state of shown element, and show all elements
-          const entries = element.querySelectorAll(".multiselect__element.qpm_shown");
-          for (let i = 0; i < entries.length; i++) {
-            this.showElement(entries[i]);
-          }
-        } else {
-          //restore current state of shown elements
-          this.showOrHideElements();
+        this.syncGroupedSearchVisibility(target.value);
+        if (!String(target.value || "").trim()) {
           this.initialSetup();
         }
 
@@ -2536,6 +2566,8 @@
           // When there is no text, use placeholder-based width
           this.setWidthToPlaceholderWidth(event.target);
         }
+
+        this.syncGroupedSearchVisibility(event.target.value);
       },
       handleStopEnterOnGroups(event) {
         // Keep pointer in bounds when typing reduces filteredOptions
@@ -4950,6 +4982,50 @@
           (value) => value
         );
       },
+      mapHardFiltersToElicitExtras(hardFilters = {}, now = new Date()) {
+        const extras = {};
+        const configuredYears = Array.isArray(hardFilters?.publicationDateYears)
+          ? hardFilters.publicationDateYears.filter((value) => Number.isInteger(value) && value > 0)
+          : [];
+        if (configuredYears.length > 0) {
+          const narrowest = configuredYears[0];
+          const currentYear = (now instanceof Date ? now : new Date()).getFullYear();
+          const minYear = currentYear - narrowest + 1;
+          if (minYear >= 1800 && minYear <= 2100) {
+            extras.minYear = minYear;
+          }
+        }
+        return extras;
+      },
+      normalizeElicitBooleanValue(value) {
+        if (value === null || value === undefined || value === "") return null;
+        if (typeof value === "boolean") return value;
+        if (typeof value === "number") return value !== 0;
+        const normalized = String(value).trim().toLowerCase();
+        if (["true", "yes", "1", "on"].includes(normalized)) return true;
+        if (["false", "no", "0", "off"].includes(normalized)) return false;
+        return null;
+      },
+      normalizeElicitYearValue(value) {
+        if (value === null || value === undefined || value === "") return null;
+        const year = Number.parseInt(value, 10);
+        if (!Number.isInteger(year) || year < 1800 || year > 2100) return null;
+        return year;
+      },
+      normalizeElicitQuartileValue(value) {
+        if (value === null || value === undefined || value === "") return null;
+        const quartile = Number.parseInt(value, 10);
+        if (!Number.isInteger(quartile) || quartile < 1 || quartile > 4) return null;
+        return quartile;
+      },
+      normalizeElicitRetractedValue(value) {
+        const normalized = String(value || "").trim().toLowerCase().replace(/[\s_-]+/g, "");
+        if (!normalized) return "";
+        if (normalized === "excluderetracted" || normalized === "exclude") return "exclude_retracted";
+        if (normalized === "includeretracted" || normalized === "include") return "include_retracted";
+        if (normalized === "onlyretracted" || normalized === "only") return "only_retracted";
+        return "";
+      },
       buildElicitFallbackQuery(value) {
         const normalized = this.normalizeSemanticQueryText(value);
         if (!normalized) return "";
@@ -5117,6 +5193,24 @@
           ),
           (value) => value
         );
+        const fallbackElicitExtras = this.mapHardFiltersToElicitExtras(hardFilters);
+        const elicitMinYear =
+          this.normalizeElicitYearValue(payloadElicitFilters.minYear) ??
+          this.normalizeElicitYearValue(fallbackElicitExtras.minYear);
+        const elicitMaxYear = this.normalizeElicitYearValue(payloadElicitFilters.maxYear);
+        const elicitMinEpochS =
+          Number.parseInt(payloadElicitFilters.minEpochS, 10) > 0
+            ? Number.parseInt(payloadElicitFilters.minEpochS, 10)
+            : null;
+        const elicitMaxEpochS =
+          Number.parseInt(payloadElicitFilters.maxEpochS, 10) > 0
+            ? Number.parseInt(payloadElicitFilters.maxEpochS, 10)
+            : null;
+        const elicitMaxQuartile = this.normalizeElicitQuartileValue(payloadElicitFilters.maxQuartile);
+        const elicitHasPdf = this.normalizeElicitBooleanValue(payloadElicitFilters.hasPdf);
+        const elicitPubmedOnly = this.normalizeElicitBooleanValue(payloadElicitFilters.pubmedOnly);
+        const elicitRetracted =
+          this.normalizeElicitRetractedValue(payloadElicitFilters.retracted) || "exclude_retracted";
         return {
           semanticScholar: {
             query: semanticScholarQuery,
@@ -5163,6 +5257,14 @@
                 ],
                 (value) => String(value || "").trim()
               ),
+              ...(elicitMinYear !== null ? { minYear: elicitMinYear } : {}),
+              ...(elicitMaxYear !== null ? { maxYear: elicitMaxYear } : {}),
+              ...(elicitMinEpochS !== null ? { minEpochS: elicitMinEpochS } : {}),
+              ...(elicitMaxEpochS !== null ? { maxEpochS: elicitMaxEpochS } : {}),
+              ...(elicitMaxQuartile !== null ? { maxQuartile: elicitMaxQuartile } : {}),
+              ...(elicitHasPdf !== null ? { hasPdf: elicitHasPdf } : {}),
+              ...(elicitPubmedOnly !== null ? { pubmedOnly: elicitPubmedOnly } : {}),
+              retracted: elicitRetracted,
             },
           },
         };
@@ -6872,25 +6974,38 @@
       buildElicitRequestRetryAttempt(requestPayload, requestField = "") {
         const normalizedField = String(requestField || "").trim();
         if (!normalizedField) return null;
+        const arrayFields = new Set(["typeTags", "includeKeywords", "excludeKeywords"]);
+        const scalarFields = new Set([
+          "minYear",
+          "maxYear",
+          "minEpochS",
+          "maxEpochS",
+          "maxQuartile",
+          "hasPdf",
+          "pubmedOnly",
+          "retracted",
+        ]);
+        if (!arrayFields.has(normalizedField) && !scalarFields.has(normalizedField)) {
+          return null;
+        }
         const nextFilters =
           requestPayload?.filters && typeof requestPayload.filters === "object"
             ? { ...requestPayload.filters }
             : {};
-        if (normalizedField === "typeTags") {
-          nextFilters.typeTags = [];
-        } else if (normalizedField === "includeKeywords") {
-          nextFilters.includeKeywords = [];
-        } else if (normalizedField === "excludeKeywords") {
-          nextFilters.excludeKeywords = [];
+        if (arrayFields.has(normalizedField)) {
+          nextFilters[normalizedField] = [];
         } else {
-          return null;
+          delete nextFilters[normalizedField];
         }
         const nextPayload = {
           ...requestPayload,
           filters: Object.fromEntries(
-            Object.entries(nextFilters).filter(
-              ([, value]) => Array.isArray(value) ? value.length > 0 : !!String(value || "").trim()
-            )
+            Object.entries(nextFilters).filter(([, value]) => {
+              if (Array.isArray(value)) return value.length > 0;
+              if (typeof value === "boolean") return true;
+              if (typeof value === "number") return Number.isFinite(value);
+              return !!String(value || "").trim();
+            })
           ),
         };
         if (Object.keys(nextPayload.filters).length === 0) {
@@ -7391,6 +7506,40 @@
             (value) => String(value || "").trim()
           ),
         };
+        const scalarFilterSpecs = [
+          { key: "minYear", normalize: (value) => this.normalizeElicitYearValue(value) },
+          { key: "maxYear", normalize: (value) => this.normalizeElicitYearValue(value) },
+          {
+            key: "minEpochS",
+            normalize: (value) => {
+              const parsed = Number.parseInt(value, 10);
+              return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+            },
+          },
+          {
+            key: "maxEpochS",
+            normalize: (value) => {
+              const parsed = Number.parseInt(value, 10);
+              return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+            },
+          },
+          { key: "maxQuartile", normalize: (value) => this.normalizeElicitQuartileValue(value) },
+          { key: "hasPdf", normalize: (value) => this.normalizeElicitBooleanValue(value) },
+          { key: "pubmedOnly", normalize: (value) => this.normalizeElicitBooleanValue(value) },
+          {
+            key: "retracted",
+            normalize: (value) => {
+              const resolved = this.normalizeElicitRetractedValue(value);
+              return resolved || null;
+            },
+          },
+        ];
+        scalarFilterSpecs.forEach(({ key, normalize }) => {
+          if (!(key in filters)) return;
+          const resolved = normalize(filters[key]);
+          if (resolved === null || resolved === undefined) return;
+          normalizedFilters[key] = resolved;
+        });
         const cacheKey = this.buildSemanticSourceCacheKey("elicit", {
           query: requestQuery,
           limit: requestLimit,
@@ -7423,11 +7572,31 @@
         this.publishElicitRateLimitInfo(payload?.rateLimit || null);
         const hintedRetryFields = this.getRequestRetryHintFields(
           payload,
-          ["typeTags", "includeKeywords", "excludeKeywords"],
+          [
+            "typeTags",
+            "includeKeywords",
+            "excludeKeywords",
+            "minYear",
+            "maxYear",
+            "minEpochS",
+            "maxEpochS",
+            "maxQuartile",
+            "hasPdf",
+            "pubmedOnly",
+            "retracted",
+          ],
           {
             typeTags: normalizedFilters.typeTags.length > 0,
             includeKeywords: normalizedFilters.includeKeywords.length > 0,
             excludeKeywords: normalizedFilters.excludeKeywords.length > 0,
+            minYear: "minYear" in normalizedFilters,
+            maxYear: "maxYear" in normalizedFilters,
+            minEpochS: "minEpochS" in normalizedFilters,
+            maxEpochS: "maxEpochS" in normalizedFilters,
+            maxQuartile: "maxQuartile" in normalizedFilters,
+            hasPdf: "hasPdf" in normalizedFilters,
+            pubmedOnly: "pubmedOnly" in normalizedFilters,
+            retracted: "retracted" in normalizedFilters,
           }
         );
         let disabledRequestFields = [];

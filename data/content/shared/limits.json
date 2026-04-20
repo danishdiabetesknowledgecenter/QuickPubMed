@@ -1,4 +1,112 @@
 {
+    "guidelinePublisherAllowList": [
+        {
+            "name": "World Health Organization",
+            "aliases": ["World Health Organization", "WHO", "Organisation mondiale de la sante"],
+            "openAlexInstitutionId": "I1313342732"
+        },
+        {
+            "name": "Centers for Disease Control and Prevention",
+            "aliases": ["Centers for Disease Control and Prevention", "CDC", "U.S. Centers for Disease Control and Prevention"],
+            "openAlexInstitutionId": "I1343295191"
+        },
+        {
+            "name": "National Institute for Health and Care Excellence",
+            "aliases": ["National Institute for Health and Care Excellence", "NICE", "National Institute for Health and Clinical Excellence"]
+        },
+        {
+            "name": "European Centre for Disease Prevention and Control",
+            "aliases": ["European Centre for Disease Prevention and Control", "ECDC"]
+        },
+        {
+            "name": "International Agency for Research on Cancer",
+            "aliases": ["International Agency for Research on Cancer", "IARC"]
+        },
+        {
+            "name": "Cochrane Collaboration",
+            "aliases": ["Cochrane Collaboration", "Cochrane", "The Cochrane Collaboration"]
+        },
+        {
+            "name": "Sundhedsstyrelsen",
+            "aliases": ["Sundhedsstyrelsen", "Danish Health Authority", "Danish Health and Medicines Authority"]
+        },
+        {
+            "name": "Statens Serum Institut",
+            "aliases": ["Statens Serum Institut", "SSI", "Statens Serum Institute"]
+        },
+        {
+            "name": "Center for Kliniske Retningslinjer",
+            "aliases": ["Center for Kliniske Retningslinjer", "CFKR"]
+        },
+        {
+            "name": "Danske Regioner",
+            "aliases": ["Danske Regioner", "Danish Regions"]
+        },
+        {
+            "name": "Dansk Selskab for Almen Medicin",
+            "aliases": ["Dansk Selskab for Almen Medicin", "DSAM"]
+        },
+        {
+            "name": "American Heart Association",
+            "aliases": ["American Heart Association", "AHA"]
+        },
+        {
+            "name": "American Diabetes Association",
+            "aliases": ["American Diabetes Association", "ADA"]
+        },
+        {
+            "name": "American College of Physicians",
+            "aliases": ["American College of Physicians", "ACP"]
+        },
+        {
+            "name": "American Academy of Pediatrics",
+            "aliases": ["American Academy of Pediatrics", "AAP"]
+        },
+        {
+            "name": "American Psychiatric Association",
+            "aliases": ["American Psychiatric Association", "APA"]
+        },
+        {
+            "name": "European Society of Cardiology",
+            "aliases": ["European Society of Cardiology", "ESC"]
+        },
+        {
+            "name": "European Respiratory Society",
+            "aliases": ["European Respiratory Society", "ERS"]
+        },
+        {
+            "name": "European Association for the Study of Diabetes",
+            "aliases": ["European Association for the Study of Diabetes", "EASD"]
+        },
+        {
+            "name": "European Society for Medical Oncology",
+            "aliases": ["European Society for Medical Oncology", "ESMO"]
+        },
+        {
+            "name": "European Academy of Neurology",
+            "aliases": ["European Academy of Neurology", "EAN"]
+        },
+        {
+            "name": "Royal College of Physicians",
+            "aliases": ["Royal College of Physicians", "RCP"]
+        },
+        {
+            "name": "Royal College of General Practitioners",
+            "aliases": ["Royal College of General Practitioners", "RCGP"]
+        },
+        {
+            "name": "National Comprehensive Cancer Network",
+            "aliases": ["National Comprehensive Cancer Network", "NCCN"]
+        },
+        {
+            "name": "Endocrine Society",
+            "aliases": ["Endocrine Society", "The Endocrine Society"]
+        },
+        {
+            "name": "Infectious Diseases Society of America",
+            "aliases": ["Infectious Diseases Society of America", "IDSA"]
+        }
+    ],
     "limits": [
         {
             "id": "L000",
@@ -627,8 +735,8 @@
                         ]
                     },
                     "searchStringComment": {
-                        "dk": "Kun guidelines, der er udgivet i videnskabelige tidsskrifter, kan findes via PubMed. Guidelines, som er udgivet andre steder, vises ikke.",
-                        "en": "Only guidelines published in scientific journals can be found via PubMed. Guidelines published elsewhere are not shown."
+                        "dk": "I PubMed-søgninger matcher dette filter publikationstypen 'Guideline'. I semantisk søgning inkluderes også guidelines fra allow-list-udgivere (fx WHO, NICE, CDC, Sundhedsstyrelsen), selvom de ikke er indekseret i PubMed.",
+                        "en": "In PubMed searches this filter matches the publication type 'Guideline'. In semantic search, guidelines from allow-list publishers (e.g. WHO, NICE, CDC, Sundhedsstyrelsen) are also included even if not indexed in PubMed."
                     },
                     "semanticConfig": {
                         "postValidation": {
@@ -665,6 +773,14 @@
                                                 "guideline",
                                                 "practice guideline"
                                             ]
+                                        },
+                                        {
+                                            "field": "candidatePubTypeTier",
+                                            "operator": "includesAny",
+                                            "values": [
+                                                "guideline_verified",
+                                                "guideline_candidate"
+                                            ]
                                         }
                                     ]
                                 }
@@ -677,12 +793,16 @@
                             "publicationType": [
                                 "guideline",
                                 "practice guideline"
+                            ],
+                            "pubTypeTier": [
+                                "guideline_verified",
+                                "guideline_candidate"
                             ]
                         }
                     },
                     "tooltip": {
-                        "dk": "Kun guidelines, der er udgivet i videnskabelige tidsskrifter, kan findes via PubMed. Guidelines, som er udgivet andre steder, vises ikke.",
-                        "en": "Only guidelines published in scientific journals can be found via PubMed. Guidelines published elsewhere are not shown."
+                        "dk": "Viser guidelines fra PubMed (publikationstype Guideline) samt guidelines fra kuraterede udgivere (fx WHO, NICE, CDC, Sundhedsstyrelsen) i semantisk søgning.",
+                        "en": "Shows guidelines from PubMed (publication type Guideline) plus guidelines from curated publishers (e.g. WHO, NICE, CDC, Sundhedsstyrelsen) in semantic search."
                     },
                     "children": []
                 },
@@ -2760,6 +2880,13 @@
                     "searchStringComment": {
                         "dk": "",
                         "en": ""
+                    },
+                    "semanticConfig": {
+                        "sourceFilters": {
+                            "elicit": {
+                                "hasPdf": true
+                            }
+                        }
                     },
                     "tooltip": {
                         "dk": "",

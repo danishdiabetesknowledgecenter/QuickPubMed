@@ -233,6 +233,63 @@ Med `QPM_SEMANTIC_LLM_RERANK_CONFIG.enabled=true` og en semantisk case:
 
 Bestået når `candidates[*]` rummer de berigede felter (`fwci`, `rcr`, `citationCount`, `isRetracted`, `isClinical`, `pubTypes`, `venue`, `year`) når data er tilgængelige, og LLM'ens respons stadig er en gyldig permutation af alle ids.
 
+## Non-DOI records og guidelines
+
+Dette afsnit dækker det nye (M2) lag, hvor søgningen også inkluderer records uden DOI/PMID — særligt kliniske retningslinjer fra allow-list-forlag. Brug som smoke-test efter ændringer i:
+
+- `data/content/shared/limits.json` (`guidelinePublisherAllowList`, `L010040 Guidelines`)
+- `backend/api/OpenAlexSearch.php` (drop-logik og abstract-rekonstruktion)
+- `src/utils/pubTypeClassifier.js`
+- `src/utils/resultAdapters.js` (`mapOpenAlexWorkToResultDto`)
+- `src/components/ResultEntry.vue` (type-badge og OpenAlex-link)
+- `src/components/SearchForm.vue` (`buildHybridOrderedResultRefs`, `fetchOpenAlexWorksByCandidates`, `getSemanticSortedHydratedResults`)
+
+### Canary-scripts (ikke-netværk)
+
+Kør `node scripts/verify-pubtype-classifier.js` og `node scripts/verify-rerank-parity.js`.
+
+Bestået når begge scripts afslutter med exit-kode 0 og printer "passed". Parity-scriptet kører nu også disse canary-scenarier:
+
+- `canary-diabetes-guidelines`: en ADA-retningslinje (kun `openAlexId`) placeres øverst, foran en RCT og et preprint om diabetes.
+- `canary-covid-clinical-practice`: WHO-retningslinje først, systematisk review/meta-analyse i midten, kohortestudie sidst.
+- `canary-dementia-care`: NICE-retningslinje først, bogkapitel og dissertation kommer stadig med (nedgraderet men ikke filtreret).
+- `canary-cgm-accuracy-research`: et almindeligt research-article om CGM-præcision slår en industrirapport uden abstract/årstal — bekræfter at allow-list-bonus ikke utilsigtet løfter lav-kvalitets-reports for forskningsspørgsmål.
+
+### Live-canary via UI
+
+For hver canary-query (`type 2 diabetes guidelines`, `covid-19 clinical practice guideline`, `dementia care guideline`, `continuous glucose monitoring accuracy`):
+
+1. Åbn case 2 (OpenAlex-kildevalg) med den relevante topic.
+2. Kør søgning og aktivér `debugSearchFlow=true`.
+
+Bestået når:
+
+- For de tre guideline-queries rankes mindst én record i top-5, som har `pubTypeClassification.tier=guideline_verified` og et synligt `Retningslinje`-badge i UI'et.
+- For CGM-queryen er top-5 domineret af `research_article`- eller `systematic_review_or_meta`-badges og ingen lav-kvalitets-rapport uden abstract stiger over en rigtig RCT.
+- Console logger `04b Enrichment` → `04c Classification` → `05 Merge and rerank`.
+- `diagnostics.enrichmentSummary.byPubTypeTier.guideline_verified > 0` på guideline-queries (inspicer via `__qpmDebug__.lastSemanticSummary`).
+
+### Display af openAlexId-only records
+
+1. Find en guideline uden PMID/DOI i en guideline-case.
+2. Verificér i UI:
+
+Bestået når:
+
+- Titel og abstract vises korrekt. Hvis abstract mangler, vises `noAbstract`-placeholderen i stedet for en tom boks.
+- Under abstractet vises linket `Se i OpenAlex` (ikke `Åbn i PubMed`).
+- Under titlen vises et farvet type-badge (fx `Retningslinje`, `Bogkapitel`, `Preprint`) — kun når tier ikke er `research_article`.
+- Hydration sker via `POST OpenAlexWorkLookup.php` med `openAlexIds[]` i request body (verificér i netværksfanen).
+
+### Konfigurations-mismatch mellem web og public API
+
+Kør `php scripts/qpm-public-diff.php --topic='dementia care guideline'` (eller tilsvarende stand-alone-script).
+
+Bestået når `matchesWebOrdering=true`, og når både web og public API har læst samme `guidelinePublisherAllowList` fra `limits.json`. Hvis `matchesWebOrdering=false`:
+
+- Kontroller at `limits.json` er deployet til både frontend og public backend.
+- Kontroller at `ThemeConfig.php` eksponerer samme `pubTypeTiers` og `guidelinePublisherAllowList` til begge.
+
 ## Hvis en case fejler
 
 Start med at sammenholde fejlen med disse docs:

@@ -26,6 +26,26 @@ function qpmNormalizeOpenAlexLookupDoi($value): string
     return trim((string) $doi);
 }
 
+/**
+ * Normalize an OpenAlex work ID to the short form (e.g. W2088009199).
+ *
+ * @param mixed $value
+ * @return string
+ */
+function qpmNormalizeOpenAlexLookupId($value): string
+{
+    $id = trim((string) $value);
+    if ($id === '') {
+        return '';
+    }
+    $id = preg_replace('~^https?://openalex\.org/~i', '', $id);
+    $id = trim((string) $id);
+    if (preg_match('/^W[0-9]+$/i', $id)) {
+        return strtoupper($id);
+    }
+    return '';
+}
+
 function qpmIsLocalOpenAlexLookupRequest(): bool
 {
     $requestHost = strtolower((string)($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
@@ -202,13 +222,16 @@ $doisInput = $params['dois'] ?? [];
 $dois = is_array($doisInput) ? $doisInput : ($doisInput !== '' ? [$doisInput] : []);
 $normalizedDois = array_values(array_unique(array_filter(array_map('qpmNormalizeOpenAlexLookupDoi', $dois))));
 $openAlexId = trim((string) ($params['openAlexId'] ?? ''));
+$openAlexIdsInput = $params['openAlexIds'] ?? [];
+$openAlexIds = is_array($openAlexIdsInput) ? $openAlexIdsInput : ($openAlexIdsInput !== '' ? [$openAlexIdsInput] : []);
+$normalizedOpenAlexIds = array_values(array_unique(array_filter(array_map('qpmNormalizeOpenAlexLookupId', $openAlexIds))));
 $domain = trim((string) ($params['domain'] ?? ''));
 $lookupValue = $openAlexId !== '' ? $openAlexId : ($doi !== '' ? ('https://doi.org/' . $doi) : '');
-$isBatchLookup = count($normalizedDois) > 0;
+$isBatchLookup = count($normalizedDois) > 0 || count($normalizedOpenAlexIds) > 0;
 
 if (!$isBatchLookup && $lookupValue === '') {
     http_response_code(400);
-    echo json_encode(['error' => 'Missing DOI, DOI list, or OpenAlex ID']);
+    echo json_encode(['error' => 'Missing DOI, DOI list, OpenAlex ID, or OpenAlex ID list']);
     exit;
 }
 
@@ -216,12 +239,18 @@ $openAlexApiKey = qpmGetOpenAlexApiKey($domain);
 $openAlexEmail = qpmGetOpenAlexEmail($domain);
 if ($isBatchLookup) {
     $allWorks = [];
-    $chunks = array_chunk($normalizedDois, 100);
-    foreach ($chunks as $chunk) {
+    $filterChunks = [];
+    foreach (array_chunk($normalizedDois, 100) as $chunk) {
+        $filterChunks[] = ['filter' => 'doi:' . implode('|', $chunk), 'count' => count($chunk)];
+    }
+    foreach (array_chunk($normalizedOpenAlexIds, 100) as $chunk) {
+        $filterChunks[] = ['filter' => 'openalex:' . implode('|', $chunk), 'count' => count($chunk)];
+    }
+    foreach ($filterChunks as $filterChunk) {
         $requestParams = [
-            'filter' => 'doi:' . implode('|', $chunk),
-            'per_page' => count($chunk),
-            'select' => 'id,doi,ids,display_name,title,publication_date,publication_year,biblio,abstract_inverted_index,authorships,primary_location',
+            'filter' => $filterChunk['filter'],
+            'per_page' => $filterChunk['count'],
+            'select' => 'id,doi,ids,display_name,title,publication_date,publication_year,biblio,abstract_inverted_index,authorships,primary_location,language,type,type_crossref',
         ];
         if ($openAlexApiKey !== '') {
             $requestParams['api_key'] = $openAlexApiKey;
@@ -283,18 +312,20 @@ if ($isBatchLookup) {
             continue;
         }
         $workDoi = qpmNormalizeOpenAlexLookupDoi($work['doi'] ?? ($work['ids']['doi'] ?? ''));
-        if ($workDoi === '') {
+        $workOpenAlexId = trim((string) ($work['id'] ?? ''));
+        if ($workDoi === '' && $workOpenAlexId === '') {
             continue;
         }
         $works[] = [
             'doi' => $workDoi,
-            'openAlexId' => trim((string) ($work['id'] ?? '')),
+            'openAlexId' => $workOpenAlexId,
             'work' => $work,
         ];
     }
 
     echo json_encode([
         'dois' => $normalizedDois,
+        'openAlexIds' => $normalizedOpenAlexIds,
         'works' => $works,
     ]);
     exit;

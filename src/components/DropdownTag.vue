@@ -45,12 +45,17 @@
         </div>
       </span>
       <span v-else> {{ triple.option.preString }}{{ getCustomNameLabel }} </span>
-      <button
-        type="button"
+      <span
         class="multiselect__tag-icon qpm_iconButton"
+        role="button"
+        tabindex="0"
         :aria-label="removeTagAriaLabel"
-        @click.stop="triple.remove(triple.option)"
-      />
+        @click.stop="removeTag"
+        @keydown.enter.prevent.stop="removeTag"
+        @keydown.space.prevent.stop="removeTag"
+      >
+        <span aria-hidden="true" class="qpm_dropdownTagIconGlyph">&times;</span>
+      </span>
     </span>
     <span class="qpm_operator">{{ displayOperator }}</span>
   </div>
@@ -355,6 +360,9 @@
         if (target && typeof target.click === "function") {
           target.click();
         }
+      },
+      removeTag() {
+        this.triple.remove(this.triple.option);
       },
              autoResize() {
          const textarea = this.$refs.editInput;

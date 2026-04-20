@@ -475,6 +475,10 @@ function qpmExtractSemanticScholarCandidates(array $decoded, int $rankOffset = 0
             $pmid = '';
         }
         $doi = qpmNormalizeSemanticScholarDoi($externalIds['DOI'] ?? '');
+        // Non-DOI/non-PMID S2 records are intentionally dropped: cross-source
+        // id-matching (e.g. mapping S2 paperId to OpenAlex works) is out of
+        // scope for this milestone. S2 contributes only as PMID/DOI-keyed
+        // enrichment. Non-DOI coverage is delivered via OpenAlex instead.
         if ($pmid === '' && $doi === '') {
             continue;
         }

@@ -437,14 +437,31 @@ Ved fejl i enrichment (fx iCite nede) logges en warning, men rerank kører vider
 - `isOpenAccess` = `any(sources)`.
 - `authorityAuthors`, `authorityJournal` = OpenAlex.
 
+### Klassifikation og data quality (M2)
+
+Mellem enrichment (`04b`) og den deterministiske rerank (`05`) klassificeres hver kandidat til én kanonisk publikationstype (`04c Classification` i search-flow-debug). Klassifikationen ligger i `src/utils/pubTypeClassifier.js` og kombinerer flere signaler i denne rækkefølge:
+
+1. Match mod `guidelinePublisherAllowList` (fx WHO, NICE, CDC, Sundhedsstyrelsen, ADA) → `guideline_verified`.
+2. `publicationTypes`-felter fra PubMed og S2 (fx `Guideline`, `Practice Guideline`, `Systematic Review`, `Meta-Analysis`, `Randomized Controlled Trial`) → `guideline_candidate`, `systematic_review_or_meta`, `clinical_trial`.
+3. OpenAlex `workType` (`book-chapter`, `dissertation`, `preprint`, `review`, `report`).
+4. Titelmønstre (fx "chapter", "thesis", "errata") som sidste fallback.
+
+Hver klassifikation bærer også en `confidence` (`high`, `medium`, `low`), som indgår som multiplikator på tier-bonusen senere. Resultatet gemmes som `candidate.pubTypeClassification = { tier, confidence, signals[] }` og propageres helt ud til UI'et som type-badge.
+
+Kandidater, der mangler titel, hard-droppes. Kandidater med tier `excluded` (fx errata, datasets, peer-reviews) filtreres væk før sortering når `pubTypeTiers` er aktiv. Alle andre records — også records uden abstract, forfatter eller årstal — beholdes og straffes via `dataQualityMultiplier` i stedet for at blive fjernet.
+
+`computeDataQualityMultiplier` ganger `dataQualityPenalties.missingAbstract * missingAuthor * missingYear * veryShortAbstract`. Alle defaults er 1.0 (neutralt), så tuning er opt-in.
+
 ### Deterministisk genrangering
 
 Den primære genrangering ligger i `src/utils/semanticReranking.js` og bruger en hybrid formel:
 
 - `baseScore = sum(weightedRrf_sources) + pmidBonus + overlapBonus`  *(uændret RRF-kerne)*
-- `additiveQualityBonus = pubTypeBonus + recencyBonus + oaBonus + clinicalBonus + topicOverlapBonus`
-- `qualityMultiplier = citationImpactMultiplier * authorityMultiplier * retractionMultiplier`
+- `additiveQualityBonus = pubTypeTierBonus + recencyBonus + oaBonus + clinicalBonus + topicOverlapBonus`
+- `qualityMultiplier = citationImpactMultiplier * authorityMultiplier * retractionMultiplier * dataQualityMultiplier`
 - `combinedScore = (baseScore + additiveQualityBonus) * qualityMultiplier`
+
+`pubTypeTierBonus = pubTypeTiers[tier] * confidenceCoefficient(confidence)` hvor `confidenceCoefficient(high)=1.0`, `(medium)=0.7`, `(low)=0.4`. Hvis `pubTypeTiers` ikke er sat, er bonusen 0 for alle tiers og M2-adfærden er bagudkompatibel.
 
 Alle nye signaler defaulter til neutrale værdier så en uopdateret installation har 1:1 samme adfærd som før.
 
@@ -483,8 +500,9 @@ Genrangeringskonfigurationen ligger i `QPM_RERANK_CONFIG`.
 De vigtigste parametre er:
 
 - RRF-kerne: `sourceWeights`, `pmidBonus`, `overlapBonusPerExtraSource`, `rrfK`, `rankScale`, `scoreScale`, `fallbackSourceWeight`
-- Kvalitets-bonus (additive): `pubTypeWeights`, `recencyHalfLifeYears`, `recencyBonusMax`, `oaBonus`, `clinicalBonus`, `clinicalCitedByThreshold`, `topicOverlapBonus`
-- Kvalitets-multiplier: `citationImpactClamp`, `authorityClamp`, `retractionAction`, `retractionPenalty`
+- Kvalitets-bonus (additive): `pubTypeTiers` (M2), `pubTypeConfidenceCoefficients` (M2), `recencyHalfLifeYears`, `recencyBonusMax`, `recencyCurveEnabled` + `recencyCurve` (trappet recency, piecewise linear med plateau/gulv), `oaBonus`, `clinicalBonus`, `clinicalCitedByThreshold`, `topicOverlapBonus`
+- Kvalitets-multiplier: `citationImpactClamp`, `authorityClamp`, `retractionAction`, `retractionPenalty`, `dataQualityPenalties` (M2)
+- Klassifikation: `guidelinePublisherAllowList` (deles med `limits.json`)
 
 Alle kvalitetsparametre defaulter til neutrale værdier, så installationer der ikke har opdateret deres config får præcis samme rangering som før.
 
@@ -495,7 +513,7 @@ Den deterministiske genrangerer producerer også diagnostik:
 - `sourceSummary`
 - `sourceStats`
 - `overlapSummary`
-- `enrichmentSummary` — tællere for `withFwci`, `withRcr`, `withInfluentialCitations`, `withCitedByCount`, `withRetractionFlag`, `filteredByRetraction`, `withClinicalFlag`, `withCitedByClin`, `withPubTypeMatch`, `withOpenAccess`, `withTopicOverlap`, `withAuthorityData`, `withRecencySignal`
+- `enrichmentSummary` — tællere for `withFwci`, `withRcr`, `withInfluentialCitations`, `withCitedByCount`, `withRetractionFlag`, `filteredByRetraction`, `withClinicalFlag`, `withCitedByClin`, `withPubTypeMatch`, `withOpenAccess`, `withTopicOverlap`, `withAuthorityData`, `withRecencySignal`, samt M2-tællere: `byPubTypeTier.{tier}`, `withoutAbstract`, `withoutAuthor`, `withoutYear`, `veryShortAbstract`, `totalDowngradedByQuality`
 - detaljerede scorebidrag pr. kandidat (`contributions[]`, `scoreBreakdown`)
 
 Det er nyttigt ved tuning, fordi man kan se, om en kandidat blev løftet af høj rank i én kilde, overlap på tværs af kilder, PMID-bonus, kvalitets-bonus eller kvalitets-multiplier.

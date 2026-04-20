@@ -96,9 +96,20 @@
                 }}
               </button>
             </p>
+            <span
+              v-if="showTypeBadge && typeBadgeLabel"
+              class="qpm_pubTypeBadge"
+              :class="`qpm_pubTypeBadge_${normalizedPubTypeTier}`"
+            >
+              {{ typeBadgeLabel }}
+            </span>
           </div>
         </div>
-        <ai-translation :showing-translation="translationShowing" :title="computedTitle" />
+        <ai-translation
+          :showing-translation="translationShowing"
+          :title="computedTitle"
+          :language="language"
+        />
         <div class="qpm_resultTextLineHeight">
           <p class="qpm_resultAuthors">
             <span v-if="calculateAuthors">{{ calculateAuthors }}.</span>
@@ -649,7 +660,10 @@
         </div>
 
         <!-- links for related content below abstract -->
-        <div v-if="(hasValidPmid || doi) && showingAbstract" class="qpm_relatedLinks">
+        <div
+          v-if="(hasValidPmid || doi || hasValidOpenAlexId) && showingAbstract"
+          class="qpm_relatedLinks"
+        >
           <!-- Find related articles -->
           <p v-if="hasValidPmid" class="qpm_pubmedLink qpm_pubmedLinkArrow">
             <a
@@ -717,6 +731,25 @@
               :href="getGoogleScholar"
             >
               {{ getString("GoogleScholar") }}
+            </a>
+          </p>
+
+          <!-- Open the OpenAlex work page (for openAlexId-only records) -->
+          <p
+            v-if="hasValidOpenAlexId && !hasValidPmid && !doi"
+            class="qpm_pubmedLink qpm_pubmedLinkArrow"
+          >
+            <a
+              v-tooltip="{
+                content: getString('hoverOpenAlexWorkLink'),
+                distance: 5,
+                delay: $helpTextDelay,
+              }"
+              target="_blank"
+              rel="noopener noreferrer"
+              :href="getOpenAlexLink"
+            >
+              {{ getString("openAlexWorkLink") }}
             </a>
           </p>
         </div>
@@ -901,6 +934,14 @@
         type: Boolean,
         default: true,
       },
+      openAlexId: {
+        type: String,
+        default: "",
+      },
+      pubTypeClassification: {
+        type: Object,
+        default: () => null,
+      },
     },
     data() {
       const startElement = document.getElementById("qpm_start");
@@ -990,6 +1031,46 @@
       },
       hasValidPmid() {
         return this.normalizedPmid !== "";
+      },
+      normalizedOpenAlexId() {
+        const raw = String(this.openAlexId || "").trim();
+        if (!raw) return "";
+        const match = raw.match(/W\d+/i);
+        return match ? match[0].toUpperCase() : "";
+      },
+      hasValidOpenAlexId() {
+        return this.normalizedOpenAlexId !== "";
+      },
+      getOpenAlexLink() {
+        return this.hasValidOpenAlexId
+          ? `https://openalex.org/${this.normalizedOpenAlexId}`
+          : "";
+      },
+      normalizedPubTypeTier() {
+        const tier = this.pubTypeClassification && this.pubTypeClassification.tier;
+        return typeof tier === "string" ? tier.trim() : "";
+      },
+      showTypeBadge() {
+        const tier = this.normalizedPubTypeTier;
+        if (!tier) return false;
+        const hiddenTiers = new Set(["research_article", "other", "excluded"]);
+        return !hiddenTiers.has(tier);
+      },
+      typeBadgeLabel() {
+        const tier = this.normalizedPubTypeTier;
+        const tierToKey = {
+          guideline_verified: "typeBadgeGuideline",
+          guideline_candidate: "typeBadgeGuidelineCandidate",
+          systematic_review_or_meta: "typeBadgeSystematicReview",
+          clinical_trial: "typeBadgeClinicalTrial",
+          report_verified: "typeBadgeReport",
+          book_chapter: "typeBadgeBookChapter",
+          dissertation: "typeBadgeDissertation",
+          preprint: "typeBadgePreprint",
+          review: "typeBadgeReview",
+        };
+        const key = tierToKey[tier];
+        return key ? this.getString(key) : "";
       },
       referenceAnchorId() {
         return this.hasValidPmid ? this.normalizedPmid : this.normalizedDoi || this.id;

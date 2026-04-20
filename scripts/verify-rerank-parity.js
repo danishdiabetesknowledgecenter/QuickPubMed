@@ -21,6 +21,7 @@ function runScenario(label, sourceResults, runtimeConfig = {}) {
     order: result.candidates.map((c) => ({
       pmid: c.pmid,
       doi: c.doi,
+      openAlexId: c.openAlexId,
       combinedScore: c.combinedScore,
       bestRank: c.bestRank,
       sourceCount: c.sourceCount,
@@ -370,6 +371,466 @@ const matchedContribution = topicResult.candidates[0]?.contributions?.find(
 );
 if (!matchedContribution || !Array.isArray(matchedContribution.matches) || matchedContribution.matches.length === 0) {
   throw new Error("topic-overlap contribution missing matches array");
+}
+
+// --- Phase M1A: verify dataQualityMultiplier (downgrade missing abstract). ---
+const qualityScenario = [
+  {
+    source: "pubmed",
+    candidates: [
+      {
+        source: "pubmed",
+        rank: 1,
+        pmid: "6000001",
+        title: "Good record with abstract",
+        metadata: {
+          publicationYear: "2023",
+          abstract:
+            "This is a long, well-formed abstract describing the methods, results, and implications of the study, well over two hundred characters in length to avoid the veryShort threshold being triggered by default.",
+          authors: [{ name: "Smith, J" }],
+        },
+      },
+      {
+        source: "pubmed",
+        rank: 2,
+        pmid: "6000002",
+        title: "Bare record without abstract, author, or year",
+        metadata: {},
+      },
+    ],
+  },
+];
+
+const qualityNeutral = runScenario("quality-neutral", qualityScenario);
+const qualityScorePmid6000001 = qualityNeutral.order.find((c) => c.pmid === "6000001")?.combinedScore;
+const qualityScorePmid6000002 = qualityNeutral.order.find((c) => c.pmid === "6000002")?.combinedScore;
+if (qualityScorePmid6000001 !== qualityScorePmid6000002 + (qualityScorePmid6000001 - qualityScorePmid6000002)) {
+  // trivially true; just a structural assertion placeholder
+}
+
+const qualityTuned = runScenario("quality-tuned", qualityScenario, {
+  dataQualityPenalties: {
+    missingAbstract: 0.5,
+    missingAuthor: 0.9,
+    missingYear: 0.9,
+  },
+});
+const tunedBare = qualityTuned.order.find((c) => c.pmid === "6000002")?.combinedScore;
+const neutralBare = qualityNeutral.order.find((c) => c.pmid === "6000002")?.combinedScore;
+if (!(tunedBare < neutralBare)) {
+  throw new Error(
+    `dataQualityMultiplier did not downgrade bare record: neutral=${neutralBare}, tuned=${tunedBare}`
+  );
+}
+if (qualityTuned.enrichmentSummary.withoutAbstract !== 1) {
+  throw new Error(
+    `Expected withoutAbstract=1 in quality-tuned, got ${qualityTuned.enrichmentSummary.withoutAbstract}`
+  );
+}
+if (qualityTuned.enrichmentSummary.totalDowngradedByQuality !== 1) {
+  throw new Error(
+    `Expected totalDowngradedByQuality=1 in quality-tuned, got ${qualityTuned.enrichmentSummary.totalDowngradedByQuality}`
+  );
+}
+
+// --- Phase M1B: verify pubTypeTier-scoring. ---
+const tierScenario = [
+  {
+    source: "openAlex",
+    candidates: [
+      {
+        source: "openAlex",
+        rank: 1,
+        pmid: "",
+        doi: "",
+        openAlexId: "W7000001",
+        title: "WHO Clinical Practice Guideline on Diabetes Management",
+        metadata: {
+          workId: "W7000001",
+          workType: "report",
+          publisher: "World Health Organization",
+        },
+      },
+      {
+        source: "openAlex",
+        rank: 2,
+        pmid: "7000002",
+        title: "A normal journal article",
+        metadata: { workType: "article", publicationYear: "2023" },
+      },
+    ],
+  },
+];
+
+const tierNeutral = runScenario("tier-neutral", tierScenario);
+const tierTuned = runScenario("tier-tuned", tierScenario, {
+  pubTypeTiers: {
+    guideline_verified: 100,
+    research_article: 0,
+  },
+  guidelinePublisherAllowList: [
+    { name: "World Health Organization", aliases: ["WHO", "World Health Organization"] },
+  ],
+});
+const tunedTopTier = tierTuned.order[0];
+if (tunedTopTier?.openAlexId !== "W7000001") {
+  throw new Error(
+    `pubTypeTier scoring failed: expected guideline record first, got ${tunedTopTier?.pmid || tunedTopTier?.openAlexId}`
+  );
+}
+if (tierTuned.enrichmentSummary.byPubTypeTier?.guideline_verified !== 1) {
+  throw new Error(
+    `Expected byPubTypeTier.guideline_verified=1, got ${tierTuned.enrichmentSummary.byPubTypeTier?.guideline_verified}`
+  );
+}
+
+// --- M1B: Verify excluded-tier records get dropped when pubTypeTiers is active. ---
+const excludedScenario = [
+  {
+    source: "pubmed",
+    candidates: [
+      {
+        source: "pubmed",
+        rank: 1,
+        pmid: "8000001",
+        title: "Normal paper",
+        metadata: { publicationYear: "2023" },
+      },
+      {
+        source: "pubmed",
+        rank: 2,
+        pmid: "8000002",
+        title: "Correction to: earlier paper",
+        metadata: { publicationYear: "2023", publicationTypes: ["Published Erratum"] },
+      },
+    ],
+  },
+];
+const excludedNeutral = runScenario("excluded-neutral", excludedScenario);
+if (excludedNeutral.order.length !== 2) {
+  throw new Error(
+    `excluded-neutral: expected 2 candidates (pubTypeTiers disabled), got ${excludedNeutral.order.length}`
+  );
+}
+const excludedActive = runScenario("excluded-active", excludedScenario, {
+  pubTypeTiers: { research_article: 0 },
+});
+if (excludedActive.order.some((c) => c.pmid === "8000002")) {
+  throw new Error("excluded-active: erratum was not dropped when pubTypeTiers was set");
+}
+
+// --- M1A: Verify merge-key openAlexId works as tertiary key. ---
+const oaMergeScenario = [
+  {
+    source: "openAlex",
+    candidates: [
+      {
+        source: "openAlex",
+        rank: 1,
+        openAlexId: "W9000001",
+        title: "OpenAlex-only record",
+        metadata: { workId: "W9000001", workType: "article" },
+      },
+    ],
+  },
+];
+const oaMergeResult = runScenario("oa-only-merge", oaMergeScenario);
+if (oaMergeResult.order.length !== 1) {
+  throw new Error(
+    `oa-only-merge: expected 1 candidate, got ${oaMergeResult.order.length}`
+  );
+}
+
+// ---------------------------------------------------------------------------
+// --- M2E: Canary regression scenarios ---
+// These scenarios verify the end-to-end behavior of the pubTypeTier +
+// dataQuality system under realistic query intents. They do NOT hit the
+// network: candidates are synthesized to represent typical OpenAlex/PubMed
+// output for each canary query.
+// ---------------------------------------------------------------------------
+
+const CANARY_TIER_CONFIG = {
+  pubTypeTiers: {
+    guideline_verified: 80,
+    guideline_candidate: 40,
+    systematic_review_or_meta: 25,
+    clinical_trial: 10,
+    review: 5,
+    research_article: 0,
+    preprint: -10,
+    report_verified: -5,
+    book_chapter: -15,
+    dissertation: -20,
+    other: -25,
+  },
+  guidelinePublisherAllowList: [
+    { name: "World Health Organization", aliases: ["WHO"] },
+    { name: "National Institute for Health and Care Excellence", aliases: ["NICE"] },
+    { name: "Centers for Disease Control and Prevention", aliases: ["CDC"] },
+    { name: "American Diabetes Association", aliases: ["ADA"] },
+    { name: "Sundhedsstyrelsen", aliases: [] },
+  ],
+};
+
+const diabetesGuidelinesScenario = [
+  {
+    source: "openAlex",
+    candidates: [
+      {
+        source: "openAlex",
+        rank: 1,
+        openAlexId: "W_DIA_001",
+        title: "Standards of Medical Care in Diabetes - 2024",
+        metadata: {
+          workId: "W_DIA_001",
+          workType: "report",
+          publisher: "American Diabetes Association",
+          publicationYear: "2024",
+          abstract:
+            "Clinical practice guideline from the American Diabetes Association covering diagnosis, prevention, and treatment of diabetes across the lifespan, with evidence-graded recommendations.",
+          authors: [{ name: "ADA Committee" }],
+        },
+      },
+      {
+        source: "openAlex",
+        rank: 2,
+        pmid: "2100001",
+        doi: "10.1/dia-rct",
+        title: "Randomised controlled trial of a new GLP-1 analogue in type 2 diabetes",
+        metadata: {
+          workType: "article",
+          publicationYear: "2023",
+          abstract:
+            "We report a phase 3 randomised clinical trial evaluating the efficacy and safety of a novel GLP-1 analogue against placebo in 1200 patients with type 2 diabetes.",
+          authors: [{ name: "Smith, J" }, { name: "Doe, R" }],
+        },
+      },
+      {
+        source: "openAlex",
+        rank: 3,
+        doi: "10.1/dia-preprint",
+        title: "Preprint: continuous glucose monitoring pilot",
+        metadata: {
+          workType: "preprint",
+          publicationYear: "2024",
+          abstract: "Preliminary results from a pilot study on CGM adherence.",
+          authors: [{ name: "Early, K" }],
+        },
+      },
+    ],
+  },
+];
+
+const diabetesResult = runScenario(
+  "canary-diabetes-guidelines",
+  diabetesGuidelinesScenario,
+  CANARY_TIER_CONFIG
+);
+if (diabetesResult.order[0]?.openAlexId !== "W_DIA_001") {
+  throw new Error(
+    `canary-diabetes-guidelines: expected guideline W_DIA_001 at top, got ${
+      diabetesResult.order[0]?.openAlexId ||
+      diabetesResult.order[0]?.pmid ||
+      diabetesResult.order[0]?.doi
+    }`
+  );
+}
+if (diabetesResult.enrichmentSummary.byPubTypeTier?.guideline_verified !== 1) {
+  throw new Error(
+    `canary-diabetes-guidelines: expected byPubTypeTier.guideline_verified=1, got ${diabetesResult.enrichmentSummary.byPubTypeTier?.guideline_verified}`
+  );
+}
+
+const covidClinicalScenario = [
+  {
+    source: "openAlex",
+    candidates: [
+      {
+        source: "openAlex",
+        rank: 1,
+        openAlexId: "W_COV_GUIDE",
+        title: "WHO living guideline on COVID-19 therapeutics",
+        metadata: {
+          workId: "W_COV_GUIDE",
+          workType: "report",
+          publisher: "World Health Organization",
+          publicationYear: "2024",
+          abstract:
+            "WHO living clinical practice guideline on the management of patients with COVID-19. Recommendations are graded by certainty of evidence and updated continuously.",
+          authors: [{ name: "WHO Guideline Development Group" }],
+        },
+      },
+      {
+        source: "openAlex",
+        rank: 2,
+        pmid: "2200001",
+        doi: "10.1/cov-sr",
+        title: "Systematic review and meta-analysis of corticosteroids in COVID-19",
+        metadata: {
+          workType: "review",
+          publicationTypes: ["Systematic Review", "Meta-Analysis"],
+          publicationYear: "2023",
+          abstract:
+            "Systematic review and meta-analysis of randomised trials assessing corticosteroids in hospitalised COVID-19 patients.",
+          authors: [{ name: "Reviewer, A" }],
+        },
+      },
+      {
+        source: "openAlex",
+        rank: 3,
+        pmid: "2200002",
+        doi: "10.1/cov-rct",
+        title: "Cohort study of dexamethasone in severe COVID-19",
+        metadata: {
+          workType: "article",
+          publicationYear: "2022",
+          abstract:
+            "Observational cohort analysis of dexamethasone use among hospitalised COVID-19 patients in a single centre.",
+          authors: [{ name: "Clinician, B" }],
+        },
+      },
+    ],
+  },
+];
+
+const covidResult = runScenario(
+  "canary-covid-clinical-practice",
+  covidClinicalScenario,
+  CANARY_TIER_CONFIG
+);
+const covidOrder = covidResult.order.map((c) => c.openAlexId || c.pmid || c.doi);
+if (covidOrder[0] !== "W_COV_GUIDE") {
+  throw new Error(
+    `canary-covid-clinical-practice: expected guideline first, got order ${covidOrder.join(", ")}`
+  );
+}
+const covidGuidelineIdx = covidOrder.indexOf("W_COV_GUIDE");
+const covidSRIdx = covidOrder.indexOf("2200001");
+const covidCohortIdx = covidOrder.indexOf("2200002");
+if (!(covidGuidelineIdx < covidSRIdx && covidSRIdx < covidCohortIdx)) {
+  throw new Error(
+    `canary-covid-clinical-practice: expected guideline < systematic_review < research_article, got ${covidOrder.join(", ")}`
+  );
+}
+
+const dementiaScenario = [
+  {
+    source: "openAlex",
+    candidates: [
+      {
+        source: "openAlex",
+        rank: 1,
+        openAlexId: "W_DEM_NICE",
+        title: "NICE guideline NG97: Dementia: assessment, management and support",
+        metadata: {
+          workId: "W_DEM_NICE",
+          workType: "report",
+          publisher: "National Institute for Health and Care Excellence",
+          publicationYear: "2023",
+          abstract:
+            "NICE clinical guideline on the assessment, management, and support for people living with dementia and their carers.",
+          authors: [{ name: "NICE Guideline Development Group" }],
+        },
+      },
+      {
+        source: "openAlex",
+        rank: 2,
+        openAlexId: "W_DEM_BOOK",
+        title: "Chapter 7: Non-pharmacological approaches to dementia care",
+        metadata: {
+          workId: "W_DEM_BOOK",
+          workType: "book-chapter",
+          publisher: "Academic Press",
+          publicationYear: "2021",
+          abstract:
+            "A chapter summarising non-pharmacological interventions (reminiscence therapy, music therapy, cognitive stimulation) in dementia care.",
+          authors: [{ name: "Author, C" }],
+        },
+      },
+      {
+        source: "openAlex",
+        rank: 3,
+        openAlexId: "W_DEM_DISS",
+        title: "Caregiver burden in early-onset dementia: a qualitative study (PhD dissertation)",
+        metadata: {
+          workId: "W_DEM_DISS",
+          workType: "dissertation",
+          publisher: "University of Copenhagen",
+          publicationYear: "2022",
+          abstract:
+            "Doctoral dissertation investigating caregiver burden in families affected by early-onset dementia through semi-structured interviews.",
+          authors: [{ name: "Candidate, D" }],
+        },
+      },
+    ],
+  },
+];
+
+const dementiaResult = runScenario(
+  "canary-dementia-care",
+  dementiaScenario,
+  CANARY_TIER_CONFIG
+);
+const dementiaOrder = dementiaResult.order.map((c) => c.openAlexId);
+if (dementiaOrder[0] !== "W_DEM_NICE") {
+  throw new Error(
+    `canary-dementia-care: expected NICE guideline first, got order ${dementiaOrder.join(", ")}`
+  );
+}
+if (dementiaResult.order.length !== 3) {
+  throw new Error(
+    `canary-dementia-care: expected 3 records (book chapter and dissertation downgraded but kept), got ${dementiaResult.order.length}`
+  );
+}
+
+const cgmResearchScenario = [
+  {
+    source: "openAlex",
+    candidates: [
+      {
+        source: "openAlex",
+        rank: 1,
+        pmid: "2300001",
+        doi: "10.1/cgm-rct",
+        title:
+          "Accuracy of continuous glucose monitoring sensors versus capillary blood: a head-to-head randomised study",
+        metadata: {
+          workType: "article",
+          publicationYear: "2024",
+          abstract:
+            "We conducted a head-to-head randomised comparison of the accuracy of three CGM sensors versus capillary blood glucose across 500 participants with type 1 diabetes, reporting MARD and Clarke error grids.",
+          authors: [{ name: "Researcher, E" }, { name: "Co-author, F" }],
+          fwci: 1.8,
+          citedByCount: 35,
+        },
+      },
+      {
+        source: "openAlex",
+        rank: 2,
+        openAlexId: "W_CGM_REPORT",
+        title: "Industry white paper: benefits of CGM",
+        metadata: {
+          workId: "W_CGM_REPORT",
+          workType: "report",
+          publisher: "Independent Consulting Group",
+          publicationYear: "2019",
+          authors: [{ name: "Marketing Dept" }],
+        },
+      },
+    ],
+  },
+];
+
+const cgmResult = runScenario(
+  "canary-cgm-accuracy-research",
+  cgmResearchScenario,
+  CANARY_TIER_CONFIG
+);
+const cgmOrder = cgmResult.order.map((c) => c.pmid || c.openAlexId);
+if (cgmOrder[0] !== "2300001") {
+  throw new Error(
+    `canary-cgm-accuracy-research: expected research article first (non-guideline query), got order ${cgmOrder.join(", ")}`
+  );
 }
 
 console.log("Rerank parity check passed.");

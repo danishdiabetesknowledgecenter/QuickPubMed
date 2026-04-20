@@ -572,6 +572,125 @@ function qpmNormalizeElicitKeywords($value): array
 }
 
 /**
+ * Normalize a year value for Elicit minYear/maxYear filters.
+ * Returns null when value cannot be parsed as a sane year (1800-2100).
+ *
+ * @param mixed $value
+ * @return ?int
+ */
+function qpmNormalizeElicitYear($value): ?int
+{
+    if ($value === null || $value === '') {
+        return null;
+    }
+    if (is_string($value)) {
+        $value = trim($value);
+        if ($value === '' || !ctype_digit(ltrim($value, '-'))) {
+            return null;
+        }
+    }
+    if (!is_numeric($value)) {
+        return null;
+    }
+    $year = (int) $value;
+    if ($year < 1800 || $year > 2100) {
+        return null;
+    }
+    return $year;
+}
+
+/**
+ * Normalize a Unix epoch-seconds value for Elicit minEpochS/maxEpochS filters.
+ * Returns null on invalid input; caps extremely small/large values for safety.
+ *
+ * @param mixed $value
+ * @return ?int
+ */
+function qpmNormalizeElicitEpoch($value): ?int
+{
+    if ($value === null || $value === '' || !is_numeric($value)) {
+        return null;
+    }
+    $epoch = (int) $value;
+    if ($epoch < 0 || $epoch > 4102444800) { // ~ year 2100
+        return null;
+    }
+    return $epoch;
+}
+
+/**
+ * Normalize a journal quartile value for Elicit maxQuartile filter (1-4).
+ *
+ * @param mixed $value
+ * @return ?int
+ */
+function qpmNormalizeElicitQuartile($value): ?int
+{
+    if ($value === null || $value === '' || !is_numeric($value)) {
+        return null;
+    }
+    $quartile = (int) $value;
+    if ($quartile < 1 || $quartile > 4) {
+        return null;
+    }
+    return $quartile;
+}
+
+/**
+ * Normalize a boolean-like value for Elicit hasPdf and pubmedOnly filters.
+ *
+ * @param mixed $value
+ * @return ?bool
+ */
+function qpmNormalizeElicitBoolean($value): ?bool
+{
+    if ($value === null || $value === '') {
+        return null;
+    }
+    if (is_bool($value)) {
+        return $value;
+    }
+    if (is_numeric($value)) {
+        return (int) $value !== 0;
+    }
+    $normalized = strtolower(trim((string) $value));
+    if (in_array($normalized, ['true', 'yes', '1', 'on'], true)) {
+        return true;
+    }
+    if (in_array($normalized, ['false', 'no', '0', 'off'], true)) {
+        return false;
+    }
+    return null;
+}
+
+/**
+ * Normalize retraction-handling for Elicit retracted filter.
+ *
+ * @param mixed $value
+ * @return string
+ */
+function qpmNormalizeElicitRetracted($value): string
+{
+    $normalized = strtolower(trim((string) $value));
+    if ($normalized === '') {
+        return '';
+    }
+    $allowed = [
+        'exclude_retracted' => 'exclude_retracted',
+        'excluderetracted' => 'exclude_retracted',
+        'exclude' => 'exclude_retracted',
+        'include_retracted' => 'include_retracted',
+        'includeretracted' => 'include_retracted',
+        'include' => 'include_retracted',
+        'only_retracted' => 'only_retracted',
+        'onlyretracted' => 'only_retracted',
+        'only' => 'only_retracted',
+    ];
+    $compact = preg_replace('/[\s_-]+/', '', $normalized);
+    return $allowed[$normalized] ?? $allowed[$compact] ?? '';
+}
+
+/**
  * Extract an upstream Elicit error message from a decoded response body.
  *
  * @param array<string,mixed> $decoded
@@ -656,6 +775,23 @@ function qpmBuildElicitRetryHints(string $message, array $filters): array
     ) {
         $requestFields[] = 'excludeKeywords';
     }
+    $scalarFilterKeys = [
+        'minYear', 'maxYear', 'minEpochS', 'maxEpochS',
+        'maxQuartile', 'hasPdf', 'pubmedOnly', 'retracted',
+    ];
+    foreach ($scalarFilterKeys as $key) {
+        if (!isset($filters[$key])) {
+            continue;
+        }
+        $lowerKey = strtolower($key);
+        $snakeKey = strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', $key));
+        if (
+            strpos($normalized, $lowerKey) !== false ||
+            strpos($normalized, $snakeKey) !== false
+        ) {
+            $requestFields[] = $key;
+        }
+    }
 
     $requestFields = array_values(array_unique($requestFields));
     if (empty($requestFields)) {
@@ -727,6 +863,43 @@ if (!empty($includeKeywords)) {
 $excludeKeywords = qpmNormalizeElicitKeywords($rawFilters['excludeKeywords'] ?? []);
 if (!empty($excludeKeywords)) {
     $filters['excludeKeywords'] = $excludeKeywords;
+}
+$minYear = qpmNormalizeElicitYear($rawFilters['minYear'] ?? null);
+if ($minYear !== null) {
+    $filters['minYear'] = $minYear;
+}
+$maxYear = qpmNormalizeElicitYear($rawFilters['maxYear'] ?? null);
+if ($maxYear !== null) {
+    $filters['maxYear'] = $maxYear;
+}
+if (isset($filters['minYear'], $filters['maxYear']) && $filters['minYear'] > $filters['maxYear']) {
+    $swap = $filters['minYear'];
+    $filters['minYear'] = $filters['maxYear'];
+    $filters['maxYear'] = $swap;
+}
+$minEpochS = qpmNormalizeElicitEpoch($rawFilters['minEpochS'] ?? null);
+if ($minEpochS !== null) {
+    $filters['minEpochS'] = $minEpochS;
+}
+$maxEpochS = qpmNormalizeElicitEpoch($rawFilters['maxEpochS'] ?? null);
+if ($maxEpochS !== null) {
+    $filters['maxEpochS'] = $maxEpochS;
+}
+$maxQuartile = qpmNormalizeElicitQuartile($rawFilters['maxQuartile'] ?? null);
+if ($maxQuartile !== null) {
+    $filters['maxQuartile'] = $maxQuartile;
+}
+$hasPdf = qpmNormalizeElicitBoolean($rawFilters['hasPdf'] ?? null);
+if ($hasPdf !== null) {
+    $filters['hasPdf'] = $hasPdf;
+}
+$pubmedOnly = qpmNormalizeElicitBoolean($rawFilters['pubmedOnly'] ?? null);
+if ($pubmedOnly !== null) {
+    $filters['pubmedOnly'] = $pubmedOnly;
+}
+$retracted = qpmNormalizeElicitRetracted($rawFilters['retracted'] ?? '');
+if ($retracted !== '') {
+    $filters['retracted'] = $retracted;
 }
 $requestPayload = [
     'query' => $query,

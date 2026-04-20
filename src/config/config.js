@@ -475,6 +475,25 @@ export async function loadThemeOverridesFromBackend(domain, apiBaseUrl) {
             ...(config.rerankConfig?.sourceWeights || {}),
             ...(payload.rerankConfig?.sourceWeights || {}),
           },
+          pubTypeWeights: {
+            ...(config.rerankConfig?.pubTypeWeights || {}),
+            ...(payload.rerankConfig?.pubTypeWeights || {}),
+          },
+          pubTypeTiers: {
+            ...(config.rerankConfig?.pubTypeTiers || {}),
+            ...(payload.rerankConfig?.pubTypeTiers || {}),
+          },
+          dataQualityPenalties: {
+            ...(config.rerankConfig?.dataQualityPenalties || {}),
+            ...(payload.rerankConfig?.dataQualityPenalties || {}),
+          },
+          abstractMinLength: {
+            ...(config.rerankConfig?.abstractMinLength || {}),
+            ...(payload.rerankConfig?.abstractMinLength || {}),
+          },
+          guidelinePublisherAllowList: Array.isArray(payload.rerankConfig?.guidelinePublisherAllowList)
+            ? payload.rerankConfig.guidelinePublisherAllowList
+            : config.rerankConfig?.guidelinePublisherAllowList || [],
         };
       }
 

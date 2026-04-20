@@ -15,7 +15,28 @@ function dedupeNormalizedValues(values) {
     });
 }
 
-export function getCandidateSemanticSignalTexts(candidate, metadataByDoi, scopes = []) {
+function resolveMetadataEntry(candidate, metadataByDoi, metadataByOpenAlexId) {
+  const candidateDoi = normalizeDoiValue(candidate?.doi || "").toLowerCase();
+  if (candidateDoi && metadataByDoi instanceof Map && metadataByDoi.has(candidateDoi)) {
+    return metadataByDoi.get(candidateDoi);
+  }
+  const candidateOpenAlexId = String(candidate?.openAlexId || "").trim();
+  if (
+    candidateOpenAlexId &&
+    metadataByOpenAlexId instanceof Map &&
+    metadataByOpenAlexId.has(candidateOpenAlexId)
+  ) {
+    return metadataByOpenAlexId.get(candidateOpenAlexId);
+  }
+  return null;
+}
+
+export function getCandidateSemanticSignalTexts(
+  candidate,
+  metadataByDoi,
+  scopes = [],
+  metadataByOpenAlexId = null
+) {
   const normalizedScopes =
     Array.isArray(scopes) && scopes.length > 0
       ? scopes
@@ -32,17 +53,11 @@ export function getCandidateSemanticSignalTexts(candidate, metadataByDoi, scopes
     texts.push(String(candidate?.title || "").trim());
   }
 
-  const candidateDoi = normalizeDoiValue(candidate?.doi || "").toLowerCase();
-  if (
-    useSourceCandidateTitles &&
-    candidateDoi &&
-    metadataByDoi instanceof Map &&
-    metadataByDoi.has(candidateDoi)
-  ) {
-    const doiMetadata = metadataByDoi.get(candidateDoi);
+  const metadataEntry = resolveMetadataEntry(candidate, metadataByDoi, metadataByOpenAlexId);
+  if (useSourceCandidateTitles && metadataEntry) {
     const bySource =
-      doiMetadata?.bySource && typeof doiMetadata.bySource === "object"
-        ? doiMetadata.bySource
+      metadataEntry?.bySource && typeof metadataEntry.bySource === "object"
+        ? metadataEntry.bySource
         : {};
     Object.values(bySource).forEach((entries) => {
       (Array.isArray(entries) ? entries : []).forEach((entry) => {
@@ -54,14 +69,17 @@ export function getCandidateSemanticSignalTexts(candidate, metadataByDoi, scopes
   return dedupeNormalizedValues(texts);
 }
 
-export function getCandidateSemanticSourceProviders(candidate, metadataByDoi) {
+export function getCandidateSemanticSourceProviders(
+  candidate,
+  metadataByDoi,
+  metadataByOpenAlexId = null
+) {
   const providers = [String(candidate?.source || "").trim().toLowerCase()];
-  const candidateDoi = normalizeDoiValue(candidate?.doi || "").toLowerCase();
-  if (candidateDoi && metadataByDoi instanceof Map && metadataByDoi.has(candidateDoi)) {
-    const doiMetadata = metadataByDoi.get(candidateDoi);
+  const metadataEntry = resolveMetadataEntry(candidate, metadataByDoi, metadataByOpenAlexId);
+  if (metadataEntry) {
     const bySource =
-      doiMetadata?.bySource && typeof doiMetadata.bySource === "object"
-        ? doiMetadata.bySource
+      metadataEntry?.bySource && typeof metadataEntry.bySource === "object"
+        ? metadataEntry.bySource
         : {};
     providers.push(
       ...Object.keys(bySource).map((key) => String(key || "").trim().toLowerCase())
@@ -73,11 +91,25 @@ export function getCandidateSemanticSourceProviders(candidate, metadataByDoi) {
 export function buildCandidateSemanticMetadataSnapshot(
   candidate,
   metadataByDoi,
-  openAlexCachedValue = null
+  openAlexCachedValue = null,
+  metadataByOpenAlexId = null
 ) {
   const candidateMetadata =
     candidate?.metadata && typeof candidate.metadata === "object" ? candidate.metadata : {};
-  const sourceProviders = getCandidateSemanticSourceProviders(candidate, metadataByDoi);
+  const sourceProviders = getCandidateSemanticSourceProviders(
+    candidate,
+    metadataByDoi,
+    metadataByOpenAlexId
+  );
+  const pubTypeClassification =
+    candidateMetadata?.pubTypeClassification &&
+    typeof candidateMetadata.pubTypeClassification === "object"
+      ? candidateMetadata.pubTypeClassification
+      : candidate?.pubTypeClassification && typeof candidate.pubTypeClassification === "object"
+      ? candidate.pubTypeClassification
+      : null;
+  const pubTypeTier = normalizeLowerString(pubTypeClassification?.tier || "");
+  const pubTypeConfidence = normalizeLowerString(pubTypeClassification?.confidence || "");
   const snapshot = {
     candidateSource: normalizeLowerString(candidate?.source || ""),
     sourceProviders,
@@ -97,14 +129,15 @@ export function buildCandidateSemanticMetadataSnapshot(
     candidatePublicationTypes: Array.isArray(candidateMetadata.publicationTypes)
       ? candidateMetadata.publicationTypes.map((value) => normalizeLowerString(value))
       : [],
+    candidatePubTypeTier: pubTypeTier,
+    candidatePubTypeConfidence: pubTypeConfidence,
   };
 
-  const doiKey = normalizeDoiValue(candidate?.doi || "").toLowerCase();
-  if (doiKey && metadataByDoi instanceof Map && metadataByDoi.has(doiKey)) {
-    const doiMetadata = metadataByDoi.get(doiKey);
+  const metadataEntry = resolveMetadataEntry(candidate, metadataByDoi, metadataByOpenAlexId);
+  if (metadataEntry) {
     const bySource =
-      doiMetadata?.bySource && typeof doiMetadata.bySource === "object"
-        ? doiMetadata.bySource
+      metadataEntry?.bySource && typeof metadataEntry.bySource === "object"
+        ? metadataEntry.bySource
         : {};
     const flattenedMetadata = Object.values(bySource).flatMap((entries) =>
       (Array.isArray(entries) ? entries : []).map((entry) =>
@@ -205,6 +238,7 @@ export function evaluateSemanticMetadataFieldCondition(snapshot, condition) {
 function evaluateCandidateSemanticRule({
   candidate,
   metadataByDoi,
+  metadataByOpenAlexId,
   rule,
   sourceProviders,
   metadataSnapshot,
@@ -212,7 +246,8 @@ function evaluateCandidateSemanticRule({
   const signalTexts = getCandidateSemanticSignalTexts(
     candidate,
     metadataByDoi,
-    rule?.textScopes
+    rule?.textScopes,
+    metadataByOpenAlexId
   );
   const hasRequiredAnySignal =
     !Array.isArray(rule?.requireAnyTextSignals) ||
@@ -311,6 +346,7 @@ function evaluateCandidateSemanticRule({
 export function explainCandidateActiveSemanticDoiOnlyRules({
   candidate,
   metadataByDoi,
+  metadataByOpenAlexId = null,
   ruleState,
   openAlexCachedValue = null,
 }) {
@@ -335,16 +371,22 @@ export function explainCandidateActiveSemanticDoiOnlyRules({
     };
   }
 
-  const sourceProviders = getCandidateSemanticSourceProviders(candidate, metadataByDoi);
+  const sourceProviders = getCandidateSemanticSourceProviders(
+    candidate,
+    metadataByDoi,
+    metadataByOpenAlexId
+  );
   const metadataSnapshot = buildCandidateSemanticMetadataSnapshot(
     candidate,
     metadataByDoi,
-    openAlexCachedValue
+    openAlexCachedValue,
+    metadataByOpenAlexId
   );
   const evaluateRule = (rule) =>
     evaluateCandidateSemanticRule({
       candidate,
       metadataByDoi,
+      metadataByOpenAlexId,
       rule,
       sourceProviders,
       metadataSnapshot,

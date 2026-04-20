@@ -87,8 +87,33 @@ flowchart TD
   PM4 --> EN
   PM5 --> EN
 
-  EN --> M["05 Merge + hybrid rerank<br/>rerankSemanticCandidates()"]
+  EN --> CL["04c Classification<br/>pubTypeClassifier + dataQualityMultiplier<br/>(tier + confidence + quality)"]
+  CL --> M["05 Merge + hybrid rerank<br/>rerankSemanticCandidates()"]
   M --> N["Gem rerankede candidates / PMIDs / DOIs<br/>paa tag eller global semantic state"]
+```
+
+### Classification-detalje (`04c`)
+
+```mermaid
+flowchart LR
+  A["Beriget candidate"] --> B{"Publisher i<br/>guidelinePublisherAllowList?"}
+  B -- "Ja" --> T1["tier = guideline_verified<br/>confidence = high"]
+  B -- "Nej" --> C{"publicationTypes indeholder<br/>Guideline / Practice Guideline?"}
+  C -- "Ja" --> T2["tier = guideline_candidate"]
+  C -- "Nej" --> D{"publicationTypes indeholder<br/>Systematic Review / Meta-Analysis?"}
+  D -- "Ja" --> T3["tier = systematic_review_or_meta"]
+  D -- "Nej" --> E{"publicationTypes / workType<br/>indeholder RCT / trial?"}
+  E -- "Ja" --> T4["tier = clinical_trial"]
+  E -- "Nej" --> F{"workType =<br/>book-chapter / dissertation /<br/>preprint / review / report?"}
+  F -- "Ja" --> T5["tier matchende workType"]
+  F -- "Nej" --> T6["tier = research_article<br/>(fallback)"]
+  T1 --> Q["Data-quality check<br/>abstract? author? year?"]
+  T2 --> Q
+  T3 --> Q
+  T4 --> Q
+  T5 --> Q
+  T6 --> Q
+  Q --> R["Skriv<br/>candidate.pubTypeClassification<br/>+ candidate.dataQualityMultiplier"]
 ```
 
 ### Enrichment-detalje (`04b`)
@@ -169,7 +194,8 @@ flowchart TD
 - `searchMore()` genbruger caches og `finalValidatedQuery`, saa pagination ikke genstarter hele retrievallogikken fra bunden.
 - Enrichment-sektionen `04b` koerer iCite og OpenAlex Authority parallelt og fejler graceful; ved fejl fortsaetter rerank uden de manglende signaler.
 - iCite daekker kun PMIDs. DOI-only kandidater faar `null` paa RCR og falder tilbage til FWCI/citation count i `computeCitationImpactMultiplier`.
-- Den hybride rerank bruger formlen `(baseScore + additiveQualityBonus) * qualityMultiplier`, hvor `baseScore` er den klassiske RRF og resten er kvalitetssignaler der defaulter til neutrale vaerdier.
+- Classification-sektionen `04c` koerer deterministisk paa de berigede metadata. Records uden titel hard-droppes. Records med tier `excluded` filtreres kun vaek, hvis `pubTypeTiers` er sat. Records uden abstract/forfatter/aarstal beholdes og nedgraderes via `dataQualityMultiplier`.
+- Den hybride rerank bruger formlen `(baseScore + additiveQualityBonus) * qualityMultiplier`, hvor `baseScore` er den klassiske RRF, `additiveQualityBonus` nu ogsaa inkluderer `pubTypeTierBonus` (tier * confidenceCoefficient), og `qualityMultiplier` inkluderer `dataQualityMultiplier`. Alle nye signaler defaulter til neutrale vaerdier.
 
 ## 7. Kort Opsummering
 
@@ -178,5 +204,6 @@ Det nuvaerende flow er et hybridt search flow med fem centrale principper:
 1. Klassiske PubMed-soegestrenge er stadig det kanoniske query-lag.
 2. Semantiske kilder kan udvide kandidatfeltet, beriges og derefter flettes i en samlet reranking.
 3. Enrichment (`04b`) tilfoejer field-normaliserede citation- og klinikere-relevante signaler uden at aendre retrieval-resultatet.
-4. PubMed bruges som valideringslag for PMID-baserede candidates.
-5. DOI-only records kan stadig komme med, hvis de overlever de metadataregler, der er defineret for det aktive filterset.
+4. Classification (`04c`) assigner tier + confidence pr. record og nedgraderer records med mangelfulde data via `dataQualityMultiplier`.
+5. PubMed bruges som valideringslag for PMID-baserede candidates.
+6. DOI-only og OpenAlex-only records (fx guidelines fra WHO/NICE/CDC) kan stadig komme med, hvis de overlever de metadataregler, der er defineret for det aktive filterset.

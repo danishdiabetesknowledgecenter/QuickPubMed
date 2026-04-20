@@ -89,6 +89,10 @@
         type: Boolean,
         default: true,
       },
+      language: {
+        type: String,
+        default: "dk",
+      },
     },
     data() {
       return {

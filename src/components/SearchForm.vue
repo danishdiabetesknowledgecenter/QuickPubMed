@@ -2443,12 +2443,21 @@
         );
         return (Array.isArray(this.limitOptions) ? this.limitOptions : [])
           .map((option) => {
+            const optionGroups = option.groups || option.choices || [];
             if (!this.isDatabaseLimitGroup(option)) {
-              return option;
+              if (option.groups === optionGroups) {
+                return option;
+              }
+              return {
+                ...option,
+                groups: optionGroups,
+              };
             }
+            const databaseChoices = this.augmentDatabaseChoicesWithLocked(option.choices);
             return {
               ...option,
-              choices: this.augmentDatabaseChoicesWithLocked(option.choices),
+              choices: databaseChoices,
+              groups: databaseChoices,
             };
           })
           .filter((option) => {
@@ -3716,6 +3725,13 @@
         const nonDatabaseValue = uniqueValue.filter((item) => !this.isDatabaseLimitItem(item));
 
         const previousValue = Array.isArray(this.limitDropdowns[index]) ? this.limitDropdowns[index] : [];
+        const normalizedPreviousValue = previousValue.map((item) => ({
+          ...item,
+          scope: item?.scope || "normal",
+        }));
+        if (this.limitDropdownsEqual([normalizedPreviousValue], [uniqueValue])) {
+          return;
+        }
         const previousKeys = new Set(
           previousValue.map((item) => this.limitSelectionIdentity(item)).filter(Boolean)
         );
@@ -5156,6 +5172,14 @@
         const doiItem = entry.articleids.find((item) => item?.idtype === "doi");
         return normalizeDoiValue(doiItem?.value || "");
       },
+      reconcileCountForMissingHydrations(resultRefs, data) {
+        const requested = Array.isArray(resultRefs) ? resultRefs.length : 0;
+        const hydrated = Array.isArray(data) ? data.length : 0;
+        if (requested <= 0 || hydrated >= requested) return;
+        const missing = requested - hydrated;
+        const previousCount = Number(this.count) || 0;
+        this.count = Math.max(hydrated, previousCount - missing);
+      },
       logHybridRenderSummary(label, resultRefs, data) {
         const safeRefs = Array.isArray(resultRefs) ? resultRefs : [];
         const safeData = Array.isArray(data) ? data : [];
@@ -5243,7 +5267,9 @@
       async buildAllowedSemanticRefKeys(orderedCandidates, nlm, options = {}) {
         const candidatesToValidate = (Array.isArray(orderedCandidates) ? orderedCandidates : []).filter(
           (candidate) =>
-            String(candidate?.pmid || "").trim() || normalizeDoiValue(candidate?.doi || "")
+            String(candidate?.pmid || "").trim() ||
+            normalizeDoiValue(candidate?.doi || "") ||
+            String(candidate?.openAlexId || "").trim()
         );
         const trustedPmidSet = new Set(
           (Array.isArray(options?.trustedPmids) ? options.trustedPmids : [])
@@ -5273,7 +5299,14 @@
             .map((candidate) => {
               const pmid = String(candidate?.pmid || "").trim();
               const doi = normalizeDoiValue(candidate?.doi || "");
-              const key = pmid ? `pmid:${pmid}` : doi ? `doi:${doi.toLowerCase()}` : "";
+              const openAlexId = String(candidate?.openAlexId || "").trim();
+              const key = pmid
+                ? `pmid:${pmid}`
+                : doi
+                ? `doi:${doi.toLowerCase()}`
+                : openAlexId
+                ? `oa:${openAlexId}`
+                : "";
               return key
                 ? {
                     key,
@@ -5317,7 +5350,14 @@
           const hydrated = hydratedWorks[index] || null;
           const pmid = String(candidate?.pmid || "").trim();
           const normalizedDoi = normalizeDoiValue(candidate?.doi || hydrated?.doi || "");
-          const key = pmid ? `pmid:${pmid}` : normalizedDoi ? `doi:${normalizedDoi.toLowerCase()}` : "";
+          const openAlexId = String(candidate?.openAlexId || hydrated?.openAlexId || "").trim();
+          const key = pmid
+            ? `pmid:${pmid}`
+            : normalizedDoi
+            ? `doi:${normalizedDoi.toLowerCase()}`
+            : openAlexId
+            ? `oa:${openAlexId}`
+            : "";
           if (!key) {
             return { key: "", candidate, hydrated, allowed: false, reason: "missing-ref-key" };
           }
@@ -5444,11 +5484,18 @@
           ranked.forEach((candidate) => {
             const pmid = String(candidate?.pmid || "").trim();
             const doi = normalizeDoiValue(candidate?.doi || "");
+            const openAlexId = String(candidate?.openAlexId || "").trim();
             const source = String(candidate?.source || "").trim();
             if (!allowOpenAlexSemantic && source === "openAlex") {
               return;
             }
-            const key = pmid ? `pmid:${pmid}` : doi ? `doi:${doi.toLowerCase()}` : "";
+            const key = pmid
+              ? `pmid:${pmid}`
+              : doi
+              ? `doi:${doi.toLowerCase()}`
+              : openAlexId
+              ? `oa:${openAlexId}`
+              : "";
             if (!key || seen.has(key)) return;
             seen.add(key);
             candidates.push({
@@ -5462,7 +5509,7 @@
                 candidate?.metadata && typeof candidate.metadata === "object"
                   ? { ...candidate.metadata }
                   : {},
-              openAlexId: String(candidate?.openAlexId || "").trim(),
+              openAlexId,
             });
           });
         });
@@ -5619,6 +5666,10 @@
             fallbackRecord?.mergedDoiMetadata && typeof fallbackRecord.mergedDoiMetadata === "object"
               ? { ...fallbackRecord.mergedDoiMetadata }
               : safePubMedRecord?.mergedDoiMetadata || null,
+          pubTypeClassification:
+            fallbackRecord?.pubTypeClassification || safePubMedRecord?.pubTypeClassification || null,
+          publisher: String(fallbackRecord?.publisher || safePubMedRecord?.publisher || "").trim(),
+          language: String(fallbackRecord?.language || safePubMedRecord?.language || "").trim(),
         };
       },
       async fetchOpenAlexWorksByCandidates(candidates, nlm) {
@@ -5631,6 +5682,7 @@
         const results = new Array(safeCandidates.length).fill(null);
         const pendingEntries = [];
         const batchEntriesByDoi = new Map();
+        const batchEntriesByOpenAlexId = new Map();
         const singleFallbackEntries = [];
 
         safeCandidates.forEach((candidate, index) => {
@@ -5661,6 +5713,18 @@
               });
             }
             batchEntriesByDoi.get(doiKey).indices.push(index);
+            return;
+          }
+
+          const openAlexId = String(candidate?.openAlexId || "").trim();
+          if (openAlexId) {
+            if (!batchEntriesByOpenAlexId.has(openAlexId)) {
+              batchEntriesByOpenAlexId.set(openAlexId, {
+                openAlexId,
+                indices: [],
+              });
+            }
+            batchEntriesByOpenAlexId.get(openAlexId).indices.push(index);
             return;
           }
 
@@ -5714,6 +5778,7 @@
               let mapped = mapOpenAlexWorkToResultDto(workEntry.work, {
                 doi: entry.normalizedDoi,
                 openAlexId: workEntry.openAlexId || sampleCandidate?.openAlexId || "",
+                pubTypeClassification: sampleCandidate?.pubTypeClassification || null,
               });
               mapped = await this.finalizeOpenAlexMappedWork(mapped, sampleCandidate, entry.normalizedDoi);
               mappedByDoi.set(entry.normalizedDoi.toLowerCase(), mapped);
@@ -5742,6 +5807,105 @@
                   pubMedByPmid.get(mappedPmid) || null,
                   mapped,
                   entry.normalizedDoi
+                );
+              }
+              if (preferred) {
+                this.writeTimedCacheEntry(this.openAlexDoiCache, cacheKey, preferred);
+              } else {
+                this.writeTimedCacheEntry(this.openAlexDoiCache, cacheKey, null, 60 * 1000);
+              }
+              entry.indices.forEach((candidateIndex) => {
+                results[candidateIndex] = preferred;
+              });
+            }
+          } catch (error) {
+            for (const entry of chunk) {
+              for (const candidateIndex of entry.indices) {
+                results[candidateIndex] = await this.fetchOpenAlexWorkByCandidate(
+                  safeCandidates[candidateIndex],
+                  nlm
+                );
+              }
+            }
+          }
+        }
+
+        const openAlexBatchEntries = Array.from(batchEntriesByOpenAlexId.values());
+        const openAlexBatchChunks = [];
+        for (let index = 0; index < openAlexBatchEntries.length; index += 100) {
+          openAlexBatchChunks.push(openAlexBatchEntries.slice(index, index + 100));
+        }
+
+        for (const chunk of openAlexBatchChunks) {
+          const openAlexIds = chunk.map((entry) => entry.openAlexId);
+          try {
+            const response = await axios.post(
+              this.getBackendApiUrl("OpenAlexWorkLookup.php"),
+              {
+                openAlexIds,
+                domain: this.currentDomain || "",
+              },
+              { headers: { "Content-Type": "application/json" } }
+            );
+            const works = Array.isArray(response?.data?.works) ? response.data.works : [];
+            const worksByOpenAlexId = new Map(
+              works
+                .map((entry) => {
+                  const entryOpenAlexId = String(entry?.openAlexId || entry?.work?.id || "")
+                    .replace(/^https?:\/\/openalex\.org\//i, "")
+                    .trim();
+                  return entryOpenAlexId ? [entryOpenAlexId, entry] : null;
+                })
+                .filter(Boolean)
+            );
+            const mappedByOpenAlexId = new Map();
+            const pmidsToHydrate = [];
+
+            for (const entry of chunk) {
+              const normalizedEntryId = entry.openAlexId
+                .replace(/^https?:\/\/openalex\.org\//i, "")
+                .trim();
+              const workEntry = worksByOpenAlexId.get(normalizedEntryId);
+              const sampleCandidate = safeCandidates[entry.indices[0]];
+              if (!workEntry?.work) {
+                continue;
+              }
+              let mapped = mapOpenAlexWorkToResultDto(workEntry.work, {
+                doi: normalizeDoiValue(workEntry.doi || sampleCandidate?.doi || ""),
+                openAlexId: entry.openAlexId,
+                pubTypeClassification: sampleCandidate?.pubTypeClassification || null,
+              });
+              mapped = await this.finalizeOpenAlexMappedWork(
+                mapped,
+                sampleCandidate,
+                normalizeDoiValue(workEntry.doi || "")
+              );
+              mappedByOpenAlexId.set(entry.openAlexId, mapped);
+              const mappedPmid = String(mapped?.pmid || "").trim();
+              if (/^[0-9]+$/.test(mappedPmid)) {
+                pmidsToHydrate.push(mappedPmid);
+              }
+            }
+            const pubMedByPmid = new Map(
+              (
+                await this.fetchSummaryRecordsByIds(
+                  [...new Set(pmidsToHydrate)],
+                  nlm
+                )
+              ).map((summaryEntry) => [String(summaryEntry?.uid || summaryEntry?.pmid || "").trim(), summaryEntry])
+            );
+
+            for (const entry of chunk) {
+              const sampleCandidate = safeCandidates[entry.indices[0]];
+              const cacheKey = this.getOpenAlexWorkCacheKey(sampleCandidate);
+              const mapped = mappedByOpenAlexId.get(entry.openAlexId) || null;
+              let preferred = mapped;
+              const mappedPmid = String(mapped?.pmid || "").trim();
+              if (/^[0-9]+$/.test(mappedPmid)) {
+                preferred = this.buildPubMedPreferredRecord(
+                  pubMedByPmid.get(mappedPmid) || null,
+                  mapped,
+                  normalizeDoiValue(mapped?.doi || "")
                 );
               }
               if (preferred) {
@@ -5816,6 +5980,7 @@
               ? mapOpenAlexWorkToResultDto(work, {
                   doi: normalizedDoi,
                   openAlexId,
+                  pubTypeClassification: candidate?.pubTypeClassification || null,
                 })
               : null;
             mapped = await this.finalizeOpenAlexMappedWork(mapped, candidate, normalizedDoi);
@@ -5912,6 +6077,7 @@
         orderedCandidates.forEach((candidate) => {
           const pmid = String(candidate?.pmid || "").trim();
           const doi = normalizeDoiValue(candidate?.doi || "");
+          const openAlexId = String(candidate?.openAlexId || "").trim();
           if (pmid) {
             if (!matchedPmidSet.has(pmid)) return;
             const key = `pmid:${pmid}`;
@@ -5924,6 +6090,7 @@
               pmid,
               key,
               source: String(candidate?.source || "").trim(),
+              pubTypeClassification: candidate?.pubTypeClassification || null,
             });
             return;
           }
@@ -5946,8 +6113,33 @@
                     ? { ...candidate.metadata }
                     : {},
               },
-              openAlexId: String(candidate?.openAlexId || "").trim(),
+              openAlexId,
               key,
+              pubTypeClassification: candidate?.pubTypeClassification || null,
+            });
+            return;
+          }
+          if (!pmid && !doi && openAlexId) {
+            const key = `oa:${openAlexId}`;
+            if (!allowedSemanticRefKeys.has(key)) return;
+            if (seenRefKeys.has(key)) return;
+            seenRefKeys.add(key);
+            refs.push({
+              type: "openalex",
+              openAlexId,
+              source: String(candidate?.source || "").trim(),
+              semanticCandidate: {
+                source: String(candidate?.source || "").trim(),
+                rank: Number(candidate?.rank) || null,
+                score: Number.isFinite(Number(candidate?.score)) ? Number(candidate?.score) : null,
+                title: String(candidate?.title || "").trim(),
+                metadata:
+                  candidate?.metadata && typeof candidate.metadata === "object"
+                    ? { ...candidate.metadata }
+                    : {},
+              },
+              key,
+              pubTypeClassification: candidate?.pubTypeClassification || null,
             });
           }
         });
@@ -6162,7 +6354,9 @@
           return this.semanticSortedResultCache;
         }
         const pmidRefs = safeRefs.filter((entry) => entry.type === "pmid");
-        const doiRefs = safeRefs.filter((entry) => entry.type === "doi");
+        const doiRefs = safeRefs.filter(
+          (entry) => entry.type === "doi" || entry.type === "openalex"
+        );
         this.setSemanticFinalizeLoadingStatus("hydrate", {
           hasPmids: pmidRefs.length > 0,
           hasDois: doiRefs.length > 0,
@@ -6183,9 +6377,15 @@
           }
         });
         const hydratedResults = safeRefs
-          .map((entry) =>
-            entry.type === "pmid" ? pmidMap.get(String(entry.pmid)) : doiMap.get(entry.key)
-          )
+          .map((entry) => {
+            const record =
+              entry.type === "pmid" ? pmidMap.get(String(entry.pmid)) : doiMap.get(entry.key);
+            if (!record) return null;
+            if (entry.pubTypeClassification && !record.pubTypeClassification) {
+              record.pubTypeClassification = entry.pubTypeClassification;
+            }
+            return record;
+          })
           .filter(Boolean);
         this.setSemanticFinalizeLoadingStatus("sort");
         const sortedResults = this.sortSemanticHydratedResults(hydratedResults);
@@ -6352,7 +6552,9 @@
                 );
               } else {
                 const pmidRefs = resultRefs.filter((entry) => entry.type === "pmid");
-                const doiRefs = resultRefs.filter((entry) => entry.type === "doi");
+                const doiRefs = resultRefs.filter(
+                  (entry) => entry.type === "doi" || entry.type === "openalex"
+                );
                 this.setSemanticFinalizeLoadingStatus("hydrate", {
                   hasPmids: pmidRefs.length > 0,
                   hasDois: doiRefs.length > 0,
@@ -6377,6 +6579,7 @@
                     entry.type === "pmid" ? pmidMap.get(String(entry.pmid)) : doiMap.get(entry.key)
                   )
                   .filter(Boolean);
+                this.reconcileCountForMissingHydrations(resultRefs, data);
               }
             } else {
               this.setSemanticFinalizeLoadingStatus("hydrate", {
@@ -6627,7 +6830,9 @@
                 data = sortedData.slice(currentLength, targetResultLength);
               } else {
                 const pmidRefs = resultRefs.filter((entry) => entry.type === "pmid");
-                const doiRefs = resultRefs.filter((entry) => entry.type === "doi");
+                const doiRefs = resultRefs.filter(
+                  (entry) => entry.type === "doi" || entry.type === "openalex"
+                );
                 this.setSemanticFinalizeLoadingStatus("hydrate", {
                   hasPmids: pmidRefs.length > 0,
                   hasDois: doiRefs.length > 0,
@@ -6652,6 +6857,7 @@
                     entry.type === "pmid" ? pmidMap.get(String(entry.pmid)) : doiMap.get(entry.key)
                   )
                   .filter(Boolean);
+                this.reconcileCountForMissingHydrations(resultRefs, data);
               }
             } else {
               this.setSemanticFinalizeLoadingStatus("hydrate", {
@@ -6796,7 +7002,9 @@
           } else {
             const visibleRefs = resultRefs.slice(0, this.pageSize);
             const pmidRefs = visibleRefs.filter((entry) => entry.type === "pmid");
-            const doiRefs = visibleRefs.filter((entry) => entry.type === "doi");
+            const doiRefs = visibleRefs.filter(
+              (entry) => entry.type === "doi" || entry.type === "openalex"
+            );
             const [pmidData, doiData] = await Promise.all([
               this.fetchSummaryRecordsByIds(
                 pmidRefs.map((entry) => entry.pmid),

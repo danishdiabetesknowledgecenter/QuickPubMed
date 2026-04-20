@@ -260,6 +260,36 @@ function qpmNormalizeOpenAlexDoi($value): string
 }
 
 /**
+ * Reconstruct OpenAlex abstract text from an inverted index map.
+ *
+ * @param mixed $invertedIndex
+ * @return string
+ */
+function qpmReconstructOpenAlexAbstract($invertedIndex): string
+{
+    if (!is_array($invertedIndex) || empty($invertedIndex)) {
+        return '';
+    }
+    $positions = [];
+    foreach ($invertedIndex as $word => $indexes) {
+        if (!is_string($word) || !is_array($indexes)) {
+            continue;
+        }
+        foreach ($indexes as $index) {
+            if (!is_numeric($index)) {
+                continue;
+            }
+            $positions[(int) $index] = $word;
+        }
+    }
+    if (empty($positions)) {
+        return '';
+    }
+    ksort($positions);
+    return trim(implode(' ', $positions));
+}
+
+/**
  * Normalize language values to OpenAlex filter codes.
  *
  * @param mixed $value
@@ -615,7 +645,7 @@ if ($query === '') {
 $requestParams = [
     $searchMode === 'keyword' ? 'search' : 'search.semantic' => $query,
     'per_page' => $limit,
-    'select' => 'id,display_name,doi,ids,publication_year,publication_date,relevance_score,type,type_crossref,primary_location,fwci,cited_by_count,counts_by_year,is_retracted,open_access,primary_topic,authorships',
+    'select' => 'id,display_name,doi,ids,publication_year,publication_date,relevance_score,type,type_crossref,primary_location,fwci,cited_by_count,counts_by_year,is_retracted,open_access,primary_topic,authorships,abstract_inverted_index,language',
 ];
 if (!empty($languageFilters) || !empty($sourceTypes) || !empty($workTypes) || $publicationYearFilter !== '') {
     $filterParts = [];
@@ -766,17 +796,36 @@ foreach ($results as $index => $work) {
     $ids = isset($work['ids']) && is_array($work['ids']) ? $work['ids'] : [];
     $pmid = qpmNormalizeOpenAlexPmid($work['pmid'] ?? ($ids['pmid'] ?? ''));
     $doi = qpmNormalizeOpenAlexDoi($work['doi'] ?? ($ids['doi'] ?? ''));
-    if ($pmid === '' && $doi === '') {
+    $openAlexId = trim((string) ($work['id'] ?? ''));
+    $title = trim((string) ($work['display_name'] ?? $work['title'] ?? ''));
+
+    if ($pmid === '' && $doi === '' && $openAlexId === '') {
         if ($debugSearchFlow) {
-            $debugDroppedReasons['missing_pmid_and_doi'] = (int) ($debugDroppedReasons['missing_pmid_and_doi'] ?? 0) + 1;
+            $debugDroppedReasons['missing_all_identifiers'] = (int) ($debugDroppedReasons['missing_all_identifiers'] ?? 0) + 1;
             $debugDroppedRecords[] = [
                 'source' => 'openAlex',
                 'rank' => $index + 1,
                 'pmid' => '',
                 'doi' => '',
-                'openAlexId' => trim((string) ($work['id'] ?? '')),
-                'title' => trim((string) ($work['display_name'] ?? $work['title'] ?? '')),
-                'reason' => 'missing_pmid_and_doi',
+                'openAlexId' => '',
+                'title' => $title,
+                'reason' => 'missing_all_identifiers',
+            ];
+        }
+        continue;
+    }
+
+    if ($title === '') {
+        if ($debugSearchFlow) {
+            $debugDroppedReasons['missing_title'] = (int) ($debugDroppedReasons['missing_title'] ?? 0) + 1;
+            $debugDroppedRecords[] = [
+                'source' => 'openAlex',
+                'rank' => $index + 1,
+                'pmid' => $pmid,
+                'doi' => $doi,
+                'openAlexId' => $openAlexId,
+                'title' => '',
+                'reason' => 'missing_title',
             ];
         }
         continue;
@@ -824,6 +873,9 @@ foreach ($results as $index => $work) {
     $pubTypesList = array_keys($pubTypesSet);
 
     $authorIds = [];
+    $authorNames = [];
+    $institutionIds = [];
+    $institutionNames = [];
     if (isset($work['authorships']) && is_array($work['authorships'])) {
         foreach ($work['authorships'] as $authorship) {
             if (!is_array($authorship)) {
@@ -836,18 +888,47 @@ foreach ($results as $index => $work) {
             if ($authorId !== '') {
                 $authorIds[$authorId] = true;
             }
+            $authorName = trim((string) ($author['display_name'] ?? ''));
+            if ($authorName !== '') {
+                $authorNames[] = $authorName;
+            }
+            if (isset($authorship['institutions']) && is_array($authorship['institutions'])) {
+                foreach ($authorship['institutions'] as $institution) {
+                    if (!is_array($institution)) {
+                        continue;
+                    }
+                    $institutionId = trim((string) ($institution['id'] ?? ''));
+                    if ($institutionId !== '') {
+                        $institutionIds[$institutionId] = true;
+                    }
+                    $institutionName = trim((string) ($institution['display_name'] ?? ''));
+                    if ($institutionName !== '') {
+                        $institutionNames[$institutionName] = true;
+                    }
+                }
+            }
         }
     }
 
     $journalSourceId = trim((string) ($source['id'] ?? ''));
+    $publisherName = trim((string) (
+        $source['host_organization_name']
+        ?? $source['publisher']
+        ?? ($primaryLocation['source']['host_organization_name'] ?? '')
+    ));
+    $languageCode = trim((string) ($work['language'] ?? ''));
+    $abstractText = qpmReconstructOpenAlexAbstract($work['abstract_inverted_index'] ?? null);
+    $abstractLength = $abstractText !== ''
+        ? (function_exists('mb_strlen') ? mb_strlen($abstractText) : strlen($abstractText))
+        : 0;
 
     $candidates[] = [
         'source' => 'openAlex',
         'rank' => $index + 1,
         'pmid' => $pmid,
         'doi' => $doi,
-        'openAlexId' => trim((string) ($work['id'] ?? '')),
-        'title' => trim((string) ($work['display_name'] ?? $work['title'] ?? '')),
+        'openAlexId' => $openAlexId,
+        'title' => $title,
         'score' => is_numeric($relevanceScore) ? (float) $relevanceScore : null,
         'metadata' => [
             'publicationYear' => isset($work['publication_year']) ? (string) $work['publication_year'] : '',
@@ -858,6 +939,11 @@ foreach ($results as $index => $work) {
             'sourceDisplayName' => trim((string) ($source['display_name'] ?? '')),
             'sourceAbbreviatedTitle' => trim((string) ($source['abbreviated_title'] ?? '')),
             'journalSourceId' => $journalSourceId,
+            'publisher' => $publisherName,
+            'language' => $languageCode,
+            'abstract' => $abstractText,
+            'hasAbstract' => $abstractText !== '',
+            'abstractLength' => $abstractLength,
             'fwci' => is_numeric($fwciRaw) ? (float) $fwciRaw : null,
             'citedByCount' => is_numeric($citedByCountRaw) ? (int) $citedByCountRaw : null,
             'isRetracted' => is_bool($isRetractedRaw) ? $isRetractedRaw : null,
@@ -865,6 +951,9 @@ foreach ($results as $index => $work) {
             'primaryTopicId' => $primaryTopicId,
             'primaryTopicDisplayName' => $primaryTopicDisplayName,
             'authorIds' => array_values(array_keys($authorIds)),
+            'authorNames' => $authorNames,
+            'institutionIds' => array_values(array_keys($institutionIds)),
+            'institutionNames' => array_values(array_keys($institutionNames)),
         ],
     ];
 }

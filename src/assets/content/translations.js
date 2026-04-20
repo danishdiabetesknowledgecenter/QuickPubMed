@@ -739,6 +739,50 @@ export const messages = {
     dk: "Ingen forfattere angivet",
     en: "No authors listed",
   },
+  typeBadgeGuideline: {
+    dk: "Retningslinje",
+    en: "Guideline",
+  },
+  typeBadgeGuidelineCandidate: {
+    dk: "Muligt retningslinje",
+    en: "Possible guideline",
+  },
+  typeBadgeSystematicReview: {
+    dk: "Systematisk review",
+    en: "Systematic review",
+  },
+  typeBadgeReview: {
+    dk: "Review",
+    en: "Review",
+  },
+  typeBadgeClinicalTrial: {
+    dk: "Klinisk studie",
+    en: "Clinical trial",
+  },
+  typeBadgeReport: {
+    dk: "Rapport",
+    en: "Report",
+  },
+  typeBadgeBookChapter: {
+    dk: "Bogkapitel",
+    en: "Book chapter",
+  },
+  typeBadgeDissertation: {
+    dk: "Dissertation",
+    en: "Dissertation",
+  },
+  typeBadgePreprint: {
+    dk: "Preprint",
+    en: "Preprint",
+  },
+  openAlexWorkLink: {
+    dk: "Se i OpenAlex",
+    en: "View on OpenAlex",
+  },
+  hoverOpenAlexWorkLink: {
+    dk: "Åbn den fulde post i OpenAlex",
+    en: "Open the full record on OpenAlex",
+  },
   relatedPubmed: {
     dk: "Find lignende artikler",
     en: "Similar records in PubMed",
