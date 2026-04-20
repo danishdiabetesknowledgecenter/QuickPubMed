@@ -1041,3 +1041,146 @@ function qpmParseRateLimitResetWindow($resetValue, $retryAfterValue = ''): array
         'resetInSeconds' => max(0, $targetTs - $nowTs),
     ];
 }
+
+/**
+ * Return a normalised list of supported semantic source keys for rate limit caching.
+ *
+ * @return array<int,string>
+ */
+function qpmGetSourceRateLimitCacheKeys(): array
+{
+    return ['openAlex', 'semanticScholar', 'elicit'];
+}
+
+/**
+ * Resolve the filesystem path used for a source's shared rate limit snapshot.
+ *
+ * @param string $sourceKey
+ * @return string
+ */
+function qpmGetSourceRateLimitCachePath(string $sourceKey): string
+{
+    $normalized = preg_replace('/[^A-Za-z0-9_-]/', '', trim($sourceKey));
+    if (!is_string($normalized) || $normalized === '') {
+        $normalized = 'default';
+    }
+    $runtimeDir = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'runtime';
+    if (!is_dir($runtimeDir)) {
+        @mkdir($runtimeDir, 0775, true);
+    }
+    return $runtimeDir . DIRECTORY_SEPARATOR . 'source-rate-limit-' . $normalized . '.json';
+}
+
+/**
+ * Persist the latest rate limit snapshot for a source so that visitors who have
+ * not yet performed a search can still see the remaining request counts.
+ *
+ * @param string $sourceKey
+ * @param array<string,mixed> $rateLimit
+ * @return void
+ */
+function qpmStoreSourceRateLimitSnapshot(string $sourceKey, array $rateLimit): void
+{
+    if (empty($rateLimit) || !in_array($sourceKey, qpmGetSourceRateLimitCacheKeys(), true)) {
+        return;
+    }
+    $limitVal = $rateLimit['limit'] ?? null;
+    $remainingVal = $rateLimit['remaining'] ?? null;
+    $resetAtVal = trim((string) ($rateLimit['resetAt'] ?? ''));
+    $resetSecondsVal = $rateLimit['resetInSeconds'] ?? null;
+    $statusVal = (int) ($rateLimit['status'] ?? 0);
+    $isLimitedVal = !empty($rateLimit['isLimited']);
+    if (
+        ($limitVal === null || $limitVal === '') &&
+        ($remainingVal === null || $remainingVal === '') &&
+        $resetAtVal === '' &&
+        ($resetSecondsVal === null || $resetSecondsVal === '') &&
+        $statusVal <= 0 &&
+        !$isLimitedVal
+    ) {
+        return;
+    }
+    $payload = [
+        'limit' => array_key_exists('limit', $rateLimit) ? $rateLimit['limit'] : null,
+        'remaining' => array_key_exists('remaining', $rateLimit) ? $rateLimit['remaining'] : null,
+        'resetAt' => isset($rateLimit['resetAt']) ? (string) $rateLimit['resetAt'] : '',
+        'resetInSeconds' => array_key_exists('resetInSeconds', $rateLimit) ? $rateLimit['resetInSeconds'] : null,
+        'status' => isset($rateLimit['status']) ? (int) $rateLimit['status'] : 0,
+        'isLimited' => !empty($rateLimit['isLimited']),
+        'updatedAt' => gmdate('c'),
+    ];
+    $encoded = json_encode($payload);
+    if (!is_string($encoded)) {
+        return;
+    }
+    $path = qpmGetSourceRateLimitCachePath($sourceKey);
+    $tmpPath = $path . '.tmp';
+    if (@file_put_contents($tmpPath, $encoded, LOCK_EX) === false) {
+        return;
+    }
+    @rename($tmpPath, $path);
+}
+
+/**
+ * Read the cached rate limit snapshot for a source. Returns null when no usable
+ * snapshot is stored. The returned `resetInSeconds` is recalculated from
+ * `resetAt` so consumers see a live countdown rather than the value captured at
+ * write time.
+ *
+ * @param string $sourceKey
+ * @return array<string,mixed>|null
+ */
+function qpmReadSourceRateLimitSnapshot(string $sourceKey): ?array
+{
+    if (!in_array($sourceKey, qpmGetSourceRateLimitCacheKeys(), true)) {
+        return null;
+    }
+    $path = qpmGetSourceRateLimitCachePath($sourceKey);
+    if (!is_file($path)) {
+        return null;
+    }
+    $raw = @file_get_contents($path);
+    if (!is_string($raw) || $raw === '') {
+        return null;
+    }
+    $decoded = json_decode($raw, true);
+    if (!is_array($decoded)) {
+        return null;
+    }
+
+    $resetAt = isset($decoded['resetAt']) ? (string) $decoded['resetAt'] : '';
+    $resetInSeconds = null;
+    if ($resetAt !== '') {
+        $resetTs = strtotime($resetAt);
+        if ($resetTs !== false) {
+            $resetInSeconds = max(0, $resetTs - time());
+        }
+    }
+    if ($resetInSeconds === null && isset($decoded['resetInSeconds']) && is_numeric($decoded['resetInSeconds'])) {
+        $resetInSeconds = max(0, (int) $decoded['resetInSeconds']);
+    }
+
+    return [
+        'limit' => array_key_exists('limit', $decoded) ? $decoded['limit'] : null,
+        'remaining' => array_key_exists('remaining', $decoded) ? $decoded['remaining'] : null,
+        'resetAt' => $resetAt,
+        'resetInSeconds' => $resetInSeconds,
+        'status' => isset($decoded['status']) ? (int) $decoded['status'] : 0,
+        'isLimited' => !empty($decoded['isLimited']),
+        'updatedAt' => isset($decoded['updatedAt']) ? (string) $decoded['updatedAt'] : '',
+    ];
+}
+
+/**
+ * Read cached rate limit snapshots for all known sources.
+ *
+ * @return array<string,array<string,mixed>|null>
+ */
+function qpmReadAllSourceRateLimitSnapshots(): array
+{
+    $snapshots = [];
+    foreach (qpmGetSourceRateLimitCacheKeys() as $sourceKey) {
+        $snapshots[$sourceKey] = qpmReadSourceRateLimitSnapshot($sourceKey);
+    }
+    return $snapshots;
+}

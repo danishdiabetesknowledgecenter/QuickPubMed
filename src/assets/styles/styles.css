@@ -1343,6 +1343,7 @@ button.qpm_slim.multiselect__input:focus-visible {
 .qpm_vapp .multiselect__tag[role="button"]:focus-visible {
   outline: 2px solid var(--color-black) !important;
   outline-offset: 0 !important;
+  box-shadow: inset 0 0 0 2px var(--color-white);
 }
 
 .multiselect__tag span {
@@ -1395,7 +1396,8 @@ input.multiselect__input{
   padding: 2px;
   box-sizing: border-box;
   line-height: 1;
-  background-color: var(--color-overlay-dark);
+  background: rgba(0, 0, 0, 0.3) !important;
+  overflow: hidden;
 }
 .multiselect__tag-icon:after {
   content: none !important;
@@ -1403,7 +1405,8 @@ input.multiselect__input{
 
 .qpm_dropdownTagIconGlyph {
   color: var(--color-white) !important;
-  font-size: 1em;
+  font-size: 1.05em;
+  font-weight: 700;
   line-height: 1;
   pointer-events: none;
   display: flex;
@@ -1414,6 +1417,7 @@ input.multiselect__input{
   box-sizing: border-box;
   border: 0 solid transparent;
   border-radius: 0 3px 3px 0;
+  box-shadow: none;
 }
 .multiselect__tag-icon[role="button"]:focus,
 .multiselect__tag-icon[role="button"]:hover {
@@ -1432,10 +1436,13 @@ input.multiselect__input{
 
 .qpm_vapp .multiselect__tag-icon[role="button"]:focus-visible {
   outline: none !important;
+  box-shadow:
+    inset 0 0 0 2px var(--color-black),
+    inset 0 0 0 4px var(--color-white) !important;
 }
 
 .qpm_vapp .multiselect__tag-icon[role="button"]:focus-visible .qpm_dropdownTagIconGlyph {
-  border: 2px solid var(--color-black) !important;
+  border-color: transparent !important;
 }
 .qpm_operator {
   margin-left: 6px;

@@ -470,7 +470,7 @@ function qpmElicitBuildRateLimitInfo(array $headers, int $status): array
         (string)($headerMap['retry-after'] ?? '')
     );
 
-    return [
+    $rateLimit = [
         'limit' => $limit,
         'remaining' => $remaining,
         'resetAt' => $resetWindow['resetAt'],
@@ -478,6 +478,10 @@ function qpmElicitBuildRateLimitInfo(array $headers, int $status): array
         'status' => $status,
         'isLimited' => $status === 429 || ($remaining !== null && $remaining <= 0),
     ];
+    if (function_exists('qpmStoreSourceRateLimitSnapshot')) {
+        qpmStoreSourceRateLimitSnapshot('elicit', $rateLimit);
+    }
+    return $rateLimit;
 }
 
 /**

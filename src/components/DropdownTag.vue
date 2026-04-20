@@ -66,6 +66,14 @@
   import { utilitiesMixin } from "@/mixins/utilities";
   import { customInputTagTooltip } from "@/utils/contentHelpers.js";
   import { cloneDeep } from "@/utils/componentHelpers";
+  import {
+    SOURCE_RATE_LIMIT_KEYS,
+    readStoredSourceRateLimitInfo,
+    normalizeSourceRateLimitInfo,
+    formatSourceRateLimitTooltipSuffix,
+  } from "@/utils/sourceRateLimit";
+
+  const SEMANTIC_SOURCE_RATE_LIMIT_EVENT = "qpm:semantic-source-rate-limit-update";
 
   export default {
     name: "DropdownTag",
@@ -122,8 +130,54 @@
          tag: cloneDeep(this.triple.option),
          helpTextDelay: 300,
          isMultiLine: false,
+         sourceRateLimitInfo: {
+           elicit: null,
+           openAlex: null,
+           semanticScholar: null,
+         },
+         _sourceRateLimitListener: null,
        };
      },
+    mounted() {
+      SOURCE_RATE_LIMIT_KEYS.forEach((sourceKey) => {
+        const stored = readStoredSourceRateLimitInfo(sourceKey);
+        if (stored) {
+          this.sourceRateLimitInfo = {
+            ...this.sourceRateLimitInfo,
+            [sourceKey]: stored,
+          };
+        }
+      });
+      if (typeof window !== "undefined") {
+        this._sourceRateLimitListener = (event) => {
+          const sourceKey = String(event?.detail?.sourceKey || "").trim();
+          if (!SOURCE_RATE_LIMIT_KEYS.includes(sourceKey)) {
+            return;
+          }
+          const normalized = normalizeSourceRateLimitInfo(event?.detail?.rateLimit);
+          if (!normalized) {
+            return;
+          }
+          this.sourceRateLimitInfo = {
+            ...this.sourceRateLimitInfo,
+            [sourceKey]: normalized,
+          };
+        };
+        window.addEventListener(
+          SEMANTIC_SOURCE_RATE_LIMIT_EVENT,
+          this._sourceRateLimitListener
+        );
+      }
+    },
+    beforeUnmount() {
+      if (typeof window !== "undefined" && this._sourceRateLimitListener) {
+        window.removeEventListener(
+          SEMANTIC_SOURCE_RATE_LIMIT_EVENT,
+          this._sourceRateLimitListener
+        );
+        this._sourceRateLimitListener = null;
+      }
+    },
     computed: {
       displayOperator() {
         if (this.triple?.option?.translationSourceKey) {
@@ -149,6 +203,17 @@
          let tooltip = null;
          if (this.tag.tooltip) {
            tooltip = this.tag.tooltip[this.language];
+         }
+         const sourceKey = String(this.tag?.translationSourceKey || "").trim();
+         if (sourceKey && SOURCE_RATE_LIMIT_KEYS.includes(sourceKey)) {
+           const suffix = formatSourceRateLimitTooltipSuffix(
+             sourceKey,
+             this.language,
+             this.sourceRateLimitInfo[sourceKey]
+           );
+           if (suffix) {
+             tooltip = (tooltip ? String(tooltip) : "") + suffix;
+           }
          }
          return tooltip;
        },

@@ -551,7 +551,7 @@ function qpmBuildOpenAlexRateLimitInfo(array $headers, int $status): array
         return [];
     }
 
-    return [
+    $rateLimit = [
         'limit' => $limit,
         'remaining' => $remaining,
         'resetAt' => $resetWindow['resetAt'],
@@ -559,6 +559,10 @@ function qpmBuildOpenAlexRateLimitInfo(array $headers, int $status): array
         'status' => $status,
         'isLimited' => $isLimited,
     ];
+    if (function_exists('qpmStoreSourceRateLimitSnapshot')) {
+        qpmStoreSourceRateLimitSnapshot('openAlex', $rateLimit);
+    }
+    return $rateLimit;
 }
 
 $params = $_SERVER['REQUEST_METHOD'] === 'POST' ? $_POST : $_GET;

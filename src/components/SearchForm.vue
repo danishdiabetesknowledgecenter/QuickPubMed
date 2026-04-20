@@ -230,6 +230,16 @@
     normalizeDoiValue,
   } from "@/utils/resultAdapters";
   import {
+    getSourceRateLimitStorageKey as utilGetSourceRateLimitStorageKey,
+    getSourceRateLimitLabel as utilGetSourceRateLimitLabel,
+    normalizeSourceRateLimitInfo as utilNormalizeSourceRateLimitInfo,
+    getSourceRateLimitResetDate as utilGetSourceRateLimitResetDate,
+    isSemanticSourceUnavailable as utilIsSemanticSourceUnavailable,
+    formatSourceResetCountdown as utilFormatSourceResetCountdown,
+    formatSourceResetClockTime as utilFormatSourceResetClockTime,
+    formatSourceRateLimitTooltipSuffix as utilFormatSourceRateLimitTooltipSuffix,
+  } from "@/utils/sourceRateLimit";
+  import {
     buildSemanticWordedIntentContext,
     hasHardSemanticHandling,
     matchesSemanticPublicationDateYears,
@@ -879,6 +889,7 @@
       this.restoreStoredSourceRateLimitInfo("elicit");
       this.restoreStoredSourceRateLimitInfo("openAlex");
       this.restoreStoredSourceRateLimitInfo("semanticScholar");
+      this.fetchSharedSourceRateLimitSnapshot();
       this._updateTopicDropdownWidthDebounced = debounce(
         this.updateTopicDropdownWidth.bind(this),
         120
@@ -1425,16 +1436,7 @@
         };
       },
       getSourceRateLimitStorageKey(sourceKey) {
-        switch (String(sourceKey || "").trim()) {
-          case "elicit":
-            return "qpmElicitRateLimitInfo";
-          case "openAlex":
-            return "qpmOpenAlexRateLimitInfo";
-          case "semanticScholar":
-            return "qpmSemanticScholarRateLimitInfo";
-          default:
-            return "";
-        }
+        return utilGetSourceRateLimitStorageKey(sourceKey);
       },
       getSourceRateLimitStateProperty(sourceKey) {
         switch (String(sourceKey || "").trim()) {
@@ -1449,16 +1451,7 @@
         }
       },
       getSourceRateLimitLabel(sourceKey) {
-        switch (String(sourceKey || "").trim()) {
-          case "elicit":
-            return "Elicit";
-          case "openAlex":
-            return "OpenAlex";
-          case "semanticScholar":
-            return "Semantic Scholar";
-          default:
-            return "API";
-        }
+        return utilGetSourceRateLimitLabel(sourceKey);
       },
       getSourceRateLimitInfo(sourceKey) {
         const stateProperty = this.getSourceRateLimitStateProperty(sourceKey);
@@ -1469,48 +1462,7 @@
         return normalizedSourceKey === "elicit" || normalizedSourceKey === "openAlex";
       },
       normalizeSourceRateLimitInfo(value) {
-        if (!value || typeof value !== "object") {
-          return null;
-        }
-        const limitValue = value.limit;
-        const limit = limitValue === null || limitValue === undefined ? null : Number(limitValue);
-        const remainingValue = value.remaining;
-        const remaining = remainingValue === null || remainingValue === undefined
-          ? null
-          : Number(remainingValue);
-        const resetAt = String(value.resetAt || "").trim();
-        const resetInSecondsValue = value.resetInSeconds;
-        const resetInSeconds = resetInSecondsValue === null || resetInSecondsValue === undefined
-          ? null
-          : Number(resetInSecondsValue);
-        const status = Number(value.status);
-        const normalizedLimit = Number.isFinite(limit) && limit > 0
-          ? Math.max(1, Math.floor(limit))
-          : null;
-        const normalizedRemaining = Number.isFinite(remaining)
-          ? Math.max(0, Math.floor(remaining))
-          : null;
-        const normalizedResetInSeconds = Number.isFinite(resetInSeconds)
-          ? Math.max(0, Math.floor(resetInSeconds))
-          : null;
-        const normalizedStatus = Number.isFinite(status) ? Math.floor(status) : 0;
-        if (
-          normalizedLimit === null &&
-          normalizedRemaining === null &&
-          resetAt === "" &&
-          normalizedResetInSeconds === null &&
-          normalizedStatus <= 0
-        ) {
-          return null;
-        }
-        return {
-          limit: normalizedLimit,
-          remaining: normalizedRemaining,
-          resetAt,
-          resetInSeconds: normalizedResetInSeconds,
-          status: normalizedStatus,
-          isLimited: value.isLimited === true || (Number.isFinite(remaining) && remaining <= 0),
-        };
+        return utilNormalizeSourceRateLimitInfo(value);
       },
       getElicitRateLimitStorageKey() {
         return this.getSourceRateLimitStorageKey("elicit");
@@ -1563,76 +1515,68 @@
       restoreStoredElicitRateLimitInfo() {
         this.restoreStoredSourceRateLimitInfo("elicit");
       },
+      async fetchSharedSourceRateLimitSnapshot() {
+        if (typeof window === "undefined" || typeof fetch !== "function") {
+          return;
+        }
+        const endpoint = this.getBackendApiUrl("RateLimitStatus.php");
+        if (!endpoint) {
+          return;
+        }
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
+          const response = await fetch(endpoint, {
+            method: "GET",
+            signal: controller.signal,
+          });
+          clearTimeout(timeoutId);
+          if (!response.ok) {
+            return;
+          }
+          const payload = await response.json();
+          const sources =
+            payload && typeof payload.sources === "object" && payload.sources !== null
+              ? payload.sources
+              : {};
+          ["elicit", "openAlex", "semanticScholar"].forEach((sourceKey) => {
+            const snapshot = sources[sourceKey];
+            if (!snapshot || typeof snapshot !== "object") {
+              return;
+            }
+            // Prefer the user's own (more recent) data. Only apply the shared
+            // server snapshot when nothing is set locally yet.
+            const stateProperty = this.getSourceRateLimitStateProperty(sourceKey);
+            if (stateProperty && this[stateProperty]) {
+              return;
+            }
+            this.setSourceRateLimitInfo(sourceKey, snapshot);
+          });
+        } catch {
+          // Ignore network or parsing errors – the shared snapshot is a
+          // best-effort enhancement.
+        }
+      },
       getSourceResetDate(resetAt, resetInSeconds = null) {
-        const resetTimestamp = Date.parse(String(resetAt || "").trim());
-        if (Number.isFinite(resetTimestamp)) {
-          return new Date(resetTimestamp);
-        }
-        const fallbackSeconds = Number(resetInSeconds);
-        if (Number.isFinite(fallbackSeconds)) {
-          return new Date(Date.now() + Math.max(0, Math.floor(fallbackSeconds)) * 1000);
-        }
-        return null;
+        return utilGetSourceRateLimitResetDate(resetAt, resetInSeconds);
       },
       getElicitResetDate(resetAt, resetInSeconds = null) {
         return this.getSourceResetDate(resetAt, resetInSeconds);
       },
       formatSourceResetCountdown(resetAt, resetInSeconds = null) {
-        const resetDate = this.getSourceResetDate(resetAt, resetInSeconds);
-        const diffSeconds = resetDate
-          ? Math.max(0, Math.round((resetDate.getTime() - Date.now()) / 1000))
-          : null;
-        if (diffSeconds === null) {
-          return "";
-        }
-        if (diffSeconds <= 0) {
-          return this.language === "en" ? "less than 1 minute" : "mindre end 1 minut";
-        }
-        const days = Math.floor(diffSeconds / 86400);
-        const hours = Math.floor((diffSeconds % 86400) / 3600);
-        const minutes = Math.floor((diffSeconds % 3600) / 60);
-        const parts = [];
-        if (days > 0) {
-          parts.push(this.language === "en" ? `${days} day${days === 1 ? "" : "s"}` : `${days} dag${days === 1 ? "" : "e"}`);
-        }
-        if (hours > 0) {
-          parts.push(this.language === "en" ? `${hours} hour${hours === 1 ? "" : "s"}` : `${hours} time${hours === 1 ? "" : "r"}`);
-        }
-        if (minutes > 0) {
-          parts.push(this.language === "en" ? `${minutes} minute${minutes === 1 ? "" : "s"}` : `${minutes} minut${minutes === 1 ? "" : "ter"}`);
-        }
-        return parts.slice(0, 2).join(", ");
+        return utilFormatSourceResetCountdown(resetAt, resetInSeconds, this.language);
       },
       formatElicitResetCountdown(resetAt, resetInSeconds = null) {
         return this.formatSourceResetCountdown(resetAt, resetInSeconds);
       },
       formatSourceResetClockTime(resetAt, resetInSeconds = null) {
-        const resetDate = this.getSourceResetDate(resetAt, resetInSeconds);
-        if (!resetDate) {
-          return "";
-        }
-        const locale = this.language === "en" ? "en-US" : "da-DK";
-        return new Intl.DateTimeFormat(locale, {
-          hour: "2-digit",
-          minute: "2-digit",
-        }).format(resetDate);
+        return utilFormatSourceResetClockTime(resetAt, resetInSeconds, this.language);
       },
       formatElicitResetClockTime(resetAt, resetInSeconds = null) {
         return this.formatSourceResetClockTime(resetAt, resetInSeconds);
       },
       isSemanticSourceUnavailable(sourceKey) {
-        const info = this.getSourceRateLimitInfo(sourceKey);
-        if (!info) {
-          return false;
-        }
-        const resetDate = this.getSourceResetDate(info.resetAt, info.resetInSeconds);
-        if (resetDate && resetDate.getTime() <= Date.now()) {
-          return false;
-        }
-        if (Number.isFinite(info.remaining)) {
-          return info.remaining <= 0;
-        }
-        return info.isLimited === true;
+        return utilIsSemanticSourceUnavailable(this.getSourceRateLimitInfo(sourceKey));
       },
       getSourceRateLimitTooltipSuffix(sourceKey) {
         const normalizedSourceKey = String(sourceKey || "").trim();
@@ -1642,59 +1586,11 @@
         ) {
           return "";
         }
-        const sourceLabel = this.getSourceRateLimitLabel(normalizedSourceKey);
-        const info = this.getSourceRateLimitInfo(normalizedSourceKey);
-        if (!info) {
-          if (normalizedSourceKey === "semanticScholar") {
-            return this.language === "en"
-              ? `<br><br><strong>${sourceLabel} API usage:</strong> Remaining requests are not exposed by the API. If ${sourceLabel} rate limits this widget, that status will be shown here.`
-              : `<br><br><strong>${sourceLabel} API-forbrug:</strong> API'et eksponerer ikke det resterende antal kald. Hvis ${sourceLabel} rate limiter widgeten, vises den status her.`;
-          }
-          return this.language === "en"
-            ? `<br><br><strong>${sourceLabel} API usage:</strong> Remaining requests are shown after ${sourceLabel} returns rate limit information.`
-            : `<br><br><strong>${sourceLabel} API-forbrug:</strong> Resterende kald vises, når ${sourceLabel} har returneret rate limit-oplysninger.`;
-        }
-        const remainingText = Number.isFinite(info.remaining)
-          ? this.language === "en"
-            ? Number.isFinite(info.limit)
-              ? `${info.remaining} of ${info.limit} requests remaining`
-              : `${info.remaining} requests remaining`
-            : Number.isFinite(info.limit)
-              ? `${info.remaining} ud af ${info.limit} kald tilbage`
-              : `${info.remaining} kald tilbage`
-          : this.language === "en"
-            ? Number.isFinite(info.limit)
-              ? `remaining requests are currently unknown out of ${info.limit}`
-              : "remaining requests are currently unknown"
-            : Number.isFinite(info.limit)
-              ? `det resterende antal kald er i øjeblikket ukendt ud af ${info.limit}`
-              : "det resterende antal kald er i øjeblikket ukendt";
-        const unknownUsageText = this.language === "en"
-          ? `${sourceLabel} does not expose remaining request counts`
-          : `${sourceLabel} eksponerer ikke det resterende antal kald`;
-        const shouldShowNextSearchTime = this.isSemanticSourceUnavailable(normalizedSourceKey);
-        const resetCountdown = shouldShowNextSearchTime
-          ? this.formatSourceResetCountdown(info.resetAt, info.resetInSeconds)
-          : "";
-        const resetClockTime = shouldShowNextSearchTime
-          ? this.formatSourceResetClockTime(info.resetAt, info.resetInSeconds)
-          : "";
-        const resetText = shouldShowNextSearchTime
-          ? resetCountdown
-            ? this.language === "en"
-              ? `Next ${sourceLabel} search can be completed in ${resetCountdown}${resetClockTime ? ` (${resetClockTime})` : ""}.`
-              : `Næste søgning i ${sourceLabel} kan gennemføres om ${resetCountdown}${resetClockTime ? ` (${resetClockTime})` : ""}.`
-            : this.language === "en"
-              ? `${sourceLabel} is temporarily unavailable.`
-              : `${sourceLabel} er midlertidigt utilgængelig.`
-          : "";
-        const usageText =
-          Number.isFinite(info.remaining) || Number.isFinite(info.limit)
-            ? remainingText
-            : unknownUsageText;
-        return this.language === "en"
-          ? `<br><br><strong>${sourceLabel} API usage:</strong> ${usageText}.${resetText ? `<br>${resetText}` : ""}`
-          : `<br><br><strong>${sourceLabel} API-forbrug:</strong> ${usageText}.${resetText ? `<br>${resetText}` : ""}`;
+        return utilFormatSourceRateLimitTooltipSuffix(
+          normalizedSourceKey,
+          this.language,
+          this.getSourceRateLimitInfo(normalizedSourceKey)
+        );
       },
       getElicitTooltipSuffix() {
         return this.getSourceRateLimitTooltipSuffix("elicit");
@@ -3336,10 +3232,14 @@
           return;
         }
 
-        // Process each parameter
-        urlParams.forEach((value, key) => {
-          // Split multiple values separated by ';;'
-          const values = value.split(";;");
+        // The topic/limit parsers build custom free-text tags based on the
+        // current AI and semantic-source selection (see buildUrlCustomFreeTextTag).
+        // The URL serialization places topic/limit parameters before `ai` and
+        // `databases`, so we need a first pass to apply those mode flags before
+        // processing topics/limits in the second pass.
+        const modePassKeys = new Set(["ai", "translationsources", "databases", "semanticsources"]);
+
+        const processParameter = (key, value, values) => {
           const normalizedKey = key.replace(/^amp;/i, "");
           const keyLower = normalizedKey.toLowerCase();
 
@@ -3424,6 +3324,21 @@
               this.processFilter(normalizedKey, values);
               break;
           }
+        };
+
+        // Pass 1: mode-affecting parameters so topic/limit parsers see the
+        // correct AI and translation-source state.
+        urlParams.forEach((value, key) => {
+          const keyLower = key.replace(/^amp;/i, "").toLowerCase();
+          if (!modePassKeys.has(keyLower)) return;
+          processParameter(key, value, value.split(";;"));
+        });
+
+        // Pass 2: all remaining parameters (topic/limit/etc.).
+        urlParams.forEach((value, key) => {
+          const keyLower = key.replace(/^amp;/i, "").toLowerCase();
+          if (modePassKeys.has(keyLower)) return;
+          processParameter(key, value, value.split(";;"));
         });
 
         // Ensure topics is not empty
@@ -3456,6 +3371,59 @@
         return `__custom__:url:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
       },
       /**
+       * Builds a custom free-text tag restored from the URL.
+       * When AI translation is active together with semantic sources, the tag is
+       * flagged as a deferred pending semantic tag so that the PubMed/semantic
+       * translations are re-generated at search time (see preparePendingSemanticTags).
+       * In all other modes the text is kept exactly as it was stored in the URL.
+       */
+      buildUrlCustomFreeTextTag(name, scope = "normal", options = {}) {
+        const isTranslated = options.isTranslated === true;
+        const baseTag = {
+          id: this.createUrlCustomTagId(),
+          name,
+          searchStrings: { normal: [name] },
+          preString: `${this.getString("manualInputTerm")}:\u00A0 `,
+          scope,
+          isCustom: true,
+          tooltip: customInputTagTooltip,
+        };
+        if (this.searchWithAI && this.hasSelectedSemanticSources()) {
+          return {
+            ...baseTag,
+            isTranslated: false,
+            preTranslation: name,
+            semanticFlowType: "deferred",
+            isPendingSemanticSearch: true,
+            semanticScholarQuery: "",
+            semanticIntentPayload: null,
+            llmSemanticIntent: null,
+            semanticIntentMeta: null,
+            semanticSourceQueryPlan: null,
+            pubmedGeneratedQuery: "",
+            semanticScholarPmids: [],
+            semanticScholarDois: [],
+            semanticScholarCandidates: [],
+            semanticSourceResults: [],
+            semanticRerankDiagnostics: null,
+            semanticMergeDebug: null,
+            semanticScholarError: "",
+            useSemanticScholar: false,
+            includeTranslatedTextInQuery: false,
+          };
+        }
+        if (isTranslated) {
+          return {
+            ...baseTag,
+            isTranslated: true,
+            preTranslation: name,
+            preString: `${this.getString("manualInputTermTranslated")}:\u00A0 `,
+            pubmedGeneratedQuery: name,
+          };
+        }
+        return baseTag;
+      },
+      /**
        * Processes the 'topic' parameters from the URL and populates the topics array.
        *
        * @param {string[]} values - An array of topic values extracted from the URL.
@@ -3473,16 +3441,7 @@
             const isTranslated = translationFlag === "1";
             const name = isTranslated || translationFlag === "0" ? rawName.slice(0, -1) : rawName;
 
-            const tag = {
-              id: this.createUrlCustomTagId(),
-              name: name,
-              searchStrings: { normal: [name] },
-              preString: `${this.getString("manualInputTerm")}:\u00A0 `,
-              scope: "normal",
-              isCustom: true,
-              tooltip: customInputTagTooltip,
-            };
-            selected.push(tag);
+            selected.push(this.buildUrlCustomFreeTextTag(name, "normal", { isTranslated }));
             return;
           }
 
@@ -3540,17 +3499,10 @@
             const isTranslated = translationFlag === "1";
             const name = isTranslated || translationFlag === "0" ? rawName.slice(0, -1) : rawName;
 
-            const tag = {
-              id: this.createUrlCustomTagId(),
-              name: name,
-              searchStrings: { normal: [name] },
-              preString: `${this.getString("manualInputTerm")}:\u00A0 `,
-              scope: "normal",
-              isCustom: true,
-              tooltip: customInputTagTooltip,
-            };
             if (!this.limitData[groupId]) this.limitData[groupId] = [];
-            this.limitData[groupId].push(tag);
+            this.limitData[groupId].push(
+              this.buildUrlCustomFreeTextTag(name, "normal", { isTranslated })
+            );
             return;
           }
 
@@ -3594,15 +3546,7 @@
 
           if (isCustomInput) {
             const rawName = id.slice(2, -2);
-            const tag = {
-              id: this.createUrlCustomTagId(),
-              name: rawName,
-              searchStrings: { normal: [rawName] },
-              preString: `${this.getString("manualInputTerm")}:\u00A0 `,
-              scope: "normal",
-              isCustom: true,
-            };
-            selected.push(tag);
+            selected.push(this.buildUrlCustomFreeTextTag(rawName, "normal"));
             return;
           }
 

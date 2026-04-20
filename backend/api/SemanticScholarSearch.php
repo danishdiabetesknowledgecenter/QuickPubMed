@@ -286,7 +286,7 @@ function qpmBuildSemanticScholarRateLimitInfo(array $headers, int $status): arra
         return [];
     }
 
-    return [
+    $rateLimit = [
         'limit' => $limit,
         'remaining' => $remaining,
         'resetAt' => $resetWindow['resetAt'],
@@ -294,6 +294,10 @@ function qpmBuildSemanticScholarRateLimitInfo(array $headers, int $status): arra
         'status' => $status,
         'isLimited' => $isLimited,
     ];
+    if (function_exists('qpmStoreSourceRateLimitSnapshot')) {
+        qpmStoreSourceRateLimitSnapshot('semanticScholar', $rateLimit);
+    }
+    return $rateLimit;
 }
 
 /**
