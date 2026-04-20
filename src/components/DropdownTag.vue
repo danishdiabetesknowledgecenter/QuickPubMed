@@ -50,6 +50,7 @@
         role="button"
         tabindex="0"
         :aria-label="removeTagAriaLabel"
+        @mousedown.stop.prevent
         @click.stop="removeTag"
         @keydown.enter.prevent.stop="removeTag"
         @keydown.space.prevent.stop="removeTag"
