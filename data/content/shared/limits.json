@@ -1260,8 +1260,8 @@
                                 ]
                             },
                             "openAlex": {
-                                "sourceType": [
-                                    "journal"
+                                "workType": [
+                                    "article"
                                 ]
                             }
                         },

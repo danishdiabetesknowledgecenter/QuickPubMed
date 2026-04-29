@@ -82,6 +82,65 @@
         :search-with-elicit="searchWithElicit"
         @update-semantic-source="updateSemanticSource"
       />
+      <template v-if="hasRerankProfiles">
+        <div class="qpm_simpleFiltersHeader">
+          <span class="qpm_keepWithIcon">
+            {{ getString("rerankProfileHeader") }}:
+            <button
+              v-if="getString('hoverRerankProfileHeader')"
+              v-tooltip="{
+                content: getString('hoverRerankProfileHeader'),
+                distance: 5,
+                delay: helpTextDelay,
+                theme: 'infoTooltip',
+              }"
+              type="button"
+              class="bx bx-info-circle qpm_cursorHelp qpm_infoIcon"
+              :aria-label="getString('infoRerankProfileLabel')"
+              @click.stop
+            />
+          </span>
+        </div>
+        <div
+          v-for="profile in rerankProfiles"
+          :id="'qpm_rerank_profile_' + profile.id"
+          :key="`rerank-profile-${profile.id}`"
+          class="qpm_simpleFilters"
+        >
+          <input
+            :id="'qpm_rerank_profile_input_' + profile.id"
+            type="checkbox"
+            :name="rerankProfileInputName"
+            :title="getString('rerankProfileRadioTitle')"
+            :value="profile.id"
+            :checked="profile.id === selectedRerankProfileId"
+            class="qpm_cursorPointer"
+            @change="updateRerankProfile(profile.id, $event)"
+            @keyup.enter="updateRerankProfile(profile.id)"
+          />
+          <div class="qpm_infoInline">
+            <label :for="'qpm_rerank_profile_input_' + profile.id">
+              <span class="qpm_keepWithIcon">
+                {{ getProfileLabel(profile) }}
+                <button
+                  v-if="getProfileDescription(profile)"
+                  v-tooltip="{
+                    content: getProfileDescription(profile),
+                    distance: 5,
+                    delay: helpTextDelay,
+                    theme: 'infoTooltip',
+                  }"
+                  type="button"
+                  class="bx bx-info-circle qpm_cursorHelp qpm_infoIcon"
+                  :aria-label="getString('infoRerankProfileChoiceLabel')"
+                  @click.stop
+                />
+              </span>
+            </label>
+          </div>
+        </div>
+        <div class="qpm_simpleFiltersSpacer" />
+      </template>
     </div>
   </div>
 </template>
@@ -163,12 +222,34 @@
         type: Boolean,
         default: false,
       },
+      rerankProfiles: {
+        type: Array,
+        default: () => [],
+      },
+      selectedRerankProfileId: {
+        type: String,
+        default: "",
+      },
+      rerankProfileInputName: {
+        type: String,
+        default: "qpm_rerank_profile",
+      },
     },
-    emits: ["update-limit", "update-limit-enter", "update-semantic-source"],
+    emits: [
+      "update-limit",
+      "update-limit-enter",
+      "update-semantic-source",
+      "update-rerank-profile",
+    ],
     data() {
       return {
         titleCheckBoxTranslate: this.getString("checkboxTitle") || "",
       };
+    },
+    computed: {
+      hasRerankProfiles() {
+        return Array.isArray(this.rerankProfiles) && this.rerankProfiles.length > 0;
+      },
     },
     methods: {
       splitLastWord(text) {
@@ -223,6 +304,19 @@
       },
       updateSemanticSource(sourceKey, value) {
         this.$emit("update-semantic-source", sourceKey, value);
+      },
+      getProfileLabel(profile) {
+        return this.getString(profile?.labelKey) || profile?.id || "";
+      },
+      getProfileDescription(profile) {
+        return this.getString(profile?.descriptionKey) || "";
+      },
+      updateRerankProfile(profileId, event = null) {
+        if (event?.target && event.target.checked === false) {
+          event.target.checked = true;
+          return;
+        }
+        this.$emit("update-rerank-profile", profileId);
       },
     },
   };

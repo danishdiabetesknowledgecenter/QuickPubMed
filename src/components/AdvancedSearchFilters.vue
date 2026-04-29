@@ -31,6 +31,8 @@
       :search-with-semantic-scholar="searchWithSemanticScholar"
       :search-with-open-alex="searchWithOpenAlex"
       :search-with-elicit="searchWithElicit"
+      :selected-rerank-profile-id="selectedRerankProfileId"
+      :rerank-profiles="rerankProfiles"
       :semantic-worded-intent-context="semanticWordedIntentContext"
       :get-string="getString"
       :get-limit-placeholder="getLimitPlaceholder"
@@ -39,6 +41,7 @@
       @update-limit-placeholder="handleUpdateLimitPlaceholder"
       @add-limit-dropdown="handleAddLimitDropdown"
       @remove-limit-dropdown="handleRemoveLimitDropdown"
+      @update-rerank-profile="handleUpdateRerankProfile"
     />
   </div>
 </template>
@@ -105,6 +108,14 @@
         type: Object,
         default: null,
       },
+      rerankProfiles: {
+        type: Array,
+        default: () => [],
+      },
+      selectedRerankProfileId: {
+        type: String,
+        default: "",
+      },
       getString: {
         type: Function,
         required: true,
@@ -120,6 +131,7 @@
       "update-limit-placeholder",
       "add-limit-dropdown",
       "remove-limit-dropdown",
+      "update-rerank-profile",
     ],
     data() {
       return {
@@ -127,6 +139,9 @@
       };
     },
     methods: {
+      handleUpdateRerankProfile(value) {
+        this.$emit("update-rerank-profile", value);
+      },
       handleUpdateLimitDropdown(value, index) {
         this.$emit("update-limit-dropdown", value, index);
       },

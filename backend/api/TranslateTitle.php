@@ -66,22 +66,22 @@ if (isset($prompt['messages']) && is_array($prompt['messages'])) {
     $messages[] = ['role' => 'user', 'content' => $promptText];
 }
 
-// Byg OpenAI request - using Responses API for gpt-5.4
+// Byg OpenAI request - using Responses API for gpt-5.5
 // See: https://platform.openai.com/docs/api-reference/responses/create
 $openaiRequest = [
-    'model' => $prompt['model'] ?? 'gpt-5.4',
+    'model' => $prompt['model'] ?? 'gpt-5.5',
     'input' => $messages,  // Responses API uses 'input' instead of 'messages'
     'stream' => isset($prompt['stream']) ? (bool)$prompt['stream'] : true
 ];
 
-// gpt-5.4 reasoning parameter
+// gpt-5.5 reasoning parameter
 if (isset($prompt['reasoning']['effort'])) {
     $openaiRequest['reasoning'] = ['effort' => $prompt['reasoning']['effort']];
 } else {
     $openaiRequest['reasoning'] = ['effort' => 'low']; // Default - faster
 }
 
-// gpt-5.4 text configuration (verbosity + optional structured output format)
+// gpt-5.5 text configuration (verbosity + optional structured output format)
 $textConfig = [];
 if (isset($prompt['text']) && is_array($prompt['text'])) {
     if (isset($prompt['text']['verbosity'])) {
@@ -99,7 +99,7 @@ if (!isset($textConfig['verbosity'])) {
 }
 $openaiRequest['text'] = $textConfig;
 
-// max_output_tokens for gpt-5.4
+// max_output_tokens for gpt-5.5
 if (isset($prompt['max_output_tokens']) && $prompt['max_output_tokens'] !== null) {
     $openaiRequest['max_output_tokens'] = (int)$prompt['max_output_tokens'];
 } elseif (isset($prompt['max_tokens']) && $prompt['max_tokens'] !== null) {

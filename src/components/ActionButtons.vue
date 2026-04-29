@@ -19,11 +19,7 @@
       <!-- The copy link button -->
       <button
         type="button"
-        v-tooltip="{
-          content: getString('hoverShareButton'),
-          distance: 5,
-          delay: $helpTextDelay,
-        }"
+        v-tooltip="copyUrlTooltipBinding"
         class="qpm_button"
         @click="copyUrl"
       >
@@ -63,6 +59,29 @@
       getString: {
         type: Function,
         default: () => "",
+      },
+      copyUrlStatusMessage: {
+        type: String,
+        default: "",
+      },
+    },
+    computed: {
+      // When a copy-URL status message is set, force the tooltip open with that
+      // message (programmatic control). Otherwise use the normal hover tooltip.
+      copyUrlTooltipBinding() {
+        if (this.copyUrlStatusMessage) {
+          return {
+            content: this.copyUrlStatusMessage,
+            shown: true,
+            triggers: [],
+            distance: 5,
+          };
+        }
+        return {
+          content: this.getString("hoverShareButton"),
+          distance: 5,
+          delay: this.$helpTextDelay,
+        };
       },
     },
     methods: {

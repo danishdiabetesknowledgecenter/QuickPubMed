@@ -782,7 +782,7 @@ async function buildMeshContext(searchString, userInput, proxyUrl) {
 async function callAiStreaming(prompt, title, openAiServiceUrl, client) {
   const requestBody = {
     prompt: {
-      model: "gpt-5.4",
+      model: "gpt-5.5",
       max_output_tokens: 500,
       stream: true,
       reasoning: { effort: "none" },
@@ -906,18 +906,66 @@ async function aiOptimizeWithMeshContext(searchString, userInput, meshContext, o
  * @param {function(string): void} [onProgress] - Optional callback with stepKey (e.g. "translatingStepOptimize") before AI optimization
  * @returns {Promise<string>} The validated/enhanced search string
  */
-export async function validateAndEnhanceMeshTerms(searchString, userInput, proxyUrl, openAiServiceUrl, client, language = "dk", onProgress) {
+export async function validateAndEnhanceMeshTerms(
+  searchString,
+  userInput,
+  proxyUrl,
+  openAiServiceUrl,
+  client,
+  language = "dk",
+  onProgress,
+  options = {}
+) {
   if (!searchString || !proxyUrl) return searchString;
+
+  const reportOptions = options && typeof options === "object" ? options : {};
+  const observeOnly = !!reportOptions.observeOnly;
+  const onReport =
+    typeof reportOptions.onReport === "function" ? reportOptions.onReport : null;
+  const report = {
+    totalMeshTerms: 0,
+    validCount: 0,
+    invalidCount: 0,
+    invalidTerms: [],
+    renamedTerms: [],
+    addedConcepts: [],
+    removedConcepts: [],
+    hallucinationRate: 0,
+    meshSearchQuery: "",
+    changed: false,
+    observeOnly,
+  };
+
+  const initialMeshTerms = extractMeshTerms(searchString);
+  const initialConcepts = new Set(extractEnglishConcepts(searchString));
 
   console.group("[MeSHFlow] validateAndEnhanceMeshTerms");
   console.info("[MeSHFlow] Raw input search string:", searchString);
   console.info("[MeSHFlow] User input:", userInput);
+  if (observeOnly) {
+    console.info("[MeSHFlow] observeOnly=true - report will be generated without altering query.");
+  }
 
   let updatedString = searchString;
 
   // ── Step 1: Build rich MeSH context from NLM ──
   console.group("[MeSHFlow] Step 1 - Build MeSH context from NLM");
   const meshContext = await buildMeshContext(searchString, userInput, proxyUrl);
+  report.meshSearchQuery = meshContext.meshSearchQuery || "";
+  report.totalMeshTerms = meshContext.termContexts.length;
+  for (const tc of meshContext.termContexts) {
+    if (tc.valid) {
+      report.validCount += 1;
+    } else {
+      report.invalidCount += 1;
+      report.invalidTerms.push(tc.term);
+    }
+    if (tc.nameNeedsUpdate && tc.preferredName) {
+      report.renamedTerms.push({ from: tc.term, to: tc.preferredName });
+    }
+  }
+  report.hallucinationRate =
+    report.totalMeshTerms > 0 ? report.invalidCount / report.totalMeshTerms : 0;
 
   // Log context details
   for (const tc of meshContext.termContexts) {
@@ -1024,7 +1072,41 @@ export async function validateAndEnhanceMeshTerms(searchString, userInput, proxy
   } else {
     console.info("[MeSHFlow] Final result (unchanged):", updatedString);
   }
+
+  // Build report delta (added/removed concepts) by comparing initial -> final
+  try {
+    const finalMeshTerms = extractMeshTerms(updatedString);
+    const finalConcepts = new Set(extractEnglishConcepts(updatedString));
+    const initialMeshKeys = new Set(
+      initialMeshTerms.map((m) => String(m.term || "").toLowerCase())
+    );
+    const finalMeshKeys = new Set(
+      finalMeshTerms.map((m) => String(m.term || "").toLowerCase())
+    );
+    report.addedConcepts = [...finalConcepts].filter((c) => !initialConcepts.has(c));
+    report.removedConcepts = [...initialConcepts].filter((c) => !finalConcepts.has(c));
+    report.finalMeshTermCount = finalMeshTerms.length;
+    report.addedMeshTerms = [...finalMeshKeys].filter((k) => !initialMeshKeys.has(k));
+    report.removedMeshTerms = [...initialMeshKeys].filter((k) => !finalMeshKeys.has(k));
+    report.changed = updatedString !== searchString;
+  } catch (err) {
+    console.warn("[MeSHFlow] Report delta calculation failed:", err?.message || err);
+  }
+
+  if (onReport) {
+    try {
+      onReport(report);
+    } catch (err) {
+      console.warn("[MeSHFlow] onReport callback failed:", err?.message || err);
+    }
+  }
+
   console.groupEnd();
+
+  if (observeOnly) {
+    console.info("[MeSHFlow] observeOnly=true - returning original searchString.");
+    return searchString;
+  }
 
   return updatedString;
 }
@@ -1068,6 +1150,16 @@ async function validateSearchString(
         return candidate;
       }
 
+      const hasErrors = Object.values(validation.errorlist || {}).flat().filter(Boolean).length > 0;
+      const hasWarnings = Object.values(validation.warninglist || {}).flat().filter(Boolean).length > 0;
+      if (!hasErrors && hasWarnings && count > 0) {
+        console.warn("PubMed check returned warnings only; keeping query because it is executable.", {
+          count,
+          warninglist: validation.warninglist,
+        });
+        return candidate;
+      }
+
       console.warn(`PubMed check found issues (attempt ${i}/${maxAttempts}):`, {
         count,
         queryTranslation,
@@ -1079,11 +1171,13 @@ async function validateSearchString(
       // First correction strategy: querytranslation from PubMed.
       if (queryTranslation && queryTranslation !== candidate) {
         let corrected = sanitizeSearchStringDeterministic(queryTranslation);
-        console.info("Applying querytranslation candidate and re-validating.");
-        console.info(`  Previous: ${candidate}`);
-        console.info(`  Candidate: ${corrected}`);
-        candidate = corrected;
-        continue;
+        if (corrected && corrected !== candidate) {
+          console.info("Applying querytranslation candidate and re-validating.");
+          console.info(`  Previous: ${candidate}`);
+          console.info(`  Candidate: ${corrected}`);
+          candidate = corrected;
+          continue;
+        }
       }
 
       // Second correction strategy: AI fix based on PubMed issues.

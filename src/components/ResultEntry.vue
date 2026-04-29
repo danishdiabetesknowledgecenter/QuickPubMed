@@ -193,13 +193,13 @@
             :data-pmid="pmid"
           />
           <span
-            v-if="showDimensionsBadge"
+            v-if="canShowDimensionsBadge"
             class="__dimensions_badge_embed__ qpm_dimensions"
             data-style="large_rectangle"
             data-hide-zero-citations="true"
             data-legend="never"
-            :data-doi="doi"
-            :data-pmid="pmid"
+            :data-doi="dimensionsBadgeDoi"
+            :data-pmid="dimensionsBadgePmid"
           />
         </div>
         <div v-else>
@@ -212,12 +212,13 @@
             :data-doi="doi"
           />
           <span
-            v-if="showDimensionsBadge"
+            v-if="canShowDimensionsBadge"
             class="__dimensions_badge_embed__ qpm_dimensions"
             data-style="large_rectangle"
             data-hide-zero-citations="true"
             data-legend="never"
-            :data-doi="doi"
+            :data-doi="dimensionsBadgeDoi"
+            :data-pmid="dimensionsBadgePmid"
           />
         </div>
       </div>
@@ -285,13 +286,13 @@
             :data-pmid="pmid"
           />
           <span
-            v-if="showDimensionsBadge"
+            v-if="canShowDimensionsBadge"
             class="__dimensions_badge_embed__ qpm_dimensions"
             data-style="small_circle"
             data-hide-zero-citations="true"
             data-legend="hover-top"
-            :data-doi="doi"
-            :data-pmid="pmid"
+            :data-doi="dimensionsBadgeDoi"
+            :data-pmid="dimensionsBadgePmid"
           />
         </div>
         <div v-else>
@@ -305,12 +306,13 @@
             :data-doi="doi"
           />
           <span
-            v-if="showDimensionsBadge"
+            v-if="canShowDimensionsBadge"
             class="__dimensions_badge_embed__ qpm_dimensions"
             data-style="small_circle"
             data-hide-zero-citations="true"
             data-legend="hover-top"
-            :data-doi="doi"
+            :data-doi="dimensionsBadgeDoi"
+            :data-pmid="dimensionsBadgePmid"
           />
         </div>
       </div>
@@ -1032,6 +1034,15 @@
       hasValidPmid() {
         return this.normalizedPmid !== "";
       },
+      canShowDimensionsBadge() {
+        return this.showDimensionsBadge && (this.normalizedDoi !== "" || this.hasValidPmid);
+      },
+      dimensionsBadgeDoi() {
+        return this.normalizedDoi || null;
+      },
+      dimensionsBadgePmid() {
+        return this.hasValidPmid ? this.normalizedPmid : null;
+      },
       normalizedOpenAlexId() {
         const raw = String(this.openAlexId || "").trim();
         if (!raw) return "";
@@ -1454,10 +1465,10 @@
         const isDimensionLoaded = scriptList.some((script) => script.id === "dimension");
         const isAltmetricLoaded = scriptList.some((script) => script.id === "altmetric");
 
-        // Inject Dimension script and stylesheet if not loaded
+        // Inject Dimension script if not loaded
         if (!isDimensionLoaded) {
           this.injectScript({
-            src: "https://badge.dimensions.ai/badge.js",
+            src: "https://badge.dimensions.ai/static/ai/badge.js",
             id: "dimension",
             attributes: {
               "data-cookieconsent": "statistics",
@@ -1466,10 +1477,6 @@
             onError: () => {
               console.error("Failed to load Dimension script.");
             },
-          });
-
-          this.injectStylesheet({
-            href: "https://badge.dimensions.ai/badge.css",
           });
         }
 

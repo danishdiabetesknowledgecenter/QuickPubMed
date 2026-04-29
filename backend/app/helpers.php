@@ -367,6 +367,36 @@ function qpmNormalizeTranslationSourceKey($value): ?string
     return $aliasMap[$normalized] ?? null;
 }
 
+function qpmNormalizeSemanticSourceLimitKey($value): ?string
+{
+    $normalized = strtolower(trim((string) $value));
+    if ($normalized === '') {
+        return null;
+    }
+
+    $aliasMap = [
+        'pubmed' => 'pubmed',
+        'pubmedbestmatch' => 'pubmedBestMatch',
+        'pubmed-best-match' => 'pubmedBestMatch',
+        'pubmed_best_match' => 'pubmedBestMatch',
+        'pubmedbestmatchpubmedonly' => 'pubmedBestMatchPubmedOnly',
+        'pubmed-best-match-pubmed-only' => 'pubmedBestMatchPubmedOnly',
+        'pubmed_best_match_pubmed_only' => 'pubmedBestMatchPubmedOnly',
+        'pubmedbestmatchmultisource' => 'pubmedBestMatchMultiSource',
+        'pubmed-best-match-multi-source' => 'pubmedBestMatchMultiSource',
+        'pubmed_best_match_multi_source' => 'pubmedBestMatchMultiSource',
+        'semanticscholar' => 'semanticScholar',
+        'semantic-scholar' => 'semanticScholar',
+        'semantic_scholar' => 'semanticScholar',
+        'openalex' => 'openAlex',
+        'open-alex' => 'openAlex',
+        'open_alex' => 'openAlex',
+        'elicit' => 'elicit',
+    ];
+
+    return $aliasMap[$normalized] ?? null;
+}
+
 /**
  * Resolve a configured semantic source limit from backend config.
  *
@@ -376,7 +406,7 @@ function qpmNormalizeTranslationSourceKey($value): ?string
  */
 function qpmGetSemanticSourceLimit($sourceKey, int $default): int
 {
-    $normalizedSourceKey = qpmNormalizeTranslationSourceKey($sourceKey);
+    $normalizedSourceKey = qpmNormalizeSemanticSourceLimitKey($sourceKey);
     $fallback = $default > 0 ? $default : 1;
     if (
         $normalizedSourceKey === null ||

@@ -5,6 +5,184 @@
          (e.g. "Søger i PubMed…") so assistive tech users hear progress
          updates without needing to move focus. Visually hidden. -->
     <div class="qpm_srOnly" aria-live="polite" aria-atomic="true">{{ loading ? loadingStatusText : "" }}</div>
+    <div class="qpm_srOnly" aria-live="polite" aria-atomic="true">
+      {{ degradedSearchSummaryAnnouncement }}
+    </div>
+    <div v-if="showLoadingProcessList" class="qpm_searchProcessWrapper">
+      <p class="qpm_advancedSearch qpm_searchProcessToggleLink">
+        <button
+          ref="processBoxToggleButton"
+          type="button"
+          class="qpm_linkButton qpm_linkButtonAsAnchor"
+          :aria-expanded="isProcessBoxExpanded"
+          :aria-controls="`${srLabelUid}-process`"
+          @click="toggleProcessBox"
+        >
+          {{ getString(isProcessBoxExpanded ? "semanticSearchProcessHide" : "semanticSearchProcessShow") }}
+        </button>
+      </p>
+      <transition
+        name="collapse"
+        :css="true"
+        @enter="enterProcessBoxContent"
+        @before-leave="beforeLeaveProcessBoxContent"
+        @after-enter="afterEnterProcessBoxContent"
+        @leave="leaveProcessBoxContent"
+      >
+        <div
+          v-show="isProcessBoxExpanded"
+          :id="`${srLabelUid}-process`"
+          ref="processBoxBody"
+          class="qpm_searchProcessBox qpm_searchProcessCollapseBody qpm_box"
+          :aria-hidden="!isProcessBoxExpanded ? 'true' : null"
+          :inert="!isProcessBoxExpanded ? '' : null"
+        >
+          <div class="qpm_searchProcessContent">
+            <ul v-if="groupedProcessSteps.length > 0" class="qpm_searchProcessList">
+              <li
+                v-for="group in groupedProcessSteps"
+                :key="group.id"
+                :class="['qpm_searchProcessGroup', `is-${group.status || 'pending'}`]"
+              >
+                <div class="qpm_searchProcessGroupLabel">
+                  {{ group.label }}
+                  <span v-if="getProcessStatusText(group.status)" class="qpm_srOnly">
+                    {{ getProcessStatusText(group.status) }}
+                  </span>
+                </div>
+                <ul v-if="group.showChildren" class="qpm_searchProcessSubList">
+                  <li
+                    v-for="step in group.children"
+                    :key="step.id"
+                    :class="['qpm_searchProcessItem', `is-${step.status || 'pending'}`]"
+                  >
+                    <div class="qpm_searchProcessRow">
+                      <span class="qpm_searchProcessLabel"
+                        >{{ getProcessStepLabel(step) }}<span class="qpm_searchProcessDots" aria-hidden="true">{{
+                          getProcessStepDots(step)
+                        }}</span>
+                        <span v-if="getProcessStatusText(step.status)" class="qpm_srOnly">
+                          {{ getProcessStatusText(step.status) }}
+                        </span></span
+                      >
+                      <button
+                        v-if="
+                          showProcessDetailsToggles &&
+                          !isProcessStepAnimated(step) &&
+                          getSourceQueryDetailsForStep(step).length > 0
+                        "
+                        type="button"
+                        class="qpm_linkButton qpm_linkButtonAsAnchor qpm_searchProcessSourceToggle"
+                        :aria-expanded="isSourceQueryExpanded(step.id)"
+                        :aria-controls="getProcessDetailPanelId(step.id)"
+                        :aria-label="getProcessToggleAriaLabel(step)"
+                        @click="toggleSourceQuery(step.id)"
+                      >
+                        {{
+                          getString(
+                            isSourceQueryExpanded(step.id)
+                              ? "hideDetails"
+                              : "showDetails"
+                          )
+                        }}
+                      </button>
+                      <button
+                        v-else-if="
+                          showProcessDetailsToggles &&
+                          !isProcessStepAnimated(step) &&
+                          getProcessStepDetailsForStep(step).length > 0
+                        "
+                        type="button"
+                        class="qpm_linkButton qpm_linkButtonAsAnchor qpm_searchProcessSourceToggle"
+                        :aria-expanded="isSourceQueryExpanded(step.id)"
+                        :aria-controls="getProcessDetailPanelId(step.id)"
+                        :aria-label="getProcessToggleAriaLabel(step)"
+                        @click="toggleSourceQuery(step.id)"
+                      >
+                        {{
+                          getString(
+                            isSourceQueryExpanded(step.id)
+                              ? "hideDetails"
+                              : "showDetails"
+                          )
+                        }}
+                      </button>
+                    </div>
+                    <div
+                      v-if="
+                        showProcessDetailsToggles &&
+                        getSourceQueryDetailsForStep(step).length > 0
+                      "
+                      v-show="isSourceQueryExpanded(step.id)"
+                      :id="getProcessDetailPanelId(step.id)"
+                      class="qpm_searchProcessQuery"
+                      :aria-hidden="!isSourceQueryExpanded(step.id) ? 'true' : null"
+                      :inert="!isSourceQueryExpanded(step.id) ? '' : null"
+                    >
+                      <div class="qpm_searchProcessQueryPanel">
+                        <div
+                          v-for="(detail, queryIndex) in getSourceQueryDetailsForStep(step)"
+                          :key="`${step.id}-${queryIndex}-${detail.query}`"
+                          class="qpm_searchProcessQueryEntry"
+                        >
+                          <div
+                            v-if="detail.context"
+                            class="qpm_searchProcessQueryContext"
+                          >
+                            {{ detail.context }}
+                          </div>
+                          <div class="qpm_searchProcessQueryLabel">
+                            {{ getString("searchProcessSourceQueryLabel") }}
+                          </div>
+                          <pre class="qpm_searchProcessQueryText">{{ detail.query }}</pre>
+                          <template v-if="getFormattedSourceRequest(detail)">
+                            <div class="qpm_searchProcessQueryLabel">
+                              {{ getString("searchProcessSourceRequestLabel") }}
+                            </div>
+                            <pre class="qpm_searchProcessQueryText">{{ getFormattedSourceRequest(detail) }}</pre>
+                          </template>
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      v-if="
+                        showProcessDetailsToggles &&
+                        getSourceQueryDetailsForStep(step).length === 0 &&
+                        getProcessStepDetailsForStep(step).length > 0
+                      "
+                      v-show="isSourceQueryExpanded(step.id)"
+                      :id="getProcessDetailPanelId(step.id)"
+                      class="qpm_searchProcessQuery"
+                      :aria-hidden="!isSourceQueryExpanded(step.id) ? 'true' : null"
+                      :inert="!isSourceQueryExpanded(step.id) ? '' : null"
+                    >
+                      <div class="qpm_searchProcessQueryPanel">
+                        <div
+                          v-for="(detail, detailIndex) in getProcessStepDetailsForStep(step)"
+                          :key="`${step.id}-detail-${detailIndex}`"
+                          class="qpm_searchProcessQueryEntry"
+                        >
+                          <div
+                            v-if="detail.context"
+                            class="qpm_searchProcessQueryContext"
+                          >
+                            {{ detail.context }}
+                          </div>
+                          <div class="qpm_searchProcessQueryLabel">
+                            {{ detail.label || getString("showDetails") }}
+                          </div>
+                          <pre class="qpm_searchProcessQueryText">{{ getFormattedProcessStepDetail(detail) }}</pre>
+                        </div>
+                      </div>
+                    </div>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </transition>
+    </div>
     <div v-if="results && results.length > 0" class="qpm_accordions">
       <!-- Accordion menu for using the AI summaries of abstracts from marked result entries -->
       <accordion-menu
@@ -68,8 +246,14 @@
                 <p>{{ getString("aiSearchSummaryConsentHeader") }}</p>
                 <p v-if="hasNoSelectedArticles">
                   <span v-html="getString('aiSearchSummaryConsentHeaderTextBefore')"></span>
-                  <select v-model="defaultSummaryCount" class="qpm_summaryCountSelect">
-                    <option v-for="n in Math.min(maxSummaryArticles, 25)" :key="n" :value="n">{{ n }}</option>
+                  <select
+                    v-model="defaultSummaryCount"
+                    class="qpm_summaryCountSelect"
+                    @change="hasManualSummaryCountSelection = true"
+                  >
+                    <option v-for="n in Math.min(maxSummaryArticles, 25)" :key="n" :value="n">
+                      {{ n }}
+                    </option>
                   </select>
                   {{ getString("aiSearchSummaryConsentHeaderTextAfter") }}
                 </p>
@@ -279,7 +463,7 @@
             :has-abstract="getHasAbstract(value.model.attributes)"
             :author="getAuthor(value.model.authors)"
             :language="language"
-            :parent-width="getComponentWidth()"
+            :parent-width="componentWidth"
             :model-value="selectedEntries"
             :value="value.model"
             :selectable="isResultSelectable(value.model)"
@@ -294,51 +478,6 @@
       </accordion-menu>
     </div>
 
-    <div v-if="showLoadingProcessList" class="qpm_searchProcessWrapper">
-      <p class="qpm_advancedSearch qpm_searchProcessToggleLink">
-        <button
-          type="button"
-          class="qpm_linkButton qpm_linkButtonAsAnchor"
-          :aria-expanded="isProcessBoxExpanded"
-          :aria-controls="`${srLabelUid}-process`"
-          :aria-label="getString('semanticSearchProcessToggleAria')"
-          @click="toggleProcessBox"
-        >
-          {{ getString(isProcessBoxExpanded ? "semanticSearchProcessHide" : "semanticSearchProcessShow") }}
-        </button>
-      </p>
-      <div
-        v-if="isProcessBoxExpanded"
-        :id="`${srLabelUid}-process`"
-        class="qpm_searchProcessBox qpm_box"
-      >
-        <div class="qpm_searchProcessContent">
-          <ul class="qpm_searchProcessList">
-            <li
-              v-for="group in groupedProcessSteps"
-              :key="group.id"
-              :class="['qpm_searchProcessGroup', `is-${group.status || 'pending'}`]"
-            >
-              <div class="qpm_searchProcessGroupLabel">{{ group.label }}</div>
-              <ul v-if="group.showChildren" class="qpm_searchProcessSubList">
-                <li
-                  v-for="step in group.children"
-                  :key="step.id"
-                  :class="['qpm_searchProcessItem', `is-${step.status || 'pending'}`]"
-                >
-                  <div class="qpm_searchProcessRow">
-                    <span class="qpm_searchProcessLabel">{{ getProcessStepLabel(step) }}</span>
-                    <span class="qpm_searchProcessDots" aria-hidden="true">
-                      {{ getProcessStepDots(step) }}
-                    </span>
-                  </div>
-                </li>
-              </ul>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </div>
     <h2
       v-if="results && results.length > 0 && total > 0"
       class="h3 qpm_searchResultHeading"
@@ -434,7 +573,7 @@
                 :has-abstract="getHasAbstract(value.attributes)"
                 :author="getAuthor(value.authors)"
                 :language="language"
-                :parent-width="getComponentWidth()"
+                :parent-width="componentWidth"
                 :model-value="selectedEntries"
                 :selectable="isResultSelectable(value)"
                 :abstract="getResultInlineAbstract(value) || getAbstract(getResultId(value))"
@@ -487,7 +626,10 @@
               :size="32"
             />
           </div>
-          <p v-if="!loading || (results && high && total)" class="qpm_nomargin qpm_shownumber">
+          <p
+            v-if="Array.isArray(results) && (!loading || (high && total))"
+            class="qpm_nomargin qpm_shownumber"
+          >
             {{ getString("showing") }} 1-{{ results.length }} {{ getString("of") }}
             <span
               ><strong>{{ getPrettyTotal }}</strong> {{ getString("searchMatches") }}</span
@@ -535,7 +677,12 @@
       LoadingSpinner,
       SummarizeAbstract,
     },
-    emits: ["newSortMethod", "high", "newPageSize", "change:selectedEntries"],
+    emits: [
+      "newSortMethod",
+      "high",
+      "newPageSize",
+      "change:selectedEntries",
+    ],
     mixins: [appSettingsMixin, promptRuleLoaderMixin, utilitiesMixin],
     props: {
       results: {
@@ -590,6 +737,22 @@
         type: Array,
         default: () => [],
       },
+      degradedSearchSummary: {
+        type: Array,
+        default: () => [],
+      },
+      showProcessDetailsToggles: {
+        type: Boolean,
+        default: true,
+      },
+      sourceQueryDetails: {
+        type: Array,
+        default: () => [],
+      },
+      processStepDetails: {
+        type: Array,
+        default: () => [],
+      },
       entriesAlwaysSelectable: {
         type: Boolean,
         default: true,
@@ -600,7 +763,8 @@
         srLabelUid: `qpm-sr-${Math.random().toString(36).slice(2, 10)}`,
         hasAcceptedAi: false,
         initialAiTab: null,
-        defaultSummaryCount: 5,
+        defaultSummaryCount: 0,
+        hasManualSummaryCountSelection: false,
         localSortLoadingHideResults: false,
         selectedEntries: Array.isArray(this.preselectedEntries) ? [...this.preselectedEntries] : [],
         badgesAdded: false,
@@ -618,6 +782,10 @@
         _abstractLoadInFlight: false,
         processDotCount: 3,
         _processDotsIntervalId: null,
+        componentWidth: 0,
+        componentResizeObserver: null,
+        processDetailFormatCache: {},
+        expandedSourceQuerySteps: {},
         persistedLoadingProcessSteps: [],
         isProcessBoxExpanded: true,
       };
@@ -634,6 +802,75 @@
           ? this.persistedLoadingProcessSteps
           : [];
       },
+      visibleDegradedSearchSummary() {
+        return (Array.isArray(this.degradedSearchSummary) ? this.degradedSearchSummary : [])
+          .filter((entry) => entry && String(entry.message || "").trim())
+          .map((entry) => ({
+            source: String(entry.source || "").trim(),
+            status: String(entry.status || "warning").trim(),
+            messageKey: String(entry.messageKey || "").trim(),
+            message: String(entry.message || "").trim(),
+          }));
+      },
+      degradedSearchSummaryAnnouncement() {
+        if (this.visibleDegradedSearchSummary.length === 0) {
+          return "";
+        }
+        return [
+          this.getString("degradedSearchSummaryTitle"),
+          ...this.visibleDegradedSearchSummary.map((entry) => entry.message),
+        ].join(" ");
+      },
+      normalizedSourceQueryDetails() {
+        return (Array.isArray(this.sourceQueryDetails) ? this.sourceQueryDetails : [])
+          .map((detail) => {
+            const request =
+              detail?.request && typeof detail.request === "object" ? detail.request : null;
+            const requestMeta =
+              detail?.requestMeta && typeof detail.requestMeta === "object"
+                ? detail.requestMeta
+                : null;
+            const query = String(detail?.query || request?.query || "").trim();
+            const context = String(detail?.context || "").trim();
+            return {
+              source: String(detail?.source || "").trim(),
+              query,
+              request,
+              requestMeta,
+              context: context.toLowerCase() === query.toLowerCase() ? "" : context,
+            };
+          })
+          .filter((detail) => detail.source && detail.query);
+      },
+      normalizedProcessStepDetails() {
+        const details = (Array.isArray(this.processStepDetails) ? this.processStepDetails : [])
+          .map((detail) => {
+            const payload =
+              detail?.payload && typeof detail.payload === "object" ? detail.payload : null;
+            const context = String(detail?.context || "").trim();
+            return {
+              stepId: String(detail?.stepId || "").trim(),
+              label: String(detail?.label || "").trim(),
+              payload,
+              context,
+            };
+          })
+          .filter((detail) => detail.stepId && detail.payload);
+        const hasHydrateDetail = details.some((detail) => detail.stepId === "finalizeHydrate");
+        const hydrateStep = (Array.isArray(this.visibleLoadingProcessSteps) ? this.visibleLoadingProcessSteps : [])
+          .find((step) => String(step?.id || "").trim() === "finalizeHydrate");
+        if (!hasHydrateDetail && hydrateStep) {
+          details.push({
+            stepId: "finalizeHydrate",
+            label: this.getString("showDetails"),
+            payload: {
+              step: this.getProcessStepLabel(hydrateStep),
+            },
+            context: "",
+          });
+        }
+        return details;
+      },
       showLoadingProcessList() {
         return this.visibleLoadingProcessSteps.length > 0;
       },
@@ -645,7 +882,7 @@
           {
             id: "prepare",
             label: this.getString("semanticSearchProcessGroupPrepare"),
-            childIds: ["prepare", "searchString", "mesh", "optimize"],
+            childIds: ["prepare", "searchString", "mesh", "optimize", "semanticQuery"],
           },
           {
             id: "sources",
@@ -656,16 +893,24 @@
             id: "finalizeCollect",
             label: this.getString("semanticSearchProcessGroupMatch"),
             childIds: [
+              "rerank",
               "finalizeCollect",
               "finalizeValidatePmid",
               "finalizeValidateDoiFetch",
+              "finalizeValidateDoiSource",
               "finalizeValidateDoiRules",
             ],
           },
           {
             id: "finalizeHydrate",
             label: this.getString("semanticSearchProcessGroupDisplay"),
-            childIds: ["finalizeHydrate", "finalizeSort", "finalizeRender", "finalizeSelected"],
+            childIds: [
+              "finalizeHydrate",
+              "finalizeSort",
+              "finalRerank",
+              "finalizeRender",
+              "finalizeSelected",
+            ],
           },
         ];
         return groupDefinitions
@@ -701,13 +946,13 @@
       },
       /**
        * Gets the text that composes the references. Consists of authors title and publicationInfo
-       * If no entries are selected, it will use the first five results
+       * If no entries are selected, it will use the current automatic summary selection.
        * @returns {Array} Array of objects with authors, publicationInfo and title
        */
       getSelectedArticlesReferences() {
         const selected = this.safeSelectedEntries;
         const sourceEntries =
-          selected.length === 0 ? this.firstFiveArticlesWithAbstracts : selected;
+          selected.length === 0 ? this.selectedSummaryArticlesWithAbstracts : selected;
         return sourceEntries.map((entry) => {
           return {
             authors: this.getAuthor(entry.authors),
@@ -757,30 +1002,24 @@
       safeSelectedEntries() {
         return Array.isArray(this.selectedEntries) ? this.selectedEntries : [];
       },
-      resultsWithAbstracts() {
-        if (!Array.isArray(this.results)) return [];
-        return this.results.filter((result) => {
-          const resultId = this.getResultId(result);
-          const hasInlineAbstract = this.getResultInlineAbstract(result) !== "";
-          const hasLoadedAbstractSections =
-            hasDefinedValue(resultId) && Object.keys(this.getText(resultId)).length > 0;
-          const canLoadPubMedAbstract =
-            this.getHasAbstract(result.attributes) && this.canFetchPubMedAbstractForResult(result);
-          return hasInlineAbstract || hasLoadedAbstractSections || canLoadPubMedAbstract;
-        });
+      shownResultsWithAbstracts() {
+        return this.getShownSearchResults.filter((result) => this.canResultBeSummarized(result));
+      },
+      autoSummaryArticlesWithAbstracts() {
+        return this.shownResultsWithAbstracts.slice(0, 25);
       },
       /**
-       * Max number of articles available for summarization (those with abstracts).
+       * Max number of currently shown articles available for summarization.
        * Used to cap the dropdown options.
        */
       maxSummaryArticles() {
-        return this.resultsWithAbstracts.length;
+        return this.autoSummaryArticlesWithAbstracts.length;
       },
-      firstFiveArticlesWithAbstracts() {
-        return this.resultsWithAbstracts.slice(0, this.defaultSummaryCount);
+      selectedSummaryArticlesWithAbstracts() {
+        return this.autoSummaryArticlesWithAbstracts.slice(0, this.defaultSummaryCount);
       },
-      firstFiveArticlesWithAbstractIdsSignature() {
-        return this.firstFiveArticlesWithAbstracts
+      selectedSummaryArticleIdsSignature() {
+        return this.selectedSummaryArticlesWithAbstracts
           .map((result) => this.getResultId(result))
           .filter((id) => hasDefinedValue(id))
           .join("|");
@@ -802,12 +1041,14 @@
     watch: {
       loading(newVal) {
         if (newVal) {
+          this.expandedSourceQuerySteps = {};
           if (!this.compactLoadingUi) {
             this.persistedLoadingProcessSteps = [];
             this.isProcessBoxExpanded = true;
           }
           this.isAbstractLoaded = false;
-          this.defaultSummaryCount = 5;
+          this.defaultSummaryCount = 0;
+          this.hasManualSummaryCountSelection = false;
           this.idswithAbstractsToLoad = [];
           this.clearScheduledAbstractLoad();
         } else {
@@ -817,16 +1058,17 @@
           // toggle disappears together with the rest of the search UI.
           if (this.results === undefined || this.results === null) {
             this.persistedLoadingProcessSteps = [];
-            this.isProcessBoxExpanded = false;
+            this.setProcessBoxExpanded(false, { restoreFocusIfInside: true });
           } else {
             this.persistedLoadingProcessSteps = this.normalizePersistedLoadingProcessSteps(
               this.persistedLoadingProcessSteps
             );
             if (this.persistedLoadingProcessSteps.length > 0) {
-              this.isProcessBoxExpanded = false;
+              this.setProcessBoxExpanded(false, { restoreFocusIfInside: true });
             }
           }
           this.setLocalSortLoadingState(false);
+          this.syncDefaultSummaryCount();
           this.queueVisibleAbstractLoads();
         }
       },
@@ -839,10 +1081,19 @@
         },
         immediate: true,
       },
+      sourceQueryDetails() {
+        this.processDetailFormatCache = {};
+      },
+      processStepDetails() {
+        this.processDetailFormatCache = {};
+      },
       results(newVal) {
         if (!this.loading && !Array.isArray(newVal)) {
           this.persistedLoadingProcessSteps = [];
-          this.isProcessBoxExpanded = false;
+          this.setProcessBoxExpanded(false, { restoreFocusIfInside: true });
+        }
+        if (!this.loading) {
+          this.$nextTick(() => this.syncDefaultSummaryCount());
         }
       },
       preselectedEntries(newVal) {
@@ -858,7 +1109,7 @@
       defaultSummaryCount() {
         this.loadMissingAbstracts();
       },
-      firstFiveArticlesWithAbstractIdsSignature() {
+      selectedSummaryArticleIdsSignature() {
         if (!this.loading) {
           this.loadMissingAbstracts();
         }
@@ -872,12 +1123,11 @@
        * Cap defaultSummaryCount to available articles when results change.
        */
       maxSummaryArticles(newMax) {
-        if (newMax > 0 && this.defaultSummaryCount > newMax) {
+        if (
+          !this.loading &&
+          (!this.hasManualSummaryCountSelection || this.defaultSummaryCount > newMax)
+        ) {
           this.defaultSummaryCount = newMax;
-        } else if (newMax > 0 && newMax < 5) {
-          this.defaultSummaryCount = newMax;
-        } else if (newMax >= 5 && this.defaultSummaryCount > newMax) {
-          this.defaultSummaryCount = 5;
         }
       },
       hasAnimatedProcessSteps(newVal) {
@@ -917,22 +1167,30 @@
         const articleAccordionBody = this.$refs?.articlesAccordion?.$refs?.body;
         if (window._altmetric_embed_init) {
           searchResult && window._altmetric_embed_init(searchResult);
-          articleAccordionBody && window._altmetric_embed_init(articleAccordionBody);
+          if (
+            articleAccordionBody &&
+            (!searchResult || !searchResult.contains(articleAccordionBody))
+          ) {
+            window._altmetric_embed_init(articleAccordionBody);
+          }
           this.altmetricsAdded = true;
         }
       }
     },
     mounted() {
       eventBus.on("result-entry-show-abstract", this.openArticlesAccordion);
+      this.syncDefaultSummaryCount();
       if (this.hasAnimatedProcessSteps) {
         this.startProcessDotsInterval();
       }
+      this.initComponentWidthObserver();
     },
     beforeUnmount() {
       eventBus.off("result-entry-show-abstract", this.openArticlesAccordion);
       this.clearSelectedBadgeRetries();
       this.clearScheduledAbstractLoad();
       this.clearProcessDotsInterval();
+      this.clearComponentWidthObserver();
     },
     methods: {
       // Sorting needs an immediate visual hide to avoid the staggered fade we saw with reactive-only updates.
@@ -945,6 +1203,15 @@
       setLocalSortLoadingState(hidden) {
         this.setResultsBodyVisibility(hidden);
         this.localSortLoadingHideResults = hidden;
+      },
+      syncDefaultSummaryCount() {
+        if (
+          this.hasManualSummaryCountSelection &&
+          this.defaultSummaryCount <= this.maxSummaryArticles
+        ) {
+          return;
+        }
+        this.defaultSummaryCount = this.maxSummaryArticles;
       },
       // Wait for Vue + the browser to paint before emitting the sort change, so the compact spinner is visible first.
       async waitForNextPaint() {
@@ -993,8 +1260,15 @@
       },
       getProcessGroupStatus(children = []) {
         const normalizedChildren = Array.isArray(children) ? children : [];
+        const degradedStatuses = ["failed", "rateLimited", "partial", "recovered", "warning"];
         if (normalizedChildren.some((child) => child?.status === "current")) {
           return "current";
+        }
+        const degradedStatus = degradedStatuses.find((status) =>
+          normalizedChildren.some((child) => child?.status === status)
+        );
+        if (degradedStatus) {
+          return degradedStatus;
         }
         if (normalizedChildren.length > 0 && normalizedChildren.every((child) => child?.status === "completed")) {
           return "completed";
@@ -1009,7 +1283,11 @@
         if (!this.loading) {
           return this.getVisibleProcessGroupChildren(normalizedChildren).length > 0;
         }
-        return normalizedChildren.some((child) => child?.status === "current" || child?.status === "completed");
+        return normalizedChildren.some((child) =>
+          ["current", "completed", "warning", "partial", "failed", "rateLimited", "recovered"].includes(
+            child?.status
+          )
+        );
       },
       getVisibleProcessGroupChildren(children = []) {
         const normalizedChildren = Array.isArray(children) ? children : [];
@@ -1019,7 +1297,137 @@
         return normalizedChildren.filter((child) => child?.status !== "pending");
       },
       toggleProcessBox() {
-        this.isProcessBoxExpanded = !this.isProcessBoxExpanded;
+        this.setProcessBoxExpanded(!this.isProcessBoxExpanded, {
+          restoreFocusIfInside: true,
+        });
+      },
+      setProcessBoxExpanded(expanded, options = {}) {
+        const nextExpanded = expanded === true;
+        if (!nextExpanded && options.restoreFocusIfInside === true) {
+          this.restoreFocusFromProcessBox();
+        }
+        this.isProcessBoxExpanded = nextExpanded;
+      },
+      restoreFocusFromProcessBox() {
+        const body = this.getProcessBoxTransitionElement();
+        const activeElement =
+          typeof document !== "undefined" ? document.activeElement : null;
+        if (
+          body &&
+          activeElement &&
+          typeof body.contains === "function" &&
+          body.contains(activeElement)
+        ) {
+          this.$refs.processBoxToggleButton?.focus?.();
+        }
+      },
+      getProcessBoxTransitionElement(el = null) {
+        return el || this.$refs.processBoxBody || null;
+      },
+      setFixedProcessBoxHeight(el = null) {
+        const body = this.getProcessBoxTransitionElement(el);
+        if (!body) return;
+        body.style.height = `${body.scrollHeight}px`;
+      },
+      removeFixedProcessBoxHeight(el = null) {
+        const body = this.getProcessBoxTransitionElement(el);
+        if (!body) return;
+        body.style.height = null;
+      },
+      beforeLeaveProcessBoxContent(el) {
+        this.setFixedProcessBoxHeight(el);
+      },
+      leaveProcessBoxContent(el, done) {
+        this.setFixedProcessBoxHeight(el);
+        requestAnimationFrame(() => {
+          el.style.height = "0px";
+        });
+        el.addEventListener("transitionend", done, { once: true });
+      },
+      enterProcessBoxContent(el, done) {
+        el.style.height = "0px";
+        requestAnimationFrame(() => {
+          el.style.height = `${el.scrollHeight}px`;
+        });
+        el.addEventListener("transitionend", done, { once: true });
+      },
+      afterEnterProcessBoxContent(el) {
+        this.removeFixedProcessBoxHeight(el);
+      },
+      getSourceKeyForProcessStep(step = {}) {
+        const stepId = String(step?.id || "").trim();
+        return ["pubmed", "semanticScholar", "openAlex", "elicit"].includes(stepId)
+          ? stepId
+          : "";
+      },
+      getSourceQueryDetailsForStep(step = {}) {
+        const source = this.getSourceKeyForProcessStep(step);
+        if (!source) return [];
+        return this.normalizedSourceQueryDetails.filter((detail) => detail.source === source);
+      },
+      getProcessStepDetailsForStep(step = {}) {
+        const stepId = String(step?.id || "").trim();
+        if (!stepId) return [];
+        return this.normalizedProcessStepDetails.filter((detail) => detail.stepId === stepId);
+      },
+      isSourceQueryExpanded(stepId = "") {
+        return this.expandedSourceQuerySteps[String(stepId || "").trim()] === true;
+      },
+      toggleSourceQuery(stepId = "") {
+        const key = String(stepId || "").trim();
+        if (!key) return;
+        this.expandedSourceQuerySteps = {
+          ...this.expandedSourceQuerySteps,
+          [key]: !this.isSourceQueryExpanded(key),
+        };
+      },
+      getProcessDetailPanelId(stepId = "") {
+        const safeStepId = String(stepId || "")
+          .trim()
+          .replace(/[^A-Za-z0-9_-]/g, "-");
+        return `${this.srLabelUid}-process-${safeStepId || "step"}-details`;
+      },
+      getProcessToggleAriaLabel(step = {}) {
+        const expanded = this.isSourceQueryExpanded(step?.id);
+        const visibleLabel = this.getString(expanded ? "hideDetails" : "showDetails");
+        const stepLabel = this.getProcessStepLabel(step);
+        return stepLabel ? `${visibleLabel}: ${stepLabel}` : visibleLabel;
+      },
+      isProcessStepAnimated(step = {}) {
+        return String(step?.status || "").trim() === "current";
+      },
+      getCachedFormattedPayload(cacheKey, payload, hasContentCheck = null) {
+        if (!String(cacheKey || "").trim()) return "";
+        if (typeof hasContentCheck === "function" && !hasContentCheck(payload)) {
+          return "";
+        }
+        return JSON.stringify(payload, null, 2);
+      },
+      getFormattedSourceRequest(detail = {}) {
+        const request =
+          detail?.request && typeof detail.request === "object" ? detail.request : null;
+        const requestMeta =
+          detail?.requestMeta && typeof detail.requestMeta === "object"
+            ? detail.requestMeta
+            : null;
+        const payload = {
+          ...(request || {}),
+          ...(requestMeta ? { requestMeta } : {}),
+        };
+        const hasContent = Object.values(payload).some((value) => {
+          if (Array.isArray(value)) return value.length > 0;
+          if (value && typeof value === "object") return Object.keys(value).length > 0;
+          return value !== "" && value !== null && value !== undefined;
+        });
+        return hasContent ? JSON.stringify(payload, null, 2) : "";
+      },
+      getFormattedProcessStepDetail(detail = {}) {
+        const payload =
+          detail?.payload && typeof detail.payload === "object" ? detail.payload : {};
+        return this.getCachedFormattedPayload(
+          `step:${detail?.stepId || ""}:${detail?.label || ""}`,
+          payload
+        );
       },
       getProcessStepLabel(step) {
         return String(step?.label || "")
@@ -1034,7 +1442,21 @@
         if (status === "current") {
           return ".".repeat(Math.max(1, Math.min(5, this.processDotCount)));
         }
+        if (["warning", "partial", "failed", "rateLimited", "recovered"].includes(status)) {
+          return "!";
+        }
         return "...";
+      },
+      getProcessStatusText(status) {
+        const keyMap = {
+          warning: "semanticSearchProcessStatusWarning",
+          partial: "semanticSearchProcessStatusPartial",
+          failed: "semanticSearchProcessStatusFailed",
+          rateLimited: "semanticSearchProcessStatusRateLimited",
+          recovered: "semanticSearchProcessStatusRecovered",
+        };
+        const key = keyMap[String(status || "").trim()];
+        return key ? this.getString(key) : "";
       },
       getResultId(result) {
         return result?.id ?? result?.uid ?? null;
@@ -1114,6 +1536,16 @@
       getHasAbstract(attributes) {
         return hasAbstractAttribute(attributes);
       },
+      canResultBeSummarized(result) {
+        if (!result) return false;
+        const resultId = this.getResultId(result);
+        const hasInlineAbstract = this.getResultInlineAbstract(result) !== "";
+        const hasLoadedAbstractSections =
+          hasDefinedValue(resultId) && Object.keys(this.getText(resultId)).length > 0;
+        const canLoadPubMedAbstract =
+          this.getHasAbstract(result.attributes) && this.canFetchPubMedAbstractForResult(result);
+        return hasInlineAbstract || hasLoadedAbstractSections || canLoadPubMedAbstract;
+      },
       getDate(value) {
         const history = Array.isArray(value?.history) ? value.history : [];
         if (history.length > 0) {
@@ -1191,11 +1623,25 @@
         if (newPageSize === undefined) return;
         this.$emit("newPageSize", newPageSize);
       },
-      getComponentWidth() {
+      initComponentWidthObserver() {
+        this.updateComponentWidth();
         const container = this.$refs.searchResult;
-        if (!container) return;
-
-        return container.offsetWidth;
+        if (!container || typeof ResizeObserver === "undefined") return;
+        this.componentResizeObserver = new ResizeObserver(() => this.updateComponentWidth());
+        this.componentResizeObserver.observe(container);
+      },
+      clearComponentWidthObserver() {
+        if (this.componentResizeObserver) {
+          this.componentResizeObserver.disconnect();
+          this.componentResizeObserver = null;
+        }
+      },
+      updateComponentWidth() {
+        const container = this.$refs.searchResult;
+        this.componentWidth = container ? container.offsetWidth : 0;
+      },
+      getComponentWidth() {
+        return this.componentWidth;
       },
       addArticle(article) {
         const articleId = this.getSelectionEntryId(article);
@@ -1212,8 +1658,8 @@
         const entriesForSummary =
           selectedEntries.length > 0
             ? selectedEntries
-            : // Use all loaded results (not just rendered ones) to support counts > pagesize
-              this.firstFiveArticlesWithAbstracts.map((r) => ({
+            : // Use the current automatic summary selection when nothing is manually marked.
+              this.selectedSummaryArticlesWithAbstracts.map((r) => ({
                 id: this.getResultId(r),
                 uid: this.getResultId(r),
               }));
@@ -1392,11 +1838,11 @@
         }
       },
       /**
-       * Loads abstracts for articles in firstFiveArticlesWithAbstracts
+       * Loads abstracts for articles in the current automatic summary selection
        * that haven't been fetched yet (e.g., beyond the current page).
        */
       async loadMissingAbstracts() {
-        const missingIds = this.firstFiveArticlesWithAbstracts
+        const missingIds = this.selectedSummaryArticlesWithAbstracts
           .filter((r) => {
             const resultId = this.getResultId(r);
             if (!hasDefinedValue(resultId)) return false;
@@ -1458,7 +1904,7 @@
         }, 0);
       },
       shouldResultArticlePreloadAbstract(article) {
-        return this.firstFiveArticlesWithAbstracts.some((value) =>
+        return this.selectedSummaryArticlesWithAbstracts.some((value) =>
           areComparableIdsEqual(this.getResultId(value), this.getResultId(article))
         );
       },

@@ -10,6 +10,7 @@ if (!file_exists($configPath)) {
 }
 require_once $configPath;
 require_once __DIR__ . '/NlmApiHelpers.php';
+require_once __DIR__ . '/NlmResponseCache.php';
 
 qpmApplyNlmCorsHeaders('GET, OPTIONS');
 
@@ -31,6 +32,12 @@ if ($retmode === 'json') {
 }
 
 $url = $nlmBaseUrl . '/efetch.fcgi?' . http_build_query($params);
+$cachedResult = qpmReadNlmResponseCache('efetch', (string) $domain, $params);
+if ($cachedResult !== null) {
+    http_response_code($cachedResult['status'] > 0 ? $cachedResult['status'] : 200);
+    echo $cachedResult['body'];
+    exit;
+}
 
 // Make request to NLM
 qpmThrottleNlmRequests(10);
@@ -47,5 +54,6 @@ if (!$result['ok']) {
     exit;
 }
 
+qpmWriteNlmResponseCache('efetch', (string) $domain, $params, $result);
 http_response_code($result['status'] > 0 ? $result['status'] : 200);
 echo $result['body'];

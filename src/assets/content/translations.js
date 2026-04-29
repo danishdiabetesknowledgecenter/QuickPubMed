@@ -171,6 +171,10 @@ export const messages = {
     dk: "Fritekst",
     en: "Free text",
   },
+  editCustomTermAriaLabel: {
+    dk: "Redigér fritekst-søgeord",
+    en: "Edit free text search term",
+  },
   select: {
     dk: "Tilføj",
     en: "Add",
@@ -222,6 +226,70 @@ export const messages = {
   hoverSemanticSearchSectionHeader: {
     dk: "Vælg hvilke databaser der skal bruges til din søgning. PubMed bruger den almindelige QuickPubMed-søgning med dine valgte emner og afgrænsninger, mens de øvrige databaser kan bruges som ekstra kilder til fritekstinput.",
     en: "Choose which databases to use for your search. PubMed uses the regular QuickPubMed search with your selected topics and filters, while the other databases can be used as additional sources for free-text input.",
+  },
+  rerankProfileHeader: {
+    dk: "Resultatfokus",
+    en: "Result focus",
+  },
+  hoverRerankProfileHeader: {
+    dk: "Vælg hvordan QuickPubMed skal prioritere den semantisk/merge-rerankede resultatliste. Filtre, databaser, kvalitetsvalidering og ren PubMed-sortering ændres ikke.",
+    en: "Choose how QuickPubMed should prioritize the semantically/merge-reranked result list. Filters, databases, quality validation, and pure PubMed sorting are not changed.",
+  },
+  infoRerankProfileLabel: {
+    dk: "Information om resultatfokus",
+    en: "Information about result focus",
+  },
+  infoRerankProfileChoiceLabel: {
+    dk: "Information om denne resultatfokus-profil",
+    en: "Information about this result focus profile",
+  },
+  rerankProfileRadioTitle: {
+    dk: "Vælg resultatfokus",
+    en: "Select result focus",
+  },
+  noRerankProfileOptions: {
+    dk: "Ingen resultatfokus-profiler fundet",
+    en: "No result focus profiles found",
+  },
+  rerankProfileBalanced: {
+    dk: "Balanceret",
+    en: "Balanced",
+  },
+  rerankProfileBalancedDescription: {
+    dk: "Standardprofil til de fleste søgninger. Balancerer kilde-rang, evidensniveau, klinisk relevans og metadata-kvalitet.",
+    en: "Default profile for most searches. Balances source rank, evidence level, clinical relevance, and metadata quality.",
+  },
+  rerankProfileHighestEvidence: {
+    dk: "Højeste evidens",
+    en: "Highest evidence",
+  },
+  rerankProfileHighestEvidenceDescription: {
+    dk: "Prioriterer guidelines, systematiske reviews, meta-analyser og randomiserede studier højere.",
+    en: "Prioritizes guidelines, systematic reviews, meta-analyses, and randomized trials.",
+  },
+  rerankProfileClinicalPractice: {
+    dk: "Klinisk praksis",
+    en: "Clinical practice",
+  },
+  rerankProfileClinicalPracticeDescription: {
+    dk: "Prioriterer klinisk anvendelige resultater, PubMed-match, guidelines, RCT og klinisk relevans.",
+    en: "Prioritizes clinically actionable results, PubMed matches, guidelines, RCTs, and clinical relevance.",
+  },
+  rerankProfileNewestResearch: {
+    dk: "Nyeste forskning",
+    en: "Newest research",
+  },
+  rerankProfileNewestResearchDescription: {
+    dk: "Løfter nyere studier og aktuelle citation-signaler, så ny forskning lettere kommer frem.",
+    en: "Boosts newer studies and current citation signals so recent research is surfaced more easily.",
+  },
+  rerankProfileBroadMapping: {
+    dk: "Bred kortlægning",
+    en: "Broad mapping",
+  },
+  rerankProfileBroadMappingDescription: {
+    dk: "Bruger en mere neutral rangering, så søgningen giver et bredere overblik over relevante resultater.",
+    en: "Uses a more neutral ranking to give a broader overview of relevant results.",
   },
   selectedCountSuffix: {
     dk: "valgt",
@@ -415,6 +483,10 @@ export const messages = {
     dk: "Forfiner søgestreng",
     en: "Optimizing search string",
   },
+  translatingStepSemanticQuery: {
+    dk: "Tilpasser søgning til databaser",
+    en: "Adapting search to databases",
+  },
   translatingStepSemanticScholar: {
     dk: "Finder PubMed-ID'er i Semantic Scholar",
     en: "Finding PubMed IDs in Semantic Scholar",
@@ -436,16 +508,20 @@ export const messages = {
     en: "Preparing the semantic search from your selected terms and filters.",
   },
   semanticSearchProgressSearchString: {
-    dk: "Laver en søgestreng ud fra din fritekst.",
-    en: "Translating your free text into a search string that can be used in the search.",
+    dk: "Laver en PubMed-søgestreng ud fra din fritekst.",
+    en: "Translating your free text into a PubMed search string.",
   },
   semanticSearchProgressMesh: {
     dk: "Kontrollerer centrale begreber mod MeSH for at gøre søgningen mere præcis.",
     en: "Checking key concepts against MeSH to make the search more precise.",
   },
   semanticSearchProgressOptimize: {
-    dk: "Forfiner søgestrengen, så den passer bedre til emnet.",
-    en: "Refining the search string so it fits the topic better.",
+    dk: "Forfiner PubMed-søgestrengen med MeSH-kontekst.",
+    en: "Refining the PubMed search string with MeSH context.",
+  },
+  semanticSearchProgressSemanticQuery: {
+    dk: "Tilpasser søgningen til de valgte databaser.",
+    en: "Adapting the search for the selected databases.",
   },
   semanticSearchProgressPubMedBestMatch: {
     dk: "Søger i PubMed.",
@@ -468,8 +544,8 @@ export const messages = {
     en: "Collecting the results and preparing them for display.",
   },
   semanticSearchProgressFinalizeCollect: {
-    dk: "Matcher kandidaterne og anvender de valgte filtre.",
-    en: "Matching and filtering the results.",
+    dk: "Matcher kandidaterne og forbereder filtervalidering.",
+    en: "Matching candidates and preparing filter validation.",
   },
   semanticSearchProgressFinalizeValidateDoi: {
     dk: "Kontrollerer DOI-resultater mod OpenAlex.",
@@ -512,12 +588,96 @@ export const messages = {
     en: "Sorting the results by date.",
   },
   semanticSearchProgressFinalizeSelected: {
-    dk: "Bevarer allerede markerede artikler i resultatlisten.",
-    en: "Adding already selected articles.",
+    dk: "Kontrollerer om allerede markerede artikler skal bevares.",
+    en: "Checking whether already selected articles should be preserved.",
   },
   semanticSearchProgressFinalizeRender: {
     dk: "Gør resultaterne klar til visning.",
     en: "Preparing the results for display.",
+  },
+  semanticSearchProgressRerank: {
+    dk: "Reranker kandidaterne på tværs af databaserne.",
+    en: "Reranking candidates across databases.",
+  },
+  semanticSearchProgressFinalRerank: {
+    dk: "Kontrollerer den endelige rangering.",
+    en: "Checking the final ranking.",
+  },
+  degradedSearchSummaryTitle: {
+    dk: "Bemærk om søgeprocessen",
+    en: "Search process note",
+  },
+  semanticSearchProgressPubMedFailed: {
+    dk: "PubMed svarede ikke. Resultater fra andre kilder bruges.",
+    en: "PubMed did not respond. Results from other sources are used.",
+  },
+  semanticSearchProgressPubMedFallbackUsed: {
+    dk: "De ekstra kilder gav ingen brugbare resultater. PubMed-resultater vises som sikker fallback.",
+    en: "The extra sources returned no usable results. PubMed results are shown as a safe fallback.",
+  },
+  semanticSearchProgressNoSafeFallback: {
+    dk: "De ekstra kilder gav ingen brugbare resultater, og der kunne ikke laves en sikker PubMed-fallback.",
+    en: "The extra sources returned no usable results, and a safe PubMed fallback could not be created.",
+  },
+  semanticSearchProgressSemanticScholarFailed: {
+    dk: "Semantic Scholar svarede ikke. Resultater fra andre kilder bruges.",
+    en: "Semantic Scholar did not respond. Results from other sources are used.",
+  },
+  semanticSearchProgressSemanticScholarPartial: {
+    dk: "Semantic Scholar returnerede kun delvise resultater. De tilgængelige resultater bruges.",
+    en: "Semantic Scholar returned partial results. The available results are used.",
+  },
+  semanticSearchProgressSemanticScholarRateLimited: {
+    dk: "Semantic Scholar er midlertidigt utilgængelig på grund af API-begrænsning.",
+    en: "Semantic Scholar is temporarily unavailable because of an API limit.",
+  },
+  semanticSearchProgressOpenAlexFailed: {
+    dk: "OpenAlex svarede ikke. Resultater fra andre kilder bruges.",
+    en: "OpenAlex did not respond. Results from other sources are used.",
+  },
+  semanticSearchProgressOpenAlexPartial: {
+    dk: "OpenAlex returnerede kun delvise resultater. De tilgængelige resultater bruges.",
+    en: "OpenAlex returned partial results. The available results are used.",
+  },
+  semanticSearchProgressOpenAlexRateLimited: {
+    dk: "OpenAlex er midlertidigt utilgængelig på grund af API-begrænsning.",
+    en: "OpenAlex is temporarily unavailable because of an API limit.",
+  },
+  semanticSearchProgressOpenAlexRecovered: {
+    dk: "OpenAlex kunne ikke bruge alle filtre. Kilden blev brugt med forenklet filtergrundlag.",
+    en: "OpenAlex could not use all filters. The source was used with simplified filters.",
+  },
+  semanticSearchProgressOpenAlexKeywordFallback: {
+    dk: "OpenAlex' semantiske søgning svarede ikke. Kilden blev brugt med keywordsøgning som fallback.",
+    en: "OpenAlex semantic search did not respond. The source was used with keyword search as fallback.",
+  },
+  semanticSearchProgressOpenAlexFallbackRecovered: {
+    dk: "OpenAlex blev brugt via en fallback-rute. Resultater fra kilden bruges.",
+    en: "OpenAlex was used through a fallback route. Results from the source are used.",
+  },
+  semanticSearchProgressElicitFailed: {
+    dk: "Elicit svarede ikke. Resultater fra andre kilder bruges.",
+    en: "Elicit did not respond. Results from other sources are used.",
+  },
+  semanticSearchProgressElicitPartial: {
+    dk: "Elicit returnerede kun delvise resultater. De tilgængelige resultater bruges.",
+    en: "Elicit returned partial results. The available results are used.",
+  },
+  semanticSearchProgressElicitRateLimited: {
+    dk: "Elicit er midlertidigt utilgængelig på grund af API-begrænsning.",
+    en: "Elicit is temporarily unavailable because of an API limit.",
+  },
+  semanticSearchProgressElicitRecovered: {
+    dk: "Elicit kunne ikke bruge alle filtre. Kilden blev brugt med forenklet filtergrundlag.",
+    en: "Elicit could not use all filters. The source was used with simplified filters.",
+  },
+  semanticSearchProgressDoiHydrationWarning: {
+    dk: "Nogle eksterne resultater kunne ikke valideres via OpenAlex eller eksisterende Semantic Scholar-data og er derfor ikke medtaget.",
+    en: "Some external results could not be validated via OpenAlex or existing Semantic Scholar data and are therefore not included.",
+  },
+  semanticSearchProgressFinalRerankFallback: {
+    dk: "AI-finalerangering kunne ikke gennemføres. Den deterministiske rangering bruges.",
+    en: "AI final reranking could not be completed. The deterministic ranking is used.",
   },
   semanticSearchProcessShow: {
     dk: "Vis søgeprocessen",
@@ -527,21 +687,57 @@ export const messages = {
     dk: "Skjul søgeprocessen",
     en: "Hide search process",
   },
+  showSearchProcessSourceQuery: {
+    dk: "Detaljer",
+    en: "Details",
+  },
+  hideSearchProcessSourceQuery: {
+    dk: "Skjul detaljer",
+    en: "Hide details",
+  },
+  searchProcessSourceQueryLabel: {
+    dk: "Søgetekst",
+    en: "Query text",
+  },
+  searchProcessSourceRequestLabel: {
+    dk: "Request-parametre",
+    en: "Request parameters",
+  },
   semanticSearchProcessGroupPrepare: {
-    dk: "Forbereder søgningen",
-    en: "Preparing search",
+    dk: "Oversætter og tilpasser søgningen",
+    en: "Translating and adapting the search",
   },
   semanticSearchProcessGroupSources: {
     dk: "Søger i databaser",
     en: "Searching sources",
   },
   semanticSearchProcessGroupMatch: {
-    dk: "Matcher og filtrerer resultaterne",
-    en: "Matching and filtering the results",
+    dk: "Reranker, matcher og filtrerer resultaterne",
+    en: "Reranking, matching and filtering the results",
   },
   semanticSearchProcessGroupDisplay: {
     dk: "Samler resultaterne og gør dem klar til visning",
     en: "Collecting the results and preparing them for display",
+  },
+  semanticSearchProcessStatusWarning: {
+    dk: "Status: advarsel.",
+    en: "Status: warning.",
+  },
+  semanticSearchProcessStatusPartial: {
+    dk: "Status: delvise resultater.",
+    en: "Status: partial results.",
+  },
+  semanticSearchProcessStatusFailed: {
+    dk: "Status: fejl.",
+    en: "Status: failed.",
+  },
+  semanticSearchProcessStatusRateLimited: {
+    dk: "Status: midlertidig API-begrænsning.",
+    en: "Status: temporary API limit.",
+  },
+  semanticSearchProcessStatusRecovered: {
+    dk: "Status: fortsætter med tilpasset søgning.",
+    en: "Status: continuing with adjusted search.",
   },
   noResult: {
     dk: "Ingen resultater matcher søgningen",
@@ -1196,6 +1392,14 @@ export const messages = {
   hovercopyText: {
     dk: "Kopiér den opsummerede tekst",
     en: "Copy the summarised text",
+  },
+  copyUrlSuccess: {
+    dk: "Link til søgningen er kopieret",
+    en: "Link to the search has been copied",
+  },
+  copyUrlError: {
+    dk: "Kunne ikke kopiere link",
+    en: "Could not copy link",
   },
   searchErrorGeneric: {
     dk: "Fejl: Søgeresultater kunne ikke hentes",

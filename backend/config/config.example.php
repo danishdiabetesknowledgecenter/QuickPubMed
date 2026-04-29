@@ -16,7 +16,7 @@
 // Missing values automatically fall back to this backend config.
 define('OPENAI_API_KEY', 'sk-INSERT-YOUR-API-KEY-HERE');
 define('OPENAI_ORG_ID', '');
-// Use Responses API for gpt-5.4 and newer models with JSON mode support
+// Use Responses API for gpt-5.5 and newer models with JSON mode support
 define('OPENAI_API_URL', 'https://api.openai.com/v1/responses');
 
 // ============ NLM/PubMed Configuration ============
@@ -78,6 +78,22 @@ define('QPM_ELICIT_UNLOCK', [
 define('UNPAYWALL_BASE_URL', 'https://api.unpaywall.org/v2');
 define('UNPAYWALL_EMAIL', 'your-unpaywall-email@example.com');
 
+// ============ NLM Proxy Response Cache ============
+// Short-lived cache for stable PubMed summary/fetch proxy responses.
+// Set to 0 to disable, or use ['default' => 900, 'esummary' => 900, 'efetch' => 900].
+define('QPM_NLM_RESPONSE_CACHE_TTL_SECONDS', [
+    'esummary' => 900,
+    'efetch' => 900,
+]);
+
+// ============ OpenAlex Work Lookup Cache ============
+// Short-lived cache for DOI/OpenAlex ID metadata lookups.
+define('QPM_OPENALEX_WORK_CACHE_TTL_SECONDS', [
+    'positive' => 3600,
+    'negative' => 600,
+]);
+define('QPM_OPENALEX_BATCH_LOOKUP_CONCURRENCY', 2);
+
 // ============ Semantic Source Limits ============
 // Frontend-safe values exposed to the widget via ThemeConfig.php
 define('QPM_SEMANTIC_SOURCE_LIMITS', [
@@ -85,6 +101,10 @@ define('QPM_SEMANTIC_SOURCE_LIMITS', [
     'openAlex' => 50,
     'elicit' => 100,
     'pubmedBestMatch' => 200,
+    // Optional PubMed-specific limits. Defaults should stay conservative
+    // because deterministic reranking uses the full retrieved candidate pool.
+    'pubmedBestMatchPubmedOnly' => 200,
+    'pubmedBestMatchMultiSource' => 200,
 ]);
 
 // ============ Rerank Configuration ============
@@ -138,8 +158,10 @@ define('QPM_RERANK_CONFIG', [
     //
     // Hybrid formula:
     //   combinedScore = (baseScore + additiveQualityBonus) * qualityMultiplier
-    //   additiveQualityBonus = pubTypeBonus + recencyBonus + oaBonus + clinicalBonus + topicOverlapBonus
-    //   qualityMultiplier  = citationImpactMultiplier * authorityMultiplier * retractionMultiplier
+    //   additiveQualityBonus = pubTypeBonus + recencyBonus + oaBonus + clinicalBonus
+    //                        + translationPotentialBonus + topicOverlapBonus
+    //   qualityMultiplier  = citationImpactMultiplier * authorityMultiplier
+    //                      * recencyMultiplier * retractionMultiplier * dataQualityMultiplier
 
     // Additive bonus per publication type. Keys match OpenAlex `type`/`type_crossref`
     // and Semantic Scholar `publicationTypes` (normalized to lowercase). Max value
@@ -198,13 +220,30 @@ define('QPM_RERANK_CONFIG', [
     //   4-6  moderate
     //   >10  not recommended (risks dominating relevance)
     'oaBonus' => 0,
-    // Multiplier clamp for citation impact (cascade: RCR -> FWCI -> influentialCitationCount -> citedByCount).
+    // Multiplier clamp for citation impact (cascade: RCR -> NIH percentile -> FWCI
+    // -> field-normalized citation ratio -> influentialCitationCount -> citedByCount).
     // The multiplier is log-dampened so common values land near 1.0; the clamp caps extreme scores.
     //   [1.0, 1.0]   disabled (default). Reference examples at RCR=3.0 or FWCI=3.0:
     //   [0.95, 1.10] very conservative; top record gets ~1.10x
     //   [0.9, 1.20]  moderate; typical production setting
     //   [0.85, 1.30] aggressive; can noticeably reorder — validate with regression checklist
     'citationImpactClamp' => [1.0, 1.0],
+    // Per-signal weights inside the citation impact cascade above. RCR/FWCI are
+    // field-normalized and should usually be strongest. Raw citedByCount should
+    // stay weak because older papers naturally accumulate more citations.
+    'citationImpactSignalWeights' => [
+        'rcr' => 0.5,
+        'fwci' => 0.5,
+        'nihPercentile' => 0,
+        'fieldNormalizedCitationRatio' => 0,
+        'influentialCitationCount' => 0.15,
+        'citedByCount' => 0.08,
+    ],
+    // Small additive bonus from iCite APT (approximate potential to translate).
+    // Kept separate from clinicalBonus because it is a translational-potential
+    // signal, not direct proof of clinical applicability.
+    'translationPotentialBonusMax' => 0,
+    'translationPotentialAptScale' => 10,
     // How retracted papers are handled.
     //   'none'    no effect (default; NOT recommended for clinical tools)
     //   'penalty' multiplies combinedScore by retractionPenalty; paper still visible
@@ -305,6 +344,293 @@ define('QPM_RERANK_CONFIG', [
     'guidelinePublisherAllowList' => [],
 ]);
 
+// Optional frontend-selectable rerank profiles.
+// These profiles change only the deterministic rerank weights. They do not change
+// retrieval sources, hard filters, post-validation, fallback policy, or LLM final rerank.
+define('QPM_RERANK_PROFILE_CONFIG', [
+    'enabled' => true,
+    'defaultProfileId' => 'balanced',
+    'profiles' => [
+        [
+            'id' => 'balanced',
+            'labelKey' => 'rerankProfileBalanced',
+            'descriptionKey' => 'rerankProfileBalancedDescription',
+            'overrides' => [
+                'sourceWeights' => [
+                    'pubmed' => 1.0,
+                    'semanticScholar' => 0.92,
+                    'openAlex' => 0.88,
+                    'elicit' => 0.9,
+                ],
+                'pmidBonus' => 8,
+                'overlapBonusPerExtraSource' => 35,
+                'pubTypeWeights' => [
+                    'systematic-review' => 18,
+                    'meta-analysis' => 18,
+                    'guideline' => 18,
+                    'randomized-controlled-trial' => 14,
+                    'review' => 8,
+                    'clinical-trial' => 8,
+                    'editorial' => 0,
+                    'letter' => 0,
+                ],
+                'recencyHalfLifeYears' => null,
+                'recencyBonusMax' => 10,
+                'recencyCurveEnabled' => true,
+                'recencyCurve' => [[5, 1.0], [10, 0.6], [25, 0.25]],
+                'oaBonus' => 3,
+                'citationImpactClamp' => [0.95, 1.10],
+                'citationImpactSignalWeights' => [
+                    'rcr' => 0.45,
+                    'fwci' => 0.45,
+                    'nihPercentile' => 0.08,
+                    'fieldNormalizedCitationRatio' => 0.08,
+                    'influentialCitationCount' => 0.12,
+                    'citedByCount' => 0.04,
+                ],
+                'translationPotentialBonusMax' => 3,
+                'retractionAction' => 'filter',
+                'retractionPenalty' => 1.0,
+                'clinicalBonus' => 8,
+                'clinicalCitedByThreshold' => 5,
+                'topicOverlapBonus' => 20,
+                'authorityClamp' => [1.0, 1.0],
+                'dataQualityPenalties' => [
+                    'missingAbstract' => 0.90,
+                    'shortAbstract' => 0.95,
+                    'veryShortAbstract' => 0.98,
+                    'missingAuthor' => 0.98,
+                    'missingYear' => 0.95,
+                ],
+                'abstractMinLength' => [
+                    'short' => 100,
+                    'veryShort' => 250,
+                ],
+            ],
+        ],
+        [
+            'id' => 'highest-evidence',
+            'labelKey' => 'rerankProfileHighestEvidence',
+            'descriptionKey' => 'rerankProfileHighestEvidenceDescription',
+            'overrides' => [
+                'sourceWeights' => [
+                    'pubmed' => 1.0,
+                    'semanticScholar' => 0.92,
+                    'openAlex' => 0.88,
+                    'elicit' => 1.05,
+                ],
+                'pmidBonus' => 5,
+                'overlapBonusPerExtraSource' => 35,
+                'pubTypeWeights' => [
+                    'systematic-review' => 55,
+                    'meta-analysis' => 55,
+                    'guideline' => 40,
+                    'randomized-controlled-trial' => 32,
+                    'review' => 15,
+                    'clinical-trial' => 12,
+                    'editorial' => 0,
+                    'letter' => 0,
+                ],
+                'recencyHalfLifeYears' => null,
+                'recencyBonusMax' => 12,
+                'recencyCurveEnabled' => true,
+                'recencyCurve' => [[5, 1.0], [10, 0.6], [25, 0.25]],
+                'oaBonus' => 3,
+                'citationImpactClamp' => [0.9, 1.20],
+                'citationImpactSignalWeights' => [
+                    'rcr' => 0.55,
+                    'fwci' => 0.55,
+                    'nihPercentile' => 0.12,
+                    'fieldNormalizedCitationRatio' => 0.10,
+                    'influentialCitationCount' => 0.12,
+                    'citedByCount' => 0.03,
+                ],
+                'translationPotentialBonusMax' => 4,
+                'retractionAction' => 'filter',
+                'retractionPenalty' => 1.0,
+                'clinicalBonus' => 12,
+                'clinicalCitedByThreshold' => 5,
+                'topicOverlapBonus' => 30,
+                'authorityClamp' => [0.98, 1.05],
+                'dataQualityPenalties' => [
+                    'missingAbstract' => 0.85,
+                    'shortAbstract' => 0.92,
+                    'veryShortAbstract' => 0.96,
+                    'missingAuthor' => 0.97,
+                    'missingYear' => 0.92,
+                ],
+                'abstractMinLength' => [
+                    'short' => 100,
+                    'veryShort' => 250,
+                ],
+            ],
+        ],
+        [
+            'id' => 'clinical-practice',
+            'labelKey' => 'rerankProfileClinicalPractice',
+            'descriptionKey' => 'rerankProfileClinicalPracticeDescription',
+            'overrides' => [
+                'sourceWeights' => [
+                    'pubmed' => 1.08,
+                    'semanticScholar' => 0.92,
+                    'openAlex' => 0.88,
+                    'elicit' => 1.0,
+                ],
+                'pmidBonus' => 12,
+                'overlapBonusPerExtraSource' => 35,
+                'pubTypeWeights' => [
+                    'systematic-review' => 35,
+                    'meta-analysis' => 35,
+                    'guideline' => 45,
+                    'randomized-controlled-trial' => 28,
+                    'review' => 12,
+                    'clinical-trial' => 18,
+                    'editorial' => 0,
+                    'letter' => 0,
+                ],
+                'recencyHalfLifeYears' => null,
+                'recencyBonusMax' => 10,
+                'recencyCurveEnabled' => true,
+                'recencyCurve' => [[5, 1.0], [10, 0.6], [25, 0.25]],
+                'oaBonus' => 2,
+                'citationImpactClamp' => [0.9, 1.15],
+                'citationImpactSignalWeights' => [
+                    'rcr' => 0.45,
+                    'fwci' => 0.35,
+                    'nihPercentile' => 0.08,
+                    'fieldNormalizedCitationRatio' => 0.08,
+                    'influentialCitationCount' => 0.10,
+                    'citedByCount' => 0.03,
+                ],
+                'translationPotentialBonusMax' => 8,
+                'retractionAction' => 'filter',
+                'retractionPenalty' => 1.0,
+                'clinicalBonus' => 20,
+                'clinicalCitedByThreshold' => 2,
+                'topicOverlapBonus' => 25,
+                'authorityClamp' => [1.0, 1.0],
+                'dataQualityPenalties' => [
+                    'missingAbstract' => 0.85,
+                    'shortAbstract' => 0.92,
+                    'veryShortAbstract' => 0.96,
+                    'missingAuthor' => 0.97,
+                    'missingYear' => 0.92,
+                ],
+                'abstractMinLength' => [
+                    'short' => 100,
+                    'veryShort' => 250,
+                ],
+            ],
+        ],
+        [
+            'id' => 'newest-research',
+            'labelKey' => 'rerankProfileNewestResearch',
+            'descriptionKey' => 'rerankProfileNewestResearchDescription',
+            'overrides' => [
+                'sourceWeights' => [
+                    'pubmed' => 0.95,
+                    'semanticScholar' => 0.95,
+                    'openAlex' => 0.95,
+                    'elicit' => 1.05,
+                ],
+                'pmidBonus' => 3,
+                'overlapBonusPerExtraSource' => 30,
+                'pubTypeWeights' => [
+                    'systematic-review' => 10,
+                    'meta-analysis' => 10,
+                    'guideline' => 6,
+                    'randomized-controlled-trial' => 12,
+                    'review' => 4,
+                    'clinical-trial' => 6,
+                    'editorial' => 0,
+                    'letter' => 0,
+                ],
+                'recencyHalfLifeYears' => null,
+                'recencyBonusMax' => 45,
+                'recencyCurveEnabled' => true,
+                'recencyCurve' => [[2, 1.0], [5, 0.4], [10, 0.08], [15, 0.0]],
+                'recencyMultiplierCurve' => [[5, 1.0], [10, 0.82], [15, 0.65], [25, 0.50]],
+                'oaBonus' => 3,
+                'citationImpactClamp' => [0.95, 1.05],
+                'citationImpactSignalWeights' => [
+                    'rcr' => 0.20,
+                    'fwci' => 0.20,
+                    'nihPercentile' => 0.04,
+                    'fieldNormalizedCitationRatio' => 0.04,
+                    'influentialCitationCount' => 0.06,
+                    'citedByCount' => 0.01,
+                ],
+                'translationPotentialBonusMax' => 2,
+                'retractionAction' => 'filter',
+                'retractionPenalty' => 1.0,
+                'clinicalBonus' => 4,
+                'clinicalCitedByThreshold' => 20,
+                'topicOverlapBonus' => 25,
+                'authorityClamp' => [1.0, 1.0],
+                'dataQualityPenalties' => [
+                    'missingAbstract' => 0.90,
+                    'shortAbstract' => 0.95,
+                    'veryShortAbstract' => 0.98,
+                    'missingAuthor' => 0.98,
+                    'missingYear' => 0.95,
+                ],
+                'abstractMinLength' => [
+                    'short' => 100,
+                    'veryShort' => 250,
+                ],
+            ],
+        ],
+        [
+            'id' => 'broad-mapping',
+            'labelKey' => 'rerankProfileBroadMapping',
+            'descriptionKey' => 'rerankProfileBroadMappingDescription',
+            'overrides' => [
+                'sourceWeights' => [
+                    'pubmed' => 1.0,
+                    'semanticScholar' => 0.92,
+                    'openAlex' => 0.9,
+                    'elicit' => 0.9,
+                ],
+                'pmidBonus' => 5,
+                'overlapBonusPerExtraSource' => 25,
+                'pubTypeWeights' => [
+                    'systematic-review' => 5,
+                    'meta-analysis' => 5,
+                    'guideline' => 5,
+                    'randomized-controlled-trial' => 5,
+                    'review' => 3,
+                    'clinical-trial' => 3,
+                    'editorial' => 0,
+                    'letter' => 0,
+                ],
+                'recencyHalfLifeYears' => null,
+                'recencyBonusMax' => 3,
+                'recencyCurveEnabled' => true,
+                'recencyCurve' => [[5, 1.0], [10, 0.6], [25, 0.25]],
+                'oaBonus' => 0,
+                'citationImpactClamp' => [1.0, 1.0],
+                'retractionAction' => 'filter',
+                'retractionPenalty' => 1.0,
+                'clinicalBonus' => 0,
+                'clinicalCitedByThreshold' => 1000000,
+                'topicOverlapBonus' => 12,
+                'authorityClamp' => [1.0, 1.0],
+                'dataQualityPenalties' => [
+                    'missingAbstract' => 0.95,
+                    'shortAbstract' => 0.98,
+                    'veryShortAbstract' => 0.99,
+                    'missingAuthor' => 0.99,
+                    'missingYear' => 0.97,
+                ],
+                'abstractMinLength' => [
+                    'short' => 100,
+                    'veryShort' => 250,
+                ],
+            ],
+        ],
+    ],
+]);
+
 // ============ PubMed Lexical Rescue Configuration ============
 // Frontend-safe values exposed to the widget via ThemeConfig.php
 define('QPM_SEMANTIC_RESCUE_CONFIG', [
@@ -324,6 +650,67 @@ define('QPM_SEMANTIC_LLM_RERANK_CONFIG', [
     'topN' => 25,
     'maxOutputTokens' => 400,
 ]);
+
+// ============ Telemetry Configuration ============
+// Additive observability for LLM-backed query translation.
+// Writes anonymized JSON Lines to data/runtime/qpm-telemetry-YYYY-MM-DD.jsonl
+// via backend/api/TelemetryLog.php. No IP, no User-Agent, no raw free text.
+// Toggle `enabled` to false to disable all telemetry (console + backend).
+//
+// Fields:
+//  - retentionDays: JSONL files older than this are pruned on a probabilistic sweep.
+//  - maxPayloadBytes: events larger than this are silently dropped server-side.
+//  - logOverHitThreshold: source_hit_count is flagged when count >= this value.
+//  - logLowOverlapThreshold: overlap_summary is flagged when overlapRatio < this.
+//  - logLowConfidenceThreshold: semantic_intent_parsed is flagged below this.
+//  - sourceProbeRanges: per-source sanity ranges used by source_probe_counts.
+define('QPM_TELEMETRY_CONFIG', [
+    'enabled' => false,
+    'retentionDays' => 30,
+    'maxPayloadBytes' => 4096,
+    'logOverHitThreshold' => 100000,
+    'logLowOverlapThreshold' => 0.10,
+    'logLowConfidenceThreshold' => 0.6,
+    'sourceProbeRanges' => [
+        'pubmed' => ['min' => 20, 'max' => 100000],
+        'openAlex' => ['min' => 50, 'max' => 1000000],
+        'semanticScholar' => ['min' => 10, 'max' => 100000],
+    ],
+]);
+
+// ============ Paraphrase Chip Configuration ============
+// Opt-in UI chip displayed above search results that mirrors the LLM's
+// understanding of the user's query ("Vi har forstået din søgning som:"),
+// with a "Rediger" button. Leave disabled by default; flip to true to enable.
+define('QPM_PARAPHRASE_CHIP_CONFIG', [
+    'enabled' => false,
+    // showSuggestions: when true, the chip displays the LLM's
+    // meta.refinementSuggestions list below the low-confidence warning. Only
+    // rendered when confidence is low and the LLM returned non-empty
+    // suggestions. Harmless to leave on.
+    'showSuggestions' => true,
+    // showEarly: when true, the chip appears as soon as the semantic intent is
+    // parsed (before database searches finish). Pulsing loader dot indicates
+    // the search is still running. Recommended: leave false until confident
+    // about chip timing; flip to true when ready.
+    'showEarly' => false,
+    // showPendingLoader: when true AND showEarly is true, show a pulsing dot
+    // on the chip while background search is pending.
+    'showPendingLoader' => true,
+    // preflightEnabled: experimental. When true, a lightweight LLM call is
+    // issued as the user pauses typing (~1s) to surface low-confidence hints
+    // BEFORE the user clicks Search. Cached for the actual search click. Keep
+    // disabled in most deployments unless operating with an LLM budget.
+    'preflightEnabled' => false,
+    'preflightDebounceMs' => 1000,
+    'preflightMinInputLength' => 12,
+]);
+
+// ============ MeSH Validation Observe-Only Flag ============
+// When true, validateAndEnhanceMeshTerms performs all its NLM/AI calls but
+// returns the ORIGINAL query unchanged. Safety brake for the existing active
+// MeSH flow. Keep false unless telemetry reports show degradation.
+define('QPM_MESH_VALIDATION_OBSERVE_ONLY', false);
 
 // ============ Public Search API Configuration ============
 // External API clients. Keep real keys only in config.php, never in git.

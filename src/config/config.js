@@ -8,9 +8,15 @@ export const config = reactive({
   useAISummarizer: false, // AI feature flag for the article summarizer
   useMeshValidation: true, // Validate AI-translated [mh] terms via NLM E-utilities MeSH database
   semanticSourceLimits: {}, // Frontend-safe semantic source limits from backend config
+  openAlexBatchLookupConcurrency: 2, // Conservative parallelism for OpenAlex validation batches
   semanticRescueConfig: {}, // Frontend-safe PubMed lexical rescue settings from backend config
   semanticLlmRerankConfig: {}, // Frontend-safe semantic final rerank settings from backend config
   rerankConfig: {}, // Frontend-safe rerank settings from backend config
+  rerankProfileConfig: {}, // Frontend-safe selectable rerank profile settings
+  rerankProfiles: [], // Normalized selectable rerank profile list
+  defaultRerankProfileId: "", // Default selectable rerank profile id
+  telemetryConfig: {}, // Frontend-safe telemetry settings from backend config (QPM_TELEMETRY_CONFIG)
+  meshValidationObserveOnly: false, // When true, MeSH validator returns original query unchanged
   translationSourcesByDomain: {}, // Domain-specific source availability fallback: { domainKey: ["pubmed", ...] }
   elicitGated: false, // Global: backend says Elicit is gated and caller is not unlocked
   theme: {}, // Global CSS custom properties to override :root defaults
@@ -453,6 +459,13 @@ export async function loadThemeOverridesFromBackend(domain, apiBaseUrl) {
         };
       }
 
+      if (payload.openAlexBatchLookupConcurrency !== undefined) {
+        const parsedConcurrency = Number.parseInt(payload.openAlexBatchLookupConcurrency, 10);
+        if (Number.isFinite(parsedConcurrency) && parsedConcurrency > 0) {
+          config.openAlexBatchLookupConcurrency = Math.min(5, parsedConcurrency);
+        }
+      }
+
       if (payload.semanticRescueConfig && typeof payload.semanticRescueConfig === "object") {
         config.semanticRescueConfig = {
           ...config.semanticRescueConfig,
@@ -495,6 +508,42 @@ export async function loadThemeOverridesFromBackend(domain, apiBaseUrl) {
             ? payload.rerankConfig.guidelinePublisherAllowList
             : config.rerankConfig?.guidelinePublisherAllowList || [],
         };
+      }
+
+      if (payload.rerankProfileConfig && typeof payload.rerankProfileConfig === "object") {
+        const profileConfig = payload.rerankProfileConfig;
+        config.rerankProfileConfig = {
+          ...profileConfig,
+          profiles: Array.isArray(profileConfig.profiles) ? profileConfig.profiles : [],
+        };
+        config.rerankProfiles = config.rerankProfileConfig.profiles;
+        config.defaultRerankProfileId = String(
+          profileConfig.defaultProfileId || config.defaultRerankProfileId || ""
+        ).trim();
+      }
+
+      if (payload.telemetryConfig && typeof payload.telemetryConfig === "object") {
+        config.telemetryConfig = {
+          ...config.telemetryConfig,
+          ...payload.telemetryConfig,
+          sourceProbeRanges: {
+            ...(config.telemetryConfig?.sourceProbeRanges || {}),
+            ...(payload.telemetryConfig?.sourceProbeRanges || {}),
+          },
+        };
+        try {
+          const { configureTelemetry } = await import("@/utils/qpmTelemetry.js");
+          configureTelemetry({
+            ...config.telemetryConfig,
+            endpoint: `${resolvedApiBase}/TelemetryLog.php`,
+          });
+        } catch (_err) {
+          /* telemetry is best-effort — never let config load fail because of it */
+        }
+      }
+
+      if (typeof payload.meshValidationObserveOnly === "boolean") {
+        config.meshValidationObserveOnly = payload.meshValidationObserveOnly;
       }
 
       themeConfigCache.set(cacheKey, { expiresAt: Date.now() + THEME_CONFIG_CACHE_TTL_MS });

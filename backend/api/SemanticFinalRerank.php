@@ -92,6 +92,12 @@ if (!is_array($input)) {
 
 $query = qpmSemanticRerankNormalizeString($input['query'] ?? '');
 $hardFilterQuery = qpmSemanticRerankNormalizeString($input['hardFilterQuery'] ?? '');
+$rawResultFocus = isset($input['resultFocus']) && is_array($input['resultFocus']) ? $input['resultFocus'] : [];
+$resultFocus = [
+    'id' => qpmSemanticRerankNormalizeString($rawResultFocus['id'] ?? ''),
+    'label' => qpmSemanticRerankNormalizeString($rawResultFocus['label'] ?? ''),
+    'description' => qpmSemanticRerankNormalizeString($rawResultFocus['description'] ?? ''),
+];
 $model = qpmSemanticRerankNormalizeString($input['model'] ?? 'gpt-5.4-nano');
 $maxOutputTokens = (int) ($input['maxOutputTokens'] ?? 400);
 $rawCandidates = isset($input['candidates']) && is_array($input['candidates']) ? $input['candidates'] : [];
@@ -212,10 +218,18 @@ $systemPrompt = implode("\n", [
     'Do not try to override publication-type, date, or other hard filters because they have already been applied.',
     'When signals such as FWCI, RCR, citation counts, retraction status, publication type or recency are provided on a candidate, you may use them to inform relevance, but never to override prior hard filters and never to exclude or add candidates. Prefer non-retracted records over retracted ones when all other evidence is comparable.',
 ]);
+if ($resultFocus['id'] !== '') {
+    $systemPrompt .= "\n" . 'Respect the selected result focus when ordering otherwise comparable candidates: '
+        . $resultFocus['label'] . '. ' . $resultFocus['description'];
+    if ($resultFocus['id'] === 'newest-research') {
+        $systemPrompt .= ' For this focus, prefer more recent studies when relevance is comparable, and avoid promoting old studies solely because they have accumulated citations.';
+    }
+}
 
 $userPayload = [
     'query' => $query,
     'hardFilterQuery' => $hardFilterQuery,
+    'resultFocus' => $resultFocus,
     'task' => 'Return the candidate ids ordered from most to least relevant.',
     'candidates' => $candidates,
 ];

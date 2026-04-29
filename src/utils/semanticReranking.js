@@ -38,8 +38,19 @@ const DEFAULT_SEMANTIC_RERANK_CONFIG = Object.freeze({
     [10, 0.6],
     [25, 0.25],
   ],
+  recencyMultiplierCurve: [],
   oaBonus: 0,
   citationImpactClamp: [1.0, 1.0],
+  citationImpactSignalWeights: {
+    rcr: 0.5,
+    fwci: 0.5,
+    nihPercentile: 0,
+    fieldNormalizedCitationRatio: 0,
+    influentialCitationCount: 0.15,
+    citedByCount: 0.08,
+  },
+  translationPotentialBonusMax: 0,
+  translationPotentialAptScale: 10,
   retractionAction: "none",
   retractionPenalty: 1.0,
   clinicalBonus: 0,
@@ -66,9 +77,19 @@ function toFiniteNumber(value) {
   return Number.isFinite(number) ? number : null;
 }
 
+function toPresentFiniteNumber(value) {
+  if (value === null || value === undefined || value === "") return null;
+  return toFiniteNumber(value);
+}
+
 function toFiniteInt(value) {
   const number = Number(value);
   return Number.isFinite(number) ? Math.round(number) : null;
+}
+
+function toPresentFiniteInt(value) {
+  if (value === null || value === undefined || value === "") return null;
+  return toFiniteInt(value);
 }
 
 function toBooleanOrNull(value) {
@@ -126,15 +147,19 @@ function dedupeStringValues(values, normalizer = (value) => String(value || "").
 }
 
 function getSourceSummary(sourceResults) {
-  return (Array.isArray(sourceResults) ? sourceResults : []).map((sourceResult) => ({
-    source: sourceResult?.source || "",
-    query: sourceResult?.query || "",
-    total: Number(sourceResult?.total || 0),
-    candidateCount: Array.isArray(sourceResult?.candidates) ? sourceResult.candidates.length : 0,
-    pmidCount: Array.isArray(sourceResult?.pmids) ? sourceResult.pmids.length : 0,
-    doiCount: Array.isArray(sourceResult?.dois) ? sourceResult.dois.length : 0,
-    hasError: !!sourceResult?.error,
-  }));
+  return (Array.isArray(sourceResults) ? sourceResults : []).map((sourceResult) => {
+    const candidates = Array.isArray(sourceResult?.candidates) ? sourceResult.candidates : [];
+    return {
+      source: sourceResult?.source || "",
+      query: sourceResult?.query || "",
+      total: Number(sourceResult?.total || 0),
+      candidateCount: candidates.length,
+      pmidCount: Array.isArray(sourceResult?.pmids) ? sourceResult.pmids.length : 0,
+      doiCount: Array.isArray(sourceResult?.dois) ? sourceResult.dois.length : 0,
+      hasError: !!sourceResult?.error,
+      usedInRerank: candidates.length > 0,
+    };
+  });
 }
 
 function getSourceStats(sourceResults) {
@@ -662,6 +687,25 @@ function computeRecencyBonus(enriched, rerankConfig, currentYear) {
   };
 }
 
+function computeRecencyMultiplier(enriched, rerankConfig, currentYear) {
+  const normalizedCurve = normalizeRecencyCurve(rerankConfig?.recencyMultiplierCurve);
+  if (!normalizedCurve) {
+    return { multiplier: 1.0, age: null, curveMultiplier: null };
+  }
+  const year = toFiniteInt(enriched?.publicationYear);
+  if (year === null) {
+    return { multiplier: 1.0, age: null, curveMultiplier: null };
+  }
+  const reference = toFiniteInt(currentYear) ?? new Date().getFullYear();
+  const age = Math.max(0, reference - year);
+  const multiplier = computeRecencyCurveMultiplier(age, normalizedCurve);
+  return {
+    multiplier,
+    age,
+    curveMultiplier: multiplier,
+  };
+}
+
 function computePubTypeBonus(enriched, rerankConfig) {
   const weights =
     rerankConfig?.pubTypeWeights && typeof rerankConfig.pubTypeWeights === "object"
@@ -680,24 +724,52 @@ function computePubTypeBonus(enriched, rerankConfig) {
     normalizedWeightMap.set(String(key).trim().toLowerCase(), numericWeight);
   }
 
-  let best = 0;
+  let best = null;
   let matchedType = "";
   for (const type of pubTypes) {
     const normalized = String(type || "").trim().toLowerCase();
     if (!normalized) continue;
     const weight = normalizedWeightMap.get(normalized);
-    if (weight !== undefined && weight > best) {
+    if (weight !== undefined && (best === null || weight > best)) {
       best = weight;
       matchedType = normalized;
     }
   }
-  return { value: best, matchedType };
+  return { value: best ?? 0, matchedType };
 }
 
 function computeOpenAccessBonus(enriched, rerankConfig) {
   const bonus = toFiniteNumber(rerankConfig?.oaBonus);
   if (!bonus) return 0;
   return enriched?.isOpenAccess === true ? bonus : 0;
+}
+
+function getCitationImpactWeight(rerankConfig, signal) {
+  const weights =
+    rerankConfig?.citationImpactSignalWeights &&
+    typeof rerankConfig.citationImpactSignalWeights === "object"
+      ? rerankConfig.citationImpactSignalWeights
+      : DEFAULT_SEMANTIC_RERANK_CONFIG.citationImpactSignalWeights;
+  const weight = toFiniteNumber(weights?.[signal]);
+  return weight !== null && weight > 0 ? weight : 0;
+}
+
+function computeTranslationPotentialBonus(enriched, rerankConfig) {
+  const maxBonus = toFiniteNumber(rerankConfig?.translationPotentialBonusMax);
+  if (!maxBonus || maxBonus <= 0) {
+    return { value: 0, apt: null, factor: null };
+  }
+  const apt = toPresentFiniteNumber(enriched?.apt);
+  if (apt === null || apt <= 0) {
+    return { value: 0, apt: apt ?? null, factor: null };
+  }
+  const scale = toFiniteNumber(rerankConfig?.translationPotentialAptScale) || 10;
+  const factor = clampTo(Math.log1p(apt) / Math.log1p(Math.max(1, scale)), [0, 1]);
+  return {
+    value: maxBonus * factor,
+    apt,
+    factor,
+  };
 }
 
 function computeClinicalBonus(enriched, rerankConfig) {
@@ -707,7 +779,7 @@ function computeClinicalBonus(enriched, rerankConfig) {
     return { value: bonus, reason: "isClinical" };
   }
   const threshold = toFiniteNumber(rerankConfig?.clinicalCitedByThreshold);
-  const citedByClin = toFiniteInt(enriched?.citedByClin);
+  const citedByClin = toPresentFiniteInt(enriched?.citedByClin);
   if (threshold !== null && citedByClin !== null && citedByClin >= threshold) {
     return { value: bonus, reason: "citedByClinThreshold" };
   }
@@ -720,41 +792,76 @@ function computeCitationImpactMultiplier(enriched, rerankConfig) {
     return { multiplier: 1.0, signal: "disabled", rawValue: null };
   }
 
-  const rcr = toFiniteNumber(enriched?.rcr);
-  if (rcr !== null) {
+  const rcr = toPresentFiniteNumber(enriched?.rcr);
+  const rcrWeight = getCitationImpactWeight(rerankConfig, "rcr");
+  if (rcr !== null && rcrWeight > 0) {
     const factor = Math.log1p(Math.max(0, rcr));
     return {
-      multiplier: clampTo(1.0 + factor * 0.5, clamp),
+      multiplier: clampTo(1.0 + factor * rcrWeight, clamp),
       signal: "rcr",
       rawValue: rcr,
     };
   }
 
-  const fwci = toFiniteNumber(enriched?.fwci);
-  if (fwci !== null) {
+  const nihPercentile = toPresentFiniteNumber(enriched?.nihPercentile);
+  const nihWeight = getCitationImpactWeight(rerankConfig, "nihPercentile");
+  if (nihPercentile !== null && nihWeight > 0) {
+    const percentileFactor = clampTo(nihPercentile / 100, [0, 1]);
+    return {
+      multiplier: clampTo(1.0 + percentileFactor * nihWeight, clamp),
+      signal: "nihPercentile",
+      rawValue: nihPercentile,
+    };
+  }
+
+  const fwci = toPresentFiniteNumber(enriched?.fwci);
+  const fwciWeight = getCitationImpactWeight(rerankConfig, "fwci");
+  if (fwci !== null && fwciWeight > 0) {
     const factor = Math.log1p(Math.max(0, fwci));
     return {
-      multiplier: clampTo(1.0 + factor * 0.5, clamp),
+      multiplier: clampTo(1.0 + factor * fwciWeight, clamp),
       signal: "fwci",
       rawValue: fwci,
     };
   }
 
-  const influential = toFiniteInt(enriched?.influentialCitationCount);
-  if (influential !== null) {
+  const citedByCount = toPresentFiniteInt(enriched?.citedByCount);
+  const fieldCitationRate = toPresentFiniteNumber(enriched?.fieldCitationRate);
+  const fieldNormalizedWeight = getCitationImpactWeight(
+    rerankConfig,
+    "fieldNormalizedCitationRatio"
+  );
+  if (
+    citedByCount !== null &&
+    fieldCitationRate !== null &&
+    fieldCitationRate > 0 &&
+    fieldNormalizedWeight > 0
+  ) {
+    const ratio = citedByCount / fieldCitationRate;
+    const factor = Math.log1p(Math.max(0, ratio));
+    return {
+      multiplier: clampTo(1.0 + factor * fieldNormalizedWeight, clamp),
+      signal: "fieldNormalizedCitationRatio",
+      rawValue: Number(ratio.toFixed(4)),
+    };
+  }
+
+  const influential = toPresentFiniteInt(enriched?.influentialCitationCount);
+  const influentialWeight = getCitationImpactWeight(rerankConfig, "influentialCitationCount");
+  if (influential !== null && influentialWeight > 0) {
     const factor = Math.log1p(Math.max(0, influential)) / Math.log(10);
     return {
-      multiplier: clampTo(1.0 + factor * 0.15, clamp),
+      multiplier: clampTo(1.0 + factor * influentialWeight, clamp),
       signal: "influentialCitationCount",
       rawValue: influential,
     };
   }
 
-  const citedByCount = toFiniteInt(enriched?.citedByCount);
-  if (citedByCount !== null) {
+  const citedByWeight = getCitationImpactWeight(rerankConfig, "citedByCount");
+  if (citedByCount !== null && citedByWeight > 0) {
     const factor = Math.log1p(Math.max(0, citedByCount)) / Math.log(10);
     return {
-      multiplier: clampTo(1.0 + factor * 0.08, clamp),
+      multiplier: clampTo(1.0 + factor * citedByWeight, clamp),
       signal: "citedByCount",
       rawValue: citedByCount,
     };
@@ -1060,6 +1167,16 @@ function buildDebugEntry(entry, rerankConfig, sourceStats, mode = "multi", curre
     });
   }
 
+  const translationPotentialInfo = computeTranslationPotentialBonus(enriched, rerankConfig);
+  if (translationPotentialInfo.value !== 0) {
+    contributions.push({
+      type: "translationPotentialBonus",
+      apt: translationPotentialInfo.apt,
+      factor: Number(translationPotentialInfo.factor.toFixed(4)),
+      value: Number(translationPotentialInfo.value.toFixed(4)),
+    });
+  }
+
   const topicOverlapInfo = computeTopicOverlapBonus(enriched, rerankConfig, intentTokens);
   const topicOverlapBonus = topicOverlapInfo.value;
   if (topicOverlapBonus !== 0) {
@@ -1077,6 +1194,7 @@ function buildDebugEntry(entry, rerankConfig, sourceStats, mode = "multi", curre
     tierBonusInfo.value +
     oaBonus +
     clinicalInfo.value +
+    translationPotentialInfo.value +
     topicOverlapBonus;
 
   const citationImpactInfo = computeCitationImpactMultiplier(enriched, rerankConfig);
@@ -1095,6 +1213,15 @@ function buildDebugEntry(entry, rerankConfig, sourceStats, mode = "multi", curre
       type: "authorityMultiplier",
       components: authorityInfo.components,
       multiplier: Number(authorityInfo.multiplier.toFixed(4)),
+    });
+  }
+
+  const recencyMultiplierInfo = computeRecencyMultiplier(enriched, rerankConfig, currentYear);
+  if (recencyMultiplierInfo.multiplier !== 1.0) {
+    contributions.push({
+      type: "recencyMultiplier",
+      age: recencyMultiplierInfo.age,
+      multiplier: Number(recencyMultiplierInfo.multiplier.toFixed(4)),
     });
   }
 
@@ -1120,6 +1247,7 @@ function buildDebugEntry(entry, rerankConfig, sourceStats, mode = "multi", curre
   const qualityMultiplier =
     citationImpactInfo.multiplier *
     authorityInfo.multiplier *
+    recencyMultiplierInfo.multiplier *
     retractionInfo.multiplier *
     dataQualityInfo.multiplier;
   const combinedScore = (baseScore + additiveQualityBonus) * qualityMultiplier;
@@ -1147,9 +1275,11 @@ function buildDebugEntry(entry, rerankConfig, sourceStats, mode = "multi", curre
       pubTypeConfidence: tierBonusInfo.confidence || entry?.pubTypeClassification?.confidence || "",
       oaBonus: Number(oaBonus.toFixed(4)),
       clinicalBonus: Number(clinicalInfo.value.toFixed(4)),
+      translationPotentialBonus: Number(translationPotentialInfo.value.toFixed(4)),
       topicOverlapBonus: Number(topicOverlapBonus.toFixed(4)),
       citationImpactMultiplier: Number(citationImpactInfo.multiplier.toFixed(4)),
       authorityMultiplier: Number(authorityInfo.multiplier.toFixed(4)),
+      recencyMultiplier: Number(recencyMultiplierInfo.multiplier.toFixed(4)),
       retractionMultiplier: Number(retractionInfo.multiplier.toFixed(4)),
       dataQualityMultiplier: Number(dataQualityInfo.multiplier.toFixed(4)),
       qualityMultiplier: Number(qualityMultiplier.toFixed(4)),
@@ -1160,7 +1290,8 @@ function buildDebugEntry(entry, rerankConfig, sourceStats, mode = "multi", curre
 }
 
 function buildOverlapSummary(candidates) {
-  return (Array.isArray(candidates) ? candidates : []).reduce(
+  const list = Array.isArray(candidates) ? candidates : [];
+  const summary = list.reduce(
     (acc, candidate) => {
       const sourceCount = Number(candidate?.sourceCount || 0);
       if (sourceCount > 1) {
@@ -1173,6 +1304,12 @@ function buildOverlapSummary(candidates) {
       } else {
         acc.doiOnly += 1;
       }
+      const sources = Array.isArray(candidate?.sources) ? candidate.sources : [];
+      sources.forEach((src) => {
+        const key = String(src || "").trim();
+        if (!key) return;
+        acc.perSourceCount[key] = (acc.perSourceCount[key] || 0) + 1;
+      });
       return acc;
     },
     {
@@ -1180,8 +1317,48 @@ function buildOverlapSummary(candidates) {
       singleSource: 0,
       withPmid: 0,
       doiOnly: 0,
+      perSourceCount: {},
     }
   );
+
+  const total = summary.multiSource + summary.singleSource;
+  const overlapRatio = total > 0 ? summary.multiSource / total : 0;
+
+  // Pairwise overlap: for every (A, B) source pair that appears in the candidate
+  // set, count how many candidates have both sources attached. ratio is
+  // computed against the total candidates that reference A OR B.
+  const distinctSourcesUsed = Object.keys(summary.perSourceCount).sort();
+  const pairwiseOverlap = {};
+  for (let i = 0; i < distinctSourcesUsed.length; i += 1) {
+    for (let j = i + 1; j < distinctSourcesUsed.length; j += 1) {
+      const a = distinctSourcesUsed[i];
+      const b = distinctSourcesUsed[j];
+      let shared = 0;
+      let eitherSource = 0;
+      list.forEach((candidate) => {
+        const sources = Array.isArray(candidate?.sources) ? candidate.sources : [];
+        const hasA = sources.includes(a);
+        const hasB = sources.includes(b);
+        if (hasA && hasB) shared += 1;
+        if (hasA || hasB) eitherSource += 1;
+      });
+      pairwiseOverlap[`${a}-${b}`] = {
+        shared,
+        total: eitherSource,
+        ratio: eitherSource > 0 ? Number((shared / eitherSource).toFixed(4)) : 0,
+      };
+    }
+  }
+
+  return {
+    multiSource: summary.multiSource,
+    singleSource: summary.singleSource,
+    withPmid: summary.withPmid,
+    doiOnly: summary.doiOnly,
+    overlapRatio: Number(overlapRatio.toFixed(4)),
+    distinctSourcesUsed,
+    pairwiseOverlap,
+  };
 }
 
 export function resolveSemanticRerankConfig(runtimeRerankConfig = {}) {
@@ -1199,6 +1376,13 @@ export function resolveSemanticRerankConfig(runtimeRerankConfig = {}) {
       ...DEFAULT_SEMANTIC_RERANK_CONFIG.pubTypeWeights,
       ...(safeRuntimeConfig.pubTypeWeights && typeof safeRuntimeConfig.pubTypeWeights === "object"
         ? safeRuntimeConfig.pubTypeWeights
+        : {}),
+    },
+    citationImpactSignalWeights: {
+      ...DEFAULT_SEMANTIC_RERANK_CONFIG.citationImpactSignalWeights,
+      ...(safeRuntimeConfig.citationImpactSignalWeights &&
+      typeof safeRuntimeConfig.citationImpactSignalWeights === "object"
+        ? safeRuntimeConfig.citationImpactSignalWeights
         : {}),
     },
     citationImpactClamp: normalizeClamp(
@@ -1238,6 +1422,9 @@ export function resolveSemanticRerankConfig(runtimeRerankConfig = {}) {
       Array.isArray(safeRuntimeConfig.recencyCurve) && safeRuntimeConfig.recencyCurve.length > 0
         ? safeRuntimeConfig.recencyCurve
         : DEFAULT_SEMANTIC_RERANK_CONFIG.recencyCurve,
+    recencyMultiplierCurve: Array.isArray(safeRuntimeConfig.recencyMultiplierCurve)
+      ? safeRuntimeConfig.recencyMultiplierCurve
+      : DEFAULT_SEMANTIC_RERANK_CONFIG.recencyMultiplierCurve,
   };
 }
 
@@ -1245,6 +1432,9 @@ function buildEnrichmentSummary(candidates, rerankConfig, filteredCount, extraCo
   const summary = {
     withFwci: 0,
     withRcr: 0,
+    withNihPercentile: 0,
+    withApt: 0,
+    withFieldCitationRate: 0,
     withInfluentialCitations: 0,
     withCitedByCount: 0,
     withRetractionFlag: 0,
@@ -1280,6 +1470,11 @@ function buildEnrichmentSummary(candidates, rerankConfig, filteredCount, extraCo
     const enriched = candidate?.enriched || {};
     if (enriched.fwci !== null && enriched.fwci !== undefined) summary.withFwci += 1;
     if (enriched.rcr !== null && enriched.rcr !== undefined) summary.withRcr += 1;
+    if (enriched.nihPercentile !== null && enriched.nihPercentile !== undefined)
+      summary.withNihPercentile += 1;
+    if (enriched.apt !== null && enriched.apt !== undefined) summary.withApt += 1;
+    if (enriched.fieldCitationRate !== null && enriched.fieldCitationRate !== undefined)
+      summary.withFieldCitationRate += 1;
     if (enriched.influentialCitationCount !== null && enriched.influentialCitationCount !== undefined)
       summary.withInfluentialCitations += 1;
     if (enriched.citedByCount !== null && enriched.citedByCount !== undefined)
@@ -1334,6 +1529,8 @@ export function rerankSemanticCandidates(sourceResults, runtimeRerankConfig = {}
     (sourceResult) => Array.isArray(sourceResult?.candidates) && sourceResult.candidates.length > 0
   );
   const rerankConfig = resolveSemanticRerankConfig(runtimeRerankConfig);
+  const attemptedSourceStats = getSourceStats(sourceResults);
+  const attemptedSourceSummary = getSourceSummary(sourceResults);
   const sourceStats = getSourceStats(activeSourceResults);
   const sourceSummary = getSourceSummary(activeSourceResults);
   const rerankMode = activeSourceResults.length <= 1 ? "single" : "multi";
@@ -1419,8 +1616,10 @@ export function rerankSemanticCandidates(sourceResults, runtimeRerankConfig = {}
     rerankMode,
     diagnostics: {
       rerankConfig,
-      sourceStats,
-      sourceSummary,
+      sourceStats: attemptedSourceStats,
+      sourceSummary: attemptedSourceSummary,
+      activeSourceStats: sourceStats,
+      activeSourceSummary: sourceSummary,
       overlapSummary: buildOverlapSummary(rankedCandidates),
       enrichmentSummary,
       mergeSummary: {

@@ -213,6 +213,7 @@ searchFormDivs.forEach((searchFormDiv, index) => {
   const useAISummarizer = searchFormDiv.dataset.useAISummarizer === "true";
   const useMeshValidation = searchFormDiv.dataset.useMeshValidation === "true";
   const showElicitUnlockButton = searchFormDiv.dataset.showElicitUnlockButton === "true";
+  const showProcessDetailsToggles = searchFormDiv.dataset.showProcessDetailsToggles !== "false";
   const datasetDebugSearchFlow = normalizeSearchFlowDebugValue(searchFormDiv.dataset.debugSearchFlow);
   const urlDebugSearchFlow = getSearchFlowDebugFlagFromLocation();
   const debugSearchFlow = datasetDebugSearchFlow || urlDebugSearchFlow;
@@ -297,6 +298,7 @@ searchFormDivs.forEach((searchFormDiv, index) => {
       translationSources: parsedTranslationSources,
       defaultTranslationSources: parsedDefaultTranslationSources,
       showElicitUnlockButton: showElicitUnlockButton,
+      showProcessDetailsToggles: showProcessDetailsToggles,
       debugSearchFlow: debugSearchFlow,
       standardStringAdd: standardStringAdd,
       standardStringScope: standardStringScope,

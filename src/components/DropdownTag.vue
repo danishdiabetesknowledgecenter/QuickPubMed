@@ -26,6 +26,7 @@
             v-model="getCustomNameLabel"
             minlength="1"
             rows="1"
+            :aria-label="getString('editCustomTermAriaLabel')"
             :style="getTextareaStyle"
             @keydown.left.stop
             @keydown.right.stop

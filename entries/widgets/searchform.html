@@ -49,6 +49,8 @@
           a prompt for the unlock code and remembers it in localStorage. IP-based unlock and
           URL-based ?elicitKey= always work regardless of this attribute.
           Default: "false" (no lock icon is shown).
+        - data-show-process-details-toggles: Show "Detaljer"/"Details" toggles next to
+          completed search-process steps ("true" or "false"). Default: "true".
         - data-open-limits: Show simple limits section from the start ("true" or "false").
         - data-component-no: Numeric identifier used to build a unique DOM id (SearchForm_<no>).
           Useful when multiple instances are embedded on the same page.
@@ -125,6 +127,7 @@
         data-translation-sources="['pubmed','semanticScholar','openAlex','elicit']"
         data-default-translation-sources="['pubmed','semanticScholar','openAlex']"
         data-show-elicit-unlock-button="true"
+        data-show-process-details-toggles="true"
         data-hide-topics="['L10010']"
         data-open-limits="true"
         data-hide-limits="" 

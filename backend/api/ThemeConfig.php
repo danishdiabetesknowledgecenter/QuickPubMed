@@ -77,6 +77,14 @@ $semanticSourceLimits = [
     'openAlex' => qpmGetSemanticSourceLimit('openAlex', 100),
     'elicit' => qpmGetSemanticSourceLimit('elicit', 100),
     'pubmedBestMatch' => qpmGetSemanticSourceLimit('pubmedBestMatch', 200),
+    'pubmedBestMatchPubmedOnly' => qpmGetSemanticSourceLimit(
+        'pubmedBestMatchPubmedOnly',
+        qpmGetSemanticSourceLimit('pubmedBestMatch', 200)
+    ),
+    'pubmedBestMatchMultiSource' => qpmGetSemanticSourceLimit(
+        'pubmedBestMatchMultiSource',
+        qpmGetSemanticSourceLimit('pubmedBestMatch', 200)
+    ),
 ];
 $semanticRescueConfig = defined('QPM_SEMANTIC_RESCUE_CONFIG') && is_array(QPM_SEMANTIC_RESCUE_CONFIG)
     ? QPM_SEMANTIC_RESCUE_CONFIG
@@ -84,9 +92,63 @@ $semanticRescueConfig = defined('QPM_SEMANTIC_RESCUE_CONFIG') && is_array(QPM_SE
 $semanticLlmRerankConfig = defined('QPM_SEMANTIC_LLM_RERANK_CONFIG') && is_array(QPM_SEMANTIC_LLM_RERANK_CONFIG)
     ? QPM_SEMANTIC_LLM_RERANK_CONFIG
     : [];
+$openAlexBatchLookupConcurrency = defined('QPM_OPENALEX_BATCH_LOOKUP_CONCURRENCY')
+    ? max(1, min(5, (int) QPM_OPENALEX_BATCH_LOOKUP_CONCURRENCY))
+    : 2;
 $rerankConfig = defined('QPM_RERANK_CONFIG') && is_array(QPM_RERANK_CONFIG)
     ? QPM_RERANK_CONFIG
     : [];
+$rerankProfileConfig = defined('QPM_RERANK_PROFILE_CONFIG') && is_array(QPM_RERANK_PROFILE_CONFIG)
+    ? QPM_RERANK_PROFILE_CONFIG
+    : [];
+
+// Telemetry configuration (frontend-safe subset).
+// retentionDays is intentionally excluded — it's a server-side concern only.
+$telemetryConfigRaw = defined('QPM_TELEMETRY_CONFIG') && is_array(QPM_TELEMETRY_CONFIG)
+    ? QPM_TELEMETRY_CONFIG
+    : [];
+$telemetryConfig = [
+    'enabled' => !empty($telemetryConfigRaw['enabled']),
+    'logOverHitThreshold' => isset($telemetryConfigRaw['logOverHitThreshold'])
+        ? (int) $telemetryConfigRaw['logOverHitThreshold']
+        : 100000,
+    'logLowOverlapThreshold' => isset($telemetryConfigRaw['logLowOverlapThreshold'])
+        ? (float) $telemetryConfigRaw['logLowOverlapThreshold']
+        : 0.10,
+    'logLowConfidenceThreshold' => isset($telemetryConfigRaw['logLowConfidenceThreshold'])
+        ? (float) $telemetryConfigRaw['logLowConfidenceThreshold']
+        : 0.6,
+    'sourceProbeRanges' => isset($telemetryConfigRaw['sourceProbeRanges']) && is_array($telemetryConfigRaw['sourceProbeRanges'])
+        ? $telemetryConfigRaw['sourceProbeRanges']
+        : [],
+];
+
+$paraphraseChipConfigRaw = defined('QPM_PARAPHRASE_CHIP_CONFIG') && is_array(QPM_PARAPHRASE_CHIP_CONFIG)
+    ? QPM_PARAPHRASE_CHIP_CONFIG
+    : [];
+$paraphraseChipConfig = [
+    'enabled' => !empty($paraphraseChipConfigRaw['enabled']),
+    'showSuggestions' => array_key_exists('showSuggestions', $paraphraseChipConfigRaw)
+        ? (bool) $paraphraseChipConfigRaw['showSuggestions']
+        : true,
+    'showEarly' => !empty($paraphraseChipConfigRaw['showEarly']),
+    'showPendingLoader' => array_key_exists('showPendingLoader', $paraphraseChipConfigRaw)
+        ? (bool) $paraphraseChipConfigRaw['showPendingLoader']
+        : true,
+    'preflightEnabled' => !empty($paraphraseChipConfigRaw['preflightEnabled']),
+    'preflightDebounceMs' => isset($paraphraseChipConfigRaw['preflightDebounceMs'])
+        && is_numeric($paraphraseChipConfigRaw['preflightDebounceMs'])
+        ? max(200, (int) $paraphraseChipConfigRaw['preflightDebounceMs'])
+        : 1000,
+    'preflightMinInputLength' => isset($paraphraseChipConfigRaw['preflightMinInputLength'])
+        && is_numeric($paraphraseChipConfigRaw['preflightMinInputLength'])
+        ? max(4, (int) $paraphraseChipConfigRaw['preflightMinInputLength'])
+        : 12,
+];
+
+$meshObserveOnly = defined('QPM_MESH_VALIDATION_OBSERVE_ONLY')
+    ? (bool) QPM_MESH_VALIDATION_OBSERVE_ONLY
+    : false;
 
 $domainTheme = [];
 if ($domain !== '' && isset($themeByDomain[$domain]) && is_array($themeByDomain[$domain])) {
@@ -117,9 +179,14 @@ $response = [
     'elicitUnlocked' => $elicitUnlocked,
     'elicitGated' => $elicitGated,
     'semanticSourceLimits' => $semanticSourceLimits,
+    'openAlexBatchLookupConcurrency' => $openAlexBatchLookupConcurrency,
     'semanticRescueConfig' => $semanticRescueConfig,
     'semanticLlmRerankConfig' => $semanticLlmRerankConfig,
     'rerankConfig' => $rerankConfig,
+    'rerankProfileConfig' => $rerankProfileConfig,
+    'telemetryConfig' => $telemetryConfig,
+    'paraphraseChipConfig' => $paraphraseChipConfig,
+    'meshValidationObserveOnly' => $meshObserveOnly,
 ];
 
 // Opt-in diagnostic for the Elicit unlock feature. Visit:

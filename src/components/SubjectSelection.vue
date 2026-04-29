@@ -21,6 +21,7 @@
             :search-with-semantic-scholar="searchWithSemanticScholar"
             :search-with-open-alex="searchWithOpenAlex"
             :search-with-elicit="searchWithElicit"
+            :selected-rerank-profile-id="selectedRerankProfileId"
             :semantic-worded-intent-context="semanticWordedIntentContext"
             :show-scope-label="advanced"
             :no-result-string="getString('noTopicDropdownContent')"
@@ -102,6 +103,10 @@
       searchWithSemanticScholar: Boolean,
       searchWithOpenAlex: Boolean,
       searchWithElicit: Boolean,
+      selectedRerankProfileId: {
+        type: String,
+        default: "",
+      },
       semanticWordedIntentContext: {
         type: Object,
         default: null,

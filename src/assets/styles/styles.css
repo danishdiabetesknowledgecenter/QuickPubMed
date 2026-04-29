@@ -35,7 +35,7 @@
   --color-border-subtle-hover: #a9a9a9;
   --color-button-big: #4d6687;
   --color-button-color-green: var(--color-button-scope-green);
-  --color-button-disabled: #767676;
+  --color-button-disabled: #595959;
   --color-button-scope-green: #285709;
   --color-editor-border-divider: var(--color-grey);
   --color-editor-border-soft: var(--color-border-subtle);
@@ -88,7 +88,7 @@
   --color-text-disabled: #808080;
   --color-text-muted: #5f5f6f;
   --color-text-secondary: #575757;
-  --color-unpaywall-muted: #a8a8a8;
+  --color-unpaywall-muted: #767676;
   --color-unpaywall-pdf: #d20a0a;
 }
 
@@ -300,6 +300,15 @@
   box-sizing: border-box;
 }
 
+.qpm_searchProcessCollapseBody {
+  transition: height 0.3s linear;
+  overflow: hidden;
+}
+
+.qpm_searchProcessChip {
+  margin-bottom: 0.9rem;
+}
+
 .qpm_searchProcessGroup {
   margin: 0.5rem 0 0.8rem;
   color: var(--color-grey-dark);
@@ -316,7 +325,7 @@
 .qpm_searchProcessSubList {
   margin: 0.4rem 0 0;
   padding-left: 0;
-  margin-left: 1.4rem;
+  margin-left: 0.6rem;
   list-style: none;
 }
 
@@ -361,9 +370,27 @@
   color: var(--color-black);
 }
 
+.qpm_searchProcessGroup.is-warning .qpm_searchProcessGroupLabel,
+.qpm_searchProcessGroup.is-partial .qpm_searchProcessGroupLabel,
+.qpm_searchProcessGroup.is-recovered .qpm_searchProcessGroupLabel,
+.qpm_searchProcessItem.is-warning,
+.qpm_searchProcessItem.is-partial,
+.qpm_searchProcessItem.is-recovered {
+  color: var(--color-black);
+  font-weight: 600;
+}
+
+.qpm_searchProcessGroup.is-failed .qpm_searchProcessGroupLabel,
+.qpm_searchProcessGroup.is-rateLimited .qpm_searchProcessGroupLabel,
+.qpm_searchProcessItem.is-failed,
+.qpm_searchProcessItem.is-rateLimited {
+  color: var(--color-red-dark);
+  font-weight: 600;
+}
+
 .qpm_searchProcessGroup.is-pending .qpm_searchProcessGroupLabel,
 .qpm_searchProcessItem.is-pending {
-  opacity: 0.8;
+  color: var(--color-grey-dark);
 }
 
 .qpm_searchProcessItem.is-completed .qpm_searchProcessDots {
@@ -372,6 +399,72 @@
 
 .qpm_searchProcessItem.is-current .qpm_searchProcessDots {
   opacity: 0.75;
+}
+
+.qpm_searchProcessRow .qpm_searchProcessSourceToggle.qpm_linkButtonAsAnchor {
+  display: inline-block;
+  margin-left: 0.45rem;
+  color: var(--color-link);
+  text-decoration: none;
+  background-image: linear-gradient(var(--color-link), var(--color-link));
+  background-position: 0 94%;
+  background-repeat: no-repeat;
+  background-size: 0 1px;
+  border-bottom: none;
+  transition: all 0.2s ease-in-out;
+}
+
+.qpm_searchProcessRow .qpm_searchProcessSourceToggle.qpm_linkButtonAsAnchor:hover {
+  background-size: 100% 1px;
+  cursor: pointer;
+}
+
+.qpm_searchProcessQuery {
+  margin: 0.2rem 0 0 0.65rem;
+}
+
+.qpm_searchProcessQueryPanel {
+  margin: 0.35rem 0 0.55rem;
+  padding: 0.55rem 0.7rem;
+  border-left: 3px solid var(--color-grey-light);
+  background: var(--color-white);
+}
+
+.qpm_searchProcessQueryEntry + .qpm_searchProcessQueryEntry {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-grey-light);
+}
+
+.qpm_searchProcessQueryContext,
+.qpm_searchProcessQueryLabel {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-grey-dark);
+}
+
+.qpm_searchProcessQueryText {
+  margin: 0.2rem 0 0.45rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.9rem;
+}
+
+.qpm_degradedSearchSummary {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 12px;
+  padding: 12px 16px;
+  text-align: left;
+}
+
+.qpm_degradedSearchSummary ul {
+  margin: 8px 0 0;
+  padding-left: 1.2rem;
+}
+
+.qpm_degradedSearchSummary li {
+  margin: 0.25rem 0;
 }
 
 /* Custom spinner to replace vue-multiselect's built-in spinner */
@@ -1397,10 +1490,21 @@ input.multiselect__input{
   box-sizing: border-box;
   line-height: 1;
   background: rgba(0, 0, 0, 0.3) !important;
-  overflow: hidden;
+  overflow: visible;
 }
-.multiselect__tag-icon:after {
-  content: none !important;
+/* WCAG 2.5.5 (AAA) — Invisible 44x44 tap-target extension. Keeps the 28x44
+   visual icon unchanged; the pseudo-element inherits pointer events from the
+   parent button so a click anywhere in the 44x44 box activates removal.
+   Also suppresses vue-multiselect's default ::after glyph (we render our own
+   glyph via .qpm_dropdownTagIconGlyph). */
+.multiselect__tag-icon::after {
+  content: "" !important;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
 }
 
 .qpm_dropdownTagIconGlyph {

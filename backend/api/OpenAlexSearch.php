@@ -676,6 +676,12 @@ if ($openAlexEmail !== '') {
     $requestParams['mailto'] = $openAlexEmail;
 }
 
+// OpenAlex search.semantic er dokumenteret begrænset til 1 request/sek:
+// https://developers.openalex.org/guides/searching#semantic-search-beta
+// Keyword-søgning har ikke samme restriktion, så vi throttler kun semantic-mode.
+if ($searchMode === 'semantic') {
+    qpmThrottleRequestRate('openalex_semantic', 1);
+}
 qpmThrottleNlmRequests(1);
 $url = 'https://api.openalex.org/works?' . http_build_query($requestParams);
 $result = qpmOpenAlexLocalDevProxyRequest($requestParams);

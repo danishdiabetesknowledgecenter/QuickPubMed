@@ -1920,7 +1920,7 @@ if (!function_exists('qpmPublicSearchTranslatePubMedQuery')) {
             return '';
         }
         $request = [
-            'model' => 'gpt-5.4',
+            'model' => 'gpt-5.5',
             'input' => [
                 [
                     'role' => 'user',
@@ -1949,7 +1949,7 @@ if (!function_exists('qpmPublicSearchTranslateSemanticQuery')) {
             return '';
         }
         $request = [
-            'model' => 'gpt-5.4',
+            'model' => 'gpt-5.5',
             'input' => [
                 [
                     'role' => 'user',
