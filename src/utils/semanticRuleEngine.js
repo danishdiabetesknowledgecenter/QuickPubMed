@@ -31,6 +31,46 @@ function resolveMetadataEntry(candidate, metadataByDoi, metadataByOpenAlexId) {
   return null;
 }
 
+function appendMetadataSignalTexts(texts, metadata) {
+  if (!metadata || typeof metadata !== "object") return;
+  const values = [
+    metadata.venue,
+    metadata.source,
+    metadata.fulljournalname,
+    metadata.sourceDisplayName,
+    metadata.sourceAbbreviatedTitle,
+    metadata.sourceType,
+    metadata.workType,
+    metadata.publicationDate,
+    metadata.pubDate,
+    metadata.pubdate,
+    metadata.publicationYear,
+    metadata.year,
+    metadata.volume,
+    metadata.issue,
+    metadata.pages,
+    ...(Array.isArray(metadata.publicationTypes) ? metadata.publicationTypes : []),
+    ...(Array.isArray(metadata.pubTypes) ? metadata.pubTypes : []),
+  ];
+  values.forEach((value) => {
+    const normalized = String(value || "").trim();
+    if (normalized) texts.push(normalized);
+  });
+
+  const bibliographicText = [
+    metadata.venue || metadata.sourceDisplayName || metadata.sourceAbbreviatedTitle || metadata.source || "",
+    metadata.publicationDate || metadata.pubDate || metadata.pubdate || metadata.publicationYear || metadata.year || "",
+    metadata.volume || "",
+    metadata.issue ? `(${metadata.issue})` : "",
+    metadata.pages || "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  if (bibliographicText.trim()) {
+    texts.push(bibliographicText.trim());
+  }
+}
+
 export function getCandidateSemanticSignalTexts(
   candidate,
   metadataByDoi,
@@ -47,6 +87,8 @@ export function getCandidateSemanticSignalTexts(
   const useCandidateTitle = scopeSet.has("candidatetitle") || scopeSet.has("alltext");
   const useSourceCandidateTitles =
     scopeSet.has("sourcecandidatetitles") || scopeSet.has("alltext");
+  const useSourceMetadataTexts =
+    scopeSet.has("sourcemetadatexts") || scopeSet.has("alltext");
   const texts = [];
 
   if (useCandidateTitle) {
@@ -54,6 +96,20 @@ export function getCandidateSemanticSignalTexts(
   }
 
   const metadataEntry = resolveMetadataEntry(candidate, metadataByDoi, metadataByOpenAlexId);
+  if (useSourceMetadataTexts) {
+    const candidateMetadata =
+      candidate?.metadata && typeof candidate.metadata === "object" ? candidate.metadata : {};
+    appendMetadataSignalTexts(texts, {
+      ...candidateMetadata,
+      source: candidate?.source,
+      fulljournalname: candidate?.fulljournalname,
+      pubDate: candidate?.pubDate,
+      pubdate: candidate?.pubdate,
+      volume: candidate?.volume,
+      issue: candidate?.issue,
+      pages: candidate?.pages,
+    });
+  }
   if (useSourceCandidateTitles && metadataEntry) {
     const bySource =
       metadataEntry?.bySource && typeof metadataEntry.bySource === "object"
@@ -62,6 +118,20 @@ export function getCandidateSemanticSignalTexts(
     Object.values(bySource).forEach((entries) => {
       (Array.isArray(entries) ? entries : []).forEach((entry) => {
         texts.push(String(entry?.title || "").trim());
+      });
+    });
+  }
+  if (useSourceMetadataTexts && metadataEntry) {
+    const bySource =
+      metadataEntry?.bySource && typeof metadataEntry.bySource === "object"
+        ? metadataEntry.bySource
+        : {};
+    Object.values(bySource).forEach((entries) => {
+      (Array.isArray(entries) ? entries : []).forEach((entry) => {
+        appendMetadataSignalTexts(
+          texts,
+          entry?.metadata && typeof entry.metadata === "object" ? entry.metadata : {}
+        );
       });
     });
   }
@@ -131,6 +201,8 @@ export function buildCandidateSemanticMetadataSnapshot(
       : [],
     candidatePubTypeTier: pubTypeTier,
     candidatePubTypeConfidence: pubTypeConfidence,
+    candidateVolume: normalizeLowerString(candidateMetadata.volume || candidate?.volume || ""),
+    candidateIssue: normalizeLowerString(candidateMetadata.issue || candidate?.issue || ""),
   };
 
   const metadataEntry = resolveMetadataEntry(candidate, metadataByDoi, metadataByOpenAlexId);

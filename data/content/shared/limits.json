@@ -1222,6 +1222,15 @@
                                     "exclusiveGroup": "source-format",
                                     "matchStrategy": "any",
                                     "metadataFieldConditionMode": "any",
+                                    "textScopes": [
+                                        "sourceMetadataTexts"
+                                    ],
+                                    "excludeAnyTextSignals": [
+                                        "conference abstract",
+                                        "conference abstracts",
+                                        "supplement",
+                                        "suppl"
+                                    ],
                                     "metadataFieldConditions": [
                                         {
                                             "field": "candidateSourceType",

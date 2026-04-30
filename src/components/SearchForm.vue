@@ -6354,6 +6354,12 @@
               sourceDisplayName: candidateMetadata.sourceDisplayName || hydrated?.sourceDisplayName || "",
               sourceAbbreviatedTitle:
                 candidateMetadata.sourceAbbreviatedTitle || hydrated?.sourceAbbreviatedTitle || "",
+              publicationDate:
+                candidateMetadata.publicationDate ||
+                String(hydrated?.publicationDate || hydrated?.pubDate || "").trim(),
+              volume: candidateMetadata.volume || String(hydrated?.volume || "").trim(),
+              issue: candidateMetadata.issue || String(hydrated?.issue || "").trim(),
+              pages: candidateMetadata.pages || String(hydrated?.pages || "").trim(),
             },
           };
           const ruleExplanation =

@@ -649,7 +649,7 @@ if ($query === '') {
 $requestParams = [
     $searchMode === 'keyword' ? 'search' : 'search.semantic' => $query,
     'per_page' => $limit,
-    'select' => 'id,display_name,doi,ids,publication_year,publication_date,relevance_score,type,type_crossref,primary_location,fwci,cited_by_count,counts_by_year,is_retracted,open_access,primary_topic,authorships,abstract_inverted_index,language',
+    'select' => 'id,display_name,doi,ids,publication_year,publication_date,biblio,relevance_score,type,type_crossref,primary_location,fwci,cited_by_count,counts_by_year,is_retracted,open_access,primary_topic,authorships,abstract_inverted_index,language',
 ];
 if (!empty($languageFilters) || !empty($sourceTypes) || !empty($workTypes) || $publicationYearFilter !== '') {
     $filterParts = [];
@@ -931,6 +931,7 @@ foreach ($results as $index => $work) {
     $abstractLength = $abstractText !== ''
         ? (function_exists('mb_strlen') ? mb_strlen($abstractText) : strlen($abstractText))
         : 0;
+    $biblio = isset($work['biblio']) && is_array($work['biblio']) ? $work['biblio'] : [];
 
     $candidates[] = [
         'source' => 'openAlex',
@@ -948,6 +949,13 @@ foreach ($results as $index => $work) {
             'sourceType' => trim((string) ($source['type'] ?? '')),
             'sourceDisplayName' => trim((string) ($source['display_name'] ?? '')),
             'sourceAbbreviatedTitle' => trim((string) ($source['abbreviated_title'] ?? '')),
+            'volume' => trim((string) ($biblio['volume'] ?? '')),
+            'issue' => trim((string) ($biblio['issue'] ?? '')),
+            'pages' => trim((string) (
+                ($biblio['first_page'] ?? '') !== '' && ($biblio['last_page'] ?? '') !== ''
+                    ? ($biblio['first_page'] . '-' . $biblio['last_page'])
+                    : ($biblio['first_page'] ?? ($biblio['last_page'] ?? ''))
+            )),
             'journalSourceId' => $journalSourceId,
             'publisher' => $publisherName,
             'language' => $languageCode,

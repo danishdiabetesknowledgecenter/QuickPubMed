@@ -39,6 +39,7 @@ export const SEMANTIC_DOI_ONLY_RULE_METADATA_CONDITION_MODES = Object.freeze(["a
 export const SEMANTIC_DOI_ONLY_RULE_TEXT_SCOPES = Object.freeze([
   "candidateTitle",
   "sourceCandidateTitles",
+  "sourceMetadataTexts",
   "allText",
 ]);
 
@@ -58,6 +59,8 @@ export const SEMANTIC_DOI_ONLY_RULE_METADATA_FIELDS = Object.freeze([
   "candidateVenue",
   "candidateSourceType",
   "candidatePublicationTypes",
+  "candidateVolume",
+  "candidateIssue",
   "semanticSourcePublicationTypes",
   "semanticSourceVenues",
   "semanticSourceTypes",

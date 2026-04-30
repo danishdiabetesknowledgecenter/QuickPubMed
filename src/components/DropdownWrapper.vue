@@ -6341,6 +6341,7 @@
           openAlexId,
           metadata: {
             publicationYear: String(metadata.publicationYear || metadata.year || "").trim(),
+              publicationDate: String(metadata.publicationDate || metadata.pubDate || metadata.pubdate || "").trim(),
             venue: String(
               metadata.venue || metadata.sourceDisplayName || metadata.sourceAbbreviatedTitle || ""
             ).trim(),
@@ -6348,6 +6349,9 @@
             sourceType: String(metadata.sourceType || "").trim(),
             sourceDisplayName: String(metadata.sourceDisplayName || "").trim(),
             sourceAbbreviatedTitle: String(metadata.sourceAbbreviatedTitle || "").trim(),
+              volume: String(metadata.volume || "").trim(),
+              issue: String(metadata.issue || "").trim(),
+              pages: String(metadata.pages || "").trim(),
             publicationTypes: Array.isArray(metadata.publicationTypes)
               ? metadata.publicationTypes.map((value) => String(value || "").trim()).filter(Boolean)
               : [],
