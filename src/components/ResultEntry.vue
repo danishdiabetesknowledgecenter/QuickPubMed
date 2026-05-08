@@ -1602,7 +1602,7 @@
        * Returns true if not forbidden, false if forbidden
        */
       async checkRessource() {
-        const endpoint = "/api/CheckIfResourceIsForbidden";
+        const endpoint = "/api/CheckIfResourceIsForbidden.php";
         // Call Azure Function directly for resource check
         const openAiServiceUrl = `${this.appSettings.openAi.azureFunctionUrl}${endpoint}`;
         const options = {
@@ -1820,4 +1820,3 @@
     },
   };
 </script>
-

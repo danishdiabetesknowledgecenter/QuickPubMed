@@ -793,7 +793,7 @@ async function callAiStreaming(prompt, title, openAiServiceUrl, client) {
     client: client,
   };
 
-  const response = await fetch(openAiServiceUrl + "/api/TranslateTitle", {
+  const response = await fetch(openAiServiceUrl + "/api/TranslateTitle.php", {
     method: "POST",
     body: JSON.stringify(requestBody),
   });

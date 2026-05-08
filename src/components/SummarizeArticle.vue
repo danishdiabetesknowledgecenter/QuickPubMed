@@ -750,7 +750,7 @@
        * @throws {Error} Throws an error if the fetch request fails.
        */
       async getSummarizeHTMLArticle(promptLanguageType) {
-        const openAiServiceUrl = this.appSettings.openAi.azureFunctionUrl + "/api/SummarizeHTMLArticle";
+        const openAiServiceUrl = this.appSettings.openAi.azureFunctionUrl + "/api/SummarizeHTMLArticle.php";
         const localePrompt = this.getComposablePrompt(this.language, promptLanguageType);
 
         // Build the request body for logging
@@ -847,7 +847,7 @@
        * @throws {Error} Throws an error if the fetch request fails.
        */
       async getSummarizePDFArticle(promptLanguageType) {
-        const openAiServiceUrl = this.appSettings.openAi.azureFunctionUrl + "/api/SummarizePDFArticle";
+        const openAiServiceUrl = this.appSettings.openAi.azureFunctionUrl + "/api/SummarizePDFArticle.php";
         const localePrompt = this.getComposablePrompt(this.language, promptLanguageType);
 
         // Build the request body for logging
@@ -1168,4 +1168,3 @@
     },
   };
 </script>
-

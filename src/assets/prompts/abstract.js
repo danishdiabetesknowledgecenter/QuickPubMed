@@ -39,7 +39,7 @@ export const promptTextMultipleAbstracts = [
       Explain difficult words and technical terms in parentheses,
       which are inserted immediately after the word in question. Structure the summary as follows:
       - Start by describing what all the studies show overall. If there are significant differences between the studies, describe these differences.
-      - Next, write the actual summary of the studies.
+      - Next, write the actual summary of the studies - gerne ved brug af korrekt punktopstilling. Anvend kun et niveau i punktopstillinger. 
       IMPORTANT instructions:
       - When you mention a study, ALWAYS insert a reference to the individual study inside the text itself as a clickable link in Markdown format in this form:
       [(Last name of the first author + et al., if there are several authors + , year)](#REFERENCE_ID \"Scroll down to this article\") where REFERENCE_ID is equal to the value of "Reference ID" for the study in question. If a PMID exists, "Reference ID" is the PMID. If no PMID exists, "Reference ID" is the DOI. Do NOT include a space between the citation mark and the parentheses.

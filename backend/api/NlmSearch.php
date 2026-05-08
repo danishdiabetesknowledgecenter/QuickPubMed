@@ -186,7 +186,12 @@ if (empty($params)) {
     $params = $_GET;
 }
 $domain = qpmResolveDomain();
-$params['api_key'] = qpmGetNlmApiKey($domain);
+$nlmApiKey = qpmGetNlmApiKey($domain);
+if ($nlmApiKey !== '') {
+    $params['api_key'] = $nlmApiKey;
+} else {
+    unset($params['api_key']);
+}
 $params['email'] = qpmGetNlmEmail($domain);
 $params['tool'] = 'QuickPubMed';
 $params['db'] = $params['db'] ?? 'pubmed';

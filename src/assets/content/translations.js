@@ -260,8 +260,8 @@ export const messages = {
     en: "Default profile for most searches. Balances source rank, evidence level, clinical relevance, and metadata quality.",
   },
   rerankProfileHighestEvidence: {
-    dk: "Højeste evidens",
-    en: "Highest evidence",
+    dk: "Højeste evidensniveau",
+    en: "Highest evidence level",
   },
   rerankProfileHighestEvidenceDescription: {
     dk: "Prioriterer guidelines, systematiske reviews, meta-analyser og randomiserede studier højere.",
@@ -277,7 +277,7 @@ export const messages = {
   },
   rerankProfileNewestResearch: {
     dk: "Nyeste forskning",
-    en: "Newest research",
+    en: "New research",
   },
   rerankProfileNewestResearchDescription: {
     dk: "Løfter nyere studier og aktuelle citation-signaler, så ny forskning lettere kommer frem.",

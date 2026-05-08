@@ -1,3 +1,5 @@
+import { getFetchCredentialsForUrl } from "@/utils/fetchCredentials.js";
+
 const runtimeTopicPayloadCache = new Map();
 const runtimeLimitsPayloadCache = new Map();
 const runtimeLimitsTypePreferenceByDomain = new Map();
@@ -60,8 +62,9 @@ async function fetchRuntimeContent(type, domain = "") {
   }
   params.set("_", String(Date.now()));
 
-  const response = await fetch(`${getContentApiBaseUrl()}/PublicContent.php?${params.toString()}`, {
-    credentials: "omit",
+  const url = `${getContentApiBaseUrl()}/PublicContent.php?${params.toString()}`;
+  const response = await fetch(url, {
+    credentials: getFetchCredentialsForUrl(url),
     cache: "no-store",
   });
   if (!response.ok) {

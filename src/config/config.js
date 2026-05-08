@@ -1,5 +1,6 @@
 import { reactive } from "vue";
 import { settings } from "@/config/settings.js";
+import { getFetchCredentialsForUrl } from "@/utils/fetchCredentials.js";
 
 export const config = reactive({
   domain: "", // Default domain
@@ -362,7 +363,10 @@ export async function loadThemeOverridesFromBackend(domain, apiBaseUrl) {
       if (elicitKey) {
         url += `&elicitKey=${encodeURIComponent(elicitKey)}`;
       }
-      const response = await fetch(url, { method: "GET", credentials: "omit" });
+      const response = await fetch(url, {
+        method: "GET",
+        credentials: getFetchCredentialsForUrl(url),
+      });
       if (!response.ok) return;
 
       const payload = await response.json();

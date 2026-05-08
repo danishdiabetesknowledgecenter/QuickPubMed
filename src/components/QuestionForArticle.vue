@@ -233,8 +233,8 @@
           const composedPrompt = this.getComposablePrompt(this.language, this.promptLanguageType);
           // Call Azure Function directly for article summarization
           const openAiServiceUrl = this.pdfUrl
-            ? `${this.appSettings.openAi.azureFunctionUrl}/api/SummarizePDFArticle`
-            : `${this.appSettings.openAi.azureFunctionUrl}/api/SummarizeHTMLArticle`;
+            ? `${this.appSettings.openAi.azureFunctionUrl}/api/SummarizePDFArticle.php`
+            : `${this.appSettings.openAi.azureFunctionUrl}/api/SummarizeHTMLArticle.php`;
 
           const fetchPayload = this.pdfUrl
             ? { prompt: composedPrompt, pdfurl: this.pdfUrl, client: this.appSettings.client }
@@ -401,4 +401,3 @@
     },
   };
 </script>
-

@@ -21,6 +21,8 @@
  *   6. stableQueryHash normalizes whitespace/case before hashing
  */
 
+import { getFetchCredentialsForUrl } from "@/utils/fetchCredentials.js";
+
 const MAX_BUFFER_EVENTS = 200;
 const FLUSH_BATCH_SIZE = 10;
 const FLUSH_INTERVAL_MS = 3000;
@@ -409,7 +411,7 @@ export function flushTelemetryBuffer() {
       headers: { "Content-Type": "application/json" },
       body,
       keepalive: true,
-      credentials: "omit",
+      credentials: getFetchCredentialsForUrl(s.endpoint),
       mode: "cors",
     })
       .then((response) => {

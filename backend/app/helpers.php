@@ -262,7 +262,11 @@ function qpmGetNlmApiKey(?string $domain = null): string
         }
     }
 
-    return NLM_API_KEY;
+    $apiKey = defined('NLM_API_KEY') ? trim((string) NLM_API_KEY) : '';
+    if ($apiKey === '' || stripos($apiKey, 'INSERT-YOUR') !== false || stripos($apiKey, 'REPLACE-WITH') !== false) {
+        return '';
+    }
+    return $apiKey;
 }
 
 /**

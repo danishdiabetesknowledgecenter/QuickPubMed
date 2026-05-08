@@ -2738,7 +2738,17 @@ if (!function_exists('qpmPublicSearchFetchSemanticScholarSourceResult')) {
         }
 
         qpmThrottleRequestRate('semantic_scholar', 3);
-        $apiKey = defined('SEMANTIC_SCHOLAR_API_KEY') ? trim((string) SEMANTIC_SCHOLAR_API_KEY) : '';
+        $envApiKey = getenv('SEMANTIC_SCHOLAR_API_KEY');
+        $apiKey = is_string($envApiKey) && trim($envApiKey) !== ''
+            ? trim($envApiKey)
+            : (defined('SEMANTIC_SCHOLAR_API_KEY') ? trim((string) SEMANTIC_SCHOLAR_API_KEY) : '');
+        if (
+            $apiKey === '' ||
+            stripos($apiKey, 'INSERT-YOUR') !== false ||
+            stripos($apiKey, 'REPLACE-WITH') !== false
+        ) {
+            $apiKey = '';
+        }
         $headers = ['Accept: application/json'];
         if ($apiKey !== '') {
             $headers[] = 'x-api-key: ' . $apiKey;

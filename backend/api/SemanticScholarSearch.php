@@ -15,6 +15,24 @@ qpmApplyNlmCorsHeaders('GET, POST, OPTIONS', 'application/json');
 @ini_set('max_execution_time', '180');
 @set_time_limit(180);
 
+function qpmGetSemanticScholarApiKey(): string
+{
+    $envKey = getenv('SEMANTIC_SCHOLAR_API_KEY');
+    $configuredKey = is_string($envKey) && trim($envKey) !== ''
+        ? trim($envKey)
+        : (defined('SEMANTIC_SCHOLAR_API_KEY') ? trim((string) SEMANTIC_SCHOLAR_API_KEY) : '');
+
+    if (
+        $configuredKey === '' ||
+        stripos($configuredKey, 'INSERT-YOUR') !== false ||
+        stripos($configuredKey, 'REPLACE-WITH') !== false
+    ) {
+        return '';
+    }
+
+    return $configuredKey;
+}
+
 function qpmIsLocalSemanticScholarRequest(): bool
 {
     $requestHost = strtolower((string)($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
@@ -200,10 +218,11 @@ function qpmSemanticScholarLocalDevProxyRequest(
     $headerCandidates = [
         ['Accept: application/json'],
     ];
-    if (defined('SEMANTIC_SCHOLAR_API_KEY') && SEMANTIC_SCHOLAR_API_KEY !== '') {
+    $semanticScholarApiKey = qpmGetSemanticScholarApiKey();
+    if ($semanticScholarApiKey !== '') {
         array_unshift($headerCandidates, [
             'Accept: application/json',
-            'x-api-key: ' . SEMANTIC_SCHOLAR_API_KEY,
+            'x-api-key: ' . $semanticScholarApiKey,
         ]);
     }
 
@@ -794,10 +813,11 @@ if ($query === '') {
 $headerCandidates = [
     ['Accept: application/json'],
 ];
-if (defined('SEMANTIC_SCHOLAR_API_KEY') && SEMANTIC_SCHOLAR_API_KEY !== '') {
+$semanticScholarApiKey = qpmGetSemanticScholarApiKey();
+if ($semanticScholarApiKey !== '') {
     array_unshift($headerCandidates, [
         'Accept: application/json',
-        'x-api-key: ' . SEMANTIC_SCHOLAR_API_KEY,
+        'x-api-key: ' . $semanticScholarApiKey,
     ]);
 }
 

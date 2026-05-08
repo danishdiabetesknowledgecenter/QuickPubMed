@@ -105,9 +105,18 @@ function qpmFetchExtractedTextFromAzure($cacheType, $sourceUrl, $azureUrl, $sour
     }
 
     if ($azureHttpCode !== 200) {
-        http_response_code($azureHttpCode);
+        http_response_code($azureHttpCode > 0 ? $azureHttpCode : 502);
         header('Content-Type: application/json');
-        echo $azureResponse;
+        $decodedAzureError = is_string($azureResponse) && $azureResponse !== ''
+            ? json_decode($azureResponse, true)
+            : null;
+        echo json_encode([
+            'error' => 'Failed to fetch ' . $fetchLabel . ' text from upstream service',
+            'upstreamStatus' => $azureHttpCode,
+            'upstreamResponse' => is_array($decodedAzureError)
+                ? $decodedAzureError
+                : trim((string) $azureResponse),
+        ], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -164,7 +173,6 @@ function qpmStartPlainStreamingResponse() {
     header('Pragma: no-cache');
     header('X-Accel-Buffering: no');
     header('X-Content-Type-Options: nosniff');
-    header('Transfer-Encoding: chunked');
 
     @ini_set('output_buffering', 'Off');
     @ini_set('zlib.output_compression', 0);

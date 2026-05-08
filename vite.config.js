@@ -1,7 +1,7 @@
 // vite.config.js
 import vue from "@vitejs/plugin-vue";
 import path from "path";
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -23,7 +23,18 @@ function toOutputName(name, fallback = "chunk") {
   return normalized || fallback;
 }
 
-export default defineConfig(({ command }) => {
+function stripBrowserProxyHeaders(proxy) {
+  proxy.on("proxyReq", (proxyReq) => {
+    proxyReq.removeHeader("origin");
+    proxyReq.removeHeader("referer");
+  });
+}
+
+export default defineConfig(({ command, mode }) => {
+  const env = loadEnv(mode, __dirname, "");
+  const backendProxyTarget =
+    env.VITE_BACKEND_PROXY_TARGET || "http://127.0.0.1:8080";
+
   // Define common input files
   const input = {
     searchform: path.resolve(__dirname, "entries/widgets/searchform.html"),
@@ -43,9 +54,10 @@ export default defineConfig(({ command }) => {
     server: {
       proxy: {
         "/backend": {
-          target: "https://qpm.videncenterfordiabetes.dk/dev/latest",
+          target: backendProxyTarget,
           changeOrigin: true,
           secure: true,
+          configure: stripBrowserProxyHeaders,
         },
         "/semantic-scholar-api": {
           target: "https://api.semanticscholar.org",

@@ -684,7 +684,12 @@ if ($searchMode === 'semantic') {
 }
 qpmThrottleNlmRequests(1);
 $url = 'https://api.openalex.org/works?' . http_build_query($requestParams);
-$result = qpmOpenAlexLocalDevProxyRequest($requestParams);
+$result = qpmHttpRequest($url, [
+    'method' => 'GET',
+    'timeout' => 30,
+    'user_agent' => 'QuickPubMed/1.0',
+    'headers' => ['Accept: application/json'],
+]);
 if (!$result['ok'] && (int) ($result['status'] ?? 0) === 429) {
     qpmRespondWithOpenAlexWarning(
         $query,
@@ -695,14 +700,6 @@ if (!$result['ok'] && (int) ($result['status'] ?? 0) === 429) {
             (int) ($result['status'] ?? 0)
         )
     );
-}
-if (!$result['ok']) {
-    $result = qpmHttpRequest($url, [
-        'method' => 'GET',
-        'timeout' => 30,
-        'user_agent' => 'QuickPubMed/1.0',
-        'headers' => ['Accept: application/json'],
-    ]);
 }
 
 if (

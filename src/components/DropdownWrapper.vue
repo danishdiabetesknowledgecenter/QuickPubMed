@@ -4624,6 +4624,33 @@
       async translateSemanticScholarSearch(wordsToTranslate) {
         return this.translateByPrompt(wordsToTranslate, semanticScholarSearchPrompt);
       },
+      getTranslationFallbackText(wordsToTranslate) {
+        if (typeof wordsToTranslate !== "string") {
+          return String(wordsToTranslate || "").trim();
+        }
+        const trimmed = wordsToTranslate.trim();
+        if (!trimmed) return "";
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (parsed && typeof parsed === "object") {
+            const candidates = [
+              parsed.originalQuery,
+              parsed.freeTextInput,
+              parsed.rawUserInput,
+              parsed.contextualSearchInput,
+              parsed.semanticCoreText,
+              parsed.semanticIntent,
+            ];
+            for (const candidate of candidates) {
+              const normalized = String(candidate || "").trim();
+              if (normalized) return normalized;
+            }
+          }
+        } catch (_err) {
+          // Plain text input is the normal path.
+        }
+        return trimmed;
+      },
       buildPubMedTranslationPromptInput(wordsToTranslate, options = {}) {
         const originalQuery = String(wordsToTranslate || "").trim();
         const llmIntent =
@@ -6183,7 +6210,7 @@
         }
       },
       async translateByPrompt(wordsToTranslate, promptConfig) {
-        const openAiServiceUrl = this.appSettings.openAi.baseUrl + "/api/TranslateTitle";
+        const openAiServiceUrl = this.appSettings.openAi.baseUrl + "/api/TranslateTitle.php";
         const localePrompt = getPromptForLocale(promptConfig, "dk");
         const logLabel =
           promptConfig?.text?.format?.type === "json_schema"
@@ -6258,10 +6285,10 @@
             }
             reader.releaseLock();
           }
-          return answer;
+          return String(answer || "").trim() || this.getTranslationFallbackText(wordsToTranslate);
         } catch (error) {
           this.text = "An unknown error occurred: \n" + error.toString();
-          return wordsToTranslate;
+          return this.getTranslationFallbackText(wordsToTranslate);
         }
       },
       getConfiguredSemanticSourceLimit(sourceKey, fallback) {
@@ -9458,4 +9485,3 @@
     },
   };
 </script>
-

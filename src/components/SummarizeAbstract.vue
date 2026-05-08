@@ -200,7 +200,7 @@
                         <question-for-article
                           v-if="
                             activeArticleTabs[prompt.name] &&
-                            !isForbiddenError &&
+                            !localIsForbiddenError &&
                             (!loadingArticleSummaries[prompt.name] || showUserQuestionsEarly)
                           "
                           :pdf-url="pdfUrl"
@@ -220,7 +220,7 @@
                           type="button"
                           v-if="
                             activeArticleTabs[prompt.name] &&
-                            !isForbiddenError &&
+                            !localIsForbiddenError &&
                             (!loadingArticleSummaries[prompt.name] || prompt.name.length !== 0)
                           "
                           v-tooltip="{
@@ -244,7 +244,7 @@
                           type="button"
                           v-if="
                             activeArticleTabs[prompt.name] &&
-                            !isForbiddenError &&
+                            !localIsForbiddenError &&
                             (!loadingArticleSummaries[prompt.name] || prompt.name.length !== 0)
                           "
                           v-tooltip="{
@@ -477,6 +477,7 @@
         loadingQuestionsAndAnswers: {}, // Keeps track of loading state for each user question
         userQuestionsAndAnswers: {}, // Keeps track of user questions and answers for each article summary
         showUserQuestionsEarly: false, // Show user questions section when last item starts streaming
+        localIsForbiddenError: this.isForbiddenError,
         activeArticleTabs: this.prompts.reduce((acc, prompt) => {
           acc[prompt.name] = false;
           return acc;
@@ -601,11 +602,7 @@
        * @param {boolean} isError - The current error state.
        */
       handleSummarizeArticleErrorState(isError) {
-        if (isError) {
-          this.isForbiddenError = true;
-        } else {
-          this.isForbiddenError = false;
-        }
+        this.localIsForbiddenError = Boolean(isError);
       },
       /**
        * Set loading state based on emitted event.
@@ -760,7 +757,7 @@
           prompt.name
         );
 
-        const endpoint = "/api/SummarizeSearch";
+        const endpoint = "/api/SummarizeSearch.php";
         const openAiServiceUrl = `${this.appSettings.openAi.baseUrl}${endpoint}`;
 
         const readData = async (url, body) => {
@@ -1100,4 +1097,3 @@
     },
   };
 </script>
-

@@ -131,7 +131,7 @@
       async translateTitle(showSpinner = true) {
         this.loading = showSpinner;
         this.stopGeneration = false;
-        const openAiServiceUrl = `${this.appSettings.openAi.baseUrl}/api/TranslateTitle`;
+        const openAiServiceUrl = `${this.appSettings.openAi.baseUrl}/api/TranslateTitle.php`;
         const localePrompt = getPromptForLocale(titleTranslationPrompt, "dk");
 
         const readData = async (url, body) => {
@@ -217,4 +217,3 @@
     },
   };
 </script>
-
