@@ -4651,6 +4651,14 @@
         }
         return trimmed;
       },
+      isTranslationEndpointErrorText(value) {
+        const text = String(value || "").trim();
+        if (!text) return false;
+        return (
+          /<\s*(br|b|html|body)\b/i.test(text) &&
+          /(fatal error|uncaught error|stack trace|call to undefined function)/i.test(text)
+        );
+      },
       buildPubMedTranslationPromptInput(wordsToTranslate, options = {}) {
         const originalQuery = String(wordsToTranslate || "").trim();
         const llmIntent =
@@ -6263,7 +6271,11 @@
 
           if (!response.body || typeof TextDecoderStream === "undefined") {
             const fallbackText = await response.text();
-            return String(fallbackText || "").trim() || wordsToTranslate;
+            const normalizedFallbackText = String(fallbackText || "").trim();
+            if (this.isTranslationEndpointErrorText(normalizedFallbackText)) {
+              throw Error("Translation endpoint returned a PHP error page.");
+            }
+            return normalizedFallbackText || this.getTranslationFallbackText(wordsToTranslate);
           }
 
           const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
@@ -6285,7 +6297,11 @@
             }
             reader.releaseLock();
           }
-          return String(answer || "").trim() || this.getTranslationFallbackText(wordsToTranslate);
+          const normalizedAnswer = String(answer || "").trim();
+          if (this.isTranslationEndpointErrorText(normalizedAnswer)) {
+            throw Error("Translation endpoint returned a PHP error page.");
+          }
+          return normalizedAnswer || this.getTranslationFallbackText(wordsToTranslate);
         } catch (error) {
           this.text = "An unknown error occurred: \n" + error.toString();
           return this.getTranslationFallbackText(wordsToTranslate);

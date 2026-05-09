@@ -239,7 +239,7 @@ export const summarizeArticlePrompt = [
     model: "gpt-5.5",
     reasoning: { effort: "none" },      // none, low, medium, high, xhigh
     text: { verbosity: "medium" },     // low, medium, high
-    max_output_tokens: 4000,
+    max_output_tokens: 8000,
     stream: true,
     type: "json_object",
     prompt: {
@@ -257,7 +257,7 @@ export const summarizeArticlePrompt = [
     model: "gpt-5.5",
     reasoning: { effort: "none" },      // none, low, medium, high, xhigh
     text: { verbosity: "medium" },     // low, medium, high
-    max_output_tokens: 4000,
+    max_output_tokens: 8000,
     stream: true,
     type: "json_object",
     prompt: {

@@ -192,6 +192,7 @@
         :error="searchError"
         :loading-status-text="searchLoadingStatusText"
         :loading-process-steps="loadingProcessSteps"
+        :search-process-elapsed-ms="searchProcessElapsedMs"
         :degraded-search-summary="degradedSearchSummary"
         :search-intent="searchIntent"
         :show-process-details-toggles="showProcessDetailsToggles"
@@ -463,6 +464,10 @@
         loadingProcessSteps: [],
         degradedSearchSummary: [],
         searchProcessStepDetailPayloads: {},
+        searchProcessStartedAtMs: 0,
+        searchProcessEndedAtMs: 0,
+        searchProcessElapsedMs: 0,
+        processTimingIntervalId: null,
         compactLoadingUi: false,
         compactLoadingHideResults: false,
         elicitRateLimitInfo: null,
@@ -1281,6 +1286,7 @@
     beforeUnmount() {
       this.clearPlaceholderDotInterval();
       this.clearFilterPlaceholderDotInterval();
+      this.clearProcessTimingInterval();
       if (this._copyUrlStatusTimer) {
         clearTimeout(this._copyUrlStatusTimer);
         this._copyUrlStatusTimer = null;
@@ -2226,6 +2232,104 @@
         const baseTooltip = this.getString(option?.hoverKey || "");
         return `${baseTooltip}${this.getSourceRateLimitTooltipSuffix(option?.id || "")}`;
       },
+      getProcessTimingNow() {
+        return Date.now();
+      },
+      isProcessTimingTerminalStatus(status = "") {
+        return [
+          "completed",
+          "warning",
+          "partial",
+          "failed",
+          "rateLimited",
+          "recovered",
+        ].includes(String(status || "").trim());
+      },
+      startSearchProcessTiming() {
+        const now = this.getProcessTimingNow();
+        this.searchProcessStartedAtMs = now;
+        this.searchProcessEndedAtMs = 0;
+        this.searchProcessElapsedMs = 0;
+        this.clearProcessTimingInterval();
+        this.processTimingIntervalId = setInterval(() => {
+          this.refreshActiveProcessTimings();
+        }, 250);
+      },
+      clearProcessTimingInterval() {
+        if (this.processTimingIntervalId !== null && this.processTimingIntervalId !== undefined) {
+          clearInterval(this.processTimingIntervalId);
+          this.processTimingIntervalId = null;
+        }
+      },
+      startProcessStepTiming(step, now = this.getProcessTimingNow()) {
+        if (!step || typeof step !== "object") return step;
+        if (!Number.isFinite(Number(step.startedAtMs)) || Number(step.startedAtMs) <= 0) {
+          step.startedAtMs = now;
+          step.endedAtMs = 0;
+          step.elapsedMs = 0;
+        }
+        return step;
+      },
+      completeProcessStepTiming(step, now = this.getProcessTimingNow()) {
+        if (!step || typeof step !== "object") return step;
+        if (!Number.isFinite(Number(step.startedAtMs)) || Number(step.startedAtMs) <= 0) {
+          step.startedAtMs = now;
+        }
+        if (!Number.isFinite(Number(step.endedAtMs)) || Number(step.endedAtMs) <= 0) {
+          step.endedAtMs = now;
+        }
+        step.elapsedMs = Math.max(0, Number(step.endedAtMs) - Number(step.startedAtMs));
+        return step;
+      },
+      refreshActiveProcessTimings(now = this.getProcessTimingNow()) {
+        if (this.searchProcessStartedAtMs > 0 && this.searchProcessEndedAtMs <= 0) {
+          this.searchProcessElapsedMs = Math.max(0, now - this.searchProcessStartedAtMs);
+        }
+        if (!Array.isArray(this.loadingProcessSteps) || this.loadingProcessSteps.length === 0) {
+          return;
+        }
+        let changed = false;
+        const nextSteps = this.loadingProcessSteps.map((step) => {
+          const nextStep = { ...step };
+          const startedAt = Number(nextStep.startedAtMs);
+          if (
+            Number.isFinite(startedAt) &&
+            startedAt > 0 &&
+            (!Number.isFinite(Number(nextStep.endedAtMs)) || Number(nextStep.endedAtMs) <= 0)
+          ) {
+            nextStep.elapsedMs = Math.max(0, now - startedAt);
+            changed = true;
+          }
+          return nextStep;
+        });
+        if (changed) {
+          this.loadingProcessSteps = nextSteps;
+        }
+      },
+      completeAllStartedProcessTimings(now = this.getProcessTimingNow()) {
+        if (Array.isArray(this.loadingProcessSteps) && this.loadingProcessSteps.length > 0) {
+          this.loadingProcessSteps = this.loadingProcessSteps.map((step) => {
+            const nextStep = { ...step };
+            if (
+              Number.isFinite(Number(nextStep.startedAtMs)) &&
+              Number(nextStep.startedAtMs) > 0 &&
+              (!Number.isFinite(Number(nextStep.endedAtMs)) || Number(nextStep.endedAtMs) <= 0)
+            ) {
+              this.completeProcessStepTiming(nextStep, now);
+            }
+            return nextStep;
+          });
+        }
+        if (this.searchProcessStartedAtMs > 0 && this.searchProcessEndedAtMs <= 0) {
+          this.searchProcessEndedAtMs = now;
+          this.searchProcessElapsedMs = Math.max(0, now - this.searchProcessStartedAtMs);
+        }
+      },
+      stopSearchProcessTiming() {
+        const now = this.getProcessTimingNow();
+        this.completeAllStartedProcessTimings(now);
+        this.clearProcessTimingInterval();
+      },
       getSemanticLoadingProcessStepOrder() {
         return [
           "prepare",
@@ -2357,10 +2461,12 @@
       },
       buildInitialSemanticLoadingProcessSteps() {
         const stepIds = this.getPlannedSemanticLoadingProcessStepIds();
+        const now = this.getProcessTimingNow();
         return stepIds.map((stepId, index) => ({
           id: stepId,
           label: this.getSemanticLoadingProcessStepLabel(stepId),
           status: index === 0 ? "current" : "pending",
+          ...(index === 0 ? { startedAtMs: now, endedAtMs: 0, elapsedMs: 0 } : {}),
         }));
       },
       getSelectedSemanticProcessSourceNames() {
@@ -2474,6 +2580,12 @@
             this.getSemanticProcessSeverityRank(normalizedStatus)
         ) {
           return;
+        }
+        const now = this.getProcessTimingNow();
+        if (normalizedStatus === "current") {
+          this.startProcessStepTiming(targetStep, now);
+        } else if (this.isProcessTimingTerminalStatus(normalizedStatus)) {
+          this.completeProcessStepTiming(targetStep, now);
         }
         targetStep.status = normalizedStatus;
         if (normalizedTranslationKey) {
@@ -2590,13 +2702,16 @@
         const activeLabelKey =
           normalizedTranslationKey ||
           this.getSemanticLoadingProcessDefaultTranslationKey(normalizedStepId);
+        const now = this.getProcessTimingNow();
         nextSteps.forEach((step, index) => {
           if (index < activeIndex) {
             if (!this.isSemanticLoadingTerminalStatus(step.status)) {
               step.status = "completed";
+              this.completeProcessStepTiming(step, now);
             }
           } else if (index === activeIndex) {
             step.status = "current";
+            this.startProcessStepTiming(step, now);
             step.label = this.getSemanticLoadingProcessStepLabel(
               normalizedStepId,
               activeLabelKey
@@ -2616,6 +2731,7 @@
       },
       clearSearchLoadingStatus() {
         this.clearLoadingStatusDotInterval();
+        this.clearProcessTimingInterval();
         this.searchLoadingStatusText = "";
         this.loadingProcessSteps = [];
         this.compactLoadingUi = false;
@@ -2650,6 +2766,7 @@
         this.compactLoadingUi = true;
         this.compactLoadingHideResults = hideResults;
         this.clearLoadingStatusDotInterval();
+        this.clearProcessTimingInterval();
         this.loadingProcessSteps = [];
         this.searchLoadingStatusText = this.getString(textKey);
         return Date.now();
@@ -2709,7 +2826,9 @@
         return keyMap[String(stepKey || "").trim()] || "semanticSearchProgressPreparing";
       },
       isConcurrentSemanticLoadingStep(stepId = "") {
-        return ["semanticScholar", "openAlex", "elicit"].includes(String(stepId || "").trim());
+        return ["semanticScholar", "openAlex", "elicit", "pubmed"].includes(
+          String(stepId || "").trim()
+        );
       },
       activateConcurrentSemanticLoadingStep(stepId, translationKey = "") {
         if (!this.searchLoading || !this.hasSelectedSemanticSources()) {
@@ -2728,9 +2847,11 @@
         const activeLabelKey =
           normalizedTranslationKey ||
           this.getSemanticLoadingProcessDefaultTranslationKey(normalizedStepId);
+        const now = this.getProcessTimingNow();
         nextSteps.forEach((step, index) => {
           if (step.id === normalizedStepId) {
             step.status = "current";
+            this.startProcessStepTiming(step, now);
             step.label = this.getSemanticLoadingProcessStepLabel(
               normalizedStepId,
               activeLabelKey
@@ -2743,6 +2864,7 @@
           if (index < activeIndex) {
             if (!this.isSemanticLoadingTerminalStatus(step.status)) {
               step.status = "completed";
+              this.completeProcessStepTiming(step, now);
             }
           } else if (step.status !== "completed") {
             if (!this.isSemanticLoadingTerminalStatus(step.status)) {
@@ -2765,8 +2887,12 @@
           : [];
         const targetStep = nextSteps.find((step) => step.id === normalizedStepId);
         if (!targetStep) return;
-        if (!this.isSemanticLoadingTerminalStatus(targetStep.status)) {
+        if (
+          targetStep.status !== "completed" &&
+          !this.isSemanticLoadingTerminalStatus(targetStep.status)
+        ) {
           targetStep.status = "completed";
+          this.completeProcessStepTiming(targetStep);
         }
         if (normalizedTranslationKey) {
           targetStep.label = this.getSemanticLoadingProcessStepLabel(
@@ -7760,6 +7886,7 @@
         this.searchPaginationSignature = "";
         this.semanticSortedResultCache = [];
         this.semanticSortedResultCacheKey = "";
+        this.startSearchProcessTiming();
         this.updateSearchLoadingStatus();
         // Snapshot the current search generation so later continuations can
         // detect that the user cancelled this run (via editForm) and avoid
@@ -7783,6 +7910,7 @@
 
           if (!query || query === "()") {
             console.info("[SearchFlow] Query is empty. Search aborted.");
+            this.stopSearchProcessTiming();
             this.searchLoading = false;
             return;
           }
@@ -8016,6 +8144,7 @@
             });
           });
           if (isCancelled()) return;
+          this.stopSearchProcessTiming();
           this.searchLoading = false;
           this.clearSearchLoadingStatus();
 
@@ -8039,6 +8168,7 @@
           this.logSearchFlowDebugWarn("Search failed", {
             error: String(error || ""),
           });
+          this.stopSearchProcessTiming();
           this.searchLoading = false;
           this.clearSearchLoadingStatus();
         } finally {
@@ -8077,6 +8207,7 @@
           this.searchLoading = true;
           this.searchError = null;
           this.loadingProcessSteps = [];
+          this.startSearchProcessTiming();
           this.updateSearchLoadingStatus();
         } else {
           this.searchError = null;
@@ -8106,6 +8237,7 @@
           if (!query || query === "()") {
             console.info("[SearchFlow] Query is empty. Pagination aborted.");
             if (!this.compactLoadingUi) {
+              this.stopSearchProcessTiming();
               this.searchLoading = false;
             }
             return;
@@ -8229,6 +8361,7 @@
               data: Array.isArray(this.searchresult) ? this.searchresult : [],
             });
             if (!this.compactLoadingUi) {
+              this.stopSearchProcessTiming();
               this.searchLoading = false;
               this.clearSearchLoadingStatus();
             }
@@ -8336,6 +8469,7 @@
 
           // Reset the loading state
           if (!this.compactLoadingUi) {
+            this.stopSearchProcessTiming();
             this.searchLoading = false;
             this.clearSearchLoadingStatus();
           }
@@ -8357,6 +8491,7 @@
             error: String(error || ""),
           });
           if (!this.compactLoadingUi) {
+            this.stopSearchProcessTiming();
             this.searchLoading = false;
             this.clearSearchLoadingStatus();
           }

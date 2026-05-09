@@ -761,6 +761,13 @@
         const openAiServiceUrl = `${this.appSettings.openAi.baseUrl}${endpoint}`;
 
         const readData = async (url, body) => {
+          const streamCompleteMarker = "[[QPM_STREAM_COMPLETE]]";
+          const streamHeartbeatMarker = "[[QPM_STREAM_HEARTBEAT]]";
+          const cleanStreamText = (value = "") =>
+            String(value || "")
+              .replaceAll(streamCompleteMarker, "")
+              .replaceAll(streamHeartbeatMarker, "")
+              .trimEnd();
           let answer = "";
           const response = await fetch(url, {
             method: "POST",
@@ -768,7 +775,17 @@
           });
 
           if (!response.ok) {
-            throw { data: await response.json() };
+            const errorText = await response.text();
+            let errorPayload = { error: errorText };
+            try {
+              const parsedError = JSON.parse(errorText);
+              if (parsedError && typeof parsedError === "object") {
+                errorPayload = parsedError;
+              }
+            } catch (_error) {
+              /* keep plain text error */
+            }
+            throw { data: errorPayload };
           }
 
           const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
@@ -781,12 +798,24 @@
 
             if (!done && !this.stopGeneration) {
               answer += value;
-              this.updateAiSearchSummariesEntry(prompt.name, { body: answer });
+              const visibleAnswer = cleanStreamText(answer);
+              this.updateAiSearchSummariesEntry(prompt.name, { body: visibleAnswer });
             }
           }
 
           // If generation was stopped, you might want to handle partial data
           if (!this.stopGeneration) {
+            const didComplete = answer.includes(streamCompleteMarker);
+            const visibleAnswer = cleanStreamText(answer);
+            if (!didComplete) {
+              throw { data: { error: "Incomplete summary response" } };
+            }
+            if (visibleAnswer.trim() === "") {
+              throw { data: { error: "Empty summary response" } };
+            }
+            this.updateAiSearchSummariesEntry(prompt.name, {
+              body: visibleAnswer,
+            });
             this.updateAiSearchSummariesEntry(prompt.name, {
               responseTime: new Date(),
               status: "success",

@@ -703,6 +703,30 @@ export const messages = {
     dk: "Request-parametre",
     en: "Request parameters",
   },
+  searchProcessTotalTime: {
+    dk: "Samlet tid",
+    en: "Total time",
+  },
+  searchProcessMinuteSingular: {
+    dk: "minut",
+    en: "minute",
+  },
+  searchProcessMinutePlural: {
+    dk: "minutter",
+    en: "minutes",
+  },
+  searchProcessSecondSingular: {
+    dk: "sekund",
+    en: "second",
+  },
+  searchProcessSecondPlural: {
+    dk: "sekunder",
+    en: "seconds",
+  },
+  searchProcessStepDurationAriaLabel: {
+    dk: "{step}: {duration} sekunder",
+    en: "{step}: {duration} seconds",
+  },
   semanticSearchProcessGroupPrepare: {
     dk: "Oversætter og tilpasser søgningen",
     en: "Translating and adapting the search",

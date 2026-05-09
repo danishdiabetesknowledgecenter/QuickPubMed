@@ -57,6 +57,16 @@
                     :class="['qpm_searchProcessItem', `is-${step.status || 'pending'}`]"
                   >
                     <div class="qpm_searchProcessRow">
+                      <span
+                        :class="[
+                          'qpm_searchProcessDuration',
+                          { 'is-placeholder': !shouldShowProcessStepDuration(step) },
+                        ]"
+                        :aria-hidden="!shouldShowProcessStepDuration(step) ? 'true' : null"
+                        :aria-label="shouldShowProcessStepDuration(step) ? getProcessStepDurationAriaLabel(step) : null"
+                      >
+                        {{ shouldShowProcessStepDuration(step) ? formatProcessStepDuration(step) : "" }}
+                      </span>
                       <span class="qpm_searchProcessLabel"
                         >{{ getProcessStepLabel(step) }}<span class="qpm_searchProcessDots" aria-hidden="true">{{
                           getProcessStepDots(step)
@@ -179,6 +189,9 @@
                 </ul>
               </li>
             </ul>
+            <div v-if="shouldShowProcessTotalTime" class="qpm_searchProcessTotalTime">
+              {{ formatProcessTotalTime }}
+            </div>
           </div>
         </div>
       </transition>
@@ -737,6 +750,10 @@
         type: Array,
         default: () => [],
       },
+      searchProcessElapsedMs: {
+        type: Number,
+        default: 0,
+      },
       degradedSearchSummary: {
         type: Array,
         default: () => [],
@@ -787,12 +804,21 @@
         processDetailFormatCache: {},
         expandedSourceQuerySteps: {},
         persistedLoadingProcessSteps: [],
+        persistedSearchProcessElapsedMs: 0,
         isProcessBoxExpanded: true,
       };
     },
     computed: {
       activeLoadingProcessSteps() {
         return Array.isArray(this.loadingProcessSteps) ? this.loadingProcessSteps : [];
+      },
+      visibleSearchProcessElapsedMs() {
+        const activeElapsed = Number(this.searchProcessElapsedMs);
+        if (this.loading && Number.isFinite(activeElapsed) && activeElapsed > 0) {
+          return activeElapsed;
+        }
+        const persistedElapsed = Number(this.persistedSearchProcessElapsedMs);
+        return Number.isFinite(persistedElapsed) && persistedElapsed > 0 ? persistedElapsed : 0;
       },
       visibleLoadingProcessSteps() {
         if (this.loading && this.activeLoadingProcessSteps.length > 0) {
@@ -873,6 +899,14 @@
       },
       showLoadingProcessList() {
         return this.visibleLoadingProcessSteps.length > 0;
+      },
+      shouldShowProcessTotalTime() {
+        return this.visibleLoadingProcessSteps.length > 0 && this.visibleSearchProcessElapsedMs > 0;
+      },
+      formatProcessTotalTime() {
+        return `${this.getString("searchProcessTotalTime")}: ${this.formatProcessDurationAsWords(
+          this.visibleSearchProcessElapsedMs
+        )}`;
       },
       hasAnimatedProcessSteps() {
         return this.visibleLoadingProcessSteps.some((step) => String(step?.status || "").trim() === "current");
@@ -1044,6 +1078,7 @@
           this.expandedSourceQuerySteps = {};
           if (!this.compactLoadingUi) {
             this.persistedLoadingProcessSteps = [];
+            this.persistedSearchProcessElapsedMs = 0;
             this.isProcessBoxExpanded = true;
           }
           this.isAbstractLoaded = false;
@@ -1058,6 +1093,7 @@
           // toggle disappears together with the rest of the search UI.
           if (this.results === undefined || this.results === null) {
             this.persistedLoadingProcessSteps = [];
+            this.persistedSearchProcessElapsedMs = 0;
             this.setProcessBoxExpanded(false, { restoreFocusIfInside: true });
           } else {
             this.persistedLoadingProcessSteps = this.normalizePersistedLoadingProcessSteps(
@@ -1081,6 +1117,12 @@
         },
         immediate: true,
       },
+      searchProcessElapsedMs(newVal) {
+        const elapsed = Number(newVal);
+        if (Number.isFinite(elapsed) && elapsed > 0) {
+          this.persistedSearchProcessElapsedMs = elapsed;
+        }
+      },
       sourceQueryDetails() {
         this.processDetailFormatCache = {};
       },
@@ -1090,6 +1132,7 @@
       results(newVal) {
         if (!this.loading && !Array.isArray(newVal)) {
           this.persistedLoadingProcessSteps = [];
+          this.persistedSearchProcessElapsedMs = 0;
           this.setProcessBoxExpanded(false, { restoreFocusIfInside: true });
         }
         if (!this.loading) {
@@ -1246,17 +1289,36 @@
       cloneLoadingProcessSteps(steps = []) {
         return (Array.isArray(steps) ? steps : [])
           .filter((step) => step && step.id)
-          .map((step) => ({
-            id: String(step.id || "").trim(),
-            label: String(step.label || "").trim(),
-            status: String(step.status || "pending").trim() || "pending",
-          }));
+          .map((step) => {
+            const startedAtMs = Number(step.startedAtMs);
+            const endedAtMs = Number(step.endedAtMs);
+            const elapsedMs = Number(step.elapsedMs);
+            return {
+              id: String(step.id || "").trim(),
+              label: String(step.label || "").trim(),
+              status: String(step.status || "pending").trim() || "pending",
+              ...(Number.isFinite(startedAtMs) && startedAtMs > 0 ? { startedAtMs } : {}),
+              ...(Number.isFinite(endedAtMs) && endedAtMs > 0 ? { endedAtMs } : {}),
+              ...(Number.isFinite(elapsedMs) && elapsedMs >= 0 ? { elapsedMs } : {}),
+            };
+          });
       },
       normalizePersistedLoadingProcessSteps(steps = []) {
-        return this.cloneLoadingProcessSteps(steps).map((step) => ({
-          ...step,
-          status: step.status === "current" ? "completed" : step.status,
-        }));
+        const now = Date.now();
+        return this.cloneLoadingProcessSteps(steps).map((step) => {
+          const normalizedStep = {
+            ...step,
+            status: step.status === "current" ? "completed" : step.status,
+          };
+          if (
+            Number.isFinite(Number(normalizedStep.startedAtMs)) &&
+            Number(normalizedStep.startedAtMs) > 0 &&
+            !Number.isFinite(Number(normalizedStep.elapsedMs))
+          ) {
+            normalizedStep.elapsedMs = Math.max(0, now - Number(normalizedStep.startedAtMs));
+          }
+          return normalizedStep;
+        });
       },
       getProcessGroupStatus(children = []) {
         const normalizedChildren = Array.isArray(children) ? children : [];
@@ -1428,6 +1490,68 @@
           `step:${detail?.stepId || ""}:${detail?.label || ""}`,
           payload
         );
+      },
+      getProcessStepElapsedMs(step = {}) {
+        const elapsed = Number(step?.elapsedMs);
+        if (Number.isFinite(elapsed) && elapsed >= 0) {
+          return elapsed;
+        }
+        const startedAt = Number(step?.startedAtMs);
+        if (!Number.isFinite(startedAt) || startedAt <= 0) {
+          return null;
+        }
+        const endedAt = Number(step?.endedAtMs);
+        const end = Number.isFinite(endedAt) && endedAt > 0 ? endedAt : Date.now();
+        return Math.max(0, end - startedAt);
+      },
+      shouldShowProcessStepDuration(step = {}) {
+        const elapsed = this.getProcessStepElapsedMs(step);
+        return elapsed !== null && Number.isFinite(elapsed);
+      },
+      getDisplayProcessStepElapsedMs(step = {}) {
+        const elapsed = this.getProcessStepElapsedMs(step);
+        if (elapsed === null || !Number.isFinite(elapsed)) {
+          return 0;
+        }
+        return Math.max(100, elapsed);
+      },
+      formatDurationSeconds(milliseconds = 0) {
+        const seconds = Math.max(0, Number(milliseconds || 0) / 1000);
+        return seconds.toLocaleString(this.language === "dk" ? "da-DK" : "en-US", {
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 1,
+        });
+      },
+      formatProcessStepDuration(step = {}) {
+        return this.formatDurationSeconds(this.getDisplayProcessStepElapsedMs(step));
+      },
+      getProcessStepDurationAriaLabel(step = {}) {
+        const label = this.getProcessStepLabel(step);
+        const duration = this.formatDurationSeconds(this.getDisplayProcessStepElapsedMs(step));
+        const template = this.getString("searchProcessStepDurationAriaLabel");
+        return template
+          .replace("{step}", label)
+          .replace("{duration}", duration);
+      },
+      formatProcessDurationAsWords(milliseconds = 0) {
+        const totalSeconds = Math.max(0, Number(milliseconds || 0) / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds - minutes * 60;
+        const secondText = this.formatDurationSeconds(seconds * 1000);
+        if (minutes <= 0) {
+          const secondKey =
+            Math.abs(seconds - 1) < 0.05
+              ? "searchProcessSecondSingular"
+              : "searchProcessSecondPlural";
+          return `${secondText} ${this.getString(secondKey)}`;
+        }
+        const minuteKey =
+          minutes === 1 ? "searchProcessMinuteSingular" : "searchProcessMinutePlural";
+        const secondKey =
+          Math.abs(seconds - 1) < 0.05
+            ? "searchProcessSecondSingular"
+            : "searchProcessSecondPlural";
+        return `${minutes} ${this.getString(minuteKey)} ${secondText} ${this.getString(secondKey)}`;
       },
       getProcessStepLabel(step) {
         return String(step?.label || "")

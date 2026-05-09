@@ -853,6 +853,22 @@ function qpmThrottleNlmRequests(int $maxPerSecond = 10): void
 }
 
 /**
+ * Detect requests served from local development hosts.
+ *
+ * @return bool
+ */
+function qpmIsLocalBackendRequest(): bool
+{
+    $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
+    return $host !== '' && (
+        strpos($host, 'localhost') !== false ||
+        strpos($host, '127.0.0.1') !== false ||
+        strpos($host, '[::1]') !== false ||
+        $host === '::1'
+    );
+}
+
+/**
  * HTTP request helper with cURL + stream fallback.
  *
  * @param string $url
@@ -882,7 +898,7 @@ function qpmHttpRequest(string $url, array $options = []): array
 
         $responseHeaders = [];
         $ch = curl_init($url);
-        curl_setopt_array($ch, [
+        $curlOptions = [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_TIMEOUT => $timeout,
@@ -896,7 +912,22 @@ function qpmHttpRequest(string $url, array $options = []): array
                 }
                 return strlen((string) $line);
             },
-        ]);
+        ];
+
+        if (defined('CURLSSLOPT_NATIVE_CA')) {
+            $curlOptions[CURLOPT_SSL_OPTIONS] = CURLSSLOPT_NATIVE_CA;
+        }
+
+        if (qpmIsLocalBackendRequest()) {
+            $curlOptions[CURLOPT_PROXY] = '';
+            $configuredCaFile = trim((string) (ini_get('curl.cainfo') ?: ini_get('openssl.cafile') ?: ''));
+            if ($configuredCaFile === '') {
+                $curlOptions[CURLOPT_SSL_VERIFYPEER] = false;
+                $curlOptions[CURLOPT_SSL_VERIFYHOST] = 0;
+            }
+        }
+
+        curl_setopt_array($ch, $curlOptions);
 
         $responseBody = curl_exec($ch);
         $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);

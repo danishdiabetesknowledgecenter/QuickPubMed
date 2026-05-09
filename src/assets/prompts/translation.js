@@ -82,18 +82,6 @@ export const semanticIntentResponseSchema = {
         },
       },
     },
-    hardFilterHints: {
-      type: "object",
-      additionalProperties: false,
-      required: ["publicationType", "studyDesign", "ageGroup", "language", "sourceFormat"],
-      properties: {
-        publicationType: { type: "array", items: { type: "string" } },
-        studyDesign: { type: "array", items: { type: "string" } },
-        ageGroup: { type: "array", items: { type: "string" } },
-        language: { type: "array", items: { type: "string" } },
-        sourceFormat: { type: "array", items: { type: "string" } },
-      },
-    },
     softFilterHints: {
       type: "array",
       items: { type: "string" },
@@ -154,7 +142,7 @@ export const semanticIntentResponseSchema = {
             filters: {
               type: "object",
               additionalProperties: false,
-              required: [],
+              required: ["publicationTypes", "publicationDateOrYear", "year"],
               properties: {
                 publicationTypes: { type: "array", items: { type: "string" } },
                 publicationDateOrYear: { type: "string" },

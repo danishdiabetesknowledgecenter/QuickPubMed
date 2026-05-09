@@ -82,15 +82,40 @@ function qpmFetchExtractedTextFromAzure($cacheType, $sourceUrl, $azureUrl, $sour
         return $extractedText;
     }
 
+    $isLocalRequest = static function(): bool {
+        $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
+        return $host !== '' && (
+            strpos($host, 'localhost') !== false ||
+            strpos($host, '127.0.0.1') !== false ||
+            strpos($host, '[::1]') !== false ||
+            $host === '::1'
+        );
+    };
+
     $ch = curl_init($azureUrl);
-    curl_setopt_array($ch, [
+    $curlOptions = [
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => json_encode([$sourceFieldName => $sourceUrl]),
         CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT => 120,
         CURLOPT_FOLLOWLOCATION => true
-    ]);
+    ];
+
+    if (defined('CURLSSLOPT_NATIVE_CA')) {
+        $curlOptions[CURLOPT_SSL_OPTIONS] = CURLSSLOPT_NATIVE_CA;
+    }
+
+    if ($isLocalRequest()) {
+        $curlOptions[CURLOPT_PROXY] = '';
+        $configuredCaFile = trim((string) (ini_get('curl.cainfo') ?: ini_get('openssl.cafile') ?: ''));
+        if ($configuredCaFile === '') {
+            $curlOptions[CURLOPT_SSL_VERIFYPEER] = false;
+            $curlOptions[CURLOPT_SSL_VERIFYHOST] = 0;
+        }
+    }
+
+    curl_setopt_array($ch, $curlOptions);
 
     $azureResponse = curl_exec($ch);
     $azureHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -193,79 +218,181 @@ function qpmEmitStreamMetadata($metadata) {
     @flush();
 }
 
+function qpmArticleStreamCompleteMarker() {
+    return '[[QPM_ARTICLE_STREAM_COMPLETE]]';
+}
+
+function qpmArticleStreamHeartbeatMarker() {
+    return '[[QPM_ARTICLE_STREAM_HEARTBEAT]]';
+}
+
 function qpmStreamOpenAiPlainText($openaiRequest) {
     $domain = qpmResolveDomain();
     $openAiApiKey = qpmGetOpenAIApiKey($domain);
+    $openAiOrgId = qpmGetOpenAIOrgId($domain);
     $openAiApiUrl = qpmGetOpenAIApiUrl($domain);
+    $isLocalRequest = static function(): bool {
+        $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
+        return $host !== '' && (
+            strpos($host, 'localhost') !== false ||
+            strpos($host, '127.0.0.1') !== false ||
+            strpos($host, '[::1]') !== false ||
+            $host === '::1'
+        );
+    };
 
     $headers = [
         'Content-Type: application/json',
         'Authorization: Bearer ' . $openAiApiKey
     ];
 
-    $GLOBALS['lastDataTime'] = time();
-    $GLOBALS['heartbeatInterval'] = 10;
+    if ($openAiOrgId) {
+        $headers[] = 'OpenAI-Organization: ' . $openAiOrgId;
+    }
+
+    $sseBuffer = '';
+    $hasStreamedText = false;
+    $streamFinishedCleanly = false;
+    $streamHadTerminalError = false;
+    $completeMarker = qpmArticleStreamCompleteMarker();
+    $heartbeatMarker = qpmArticleStreamHeartbeatMarker();
+
+    $GLOBALS['qpmArticleLastDataTime'] = time();
+    $GLOBALS['qpmArticleHeartbeatInterval'] = 10;
+
+    $processSseLine = static function ($line) use (&$hasStreamedText, &$streamFinishedCleanly, &$streamHadTerminalError): void {
+        $line = trim((string) $line);
+        if ($line === '' || strpos($line, 'data: ') !== 0) {
+            return;
+        }
+
+        $jsonData = substr($line, 6);
+        if ($jsonData === '[DONE]') {
+            $streamFinishedCleanly = true;
+            return;
+        }
+
+        $parsed = json_decode($jsonData, true);
+        if (!is_array($parsed)) {
+            return;
+        }
+
+        $eventType = isset($parsed['type']) ? (string) $parsed['type'] : '';
+        if ($eventType === 'response.completed') {
+            $streamFinishedCleanly = true;
+            return;
+        }
+        if (
+            $eventType === 'response.incomplete' ||
+            $eventType === 'response.failed' ||
+            $eventType === 'error' ||
+            isset($parsed['error'])
+        ) {
+            $streamHadTerminalError = true;
+            return;
+        }
+
+        $content = '';
+        if ($eventType === 'response.output_text.delta') {
+            $content = $parsed['delta'] ?? '';
+        } elseif (isset($parsed['choices'][0]['delta']['content'])) {
+            $content = $parsed['choices'][0]['delta']['content'];
+        }
+
+        if (is_string($content) && $content !== '') {
+            $GLOBALS['qpmArticleLastDataTime'] = time();
+            $hasStreamedText = true;
+            echo $content;
+            @ob_flush();
+            @flush();
+        }
+    };
 
     $ch = curl_init($openAiApiUrl);
-    curl_setopt_array($ch, [
+    if ($ch === false) {
+        http_response_code(502);
+        echo json_encode(['error' => 'Could not initialize OpenAI request']);
+        return;
+    }
+
+    $curlOptions = [
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => json_encode($openaiRequest),
         CURLOPT_HTTPHEADER => $headers,
         CURLOPT_RETURNTRANSFER => false,
-        CURLOPT_WRITEFUNCTION => function($ch, $data) {
-            $GLOBALS['lastDataTime'] = time();
-            $lines = explode("\n", $data);
+        CURLOPT_WRITEFUNCTION => function($ch, $data) use (&$sseBuffer, $processSseLine) {
+            $GLOBALS['qpmArticleLastDataTime'] = time();
+            $sseBuffer .= $data;
+            $lines = preg_split("/\r\n|\n|\r/", $sseBuffer);
+            if ($lines === false) {
+                return strlen($data);
+            }
+
+            $endsWithLineBreak = preg_match("/\r\n|\n|\r$/", $sseBuffer) === 1;
+            if ($endsWithLineBreak) {
+                $sseBuffer = '';
+            } else {
+                $sseBuffer = (string) array_pop($lines);
+            }
+
             foreach ($lines as $line) {
-                $line = trim($line);
-                if (empty($line)) {
-                    continue;
-                }
-                if (strpos($line, 'data: ') === 0) {
-                    $jsonData = substr($line, 6);
-                    if ($jsonData === '[DONE]') {
-                        break;
-                    }
-                    $parsed = json_decode($jsonData, true);
-                    if ($parsed) {
-                        if (isset($parsed['type']) && $parsed['type'] === 'response.output_text.delta') {
-                            $content = $parsed['delta'] ?? '';
-                            echo $content;
-                            @ob_flush();
-                            @flush();
-                        } elseif (isset($parsed['choices'][0]['delta']['content'])) {
-                            $content = $parsed['choices'][0]['delta']['content'];
-                            echo $content;
-                            @ob_flush();
-                            @flush();
-                        }
-                    }
-                }
+                $processSseLine($line);
             }
             return strlen($data);
         },
         CURLOPT_NOPROGRESS => false,
-        CURLOPT_PROGRESSFUNCTION => function($ch, $downloadTotal, $downloadNow, $uploadTotal, $uploadNow) {
-            $timeSinceLastData = time() - $GLOBALS['lastDataTime'];
-            if ($timeSinceLastData >= $GLOBALS['heartbeatInterval']) {
-                echo ' ';
+        CURLOPT_PROGRESSFUNCTION => function($ch, $downloadTotal, $downloadNow, $uploadTotal, $uploadNow) use ($heartbeatMarker) {
+            $timeSinceLastData = time() - (int) ($GLOBALS['qpmArticleLastDataTime'] ?? time());
+            $heartbeatInterval = (int) ($GLOBALS['qpmArticleHeartbeatInterval'] ?? 10);
+            if ($timeSinceLastData >= $heartbeatInterval) {
+                echo "\n" . $heartbeatMarker . "\n";
                 @ob_flush();
                 @flush();
-                $GLOBALS['lastDataTime'] = time();
+                $GLOBALS['qpmArticleLastDataTime'] = time();
             }
             return 0;
         },
-        CURLOPT_TIMEOUT => 300,
+        CURLOPT_TIMEOUT => 0,
         CURLOPT_CONNECTTIMEOUT => 30,
         CURLOPT_LOW_SPEED_LIMIT => 1,
-        CURLOPT_LOW_SPEED_TIME => 120
-    ]);
+        CURLOPT_LOW_SPEED_TIME => 240
+    ];
+
+    if (defined('CURLSSLOPT_NATIVE_CA')) {
+        $curlOptions[CURLOPT_SSL_OPTIONS] = CURLSSLOPT_NATIVE_CA;
+    }
+
+    if ($isLocalRequest()) {
+        $curlOptions[CURLOPT_PROXY] = '';
+        $configuredCaFile = trim((string) (ini_get('curl.cainfo') ?: ini_get('openssl.cafile') ?: ''));
+        if ($configuredCaFile === '') {
+            $curlOptions[CURLOPT_SSL_VERIFYPEER] = false;
+            $curlOptions[CURLOPT_SSL_VERIFYHOST] = 0;
+        }
+    }
+
+    curl_setopt_array($ch, $curlOptions);
 
     curl_exec($ch);
     $error = curl_error($ch);
     $errno = curl_errno($ch);
+
+    if (trim($sseBuffer) !== '') {
+        $processSseLine($sseBuffer);
+    }
+
     curl_close($ch);
 
     if ($errno) {
         error_log("OpenAI curl error ($errno): $error");
+        return;
+    }
+
+    if ($hasStreamedText && $streamFinishedCleanly && !$streamHadTerminalError) {
+        echo "\n" . $completeMarker;
+        @ob_flush();
+        @flush();
+    } elseif ($streamHadTerminalError) {
+        error_log("OpenAI article stream ended with terminal error/incomplete event.");
     }
 }

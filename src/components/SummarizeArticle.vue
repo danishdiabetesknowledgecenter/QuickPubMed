@@ -940,6 +940,14 @@
         let isFirstChunk = true;
         let metadataLogged = false;
         const STREAM_SEPARATOR = "---STREAM_START---";
+        const STREAM_COMPLETE_MARKER = "[[QPM_ARTICLE_STREAM_COMPLETE]]";
+        const STREAM_HEARTBEAT_MARKER = "[[QPM_ARTICLE_STREAM_HEARTBEAT]]";
+        const stripStreamMarkers = (value = "") =>
+          String(value || "")
+            .replaceAll(STREAM_COMPLETE_MARKER, "")
+            .replaceAll(STREAM_HEARTBEAT_MARKER, "")
+            .trim();
+        let didComplete = false;
         
         // Reset streaming items
         this.streamingItems = [];
@@ -960,6 +968,7 @@
           }
           
           fullText += chunk;
+          didComplete = didComplete || fullText.includes(STREAM_COMPLETE_MARKER);
           
           // Check for metadata and stream separator
           if (!metadataLogged && fullText.includes(STREAM_SEPARATOR)) {
@@ -984,23 +993,32 @@
             
             metadataLogged = true;
             // Remove metadata and separator from fullText
-            fullText = fullText.substring(separatorIndex + STREAM_SEPARATOR.length).trim();
+            fullText = stripStreamMarkers(
+              fullText.substring(separatorIndex + STREAM_SEPARATOR.length)
+            );
           }
           
           // Only process streaming content after metadata has been handled
           if (metadataLogged) {
-            this.streamingText = fullText.trim();
+            const visibleText = stripStreamMarkers(fullText);
+            this.streamingText = visibleText;
             
             // Try to parse complete items from the stream
-            this.parseStreamingItems(fullText);
+            this.parseStreamingItems(visibleText);
           }
           
           await this.$nextTick();
         }
 
+        if (!didComplete) {
+          throw new Error("Incomplete article summary response");
+        }
+
+        fullText = stripStreamMarkers(fullText);
+
         // Don't clear streaming items here - they're needed as fallback if JSON.parse fails
         // They will be cleared after copying in getSummarize*Article functions
-        return fullText.trim();
+        return fullText;
       },
       
       /**

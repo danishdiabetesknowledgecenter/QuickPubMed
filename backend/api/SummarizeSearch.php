@@ -131,16 +131,37 @@ if ($debug) {
     exit;
 }
 
-// Streaming response
-header('Content-Type: text/event-stream');
-header('Cache-Control: no-cache');
+// Streaming response. The frontend reads this as plain text chunks.
+header('Content-Type: text/plain; charset=utf-8');
+header('Cache-Control: no-cache, no-store, must-revalidate');
+header('Pragma: no-cache');
 header('X-Accel-Buffering: no');
+header('X-Content-Type-Options: nosniff');
 
-if (ob_get_level()) ob_end_clean();
+@ini_set('output_buffering', 'Off');
+@ini_set('zlib.output_compression', 0);
+while (ob_get_level()) {
+    ob_end_clean();
+}
+ob_implicit_flush(true);
+if (function_exists('apache_setenv')) {
+    @apache_setenv('no-gzip', '1');
+}
+set_time_limit(0);
 
 $domain = qpmResolveDomain();
 $openAiApiKey = qpmGetOpenAIApiKey($domain);
+$openAiOrgId = qpmGetOpenAIOrgId($domain);
 $openAiApiUrl = qpmGetOpenAIApiUrl($domain);
+$isLocalRequest = static function(): bool {
+    $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
+    return $host !== '' && (
+        strpos($host, 'localhost') !== false ||
+        strpos($host, '127.0.0.1') !== false ||
+        strpos($host, '[::1]') !== false ||
+        $host === '::1'
+    );
+};
 
 // HTTP headers for OpenAI API
 $headers = [
@@ -148,50 +169,254 @@ $headers = [
     'Authorization: Bearer ' . $openAiApiKey
 ];
 
-$ch = curl_init($openAiApiUrl);
+if ($openAiOrgId) {
+    $headers[] = 'OpenAI-Organization: ' . $openAiOrgId;
+}
 
-curl_setopt_array($ch, [
+$sseBuffer = '';
+$hasStreamedText = false;
+$streamCompleteMarker = '[[QPM_STREAM_COMPLETE]]';
+$streamHeartbeatMarker = '[[QPM_STREAM_HEARTBEAT]]';
+$GLOBALS['qpmSummaryLastDataTime'] = time();
+$GLOBALS['qpmSummaryHeartbeatInterval'] = 10;
+
+/**
+ * @param array<string,mixed> $responsePayload
+ * @return string
+ */
+$extractResponseText = static function(array $responsePayload): string {
+    if (isset($responsePayload['output_text']) && is_string($responsePayload['output_text'])) {
+        return trim($responsePayload['output_text']);
+    }
+
+    $parts = [];
+    $outputs = isset($responsePayload['output']) && is_array($responsePayload['output'])
+        ? $responsePayload['output']
+        : [];
+    foreach ($outputs as $output) {
+        if (!is_array($output)) {
+            continue;
+        }
+        $contentItems = isset($output['content']) && is_array($output['content'])
+            ? $output['content']
+            : [];
+        foreach ($contentItems as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $text = $item['text'] ?? ($item['content'] ?? '');
+            if (is_string($text) && trim($text) !== '') {
+                $parts[] = trim($text);
+            }
+        }
+    }
+
+    return trim(implode("\n", $parts));
+};
+
+$respondOpenAiError = static function(string $message, int $status = 502, array $details = []): void {
+    http_response_code($status);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(array_merge(['error' => $message], $details), JSON_UNESCAPED_UNICODE);
+    exit;
+};
+
+$processSseLine = function($line) use (&$hasStreamedText, $extractResponseText) {
+    $line = trim((string) $line);
+    if ($line === '' || strpos($line, 'data: ') !== 0) {
+        return;
+    }
+
+    $jsonData = substr($line, 6);
+    if ($jsonData === '[DONE]') {
+        return;
+    }
+
+    $parsed = json_decode($jsonData, true);
+    if (!is_array($parsed)) {
+        return;
+    }
+
+    if (isset($parsed['type']) && $parsed['type'] === 'response.output_text.delta') {
+        $content = $parsed['delta'] ?? '';
+        if (is_string($content) && $content !== '') {
+            $GLOBALS['qpmSummaryLastDataTime'] = time();
+            $hasStreamedText = true;
+            echo $content;
+            @ob_flush();
+            @flush();
+        }
+        return;
+    }
+
+    if (isset($parsed['choices'][0]['delta']['content'])) {
+        $content = $parsed['choices'][0]['delta']['content'];
+        if (is_string($content) && $content !== '') {
+            $GLOBALS['qpmSummaryLastDataTime'] = time();
+            $hasStreamedText = true;
+            echo $content;
+            @ob_flush();
+            @flush();
+        }
+        return;
+    }
+
+    if (!$hasStreamedText) {
+        $content = $extractResponseText($parsed);
+        if ($content !== '') {
+            $GLOBALS['qpmSummaryLastDataTime'] = time();
+            $hasStreamedText = true;
+            echo $content;
+            @ob_flush();
+            @flush();
+        }
+    }
+};
+
+if (!function_exists('curl_init')) {
+    $fallbackRequest = $openaiRequest;
+    $fallbackRequest['stream'] = false;
+
+    $fallbackResponse = qpmHttpRequest($openAiApiUrl, [
+        'method' => 'POST',
+        'headers' => $headers,
+        'body' => json_encode($fallbackRequest),
+        'timeout' => 120,
+    ]);
+
+    $status = (int) ($fallbackResponse['status'] ?? 0);
+    if (!$fallbackResponse['ok'] || $status < 200 || $status >= 300) {
+        $respondOpenAiError('OpenAI request failed', 502, [
+            'status' => $status,
+            'details' => $fallbackResponse['error'] ?: substr((string) $fallbackResponse['body'], 0, 500),
+        ]);
+    }
+
+    $decodedResponse = json_decode((string) $fallbackResponse['body'], true);
+    if (!is_array($decodedResponse)) {
+        $respondOpenAiError('Invalid OpenAI response', 502, [
+            'status' => $status,
+            'raw' => substr((string) $fallbackResponse['body'], 0, 500),
+        ]);
+    }
+
+    $responseText = $extractResponseText($decodedResponse);
+    if ($responseText === '') {
+        $respondOpenAiError('OpenAI response did not contain text output', 502, [
+            'status' => $status,
+        ]);
+    }
+
+    echo $responseText . "\n" . $streamCompleteMarker;
+    @ob_flush();
+    @flush();
+    exit;
+}
+
+$ch = curl_init($openAiApiUrl);
+if ($ch === false) {
+    $respondOpenAiError('Could not initialize OpenAI request');
+}
+
+$curlOptions = [
     CURLOPT_POST => true,
     CURLOPT_POSTFIELDS => json_encode($openaiRequest),
     CURLOPT_HTTPHEADER => $headers,
     CURLOPT_RETURNTRANSFER => false,
-    CURLOPT_WRITEFUNCTION => function($ch, $data) {
-        $lines = explode("\n", $data);
+    CURLOPT_WRITEFUNCTION => function($ch, $data) use (&$sseBuffer, $processSseLine) {
+        $GLOBALS['qpmSummaryLastDataTime'] = time();
+        $sseBuffer .= $data;
+        $lines = preg_split("/\r\n|\n|\r/", $sseBuffer);
+        if ($lines === false) {
+            return strlen($data);
+        }
+
+        $endsWithLineBreak = preg_match("/\r\n|\n|\r$/", $sseBuffer) === 1;
+        if ($endsWithLineBreak) {
+            $sseBuffer = '';
+        } else {
+            $sseBuffer = (string) array_pop($lines);
+        }
+
         foreach ($lines as $line) {
-            $line = trim($line);
-            if (empty($line)) continue;
-            
-            if (strpos($line, 'data: ') === 0) {
-                $jsonData = substr($line, 6);
-                
-                if ($jsonData === '[DONE]') {
-                    break;
-                }
-                
-                $parsed = json_decode($jsonData, true);
-                
-                // Responses API streaming format
-                // See: https://platform.openai.com/docs/api-reference/responses/streaming
-                if ($parsed) {
-                    // Check for text delta in Responses API format
-                    if (isset($parsed['type']) && $parsed['type'] === 'response.output_text.delta') {
-                        $content = $parsed['delta'] ?? '';
-                        echo $content;
-                        flush();
-                    }
-                    // Fallback to Chat Completions format (for compatibility)
-                    elseif (isset($parsed['choices'][0]['delta']['content'])) {
-                        $content = $parsed['choices'][0]['delta']['content'];
-                        echo $content;
-                        flush();
-                    }
-                }
-            }
+            $processSseLine($line);
         }
         return strlen($data);
     },
-    CURLOPT_TIMEOUT => 300
-]);
+    CURLOPT_NOPROGRESS => false,
+    CURLOPT_PROGRESSFUNCTION => function($ch, $downloadTotal, $downloadNow, $uploadTotal, $uploadNow) use ($streamHeartbeatMarker) {
+        $timeSinceLastData = time() - (int) ($GLOBALS['qpmSummaryLastDataTime'] ?? time());
+        $heartbeatInterval = (int) ($GLOBALS['qpmSummaryHeartbeatInterval'] ?? 10);
+        if ($timeSinceLastData >= $heartbeatInterval) {
+            echo "\n" . $streamHeartbeatMarker . "\n";
+            @ob_flush();
+            @flush();
+            $GLOBALS['qpmSummaryLastDataTime'] = time();
+        }
+        return 0;
+    },
+    CURLOPT_TIMEOUT => 0,
+    CURLOPT_CONNECTTIMEOUT => 30,
+    CURLOPT_LOW_SPEED_LIMIT => 1,
+    CURLOPT_LOW_SPEED_TIME => 240
+];
 
-curl_exec($ch);
+if (defined('CURLSSLOPT_NATIVE_CA')) {
+    $curlOptions[CURLOPT_SSL_OPTIONS] = CURLSSLOPT_NATIVE_CA;
+}
+
+if ($isLocalRequest()) {
+    $curlOptions[CURLOPT_PROXY] = '';
+    $configuredCaFile = trim((string) (ini_get('curl.cainfo') ?: ini_get('openssl.cafile') ?: ''));
+    if ($configuredCaFile === '') {
+        $curlOptions[CURLOPT_SSL_VERIFYPEER] = false;
+        $curlOptions[CURLOPT_SSL_VERIFYHOST] = 0;
+    }
+}
+
+curl_setopt_array($ch, $curlOptions);
+
+$curlResult = curl_exec($ch);
+$curlError = curl_errno($ch) ? curl_error($ch) : '';
+$curlStatus = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+if (trim($sseBuffer) !== '') {
+    $processSseLine($sseBuffer);
+}
+
+if (($curlResult === false || $curlError !== '') && !$hasStreamedText) {
+    curl_close($ch);
+    $respondOpenAiError('OpenAI request failed', 502, [
+        'status' => $curlStatus,
+        'details' => $curlError !== '' ? $curlError : 'OpenAI request failed',
+    ]);
+}
+
+if ($curlError !== '') {
+    error_log('OpenAI summarize stream curl error: ' . $curlError);
+    curl_close($ch);
+    exit;
+}
+
+if ($curlStatus > 0 && ($curlStatus < 200 || $curlStatus >= 300) && !$hasStreamedText) {
+    curl_close($ch);
+    $respondOpenAiError('OpenAI request failed', 502, [
+        'status' => $curlStatus,
+        'details' => trim($sseBuffer) !== ''
+            ? substr(trim($sseBuffer), 0, 500)
+            : 'OpenAI returned a non-success status',
+    ]);
+}
+
+if (!$hasStreamedText) {
+    curl_close($ch);
+    $respondOpenAiError('OpenAI response did not contain text output', 502, [
+        'status' => $curlStatus,
+    ]);
+}
+
+echo "\n" . $streamCompleteMarker;
+@ob_flush();
+@flush();
+
 curl_close($ch);

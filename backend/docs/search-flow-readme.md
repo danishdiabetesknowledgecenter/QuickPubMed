@@ -10,7 +10,9 @@ Dokumentet er skrevet ud fra den nuværende implementering i:
 - `backend/api/OpenAlexSearch.php`
 - `backend/api/SemanticScholarSearch.php`
 - `backend/api/ElicitSearch.php`
+- `backend/api/TranslateTitle.php`
 - `backend/api/SemanticFinalRerank.php`
+- `backend/app/helpers.php`
 
 ## Formål
 
@@ -36,6 +38,7 @@ Når debug er slået til, vises en hierarkisk log i browserkonsollen med `consol
 - `02 PubMed query build`
 - `03 Semantic intent`
 - `04 Source retrieval`
+- `04b Enrichment`
 - `05 Merge and rerank`
 - `06 Filter and validation`
 - `07 Hydration`
@@ -179,9 +182,14 @@ Hvis mindst en semantisk kilde er valgt:
 - selve beregningen udskydes til lige før søgning
 - tagget markeres med `semanticFlowType: "deferred"`
 
-Ved søgning kalder `SearchForm.prepareSemanticSearchStateBeforeSearch()` alle relevante dropdowns, som derefter kalder `preparePendingSemanticTags()`.
+Ved søgning vælger `SearchForm.prepareSemanticSearchStateBeforeSearch()` mellem to grene:
 
-For hvert ventende tag sker dette:
+- globalt flow, når `searchWithAI === true` og formularen kan danne et samlet globalt intent-input
+- tag-niveau-flow, når global-flowet ikke bruges
+
+I global-flowet kaldes `preparePendingSemanticTags()` ikke nødvendigvis pr. tag. I stedet markeres ventende deferred tags som løst af den globale tilstand, og der bygges ét samlet state med `buildResolvedSemanticTagState(intentInput, ...)`.
+
+Tag-niveau-flowet gælder stadig som fallback. For hvert ventende tag sker dette:
 
 1. Hvis AI og PubMed er aktive, genereres en PubMed-streng for tagget.
 2. Hvis AI og semantiske kilder er aktive, genereres en semantisk intention og en `semanticSourceQueryPlan`.
@@ -197,10 +205,12 @@ Ud over tag-niveau bygger `SearchForm` også en global semantisk intention for h
 Det sker i `prepareSemanticSearchStateBeforeSearch()`:
 
 - formularen bygger et samlet intentionstekst-grundlag via `semanticWordedIntentContext`
-- denne tekst bruges til et globalt semantisk state
+- hvis AI og globalt intent-input er aktive, markeres deferred tags som resolved af global state
+- teksten sendes til `buildResolvedSemanticTagState(intentInput, null, { allowPubmedQueryGeneration: true, preferGeneratedPubmedQuery: true, pubmedSourceQuery })`
+- dette bygger et globalt semantisk state
 - dette state kan bidrage med egne PMIDs, DOI'er og kilde-specifikke filtre
-- hvis `PubMed` er valgt, og der findes prædefinerede emner med egne PubMed-strenge, bygges også en `pubmedSourceQuery`
-- denne query kan bruges til tidlig PubMed-retrieval som reel kilde før merge og genrangering
+- hvis `PubMed` er valgt, kan state'et også få en `pubmedGeneratedQuery` og en `pubmedSourceQuery`
+- `pubmedSourceQuery` kan bruges til tidlig PubMed-retrieval som reel kilde før merge og genrangering
 
 Det globale semantiske lag er vigtigt, fordi den semantiske søgning ikke kun styres af enkelt-tags, men også af den samlede kombination af emner og afgrænsninger.
 
@@ -217,14 +227,39 @@ Den plan indeholder:
 Nuværende kilde-specifikke filtre:
 
 - Semantic Scholar: `publicationTypes`, `publicationDateOrYear`, `year`
-- OpenAlex: `language`, `sourceType`, `workType`, `publicationYear`
-- Elicit: `typeTags`, `includeKeywords`, `excludeKeywords`
+- OpenAlex i LLM-schemaet: `language`, `sourceType`, `workType`
+- OpenAlex i den interne resolved plan: `language`, `sourceType`, `workType`, `publicationYear`
+- Elicit i LLM-schemaet: `typeTags`, `includeKeywords`, `excludeKeywords`
+- Elicit i den interne resolved plan: `typeTags`, `includeKeywords`, `excludeKeywords`, `minYear`, `maxYear`, `minEpochS`, `maxEpochS`, `maxQuartile`, `hasPdf`, `pubmedOnly`, `retracted`
 
 Disse filtre er tidlige retrieval-filtre. De bygges nu fra den kanoniske filterkontekst i formularen, hvor `limits.json` er autoritativ for hard filters og eksplicitte `sourceFilters`.
 
-LLM må stadig bidrage med querytekst og bløde hints, men ikke længere udvide de kanoniske hard filters.
+LLM må stadig bidrage med querytekst og bløde hints, men ikke længere udvide de kanoniske hard filters. `publicationYear` for OpenAlex tilføjes derfor først i den interne resolved plan fra canonical payload/hard filters, ikke fra LLM-outputtet. For Elicit defaultes `retracted` internt til `exclude_retracted`.
 
 Retrieval-filtrene erstatter ikke den senere validering mod PubMed og de interne metadataregler.
+
+## AI-proxy og structured output
+
+`TranslateTitle.php` er en central del af søgeflowet, ikke kun en titeloversætter. Det samme endpoint bruges til:
+
+- PubMed-query-translation
+- semantisk intent-generation
+- MeSH-optimering
+
+Det semantiske intent-flow bruger `semanticIntentResponseSchema` i `src/assets/prompts/translation.js` som strict structured output. Schemaet kræver præcis de topfelter, prompten forventer: `semanticIntent`, `softFilterHints`, `sourceSpecificHints`, `sourceQueryPlan` og `meta`.
+
+Frontend har stadig en robust fallback: hvis semantic intent-responsen ikke kan parses som JSON, falder flowet tilbage til simpel Semantic Scholar-translation. Det korrekte runtime-flow er dog, at `TranslateTitle.php` returnerer valid JSON efter schemaet, så `sourceQueryPlan.coreQuery`, source-specifikke queries og metadata kan bruges direkte.
+
+## Lokal backend HTTP-håndtering
+
+`qpmHttpRequest()` i `backend/app/helpers.php` er fælles HTTP-lag for eksterne API-kald fra backend.
+
+I lokal udvikling håndteres HTTP lidt anderledes end i produktion:
+
+- ved localhost ryddes arvede shell-proxyindstillinger, så lokale proxyfejl ikke påvirker OpenAI/OpenAlex-kald
+- PHP/cURL CA-problemer håndteres med native CA, konfigureret CA bundle eller lokal-dev fallback afhængigt af miljøet
+
+Det forklarer tidligere OpenAI/OpenAlex SSL- og proxyfejl i lokal opsætning. Det er infrastruktur omkring kaldet, ikke en del af selve produktets søgesemantik.
 
 ## Hvordan den første PubMed-streng bygges
 
@@ -239,9 +274,13 @@ Processen er:
 
 Det giver tre praktiske hovedforløb:
 
-- hvis `baseQuery` findes: den bruges som den første PubMed-query
+- hvis `baseQuery` findes: den bruges som den første `finalQuery` fra `getSearchString()`
 - hvis `baseQuery` mangler, men semantiske PMIDs findes: den første query er en ren PMID-liste
 - hvis der findes semantiske tags, men ingen PMIDs: `buildSemanticPmidClause()` returnerer en intern no-match-placeholder, så flowet ikke fejlagtigt falder tilbage til en bred almindelig tekstsøgning
+
+I hybridmode kan `baseQuery` stadig være brugerens rå fri tekst eller et deferred tag-display, selv om der findes en AI-genereret `pubmedGeneratedQuery` på global semantic state. Når der findes rerankede kandidater, er denne raw `finalQuery` primært fallback, debug- og control-state. De viste resultater kommer fra den hybride kandidatliste efter hard-filtervalidering.
+
+`pubmedGeneratedQuery` bruges derfor ikke nødvendigvis som `finalQuery`. Den bruges som PubMed Best Match-kilde før merge og som grundlag for PubMed-retrieval eller lexical rescue, når den gren er aktiv.
 
 Den senere valideringsquery bygges ikke her. Når rerankede PMIDs skal valideres mod hårde filtre, bygges `(<pmid-liste>) AND (<hard-filter-query>)` først i `resolveOrderedSearchPmids()`, og den streng eksponeres bagefter via `displaySearchString()`.
 
@@ -363,21 +402,27 @@ OpenAlex kan bruge disse retrieval-filtre:
 - `workType`
 - `publicationYear`
 
-Hvis OpenAlex rammer `OPENALEX_SEMANTIC_RESULT_CAP`, udløses en ekstra keyword-søgning, og de to resultatsæt flettes bagefter.
+OpenAlex bruger `search.semantic` som primær mode, medmindre `sourceType`-filtre er aktive. Når `sourceType` er aktivt, bruges `keyword` som primær mode, fordi den kombination er mere robust mod OpenAlex' semantiske endpoint.
 
-OpenAlex retry'er ikke længere ved enhver warning. Backend forsøger i stedet at udlede, om en konkret filterparameter ser ud til at være problemet, og returnerer i så fald et struktureret `retryHints`. Frontend laver højst ét nyt kald, hvor kun den ene fejlmistænkte parameter fjernes. Hvis `sourceType` ser ud til at give fejl, fjernes altså kun `sourceType`, mens `language`, `workType` og `publicationYear` bevares.
+Hvis OpenAlex rammer `OPENALEX_SEMANTIC_RESULT_CAP`, udløses en ekstra keyword-søgning, og de to resultatsæt flettes bagefter. Det samme keyword-supplement bruges, når semantisk retrieval fejler helt med 0 kandidater.
+
+OpenAlex retry'er ikke længere ved enhver warning. Backend forsøger i stedet at udlede, om konkrete filterparametre ser ud til at være problemet, og returnerer i så fald strukturerede `retryHints`. Frontend kan prøve flere hintede retry-felter sekventielt og accepterer det første retry-resultat uden warning eller error. Hvis `sourceType` ser ud til at give fejl, prøves altså en request uden `sourceType`, mens de øvrige filtre bevares.
+
+I lokal udvikling kan frontend også prøve browser-proxy fallback ved backend-warning. Ved kendte upstream-fejl fra OpenAlex' semantiske embedding, fx at query ikke kan embeddes, springes browser-proxy fallback over, og flowet går i stedet videre til keyword fallback.
 
 ### Retrieval fra Elicit
 
 Elicit bruges som en semantisk retrieval-kilde med naturligt sprog:
 
 - queryen er ofte mere spørgsmålslignende end queryen til de øvrige kilder
-- der kan sendes `typeTags`, `includeKeywords` og `excludeKeywords`
+- der kan sendes `typeTags`, `includeKeywords`, `excludeKeywords`, `minYear`, `maxYear`, `minEpochS`, `maxEpochS`, `maxQuartile`, `hasPdf`, `pubmedOnly` og `retracted`
+- `retracted` defaultes internt til `exclude_retracted`
 
 Elicit følger nu samme princip som OpenAlex ved retry:
 
 - backend kan returnere `retryHints`
-- frontend fjerner kun den filterparameter, som ser ud til at fejle
+- frontend kan prøve flere hintede retry-felter sekventielt
+- frontend accepterer det første retry-resultat uden warning eller error
 - hvis der ikke findes et præcist hint, sker der ingen automatisk filter-retry
 
 ### Hvordan kilder flettes
@@ -565,8 +610,8 @@ Validering handler om at sikre, at de endelige records stadig passer til brugere
 Det overordnede flow i `SearchForm.search()` er:
 
 1. Formularen nulstiller loading state.
-2. Hvis semantiske kilder er valgt, forberedes ventende semantiske tags.
-3. Eventuelt globalt semantisk state bygges.
+2. Hvis semantiske kilder er valgt, forberedes semantisk state før søgning.
+3. Ved AI + globalt intent-input bygges ét globalt semantic state; ellers forberedes ventende semantiske tags på tag-niveau.
 4. `getSearchString()` beregner den query, som PubMed-laget skal bruge.
 5. Hvis der findes genrangerede semantiske kandidater, bygges et hybridt resultatsæt.
 6. PMIDs valideres mod PubMed og matchende PMIDs markeres som trusted.
@@ -589,11 +634,11 @@ Brugeren gør følgende:
 ### Hvad systemet gør
 
 1. Den frie tekst oprettes som et ventende semantisk tag, fordi der er valgt semantiske kilder.
-2. Når brugeren klikker på søg, gør `prepareSemanticSearchStateBeforeSearch()` tagget klar.
+2. Når brugeren klikker på søg, bygger `prepareSemanticSearchStateBeforeSearch()` normalt ét globalt semantic state for hele formularen, fordi AI og globalt intent-input er aktive. Tag-niveau-flowet bruges kun som fallback.
 3. Fordi AI og PubMed er aktive, dannes der en PubMed-søgestreng, som efter MeSH-validering kan ende med termer som `"Artificial Intelligence"[mh]`, `"Machine Learning"[mh]` og relevante fritekstsynonymer.
 4. Fordi AI og semantiske kilder også er aktive, dannes der en semantisk intention og en `semanticSourceQueryPlan`.
-5. OpenAlex kaldes med sin semantiske query og sine filtre. Hvis OpenAlex rammer sit cap, suppleres med en keyword-søgning. Hvis en specifik filterparameter fejler, retry'es kun uden netop den parameter.
-6. Elicit kaldes med en naturlig sproglig forskningsforespørgsel og sine filtre. Også her fjernes kun den specifikke filterparameter, hvis et præcist retry-hint peger på den.
+5. OpenAlex kaldes med sin semantiske query og sine filtre, medmindre `sourceType`-filtre gør keyword-mode til primær mode. Hvis OpenAlex rammer sit cap eller semantisk retrieval fejler helt med 0 kandidater, suppleres med keyword-søgning. Hvis backend returnerer retry-hints, kan frontend prøve flere hintede filterfelter sekventielt og acceptere første rene svar.
+6. Elicit kaldes med en naturlig sproglig forskningsforespørgsel og sine resolved filtre. Også her kan frontend prøve flere hintede retry-felter sekventielt og acceptere første svar uden warning eller error.
 7. Kandidater fra kilderne normaliseres og flettes ved PMID eller DOI.
 8. Kandidaterne genrangeres med vægtet RRF, PMID-bonus, overlap-bonus og eventuel tie-breaker-score.
 9. Hvis den semantiske høst er for tynd, og der ikke allerede er kørt en almindelig PubMed-retrieval i samme gren, kan PubMed lexical rescue supplere med ekstra kandidater.
@@ -672,11 +717,13 @@ Ansvar:
 Ansvar:
 
 - `NlmSearch.php`, `NlmSummary.php`, `NlmFetch.php`: PubMed- og NLM-proxy
+- `TranslateTitle.php`: AI-proxy til PubMed-translation, semantic intent, structured output og MeSH-optimering
 - `SemanticScholarSearch.php`: Semantic Scholar-proxy
 - `OpenAlexSearch.php`: OpenAlex-proxy
 - `ElicitSearch.php`: Elicit-proxy
 - `OpenAlexWorkLookup.php`: hydrering af DOI-only-OpenAlex-records
 - `SemanticFinalRerank.php`: valgfri LLM-baseret slutgenrangering
+- `backend/app/helpers.php`: fælles backend helpers, herunder `qpmHttpRequest()` som HTTP-lag for eksterne API-kald
 
 ## Kort opsummering
 
