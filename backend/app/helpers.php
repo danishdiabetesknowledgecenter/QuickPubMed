@@ -16,9 +16,32 @@ function getAllowedOrigin($origin) {
 
     // Parse the origin to get the host.
     $parsed = parse_url($origin);
-    $host = $parsed['host'] ?? '';
+    $host = strtolower((string) ($parsed['host'] ?? ''));
+    if ($host === '') {
+        return null;
+    }
 
-    foreach (ALLOWED_DOMAINS as $pattern) {
+    $allowedPatterns = [];
+    if (defined('ALLOWED_DOMAINS') && is_array(ALLOWED_DOMAINS)) {
+        $allowedPatterns = ALLOWED_DOMAINS;
+    }
+
+    // First-party deployment hosts. Keep this narrow: these are the known
+    // VCD/NemPubMed frontend/backend domains that legitimately call each other.
+    $allowedPatterns = array_merge($allowedPatterns, [
+        'videncenterfordiabetes.dk',
+        '*.videncenterfordiabetes.dk',
+        'nempubmed.dk',
+        '*.nempubmed.dk',
+        'localhost',
+        '127.0.0.1',
+    ]);
+
+    foreach (array_unique(array_filter($allowedPatterns, 'is_string')) as $pattern) {
+        $pattern = strtolower(trim($pattern));
+        if ($pattern === '') {
+            continue;
+        }
         // Check for wildcard subdomain pattern.
         if (strpos($pattern, '*.') === 0) {
             $baseDomain = substr($pattern, 2); // Remove "*."

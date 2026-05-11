@@ -802,9 +802,14 @@ define('QPM_THEME_GLOBAL_OVERRIDES', [
 // Allowed domains for CORS
 // Supports wildcards: *.example.com matches sub.example.com and example.com
 define('ALLOWED_DOMAINS', [
+    '*.videncenterfordiabetes.dk',
+    'videncenterfordiabetes.dk',
+    '*.nempubmed.dk',
+    'nempubmed.dk',
     '*.example.com',
     'example.com',
     'localhost',
+    '127.0.0.1',
 ]);
 
 // ============ Editor Authentication (No Database) ============
