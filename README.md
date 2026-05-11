@@ -73,12 +73,12 @@ CMS mount containers should use `qpm-` prefixed selectors to avoid collisions:
 
 For local frontend development, you can use one of these API modes:
 
-- **Recommended (remote backend via Vite proxy)**  
-  Set `VITE_API_PROXY_URL="/backend"` in `.env`.  
-  Vite will proxy `/backend/*` requests to `https://qpm.videncenterfordiabetes.dk/dev/latest/*` (configured in `vite.config.js`), which avoids browser CORS issues during local development.
+- **Recommended (local backend via Vite proxy)**  
+  Run `start-qpm.bat` or start PHP manually as shown below, then set `VITE_API_PROXY_URL="/backend"` in `.env`.  
+  Vite proxies `/backend/*` to `VITE_BACKEND_PROXY_TARGET` (default `http://127.0.0.1:8080`). The Vite proxy is for local development only and is not a production security control.
 
 - **Local PHP backend**  
-  Set `VITE_API_PROXY_URL="http://localhost:8080/backend"` in `.env`.  
+  Set `VITE_API_PROXY_URL="http://127.0.0.1:8080/backend"` in `.env` if the browser should call PHP directly instead of through Vite.  
   This requires a local PHP runtime with `openssl` and `curl` enabled.
 
 #### Runtime content and domain-specific rules
@@ -141,13 +141,14 @@ The backend is part of this same repository under `backend/`.
 **Local PHP backend (optional for local API mode):**
 
 ```bash
-php -S localhost:8080 -t backend
+php -S 127.0.0.1:8080 -t . scripts/local-php-router.php
 ```
 
 Then use in `.env`:
 
 ```bash
-VITE_API_PROXY_URL="http://localhost:8080/backend"
+VITE_API_PROXY_URL="/backend"
+VITE_BACKEND_PROXY_TARGET="http://127.0.0.1:8080"
 ```
 
 ### Start developing

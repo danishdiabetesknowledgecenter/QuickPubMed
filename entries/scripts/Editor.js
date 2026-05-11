@@ -2,6 +2,7 @@ import "@/assets/styles/styles.css";
 import "@/assets/styles/editor.css";
 import { messages } from "@/assets/content/translations.js";
 import { applyThemeFromConfig } from "@/config/config";
+import { sanitizeHtml } from "@/utils/htmlSanitizer.js";
 
 applyThemeFromConfig();
 
@@ -949,8 +950,8 @@ function renderRevisionDiffRows(rows) {
 
   let html = `
     <div class="qpm-editor-revision-diff-head">
-      <div class="qpm-editor-revision-diff-col-head">${currentLabel}</div>
-      <div class="qpm-editor-revision-diff-col-head">${selectedLabel}</div>
+      <div class="qpm-editor-revision-diff-col-head">${escapeHtml(currentLabel)}</div>
+      <div class="qpm-editor-revision-diff-col-head">${escapeHtml(selectedLabel)}</div>
     </div>
     <div class="qpm-editor-revision-diff-body">
   `;
@@ -972,9 +973,9 @@ function renderRevisionDiffRows(rows) {
 
   html += `</div>`;
   if (!hasChanges) {
-    html += `<p class="qpm-editor-note">${noDiffLabel}</p>`;
+    html += `<p class="qpm-editor-note">${escapeHtml(noDiffLabel)}</p>`;
   } else if (visibleRows.length === 0) {
-    html += `<p class="qpm-editor-note">${noVisibleRowsLabel}</p>`;
+    html += `<p class="qpm-editor-note">${escapeHtml(noVisibleRowsLabel)}</p>`;
   }
   revisionDiffEl.innerHTML = html;
   revisionDiffEl.classList.remove("qpm-editor-hidden");
@@ -1057,7 +1058,7 @@ function showEditorTooltip(triggerEl, content) {
   const tooltip = ensureEditorTooltipEl();
   const inner = tooltip.querySelector(".v-popper__inner");
   if (!(inner instanceof HTMLElement)) return;
-  inner.innerHTML = content;
+  inner.innerHTML = sanitizeHtml(content);
   tooltip.style.display = "block";
   activeTooltipTrigger = triggerEl;
   positionEditorTooltip(triggerEl);

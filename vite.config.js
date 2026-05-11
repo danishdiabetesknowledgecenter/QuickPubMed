@@ -117,7 +117,7 @@ export default defineConfig(({ command, mode }) => {
           manualChunks: (id) => {
             if (!id.includes("node_modules")) return undefined;
             if (id.includes("axios")) return "vendor-http";
-            if (id.includes("floating-vue") || id.includes("vue-showdown") || id.includes("/vue/")) {
+            if (id.includes("floating-vue") || id.includes("/vue/")) {
               return "vendor-vue";
             }
             return "vendor-misc";

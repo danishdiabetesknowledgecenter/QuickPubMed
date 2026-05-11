@@ -1,15 +1,33 @@
 // src/utils/axiosInstance.js
 import axios from "axios";
-import Bottleneck from "bottleneck";
 import { settings } from "@/config/settings";
 
-// Create a Bottleneck limiter to allow max 3 requests per second
-const limiter = new Bottleneck({
-  reservoir: 3, // initial number of requests
-  reservoirRefreshAmount: 3,
-  reservoirRefreshInterval: 1000, // every 1000 ms
-  maxConcurrent: 1, // one request at a time
-});
+const queue = [];
+let activeRequests = 0;
+let tokens = 3;
+
+setInterval(() => {
+  tokens = 3;
+  drainQueue();
+}, 1000);
+
+function drainQueue() {
+  if (activeRequests > 0 || tokens <= 0 || queue.length === 0) return;
+  tokens -= 1;
+  activeRequests += 1;
+
+  const { config, resolve } = queue.shift();
+  resolve(config);
+  activeRequests -= 1;
+  drainQueue();
+}
+
+function scheduleRequest(config) {
+  return new Promise((resolve) => {
+    queue.push({ config, resolve });
+    drainQueue();
+  });
+}
 
 // Create a shared axios instance - now uses PHP proxy to hide API key
 const axiosInstance = axios.create({
@@ -20,7 +38,7 @@ const axiosInstance = axios.create({
 
 // Wrap each request with the limiter
 axiosInstance.interceptors.request.use((config) => {
-  return limiter.schedule(() => Promise.resolve(config));
+  return scheduleRequest(config);
 });
 
 // Add a response interceptor for handling retries

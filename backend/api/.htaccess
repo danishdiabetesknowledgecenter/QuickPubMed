@@ -4,14 +4,6 @@
     # Non-editor endpoints set CORS in PHP (origin allowlist via config).
     # Avoid wildcard fallback here to reduce cross-origin exposure.
 
-    # Editor endpoints: fallback CORS header reflection (no hardcoded domains).
-    # Domain allow/deny is still enforced in PHP config logic.
-    SetEnvIfNoCase Origin "^https?://[^/]+$" ORIGIN_ALLOWED=$0
-    <FilesMatch "^Editor.+\.php$">
-        Header always set Access-Control-Allow-Origin "%{ORIGIN_ALLOWED}e" env=ORIGIN_ALLOWED
-        Header always set Access-Control-Allow-Credentials "true" env=ORIGIN_ALLOWED
-        Header always set Vary "Origin" env=ORIGIN_ALLOWED
-        Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS" env=ORIGIN_ALLOWED
-        Header always set Access-Control-Allow-Headers "Content-Type, X-CSRF-Token" env=ORIGIN_ALLOWED
-    </FilesMatch>
+    # Editor endpoints set CORS in PHP via the configured origin allowlist.
+    # Do not reflect arbitrary origins at the Apache layer.
 </IfModule>

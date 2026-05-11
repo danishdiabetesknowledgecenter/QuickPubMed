@@ -20,7 +20,7 @@ qpmApplyStrictCorsPostJson();
 qpmRequirePostMethod();
 $input = qpmReadJsonInputOrFail();
 
-$htmlUrl = qpmRequireInputField($input, 'htmlurl');
+$htmlUrl = qpmRequirePublicHttpsUrl(qpmRequireInputField($input, 'htmlurl'), 'htmlurl');
 $prompt = qpmRequireInputField($input, 'prompt');
 
 // ============================================================
@@ -49,11 +49,10 @@ if (empty($extractedText)) {
 $openaiRequest = qpmBuildStreamingOpenAiRequest($prompt, $extractedText);
 qpmStartPlainStreamingResponse();
 
-// Send metadata with extracted text for frontend logging, then separator
+// Send metadata only; full extracted article text must not be echoed back.
 $metadata = [
     'type' => 'metadata',
     'extractedTextLength' => strlen($extractedText),
-    'extractedText' => $extractedText,
     'htmlUrl' => $htmlUrl,
     'cacheHit' => $cacheHit
 ];

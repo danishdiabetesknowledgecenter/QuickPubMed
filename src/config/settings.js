@@ -15,10 +15,13 @@ function getProxyUrl() {
   if (import.meta.env.VITE_API_PROXY_URL) {
     return normalizeBaseUrl(import.meta.env.VITE_API_PROXY_URL);
   }
-  // Get base URL from the JS file location (import.meta.url)
-  // Remove /assets/filename.js to get the base directory
+  // Get base URL from the JS file location. In builds this is /assets/..., while
+  // Vite dev serves this module from /src/....
   const scriptUrl = import.meta.url;
-  const baseUrl = scriptUrl.replace(/\/assets\/.*$/, "");
+  const baseUrl = scriptUrl
+    .replace(/\/assets\/.*$/, "")
+    .replace(/\/src\/.*$/, "")
+    .replace(/\/entries\/.*$/, "");
   return `${normalizeBaseUrl(baseUrl)}/backend`;
 }
 const API_PROXY_URL = getProxyUrl();

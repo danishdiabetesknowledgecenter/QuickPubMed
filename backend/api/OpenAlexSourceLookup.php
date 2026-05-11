@@ -24,65 +24,6 @@ function qpmIsLocalOpenAlexSourceLookupRequest(): bool
     );
 }
 
-function qpmOpenAlexSourceShellCurlRequest(string $url, array $headers, int $timeout = 30): array
-{
-    if (!function_exists('exec')) {
-        return [
-            'ok' => false,
-            'status' => 0,
-            'body' => '',
-            'error' => 'exec() is disabled',
-        ];
-    }
-
-    $parts = ['curl', '-sS', '-L', '--max-time', (string)max(1, (int)$timeout)];
-    foreach ($headers as $header) {
-        $parts[] = '-H';
-        $parts[] = (string)$header;
-    }
-    $parts[] = '-w';
-    $parts[] = '\n%{http_code}';
-    $parts[] = $url;
-
-    $escaped = array_map('escapeshellarg', $parts);
-    $command = implode(' ', $escaped);
-
-    $output = [];
-    $exitCode = 0;
-    @exec($command, $output, $exitCode);
-    if (!is_array($output) || count($output) === 0) {
-        return [
-            'ok' => false,
-            'status' => 0,
-            'body' => '',
-            'error' => 'curl binary produced no output',
-        ];
-    }
-
-    $lastLine = (string)$output[count($output) - 1];
-    $status = ctype_digit(trim($lastLine)) ? (int)trim($lastLine) : 0;
-    if ($status > 0) {
-        array_pop($output);
-    }
-    $body = implode("\n", $output);
-
-    if ($exitCode !== 0) {
-        return [
-            'ok' => false,
-            'status' => $status,
-            'body' => $body,
-            'error' => 'curl binary failed with exit code ' . (string)$exitCode,
-        ];
-    }
-
-    return [
-        'ok' => $status >= 200 && $status < 300,
-        'status' => $status,
-        'body' => (string)$body,
-        'error' => $status >= 200 && $status < 300 ? '' : 'curl binary returned HTTP ' . (string)$status,
-    ];
-}
-
 function qpmOpenAlexSourceLocalDevProxyRequest(string $sourceId, string $apiKey = '', string $mailto = ''): array
 {
     if (!qpmIsLocalOpenAlexSourceLookupRequest()) {
@@ -176,24 +117,6 @@ if (!$result['ok']) {
         'user_agent' => 'QuickPubMed/1.0',
         'headers' => ['Accept: application/json'],
     ]);
-}
-
-if (
-    !$result['ok'] &&
-    strpos((string)$result['error'], 'stream fallback') !== false
-) {
-    $shellResult = qpmOpenAlexSourceShellCurlRequest($requestUrl, ['Accept: application/json'], 30);
-    if ($shellResult['ok']) {
-        $result = [
-            'ok' => true,
-            'status' => $shellResult['status'],
-            'body' => $shellResult['body'],
-            'content_type' => 'application/json',
-            'error' => '',
-        ];
-    } else {
-        $result['error'] = trim((string)$result['error'] . ' | ' . (string)$shellResult['error'], ' |');
-    }
 }
 
 if (!$result['ok']) {

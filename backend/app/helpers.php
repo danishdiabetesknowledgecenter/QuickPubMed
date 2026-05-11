@@ -920,11 +920,6 @@ function qpmHttpRequest(string $url, array $options = []): array
 
         if (qpmIsLocalBackendRequest()) {
             $curlOptions[CURLOPT_PROXY] = '';
-            $configuredCaFile = trim((string) (ini_get('curl.cainfo') ?: ini_get('openssl.cafile') ?: ''));
-            if ($configuredCaFile === '') {
-                $curlOptions[CURLOPT_SSL_VERIFYPEER] = false;
-                $curlOptions[CURLOPT_SSL_VERIFYHOST] = 0;
-            }
         }
 
         curl_setopt_array($ch, $curlOptions);
@@ -1131,7 +1126,7 @@ function qpmGetSourceRateLimitCachePath(string $sourceKey): string
     }
     $runtimeDir = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'runtime';
     if (!is_dir($runtimeDir)) {
-        @mkdir($runtimeDir, 0775, true);
+        @mkdir($runtimeDir, 0750, true);
     }
     return $runtimeDir . DIRECTORY_SEPARATOR . 'source-rate-limit-' . $normalized . '.json';
 }

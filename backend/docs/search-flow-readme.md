@@ -257,7 +257,7 @@ Frontend har stadig en robust fallback: hvis semantic intent-responsen ikke kan 
 I lokal udvikling håndteres HTTP lidt anderledes end i produktion:
 
 - ved localhost ryddes arvede shell-proxyindstillinger, så lokale proxyfejl ikke påvirker OpenAI/OpenAlex-kald
-- PHP/cURL CA-problemer håndteres med native CA, konfigureret CA bundle eller lokal-dev fallback afhængigt af miljøet
+- PHP/cURL CA-problemer håndteres med native CA eller en konfigureret CA bundle. Usikker TLS-fallback er ikke en del af runtime-flowet.
 
 Det forklarer tidligere OpenAI/OpenAlex SSL- og proxyfejl i lokal opsætning. Det er infrastruktur omkring kaldet, ikke en del af selve produktets søgesemantik.
 

@@ -124,7 +124,7 @@
                   </template>
                 </div>
               </div>
-              <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryDisclaimer')" />
+              <p class="qpm_summaryDisclaimer" v-html="sanitizeHtml(getString('aiSummaryDisclaimer'))" />
             </div>
           </div>
         </div>

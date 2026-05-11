@@ -91,7 +91,7 @@ if (count($events) === 0) {
 
 $runtimeDir = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'runtime';
 if (!is_dir($runtimeDir)) {
-    @mkdir($runtimeDir, 0775, true);
+    @mkdir($runtimeDir, 0750, true);
 }
 if (!is_dir($runtimeDir)) {
     // Directory genuinely missing — bail out.

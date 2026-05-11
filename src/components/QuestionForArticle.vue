@@ -46,23 +46,21 @@
         <div class="qpm_answer-text">
           <!-- Show streaming answer if this is the currently streaming question -->
           <template v-if="streamingIndex === idx && streamingAnswer">
-            <div v-if="useMarkdown && canRenderMarkdown">
-              <vue-showdown
-                :options="{ smoothLivePreview: true }"
-                :markdown="streamingAnswer"
-              />
-            </div>
+            <qpm-markdown
+              v-if="useMarkdown && canRenderMarkdown"
+              :markdown="streamingAnswer"
+              smooth-live-preview
+            />
             <template v-else>
               {{ streamingAnswer }}
             </template>
           </template>
           <template v-else>
-            <div v-if="useMarkdown && canRenderMarkdown">
-              <vue-showdown
-                :options="{ smoothLivePreview: true }"
-                :markdown="qa.answer || ''"
-              />
-            </div>
+            <qpm-markdown
+              v-if="useMarkdown && canRenderMarkdown"
+              :markdown="qa.answer || ''"
+              smooth-live-preview
+            />
             <template v-else>
               {{ qa.answer }}
             </template>
@@ -114,6 +112,7 @@
 <script>
   import AccordionMenu from "@/components/AccordionMenu.vue";
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
+  import QpmMarkdown from "@/components/QpmMarkdown.vue";
   import {
     summarizeArticlePrompt,
     promptText,
@@ -129,6 +128,7 @@
     components: {
       AccordionMenu,
       LoadingSpinner,
+      QpmMarkdown,
     },
     mixins: [
       utilitiesMixin,
@@ -183,7 +183,6 @@
     },
     computed: {
       canRenderMarkdown() {
-        // VueShowdown is globally registered via plugin in all entry points.
         return true;
       },
     },

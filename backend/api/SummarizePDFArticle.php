@@ -20,7 +20,7 @@ qpmApplyStrictCorsPostJson();
 qpmRequirePostMethod();
 $input = qpmReadJsonInputOrFail();
 
-$pdfUrl = qpmRequireInputField($input, 'pdfurl');
+$pdfUrl = qpmRequirePublicHttpsUrl(qpmRequireInputField($input, 'pdfurl'), 'pdfurl');
 $prompt = qpmRequireInputField($input, 'prompt');
 
 // ============================================================
@@ -52,11 +52,10 @@ qpmStartPlainStreamingResponse();
 // Check if JSON mode is enabled
 $jsonModeEnabled = isset($openaiRequest['text']['format']['type']) && $openaiRequest['text']['format']['type'] === 'json_object';
 
-// Send metadata with extracted text for frontend logging, then separator
+// Send metadata only; full extracted article text must not be echoed back.
 $metadata = [
     'type' => 'metadata',
     'extractedTextLength' => strlen($extractedText),
-    'extractedText' => $extractedText,
     'pdfUrl' => $pdfUrl,
     'jsonModeEnabled' => $jsonModeEnabled,
     'cacheHit' => $cacheHit

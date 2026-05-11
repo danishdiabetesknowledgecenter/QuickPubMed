@@ -70,6 +70,9 @@ define('QPM_ELICIT_UNLOCK', [
     'code' => '',
     'trust_forwarded_for' => false,
 ]);
+// Keep diagnostics disabled in production. When true,
+// ThemeConfig.php?elicitDiag=1 exposes IP/debug metadata for local troubleshooting.
+define('QPM_ENABLE_ELICIT_DIAGNOSTICS', false);
 
 // ============ Unpaywall Configuration ============
 // Optional domain override file:

@@ -193,7 +193,7 @@ $response = [
 //   <api>/ThemeConfig.php?domain=<domain>&elicitDiag=1
 // to see which client IP and configured IPs the backend sees. This never
 // exposes the configured unlock code, only IP/patterns + an elicitUnlocked flag.
-if (!empty($_GET['elicitDiag'])) {
+if (!empty($_GET['elicitDiag']) && defined('QPM_ENABLE_ELICIT_DIAGNOSTICS') && QPM_ENABLE_ELICIT_DIAGNOSTICS === true) {
     $configuredIps = [];
     $hasCode = false;
     $trustForwardedFor = false;

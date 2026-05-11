@@ -23,7 +23,7 @@ function qpmGetNlmResponseCacheDir(): string
 {
     $cacheDir = dirname(__DIR__, 2) . '/data/cache/nlm-response';
     if (!is_dir($cacheDir)) {
-        @mkdir($cacheDir, 0775, true);
+        @mkdir($cacheDir, 0750, true);
     }
     return $cacheDir;
 }

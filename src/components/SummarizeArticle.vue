@@ -52,12 +52,12 @@
             </div>
           </template>
           <template #default>
-            <div v-if="useMarkdown && canRenderMarkdown" class="qpm_answer-text">
-              <vue-showdown
-                :options="{ smoothLivePreview: true }"
-                :markdown="qa.answer || ''"
-              />
-            </div>
+            <qpm-markdown
+              v-if="useMarkdown && canRenderMarkdown"
+              class="qpm_answer-text"
+              :markdown="qa.answer || ''"
+              smooth-live-preview
+            />
             <div v-else class="qpm_answer-text">
               {{ qa.answer || '' }}
             </div>
@@ -118,12 +118,12 @@
               </div>
             </template>
             <template #default>
-              <div v-if="useMarkdown && canRenderMarkdown" class="qpm_answer-text">
-                <vue-showdown
-                  :options="{ smoothLivePreview: true }"
-                  :markdown="qa.answer || ''"
-                />
-              </div>
+              <qpm-markdown
+                v-if="useMarkdown && canRenderMarkdown"
+                class="qpm_answer-text"
+                :markdown="qa.answer || ''"
+                smooth-live-preview
+              />
               <div v-else class="qpm_answer-text">
                 {{ qa.answer || '' }}
               </div>
@@ -203,12 +203,12 @@
           </template>
 
           <template #default>
-            <div v-if="useMarkdown && canRenderMarkdown" class="qpm_answer-text">
-              <vue-showdown
-                :options="{ smoothLivePreview: true }"
-                :markdown="qa.answer || ''"
-              />
-            </div>
+            <qpm-markdown
+              v-if="useMarkdown && canRenderMarkdown"
+              class="qpm_answer-text"
+              :markdown="qa.answer || ''"
+              smooth-live-preview
+            />
             <div v-else class="qpm_answer-text">
               {{ qa.answer }}
             </div>
@@ -266,12 +266,12 @@
 
           <template #default>
 <!--        <div :style="getAnswerStyle(index)" class="qpm_answer-text"> -->
-            <div v-if="useMarkdown && canRenderMarkdown" class="qpm_answer-text">
-              <vue-showdown
-                :options="{ smoothLivePreview: true }"
-                :markdown="qa.answer || ''"
-              />
-            </div>
+            <qpm-markdown
+              v-if="useMarkdown && canRenderMarkdown"
+              class="qpm_answer-text"
+              :markdown="qa.answer || ''"
+              smooth-live-preview
+            />
             <div v-else class="qpm_answer-text">
               {{ qa.answer }}
             </div>
@@ -285,6 +285,7 @@
 <script>
   import AccordionMenu from "@/components/AccordionMenu.vue";
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
+  import QpmMarkdown from "@/components/QpmMarkdown.vue";
 
   import { utilitiesMixin } from "@/mixins/utilities.js";
   import { appSettingsMixin } from "@/mixins/appSettings.js";
@@ -301,6 +302,7 @@
     components: {
       AccordionMenu,
       LoadingSpinner,
+      QpmMarkdown,
     },
     mixins: [
       utilitiesMixin,
@@ -484,7 +486,6 @@
         return cleanText;
       },
       canRenderMarkdown() {
-        // VueShowdown is globally registered via plugin in all entry points.
         return true;
       },
     },
@@ -980,11 +981,10 @@
               if (metadata.type === 'metadata') {
                 // Log the extracted article text
                 console.info(
-                  `=== Extracted Article Text ===`,
+                  `=== Extracted Article Metadata ===`,
                   '\n\n|Source URL|\n', metadata.pdfUrl || metadata.htmlUrl,
                   '\n\n|Text Length|\n', metadata.extractedTextLength, 'characters',
-                  '\n\n|JSON Mode Enabled|\n', metadata.jsonModeEnabled ? 'YES' : 'NO',
-                  '\n\n|Extracted Text|\n', metadata.extractedText
+                  '\n\n|JSON Mode Enabled|\n', metadata.jsonModeEnabled ? 'YES' : 'NO'
                 );
               }
             } catch (e) {

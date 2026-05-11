@@ -1,5 +1,6 @@
 import { messages } from "@/assets/content/translations.js";
 import { getAiURL } from "@/config/settings.js";
+import { sanitizeHtml } from "@/utils/htmlSanitizer.js";
 
 /**
  * Mixin for utility functions that are reusable across components.
@@ -20,6 +21,9 @@ export const utilitiesMixin = {
         .replace(/'/g, "&#39;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
+    },
+    sanitizeHtml(value, options = {}) {
+      return sanitizeHtml(value, options);
     },
     /**
      * Retrieves a localized string based on the current language.

@@ -3,9 +3,7 @@
     v-if="showingTranslation"
     class="qpm_searchSummaryText qpm_searchSummaryTextBackground qpm_searchTranslatedTitle"
   >
-    <div v-if="useMarkdown && canRenderMarkdown" lang="da">
-      <vue-showdown :options="{ smoothLivePreview: true }" :markdown="text" />
-    </div>
+    <qpm-markdown v-if="useMarkdown && canRenderMarkdown" lang="da" :markdown="text" smooth-live-preview />
     <div v-else lang="da">
       <p>{{ text }}</p>
     </div>
@@ -58,13 +56,14 @@
     <p
       v-if="!loading"
       class="qpm_translationDisclaimer"
-      v-html="getString('translationDisclaimer')"
+      v-html="sanitizeHtml(getString('translationDisclaimer'))"
     />
   </div>
 </template>
 
 <script>
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
+  import QpmMarkdown from "@/components/QpmMarkdown.vue";
   import { appSettingsMixin } from "@/mixins/appSettings.js";
   import { utilitiesMixin } from "@/mixins/utilities";
   import { getPromptForLocale } from "@/utils/promptsHelpers.js";
@@ -74,6 +73,7 @@
     name: "AiTranslation",
     components: {
       LoadingSpinner,
+      QpmMarkdown,
     },
     mixins: [appSettingsMixin, utilitiesMixin],
     props: {
@@ -210,8 +210,6 @@
         this.showTranslation();
       },
       canRenderMarkdown() {
-        // In Vue 3, globally registered components (via app.use()) are not in $options.components.
-        // VueShowdown is always registered as a plugin in all entry points.
         return true;
       },
     },

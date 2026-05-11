@@ -43,140 +43,6 @@ function qpmIsLocalSemanticScholarRequest(): bool
 }
 
 /**
- * Fallback HTTP GET request for Semantic Scholar.
- * Tries stream context with relaxed SSL verification for local dev environments
- * where CA bundles are often missing.
- *
- * @param string $url
- * @param array<int,string> $headers
- * @param int $timeout
- * @return array{ok: bool, status: int, body: string, error: string, response_headers: array<int,string>}
- */
-function qpmSemanticScholarFallbackRequest(string $url, array $headers, int $timeout = 30): array
-{
-    $headerLines = $headers;
-    $headerLines[] = 'User-Agent: QuickPubMed/1.0';
-
-    $context = stream_context_create([
-        'http' => [
-            'method' => 'GET',
-            'header' => implode("\r\n", $headerLines),
-            'timeout' => $timeout,
-            'ignore_errors' => true,
-            'protocol_version' => 1.1,
-        ],
-        'ssl' => [
-            'verify_peer' => false,
-            'verify_peer_name' => false,
-        ],
-    ]);
-
-    $body = @file_get_contents($url, false, $context);
-    $responseHeaders = $http_response_header ?? [];
-    $status = 0;
-    if (is_array($responseHeaders)) {
-        foreach ($responseHeaders as $index => $line) {
-            if ($index === 0 && preg_match('/\s(\d{3})\s/', (string)$line, $matches)) {
-                $status = (int)$matches[1];
-                break;
-            }
-        }
-    }
-
-    if ($body === false) {
-        $lastError = error_get_last();
-        $message = is_array($lastError) ? (string)($lastError['message'] ?? '') : '';
-        return [
-            'ok' => false,
-            'status' => $status,
-            'body' => '',
-            'error' => $message !== '' ? $message : 'Semantic Scholar fallback request failed',
-            'response_headers' => is_array($responseHeaders) ? array_values($responseHeaders) : [],
-        ];
-    }
-
-    return [
-        'ok' => true,
-        'status' => $status,
-        'body' => (string)$body,
-        'error' => '',
-        'response_headers' => is_array($responseHeaders) ? array_values($responseHeaders) : [],
-    ];
-}
-
-/**
- * Last-resort fallback using OS curl binary.
- * Useful when PHP cURL extension and HTTPS stream wrapper are unavailable.
- *
- * @param string $url
- * @param array<int,string> $headers
- * @param int $timeout
- * @return array{ok: bool, status: int, body: string, error: string, response_headers: array<int,string>}
- */
-function qpmSemanticScholarShellCurlRequest(string $url, array $headers, int $timeout = 30): array
-{
-    if (!function_exists('exec')) {
-        return [
-            'ok' => false,
-            'status' => 0,
-            'body' => '',
-            'error' => 'exec() is disabled',
-            'response_headers' => [],
-        ];
-    }
-
-    $parts = ['curl', '-sS', '-L', '--max-time', (string)max(1, (int)$timeout)];
-    foreach ($headers as $header) {
-        $parts[] = '-H';
-        $parts[] = (string)$header;
-    }
-    $parts[] = '-w';
-    $parts[] = '\n%{http_code}';
-    $parts[] = $url;
-
-    $escaped = array_map('escapeshellarg', $parts);
-    $command = implode(' ', $escaped);
-
-    $output = [];
-    $exitCode = 0;
-    @exec($command, $output, $exitCode);
-    if (!is_array($output) || count($output) === 0) {
-        return [
-            'ok' => false,
-            'status' => 0,
-            'body' => '',
-            'error' => 'curl binary produced no output',
-            'response_headers' => [],
-        ];
-    }
-
-    $lastLine = (string)$output[count($output) - 1];
-    $status = ctype_digit(trim($lastLine)) ? (int)trim($lastLine) : 0;
-    if ($status > 0) {
-        array_pop($output);
-    }
-    $body = implode("\n", $output);
-
-    if ($exitCode !== 0) {
-        return [
-            'ok' => false,
-            'status' => $status,
-            'body' => $body,
-            'error' => 'curl binary failed with exit code ' . (string)$exitCode,
-            'response_headers' => [],
-        ];
-    }
-
-    return [
-        'ok' => $status >= 200 && $status < 300,
-        'status' => $status,
-        'body' => (string)$body,
-        'error' => $status >= 200 && $status < 300 ? '' : 'curl binary returned HTTP ' . (string)$status,
-        'response_headers' => [],
-    ];
-}
-
-/**
  * Local dev fallback through Vite proxy (http), still backend-initiated.
  *
  * @param string $query
@@ -682,44 +548,6 @@ function qpmSemanticScholarFetchBatch(
             'headers' => $headers,
         ]);
 
-        if (
-            !$attemptResult['ok'] &&
-            strpos((string)$attemptResult['error'], 'stream fallback') !== false
-        ) {
-            $fallbackResult = qpmSemanticScholarFallbackRequest($url, $headers, 12);
-            if ($fallbackResult['ok']) {
-                $attemptResult = [
-                    'ok' => true,
-                    'status' => $fallbackResult['status'],
-                    'body' => $fallbackResult['body'],
-                    'content_type' => 'application/json',
-                    'error' => '',
-                    'response_headers' => $fallbackResult['response_headers'],
-                ];
-            } else {
-                $attemptResult['error'] = trim((string)$attemptResult['error'] . ' | ' . (string)$fallbackResult['error'], ' |');
-            }
-        }
-
-        if (
-            !$attemptResult['ok'] &&
-            strpos((string)$attemptResult['error'], 'stream fallback') !== false
-        ) {
-            $shellCurlResult = qpmSemanticScholarShellCurlRequest($url, $headers, 12);
-            if ($shellCurlResult['ok']) {
-                $attemptResult = [
-                    'ok' => true,
-                    'status' => $shellCurlResult['status'],
-                    'body' => $shellCurlResult['body'],
-                    'content_type' => 'application/json',
-                    'error' => '',
-                    'response_headers' => $shellCurlResult['response_headers'],
-                ];
-            } else {
-                $attemptResult['error'] = trim((string)$attemptResult['error'] . ' | ' . (string)$shellCurlResult['error'], ' |');
-            }
-        }
-
         $lastStatus = (int) ($attemptResult['status'] ?? 0);
         $lastResponseHeaders = is_array($attemptResult['response_headers'] ?? null)
             ? array_values($attemptResult['response_headers'])
@@ -767,7 +595,6 @@ function qpmIsRecoverableSemanticScholarError(string $error): bool
         strpos($normalized, 'http 429') !== false ||
         strpos($normalized, 'rate limit') !== false ||
         strpos($normalized, 'stream fallback') !== false ||
-        strpos($normalized, 'curl binary failed with exit code 3') !== false ||
         strpos($normalized, 'failed to open stream') !== false;
 }
 

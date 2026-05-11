@@ -74,6 +74,42 @@ function qpmRequireInputField($input, $fieldName) {
     return $value;
 }
 
+function qpmRequirePublicHttpsUrl($url, $fieldName) {
+    $value = trim((string) $url);
+    $parts = parse_url($value);
+    $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+    $host = strtolower(trim((string) ($parts['host'] ?? ''), '[]'));
+    if ($scheme !== 'https' || $host === '') {
+        http_response_code(400);
+        header('Content-Type: application/json');
+        echo json_encode(['error' => $fieldName . ' must be an HTTPS URL']);
+        exit;
+    }
+
+    if ($host === 'localhost' || $host === '127.0.0.1' || $host === '::1') {
+        http_response_code(400);
+        header('Content-Type: application/json');
+        echo json_encode(['error' => $fieldName . ' must not point to a local address']);
+        exit;
+    }
+
+    if (filter_var($host, FILTER_VALIDATE_IP)) {
+        $isPublic = filter_var(
+            $host,
+            FILTER_VALIDATE_IP,
+            FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+        );
+        if ($isPublic === false) {
+            http_response_code(400);
+            header('Content-Type: application/json');
+            echo json_encode(['error' => $fieldName . ' must not point to a private address']);
+            exit;
+        }
+    }
+
+    return $value;
+}
+
 function qpmFetchExtractedTextFromAzure($cacheType, $sourceUrl, $azureUrl, $sourceFieldName, $fetchLabel, &$cacheHit) {
     $cacheHit = false;
     $extractedText = qpmReadTextFetchCache($cacheType, $sourceUrl);
@@ -108,11 +144,6 @@ function qpmFetchExtractedTextFromAzure($cacheType, $sourceUrl, $azureUrl, $sour
 
     if ($isLocalRequest()) {
         $curlOptions[CURLOPT_PROXY] = '';
-        $configuredCaFile = trim((string) (ini_get('curl.cainfo') ?: ini_get('openssl.cafile') ?: ''));
-        if ($configuredCaFile === '') {
-            $curlOptions[CURLOPT_SSL_VERIFYPEER] = false;
-            $curlOptions[CURLOPT_SSL_VERIFYHOST] = 0;
-        }
     }
 
     curl_setopt_array($ch, $curlOptions);
@@ -364,11 +395,6 @@ function qpmStreamOpenAiPlainText($openaiRequest) {
 
     if ($isLocalRequest()) {
         $curlOptions[CURLOPT_PROXY] = '';
-        $configuredCaFile = trim((string) (ini_get('curl.cainfo') ?: ini_get('openssl.cafile') ?: ''));
-        if ($configuredCaFile === '') {
-            $curlOptions[CURLOPT_SSL_VERIFYPEER] = false;
-            $curlOptions[CURLOPT_SSL_VERIFYHOST] = 0;
-        }
     }
 
     curl_setopt_array($ch, $curlOptions);

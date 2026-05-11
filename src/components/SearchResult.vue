@@ -258,7 +258,7 @@
               >
                 <p>{{ getString("aiSearchSummaryConsentHeader") }}</p>
                 <p v-if="hasNoSelectedArticles">
-                  <span v-html="getString('aiSearchSummaryConsentHeaderTextBefore')"></span>
+                  <span v-html="sanitizeHtml(getString('aiSearchSummaryConsentHeaderTextBefore'))"></span>
                   <select
                     v-model="defaultSummaryCount"
                     class="qpm_summaryCountSelect"
@@ -301,7 +301,7 @@
                   />
                   {{ getTranslation(prompt) }}
                 </button>
-                <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryConsentText')" />
+                <p class="qpm_summaryDisclaimer" v-html="sanitizeHtml(getString('aiSummaryConsentText'))" />
               </div>
 
               <!-- AI summaries of abstracts from inside multiple search results (summarize-article hidden with flag show-summarize-article=false)-->
@@ -448,7 +448,7 @@
             <div
               class="qpm_searchSummaryText qpm_searchSummaryTextBackground"
               v-if="hasNoSelectedArticles"
-              v-html="getString('selectedResultEmptyText')"
+              v-html="sanitizeHtml(getString('selectedResultEmptyText'))"
             />
           </div>
         </template>

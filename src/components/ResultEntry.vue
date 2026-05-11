@@ -407,7 +407,7 @@
                     />
                     {{ getTranslation(prompt) }}
                   </button>
-                  <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryConsentText')" />
+                  <p class="qpm_summaryDisclaimer" v-html="sanitizeHtml(getString('aiSummaryConsentText'))" />
                 </div>
                 <summarize-abstract
                   v-else-if="hasAcceptedAi"
@@ -522,7 +522,7 @@
                       />
                       {{ getTranslation(prompt) }}
                     </button>
-                    <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryConsentText')" />
+                    <p class="qpm_summaryDisclaimer" v-html="sanitizeHtml(getString('aiSummaryConsentText'))" />
                   </div>
                   <summarize-no-abstract
                     v-else-if="hasAcceptedAi"
@@ -543,7 +543,7 @@
                     :has-accepted-ai="hasAcceptedAi"
                     :initial-tab-prompt="initialAiTab"
                   />
-                  <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryConsentText')" />
+                  <p class="qpm_summaryDisclaimer" v-html="sanitizeHtml(getString('aiSummaryConsentText'))" />
               </div>
             </div>
           </accordion-menu>
@@ -626,7 +626,7 @@
           <!-- abstract is in text prop -->
           <div v-if="abstract === ''" class="qpm_abstractWrapper">
             <template v-if="hasSectionedAbstract">
-              <div v-html="getSectionAbstract"></div>
+              <div v-html="sanitizeHtml(getSectionAbstract)"></div>
             </template>
 
             <!-- abstract is provided manually through sectionedAbstract prop-->

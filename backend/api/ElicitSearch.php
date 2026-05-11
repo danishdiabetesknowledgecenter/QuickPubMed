@@ -30,68 +30,6 @@ function qpmIsLocalElicitRequest(): bool
 }
 
 /**
- * Fallback HTTP POST request for Elicit with relaxed SSL verification.
- *
- * @param string $url
- * @param array<int,string> $headers
- * @param string $body
- * @param int $timeout
- * @return array{ok: bool, status: int, body: string, error: string, response_headers: array<int,string>}
- */
-function qpmElicitFallbackRequest(string $url, array $headers, string $body, int $timeout = 45): array
-{
-    $headerLines = $headers;
-    $headerLines[] = 'User-Agent: QuickPubMed/1.0';
-
-    $context = stream_context_create([
-        'http' => [
-            'method' => 'POST',
-            'header' => implode("\r\n", $headerLines),
-            'content' => $body,
-            'timeout' => $timeout,
-            'ignore_errors' => true,
-            'protocol_version' => 1.1,
-        ],
-        'ssl' => [
-            'verify_peer' => false,
-            'verify_peer_name' => false,
-        ],
-    ]);
-
-    $responseBody = @file_get_contents($url, false, $context);
-    $responseHeaders = $http_response_header ?? [];
-    $status = 0;
-    if (is_array($responseHeaders)) {
-        foreach ($responseHeaders as $index => $line) {
-            if ($index === 0 && preg_match('/\s(\d{3})\s/', (string)$line, $matches)) {
-                $status = (int)$matches[1];
-                break;
-            }
-        }
-    }
-
-    if ($responseBody === false) {
-        $lastError = error_get_last();
-        $message = is_array($lastError) ? (string)($lastError['message'] ?? '') : '';
-        return [
-            'ok' => false,
-            'status' => $status,
-            'body' => '',
-            'error' => $message !== '' ? $message : 'Elicit fallback request failed',
-            'response_headers' => is_array($responseHeaders) ? array_values($responseHeaders) : [],
-        ];
-    }
-
-    return [
-        'ok' => true,
-        'status' => $status,
-        'body' => (string)$responseBody,
-        'error' => '',
-        'response_headers' => is_array($responseHeaders) ? array_values($responseHeaders) : [],
-    ];
-}
-
-/**
  * HTTP request helper for Elicit that preserves response headers.
  *
  * @param string $url
@@ -210,80 +148,6 @@ function qpmElicitHttpRequest(string $url, array $options = []): array
         'content_type' => $contentType,
         'error' => $error,
         'response_headers' => is_array($responseHeaders) ? array_values($responseHeaders) : [],
-    ];
-}
-
-/**
- * Last-resort fallback using OS curl binary for Elicit POST requests.
- *
- * @param string $url
- * @param array<int,string> $headers
- * @param string $body
- * @param int $timeout
- * @return array{ok: bool, status: int, body: string, error: string, response_headers: array<int,string>}
- */
-function qpmElicitShellCurlRequest(string $url, array $headers, string $body, int $timeout = 45): array
-{
-    if (!function_exists('exec')) {
-        return [
-            'ok' => false,
-            'status' => 0,
-            'body' => '',
-            'error' => 'exec() is disabled',
-            'response_headers' => [],
-        ];
-    }
-
-    $parts = ['curl', '-sS', '-L', '--compressed', '--max-time', (string)max(1, (int)$timeout), '-X', 'POST'];
-    foreach ($headers as $header) {
-        $parts[] = '-H';
-        $parts[] = (string)$header;
-    }
-    $parts[] = '--data';
-    $parts[] = $body;
-    $parts[] = '-w';
-    $parts[] = '\n%{http_code}';
-    $parts[] = $url;
-
-    $escaped = array_map('escapeshellarg', $parts);
-    $command = implode(' ', $escaped);
-
-    $output = [];
-    $exitCode = 0;
-    @exec($command, $output, $exitCode);
-    if (!is_array($output) || count($output) === 0) {
-        return [
-            'ok' => false,
-            'status' => 0,
-            'body' => '',
-            'error' => 'curl binary produced no output',
-            'response_headers' => [],
-        ];
-    }
-
-    $lastLine = (string)$output[count($output) - 1];
-    $status = ctype_digit(trim($lastLine)) ? (int)trim($lastLine) : 0;
-    if ($status > 0) {
-        array_pop($output);
-    }
-    $responseBody = implode("\n", $output);
-
-    if ($exitCode !== 0) {
-        return [
-            'ok' => false,
-            'status' => $status,
-            'body' => $responseBody,
-            'error' => 'curl binary failed with exit code ' . (string)$exitCode,
-            'response_headers' => [],
-        ];
-    }
-
-    return [
-        'ok' => true,
-        'status' => $status,
-        'body' => (string)$responseBody,
-        'error' => '',
-        'response_headers' => [],
     ];
 }
 
@@ -927,54 +791,6 @@ if (!$result['ok']) {
     ]);
 }
 
-if (
-    !$result['ok'] &&
-    strpos((string)$result['error'], 'stream fallback') !== false
-) {
-    $fallbackResult = qpmElicitFallbackRequest(
-        $elicitUrl,
-        $requestHeaders,
-        $requestBody,
-        45
-    );
-    if ($fallbackResult['ok']) {
-        $result = [
-            'ok' => true,
-            'status' => $fallbackResult['status'],
-            'body' => $fallbackResult['body'],
-            'content_type' => 'application/json',
-            'error' => '',
-            'response_headers' => $fallbackResult['response_headers'],
-        ];
-    } else {
-        $result['error'] = trim((string)$result['error'] . ' | ' . (string)$fallbackResult['error'], ' |');
-    }
-}
-
-if (
-    !$result['ok'] &&
-    strpos((string)$result['error'], 'stream fallback') !== false
-) {
-    $shellCurlResult = qpmElicitShellCurlRequest(
-        $elicitUrl,
-        $requestHeaders,
-        $requestBody,
-        45
-    );
-    if ($shellCurlResult['ok']) {
-        $result = [
-            'ok' => true,
-            'status' => $shellCurlResult['status'],
-            'body' => $shellCurlResult['body'],
-            'content_type' => 'application/json',
-            'error' => '',
-            'response_headers' => $shellCurlResult['response_headers'],
-        ];
-    } else {
-        $result['error'] = trim((string)$result['error'] . ' | ' . (string)$shellCurlResult['error'], ' |');
-    }
-}
-
 if (!$result['ok']) {
     http_response_code(500);
     echo json_encode(['error' => $result['error']]);
@@ -982,54 +798,6 @@ if (!$result['ok']) {
 }
 
 $decoded = qpmDecodeElicitResponseBody($result);
-if (!is_array($decoded)) {
-    $fallbackResult = qpmElicitFallbackRequest(
-        $elicitUrl,
-        $requestHeaders,
-        $requestBody,
-        45
-    );
-    if ($fallbackResult['ok']) {
-        $fallbackDecoded = qpmDecodeElicitResponseBody([
-            'body' => $fallbackResult['body'],
-        ]);
-        if (is_array($fallbackDecoded)) {
-            $result = [
-                'ok' => true,
-                'status' => $fallbackResult['status'],
-                'body' => $fallbackResult['body'],
-                'content_type' => 'application/json',
-                'error' => '',
-                'response_headers' => $fallbackResult['response_headers'],
-            ];
-            $decoded = $fallbackDecoded;
-        }
-    }
-}
-if (!is_array($decoded)) {
-    $shellCurlResult = qpmElicitShellCurlRequest(
-        $elicitUrl,
-        $requestHeaders,
-        $requestBody,
-        45
-    );
-    if ($shellCurlResult['ok']) {
-        $shellCurlDecoded = qpmDecodeElicitResponseBody([
-            'body' => $shellCurlResult['body'],
-        ]);
-        if (is_array($shellCurlDecoded)) {
-            $result = [
-                'ok' => true,
-                'status' => $shellCurlResult['status'],
-                'body' => $shellCurlResult['body'],
-                'content_type' => 'application/json',
-                'error' => '',
-                'response_headers' => $shellCurlResult['response_headers'],
-            ];
-            $decoded = $shellCurlDecoded;
-        }
-    }
-}
 if (!is_array($decoded)) {
     http_response_code(502);
     echo json_encode(['error' => 'Invalid response from Elicit']);

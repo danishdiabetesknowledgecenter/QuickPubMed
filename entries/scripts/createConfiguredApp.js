@@ -1,5 +1,4 @@
 import { createApp, h } from "vue";
-import VueShowdown from "vue-showdown";
 import FloatingVue, { hideAllPoppers } from "floating-vue";
 import "floating-vue/dist/style.css";
 
@@ -15,22 +14,6 @@ if (typeof document !== "undefined" && !window.__qpmTooltipEscBound) {
   window.__qpmTooltipEscBound = true;
 }
 
-const showdownConfig = {
-  flavor: "github",
-  options: {
-    emoji: false,
-    tables: true,
-    strikethrough: true,
-    simpleLineBreaks: true,
-    tasklists: true,
-    smartIndentationFix: true,
-    smartypants: true,
-    ghMentions: true,
-    underline: true,
-    completeHTMLDocument: false,
-  },
-};
-
 export function createConfiguredApp(rootComponent, props) {
   return createConfiguredAppWithOptions(rootComponent, props);
 }
@@ -41,7 +24,6 @@ export function createConfiguredAppWithOptions(rootComponent, props, options = {
     provide,
     render: () => h(rootComponent, props),
   });
-  app.use(VueShowdown, showdownConfig);
   const floatingVueConfig = floatingVueOptions || {
     themes: {
       tooltip: {

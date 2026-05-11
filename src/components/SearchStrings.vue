@@ -789,6 +789,7 @@
   } from "@/utils/contentLoader";
   import { order } from "@/assets/content/order.js";
   import { cloneDeep, getLocalizedTranslation } from "@/utils/componentHelpers";
+  import { sanitizeHtml } from "@/utils/htmlSanitizer.js";
 
   export default {
     name: "SearchStrings",
@@ -881,86 +882,7 @@
 
     methods: {
       sanitizeCommentHtml(rawValue) {
-        const rawHtml = typeof rawValue === "string" ? rawValue : "";
-        if (!rawHtml) return "";
-
-        const container = document.createElement("div");
-        container.innerHTML = rawHtml;
-        const allowedTags = new Set([
-          "A",
-          "B",
-          "BR",
-          "EM",
-          "I",
-          "LI",
-          "OL",
-          "P",
-          "STRONG",
-          "U",
-          "UL",
-        ]);
-        const allowedSchemes = new Set(["http:", "https:", "mailto:"]);
-
-        const sanitizeNode = (node) => {
-          if (node.nodeType === Node.TEXT_NODE) return;
-
-          if (node.nodeType !== Node.ELEMENT_NODE) {
-            node.parentNode?.removeChild(node);
-            return;
-          }
-
-          const tagName = node.tagName.toUpperCase();
-          if (!allowedTags.has(tagName)) {
-            const parent = node.parentNode;
-            if (!parent) return;
-            while (node.firstChild) {
-              parent.insertBefore(node.firstChild, node);
-            }
-            parent.removeChild(node);
-            return;
-          }
-
-          const attributes = Array.from(node.attributes || []);
-          attributes.forEach((attribute) => {
-            const name = attribute.name.toLowerCase();
-            if (tagName === "A") {
-              if (name === "href") {
-                const hrefValue = String(attribute.value || "").trim();
-                try {
-                  const parsed = new URL(hrefValue, window.location.origin);
-                  if (!allowedSchemes.has(parsed.protocol)) {
-                    node.removeAttribute(attribute.name);
-                  }
-                } catch (_) {
-                  node.removeAttribute(attribute.name);
-                }
-                return;
-              }
-              if (name === "title") return;
-              if (name === "target") {
-                node.setAttribute("target", "_blank");
-                return;
-              }
-              if (name === "rel") return;
-            }
-            node.removeAttribute(attribute.name);
-          });
-
-          if (tagName === "A") {
-            if (node.hasAttribute("href")) {
-              node.setAttribute("target", "_blank");
-              node.setAttribute("rel", "noopener noreferrer");
-            } else {
-              node.removeAttribute("target");
-              node.removeAttribute("rel");
-            }
-          }
-
-          Array.from(node.childNodes).forEach(sanitizeNode);
-        };
-
-        Array.from(container.childNodes).forEach(sanitizeNode);
-        return container.innerHTML;
+        return sanitizeHtml(rawValue);
       },
       getSearchStringCommentHtml(block) {
         if (!block || !block.searchStringComment) return "";

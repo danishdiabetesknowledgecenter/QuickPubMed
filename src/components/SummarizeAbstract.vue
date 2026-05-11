@@ -62,10 +62,10 @@
               summarySearchSummaryConsentText !== null &&
               summarySearchSummaryConsentText !== undefined
             "
-            v-html="summarySearchSummaryConsentText"
+            v-html="sanitizeHtml(summarySearchSummaryConsentText)"
           />
-          <p v-html="getString('aiSummaryConsentText')" />
-          <p v-html="getString('readAboutAiSummaryText')" />
+          <p v-html="sanitizeHtml(getString('aiSummaryConsentText'))" />
+          <p v-html="sanitizeHtml(getString('readAboutAiSummaryText'))" />
         </div>
         <div v-else class="qpm_searchSummaryResponseBox">
           <div
@@ -103,15 +103,15 @@
                 <div
                   class="qpm_summaryWarningBox"
                 >
-                  <p v-html="getString('aiSummarizeFirstFewSearchResultHeaderAfterCountWarning')" />
+                  <p v-html="sanitizeHtml(getString('aiSummarizeFirstFewSearchResultHeaderAfterCountWarning'))" />
                 </div>
-                <div v-if="useMarkdown && canRenderMarkdown" ref="summary">
-                  <vue-showdown
-                    :options="{ smoothLivePreview: true }"
-                    :markdown="getCurrentSummary.body"
-                    @click.capture="onMarkdownClick"
-                  />
-                </div>
+                <qpm-markdown
+                  v-if="useMarkdown && canRenderMarkdown"
+                  ref="summary"
+                  :markdown="getCurrentSummary.body"
+                  smooth-live-preview
+                  @click.capture="onMarkdownClick"
+                />
                 <p v-else ref="summary">
                   {{ getCurrentSummary?.body }}
                 </p>
@@ -268,7 +268,7 @@
                     </template>
                   </div>
                 </div>
-                <p class="qpm_summaryDisclaimer" v-html="getString('aiSummaryDisclaimer')" />
+                <p class="qpm_summaryDisclaimer" v-html="sanitizeHtml(getString('aiSummaryDisclaimer'))" />
               </div>
             </div>
           </template>
@@ -287,6 +287,7 @@
 <script>
   import { nextTick } from "vue";
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
+  import QpmMarkdown from "@/components/QpmMarkdown.vue";
   import SummarizeArticle from "@/components/SummarizeArticle.vue";
   import QuestionForArticle from "@/components/QuestionForArticle.vue";
   import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
@@ -313,6 +314,7 @@
     name: "SummarizeAbstract",
     components: {
       LoadingSpinner,
+      QpmMarkdown,
       SummarizeArticle,
       QuestionForArticle,
     },
@@ -551,8 +553,6 @@
         return this.successHeader;
       },
       canRenderMarkdown() {
-        // In Vue 3, globally registered components (via app.use()) are not in $options.components.
-        // VueShowdown is always registered as a plugin in all entry points.
         return true;
       },
       languageFormat() {

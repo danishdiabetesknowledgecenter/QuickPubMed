@@ -285,7 +285,7 @@ if (!function_exists('qpmPublicSearchEnsureRuntimeDir')) {
     {
         $dir = qpmPublicSearchGetRuntimeDir();
         if (!is_dir($dir)) {
-            @mkdir($dir, 0775, true);
+            @mkdir($dir, 0750, true);
         }
         return $dir;
     }

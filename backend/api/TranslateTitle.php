@@ -298,11 +298,6 @@ if (defined('CURLSSLOPT_NATIVE_CA')) {
 
 if ($isLocalRequest()) {
     $curlOptions[CURLOPT_PROXY] = '';
-    $configuredCaFile = trim((string) (ini_get('curl.cainfo') ?: ini_get('openssl.cafile') ?: ''));
-    if ($configuredCaFile === '') {
-        $curlOptions[CURLOPT_SSL_VERIFYPEER] = false;
-        $curlOptions[CURLOPT_SSL_VERIFYHOST] = 0;
-    }
 }
 
 curl_setopt_array($ch, $curlOptions);
