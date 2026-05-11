@@ -1,9 +1,22 @@
 # Apache .htaccess for API-specific CORS fallback
 
-<IfModule mod_headers.c>
-    # Non-editor endpoints set CORS in PHP (origin allowlist via config).
-    # Avoid wildcard fallback here to reduce cross-origin exposure.
+<IfModule mod_setenvif.c>
+    # Apache-level fallback for production hosts where Origin may not reach PHP reliably.
+    # Keep this as an explicit first-party allowlist; do not reflect arbitrary origins.
+    SetEnvIfNoCase Origin "^https://([a-z0-9-]+\.)?(videncenterfordiabetes\.dk|danishdiabetesknowledgecenter\.dk|nempubmed\.dk|quickpubmed\.dk)$" QPM_CORS_ORIGIN=$0
+    SetEnvIfNoCase Origin "^http://(localhost|127\.0\.0\.1)(:[0-9]+)?$" QPM_CORS_ORIGIN=$0
+</IfModule>
 
-    # Editor endpoints set CORS in PHP via the configured origin allowlist.
-    # Do not reflect arbitrary origins at the Apache layer.
+<IfModule mod_headers.c>
+    Header always unset Access-Control-Allow-Origin
+    Header always unset Access-Control-Allow-Credentials
+    Header always set Access-Control-Allow-Origin "%{QPM_CORS_ORIGIN}e" env=QPM_CORS_ORIGIN
+    Header always set Access-Control-Allow-Credentials "true" env=QPM_CORS_ORIGIN
+    Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS" env=QPM_CORS_ORIGIN
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With" env=QPM_CORS_ORIGIN
+    Header always set Access-Control-Max-Age "600" env=QPM_CORS_ORIGIN
+    Header always merge Vary "Origin"
+
+    # PHP keeps enforcing the CORS allowlist and request validation.
+    # These headers only make the allowed first-party origins visible to browsers.
 </IfModule>
