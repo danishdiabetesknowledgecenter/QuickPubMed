@@ -99,6 +99,13 @@ $resultFocus = [
     'description' => qpmSemanticRerankNormalizeString($rawResultFocus['description'] ?? ''),
 ];
 $model = qpmSemanticRerankNormalizeString($input['model'] ?? 'gpt-5.4-nano');
+// reasoning.effort must match the model family (the API rejects mismatches), so it
+// is configurable via QPM_SEMANTIC_LLM_RERANK_CONFIG and passed through from the
+// widget. Fall back to 'none' (valid for the default gpt-5.4 family) when unset.
+$reasoningEffort = strtolower(qpmSemanticRerankNormalizeString($input['reasoningEffort'] ?? ''));
+if (!in_array($reasoningEffort, ['minimal', 'none', 'low', 'medium', 'high', 'xhigh'], true)) {
+    $reasoningEffort = 'none';
+}
 $maxOutputTokens = (int) ($input['maxOutputTokens'] ?? 400);
 $rawCandidates = isset($input['candidates']) && is_array($input['candidates']) ? $input['candidates'] : [];
 
@@ -250,7 +257,7 @@ $openAiRequest = [
             'content' => json_encode($userPayload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
         ],
     ],
-    'reasoning' => ['effort' => 'minimal'],
+    'reasoning' => ['effort' => $reasoningEffort],
     'text' => [
         'verbosity' => 'low',
         'format' => [

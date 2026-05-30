@@ -69,7 +69,7 @@ function qpmGetOpenAlexWorkCacheDir(): string
     return $cacheDir;
 }
 
-function qpmGetOpenAlexWorkCachePath(string $type, string $value, string $domain): string
+function qpmGetOpenAlexWorkCachePath(string $type, string $value, string $domain, string $selectVariant = 'full'): string
 {
     $payload = [
         'type' => strtolower(trim($type)),
@@ -77,16 +77,22 @@ function qpmGetOpenAlexWorkCachePath(string $type, string $value, string $domain
         'domain' => strtolower(trim($domain)),
         'selectVersion' => '2026-04-28',
     ];
+    // The lightweight validation select omits heavy fields (abstract, authorships),
+    // so it must use a separate cache namespace. Full lookups keep the original key
+    // unchanged so existing cache files stay valid.
+    if ($selectVariant !== 'full') {
+        $payload['selectVariant'] = strtolower(trim($selectVariant));
+    }
     $cacheKey = hash('sha256', json_encode($payload, JSON_UNESCAPED_SLASHES));
     return qpmGetOpenAlexWorkCacheDir() . '/' . $cacheKey . '.json';
 }
 
-function qpmReadOpenAlexWorkCache(string $type, string $value, string $domain): array
+function qpmReadOpenAlexWorkCache(string $type, string $value, string $domain, string $selectVariant = 'full'): array
 {
     if ($value === '') {
         return ['hit' => false, 'value' => null];
     }
-    $path = qpmGetOpenAlexWorkCachePath($type, $value, $domain);
+    $path = qpmGetOpenAlexWorkCachePath($type, $value, $domain, $selectVariant);
     if (!is_file($path)) {
         return ['hit' => false, 'value' => null];
     }
@@ -106,7 +112,7 @@ function qpmReadOpenAlexWorkCache(string $type, string $value, string $domain): 
     return ['hit' => true, 'value' => $payload['value'] ?? null];
 }
 
-function qpmWriteOpenAlexWorkCache(string $type, string $value, string $domain, $cacheValue, bool $isNegative = false): void
+function qpmWriteOpenAlexWorkCache(string $type, string $value, string $domain, $cacheValue, bool $isNegative = false, string $selectVariant = 'full'): void
 {
     if ($value === '' || qpmGetOpenAlexWorkCacheTtl($isNegative) <= 0) {
         return;
@@ -119,7 +125,7 @@ function qpmWriteOpenAlexWorkCache(string $type, string $value, string $domain, 
     if ($payload === false) {
         return;
     }
-    @file_put_contents(qpmGetOpenAlexWorkCachePath($type, $value, $domain), $payload, LOCK_EX);
+    @file_put_contents(qpmGetOpenAlexWorkCachePath($type, $value, $domain, $selectVariant), $payload, LOCK_EX);
 }
 
 function qpmIsLocalOpenAlexLookupRequest(): bool
@@ -245,6 +251,12 @@ $normalizedOpenAlexIds = array_values(array_unique(array_filter(array_map('qpmNo
 $domain = trim((string) ($params['domain'] ?? ''));
 $lookupValue = $openAlexId !== '' ? $openAlexId : ($doi !== '' ? ('https://doi.org/' . $doi) : '');
 $isBatchLookup = count($normalizedDois) > 0 || count($normalizedOpenAlexIds) > 0;
+// DOI-rule validation only needs lightweight metadata (year, source, biblio, type),
+// not the heavy abstract_inverted_index / authorships fields. A light batch keeps the
+// OpenAlex payload small and is cached under a separate namespace so it never
+// overwrites the full record that hydration/display relies on.
+$lightSelect = !empty($params['light']);
+$selectVariant = $lightSelect ? 'light' : 'full';
 
 if (!$isBatchLookup && $lookupValue === '') {
     http_response_code(400);
@@ -259,7 +271,7 @@ if ($isBatchLookup) {
     $missingDois = [];
     $missingOpenAlexIds = [];
     foreach ($normalizedDois as $normalizedDoi) {
-        $cached = qpmReadOpenAlexWorkCache('doi', $normalizedDoi, $domain);
+        $cached = qpmReadOpenAlexWorkCache('doi', $normalizedDoi, $domain, $selectVariant);
         if ($cached['hit']) {
             if (is_array($cached['value'])) {
                 $cachedWorks[] = $cached['value'];
@@ -269,7 +281,7 @@ if ($isBatchLookup) {
         $missingDois[] = $normalizedDoi;
     }
     foreach ($normalizedOpenAlexIds as $normalizedId) {
-        $cached = qpmReadOpenAlexWorkCache('openalex', $normalizedId, $domain);
+        $cached = qpmReadOpenAlexWorkCache('openalex', $normalizedId, $domain, $selectVariant);
         if ($cached['hit']) {
             if (is_array($cached['value'])) {
                 $cachedWorks[] = $cached['value'];
@@ -290,7 +302,9 @@ if ($isBatchLookup) {
         $requestParams = [
             'filter' => $filterChunk['filter'],
             'per_page' => $filterChunk['count'],
-            'select' => 'id,doi,ids,display_name,title,publication_date,publication_year,biblio,abstract_inverted_index,authorships,primary_location,language,type,type_crossref',
+            'select' => $lightSelect
+                ? 'id,doi,ids,display_name,title,publication_date,publication_year,biblio,primary_location,language,type,type_crossref'
+                : 'id,doi,ids,display_name,title,publication_date,publication_year,biblio,abstract_inverted_index,authorships,primary_location,language,type,type_crossref',
         ];
         if ($openAlexApiKey !== '') {
             $requestParams['api_key'] = $openAlexApiKey;
@@ -348,22 +362,22 @@ if ($isBatchLookup) {
         $workEntry = $works[count($works) - 1];
         if ($workDoi !== '') {
             $resolvedDoiKeys[strtolower($workDoi)] = true;
-            qpmWriteOpenAlexWorkCache('doi', $workDoi, $domain, $workEntry);
+            qpmWriteOpenAlexWorkCache('doi', $workDoi, $domain, $workEntry, false, $selectVariant);
         }
         $shortOpenAlexId = qpmNormalizeOpenAlexLookupId($workOpenAlexId);
         if ($shortOpenAlexId !== '') {
             $resolvedOpenAlexKeys[$shortOpenAlexId] = true;
-            qpmWriteOpenAlexWorkCache('openalex', $shortOpenAlexId, $domain, $workEntry);
+            qpmWriteOpenAlexWorkCache('openalex', $shortOpenAlexId, $domain, $workEntry, false, $selectVariant);
         }
     }
     foreach ($missingDois as $missingDoi) {
         if (empty($resolvedDoiKeys[strtolower($missingDoi)])) {
-            qpmWriteOpenAlexWorkCache('doi', $missingDoi, $domain, null, true);
+            qpmWriteOpenAlexWorkCache('doi', $missingDoi, $domain, null, true, $selectVariant);
         }
     }
     foreach ($missingOpenAlexIds as $missingId) {
         if (empty($resolvedOpenAlexKeys[$missingId])) {
-            qpmWriteOpenAlexWorkCache('openalex', $missingId, $domain, null, true);
+            qpmWriteOpenAlexWorkCache('openalex', $missingId, $domain, null, true, $selectVariant);
         }
     }
 

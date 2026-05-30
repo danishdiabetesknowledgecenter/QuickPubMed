@@ -547,15 +547,19 @@ if ($openAlexEmail !== '') {
 
 // OpenAlex search.semantic er dokumenteret begrænset til 1 request/sek:
 // https://developers.openalex.org/guides/searching#semantic-search-beta
-// Keyword-søgning har ikke samme restriktion, så vi throttler kun semantic-mode.
+// Keyword-søgning har ikke samme restriktion, men da keyword-supplementet nu kan
+// startes parallelt med det semantiske kald (deferred filtre), paces keyword-mode
+// let i sit eget namespace, så samtidige requests ikke giver bursts mod OpenAlex.
 if ($searchMode === 'semantic') {
     qpmThrottleRequestRate('openalex_semantic', 1);
+} else {
+    qpmThrottleRequestRate('openalex_keyword', 2);
 }
-qpmThrottleNlmRequests(1);
 $url = 'https://api.openalex.org/works?' . http_build_query($requestParams);
+$openAlexTimeout = $searchMode === 'semantic' ? 12 : 20;
 $result = qpmHttpRequest($url, [
     'method' => 'GET',
-    'timeout' => 30,
+    'timeout' => $openAlexTimeout,
     'user_agent' => 'QuickPubMed/1.0',
     'headers' => ['Accept: application/json'],
 ]);
@@ -590,9 +594,24 @@ if (!$result['ok']) {
 
 $decoded = json_decode($result['body'], true);
 if (!is_array($decoded)) {
-    http_response_code(502);
-    echo json_encode(['error' => 'Invalid response from OpenAlex']);
-    exit;
+    $status = (int) ($result['status'] ?? 0);
+    $warning = $status >= 400
+        ? ('OpenAlex returned HTTP ' . (string) $status)
+        : 'Invalid OpenAlex response';
+    qpmRespondWithOpenAlexWarning(
+        $query,
+        $warning,
+        qpmBuildOpenAlexRetryHints($warning, [
+            'languages' => $languageFilters,
+            'sourceTypes' => $sourceTypes,
+            'workTypes' => $workTypes,
+            'publicationYear' => $publicationYearFilter,
+        ]),
+        qpmBuildOpenAlexRateLimitInfo(
+            is_array($result['response_headers'] ?? null) ? $result['response_headers'] : [],
+            $status
+        )
+    );
 }
 
 $status = (int) ($result['status'] ?? 0);

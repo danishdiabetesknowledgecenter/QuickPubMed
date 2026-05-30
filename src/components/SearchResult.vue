@@ -67,61 +67,42 @@
                       >
                         {{ shouldShowProcessStepDuration(step) ? formatProcessStepDuration(step) : "" }}
                       </span>
-                      <span class="qpm_searchProcessLabel"
-                        >{{ getProcessStepLabel(step) }}<span class="qpm_searchProcessDots" aria-hidden="true">{{
-                          getProcessStepDots(step)
-                        }}</span>
-                        <span v-if="getProcessStatusText(step.status)" class="qpm_srOnly">
-                          {{ getProcessStatusText(step.status) }}
-                        </span></span
-                      >
-                      <button
-                        v-if="
-                          showProcessDetailsToggles &&
-                          !isProcessStepAnimated(step) &&
-                          getSourceQueryDetailsForStep(step).length > 0
-                        "
-                        type="button"
-                        class="qpm_linkButton qpm_linkButtonAsAnchor qpm_searchProcessSourceToggle"
-                        :aria-expanded="isSourceQueryExpanded(step.id)"
-                        :aria-controls="getProcessDetailPanelId(step.id)"
-                        :aria-label="getProcessToggleAriaLabel(step)"
-                        @click="toggleSourceQuery(step.id)"
-                      >
-                        {{
-                          getString(
-                            isSourceQueryExpanded(step.id)
-                              ? "hideDetails"
-                              : "showDetails"
-                          )
-                        }}
-                      </button>
-                      <button
-                        v-else-if="
-                          showProcessDetailsToggles &&
-                          !isProcessStepAnimated(step) &&
-                          getProcessStepDetailsForStep(step).length > 0
-                        "
-                        type="button"
-                        class="qpm_linkButton qpm_linkButtonAsAnchor qpm_searchProcessSourceToggle"
-                        :aria-expanded="isSourceQueryExpanded(step.id)"
-                        :aria-controls="getProcessDetailPanelId(step.id)"
-                        :aria-label="getProcessToggleAriaLabel(step)"
-                        @click="toggleSourceQuery(step.id)"
-                      >
-                        {{
-                          getString(
-                            isSourceQueryExpanded(step.id)
-                              ? "hideDetails"
-                              : "showDetails"
-                          )
-                        }}
-                      </button>
+                      <div class="qpm_searchProcessBody">
+                        <span class="qpm_searchProcessLabel"
+                          >{{ getProcessStepLabel(step) }}<span class="qpm_searchProcessDots" aria-hidden="true">{{
+                            getProcessStepDots(step)
+                          }}</span>
+                          <span v-if="getProcessStatusText(step.status)" class="qpm_srOnly">
+                            {{ getProcessStatusText(step.status) }}
+                          </span></span
+                        >
+                        <button
+                          v-if="
+                            showProcessDetailsToggles &&
+                            !isProcessStepAnimated(step) &&
+                            hasProcessStepExpandableContent(step)
+                          "
+                          type="button"
+                          class="qpm_linkButton qpm_linkButtonAsAnchor qpm_searchProcessSourceToggle"
+                          :aria-expanded="isSourceQueryExpanded(step.id)"
+                          :aria-controls="getProcessDetailPanelId(step.id)"
+                          :aria-label="getProcessToggleAriaLabel(step)"
+                          @click="toggleSourceQuery(step.id)"
+                        >
+                          {{
+                            getString(
+                              isSourceQueryExpanded(step.id)
+                                ? "hideDetails"
+                                : "showDetails"
+                            )
+                          }}
+                        </button>
+                      </div>
                     </div>
                     <div
                       v-if="
                         showProcessDetailsToggles &&
-                        getSourceQueryDetailsForStep(step).length > 0
+                        hasProcessStepExpandableContent(step)
                       "
                       v-show="isSourceQueryExpanded(step.id)"
                       :id="getProcessDetailPanelId(step.id)"
@@ -130,6 +111,52 @@
                       :inert="!isSourceQueryExpanded(step.id) ? '' : null"
                     >
                       <div class="qpm_searchProcessQueryPanel">
+                        <p
+                          v-if="getProcessStepExplanation(step)"
+                          class="qpm_searchProcessStepExplanation"
+                        >
+                          {{ getProcessStepExplanation(step) }}
+                        </p>
+                        <div
+                          v-if="getProcessStepMetrics(step).length > 0"
+                          class="qpm_searchProcessStepMetrics"
+                        >
+                          <div class="qpm_searchProcessQueryLabel">
+                            {{ getString("semanticSearchProcessMetricsTitle") }}
+                          </div>
+                          <ul class="qpm_searchProcessMetricsList">
+                            <li
+                              v-for="metric in getProcessStepMetrics(step)"
+                              :key="`${step.id}-metric-${metric.labelKey}`"
+                              class="qpm_searchProcessMetricsItem"
+                            >
+                              <span class="qpm_searchProcessMetricLabel">{{ getString(metric.labelKey) }}</span>
+                              <span class="qpm_searchProcessMetricValue">{{ metric.value }}</span>
+                            </li>
+                          </ul>
+                        </div>
+                        <div
+                          v-if="getProcessStepDetailExplanation(step)"
+                          class="qpm_searchProcessStepDetailExplanation"
+                        >
+                          <div class="qpm_searchProcessQueryLabel">
+                            {{ getString("semanticSearchProcessDetailExplanationTitle") }}
+                          </div>
+                          <p class="qpm_searchProcessStepExplanation">
+                            {{ getProcessStepDetailExplanation(step) }}
+                          </p>
+                        </div>
+                        <div
+                          v-if="getProcessStatusText(step.status)"
+                          class="qpm_searchProcessQueryEntry"
+                        >
+                          <div class="qpm_searchProcessQueryLabel">
+                            {{ getString("degradedSearchSummaryTitle") }}
+                          </div>
+                          <p class="qpm_searchProcessStatusNote">
+                            {{ getProcessStepStatusNote(step) }}
+                          </p>
+                        </div>
                         <div
                           v-for="(detail, queryIndex) in getSourceQueryDetailsForStep(step)"
                           :key="`${step.id}-${queryIndex}-${detail.query}`"
@@ -151,22 +178,13 @@
                             </div>
                             <pre class="qpm_searchProcessQueryText">{{ getFormattedSourceRequest(detail) }}</pre>
                           </template>
+                          <template v-if="getFormattedSourceResponse(detail)">
+                            <div class="qpm_searchProcessQueryLabel">
+                              {{ getString("searchProcessSourceResponseLabel") }}
+                            </div>
+                            <pre class="qpm_searchProcessQueryText">{{ getFormattedSourceResponse(detail) }}</pre>
+                          </template>
                         </div>
-                      </div>
-                    </div>
-                    <div
-                      v-if="
-                        showProcessDetailsToggles &&
-                        getSourceQueryDetailsForStep(step).length === 0 &&
-                        getProcessStepDetailsForStep(step).length > 0
-                      "
-                      v-show="isSourceQueryExpanded(step.id)"
-                      :id="getProcessDetailPanelId(step.id)"
-                      class="qpm_searchProcessQuery"
-                      :aria-hidden="!isSourceQueryExpanded(step.id) ? 'true' : null"
-                      :inert="!isSourceQueryExpanded(step.id) ? '' : null"
-                    >
-                      <div class="qpm_searchProcessQueryPanel">
                         <div
                           v-for="(detail, detailIndex) in getProcessStepDetailsForStep(step)"
                           :key="`${step.id}-detail-${detailIndex}`"
@@ -856,6 +874,8 @@
               detail?.requestMeta && typeof detail.requestMeta === "object"
                 ? detail.requestMeta
                 : null;
+            const response =
+              detail?.response && typeof detail.response === "object" ? detail.response : null;
             const query = String(detail?.query || request?.query || "").trim();
             const context = String(detail?.context || "").trim();
             return {
@@ -863,6 +883,7 @@
               query,
               request,
               requestMeta,
+              response,
               context: context.toLowerCase() === query.toLowerCase() ? "" : context,
             };
           })
@@ -1483,6 +1504,17 @@
         });
         return hasContent ? JSON.stringify(payload, null, 2) : "";
       },
+      getFormattedSourceResponse(detail = {}) {
+        const response =
+          detail?.response && typeof detail.response === "object" ? detail.response : null;
+        if (!response) return "";
+        const hasContent = Object.values(response).some((value) => {
+          if (Array.isArray(value)) return value.length > 0;
+          if (value && typeof value === "object") return Object.keys(value).length > 0;
+          return value !== "" && value !== null && value !== undefined;
+        });
+        return hasContent ? JSON.stringify(response, null, 2) : "";
+      },
       getFormattedProcessStepDetail(detail = {}) {
         const payload =
           detail?.payload && typeof detail.payload === "object" ? detail.payload : {};
@@ -1534,13 +1566,13 @@
           .replace("{duration}", duration);
       },
       formatProcessDurationAsWords(milliseconds = 0) {
-        const totalSeconds = Math.max(0, Number(milliseconds || 0) / 1000);
+        const totalSeconds = Math.round(Math.max(0, Number(milliseconds || 0) / 1000));
         const minutes = Math.floor(totalSeconds / 60);
         const seconds = totalSeconds - minutes * 60;
-        const secondText = this.formatDurationSeconds(seconds * 1000);
+        const secondText = String(seconds);
         if (minutes <= 0) {
           const secondKey =
-            Math.abs(seconds - 1) < 0.05
+            seconds === 1
               ? "searchProcessSecondSingular"
               : "searchProcessSecondPlural";
           return `${secondText} ${this.getString(secondKey)}`;
@@ -1548,7 +1580,7 @@
         const minuteKey =
           minutes === 1 ? "searchProcessMinuteSingular" : "searchProcessMinutePlural";
         const secondKey =
-          Math.abs(seconds - 1) < 0.05
+          seconds === 1
             ? "searchProcessSecondSingular"
             : "searchProcessSecondPlural";
         return `${minutes} ${this.getString(minuteKey)} ${secondText} ${this.getString(secondKey)}`;
@@ -1567,9 +1599,198 @@
           return ".".repeat(Math.max(1, Math.min(5, this.processDotCount)));
         }
         if (["warning", "partial", "failed", "rateLimited", "recovered"].includes(status)) {
-          return "!";
+          return ".";
         }
         return "...";
+      },
+      getProcessStepStatusNote(step = {}) {
+        return this.getProcessStatusText(step?.status);
+      },
+      getProcessStepExplanation(step = {}) {
+        const explanationKeys = {
+          prepare: "semanticSearchProcessExplanationPrepare",
+          searchString: "semanticSearchProcessExplanationSearchString",
+          mesh: "semanticSearchProcessExplanationMesh",
+          optimize: "semanticSearchProcessExplanationOptimize",
+          semanticQuery: "semanticSearchProcessExplanationSemanticQuery",
+          pubmed: "semanticSearchProcessExplanationPubmed",
+          semanticScholar: "semanticSearchProcessExplanationSemanticScholar",
+          openAlex: "semanticSearchProcessExplanationOpenAlex",
+          elicit: "semanticSearchProcessExplanationElicit",
+          rerank: "semanticSearchProcessExplanationRerank",
+          finalizeCollect: "semanticSearchProcessExplanationFinalizeCollect",
+          finalizeValidatePmid: "semanticSearchProcessExplanationFinalizeValidatePmid",
+          finalizeValidateDoiFetch: "semanticSearchProcessExplanationFinalizeValidateDoiFetch",
+          finalizeValidateDoiSource: "semanticSearchProcessExplanationFinalizeValidateDoiSource",
+          finalizeValidateDoiRules: "semanticSearchProcessExplanationFinalizeValidateDoiRules",
+          finalizeHydrate: "semanticSearchProcessExplanationFinalizeHydrate",
+          finalizeSort: "semanticSearchProcessExplanationFinalizeSort",
+          finalRerank: "semanticSearchProcessExplanationFinalRerank",
+          finalizeSelected: "semanticSearchProcessExplanationFinalizeSelected",
+          finalizeRender: "semanticSearchProcessExplanationFinalizeRender",
+        };
+        const key = explanationKeys[String(step?.id || "").trim()];
+        return key ? this.getString(key) : "";
+      },
+      getProcessStepDetailExplanation(step = {}) {
+        const explanationKeys = {
+          prepare: "semanticSearchProcessDetailExplanationPrepare",
+          searchString: "semanticSearchProcessDetailExplanationSearchString",
+          mesh: "semanticSearchProcessDetailExplanationMesh",
+          optimize: "semanticSearchProcessDetailExplanationOptimize",
+          semanticQuery: "semanticSearchProcessDetailExplanationSemanticQuery",
+          pubmed: "semanticSearchProcessDetailExplanationPubmed",
+          semanticScholar: "semanticSearchProcessDetailExplanationSemanticScholar",
+          openAlex: "semanticSearchProcessDetailExplanationOpenAlex",
+          elicit: "semanticSearchProcessDetailExplanationElicit",
+          rerank: "semanticSearchProcessDetailExplanationRerank",
+          finalizeCollect: "semanticSearchProcessDetailExplanationFinalizeCollect",
+          finalizeValidatePmid: "semanticSearchProcessDetailExplanationFinalizeValidatePmid",
+          finalizeValidateDoiFetch: "semanticSearchProcessDetailExplanationFinalizeValidateDoiFetch",
+          finalizeValidateDoiSource: "semanticSearchProcessDetailExplanationFinalizeValidateDoiSource",
+          finalizeValidateDoiRules: "semanticSearchProcessDetailExplanationFinalizeValidateDoiRules",
+          finalizeHydrate: "semanticSearchProcessDetailExplanationFinalizeHydrate",
+          finalizeSort: "semanticSearchProcessDetailExplanationFinalizeSort",
+          finalRerank: "semanticSearchProcessDetailExplanationFinalRerank",
+          finalizeSelected: "semanticSearchProcessDetailExplanationFinalizeSelected",
+          finalizeRender: "semanticSearchProcessDetailExplanationFinalizeRender",
+        };
+        const key = explanationKeys[String(step?.id || "").trim()];
+        return key ? this.getString(key) : "";
+      },
+      hasProcessStepExpandableContent(step = {}) {
+        return (
+          this.getSourceQueryDetailsForStep(step).length > 0 ||
+          this.getProcessStepDetailsForStep(step).length > 0 ||
+          Boolean(this.getProcessStatusText(step?.status)) ||
+          Boolean(this.getProcessStepExplanation(step)) ||
+          Boolean(this.getProcessStepDetailExplanation(step))
+        );
+      },
+      getMergedProcessStepPayload(step = {}) {
+        const details = this.getProcessStepDetailsForStep(step);
+        if (!Array.isArray(details) || details.length === 0) return null;
+        return details.reduce(
+          (acc, detail) => ({
+            ...acc,
+            ...(detail?.payload && typeof detail.payload === "object" ? detail.payload : {}),
+          }),
+          {}
+        );
+      },
+      getProcessStepSourceResponse(step = {}) {
+        const details = this.getSourceQueryDetailsForStep(step);
+        const withResponse = (Array.isArray(details) ? details : []).find(
+          (detail) => detail?.response && typeof detail.response === "object"
+        );
+        return withResponse?.response || null;
+      },
+      getProcessStepMetrics(step = {}) {
+        const stepId = String(step?.id || "").trim();
+        const payload = this.getMergedProcessStepPayload(step) || {};
+        const response = this.getProcessStepSourceResponse(step) || {};
+        const rows = [];
+        const num = (value) => {
+          const parsed = Number(value);
+          return Number.isFinite(parsed) ? parsed : null;
+        };
+        const arrLen = (value) => (Array.isArray(value) ? value.length : null);
+        const add = (labelKey, value) => {
+          if (value === null || value === undefined) return;
+          rows.push({
+            labelKey,
+            value: Number(value).toLocaleString(this.language === "dk" ? "da-DK" : "en-US"),
+          });
+        };
+        const sumQueries = (field, useLength = false) => {
+          const queries = Array.isArray(payload.queries) ? payload.queries : [];
+          if (queries.length === 0) return null;
+          return queries.reduce((total, query) => {
+            const raw = useLength ? arrLen(query?.[field]) : num(query?.[field]);
+            return total + (raw || 0);
+          }, 0);
+        };
+        switch (stepId) {
+          case "prepare":
+            add("semanticSearchProcessMetricSelectedSources", arrLen(payload.selectedSources));
+            add("semanticSearchProcessMetricPageSize", num(payload.pageSize));
+            break;
+          case "searchString":
+            add("semanticSearchProcessMetricDetectedConcepts", arrLen(payload.detectedConcepts));
+            break;
+          case "mesh":
+            add("semanticSearchProcessMetricMeshTotal", sumQueries("totalMeshTerms"));
+            add("semanticSearchProcessMetricMeshValid", sumQueries("validCount"));
+            add("semanticSearchProcessMetricMeshInvalid", sumQueries("invalidCount"));
+            break;
+          case "optimize":
+            add("semanticSearchProcessMetricAddedMeshTerms", sumQueries("addedMeshTerms", true));
+            add("semanticSearchProcessMetricRemovedMeshTerms", sumQueries("removedMeshTerms", true));
+            break;
+          case "semanticQuery":
+            add("semanticSearchProcessMetricAdaptedSources", arrLen(payload.sourceQueries));
+            break;
+          case "pubmed":
+          case "semanticScholar":
+          case "openAlex":
+          case "elicit":
+            add("semanticSearchProcessMetricCandidates", num(response.candidateCount));
+            add("semanticSearchProcessMetricTotalAvailable", num(response.totalAvailable));
+            break;
+          case "rerank":
+            add("semanticSearchProcessMetricCandidates", num(payload.candidateCount));
+            break;
+          case "finalizeCollect":
+            add("semanticSearchProcessMetricCandidates", num(payload.candidateCount));
+            add("semanticSearchProcessMetricPmidCandidates", num(payload.pmidCandidateCount));
+            add("semanticSearchProcessMetricDoiCandidates", num(payload.doiCandidateCount));
+            break;
+          case "finalizeValidatePmid":
+            add("semanticSearchProcessMetricChecked", num(payload.orderedPmidCount));
+            add("semanticSearchProcessMetricMatched", num(payload.orderedMatchedCount));
+            add("semanticSearchProcessMetricExcluded", num(payload.unmatchedCandidateCount));
+            break;
+          case "finalizeValidateDoiFetch":
+            add("semanticSearchProcessMetricCandidates", num(payload.candidateCount));
+            add("semanticSearchProcessMetricDoiCandidates", num(payload.doiCandidateCount));
+            add("semanticSearchProcessMetricOpenAlexCandidates", num(payload.openAlexIdCandidateCount));
+            add(
+              "semanticSearchProcessMetricTrustedPmidSkipped",
+              payload.trustedPmidSkippedCount ? num(payload.trustedPmidSkippedCount) : null
+            );
+            break;
+          case "finalizeValidateDoiRules":
+            add("semanticSearchProcessMetricChecked", num(payload.validatedCount));
+            add("semanticSearchProcessMetricAllowed", num(payload.allowedCount));
+            add("semanticSearchProcessMetricExcluded", num(payload.excludedCount));
+            break;
+          case "finalizeHydrate":
+            add("semanticSearchProcessMetricRequested", num(payload.requestedCount));
+            add("semanticSearchProcessMetricFetched", num(payload.hydratedCount));
+            add("semanticSearchProcessMetricMissing", num(payload.missingCount));
+            break;
+          case "finalizeSort":
+            add("semanticSearchProcessMetricInput", num(payload.inputCount));
+            add("semanticSearchProcessMetricOutput", num(payload.outputCount));
+            break;
+          case "finalRerank":
+            add(
+              "semanticSearchProcessMetricCandidates",
+              num(payload.candidateCount ?? payload.request?.candidateCount)
+            );
+            break;
+          case "finalizeSelected":
+            add("semanticSearchProcessMetricPreselected", num(payload.preselectedCount));
+            add("semanticSearchProcessMetricSelected", num(payload.selectedCount));
+            break;
+          case "finalizeRender":
+            add("semanticSearchProcessMetricRendered", num(payload.renderedCount));
+            add("semanticSearchProcessMetricTotal", num(payload.totalCount));
+            break;
+          default:
+            break;
+        }
+        return rows;
       },
       getProcessStatusText(status) {
         const keyMap = {

@@ -144,6 +144,17 @@ The backend is part of this same repository under `backend/`.
 php -S 127.0.0.1:8080 -t . scripts/local-php-router.php
 ```
 
+> **Concurrent requests:** PHP's built-in server (`php -S`) is single-threaded and handles
+> one request at a time, so the parallel calls from the semantic search flow queue up on the
+> backend. They only run truly concurrently in production behind PHP-FPM/Apache/Nginx.
+>
+> - Linux/macOS/WSL2: start with multiple workers, e.g.
+>   `PHP_CLI_SERVER_WORKERS=4 php -S 127.0.0.1:8080 -t . scripts/local-php-router.php`.
+> - Windows: `PHP_CLI_SERVER_WORKERS` is **not supported** (it relies on `fork()`), so the
+>   built-in server stays single-threaded regardless of the variable. To test real concurrency
+>   locally, run the backend in WSL2, or use a full stack (Laragon/XAMPP/WAMP) that serves PHP
+>   via PHP-FPM/CGI.
+
 Then use in `.env`:
 
 ```bash

@@ -607,6 +607,170 @@ export const messages = {
     dk: "Bemærk om søgeprocessen",
     en: "Search process note",
   },
+  semanticSearchProcessExplanationPrepare: {
+    dk: "Her samler systemet alt det, du har valgt – søgeord, afgrænsninger og databaser – så resten af søgningen ved, hvad den skal lede efter.",
+    en: "Here the system gathers everything you selected – search terms, filters and sources – so the rest of the search knows what to look for.",
+  },
+  semanticSearchProcessExplanationSearchString: {
+    dk: "Din fritekst bliver oversat til en søgestreng, som PubMed forstår, så de rigtige artikler kan findes.",
+    en: "Your free text is translated into a search string that PubMed understands, so the right articles can be found.",
+  },
+  semanticSearchProcessExplanationMesh: {
+    dk: "De vigtigste begreber tjekkes mod PubMeds officielle emneord (MeSH), så søgningen rammer mere præcist.",
+    en: "The key concepts are checked against PubMed's official subject headings (MeSH) so the search is more precise.",
+  },
+  semanticSearchProcessExplanationOptimize: {
+    dk: "Søgestrengen finpudses med de fundne MeSH-emneord, så den giver mere relevante resultater.",
+    en: "The search string is fine-tuned with the matched MeSH headings so it returns more relevant results.",
+  },
+  semanticSearchProcessExplanationSemanticQuery: {
+    dk: "Søgningen oversættes og tilpasses, så den passer til hver enkelt valgt database.",
+    en: "The search is translated and adapted so it fits each selected database.",
+  },
+  semanticSearchProcessExplanationPubmed: {
+    dk: "Der søges i PubMed for at finde de artikler, der bedst matcher dit spørgsmål.",
+    en: "PubMed is searched to find the articles that best match your question.",
+  },
+  semanticSearchProcessExplanationSemanticScholar: {
+    dk: "Der søges i Semantic Scholar for at finde beslægtede artikler.",
+    en: "Semantic Scholar is searched to find related articles.",
+  },
+  semanticSearchProcessExplanationOpenAlex: {
+    dk: "Der søges i OpenAlex for at finde beslægtede artikler.",
+    en: "OpenAlex is searched to find related articles.",
+  },
+  semanticSearchProcessExplanationElicit: {
+    dk: "Der søges i Elicit for at finde beslægtede artikler.",
+    en: "Elicit is searched to find related articles.",
+  },
+  semanticSearchProcessExplanationRerank: {
+    dk: "Resultaterne fra de forskellige databaser samles og sorteres efter, hvor godt de passer til dit spørgsmål.",
+    en: "The results from the different databases are combined and ordered by how well they match your question.",
+  },
+  semanticSearchProcessExplanationFinalizeCollect: {
+    dk: "De fundne artikler samles, og dubletter fjernes, så de er klar til at blive tjekket mod dine afgrænsninger.",
+    en: "The found articles are gathered and duplicates removed, so they are ready to be checked against your filters.",
+  },
+  semanticSearchProcessExplanationFinalizeValidatePmid: {
+    dk: "Artikler med et PubMed-id tjekkes mod PubMed-søgningen for at sikre, at de overholder dine afgrænsninger.",
+    en: "Articles with a PubMed ID are checked against the PubMed search to ensure they meet your filters.",
+  },
+  semanticSearchProcessExplanationFinalizeValidateDoiFetch: {
+    dk: "For artikler uden PubMed-id hentes oplysninger via deres DOI, så de også kan tjekkes mod afgrænsningerne.",
+    en: "For articles without a PubMed ID, details are fetched via their DOI so they can also be checked against the filters.",
+  },
+  semanticSearchProcessExplanationFinalizeValidateDoiSource: {
+    dk: "Der hentes oplysninger om tidsskriftet, så artiklen kan vurderes korrekt mod dine afgrænsninger.",
+    en: "Journal details are fetched so the article can be assessed correctly against your filters.",
+  },
+  semanticSearchProcessExplanationFinalizeValidateDoiRules: {
+    dk: "Det tjekkes, hvilke af DOI-artiklerne der lever op til dine afgrænsninger.",
+    en: "It is checked which of the DOI articles meet your filters.",
+  },
+  semanticSearchProcessExplanationFinalizeHydrate: {
+    dk: "Der hentes de fulde oplysninger (titel, forfattere, abstract m.m.) for de artikler, der skal vises.",
+    en: "The full details (title, authors, abstract, etc.) are fetched for the articles to be shown.",
+  },
+  semanticSearchProcessExplanationFinalizeSort: {
+    dk: "Resultaterne sorteres efter dato, som du har valgt.",
+    en: "The results are sorted by date, as you selected.",
+  },
+  semanticSearchProcessExplanationFinalRerank: {
+    dk: "Den endelige rækkefølge tjekkes en sidste gang, før resultaterne vises.",
+    en: "The final ordering is checked one last time before the results are shown.",
+  },
+  semanticSearchProcessExplanationFinalizeSelected: {
+    dk: "Det sikres, at artikler, du allerede har markeret, bliver bevaret i listen.",
+    en: "It is ensured that articles you have already selected are kept in the list.",
+  },
+  semanticSearchProcessExplanationFinalizeRender: {
+    dk: "Resultaterne gøres klar og vises på skærmen.",
+    en: "The results are made ready and shown on screen.",
+  },
+  semanticSearchProcessDetailExplanationTitle: {
+    dk: "Sådan fungerer trinnet",
+    en: "How this step works",
+  },
+  semanticSearchProcessDetailExplanationPrepare: {
+    dk: "Dette er det første trin, hvor søgningen klargøres ud fra dine valg. I detaljerne ser du 'input' (din søgetekst), 'selectedSources' (de valgte databaser), 'resultFocus' (det valgte fokus til rangering), 'sort' (sorteringsvalg), 'pageSize' (antal pr. side) og 'searchWithAI' (om AI-søgning er slået til).",
+    en: "This is the first step, where the search is prepared from your choices. In the details you see 'input' (your search text), 'selectedSources' (the chosen databases), 'resultFocus' (the focus used for ranking), 'sort' (sorting choice), 'pageSize' (results per page) and 'searchWithAI' (whether AI search is enabled).",
+  },
+  semanticSearchProcessDetailExplanationSearchString: {
+    dk: "Din fritekst oversættes til en egentlig PubMed-søgestreng med søgetags (fx [tiab] og [mh]) og AND/OR. I detaljerne ser du bl.a. 'rawUserInput' (din oprindelige tekst), 'aiCoreQuery' (den korte engelske kerne), 'detectedConcepts' (de begreber AI'en fandt), 'conceptCoverage'/'coverageCheck' (om alle begreber blev dækket), 'pubmedQuery' (den genererede søgestreng) og 'finalValidatedQuery' (den endeligt validerede søgestreng).",
+    en: "Your free text is translated into an actual PubMed search string with search tags (e.g. [tiab] and [mh]) and AND/OR. In the details you see e.g. 'rawUserInput' (your original text), 'aiCoreQuery' (the short English core), 'detectedConcepts' (the concepts the AI found), 'conceptCoverage'/'coverageCheck' (whether all concepts were covered), 'pubmedQuery' (the generated search string) and 'finalValidatedQuery' (the finally validated search string).",
+  },
+  semanticSearchProcessDetailExplanationMesh: {
+    dk: "De centrale begreber slås op i NLM's officielle emneordsregister (MeSH), så søgningen rammer mere præcist. I detaljerne ser du pr. begreb: 'meshSearchQuery' (det der blev slået op), 'totalMeshTerms', 'validCount'/'invalidCount' (gyldige/ugyldige MeSH-termer), 'invalidTerms' og 'renamedTerms' (afviste eller omdøbte termer), 'hallucinationRate' (andel opdigtede termer) og 'observeOnly' (om kontrollen kun observerede).",
+    en: "The key concepts are looked up in NLM's official subject-heading registry (MeSH) to make the search more precise. In the details you see per concept: 'meshSearchQuery' (what was looked up), 'totalMeshTerms', 'validCount'/'invalidCount' (valid/invalid MeSH terms), 'invalidTerms' and 'renamedTerms' (rejected or renamed terms), 'hallucinationRate' (share of invented terms) and 'observeOnly' (whether the check only observed).",
+  },
+  semanticSearchProcessDetailExplanationOptimize: {
+    dk: "Søgestrengen finpudses ved at kombinere de bekræftede MeSH-emneord med fritekst-synonymer. I detaljerne ser du pr. begreb: 'beforeOptimization' og 'afterOptimization' (søgestrengen før og efter), 'changed' (om noget blev ændret), 'addedMeshTerms'/'removedMeshTerms' og 'addedConcepts'/'removedConcepts' (tilføjede/fjernede termer) samt 'finalMeshTermCount'.",
+    en: "The search string is fine-tuned by combining the confirmed MeSH headings with free-text synonyms. In the details you see per concept: 'beforeOptimization' and 'afterOptimization' (the string before and after), 'changed' (whether anything changed), 'addedMeshTerms'/'removedMeshTerms' and 'addedConcepts'/'removedConcepts' (added/removed terms) plus 'finalMeshTermCount'.",
+  },
+  semanticSearchProcessDetailExplanationSemanticQuery: {
+    dk: "Den fælles søgning tilpasses til hver enkelt valgt database. I detaljerne ser du bl.a. 'coreQuery' (den fælles engelske kerne), 'detectedConcepts', 'confidenceScore' (hvor sikker AI'en er), 'conceptCoverage' (om begreber blev udeladt), 'potentialIssues' og 'refinementSuggestions' (mulige problemer og forslag), 'hardFilters' (dine bindende filtre), 'sourceQueries' (den konkrete query pr. database) og 'adaptations' (database-specifikke tilpasninger). 'cacheHit'/'fallbackUsed' viser, om svaret kom fra cache eller en reserveløsning.",
+    en: "The shared search is adapted for each selected database. In the details you see e.g. 'coreQuery' (the shared English core), 'detectedConcepts', 'confidenceScore' (how confident the AI is), 'conceptCoverage' (whether concepts were dropped), 'potentialIssues' and 'refinementSuggestions' (possible problems and suggestions), 'hardFilters' (your binding filters), 'sourceQueries' (the actual query per database) and 'adaptations' (database-specific adjustments). 'cacheHit'/'fallbackUsed' show whether the answer came from cache or a fallback.",
+  },
+  semanticSearchProcessDetailExplanationPubmed: {
+    dk: "Der køres en relevans-søgning i PubMed. I detaljerne ser du 'Søgetekst' (den faktiske søgestreng) og 'Request-parametre' (de parametre der sendes til PubMed, fx 'term', 'sort' og hvor mange resultater der hentes). PubMed bruges også som et sikkert fundament, hvis de øvrige kilder svigter.",
+    en: "A relevance search is run in PubMed. In the details you can see 'Query text' (the actual search string) and 'Request parameters' (the parameters sent to PubMed, e.g. 'term', 'sort' and how many results are fetched). PubMed also serves as a safe foundation if the other sources fail.",
+  },
+  semanticSearchProcessDetailExplanationSemanticScholar: {
+    dk: "Der søges i Semantic Scholar efter beslægtede artikler. I 'Request-parametre' kan du bl.a. se 'query' (søgeteksten), 'limit' (maks. antal resultater) og evt. 'publicationTypes'/'year' (de filtre kilden understøtter). 'searchMode' viser, om der blev brugt semantisk eller keyword-baseret søgning. Under 'Resultat fra kilden' ser du, hvad kilden gav tilbage – fx 'candidateCount' (antal brugbare kandidater), evt. 'warning'/'error' og 'rateLimit'.",
+    en: "Semantic Scholar is searched for related articles. In 'Request parameters' you can see e.g. 'query' (the search text), 'limit' (max number of results) and any 'publicationTypes'/'year' (the filters the source supports). 'searchMode' shows whether semantic or keyword search was used. Under 'Source response' you see what the source returned – e.g. 'candidateCount' (number of usable candidates), any 'warning'/'error' and 'rateLimit'.",
+  },
+  semanticSearchProcessDetailExplanationOpenAlex: {
+    dk: "Der søges i OpenAlex efter beslægtede artikler. I 'Request-parametre' ser du 'query' (søgeteksten), 'limit' (maks. antal), 'searchMode' (semantisk eller keyword) samt felter som 'languages' og 'workTypes' (sprog og dokumenttyper). Feltet 'requestMeta' fortæller, om søgningen måtte tilpasses – fx 'fallbackUsed', 'disabledRequestFields' (filtre der ikke kunne bruges i den semantiske søgning) og 'keywordSupplementRequest' (en ekstra keyword-søgning, der håndhæver de filtre). Under 'Resultat fra kilden' ser du, hvad kilden gav tilbage – fx 'candidateCount' (antal brugbare kandidater), evt. 'warning'/'error' og 'rateLimit'.",
+    en: "OpenAlex is searched for related articles. In 'Request parameters' you see 'query' (the search text), 'limit' (max number), 'searchMode' (semantic or keyword) and fields like 'languages' and 'workTypes' (languages and document types). The 'requestMeta' field tells you whether the search had to be adapted – e.g. 'fallbackUsed', 'disabledRequestFields' (filters that could not be used in the semantic search) and 'keywordSupplementRequest' (an extra keyword search that enforces those filters). Under 'Source response' you see what the source returned – e.g. 'candidateCount' (number of usable candidates), any 'warning'/'error' and 'rateLimit'.",
+  },
+  semanticSearchProcessDetailExplanationElicit: {
+    dk: "Der søges i Elicit efter beslægtede artikler. I 'Request-parametre' kan du se 'query' (et forskningsspørgsmål i naturligt sprog), 'limit' samt evt. 'typeTags', 'includeKeywords' og 'excludeKeywords' (de filtre Elicit understøtter). Under 'Resultat fra kilden' ser du, hvad kilden gav tilbage – fx 'candidateCount' (antal brugbare kandidater), evt. 'warning'/'error' og 'rateLimit'.",
+    en: "Elicit is searched for related articles. In 'Request parameters' you can see 'query' (a natural-language research question), 'limit' and any 'typeTags', 'includeKeywords' and 'excludeKeywords' (the filters Elicit supports). Under 'Source response' you see what the source returned – e.g. 'candidateCount' (number of usable candidates), any 'warning'/'error' and 'rateLimit'.",
+  },
+  semanticSearchProcessDetailExplanationRerank: {
+    dk: "Kandidaterne fra alle kilder samles og rangeres efter, hvor godt de matcher dit spørgsmål. I detaljerne ser du 'candidateCount', 'sourceSummary' (hvor mange hver database bidrog med, og om der var fejl), 'overlapSummary' (overlap mellem kilderne), 'mergeSummary', 'rerankProfile'/'rerankMode' og 'topCandidates' (de øverste kandidater). Her kan du altså se hver enkelt kildes faktiske bidrag.",
+    en: "The candidates from all sources are gathered and ranked by how well they match your question. In the details you see 'candidateCount', 'sourceSummary' (how many each database contributed and whether there were errors), 'overlapSummary' (overlap between sources), 'mergeSummary', 'rerankProfile'/'rerankMode' and 'topCandidates' (the top candidates). This is where you can see each source's actual contribution.",
+  },
+  semanticSearchProcessDetailExplanationFinalizeCollect: {
+    dk: "De samlede kandidater gøres klar til validering: dubletter fjernes, og resultaterne grupperes efter, om de har et PubMed-id (PMID) eller skal valideres via DOI. Det forbereder kontrollen mod dine afgrænsninger.",
+    en: "The collected candidates are prepared for validation: duplicates are removed, and the results are grouped by whether they have a PubMed ID (PMID) or must be validated via DOI. This prepares the check against your filters.",
+  },
+  semanticSearchProcessDetailExplanationFinalizeValidatePmid: {
+    dk: "Artikler med et PMID tjekkes mod en PubMed-søgning, der indeholder dine hårde filtre, så kun artikler der reelt opfylder afgrænsningerne beholdes. I detaljerne ser du bl.a. 'orderedPmidCount' (antal artikler der tjekkes), 'hardFilterQuery' (filter-søgestrengen) og 'validationMode' (hvordan valideringen blev udført). Resultatet vises som 'matchedByPubMedCount', 'orderedMatchedCount' (antal der bestod) og 'unmatchedCandidateCount' (antal der blev frasorteret). 'skipped: true' betyder, at trinnet kunne springes over, fordi artiklerne allerede var bekræftet.",
+    en: "Articles with a PMID are checked against a PubMed search that contains your hard filters, so only articles that actually meet the filters are kept. In the details you see e.g. 'orderedPmidCount' (number of articles checked), 'hardFilterQuery' (the filter search string) and 'validationMode' (how validation was done). The result is shown as 'matchedByPubMedCount', 'orderedMatchedCount' (number that passed) and 'unmatchedCandidateCount' (number filtered out). 'skipped: true' means the step could be skipped because the articles were already confirmed.",
+  },
+  semanticSearchProcessDetailExplanationFinalizeValidateDoiFetch: {
+    dk: "For artikler uden PMID hentes metadata via deres DOI fra OpenAlex, så de også kan vurderes mod filtrene. I detaljerne ser du 'candidateCount' (samlet antal), 'doiCandidateCount' og 'openAlexIdCandidateCount' (hvor mange der slås op via henholdsvis DOI og OpenAlex-id).",
+    en: "For articles without a PMID, metadata is fetched via their DOI from OpenAlex so they can also be assessed against the filters. In the details you see 'candidateCount' (total), 'doiCandidateCount' and 'openAlexIdCandidateCount' (how many are looked up via DOI and OpenAlex ID respectively).",
+  },
+  semanticSearchProcessDetailExplanationFinalizeValidateDoiSource: {
+    dk: "Der hentes oplysninger om kildens tidsskrift, så fx et krav om, at resultatet skal være en artikel i et tidsskrift, kan vurderes korrekt for DOI-baserede resultater.",
+    en: "Journal/source details are fetched so that, for example, a requirement that the result is a journal article can be assessed correctly for DOI-based results.",
+  },
+  semanticSearchProcessDetailExplanationFinalizeValidateDoiRules: {
+    dk: "Her afgøres, hvilke DOI-artikler der opfylder dine afgrænsninger. I detaljerne ser du 'activeRules' (de regler der anvendes), 'validatedCount' (antal tjekket), 'allowedCount' (antal der opfylder reglerne) og 'excludedCount' (antal frasorterede) – samt 'excludedExamples' med eksempler på fravalgte artikler og hvilke regler de fejlede.",
+    en: "Here it is decided which DOI articles meet your filters. In the details you see 'activeRules' (the rules applied), 'validatedCount' (number checked), 'allowedCount' (number meeting the rules) and 'excludedCount' (number excluded) – plus 'excludedExamples' with examples of excluded articles and which rules they failed.",
+  },
+  semanticSearchProcessDetailExplanationFinalizeHydrate: {
+    dk: "De artikler, der skal vises, får hentet deres fulde oplysninger (titel, forfattere, abstract m.m.). PMID-artikler hentes fra PubMed og DOI-artikler fra OpenAlex. I detaljerne ser du bl.a. 'requestedCount', 'pmidCount' og 'externalReferenceCount' og bagefter 'hydratedCount'/'missingCount' (hvor mange der blev hentet, og hvor mange der manglede).",
+    en: "The articles to be shown get their full details fetched (title, authors, abstract, etc.). PMID articles are fetched from PubMed and DOI articles from OpenAlex. In the details you see e.g. 'requestedCount', 'pmidCount' and 'externalReferenceCount' and afterwards 'hydratedCount'/'missingCount' (how many were fetched and how many were missing).",
+  },
+  semanticSearchProcessDetailExplanationFinalizeSort: {
+    dk: "Resultaterne sorteres efter dato, hvis du har valgt dato-sortering. I detaljerne ser du 'sortMethod' (sorteringsmetoden), 'inputCount' (antal før sortering) og 'outputCount' (antal efter).",
+    en: "The results are sorted by date if you chose date sorting. In the details you see 'sortMethod' (the sort method), 'inputCount' (count before sorting) and 'outputCount' (count after).",
+  },
+  semanticSearchProcessDetailExplanationFinalRerank: {
+    dk: "Den endelige rækkefølge tjekkes en sidste gang med en AI-rerank, før resultaterne vises. I detaljerne ser du 'request' med bl.a. 'query', 'hardFilterQuery', 'model' og 'candidateCount' (hvor mange kandidater der blev sendt til rerank).",
+    en: "The final ordering is checked one last time with an AI rerank before the results are shown. In the details you see 'request' with e.g. 'query', 'hardFilterQuery', 'model' and 'candidateCount' (how many candidates were sent to the rerank).",
+  },
+  semanticSearchProcessDetailExplanationFinalizeSelected: {
+    dk: "Det sikres, at artikler du allerede havde markeret, bevares i resultatlisten. I detaljerne ser du 'preselectedCount' (antal forhåndsmarkerede) og 'selectedCount' (antal markerede i alt).",
+    en: "It is ensured that articles you had already selected are kept in the result list. In the details you see 'preselectedCount' (number preselected) and 'selectedCount' (total selected).",
+  },
+  semanticSearchProcessDetailExplanationFinalizeRender: {
+    dk: "Resultaterne gøres klar og vises på skærmen. I detaljerne ser du 'renderedCount' (antal viste på siden), 'totalCount' (samlet antal fund), 'page' (sidenummer) og 'pageSize' (antal pr. side).",
+    en: "The results are made ready and shown on screen. In the details you see 'renderedCount' (number shown on the page), 'totalCount' (total found), 'page' (page number) and 'pageSize' (results per page).",
+  },
   semanticSearchProgressPubMedFailed: {
     dk: "PubMed svarede ikke. Resultater fra andre kilder bruges.",
     en: "PubMed did not respond. Results from other sources are used.",
@@ -646,6 +810,10 @@ export const messages = {
   semanticSearchProgressOpenAlexRecovered: {
     dk: "OpenAlex kunne ikke bruge alle filtre. Kilden blev brugt med forenklet filtergrundlag.",
     en: "OpenAlex could not use all filters. The source was used with simplified filters.",
+  },
+  semanticSearchProgressOpenAlexSemanticFilterSupplement: {
+    dk: "Søger i OpenAlex.",
+    en: "Searching OpenAlex.",
   },
   semanticSearchProgressOpenAlexKeywordFallback: {
     dk: "OpenAlex' semantiske søgning svarede ikke. Kilden blev brugt med keywordsøgning som fallback.",
@@ -702,6 +870,126 @@ export const messages = {
   searchProcessSourceRequestLabel: {
     dk: "Request-parametre",
     en: "Request parameters",
+  },
+  searchProcessSourceResponseLabel: {
+    dk: "Resultat fra kilden",
+    en: "Source response",
+  },
+  semanticSearchProcessMetricsTitle: {
+    dk: "Tal for trinnet",
+    en: "Figures for this step",
+  },
+  semanticSearchProcessMetricSelectedSources: {
+    dk: "Valgte databaser",
+    en: "Selected databases",
+  },
+  semanticSearchProcessMetricPageSize: {
+    dk: "Resultater pr. side",
+    en: "Results per page",
+  },
+  semanticSearchProcessMetricDetectedConcepts: {
+    dk: "Fundne begreber",
+    en: "Detected concepts",
+  },
+  semanticSearchProcessMetricMeshTotal: {
+    dk: "MeSH-termer i alt",
+    en: "MeSH terms in total",
+  },
+  semanticSearchProcessMetricMeshValid: {
+    dk: "Gyldige MeSH-termer",
+    en: "Valid MeSH terms",
+  },
+  semanticSearchProcessMetricMeshInvalid: {
+    dk: "Ugyldige MeSH-termer",
+    en: "Invalid MeSH terms",
+  },
+  semanticSearchProcessMetricAddedMeshTerms: {
+    dk: "Tilføjede MeSH-termer",
+    en: "Added MeSH terms",
+  },
+  semanticSearchProcessMetricRemovedMeshTerms: {
+    dk: "Fjernede MeSH-termer",
+    en: "Removed MeSH terms",
+  },
+  semanticSearchProcessMetricAdaptedSources: {
+    dk: "Tilpassede databaser",
+    en: "Adapted databases",
+  },
+  semanticSearchProcessMetricCandidates: {
+    dk: "Kandidater",
+    en: "Candidates",
+  },
+  semanticSearchProcessMetricTotalAvailable: {
+    dk: "Tilgængelige i alt",
+    en: "Total available",
+  },
+  semanticSearchProcessMetricPmidCandidates: {
+    dk: "Heraf med PMID",
+    en: "Of these with PMID",
+  },
+  semanticSearchProcessMetricDoiCandidates: {
+    dk: "Heraf med DOI",
+    en: "Of these with DOI",
+  },
+  semanticSearchProcessMetricOpenAlexCandidates: {
+    dk: "Heraf via OpenAlex-id",
+    en: "Of these via OpenAlex ID",
+  },
+  semanticSearchProcessMetricTrustedPmidSkipped: {
+    dk: "Sprunget over (allerede PMID-valideret)",
+    en: "Skipped (already PMID-validated)",
+  },
+  semanticSearchProcessMetricChecked: {
+    dk: "Tjekket",
+    en: "Checked",
+  },
+  semanticSearchProcessMetricMatched: {
+    dk: "Bestået",
+    en: "Passed",
+  },
+  semanticSearchProcessMetricExcluded: {
+    dk: "Frasorteret",
+    en: "Excluded",
+  },
+  semanticSearchProcessMetricAllowed: {
+    dk: "Opfylder filtre",
+    en: "Meets filters",
+  },
+  semanticSearchProcessMetricRequested: {
+    dk: "Anmodet",
+    en: "Requested",
+  },
+  semanticSearchProcessMetricFetched: {
+    dk: "Hentet",
+    en: "Fetched",
+  },
+  semanticSearchProcessMetricMissing: {
+    dk: "Mangler",
+    en: "Missing",
+  },
+  semanticSearchProcessMetricInput: {
+    dk: "Ind",
+    en: "In",
+  },
+  semanticSearchProcessMetricOutput: {
+    dk: "Ud",
+    en: "Out",
+  },
+  semanticSearchProcessMetricPreselected: {
+    dk: "Forhåndsmarkerede",
+    en: "Preselected",
+  },
+  semanticSearchProcessMetricSelected: {
+    dk: "Markerede i alt",
+    en: "Selected in total",
+  },
+  semanticSearchProcessMetricRendered: {
+    dk: "Vist på siden",
+    en: "Shown on the page",
+  },
+  semanticSearchProcessMetricTotal: {
+    dk: "I alt",
+    en: "In total",
   },
   searchProcessTotalTime: {
     dk: "Samlet tid",

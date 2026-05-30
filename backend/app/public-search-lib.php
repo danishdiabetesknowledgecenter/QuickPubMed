@@ -3848,9 +3848,15 @@ if (!function_exists('qpmPublicSearchGetSemanticLlmConfig')) {
         $enabled = qpmPublicSearchBoolValue($raw['enabled'] ?? false, false);
         $topN = is_numeric($raw['topN'] ?? null) ? (int) $raw['topN'] : 10;
         $maxOutputTokens = is_numeric($raw['maxOutputTokens'] ?? null) ? (int) $raw['maxOutputTokens'] : 400;
+        // reasoning.effort must match the model family (the API rejects mismatches).
+        $reasoningEffort = strtolower(trim((string) ($raw['reasoningEffort'] ?? 'none')));
+        if (!in_array($reasoningEffort, ['minimal', 'none', 'low', 'medium', 'high', 'xhigh'], true)) {
+            $reasoningEffort = 'none';
+        }
         return [
             'enabled' => $enabled,
             'model' => trim((string) ($raw['model'] ?? 'gpt-5.4-nano')),
+            'reasoningEffort' => $reasoningEffort,
             'topN' => max(2, min(15, $topN)),
             'maxOutputTokens' => max(64, $maxOutputTokens),
         ];
@@ -3981,7 +3987,7 @@ if (!function_exists('qpmPublicSearchMaybeApplySemanticLlmFinalRerank')) {
                     ]),
                 ],
             ],
-            'reasoning' => ['effort' => 'minimal'],
+            'reasoning' => ['effort' => $config['reasoningEffort']],
             'text' => [
                 'verbosity' => 'low',
                 'format' => [

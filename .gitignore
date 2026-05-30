@@ -39,6 +39,7 @@ pnpm-debug.log*
 # Editor directories and files
 .cursor/
 /startServers.js
+/start-qpm.bat
 .idea
 .vscode
 *.suo

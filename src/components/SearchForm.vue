@@ -292,12 +292,24 @@
   const OPENALEX_CACHE_TTL_MS = 30 * 60 * 1000;
   const OPENALEX_LOOKUP_CONCURRENCY = 3;
   const OPENALEX_BATCH_LOOKUP_CONCURRENCY = 2;
+  // Safety net for the DOI-rule validation batch lookups: cap each OpenAlex batch
+  // request so a slow backend/proxy can never stall the validation step for minutes.
+  // On timeout the validation path degrades gracefully (candidate keeps its own
+  // metadata / Semantic Scholar fallback) instead of triggering a per-candidate storm.
+  const OPENALEX_VALIDATION_LOOKUP_TIMEOUT_MS = 30000;
+  // Two-tier semantic DOI validation: validate the top-N non-trusted candidates
+  // (relevance order) synchronously so the first pages render fast, then validate the
+  // remaining candidates in the background. Nothing is dropped — the background pass
+  // validates the rest and appends any keepers to the result list + total count.
+  const SEMANTIC_VALIDATION_BLOCKING_LIMIT = 150;
   const DEFAULT_SEMANTIC_LLM_RERANK_CONFIG = {
-    enabled: false,
+    enabled: true,
     model: "gpt-5.4-nano",
+    reasoningEffort: "none",
     topN: 10,
     maxOutputTokens: 400,
   };
+  const SEMANTIC_LLM_RERANK_ALLOWED_EFFORTS = ["minimal", "none", "low", "medium", "high", "xhigh"];
 
   export default {
     name: "SearchForm",
@@ -474,6 +486,8 @@
         openAlexRateLimitInfo: null,
         semanticScholarRateLimitInfo: null,
         semanticDoiValidationActive: false,
+        semanticBackgroundValidationPromise: null,
+        pendingSemanticBackgroundValidation: null,
         loadingStatusDotIntervalId: null,
         loadingStatusDotBaseText: "",
         showFilter: false,
@@ -527,6 +541,8 @@
             detail.requestMeta && typeof detail.requestMeta === "object"
               ? { ...detail.requestMeta }
               : null;
+          const response =
+            detail.response && typeof detail.response === "object" ? { ...detail.response } : null;
           const key = detailKey(source, query);
           const existing = details.find((entry) => detailKey(entry.source, entry.query) === key);
           if (existing) {
@@ -535,6 +551,9 @@
             }
             if (!existing.requestMeta && requestMeta) {
               existing.requestMeta = requestMeta;
+            }
+            if (!existing.response && response) {
+              existing.response = response;
             }
             if (!existing.context) {
               existing.context = String(detail.context || "").trim();
@@ -546,6 +565,7 @@
             query,
             request,
             requestMeta,
+            response,
             context: String(detail.context || "").trim(),
           });
         };
@@ -561,6 +581,7 @@
               query: sourceResult?.query,
               request: sourceResult?.request,
               requestMeta: sourceResult?.requestMeta,
+              response: this.buildSemanticSourceResponseSummary(sourceResult),
               context,
             });
           });
@@ -2459,6 +2480,41 @@
       shouldShowSemanticQueryProcessStep() {
         return this.searchWithAI === true && this.hasSelectedSemanticSources();
       },
+      buildSemanticSourceResponseSummary(sourceResult = null) {
+        if (!sourceResult || typeof sourceResult !== "object") return null;
+        const candidateCount = Array.isArray(sourceResult.candidates)
+          ? sourceResult.candidates.length
+          : 0;
+        const reportedTotal = Number(sourceResult.total ?? sourceResult.totalResults);
+        const summary = { candidateCount };
+        if (Number.isFinite(reportedTotal) && reportedTotal > 0) {
+          summary.totalAvailable = reportedTotal;
+        }
+        if (sourceResult.partial === true) summary.partial = true;
+        if (sourceResult.fallbackUsed === true) summary.fallbackUsed = true;
+        const fallbackReason = String(sourceResult.fallbackReason || "").trim();
+        if (fallbackReason) summary.fallbackReason = fallbackReason;
+        const warning = String(sourceResult.warning || "").trim();
+        if (warning) summary.warning = warning;
+        const error = String(sourceResult.error || "").trim();
+        if (error) summary.error = error;
+        const rateLimit =
+          sourceResult.rateLimit && typeof sourceResult.rateLimit === "object"
+            ? sourceResult.rateLimit
+            : null;
+        if (rateLimit) {
+          const rateLimitSummary = {};
+          if (rateLimit.isLimited === true) rateLimitSummary.isLimited = true;
+          const status = Number(rateLimit.status);
+          if (Number.isFinite(status) && status > 0) rateLimitSummary.status = status;
+          const remaining = Number(rateLimit.remaining);
+          if (Number.isFinite(remaining)) rateLimitSummary.remaining = remaining;
+          if (Object.keys(rateLimitSummary).length > 0) {
+            summary.rateLimit = rateLimitSummary;
+          }
+        }
+        return summary;
+      },
       buildInitialSemanticLoadingProcessSteps() {
         const stepIds = this.getPlannedSemanticLoadingProcessStepIds();
         const now = this.getProcessTimingNow();
@@ -2716,7 +2772,14 @@
               normalizedStepId,
               activeLabelKey
             );
-          } else if (step.status !== "completed" && !this.isSemanticLoadingTerminalStatus(step.status)) {
+          } else if (
+            step.status !== "completed" &&
+            step.status !== "current" &&
+            !this.isSemanticLoadingTerminalStatus(step.status) &&
+            !this.isConcurrentSemanticLoadingStep(step.id)
+          ) {
+            // Never reset a concurrent source step (or a step already running) back to
+            // pending: the preparation lane now overlaps the source fetches.
             step.status = "pending";
           }
         });
@@ -2830,6 +2893,12 @@
           String(stepId || "").trim()
         );
       },
+      isPreparePhaseSemanticLoadingStep(stepId = "") {
+        // The PubMed query/MeSH preparation steps run in their own lane that now
+        // overlaps the concurrent source fetches, so they must not be completed or
+        // reset as a side effect of a source step activating.
+        return ["searchString", "mesh", "optimize"].includes(String(stepId || "").trim());
+      },
       activateConcurrentSemanticLoadingStep(stepId, translationKey = "") {
         if (!this.searchLoading || !this.hasSelectedSemanticSources()) {
           return;
@@ -2859,6 +2928,11 @@
             return;
           }
           if (this.isConcurrentSemanticLoadingStep(step.id)) {
+            return;
+          }
+          if (this.isPreparePhaseSemanticLoadingStep(step.id)) {
+            // Owned by the parallel preparation lane; leave its status/timing alone so
+            // its live counter is not frozen before (or while) it actually runs.
             return;
           }
           if (index < activeIndex) {
@@ -2902,6 +2976,28 @@
         }
         this.loadingProcessSteps = nextSteps;
       },
+      completeCurrentPreparePhaseSemanticLoadingSteps() {
+        if (!Array.isArray(this.loadingProcessSteps) || this.loadingProcessSteps.length === 0) {
+          return;
+        }
+        const now = this.getProcessTimingNow();
+        let changed = false;
+        const nextSteps = this.loadingProcessSteps.map((step) => {
+          const nextStep = { ...step };
+          if (
+            this.isPreparePhaseSemanticLoadingStep(nextStep.id) &&
+            nextStep.status === "current"
+          ) {
+            nextStep.status = "completed";
+            this.completeProcessStepTiming(nextStep, now);
+            changed = true;
+          }
+          return nextStep;
+        });
+        if (changed) {
+          this.loadingProcessSteps = nextSteps;
+        }
+      },
       updateSearchLoadingStatus(stepKey = "", isTranslating = true) {
         if (this.compactLoadingUi) {
           return;
@@ -2920,6 +3016,11 @@
           }
         } else if (isTranslating) {
           this.activateSemanticLoadingProcessStep(stepId, translationKey);
+        } else if (this.isPreparePhaseSemanticLoadingStep(stepId)) {
+          // The preparation lane finished (its translating=false fires once the whole
+          // PubMed query build incl. MeSH refine is done); complete the step that is
+          // still "current" so its live counter stops instead of staying frozen.
+          this.completeCurrentPreparePhaseSemanticLoadingSteps();
         }
         this.clearLoadingStatusDotInterval();
         if (isTranslating) {
@@ -5503,6 +5604,8 @@
         this.limitDropdowns = [[]];
         this.matchedRerankedPmids = [];
         this.matchedRerankedResultRefs = [];
+        this.semanticBackgroundValidationPromise = null;
+        this.pendingSemanticBackgroundValidation = null;
         this.openAlexDoiCache = {};
         this.openAlexDoiPromiseCache = {};
         this.openAlexSourceCache = {};
@@ -5567,6 +5670,8 @@
         }
         this.matchedRerankedPmids = [];
         this.matchedRerankedResultRefs = [];
+        this.semanticBackgroundValidationPromise = null;
+        this.pendingSemanticBackgroundValidation = null;
         this.openAlexDoiPromiseCache = {};
         this.openAlexSourceCache = {};
         this.openAlexSourcePromiseCache = {};
@@ -5928,20 +6033,29 @@
             ? runtimeConfig.semanticLlmRerankConfig
             : {};
         const enabledValue = rawConfig.enabled;
-        const enabled =
-          enabledValue === true ||
-          enabledValue === 1 ||
+        // Default ON: the LLM final rerank is always applied unless the backend
+        // config explicitly disables it (false / 0 / "false").
+        const enabled = !(
+          enabledValue === false ||
+          enabledValue === 0 ||
           String(enabledValue || "")
             .trim()
-            .toLowerCase() === "true";
+            .toLowerCase() === "false"
+        );
         const topN = Number(rawConfig.topN);
         const maxOutputTokens = Number(rawConfig.maxOutputTokens);
+        const reasoningEffort = String(rawConfig.reasoningEffort || "")
+          .trim()
+          .toLowerCase();
         return {
           enabled,
           model: String(rawConfig.model || DEFAULT_SEMANTIC_LLM_RERANK_CONFIG.model).trim(),
+          reasoningEffort: SEMANTIC_LLM_RERANK_ALLOWED_EFFORTS.includes(reasoningEffort)
+            ? reasoningEffort
+            : DEFAULT_SEMANTIC_LLM_RERANK_CONFIG.reasoningEffort,
           topN:
             Number.isFinite(topN) && topN > 1
-              ? Math.min(15, Math.floor(topN))
+              ? Math.min(25, Math.floor(topN))
               : DEFAULT_SEMANTIC_LLM_RERANK_CONFIG.topN,
           maxOutputTokens:
             Number.isFinite(maxOutputTokens) && maxOutputTokens > 0
@@ -6090,7 +6204,42 @@
         }
         return signals;
       },
-      async maybeApplySemanticLlmFinalRerank(data) {
+      async prefetchSemanticLlmRerankAbstractMap(resultRefs) {
+        // Best-effort prefetch of the top-N PubMed abstracts the LLM final rerank will
+        // need, so the efetch can overlap page hydration instead of being an extra
+        // sequential round-trip afterwards. Only runs when the cheap rerank gates (which
+        // do not require the hydrated page) are satisfied; otherwise returns null so the
+        // rerank keeps its on-demand fetch behavior.
+        const config = this.getSemanticLlmRerankConfig();
+        if (
+          this.page !== 0 ||
+          !this.hasSelectedSemanticSources() ||
+          this.sort?.method === "date_desc" ||
+          this.sort?.method === "date_asc" ||
+          config.enabled !== true
+        ) {
+          return null;
+        }
+        const refs = Array.isArray(resultRefs) ? resultRefs : [];
+        if (this.shouldUseSemanticDateOrdering(refs)) {
+          return null;
+        }
+        const topNPmids = refs
+          .filter((entry) => entry?.type === "pmid")
+          .slice(0, config.topN)
+          .map((entry) => String(entry?.pmid || "").trim())
+          .filter((pmid) => /^[0-9]+$/.test(pmid));
+        if (topNPmids.length === 0) {
+          return null;
+        }
+        try {
+          return await this.fetchSemanticLlmPubMedAbstractMap(topNPmids);
+        } catch (_err) {
+          // Prefetch is optional; the rerank will fetch on demand if this fails.
+          return null;
+        }
+      },
+      async maybeApplySemanticLlmFinalRerank(data, prefetchedAbstractMap = null) {
         const safeData = Array.isArray(data) ? data : [];
         if (!this.shouldUseSemanticLlmFinalRerank(safeData)) {
           return safeData;
@@ -6117,7 +6266,20 @@
             )
             .map(({ entry }) => String(entry?.pmid || entry?.uid || "").trim())
             .filter((pmid) => /^[0-9]+$/.test(pmid));
-          const abstractMap = await this.fetchSemanticLlmPubMedAbstractMap(pmidsToHydrate);
+          // Reuse abstracts prefetched in parallel with page hydration when available;
+          // only fetch the PMIDs that were not already covered by the prefetch.
+          const prefetched =
+            prefetchedAbstractMap && typeof prefetchedAbstractMap === "object"
+              ? prefetchedAbstractMap
+              : null;
+          const missingPmids = prefetched
+            ? pmidsToHydrate.filter((pmid) => !(pmid in prefetched))
+            : pmidsToHydrate;
+          const fetchedMap =
+            missingPmids.length > 0
+              ? await this.fetchSemanticLlmPubMedAbstractMap(missingPmids)
+              : {};
+          const abstractMap = prefetched ? { ...prefetched, ...fetchedMap } : fetchedMap;
           const enrichmentLookup = this.buildSemanticEnrichmentLookup();
           const requestCandidates = [];
           const deferredTopEntries = [];
@@ -6143,7 +6305,12 @@
             if (venue && !qualitySignals.venue) qualitySignals.venue = venue;
 
             requestCandidates.push({
-              id: candidateId,
+              // Use a short positional id for the model round-trip. Small models
+              // (e.g. gpt-5.4-nano) often drop the "pmid:"/"doi:" prefix or mangle
+              // long DOI ids, which breaks the strict permutation contract and
+              // triggers a 422. candidateMap below maps this short id back to the
+              // real entry, and candidateId is still used to gate usable entries.
+              id: String(requestCandidates.length + 1),
               title,
               abstract: abstractText,
               publicationDate: String(entry?.publicationDate || entry?.pubDate || entry?.pubdate || "").trim(),
@@ -6164,6 +6331,7 @@
             hardFilterQuery: this.getSemanticHardFilterValidationQuery(),
             resultFocus: this.getSemanticLlmRerankProfileContext(),
             model: config.model,
+            reasoningEffort: config.reasoningEffort,
             maxOutputTokens: config.maxOutputTokens,
             candidates: requestCandidates.map(({ entry, ...candidate }) => candidate),
           };
@@ -6174,6 +6342,7 @@
               hardFilterQuery: rerankRequest.hardFilterQuery,
               resultFocus: rerankRequest.resultFocus,
               model: rerankRequest.model,
+              reasoningEffort: rerankRequest.reasoningEffort,
               maxOutputTokens: rerankRequest.maxOutputTokens,
               candidateCount: rerankRequest.candidates.length,
             },
@@ -6227,7 +6396,18 @@
           );
           return rerankedData;
         } catch (error) {
-          console.warn("[SemanticLlmRerank] Falling back to deterministic order.", error);
+          const backendError = error?.response?.data ?? null;
+          let backendErrorJson = "";
+          try {
+            backendErrorJson = JSON.stringify(backendError);
+          } catch (stringifyError) {
+            backendErrorJson = String(backendError);
+          }
+          console.warn("[SemanticLlmRerank] Falling back to deterministic order.", error, {
+            status: error?.response?.status ?? null,
+            backendError,
+            backendErrorJson,
+          });
           this.recordSemanticSourceStatus({
             source: "finalRerank",
             status: "warning",
@@ -6354,6 +6534,15 @@
             .map((pmid) => String(pmid || "").trim())
             .filter((pmid) => /^[0-9]+$/.test(pmid))
         );
+        // Two-tier validation controls. In the background pass we never touch the shared
+        // validation flag or the user-facing process-step UI (the blocking step already
+        // finished); we only validate the deferred candidates and return their keys.
+        const isBackgroundValidation = options?.background === true;
+        const useSharedValidationFlag = !isBackgroundValidation;
+        const maxOpenAlexValidations = Number.isFinite(options?.maxOpenAlexValidations)
+          ? Math.max(0, Math.floor(options.maxOpenAlexValidations))
+          : Infinity;
+        let deferredCount = 0;
         const canonicalFilterState = this.getCanonicalSemanticFilterState();
         const publicationDateYears = canonicalFilterState.publicationDateYears;
         const { semanticMetadataByDoi, activeDoiOnlyRuleState, unsupportedItems } =
@@ -6368,7 +6557,7 @@
         }
         this.captureSearchFlowDebugSourceSnapshots();
         if (candidatesToValidate.length === 0) {
-          return new Set();
+          return { allowedKeys: new Set(), deferredCount: 0 };
         }
         const hasDoiOnlyRules =
           Array.isArray(activeDoiOnlyRuleState.activeRules) && activeDoiOnlyRuleState.activeRules.length > 0;
@@ -6398,48 +6587,115 @@
             })
             .filter(Boolean);
           this.recordSearchFlowDebugFilterDecisions(allowedEntries);
-          return new Set(allowedEntries.map((entry) => entry.key));
+          return {
+            allowedKeys: new Set(allowedEntries.map((entry) => entry.key)),
+            deferredCount: 0,
+          };
         }
 
-        this.ensureSemanticLoadingProcessStepPresence(
-          "finalizeValidateDoiFetch",
-          "semanticSearchProgressFinalizeValidateDoiFetch"
-        );
-        this.ensureSemanticLoadingProcessStepPresence(
-          "finalizeValidateDoiRules",
-          "semanticSearchProgressFinalizeValidateDoiRules"
-        );
-        this.semanticDoiValidationActive = true;
-        let hydratedWorks = [];
-        try {
-          this.setSearchProcessStepDetail("finalizeValidateDoiFetch", {
-            endpoint: "OpenAlexWorkLookup.php",
-            candidateCount: candidatesToValidate.length,
-            doiCandidateCount: candidatesToValidate.filter((candidate) => normalizeDoiValue(candidate?.doi || "")).length,
-            openAlexIdCandidateCount: candidatesToValidate.filter((candidate) =>
-              String(candidate?.openAlexId || "").trim()
-            ).length,
-            domain: this.currentDomain || "",
-          });
-          this.startAnimatedLoadingStatus(
+        if (!isBackgroundValidation) {
+          this.ensureSemanticLoadingProcessStepPresence(
             "finalizeValidateDoiFetch",
             "semanticSearchProgressFinalizeValidateDoiFetch"
           );
-          hydratedWorks = await this.fetchOpenAlexWorksByCandidates(candidatesToValidate, nlm);
-        } finally {
-          this.semanticDoiValidationActive = false;
+          this.ensureSemanticLoadingProcessStepPresence(
+            "finalizeValidateDoiRules",
+            "semanticSearchProgressFinalizeValidateDoiRules"
+          );
         }
-        this.activateSemanticLoadingProcessStep(
-          "finalizeValidateDoiRules",
-          "semanticSearchProgressFinalizeValidateDoiRules"
-        );
-        this.mergeSearchProcessStepDetail("finalizeValidateDoiFetch", {
-          hydratedCount: hydratedWorks.filter(Boolean).length,
-          semanticScholarFallbackCount: candidatesToValidate.filter(
-            (candidate, index) => !hydratedWorks[index] && this.buildSemanticScholarFallbackRecordByRef(candidate)
-          ).length,
-        });
+        if (useSharedValidationFlag) {
+          this.semanticDoiValidationActive = true;
+        }
+        // Trusted PMIDs are accepted via the PMID shortcut below regardless of their
+        // OpenAlex metadata, so fetching their DOI work would be discarded effort.
+        // Exclude them from the OpenAlex batch and re-expand the fetched works to
+        // keep index alignment with candidatesToValidate.
+        const candidateNeedsOpenAlexValidation = (candidate) => {
+          const pmid = String(candidate?.pmid || "").trim();
+          return !(pmid && trustedPmidSet.has(pmid));
+        };
+        const fetchableCandidates = candidatesToValidate.filter(candidateNeedsOpenAlexValidation);
+        // Blocking tier: fetch+validate only the top `maxOpenAlexValidations` non-trusted
+        // candidates (already relevance-ordered). The rest are deferred and marked
+        // "not allowed" below; a background pass validates them afterwards and appends
+        // any keepers, so nothing relevant is ever dropped.
+        const candidatesToFetch =
+          maxOpenAlexValidations < fetchableCandidates.length
+            ? fetchableCandidates.slice(0, maxOpenAlexValidations)
+            : fetchableCandidates;
+        const deferredCandidateSet =
+          candidatesToFetch.length < fetchableCandidates.length
+            ? new Set(fetchableCandidates.slice(candidatesToFetch.length))
+            : null;
+        deferredCount = deferredCandidateSet ? deferredCandidateSet.size : 0;
+        let hydratedWorks = [];
+        try {
+          if (!isBackgroundValidation) {
+            this.setSearchProcessStepDetail("finalizeValidateDoiFetch", {
+              endpoint: "OpenAlexWorkLookup.php",
+              candidateCount: candidatesToValidate.length,
+              trustedPmidSkippedCount: candidatesToValidate.length - fetchableCandidates.length,
+              doiCandidateCount: candidatesToValidate.filter((candidate) => normalizeDoiValue(candidate?.doi || "")).length,
+              openAlexIdCandidateCount: candidatesToValidate.filter((candidate) =>
+                String(candidate?.openAlexId || "").trim()
+              ).length,
+              blockingValidationCount: candidatesToFetch.length,
+              deferredValidationCount: deferredCount,
+              domain: this.currentDomain || "",
+            });
+            this.startAnimatedLoadingStatus(
+              "finalizeValidateDoiFetch",
+              "semanticSearchProgressFinalizeValidateDoiFetch"
+            );
+          }
+          const fetchedWorks = await this.fetchOpenAlexWorksByCandidates(candidatesToFetch, nlm, {
+            validationMode: true,
+          });
+          const fetchedWorkByCandidate = new Map();
+          candidatesToFetch.forEach((candidate, fetchedIndex) => {
+            fetchedWorkByCandidate.set(candidate, fetchedWorks[fetchedIndex] ?? null);
+          });
+          hydratedWorks = candidatesToValidate.map((candidate) =>
+            fetchedWorkByCandidate.has(candidate) ? fetchedWorkByCandidate.get(candidate) : null
+          );
+        } finally {
+          if (useSharedValidationFlag) {
+            this.semanticDoiValidationActive = false;
+          }
+        }
+        if (!isBackgroundValidation) {
+          this.activateSemanticLoadingProcessStep(
+            "finalizeValidateDoiRules",
+            "semanticSearchProgressFinalizeValidateDoiRules"
+          );
+          this.mergeSearchProcessStepDetail("finalizeValidateDoiFetch", {
+            hydratedCount: hydratedWorks.filter(Boolean).length,
+            semanticScholarFallbackCount: candidatesToValidate.filter(
+              (candidate, index) => !hydratedWorks[index] && this.buildSemanticScholarFallbackRecordByRef(candidate)
+            ).length,
+          });
+        }
         const hydratedResults = candidatesToValidate.map((candidate, index) => {
+          if (deferredCandidateSet && deferredCandidateSet.has(candidate)) {
+            const deferredPmid = String(candidate?.pmid || "").trim();
+            const deferredDoi = normalizeDoiValue(candidate?.doi || "");
+            const deferredOpenAlexId = String(candidate?.openAlexId || "").trim();
+            const deferredKey = deferredPmid
+              ? `pmid:${deferredPmid}`
+              : deferredDoi
+              ? `doi:${deferredDoi.toLowerCase()}`
+              : deferredOpenAlexId
+              ? `oa:${deferredOpenAlexId}`
+              : "";
+            return {
+              key: deferredKey,
+              candidate,
+              hydrated: null,
+              allowed: false,
+              ruleExplanation: null,
+              reason: "deferred-validation",
+            };
+          }
           const hydrated =
             hydratedWorks[index] || this.buildSemanticScholarFallbackRecordByRef(candidate) || null;
           const pmid = String(candidate?.pmid || "").trim();
@@ -6564,16 +6820,18 @@
             }))
           );
         }
-        this.setSearchProcessStepDetail("finalizeValidateDoiRules", {
-          activeRules: activeDoiOnlyRuleState.activeRules,
-          ruleGroups: activeDoiOnlyRuleState.ruleGroups,
-          publicationDateYears: this.getSemanticPublicationDateYears(),
-          validatedCount: hydratedResults.length,
-          allowedCount: allowedKeys.size,
-          excludedCount: excludedCandidates.length,
-          excludedExamples: excludedCandidates.slice(0, 10),
-        });
-        return allowedKeys;
+        if (!isBackgroundValidation) {
+          this.setSearchProcessStepDetail("finalizeValidateDoiRules", {
+            activeRules: activeDoiOnlyRuleState.activeRules,
+            ruleGroups: activeDoiOnlyRuleState.ruleGroups,
+            publicationDateYears: this.getSemanticPublicationDateYears(),
+            validatedCount: hydratedResults.length,
+            allowedCount: allowedKeys.size,
+            excludedCount: excludedCandidates.length,
+            excludedExamples: excludedCandidates.slice(0, 10),
+          });
+        }
+        return { allowedKeys, deferredCount };
       },
       getOrderedRerankedCandidates() {
         const candidates = [];
@@ -6936,7 +7194,7 @@
           language: String(fallbackRecord?.language || safePubMedRecord?.language || "").trim(),
         };
       },
-      async fetchOpenAlexWorksByCandidates(candidates, nlm) {
+      async fetchOpenAlexWorksByCandidates(candidates, nlm, options = {}) {
         if (!this.isOpenAlexDoiResolverEnabled()) {
           return (Array.isArray(candidates) ? candidates : []).map(() => null);
         }
@@ -6948,9 +7206,14 @@
         const batchEntriesByDoi = new Map();
         const batchEntriesByOpenAlexId = new Map();
         const singleFallbackEntries = [];
-        const processStepId = this.semanticDoiValidationActive
-          ? "finalizeValidateDoiFetch"
-          : "finalizeHydrate";
+        // Validation mode is passed explicitly per call so the blocking and background
+        // validation tiers can run concurrently without racing a shared instance flag.
+        // Falls back to the legacy shared flag for callers that do not pass it.
+        const isValidationLookup =
+          typeof options.validationMode === "boolean"
+            ? options.validationMode
+            : this.semanticDoiValidationActive === true;
+        const processStepId = isValidationLookup ? "finalizeValidateDoiFetch" : "finalizeHydrate";
         const lookupRequestSummaries = [];
 
         safeCandidates.forEach((candidate, index) => {
@@ -7034,8 +7297,14 @@
                 {
                   dois,
                   domain: this.currentDomain || "",
+                  light: isValidationLookup ? 1 : 0,
                 },
-                { headers: { "Content-Type": "application/json" } }
+                isValidationLookup
+                  ? {
+                      headers: { "Content-Type": "application/json" },
+                      timeout: OPENALEX_VALIDATION_LOOKUP_TIMEOUT_MS,
+                    }
+                  : { headers: { "Content-Type": "application/json" } }
               );
               const works = Array.isArray(response?.data?.works) ? response.data.works : [];
               const worksByDoi = new Map(
@@ -7069,14 +7338,23 @@
                   pmidsToHydrate.push(mappedPmid);
                 }
               }
-              const pubMedByPmid = new Map(
-                (
-                  await this.fetchSummaryRecordsByIds(
-                    [...new Set(pmidsToHydrate)],
-                    nlm
-                  )
-                ).map((summaryEntry) => [String(summaryEntry?.uid || summaryEntry?.pmid || "").trim(), summaryEntry])
-              );
+              // During DOI-rule validation the active filters read OpenAlex/candidate
+              // source fields only (buildPubMedPreferredRecord preserves them from the
+              // mapped OpenAlex record), so the PubMed summary round-trip is pure overhead
+              // here. Skipping it removes one serialized NLM request per batch on the
+              // single-threaded dev server; buildPubMedPreferredRecord(null, mapped) then
+              // returns the OpenAlex record unchanged. Full PubMed hydration still happens
+              // for the displayed page in the separate hydrate phase.
+              const pubMedByPmid = isValidationLookup
+                ? new Map()
+                : new Map(
+                    (
+                      await this.fetchSummaryRecordsByIds([...new Set(pmidsToHydrate)], nlm)
+                    ).map((summaryEntry) => [
+                      String(summaryEntry?.uid || summaryEntry?.pmid || "").trim(),
+                      summaryEntry,
+                    ])
+                  );
 
               for (const entry of chunk) {
                 const sampleCandidate = safeCandidates[entry.indices[0]];
@@ -7091,7 +7369,12 @@
                   );
                 }
                 if (preferred) {
-                  this.writeOpenAlexWorkCacheAliases(sampleCandidate, preferred, preferred);
+                  // Don't warm the shared frontend cache with the lightweight validation
+                  // record (it omits abstract/authors); hydration must fetch the full
+                  // record for display + LLM rerank, so it would be poisoned otherwise.
+                  if (!isValidationLookup) {
+                    this.writeOpenAlexWorkCacheAliases(sampleCandidate, preferred, preferred);
+                  }
                 } else {
                   this.writeOpenAlexWorkCacheAliases(sampleCandidate, null, null, 60 * 1000);
                 }
@@ -7100,12 +7383,18 @@
                 });
               }
             } catch (error) {
-              for (const entry of chunk) {
-                for (const candidateIndex of entry.indices) {
-                  results[candidateIndex] = await this.fetchOpenAlexWorkByCandidate(
-                    safeCandidates[candidateIndex],
-                    nlm
-                  );
+              // During DOI-rule validation, never fan out into a per-candidate fallback
+              // storm (up to ~100 sequential single lookups) — that is what turned this
+              // step into minutes. Degrade gracefully instead: leave results null so each
+              // candidate keeps its own metadata / Semantic Scholar fallback.
+              if (!isValidationLookup) {
+                for (const entry of chunk) {
+                  for (const candidateIndex of entry.indices) {
+                    results[candidateIndex] = await this.fetchOpenAlexWorkByCandidate(
+                      safeCandidates[candidateIndex],
+                      nlm
+                    );
+                  }
                 }
               }
             }
@@ -7140,8 +7429,14 @@
                 {
                   openAlexIds,
                   domain: this.currentDomain || "",
+                  light: isValidationLookup ? 1 : 0,
                 },
-                { headers: { "Content-Type": "application/json" } }
+                isValidationLookup
+                  ? {
+                      headers: { "Content-Type": "application/json" },
+                      timeout: OPENALEX_VALIDATION_LOOKUP_TIMEOUT_MS,
+                    }
+                  : { headers: { "Content-Type": "application/json" } }
               );
               const works = Array.isArray(response?.data?.works) ? response.data.works : [];
               const worksByOpenAlexId = new Map(
@@ -7182,14 +7477,23 @@
                   pmidsToHydrate.push(mappedPmid);
                 }
               }
-              const pubMedByPmid = new Map(
-                (
-                  await this.fetchSummaryRecordsByIds(
-                    [...new Set(pmidsToHydrate)],
-                    nlm
-                  )
-                ).map((summaryEntry) => [String(summaryEntry?.uid || summaryEntry?.pmid || "").trim(), summaryEntry])
-              );
+              // During DOI-rule validation the active filters read OpenAlex/candidate
+              // source fields only (buildPubMedPreferredRecord preserves them from the
+              // mapped OpenAlex record), so the PubMed summary round-trip is pure overhead
+              // here. Skipping it removes one serialized NLM request per batch on the
+              // single-threaded dev server; buildPubMedPreferredRecord(null, mapped) then
+              // returns the OpenAlex record unchanged. Full PubMed hydration still happens
+              // for the displayed page in the separate hydrate phase.
+              const pubMedByPmid = isValidationLookup
+                ? new Map()
+                : new Map(
+                    (
+                      await this.fetchSummaryRecordsByIds([...new Set(pmidsToHydrate)], nlm)
+                    ).map((summaryEntry) => [
+                      String(summaryEntry?.uid || summaryEntry?.pmid || "").trim(),
+                      summaryEntry,
+                    ])
+                  );
 
               for (const entry of chunk) {
                 const sampleCandidate = safeCandidates[entry.indices[0]];
@@ -7204,7 +7508,12 @@
                   );
                 }
                 if (preferred) {
-                  this.writeOpenAlexWorkCacheAliases(sampleCandidate, preferred, preferred);
+                  // Don't warm the shared frontend cache with the lightweight validation
+                  // record (it omits abstract/authors); hydration must fetch the full
+                  // record for display + LLM rerank, so it would be poisoned otherwise.
+                  if (!isValidationLookup) {
+                    this.writeOpenAlexWorkCacheAliases(sampleCandidate, preferred, preferred);
+                  }
                 } else {
                   this.writeOpenAlexWorkCacheAliases(sampleCandidate, null, null, 60 * 1000);
                 }
@@ -7213,12 +7522,18 @@
                 });
               }
             } catch (error) {
-              for (const entry of chunk) {
-                for (const candidateIndex of entry.indices) {
-                  results[candidateIndex] = await this.fetchOpenAlexWorkByCandidate(
-                    safeCandidates[candidateIndex],
-                    nlm
-                  );
+              // During DOI-rule validation, never fan out into a per-candidate fallback
+              // storm (up to ~100 sequential single lookups) — that is what turned this
+              // step into minutes. Degrade gracefully instead: leave results null so each
+              // candidate keeps its own metadata / Semantic Scholar fallback.
+              if (!isValidationLookup) {
+                for (const entry of chunk) {
+                  for (const candidateIndex of entry.indices) {
+                    results[candidateIndex] = await this.fetchOpenAlexWorkByCandidate(
+                      safeCandidates[candidateIndex],
+                      nlm
+                    );
+                  }
                 }
               }
             }
@@ -7240,10 +7555,10 @@
           });
         }
 
-        this.recordOpenAlexHydrationOutcome(safeCandidates, results);
+        this.recordOpenAlexHydrationOutcome(safeCandidates, results, isValidationLookup);
         return results;
       },
-      recordOpenAlexHydrationOutcome(candidates = [], hydratedWorks = []) {
+      recordOpenAlexHydrationOutcome(candidates = [], hydratedWorks = [], isValidationLookup = undefined) {
         const missingCount = (Array.isArray(candidates) ? candidates : []).reduce(
           (sum, candidate, index) => {
             const needsOpenAlex =
@@ -7257,7 +7572,11 @@
           },
           0
         );
-        const targetStepId = this.semanticDoiValidationActive
+        const targetStepId = (
+          typeof isValidationLookup === "boolean"
+            ? isValidationLookup
+            : this.semanticDoiValidationActive
+        )
           ? "finalizeValidateDoiFetch"
           : "finalizeHydrate";
         this.mergeSearchProcessStepDetail(targetStepId, {
@@ -7405,19 +7724,55 @@
                 verifiedPmids: verifiedPubMedPmids,
               })
             : { count: 0, orderedIds: [] };
-        const allowedSemanticRefKeys = await this.buildAllowedSemanticRefKeys(
+        const trustedPmids = hardFilterQuery ? orderedSearch.orderedIds : [];
+        // Two-tier validation: synchronously validate only the top
+        // SEMANTIC_VALIDATION_BLOCKING_LIMIT non-trusted candidates so the first page
+        // renders fast, then validate the rest in the background (see below). The
+        // candidate list is already relevance-ordered, so the blocking tier covers the
+        // most relevant results; deferred keepers are appended once the background ends.
+        const { allowedKeys: blockingAllowedKeys, deferredCount } =
+          await this.buildAllowedSemanticRefKeys(orderedCandidates, nlm, {
+            trustedPmids,
+            maxOpenAlexValidations: SEMANTIC_VALIDATION_BLOCKING_LIMIT,
+          });
+        const blockingResult = this.buildSemanticResultRefsFromAllowedKeys(
           orderedCandidates,
-          nlm,
-          {
-            trustedPmids: hardFilterQuery ? orderedSearch.orderedIds : [],
-          }
+          blockingAllowedKeys,
+          orderedSearch
         );
+        // Do NOT start the background validation here: it would flood the (single
+        // worker, in local dev) backend while the first page is still hydrating and
+        // starve the PubMed/abstract requests. Stash the parameters and let the caller
+        // start it after the first page has rendered (see flushPendingSemanticBackgroundValidation).
+        this.semanticBackgroundValidationPromise = null;
+        this.pendingSemanticBackgroundValidation =
+          deferredCount > 0 ? { orderedCandidates, trustedPmids, orderedSearch } : null;
+        return blockingResult;
+      },
+      // Starts any background validation that buildHybridOrderedResultRefs deferred.
+      // Called after the first page renders (and defensively before deep pagination /
+      // local re-sort) so the background work never competes with first-page hydration.
+      flushPendingSemanticBackgroundValidation() {
+        const pending = this.pendingSemanticBackgroundValidation;
+        if (!pending) return;
+        this.pendingSemanticBackgroundValidation = null;
+        const { nlm } = this.appSettings;
+        this.startSemanticBackgroundValidation(
+          pending.orderedCandidates,
+          nlm,
+          pending.trustedPmids,
+          pending.orderedSearch
+        );
+      },
+      // Builds the ordered hydration refs from a set of allowed/validated ref keys.
+      // Shared by the blocking first-page pass and the background full-validation pass.
+      buildSemanticResultRefsFromAllowedKeys(orderedCandidates, allowedSemanticRefKeys, orderedSearch) {
         const matchedPmidSet = new Set(orderedSearch.orderedIds);
         const refs = [];
         const seenRefKeys = new Set();
         const usedPmids = new Set();
 
-        orderedCandidates.forEach((candidate) => {
+        (Array.isArray(orderedCandidates) ? orderedCandidates : []).forEach((candidate) => {
           const pmid = String(candidate?.pmid || "").trim();
           const doi = normalizeDoiValue(candidate?.doi || "");
           const openAlexId = String(candidate?.openAlexId || "").trim();
@@ -7503,6 +7858,42 @@
           pmids: orderedSearch.orderedIds,
           count: refs.length,
         };
+      },
+      // Background tier of the two-tier DOI validation: validates the candidates that
+      // the blocking pass deferred (everything beyond the blocking limit) and, once
+      // finished, replaces the result refs + total count so deeper pages and the total
+      // reflect the complete validated set. Guarded by the search generation so a newer
+      // search cancels this stale background work. The already-validated blocking
+      // candidates are cache hits, so the background only pays for the remainder.
+      startSemanticBackgroundValidation(orderedCandidates, nlm, trustedPmids, orderedSearch) {
+        const backgroundGeneration = this.searchGeneration;
+        this.semanticBackgroundValidationPromise = (async () => {
+          try {
+            const { allowedKeys } = await this.buildAllowedSemanticRefKeys(orderedCandidates, nlm, {
+              trustedPmids,
+              background: true,
+            });
+            if (this.searchGeneration !== backgroundGeneration) return;
+            const fullResult = this.buildSemanticResultRefsFromAllowedKeys(
+              orderedCandidates,
+              allowedKeys,
+              orderedSearch
+            );
+            if (this.searchGeneration !== backgroundGeneration) return;
+            this.matchedRerankedResultRefs = fullResult.refs;
+            this.matchedRerankedPmids = fullResult.pmids;
+            this.count = fullResult.count;
+            this.mergeSearchProcessStepDetail("finalizeValidateDoiFetch", {
+              backgroundValidationCompleted: true,
+              backgroundValidatedCount: fullResult.count,
+            });
+          } catch (error) {
+            console.warn(
+              "[SemanticValidation] Background validation pass failed; keeping blocking-tier results.",
+              { error: String(error?.message || error) }
+            );
+          }
+        })();
       },
       buildPubMedSearchRequest({
         term = "",
@@ -8047,6 +8438,7 @@
           }
 
           let data = [];
+          let llmRerankAbstractMap = null;
           await this.runSearchFlowDebugSection("07 Hydration", async () => {
             if (resultRefs.length > 0) {
               if (this.shouldUseSemanticDateOrdering(resultRefs)) {
@@ -8065,13 +8457,17 @@
                   hasPmids: pmidRefs.length > 0,
                   hasDois: doiRefs.length > 0,
                 });
-                const [pmidData, doiData] = await Promise.all([
+                // Overlap the LLM rerank's abstract efetch with page hydration so the
+                // always-on rerank does not add a sequential round-trip on page 0.
+                const [pmidData, doiData, prefetchedAbstracts] = await Promise.all([
                   this.fetchSummaryRecordsByIds(
                     pmidRefs.map((entry) => entry.pmid),
                     nlm
                   ),
                   this.fetchOpenAlexWorksByCandidates(doiRefs, nlm),
+                  this.prefetchSemanticLlmRerankAbstractMap(resultRefs),
                 ]);
+                llmRerankAbstractMap = prefetchedAbstracts;
                 const pmidMap = new Map(pmidData.map((entry) => [String(entry.uid), entry]));
                 const doiMap = new Map();
                 doiRefs.forEach((entry, index) => {
@@ -8109,7 +8505,7 @@
               });
               data = await this.fetchSummaryRecordsByIds(idList, nlm);
             }
-            data = await this.maybeApplySemanticLlmFinalRerank(data);
+            data = await this.maybeApplySemanticLlmFinalRerank(data, llmRerankAbstractMap);
           });
           if (isCancelled()) return;
           await this.runSearchFlowDebugSection("08 Final result composition", async () => {
@@ -8147,6 +8543,9 @@
           this.stopSearchProcessTiming();
           this.searchLoading = false;
           this.clearSearchLoadingStatus();
+          // First page is rendered — now it is safe to validate the deferred candidates
+          // in the background without competing with first-page hydration.
+          this.flushPendingSemanticBackgroundValidation();
 
           // Update UI and focus
           this.$nextTick(() => {
@@ -8280,6 +8679,14 @@
                 this.matchedRerankedPmids = hybridOrdering.pmids;
                 this.matchedRerankedResultRefs = hybridOrdering.refs;
                 this.count = hybridOrdering.count;
+              }
+              // Deeper pages may reference candidates that the blocking validation tier
+              // deferred, so make sure the background validation has been started and
+              // finished (replacing the refs with the complete validated set) before
+              // slicing the next page.
+              this.flushPendingSemanticBackgroundValidation();
+              if (this.semanticBackgroundValidationPromise) {
+                await this.semanticBackgroundValidationPromise;
               }
               const currentLength = Array.isArray(this.searchresult) ? this.searchresult.length : 0;
               resultRefs = this.getSemanticRefsForHydration(
@@ -8568,6 +8975,13 @@
       async applyLocalSemanticSort() {
         if (!this.canApplyLocalSemanticSort()) {
           return false;
+        }
+        // Re-sorting operates on the full validated ref set, so make sure any deferred
+        // background validation has been started and completed first (otherwise deferred
+        // keepers/total count would be missing from the re-sorted view).
+        this.flushPendingSemanticBackgroundValidation();
+        if (this.semanticBackgroundValidationPromise) {
+          await this.semanticBackgroundValidationPromise;
         }
         return this.runWithCompactLoading("sortResultsLoadingText", true, async () => {
           const { nlm } = this.appSettings;

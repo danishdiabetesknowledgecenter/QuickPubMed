@@ -647,9 +647,15 @@ define('QPM_SEMANTIC_RESCUE_CONFIG', [
 
 // ============ Semantic LLM Final Rerank Configuration ============
 // Frontend-safe values exposed to the widget via ThemeConfig.php
+// Default ON: the LLM final rerank is always applied on the first results page
+// for semantic searches. Set 'enabled' => false to disable it explicitly.
+// 'reasoningEffort' must match the model family (the API rejects mismatches):
+//   gpt-5.x   (e.g. gpt-5-mini):   'minimal' | 'low' | 'medium' | 'high'
+//   gpt-5.4.x (e.g. gpt-5.4-nano): 'none' | 'low' | 'medium' | 'high' | 'xhigh'
 define('QPM_SEMANTIC_LLM_RERANK_CONFIG', [
-    'enabled' => false,
+    'enabled' => true,
     'model' => 'gpt-5.4-nano',
+    'reasoningEffort' => 'none',
     'topN' => 25,
     'maxOutputTokens' => 400,
 ]);

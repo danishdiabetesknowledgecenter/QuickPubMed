@@ -344,14 +344,14 @@
 }
 
 .qpm_searchProcessRow {
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-start;
+  display: grid;
+  grid-template-columns: calc(4ch + 0.7rem) minmax(0, 1fr);
+  align-items: start;
   gap: 0.35rem;
-  flex-wrap: wrap;
 }
 
 .qpm_searchProcessDuration {
+  grid-column: 1;
   flex: 0 0 calc(4ch + 0.7rem);
   width: calc(4ch + 0.7rem);
   box-sizing: border-box;
@@ -369,6 +369,11 @@
 
 .qpm_searchProcessDuration.is-placeholder {
   visibility: hidden;
+}
+
+.qpm_searchProcessBody {
+  grid-column: 2;
+  min-width: 0;
 }
 
 .qpm_searchProcessLabel {
@@ -398,19 +403,14 @@
 .qpm_searchProcessGroup.is-warning .qpm_searchProcessGroupLabel,
 .qpm_searchProcessGroup.is-partial .qpm_searchProcessGroupLabel,
 .qpm_searchProcessGroup.is-recovered .qpm_searchProcessGroupLabel,
-.qpm_searchProcessItem.is-warning,
-.qpm_searchProcessItem.is-partial,
-.qpm_searchProcessItem.is-recovered {
-  color: var(--color-black);
-  font-weight: 600;
-}
-
 .qpm_searchProcessGroup.is-failed .qpm_searchProcessGroupLabel,
 .qpm_searchProcessGroup.is-rateLimited .qpm_searchProcessGroupLabel,
+.qpm_searchProcessItem.is-warning,
+.qpm_searchProcessItem.is-partial,
+.qpm_searchProcessItem.is-recovered,
 .qpm_searchProcessItem.is-failed,
 .qpm_searchProcessItem.is-rateLimited {
-  color: var(--color-red-dark);
-  font-weight: 600;
+  color: var(--color-black);
 }
 
 .qpm_searchProcessGroup.is-pending .qpm_searchProcessGroupLabel,
@@ -453,7 +453,13 @@
 }
 
 .qpm_searchProcessQuery {
-  margin: 0.2rem 0 0 0.65rem;
+  margin: 0.2rem 0 0 calc(4ch + 1.05rem);
+}
+
+@media (max-width: 768px) {
+  .qpm_searchProcessQuery {
+    margin-left: 0;
+  }
 }
 
 .qpm_searchProcessQueryPanel {
@@ -481,6 +487,65 @@
   white-space: pre-wrap;
   word-break: break-word;
   font-size: 0.9rem;
+}
+
+.qpm_searchProcessStatusNote {
+  margin: 0.2rem 0 0;
+  font-size: 0.9rem;
+  color: var(--color-grey-dark);
+}
+
+.qpm_searchProcessStepExplanation {
+  margin: 0 0 0.6rem;
+  font-size: 0.9rem;
+  color: var(--color-grey-dark);
+}
+
+.qpm_searchProcessStepExplanation + .qpm_searchProcessQueryEntry,
+.qpm_searchProcessStepDetailExplanation + .qpm_searchProcessQueryEntry {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-grey-light);
+}
+
+.qpm_searchProcessStepDetailExplanation {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-grey-light);
+}
+
+.qpm_searchProcessStepDetailExplanation .qpm_searchProcessStepExplanation {
+  margin: 0.2rem 0 0;
+}
+
+.qpm_searchProcessStepMetrics {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-grey-light);
+}
+
+.qpm_searchProcessMetricsList {
+  list-style: none;
+  margin: 0.3rem 0 0;
+  padding: 0;
+}
+
+.qpm_searchProcessMetricsItem {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  padding: 0.12rem 0;
+}
+
+.qpm_searchProcessMetricLabel {
+  color: var(--color-grey-dark);
+}
+
+.qpm_searchProcessMetricValue {
+  font-weight: 600;
+  color: var(--color-black);
+  white-space: nowrap;
 }
 
 .qpm_degradedSearchSummary {
