@@ -500,6 +500,63 @@ components:
           type: boolean
         sourceLabel:
           type: string
+        authors:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            properties:
+              name:
+                type: string
+        publicationTypes:
+          type: array
+          items:
+            type: string
+        journal:
+          type: object
+          additionalProperties: false
+          properties:
+            name:
+              type: string
+            issn:
+              type: string
+            volume:
+              type: string
+            issue:
+              type: string
+            pages:
+              type: string
+        language:
+          type: string
+        pmcId:
+          type: string
+        topics:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            properties:
+              label:
+                type: string
+              source:
+                type: string
+                enum: [mesh, openAlex]
+        citationCount:
+          type: integer
+          nullable: true
+        citationCountSource:
+          type: string
+          enum: ["", openAlex, semanticScholar]
+        isOpenAccess:
+          type: boolean
+          nullable: true
+        openAccessUrl:
+          type: string
+        isRetracted:
+          type: boolean
+          nullable: true
+        aiSummary:
+          type: string
     RateLimit:
       type: object
       additionalProperties: false

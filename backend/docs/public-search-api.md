@@ -228,7 +228,30 @@ API'et returnerer den endelige ordnede liste i `results`.
       "mergedSources": ["semanticScholar", "pubmed"],
       "trustedPmid": true,
       "canOpenInPubMed": true,
-      "sourceLabel": "Diabetes Care"
+      "sourceLabel": "Diabetes Care",
+      "authors": [
+        { "name": "Jane A. Doe" },
+        { "name": "John B. Smith" }
+      ],
+      "publicationTypes": ["Randomized Controlled Trial"],
+      "journal": {
+        "name": "Diabetes Care",
+        "issn": "0149-5992",
+        "volume": "47",
+        "issue": "1",
+        "pages": "12-20"
+      },
+      "language": "eng",
+      "pmcId": "PMC1234567",
+      "topics": [
+        { "label": "Type 2 diabetes", "source": "mesh" }
+      ],
+      "citationCount": 12,
+      "citationCountSource": "semanticScholar",
+      "isOpenAccess": true,
+      "openAccessUrl": "",
+      "isRetracted": null,
+      "aiSummary": "Kort AI-genereret opsummering fra Semantic Scholar."
     }
   ]
 }
@@ -293,6 +316,24 @@ Public search-laget har nu et loft for samtidige aktive soegninger.
 - Hvis intet abstract blev fundet: `abstract=""` og `hasAbstract=false`
 
 PubMed abstracts hydreres via NLM. DOI-bårne resultater hydreres via OpenAlex.
+
+## Berigede felter
+
+Hvert resultat i `results` indeholder desuden en fast, ensartet mængde berigede felter, uanset om resultatet er hydreret via PubMed (`type=pmid`) eller OpenAlex (`type=doi`). Nøglerne er altid til stede; kun værdien varierer efter, hvad kilden kan levere.
+
+- `authors`: liste af `{ "name": "..." }`. `[]` hvis ingen forfattere er fundet.
+- `publicationTypes`: liste af publikationstyper (fx `"Review"`, `"article"`). `[]` hvis ukendt.
+- `journal`: `{ name, issn, volume, issue, pages }`. Tomme strenge, hvis oplysningen ikke findes.
+- `language`: ISO-sprogkode, fx `"eng"`. `""` hvis ukendt.
+- `pmcId`: PubMed Central-ID, hvis resultatet har et. `""` hvis ikke.
+- `topics`: liste af `{ label, source }`, hvor `source` er `"mesh"` (PubMed MeSH-termer) eller `"openAlex"` (OpenAlex' primære emne). `[]` hvis intet er fundet.
+- `citationCount` / `citationCountSource`: antal citationer og hvilken kilde tallet stammer fra (`"openAlex"` eller `"semanticScholar"`). `citationCount` er `null`, og `citationCountSource` er `""`, når ingen af kilderne har data for det pågældende resultat.
+- `isOpenAccess`: `true`/`false`, eller `null` hvis ingen kilde har afgjort det.
+- `openAccessUrl`: link til open access-version, hvis kendt fra OpenAlex. `""` ellers.
+- `isRetracted`: `true`/`false` fra OpenAlex, eller `null` for resultater der er hydreret via PubMed (PubMed esummary indeholder ikke denne oplysning).
+- `aiSummary`: kort AI-genereret resumé fra Semantic Scholar (`tldr`), hvis resultatet har været en Semantic Scholar-kandidat. `""` ellers.
+
+`citationCount` og `isOpenAccess` udfyldes fra Semantic Scholar-kandidatdata, når et resultat er hydreret via PubMed og selv har været en Semantic Scholar-kandidat i søgningen. Findes der ingen sådan kandidatdata, forbliver felterne `null`/`""` — dette er en bevidst "data findes ikke"-tilstand, ikke en fejl.
 
 ## Fejl
 

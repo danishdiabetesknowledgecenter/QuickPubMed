@@ -2602,9 +2602,12 @@ if (!function_exists('qpmPublicSearchFlattenPubMedAbstractText')) {
 
 if (!function_exists('qpmPublicSearchFetchPubMedAbstractMap')) {
     /**
+     * Henter abstract og MeSH-termer fra samme efetch-XML-kald, saa der ikke
+     * skal et ekstra upstream-kald til for at faa emneklassificering med.
+     *
      * @param array<int,string> $pmids
      * @param string $domain
-     * @return array<string,string>
+     * @return array<string,array{abstract:string,mesh:array<int,string>}>
      */
     function qpmPublicSearchFetchPubMedAbstractMap(array $pmids, string $domain = ''): array
     {
@@ -2618,7 +2621,7 @@ if (!function_exists('qpmPublicSearchFetchPubMedAbstractMap')) {
         foreach ($normalizedPmids as $pmid) {
             if ($cacheTtl > 0) {
                 $cacheEntry = qpmPublicSearchReadCacheValue('pubmed-abstract', 'pmid:' . $pmid);
-                if (($cacheEntry['hit'] ?? false) === true && is_string($cacheEntry['value'] ?? null)) {
+                if (($cacheEntry['hit'] ?? false) === true && is_array($cacheEntry['value'] ?? null) && isset($cacheEntry['value']['abstract'])) {
                     $abstractMap[$pmid] = $cacheEntry['value'];
                     continue;
                 }
@@ -2670,7 +2673,24 @@ if (!function_exists('qpmPublicSearchFetchPubMedAbstractMap')) {
                     }
                     $parts[] = $label !== '' ? ($label . ': ' . $text) : $text;
                 }
-                $abstractMap[$pmid] = qpmPublicSearchFlattenPubMedAbstractText($parts);
+                $meshTerms = [];
+                foreach ($article->getElementsByTagName('MeshHeading') as $meshHeadingNode) {
+                    if (!$meshHeadingNode instanceof DOMElement) {
+                        continue;
+                    }
+                    $descriptorNodes = $meshHeadingNode->getElementsByTagName('DescriptorName');
+                    if ($descriptorNodes->length === 0) {
+                        continue;
+                    }
+                    $meshTerm = trim((string) ($descriptorNodes->item(0)?->textContent ?? ''));
+                    if ($meshTerm !== '') {
+                        $meshTerms[$meshTerm] = true;
+                    }
+                }
+                $abstractMap[$pmid] = [
+                    'abstract' => qpmPublicSearchFlattenPubMedAbstractText($parts),
+                    'mesh' => array_values(array_keys($meshTerms)),
+                ];
                 if ($cacheTtl > 0) {
                     qpmPublicSearchWriteCacheValue('pubmed-abstract', 'pmid:' . $pmid, $abstractMap[$pmid], $cacheTtl);
                 }
@@ -2759,7 +2779,7 @@ if (!function_exists('qpmPublicSearchFetchSemanticScholarSourceResult')) {
             'query' => $normalizedQuery,
             'limit' => $limit,
             'offset' => 0,
-            'fields' => 'externalIds,title,abstract,venue,year,publicationTypes',
+            'fields' => 'externalIds,title,abstract,venue,year,publicationTypes,citationCount,isOpenAccess,tldr',
         ];
         $publicationTypes = qpmPublicSearchDedupeStrings(
             array_map('qpmPublicSearchNormalizeSemanticScholarPublicationType', (array) ($filters['publicationTypes'] ?? []))
@@ -2808,6 +2828,9 @@ if (!function_exists('qpmPublicSearchFetchSemanticScholarSourceResult')) {
             if ($pmid === '' && $doi === '') {
                 continue;
             }
+            $citationCountRaw = $paper['citationCount'] ?? null;
+            $isOpenAccessRaw = $paper['isOpenAccess'] ?? null;
+            $tldrText = trim((string) ($paper['tldr']['text'] ?? ''));
             $payload['candidates'][] = [
                 'source' => 'semanticScholar',
                 'rank' => $index + 1,
@@ -2819,6 +2842,9 @@ if (!function_exists('qpmPublicSearchFetchSemanticScholarSourceResult')) {
                     'publicationYear' => trim((string) ($paper['year'] ?? '')),
                     'venue' => trim((string) ($paper['venue'] ?? '')),
                     'publicationTypes' => qpmPublicSearchNormalizeSimpleList($paper['publicationTypes'] ?? []),
+                    'citationCount' => is_numeric($citationCountRaw) ? (int) $citationCountRaw : null,
+                    'isOpenAccess' => is_bool($isOpenAccessRaw) ? $isOpenAccessRaw : null,
+                    'tldr' => $tldrText,
                 ],
             ];
             if ($pmid !== '') {
@@ -3933,7 +3959,7 @@ if (!function_exists('qpmPublicSearchMaybeApplySemanticLlmFinalRerank')) {
             $requestCandidates[] = [
                 'id' => $candidateId,
                 'title' => $title,
-                'abstract' => trim((string) ($entry['abstract'] ?? ($abstractMap[$pmid] ?? ''))),
+                'abstract' => trim((string) ($entry['abstract'] ?? ($abstractMap[$pmid]['abstract'] ?? ''))),
                 'publicationDate' => trim((string) ($entry['publicationDate'] ?? '')),
                 'source' => trim((string) ($entry['originSource'] ?? '')),
                 'sourceLabel' => trim((string) ($entry['sourceLabel'] ?? '')),
@@ -4064,6 +4090,7 @@ if (!function_exists('qpmPublicSearchBuildApiResultFromPubMed')) {
      * @param int $rank
      * @param array<string,mixed> $candidateInfo
      * @param bool $trusted
+     * @param array<int,string> $meshTerms
      * @return array<string,mixed>
      */
     function qpmPublicSearchBuildApiResultFromPubMed(
@@ -4071,15 +4098,19 @@ if (!function_exists('qpmPublicSearchBuildApiResultFromPubMed')) {
         string $abstract,
         int $rank,
         array $candidateInfo,
-        bool $trusted
+        bool $trusted,
+        array $meshTerms = []
     ): array {
         $pmid = qpmPublicSearchNormalizePmid($summary['uid'] ?? ($summary['pmid'] ?? ''));
         $doi = qpmPublicSearchNormalizeDoi($candidateInfo['doi'] ?? '');
+        $pmcId = '';
         if (is_array($summary['articleids'] ?? null)) {
             foreach ($summary['articleids'] as $articleId) {
-                if (($articleId['idtype'] ?? '') === 'doi') {
+                $idType = (string) ($articleId['idtype'] ?? '');
+                if ($idType === 'doi' && $doi === '') {
                     $doi = qpmPublicSearchNormalizeDoi($articleId['value'] ?? '');
-                    break;
+                } elseif ($idType === 'pmc') {
+                    $pmcId = trim((string) ($articleId['value'] ?? ''));
                 }
             }
         }
@@ -4089,6 +4120,33 @@ if (!function_exists('qpmPublicSearchBuildApiResultFromPubMed')) {
         $originSource = trim((string) ($candidateInfo['source'] ?? ($mergedSources[0] ?? 'pubmed')));
         $publicationDate = trim((string) ($summary['sortpubdate'] ?? ($summary['pubdate'] ?? '')));
         $year = qpmPublicSearchExtractPubMedSummaryPublicationYear($summary);
+
+        $authors = [];
+        if (is_array($summary['authors'] ?? null)) {
+            foreach ($summary['authors'] as $author) {
+                $authorName = trim((string) ($author['name'] ?? ''));
+                if ($authorName !== '') {
+                    $authors[] = ['name' => $authorName];
+                }
+            }
+        }
+
+        $topics = [];
+        foreach ($meshTerms as $meshTerm) {
+            $meshLabel = trim((string) $meshTerm);
+            if ($meshLabel !== '') {
+                $topics[] = ['label' => $meshLabel, 'source' => 'mesh'];
+            }
+        }
+
+        $ssMetadata = isset($candidateInfo['metadata']) && is_array($candidateInfo['metadata']) ? $candidateInfo['metadata'] : [];
+        $citationCount = null;
+        $citationCountSource = '';
+        if (is_int($ssMetadata['citationCount'] ?? null)) {
+            $citationCount = $ssMetadata['citationCount'];
+            $citationCountSource = 'semanticScholar';
+        }
+        $isOpenAccess = is_bool($ssMetadata['isOpenAccess'] ?? null) ? $ssMetadata['isOpenAccess'] : null;
 
         return [
             'rank' => $rank,
@@ -4107,6 +4165,24 @@ if (!function_exists('qpmPublicSearchBuildApiResultFromPubMed')) {
             'trustedPmid' => $trusted,
             'canOpenInPubMed' => $pmid !== '',
             'sourceLabel' => trim((string) ($summary['fulljournalname'] ?? ($summary['source'] ?? ''))),
+            'authors' => $authors,
+            'publicationTypes' => qpmPublicSearchNormalizeSimpleList($summary['pubtype'] ?? []),
+            'journal' => [
+                'name' => trim((string) ($summary['fulljournalname'] ?? ($summary['source'] ?? ''))),
+                'issn' => trim((string) ($summary['issn'] ?? '')),
+                'volume' => trim((string) ($summary['volume'] ?? '')),
+                'issue' => trim((string) ($summary['issue'] ?? '')),
+                'pages' => trim((string) ($summary['pages'] ?? '')),
+            ],
+            'language' => qpmPublicSearchNormalizeSimpleList($summary['lang'] ?? [])[0] ?? '',
+            'pmcId' => $pmcId,
+            'topics' => $topics,
+            'citationCount' => $citationCount,
+            'citationCountSource' => $citationCountSource,
+            'isOpenAccess' => $isOpenAccess,
+            'openAccessUrl' => '',
+            'isRetracted' => null,
+            'aiSummary' => trim((string) ($ssMetadata['tldr'] ?? '')),
         ];
     }
 }
@@ -4130,6 +4206,58 @@ if (!function_exists('qpmPublicSearchBuildApiResultFromOpenAlex')) {
             : [trim((string) ($candidateInfo['source'] ?? 'openAlex'))];
         $originSource = trim((string) ($candidateInfo['source'] ?? ($mergedSources[0] ?? 'openAlex')));
 
+        $authors = [];
+        if (is_array($work['authorships'] ?? null)) {
+            foreach ($work['authorships'] as $authorship) {
+                $authorName = trim((string) ($authorship['author']['display_name'] ?? ''));
+                if ($authorName !== '') {
+                    $authors[] = ['name' => $authorName];
+                }
+            }
+        }
+
+        $publicationTypes = [];
+        $workType = trim((string) ($work['type'] ?? ''));
+        if ($workType !== '') {
+            $publicationTypes[] = $workType;
+        }
+        $crossrefType = trim((string) ($work['type_crossref'] ?? ''));
+        if ($crossrefType !== '' && $crossrefType !== $workType) {
+            $publicationTypes[] = $crossrefType;
+        }
+
+        $biblio = isset($work['biblio']) && is_array($work['biblio']) ? $work['biblio'] : [];
+        $firstPage = trim((string) ($biblio['first_page'] ?? ''));
+        $lastPage = trim((string) ($biblio['last_page'] ?? ''));
+        $pages = $firstPage !== '' && $lastPage !== ''
+            ? ($firstPage . '-' . $lastPage)
+            : trim($firstPage !== '' ? $firstPage : $lastPage);
+
+        $primaryTopic = isset($work['primary_topic']) && is_array($work['primary_topic']) ? $work['primary_topic'] : [];
+        $topics = [];
+        $primaryTopicName = trim((string) ($primaryTopic['display_name'] ?? ''));
+        if ($primaryTopicName !== '') {
+            $topics[] = ['label' => $primaryTopicName, 'source' => 'openAlex'];
+        }
+
+        $ssMetadata = isset($candidateInfo['metadata']) && is_array($candidateInfo['metadata']) ? $candidateInfo['metadata'] : [];
+
+        $openAccess = isset($work['open_access']) && is_array($work['open_access']) ? $work['open_access'] : [];
+        $isOpenAccess = isset($openAccess['is_oa']) ? (bool) $openAccess['is_oa'] : null;
+        if ($isOpenAccess === null && is_bool($ssMetadata['isOpenAccess'] ?? null)) {
+            $isOpenAccess = $ssMetadata['isOpenAccess'];
+        }
+
+        $citedByCountRaw = $work['cited_by_count'] ?? null;
+        $citationCount = is_numeric($citedByCountRaw) ? (int) $citedByCountRaw : null;
+        $citationCountSource = $citationCount !== null ? 'openAlex' : '';
+        if ($citationCount === null && is_int($ssMetadata['citationCount'] ?? null)) {
+            $citationCount = $ssMetadata['citationCount'];
+            $citationCountSource = 'semanticScholar';
+        }
+
+        $isRetractedRaw = $work['is_retracted'] ?? null;
+
         return [
             'rank' => $rank,
             'resultKey' => 'doi:' . strtolower($doi),
@@ -4147,6 +4275,24 @@ if (!function_exists('qpmPublicSearchBuildApiResultFromOpenAlex')) {
             'trustedPmid' => false,
             'canOpenInPubMed' => $pmid !== '',
             'sourceLabel' => trim((string) ($source['display_name'] ?? '')),
+            'authors' => $authors,
+            'publicationTypes' => $publicationTypes,
+            'journal' => [
+                'name' => trim((string) ($source['display_name'] ?? '')),
+                'issn' => trim((string) ($source['issn_l'] ?? '')),
+                'volume' => trim((string) ($biblio['volume'] ?? '')),
+                'issue' => trim((string) ($biblio['issue'] ?? '')),
+                'pages' => $pages,
+            ],
+            'language' => trim((string) ($work['language'] ?? '')),
+            'pmcId' => trim((string) ($work['ids']['pmcid'] ?? '')),
+            'topics' => $topics,
+            'citationCount' => $citationCount,
+            'citationCountSource' => $citationCountSource,
+            'isOpenAccess' => $isOpenAccess,
+            'openAccessUrl' => trim((string) ($openAccess['oa_url'] ?? '')),
+            'isRetracted' => is_bool($isRetractedRaw) ? $isRetractedRaw : null,
+            'aiSummary' => trim((string) ($ssMetadata['tldr'] ?? '')),
         ];
     }
 }
@@ -4304,10 +4450,11 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
                 }
                 $results[] = qpmPublicSearchBuildApiResultFromPubMed(
                     $summaryMap[$pmid],
-                    $abstractMap[$pmid] ?? '',
+                    $abstractMap[$pmid]['abstract'] ?? '',
                     $pageOffset + $index + 1,
                     ['source' => 'pubmed', 'sources' => ['pubmed'], 'doi' => ''],
-                    true
+                    true,
+                    $abstractMap[$pmid]['mesh'] ?? []
                 );
             }
 
@@ -4491,10 +4638,11 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
                 $trusted = in_array($pmid, (array) ($hybridOrdering['pmids'] ?? []), true);
                 $results[] = qpmPublicSearchBuildApiResultFromPubMed(
                     $summaryMap[$pmid],
-                    $abstractMap[$pmid] ?? '',
+                    $abstractMap[$pmid]['abstract'] ?? '',
                     $rank,
                     $candidateInfo,
-                    $trusted
+                    $trusted,
+                    $abstractMap[$pmid]['mesh'] ?? []
                 );
             } elseif (isset($doiWorkMap[$key])) {
                 $results[] = qpmPublicSearchBuildApiResultFromOpenAlex($doiWorkMap[$key], $rank, $candidateInfo);
