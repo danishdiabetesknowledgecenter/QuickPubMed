@@ -4149,24 +4149,16 @@ if (!function_exists('qpmPublicSearchBuildApiResultFromPubMed')) {
         $isOpenAccess = is_bool($ssMetadata['isOpenAccess'] ?? null) ? $ssMetadata['isOpenAccess'] : null;
 
         return [
+            // Identifikation
             'rank' => $rank,
             'resultKey' => 'pmid:' . $pmid,
             'type' => 'pmid',
             'pmid' => $pmid,
             'doi' => $doi,
+            'pmcId' => $pmcId,
+            // Bibliografiske kernedata
             'title' => trim((string) ($summary['title'] ?? '')),
-            'abstract' => trim($abstract),
-            'hasAbstract' => trim($abstract) !== '',
-            'abstractSource' => trim($abstract) !== '' ? 'pubmed' : '',
-            'publicationDate' => $publicationDate,
-            'year' => $year,
-            'originSource' => $originSource,
-            'mergedSources' => $mergedSources,
-            'trustedPmid' => $trusted,
-            'canOpenInPubMed' => $pmid !== '',
-            'sourceLabel' => trim((string) ($summary['fulljournalname'] ?? ($summary['source'] ?? ''))),
             'authors' => $authors,
-            'publicationTypes' => qpmPublicSearchNormalizeSimpleList($summary['pubtype'] ?? []),
             'journal' => [
                 'name' => trim((string) ($summary['fulljournalname'] ?? ($summary['source'] ?? ''))),
                 'issn' => trim((string) ($summary['issn'] ?? '')),
@@ -4174,15 +4166,28 @@ if (!function_exists('qpmPublicSearchBuildApiResultFromPubMed')) {
                 'issue' => trim((string) ($summary['issue'] ?? '')),
                 'pages' => trim((string) ($summary['pages'] ?? '')),
             ],
+            'sourceLabel' => trim((string) ($summary['fulljournalname'] ?? ($summary['source'] ?? ''))),
+            'publicationDate' => $publicationDate,
+            'year' => $year,
             'language' => qpmPublicSearchNormalizeSimpleList($summary['lang'] ?? [])[0] ?? '',
-            'pmcId' => $pmcId,
+            'publicationTypes' => qpmPublicSearchNormalizeSimpleList($summary['pubtype'] ?? []),
             'topics' => $topics,
+            // Indhold
+            'abstract' => trim($abstract),
+            'hasAbstract' => trim($abstract) !== '',
+            'abstractSource' => trim($abstract) !== '' ? 'pubmed' : '',
+            'aiSummary' => trim((string) ($ssMetadata['tldr'] ?? '')),
+            // Metrikker
             'citationCount' => $citationCount,
             'citationCountSource' => $citationCountSource,
             'isOpenAccess' => $isOpenAccess,
             'openAccessUrl' => '',
             'isRetracted' => null,
-            'aiSummary' => trim((string) ($ssMetadata['tldr'] ?? '')),
+            // Tillid/proveniens
+            'trustedPmid' => $trusted,
+            'canOpenInPubMed' => $pmid !== '',
+            'originSource' => $originSource,
+            'mergedSources' => $mergedSources,
         ];
     }
 }
@@ -4259,24 +4264,16 @@ if (!function_exists('qpmPublicSearchBuildApiResultFromOpenAlex')) {
         $isRetractedRaw = $work['is_retracted'] ?? null;
 
         return [
+            // Identifikation
             'rank' => $rank,
             'resultKey' => 'doi:' . strtolower($doi),
             'type' => 'doi',
             'pmid' => $pmid,
             'doi' => $doi,
+            'pmcId' => trim((string) ($work['ids']['pmcid'] ?? '')),
+            // Bibliografiske kernedata
             'title' => trim((string) ($work['display_name'] ?? ($work['title'] ?? ''))),
-            'abstract' => trim($abstract),
-            'hasAbstract' => trim($abstract) !== '',
-            'abstractSource' => trim($abstract) !== '' ? 'openAlex' : '',
-            'publicationDate' => trim((string) ($work['publication_date'] ?? '')),
-            'year' => trim((string) ($work['publication_year'] ?? '')),
-            'originSource' => $originSource,
-            'mergedSources' => $mergedSources,
-            'trustedPmid' => false,
-            'canOpenInPubMed' => $pmid !== '',
-            'sourceLabel' => trim((string) ($source['display_name'] ?? '')),
             'authors' => $authors,
-            'publicationTypes' => $publicationTypes,
             'journal' => [
                 'name' => trim((string) ($source['display_name'] ?? '')),
                 'issn' => trim((string) ($source['issn_l'] ?? '')),
@@ -4284,15 +4281,28 @@ if (!function_exists('qpmPublicSearchBuildApiResultFromOpenAlex')) {
                 'issue' => trim((string) ($biblio['issue'] ?? '')),
                 'pages' => $pages,
             ],
+            'sourceLabel' => trim((string) ($source['display_name'] ?? '')),
+            'publicationDate' => trim((string) ($work['publication_date'] ?? '')),
+            'year' => trim((string) ($work['publication_year'] ?? '')),
             'language' => trim((string) ($work['language'] ?? '')),
-            'pmcId' => trim((string) ($work['ids']['pmcid'] ?? '')),
+            'publicationTypes' => $publicationTypes,
             'topics' => $topics,
+            // Indhold
+            'abstract' => trim($abstract),
+            'hasAbstract' => trim($abstract) !== '',
+            'abstractSource' => trim($abstract) !== '' ? 'openAlex' : '',
+            'aiSummary' => trim((string) ($ssMetadata['tldr'] ?? '')),
+            // Metrikker
             'citationCount' => $citationCount,
             'citationCountSource' => $citationCountSource,
             'isOpenAccess' => $isOpenAccess,
             'openAccessUrl' => trim((string) ($openAccess['oa_url'] ?? '')),
             'isRetracted' => is_bool($isRetractedRaw) ? $isRetractedRaw : null,
-            'aiSummary' => trim((string) ($ssMetadata['tldr'] ?? '')),
+            // Tillid/proveniens
+            'trustedPmid' => false,
+            'canOpenInPubMed' => $pmid !== '',
+            'originSource' => $originSource,
+            'mergedSources' => $mergedSources,
         ];
     }
 }

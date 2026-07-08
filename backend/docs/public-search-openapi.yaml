@@ -465,6 +465,7 @@ components:
       type: object
       additionalProperties: false
       properties:
+        # Identifikation
         rank:
           type: integer
         resultKey:
@@ -476,29 +477,10 @@ components:
           type: string
         doi:
           type: string
+        pmcId:
+          type: string
+        # Bibliografiske kernedata
         title:
-          type: string
-        abstract:
-          type: string
-        hasAbstract:
-          type: boolean
-        abstractSource:
-          type: string
-        publicationDate:
-          type: string
-        year:
-          type: string
-        originSource:
-          type: string
-        mergedSources:
-          type: array
-          items:
-            $ref: '#/components/schemas/Source'
-        trustedPmid:
-          type: boolean
-        canOpenInPubMed:
-          type: boolean
-        sourceLabel:
           type: string
         authors:
           type: array
@@ -508,10 +490,6 @@ components:
             properties:
               name:
                 type: string
-        publicationTypes:
-          type: array
-          items:
-            type: string
         journal:
           type: object
           additionalProperties: false
@@ -526,10 +504,18 @@ components:
               type: string
             pages:
               type: string
+        sourceLabel:
+          type: string
+        publicationDate:
+          type: string
+        year:
+          type: string
         language:
           type: string
-        pmcId:
-          type: string
+        publicationTypes:
+          type: array
+          items:
+            type: string
         topics:
           type: array
           items:
@@ -541,6 +527,16 @@ components:
               source:
                 type: string
                 enum: [mesh, openAlex]
+        # Indhold
+        abstract:
+          type: string
+        hasAbstract:
+          type: boolean
+        abstractSource:
+          type: string
+        aiSummary:
+          type: string
+        # Metrikker
         citationCount:
           type: integer
           nullable: true
@@ -555,8 +551,17 @@ components:
         isRetracted:
           type: boolean
           nullable: true
-        aiSummary:
+        # Tillid/proveniens
+        trustedPmid:
+          type: boolean
+        canOpenInPubMed:
+          type: boolean
+        originSource:
           type: string
+        mergedSources:
+          type: array
+          items:
+            $ref: '#/components/schemas/Source'
     RateLimit:
       type: object
       additionalProperties: false

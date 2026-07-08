@@ -218,22 +218,12 @@ API'et returnerer den endelige ordnede liste i `results`.
       "type": "pmid",
       "pmid": "12345678",
       "doi": "10.1000/example",
+      "pmcId": "PMC1234567",
       "title": "Exercise interventions in type 2 diabetes",
-      "abstract": "Abstract text ...",
-      "hasAbstract": true,
-      "abstractSource": "pubmed",
-      "publicationDate": "2024 Jan 15",
-      "year": "2024",
-      "originSource": "semanticScholar",
-      "mergedSources": ["semanticScholar", "pubmed"],
-      "trustedPmid": true,
-      "canOpenInPubMed": true,
-      "sourceLabel": "Diabetes Care",
       "authors": [
         { "name": "Jane A. Doe" },
         { "name": "John B. Smith" }
       ],
-      "publicationTypes": ["Randomized Controlled Trial"],
       "journal": {
         "name": "Diabetes Care",
         "issn": "0149-5992",
@@ -241,17 +231,27 @@ API'et returnerer den endelige ordnede liste i `results`.
         "issue": "1",
         "pages": "12-20"
       },
+      "sourceLabel": "Diabetes Care",
+      "publicationDate": "2024 Jan 15",
+      "year": "2024",
       "language": "eng",
-      "pmcId": "PMC1234567",
+      "publicationTypes": ["Randomized Controlled Trial"],
       "topics": [
         { "label": "Type 2 diabetes", "source": "mesh" }
       ],
+      "abstract": "Abstract text ...",
+      "hasAbstract": true,
+      "abstractSource": "pubmed",
+      "aiSummary": "Kort AI-genereret opsummering fra Semantic Scholar.",
       "citationCount": 12,
       "citationCountSource": "semanticScholar",
       "isOpenAccess": true,
       "openAccessUrl": "",
       "isRetracted": null,
-      "aiSummary": "Kort AI-genereret opsummering fra Semantic Scholar."
+      "trustedPmid": true,
+      "canOpenInPubMed": true,
+      "originSource": "semanticScholar",
+      "mergedSources": ["semanticScholar", "pubmed"]
     }
   ]
 }
