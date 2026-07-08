@@ -2602,12 +2602,12 @@ if (!function_exists('qpmPublicSearchFlattenPubMedAbstractText')) {
 
 if (!function_exists('qpmPublicSearchFetchPubMedAbstractMap')) {
     /**
-     * Henter abstract og MeSH-termer fra samme efetch-XML-kald, saa der ikke
-     * skal et ekstra upstream-kald til for at faa emneklassificering med.
+     * Henter abstract, strukturerede abstract-sektioner og MeSH-termer fra
+     * samme efetch-XML-kald, saa der ikke skal ekstra upstream-kald til.
      *
      * @param array<int,string> $pmids
      * @param string $domain
-     * @return array<string,array{abstract:string,mesh:array<int,string>}>
+     * @return array<string,array{abstract:string,mesh:array<int,string>,abstractSections:array<int,array{label:string,text:string}>}>
      */
     function qpmPublicSearchFetchPubMedAbstractMap(array $pmids, string $domain = ''): array
     {
@@ -2662,6 +2662,7 @@ if (!function_exists('qpmPublicSearchFetchPubMedAbstractMap')) {
                 }
                 $abstractNodes = $article->getElementsByTagName('AbstractText');
                 $parts = [];
+                $sections = [];
                 foreach ($abstractNodes as $abstractNode) {
                     if (!$abstractNode instanceof DOMElement) {
                         continue;
@@ -2672,6 +2673,7 @@ if (!function_exists('qpmPublicSearchFetchPubMedAbstractMap')) {
                         continue;
                     }
                     $parts[] = $label !== '' ? ($label . ': ' . $text) : $text;
+                    $sections[] = ['label' => $label, 'text' => $text];
                 }
                 $meshTerms = [];
                 foreach ($article->getElementsByTagName('MeshHeading') as $meshHeadingNode) {
@@ -2690,6 +2692,7 @@ if (!function_exists('qpmPublicSearchFetchPubMedAbstractMap')) {
                 $abstractMap[$pmid] = [
                     'abstract' => qpmPublicSearchFlattenPubMedAbstractText($parts),
                     'mesh' => array_values(array_keys($meshTerms)),
+                    'abstractSections' => $sections,
                 ];
                 if ($cacheTtl > 0) {
                     qpmPublicSearchWriteCacheValue('pubmed-abstract', 'pmid:' . $pmid, $abstractMap[$pmid], $cacheTtl);
@@ -4091,6 +4094,7 @@ if (!function_exists('qpmPublicSearchBuildApiResultFromPubMed')) {
      * @param array<string,mixed> $candidateInfo
      * @param bool $trusted
      * @param array<int,string> $meshTerms
+     * @param array<int,array{label:string,text:string}> $abstractSections
      * @return array<string,mixed>
      */
     function qpmPublicSearchBuildApiResultFromPubMed(
@@ -4099,7 +4103,8 @@ if (!function_exists('qpmPublicSearchBuildApiResultFromPubMed')) {
         int $rank,
         array $candidateInfo,
         bool $trusted,
-        array $meshTerms = []
+        array $meshTerms = [],
+        array $abstractSections = []
     ): array {
         $pmid = qpmPublicSearchNormalizePmid($summary['uid'] ?? ($summary['pmid'] ?? ''));
         $doi = qpmPublicSearchNormalizeDoi($candidateInfo['doi'] ?? '');
@@ -4139,6 +4144,18 @@ if (!function_exists('qpmPublicSearchBuildApiResultFromPubMed')) {
             }
         }
 
+        $normalizedAbstractSections = [];
+        foreach ($abstractSections as $abstractSection) {
+            $sectionText = trim((string) ($abstractSection['text'] ?? ''));
+            if ($sectionText === '') {
+                continue;
+            }
+            $normalizedAbstractSections[] = [
+                'label' => trim((string) ($abstractSection['label'] ?? '')),
+                'text' => $sectionText,
+            ];
+        }
+
         $ssMetadata = isset($candidateInfo['metadata']) && is_array($candidateInfo['metadata']) ? $candidateInfo['metadata'] : [];
         $citationCount = null;
         $citationCountSource = '';
@@ -4176,6 +4193,7 @@ if (!function_exists('qpmPublicSearchBuildApiResultFromPubMed')) {
             'abstract' => trim($abstract),
             'hasAbstract' => trim($abstract) !== '',
             'abstractSource' => trim($abstract) !== '' ? 'pubmed' : '',
+            'abstractSections' => $normalizedAbstractSections,
             'aiSummary' => trim((string) ($ssMetadata['tldr'] ?? '')),
             // Metrikker
             'citationCount' => $citationCount,
@@ -4291,6 +4309,9 @@ if (!function_exists('qpmPublicSearchBuildApiResultFromOpenAlex')) {
             'abstract' => trim($abstract),
             'hasAbstract' => trim($abstract) !== '',
             'abstractSource' => trim($abstract) !== '' ? 'openAlex' : '',
+            // OpenAlex' abstract_inverted_index indeholder ingen afsnitsstruktur,
+            // saa abstractet gengives her som en enkelt, ulabeled sektion.
+            'abstractSections' => trim($abstract) !== '' ? [['label' => '', 'text' => trim($abstract)]] : [],
             'aiSummary' => trim((string) ($ssMetadata['tldr'] ?? '')),
             // Metrikker
             'citationCount' => $citationCount,
@@ -4464,7 +4485,8 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
                     $pageOffset + $index + 1,
                     ['source' => 'pubmed', 'sources' => ['pubmed'], 'doi' => ''],
                     true,
-                    $abstractMap[$pmid]['mesh'] ?? []
+                    $abstractMap[$pmid]['mesh'] ?? [],
+                    $abstractMap[$pmid]['abstractSections'] ?? []
                 );
             }
 
@@ -4652,7 +4674,8 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
                     $rank,
                     $candidateInfo,
                     $trusted,
-                    $abstractMap[$pmid]['mesh'] ?? []
+                    $abstractMap[$pmid]['mesh'] ?? [],
+                    $abstractMap[$pmid]['abstractSections'] ?? []
                 );
             } elseif (isset($doiWorkMap[$key])) {
                 $results[] = qpmPublicSearchBuildApiResultFromOpenAlex($doiWorkMap[$key], $rank, $candidateInfo);

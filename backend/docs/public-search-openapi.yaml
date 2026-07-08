@@ -534,6 +534,16 @@ components:
           type: boolean
         abstractSource:
           type: string
+        abstractSections:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            properties:
+              label:
+                type: string
+              text:
+                type: string
         aiSummary:
           type: string
         # Metrikker
