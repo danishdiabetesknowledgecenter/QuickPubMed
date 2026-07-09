@@ -316,7 +316,14 @@ Typiske events:
 Ved multi-kilde-soegninger (mere end `pubmed` alene) kan der gaa relativt lang tid mellem `finalizeCollect` og `finalizeHydrate`, fordi resultaterne her valideres mod PubMed/OpenAlex, foer de endelige resultater hentes. For at undgaa et langt, stille hul i streamen emitteres nu ekstra `progress`-events i denne periode (samme stadienavne som webappens egen fremdriftsvisning):
 
 - `finalizeValidatePmid`: PMID-kandidater krydsvalideres mod PubMed.
-- `finalizeValidateDoiFetch`: DOI-kandidater hydreres og valideres et for et mod OpenAlex. Ved mange DOI-only-kandidater emitteres dette event flere gange undervejs, med `current`/`total` i payloaden, der angiver hvor langt processen er.
+- `finalizeValidateDoiFetch`: DOI-kandidater hydreres og valideres mod OpenAlex. `total` i payloaden angiver, hvor mange DOI-kandidater der skal behandles.
+
+Hvert event sendes præcis én gang pr. søgning (ikke gentagne gange), og `message`-feltet er en kort, brugervenlig tekst på det sprog, der er angivet i requesten (`da`/`en`) — beregnet til at kunne vises direkte til en slutbruger, der venter på søgeresultatet:
+
+| `messageKey` | `message` (da) | `message` (en) |
+|---|---|---|
+| `semanticSearchProgressFinalizeValidatePmid` | "Bekræfter resultaterne hos PubMed." | "Confirming the results with PubMed." |
+| `semanticSearchProgressFinalizeValidateDoiFetch` | "Henter flere detaljer om resultaterne." | "Fetching more details about the results." |
 
 Eksempel:
 

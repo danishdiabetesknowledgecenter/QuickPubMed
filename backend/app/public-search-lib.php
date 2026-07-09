@@ -664,6 +664,34 @@ if (!function_exists('qpmPublicSearchResolveProgressLanguage')) {
     }
 }
 
+if (!function_exists('qpmPublicSearchGetPublicProgressMessageCopy')) {
+    /**
+     * Faerdige, brugervenlige dk/en-tekster til progress-stadier, det
+     * offentlige API selv tilfoejer. Disse er bevidst holdt uafhaengige af
+     * webappens interne oversaettelser i src/assets/content/translations.js,
+     * saa teksterne kan skrives simpelt og direkte til en ekstern
+     * API-brugers slutbruger (der venter paa et soegeresultat), uden at det
+     * paavirker - eller afhaenger af ordlyden i - webappens egen UI.
+     *
+     * @param string $messageKey
+     * @return array{dk:string,en:string}|null
+     */
+    function qpmPublicSearchGetPublicProgressMessageCopy(string $messageKey): ?array
+    {
+        $copy = [
+            'semanticSearchProgressFinalizeValidatePmid' => [
+                'dk' => 'Bekræfter resultaterne hos PubMed.',
+                'en' => 'Confirming the results with PubMed.',
+            ],
+            'semanticSearchProgressFinalizeValidateDoiFetch' => [
+                'dk' => 'Henter flere detaljer om resultaterne.',
+                'en' => 'Fetching more details about the results.',
+            ],
+        ];
+        return $copy[$messageKey] ?? null;
+    }
+}
+
 if (!function_exists('qpmPublicSearchBuildStreamProgressPayload')) {
     /**
      * @param array<string,mixed> $request
@@ -685,9 +713,14 @@ if (!function_exists('qpmPublicSearchBuildStreamProgressPayload')) {
         $stepId = trim((string) ($context['stepId'] ?? $stage));
         $groupId = trim((string) ($context['groupId'] ?? ''));
         $source = trim((string) ($context['source'] ?? ''));
-        $message = $messageKey !== ''
-            ? qpmPublicSearchGetFrontendTranslation($messageKey, $frontendLanguage, $fallbackMessage)
-            : trim($fallbackMessage);
+        $publicMessageCopy = $messageKey !== '' ? qpmPublicSearchGetPublicProgressMessageCopy($messageKey) : null;
+        if ($publicMessageCopy !== null) {
+            $message = $publicMessageCopy[$frontendLanguage] ?? $publicMessageCopy['dk'];
+        } elseif ($messageKey !== '') {
+            $message = qpmPublicSearchGetFrontendTranslation($messageKey, $frontendLanguage, $fallbackMessage);
+        } else {
+            $message = trim($fallbackMessage);
+        }
         $groupLabel = $groupKey !== ''
             ? qpmPublicSearchGetFrontendTranslation($groupKey, $frontendLanguage, '')
             : '';
@@ -4050,9 +4083,9 @@ if (!function_exists('qpmPublicSearchBuildAllowedCandidateKeys')) {
 
         // DOI-kandidater hydreres/valideres et-for-et mod OpenAlex, hvilket ved
         // mange DOI-only-kandidater kan tage laengere tid. Der emittes derfor
-        // periodiske fremdrifts-events (samme stage som webappens egen
-        // "finalizeValidateDoiFetch"), saa en streaming-klient ikke oplever et
-        // langt, stille hul her.
+        // ét fremdrifts-event, foerste gang vi starter denne validering, saa
+        // en streaming-klient faar besked om, at vi er i gang - uden at
+        // spamme streamen med gentagne identiske events.
         $doiCandidateCount = 0;
         foreach ($orderedCandidates as $candidate) {
             if (is_array($candidate) && qpmPublicSearchNormalizePmid($candidate['pmid'] ?? '') === '') {
@@ -4060,7 +4093,7 @@ if (!function_exists('qpmPublicSearchBuildAllowedCandidateKeys')) {
             }
         }
         $doiCandidateIndex = 0;
-        $heartbeatInterval = 5;
+        $hasEmittedDoiValidationProgress = false;
 
         foreach ($orderedCandidates as $candidate) {
             if (!is_array($candidate)) {
@@ -4081,13 +4114,13 @@ if (!function_exists('qpmPublicSearchBuildAllowedCandidateKeys')) {
             }
 
             $doiCandidateIndex++;
-            if ($doiCandidateIndex === 1 || $doiCandidateIndex % $heartbeatInterval === 0) {
+            if (!$hasEmittedDoiValidationProgress) {
+                $hasEmittedDoiValidationProgress = true;
                 qpmPublicSearchEmitProgress($progressCallback, 'finalizeValidateDoiFetch', '', [
                     'stepId' => 'finalizeValidateDoiFetch',
                     'groupId' => 'finalizeCollect',
                     'groupKey' => 'semanticSearchProcessGroupMatch',
                     'messageKey' => 'semanticSearchProgressFinalizeValidateDoiFetch',
-                    'current' => $doiCandidateIndex,
                     'total' => $doiCandidateCount,
                 ]);
             }
