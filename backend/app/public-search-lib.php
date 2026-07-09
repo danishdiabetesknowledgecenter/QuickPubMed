@@ -3022,7 +3022,6 @@ if (!function_exists('qpmPublicSearchFetchSemanticScholarSourceResult')) {
             return $empty;
         }
 
-        qpmThrottleRequestRate('semantic_scholar', 3);
         $envApiKey = getenv('SEMANTIC_SCHOLAR_API_KEY');
         $apiKey = is_string($envApiKey) && trim($envApiKey) !== ''
             ? trim($envApiKey)
@@ -3039,95 +3038,129 @@ if (!function_exists('qpmPublicSearchFetchSemanticScholarSourceResult')) {
             $headers[] = 'x-api-key: ' . $apiKey;
         }
 
-        $limit = qpmPublicSearchGetSemanticSourceLimit('semanticScholar', 400);
-        $params = [
-            'query' => $normalizedQuery,
-            'limit' => $limit,
-            'offset' => 0,
-            'fields' => 'externalIds,title,abstract,venue,year,publicationTypes,citationCount,isOpenAccess,tldr',
-        ];
+        $publicationTypesParam = '';
         $publicationTypes = qpmPublicSearchDedupeStrings(
             array_map('qpmPublicSearchNormalizeSemanticScholarPublicationType', (array) ($filters['publicationTypes'] ?? []))
         );
         if (!empty($publicationTypes)) {
-            $params['publicationTypes'] = implode(',', $publicationTypes);
+            $publicationTypesParam = implode(',', $publicationTypes);
         }
         $publicationDateOrYear = qpmPublicSearchNormalizeSemanticScholarPublicationDateOrYear(
             $filters['publicationDateOrYear'] ?? ''
         );
-        if ($publicationDateOrYear !== '') {
-            $params['publicationDateOrYear'] = $publicationDateOrYear;
-        }
         $year = qpmPublicSearchNormalizePublicationYearRange($filters['year'] ?? '');
-        if ($year !== '') {
-            $params['year'] = $year;
-        }
 
-        $url = 'https://api.semanticscholar.org/graph/v1/paper/search?' . http_build_query($params);
-        $result = qpmHttpRequest($url, [
-            'method' => 'GET',
-            'timeout' => 20,
-            'headers' => $headers,
-            'user_agent' => 'QuickPubMed/1.0',
-        ]);
-        if (!qpmPublicSearchIsHttpResultOk($result)) {
-            return qpmPublicSearchCreateEmptySourceResult(
-                'semanticScholar',
-                $normalizedQuery,
-                'Semantic Scholar request failed: ' . qpmPublicSearchDescribeHttpFailure($result)
-            );
-        }
-        $decoded = json_decode((string) $result['body'], true);
-        if (!is_array($decoded)) {
-            return qpmPublicSearchCreateEmptySourceResult('semanticScholar', $normalizedQuery, 'Invalid Semantic Scholar response');
-        }
+        // Semantic Scholars /paper/search understoetter maksimalt limit=100
+        // pr. kald (se https://api.semanticscholar.org/api-docs/). Et enkelt
+        // kald med hele den konfigurerede graense (som ofte er stoerre end
+        // 100) bliver afvist af upstream. Der hentes derfor i batches, ligesom
+        // backend/api/SemanticScholarSearch.php allerede goer for webappen.
+        $configuredLimit = max(1, qpmPublicSearchGetSemanticSourceLimit('semanticScholar', 400));
+        $batchSize = 100;
+
         $payload = [
-            'total' => (int) ($decoded['total'] ?? 0),
+            'total' => 0,
             'pmids' => [],
             'dois' => [],
             'candidates' => [],
         ];
-        foreach ((array) ($decoded['data'] ?? []) as $index => $paper) {
-            if (!is_array($paper)) {
-                continue;
-            }
-            $externalIds = isset($paper['externalIds']) && is_array($paper['externalIds']) ? $paper['externalIds'] : [];
-            $pmid = qpmPublicSearchNormalizePmid($externalIds['PubMed'] ?? '');
-            $doi = qpmPublicSearchNormalizeDoi($externalIds['DOI'] ?? '');
-            if ($pmid === '' && $doi === '') {
-                continue;
-            }
-            $citationCountRaw = $paper['citationCount'] ?? null;
-            $isOpenAccessRaw = $paper['isOpenAccess'] ?? null;
-            $tldrText = trim((string) ($paper['tldr']['text'] ?? ''));
-            $payload['candidates'][] = [
-                'source' => 'semanticScholar',
-                'rank' => $index + 1,
-                'pmid' => $pmid,
-                'doi' => $doi,
-                'title' => trim((string) ($paper['title'] ?? '')),
-                'abstract' => trim((string) ($paper['abstract'] ?? '')),
-                'metadata' => [
-                    'publicationYear' => trim((string) ($paper['year'] ?? '')),
-                    'venue' => trim((string) ($paper['venue'] ?? '')),
-                    'publicationTypes' => qpmPublicSearchNormalizeSimpleList($paper['publicationTypes'] ?? []),
-                    'citationCount' => is_numeric($citationCountRaw) ? (int) $citationCountRaw : null,
-                    'isOpenAccess' => is_bool($isOpenAccessRaw) ? $isOpenAccessRaw : null,
-                    'tldr' => $tldrText,
-                ],
+        $rawResultCount = 0;
+        $rank = 0;
+        $offset = 0;
+        $failure = '';
+        while ($offset < $configuredLimit) {
+            $currentLimit = min($batchSize, $configuredLimit - $offset);
+            qpmThrottleRequestRate('semantic_scholar', 3);
+            $params = [
+                'query' => $normalizedQuery,
+                'limit' => $currentLimit,
+                'offset' => $offset,
+                'fields' => 'externalIds,title,abstract,venue,year,publicationTypes,citationCount,isOpenAccess,tldr',
             ];
-            if ($pmid !== '') {
-                $payload['pmids'][] = $pmid;
+            if ($publicationTypesParam !== '') {
+                $params['publicationTypes'] = $publicationTypesParam;
             }
-            if ($doi !== '') {
-                $payload['dois'][] = $doi;
+            if ($publicationDateOrYear !== '') {
+                $params['publicationDateOrYear'] = $publicationDateOrYear;
             }
+            if ($year !== '') {
+                $params['year'] = $year;
+            }
+
+            $url = 'https://api.semanticscholar.org/graph/v1/paper/search?' . http_build_query($params);
+            $result = qpmHttpRequest($url, [
+                'method' => 'GET',
+                'timeout' => 20,
+                'headers' => $headers,
+                'user_agent' => 'QuickPubMed/1.0',
+            ]);
+            if (!qpmPublicSearchIsHttpResultOk($result)) {
+                $failure = 'Semantic Scholar request failed: ' . qpmPublicSearchDescribeHttpFailure($result);
+                break;
+            }
+            $decoded = json_decode((string) $result['body'], true);
+            if (!is_array($decoded)) {
+                $failure = 'Invalid Semantic Scholar response';
+                break;
+            }
+            if ($offset === 0) {
+                $payload['total'] = (int) ($decoded['total'] ?? 0);
+            }
+            $batchData = (array) ($decoded['data'] ?? []);
+            $rawResultCount += count($batchData);
+            foreach ($batchData as $paper) {
+                $rank++;
+                if (!is_array($paper)) {
+                    continue;
+                }
+                $externalIds = isset($paper['externalIds']) && is_array($paper['externalIds']) ? $paper['externalIds'] : [];
+                $pmid = qpmPublicSearchNormalizePmid($externalIds['PubMed'] ?? '');
+                $doi = qpmPublicSearchNormalizeDoi($externalIds['DOI'] ?? '');
+                if ($pmid === '' && $doi === '') {
+                    continue;
+                }
+                $citationCountRaw = $paper['citationCount'] ?? null;
+                $isOpenAccessRaw = $paper['isOpenAccess'] ?? null;
+                $tldrText = trim((string) ($paper['tldr']['text'] ?? ''));
+                $payload['candidates'][] = [
+                    'source' => 'semanticScholar',
+                    'rank' => $rank,
+                    'pmid' => $pmid,
+                    'doi' => $doi,
+                    'title' => trim((string) ($paper['title'] ?? '')),
+                    'abstract' => trim((string) ($paper['abstract'] ?? '')),
+                    'metadata' => [
+                        'publicationYear' => trim((string) ($paper['year'] ?? '')),
+                        'venue' => trim((string) ($paper['venue'] ?? '')),
+                        'publicationTypes' => qpmPublicSearchNormalizeSimpleList($paper['publicationTypes'] ?? []),
+                        'citationCount' => is_numeric($citationCountRaw) ? (int) $citationCountRaw : null,
+                        'isOpenAccess' => is_bool($isOpenAccessRaw) ? $isOpenAccessRaw : null,
+                        'tldr' => $tldrText,
+                    ],
+                ];
+                if ($pmid !== '') {
+                    $payload['pmids'][] = $pmid;
+                }
+                if ($doi !== '') {
+                    $payload['dois'][] = $doi;
+                }
+            }
+            if (count($batchData) < $currentLimit) {
+                // Upstream har ikke flere resultater at hente.
+                break;
+            }
+            $offset += $currentLimit;
         }
-        $rawResultCount = count((array) ($decoded['data'] ?? []));
+
+        if ($failure !== '' && empty($payload['candidates'])) {
+            return qpmPublicSearchCreateEmptySourceResult('semanticScholar', $normalizedQuery, $failure);
+        }
         if (empty($payload['candidates'])) {
             $payload['warning'] = $rawResultCount > 0
                 ? "Semantic Scholar matched {$rawResultCount} paper(s) for the resolved query, but none had a PubMed ID or DOI, so they were skipped."
                 : 'Semantic Scholar matched 0 papers for the resolved query.';
+        } elseif ($failure !== '') {
+            $payload['warning'] = 'Semantic Scholar: ' . $failure . ' (partial results returned before the failure)';
         }
         return qpmPublicSearchNormalizeSourceResult('semanticScholar', $normalizedQuery, $payload);
     }
