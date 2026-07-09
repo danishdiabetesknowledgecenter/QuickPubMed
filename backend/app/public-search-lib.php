@@ -4155,6 +4155,9 @@ if (!function_exists('qpmPublicSearchBuildApiResultFromPubMed')) {
                 'text' => $sectionText,
             ];
         }
+        $abstractParagraphs = implode("\n\n", array_map(static function (array $section): string {
+            return $section['label'] !== '' ? ($section['label'] . ': ' . $section['text']) : $section['text'];
+        }, $normalizedAbstractSections));
 
         $ssMetadata = isset($candidateInfo['metadata']) && is_array($candidateInfo['metadata']) ? $candidateInfo['metadata'] : [];
         $citationCount = null;
@@ -4194,6 +4197,7 @@ if (!function_exists('qpmPublicSearchBuildApiResultFromPubMed')) {
             'hasAbstract' => trim($abstract) !== '',
             'abstractSource' => trim($abstract) !== '' ? 'pubmed' : '',
             'abstractSections' => $normalizedAbstractSections,
+            'abstractParagraphs' => $abstractParagraphs,
             'aiSummary' => trim((string) ($ssMetadata['tldr'] ?? '')),
             // Metrikker
             'citationCount' => $citationCount,
@@ -4312,6 +4316,7 @@ if (!function_exists('qpmPublicSearchBuildApiResultFromOpenAlex')) {
             // OpenAlex' abstract_inverted_index indeholder ingen afsnitsstruktur,
             // saa abstractet gengives her som en enkelt, ulabeled sektion.
             'abstractSections' => trim($abstract) !== '' ? [['label' => '', 'text' => trim($abstract)]] : [],
+            'abstractParagraphs' => trim($abstract),
             'aiSummary' => trim((string) ($ssMetadata['tldr'] ?? '')),
             // Metrikker
             'citationCount' => $citationCount,

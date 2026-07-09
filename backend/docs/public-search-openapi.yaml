@@ -544,6 +544,8 @@ components:
                 type: string
               text:
                 type: string
+        abstractParagraphs:
+          type: string
         aiSummary:
           type: string
         # Metrikker

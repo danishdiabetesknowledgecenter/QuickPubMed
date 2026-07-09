@@ -248,6 +248,7 @@ API'et returnerer den endelige ordnede liste i `results`.
         { "label": "RESULTS", "text": "..." },
         { "label": "CONCLUSIONS", "text": "..." }
       ],
+      "abstractParagraphs": "BACKGROUND: ...\n\nMETHODS: ...\n\nRESULTS: ...\n\nCONCLUSIONS: ...",
       "aiSummary": "Kort AI-genereret opsummering fra Semantic Scholar.",
       "citationCount": 12,
       "citationCountSource": "semanticScholar",
@@ -333,11 +334,13 @@ Hvert resultat i `results` indeholder desuden en fast, ensartet mængde berigede
 - `language`: ISO-sprogkode, fx `"eng"`. `""` hvis ukendt.
 - `pmcId`: PubMed Central-ID, hvis resultatet har et. `""` hvis ikke.
 - `topics`: liste af `{ label, source }`, hvor `source` er `"mesh"` (PubMed MeSH-termer) eller `"openAlex"` (OpenAlex' primære emne). `[]` hvis intet er fundet.
-- `abstractSections`: `abstract` er og bliver altid én flad, strippet streng (uændret bagudkompatibel adfærd). `abstractSections` er en liste af `{ label, text }`, der bevarer den oprindelige afsnitsstruktur:
-  - For strukturerede PubMed-abstracts (Background/Methods/Results/Conclusions) er der én indgang pr. sektion, med `label` sat til NLM's sektionsnavn (fx `"BACKGROUND"`).
-  - For ustrukturerede PubMed-abstracts er der én indgang med `label: ""`.
-  - For OpenAlex-hydrerede resultater (`type=doi`) er der ligeledes én indgang med `label: ""`, da OpenAlex' `abstract_inverted_index` ikke indeholder afsnitsinformation — der findes ikke mere struktur at udtrække her.
-  - `[]` hvis der ikke er noget abstract.
+- Der findes tre varianter af abstractet, så du selv kan vælge, hvilken der passer bedst til dit formål:
+  - `abstract`: én flad, strippet streng uden linjeskift (uændret bagudkompatibel adfærd — samme som altid).
+  - `abstractSections`: en liste af `{ label, text }`, der bevarer den oprindelige afsnitsstruktur som strukturerede data:
+    - For strukturerede PubMed-abstracts (Background/Methods/Results/Conclusions) er der én indgang pr. sektion, med `label` sat til NLM's sektionsnavn (fx `"BACKGROUND"`).
+    - For ustrukturerede PubMed-abstracts, og for OpenAlex-hydrerede resultater (`type=doi`), er der én indgang med `label: ""`, da der her ikke findes mere struktur at udtrække (OpenAlex' `abstract_inverted_index` indeholder ikke afsnitsinformation).
+    - `[]` hvis der ikke er noget abstract.
+  - `abstractParagraphs`: samme indhold som `abstractSections`, men som en enkelt plain text-streng, hvor sektionerne er skilt med et dobbelt linjeskift (`\n\n`) i stedet for et enkelt mellemrum. Nyttig til visning, hvis du vil have læsevenlige afsnit uden selv at skulle samle `abstractSections`. `""` hvis der ikke er noget abstract.
 - `citationCount` / `citationCountSource`: antal citationer og hvilken kilde tallet stammer fra (`"openAlex"` eller `"semanticScholar"`). `citationCount` er `null`, og `citationCountSource` er `""`, når ingen af kilderne har data for det pågældende resultat.
 - `isOpenAccess`: `true`/`false`, eller `null` hvis ingen kilde har afgjort det.
 - `openAccessUrl`: link til open access-version, hvis kendt fra OpenAlex. `""` ellers.
