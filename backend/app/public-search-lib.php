@@ -957,6 +957,115 @@ if (!function_exists('qpmPublicSearchNormalizeSimpleList')) {
     }
 }
 
+if (!function_exists('qpmPublicSearchComputeInitialsFromGivenName')) {
+    /**
+     * @param string $givenName
+     * @return string
+     */
+    function qpmPublicSearchComputeInitialsFromGivenName(string $givenName): string
+    {
+        $parts = preg_split('/[\s\-]+/', trim($givenName)) ?: [];
+        $initials = '';
+        foreach ($parts as $part) {
+            $part = trim($part);
+            if ($part === '') {
+                continue;
+            }
+            $firstChar = function_exists('mb_substr') ? mb_substr($part, 0, 1) : substr($part, 0, 1);
+            $initials .= function_exists('mb_strtoupper') ? mb_strtoupper($firstChar) : strtoupper($firstChar);
+        }
+        return $initials;
+    }
+}
+
+if (!function_exists('qpmPublicSearchBuildNormalizedAuthorEntry')) {
+    /**
+     * Bygger et ensartet author-objekt uanset kilde. `name` normaliseres til
+     * "Efternavn Initialer" (fx "Setzler M"), naar et efternavn er kendt, saa
+     * forfatternavne vises ens uafhaengigt af hydrerings-kilde. `familyName`,
+     * `givenName` og `initials` leveres separat, saa klienten selv kan
+     * sammensaette et andet format, hvis den foretraekker det.
+     *
+     * @param string $familyName
+     * @param string $givenName
+     * @param string $initials Eksplicit kendte initialer (fx fra PubMed XML). Udledes fra givenName, hvis tom.
+     * @param string $rawFallbackName Bruges som `name`, hvis der ikke kunne udledes et efternavn.
+     * @return array{name:string,familyName:string,givenName:string,initials:string}
+     */
+    function qpmPublicSearchBuildNormalizedAuthorEntry(
+        string $familyName,
+        string $givenName,
+        string $initials,
+        string $rawFallbackName
+    ): array {
+        $familyName = trim($familyName);
+        $givenName = trim($givenName);
+        $initials = trim($initials);
+        if ($initials === '' && $givenName !== '') {
+            $initials = qpmPublicSearchComputeInitialsFromGivenName($givenName);
+        }
+        $name = $familyName !== ''
+            ? trim($familyName . ($initials !== '' ? ' ' . $initials : ''))
+            : trim($rawFallbackName);
+        return [
+            'name' => $name,
+            'familyName' => $familyName,
+            'givenName' => $givenName,
+            'initials' => $initials,
+        ];
+    }
+}
+
+if (!function_exists('qpmPublicSearchSplitFamilyFirstAuthorName')) {
+    /**
+     * Splitter et NCBI-stil navn ("Setzler M", "O'Brien JK") i familyName/initials.
+     * Bruges som fallback, naar PubMed-XML'ens strukturerede Author-noder ikke er
+     * tilgaengelige (fx naar includeAbstracts=false), og esummary kun leverer en
+     * flad `name`-streng i dette format.
+     *
+     * @param string $rawName
+     * @return array{name:string,familyName:string,givenName:string,initials:string}
+     */
+    function qpmPublicSearchSplitFamilyFirstAuthorName(string $rawName): array
+    {
+        $rawName = trim($rawName);
+        if ($rawName === '') {
+            return ['name' => '', 'familyName' => '', 'givenName' => '', 'initials' => ''];
+        }
+        if (preg_match('/^(.*\S)\s+([A-Za-z]{1,4})$/u', $rawName, $matches) === 1) {
+            return qpmPublicSearchBuildNormalizedAuthorEntry($matches[1], '', $matches[2], $rawName);
+        }
+        return qpmPublicSearchBuildNormalizedAuthorEntry($rawName, '', '', $rawName);
+    }
+}
+
+if (!function_exists('qpmPublicSearchSplitGivenFirstAuthorName')) {
+    /**
+     * Splitter et "Fornavn Efternavn"-navn (OpenAlex' display_name-format, fx
+     * "Mark Setzler") i familyName/givenName/initials via en simpel
+     * sidste-ord-er-efternavn-heuristik. Fejler for sammensatte efternavne
+     * (fx "van der Berg"), men er den bedste tilgaengelige tilnaerming, da
+     * OpenAlex ikke leverer strukturerede navnedele.
+     *
+     * @param string $rawName
+     * @return array{name:string,familyName:string,givenName:string,initials:string}
+     */
+    function qpmPublicSearchSplitGivenFirstAuthorName(string $rawName): array
+    {
+        $rawName = trim($rawName);
+        if ($rawName === '') {
+            return ['name' => '', 'familyName' => '', 'givenName' => '', 'initials' => ''];
+        }
+        $parts = preg_split('/\s+/', $rawName) ?: [];
+        if (count($parts) < 2) {
+            return qpmPublicSearchBuildNormalizedAuthorEntry('', '', '', $rawName);
+        }
+        $familyName = array_pop($parts);
+        $givenName = implode(' ', $parts);
+        return qpmPublicSearchBuildNormalizedAuthorEntry($familyName, $givenName, '', $rawName);
+    }
+}
+
 if (!function_exists('qpmPublicSearchNormalizeSources')) {
     /**
      * @param mixed $value
@@ -993,6 +1102,50 @@ if (!function_exists('qpmPublicSearchNormalizeSortMethod')) {
             return $normalized;
         }
         return 'relevance';
+    }
+}
+
+if (!function_exists('qpmPublicSearchGetFocusProfileConfig')) {
+    /**
+     * @param string $profileId
+     * @return array<string,mixed>|null
+     */
+    function qpmPublicSearchGetFocusProfileConfig(string $profileId): ?array
+    {
+        if ($profileId === '') {
+            return null;
+        }
+        $profileConfig = defined('QPM_RERANK_PROFILE_CONFIG') && is_array(QPM_RERANK_PROFILE_CONFIG)
+            ? QPM_RERANK_PROFILE_CONFIG
+            : [];
+        $profiles = isset($profileConfig['profiles']) && is_array($profileConfig['profiles'])
+            ? $profileConfig['profiles']
+            : [];
+        foreach ($profiles as $profile) {
+            if (is_array($profile) && trim((string) ($profile['id'] ?? '')) === $profileId) {
+                return $profile;
+            }
+        }
+        return null;
+    }
+}
+
+if (!function_exists('qpmPublicSearchNormalizeFocusProfileId')) {
+    /**
+     * Normaliserer et "focus"-profil-id og bekraefter, at det findes i
+     * QPM_RERANK_PROFILE_CONFIG. Ukendt/tom vaerdi giver '' (ingen override).
+     *
+     * @param mixed $value
+     * @return string
+     */
+    function qpmPublicSearchNormalizeFocusProfileId($value): string
+    {
+        $normalized = strtolower(trim((string) $value));
+        $normalized = preg_replace('/[^a-z0-9-]/', '', $normalized) ?? '';
+        if ($normalized === '') {
+            return '';
+        }
+        return qpmPublicSearchGetFocusProfileConfig($normalized) !== null ? $normalized : '';
     }
 }
 
@@ -1237,6 +1390,7 @@ if (!function_exists('qpmPublicSearchBuildDefaultRequest')) {
             'sort' => [
                 'method' => 'relevance',
             ],
+            'focus' => '',
             'page' => [
                 'number' => 1,
                 'size' => $config['defaultPageSize'],
@@ -1307,17 +1461,34 @@ if (!function_exists('qpmPublicSearchBuildGetRequestFromQuery')) {
     function qpmPublicSearchBuildGetRequestFromQuery(array $queryParams): array
     {
         $request = qpmPublicSearchBuildDefaultRequest();
-        $allowed = ['q', 'sources', 'sort', 'page', 'pageSize', 'translation', 'apiKey', 'stream', 'lang'];
+        $allowed = [
+            'q', 'sources', 'sort', 'page', 'pageSize', 'translation', 'apiKey', 'stream', 'lang', 'focus',
+            // Convenience-aliaser, der matcher soegeformularens URL-parametre:
+            'pagesize', 'databases', 'ai',
+        ];
         $unexpected = array_diff(array_keys($queryParams), $allowed);
         if (!empty($unexpected)) {
             throw new InvalidArgumentException('Unsupported GET query parameter(s): ' . implode(', ', $unexpected));
         }
 
         $request['query']['text'] = trim((string) ($queryParams['q'] ?? ''));
-        $request['sources'] = qpmPublicSearchNormalizeSources($queryParams['sources'] ?? []);
+        $sources = qpmPublicSearchNormalizeSources($queryParams['sources'] ?? []);
+        if (empty($sources) && array_key_exists('databases', $queryParams)) {
+            $sources = qpmPublicSearchNormalizeSources(
+                str_replace(';;', ',', (string) $queryParams['databases'])
+            );
+        }
+        $request['sources'] = $sources;
         $request['sort']['method'] = qpmPublicSearchNormalizeSortMethod($queryParams['sort'] ?? 'relevance');
+        $request['focus'] = qpmPublicSearchNormalizeFocusProfileId($queryParams['focus'] ?? '');
         $request['page']['number'] = max(1, (int) ($queryParams['page'] ?? 1));
-        $request['translation']['mode'] = qpmPublicSearchNormalizeTranslationMode($queryParams['translation'] ?? 'auto');
+        if (array_key_exists('translation', $queryParams)) {
+            $request['translation']['mode'] = qpmPublicSearchNormalizeTranslationMode($queryParams['translation']);
+        } elseif (array_key_exists('ai', $queryParams)) {
+            $request['translation']['mode'] = qpmPublicSearchBoolValue($queryParams['ai'], true) ? 'auto' : 'none';
+        } else {
+            $request['translation']['mode'] = 'auto';
+        }
         $request['responseOptions']['stream'] = qpmPublicSearchBoolValue(
             $queryParams['stream'] ?? $request['responseOptions']['stream'],
             (bool) $request['responseOptions']['stream']
@@ -1327,7 +1498,7 @@ if (!function_exists('qpmPublicSearchBuildGetRequestFromQuery')) {
         );
 
         $config = qpmPublicSearchGetConfig();
-        $pageSize = (int) ($queryParams['pageSize'] ?? $request['page']['size']);
+        $pageSize = (int) ($queryParams['pageSize'] ?? ($queryParams['pagesize'] ?? $request['page']['size']));
         $request['page']['size'] = max(1, min($config['maxPageSize'], $pageSize > 0 ? $pageSize : $config['defaultPageSize']));
 
         if ($request['query']['text'] === '') {
@@ -1355,6 +1526,7 @@ if (!function_exists('qpmPublicSearchNormalizePostRequest')) {
             'domain',
             'sources',
             'sort',
+            'focus',
             'page',
             'translation',
             'responseOptions',
@@ -1387,6 +1559,7 @@ if (!function_exists('qpmPublicSearchNormalizePostRequest')) {
             throw new InvalidArgumentException('Unsupported sort field(s): ' . implode(', ', $sortUnexpected));
         }
         $request['sort']['method'] = qpmPublicSearchNormalizeSortMethod($sort['method'] ?? 'relevance');
+        $request['focus'] = qpmPublicSearchNormalizeFocusProfileId($payload['focus'] ?? '');
 
         $page = isset($payload['page']) && is_array($payload['page']) ? $payload['page'] : [];
         $pageUnexpected = array_diff(array_keys($page), ['number', 'size']);
@@ -2602,12 +2775,13 @@ if (!function_exists('qpmPublicSearchFlattenPubMedAbstractText')) {
 
 if (!function_exists('qpmPublicSearchFetchPubMedAbstractMap')) {
     /**
-     * Henter abstract, strukturerede abstract-sektioner og MeSH-termer fra
-     * samme efetch-XML-kald, saa der ikke skal ekstra upstream-kald til.
+     * Henter abstract, strukturerede abstract-sektioner, MeSH-termer og
+     * strukturerede forfatternavne fra samme efetch-XML-kald, saa der ikke
+     * skal ekstra upstream-kald til.
      *
      * @param array<int,string> $pmids
      * @param string $domain
-     * @return array<string,array{abstract:string,mesh:array<int,string>,abstractSections:array<int,array{label:string,text:string}>}>
+     * @return array<string,array{abstract:string,mesh:array<int,string>,abstractSections:array<int,array{label:string,text:string}>,authors:array<int,array{name:string,familyName:string,givenName:string,initials:string}>}>
      */
     function qpmPublicSearchFetchPubMedAbstractMap(array $pmids, string $domain = ''): array
     {
@@ -2689,10 +2863,40 @@ if (!function_exists('qpmPublicSearchFetchPubMedAbstractMap')) {
                         $meshTerms[$meshTerm] = true;
                     }
                 }
+                $structuredAuthors = [];
+                foreach ($article->getElementsByTagName('Author') as $authorNode) {
+                    if (!$authorNode instanceof DOMElement) {
+                        continue;
+                    }
+                    $lastNameNodes = $authorNode->getElementsByTagName('LastName');
+                    $foreNameNodes = $authorNode->getElementsByTagName('ForeName');
+                    $initialsNodes = $authorNode->getElementsByTagName('Initials');
+                    $collectiveNameNodes = $authorNode->getElementsByTagName('CollectiveName');
+                    $lastName = $lastNameNodes->length > 0 ? trim((string) $lastNameNodes->item(0)?->textContent) : '';
+                    $foreName = $foreNameNodes->length > 0 ? trim((string) $foreNameNodes->item(0)?->textContent) : '';
+                    $initials = $initialsNodes->length > 0 ? trim((string) $initialsNodes->item(0)?->textContent) : '';
+                    $collectiveName = $collectiveNameNodes->length > 0 ? trim((string) $collectiveNameNodes->item(0)?->textContent) : '';
+                    if ($lastName !== '') {
+                        $structuredAuthors[] = qpmPublicSearchBuildNormalizedAuthorEntry(
+                            $lastName,
+                            $foreName,
+                            $initials,
+                            trim($foreName . ' ' . $lastName)
+                        );
+                    } elseif ($collectiveName !== '') {
+                        $structuredAuthors[] = qpmPublicSearchBuildNormalizedAuthorEntry(
+                            $collectiveName,
+                            '',
+                            '',
+                            $collectiveName
+                        );
+                    }
+                }
                 $abstractMap[$pmid] = [
                     'abstract' => qpmPublicSearchFlattenPubMedAbstractText($parts),
                     'mesh' => array_values(array_keys($meshTerms)),
                     'abstractSections' => $sections,
+                    'authors' => $structuredAuthors,
                 ];
                 if ($cacheTtl > 0) {
                     qpmPublicSearchWriteCacheValue('pubmed-abstract', 'pmid:' . $pmid, $abstractMap[$pmid], $cacheTtl);
@@ -3305,7 +3509,7 @@ if (!function_exists('qpmPublicSearchGetRerankConfig')) {
     /**
      * @return array<string,mixed>
      */
-    function qpmPublicSearchGetRerankConfig(): array
+    function qpmPublicSearchGetRerankConfig(string $focusProfileId = ''): array
     {
         $config = defined('QPM_RERANK_CONFIG') && is_array(QPM_RERANK_CONFIG) ? QPM_RERANK_CONFIG : [];
         $default = [
@@ -3322,7 +3526,7 @@ if (!function_exists('qpmPublicSearchGetRerankConfig')) {
             'overlapBonusPerExtraSource' => 35,
             'rrfK' => 60,
         ];
-        return [
+        $merged = [
             'sourceWeights' => array_merge(
                 $default['sourceWeights'],
                 is_array($config['sourceWeights'] ?? null) ? $config['sourceWeights'] : []
@@ -3338,6 +3542,27 @@ if (!function_exists('qpmPublicSearchGetRerankConfig')) {
                 : $default['overlapBonusPerExtraSource'],
             'rrfK' => is_numeric($config['rrfK'] ?? null) ? (float) $config['rrfK'] : $default['rrfK'],
         ];
+
+        // "focus" anvender kun de overrides, den deterministiske RRF-rerank
+        // faktisk understoetter. De oevrige felter i profilens overrides
+        // (pubTypeWeights, recencyBonusMax, clinicalBonus osv.) hoerer til
+        // et kvalitetssignal-lag, der i dag kun findes i webappens JS, og
+        // ignoreres derfor bevidst her.
+        $focusProfile = qpmPublicSearchGetFocusProfileConfig($focusProfileId);
+        $overrides = is_array($focusProfile['overrides'] ?? null) ? $focusProfile['overrides'] : [];
+        if (!empty($overrides)) {
+            if (is_array($overrides['sourceWeights'] ?? null)) {
+                $merged['sourceWeights'] = array_merge($merged['sourceWeights'], $overrides['sourceWeights']);
+            }
+            if (is_numeric($overrides['pmidBonus'] ?? null)) {
+                $merged['pmidBonus'] = (float) $overrides['pmidBonus'];
+            }
+            if (is_numeric($overrides['overlapBonusPerExtraSource'] ?? null)) {
+                $merged['overlapBonusPerExtraSource'] = (float) $overrides['overlapBonusPerExtraSource'];
+            }
+        }
+
+        return $merged;
     }
 }
 
@@ -3396,14 +3621,15 @@ if (!function_exists('qpmPublicSearchGetSourceSummary')) {
 if (!function_exists('qpmPublicSearchRerankSemanticCandidates')) {
     /**
      * @param array<int,array<string,mixed>> $sourceResults
+     * @param string $focusProfileId
      * @return array<string,mixed>
      */
-    function qpmPublicSearchRerankSemanticCandidates(array $sourceResults): array
+    function qpmPublicSearchRerankSemanticCandidates(array $sourceResults, string $focusProfileId = ''): array
     {
         $activeSourceResults = array_values(array_filter($sourceResults, static function ($sourceResult) {
             return !empty($sourceResult['candidates']) && is_array($sourceResult['candidates']);
         }));
-        $rerankConfig = qpmPublicSearchGetRerankConfig();
+        $rerankConfig = qpmPublicSearchGetRerankConfig($focusProfileId);
         $sourceStats = qpmPublicSearchGetSourceStats($activeSourceResults);
         $sourceSummary = qpmPublicSearchGetSourceSummary($activeSourceResults);
         $rerankMode = count($activeSourceResults) <= 1 ? 'single' : 'multi';
@@ -3911,6 +4137,46 @@ if (!function_exists('qpmPublicSearchGetSemanticLlmCandidateId')) {
     }
 }
 
+if (!function_exists('qpmPublicSearchGetFocusProfileLlmCopy')) {
+    /**
+     * Kort, statisk engelsk label/beskrivelse pr. focus-profil-id, til brug i
+     * LLM-prompten. QPM_RERANK_PROFILE_CONFIG har kun labelKey/descriptionKey,
+     * som kraever frontend-oversaettelse og derfor ikke er tilgaengelige i PHP.
+     *
+     * @param string $profileId
+     * @return array{id:string,label:string,description:string}
+     */
+    function qpmPublicSearchGetFocusProfileLlmCopy(string $profileId): array
+    {
+        $copy = [
+            'balanced' => [
+                'label' => 'Balanced',
+                'description' => 'Use a balanced mix of evidence level, recency, and relevance.',
+            ],
+            'highest-evidence' => [
+                'label' => 'Highest evidence',
+                'description' => 'Prioritize systematic reviews, meta-analyses, and guidelines with strong methodological evidence.',
+            ],
+            'clinical-practice' => [
+                'label' => 'Clinical practice',
+                'description' => 'Prioritize results directly relevant to clinical decision-making and practice guidelines.',
+            ],
+            'newest-research' => [
+                'label' => 'Newest research',
+                'description' => 'Prefer more recent studies over older ones, even if slightly less established.',
+            ],
+            'broad-mapping' => [
+                'label' => 'Broad mapping',
+                'description' => 'Favor broad topical coverage over strict evidence-level prioritization.',
+            ],
+        ];
+        if ($profileId === '' || !isset($copy[$profileId])) {
+            return ['id' => '', 'label' => '', 'description' => ''];
+        }
+        return array_merge(['id' => $profileId], $copy[$profileId]);
+    }
+}
+
 if (!function_exists('qpmPublicSearchMaybeApplySemanticLlmFinalRerank')) {
     /**
      * @param array<int,array<string,mixed>> $results
@@ -3986,22 +4252,35 @@ if (!function_exists('qpmPublicSearchMaybeApplySemanticLlmFinalRerank')) {
                 ],
             ],
         ];
+        $focusProfileId = (string) ($request['focus'] ?? '');
+        $focusCopy = qpmPublicSearchGetFocusProfileLlmCopy($focusProfileId);
+        $systemPromptLines = [
+            'You rerank already validated scholarly search candidates.',
+            'Never exclude, add, or invent items. Return a permutation of the provided candidate ids only.',
+            'Prefer candidates that best match the query intent using title and abstract together.',
+        ];
+        if ($focusCopy['id'] !== '') {
+            $systemPromptLines[] = 'Respect the selected result focus when ordering otherwise comparable candidates: '
+                . $focusCopy['label'] . '. ' . $focusCopy['description'];
+            if ($focusCopy['id'] === 'newest-research') {
+                $systemPromptLines[] = 'For this focus, prefer more recent studies when relevance is comparable, '
+                    . 'and avoid promoting old studies solely because they have accumulated citations.';
+            }
+        }
+
         $requestPayload = [
             'model' => $config['model'],
             'input' => [
                 [
                     'role' => 'system',
-                    'content' => implode("\n", [
-                        'You rerank already validated scholarly search candidates.',
-                        'Never exclude, add, or invent items. Return a permutation of the provided candidate ids only.',
-                        'Prefer candidates that best match the query intent using title and abstract together.',
-                    ]),
+                    'content' => implode("\n", $systemPromptLines),
                 ],
                 [
                     'role' => 'user',
                     'content' => qpmPublicSearchSafeJsonEncode([
                         'query' => trim((string) ($resolvedQueries['semanticIntent'] ?? ($resolvedQueries['pubmedQuery'] ?? ($request['query']['text'] ?? '')))),
                         'hardFilterQuery' => trim((string) ($resolvedQueries['hardFilterQuery'] ?? '')),
+                        'resultFocus' => $focusCopy,
                         'task' => 'Return the candidate ids ordered from most to least relevant.',
                         'candidates' => array_map(static function ($candidate) {
                             return [
@@ -4095,6 +4374,7 @@ if (!function_exists('qpmPublicSearchBuildApiResultFromPubMed')) {
      * @param bool $trusted
      * @param array<int,string> $meshTerms
      * @param array<int,array{label:string,text:string}> $abstractSections
+     * @param array<int,array{name:string,familyName:string,givenName:string,initials:string}> $structuredAuthors
      * @return array<string,mixed>
      */
     function qpmPublicSearchBuildApiResultFromPubMed(
@@ -4104,7 +4384,8 @@ if (!function_exists('qpmPublicSearchBuildApiResultFromPubMed')) {
         array $candidateInfo,
         bool $trusted,
         array $meshTerms = [],
-        array $abstractSections = []
+        array $abstractSections = [],
+        array $structuredAuthors = []
     ): array {
         $pmid = qpmPublicSearchNormalizePmid($summary['uid'] ?? ($summary['pmid'] ?? ''));
         $doi = qpmPublicSearchNormalizeDoi($candidateInfo['doi'] ?? '');
@@ -4126,12 +4407,16 @@ if (!function_exists('qpmPublicSearchBuildApiResultFromPubMed')) {
         $publicationDate = trim((string) ($summary['sortpubdate'] ?? ($summary['pubdate'] ?? '')));
         $year = qpmPublicSearchExtractPubMedSummaryPublicationYear($summary);
 
-        $authors = [];
-        if (is_array($summary['authors'] ?? null)) {
+        // Foretraekker strukturerede forfatternavne fra efetch-XML'en (LastName/
+        // ForeName/Initials), da esummary kun leverer en flad 'name'-streng.
+        // Falder tilbage til at splitte esummary-strengen, naar XML'en ikke er
+        // hentet (fx naar includeAbstracts=false).
+        $authors = $structuredAuthors;
+        if (empty($authors) && is_array($summary['authors'] ?? null)) {
             foreach ($summary['authors'] as $author) {
                 $authorName = trim((string) ($author['name'] ?? ''));
                 if ($authorName !== '') {
-                    $authors[] = ['name' => $authorName];
+                    $authors[] = qpmPublicSearchSplitFamilyFirstAuthorName($authorName);
                 }
             }
         }
@@ -4233,12 +4518,16 @@ if (!function_exists('qpmPublicSearchBuildApiResultFromOpenAlex')) {
             : [trim((string) ($candidateInfo['source'] ?? 'openAlex'))];
         $originSource = trim((string) ($candidateInfo['source'] ?? ($mergedSources[0] ?? 'openAlex')));
 
+        // OpenAlex leverer kun et samlet display_name (typisk "Fornavn
+        // Efternavn"), ikke separate navnedele, saa vi splitter det med en
+        // sidste-ord-er-efternavn-heuristik for at give samme facon som
+        // PubMed-forfattere ("Efternavn Initialer").
         $authors = [];
         if (is_array($work['authorships'] ?? null)) {
             foreach ($work['authorships'] as $authorship) {
                 $authorName = trim((string) ($authorship['author']['display_name'] ?? ''));
                 if ($authorName !== '') {
-                    $authors[] = ['name' => $authorName];
+                    $authors[] = qpmPublicSearchSplitGivenFirstAuthorName($authorName);
                 }
             }
         }
@@ -4364,6 +4653,7 @@ if (!function_exists('qpmPublicSearchBuildFinalResponse')) {
                 'language' => (string) ($request['query']['language'] ?? 'auto'),
             ],
             'sources' => array_values(array_map('strval', (array) ($request['sources'] ?? []))),
+            'focus' => (string) ($request['focus'] ?? ''),
             'page' => [
                 'number' => (int) ($request['page']['number'] ?? 1),
                 'size' => (int) ($request['page']['size'] ?? 25),
@@ -4491,7 +4781,8 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
                     ['source' => 'pubmed', 'sources' => ['pubmed'], 'doi' => ''],
                     true,
                     $abstractMap[$pmid]['mesh'] ?? [],
-                    $abstractMap[$pmid]['abstractSections'] ?? []
+                    $abstractMap[$pmid]['abstractSections'] ?? [],
+                    $abstractMap[$pmid]['authors'] ?? []
                 );
             }
 
@@ -4592,7 +4883,7 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
             'groupKey' => 'semanticSearchProcessGroupMatch',
             'messageKey' => 'semanticSearchProgressFinalizeCollect',
         ]);
-        $reranked = qpmPublicSearchRerankSemanticCandidates($sourceResults);
+        $reranked = qpmPublicSearchRerankSemanticCandidates($sourceResults, (string) ($request['focus'] ?? ''));
         $orderedCandidates = (array) ($reranked['candidates'] ?? []);
         $diagnostics['rerank'] = $reranked['diagnostics'] ?? [];
 
@@ -4680,7 +4971,8 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
                     $candidateInfo,
                     $trusted,
                     $abstractMap[$pmid]['mesh'] ?? [],
-                    $abstractMap[$pmid]['abstractSections'] ?? []
+                    $abstractMap[$pmid]['abstractSections'] ?? [],
+                    $abstractMap[$pmid]['authors'] ?? []
                 );
             } elseif (isset($doiWorkMap[$key])) {
                 $results[] = qpmPublicSearchBuildApiResultFromOpenAlex($doiWorkMap[$key], $rank, $candidateInfo);

@@ -53,6 +53,7 @@ Hvis `allow_all_origins` er `false`, bruges den normale `allowed_origins`-allowl
 - `domain`
 - `sources`
 - `sort`
+- `focus`
 - `page`
 - `translation`
 - `responseOptions`
@@ -74,6 +75,7 @@ Ukendte felter afvises eksplicit.
   "sort": {
     "method": "relevance"
   },
+  "focus": "highest-evidence",
   "page": {
     "number": 1,
     "size": 10
@@ -110,11 +112,12 @@ Ukendte felter afvises eksplicit.
 
 ## GET request
 
-Den simple URL-kontrakt accepterer kun:
+Den simple URL-kontrakt accepterer:
 
 - `q`
 - `sources`
 - `sort`
+- `focus`
 - `page`
 - `pageSize`
 - `translation`
@@ -122,13 +125,25 @@ Den simple URL-kontrakt accepterer kun:
 - `stream`
 - `lang`
 
+Samt tre convenience-aliaser, der matcher de samme parameternavne som søgeformularens URL bruger:
+
+- `pagesize` — alias for `pageSize` (bruges kun hvis `pageSize` ikke er angivet)
+- `databases` — alias for `sources`, accepterer både `;;`- og kommasepareret liste (bruges kun hvis `sources` er tom)
+- `ai` — alias for `translation` (`ai=false`/`0` giver `translation=none`, ellers `auto`; bruges kun hvis `translation` ikke er angivet)
+
 Eksempel:
 
 ```text
-GET /v1/search?q=exercise+type+2+diabetes&sources=pubmed,openAlex&sort=relevance&page=1&pageSize=10&translation=auto
+GET /v1/search?q=exercise+type+2+diabetes&sources=pubmed,openAlex&sort=relevance&focus=highest-evidence&page=1&pageSize=10&translation=auto
 ```
 
-Avancerede filtre understøttes ikke i `GET`-varianten.
+Samme søgning skrevet med søgeformular-aliaserne:
+
+```text
+GET /v1/search?q=exercise+type+2+diabetes&databases=pubmed;;openalex&sort=relevance&focus=highest-evidence&page=1&pagesize=10&ai=true
+```
+
+Avancerede filtre (`hardFilters`, `sourceFilters`) samt emne-/afgrænsnings-ID'er fra søgeformularens `topic`- og `limit`-parametre understøttes ikke i `GET`-varianten eller i det offentlige API generelt — disse ID'er opløses i dag kun client-side i webappen.
 
 `translation` styrer AI-oversættelsen:
 
@@ -171,6 +186,20 @@ Hvis `stream` eller `lang` findes baade i URL og i JSON body, vinder URL-paramet
 - `date_desc`
 - `date_asc`
 
+### `focus`
+
+Valgfrit resultat-fokus (rerank-profil). Samme profil-id'er som i søgeformularen:
+
+- `balanced`
+- `highest-evidence`
+- `clinical-practice`
+- `newest-research`
+- `broad-mapping`
+
+Hvis feltet udelades, eller værdien er ukendt, anvendes ingen profil-override (serverens generelle standard-vægte fra `QPM_RERANK_CONFIG` bruges, hvilket ikke nødvendigvis er identisk med at vælge `balanced` eksplicit).
+
+**Bemærk om `focus` i det offentlige API:** `focus` anvender kun profilens overrides for kilde-vægte (`sourceWeights`), pmid-bonus og overlap-bonus i den deterministiske sammenlægning af flere kilder, samt en kort instruktion i den LLM-baserede finjustering af rækkefølgen (når semantiske kilder og LLM-rerank er aktive). Det er **ikke** fuld paritet med webappens rerank-profiler, som derudover justerer kvalitetssignaler som publikationstype-vægtning, recency-kurver, citationsindflydelse og kliniske bonusser — det lag findes i dag kun i webappens frontend-kode.
+
 ## Response
 
 API'et returnerer den endelige ordnede liste i `results`.
@@ -183,6 +212,7 @@ API'et returnerer den endelige ordnede liste i `results`.
     "language": "da"
   },
   "sources": ["pubmed", "semanticScholar", "openAlex"],
+  "focus": "highest-evidence",
   "page": {
     "number": 1,
     "size": 10
@@ -227,8 +257,8 @@ API'et returnerer den endelige ordnede liste i `results`.
       "pmcId": "PMC1234567",
       "title": "Exercise interventions in type 2 diabetes",
       "authors": [
-        { "name": "Jane A. Doe" },
-        { "name": "John B. Smith" }
+        { "name": "Doe JA", "familyName": "Doe", "givenName": "Jane A", "initials": "JA" },
+        { "name": "Smith JB", "familyName": "Smith", "givenName": "John B", "initials": "JB" }
       ],
       "journal": {
         "name": "Diabetes Care",
@@ -345,7 +375,11 @@ PubMed abstracts hydreres via NLM. DOI-bårne resultater hydreres via OpenAlex.
 
 Hvert resultat i `results` indeholder desuden en fast, ensartet mængde berigede felter, uanset om resultatet er hydreret via PubMed (`type=pmid`) eller OpenAlex (`type=doi`). Nøglerne er altid til stede; kun værdien varierer efter, hvad kilden kan levere.
 
-- `authors`: liste af `{ "name": "..." }`. `[]` hvis ingen forfattere er fundet.
+- `authors`: liste af `{ name, familyName, givenName, initials }`. `[]` hvis ingen forfattere er fundet.
+  - `name` er et **ensartet** visningsnavn på formen `"Efternavn Initialer"` (fx `"Setzler M"`), uanset om resultatet er hydreret via PubMed eller OpenAlex. Det løser den tidligere uensartethed, hvor PubMed typisk gav `"Setzler M"` og OpenAlex gav `"Mark Setzler"`.
+  - `familyName`, `givenName` og `initials` leveres separat, så du selv kan sammensætte et andet format (fx `"Fornavn Efternavn"` eller `"Efternavn, Fornavn"`).
+  - **Kilde og pålidelighed:** For PubMed-resultater (`type=pmid`) hentes efternavn/fornavn/initialer fra NLM's strukturerede XML-data (samme kald som henter abstract og MeSH), og er derfor pålidelige. Er `includeAbstracts=false`, er denne XML ikke hentet, og `name`/`familyName`/`initials` udledes i stedet ved at splitte esummary's flade navnestreng (fungerer godt for det gængse `"Efternavn Initialer"`-format, men er mindre robust for atypiske navne).
+  - For OpenAlex-resultater (`type=doi`) leverer kilden kun ét samlet navn (typisk `"Fornavn Efternavn"`), som splittes med en simpel sidste-ord-er-efternavn-heuristik. Denne heuristik kan fejle for sammensatte efternavne (fx "van der Berg") — i så fald indeholder `name` det oprindelige, uændrede navn, og `familyName`/`givenName`/`initials` er tomme.
 - `publicationTypes`: liste af publikationstyper (fx `"Review"`, `"article"`). `[]` hvis ukendt.
 - `journal`: `{ name, issn, volume, issue, pages }`. Tomme strenge, hvis oplysningen ikke findes.
 - `language`: ISO-sprogkode, fx `"eng"`. `""` hvis ukendt.
