@@ -714,6 +714,12 @@ if (!function_exists('qpmPublicSearchBuildStreamProgressPayload')) {
         if ($source !== '') {
             $payload['source'] = $source;
         }
+        if (isset($context['current']) && is_numeric($context['current'])) {
+            $payload['current'] = (int) $context['current'];
+        }
+        if (isset($context['total']) && is_numeric($context['total'])) {
+            $payload['total'] = (int) $context['total'];
+        }
 
         return $payload;
     }
@@ -4027,18 +4033,34 @@ if (!function_exists('qpmPublicSearchBuildAllowedCandidateKeys')) {
      * @param array<int,string> $trustedPmids
      * @param array<string,mixed> $hardFilters
      * @param string $domain
+     * @param callable|null $progressCallback
      * @return array{allowedKeys: array<int,string>, hydratedByKey: array<string,array<string,mixed>>, warnings: array<int,string>}
      */
     function qpmPublicSearchBuildAllowedCandidateKeys(
         array $orderedCandidates,
         array $trustedPmids,
         array $hardFilters,
-        string $domain = ''
+        string $domain = '',
+        ?callable $progressCallback = null
     ): array {
         $trustedSet = array_fill_keys(qpmPublicSearchDedupeStrings($trustedPmids, 'qpmPublicSearchNormalizePmid'), true);
         $allowedKeys = [];
         $hydratedByKey = [];
         $warnings = [];
+
+        // DOI-kandidater hydreres/valideres et-for-et mod OpenAlex, hvilket ved
+        // mange DOI-only-kandidater kan tage laengere tid. Der emittes derfor
+        // periodiske fremdrifts-events (samme stage som webappens egen
+        // "finalizeValidateDoiFetch"), saa en streaming-klient ikke oplever et
+        // langt, stille hul her.
+        $doiCandidateCount = 0;
+        foreach ($orderedCandidates as $candidate) {
+            if (is_array($candidate) && qpmPublicSearchNormalizePmid($candidate['pmid'] ?? '') === '') {
+                $doiCandidateCount++;
+            }
+        }
+        $doiCandidateIndex = 0;
+        $heartbeatInterval = 5;
 
         foreach ($orderedCandidates as $candidate) {
             if (!is_array($candidate)) {
@@ -4056,6 +4078,18 @@ if (!function_exists('qpmPublicSearchBuildAllowedCandidateKeys')) {
                 }
                 $allowedKeys[] = $key;
                 continue;
+            }
+
+            $doiCandidateIndex++;
+            if ($doiCandidateIndex === 1 || $doiCandidateIndex % $heartbeatInterval === 0) {
+                qpmPublicSearchEmitProgress($progressCallback, 'finalizeValidateDoiFetch', '', [
+                    'stepId' => 'finalizeValidateDoiFetch',
+                    'groupId' => 'finalizeCollect',
+                    'groupKey' => 'semanticSearchProcessGroupMatch',
+                    'messageKey' => 'semanticSearchProgressFinalizeValidateDoiFetch',
+                    'current' => $doiCandidateIndex,
+                    'total' => $doiCandidateCount,
+                ]);
             }
 
             $work = qpmPublicSearchFetchOpenAlexWorkByCandidate($candidate, $domain);
@@ -4085,6 +4119,7 @@ if (!function_exists('qpmPublicSearchBuildHybridOrderedResultRefs')) {
      * @param string $sortMethod
      * @param array<string,mixed> $hardFilters
      * @param string $domain
+     * @param callable|null $progressCallback
      * @return array<string,mixed>
      */
     function qpmPublicSearchBuildHybridOrderedResultRefs(
@@ -4092,7 +4127,8 @@ if (!function_exists('qpmPublicSearchBuildHybridOrderedResultRefs')) {
         array $orderedCandidates,
         string $sortMethod,
         array $hardFilters,
-        string $domain = ''
+        string $domain = '',
+        ?callable $progressCallback = null
     ): array {
         $orderedPmids = [];
         foreach ($orderedCandidates as $candidate) {
@@ -4101,11 +4137,25 @@ if (!function_exists('qpmPublicSearchBuildHybridOrderedResultRefs')) {
                 $orderedPmids[] = $pmid;
             }
         }
+        if (!empty($orderedPmids)) {
+            qpmPublicSearchEmitProgress($progressCallback, 'finalizeValidatePmid', '', [
+                'stepId' => 'finalizeValidatePmid',
+                'groupId' => 'finalizeCollect',
+                'groupKey' => 'semanticSearchProcessGroupMatch',
+                'messageKey' => 'semanticSearchProgressFinalizeValidatePmid',
+            ]);
+        }
         $orderedSearch = !empty($orderedPmids)
             ? qpmPublicSearchResolveOrderedSearchPmids($hardFilterQuery, $orderedPmids, $sortMethod, $domain)
             : ['count' => 0, 'orderedIds' => [], 'validationQuery' => ''];
         $trustedPmids = $hardFilterQuery !== '' ? $orderedSearch['orderedIds'] : [];
-        $allowed = qpmPublicSearchBuildAllowedCandidateKeys($orderedCandidates, $trustedPmids, $hardFilters, $domain);
+        $allowed = qpmPublicSearchBuildAllowedCandidateKeys(
+            $orderedCandidates,
+            $trustedPmids,
+            $hardFilters,
+            $domain,
+            $progressCallback
+        );
         $allowedSet = array_fill_keys($allowed['allowedKeys'], true);
         $matchedPmidSet = array_fill_keys((array) $orderedSearch['orderedIds'], true);
 
@@ -5067,7 +5117,8 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
             $orderedCandidates,
             $sortMethod,
             (array) ($request['hardFilters'] ?? []),
-            $domain
+            $domain,
+            $progressCallback
         );
         $warnings = qpmPublicSearchDedupeStrings(array_merge($warnings, (array) ($hybridOrdering['warnings'] ?? [])));
         $resultRefs = (array) ($hybridOrdering['refs'] ?? []);

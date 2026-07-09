@@ -311,6 +311,13 @@ Typiske events:
 - `result`: det endelige normale search-response som JSON payload
 - `error`: fejl payload, hvis soegningen fejler efter streamen er startet
 
+### `progress`-stadier omkring filtervalidering
+
+Ved multi-kilde-soegninger (mere end `pubmed` alene) kan der gaa relativt lang tid mellem `finalizeCollect` og `finalizeHydrate`, fordi resultaterne her valideres mod PubMed/OpenAlex, foer de endelige resultater hentes. For at undgaa et langt, stille hul i streamen emitteres nu ekstra `progress`-events i denne periode (samme stadienavne som webappens egen fremdriftsvisning):
+
+- `finalizeValidatePmid`: PMID-kandidater krydsvalideres mod PubMed.
+- `finalizeValidateDoiFetch`: DOI-kandidater hydreres og valideres et for et mod OpenAlex. Ved mange DOI-only-kandidater emitteres dette event flere gange undervejs, med `current`/`total` i payloaden, der angiver hvor langt processen er.
+
 Eksempel:
 
 ```text
