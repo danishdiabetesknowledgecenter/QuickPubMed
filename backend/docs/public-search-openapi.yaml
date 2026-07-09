@@ -457,6 +457,21 @@ components:
           additionalProperties: true
         rateLimit:
           $ref: '#/components/schemas/RateLimit'
+        timing:
+          type: object
+          additionalProperties: false
+          properties:
+            startedAt:
+              type: string
+              format: date-time
+            completedAt:
+              type: string
+              format: date-time
+            durationMs:
+              type: integer
+            durationFormatted:
+              type: string
+              description: "Forloebet tid i tt:mm:ss-format, fx 00:00:01."
         results:
           type: array
           items:

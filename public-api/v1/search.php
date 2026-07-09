@@ -111,6 +111,19 @@ try {
     qpmPublicSearchRefreshExecutionSlot($executionSlot);
     $response = qpmPublicSearchRunSearch($request, $progressCallback);
     $response['rateLimit'] = $rateLimit;
+    $completedAt = microtime(true);
+    $durationSeconds = (int) floor($completedAt - $startedAt);
+    $response['timing'] = [
+        'startedAt' => gmdate('c', (int) $startedAt),
+        'completedAt' => gmdate('c', (int) $completedAt),
+        'durationMs' => (int) round(($completedAt - $startedAt) * 1000),
+        'durationFormatted' => sprintf(
+            '%02d:%02d:%02d',
+            intdiv($durationSeconds, 3600),
+            intdiv($durationSeconds % 3600, 60),
+            $durationSeconds % 60
+        ),
+    ];
 
     qpmPublicSearchAudit([
         'clientId' => $client['client_id'] ?? '',

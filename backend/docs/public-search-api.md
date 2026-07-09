@@ -196,6 +196,12 @@ API'et returnerer den endelige ordnede liste i `results`.
     "finalStage": "deterministic_hybrid",
     "matchesWebOrdering": false
   },
+  "timing": {
+    "startedAt": "2026-07-09T00:00:00+00:00",
+    "completedAt": "2026-07-09T00:00:01+00:00",
+    "durationMs": 842,
+    "durationFormatted": "00:00:00"
+  },
   "resolvedQueries": {
     "pubmedQuery": "(exercise[tiab]) AND (type 2 diabetes[tiab])",
     "semanticIntent": "exercise type 2 diabetes",
@@ -310,6 +316,17 @@ Public search-laget har nu et loft for samtidige aktive soegninger.
 - naar loftet er naaet, returneres `503`
 - serveren sender `Retry-After`
 - klienten boer vise en besked om at vente og proeve igen senere
+
+## `timing`
+
+Hvert svar (også ved streaming, i `result`-eventet) indeholder et `timing`-objekt, der viser, hvor lang tid selve serverbehandlingen af søgningen tog:
+
+- `startedAt`: tidspunkt (ISO 8601, UTC) for hvornår serveren begyndte at behandle requesten — dvs. før autentificering, rate-limiting og selve søgningen.
+- `completedAt`: tidspunkt (ISO 8601, UTC) for hvornår responsen var færdigbygget, umiddelbart før den sendes til klienten.
+- `durationMs`: forløbet tid i millisekunder mellem `startedAt` og `completedAt`.
+- `durationFormatted`: samme forløbne tid som `durationMs`, men i `tt:mm:ss`-format (fx `"00:00:01"`). Afrundet ned til nærmeste hele sekund.
+
+`durationMs` måler serverens behandlingstid — herunder evt. opslag hos PubMed/OpenAlex/Semantic Scholar/Elicit — men ikke netværkstiden til og fra klienten. Ved cache-hit (se `diagnostics.cache.hit`, hvis `includeDiagnostics=true`) vil `durationMs` typisk være meget lavt, da søgningen ikke skal gå til upstream-kilderne igen.
 
 ## `matchesWebOrdering`
 
