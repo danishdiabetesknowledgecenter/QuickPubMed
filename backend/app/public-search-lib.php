@@ -2596,6 +2596,47 @@ if (!function_exists('qpmPublicSearchNormalizeSourceResult')) {
     }
 }
 
+if (!function_exists('qpmPublicSearchIsHttpResultOk')) {
+    /**
+     * qpmHttpRequest()'s 'ok'-flag afspejler kun, om selve transporten (curl)
+     * lykkedes - IKKE om upstream svarede med en 2xx-statuskode. Et svar som
+     * "402 Payment Required" eller "429 Too Many Requests" er derfor 'ok'
+     * ifoelge qpmHttpRequest, selvom kaldet reelt blev afvist. Denne helper
+     * tjekker begge dele, saa afviste upstream-kald ikke fejlagtigt bliver
+     * tolket som "0 resultater fundet".
+     *
+     * @param array<string,mixed> $result
+     * @return bool
+     */
+    function qpmPublicSearchIsHttpResultOk(array $result): bool
+    {
+        if (($result['ok'] ?? false) !== true) {
+            return false;
+        }
+        $status = (int) ($result['status'] ?? 0);
+        return $status >= 200 && $status < 300;
+    }
+}
+
+if (!function_exists('qpmPublicSearchDescribeHttpFailure')) {
+    /**
+     * @param array<string,mixed> $result
+     * @return string
+     */
+    function qpmPublicSearchDescribeHttpFailure(array $result): string
+    {
+        $error = trim((string) ($result['error'] ?? ''));
+        if ($error !== '') {
+            return $error;
+        }
+        $status = (int) ($result['status'] ?? 0);
+        if ($status > 0) {
+            return 'HTTP ' . $status;
+        }
+        return 'unknown error';
+    }
+}
+
 if (!function_exists('qpmPublicSearchBuildNlmQueryParams')) {
     /**
      * @param array<string,mixed> $params
@@ -2637,8 +2678,8 @@ if (!function_exists('qpmPublicSearchNlmGetJson')) {
             'headers' => ['Accept: application/json'],
             'user_agent' => 'QuickPubMed/1.0',
         ]);
-        if (!$result['ok']) {
-            throw new RuntimeException('NLM request failed: ' . (string) $result['error'], 502);
+        if (!qpmPublicSearchIsHttpResultOk($result)) {
+            throw new RuntimeException('NLM request failed: ' . qpmPublicSearchDescribeHttpFailure($result), 502);
         }
         $decoded = json_decode((string) $result['body'], true);
         if (!is_array($decoded)) {
@@ -2668,8 +2709,8 @@ if (!function_exists('qpmPublicSearchNlmGetXml')) {
             'headers' => ['Accept: application/xml,text/xml,*/*'],
             'user_agent' => 'QuickPubMed/1.0',
         ]);
-        if (!$result['ok']) {
-            throw new RuntimeException('NLM XML request failed: ' . (string) $result['error'], 502);
+        if (!qpmPublicSearchIsHttpResultOk($result)) {
+            throw new RuntimeException('NLM XML request failed: ' . qpmPublicSearchDescribeHttpFailure($result), 502);
         }
         return (string) $result['body'];
     }
@@ -3029,8 +3070,12 @@ if (!function_exists('qpmPublicSearchFetchSemanticScholarSourceResult')) {
             'headers' => $headers,
             'user_agent' => 'QuickPubMed/1.0',
         ]);
-        if (!$result['ok']) {
-            return qpmPublicSearchCreateEmptySourceResult('semanticScholar', $normalizedQuery, (string) $result['error']);
+        if (!qpmPublicSearchIsHttpResultOk($result)) {
+            return qpmPublicSearchCreateEmptySourceResult(
+                'semanticScholar',
+                $normalizedQuery,
+                'Semantic Scholar request failed: ' . qpmPublicSearchDescribeHttpFailure($result)
+            );
         }
         $decoded = json_decode((string) $result['body'], true);
         if (!is_array($decoded)) {
@@ -3152,8 +3197,12 @@ if (!function_exists('qpmPublicSearchFetchOpenAlexSourceResult')) {
             'headers' => ['Accept: application/json'],
             'user_agent' => 'QuickPubMed/1.0',
         ]);
-        if (!$result['ok']) {
-            return qpmPublicSearchCreateEmptySourceResult('openAlex', $normalizedQuery, (string) $result['error']);
+        if (!qpmPublicSearchIsHttpResultOk($result)) {
+            return qpmPublicSearchCreateEmptySourceResult(
+                'openAlex',
+                $normalizedQuery,
+                'OpenAlex request failed: ' . qpmPublicSearchDescribeHttpFailure($result)
+            );
         }
         $decoded = json_decode((string) $result['body'], true);
         if (!is_array($decoded)) {
@@ -3267,8 +3316,12 @@ if (!function_exists('qpmPublicSearchFetchElicitSourceResult')) {
             'body' => qpmPublicSearchSafeJsonEncode($payload),
             'user_agent' => 'QuickPubMed/1.0',
         ]);
-        if (!$result['ok']) {
-            return qpmPublicSearchCreateEmptySourceResult('elicit', $normalizedQuery, (string) $result['error']);
+        if (!qpmPublicSearchIsHttpResultOk($result)) {
+            return qpmPublicSearchCreateEmptySourceResult(
+                'elicit',
+                $normalizedQuery,
+                'Elicit request failed: ' . qpmPublicSearchDescribeHttpFailure($result)
+            );
         }
         $decoded = json_decode((string) $result['body'], true);
         if (!is_array($decoded)) {
@@ -3412,7 +3465,7 @@ if (!function_exists('qpmPublicSearchFetchOpenAlexWorkByCandidate')) {
             'headers' => ['Accept: application/json'],
             'user_agent' => 'QuickPubMed/1.0',
         ]);
-        if (!$result['ok']) {
+        if (!qpmPublicSearchIsHttpResultOk($result)) {
             return null;
         }
         $decoded = json_decode((string) $result['body'], true);

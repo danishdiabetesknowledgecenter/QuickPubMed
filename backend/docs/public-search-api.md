@@ -424,9 +424,10 @@ Typiske fejlstatuskoder:
 
 Typiske underliggende årsager:
 
-- Kilden svarede med en fejl (netværksfejl, ugyldigt svar, eller manglende/ugyldig API-nøgle for kilden på serveren).
-- Kilden fandt 0 resultater for det oversatte/opløste søgeord.
-- Kilden fandt resultater, men ingen af dem havde et PubMed-ID eller DOI — `semanticScholar`, `openAlex` og `elicit` kræver et af disse for at et resultat kan hydreres og indgå i `results`.
+- Kilden svarede med en HTTP-fejlstatus (fx `HTTP 401`/`402`/`429`/`500`) — typisk pga. manglende/ugyldig/udløbet API-nøgle for kilden på serveren, eller upstream rate-limiting. Selve statuskoden er nu med i beskeden.
+- Kilden havde et rent netværksproblem (DNS/timeout/TLS).
+- Kilden svarede 200 OK, men fandt 0 resultater for det oversatte/opløste søgeord.
+- Kilden svarede 200 OK og fandt resultater, men ingen af dem havde et PubMed-ID eller DOI — `semanticScholar`, `openAlex` og `elicit` kræver et af disse for at et resultat kan hydreres og indgå i `results`.
 
 ## Cache
 
