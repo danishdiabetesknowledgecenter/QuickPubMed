@@ -964,10 +964,13 @@ if (!function_exists('qpmPublicSearchComputeInitialsFromGivenName')) {
      */
     function qpmPublicSearchComputeInitialsFromGivenName(string $givenName): string
     {
-        $parts = preg_split('/[\s\-]+/', trim($givenName)) ?: [];
+        // Matcher samme \p{L}+ bogstavgruppe-logik som webappens
+        // extractAuthorInitials() i src/utils/resultAdapters.js, saa initialer
+        // udledes ens uanset om de beregnes i JS eller PHP.
+        preg_match_all('/[\p{L}]+/u', trim($givenName), $matches);
+        $parts = $matches[0] ?? [];
         $initials = '';
         foreach ($parts as $part) {
-            $part = trim($part);
             if ($part === '') {
                 continue;
             }
@@ -1041,28 +1044,42 @@ if (!function_exists('qpmPublicSearchSplitFamilyFirstAuthorName')) {
 
 if (!function_exists('qpmPublicSearchSplitGivenFirstAuthorName')) {
     /**
-     * Splitter et "Fornavn Efternavn"-navn (OpenAlex' display_name-format, fx
-     * "Mark Setzler") i familyName/givenName/initials via en simpel
-     * sidste-ord-er-efternavn-heuristik. Fejler for sammensatte efternavne
-     * (fx "van der Berg"), men er den bedste tilgaengelige tilnaerming, da
-     * OpenAlex ikke leverer strukturerede navnedele.
+     * Splitter et OpenAlex-navn (raw_author_name/display_name) i
+     * familyName/givenName/initials. Porteret 1:1 fra webappens
+     * formatPersonNameAsFamilyInitials() i src/utils/resultAdapters.js, saa
+     * det offentlige API og webappens soegeformular navngiver forfattere
+     * ens. Understoetter baade "Efternavn, Fornavn"-format (komma) og
+     * "Fornavn Efternavn"-format via en sidste-ord-er-efternavn-heuristik.
+     * Fejler for sammensatte efternavne (fx "van der Berg"), men er den
+     * bedste tilgaengelige tilnaerming, da OpenAlex ikke leverer strukturerede
+     * navnedele (bekraeftet mod OpenAlex' live API, ikke kun ud fra spec).
      *
      * @param string $rawName
      * @return array{name:string,familyName:string,givenName:string,initials:string}
      */
     function qpmPublicSearchSplitGivenFirstAuthorName(string $rawName): array
     {
-        $rawName = trim($rawName);
-        if ($rawName === '') {
+        $normalized = preg_replace('/\s+/', ' ', trim($rawName));
+        $normalized = trim((string) $normalized);
+        if ($normalized === '') {
             return ['name' => '', 'familyName' => '', 'givenName' => '', 'initials' => ''];
         }
-        $parts = preg_split('/\s+/', $rawName) ?: [];
-        if (count($parts) < 2) {
-            return qpmPublicSearchBuildNormalizedAuthorEntry('', '', '', $rawName);
+
+        $commaPos = strpos($normalized, ',');
+        if ($commaPos !== false) {
+            $familyName = trim(substr($normalized, 0, $commaPos));
+            $givenName = trim(substr($normalized, $commaPos + 1));
+            return qpmPublicSearchBuildNormalizedAuthorEntry($familyName, $givenName, '', $normalized);
         }
-        $familyName = array_pop($parts);
-        $givenName = implode(' ', $parts);
-        return qpmPublicSearchBuildNormalizedAuthorEntry($familyName, $givenName, '', $rawName);
+
+        preg_match_all('/[\p{L}]+/u', $normalized, $matches);
+        $parts = $matches[0] ?? [];
+        if (count($parts) < 2) {
+            return qpmPublicSearchBuildNormalizedAuthorEntry('', '', '', $normalized);
+        }
+        $familyName = $parts[count($parts) - 1];
+        $givenName = implode(' ', array_slice($parts, 0, -1));
+        return qpmPublicSearchBuildNormalizedAuthorEntry($familyName, $givenName, '', $normalized);
     }
 }
 
@@ -4518,14 +4535,19 @@ if (!function_exists('qpmPublicSearchBuildApiResultFromOpenAlex')) {
             : [trim((string) ($candidateInfo['source'] ?? 'openAlex'))];
         $originSource = trim((string) ($candidateInfo['source'] ?? ($mergedSources[0] ?? 'openAlex')));
 
-        // OpenAlex leverer kun et samlet display_name (typisk "Fornavn
-        // Efternavn"), ikke separate navnedele, saa vi splitter det med en
-        // sidste-ord-er-efternavn-heuristik for at give samme facon som
-        // PubMed-forfattere ("Efternavn Initialer").
+        // OpenAlex leverer kun et samlet navn (typisk "Fornavn Efternavn"),
+        // ikke separate navnedele, saa det splittes med samme heuristik som
+        // webappens soegeformular bruger (formatOpenAlexAuthorName() i
+        // src/utils/resultAdapters.js), for at give ens forfatternavne i
+        // begge systemer. raw_author_name (navnet som det stod i den
+        // oprindelige kilde) foretraekkes over author.display_name (den
+        // disambiguerede, kanoniske navneform), ligesom i webappen.
         $authors = [];
         if (is_array($work['authorships'] ?? null)) {
             foreach ($work['authorships'] as $authorship) {
-                $authorName = trim((string) ($authorship['author']['display_name'] ?? ''));
+                $rawAuthorName = trim((string) ($authorship['raw_author_name'] ?? ''));
+                $displayName = trim((string) ($authorship['author']['display_name'] ?? ''));
+                $authorName = $rawAuthorName !== '' ? $rawAuthorName : $displayName;
                 if ($authorName !== '') {
                     $authors[] = qpmPublicSearchSplitGivenFirstAuthorName($authorName);
                 }
