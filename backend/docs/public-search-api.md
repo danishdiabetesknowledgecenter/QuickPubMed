@@ -412,6 +412,22 @@ Typiske fejlstatuskoder:
 - `502`: upstream-kilde fejlede
 - `503`: serveren er midlertidigt fuldt optaget
 
+### `502`-detaljer
+
+`502 All selected search sources failed or returned no candidates` udløses, når ingen af de valgte `sources` gav brugbare kandidater. `error`-feltet indeholder nu (i parentes) den bagvedliggende årsag pr. kilde, fx:
+
+```json
+{
+  "error": "All selected search sources failed or returned no candidates (Semantic Scholar matched 12 paper(s) for the resolved query, but none had a PubMed ID or DOI, so they were skipped.)"
+}
+```
+
+Typiske underliggende årsager:
+
+- Kilden svarede med en fejl (netværksfejl, ugyldigt svar, eller manglende/ugyldig API-nøgle for kilden på serveren).
+- Kilden fandt 0 resultater for det oversatte/opløste søgeord.
+- Kilden fandt resultater, men ingen af dem havde et PubMed-ID eller DOI — `semanticScholar`, `openAlex` og `elicit` kræver et af disse for at et resultat kan hydreres og indgå i `results`.
+
 ## Cache
 
 Search-responser sendes med:

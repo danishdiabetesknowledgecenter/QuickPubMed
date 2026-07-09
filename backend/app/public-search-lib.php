@@ -3078,6 +3078,12 @@ if (!function_exists('qpmPublicSearchFetchSemanticScholarSourceResult')) {
                 $payload['dois'][] = $doi;
             }
         }
+        $rawResultCount = count((array) ($decoded['data'] ?? []));
+        if (empty($payload['candidates'])) {
+            $payload['warning'] = $rawResultCount > 0
+                ? "Semantic Scholar matched {$rawResultCount} paper(s) for the resolved query, but none had a PubMed ID or DOI, so they were skipped."
+                : 'Semantic Scholar matched 0 papers for the resolved query.';
+        }
         return qpmPublicSearchNormalizeSourceResult('semanticScholar', $normalizedQuery, $payload);
     }
 }
@@ -3198,6 +3204,12 @@ if (!function_exists('qpmPublicSearchFetchOpenAlexSourceResult')) {
                 $payload['dois'][] = $doi;
             }
         }
+        $rawResultCount = count((array) ($decoded['results'] ?? []));
+        if (empty($payload['candidates'])) {
+            $payload['warning'] = $rawResultCount > 0
+                ? "OpenAlex matched {$rawResultCount} work(s) for the resolved query, but none had a PubMed ID or DOI, so they were skipped."
+                : 'OpenAlex matched 0 works for the resolved query.';
+        }
         return qpmPublicSearchNormalizeSourceResult('openAlex', $normalizedQuery, $payload);
     }
 }
@@ -3300,6 +3312,12 @@ if (!function_exists('qpmPublicSearchFetchElicitSourceResult')) {
             if ($doi !== '') {
                 $sourcePayload['dois'][] = $doi;
             }
+        }
+        $rawResultCount = count((array) ($decoded['papers'] ?? $decoded['results'] ?? []));
+        if (empty($sourcePayload['candidates'])) {
+            $sourcePayload['warning'] = $rawResultCount > 0
+                ? "Elicit matched {$rawResultCount} paper(s) for the resolved query, but none had a PubMed ID or DOI, so they were skipped."
+                : 'Elicit matched 0 papers for the resolved query.';
         }
         return qpmPublicSearchNormalizeSourceResult('elicit', $normalizedQuery, $sourcePayload);
     }
@@ -4896,7 +4914,16 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
             }
         }
         if ($successfulSourceCount === 0) {
-            throw new RuntimeException('All selected search sources failed or returned no candidates', 502);
+            // De praecise underliggende fejl/advarsler er allerede samlet i
+            // $warnings herover. De inkluderes her i selve exception-beskeden,
+            // saa den reelle aarsag (fx en upstream-fejl eller "0 kandidater
+            // havde et PMID/DOI") ikke gaar tabt, naar exception'en fanges i
+            // public-api/v1/search.php og bliver til det endelige 502-svar.
+            $failureDetail = !empty($warnings) ? ' (' . implode(' | ', array_unique($warnings)) . ')' : '';
+            throw new RuntimeException(
+                'All selected search sources failed or returned no candidates' . $failureDetail,
+                502
+            );
         }
 
         qpmPublicSearchEmitProgress($progressCallback, 'finalizeCollect', '', [
