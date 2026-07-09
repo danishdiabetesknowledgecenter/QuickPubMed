@@ -2658,6 +2658,48 @@ if (!function_exists('qpmPublicSearchBuildNlmQueryParams')) {
     }
 }
 
+if (!function_exists('qpmPublicSearchBuildNlmRequestOptions')) {
+    /**
+     * NCBI anbefaler HTTP POST i stedet for GET, naar foresp\u00f8rgslen bliver lang
+     * (fx mange ID'er i 'id'-parameteren, eller en lang OR-klausul i 'term').
+     * Lange GET-URL'er risikerer at blive afvist af proxyer/servere med
+     * "414 URI Too Long" - se ogsaa erfaringen fra denne session, hvor en
+     * kombineret 4-kilde-soegning gav netop denne fejl. Denne helper skifter
+     * automatisk til POST, naar URL'en ville blive for lang, uden at
+     * kaldestederne skal vide det.
+     *
+     * @param string $endpointUrl
+     * @param string $queryString
+     * @param array<int,string> $baseHeaders
+     * @return array{url:string,options:array<string,mixed>}
+     */
+    function qpmPublicSearchBuildNlmRequestOptions(string $endpointUrl, string $queryString, array $baseHeaders): array
+    {
+        $getUrl = $endpointUrl . '?' . $queryString;
+        if (strlen($getUrl) <= 1800) {
+            return [
+                'url' => $getUrl,
+                'options' => [
+                    'method' => 'GET',
+                    'timeout' => 30,
+                    'headers' => $baseHeaders,
+                    'user_agent' => 'QuickPubMed/1.0',
+                ],
+            ];
+        }
+        return [
+            'url' => $endpointUrl,
+            'options' => [
+                'method' => 'POST',
+                'timeout' => 30,
+                'headers' => array_merge($baseHeaders, ['Content-Type: application/x-www-form-urlencoded']),
+                'body' => $queryString,
+                'user_agent' => 'QuickPubMed/1.0',
+            ],
+        ];
+    }
+}
+
 if (!function_exists('qpmPublicSearchNlmGetJson')) {
     /**
      * @param string $endpoint
@@ -2671,13 +2713,10 @@ if (!function_exists('qpmPublicSearchNlmGetJson')) {
         $baseUrl = function_exists('qpmGetNlmBaseUrl')
             ? qpmGetNlmBaseUrl($domain)
             : (defined('NLM_BASE_URL') ? NLM_BASE_URL : 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils');
-        $url = rtrim($baseUrl, '/') . '/' . ltrim($endpoint, '/') . '?' . qpmPublicSearchBuildNlmQueryParams($params, $domain);
-        $result = qpmHttpRequest($url, [
-            'method' => 'GET',
-            'timeout' => 30,
-            'headers' => ['Accept: application/json'],
-            'user_agent' => 'QuickPubMed/1.0',
-        ]);
+        $endpointUrl = rtrim($baseUrl, '/') . '/' . ltrim($endpoint, '/');
+        $queryString = qpmPublicSearchBuildNlmQueryParams($params, $domain);
+        $requestOptions = qpmPublicSearchBuildNlmRequestOptions($endpointUrl, $queryString, ['Accept: application/json']);
+        $result = qpmHttpRequest($requestOptions['url'], $requestOptions['options']);
         if (!qpmPublicSearchIsHttpResultOk($result)) {
             throw new RuntimeException('NLM request failed: ' . qpmPublicSearchDescribeHttpFailure($result), 502);
         }
@@ -2702,13 +2741,14 @@ if (!function_exists('qpmPublicSearchNlmGetXml')) {
         $baseUrl = function_exists('qpmGetNlmBaseUrl')
             ? qpmGetNlmBaseUrl($domain)
             : (defined('NLM_BASE_URL') ? NLM_BASE_URL : 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils');
-        $url = rtrim($baseUrl, '/') . '/' . ltrim($endpoint, '/') . '?' . qpmPublicSearchBuildNlmQueryParams($params, $domain);
-        $result = qpmHttpRequest($url, [
-            'method' => 'GET',
-            'timeout' => 30,
-            'headers' => ['Accept: application/xml,text/xml,*/*'],
-            'user_agent' => 'QuickPubMed/1.0',
-        ]);
+        $endpointUrl = rtrim($baseUrl, '/') . '/' . ltrim($endpoint, '/');
+        $queryString = qpmPublicSearchBuildNlmQueryParams($params, $domain);
+        $requestOptions = qpmPublicSearchBuildNlmRequestOptions(
+            $endpointUrl,
+            $queryString,
+            ['Accept: application/xml,text/xml,*/*']
+        );
+        $result = qpmHttpRequest($requestOptions['url'], $requestOptions['options']);
         if (!qpmPublicSearchIsHttpResultOk($result)) {
             throw new RuntimeException('NLM XML request failed: ' . qpmPublicSearchDescribeHttpFailure($result), 502);
         }
