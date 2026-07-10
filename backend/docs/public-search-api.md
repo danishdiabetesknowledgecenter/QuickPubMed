@@ -307,9 +307,11 @@ Hvis streaming er slaaet til, returnerer `v1/search` `text/event-stream` i stede
 Typiske events:
 
 - `connected`: streamen er etableret
-- `progress`: loebende status med samme oversaettelsesnoegler som webudgaven
+- `progress`: loebende status
 - `result`: det endelige normale search-response som JSON payload
 - `error`: fejl payload, hvis soegningen fejler efter streamen er startet
+
+`progress`-eventernes `message`-felt er nu fuldstaendig selvstaendige, statiske dk/en-tekster, samlet ét sted i `backend/app/public-search-progress-texts.php` — en ren tekstfil uden logik, saa alle tekster er lette at overskue og oversaette. De afhaenger ikke laengere af, at webappens frontend-kildefil (`src/assets/content/translations.js`) er til stede paa serveren. Det retter en tidligere fejl, hvor `message` kunne vaere tom, hvis den fil ikke var deployet sammen med det offentlige API.
 
 ### `progress`-stadier omkring filtervalidering
 

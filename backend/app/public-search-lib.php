@@ -664,31 +664,22 @@ if (!function_exists('qpmPublicSearchResolveProgressLanguage')) {
     }
 }
 
+require_once __DIR__ . '/public-search-progress-texts.php';
+
 if (!function_exists('qpmPublicSearchGetPublicProgressMessageCopy')) {
     /**
-     * Faerdige, brugervenlige dk/en-tekster til progress-stadier, det
-     * offentlige API selv tilfoejer. Disse er bevidst holdt uafhaengige af
-     * webappens interne oversaettelser i src/assets/content/translations.js,
-     * saa teksterne kan skrives simpelt og direkte til en ekstern
-     * API-brugers slutbruger (der venter paa et soegeresultat), uden at det
-     * paavirker - eller afhaenger af ordlyden i - webappens egen UI.
+     * Slaar en messageKey/groupKey op i QPM_PUBLIC_SEARCH_PROGRESS_TEXTS
+     * (backend/app/public-search-progress-texts.php), som er den samlede,
+     * selvstaendige kilde til alle brugervenlige progress-tekster i det
+     * offentlige API. Se den fil for selve teksterne.
      *
-     * @param string $messageKey
+     * @param string $key
      * @return array{dk:string,en:string}|null
      */
-    function qpmPublicSearchGetPublicProgressMessageCopy(string $messageKey): ?array
+    function qpmPublicSearchGetPublicProgressMessageCopy(string $key): ?array
     {
-        $copy = [
-            'semanticSearchProgressFinalizeValidatePmid' => [
-                'dk' => 'Bekræfter resultaterne hos PubMed.',
-                'en' => 'Confirming the results with PubMed.',
-            ],
-            'semanticSearchProgressFinalizeValidateDoiFetch' => [
-                'dk' => 'Henter flere detaljer om resultaterne.',
-                'en' => 'Fetching more details about the results.',
-            ],
-        ];
-        return $copy[$messageKey] ?? null;
+        $texts = defined('QPM_PUBLIC_SEARCH_PROGRESS_TEXTS') ? QPM_PUBLIC_SEARCH_PROGRESS_TEXTS : [];
+        return $texts[$key] ?? null;
     }
 }
 
@@ -721,9 +712,14 @@ if (!function_exists('qpmPublicSearchBuildStreamProgressPayload')) {
         } else {
             $message = trim($fallbackMessage);
         }
-        $groupLabel = $groupKey !== ''
-            ? qpmPublicSearchGetFrontendTranslation($groupKey, $frontendLanguage, '')
-            : '';
+        $publicGroupCopy = $groupKey !== '' ? qpmPublicSearchGetPublicProgressMessageCopy($groupKey) : null;
+        if ($publicGroupCopy !== null) {
+            $groupLabel = $publicGroupCopy[$frontendLanguage] ?? $publicGroupCopy['dk'];
+        } elseif ($groupKey !== '') {
+            $groupLabel = qpmPublicSearchGetFrontendTranslation($groupKey, $frontendLanguage, '');
+        } else {
+            $groupLabel = '';
+        }
 
         $payload = [
             'stage' => $stepId !== '' ? $stepId : trim($stage),
@@ -4950,8 +4946,9 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
         if ($searchCacheTtl > 0) {
             $cacheEntry = qpmPublicSearchReadCacheValue('search-response', $searchCacheKey);
             if (($cacheEntry['hit'] ?? false) === true && is_array($cacheEntry['value'] ?? null)) {
-                qpmPublicSearchEmitProgress($progressCallback, 'cache', 'Cache hit', [
+                qpmPublicSearchEmitProgress($progressCallback, 'cache', '', [
                     'stepId' => 'cache',
+                    'messageKey' => 'semanticSearchProgressCacheHit',
                 ]);
                 $cachedResponse = $cacheEntry['value'];
                 if ($includeDiagnostics) {
