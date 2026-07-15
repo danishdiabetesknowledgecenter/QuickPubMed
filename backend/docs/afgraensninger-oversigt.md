@@ -175,7 +175,7 @@ Tilladte `publicationTypes`-værdier: `JournalArticle, Review, CaseReport, Clini
 
 ### Elicit
 
-Kaldes fra `backend/api/ElicitSearch.php` (endpoint `https://elicit.com/api/v1/search`).
+Kaldes fra `backend/api/ElicitSearch.php` (endpoint `https://elicit.com/api/v2/search/papers`, kaldt med `corpus=elicit` og `searchMode=semantic` explicit sat).
 
 Elicit's API understøtter en relativt rig `filters`-kontrakt. Efter Elicit-udvidelsen bruger vi nu hele kontrakten for alle ikke-triviale signaler. Tabellen viser status pr. parameter.
 
@@ -213,7 +213,7 @@ Tilladte `typeTags`-værdier: `Review`, `Meta-Analysis`, `Systematic Review`, `R
 2. `src/utils/semanticWordedIntent.js` → `normalizeElicitSourceFilterConfig` + `collectSourceFilters` (aggregerer/merger scalar-felter når flere limits vælges: max for minYear, min for maxYear/maxQuartile, logisk AND for booleans, prioritering for retracted)
 3. `DropdownWrapper.vue.buildSemanticSourceQueryPlan()` → læser `payloadElicitFilters.*`, supplerer med deterministisk fallback fra `hardFilters` (fx `minYear` fra `publicationDateYears`), sætter `retracted="exclude_retracted"` som default
 4. `DropdownWrapper.vue.fetchElicitResults()` → normaliserer og videresender alle understøttede felter i `filters`-payload
-5. `backend/api/ElicitSearch.php` → `qpmNormalizeElicit*`-helpers (`Year`, `Epoch`, `Quartile`, `Boolean`, `Retracted`) sanity-tjekker input og sender til Elicit's v1 search endpoint
+5. `backend/api/ElicitSearch.php` → `qpmNormalizeElicit*`-helpers (`Year`, `Epoch`, `Quartile`, `Boolean`, `Retracted`) sanity-tjekker input og sender til Elicit's v2 search endpoint (`/api/v2/search/papers`)
 6. Ved 4xx fra Elicit: `buildElicitRequestRetryAttempt` + backend-`qpmBuildElicitRetryHints` disabler det konkrete problem-felt og retrier
 
 **Bemærk**: Elicit returnerer altid DOI-normaliserede records, så der er ingen non-DOI/PMID-problematik for denne kilde.

@@ -2575,6 +2575,10 @@ if (!function_exists('qpmPublicSearchNormalizeSourceCandidate')) {
                 'lexicalRescue' => ($metadata['lexicalRescue'] ?? false) === true,
                 'lexicalRescueAbstractAvailable' => ($metadata['lexicalRescueAbstractAvailable'] ?? false) === true,
                 'lexicalRescueTriggerReason' => trim((string) ($metadata['lexicalRescueTriggerReason'] ?? '')),
+                'citedByCount' => isset($metadata['citedByCount']) && is_numeric($metadata['citedByCount'])
+                    ? (int) $metadata['citedByCount']
+                    : null,
+                'authors' => qpmPublicSearchNormalizeSimpleList($metadata['authors'] ?? []),
             ],
         ];
     }
@@ -3409,11 +3413,13 @@ if (!function_exists('qpmPublicSearchFetchElicitSourceResult')) {
         $payload = [
             'query' => $normalizedQuery,
             'maxResults' => $limit,
+            'corpus' => 'elicit',
+            'searchMode' => 'semantic',
         ];
         if (!empty($requestFilters)) {
             $payload['filters'] = $requestFilters;
         }
-        $result = qpmHttpRequest('https://elicit.com/api/v1/search', [
+        $result = qpmHttpRequest('https://elicit.com/api/v2/search/papers', [
             'method' => 'POST',
             'timeout' => 45,
             'headers' => [
@@ -3436,7 +3442,7 @@ if (!function_exists('qpmPublicSearchFetchElicitSourceResult')) {
             return qpmPublicSearchCreateEmptySourceResult('elicit', $normalizedQuery, 'Invalid Elicit response');
         }
         $sourcePayload = [
-            'total' => (int) ($decoded['total'] ?? 0),
+            'total' => count((array) ($decoded['papers'] ?? $decoded['results'] ?? [])),
             'pmids' => [],
             'dois' => [],
             'candidates' => [],
@@ -3465,6 +3471,10 @@ if (!function_exists('qpmPublicSearchFetchElicitSourceResult')) {
                         $paper['publication_types'] ?? ($paper['paper']['publication_types'] ?? [])
                     ),
                     'venue' => trim((string) ($paper['venue'] ?? ($paper['paper']['venue'] ?? ''))),
+                    'citedByCount' => isset($paper['citedByCount']) && is_numeric($paper['citedByCount'])
+                        ? (int) $paper['citedByCount']
+                        : null,
+                    'authors' => qpmPublicSearchNormalizeSimpleList($paper['authors'] ?? []),
                 ],
             ];
             if ($pmid !== '') {

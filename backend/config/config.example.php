@@ -102,6 +102,8 @@ define('QPM_OPENALEX_BATCH_LOOKUP_CONCURRENCY', 2);
 define('QPM_SEMANTIC_SOURCE_LIMITS', [
     'semanticScholar' => 400,
     'openAlex' => 50,
+    // Elicit's per-request result cap depends on plan: Pro = 300, Scale = 500,
+    // Enterprise = 10000. Raise this up to your plan's cap if desired.
     'elicit' => 100,
     'pubmedBestMatch' => 200,
     // Optional PubMed-specific limits. Defaults should stay conservative

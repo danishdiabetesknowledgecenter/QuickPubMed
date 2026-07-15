@@ -190,8 +190,14 @@ export function formatSourceRateLimitTooltipSuffix(sourceKey, language, info) {
     return "";
   }
   const sourceLabel = getSourceRateLimitLabel(normalizedSourceKey);
+  // Elicit and Semantic Scholar don't expose per-request remaining-call counts
+  // (Elicit's v2 API rate-limits at the edge/Cloudflare level with no
+  // X-RateLimit-* response headers), so both get the same explanatory wording
+  // instead of the generic "not yet known" fallback used for other sources.
+  const exposesNoRateLimitData =
+    normalizedSourceKey === "semanticScholar" || normalizedSourceKey === "elicit";
   if (!info) {
-    if (normalizedSourceKey === "semanticScholar") {
+    if (exposesNoRateLimitData) {
       return language === "en"
         ? `<br><br><strong>${sourceLabel} API usage:</strong> Remaining requests are not exposed by the API. If ${sourceLabel} rate limits this widget, that status will be shown here.`
         : `<br><br><strong>${sourceLabel} API-forbrug:</strong> API'et eksponerer ikke det resterende antal kald. Hvis ${sourceLabel} rate limiter widgeten, vises den status her.`;
@@ -215,9 +221,13 @@ export function formatSourceRateLimitTooltipSuffix(sourceKey, language, info) {
       : Number.isFinite(info.limit)
         ? `det resterende antal kald er i øjeblikket ukendt ud af ${info.limit}`
         : "det resterende antal kald er i øjeblikket ukendt";
-  const unknownUsageText = language === "en"
-    ? `${sourceLabel} does not expose remaining request counts`
-    : `${sourceLabel} eksponerer ikke det resterende antal kald`;
+  const unknownUsageText = exposesNoRateLimitData
+    ? language === "en"
+      ? `remaining requests are not exposed by the API — if ${sourceLabel} rate limits this widget, that status will be shown here`
+      : `API'et eksponerer ikke det resterende antal kald — hvis ${sourceLabel} rate limiter widgeten, vises den status her`
+    : language === "en"
+      ? `${sourceLabel} does not expose remaining request counts`
+      : `${sourceLabel} eksponerer ikke det resterende antal kald`;
   const shouldShowNextSearchTime = isSemanticSourceUnavailable(info);
   const resetCountdown = shouldShowNextSearchTime
     ? formatSourceResetCountdown(info.resetAt, info.resetInSeconds, language)

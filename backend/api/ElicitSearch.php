@@ -173,7 +173,7 @@ function qpmElicitLocalDevProxyRequest(string $body, array $headers): array
 
     $errors = [];
     foreach ($hosts as $host) {
-        $url = 'http://' . $host . ':5173/elicit-api/api/v1/search';
+        $url = 'http://' . $host . ':5173/elicit-api/api/v2/search/papers';
         $result = qpmElicitHttpRequest($url, [
             'method' => 'POST',
             'timeout' => 45,
@@ -772,13 +772,15 @@ if ($retracted !== '') {
 $requestPayload = [
     'query' => $query,
     'maxResults' => $limit,
+    'corpus' => 'elicit',
+    'searchMode' => 'semantic',
 ];
 if (!empty($filters)) {
     $requestPayload['filters'] = $filters;
 }
 $requestBody = json_encode($requestPayload);
 
-$elicitUrl = 'https://elicit.com/api/v1/search';
+$elicitUrl = 'https://elicit.com/api/v2/search/papers';
 
 $result = qpmElicitLocalDevProxyRequest($requestBody, $requestHeaders);
 if (!$result['ok']) {
@@ -862,6 +864,12 @@ foreach ($papers as $index => $paper) {
             'venue' => trim((string) ($paper['journal'] ?? $paper['journal_name'] ?? $paper['venue'] ?? '')),
             'publicationTypes' => isset($paper['publication_types']) && is_array($paper['publication_types'])
                 ? array_values(array_map('strval', $paper['publication_types']))
+                : [],
+            'citedByCount' => isset($paper['citedByCount']) && is_numeric($paper['citedByCount'])
+                ? (int) $paper['citedByCount']
+                : null,
+            'authors' => isset($paper['authors']) && is_array($paper['authors'])
+                ? array_values(array_map('strval', $paper['authors']))
                 : [],
         ],
     ];
