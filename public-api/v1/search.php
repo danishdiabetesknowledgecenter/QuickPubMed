@@ -84,6 +84,12 @@ try {
     }
 
     $request = qpmPublicSearchParseRequest();
+    $request = qpmPublicSearchEnforceClientSourceAccess($request, $client);
+    $request['_clientSourceApiKeys'] = [
+        'openAlex' => qpmPublicSearchClientSourceApiKey($client, 'openAlex'),
+        'semanticScholar' => qpmPublicSearchClientSourceApiKey($client, 'semanticScholar'),
+        'elicit' => qpmPublicSearchClientSourceApiKey($client, 'elicit'),
+    ];
     $requestForAudit = $request;
     $streamEnabled = (($request['responseOptions']['stream'] ?? false) === true);
     $executionSlot = qpmPublicSearchAcquireExecutionSlot((int) ($config['concurrentSearchLimit'] ?? 10));

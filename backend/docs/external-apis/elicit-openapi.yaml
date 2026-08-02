@@ -1,0 +1,2700 @@
+openapi: 3.1.0
+info:
+  title: Elicit API
+  version: 2.0.0
+  description: |-
+    The Elicit API provides programmatic access to Elicit's research capabilities, including semantic search over 138 million+ academic papers and automated report generation.
+
+    ## Authentication
+
+    All API requests require a Bearer token in the `Authorization` header:
+
+    ```
+    Authorization: Bearer elk_live_your_key_here
+    ```
+
+    API keys can be created and managed from your [Elicit account settings](https://elicit.com/settings).
+
+    ## Billing
+
+    API access requires a Pro plan or above. Search requests are rate-limited based on your plan tier — see the Search endpoint for details.
+
+    Manage your plan in [account settings](https://elicit.com/settings).
+
+    ## Code Examples
+
+    Working examples in curl, Python, and JavaScript, plus integrations (CLI tool, Slack bot, Claude Code skill):
+
+    **[github.com/elicit/api-examples](https://github.com/elicit/api-examples)**
+
+    ## Error Handling
+
+    All errors return a consistent JSON structure with an `error` object containing a machine-readable `code` and a human-readable `message`.
+
+    ## MCP Server
+
+    All API functionality is also available via [MCP](https://modelcontextprotocol.io/) (Model Context Protocol) server, enabling use from Claude Desktop, Claude Code, and other MCP-compatible clients. Authentication is via OAuth 2.0.
+
+    ### Claude Code
+
+    ```
+    claude mcp add --transport http elicit https://elicit.com/api/mcp
+    ```
+
+    Then run `/mcp`, select the `elicit` server, and choose **Authenticate** to open a browser for login.
+
+    ### Claude Desktop
+
+    **Via the UI:** Click the icon next to your name > **Settings** > **Connectors** > **Add custom connector**. Enter `Elicit` for the name and `https://elicit.com/api/mcp` for the URL.
+
+    **Or via config file** — add to `claude_desktop_config.json`:
+
+    ```json
+    {
+      "mcpServers": {
+        "elicit": {
+          "type": "url",
+          "url": "https://elicit.com/api/mcp"
+        }
+      }
+    }
+    ```
+
+    ### Other MCP clients
+
+    Connect any MCP client using HTTP transport to `https://elicit.com/api/mcp`. OAuth discovery is available at `https://elicit.com/api/mcp/.well-known/oauth-protected-resource`.
+
+    For MCP setup guides, tool reference, and usage examples, see [github.com/elicit/api-examples/tree/main/integrations/mcp](https://github.com/elicit/api-examples/tree/main/integrations/mcp).
+  termsOfService: https://elicit.com/operations/terms
+  contact:
+    name: Elicit
+    url: https://elicit.com
+externalDocs:
+  description: Code examples and integrations
+  url: https://github.com/elicit/api-examples
+servers:
+  - url: https://elicit.com/api/v2
+    description: Elicit
+tags:
+  - name: Search
+    description: One-shot searches over papers and clinical trials.
+  - name: Sessions
+    description: Long-running research sessions. Reports and systematic reviews are
+      kinds of sessions; list and resume them uniformly here, or use the typed
+      subsections to create them and fetch results.
+  - name: Reports
+    description: Create reports and fetch their status and results.
+  - name: Systematic Reviews
+    description: Create systematic reviews and fetch their status and results.
+paths:
+  /search/papers:
+    post:
+      tags:
+        - Search
+      summary: Search for academic papers
+      description: >-
+        Search Elicit's database of over 138 million academic papers using
+        natural language queries.
+
+
+        Semantic search uses natural language understanding to find relevant
+        papers even when the exact terms don't match.
+
+
+        Set `corpus` to `pubmed` to restrict results to PubMed, or leave it as
+        the default `elicit` for the full paper index. Set `searchMode` to
+        `"keyword"` to interpret the query as a Lucene-style boolean expression
+        instead of natural language.
+
+
+        Filters and `searchMode: "keyword"` are mutually exclusive — put any
+        filter expressions directly into the query string when using keyword
+        search. Mixing them returns a 400.
+
+
+        To search clinical trials instead, use [`POST
+        /api/v2/search/trials`](#tag/Search/paths/~1search~1trials/post).
+
+
+        ### Limits
+
+
+        Each plan caps how many results a single search request may return:
+
+
+        | Plan | Results per request |
+
+        |------|--------------------|
+
+        | Basic | No access |
+
+        | Plus | No access |
+
+        | Pro | 300 |
+
+        | Scale | 500 |
+
+        | Enterprise | 10,000 |
+
+
+        Search is rate-limited only by the global limit of 100 requests per
+        minute per IP address, applied across all endpoints and all plans.
+        Exceeding it returns a `429` and blocks the IP for 5 minutes.
+
+
+        Upgrade your plan in [account settings](https://elicit.com/settings) for
+        higher per-request result caps.
+
+
+        ### Example
+
+
+        ```bash
+
+        curl -X POST https://elicit.com/api/v2/search/papers \
+          -H "Authorization: Bearer elk_live_your_key_here" \
+          -H "Content-Type: application/json" \
+          -d '{"query": "effects of sleep deprivation on cognitive performance"}'
+        ```
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        description: Search parameters
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaperSearchRequest"
+            examples:
+              elicit:
+                summary: Elicit paper index (default) with filters
+                value:
+                  query: GLP-1 receptor agonists for weight loss
+                  filters:
+                    minEpochS: 1672531200
+                    maxEpochS: 1784148262
+                    includeKeywords:
+                      - semaglutide
+                      - liraglutide
+                    excludeKeywords:
+                      - rodent
+                      - mouse model
+                    typeTags:
+                      - RCT
+                      - Meta-Analysis
+                    hasPdf: true
+                  maxResults: 20
+              pubmed:
+                summary: PubMed (keyword / Lucene query)
+                value:
+                  query: '"semaglutide"[Title/Abstract] AND "diabetes"[MeSH]'
+                  corpus: pubmed
+                  searchMode: keyword
+                  maxResults: 20
+      responses:
+        "200":
+          description: Search results returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaperSearchResponse"
+              example:
+                papers:
+                  - elicitId: abc123def456
+                    title: "Effects of Sleep Deprivation on Cognitive Performance: A Meta-Analysis"
+                    authors:
+                      - Smith, J.
+                      - Jones, A.
+                      - Williams, R.
+                    year: 2023
+                    abstract: This meta-analysis examines the relationship between sleep deprivation
+                      and various measures of cognitive performance...
+                    doi: 10.1234/sleep.2023.001
+                    pmid: "37123456"
+                    venue: Sleep Medicine Reviews
+                    citedByCount: 42
+                    urls:
+                      - https://example.com/paper.pdf
+                warnings: []
+        "400":
+          description: Invalid request. The request body failed validation — check that
+            `query` is present and `maxResults` is between 1 and 10000.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: invalid_request
+                  message: query is required
+        "401":
+          description: Authentication failed. The API key is missing, invalid, revoked, or
+            expired.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                missing:
+                  summary: Missing Authorization header
+                  value:
+                    error:
+                      code: missing_authorization
+                      message: Authorization header is required
+                invalid:
+                  summary: Invalid API key
+                  value:
+                    error:
+                      code: invalid_api_key
+                      message: Invalid API key
+                revoked:
+                  summary: Revoked API key
+                  value:
+                    error:
+                      code: invalid_api_key
+                      message: Invalid API key
+        "402":
+          description: Insufficient quota.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: insufficient_quota
+                  message: Insufficient quota.
+        "403":
+          description: API access is not available on your current plan. Upgrade to Pro or
+            above to use the API.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: api_access_denied
+                  message: API access is not available on your current plan. Please upgrade to Pro
+                    or above.
+        "429":
+          description: Rate limit exceeded. More than 100 requests per minute were
+            received from your IP address; further requests are blocked for 5
+            minutes.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CloudflareRateLimitError"
+              example:
+                error: Rate limit exceeded
+                message: Too many requests. Please try again later.
+        "500":
+          description: An unexpected error occurred. Retry after a short delay.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: internal_error
+                  message: Internal server error
+  /search/trials:
+    post:
+      tags:
+        - Search
+      summary: Search clinical trials
+      description: >-
+        Search for clinical trials. Trial records come from ClinicalTrials.gov.
+
+
+        Pass `trialFilters` to narrow by phase, recruitment status, or whether
+        the trial has posted results. Set `searchMode` to `"keyword"` to send
+        the query as a Lucene-style boolean expression directly to the
+        underlying advanced-filter API.
+
+
+        Filters and `searchMode: "keyword"` are mutually exclusive — put filter
+        expressions directly into the query when using keyword search. Mixing
+        them returns a 400.
+
+
+        To search academic papers instead, use [`POST
+        /api/v2/search/papers`](#tag/Search/paths/~1search~1papers/post).
+
+
+        ### Limits
+
+
+        Each plan caps how many results a single search request may return:
+
+
+        | Plan | Results per request |
+
+        |------|--------------------|
+
+        | Basic | No access |
+
+        | Plus | No access |
+
+        | Pro | 300 |
+
+        | Scale | 500 |
+
+        | Enterprise | 10,000 |
+
+
+        Search is rate-limited only by the global limit of 100 requests per
+        minute per IP address, applied across all endpoints and all plans.
+        Exceeding it returns a `429` and blocks the IP for 5 minutes.
+
+
+        Upgrade your plan in [account settings](https://elicit.com/settings) for
+        higher per-request result caps.
+
+
+        ### Example
+
+
+        ```bash
+
+        curl -X POST https://elicit.com/api/v2/search/trials \
+          -H "Authorization: Bearer elk_live_your_key_here" \
+          -H "Content-Type: application/json" \
+          -d '{"query": "semaglutide obesity", "trialFilters": {"phase": ["PHASE3"]}}'
+        ```
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        description: Trial search parameters
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrialSearchRequest"
+            examples:
+              filtered:
+                summary: Phase 3, currently recruiting
+                value:
+                  query: semaglutide obesity
+                  trialFilters:
+                    phase:
+                      - PHASE3
+                    recruitmentStatus:
+                      - RECRUITING
+                      - ACTIVE_NOT_RECRUITING
+                  maxResults: 20
+              keyword:
+                summary: Keyword / Lucene query
+                value:
+                  query: AREA[Condition]"obesity" AND AREA[InterventionName]"semaglutide"
+                  searchMode: keyword
+                  maxResults: 20
+      responses:
+        "200":
+          description: Trial search results returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrialSearchResponse"
+              example:
+                trials:
+                  - nctId: NCT05646706
+                    title: A Research Study on Semaglutide for Weight Loss
+                    summary: This study will look at how much weight participants lose...
+                    url: https://clinicaltrials.gov/study/NCT05646706
+                    overallStatus: COMPLETED
+                    phase:
+                      - PHASE3
+                    studyType: INTERVENTIONAL
+                    enrollmentCount: 1407
+                    conditions:
+                      - Obesity
+                    interventions:
+                      - Semaglutide
+                      - Placebo
+                    leadSponsor: Novo Nordisk A/S
+                    startDate: 2022-10-10
+                    primaryCompletionDate: 2024-04-12
+                    completionDate: 2024-05-24
+                    hasResults: true
+                    lastUpdatedYear: 2025
+                warnings: []
+        "400":
+          description: Invalid request. The request body failed validation.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: invalid_request
+                  message: query is required
+        "401":
+          description: Authentication failed. The API key is missing, invalid, revoked, or
+            expired.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: invalid_api_key
+                  message: Invalid API key
+        "402":
+          description: Insufficient quota.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: insufficient_quota
+                  message: Insufficient quota.
+        "403":
+          description: API access is not available on your current plan. Upgrade to Pro or
+            above to use the API.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: api_access_denied
+                  message: API access is not available on your current plan. Please upgrade to Pro
+                    or above.
+        "429":
+          description: Rate limit exceeded. More than 100 requests per minute were
+            received from your IP address; further requests are blocked for 5
+            minutes.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CloudflareRateLimitError"
+              example:
+                error: Rate limit exceeded
+                message: Too many requests. Please try again later.
+        "500":
+          description: An unexpected error occurred. Retry after a short delay.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: internal_error
+                  message: Internal server error
+  /sessions/reports:
+    post:
+      tags:
+        - Reports
+      summary: Create a new report
+      description: >-
+        Start an asynchronous report generation job. Elicit will search for
+        relevant papers, screen them for relevance, extract structured data, and
+        produce a full research report.
+
+
+        Reports are long-running operations (typically 5–15 minutes). The
+        response includes a `sessionId` and a `links.self` URL that you poll for
+        status.
+
+
+        The report is also visible at the `url` returned in the response, where
+        you can watch it progress in real time.
+
+
+        ### Workflow
+
+
+        1. **POST /api/v2/sessions/reports** — submit your research question
+        (returns immediately with `sessionId`)
+
+        2. **GET `links.self`** (`/api/v2/sessions/reports/:sessionId`) — poll
+        until `status` is `completed` or `failed`
+
+        3. Use the `pdfUrl` and `docxUrl` fields on the completed response to
+        download the report
+
+
+        ### Example
+
+
+        ```bash
+
+        # 1. Create the report
+
+        curl -X POST https://elicit.com/api/v2/sessions/reports \
+          -H "Authorization: Bearer elk_live_your_key_here" \
+          -H "Content-Type: application/json" \
+          -d '{"researchQuestion": "What are the effects of GLP-1 receptor agonists on cardiovascular outcomes?"}'
+
+        # 2. Poll for completion (repeat until status is "completed" or
+        "failed")
+
+        curl https://elicit.com/api/v2/sessions/reports/{sessionId} \
+          -H "Authorization: Bearer elk_live_your_key_here"
+        ```
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        description: Report configuration
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                researchQuestion:
+                  type: string
+                  minLength: 1
+                  maxLength: 2000
+                  description: The research question to investigate. Elicit will search for
+                    relevant papers, screen them, and extract data to produce a
+                    structured report.
+                  example: What are the effects of GLP-1 receptor agonists on cardiovascular
+                    outcomes?
+                title:
+                  type: string
+                  minLength: 1
+                  maxLength: 200
+                  description: Optional title for the report. If provided, Elicit will use this as
+                    the report title instead of generating one automatically
+                    from the research question.
+                  example: GLP-1 Receptor Agonists and Cardiovascular Outcomes
+                maxSearchPapers:
+                  type: integer
+                  minimum: 1
+                  maximum: 1000
+                  default: 50
+                  description: Maximum number of papers to retrieve during the search phase. More
+                    papers means a more comprehensive but slower report.
+                    Defaults to 50.
+                  example: 50
+                maxExtractPapers:
+                  type: integer
+                  minimum: 1
+                  maximum: 80
+                  default: 10
+                  description: Maximum number of papers to include in the final extraction table.
+                    Papers are screened for relevance before extraction.
+                    Defaults to 10.
+                  example: 10
+                isPublic:
+                  type: boolean
+                  default: false
+                  description: Whether the report should be publicly accessible via its URL
+                    without authentication. Defaults to false.
+                  example: false
+              required:
+                - researchQuestion
+            examples:
+              basic:
+                summary: Basic report
+                value:
+                  researchQuestion: What are the effects of GLP-1 receptor agonists on
+                    cardiovascular outcomes?
+              customized:
+                summary: Report with custom paper limits
+                value:
+                  researchQuestion: What is the evidence for cognitive behavioral therapy in
+                    treating insomnia?
+                  maxSearchPapers: 1000
+                  maxExtractPapers: 80
+              publicReport:
+                summary: Public report
+                value:
+                  researchQuestion: What are the effects of GLP-1 receptor agonists on
+                    cardiovascular outcomes?
+                  isPublic: true
+              withTitle:
+                summary: Report with custom title
+                value:
+                  researchQuestion: What are the effects of GLP-1 receptor agonists on
+                    cardiovascular outcomes?
+                  title: GLP-1 Receptor Agonists and Cardiovascular Outcomes
+      responses:
+        "202":
+          description: Report creation accepted. The report is now being generated
+            asynchronously. Poll `links.self` for status.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportSessionCreated"
+              example:
+                type: report
+                sessionId: 5ad08bfb-cbe0-4911-a8c3-309760d33029
+                status: processing
+                url: https://elicit.com/review/5ad08bfb-cbe0-4911-a8c3-309760d33029
+                isPublic: false
+                links:
+                  self: https://elicit.com/api/v2/sessions/reports/5ad08bfb-cbe0-4911-a8c3-309760d33029
+        "400":
+          description: Invalid request. Check that `researchQuestion` is present and
+            within length limits.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: invalid_request
+                  message: researchQuestion is required
+        "401":
+          description: Authentication failed. The API key is missing, invalid, revoked, or
+            expired.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: invalid_api_key
+                  message: Invalid API key
+        "402":
+          description: Insufficient quota.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: insufficient_quota
+                  message: Insufficient quota.
+        "403":
+          description: API access is not available on your current plan. Upgrade to Pro or
+            above to use the API.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: api_access_denied
+                  message: API access is not available on your current plan. Please upgrade to Pro
+                    or above.
+        "500":
+          description: An unexpected error occurred. Retry after a short delay.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: internal_error
+                  message: Internal server error
+  /sessions/reports/{sessionId}:
+    get:
+      tags:
+        - Reports
+      summary: Get report status and results
+      description: |-
+        Poll the status of a report created via `POST /api/v2/sessions/reports`.
+
+        ### Status transitions
+
+        - **processing** — Elicit is actively searching, screening, and extracting data. You can watch progress in real time at the `url`.
+        - **pausedForInsufficientQuota** — The account exceeded its usage limit mid-run. The report stays paused until resumed via the `links.resume` URL (or the Elicit web interface) once the limit is resolved.
+        - **completed** — The report is finished. The `result` field contains the report content.
+        - **failed** — Something went wrong. The `error` field contains details.
+        - **unknown** — Status is not tracked for this report (legacy or user-created reports).
+
+        ### Polling recommendation
+
+        Poll every 30–60 seconds. Reports typically complete in 5–15 minutes depending on the number of papers.
+
+        ### Including the full report body
+
+        By default, the `reportBody` and `abstract` fields are omitted to keep polling responses lightweight. To include them, add `?include=reportBody` to the request.
+
+        ### Example
+
+        ```bash
+        # Poll for status
+        curl https://elicit.com/api/v2/sessions/reports/{sessionId} \
+          -H "Authorization: Bearer elk_live_your_key_here"
+
+        # Fetch with full report body
+        curl "https://elicit.com/api/v2/sessions/reports/{sessionId}?include=reportBody" \
+          -H "Authorization: Bearer elk_live_your_key_here"
+        ```
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: sessionId
+          description: The session ID (UUID) returned by the create endpoints and `GET
+            /sessions`
+          schema:
+            type: string
+            format: uuid
+            description: The session ID (UUID) returned by the create endpoints and `GET
+              /sessions`
+            example: 5ad08bfb-cbe0-4911-a8c3-309760d33029
+          required: true
+        - in: query
+          name: include
+          description: Set to 'reportBody' to include the full report markdown and
+            abstract in the response
+          schema:
+            type: string
+            const: reportBody
+            description: Set to 'reportBody' to include the full report markdown and
+              abstract in the response
+      responses:
+        "200":
+          description: Report status and results (if completed).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportSessionDetail"
+              examples:
+                processing:
+                  summary: Report is being generated
+                  value:
+                    type: report
+                    sessionId: 5ad08bfb-cbe0-4911-a8c3-309760d33029
+                    status: processing
+                    url: https://elicit.com/review/5ad08bfb-cbe0-4911-a8c3-309760d33029
+                    isPublic: false
+                    links:
+                      self: https://elicit.com/api/v2/sessions/reports/5ad08bfb-cbe0-4911-a8c3-309760d33029
+                completed:
+                  summary: Report completed with results
+                  value:
+                    type: report
+                    sessionId: 5ad08bfb-cbe0-4911-a8c3-309760d33029
+                    status: completed
+                    url: https://elicit.com/review/5ad08bfb-cbe0-4911-a8c3-309760d33029
+                    isPublic: false
+                    result:
+                      title: "GLP-1 Receptor Agonists and Cardiovascular Outcomes: A Systematic
+                        Review"
+                      summary: This review analyzed 42 studies examining the cardiovascular effects of
+                        GLP-1 receptor agonists. The evidence suggests
+                        significant reductions in major adverse cardiovascular
+                        events (MACE), with semaglutide showing the strongest
+                        effect (HR 0.74, 95% CI 0.58-0.95). Liraglutide also
+                        demonstrated cardiovascular benefit in the LEADER trial
+                        (HR 0.87, 95% CI 0.78-0.97). Most studies were
+                        industry-funded RCTs with follow-up periods of 2-5
+                        years.
+                      reportBody: >-
+                        # Introduction
+
+
+                        GLP-1 receptor agonists have emerged as a major
+                        therapeutic class...
+
+
+                        # Methods
+
+
+                        We conducted a systematic review of randomized
+                        controlled trials...
+                      abstract: This systematic review examines the cardiovascular effects of GLP-1
+                        receptor agonists across 42 studies...
+                    pdfUrl: https://s3.amazonaws.com/...
+                    docxUrl: https://s3.amazonaws.com/...
+                    links:
+                      self: https://elicit.com/api/v2/sessions/reports/5ad08bfb-cbe0-4911-a8c3-309760d33029
+                failed:
+                  summary: Report generation failed
+                  value:
+                    type: report
+                    sessionId: 5ad08bfb-cbe0-4911-a8c3-309760d33029
+                    status: failed
+                    url: https://elicit.com/review/5ad08bfb-cbe0-4911-a8c3-309760d33029
+                    isPublic: false
+                    links:
+                      self: https://elicit.com/api/v2/sessions/reports/5ad08bfb-cbe0-4911-a8c3-309760d33029
+                    error:
+                      code: report_generation_failed
+                      message: Report generation failed during the extraction phase. Please try again.
+        "401":
+          description: Authentication failed. The API key is missing, invalid, revoked, or
+            expired.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: invalid_api_key
+                  message: Invalid API key
+        "403":
+          description: API access is not available on your current plan. Upgrade to Pro or
+            above to use the API.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: api_access_denied
+                  message: API access is not available on your current plan. Please upgrade to Pro
+                    or above.
+        "404":
+          description: Report not found. Either the report ID is invalid or the report
+            belongs to a different user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: report_not_found
+                  message: Report not found
+  /sessions/systematic-reviews:
+    post:
+      tags:
+        - Systematic Reviews
+      summary: Create a new systematic review
+      description: |-
+        Start a systematic review. Elicit runs the stages you configure — searches, abstract screening, fulltext screening, extraction, and a report. Each stage runs only when you include it; omit a stage to skip it. The default example below runs a complete review end-to-end.
+
+        Systematic reviews are long-running operations. The response includes a `sessionId` and a `links.self` URL (`/api/v2/sessions/systematic-reviews/:sessionId`) that you poll for status. You can also watch progress live at the `url` in the response.
+
+        ### Plan limits
+
+        | Plan | Max columns | Max results per query | Max total results | Figure extraction |
+        |------|-------------|----------------------|-------------------|-------------------|
+        | Pro | 20 | 1,000 | 5,000 | No |
+        | Scale | 30 | 5,000 | 20,000 | Yes |
+        | Enterprise | 40 | 10,000 | 40,000 | Yes |
+
+        ### Example
+
+        ```bash
+        curl -X POST https://elicit.com/api/v2/sessions/systematic-reviews \
+        -H "Authorization: Bearer elk_live_your_key_here" \
+        -H "Content-Type: application/json" \
+        -d '{
+          "researchQuestion": "Do GLP-1 receptor agonists reduce MACE in T2D patients?",
+          "searches": [{ "query": "GLP-1 cardiovascular outcomes", "maxResults": 200 }],
+          "abstractScreening": { "generate": true },
+          "fulltextScreening": { "reuseAbstractCriteria": true },
+          "extraction": { "generate": true, "useFigures": false },
+          "generateReport": true
+        }'
+        ```
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        description: Systematic review configuration
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                researchQuestion:
+                  type: string
+                  minLength: 1
+                  maxLength: 2000
+                  description: The research question the review is investigating.
+                  example: Do GLP-1 receptor agonists reduce MACE in T2D patients?
+                protocolDetails:
+                  type: string
+                  maxLength: 10000
+                  description: Free-form context (PICO, methodology, inclusion/exclusion
+                    rationale) used when Elicit generates screening criteria,
+                    extraction columns, or the final report.
+                searches:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      query:
+                        type: string
+                        minLength: 1
+                        maxLength: 2000
+                        description: Search query
+                        example: GLP-1 receptor agonist cardiovascular outcomes
+                      corpus:
+                        type: string
+                        enum:
+                          - elicit
+                          - pubmed
+                          - clinical_trials
+                        description: Corpus to search. `elicit` covers ~138M papers across most domains
+                          and is the default. `pubmed` filters on literature
+                          from Pubmed only. `clinical_trials` is registered
+                          trials only.
+                        example: elicit
+                        default: elicit
+                      searchMode:
+                        type: string
+                        enum:
+                          - semantic
+                          - keyword
+                        default: semantic
+                        description: "`semantic` (default) uses vector-similarity retrieval; `keyword`
+                          uses literal keyword matching."
+                      maxResults:
+                        type: integer
+                        minimum: 1
+                        maximum: 10000
+                        default: 200
+                        description: Maximum number of papers to retrieve from this search.
+                          Plan-specific caps apply.
+                        example: 200
+                    required:
+                      - query
+                  maxItems: 20
+                  default: []
+                  description: Searches that feed the review pipeline. If omitted or empty, Elicit
+                    runs a semantic search using `researchQuestion` as the
+                    query. Total search results are subject to plan-specific
+                    limits.
+                abstractScreening:
+                  type: object
+                  properties:
+                    criteria:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                            minLength: 1
+                            maxLength: 200
+                            description: Short name for the criterion
+                            example: Human study
+                          instructions:
+                            type: string
+                            minLength: 1
+                            maxLength: 2000
+                            description: Plain-language instructions used to judge whether a paper meets
+                              this criterion
+                            example: The study must be conducted in human subjects (not in vitro or
+                              animal-only).
+                        required:
+                          - name
+                          - instructions
+                      maxItems: 40
+                      description: Explicit screening criteria.
+                    generate:
+                      type: boolean
+                      default: false
+                      description: When true, Elicit generates additional screening criteria.
+                  description: "Abstract-stage screening. Supply `criteria`, `generate: true`, or
+                    both. Omit the field to skip."
+                fulltextScreening:
+                  type: object
+                  properties:
+                    criteria:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                            minLength: 1
+                            maxLength: 200
+                            description: Short name for the criterion
+                            example: Human study
+                          instructions:
+                            type: string
+                            minLength: 1
+                            maxLength: 2000
+                            description: Plain-language instructions used to judge whether a paper meets
+                              this criterion
+                            example: The study must be conducted in human subjects (not in vitro or
+                              animal-only).
+                        required:
+                          - name
+                          - instructions
+                      maxItems: 40
+                      description: Explicit fulltext-stage criteria.
+                    reuseAbstractCriteria:
+                      type: boolean
+                      default: false
+                      description: When true, the abstract-stage criteria are also applied at the
+                        fulltext stage.
+                  description: "Fulltext-stage screening. Supply `criteria`,
+                    `reuseAbstractCriteria: true`, or both. Requires
+                    `abstractScreening` to be present. Omit to skip."
+                extraction:
+                  type: object
+                  properties:
+                    questions:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                            minLength: 1
+                            maxLength: 200
+                            description: Column header for this extraction question
+                            example: MACE hazard ratio
+                          instructions:
+                            type: string
+                            minLength: 1
+                            maxLength: 2000
+                            description: Plain-language instructions describing what to extract
+                            example: Extract the hazard ratio and 95% confidence interval for 3-point MACE.
+                          choices:
+                            type: array
+                            items:
+                              type: string
+                              minLength: 1
+                              maxLength: 200
+                            minItems: 2
+                            maxItems: 10
+                            description: Optional fixed list of allowed answers. Omit for free-text
+                              extraction. When set, the model is constrained to
+                              one of these values.
+                            example:
+                              - yes
+                              - no
+                              - maybe
+                        required:
+                          - name
+                          - instructions
+                      maxItems: 40
+                      description: Explicit extraction columns.
+                    generate:
+                      type: boolean
+                      default: false
+                      description: When true, Elicit generates additional extraction columns.
+                    useFigures:
+                      type: boolean
+                      default: false
+                      description: When true, model may consult figures (higher quality, slower).
+                        Subject to plan availability.
+                  description: Extraction stage. Supply `questions`, `generate`, or both. Omit to
+                    skip extraction entirely.
+                generateReport:
+                  type: boolean
+                  default: false
+                  description: Generate a full report at the end of the review. Requires
+                    `extraction`.
+                  example: true
+                title:
+                  type: string
+                  minLength: 1
+                  maxLength: 200
+                  description: Optional title for the review.
+                isPublic:
+                  type: boolean
+                  default: false
+                  description: Whether the review should be publicly accessible via its URL
+                    without authentication. Defaults to false.
+                  example: false
+              required:
+                - researchQuestion
+            examples:
+              full:
+                summary: Full systematic review — search, screening, extraction, and report
+                value:
+                  researchQuestion: Do GLP-1 receptor agonists reduce MACE in T2D patients?
+                  searches:
+                    - query: GLP-1 cardiovascular outcomes
+                      maxResults: 200
+                  abstractScreening:
+                    generate: true
+                  fulltextScreening:
+                    reuseAbstractCriteria: true
+                  extraction:
+                    generate: true
+                    useFigures: false
+                  generateReport: true
+              fulltextCopy:
+                summary: Provided abstract criteria, fulltext copying them, provided extraction
+                value:
+                  researchQuestion: Do GLP-1 receptor agonists reduce MACE in T2D patients?
+                  searches:
+                    - query: GLP-1 cardiovascular outcomes
+                  abstractScreening:
+                    criteria:
+                      - name: RCT
+                        instructions: Randomized controlled trial
+                      - name: T2D adults
+                        instructions: Population is adults with T2D
+                  fulltextScreening:
+                    reuseAbstractCriteria: true
+                  extraction:
+                    questions:
+                      - name: N
+                        instructions: Total randomized
+                      - name: MACE HR
+                        instructions: Hazard ratio and 95% CI for 3-point MACE
+                    useFigures: true
+                  generateReport: true
+              additive:
+                summary: "Provided + generated together: layer your criteria, let Elicit add
+                  more"
+                value:
+                  researchQuestion: Do GLP-1 receptor agonists reduce MACE in T2D patients?
+                  searches:
+                    - query: GLP-1 cardiovascular outcomes
+                      maxResults: 500
+                  abstractScreening:
+                    criteria:
+                      - name: RCT
+                        instructions: Randomized controlled trial
+                    generate: true
+                  fulltextScreening:
+                    criteria:
+                      - name: 3-point MACE defined
+                        instructions: Primary endpoint is 3-point MACE
+                    reuseAbstractCriteria: true
+                  extraction:
+                    questions:
+                      - name: N
+                        instructions: Total randomized
+                    generate: true
+                    useFigures: false
+              searchOnly:
+                summary: Search only — gather papers, no screening/extraction/report
+                description: Omitting `abstractScreening`, `fulltextScreening`, `extraction`,
+                  and `generateReport` skips those stages. This runs a single
+                  semantic search over the research question and stops at the
+                  gathered-paper list.
+                value:
+                  researchQuestion: Do GLP-1 receptor agonists reduce MACE in T2D patients?
+      responses:
+        "202":
+          description: Systematic review creation accepted. The review is now running
+            asynchronously. Poll `links.self` for status.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystematicReviewSessionCreated"
+              example:
+                type: systematicReview
+                sessionId: 5ad08bfb-cbe0-4911-a8c3-309760d33029
+                status: processing
+                url: https://elicit.com/review/5ad08bfb-cbe0-4911-a8c3-309760d33029
+                isPublic: false
+                links:
+                  self: https://elicit.com/api/v2/sessions/systematic-reviews/5ad08bfb-cbe0-4911-a8c3-309760d33029
+        "400":
+          description: Invalid request. Check that the config matches the schema — e.g.
+            each enabled stage has at least one source of material (`criteria` /
+            `questions` and/or `generate`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: invalid_request
+                  message: "abstract screening must specify `criteria`, `generate: true`, or both"
+        "401":
+          description: Authentication failed. The API key is missing, invalid, revoked, or
+            expired.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: invalid_api_key
+                  message: Invalid API key
+        "402":
+          description: Insufficient quota.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: insufficient_quota
+                  message: Insufficient quota.
+        "403":
+          description: "Access denied. Either API access is not available on your plan, or
+            the systematic-reviews surface requires features your plan does not
+            include (guided flow, or figure extraction when `useFigures:
+            true`)."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                apiAccess:
+                  summary: API access not available on plan
+                  value:
+                    error:
+                      code: api_access_denied
+                      message: API access is not available on your current plan. Please upgrade to Pro
+                        or above.
+                guidedFlow:
+                  summary: Plan lacks guided flow
+                  value:
+                    error:
+                      code: guided_flow_required
+                      message: Systematic reviews require a plan with guided flow enabled. Please
+                        upgrade your plan.
+                figureExtraction:
+                  summary: Figures used but plan lacks figure extraction
+                  value:
+                    error:
+                      code: figure_extraction_required
+                      message: "Using figures in extraction requires a plan with figure extraction
+                        enabled. Please upgrade your plan or set `useFigures:
+                        false` on all extraction columns."
+        "500":
+          description: An unexpected error occurred. Retry after a short delay.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: internal_error
+                  message: Internal server error
+  /sessions/systematic-reviews/{sessionId}:
+    get:
+      tags:
+        - Systematic Reviews
+      summary: Get systematic review status and results
+      description: >-
+        Poll the status of a systematic review created via `POST
+        /api/v2/sessions/systematic-reviews`.
+
+
+        ### Status transitions
+
+
+        - **processing** — the pipeline is running. Watch progress at `url`.
+
+        - **pausedForInsufficientQuota** — the account exceeded its usage limit
+        mid-run. The review stays paused until resumed via the `links.resume`
+        URL (or the Elicit web interface) once the limit is resolved.
+
+        - **completed** — the pipeline finished. Stage-organized exports appear
+        under `data`. Only stages that actually ran are included.
+
+        - **failed** — something went wrong. The `error` field contains details.
+        `data` may still contain exports for stages that completed before the
+        failure.
+
+        - **unknown** — status is not tracked (legacy or user-created).
+
+
+        ### Response shape
+
+
+        `data` is populated as soon as each stage's outputs land — you don't
+        need to wait for `status: completed`. Stages that haven't produced data
+        yet (or that aren't part of this review's config) are simply omitted.
+
+
+        - `data.search.{csv,xlsx}` — gather-stage paper list.
+
+        - `data.screen.{csv,xlsx}` — abstract-screening results.
+
+        - `data.fulltext.{csv,xlsx}` — fulltext-screening results (only when
+        fulltext screening is configured).
+
+        - `data.extract.{csv,xlsx}` — extraction-stage results.
+
+        - `data.report` — structured content under `result`, plus optional `pdf`
+        / `docx` / `txt` (APA reference list) / `bib` (BibTeX) / `ris` presigned
+        download URLs.
+
+
+        All stage URLs are presigned for 7 days and serve with
+        `Content-Disposition: attachment` so browser downloads land with the
+        canonical filename.
+
+
+        `dataFreshness` is the ISO timestamp when the cached exports were last
+        regenerated, or `null` when nothing has been generated yet.
+
+
+        ### Including the full report body
+
+
+        By default, `data.report.result.reportBody` and
+        `data.report.result.abstract` are omitted to keep responses light.
+        Append `?include=reportBody` to include them.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: sessionId
+          description: The session ID (UUID) returned by the create endpoints and `GET
+            /sessions`
+          schema:
+            type: string
+            format: uuid
+            description: The session ID (UUID) returned by the create endpoints and `GET
+              /sessions`
+            example: 5ad08bfb-cbe0-4911-a8c3-309760d33029
+          required: true
+        - in: query
+          name: include
+          description: Set to 'reportBody' to include the full report markdown and
+            abstract in the response
+          schema:
+            type: string
+            const: reportBody
+            description: Set to 'reportBody' to include the full report markdown and
+              abstract in the response
+      responses:
+        "200":
+          description: Systematic review status and results (if completed).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystematicReviewSessionDetail"
+              examples:
+                processing:
+                  summary: Review is running
+                  value:
+                    type: systematicReview
+                    sessionId: 5ad08bfb-cbe0-4911-a8c3-309760d33029
+                    links:
+                      self: https://elicit.com/api/v2/sessions/systematic-reviews/5ad08bfb-cbe0-4911-a8c3-309760d33029
+                    status: processing
+                    url: https://elicit.com/review/5ad08bfb-cbe0-4911-a8c3-309760d33029
+                    isPublic: false
+                    dataFreshness: null
+                searchReady:
+                  summary: Review still processing — search results already downloadable
+                  value:
+                    type: systematicReview
+                    sessionId: 5ad08bfb-cbe0-4911-a8c3-309760d33029
+                    links:
+                      self: https://elicit.com/api/v2/sessions/systematic-reviews/5ad08bfb-cbe0-4911-a8c3-309760d33029
+                    status: processing
+                    url: https://elicit.com/review/5ad08bfb-cbe0-4911-a8c3-309760d33029
+                    isPublic: false
+                    data:
+                      search:
+                        csv: https://s3.amazonaws.com/...
+                        xlsx: https://s3.amazonaws.com/...
+                    dataFreshness: 2025-06-15T14:35:42.000Z
+                completedWithReport:
+                  summary: Review completed with all stages and a full report
+                  value:
+                    type: systematicReview
+                    sessionId: 5ad08bfb-cbe0-4911-a8c3-309760d33029
+                    links:
+                      self: https://elicit.com/api/v2/sessions/systematic-reviews/5ad08bfb-cbe0-4911-a8c3-309760d33029
+                    status: completed
+                    url: https://elicit.com/review/5ad08bfb-cbe0-4911-a8c3-309760d33029
+                    isPublic: false
+                    data:
+                      search:
+                        csv: https://s3.amazonaws.com/...
+                        xlsx: https://s3.amazonaws.com/...
+                      screen:
+                        csv: https://s3.amazonaws.com/...
+                        xlsx: https://s3.amazonaws.com/...
+                      fulltext:
+                        csv: https://s3.amazonaws.com/...
+                        xlsx: https://s3.amazonaws.com/...
+                      extract:
+                        csv: https://s3.amazonaws.com/...
+                        xlsx: https://s3.amazonaws.com/...
+                      report:
+                        result:
+                          title: GLP-1 Receptor Agonists and Cardiovascular Outcomes
+                          summary: This review analyzed 42 studies examining the cardiovascular effects of
+                            GLP-1 receptor agonists...
+                        pdf: https://s3.amazonaws.com/...
+                        docx: https://s3.amazonaws.com/...
+                        txt: https://s3.amazonaws.com/...
+                        bib: https://s3.amazonaws.com/...
+                        ris: https://s3.amazonaws.com/...
+                    dataFreshness: 2025-06-15T14:35:42.000Z
+                failedAfterScreen:
+                  summary: Review failed mid-pipeline; partial exports remain available
+                  value:
+                    type: systematicReview
+                    sessionId: 5ad08bfb-cbe0-4911-a8c3-309760d33029
+                    links:
+                      self: https://elicit.com/api/v2/sessions/systematic-reviews/5ad08bfb-cbe0-4911-a8c3-309760d33029
+                    status: failed
+                    url: https://elicit.com/review/5ad08bfb-cbe0-4911-a8c3-309760d33029
+                    isPublic: false
+                    error:
+                      code: review_failed
+                      message: Systematic review failed. Any stages that completed before the failure
+                        are still downloadable.
+                    data:
+                      search:
+                        csv: https://s3.amazonaws.com/...
+                        xlsx: https://s3.amazonaws.com/...
+                      screen:
+                        csv: https://s3.amazonaws.com/...
+                        xlsx: https://s3.amazonaws.com/...
+                    dataFreshness: 2025-06-15T14:35:42.000Z
+        "401":
+          description: Authentication failed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: invalid_api_key
+                  message: Invalid API key
+        "403":
+          description: API access is not available on your current plan. Upgrade to Pro or
+            above to use the API.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: api_access_denied
+                  message: API access is not available on your current plan. Please upgrade to Pro
+                    or above.
+        "404":
+          description: Review not found. Either the review ID is invalid or the review
+            belongs to a different user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: review_not_found
+                  message: Systematic review not found
+  /sessions:
+    get:
+      tags:
+        - Sessions
+      summary: List sessions
+      description: |-
+        List all sessions — reports and systematic reviews — for the authenticated user in a single feed, ordered by creation date (newest first).
+
+        Each item carries its `sessionId`, a `type` field (`report` or `systematicReview`), and a `links` object with the URLs for the item's follow-up requests: `links.self` is the typed get endpoint for its full status and results, and `links.resume` appears only while the session is paused for insufficient quota.
+
+        Results are paginated using cursor-based pagination. Use the `nextCursor` value from the response to fetch the next page. Filters apply to both session types; pass `type` to list a single kind.
+
+        ### Example
+
+        ```bash
+        # First page
+        curl https://elicit.com/api/v2/sessions?limit=10 \
+          -H "Authorization: Bearer elk_live_your_key_here"
+
+        # Next page
+        curl "https://elicit.com/api/v2/sessions?limit=10&cursor=2025-06-15T14:30:00.000Z_5ad08bfb-cbe0-4911-a8c3-309760d33029" \
+          -H "Authorization: Bearer elk_live_your_key_here"
+
+        # Only reports created via the API
+        curl "https://elicit.com/api/v2/sessions?type=report&source=api" \
+          -H "Authorization: Bearer elk_live_your_key_here"
+        ```
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          description: "Maximum number of sessions to return (default: 20, max: 100)"
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            description: "Maximum number of sessions to return (default: 20, max: 100)"
+            example: 20
+        - in: query
+          name: cursor
+          description: Opaque pagination cursor from a previous response's nextCursor
+            field. Omit for the first page.
+          schema:
+            type: string
+            description: Opaque pagination cursor from a previous response's nextCursor
+              field. Omit for the first page.
+            example: 2025-06-15T14:30:00.000Z_5ad08bfb-cbe0-4911-a8c3-309760d33029
+        - in: query
+          name: source
+          description: Filter by how the session was created
+          schema:
+            type: string
+            enum:
+              - api
+              - user
+            description: Filter by how the session was created
+            example: api
+        - in: query
+          name: type
+          description: Filter to a single session type
+          schema:
+            type: string
+            enum:
+              - report
+              - systematicReview
+            description: Filter to a single session type
+            example: report
+        - in: query
+          name: status
+          description: Filter by session status
+          schema:
+            type: string
+            enum:
+              - processing
+              - pausedForInsufficientQuota
+              - completed
+              - failed
+              - unknown
+            description: Filter by session status
+            example: completed
+      responses:
+        "200":
+          description: List of sessions.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListSessionsResponse"
+              example:
+                sessions:
+                  - type: report
+                    sessionId: 5ad08bfb-cbe0-4911-a8c3-309760d33029
+                    status: completed
+                    executionStage: done
+                    title: What are the effects of GLP-1 receptor agonists on cardiovascular
+                      outcomes?
+                    url: https://elicit.com/review/5ad08bfb-cbe0-4911-a8c3-309760d33029
+                    source: api
+                    createdAt: 2025-06-15T14:30:00.000Z
+                    isPublic: false
+                    links:
+                      self: https://elicit.com/api/v2/sessions/reports/5ad08bfb-cbe0-4911-a8c3-309760d33029
+                  - type: systematicReview
+                    sessionId: e3d0f5c4-88f6-4c3f-b6a3-0b57a2f1d3aa
+                    status: pausedForInsufficientQuota
+                    executionStage: screening_abstract
+                    title: Do GLP-1 receptor agonists reduce MACE in T2D patients?
+                    url: https://elicit.com/review/e3d0f5c4-88f6-4c3f-b6a3-0b57a2f1d3aa
+                    source: user
+                    createdAt: 2025-06-14T09:12:00.000Z
+                    isPublic: false
+                    links:
+                      self: https://elicit.com/api/v2/sessions/systematic-reviews/e3d0f5c4-88f6-4c3f-b6a3-0b57a2f1d3aa
+                      resume: https://elicit.com/api/v2/sessions/e3d0f5c4-88f6-4c3f-b6a3-0b57a2f1d3aa/resume
+                nextCursor: null
+        "401":
+          description: Authentication failed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: invalid_api_key
+                  message: Invalid API key
+        "403":
+          description: API access is not available on your current plan. Upgrade to Pro or
+            above to use the API.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: api_access_denied
+                  message: API access is not available on your current plan. Please upgrade to Pro
+                    or above.
+  /sessions/{sessionId}/resume:
+    post:
+      tags:
+        - Sessions
+      summary: Resume a paused session
+      description: >-
+        Resume a report or systematic review that was automatically paused
+        because your account was over its usage limit (`status:
+        "pausedForInsufficientQuota"` from the get endpoints).
+
+
+        Pass the `sessionId` from the create response or `GET /api/v2/sessions`
+        — the session type is resolved automatically. Paused sessions also carry
+        a ready-made `links.resume` URL for this endpoint.
+
+
+        A paused session stays paused until it is explicitly resumed. Once the
+        usage limit is resolved (for example after upgrading or when a new
+        billing period starts), call this endpoint — or use the resume banner in
+        the Elicit web interface — to continue the run.
+
+
+        ### Example
+
+
+        ```bash
+
+        curl -X POST https://elicit.com/api/v2/sessions/{sessionId}/resume \
+          -H "Authorization: Bearer elk_live_your_key_here"
+        ```
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: sessionId
+          description: The session ID (UUID) returned by the create endpoints and `GET
+            /sessions`
+          schema:
+            type: string
+            format: uuid
+            description: The session ID (UUID) returned by the create endpoints and `GET
+              /sessions`
+            example: 5ad08bfb-cbe0-4911-a8c3-309760d33029
+          required: true
+      responses:
+        "200":
+          description: Session resumed. `status` reflects the row after the resume; poll
+            `links.self` for progress.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResumeSessionResponse"
+              example:
+                type: systematicReview
+                sessionId: e3d0f5c4-88f6-4c3f-b6a3-0b57a2f1d3aa
+                status: processing
+                executionStage: screening_abstract
+                url: https://elicit.com/review/e3d0f5c4-88f6-4c3f-b6a3-0b57a2f1d3aa
+                isPublic: false
+                links:
+                  self: https://elicit.com/api/v2/sessions/systematic-reviews/e3d0f5c4-88f6-4c3f-b6a3-0b57a2f1d3aa
+        "401":
+          description: Authentication failed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: invalid_api_key
+                  message: Invalid API key
+        "402":
+          description: Insufficient quota.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: insufficient_quota
+                  message: Insufficient quota.
+        "403":
+          description: API access is not available on your current plan. Upgrade to Pro or
+            above to use the API.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: api_access_denied
+                  message: API access is not available on your current plan. Please upgrade to Pro
+                    or above.
+        "404":
+          description: Session not found. Either the session ID is invalid or the session
+            belongs to a different user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: session_not_found
+                  message: Session not found
+        "409":
+          description: The session is not currently paused, so there is nothing to resume.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: session_not_paused
+                  message: Session is not paused.
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: API key obtained from your Elicit account settings page. Keys use
+        the format `elk_live_...`.
+  schemas:
+    PaperSearchRequest:
+      type: object
+      properties:
+        query:
+          type: string
+          minLength: 1
+          maxLength: 2000
+          description: The search query string
+          example: GLP-1 receptor agonists for weight loss
+        searchMode:
+          type: string
+          enum:
+            - semantic
+            - keyword
+          default: semantic
+          description: How to interpret `query`. `semantic` (default) runs Elicit's
+            semantic search. `keyword` sends the query as a Lucene-style boolean
+            expression directly to the corpus search API. Mutually exclusive
+            with `filters` / `trialFilters` — put filter expressions into the
+            query string in keyword mode.
+          example: semantic
+        maxResults:
+          type: integer
+          minimum: 1
+          maximum: 10000
+          default: 10
+          description: Maximum number of results to return (1-10000)
+        corpus:
+          type: string
+          enum:
+            - elicit
+            - pubmed
+          default: elicit
+          description: Paper corpus to search. `elicit` (default) searches Elicit's full
+            paper index; `pubmed` restricts to PubMed.
+          example: elicit
+        filters:
+          $ref: "#/components/schemas/PaperFilters"
+          description: Filters to narrow search results
+      required:
+        - query
+    PaperFilters:
+      type: object
+      properties:
+        minYear:
+          type: integer
+          description: Minimum publication year
+          example: 2020
+        maxYear:
+          type: integer
+          description: Maximum publication year
+          example: 2025
+        minEpochS:
+          type: integer
+          description: Minimum publication date as Unix epoch seconds
+          example: 1672531200
+        maxEpochS:
+          type: integer
+          description: Maximum publication date as Unix epoch seconds
+          example: 1784148261
+        maxQuartile:
+          type: integer
+          minimum: 1
+          maximum: 4
+          description: Maximum journal quartile (1 = top 25%)
+          example: 2
+        includeKeywords:
+          type: array
+          items:
+            type: string
+          description: Keywords that must appear in the paper
+          example:
+            - semaglutide
+            - liraglutide
+        excludeKeywords:
+          type: array
+          items:
+            type: string
+          description: Keywords to exclude from results
+          example:
+            - rodent
+            - mouse model
+        typeTags:
+          type: array
+          items:
+            type: string
+            enum:
+              - Review
+              - Meta-Analysis
+              - Systematic Review
+              - RCT
+              - Longitudinal
+          description: Filter by study type
+          example:
+            - RCT
+            - Meta-Analysis
+        hasPdf:
+          type: boolean
+          description: Only include papers with available PDFs
+          example: false
+        pubmedOnly:
+          type: boolean
+          description: Only include papers from PubMed
+          example: false
+        retracted:
+          type: string
+          enum:
+            - exclude_retracted
+            - include_retracted
+            - only_retracted
+          description: How to handle retracted papers. Defaults to exclude_retracted.
+          example: exclude_retracted
+    PaperSearchResponse:
+      type: object
+      properties:
+        papers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Paper"
+          description: Papers matching the query
+        warnings:
+          type: array
+          items:
+            $ref: "#/components/schemas/SearchWarning"
+          description: Non-fatal warnings emitted while executing the search (e.g. phrases
+            ignored by the PubMed parser).
+      required:
+        - papers
+    Paper:
+      type: object
+      properties:
+        elicitId:
+          type:
+            - string
+            - "null"
+          description: Elicit internal paper identifier
+        title:
+          type: string
+          description: Paper title
+        authors:
+          type: array
+          items:
+            type: string
+          description: List of author names
+        year:
+          type:
+            - integer
+            - "null"
+          description: Publication year
+        abstract:
+          type:
+            - string
+            - "null"
+          description: Paper abstract
+        doi:
+          type:
+            - string
+            - "null"
+          description: Digital Object Identifier
+        pmid:
+          type:
+            - string
+            - "null"
+          description: PubMed identifier
+        venue:
+          type:
+            - string
+            - "null"
+          description: Publication venue
+        citedByCount:
+          type:
+            - integer
+            - "null"
+          description: Number of citations this paper has received
+        urls:
+          type: array
+          items:
+            type: string
+          description: URLs for the paper
+      required:
+        - elicitId
+        - title
+        - authors
+        - year
+        - abstract
+        - doi
+        - pmid
+        - venue
+        - citedByCount
+        - urls
+    SearchWarning:
+      type: object
+      properties:
+        corpus:
+          type: string
+          enum:
+            - elicit
+            - pubmed
+            - clinical_trials
+          description: Corpus that emitted the warning
+        searchMode:
+          type: string
+          enum:
+            - semantic
+            - keyword
+          description: Search mode in effect when the warning was emitted
+        message:
+          type: string
+          description: Human-readable warning message
+        warningDetails:
+          $ref: "#/components/schemas/SearchWarningDetails"
+      required:
+        - corpus
+        - searchMode
+        - message
+        - warningDetails
+    SearchWarningDetails:
+      type: object
+      properties:
+        type:
+          type: string
+          description: Warning category
+        messages:
+          type: array
+          items:
+            type: string
+          description: Underlying warning messages
+      required:
+        - type
+        - messages
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              description: Machine-readable error code
+              example: invalid_request
+            message:
+              type: string
+              description: Human-readable error message
+              example: Invalid search request
+          required:
+            - code
+            - message
+      required:
+        - error
+    CloudflareRateLimitError:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error label. Always `Rate limit exceeded` for the burst limit.
+          example: Rate limit exceeded
+        message:
+          type: string
+          description: Human-readable detail.
+          example: Too many requests. Please try again later.
+      required:
+        - error
+        - message
+    TrialSearchRequest:
+      type: object
+      properties:
+        query:
+          type: string
+          minLength: 1
+          maxLength: 2000
+          description: The search query string
+          example: GLP-1 receptor agonists for weight loss
+        searchMode:
+          type: string
+          enum:
+            - semantic
+            - keyword
+          default: semantic
+          description: How to interpret `query`. `semantic` (default) runs Elicit's
+            semantic search. `keyword` sends the query as a Lucene-style boolean
+            expression directly to the corpus search API. Mutually exclusive
+            with `filters` / `trialFilters` — put filter expressions into the
+            query string in keyword mode.
+          example: semantic
+        maxResults:
+          type: integer
+          minimum: 1
+          maximum: 10000
+          default: 10
+          description: Maximum number of results to return (1-10000)
+        trialFilters:
+          $ref: "#/components/schemas/TrialFilters"
+          description: Clinical-trials filters (phase, recruitment status, results)
+      required:
+        - query
+    TrialFilters:
+      type: object
+      properties:
+        phase:
+          type: array
+          items:
+            type: string
+            enum:
+              - NA
+              - EARLY_PHASE1
+              - PHASE1
+              - PHASE2
+              - PHASE3
+              - PHASE4
+          description: Clinical trial phases to include
+          example:
+            - PHASE2
+            - PHASE3
+        recruitmentStatus:
+          type: array
+          items:
+            type: string
+            enum:
+              - ACTIVE_NOT_RECRUITING
+              - COMPLETED
+              - ENROLLING_BY_INVITATION
+              - NOT_YET_RECRUITING
+              - RECRUITING
+              - SUSPENDED
+              - TERMINATED
+              - WITHDRAWN
+              - AVAILABLE
+          description: Trial recruitment statuses to include
+          example:
+            - RECRUITING
+            - ACTIVE_NOT_RECRUITING
+        hasResults:
+          type: boolean
+          description: Only include trials that have posted results
+          example: true
+    TrialSearchResponse:
+      type: object
+      properties:
+        trials:
+          type: array
+          items:
+            $ref: "#/components/schemas/Trial"
+          description: Clinical trials matching the query
+        warnings:
+          type: array
+          items:
+            $ref: "#/components/schemas/SearchWarning"
+          description: Non-fatal warnings emitted while executing the search.
+      required:
+        - trials
+    Trial:
+      type: object
+      properties:
+        nctId:
+          type: string
+          description: NCT identifier for the trial
+          example: NCT05646706
+        title:
+          type: string
+          description: Trial title
+        summary:
+          type:
+            - string
+            - "null"
+          description: Plain-text trial description / brief summary
+        url:
+          type: string
+          description: Link to the trial's public record
+          example: https://clinicaltrials.gov/study/NCT05646706
+        overallStatus:
+          type:
+            - string
+            - "null"
+          description: Overall recruitment status (RECRUITING, COMPLETED, TERMINATED,
+            etc.). Null when the trial has no status posted.
+        phase:
+          type: array
+          items:
+            type: string
+          description: Trial phases (may list multiple, e.g. PHASE2 + PHASE3). Empty for
+            N/A.
+        studyType:
+          type:
+            - string
+            - "null"
+          description: Study type (INTERVENTIONAL, OBSERVATIONAL, EXPANDED_ACCESS).
+        enrollmentCount:
+          type:
+            - integer
+            - "null"
+          description: Actual or anticipated enrollment count.
+        conditions:
+          type: array
+          items:
+            type: string
+          description: Conditions / diseases being studied.
+        interventions:
+          type: array
+          items:
+            type: string
+          description: Intervention names.
+        leadSponsor:
+          type:
+            - string
+            - "null"
+          description: Lead sponsor name.
+        startDate:
+          type:
+            - string
+            - "null"
+          description: Trial start date (ISO `YYYY-MM-DD` or partial).
+        primaryCompletionDate:
+          type:
+            - string
+            - "null"
+          description: Primary completion date (ISO `YYYY-MM-DD` or partial).
+        completionDate:
+          type:
+            - string
+            - "null"
+          description: Completion date (ISO `YYYY-MM-DD` or partial).
+        hasResults:
+          type:
+            - boolean
+            - "null"
+          description: Whether the trial has posted results.
+        lastUpdatedYear:
+          type:
+            - integer
+            - "null"
+          description: Year the trial record was last updated.
+      required:
+        - nctId
+        - title
+        - summary
+        - url
+        - overallStatus
+        - phase
+        - studyType
+        - enrollmentCount
+        - conditions
+        - interventions
+        - leadSponsor
+        - startDate
+        - primaryCompletionDate
+        - completionDate
+        - hasResults
+        - lastUpdatedYear
+    ReportSessionCreated:
+      type: object
+      properties:
+        type:
+          type: string
+          const: report
+        sessionId:
+          type: string
+          format: uuid
+          description: The session ID (UUID) returned by the create endpoints and `GET
+            /sessions`
+          example: 5ad08bfb-cbe0-4911-a8c3-309760d33029
+        status:
+          type: string
+          const: processing
+          description: Initial status is always processing
+        url:
+          type: string
+          description: URL to view the report in the Elicit web interface as it progresses
+          example: https://elicit.com/review/5ad08bfb-cbe0-4911-a8c3-309760d33029
+        isPublic:
+          type: boolean
+          description: Whether the report is publicly accessible via its URL without
+            authentication
+          example: false
+        links:
+          $ref: "#/components/schemas/SessionLinks"
+      required:
+        - type
+        - sessionId
+        - status
+        - url
+        - isPublic
+        - links
+    SessionLinks:
+      type: object
+      properties:
+        self:
+          type: string
+          description: API URL for this session's full status and results (the typed get
+            endpoint for its type)
+          example: https://elicit.com/api/v2/sessions/reports/5ad08bfb-cbe0-4911-a8c3-309760d33029
+        resume:
+          type: string
+          description: API URL to resume this session. Present only while the session is
+            paused for insufficient quota.
+          example: https://elicit.com/api/v2/sessions/5ad08bfb-cbe0-4911-a8c3-309760d33029/resume
+      required:
+        - self
+    ReportSessionDetail:
+      type: object
+      properties:
+        type:
+          type: string
+          const: report
+        sessionId:
+          type: string
+          format: uuid
+          description: The session ID (UUID) returned by the create endpoints and `GET
+            /sessions`
+          example: 5ad08bfb-cbe0-4911-a8c3-309760d33029
+        status:
+          type: string
+          enum:
+            - processing
+            - pausedForInsufficientQuota
+            - completed
+            - failed
+            - unknown
+          description: "Current status of the report. Transitions: processing ⇄
+            pausedForInsufficientQuota (paused when the account exceeds its
+            usage limit; stays paused until explicitly resumed via the resume
+            endpoint or the Elicit web interface), processing →
+            completed/failed. Poll until completed or failed."
+        executionStage:
+          type:
+            - string
+            - "null"
+          enum:
+            - gathering_sources
+            - screening_abstract
+            - screening_fulltext
+            - extracting_data
+            - generating_report
+            - done
+            - null
+          description: Current pipeline stage. Advances through gathering_sources →
+            screening_abstract → extracting_data → generating_report → done.
+            Null for reports created before this field was introduced or when
+            the stage isn't known.
+        url:
+          type: string
+          description: URL to view the report in the Elicit web interface
+          example: https://elicit.com/review/5ad08bfb-cbe0-4911-a8c3-309760d33029
+        isPublic:
+          type: boolean
+          description: Whether the report is publicly accessible via its URL without
+            authentication
+          example: false
+        result:
+          $ref: "#/components/schemas/ReportResult"
+          description: Report output, only present when status is completed
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              description: Machine-readable error code
+            message:
+              type: string
+              description: Human-readable error message
+          required:
+            - code
+            - message
+          description: Error details, only present when status is failed
+        pdfUrl:
+          type:
+            - string
+            - "null"
+          description: Pre-signed URL to download the report as PDF. Only present when
+            status is completed and assets have been generated. Expires after 7
+            days — re-fetch the report for a fresh URL.
+          example: https://s3.amazonaws.com/...
+        docxUrl:
+          type:
+            - string
+            - "null"
+          description: Pre-signed URL to download the report as DOCX. Only present when
+            status is completed and assets have been generated. Expires after 7
+            days — re-fetch the report for a fresh URL.
+          example: https://s3.amazonaws.com/...
+        links:
+          $ref: "#/components/schemas/SessionLinks"
+      required:
+        - type
+        - sessionId
+        - status
+        - executionStage
+        - url
+        - isPublic
+        - links
+    ReportResult:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Auto-generated title for the report
+          example: "GLP-1 Receptor Agonists and Cardiovascular Outcomes: A Systematic
+            Review"
+        summary:
+          type: string
+          description: AI-generated executive summary of the findings
+          example: This review analyzed 42 studies examining the cardiovascular effects of
+            GLP-1 receptor agonists. The evidence suggests significant
+            reductions in major adverse cardiovascular events (MACE), with
+            semaglutide showing the strongest effect (HR 0.74, 95% CI
+            0.58-0.95)...
+        reportBody:
+          type:
+            - string
+            - "null"
+          description: Full report content in markdown format. Only included when
+            ?include=reportBody is specified.
+          example: |-
+            # Introduction
+
+            GLP-1 receptor agonists have emerged as...
+        abstract:
+          type:
+            - string
+            - "null"
+          description: Report abstract in markdown format. Only included when
+            ?include=reportBody is specified.
+          example: This systematic review examines the cardiovascular effects of...
+      required:
+        - title
+        - summary
+    SystematicReviewSessionCreated:
+      type: object
+      properties:
+        type:
+          type: string
+          const: systematicReview
+        sessionId:
+          type: string
+          format: uuid
+          description: The session ID (UUID) returned by the create endpoints and `GET
+            /sessions`
+          example: 5ad08bfb-cbe0-4911-a8c3-309760d33029
+        status:
+          type: string
+          const: processing
+          description: Initial status is always processing
+        url:
+          type: string
+          description: URL to view the review in the Elicit web interface
+        isPublic:
+          type: boolean
+          description: Whether the review is publicly accessible via its URL without
+            authentication
+        links:
+          $ref: "#/components/schemas/SessionLinks"
+      required:
+        - type
+        - sessionId
+        - status
+        - url
+        - isPublic
+        - links
+    SystematicReviewSessionDetail:
+      type: object
+      properties:
+        type:
+          type: string
+          const: systematicReview
+        sessionId:
+          type: string
+          format: uuid
+          description: The session ID (UUID) returned by the create endpoints and `GET
+            /sessions`
+          example: 5ad08bfb-cbe0-4911-a8c3-309760d33029
+        status:
+          type: string
+          enum:
+            - processing
+            - pausedForInsufficientQuota
+            - completed
+            - failed
+            - unknown
+          description: "Current status. Transitions: processing ⇄
+            pausedForInsufficientQuota (paused when the account exceeds its
+            usage limit; stays paused until explicitly resumed via the resume
+            endpoint or the Elicit web interface), processing →
+            completed/failed. Poll until completed or failed."
+        executionStage:
+          type:
+            - string
+            - "null"
+          enum:
+            - gathering_sources
+            - screening_abstract
+            - screening_fulltext
+            - extracting_data
+            - generating_report
+            - done
+            - null
+          description: Current pipeline stage. Advances through gathering_sources →
+            screening_abstract → screening_fulltext → extracting_data →
+            generating_report → done. Null for reviews created before this field
+            was introduced or when the stage isn't known.
+        url:
+          type: string
+          description: URL to view the review in the Elicit web interface
+        isPublic:
+          type: boolean
+          description: Whether the review is publicly accessible via its URL without
+            authentication
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              description: Machine-readable error code
+            message:
+              type: string
+              description: Human-readable error message
+          required:
+            - code
+            - message
+          description: Error details, only present when status is failed
+        data:
+          $ref: "#/components/schemas/ReviewData"
+          description: Stage-organized content and export URLs. Stages that did not run
+            are omitted.
+        dataFreshness:
+          type:
+            - string
+            - "null"
+          description: ISO timestamp when the exports in `data` were last written to S3.
+            null when no exports have been generated yet.
+        links:
+          $ref: "#/components/schemas/SessionLinks"
+      required:
+        - type
+        - sessionId
+        - status
+        - executionStage
+        - url
+        - isPublic
+        - dataFreshness
+        - links
+    ReviewData:
+      type: object
+      properties:
+        search:
+          $ref: "#/components/schemas/StageData"
+          description: Gather-stage paper list exports.
+        screen:
+          $ref: "#/components/schemas/StageData"
+          description: Abstract-screening results exports.
+        fulltext:
+          $ref: "#/components/schemas/StageData"
+          description: Fulltext-screening results exports.
+        extract:
+          $ref: "#/components/schemas/StageData"
+          description: Extraction-stage results exports.
+        report:
+          $ref: "#/components/schemas/ReportData"
+          description: Report-stage content and exports.
+    StageData:
+      type: object
+      properties:
+        csv:
+          type: string
+          format: uri
+          description: Presigned URL for the CSV export. Expires in 7 days.
+        xlsx:
+          type: string
+          format: uri
+          description: Presigned URL for the XLSX export. Expires in 7 days.
+      required:
+        - csv
+        - xlsx
+    ReportData:
+      type: object
+      properties:
+        result:
+          $ref: "#/components/schemas/ReviewResult"
+          description: Structured report content (title, summary, optional body + abstract).
+        pdf:
+          type: string
+          format: uri
+          description: Presigned URL for the report PDF. Expires in 7 days.
+        docx:
+          type: string
+          format: uri
+          description: Presigned URL for the report DOCX. Expires in 7 days.
+        txt:
+          type: string
+          format: uri
+          description: Presigned URL for an APA-style plain-text reference list. Expires
+            in 7 days.
+        bib:
+          type: string
+          format: uri
+          description: Presigned URL for the BibTeX bibliography. Expires in 7 days.
+        ris:
+          type: string
+          format: uri
+          description: Presigned URL for the RIS bibliography. Expires in 7 days.
+      required:
+        - result
+    ReviewResult:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Auto-generated title
+        summary:
+          type: string
+          description: AI-generated executive summary of the findings
+        reportBody:
+          type:
+            - string
+            - "null"
+          description: Full report content in markdown format. Only included when
+            ?include=reportBody is specified.
+        abstract:
+          type:
+            - string
+            - "null"
+          description: Report abstract in markdown format. Only included when
+            ?include=reportBody is specified.
+      required:
+        - title
+        - summary
+    ListSessionsResponse:
+      type: object
+      properties:
+        sessions:
+          type: array
+          items:
+            $ref: "#/components/schemas/SessionListItem"
+          description: Reports and systematic reviews interleaved, ordered by creation
+            date (newest first)
+        nextCursor:
+          type:
+            - string
+            - "null"
+          description: Opaque cursor for the next page; pass it back as `cursor`. Null if
+            there are no more results.
+          example: 2025-06-15T14:30:00.000Z_5ad08bfb-cbe0-4911-a8c3-309760d33029
+      required:
+        - sessions
+        - nextCursor
+    SessionListItem:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - report
+            - systematicReview
+          description: Which kind of session this is; use it to pick the matching typed
+            get endpoint
+        sessionId:
+          type: string
+          format: uuid
+          description: The session ID (UUID) returned by the create endpoints and `GET
+            /sessions`
+          example: 5ad08bfb-cbe0-4911-a8c3-309760d33029
+        status:
+          type: string
+          enum:
+            - processing
+            - pausedForInsufficientQuota
+            - completed
+            - failed
+            - unknown
+          description: Current status of the report
+        executionStage:
+          type:
+            - string
+            - "null"
+          enum:
+            - gathering_sources
+            - screening_abstract
+            - screening_fulltext
+            - extracting_data
+            - generating_report
+            - done
+            - null
+          description: Current pipeline stage, or null when not yet known. See the get
+            endpoint for the value vocabulary.
+        title:
+          type: string
+          description: Report title (the research question)
+          example: What are the effects of GLP-1 receptor agonists on cardiovascular
+            outcomes?
+        url:
+          type: string
+          description: URL to view the report in the Elicit web interface
+          example: https://elicit.com/review/5ad08bfb-cbe0-4911-a8c3-309760d33029
+        source:
+          type: string
+          enum:
+            - api
+            - user
+          description: How the report was created
+          example: api
+        createdAt:
+          type: string
+          description: ISO 8601 timestamp of when the report was created
+          example: 2025-06-15T14:30:00.000Z
+        isPublic:
+          type: boolean
+          description: Whether the report is publicly accessible via its URL without
+            authentication
+          example: false
+        links:
+          $ref: "#/components/schemas/SessionLinks"
+      required:
+        - type
+        - sessionId
+        - status
+        - executionStage
+        - title
+        - url
+        - source
+        - createdAt
+        - isPublic
+        - links
+    ResumeSessionResponse:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - report
+            - systematicReview
+          description: Which kind of session this is; use it to pick the matching typed
+            get endpoint
+        sessionId:
+          type: string
+          format: uuid
+          description: The session ID (UUID) returned by the create endpoints and `GET
+            /sessions`
+          example: 5ad08bfb-cbe0-4911-a8c3-309760d33029
+        status:
+          type: string
+          enum:
+            - processing
+            - pausedForInsufficientQuota
+            - completed
+            - failed
+            - unknown
+          description: Status after the resume — normally processing; completed or failed
+            if the run finished while the resume was in flight.
+        executionStage:
+          type:
+            - string
+            - "null"
+          enum:
+            - gathering_sources
+            - screening_abstract
+            - screening_fulltext
+            - extracting_data
+            - generating_report
+            - done
+            - null
+          description: The stage the session resumed at
+          example: screening_abstract
+        url:
+          type: string
+          description: URL to view this session in the Elicit web interface
+        isPublic:
+          type: boolean
+        links:
+          $ref: "#/components/schemas/SessionLinks"
+      required:
+        - type
+        - sessionId
+        - status
+        - executionStage
+        - url
+        - isPublic
+        - links
+x-tagGroups:
+  - name: Search
+    tags:
+      - Search
+  - name: Sessions
+    tags:
+      - Sessions
+      - Reports
+      - Systematic Reviews

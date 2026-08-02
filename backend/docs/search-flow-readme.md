@@ -412,11 +412,13 @@ I lokal udvikling kan frontend også prøve browser-proxy fallback ved backend-w
 
 ### Retrieval fra Elicit
 
-Elicit bruges som en semantisk retrieval-kilde med naturligt sprog:
+Elicit bruges som en semantisk retrieval-kilde med naturligt sprog, via Elicits v2-endpoint (`POST /api/v2/search/papers`):
 
 - queryen er ofte mere spørgsmålslignende end queryen til de øvrige kilder
 - der kan sendes `typeTags`, `includeKeywords`, `excludeKeywords`, `minYear`, `maxYear`, `minEpochS`, `maxEpochS`, `maxQuartile`, `hasPdf`, `pubmedOnly` og `retracted`
 - `retracted` defaultes internt til `exclude_retracted`
+- `corpus` sendes explicit som `"elicit"` (Elicits fulde paper-indeks, ikke kun PubMed) og `searchMode` explicit som `"semantic"`
+- `maxResults` er konfigureret til 300 pr. kald (`QPM_SEMANTIC_SOURCE_LIMITS['elicit']`), inden for Pro-planens grænse på 300 resultater pr. request
 
 Elicit følger nu samme princip som OpenAlex ved retry:
 
@@ -463,6 +465,7 @@ Derudover bæres følgende signaler allerede direkte i retrieval-responsen uden 
 
 - OpenAlex: `fwci`, `cited_by_count`, `counts_by_year`, `is_retracted`, `open_access.is_oa`, `primary_topic`, `authorships[].author.id`, `primary_location.source.id`.
 - Semantic Scholar: `citationCount`, `influentialCitationCount`, `s2FieldsOfStudy`, `tldr`, `isOpenAccess`.
+- Elicit (v2): `citedByCount`, `authors`. Elicit returnerer ikke noget publikationstype-felt på selve paper-objektet, så `pubTypes` kan ikke udledes fra Elicit alene — kun via merge med en anden kilde.
 
 Ved fejl i enrichment (fx iCite nede) logges en warning, men rerank kører videre uden de manglende signaler.
 

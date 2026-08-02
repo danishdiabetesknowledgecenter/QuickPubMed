@@ -112,6 +112,42 @@ define('QPM_SEMANTIC_SOURCE_LIMITS', [
     'pubmedBestMatchMultiSource' => 200,
 ]);
 
+// ============ Unified Search Engine (feature flag) ============
+// When true, the public API (public-api/v1/search.php) uses the full PHP port
+// of the website widget's hybrid quality-signal rerank engine (backend/app/
+// semantic-quality-lib.php: publication-type classification, iCite + OpenAlex
+// Authority enrichment, the full QPM_RERANK_CONFIG hybrid formula, and
+// DOI-only post-validation) instead of the legacy RRF-only engine. This makes
+// the public API's ranking match the website widget's ranking, including all
+// QPM_RERANK_CONFIG / QPM_RERANK_PROFILE_CONFIG tuning below.
+//
+// Keep false until you have run the parity checklist:
+//   node scripts/capture-js-baseline.js
+//   php scripts/rerank-parity-harness.php
+//   node scripts/compare-rerank-parity.js
+//   php scripts/rule-engine-smoke-test.php
+// All must pass before enabling in production. Safe to flip back to false at
+// any time; no data migration is involved (this only changes candidate
+// ordering computed per-request, from data already coming back from PubMed/
+// OpenAlex/Semantic Scholar/Elicit).
+define('QPM_UNIFIED_SEARCH_ENGINE_ENABLED', false);
+
+// Optional DOI-only post-validation rules (Phase 4), only applied when the
+// unified engine above is enabled, and only to candidates without a PMID
+// (PMID-backed candidates already went through PubMed's own MeSH-based hard
+// filters). Same rule shape as src/utils/semanticRuleEngine.js. Empty by
+// default (no-op).
+define('QPM_SEMANTIC_POST_VALIDATION_RULES', [
+    // 'activeRules' => [
+    //     [
+    //         'id' => 'guideline',
+    //         'matchStrategy' => 'any',
+    //         'textScopes' => ['candidateTitle'],
+    //         'requireAnyTextSignals' => ['guideline', 'consensus statement', 'recommendation'],
+    //     ],
+    // ],
+]);
+
 // ============ Rerank Configuration ============
 // Frontend-safe values exposed to the widget via ThemeConfig.php
 // Current model:
@@ -738,6 +774,27 @@ define('NEMPUBMED_API_CLIENTS', [
         'rate_limit_per_minute' => 60,
         'get_rate_limit_per_minute' => 15,
         'allow_primary_api_key_in_url' => false,
+        // allowed_sources: which of pubmed/semanticScholar/openAlex/elicit this
+        // client may query. DENY-ALL-BY-DEFAULT: omitting this key (or setting
+        // it to []) allows ZERO sources — every client must explicitly opt in.
+        // This is deliberate: it closes a gap where any API client with a
+        // valid key could request Elicit even though Elicit access on the
+        // website is gated behind QPM_ELICIT_UNLOCK. A client without an
+        // Elicit license should simply omit 'elicit' from this list so those
+        // requests are rejected (403) instead of silently billing your plan.
+        'allowed_sources' => ['pubmed', 'semanticScholar', 'openAlex', 'elicit'],
+        // source_api_keys: optional per-client API key overrides. If a source is
+        // omitted (or its value is empty), the installation-wide default key is
+        // used (OPENALEX_API_KEY / SEMANTIC_SCHOLAR_API_KEY / ELICIT_API_KEY in
+        // this file). Useful when a client brings their own Elicit/OpenAlex/S2
+        // subscription instead of consuming your shared quota. PubMed (NLM)
+        // intentionally has no per-client override here since E-utilities keys
+        // are configured per-domain (see qpmGetNlmApiKey), not per-API-client.
+        // 'source_api_keys' => [
+        //     'openAlex' => '',
+        //     'semanticScholar' => '',
+        //     'elicit' => '',
+        // ],
     ],
 ]);
 

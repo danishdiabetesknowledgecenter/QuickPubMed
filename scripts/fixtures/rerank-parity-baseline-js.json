@@ -1,0 +1,428 @@
+{
+  "generatedAt": "2026-07-26T11:39:21.812Z",
+  "testRerankConfig": {
+    "sourceWeights": {
+      "pubmed": 1,
+      "semanticScholar": 0.92,
+      "openAlex": 0.88,
+      "elicit": 0.9
+    },
+    "pmidBonus": 10,
+    "rankScale": 100,
+    "scoreScale": 20,
+    "fallbackSourceWeight": 0.8,
+    "overlapBonusPerExtraSource": 35,
+    "rrfK": 60,
+    "pubTypeWeights": {},
+    "recencyHalfLifeYears": 8,
+    "recencyBonusMax": 15,
+    "oaBonus": 5,
+    "citationImpactClamp": [
+      0.8,
+      1.3
+    ],
+    "citationImpactSignalWeights": {
+      "rcr": 0.5,
+      "fwci": 0.5,
+      "nihPercentile": 0.3,
+      "fieldNormalizedCitationRatio": 0.3,
+      "influentialCitationCount": 0.15,
+      "citedByCount": 0.08
+    },
+    "retractionAction": "filter",
+    "retractionPenalty": 1,
+    "clinicalBonus": 10,
+    "clinicalCitedByThreshold": 1000,
+    "topicOverlapBonus": 20,
+    "authorityClamp": [
+      0.95,
+      1.1
+    ],
+    "dataQualityPenalties": {
+      "missingAbstract": 0.9,
+      "shortAbstract": 0.95,
+      "veryShortAbstract": 0.98,
+      "missingAuthor": 0.95,
+      "missingYear": 0.95
+    },
+    "abstractMinLength": {
+      "short": 100,
+      "veryShort": 250
+    },
+    "pubTypeTiers": {
+      "guideline_verified": 40,
+      "guideline_candidate": 30,
+      "systematic_review_or_meta": 35,
+      "randomized_controlled_trial": 25,
+      "review": 12,
+      "clinical_trial": 15,
+      "research_article": 0,
+      "excluded": 0
+    },
+    "guidelinePublisherAllowList": [
+      {
+        "name": "World Health Organization",
+        "aliases": [
+          "who"
+        ]
+      }
+    ]
+  },
+  "results": {
+    "single-source-basic": {
+      "description": "Single source, no overlap, pure rank-order via RRF core.",
+      "order": [
+        {
+          "pmid": "1000001",
+          "doi": "",
+          "title": "Record A",
+          "combinedScore": 88.0159,
+          "bestRank": 1,
+          "sourceCount": 1,
+          "pubTypeTier": "research_article",
+          "pubTypeConfidence": "medium"
+        },
+        {
+          "pmid": "1000002",
+          "doi": "",
+          "title": "Record B",
+          "combinedScore": 86.7273,
+          "bestRank": 2,
+          "sourceCount": 1,
+          "pubTypeTier": "research_article",
+          "pubTypeConfidence": "medium"
+        },
+        {
+          "pmid": "1000003",
+          "doi": "",
+          "title": "Record C",
+          "combinedScore": 85.4796,
+          "bestRank": 3,
+          "sourceCount": 1,
+          "pubTypeTier": "research_article",
+          "pubTypeConfidence": "medium"
+        }
+      ],
+      "filteredCount": 0,
+      "rerankMode": "single"
+    },
+    "multi-source-overlap": {
+      "description": "Same PMID found by two sources; must receive overlap bonus and merged rank.",
+      "order": [
+        {
+          "pmid": "2000002",
+          "doi": "10.1/xy",
+          "title": "Paper Y",
+          "combinedScore": 286.6659,
+          "bestRank": 1,
+          "sourceCount": 2,
+          "pubTypeTier": "research_article",
+          "pubTypeConfidence": "high"
+        },
+        {
+          "pmid": "2000001",
+          "doi": "",
+          "title": "Paper X",
+          "combinedScore": 88.0159,
+          "bestRank": 1,
+          "sourceCount": 1,
+          "pubTypeTier": "research_article",
+          "pubTypeConfidence": "medium"
+        },
+        {
+          "pmid": "2000003",
+          "doi": "",
+          "title": "Paper Z",
+          "combinedScore": 85.4796,
+          "bestRank": 3,
+          "sourceCount": 1,
+          "pubTypeTier": "research_article",
+          "pubTypeConfidence": "medium"
+        },
+        {
+          "pmid": "",
+          "doi": "10.1/newdoi",
+          "title": "Paper W (OpenAlex-only)",
+          "combinedScore": 81.6274,
+          "bestRank": 2,
+          "sourceCount": 1,
+          "pubTypeTier": "research_article",
+          "pubTypeConfidence": "high"
+        }
+      ],
+      "filteredCount": 0,
+      "rerankMode": "multi"
+    },
+    "citation-cascade-rcr": {
+      "description": "Candidate with RCR set (iCite) - top of the citation-impact fallback cascade.",
+      "order": [
+        {
+          "pmid": "3000001",
+          "doi": "",
+          "title": "Highly cited RCT",
+          "combinedScore": 143.4587,
+          "bestRank": 1,
+          "sourceCount": 1,
+          "pubTypeTier": "randomized_controlled_trial",
+          "pubTypeConfidence": "medium"
+        }
+      ],
+      "filteredCount": 0,
+      "rerankMode": "single"
+    },
+    "citation-cascade-nihpercentile-only": {
+      "description": "Only nihPercentile present, no RCR - second fallback branch.",
+      "order": [
+        {
+          "pmid": "3000002",
+          "doi": "",
+          "title": "Percentile-only record",
+          "combinedScore": 109.1398,
+          "bestRank": 1,
+          "sourceCount": 1,
+          "pubTypeTier": "research_article",
+          "pubTypeConfidence": "medium"
+        }
+      ],
+      "filteredCount": 0,
+      "rerankMode": "single"
+    },
+    "citation-cascade-fwci-only": {
+      "description": "Only FWCI present (OpenAlex) - third fallback branch.",
+      "order": [
+        {
+          "pmid": "",
+          "doi": "10.1/fwci-only",
+          "title": "FWCI-only record",
+          "combinedScore": 106.3209,
+          "bestRank": 1,
+          "sourceCount": 1,
+          "pubTypeTier": "research_article",
+          "pubTypeConfidence": "low"
+        }
+      ],
+      "filteredCount": 0,
+      "rerankMode": "single"
+    },
+    "citation-cascade-fieldnorm-only": {
+      "description": "Only citedByCount + fieldCitationRate present - fourth fallback branch.",
+      "order": [
+        {
+          "pmid": "",
+          "doi": "10.1/fieldnorm-only",
+          "title": "Field-normalized-only record",
+          "combinedScore": 105.1327,
+          "bestRank": 1,
+          "sourceCount": 1,
+          "pubTypeTier": "research_article",
+          "pubTypeConfidence": "low"
+        }
+      ],
+      "filteredCount": 0,
+      "rerankMode": "single"
+    },
+    "citation-cascade-influential-only": {
+      "description": "Only influentialCitationCount present (S2) - fifth fallback branch.",
+      "order": [
+        {
+          "pmid": "",
+          "doi": "10.1/influential-only",
+          "title": "Influential-only record",
+          "combinedScore": 97.3688,
+          "bestRank": 1,
+          "sourceCount": 1,
+          "pubTypeTier": "research_article",
+          "pubTypeConfidence": "low"
+        }
+      ],
+      "filteredCount": 0,
+      "rerankMode": "single"
+    },
+    "citation-cascade-citedbycount-only": {
+      "description": "Only plain citedByCount present, nothing else - sixth (last) fallback branch.",
+      "order": [
+        {
+          "pmid": "",
+          "doi": "10.1/citedbycount-only",
+          "title": "CitedByCount-only record",
+          "combinedScore": 86.0794,
+          "bestRank": 1,
+          "sourceCount": 1,
+          "pubTypeTier": "research_article",
+          "pubTypeConfidence": "low"
+        }
+      ],
+      "filteredCount": 0,
+      "rerankMode": "single"
+    },
+    "citation-cascade-none": {
+      "description": "No citation signal present at all - multiplier must stay neutral (1.0).",
+      "order": [
+        {
+          "pmid": "",
+          "doi": "10.1/no-signal",
+          "title": "No-signal record",
+          "combinedScore": 81.0348,
+          "bestRank": 1,
+          "sourceCount": 1,
+          "pubTypeTier": "research_article",
+          "pubTypeConfidence": "low"
+        }
+      ],
+      "filteredCount": 0,
+      "rerankMode": "single"
+    },
+    "retracted-filter": {
+      "description": "Retracted record - must be dropped entirely when retractionAction=filter, or penalized when retractionAction=penalty.",
+      "order": [
+        {
+          "pmid": "4000002",
+          "doi": "",
+          "title": "Clean study",
+          "combinedScore": 86.7273,
+          "bestRank": 2,
+          "sourceCount": 1,
+          "pubTypeTier": "research_article",
+          "pubTypeConfidence": "medium"
+        }
+      ],
+      "filteredCount": 1,
+      "rerankMode": "single"
+    },
+    "missing-metadata-quality": {
+      "description": "Records missing abstract/author/year - must trigger dataQualityMultiplier downgrades, not be dropped.",
+      "order": [
+        {
+          "pmid": "",
+          "doi": "10.1/missing-everything",
+          "title": "Sparse record",
+          "combinedScore": 70.3062,
+          "bestRank": 1,
+          "sourceCount": 1,
+          "pubTypeTier": "research_article",
+          "pubTypeConfidence": "low"
+        },
+        {
+          "pmid": "",
+          "doi": "10.1/complete-record",
+          "title": "Complete record",
+          "combinedScore": 93.5612,
+          "bestRank": 2,
+          "sourceCount": 1,
+          "pubTypeTier": "research_article",
+          "pubTypeConfidence": "low"
+        }
+      ],
+      "filteredCount": 0,
+      "rerankMode": "single"
+    },
+    "titleless-hard-drop": {
+      "description": "Candidate with empty title must be hard-dropped before ranking, regardless of other signals.",
+      "order": [
+        {
+          "pmid": "5000002",
+          "doi": "",
+          "title": "Valid titled record",
+          "combinedScore": 86.7273,
+          "bestRank": 2,
+          "sourceCount": 1,
+          "pubTypeTier": "research_article",
+          "pubTypeConfidence": "medium"
+        }
+      ],
+      "filteredCount": 0,
+      "rerankMode": "single"
+    },
+    "classification-tiers": {
+      "description": "One candidate per major classification tier, to verify pubTypeTierBonus end-to-end.",
+      "order": [
+        {
+          "pmid": "6000001",
+          "doi": "",
+          "title": "WHO Guidelines for Diabetes Management",
+          "combinedScore": 120.5059,
+          "bestRank": 1,
+          "sourceCount": 1,
+          "pubTypeTier": "guideline_verified",
+          "pubTypeConfidence": "high"
+        },
+        {
+          "pmid": "6000002",
+          "doi": "",
+          "title": "A systematic review of insulin therapy",
+          "combinedScore": 115.1561,
+          "bestRank": 2,
+          "sourceCount": 1,
+          "pubTypeTier": "systematic_review_or_meta",
+          "pubTypeConfidence": "high"
+        },
+        {
+          "pmid": "6000003",
+          "doi": "",
+          "title": "Randomized controlled trial of drug X",
+          "combinedScore": 105.7859,
+          "bestRank": 3,
+          "sourceCount": 1,
+          "pubTypeTier": "randomized_controlled_trial",
+          "pubTypeConfidence": "high"
+        },
+        {
+          "pmid": "6000005",
+          "doi": "",
+          "title": "Standard journal article about topic Y",
+          "combinedScore": 83.0994,
+          "bestRank": 5,
+          "sourceCount": 1,
+          "pubTypeTier": "research_article",
+          "pubTypeConfidence": "high"
+        }
+      ],
+      "filteredCount": 0,
+      "rerankMode": "single"
+    },
+    "authority-signals": {
+      "description": "Author h-index and journal mean-citedness present - exercises authorityMultiplier (only active when authorityClamp is non-neutral in config).",
+      "order": [
+        {
+          "pmid": "",
+          "doi": "10.1/high-authority",
+          "title": "High authority record",
+          "combinedScore": 77.3369,
+          "bestRank": 1,
+          "sourceCount": 1,
+          "pubTypeTier": "research_article",
+          "pubTypeConfidence": "low"
+        }
+      ],
+      "filteredCount": 0,
+      "rerankMode": "single"
+    },
+    "tie-breaker": {
+      "description": "Two candidates from the same source with identical rank input rank but different upstream scores - exercises scoreTieBreaker normalization.",
+      "order": [
+        {
+          "pmid": "",
+          "doi": "10.1/tie-a",
+          "title": "Tie A",
+          "combinedScore": 73.502,
+          "bestRank": 1,
+          "sourceCount": 1,
+          "pubTypeTier": "research_article",
+          "pubTypeConfidence": "low"
+        },
+        {
+          "pmid": "",
+          "doi": "10.1/tie-b",
+          "title": "Tie B",
+          "combinedScore": 73.502,
+          "bestRank": 1,
+          "sourceCount": 1,
+          "pubTypeTier": "research_article",
+          "pubTypeConfidence": "low"
+        }
+      ],
+      "filteredCount": 0,
+      "rerankMode": "single"
+    }
+  }
+}

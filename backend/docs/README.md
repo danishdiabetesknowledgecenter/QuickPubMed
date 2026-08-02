@@ -21,6 +21,7 @@ Denne mappe er den kanoniske web-indgang (`/backend`) til server-endpoints.
 - `backend/docs/public-search-openapi.yaml`: formel OpenAPI-spec for det offentlige search API.
 - `backend/docs/public-search-security.md`: auth, CORS, rate limits, audit og driftsregler for public API.
 - `backend/docs/public-search-parity.md`: principper og teststrategi for rangering/paritet mellem web og API, inkl. hybride kvalitetssignaler.
+- `backend/docs/external-apis/`: rå OpenAPI-referencespecifikationer for tredjeparts-API'er (Elicit, OpenAlex, Semantic Scholar), hentet fra udbyderne. Ikke det samme som `public-search-openapi.yaml`, som er vores egen offentlige API-kontrakt.
 
 ### Rerank og enrichment
 

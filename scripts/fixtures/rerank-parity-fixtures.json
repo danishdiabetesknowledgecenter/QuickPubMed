@@ -1,0 +1,287 @@
+{
+  "_comment": "Golden fixture set for JS-vs-PHP rerank/classifier/rule-engine parity testing (Phase 0-4 of the unified-search-engine plan). Each scenario is a sourceResults array matching the shape rerankSemanticCandidates() expects. Candidates deliberately carry simulated enrichment fields (rcr, nihPercentile, authorityAuthors, authorityJournal) so the citation-impact and authority code paths are actually exercised, not just the bare RRF core.",
+  "scenarios": [
+    {
+      "id": "single-source-basic",
+      "description": "Single source, no overlap, pure rank-order via RRF core.",
+      "sourceResults": [
+        {
+          "source": "pubmed",
+          "candidates": [
+            { "source": "pubmed", "rank": 1, "pmid": "1000001", "title": "Record A", "score": 0.95 },
+            { "source": "pubmed", "rank": 2, "pmid": "1000002", "title": "Record B", "score": 0.90 },
+            { "source": "pubmed", "rank": 3, "pmid": "1000003", "title": "Record C", "score": 0.85 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "multi-source-overlap",
+      "description": "Same PMID found by two sources; must receive overlap bonus and merged rank.",
+      "sourceResults": [
+        {
+          "source": "pubmed",
+          "candidates": [
+            { "source": "pubmed", "rank": 1, "pmid": "2000001", "title": "Paper X" },
+            { "source": "pubmed", "rank": 2, "pmid": "2000002", "title": "Paper Y" },
+            { "source": "pubmed", "rank": 3, "pmid": "2000003", "title": "Paper Z" }
+          ]
+        },
+        {
+          "source": "openAlex",
+          "candidates": [
+            {
+              "source": "openAlex",
+              "rank": 1,
+              "pmid": "2000002",
+              "doi": "10.1/xy",
+              "title": "Paper Y",
+              "score": 45.2,
+              "metadata": {
+                "publicationYear": "2024",
+                "workType": "article",
+                "fwci": 1.4,
+                "citedByCount": 42,
+                "isRetracted": false,
+                "isOpenAccess": true,
+                "primaryTopicDisplayName": "Cardiology",
+                "authorNames": ["Jane Doe", "John Smith"],
+                "journalSourceId": "S123"
+              }
+            },
+            {
+              "source": "openAlex",
+              "rank": 2,
+              "doi": "10.1/newdoi",
+              "title": "Paper W (OpenAlex-only)",
+              "score": 30.0,
+              "metadata": { "publicationYear": "2023", "workType": "article" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "citation-cascade-rcr",
+      "description": "Candidate with RCR set (iCite) - top of the citation-impact fallback cascade.",
+      "sourceResults": [
+        {
+          "source": "pubmed",
+          "candidates": [
+            {
+              "source": "pubmed",
+              "rank": 1,
+              "pmid": "3000001",
+              "title": "Highly cited RCT",
+              "metadata": { "icite": { "relativeCitationRatio": 3.2, "nihPercentile": 95, "isClinical": true } }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "citation-cascade-nihpercentile-only",
+      "description": "Only nihPercentile present, no RCR - second fallback branch.",
+      "sourceResults": [
+        {
+          "source": "pubmed",
+          "candidates": [
+            {
+              "source": "pubmed",
+              "rank": 1,
+              "pmid": "3000002",
+              "title": "Percentile-only record",
+              "metadata": { "icite": { "nihPercentile": 80 } }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "citation-cascade-fwci-only",
+      "description": "Only FWCI present (OpenAlex) - third fallback branch.",
+      "sourceResults": [
+        {
+          "source": "openAlex",
+          "candidates": [
+            {
+              "source": "openAlex",
+              "rank": 1,
+              "doi": "10.1/fwci-only",
+              "title": "FWCI-only record",
+              "metadata": { "fwci": 2.1, "publicationYear": "2022" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "citation-cascade-fieldnorm-only",
+      "description": "Only citedByCount + fieldCitationRate present - fourth fallback branch.",
+      "sourceResults": [
+        {
+          "source": "openAlex",
+          "candidates": [
+            {
+              "source": "openAlex",
+              "rank": 1,
+              "doi": "10.1/fieldnorm-only",
+              "title": "Field-normalized-only record",
+              "metadata": { "citedByCount": 50, "icite": { "fieldCitationRate": 10 }, "publicationYear": "2021" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "citation-cascade-influential-only",
+      "description": "Only influentialCitationCount present (S2) - fifth fallback branch.",
+      "sourceResults": [
+        {
+          "source": "semanticScholar",
+          "candidates": [
+            {
+              "source": "semanticScholar",
+              "rank": 1,
+              "doi": "10.1/influential-only",
+              "title": "Influential-only record",
+              "metadata": { "influentialCitationCount": 12, "publicationYear": "2020" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "citation-cascade-citedbycount-only",
+      "description": "Only plain citedByCount present, nothing else - sixth (last) fallback branch.",
+      "sourceResults": [
+        {
+          "source": "elicit",
+          "candidates": [
+            {
+              "source": "elicit",
+              "rank": 1,
+              "doi": "10.1/citedbycount-only",
+              "title": "CitedByCount-only record",
+              "metadata": { "citedByCount": 5, "publicationYear": "2019" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "citation-cascade-none",
+      "description": "No citation signal present at all - multiplier must stay neutral (1.0).",
+      "sourceResults": [
+        {
+          "source": "elicit",
+          "candidates": [
+            { "source": "elicit", "rank": 1, "doi": "10.1/no-signal", "title": "No-signal record", "metadata": { "publicationYear": "2019" } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "retracted-filter",
+      "description": "Retracted record - must be dropped entirely when retractionAction=filter, or penalized when retractionAction=penalty.",
+      "sourceResults": [
+        {
+          "source": "pubmed",
+          "candidates": [
+            { "source": "pubmed", "rank": 1, "pmid": "4000001", "title": "Retracted study", "metadata": { "isRetracted": true } },
+            { "source": "pubmed", "rank": 2, "pmid": "4000002", "title": "Clean study", "metadata": { "isRetracted": false } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "missing-metadata-quality",
+      "description": "Records missing abstract/author/year - must trigger dataQualityMultiplier downgrades, not be dropped.",
+      "sourceResults": [
+        {
+          "source": "openAlex",
+          "candidates": [
+            {
+              "source": "openAlex",
+              "rank": 1,
+              "doi": "10.1/missing-everything",
+              "title": "Sparse record",
+              "metadata": {}
+            },
+            {
+              "source": "openAlex",
+              "rank": 2,
+              "doi": "10.1/complete-record",
+              "title": "Complete record",
+              "metadata": {
+                "publicationYear": "2023",
+                "authorNames": ["Ann Author"],
+                "abstract": "This is a sufficiently long abstract that exceeds the short-abstract threshold used for data quality scoring in the rerank engine, covering methods and results in reasonable depth to avoid any penalty."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "titleless-hard-drop",
+      "description": "Candidate with empty title must be hard-dropped before ranking, regardless of other signals.",
+      "sourceResults": [
+        {
+          "source": "pubmed",
+          "candidates": [
+            { "source": "pubmed", "rank": 1, "pmid": "5000001", "title": "" },
+            { "source": "pubmed", "rank": 2, "pmid": "5000002", "title": "Valid titled record" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "classification-tiers",
+      "description": "One candidate per major classification tier, to verify pubTypeTierBonus end-to-end.",
+      "sourceResults": [
+        {
+          "source": "pubmed",
+          "candidates": [
+            { "source": "pubmed", "rank": 1, "pmid": "6000001", "title": "WHO Guidelines for Diabetes Management", "metadata": { "publisher": "World Health Organization" } },
+            { "source": "pubmed", "rank": 2, "pmid": "6000002", "title": "A systematic review of insulin therapy", "metadata": { "publicationTypes": ["Systematic Review"] } },
+            { "source": "pubmed", "rank": 3, "pmid": "6000003", "title": "Randomized controlled trial of drug X", "metadata": { "publicationTypes": ["Randomized Controlled Trial"] } },
+            { "source": "pubmed", "rank": 4, "pmid": "6000004", "title": "Erratum: correction to previous article", "metadata": { "publicationTypes": ["Erratum"] } },
+            { "source": "pubmed", "rank": 5, "pmid": "6000005", "title": "Standard journal article about topic Y", "metadata": { "publicationTypes": ["Journal Article"] } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "authority-signals",
+      "description": "Author h-index and journal mean-citedness present - exercises authorityMultiplier (only active when authorityClamp is non-neutral in config).",
+      "sourceResults": [
+        {
+          "source": "openAlex",
+          "candidates": [
+            {
+              "source": "openAlex",
+              "rank": 1,
+              "doi": "10.1/high-authority",
+              "title": "High authority record",
+              "metadata": { "authorityAuthors": { "maxHIndex": 60 }, "authorityJournal": { "meanCitedness": 12.5, "hIndex": 200, "isInDoaj": true } }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tie-breaker",
+      "description": "Two candidates from the same source with identical rank input rank but different upstream scores - exercises scoreTieBreaker normalization.",
+      "sourceResults": [
+        {
+          "source": "semanticScholar",
+          "candidates": [
+            { "source": "semanticScholar", "rank": 1, "doi": "10.1/tie-a", "title": "Tie A", "score": 0.9 },
+            { "source": "semanticScholar", "rank": 1, "doi": "10.1/tie-b", "title": "Tie B", "score": 0.5 }
+          ]
+        }
+      ]
+    }
+  ]
+}

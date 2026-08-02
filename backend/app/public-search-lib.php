@@ -3,6 +3,8 @@
  * Shared public search API helpers.
  */
 
+require_once __DIR__ . '/semantic-quality-lib.php';
+
 if (!function_exists('qpmPublicSearchBoolValue')) {
     /**
      * @param mixed $value
@@ -1920,6 +1922,94 @@ if (!function_exists('qpmPublicSearchResolveAuthenticatedClient')) {
     }
 }
 
+if (!function_exists('qpmPublicSearchClientAllowedSources')) {
+    /**
+     * Resolves which of the four search sources (pubmed, semanticScholar,
+     * openAlex, elicit) a client profile is allowed to query.
+     *
+     * Deny-all-by-default (deliberate, per the unified-search-engine plan):
+     * a client config WITHOUT an 'allowed_sources' key — or with it set to an
+     * empty array — is allowed ZERO sources. Every client must explicitly opt
+     * in to the sources it needs. This closes a pre-existing gap where any
+     * API client with a valid key could request 'elicit' even though Elicit
+     * access on the website is gated behind QPM_ELICIT_UNLOCK. If you are
+     * upgrading an install with existing NEMPUBMED_API_CLIENTS entries, add
+     * 'allowed_sources' to each of them before deploying this change, or
+     * those clients will start receiving 403s.
+     *
+     * @param array<string,mixed> $client
+     * @return array<int,string>
+     */
+    function qpmPublicSearchClientAllowedSources(array $client): array
+    {
+        $allSources = ['pubmed', 'semanticScholar', 'openAlex', 'elicit'];
+        $configured = qpmPublicSearchNormalizeSources($client['allowed_sources'] ?? []);
+        return array_values(array_intersect($allSources, $configured));
+    }
+}
+
+if (!function_exists('qpmPublicSearchEnforceClientSourceAccess')) {
+    /**
+     * Filters $request['sources'] down to the sources the authenticated client
+     * is allowed to use (see qpmPublicSearchClientAllowedSources() for the
+     * deny-all-by-default rule). Two distinct outcomes, matching the plan's
+     * gate exactly:
+     * - Partial denial (client is allowed SOME of the requested sources):
+     *   the search proceeds with only the permitted sources, and a warning
+     *   naming the excluded source(s) is attached to $request['_sourceAccessWarnings']
+     *   for qpmPublicSearchRunSearch() to merge into the response's warnings array.
+     * - Full denial (client is allowed NONE of the requested sources,
+     *   including the "no allowed_sources configured at all" case): throws a
+     *   403 rather than returning a confusing empty-success response.
+     *
+     * @param array<string,mixed> $request
+     * @param array<string,mixed> $client
+     * @return array<string,mixed>
+     */
+    function qpmPublicSearchEnforceClientSourceAccess(array $request, array $client): array
+    {
+        $requestedSources = (array) ($request['sources'] ?? []);
+        $allowedSources = qpmPublicSearchClientAllowedSources($client);
+        $permittedSources = array_values(array_intersect($requestedSources, $allowedSources));
+        $deniedSources = array_values(array_diff($requestedSources, $allowedSources));
+
+        if (empty($permittedSources)) {
+            $reason = empty($allowedSources)
+                ? 'This API key has no allowed_sources configured; contact your administrator to enable specific sources.'
+                : 'This API key is not authorized for the requested source(s): ' . implode(', ', $deniedSources);
+            throw new RuntimeException($reason, 403);
+        }
+
+        $request['sources'] = $permittedSources;
+        if (!empty($deniedSources)) {
+            $request['_sourceAccessWarnings'] = [
+                'This API key is not authorized for source(s): ' . implode(', ', $deniedSources)
+                . '. Results were limited to: ' . implode(', ', $permittedSources) . '.',
+            ];
+        }
+        return $request;
+    }
+}
+
+if (!function_exists('qpmPublicSearchClientSourceApiKey')) {
+    /**
+     * Resolves a per-client API key override for one source (NLM, openAlex,
+     * semanticScholar, elicit), configured via NEMPUBMED_API_CLIENTS[clientId]['source_api_keys'][source].
+     * Falls back to '' (meaning: use the installation-wide default key) when
+     * the client has not configured an override for this source.
+     *
+     * @param array<string,mixed> $client
+     * @param string $sourceKey
+     * @return string
+     */
+    function qpmPublicSearchClientSourceApiKey(array $client, string $sourceKey): string
+    {
+        $sourceApiKeys = isset($client['source_api_keys']) && is_array($client['source_api_keys']) ? $client['source_api_keys'] : [];
+        $override = trim((string) ($sourceApiKeys[$sourceKey] ?? ''));
+        return $override;
+    }
+}
+
 if (!function_exists('qpmPublicSearchConsumeRateLimit')) {
     /**
      * @param array<string,mixed> $client
@@ -2578,7 +2668,32 @@ if (!function_exists('qpmPublicSearchNormalizeSourceCandidate')) {
                 'citedByCount' => isset($metadata['citedByCount']) && is_numeric($metadata['citedByCount'])
                     ? (int) $metadata['citedByCount']
                     : null,
+                // Semantic Scholar's citation-count field is named 'citationCount', not
+                // 'citedByCount'; the rerank engine reads metadata.citedByCount ??
+                // metadata.citationCount, so both keys need to survive normalization.
+                'citationCount' => isset($metadata['citationCount']) && is_numeric($metadata['citationCount'])
+                    ? (int) $metadata['citationCount']
+                    : null,
                 'authors' => qpmPublicSearchNormalizeSimpleList($metadata['authors'] ?? []),
+                'authorNames' => qpmPublicSearchNormalizeSimpleList($metadata['authorNames'] ?? []),
+                'publicationDate' => trim((string) ($metadata['publicationDate'] ?? '')),
+                'fwci' => isset($metadata['fwci']) && is_numeric($metadata['fwci']) ? (float) $metadata['fwci'] : null,
+                'isRetracted' => is_bool($metadata['isRetracted'] ?? null) ? $metadata['isRetracted'] : null,
+                'isOpenAccess' => is_bool($metadata['isOpenAccess'] ?? null) ? $metadata['isOpenAccess'] : null,
+                'primaryTopicId' => trim((string) ($metadata['primaryTopicId'] ?? '')),
+                'primaryTopicDisplayName' => trim((string) ($metadata['primaryTopicDisplayName'] ?? '')),
+                'language' => trim((string) ($metadata['language'] ?? '')),
+                'publisher' => trim((string) ($metadata['publisher'] ?? '')),
+                'journalSourceId' => trim((string) ($metadata['journalSourceId'] ?? '')),
+                'abstract' => trim((string) ($metadata['abstract'] ?? '')),
+                'hasAbstract' => ($metadata['hasAbstract'] ?? false) === true,
+                'abstractLength' => isset($metadata['abstractLength']) && is_numeric($metadata['abstractLength'])
+                    ? (int) $metadata['abstractLength']
+                    : null,
+                'influentialCitationCount' => isset($metadata['influentialCitationCount']) && is_numeric($metadata['influentialCitationCount'])
+                    ? (int) $metadata['influentialCitationCount']
+                    : null,
+                's2FieldsOfStudy' => qpmPublicSearchNormalizeSimpleList($metadata['s2FieldsOfStudy'] ?? []),
             ],
         ];
     }
@@ -3093,7 +3208,7 @@ if (!function_exists('qpmPublicSearchFetchSemanticScholarSourceResult')) {
      * @param array<string,mixed> $filters
      * @return array<string,mixed>
      */
-    function qpmPublicSearchFetchSemanticScholarSourceResult(string $query, array $filters): array
+    function qpmPublicSearchFetchSemanticScholarSourceResult(string $query, array $filters, string $apiKeyOverride = ''): array
     {
         $normalizedQuery = trim($query);
         $empty = qpmPublicSearchCreateEmptySourceResult('semanticScholar', $normalizedQuery);
@@ -3102,9 +3217,11 @@ if (!function_exists('qpmPublicSearchFetchSemanticScholarSourceResult')) {
         }
 
         $envApiKey = getenv('SEMANTIC_SCHOLAR_API_KEY');
-        $apiKey = is_string($envApiKey) && trim($envApiKey) !== ''
-            ? trim($envApiKey)
-            : (defined('SEMANTIC_SCHOLAR_API_KEY') ? trim((string) SEMANTIC_SCHOLAR_API_KEY) : '');
+        $apiKey = trim($apiKeyOverride) !== '' ? trim($apiKeyOverride) : (
+            is_string($envApiKey) && trim($envApiKey) !== ''
+                ? trim($envApiKey)
+                : (defined('SEMANTIC_SCHOLAR_API_KEY') ? trim((string) SEMANTIC_SCHOLAR_API_KEY) : '')
+        );
         if (
             $apiKey === '' ||
             stripos($apiKey, 'INSERT-YOUR') !== false ||
@@ -3154,7 +3271,9 @@ if (!function_exists('qpmPublicSearchFetchSemanticScholarSourceResult')) {
                 'query' => $normalizedQuery,
                 'limit' => $currentLimit,
                 'offset' => $offset,
-                'fields' => 'externalIds,title,abstract,venue,year,publicationTypes,citationCount,isOpenAccess,tldr',
+                // Aligned with backend/api/SemanticScholarSearch.php's fields list so the
+                // public multi-source API gets the same enrichment signals.
+                'fields' => 'externalIds,title,abstract,venue,year,publicationTypes,publicationDate,citationCount,influentialCitationCount,isOpenAccess,s2FieldsOfStudy,tldr',
             ];
             if ($publicationTypesParam !== '') {
                 $params['publicationTypes'] = $publicationTypesParam;
@@ -3199,8 +3318,24 @@ if (!function_exists('qpmPublicSearchFetchSemanticScholarSourceResult')) {
                     continue;
                 }
                 $citationCountRaw = $paper['citationCount'] ?? null;
+                $influentialCitationCountRaw = $paper['influentialCitationCount'] ?? null;
                 $isOpenAccessRaw = $paper['isOpenAccess'] ?? null;
                 $tldrText = trim((string) ($paper['tldr']['text'] ?? ''));
+                $s2Fields = [];
+                if (isset($paper['s2FieldsOfStudy']) && is_array($paper['s2FieldsOfStudy'])) {
+                    foreach ($paper['s2FieldsOfStudy'] as $fieldEntry) {
+                        if (is_array($fieldEntry) && isset($fieldEntry['category'])) {
+                            $categoryName = trim((string) $fieldEntry['category']);
+                        } elseif (is_string($fieldEntry)) {
+                            $categoryName = trim($fieldEntry);
+                        } else {
+                            $categoryName = '';
+                        }
+                        if ($categoryName !== '') {
+                            $s2Fields[$categoryName] = true;
+                        }
+                    }
+                }
                 $payload['candidates'][] = [
                     'source' => 'semanticScholar',
                     'rank' => $rank,
@@ -3210,10 +3345,13 @@ if (!function_exists('qpmPublicSearchFetchSemanticScholarSourceResult')) {
                     'abstract' => trim((string) ($paper['abstract'] ?? '')),
                     'metadata' => [
                         'publicationYear' => trim((string) ($paper['year'] ?? '')),
+                        'publicationDate' => trim((string) ($paper['publicationDate'] ?? '')),
                         'venue' => trim((string) ($paper['venue'] ?? '')),
                         'publicationTypes' => qpmPublicSearchNormalizeSimpleList($paper['publicationTypes'] ?? []),
                         'citationCount' => is_numeric($citationCountRaw) ? (int) $citationCountRaw : null,
+                        'influentialCitationCount' => is_numeric($influentialCitationCountRaw) ? (int) $influentialCitationCountRaw : null,
                         'isOpenAccess' => is_bool($isOpenAccessRaw) ? $isOpenAccessRaw : null,
+                        's2FieldsOfStudy' => array_keys($s2Fields),
                         'tldr' => $tldrText,
                     ],
                 ];
@@ -3245,6 +3383,27 @@ if (!function_exists('qpmPublicSearchFetchSemanticScholarSourceResult')) {
     }
 }
 
+if (!function_exists('qpmPublicSearchNormalizeOpenAlexPmid')) {
+    /**
+     * OpenAlex returns ids.pmid as a full URL (e.g. https://pubmed.ncbi.nlm.nih.gov/12345),
+     * unlike other sources which send a bare numeric string. The shared
+     * qpmPublicSearchNormalizePmid() requires an exact numeric match and would drop
+     * these, so OpenAlex needs its own digit-extracting normalizer (mirrors
+     * qpmNormalizeOpenAlexPmid() in backend/api/OpenAlexSearch.php).
+     *
+     * @param mixed $value
+     * @return string
+     */
+    function qpmPublicSearchNormalizeOpenAlexPmid($value): string
+    {
+        $raw = trim((string) $value);
+        if ($raw === '') {
+            return '';
+        }
+        return preg_match('/(\d+)/', $raw, $matches) === 1 ? $matches[1] : '';
+    }
+}
+
 if (!function_exists('qpmPublicSearchFetchOpenAlexSourceResult')) {
     /**
      * @param string $query
@@ -3252,7 +3411,7 @@ if (!function_exists('qpmPublicSearchFetchOpenAlexSourceResult')) {
      * @param string $domain
      * @return array<string,mixed>
      */
-    function qpmPublicSearchFetchOpenAlexSourceResult(string $query, array $filters, string $domain = ''): array
+    function qpmPublicSearchFetchOpenAlexSourceResult(string $query, array $filters, string $domain = '', string $apiKeyOverride = ''): array
     {
         $normalizedQuery = trim($query);
         $empty = qpmPublicSearchCreateEmptySourceResult('openAlex', $normalizedQuery);
@@ -3265,7 +3424,10 @@ if (!function_exists('qpmPublicSearchFetchOpenAlexSourceResult')) {
         $requestParams = [
             'search.semantic' => $normalizedQuery,
             'per_page' => $limit,
-            'select' => 'id,display_name,doi,ids,publication_year,relevance_score,type,primary_location',
+            // Aligned with backend/api/OpenAlexSearch.php's select list so the public
+            // multi-source API gets the same enrichment signals (citation impact,
+            // retraction, open access, topic, authorship, abstract) as the widget.
+            'select' => 'id,display_name,doi,ids,publication_year,publication_date,biblio,relevance_score,type,type_crossref,primary_location,fwci,cited_by_count,counts_by_year,is_retracted,open_access,primary_topic,authorships,abstract_inverted_index,language',
         ];
         $languageFilters = qpmPublicSearchDedupeStrings(
             array_map('qpmPublicSearchNormalizeLanguageCode', (array) ($filters['language'] ?? []))
@@ -3293,7 +3455,7 @@ if (!function_exists('qpmPublicSearchFetchOpenAlexSourceResult')) {
         if (!empty($filterParts)) {
             $requestParams['filter'] = implode(',', $filterParts);
         }
-        $apiKey = function_exists('qpmGetOpenAlexApiKey') ? qpmGetOpenAlexApiKey($domain) : '';
+        $apiKey = trim($apiKeyOverride) !== '' ? trim($apiKeyOverride) : (function_exists('qpmGetOpenAlexApiKey') ? qpmGetOpenAlexApiKey($domain) : '');
         if ($apiKey !== '') {
             $requestParams['api_key'] = $apiKey;
         }
@@ -3331,7 +3493,7 @@ if (!function_exists('qpmPublicSearchFetchOpenAlexSourceResult')) {
                 continue;
             }
             $ids = isset($work['ids']) && is_array($work['ids']) ? $work['ids'] : [];
-            $pmid = qpmPublicSearchNormalizePmid($work['pmid'] ?? ($ids['pmid'] ?? ''));
+            $pmid = qpmPublicSearchNormalizeOpenAlexPmid($work['pmid'] ?? ($ids['pmid'] ?? ''));
             $doi = qpmPublicSearchNormalizeDoi($work['doi'] ?? ($ids['doi'] ?? ''));
             if ($pmid === '' && $doi === '') {
                 continue;
@@ -3342,6 +3504,38 @@ if (!function_exists('qpmPublicSearchFetchOpenAlexSourceResult')) {
             $source = isset($primaryLocation['source']) && is_array($primaryLocation['source'])
                 ? $primaryLocation['source']
                 : [];
+
+            $pubTypesSet = [];
+            $workType = trim((string) ($work['type'] ?? ''));
+            if ($workType !== '') {
+                $pubTypesSet[$workType] = true;
+            }
+            $crossrefType = trim((string) ($work['type_crossref'] ?? ''));
+            if ($crossrefType !== '' && !isset($pubTypesSet[$crossrefType])) {
+                $pubTypesSet[$crossrefType] = true;
+            }
+
+            $authorNames = [];
+            if (isset($work['authorships']) && is_array($work['authorships'])) {
+                foreach ($work['authorships'] as $authorship) {
+                    if (!is_array($authorship)) {
+                        continue;
+                    }
+                    $author = isset($authorship['author']) && is_array($authorship['author'])
+                        ? $authorship['author']
+                        : [];
+                    $authorName = trim((string) ($author['display_name'] ?? ''));
+                    if ($authorName !== '') {
+                        $authorNames[] = $authorName;
+                    }
+                }
+            }
+
+            $openAccess = isset($work['open_access']) && is_array($work['open_access']) ? $work['open_access'] : [];
+            $primaryTopic = isset($work['primary_topic']) && is_array($work['primary_topic']) ? $work['primary_topic'] : [];
+            $biblio = isset($work['biblio']) && is_array($work['biblio']) ? $work['biblio'] : [];
+            $abstractText = qpmPublicSearchReconstructOpenAlexAbstract($work['abstract_inverted_index'] ?? null);
+
             $payload['candidates'][] = [
                 'source' => 'openAlex',
                 'rank' => $index + 1,
@@ -3352,10 +3546,29 @@ if (!function_exists('qpmPublicSearchFetchOpenAlexSourceResult')) {
                 'score' => is_numeric($work['relevance_score'] ?? null) ? (float) $work['relevance_score'] : null,
                 'metadata' => [
                     'publicationYear' => trim((string) ($work['publication_year'] ?? '')),
-                    'workType' => trim((string) ($work['type'] ?? '')),
+                    'publicationDate' => trim((string) ($work['publication_date'] ?? '')),
+                    'workType' => $workType,
+                    'publicationTypes' => array_keys($pubTypesSet),
                     'sourceType' => trim((string) ($source['type'] ?? '')),
                     'sourceDisplayName' => trim((string) ($source['display_name'] ?? '')),
                     'sourceAbbreviatedTitle' => trim((string) ($source['abbreviated_title'] ?? '')),
+                    'journalSourceId' => trim((string) ($source['id'] ?? '')),
+                    'publisher' => trim((string) ($source['host_organization_name'] ?? ($source['publisher'] ?? ''))),
+                    'language' => trim((string) ($work['language'] ?? '')),
+                    'fwci' => is_numeric($work['fwci'] ?? null) ? (float) $work['fwci'] : null,
+                    'citedByCount' => is_numeric($work['cited_by_count'] ?? null) ? (int) $work['cited_by_count'] : null,
+                    'isRetracted' => is_bool($work['is_retracted'] ?? null) ? $work['is_retracted'] : null,
+                    'isOpenAccess' => isset($openAccess['is_oa']) ? (bool) $openAccess['is_oa'] : null,
+                    'primaryTopicId' => trim((string) ($primaryTopic['id'] ?? '')),
+                    'primaryTopicDisplayName' => trim((string) ($primaryTopic['display_name'] ?? '')),
+                    'authorNames' => $authorNames,
+                    'volume' => trim((string) ($biblio['volume'] ?? '')),
+                    'issue' => trim((string) ($biblio['issue'] ?? '')),
+                    'abstract' => $abstractText,
+                    'hasAbstract' => $abstractText !== '',
+                    'abstractLength' => $abstractText !== ''
+                        ? (function_exists('mb_strlen') ? mb_strlen($abstractText) : strlen($abstractText))
+                        : 0,
                 ],
             ];
             if ($pmid !== '') {
@@ -3381,14 +3594,14 @@ if (!function_exists('qpmPublicSearchFetchElicitSourceResult')) {
      * @param array<string,mixed> $filters
      * @return array<string,mixed>
      */
-    function qpmPublicSearchFetchElicitSourceResult(string $query, array $filters): array
+    function qpmPublicSearchFetchElicitSourceResult(string $query, array $filters, string $apiKeyOverride = ''): array
     {
         $normalizedQuery = trim($query);
         $empty = qpmPublicSearchCreateEmptySourceResult('elicit', $normalizedQuery);
         if ($normalizedQuery === '') {
             return $empty;
         }
-        $apiKey = defined('ELICIT_API_KEY') ? trim((string) ELICIT_API_KEY) : '';
+        $apiKey = trim($apiKeyOverride) !== '' ? trim($apiKeyOverride) : (defined('ELICIT_API_KEY') ? trim((string) ELICIT_API_KEY) : '');
         if ($apiKey === '') {
             return qpmPublicSearchCreateEmptySourceResult('elicit', $normalizedQuery, 'ELICIT_API_KEY is not configured');
         }
@@ -3821,6 +4034,284 @@ if (!function_exists('qpmPublicSearchGetSourceSummary')) {
             ];
         }
         return $summary;
+    }
+}
+
+// =====================================================================
+// Enrichment lookups for the unified rerank engine (iCite + OpenAlex Authority)
+// =====================================================================
+//
+// These mirror backend/api/ICiteLookup.php and backend/api/OpenAlexAuthorityLookup.php
+// (used by the website widget) but are implemented as pure, requirable
+// functions instead of standalone HTTP endpoints, since those endpoint files
+// execute top-level request-handling/echo code on include and cannot safely
+// be require()'d from inside another request's execution. Only used by the
+// unified rerank path (QPM_UNIFIED_SEARCH_ENGINE_ENABLED); the legacy
+// RRF-only path does not call these and is unaffected.
+
+if (!function_exists('qpmPublicSearchNormalizeOpenAlexShortIdForEnrichment')) {
+    /**
+     * @param mixed $value
+     * @return string
+     */
+    function qpmPublicSearchNormalizeOpenAlexShortIdForEnrichment($value): string
+    {
+        $raw = trim((string) $value);
+        if ($raw === '') {
+            return '';
+        }
+        $raw = (string) preg_replace('~^https?://openalex\.org/~i', '', $raw);
+        $raw = ltrim($raw, '/');
+        $raw = strtoupper($raw);
+        return preg_match('/^[A-Z][0-9]+$/', $raw) === 1 ? $raw : '';
+    }
+}
+
+if (!function_exists('qpmPublicSearchNormalizeICiteRecordForEnrichment')) {
+    /**
+     * Mirrors qpmNormalizeICiteRecord() in backend/api/ICiteLookup.php.
+     *
+     * @param array<string,mixed> $record
+     * @return array<string,mixed>
+     */
+    function qpmPublicSearchNormalizeICiteRecordForEnrichment(array $record): array
+    {
+        $rcr = $record['relative_citation_ratio'] ?? null;
+        $nihPercentile = $record['nih_percentile'] ?? null;
+        $apt = $record['apt'] ?? null;
+        $fieldCitationRate = $record['field_citation_rate'] ?? null;
+        $citedByClin = $record['cited_by_clin'] ?? null;
+        if (is_array($citedByClin)) {
+            $citedByClin = count($citedByClin);
+        }
+        $isClinical = isset($record['is_clinical']) ? (bool) $record['is_clinical'] : null;
+
+        return [
+            'relativeCitationRatio' => is_numeric($rcr) ? (float) $rcr : null,
+            'nihPercentile' => is_numeric($nihPercentile) ? (float) $nihPercentile : null,
+            'isClinical' => $isClinical,
+            'citedByClin' => is_numeric($citedByClin) ? (int) $citedByClin : null,
+            'apt' => is_numeric($apt) ? (float) $apt : null,
+            'fieldCitationRate' => is_numeric($fieldCitationRate) ? (float) $fieldCitationRate : null,
+        ];
+    }
+}
+
+if (!function_exists('qpmPublicSearchFetchUnifiedEnrichmentSignals')) {
+    /**
+     * Fetches NIH iCite (citation-impact/clinical signals, PMID-keyed) and
+     * OpenAlex Authority (author h-index, journal mean-citedness, DOAJ status)
+     * data for every candidate across all source results, in ONE batch of
+     * concurrent HTTP requests (curl_multi via qpmHttpRequestMulti), so adding
+     * these two enrichment lookups does not add sequential latency on top of
+     * the existing source-fetch chain.
+     *
+     * @param array<int,array<string,mixed>> $sourceResults
+     * @param string $domain
+     * @return array{icite: array<string,array<string,mixed>>, authorityAuthors: array<string,array<string,mixed>>, authorityJournal: array<string,array<string,mixed>>}
+     */
+    function qpmPublicSearchFetchUnifiedEnrichmentSignals(array $sourceResults, string $domain = ''): array
+    {
+        $pmids = [];
+        $authorIds = [];
+        $journalIds = [];
+        foreach ($sourceResults as $sourceResult) {
+            foreach ((array) ($sourceResult['candidates'] ?? []) as $candidate) {
+                $pmid = qpmPublicSearchNormalizePmid($candidate['pmid'] ?? '');
+                if ($pmid !== '') {
+                    $pmids[$pmid] = true;
+                }
+                $metadata = isset($candidate['metadata']) && is_array($candidate['metadata']) ? $candidate['metadata'] : [];
+                foreach ((array) ($metadata['authorIds'] ?? []) as $rawAuthorId) {
+                    $shortId = qpmPublicSearchNormalizeOpenAlexShortIdForEnrichment($rawAuthorId);
+                    if ($shortId !== '') {
+                        $authorIds[$shortId] = true;
+                    }
+                }
+                $journalId = qpmPublicSearchNormalizeOpenAlexShortIdForEnrichment($metadata['journalSourceId'] ?? '');
+                if ($journalId !== '') {
+                    $journalIds[$journalId] = true;
+                }
+            }
+        }
+        $pmids = array_keys($pmids);
+        $authorIds = array_keys($authorIds);
+        $journalIds = array_keys($journalIds);
+
+        $result = ['icite' => [], 'authorityAuthors' => [], 'authorityJournal' => []];
+        if (empty($pmids) && empty($authorIds) && empty($journalIds)) {
+            return $result;
+        }
+
+        $namedRequests = [];
+
+        // iCite: batches of 500 PMIDs (matches QPM_ICITE_BATCH_LIMIT in ICiteLookup.php).
+        $iciteChunks = array_chunk($pmids, 500);
+        foreach ($iciteChunks as $chunkIndex => $chunk) {
+            qpmThrottleRequestRate('icite', 5);
+            $namedRequests['icite_' . $chunkIndex] = [
+                'url' => 'https://icite.od.nih.gov/api/pubs?' . http_build_query(['pmids' => implode(',', $chunk)]),
+                'options' => [
+                    'method' => 'GET',
+                    'timeout' => 20,
+                    'user_agent' => 'QuickPubMed/1.0',
+                    'headers' => ['Accept: application/json'],
+                ],
+            ];
+        }
+
+        // OpenAlex Authority: batches of 50 ids (matches QPM_OPENALEX_AUTHORITY_BATCH_LIMIT
+        // in OpenAlexAuthorityLookup.php; OpenAlex filter clauses get fragile above ~50 ids).
+        $openAlexApiKey = function_exists('qpmGetOpenAlexApiKey') ? qpmGetOpenAlexApiKey($domain) : '';
+        $openAlexEmail = function_exists('qpmGetOpenAlexEmail') ? qpmGetOpenAlexEmail($domain) : '';
+        $buildAuthorityUrl = static function (string $entityPath, array $ids) use ($openAlexApiKey, $openAlexEmail): string {
+            $params = [
+                'filter' => 'openalex:' . implode('|', $ids),
+                'per_page' => count($ids),
+                'select' => $entityPath === 'authors'
+                    ? 'id,display_name,summary_stats,works_count'
+                    : 'id,display_name,summary_stats,is_in_doaj,works_count',
+            ];
+            if ($openAlexApiKey !== '') {
+                $params['api_key'] = $openAlexApiKey;
+            }
+            if ($openAlexEmail !== '') {
+                $params['mailto'] = $openAlexEmail;
+            }
+            return 'https://api.openalex.org/' . $entityPath . '?' . http_build_query($params);
+        };
+        foreach (array_chunk($authorIds, 50) as $chunkIndex => $chunk) {
+            qpmThrottleRequestRate('openalex', 10);
+            $namedRequests['openalex_authors_' . $chunkIndex] = [
+                'url' => $buildAuthorityUrl('authors', $chunk),
+                'options' => ['method' => 'GET', 'timeout' => 30, 'user_agent' => 'QuickPubMed/1.0', 'headers' => ['Accept: application/json']],
+            ];
+        }
+        foreach (array_chunk($journalIds, 50) as $chunkIndex => $chunk) {
+            qpmThrottleRequestRate('openalex', 10);
+            $namedRequests['openalex_sources_' . $chunkIndex] = [
+                'url' => $buildAuthorityUrl('sources', $chunk),
+                'options' => ['method' => 'GET', 'timeout' => 30, 'user_agent' => 'QuickPubMed/1.0', 'headers' => ['Accept: application/json']],
+            ];
+        }
+
+        if (empty($namedRequests)) {
+            return $result;
+        }
+
+        $responses = qpmHttpRequestMulti($namedRequests);
+
+        foreach ($responses as $name => $response) {
+            if (!qpmPublicSearchIsHttpResultOk($response)) {
+                continue;
+            }
+            $decoded = json_decode((string) $response['body'], true);
+            if (!is_array($decoded)) {
+                continue;
+            }
+
+            if (strpos($name, 'icite_') === 0) {
+                foreach ((array) ($decoded['data'] ?? []) as $entry) {
+                    if (!is_array($entry)) {
+                        continue;
+                    }
+                    $pmid = isset($entry['pmid']) ? trim((string) $entry['pmid']) : '';
+                    if ($pmid === '' || !preg_match('/^[0-9]+$/', $pmid)) {
+                        continue;
+                    }
+                    $result['icite'][$pmid] = qpmPublicSearchNormalizeICiteRecordForEnrichment($entry);
+                }
+                continue;
+            }
+
+            $isAuthorBatch = strpos($name, 'openalex_authors_') === 0;
+            $isSourceBatch = strpos($name, 'openalex_sources_') === 0;
+            if (!$isAuthorBatch && !$isSourceBatch) {
+                continue;
+            }
+            foreach ((array) ($decoded['results'] ?? []) as $row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+                $shortId = qpmPublicSearchNormalizeOpenAlexShortIdForEnrichment($row['id'] ?? '');
+                if ($shortId === '') {
+                    continue;
+                }
+                $summary = isset($row['summary_stats']) && is_array($row['summary_stats']) ? $row['summary_stats'] : [];
+                if ($isAuthorBatch) {
+                    $hIndex = $summary['h_index'] ?? null;
+                    $result['authorityAuthors'][$shortId] = ['maxHIndex' => is_numeric($hIndex) ? (int) $hIndex : null];
+                } else {
+                    $hIndex = $summary['h_index'] ?? null;
+                    $meanCitedness = $summary['2yr_mean_citedness'] ?? null;
+                    $result['authorityJournal'][$shortId] = [
+                        'meanCitedness' => is_numeric($meanCitedness) ? (float) $meanCitedness : null,
+                        'hIndex' => is_numeric($hIndex) ? (int) $hIndex : null,
+                        'isInDoaj' => isset($row['is_in_doaj']) ? (bool) $row['is_in_doaj'] : null,
+                    ];
+                }
+            }
+        }
+
+        return $result;
+    }
+}
+
+if (!function_exists('qpmPublicSearchInjectEnrichmentIntoSourceResults')) {
+    /**
+     * Merges the enrichment maps from qpmPublicSearchFetchUnifiedEnrichmentSignals()
+     * into each candidate's metadata, using the exact key names
+     * qpmSemanticQualityMergeEnrichedFromCandidate() (semantic-quality-lib.php)
+     * reads: metadata.icite, metadata.authorityAuthors, metadata.authorityJournal.
+     *
+     * @param array<int,array<string,mixed>> $sourceResults
+     * @param array{icite: array<string,array<string,mixed>>, authorityAuthors: array<string,array<string,mixed>>, authorityJournal: array<string,array<string,mixed>>} $enrichment
+     * @return array<int,array<string,mixed>>
+     */
+    function qpmPublicSearchInjectEnrichmentIntoSourceResults(array $sourceResults, array $enrichment): array
+    {
+        if (empty($enrichment['icite']) && empty($enrichment['authorityAuthors']) && empty($enrichment['authorityJournal'])) {
+            return $sourceResults;
+        }
+
+        foreach ($sourceResults as $sourceIndex => $sourceResult) {
+            $candidates = (array) ($sourceResult['candidates'] ?? []);
+            foreach ($candidates as $candidateIndex => $candidate) {
+                $metadata = isset($candidate['metadata']) && is_array($candidate['metadata']) ? $candidate['metadata'] : [];
+
+                $pmid = qpmPublicSearchNormalizePmid($candidate['pmid'] ?? '');
+                if ($pmid !== '' && isset($enrichment['icite'][$pmid])) {
+                    $metadata['icite'] = $enrichment['icite'][$pmid];
+                }
+
+                $authorIds = (array) ($metadata['authorIds'] ?? []);
+                if (!empty($authorIds) && !empty($enrichment['authorityAuthors'])) {
+                    $maxHIndex = null;
+                    foreach ($authorIds as $rawAuthorId) {
+                        $shortId = qpmPublicSearchNormalizeOpenAlexShortIdForEnrichment($rawAuthorId);
+                        $record = $shortId !== '' ? ($enrichment['authorityAuthors'][$shortId] ?? null) : null;
+                        if (is_array($record) && is_int($record['maxHIndex'] ?? null)) {
+                            if ($maxHIndex === null || $record['maxHIndex'] > $maxHIndex) {
+                                $maxHIndex = $record['maxHIndex'];
+                            }
+                        }
+                    }
+                    if ($maxHIndex !== null) {
+                        $metadata['authorityAuthors'] = ['maxHIndex' => $maxHIndex];
+                    }
+                }
+
+                $journalId = qpmPublicSearchNormalizeOpenAlexShortIdForEnrichment($metadata['journalSourceId'] ?? '');
+                if ($journalId !== '' && isset($enrichment['authorityJournal'][$journalId])) {
+                    $metadata['authorityJournal'] = $enrichment['authorityJournal'][$journalId];
+                }
+
+                $candidates[$candidateIndex]['metadata'] = $metadata;
+            }
+            $sourceResults[$sourceIndex]['candidates'] = $candidates;
+        }
+
+        return $sourceResults;
     }
 }
 
@@ -4341,6 +4832,155 @@ if (!function_exists('qpmPublicSearchSortResultsByDate')) {
     }
 }
 
+if (!function_exists('qpmPublicSearchIsUnifiedSearchEngineEnabled')) {
+    /**
+     * Feature flag for the unified rerank engine (Phase 5 of the
+     * unified-search-engine plan). Defaults to false so installs that do not
+     * define QPM_UNIFIED_SEARCH_ENGINE_ENABLED keep the exact legacy RRF-only
+     * behavior. Flip to true only after the parity checklist has been run
+     * (see scripts/rerank-parity-harness.php + scripts/compare-rerank-parity.js).
+     *
+     * @return bool
+     */
+    function qpmPublicSearchIsUnifiedSearchEngineEnabled(): bool
+    {
+        return defined('QPM_UNIFIED_SEARCH_ENGINE_ENABLED') && QPM_UNIFIED_SEARCH_ENGINE_ENABLED === true;
+    }
+}
+
+if (!function_exists('qpmPublicSearchGetUnifiedRerankConfig')) {
+    /**
+     * Unlike qpmPublicSearchGetRerankConfig() (which deliberately only merges
+     * the base RRF fields because the legacy engine cannot use the hybrid
+     * quality-signal fields), this resolves the FULL QPM_RERANK_CONFIG +
+     * focus-profile overrides — the same config surface the website widget's
+     * resolveSemanticRerankConfig() (semanticReranking.js) reads — and hands
+     * it to the PHP port for identical behavior.
+     *
+     * @param string $focusProfileId
+     * @return array<string,mixed>
+     */
+    function qpmPublicSearchGetUnifiedRerankConfig(string $focusProfileId = ''): array
+    {
+        $baseConfig = defined('QPM_RERANK_CONFIG') && is_array(QPM_RERANK_CONFIG) ? QPM_RERANK_CONFIG : [];
+        $focusProfile = qpmPublicSearchGetFocusProfileConfig($focusProfileId);
+        $overrides = is_array($focusProfile['overrides'] ?? null) ? $focusProfile['overrides'] : [];
+        $merged = array_merge($baseConfig, $overrides);
+        foreach (['sourceWeights', 'pubTypeWeights', 'citationImpactSignalWeights', 'dataQualityPenalties', 'abstractMinLength', 'pubTypeTiers'] as $mapKey) {
+            if (is_array($baseConfig[$mapKey] ?? null) || is_array($overrides[$mapKey] ?? null)) {
+                $merged[$mapKey] = array_merge(
+                    is_array($baseConfig[$mapKey] ?? null) ? $baseConfig[$mapKey] : [],
+                    is_array($overrides[$mapKey] ?? null) ? $overrides[$mapKey] : []
+                );
+            }
+        }
+        return qpmSemanticQualityResolveRerankConfig($merged);
+    }
+}
+
+if (!function_exists('qpmPublicSearchAdaptUnifiedCandidateToLegacyShape')) {
+    /**
+     * Projects a qpmSemanticQualityRerankCandidates() candidate (rich 'enriched'
+     * object) back onto the flatter shape qpmPublicSearchBuildApiResultFromPubMed()
+     * / ...FromOpenAlex() already know how to read ('metadata.isOpenAccess',
+     * 'metadata.citationCount', 'source', 'sources'), so those two functions —
+     * and every function downstream of them — work unmodified regardless of
+     * which rerank engine produced the candidate list.
+     *
+     * @param array<string,mixed> $candidate
+     * @return array<string,mixed>
+     */
+    function qpmPublicSearchAdaptUnifiedCandidateToLegacyShape(array $candidate): array
+    {
+        $enriched = is_array($candidate['enriched'] ?? null) ? $candidate['enriched'] : [];
+        $sources = is_array($candidate['sources'] ?? null) ? array_values($candidate['sources']) : [];
+        $candidate['source'] = $sources[0] ?? '';
+        $candidate['sources'] = $sources;
+        $candidate['metadata'] = [
+            'isOpenAccess' => $enriched['isOpenAccess'] ?? null,
+            'citationCount' => $enriched['citedByCount'] ?? null,
+            'publicationYear' => $enriched['publicationYear'] ?? null,
+            'venue' => $enriched['venue'] ?? '',
+        ];
+        return $candidate;
+    }
+}
+
+if (!function_exists('qpmPublicSearchApplyUnifiedPostValidation')) {
+    /**
+     * Ported hook for semanticRuleEngine.js's DOI-only post-validation rules
+     * (Phase 4). Only applied to DOI-only candidates (no PMID), matching the
+     * JS function's own name/scope (explainCandidateActiveSemanticDoiOnlyRules):
+     * PMID-backed candidates already went through PubMed's own indexing/
+     * MeSH-based hard filters, so they do not need this extra text-signal
+     * safety net. Configure via QPM_SEMANTIC_POST_VALIDATION_RULES (defaults
+     * to an empty rule set = no-op, fully backward compatible).
+     *
+     * @param array<int,array<string,mixed>> $candidates
+     * @return array<int,array<string,mixed>>
+     */
+    function qpmPublicSearchApplyUnifiedPostValidation(array $candidates): array
+    {
+        $ruleState = defined('QPM_SEMANTIC_POST_VALIDATION_RULES') && is_array(QPM_SEMANTIC_POST_VALIDATION_RULES)
+            ? QPM_SEMANTIC_POST_VALIDATION_RULES
+            : [];
+        if (empty($ruleState['activeRules']) && empty($ruleState['ruleGroups'])) {
+            return $candidates;
+        }
+
+        return array_values(array_filter($candidates, static function (array $candidate) use ($ruleState): bool {
+            if (trim((string) ($candidate['pmid'] ?? '')) !== '') {
+                return true;
+            }
+            return qpmSemanticQualityCandidateMatchesPostValidation($candidate, $ruleState)['matches'];
+        }));
+    }
+}
+
+if (!function_exists('qpmPublicSearchRerankSemanticCandidatesUnified')) {
+    /**
+     * Unified rerank entry point (Phase 5): merges candidates from all
+     * sources, enriches with iCite + OpenAlex Authority (Phase 2), classifies
+     * publication type (Phase 1), scores with the full hybrid quality-signal
+     * formula (Phase 3), and applies DOI-only post-validation (Phase 4) —
+     * the same pipeline the website widget runs in JS, now available to the
+     * public API. Returns the same {candidates, diagnostics} shape
+     * qpmPublicSearchRerankSemanticCandidates() (legacy) returns, so the
+     * caller in qpmPublicSearchRunSearch() only needs a one-line feature-flag
+     * branch.
+     *
+     * @param array<int,array<string,mixed>> $sourceResults
+     * @param string $focusProfileId
+     * @param string $domain
+     * @param array<string,mixed> $options ['queryIntent' => ...]
+     * @return array{candidates: array<int,array<string,mixed>>, diagnostics: array<string,mixed>}
+     */
+    function qpmPublicSearchRerankSemanticCandidatesUnified(
+        array $sourceResults,
+        string $focusProfileId = '',
+        string $domain = '',
+        array $options = []
+    ): array {
+        $rerankConfig = qpmPublicSearchGetUnifiedRerankConfig($focusProfileId);
+
+        $enrichment = qpmPublicSearchFetchUnifiedEnrichmentSignals($sourceResults, $domain);
+        $enrichedSourceResults = qpmPublicSearchInjectEnrichmentIntoSourceResults($sourceResults, $enrichment);
+
+        $rerankResult = qpmSemanticQualityRerankCandidates($enrichedSourceResults, $rerankConfig, $options);
+
+        $candidates = array_map('qpmPublicSearchAdaptUnifiedCandidateToLegacyShape', $rerankResult['candidates']);
+        $candidates = qpmPublicSearchApplyUnifiedPostValidation($candidates);
+
+        return [
+            'candidates' => $candidates,
+            'diagnostics' => array_merge($rerankResult['diagnostics'], [
+                'engine' => 'unified',
+                'rerankConfig' => $rerankConfig,
+            ]),
+        ];
+    }
+}
+
 if (!function_exists('qpmPublicSearchGetSemanticLlmConfig')) {
     /**
      * @return array<string,mixed>
@@ -4475,6 +5115,38 @@ if (!function_exists('qpmPublicSearchMaybeApplySemanticLlmFinalRerank')) {
                 continue;
             }
             $pmid = qpmPublicSearchNormalizePmid($entry['pmid'] ?? '');
+
+            // Best-effort quality signals from whatever the current result-building
+            // path already resolved (see qpmPublicSearchBuildApiResultFromPubMed/
+            // ...FromOpenAlex). Mirrors the optional 'qualitySignals' object
+            // backend/api/SemanticFinalRerank.php accepts from the widget, so the
+            // LLM gets the same class of context in both flows. Fields the current
+            // path does not populate (fwci, rcr, nihPercentile, citedByClin,
+            // isClinical) are simply omitted, exactly like the widget does when a
+            // candidate lacks that signal.
+            $qualitySignals = [];
+            if (is_numeric($entry['citationCount'] ?? null)) {
+                $qualitySignals['citationCount'] = (int) $entry['citationCount'];
+            }
+            $entryYear = qpmSemanticQualityToFiniteInt($entry['year'] ?? null);
+            if ($entryYear !== null) {
+                $qualitySignals['year'] = $entryYear;
+            }
+            if (is_bool($entry['isRetracted'] ?? null)) {
+                $qualitySignals['isRetracted'] = $entry['isRetracted'];
+            }
+            if (is_bool($entry['isOpenAccess'] ?? null)) {
+                $qualitySignals['isOpenAccess'] = $entry['isOpenAccess'];
+            }
+            $venue = trim((string) ($entry['sourceLabel'] ?? ($entry['journal']['name'] ?? '')));
+            if ($venue !== '') {
+                $qualitySignals['venue'] = $venue;
+            }
+            $pubTypes = is_array($entry['publicationTypes'] ?? null) ? array_values(array_filter(array_map('trim', $entry['publicationTypes']))) : [];
+            if (!empty($pubTypes)) {
+                $qualitySignals['pubTypes'] = $pubTypes;
+            }
+
             $requestCandidates[] = [
                 'id' => $candidateId,
                 'title' => $title,
@@ -4482,6 +5154,7 @@ if (!function_exists('qpmPublicSearchMaybeApplySemanticLlmFinalRerank')) {
                 'publicationDate' => trim((string) ($entry['publicationDate'] ?? '')),
                 'source' => trim((string) ($entry['originSource'] ?? '')),
                 'sourceLabel' => trim((string) ($entry['sourceLabel'] ?? '')),
+                'qualitySignals' => $qualitySignals,
                 'entry' => $entry,
             ];
         }
@@ -4504,10 +5177,17 @@ if (!function_exists('qpmPublicSearchMaybeApplySemanticLlmFinalRerank')) {
         ];
         $focusProfileId = (string) ($request['focus'] ?? '');
         $focusCopy = qpmPublicSearchGetFocusProfileLlmCopy($focusProfileId);
+        // Kept in sync 1:1 with the system prompt lines in backend/api/SemanticFinalRerank.php
+        // (the widget's own final-rerank endpoint), so the public API and the
+        // website give the LLM the same reasoning instructions. If you edit one,
+        // edit both.
         $systemPromptLines = [
             'You rerank already validated scholarly search candidates.',
             'Never exclude, add, or invent items. Return a permutation of the provided candidate ids only.',
             'Prefer candidates that best match the query intent using title and abstract together.',
+            'Treat missing abstracts conservatively.',
+            'Do not try to override publication-type, date, or other hard filters because they have already been applied.',
+            'When signals such as FWCI, RCR, citation counts, retraction status, publication type or recency are provided on a candidate, you may use them to inform relevance, but never to override prior hard filters and never to exclude or add candidates. Prefer non-retracted records over retracted ones when all other evidence is comparable.',
         ];
         if ($focusCopy['id'] !== '') {
             $systemPromptLines[] = 'Respect the selected result focus when ordering otherwise comparable candidates: '
@@ -4533,7 +5213,7 @@ if (!function_exists('qpmPublicSearchMaybeApplySemanticLlmFinalRerank')) {
                         'resultFocus' => $focusCopy,
                         'task' => 'Return the candidate ids ordered from most to least relevant.',
                         'candidates' => array_map(static function ($candidate) {
-                            return [
+                            $payload = [
                                 'id' => $candidate['id'],
                                 'title' => $candidate['title'],
                                 'abstract' => $candidate['abstract'],
@@ -4541,6 +5221,10 @@ if (!function_exists('qpmPublicSearchMaybeApplySemanticLlmFinalRerank')) {
                                 'source' => $candidate['source'],
                                 'sourceLabel' => $candidate['sourceLabel'],
                             ];
+                            if (!empty($candidate['qualitySignals'])) {
+                                $payload['qualitySignals'] = $candidate['qualitySignals'];
+                            }
+                            return $payload;
                         }, $requestCandidates),
                     ]),
                 ],
@@ -4983,7 +5667,10 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
             'messageKey' => 'semanticSearchProgressPreparing',
         ]);
         $resolvedQueries = qpmPublicSearchBuildResolvedQueries($request);
-        $warnings = qpmPublicSearchDedupeStrings((array) ($resolvedQueries['warnings'] ?? []));
+        $warnings = qpmPublicSearchDedupeStrings(array_merge(
+            (array) ($resolvedQueries['warnings'] ?? []),
+            (array) ($request['_sourceAccessWarnings'] ?? [])
+        ));
         $diagnostics = [];
         if ($includeDiagnostics) {
             $diagnostics['cache'] = ['hit' => false];
@@ -5086,7 +5773,8 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
             ]);
             $sourceResults[] = qpmPublicSearchFetchSemanticScholarSourceResult(
                 (string) ($resolvedQueries['sourceQueryPlan']['semanticScholar']['query'] ?? ''),
-                (array) ($resolvedQueries['sourceQueryPlan']['semanticScholar']['filters'] ?? [])
+                (array) ($resolvedQueries['sourceQueryPlan']['semanticScholar']['filters'] ?? []),
+                (string) ($request['_clientSourceApiKeys']['semanticScholar'] ?? '')
             );
         }
         if (in_array('openAlex', (array) $request['sources'], true)) {
@@ -5100,7 +5788,8 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
             $sourceResults[] = qpmPublicSearchFetchOpenAlexSourceResult(
                 (string) ($resolvedQueries['sourceQueryPlan']['openAlex']['query'] ?? ''),
                 (array) ($resolvedQueries['sourceQueryPlan']['openAlex']['filters'] ?? []),
-                $domain
+                $domain,
+                (string) ($request['_clientSourceApiKeys']['openAlex'] ?? '')
             );
         }
         if (in_array('elicit', (array) $request['sources'], true)) {
@@ -5113,7 +5802,8 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
             ]);
             $sourceResults[] = qpmPublicSearchFetchElicitSourceResult(
                 (string) ($resolvedQueries['sourceQueryPlan']['elicit']['query'] ?? ''),
-                (array) ($resolvedQueries['sourceQueryPlan']['elicit']['filters'] ?? [])
+                (array) ($resolvedQueries['sourceQueryPlan']['elicit']['filters'] ?? []),
+                (string) ($request['_clientSourceApiKeys']['elicit'] ?? '')
             );
         }
 
@@ -5148,7 +5838,9 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
             'groupKey' => 'semanticSearchProcessGroupMatch',
             'messageKey' => 'semanticSearchProgressFinalizeCollect',
         ]);
-        $reranked = qpmPublicSearchRerankSemanticCandidates($sourceResults, (string) ($request['focus'] ?? ''));
+        $reranked = qpmPublicSearchIsUnifiedSearchEngineEnabled()
+            ? qpmPublicSearchRerankSemanticCandidatesUnified($sourceResults, (string) ($request['focus'] ?? ''), $domain)
+            : qpmPublicSearchRerankSemanticCandidates($sourceResults, (string) ($request['focus'] ?? ''));
         $orderedCandidates = (array) ($reranked['candidates'] ?? []);
         $diagnostics['rerank'] = $reranked['diagnostics'] ?? [];
 

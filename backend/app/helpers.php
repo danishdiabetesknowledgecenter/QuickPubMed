@@ -1023,6 +1023,115 @@ function qpmHttpRequest(string $url, array $options = []): array
 }
 
 /**
+ * Fire off several independent HTTP requests concurrently with curl_multi,
+ * instead of the sequential qpmHttpRequest() calls the rest of the codebase
+ * uses. Intended for cases with 2+ requests that do not depend on each
+ * other's results (e.g. iCite + OpenAlex Authority enrichment lookups),
+ * where sequential fetching would add pure, avoidable request-latency to the
+ * critical path.
+ *
+ * Falls back to sequential qpmHttpRequest() calls (same as before this
+ * function existed) when the cURL extension is unavailable, so behavior on
+ * installs without cURL is unaffected.
+ *
+ * @param array<string,array{url:string,options?:array<string,mixed>}> $namedRequests Keyed by an arbitrary caller-chosen name.
+ * @return array<string,array{ok:bool,status:int,body:string,content_type:string,error:string,response_headers:array<int,string>}> Same keys as $namedRequests.
+ */
+function qpmHttpRequestMulti(array $namedRequests): array
+{
+    if (empty($namedRequests)) {
+        return [];
+    }
+
+    if (!function_exists('curl_multi_init')) {
+        $results = [];
+        foreach ($namedRequests as $name => $spec) {
+            $results[$name] = qpmHttpRequest((string) ($spec['url'] ?? ''), (array) ($spec['options'] ?? []));
+        }
+        return $results;
+    }
+
+    $multiHandle = curl_multi_init();
+    $curlHandles = [];
+    $responseHeadersByName = [];
+
+    foreach ($namedRequests as $name => $spec) {
+        $url = (string) ($spec['url'] ?? '');
+        $options = (array) ($spec['options'] ?? []);
+        $method = strtoupper((string) ($options['method'] ?? 'GET'));
+        $headers = $options['headers'] ?? [];
+        $timeout = (int) ($options['timeout'] ?? 30);
+        $userAgent = (string) ($options['user_agent'] ?? 'QuickPubMed/1.0');
+        $body = (string) ($options['body'] ?? '');
+
+        $curlHeaders = [];
+        foreach ($headers as $headerName => $headerValue) {
+            $curlHeaders[] = is_int($headerName) ? (string) $headerValue : ($headerName . ': ' . $headerValue);
+        }
+        if ($userAgent !== '') {
+            $curlHeaders[] = 'User-Agent: ' . $userAgent;
+        }
+
+        $responseHeadersByName[$name] = [];
+        $ch = curl_init($url);
+        $curlOptions = [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_TIMEOUT => $timeout,
+            CURLOPT_CUSTOMREQUEST => $method,
+            CURLOPT_HTTPHEADER => $curlHeaders,
+            CURLOPT_POSTFIELDS => $body,
+            CURLOPT_HEADERFUNCTION => static function ($curlHandle, $line) use (&$responseHeadersByName, $name) {
+                $trimmed = trim((string) $line);
+                if ($trimmed !== '') {
+                    $responseHeadersByName[$name][] = $trimmed;
+                }
+                return strlen((string) $line);
+            },
+        ];
+        if (defined('CURLSSLOPT_NATIVE_CA')) {
+            $curlOptions[CURLOPT_SSL_OPTIONS] = CURLSSLOPT_NATIVE_CA;
+        }
+        if (function_exists('qpmIsLocalBackendRequest') && qpmIsLocalBackendRequest()) {
+            $curlOptions[CURLOPT_PROXY] = '';
+        }
+        curl_setopt_array($ch, $curlOptions);
+        curl_multi_add_handle($multiHandle, $ch);
+        $curlHandles[$name] = $ch;
+    }
+
+    $running = null;
+    do {
+        $status = curl_multi_exec($multiHandle, $running);
+        if ($running > 0) {
+            curl_multi_select($multiHandle, 1.0);
+        }
+    } while ($running > 0 && $status === CURLM_OK);
+
+    $results = [];
+    foreach ($curlHandles as $name => $ch) {
+        $responseBody = curl_multi_getcontent($ch);
+        $httpStatus = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $contentType = (string) (curl_getinfo($ch, CURLINFO_CONTENT_TYPE) ?? '');
+        $error = curl_error($ch);
+        curl_multi_remove_handle($multiHandle, $ch);
+        curl_close($ch);
+
+        $results[$name] = [
+            'ok' => $error === '' && $httpStatus > 0,
+            'status' => $httpStatus,
+            'body' => (string) ($responseBody ?? ''),
+            'content_type' => $contentType,
+            'error' => $error,
+            'response_headers' => $responseHeadersByName[$name] ?? [],
+        ];
+    }
+    curl_multi_close($multiHandle);
+
+    return $results;
+}
+
+/**
  * Convert raw response headers to a lower-cased map.
  *
  * @param array<int,string> $headers

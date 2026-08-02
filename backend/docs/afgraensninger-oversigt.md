@@ -56,40 +56,41 @@ Kolonnerne:
 | **L010040** | **Guidelines** (M2-udvidet) | `"Guideline"[pt]` | — | — | — | `rule=guideline` matcher på `publicationType ⊇ {guideline, practice guideline}` **ELLER** `pubTypeTier ∈ {guideline_verified, guideline_candidate}` — NY |
 | L010050 | Andre reviews | `"Review"[pt] NOT "Systematic Review"[pt]` | `type:review` | `publicationTypes=Review` | `typeTags=Review` | `rule=otherReview` |
 | **L020** | **Studietype** (gruppe) | | | | | |
-| L020010 | RCT | `randomized controlled trial[pt]` | `type:article` + evt. post-val | `publicationTypes=JournalArticle` | `typeTags=RCT` | `rule=rct`, matcher titel/abstract + `publicationType` |
-| L020020 | Klinisk studie | `"Clinical Trial"[pt]` | `type:article` | `publicationTypes=ClinicalTrial` | — | `rule=clinicalTrial` |
-| L020030 | Kohortestudie | `"Cohort Studies"[mh]` | — | — | — | `rule=cohort` (text-signaler) |
-| L020040 | Case-control | `"Case-Control Studies"[mh]` | — | — | — | `rule=caseControl` |
-| L020050 | Tværsnit | `"Cross-Sectional Studies"[mh]` | — | — | — | `rule=crossSectional` |
-| L020060 | Kvalitative studier | `"Qualitative Research"[mh]` | — | — | — | `rule=qualitative` |
+| L020010 | Case-kontrol-studier | `"Case-Control Studies"[mh] OR case-control[ti]` | — | — | — | Kun PubMed (ingen `semanticConfig`) |
+| L020020 | Incidens- og prævalensstudier | `"Incidence"[mh] OR "Prevalence"[mh] OR prevalence[ti] OR incidence[ti]` | — | — | — | Kun `semanticConfig.sourceContext` (ingen hardFilters/postValidation) |
+| L020030 | Kohortestudier | `"Cohort Studies"[mh] OR cohort[ti]` | — | — | — | Kun PubMed (ingen `semanticConfig`) |
+| L020040 | Kvalitative studier | `"Qualitative Research"[mh] OR qualitative[ti]` | — | — | — | Kun PubMed (ingen `semanticConfig`) |
+| L020050 | Randomiserede, kontrollerede forsøg (RCT) | `"Randomized Controlled Trial"[pt] OR randomi*[ti]` | — | — | `typeTags=RCT` | `hardFilters.studyDesign=[randomized controlled trial]` |
+| L020060 | Økonomiske studier | `"Costs and Cost Analysis"[mh] OR cost*[ti] OR economic*[ti]` | — | — | — | Kun PubMed (ingen `semanticConfig`) |
 | **L025** | **Kildeformat** (gruppe) | | | | | |
-| L025010 | Tidsskriftsartikel | `"Journal Article"[pt]` | `type:article` | `publicationTypes=JournalArticle` | — | `rule=journalArticle`, `hardFilters.sourceFormat=journal` |
-| L025020 | Bog / bogkapitel | `"Books"[pt] OR "Book Chapter"[pt]` | `type:book\|book-chapter` | `publicationTypes=Book,BookSection` | — | `rule=book`, evt. tier=`book_chapter` |
-| L025030 | Preprint | — (findes ikke i PubMed) | `primary_location.source.type:repository` | — | — | `rule=preprint`, tier=`preprint` |
+| L025010 | Videnskabelig artikel | — (findes ikke i PubMed, kun semantisk) | `workType=article` | `publicationTypes=JournalArticle` | — | `rule=source-format-journal`, `hardFilters.sourceFormat=[journal]`, matcher `candidateSourceType`/`openAlexSourceType=journal` |
+| L025020 | Konferencepublikation | — (findes ikke i PubMed, kun semantisk) | `sourceType=conference` | `publicationTypes=Conference` | — | `rule=source-format-conference`, `hardFilters.sourceFormat=[conference]`, matcher `candidateSourceType`/`openAlexSourceType=conference` |
+| L025030 | Preprint | — (findes ikke i PubMed) | `sourceType` afledt fra `hardFilters.sourceFormat=[preprint]` (fallback-mapping til `repository`) | `publicationTypes=Preprint` | — | `rule=source-format-preprint`, matcher `candidateSourceType`/`openAlexSourceType=repository` |
 | **L030** | **Sprog** (gruppe) | | | | | |
 | L030010 | Engelsk | `english[la]` | `language:en` | — | — | `hardFilters.language=[en]` |
 | L030020 | Dansk | `danish[la]` | `language:da` | — | — | `hardFilters.language=[da]` |
-| L030030 | Svensk/norsk | `swedish[la] OR norwegian[la]` | `language:sv\|no` | — | — | `hardFilters.language=[sv, no]` |
-| L030040 | Øvrige | `NOT english[la] NOT danish[la]...` | `language:!en,!da,...` | — | — | Negation på language |
+| L030030 | Norsk | `norwegian[la]` | `language:no` | — | — | `hardFilters.language=[norwegian]` |
+| L030040 | Svensk | `swedish[la]` | `language:sv` | — | — | `hardFilters.language=[swedish]` |
 | **L040** | **Geografi** (gruppe) | | | | | |
-| L040010 | Danmark | `"Denmark"[mh]` | — | — | — | `rule=geoDenmark` (text-match på titel/abstract/affiliation) |
-| L040020–L040110 | Norden, EU, USA, Afrika osv. | Tilsvarende `"<Land/Region>"[mh]` | — | — | — | Tilsvarende geo-regler |
+| L040010 | Vestlige lande | Se note om `L040` under tabellen — **ID/indhold ikke verificeret i denne gennemgang** | — | — | — | — |
+| L040020–L040110 | Europæiske lande, Nordiske lande (nested gruppe: Danmark, Finland, Færøerne, Grønland, Island, Norge, Sverige) | Se note om `L040` under tabellen | — | — | — | — |
 | **L050** | **Køn** (gruppe) | | | | | |
 | L050010 | Kvinder | `female[mh] NOT male[mh]` | — | — | — | `rule=female` |
 | L050020 | Mænd | `male[mh] NOT female[mh]` | — | — | — | `rule=male` |
 | **L060** | **Aldersgruppe** (gruppe) | | | | | |
-| L060010 | Nyfødt | `"Infant, Newborn"[mh]` | — | — | — | `hardFilters.ageGroup=[newborn]` |
-| L060020 | Spædbarn | `"Infant"[mh]` | — | — | — | `ageGroup=[infant]` |
-| L060030 | Barn (2-12) | `"Child"[mh]` | — | — | — | `ageGroup=[child]` |
-| L060040 | Teenager | `"Adolescent"[mh]` | — | — | — | `ageGroup=[adolescent]` |
-| L060050 | Voksen | `"Adult"[mh]` | — | — | — | `ageGroup=[adult]` |
-| L060060–L060090 | Middelaldr., ældre, 80+ osv. | Tilsvarende `[mh]` | — | — | — | Tilsvarende tags |
+| L060010 | Spædbørn (0-23 måneder) | Se note om `L060` under tabellen — **searchStrings ikke verificeret i denne gennemgang** | — | — | — | — |
+| L060020 | Mindre børn (2-5 år) | Se note om `L060` under tabellen | — | — | — | — |
+| L060030 | Større børn (6-12 år) | Se note om `L060` under tabellen | — | — | — | — |
+| L060040 | Unge (13-18 år) | Se note om `L060` under tabellen | — | — | — | — |
+| L060050 | Voksne (over 18 år) | Se note om `L060` under tabellen | — | — | — | — |
+| L060060 | Unge voksne (19-24 år) | Se note om `L060` under tabellen | — | — | — | — |
+| L060070 | Midaldrende (45-64 år) | Se note om `L060` under tabellen | — | — | — | — |
 | **L070** | **Publiceringsdato** (gruppe) | | | | | |
-| L070010 | Seneste 2 år | `y_2[Filter]` eller dato-range | `publication_year:>=<år-2>` | `year=<år-2>-<år>` | `minYear=<år-1>` (deterministisk fallback) | `hardFilters.publicationDateYears=[2]` |
+| L070010 | Seneste 1 år | `y_1[Filter]` | `publication_year:>=<år-1>` | `year=<år-1>-<år>` | `minYear=<år>` (deterministisk fallback: currentYear − 1 + 1) | `hardFilters.publicationDateYears=[1]` |
 | L070020 | Seneste 5 år | `y_5[Filter]` | `publication_year:>=<år-5>` | `year=<år-5>-<år>` | `minYear=<år-4>` (deterministisk fallback) | `publicationDateYears=[5]` |
 | L070030 | Seneste 10 år | `y_10[Filter]` | `publication_year:>=<år-10>` | `year=<år-10>-<år>` | `minYear=<år-9>` (deterministisk fallback) | `publicationDateYears=[10]` |
 | **L080** | **Tilhørsforhold** (gruppe) | | | | | |
-| L080010 | Danske forfattere | `Denmark[ad]` | — | — | — | `rule=affiliationDK` (text-match på `authorships[].institutions`) |
+| L080010 | Danske institutioner | `denmark[ad] OR danish[ad] OR danmark[ad] OR dansk[ad] OR copenhagen[ad] OR aarhus[ad] OR odense[ad] OR aalborg[ad] OR roskilde[ad] OR ...` | — | — | — | Kun PubMed (ingen `semanticConfig` fundet på dette niveau) |
 | L080020 | Specifikke institutioner (nested) | Institution-specifik `[ad]`-query | — | — | — | Institution-match på semantisk metadata |
 | L080020010–L080020080 | Region H, Rigshospitalet, AUH osv. | Institution-specifikke affiliation-queries | — | — | — | Samme som ovenfor |
 | **L090** | **Tilgængelighed** (gruppe) | | | | | |
@@ -97,11 +98,28 @@ Kolonnerne:
 | L090020 | Kun gratis tilgængelige artikler | `ffrft[Filter]` | — | — | `hasPdf=true` via `sourceFilters.elicit.hasPdf` | PubMed-only + Elicit-open-access |
 | **L095** | **Databaser** (kilde-toggle) | Ingen query-tilføjelse | Slår kilden til/fra | Slår kilden til/fra | Slår kilden til/fra | Styrer `sourceSelection.<kilde>` |
 | L095010 | PubMed | — | Ikke relevant | Ikke relevant | Ikke relevant | `sourceSelection.pubmed=true` |
-| L095020 | OpenAlex | — | Aktiverer OpenAlex-kald | — | — | `sourceSelection.openAlex=true` |
-| L095030 | Semantic Scholar | — | — | Aktiverer S2-kald | — | `sourceSelection.semanticScholar=true` |
+| L095020 | Semantic Scholar | — | — | Aktiverer S2-kald | — | `sourceSelection.semanticScholar=true` |
+| L095030 | OpenAlex | — | Aktiverer OpenAlex-kald | — | — | `sourceSelection.openAlex=true` |
 | L095040 | Elicit | — | — | — | Aktiverer Elicit-kald | `sourceSelection.elicit=true` |
 
 Bemærk: Celler med `—` betyder at kilden/parameteren ikke bruges for netop dette filter. En tom celle betyder enten at feltet ikke er relevant for kategorien, eller at der p.t. ikke er nogen mapping (i så fald falder filteret alene tilbage på `hardFilters` + post-validation).
+
+### Rettelser og kendte huller fra denne gennemgang
+
+Ved denne gennemgang (i forbindelse med Elicit v1→v2-migreringen) blev tabellen ovenfor sammenholdt direkte med `data/content/shared/limits.json`. Følgende var forkerte og er rettet i tabellen:
+
+- **L020 (Studietype)**: De tidligere ID'er/kategorier (`L020010=RCT`, `L020020=Klinisk studie`, `L020040=Case-control`, `L020050=Tværsnit`) matchede ikke `limits.json` og er rettet. "Klinisk studie" (Clinical Trial) og "Tværsnit" (Cross-Sectional) findes ikke længere som selvstændige afgrænsninger.
+- **L025 (Kildeformat)**: Gruppen hed tidligere "Tidsskriftsartikel" (med PubMed `[pt]`-søgestreng) og "Bog / bogkapitel" — ingen af de to findes i `limits.json` i dag. Gruppen er nu "Videnskabelig artikel" / "Konferencepublikation" / "Preprint", alle uden PubMed-søgestreng.
+- **L030 (Sprog)**: `L030030`/`L030040` var dokumenteret som en kombineret "Svensk/norsk" og en generisk "Øvrige"-kategori. Reelt er de to separate enkeltsprog: `L030030`=Norsk, `L030040`=Svensk. Der findes ingen generisk "øvrige sprog"-negation.
+- **L070010**: Var dokumenteret som "Seneste 2 år" — er reelt "Seneste 1 år" (`publicationDateYears=[1]`, `y_1[Filter]`).
+- **L080010**: Var dokumenteret som "Danske forfattere" — hedder reelt "Danske institutioner" og bruger en længere liste af by-/institutionsnavne i affiliation-feltet, ikke kun `Denmark[ad]`.
+- **L095 (Databaser)**: `L095020` og `L095030` var byttet om — `L095020` er Semantic Scholar, `L095030` er OpenAlex (ikke omvendt, som tidligere dokumenteret).
+- **Sektion 4 (`hardFilters`-oversigt)**: `publicationType`-rækken manglede Elicit `typeTags` som mål, selv om koden (`mapHardFiltersToElicitTypeTags` i `DropdownWrapper.vue`) allerede afleder `Review`/`Meta-Analysis`/`Systematic Review` herfra.
+
+**Ikke fuldt afsluttet i denne gennemgang** (kræver en separat, dybere gennemgang, da strukturen er mere kompleks end en simpel ID-rettelse):
+
+- **L040 (Geografi)**: Gruppen er omstruktureret til "Vestlige lande" (`L040010`), "Europæiske lande" (`L040020`) og en nestet "Nordiske lande"-undergruppe (`L040030`) med 7 lande som børn (`L040040`–`L040110`, inkl. Danmark som `L040050`). Der er ingen synlige USA- eller Afrika-afgrænsninger i den nuværende `limits.json`. Den nestede struktur passer ikke ind i tabellens flade format uden et redesign.
+- **L060 (Aldersgruppe)**: Navne og aldersgrænser er ændret (fx findes "Nyfødt" og "Spædbarn" ikke længere som separate kategorier). De konkrete PubMed `[mh]`-søgestrenge pr. trin er ikke verificeret i denne gennemgang.
 
 ## 3. API-parametre pr. database
 
@@ -156,7 +174,7 @@ Tilladte `source.type`-værdier: `journal, conference, ebook platform, other, re
 
 ### Semantic Scholar (Graph API)
 
-Kaldes fra `backend/api/SemanticScholarSearch.php` (endpoint `/graph/v1/paper/search/bulk`).
+Kaldes fra `backend/api/SemanticScholarSearch.php` (endpoint `/graph/v1/paper/search` — relevans-rangeret søgning, batch-hentet i sider af 100 op til den konfigurerede grænse. **Ikke** `/paper/search/bulk`, som ikke er relevans-rangeret og derfor ville skade RRF-baseret rerank).
 
 | API-parameter | Bruges til | Kildeværdi |
 |---|---|---|
@@ -224,7 +242,7 @@ Tilladte `typeTags`-værdier: `Review`, `Meta-Analysis`, `Systematic Review`, `R
 
 | `hardFilters`-felt | Eksempel-værdier | Primært kilde-mapping |
 |---|---|---|
-| `publicationType` | `["guideline", "practice guideline", "systematic review"]` | PubMed `[pt]`, S2 `publicationTypes`, OpenAlex `type` |
+| `publicationType` | `["guideline", "practice guideline", "systematic review"]` | PubMed `[pt]`, S2 `publicationTypes`, OpenAlex `type`, Elicit `typeTags` |
 | `studyDesign` | `["RCT", "cohort", "caseControl"]` | PubMed `[pt]/[mh]`, Elicit `typeTags` |
 | `ageGroup` | `["newborn", "infant", "child", "adolescent", "adult"]` | PubMed `[mh]`, post-validation |
 | `language` | `["en", "da", "sv", "no"]` | PubMed `[la]`, OpenAlex `language:` |
@@ -296,7 +314,7 @@ OpenAlex får kun `language` og `publication_year` som eksplicitte filtre — gu
 
 **Semantic Scholar-kald (hvis valgt):**
 ```
-GET /paper/search/bulk?query=<engelsk>&year=2016-2026&limit=100
+GET /paper/search?query=<engelsk>&year=2016-2026&limit=100
 ```
 
 **Elicit-kald (hvis valgt):**
