@@ -3819,6 +3819,123 @@ if (!function_exists('qpmPublicSearchFetchOpenAlexWorkByCandidate')) {
     }
 }
 
+if (!function_exists('qpmPublicSearchParseOpenAlexWorkLookupResponse')) {
+    /**
+     * Parses one qpmHttpRequest()/qpmHttpRequestMulti() result the same way
+     * qpmPublicSearchFetchOpenAlexWorkByCandidate() does, so both the single
+     * and the batched/parallel lookup paths interpret responses identically.
+     *
+     * @param array{ok:bool,status:int,body:string} $result
+     * @return ?array<string,mixed>
+     */
+    function qpmPublicSearchParseOpenAlexWorkLookupResponse(array $result): ?array
+    {
+        if (!qpmPublicSearchIsHttpResultOk($result)) {
+            return null;
+        }
+        $decoded = json_decode((string) $result['body'], true);
+        if (!is_array($decoded)) {
+            return null;
+        }
+        if (isset($decoded['results'][0]) && is_array($decoded['results'][0])) {
+            return $decoded['results'][0];
+        }
+        if (isset($decoded['id']) && is_string($decoded['id'])) {
+            return $decoded;
+        }
+        return null;
+    }
+}
+
+if (!function_exists('qpmPublicSearchFetchOpenAlexWorksByCandidatesParallel')) {
+    /**
+     * Batched/parallel counterpart to qpmPublicSearchFetchOpenAlexWorkByCandidate(),
+     * used when many DOI-only candidates need per-candidate OpenAlex hydration
+     * (qpmPublicSearchBuildAllowedCandidateKeys()). Each candidate still gets
+     * its own OpenAlex request (same URLs, same cache keys, same response
+     * parsing as the single-candidate function above — this only changes HOW
+     * the requests are dispatched, not what is requested or how responses are
+     * interpreted), but requests are fired concurrently via qpmHttpRequestMulti()
+     * in bounded waves instead of one blocking qpmHttpRequest() call per
+     * candidate. This is what makes hydrating e.g. 300 DOI-only candidates (a
+     * realistic count for a semanticScholar/elicit-only search with no PubMed
+     * results to supply PMIDs) take seconds instead of minutes.
+     *
+     * @param array<int,array{key:string,candidate:array<string,mixed>}> $entries
+     * @param string $domain
+     * @return array<string,?array<string,mixed>> Keyed by the same 'key' passed in.
+     */
+    function qpmPublicSearchFetchOpenAlexWorksByCandidatesParallel(array $entries, string $domain = ''): array
+    {
+        $results = [];
+        if (empty($entries)) {
+            return $results;
+        }
+
+        $cacheTtl = (int) (qpmPublicSearchGetConfig()['hydrationCacheTtlSeconds'] ?? 0);
+        $pending = [];
+        foreach ($entries as $entry) {
+            $key = (string) ($entry['key'] ?? '');
+            $candidate = (array) ($entry['candidate'] ?? []);
+            $url = qpmPublicSearchGetOpenAlexWorkLookupUrl($candidate, $domain);
+            if ($key === '' || $url === '') {
+                if ($key !== '') {
+                    $results[$key] = null;
+                }
+                continue;
+            }
+            $cacheKey = 'url:' . $url;
+            if ($cacheTtl > 0) {
+                $cacheEntry = qpmPublicSearchReadCacheValue('openalex-work', $cacheKey);
+                if (($cacheEntry['hit'] ?? false) === true && is_array($cacheEntry['value'] ?? null)) {
+                    $results[$key] = $cacheEntry['value'];
+                    continue;
+                }
+            }
+            $pending[] = ['key' => $key, 'url' => $url, 'cacheKey' => $cacheKey];
+        }
+
+        if (empty($pending)) {
+            return $results;
+        }
+
+        // Bounded concurrency per wave: fires enough requests at once to turn
+        // "N seconds sequential" into "a handful of seconds total", while
+        // staying a reasonable, well-behaved API citizen (and not opening an
+        // unbounded number of simultaneous cURL handles for very large result
+        // sets). One qpmThrottleRequestRate() call per wave (not per request)
+        // — pacing waves, not individual requests, is what makes concurrency
+        // actually take effect here.
+        $waveSize = 20;
+        foreach (array_chunk($pending, $waveSize) as $wave) {
+            qpmThrottleRequestRate('openalex', 10);
+            $namedRequests = [];
+            foreach ($wave as $item) {
+                $namedRequests[$item['key']] = [
+                    'url' => $item['url'],
+                    'options' => [
+                        'method' => 'GET',
+                        'timeout' => 30,
+                        'headers' => ['Accept: application/json'],
+                        'user_agent' => 'QuickPubMed/1.0',
+                    ],
+                ];
+            }
+            $responses = qpmHttpRequestMulti($namedRequests);
+            foreach ($wave as $item) {
+                $response = $responses[$item['key']] ?? null;
+                $work = is_array($response) ? qpmPublicSearchParseOpenAlexWorkLookupResponse($response) : null;
+                $results[$item['key']] = $work;
+                if ($work !== null && $cacheTtl > 0) {
+                    qpmPublicSearchWriteCacheValue('openalex-work', $item['cacheKey'], $work, $cacheTtl);
+                }
+            }
+        }
+
+        return $results;
+    }
+}
+
 if (!function_exists('qpmPublicSearchParsePublicationYear')) {
     /**
      * @param string $range
@@ -4578,20 +4695,16 @@ if (!function_exists('qpmPublicSearchBuildAllowedCandidateKeys')) {
         $hydratedByKey = [];
         $warnings = [];
 
-        // DOI-kandidater hydreres/valideres et-for-et mod OpenAlex, hvilket ved
-        // mange DOI-only-kandidater kan tage laengere tid. Der emittes derfor
-        // ét fremdrifts-event, foerste gang vi starter denne validering, saa
-        // en streaming-klient faar besked om, at vi er i gang - uden at
-        // spamme streamen med gentagne identiske events.
-        $doiCandidateCount = 0;
-        foreach ($orderedCandidates as $candidate) {
-            if (is_array($candidate) && qpmPublicSearchNormalizePmid($candidate['pmid'] ?? '') === '') {
-                $doiCandidateCount++;
-            }
-        }
-        $doiCandidateIndex = 0;
-        $hasEmittedDoiValidationProgress = false;
-
+        // First pass: resolve PMID candidates immediately (no network I/O —
+        // trust-set lookup only), and collect DOI-only candidates that need
+        // OpenAlex hydration for a second, batched/parallel pass below.
+        // DOI-only hydration used to happen one candidate at a time inside
+        // this same loop (one blocking qpmHttpRequest() call per candidate),
+        // which made searches with many DOI-only candidates (e.g. a
+        // semanticScholar/elicit-only query with no PubMed results to supply
+        // PMIDs) take minutes instead of seconds. See
+        // qpmPublicSearchFetchOpenAlexWorksByCandidatesParallel().
+        $doiEntries = [];
         foreach ($orderedCandidates as $candidate) {
             if (!is_array($candidate)) {
                 continue;
@@ -4610,28 +4723,32 @@ if (!function_exists('qpmPublicSearchBuildAllowedCandidateKeys')) {
                 continue;
             }
 
-            $doiCandidateIndex++;
-            if (!$hasEmittedDoiValidationProgress) {
-                $hasEmittedDoiValidationProgress = true;
-                qpmPublicSearchEmitProgress($progressCallback, 'finalizeValidateDoiFetch', '', [
-                    'stepId' => 'finalizeValidateDoiFetch',
-                    'groupId' => 'finalizeCollect',
-                    'groupKey' => 'semanticSearchProcessGroupMatch',
-                    'messageKey' => 'semanticSearchProgressFinalizeValidateDoiFetch',
-                    'total' => $doiCandidateCount,
-                ]);
-            }
+            $doiEntries[] = ['key' => $key, 'candidate' => $candidate, 'doi' => $doi];
+        }
 
-            $work = qpmPublicSearchFetchOpenAlexWorkByCandidate($candidate, $domain);
-            if (!is_array($work)) {
-                $warnings[] = 'OpenAlex hydration failed for DOI candidate ' . strtolower($doi);
-                continue;
+        if (!empty($doiEntries)) {
+            qpmPublicSearchEmitProgress($progressCallback, 'finalizeValidateDoiFetch', '', [
+                'stepId' => 'finalizeValidateDoiFetch',
+                'groupId' => 'finalizeCollect',
+                'groupKey' => 'semanticSearchProcessGroupMatch',
+                'messageKey' => 'semanticSearchProgressFinalizeValidateDoiFetch',
+                'total' => count($doiEntries),
+            ]);
+
+            $worksByKey = qpmPublicSearchFetchOpenAlexWorksByCandidatesParallel($doiEntries, $domain);
+            foreach ($doiEntries as $entry) {
+                $key = $entry['key'];
+                $work = $worksByKey[$key] ?? null;
+                if (!is_array($work)) {
+                    $warnings[] = 'OpenAlex hydration failed for DOI candidate ' . strtolower($entry['doi']);
+                    continue;
+                }
+                if (!qpmPublicSearchCandidateMatchesHydratedFilters($entry['candidate'], $work, $hardFilters)) {
+                    continue;
+                }
+                $allowedKeys[] = $key;
+                $hydratedByKey[$key] = $work;
             }
-            if (!qpmPublicSearchCandidateMatchesHydratedFilters($candidate, $work, $hardFilters)) {
-                continue;
-            }
-            $allowedKeys[] = $key;
-            $hydratedByKey[$key] = $work;
         }
 
         return [
@@ -4961,6 +5078,20 @@ if (!function_exists('qpmPublicSearchRerankSemanticCandidatesUnified')) {
         string $domain = '',
         array $options = []
     ): array {
+        // This pipeline (merge -> enrich -> classify -> score) builds a richer,
+        // deeper per-candidate structure (enriched signals, score breakdowns,
+        // source breakdowns) than the legacy RRF-only engine, across every
+        // candidate from every source (e.g. ~400 for semanticScholar alone).
+        // On installs with PHP's conservative 128M default memory_limit, this
+        // can legitimately exhaust available memory for large multi-source
+        // result sets. Same defensive pattern already used elsewhere in this
+        // codebase (e.g. backend/api/ICiteLookup.php's max_execution_time
+        // bump): raise the ceiling, fail silently (@) if the host has memory_limit
+        // locked to a fixed value, rather than let a fixable case crash.
+        @ini_set('memory_limit', '512M');
+        @ini_set('max_execution_time', '120');
+        @set_time_limit(120);
+
         $rerankConfig = qpmPublicSearchGetUnifiedRerankConfig($focusProfileId);
 
         $enrichment = qpmPublicSearchFetchUnifiedEnrichmentSignals($sourceResults, $domain);

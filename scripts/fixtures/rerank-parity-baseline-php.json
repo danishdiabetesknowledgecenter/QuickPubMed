@@ -1,5 +1,5 @@
 {
-    "generatedAt": "2026-07-26T11:39:21+00:00",
+    "generatedAt": "2026-08-02T22:28:19+00:00",
     "results": {
         "single-source-basic": {
             "description": "Single source, no overlap, pure rank-order via RRF core.",
