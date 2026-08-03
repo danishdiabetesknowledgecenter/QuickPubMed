@@ -1,0 +1,97 @@
+{
+    "capturedAt": "2026-08-03T23:02:13+00:00",
+    "engine": "php-unified",
+    "queries": [
+        {
+            "query": "diabetes type 2 behandling",
+            "resultOrder": [],
+            "elapsedSeconds": 15.15,
+            "notes": "ERROR: RuntimeException: NLM request failed: HTTP/2 stream 1 reset by server (error 0x2 INTERNAL_ERROR)"
+        },
+        {
+            "query": "systematic review statin therapy",
+            "resultOrder": [
+                "35285850",
+                "31015265",
+                "35508321",
+                "39567875",
+                "36965747",
+                "36847307",
+                "39521985",
+                "34237978",
+                "37129919",
+                "38773394"
+            ],
+            "elapsedSeconds": 47.49,
+            "notes": ""
+        },
+        {
+            "query": "randomized controlled trial hypertension",
+            "resultOrder": [
+                "30737889",
+                "31451361",
+                "36632924",
+                "6398983",
+                "1987008",
+                "25767290",
+                "15911739",
+                "28492286",
+                "37443261",
+                "37795644"
+            ],
+            "elapsedSeconds": 37.69,
+            "notes": ""
+        },
+        {
+            "query": "covid-19 vaccine effectiveness elderly",
+            "resultOrder": [
+                "34924220",
+                "35067909",
+                "35240940",
+                "36851092",
+                "36095316",
+                "37160453",
+                "34142647",
+                "39716131",
+                "33736921",
+                "10.1136/bmj.m4471"
+            ],
+            "elapsedSeconds": 55.96,
+            "notes": ""
+        },
+        {
+            "query": "cognitive behavioral therapy depression",
+            "resultOrder": [
+                "33471111",
+                "31004323",
+                "32055065",
+                "22370493",
+                "10.1093/acrefore/9780190236557.013.837",
+                "20635774",
+                "29704854",
+                "30321198",
+                "39242039",
+                "10.17759/cpse.2022110206"
+            ],
+            "elapsedSeconds": 39.21,
+            "notes": ""
+        },
+        {
+            "query": "concussion management guidelines",
+            "resultOrder": [
+                "31654620",
+                "30193284",
+                "35835532",
+                "35444018",
+                "27112592",
+                "31132020",
+                "24600668",
+                "9575257",
+                "16812967",
+                "41176759"
+            ],
+            "elapsedSeconds": 42.94,
+            "notes": ""
+        }
+    ]
+}

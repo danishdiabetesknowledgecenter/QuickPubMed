@@ -1,0 +1,108 @@
+{
+    "capturedAt": "2026-08-03T23:05:37+00:00",
+    "engine": "php-unified",
+    "queries": [
+        {
+            "query": "diabetes type 2 behandling",
+            "resultOrder": [
+                "38785209",
+                "34170647",
+                "37385275",
+                "33068776",
+                "32690918",
+                "39353925",
+                "32340373",
+                "31398884",
+                "27660695",
+                "25770115"
+            ],
+            "elapsedSeconds": 31.19,
+            "notes": ""
+        },
+        {
+            "query": "systematic review statin therapy",
+            "resultOrder": [
+                "35508321",
+                "35285850",
+                "35673949",
+                "39567875",
+                "39521985",
+                "36965747",
+                "39261803",
+                "34568488",
+                "40460728",
+                "40891266"
+            ],
+            "elapsedSeconds": 26.19,
+            "notes": ""
+        },
+        {
+            "query": "randomized controlled trial hypertension",
+            "resultOrder": [
+                "38113071",
+                "39034917",
+                "34654905",
+                "30015069",
+                "35221323",
+                "37795644",
+                "37650292",
+                "37443261",
+                "36845214",
+                "22571478"
+            ],
+            "elapsedSeconds": 26.87,
+            "notes": ""
+        },
+        {
+            "query": "covid-19 vaccine effectiveness elderly",
+            "resultOrder": [
+                "40395132",
+                "41290396",
+                "37854458",
+                "33956782",
+                "39716131",
+                "36936964",
+                "35240940",
+                "36932031",
+                "35335025",
+                "33736921"
+            ],
+            "elapsedSeconds": 34.06,
+            "notes": ""
+        },
+        {
+            "query": "cognitive behavioral therapy depression",
+            "resultOrder": [
+                "32055065",
+                "31004323",
+                "35061137",
+                "29704854",
+                "32238507",
+                "34186531",
+                "33471111",
+                "10.17759/cpse.2022110206",
+                "32338931",
+                "28475503"
+            ],
+            "elapsedSeconds": 28.16,
+            "notes": ""
+        },
+        {
+            "query": "concussion management guidelines",
+            "resultOrder": [
+                "31654620",
+                "29549147",
+                "35444018",
+                "35835532",
+                "34714140",
+                "31132020",
+                "33991315",
+                "24600668",
+                "16812967",
+                "41176759"
+            ],
+            "elapsedSeconds": 25.87,
+            "notes": ""
+        }
+    ]
+}

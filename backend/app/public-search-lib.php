@@ -3064,7 +3064,7 @@ if (!function_exists('qpmPublicSearchBuildSourceQueryPlan')) {
      * @param string $semanticQuery
      * @return array<string,mixed>
      */
-    function qpmPublicSearchBuildSourceQueryPlan(array $request, string $semanticQuery): array
+    function qpmPublicSearchBuildSourceQueryPlan(array $request, string $semanticQuery, ?array $llmSemanticIntent = null): array
     {
         $hardFilters = isset($request['hardFilters']) && is_array($request['hardFilters'])
             ? $request['hardFilters']
@@ -3072,6 +3072,37 @@ if (!function_exists('qpmPublicSearchBuildSourceQueryPlan')) {
         $sourceFilters = isset($request['sourceFilters']) && is_array($request['sourceFilters'])
             ? $request['sourceFilters']
             : [];
+
+        // Per-source query resolution below mirrors buildSemanticSourceQueryPlan()
+        // in DropdownWrapper.vue exactly: an LLM adaptation override wins, then
+        // the LLM's own per-source query (sourceQueryPlan.<source>.query - this
+        // field is REQUIRED by the JSON schema, so in production it is always
+        // populated), then the shared commonQuery. Previously this PHP port
+        // only ever used $semanticQuery for all three sources, which is a real
+        // behavioral divergence from the website widget - see the
+        // unified-search-engine-full-parity plan, Phase 6 finding: this was
+        // the dominant cause of low candidate-set overlap between the two
+        // engines, because OpenAlex/Semantic Scholar received a materially
+        // different query than what the widget actually sends.
+        $llmSourceQueryPlan = is_array($llmSemanticIntent['sourceQueryPlan'] ?? null) ? $llmSemanticIntent['sourceQueryPlan'] : [];
+        $llmAdaptations = is_array($llmSourceQueryPlan['adaptations'] ?? null) ? $llmSourceQueryPlan['adaptations'] : [];
+        $llmCoreQuery = trim((string) ($llmSourceQueryPlan['coreQuery'] ?? ''));
+        $commonQuery = trim($semanticQuery) !== '' ? trim($semanticQuery) : $llmCoreQuery;
+
+        $resolveSourceQuery = static function (string $sourceKey) use ($llmAdaptations, $llmSourceQueryPlan, $commonQuery): string {
+            $adaptationOverride = trim((string) ($llmAdaptations[$sourceKey]['queryOverride'] ?? ''));
+            if ($adaptationOverride !== '') {
+                return $adaptationOverride;
+            }
+            $llmSourceQuery = trim((string) ($llmSourceQueryPlan[$sourceKey]['query'] ?? ''));
+            if ($llmSourceQuery !== '') {
+                return $llmSourceQuery;
+            }
+            return $commonQuery;
+        };
+        $semanticScholarQuery = $resolveSourceQuery('semanticScholar');
+        $openAlexQuery = $resolveSourceQuery('openAlex');
+        $elicitBaseQuery = $resolveSourceQuery('elicit');
 
         // Merge strategy below intentionally differs by field, matching
         // buildSemanticSourceQueryPlan() in DropdownWrapper.vue exactly:
@@ -3170,7 +3201,7 @@ if (!function_exists('qpmPublicSearchBuildSourceQueryPlan')) {
 
         return [
             'semanticScholar' => [
-                'query' => trim($semanticQuery),
+                'query' => $semanticScholarQuery,
                 'filters' => [
                     'publicationTypes' => $semanticScholarPublicationTypes,
                     'publicationDateOrYear' => $semanticScholarPublicationDateOrYear,
@@ -3178,7 +3209,7 @@ if (!function_exists('qpmPublicSearchBuildSourceQueryPlan')) {
                 ],
             ],
             'openAlex' => [
-                'query' => trim($semanticQuery),
+                'query' => $openAlexQuery,
                 'filters' => [
                     'language' => $openAlexLanguages,
                     'sourceType' => $openAlexSourceTypes,
@@ -3187,7 +3218,7 @@ if (!function_exists('qpmPublicSearchBuildSourceQueryPlan')) {
                 ],
             ],
             'elicit' => [
-                'query' => qpmPublicSearchBuildElicitFallbackQuery($semanticQuery),
+                'query' => qpmPublicSearchBuildElicitFallbackQuery($elicitBaseQuery),
                 'filters' => $elicitFinalFilters,
             ],
         ];
@@ -3209,6 +3240,7 @@ if (!function_exists('qpmPublicSearchBuildResolvedQueries')) {
         $pubmedQuery = $rawText;
         $semanticQuery = $rawText;
         $queryIntent = [];
+        $semanticIntentResult = null;
         if ($translationMode === 'auto') {
             if (in_array('pubmed', (array) $request['sources'], true)) {
                 $translatedPubMed = qpmPublicSearchTranslatePubMedQuery($rawText, $language, $domain);
@@ -3224,8 +3256,15 @@ if (!function_exists('qpmPublicSearchBuildResolvedQueries')) {
             // Structured semantic-intent extraction (parity with the website
             // widget's primary semanticIntentPrompt path) is only worth its
             // extra LLM round-trip when the unified engine can actually use
-            // its output (topicOverlapBonus). The legacy engine ignores
-            // queryIntent entirely, so skip the extra call and cost for it.
+            // its output. The legacy engine ignores queryIntent/sourceQueryPlan
+            // entirely, so skip the extra call and cost for it. The result
+            // feeds BOTH the rerank engine's topicOverlapBonus (queryIntent)
+            // AND the actual per-source queries built below - the website
+            // widget always uses the LLM's per-source query (the JSON schema
+            // makes it a required field), so using only the plain semantic
+            // translation for all three sources would send materially
+            // different queries to OpenAlex/Semantic Scholar/Elicit than the
+            // widget does (see unified-search-engine-full-parity plan, Phase 6).
             if (qpmPublicSearchIsUnifiedSearchEngineEnabled()) {
                 $semanticIntentResult = qpmPublicSearchExtractSemanticIntent($rawText, $language, $domain);
                 $queryIntent = qpmPublicSearchBuildQueryIntentFromSemanticIntent($semanticIntentResult);
@@ -3233,7 +3272,7 @@ if (!function_exists('qpmPublicSearchBuildResolvedQueries')) {
         }
 
         $hardFilterQuery = qpmPublicSearchBuildHardFilterQuery((array) ($request['hardFilters'] ?? []));
-        $sourceQueryPlan = qpmPublicSearchBuildSourceQueryPlan($request, $semanticQuery);
+        $sourceQueryPlan = qpmPublicSearchBuildSourceQueryPlan($request, $semanticQuery, $semanticIntentResult);
 
         return [
             'semanticIntent' => $semanticQuery,
