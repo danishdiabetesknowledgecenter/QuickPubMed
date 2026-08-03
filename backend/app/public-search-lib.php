@@ -2662,25 +2662,94 @@ if (!function_exists('qpmPublicSearchCanonicalizeAllMeshTermsWithNlm')) {
     }
 }
 
+if (!function_exists('qpmPublicSearchBuildPubMedTranslationPromptInput')) {
+    /**
+     * Ported from buildPubMedTranslationPromptInput() in DropdownWrapper.vue
+     * (~4702-4771). Feeds the already-extracted semantic intent (if any) into
+     * the PubMed query translation call as JSON `structuredAiIntent` context,
+     * exactly like the website widget does - the two LLM calls are NOT
+     * independent in production; the PubMed translation call is enriched with
+     * the semantic-intent call's output. Returns the plain query when there is
+     * no structured context to add (matches the JS "hasStructuredContext"
+     * short-circuit exactly), so the byte-for-byte-prompt gate from Phase 1
+     * still holds for the common "no intent extracted" case.
+     *
+     * @param string $originalQuery
+     * @param ?array<string,mixed> $llmSemanticIntent
+     * @param array<string,mixed> $hardFilters
+     * @return string
+     */
+    function qpmPublicSearchBuildPubMedTranslationPromptInput(string $originalQuery, ?array $llmSemanticIntent, array $hardFilters = []): string
+    {
+        $originalQuery = trim($originalQuery);
+        $llmIntent = is_array($llmSemanticIntent) ? $llmSemanticIntent : [];
+        $meta = is_array($llmIntent['meta'] ?? null) ? $llmIntent['meta'] : [];
+        $sourceQueryPlan = is_array($llmIntent['sourceQueryPlan'] ?? null) ? $llmIntent['sourceQueryPlan'] : [];
+
+        $structuredAiIntent = [
+            'semanticIntent' => trim((string) ($llmIntent['semanticIntent'] ?? '')),
+            'coreQuery' => trim((string) ($llmIntent['coreQuery'] ?? ($sourceQueryPlan['coreQuery'] ?? ''))),
+            'detectedConcepts' => qpmPublicSearchNormalizeSimpleList($meta['detectedConcepts'] ?? []),
+            'intentType' => trim((string) ($meta['intentType'] ?? '')),
+            'conceptCoverage' => is_array($meta['conceptCoverage'] ?? null) ? $meta['conceptCoverage'] : new stdClass(),
+            'hardFilterHints' => is_array($llmIntent['hardFilterHints'] ?? null) ? $llmIntent['hardFilterHints'] : new stdClass(),
+            'softFilterHints' => qpmPublicSearchNormalizeSimpleList($llmIntent['softFilterHints'] ?? []),
+            'sourceSpecificHints' => is_array($llmIntent['sourceSpecificHints'] ?? null) ? $llmIntent['sourceSpecificHints'] : new stdClass(),
+            // canonicalHardFilters/selectedTopics/selectedLimits mirror the
+            // website widget's own limit-tree selection state, which has no
+            // equivalent concept in the public API's simpler hardFilters
+            // schema - passed through as the closest available equivalent
+            // (the API's own already-validated hardFilters) / empty arrays.
+            'canonicalHardFilters' => !empty($hardFilters) ? $hardFilters : new stdClass(),
+            'selectedTopics' => [],
+            'selectedLimits' => [],
+            'potentialIssues' => qpmPublicSearchNormalizeSimpleList($meta['potentialIssues'] ?? []),
+        ];
+
+        $hasStructuredContext = false;
+        foreach ($structuredAiIntent as $value) {
+            if (is_array($value) && !empty($value)) {
+                $hasStructuredContext = true;
+                break;
+            }
+            if (is_string($value) && trim($value) !== '') {
+                $hasStructuredContext = true;
+                break;
+            }
+        }
+        if (!$hasStructuredContext) {
+            return $originalQuery;
+        }
+
+        return qpmPublicSearchSafeJsonEncode([
+            'originalQuery' => $originalQuery,
+            'structuredAiIntent' => $structuredAiIntent,
+        ]);
+    }
+}
+
 if (!function_exists('qpmPublicSearchTranslatePubMedQuery')) {
     /**
      * @param string $text
      * @param string $language
      * @param string $domain
+     * @param ?array<string,mixed> $llmSemanticIntent Structured semantic-intent result (see qpmPublicSearchExtractSemanticIntent()), fed in as extra context exactly like the website widget does.
+     * @param array<string,mixed> $hardFilters
      * @return string
      */
-    function qpmPublicSearchTranslatePubMedQuery(string $text, string $language, string $domain = ''): string
+    function qpmPublicSearchTranslatePubMedQuery(string $text, string $language, string $domain = '', ?array $llmSemanticIntent = null, array $hardFilters = []): string
     {
         $normalizedText = trim($text);
         if ($normalizedText === '') {
             return '';
         }
+        $promptInput = qpmPublicSearchBuildPubMedTranslationPromptInput($normalizedText, $llmSemanticIntent, $hardFilters);
         $request = [
             'model' => 'gpt-5.5',
             'input' => [
                 [
                     'role' => 'user',
-                    'content' => qpmPublicSearchGetPubMedPromptText($language) . $normalizedText,
+                    'content' => qpmPublicSearchGetPubMedPromptText($language) . $promptInput,
                 ],
             ],
             'reasoning' => ['effort' => 'none'],
@@ -3242,8 +3311,27 @@ if (!function_exists('qpmPublicSearchBuildResolvedQueries')) {
         $queryIntent = [];
         $semanticIntentResult = null;
         if ($translationMode === 'auto') {
+            // Order matters and mirrors the website widget exactly: semantic-intent
+            // extraction runs FIRST, and its output is then fed as extra JSON
+            // context into the PubMed translation call (see
+            // qpmPublicSearchBuildPubMedTranslationPromptInput() /
+            // buildPubMedTranslationPromptInput() in DropdownWrapper.vue). The
+            // two translation calls are NOT independent in production - running
+            // them independently (the previous version of this function) sends
+            // the PubMed LLM call materially less context than the widget does.
+            if (qpmPublicSearchIsUnifiedSearchEngineEnabled()) {
+                $semanticIntentResult = qpmPublicSearchExtractSemanticIntent($rawText, $language, $domain);
+                $queryIntent = qpmPublicSearchBuildQueryIntentFromSemanticIntent($semanticIntentResult);
+            }
+
             if (in_array('pubmed', (array) $request['sources'], true)) {
-                $translatedPubMed = qpmPublicSearchTranslatePubMedQuery($rawText, $language, $domain);
+                $translatedPubMed = qpmPublicSearchTranslatePubMedQuery(
+                    $rawText,
+                    $language,
+                    $domain,
+                    $semanticIntentResult,
+                    (array) ($request['hardFilters'] ?? [])
+                );
                 if (trim($translatedPubMed) !== '') {
                     $pubmedQuery = trim($translatedPubMed);
                 }
@@ -3251,23 +3339,6 @@ if (!function_exists('qpmPublicSearchBuildResolvedQueries')) {
             $translatedSemantic = qpmPublicSearchTranslateSemanticQuery($rawText, $language, $domain);
             if (trim($translatedSemantic) !== '') {
                 $semanticQuery = trim($translatedSemantic);
-            }
-
-            // Structured semantic-intent extraction (parity with the website
-            // widget's primary semanticIntentPrompt path) is only worth its
-            // extra LLM round-trip when the unified engine can actually use
-            // its output. The legacy engine ignores queryIntent/sourceQueryPlan
-            // entirely, so skip the extra call and cost for it. The result
-            // feeds BOTH the rerank engine's topicOverlapBonus (queryIntent)
-            // AND the actual per-source queries built below - the website
-            // widget always uses the LLM's per-source query (the JSON schema
-            // makes it a required field), so using only the plain semantic
-            // translation for all three sources would send materially
-            // different queries to OpenAlex/Semantic Scholar/Elicit than the
-            // widget does (see unified-search-engine-full-parity plan, Phase 6).
-            if (qpmPublicSearchIsUnifiedSearchEngineEnabled()) {
-                $semanticIntentResult = qpmPublicSearchExtractSemanticIntent($rawText, $language, $domain);
-                $queryIntent = qpmPublicSearchBuildQueryIntentFromSemanticIntent($semanticIntentResult);
             }
         }
 
