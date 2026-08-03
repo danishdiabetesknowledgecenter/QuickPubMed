@@ -5108,6 +5108,234 @@ if (!function_exists('qpmPublicSearchInjectEnrichmentIntoSourceResults')) {
     }
 }
 
+if (!function_exists('qpmPublicSearchGetSemanticRescueConfig')) {
+    /**
+     * Ported from getSemanticRescueConfig() in DropdownWrapper.vue (~7271-7290).
+     * Reads QPM_SEMANTIC_RESCUE_CONFIG with the exact same defaults as the
+     * website widget's DEFAULT_SEMANTIC_RESCUE_CONFIG.
+     *
+     * @return array{mode:string,minMergedCandidates:int,minSourceCandidates:int,searchLimit:int,maxCandidates:int,minLexicalScore:int}
+     */
+    function qpmPublicSearchGetSemanticRescueConfig(): array
+    {
+        $defaults = [
+            'mode' => 'configurable_default_sparse',
+            'minMergedCandidates' => 25,
+            'minSourceCandidates' => 12,
+            'searchLimit' => 80,
+            'maxCandidates' => 20,
+            'minLexicalScore' => 3,
+        ];
+        $raw = defined('QPM_SEMANTIC_RESCUE_CONFIG') && is_array(QPM_SEMANTIC_RESCUE_CONFIG) ? QPM_SEMANTIC_RESCUE_CONFIG : [];
+        $mode = trim((string) ($raw['mode'] ?? $defaults['mode']));
+        $normalized = ['mode' => $mode !== '' ? $mode : $defaults['mode']];
+        foreach (['minMergedCandidates', 'minSourceCandidates', 'searchLimit', 'maxCandidates', 'minLexicalScore'] as $key) {
+            $parsed = $raw[$key] ?? null;
+            $normalized[$key] = is_numeric($parsed) && (int) $parsed > 0 ? (int) $parsed : $defaults[$key];
+        }
+        return $normalized;
+    }
+}
+
+if (!function_exists('qpmPublicSearchBuildSemanticCandidateKey')) {
+    /**
+     * Ported from buildSemanticCandidateKey() in DropdownWrapper.vue (~7291-7300).
+     *
+     * @param array<string,mixed> $candidate
+     * @return string
+     */
+    function qpmPublicSearchBuildSemanticCandidateKey(array $candidate): string
+    {
+        $pmid = qpmPublicSearchNormalizePmid($candidate['pmid'] ?? '');
+        if ($pmid !== '') {
+            return 'pmid:' . $pmid;
+        }
+        $doi = qpmPublicSearchNormalizeDoi($candidate['doi'] ?? '');
+        if ($doi !== '') {
+            return 'doi:' . strtolower($doi);
+        }
+        $openAlexId = trim((string) ($candidate['openAlexId'] ?? ($candidate['metadata']['workId'] ?? '')));
+        if ($openAlexId !== '') {
+            return 'oa:' . strtolower($openAlexId);
+        }
+        $title = trim((string) ($candidate['title'] ?? ''));
+        return $title !== '' ? 'title:' . strtolower($title) : '';
+    }
+}
+
+if (!function_exists('qpmPublicSearchShouldRunPubMedLexicalRescue')) {
+    /**
+     * Ported from shouldRunPubMedLexicalRescue() in DropdownWrapper.vue
+     * (~7388-7452). Unlike the website widget (which distinguishes a separate
+     * "PubMed Best Match" fetch from the multi-source fetch), the public API
+     * always fetches PubMed as one ordinary entry in $sourceResults when
+     * selected - so "usePubMedBestMatch" here simply means "pubmed is one of
+     * the requested sources", and activeSourceResults excludes that pubmed
+     * entry itself (matching the JS filter exactly).
+     *
+     * @param array<int,array<string,mixed>> $sourceResults
+     * @param string $pubmedQuery
+     * @param bool $pubmedIsSelected
+     * @return array{shouldRun:bool,reason:string}
+     */
+    function qpmPublicSearchShouldRunPubMedLexicalRescue(array $sourceResults, string $pubmedQuery, bool $pubmedIsSelected): array
+    {
+        $rescueConfig = qpmPublicSearchGetSemanticRescueConfig();
+        $mode = strtolower($rescueConfig['mode']);
+        $normalizedPubMedQuery = trim($pubmedQuery);
+
+        $activeSourceResults = array_filter($sourceResults, static function ($result) {
+            return is_array($result) && ($result['source'] ?? '') !== 'pubmed';
+        });
+
+        if (!$pubmedIsSelected) {
+            return ['shouldRun' => false, 'reason' => 'pubmed-not-selected'];
+        }
+        if (empty($activeSourceResults) || $normalizedPubMedQuery === '') {
+            return ['shouldRun' => false, 'reason' => 'inactive'];
+        }
+        if (in_array($mode, ['off', 'disabled', 'none'], true)) {
+            return ['shouldRun' => false, 'reason' => 'disabled'];
+        }
+        if (in_array($mode, ['always', 'always_multi_source'], true)) {
+            return ['shouldRun' => true, 'reason' => 'mode-always'];
+        }
+
+        $candidateKeys = [];
+        $sourceCandidateCount = 0;
+        foreach ($activeSourceResults as $result) {
+            $candidates = (array) ($result['candidates'] ?? []);
+            $sourceCandidateCount += count($candidates);
+            foreach ($candidates as $candidate) {
+                if (!is_array($candidate)) {
+                    continue;
+                }
+                $key = qpmPublicSearchBuildSemanticCandidateKey($candidate);
+                if ($key !== '') {
+                    $candidateKeys[$key] = true;
+                }
+            }
+        }
+        $mergedCandidateCount = count($candidateKeys);
+        $isSparse = $mergedCandidateCount < $rescueConfig['minMergedCandidates']
+            || $sourceCandidateCount < $rescueConfig['minSourceCandidates'];
+
+        return ['shouldRun' => $isSparse, 'reason' => $isSparse ? 'sparse-first-harvest' : 'sufficient-first-harvest'];
+    }
+}
+
+if (!function_exists('qpmPublicSearchFetchPubMedLexicalRescueResult')) {
+    /**
+     * Ported from fetchPubMedLexicalRescueResult() in DropdownWrapper.vue
+     * (~7633-7733): fetches additional PubMed candidates (excluding PMIDs
+     * already present in $sourceResults), scores them lexically against the
+     * query, and keeps only those meeting minLexicalScore - tagged with
+     * metadata.lexicalRescue=true so the rerank/response layer can surface
+     * provenance, exactly like the website widget.
+     *
+     * @param string $semanticQuery
+     * @param string $pubmedQuery
+     * @param array<int,array<string,mixed>> $sourceResults
+     * @param string $triggerReason
+     * @param string $domain
+     * @return array<string,mixed> A source-result shaped like qpmPublicSearchNormalizeSourceResult('pubmed', ...).
+     */
+    function qpmPublicSearchFetchPubMedLexicalRescueResult(
+        string $semanticQuery,
+        string $pubmedQuery,
+        array $sourceResults,
+        string $triggerReason,
+        string $domain = ''
+    ): array {
+        $rescueConfig = qpmPublicSearchGetSemanticRescueConfig();
+        $normalizedPubMedQuery = trim($pubmedQuery);
+        $normalizedSemanticQuery = trim($semanticQuery);
+        $resultQuery = $normalizedPubMedQuery !== '' ? $normalizedPubMedQuery : $normalizedSemanticQuery;
+        $empty = qpmPublicSearchCreateEmptySourceResult('pubmed', $resultQuery);
+
+        $existingPmids = [];
+        foreach ($sourceResults as $result) {
+            foreach ((array) ($result['pmids'] ?? []) as $pmid) {
+                $normalized = qpmPublicSearchNormalizePmid($pmid);
+                if ($normalized !== '') {
+                    $existingPmids[$normalized] = true;
+                }
+            }
+            foreach ((array) ($result['candidates'] ?? []) as $candidate) {
+                $normalized = qpmPublicSearchNormalizePmid(is_array($candidate) ? ($candidate['pmid'] ?? '') : '');
+                if ($normalized !== '') {
+                    $existingPmids[$normalized] = true;
+                }
+            }
+        }
+
+        $searchLimit = max(1, $rescueConfig['searchLimit']);
+        $maxCandidates = max(1, $rescueConfig['maxCandidates']);
+        $minLexicalScore = max(1, $rescueConfig['minLexicalScore']);
+
+        $search = qpmPublicSearchFetchPubMedSearchIds($normalizedPubMedQuery, $searchLimit, 'relevance', $domain);
+        $rescuePmids = array_values(array_slice(array_filter(
+            $search['pmids'],
+            static fn($pmid) => !isset($existingPmids[$pmid])
+        ), 0, $searchLimit));
+
+        if (empty($rescuePmids)) {
+            return array_merge($empty, ['total' => $search['searchCount']]);
+        }
+
+        $summaryRecords = qpmPublicSearchFetchPubMedSummaryRecords($rescuePmids, $domain);
+        $abstractMap = qpmPublicSearchFetchPubMedAbstractMap($rescuePmids, $domain);
+        $lexicalQueryText = qpmSemanticQualityNormalizeLexicalSearchText($normalizedSemanticQuery !== '' ? $normalizedSemanticQuery : $normalizedPubMedQuery);
+        $lexicalQueryTokens = qpmSemanticQualityTokenizeLexicalSearchText($normalizedSemanticQuery !== '' ? $normalizedSemanticQuery : $normalizedPubMedQuery);
+
+        $scoredCandidates = [];
+        foreach ($rescuePmids as $index => $pmid) {
+            $record = $summaryRecords[$pmid] ?? [];
+            $title = trim((string) ($record['title'] ?? ''));
+            $abstractText = trim((string) ($abstractMap[$pmid]['abstract'] ?? ''));
+            $lexicalScore = qpmSemanticQualityScoreLexicalTextWithQuery($lexicalQueryTokens, $lexicalQueryText, $title, $abstractText);
+            if ($title === '' || $lexicalScore < $minLexicalScore) {
+                continue;
+            }
+            $scoredCandidates[] = [
+                'source' => 'pubmed',
+                'rank' => $index + 1,
+                'pmid' => $pmid,
+                'title' => $title,
+                'score' => $lexicalScore,
+                'metadata' => [
+                    'publicationYear' => qpmPublicSearchExtractPubMedSummaryPublicationYear($record),
+                    'venue' => trim((string) ($record['fulljournalname'] ?? ($record['source'] ?? ''))),
+                    'publicationTypes' => qpmPublicSearchNormalizeSimpleList($record['pubtype'] ?? []),
+                    'lexicalRescue' => true,
+                    'lexicalRescueAbstractAvailable' => $abstractText !== '',
+                    'lexicalRescueTriggerReason' => trim($triggerReason),
+                ],
+            ];
+        }
+
+        usort($scoredCandidates, static function ($left, $right) {
+            $scoreDiff = ((float) $right['score']) - ((float) $left['score']);
+            if ($scoreDiff !== 0.0) {
+                return $scoreDiff > 0 ? 1 : -1;
+            }
+            return ((int) $left['rank']) <=> ((int) $right['rank']);
+        });
+
+        $acceptedCandidates = array_slice($scoredCandidates, 0, $maxCandidates);
+        foreach ($acceptedCandidates as $index => &$candidate) {
+            $candidate['rank'] = $index + 1;
+        }
+        unset($candidate);
+
+        return qpmPublicSearchNormalizeSourceResult('pubmed', $resultQuery, [
+            'total' => $search['searchCount'],
+            'pmids' => array_column($acceptedCandidates, 'pmid'),
+            'candidates' => $acceptedCandidates,
+        ]);
+    }
+}
+
 if (!function_exists('qpmPublicSearchRerankSemanticCandidates')) {
     /**
      * @param array<int,array<string,mixed>> $sourceResults
@@ -6637,6 +6865,36 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
                 'All selected search sources failed or returned no candidates' . $failureDetail,
                 502
             );
+        }
+
+        // Lexical rescue (ported from DropdownWrapper.vue's shouldRunPubMedLexicalRescue()
+        // / fetchPubMedLexicalRescueResult()): when PubMed is selected but the
+        // OTHER selected sources returned a sparse candidate set, run one
+        // extra PubMed search (excluding PMIDs already found) and keep only
+        // lexically-relevant hits. Only run for the unified engine - the
+        // legacy engine never had this capability, so gating it here keeps
+        // that path's behavior completely unchanged.
+        if (qpmPublicSearchIsUnifiedSearchEngineEnabled()) {
+            $pubmedIsSelected = in_array('pubmed', (array) $request['sources'], true);
+            $rescueDecision = qpmPublicSearchShouldRunPubMedLexicalRescue($sourceResults, (string) ($resolvedQueries['pubmedQuery'] ?? ''), $pubmedIsSelected);
+            if ($rescueDecision['shouldRun']) {
+                try {
+                    $rescueResult = qpmPublicSearchFetchPubMedLexicalRescueResult(
+                        (string) ($resolvedQueries['semanticIntent'] ?? ''),
+                        (string) ($resolvedQueries['pubmedQuery'] ?? ''),
+                        $sourceResults,
+                        (string) $rescueDecision['reason'],
+                        $domain
+                    );
+                    if (!empty($rescueResult['candidates'])) {
+                        $sourceResults[] = $rescueResult;
+                    }
+                } catch (Throwable $exception) {
+                    // Fail soft: lexical rescue is a supplementary enrichment
+                    // step, not a hard dependency of the search.
+                    $warnings[] = 'PubMed lexical rescue failed: ' . $exception->getMessage();
+                }
+            }
         }
 
         qpmPublicSearchEmitProgress($progressCallback, 'finalizeCollect', '', [

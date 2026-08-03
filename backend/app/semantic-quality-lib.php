@@ -1378,6 +1378,112 @@ if (!function_exists('qpmSemanticQualityLowercaseNonMeshTerms')) {
 }
 
 // =====================================================================
+// Section 2C: Lexical rescue scoring (ported from DropdownWrapper.vue)
+// =====================================================================
+//
+// Pure-function port of normalizeLexicalSearchText()/tokenizeLexicalSearchText()/
+// scoreLexicalTextWithQuery() in src/components/DropdownWrapper.vue (~7301-7359).
+// The I/O side (fetching extra PubMed candidates, deciding whether to trigger)
+// lives in public-search-lib.php as qpmPublicSearchShouldRunPubMedLexicalRescue()
+// / qpmPublicSearchFetchPubMedLexicalRescueResult(), matching the split already
+// used throughout this file (pure logic here, HTTP-calling logic there).
+
+if (!function_exists('qpmSemanticQualityNormalizeLexicalSearchText')) {
+    /**
+     * Ported from normalizeLexicalSearchText() in DropdownWrapper.vue.
+     *
+     * @param string $value
+     * @return string
+     */
+    function qpmSemanticQualityNormalizeLexicalSearchText(string $value): string
+    {
+        // mbstring may not be present on every install; strtolower() is an
+        // acceptable ASCII-only fallback here since this text feeds a purely
+        // internal lexical-overlap score, not anything user-facing.
+        $normalized = function_exists('mb_strtolower') ? mb_strtolower($value, 'UTF-8') : strtolower($value);
+        $normalized = (string) preg_replace('/[\x00-\x1f]+/', ' ', $normalized);
+        $normalized = (string) preg_replace('/[^\p{L}\p{N}]+/u', ' ', $normalized);
+        return trim($normalized);
+    }
+}
+
+if (!defined('QPM_SEMANTIC_QUALITY_LEXICAL_STOPWORDS')) {
+    define('QPM_SEMANTIC_QUALITY_LEXICAL_STOPWORDS', [
+        'a', 'an', 'and', 'as', 'at', 'by', 'for', 'from', 'in', 'into',
+        'is', 'of', 'on', 'or', 'the', 'to', 'with',
+    ]);
+}
+
+if (!function_exists('qpmSemanticQualityTokenizeLexicalSearchText')) {
+    /**
+     * Ported from tokenizeLexicalSearchText() in DropdownWrapper.vue.
+     *
+     * @param string $value
+     * @return array<int,string>
+     */
+    function qpmSemanticQualityTokenizeLexicalSearchText(string $value): array
+    {
+        $normalized = qpmSemanticQualityNormalizeLexicalSearchText($value);
+        if ($normalized === '') {
+            return [];
+        }
+        $parts = preg_split('/\s+/', $normalized) ?: [];
+        $seen = [];
+        $tokens = [];
+        foreach ($parts as $token) {
+            $tokenLength = function_exists('mb_strlen') ? mb_strlen($token, 'UTF-8') : strlen($token);
+            if ($tokenLength < 2 || in_array($token, QPM_SEMANTIC_QUALITY_LEXICAL_STOPWORDS, true)) {
+                continue;
+            }
+            if (!isset($seen[$token])) {
+                $seen[$token] = true;
+                $tokens[] = $token;
+            }
+        }
+        return $tokens;
+    }
+}
+
+if (!function_exists('qpmSemanticQualityScoreLexicalTextWithQuery')) {
+    /**
+     * Ported from scoreLexicalTextWithQuery() in DropdownWrapper.vue.
+     *
+     * @param array<int,string> $queryTokens
+     * @param string $queryText
+     * @param string $title
+     * @param string $abstractText
+     * @return int
+     */
+    function qpmSemanticQualityScoreLexicalTextWithQuery(array $queryTokens, string $queryText, string $title, string $abstractText): int
+    {
+        if (empty($queryTokens)) {
+            return 0;
+        }
+        $normalizedTitle = qpmSemanticQualityNormalizeLexicalSearchText($title);
+        $normalizedAbstract = qpmSemanticQualityNormalizeLexicalSearchText($abstractText);
+        $titleTokens = $normalizedTitle !== '' ? array_flip(preg_split('/\s+/', $normalizedTitle) ?: []) : [];
+        $abstractTokens = $normalizedAbstract !== '' ? array_flip(preg_split('/\s+/', $normalizedAbstract) ?: []) : [];
+
+        $score = 0;
+        foreach ($queryTokens as $token) {
+            if (isset($titleTokens[$token])) {
+                $score += 3;
+            }
+            if (isset($abstractTokens[$token])) {
+                $score += 1;
+            }
+        }
+        if ($queryText !== '' && strpos($normalizedTitle, $queryText) !== false) {
+            $score += 4;
+        }
+        if ($queryText !== '' && strpos($normalizedAbstract, $queryText) !== false) {
+            $score += 2;
+        }
+        return $score;
+    }
+}
+
+// =====================================================================
 // Section 3: Hybrid quality-signal rerank formula (ported from semanticReranking.js)
 // =====================================================================
 
