@@ -1018,6 +1018,366 @@ if (!function_exists('qpmSemanticQualityCandidateMatchesPostValidation')) {
 }
 
 // =====================================================================
+// Section 2B: PubMed search-string sanitization (ported from meshValidator.js)
+// =====================================================================
+//
+// Ports the DETERMINISTIC, pure-function part of src/utils/meshValidator.js's
+// pipeline: field-tag normalization, wildcard/quote fixes, duplicate removal,
+// boolean-operator normalization, and syntax assertions
+// (sanitizeSearchStringDeterministic() + lowercaseNonMeshTerms() +
+// normalizeBooleanOperatorsOutsideQuotes() in the JS source).
+//
+// NOT ported (deliberately, for this pass): the iterative AI-optimization +
+// PubMed-validation retry loop (meshValidator.js Steps 1-3/5, up to 10 AI
+// round-trips) and the rich scope-note/related-term context building used to
+// brief that AI step. That loop is the least deterministic, highest-risk part
+// of the pipeline. What IS ported here (this section) plus
+// qpmPublicSearchCanonicalizeAllMeshTermsWithNlm() in public-search-lib.php
+// (Step 2b: rewrite valid [mh] terms to their canonical NLM descriptor name,
+// downgrade invalid ones to [tiab]) covers the majority of MeSH-validation's
+// effect on final query correctness. This is a documented, deliberate scope
+// reduction - see the unified-search-engine-full-parity plan, Phase 3.
+
+if (!function_exists('qpmSemanticQualityExtractMeshTerms')) {
+    /**
+     * Ported from extractMeshTerms() in src/utils/meshValidator.js.
+     *
+     * @param string $searchString
+     * @return array<int,array{term:string,fullMatch:string}>
+     */
+    function qpmSemanticQualityExtractMeshTerms(string $searchString): array
+    {
+        if ($searchString === '') {
+            return [];
+        }
+        $results = [];
+        if (preg_match_all('/(?:"([^"]+)"|([a-zA-Z][a-zA-Z0-9 ,\-]+?))\[mh\]/i', $searchString, $matches, PREG_SET_ORDER) === false) {
+            return [];
+        }
+        foreach ($matches as $match) {
+            $term = trim((string) ($match[1] !== '' ? $match[1] : ($match[2] ?? '')));
+            if ($term === '') {
+                continue;
+            }
+            $results[] = ['term' => $term, 'fullMatch' => $match[0]];
+        }
+        return $results;
+    }
+}
+
+if (!function_exists('qpmSemanticQualityQuoteMeshTerms')) {
+    /**
+     * Ported from quoteMeshTerms() in meshValidator.js.
+     *
+     * @param string $searchString
+     * @return string
+     */
+    function qpmSemanticQualityQuoteMeshTerms(string $searchString): string
+    {
+        if ($searchString === '') {
+            return $searchString;
+        }
+        return (string) preg_replace_callback(
+            '/(?<!")(\b[A-Za-z][A-Za-z0-9 ,\-]+?)\[mh\]/',
+            static fn($m) => '"' . trim($m[1]) . '"[mh]',
+            $searchString
+        );
+    }
+}
+
+if (!function_exists('qpmSemanticQualityNormalizeFieldTags')) {
+    /**
+     * Ported from normalizeFieldTags() in meshValidator.js.
+     *
+     * @param string $searchString
+     * @return string
+     */
+    function qpmSemanticQualityNormalizeFieldTags(string $searchString): string
+    {
+        if ($searchString === '') {
+            return $searchString;
+        }
+        $tagMap = [
+            'Affiliation' => 'ad', 'All Fields' => 'all', 'Article Identifier' => 'aid', 'Author' => 'au',
+            'Author Identifier' => 'auid', 'Book' => 'book', 'Completion Date' => 'dcom',
+            'Conflict of Interest Statement' => 'cois', 'Corporate Author' => 'cn', 'Create Date' => 'crdt',
+            'EC/RN Number' => 'rn', 'Editor' => 'ed', 'Entry Date' => 'edat', 'Filter' => 'filter',
+            'First Author Name' => '1au', 'Full Author Name' => 'fau', 'Full Investigator Name' => 'fir',
+            'Grants and Funding' => 'gr', 'Investigator' => 'ir', 'ISBN' => 'isbn', 'Issue' => 'ip',
+            'Journal' => 'ta', 'Language' => 'la', 'Last Author Name' => 'lastau', 'Location ID' => 'lid',
+            'MeSH Date' => 'mhda', 'MeSH Major Topic' => 'majr', 'MeSH Subheadings' => 'sh',
+            'Title/Abstract' => 'tiab', 'Title' => 'ti', 'MeSH Terms' => 'mh', 'MeSH Subheading' => 'sh',
+            'Modification Date' => 'lr', 'NLM Unique ID' => 'jid', 'Other Term' => 'ot', 'Pagination' => 'pg',
+            'Personal Name as Subject' => 'ps', 'Pharmacological Action' => 'pa', 'Place of Publication' => 'pl',
+            'PMID' => 'pmid', 'Publication Type' => 'pt', 'Publication Date' => 'dp', 'Publisher' => 'pubn',
+            'Secondary Source ID' => 'si', 'Subset' => 'sb', 'Supplementary Concept' => 'nm', 'Text Word' => 'tw',
+            'Text Words' => 'tw', 'Transliterated Title' => 'tt', 'Volume' => 'vi',
+        ];
+        $result = $searchString;
+        foreach ($tagMap as $verbose => $short) {
+            $result = (string) preg_replace('/\[' . preg_quote($verbose, '/') . '\]/i', '[' . $short . ']', $result);
+        }
+        return $result;
+    }
+}
+
+if (!function_exists('qpmSemanticQualityNormalizeUnsupportedFieldTags')) {
+    /**
+     * Ported from normalizeUnsupportedFieldTags() in meshValidator.js: [ab] -> [tiab].
+     *
+     * @param string $searchString
+     * @return string
+     */
+    function qpmSemanticQualityNormalizeUnsupportedFieldTags(string $searchString): string
+    {
+        if ($searchString === '') {
+            return $searchString;
+        }
+        return (string) preg_replace('/\[ab\]/i', '[tiab]', $searchString);
+    }
+}
+
+if (!function_exists('qpmSemanticQualityFixWildcardsInQuotedTerms')) {
+    /**
+     * Ported from fixWildcardsInQuotedTerms() in meshValidator.js.
+     *
+     * @param string $searchString
+     * @return string
+     */
+    function qpmSemanticQualityFixWildcardsInQuotedTerms(string $searchString): string
+    {
+        if ($searchString === '') {
+            return $searchString;
+        }
+        return (string) preg_replace_callback(
+            '/"([^"]*\*[^"]*)"\[([a-z0-9]+)\]/i',
+            static fn($m) => $m[1] . '[' . $m[2] . ']',
+            $searchString
+        );
+    }
+}
+
+if (!function_exists('qpmSemanticQualityRemoveDuplicateTerms')) {
+    /**
+     * Ported from removeDuplicateTerms() in meshValidator.js.
+     *
+     * @param string $searchString
+     * @return string
+     */
+    function qpmSemanticQualityRemoveDuplicateTerms(string $searchString): string
+    {
+        if ($searchString === '') {
+            return $searchString;
+        }
+        $parts = preg_split('/\s+OR\s+/i', $searchString) ?: [$searchString];
+        $seen = [];
+        $unique = [];
+        foreach ($parts as $part) {
+            $normalized = strtolower(trim($part));
+            if (!isset($seen[$normalized])) {
+                $seen[$normalized] = true;
+                $unique[] = trim($part);
+            }
+        }
+        return implode(' OR ', $unique);
+    }
+}
+
+if (!function_exists('qpmSemanticQualityNormalizeBooleanOperatorsOutsideQuotes')) {
+    /**
+     * Ported from normalizeBooleanOperatorsOutsideQuotes() in meshValidator.js.
+     *
+     * @param string $searchString
+     * @return string
+     */
+    function qpmSemanticQualityNormalizeBooleanOperatorsOutsideQuotes(string $searchString): string
+    {
+        if ($searchString === '') {
+            return $searchString;
+        }
+        $inQuotes = false;
+        $segment = '';
+        $result = '';
+        $flush = static function () use (&$segment, &$result): void {
+            if ($segment === '') {
+                return;
+            }
+            $segment = (string) preg_replace('/\band\b/i', 'AND', $segment);
+            $segment = (string) preg_replace('/\bor\b/i', 'OR', $segment);
+            $segment = (string) preg_replace('/\bnot\b/i', 'NOT', $segment);
+            $result .= $segment;
+            $segment = '';
+        };
+        $length = strlen($searchString);
+        for ($i = 0; $i < $length; $i++) {
+            $char = $searchString[$i];
+            if ($char === '"') {
+                $flush();
+                $inQuotes = !$inQuotes;
+                $result .= $char;
+                continue;
+            }
+            if ($inQuotes) {
+                $result .= $char;
+            } else {
+                $segment .= $char;
+            }
+        }
+        $flush();
+        return $result;
+    }
+}
+
+if (!function_exists('qpmSemanticQualityAssertBalancedSyntax')) {
+    /**
+     * Ported from assertBalancedSyntax() in meshValidator.js.
+     *
+     * @param string $searchString
+     * @return bool True if balanced, false otherwise (JS throws; PHP callers check the return value instead).
+     */
+    function qpmSemanticQualityAssertBalancedSyntax(string $searchString): bool
+    {
+        if ($searchString === '') {
+            return true;
+        }
+        $inQuotes = false;
+        $parenDepth = 0;
+        $length = strlen($searchString);
+        for ($i = 0; $i < $length; $i++) {
+            $ch = $searchString[$i];
+            if ($ch === '"') {
+                $inQuotes = !$inQuotes;
+                continue;
+            }
+            if (!$inQuotes) {
+                if ($ch === '(') {
+                    $parenDepth++;
+                }
+                if ($ch === ')') {
+                    $parenDepth--;
+                }
+                if ($parenDepth < 0) {
+                    return false;
+                }
+            }
+        }
+        return !$inQuotes && $parenDepth === 0;
+    }
+}
+
+if (!defined('QPM_SEMANTIC_QUALITY_ALLOWED_PUBMED_FIELD_TAGS')) {
+    define('QPM_SEMANTIC_QUALITY_ALLOWED_PUBMED_FIELD_TAGS', [
+        'ad', 'all', 'aid', 'au', 'auid', 'book', 'dcom', 'cois', 'cn', 'crdt',
+        'rn', 'ed', 'edat', 'filter', 'sb', '1au', 'fau', 'fir', 'gr', 'ir',
+        'isbn', 'ip', 'ta', 'la', 'lastau', 'lid', 'mhda', 'majr', 'sh', 'mh',
+        'lr', 'jid', 'ot', 'pg', 'ps', 'pa', 'pl', 'pmid', 'dp', 'pt', 'pubn',
+        'si', 'nm', 'tw', 'ti', 'tiab', 'tt', 'vi',
+    ]);
+}
+
+if (!function_exists('qpmSemanticQualityAssertAllowedFieldTags')) {
+    /**
+     * Ported from assertAllowedFieldTags() in meshValidator.js.
+     *
+     * @param string $searchString
+     * @return array<int,string> List of invalid tags found (empty = all valid).
+     */
+    function qpmSemanticQualityAssertAllowedFieldTags(string $searchString): array
+    {
+        if ($searchString === '') {
+            return [];
+        }
+        $invalidTags = [];
+        if (preg_match_all('/\[([a-z0-9\/ ]+)\]/i', $searchString, $matches) === false) {
+            return [];
+        }
+        foreach ($matches[1] as $rawTag) {
+            $tag = strtolower(trim($rawTag));
+            if ($tag === '') {
+                continue;
+            }
+            if (!in_array($tag, QPM_SEMANTIC_QUALITY_ALLOWED_PUBMED_FIELD_TAGS, true)) {
+                $invalidTags[$tag] = true;
+            }
+        }
+        return array_keys($invalidTags);
+    }
+}
+
+if (!function_exists('qpmSemanticQualitySanitizeSearchStringDeterministic')) {
+    /**
+     * Ported from sanitizeSearchStringDeterministic() in meshValidator.js.
+     * Unlike the JS version (which throws on invalid syntax/tags), this
+     * returns a result array with 'valid' + 'errors' so callers can decide
+     * how to degrade (the PHP unified engine falls back to the
+     * pre-sanitization string rather than failing the whole search).
+     *
+     * @param string $searchString
+     * @return array{value:string,valid:bool,errors:array<int,string>}
+     */
+    function qpmSemanticQualitySanitizeSearchStringDeterministic(string $searchString): array
+    {
+        $result = $searchString;
+        $result = qpmSemanticQualityNormalizeFieldTags($result);
+        $result = qpmSemanticQualityNormalizeUnsupportedFieldTags($result);
+        $result = qpmSemanticQualityFixWildcardsInQuotedTerms($result);
+        $result = qpmSemanticQualityQuoteMeshTerms($result);
+        $result = qpmSemanticQualityRemoveDuplicateTerms($result);
+        $result = qpmSemanticQualityNormalizeBooleanOperatorsOutsideQuotes($result);
+
+        $errors = [];
+        if (!qpmSemanticQualityAssertBalancedSyntax($result)) {
+            $errors[] = 'Unbalanced parentheses or quotation marks in search string.';
+        }
+        $invalidTags = qpmSemanticQualityAssertAllowedFieldTags($result);
+        if (!empty($invalidTags)) {
+            $errors[] = 'Invalid field tag(s): ' . implode(', ', $invalidTags);
+        }
+
+        return ['value' => $result, 'valid' => empty($errors), 'errors' => $errors];
+    }
+}
+
+if (!function_exists('qpmSemanticQualityLowercaseNonMeshTerms')) {
+    /**
+     * Ported from lowercaseNonMeshTerms() in meshValidator.js. Lowercases all
+     * quoted/unquoted terms not tagged [mh] or [au] (purely cosmetic, PubMed
+     * is case-insensitive).
+     *
+     * @param string $searchString
+     * @return string
+     */
+    function qpmSemanticQualityLowercaseNonMeshTerms(string $searchString): string
+    {
+        if ($searchString === '') {
+            return $searchString;
+        }
+        return (string) preg_replace_callback(
+            '/("([^"]+)"|\b([a-zA-Z][a-zA-Z0-9 *\-]*?))\[(\w+)\]/',
+            static function ($m) {
+                $tagLower = strtolower($m[4]);
+                if ($tagLower === 'mh' || $tagLower === 'au' || $tagLower === 'mesh') {
+                    return $m[0];
+                }
+                if ($m[2] !== '') {
+                    return '"' . strtolower($m[2]) . '"[' . $m[4] . ']';
+                }
+                if ($m[3] !== '') {
+                    $trimmed = ltrim($m[3]);
+                    $leadingWhitespace = substr($m[3], 0, strlen($m[3]) - strlen($trimmed));
+                    if (preg_match('/^(AND|OR|NOT)\s+(.+)$/i', $trimmed, $boolMatch) === 1) {
+                        return $leadingWhitespace . strtoupper($boolMatch[1]) . ' ' . strtolower($boolMatch[2]) . '[' . $m[4] . ']';
+                    }
+                    return strtolower($m[3]) . '[' . $m[4] . ']';
+                }
+                return $m[0];
+            },
+            $searchString
+        );
+    }
+}
+
+// =====================================================================
 // Section 3: Hybrid quality-signal rerank formula (ported from semanticReranking.js)
 // =====================================================================
 

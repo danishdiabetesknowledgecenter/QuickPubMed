@@ -2523,6 +2523,145 @@ if (!function_exists('qpmPublicSearchBuildQueryIntentFromSemanticIntent')) {
     }
 }
 
+if (!function_exists('qpmPublicSearchValidateMeshTerm')) {
+    /**
+     * Ported from validateMeshTerm() in src/utils/meshValidator.js. Validates
+     * one term against NLM's MeSH database (db=mesh ESearch). Fails soft
+     * (valid=true, uid=null) on any NLM error, exactly like the JS version,
+     * so a flaky NLM call never blocks a search.
+     *
+     * @param string $term
+     * @param string $domain
+     * @return array{valid:bool,uid:?string}
+     */
+    function qpmPublicSearchValidateMeshTerm(string $term, string $domain = ''): array
+    {
+        $normalizedTerm = trim($term);
+        if ($normalizedTerm === '') {
+            return ['valid' => true, 'uid' => null];
+        }
+        try {
+            $payload = qpmPublicSearchNlmGetJson('esearch.fcgi', [
+                'db' => 'mesh',
+                'term' => '"' . $normalizedTerm . '"[MeSH Terms]',
+                'retmode' => 'json',
+                'retmax' => '1',
+            ], $domain);
+            $esearch = isset($payload['esearchresult']) && is_array($payload['esearchresult']) ? $payload['esearchresult'] : [];
+            $count = (int) ($esearch['count'] ?? 0);
+            $uid = isset($esearch['idlist'][0]) ? (string) $esearch['idlist'][0] : null;
+            return ['valid' => $count > 0, 'uid' => $uid];
+        } catch (Throwable $exception) {
+            return ['valid' => true, 'uid' => null];
+        }
+    }
+}
+
+if (!function_exists('qpmPublicSearchFetchMeshDetails')) {
+    /**
+     * Ported from fetchMeshDetails() in meshValidator.js (ESummary db=mesh).
+     * Only extracts the 'name' field (canonical descriptor), since that is
+     * all qpmPublicSearchCanonicalizeAllMeshTermsWithNlm() needs; the richer
+     * scope-note/related-term context is part of the deliberately-deferred
+     * AI-optimization loop (see this file's Section 2B header comment).
+     *
+     * @param array<int,string> $uids
+     * @param string $domain
+     * @return array<string,string> Map of uid -> canonical descriptor name.
+     */
+    function qpmPublicSearchFetchMeshDetails(array $uids, string $domain = ''): array
+    {
+        $uids = array_values(array_filter(array_unique($uids)));
+        if (empty($uids)) {
+            return [];
+        }
+        try {
+            $payload = qpmPublicSearchNlmGetJson('esummary.fcgi', [
+                'db' => 'mesh',
+                'id' => implode(',', $uids),
+                'retmode' => 'json',
+            ], $domain);
+            $result = isset($payload['result']) && is_array($payload['result']) ? $payload['result'] : [];
+            $names = [];
+            foreach ((array) ($result['uids'] ?? []) as $uid) {
+                $record = isset($result[$uid]) && is_array($result[$uid]) ? $result[$uid] : null;
+                if ($record === null) {
+                    continue;
+                }
+                $meshTerms = isset($record['ds_meshterms']) && is_array($record['ds_meshterms']) ? $record['ds_meshterms'] : [];
+                if (!empty($meshTerms) && is_string($meshTerms[0]) && trim($meshTerms[0]) !== '') {
+                    $names[(string) $uid] = trim($meshTerms[0]);
+                }
+            }
+            return $names;
+        } catch (Throwable $exception) {
+            return [];
+        }
+    }
+}
+
+if (!function_exists('qpmPublicSearchCanonicalizeAllMeshTermsWithNlm')) {
+    /**
+     * Ported from canonicalizeAllMeshTermsWithNlm() in meshValidator.js
+     * (Step 2b): rewrites valid [mh] terms to NLM's canonical Descriptor
+     * Name, and downgrades invalid/hallucinated [mh] terms to [tiab] so an
+     * invalid MeSH tag never reaches PubMed.
+     *
+     * @param string $searchString
+     * @param string $domain
+     * @return string
+     */
+    function qpmPublicSearchCanonicalizeAllMeshTermsWithNlm(string $searchString, string $domain = ''): string
+    {
+        if (trim($searchString) === '') {
+            return $searchString;
+        }
+        $meshTerms = qpmSemanticQualityExtractMeshTerms($searchString);
+        if (empty($meshTerms)) {
+            return $searchString;
+        }
+
+        $validationByTermKey = [];
+        $seenTermKeys = [];
+        foreach ($meshTerms as $entry) {
+            $key = strtolower($entry['term']);
+            if (isset($seenTermKeys[$key])) {
+                continue;
+            }
+            $seenTermKeys[$key] = true;
+            $validationByTermKey[$key] = qpmPublicSearchValidateMeshTerm($entry['term'], $domain);
+        }
+
+        $uids = [];
+        foreach ($validationByTermKey as $validation) {
+            if (!empty($validation['uid'])) {
+                $uids[] = (string) $validation['uid'];
+            }
+        }
+        $canonicalNames = !empty($uids) ? qpmPublicSearchFetchMeshDetails($uids, $domain) : [];
+
+        $result = $searchString;
+        foreach ($meshTerms as $entry) {
+            $key = strtolower($entry['term']);
+            $validation = $validationByTermKey[$key] ?? ['valid' => true, 'uid' => null];
+            if (($validation['valid'] ?? false) === true && !empty($validation['uid']) && isset($canonicalNames[(string) $validation['uid']])) {
+                $canonical = $canonicalNames[(string) $validation['uid']];
+                $replacement = '"' . $canonical . '"[mh]';
+                if ($replacement !== $entry['fullMatch']) {
+                    $result = str_replace($entry['fullMatch'], $replacement, $result);
+                }
+                continue;
+            }
+            if (($validation['valid'] ?? true) === false) {
+                $replacement = '"' . $entry['term'] . '"[tiab]';
+                $result = str_replace($entry['fullMatch'], $replacement, $result);
+            }
+        }
+
+        return $result;
+    }
+}
+
 if (!function_exists('qpmPublicSearchTranslatePubMedQuery')) {
     /**
      * @param string $text
@@ -2548,7 +2687,36 @@ if (!function_exists('qpmPublicSearchTranslatePubMedQuery')) {
             'text' => ['verbosity' => 'medium'],
             'max_output_tokens' => 500,
         ];
-        return qpmPublicSearchExtractOpenAiText(qpmPublicSearchOpenAiRequest($request, $domain));
+        $translated = trim(qpmPublicSearchExtractOpenAiText(qpmPublicSearchOpenAiRequest($request, $domain)));
+
+        // MeSH validation/canonicalization (partial port of
+        // src/utils/meshValidator.js - see semantic-quality-lib.php Section 2B
+        // for exactly what is and isn't ported). Only applied for the unified
+        // engine, and skipped entirely under QPM_MESH_VALIDATION_OBSERVE_ONLY
+        // (same safety-brake semantics as the website widget).
+        if (
+            $translated !== ''
+            && qpmPublicSearchIsUnifiedSearchEngineEnabled()
+            && !(defined('QPM_MESH_VALIDATION_OBSERVE_ONLY') && QPM_MESH_VALIDATION_OBSERVE_ONLY === true)
+        ) {
+            try {
+                $canonicalized = qpmPublicSearchCanonicalizeAllMeshTermsWithNlm($translated, $domain);
+                $sanitized = qpmSemanticQualitySanitizeSearchStringDeterministic($canonicalized);
+                if ($sanitized['valid']) {
+                    $translated = qpmSemanticQualityLowercaseNonMeshTerms($sanitized['value']);
+                    $translated = qpmSemanticQualityNormalizeBooleanOperatorsOutsideQuotes($translated);
+                }
+                // If sanitization finds the result invalid (unbalanced syntax
+                // or a disallowed tag slipped through), fail soft and keep
+                // the pre-sanitization translated string rather than risk
+                // sending a broken query to PubMed.
+            } catch (Throwable $exception) {
+                // Fail soft: MeSH validation/canonicalization is an
+                // enrichment step, not a hard dependency of the translation.
+            }
+        }
+
+        return $translated;
     }
 }
 
