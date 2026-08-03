@@ -1759,7 +1759,15 @@ if (!function_exists('qpmPublicSearchNormalizePostRequest')) {
         );
 
         $elicit = isset($sourceFilters['elicit']) && is_array($sourceFilters['elicit']) ? $sourceFilters['elicit'] : [];
-        $elicitUnexpected = array_diff(array_keys($elicit), ['typeTags', 'includeKeywords', 'excludeKeywords']);
+        // Extended (additive, backward compatible) to accept the same Elicit
+        // filter fields the website widget's buildSemanticSourceQueryPlan()
+        // already sends (DropdownWrapper.vue ~5903-5919), which the public
+        // API previously rejected outright as "unsupported field(s)".
+        $elicitAllowedFields = [
+            'typeTags', 'includeKeywords', 'excludeKeywords',
+            'minYear', 'maxYear', 'minEpochS', 'maxEpochS', 'maxQuartile', 'hasPdf', 'pubmedOnly', 'retracted',
+        ];
+        $elicitUnexpected = array_diff(array_keys($elicit), $elicitAllowedFields);
         if (!empty($elicitUnexpected)) {
             throw new InvalidArgumentException(
                 'Unsupported sourceFilters.elicit field(s): ' . implode(', ', $elicitUnexpected)
@@ -1777,6 +1785,30 @@ if (!function_exists('qpmPublicSearchNormalizePostRequest')) {
         $request['sourceFilters']['elicit']['excludeKeywords'] = qpmPublicSearchNormalizeSimpleList(
             $elicit['excludeKeywords'] ?? []
         );
+        if (array_key_exists('minYear', $elicit)) {
+            $request['sourceFilters']['elicit']['minYear'] = qpmPublicSearchNormalizeElicitYearValue($elicit['minYear']);
+        }
+        if (array_key_exists('maxYear', $elicit)) {
+            $request['sourceFilters']['elicit']['maxYear'] = qpmPublicSearchNormalizeElicitYearValue($elicit['maxYear']);
+        }
+        if (array_key_exists('minEpochS', $elicit)) {
+            $request['sourceFilters']['elicit']['minEpochS'] = is_numeric($elicit['minEpochS']) ? (int) $elicit['minEpochS'] : null;
+        }
+        if (array_key_exists('maxEpochS', $elicit)) {
+            $request['sourceFilters']['elicit']['maxEpochS'] = is_numeric($elicit['maxEpochS']) ? (int) $elicit['maxEpochS'] : null;
+        }
+        if (array_key_exists('maxQuartile', $elicit)) {
+            $request['sourceFilters']['elicit']['maxQuartile'] = qpmPublicSearchNormalizeElicitQuartileValue($elicit['maxQuartile']);
+        }
+        if (array_key_exists('hasPdf', $elicit)) {
+            $request['sourceFilters']['elicit']['hasPdf'] = qpmPublicSearchNormalizeElicitBooleanValue($elicit['hasPdf']);
+        }
+        if (array_key_exists('pubmedOnly', $elicit)) {
+            $request['sourceFilters']['elicit']['pubmedOnly'] = qpmPublicSearchNormalizeElicitBooleanValue($elicit['pubmedOnly']);
+        }
+        if (array_key_exists('retracted', $elicit)) {
+            $request['sourceFilters']['elicit']['retracted'] = qpmPublicSearchNormalizeElicitRetractedValue($elicit['retracted']);
+        }
 
         if ($request['query']['text'] === '') {
             throw new InvalidArgumentException('query.text is required');
@@ -2594,12 +2626,17 @@ if (!function_exists('qpmPublicSearchMapSourceFormatsToOpenAlexFilters')) {
      */
     function qpmPublicSearchMapSourceFormatsToOpenAlexFilters(array $sourceFormats): array
     {
+        // journal -> workType:'article' (NOT sourceType:'journal') to match
+        // mapSourceFormatsToOpenAlexFilters() in DropdownWrapper.vue exactly
+        // (src/components/DropdownWrapper.vue ~5557-5574). The earlier PHP
+        // version mapped journal to sourceType:'journal' instead, which is a
+        // real behavioral divergence from the website widget - fixed here.
         $sourceTypes = [];
         $workTypes = [];
         foreach ($sourceFormats as $value) {
             $normalized = qpmPublicSearchNormalizeSourceFormat($value);
             if ($normalized === 'journal') {
-                $sourceTypes[] = 'journal';
+                $workTypes[] = 'article';
             } elseif ($normalized === 'conference') {
                 $sourceTypes[] = 'conference';
             } elseif ($normalized === 'preprint') {
@@ -2608,8 +2645,34 @@ if (!function_exists('qpmPublicSearchMapSourceFormatsToOpenAlexFilters')) {
         }
         return [
             'sourceType' => qpmPublicSearchDedupeStrings($sourceTypes),
-            'workType' => qpmPublicSearchDedupeStrings($workTypes),
+            'workType' => qpmPublicSearchDedupeStrings(array_map('qpmPublicSearchNormalizeOpenAlexWorkType', $workTypes)),
         ];
+    }
+}
+
+if (!function_exists('qpmPublicSearchMapSourceFormatsToSemanticScholarPublicationTypes')) {
+    /**
+     * Ported from mapSourceFormatsToSemanticScholarPublicationTypes() in
+     * DropdownWrapper.vue (~5593-5609). Previously missing entirely from the
+     * PHP query-plan builder.
+     *
+     * @param array<int,string> $sourceFormats
+     * @return array<int,string>
+     */
+    function qpmPublicSearchMapSourceFormatsToSemanticScholarPublicationTypes(array $sourceFormats): array
+    {
+        $output = [];
+        foreach ($sourceFormats as $value) {
+            $normalized = qpmPublicSearchNormalizeSourceFormat($value);
+            if ($normalized === 'journal') {
+                $output[] = 'JournalArticle';
+            } elseif ($normalized === 'conference') {
+                $output[] = 'Conference';
+            } elseif ($normalized === 'preprint') {
+                $output[] = 'Preprint';
+            }
+        }
+        return qpmPublicSearchDedupeStrings(array_map('qpmPublicSearchNormalizeSemanticScholarPublicationType', $output));
     }
 }
 
@@ -2632,6 +2695,102 @@ if (!function_exists('qpmPublicSearchMapHardFiltersToElicitTypeTags')) {
             }
         }
         return qpmPublicSearchDedupeStrings(array_map('qpmPublicSearchNormalizeElicitTypeTag', $output));
+    }
+}
+
+if (!function_exists('qpmPublicSearchNormalizeElicitBooleanValue')) {
+    /**
+     * Ported from normalizeElicitBooleanValue() in DropdownWrapper.vue (~5686-5694).
+     *
+     * @param mixed $value
+     * @return ?bool
+     */
+    function qpmPublicSearchNormalizeElicitBooleanValue($value): ?bool
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        if (is_bool($value)) {
+            return $value;
+        }
+        if (is_int($value) || is_float($value)) {
+            return ((float) $value) !== 0.0;
+        }
+        $normalized = strtolower(trim((string) $value));
+        if (in_array($normalized, ['true', 'yes', '1', 'on'], true)) {
+            return true;
+        }
+        if (in_array($normalized, ['false', 'no', '0', 'off'], true)) {
+            return false;
+        }
+        return null;
+    }
+}
+
+if (!function_exists('qpmPublicSearchNormalizeElicitYearValue')) {
+    /**
+     * Ported from normalizeElicitYearValue() in DropdownWrapper.vue (~5695-5700).
+     *
+     * @param mixed $value
+     * @return ?int
+     */
+    function qpmPublicSearchNormalizeElicitYearValue($value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        $year = (int) $value;
+        if ($year < 1800 || $year > 2100 || !is_numeric($value)) {
+            return null;
+        }
+        return $year;
+    }
+}
+
+if (!function_exists('qpmPublicSearchNormalizeElicitQuartileValue')) {
+    /**
+     * Ported from normalizeElicitQuartileValue() in DropdownWrapper.vue (~5701-5706).
+     *
+     * @param mixed $value
+     * @return ?int
+     */
+    function qpmPublicSearchNormalizeElicitQuartileValue($value): ?int
+    {
+        if ($value === null || $value === '' || !is_numeric($value)) {
+            return null;
+        }
+        $quartile = (int) $value;
+        if ($quartile < 1 || $quartile > 4) {
+            return null;
+        }
+        return $quartile;
+    }
+}
+
+if (!function_exists('qpmPublicSearchNormalizeElicitRetractedValue')) {
+    /**
+     * Ported from normalizeElicitRetractedValue() in DropdownWrapper.vue (~5707-5714).
+     *
+     * @param mixed $value
+     * @return string
+     */
+    function qpmPublicSearchNormalizeElicitRetractedValue($value): string
+    {
+        $normalized = strtolower(trim((string) $value));
+        $normalized = (string) preg_replace('/[\s_-]+/', '', $normalized);
+        if ($normalized === '') {
+            return '';
+        }
+        if (in_array($normalized, ['excluderetracted', 'exclude'], true)) {
+            return 'exclude_retracted';
+        }
+        if (in_array($normalized, ['includeretracted', 'include'], true)) {
+            return 'include_retracted';
+        }
+        if (in_array($normalized, ['onlyretracted', 'only'], true)) {
+            return 'only_retracted';
+        }
+        return '';
     }
 }
 
@@ -2746,29 +2905,44 @@ if (!function_exists('qpmPublicSearchBuildSourceQueryPlan')) {
             ? $request['sourceFilters']
             : [];
 
+        // Merge strategy below intentionally differs by field, matching
+        // buildSemanticSourceQueryPlan() in DropdownWrapper.vue exactly:
+        // - OpenAlex workType/sourceType/language and Elicit typeTags PREFER
+        //   an explicitly configured sourceFilters value over the hardFilter-
+        //   derived fallback (configured wins outright; fallback is only used
+        //   when nothing was configured).
+        // - Semantic Scholar publicationTypes ALWAYS merges configured +
+        //   fallback + the sourceFormat-proxy fallback together (JS does the
+        //   same - see mapSourceFormatsToSemanticScholarPublicationTypes()).
         $openAlexSourceFormatFilters = qpmPublicSearchMapSourceFormatsToOpenAlexFilters(
             (array) ($hardFilters['sourceFormats'] ?? [])
         );
-        $openAlexWorkTypes = qpmPublicSearchDedupeStrings(array_merge(
-            (array) ($sourceFilters['openAlex']['workType'] ?? []),
+        $fallbackOpenAlexWorkTypes = qpmPublicSearchDedupeStrings(array_merge(
             $openAlexSourceFormatFilters['workType'],
             qpmPublicSearchMapPublicationTypesToOpenAlexWorkTypes((array) ($hardFilters['publicationTypes'] ?? []))
         ));
-        $openAlexSourceTypes = qpmPublicSearchDedupeStrings(array_merge(
-            (array) ($sourceFilters['openAlex']['sourceType'] ?? []),
-            $openAlexSourceFormatFilters['sourceType']
+        $configuredOpenAlexWorkTypes = qpmPublicSearchDedupeStrings(array_map(
+            'qpmPublicSearchNormalizeOpenAlexWorkType',
+            (array) ($sourceFilters['openAlex']['workType'] ?? [])
         ));
-        $openAlexLanguages = qpmPublicSearchDedupeStrings(array_merge(
-            (array) ($sourceFilters['openAlex']['language'] ?? []),
-            (array) ($hardFilters['languages'] ?? [])
-        ), 'qpmPublicSearchNormalizeLanguageCode');
+        $openAlexWorkTypes = !empty($configuredOpenAlexWorkTypes) ? $configuredOpenAlexWorkTypes : $fallbackOpenAlexWorkTypes;
+
+        $fallbackOpenAlexSourceTypes = $openAlexSourceFormatFilters['sourceType'];
+        $configuredOpenAlexSourceTypes = qpmPublicSearchDedupeStrings((array) ($sourceFilters['openAlex']['sourceType'] ?? []));
+        $openAlexSourceTypes = !empty($configuredOpenAlexSourceTypes) ? $configuredOpenAlexSourceTypes : $fallbackOpenAlexSourceTypes;
+
+        $fallbackOpenAlexLanguages = qpmPublicSearchDedupeStrings((array) ($hardFilters['languages'] ?? []), 'qpmPublicSearchNormalizeLanguageCode');
+        $configuredOpenAlexLanguages = qpmPublicSearchDedupeStrings((array) ($sourceFilters['openAlex']['language'] ?? []), 'qpmPublicSearchNormalizeLanguageCode');
+        $openAlexLanguages = !empty($configuredOpenAlexLanguages) ? $configuredOpenAlexLanguages : $fallbackOpenAlexLanguages;
+
         $openAlexPublicationYear = qpmPublicSearchNormalizePublicationYearRange(
             $sourceFilters['openAlex']['publicationYear'] ?? ($hardFilters['publicationYear'] ?? '')
         );
 
         $semanticScholarPublicationTypes = qpmPublicSearchDedupeStrings(array_merge(
             (array) ($sourceFilters['semanticScholar']['publicationTypes'] ?? []),
-            qpmPublicSearchMapHardFiltersToSemanticScholarPublicationTypes((array) ($hardFilters['publicationTypes'] ?? []))
+            qpmPublicSearchMapHardFiltersToSemanticScholarPublicationTypes((array) ($hardFilters['publicationTypes'] ?? [])),
+            qpmPublicSearchMapSourceFormatsToSemanticScholarPublicationTypes((array) ($hardFilters['sourceFormats'] ?? []))
         ));
         $semanticScholarPublicationDateOrYear = qpmPublicSearchNormalizeSemanticScholarPublicationDateOrYear(
             $sourceFilters['semanticScholar']['publicationDateOrYear'] ?? ''
@@ -2777,10 +2951,54 @@ if (!function_exists('qpmPublicSearchBuildSourceQueryPlan')) {
             $sourceFilters['semanticScholar']['year'] ?? ($hardFilters['publicationYear'] ?? '')
         );
 
-        $elicitTypeTags = qpmPublicSearchDedupeStrings(array_merge(
-            (array) ($sourceFilters['elicit']['typeTags'] ?? []),
-            qpmPublicSearchMapHardFiltersToElicitTypeTags($hardFilters)
+        $fallbackElicitTypeTags = qpmPublicSearchMapHardFiltersToElicitTypeTags($hardFilters);
+        $configuredElicitTypeTags = qpmPublicSearchDedupeStrings(array_map(
+            'qpmPublicSearchNormalizeElicitTypeTag',
+            (array) ($sourceFilters['elicit']['typeTags'] ?? [])
         ));
+        $elicitTypeTags = !empty($configuredElicitTypeTags) ? $configuredElicitTypeTags : $fallbackElicitTypeTags;
+
+        $elicitFilters = $sourceFilters['elicit'] ?? [];
+        $elicitFinalFilters = [
+            'typeTags' => $elicitTypeTags,
+            'includeKeywords' => qpmPublicSearchNormalizeSimpleList($elicitFilters['includeKeywords'] ?? []),
+            'excludeKeywords' => qpmPublicSearchNormalizeSimpleList($elicitFilters['excludeKeywords'] ?? []),
+        ];
+        $elicitMinYear = qpmPublicSearchNormalizeElicitYearValue($elicitFilters['minYear'] ?? null);
+        if ($elicitMinYear !== null) {
+            $elicitFinalFilters['minYear'] = $elicitMinYear;
+        }
+        $elicitMaxYear = qpmPublicSearchNormalizeElicitYearValue($elicitFilters['maxYear'] ?? null);
+        if ($elicitMaxYear !== null) {
+            $elicitFinalFilters['maxYear'] = $elicitMaxYear;
+        }
+        $elicitMinEpochS = isset($elicitFilters['minEpochS']) && is_numeric($elicitFilters['minEpochS']) && (int) $elicitFilters['minEpochS'] > 0
+            ? (int) $elicitFilters['minEpochS']
+            : null;
+        if ($elicitMinEpochS !== null) {
+            $elicitFinalFilters['minEpochS'] = $elicitMinEpochS;
+        }
+        $elicitMaxEpochS = isset($elicitFilters['maxEpochS']) && is_numeric($elicitFilters['maxEpochS']) && (int) $elicitFilters['maxEpochS'] > 0
+            ? (int) $elicitFilters['maxEpochS']
+            : null;
+        if ($elicitMaxEpochS !== null) {
+            $elicitFinalFilters['maxEpochS'] = $elicitMaxEpochS;
+        }
+        $elicitMaxQuartile = qpmPublicSearchNormalizeElicitQuartileValue($elicitFilters['maxQuartile'] ?? null);
+        if ($elicitMaxQuartile !== null) {
+            $elicitFinalFilters['maxQuartile'] = $elicitMaxQuartile;
+        }
+        $elicitHasPdf = qpmPublicSearchNormalizeElicitBooleanValue($elicitFilters['hasPdf'] ?? null);
+        if ($elicitHasPdf !== null) {
+            $elicitFinalFilters['hasPdf'] = $elicitHasPdf;
+        }
+        $elicitPubmedOnly = qpmPublicSearchNormalizeElicitBooleanValue($elicitFilters['pubmedOnly'] ?? null);
+        if ($elicitPubmedOnly !== null) {
+            $elicitFinalFilters['pubmedOnly'] = $elicitPubmedOnly;
+        }
+        // Defaults to 'exclude_retracted' when unset, matching
+        // buildSemanticSourceQueryPlan() in DropdownWrapper.vue (~5918-5919).
+        $elicitFinalFilters['retracted'] = qpmPublicSearchNormalizeElicitRetractedValue($elicitFilters['retracted'] ?? '') ?: 'exclude_retracted';
 
         return [
             'semanticScholar' => [
@@ -2802,15 +3020,7 @@ if (!function_exists('qpmPublicSearchBuildSourceQueryPlan')) {
             ],
             'elicit' => [
                 'query' => qpmPublicSearchBuildElicitFallbackQuery($semanticQuery),
-                'filters' => [
-                    'typeTags' => $elicitTypeTags,
-                    'includeKeywords' => qpmPublicSearchNormalizeSimpleList(
-                        $sourceFilters['elicit']['includeKeywords'] ?? []
-                    ),
-                    'excludeKeywords' => qpmPublicSearchNormalizeSimpleList(
-                        $sourceFilters['elicit']['excludeKeywords'] ?? []
-                    ),
-                ],
+                'filters' => $elicitFinalFilters,
             ],
         ];
     }
@@ -3905,6 +4115,22 @@ if (!function_exists('qpmPublicSearchFetchElicitSourceResult')) {
         if (!empty($excludeKeywords)) {
             $requestFilters['excludeKeywords'] = $excludeKeywords;
         }
+        // Extended fields (parity with DropdownWrapper.vue's Elicit filter
+        // set); previously silently dropped even when present in $filters.
+        foreach (['minYear', 'maxYear', 'minEpochS', 'maxEpochS', 'maxQuartile'] as $numericFilterKey) {
+            if (isset($filters[$numericFilterKey]) && is_numeric($filters[$numericFilterKey])) {
+                $requestFilters[$numericFilterKey] = (int) $filters[$numericFilterKey];
+            }
+        }
+        if (isset($filters['hasPdf']) && is_bool($filters['hasPdf'])) {
+            $requestFilters['hasPdf'] = $filters['hasPdf'];
+        }
+        if (isset($filters['pubmedOnly']) && is_bool($filters['pubmedOnly'])) {
+            $requestFilters['pubmedOnly'] = $filters['pubmedOnly'];
+        }
+        // Defaults to 'exclude_retracted' to match the website widget's own
+        // default (DropdownWrapper.vue ~5918-5919) when unset.
+        $requestFilters['retracted'] = qpmPublicSearchNormalizeElicitRetractedValue($filters['retracted'] ?? '') ?: 'exclude_retracted';
         $payload = [
             'query' => $normalizedQuery,
             'maxResults' => $limit,
