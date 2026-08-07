@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://quickpubmed.example/schemas/public-search-process-details.schema.json",
+  "title": "QuickPubMed process details",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "sourceQueryDetails",
+    "processStepDetails"
+  ],
+  "properties": {
+    "version": {
+      "const": "1"
+    },
+    "sourceQueryDetails": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/sourceQueryDetail"
+      }
+    },
+    "processStepDetails": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/processStepDetail"
+      }
+    }
+  },
+  "$defs": {
+    "stepId": {
+      "type": "string",
+      "enum": [
+        "prepare",
+        "semanticQuery",
+        "searchString",
+        "mesh",
+        "optimize",
+        "semanticScholar",
+        "openAlex",
+        "elicit",
+        "pubmed",
+        "rerank",
+        "finalizeCollect",
+        "finalizeValidatePmid",
+        "finalizeValidateDoiFetch",
+        "finalizeValidateDoiSource",
+        "finalizeValidateDoiRules",
+        "finalizeHydrate",
+        "finalizeSort",
+        "finalRerank",
+        "finalizeRender",
+        "finalizeSelected"
+      ]
+    },
+    "sourceId": {
+      "type": "string",
+      "enum": [
+        "pubmed",
+        "semanticScholar",
+        "openAlex",
+        "elicit"
+      ]
+    },
+    "sourceQueryDetail": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "query",
+        "request",
+        "requestMeta",
+        "response",
+        "context"
+      ],
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/sourceId"
+        },
+        "query": {
+          "type": "string",
+          "minLength": 1
+        },
+        "request": {
+          "type": "object"
+        },
+        "requestMeta": {
+          "type": "object"
+        },
+        "response": {
+          "type": "object"
+        },
+        "context": {
+          "type": "string"
+        }
+      }
+    },
+    "processStepDetail": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stepId",
+        "payload",
+        "context"
+      ],
+      "properties": {
+        "stepId": {
+          "$ref": "#/$defs/stepId"
+        },
+        "payload": {
+          "type": "object"
+        },
+        "context": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
