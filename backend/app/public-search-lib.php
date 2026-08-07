@@ -2737,12 +2737,25 @@ if (!function_exists('qpmPublicSearchTranslatePubMedQuery')) {
      * @param array<string,mixed> $hardFilters
      * @return string
      */
-    function qpmPublicSearchTranslatePubMedQuery(string $text, string $language, string $domain = '', ?array $llmSemanticIntent = null, array $hardFilters = []): string
+    function qpmPublicSearchTranslatePubMedQuery(string $text, string $language, string $domain = '', ?array $llmSemanticIntent = null, array $hardFilters = [], ?callable $progressCallback = null): string
     {
         $normalizedText = trim($text);
         if ($normalizedText === '') {
             return '';
         }
+        // Granular progress markers so a caller using SSE streaming (see
+        // UnifiedSearch.php / qpmPublicSearchRunSearch) can show accurate,
+        // live timing for each sub-phase instead of attributing the whole
+        // (potentially 10-40s, mostly MeSH-lookup-bound) translation+MeSH
+        // step to a single generic "prepare" bucket. Mirrors the same
+        // searchString/mesh/optimize step ids the website widget's own
+        // meshValidator.js flow already reports.
+        qpmPublicSearchEmitProgress($progressCallback, 'searchString', '', [
+            'stepId' => 'searchString',
+            'groupId' => 'prepare',
+            'groupKey' => 'semanticSearchProcessGroupPrepare',
+            'messageKey' => 'semanticSearchProgressSearchString',
+        ]);
         $promptInput = qpmPublicSearchBuildPubMedTranslationPromptInput($normalizedText, $llmSemanticIntent, $hardFilters);
         $request = [
             'model' => 'gpt-5.5',
@@ -2768,8 +2781,20 @@ if (!function_exists('qpmPublicSearchTranslatePubMedQuery')) {
             && qpmPublicSearchIsUnifiedSearchEngineEnabled()
             && !(defined('QPM_MESH_VALIDATION_OBSERVE_ONLY') && QPM_MESH_VALIDATION_OBSERVE_ONLY === true)
         ) {
+            qpmPublicSearchEmitProgress($progressCallback, 'mesh', '', [
+                'stepId' => 'mesh',
+                'groupId' => 'prepare',
+                'groupKey' => 'semanticSearchProcessGroupPrepare',
+                'messageKey' => 'semanticSearchProgressMesh',
+            ]);
             try {
                 $canonicalized = qpmPublicSearchCanonicalizeAllMeshTermsWithNlm($translated, $domain);
+                qpmPublicSearchEmitProgress($progressCallback, 'optimize', '', [
+                    'stepId' => 'optimize',
+                    'groupId' => 'prepare',
+                    'groupKey' => 'semanticSearchProcessGroupPrepare',
+                    'messageKey' => 'semanticSearchProgressOptimize',
+                ]);
                 $sanitized = qpmSemanticQualitySanitizeSearchStringDeterministic($canonicalized);
                 if ($sanitized['valid']) {
                     $translated = qpmSemanticQualityLowercaseNonMeshTerms($sanitized['value']);
@@ -3299,7 +3324,7 @@ if (!function_exists('qpmPublicSearchBuildResolvedQueries')) {
      * @param array<string,mixed> $request
      * @return array<string,mixed>
      */
-    function qpmPublicSearchBuildResolvedQueries(array $request): array
+    function qpmPublicSearchBuildResolvedQueries(array $request, ?callable $progressCallback = null): array
     {
         $domain = (string) ($request['domain'] ?? '');
         $language = (string) ($request['query']['language'] ?? 'auto');
@@ -3320,6 +3345,12 @@ if (!function_exists('qpmPublicSearchBuildResolvedQueries')) {
             // them independently (the previous version of this function) sends
             // the PubMed LLM call materially less context than the widget does.
             if (qpmPublicSearchIsUnifiedSearchEngineEnabled()) {
+                qpmPublicSearchEmitProgress($progressCallback, 'semanticQuery', '', [
+                    'stepId' => 'semanticQuery',
+                    'groupId' => 'prepare',
+                    'groupKey' => 'semanticSearchProcessGroupPrepare',
+                    'messageKey' => 'semanticSearchProgressSemanticQuery',
+                ]);
                 $semanticIntentResult = qpmPublicSearchExtractSemanticIntent($rawText, $language, $domain);
                 $queryIntent = qpmPublicSearchBuildQueryIntentFromSemanticIntent($semanticIntentResult);
             }
@@ -3330,7 +3361,8 @@ if (!function_exists('qpmPublicSearchBuildResolvedQueries')) {
                     $language,
                     $domain,
                     $semanticIntentResult,
-                    (array) ($request['hardFilters'] ?? [])
+                    (array) ($request['hardFilters'] ?? []),
+                    $progressCallback
                 );
                 if (trim($translatedPubMed) !== '') {
                     $pubmedQuery = trim($translatedPubMed);
@@ -3972,20 +4004,61 @@ if (!function_exists('qpmPublicSearchFetchPubMedBestMatchSourceResult')) {
     }
 }
 
-if (!function_exists('qpmPublicSearchFetchSemanticScholarSourceResult')) {
+if (!function_exists('qpmPublicSearchBuildSemanticScholarBatchRequestSpec')) {
     /**
-     * @param string $query
-     * @param array<string,mixed> $filters
-     * @return array<string,mixed>
+     * Builds the {url, options} spec for one Semantic Scholar /paper/search
+     * batch. Extracted out of qpmPublicSearchFetchSemanticScholarSourceResult()
+     * so qpmPublicSearchPrefetchInitialSourceRequests() can build the exact
+     * same first-batch (offset 0) request for a qpmHttpRequestMulti() prefetch,
+     * without duplicating (and risking drift from) the param-building logic.
+     *
+     * @param array<int,string> $headers
+     * @return array{url:string,options:array<string,mixed>}
      */
-    function qpmPublicSearchFetchSemanticScholarSourceResult(string $query, array $filters, string $apiKeyOverride = ''): array
-    {
-        $normalizedQuery = trim($query);
-        $empty = qpmPublicSearchCreateEmptySourceResult('semanticScholar', $normalizedQuery);
-        if ($normalizedQuery === '') {
-            return $empty;
+    function qpmPublicSearchBuildSemanticScholarBatchRequestSpec(
+        string $normalizedQuery,
+        array $headers,
+        string $publicationTypesParam,
+        string $publicationDateOrYear,
+        string $year,
+        int $offset,
+        int $limit
+    ): array {
+        $params = [
+            'query' => $normalizedQuery,
+            'limit' => $limit,
+            'offset' => $offset,
+            // Aligned with backend/api/SemanticScholarSearch.php's fields list so the
+            // public multi-source API gets the same enrichment signals.
+            'fields' => 'externalIds,title,abstract,venue,year,publicationTypes,publicationDate,citationCount,influentialCitationCount,isOpenAccess,s2FieldsOfStudy,tldr',
+        ];
+        if ($publicationTypesParam !== '') {
+            $params['publicationTypes'] = $publicationTypesParam;
         }
+        if ($publicationDateOrYear !== '') {
+            $params['publicationDateOrYear'] = $publicationDateOrYear;
+        }
+        if ($year !== '') {
+            $params['year'] = $year;
+        }
+        return [
+            'url' => 'https://api.semanticscholar.org/graph/v1/paper/search?' . http_build_query($params),
+            'options' => [
+                'method' => 'GET',
+                'timeout' => 20,
+                'headers' => $headers,
+                'user_agent' => 'QuickPubMed/1.0',
+            ],
+        ];
+    }
+}
 
+if (!function_exists('qpmPublicSearchBuildSemanticScholarHeaders')) {
+    /**
+     * @return array<int,string>
+     */
+    function qpmPublicSearchBuildSemanticScholarHeaders(string $apiKeyOverride = ''): array
+    {
         $envApiKey = getenv('SEMANTIC_SCHOLAR_API_KEY');
         $apiKey = trim($apiKeyOverride) !== '' ? trim($apiKeyOverride) : (
             is_string($envApiKey) && trim($envApiKey) !== ''
@@ -4003,6 +4076,25 @@ if (!function_exists('qpmPublicSearchFetchSemanticScholarSourceResult')) {
         if ($apiKey !== '') {
             $headers[] = 'x-api-key: ' . $apiKey;
         }
+        return $headers;
+    }
+}
+
+if (!function_exists('qpmPublicSearchFetchSemanticScholarSourceResult')) {
+    /**
+     * @param string $query
+     * @param array<string,mixed> $filters
+     * @return array<string,mixed>
+     */
+    function qpmPublicSearchFetchSemanticScholarSourceResult(string $query, array $filters, string $apiKeyOverride = ''): array
+    {
+        $normalizedQuery = trim($query);
+        $empty = qpmPublicSearchCreateEmptySourceResult('semanticScholar', $normalizedQuery);
+        if ($normalizedQuery === '') {
+            return $empty;
+        }
+
+        $headers = qpmPublicSearchBuildSemanticScholarHeaders($apiKeyOverride);
 
         $publicationTypesParam = '';
         $publicationTypes = qpmPublicSearchDedupeStrings(
@@ -4037,31 +4129,16 @@ if (!function_exists('qpmPublicSearchFetchSemanticScholarSourceResult')) {
         while ($offset < $configuredLimit) {
             $currentLimit = min($batchSize, $configuredLimit - $offset);
             qpmThrottleRequestRate('semantic_scholar', 3);
-            $params = [
-                'query' => $normalizedQuery,
-                'limit' => $currentLimit,
-                'offset' => $offset,
-                // Aligned with backend/api/SemanticScholarSearch.php's fields list so the
-                // public multi-source API gets the same enrichment signals.
-                'fields' => 'externalIds,title,abstract,venue,year,publicationTypes,publicationDate,citationCount,influentialCitationCount,isOpenAccess,s2FieldsOfStudy,tldr',
-            ];
-            if ($publicationTypesParam !== '') {
-                $params['publicationTypes'] = $publicationTypesParam;
-            }
-            if ($publicationDateOrYear !== '') {
-                $params['publicationDateOrYear'] = $publicationDateOrYear;
-            }
-            if ($year !== '') {
-                $params['year'] = $year;
-            }
-
-            $url = 'https://api.semanticscholar.org/graph/v1/paper/search?' . http_build_query($params);
-            $result = qpmHttpRequest($url, [
-                'method' => 'GET',
-                'timeout' => 20,
-                'headers' => $headers,
-                'user_agent' => 'QuickPubMed/1.0',
-            ]);
+            $requestSpec = qpmPublicSearchBuildSemanticScholarBatchRequestSpec(
+                $normalizedQuery,
+                $headers,
+                $publicationTypesParam,
+                $publicationDateOrYear,
+                $year,
+                $offset,
+                $currentLimit
+            );
+            $result = qpmHttpRequest($requestSpec['url'], $requestSpec['options']);
             if (!qpmPublicSearchIsHttpResultOk($result)) {
                 $failure = 'Semantic Scholar request failed: ' . qpmPublicSearchDescribeHttpFailure($result);
                 break;
@@ -4174,22 +4251,24 @@ if (!function_exists('qpmPublicSearchNormalizeOpenAlexPmid')) {
     }
 }
 
-if (!function_exists('qpmPublicSearchFetchOpenAlexSourceResult')) {
+if (!function_exists('qpmPublicSearchBuildOpenAlexSourceRequestSpec')) {
     /**
-     * @param string $query
+     * Builds the {url, options} spec for the OpenAlex /works search request.
+     * Extracted out of qpmPublicSearchFetchOpenAlexSourceResult() so
+     * qpmPublicSearchPrefetchInitialSourceRequests() can build the exact same
+     * request for a qpmHttpRequestMulti() prefetch, without duplicating (and
+     * risking drift from) the param-building logic.
+     *
+     * @param string $normalizedQuery
      * @param array<string,mixed> $filters
-     * @param string $domain
-     * @return array<string,mixed>
+     * @return array{url:string,options:array<string,mixed>}
      */
-    function qpmPublicSearchFetchOpenAlexSourceResult(string $query, array $filters, string $domain = '', string $apiKeyOverride = ''): array
-    {
-        $normalizedQuery = trim($query);
-        $empty = qpmPublicSearchCreateEmptySourceResult('openAlex', $normalizedQuery);
-        if ($normalizedQuery === '') {
-            return $empty;
-        }
-
-        qpmThrottleRequestRate('openalex', 1);
+    function qpmPublicSearchBuildOpenAlexSourceRequestSpec(
+        string $normalizedQuery,
+        array $filters,
+        string $domain,
+        string $apiKeyOverride
+    ): array {
         $limit = qpmPublicSearchGetSemanticSourceLimit('openAlex', 50);
         $requestParams = [
             'search.semantic' => $normalizedQuery,
@@ -4233,14 +4312,36 @@ if (!function_exists('qpmPublicSearchFetchOpenAlexSourceResult')) {
         if ($mailto !== '') {
             $requestParams['mailto'] = $mailto;
         }
+        return [
+            'url' => 'https://api.openalex.org/works?' . http_build_query($requestParams),
+            'options' => [
+                'method' => 'GET',
+                'timeout' => 30,
+                'headers' => ['Accept: application/json'],
+                'user_agent' => 'QuickPubMed/1.0',
+            ],
+        ];
+    }
+}
 
-        $url = 'https://api.openalex.org/works?' . http_build_query($requestParams);
-        $result = qpmHttpRequest($url, [
-            'method' => 'GET',
-            'timeout' => 30,
-            'headers' => ['Accept: application/json'],
-            'user_agent' => 'QuickPubMed/1.0',
-        ]);
+if (!function_exists('qpmPublicSearchFetchOpenAlexSourceResult')) {
+    /**
+     * @param string $query
+     * @param array<string,mixed> $filters
+     * @param string $domain
+     * @return array<string,mixed>
+     */
+    function qpmPublicSearchFetchOpenAlexSourceResult(string $query, array $filters, string $domain = '', string $apiKeyOverride = ''): array
+    {
+        $normalizedQuery = trim($query);
+        $empty = qpmPublicSearchCreateEmptySourceResult('openAlex', $normalizedQuery);
+        if ($normalizedQuery === '') {
+            return $empty;
+        }
+
+        qpmThrottleRequestRate('openalex', 1);
+        $requestSpec = qpmPublicSearchBuildOpenAlexSourceRequestSpec($normalizedQuery, $filters, $domain, $apiKeyOverride);
+        $result = qpmHttpRequest($requestSpec['url'], $requestSpec['options']);
         if (!qpmPublicSearchIsHttpResultOk($result)) {
             return qpmPublicSearchCreateEmptySourceResult(
                 'openAlex',
@@ -4358,25 +4459,19 @@ if (!function_exists('qpmPublicSearchFetchOpenAlexSourceResult')) {
     }
 }
 
-if (!function_exists('qpmPublicSearchFetchElicitSourceResult')) {
+if (!function_exists('qpmPublicSearchBuildElicitSourceRequestSpec')) {
     /**
-     * @param string $query
+     * Builds the {url, options} spec for the Elicit /v2/search/papers request.
+     * Extracted out of qpmPublicSearchFetchElicitSourceResult() so
+     * qpmPublicSearchPrefetchInitialSourceRequests() can build the exact same
+     * request for a qpmHttpRequestMulti() prefetch, without duplicating (and
+     * risking drift from) the param-building logic.
+     *
      * @param array<string,mixed> $filters
-     * @return array<string,mixed>
+     * @return array{url:string,options:array<string,mixed>}
      */
-    function qpmPublicSearchFetchElicitSourceResult(string $query, array $filters, string $apiKeyOverride = ''): array
+    function qpmPublicSearchBuildElicitSourceRequestSpec(string $normalizedQuery, array $filters, string $apiKey): array
     {
-        $normalizedQuery = trim($query);
-        $empty = qpmPublicSearchCreateEmptySourceResult('elicit', $normalizedQuery);
-        if ($normalizedQuery === '') {
-            return $empty;
-        }
-        $apiKey = trim($apiKeyOverride) !== '' ? trim($apiKeyOverride) : (defined('ELICIT_API_KEY') ? trim((string) ELICIT_API_KEY) : '');
-        if ($apiKey === '') {
-            return qpmPublicSearchCreateEmptySourceResult('elicit', $normalizedQuery, 'ELICIT_API_KEY is not configured');
-        }
-
-        qpmThrottleRequestRate('elicit', 2);
         $limit = qpmPublicSearchGetSemanticSourceLimit('elicit', 100);
         $requestFilters = [];
         $typeTags = qpmPublicSearchDedupeStrings(
@@ -4418,17 +4513,44 @@ if (!function_exists('qpmPublicSearchFetchElicitSourceResult')) {
         if (!empty($requestFilters)) {
             $payload['filters'] = $requestFilters;
         }
-        $result = qpmHttpRequest('https://elicit.com/api/v2/search/papers', [
-            'method' => 'POST',
-            'timeout' => 45,
-            'headers' => [
-                'Accept: application/json',
-                'Content-Type: application/json',
-                'Authorization: Bearer ' . $apiKey,
+        return [
+            'url' => 'https://elicit.com/api/v2/search/papers',
+            'options' => [
+                'method' => 'POST',
+                'timeout' => 45,
+                'headers' => [
+                    'Accept: application/json',
+                    'Content-Type: application/json',
+                    'Authorization: Bearer ' . $apiKey,
+                ],
+                'body' => qpmPublicSearchSafeJsonEncode($payload),
+                'user_agent' => 'QuickPubMed/1.0',
             ],
-            'body' => qpmPublicSearchSafeJsonEncode($payload),
-            'user_agent' => 'QuickPubMed/1.0',
-        ]);
+        ];
+    }
+}
+
+if (!function_exists('qpmPublicSearchFetchElicitSourceResult')) {
+    /**
+     * @param string $query
+     * @param array<string,mixed> $filters
+     * @return array<string,mixed>
+     */
+    function qpmPublicSearchFetchElicitSourceResult(string $query, array $filters, string $apiKeyOverride = ''): array
+    {
+        $normalizedQuery = trim($query);
+        $empty = qpmPublicSearchCreateEmptySourceResult('elicit', $normalizedQuery);
+        if ($normalizedQuery === '') {
+            return $empty;
+        }
+        $apiKey = trim($apiKeyOverride) !== '' ? trim($apiKeyOverride) : (defined('ELICIT_API_KEY') ? trim((string) ELICIT_API_KEY) : '');
+        if ($apiKey === '') {
+            return qpmPublicSearchCreateEmptySourceResult('elicit', $normalizedQuery, 'ELICIT_API_KEY is not configured');
+        }
+
+        qpmThrottleRequestRate('elicit', 2);
+        $requestSpec = qpmPublicSearchBuildElicitSourceRequestSpec($normalizedQuery, $filters, $apiKey);
+        $result = qpmHttpRequest($requestSpec['url'], $requestSpec['options']);
         if (!qpmPublicSearchIsHttpResultOk($result)) {
             return qpmPublicSearchCreateEmptySourceResult(
                 'elicit',
@@ -5750,6 +5872,12 @@ if (!function_exists('qpmPublicSearchBuildAllowedCandidateKeys')) {
             ]);
 
             $worksByKey = qpmPublicSearchFetchOpenAlexWorksByCandidatesParallel($doiEntries, $domain);
+            qpmPublicSearchEmitProgress($progressCallback, 'finalizeValidateDoiRules', '', [
+                'stepId' => 'finalizeValidateDoiRules',
+                'groupId' => 'finalizeCollect',
+                'groupKey' => 'semanticSearchProcessGroupMatch',
+                'messageKey' => 'semanticSearchProgressFinalizeValidateDoiRules',
+            ]);
             foreach ($doiEntries as $entry) {
                 $key = $entry['key'];
                 $work = $worksByKey[$key] ?? null;
@@ -6770,6 +6898,147 @@ if (!function_exists('qpmPublicSearchBuildFinalResponse')) {
     }
 }
 
+if (!function_exists('qpmPublicSearchPrefetchInitialSourceRequests')) {
+    /**
+     * Fires the *first* HTTP request for each requested source
+     * (pubmed/semanticScholar/openAlex/elicit) concurrently via
+     * qpmHttpRequestMulti(), and registers each response with
+     * qpmHttpRequestPrefetch() so the existing, unmodified
+     * qpmPublicSearchFetch*SourceResult() functions transparently pick them
+     * up on their own first qpmHttpRequest() call instead of blocking on a
+     * real (sequential) network round-trip.
+     *
+     * Deliberately scoped to only the *first* request per source (this is
+     * "Fase 5" from the unified-search-engine-full-parity plan, previously
+     * deferred as "requires bigger refactor than assessed"): Semantic
+     * Scholar's own pagination (2nd+ batch, only reached when there are 100+
+     * raw matches and the configured limit exceeds 100) and PubMed's esummary
+     * (which needs the PMIDs from its own esearch) still run sequentially
+     * after this, exactly as before - but they no longer have to wait for
+     * the OTHER three sources' full round-trip first, which is what caused
+     * the "sources" phase to take roughly the *sum* of every source's
+     * latency instead of the *max* of them. Uses the same request-building
+     * helpers as the real fetch functions (qpmPublicSearchBuild*RequestSpec())
+     * so there is exactly one place that knows how to build each request -
+     * no duplicated/drifting logic.
+     *
+     * @param array<int,string> $sources
+     * @param array<string,mixed> $resolvedQueries
+     * @param array<string,mixed> $request
+     */
+    function qpmPublicSearchPrefetchInitialSourceRequests(
+        array $sources,
+        array $resolvedQueries,
+        array $request,
+        string $domain
+    ): void {
+        $namedRequests = [];
+        $sourceQueryPlan = isset($resolvedQueries['sourceQueryPlan']) && is_array($resolvedQueries['sourceQueryPlan'])
+            ? $resolvedQueries['sourceQueryPlan']
+            : [];
+        $clientSourceApiKeys = isset($request['_clientSourceApiKeys']) && is_array($request['_clientSourceApiKeys'])
+            ? $request['_clientSourceApiKeys']
+            : [];
+
+        if (in_array('pubmed', $sources, true)) {
+            $pubmedQuery = trim((string) ($resolvedQueries['pubmedQuery'] ?? ''));
+            if ($pubmedQuery !== '') {
+                qpmThrottleNlmRequests(5);
+                $searchLimit = qpmPublicSearchGetSemanticSourceLimit('pubmedBestMatch', 200);
+                $baseUrl = function_exists('qpmGetNlmBaseUrl')
+                    ? qpmGetNlmBaseUrl($domain)
+                    : (defined('NLM_BASE_URL') ? NLM_BASE_URL : 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils');
+                $endpointUrl = rtrim($baseUrl, '/') . '/esearch.fcgi';
+                $queryString = qpmPublicSearchBuildNlmQueryParams([
+                    'db' => 'pubmed',
+                    'term' => $pubmedQuery,
+                    'retmode' => 'json',
+                    'retmax' => max(1, $searchLimit),
+                    'retstart' => 0,
+                    'sort' => 'relevance',
+                ], $domain);
+                $namedRequests['pubmed'] = qpmPublicSearchBuildNlmRequestOptions(
+                    $endpointUrl,
+                    $queryString,
+                    ['Accept: application/json']
+                );
+            }
+        }
+        if (in_array('semanticScholar', $sources, true)) {
+            $query = trim((string) ($sourceQueryPlan['semanticScholar']['query'] ?? ''));
+            if ($query !== '') {
+                $filters = (array) ($sourceQueryPlan['semanticScholar']['filters'] ?? []);
+                $headers = qpmPublicSearchBuildSemanticScholarHeaders(
+                    (string) ($clientSourceApiKeys['semanticScholar'] ?? '')
+                );
+                $publicationTypesParam = '';
+                $publicationTypes = qpmPublicSearchDedupeStrings(
+                    array_map(
+                        'qpmPublicSearchNormalizeSemanticScholarPublicationType',
+                        (array) ($filters['publicationTypes'] ?? [])
+                    )
+                );
+                if (!empty($publicationTypes)) {
+                    $publicationTypesParam = implode(',', $publicationTypes);
+                }
+                $publicationDateOrYear = qpmPublicSearchNormalizeSemanticScholarPublicationDateOrYear(
+                    $filters['publicationDateOrYear'] ?? ''
+                );
+                $year = qpmPublicSearchNormalizePublicationYearRange($filters['year'] ?? '');
+                $configuredLimit = max(1, qpmPublicSearchGetSemanticSourceLimit('semanticScholar', 400));
+                $currentLimit = min(100, $configuredLimit);
+                qpmThrottleRequestRate('semantic_scholar', 3);
+                $namedRequests['semanticScholar'] = qpmPublicSearchBuildSemanticScholarBatchRequestSpec(
+                    $query,
+                    $headers,
+                    $publicationTypesParam,
+                    $publicationDateOrYear,
+                    $year,
+                    0,
+                    $currentLimit
+                );
+            }
+        }
+        if (in_array('openAlex', $sources, true)) {
+            $query = trim((string) ($sourceQueryPlan['openAlex']['query'] ?? ''));
+            if ($query !== '') {
+                $filters = (array) ($sourceQueryPlan['openAlex']['filters'] ?? []);
+                qpmThrottleRequestRate('openalex', 1);
+                $namedRequests['openAlex'] = qpmPublicSearchBuildOpenAlexSourceRequestSpec(
+                    $query,
+                    $filters,
+                    $domain,
+                    (string) ($clientSourceApiKeys['openAlex'] ?? '')
+                );
+            }
+        }
+        if (in_array('elicit', $sources, true)) {
+            $query = trim((string) ($sourceQueryPlan['elicit']['query'] ?? ''));
+            if ($query !== '') {
+                $filters = (array) ($sourceQueryPlan['elicit']['filters'] ?? []);
+                $apiKeyOverride = trim((string) ($clientSourceApiKeys['elicit'] ?? ''));
+                $apiKey = $apiKeyOverride !== ''
+                    ? $apiKeyOverride
+                    : (defined('ELICIT_API_KEY') ? trim((string) ELICIT_API_KEY) : '');
+                if ($apiKey !== '') {
+                    qpmThrottleRequestRate('elicit', 2);
+                    $namedRequests['elicit'] = qpmPublicSearchBuildElicitSourceRequestSpec($query, $filters, $apiKey);
+                }
+            }
+        }
+
+        if (empty($namedRequests)) {
+            return;
+        }
+        $responses = qpmHttpRequestMulti($namedRequests);
+        foreach ($namedRequests as $name => $spec) {
+            if (isset($responses[$name])) {
+                qpmHttpRequestPrefetch($spec['url'], $spec['options'], $responses[$name]);
+            }
+        }
+    }
+}
+
 if (!function_exists('qpmPublicSearchRunSearch')) {
     /**
      * @param array<string,mixed> $request
@@ -6811,7 +7080,7 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
             'groupKey' => 'semanticSearchProcessGroupPrepare',
             'messageKey' => 'semanticSearchProgressPreparing',
         ]);
-        $resolvedQueries = qpmPublicSearchBuildResolvedQueries($request);
+        $resolvedQueries = qpmPublicSearchBuildResolvedQueries($request, $progressCallback);
         $warnings = qpmPublicSearchDedupeStrings(array_merge(
             (array) ($resolvedQueries['warnings'] ?? []),
             (array) ($request['_sourceAccessWarnings'] ?? [])
@@ -6897,6 +7166,7 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
             return $response;
         }
 
+        qpmPublicSearchPrefetchInitialSourceRequests((array) $request['sources'], $resolvedQueries, $request, $domain);
         $sourceResults = [];
         if (in_array('pubmed', (array) $request['sources'], true)) {
             qpmPublicSearchEmitProgress($progressCallback, 'pubmed', '', [
@@ -7007,11 +7277,17 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
             }
         }
 
-        qpmPublicSearchEmitProgress($progressCallback, 'finalizeCollect', '', [
-            'stepId' => 'finalizeCollect',
+        // Emitted before the actual reranking call (previously only
+        // 'finalizeCollect' was emitted here, with the real rerank computation
+        // buried silently inside it) - matches the website widget's own step
+        // order, where "rerank" (reranking across databases) is a distinct,
+        // always-shown step that precedes "finalizeCollect" (matching /
+        // preparing filter validation).
+        qpmPublicSearchEmitProgress($progressCallback, 'rerank', '', [
+            'stepId' => 'rerank',
             'groupId' => 'finalizeCollect',
             'groupKey' => 'semanticSearchProcessGroupMatch',
-            'messageKey' => 'semanticSearchProgressFinalizeCollect',
+            'messageKey' => 'semanticSearchProgressRerank',
         ]);
         $reranked = qpmPublicSearchIsUnifiedSearchEngineEnabled()
             ? qpmPublicSearchRerankSemanticCandidatesUnified($sourceResults, (string) ($request['focus'] ?? ''), $domain, ['queryIntent' => $resolvedQueries['queryIntent'] ?? []])
@@ -7019,6 +7295,12 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
         $orderedCandidates = (array) ($reranked['candidates'] ?? []);
         $diagnostics['rerank'] = $reranked['diagnostics'] ?? [];
 
+        qpmPublicSearchEmitProgress($progressCallback, 'finalizeCollect', '', [
+            'stepId' => 'finalizeCollect',
+            'groupId' => 'finalizeCollect',
+            'groupKey' => 'semanticSearchProcessGroupMatch',
+            'messageKey' => 'semanticSearchProgressFinalizeCollect',
+        ]);
         $hybridOrdering = qpmPublicSearchBuildHybridOrderedResultRefs(
             (string) ($resolvedQueries['hardFilterQuery'] ?? ''),
             $orderedCandidates,
@@ -7128,6 +7410,17 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
             unset($result);
         }
 
+        // Emitted unconditionally (even when qpmPublicSearchMaybeApplySemanticLlmFinalRerank()
+        // itself will no-op, e.g. disabled/page>1/date-sort) so the progress
+        // step still shows up and completes quickly rather than never
+        // appearing at all - matches the website widget's own always-visible
+        // "finalRerank" step in getSemanticLoadingProcessStepOrder().
+        qpmPublicSearchEmitProgress($progressCallback, 'finalRerank', '', [
+            'stepId' => 'finalRerank',
+            'groupId' => 'finalizeHydrate',
+            'groupKey' => 'semanticSearchProcessGroupDisplay',
+            'messageKey' => 'semanticSearchProgressFinalRerank',
+        ]);
         $results = qpmPublicSearchMaybeApplySemanticLlmFinalRerank($results, $request, $resolvedQueries, $domain);
         foreach ($results as $index => &$result) {
             $result['rank'] = $pageOffset + $index + 1;

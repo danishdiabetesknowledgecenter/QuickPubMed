@@ -144,6 +144,78 @@ export function mapPubMedSummaryToResultDto(summary) {
   };
 }
 
+// Maps a single `SearchResult` object from the unified public API
+// (POST /v1/search, see backend/docs/public-search-openapi.yaml) to the same
+// flat UI result DTO shape produced by mapPubMedSummaryToResultDto() /
+// mapOpenAlexWorkToResultDto() above, so SearchForm.vue can render unified
+// results (unified-search-engine-full-parity plan, Phase 7) through the
+// existing SearchResult.vue/ResultEntry.vue components unchanged.
+export function mapUnifiedApiResultToResultDto(apiResult) {
+  const safeResult = apiResult && typeof apiResult === "object" ? apiResult : {};
+  const pmid = normalizeStringValue(safeResult.pmid).replace(/[^\d]/g, "");
+  const doi = normalizeDoiValue(safeResult.doi);
+  const isPubMedNative = safeResult.trustedPmid === true || (safeResult.type === "pmid" && pmid !== "");
+  const uid = pmid && isPubMedNative ? pmid : doi ? `doi:${doi.toLowerCase()}` : normalizeStringValue(safeResult.resultKey) || pmid || "";
+
+  const journal = safeResult.journal && typeof safeResult.journal === "object" ? safeResult.journal : {};
+  const source = normalizeStringValue(safeResult.sourceLabel || journal.name || "");
+  const fulljournalname = normalizeStringValue(journal.name || source);
+  const pubDate = normalizeStringValue(safeResult.publicationDate || safeResult.year || "");
+  const publicationTypes = Array.isArray(safeResult.publicationTypes)
+    ? safeResult.publicationTypes.map((value) => normalizeStringValue(value)).filter(Boolean)
+    : [];
+  const abstract = normalizeStringValue(safeResult.abstract || "");
+  const hasAbstract = safeResult.hasAbstract === true || abstract !== "";
+  const authors = Array.isArray(safeResult.authors)
+    ? safeResult.authors
+        .map((author) => normalizeStringValue(author?.name))
+        .filter(Boolean)
+        .map((name) => ({ name }))
+    : [];
+
+  return {
+    id: uid,
+    uid,
+    pmid: pmid || null,
+    doi,
+    title: normalizeStringValue(safeResult.title || ""),
+    authors,
+    source,
+    fulljournalname,
+    publicationDate: normalizeStringValue(safeResult.publicationDate || ""),
+    pubDate,
+    pubdate: pubDate,
+    volume: normalizeStringValue(journal.volume || ""),
+    issue: normalizeStringValue(journal.issue || ""),
+    pages: normalizeStringValue(journal.pages || ""),
+    abstract,
+    hasAbstract,
+    pubType: publicationTypes[0] || "",
+    pubtype: publicationTypes,
+    docType: publicationTypes[0] || "",
+    doctype: publicationTypes[0] || "",
+    booktitle: "",
+    vernaculartitle: "",
+    history: [],
+    articleids: buildPubMedArticleIds(pmid, doi),
+    attributes: hasAbstract ? { "Has Abstract": "Has Abstract" } : {},
+    originSource: normalizeStringValue(safeResult.originSource || (isPubMedNative ? "pubmed" : "")),
+    isPubMedNative,
+    canOpenInPubMed: safeResult.canOpenInPubMed === true,
+    canFetchPubMedAbstract: isPubMedNative,
+    mergedDoiMetadata: null,
+    language: normalizeStringValue(safeResult.language || ""),
+    pubTypeClassification: null,
+    // Additive passthrough of unified-engine-only signals not produced by the
+    // legacy local mappers above. Harmless if unused by current UI components.
+    citationCount: Number.isFinite(safeResult.citationCount) ? safeResult.citationCount : null,
+    isOpenAccess: typeof safeResult.isOpenAccess === "boolean" ? safeResult.isOpenAccess : null,
+    openAccessUrl: normalizeStringValue(safeResult.openAccessUrl || ""),
+    isRetracted: typeof safeResult.isRetracted === "boolean" ? safeResult.isRetracted : null,
+    aiSummary: normalizeStringValue(safeResult.aiSummary || ""),
+  };
+}
+
 export function mapOpenAlexWorkToResultDto(
   work,
   { doi = "", openAlexId = "", pubTypeClassification = null } = {}

@@ -228,6 +228,8 @@
   import {
     config as runtimeConfig,
     ELICIT_UNLOCK_CHANGED_EVENT,
+    getUnifiedFrontendUrlOverride,
+    loadThemeOverridesFromBackend,
   } from "@/config/config.js";
   import { scopeIds, customInputTagTooltip } from "@/utils/contentHelpers.js";
   import { loadLimitsFromRuntime, loadStandardString } from "@/utils/contentLoader";
@@ -243,6 +245,7 @@
   import {
     mapOpenAlexWorkToResultDto,
     mapPubMedSummaryToResultDto,
+    mapUnifiedApiResultToResultDto,
     normalizeDoiValue,
   } from "@/utils/resultAdapters";
   import {
@@ -256,6 +259,7 @@
     formatSourceRateLimitTooltipSuffix as utilFormatSourceRateLimitTooltipSuffix,
   } from "@/utils/sourceRateLimit";
   import {
+    buildOpenAlexPublicationYearFilter,
     buildSemanticWordedIntentContext,
     hasHardSemanticHandling,
     matchesSemanticPublicationDateYears,
@@ -411,6 +415,13 @@
     },
     data() {
       const debugSearchFlowFromUrl = getSearchFlowDebugFlagFromLocation();
+      // Captured ONCE here (component creation, before the widget's own URL
+      // rewriting logic runs) rather than re-read live inside search(), since
+      // SearchForm.vue rewrites the visible URL during normal use and only
+      // preserves its own known parameters (topic, advanced, ai, sort, ...) -
+      // a live check later would incorrectly see '?unifiedEngine=1' as gone.
+      // null means "no URL override; use the backend-configured default".
+      const unifiedEngineUrlOverride = getUnifiedFrontendUrlOverride();
       return {
         advanced: false,
         advancedString: false,
@@ -467,6 +478,7 @@
         translationSourcesUserTouched: false,
         isApplyingTranslationSources: false,
         isPreparingSemanticTagRefresh: false,
+        unifiedEngineUrlOverride,
         searchFlowDebugEnabledFromUrl: debugSearchFlowFromUrl,
         searchFlowDebugEnabled: this.debugSearchFlow === true || debugSearchFlowFromUrl,
         searchFlowDebugRunCounter: 0,
@@ -860,38 +872,47 @@
                 : {},
           });
         }
-        const rerankDiagnostics = this.getSemanticSourceTags()
-          .map((item) =>
-            item?.semanticRerankDiagnostics && typeof item.semanticRerankDiagnostics === "object"
-              ? item.semanticRerankDiagnostics
-              : null
-          )
-          .filter(Boolean);
-        const orderedCandidates = this.getOrderedRerankedCandidates();
-        const latestRerankDiagnostics = rerankDiagnostics[rerankDiagnostics.length - 1] || null;
-        addDetail("rerank", "Reranking", {
-          rerankProfile:
-            latestRerankDiagnostics?.rerankProfile ||
-            this.getSemanticLlmRerankProfileContext() ||
-            null,
-          rerankMode: String(latestRerankDiagnostics?.rerankMode || "multi").trim(),
-          candidateCount: orderedCandidates.length,
-          sourceSummary: latestRerankDiagnostics?.sourceSummary || [],
-          sourceStats: latestRerankDiagnostics?.sourceStats || {},
-          overlapSummary: latestRerankDiagnostics?.overlapSummary || {},
-          enrichmentSummary: latestRerankDiagnostics?.enrichmentSummary || {},
-          mergeSummary: latestRerankDiagnostics?.mergeSummary || {},
-          semanticRescueMeta: latestRerankDiagnostics?.semanticRescueMeta || null,
-          rerankConfig: latestRerankDiagnostics?.rerankConfig || {},
-          topCandidates: latestRerankDiagnostics?.topCandidates || [],
-        });
-        addDetail("finalizeCollect", "Match og kandidatgrundlag", {
-          candidateCount: orderedCandidates.length,
-          pmidCandidateCount: orderedCandidates.filter((candidate) => candidate?.pmid).length,
-          doiCandidateCount: orderedCandidates.filter((candidate) => candidate?.doi).length,
-          openAlexCandidateCount: orderedCandidates.filter((candidate) => candidate?.openAlexId).length,
-          hardFilterQuery: this.getSemanticHardFilterValidationQuery(),
-        });
+        // Both blocks below are skipped entirely for the unified engine: they
+        // read local-pipeline-only state (getOrderedRerankedCandidates(),
+        // getSemanticSourceTags(), getSemanticHardFilterValidationQuery()) that
+        // is always empty/irrelevant on that path, which previously showed a
+        // second, contradictory (all-zero / unrelated hard-filter) "Detaljer"
+        // block alongside populateUnifiedSearchProcessStepDetails()'s real one
+        // for the same stepId. The local pipeline's own behavior is unchanged.
+        if (!this.isUnifiedEngineActive) {
+          const rerankDiagnostics = this.getSemanticSourceTags()
+            .map((item) =>
+              item?.semanticRerankDiagnostics && typeof item.semanticRerankDiagnostics === "object"
+                ? item.semanticRerankDiagnostics
+                : null
+            )
+            .filter(Boolean);
+          const orderedCandidates = this.getOrderedRerankedCandidates();
+          const latestRerankDiagnostics = rerankDiagnostics[rerankDiagnostics.length - 1] || null;
+          addDetail("rerank", "Reranking", {
+            rerankProfile:
+              latestRerankDiagnostics?.rerankProfile ||
+              this.getSemanticLlmRerankProfileContext() ||
+              null,
+            rerankMode: String(latestRerankDiagnostics?.rerankMode || "multi").trim(),
+            candidateCount: orderedCandidates.length,
+            sourceSummary: latestRerankDiagnostics?.sourceSummary || [],
+            sourceStats: latestRerankDiagnostics?.sourceStats || {},
+            overlapSummary: latestRerankDiagnostics?.overlapSummary || {},
+            enrichmentSummary: latestRerankDiagnostics?.enrichmentSummary || {},
+            mergeSummary: latestRerankDiagnostics?.mergeSummary || {},
+            semanticRescueMeta: latestRerankDiagnostics?.semanticRescueMeta || null,
+            rerankConfig: latestRerankDiagnostics?.rerankConfig || {},
+            topCandidates: latestRerankDiagnostics?.topCandidates || [],
+          });
+          addDetail("finalizeCollect", "Match og kandidatgrundlag", {
+            candidateCount: orderedCandidates.length,
+            pmidCandidateCount: orderedCandidates.filter((candidate) => candidate?.pmid).length,
+            doiCandidateCount: orderedCandidates.filter((candidate) => candidate?.doi).length,
+            openAlexCandidateCount: orderedCandidates.filter((candidate) => candidate?.openAlexId).length,
+            hardFilterQuery: this.getSemanticHardFilterValidationQuery(),
+          });
+        }
         Object.entries(this.searchProcessStepDetailPayloads || {}).forEach(([stepId, payload]) => {
           addDetail(stepId, "Detaljer", payload);
         });
@@ -931,6 +952,11 @@
       },
       isSearchFlowDebugEnabled() {
         return this.searchFlowDebugEnabled === true;
+      },
+      isUnifiedEngineActive() {
+        return this.unifiedEngineUrlOverride !== null
+          ? this.unifiedEngineUrlOverride
+          : runtimeConfig.unifiedFrontendEnabled === true;
       },
       hasExplicitDefaultTranslationSources() {
         return Array.isArray(this.defaultTranslationSources);
@@ -8260,6 +8286,443 @@
         this.semanticSortedResultCacheKey = cacheKey;
         return sortedResults;
       },
+      // ---------------------------------------------------------------
+      // Unified search engine (additive, feature-flagged) - unified-search-
+      // engine-full-parity plan, Phase 7. When isUnifiedEngineActive
+      // is true, search()/searchMore() call backend/api/UnifiedSearch.php
+      // (the same qpmPublicSearchRunSearch() orchestrator that backs the
+      // public /v1/search API) instead of running the local JS pipeline
+      // below, so the website and the public API return identical results.
+      // Everything below is only ever invoked when the flag is on; the
+      // existing local pipeline is completely untouched otherwise.
+      // ---------------------------------------------------------------
+      buildUnifiedSearchSources() {
+        const sources = [];
+        if (this.searchWithPubMedBestMatch) sources.push("pubmed");
+        if (this.searchWithSemanticScholar) sources.push("semanticScholar");
+        if (this.searchWithOpenAlex) sources.push("openAlex");
+        if (this.searchWithElicit) sources.push("elicit");
+        // Safety net mirroring the local pipeline's own fallback behaviour:
+        // when no semantic source is selected (or the AI translation toggle
+        // is off), the local "06 Filter and validation" section always falls
+        // back to a plain classic PubMed search rather than searching
+        // nothing. The unified engine requires an explicit non-empty
+        // `sources` list, so replicate that same "never search zero sources"
+        // guarantee here instead of surfacing a 422 to the user.
+        return sources.length > 0 ? sources : ["pubmed"];
+      },
+      buildUnifiedSearchRequestPayload(pageNumber) {
+        const rawQuery = this.getGlobalSemanticIntentInput();
+        const hardFiltersSource =
+          this.semanticWordedIntentContext && typeof this.semanticWordedIntentContext.hardFilters === "object"
+            ? this.semanticWordedIntentContext.hardFilters
+            : {};
+        const sourceFiltersSource =
+          this.semanticWordedIntentContext && typeof this.semanticWordedIntentContext.sourceFilters === "object"
+            ? this.semanticWordedIntentContext.sourceFilters
+            : {};
+        const languageCode = String(this.language || "").trim().toLowerCase();
+        return {
+          apiVersion: "1",
+          query: {
+            text: rawQuery,
+            language: languageCode === "da" || languageCode === "en" ? languageCode : "auto",
+          },
+          domain: String(this.currentDomain || "").trim(),
+          sources: this.buildUnifiedSearchSources(),
+          sort: { method: this.sort?.method || "relevance" },
+          focus: normalizeRerankProfileId(this.selectedRerankProfileId) || "",
+          page: {
+            number: Math.max(1, Number(pageNumber) || 1),
+            size: this.pageSize,
+          },
+          responseOptions: {
+            includeAbstracts: true,
+            language: languageCode === "en" ? "en" : "da",
+            // Needed so runUnifiedEngineSearch() can populate the "Detaljer"
+            // process-step panels (searchProcessStepDetails computed property)
+            // with real data instead of leaving them empty.
+            includeResolvedQueries: true,
+            includeDiagnostics: true,
+          },
+          hardFilters: {
+            languages: Array.isArray(hardFiltersSource.languages) ? hardFiltersSource.languages : [],
+            publicationYear: buildOpenAlexPublicationYearFilter(hardFiltersSource.publicationDateYears) || "",
+            publicationTypes: Array.isArray(hardFiltersSource.publicationTypes)
+              ? hardFiltersSource.publicationTypes
+              : [],
+            sourceFormats: Array.isArray(hardFiltersSource.sourceFormats) ? hardFiltersSource.sourceFormats : [],
+          },
+          sourceFilters: sourceFiltersSource,
+        };
+      },
+      async callUnifiedSearchEndpoint(payload) {
+        const url = this.appSettings.openAi.baseUrl + "/api/UnifiedSearch.php";
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        let data = null;
+        try {
+          data = await response.json();
+        } catch (_error) {
+          data = null;
+        }
+        if (!response.ok) {
+          const message =
+            (data && typeof data === "object" && data.error) ||
+            `Unified search request failed (${response.status})`;
+          throw new Error(message);
+        }
+        return data && typeof data === "object" ? data : {};
+      },
+      // Parses one SSE "event:"/"data:" block (already split on the blank-line
+      // event separator) as emitted by qpmPublicSearchEmitSseEvent() in
+      // public-search-lib.php. data: lines are rejoined with newlines before
+      // JSON-parsing, since the backend pretty-prints (multi-line) payloads.
+      parseUnifiedSearchSseEventBlock(rawBlock) {
+        const lines = String(rawBlock || "").split("\n");
+        let eventName = "message";
+        const dataLines = [];
+        lines.forEach((line) => {
+          if (line.startsWith("event:")) {
+            eventName = line.slice(6).trim();
+          } else if (line.startsWith("data:")) {
+            dataLines.push(line.slice(5).replace(/^ /, ""));
+          }
+        });
+        if (dataLines.length === 0) return null;
+        let data = null;
+        try {
+          data = JSON.parse(dataLines.join("\n"));
+        } catch (_error) {
+          data = null;
+        }
+        return { event: eventName, data };
+      },
+      // Streaming variant of callUnifiedSearchEndpoint(): requests SSE progress
+      // events (same stage vocabulary as the local pipeline's own
+      // activateSemanticLoadingProcessStep() step ids - 'pubmed',
+      // 'semanticScholar', 'openAlex', 'elicit', 'finalizeCollect',
+      // 'finalizeHydrate', 'finalizeRender', ...) so the existing rich loading
+      // UI can show real progress for a unified-engine search instead of
+      // sitting frozen on "Oversætter og tilpasser søgningen" for the whole
+      // (potentially 30-90s) duration of one opaque request. Falls back to the
+      // plain JSON path automatically for early validation errors (the backend
+      // only switches to SSE after successfully parsing the request) and for
+      // browsers without stream support.
+      async callUnifiedSearchEndpointStreaming(payload, onProgressStage) {
+        const url = this.appSettings.openAi.baseUrl + "/api/UnifiedSearch.php";
+        const streamingPayload = {
+          ...payload,
+          responseOptions: { ...(payload.responseOptions || {}), stream: true },
+        };
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(streamingPayload),
+        });
+        const contentType = String(response.headers?.get?.("content-type") || "");
+        if (!response.body || typeof TextDecoderStream === "undefined" || !contentType.includes("text/event-stream")) {
+          let data = null;
+          try {
+            data = await response.json();
+          } catch (_error) {
+            data = null;
+          }
+          if (!response.ok) {
+            const message =
+              (data && typeof data === "object" && data.error) ||
+              `Unified search request failed (${response.status})`;
+            throw new Error(message);
+          }
+          return data && typeof data === "object" ? data : {};
+        }
+
+        const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+        let buffer = "";
+        let finalResult = null;
+        let streamError = "";
+        try {
+          let done = false;
+          while (!done) {
+            const { done: readerDone, value } = await reader.read();
+            done = readerDone;
+            if (value) buffer += value;
+            let boundaryIndex = buffer.indexOf("\n\n");
+            while (boundaryIndex !== -1) {
+              const rawEvent = buffer.slice(0, boundaryIndex);
+              buffer = buffer.slice(boundaryIndex + 2);
+              const parsedEvent = this.parseUnifiedSearchSseEventBlock(rawEvent);
+              if (parsedEvent) {
+                if (parsedEvent.event === "progress" && typeof onProgressStage === "function") {
+                  const stage = String(parsedEvent.data?.stage || parsedEvent.data?.stepId || "").trim();
+                  if (stage) onProgressStage(stage);
+                } else if (parsedEvent.event === "result") {
+                  finalResult = parsedEvent.data;
+                } else if (parsedEvent.event === "error") {
+                  streamError = String(parsedEvent.data?.error || "Unified search failed");
+                }
+              }
+              boundaryIndex = buffer.indexOf("\n\n");
+            }
+          }
+        } finally {
+          try {
+            await reader.cancel();
+          } catch (_error) {
+            /* ignore cleanup errors from aborted/closed streams */
+          }
+          reader.releaseLock();
+        }
+        if (streamError) throw new Error(streamError);
+        if (!finalResult || typeof finalResult !== "object") {
+          throw new Error("Unified search stream ended without a result");
+        }
+        return finalResult;
+      },
+      mapUnifiedSearchResponseResults(results) {
+        return (Array.isArray(results) ? results : []).map((result) =>
+          mapUnifiedApiResultToResultDto(result)
+        );
+      },
+      // Backend source fetches (pubmed/semanticScholar/openAlex/elicit) run
+      // sequentially, each preceded by its own SSE progress event - unlike the
+      // local pipeline, which fires these from truly-concurrent browser
+      // requests. Source steps must use activateConcurrentSemanticLoadingStep()
+      // (which leaves sibling source steps alone) rather than the generic
+      // activateSemanticLoadingProcessStep() (which would otherwise reset an
+      // in-flight sibling back to "pending" or complete it with a bogus
+      // near-zero duration, since sources/prepare-sub-steps are interleaved
+      // in the step order but not in arrival order here). Returns a handler
+      // closure that also completes the previously-active source step (with
+      // an accurate end time) as soon as the next stage arrives.
+      createUnifiedSearchProgressHandler(isCancelled) {
+        const sourceStepIds = ["pubmed", "semanticScholar", "openAlex", "elicit"];
+        let activeSourceStepId = "";
+        return (stage) => {
+          if (isCancelled()) return;
+          const isSourceStage = sourceStepIds.includes(stage);
+          if (activeSourceStepId && (activeSourceStepId !== stage || !isSourceStage)) {
+            this.completeConcurrentSemanticLoadingStep(activeSourceStepId);
+            activeSourceStepId = "";
+          }
+          if (isSourceStage) {
+            this.activateConcurrentSemanticLoadingStep(stage);
+            activeSourceStepId = stage;
+          } else {
+            this.activateSemanticLoadingProcessStep(stage);
+          }
+        };
+      },
+      // Populates as much of the existing "Detaljer" step-detail infrastructure
+      // (searchProcessStepDetails computed property + setSearchProcessStepDetail())
+      // as reasonably possible from the unified engine's response, so the
+      // process-detail panels aren't empty just because this branch never runs
+      // the local pipeline's own state-building code (globalSemanticSearchState,
+      // getOrderedRerankedCandidates(), etc.). Requires responseOptions.
+      // includeResolvedQueries/includeDiagnostics (set in
+      // buildUnifiedSearchRequestPayload()). Deliberately partial: MeSH
+      // per-term validation detail and per-source request/response stats are
+      // not currently exposed by the API in a form this can reuse, so those
+      // step panels still fall back to their generic placeholder - a known,
+      // documented gap rather than a silent omission.
+      populateUnifiedSearchProcessStepDetails(response, rawQuery) {
+        const resolvedQueries =
+          response?.resolvedQueries && typeof response.resolvedQueries === "object"
+            ? response.resolvedQueries
+            : {};
+        // Feeds the existing hardcoded addDetail("searchString", ...) /
+        // addDetail("semanticQuery", ...) calls in searchProcessStepDetails,
+        // which read pubmedGeneratedQuery/semanticSourceQueryPlan/
+        // semanticScholarQuery from globalSemanticSearchState exactly like this.
+        this.globalSemanticSearchInput = rawQuery;
+        this.globalSemanticSearchState = this.buildGlobalSemanticSearchState(rawQuery, {
+          pubmedGeneratedQuery: String(resolvedQueries.pubmedQuery || "").trim(),
+          semanticSourceQueryPlan:
+            resolvedQueries.sourceQueryPlan && typeof resolvedQueries.sourceQueryPlan === "object"
+              ? resolvedQueries.sourceQueryPlan
+              : {},
+          semanticScholarQuery: String(resolvedQueries.semanticIntent || "").trim(),
+        });
+
+        const diagnostics =
+          response?.diagnostics && typeof response.diagnostics === "object" ? response.diagnostics : {};
+        if (diagnostics.rerank && typeof diagnostics.rerank === "object") {
+          this.setSearchProcessStepDetail("rerank", diagnostics.rerank);
+        }
+
+        const results = Array.isArray(response?.results) ? response.results : [];
+        const pmidCount = results.filter((entry) => entry?.type === "pmid" || entry?.pmid).length;
+        const doiCount = results.filter((entry) => entry?.type === "doi" || (!entry?.pmid && entry?.doi)).length;
+        const hardFilterQuery = String(resolvedQueries.hardFilterQuery || "").trim();
+        this.setSearchProcessStepDetail("finalizeCollect", {
+          candidateCount: results.length,
+          pmidCandidateCount: pmidCount,
+          doiCandidateCount: doiCount,
+          hardFilterQuery,
+        });
+        this.setSearchProcessStepDetail("finalizeValidatePmid", {
+          orderedPmidCount: pmidCount,
+          hardFilterQuery,
+          validationMode: "unifiedEngine",
+        });
+        this.setSearchProcessStepDetail("finalizeValidateDoiFetch", {
+          candidateCount: results.length,
+          doiCandidateCount: doiCount,
+          openAlexIdCandidateCount: doiCount,
+        });
+        this.setSearchProcessStepDetail("finalizeValidateDoiRules", {
+          validatedCount: doiCount,
+          allowedCount: doiCount,
+          excludedCount: 0,
+        });
+        this.setSearchProcessStepDetail("finalizeHydrate", {
+          role: "unifiedEngineHydration",
+          requestedCount: results.length,
+          pmidCount,
+          externalReferenceCount: doiCount,
+        });
+        const llmRerankConfig =
+          runtimeConfig?.semanticLlmRerankConfig && typeof runtimeConfig.semanticLlmRerankConfig === "object"
+            ? runtimeConfig.semanticLlmRerankConfig
+            : {};
+        this.setSearchProcessStepDetail("finalRerank", {
+          endpoint: "UnifiedSearch.php",
+          request: {
+            query: rawQuery,
+            hardFilterQuery,
+            resultFocus: this.resolvedSelectedRerankProfileId || "",
+            model: llmRerankConfig.model || "",
+            reasoningEffort: llmRerankConfig.reasoningEffort || "",
+            maxOutputTokens: llmRerankConfig.maxOutputTokens || null,
+            candidateCount: Math.min(Number(llmRerankConfig.topN) || results.length, results.length),
+          },
+        });
+        this.setSearchProcessStepDetail("finalizeRender", {
+          renderedCount: results.length,
+          totalCount: Number(response?.total || 0),
+          page: this.page,
+          pageSize: this.pageSize,
+        });
+      },
+      async runUnifiedEngineSearch(isCancelled) {
+        const rawQuery = this.getGlobalSemanticIntentInput();
+        this.logSearchFlowDebugInfo("[Unified] Raw query", { rawQuery });
+        if (!rawQuery) {
+          console.info("[SearchFlow] Unified engine: query is empty. Search aborted.");
+          this.stopSearchProcessTiming();
+          this.searchLoading = false;
+          return;
+        }
+        this.reloadScripts();
+        this.finalValidatedQuery = rawQuery;
+        await this.runSearchFlowDebugSection("Unified engine search", async () => {
+          const payload = this.buildUnifiedSearchRequestPayload(1);
+          const response = await this.callUnifiedSearchEndpointStreaming(
+            payload,
+            this.createUnifiedSearchProgressHandler(isCancelled)
+          );
+          if (isCancelled()) return;
+          this.count = Number(response.total || 0);
+          this.searchresult = this.mapUnifiedSearchResponseResults(response.results);
+          this.populateUnifiedSearchProcessStepDetails(response, rawQuery);
+          // Parity with the local pipeline's per-source degraded-status badges
+          // (recordDegradedSearchStatus()): the API response's free-text
+          // warnings (e.g. one source failing while others still returned
+          // results) don't map to a translation messageKey the way the local
+          // pipeline's own per-source status codes do, but
+          // visibleDegradedSearchSummary only ever renders entry.message
+          // directly, so pre-resolved synthetic entries render correctly too.
+          if (Array.isArray(response.warnings) && response.warnings.length > 0) {
+            this.degradedSearchSummary = response.warnings
+              .map((message) => String(message || "").trim())
+              .filter(Boolean)
+              .map((message) => ({
+                source: "unified",
+                status: response.partial === true ? "partial" : "warning",
+                messageKey: "",
+                message,
+              }));
+          }
+          // Parity with the local pipeline's "08 Final result composition":
+          // merge in any articles preselected via the widget's own '?pmid=...'
+          // URL/prop mechanism (searchByIds()), which the unified backend
+          // engine has no concept of and would otherwise silently drop.
+          this.setSemanticFinalizeLoadingStatus("selected");
+          const preSelectedEntries = await this.searchPreselectedPmidai();
+          if (isCancelled()) return;
+          this.setSearchProcessStepDetail("finalizeSelected", {
+            preselectedCount: Array.isArray(preSelectedEntries) ? preSelectedEntries.length : 0,
+            selectedCount: Array.isArray(this.selectedEntries) ? this.selectedEntries.length : 0,
+          });
+          if (preSelectedEntries && preSelectedEntries.length > 0) {
+            const uniquePreselected = this.mergeUniqueEntries(preSelectedEntries);
+            this.searchresult = [...this.searchresult, ...uniquePreselected];
+          }
+        });
+        if (isCancelled()) return;
+        this.stopSearchProcessTiming();
+        this.searchLoading = false;
+        this.clearSearchLoadingStatus();
+        this.$nextTick(() => {
+          if (isCancelled()) return;
+          const searchButton = this.$el?.querySelector(".qpm_search");
+          if (searchButton) searchButton.focus();
+          const topOfSearch = document.getElementById("qpm_topofsearch");
+          if (topOfSearch) {
+            topOfSearch.scrollIntoView({ block: "start", behavior: "smooth" });
+          }
+        });
+      },
+      async runUnifiedEngineSearchMore(isCancelled) {
+        const targetResultLength = Math.min((this.page + 1) * this.pageSize, this.count);
+        if (this.searchresult && this.searchresult.length >= targetResultLength) {
+          return;
+        }
+        const payload = this.buildUnifiedSearchRequestPayload(this.page + 1);
+        const response = await this.callUnifiedSearchEndpoint(payload);
+        if (isCancelled()) return;
+        this.count = Number(response.total || this.count || 0);
+        const newResults = this.mapUnifiedSearchResponseResults(response.results);
+        const existingUids = new Set(
+          (Array.isArray(this.searchresult) ? this.searchresult : []).map((item) => item?.uid)
+        );
+        const uniqueNewResults = newResults.filter((item) => item?.uid && !existingUids.has(item.uid));
+        this.searchresult = [...(Array.isArray(this.searchresult) ? this.searchresult : []), ...uniqueNewResults];
+        // Parity with the local pipeline's searchMore(), which re-checks
+        // preselected '?pmid=...' articles on every page too (mergeUniqueEntries
+        // is a no-op once they're already present from page 1).
+        const preSelectedEntries = await this.searchPreselectedPmidai();
+        if (isCancelled()) return;
+        if (preSelectedEntries && preSelectedEntries.length > 0) {
+          const uniquePreselected = this.mergeUniqueEntries(preSelectedEntries);
+          this.searchresult = [...this.searchresult, ...uniquePreselected];
+        }
+        if (!this.compactLoadingUi) {
+          this.stopSearchProcessTiming();
+          this.searchLoading = false;
+          this.clearSearchLoadingStatus();
+        }
+      },
+      // isUnifiedEngineActive falls back to runtimeConfig.unifiedFrontendEnabled,
+      // which starts false and is only populated once ThemeConfig.php's
+      // response arrives (loadThemeOverridesFromBackend(), kicked off
+      // fire-and-forget at widget bootstrap in entries/scripts/SearchForm.js).
+      // If the user searches before that resolves, isUnifiedEngineActive would
+      // incorrectly read the still-default "false" and silently run the slow
+      // local pipeline instead - awaiting it here (idempotent: hits an
+      // in-memory cache once loaded, or joins the already-in-flight request)
+      // guarantees the flag is settled before either engine is chosen, with
+      // no added latency in the common case where it already loaded earlier.
+      async ensureRuntimeConfigLoadedBeforeSearch() {
+        try {
+          await loadThemeOverridesFromBackend(this.currentDomain, this.appSettings?.nlm?.proxyUrl);
+        } catch (_error) {
+          /* fail open: proceed with whatever runtimeConfig currently holds */
+        }
+      },
       /**
        * Initiates a PubMed search using NCBI's Entrez API.
        * Performs an esearch followed by an esummary to retrieve search results.
@@ -8291,6 +8754,12 @@
         this.startSearchFlowDebugRun("search");
 
         try {
+          await this.ensureRuntimeConfigLoadedBeforeSearch();
+          if (isCancelled()) return;
+          if (this.isUnifiedEngineActive) {
+            await this.runUnifiedEngineSearch(isCancelled);
+            return;
+          }
           await this.runSearchFlowDebugSection("01 Prepare", async () => {
             await this.prepareSemanticSearchStateBeforeSearch();
             this.recordSearchPaginationSignature();
@@ -8618,6 +9087,13 @@
         this.startSearchFlowDebugRun("searchMore");
 
         try {
+          await this.ensureRuntimeConfigLoadedBeforeSearch();
+          if (this.isUnifiedEngineActive) {
+            const mySearchMoreGeneration = this.searchGeneration;
+            const isCancelledForUnifiedMore = () => this.searchGeneration !== mySearchMoreGeneration;
+            await this.runUnifiedEngineSearchMore(isCancelledForUnifiedMore);
+            return;
+          }
           const canUsePaginationFastPath = this.canUseSearchMoreFastPath();
           if (canUsePaginationFastPath) {
             this.logSearchFlowDebugInfo("Skipping semantic preparation for unchanged pagination state.");

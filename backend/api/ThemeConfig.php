@@ -150,6 +150,15 @@ $meshObserveOnly = defined('QPM_MESH_VALIDATION_OBSERVE_ONLY')
     ? (bool) QPM_MESH_VALIDATION_OBSERVE_ONLY
     : false;
 
+// Additive frontend feature flag (unified-search-engine-full-parity plan,
+// Phase 7): when true, SearchForm.vue calls the unified public API
+// (/v1/search) directly instead of running its own local JS pipeline.
+// Off by default. A '?unifiedEngine=1' URL override is also honored
+// client-side for QA without requiring a deploy - see config.js.
+$unifiedFrontendEnabled = defined('QPM_UNIFIED_FRONTEND_ENABLED')
+    ? (bool) QPM_UNIFIED_FRONTEND_ENABLED
+    : false;
+
 $domainTheme = [];
 if ($domain !== '' && isset($themeByDomain[$domain]) && is_array($themeByDomain[$domain])) {
     $domainTheme = $themeByDomain[$domain];
@@ -187,6 +196,7 @@ $response = [
     'telemetryConfig' => $telemetryConfig,
     'paraphraseChipConfig' => $paraphraseChipConfig,
     'meshValidationObserveOnly' => $meshObserveOnly,
+    'unifiedFrontendEnabled' => $unifiedFrontendEnabled,
 ];
 
 // Opt-in diagnostic for the Elicit unlock feature. Visit:

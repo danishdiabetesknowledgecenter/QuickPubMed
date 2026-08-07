@@ -892,6 +892,56 @@ function qpmIsLocalBackendRequest(): bool
 }
 
 /**
+ * Single-use, in-memory (request-lifetime only) cache used to let a
+ * qpmHttpRequestMulti() prefetch of one or more sources' *first* HTTP call
+ * transparently satisfy that same call when the normal sequential
+ * source-fetch function later makes it, without restructuring that
+ * function's control flow at all. See qpmPublicSearchPrefetchInitialSourceRequests()
+ * in public-search-lib.php for the caller. Falls through to a real request
+ * (unchanged behavior) whenever nothing was prefetched for a given
+ * method+url+body combination, so this is purely additive/opt-in.
+ *
+ * @param 'get'|'set' $action
+ */
+function qpmHttpRequestPrefetchStore(string $action, string $key, ?array $result = null): ?array
+{
+    static $store = [];
+    if ($action === 'set') {
+        $store[$key] = $result;
+        return null;
+    }
+    if (!array_key_exists($key, $store)) {
+        return null;
+    }
+    $value = $store[$key];
+    unset($store[$key]);
+    return $value;
+}
+
+/**
+ * @param array<string,mixed> $options
+ */
+function qpmHttpRequestCacheKey(string $url, array $options): string
+{
+    $method = strtoupper((string) ($options['method'] ?? 'GET'));
+    $body = (string) ($options['body'] ?? '');
+    return $method . '|' . $url . '|' . md5($body);
+}
+
+/**
+ * Registers a pre-fetched response (already executed via qpmHttpRequestMulti())
+ * so the next qpmHttpRequest() call for the exact same method+url+body returns
+ * it instantly instead of making a real network call.
+ *
+ * @param array<string,mixed> $options Same $options that will be passed to qpmHttpRequest() for this URL.
+ * @param array{ok:bool,status:int,body:string,content_type:string,error:string,response_headers:array<int,string>} $result
+ */
+function qpmHttpRequestPrefetch(string $url, array $options, array $result): void
+{
+    qpmHttpRequestPrefetchStore('set', qpmHttpRequestCacheKey($url, $options), $result);
+}
+
+/**
  * HTTP request helper with cURL + stream fallback.
  *
  * @param string $url
@@ -900,6 +950,10 @@ function qpmIsLocalBackendRequest(): bool
  */
 function qpmHttpRequest(string $url, array $options = []): array
 {
+    $prefetched = qpmHttpRequestPrefetchStore('get', qpmHttpRequestCacheKey($url, $options));
+    if ($prefetched !== null) {
+        return $prefetched;
+    }
     $method = strtoupper((string) ($options['method'] ?? 'GET'));
     $headers = $options['headers'] ?? [];
     $timeout = (int) ($options['timeout'] ?? 30);
