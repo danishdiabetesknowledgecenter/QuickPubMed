@@ -4,13 +4,7 @@ if (!file_exists($configPath)) {
     $configPath = dirname(__DIR__, 2) . '/backend/config.php';
 }
 require_once $configPath;
-require_once dirname(__DIR__, 2) . '/backend/app/public-search-request.php';
-require_once dirname(__DIR__, 2) . '/backend/app/public-search-auth.php';
-require_once dirname(__DIR__, 2) . '/backend/app/public-search-rate-limit.php';
-require_once dirname(__DIR__, 2) . '/backend/app/public-search-audit.php';
-require_once dirname(__DIR__, 2) . '/backend/app/public-search-orchestrator.php';
-require_once dirname(__DIR__, 2) . '/backend/app/public-search-response.php';
-require_once dirname(__DIR__, 2) . '/backend/app/public-search-get-adapter.php';
+require_once dirname(__DIR__, 2) . '/backend/app/public-search-lib.php';
 
 $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 $origin = qpmPublicSearchResolveOrigin();

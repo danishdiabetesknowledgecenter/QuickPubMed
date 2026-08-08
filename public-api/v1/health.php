@@ -4,7 +4,7 @@ if (!file_exists($configPath)) {
     $configPath = dirname(__DIR__, 2) . '/backend/config.php';
 }
 require_once $configPath;
-require_once dirname(__DIR__, 2) . '/backend/app/public-search-request.php';
+require_once dirname(__DIR__, 2) . '/backend/app/public-search-lib.php';
 
 qpmPublicSearchApplyNoStoreHeaders();
 header('Content-Type: application/json; charset=utf-8');

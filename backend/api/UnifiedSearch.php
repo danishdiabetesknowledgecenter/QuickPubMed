@@ -28,7 +28,7 @@ if (!file_exists($configPath)) {
 }
 require_once $configPath;
 require_once __DIR__ . '/NlmApiHelpers.php';
-require_once dirname(__DIR__) . '/app/public-search-orchestrator.php';
+require_once dirname(__DIR__) . '/app/public-search-lib.php';
 
 qpmApplyNlmCorsHeaders('POST, OPTIONS', 'application/json');
 qpmEnforceFirstPartyIpRateLimit('unifiedSearch');

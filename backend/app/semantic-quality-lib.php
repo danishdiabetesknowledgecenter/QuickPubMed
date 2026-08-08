@@ -1586,6 +1586,9 @@ if (!function_exists('qpmSemanticQualityNormalizePmidValue')) {
      */
     function qpmSemanticQualityNormalizePmidValue($value): string
     {
+        if (function_exists('qpmPublicSearchNormalizePmid')) {
+            return qpmPublicSearchNormalizePmid($value);
+        }
         $pmid = trim((string) ($value ?? ''));
         return preg_match('/^[0-9]+$/', $pmid) === 1 ? $pmid : '';
     }
@@ -1598,6 +1601,9 @@ if (!function_exists('qpmSemanticQualityNormalizeDoiValue')) {
      */
     function qpmSemanticQualityNormalizeDoiValue($value): string
     {
+        if (function_exists('qpmPublicSearchNormalizeDoi')) {
+            return qpmPublicSearchNormalizeDoi($value);
+        }
         $doi = trim((string) ($value ?? ''));
         $doi = (string) preg_replace('~^https?://(dx\.)?doi\.org/~i', '', $doi);
         $doi = (string) preg_replace('~^doi:\s*~i', '', $doi);

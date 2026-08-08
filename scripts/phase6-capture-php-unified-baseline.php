@@ -9,9 +9,7 @@
  */
 
 require_once __DIR__ . '/../backend/config/config.php';
-require_once __DIR__ . '/../backend/app/public-search-request.php';
-require_once __DIR__ . '/../backend/app/public-search-auth.php';
-require_once __DIR__ . '/../backend/app/public-search-orchestrator.php';
+require_once __DIR__ . '/../backend/app/public-search-lib.php';
 
 if (!qpmPublicSearchIsUnifiedSearchEngineEnabled()) {
     fwrite(STDERR, "QPM_UNIFIED_SEARCH_ENGINE_ENABLED must be true to capture this baseline.\n");
