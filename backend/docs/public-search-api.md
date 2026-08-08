@@ -7,7 +7,12 @@ Det offentlige search API eksponeres via en dedikeret public docroot, så de off
 - `GET /v1/health`
 - `GET /v1/openapi.yaml`
 
-`POST /v1/search` er den officielle integrationskontrakt. `GET /v1/search` er kun en enkel testvariant med et bevidst begrænset sæt URL-parametre.
+`POST /v1/search` er den officielle integrationskontrakt og findes i to content-types:
+
+- `application/json` — struktureret integrationskontrakt
+- `application/x-www-form-urlencoded` — SearchForm-kompatible flade parametre (anbefalet til lange parameterlister)
+
+`GET /v1/search` er kun en enkel testvariant med et bevidst begrænset sæt URL-parametre.
 
 Samme `v1/search` endpoint kan nu ogsaa returnere progress-events som `text/event-stream`, naar streaming er slaaet til.
 
@@ -23,7 +28,9 @@ X-API-Key: <client-api-key>
 
 `Authorization: Bearer <api-key>` accepteres også.
 
-`apiKey` i query string understøttes kun for `GET /v1/search`, kun når det er slået til i serverkonfigurationen.
+Query-parametre er **case-insensitive**; kanonisk form er **kun små bogstaver** (fx `apikey`, `pagesize`, `databases`).
+
+`apikey` i query string understøttes kun for `GET /v1/search`, kun når det er slået til i serverkonfigurationen (`apikey=` / `apiKey=` osv. accepteres). Form-urlencoded POST bruger ikke `apikey` i body til auth — brug `X-API-Key` eller Bearer.
 
 ## Offentlig adresse
 
@@ -59,8 +66,59 @@ Hvis `allow_all_origins` er `false`, bruges den normale `allowed_origins`-allowl
 - `responseOptions`
 - `hardFilters`
 - `sourceFilters`
+- `intentContext`
+- `preselectedPmids`
 
 Ukendte felter afvises eksplicit.
+
+### Form-urlencoded POST (SearchForm-paritet)
+
+Brug samme parameternavne som SearchForm-URL’en (kanonisk lowercase; blandet casing accepteres). Lister adskilles med `,` (legacy `;;` accepteres ved indlæsning). Limit-scope angives pr. id som `#n` / `#s` / `#b` (default `#s`). Custom `topic`-fritekst bruger `#s:raw` (AI må oversætte) eller `#s:pubmed` (brug strengen direkte som PubMed-clause); samme mode findes for `#n` / `#b`.
+
+```http
+POST /v1/search HTTP/1.1
+Content-Type: application/x-www-form-urlencoded
+X-API-Key: <client-api-key>
+
+q=Findes%20julemanden%3F
+&databases=pubmed,semanticscholar,openalex
+&focus=newest-research
+&ai=true
+&sort=relevance
+&page=1
+&pagesize=25
+&limit=L025010%23s
+&limit=L030010%23s,L030020%23s
+&limit=L040010%23s
+&limit=LXXX010%23s
+&pmid=37956037,39412605
+```
+
+`limit=`-semantik (samme som SearchForm advanced/simple):
+
+- inden for én `limit=` (komma-liste) → **OR**
+- mellem flere `limit=` → **AND**
+- simple mode skriver én `limit=` pr. kategori; advanced én pr. dropdown-række
+
+| Param | Betydning |
+|---|---|
+| `q` / `query` / custom `topic` | søgetekst (valgfri hvis katalog-`topic=`-id’er er sat) |
+| `topic` | AND-grupper af emner (`id#scope` eller `{{tekst}}#s:raw` / `{{pubmed}}#s:pubmed`); gentag `topic=` for AND; komma = OR. Legacy `{{tekst0}}#s` / `{{tekst1}}#s` accepteres. |
+| `domain` | **påkrævet** når katalog-topic-id’er bruges; loader `data/content/<domain>/topics.json` |
+| `databases` (alias: `sources`, `translationsources`, `semanticsources`) | kilder |
+| `ai` / `translation` | AI-oversættelse af fritekst (katalog-`searchStrings` er deterministiske) |
+| `focus`, `sort`, `page`, `pagesize` | rerank, sortering, paging |
+| `limit` | AND-grupper af afgrænsninger (`id#scope,…`); gentag `limit=` for AND; legacy `L025=` osv. accepteres |
+| `checklimits` | ekstra limit-id’er (union) |
+| `pmid` | preselect/pin af artikler → response `preselectedResults` (påvirker ikke search-query/`total`) |
+| `lang`, `stream` | progress-sprog / SSE |
+| `nocache` | `1`/`true`: spring search-response- og LLM-slutrerank-cache over for dette kald (sletter ikke runtime-filer; skriver stadig friske resultater tilbage). JSON: `responseOptions.noCache` |
+
+UI-only parametre (`advanced`, `collapsed`, `scrollto`, `openlimits`, `hidelimits`, `orderlimits`, `qpmdebug`, `apibase`) accepteres og ignoreres.
+
+Fra `limit`-id’er hydrerer serveren `hardFilters`, `sourceFilters`, post-validation-rules og engelske labels via `limits.json`. Fra katalog-`topic`-id’er hydrerer serveren labels og deterministiske PubMed-`searchStrings` via domain-`topics.json` (samme model som SearchForm).
+
+Lange payloads: brug form-POST (body). Rene GET-URL’er er begrænset af webserverens request-line (typisk ~8–16 KB). PHP/form afhænger desuden af `post_max_size` / `max_input_vars`. Max ca. 200 limit-/topic-tokens og 50 pmid-tokens.
 
 ### Eksempel
 
@@ -110,40 +168,36 @@ Ukendte felter afvises eksplicit.
 }
 ```
 
+## SearchForm-URL → API (domain-swap)
+
+SearchForm og API deler samme flade query-/form-parametre. Typisk workflow:
+
+1. Lav valgene i SearchForm (inkl. advanced mode).
+2. Kopiér query-stringen fra URL’en (`domain=…&topic=…&limit=…&databases=…&ai=…&focus=…` osv.).
+   `domain=` i SearchForm-URL’en vinder over widgettets `data-domain` og bør følge med til API’en.
+3. Kald API-endpointet med **samme query-string**, men API-host og API-sti:
+   - UI: `https://muginscholar.dk/…/searchform.html?<query>`
+   - API: `https://api.muginscholar.dk/v1/search.php?<query>`
+4. Tilføj auth: `X-API-Key` / Bearer, eller (kun GET, hvis deployment tillader det) `apikey=` i query.
+5. UI-only parametre (`advanced`, `collapsed`, `scrollto`, `openlimits`, `hidelimits`, `orderlimits`, `qpmdebug`, `apibase`) må gerne følge med — API’en ignorerer dem.
+
+Bemærk: det er **query-stringen** der genbruges. Stien skal pege på `/v1/search` (eller `/v1/search.php`), ikke SearchForm-HTML-stien. Ved lange query-strings (mange `limit=`/`topic=`) foretræk form-urlencoded `POST` med samme parametre i body — webservere begrænser typisk GET request-line til ~8–16 KB.
+
 ## GET request
 
-Den simple URL-kontrakt accepterer:
+`GET /v1/search` accepterer **samme flade SearchForm-parametre** som form-urlencoded POST (`q`/`query`/`topic`, `databases`/`sources`, `ai`/`translation`, `focus`, `sort`, `page`, `pagesize`, gentagne `limit=`, `checklimits`, `pmid`, `lang`, `stream`, …). Gentagne `limit=` / `topic=` bevares (AND mellem grupper).
 
-- `q`
-- `sources`
-- `sort`
-- `focus`
-- `page`
-- `pageSize`
-- `translation`
-- `apiKey` når konfigurationen tillader det
-- `stream`
-- `lang`
-
-Samt tre convenience-aliaser, der matcher de samme parameternavne som søgeformularens URL bruger:
-
-- `pagesize` — alias for `pageSize` (bruges kun hvis `pageSize` ikke er angivet)
-- `databases` — alias for `sources`, accepterer både `;;`- og kommasepareret liste (bruges kun hvis `sources` er tom)
-- `ai` — alias for `translation` (`ai=false`/`0` giver `translation=none`, ellers `auto`; bruges kun hvis `translation` ikke er angivet)
-
-Eksempel:
+Eksempel (simpel):
 
 ```text
 GET /v1/search?q=exercise+type+2+diabetes&sources=pubmed,openAlex&sort=relevance&focus=highest-evidence&page=1&pageSize=10&translation=auto
 ```
 
-Samme søgning skrevet med søgeformular-aliaserne:
+Samme søgning med SearchForm-navne (inkl. limits):
 
 ```text
-GET /v1/search?q=exercise+type+2+diabetes&databases=pubmed;;openalex&sort=relevance&focus=highest-evidence&page=1&pagesize=10&ai=true
+GET /v1/search?topic=%7B%7BFindes%20julemanden%3F0%7D%7D%23s&databases=pubmed,semanticscholar,openalex&ai=true&sort=relevance&pagesize=25&focus=newest-research&limit=L025010%23s&limit=L030010%23s,L030020%23s&advanced=true&collapsed=false&apikey=<key>
 ```
-
-Avancerede filtre (`hardFilters`, `sourceFilters`) samt emne-/afgrænsnings-ID'er fra søgeformularens `topic`- og `limit`-parametre understøttes ikke i `GET`-varianten eller i det offentlige API generelt — disse ID'er opløses i dag kun client-side i webappen.
 
 `translation` styrer AI-oversættelsen:
 
@@ -160,7 +214,7 @@ Avancerede filtre (`hardFilters`, `sourceFilters`) samt emne-/afgrænsnings-ID'e
 - `lang=da`
 - `lang=en`
 
-URL-`apiKey` kan slås til og fra via:
+URL-`apikey` kan slås til og fra via:
 
 - `NEMPUBMED_PUBLIC_API['urlApiKeyEnabled']`
 - `NEMPUBMED_PUBLIC_API_URL_API_KEY_ENABLED`
@@ -220,6 +274,43 @@ API'et returnerer den endelige ordnede liste i `results`.
   "total": 42,
   "partial": false,
   "warnings": [],
+  "selection": {
+    "domain": "template",
+    "topics": [
+      {
+        "groupIndex": 0,
+        "items": [
+          {
+            "id": null,
+            "custom": true,
+            "text": "virker kulhydrattælling?",
+            "scope": "normal",
+            "label": "virker kulhydrattælling?"
+          }
+        ]
+      },
+      {
+        "groupIndex": 1,
+        "items": [
+          {
+            "id": "S010030",
+            "custom": false,
+            "text": "",
+            "scope": "normal",
+            "label": "Type 2 diabetes"
+          }
+        ]
+      }
+    ],
+    "limits": [
+      {
+        "groupIndex": 0,
+        "items": [
+          { "id": "L025010", "scope": "normal", "label": "Journal articles" }
+        ]
+      }
+    ]
+  },
   "order": {
     "requestedMethod": "relevance",
     "appliedMethod": "relevance",
@@ -315,10 +406,10 @@ Typiske events:
 
 ### `progress`-stadier omkring filtervalidering
 
-Ved multi-kilde-soegninger (mere end `pubmed` alene) kan der gaa relativt lang tid mellem `finalizeCollect` og `finalizeHydrate`, fordi resultaterne her valideres mod PubMed/OpenAlex, foer de endelige resultater hentes. For at undgaa et langt, stille hul i streamen emitteres nu ekstra `progress`-events i denne periode (samme stadienavne som webappens egen fremdriftsvisning):
+Ved multi-kilde-soegninger (mere end `pubmed` alene) kan der gaa relativt lang tid mellem `rerank` og `finalizeHydrate`, fordi resultaterne her valideres mod PubMed/OpenAlex, foer de endelige resultater hentes. For at undgaa et langt, stille hul i streamen emitteres nu ekstra `progress`-events i denne periode (samme stadienavne som webappens egen fremdriftsvisning):
 
 - `finalizeValidatePmid`: PMID-kandidater krydsvalideres mod PubMed.
-- `finalizeValidateDoiFetch`: DOI-kandidater hydreres og valideres mod OpenAlex. `total` i payloaden angiver, hvor mange DOI-kandidater der skal behandles.
+- `finalizeValidateDoiFetch`: DOI-kandidater hydreres og filter-/regelvalideres via OpenAlex. `total` i payloaden angiver, hvor mange DOI-kandidater der skal behandles.
 
 Hvert event sendes præcis én gang pr. søgning (ikke gentagne gange), og `message`-feltet er en kort, brugervenlig tekst på det sprog, der er angivet i requesten (`da`/`en`) — beregnet til at kunne vises direkte til en slutbruger, der venter på søgeresultatet:
 
@@ -336,15 +427,15 @@ GET /v1/search?q=exercise+type+2+diabetes&sources=pubmed,openAlex&stream=1
 ```text
 event: progress
 data: {
-data:   "stage": "prepare",
+data:   "stage": "semanticIntent",
 data:   "language": "da",
-data:   "messageKey": "semanticSearchProgressPreparing",
-data:   "message": "Forbereder soegningen ud fra dine valgte soegeord, afgraensninger og databaser.",
-data:   "stepId": "prepare",
+data:   "messageKey": "semanticSearchProgressSemanticIntent",
+data:   "message": "Fortolker soegeintentionen.",
+data:   "stepId": "semanticIntent",
 data:   "groupId": "prepare",
 data:   "groupKey": "semanticSearchProcessGroupPrepare",
-data:   "groupLabel": "Forbereder soegningen",
-data:   "label": "Forbereder soegningen",
+data:   "groupLabel": "Oversaetter og tilpasser soegningen",
+data:   "label": "Fortolker soegeintentionen.",
 data:   "timestamp": "2026-04-16T12:00:00Z"
 data: }
 

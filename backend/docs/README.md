@@ -18,7 +18,7 @@ Denne mappe er den kanoniske web-indgang (`/backend`) til server-endpoints.
 - `backend/docs/search-flow-diagram.md`: mermaid-diagrammer af hoveflowet, retrieval-subflow, enrichment og hybridvalidering.
 - `backend/docs/semantic-filter-regression-checklist.md`: fast manuel regressionscheckliste for de vigtigste kanoniske semantiske filtercases, inkl. afsnittet `Reranking signals`.
 - `backend/docs/public-search-api.md`: kontrakt og eksempler for det offentlige NemPubMed search API.
-- `backend/docs/public-search-openapi.yaml`: formel OpenAPI-spec for det offentlige search API.
+- `backend/docs/public-search-openapi.yaml`: formel OpenAPI-spec for det offentlige search API (inkl. OpenAI Custom GPT Actions-noter i `info.description`).
 - `backend/docs/public-search-security.md`: auth, CORS, rate limits, audit og driftsregler for public API.
 - `backend/docs/public-search-parity.md`: principper og teststrategi for rangering/paritet mellem web og API, inkl. hybride kvalitetssignaler.
 - `backend/docs/external-apis/`: rå OpenAPI-referencespecifikationer for tredjeparts-API'er (Elicit, OpenAlex, Semantic Scholar), hentet fra udbyderne. Ikke det samme som `public-search-openapi.yaml`, som er vores egen offentlige API-kontrakt.

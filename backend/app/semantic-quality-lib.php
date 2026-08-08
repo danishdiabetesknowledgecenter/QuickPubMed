@@ -693,6 +693,8 @@ if (!function_exists('qpmSemanticQualityBuildMetadataSnapshot')) {
         foreach (($enriched['pubTypes'] ?? []) as $type) {
             $publicationTypes[] = qpmSemanticQualityNormalizeLower($type);
         }
+        $sourceType = qpmSemanticQualityNormalizeLower($enriched['sourceType'] ?? '');
+        $venue = qpmSemanticQualityNormalizeLower($enriched['venue'] ?? '');
 
         return [
             'candidateSource' => qpmSemanticQualityNormalizeLower($candidate['source'] ?? ''),
@@ -701,13 +703,27 @@ if (!function_exists('qpmSemanticQualityBuildMetadataSnapshot')) {
             'hasDoi' => qpmSemanticQualityNormalizeString($candidate['doi'] ?? '') !== '',
             'openAlexId' => qpmSemanticQualityNormalizeString($candidate['openAlexId'] ?? ''),
             'candidatePublicationYear' => qpmSemanticQualityNormalizeLower($enriched['publicationYear'] ?? ''),
-            'candidateVenue' => qpmSemanticQualityNormalizeLower($enriched['venue'] ?? ''),
-            'candidateSourceType' => qpmSemanticQualityNormalizeLower($enriched['sourceType'] ?? ''),
+            'candidateVenue' => $venue,
+            'candidateSourceType' => $sourceType,
             'candidatePublicationTypes' => $publicationTypes,
             'candidatePubTypeTier' => $pubTypeTier,
             'candidatePubTypeConfidence' => $pubTypeConfidence,
             'candidateVolume' => qpmSemanticQualityNormalizeLower($enriched['volume'] ?? ($candidate['volume'] ?? '')),
             'candidateIssue' => qpmSemanticQualityNormalizeLower($enriched['issue'] ?? ($candidate['issue'] ?? '')),
+            'semanticSourcePublicationTypes' => $publicationTypes,
+            'semanticSourceVenues' => $venue !== '' ? [$venue] : [],
+            'semanticSourceTypes' => $sourceType !== '' ? [$sourceType] : [],
+            'openAlexSourceType' => $sourceType,
+            'openAlexSourceDisplayName' => $venue,
+            'openAlexSourceAbbreviatedTitle' => qpmSemanticQualityNormalizeLower(
+                $enriched['sourceAbbreviatedTitle'] ?? ''
+            ),
+            'openAlexPrimarySource' => qpmSemanticQualityNormalizeLower(
+                $enriched['journalSourceId'] ?? ''
+            ),
+            'openAlexPubDate' => qpmSemanticQualityNormalizeLower(
+                $enriched['publicationDate'] ?? ''
+            ),
         ];
     }
 }
@@ -2011,6 +2027,87 @@ if (!function_exists('qpmSemanticQualityMergeEnrichedFromCandidate')) {
     }
 }
 
+if (!function_exists('qpmSemanticQualityCanonicalSourceOrder')) {
+    /**
+     * Fixed source processing order so merge/first-wins metadata is deterministic
+     * across API vs SearchForm calls (independent of fetch completion order).
+     *
+     * @return array<string,int>
+     */
+    function qpmSemanticQualityCanonicalSourceOrder(): array
+    {
+        return [
+            'pubmed' => 0,
+            'semanticScholar' => 1,
+            'openAlex' => 2,
+            'elicit' => 3,
+        ];
+    }
+}
+
+if (!function_exists('qpmSemanticQualitySortSourceResultsDeterministically')) {
+    /**
+     * @param array<int,array<string,mixed>> $sourceResults
+     * @return array<int,array<string,mixed>>
+     */
+    function qpmSemanticQualitySortSourceResultsDeterministically(array $sourceResults): array
+    {
+        $order = qpmSemanticQualityCanonicalSourceOrder();
+        usort($sourceResults, static function ($left, $right) use ($order): int {
+            $leftKey = qpmSemanticQualityNormalizeString($left['source'] ?? '');
+            $rightKey = qpmSemanticQualityNormalizeString($right['source'] ?? '');
+            $leftRank = $order[$leftKey] ?? 100;
+            $rightRank = $order[$rightKey] ?? 100;
+            if ($leftRank !== $rightRank) {
+                return $leftRank <=> $rightRank;
+            }
+            return $leftKey <=> $rightKey;
+        });
+        return array_values($sourceResults);
+    }
+}
+
+if (!function_exists('qpmSemanticQualityCompareCandidateIdentity')) {
+    /**
+     * Final stable tie-break for equal scores: PMID, then DOI, then openAlexId/key.
+     *
+     * @param array<string,mixed> $left
+     * @param array<string,mixed> $right
+     */
+    function qpmSemanticQualityCompareCandidateIdentity(array $left, array $right): int
+    {
+        $leftPmid = qpmSemanticQualityNormalizePmidValue($left['pmid'] ?? '');
+        $rightPmid = qpmSemanticQualityNormalizePmidValue($right['pmid'] ?? '');
+        if ($leftPmid !== '' || $rightPmid !== '') {
+            if ($leftPmid === '') {
+                return 1;
+            }
+            if ($rightPmid === '') {
+                return -1;
+            }
+            if ($leftPmid !== $rightPmid) {
+                return $leftPmid <=> $rightPmid;
+            }
+        }
+        $leftDoi = strtolower(qpmSemanticQualityNormalizeDoiValue($left['doi'] ?? ''));
+        $rightDoi = strtolower(qpmSemanticQualityNormalizeDoiValue($right['doi'] ?? ''));
+        if ($leftDoi !== '' || $rightDoi !== '') {
+            if ($leftDoi === '') {
+                return 1;
+            }
+            if ($rightDoi === '') {
+                return -1;
+            }
+            if ($leftDoi !== $rightDoi) {
+                return $leftDoi <=> $rightDoi;
+            }
+        }
+        $leftKey = strtolower(trim((string) ($left['key'] ?? ($left['openAlexId'] ?? ''))));
+        $rightKey = strtolower(trim((string) ($right['key'] ?? ($right['openAlexId'] ?? ''))));
+        return $leftKey <=> $rightKey;
+    }
+}
+
 if (!function_exists('qpmSemanticQualityMergeSourceCandidates')) {
     /**
      * Ported from mergeSourceCandidates() in semanticReranking.js.
@@ -2024,6 +2121,7 @@ if (!function_exists('qpmSemanticQualityMergeSourceCandidates')) {
         $merged = [];
         $mergeEventCount = 0;
         $rawCandidateCount = 0;
+        $sourceResults = qpmSemanticQualitySortSourceResultsDeterministically($sourceResults);
 
         foreach ($sourceResults as $sourceResult) {
             $candidates = isset($sourceResult['candidates']) && is_array($sourceResult['candidates']) ? $sourceResult['candidates'] : [];
@@ -2094,6 +2192,9 @@ if (!function_exists('qpmSemanticQualityMergeSourceCandidates')) {
                 '__allowListCache' => $allowListCache,
             ]);
         }
+
+        // Stable key order so later scoring/sort starts from a deterministic list.
+        ksort($merged, SORT_STRING);
 
         return ['mergedCandidates' => $merged, 'mergeEventCount' => $mergeEventCount, 'rawCandidateCount' => $rawCandidateCount];
     }
@@ -2836,6 +2937,276 @@ if (!function_exists('qpmSemanticQualityDedupeStringValues')) {
     }
 }
 
+if (!function_exists('qpmSemanticQualityBuildSourceSummary')) {
+    /**
+     * Process-details/diagnostics summary of every attempted source (unlike
+     * qpmSemanticQualityGetSourceStats(), this is not restricted to sources
+     * that returned candidates - a 0-candidate source is a diagnostically
+     * interesting fact on its own).
+     *
+     * @param array<int,array<string,mixed>> $sourceResults
+     * @return array<int,array<string,mixed>>
+     */
+    function qpmSemanticQualityBuildSourceSummary(array $sourceResults): array
+    {
+        $summary = [];
+        foreach ($sourceResults as $sourceResult) {
+            $source = qpmSemanticQualityNormalizeString($sourceResult['source'] ?? '');
+            if ($source === '') {
+                continue;
+            }
+            $candidates = isset($sourceResult['candidates']) && is_array($sourceResult['candidates']) ? $sourceResult['candidates'] : [];
+            $summary[] = [
+                'source' => $source,
+                'query' => qpmSemanticQualityNormalizeString($sourceResult['query'] ?? ''),
+                'total' => (int) ($sourceResult['total'] ?? 0),
+                'candidateCount' => count($candidates),
+                'pmidCount' => count((array) ($sourceResult['pmids'] ?? [])),
+                'doiCount' => count((array) ($sourceResult['dois'] ?? [])),
+                'hasError' => trim((string) ($sourceResult['error'] ?? '')) !== '',
+                'usedInRerank' => count($candidates) > 0,
+            ];
+        }
+        return $summary;
+    }
+}
+
+if (!function_exists('qpmSemanticQualityBuildOverlapSummary')) {
+    /**
+     * @param array<int,array<string,mixed>> $candidates
+     * @return array<string,mixed>
+     */
+    function qpmSemanticQualityBuildOverlapSummary(array $candidates): array
+    {
+        $multiSource = 0;
+        $singleSource = 0;
+        $withPmid = 0;
+        $doiOnly = 0;
+        $perSourceCount = [];
+        foreach ($candidates as $candidate) {
+            $sources = array_values(array_filter(array_map(
+                'qpmSemanticQualityNormalizeString',
+                (array) ($candidate['sources'] ?? [])
+            )));
+            $sourceCount = isset($candidate['sourceCount']) && is_numeric($candidate['sourceCount'])
+                ? (int) $candidate['sourceCount']
+                : count($sources);
+            if ($sourceCount > 1) {
+                $multiSource++;
+            } else {
+                $singleSource++;
+            }
+            if (qpmSemanticQualityNormalizePmidValue($candidate['pmid'] ?? '') !== '') {
+                $withPmid++;
+            } else {
+                $doiOnly++;
+            }
+            foreach ($sources as $source) {
+                $perSourceCount[$source] = ($perSourceCount[$source] ?? 0) + 1;
+            }
+        }
+        $distinctSourcesUsed = array_keys($perSourceCount);
+        sort($distinctSourcesUsed);
+        $pairwiseOverlap = [];
+        for ($i = 0; $i < count($distinctSourcesUsed); $i++) {
+            for ($j = $i + 1; $j < count($distinctSourcesUsed); $j++) {
+                $a = $distinctSourcesUsed[$i];
+                $b = $distinctSourcesUsed[$j];
+                $shared = 0;
+                $either = 0;
+                foreach ($candidates as $candidate) {
+                    $sources = (array) ($candidate['sources'] ?? []);
+                    $hasA = in_array($a, $sources, true);
+                    $hasB = in_array($b, $sources, true);
+                    if ($hasA && $hasB) {
+                        $shared++;
+                    }
+                    if ($hasA || $hasB) {
+                        $either++;
+                    }
+                }
+                $pairwiseOverlap[$a . '-' . $b] = [
+                    'shared' => $shared,
+                    'total' => $either,
+                    'ratio' => $either > 0 ? round($shared / $either, 4) : 0.0,
+                ];
+            }
+        }
+        $total = $multiSource + $singleSource;
+        return [
+            'multiSource' => $multiSource,
+            'singleSource' => $singleSource,
+            'withPmid' => $withPmid,
+            'doiOnly' => $doiOnly,
+            'overlapRatio' => $total > 0 ? round($multiSource / $total, 4) : 0.0,
+            'distinctSourcesUsed' => $distinctSourcesUsed,
+            'pairwiseOverlap' => $pairwiseOverlap,
+        ];
+    }
+}
+
+if (!function_exists('qpmSemanticQualityBuildEnrichmentSummary')) {
+    /**
+     * How many merged candidates carry each notable enrichment signal - a
+     * quick diagnostic for "did enrichment actually run/help" without
+     * inspecting every candidate individually.
+     *
+     * @param array<int,array<string,mixed>> $candidates
+     * @param array<string,mixed> $rerankConfig
+     * @param array<string,mixed> $extraCounters
+     * @return array<string,mixed>
+     */
+    function qpmSemanticQualityBuildEnrichmentSummary(
+        array $candidates,
+        array $rerankConfig,
+        int $filteredCount,
+        array $extraCounters = []
+    ): array
+    {
+        $summary = [
+            'withFwci' => 0,
+            'withRcr' => 0,
+            'withNihPercentile' => 0,
+            'withApt' => 0,
+            'withFieldCitationRate' => 0,
+            'withInfluentialCitations' => 0,
+            'withCitedByCount' => 0,
+            'withRetractionFlag' => 0,
+            'filteredByRetraction' => $filteredCount,
+            'withClinicalFlag' => 0,
+            'withCitedByClin' => 0,
+            'withPubTypeMatch' => 0,
+            'withOpenAccess' => 0,
+            'withTopicOverlap' => 0,
+            'withAuthorityData' => 0,
+            'withRecencySignal' => 0,
+            'withoutAbstract' => 0,
+            'withShortAbstract' => 0,
+            'withoutAuthor' => 0,
+            'withoutYear' => 0,
+            'totalDowngradedByQuality' => 0,
+            'withoutTitleDropped' => (int) ($extraCounters['withoutTitleDropped'] ?? 0),
+            'excludedByTier' => is_array($extraCounters['excludedByTier'] ?? null)
+                ? $extraCounters['excludedByTier']
+                : [],
+            'byPubTypeTier' => [],
+        ];
+        $pubTypeKeys = array_fill_keys(array_map(
+            'qpmSemanticQualityNormalizeLower',
+            array_keys((array) ($rerankConfig['pubTypeWeights'] ?? []))
+        ), true);
+        $shortThreshold = qpmSemanticQualityToFiniteInt($rerankConfig['abstractMinLength']['short'] ?? null) ?? 100;
+        foreach ($candidates as $candidate) {
+            $enriched = is_array($candidate['enriched'] ?? null) ? $candidate['enriched'] : [];
+            foreach ([
+                'fwci' => 'withFwci',
+                'rcr' => 'withRcr',
+                'nihPercentile' => 'withNihPercentile',
+                'apt' => 'withApt',
+                'fieldCitationRate' => 'withFieldCitationRate',
+                'influentialCitationCount' => 'withInfluentialCitations',
+                'citedByCount' => 'withCitedByCount',
+                'citedByClin' => 'withCitedByClin',
+            ] as $field => $counter) {
+                if (($enriched[$field] ?? null) !== null && ($enriched[$field] ?? '') !== '') {
+                    $summary[$counter]++;
+                }
+            }
+            if (($enriched['isRetracted'] ?? null) === true) {
+                $summary['withRetractionFlag']++;
+            }
+            if (($enriched['isClinical'] ?? null) === true) {
+                $summary['withClinicalFlag']++;
+            }
+            if (($enriched['isOpenAccess'] ?? null) === true) {
+                $summary['withOpenAccess']++;
+            }
+            if (!empty($enriched['publicationYear'])) {
+                $summary['withRecencySignal']++;
+            }
+            $authorityAuthors = is_array($enriched['authorityAuthors'] ?? null) ? $enriched['authorityAuthors'] : [];
+            $authorityJournal = is_array($enriched['authorityJournal'] ?? null) ? $enriched['authorityJournal'] : [];
+            if (
+                ($authorityAuthors['maxHIndex'] ?? null) !== null
+                || ($authorityJournal['meanCitedness'] ?? null) !== null
+                || ($authorityJournal['hIndex'] ?? null) !== null
+            ) {
+                $summary['withAuthorityData']++;
+            }
+            foreach ((array) ($enriched['pubTypes'] ?? []) as $pubType) {
+                if (isset($pubTypeKeys[qpmSemanticQualityNormalizeLower($pubType)])) {
+                    $summary['withPubTypeMatch']++;
+                    break;
+                }
+            }
+            if ((float) ($candidate['scoreBreakdown']['topicOverlapBonus'] ?? 0) > 0) {
+                $summary['withTopicOverlap']++;
+            }
+            $abstractLength = qpmSemanticQualityToFiniteInt($enriched['abstractLength'] ?? null);
+            if ($abstractLength === null || $abstractLength === 0) {
+                $summary['withoutAbstract']++;
+            } elseif ($abstractLength < $shortThreshold) {
+                $summary['withShortAbstract']++;
+            }
+            if (empty($enriched['hasAuthor'])) {
+                $summary['withoutAuthor']++;
+            }
+            if (empty($enriched['publicationYear'])) {
+                $summary['withoutYear']++;
+            }
+            $qualityMultiplier = qpmSemanticQualityToFiniteNumber(
+                $candidate['scoreBreakdown']['dataQualityMultiplier'] ?? null
+            );
+            if ($qualityMultiplier !== null && $qualityMultiplier < 1.0) {
+                $summary['totalDowngradedByQuality']++;
+            }
+            $tier = qpmSemanticQualityNormalizeString($candidate['pubTypeClassification']['tier'] ?? '');
+            if ($tier !== '') {
+                $summary['byPubTypeTier'][$tier] = ($summary['byPubTypeTier'][$tier] ?? 0) + 1;
+            }
+        }
+        return $summary;
+    }
+}
+
+if (!function_exists('qpmSemanticQualityBuildTopCandidatesSummary')) {
+    /**
+     * @param array<int,array<string,mixed>> $rankedCandidates
+     * @return array<int,array<string,mixed>>
+     */
+    function qpmSemanticQualityBuildTopCandidatesSummary(array $rankedCandidates, int $limit = 10): array
+    {
+        $top = [];
+        foreach (array_slice($rankedCandidates, 0, max(0, $limit)) as $candidate) {
+            $title = (string) ($candidate['title'] ?? '');
+            $sources = array_values((array) ($candidate['sources'] ?? []));
+            $pmid = (string) ($candidate['pmid'] ?? '');
+            $doi = (string) ($candidate['doi'] ?? '');
+            $key = trim((string) ($candidate['key'] ?? ''));
+            if ($key === '') {
+                $key = $pmid !== '' ? 'pmid:' . $pmid : ($doi !== '' ? 'doi:' . strtolower($doi) : '');
+            }
+            $top[] = [
+                'key' => $key,
+                'pmid' => $pmid,
+                'doi' => $doi,
+                'openAlexId' => (string) ($candidate['openAlexId'] ?? ''),
+                'source' => implode(', ', $sources),
+                'title' => function_exists('mb_substr') ? mb_substr($title, 0, 160) : substr($title, 0, 160),
+                'reason' => (string) ($candidate['reason'] ?? ''),
+                'stage' => (string) ($candidate['stage'] ?? ''),
+                'sources' => implode(', ', $sources),
+                'combinedScore' => round((float) ($candidate['combinedScore'] ?? 0), 4),
+                'bestRank' => (int) ($candidate['bestRank'] ?? 0),
+                'sourceCount' => isset($candidate['sourceCount'])
+                    ? (int) $candidate['sourceCount']
+                    : count($sources),
+            ];
+        }
+        return $top;
+    }
+}
+
 if (!function_exists('qpmSemanticQualityRerankCandidates')) {
     /**
      * Ported from rerankSemanticCandidates() in semanticReranking.js. This is the
@@ -2905,7 +3276,7 @@ if (!function_exists('qpmSemanticQualityRerankCandidates')) {
                 if ($b['scoreTieBreaker'] !== $a['scoreTieBreaker']) {
                     return $b['scoreTieBreaker'] <=> $a['scoreTieBreaker'];
                 }
-                return 0;
+                return qpmSemanticQualityCompareCandidateIdentity($a, $b);
             });
         } else {
             usort($rankedCandidates, static function ($a, $b) {
@@ -2918,7 +3289,7 @@ if (!function_exists('qpmSemanticQualityRerankCandidates')) {
                 if ($a['bestRank'] !== $b['bestRank']) {
                     return $a['bestRank'] <=> $b['bestRank'];
                 }
-                return 0;
+                return qpmSemanticQualityCompareCandidateIdentity($a, $b);
             });
         }
 
@@ -2929,6 +3300,9 @@ if (!function_exists('qpmSemanticQualityRerankCandidates')) {
             'dois' => qpmSemanticQualityDedupeStringValues(array_column($rankedCandidates, 'doi'), 'qpmSemanticQualityNormalizeDoiValue'),
             'rerankMode' => $rerankMode,
             'diagnostics' => [
+                'rerankMode' => $rerankMode,
+                'candidateCount' => count($rankedCandidates),
+                'rerankConfig' => $rerankConfig,
                 'mergeSummary' => [
                     'rawCandidateCount' => $mergeResult['rawCandidateCount'],
                     'mergedCandidateCount' => count($rankedCandidates),
@@ -2937,6 +3311,20 @@ if (!function_exists('qpmSemanticQualityRerankCandidates')) {
                     'excludedByTierCount' => $excludedCount,
                     'titlelessDroppedCount' => $titlelessCount,
                 ],
+                'sourceSummary' => qpmSemanticQualityBuildSourceSummary($sourceResults),
+                'sourceStats' => qpmSemanticQualityGetSourceStats($sourceResults),
+                'activeSourceStats' => $sourceStats,
+                'overlapSummary' => qpmSemanticQualityBuildOverlapSummary($rankedCandidates),
+                'enrichmentSummary' => qpmSemanticQualityBuildEnrichmentSummary(
+                    $rankedCandidates,
+                    $rerankConfig,
+                    count($filteredCandidates),
+                    [
+                        'withoutTitleDropped' => $titlelessCount,
+                        'excludedByTier' => $excludedByTier,
+                    ]
+                ),
+                'topCandidates' => qpmSemanticQualityBuildTopCandidatesSummary($rankedCandidates, 10),
             ],
         ];
     }

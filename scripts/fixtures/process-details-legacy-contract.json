@@ -1,340 +1,329 @@
 {
-  "version": "1",
-  "sourceQueryDetails": [
-    {
-      "source": "pubmed",
-      "query": "type 2 diabetes[tiab]",
-      "request": {
-        "db": "pubmed",
-        "term": "type 2 diabetes[tiab]",
-        "retmax": 200,
-        "retstart": 0,
-        "retmode": "json",
-        "sort": "relevance"
-      },
-      "requestMeta": {
-        "role": "pubmedBestMatchSource"
-      },
-      "response": {
-        "candidateCount": 25,
-        "totalAvailable": 100
-      },
-      "context": "type 2 diabetes"
-    },
-    {
-      "source": "semanticScholar",
-      "query": "type 2 diabetes treatment",
-      "request": {
-        "query": "type 2 diabetes treatment",
-        "limit": 400,
-        "publicationTypes": [],
-        "year": ""
-      },
-      "requestMeta": {
-        "searchMode": "semantic"
-      },
-      "response": {
-        "candidateCount": 300,
-        "totalAvailable": 500,
-        "partial": false
-      },
-      "context": "type 2 diabetes"
-    },
-    {
-      "source": "openAlex",
-      "query": "type 2 diabetes treatment",
-      "request": {
-        "query": "type 2 diabetes treatment",
-        "limit": 50,
-        "languages": [
-          "en"
-        ],
-        "workTypes": [
-          "article"
-        ],
-        "searchMode": "semantic"
-      },
-      "requestMeta": {
-        "fallbackUsed": false
-      },
-      "response": {
-        "candidateCount": 50,
-        "totalAvailable": 50
-      },
-      "context": "type 2 diabetes"
-    },
-    {
-      "source": "elicit",
-      "query": "What evidence exists for type 2 diabetes treatment?",
-      "request": {
-        "query": "What evidence exists for type 2 diabetes treatment?",
-        "limit": 300,
-        "filters": {
-          "retracted": "exclude_retracted"
+    "version": "1",
+    "sourceQueryDetails": [
+        {
+            "source": "pubmed",
+            "query": "type 2 diabetes[tiab]",
+            "request": {
+                "db": "pubmed",
+                "term": "type 2 diabetes[tiab]",
+                "retmax": 200,
+                "retstart": 0,
+                "retmode": "json",
+                "sort": "relevance"
+            },
+            "requestMeta": {
+                "role": "pubmedBestMatchSource"
+            },
+            "response": {
+                "candidateCount": 25,
+                "totalAvailable": 100
+            },
+            "context": "type 2 diabetes"
+        },
+        {
+            "source": "semanticScholar",
+            "query": "type 2 diabetes treatment",
+            "request": {
+                "query": "type 2 diabetes treatment",
+                "limit": 400,
+                "publicationTypes": [],
+                "year": ""
+            },
+            "requestMeta": {
+                "searchMode": "semantic"
+            },
+            "response": {
+                "candidateCount": 300,
+                "totalAvailable": 500,
+                "partial": false
+            },
+            "context": "type 2 diabetes"
+        },
+        {
+            "source": "openAlex",
+            "query": "type 2 diabetes treatment",
+            "request": {
+                "query": "type 2 diabetes treatment",
+                "limit": 50,
+                "languages": [
+                    "en"
+                ],
+                "workTypes": [
+                    "article"
+                ],
+                "searchMode": "semantic"
+            },
+            "requestMeta": {
+                "fallbackUsed": false
+            },
+            "response": {
+                "candidateCount": 50,
+                "totalAvailable": 50
+            },
+            "context": "type 2 diabetes"
+        },
+        {
+            "source": "elicit",
+            "query": "What evidence exists for type 2 diabetes treatment?",
+            "request": {
+                "query": "What evidence exists for type 2 diabetes treatment?",
+                "limit": 300,
+                "filters": {
+                    "retracted": "exclude_retracted"
+                }
+            },
+            "requestMeta": [],
+            "response": {
+                "candidateCount": 250,
+                "totalAvailable": 300
+            },
+            "context": "type 2 diabetes"
         }
-      },
-      "requestMeta": {},
-      "response": {
-        "candidateCount": 250,
-        "totalAvailable": 300
-      },
-      "context": "type 2 diabetes"
-    }
-  ],
-  "processStepDetails": [
-    {
-      "stepId": "prepare",
-      "payload": {
-        "input": "type 2 diabetes",
-        "selectedSources": [
-          "pubmed",
-          "semanticScholar",
-          "openAlex",
-          "elicit"
-        ],
-        "resultFocus": "balanced",
-        "sort": "relevance",
-        "pageSize": 25,
-        "searchWithAI": true
-      },
-      "context": ""
-    },
-    {
-      "stepId": "semanticQuery",
-      "payload": {
-        "rawUserInput": "type 2 diabetes",
-        "contextualSearchInput": "type 2 diabetes",
-        "semanticIntent": "type 2 diabetes treatment",
-        "coreQuery": "type 2 diabetes treatment",
-        "promptVersion": "phase2-v3",
-        "cacheHit": false,
-        "fallbackUsed": false,
-        "parseAttempts": 1,
-        "coverageCheck": {
-          "ok": true,
-          "missingTerms": []
+    ],
+    "processStepDetails": [
+        {
+            "stepId": "semanticIntent",
+            "payload": {
+                "input": "type 2 diabetes",
+                "rawUserInput": "type 2 diabetes",
+                "contextualSearchInput": "type 2 diabetes",
+                "semanticIntent": "type 2 diabetes treatment",
+                "coreQuery": "type 2 diabetes treatment",
+                "promptVersion": "phase2-v3",
+                "cacheHit": false,
+                "fallbackUsed": false,
+                "parseAttempts": 1,
+                "coverageCheck": {
+                    "ok": true,
+                    "missingTerms": []
+                },
+                "detectedConcepts": [
+                    "type 2 diabetes"
+                ],
+                "confidenceScore": 0.9,
+                "conceptCoverage": {
+                    "originalConcepts": [
+                        "type 2 diabetes"
+                    ],
+                    "translatedConcepts": [
+                        "type 2 diabetes"
+                    ],
+                    "droppedConcepts": [],
+                    "severityOfDrop": "none"
+                },
+                "potentialIssues": [],
+                "refinementSuggestions": [],
+                "searchBasis": {
+                    "input": "type 2 diabetes",
+                    "selectedSources": [
+                        "pubmed",
+                        "semanticScholar",
+                        "openAlex",
+                        "elicit"
+                    ],
+                    "resultFocus": "balanced",
+                    "sort": "relevance",
+                    "pageSize": 25,
+                    "searchWithAI": true
+                }
+            },
+            "context": ""
         },
-        "detectedConcepts": [
-          "type 2 diabetes"
-        ],
-        "confidenceScore": 0.9,
-        "conceptCoverage": {
-          "originalConcepts": [
-            "type 2 diabetes"
-          ],
-          "translatedConcepts": [
-            "type 2 diabetes"
-          ],
-          "droppedConcepts": [],
-          "severityOfDrop": "none"
+        {
+            "stepId": "semanticQuery",
+            "payload": {
+                "rawUserInput": "type 2 diabetes",
+                "contextualSearchInput": "type 2 diabetes",
+                "semanticIntent": "type 2 diabetes treatment",
+                "coreQuery": "type 2 diabetes treatment",
+                "promptVersion": "phase2-v3",
+                "cacheHit": false,
+                "fallbackUsed": false,
+                "parseAttempts": 1,
+                "coverageCheck": {
+                    "ok": true,
+                    "missingTerms": []
+                },
+                "detectedConcepts": [
+                    "type 2 diabetes"
+                ],
+                "confidenceScore": 0.9,
+                "conceptCoverage": {
+                    "originalConcepts": [
+                        "type 2 diabetes"
+                    ],
+                    "translatedConcepts": [
+                        "type 2 diabetes"
+                    ],
+                    "droppedConcepts": [],
+                    "severityOfDrop": "none"
+                },
+                "potentialIssues": [],
+                "refinementSuggestions": [],
+                "hardFilters": [],
+                "sourceQueries": [],
+                "adaptations": []
+            },
+            "context": ""
         },
-        "potentialIssues": [],
-        "refinementSuggestions": [],
-        "hardFilters": {},
-        "sourceQueries": [],
-        "adaptations": {}
-      },
-      "context": ""
-    },
-    {
-      "stepId": "searchString",
-      "payload": {
-        "rawUserInput": "type 2 diabetes",
-        "structuredAiIntentUsed": true,
-        "aiCoreQuery": "type 2 diabetes treatment",
-        "detectedConcepts": [
-          "type 2 diabetes"
-        ],
-        "conceptCoverage": {},
-        "coverageCheck": {
-          "ok": true,
-          "missingTerms": []
+        {
+            "stepId": "searchString",
+            "payload": {
+                "rawUserInput": "type 2 diabetes",
+                "structuredAiIntentUsed": true,
+                "aiCoreQuery": "type 2 diabetes treatment",
+                "detectedConcepts": [
+                    "type 2 diabetes"
+                ],
+                "conceptCoverage": [],
+                "coverageCheck": {
+                    "ok": true,
+                    "missingTerms": []
+                },
+                "pubmedQuery": "type 2 diabetes[tiab]",
+                "finalValidatedQuery": "(12345678 23456789) AND (english[la])"
+            },
+            "context": ""
         },
-        "pubmedQuery": "type 2 diabetes[tiab]",
-        "finalValidatedQuery": "(12345678 23456789) AND (english[la])"
-      },
-      "context": ""
-    },
-    {
-      "stepId": "mesh",
-      "payload": {
-        "queries": [
-          {
-            "input": "type 2 diabetes",
-            "meshSearchQuery": "type 2 diabetes",
-            "totalMeshTerms": 1,
-            "validCount": 1,
-            "invalidCount": 0,
-            "invalidTerms": [],
-            "renamedTerms": [],
-            "hallucinationRate": 0,
-            "observeOnly": false
-          }
-        ]
-      },
-      "context": ""
-    },
-    {
-      "stepId": "optimize",
-      "payload": {
-        "queries": [
-          {
-            "input": "type 2 diabetes",
-            "beforeOptimization": "type 2 diabetes[tiab]",
-            "afterOptimization": "\"Diabetes Mellitus, Type 2\"[mh] OR type 2 diabetes[tiab]",
-            "changed": true,
-            "addedConcepts": [],
-            "removedConcepts": [],
-            "addedMeshTerms": [
-              "Diabetes Mellitus, Type 2"
-            ],
-            "removedMeshTerms": [],
-            "finalMeshTermCount": 1
-          }
-        ]
-      },
-      "context": ""
-    },
-    {
-      "stepId": "rerank",
-      "payload": {
-        "rerankProfile": {
-          "id": "balanced",
-          "labelKey": "rerankProfileBalanced",
-          "descriptionKey": "rerankProfileBalancedDescription"
+        {
+            "stepId": "mesh",
+            "payload": {
+                "queries": [
+                    {
+                        "input": "type 2 diabetes",
+                        "meshSearchQuery": "type 2 diabetes",
+                        "totalMeshTerms": 1,
+                        "validCount": 1,
+                        "invalidCount": 0,
+                        "invalidTerms": [],
+                        "renamedTerms": [],
+                        "hallucinationRate": 0,
+                        "observeOnly": false,
+                        "beforeOptimization": "type 2 diabetes[tiab]",
+                        "afterOptimization": "\"Diabetes Mellitus, Type 2\"[mh] OR type 2 diabetes[tiab]",
+                        "changed": true,
+                        "addedConcepts": [],
+                        "removedConcepts": [],
+                        "addedMeshTerms": [
+                            "Diabetes Mellitus, Type 2"
+                        ],
+                        "removedMeshTerms": [],
+                        "finalMeshTermCount": 1
+                    }
+                ]
+            },
+            "context": ""
         },
-        "rerankMode": "multi",
-        "candidateCount": 500,
-        "sourceSummary": [],
-        "sourceStats": {},
-        "overlapSummary": {},
-        "enrichmentSummary": {},
-        "mergeSummary": {},
-        "semanticRescueMeta": null,
-        "rerankConfig": {},
-        "topCandidates": []
-      },
-      "context": ""
-    },
-    {
-      "stepId": "finalizeCollect",
-      "payload": {
-        "candidateCount": 500,
-        "pmidCandidateCount": 300,
-        "doiCandidateCount": 450,
-        "openAlexCandidateCount": 50,
-        "hardFilterQuery": "english[la]"
-      },
-      "context": ""
-    },
-    {
-      "stepId": "finalizeValidatePmid",
-      "payload": {
-        "orderedPmidCount": 300,
-        "hardFilterQuery": "english[la]",
-        "validationMode": "hard-filter-and-candidate-whitelist",
-        "matchedByPubMedCount": 250,
-        "orderedMatchedCount": 250,
-        "unmatchedCandidateCount": 50
-      },
-      "context": ""
-    },
-    {
-      "stepId": "finalizeValidateDoiFetch",
-      "payload": {
-        "candidateCount": 500,
-        "trustedPmidSkippedCount": 250,
-        "doiCandidateCount": 450,
-        "openAlexIdCandidateCount": 50,
-        "hydratedCount": 200,
-        "openAlexMissingCount": 10,
-        "lookupRequests": []
-      },
-      "context": ""
-    },
-    {
-      "stepId": "finalizeValidateDoiSource",
-      "payload": {
-        "requestedSourceCount": 10,
-        "resolvedSourceCount": 9,
-        "missingSourceCount": 1
-      },
-      "context": ""
-    },
-    {
-      "stepId": "finalizeValidateDoiRules",
-      "payload": {
-        "activeRules": [],
-        "ruleGroups": [],
-        "publicationDateYears": [],
-        "validatedCount": 500,
-        "allowedCount": 400,
-        "excludedCount": 100,
-        "excludedExamples": []
-      },
-      "context": ""
-    },
-    {
-      "stepId": "finalizeHydrate",
-      "payload": {
-        "requestedCount": 25,
-        "pmidCount": 20,
-        "externalReferenceCount": 5,
-        "hydratedCount": 25,
-        "missingCount": 0
-      },
-      "context": ""
-    },
-    {
-      "stepId": "finalizeSort",
-      "payload": {
-        "sortMethod": "date_desc",
-        "inputCount": 400,
-        "outputCount": 400
-      },
-      "context": ""
-    },
-    {
-      "stepId": "finalRerank",
-      "payload": {
-        "endpoint": "unified-final-rerank",
-        "request": {
-          "query": "type 2 diabetes treatment",
-          "hardFilterQuery": "english[la]",
-          "resultFocus": {
-            "id": "balanced"
-          },
-          "model": "gpt-5-mini",
-          "candidateCount": 25
+        {
+            "stepId": "rerank",
+            "payload": {
+                "rerankProfile": {
+                    "id": "balanced",
+                    "labelKey": "rerankProfileBalanced",
+                    "descriptionKey": "rerankProfileBalancedDescription"
+                },
+                "rerankMode": "multi",
+                "candidateCount": 500,
+                "sourceSummary": [],
+                "sourceStats": [],
+                "overlapSummary": [],
+                "enrichmentSummary": [],
+                "mergeSummary": [],
+                "semanticRescueMeta": null,
+                "rerankConfig": [],
+                "topCandidates": [],
+                "pmidCandidateCount": 300,
+                "doiCandidateCount": 450,
+                "openAlexCandidateCount": 50,
+                "hardFilterQuery": "english[la]"
+            },
+            "context": ""
         },
-        "response": {
-          "orderedIdCount": 25,
-          "orderedIds": [
-            "1",
-            "2"
-          ],
-          "truncated": true
+        {
+            "stepId": "finalizeValidatePmid",
+            "payload": {
+                "orderedPmidCount": 300,
+                "hardFilterQuery": "english[la]",
+                "validationMode": "hard-filter-and-candidate-whitelist",
+                "matchedByPubMedCount": 250,
+                "orderedMatchedCount": 250,
+                "unmatchedCandidateCount": 50
+            },
+            "context": ""
+        },
+        {
+            "stepId": "finalizeValidateDoiFetch",
+            "payload": {
+                "candidateCount": 500,
+                "trustedPmidSkippedCount": 250,
+                "doiCandidateCount": 450,
+                "openAlexIdCandidateCount": 50,
+                "hydratedCount": 200,
+                "openAlexMissingCount": 10,
+                "lookupRequests": [],
+                "requestedSourceCount": 10,
+                "resolvedSourceCount": 9,
+                "missingSourceCount": 1,
+                "activeRules": [],
+                "ruleGroups": [],
+                "publicationDateYears": [],
+                "validatedCount": 500,
+                "allowedCount": 400,
+                "excludedCount": 100,
+                "excludedExamples": []
+            },
+            "context": ""
+        },
+        {
+            "stepId": "finalizeHydrate",
+            "payload": {
+                "requestedCount": 25,
+                "pmidCount": 20,
+                "externalReferenceCount": 5,
+                "hydratedCount": 25,
+                "missingCount": 0
+            },
+            "context": ""
+        },
+        {
+            "stepId": "finalizeSort",
+            "payload": {
+                "sortMethod": "date_desc",
+                "inputCount": 400,
+                "outputCount": 400
+            },
+            "context": ""
+        },
+        {
+            "stepId": "finalRerank",
+            "payload": {
+                "endpoint": "unified-final-rerank",
+                "request": {
+                    "query": "type 2 diabetes treatment",
+                    "hardFilterQuery": "english[la]",
+                    "resultFocus": {
+                        "id": "balanced"
+                    },
+                    "model": "gpt-5-mini",
+                    "candidateCount": 25
+                },
+                "response": {
+                    "orderedIdCount": 25,
+                    "orderedIds": [
+                        "1",
+                        "2"
+                    ],
+                    "truncated": true
+                },
+                "renderedCount": 25,
+                "totalCount": 400,
+                "page": 1,
+                "pageSize": 25,
+                "preselectedCount": 0,
+                "selectedCount": 0
+            },
+            "context": ""
         }
-      },
-      "context": ""
-    },
-    {
-      "stepId": "finalizeRender",
-      "payload": {
-        "renderedCount": 25,
-        "totalCount": 400,
-        "page": 0,
-        "pageSize": 25
-      },
-      "context": ""
-    },
-    {
-      "stepId": "finalizeSelected",
-      "payload": {
-        "preselectedCount": 0,
-        "selectedCount": 0
-      },
-      "context": ""
-    }
-  ]
+    ]
 }

@@ -1,5 +1,6 @@
 import { loadPromptRulesFromRuntime } from "@/utils/contentLoader";
 import { config } from "@/config/config";
+import { syncUrlDomainOverrideFromLocation, urlDomainOverride } from "@/utils/domainKey.js";
 
 export const promptRuleLoaderMixin = {
   // Inject domain from parent Vue instance (supports multiple instances on same page)
@@ -11,9 +12,15 @@ export const promptRuleLoaderMixin = {
       domainSpecificPromptRules: {},
     };
   },
+  created() {
+    syncUrlDomainOverrideFromLocation();
+  },
   computed: {
-    // Use injected domain if available (including empty string), otherwise fall back to global config
+    // Priority: URL domain= → injected data-domain → global config.domain
     currentDomain() {
+      if (urlDomainOverride.value !== null) {
+        return urlDomainOverride.value;
+      }
       return this.instanceDomain !== null ? this.instanceDomain : config.domain;
     },
   },

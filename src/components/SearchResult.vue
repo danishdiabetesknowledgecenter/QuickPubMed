@@ -79,6 +79,7 @@
                         <button
                           v-if="
                             showProcessDetailsToggles &&
+                            !isProcessStepInactive(step) &&
                             !isProcessStepAnimated(step) &&
                             hasProcessStepExpandableContent(step)
                           "
@@ -102,6 +103,7 @@
                     <div
                       v-if="
                         showProcessDetailsToggles &&
+                        !isProcessStepInactive(step) &&
                         hasProcessStepExpandableContent(step)
                       "
                       v-show="isSourceQueryExpanded(step.id)"
@@ -937,7 +939,7 @@
           {
             id: "prepare",
             label: this.getString("semanticSearchProcessGroupPrepare"),
-            childIds: ["prepare", "searchString", "mesh", "optimize", "semanticQuery"],
+            childIds: ["semanticIntent", "semanticQuery", "searchString", "mesh"],
           },
           {
             id: "sources",
@@ -945,15 +947,12 @@
             childIds: ["pubmed", "semanticScholar", "openAlex", "elicit"],
           },
           {
-            id: "finalizeCollect",
+            id: "match",
             label: this.getString("semanticSearchProcessGroupMatch"),
             childIds: [
               "rerank",
-              "finalizeCollect",
               "finalizeValidatePmid",
               "finalizeValidateDoiFetch",
-              "finalizeValidateDoiSource",
-              "finalizeValidateDoiRules",
             ],
           },
           {
@@ -963,8 +962,6 @@
               "finalizeHydrate",
               "finalizeSort",
               "finalRerank",
-              "finalizeRender",
-              "finalizeSelected",
             ],
           },
         ];
@@ -1479,6 +1476,10 @@
       isProcessStepAnimated(step = {}) {
         return String(step?.status || "").trim() === "current";
       },
+      isProcessStepInactive(step = {}) {
+        const status = String(step?.status || "pending").trim() || "pending";
+        return status === "pending";
+      },
       getCachedFormattedPayload(cacheKey, payload, hasContentCheck = null) {
         if (!String(cacheKey || "").trim()) return "";
         if (typeof hasContentCheck === "function" && !hasContentCheck(payload)) {
@@ -1608,52 +1609,40 @@
       },
       getProcessStepExplanation(step = {}) {
         const explanationKeys = {
-          prepare: "semanticSearchProcessExplanationPrepare",
+          semanticIntent: "semanticSearchProcessExplanationSemanticIntent",
           searchString: "semanticSearchProcessExplanationSearchString",
           mesh: "semanticSearchProcessExplanationMesh",
-          optimize: "semanticSearchProcessExplanationOptimize",
           semanticQuery: "semanticSearchProcessExplanationSemanticQuery",
           pubmed: "semanticSearchProcessExplanationPubmed",
           semanticScholar: "semanticSearchProcessExplanationSemanticScholar",
           openAlex: "semanticSearchProcessExplanationOpenAlex",
           elicit: "semanticSearchProcessExplanationElicit",
           rerank: "semanticSearchProcessExplanationRerank",
-          finalizeCollect: "semanticSearchProcessExplanationFinalizeCollect",
           finalizeValidatePmid: "semanticSearchProcessExplanationFinalizeValidatePmid",
           finalizeValidateDoiFetch: "semanticSearchProcessExplanationFinalizeValidateDoiFetch",
-          finalizeValidateDoiSource: "semanticSearchProcessExplanationFinalizeValidateDoiSource",
-          finalizeValidateDoiRules: "semanticSearchProcessExplanationFinalizeValidateDoiRules",
           finalizeHydrate: "semanticSearchProcessExplanationFinalizeHydrate",
           finalizeSort: "semanticSearchProcessExplanationFinalizeSort",
           finalRerank: "semanticSearchProcessExplanationFinalRerank",
-          finalizeSelected: "semanticSearchProcessExplanationFinalizeSelected",
-          finalizeRender: "semanticSearchProcessExplanationFinalizeRender",
         };
         const key = explanationKeys[String(step?.id || "").trim()];
         return key ? this.getString(key) : "";
       },
       getProcessStepDetailExplanation(step = {}) {
         const explanationKeys = {
-          prepare: "semanticSearchProcessDetailExplanationPrepare",
+          semanticIntent: "semanticSearchProcessDetailExplanationSemanticIntent",
           searchString: "semanticSearchProcessDetailExplanationSearchString",
           mesh: "semanticSearchProcessDetailExplanationMesh",
-          optimize: "semanticSearchProcessDetailExplanationOptimize",
           semanticQuery: "semanticSearchProcessDetailExplanationSemanticQuery",
           pubmed: "semanticSearchProcessDetailExplanationPubmed",
           semanticScholar: "semanticSearchProcessDetailExplanationSemanticScholar",
           openAlex: "semanticSearchProcessDetailExplanationOpenAlex",
           elicit: "semanticSearchProcessDetailExplanationElicit",
           rerank: "semanticSearchProcessDetailExplanationRerank",
-          finalizeCollect: "semanticSearchProcessDetailExplanationFinalizeCollect",
           finalizeValidatePmid: "semanticSearchProcessDetailExplanationFinalizeValidatePmid",
           finalizeValidateDoiFetch: "semanticSearchProcessDetailExplanationFinalizeValidateDoiFetch",
-          finalizeValidateDoiSource: "semanticSearchProcessDetailExplanationFinalizeValidateDoiSource",
-          finalizeValidateDoiRules: "semanticSearchProcessDetailExplanationFinalizeValidateDoiRules",
           finalizeHydrate: "semanticSearchProcessDetailExplanationFinalizeHydrate",
           finalizeSort: "semanticSearchProcessDetailExplanationFinalizeSort",
           finalRerank: "semanticSearchProcessDetailExplanationFinalRerank",
-          finalizeSelected: "semanticSearchProcessDetailExplanationFinalizeSelected",
-          finalizeRender: "semanticSearchProcessDetailExplanationFinalizeRender",
         };
         const key = explanationKeys[String(step?.id || "").trim()];
         return key ? this.getString(key) : "";
@@ -1710,20 +1699,35 @@
             return total + (raw || 0);
           }, 0);
         };
+        const searchBasis =
+          payload.searchBasis && typeof payload.searchBasis === "object"
+            ? payload.searchBasis
+            : null;
         switch (stepId) {
-          case "prepare":
-            add("semanticSearchProcessMetricSelectedSources", arrLen(payload.selectedSources));
-            add("semanticSearchProcessMetricPageSize", num(payload.pageSize));
-            break;
+          case "semanticIntent":
           case "searchString":
+            add(
+              "semanticSearchProcessMetricSelectedSources",
+              arrLen(searchBasis?.selectedSources || payload.selectedSources)
+            );
+            add(
+              "semanticSearchProcessMetricPageSize",
+              num(searchBasis?.pageSize ?? payload.pageSize)
+            );
             add("semanticSearchProcessMetricDetectedConcepts", arrLen(payload.detectedConcepts));
             break;
           case "mesh":
+            add(
+              "semanticSearchProcessMetricSelectedSources",
+              arrLen(searchBasis?.selectedSources || payload.selectedSources)
+            );
+            add(
+              "semanticSearchProcessMetricPageSize",
+              num(searchBasis?.pageSize ?? payload.pageSize)
+            );
             add("semanticSearchProcessMetricMeshTotal", sumQueries("totalMeshTerms"));
             add("semanticSearchProcessMetricMeshValid", sumQueries("validCount"));
             add("semanticSearchProcessMetricMeshInvalid", sumQueries("invalidCount"));
-            break;
-          case "optimize":
             add("semanticSearchProcessMetricAddedMeshTerms", sumQueries("addedMeshTerms", true));
             add("semanticSearchProcessMetricRemovedMeshTerms", sumQueries("removedMeshTerms", true));
             break;
@@ -1768,24 +1772,28 @@
             add("semanticSearchProcessMetricRequested", num(payload.requestedCount));
             add("semanticSearchProcessMetricFetched", num(payload.hydratedCount));
             add("semanticSearchProcessMetricMissing", num(payload.missingCount));
+            add("semanticSearchProcessMetricRendered", num(payload.renderedCount));
+            add("semanticSearchProcessMetricTotal", num(payload.totalCount));
+            add("semanticSearchProcessMetricPreselected", num(payload.preselectedCount));
+            add("semanticSearchProcessMetricSelected", num(payload.selectedCount));
             break;
           case "finalizeSort":
             add("semanticSearchProcessMetricInput", num(payload.inputCount));
             add("semanticSearchProcessMetricOutput", num(payload.outputCount));
+            add("semanticSearchProcessMetricRendered", num(payload.renderedCount));
+            add("semanticSearchProcessMetricTotal", num(payload.totalCount));
+            add("semanticSearchProcessMetricPreselected", num(payload.preselectedCount));
+            add("semanticSearchProcessMetricSelected", num(payload.selectedCount));
             break;
           case "finalRerank":
             add(
               "semanticSearchProcessMetricCandidates",
               num(payload.candidateCount ?? payload.request?.candidateCount)
             );
-            break;
-          case "finalizeSelected":
-            add("semanticSearchProcessMetricPreselected", num(payload.preselectedCount));
-            add("semanticSearchProcessMetricSelected", num(payload.selectedCount));
-            break;
-          case "finalizeRender":
             add("semanticSearchProcessMetricRendered", num(payload.renderedCount));
             add("semanticSearchProcessMetricTotal", num(payload.totalCount));
+            add("semanticSearchProcessMetricPreselected", num(payload.preselectedCount));
+            add("semanticSearchProcessMetricSelected", num(payload.selectedCount));
             break;
           default:
             break;

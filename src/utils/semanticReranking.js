@@ -473,12 +473,54 @@ function mergeEnrichedFromCandidate(enriched, candidate) {
   }
 }
 
+const CANONICAL_SOURCE_ORDER = {
+  pubmed: 0,
+  semanticScholar: 1,
+  openAlex: 2,
+  elicit: 3,
+};
+
+function sortSourceResultsDeterministically(sourceResults) {
+  return (Array.isArray(sourceResults) ? [...sourceResults] : []).sort((left, right) => {
+    const leftKey = String(left?.source || "").trim();
+    const rightKey = String(right?.source || "").trim();
+    const leftRank = CANONICAL_SOURCE_ORDER[leftKey] ?? 100;
+    const rightRank = CANONICAL_SOURCE_ORDER[rightKey] ?? 100;
+    if (leftRank !== rightRank) return leftRank - rightRank;
+    return leftKey.localeCompare(rightKey);
+  });
+}
+
+function compareCandidateIdentity(left, right) {
+  const leftPmid = normalizePmidValue(left?.pmid);
+  const rightPmid = normalizePmidValue(right?.pmid);
+  if (leftPmid || rightPmid) {
+    if (!leftPmid) return 1;
+    if (!rightPmid) return -1;
+    if (leftPmid !== rightPmid) return leftPmid.localeCompare(rightPmid);
+  }
+  const leftDoi = String(normalizeDoiValue(left?.doi) || "").toLowerCase();
+  const rightDoi = String(normalizeDoiValue(right?.doi) || "").toLowerCase();
+  if (leftDoi || rightDoi) {
+    if (!leftDoi) return 1;
+    if (!rightDoi) return -1;
+    if (leftDoi !== rightDoi) return leftDoi.localeCompare(rightDoi);
+  }
+  const leftKey = String(left?.key || left?.openAlexId || "")
+    .trim()
+    .toLowerCase();
+  const rightKey = String(right?.key || right?.openAlexId || "")
+    .trim()
+    .toLowerCase();
+  return leftKey.localeCompare(rightKey);
+}
+
 function mergeSourceCandidates(sourceResults, options = {}) {
   const mergedCandidates = new Map();
   const mergeEvents = [];
   let rawCandidateCount = 0;
 
-  (Array.isArray(sourceResults) ? sourceResults : []).forEach((sourceResult) => {
+  sortSourceResultsDeterministically(sourceResults).forEach((sourceResult) => {
     (Array.isArray(sourceResult?.candidates) ? sourceResult.candidates : []).forEach((candidate) => {
       rawCandidateCount += 1;
       const pmid = normalizePmidValue(candidate?.pmid);
@@ -1578,7 +1620,7 @@ export function rerankSemanticCandidates(sourceResults, runtimeRerankConfig = {}
       if (b.scoreTieBreaker !== a.scoreTieBreaker) {
         return b.scoreTieBreaker - a.scoreTieBreaker;
       }
-      return 0;
+      return compareCandidateIdentity(a, b);
     });
   } else {
     rankedCandidates = rankedCandidates.sort((a, b) => {
@@ -1591,7 +1633,7 @@ export function rerankSemanticCandidates(sourceResults, runtimeRerankConfig = {}
       if (a.bestRank !== b.bestRank) {
         return a.bestRank - b.bestRank;
       }
-      return 0;
+      return compareCandidateIdentity(a, b);
     });
   }
 

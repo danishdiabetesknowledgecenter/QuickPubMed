@@ -19,7 +19,7 @@ export const config = reactive({
   defaultRerankProfileId: "", // Default selectable rerank profile id
   telemetryConfig: {}, // Frontend-safe telemetry settings from backend config (QPM_TELEMETRY_CONFIG)
   meshValidationObserveOnly: false, // When true, MeSH validator returns original query unchanged
-  unifiedFrontendEnabled: false, // When true, SearchForm calls the unified /v1/search endpoint instead of its own local pipeline (see isUnifiedFrontendEnabled())
+  unifiedFrontendEnabled: true, // Compatibility field; SearchForm is permanently bound to the shared PHP engine.
   translationSourcesByDomain: {}, // Domain-specific source availability fallback: { domainKey: ["pubmed", ...] }
   elicitGated: false, // Global: backend says Elicit is gated and caller is not unlocked
   theme: {}, // Global CSS custom properties to override :root defaults
@@ -278,9 +278,7 @@ export function getUnifiedFrontendUrlOverride() {
 }
 
 export function isUnifiedFrontendEnabled() {
-  const urlOverride = getUnifiedFrontendUrlOverride();
-  if (urlOverride !== null) return urlOverride;
-  return config.unifiedFrontendEnabled === true;
+  return true;
 }
 
 export function getStoredElicitUnlockKey() {

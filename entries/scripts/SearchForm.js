@@ -7,8 +7,12 @@ import { hideAllPoppers } from "floating-vue";
 import SearchForm from "@/components/SearchForm.vue";
 import { applyThemeFromConfig, config, loadThemeOverridesFromBackend } from "@/config/config";
 import { getAiURL, settings } from "@/config/settings";
+import { syncUrlDomainOverrideFromLocation } from "@/utils/domainKey.js";
 import { getSearchFlowDebugFlagFromLocation, normalizeSearchFlowDebugValue } from "@/utils/searchFlowDebug";
 import { createConfiguredAppWithOptions } from "./createConfiguredApp";
+
+// URL domain= must win before any widget mounts / loads topics.
+syncUrlDomainOverrideFromLocation();
 
 /**
  * Vue.prototype.$dateFormat = "da-DK";

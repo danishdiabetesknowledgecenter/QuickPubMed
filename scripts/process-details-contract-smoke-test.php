@@ -28,7 +28,7 @@ qpmProcessDetailsAssert(
     $schemaSteps === $expectedSteps,
     'PHP step order and JSON Schema step enum are identical'
 );
-qpmProcessDetailsAssert(count($expectedSteps) === 20, 'All 20 known process step ids are registered');
+qpmProcessDetailsAssert(count($expectedSteps) === 14, 'All 14 known process step ids are registered');
 
 $sourceDetails = (array) ($fixture['sourceQueryDetails'] ?? []);
 $fixtureSources = array_map(static fn($entry) => (string) ($entry['source'] ?? ''), $sourceDetails);
@@ -74,11 +74,11 @@ qpmProcessDetailsAssert(
 );
 
 $collector = qpmPublicSearchProcessDetailsCreate();
-qpmPublicSearchProcessDetailsSetStep($collector, 'finalizeCollect', [
+qpmPublicSearchProcessDetailsSetStep($collector, 'rerank', [
     'candidateCount' => 10,
     'apiKey' => 'must-not-leak',
 ]);
-qpmPublicSearchProcessDetailsMergeStep($collector, 'finalizeCollect', [
+qpmPublicSearchProcessDetailsMergeStep($collector, 'rerank', [
     'pmidCandidateCount' => 6,
 ]);
 qpmPublicSearchProcessDetailsSetSource($collector, [

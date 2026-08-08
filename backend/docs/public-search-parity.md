@@ -27,7 +27,7 @@ Selv med samme pipeline findes der stadig residual risiko:
 
 - upstream-kilder ændrer resultater over tid
 - upstream-kilder kan være delvist utilgængelige
-- OpenAI-baseret oversættelse eller slutrerank kan variere, hvis model eller prompt ændres
+- OpenAI-baseret oversættelse kan variere; LLM-slutrerank caches på payload-hash (`QPM_SEMANTIC_LLM_RERANK_CONFIG.cacheTtlSeconds`), så UnifiedSearch og public API genbruger samme permutation ved ens kandidater
 - metadata for DOI-only resultater kan være ufuldstændige
 - enrichment-kilder (NIH iCite, OpenAlex authority) kan fejle eller returnere delvise data; rerank fortsætter graceful uden de manglende signaler, men rækkefølgen kan afvige fra kald til kald
 

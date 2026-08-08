@@ -31,6 +31,22 @@ if (!defined('QPM_PUBLIC_SEARCH_PROGRESS_TEXTS')) {
             'dk' => 'Forbereder søgningen ud fra dine valgte søgeord, afgrænsninger og databaser.',
             'en' => 'Preparing the search based on your query, filters, and selected sources.',
         ],
+        'semanticSearchProgressSemanticIntent' => [
+            'dk' => 'Fortolker søgeintentionen.',
+            'en' => 'Interpreting the search intent.',
+        ],
+        'semanticSearchProgressSemanticQuery' => [
+            'dk' => 'Tilpasser søgningen til de valgte databaser.',
+            'en' => 'Adapting the search for the selected databases.',
+        ],
+        'semanticSearchProgressSearchString' => [
+            'dk' => 'Laver en PubMed-søgestreng ud fra din fritekst.',
+            'en' => 'Building a PubMed search string from your free text.',
+        ],
+        'semanticSearchProgressMesh' => [
+            'dk' => 'Tjekker og forfiner PubMed-søgestrengen med MeSH.',
+            'en' => 'Checking and refining the PubMed search string with MeSH.',
+        ],
         'semanticSearchProgressPubMedBestMatch' => [
             'dk' => 'Søger i PubMed.',
             'en' => 'Searching PubMed.',
@@ -47,17 +63,21 @@ if (!defined('QPM_PUBLIC_SEARCH_PROGRESS_TEXTS')) {
             'dk' => 'Søger i Elicit.',
             'en' => 'Searching Elicit.',
         ],
+        'semanticSearchProgressRerank' => [
+            'dk' => 'Reranker kandidaterne på tværs af databaserne.',
+            'en' => 'Reranking candidates across databases.',
+        ],
         'semanticSearchProgressFinalizeCollect' => [
             'dk' => 'Matcher kandidaterne og forbereder filtervalidering.',
             'en' => 'Matching candidates and preparing filter validation.',
         ],
         'semanticSearchProgressFinalizeValidatePmid' => [
-            'dk' => 'Bekræfter resultaterne hos PubMed.',
-            'en' => 'Confirming the results with PubMed.',
+            'dk' => 'Kontrollerer PMID-resultater mod PubMed-søgningen.',
+            'en' => 'Validating PMID results against the PubMed search.',
         ],
         'semanticSearchProgressFinalizeValidateDoiFetch' => [
-            'dk' => 'Henter flere detaljer om resultaterne.',
-            'en' => 'Fetching more details about the results.',
+            'dk' => 'Henter metadata for DOI-resultater og tjekker filtrene.',
+            'en' => 'Fetching DOI metadata and checking filters.',
         ],
         'semanticSearchProgressFinalizeHydrate' => [
             'dk' => 'Henter artikeloplysninger fra databaserne.',
@@ -79,9 +99,9 @@ if (!defined('QPM_PUBLIC_SEARCH_PROGRESS_TEXTS')) {
             'dk' => 'Sorterer resultaterne efter dato.',
             'en' => 'Sorting the results by date.',
         ],
-        'semanticSearchProgressFinalizeRender' => [
-            'dk' => 'Gør resultaterne klar til visning.',
-            'en' => 'Preparing the results for display.',
+        'semanticSearchProgressFinalRerank' => [
+            'dk' => 'Kontrollerer den endelige rangering.',
+            'en' => 'Checking the final ranking.',
         ],
         'semanticSearchProgressCacheHit' => [
             'dk' => 'Bruger et gemt resultat fra en tidligere søgning.',
@@ -91,20 +111,20 @@ if (!defined('QPM_PUBLIC_SEARCH_PROGRESS_TEXTS')) {
         // ===== groupKeys - overordnede grupper, flere messageKeys hoerer under =====
 
         'semanticSearchProcessGroupPrepare' => [
-            'dk' => 'Forbereder søgningen',
-            'en' => 'Preparing the search',
+            'dk' => 'Oversætter og tilpasser søgningen',
+            'en' => 'Translating and adapting the search',
         ],
         'semanticSearchProcessGroupSources' => [
             'dk' => 'Søger i databaser',
             'en' => 'Searching sources',
         ],
         'semanticSearchProcessGroupMatch' => [
-            'dk' => 'Sammenholder og filtrerer resultaterne',
-            'en' => 'Matching and filtering the results',
+            'dk' => 'Reranker, matcher og filtrerer resultaterne',
+            'en' => 'Reranking, matching and filtering the results',
         ],
         'semanticSearchProcessGroupDisplay' => [
-            'dk' => 'Samler resultaterne og gør dem klar til visning',
-            'en' => 'Collecting the results and preparing them for display',
+            'dk' => 'Henter detaljer og færdiggør rækkefølgen',
+            'en' => 'Fetching details and finishing the ranking',
         ],
 
     ]);

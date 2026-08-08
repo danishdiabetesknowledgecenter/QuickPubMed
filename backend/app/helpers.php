@@ -1089,9 +1089,11 @@ function qpmHttpRequest(string $url, array $options = []): array
  * installs without cURL is unaffected.
  *
  * @param array<string,array{url:string,options?:array<string,mixed>}> $namedRequests Keyed by an arbitrary caller-chosen name.
- * @return array<string,array{ok:bool,status:int,body:string,content_type:string,error:string,response_headers:array<int,string>}> Same keys as $namedRequests.
+ * @param callable|null $onRequestComplete Called as (string $name, int $elapsedMs)
+ *        as soon as each individual request completes.
+ * @return array<string,array{ok:bool,status:int,body:string,content_type:string,error:string,response_headers:array<int,string>,elapsed_ms:int}> Same keys as $namedRequests.
  */
-function qpmHttpRequestMulti(array $namedRequests): array
+function qpmHttpRequestMulti(array $namedRequests, ?callable $onRequestComplete = null): array
 {
     if (empty($namedRequests)) {
         return [];
@@ -1100,7 +1102,15 @@ function qpmHttpRequestMulti(array $namedRequests): array
     if (!function_exists('curl_multi_init')) {
         $results = [];
         foreach ($namedRequests as $name => $spec) {
+            $requestStartedAt = microtime(true);
             $results[$name] = qpmHttpRequest((string) ($spec['url'] ?? ''), (array) ($spec['options'] ?? []));
+            $results[$name]['elapsed_ms'] = max(
+                0,
+                (int) round((microtime(true) - $requestStartedAt) * 1000)
+            );
+            if ($onRequestComplete !== null) {
+                $onRequestComplete((string) $name, (int) $results[$name]['elapsed_ms']);
+            }
         }
         return $results;
     }
@@ -1155,8 +1165,28 @@ function qpmHttpRequestMulti(array $namedRequests): array
     }
 
     $running = null;
+    $completionNotified = [];
     do {
         $status = curl_multi_exec($multiHandle, $running);
+        while (($completion = curl_multi_info_read($multiHandle)) !== false) {
+            $completedHandle = $completion['handle'] ?? null;
+            foreach ($curlHandles as $name => $ch) {
+                if ($ch !== $completedHandle || isset($completionNotified[$name])) {
+                    continue;
+                }
+                $completionNotified[$name] = true;
+                if ($onRequestComplete !== null) {
+                    $onRequestComplete(
+                        (string) $name,
+                        max(
+                            0,
+                            (int) round(((float) curl_getinfo($ch, CURLINFO_TOTAL_TIME)) * 1000)
+                        )
+                    );
+                }
+                break;
+            }
+        }
         if ($running > 0) {
             curl_multi_select($multiHandle, 1.0);
         }
@@ -1167,6 +1197,13 @@ function qpmHttpRequestMulti(array $namedRequests): array
         $responseBody = curl_multi_getcontent($ch);
         $httpStatus = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $contentType = (string) (curl_getinfo($ch, CURLINFO_CONTENT_TYPE) ?? '');
+        $elapsedMs = max(
+            0,
+            (int) round(((float) curl_getinfo($ch, CURLINFO_TOTAL_TIME)) * 1000)
+        );
+        if (!isset($completionNotified[$name]) && $onRequestComplete !== null) {
+            $onRequestComplete((string) $name, $elapsedMs);
+        }
         $error = curl_error($ch);
         curl_multi_remove_handle($multiHandle, $ch);
         curl_close($ch);
@@ -1178,6 +1215,7 @@ function qpmHttpRequestMulti(array $namedRequests): array
             'content_type' => $contentType,
             'error' => $error,
             'response_headers' => $responseHeadersByName[$name] ?? [],
+            'elapsed_ms' => $elapsedMs,
         ];
     }
     curl_multi_close($multiHandle);

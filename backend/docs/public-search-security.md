@@ -16,13 +16,13 @@ Primær auth:
 
 Valgfri test-auth:
 
-- `GET /v1/search?...&apiKey=...`
+- `GET /v1/search?...&apikey=...` (kanonisk lowercase; `apiKey=` accepteres også)
 
 Query-string-baseret auth bør være slået fra som default og bruge en separat, lavprivilegeret testnøgle.
 
-## URL-baseret `apiKey`
+## URL-baseret `apikey`
 
-`apiKey` i URL er en convenience-funktion til test, men er sikkerhedsmæssigt svagere end header-baseret auth.
+`apikey` i URL er en convenience-funktion til test, men er sikkerhedsmæssigt svagere end header-baseret auth.
 
 Den kan lække via:
 

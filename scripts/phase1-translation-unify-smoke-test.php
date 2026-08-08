@@ -112,4 +112,38 @@ $scoreWithIntent = $resultWithIntent['candidates'][0]['scoreBreakdown']['topicOv
 assertTrue($scoreWithoutIntent === 0.0, 'Without queryIntent (the old, buggy call site), topicOverlapBonus is 0 - reproduces the bug');
 assertTrue($scoreWithIntent > 0.0, 'With queryIntent wired in (the fix), topicOverlapBonus is now non-zero for a matching topic');
 
+// 4. Safe early source prefetch: when structured intent supplies the required
+// per-source queries, changing the later shared semantic fallback must not
+// change any source request query.
+$sourcePlanRequest = [
+    'sources' => ['semanticScholar', 'openAlex', 'elicit'],
+    'hardFilters' => [],
+    'sourceFilters' => [],
+];
+$structuredSourceIntent = [
+    'sourceQueryPlan' => [
+        'coreQuery' => 'shared core',
+        'semanticScholar' => ['query' => 'semantic scholar query'],
+        'openAlex' => ['query' => 'openalex query'],
+        'elicit' => ['query' => 'elicit query'],
+        'adaptations' => [],
+    ],
+];
+$planBeforeTranslation = qpmPublicSearchBuildSourceQueryPlan(
+    $sourcePlanRequest,
+    'raw fallback',
+    $structuredSourceIntent
+);
+$planAfterTranslation = qpmPublicSearchBuildSourceQueryPlan(
+    $sourcePlanRequest,
+    'translated fallback',
+    $structuredSourceIntent
+);
+foreach (['semanticScholar', 'openAlex', 'elicit'] as $sourceKey) {
+    assertTrue(
+        ($planBeforeTranslation[$sourceKey]['query'] ?? '') === ($planAfterTranslation[$sourceKey]['query'] ?? ''),
+        "Structured {$sourceKey} query is stable for safe early prefetch"
+    );
+}
+
 echo "\nAll Phase 1 translation-unification smoke tests passed.\n";

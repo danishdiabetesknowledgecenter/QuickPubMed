@@ -706,6 +706,9 @@ define('QPM_SEMANTIC_LLM_RERANK_CONFIG', [
     'reasoningEffort' => 'none',
     'topN' => 25,
     'maxOutputTokens' => 400,
+    // Cache LLM permutations by request payload so UnifiedSearch and the public
+    // API reuse the same order for identical candidate sets (0 disables cache).
+    'cacheTtlSeconds' => 1800,
 ]);
 
 // ============ Telemetry Configuration ============

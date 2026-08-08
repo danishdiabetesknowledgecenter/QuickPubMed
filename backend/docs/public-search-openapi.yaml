@@ -4,7 +4,17 @@ info:
   version: "1.0.0"
   description: |
     Host-uafhængig versioneret søge-API for NemPubMed.
-    POST /v1/search er den officielle kontrakt. GET /v1/search er en begrænset testvariant.
+    POST /v1/search er den officielle kontrakt (JSON eller form-urlencoded).
+    GET /v1/search accepterer samme flade SearchForm-parametre i query-string
+    (UI-only params ignoreres; gentagne limit=/topic= bevares).
+
+    OpenAI Custom GPT Actions:
+    1) Actions → Create new action → import this OpenAPI file (or paste).
+    2) Set servers[0].url to your public-api host.
+    3) Authentication: API Key header X-API-Key (or Bearer).
+    4) Prefer POST /v1/search (operationId searchLiterature) with JSON only.
+    5) Keep page.size at 5–10 (ChatGPT ~45s timeout). Prefer pubmed+openAlex.
+    6) responseOptions.stream must be false; avoid includeProcessDetails.
 servers:
   - url: https://{api-host}
     variables:
@@ -13,10 +23,13 @@ servers:
 paths:
   /v1/search:
     get:
-      summary: Enkel URL-baseret testsøgning
+      summary: URL-baseret søgning (SearchForm query-string)
       description: |
-        Begrænset testvariant. Avancerede filtre understøttes ikke her.
-        Query-string-baseret apiKey er kun tilgængelig når deploymenten tillader det.
+        Accepterer samme flade parametre som SearchForm / form-urlencoded POST
+        (`topic`, gentagne `limit=`, `databases`, `ai`, `focus`, `pmid`, …).
+        UI-only parametre (`advanced`, `collapsed`, `scrollto`, …) ignoreres.
+        Query-string `apikey` (canonical lowercase; casing ignored) er kun tilgængelig når deploymenten tillader det.
+        Ved lange payloads foretrækkes form-urlencoded POST.
       security:
         - ApiKeyHeader: []
         - BearerAuth: []
@@ -24,15 +37,34 @@ paths:
       parameters:
         - in: query
           name: q
-          required: true
+          required: false
           schema:
             type: string
+          description: "Søgetekst (eller brug custom topic={{tekst}}#s:raw)"
+        - in: query
+          name: topic
+          required: false
+          schema:
+            type: string
+          description: "Custom {{tekst}}#s:raw / {{pubmed}}#s:pubmed og/eller katalog-topic-id’er (gentag topic=). Legacy {{tekst0}}#s / {{tekst1}}#s accepteres."
         - in: query
           name: sources
-          required: true
+          required: false
           schema:
             type: string
           description: Kommasepareret liste, fx `pubmed,openAlex`
+        - in: query
+          name: databases
+          required: false
+          schema:
+            type: string
+          description: Alias for sources (SearchForm-navnet)
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: string
+          description: "id#scope,… (OR inden for værdi). Gentag limit= for AND mellem grupper."
         - in: query
           name: sort
           required: false
@@ -65,7 +97,7 @@ paths:
             type: integer
             minimum: 1
             maximum: 100
-          description: "Alias for pageSize (soegeformular-navnet). Bruges kun hvis pageSize ikke er angivet."
+          description: Alias for pageSize (SearchForm-navnet)
         - in: query
           name: translation
           required: false
@@ -73,31 +105,30 @@ paths:
             type: string
             enum: [auto, none]
             default: auto
-          description: "auto bruger AI-oversættelse. none bruger input som skrevet."
         - in: query
           name: ai
           required: false
           schema:
             type: boolean
-          description: "Alias for translation (soegeformular-navnet). ai=false giver translation=none. Bruges kun hvis translation ikke er angivet."
+          description: Alias for translation (SearchForm-navnet)
         - in: query
-          name: databases
+          name: pmid
           required: false
           schema:
             type: string
-          description: "Alias for sources (soegeformular-navnet). ;;- eller kommasepareret liste. Bruges kun hvis sources er tom."
+          description: Kommaseparerede PMID’er til preselectedResults
         - in: query
-          name: apiKey
+          name: apikey
           required: false
           schema:
             type: string
+          description: Canonical lowercase; `apiKey` and other casings are accepted.
         - in: query
           name: stream
           required: false
           schema:
             type: boolean
             default: false
-          description: "true returnerer text/event-stream med progress-events og et afsluttende result-event."
         - in: query
           name: lang
           required: false
@@ -105,7 +136,16 @@ paths:
             type: string
             enum: [da, en]
             default: da
-          description: "Sprog for progress-tekster i streamen."
+        - in: query
+          name: nocache
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: >-
+            Spring search-response- og LLM-slutrerank-cache over for dette kald.
+            Sletter ikke runtime-cache; skriver stadig friske resultater tilbage.
+            JSON-ækvivalent: responseOptions.noCache.
       responses:
         "200":
           description: Search response
@@ -131,7 +171,9 @@ paths:
         "503":
           $ref: '#/components/responses/Busy'
     post:
+      operationId: searchLiterature
       summary: Officiel integrationssøgning
+      x-openai-isConsequential: false
       security:
         - ApiKeyHeader: []
         - BearerAuth: []
@@ -157,6 +199,56 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/SearchRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              additionalProperties: true
+              required: [q]
+              properties:
+                q:
+                  type: string
+                  description: "Søgetekst (alias query; topic={{tekst}}#s:raw accepteres også)"
+                query:
+                  type: string
+                topic:
+                  type: string
+                  description: "Custom {{tekst}}#s:raw / {{pubmed}}#s:pubmed eller katalog-topic-id’er (komma). Legacy {{tekst0}}#s / {{tekst1}}#s accepteres."
+                databases:
+                  type: string
+                  description: Kommaseparerede kilder (alias sources)
+                sources:
+                  type: string
+                ai:
+                  type: string
+                  description: true/false (alias translation)
+                focus:
+                  $ref: '#/components/schemas/FocusProfile'
+                sort:
+                  $ref: '#/components/schemas/SortMethod'
+                page:
+                  type: integer
+                pagesize:
+                  type: integer
+                limit:
+                  type: string
+                  description: >-
+                    Én AND-gruppe: id#scope,... (OR inden for gruppen; default scope #s).
+                    Gentag limit= for flere AND-grupper (samme semantik som SearchForm).
+                pmid:
+                  type: string
+                  description: Kommaseparerede PMID’er til preselect
+                lang:
+                  type: string
+                  enum: [da, en]
+                stream:
+                  type: string
+                nocache:
+                  type: string
+                  description: "1/true springer search-response- og LLM-slutrerank-cache over"
+            encoding:
+              databases:
+                style: form
+                explode: false
       responses:
         "200":
           description: Search response
@@ -181,7 +273,9 @@ paths:
           $ref: '#/components/responses/Busy'
   /v1/health:
     get:
+      operationId: checkHealth
       summary: Health endpoint
+      x-openai-isConsequential: false
       responses:
         "200":
           description: Health response
@@ -221,7 +315,8 @@ components:
     ApiKeyQuery:
       type: apiKey
       in: query
-      name: apiKey
+      name: apikey
+      description: Canonical lowercase; casing is ignored by the server.
     BearerAuth:
       type: http
       scheme: bearer
@@ -388,10 +483,76 @@ components:
             language:
               type: string
               enum: [da, en]
+            includeProcessDetails:
+              type: boolean
+              description: "Inkluderer et detaljeret processDetails-objekt i svaret (samme trin/kilde-diagnostik som webapp-widgeten)."
+            noCache:
+              type: boolean
+              default: false
+              description: >-
+                Spring search-response- og LLM-slutrerank-cache over for dette kald
+                (ækvivalent med query-parametern nocache=1).
+        intentContext:
+          type: object
+          additionalProperties: false
+          description: "Ekstra hint om brugerens valg i soegeformularen, brugt til at berige AI-oversaettelse og udtraek af semantisk hensigt."
+          properties:
+            rawUserInput:
+              type: string
+            contextualSearchInput:
+              type: string
+            selectedTopicIds:
+              type: array
+              items:
+                type: string
+            selectedLimitIds:
+              type: array
+              items:
+                type: string
+            selectedLimitSelections:
+              type: array
+              description: Per-id scope (narrow/normal/broad) for PubMed searchStrings.
+              items:
+                type: object
+                additionalProperties: false
+                properties:
+                  id:
+                    type: string
+                  scope:
+                    type: string
+                    enum: [narrow, normal, broad]
+            selectedTopics:
+              type: array
+              description: Sprogneutral/engelsk visningskontekst; ikke bindende filterværdier.
+              items:
+                type: string
+            selectedLimits:
+              type: array
+              description: Sprogneutral/engelsk visningskontekst; ikke bindende filterværdier.
+              items:
+                type: string
+            semanticBlocks:
+              type: array
+              items:
+                type: string
+            ruleIds:
+              type: array
+              items:
+                type: string
+        preselectedPmids:
+          type: array
+          description: PMID’er der hydreres til preselectedResults (påvirker ikke search-query/total).
+          items:
+            type: string
+          maxItems: 50
         hardFilters:
           type: object
           additionalProperties: false
           properties:
+            filterProfiles:
+              type: array
+              items:
+                type: string
             languages:
               type: array
               items:
@@ -399,11 +560,31 @@ components:
             publicationYear:
               type: string
               description: YYYY or YYYY-YYYY
+            publicationDateYears:
+              type: array
+              items:
+                type: integer
             publicationTypes:
               type: array
               items:
                 type: string
+            studyDesigns:
+              type: array
+              items:
+                type: string
+            ageGroups:
+              type: array
+              items:
+                type: string
             sourceFormats:
+              type: array
+              items:
+                type: string
+            doiOnlyRuleIds:
+              type: array
+              items:
+                type: string
+            postValidationRuleIds:
               type: array
               items:
                 type: string
@@ -481,6 +662,23 @@ components:
           type: array
           items:
             type: string
+        selection:
+          type: object
+          description: Echo of selected SearchForm topics/limits (always present).
+          additionalProperties: false
+          properties:
+            domain:
+              type: string
+            topics:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+            limits:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
         order:
           type: object
           additionalProperties: false
@@ -499,6 +697,15 @@ components:
         diagnostics:
           type: object
           additionalProperties: true
+        processDetails:
+          type: object
+          additionalProperties: true
+          description: >
+            Detaljeret trin-for-trin og kilde-diagnostik for søgeprocessen
+            (sourceQueryDetails + processStepDetails). Kun til stede når
+            responseOptions.includeProcessDetails=true. Payloads er sprogneutrale,
+            trunkerede (fx top 10 eksempler) og redigerede for secrets
+            (apiKey/Authorization/headers m.m.).
         rateLimit:
           $ref: '#/components/schemas/RateLimit'
         timing:
@@ -520,6 +727,12 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SearchResult'
+        preselectedResults:
+          type: array
+          description: Artikler hydreret fra request preselectedPmids/pmid (pin/markering; uden for ranking-total).
+          items:
+            type: object
+            additionalProperties: true
     SearchResult:
       type: object
       additionalProperties: false

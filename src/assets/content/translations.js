@@ -512,12 +512,12 @@ export const messages = {
     en: "Translating your free text into a PubMed search string.",
   },
   semanticSearchProgressMesh: {
-    dk: "Kontrollerer centrale begreber mod MeSH for at gøre søgningen mere præcis.",
-    en: "Checking key concepts against MeSH to make the search more precise.",
+    dk: "Tjekker og forfiner PubMed-søgestrengen med MeSH.",
+    en: "Checking and refining the PubMed search string with MeSH.",
   },
-  semanticSearchProgressOptimize: {
-    dk: "Forfiner PubMed-søgestrengen med MeSH-kontekst.",
-    en: "Refining the PubMed search string with MeSH context.",
+  semanticSearchProgressSemanticIntent: {
+    dk: "Fortolker søgeintentionen.",
+    en: "Interpreting the search intent.",
   },
   semanticSearchProgressSemanticQuery: {
     dk: "Tilpasser søgningen til de valgte databaser.",
@@ -540,8 +540,8 @@ export const messages = {
     en: "Searching for related articles in Elicit.",
   },
   semanticSearchProgressFinalize: {
-    dk: "Samler resultaterne og gør dem klar til visning.",
-    en: "Collecting the results and preparing them for display.",
+    dk: "Henter detaljer og færdiggør rækkefølgen.",
+    en: "Fetching details and finishing the ranking.",
   },
   semanticSearchProgressFinalizeCollect: {
     dk: "Matcher kandidaterne og forbereder filtervalidering.",
@@ -556,8 +556,8 @@ export const messages = {
     en: "Validating PMID results against PubMed.",
   },
   semanticSearchProgressFinalizeValidateDoiFetch: {
-    dk: "Henter metadata for DOI-resultater fra OpenAlex.",
-    en: "Fetching DOI details from OpenAlex.",
+    dk: "Henter metadata for DOI-resultater og tjekker filtrene.",
+    en: "Fetching DOI metadata and checking filters.",
   },
   semanticSearchProgressFinalizeValidateDoiSource: {
     dk: "Henter tidsskriftoplysninger fra OpenAlex.",
@@ -587,6 +587,7 @@ export const messages = {
     dk: "Sorterer resultaterne efter dato.",
     en: "Sorting the results by date.",
   },
+  // Kept for older stored process logs; UI no longer shows separate steps.
   semanticSearchProgressFinalizeSelected: {
     dk: "Kontrollerer om allerede markerede artikler skal bevares.",
     en: "Checking whether already selected articles should be preserved.",
@@ -616,16 +617,16 @@ export const messages = {
     en: "Your free text is translated into a search string that PubMed understands, so the right articles can be found.",
   },
   semanticSearchProcessExplanationMesh: {
-    dk: "De vigtigste begreber tjekkes mod PubMeds officielle emneord (MeSH), så søgningen rammer mere præcist.",
-    en: "The key concepts are checked against PubMed's official subject headings (MeSH) so the search is more precise.",
+    dk: "De vigtigste begreber tjekkes og forfines mod PubMeds officielle emneord (MeSH), så søgningen rammer mere præcist.",
+    en: "Key concepts are checked and refined against PubMed's official subject headings (MeSH) so the search is more precise.",
   },
-  semanticSearchProcessExplanationOptimize: {
-    dk: "Søgestrengen finpudses med de fundne MeSH-emneord, så den giver mere relevante resultater.",
-    en: "The search string is fine-tuned with the matched MeSH headings so it returns more relevant results.",
+  semanticSearchProcessExplanationSemanticIntent: {
+    dk: "Din fritekst fortolkes til en engelsk søgeintention (kernebegreber og coreQuery), som de efterfølgende trin bruger.",
+    en: "Your free text is interpreted into an English search intent (core concepts and coreQuery) used by the following steps.",
   },
   semanticSearchProcessExplanationSemanticQuery: {
-    dk: "Søgningen oversættes og tilpasses, så den passer til hver enkelt valgt database.",
-    en: "The search is translated and adapted so it fits each selected database.",
+    dk: "Søgningen tilpasses, så den passer til hver enkelt valgt database.",
+    en: "The search is adapted so it fits each selected database.",
   },
   semanticSearchProcessExplanationPubmed: {
     dk: "Der søges i PubMed for at finde de artikler, der bedst matcher dit spørgsmål.",
@@ -700,16 +701,16 @@ export const messages = {
     en: "Your free text is translated into an actual PubMed search string with search tags (e.g. [tiab] and [mh]) and AND/OR. In the details you see e.g. 'rawUserInput' (your original text), 'aiCoreQuery' (the short English core), 'detectedConcepts' (the concepts the AI found), 'conceptCoverage'/'coverageCheck' (whether all concepts were covered), 'pubmedQuery' (the generated search string) and 'finalValidatedQuery' (the finally validated search string).",
   },
   semanticSearchProcessDetailExplanationMesh: {
-    dk: "De centrale begreber slås op i NLM's officielle emneordsregister (MeSH), så søgningen rammer mere præcist. I detaljerne ser du pr. begreb: 'meshSearchQuery' (det der blev slået op), 'totalMeshTerms', 'validCount'/'invalidCount' (gyldige/ugyldige MeSH-termer), 'invalidTerms' og 'renamedTerms' (afviste eller omdøbte termer), 'hallucinationRate' (andel opdigtede termer) og 'observeOnly' (om kontrollen kun observerede).",
-    en: "The key concepts are looked up in NLM's official subject-heading registry (MeSH) to make the search more precise. In the details you see per concept: 'meshSearchQuery' (what was looked up), 'totalMeshTerms', 'validCount'/'invalidCount' (valid/invalid MeSH terms), 'invalidTerms' and 'renamedTerms' (rejected or renamed terms), 'hallucinationRate' (share of invented terms) and 'observeOnly' (whether the check only observed).",
+    dk: "De centrale begreber slås op og forfines via NLM's MeSH-register. I detaljerne ser du bl.a. 'meshSearchQuery', 'validCount'/'invalidCount', 'beforeOptimization'/'afterOptimization', 'addedMeshTerms'/'removedMeshTerms' og 'finalMeshTermCount'.",
+    en: "Key concepts are looked up and refined via NLM's MeSH registry. In the details you see e.g. 'meshSearchQuery', 'validCount'/'invalidCount', 'beforeOptimization'/'afterOptimization', 'addedMeshTerms'/'removedMeshTerms' and 'finalMeshTermCount'.",
   },
-  semanticSearchProcessDetailExplanationOptimize: {
-    dk: "Søgestrengen finpudses ved at kombinere de bekræftede MeSH-emneord med fritekst-synonymer. I detaljerne ser du pr. begreb: 'beforeOptimization' og 'afterOptimization' (søgestrengen før og efter), 'changed' (om noget blev ændret), 'addedMeshTerms'/'removedMeshTerms' og 'addedConcepts'/'removedConcepts' (tilføjede/fjernede termer) samt 'finalMeshTermCount'.",
-    en: "The search string is fine-tuned by combining the confirmed MeSH headings with free-text synonyms. In the details you see per concept: 'beforeOptimization' and 'afterOptimization' (the string before and after), 'changed' (whether anything changed), 'addedMeshTerms'/'removedMeshTerms' and 'addedConcepts'/'removedConcepts' (added/removed terms) plus 'finalMeshTermCount'.",
+  semanticSearchProcessDetailExplanationSemanticIntent: {
+    dk: "Her fortolkes din fritekst til en engelsk søgeintention. I detaljerne ser du bl.a. 'semanticIntent'/'coreQuery', 'detectedConcepts', 'confidenceScore', 'conceptCoverage', 'coverageCheck', 'potentialIssues' og 'refinementSuggestions'. 'parseAttempts'/'fallbackUsed' viser, om AI-kaldet lykkedes.",
+    en: "Your free text is interpreted into an English search intent. In the details you see e.g. 'semanticIntent'/'coreQuery', 'detectedConcepts', 'confidenceScore', 'conceptCoverage', 'coverageCheck', 'potentialIssues' and 'refinementSuggestions'. 'parseAttempts'/'fallbackUsed' show whether the AI call succeeded.",
   },
   semanticSearchProcessDetailExplanationSemanticQuery: {
-    dk: "Den fælles søgning tilpasses til hver enkelt valgt database. I detaljerne ser du bl.a. 'coreQuery' (den fælles engelske kerne), 'detectedConcepts', 'confidenceScore' (hvor sikker AI'en er), 'conceptCoverage' (om begreber blev udeladt), 'potentialIssues' og 'refinementSuggestions' (mulige problemer og forslag), 'hardFilters' (dine bindende filtre), 'sourceQueries' (den konkrete query pr. database) og 'adaptations' (database-specifikke tilpasninger). 'cacheHit'/'fallbackUsed' viser, om svaret kom fra cache eller en reserveløsning.",
-    en: "The shared search is adapted for each selected database. In the details you see e.g. 'coreQuery' (the shared English core), 'detectedConcepts', 'confidenceScore' (how confident the AI is), 'conceptCoverage' (whether concepts were dropped), 'potentialIssues' and 'refinementSuggestions' (possible problems and suggestions), 'hardFilters' (your binding filters), 'sourceQueries' (the actual query per database) and 'adaptations' (database-specific adjustments). 'cacheHit'/'fallbackUsed' show whether the answer came from cache or a fallback.",
+    dk: "Den fælles søgning tilpasses til hver enkelt valgt database. I detaljerne ser du bl.a. 'coreQuery' (den fælles engelske kerne), 'hardFilters' (dine bindende filtre), 'sourceQueries' (den konkrete query pr. database) og 'adaptations' (database-specifikke tilpasninger). 'semanticTranslationSkipped' er true, når tilpasningen genbrugte intent uden et ekstra AI-kald.",
+    en: "The shared search is adapted for each selected database. In the details you see e.g. 'coreQuery' (the shared English core), 'hardFilters' (your binding filters), 'sourceQueries' (the actual query per database) and 'adaptations' (database-specific adjustments). 'semanticTranslationSkipped' is true when adaptation reused the intent without an extra AI call.",
   },
   semanticSearchProcessDetailExplanationPubmed: {
     dk: "Der køres en relevans-søgning i PubMed. I detaljerne ser du 'Søgetekst' (den faktiske søgestreng) og 'Request-parametre' (de parametre der sendes til PubMed, fx 'term', 'sort' og hvor mange resultater der hentes). PubMed bruges også som et sikkert fundament, hvis de øvrige kilder svigter.",
@@ -740,8 +741,8 @@ export const messages = {
     en: "Articles with a PMID are checked against a PubMed search that contains your hard filters, so only articles that actually meet the filters are kept. In the details you see e.g. 'orderedPmidCount' (number of articles checked), 'hardFilterQuery' (the filter search string) and 'validationMode' (how validation was done). The result is shown as 'matchedByPubMedCount', 'orderedMatchedCount' (number that passed) and 'unmatchedCandidateCount' (number filtered out). 'skipped: true' means the step could be skipped because the articles were already confirmed.",
   },
   semanticSearchProcessDetailExplanationFinalizeValidateDoiFetch: {
-    dk: "For artikler uden PMID hentes metadata via deres DOI fra OpenAlex, så de også kan vurderes mod filtrene. I detaljerne ser du 'candidateCount' (samlet antal), 'doiCandidateCount' og 'openAlexIdCandidateCount' (hvor mange der slås op via henholdsvis DOI og OpenAlex-id).",
-    en: "For articles without a PMID, metadata is fetched via their DOI from OpenAlex so they can also be assessed against the filters. In the details you see 'candidateCount' (total), 'doiCandidateCount' and 'openAlexIdCandidateCount' (how many are looked up via DOI and OpenAlex ID respectively).",
+    dk: "For artikler uden PMID hentes metadata via DOI fra OpenAlex, og filtrene/reglerne tjekkes. I detaljerne ser du bl.a. 'doiCandidateCount', 'hydratedCount', 'activeRules', 'allowedCount'/'excludedCount' og 'excludedExamples'.",
+    en: "For articles without a PMID, metadata is fetched via DOI from OpenAlex and filters/rules are checked. In the details you see e.g. 'doiCandidateCount', 'hydratedCount', 'activeRules', 'allowedCount'/'excludedCount' and 'excludedExamples'.",
   },
   semanticSearchProcessDetailExplanationFinalizeValidateDoiSource: {
     dk: "Der hentes oplysninger om kildens tidsskrift, så fx et krav om, at resultatet skal være en artikel i et tidsskrift, kan vurderes korrekt for DOI-baserede resultater.",
@@ -1028,8 +1029,8 @@ export const messages = {
     en: "Reranking, matching and filtering the results",
   },
   semanticSearchProcessGroupDisplay: {
-    dk: "Samler resultaterne og gør dem klar til visning",
-    en: "Collecting the results and preparing them for display",
+    dk: "Henter detaljer og færdiggør rækkefølgen",
+    en: "Fetching details and finishing the ranking",
   },
   semanticSearchProcessStatusWarning: {
     dk: "Status: advarsel.",

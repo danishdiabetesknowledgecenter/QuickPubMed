@@ -1,6 +1,7 @@
 import { loadTopicsFromRuntime } from "@/utils/contentLoader";
 import { config } from "@/config/config";
 import { normalizeTopicsList } from "@/utils/contentCanonicalizer";
+import { syncUrlDomainOverrideFromLocation, urlDomainOverride } from "@/utils/domainKey.js";
 
 /**
  * Flattens nested topic groups into a flat array.
@@ -86,9 +87,16 @@ export const topicLoaderMixin = {
       topicCatalog: [],
     };
   },
+  created() {
+    // Re-sync in case location was not ready at module import.
+    syncUrlDomainOverrideFromLocation();
+  },
   computed: {
-    // Use injected domain if available (including empty string), otherwise fall back to global config
+    // Priority: URL domain= → injected data-domain → global config.domain
     currentDomain() {
+      if (urlDomainOverride.value !== null) {
+        return urlDomainOverride.value;
+      }
       return this.instanceDomain !== null ? this.instanceDomain : config.domain;
     },
   },
@@ -101,6 +109,7 @@ export const topicLoaderMixin = {
   methods: {
     async loadTopicsData() {
       const domain = this.currentDomain;
+      const requestDomain = domain;
       // Skip loading and error messages if no domain is specified
       if (!domain) {
         this.topicCatalog = [];
@@ -115,8 +124,15 @@ export const topicLoaderMixin = {
         console.error("Failed to load topics from runtime content API.", error);
       }
 
+      // Ignore stale responses if domain changed while the request was in flight.
+      if (this.currentDomain !== requestDomain) {
+        return;
+      }
+
       if (topicsSource.length === 0) {
-        console.error(`No topics found for domain: ${domain}`);
+        console.error(
+          `No topics found for domain: ${domain}. Expected data/content/${domain}/topics.json via PublicContent.php.`
+        );
         this.topicCatalog = [];
         return;
       }

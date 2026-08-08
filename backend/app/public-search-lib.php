@@ -4,6 +4,7 @@
  */
 
 require_once __DIR__ . '/semantic-quality-lib.php';
+require_once __DIR__ . '/public-search-process-details.php';
 
 if (!function_exists('qpmPublicSearchBoolValue')) {
     /**
@@ -391,6 +392,46 @@ if (!function_exists('qpmPublicSearchReadCacheValue')) {
     }
 }
 
+if (!function_exists('qpmPublicSearchBuildPipelineCacheKey')) {
+    /**
+     * Cache key for the expensive pre-hydration pipeline (intent/sources/rerank/
+     * validation). Page number/size are excluded so "load next page" and
+     * changing results-per-page can reuse the same ordered candidate set.
+     *
+     * @param array<string,mixed> $request
+     */
+    function qpmPublicSearchBuildPipelineCacheKey(array $request): string
+    {
+        $forKey = $request;
+        unset($forKey['_processDetails'], $forKey['page']);
+        if (isset($forKey['responseOptions']) && is_array($forKey['responseOptions'])) {
+            unset(
+                $forKey['responseOptions']['noCache'],
+                $forKey['responseOptions']['includeProcessDetails'],
+                $forKey['responseOptions']['includeDiagnostics'],
+                $forKey['responseOptions']['includeResolvedQueries']
+            );
+        }
+        return 'pipeline:' . sha1(qpmPublicSearchSafeJsonEncode($forKey));
+    }
+}
+
+if (!function_exists('qpmPublicSearchStripResolvedQueriesForPipelineCache')) {
+    /**
+     * @param array<string,mixed> $resolvedQueries
+     * @return array<string,mixed>
+     */
+    function qpmPublicSearchStripResolvedQueriesForPipelineCache(array $resolvedQueries): array
+    {
+        unset(
+            $resolvedQueries['_earlyPrefetchedSources'],
+            $resolvedQueries['_earlySourceStartedAt'],
+            $resolvedQueries['processReports']
+        );
+        return $resolvedQueries;
+    }
+}
+
 if (!function_exists('qpmPublicSearchWriteCacheValue')) {
     /**
      * @param string $namespace
@@ -750,6 +791,26 @@ if (!function_exists('qpmPublicSearchBuildStreamProgressPayload')) {
         }
         if (isset($context['total']) && is_numeric($context['total'])) {
             $payload['total'] = (int) $context['total'];
+        }
+        $status = trim((string) ($context['status'] ?? ''));
+        if ($status !== '' && in_array($status, qpmPublicSearchProcessDetailStatuses(), true)) {
+            $payload['status'] = $status;
+        }
+        if (isset($context['elapsedMs']) && is_numeric($context['elapsedMs'])) {
+            $payload['elapsedMs'] = max(0, (int) $context['elapsedMs']);
+        }
+        if (($context['detailOnly'] ?? false) === true) {
+            $payload['detailOnly'] = true;
+        }
+        if (isset($context['processStepDetail']) && is_array($context['processStepDetail'])) {
+            $payload['processStepDetail'] = qpmPublicSearchProcessDetailsSanitize(
+                $context['processStepDetail']
+            );
+        }
+        if (isset($context['sourceQueryDetail']) && is_array($context['sourceQueryDetail'])) {
+            $payload['sourceQueryDetail'] = qpmPublicSearchProcessDetailsSanitize(
+                $context['sourceQueryDetail']
+            );
         }
 
         return $payload;
@@ -1456,14 +1517,22 @@ if (!function_exists('qpmPublicSearchBuildDefaultRequest')) {
                 'includeAbstracts' => $config['includeAbstractsByDefault'],
                 'includeResolvedQueries' => $config['includeResolvedQueriesByDefault'],
                 'includeDiagnostics' => $config['includeDiagnosticsByDefault'],
+                'includeProcessDetails' => false,
                 'stream' => false,
                 'language' => 'da',
+                'noCache' => false,
             ],
             'hardFilters' => [
+                'filterProfiles' => [],
                 'languages' => [],
                 'publicationYear' => '',
+                'publicationDateYears' => [],
                 'publicationTypes' => [],
+                'studyDesigns' => [],
+                'ageGroups' => [],
                 'sourceFormats' => [],
+                'doiOnlyRuleIds' => [],
+                'postValidationRuleIds' => [],
             ],
             'sourceFilters' => [
                 'semanticScholar' => [
@@ -1483,7 +1552,67 @@ if (!function_exists('qpmPublicSearchBuildDefaultRequest')) {
                     'excludeKeywords' => [],
                 ],
             ],
+            // Optional SearchForm context that is not already representable as
+            // hardFilters/sourceFilters. Binding filter values stay only in those
+            // canonical fields; this object carries UI/intent metadata.
+            'intentContext' => [
+                'rawUserInput' => '',
+                'contextualSearchInput' => '',
+                'selectedTopicIds' => [],
+                'selectedTopicSelections' => [],
+                'selectedTopicGroups' => [],
+                'selectedLimitIds' => [],
+                'selectedLimitSelections' => [],
+                'selectedLimitGroups' => [],
+                'selectedTopics' => [],
+                'selectedLimits' => [],
+                'semanticBlocks' => [],
+                'ruleIds' => [],
+            ],
+            'preselectedPmids' => [],
         ];
+    }
+}
+
+if (!function_exists('qpmPublicSearchGetLowercasedQueryParams')) {
+    /**
+     * Returns GET query params with lowercased keys (canonical URL form).
+     * Prefers QUERY_STRING parsing so casing and repeated keys match flat-param rules.
+     *
+     * @return array<string,mixed>
+     */
+    function qpmPublicSearchGetLowercasedQueryParams(): array
+    {
+        $raw = (string) ($_SERVER['QUERY_STRING'] ?? '');
+        if (trim($raw) !== '' && function_exists('qpmPublicSearchParseRawUrlEncodedPreservingLimitGroups')) {
+            return qpmPublicSearchParseRawUrlEncodedPreservingLimitGroups($raw);
+        }
+        $normalized = [];
+        foreach (is_array($_GET) ? $_GET : [] as $key => $value) {
+            $lower = strtolower(trim((string) $key));
+            if ($lower === '' || array_key_exists($lower, $normalized)) {
+                continue;
+            }
+            $normalized[$lower] = $value;
+        }
+        return $normalized;
+    }
+}
+
+if (!function_exists('qpmPublicSearchGetQueryParam')) {
+    /**
+     * Case-insensitive query-string lookup. Canonical name is lowercase.
+     *
+     * @return mixed|null
+     */
+    function qpmPublicSearchGetQueryParam(string $name)
+    {
+        $lower = strtolower(trim($name));
+        if ($lower === '') {
+            return null;
+        }
+        $params = qpmPublicSearchGetLowercasedQueryParams();
+        return array_key_exists($lower, $params) ? $params[$lower] : null;
     }
 }
 
@@ -1494,14 +1623,23 @@ if (!function_exists('qpmPublicSearchApplyQueryResponseOptionOverrides')) {
      */
     function qpmPublicSearchApplyQueryResponseOptionOverrides(array $request): array
     {
-        if (array_key_exists('stream', $_GET)) {
+        $stream = qpmPublicSearchGetQueryParam('stream');
+        if ($stream !== null) {
             $request['responseOptions']['stream'] = qpmPublicSearchBoolValue(
-                $_GET['stream'],
+                $stream,
                 (bool) ($request['responseOptions']['stream'] ?? false)
             );
         }
-        if (array_key_exists('lang', $_GET)) {
-            $request['responseOptions']['language'] = qpmPublicSearchNormalizeResponseLanguage($_GET['lang']);
+        $lang = qpmPublicSearchGetQueryParam('lang');
+        if ($lang !== null) {
+            $request['responseOptions']['language'] = qpmPublicSearchNormalizeResponseLanguage($lang);
+        }
+        $noCache = qpmPublicSearchGetQueryParam('nocache');
+        if ($noCache !== null) {
+            $request['responseOptions']['noCache'] = qpmPublicSearchBoolValue(
+                $noCache,
+                (bool) ($request['responseOptions']['noCache'] ?? false)
+            );
         }
         return $request;
     }
@@ -1514,55 +1652,9 @@ if (!function_exists('qpmPublicSearchBuildGetRequestFromQuery')) {
      */
     function qpmPublicSearchBuildGetRequestFromQuery(array $queryParams): array
     {
-        $request = qpmPublicSearchBuildDefaultRequest();
-        $allowed = [
-            'q', 'sources', 'sort', 'page', 'pageSize', 'translation', 'apiKey', 'stream', 'lang', 'focus',
-            // Convenience-aliaser, der matcher soegeformularens URL-parametre:
-            'pagesize', 'databases', 'ai',
-        ];
-        $unexpected = array_diff(array_keys($queryParams), $allowed);
-        if (!empty($unexpected)) {
-            throw new InvalidArgumentException('Unsupported GET query parameter(s): ' . implode(', ', $unexpected));
-        }
-
-        $request['query']['text'] = trim((string) ($queryParams['q'] ?? ''));
-        $sources = qpmPublicSearchNormalizeSources($queryParams['sources'] ?? []);
-        if (empty($sources) && array_key_exists('databases', $queryParams)) {
-            $sources = qpmPublicSearchNormalizeSources(
-                str_replace(';;', ',', (string) $queryParams['databases'])
-            );
-        }
-        $request['sources'] = $sources;
-        $request['sort']['method'] = qpmPublicSearchNormalizeSortMethod($queryParams['sort'] ?? 'relevance');
-        $request['focus'] = qpmPublicSearchNormalizeFocusProfileId($queryParams['focus'] ?? '');
-        $request['page']['number'] = max(1, (int) ($queryParams['page'] ?? 1));
-        if (array_key_exists('translation', $queryParams)) {
-            $request['translation']['mode'] = qpmPublicSearchNormalizeTranslationMode($queryParams['translation']);
-        } elseif (array_key_exists('ai', $queryParams)) {
-            $request['translation']['mode'] = qpmPublicSearchBoolValue($queryParams['ai'], true) ? 'auto' : 'none';
-        } else {
-            $request['translation']['mode'] = 'auto';
-        }
-        $request['responseOptions']['stream'] = qpmPublicSearchBoolValue(
-            $queryParams['stream'] ?? $request['responseOptions']['stream'],
-            (bool) $request['responseOptions']['stream']
-        );
-        $request['responseOptions']['language'] = qpmPublicSearchNormalizeResponseLanguage(
-            $queryParams['lang'] ?? $request['responseOptions']['language']
-        );
-
-        $config = qpmPublicSearchGetConfig();
-        $pageSize = (int) ($queryParams['pageSize'] ?? ($queryParams['pagesize'] ?? $request['page']['size']));
-        $request['page']['size'] = max(1, min($config['maxPageSize'], $pageSize > 0 ? $pageSize : $config['defaultPageSize']));
-
-        if ($request['query']['text'] === '') {
-            throw new InvalidArgumentException('q is required');
-        }
-        if (empty($request['sources'])) {
-            throw new InvalidArgumentException('sources must contain at least one supported source');
-        }
-
-        return qpmPublicSearchApplyQueryResponseOptionOverrides($request);
+        // Same SearchForm-compatible flat contract as form-urlencoded POST.
+        // Prefer ParseRequest() with QUERY_STRING so repeated limit=/topic= survive.
+        return qpmPublicSearchBuildRequestFromFlatParams($queryParams);
     }
 }
 
@@ -1586,6 +1678,8 @@ if (!function_exists('qpmPublicSearchNormalizePostRequest')) {
             'responseOptions',
             'hardFilters',
             'sourceFilters',
+            'intentContext',
+            'preselectedPmids',
         ];
         $unexpected = array_diff(array_keys($payload), $allowedTopLevel);
         if (!empty($unexpected)) {
@@ -1616,7 +1710,7 @@ if (!function_exists('qpmPublicSearchNormalizePostRequest')) {
         $request['focus'] = qpmPublicSearchNormalizeFocusProfileId($payload['focus'] ?? '');
 
         $page = isset($payload['page']) && is_array($payload['page']) ? $payload['page'] : [];
-        $pageUnexpected = array_diff(array_keys($page), ['number', 'size']);
+        $pageUnexpected = array_diff(array_keys($page), ['number', 'size', 'offset']);
         if (!empty($pageUnexpected)) {
             throw new InvalidArgumentException('Unsupported page field(s): ' . implode(', ', $pageUnexpected));
         }
@@ -1624,6 +1718,13 @@ if (!function_exists('qpmPublicSearchNormalizePostRequest')) {
         $request['page']['number'] = max(1, (int) ($page['number'] ?? 1));
         $pageSize = (int) ($page['size'] ?? $config['defaultPageSize']);
         $request['page']['size'] = max(1, min($config['maxPageSize'], $pageSize > 0 ? $pageSize : $config['defaultPageSize']));
+        // Absolute offset into the ordered candidate list (used by SearchForm when
+        // increasing page size / loading more without re-hydrating known hits).
+        if (array_key_exists('offset', $page) && $page['offset'] !== null && $page['offset'] !== '') {
+            $request['page']['offset'] = max(0, (int) $page['offset']);
+        } else {
+            unset($request['page']['offset']);
+        }
 
         $translation = isset($payload['translation']) && is_array($payload['translation']) ? $payload['translation'] : [];
         $translationUnexpected = array_diff(array_keys($translation), ['mode']);
@@ -1641,8 +1742,10 @@ if (!function_exists('qpmPublicSearchNormalizePostRequest')) {
             'includeAbstracts',
             'includeResolvedQueries',
             'includeDiagnostics',
+            'includeProcessDetails',
             'stream',
             'language',
+            'noCache',
         ]);
         if (!empty($responseUnexpected)) {
             throw new InvalidArgumentException(
@@ -1661,6 +1764,10 @@ if (!function_exists('qpmPublicSearchNormalizePostRequest')) {
             $responseOptions['includeDiagnostics'] ?? $request['responseOptions']['includeDiagnostics'],
             $request['responseOptions']['includeDiagnostics']
         );
+        $request['responseOptions']['includeProcessDetails'] = qpmPublicSearchBoolValue(
+            $responseOptions['includeProcessDetails'] ?? $request['responseOptions']['includeProcessDetails'],
+            $request['responseOptions']['includeProcessDetails']
+        );
         $request['responseOptions']['stream'] = qpmPublicSearchBoolValue(
             $responseOptions['stream'] ?? $request['responseOptions']['stream'],
             $request['responseOptions']['stream']
@@ -1668,34 +1775,66 @@ if (!function_exists('qpmPublicSearchNormalizePostRequest')) {
         $request['responseOptions']['language'] = qpmPublicSearchNormalizeResponseLanguage(
             $responseOptions['language'] ?? $request['responseOptions']['language']
         );
+        $request['responseOptions']['noCache'] = qpmPublicSearchBoolValue(
+            $responseOptions['noCache'] ?? $request['responseOptions']['noCache'],
+            (bool) ($request['responseOptions']['noCache'] ?? false)
+        );
 
         $hardFilters = isset($payload['hardFilters']) && is_array($payload['hardFilters']) ? $payload['hardFilters'] : [];
         $hardUnexpected = array_diff(array_keys($hardFilters), [
+            'filterProfiles',
             'languages',
             'publicationYear',
+            'publicationDateYears',
             'publicationTypes',
+            'studyDesigns',
+            'ageGroups',
             'sourceFormats',
+            'doiOnlyRuleIds',
+            'postValidationRuleIds',
         ]);
         if (!empty($hardUnexpected)) {
             throw new InvalidArgumentException('Unsupported hardFilters field(s): ' . implode(', ', $hardUnexpected));
         }
+        $request['hardFilters']['filterProfiles'] = qpmPublicSearchDedupeStrings(
+            qpmPublicSearchNormalizeSimpleList($hardFilters['filterProfiles'] ?? [])
+        );
         $request['hardFilters']['languages'] = qpmPublicSearchDedupeStrings(
             array_map('qpmPublicSearchNormalizeLanguageCode', qpmPublicSearchNormalizeSimpleList($hardFilters['languages'] ?? []))
         );
         $request['hardFilters']['publicationYear'] = qpmPublicSearchNormalizePublicationYearRange(
             $hardFilters['publicationYear'] ?? ''
         );
+        $publicationDateYears = [];
+        foreach (qpmPublicSearchNormalizeSimpleList($hardFilters['publicationDateYears'] ?? []) as $year) {
+            if (is_numeric($year) && (int) $year >= 1000 && (int) $year <= 9999) {
+                $publicationDateYears[] = (int) $year;
+            }
+        }
+        $request['hardFilters']['publicationDateYears'] = array_values(array_unique($publicationDateYears));
         $request['hardFilters']['publicationTypes'] = qpmPublicSearchDedupeStrings(
             array_map(
                 'qpmPublicSearchNormalizeHardPublicationType',
                 qpmPublicSearchNormalizeSimpleList($hardFilters['publicationTypes'] ?? [])
             )
         );
+        $request['hardFilters']['studyDesigns'] = qpmPublicSearchDedupeStrings(
+            qpmPublicSearchNormalizeSimpleList($hardFilters['studyDesigns'] ?? [])
+        );
+        $request['hardFilters']['ageGroups'] = qpmPublicSearchDedupeStrings(
+            qpmPublicSearchNormalizeSimpleList($hardFilters['ageGroups'] ?? [])
+        );
         $request['hardFilters']['sourceFormats'] = qpmPublicSearchDedupeStrings(
             array_map(
                 'qpmPublicSearchNormalizeSourceFormat',
                 qpmPublicSearchNormalizeSimpleList($hardFilters['sourceFormats'] ?? [])
             )
+        );
+        $request['hardFilters']['doiOnlyRuleIds'] = qpmPublicSearchDedupeStrings(
+            qpmPublicSearchNormalizeSimpleList($hardFilters['doiOnlyRuleIds'] ?? [])
+        );
+        $request['hardFilters']['postValidationRuleIds'] = qpmPublicSearchDedupeStrings(
+            qpmPublicSearchNormalizeSimpleList($hardFilters['postValidationRuleIds'] ?? [])
         );
 
         $sourceFilters = isset($payload['sourceFilters']) && is_array($payload['sourceFilters']) ? $payload['sourceFilters'] : [];
@@ -1810,7 +1949,217 @@ if (!function_exists('qpmPublicSearchNormalizePostRequest')) {
             $request['sourceFilters']['elicit']['retracted'] = qpmPublicSearchNormalizeElicitRetractedValue($elicit['retracted']);
         }
 
-        if ($request['query']['text'] === '') {
+        $intentContext = isset($payload['intentContext']) && is_array($payload['intentContext'])
+            ? $payload['intentContext']
+            : [];
+        $intentUnexpected = array_diff(array_keys($intentContext), [
+            'rawUserInput',
+            'contextualSearchInput',
+            'selectedTopicIds',
+            'selectedTopicSelections',
+            'selectedTopicGroups',
+            'selectedLimitIds',
+            'selectedLimitSelections',
+            'selectedLimitGroups',
+            'selectedTopics',
+            'selectedLimits',
+            'semanticBlocks',
+            'ruleIds',
+        ]);
+        if (!empty($intentUnexpected)) {
+            throw new InvalidArgumentException(
+                'Unsupported intentContext field(s): ' . implode(', ', $intentUnexpected)
+            );
+        }
+        $isCatalogTopicId = static function (string $id): bool {
+            return preg_match('/^[A-Z][0-9A-Z]{2,}$/', $id) === 1;
+        };
+        $selectedTopicIds = [];
+        foreach (qpmPublicSearchNormalizeSimpleList($intentContext['selectedTopicIds'] ?? []) as $rawTopicId) {
+            $id = strtoupper(trim((string) $rawTopicId));
+            // Ignore widget synthetic ids (e.g. __custom__:…) — only catalog ids.
+            if ($isCatalogTopicId($id)) {
+                $selectedTopicIds[] = $id;
+            }
+        }
+        $selectedTopicIds = qpmPublicSearchDedupeStrings($selectedTopicIds);
+        $selectedTopicSelections = [];
+        foreach ((array) ($intentContext['selectedTopicSelections'] ?? []) as $selection) {
+            if (!is_array($selection)) {
+                continue;
+            }
+            $normalizedTopic = qpmPublicSearchNormalizeTopicSelectionEntry($selection);
+            if ($normalizedTopic !== null) {
+                $selectedTopicSelections[] = $normalizedTopic;
+                if (!$normalizedTopic['custom'] && $normalizedTopic['id'] !== '') {
+                    $selectedTopicIds[] = $normalizedTopic['id'];
+                }
+            }
+        }
+        $selectedTopicGroups = [];
+        foreach ((array) ($intentContext['selectedTopicGroups'] ?? []) as $group) {
+            if (!is_array($group)) {
+                continue;
+            }
+            $normalizedGroup = [];
+            foreach ($group as $selection) {
+                if (!is_array($selection)) {
+                    $id = strtoupper(trim((string) $selection));
+                    if ($id === '' || !$isCatalogTopicId($id)) {
+                        continue;
+                    }
+                    $normalizedTopic = qpmPublicSearchNormalizeTopicSelectionEntry([
+                        'id' => $id,
+                        'scope' => 'normal',
+                        'custom' => false,
+                    ]);
+                } else {
+                    $normalizedTopic = qpmPublicSearchNormalizeTopicSelectionEntry($selection);
+                }
+                if ($normalizedTopic === null) {
+                    continue;
+                }
+                $normalizedGroup[] = $normalizedTopic;
+                if (!$normalizedTopic['custom'] && $normalizedTopic['id'] !== '') {
+                    $selectedTopicIds[] = $normalizedTopic['id'];
+                }
+            }
+            if (!empty($normalizedGroup)) {
+                $selectedTopicGroups[] = $normalizedGroup;
+            }
+        }
+        $selectedTopicIds = qpmPublicSearchDedupeStrings($selectedTopicIds);
+        if (empty($selectedTopicSelections) && !empty($selectedTopicIds)) {
+            foreach ($selectedTopicIds as $id) {
+                if (!$isCatalogTopicId($id)) {
+                    continue;
+                }
+                $selectedTopicSelections[] = [
+                    'id' => $id,
+                    'scope' => 'normal',
+                    'custom' => false,
+                    'rawText' => '',
+                    'label' => '',
+                ];
+            }
+        }
+        if (empty($selectedTopicGroups) && !empty($selectedTopicSelections)) {
+            $selectedTopicGroups = [$selectedTopicSelections];
+        }
+        $selectedLimitIds = qpmPublicSearchDedupeStrings(
+            array_map('strtoupper', qpmPublicSearchNormalizeSimpleList($intentContext['selectedLimitIds'] ?? []))
+        );
+        $selectedLimitSelections = [];
+        foreach ((array) ($intentContext['selectedLimitSelections'] ?? []) as $selection) {
+            if (!is_array($selection)) {
+                continue;
+            }
+            $id = strtoupper(trim((string) ($selection['id'] ?? '')));
+            if ($id === '') {
+                continue;
+            }
+            $scope = strtolower(trim((string) ($selection['scope'] ?? 'normal')));
+            if (!in_array($scope, ['narrow', 'normal', 'broad'], true)) {
+                $scope = 'normal';
+            }
+            $selectedLimitSelections[] = ['id' => $id, 'scope' => $scope];
+            $selectedLimitIds[] = $id;
+        }
+        $selectedLimitGroups = [];
+        foreach ((array) ($intentContext['selectedLimitGroups'] ?? []) as $group) {
+            if (!is_array($group)) {
+                continue;
+            }
+            $normalizedGroup = [];
+            foreach ($group as $selection) {
+                if (!is_array($selection)) {
+                    $id = strtoupper(trim((string) $selection));
+                    if ($id === '') {
+                        continue;
+                    }
+                    $normalizedGroup[] = ['id' => $id, 'scope' => 'normal'];
+                    $selectedLimitIds[] = $id;
+                    continue;
+                }
+                $id = strtoupper(trim((string) ($selection['id'] ?? '')));
+                if ($id === '') {
+                    continue;
+                }
+                $scope = strtolower(trim((string) ($selection['scope'] ?? 'normal')));
+                if (!in_array($scope, ['narrow', 'normal', 'broad'], true)) {
+                    $scope = 'normal';
+                }
+                $normalizedGroup[] = ['id' => $id, 'scope' => $scope];
+                $selectedLimitIds[] = $id;
+            }
+            if (!empty($normalizedGroup)) {
+                $selectedLimitGroups[] = $normalizedGroup;
+            }
+        }
+        $selectedLimitIds = qpmPublicSearchDedupeStrings($selectedLimitIds);
+        if (empty($selectedLimitSelections) && !empty($selectedLimitIds)) {
+            foreach ($selectedLimitIds as $id) {
+                $selectedLimitSelections[] = ['id' => $id, 'scope' => 'normal'];
+            }
+        }
+        if (empty($selectedLimitGroups) && !empty($selectedLimitSelections)) {
+            // Flat selections without explicit groups: one group (OR) — category AND
+            // semantics are still applied by the PubMed builder fallback path.
+            $selectedLimitGroups = [$selectedLimitSelections];
+        }
+        $request['intentContext'] = [
+            'rawUserInput' => trim((string) ($intentContext['rawUserInput'] ?? '')),
+            'contextualSearchInput' => trim((string) ($intentContext['contextualSearchInput'] ?? '')),
+            'selectedTopicIds' => $selectedTopicIds,
+            'selectedTopicSelections' => $selectedTopicSelections,
+            'selectedTopicGroups' => $selectedTopicGroups,
+            'selectedLimitIds' => $selectedLimitIds,
+            'selectedLimitSelections' => $selectedLimitSelections,
+            'selectedLimitGroups' => $selectedLimitGroups,
+            'selectedTopics' => qpmPublicSearchDedupeStrings(
+                qpmPublicSearchNormalizeSimpleList($intentContext['selectedTopics'] ?? [])
+            ),
+            'selectedLimits' => qpmPublicSearchDedupeStrings(
+                qpmPublicSearchNormalizeSimpleList($intentContext['selectedLimits'] ?? [])
+            ),
+            'semanticBlocks' => qpmPublicSearchDedupeStrings(
+                qpmPublicSearchNormalizeSimpleList($intentContext['semanticBlocks'] ?? [])
+            ),
+            'ruleIds' => qpmPublicSearchDedupeStrings(
+                qpmPublicSearchNormalizeSimpleList($intentContext['ruleIds'] ?? [])
+            ),
+        ];
+        $preselectedPmids = [];
+        foreach (qpmPublicSearchNormalizeSimpleList($payload['preselectedPmids'] ?? []) as $pmid) {
+            $normalizedPmid = qpmPublicSearchNormalizePmid($pmid);
+            if ($normalizedPmid !== '') {
+                $preselectedPmids[] = $normalizedPmid;
+            }
+        }
+        $request['preselectedPmids'] = qpmPublicSearchDedupeStrings($preselectedPmids);
+        if (count($request['preselectedPmids']) > qpmPublicSearchFlatParamsMaxPmidTokens()) {
+            throw new InvalidArgumentException(
+                'Too many preselectedPmids (max ' . qpmPublicSearchFlatParamsMaxPmidTokens() . ')'
+            );
+        }
+
+        // Fill empty hardFilters/sourceFilters/labels from selected limit ids (JSON path).
+        $request = qpmPublicSearchHydrateRequestFromSelectedLimits($request, false);
+        $request = qpmPublicSearchHydrateRequestFromSelectedTopics($request);
+
+        $authorizationContext = $request['intentContext'];
+        $authorizationContext['ruleIds'] = qpmPublicSearchDedupeStrings(array_merge(
+            (array) ($authorizationContext['ruleIds'] ?? []),
+            (array) ($request['hardFilters']['doiOnlyRuleIds'] ?? []),
+            (array) ($request['hardFilters']['postValidationRuleIds'] ?? [])
+        ));
+        qpmPublicSearchAssertIntentContextIdsAreAuthorized($authorizationContext);
+
+        $hasTopics = !empty($selectedTopicIds) || !empty(array_filter(
+            $selectedTopicSelections,
+            static fn($entry) => is_array($entry) && !empty($entry['custom'])
+        ));
+        if ($request['query']['text'] === '' && !$hasTopics) {
             throw new InvalidArgumentException('query.text is required');
         }
         if (empty($request['sources'])) {
@@ -1821,6 +2170,1019 @@ if (!function_exists('qpmPublicSearchNormalizePostRequest')) {
     }
 }
 
+if (!function_exists('qpmPublicSearchLoadLimitNodeCatalog')) {
+    /**
+     * Loads the canonical limits runtime configuration and indexes every node
+     * by id. Client requests only carry ids; executable search strings and
+     * post-validation rules are always resolved from this trusted catalog.
+     *
+     * @return array<string,array<string,mixed>>
+     */
+    function qpmPublicSearchLoadLimitNodeCatalog(): array
+    {
+        static $catalog = null;
+        if (is_array($catalog)) {
+            return $catalog;
+        }
+        $catalog = [];
+        $path = '';
+        if (function_exists('editorResolveLimitsFilePath')) {
+            try {
+                $path = (string) editorResolveLimitsFilePath();
+            } catch (Throwable $exception) {
+                $path = '';
+            }
+        }
+        if ($path === '') {
+            $candidate = dirname(__DIR__, 2)
+                . DIRECTORY_SEPARATOR . 'data'
+                . DIRECTORY_SEPARATOR . 'content'
+                . DIRECTORY_SEPARATOR . 'shared'
+                . DIRECTORY_SEPARATOR . 'limits.json';
+            if (is_file($candidate)) {
+                $path = $candidate;
+            }
+        }
+        if ($path === '' || !is_file($path)) {
+            return $catalog;
+        }
+        $decoded = json_decode((string) file_get_contents($path), true);
+        if (!is_array($decoded)) {
+            return $catalog;
+        }
+        $walk = static function ($node, string $categoryId = '') use (&$walk, &$catalog): void {
+            if (!is_array($node)) {
+                return;
+            }
+            $nextCategoryId = $categoryId;
+            if (isset($node['id'])) {
+                $id = trim((string) $node['id']);
+                if ($id !== '') {
+                    if (preg_match('/^L[A-Z0-9]{3}$/i', $id) === 1) {
+                        $nextCategoryId = $id;
+                    }
+                    $indexedNode = $node;
+                    $indexedNode['_categoryId'] = $nextCategoryId;
+                    $catalog[$id] = $indexedNode;
+                }
+            }
+            foreach ($node as $value) {
+                if (is_array($value)) {
+                    $walk($value, $nextCategoryId);
+                }
+            }
+        };
+        $walk($decoded);
+        return $catalog;
+    }
+}
+
+if (!function_exists('qpmPublicSearchCollectKnownLimitAndTopicIds')) {
+    /**
+     * @return array<string,bool>
+     */
+    function qpmPublicSearchCollectKnownLimitAndTopicIds(): array
+    {
+        return array_fill_keys(array_keys(qpmPublicSearchLoadLimitNodeCatalog()), true);
+    }
+}
+
+if (!function_exists('qpmPublicSearchBuildSelectedLimitPubMedQuery')) {
+    /**
+     * Builds PubMed hard-filter clauses from selected limits.
+     *
+     * Two shapes are accepted:
+     * 1) Explicit AND-groups (SearchForm limit= semantics):
+     *    [[{id,scope},…], [{id,scope},…]] — OR within each group, AND between groups.
+     * 2) Flat list of ids / {id,scope} — legacy category-based grouping
+     *    (OR within limits.json category, AND between categories).
+     *
+     * @param array<int,mixed> $selectedLimits
+     */
+    function qpmPublicSearchBuildSelectedLimitPubMedQuery(array $selectedLimits, string $defaultMode = 'normal'): string
+    {
+        $catalog = qpmPublicSearchLoadLimitNodeCatalog();
+        if (empty($catalog) || empty($selectedLimits)) {
+            return '';
+        }
+        $normalizedDefault = in_array($defaultMode, ['narrow', 'normal', 'broad'], true)
+            ? $defaultMode
+            : 'normal';
+
+        $first = $selectedLimits[0];
+        $isExplicitGroups = is_array($first)
+            && array_keys($first) === range(0, count($first) - 1)
+            && (empty($first) || !array_key_exists('id', $first));
+
+        if ($isExplicitGroups) {
+            $parts = [];
+            foreach ($selectedLimits as $group) {
+                if (!is_array($group)) {
+                    continue;
+                }
+                $orClauses = [];
+                foreach ($group as $entry) {
+                    $id = '';
+                    $mode = $normalizedDefault;
+                    if (is_array($entry)) {
+                        $id = strtoupper(trim((string) ($entry['id'] ?? '')));
+                        $scope = strtolower(trim((string) ($entry['scope'] ?? $normalizedDefault)));
+                        if (in_array($scope, ['narrow', 'normal', 'broad'], true)) {
+                            $mode = $scope;
+                        }
+                    } else {
+                        $id = strtoupper(trim((string) $entry));
+                    }
+                    if ($id === '' || !isset($catalog[$id]) || !is_array($catalog[$id])) {
+                        continue;
+                    }
+                    $node = $catalog[$id];
+                    $searchStrings = isset($node['searchStrings']) && is_array($node['searchStrings'])
+                        ? $node['searchStrings']
+                        : [];
+                    $values = qpmPublicSearchNormalizeSimpleList(
+                        $searchStrings[$mode] ?? ($searchStrings['normal'] ?? [])
+                    );
+                    if (empty($values)) {
+                        continue;
+                    }
+                    $orClauses[] = count($values) === 1 ? $values[0] : '(' . implode(' OR ', $values) . ')';
+                }
+                $orClauses = qpmPublicSearchDedupeStrings($orClauses);
+                if (empty($orClauses)) {
+                    continue;
+                }
+                $parts[] = count($orClauses) === 1 ? $orClauses[0] : '(' . implode(' OR ', $orClauses) . ')';
+            }
+            return implode(' AND ', $parts);
+        }
+
+        // Flat list: reproduce category OR/AND from limits.json.
+        $groups = [];
+        foreach ($selectedLimits as $entry) {
+            $id = '';
+            $mode = $normalizedDefault;
+            if (is_array($entry)) {
+                $id = strtoupper(trim((string) ($entry['id'] ?? '')));
+                $scope = strtolower(trim((string) ($entry['scope'] ?? $normalizedDefault)));
+                if (in_array($scope, ['narrow', 'normal', 'broad'], true)) {
+                    $mode = $scope;
+                }
+            } else {
+                $id = strtoupper(trim((string) $entry));
+            }
+            if ($id === '') {
+                continue;
+            }
+            $node = isset($catalog[$id]) && is_array($catalog[$id]) ? $catalog[$id] : null;
+            if ($node === null) {
+                continue;
+            }
+            $searchStrings = isset($node['searchStrings']) && is_array($node['searchStrings'])
+                ? $node['searchStrings']
+                : [];
+            $values = qpmPublicSearchNormalizeSimpleList(
+                $searchStrings[$mode] ?? ($searchStrings['normal'] ?? [])
+            );
+            if (empty($values)) {
+                continue;
+            }
+            $categoryId = trim((string) ($node['_categoryId'] ?? ''));
+            if ($categoryId === '') {
+                $categoryId = 'ungrouped:' . $id;
+            }
+            $clause = count($values) === 1 ? $values[0] : '(' . implode(' OR ', $values) . ')';
+            $groups[$categoryId][] = $clause;
+        }
+
+        $parts = [];
+        foreach ($groups as $clauses) {
+            $clauses = qpmPublicSearchDedupeStrings($clauses);
+            if (empty($clauses)) {
+                continue;
+            }
+            $parts[] = count($clauses) === 1 ? $clauses[0] : '(' . implode(' OR ', $clauses) . ')';
+        }
+        return implode(' AND ', $parts);
+    }
+}
+
+if (!function_exists('qpmPublicSearchBuildCanonicalHardFilterPubMedQuery')) {
+    /**
+     * Resolves public-API hard-filter values back to canonical limits.json
+     * nodes, so API clients without UI limit ids get the same PubMed clauses.
+     *
+     * @param array<string,mixed> $hardFilters
+     */
+    function qpmPublicSearchBuildCanonicalHardFilterPubMedQuery(array $hardFilters): string
+    {
+        $fieldMap = [
+            'filterProfile' => 'filterProfiles',
+            'publicationType' => 'publicationTypes',
+            'studyDesign' => 'studyDesigns',
+            'ageGroup' => 'ageGroups',
+            'language' => 'languages',
+            'sourceFormat' => 'sourceFormats',
+        ];
+        $normalize = static function (string $canonicalField, $value): string {
+            if ($canonicalField === 'languages') {
+                return qpmPublicSearchNormalizeLanguageCode($value);
+            }
+            if ($canonicalField === 'publicationTypes') {
+                return qpmPublicSearchNormalizeHardPublicationType($value);
+            }
+            if ($canonicalField === 'sourceFormats') {
+                return qpmPublicSearchNormalizeSourceFormat($value);
+            }
+            return strtolower(trim((string) $value));
+        };
+        $requested = [];
+        foreach ($fieldMap as $configField => $canonicalField) {
+            foreach ((array) ($hardFilters[$canonicalField] ?? []) as $value) {
+                $normalized = $normalize($canonicalField, $value);
+                if ($normalized !== '') {
+                    $requested[$configField][$normalized] = true;
+                }
+            }
+        }
+
+        $groups = [];
+        foreach (qpmPublicSearchLoadLimitNodeCatalog() as $id => $node) {
+            $semanticConfig = isset($node['semanticConfig']) && is_array($node['semanticConfig'])
+                ? $node['semanticConfig']
+                : [];
+            $nodeHardFilters = isset($semanticConfig['hardFilters']) && is_array($semanticConfig['hardFilters'])
+                ? $semanticConfig['hardFilters']
+                : [];
+            $matches = false;
+            foreach ($fieldMap as $configField => $canonicalField) {
+                foreach ((array) ($nodeHardFilters[$configField] ?? []) as $value) {
+                    if (isset($requested[$configField][$normalize($canonicalField, $value)])) {
+                        $matches = true;
+                        break 2;
+                    }
+                }
+            }
+            if (!$matches) {
+                continue;
+            }
+            $searchStrings = isset($node['searchStrings']) && is_array($node['searchStrings'])
+                ? $node['searchStrings']
+                : [];
+            $values = qpmPublicSearchNormalizeSimpleList($searchStrings['normal'] ?? []);
+            if (empty($values)) {
+                continue;
+            }
+            $categoryId = trim((string) ($node['_categoryId'] ?? ('ungrouped:' . $id)));
+            $groups[$categoryId][] = count($values) === 1 ? $values[0] : '(' . implode(' OR ', $values) . ')';
+        }
+        $parts = [];
+        foreach ($groups as $clauses) {
+            $clauses = qpmPublicSearchDedupeStrings($clauses);
+            if (!empty($clauses)) {
+                $parts[] = count($clauses) === 1 ? $clauses[0] : '(' . implode(' OR ', $clauses) . ')';
+            }
+        }
+        return implode(' AND ', $parts);
+    }
+}
+
+if (!function_exists('qpmPublicSearchCollectKnownPostValidationRuleIds')) {
+    /**
+     * @return array<string,bool>
+     */
+    function qpmPublicSearchCollectKnownPostValidationRuleIds(): array
+    {
+        $known = [];
+        foreach (qpmPublicSearchLoadLimitNodeCatalog() as $node) {
+            $semanticConfig = isset($node['semanticConfig']) && is_array($node['semanticConfig'])
+                ? $node['semanticConfig']
+                : [];
+            $postValidation = isset($semanticConfig['postValidation']) && is_array($semanticConfig['postValidation'])
+                ? $semanticConfig['postValidation']
+                : [];
+            $rules = !empty($postValidation['rules'])
+                ? (array) $postValidation['rules']
+                : (array) ($semanticConfig['doiOnlyRules'] ?? []);
+            foreach ($rules as $rule) {
+                if (!is_array($rule)) {
+                    continue;
+                }
+                $id = trim((string) ($rule['id'] ?? ''));
+                if ($id !== '') {
+                    $known[$id] = true;
+                }
+            }
+        }
+        return $known;
+    }
+}
+
+if (!function_exists('qpmPublicSearchNormalizePostValidationRule')) {
+    /**
+     * @param array<string,mixed> $rule
+     * @return array<string,mixed>|null
+     */
+    function qpmPublicSearchNormalizePostValidationRule(array $rule): ?array
+    {
+        $normalizeList = static function ($values): array {
+            return qpmSemanticQualityDedupeNormalizedValues((array) $values);
+        };
+        $conditions = [];
+        foreach ((array) ($rule['metadataFieldConditions'] ?? []) as $condition) {
+            if (!is_array($condition)) {
+                continue;
+            }
+            $field = trim((string) ($condition['field'] ?? ''));
+            if ($field === '') {
+                continue;
+            }
+            $operator = strtolower(trim((string) ($condition['operator'] ?? 'equalsAny')));
+            $conditions[] = [
+                'field' => $field,
+                'operator' => in_array($operator, ['exists', 'equalsany', 'includesany'], true)
+                    ? ($operator === 'equalsany' ? 'equalsAny' : ($operator === 'includesany' ? 'includesAny' : 'exists'))
+                    : 'equalsAny',
+                'values' => $normalizeList($condition['values'] ?? ($condition['value'] ?? [])),
+                'expectExists' => array_key_exists('expectExists', $condition)
+                    ? (bool) $condition['expectExists']
+                    : true,
+                'negate' => !empty($condition['negate']),
+            ];
+        }
+        $normalized = [
+            'id' => trim((string) ($rule['id'] ?? '')),
+            'exclusiveGroup' => strtolower(trim((string) ($rule['exclusiveGroup'] ?? ''))),
+            'matchStrategy' => strtolower(trim((string) ($rule['matchStrategy'] ?? 'all'))) === 'any'
+                ? 'any'
+                : 'all',
+            'metadataFieldConditionMode' => strtolower(trim((string) ($rule['metadataFieldConditionMode'] ?? 'all'))) === 'any'
+                ? 'any'
+                : 'all',
+            'textScopes' => $normalizeList($rule['textScopes'] ?? ['candidateTitle', 'sourceCandidateTitles']),
+            'requireAnyTextSignals' => $normalizeList($rule['requireAnyTextSignals'] ?? ($rule['requireAnyTitleSignals'] ?? [])),
+            'requireAllTextSignals' => $normalizeList($rule['requireAllTextSignals'] ?? []),
+            'excludeAnyTextSignals' => $normalizeList($rule['excludeAnyTextSignals'] ?? ($rule['excludeAnyTitleSignals'] ?? [])),
+            'allowSourceProviders' => $normalizeList($rule['allowSourceProviders'] ?? []),
+            'excludeSourceProviders' => $normalizeList($rule['excludeSourceProviders'] ?? []),
+            'metadataFieldConditions' => $conditions,
+        ];
+        if (
+            empty($normalized['requireAnyTextSignals'])
+            && empty($normalized['requireAllTextSignals'])
+            && empty($normalized['excludeAnyTextSignals'])
+            && empty($normalized['allowSourceProviders'])
+            && empty($normalized['excludeSourceProviders'])
+            && empty($normalized['metadataFieldConditions'])
+        ) {
+            return null;
+        }
+        return $normalized;
+    }
+}
+
+if (!function_exists('qpmPublicSearchBuildPostValidationRuleState')) {
+    /**
+     * Builds the same grouped DOI-only rule state as
+     * buildActiveSemanticDoiOnlyRuleState(), exclusively from trusted
+     * limits.json nodes selected by the client.
+     *
+     * @param array<string,mixed> $request
+     * @return array{activeRules:array<int,array<string,mixed>>,ruleGroups:array<int,array<string,mixed>>}
+     */
+    function qpmPublicSearchBuildPostValidationRuleState(array $request): array
+    {
+        $catalog = qpmPublicSearchLoadLimitNodeCatalog();
+        $selectedIds = (array) ($request['intentContext']['selectedLimitIds'] ?? []);
+        $requestedRuleIds = qpmPublicSearchDedupeStrings(array_merge(
+            (array) ($request['hardFilters']['doiOnlyRuleIds'] ?? []),
+            (array) ($request['hardFilters']['postValidationRuleIds'] ?? []),
+            (array) ($request['intentContext']['ruleIds'] ?? [])
+        ));
+        $requestedLookup = array_fill_keys($requestedRuleIds, true);
+        $rulesById = [];
+        $candidateNodes = [];
+        if (!empty($selectedIds)) {
+            foreach ($selectedIds as $selectedId) {
+                if (isset($catalog[$selectedId]) && is_array($catalog[$selectedId])) {
+                    $candidateNodes[] = $catalog[$selectedId];
+                }
+            }
+        } elseif (!empty($requestedLookup)) {
+            $candidateNodes = array_values($catalog);
+        }
+        foreach ($candidateNodes as $node) {
+            if ($node === null) {
+                continue;
+            }
+            $semanticConfig = isset($node['semanticConfig']) && is_array($node['semanticConfig'])
+                ? $node['semanticConfig']
+                : [];
+            $postValidation = isset($semanticConfig['postValidation']) && is_array($semanticConfig['postValidation'])
+                ? $semanticConfig['postValidation']
+                : [];
+            $rawRules = !empty($postValidation['rules'])
+                ? (array) $postValidation['rules']
+                : (array) ($semanticConfig['doiOnlyRules'] ?? []);
+            foreach ($rawRules as $rule) {
+                if (!is_array($rule)) {
+                    continue;
+                }
+                $ruleId = trim((string) ($rule['id'] ?? ''));
+                if ($ruleId === '' || (!empty($requestedLookup) && !isset($requestedLookup[$ruleId]))) {
+                    continue;
+                }
+                $normalizedRule = qpmPublicSearchNormalizePostValidationRule($rule);
+                if ($normalizedRule !== null) {
+                    $rulesById[$ruleId] = $normalizedRule;
+                }
+            }
+        }
+
+        $activeRules = array_values($rulesById);
+        $groups = [];
+        foreach ($activeRules as $rule) {
+            $exclusiveGroup = strtolower(trim((string) ($rule['exclusiveGroup'] ?? '')));
+            $groupId = $exclusiveGroup !== ''
+                ? 'exclusive:' . $exclusiveGroup
+                : 'rule:' . (string) ($rule['id'] ?? '');
+            if (!isset($groups[$groupId])) {
+                $groups[$groupId] = [
+                    'id' => $groupId,
+                    'exclusiveGroup' => $exclusiveGroup,
+                    'rules' => [],
+                ];
+            }
+            $groups[$groupId]['rules'][] = $rule;
+        }
+        return ['activeRules' => $activeRules, 'ruleGroups' => array_values($groups)];
+    }
+}
+
+if (!function_exists('qpmPublicSearchAssertIntentContextIdsAreAuthorized')) {
+    /**
+     * Rejects unknown limit/topic/rule ids when a catalog is available.
+     * Arbitrary rule definitions are never accepted from the client — only ids.
+     *
+     * @param array<string,mixed> $intentContext
+     */
+    function qpmPublicSearchAssertIntentContextIdsAreAuthorized(array $intentContext): void
+    {
+        $catalog = qpmPublicSearchCollectKnownLimitAndTopicIds();
+        if (empty($catalog)) {
+            return;
+        }
+        $check = static function (array $ids, string $field) use ($catalog): void {
+            $unknown = [];
+            foreach ($ids as $id) {
+                $normalized = trim((string) $id);
+                if ($normalized === '' || isset($catalog[$normalized])) {
+                    continue;
+                }
+                $unknown[] = $normalized;
+            }
+            if (!empty($unknown)) {
+                throw new InvalidArgumentException(
+                    'Unauthorized intentContext.' . $field . ': ' . implode(', ', array_slice($unknown, 0, 10))
+                );
+            }
+        };
+        // Topic ids are authorized domain-aware in qpmPublicSearchHydrateRequestFromSelectedTopics.
+        $check((array) ($intentContext['selectedLimitIds'] ?? []), 'selectedLimitIds');
+        $knownRuleIds = qpmPublicSearchCollectKnownPostValidationRuleIds();
+        $unknownRuleIds = [];
+        foreach ((array) ($intentContext['ruleIds'] ?? []) as $ruleId) {
+            $normalized = trim((string) $ruleId);
+            if ($normalized !== '' && !isset($knownRuleIds[$normalized])) {
+                $unknownRuleIds[] = $normalized;
+            }
+        }
+        if (!empty($unknownRuleIds)) {
+            throw new InvalidArgumentException(
+                'Unauthorized intentContext.ruleIds: ' . implode(', ', array_slice($unknownRuleIds, 0, 10))
+            );
+        }
+    }
+}
+
+if (!function_exists('qpmPublicSearchNormalizeTopicSelectionEntry')) {
+    /**
+     * @param array<string,mixed> $selection
+     * @return array{id:string,scope:string,custom:bool,rawText:string,label:string}|null
+     */
+    function qpmPublicSearchNormalizeTopicSelectionEntry(array $selection): ?array
+    {
+        $custom = !empty($selection['custom']);
+        $rawText = trim((string) ($selection['rawText'] ?? ($selection['text'] ?? '')));
+        $id = strtoupper(trim((string) ($selection['id'] ?? '')));
+        $scope = strtolower(trim((string) ($selection['scope'] ?? 'normal')));
+        if (!in_array($scope, ['narrow', 'normal', 'broad'], true)) {
+            $scope = 'normal';
+        }
+        $label = trim((string) ($selection['label'] ?? ''));
+        $translated = !empty($selection['translated']) || !empty($selection['isTranslated']);
+        if ($custom) {
+            if ($rawText === '') {
+                return null;
+            }
+            return [
+                'id' => '',
+                'scope' => $scope,
+                'custom' => true,
+                'rawText' => $rawText,
+                'label' => $label !== '' ? $label : $rawText,
+                'translated' => $translated,
+            ];
+        }
+        if ($id === '' || preg_match('/^[A-Z][0-9A-Z]{2,}$/', $id) !== 1) {
+            return null;
+        }
+        return [
+            'id' => $id,
+            'scope' => $scope,
+            'custom' => false,
+            'rawText' => '',
+            'label' => $label,
+            'translated' => false,
+        ];
+    }
+}
+
+if (!function_exists('qpmPublicSearchLoadTopicNodeCatalog')) {
+    /**
+     * Loads and indexes domain topics.json nodes by id.
+     *
+     * @return array{nodes: array<string,array<string,mixed>>, standardString: array<string,string>, loaded: bool}
+     */
+    function qpmPublicSearchLoadTopicNodeCatalog(string $domain): array
+    {
+        static $cache = [];
+        $normalizedDomain = function_exists('qpmNormalizeDomainKey')
+            ? qpmNormalizeDomainKey($domain)
+            : strtolower(trim($domain));
+        if ($normalizedDomain === '') {
+            return ['nodes' => [], 'standardString' => [], 'loaded' => false];
+        }
+        if (isset($cache[$normalizedDomain])) {
+            return $cache[$normalizedDomain];
+        }
+        $path = '';
+        if (function_exists('editorResolveContentFilePath')) {
+            try {
+                $path = (string) editorResolveContentFilePath('topics', $normalizedDomain);
+            } catch (Throwable $exception) {
+                $path = '';
+            }
+        }
+        if ($path === '') {
+            $candidate = dirname(__DIR__, 2)
+                . DIRECTORY_SEPARATOR . 'data'
+                . DIRECTORY_SEPARATOR . 'content'
+                . DIRECTORY_SEPARATOR . $normalizedDomain
+                . DIRECTORY_SEPARATOR . 'topics.json';
+            if (is_file($candidate)) {
+                $path = $candidate;
+            }
+        }
+        if ($path === '' || !is_file($path)) {
+            $cache[$normalizedDomain] = ['nodes' => [], 'standardString' => [], 'loaded' => false];
+            return $cache[$normalizedDomain];
+        }
+        $decoded = json_decode((string) file_get_contents($path), true);
+        if (!is_array($decoded)) {
+            $cache[$normalizedDomain] = ['nodes' => [], 'standardString' => [], 'loaded' => false];
+            return $cache[$normalizedDomain];
+        }
+        $nodes = [];
+        $walk = static function ($node) use (&$walk, &$nodes): void {
+            if (!is_array($node)) {
+                return;
+            }
+            if (isset($node['id'])) {
+                $id = strtoupper(trim((string) $node['id']));
+                if ($id !== '') {
+                    $nodes[$id] = $node;
+                }
+            }
+            foreach (['groups', 'children', 'choices', 'topics'] as $childKey) {
+                if (!isset($node[$childKey]) || !is_array($node[$childKey])) {
+                    continue;
+                }
+                foreach ($node[$childKey] as $child) {
+                    $walk($child);
+                }
+            }
+        };
+        foreach ((array) ($decoded['topics'] ?? []) as $topicRoot) {
+            $walk($topicRoot);
+        }
+        $standardString = [];
+        if (isset($decoded['standardString']) && is_array($decoded['standardString'])) {
+            foreach (['narrow', 'normal', 'broad'] as $scopeKey) {
+                $value = trim((string) ($decoded['standardString'][$scopeKey] ?? ''));
+                if ($value !== '') {
+                    $standardString[$scopeKey] = $value;
+                }
+            }
+        }
+        $cache[$normalizedDomain] = [
+            'nodes' => $nodes,
+            'standardString' => $standardString,
+            'loaded' => true,
+        ];
+        return $cache[$normalizedDomain];
+    }
+}
+
+if (!function_exists('qpmPublicSearchTopicNodeLabel')) {
+    /**
+     * @param array<string,mixed> $node
+     */
+    function qpmPublicSearchTopicNodeLabel(array $node, string $fallbackId = ''): string
+    {
+        $translations = isset($node['translations']) && is_array($node['translations'])
+            ? $node['translations']
+            : [];
+        $en = trim((string) ($translations['en'] ?? ''));
+        if ($en !== '') {
+            return $en;
+        }
+        $dk = trim((string) ($translations['dk'] ?? ''));
+        if ($dk !== '') {
+            return $dk;
+        }
+        return $fallbackId;
+    }
+}
+
+if (!function_exists('qpmPublicSearchHydrateRequestFromSelectedTopics')) {
+    /**
+     * Validates catalog topic ids against domain topics.json and fills labels.
+     *
+     * @param array<string,mixed> $request
+     * @return array<string,mixed>
+     */
+    function qpmPublicSearchHydrateRequestFromSelectedTopics(array $request): array
+    {
+        $intent = isset($request['intentContext']) && is_array($request['intentContext'])
+            ? $request['intentContext']
+            : [];
+        $groups = (array) ($intent['selectedTopicGroups'] ?? []);
+        $catalogIds = [];
+        foreach ($groups as $group) {
+            if (!is_array($group)) {
+                continue;
+            }
+            foreach ($group as $entry) {
+                if (!is_array($entry) || !empty($entry['custom'])) {
+                    continue;
+                }
+                $id = strtoupper(trim((string) ($entry['id'] ?? '')));
+                if ($id !== '') {
+                    $catalogIds[] = $id;
+                }
+            }
+        }
+        foreach ((array) ($intent['selectedTopicIds'] ?? []) as $id) {
+            $normalized = strtoupper(trim((string) $id));
+            if ($normalized !== '') {
+                $catalogIds[] = $normalized;
+            }
+        }
+        $catalogIds = qpmPublicSearchDedupeStrings($catalogIds);
+        $domain = trim((string) ($request['domain'] ?? ''));
+        $warnings = (array) ($request['_topicHydrationWarnings'] ?? []);
+        $standardString = [];
+
+        if (!empty($catalogIds)) {
+            if ($domain === '') {
+                throw new InvalidArgumentException(
+                    'domain is required when catalog topic ids are provided'
+                );
+            }
+            $catalog = qpmPublicSearchLoadTopicNodeCatalog($domain);
+            if (($catalog['loaded'] ?? false) !== true || empty($catalog['nodes'])) {
+                throw new InvalidArgumentException(
+                    'No topics catalog found for domain: ' . $domain
+                );
+            }
+            $nodes = (array) ($catalog['nodes'] ?? []);
+            $unknown = [];
+            foreach ($catalogIds as $id) {
+                if (!isset($nodes[$id])) {
+                    $unknown[] = $id;
+                }
+            }
+            if (!empty($unknown)) {
+                throw new InvalidArgumentException(
+                    'Unauthorized intentContext.selectedTopicIds: '
+                    . implode(', ', array_slice($unknown, 0, 10))
+                );
+            }
+            $standardString = (array) ($catalog['standardString'] ?? []);
+            $labels = [];
+            $hydratedGroups = [];
+            foreach ($groups as $group) {
+                if (!is_array($group)) {
+                    continue;
+                }
+                $hydratedGroup = [];
+                foreach ($group as $entry) {
+                    if (!is_array($entry)) {
+                        continue;
+                    }
+                    $normalized = qpmPublicSearchNormalizeTopicSelectionEntry($entry);
+                    if ($normalized === null) {
+                        continue;
+                    }
+                    if ($normalized['custom']) {
+                        $hydratedGroup[] = $normalized;
+                        continue;
+                    }
+                    $node = (array) ($nodes[$normalized['id']] ?? []);
+                    $normalized['label'] = qpmPublicSearchTopicNodeLabel($node, $normalized['id']);
+                    $scope = $normalized['scope'];
+                    $searchStrings = isset($node['searchStrings'][$scope]) && is_array($node['searchStrings'][$scope])
+                        ? $node['searchStrings'][$scope]
+                        : [];
+                    if (empty($searchStrings)) {
+                        $warnings[] = 'Topic ' . $normalized['id']
+                            . ' has no searchStrings for scope ' . $scope;
+                    }
+                    $hydratedGroup[] = $normalized;
+                    if ($normalized['label'] !== '') {
+                        $labels[] = $normalized['label'];
+                    }
+                }
+                if (!empty($hydratedGroup)) {
+                    $hydratedGroups[] = $hydratedGroup;
+                }
+            }
+            $intent['selectedTopicGroups'] = $hydratedGroups;
+            $flatSelections = [];
+            foreach ($hydratedGroups as $group) {
+                foreach ($group as $entry) {
+                    $flatSelections[] = $entry;
+                }
+            }
+            $intent['selectedTopicSelections'] = $flatSelections;
+            $intent['selectedTopics'] = qpmPublicSearchDedupeStrings($labels);
+        } elseif (!empty($groups)) {
+            // Custom-only groups: normalize labels.
+            $hydratedGroups = [];
+            foreach ($groups as $group) {
+                if (!is_array($group)) {
+                    continue;
+                }
+                $hydratedGroup = [];
+                foreach ($group as $entry) {
+                    $normalized = is_array($entry)
+                        ? qpmPublicSearchNormalizeTopicSelectionEntry($entry)
+                        : null;
+                    if ($normalized !== null) {
+                        $hydratedGroup[] = $normalized;
+                    }
+                }
+                if (!empty($hydratedGroup)) {
+                    $hydratedGroups[] = $hydratedGroup;
+                }
+            }
+            $intent['selectedTopicGroups'] = $hydratedGroups;
+            $flatSelections = [];
+            foreach ($hydratedGroups as $group) {
+                foreach ($group as $entry) {
+                    $flatSelections[] = $entry;
+                }
+            }
+            $intent['selectedTopicSelections'] = $flatSelections;
+            if ($domain !== '') {
+                $catalog = qpmPublicSearchLoadTopicNodeCatalog($domain);
+                if (($catalog['loaded'] ?? false) === true) {
+                    $standardString = (array) ($catalog['standardString'] ?? []);
+                }
+            }
+        }
+
+        $request['intentContext'] = $intent;
+        $request['_topicStandardString'] = $standardString;
+        $request['_topicHydrationWarnings'] = qpmPublicSearchDedupeStrings($warnings);
+        return $request;
+    }
+}
+
+if (!function_exists('qpmPublicSearchBuildSelectedTopicPubMedQuery')) {
+    /**
+     * Builds deterministic PubMed clauses from selected topic groups.
+     * OR within group, AND between groups. Custom entries use rawText.
+     *
+     * @param array<int,mixed> $selectedTopicGroups
+     * @param array<string,array<string,mixed>> $nodes
+     * @param array<string,string> $standardString
+     * @return array{query:string,warnings:array<int,string>}
+     */
+    function qpmPublicSearchBuildSelectedTopicPubMedQuery(
+        array $selectedTopicGroups,
+        array $nodes = [],
+        array $standardString = []
+    ): array {
+        $warnings = [];
+        $hasLogicalOperators = static function (string $value): bool {
+            return (bool) preg_match('/\b(AND|OR|NOT)\b/', $value);
+        };
+        $appendStandard = static function (
+            string $combined,
+            array $entry,
+            array $node,
+            array $standardString
+        ) use ($hasLogicalOperators): string {
+            $scope = (string) ($entry['scope'] ?? 'normal');
+            $isCustom = !empty($entry['custom']);
+            $shouldCombine = false;
+            if ($isCustom) {
+                $shouldCombine = !empty($standardString);
+            } else {
+                $flags = isset($node['combineWithStandardStringScopes'])
+                    && is_array($node['combineWithStandardStringScopes'])
+                    ? $node['combineWithStandardStringScopes']
+                    : null;
+                if (is_array($flags)) {
+                    $shouldCombine = !empty($flags[$scope]);
+                } else {
+                    $shouldCombine = ($node['combineWithStandardString'] ?? true) !== false
+                        && !empty($standardString);
+                }
+            }
+            if (!$shouldCombine) {
+                return $combined;
+            }
+            $standardValue = trim((string) ($standardString[$scope] ?? ($standardString['normal'] ?? '')));
+            if ($standardValue === '') {
+                return $combined;
+            }
+            $combinedNorm = strtolower(preg_replace('/\s+/', ' ', $combined) ?? $combined);
+            $standardNorm = strtolower(preg_replace('/\s+/', ' ', $standardValue) ?? $standardValue);
+            if ($standardNorm !== '' && strpos($combinedNorm, $standardNorm) === false) {
+                return '(' . $combined . ') AND (' . $standardValue . ')';
+            }
+            return $combined;
+        };
+
+        $groupClauses = [];
+        foreach ($selectedTopicGroups as $group) {
+            if (!is_array($group)) {
+                continue;
+            }
+            $orClauses = [];
+            foreach ($group as $entry) {
+                if (!is_array($entry)) {
+                    continue;
+                }
+                $scope = (string) ($entry['scope'] ?? 'normal');
+                if (!in_array($scope, ['narrow', 'normal', 'broad'], true)) {
+                    $scope = 'normal';
+                }
+                // Untranslated custom fretext goes through AI/query.text.
+                // `#s:pubmed` / translated=true is already a PubMed clause — use directly.
+                if (!empty($entry['custom'])) {
+                    if (empty($entry['translated'])) {
+                        continue;
+                    }
+                    $combined = trim((string) ($entry['rawText'] ?? ''));
+                    if ($combined === '') {
+                        continue;
+                    }
+                    $combined = $appendStandard($combined, $entry, [], $standardString);
+                    $orClauses[] = count($group) > 1 && $hasLogicalOperators($combined)
+                        ? '(' . $combined . ')'
+                        : $combined;
+                    continue;
+                }
+                $id = strtoupper(trim((string) ($entry['id'] ?? '')));
+                if ($id === '' || !isset($nodes[$id]) || !is_array($nodes[$id])) {
+                    continue;
+                }
+                $node = $nodes[$id];
+                $searchStrings = isset($node['searchStrings'][$scope]) && is_array($node['searchStrings'][$scope])
+                    ? array_values(array_filter(array_map('strval', $node['searchStrings'][$scope])))
+                    : [];
+                if (empty($searchStrings)) {
+                    $warnings[] = 'Topic ' . $id . ' has no searchStrings for scope ' . $scope;
+                    continue;
+                }
+                $combined = implode(' OR ', $searchStrings);
+                $combined = $appendStandard($combined, $entry, $node, $standardString);
+                if (count($group) > 1 && $hasLogicalOperators($searchStrings[0] ?? '')) {
+                    $orClauses[] = '(' . $combined . ')';
+                } else {
+                    $orClauses[] = $combined;
+                }
+            }
+            if (empty($orClauses)) {
+                continue;
+            }
+            $groupClause = count($orClauses) === 1
+                ? $orClauses[0]
+                : '(' . implode(') OR (', $orClauses) . ')';
+            $groupClauses[] = $groupClause;
+        }
+        if (empty($groupClauses)) {
+            return ['query' => '', 'warnings' => qpmPublicSearchDedupeStrings($warnings)];
+        }
+        $query = count($groupClauses) === 1
+            ? $groupClauses[0]
+            : '(' . implode(') AND (', $groupClauses) . ')';
+        return ['query' => $query, 'warnings' => qpmPublicSearchDedupeStrings($warnings)];
+    }
+}
+
+if (!function_exists('qpmPublicSearchBuildSelectionFromRequest')) {
+    /**
+     * Public response projection of selected topics/limits.
+     *
+     * @param array<string,mixed> $request
+     * @return array{domain:string,topics:array<int,mixed>,limits:array<int,mixed>}
+     */
+    function qpmPublicSearchBuildSelectionFromRequest(array $request): array
+    {
+        $intent = isset($request['intentContext']) && is_array($request['intentContext'])
+            ? $request['intentContext']
+            : [];
+        $topicsOut = [];
+        foreach ((array) ($intent['selectedTopicGroups'] ?? []) as $groupIndex => $group) {
+            if (!is_array($group)) {
+                continue;
+            }
+            $items = [];
+            foreach ($group as $entry) {
+                if (!is_array($entry)) {
+                    continue;
+                }
+                $custom = !empty($entry['custom']);
+                $items[] = [
+                    'id' => $custom ? null : (string) ($entry['id'] ?? ''),
+                    'custom' => $custom,
+                    'text' => $custom ? (string) ($entry['rawText'] ?? '') : '',
+                    'scope' => (string) ($entry['scope'] ?? 'normal'),
+                    'label' => (string) ($entry['label'] ?? ($entry['rawText'] ?? ($entry['id'] ?? ''))),
+                ];
+            }
+            if (!empty($items)) {
+                $topicsOut[] = [
+                    'groupIndex' => (int) $groupIndex,
+                    'items' => $items,
+                ];
+            }
+        }
+        $limitCatalog = qpmPublicSearchLoadLimitNodeCatalog();
+        $limitsOut = [];
+        foreach ((array) ($intent['selectedLimitGroups'] ?? []) as $groupIndex => $group) {
+            if (!is_array($group)) {
+                continue;
+            }
+            $items = [];
+            foreach ($group as $entry) {
+                $id = '';
+                $scope = 'normal';
+                if (is_array($entry)) {
+                    $id = strtoupper(trim((string) ($entry['id'] ?? '')));
+                    $scope = strtolower(trim((string) ($entry['scope'] ?? 'normal')));
+                } else {
+                    $id = strtoupper(trim((string) $entry));
+                }
+                if ($id === '') {
+                    continue;
+                }
+                if (!in_array($scope, ['narrow', 'normal', 'broad'], true)) {
+                    $scope = 'normal';
+                }
+                $node = isset($limitCatalog[$id]) && is_array($limitCatalog[$id]) ? $limitCatalog[$id] : [];
+                $label = '';
+                if (!empty($node)) {
+                    $label = qpmPublicSearchTopicNodeLabel($node, $id);
+                }
+                $items[] = [
+                    'id' => $id,
+                    'scope' => $scope,
+                    'label' => $label !== '' ? $label : $id,
+                ];
+            }
+            if (!empty($items)) {
+                $limitsOut[] = [
+                    'groupIndex' => (int) $groupIndex,
+                    'items' => $items,
+                ];
+            }
+        }
+        return [
+            'domain' => (string) ($request['domain'] ?? ''),
+            'topics' => $topicsOut,
+            'limits' => $limitsOut,
+        ];
+    }
+}
+
+require_once __DIR__ . '/public-search-flat-params.php';
+
 if (!function_exists('qpmPublicSearchParseRequest')) {
     /**
      * @return array<string,mixed>
@@ -1829,10 +3191,39 @@ if (!function_exists('qpmPublicSearchParseRequest')) {
     {
         $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
         if ($method === 'GET') {
-            return qpmPublicSearchBuildGetRequestFromQuery($_GET);
+            // Parse QUERY_STRING directly so repeated limit=/topic= stay as AND-groups
+            // (PHP's $_GET keeps only the last value for duplicate keys).
+            $rawQuery = (string) ($_SERVER['QUERY_STRING'] ?? '');
+            if (trim($rawQuery) !== '') {
+                return qpmPublicSearchBuildRequestFromFlatParams(
+                    qpmPublicSearchParseRawUrlEncodedPreservingLimitGroups($rawQuery)
+                );
+            }
+            return qpmPublicSearchBuildRequestFromFlatParams(is_array($_GET) ? $_GET : []);
         }
         if ($method !== 'POST') {
             throw new InvalidArgumentException('Method not allowed');
+        }
+        $contentType = strtolower(trim((string) ($_SERVER['CONTENT_TYPE'] ?? ($_SERVER['HTTP_CONTENT_TYPE'] ?? ''))));
+        $contentType = trim(explode(';', $contentType)[0]);
+        if ($contentType === 'application/x-www-form-urlencoded' || $contentType === 'multipart/form-data') {
+            $raw = (string) file_get_contents('php://input');
+            // Prefer raw urlencoded parsing so repeated limit= values become AND-groups.
+            // multipart falls back to $_POST (array notation / last-wins).
+            if ($contentType === 'application/x-www-form-urlencoded' && trim($raw) !== '') {
+                $formParams = qpmPublicSearchParseRawUrlEncodedPreservingLimitGroups($raw);
+            } else {
+                $formParams = is_array($_POST) ? $_POST : [];
+            }
+            if (!is_array($formParams)) {
+                throw new InvalidArgumentException('Invalid form input');
+            }
+            return qpmPublicSearchBuildRequestFromFlatParams($formParams);
+        }
+        if ($contentType !== '' && $contentType !== 'application/json') {
+            throw new InvalidArgumentException(
+                'Unsupported Content-Type: use application/json or application/x-www-form-urlencoded'
+            );
         }
         $input = json_decode((string) file_get_contents('php://input'), true);
         if (!is_array($input)) {
@@ -1857,8 +3248,12 @@ if (!function_exists('qpmPublicSearchExtractApiKey')) {
         if (stripos($authorization, 'Bearer ') === 0) {
             return ['key' => trim(substr($authorization, 7)), 'source' => 'authorization'];
         }
-        if ($config['urlApiKeyEnabled'] === true && isset($_GET['apiKey'])) {
-            $queryKey = trim((string) $_GET['apiKey']);
+        if ($config['urlApiKeyEnabled'] === true) {
+            // Canonical: apikey= (lowercase). apiKey=/ApiKey= etc. accepted via CI lookup.
+            $queryKeyRaw = qpmPublicSearchGetQueryParam('apikey');
+            $queryKey = is_array($queryKeyRaw)
+                ? trim((string) (reset($queryKeyRaw) ?: ''))
+                : trim((string) ($queryKeyRaw ?? ''));
             if ($queryKey !== '') {
                 return ['key' => $queryKey, 'source' => 'query'];
             }
@@ -2128,13 +3523,13 @@ if (!function_exists('qpmPublicSearchConsumeRateLimit')) {
     }
 }
 
-if (!function_exists('qpmPublicSearchOpenAiRequest')) {
+if (!function_exists('qpmPublicSearchBuildOpenAiRequestSpec')) {
     /**
      * @param array<string,mixed> $request
      * @param string $domain
-     * @return array<string,mixed>
+     * @return array{url:string,options:array<string,mixed>}
      */
-    function qpmPublicSearchOpenAiRequest(array $request, string $domain = ''): array
+    function qpmPublicSearchBuildOpenAiRequestSpec(array $request, string $domain = ''): array
     {
         $apiKey = function_exists('qpmGetOpenAIApiKey')
             ? qpmGetOpenAIApiKey($domain)
@@ -2158,13 +3553,26 @@ if (!function_exists('qpmPublicSearchOpenAiRequest')) {
             $headers[] = 'OpenAI-Organization: ' . $orgId;
         }
 
-        $result = qpmHttpRequest($apiUrl, [
-            'method' => 'POST',
-            'timeout' => 60,
-            'headers' => $headers,
-            'body' => qpmPublicSearchSafeJsonEncode($request),
-            'user_agent' => 'QuickPubMed/1.0',
-        ]);
+        return [
+            'url' => $apiUrl,
+            'options' => [
+                'method' => 'POST',
+                'timeout' => 60,
+                'headers' => $headers,
+                'body' => qpmPublicSearchSafeJsonEncode($request),
+                'user_agent' => 'QuickPubMed/1.0',
+            ],
+        ];
+    }
+}
+
+if (!function_exists('qpmPublicSearchParseOpenAiHttpResult')) {
+    /**
+     * @param array<string,mixed> $result
+     * @return array<string,mixed>
+     */
+    function qpmPublicSearchParseOpenAiHttpResult(array $result): array
+    {
         if (!$result['ok']) {
             throw new RuntimeException('OpenAI request failed: ' . (string) $result['error'], 502);
         }
@@ -2177,6 +3585,21 @@ if (!function_exists('qpmPublicSearchOpenAiRequest')) {
             throw new RuntimeException('Invalid OpenAI response', 502);
         }
         return $decoded;
+    }
+}
+
+if (!function_exists('qpmPublicSearchOpenAiRequest')) {
+    /**
+     * @param array<string,mixed> $request
+     * @param string $domain
+     * @return array<string,mixed>
+     */
+    function qpmPublicSearchOpenAiRequest(array $request, string $domain = ''): array
+    {
+        $spec = qpmPublicSearchBuildOpenAiRequestSpec($request, $domain);
+        return qpmPublicSearchParseOpenAiHttpResult(
+            qpmHttpRequest($spec['url'], $spec['options'])
+        );
     }
 }
 
@@ -2437,6 +3860,133 @@ if (!function_exists('qpmPublicSearchGetSemanticIntentPromptText')) {
     }
 }
 
+if (!function_exists('qpmPublicSearchExtractIntentCoverageTerms')) {
+    /**
+     * @return array<int,string>
+     */
+    function qpmPublicSearchExtractIntentCoverageTerms(string $rawInput): array
+    {
+        $normalized = strtolower(trim($rawInput));
+        if ($normalized === '') {
+            return [];
+        }
+        preg_match_all('/[a-z0-9æøåäöü]+/u', $normalized, $matches);
+        $terms = [];
+        foreach ((array) ($matches[0] ?? []) as $term) {
+            $term = trim((string) $term);
+            if (strlen($term) < 3) {
+                continue;
+            }
+            $terms[$term] = true;
+        }
+        return array_keys($terms);
+    }
+}
+
+if (!function_exists('qpmPublicSearchBuildSemanticIntentCoverageText')) {
+    /**
+     * @param array<string,mixed> $intent
+     */
+    function qpmPublicSearchBuildSemanticIntentCoverageText(array $intent): string
+    {
+        $chunks = [
+            (string) ($intent['semanticIntent'] ?? ''),
+            (string) ($intent['coreQuery'] ?? ''),
+        ];
+        $meta = isset($intent['meta']) && is_array($intent['meta']) ? $intent['meta'] : [];
+        foreach ((array) ($meta['detectedConcepts'] ?? []) as $concept) {
+            $chunks[] = (string) $concept;
+        }
+        $coverage = isset($meta['conceptCoverage']) && is_array($meta['conceptCoverage'])
+            ? $meta['conceptCoverage']
+            : [];
+        foreach (['originalConcepts', 'translatedConcepts'] as $field) {
+            foreach ((array) ($coverage[$field] ?? []) as $concept) {
+                $chunks[] = (string) $concept;
+            }
+        }
+        $plan = isset($intent['sourceQueryPlan']) && is_array($intent['sourceQueryPlan'])
+            ? $intent['sourceQueryPlan']
+            : [];
+        $chunks[] = (string) ($plan['coreQuery'] ?? '');
+        foreach (['semanticScholar', 'openAlex', 'elicit'] as $source) {
+            if (isset($plan[$source]) && is_array($plan[$source])) {
+                $chunks[] = (string) ($plan[$source]['query'] ?? '');
+            }
+        }
+        return strtolower(implode(' ', $chunks));
+    }
+}
+
+if (!function_exists('qpmPublicSearchAssessSemanticIntentCoverage')) {
+    /**
+     * @param ?array<string,mixed> $intent
+     * @param array<string,mixed> $payload
+     * @return array{ok:bool,missingTerms:array<int,string>}
+     */
+    function qpmPublicSearchAssessSemanticIntentCoverage(?array $intent, array $payload): array
+    {
+        if ($intent === null) {
+            return ['ok' => true, 'missingTerms' => []];
+        }
+        $rawInput = trim((string) ($payload['rawUserInput'] ?? ($payload['freeTextInput'] ?? ($payload['originalQuery'] ?? ''))));
+        $inputTerms = qpmPublicSearchExtractIntentCoverageTerms($rawInput);
+        if (empty($inputTerms)) {
+            return ['ok' => true, 'missingTerms' => []];
+        }
+        $coverageText = qpmPublicSearchBuildSemanticIntentCoverageText($intent);
+        $missing = [];
+        foreach ($inputTerms as $term) {
+            if (strpos($coverageText, $term) === false) {
+                $missing[] = $term;
+            }
+        }
+        return ['ok' => empty($missing), 'missingTerms' => $missing];
+    }
+}
+
+if (!function_exists('qpmPublicSearchLowerSemanticIntentConfidenceForCoverage')) {
+    /**
+     * @param array<string,mixed> $intent
+     * @param array{ok?:bool,missingTerms?:array<int,string>} $coverageCheck
+     * @return array<string,mixed>
+     */
+    function qpmPublicSearchLowerSemanticIntentConfidenceForCoverage(array $intent, array $coverageCheck): array
+    {
+        if (($coverageCheck['ok'] ?? true) !== false) {
+            return $intent;
+        }
+        $meta = isset($intent['meta']) && is_array($intent['meta']) ? $intent['meta'] : [];
+        $coverage = isset($meta['conceptCoverage']) && is_array($meta['conceptCoverage'])
+            ? $meta['conceptCoverage']
+            : [];
+        $missingTerms = qpmPublicSearchNormalizeSimpleList($coverageCheck['missingTerms'] ?? []);
+        $dropped = qpmPublicSearchDedupeStrings(array_merge(
+            qpmPublicSearchNormalizeSimpleList($coverage['droppedConcepts'] ?? []),
+            $missingTerms
+        ));
+        $confidence = isset($meta['confidenceScore']) && is_numeric($meta['confidenceScore'])
+            ? min((float) $meta['confidenceScore'], 0.55)
+            : 0.55;
+        $severity = trim((string) ($coverage['severityOfDrop'] ?? ''));
+        if ($severity === '' || $severity === 'none') {
+            $severity = 'medium';
+        }
+        $issues = qpmPublicSearchDedupeStrings(array_merge(
+            qpmPublicSearchNormalizeSimpleList($meta['potentialIssues'] ?? []),
+            ['Possible missing coverage of central input terms: ' . implode(', ', $missingTerms)]
+        ));
+        $meta['confidenceScore'] = $confidence;
+        $meta['conceptCoverage'] = array_merge($coverage, [
+            'droppedConcepts' => $dropped,
+            'severityOfDrop' => $severity,
+        ]);
+        $meta['potentialIssues'] = $issues;
+        $intent['meta'] = $meta;
+        return $intent;
+    }
+}
+
 if (!function_exists('qpmPublicSearchExtractSemanticIntent')) {
     /**
      * PHP port of the website widget's PRIMARY semantic-intent extraction
@@ -2449,55 +3999,107 @@ if (!function_exists('qpmPublicSearchExtractSemanticIntent')) {
      * hints) for the rerank engine's topicOverlapBonus - it deliberately does
      * NOT (yet) feed sourceQueryPlan, to avoid overlapping with the separate,
      * already-tested deterministic qpmPublicSearchBuildSourceQueryPlan() path.
-     * Fails soft (returns null) on any error so a flaky/slow LLM call never
-     * breaks a search - queryIntent is an enrichment signal, not a hard
-     * dependency.
+     * Fails soft (intent=null) on any error, or when the returned intent does
+     * not cover the raw input's key terms after one retry, so a flaky/slow/
+     * lossy LLM call never breaks a search - queryIntent is an enrichment
+     * signal, not a hard dependency.
      *
      * @param string $rawText
      * @param string $language
      * @param string $domain
-     * @return ?array<string,mixed>
+     * @param array<string,mixed> $intentPayload Optional intentContext (rawUserInput/contextualSearchInput/semanticBlocks/selectedTopicIds/selectedLimitIds).
+     * @return array{intent:?array<string,mixed>,meta:array<string,mixed>}
      */
-    function qpmPublicSearchExtractSemanticIntent(string $rawText, string $language, string $domain = ''): ?array
-    {
+    function qpmPublicSearchExtractSemanticIntent(
+        string $rawText,
+        string $language,
+        string $domain = '',
+        array $intentPayload = []
+    ): array {
         $normalizedText = trim($rawText);
+        $promptVersion = 'phase2-v3';
+        $emptyMeta = [
+            'promptVersion' => $promptVersion,
+            'cacheHit' => false,
+            'fallbackUsed' => false,
+            'parseAttempts' => 0,
+            'coverageCheck' => ['ok' => true, 'missingTerms' => []],
+        ];
         if ($normalizedText === '') {
-            return null;
+            return ['intent' => null, 'meta' => $emptyMeta];
         }
-        $promptLanguage = ($language === 'da' || $language === 'auto') ? 'da' : 'en';
-        $requestPayload = [
-            'model' => 'gpt-5.5',
-            'input' => [
-                [
-                    'role' => 'user',
-                    'content' => qpmPublicSearchGetSemanticIntentPromptText($language)
-                        . qpmPublicSearchSafeJsonEncode(['originalQuery' => $normalizedText]),
-                ],
-            ],
-            'reasoning' => ['effort' => 'none'],
-            'text' => [
-                'verbosity' => 'low',
-                'format' => [
-                    'type' => 'json_schema',
-                    'name' => 'semantic_intent_response',
-                    'strict' => true,
-                    'schema' => qpmPublicSearchGetSemanticIntentResponseSchema(),
-                ],
-            ],
-            'max_output_tokens' => 1024,
+
+        $payload = [
+            'originalQuery' => $normalizedText,
+            'rawUserInput' => trim((string) ($intentPayload['rawUserInput'] ?? $normalizedText)),
+            'contextualSearchInput' => trim((string) ($intentPayload['contextualSearchInput'] ?? '')),
+            'semanticBlocks' => qpmPublicSearchNormalizeSimpleList($intentPayload['semanticBlocks'] ?? []),
+            'selectedTopics' => qpmPublicSearchNormalizeSimpleList(
+                $intentPayload['selectedTopics'] ?? ($intentPayload['selectedTopicIds'] ?? [])
+            ),
+            'selectedLimits' => qpmPublicSearchNormalizeSimpleList(
+                $intentPayload['selectedLimits'] ?? ($intentPayload['selectedLimitIds'] ?? [])
+            ),
         ];
 
-        try {
-            $response = qpmPublicSearchOpenAiRequest($requestPayload, $domain);
-            $text = qpmPublicSearchExtractOpenAiText($response);
-            $parsed = json_decode($text, true);
-            if (!is_array($parsed)) {
-                return null;
+        $parsedIntent = null;
+        $coverageCheck = ['ok' => true, 'missingTerms' => []];
+        $parseAttempts = 0;
+        $maxParseAttempts = 2;
+        while ($parseAttempts < $maxParseAttempts && $parsedIntent === null) {
+            $parseAttempts++;
+            $requestPayload = [
+                'model' => 'gpt-5.5',
+                'input' => [
+                    [
+                        'role' => 'user',
+                        'content' => qpmPublicSearchGetSemanticIntentPromptText($language)
+                            . qpmPublicSearchSafeJsonEncode($payload),
+                    ],
+                ],
+                'reasoning' => ['effort' => 'none'],
+                'text' => [
+                    'verbosity' => 'low',
+                    'format' => [
+                        'type' => 'json_schema',
+                        'name' => 'semantic_intent_response',
+                        'strict' => true,
+                        'schema' => qpmPublicSearchGetSemanticIntentResponseSchema(),
+                    ],
+                ],
+                'max_output_tokens' => 1024,
+            ];
+            try {
+                $response = qpmPublicSearchOpenAiRequest($requestPayload, $domain);
+                $text = qpmPublicSearchExtractOpenAiText($response);
+                $parsed = json_decode($text, true);
+                if (!is_array($parsed)) {
+                    continue;
+                }
+                $coverageCheck = qpmPublicSearchAssessSemanticIntentCoverage($parsed, $payload);
+                if (($coverageCheck['ok'] ?? true) !== true && $parseAttempts < $maxParseAttempts) {
+                    $payload['coverageReview'] = [
+                        'missingRawInputTerms' => $coverageCheck['missingTerms'],
+                        'instruction' => 'Regenerate the intent and explicitly preserve or account for these raw input terms in meta.conceptCoverage, detectedConcepts, semanticIntent, or sourceQueryPlan.coreQuery.',
+                    ];
+                    continue;
+                }
+                $parsedIntent = qpmPublicSearchLowerSemanticIntentConfidenceForCoverage($parsed, $coverageCheck);
+            } catch (Throwable $exception) {
+                $parsedIntent = null;
             }
-            return $parsed;
-        } catch (Throwable $exception) {
-            return null;
         }
+
+        return [
+            'intent' => $parsedIntent,
+            'meta' => [
+                'promptVersion' => $promptVersion,
+                'cacheHit' => false,
+                'fallbackUsed' => $parsedIntent === null,
+                'parseAttempts' => $parseAttempts,
+                'coverageCheck' => $coverageCheck,
+            ],
+        ];
     }
 }
 
@@ -2600,25 +4202,121 @@ if (!function_exists('qpmPublicSearchFetchMeshDetails')) {
     }
 }
 
-if (!function_exists('qpmPublicSearchCanonicalizeAllMeshTermsWithNlm')) {
+if (!function_exists('qpmPublicSearchExtractEnglishConcepts')) {
     /**
-     * Ported from canonicalizeAllMeshTermsWithNlm() in meshValidator.js
-     * (Step 2b): rewrites valid [mh] terms to NLM's canonical Descriptor
+     * Extract English concept terms from PubMed fielded clauses ([mh]/[tiab]/[ti]),
+     * matching src/utils/meshValidator.js extractEnglishConcepts().
+     *
+     * @return array<int,string>
+     */
+    function qpmPublicSearchExtractEnglishConcepts(string $searchString): array
+    {
+        if ($searchString === '') {
+            return [];
+        }
+        $concepts = [];
+        if (
+            !preg_match_all(
+                '/(?:"([^"]+)"|([a-zA-Z][a-zA-Z0-9 \-]+?))\[(?:mh|tiab|ti)\]/iu',
+                $searchString,
+                $matches,
+                PREG_SET_ORDER
+            )
+        ) {
+            return [];
+        }
+        foreach ($matches as $match) {
+            $term = trim((string) (($match[1] ?? '') !== '' ? $match[1] : ($match[2] ?? '')));
+            if ($term === '') {
+                continue;
+            }
+            $normalized = preg_replace('/\b(?:AND|OR|NOT)\b/i', ' ', $term) ?? $term;
+            $normalized = preg_replace('/\s+/u', ' ', trim($normalized)) ?? trim($normalized);
+            if ($normalized !== '' && strlen($normalized) > 2) {
+                $concepts[strtolower($normalized)] = strtolower($normalized);
+            }
+        }
+        return array_values($concepts);
+    }
+}
+
+if (!function_exists('qpmPublicSearchBuildMeshSearchQuery')) {
+    /**
+     * Legacy parity: prefer mh/tiab/ti concepts from the AI PubMed string;
+     * fall back to raw user input, then a stripped PubMed string.
+     */
+    function qpmPublicSearchBuildMeshSearchQuery(string $searchString, string $fallbackInput = ''): string
+    {
+        $concepts = qpmPublicSearchExtractEnglishConcepts($searchString);
+        if (!empty($concepts)) {
+            return implode(' ', $concepts);
+        }
+        $fallback = trim($fallbackInput);
+        if ($fallback !== '') {
+            return $fallback;
+        }
+        $value = preg_replace('/\[[^\]]+\]/', ' ', $searchString) ?? $searchString;
+        $value = preg_replace('/\b(?:AND|OR|NOT)\b/i', ' ', $value) ?? $value;
+        $value = str_replace(['"', "'", '(', ')'], ' ', $value);
+        $value = preg_replace('/[^\p{L}\p{N}\s-]+/u', ' ', $value) ?? $value;
+        $value = preg_replace('/\s+/u', ' ', trim($value)) ?? trim($value);
+        return strtolower($value);
+    }
+}
+
+if (!function_exists('qpmPublicSearchBuildEmptyMeshReport')) {
+    /**
+     * Shared "nothing to do" mesh process-details report shape, used both by
+     * qpmPublicSearchCanonicalizeAllMeshTermsWithNlmDetailed() (no [mh] terms
+     * found) and qpmPublicSearchTranslatePubMedQuery() (validation skipped
+     * entirely, e.g. QPM_MESH_VALIDATION_OBSERVE_ONLY).
+     *
+     * @param string $searchString
+     * @return array<string,mixed>
+     */
+    function qpmPublicSearchBuildEmptyMeshReport(string $searchString, bool $observeOnly = false): array
+    {
+        return [
+            'totalMeshTerms' => 0,
+            'validCount' => 0,
+            'invalidCount' => 0,
+            'invalidTerms' => [],
+            'renamedTerms' => [],
+            'hallucinationRate' => 0.0,
+            'meshSearchQuery' => qpmPublicSearchBuildMeshSearchQuery($searchString),
+            'observeOnly' => $observeOnly,
+            'changed' => false,
+            'addedConcepts' => [],
+            'removedConcepts' => [],
+            'addedMeshTerms' => [],
+            'removedMeshTerms' => [],
+            'finalMeshTermCount' => 0,
+        ];
+    }
+}
+
+if (!function_exists('qpmPublicSearchCanonicalizeAllMeshTermsWithNlmDetailed')) {
+    /**
+     * Detailed variant of qpmPublicSearchCanonicalizeAllMeshTermsWithNlm():
+     * ported from canonicalizeAllMeshTermsWithNlm() in meshValidator.js
+     * (Step 2b) - rewrites valid [mh] terms to NLM's canonical Descriptor
      * Name, and downgrades invalid/hallucinated [mh] terms to [tiab] so an
-     * invalid MeSH tag never reaches PubMed.
+     * invalid MeSH tag never reaches PubMed - and additionally returns a
+     * process-details report describing what changed, for the "mesh"
+     * process-details step.
      *
      * @param string $searchString
      * @param string $domain
-     * @return string
+     * @return array{value:string,report:array<string,mixed>}
      */
-    function qpmPublicSearchCanonicalizeAllMeshTermsWithNlm(string $searchString, string $domain = ''): string
+    function qpmPublicSearchCanonicalizeAllMeshTermsWithNlmDetailed(string $searchString, string $domain = ''): array
     {
         if (trim($searchString) === '') {
-            return $searchString;
+            return ['value' => $searchString, 'report' => qpmPublicSearchBuildEmptyMeshReport($searchString)];
         }
         $meshTerms = qpmSemanticQualityExtractMeshTerms($searchString);
         if (empty($meshTerms)) {
-            return $searchString;
+            return ['value' => $searchString, 'report' => qpmPublicSearchBuildEmptyMeshReport($searchString)];
         }
 
         $validationByTermKey = [];
@@ -2641,6 +4339,8 @@ if (!function_exists('qpmPublicSearchCanonicalizeAllMeshTermsWithNlm')) {
         $canonicalNames = !empty($uids) ? qpmPublicSearchFetchMeshDetails($uids, $domain) : [];
 
         $result = $searchString;
+        $invalidTerms = [];
+        $renamedTerms = [];
         foreach ($meshTerms as $entry) {
             $key = strtolower($entry['term']);
             $validation = $validationByTermKey[$key] ?? ['valid' => true, 'uid' => null];
@@ -2649,16 +4349,72 @@ if (!function_exists('qpmPublicSearchCanonicalizeAllMeshTermsWithNlm')) {
                 $replacement = '"' . $canonical . '"[mh]';
                 if ($replacement !== $entry['fullMatch']) {
                     $result = str_replace($entry['fullMatch'], $replacement, $result);
+                    if (strtolower($canonical) !== $key) {
+                        $renamedTerms[] = ['from' => $entry['term'], 'to' => $canonical];
+                    }
                 }
                 continue;
             }
             if (($validation['valid'] ?? true) === false) {
                 $replacement = '"' . $entry['term'] . '"[tiab]';
                 $result = str_replace($entry['fullMatch'], $replacement, $result);
+                $invalidTerms[] = $entry['term'];
             }
         }
+        $invalidTerms = array_values(array_unique($invalidTerms));
 
-        return $result;
+        // Concept-level and MeSH-tag-level views are identical for this
+        // deterministic canonicalization step (it only renames or downgrades
+        // existing [mh] terms, never introduces unrelated new concepts).
+        $originalTermLabels = [];
+        foreach ($meshTerms as $entry) {
+            $originalTermLabels[strtolower($entry['term'])] = $entry['term'];
+        }
+        $finalMeshTerms = qpmSemanticQualityExtractMeshTerms($result);
+        $finalTermLabels = [];
+        foreach ($finalMeshTerms as $entry) {
+            $finalTermLabels[strtolower($entry['term'])] = $entry['term'];
+        }
+        $addedMeshTerms = array_values(array_diff_key($finalTermLabels, $originalTermLabels));
+        $removedMeshTerms = array_values(array_diff_key($originalTermLabels, $finalTermLabels));
+
+        $totalMeshTerms = count($seenTermKeys);
+        $invalidCount = count($invalidTerms);
+
+        $report = [
+            'totalMeshTerms' => $totalMeshTerms,
+            'validCount' => max(0, $totalMeshTerms - $invalidCount),
+            'invalidCount' => $invalidCount,
+            'invalidTerms' => $invalidTerms,
+            'renamedTerms' => $renamedTerms,
+            'hallucinationRate' => $totalMeshTerms > 0 ? round($invalidCount / $totalMeshTerms, 4) : 0.0,
+            'meshSearchQuery' => qpmPublicSearchBuildMeshSearchQuery($searchString),
+            'observeOnly' => false,
+            'changed' => $result !== $searchString,
+            'addedConcepts' => $addedMeshTerms,
+            'removedConcepts' => $removedMeshTerms,
+            'addedMeshTerms' => $addedMeshTerms,
+            'removedMeshTerms' => $removedMeshTerms,
+            'finalMeshTermCount' => count($finalMeshTerms),
+        ];
+
+        return ['value' => $result, 'report' => $report];
+    }
+}
+
+if (!function_exists('qpmPublicSearchCanonicalizeAllMeshTermsWithNlm')) {
+    /**
+     * Thin string-only wrapper around
+     * qpmPublicSearchCanonicalizeAllMeshTermsWithNlmDetailed() for callers
+     * that only need the rewritten search string.
+     *
+     * @param string $searchString
+     * @param string $domain
+     * @return string
+     */
+    function qpmPublicSearchCanonicalizeAllMeshTermsWithNlm(string $searchString, string $domain = ''): string
+    {
+        return qpmPublicSearchCanonicalizeAllMeshTermsWithNlmDetailed($searchString, $domain)['value'];
     }
 }
 
@@ -2677,9 +4433,10 @@ if (!function_exists('qpmPublicSearchBuildPubMedTranslationPromptInput')) {
      * @param string $originalQuery
      * @param ?array<string,mixed> $llmSemanticIntent
      * @param array<string,mixed> $hardFilters
+     * @param array<string,mixed> $intentContext Optional intentContext (see qpmPublicSearchNormalizePostRequest()) - selectedTopicIds/selectedLimitIds feed structuredAiIntent.selectedTopics/selectedLimits.
      * @return string
      */
-    function qpmPublicSearchBuildPubMedTranslationPromptInput(string $originalQuery, ?array $llmSemanticIntent, array $hardFilters = []): string
+    function qpmPublicSearchBuildPubMedTranslationPromptInput(string $originalQuery, ?array $llmSemanticIntent, array $hardFilters = [], array $intentContext = []): string
     {
         $originalQuery = trim($originalQuery);
         $llmIntent = is_array($llmSemanticIntent) ? $llmSemanticIntent : [];
@@ -2701,8 +4458,12 @@ if (!function_exists('qpmPublicSearchBuildPubMedTranslationPromptInput')) {
             // schema - passed through as the closest available equivalent
             // (the API's own already-validated hardFilters) / empty arrays.
             'canonicalHardFilters' => !empty($hardFilters) ? $hardFilters : new stdClass(),
-            'selectedTopics' => [],
-            'selectedLimits' => [],
+            'selectedTopics' => qpmPublicSearchNormalizeSimpleList(
+                $intentContext['selectedTopics'] ?? ($intentContext['selectedTopicIds'] ?? [])
+            ),
+            'selectedLimits' => qpmPublicSearchNormalizeSimpleList(
+                $intentContext['selectedLimits'] ?? ($intentContext['selectedLimitIds'] ?? [])
+            ),
             'potentialIssues' => qpmPublicSearchNormalizeSimpleList($meta['potentialIssues'] ?? []),
         ];
 
@@ -2728,36 +4489,27 @@ if (!function_exists('qpmPublicSearchBuildPubMedTranslationPromptInput')) {
     }
 }
 
-if (!function_exists('qpmPublicSearchTranslatePubMedQuery')) {
+if (!function_exists('qpmPublicSearchBuildPubMedTranslationOpenAiRequest')) {
     /**
-     * @param string $text
-     * @param string $language
-     * @param string $domain
-     * @param ?array<string,mixed> $llmSemanticIntent Structured semantic-intent result (see qpmPublicSearchExtractSemanticIntent()), fed in as extra context exactly like the website widget does.
+     * @param array<string,mixed>|null $llmSemanticIntent
      * @param array<string,mixed> $hardFilters
-     * @return string
+     * @param array<string,mixed> $intentContext
+     * @return array<string,mixed>
      */
-    function qpmPublicSearchTranslatePubMedQuery(string $text, string $language, string $domain = '', ?array $llmSemanticIntent = null, array $hardFilters = [], ?callable $progressCallback = null): string
-    {
-        $normalizedText = trim($text);
-        if ($normalizedText === '') {
-            return '';
-        }
-        // Granular progress markers so a caller using SSE streaming (see
-        // UnifiedSearch.php / qpmPublicSearchRunSearch) can show accurate,
-        // live timing for each sub-phase instead of attributing the whole
-        // (potentially 10-40s, mostly MeSH-lookup-bound) translation+MeSH
-        // step to a single generic "prepare" bucket. Mirrors the same
-        // searchString/mesh/optimize step ids the website widget's own
-        // meshValidator.js flow already reports.
-        qpmPublicSearchEmitProgress($progressCallback, 'searchString', '', [
-            'stepId' => 'searchString',
-            'groupId' => 'prepare',
-            'groupKey' => 'semanticSearchProcessGroupPrepare',
-            'messageKey' => 'semanticSearchProgressSearchString',
-        ]);
-        $promptInput = qpmPublicSearchBuildPubMedTranslationPromptInput($normalizedText, $llmSemanticIntent, $hardFilters);
-        $request = [
+    function qpmPublicSearchBuildPubMedTranslationOpenAiRequest(
+        string $text,
+        string $language,
+        ?array $llmSemanticIntent = null,
+        array $hardFilters = [],
+        array $intentContext = []
+    ): array {
+        $promptInput = qpmPublicSearchBuildPubMedTranslationPromptInput(
+            trim($text),
+            $llmSemanticIntent,
+            $hardFilters,
+            $intentContext
+        );
+        return [
             'model' => 'gpt-5.5',
             'input' => [
                 [
@@ -2769,18 +4521,106 @@ if (!function_exists('qpmPublicSearchTranslatePubMedQuery')) {
             'text' => ['verbosity' => 'medium'],
             'max_output_tokens' => 500,
         ];
+    }
+}
+
+if (!function_exists('qpmPublicSearchTranslatePubMedQuery')) {
+    /**
+     * @param string $text
+     * @param string $language
+     * @param string $domain
+     * @param ?array<string,mixed> $llmSemanticIntent Structured semantic-intent result (see qpmPublicSearchExtractSemanticIntent()), fed in as extra context exactly like the website widget does.
+     * @param array<string,mixed> $hardFilters
+     * @param array<string,mixed> $intentContext
+     * @param array<string,mixed> $semanticIntentMeta
+     * @param bool $emitProcessDetails
+     * @param bool $emitStartProgress
+     * @param ?array<string,mixed> $processReport Out-parameter (process-details): filled with 'searchString'/'mesh'/'optimize' payloads describing the actual work performed.
+     * @return string
+     */
+    function qpmPublicSearchTranslatePubMedQuery(
+        string $text,
+        string $language,
+        string $domain = '',
+        ?array $llmSemanticIntent = null,
+        array $hardFilters = [],
+        ?callable $progressCallback = null,
+        array $intentContext = [],
+        array $semanticIntentMeta = [],
+        bool $emitProcessDetails = false,
+        bool $emitStartProgress = true,
+        ?array &$processReport = null
+    ): string {
+        $processReport = ['searchString' => [], 'mesh' => []];
+        $emitCompletedDetail = static function (string $stepId, array $payload) use (
+            $emitProcessDetails,
+            $progressCallback
+        ): void {
+            if ($emitProcessDetails) {
+                qpmPublicSearchProcessDetailsEmitCompletedPayload($stepId, $payload, $progressCallback);
+            }
+        };
+        $normalizedText = trim($text);
+        if ($normalizedText === '') {
+            return '';
+        }
+        // Granular progress markers so a caller using SSE streaming (see
+        // UnifiedSearch.php / qpmPublicSearchRunSearch) can show accurate,
+        // live timing for each sub-phase instead of attributing the whole
+        // (potentially 10-40s, mostly MeSH-lookup-bound) translation+MeSH
+        // step to a single generic "prepare" bucket. Mirrors the same
+        // searchString/mesh/optimize step ids the website widget's own
+        // meshValidator.js flow already reports.
+        if ($emitStartProgress) {
+            qpmPublicSearchEmitProgress($progressCallback, 'searchString', '', [
+                'stepId' => 'searchString',
+                'groupId' => 'prepare',
+                'groupKey' => 'semanticSearchProcessGroupPrepare',
+                'messageKey' => 'semanticSearchProgressSearchString',
+            ]);
+        }
+        $request = qpmPublicSearchBuildPubMedTranslationOpenAiRequest(
+            $normalizedText,
+            $language,
+            $llmSemanticIntent,
+            $hardFilters,
+            $intentContext
+        );
         $translated = trim(qpmPublicSearchExtractOpenAiText(qpmPublicSearchOpenAiRequest($request, $domain)));
+        // Hard filters are appended deterministically later. Remove a trailing
+        // language-only clause if the LLM redundantly copied canonical
+        // language filters into the topical PubMed query.
+        $translated = trim((string) preg_replace(
+            '/\s+AND\s+\((?:"?[\p{L}\s-]+"?\[la\](?:\s+OR\s+"?[\p{L}\s-]+"?\[la\])*)\)\s*$/iu',
+            '',
+            $translated
+        ));
+        $meta = is_array($llmSemanticIntent['meta'] ?? null) ? $llmSemanticIntent['meta'] : [];
+        $rawUserInput = trim((string) ($intentContext['rawUserInput'] ?? $normalizedText));
+        $contextualSearchInput = trim((string) ($intentContext['contextualSearchInput'] ?? ''));
+        $processReport['searchString'] = [
+            'input' => $normalizedText,
+            'rawUserInput' => $rawUserInput,
+            'contextualSearchInput' => $contextualSearchInput,
+            'structuredAiIntentUsed' => is_array($llmSemanticIntent) && !empty($llmSemanticIntent),
+            'aiCoreQuery' => trim((string) ($llmSemanticIntent['coreQuery'] ?? ($llmSemanticIntent['semanticIntent'] ?? ''))),
+            'detectedConcepts' => qpmPublicSearchNormalizeSimpleList($meta['detectedConcepts'] ?? []),
+            'conceptCoverage' => is_array($meta['conceptCoverage'] ?? null) ? $meta['conceptCoverage'] : new stdClass(),
+            'coverageCheck' => is_array($semanticIntentMeta['coverageCheck'] ?? null)
+                ? $semanticIntentMeta['coverageCheck']
+                : new stdClass(),
+            'pubmedQuery' => $translated,
+            'finalValidatedQuery' => $translated,
+        ];
+        $translatedBeforeMesh = $translated;
 
         // MeSH validation/canonicalization (partial port of
         // src/utils/meshValidator.js - see semantic-quality-lib.php Section 2B
         // for exactly what is and isn't ported). Only applied for the unified
         // engine, and skipped entirely under QPM_MESH_VALIDATION_OBSERVE_ONLY
         // (same safety-brake semantics as the website widget).
-        if (
-            $translated !== ''
-            && qpmPublicSearchIsUnifiedSearchEngineEnabled()
-            && !(defined('QPM_MESH_VALIDATION_OBSERVE_ONLY') && QPM_MESH_VALIDATION_OBSERVE_ONLY === true)
-        ) {
+        $meshObserveOnly = defined('QPM_MESH_VALIDATION_OBSERVE_ONLY') && QPM_MESH_VALIDATION_OBSERVE_ONLY === true;
+        if ($translated !== '' && qpmPublicSearchIsUnifiedSearchEngineEnabled() && !$meshObserveOnly) {
             qpmPublicSearchEmitProgress($progressCallback, 'mesh', '', [
                 'stepId' => 'mesh',
                 'groupId' => 'prepare',
@@ -2788,18 +4628,38 @@ if (!function_exists('qpmPublicSearchTranslatePubMedQuery')) {
                 'messageKey' => 'semanticSearchProgressMesh',
             ]);
             try {
-                $canonicalized = qpmPublicSearchCanonicalizeAllMeshTermsWithNlm($translated, $domain);
-                qpmPublicSearchEmitProgress($progressCallback, 'optimize', '', [
-                    'stepId' => 'optimize',
-                    'groupId' => 'prepare',
-                    'groupKey' => 'semanticSearchProcessGroupPrepare',
-                    'messageKey' => 'semanticSearchProgressOptimize',
-                ]);
+                $meshResult = qpmPublicSearchCanonicalizeAllMeshTermsWithNlmDetailed($translated, $domain);
+                $canonicalized = $meshResult['value'];
+                $meshReport = (array) ($meshResult['report'] ?? []);
+                $meshReport['meshSearchQuery'] = qpmPublicSearchBuildMeshSearchQuery(
+                    $translatedBeforeMesh,
+                    $rawUserInput
+                );
                 $sanitized = qpmSemanticQualitySanitizeSearchStringDeterministic($canonicalized);
+                $after = $sanitized['valid'] ? $sanitized['value'] : $canonicalized;
                 if ($sanitized['valid']) {
                     $translated = qpmSemanticQualityLowercaseNonMeshTerms($sanitized['value']);
                     $translated = qpmSemanticQualityNormalizeBooleanOperatorsOutsideQuotes($translated);
+                    $after = $translated;
                 }
+                // Fold the former near-instant "optimize" step into mesh so
+                // SearchForm and the public API share one MeSH progress step.
+                $processReport['mesh'] = [
+                    'queries' => [array_merge([
+                        'input' => $rawUserInput,
+                        'observeOnly' => false,
+                        'beforeOptimization' => $translatedBeforeMesh,
+                        'afterOptimization' => $after,
+                        'changed' => $after !== $translatedBeforeMesh,
+                        'addedConcepts' => qpmPublicSearchNormalizeSimpleList($meshReport['addedConcepts'] ?? []),
+                        'removedConcepts' => qpmPublicSearchNormalizeSimpleList($meshReport['removedConcepts'] ?? []),
+                        'addedMeshTerms' => qpmPublicSearchNormalizeSimpleList($meshReport['addedMeshTerms'] ?? []),
+                        'removedMeshTerms' => qpmPublicSearchNormalizeSimpleList($meshReport['removedMeshTerms'] ?? []),
+                        'finalMeshTermCount' => (int) ($meshReport['finalMeshTermCount'] ?? 0),
+                    ], $meshReport)],
+                ];
+                $processReport['searchString']['finalValidatedQuery'] = $translated;
+                $emitCompletedDetail('mesh', $processReport['mesh']);
                 // If sanitization finds the result invalid (unbalanced syntax
                 // or a disallowed tag slipped through), fail soft and keep
                 // the pre-sanitization translated string rather than risk
@@ -2807,10 +4667,67 @@ if (!function_exists('qpmPublicSearchTranslatePubMedQuery')) {
             } catch (Throwable $exception) {
                 // Fail soft: MeSH validation/canonicalization is an
                 // enrichment step, not a hard dependency of the translation.
+                $emptyMesh = qpmPublicSearchBuildEmptyMeshReport($translatedBeforeMesh, false);
+                $emptyMesh['meshSearchQuery'] = qpmPublicSearchBuildMeshSearchQuery(
+                    $translatedBeforeMesh,
+                    $rawUserInput
+                );
+                $emptyMesh['validationFailed'] = true;
+                $processReport['mesh'] = [
+                    'queries' => [array_merge([
+                        'input' => $rawUserInput,
+                        'beforeOptimization' => $translatedBeforeMesh,
+                        'afterOptimization' => $translatedBeforeMesh,
+                        'changed' => false,
+                        'addedConcepts' => [],
+                        'removedConcepts' => [],
+                        'addedMeshTerms' => [],
+                        'removedMeshTerms' => [],
+                        'finalMeshTermCount' => 0,
+                    ], $emptyMesh)],
+                ];
+                $emitCompletedDetail('mesh', $processReport['mesh']);
             }
+        } elseif ($translated !== '' && qpmPublicSearchIsUnifiedSearchEngineEnabled()) {
+            qpmPublicSearchEmitProgress($progressCallback, 'mesh', '', [
+                'stepId' => 'mesh',
+                'groupId' => 'prepare',
+                'groupKey' => 'semanticSearchProcessGroupPrepare',
+                'messageKey' => 'semanticSearchProgressMesh',
+            ]);
+            $emptyMesh = qpmPublicSearchBuildEmptyMeshReport($translated, true);
+            $emptyMesh['meshSearchQuery'] = qpmPublicSearchBuildMeshSearchQuery($translated, $rawUserInput);
+            $processReport['mesh'] = [
+                'queries' => [array_merge(['input' => $rawUserInput], $emptyMesh)],
+            ];
+            $emitCompletedDetail('mesh', $processReport['mesh']);
         }
 
+        $emitCompletedDetail('searchString', $processReport['searchString']);
         return $translated;
+    }
+}
+
+if (!function_exists('qpmPublicSearchBuildSemanticTranslationOpenAiRequest')) {
+    /**
+     * @return array<string,mixed>
+     */
+    function qpmPublicSearchBuildSemanticTranslationOpenAiRequest(
+        string $text,
+        string $language
+    ): array {
+        return [
+            'model' => 'gpt-5.5',
+            'input' => [
+                [
+                    'role' => 'user',
+                    'content' => qpmPublicSearchGetSemanticPromptText($language) . trim($text),
+                ],
+            ],
+            'reasoning' => ['effort' => 'none'],
+            'text' => ['verbosity' => 'medium'],
+            'max_output_tokens' => 120,
+        ];
     }
 }
 
@@ -2827,19 +4744,137 @@ if (!function_exists('qpmPublicSearchTranslateSemanticQuery')) {
         if ($normalizedText === '') {
             return '';
         }
-        $request = [
-            'model' => 'gpt-5.5',
-            'input' => [
-                [
-                    'role' => 'user',
-                    'content' => qpmPublicSearchGetSemanticPromptText($language) . $normalizedText,
-                ],
-            ],
-            'reasoning' => ['effort' => 'none'],
-            'text' => ['verbosity' => 'medium'],
-            'max_output_tokens' => 120,
-        ];
+        $request = qpmPublicSearchBuildSemanticTranslationOpenAiRequest(
+            $normalizedText,
+            $language
+        );
         return qpmPublicSearchExtractOpenAiText(qpmPublicSearchOpenAiRequest($request, $domain));
+    }
+}
+
+if (!function_exists('qpmPublicSearchSemanticIntentHasUsableQueries')) {
+    /**
+     * True when ExtractSemanticIntent already produced a usable English core /
+     * per-source query, so the weaker TranslateSemanticQuery LLM call can be skipped.
+     *
+     * @param array<string,mixed>|null $intent
+     */
+    function qpmPublicSearchSemanticIntentHasUsableQueries(?array $intent): bool
+    {
+        if (!is_array($intent)) {
+            return false;
+        }
+        $plan = is_array($intent['sourceQueryPlan'] ?? null) ? $intent['sourceQueryPlan'] : [];
+        if (trim((string) ($plan['coreQuery'] ?? '')) !== '') {
+            return true;
+        }
+        if (trim((string) ($intent['semanticIntent'] ?? '')) !== '') {
+            return true;
+        }
+        foreach (['semanticScholar', 'openAlex', 'elicit'] as $sourceKey) {
+            if (trim((string) ($plan[$sourceKey]['query'] ?? '')) !== '') {
+                return true;
+            }
+            $adaptations = is_array($plan['adaptations'] ?? null) ? $plan['adaptations'] : [];
+            if (trim((string) ($adaptations[$sourceKey]['queryOverride'] ?? '')) !== '') {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
+if (!function_exists('qpmPublicSearchResolveSemanticQueryFromIntent')) {
+    /**
+     * @param array<string,mixed>|null $intent
+     */
+    function qpmPublicSearchResolveSemanticQueryFromIntent(?array $intent, string $fallback = ''): string
+    {
+        if (!is_array($intent)) {
+            return trim($fallback);
+        }
+        $plan = is_array($intent['sourceQueryPlan'] ?? null) ? $intent['sourceQueryPlan'] : [];
+        $coreQuery = trim((string) ($plan['coreQuery'] ?? ''));
+        if ($coreQuery !== '') {
+            return $coreQuery;
+        }
+        $semanticIntent = trim((string) ($intent['semanticIntent'] ?? ''));
+        if ($semanticIntent !== '') {
+            return $semanticIntent;
+        }
+        return trim($fallback);
+    }
+}
+
+if (!function_exists('qpmPublicSearchPrefetchParallelTranslationRequests')) {
+    /**
+     * Starts the semantic-source and PubMed translation requests together once
+     * their shared semantic-intent prerequisite is available. Existing
+     * translation functions consume the prefetched responses unchanged.
+     *
+     * @param array<string,mixed>|null $semanticIntent
+     * @param array<string,mixed> $hardFilters
+     * @param array<string,mixed> $intentContext
+     * @param array<int,string> $semanticSources
+     * @param array<string,mixed> $sourceQueryPlan
+     * @param array<string,mixed> $request
+     * @param callable|null $sourceStartCallback
+     * @return array<int,string> Sources whose initial request was prefetched.
+     */
+    function qpmPublicSearchPrefetchParallelTranslationRequests(
+        string $text,
+        string $language,
+        ?array $semanticIntent,
+        array $hardFilters,
+        array $intentContext,
+        string $domain,
+        array $semanticSources = [],
+        array $sourceQueryPlan = [],
+        array $request = [],
+        ?callable $sourceStartCallback = null,
+        bool $includeSemanticTranslation = true,
+        bool $includePubMedTranslation = true
+    ): array {
+        $normalizedText = trim($text);
+        if ($normalizedText === '') {
+            return [];
+        }
+        $payloads = [];
+        if ($includePubMedTranslation) {
+            $payloads['searchString'] = qpmPublicSearchBuildPubMedTranslationOpenAiRequest(
+                $normalizedText,
+                $language,
+                $semanticIntent,
+                $hardFilters,
+                $intentContext
+            );
+        }
+        if ($includeSemanticTranslation) {
+            $payloads['semanticQuery'] = qpmPublicSearchBuildSemanticTranslationOpenAiRequest(
+                $normalizedText,
+                $language
+            );
+        }
+        $translationRequests = [];
+        foreach ($payloads as $name => $payload) {
+            $translationRequests['translation_' . $name] = qpmPublicSearchBuildOpenAiRequestSpec(
+                $payload,
+                $domain
+            );
+        }
+        $elapsedByRequest = qpmPublicSearchPrefetchInitialSourceRequests(
+            $semanticSources,
+            ['sourceQueryPlan' => $sourceQueryPlan],
+            $request,
+            $domain,
+            null,
+            $translationRequests,
+            $sourceStartCallback
+        );
+        return array_values(array_filter(
+            $semanticSources,
+            static fn($source) => array_key_exists($source, $elapsedByRequest)
+        ));
     }
 }
 
@@ -3080,12 +5115,33 @@ if (!function_exists('qpmPublicSearchBuildElicitFallbackQuery')) {
 if (!function_exists('qpmPublicSearchBuildHardFilterQuery')) {
     /**
      * @param array<string,mixed> $hardFilters
+     * @param array<int,string|array{id?:string,scope?:string}> $selectedLimitIds
      * @return array{query: string, warnings: array<int,string>}
      */
-    function qpmPublicSearchBuildHardFilterQuery(array $hardFilters): array
+    function qpmPublicSearchBuildHardFilterQuery(array $hardFilters, array $selectedLimitIds = []): array
     {
         $warnings = [];
         $parts = [];
+        $selectedLimitQuery = qpmPublicSearchBuildSelectedLimitPubMedQuery($selectedLimitIds);
+        $catalogQuery = $selectedLimitQuery !== ''
+            ? $selectedLimitQuery
+            : qpmPublicSearchBuildCanonicalHardFilterPubMedQuery($hardFilters);
+        if ($catalogQuery !== '') {
+            $parts[] = $catalogQuery;
+            $years = array_values(array_filter(array_map('intval', (array) ($hardFilters['publicationDateYears'] ?? []))));
+            if (!empty($years)) {
+                sort($years);
+                $parts[] = min($years) . ':' . max($years) . '[dp]';
+            } else {
+                $publicationYear = qpmPublicSearchNormalizePublicationYearRange($hardFilters['publicationYear'] ?? '');
+                if ($publicationYear !== '') {
+                    $parts[] = strpos($publicationYear, '-') !== false
+                        ? str_replace('-', ':', $publicationYear) . '[dp]'
+                        : $publicationYear . '[dp]';
+                }
+            }
+            return ['query' => implode(' AND ', $parts), 'warnings' => []];
+        }
 
         $languageNames = [
             'en' => 'english',
@@ -3319,6 +5375,130 @@ if (!function_exists('qpmPublicSearchBuildSourceQueryPlan')) {
     }
 }
 
+if (!function_exists('qpmPublicSearchBuildSemanticIntentProcessReport')) {
+    /**
+     * Intent-only process details (before per-source query adaptation).
+     *
+     * @param array<string,mixed> $request
+     * @param array<string,mixed>|null $llmIntent
+     * @param array<string,mixed> $semanticIntentMeta
+     * @return array<string,mixed>
+     */
+    function qpmPublicSearchBuildSemanticIntentProcessReport(
+        array $request,
+        ?array $llmIntent,
+        array $semanticIntentMeta
+    ): array {
+        $intentContext = isset($request['intentContext']) && is_array($request['intentContext'])
+            ? $request['intentContext']
+            : [];
+        $intentMeta = is_array($llmIntent['meta'] ?? null) ? $llmIntent['meta'] : [];
+        $plan = is_array($llmIntent['sourceQueryPlan'] ?? null) ? $llmIntent['sourceQueryPlan'] : [];
+        $coreQuery = trim((string) ($plan['coreQuery'] ?? ''));
+        if ($coreQuery === '') {
+            $coreQuery = trim((string) ($llmIntent['semanticIntent'] ?? ''));
+        }
+        return [
+            'input' => trim((string) ($intentContext['rawUserInput'] ?? ($request['query']['text'] ?? ''))),
+            'rawUserInput' => trim((string) ($intentContext['rawUserInput'] ?? ($request['query']['text'] ?? ''))),
+            'contextualSearchInput' => trim((string) ($intentContext['contextualSearchInput'] ?? '')),
+            'semanticIntent' => trim((string) ($llmIntent['semanticIntent'] ?? '')),
+            'coreQuery' => $coreQuery,
+            'promptVersion' => (string) ($semanticIntentMeta['promptVersion'] ?? ''),
+            'cacheHit' => ($semanticIntentMeta['cacheHit'] ?? false) === true,
+            'fallbackUsed' => ($semanticIntentMeta['fallbackUsed'] ?? false) === true,
+            'parseAttempts' => (int) ($semanticIntentMeta['parseAttempts'] ?? 0),
+            'coverageCheck' => is_array($semanticIntentMeta['coverageCheck'] ?? null)
+                ? $semanticIntentMeta['coverageCheck']
+                : ['ok' => true, 'missingTerms' => []],
+            'detectedConcepts' => qpmPublicSearchNormalizeSimpleList($intentMeta['detectedConcepts'] ?? []),
+            'confidenceScore' => isset($intentMeta['confidenceScore']) && is_numeric($intentMeta['confidenceScore'])
+                ? (float) $intentMeta['confidenceScore']
+                : null,
+            'conceptCoverage' => is_array($intentMeta['conceptCoverage'] ?? null)
+                ? $intentMeta['conceptCoverage']
+                : new stdClass(),
+            'potentialIssues' => qpmPublicSearchNormalizeSimpleList($intentMeta['potentialIssues'] ?? []),
+            'refinementSuggestions' => qpmPublicSearchNormalizeSimpleList($intentMeta['refinementSuggestions'] ?? []),
+        ];
+    }
+}
+
+if (!function_exists('qpmPublicSearchBuildSemanticQueryProcessReport')) {
+    /**
+     * @param array<string,mixed> $request
+     * @param array<string,mixed>|null $llmIntent
+     * @param array<string,mixed> $semanticIntentMeta
+     * @param array<string,mixed> $sourceQueryPlan
+     * @return array<string,mixed>
+     */
+    function qpmPublicSearchBuildSemanticQueryProcessReport(
+        array $request,
+        ?array $llmIntent,
+        array $semanticIntentMeta,
+        string $semanticQuery,
+        array $sourceQueryPlan,
+        bool $semanticTranslationSkipped = false
+    ): array {
+        $intentContext = isset($request['intentContext']) && is_array($request['intentContext'])
+            ? $request['intentContext']
+            : [];
+        $intentMeta = is_array($llmIntent['meta'] ?? null) ? $llmIntent['meta'] : [];
+        $sourceQueries = [];
+        foreach (['semanticScholar', 'openAlex', 'elicit'] as $sourceKey) {
+            if (!in_array($sourceKey, (array) ($request['sources'] ?? []), true)) {
+                continue;
+            }
+            $plan = isset($sourceQueryPlan[$sourceKey]) && is_array($sourceQueryPlan[$sourceKey])
+                ? $sourceQueryPlan[$sourceKey]
+                : [];
+            $query = trim((string) ($plan['query'] ?? ''));
+            if ($query === '') {
+                continue;
+            }
+            $sourceQueries[] = [
+                'source' => $sourceKey,
+                'query' => $query,
+                'filters' => isset($plan['filters']) && is_array($plan['filters'])
+                    ? $plan['filters']
+                    : new stdClass(),
+            ];
+        }
+        return [
+            'input' => trim((string) ($intentContext['rawUserInput'] ?? ($request['query']['text'] ?? ''))),
+            'rawUserInput' => trim((string) ($intentContext['rawUserInput'] ?? ($request['query']['text'] ?? ''))),
+            'contextualSearchInput' => trim((string) ($intentContext['contextualSearchInput'] ?? '')),
+            'semanticIntent' => trim((string) ($llmIntent['semanticIntent'] ?? $semanticQuery)),
+            'coreQuery' => qpmPublicSearchResolveSemanticQueryFromIntent($llmIntent, $semanticQuery),
+            'selectedSources' => array_values((array) ($request['sources'] ?? [])),
+            'promptVersion' => (string) ($semanticIntentMeta['promptVersion'] ?? ''),
+            'cacheHit' => ($semanticIntentMeta['cacheHit'] ?? false) === true,
+            'fallbackUsed' => ($semanticIntentMeta['fallbackUsed'] ?? false) === true,
+            'parseAttempts' => (int) ($semanticIntentMeta['parseAttempts'] ?? 0),
+            'coverageCheck' => is_array($semanticIntentMeta['coverageCheck'] ?? null)
+                ? $semanticIntentMeta['coverageCheck']
+                : ['ok' => true, 'missingTerms' => []],
+            'detectedConcepts' => qpmPublicSearchNormalizeSimpleList($intentMeta['detectedConcepts'] ?? []),
+            'confidenceScore' => isset($intentMeta['confidenceScore']) && is_numeric($intentMeta['confidenceScore'])
+                ? (float) $intentMeta['confidenceScore']
+                : null,
+            'conceptCoverage' => is_array($intentMeta['conceptCoverage'] ?? null)
+                ? $intentMeta['conceptCoverage']
+                : new stdClass(),
+            'potentialIssues' => qpmPublicSearchNormalizeSimpleList($intentMeta['potentialIssues'] ?? []),
+            'refinementSuggestions' => qpmPublicSearchNormalizeSimpleList($intentMeta['refinementSuggestions'] ?? []),
+            'hardFilters' => (array) ($request['hardFilters'] ?? []),
+            'sourceQueries' => $sourceQueries,
+            'adaptations' => is_array($llmIntent['adaptations'] ?? null)
+                ? $llmIntent['adaptations']
+                : (is_array($sourceQueryPlan['adaptations'] ?? null)
+                    ? $sourceQueryPlan['adaptations']
+                    : new stdClass()),
+            'semanticTranslationSkipped' => $semanticTranslationSkipped === true,
+        ];
+    }
+}
+
 if (!function_exists('qpmPublicSearchBuildResolvedQueries')) {
     /**
      * @param array<string,mixed> $request
@@ -3331,28 +5511,226 @@ if (!function_exists('qpmPublicSearchBuildResolvedQueries')) {
         $rawText = trim((string) ($request['query']['text'] ?? ''));
         $translationMode = (string) ($request['translation']['mode'] ?? 'auto');
 
+        $intentContext = isset($request['intentContext']) && is_array($request['intentContext'])
+            ? $request['intentContext']
+            : [];
+
+        $topicCatalogQuery = '';
+        $topicQueryWarnings = (array) ($request['_topicHydrationWarnings'] ?? []);
+        $standardString = isset($request['_topicStandardString']) && is_array($request['_topicStandardString'])
+            ? $request['_topicStandardString']
+            : [];
+        $topicGroups = (array) ($intentContext['selectedTopicGroups'] ?? []);
+        $hasCatalogTopicIds = false;
+        $hasTranslatedCustomTopics = false;
+        foreach ($topicGroups as $group) {
+            if (!is_array($group)) {
+                continue;
+            }
+            foreach ($group as $entry) {
+                if (!is_array($entry)) {
+                    continue;
+                }
+                if (empty($entry['custom']) && trim((string) ($entry['id'] ?? '')) !== '') {
+                    $hasCatalogTopicIds = true;
+                }
+                if (!empty($entry['custom']) && !empty($entry['translated'])) {
+                    $hasTranslatedCustomTopics = true;
+                }
+            }
+        }
+        if ($hasCatalogTopicIds || $hasTranslatedCustomTopics) {
+            $catalogPayload = $hasCatalogTopicIds
+                ? qpmPublicSearchLoadTopicNodeCatalog($domain)
+                : ['nodes' => []];
+            $topicBuilt = qpmPublicSearchBuildSelectedTopicPubMedQuery(
+                $topicGroups,
+                (array) ($catalogPayload['nodes'] ?? []),
+                $standardString
+            );
+            $topicCatalogQuery = trim((string) ($topicBuilt['query'] ?? ''));
+            $topicQueryWarnings = qpmPublicSearchDedupeStrings(array_merge(
+                $topicQueryWarnings,
+                (array) ($topicBuilt['warnings'] ?? [])
+            ));
+        }
+
+        // Catalog-only searches still need a semantic seed from hydrated labels.
+        if ($rawText === '' && !empty($intentContext['selectedTopics'])) {
+            $rawText = trim(implode(' ', qpmPublicSearchNormalizeSimpleList($intentContext['selectedTopics'])));
+        }
+
         $pubmedQuery = $rawText;
         $semanticQuery = $rawText;
         $queryIntent = [];
         $semanticIntentResult = null;
-        if ($translationMode === 'auto') {
-            // Order matters and mirrors the website widget exactly: semantic-intent
-            // extraction runs FIRST, and its output is then fed as extra JSON
-            // context into the PubMed translation call (see
-            // qpmPublicSearchBuildPubMedTranslationPromptInput() /
-            // buildPubMedTranslationPromptInput() in DropdownWrapper.vue). The
-            // two translation calls are NOT independent in production - running
-            // them independently (the previous version of this function) sends
-            // the PubMed LLM call materially less context than the widget does.
+        $semanticIntentMeta = [];
+        $translationProcessReport = null;
+        $semanticProcessReport = [];
+        $intentProcessReport = [];
+        $sourceQueryPlan = [];
+        $pubmedTranslationPrefetched = false;
+        $earlyPrefetchedSources = [];
+        $earlySourceStartedAt = [];
+        $hasFreetextInput = trim((string) ($request['query']['text'] ?? '')) !== '';
+        if ($translationMode === 'auto' && $hasFreetextInput) {
+            // Intent first (prerequisite for PubMed aiCoreQuery). After that,
+            // source-query adaptation and PubMed translation run together.
+            // When intent already has coreQuery / per-source queries, skip the
+            // extra TranslateSemanticQuery LLM call.
             if (qpmPublicSearchIsUnifiedSearchEngineEnabled()) {
+                qpmPublicSearchEmitProgress($progressCallback, 'semanticIntent', '', [
+                    'stepId' => 'semanticIntent',
+                    'groupId' => 'prepare',
+                    'groupKey' => 'semanticSearchProcessGroupPrepare',
+                    'messageKey' => 'semanticSearchProgressSemanticIntent',
+                ]);
+                $extraction = qpmPublicSearchExtractSemanticIntent($rawText, $language, $domain, $intentContext);
+                $semanticIntentResult = $extraction['intent'];
+                $semanticIntentMeta = $extraction['meta'];
+                $queryIntent = qpmPublicSearchBuildQueryIntentFromSemanticIntent($semanticIntentResult);
+                $intentProcessReport = qpmPublicSearchBuildSemanticIntentProcessReport(
+                    $request,
+                    $semanticIntentResult,
+                    $semanticIntentMeta
+                );
+                if (qpmPublicSearchProcessDetailsWantsCollection($request)) {
+                    qpmPublicSearchProcessDetailsEmitCompletedPayload(
+                        'semanticIntent',
+                        $intentProcessReport,
+                        $progressCallback
+                    );
+                }
+
+                $skipSemanticTranslation = qpmPublicSearchSemanticIntentHasUsableQueries($semanticIntentResult)
+                    && ($semanticIntentMeta['fallbackUsed'] ?? true) === false;
+                if ($skipSemanticTranslation) {
+                    $semanticQuery = qpmPublicSearchResolveSemanticQueryFromIntent(
+                        $semanticIntentResult,
+                        $semanticQuery
+                    );
+                }
+                // Always emit progress so SearchForm/API never leave this planned
+                // step stuck as pending when adaptation is resolved from intent.
                 qpmPublicSearchEmitProgress($progressCallback, 'semanticQuery', '', [
                     'stepId' => 'semanticQuery',
                     'groupId' => 'prepare',
                     'groupKey' => 'semanticSearchProcessGroupPrepare',
                     'messageKey' => 'semanticSearchProgressSemanticQuery',
                 ]);
-                $semanticIntentResult = qpmPublicSearchExtractSemanticIntent($rawText, $language, $domain);
-                $queryIntent = qpmPublicSearchBuildQueryIntentFromSemanticIntent($semanticIntentResult);
+
+                $semanticSources = array_values(array_intersect(
+                    (array) ($request['sources'] ?? []),
+                    ['semanticScholar', 'openAlex', 'elicit']
+                ));
+                $provisionalSourceQueryPlan = qpmPublicSearchBuildSourceQueryPlan(
+                    $request,
+                    $semanticQuery,
+                    $semanticIntentResult
+                );
+                // Latency-neutral UX: when adaptation is already resolved from
+                // intent, close the step before early source prefetch starts.
+                // Work order and wall-clock are unchanged.
+                $semanticQueryCompletedEarly = false;
+                if ($skipSemanticTranslation) {
+                    $sourceQueryPlan = $provisionalSourceQueryPlan;
+                    $semanticProcessReport = qpmPublicSearchBuildSemanticQueryProcessReport(
+                        $request,
+                        $semanticIntentResult,
+                        $semanticIntentMeta,
+                        $semanticQuery,
+                        $sourceQueryPlan,
+                        true
+                    );
+                    qpmPublicSearchProcessDetailsEmitCompletedPayload(
+                        'semanticQuery',
+                        $semanticProcessReport,
+                        $progressCallback
+                    );
+                    $semanticQueryCompletedEarly = true;
+                }
+                $canStartSemanticSourcesEarly =
+                    ($semanticIntentMeta['fallbackUsed'] ?? true) === false;
+                $onEarlySourceStart = static function (array $sourceKeys) use (
+                    &$earlySourceStartedAt,
+                    $progressCallback
+                ): void {
+                    $startedAt = microtime(true);
+                    $messageKeys = [
+                        'semanticScholar' => 'semanticSearchProgressSemanticScholar',
+                        'openAlex' => 'semanticSearchProgressOpenAlex',
+                        'elicit' => 'semanticSearchProgressElicit',
+                    ];
+                    foreach ($sourceKeys as $sourceKey) {
+                        if (!isset($messageKeys[$sourceKey])) {
+                            continue;
+                        }
+                        $earlySourceStartedAt[$sourceKey] = $startedAt;
+                        qpmPublicSearchEmitProgress($progressCallback, $sourceKey, '', [
+                            'stepId' => $sourceKey,
+                            'groupId' => 'sources',
+                            'groupKey' => 'semanticSearchProcessGroupSources',
+                            'messageKey' => $messageKeys[$sourceKey],
+                            'source' => $sourceKey,
+                        ]);
+                    }
+                };
+                $includePubMedTranslation = in_array('pubmed', (array) $request['sources'], true);
+                if ($includePubMedTranslation) {
+                    qpmPublicSearchEmitProgress($progressCallback, 'searchString', '', [
+                        'stepId' => 'searchString',
+                        'groupId' => 'prepare',
+                        'groupKey' => 'semanticSearchProcessGroupPrepare',
+                        'messageKey' => 'semanticSearchProgressSearchString',
+                    ]);
+                }
+                if ($includePubMedTranslation || ($canStartSemanticSourcesEarly && !empty($semanticSources))) {
+                    $earlyPrefetchedSources = qpmPublicSearchPrefetchParallelTranslationRequests(
+                        $rawText,
+                        $language,
+                        $semanticIntentResult,
+                        (array) ($request['hardFilters'] ?? []),
+                        $intentContext,
+                        $domain,
+                        $canStartSemanticSourcesEarly ? $semanticSources : [],
+                        $provisionalSourceQueryPlan,
+                        $request,
+                        $onEarlySourceStart,
+                        !$skipSemanticTranslation,
+                        $includePubMedTranslation
+                    );
+                    $pubmedTranslationPrefetched = $includePubMedTranslation;
+                }
+
+                if (!$skipSemanticTranslation) {
+                    $translatedSemantic = qpmPublicSearchTranslateSemanticQuery($rawText, $language, $domain);
+                    if (trim($translatedSemantic) !== '') {
+                        $semanticQuery = trim($translatedSemantic);
+                    }
+                }
+                $sourceQueryPlan = qpmPublicSearchBuildSourceQueryPlan(
+                    $request,
+                    $semanticQuery,
+                    $semanticIntentResult
+                );
+                $semanticProcessReport = qpmPublicSearchBuildSemanticQueryProcessReport(
+                    $request,
+                    $semanticIntentResult,
+                    $semanticIntentMeta,
+                    $semanticQuery,
+                    $sourceQueryPlan,
+                    $skipSemanticTranslation
+                );
+                if (
+                    !$semanticQueryCompletedEarly
+                    && qpmPublicSearchProcessDetailsWantsCollection($request)
+                ) {
+                    qpmPublicSearchProcessDetailsEmitCompletedPayload(
+                        'semanticQuery',
+                        $semanticProcessReport,
+                        $progressCallback
+                    );
+                }
             }
 
             if (in_array('pubmed', (array) $request['sources'], true)) {
@@ -3362,20 +5740,91 @@ if (!function_exists('qpmPublicSearchBuildResolvedQueries')) {
                     $domain,
                     $semanticIntentResult,
                     (array) ($request['hardFilters'] ?? []),
-                    $progressCallback
+                    $progressCallback,
+                    $intentContext,
+                    $semanticIntentMeta,
+                    qpmPublicSearchProcessDetailsWantsCollection($request),
+                    !$pubmedTranslationPrefetched,
+                    $translationProcessReport
                 );
                 if (trim($translatedPubMed) !== '') {
                     $pubmedQuery = trim($translatedPubMed);
                 }
             }
+            if (empty($sourceQueryPlan)) {
+                $translatedSemantic = qpmPublicSearchTranslateSemanticQuery($rawText, $language, $domain);
+                if (trim($translatedSemantic) !== '') {
+                    $semanticQuery = trim($translatedSemantic);
+                }
+            }
+        } elseif ($translationMode === 'auto' && !$hasFreetextInput && $rawText !== '') {
+            // Catalog-only: optional semantic translation from labels; PubMed uses catalog clause.
             $translatedSemantic = qpmPublicSearchTranslateSemanticQuery($rawText, $language, $domain);
             if (trim($translatedSemantic) !== '') {
                 $semanticQuery = trim($translatedSemantic);
             }
         }
 
-        $hardFilterQuery = qpmPublicSearchBuildHardFilterQuery((array) ($request['hardFilters'] ?? []));
-        $sourceQueryPlan = qpmPublicSearchBuildSourceQueryPlan($request, $semanticQuery, $semanticIntentResult);
+        // Freetext PubMed clause (+ domain standardString); catalog topics stay deterministic.
+        $freetextPubMedQuery = '';
+        if ($hasFreetextInput) {
+            $freetextPubMedQuery = trim((string) $pubmedQuery);
+            if ($freetextPubMedQuery !== '' && !empty($standardString)) {
+                $standardValue = trim((string) ($standardString['normal'] ?? ''));
+                if ($standardValue !== '') {
+                    $combinedNorm = strtolower(preg_replace('/\s+/', ' ', $freetextPubMedQuery) ?? $freetextPubMedQuery);
+                    $standardNorm = strtolower(preg_replace('/\s+/', ' ', $standardValue) ?? $standardValue);
+                    if ($standardNorm !== '' && strpos($combinedNorm, $standardNorm) === false) {
+                        $freetextPubMedQuery = '(' . $freetextPubMedQuery . ') AND (' . $standardValue . ')';
+                    }
+                }
+            }
+        }
+        if ($topicCatalogQuery !== '' && $freetextPubMedQuery !== '') {
+            $pubmedQuery = '(' . $topicCatalogQuery . ') AND (' . $freetextPubMedQuery . ')';
+        } elseif ($topicCatalogQuery !== '') {
+            $pubmedQuery = $topicCatalogQuery;
+        } elseif ($freetextPubMedQuery !== '') {
+            $pubmedQuery = $freetextPubMedQuery;
+        }
+
+        $selectedLimitGroups = (array) ($request['intentContext']['selectedLimitGroups'] ?? []);
+        if (!empty($selectedLimitGroups)) {
+            $limitQueryInput = $selectedLimitGroups;
+        } else {
+            $limitQueryInput = (array) ($request['intentContext']['selectedLimitSelections'] ?? []);
+            if (empty($limitQueryInput)) {
+                $limitQueryInput = (array) ($request['intentContext']['selectedLimitIds'] ?? []);
+            }
+        }
+        $hardFilterQuery = qpmPublicSearchBuildHardFilterQuery(
+            (array) ($request['hardFilters'] ?? []),
+            $limitQueryInput
+        );
+        if (empty($sourceQueryPlan)) {
+            $sourceQueryPlan = qpmPublicSearchBuildSourceQueryPlan($request, $semanticQuery, $semanticIntentResult);
+        }
+        $postValidationRuleState = qpmPublicSearchBuildPostValidationRuleState($request);
+        $processReports = $translationProcessReport ?? [];
+        if (!empty($intentProcessReport)) {
+            $processReports['semanticIntent'] = $intentProcessReport;
+        }
+        if (!empty($semanticProcessReport)) {
+            $processReports['semanticQuery'] = $semanticProcessReport;
+        }
+        // Process-details "searchString" is filled during AI translation (fretext only).
+        // Surface the final PubMed clause after deterministic catalog topic merge.
+        if ($topicCatalogQuery !== '' && is_array($processReports['searchString'] ?? null)) {
+            $processReports['searchString']['topicCatalogQuery'] = $topicCatalogQuery;
+            $processReports['searchString']['finalValidatedQuery'] = $pubmedQuery;
+            $processReports['searchString']['pubmedQuery'] = $pubmedQuery;
+        } elseif ($topicCatalogQuery !== '' && $pubmedQuery !== '') {
+            $processReports['searchString'] = [
+                'topicCatalogQuery' => $topicCatalogQuery,
+                'finalValidatedQuery' => $pubmedQuery,
+                'pubmedQuery' => $pubmedQuery,
+            ];
+        }
 
         return [
             'semanticIntent' => $semanticQuery,
@@ -3383,7 +5832,19 @@ if (!function_exists('qpmPublicSearchBuildResolvedQueries')) {
             'hardFilterQuery' => $hardFilterQuery['query'],
             'sourceQueryPlan' => $sourceQueryPlan,
             'queryIntent' => $queryIntent,
-            'warnings' => $hardFilterQuery['warnings'],
+            'warnings' => qpmPublicSearchDedupeStrings(array_merge(
+                (array) ($hardFilterQuery['warnings'] ?? []),
+                $topicQueryWarnings
+            )),
+            // Process-details/diagnostics-only fields (not part of the public
+            // resolvedQueries response contract - see
+            // qpmPublicSearchBuildFinalResponse()'s allow-listed projection).
+            'llmSemanticIntent' => $semanticIntentResult,
+            'semanticIntentMeta' => $semanticIntentMeta,
+            'processReports' => $processReports,
+            'postValidationRuleState' => $postValidationRuleState,
+            '_earlyPrefetchedSources' => $earlyPrefetchedSources,
+            '_earlySourceStartedAt' => $earlySourceStartedAt,
         ];
     }
 }
@@ -3423,6 +5884,10 @@ if (!function_exists('qpmPublicSearchCreateEmptySourceResult')) {
             'partial' => false,
             'retryHints' => [],
             'rateLimit' => null,
+            'fallbackUsed' => false,
+            'fallbackReason' => '',
+            'disabledRequestFields' => [],
+            'requestMeta' => [],
             'debug' => null,
         ];
     }
@@ -3547,8 +6012,47 @@ if (!function_exists('qpmPublicSearchNormalizeSourceResult')) {
             'partial' => ($payload['partial'] ?? false) === true,
             'retryHints' => isset($payload['retryHints']) && is_array($payload['retryHints']) ? $payload['retryHints'] : [],
             'rateLimit' => isset($payload['rateLimit']) && is_array($payload['rateLimit']) ? $payload['rateLimit'] : null,
+            'fallbackUsed' => ($payload['fallbackUsed'] ?? false) === true,
+            'fallbackReason' => trim((string) ($payload['fallbackReason'] ?? '')),
+            'disabledRequestFields' => qpmPublicSearchNormalizeSimpleList($payload['disabledRequestFields'] ?? []),
+            'requestMeta' => isset($payload['requestMeta']) && is_array($payload['requestMeta'])
+                ? $payload['requestMeta']
+                : [],
             'debug' => isset($payload['debug']) && is_array($payload['debug']) ? $payload['debug'] : null,
         ];
+    }
+}
+
+if (!function_exists('qpmPublicSearchExtractRateLimitFromHttpResult')) {
+    /**
+     * @param array<string,mixed> $result
+     * @return array<string,mixed>
+     */
+    function qpmPublicSearchExtractRateLimitFromHttpResult(array $result): array
+    {
+        $rateLimit = ['status' => (int) ($result['status'] ?? 0)];
+        $headerMap = [];
+        foreach ((array) ($result['response_headers'] ?? []) as $headerLine) {
+            $parts = explode(':', (string) $headerLine, 2);
+            if (count($parts) !== 2) {
+                continue;
+            }
+            $headerMap[strtolower(trim($parts[0]))] = trim($parts[1]);
+        }
+        foreach ([
+            'limit' => ['x-ratelimit-limit', 'ratelimit-limit'],
+            'remaining' => ['x-ratelimit-remaining', 'ratelimit-remaining'],
+            'reset' => ['x-ratelimit-reset', 'ratelimit-reset'],
+            'retryAfter' => ['retry-after'],
+        ] as $field => $headerNames) {
+            foreach ($headerNames as $headerName) {
+                if (isset($headerMap[$headerName]) && is_numeric($headerMap[$headerName])) {
+                    $rateLimit[$field] = (int) $headerMap[$headerName];
+                    break;
+                }
+            }
+        }
+        return $rateLimit;
     }
 }
 
@@ -4143,6 +6647,7 @@ if (!function_exists('qpmPublicSearchFetchSemanticScholarSourceResult')) {
                 $failure = 'Semantic Scholar request failed: ' . qpmPublicSearchDescribeHttpFailure($result);
                 break;
             }
+            $payload['rateLimit'] = qpmPublicSearchExtractRateLimitFromHttpResult($result);
             $decoded = json_decode((string) $result['body'], true);
             if (!is_array($decoded)) {
                 $failure = 'Invalid Semantic Scholar response';
@@ -4267,11 +6772,13 @@ if (!function_exists('qpmPublicSearchBuildOpenAlexSourceRequestSpec')) {
         string $normalizedQuery,
         array $filters,
         string $domain,
-        string $apiKeyOverride
+        string $apiKeyOverride,
+        string $searchMode = 'semantic'
     ): array {
         $limit = qpmPublicSearchGetSemanticSourceLimit('openAlex', 50);
+        $searchMode = strtolower(trim($searchMode)) === 'keyword' ? 'keyword' : 'semantic';
         $requestParams = [
-            'search.semantic' => $normalizedQuery,
+            $searchMode === 'keyword' ? 'search' : 'search.semantic' => $normalizedQuery,
             'per_page' => $limit,
             // Aligned with backend/api/OpenAlexSearch.php's select list so the public
             // multi-source API gets the same enrichment signals (citation impact,
@@ -4324,14 +6831,20 @@ if (!function_exists('qpmPublicSearchBuildOpenAlexSourceRequestSpec')) {
     }
 }
 
-if (!function_exists('qpmPublicSearchFetchOpenAlexSourceResult')) {
+if (!function_exists('qpmPublicSearchFetchOpenAlexSourceResultSingle')) {
     /**
      * @param string $query
      * @param array<string,mixed> $filters
      * @param string $domain
      * @return array<string,mixed>
      */
-    function qpmPublicSearchFetchOpenAlexSourceResult(string $query, array $filters, string $domain = '', string $apiKeyOverride = ''): array
+    function qpmPublicSearchFetchOpenAlexSourceResultSingle(
+        string $query,
+        array $filters,
+        string $domain = '',
+        string $apiKeyOverride = '',
+        string $searchMode = 'semantic'
+    ): array
     {
         $normalizedQuery = trim($query);
         $empty = qpmPublicSearchCreateEmptySourceResult('openAlex', $normalizedQuery);
@@ -4340,7 +6853,13 @@ if (!function_exists('qpmPublicSearchFetchOpenAlexSourceResult')) {
         }
 
         qpmThrottleRequestRate('openalex', 1);
-        $requestSpec = qpmPublicSearchBuildOpenAlexSourceRequestSpec($normalizedQuery, $filters, $domain, $apiKeyOverride);
+        $requestSpec = qpmPublicSearchBuildOpenAlexSourceRequestSpec(
+            $normalizedQuery,
+            $filters,
+            $domain,
+            $apiKeyOverride,
+            $searchMode
+        );
         $result = qpmHttpRequest($requestSpec['url'], $requestSpec['options']);
         if (!qpmPublicSearchIsHttpResultOk($result)) {
             return qpmPublicSearchCreateEmptySourceResult(
@@ -4358,6 +6877,7 @@ if (!function_exists('qpmPublicSearchFetchOpenAlexSourceResult')) {
             'pmids' => [],
             'dois' => [],
             'candidates' => [],
+            'rateLimit' => qpmPublicSearchExtractRateLimitFromHttpResult($result),
         ];
         foreach ((array) ($decoded['results'] ?? []) as $index => $work) {
             if (!is_array($work)) {
@@ -4456,6 +6976,149 @@ if (!function_exists('qpmPublicSearchFetchOpenAlexSourceResult')) {
                 : 'OpenAlex matched 0 works for the resolved query.';
         }
         return qpmPublicSearchNormalizeSourceResult('openAlex', $normalizedQuery, $payload);
+    }
+}
+
+if (!function_exists('qpmPublicSearchFetchOpenAlexSourceResult')) {
+    /**
+     * Mirrors the legacy widget's OpenAlex strategy: an unfiltered semantic
+     * primary request plus a keyword supplement that enforces source filters.
+     * If semantic search fails, the keyword request becomes the fallback.
+     *
+     * @param array<string,mixed> $filters
+     * @return array<string,mixed>
+     */
+    function qpmPublicSearchFetchOpenAlexSourceResult(
+        string $query,
+        array $filters,
+        string $domain = '',
+        string $apiKeyOverride = ''
+    ): array {
+        $normalizedQuery = trim($query);
+        $primary = qpmPublicSearchFetchOpenAlexSourceResultSingle(
+            $normalizedQuery,
+            [],
+            $domain,
+            $apiKeyOverride,
+            'semantic'
+        );
+        $disabledRequestFields = [];
+        foreach ([
+            'language' => 'languages',
+            'sourceType' => 'sourceTypes',
+            'workType' => 'workTypes',
+            'publicationYear' => 'publicationYear',
+        ] as $filterField => $requestField) {
+            $value = $filters[$filterField] ?? null;
+            if ((is_array($value) && !empty($value)) || (!is_array($value) && trim((string) $value) !== '')) {
+                $disabledRequestFields[] = $requestField;
+            }
+        }
+        $primaryCandidates = isset($primary['candidates']) && is_array($primary['candidates'])
+            ? $primary['candidates']
+            : [];
+        $primaryCandidateCount = count($primaryCandidates);
+        $semanticCap = max(1, qpmPublicSearchGetSemanticSourceLimit('openAlex', 50));
+        $primaryWarning = trim((string) ($primary['warning'] ?? ($primary['error'] ?? '')));
+        $semanticFiltersDeferred = !empty($disabledRequestFields);
+        $semanticFailedCompletely = $primaryWarning !== '' && $primaryCandidateCount === 0;
+        $semanticCapReached = $primaryWarning === '' && $primaryCandidateCount >= $semanticCap;
+        if (!$semanticFiltersDeferred && !$semanticFailedCompletely && !$semanticCapReached) {
+            $primary['requestMeta'] = ['searchMode' => 'semantic', 'fallbackUsed' => false];
+            return $primary;
+        }
+
+        $supplement = qpmPublicSearchFetchOpenAlexSourceResultSingle(
+            $normalizedQuery,
+            $filters,
+            $domain,
+            $apiKeyOverride,
+            'keyword'
+        );
+        $supplementCandidates = isset($supplement['candidates']) && is_array($supplement['candidates'])
+            ? $supplement['candidates']
+            : [];
+        $mergedCandidates = [];
+        $seen = [];
+        $mergeSource = $semanticFailedCompletely
+            ? $supplementCandidates
+            : array_merge($primaryCandidates, $supplementCandidates);
+        foreach ($mergeSource as $candidate) {
+            if (!is_array($candidate)) {
+                continue;
+            }
+            $pmid = qpmPublicSearchNormalizePmid($candidate['pmid'] ?? '');
+            $doi = qpmPublicSearchNormalizeDoi($candidate['doi'] ?? '');
+            $openAlexId = strtolower(trim((string) ($candidate['openAlexId'] ?? '')));
+            $key = $pmid !== ''
+                ? 'pmid:' . $pmid
+                : ($doi !== '' ? 'doi:' . strtolower($doi) : ($openAlexId !== '' ? 'oa:' . $openAlexId : ''));
+            if ($key === '' || isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $candidate['rank'] = count($mergedCandidates) + 1;
+            $mergedCandidates[] = $candidate;
+        }
+
+        $primarySucceeded = $primaryCandidateCount > 0 && !$semanticFailedCompletely;
+        $supplementSucceeded = !empty($supplementCandidates);
+        if ($semanticFiltersDeferred && !$semanticFailedCompletely) {
+            $fallbackReason = 'semantic-filter-supplement';
+        } elseif ($semanticFailedCompletely && $supplementSucceeded) {
+            $fallbackReason = 'keyword';
+        } elseif ($semanticFiltersDeferred) {
+            $fallbackReason = $supplementSucceeded ? 'keyword' : 'filters';
+        } else {
+            // Cap-triggered supplement mirrors legacy: no fallbackReason unless
+            // filters were also deferred / semantic failed.
+            $fallbackReason = '';
+        }
+        $fallbackUsed = $semanticFiltersDeferred || ($semanticFailedCompletely && $supplementSucceeded);
+        $requestMeta = [
+            'searchMode' => 'semantic',
+            'fallbackUsed' => $fallbackUsed,
+            'fallbackReason' => $fallbackReason,
+            'disabledRequestFields' => $disabledRequestFields,
+            'semanticPrimaryUsed' => !$semanticFailedCompletely,
+            'semanticFiltersDeferred' => $semanticFiltersDeferred,
+            'keywordSupplementRole' => $semanticFiltersDeferred ? 'filterSupplement' : '',
+            'keywordSupplementAttempted' => true,
+            'keywordSupplementUsed' => $supplementSucceeded,
+            'keywordSupplementRequest' => [
+                'query' => $normalizedQuery,
+                'limit' => $semanticCap,
+                'domain' => $domain,
+                'languages' => array_values((array) ($filters['language'] ?? [])),
+                'sourceTypes' => array_values((array) ($filters['sourceType'] ?? [])),
+                'workTypes' => array_values((array) ($filters['workType'] ?? [])),
+                'publicationYear' => (string) ($filters['publicationYear'] ?? ''),
+                'searchMode' => 'keyword',
+            ],
+        ];
+        $warningParts = [];
+        if (!$semanticFailedCompletely || !$supplementSucceeded) {
+            foreach ([$primary, $supplement] as $sourceResult) {
+                foreach (['warning', 'error'] as $field) {
+                    $message = trim((string) ($sourceResult[$field] ?? ''));
+                    if ($message !== '') {
+                        $warningParts[] = $message;
+                    }
+                }
+            }
+        }
+        $normalized = qpmPublicSearchNormalizeSourceResult('openAlex', $normalizedQuery, [
+            'total' => count($mergedCandidates),
+            'candidates' => $mergedCandidates,
+            'warning' => empty($mergedCandidates) ? implode(' | ', $warningParts) : '',
+            'partial' => !$primarySucceeded || !$supplementSucceeded,
+            'rateLimit' => $supplement['rateLimit'] ?? ($primary['rateLimit'] ?? null),
+            'fallbackUsed' => $fallbackUsed,
+            'fallbackReason' => $fallbackReason,
+            'disabledRequestFields' => $disabledRequestFields,
+            'requestMeta' => $requestMeta,
+        ]);
+        return $normalized;
     }
 }
 
@@ -4567,6 +7230,7 @@ if (!function_exists('qpmPublicSearchFetchElicitSourceResult')) {
             'pmids' => [],
             'dois' => [],
             'candidates' => [],
+            'rateLimit' => qpmPublicSearchExtractRateLimitFromHttpResult($result),
         ];
         foreach ((array) ($decoded['papers'] ?? $decoded['results'] ?? []) as $index => $paper) {
             if (!is_array($paper)) {
@@ -4800,22 +7464,84 @@ if (!function_exists('qpmPublicSearchFetchOpenAlexWorksByCandidatesParallel')) {
                     continue;
                 }
             }
-            $pending[] = ['key' => $key, 'url' => $url, 'cacheKey' => $cacheKey];
+            $pending[] = [
+                'key' => $key,
+                'url' => $url,
+                'cacheKey' => $cacheKey,
+                'doi' => qpmPublicSearchNormalizeDoi($candidate['doi'] ?? ''),
+            ];
         }
 
         if (empty($pending)) {
             return $results;
         }
 
-        // Bounded concurrency per wave: fires enough requests at once to turn
-        // "N seconds sequential" into "a handful of seconds total", while
-        // staying a reasonable, well-behaved API citizen (and not opening an
-        // unbounded number of simultaneous cURL handles for very large result
-        // sets). One qpmThrottleRequestRate() call per wave (not per request)
-        // — pacing waves, not individual requests, is what makes concurrency
-        // actually take effect here.
+        // OpenAlex supports OR-filtering DOI values with `|`. Resolve DOI
+        // candidates in bounded batches rather than one HTTP request per work;
+        // this mirrors the deployed OpenAlexWorkLookup batching behavior and
+        // avoids multi-minute validation for large semantic result pools.
+        $doiPending = array_values(array_filter($pending, static fn($item) => ($item['doi'] ?? '') !== ''));
+        $individualPending = array_values(array_filter($pending, static fn($item) => ($item['doi'] ?? '') === ''));
+        $apiKey = function_exists('qpmGetOpenAlexApiKey') ? qpmGetOpenAlexApiKey($domain) : '';
+        $mailto = function_exists('qpmGetOpenAlexEmail') ? qpmGetOpenAlexEmail($domain) : '';
+        $batchRequests = [];
+        $batchItems = [];
+        foreach (array_chunk($doiPending, 50) as $index => $batch) {
+            $dois = array_values(array_map(static fn($item) => (string) $item['doi'], $batch));
+            $params = [
+                'filter' => 'doi:' . implode('|', $dois),
+                'per_page' => count($dois),
+            ];
+            if ($apiKey !== '') {
+                $params['api_key'] = $apiKey;
+            }
+            if ($mailto !== '') {
+                $params['mailto'] = $mailto;
+            }
+            $name = 'doi-batch-' . $index;
+            $batchItems[$name] = $batch;
+            $batchRequests[$name] = [
+                'url' => 'https://api.openalex.org/works?' . http_build_query($params),
+                'options' => [
+                    'method' => 'GET',
+                    'timeout' => 30,
+                    'headers' => ['Accept: application/json'],
+                    'user_agent' => 'QuickPubMed/1.0',
+                ],
+            ];
+        }
+        if (!empty($batchRequests)) {
+            qpmThrottleRequestRate('openalex', 10);
+            $batchResponses = qpmHttpRequestMulti($batchRequests);
+            foreach ($batchItems as $name => $items) {
+                $response = $batchResponses[$name] ?? null;
+                $decoded = is_array($response) && qpmPublicSearchIsHttpResultOk($response)
+                    ? json_decode((string) ($response['body'] ?? ''), true)
+                    : null;
+                $worksByDoi = [];
+                foreach ((array) ($decoded['results'] ?? []) as $work) {
+                    if (!is_array($work)) {
+                        continue;
+                    }
+                    $doi = qpmPublicSearchNormalizeDoi($work['doi'] ?? ($work['ids']['doi'] ?? ''));
+                    if ($doi !== '') {
+                        $worksByDoi[strtolower($doi)] = $work;
+                    }
+                }
+                foreach ($items as $item) {
+                    $work = $worksByDoi[strtolower((string) $item['doi'])] ?? null;
+                    $results[$item['key']] = $work;
+                    if (is_array($work) && $cacheTtl > 0) {
+                        qpmPublicSearchWriteCacheValue('openalex-work', $item['cacheKey'], $work, $cacheTtl);
+                    }
+                }
+            }
+        }
+
+        // Rare candidates without DOI retain the existing bounded direct-id
+        // fallback.
         $waveSize = 20;
-        foreach (array_chunk($pending, $waveSize) as $wave) {
+        foreach (array_chunk($individualPending, $waveSize) as $wave) {
             qpmThrottleRequestRate('openalex', 10);
             $namedRequests = [];
             foreach ($wave as $item) {
@@ -4935,15 +7661,8 @@ if (!function_exists('qpmPublicSearchCandidateMatchesHydratedFilters')) {
             }
         }
 
-        $languages = qpmPublicSearchDedupeStrings(
-            array_map('qpmPublicSearchNormalizeLanguageCode', (array) ($hardFilters['languages'] ?? []))
-        );
-        if (!empty($languages)) {
-            $workLanguage = qpmPublicSearchNormalizeLanguageCode($work['language'] ?? '');
-            if ($workLanguage !== '' && !in_array($workLanguage, $languages, true)) {
-                return false;
-            }
-        }
+        // Language is intentionally not enforced here. Legacy applies language
+        // via PubMed hardFilterQuery and OpenAlex retrieval filters only.
 
         return true;
     }
@@ -5579,6 +8298,9 @@ if (!function_exists('qpmPublicSearchRerankSemanticCandidates')) {
         $activeSourceResults = array_values(array_filter($sourceResults, static function ($sourceResult) {
             return !empty($sourceResult['candidates']) && is_array($sourceResult['candidates']);
         }));
+        if (function_exists('qpmSemanticQualitySortSourceResultsDeterministically')) {
+            $activeSourceResults = qpmSemanticQualitySortSourceResultsDeterministically($activeSourceResults);
+        }
         $rerankConfig = qpmPublicSearchGetRerankConfig($focusProfileId);
         $sourceStats = qpmPublicSearchGetSourceStats($activeSourceResults);
         $sourceSummary = qpmPublicSearchGetSourceSummary($activeSourceResults);
@@ -5650,6 +8372,7 @@ if (!function_exists('qpmPublicSearchRerankSemanticCandidates')) {
             }
         }
 
+        ksort($merged, SORT_STRING);
         $rankedCandidates = [];
         foreach ($merged as $entry) {
             $combinedScore = 0.0;
@@ -5719,18 +8442,27 @@ if (!function_exists('qpmPublicSearchRerankSemanticCandidates')) {
                 if ((float) $left['scoreTieBreaker'] !== (float) $right['scoreTieBreaker']) {
                     return ((float) $left['scoreTieBreaker'] < (float) $right['scoreTieBreaker']) ? 1 : -1;
                 }
-                return 0;
+            } else {
+                if ((float) $left['combinedScore'] !== (float) $right['combinedScore']) {
+                    return ((float) $left['combinedScore'] < (float) $right['combinedScore']) ? 1 : -1;
+                }
+                if ((float) $left['scoreTieBreaker'] !== (float) $right['scoreTieBreaker']) {
+                    return ((float) $left['scoreTieBreaker'] < (float) $right['scoreTieBreaker']) ? 1 : -1;
+                }
+                if ((int) $left['bestRank'] !== (int) $right['bestRank']) {
+                    return (int) $left['bestRank'] <=> (int) $right['bestRank'];
+                }
             }
-            if ((float) $left['combinedScore'] !== (float) $right['combinedScore']) {
-                return ((float) $left['combinedScore'] < (float) $right['combinedScore']) ? 1 : -1;
+            if (function_exists('qpmSemanticQualityCompareCandidateIdentity')) {
+                return qpmSemanticQualityCompareCandidateIdentity($left, $right);
             }
-            if ((float) $left['scoreTieBreaker'] !== (float) $right['scoreTieBreaker']) {
-                return ((float) $left['scoreTieBreaker'] < (float) $right['scoreTieBreaker']) ? 1 : -1;
+            $leftPmid = trim((string) ($left['pmid'] ?? ''));
+            $rightPmid = trim((string) ($right['pmid'] ?? ''));
+            if ($leftPmid !== $rightPmid) {
+                return $leftPmid <=> $rightPmid;
             }
-            if ((int) $left['bestRank'] !== (int) $right['bestRank']) {
-                return (int) $left['bestRank'] <=> (int) $right['bestRank'];
-            }
-            return 0;
+            return strtolower(trim((string) ($left['doi'] ?? '')))
+                <=> strtolower(trim((string) ($right['doi'] ?? '')));
         });
 
         return [
@@ -5763,7 +8495,7 @@ if (!function_exists('qpmPublicSearchResolveOrderedSearchPmids')) {
      * @param array<int,string> $orderedPmids
      * @param string $sortMethod
      * @param string $domain
-     * @return array{count: int, orderedIds: array<int,string>, validationQuery: string}
+     * @return array{count: int, orderedIds: array<int,string>, validationQuery: string, diagnostics: array<string,mixed>}
      */
     function qpmPublicSearchResolveOrderedSearchPmids(
         string $hardFilterQuery,
@@ -5772,6 +8504,7 @@ if (!function_exists('qpmPublicSearchResolveOrderedSearchPmids')) {
         string $domain = ''
     ): array {
         $orderedPmids = qpmPublicSearchDedupeStrings($orderedPmids, 'qpmPublicSearchNormalizePmid');
+        $requestedCount = count($orderedPmids);
         $pmidClause = !empty($orderedPmids) ? '(' . implode(' ', $orderedPmids) . ')' : '';
         $validationQuery = $hardFilterQuery !== ''
             ? ($pmidClause !== '' ? $pmidClause . ' AND (' . $hardFilterQuery . ')' : $hardFilterQuery)
@@ -5781,6 +8514,12 @@ if (!function_exists('qpmPublicSearchResolveOrderedSearchPmids')) {
                 'count' => 0,
                 'orderedIds' => [],
                 'validationQuery' => '',
+                'diagnostics' => [
+                    'requestedCount' => $requestedCount,
+                    'matchedCount' => 0,
+                    'unmatchedCount' => 0,
+                    'sortMethod' => $sortMethod,
+                ],
             ];
         }
         $search = qpmPublicSearchNlmGetJson('esearch.fcgi', [
@@ -5806,6 +8545,12 @@ if (!function_exists('qpmPublicSearchResolveOrderedSearchPmids')) {
             'count' => (int) (($search['esearchresult']['count'] ?? 0)),
             'orderedIds' => array_values(array_merge($orderedMatched, $remainingMatched)),
             'validationQuery' => $validationQuery,
+            'diagnostics' => [
+                'requestedCount' => $requestedCount,
+                'matchedCount' => count($matchedIds),
+                'unmatchedCount' => max(0, $requestedCount - count($orderedMatched)),
+                'sortMethod' => $sortMethod,
+            ],
         ];
     }
 }
@@ -5817,19 +8562,45 @@ if (!function_exists('qpmPublicSearchBuildAllowedCandidateKeys')) {
      * @param array<string,mixed> $hardFilters
      * @param string $domain
      * @param callable|null $progressCallback
-     * @return array{allowedKeys: array<int,string>, hydratedByKey: array<string,array<string,mixed>>, warnings: array<int,string>}
+     * @param array<string,mixed> $postValidationRuleState
+     * @param array<string,mixed>|null $processDetailsCollector
+     * @param string $responseLanguage
+     * @return array{allowedKeys: array<int,string>, hydratedByKey: array<string,array<string,mixed>>, warnings: array<int,string>, diagnostics: array<string,mixed>}
      */
     function qpmPublicSearchBuildAllowedCandidateKeys(
         array $orderedCandidates,
         array $trustedPmids,
         array $hardFilters,
         string $domain = '',
-        ?callable $progressCallback = null
+        ?callable $progressCallback = null,
+        array $postValidationRuleState = [],
+        ?array &$processDetailsCollector = null,
+        string $responseLanguage = 'da'
     ): array {
         $trustedSet = array_fill_keys(qpmPublicSearchDedupeStrings($trustedPmids, 'qpmPublicSearchNormalizePmid'), true);
         $allowedKeys = [];
         $hydratedByKey = [];
         $warnings = [];
+        $pmidCandidateCount = 0;
+        $pmidRejectedByTrustCount = 0;
+        $doiCandidateCount = 0;
+        $openAlexIdCandidateCount = 0;
+        $doiHydratedCount = 0;
+        $doiRejectedByFilterCount = 0;
+        $semanticScholarFallbackCount = 0;
+        $excludedExamples = [];
+        $hydratedHardFilters = $hardFilters;
+        // Language is applied via PubMed hardFilterQuery + OpenAlex retrieval
+        // filters in the legacy flow — not on the DOI hydration pass.
+        $hydratedHardFilters['languages'] = [];
+        if (
+            !empty($postValidationRuleState['activeRules'])
+            || !empty($postValidationRuleState['ruleGroups'])
+        ) {
+            // Metadata rules own source-format validation so exclusions retain
+            // the same rule explanation as the legacy flow.
+            $hydratedHardFilters['sourceFormats'] = [];
+        }
 
         // First pass: resolve PMID candidates immediately (no network I/O —
         // trust-set lookup only), and collect DOI-only candidates that need
@@ -5847,45 +8618,169 @@ if (!function_exists('qpmPublicSearchBuildAllowedCandidateKeys')) {
             }
             $pmid = qpmPublicSearchNormalizePmid($candidate['pmid'] ?? '');
             $doi = qpmPublicSearchNormalizeDoi($candidate['doi'] ?? '');
+            $openAlexId = trim((string) ($candidate['openAlexId'] ?? ''));
+            if ($doi !== '') {
+                $doiCandidateCount++;
+            }
+            if ($openAlexId !== '') {
+                $openAlexIdCandidateCount++;
+            }
             $key = $pmid !== '' ? 'pmid:' . $pmid : ($doi !== '' ? 'doi:' . strtolower($doi) : '');
             if ($key === '') {
                 continue;
             }
             if ($pmid !== '') {
+                $pmidCandidateCount++;
                 if (!empty($trustedSet) && !isset($trustedSet[$pmid])) {
+                    $pmidRejectedByTrustCount++;
                     continue;
                 }
                 $allowedKeys[] = $key;
                 continue;
             }
 
-            $doiEntries[] = ['key' => $key, 'candidate' => $candidate, 'doi' => $doi];
+            $doiEntries[] = [
+                'key' => $key,
+                'candidate' => $candidate,
+                'doi' => $doi,
+                'openAlexId' => $openAlexId,
+            ];
         }
 
+        $blockingLimit = 150;
+        $blockingEntries = array_slice($doiEntries, 0, $blockingLimit);
+        $deferredEntries = array_slice($doiEntries, $blockingLimit);
+        $doiLookupValues = array_values(array_filter(array_map(
+            static fn($entry) => trim((string) ($entry['doi'] ?? '')),
+            $doiEntries
+        )));
+        $openAlexLookupValues = array_values(array_filter(array_map(
+            static fn($entry) => trim((string) ($entry['openAlexId'] ?? '')),
+            $doiEntries
+        )));
+        $lookupRequests = [];
+        foreach (['dois' => $doiLookupValues, 'openAlexIds' => $openAlexLookupValues] as $parameter => $values) {
+            if (empty($values)) {
+                continue;
+            }
+            $lookupRequests[] = [
+                'endpoint' => 'OpenAlex work lookup',
+                'parameter' => $parameter,
+                'count' => count($values),
+                'values' => array_slice($values, 0, 25),
+                'truncated' => count($values) > 25,
+                'domain' => $domain,
+            ];
+        }
+        $worksByKey = [];
         if (!empty($doiEntries)) {
             qpmPublicSearchEmitProgress($progressCallback, 'finalizeValidateDoiFetch', '', [
                 'stepId' => 'finalizeValidateDoiFetch',
-                'groupId' => 'finalizeCollect',
+                'groupId' => 'match',
                 'groupKey' => 'semanticSearchProcessGroupMatch',
                 'messageKey' => 'semanticSearchProgressFinalizeValidateDoiFetch',
                 'total' => count($doiEntries),
             ]);
 
-            $worksByKey = qpmPublicSearchFetchOpenAlexWorksByCandidatesParallel($doiEntries, $domain);
-            qpmPublicSearchEmitProgress($progressCallback, 'finalizeValidateDoiRules', '', [
-                'stepId' => 'finalizeValidateDoiRules',
-                'groupId' => 'finalizeCollect',
-                'groupKey' => 'semanticSearchProcessGroupMatch',
-                'messageKey' => 'semanticSearchProgressFinalizeValidateDoiRules',
-            ]);
+            $worksByKey = qpmPublicSearchFetchOpenAlexWorksByCandidatesParallel($blockingEntries, $domain);
+            if (!empty($deferredEntries)) {
+                $worksByKey = array_merge(
+                    $worksByKey,
+                    qpmPublicSearchFetchOpenAlexWorksByCandidatesParallel($deferredEntries, $domain)
+                );
+            }
+            $resolvedWorksByKey = [];
             foreach ($doiEntries as $entry) {
                 $key = $entry['key'];
                 $work = $worksByKey[$key] ?? null;
                 if (!is_array($work)) {
-                    $warnings[] = 'OpenAlex hydration failed for DOI candidate ' . strtolower($entry['doi']);
+                    $candidateMetadata = isset($entry['candidate']['metadata']) && is_array($entry['candidate']['metadata'])
+                        ? $entry['candidate']['metadata']
+                        : [];
+                    $enriched = isset($entry['candidate']['enriched']) && is_array($entry['candidate']['enriched'])
+                        ? $entry['candidate']['enriched']
+                        : [];
+                    if (
+                        trim((string) ($entry['candidate']['title'] ?? '')) !== ''
+                        && (!empty($candidateMetadata) || !empty($enriched))
+                    ) {
+                        $work = [
+                            'id' => trim((string) ($entry['openAlexId'] ?? '')),
+                            'doi' => trim((string) ($entry['doi'] ?? '')),
+                            'display_name' => trim((string) ($entry['candidate']['title'] ?? '')),
+                            'publication_year' => $enriched['publicationYear'] ?? ($candidateMetadata['publicationYear'] ?? null),
+                            'publication_date' => $enriched['publicationDate'] ?? ($candidateMetadata['publicationDate'] ?? ''),
+                            'type' => $enriched['workType'] ?? ($candidateMetadata['workType'] ?? ''),
+                            'language' => $enriched['language'] ?? ($candidateMetadata['language'] ?? ''),
+                            'primary_location' => [
+                                'source' => [
+                                    'type' => $enriched['sourceType'] ?? ($candidateMetadata['sourceType'] ?? ''),
+                                    'display_name' => $enriched['venue'] ?? ($candidateMetadata['venue'] ?? ''),
+                                ],
+                            ],
+                            '_semanticScholarFallback' => true,
+                        ];
+                        $semanticScholarFallbackCount++;
+                    } else {
+                        $warnings[] = 'OpenAlex hydration failed for DOI candidate ' . strtolower($entry['doi']);
+                        continue;
+                    }
+                }
+                $doiHydratedCount++;
+                $resolvedWorksByKey[$key] = $work;
+            }
+
+            foreach ($doiEntries as $entry) {
+                $key = $entry['key'];
+                $work = $resolvedWorksByKey[$key] ?? null;
+                if (!is_array($work)) {
                     continue;
                 }
-                if (!qpmPublicSearchCandidateMatchesHydratedFilters($entry['candidate'], $work, $hardFilters)) {
+                if (!qpmPublicSearchCandidateMatchesHydratedFilters($entry['candidate'], $work, $hydratedHardFilters)) {
+                    $doiRejectedByFilterCount++;
+                    if (count($excludedExamples) < 10) {
+                        $excludedExamples[] = [
+                            'pmid' => '',
+                            'doi' => (string) $entry['doi'],
+                            'source' => (string) ($entry['candidate']['source'] ?? ''),
+                            'title' => (string) ($entry['candidate']['title'] ?? ''),
+                            'reason' => 'hard-filter-mismatch',
+                            'ruleExplanation' => null,
+                        ];
+                    }
+                    continue;
+                }
+                $ruleCandidate = $entry['candidate'];
+                $ruleEnriched = isset($ruleCandidate['enriched']) && is_array($ruleCandidate['enriched'])
+                    ? $ruleCandidate['enriched']
+                    : [];
+                $workSource = isset($work['primary_location']['source']) && is_array($work['primary_location']['source'])
+                    ? $work['primary_location']['source']
+                    : [];
+                $ruleCandidate['enriched'] = array_merge($ruleEnriched, [
+                    'publicationYear' => $work['publication_year'] ?? ($ruleEnriched['publicationYear'] ?? null),
+                    'publicationDate' => $work['publication_date'] ?? ($ruleEnriched['publicationDate'] ?? ''),
+                    'workType' => $work['type'] ?? ($ruleEnriched['workType'] ?? ''),
+                    'sourceType' => $workSource['type'] ?? ($ruleEnriched['sourceType'] ?? ''),
+                    'venue' => $workSource['display_name'] ?? ($ruleEnriched['venue'] ?? ''),
+                    'language' => $work['language'] ?? ($ruleEnriched['language'] ?? ''),
+                ]);
+                $ruleExplanation = qpmSemanticQualityCandidateMatchesPostValidation(
+                    $ruleCandidate,
+                    $postValidationRuleState
+                );
+                if (($ruleExplanation['matches'] ?? true) !== true) {
+                    $doiRejectedByFilterCount++;
+                    if (count($excludedExamples) < 10) {
+                        $excludedExamples[] = [
+                            'pmid' => '',
+                            'doi' => (string) $entry['doi'],
+                            'source' => (string) ($entry['candidate']['source'] ?? ''),
+                            'title' => (string) ($entry['candidate']['title'] ?? ''),
+                            'reason' => 'rule-mismatch',
+                            'ruleExplanation' => $ruleExplanation,
+                        ];
+                    }
                     continue;
                 }
                 $allowedKeys[] = $key;
@@ -5893,10 +8788,86 @@ if (!function_exists('qpmPublicSearchBuildAllowedCandidateKeys')) {
             }
         }
 
+        $allowedKeys = qpmPublicSearchDedupeStrings($allowedKeys);
+        $validatedCount = $pmidCandidateCount + count($doiEntries);
+        $allowedCount = count($allowedKeys);
+        // Fold the former near-instant DOI-rules step into DOI fetch so API and
+        // SearchForm share one DOI-validation progress step.
+        if (!empty($doiEntries) && $processDetailsCollector !== null) {
+            qpmPublicSearchProcessDetailsSetStep($processDetailsCollector, 'finalizeValidateDoiFetch', [
+                'endpoint' => 'OpenAlex work lookup',
+                'candidateCount' => $pmidCandidateCount + count($doiEntries),
+                'trustedPmidSkippedCount' => $pmidCandidateCount - $pmidRejectedByTrustCount,
+                'doiCandidateCount' => $doiCandidateCount,
+                'openAlexIdCandidateCount' => $openAlexIdCandidateCount,
+                'hydratedCount' => $doiHydratedCount,
+                'openAlexMissingCount' => max(0, count($doiEntries) - $doiHydratedCount),
+                'blockingValidationCount' => count($blockingEntries),
+                'deferredValidationCount' => count($deferredEntries),
+                'domain' => $domain,
+                'lookupRequests' => $lookupRequests,
+                'semanticScholarFallbackCount' => $semanticScholarFallbackCount,
+                'backgroundValidationCompleted' => true,
+                'backgroundValidatedCount' => count($deferredEntries),
+                'validationWarning' => count($doiEntries) > $doiHydratedCount
+                    ? [
+                        'status' => 'warning',
+                        'missingCount' => count($doiEntries) - $doiHydratedCount,
+                        'messageKey' => 'semanticSearchProgressDoiHydrationWarning',
+                        'message' => qpmPublicSearchGetFrontendTranslation(
+                            'semanticSearchProgressDoiHydrationWarning',
+                            $responseLanguage === 'en' ? 'en' : 'dk',
+                            'Some external results could not be validated via OpenAlex.'
+                        ),
+                    ]
+                    : null,
+                'activeRules' => array_values((array) ($postValidationRuleState['activeRules'] ?? [])),
+                'ruleGroups' => array_values((array) ($postValidationRuleState['ruleGroups'] ?? [])),
+                'publicationDateYears' => array_values((array) ($hardFilters['publicationDateYears'] ?? [])),
+                'validatedCount' => $validatedCount,
+                'allowedCount' => $allowedCount,
+                'excludedCount' => max(0, $validatedCount - $allowedCount),
+                'excludedExamples' => $excludedExamples,
+            ]);
+            qpmPublicSearchProcessDetailsEmitStep(
+                $processDetailsCollector,
+                'finalizeValidateDoiFetch',
+                $progressCallback,
+                true
+            );
+        }
         return [
-            'allowedKeys' => qpmPublicSearchDedupeStrings($allowedKeys),
+            'allowedKeys' => $allowedKeys,
             'hydratedByKey' => $hydratedByKey,
             'warnings' => qpmPublicSearchDedupeStrings($warnings),
+            'diagnostics' => [
+                'endpoint' => 'OpenAlex work lookup',
+                'candidateCount' => $validatedCount,
+                'pmidCandidateCount' => $pmidCandidateCount,
+                'trustedPmidSkippedCount' => $pmidCandidateCount - $pmidRejectedByTrustCount,
+                'pmidRejectedByTrustCount' => $pmidRejectedByTrustCount,
+                'doiCandidateCount' => $doiCandidateCount,
+                'openAlexIdCandidateCount' => $openAlexIdCandidateCount,
+                'blockingValidationCount' => count($blockingEntries),
+                'deferredValidationCount' => count($deferredEntries),
+                'domain' => $domain,
+                'doiHydratedCount' => $doiHydratedCount,
+                'hydratedCount' => $doiHydratedCount,
+                'semanticScholarFallbackCount' => $semanticScholarFallbackCount,
+                'doiRejectedByFilterCount' => $doiRejectedByFilterCount,
+                'excludedCount' => max(0, $validatedCount - $allowedCount),
+                'openAlexMissingCount' => max(0, count($doiEntries) - $doiHydratedCount),
+                'doiHydrationFailedCount' => max(0, count($doiEntries) - $doiHydratedCount),
+                'validatedCount' => $validatedCount,
+                'allowedCount' => $allowedCount,
+                'lookupRequests' => $lookupRequests,
+                'excludedExamples' => $excludedExamples,
+                'activeRules' => array_values((array) ($postValidationRuleState['activeRules'] ?? [])),
+                'ruleGroups' => array_values((array) ($postValidationRuleState['ruleGroups'] ?? [])),
+                'publicationDateYears' => array_values((array) ($hardFilters['publicationDateYears'] ?? [])),
+                'backgroundValidationCompleted' => true,
+                'backgroundValidatedCount' => count($deferredEntries),
+            ],
         ];
     }
 }
@@ -5909,6 +8880,9 @@ if (!function_exists('qpmPublicSearchBuildHybridOrderedResultRefs')) {
      * @param array<string,mixed> $hardFilters
      * @param string $domain
      * @param callable|null $progressCallback
+     * @param array<string,mixed> $postValidationRuleState
+     * @param array<string,mixed>|null $processDetailsCollector
+     * @param string $responseLanguage
      * @return array<string,mixed>
      */
     function qpmPublicSearchBuildHybridOrderedResultRefs(
@@ -5917,7 +8891,10 @@ if (!function_exists('qpmPublicSearchBuildHybridOrderedResultRefs')) {
         string $sortMethod,
         array $hardFilters,
         string $domain = '',
-        ?callable $progressCallback = null
+        ?callable $progressCallback = null,
+        array $postValidationRuleState = [],
+        ?array &$processDetailsCollector = null,
+        string $responseLanguage = 'da'
     ): array {
         $orderedPmids = [];
         foreach ($orderedCandidates as $candidate) {
@@ -5929,21 +8906,53 @@ if (!function_exists('qpmPublicSearchBuildHybridOrderedResultRefs')) {
         if (!empty($orderedPmids)) {
             qpmPublicSearchEmitProgress($progressCallback, 'finalizeValidatePmid', '', [
                 'stepId' => 'finalizeValidatePmid',
-                'groupId' => 'finalizeCollect',
+                'groupId' => 'match',
                 'groupKey' => 'semanticSearchProcessGroupMatch',
                 'messageKey' => 'semanticSearchProgressFinalizeValidatePmid',
             ]);
         }
         $orderedSearch = !empty($orderedPmids)
             ? qpmPublicSearchResolveOrderedSearchPmids($hardFilterQuery, $orderedPmids, $sortMethod, $domain)
-            : ['count' => 0, 'orderedIds' => [], 'validationQuery' => ''];
+            : ['count' => 0, 'orderedIds' => [], 'validationQuery' => '', 'diagnostics' => []];
+        if (!empty($orderedPmids) && $processDetailsCollector !== null) {
+            $pmidValidation = (array) ($orderedSearch['diagnostics'] ?? []);
+            $validationQuery = (string) ($orderedSearch['validationQuery'] ?? '');
+            qpmPublicSearchProcessDetailsSetStep($processDetailsCollector, 'finalizeValidatePmid', [
+                'role' => 'pubmedPmidValidation',
+                'orderedPmidCount' => (int) ($pmidValidation['requestedCount'] ?? count($orderedPmids)),
+                'hardFilterQuery' => $hardFilterQuery,
+                'validationMode' => $hardFilterQuery !== ''
+                    ? 'hard-filter-and-candidate-whitelist'
+                    : 'candidate-whitelist-only',
+                'matchedByPubMedCount' => (int) ($pmidValidation['matchedCount'] ?? 0),
+                'orderedMatchedCount' => (int) ($pmidValidation['matchedCount'] ?? 0),
+                'unmatchedCandidateCount' => (int) ($pmidValidation['unmatchedCount'] ?? 0),
+                'request' => [
+                    'db' => 'pubmed',
+                    'retmode' => 'json',
+                    'term' => $validationQuery,
+                    'retmax' => (int) ($pmidValidation['requestedCount'] ?? count($orderedPmids)),
+                    'retstart' => 0,
+                    'sort' => (string) ($pmidValidation['sortMethod'] ?? $sortMethod),
+                ],
+            ]);
+            qpmPublicSearchProcessDetailsEmitStep(
+                $processDetailsCollector,
+                'finalizeValidatePmid',
+                $progressCallback,
+                true
+            );
+        }
         $trustedPmids = $hardFilterQuery !== '' ? $orderedSearch['orderedIds'] : [];
         $allowed = qpmPublicSearchBuildAllowedCandidateKeys(
             $orderedCandidates,
             $trustedPmids,
             $hardFilters,
             $domain,
-            $progressCallback
+            $progressCallback,
+            $postValidationRuleState,
+            $processDetailsCollector,
+            $responseLanguage
         );
         $allowedSet = array_fill_keys($allowed['allowedKeys'], true);
         $matchedPmidSet = array_fill_keys((array) $orderedSearch['orderedIds'], true);
@@ -6011,6 +9020,10 @@ if (!function_exists('qpmPublicSearchBuildHybridOrderedResultRefs')) {
             'count' => count($refs),
             'validationQuery' => (string) $orderedSearch['validationQuery'],
             'warnings' => (array) $allowed['warnings'],
+            'diagnostics' => [
+                'pmidValidation' => (array) ($orderedSearch['diagnostics'] ?? []),
+                'candidateKeys' => (array) ($allowed['diagnostics'] ?? []),
+            ],
         ];
     }
 }
@@ -6243,12 +9256,24 @@ if (!function_exists('qpmPublicSearchRerankSemanticCandidatesUnified')) {
 
         $candidates = array_map('qpmPublicSearchAdaptUnifiedCandidateToLegacyShape', $rerankResult['candidates']);
         $candidates = qpmPublicSearchApplyUnifiedPostValidation($candidates);
+        $profile = qpmPublicSearchGetFocusProfileConfig($focusProfileId);
+        $profileSummary = $profile !== null
+            ? [
+                'id' => (string) ($profile['id'] ?? $focusProfileId),
+                'labelKey' => (string) ($profile['labelKey'] ?? ''),
+                'descriptionKey' => (string) ($profile['descriptionKey'] ?? ''),
+            ]
+            : ['id' => $focusProfileId, 'labelKey' => '', 'descriptionKey' => ''];
 
         return [
             'candidates' => $candidates,
             'diagnostics' => array_merge($rerankResult['diagnostics'], [
                 'engine' => 'unified',
+                'rerankProfile' => $profileSummary,
                 'rerankConfig' => $rerankConfig,
+                'semanticRescueMeta' => is_array($options['semanticRescueMeta'] ?? null)
+                    ? $options['semanticRescueMeta']
+                    : new stdClass(),
             ]),
         ];
     }
@@ -6263,20 +9288,26 @@ if (!function_exists('qpmPublicSearchGetSemanticLlmConfig')) {
         $raw = defined('QPM_SEMANTIC_LLM_RERANK_CONFIG') && is_array(QPM_SEMANTIC_LLM_RERANK_CONFIG)
             ? QPM_SEMANTIC_LLM_RERANK_CONFIG
             : [];
-        $enabled = qpmPublicSearchBoolValue($raw['enabled'] ?? false, false);
-        $topN = is_numeric($raw['topN'] ?? null) ? (int) $raw['topN'] : 10;
+        $enabled = qpmPublicSearchBoolValue($raw['enabled'] ?? true, true);
+        $topN = is_numeric($raw['topN'] ?? null) ? (int) $raw['topN'] : 25;
         $maxOutputTokens = is_numeric($raw['maxOutputTokens'] ?? null) ? (int) $raw['maxOutputTokens'] : 400;
         // reasoning.effort must match the model family (the API rejects mismatches).
         $reasoningEffort = strtolower(trim((string) ($raw['reasoningEffort'] ?? 'none')));
         if (!in_array($reasoningEffort, ['minimal', 'none', 'low', 'medium', 'high', 'xhigh'], true)) {
             $reasoningEffort = 'none';
         }
+        $cacheTtlSeconds = is_numeric($raw['cacheTtlSeconds'] ?? null)
+            ? (int) $raw['cacheTtlSeconds']
+            : 1800;
         return [
             'enabled' => $enabled,
             'model' => trim((string) ($raw['model'] ?? 'gpt-5.4-nano')),
             'reasoningEffort' => $reasoningEffort,
-            'topN' => max(2, min(15, $topN)),
+            'topN' => max(2, min(50, $topN)),
             'maxOutputTokens' => max(64, $maxOutputTokens),
+            // Shared across UnifiedSearch + public API so identical candidate
+            // payloads reuse the same LLM permutation (parity + fewer OpenAI calls).
+            'cacheTtlSeconds' => max(0, $cacheTtlSeconds),
         ];
     }
 }
@@ -6346,7 +9377,7 @@ if (!function_exists('qpmPublicSearchMaybeApplySemanticLlmFinalRerank')) {
      * @param array<string,mixed> $request
      * @param array<string,mixed> $resolvedQueries
      * @param string $domain
-     * @return array<int,array<string,mixed>>
+     * @return array{results: array<int,array<string,mixed>>, detail: array<string,mixed>}
      */
     function qpmPublicSearchMaybeApplySemanticLlmFinalRerank(
         array $results,
@@ -6355,14 +9386,26 @@ if (!function_exists('qpmPublicSearchMaybeApplySemanticLlmFinalRerank')) {
         string $domain = ''
     ): array {
         $config = qpmPublicSearchGetSemanticLlmConfig();
-        if (
-            $config['enabled'] !== true ||
-            ((int) ($request['page']['number'] ?? 1)) !== 1 ||
-            qpmPublicSearchShouldUseSemanticDateOrdering((string) ($request['sort']['method'] ?? 'relevance')) ||
-            count(array_intersect((array) ($request['sources'] ?? []), ['semanticScholar', 'openAlex', 'elicit'])) === 0 ||
-            count($results) < 2
-        ) {
-            return $results;
+        $baseDetail = [
+            'endpoint' => 'unified-final-rerank',
+            'enabled' => $config['enabled'] === true,
+            'applied' => false,
+            'model' => $config['model'],
+        ];
+        if ($config['enabled'] !== true) {
+            return ['results' => $results, 'detail' => array_merge($baseDetail, ['skippedReason' => 'disabled'])];
+        }
+        if (((int) ($request['page']['number'] ?? 1)) !== 1) {
+            return ['results' => $results, 'detail' => array_merge($baseDetail, ['skippedReason' => 'not_first_page'])];
+        }
+        if (qpmPublicSearchShouldUseSemanticDateOrdering((string) ($request['sort']['method'] ?? 'relevance'))) {
+            return ['results' => $results, 'detail' => array_merge($baseDetail, ['skippedReason' => 'date_sort'])];
+        }
+        if (count(array_intersect((array) ($request['sources'] ?? []), ['semanticScholar', 'openAlex', 'elicit'])) === 0) {
+            return ['results' => $results, 'detail' => array_merge($baseDetail, ['skippedReason' => 'no_semantic_sources'])];
+        }
+        if (count($results) < 2) {
+            return ['results' => $results, 'detail' => array_merge($baseDetail, ['skippedReason' => 'too_few_results'])];
         }
 
         $topN = min($config['topN'], count($results));
@@ -6421,7 +9464,10 @@ if (!function_exists('qpmPublicSearchMaybeApplySemanticLlmFinalRerank')) {
             }
 
             $requestCandidates[] = [
-                'id' => $candidateId,
+                // Short, deterministic ordinal ids match SemanticFinalRerank.php
+                // and prevent the model from mutating/duplicating long DOI ids.
+                'id' => (string) (count($requestCandidates) + 1),
+                'candidateId' => $candidateId,
                 'title' => $title,
                 'abstract' => trim((string) ($entry['abstract'] ?? ($abstractMap[$pmid]['abstract'] ?? ''))),
                 'publicationDate' => trim((string) ($entry['publicationDate'] ?? '')),
@@ -6432,7 +9478,7 @@ if (!function_exists('qpmPublicSearchMaybeApplySemanticLlmFinalRerank')) {
             ];
         }
         if (count($requestCandidates) < 2) {
-            return $results;
+            return ['results' => $results, 'detail' => array_merge($baseDetail, ['skippedReason' => 'too_few_eligible_candidates', 'topN' => $topN])];
         }
 
         $schema = [
@@ -6450,6 +9496,27 @@ if (!function_exists('qpmPublicSearchMaybeApplySemanticLlmFinalRerank')) {
         ];
         $focusProfileId = (string) ($request['focus'] ?? '');
         $focusCopy = qpmPublicSearchGetFocusProfileLlmCopy($focusProfileId);
+        $focusDetail = $focusCopy;
+        $profileConfig = qpmPublicSearchGetFocusProfileConfig($focusProfileId);
+        if (is_array($profileConfig)) {
+            $frontendLanguage = (($request['responseOptions']['language'] ?? 'da') === 'en') ? 'en' : 'dk';
+            $labelKey = trim((string) ($profileConfig['labelKey'] ?? ''));
+            $descriptionKey = trim((string) ($profileConfig['descriptionKey'] ?? ''));
+            if ($labelKey !== '') {
+                $focusDetail['label'] = qpmPublicSearchGetFrontendTranslation(
+                    $labelKey,
+                    $frontendLanguage,
+                    $focusCopy['label']
+                );
+            }
+            if ($descriptionKey !== '') {
+                $focusDetail['description'] = qpmPublicSearchGetFrontendTranslation(
+                    $descriptionKey,
+                    $frontendLanguage,
+                    $focusCopy['description']
+                );
+            }
+        }
         // Kept in sync 1:1 with the system prompt lines in backend/api/SemanticFinalRerank.php
         // (the widget's own final-rerank endpoint), so the public API and the
         // website give the LLM the same reasoning instructions. If you edit one,
@@ -6515,24 +9582,41 @@ if (!function_exists('qpmPublicSearchMaybeApplySemanticLlmFinalRerank')) {
             'max_output_tokens' => $config['maxOutputTokens'],
         ];
 
-        try {
-            $response = qpmPublicSearchOpenAiRequest($requestPayload, $domain);
-            $responseText = qpmPublicSearchExtractOpenAiText($response);
-            $parsed = json_decode($responseText, true);
-            if (!is_array($parsed) || !isset($parsed['orderedIds']) || !is_array($parsed['orderedIds'])) {
-                return $results;
-            }
-            $orderedIds = qpmPublicSearchDedupeStrings($parsed['orderedIds']);
-            $expectedIds = array_map(static function ($candidate) {
-                return $candidate['id'];
-            }, $requestCandidates);
+        $queryText = trim((string) ($resolvedQueries['semanticIntent'] ?? ($resolvedQueries['pubmedQuery'] ?? ($request['query']['text'] ?? ''))));
+        $hardFilterQuery = trim((string) ($resolvedQueries['hardFilterQuery'] ?? ''));
+        $detail = [
+            'endpoint' => 'unified-final-rerank',
+            'enabled' => true,
+            'applied' => false,
+            'request' => [
+                'query' => $queryText,
+                'hardFilterQuery' => $hardFilterQuery,
+                'resultFocus' => $focusDetail,
+                'model' => $config['model'],
+                'reasoningEffort' => $config['reasoningEffort'],
+                'maxOutputTokens' => $config['maxOutputTokens'],
+                'candidateCount' => count($requestCandidates),
+            ],
+        ];
+        $expectedIds = array_map(static function ($candidate) {
+            return $candidate['id'];
+        }, $requestCandidates);
+        $applyOrderedIds = static function (array $orderedIds) use (
+            $requestCandidates,
+            $deferredEntries,
+            $results,
+            $topN,
+            $detail,
+            $expectedIds
+        ): array {
+            $orderedIds = qpmPublicSearchDedupeStrings($orderedIds);
             if (count($orderedIds) !== count($expectedIds)) {
-                return $results;
+                return ['ok' => false, 'reason' => 'orderedIds_count_mismatch'];
             }
             $expectedLookup = array_fill_keys($expectedIds, true);
             foreach ($orderedIds as $orderedId) {
                 if (!isset($expectedLookup[$orderedId])) {
-                    return $results;
+                    return ['ok' => false, 'reason' => 'orderedIds_unknown_id'];
                 }
             }
             $candidateMap = [];
@@ -6545,9 +9629,72 @@ if (!function_exists('qpmPublicSearchMaybeApplySemanticLlmFinalRerank')) {
                     $reorderedTop[] = $candidateMap[$orderedId];
                 }
             }
-            return array_values(array_merge($reorderedTop, $deferredEntries, array_slice($results, $topN)));
+            return [
+                'ok' => true,
+                'results' => array_values(array_merge($reorderedTop, $deferredEntries, array_slice($results, $topN))),
+                'orderedIds' => array_values($orderedIds),
+                'detail' => array_merge($detail, [
+                    'applied' => true,
+                    'response' => [
+                        'orderedIdCount' => count($orderedIds),
+                        'orderedIds' => array_slice(array_values($orderedIds), 0, 25),
+                        'truncated' => count($orderedIds) > 25,
+                    ],
+                ]),
+            ];
+        };
+
+        $cacheTtl = (int) ($config['cacheTtlSeconds'] ?? 0);
+        $noCache = ($request['responseOptions']['noCache'] ?? false) === true;
+        $cacheKey = 'payload:' . sha1(qpmPublicSearchSafeJsonEncode($requestPayload));
+        if ($cacheTtl > 0 && !$noCache) {
+            $cacheEntry = qpmPublicSearchReadCacheValue('final-rerank', $cacheKey);
+            $cachedOrderedIds = (array) ($cacheEntry['value']['orderedIds'] ?? []);
+            if (($cacheEntry['hit'] ?? false) === true && !empty($cachedOrderedIds)) {
+                $applied = $applyOrderedIds($cachedOrderedIds);
+                if (($applied['ok'] ?? false) === true) {
+                    $appliedDetail = (array) $applied['detail'];
+                    $appliedDetail['response']['cached'] = true;
+                    return [
+                        'results' => $applied['results'],
+                        'detail' => $appliedDetail,
+                    ];
+                }
+            }
+        }
+
+        try {
+            $response = qpmPublicSearchOpenAiRequest($requestPayload, $domain);
+            $responseText = qpmPublicSearchExtractOpenAiText($response);
+            $parsed = json_decode($responseText, true);
+            if (!is_array($parsed) || !isset($parsed['orderedIds']) || !is_array($parsed['orderedIds'])) {
+                return ['results' => $results, 'detail' => array_merge($detail, ['skippedReason' => 'invalid_llm_response'])];
+            }
+            $applied = $applyOrderedIds((array) $parsed['orderedIds']);
+            if (($applied['ok'] ?? false) !== true) {
+                return [
+                    'results' => $results,
+                    'detail' => array_merge($detail, [
+                        'skippedReason' => (string) ($applied['reason'] ?? 'orderedIds_invalid'),
+                    ]),
+                ];
+            }
+            if ($cacheTtl > 0) {
+                qpmPublicSearchWriteCacheValue(
+                    'final-rerank',
+                    $cacheKey,
+                    ['orderedIds' => array_values((array) $applied['orderedIds'])],
+                    $cacheTtl
+                );
+            }
+            $appliedDetail = (array) $applied['detail'];
+            $appliedDetail['response']['cached'] = false;
+            return [
+                'results' => $applied['results'],
+                'detail' => $appliedDetail,
+            ];
         } catch (Throwable $throwable) {
-            return $results;
+            return ['results' => $results, 'detail' => array_merge($detail, ['skippedReason' => 'llm_error'])];
         }
     }
 }
@@ -6845,6 +9992,7 @@ if (!function_exists('qpmPublicSearchBuildFinalResponse')) {
      * @param string $finalStage
      * @param bool $matchesWebOrdering
      * @param array<string,mixed> $diagnostics
+     * @param array<string,mixed>|null $processDetailsCollector
      * @return array<string,mixed>
      */
     function qpmPublicSearchBuildFinalResponse(
@@ -6856,8 +10004,15 @@ if (!function_exists('qpmPublicSearchBuildFinalResponse')) {
         array $warnings,
         string $finalStage,
         bool $matchesWebOrdering,
-        array $diagnostics = []
+        array $diagnostics = [],
+        ?array $processDetailsCollector = null,
+        ?array $preselectedResults = null
     ): array {
+        $selectionWarnings = (array) ($request['_topicHydrationWarnings'] ?? []);
+        $mergedWarnings = qpmPublicSearchDedupeStrings(array_merge(
+            array_map('strval', $warnings),
+            array_map('strval', $selectionWarnings)
+        ));
         $response = [
             'apiVersion' => '1',
             'query' => [
@@ -6872,7 +10027,8 @@ if (!function_exists('qpmPublicSearchBuildFinalResponse')) {
             ],
             'total' => $totalCount,
             'partial' => $partial,
-            'warnings' => array_values(array_map('strval', $warnings)),
+            'warnings' => array_values($mergedWarnings),
+            'selection' => qpmPublicSearchBuildSelectionFromRequest($request),
             'order' => [
                 'requestedMethod' => (string) ($request['sort']['method'] ?? 'relevance'),
                 'appliedMethod' => (string) ($request['sort']['method'] ?? 'relevance'),
@@ -6881,6 +10037,14 @@ if (!function_exists('qpmPublicSearchBuildFinalResponse')) {
             ],
             'results' => array_values($results),
         ];
+
+        if ($preselectedResults === null) {
+            $preselectedResults = qpmPublicSearchFetchPreselectedResults(
+                (array) ($request['preselectedPmids'] ?? []),
+                (string) ($request['domain'] ?? '')
+            );
+        }
+        $response['preselectedResults'] = array_values($preselectedResults);
 
         if (($request['responseOptions']['includeResolvedQueries'] ?? false) === true) {
             $response['resolvedQueries'] = [
@@ -6892,6 +10056,9 @@ if (!function_exists('qpmPublicSearchBuildFinalResponse')) {
         }
         if (($request['responseOptions']['includeDiagnostics'] ?? false) === true) {
             $response['diagnostics'] = $diagnostics;
+        }
+        if (($request['responseOptions']['includeProcessDetails'] ?? false) === true && $processDetailsCollector !== null) {
+            $response['processDetails'] = qpmPublicSearchProcessDetailsExport($processDetailsCollector);
         }
 
         return $response;
@@ -6925,14 +10092,23 @@ if (!function_exists('qpmPublicSearchPrefetchInitialSourceRequests')) {
      * @param array<int,string> $sources
      * @param array<string,mixed> $resolvedQueries
      * @param array<string,mixed> $request
+     * @param callable|null $sourceTimingCallback Called as (string $source, int $elapsedMs)
+     *        once every first-wave request for that source has completed.
+     * @param array<string,array{url:string,options:array<string,mixed>}> $additionalNamedRequests
+     * @param callable|null $sourceStartCallback Called with requested source keys
+     *        immediately before the concurrent wave starts.
+     * @return array<string,int> Per-source first-wave HTTP duration in milliseconds.
      */
     function qpmPublicSearchPrefetchInitialSourceRequests(
         array $sources,
         array $resolvedQueries,
         array $request,
-        string $domain
-    ): void {
-        $namedRequests = [];
+        string $domain,
+        ?callable $sourceTimingCallback = null,
+        array $additionalNamedRequests = [],
+        ?callable $sourceStartCallback = null
+    ): array {
+        $namedRequests = $additionalNamedRequests;
         $sourceQueryPlan = isset($resolvedQueries['sourceQueryPlan']) && is_array($resolvedQueries['sourceQueryPlan'])
             ? $resolvedQueries['sourceQueryPlan']
             : [];
@@ -6941,7 +10117,10 @@ if (!function_exists('qpmPublicSearchPrefetchInitialSourceRequests')) {
             : [];
 
         if (in_array('pubmed', $sources, true)) {
-            $pubmedQuery = trim((string) ($resolvedQueries['pubmedQuery'] ?? ''));
+            $pubmedQuery = qpmPublicSearchCombinePubMedQuery(
+                (string) ($resolvedQueries['pubmedQuery'] ?? ''),
+                (string) ($resolvedQueries['hardFilterQuery'] ?? '')
+            );
             if ($pubmedQuery !== '') {
                 qpmThrottleNlmRequests(5);
                 $searchLimit = qpmPublicSearchGetSemanticSourceLimit('pubmedBestMatch', 200);
@@ -7003,13 +10182,36 @@ if (!function_exists('qpmPublicSearchPrefetchInitialSourceRequests')) {
             $query = trim((string) ($sourceQueryPlan['openAlex']['query'] ?? ''));
             if ($query !== '') {
                 $filters = (array) ($sourceQueryPlan['openAlex']['filters'] ?? []);
+                $apiKeyOverride = (string) ($clientSourceApiKeys['openAlex'] ?? '');
                 qpmThrottleRequestRate('openalex', 1);
+                // Semantic primary always runs without retrieval filters (deferred).
                 $namedRequests['openAlex'] = qpmPublicSearchBuildOpenAlexSourceRequestSpec(
                     $query,
-                    $filters,
+                    [],
                     $domain,
-                    (string) ($clientSourceApiKeys['openAlex'] ?? '')
+                    $apiKeyOverride,
+                    'semantic'
                 );
+                $hasDeferredFilters = false;
+                foreach (['language', 'sourceType', 'workType', 'publicationYear'] as $filterField) {
+                    $value = $filters[$filterField] ?? null;
+                    if ((is_array($value) && !empty($value)) || (!is_array($value) && trim((string) $value) !== '')) {
+                        $hasDeferredFilters = true;
+                        break;
+                    }
+                }
+                // Prefetch keyword supplement in the same multi wave when legacy
+                // would start it in parallel with deferred semantic filters.
+                if ($hasDeferredFilters) {
+                    qpmThrottleRequestRate('openalex', 1);
+                    $namedRequests['openAlex_keyword'] = qpmPublicSearchBuildOpenAlexSourceRequestSpec(
+                        $query,
+                        $filters,
+                        $domain,
+                        $apiKeyOverride,
+                        'keyword'
+                    );
+                }
             }
         }
         if (in_array('elicit', $sources, true)) {
@@ -7028,14 +10230,59 @@ if (!function_exists('qpmPublicSearchPrefetchInitialSourceRequests')) {
         }
 
         if (empty($namedRequests)) {
-            return;
+            return [];
         }
-        $responses = qpmHttpRequestMulti($namedRequests);
+        if ($sourceStartCallback !== null) {
+            $requestedSourceKeys = [];
+            foreach (array_keys($namedRequests) as $name) {
+                $sourceKey = $name === 'openAlex_keyword' ? 'openAlex' : $name;
+                if (in_array($sourceKey, ['pubmed', 'semanticScholar', 'openAlex', 'elicit'], true)) {
+                    $requestedSourceKeys[$sourceKey] = true;
+                }
+            }
+            $sourceStartCallback(array_keys($requestedSourceKeys));
+        }
+        $expectedRequestsBySource = [];
+        foreach (array_keys($namedRequests) as $name) {
+            $sourceKey = $name === 'openAlex_keyword' ? 'openAlex' : $name;
+            $expectedRequestsBySource[$sourceKey] = (int) ($expectedRequestsBySource[$sourceKey] ?? 0) + 1;
+        }
+        $completedRequestsBySource = [];
+        $liveSourceElapsedMs = [];
+        $responses = qpmHttpRequestMulti(
+            $namedRequests,
+            static function (string $name, int $elapsedMs) use (
+                &$completedRequestsBySource,
+                &$liveSourceElapsedMs,
+                $expectedRequestsBySource,
+                $sourceTimingCallback
+            ): void {
+                $sourceKey = $name === 'openAlex_keyword' ? 'openAlex' : $name;
+                $completedRequestsBySource[$sourceKey] = (int) ($completedRequestsBySource[$sourceKey] ?? 0) + 1;
+                $liveSourceElapsedMs[$sourceKey] = max(
+                    (int) ($liveSourceElapsedMs[$sourceKey] ?? 0),
+                    max(0, $elapsedMs)
+                );
+                if (
+                    $sourceTimingCallback !== null
+                    && $completedRequestsBySource[$sourceKey] >= (int) ($expectedRequestsBySource[$sourceKey] ?? 1)
+                ) {
+                    $sourceTimingCallback($sourceKey, (int) $liveSourceElapsedMs[$sourceKey]);
+                }
+            }
+        );
+        $sourceElapsedMs = [];
         foreach ($namedRequests as $name => $spec) {
             if (isset($responses[$name])) {
                 qpmHttpRequestPrefetch($spec['url'], $spec['options'], $responses[$name]);
+                $sourceKey = $name === 'openAlex_keyword' ? 'openAlex' : $name;
+                $sourceElapsedMs[$sourceKey] = max(
+                    (int) ($sourceElapsedMs[$sourceKey] ?? 0),
+                    max(0, (int) ($responses[$name]['elapsed_ms'] ?? 0))
+                );
             }
         }
+        return $sourceElapsedMs;
     }
 }
 
@@ -7045,13 +10292,27 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
      * @param callable|null $progressCallback
      * @return array<string,mixed>
      */
-    function qpmPublicSearchRunSearch(array $request, ?callable $progressCallback = null): array
+    function qpmPublicSearchRunSearch(array &$request, ?callable $progressCallback = null): array
     {
         $config = qpmPublicSearchGetConfig();
+        qpmPublicSearchProcessDetailsEnsureCollector($request);
+        $collector = isset($request['_processDetails']) && is_array($request['_processDetails'])
+            ? $request['_processDetails']
+            : null;
         $includeDiagnostics = ($request['responseOptions']['includeDiagnostics'] ?? false) === true;
+        $noCache = ($request['responseOptions']['noCache'] ?? false) === true;
         $searchCacheTtl = (int) ($config['searchResultCacheTtlSeconds'] ?? 0);
-        $searchCacheKey = 'request:' . qpmPublicSearchSafeJsonEncode($request);
-        if ($searchCacheTtl > 0) {
+        // Exclude the in-memory collector from the cache key — it is request-local
+        // mutable state and must never create unique cache entries per run.
+        // Also strip noCache so a bypass request writes/reads the same entry as
+        // a normal request for the same search inputs.
+        $requestForCacheKey = $request;
+        unset($requestForCacheKey['_processDetails']);
+        if (isset($requestForCacheKey['responseOptions']) && is_array($requestForCacheKey['responseOptions'])) {
+            unset($requestForCacheKey['responseOptions']['noCache']);
+        }
+        $searchCacheKey = 'request:' . qpmPublicSearchSafeJsonEncode($requestForCacheKey);
+        if ($searchCacheTtl > 0 && !$noCache) {
             $cacheEntry = qpmPublicSearchReadCacheValue('search-response', $searchCacheKey);
             if (($cacheEntry['hit'] ?? false) === true && is_array($cacheEntry['value'] ?? null)) {
                 qpmPublicSearchEmitProgress($progressCallback, 'cache', '', [
@@ -7074,12 +10335,61 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
         $pageNumber = max(1, (int) ($request['page']['number'] ?? 1));
         $pageSize = max(1, (int) ($request['page']['size'] ?? 25));
         $pageOffset = ($pageNumber - 1) * $pageSize;
-        qpmPublicSearchEmitProgress($progressCallback, 'prepare', '', [
-            'stepId' => 'prepare',
-            'groupId' => 'prepare',
-            'groupKey' => 'semanticSearchProcessGroupPrepare',
-            'messageKey' => 'semanticSearchProgressPreparing',
-        ]);
+        if (array_key_exists('offset', (array) ($request['page'] ?? []))) {
+            $pageOffset = max(0, (int) $request['page']['offset']);
+        }
+        $pipelineCacheKey = qpmPublicSearchBuildPipelineCacheKey($request);
+        // Keep pipeline entries longer than short search-response TTL so users can
+        // read page 1 and still hit the fast path for "Indlæs de næste".
+        $pipelineCacheTtl = $searchCacheTtl > 0 ? max($searchCacheTtl, 1800) : 0;
+        // Continuation requests (page 2+ or explicit offset>0 for page-size changes)
+        // must not re-run intent/sources/rerank — only hydrate the missing slice.
+        if (($pageNumber > 1 || $pageOffset > 0) && $pipelineCacheTtl > 0 && !$noCache) {
+            $pipelineCacheEntry = qpmPublicSearchReadCacheValue('search-pipeline', $pipelineCacheKey);
+            $cachedPipeline = (($pipelineCacheEntry['hit'] ?? false) === true
+                && is_array($pipelineCacheEntry['value'] ?? null))
+                ? $pipelineCacheEntry['value']
+                : null;
+            if (
+                is_array($cachedPipeline)
+                && isset($cachedPipeline['resultRefs'], $cachedPipeline['resolvedQueries'])
+                && is_array($cachedPipeline['resultRefs'])
+                && is_array($cachedPipeline['resolvedQueries'])
+            ) {
+                $resolvedQueries = (array) $cachedPipeline['resolvedQueries'];
+                $resultRefs = array_values((array) $cachedPipeline['resultRefs']);
+                $orderedCandidates = array_values((array) ($cachedPipeline['orderedCandidates'] ?? []));
+                $hybridOrdering = isset($cachedPipeline['hybridOrdering']) && is_array($cachedPipeline['hybridOrdering'])
+                    ? $cachedPipeline['hybridOrdering']
+                    : ['refs' => $resultRefs, 'pmids' => []];
+                $warnings = qpmPublicSearchDedupeStrings(array_merge(
+                    array_map('strval', (array) ($cachedPipeline['warnings'] ?? [])),
+                    array_map('strval', (array) ($request['_sourceAccessWarnings'] ?? []))
+                ));
+                $diagnostics = isset($cachedPipeline['diagnostics']) && is_array($cachedPipeline['diagnostics'])
+                    ? $cachedPipeline['diagnostics']
+                    : [];
+                if ($includeDiagnostics) {
+                    $diagnostics['cache'] = ['hit' => false];
+                    $diagnostics['pipelineCache'] = ['hit' => true];
+                }
+                $totalCount = (int) ($cachedPipeline['totalCount'] ?? count($resultRefs));
+                goto qpm_public_search_hydrate_page;
+            }
+        }
+        // Search-basis metadata is folded into the first real prepare-lane step
+        // (no separate timed "prepare" progress stage).
+        $intentContextForBasis = isset($request['intentContext']) && is_array($request['intentContext'])
+            ? $request['intentContext']
+            : [];
+        $searchBasisPayload = [
+            'input' => trim((string) ($intentContextForBasis['rawUserInput'] ?? ($request['query']['text'] ?? ''))),
+            'selectedSources' => array_values((array) ($request['sources'] ?? [])),
+            'resultFocus' => (string) ($request['focus'] ?? ''),
+            'sort' => $sortMethod,
+            'pageSize' => $pageSize,
+            'searchWithAI' => ((string) ($request['translation']['mode'] ?? 'auto')) === 'auto',
+        ];
         $resolvedQueries = qpmPublicSearchBuildResolvedQueries($request, $progressCallback);
         $warnings = qpmPublicSearchDedupeStrings(array_merge(
             (array) ($resolvedQueries['warnings'] ?? []),
@@ -7089,7 +10399,70 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
         if ($includeDiagnostics) {
             $diagnostics['cache'] = ['hit' => false];
         }
+        if ($collector !== null) {
+            $processReports = (array) ($resolvedQueries['processReports'] ?? []);
+            $llmIntent = isset($resolvedQueries['llmSemanticIntent']) && is_array($resolvedQueries['llmSemanticIntent'])
+                ? $resolvedQueries['llmSemanticIntent']
+                : null;
+            $semanticIntentMeta = (array) ($resolvedQueries['semanticIntentMeta'] ?? []);
+            $sourceQueryPlan = (array) ($resolvedQueries['sourceQueryPlan'] ?? []);
+            if (!empty($processReports['semanticIntent'])) {
+                qpmPublicSearchProcessDetailsSetStep(
+                    $collector,
+                    'semanticIntent',
+                    (array) $processReports['semanticIntent']
+                );
+                // Terminal event was emitted at the real intent boundary.
+                qpmPublicSearchProcessDetailsEmitStep($collector, 'semanticIntent', $progressCallback);
+            }
+            $semanticReport = !empty($processReports['semanticQuery'])
+                ? (array) $processReports['semanticQuery']
+                : qpmPublicSearchBuildSemanticQueryProcessReport(
+                    $request,
+                    $llmIntent,
+                    $semanticIntentMeta,
+                    (string) ($resolvedQueries['semanticIntent'] ?? ''),
+                    $sourceQueryPlan
+                );
+            qpmPublicSearchProcessDetailsSetStep($collector, 'semanticQuery', $semanticReport);
+            // The terminal event was emitted at the real semantic-query boundary.
+            qpmPublicSearchProcessDetailsEmitStep($collector, 'semanticQuery', $progressCallback);
+            if (!empty($processReports['searchString'])) {
+                $searchStringPayload = (array) $processReports['searchString'];
+                if (isset($semanticIntentMeta['coverageCheck']) && is_array($semanticIntentMeta['coverageCheck'])) {
+                    $searchStringPayload['coverageCheck'] = $semanticIntentMeta['coverageCheck'];
+                }
+                qpmPublicSearchProcessDetailsSetStep($collector, 'searchString', $searchStringPayload);
+                qpmPublicSearchProcessDetailsEmitStep($collector, 'searchString', $progressCallback);
+            }
+            if (!empty($processReports['mesh'])) {
+                qpmPublicSearchProcessDetailsSetStep($collector, 'mesh', (array) $processReports['mesh']);
+                qpmPublicSearchProcessDetailsEmitStep($collector, 'mesh', $progressCallback);
+            }
+            $searchBasisTarget = null;
+            if (!empty($processReports['semanticIntent'])) {
+                $searchBasisTarget = 'semanticIntent';
+            } elseif (!empty($processReports['searchString'])) {
+                $searchBasisTarget = 'searchString';
+            } elseif (!empty($processReports['semanticQuery'])) {
+                $searchBasisTarget = 'semanticQuery';
+            } elseif (!empty($processReports['mesh'])) {
+                $searchBasisTarget = 'mesh';
+            } elseif (isset($collector['_steps']['semanticQuery'])) {
+                $searchBasisTarget = 'semanticQuery';
+            }
+            if ($searchBasisTarget !== null) {
+                qpmPublicSearchProcessDetailsMergeStep($collector, $searchBasisTarget, [
+                    'searchBasis' => $searchBasisPayload,
+                ]);
+            }
+        }
 
+        $sourceDetailContext = trim((string) (
+            $request['intentContext']['rawUserInput']
+            ?? $request['query']['text']
+            ?? ''
+        ));
         $isPurePubMed = $request['sources'] === ['pubmed'];
         if ($isPurePubMed) {
             $finalPubMedQuery = qpmPublicSearchCombinePubMedQuery(
@@ -7103,6 +10476,7 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
                 'messageKey' => 'semanticSearchProgressPubMedBestMatch',
                 'source' => 'pubmed',
             ]);
+            $pubmedFetchStartedAt = microtime(true);
             $searchPayload = qpmPublicSearchNlmGetJson('esearch.fcgi', [
                 'db' => 'pubmed',
                 'term' => $finalPubMedQuery,
@@ -7115,8 +10489,33 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
                 ? $searchPayload['esearchresult']
                 : [];
             $pmids = qpmPublicSearchDedupeStrings((array) ($esearch['idlist'] ?? []), 'qpmPublicSearchNormalizePmid');
-            qpmPublicSearchEmitProgress($progressCallback, 'finalizeHydratePubMed', '', [
-                'stepId' => 'finalizeHydratePubMed',
+            qpmPublicSearchProcessDetailsRecordSourceCompletion(
+                $collector,
+                'pubmed',
+                $finalPubMedQuery,
+                ['candidates' => $pmids, 'total' => (int) ($esearch['count'] ?? 0)],
+                $pubmedFetchStartedAt,
+                $progressCallback,
+                [
+                    'stepId' => 'pubmed',
+                    'groupId' => 'sources',
+                    'groupKey' => 'semanticSearchProcessGroupSources',
+                    'messageKey' => 'semanticSearchProgressPubMedBestMatch',
+                    'source' => 'pubmed',
+                ],
+                [
+                    'db' => 'pubmed',
+                    'term' => $finalPubMedQuery,
+                    'retmax' => $pageSize,
+                    'retstart' => $pageOffset,
+                    'retmode' => 'json',
+                    'sort' => $sortMethod === 'relevance' ? 'relevance' : $sortMethod,
+                ],
+                ['role' => 'pubmedNativeSearch', 'limitStrategy' => 'pubmed-only'],
+                $sourceDetailContext
+            );
+            qpmPublicSearchEmitProgress($progressCallback, 'finalizeHydrate', '', [
+                'stepId' => 'finalizeHydrate',
                 'groupId' => 'finalizeHydrate',
                 'groupKey' => 'semanticSearchProcessGroupDisplay',
                 'messageKey' => 'semanticSearchProgressFinalizeHydratePubMed',
@@ -7143,12 +10542,23 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
                 );
             }
 
-            qpmPublicSearchEmitProgress($progressCallback, 'finalizeRender', '', [
-                'stepId' => 'finalizeRender',
-                'groupId' => 'finalizeHydrate',
-                'groupKey' => 'semanticSearchProcessGroupDisplay',
-                'messageKey' => 'semanticSearchProgressFinalizeRender',
-            ]);
+            if ($collector !== null) {
+                qpmPublicSearchProcessDetailsSetStep($collector, 'finalizeHydrate', [
+                    'role' => 'pubmedNativeHydration',
+                    'requestedCount' => count($pmids),
+                    'pmidCount' => count($pmids),
+                    'externalReferenceCount' => 0,
+                    'hydratedCount' => count($results),
+                    'missingCount' => max(0, count($pmids) - count($results)),
+                ]);
+                qpmPublicSearchProcessDetailsMergeStep($collector, 'finalizeHydrate', [
+                    'renderedCount' => count($results),
+                    'totalCount' => (int) ($esearch['count'] ?? 0),
+                    'page' => $pageNumber,
+                    'pageSize' => $pageSize,
+                ]);
+                qpmPublicSearchProcessDetailsEmitStep($collector, 'finalizeHydrate', $progressCallback, true);
+            }
             $response = qpmPublicSearchBuildFinalResponse(
                 $request,
                 array_merge($resolvedQueries, ['hardFilterQuery' => $finalPubMedQuery]),
@@ -7158,7 +10568,8 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
                 $warnings,
                 'pubmed_native',
                 $config['matchesWebOrderingByDefault'],
-                $diagnostics
+                $diagnostics,
+                $collector
             );
             if ($searchCacheTtl > 0) {
                 qpmPublicSearchWriteCacheValue('search-response', $searchCacheKey, $response, $searchCacheTtl);
@@ -7166,59 +10577,182 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
             return $response;
         }
 
-        qpmPublicSearchPrefetchInitialSourceRequests((array) $request['sources'], $resolvedQueries, $request, $domain);
-        $sourceResults = [];
-        if (in_array('pubmed', (array) $request['sources'], true)) {
-            qpmPublicSearchEmitProgress($progressCallback, 'pubmed', '', [
+        // Activate every selected source step first so the UI shows them as
+        // concurrent (matching legacy browser-side parallelism), then prefetch
+        // their first HTTP hops together, then consume via Fetch* (cache hits).
+        $selectedSources = array_values(array_filter(
+            ['pubmed', 'semanticScholar', 'openAlex', 'elicit'],
+            static fn($source) => in_array($source, (array) $request['sources'], true)
+        ));
+        $sourceProgressContexts = [
+            'pubmed' => [
                 'stepId' => 'pubmed',
                 'groupId' => 'sources',
                 'groupKey' => 'semanticSearchProcessGroupSources',
                 'messageKey' => 'semanticSearchProgressPubMedBestMatch',
                 'source' => 'pubmed',
-            ]);
-            $sourceResults[] = qpmPublicSearchFetchPubMedBestMatchSourceResult((string) ($resolvedQueries['pubmedQuery'] ?? ''), $domain);
-        }
-        if (in_array('semanticScholar', (array) $request['sources'], true)) {
-            qpmPublicSearchEmitProgress($progressCallback, 'semanticScholar', '', [
+            ],
+            'semanticScholar' => [
                 'stepId' => 'semanticScholar',
                 'groupId' => 'sources',
                 'groupKey' => 'semanticSearchProcessGroupSources',
                 'messageKey' => 'semanticSearchProgressSemanticScholar',
                 'source' => 'semanticScholar',
-            ]);
-            $sourceResults[] = qpmPublicSearchFetchSemanticScholarSourceResult(
-                (string) ($resolvedQueries['sourceQueryPlan']['semanticScholar']['query'] ?? ''),
-                (array) ($resolvedQueries['sourceQueryPlan']['semanticScholar']['filters'] ?? []),
-                (string) ($request['_clientSourceApiKeys']['semanticScholar'] ?? '')
-            );
-        }
-        if (in_array('openAlex', (array) $request['sources'], true)) {
-            qpmPublicSearchEmitProgress($progressCallback, 'openAlex', '', [
+            ],
+            'openAlex' => [
                 'stepId' => 'openAlex',
                 'groupId' => 'sources',
                 'groupKey' => 'semanticSearchProcessGroupSources',
                 'messageKey' => 'semanticSearchProgressOpenAlex',
                 'source' => 'openAlex',
-            ]);
-            $sourceResults[] = qpmPublicSearchFetchOpenAlexSourceResult(
-                (string) ($resolvedQueries['sourceQueryPlan']['openAlex']['query'] ?? ''),
-                (array) ($resolvedQueries['sourceQueryPlan']['openAlex']['filters'] ?? []),
-                $domain,
-                (string) ($request['_clientSourceApiKeys']['openAlex'] ?? '')
-            );
-        }
-        if (in_array('elicit', (array) $request['sources'], true)) {
-            qpmPublicSearchEmitProgress($progressCallback, 'elicit', '', [
+            ],
+            'elicit' => [
                 'stepId' => 'elicit',
                 'groupId' => 'sources',
                 'groupKey' => 'semanticSearchProcessGroupSources',
                 'messageKey' => 'semanticSearchProgressElicit',
                 'source' => 'elicit',
-            ]);
-            $sourceResults[] = qpmPublicSearchFetchElicitSourceResult(
-                (string) ($resolvedQueries['sourceQueryPlan']['elicit']['query'] ?? ''),
+            ],
+        ];
+        $earlyPrefetchedSources = array_values((array) ($resolvedQueries['_earlyPrefetchedSources'] ?? []));
+        $earlySourceStartedAt = (array) ($resolvedQueries['_earlySourceStartedAt'] ?? []);
+        $sourceFetchStartedAt = [];
+        foreach ($selectedSources as $sourceKey) {
+            if (
+                in_array($sourceKey, $earlyPrefetchedSources, true)
+                && isset($earlySourceStartedAt[$sourceKey])
+                && is_numeric($earlySourceStartedAt[$sourceKey])
+            ) {
+                $sourceFetchStartedAt[$sourceKey] = (float) $earlySourceStartedAt[$sourceKey];
+                continue;
+            }
+            $sourceFetchStartedAt[$sourceKey] = microtime(true);
+            qpmPublicSearchEmitProgress(
+                $progressCallback,
+                $sourceKey,
+                '',
+                $sourceProgressContexts[$sourceKey]
+            );
+        }
+        qpmPublicSearchPrefetchInitialSourceRequests(
+            array_values(array_diff($selectedSources, $earlyPrefetchedSources)),
+            $resolvedQueries,
+            $request,
+            $domain
+        );
+        $sourceResults = [];
+        if (in_array('pubmed', $selectedSources, true)) {
+            $pubmedQueryText = qpmPublicSearchCombinePubMedQuery(
+                (string) ($resolvedQueries['pubmedQuery'] ?? ''),
+                (string) ($resolvedQueries['hardFilterQuery'] ?? '')
+            );
+            $pubmedSourceResult = qpmPublicSearchFetchPubMedBestMatchSourceResult($pubmedQueryText, $domain);
+            $sourceResults[] = $pubmedSourceResult;
+            qpmPublicSearchProcessDetailsRecordSourceCompletion(
+                $collector,
+                'pubmed',
+                $pubmedQueryText,
+                $pubmedSourceResult,
+                (float) ($sourceFetchStartedAt['pubmed'] ?? microtime(true)),
+                $progressCallback,
+                $sourceProgressContexts['pubmed'],
+                [
+                    'db' => 'pubmed',
+                    'term' => $pubmedQueryText,
+                    'retmax' => qpmPublicSearchGetSemanticSourceLimit('pubmedBestMatch', 200),
+                    'retstart' => 0,
+                    'retmode' => 'json',
+                    'sort' => 'relevance',
+                ],
+                ['role' => 'pubmedBestMatchSource', 'limitStrategy' => 'multi-source'],
+                $sourceDetailContext
+            );
+        }
+        if (in_array('semanticScholar', $selectedSources, true)) {
+            $semanticScholarQueryText = (string) ($resolvedQueries['sourceQueryPlan']['semanticScholar']['query'] ?? '');
+            $semanticScholarSourceResult = qpmPublicSearchFetchSemanticScholarSourceResult(
+                $semanticScholarQueryText,
+                (array) ($resolvedQueries['sourceQueryPlan']['semanticScholar']['filters'] ?? []),
+                (string) ($request['_clientSourceApiKeys']['semanticScholar'] ?? '')
+            );
+            $sourceResults[] = $semanticScholarSourceResult;
+            qpmPublicSearchProcessDetailsRecordSourceCompletion(
+                $collector,
+                'semanticScholar',
+                $semanticScholarQueryText,
+                $semanticScholarSourceResult,
+                (float) ($sourceFetchStartedAt['semanticScholar'] ?? microtime(true)),
+                $progressCallback,
+                $sourceProgressContexts['semanticScholar'],
+                array_merge(
+                    [
+                        'limit' => qpmPublicSearchGetSemanticSourceLimit('semanticScholar', 400),
+                        'domain' => $domain,
+                        'searchMode' => 'semantic',
+                    ],
+                    (array) ($resolvedQueries['sourceQueryPlan']['semanticScholar']['filters'] ?? [])
+                ),
+                ['searchMode' => 'semantic'],
+                $sourceDetailContext
+            );
+        }
+        if (in_array('openAlex', $selectedSources, true)) {
+            $openAlexQueryText = (string) ($resolvedQueries['sourceQueryPlan']['openAlex']['query'] ?? '');
+            $openAlexSourceResult = qpmPublicSearchFetchOpenAlexSourceResult(
+                $openAlexQueryText,
+                (array) ($resolvedQueries['sourceQueryPlan']['openAlex']['filters'] ?? []),
+                $domain,
+                (string) ($request['_clientSourceApiKeys']['openAlex'] ?? '')
+            );
+            $sourceResults[] = $openAlexSourceResult;
+            qpmPublicSearchProcessDetailsRecordSourceCompletion(
+                $collector,
+                'openAlex',
+                $openAlexQueryText,
+                $openAlexSourceResult,
+                (float) ($sourceFetchStartedAt['openAlex'] ?? microtime(true)),
+                $progressCallback,
+                $sourceProgressContexts['openAlex'],
+                [
+                    'limit' => qpmPublicSearchGetSemanticSourceLimit('openAlex', 50),
+                    'domain' => $domain,
+                    'languages' => (array) ($resolvedQueries['sourceQueryPlan']['openAlex']['filters']['language'] ?? []),
+                    'sourceTypes' => (array) ($resolvedQueries['sourceQueryPlan']['openAlex']['filters']['sourceType'] ?? []),
+                    'workTypes' => (array) ($resolvedQueries['sourceQueryPlan']['openAlex']['filters']['workType'] ?? []),
+                    'publicationYear' => (string) ($resolvedQueries['sourceQueryPlan']['openAlex']['filters']['publicationYear'] ?? ''),
+                    'searchMode' => 'semantic',
+                ],
+                isset($openAlexSourceResult['requestMeta']) && is_array($openAlexSourceResult['requestMeta'])
+                    ? $openAlexSourceResult['requestMeta']
+                    : ['searchMode' => 'semantic'],
+                $sourceDetailContext
+            );
+        }
+        if (in_array('elicit', $selectedSources, true)) {
+            $elicitQueryText = (string) ($resolvedQueries['sourceQueryPlan']['elicit']['query'] ?? '');
+            $elicitSourceResult = qpmPublicSearchFetchElicitSourceResult(
+                $elicitQueryText,
                 (array) ($resolvedQueries['sourceQueryPlan']['elicit']['filters'] ?? []),
                 (string) ($request['_clientSourceApiKeys']['elicit'] ?? '')
+            );
+            $sourceResults[] = $elicitSourceResult;
+            qpmPublicSearchProcessDetailsRecordSourceCompletion(
+                $collector,
+                'elicit',
+                $elicitQueryText,
+                $elicitSourceResult,
+                (float) ($sourceFetchStartedAt['elicit'] ?? microtime(true)),
+                $progressCallback,
+                $sourceProgressContexts['elicit'],
+                [
+                    'limit' => qpmPublicSearchGetSemanticSourceLimit('elicit', 100),
+                    'domain' => $domain,
+                    'filters' => (array) ($resolvedQueries['sourceQueryPlan']['elicit']['filters'] ?? []),
+                    'corpus' => 'elicit',
+                    'searchMode' => 'semantic',
+                ],
+                ['searchMode' => 'semantic'],
+                $sourceDetailContext
             );
         }
 
@@ -7247,6 +10781,16 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
             );
         }
 
+        // Rerank preparation includes the optional lexical rescue because its
+        // candidates feed the same rerank pool. Start the timer before that
+        // work so there is no unmeasured pause after source retrieval.
+        qpmPublicSearchEmitProgress($progressCallback, 'rerank', '', [
+            'stepId' => 'rerank',
+            'groupId' => 'match',
+            'groupKey' => 'semanticSearchProcessGroupMatch',
+            'messageKey' => 'semanticSearchProgressRerank',
+        ]);
+
         // Lexical rescue (ported from DropdownWrapper.vue's shouldRunPubMedLexicalRescue()
         // / fetchPubMedLexicalRescueResult()): when PubMed is selected but the
         // OTHER selected sources returned a sparse candidate set, run one
@@ -7254,9 +10798,15 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
         // lexically-relevant hits. Only run for the unified engine - the
         // legacy engine never had this capability, so gating it here keeps
         // that path's behavior completely unchanged.
+        $semanticRescueMeta = [
+            'triggered' => false,
+            'triggerReason' => 'not-evaluated',
+            'pubmedQuery' => (string) ($resolvedQueries['pubmedQuery'] ?? ''),
+        ];
         if (qpmPublicSearchIsUnifiedSearchEngineEnabled()) {
             $pubmedIsSelected = in_array('pubmed', (array) $request['sources'], true);
             $rescueDecision = qpmPublicSearchShouldRunPubMedLexicalRescue($sourceResults, (string) ($resolvedQueries['pubmedQuery'] ?? ''), $pubmedIsSelected);
+            $semanticRescueMeta['triggerReason'] = (string) ($rescueDecision['reason'] ?? '');
             if ($rescueDecision['shouldRun']) {
                 try {
                     $rescueResult = qpmPublicSearchFetchPubMedLexicalRescueResult(
@@ -7268,6 +10818,8 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
                     );
                     if (!empty($rescueResult['candidates'])) {
                         $sourceResults[] = $rescueResult;
+                        $semanticRescueMeta['triggered'] = true;
+                        $semanticRescueMeta['candidateCount'] = count($rescueResult['candidates']);
                     }
                 } catch (Throwable $exception) {
                     // Fail soft: lexical rescue is a supplementary enrichment
@@ -7277,42 +10829,147 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
             }
         }
 
-        // Emitted before the actual reranking call (previously only
-        // 'finalizeCollect' was emitted here, with the real rerank computation
-        // buried silently inside it) - matches the website widget's own step
-        // order, where "rerank" (reranking across databases) is a distinct,
-        // always-shown step that precedes "finalizeCollect" (matching /
-        // preparing filter validation).
-        qpmPublicSearchEmitProgress($progressCallback, 'rerank', '', [
-            'stepId' => 'rerank',
-            'groupId' => 'finalizeCollect',
-            'groupKey' => 'semanticSearchProcessGroupMatch',
-            'messageKey' => 'semanticSearchProgressRerank',
-        ]);
         $reranked = qpmPublicSearchIsUnifiedSearchEngineEnabled()
-            ? qpmPublicSearchRerankSemanticCandidatesUnified($sourceResults, (string) ($request['focus'] ?? ''), $domain, ['queryIntent' => $resolvedQueries['queryIntent'] ?? []])
+            ? qpmPublicSearchRerankSemanticCandidatesUnified($sourceResults, (string) ($request['focus'] ?? ''), $domain, [
+                'queryIntent' => $resolvedQueries['queryIntent'] ?? [],
+                'semanticRescueMeta' => $semanticRescueMeta,
+            ])
             : qpmPublicSearchRerankSemanticCandidates($sourceResults, (string) ($request['focus'] ?? ''));
         $orderedCandidates = (array) ($reranked['candidates'] ?? []);
         $diagnostics['rerank'] = $reranked['diagnostics'] ?? [];
-
-        qpmPublicSearchEmitProgress($progressCallback, 'finalizeCollect', '', [
-            'stepId' => 'finalizeCollect',
-            'groupId' => 'finalizeCollect',
-            'groupKey' => 'semanticSearchProcessGroupMatch',
-            'messageKey' => 'semanticSearchProgressFinalizeCollect',
-        ]);
+        // Fold the former near-instant finalizeCollect step into rerank.
+        $candidateBuckets = qpmPublicSearchProcessDetailsCountCandidateIdentityBuckets($orderedCandidates);
+        if ($collector !== null) {
+            qpmPublicSearchProcessDetailsSetStep($collector, 'rerank', array_merge(
+                (array) $diagnostics['rerank'],
+                $candidateBuckets,
+                ['hardFilterQuery' => (string) ($resolvedQueries['hardFilterQuery'] ?? '')]
+            ));
+            qpmPublicSearchProcessDetailsEmitStep($collector, 'rerank', $progressCallback, true);
+        }
         $hybridOrdering = qpmPublicSearchBuildHybridOrderedResultRefs(
             (string) ($resolvedQueries['hardFilterQuery'] ?? ''),
             $orderedCandidates,
             $sortMethod,
             (array) ($request['hardFilters'] ?? []),
             $domain,
-            $progressCallback
+            $progressCallback,
+            (array) ($resolvedQueries['postValidationRuleState'] ?? []),
+            $collector,
+            (string) ($request['responseOptions']['language'] ?? 'da')
         );
         $warnings = qpmPublicSearchDedupeStrings(array_merge($warnings, (array) ($hybridOrdering['warnings'] ?? [])));
         $resultRefs = (array) ($hybridOrdering['refs'] ?? []);
         $totalCount = count($resultRefs);
+        if ($collector !== null) {
+            $validationDiagnostics = (array) ($hybridOrdering['diagnostics'] ?? []);
+            $pmidValidation = (array) ($validationDiagnostics['pmidValidation'] ?? []);
+            $candidateKeyDiagnostics = (array) ($validationDiagnostics['candidateKeys'] ?? []);
+            $hardFilterQuery = (string) ($resolvedQueries['hardFilterQuery'] ?? '');
+            $validationQuery = (string) ($hybridOrdering['validationQuery'] ?? '');
+            qpmPublicSearchProcessDetailsSetStep($collector, 'finalizeValidatePmid', [
+                'role' => 'pubmedPmidValidation',
+                'orderedPmidCount' => (int) ($pmidValidation['requestedCount'] ?? 0),
+                'hardFilterQuery' => $hardFilterQuery,
+                'validationMode' => $hardFilterQuery !== ''
+                    ? 'hard-filter-and-candidate-whitelist'
+                    : 'candidate-whitelist-only',
+                'matchedByPubMedCount' => (int) ($pmidValidation['matchedCount'] ?? 0),
+                'orderedMatchedCount' => (int) ($pmidValidation['matchedCount'] ?? 0),
+                'unmatchedCandidateCount' => (int) ($pmidValidation['unmatchedCount'] ?? 0),
+                'request' => [
+                    'db' => 'pubmed',
+                    'retmode' => 'json',
+                    'term' => $validationQuery,
+                    'retmax' => (int) ($pmidValidation['requestedCount'] ?? 0),
+                    'retstart' => 0,
+                    'sort' => (string) ($pmidValidation['sortMethod'] ?? $sortMethod),
+                ],
+            ]);
+            if ((int) ($pmidValidation['requestedCount'] ?? 0) <= 0) {
+                // No PMID validation work started inside the hybrid builder.
+                qpmPublicSearchProcessDetailsEmitStep(
+                    $collector,
+                    'finalizeValidatePmid',
+                    $progressCallback,
+                    true
+                );
+            }
+            if (!empty($candidateKeyDiagnostics)) {
+                qpmPublicSearchProcessDetailsSetStep($collector, 'finalizeValidateDoiFetch', [
+                    'endpoint' => (string) ($candidateKeyDiagnostics['endpoint'] ?? 'OpenAlex work lookup'),
+                    'candidateCount' => (int) ($candidateKeyDiagnostics['candidateCount'] ?? 0),
+                    'trustedPmidSkippedCount' => (int) ($candidateKeyDiagnostics['trustedPmidSkippedCount']
+                        ?? ($candidateKeyDiagnostics['pmidCandidateCount'] ?? 0)),
+                    'doiCandidateCount' => (int) ($candidateKeyDiagnostics['doiCandidateCount'] ?? 0),
+                    'openAlexIdCandidateCount' => (int) ($candidateKeyDiagnostics['openAlexIdCandidateCount']
+                        ?? ($candidateKeyDiagnostics['doiCandidateCount'] ?? 0)),
+                    'hydratedCount' => (int) ($candidateKeyDiagnostics['hydratedCount']
+                        ?? ($candidateKeyDiagnostics['doiHydratedCount'] ?? 0)),
+                    'openAlexMissingCount' => (int) ($candidateKeyDiagnostics['openAlexMissingCount'] ?? 0),
+                    'blockingValidationCount' => (int) ($candidateKeyDiagnostics['blockingValidationCount'] ?? 0),
+                    'deferredValidationCount' => (int) ($candidateKeyDiagnostics['deferredValidationCount'] ?? 0),
+                    'domain' => (string) ($candidateKeyDiagnostics['domain'] ?? $domain),
+                    'lookupRequests' => array_values((array) ($candidateKeyDiagnostics['lookupRequests'] ?? [])),
+                    'semanticScholarFallbackCount' => (int) ($candidateKeyDiagnostics['semanticScholarFallbackCount'] ?? 0),
+                    'backgroundValidationCompleted' => ($candidateKeyDiagnostics['backgroundValidationCompleted'] ?? false) === true,
+                    'backgroundValidatedCount' => (int) ($candidateKeyDiagnostics['backgroundValidatedCount'] ?? 0),
+                    'validationWarning' => (int) ($candidateKeyDiagnostics['openAlexMissingCount'] ?? 0) > 0
+                        ? [
+                            'status' => 'warning',
+                            'missingCount' => (int) $candidateKeyDiagnostics['openAlexMissingCount'],
+                            'messageKey' => 'semanticSearchProgressDoiHydrationWarning',
+                            'message' => qpmPublicSearchGetFrontendTranslation(
+                                'semanticSearchProgressDoiHydrationWarning',
+                                (($request['responseOptions']['language'] ?? 'da') === 'en') ? 'en' : 'dk',
+                                'Some external results could not be validated via OpenAlex.'
+                            ),
+                        ]
+                        : null,
+                ]);
+                qpmPublicSearchProcessDetailsMergeStep($collector, 'finalizeValidateDoiFetch', [
+                    'activeRules' => array_values((array) ($candidateKeyDiagnostics['activeRules'] ?? [])),
+                    'ruleGroups' => array_values((array) ($candidateKeyDiagnostics['ruleGroups'] ?? [])),
+                    'publicationDateYears' => array_values((array) ($candidateKeyDiagnostics['publicationDateYears'] ?? [])),
+                    'validatedCount' => (int) ($candidateKeyDiagnostics['validatedCount']
+                        ?? ($candidateKeyDiagnostics['doiCandidateCount'] ?? 0)),
+                    'allowedCount' => (int) ($candidateKeyDiagnostics['allowedCount'] ?? 0),
+                    'excludedCount' => (int) ($candidateKeyDiagnostics['excludedCount']
+                        ?? ($candidateKeyDiagnostics['doiRejectedByFilterCount'] ?? 0)),
+                    'excludedExamples' => array_values((array) ($candidateKeyDiagnostics['excludedExamples'] ?? [])),
+                ]);
+                if ((int) ($candidateKeyDiagnostics['doiCandidateCount'] ?? 0) <= 0) {
+                    qpmPublicSearchProcessDetailsEmitStep(
+                        $collector,
+                        'finalizeValidateDoiFetch',
+                        $progressCallback,
+                        true
+                    );
+                }
+            }
+        }
 
+        if ($pipelineCacheTtl > 0) {
+            qpmPublicSearchWriteCacheValue(
+                'search-pipeline',
+                $pipelineCacheKey,
+                [
+                    'resolvedQueries' => qpmPublicSearchStripResolvedQueriesForPipelineCache($resolvedQueries),
+                    'resultRefs' => array_values($resultRefs),
+                    'orderedCandidates' => array_values($orderedCandidates),
+                    'hybridOrdering' => [
+                        'pmids' => array_values((array) ($hybridOrdering['pmids'] ?? [])),
+                        'refs' => array_values($resultRefs),
+                    ],
+                    'warnings' => array_values($warnings),
+                    'diagnostics' => $diagnostics,
+                    'totalCount' => $totalCount,
+                ],
+                $pipelineCacheTtl
+            );
+        }
+
+        qpm_public_search_hydrate_page:
         $candidateByKey = [];
         foreach ($orderedCandidates as $candidate) {
             $pmid = qpmPublicSearchNormalizePmid($candidate['pmid'] ?? '');
@@ -7351,20 +11008,60 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
             'groupKey' => 'semanticSearchProcessGroupDisplay',
             'messageKey' => $hydrateMessageKey,
         ]);
+        if ($collector !== null) {
+            $hydrateDois = array_values(array_filter(array_map(
+                static fn($ref) => trim((string) ($ref['doi'] ?? ($ref['candidate']['doi'] ?? ''))),
+                $doiRefs
+            )));
+            // Store the in-progress hydrate shape for the final export, but do not
+            // stream it yet — streaming an incomplete payload would let the UI
+            // mark the step completed before hydratedCount/missingCount exist.
+            qpmPublicSearchProcessDetailsSetStep($collector, 'finalizeHydrate', [
+                'role' => 'unifiedEngineHydration',
+                'requestedCount' => count($refsToHydrate),
+                'pmidCount' => count($pmidsToHydrate),
+                'externalReferenceCount' => count($doiRefs),
+                'hydratedCount' => 0,
+                'missingCount' => 0,
+                'lookupRequests' => !empty($hydrateDois)
+                    ? [[
+                        'endpoint' => 'OpenAlex work lookup',
+                        'parameter' => 'dois',
+                        'count' => count($hydrateDois),
+                        'values' => array_slice($hydrateDois, 0, 25),
+                        'truncated' => count($hydrateDois) > 25,
+                        'domain' => $domain,
+                    ]]
+                    : [],
+                'openAlexMissingCount' => 0,
+            ]);
+        }
         $summaryMap = qpmPublicSearchFetchPubMedSummaryRecords($pmidsToHydrate, $domain);
         $abstractMap = ($request['responseOptions']['includeAbstracts'] ?? true) === true
             ? qpmPublicSearchFetchPubMedAbstractMap($pmidsToHydrate, $domain)
             : [];
         $doiWorkMap = [];
+        $doiEntriesNeedingFetch = [];
         foreach ($doiRefs as $ref) {
             $key = (string) ($ref['key'] ?? '');
             $hydratedWork = isset($ref['hydratedWork']) && is_array($ref['hydratedWork']) ? $ref['hydratedWork'] : null;
-            if (!is_array($hydratedWork)) {
-                $candidate = isset($ref['candidate']) && is_array($ref['candidate']) ? $ref['candidate'] : [];
-                $hydratedWork = qpmPublicSearchFetchOpenAlexWorkByCandidate($candidate, $domain);
-            }
             if (is_array($hydratedWork)) {
                 $doiWorkMap[$key] = $hydratedWork;
+                continue;
+            }
+            $candidate = isset($ref['candidate']) && is_array($ref['candidate']) ? $ref['candidate'] : [];
+            $doiEntriesNeedingFetch[] = [
+                'key' => $key,
+                'candidate' => $candidate,
+                'doi' => qpmPublicSearchNormalizeDoi($candidate['doi'] ?? ($ref['doi'] ?? '')),
+                'openAlexId' => trim((string) ($candidate['openAlexId'] ?? '')),
+            ];
+        }
+        if (!empty($doiEntriesNeedingFetch)) {
+            foreach (qpmPublicSearchFetchOpenAlexWorksByCandidatesParallel($doiEntriesNeedingFetch, $domain) as $key => $work) {
+                if (is_array($work)) {
+                    $doiWorkMap[$key] = $work;
+                }
             }
         }
 
@@ -7394,6 +11091,19 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
             }
         }
 
+        if ($collector !== null) {
+            $hydratedCount = count($results);
+            $requestedCount = count($refsToHydrate);
+            qpmPublicSearchProcessDetailsMergeStep($collector, 'finalizeHydrate', [
+                'hydratedCount' => $hydratedCount,
+                'missingCount' => max(0, $requestedCount - $hydratedCount),
+                'openAlexMissingCount' => max(0, count($doiRefs) - count($doiWorkMap)),
+            ]);
+            // Hydration is complete here; sorting and final reranking are
+            // separate steps and must not inflate its wall-clock duration.
+            qpmPublicSearchProcessDetailsEmitStep($collector, 'finalizeHydrate', $progressCallback, true);
+        }
+
         if (qpmPublicSearchShouldUseSemanticDateOrdering($sortMethod)) {
             qpmPublicSearchEmitProgress($progressCallback, 'finalizeSort', '', [
                 'stepId' => 'finalizeSort',
@@ -7408,6 +11118,14 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
                 $result['rank'] = $pageOffset + $index + 1;
             }
             unset($result);
+            if ($collector !== null) {
+                qpmPublicSearchProcessDetailsSetStep($collector, 'finalizeSort', [
+                    'sortMethod' => $sortMethod,
+                    'inputCount' => $totalCount,
+                    'outputCount' => count($results),
+                ]);
+                qpmPublicSearchProcessDetailsEmitStep($collector, 'finalizeSort', $progressCallback, true);
+            }
         }
 
         // Emitted unconditionally (even when qpmPublicSearchMaybeApplySemanticLlmFinalRerank()
@@ -7421,18 +11139,28 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
             'groupKey' => 'semanticSearchProcessGroupDisplay',
             'messageKey' => 'semanticSearchProgressFinalRerank',
         ]);
-        $results = qpmPublicSearchMaybeApplySemanticLlmFinalRerank($results, $request, $resolvedQueries, $domain);
+        $finalRerankResult = qpmPublicSearchMaybeApplySemanticLlmFinalRerank($results, $request, $resolvedQueries, $domain);
+        $results = $finalRerankResult['results'];
+        $diagnostics['finalRerank'] = $finalRerankResult['detail'] ?? [];
+        if ($collector !== null) {
+            // page.number stays 1-based here (API contract). The frontend
+            // adapter converts to the UI's 0-based page index.
+            qpmPublicSearchProcessDetailsSetStep($collector, 'finalRerank', array_merge(
+                (array) $diagnostics['finalRerank'],
+                [
+                    'renderedCount' => count($results),
+                    'totalCount' => $totalCount,
+                    'page' => $pageNumber,
+                    'pageSize' => $pageSize,
+                ]
+            ));
+            qpmPublicSearchProcessDetailsEmitStep($collector, 'finalRerank', $progressCallback, true);
+        }
         foreach ($results as $index => &$result) {
             $result['rank'] = $pageOffset + $index + 1;
         }
         unset($result);
 
-        qpmPublicSearchEmitProgress($progressCallback, 'finalizeRender', '', [
-            'stepId' => 'finalizeRender',
-            'groupId' => 'finalizeHydrate',
-            'groupKey' => 'semanticSearchProcessGroupDisplay',
-            'messageKey' => 'semanticSearchProgressFinalizeRender',
-        ]);
         $response = qpmPublicSearchBuildFinalResponse(
             $request,
             $resolvedQueries,
@@ -7442,7 +11170,8 @@ if (!function_exists('qpmPublicSearchRunSearch')) {
             $warnings,
             qpmPublicSearchShouldUseSemanticDateOrdering($sortMethod) ? 'semantic_date_sort' : 'deterministic_hybrid',
             $config['matchesWebOrderingByDefault'],
-            $diagnostics
+            $diagnostics,
+            $collector
         );
         if ($searchCacheTtl > 0) {
             qpmPublicSearchWriteCacheValue('search-response', $searchCacheKey, $response, $searchCacheTtl);

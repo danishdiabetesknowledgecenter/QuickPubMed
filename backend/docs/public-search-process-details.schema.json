@@ -30,26 +30,20 @@
     "stepId": {
       "type": "string",
       "enum": [
-        "prepare",
+        "semanticIntent",
         "semanticQuery",
         "searchString",
         "mesh",
-        "optimize",
         "semanticScholar",
         "openAlex",
         "elicit",
         "pubmed",
         "rerank",
-        "finalizeCollect",
         "finalizeValidatePmid",
         "finalizeValidateDoiFetch",
-        "finalizeValidateDoiSource",
-        "finalizeValidateDoiRules",
         "finalizeHydrate",
         "finalizeSort",
-        "finalRerank",
-        "finalizeRender",
-        "finalizeSelected"
+        "finalRerank"
       ]
     },
     "sourceId": {

@@ -23,6 +23,7 @@
 
         Core settings:
         - data-domain: Selects the content domain (e.g. "diabetes"). Empty string uses default.
+          Overridden by URL parameter domain= when present (URL wins).
         - data-language: UI language ("dk" or "en").
         - data-ai-url: Optional URL for "read more about AI" links shown in disclaimers.
           Supports absolute URLs (e.g. "https://example.com/om-ai") and relative URLs
@@ -81,8 +82,10 @@
         URL parameters (case-insensitive keys, IDs are matched case-insensitively)
         ------------------------------------------------------------------------
         Standard app parameters:
-        - topic: Selected topics. Use "ID#scope" and separate multiple with ";;".
-          Example: topic=L10010#s;;L20020#n
+        - domain: Content domain key (e.g. template, diabetes). Wins over data-domain.
+          Written into the composed SearchForm URL whenever a domain is active.
+        - topic: Selected topics. Use "ID#scope" and separate multiple with "," (or legacy ";;").
+          Example: topic=T012345#s,T012346#n
           scope: n = narrow, s = standard, b = broad
         - advanced: true|false (advanced search mode)
         - sort: sort method key
