@@ -826,6 +826,8 @@ define('NEMPUBMED_PUBLIC_API', [
     'responseCachePolicy' => 'no-store',
     'searchResultCacheTtlSeconds' => 60,
     'hydrationCacheTtlSeconds' => 1800,
+    'searchCacheMaxFilesPerNamespace' => 500,
+    'searchCacheMinAgeSecondsBeforeEvict' => 60,
     'concurrentSearchLimit' => 10,
     'busyRetryAfterSeconds' => 120,
     'searchSlotTtlSeconds' => 900,

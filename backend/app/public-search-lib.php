@@ -190,6 +190,8 @@ if (!function_exists('qpmPublicSearchGetConfig')) {
                 : trim((string) ($config['responseCachePolicy'] ?? 'no-store')),
             'searchResultCacheTtlSeconds' => max(0, (int) ($config['searchResultCacheTtlSeconds'] ?? 60)),
             'hydrationCacheTtlSeconds' => max(0, (int) ($config['hydrationCacheTtlSeconds'] ?? 1800)),
+            'searchCacheMaxFilesPerNamespace' => max(50, (int) ($config['searchCacheMaxFilesPerNamespace'] ?? 500)),
+            'searchCacheMinAgeSecondsBeforeEvict' => max(10, (int) ($config['searchCacheMinAgeSecondsBeforeEvict'] ?? 60)),
             'concurrentSearchLimit' => max(1, (int) ($config['concurrentSearchLimit'] ?? 10)),
             'busyRetryAfterSeconds' => max(1, (int) ($config['busyRetryAfterSeconds'] ?? 120)),
             'searchSlotTtlSeconds' => max(60, (int) ($config['searchSlotTtlSeconds'] ?? 900)),
@@ -346,6 +348,11 @@ if (!function_exists('qpmPublicSearchMaybeCleanupCacheNamespace')) {
             . 'public-search-cache-'
             . $normalizedNamespace
             . '-*.bin';
+        $now = time();
+        $config = qpmPublicSearchGetConfig();
+        $maxFiles = max(50, (int) ($config['searchCacheMaxFilesPerNamespace'] ?? 500));
+        $minAgeSeconds = max(10, (int) ($config['searchCacheMinAgeSecondsBeforeEvict'] ?? 60));
+        $survivors = [];
         foreach (glob($pattern) ?: [] as $path) {
             if (!is_file($path)) {
                 continue;
@@ -354,9 +361,33 @@ if (!function_exists('qpmPublicSearchMaybeCleanupCacheNamespace')) {
             $payload = is_string($raw) && $raw !== ''
                 ? @unserialize($raw, ['allowed_classes' => [stdClass::class]])
                 : false;
-            if (!is_array($payload) || (int) ($payload['expiresAt'] ?? 0) < time()) {
+            if (!is_array($payload) || (int) ($payload['expiresAt'] ?? 0) < $now) {
                 @unlink($path);
+                continue;
             }
+            $mtime = @filemtime($path);
+            $survivors[] = [
+                'path' => $path,
+                'mtime' => $mtime === false ? 0 : (int) $mtime,
+            ];
+        }
+        $survivorCount = count($survivors);
+        if ($survivorCount <= $maxFiles) {
+            return;
+        }
+        usort($survivors, static function (array $a, array $b): int {
+            return $a['mtime'] <=> $b['mtime'];
+        });
+        $toRemove = $survivorCount - $maxFiles;
+        foreach ($survivors as $entry) {
+            if ($toRemove <= 0) {
+                break;
+            }
+            if (($now - (int) $entry['mtime']) < $minAgeSeconds) {
+                continue;
+            }
+            @unlink((string) $entry['path']);
+            $toRemove--;
         }
     }
 }
@@ -456,8 +487,12 @@ if (!function_exists('qpmPublicSearchWriteCacheValue')) {
             return;
         }
         if (!@rename($tmpPath, $path)) {
-            @unlink($tmpPath);
-            return;
+            // Windows cannot rename over an existing destination; unlink then retry.
+            @unlink($path);
+            if (!@rename($tmpPath, $path)) {
+                @unlink($tmpPath);
+                return;
+            }
         }
         qpmPublicSearchMaybeCleanupCacheNamespace($namespace);
     }
@@ -490,17 +525,11 @@ if (!function_exists('qpmPublicSearchAcquireExecutionSlot')) {
         $lockPath = qpmPublicSearchEnsureRuntimeDir() . DIRECTORY_SEPARATOR . 'public-search-active-search.lock';
         $fp = @fopen($lockPath, 'c+');
         if ($fp === false) {
-            return [
-                'token' => '',
-                'path' => '',
-            ];
+            throw new RuntimeException('Search capacity unavailable. Please try again shortly.', 503);
         }
         try {
             if (!flock($fp, LOCK_EX)) {
-                return [
-                    'token' => '',
-                    'path' => '',
-                ];
+                throw new RuntimeException('Search capacity unavailable. Please try again shortly.', 503);
             }
             $now = time();
             $pattern = qpmPublicSearchEnsureRuntimeDir() . DIRECTORY_SEPARATOR . 'public-search-active-search-*.lock';
@@ -3456,14 +3485,7 @@ if (!function_exists('qpmPublicSearchConsumeRateLimit')) {
         $path = $dir . DIRECTORY_SEPARATOR . 'public-search-rate-limit-' . $bucket . '.json';
         $fp = @fopen($path, 'c+');
         if ($fp === false) {
-            return [
-                'limit' => $limit,
-                'remaining' => null,
-                'resetAt' => '',
-                'resetInSeconds' => null,
-                'status' => 0,
-                'isLimited' => false,
-            ];
+            throw new RuntimeException('Rate limit store unavailable. Please try again shortly.', 503);
         }
 
         $now = time();
@@ -3473,15 +3495,7 @@ if (!function_exists('qpmPublicSearchConsumeRateLimit')) {
 
         try {
             if (!flock($fp, LOCK_EX)) {
-                fclose($fp);
-                return [
-                    'limit' => $limit,
-                    'remaining' => null,
-                    'resetAt' => '',
-                    'resetInSeconds' => null,
-                    'status' => 0,
-                    'isLimited' => false,
-                ];
+                throw new RuntimeException('Rate limit store unavailable. Please try again shortly.', 503);
             }
             rewind($fp);
             $raw = stream_get_contents($fp);
@@ -3508,7 +3522,9 @@ if (!function_exists('qpmPublicSearchConsumeRateLimit')) {
             fflush($fp);
             flock($fp, LOCK_UN);
         } finally {
-            fclose($fp);
+            if (is_resource($fp)) {
+                fclose($fp);
+            }
         }
 
         $resetAt = $windowStart + 60;
