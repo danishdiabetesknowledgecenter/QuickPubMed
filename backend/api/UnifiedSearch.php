@@ -31,6 +31,7 @@ require_once __DIR__ . '/NlmApiHelpers.php';
 require_once dirname(__DIR__) . '/app/public-search-orchestrator.php';
 
 qpmApplyNlmCorsHeaders('POST, OPTIONS', 'application/json');
+qpmEnforceFirstPartyIpRateLimit('unifiedSearch');
 // A full unified-engine run (LLM translation + MeSH validation + multi-source
 // retrieval + rerank) can legitimately take longer than PHP's default 30s,
 // same reasoning as the other backend/api/*.php scripts' time limit bumps

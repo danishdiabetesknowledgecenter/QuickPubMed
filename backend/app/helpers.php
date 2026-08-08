@@ -1468,3 +1468,185 @@ function qpmReadAllSourceRateLimitSnapshots(): array
     }
     return $snapshots;
 }
+
+/**
+ * Client IP for first-party rate limiting. Uses REMOTE_ADDR only (no
+ * X-Forwarded-For trust) so spoofed headers cannot bypass limits.
+ */
+function qpmClientIpAddress(): string
+{
+    $ip = trim((string) ($_SERVER['REMOTE_ADDR'] ?? ''));
+    return $ip !== '' ? $ip : 'unknown';
+}
+
+/**
+ * @return array{limit: int, remaining: int|null, resetAt: string, resetInSeconds: int|null, status: int, isLimited: bool}
+ */
+function qpmConsumeIpRateLimit(string $routeClass, int $limitPerMinute): array
+{
+    $limit = max(1, $limitPerMinute);
+    $runtimeDir = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'runtime';
+    if (!is_dir($runtimeDir)) {
+        @mkdir($runtimeDir, 0750, true);
+    }
+    $safeClass = preg_replace('/[^a-z0-9_-]+/i', '_', trim($routeClass));
+    if (!is_string($safeClass) || $safeClass === '') {
+        $safeClass = 'default';
+    }
+    $safeIp = preg_replace('/[^a-z0-9\.:_-]+/i', '_', qpmClientIpAddress());
+    if (!is_string($safeIp) || $safeIp === '') {
+        $safeIp = 'unknown';
+    }
+    $path = $runtimeDir . DIRECTORY_SEPARATOR . 'qpm-ip-rate-limit-' . $safeClass . '-' . $safeIp . '.json';
+    $fp = @fopen($path, 'c+');
+    if ($fp === false) {
+        throw new RuntimeException('Rate limit store unavailable. Please try again shortly.', 503);
+    }
+
+    $now = time();
+    $windowStart = $now;
+    $count = 0;
+    $limited = false;
+
+    try {
+        if (!flock($fp, LOCK_EX)) {
+            throw new RuntimeException('Rate limit store unavailable. Please try again shortly.', 503);
+        }
+        rewind($fp);
+        $raw = stream_get_contents($fp);
+        $state = is_string($raw) && trim($raw) !== '' ? json_decode($raw, true) : [];
+        if (is_array($state)) {
+            $windowStart = (int) ($state['windowStart'] ?? $now);
+            $count = (int) ($state['count'] ?? 0);
+        }
+        if ($windowStart <= 0 || ($now - $windowStart) >= 60) {
+            $windowStart = $now;
+            $count = 0;
+        }
+        if ($count >= $limit) {
+            $limited = true;
+        } else {
+            $count++;
+        }
+        ftruncate($fp, 0);
+        rewind($fp);
+        fwrite($fp, json_encode([
+            'windowStart' => $windowStart,
+            'count' => $count,
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        fflush($fp);
+        flock($fp, LOCK_UN);
+    } finally {
+        if (is_resource($fp)) {
+            fclose($fp);
+        }
+    }
+
+    $resetAt = $windowStart + 60;
+    return [
+        'limit' => $limit,
+        'remaining' => max(0, $limit - $count),
+        'resetAt' => gmdate('c', $resetAt),
+        'resetInSeconds' => max(0, $resetAt - $now),
+        'status' => $limited ? 429 : 200,
+        'isLimited' => $limited,
+    ];
+}
+
+/**
+ * Enforce configured first-party IP rate limit for a route class.
+ * Exits with 429/503 JSON on limit or store failure.
+ */
+function qpmEnforceFirstPartyIpRateLimit(string $routeClass): void
+{
+    $defaults = [
+        'unifiedSearch' => 30,
+        'openaiProxy' => 60,
+    ];
+    $limits = $defaults;
+    if (defined('QPM_FIRST_PARTY_IP_RATE_LIMITS') && is_array(QPM_FIRST_PARTY_IP_RATE_LIMITS)) {
+        foreach (QPM_FIRST_PARTY_IP_RATE_LIMITS as $key => $value) {
+            $limits[(string) $key] = (int) $value;
+        }
+    }
+    $limit = (int) ($limits[$routeClass] ?? 0);
+    if ($limit <= 0) {
+        return;
+    }
+    try {
+        $result = qpmConsumeIpRateLimit($routeClass, $limit);
+    } catch (RuntimeException $exception) {
+        $status = $exception->getCode() === 503 ? 503 : 500;
+        http_response_code($status);
+        header('Content-Type: application/json');
+        if ($status === 503) {
+            header('Retry-After: 60');
+        }
+        echo json_encode(['error' => $exception->getMessage()], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    if (($result['isLimited'] ?? false) === true) {
+        $retryAfter = max(1, (int) ($result['resetInSeconds'] ?? 60));
+        http_response_code(429);
+        header('Content-Type: application/json');
+        header('Retry-After: ' . (string) $retryAfter);
+        echo json_encode([
+            'error' => 'Rate limit exceeded',
+            'rateLimit' => $result,
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+}
+
+/**
+ * Allowlisted OpenAI models for first-party proxies. Unknown models map to default.
+ */
+function qpmResolveAllowedOpenAiModel($requestedModel, string $defaultModel = 'gpt-5.5'): string
+{
+    $allowed = [
+        'gpt-5.5',
+        'gpt-5.4-nano',
+        'gpt-5.5-chat-latest',
+        'gpt-4o',
+    ];
+    if (defined('QPM_OPENAI_ALLOWED_MODELS') && is_array(QPM_OPENAI_ALLOWED_MODELS)) {
+        $fromConfig = array_values(array_filter(array_map(
+            static function ($value): string {
+                return trim((string) $value);
+            },
+            QPM_OPENAI_ALLOWED_MODELS
+        ), static function (string $value): bool {
+            return $value !== '';
+        }));
+        if ($fromConfig !== []) {
+            $allowed = $fromConfig;
+        }
+    }
+    $requested = trim((string) $requestedModel);
+    if ($requested !== '' && in_array($requested, $allowed, true)) {
+        return $requested;
+    }
+    $default = trim($defaultModel);
+    if ($default !== '' && in_array($default, $allowed, true)) {
+        return $default;
+    }
+    return $allowed[0] ?? 'gpt-5.5';
+}
+
+function qpmClampOpenAiMaxOutputTokens($value, int $default = 2048, int $max = 4096): int
+{
+    $tokens = (int) $value;
+    if ($tokens <= 0) {
+        return max(1, $default);
+    }
+    return min(max(1, $tokens), max(1, $max));
+}
+
+function qpmClampOpenAiReasoningEffort($value, string $default = 'none'): string
+{
+    $effort = strtolower(trim((string) $value));
+    if (in_array($effort, ['minimal', 'none', 'low', 'medium', 'high', 'xhigh'], true)) {
+        return $effort;
+    }
+    return $default;
+}

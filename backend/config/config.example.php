@@ -845,6 +845,22 @@ define('NEMPUBMED_PUBLIC_API_URL_API_KEY_DEFAULT_DISABLED', true);
 define('NEMPUBMED_PUBLIC_API_RESPONSE_CACHE_POLICY', 'no-store');
 define('NEMPUBMED_PUBLIC_API_GET_RATE_LIMIT', 15);
 
+// First-party backend/api IP rate limits (per client IP per minute).
+// Generous defaults for office NAT; set a class to 0 to disable.
+define('QPM_FIRST_PARTY_IP_RATE_LIMITS', [
+    'unifiedSearch' => 30,
+    'openaiProxy' => 60,
+]);
+
+// Allowlisted OpenAI model names for first-party Summarize/Translate/Rerank proxies.
+// Unknown client-supplied models are mapped to a safe default (not rejected).
+define('QPM_OPENAI_ALLOWED_MODELS', [
+    'gpt-5.5',
+    'gpt-5.4-nano',
+    'gpt-5.5-chat-latest',
+    'gpt-4o',
+]);
+
 define('NEMPUBMED_AUDIT', [
     'enabled' => true,
     'retentionDays' => 30,

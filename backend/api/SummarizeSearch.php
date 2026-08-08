@@ -22,6 +22,7 @@ if (!file_exists($configPath)) {
 }
 
 require_once $configPath;
+require_once __DIR__ . '/NlmApiHelpers.php';
 
 // Verify that constants are defined
 if (!defined('OPENAI_API_KEY') || empty(OPENAI_API_KEY)) {
@@ -31,22 +32,8 @@ if (!defined('OPENAI_API_KEY') || empty(OPENAI_API_KEY)) {
     exit;
 }
 
-// CORS headers - dynamically check origin
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-$allowedOrigin = getAllowedOrigin($origin);
-
-if ($allowedOrigin) {
-    header('Access-Control-Allow-Origin: ' . $allowedOrigin);
-    header('Access-Control-Allow-Credentials: true');
-}
-header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
-
-// Handle preflight
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit(0);
-}
+qpmApplyNlmCorsHeaders('POST, OPTIONS');
+qpmEnforceFirstPartyIpRateLimit('openaiProxy');
 
 // Kun POST tilladt
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -94,17 +81,15 @@ if (isset($prompt['messages']) && is_array($prompt['messages'])) {
 // Byg OpenAI request - using Responses API for gpt-5.5
 // See: https://platform.openai.com/docs/api-reference/responses/create
 $openaiRequest = [
-    'model' => $prompt['model'] ?? 'gpt-5.5-chat-latest',
+    'model' => qpmResolveAllowedOpenAiModel($prompt['model'] ?? null, 'gpt-5.5'),
     'input' => $messages,  // Responses API uses 'input' instead of 'messages'
     'stream' => true
 ];
 
 // gpt-5.5 reasoning parameter
-if (isset($prompt['reasoning']['effort'])) {
-    $openaiRequest['reasoning'] = ['effort' => $prompt['reasoning']['effort']];
-} else {
-    $openaiRequest['reasoning'] = ['effort' => 'none']; // Default - faster
-}
+$openaiRequest['reasoning'] = [
+    'effort' => qpmClampOpenAiReasoningEffort($prompt['reasoning']['effort'] ?? null, 'none'),
+];
 
 // gpt-5.5 text/verbosity parameter
 if (isset($prompt['text']['verbosity'])) {
@@ -115,9 +100,9 @@ if (isset($prompt['text']['verbosity'])) {
 
 // max_output_tokens for gpt-5.5
 if (isset($prompt['max_output_tokens']) && $prompt['max_output_tokens'] !== null) {
-    $openaiRequest['max_output_tokens'] = (int)$prompt['max_output_tokens'];
+    $openaiRequest['max_output_tokens'] = qpmClampOpenAiMaxOutputTokens($prompt['max_output_tokens']);
 } elseif (isset($prompt['max_tokens']) && $prompt['max_tokens'] !== null) {
-    $openaiRequest['max_output_tokens'] = (int)$prompt['max_tokens'];
+    $openaiRequest['max_output_tokens'] = qpmClampOpenAiMaxOutputTokens($prompt['max_tokens']);
 }
 
 // Debug mode - return full prompt without calling OpenAI

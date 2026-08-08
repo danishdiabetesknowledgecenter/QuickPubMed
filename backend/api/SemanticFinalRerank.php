@@ -9,21 +9,10 @@ if (!file_exists($configPath)) {
     $configPath = dirname(__DIR__) . '/config.php';
 }
 require_once $configPath;
+require_once __DIR__ . '/NlmApiHelpers.php';
 
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-$allowedOrigin = getAllowedOrigin($origin);
-if ($allowedOrigin) {
-    header('Access-Control-Allow-Origin: ' . $allowedOrigin);
-    header('Access-Control-Allow-Credentials: true');
-}
-header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
-header('Content-Type: application/json');
-
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
+qpmApplyNlmCorsHeaders('POST, OPTIONS', 'application/json');
+qpmEnforceFirstPartyIpRateLimit('openaiProxy');
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
     http_response_code(405);
@@ -98,15 +87,15 @@ $resultFocus = [
     'label' => qpmSemanticRerankNormalizeString($rawResultFocus['label'] ?? ''),
     'description' => qpmSemanticRerankNormalizeString($rawResultFocus['description'] ?? ''),
 ];
-$model = qpmSemanticRerankNormalizeString($input['model'] ?? 'gpt-5.4-nano');
+$model = qpmResolveAllowedOpenAiModel(
+    qpmSemanticRerankNormalizeString($input['model'] ?? 'gpt-5.4-nano'),
+    'gpt-5.4-nano'
+);
 // reasoning.effort must match the model family (the API rejects mismatches), so it
 // is configurable via QPM_SEMANTIC_LLM_RERANK_CONFIG and passed through from the
 // widget. Fall back to 'none' (valid for the default gpt-5.4 family) when unset.
-$reasoningEffort = strtolower(qpmSemanticRerankNormalizeString($input['reasoningEffort'] ?? ''));
-if (!in_array($reasoningEffort, ['minimal', 'none', 'low', 'medium', 'high', 'xhigh'], true)) {
-    $reasoningEffort = 'none';
-}
-$maxOutputTokens = (int) ($input['maxOutputTokens'] ?? 400);
+$reasoningEffort = qpmClampOpenAiReasoningEffort($input['reasoningEffort'] ?? null, 'none');
+$maxOutputTokens = qpmClampOpenAiMaxOutputTokens($input['maxOutputTokens'] ?? 400, 400, 2048);
 $rawCandidates = isset($input['candidates']) && is_array($input['candidates']) ? $input['candidates'] : [];
 
 $candidates = [];

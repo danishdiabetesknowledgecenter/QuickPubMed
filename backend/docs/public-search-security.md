@@ -3,11 +3,34 @@
 ## Grundregler
 
 - API-nøgler må kun ligge i server-side konfiguration.
-- `public-api` må kun eksponere dokumenterede offentlige routes.
-- Interne backend-filer under `backend/app` og `backend/api` må ikke gøres direkte offentlige via docroot.
-- Search-responser må ikke caches.
+- `public-api` må kun eksponere dokumenterede offentlige routes til eksterne klienter.
+- `backend/app` må ikke eksponeres direkte via docroot.
+- `backend/api` **er** first-party widget-overfladen (CMS script-tag embeds). Den er ikke den offentlige partner-API.
+- HTTP search-responser sendes med `Cache-Control: no-store` (browser/proxy). Det er adskilt fra server-side TTL-cache under `data/runtime/` til pipeline/hydration.
 
-## Auth-model
+## To trust boundaries
+
+### A) Public Search API (`public-api/v1`)
+
+Til eksterne integrationer:
+
+- Auth via API-nøgle
+- Per-klient rate limit
+- Per-klient source ACL (`allowed_sources`, deny-all-by-default)
+- Per-klient CORS (`allowed_origins` / `allow_all_origins`)
+
+### B) First-party widget API (`backend/api`)
+
+Til NemPubMed/VCD-widgetten (fx `UnifiedSearch.php`, Summarize*, TranslateTitle, SemanticFinalRerank, NLM/OpenAlex-proxies):
+
+- CORS allowlist via `ALLOWED_DOMAINS` (+ hardcodede first-party hosts)
+- **Tom Origin er tilladt** (same-origin GET, lokal Vite-proxy, curl/smoke). Kun *ikke-tom* disallowed Origin afvises med 403.
+- Referer-fallback bruges hvor `qpmApplyNlmCorsHeaders` anvendes.
+- IP-baseret rate limit på dyre routes (`unifiedSearch`, `openaiProxy`) via `QPM_FIRST_PARTY_IP_RATE_LIMITS`
+- OpenAI-modeller på first-party proxies allowlistes; ukendte modeller mappes til en sikker default
+- Ingen per-bruger API-nøgle (samme trust-model som før unified engine)
+
+## Auth-model (public-api)
 
 Primær auth:
 
@@ -40,6 +63,8 @@ Konsekvens:
 
 ## Rate limiting
 
+### Public API
+
 Inbound rate limiting håndhæves pr. klient.
 
 - `POST /v1/search`: højere integrationsgrænse
@@ -50,6 +75,17 @@ Når en klient rammer grænsen:
 - returneres `429`
 - hændelsen audit-logges
 - credentials logges ikke i rå form
+
+Hvis rate-limit store ikke kan låses (filesystem-fejl), returneres `503` (fail-closed).
+
+### First-party (`backend/api`)
+
+IP-rate-limit pr. minut (konfigurerbart):
+
+- `unifiedSearch` (default 30)
+- `openaiProxy` (default 60) — Summarize*, TranslateTitle, SemanticFinalRerank
+
+ThemeConfig/PublicContent/Telemetry er bevidst uden IP-limit for ikke at knække page-load.
 
 ## Audit-log
 
@@ -72,6 +108,8 @@ API-nøgler maskeres. Rå header- eller query-string-værdier må aldrig logges.
 
 ## CORS
 
+### Public API
+
 Browserbrug fra tredjepartsdomæner kan køres i to modeller pr. klient:
 
 - allowlist-model via `allowed_origins`
@@ -91,13 +129,20 @@ Model B bør stadig bruges med omtanke:
 - hold kvoterne strammere end for server-side integrationsnøgler
 - forvent ikke, at en browser-nøgle kan holdes hemmelig
 
+### First-party widget
+
+- CMS-sider (fx `*.videncenterfordiabetes.dk`) kalder typisk `backend/api` cross-origin
+- Lokal Vite-dev bør videresende Origin/Referer til PHP (ikke strippe dem)
+- Tom Origin afvises **ikke**
+
 ## Public docroot
 
 Anbefalet deployment:
 
-- webserver peger API-subdomæne eller API-path på `public-api`
+- webserver peger partner-API-subdomæne/path på `public-api`
 - `public-api` indeholder kun ruterne `v1/search`, `v1/health` og `v1/openapi.yaml`
-- intern kode bliver liggende uden for public docroot
+- widget-host eksponerer `backend/api` til allowlistede CMS-origins (first-party)
+- `backend/app` og `backend/config` forbliver uden for public docroot
 
 ## Drift
 
@@ -105,5 +150,6 @@ Gode driftsregler:
 
 - roter API-nøgler ved mistanke om kompromittering
 - hold `GET`-testen slået fra i miljøer, hvor den ikke bruges
-- overvåg `429` og `502`
+- overvåg `429` og `502`/`503`
 - gennemgå audit-loggen jævnligt for ukendte origins eller usædvanlige mønstre
+- hold `data/runtime` på lokal disk uden OneDrive/cloud-sync i produktion (fail-closed locks)

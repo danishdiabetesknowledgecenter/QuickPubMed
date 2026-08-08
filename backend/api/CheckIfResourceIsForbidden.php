@@ -16,56 +16,40 @@ if (!file_exists($configPath)) {
 if (file_exists($configPath)) {
     require_once $configPath;
 }
+require_once __DIR__ . '/NlmApiHelpers.php';
+require_once __DIR__ . '/SummarizeArticleHelpers.php';
 
 // Azure Function URL - use same server as PDF/HTML fetching
 define('AZURE_CHECK_URL', 'https://qpm-openai-service.azurewebsites.net/api/CheckIfResourceIsForbidden');
 
-// CORS headers
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if (function_exists('getAllowedOrigin')) {
-    $allowedOrigin = getAllowedOrigin($origin);
-    if ($allowedOrigin) {
-        header('Access-Control-Allow-Origin: ' . $allowedOrigin);
-        header('Access-Control-Allow-Credentials: true');
-    } elseif ($origin !== '') {
-        http_response_code(403);
-        header('Content-Type: application/json');
-        echo json_encode(['error' => 'Origin is not allowed']);
-        exit;
-    }
-} elseif ($origin !== '') {
-    http_response_code(403);
-    header('Content-Type: application/json');
-    echo json_encode(['error' => 'Origin is not allowed']);
-    exit;
-}
-header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
-header('Vary: Origin');
-
-// Handle preflight
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit(0);
-}
+qpmApplyNlmCorsHeaders('POST, OPTIONS', 'application/json');
 
 // Only POST allowed
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     http_response_code(405);
     header('Content-Type: application/json');
     echo json_encode(['error' => 'Method not allowed']);
     exit;
 }
 
-// Get raw request body and forward to Azure
 $inputBody = file_get_contents('php://input');
+$input = is_string($inputBody) && $inputBody !== '' ? json_decode($inputBody, true) : null;
+if (!is_array($input)) {
+    http_response_code(400);
+    header('Content-Type: application/json');
+    echo json_encode(['error' => 'Invalid JSON input']);
+    exit;
+}
+
+$url = qpmRequirePublicHttpsUrl($input['url'] ?? '', 'url');
+$forwardBody = json_encode(['url' => $url], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
 // Forward to Azure Function
 $ch = curl_init(AZURE_CHECK_URL);
 curl_setopt_array($ch, [
     CURLOPT_POST => true,
-    CURLOPT_POSTFIELDS => $inputBody,
-    CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Accept: */*'],
+    CURLOPT_POSTFIELDS => $forwardBody,
+    CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Accept: application/json'],
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_TIMEOUT => 30,
     CURLOPT_FOLLOWLOCATION => true
@@ -73,7 +57,6 @@ curl_setopt_array($ch, [
 
 $response = curl_exec($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-$contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
 $curlError = curl_error($ch);
 curl_close($ch);
 
@@ -84,9 +67,6 @@ if ($curlError) {
     exit;
 }
 
-// Forward response from Azure
-if ($contentType) {
-    header('Content-Type: ' . $contentType);
-}
-http_response_code($httpCode);
-echo $response;
+header('Content-Type: application/json');
+http_response_code($httpCode > 0 ? $httpCode : 502);
+echo is_string($response) ? $response : json_encode(['error' => 'Empty upstream response']);

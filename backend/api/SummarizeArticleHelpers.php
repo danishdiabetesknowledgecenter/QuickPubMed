@@ -15,6 +15,10 @@ function qpmLoadApiConfigOrFail() {
 }
 
 function qpmApplyStrictCorsPostJson() {
+    if (function_exists('qpmApplyNlmCorsHeaders')) {
+        qpmApplyNlmCorsHeaders('POST, OPTIONS');
+        return;
+    }
     $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
     if (function_exists('getAllowedOrigin')) {
         $allowedOrigin = getAllowedOrigin($origin);
@@ -200,24 +204,30 @@ function qpmBuildStreamingOpenAiRequest($prompt, $extractedText) {
         $messages[] = ['role' => 'user', 'content' => $promptText];
     }
 
+    $defaultModel = function_exists('qpmResolveAllowedOpenAiModel')
+        ? qpmResolveAllowedOpenAiModel($prompt['model'] ?? null, 'gpt-5.5')
+        : (string) ($prompt['model'] ?? 'gpt-5.5');
     $openaiRequest = [
-        'model' => $prompt['model'] ?? 'gpt-4o',
+        'model' => $defaultModel,
         'input' => $messages,
         'stream' => true
     ];
 
-    if (isset($prompt['reasoning']['effort'])) {
-        $openaiRequest['reasoning'] = ['effort' => $prompt['reasoning']['effort']];
-    } else {
-        $openaiRequest['reasoning'] = ['effort' => 'none'];
-    }
+    $effort = function_exists('qpmClampOpenAiReasoningEffort')
+        ? qpmClampOpenAiReasoningEffort($prompt['reasoning']['effort'] ?? null, 'none')
+        : (string) ($prompt['reasoning']['effort'] ?? 'none');
+    $openaiRequest['reasoning'] = ['effort' => $effort];
 
     $openaiRequest['text'] = ['format' => ['type' => 'json_object']];
 
     if (isset($prompt['max_output_tokens']) && $prompt['max_output_tokens'] !== null) {
-        $openaiRequest['max_output_tokens'] = (int)$prompt['max_output_tokens'];
+        $openaiRequest['max_output_tokens'] = function_exists('qpmClampOpenAiMaxOutputTokens')
+            ? qpmClampOpenAiMaxOutputTokens($prompt['max_output_tokens'])
+            : (int) $prompt['max_output_tokens'];
     } elseif (isset($prompt['max_tokens']) && $prompt['max_tokens'] !== null) {
-        $openaiRequest['max_output_tokens'] = (int)$prompt['max_tokens'];
+        $openaiRequest['max_output_tokens'] = function_exists('qpmClampOpenAiMaxOutputTokens')
+            ? qpmClampOpenAiMaxOutputTokens($prompt['max_tokens'])
+            : (int) $prompt['max_tokens'];
     }
 
     return $openaiRequest;

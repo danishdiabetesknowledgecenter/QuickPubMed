@@ -11,12 +11,14 @@ ini_set('log_errors', 1);
 
 require_once __DIR__ . '/SummarizeArticleHelpers.php';
 qpmLoadApiConfigOrFail();
+require_once __DIR__ . '/NlmApiHelpers.php';
 require_once __DIR__ . '/TextFetchCache.php';
 
 // Azure Function URL for fetching HTML text only
 define('AZURE_FETCH_HTML_URL', 'https://qpm-openai-service.azurewebsites.net/api/FetchHTMLText');
 
 qpmApplyStrictCorsPostJson();
+qpmEnforceFirstPartyIpRateLimit('openaiProxy');
 qpmRequirePostMethod();
 $input = qpmReadJsonInputOrFail();
 

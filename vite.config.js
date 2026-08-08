@@ -23,13 +23,6 @@ function toOutputName(name, fallback = "chunk") {
   return normalized || fallback;
 }
 
-function stripBrowserProxyHeaders(proxy) {
-  proxy.on("proxyReq", (proxyReq) => {
-    proxyReq.removeHeader("origin");
-    proxyReq.removeHeader("referer");
-  });
-}
-
 export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, __dirname, "");
   const backendProxyTarget =
@@ -57,7 +50,7 @@ export default defineConfig(({ command, mode }) => {
           target: backendProxyTarget,
           changeOrigin: true,
           secure: true,
-          configure: stripBrowserProxyHeaders,
+          // Forward Origin/Referer so local PHP CORS matches production browser behaviour.
         },
         "/semantic-scholar-api": {
           target: "https://api.semanticscholar.org",
