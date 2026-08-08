@@ -136,7 +136,8 @@ Lange payloads: brug form-POST (body). Rene GET-URL’er er begrænset af webser
   "focus": "highest-evidence",
   "page": {
     "number": 1,
-    "size": 10
+    "size": 10,
+    "offset": 0
   },
   "translation": {
     "mode": "auto"
@@ -146,7 +147,8 @@ Lange payloads: brug form-POST (body). Rene GET-URL’er er begrænset af webser
     "includeResolvedQueries": true,
     "includeDiagnostics": false,
     "stream": false,
-    "language": "da"
+    "language": "da",
+    "includeProcessDetails": false
   },
   "hardFilters": {
     "languages": ["en"],
@@ -507,6 +509,22 @@ Hvert resultat i `results` indeholder desuden en fast, ensartet mængde berigede
 
 `citationCount` og `isOpenAccess` udfyldes fra Semantic Scholar-kandidatdata, når et resultat er hydreret via PubMed og selv har været en Semantic Scholar-kandidat i søgningen. Findes der ingen sådan kandidatdata, forbliver felterne `null`/`""` — dette er en bevidst "data findes ikke"-tilstand, ikke en fejl.
 
+### `page`
+
+- `number` (default `1`): 1-baseret sidenummer
+- `size` (default `25`, max `100`): resultater pr. side
+- `offset` (valgfri, `>= 0`): absolut offset i den ordnede kandidatliste. Når sat, bruges den i stedet for `(number - 1) * size`
+
+### `responseOptions.includeProcessDetails`
+
+Når `true`:
+
+- success-svar får et `processDetails`-objekt (sprogneutrale trin/kilde-diagnostik)
+- aktiverer internt også resolved queries/diagnostics for requesten
+- ved `422`/`5xx` (når collector findes) returneres `processDetails` også i fejl-payloaden
+
+Default er `false` (bagudkompatibelt).
+
 ## Fejl
 
 Typiske fejlstatuskoder:
@@ -517,7 +535,7 @@ Typiske fejlstatuskoder:
 - `422`: request-validering fejlede
 - `429`: rate limit overskredet
 - `502`: upstream-kilde fejlede
-- `503`: serveren er midlertidigt fuldt optaget
+- `503`: serveren er midlertidigt fuldt optaget (kapacitet eller lock-store utilgængelig)
 
 ### `502`-detaljer
 
@@ -538,8 +556,10 @@ Typiske underliggende årsager:
 
 ## Cache
 
-Search-responser sendes med:
+HTTP-svar sendes med:
 
 - `Cache-Control: no-store, no-cache, must-revalidate`
 - `Pragma: no-cache`
 - `Expires: 0`
+
+Det er **browser/proxy**-no-store. Serveren har separat TTL-cache under `data/runtime/` (pipeline, hydration, rerank). `responseOptions.noCache` / `nocache=1` springer search-response- og LLM-slutrerank-cache over for det enkelte kald.

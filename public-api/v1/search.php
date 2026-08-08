@@ -84,7 +84,9 @@ try {
         'semanticScholar' => qpmPublicSearchClientSourceApiKey($client, 'semanticScholar'),
         'elicit' => qpmPublicSearchClientSourceApiKey($client, 'elicit'),
     ];
-    $requestForAudit = $request;
+    // Keep a live reference so partial processDetails collected inside
+    // qpmPublicSearchRunSearch() remain available on error/SSE failure paths.
+    $requestForAudit = &$request;
     $streamEnabled = (($request['responseOptions']['stream'] ?? false) === true);
     $executionSlot = qpmPublicSearchAcquireExecutionSlot((int) ($config['concurrentSearchLimit'] ?? 10));
 
@@ -171,21 +173,27 @@ try {
         'latencyMs' => (int) round((microtime(true) - $startedAt) * 1000),
         'error' => $exception->getMessage(),
     ]);
+    $validationErrorPayload = ['error' => $exception->getMessage()];
+    if (
+        is_array($requestForAudit)
+        && (($requestForAudit['responseOptions']['includeProcessDetails'] ?? false) === true)
+        && isset($requestForAudit['_processDetails'])
+        && is_array($requestForAudit['_processDetails'])
+    ) {
+        $validationErrorPayload['processDetails'] = qpmPublicSearchProcessDetailsExport($requestForAudit['_processDetails']);
+    }
     if ($streamStarted) {
-        qpmPublicSearchEmitSseEvent('error', [
+        qpmPublicSearchEmitSseEvent('error', array_merge($validationErrorPayload, [
             'status' => $status,
-            'error' => $exception->getMessage(),
             'timestamp' => gmdate('c'),
-        ]);
+        ]));
         qpmPublicSearchReleaseExecutionSlot($executionSlot);
         $executionSlot = null;
         exit;
     }
     qpmPublicSearchReleaseExecutionSlot($executionSlot);
     $executionSlot = null;
-    qpmPublicSearchRespondJson($status, [
-        'error' => $exception->getMessage(),
-    ]);
+    qpmPublicSearchRespondJson($status, $validationErrorPayload);
 } catch (RuntimeException $exception) {
     $status = $exception->getCode();
     if (!in_array($status, [401, 403, 429, 502, 503], true)) {
@@ -220,6 +228,14 @@ try {
         'latencyMs' => (int) round((microtime(true) - $startedAt) * 1000),
         'error' => $exception->getMessage(),
     ]);
+    if (
+        is_array($requestForAudit)
+        && (($requestForAudit['responseOptions']['includeProcessDetails'] ?? false) === true)
+        && isset($requestForAudit['_processDetails'])
+        && is_array($requestForAudit['_processDetails'])
+    ) {
+        $errorPayload['processDetails'] = qpmPublicSearchProcessDetailsExport($requestForAudit['_processDetails']);
+    }
     if ($streamStarted) {
         qpmPublicSearchEmitSseEvent('error', array_merge($errorPayload, [
             'status' => $status,

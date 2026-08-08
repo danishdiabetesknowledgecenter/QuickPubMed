@@ -460,6 +460,13 @@ components:
               minimum: 1
               maximum: 100
               default: 25
+            offset:
+              type: integer
+              minimum: 0
+              description: >-
+                Valgfri absolut offset i den ordnede kandidatliste. Når sat,
+                bruges den i stedet for (number-1)*size til at vælge vinduet
+                af resultater. Nyttig til cursor-agtig pagination.
         translation:
           type: object
           additionalProperties: false
@@ -485,7 +492,11 @@ components:
               enum: [da, en]
             includeProcessDetails:
               type: boolean
-              description: "Inkluderer et detaljeret processDetails-objekt i svaret (samme trin/kilde-diagnostik som webapp-widgeten)."
+              description: >-
+                Inkluderer et detaljeret processDetails-objekt i success-svar
+                og på fejlveje (422/5xx), når collector findes. Aktiverer internt
+                også resolved queries/diagnostics for den pågældende request
+                (samme trin/kilde-diagnostik som webapp-widgeten).
             noCache:
               type: boolean
               default: false
