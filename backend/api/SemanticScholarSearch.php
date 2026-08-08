@@ -284,41 +284,6 @@ function qpmBuildSemanticScholarSearchQueryString(
 }
 
 /**
- * Extract unique PubMed IDs from a Semantic Scholar response payload.
- *
- * @param array<string,mixed> $decoded
- * @return array<int,string>
- */
-function qpmExtractSemanticScholarPmids(array $decoded): array
-{
-    $pmids = [];
-    $data = $decoded['data'] ?? [];
-    if (!is_array($data)) {
-        return [];
-    }
-
-    foreach ($data as $paper) {
-        if (!is_array($paper)) {
-            continue;
-        }
-        $externalIds = $paper['externalIds'] ?? null;
-        if (!is_array($externalIds)) {
-            continue;
-        }
-        $pubmedId = $externalIds['PubMed'] ?? null;
-        if ($pubmedId === null) {
-            continue;
-        }
-        $pmid = trim((string)$pubmedId);
-        if ($pmid !== '' && preg_match('/^[0-9]+$/', $pmid)) {
-            $pmids[$pmid] = true;
-        }
-    }
-
-    return array_values(array_keys($pmids));
-}
-
-/**
  * Normalize DOI values from Semantic Scholar externalIds.
  *
  * @param mixed $value

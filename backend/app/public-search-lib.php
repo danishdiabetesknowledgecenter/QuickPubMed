@@ -37,17 +37,6 @@ if (!function_exists('qpmPublicSearchBoolValue')) {
     }
 }
 
-if (!function_exists('qpmPublicSearchNormalizeString')) {
-    /**
-     * @param mixed $value
-     * @return string
-     */
-    function qpmPublicSearchNormalizeString($value): string
-    {
-        return trim((string) $value);
-    }
-}
-
 if (!function_exists('qpmPublicSearchNormalizeResponseLanguage')) {
     /**
      * @param mixed $value

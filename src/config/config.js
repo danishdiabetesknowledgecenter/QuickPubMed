@@ -1,7 +1,6 @@
 import { reactive } from "vue";
 import { settings } from "@/config/settings.js";
 import { getFetchCredentialsForUrl } from "@/utils/fetchCredentials.js";
-import { getSearchFlowDebugUrlParams } from "@/utils/searchFlowDebug.js";
 
 export const config = reactive({
   domain: "", // Default domain
@@ -19,7 +18,6 @@ export const config = reactive({
   defaultRerankProfileId: "", // Default selectable rerank profile id
   telemetryConfig: {}, // Frontend-safe telemetry settings from backend config (QPM_TELEMETRY_CONFIG)
   meshValidationObserveOnly: false, // When true, MeSH validator returns original query unchanged
-  unifiedFrontendEnabled: true, // Compatibility field; SearchForm is permanently bound to the shared PHP engine.
   translationSourcesByDomain: {}, // Domain-specific source availability fallback: { domainKey: ["pubmed", ...] }
   elicitGated: false, // Global: backend says Elicit is gated and caller is not unlocked
   theme: {}, // Global CSS custom properties to override :root defaults
@@ -247,38 +245,6 @@ function safeSetLocalStorage(key, value) {
   } catch (_error) {
     /* ignore quota/privacy errors */
   }
-}
-
-// Additive frontend feature flag check (unified-search-engine-full-parity
-// plan, Phase 7). Supports a '?unifiedEngine=1' / '?unifiedEngine=0' URL
-// override (not persisted) so QA can opt in/out per-tab without a deploy,
-// matching the existing '?qpmdebug=1' convention used elsewhere in the app.
-// Falls back to the backend-configured default (config.unifiedFrontendEnabled)
-// when no URL override is present.
-// Reads only the '?unifiedEngine=1' / '?unifiedEngine=0' URL (or hash-query)
-// override, without the backend-configured fallback. Returns true/false when
-// an explicit override is present, or null when absent. Callers should read
-// this ONCE (e.g. in a component's data()) and cache the result, since
-// SearchForm.vue rewrites the visible URL during normal use and only
-// preserves its own known parameters - a live re-check later in the session
-// would incorrectly see the override as gone.
-export function getUnifiedFrontendUrlOverride() {
-  if (typeof window === "undefined" || !window.location) return null;
-  try {
-    // Reuses the same URL+hash query merging as the existing '?qpmdebug=1'
-    // convention (searchFlowDebug.js), so the override also works through
-    // hash-based embeds.
-    const params = getSearchFlowDebugUrlParams(window.location);
-    if (!params.has("unifiedEngine")) return null;
-    const raw = String(params.get("unifiedEngine") || "").trim().toLowerCase();
-    return raw === "1" || raw === "true";
-  } catch (_error) {
-    return null;
-  }
-}
-
-export function isUnifiedFrontendEnabled() {
-  return true;
 }
 
 export function getStoredElicitUnlockKey() {
@@ -582,9 +548,6 @@ export async function loadThemeOverridesFromBackend(domain, apiBaseUrl) {
 
       if (typeof payload.meshValidationObserveOnly === "boolean") {
         config.meshValidationObserveOnly = payload.meshValidationObserveOnly;
-      }
-      if (typeof payload.unifiedFrontendEnabled === "boolean") {
-        config.unifiedFrontendEnabled = payload.unifiedFrontendEnabled;
       }
 
       themeConfigCache.set(cacheKey, { expiresAt: Date.now() + THEME_CONFIG_CACHE_TTL_MS });

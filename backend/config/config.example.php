@@ -132,16 +132,6 @@ define('QPM_SEMANTIC_SOURCE_LIMITS', [
 // OpenAlex/Semantic Scholar/Elicit).
 define('QPM_UNIFIED_SEARCH_ENGINE_ENABLED', false);
 
-// When true, the website widget (SearchForm.vue) itself calls the unified
-// /v1/search endpoint above instead of running its own independent JS
-// pipeline (query translation, source fetch, rerank, hard filters,
-// hydration, LLM final rerank). Off by default; the existing JS pipeline is
-// never removed, only additively bypassed when this is true. Independent of
-// QPM_UNIFIED_SEARCH_ENGINE_ENABLED above (which only affects the public
-// API) - both should normally be enabled together once verified, since this
-// flag's whole purpose is to make the website use the same engine as the API.
-define('QPM_UNIFIED_FRONTEND_ENABLED', false);
-
 // Optional DOI-only post-validation rules (Phase 4), only applied when the
 // unified engine above is enabled, and only to candidates without a PMID
 // (PMID-backed candidates already went through PubMed's own MeSH-based hard
