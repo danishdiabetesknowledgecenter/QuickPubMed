@@ -891,3 +891,10 @@ components:
       properties:
         error:
           type: string
+        processDetails:
+          type: object
+          additionalProperties: true
+          description: >-
+            Kun til stede når responseOptions.includeProcessDetails=true og
+            en collector fandtes før fejlen (typisk 422/5xx). Samme redigerede
+            kontrakt som i success-svar.

@@ -36,8 +36,8 @@ Query-parametre er **case-insensitive**; kanonisk form er **kun små bogstaver**
 
 Hvis du vil bruge et rent API-hostnavn som `api.nempubmed.dk`, skal webserveren pege på `public-api`, ikke på `backend/api`.
 
-- `public-api` er den offentlige docroot
-- `backend/api` er fortsat intern backend-overflade
+- `public-api` er den offentlige partner-API-docroot (`/v1/search`, `/v1/health`, …)
+- `backend/api` er first-party widget-overfladen (CMS embeds); den er ikke partner-API’et, men skal være nåbar for allowlistede widget-origins
 
 ## Browser-origins
 
