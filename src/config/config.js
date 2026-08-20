@@ -258,23 +258,13 @@ export function setStoredElicitUnlockKey(value) {
   safeSetLocalStorage(ELICIT_UNLOCK_STORAGE_KEY, normalized || null);
 }
 
-// Shared prompt helper used wherever a locked Elicit option is surfaced in the
-// UI. Shows a prompt for the unlock code, persists it, and re-fetches the
-// backend theme config so runtimeConfig.elicitGated / translationSources are
-// refreshed in place (no page reload — that would drop dynamically-loaded CMS
-// styles). A custom window event is dispatched afterwards so SearchForm can
-// react and auto-select Elicit when appropriate.
-export async function promptForElicitUnlockKey(getString) {
-  if (typeof window === "undefined" || typeof window.prompt !== "function") {
-    return;
-  }
-  const fallback = "Indtast kode for at låse op for ekstra AI-kilde (Elicit).";
-  const promptText =
-    (typeof getString === "function" && getString("elicitUnlockPromptMessage")) || fallback;
-  const existing = getStoredElicitUnlockKey();
-  const input = window.prompt(promptText, existing || "");
-  if (input === null) return;
-  const trimmed = String(input).trim();
+function getElicitUnlockPromptText(getString, key, fallback) {
+  if (typeof getString !== "function") return fallback;
+  const value = getString(key);
+  return typeof value === "string" && value.trim() !== "" ? value : fallback;
+}
+
+async function submitElicitUnlockKey(trimmed) {
   setStoredElicitUnlockKey(trimmed);
   const wasGated = config.elicitGated === true;
   // Drop any cached theme config response so the fresh fetch actually hits
@@ -302,15 +292,172 @@ export async function promptForElicitUnlockKey(getString) {
       })
     );
   }
-  // Show an inline message when the user submitted a non-empty code that the
-  // backend rejected (i.e. Elicit is still gated after the refresh).
-  if (trimmed && config.elicitGated === true && typeof window.alert === "function") {
-    const errorFallback = "Forkert kode – ekstra AI-kilde (Elicit) er fortsat låst.";
-    const errorMessage =
-      (typeof getString === "function" && getString("elicitUnlockInvalidCodeMessage")) ||
-      errorFallback;
-    window.alert(errorMessage);
+}
+
+function closeElicitUnlockKeyPrompt(overlay, restoreFocus) {
+  if (overlay && overlay.parentNode) {
+    overlay.parentNode.removeChild(overlay);
   }
+  if (
+    restoreFocus instanceof HTMLElement &&
+    typeof restoreFocus.focus === "function" &&
+    document.contains(restoreFocus)
+  ) {
+    restoreFocus.focus();
+  }
+}
+
+// Custom form instead of window.prompt: iOS Safari does not let the keyboard
+// Go key confirm a native prompt, and it also applies autocorrect/capitalization
+// that cannot be turned off on window.prompt. The form submits on Go and keeps
+// the typed code unchanged.
+function openElicitUnlockKeyPrompt(getString, defaultValue) {
+  return new Promise((resolve) => {
+    if (typeof document === "undefined" || !document.body) {
+      resolve(null);
+      return;
+    }
+
+    const existingOverlay = document.getElementById("mugin-elicit-unlock-dialog");
+    if (existingOverlay) {
+      existingOverlay.parentNode.removeChild(existingOverlay);
+    }
+
+    const restoreFocus =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    let settled = false;
+    const finish = (value) => {
+      if (settled) return;
+      settled = true;
+      document.removeEventListener("keydown", onDocumentKeyDown, true);
+      closeElicitUnlockKeyPrompt(overlay, restoreFocus);
+      resolve(value);
+    };
+
+    const overlay = document.createElement("div");
+    overlay.id = "mugin-elicit-unlock-dialog";
+    overlay.className = "mugin_elicitUnlockOverlay";
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    overlay.setAttribute("aria-labelledby", "mugin-elicit-unlock-title");
+
+    const panel = document.createElement("div");
+    panel.className = "mugin_elicitUnlockPanel";
+
+    const form = document.createElement("form");
+    form.className = "mugin_elicitUnlockForm";
+    form.setAttribute("novalidate", "");
+    form.setAttribute("autocomplete", "off");
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (settled || submitBtn.disabled) return;
+      const trimmed = String(input.value || "").trim();
+      errorEl.hidden = true;
+      errorEl.textContent = "";
+      submitBtn.disabled = true;
+      cancelBtn.disabled = true;
+      await submitElicitUnlockKey(trimmed);
+      if (trimmed && config.elicitGated === true) {
+        errorEl.textContent = getElicitUnlockPromptText(
+          getString,
+          "elicitUnlockInvalidCodeMessage",
+          "Forkert kode – ekstra AI-kilde (Elicit) er fortsat låst."
+        );
+        errorEl.hidden = false;
+        submitBtn.disabled = false;
+        cancelBtn.disabled = false;
+        input.focus();
+        input.select();
+        return;
+      }
+      finish(trimmed);
+    });
+
+    const title = document.createElement("p");
+    title.id = "mugin-elicit-unlock-title";
+    title.className = "mugin_elicitUnlockTitle";
+    title.textContent = getElicitUnlockPromptText(
+      getString,
+      "elicitUnlockPromptMessage",
+      "Indtast kode for at låse op for ekstra AI-kilde (Elicit)."
+    );
+
+    const input = document.createElement("input");
+    input.className = "mugin_elicitUnlockInput";
+    input.type = "text";
+    input.name = "muginElicitUnlockCode";
+    input.value = defaultValue || "";
+    input.setAttribute("aria-labelledby", "mugin-elicit-unlock-title");
+    input.setAttribute("autocomplete", "off");
+    input.setAttribute("autocorrect", "off");
+    input.setAttribute("autocapitalize", "none");
+    input.setAttribute("spellcheck", "false");
+    input.setAttribute("enterkeyhint", "go");
+    input.setAttribute("inputmode", "text");
+    input.autocomplete = "off";
+    input.spellcheck = false;
+    input.autocapitalize = "none";
+
+    const errorEl = document.createElement("p");
+    errorEl.className = "mugin_elicitUnlockError";
+    errorEl.setAttribute("role", "alert");
+    errorEl.hidden = true;
+
+    const actions = document.createElement("div");
+    actions.className = "mugin_elicitUnlockActions";
+
+    const cancelBtn = document.createElement("button");
+    cancelBtn.type = "button";
+    cancelBtn.className = "mugin_elicitUnlockCancel";
+    cancelBtn.textContent = getElicitUnlockPromptText(getString, "mobileActionCancel", "Annuller");
+    cancelBtn.addEventListener("click", () => finish(null));
+
+    const submitBtn = document.createElement("button");
+    submitBtn.type = "submit";
+    submitBtn.className = "mugin_elicitUnlockSubmit";
+    submitBtn.textContent = getElicitUnlockPromptText(getString, "elicitUnlockButtonLabel", "Lås op");
+
+    const onDocumentKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        finish(null);
+      }
+    };
+
+    overlay.addEventListener("click", (event) => {
+      if (event.target === overlay && !submitBtn.disabled) {
+        finish(null);
+      }
+    });
+
+    actions.appendChild(cancelBtn);
+    actions.appendChild(submitBtn);
+    form.appendChild(title);
+    form.appendChild(input);
+    form.appendChild(errorEl);
+    form.appendChild(actions);
+    panel.appendChild(form);
+    overlay.appendChild(panel);
+    document.body.appendChild(overlay);
+    document.addEventListener("keydown", onDocumentKeyDown, true);
+    input.focus();
+    if (typeof input.select === "function" && input.value) {
+      input.select();
+    }
+  });
+}
+
+// Shared prompt helper used wherever a locked Elicit option is surfaced in the
+// UI. Shows a prompt for the unlock code, persists it, and re-fetches the
+// backend theme config so runtimeConfig.elicitGated / translationSources are
+// refreshed in place (no page reload — that would drop dynamically-loaded CMS
+// styles). A custom window event is dispatched afterwards so SearchForm can
+// react and auto-select Elicit when appropriate.
+export async function promptForElicitUnlockKey(getString) {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return;
+  }
+  await openElicitUnlockKeyPrompt(getString, getStoredElicitUnlockKey());
 }
 
 // Capture ?elicitKey=... from the URL once on load, persist it and strip it
