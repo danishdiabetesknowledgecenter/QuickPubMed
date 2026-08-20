@@ -12,7 +12,7 @@ require_once __DIR__ . '/../app/editor-content-store.php';
  * @param array<string, mixed> $domainSettingsPayload
  * @return array<string, mixed>
  */
-function qpmMergeLimitsPayload(array $sharedPayload, array $domainSettingsPayload): array
+function muginMergeLimitsPayload(array $sharedPayload, array $domainSettingsPayload): array
 {
     $sharedLimits = isset($sharedPayload['limits']) && is_array($sharedPayload['limits'])
         ? $sharedPayload['limits']
@@ -22,7 +22,7 @@ function qpmMergeLimitsPayload(array $sharedPayload, array $domainSettingsPayloa
         : [];
 
     $result = $sharedPayload;
-    $result['limits'] = qpmMergeLimitNodes($sharedLimits, $domainLimits);
+    $result['limits'] = muginMergeLimitNodes($sharedLimits, $domainLimits);
     return $result;
 }
 
@@ -31,7 +31,7 @@ function qpmMergeLimitsPayload(array $sharedPayload, array $domainSettingsPayloa
  * @param array<int, mixed> $overrideNodes
  * @return array<int, mixed>
  */
-function qpmMergeLimitNodes(array $sharedNodes, array $overrideNodes): array
+function muginMergeLimitNodes(array $sharedNodes, array $overrideNodes): array
 {
     $overrideById = [];
     foreach ($overrideNodes as $node) {
@@ -55,7 +55,7 @@ function qpmMergeLimitNodes(array $sharedNodes, array $overrideNodes): array
         $overrideNode = $id !== '' && isset($overrideById[$id]) && is_array($overrideById[$id])
             ? $overrideById[$id]
             : [];
-        $out[] = qpmMergeLimitNode($sharedNode, $overrideNode);
+        $out[] = muginMergeLimitNode($sharedNode, $overrideNode);
     }
     return $out;
 }
@@ -67,7 +67,7 @@ function qpmMergeLimitNodes(array $sharedNodes, array $overrideNodes): array
  * @param mixed $overrideValue
  * @return mixed
  */
-function qpmMergeSemanticConfigValue($sharedValue, $overrideValue)
+function muginMergeSemanticConfigValue($sharedValue, $overrideValue)
 {
     if (!is_array($sharedValue) || !is_array($overrideValue)) {
         return $overrideValue;
@@ -80,7 +80,7 @@ function qpmMergeSemanticConfigValue($sharedValue, $overrideValue)
     $merged = $sharedValue;
     foreach ($overrideValue as $key => $value) {
         if (array_key_exists($key, $merged)) {
-            $merged[$key] = qpmMergeSemanticConfigValue($merged[$key], $value);
+            $merged[$key] = muginMergeSemanticConfigValue($merged[$key], $value);
         } else {
             $merged[$key] = $value;
         }
@@ -94,7 +94,7 @@ function qpmMergeSemanticConfigValue($sharedValue, $overrideValue)
  *
  * @param array<string, mixed> $node
  */
-function qpmDetectLimitChildrenKey(array $node): string
+function muginDetectLimitChildrenKey(array $node): string
 {
     if (array_key_exists('groups', $node)) {
         return 'groups';
@@ -114,7 +114,7 @@ function qpmDetectLimitChildrenKey(array $node): string
  * @param array<string, mixed> $overrideNode
  * @return array<int, mixed>
  */
-function qpmResolveOverrideChildren(array $overrideNode, string $preferredKey): array
+function muginResolveOverrideChildren(array $overrideNode, string $preferredKey): array
 {
     if ($preferredKey !== '' && isset($overrideNode[$preferredKey]) && is_array($overrideNode[$preferredKey])) {
         return $overrideNode[$preferredKey];
@@ -153,7 +153,7 @@ function qpmResolveOverrideChildren(array $overrideNode, string $preferredKey): 
  * @param array<string, mixed> $overrideNode
  * @return array<string, mixed>
  */
-function qpmMergeLimitNode(array $sharedNode, array $overrideNode): array
+function muginMergeLimitNode(array $sharedNode, array $overrideNode): array
 {
     $merged = $sharedNode;
     $allowedOverrideFields = [
@@ -178,17 +178,17 @@ function qpmMergeLimitNode(array $sharedNode, array $overrideNode): array
                 $sharedSemanticConfig = isset($merged[$field]) && is_array($merged[$field])
                     ? $merged[$field]
                     : [];
-                $merged[$field] = qpmMergeSemanticConfigValue($sharedSemanticConfig, $overrideNode[$field]);
+                $merged[$field] = muginMergeSemanticConfigValue($sharedSemanticConfig, $overrideNode[$field]);
                 continue;
             }
             $merged[$field] = $overrideNode[$field];
         }
     }
 
-    $sharedChildrenKey = qpmDetectLimitChildrenKey($sharedNode);
+    $sharedChildrenKey = muginDetectLimitChildrenKey($sharedNode);
     if ($sharedChildrenKey !== '' && isset($sharedNode[$sharedChildrenKey]) && is_array($sharedNode[$sharedChildrenKey])) {
-        $overrideChildren = qpmResolveOverrideChildren($overrideNode, $sharedChildrenKey);
-        $merged[$sharedChildrenKey] = qpmMergeLimitNodes($sharedNode[$sharedChildrenKey], $overrideChildren);
+        $overrideChildren = muginResolveOverrideChildren($overrideNode, $sharedChildrenKey);
+        $merged[$sharedChildrenKey] = muginMergeLimitNodes($sharedNode[$sharedChildrenKey], $overrideChildren);
     }
 
     return $merged;
@@ -303,7 +303,7 @@ if ($type === 'limits') {
         }
         $settingsPath = editorContentBaseDir() . DIRECTORY_SEPARATOR . $normalizedDomain . DIRECTORY_SEPARATOR . 'limits-settings.json';
         $domainSettingsData = editorReadJsonFile($settingsPath);
-        $data = qpmMergeLimitsPayload($data, $domainSettingsData);
+        $data = muginMergeLimitsPayload($data, $domainSettingsData);
     }
 }
 

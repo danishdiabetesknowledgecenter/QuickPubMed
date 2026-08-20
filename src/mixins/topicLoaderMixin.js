@@ -2,6 +2,11 @@ import { loadTopicsFromRuntime } from "@/utils/contentLoader";
 import { config } from "@/config/config";
 import { normalizeTopicsList } from "@/utils/contentCanonicalizer";
 import { syncUrlDomainOverrideFromLocation, urlDomainOverride } from "@/utils/domainKey.js";
+import { getSearchFlowDebugUrlParams } from "@/utils/searchFlowDebug.js";
+import {
+  readMountedSearchFormComponentNumbers,
+  resolveInstanceCurrentDomain,
+} from "@/utils/searchFormUrlTarget.js";
 
 /**
  * Flattens nested topic groups into a flat array.
@@ -81,6 +86,7 @@ export const topicLoaderMixin = {
   // Inject domain from parent Vue instance (supports multiple instances on same page)
   inject: {
     instanceDomain: { default: null },
+    instanceComponentNo: { default: undefined },
   },
   data() {
     return {
@@ -92,12 +98,17 @@ export const topicLoaderMixin = {
     syncUrlDomainOverrideFromLocation();
   },
   computed: {
-    // Priority: URL domain= → injected data-domain → global config.domain
+    // Targeted instance(s): URL domain= → data-domain → config.domain
+    // Other instances: data-domain → config.domain (URL domain= does not leak)
     currentDomain() {
-      if (urlDomainOverride.value !== null) {
-        return urlDomainOverride.value;
-      }
-      return this.instanceDomain !== null ? this.instanceDomain : config.domain;
+      return resolveInstanceCurrentDomain({
+        instanceDomain: this.instanceDomain,
+        componentNo: this.instanceComponentNo ?? this.componentNo ?? 1,
+        urlDomainOverride: urlDomainOverride.value,
+        urlParams: getSearchFlowDebugUrlParams(),
+        mountedComponentNos: readMountedSearchFormComponentNumbers(),
+        fallbackDomain: config.domain,
+      });
     },
   },
   watch: {

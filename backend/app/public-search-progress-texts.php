@@ -5,7 +5,7 @@
  *
  * Denne fil indeholder KUN tekst - ingen logik - saa det er let at overskue
  * og oversaette alle tekster ét sted. Selve opslaget sker i
- * qpmPublicSearchGetPublicProgressMessageCopy() i backend/app/public-search-lib.php.
+ * muginPublicSearchGetPublicProgressMessageCopy() i backend/app/public-search-lib.php.
  *
  * Teksterne her er bevidst uafhaengige af webappens frontend-kildefil
  * (src/assets/content/translations.js), som ikke noedvendigvis er til stede
@@ -18,12 +18,12 @@
  * - en groupKey: teksten for den overordnede gruppe, stadiet hoerer til.
  *
  * Tilfoej en ny noegle her, hvis du tilfoejer et nyt progress-stadie i
- * public-search-lib.php (soeg efter "qpmPublicSearchEmitProgress" for at se
+ * public-search-lib.php (soeg efter "muginPublicSearchEmitProgress" for at se
  * hvor stadierne udsendes).
  */
 
-if (!defined('QPM_PUBLIC_SEARCH_PROGRESS_TEXTS')) {
-    define('QPM_PUBLIC_SEARCH_PROGRESS_TEXTS', [
+if (!defined('MUGIN_PUBLIC_SEARCH_PROGRESS_TEXTS')) {
+    define('MUGIN_PUBLIC_SEARCH_PROGRESS_TEXTS', [
 
         // ===== messageKeys - i den raekkefoelge en soegning typisk gennemloeber =====
 
@@ -32,12 +32,16 @@ if (!defined('QPM_PUBLIC_SEARCH_PROGRESS_TEXTS')) {
             'en' => 'Preparing the search based on your query, filters, and selected sources.',
         ],
         'semanticSearchProgressSemanticIntent' => [
-            'dk' => 'Fortolker søgeintentionen.',
-            'en' => 'Interpreting the search intent.',
+            'dk' => 'Fortolker og tilpasser søgningen til de valgte databaser.',
+            'en' => 'Interpreting and adapting the search for the selected databases.',
+        ],
+        'semanticSearchProgressSemanticIntentSingle' => [
+            'dk' => 'Fortolker og tilpasser søgningen til den valgte database.',
+            'en' => 'Interpreting and adapting the search for the selected database.',
         ],
         'semanticSearchProgressSemanticQuery' => [
-            'dk' => 'Tilpasser søgningen til de valgte databaser.',
-            'en' => 'Adapting the search for the selected databases.',
+            'dk' => 'Fortolker og tilpasser søgningen til de valgte databaser.',
+            'en' => 'Interpreting and adapting the search for the selected databases.',
         ],
         'semanticSearchProgressSearchString' => [
             'dk' => 'Laver en PubMed-søgestreng ud fra din fritekst.',
@@ -66,6 +70,10 @@ if (!defined('QPM_PUBLIC_SEARCH_PROGRESS_TEXTS')) {
         'semanticSearchProgressRerank' => [
             'dk' => 'Reranker kandidaterne på tværs af databaserne.',
             'en' => 'Reranking candidates across databases.',
+        ],
+        'semanticSearchProgressRerankSingle' => [
+            'dk' => 'Rangerer kandidaterne.',
+            'en' => 'Ranking the candidates.',
         ],
         'semanticSearchProgressFinalizeCollect' => [
             'dk' => 'Matcher kandidaterne og forbereder filtervalidering.',
@@ -117,6 +125,10 @@ if (!defined('QPM_PUBLIC_SEARCH_PROGRESS_TEXTS')) {
         'semanticSearchProcessGroupSources' => [
             'dk' => 'Søger i databaser',
             'en' => 'Searching sources',
+        ],
+        'semanticSearchProcessGroupPrepareAndSearchSingle' => [
+            'dk' => 'Tilpasser søgningen og søger i databasen',
+            'en' => 'Adapting the search and searching the database',
         ],
         'semanticSearchProcessGroupMatch' => [
             'dk' => 'Reranker, matcher og filtrerer resultaterne',

@@ -16,8 +16,9 @@ export const config = reactive({
   rerankProfileConfig: {}, // Frontend-safe selectable rerank profile settings
   rerankProfiles: [], // Normalized selectable rerank profile list
   defaultRerankProfileId: "", // Default selectable rerank profile id
-  telemetryConfig: {}, // Frontend-safe telemetry settings from backend config (QPM_TELEMETRY_CONFIG)
+  telemetryConfig: {}, // Frontend-safe telemetry settings from backend config (MUGIN_TELEMETRY_CONFIG)
   meshValidationObserveOnly: false, // When true, MeSH validator returns original query unchanged
+  openAiTaskModels: {}, // Per-task model/reasoning/verbosity from MUGIN_LLM_TASK_MODELS
   translationSourcesByDomain: {}, // Domain-specific source availability fallback: { domainKey: ["pubmed", ...] }
   elicitGated: false, // Global: backend says Elicit is gated and caller is not unlocked
   theme: {}, // Global CSS custom properties to override :root defaults
@@ -96,20 +97,20 @@ function escapeClassSelector(value) {
 function resetManagedClassOverrides(root = document) {
   if (typeof document === "undefined") return;
   root
-    .querySelectorAll("[data-qpm-class-override-original]")
+    .querySelectorAll("[data-mugin-class-override-original]")
     .forEach((el) => {
-      const original = el.getAttribute("data-qpm-class-override-original");
+      const original = el.getAttribute("data-mugin-class-override-original");
       if (original !== null) {
         el.className = original;
       }
-      el.removeAttribute("data-qpm-class-override-original");
+      el.removeAttribute("data-mugin-class-override-original");
     });
 }
 
 function applyClassRuleToElement(el, baseClass, rule) {
   if (!(el instanceof HTMLElement)) return;
-  if (!el.hasAttribute("data-qpm-class-override-original")) {
-    el.setAttribute("data-qpm-class-override-original", el.className || "");
+  if (!el.hasAttribute("data-mugin-class-override-original")) {
+    el.setAttribute("data-mugin-class-override-original", el.className || "");
   }
   const current = new Set(normalizeClassTokens(el.className || ""));
   if (rule.mode === "replace") {
@@ -220,10 +221,10 @@ function resolveThemeApiBase(explicitApiBaseUrl) {
   return normalizeApiBase(explicitApiBaseUrl);
 }
 
-const ELICIT_UNLOCK_STORAGE_KEY = "qpmElicitUnlockKey";
+const ELICIT_UNLOCK_STORAGE_KEY = "muginElicitUnlockKey";
 // Name of the custom window event dispatched after a successful unlock
 // attempt so components (SearchForm) can react without a full page reload.
-export const ELICIT_UNLOCK_CHANGED_EVENT = "qpm:elicit-unlock-changed";
+export const ELICIT_UNLOCK_CHANGED_EVENT = "mugin:elicit-unlock-changed";
 
 function safeGetLocalStorage(key) {
   try {
@@ -536,7 +537,7 @@ export async function loadThemeOverridesFromBackend(domain, apiBaseUrl) {
           },
         };
         try {
-          const { configureTelemetry } = await import("@/utils/qpmTelemetry.js");
+          const { configureTelemetry } = await import("@/utils/muginTelemetry.js");
           configureTelemetry({
             ...config.telemetryConfig,
             endpoint: `${resolvedApiBase}/TelemetryLog.php`,
@@ -548,6 +549,13 @@ export async function loadThemeOverridesFromBackend(domain, apiBaseUrl) {
 
       if (typeof payload.meshValidationObserveOnly === "boolean") {
         config.meshValidationObserveOnly = payload.meshValidationObserveOnly;
+      }
+
+      if (payload.openAiTaskModels && typeof payload.openAiTaskModels === "object") {
+        config.openAiTaskModels = {
+          ...config.openAiTaskModels,
+          ...payload.openAiTaskModels,
+        };
       }
 
       themeConfigCache.set(cacheKey, { expiresAt: Date.now() + THEME_CONFIG_CACHE_TTL_MS });

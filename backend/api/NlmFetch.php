@@ -12,21 +12,21 @@ require_once $configPath;
 require_once __DIR__ . '/NlmApiHelpers.php';
 require_once __DIR__ . '/NlmResponseCache.php';
 
-qpmApplyNlmCorsHeaders('GET, OPTIONS');
+muginApplyNlmCorsHeaders('GET, OPTIONS');
 
 // Build NLM API URL with server-side credentials
 $params = $_GET;
-$domain = qpmResolveDomain();
-$nlmApiKey = qpmGetNlmApiKey($domain);
+$domain = muginResolveDomain();
+$nlmApiKey = muginGetNlmApiKey($domain);
 if ($nlmApiKey !== '') {
     $params['api_key'] = $nlmApiKey;
 } else {
     unset($params['api_key']);
 }
-$params['email'] = qpmGetNlmEmail($domain);
-$params['tool'] = 'QuickPubMed';
+$params['email'] = muginGetNlmEmail($domain);
+$params['tool'] = 'MuginScholar';
 $params['db'] = $params['db'] ?? 'pubmed';
-$nlmBaseUrl = qpmGetNlmBaseUrl($domain);
+$nlmBaseUrl = muginGetNlmBaseUrl($domain);
 
 // Set content type based on retmode
 $retmode = $params['retmode'] ?? 'xml';
@@ -37,7 +37,7 @@ if ($retmode === 'json') {
 }
 
 $url = $nlmBaseUrl . '/efetch.fcgi?' . http_build_query($params);
-$cachedResult = qpmReadNlmResponseCache('efetch', (string) $domain, $params);
+$cachedResult = muginReadNlmResponseCache('efetch', (string) $domain, $params);
 if ($cachedResult !== null) {
     http_response_code($cachedResult['status'] > 0 ? $cachedResult['status'] : 200);
     echo $cachedResult['body'];
@@ -45,11 +45,11 @@ if ($cachedResult !== null) {
 }
 
 // Make request to NLM
-qpmThrottleNlmRequests(10);
-$result = qpmHttpRequest($url, [
+muginThrottleNlmRequests(10);
+$result = muginHttpRequest($url, [
     'method' => 'GET',
     'timeout' => 30,
-    'user_agent' => 'QuickPubMed/1.0',
+    'user_agent' => 'MuginScholar/1.0',
 ]);
 
 if (!$result['ok']) {
@@ -59,6 +59,6 @@ if (!$result['ok']) {
     exit;
 }
 
-qpmWriteNlmResponseCache('efetch', (string) $domain, $params, $result);
+muginWriteNlmResponseCache('efetch', (string) $domain, $params, $result);
 http_response_code($result['status'] > 0 ? $result['status'] : 200);
 echo $result['body'];

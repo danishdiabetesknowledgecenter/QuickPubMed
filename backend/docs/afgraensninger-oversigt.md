@@ -1,6 +1,6 @@
 # Afgrænsninger — samlet oversigt over oversættelser og API-parametre
 
-Dette dokument er referenceoversigt over hvordan alle afgrænsnings-kategorier (filtre) i QuickPubMed oversættes til konkrete kald mod hver enkelt database, samt hvilke API-parametre der reelt bruges pr. kilde.
+Dette dokument er referenceoversigt over hvordan alle afgrænsnings-kategorier (filtre) i Mugin Scholar oversættes til konkrete kald mod hver enkelt database, samt hvilke API-parametre der reelt bruges pr. kilde.
 
 > Kilderne: `data/content/shared/limits.json` (filter-definitioner), `src/utils/semanticWordedIntent.js` (intent-sammensætning), `src/components/DropdownWrapper.vue` (query-plan), `backend/api/*.php` (kildespecifikke endpoints).
 
@@ -27,6 +27,7 @@ Det betyder:
 - Hvis **kun PubMed** er valgt og AI er slået fra → fritekst går urørt til NLM sammen med afgrænsningerne.
 - Hvis **AI er slået til og PubMed er valgt** → fritekst oversættes til en struktureret PubMed-søgestreng **og** til en engelsk semantic-query parallelt.
 - Hvis **kun semantiske kilder** er valgt → AI er påkrævet; der genereres ingen PubMed-søgestreng.
+- Hvis URL/API har `qpubmed` / `qsemanticscholar` / `qopenalex` / `qelicit` (eller JSON `queryOverrides`), bruges de strenge direkte for de pågældende kilder — LLM-oversættelsen af fritekst springes over for dem. Øvrige valgte kilder oversættes stadig. `qpubmed` erstatter kun emne/fritekst-delen; afgrænsninger AND’es stadig.
 
 ### 1.1 De tre oversættelseslag for selve afgrænsningerne
 
@@ -123,20 +124,20 @@ Ved denne gennemgang (i forbindelse med Elicit v1→v2-migreringen) blev tabelle
 
 ## 3. API-parametre pr. database
 
-Dette er de konkrete felter hver kilde accepterer fra QuickPubMed. Kilderne har flere API-muligheder, men kun disse bruges.
+Dette er de konkrete felter hver kilde accepterer fra Mugin Scholar. Kilderne har flere API-muligheder, men kun disse bruges.
 
 ### PubMed (NCBI E-utilities)
 
-Kaldes fra `backend/api/Esearch.php` og `backend/api/Esummary.php`.
+Kaldes fra `backend/api/NlmSearch.php` (esearch) og `backend/api/NlmSummary.php` (esummary). Live søgning går via `UnifiedSearch.php` → `muginPublicSearchRunSearch()`, som bruger samme NLM-proxies.
 
 | API-parameter | Bruges til | Kilde i kodebase |
 |---|---|---|
 | `db=pubmed` | Database-valg | Hardcoded |
-| `term` | Hovedquery (fritekst + alle `searchStrings.normal` sammenkædet med `AND`) | `SearchForm.vue.getSearchString()` |
+| `term` | Hovedquery (fritekst + alle `searchStrings.normal` sammenkædet med `AND`) | Orkestrator / `SearchForm` payload |
 | `retmode=json` | Response-format | Hardcoded |
 | `retmax` | Max antal PMIDs (pagination) | `pageSize`-beregning |
 | `retstart` | Offset | `page * pageSize` |
-| `sort` | Sorteringskriterium (`relevance`, `pub+date`, osv.) | `this.sort.method` |
+| `sort` | Sorteringskriterium — NCBI accepterer `relevance` eller `pub_date` (app-niveau `date_desc`/`date_asc` mappes til `pub_date`) | `sort.method` |
 | `usehistory=y` | Cache søgehistorik på NCBI-siden | Hardcoded |
 
 PubMed-specifikke operatorer brugt i `searchStrings`:
@@ -231,8 +232,8 @@ Tilladte `typeTags`-værdier: `Review`, `Meta-Analysis`, `Systematic Review`, `R
 2. `src/utils/semanticWordedIntent.js` → `normalizeElicitSourceFilterConfig` + `collectSourceFilters` (aggregerer/merger scalar-felter når flere limits vælges: max for minYear, min for maxYear/maxQuartile, logisk AND for booleans, prioritering for retracted)
 3. `DropdownWrapper.vue.buildSemanticSourceQueryPlan()` → læser `payloadElicitFilters.*`, supplerer med deterministisk fallback fra `hardFilters` (fx `minYear` fra `publicationDateYears`), sætter `retracted="exclude_retracted"` som default
 4. `DropdownWrapper.vue.fetchElicitResults()` → normaliserer og videresender alle understøttede felter i `filters`-payload
-5. `backend/api/ElicitSearch.php` → `qpmNormalizeElicit*`-helpers (`Year`, `Epoch`, `Quartile`, `Boolean`, `Retracted`) sanity-tjekker input og sender til Elicit's v2 search endpoint (`/api/v2/search/papers`)
-6. Ved 4xx fra Elicit: `buildElicitRequestRetryAttempt` + backend-`qpmBuildElicitRetryHints` disabler det konkrete problem-felt og retrier
+5. `backend/api/ElicitSearch.php` → `muginNormalizeElicit*`-helpers (`Year`, `Epoch`, `Quartile`, `Boolean`, `Retracted`) sanity-tjekker input og sender til Elicit's v2 search endpoint (`/api/v2/search/papers`)
+6. Ved 4xx fra Elicit: `buildElicitRequestRetryAttempt` + backend-`muginBuildElicitRetryHints` disabler det konkrete problem-felt og retrier
 
 **Bemærk**: Elicit returnerer altid DOI-normaliserede records, så der er ingen non-DOI/PMID-problematik for denne kilde.
 
@@ -343,7 +344,7 @@ POST /search { "query": "<engelsk>", "maxResults": 50, "filters": { "minYear": 2
 | Ændre klassifikator-logik | `src/utils/pubTypeClassifier.js` |
 | Ændre kildekald-parametre (fx tilføj nye OpenAlex-felter) | `backend/api/OpenAlexSearch.php` |
 | Ændre allow-list for guideline-udgivere | `data/content/shared/limits.json` top-level `guidelinePublisherAllowList` |
-| Deaktivere kilde globalt | `QPM_RERANK_CONFIG.sourceSelection` i `backend/config/config.php` |
+| Deaktivere kilde globalt | `MUGIN_RERANK_CONFIG.sourceSelection` i `backend/config/config.php` |
 
 ## Se også
 

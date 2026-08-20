@@ -181,9 +181,9 @@ export const promptText = [
       en: "Plain language",
     },
     languageType: {
-      dk: "Du skal generere svar til disse spørgsmål, og disse svar skal bestå af maksimum 200 ord og skal skrives i et sprog, som nemt kan læses og forstås af en 15-årig uden forhåndskendskab til emnet. Forklar altid svære ord i parentes. Du skal altid svare på korrekt dansk. Gennemgå dit svar 10 gange for sproglig korrekthed, før du returnerer sit svar. \
+      dk: "Du skal generere svar til disse spørgsmål, og disse svar skal bestå af maksimum 200 ord og skal skrives i et sprog, som nemt kan læses og forstås af en 15-årig uden forhåndskendskab til emnet. Forklar altid svære ord i parentes. Brug gerne korrekt punktopstilling. Anvend kun et niveau i punktopstillinger. Ved punktopstillinger, så brug Markdown language. Du må aldrig lave en nummereret liste med kun et punkt. Indled ALDRIG et svar med en overskrift, en titel eller en linje, der kun består af fed tekst. Start direkte med brødtekst. Brug gerne overskrifter senere i svaret. Overskrifter må udelukkende markeres med **asterisks**, så de tolkes som fed tekst i HTML-format, dvs. #, ##, ###, osv. ikke må bruges til overskrifter. Du skal altid svare på korrekt dansk. Gennemgå dit svar 10 gange for sproglig korrekthed, før du returnerer sit svar. \
       Du skal ikke svare med andet end JSON-formatet. Du skal derfor ikke bruge tegnet ` eller skrive json i starten eller slutningen af svaret. Her er teksten: ",
-      en: "You must then generate answers to these questions, and these answers must consist of at least 100 words and must be written in a language that can be easily read and understood by a 15-year-old without prior knowledge of the subject, and add corresponding to the array that is the value for the answers key. \
+      en: "You must then generate answers to these questions, and these answers must consist of at least 100 words and must be written in a language that can be easily read and understood by a 15-year-old without prior knowledge of the subject, and add corresponding to the array that is the value for the answers key. Preferably use correct bullet points. Use only one level in bullet lists. For bullet points, use Markdown language. You may never make a numbered list with only one point. NEVER begin an answer with a heading, a title, or a line that consists only of bold text. Start directly with body text. You may use headings later in the answer. Use sentence case, never title case, in headings and subheadings. Headings and subheadings must be marked with **asterisks**, so they are interpreted as bold text in HTML format, i.e. #, ##, ###, etc. must not be used for headings. \
       You must not respond with anything other than JSON format. You must therefore not use the character ` or write JSON at the beginning or end of the response. Here is the text: ",
     },
     startText: promptStartText,
@@ -192,9 +192,9 @@ export const promptText = [
     questionsExtra: promptQuestionsExtra,
     promptRules: promptArticleSpecificAnswersOnly,
     endText: {
-      dk: "Du skal generere svar til disse spørgsmål, og disse svar skal bestå af maksimum 200 ord og skal skrives i et sprog, som nemt kan læses og forstås af en 15-årig uden forhåndskendskab til emnet. Forklar altid svære ord i parentes. Du skal altid svare på korrekt dansk. Gennemgå dit svar 10 gange for sproglig korrekthed, før du returnerer sit svar. \
+      dk: "Du skal generere svar til disse spørgsmål, og disse svar skal bestå af maksimum 200 ord og skal skrives i et sprog, som nemt kan læses og forstås af en 15-årig uden forhåndskendskab til emnet. Forklar altid svære ord i parentes. Brug gerne korrekt punktopstilling. Anvend kun et niveau i punktopstillinger. Ved punktopstillinger, så brug Markdown language. Du må aldrig lave en nummereret liste med kun et punkt. Indled ALDRIG et svar med en overskrift, en titel eller en linje, der kun består af fed tekst. Start direkte med brødtekst. Brug gerne overskrifter senere i svaret. Overskrifter må udelukkende markeres med **asterisks**, så de tolkes som fed tekst i HTML-format, dvs. #, ##, ###, osv. ikke må bruges til overskrifter. Du skal altid svare på korrekt dansk. Gennemgå dit svar 10 gange for sproglig korrekthed, før du returnerer sit svar. \
       Du skal ikke svare med andet end JSON-formatet. Du skal derfor ikke bruge tegnet ` eller skrive json i starten eller slutningen af svaret. Her er teksten: ",
-      en: "You must then generate answers to these questions, and these answers must consist of at least 100 words and must be written in a language that can be easily read and understood by a 15-year-old without prior knowledge of the subject, and add corresponding to the array that is the value for the answers key. \
+      en: "You must then generate answers to these questions, and these answers must consist of at least 100 words and must be written in a language that can be easily read and understood by a 15-year-old without prior knowledge of the subject, and add corresponding to the array that is the value for the answers key. Preferably use correct bullet points. Use only one level in bullet lists. For bullet points, use Markdown language. You may never make a numbered list with only one point. NEVER begin an answer with a heading, a title, or a line that consists only of bold text. Start directly with body text. You may use headings later in the answer. Use sentence case, never title case, in headings and subheadings. Headings and subheadings must be marked with **asterisks**, so they are interpreted as bold text in HTML format, i.e. #, ##, ###, etc. must not be used for headings. \
       You must not respond with anything other than JSON format. You must therefore not use the character ` or write JSON at the beginning or end of the response. Here is the text: ",
     },
   },
@@ -205,9 +205,9 @@ export const promptText = [
       en: "Professional language",
     },
     languageType: {
-      dk: "Du skal generere svar til disse spørgsmål, og disse svar skal bestå af maksimum 200 ord og skal skrives i et sprog, som nemt kan læses og forstås af en fagperson med forhåndskendskab til emnet. Du skal altid svare på korrekt dansk. Gennemgå dit svar 10 gange for sproglig korrekthed, før du returnerer sit svar. \
+      dk: "Du skal generere svar til disse spørgsmål, og disse svar skal bestå af maksimum 200 ord og skal skrives i et sprog, som nemt kan læses og forstås af en fagperson med forhåndskendskab til emnet. Brug gerne korrekt punktopstilling. Anvend kun et niveau i punktopstillinger. Ved punktopstillinger, så brug Markdown language. Du må aldrig lave en nummereret liste med kun et punkt. Indled ALDRIG et svar med en overskrift, en titel eller en linje, der kun består af fed tekst. Start direkte med brødtekst. Brug gerne overskrifter senere i svaret. Overskrifter må udelukkende markeres med **asterisks**, så de tolkes som fed tekst i HTML-format, dvs. #, ##, ###, osv. ikke må bruges til overskrifter. Du skal altid svare på korrekt dansk. Gennemgå dit svar 10 gange for sproglig korrekthed, før du returnerer sit svar. \
       Du skal ikke svare med andet end JSON-formatet. Du skal derfor ikke bruge tegnet ` eller skrive json i starten eller slutningen af svaret. Her er teksten: ",
-      en: "You must then generate answers to these questions, and these answers must consist of at least 100 words and must be written in a language that can be easily read and understood by a professional with prior knowledge of the subject, and add corresponding to the array that is the value for the answers key. \
+      en: "You must then generate answers to these questions, and these answers must consist of at least 100 words and must be written in a language that can be easily read and understood by a professional with prior knowledge of the subject, and add corresponding to the array that is the value for the answers key. Preferably use correct bullet points. Use only one level in bullet lists. For bullet points, use Markdown language. You may never make a numbered list with only one point. NEVER begin an answer with a heading, a title, or a line that consists only of bold text. Start directly with body text. You may use headings later in the answer. Use sentence case, never title case, in headings and subheadings. Headings and subheadings must be marked with **asterisks**, so they are interpreted as bold text in HTML format, i.e. #, ##, ###, etc. must not be used for headings. \
       You must not respond with anything other than JSON format. You must therefore not use the character ` or write JSON at the beginning or end of the response. Here is the text: ",
     },
     startText: promptStartText,
@@ -216,9 +216,9 @@ export const promptText = [
     questionsExtra: promptQuestionsExtra,
     promptRules: promptArticleSpecificAnswersOnly,
     endText: {
-      dk: "Du skal generere svar til alle spørgsmål, og disse svar skal bestå af maksimum 200 ord og skal skrives på fagsprog, som let kan forstås af et sundhedsfagligt publikum eller personer med solid baggrund inden for emnet. Du skal altid svare på korrekt dansk. Gennemgå dit svar 10 gange for sproglig korrekthed, før du returnerer sit svar. \
+      dk: "Du skal generere svar til alle spørgsmål, og disse svar skal bestå af maksimum 200 ord og skal skrives på fagsprog, som let kan forstås af et sundhedsfagligt publikum eller personer med solid baggrund inden for emnet. Brug gerne korrekt punktopstilling. Anvend kun et niveau i punktopstillinger. Ved punktopstillinger, så brug Markdown language. Du må aldrig lave en nummereret liste med kun et punkt. Indled ALDRIG et svar med en overskrift, en titel eller en linje, der kun består af fed tekst. Start direkte med brødtekst. Brug gerne overskrifter senere i svaret. Overskrifter må udelukkende markeres med **asterisks**, så de tolkes som fed tekst i HTML-format, dvs. #, ##, ###, osv. ikke må bruges til overskrifter. Du skal altid svare på korrekt dansk. Gennemgå dit svar 10 gange for sproglig korrekthed, før du returnerer sit svar. \
       Du må ikke svare med andet end JSON-formatet. Du skal aldrig bruge tegnet ` eller medgive 'json' i starten eller slutningen af dit svar. Her er teksten: ",
-      en: "You must then generate answers to these questions, and these answers must consist of atleast 200 words and must be written in professional language that can be easily understood by a healthcare audience or people with a solid background in the subject, and add corresponding to the array that is the value for the answers key. \
+      en: "You must then generate answers to these questions, and these answers must consist of atleast 200 words and must be written in professional language that can be easily understood by a healthcare audience or people with a solid background in the subject, and add corresponding to the array that is the value for the answers key. Preferably use correct bullet points. Use only one level in bullet lists. For bullet points, use Markdown language. You may never make a numbered list with only one point. NEVER begin an answer with a heading, a title, or a line that consists only of bold text. Start directly with body text. You may use headings later in the answer. Use sentence case, never title case, in headings and subheadings. Headings and subheadings must be marked with **asterisks**, so they are interpreted as bold text in HTML format, i.e. #, ##, ###, etc. must not be used for headings. \
       You must not respond with anything other than JSON format. You must therefore not use the character ` or write JSON at the beginning or end of the response. Here is the text: ",
     },
   },
@@ -227,6 +227,8 @@ export const promptText = [
 /**
  * This is the object being sent to the OpenAI API
  * The prompt fields are composed in the code using the promptText object
+ * model/reasoning/text.verbosity come from MUGIN_LLM_TASK_MODELS
+ * (ThemeConfig → openAiTaskModels.summarizeArticle).
  */
 export const summarizeArticlePrompt = [
   {
@@ -236,9 +238,9 @@ export const summarizeArticlePrompt = [
       en: "Plain language",
     },
     model_token_limit: 128000,
-    model: "gpt-5.5",
-    reasoning: { effort: "none" },      // none, low, medium, high, xhigh
-    text: { verbosity: "medium" },     // low, medium, high
+    // model from MUGIN_LLM_TASK_MODELS.summarizeArticle
+    reasoning: { effort: "none" },
+    text: { verbosity: "medium" },
     max_output_tokens: 8000,
     stream: true,
     type: "json_object",
@@ -254,9 +256,8 @@ export const summarizeArticlePrompt = [
       en: "Professional language",
     },
     model_token_limit: 128000,
-    model: "gpt-5.5",
-    reasoning: { effort: "none" },      // none, low, medium, high, xhigh
-    text: { verbosity: "medium" },     // low, medium, high
+    reasoning: { effort: "none" },
+    text: { verbosity: "medium" },
     max_output_tokens: 8000,
     stream: true,
     type: "json_object",

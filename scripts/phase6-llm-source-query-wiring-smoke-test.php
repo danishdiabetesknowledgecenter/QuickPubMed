@@ -1,6 +1,6 @@
 <?php
 /**
- * Phase 6 fix verification: confirms qpmPublicSearchBuildSourceQueryPlan()
+ * Phase 6 fix verification: confirms muginPublicSearchBuildSourceQueryPlan()
  * now uses the LLM semantic-intent's per-source queries (sourceQueryPlan.*.query
  * and adaptations.*.queryOverride), matching buildSemanticSourceQueryPlan()
  * in DropdownWrapper.vue, instead of sending the same plain semantic query to
@@ -23,7 +23,7 @@ function assertTrue(bool $condition, string $message): void
 }
 
 // 1. No LLM intent (null) -> falls back to the plain semantic query for all sources (unchanged legacy behavior).
-$plan1 = qpmPublicSearchBuildSourceQueryPlan(['hardFilters' => [], 'sourceFilters' => []], 'plain semantic query', null);
+$plan1 = muginPublicSearchBuildSourceQueryPlan(['hardFilters' => [], 'sourceFilters' => []], 'plain semantic query', null);
 assertTrue($plan1['semanticScholar']['query'] === 'plain semantic query', 'Without LLM intent, semanticScholar falls back to the plain semantic query');
 assertTrue($plan1['openAlex']['query'] === 'plain semantic query', 'Without LLM intent, openAlex falls back to the plain semantic query');
 
@@ -41,7 +41,7 @@ $llmIntent = [
         'elicit' => ['query' => 'What are effective treatments for type 2 diabetes?', 'filters' => ['typeTags' => [], 'includeKeywords' => [], 'excludeKeywords' => []]],
     ],
 ];
-$plan2 = qpmPublicSearchBuildSourceQueryPlan(['hardFilters' => [], 'sourceFilters' => []], 'plain semantic query', $llmIntent);
+$plan2 = muginPublicSearchBuildSourceQueryPlan(['hardFilters' => [], 'sourceFilters' => []], 'plain semantic query', $llmIntent);
 assertTrue(
     $plan2['semanticScholar']['query'] === 'insulin resistance treatment',
     'With LLM intent, semanticScholar uses the LLM per-source query, not the plain semantic query'
@@ -58,7 +58,7 @@ assertTrue(
 // 3. Adaptation override wins over even the LLM per-source query.
 $llmIntentWithOverride = $llmIntent;
 $llmIntentWithOverride['sourceQueryPlan']['adaptations']['openAlex']['queryOverride'] = 'overridden openalex query';
-$plan3 = qpmPublicSearchBuildSourceQueryPlan(['hardFilters' => [], 'sourceFilters' => []], 'plain semantic query', $llmIntentWithOverride);
+$plan3 = muginPublicSearchBuildSourceQueryPlan(['hardFilters' => [], 'sourceFilters' => []], 'plain semantic query', $llmIntentWithOverride);
 assertTrue(
     $plan3['openAlex']['query'] === 'overridden openalex query',
     'An explicit adaptation queryOverride wins over both the LLM per-source query and the plain semantic query'
@@ -78,7 +78,7 @@ $llmIntentCoreOnly = [
         'elicit' => ['query' => '', 'filters' => ['typeTags' => [], 'includeKeywords' => [], 'excludeKeywords' => []]],
     ],
 ];
-$plan4 = qpmPublicSearchBuildSourceQueryPlan(['hardFilters' => [], 'sourceFilters' => []], '', $llmIntentCoreOnly);
+$plan4 = muginPublicSearchBuildSourceQueryPlan(['hardFilters' => [], 'sourceFilters' => []], '', $llmIntentCoreOnly);
 assertTrue(
     $plan4['semanticScholar']['query'] === 'core fallback query',
     'When both the plain semantic query and the LLM per-source query are empty, coreQuery is used as the shared fallback'

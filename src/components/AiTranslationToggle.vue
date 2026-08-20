@@ -1,7 +1,7 @@
 <template>
   <div v-show="!isCollapsed && config.useAI" :class="wrapperClass">
     <template v-if="displayMode === 'switch'">
-      <label class="qpm_switch">
+      <label class="mugin_switch">
         <input
           v-model="localSearchWithAI"
           type="checkbox"
@@ -10,14 +10,14 @@
           :aria-label="titleSearchWithAI"
           @keyup.enter="toggleAiSearch"
         />
-        <span class="qpm_slider qpm_round" />
+        <span class="mugin_slider mugin_round" />
       </label>
-      <span class="qpm_aiToggle">
+      <span class="mugin_aiToggle">
         <div v-if="iconClass">
-          <i :class="localSearchWithAI ? iconClass : `${iconClass} qpm_aiIconMuted`" aria-hidden="true" />
+          <i :class="localSearchWithAI ? iconClass : `${iconClass} mugin_aiIconMuted`" aria-hidden="true" />
         </div>
-        <div class="qpm_infoInline">
-          <span class="qpm_keepWithIcon">
+        <div class="mugin_infoInline">
+          <span class="mugin_keepWithIcon">
             {{ activeLabel }}
             <button
               type="button"
@@ -27,7 +27,7 @@
                 delay: $helpTextDelay,
                 theme: 'infoTooltip',
               }"
-              class="bx bx-info-circle qpm_cursorHelp qpm_infoIcon"
+              class="bx bx-info-circle mugin_cursorHelp mugin_infoIcon"
               :aria-label="getString('infoAiTranslationLabel')"
             />
           </span>
@@ -35,22 +35,22 @@
       </span>
     </template>
     <template v-else>
-      <label class="qpm_sourceCheckboxLabel">
+      <label class="mugin_sourceCheckboxLabel">
         <input
           v-model="localSearchWithAI"
-          class="qpm_sourceCheckboxInput"
+          class="mugin_sourceCheckboxInput"
           type="checkbox"
           :disabled="disabled"
           :title="titleSearchWithAI"
           :aria-label="titleSearchWithAI"
           @keyup.enter="toggleAiSearch"
         />
-        <span class="qpm_sourceCheckboxText qpm_aiToggle">
-          <span v-if="iconClass" class="qpm_sourceCheckboxIcon">
-            <i :class="localSearchWithAI ? iconClass : `${iconClass} qpm_aiIconMuted`" aria-hidden="true" />
+        <span class="mugin_sourceCheckboxText mugin_aiToggle">
+          <span v-if="iconClass" class="mugin_sourceCheckboxIcon">
+            <i :class="localSearchWithAI ? iconClass : `${iconClass} mugin_aiIconMuted`" aria-hidden="true" />
           </span>
-          <span class="qpm_infoInline">
-            <span class="qpm_keepWithIcon">
+          <span class="mugin_infoInline">
+            <span class="mugin_keepWithIcon">
               {{ activeLabel }}
               <button
                 type="button"
@@ -60,7 +60,7 @@
                   delay: $helpTextDelay,
                   theme: 'infoTooltip',
                 }"
-                class="bx bx-info-circle qpm_cursorHelp qpm_infoIcon"
+                class="bx bx-info-circle mugin_cursorHelp mugin_infoIcon"
                 :aria-label="getString('infoAiTranslationLabel')"
               />
             </span>
@@ -129,8 +129,8 @@
       },
       wrapperClass() {
         return this.displayMode === "switch"
-          ? "qpm_switch_wrap qpm_ai_hide"
-          : "qpm_sourceCheckboxWrap qpm_ai_hide";
+          ? "mugin_switch_wrap mugin_ai_hide"
+          : "mugin_sourceCheckboxWrap mugin_ai_hide";
       },
       activeLabel() {
         return this.getString(

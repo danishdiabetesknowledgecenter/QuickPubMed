@@ -1,23 +1,24 @@
 # Backend struktur
 
-`backend` er nu den kanoniske serverstruktur:
+`backend` er den kanoniske serverstruktur for Mugin Scholar:
 Denne mappe er den kanoniske web-indgang (`/backend`) til server-endpoints.
 
-- `api/`: HTTP-endpoints.
-- `app/`: intern delt kode (auth, content-store, helpers).
+- `api/`: HTTP-endpoints (inkl. `UnifiedSearch.php` til web-widgetten).
+- `app/`: intern delt kode (auth, content-store, helpers, søgeorkestrator).
 - `config/`: konfiguration og secrets (`config.php` holdes udenfor git).
 - Data ligger i repo-roden under `data/` (editor content + runtime filer).
 - `docs/`: dokumentation.
+- Offentlig partner-API ligger i repo-roden under `public-api/` (`/v1/search`, …).
 
 ## Relevante docs
 
 - `backend/docs/saadan-virker-soegningen.md`: intro-venlig forklaring af søgeflow og rerank i helt almindeligt sprog — god som introduktion eller til at forklare kodens opførsel til ikke-teknikere.
 - `backend/docs/semantic-doi-only-rules.md`: vedligeholdelse af semantiske post-valideringsregler, schema, motor og eksempler på `postValidation.rules`.
 - `backend/docs/semantic-source-filters.md`: vedligeholdelse af `semanticConfig.sourceFilters`, kilde-specifikke filterværdier og hvornår de bør bruges.
-- `backend/docs/search-flow-readme.md`: pædagogisk gennemgang af det samlede search flow fra UI-valg til PubMed- og semantisk retrieval inkl. enrichment-laget og den hybride rerank-formel.
+- `backend/docs/search-flow-readme.md`: pædagogisk gennemgang af det samlede search flow (kanonisk: SearchForm → UnifiedSearch → `muginPublicSearchRunSearch`).
 - `backend/docs/search-flow-diagram.md`: mermaid-diagrammer af hoveflowet, retrieval-subflow, enrichment og hybridvalidering.
 - `backend/docs/semantic-filter-regression-checklist.md`: fast manuel regressionscheckliste for de vigtigste kanoniske semantiske filtercases, inkl. afsnittet `Reranking signals`.
-- `backend/docs/public-search-api.md`: kontrakt og eksempler for det offentlige NemPubMed search API.
+- `backend/docs/public-search-api.md`: kontrakt og eksempler for det offentlige Mugin Scholar search API.
 - `backend/docs/public-search-openapi.yaml`: formel OpenAPI-spec for det offentlige search API (inkl. OpenAI Custom GPT Actions-noter i `info.description`).
 - `backend/docs/public-search-security.md`: auth, CORS, rate limits, audit og driftsregler for public API.
 - `backend/docs/public-search-parity.md`: principper og teststrategi for rangering/paritet mellem web og API, inkl. hybride kvalitetssignaler.
@@ -25,16 +26,17 @@ Denne mappe er den kanoniske web-indgang (`/backend`) til server-endpoints.
 
 ### Rerank og enrichment
 
-Den hybride rerank-model lever i:
+Den kanoniske hybride rerank-model (live path) lever i PHP:
 
-- `src/utils/semanticReranking.js` — deterministisk rerank med RRF + kvalitetssignaler.
+- `backend/app/semantic-quality-lib.php` — klassifikation, kvalitetssignaler og hybrid-formel (PHP-port).
+- `backend/app/public-search-lib.php` — orkestrator `muginPublicSearchRunSearch()` (web + public API).
+- `backend/api/UnifiedSearch.php` — first-party indgang for SearchForm-widgetten.
 - `backend/api/ICiteLookup.php` — batch-lookup til NIH iCite (RCR, nih_percentile, is_clinical, cited_by_clin, apt).
 - `backend/api/OpenAlexAuthorityLookup.php` — batch-lookup til OpenAlex (forfatter-h-index, journal 2yr_mean_citedness).
 - `backend/api/SemanticFinalRerank.php` — valgfri LLM-slutrerank med berigede kvalitetssignaler.
-- `QPM_RERANK_CONFIG` i `backend/config/config.php` — styrer alle vægte. Se `backend/config/config.example.php` for tuning-profiler (konservativ, moderat, aggressiv).
-- `scripts/verify-rerank-parity.js` — Node-script der beviser at neutrale defaults giver 1:1 samme rangering som før kvalitetslaget.
-
-`php-proxy` kan bevares midlertidigt som kompatibilitetslag, men ny kode bør pege på `backend`.
+- `MUGIN_RERANK_CONFIG` / `MUGIN_UNIFIED_SEARCH_ENGINE_ENABLED` i `backend/config/config.php` — vægte og feature flag. Se `backend/config/config.example.php`.
+- `src/utils/semanticReranking.js` — historisk/dormant JS-reference (ikke runtime-sti for SearchForm).
+- `scripts/verify-rerank-parity.js` / `scripts/rerank-parity-harness.php` — parity-checks.
 
 ## CMS script-referencer (frontend assets)
 
@@ -45,11 +47,11 @@ Ved integration i CMS skal widget-scripts refereres med lowercase filnavne:
 - `assets/references.js`
 - `assets/editor.js`
 
-CMS mount-containere bør bruge `qpm-` prefiks for at undgå selector-konflikter:
-- SearchForm: `class="qpm-searchform"` + `id="qpm-searchform-<n>"`
-- SearchStrings: `id="qpm-searchstrings"` + `class="qpm-searchstrings"`
-- References: `class="qpm-references"` + `id="qpm-references-<n>"`
-- Editor: `id="qpm-editor"` + `class="qpm-editor"`
+CMS mount-containere bør bruge `mugin-` prefiks for at undgå selector-konflikter:
+- SearchForm: `class="mugin-searchform"` + `id="mugin-searchform-<n>"`
+- SearchStrings: `id="mugin-searchstrings"` + `class="mugin-searchstrings"`
+- References: `class="mugin-references"` + `id="mugin-references-<n>"`
+- Editor: `id="mugin-editor"` + `class="mugin-editor"`
 
 ## Naming conventions
 

@@ -16,15 +16,15 @@ if (!file_exists($configPath)) {
 require_once $configPath;
 require_once __DIR__ . '/NlmApiHelpers.php';
 
-qpmApplyNlmCorsHeaders('GET, POST, OPTIONS', 'application/json');
+muginApplyNlmCorsHeaders('GET, POST, OPTIONS', 'application/json');
 @ini_set('max_execution_time', '60');
 @set_time_limit(60);
 
 // Limit batch size to 500 to avoid hitting URL length caps in upstream proxies
 // (1000 × ~9 chars ≈ 9 KB which exceeds some 8 KB limits).
-const QPM_ICITE_BATCH_LIMIT = 500;
+const MUGIN_ICITE_BATCH_LIMIT = 500;
 
-function qpmIsLocalICiteRequest(): bool
+function muginIsLocalICiteRequest(): bool
 {
     $requestHost = strtolower((string)($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
     return $requestHost !== '' && (
@@ -37,9 +37,9 @@ function qpmIsLocalICiteRequest(): bool
  * @param array<int,string> $pmids
  * @return array{ok: bool, status: int, body: string, error: string}
  */
-function qpmICiteLocalDevProxyRequest(array $pmids): array
+function muginICiteLocalDevProxyRequest(array $pmids): array
 {
-    if (!qpmIsLocalICiteRequest()) {
+    if (!muginIsLocalICiteRequest()) {
         return [
             'ok' => false,
             'status' => 0,
@@ -55,10 +55,10 @@ function qpmICiteLocalDevProxyRequest(array $pmids): array
     $errors = [];
     foreach ($hosts as $host) {
         $url = 'http://' . $host . ':5173/icite-api/api/pubs?' . $queryString;
-        $result = qpmHttpRequest($url, [
+        $result = muginHttpRequest($url, [
             'method' => 'GET',
             'timeout' => 30,
-            'user_agent' => 'QuickPubMed/1.0',
+            'user_agent' => 'MuginScholar/1.0',
             'headers' => ['Accept: application/json'],
         ]);
         if ($result['ok'] && (int)$result['status'] >= 200 && (int)$result['status'] < 300) {
@@ -86,26 +86,26 @@ function qpmICiteLocalDevProxyRequest(array $pmids): array
  * @param array<int,string> $pmids
  * @return array{ok: bool, status: int, body: string, error: string}
  */
-function qpmICiteFetchBatch(array $pmids): array
+function muginICiteFetchBatch(array $pmids): array
 {
-    qpmThrottleRequestRate('icite', 5);
+    muginThrottleRequestRate('icite', 5);
 
     $url = 'https://icite.od.nih.gov/api/pubs?' . http_build_query([
         'pmids' => implode(',', $pmids),
     ]);
     $headers = ['Accept: application/json'];
 
-    if (qpmIsLocalICiteRequest()) {
-        $localDevProxyResult = qpmICiteLocalDevProxyRequest($pmids);
+    if (muginIsLocalICiteRequest()) {
+        $localDevProxyResult = muginICiteLocalDevProxyRequest($pmids);
         if ($localDevProxyResult['ok']) {
             return $localDevProxyResult;
         }
     }
 
-    $result = qpmHttpRequest($url, [
+    $result = muginHttpRequest($url, [
         'method' => 'GET',
         'timeout' => 20,
-        'user_agent' => 'QuickPubMed/1.0',
+        'user_agent' => 'MuginScholar/1.0',
         'headers' => $headers,
     ]);
 
@@ -133,7 +133,7 @@ function qpmICiteFetchBatch(array $pmids): array
  * @param array<string,mixed> $record
  * @return array<string,mixed>
  */
-function qpmNormalizeICiteRecord(array $record): array
+function muginNormalizeICiteRecord(array $record): array
 {
     $rcr = $record['relative_citation_ratio'] ?? null;
     $nihPercentile = $record['nih_percentile'] ?? null;
@@ -206,9 +206,9 @@ $requestErrors = [];
 $partial = false;
 $batchCount = 0;
 
-foreach (array_chunk($normalizedPmids, QPM_ICITE_BATCH_LIMIT) as $chunk) {
+foreach (array_chunk($normalizedPmids, MUGIN_ICITE_BATCH_LIMIT) as $chunk) {
     $batchCount += 1;
-    $result = qpmICiteFetchBatch($chunk);
+    $result = muginICiteFetchBatch($chunk);
     if (!$result['ok']) {
         $requestErrors[] = (string) $result['error'];
         $partial = true;
@@ -235,7 +235,7 @@ foreach (array_chunk($normalizedPmids, QPM_ICITE_BATCH_LIMIT) as $chunk) {
         if ($pmid === '' || !preg_match('/^[0-9]+$/', $pmid)) {
             continue;
         }
-        $records[$pmid] = qpmNormalizeICiteRecord($entry);
+        $records[$pmid] = muginNormalizeICiteRecord($entry);
     }
 }
 

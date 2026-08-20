@@ -12,9 +12,15 @@ Det offentlige search API eksponeres via en dedikeret public docroot, så de off
 - `application/json` — struktureret integrationskontrakt
 - `application/x-www-form-urlencoded` — SearchForm-kompatible flade parametre (anbefalet til lange parameterlister)
 
-`GET /v1/search` er kun en enkel testvariant med et bevidst begrænset sæt URL-parametre.
+`GET /v1/search` accepterer **samme flade SearchForm-parametre** som form-urlencoded POST (se [GET request](#get-request)).
 
 Samme `v1/search` endpoint kan nu ogsaa returnere progress-events som `text/event-stream`, naar streaming er slaaet til.
+
+## Feature flag: `MUGIN_UNIFIED_SEARCH_ENGINE_ENABLED`
+
+Når `MUGIN_UNIFIED_SEARCH_ENGINE_ENABLED=true` i `backend/config/config.php`, kører både public API (`/v1/search`) og web-widgetten (`backend/api/UnifiedSearch.php`) den fulde PHP-hybrid-motor i `muginPublicSearchRunSearch()` — inkl. fokusifikation, enrichment, fulde `focus`-profiler og post-validering fra `semantic-quality-lib.php`.
+
+Når flaget er `false`, bruges den ældre RRF-only-sti (uden fulde kvalitetssignaler). Se også `backend/docs/public-search-parity.md`.
 
 ## Auth
 
@@ -68,8 +74,18 @@ Hvis `allow_all_origins` er `false`, bruges den normale `allowed_origins`-allowl
 - `sourceFilters`
 - `intentContext`
 - `preselectedPmids`
+- `selected`
+- `queryOverrides`
+- `cachedFreetextQueries`
+- `standardString`
 
 Ukendte felter afvises eksplicit.
+
+`queryOverrides` er valgfrit. Tilladte nøgler: `pubmed`, `semanticScholar`, `openAlex`, `elicit`. Hver værdi er en streng (max 20000 tegn). Tomme værdier ignoreres. Feltet skal **udelades helt** når der ikke er overrides — send ikke `{}`. PubMed-override erstatter kun emne/fritekst-delen (`pubmedQuery`); formularens afgrænsninger AND’es stadig via `hardFilterQuery` / `limit=`. Øvrige kilder erstatter kun `sourceQueryPlan.<kilde>.query`; formularens hardFilters/sourceFilters gælder stadig. Overrides for kilder der ikke er i `sources` ignoreres. Når de er sat, vinder de over fritekst (`query.text` / `topic=` / `q=`) for de pågældende kilder — LLM-oversættelse springes over for de kilder, mens øvrige valgte kilder stadig oversættes fra fritekst. JSON POST bruger objektet `queryOverrides`. GET og form-urlencoded bruger de flade SearchForm-parametre `qpubmed`, `qsemanticscholar`, `qopenalex` og `qelicit` (ingen komma-split; værdien er hele strengen). Fritekst-only requests uden `q*`-parametre er uændret.
+
+`cachedFreetextQueries` er valgfrit og gælder kun JSON POST. Bruges til at genbruge en tidligere fritekst-oversættelse i samme session. Tilladte nøgler: `input` (skal matche `query.text`), `pubmed`, `semanticScholar`, `openAlex`, `elicit`. PubMed-værdien er **kun** den oversatte fritekst-clause; aktuelle emner og afgrænsninger AND’es stadig. Feltet skal **udelades helt** når der ikke er en gemt oversættelse. GET og form-urlencoded understøtter ikke feltet.
+
+`standardString` er valgfrit og gælder kun JSON POST. Styrer om domænets `standardString` (eller en override) AND’es på **fritekst**. Tilladte nøgler: `add` (bool), `text` (valgfri override-streng), `scope` (`narrow` | `normal` | `broad`, default `normal`). `add: false` forhindrer AND på fritekst/custom tags. Katalog-emner bruger stadig deres egne `combineWithStandardString`-flag. Udelades feltet, AND’es domænets standardString på fritekst som hidtil. GET og form-urlencoded understøtter ikke feltet.
 
 ### Form-urlencoded POST (SearchForm-paritet)
 
@@ -91,7 +107,7 @@ q=Findes%20julemanden%3F
 &limit=L030010%23s,L030020%23s
 &limit=L040010%23s
 &limit=LXXX010%23s
-&pmid=37956037,39412605
+&selected=pmid:37956037,doi:10.38079/igusabder.1540428
 ```
 
 `limit=`-semantik (samme som SearchForm advanced/simple):
@@ -102,23 +118,25 @@ q=Findes%20julemanden%3F
 
 | Param | Betydning |
 |---|---|
-| `q` / `query` / custom `topic` | søgetekst (valgfri hvis katalog-`topic=`-id’er er sat) |
+| `q` / `query` / custom `topic` | søgetekst (valgfri hvis katalog-`topic=`-id’er eller en `q*` for en valgt kilde er sat). LLM oversætter, medmindre en `q*`-parameter vinder for kilden. |
 | `topic` | AND-grupper af emner (`id#scope` eller `{{tekst}}#s:raw` / `{{pubmed}}#s:pubmed`); gentag `topic=` for AND; komma = OR. Legacy `{{tekst0}}#s` / `{{tekst1}}#s` accepteres. |
+| `qpubmed`, `qsemanticscholar`, `qopenalex`, `qelicit` | eksekverbare søgestrenge (ingen komma-split). Vinder over `q`/`topic` for den pågældende kilde. En ikke-tom `q*` for en valgt kilde er nok til at starte søgningen uden `q`/`topic`. `qpubmed` er emne/fritekst-delen; `limit=` AND’es stadig. Tomme værdier ignoreres. |
 | `domain` | **påkrævet** når katalog-topic-id’er bruges; loader `data/content/<domain>/topics.json` |
 | `databases` (alias: `sources`, `translationsources`, `semanticsources`) | kilder |
 | `ai` / `translation` | AI-oversættelse af fritekst (katalog-`searchStrings` er deterministiske) |
 | `focus`, `sort`, `page`, `pagesize` | rerank, sortering, paging |
 | `limit` | AND-grupper af afgrænsninger (`id#scope,…`); gentag `limit=` for AND; legacy `L025=` osv. accepteres |
 | `checklimits` | ekstra limit-id’er (union) |
-| `pmid` | preselect/pin af artikler → response `preselectedResults` (påvirker ikke search-query/`total`) |
+| `selected` | preselect/pin af artikler (`pmid:…` og/eller `doi:…`) → response `preselectedResults` (påvirker ikke search-query/`total`). Legacy `pmid=` (rene tal eller `doi:…`) accepteres. |
+| `pmid` | legacy alias for `selected` (rene PMID-tal; `doi:`-præfiks accepteres) |
 | `lang`, `stream` | progress-sprog / SSE |
 | `nocache` | `1`/`true`: spring search-response- og LLM-slutrerank-cache over for dette kald (sletter ikke runtime-filer; skriver stadig friske resultater tilbage). JSON: `responseOptions.noCache` |
 
-UI-only parametre (`advanced`, `collapsed`, `scrollto`, `openlimits`, `hidelimits`, `orderlimits`, `qpmdebug`, `apibase`) accepteres og ignoreres.
+UI-only parametre (`advanced`, `collapsed`, `scrollto`, `openlimits`, `hidelimits`, `orderlimits`, `mugindebug`, `apibase`, `component`) accepteres og ignoreres.
 
 Fra `limit`-id’er hydrerer serveren `hardFilters`, `sourceFilters`, post-validation-rules og engelske labels via `limits.json`. Fra katalog-`topic`-id’er hydrerer serveren labels og deterministiske PubMed-`searchStrings` via domain-`topics.json` (samme model som SearchForm).
 
-Lange payloads: brug form-POST (body). Rene GET-URL’er er begrænset af webserverens request-line (typisk ~8–16 KB). PHP/form afhænger desuden af `post_max_size` / `max_input_vars`. Max ca. 200 limit-/topic-tokens og 50 pmid-tokens.
+Lange payloads: brug form-POST (body). Rene GET-URL’er er begrænset af webserverens request-line (typisk ~8–16 KB). PHP/form afhænger desuden af `post_max_size` / `max_input_vars`. Max ca. 200 limit-/topic-tokens og 50 selected-tokens.
 
 ### Eksempel
 
@@ -175,19 +193,20 @@ Lange payloads: brug form-POST (body). Rene GET-URL’er er begrænset af webser
 SearchForm og API deler samme flade query-/form-parametre. Typisk workflow:
 
 1. Lav valgene i SearchForm (inkl. advanced mode).
-2. Kopiér query-stringen fra URL’en (`domain=…&topic=…&limit=…&databases=…&ai=…&focus=…` osv.).
-   `domain=` i SearchForm-URL’en vinder over widgettets `data-domain` og bør følge med til API’en.
+2. Kopiér query-stringen fra URL’en (`domain=…&topic=…&limit=…&databases=…&ai=…&focus=…` og evt. `qpubmed` / `qsemanticscholar` / `qopenalex` / `qelicit`).
+   `domain=` i SearchForm-URL’en vinder over widgettets `data-domain` på den/de ramte instanser (`component=1,2` / laveste nummer) og bør følge med til API’en.
+   Redigerede søgestrenge i URL’en (`q*`) vinder over fritekst for de pågældende kilder.
 3. Kald API-endpointet med **samme query-string**, men API-host og API-sti:
    - UI: `https://muginscholar.dk/…/searchform.html?<query>`
    - API: `https://api.muginscholar.dk/v1/search.php?<query>`
 4. Tilføj auth: `X-API-Key` / Bearer, eller (kun GET, hvis deployment tillader det) `apikey=` i query.
-5. UI-only parametre (`advanced`, `collapsed`, `scrollto`, `openlimits`, `hidelimits`, `orderlimits`, `qpmdebug`, `apibase`) må gerne følge med — API’en ignorerer dem.
+5. UI-only parametre (`advanced`, `collapsed`, `scrollto`, `openlimits`, `hidelimits`, `orderlimits`, `mugindebug`, `apibase`, `component`) må gerne følge med — API’en ignorerer dem.
 
 Bemærk: det er **query-stringen** der genbruges. Stien skal pege på `/v1/search` (eller `/v1/search.php`), ikke SearchForm-HTML-stien. Ved lange query-strings (mange `limit=`/`topic=`) foretræk form-urlencoded `POST` med samme parametre i body — webservere begrænser typisk GET request-line til ~8–16 KB.
 
 ## GET request
 
-`GET /v1/search` accepterer **samme flade SearchForm-parametre** som form-urlencoded POST (`q`/`query`/`topic`, `databases`/`sources`, `ai`/`translation`, `focus`, `sort`, `page`, `pagesize`, gentagne `limit=`, `checklimits`, `pmid`, `lang`, `stream`, …). Gentagne `limit=` / `topic=` bevares (AND mellem grupper).
+`GET /v1/search` accepterer **samme flade SearchForm-parametre** som form-urlencoded POST (`q`/`query`/`topic`, `qpubmed` / `qsemanticscholar` / `qopenalex` / `qelicit`, `databases`/`sources`, `ai`/`translation`, `focus`, `sort`, `page`, `pagesize`, gentagne `limit=`, `checklimits`, `selected`/`pmid`, `lang`, `stream`, …). Gentagne `limit=` / `topic=` bevares (AND mellem grupper). `q*`-parametre list-splittes ikke; de vinder over `q`/`topic` for den pågældende kilde.
 
 Eksempel (simpel):
 
@@ -199,6 +218,12 @@ Samme søgning med SearchForm-navne (inkl. limits):
 
 ```text
 GET /v1/search?topic=%7B%7BFindes%20julemanden%3F0%7D%7D%23s&databases=pubmed,semanticscholar,openalex&ai=true&sort=relevance&pagesize=25&focus=newest-research&limit=L025010%23s&limit=L030010%23s,L030020%23s&advanced=true&collapsed=false&apikey=<key>
+```
+
+Samme SearchForm-URL med en redigeret PubMed-streng (`qpubmed` vinder over `topic`/`q` for pubmed; øvrige kilder oversættes stadig fra fritekst):
+
+```text
+GET /v1/search?topic=%7B%7BFindes%20julemanden%3F%7D%7D%23s%3Araw&qpubmed=santa%20claus&databases=pubmed,semanticscholar&ai=true
 ```
 
 `translation` styrer AI-oversættelsen:
@@ -218,8 +243,8 @@ GET /v1/search?topic=%7B%7BFindes%20julemanden%3F0%7D%7D%23s&databases=pubmed,se
 
 URL-`apikey` kan slås til og fra via:
 
-- `NEMPUBMED_PUBLIC_API['urlApiKeyEnabled']`
-- `NEMPUBMED_PUBLIC_API_URL_API_KEY_ENABLED`
+- `MUGIN_PUBLIC_API['urlApiKeyEnabled']`
+- `MUGIN_PUBLIC_API_URL_API_KEY_ENABLED`
 
 For `POST /v1/search` kan streaming ogsaa slaas til i body via `responseOptions.stream`.
 
@@ -252,9 +277,9 @@ Valgfrit resultat-fokus (rerank-profil). Samme profil-id'er som i søgeformulare
 - `newest-research`
 - `broad-mapping`
 
-Hvis feltet udelades, eller værdien er ukendt, anvendes ingen profil-override (serverens generelle standard-vægte fra `QPM_RERANK_CONFIG` bruges, hvilket ikke nødvendigvis er identisk med at vælge `balanced` eksplicit).
+Hvis feltet udelades, eller værdien er ukendt, anvendes ingen profil-override (serverens generelle standard-vægte fra `MUGIN_RERANK_CONFIG` bruges, hvilket ikke nødvendigvis er identisk med at vælge `balanced` eksplicit).
 
-**Bemærk om `focus` i det offentlige API:** `focus` anvender kun profilens overrides for kilde-vægte (`sourceWeights`), pmid-bonus og overlap-bonus i den deterministiske sammenlægning af flere kilder, samt en kort instruktion i den LLM-baserede finjustering af rækkefølgen (når semantiske kilder og LLM-rerank er aktive). Det er **ikke** fuld paritet med webappens rerank-profiler, som derudover justerer kvalitetssignaler som publikationstype-vægtning, recency-kurver, citationsindflydelse og kliniske bonusser — det lag findes i dag kun i webappens frontend-kode.
+**Bemærk om `focus`:** Med `MUGIN_UNIFIED_SEARCH_ENGINE_ENABLED=true` anvender PHP-orkestratoren (`muginPublicSearchRunSearch`) de **fulde** hybrid-profiler — samme overflade som web-widgetten: kilde-vægte, pmid-/overlap-bonus, publikationstype-tier, recency, citation impact, kliniske bonusser, data-quality m.m. (`MUGIN_RERANK_CONFIG` + `MUGIN_RERANK_PROFILE_CONFIG` via `semantic-quality-lib.php`). Kvalitetslaget er **ikke** frontend-only. Når flaget er `false`, begrænses `focus` til den ældre RRF-only-sti (kilde-vægte, pmid-/overlap-bonus og LLM-prompt-instruktion).
 
 ## Response
 
@@ -387,11 +412,29 @@ API'et returnerer den endelige ordnede liste i `results`.
       "trustedPmid": true,
       "canOpenInPubMed": true,
       "originSource": "semanticScholar",
-      "mergedSources": ["semanticScholar", "pubmed"]
+      "mergedSources": ["semanticScholar", "pubmed"],
+      "openAlexId": "",
+      "ranking": {
+        "combinedScore": 12.45,
+        "bestRank": 3,
+        "sourceCount": 2,
+        "scoreTieBreaker": 0.82,
+        "scoreBreakdown": {
+          "rrfScore": 10.1,
+          "overlapBonus": 1.0,
+          "pmidBonus": 0.5
+        },
+        "sourceBreakdown": [
+          { "source": "semanticScholar", "rank": 3, "score": 0.91, "weight": 1.0, "weightedRrf": 5.2 },
+          { "source": "pubmed", "rank": 8, "score": null, "weight": 1.0, "weightedRrf": 4.9 }
+        ]
+      }
     }
   ]
 }
 ```
+
+`ranking` er additivt og udelades, hvis kandidaten ikke har score-data. Det er quality/RRF-scores fra merge/rerank (foer evt. LLM `finalRerank`, som kun aendrer siderækkefølge/`rank`).
 
 ## Streaming
 
@@ -469,7 +512,9 @@ Hvert svar (også ved streaming, i `result`-eventet) indeholder et `timing`-obje
 
 ## `matchesWebOrdering`
 
-`order.matchesWebOrdering` må kun være `true`, når deploymenten eksplicit er sat op til det. Den leveres derfor konservativt som `false` som standard, indtil web og public API reelt kører på samme kanoniske backend-pipeline.
+Web og public API kører allerede på samme orkestrator: SearchForm → `UnifiedSearch.php` → `muginPublicSearchRunSearch()` (samme som `/v1/search`).
+
+`order.matchesWebOrdering` er **ikke** en runtime-måling af paritet. Feltet spejler kun konfigurationen `MUGIN_PUBLIC_API['matchesWebOrderingByDefault']` (default `false`). Sæt den til `true` i deploymenten, når I eksplicit vil signalere til klienter, at web og API forventes at levere samme ordning (typisk med `MUGIN_UNIFIED_SEARCH_ENGINE_ENABLED=true` og ens `MUGIN_RERANK_CONFIG`).
 
 ## Abstracts
 
@@ -493,7 +538,13 @@ Hvert resultat i `results` indeholder desuden en fast, ensartet mængde berigede
 - `journal`: `{ name, issn, volume, issue, pages }`. Tomme strenge, hvis oplysningen ikke findes.
 - `language`: ISO-sprogkode, fx `"eng"`. `""` hvis ukendt.
 - `pmcId`: PubMed Central-ID, hvis resultatet har et. `""` hvis ikke.
-- `topics`: liste af `{ label, source }`, hvor `source` er `"mesh"` (PubMed MeSH-termer) eller `"openAlex"` (OpenAlex' primære emne). `[]` hvis intet er fundet.
+- `topics`: liste af `{ label, source }`. `source` kan være:
+  - `"mesh"` — PubMed MeSH-termer (samme efetch som abstract)
+  - `"pubmedKeyword"` — PubMed KeywordList (samme efetch)
+  - `"openAlex"` — OpenAlex primære emne (`primary_topic`)
+  - `"openAlexTopic"` / `"openAlexSubfield"` / `"openAlexKeyword"` — øvrige OpenAlex-emner, delfelt og emneord (fra hydreret work og/eller OpenAlex-kandidat). OpenAlex Concepts hentes og bruges ikke; OpenAlex vedligeholder dem ikke. Domain/field vises ikke (for generiske).
+  - `"semanticScholar"` — Semantic Scholar `s2FieldsOfStudy` (når artiklen var S2-kandidat)
+  - `[]` hvis intet er fundet. Ingen ekstra API-kald ud over den eksisterende hydrate.
 - Der findes tre varianter af abstractet, så du selv kan vælge, hvilken der passer bedst til dit formål:
   - `abstract`: én flad, strippet streng uden linjeskift (uændret bagudkompatibel adfærd — samme som altid).
   - `abstractSections`: en liste af `{ label, text }`, der bevarer den oprindelige afsnitsstruktur som strukturerede data:

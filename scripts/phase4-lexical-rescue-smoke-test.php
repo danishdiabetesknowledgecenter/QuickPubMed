@@ -20,31 +20,31 @@ function assertTrue(bool $condition, string $message): void
 }
 
 // 1. Tokenization: stopwords removed, short tokens removed, deduped.
-$tokens = qpmSemanticQualityTokenizeLexicalSearchText('The Diabetes and the Insulin of Insulin');
+$tokens = muginSemanticQualityTokenizeLexicalSearchText('The Diabetes and the Insulin of Insulin');
 assertTrue(in_array('diabetes', $tokens, true), 'Tokenizer keeps a real content word');
 assertTrue(in_array('insulin', $tokens, true), 'Tokenizer keeps and dedupes a repeated content word');
 assertTrue(!in_array('the', $tokens, true) && !in_array('and', $tokens, true) && !in_array('of', $tokens, true), 'Tokenizer removes stopwords');
 
 // 2. Scoring: title match worth more than abstract match; exact-phrase bonus applies.
-$scoreTitleOnly = qpmSemanticQualityScoreLexicalTextWithQuery(['diabetes'], '', 'A study of diabetes', '');
-$scoreAbstractOnly = qpmSemanticQualityScoreLexicalTextWithQuery(['diabetes'], '', 'Unrelated study', 'This mentions diabetes once');
+$scoreTitleOnly = muginSemanticQualityScoreLexicalTextWithQuery(['diabetes'], '', 'A study of diabetes', '');
+$scoreAbstractOnly = muginSemanticQualityScoreLexicalTextWithQuery(['diabetes'], '', 'Unrelated study', 'This mentions diabetes once');
 assertTrue($scoreTitleOnly > $scoreAbstractOnly, 'Title token match scores higher than abstract token match');
-$scoreWithPhrase = qpmSemanticQualityScoreLexicalTextWithQuery(['diabetes', 'type'], 'diabetes type', 'diabetes type 2 study', '');
-$scoreWithoutPhrase = qpmSemanticQualityScoreLexicalTextWithQuery(['diabetes', 'type'], 'diabetes type', 'type of diabetes study', '');
+$scoreWithPhrase = muginSemanticQualityScoreLexicalTextWithQuery(['diabetes', 'type'], 'diabetes type', 'diabetes type 2 study', '');
+$scoreWithoutPhrase = muginSemanticQualityScoreLexicalTextWithQuery(['diabetes', 'type'], 'diabetes type', 'type of diabetes study', '');
 assertTrue($scoreWithPhrase > $scoreWithoutPhrase, 'Exact phrase match in title adds an extra bonus over token-only match');
 
 // 3. Trigger decision: disabled mode never triggers.
-if (!defined('QPM_SEMANTIC_RESCUE_CONFIG_TEST_OVERRIDE')) {
-    define('QPM_SEMANTIC_RESCUE_CONFIG_TEST_OVERRIDE', true);
+if (!defined('MUGIN_SEMANTIC_RESCUE_CONFIG_TEST_OVERRIDE')) {
+    define('MUGIN_SEMANTIC_RESCUE_CONFIG_TEST_OVERRIDE', true);
 }
 $sourceResultsSparse = [
     ['source' => 'pubmed', 'candidates' => [['pmid' => '1']]],
     ['source' => 'semanticScholar', 'candidates' => [['doi' => '10.1/a', 'title' => 'A']]],
 ];
-$decisionNotSelected = qpmPublicSearchShouldRunPubMedLexicalRescue($sourceResultsSparse, 'diabetes[tiab]', false);
+$decisionNotSelected = muginPublicSearchShouldRunPubMedLexicalRescue($sourceResultsSparse, 'diabetes[tiab]', false);
 assertTrue($decisionNotSelected['shouldRun'] === false && $decisionNotSelected['reason'] === 'pubmed-not-selected', 'Rescue does not trigger when pubmed is not selected');
 
-$decisionSparse = qpmPublicSearchShouldRunPubMedLexicalRescue($sourceResultsSparse, 'diabetes[tiab]', true);
+$decisionSparse = muginPublicSearchShouldRunPubMedLexicalRescue($sourceResultsSparse, 'diabetes[tiab]', true);
 assertTrue($decisionSparse['shouldRun'] === true && $decisionSparse['reason'] === 'sparse-first-harvest', 'Rescue triggers when non-pubmed sources are sparse (default thresholds: 25 merged / 12 source candidates)');
 
 // Build a sufficiently large non-pubmed candidate set to avoid triggering.
@@ -56,7 +56,7 @@ $sourceResultsSufficient = [
     ['source' => 'pubmed', 'candidates' => [['pmid' => '1']]],
     ['source' => 'semanticScholar', 'candidates' => $manyCandidates],
 ];
-$decisionSufficient = qpmPublicSearchShouldRunPubMedLexicalRescue($sourceResultsSufficient, 'diabetes[tiab]', true);
+$decisionSufficient = muginPublicSearchShouldRunPubMedLexicalRescue($sourceResultsSufficient, 'diabetes[tiab]', true);
 assertTrue($decisionSufficient['shouldRun'] === false && $decisionSufficient['reason'] === 'sufficient-first-harvest', 'Rescue does not trigger when non-pubmed sources already have enough candidates');
 
 // 4. Live end-to-end fetch: a real PubMed rescue search for a common topic
@@ -65,7 +65,7 @@ assertTrue($decisionSufficient['shouldRun'] === false && $decisionSufficient['re
 $existingSourceResults = [
     ['source' => 'semanticScholar', 'candidates' => [], 'pmids' => []],
 ];
-$rescueResult = qpmPublicSearchFetchPubMedLexicalRescueResult(
+$rescueResult = muginPublicSearchFetchPubMedLexicalRescueResult(
     'diabetes mellitus type 2 treatment',
     'diabetes mellitus[mh] AND treatment[tiab]',
     $existingSourceResults,

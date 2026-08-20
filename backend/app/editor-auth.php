@@ -214,7 +214,7 @@ function editorStartSession(): void
         'httponly' => true,
         'samesite' => $sameSite,
     ]);
-    session_name('QPM_EDITOR_SESSION');
+    session_name('MUGIN_EDITOR_SESSION');
     session_start();
 }
 
@@ -311,11 +311,7 @@ function editorValidateCsrfToken(?string $token): void
  */
 function editorRateLimitFilePath(): string
 {
-    $runtimeDir = dirname(__DIR__, 2) . '/data/runtime';
-    if (!is_dir($runtimeDir)) {
-        @mkdir($runtimeDir, 0750, true);
-    }
-    return $runtimeDir . '/editor-login-rate-limit.json';
+    return editorRuntimeDir() . '/editor-login-rate-limit.json';
 }
 
 /**
@@ -629,11 +625,8 @@ function editorRequireAuth(): void
  */
 function editorRuntimeDir(): string
 {
-    $runtimeDir = dirname(__DIR__, 2) . '/data/runtime';
-    if (!is_dir($runtimeDir)) {
-        @mkdir($runtimeDir, 0750, true);
-    }
-    return $runtimeDir;
+    require_once __DIR__ . '/file-cache.php';
+    return muginEnsureDataSubdir('runtime');
 }
 
 /**

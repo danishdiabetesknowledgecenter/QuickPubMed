@@ -1,5 +1,5 @@
 /* References domain styles */
-.qpm_References input {
+.mugin_References input {
   color: var(--color-black) !important;
 }
 
@@ -19,38 +19,38 @@
   margin-right: 15px;
 }
 
-.qpm_References {
+.mugin_References {
   margin-top: 0 !important;
   border-top: 1px solid var(--color-border-soft);
 }
 
-.qpm_References .qpm_ResultEntry {
+.mugin_References .mugin_ResultEntry {
   background-color: var(--color-grey-light);
   padding: 20px 30px 10px 30px;
   margin-left: 0;
 }
 
-.qpm_References .qpm_shadow {
+.mugin_References .mugin_shadow {
   padding: 20px;
 }
 
-.qpm_References .qpm_badges {
+.mugin_References .mugin_badges {
   margin-right: -10px;
 }
 
-.accordion__colored-backgrounds--1-item .qpm_References .qpm_badges {
+.accordion__colored-backgrounds--1-item .mugin_References .mugin_badges {
   margin-right: -10px;
 }
 
-.article-wrapper .accordion .accordion-body__contents .qpm_References .qpm_ResultEntry p {
+.article-wrapper .accordion .accordion-body__contents .mugin_References .mugin_ResultEntry p {
   margin-bottom: 5px !important;
 }
 
 .article-wrapper
   .accordion
   .accordion-body__contents
-  .qpm_References
-  .qpm_abstractWrapper
+  .mugin_References
+  .mugin_abstractWrapper
   div
   > p {
   margin-bottom: 0 !important;
@@ -64,7 +64,7 @@
 }
 
 .accordion__colored-backgrounds .vfd_qpm_references .fact-box__title,
-.accordion__colored-backgrounds .qpm_References .qpm_ResultEntry {
+.accordion__colored-backgrounds .mugin_References .mugin_ResultEntry {
   padding-left: 20px;
   padding-right: 20px;
 }
@@ -75,15 +75,15 @@
 
 .link--underline-fat-lr
   .accordion-body__contents
-  .qpm_References
-  .qpm_badges
+  .mugin_References
+  .mugin_badges
   a:not(.list__link) {
   border-bottom: 0;
   background: none;
 }
 
 @media (max-width: 767.98px) {
-  .qpm_References .qpm_ResultEntry {
+  .mugin_References .mugin_ResultEntry {
     padding: 20px 15px 20px 15px;
   }
 }

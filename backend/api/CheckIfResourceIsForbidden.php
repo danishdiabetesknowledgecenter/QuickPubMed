@@ -22,7 +22,7 @@ require_once __DIR__ . '/SummarizeArticleHelpers.php';
 // Azure Function URL - use same server as PDF/HTML fetching
 define('AZURE_CHECK_URL', 'https://qpm-openai-service.azurewebsites.net/api/CheckIfResourceIsForbidden');
 
-qpmApplyNlmCorsHeaders('POST, OPTIONS', 'application/json');
+muginApplyNlmCorsHeaders('POST, OPTIONS', 'application/json');
 
 // Only POST allowed
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
@@ -41,7 +41,7 @@ if (!is_array($input)) {
     exit;
 }
 
-$url = qpmRequirePublicHttpsUrl($input['url'] ?? '', 'url');
+$url = muginRequirePublicHttpsUrl($input['url'] ?? '', 'url');
 $forwardBody = json_encode(['url' => $url], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
 // Forward to Azure Function

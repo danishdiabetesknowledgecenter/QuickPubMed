@@ -13,7 +13,7 @@ export const promptTextMultipleAbstracts = [
       Skriv teksten, så den bliver meget let at forstå for en yngre person på 15 år, som ikke har nogen viden om emnet. 
       Skriv teksten så simpel og klar som muligt med et LIX-tal på under 25. Forklar svære ord og fagord i en parentes, som indsættes umiddelbart efter det pågældende ord. Angiv aldrig LIX-tallet i selve teksten. 
       Alle udsagn i opsummeringen skal altid kunne genfindes i den oprindelige tekst. Opbyg opsummeringen således: 
-      - Start med at beskrive, hvad alle studierne samlet set viser. Hvis der er markante forskelle mellem studierne, så beskriv disse forskelle. 
+      - Start direkte med at beskrive, hvad alle studierne samlet set viser, som almindelig brødtekst og ikke som en overskrift. Hvis der er markante forskelle mellem studierne, så beskriv disse forskelle. 
       - Skriv dernæst selve opsummeringen af studierne - gerne ved brug af korrekt punktopstilling. Anvend kun et niveau i punktopstillinger. 
       VIGTIGE instrukser: 
       - Det er vigtigt, at hver gang du omtaler et studie, skal du inkludere en reference til det pågældende studie direkte i teksten. 
@@ -22,7 +22,7 @@ export const promptTextMultipleAbstracts = [
       - Skriv ALDRIG en reference i plain text efterfulgt af den samme reference som Markdown-link. Hver reference skal KUN forekomme én gang, og det skal ALTID være som Markdown-link. FORKERT: "...svær hypoglykæmi (Zimmermann et al., 2025)([Zimmermann et al., 2025](#12345678 \\"Scroll ned til denne artikel\\"))". KORREKT: "...svær hypoglykæmi ([Zimmermann et al., 2025](#12345678 \\"Scroll ned til denne artikel\\"))".
       - Indsæt IKKE en referenceliste til sidst. 
       - Ved punktopstillinger, så brug Markdown language. Du må aldrig lave en nummereret liste med kun et punkt. 
-      - Brug gerne overskrifter, men indled aldrig det allerførste afsnit med en overskrift. Overskrifter må udelukkende markeres med **asterisks**, så de tolkes som fed tekst i HTML-format, dvs. #, ##, ###, osv. ikke må bruges til overskrifter.
+      - Indled ALDRIG opsummeringen med en overskrift, en titel eller en linje, der kun består af fed tekst. FORKERT: "**Bulimi og diabulimi ved diabetes**" som første linje, efterfulgt af brødtekst. KORREKT: start direkte med brødtekst, f.eks. "Samlet set viser studierne, at ...". Brug gerne overskrifter senere i teksten. Overskrifter må udelukkende markeres med **asterisks**, så de tolkes som fed tekst i HTML-format, dvs. #, ##, ###, osv. ikke må bruges til overskrifter.
       - Brug udelukkende lige anførselstegn, dvs. ", og brug aldrig krøllede anførselstegn, dvs. “ og ”.
       Her er et eksempel (afgrænset af triple backticks) på, hvordan du altid skal indsætte henvisninger til de enkelte studier i selve teksten, hver gang du omtaler noget, som stammer fra et eller flere bestemte af studierne på listen: 
       ´´´En systematisk gennemgang og meta-analyse viser, at forekomsten af fødselsdepression er høj, især i udviklingslande. Der er identificeret seks risikofaktorer for fødselsdepression, herunder gestationel diabetes, depression under graviditet og tidligere historie med depression [(Liu et al., 2022)](#12345678 \"Scroll ned til denne artikel\"). En systematisk gennemgang af epidemiologiske studier viser, at der er en høj forekomst af depression hos personer med diabetes. Kvinder med diabetes har en højere forekomst af depression end mænd 
@@ -38,15 +38,15 @@ export const promptTextMultipleAbstracts = [
       Write the text as simply and clearly as possible with a LIX number of less than 25. Do not include the LIX number in the text itself.
       Explain difficult words and technical terms in parentheses,
       which are inserted immediately after the word in question. Structure the summary as follows:
-      - Start by describing what all the studies show overall. If there are significant differences between the studies, describe these differences.
-      - Next, write the actual summary of the studies - gerne ved brug af korrekt punktopstilling. Anvend kun et niveau i punktopstillinger. 
+      - Start directly by describing what all the studies show overall, as ordinary body text and not as a heading. If there are significant differences between the studies, describe these differences.
+      - Next, write the actual summary of the studies - preferably using correct bullet points. Use only one level in bullet lists. 
       IMPORTANT instructions:
       - When you mention a study, ALWAYS insert a reference to the individual study inside the text itself as a clickable link in Markdown format in this form:
       [(Last name of the first author + et al., if there are several authors + , year)](#REFERENCE_ID \"Scroll down to this article\") where REFERENCE_ID is equal to the value of "Reference ID" for the study in question. If a PMID exists, "Reference ID" is the PMID. If no PMID exists, "Reference ID" is the DOI. Do NOT include a space between the citation mark and the parentheses.
       - NEVER write a reference in plain text followed by the same reference as a Markdown link. Each reference must appear ONLY once, and it must ALWAYS be as a Markdown link. WRONG: "...severe hypoglycemia (Zimmermann et al., 2025)([Zimmermann et al., 2025](#12345678 \\"Scroll down to this article\\"))". CORRECT: "...severe hypoglycemia ([Zimmermann et al., 2025](#12345678 \\"Scroll down to this article\\"))".
       DO NOT include a reference list at the end.
       - For bullet points, use Markdown language. You may never make a numbered list with only one point.
-      - Use sentence case, never title case, in headings and subheadings. In sentence case only the first word is capitalized. Headings and subheadings must be marked with **asterisks**, so they are interpreted as bold text in HTML format, i.e. #, ##, ###, etc. must not be used for headings.
+      - NEVER begin the summary with a heading, a title, or a line that consists only of bold text. WRONG: "**Bulimia and diabulimia in diabetes**" as the first line, followed by body text. CORRECT: start directly with body text, e.g. "Overall, the studies show that ...". You may use headings later in the text. Use sentence case, never title case, in headings and subheadings. In sentence case only the first word is capitalized. Headings and subheadings must be marked with **asterisks**, so they are interpreted as bold text in HTML format, i.e. #, ##, ###, etc. must not be used for headings.
       Here is an example (delimited by triple backticks) of how you should always insert references to the individual studies in the text itself, every time you mention something that originates from one or more specific studies in the list:
       ´´´A systematic review and meta-analysis shows that the incidence of postpartum depression is high, especially in developing countries.
       Six risk factors for postpartum depression have been identified, including gestational diabetes, depression during pregnancy, and previous history of depression [(Liu et al., 2022)](#12345678 \"Scroll down to this article\"). A systematic review of epidemiological studies shows that there is a high incidence of depression in people with diabetes. Women with diabetes have a higher incidence of depression than men ([Roy & Lloyd, 2012](#87654321 \"Scroll down to this article\"); [Samuelsen, 2018](#12873465 \"Scroll down to this article \")).´´´
@@ -69,7 +69,7 @@ export const promptTextMultipleAbstracts = [
       Lav en opsummering på dansk på højst 300 ord af denne tekst (givet i den numererede liste nedenfor og afgrænset af tre backticks), som udgøres af abstracts af videnskabelige studier. Angiv aldrig antallet af ord eller tekstens længde i selve teksten. 
       Skriv teksten på fagsprog, som let kan forstås af et sundhedsfagligt publikum eller personer med solid baggrund inden for emnet. 
       Gør teksten så simpel og klar som mulig. Opsummeringen skal opbygges således: 
-      1) Brug IKKE punktopstilling, dvs. '1)', '2)' osv. Skriv altid type 1-diabetes og type 2-diabetes med bindestreng, og skriv aldrig sukkersyge. 
+      1) Brug gerne korrekt punktopstilling. Anvend kun et niveau i punktopstillinger. Ved punktopstillinger, så brug Markdown language. Du må aldrig lave en nummereret liste med kun et punkt. Indled ALDRIG opsummeringen med en overskrift, en titel eller en linje, der kun består af fed tekst. FORKERT: "**Bulimi og diabulimi ved diabetes**" som første linje, efterfulgt af brødtekst. KORREKT: start direkte med brødtekst, f.eks. "Samlet set viser studierne, at ...". Brug gerne overskrifter senere i teksten. Overskrifter må udelukkende markeres med **asterisks**, så de tolkes som fed tekst i HTML-format, dvs. #, ##, ###, osv. ikke må bruges til overskrifter. Skriv altid type 1-diabetes og type 2-diabetes med bindestreng, og skriv aldrig sukkersyge. 
       Brug altid dansk tusindtalsseparator, dvs. f.eks. '1.234', ikke '1,234'.
       2) Det er vigtigt, at hver gang du omtaler et studie, skal du inkludere en reference til det pågældende studie direkte i teksten. 
       Brug reglerne fra in-text APA citation style med Markdown-format, når du indsætter referencer på, 
@@ -84,12 +84,12 @@ export const promptTextMultipleAbstracts = [
       En systematisk gennemgang af epidemiologiske studier viser, at der er en høj forekomst af depression hos personer med diabetes. 
       Kvinder med diabetes har en højere forekomst af depression end mænd **([Roy & Lloyd, 2012](#87654321 \"Scroll ned til denne artikel\"); 
       [Samuelsen, 2018](#12873465 \"Scroll ned til denne artikel\"))**.´´´ 
-      3) Start med at beskrive, hvad alle studierne samlet set viser. Hvis der er markante forskelle mellem studierne, så beskriv disse forskelle.\n 
-      4) Skriv til dernæst selve opsummeringen af studierne.\n
+      3) Start direkte med at beskrive, hvad alle studierne samlet set viser, som almindelig brødtekst og ikke som en overskrift. Hvis der er markante forskelle mellem studierne, så beskriv disse forskelle.\n 
+      4) Skriv til dernæst selve opsummeringen af studierne - gerne ved brug af korrekt punktopstilling.\n
       5) Gennemgå hele outputtet for formatteringsfejl og ret eventuelle fejl, før du returnerer resultatet.`,
       en: `Make a summary in English of no more than 300 words of this text (given in the numbered list below and delimited by three backticks), which consists of abstracts of scientific studies. Write the text in professional language that can be easily understood by a healthcare audience or people with a solid background in the subject. Do not include the number of words or the length of the text in the text itself.
       Make the text as simple and clear as possible. The summary must be structured as follows:
-      1) Do NOT use bullet points, ie. '1)', '2)' etc.
+      1) Preferably use correct bullet points. Use only one level in bullet lists. For bullet points, use Markdown language. You may never make a numbered list with only one point. NEVER begin the summary with a heading, a title, or a line that consists only of bold text. WRONG: "**Bulimia and diabulimia in diabetes**" as the first line, followed by body text. CORRECT: start directly with body text, e.g. "Overall, the studies show that ...". You may use headings later in the text. Use sentence case, never title case, in headings and subheadings. In sentence case only the first word is capitalized. Headings and subheadings must be marked with **asterisks**, so they are interpreted as bold text in HTML format, i.e. #, ##, ###, etc. must not be used for headings.
       2) IMPORTANT: When mentioning a study, ALWAYS insert a reference to the individual study within the text itself as a clickable link in Markdown format in this form:
       **[(Last name of the first author + et al., if there are more authors + , year)](#REFERENCE_ID \"Scroll down to this article\")** where REFERENCE_ID is equal to the value of "Reference ID" for the study in question. If a PMID exists, use the PMID. Otherwise use the DOI.
       DO NOT include a reference list at the end.
@@ -101,8 +101,8 @@ export const promptTextMultipleAbstracts = [
       A systematic review of epidemiological studies shows that there is a high incidence of depression in people with diabetes.
       Women with diabetes have a higher incidence of depression compared to men **([Roy & Lloyd, 2012](#87654321 \"Scroll down to this article\");
       [Samuelsen, 2018](#12873465 \"Scroll down to this article\"))**.´´´
-      3) Start by describing what all the studies show collectively, and if there are significant differences between the studies, describe these differences.
-      4) Write the actual summary of the studies.
+      3) Start directly by describing what all the studies show collectively, as ordinary body text and not as a heading, and if there are significant differences between the studies, describe these differences.
+      4) Write the actual summary of the studies - preferably using correct bullet points.
       5) Review the entire output for formatting errors and correct any errors before returning the result.`,
     },
     endText: {
@@ -125,13 +125,15 @@ export const promptTextSingleAbstract = [
       Skriv teksten på 100% korrekt dansk, og således, at den bliver meget let at forstå for en yngre dansk person på 15 år, som ikke har nogen viden om emnet. 
       Gør teksten så simpel og klar som muligt med et LIX-tal på under 25. Angiv aldrig LIX-tallet i selve teksten. 
       Forklar svære ord og fagord i en parentes, som indsættes umiddelbart efter det pågældende ord. 
-      Start med at angive, hvad studiet konkluderer.
+      Start direkte med at angive, hvad studiet konkluderer, som almindelig brødtekst og ikke som en overskrift.
+      Brug gerne korrekt punktopstilling. Anvend kun et niveau i punktopstillinger. Ved punktopstillinger, så brug Markdown language. Du må aldrig lave en nummereret liste med kun et punkt. Indled ALDRIG opsummeringen med en overskrift, en titel eller en linje, der kun består af fed tekst. FORKERT: "**Bulimi og diabulimi ved diabetes**" som første linje, efterfulgt af brødtekst. KORREKT: start direkte med brødtekst, f.eks. "Samlet set viser studierne, at ...". Brug gerne overskrifter senere i teksten. Overskrifter må udelukkende markeres med **asterisks**, så de tolkes som fed tekst i HTML-format, dvs. #, ##, ###, osv. ikke må bruges til overskrifter.
       Inden du returnerer resultatet, så gennemgå hele outputtet ekstremt grundigt for at finde eventuelle stave- eller formateringsfejl og rette dem, før du returnerer resultatet. Gennemgå hele outputtet 10 gange for sproglig korrekthed, før du returnerer resultatet.`,
       en: `Make a summary in English of no more than 150 words of this text, which is made up of an abstract of a scientific article. Do not include the number of words or the length of the text in the text itself.
       Write the text in 100% correct English, and so that it will be very easy to understand for a younger person of 15 years old who has no knowledge about the subject, and explain difficult words and technical terms in parentheses, which are inserted immediately after the word in question.
       Make the text as simple and clear as possible with a LIX number of less than 25. Do not include the LIX number in the text itself.
       Explain difficult words and technical terms in parantheses, which are inserted immediately after the word in question.
-      Start by stating what the study concludes.
+      Start directly by stating what the study concludes, as ordinary body text and not as a heading.
+      Preferably use correct bullet points. Use only one level in bullet lists. For bullet points, use Markdown language. You may never make a numbered list with only one point. NEVER begin the summary with a heading, a title, or a line that consists only of bold text. WRONG: "**Bulimia and diabulimia in diabetes**" as the first line, followed by body text. CORRECT: start directly with body text, e.g. "Overall, the studies show that ...". You may use headings later in the text. Use sentence case, never title case, in headings and subheadings. In sentence case only the first word is capitalized. Headings and subheadings must be marked with **asterisks**, so they are interpreted as bold text in HTML format, i.e. #, ##, ###, etc. must not be used for headings.
       Before returning the result, review the entire output extremely thoroughly to find any spelling or formatting errors and correct them, before returning the result. Review the entire output 10 times for grammatical correctness, before returning the result.`,
     },
     endText: {
@@ -148,10 +150,12 @@ export const promptTextSingleAbstract = [
     startText: {
       dk: `Lav en opsummering på dansk på højst 150 ord af denne tekst, som udgøres af et abstract af en videnskabelig artikel. Angiv aldrig antallet af ord eller tekstens længde i selve teksten.
       Skriv teksten på fagsprog, som let kan forstås af et sundhedsfagligt publikum eller personer med solid baggrund inden for emnet. 
-      Start med at angive, hvad studiet konkluderer.`,
+      Start direkte med at angive, hvad studiet konkluderer, som almindelig brødtekst og ikke som en overskrift.
+      Brug gerne korrekt punktopstilling. Anvend kun et niveau i punktopstillinger. Ved punktopstillinger, så brug Markdown language. Du må aldrig lave en nummereret liste med kun et punkt. Indled ALDRIG opsummeringen med en overskrift, en titel eller en linje, der kun består af fed tekst. FORKERT: "**Bulimi og diabulimi ved diabetes**" som første linje, efterfulgt af brødtekst. KORREKT: start direkte med brødtekst, f.eks. "Samlet set viser studierne, at ...". Brug gerne overskrifter senere i teksten. Overskrifter må udelukkende markeres med **asterisks**, så de tolkes som fed tekst i HTML-format, dvs. #, ##, ###, osv. ikke må bruges til overskrifter.`,
       en: `Make a summary in English of no more than 150 words of this text, which consists of an abstract of a scientific article. Do not include the number of words or the length of the text in the text itself.
       Write the text in professional language that can be easily understood by a healthcare audience or people with a solid background in the subject.
-      Start by stating what all the studies conclude.`,
+      Start directly by stating what the study concludes, as ordinary body text and not as a heading.
+      Preferably use correct bullet points. Use only one level in bullet lists. For bullet points, use Markdown language. You may never make a numbered list with only one point. NEVER begin the summary with a heading, a title, or a line that consists only of bold text. WRONG: "**Bulimia and diabulimia in diabetes**" as the first line, followed by body text. CORRECT: start directly with body text, e.g. "Overall, the studies show that ...". You may use headings later in the text. Use sentence case, never title case, in headings and subheadings. In sentence case only the first word is capitalized. Headings and subheadings must be marked with **asterisks**, so they are interpreted as bold text in HTML format, i.e. #, ##, ###, etc. must not be used for headings.`,
     },
     endText: {
       dk: `Her er teksten: `,
@@ -161,6 +165,7 @@ export const promptTextSingleAbstract = [
 ];
 
 // Base prompt object for summarizing multiple search result abstracts. Only the tooltip text is managed here
+// model/reasoning/text.verbosity overridden at runtime from openAiTaskModels.summarizeAbstract
 export const summarizeMultipleAbstractPrompt = [
   {
     name: "Hverdagssprog",
@@ -173,9 +178,9 @@ export const summarizeMultipleAbstractPrompt = [
       en: "Summary written in a language that is easy to understand, even without prior knowledge of the subject.",
     },
     model_token_limit: 128000,
-    model: "gpt-5.5",
-    reasoning: { effort: "none" },      // none, low, medium, high, xhigh
-    text: { verbosity: "medium" },     // low, medium, high
+    // model from MUGIN_LLM_TASK_MODELS.summarizeAbstract
+    reasoning: { effort: "none" },
+    text: { verbosity: "medium" },
     max_output_tokens: 4000,
     prompt: "",
   },
@@ -190,15 +195,15 @@ export const summarizeMultipleAbstractPrompt = [
       en: "Summary written in a language that is easily understood by professionals with prior knowledge of the subject.",
     },
     model_token_limit: 128000,
-    model: "gpt-5.5",
-    reasoning: { effort: "none" },      // none, low, medium, high, xhigh
-    text: { verbosity: "medium" },     // low, medium, high
+    reasoning: { effort: "none" },
+    text: { verbosity: "medium" },
     max_output_tokens: 4000,
     prompt: "",
   },
 ];
 
 // Base prompt object for summarizing single search result abstract. Only the tooltip text is managed here
+// model/reasoning/text.verbosity from MUGIN_LLM_TASK_MODELS.summarizeAbstract
 export const summarizeSingleAbstractPrompt = [
   {
     name: "Hverdagssprog",
@@ -211,9 +216,8 @@ export const summarizeSingleAbstractPrompt = [
       en: "Summary written in a language that is easy to understand, even without prior knowledge of the subject.",
     },
     model_token_limit: 128000,
-    model: "gpt-5.5",
-    reasoning: { effort: "none" },      // none, low, medium, high, xhigh
-    text: { verbosity: "medium" },     // low, medium, high
+    reasoning: { effort: "none" },
+    text: { verbosity: "medium" },
     max_output_tokens: 4000,
     prompt: "",
   },
@@ -228,9 +232,8 @@ export const summarizeSingleAbstractPrompt = [
       en: "Summary written in a language that is easily understood by professionals with prior knowledge of the subject.",
     },
     model_token_limit: 128000,
-    model: "gpt-5.5",
-    reasoning: { effort: "none" },      // none, low, medium, high, xhigh
-    text: { verbosity: "medium" },     // low, medium, high
+    reasoning: { effort: "none" },
+    text: { verbosity: "medium" },
     max_output_tokens: 4000,
     prompt: "",
   },

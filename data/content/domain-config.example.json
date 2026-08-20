@@ -24,15 +24,15 @@
     "en": "Domain name"
   },
   "class_overrides": {
-    "qpm_pubmedLink": {
+    "mugin_pubmedLink": {
       "mode": "append",
       "classes": "cms-inline-link cms-hover-target"
     },
-    "qpm_button": {
+    "mugin_button": {
       "mode": "replace",
       "classes": "cms-btn cms-btn--primary"
     },
-    "qpm_abstractContainer": {
+    "mugin_abstractContainer": {
       "mode": "append",
       "classes": [
         "cms-article-body",

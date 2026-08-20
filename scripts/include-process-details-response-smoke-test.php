@@ -1,7 +1,7 @@
 <?php
 /**
  * Simple smoke test for the includeProcessDetails=false/true response
- * schema: qpmPublicSearchBuildFinalResponse() must never attach a
+ * schema: muginPublicSearchBuildFinalResponse() must never attach a
  * processDetails field when the flag is off, and must attach the exported
  * collector shape (matching the process-details contract) when it is on.
  *
@@ -34,9 +34,9 @@ $baseRequest = [
 // of whether a collector happens to be passed in.
 $requestOff = $baseRequest;
 $requestOff['responseOptions'] = ['includeProcessDetails' => false];
-$collectorButUnused = qpmPublicSearchProcessDetailsCreate();
-qpmPublicSearchProcessDetailsSetStep($collectorButUnused, 'semanticIntent', ['ok' => true]);
-$responseOff = qpmPublicSearchBuildFinalResponse(
+$collectorButUnused = muginPublicSearchProcessDetailsCreate();
+muginPublicSearchProcessDetailsSetStep($collectorButUnused, 'semanticIntent', ['ok' => true]);
+$responseOff = muginPublicSearchBuildFinalResponse(
     $requestOff,
     [],
     [],
@@ -57,7 +57,7 @@ assertTrue(
 // key (defensive: never emit an empty/malformed block).
 $requestOnNoCollector = $baseRequest;
 $requestOnNoCollector['responseOptions'] = ['includeProcessDetails' => true];
-$responseOnNoCollector = qpmPublicSearchBuildFinalResponse(
+$responseOnNoCollector = muginPublicSearchBuildFinalResponse(
     $requestOnNoCollector,
     [],
     [],
@@ -78,10 +78,10 @@ assertTrue(
 // is attached and matches the exported contract shape (version/sourceQueryDetails/processStepDetails).
 $requestOn = $baseRequest;
 $requestOn['responseOptions'] = ['includeProcessDetails' => true];
-$collector = qpmPublicSearchProcessDetailsCreate();
-qpmPublicSearchProcessDetailsSetStep($collector, 'semanticIntent', ['sources' => ['pubmed']]);
-qpmPublicSearchProcessDetailsSetSource($collector, ['source' => 'pubmed', 'query' => 'diabetes']);
-$responseOn = qpmPublicSearchBuildFinalResponse(
+$collector = muginPublicSearchProcessDetailsCreate();
+muginPublicSearchProcessDetailsSetStep($collector, 'semanticIntent', ['sources' => ['pubmed']]);
+muginPublicSearchProcessDetailsSetSource($collector, ['source' => 'pubmed', 'query' => 'diabetes']);
+$responseOn = muginPublicSearchBuildFinalResponse(
     $requestOn,
     [],
     [],

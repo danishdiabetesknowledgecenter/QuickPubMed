@@ -8,7 +8,11 @@ import SearchForm from "@/components/SearchForm.vue";
 import { applyThemeFromConfig, config, loadThemeOverridesFromBackend } from "@/config/config";
 import { getAiURL, settings } from "@/config/settings";
 import { syncUrlDomainOverrideFromLocation } from "@/utils/domainKey.js";
-import { getSearchFlowDebugFlagFromLocation, normalizeSearchFlowDebugValue } from "@/utils/searchFlowDebug";
+import { getSearchFlowDebugFlagFromLocation, getSearchFlowDebugUrlParams, normalizeSearchFlowDebugValue } from "@/utils/searchFlowDebug";
+import {
+  isUrlTargetedSearchFormComponent,
+  readMountedSearchFormComponentNumbers,
+} from "@/utils/searchFormUrlTarget.js";
 import { createConfiguredAppWithOptions } from "./createConfiguredApp";
 
 // URL domain= must win before any widget mounts / loads topics.
@@ -50,7 +54,7 @@ function getInfoTooltipTrigger(target) {
   if (!(target instanceof Element) || typeof target.closest !== "function") {
     return null;
   }
-  const trigger = target.closest(".qpm_infoIcon");
+  const trigger = target.closest(".mugin_infoIcon");
   return trigger instanceof HTMLElement && trigger.$_popper ? trigger : null;
 }
 
@@ -59,7 +63,7 @@ function isInfoTooltipShown(element) {
 }
 
 function hideShownInfoTooltips() {
-  document.querySelectorAll(".qpm_infoIcon").forEach((element) => {
+  document.querySelectorAll(".mugin_infoIcon").forEach((element) => {
     if (!(element instanceof HTMLElement) || !element.$_popper) return;
     if (!isInfoTooltipShown(element)) return;
     element.$_popper.hide();
@@ -202,13 +206,15 @@ function installMobileTooltipScrollGuard() {
   );
 }
 
-// Find alle elementer med klassen "qpm-searchform" (med fallback til legacy class)
-const searchFormDivs = document.querySelectorAll(".qpm-searchform, .searchform");
+// Find alle elementer med klassen "mugin-searchform" (med fallback til legacy class)
+const searchFormDivs = document.querySelectorAll(".mugin-searchform, .searchform");
+const pageUrlParams = getSearchFlowDebugUrlParams();
+const mountedComponentNos = readMountedSearchFormComponentNumbers();
 
 searchFormDivs.forEach((searchFormDiv, index) => {
   // Generer et unikt ID for hver instans hvis det ikke allerede har et
   if (!searchFormDiv.id) {
-    searchFormDiv.id = `qpm-searchform-${index + 1}`;
+    searchFormDiv.id = `mugin-searchform-${index + 1}`;
   }
 
   // Keep empty string as-is (don't convert to undefined)
@@ -219,8 +225,6 @@ searchFormDivs.forEach((searchFormDiv, index) => {
   const showElicitUnlockButton = searchFormDiv.dataset.showElicitUnlockButton === "true";
   const showProcessDetailsToggles = searchFormDiv.dataset.showProcessDetailsToggles !== "false";
   const datasetDebugSearchFlow = normalizeSearchFlowDebugValue(searchFormDiv.dataset.debugSearchFlow);
-  const urlDebugSearchFlow = getSearchFlowDebugFlagFromLocation();
-  const debugSearchFlow = datasetDebugSearchFlow || urlDebugSearchFlow;
   const openLimits = searchFormDiv.dataset.openLimits === "true";
 
   const parseDatasetList = (value, label) => {
@@ -252,7 +256,15 @@ searchFormDivs.forEach((searchFormDiv, index) => {
   const componentNo =
     componentNoRaw && componentNoRaw.trim() !== "" && Number.isFinite(Number(componentNoRaw))
       ? Number(componentNoRaw)
-      : undefined;
+      : index + 1;
+  const urlDebugSearchFlow = isUrlTargetedSearchFormComponent(
+    componentNo,
+    pageUrlParams,
+    mountedComponentNos
+  )
+    ? getSearchFlowDebugFlagFromLocation()
+    : false;
+  const debugSearchFlow = datasetDebugSearchFlow || urlDebugSearchFlow;
   const instanceAiURL = getAiURL(searchFormDiv.dataset.aiUrl || "");
   const standardStringAdd = searchFormDiv.dataset.standardStringAdd === "true";
   const standardStringScopeRaw = searchFormDiv.dataset.standardStringScope;
@@ -311,6 +323,7 @@ searchFormDivs.forEach((searchFormDiv, index) => {
     {
       provide: {
         instanceDomain: domain,
+        instanceComponentNo: componentNo,
         instanceLanguage: language,
         instanceUseAI: useAI,
         instanceUseAISummarizer: useAISummarizer,

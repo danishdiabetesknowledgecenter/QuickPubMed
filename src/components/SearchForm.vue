@@ -1,7 +1,7 @@
 <template>
   <div :lang="language === 'en' ? 'en' : 'da'">
-    <div :id="getComponentId" :class="{ qpm_formCollapsed: isCollapsed }">
-      <form class="qpm_searchform" role="search" @submit.prevent>
+    <div :id="getComponentId" :class="{ mugin_formCollapsed: isCollapsed }">
+      <form class="mugin_searchform" role="search" @submit.prevent>
         <!-- The tabs for toggling between advanced or simple search -->
         <advanced-search-toggle
           :advanced="advanced"
@@ -14,7 +14,7 @@
           @toggle-advanced="advancedClick"
         />
 
-        <div class="qpm_top">
+        <div class="mugin_top">
           <!-- Show or hide the search form -->
           <search-form-toggle
             :is-collapsed="isCollapsed"
@@ -25,8 +25,8 @@
             @toggle-collapsed="toggleCollapsedController"
           />
 
-          <div v-show="!isCollapsed && isAiFeatureEnabled" class="qpm_translationSourcesPanel">
-            <div class="qpm_translationSourcesPrimary">
+          <div v-show="!isCollapsed && isAiFeatureEnabled" class="mugin_translationSourcesPanel">
+            <div class="mugin_translationSourcesPrimary">
               <ai-translation-toggle
                 v-model="searchWithAI"
                 :is-collapsed="false"
@@ -38,9 +38,9 @@
 
           </div>
 
-          <div v-show="isCollapsed" class="qpm_collapsedSpacerPadding"></div>
+          <div v-show="isCollapsed" class="mugin_collapsedSpacerPadding"></div>
 
-          <div :id="getSearchPanelId" v-show="!isCollapsed" class="qpm_searchformoptions">
+          <div :id="getSearchPanelId" v-show="!isCollapsed" class="mugin_searchformoptions">
           <!-- The dropdown for selecting topics to be included in the search -->
             <subject-selection
               ref="subjectSelection"
@@ -142,14 +142,18 @@
           </div>
         </div>
 
-        <div id="qpm_topofsearch" class="qpm_flex">
+        <div id="mugin_topofsearch" class="mugin_flex">
           <!-- The search query written out as human readable text-->
           <worded-search-string
+            ref="wordedSearchString"
             :topics="topics"
             :limits="limitData"
             :available-limits="limitsContent"
             :limit-dropdowns="wordedSearchLimitDropdowns"
             :searchstring="displaySearchString"
+            :source-queries="displayedSourceSearchStrings"
+            :pending-source-keys="pendingSourceSearchStringDisplay"
+            :translating-label="searchLoadingStatusText"
             :is-collapsed="isCollapsed"
             :details="details"
             :advanced-string="advancedString"
@@ -158,6 +162,8 @@
             :language="language"
             @toggle-details-box="toggleDetailsBox"
             @toggle-advanced-string="toggleAdvancedString"
+            @update:query="onSourceSearchQueryUpdate"
+            @query-edit-finished="onSourceSearchQueryEditFinished"
           />
         </div>
 
@@ -172,7 +178,7 @@
             @searchset-low-start="searchsetLowStart"
           />
           <!-- Accessible status region for copy-URL feedback (WCAG 2.2 SC 4.1.3). -->
-          <div class="qpm_srOnly" role="status" aria-live="polite" aria-atomic="true">{{ copyUrlStatusMessage }}</div>
+          <div class="mugin_srOnly" role="status" aria-live="polite" aria-atomic="true">{{ copyUrlStatusMessage }}</div>
         </div>
       </form>
 
@@ -192,8 +198,12 @@
         :error="searchError"
         :loading-status-text="searchLoadingStatusText"
         :loading-process-steps="loadingProcessSteps"
+        :selected-source-count="
+          Array.isArray(selectedTranslationSources) ? selectedTranslationSources.length : 0
+        "
         :search-process-elapsed-ms="searchProcessElapsedMs"
         :degraded-search-summary="degradedSearchSummary"
+        :search-with-a-i="searchWithAI"
         :search-intent="searchIntent"
         :show-process-details-toggles="showProcessDetailsToggles"
         :source-query-details="searchProcessSourceQueryDetails"
@@ -244,10 +254,17 @@
     parsePubMedXml,
   } from "@/utils/componentHelpers";
   import {
+    appendCandidateTopicSignals,
+    formatSelectedIdentifierFromResult,
     mapOpenAlexWorkToResultDto,
     mapPubMedSummaryToResultDto,
     mapUnifiedApiResultToResultDto,
+    mergeResultTopicEntries,
     normalizeDoiValue,
+    normalizeSelectedIdentifierList,
+    isPlausibleDoiValue,
+    parseSelectedIdentifierToken,
+    unwrapOpenAlexWorkLookupEntry,
   } from "@/utils/resultAdapters";
   import {
     getSourceRateLimitStorageKey as utilGetSourceRateLimitStorageKey,
@@ -280,19 +297,23 @@
     summarizeSearchFlowRecord,
   } from "@/utils/searchFlowDebug";
   import {
+    claimSharedSearchFormUrl,
+    getComponentUrlParamValue,
+    getUrlParamCaseInsensitive,
+    isSharedSearchFormUrlOwner,
+    isUrlTargetedSearchFormComponent,
+    readMountedSearchFormComponentNumbers,
+  } from "@/utils/searchFormUrlTarget";
+  import {
     buildActiveSemanticDoiOnlyRuleState,
   } from "@/utils/semanticRuleSchema";
-  import {
-    logTelemetryEvent,
-    anonymizeText,
-    getTelemetryThresholds,
-  } from "@/utils/qpmTelemetry.js";
   import {
     normalizeRerankProfileConfig,
     normalizeRerankProfileId,
     RERANK_PROFILE_STORAGE_KEY,
     RERANK_PROFILE_URL_PARAM,
   } from "@/utils/semanticRerankProfiles.js";
+  import { buildLlmTopicsPayload, LLM_TOPIC_CAP } from "@/utils/semanticLlmTopics.js";
   import {
     adaptUnifiedProcessDetails,
     DEFAULT_STEP_LABELS,
@@ -311,10 +332,10 @@
   // remaining candidates in the background. Nothing is dropped — the background pass
   // validates the rest and appends any keepers to the result list + total count.
   const SEMANTIC_VALIDATION_BLOCKING_LIMIT = 150;
+  // Operational defaults only — model/reasoningEffort come from ThemeConfig
+  // (MUGIN_LLM_TASK_MODELS.finalRerank via semanticLlmRerankConfig).
   const DEFAULT_SEMANTIC_LLM_RERANK_CONFIG = {
     enabled: true,
-    model: "gpt-5.4-nano",
-    reasoningEffort: "none",
     topN: 10,
     maxOutputTokens: 400,
   };
@@ -337,7 +358,7 @@
     mixins: [appSettingsMixin, topicLoaderMixin],
     provide() {
       return {
-        qpmSearchFlowDebugApi: {
+        muginSearchFlowDebugApi: {
           isEnabled: () => this.isSearchFlowDebugEnabled,
           isRunActive: () => !!this.searchFlowDebugRun,
           getConsolePrefix: () => this.getSearchFlowDebugConsolePrefix(),
@@ -419,7 +440,12 @@
       },
     },
     data() {
-      const debugSearchFlowFromUrl = getSearchFlowDebugFlagFromLocation();
+      const debugSearchFlowFromUrl =
+        isUrlTargetedSearchFormComponent(
+          this.componentNo,
+          getSearchFlowDebugUrlParams(),
+          readMountedSearchFormComponentNumbers()
+        ) && getSearchFlowDebugFlagFromLocation();
       // Captured ONCE here (component creation, before the widget's own URL
       // rewriting logic runs) rather than re-read live inside search(), since
       return {
@@ -437,6 +463,7 @@
         translationSourcesExpanded: false,
         manualAiTranslationEnabled: true,
         isUrlParsed: false,
+        allowSharedUrlWrite: false,
         oldState: "",
         page: 0,
         pageSize: 25,
@@ -489,6 +516,13 @@
         searchProcessStepDetailPayloads: {},
         searchProcessStepDetailLabels: {},
         unifiedProcessSourceQueryDetails: [],
+        draftSourceQueries: {},
+        lastSyncedSourceQueries: {},
+        committedQueryOverrides: {},
+        queryOverrideFreetextKey: "",
+        pendingQueryOverrideSnapshot: null,
+        sessionFreetextQueries: null,
+        sourceSearchStringPending: {},
         searchProcessStartedAtMs: 0,
         searchProcessEndedAtMs: 0,
         searchProcessElapsedMs: 0,
@@ -656,6 +690,7 @@
       },
       searchProcessStepDetails() {
         const details = [];
+        const detailsByStepId = new Map();
         const addDetail = (stepId, label, payload = null, context = "") => {
           const normalizedStepId = String(stepId || "").trim();
           if (!normalizedStepId || !payload || typeof payload !== "object") return;
@@ -665,12 +700,26 @@
             return value !== "" && value !== null && value !== undefined;
           });
           if (!hasContent) return;
-          details.push({
+          const existing = detailsByStepId.get(normalizedStepId);
+          if (existing) {
+            existing.payload = {
+              ...(existing.payload && typeof existing.payload === "object" ? existing.payload : {}),
+              ...payload,
+            };
+            const normalizedLabel = String(label || "").trim();
+            if (normalizedLabel) existing.label = normalizedLabel;
+            const normalizedContext = String(context || "").trim();
+            if (normalizedContext) existing.context = normalizedContext;
+            return;
+          }
+          const entry = {
             stepId: normalizedStepId,
             label: String(label || "").trim(),
             payload,
             context: String(context || "").trim(),
-          });
+          };
+          detailsByStepId.set(normalizedStepId, entry);
+          details.push(entry);
         };
         const selectedSources = Array.isArray(this.selectedTranslationSources)
           ? this.selectedTranslationSources.map((source) => String(source || "").trim()).filter(Boolean)
@@ -683,20 +732,19 @@
           pageSize: this.pageSize,
           searchWithAI: this.searchWithAI === true,
         };
-        const searchBasisStepId = this.shouldShowSemanticQueryProcessStep()
-          ? "semanticIntent"
-          : this.shouldShowPubMedRelatedSemanticProcessSteps()
-            ? "searchString"
-            : "mesh";
-        addDetail(searchBasisStepId, "", {
-          searchBasis,
-          selectedSources: searchBasis.selectedSources,
-          pageSize: searchBasis.pageSize,
-        });
         // Unified path: search-basis is folded into the first real prepare-lane
-        // step above; other process payloads come from backend processDetails
-        // via the thin adapter into searchProcessStepDetailPayloads.
+        // step by the backend. Do not invent a prepare-lane row here.
         if (!this.isUnifiedEngineActive) {
+          const searchBasisStepId = this.shouldShowSemanticQueryProcessStep()
+            ? "semanticIntent"
+            : this.shouldShowPubMedRelatedSemanticProcessSteps()
+              ? "searchString"
+              : "mesh";
+          addDetail(searchBasisStepId, "", {
+            searchBasis,
+            selectedSources: searchBasis.selectedSources,
+            pageSize: searchBasis.pageSize,
+          });
           const pubmedQuery = this.getGlobalSemanticPubMedSourceQuery();
         const pubmedIntent = this.globalSemanticSearchState?.llmSemanticIntent || null;
         const pubmedIntentMeta =
@@ -922,9 +970,7 @@
             hardFilterQuery: this.getSemanticHardFilterValidationQuery(),
           });
         }
-        const seenStepIds = new Set(details.map((entry) => entry.stepId));
         Object.entries(this.searchProcessStepDetailPayloads || {}).forEach(([stepId, payload]) => {
-          if (seenStepIds.has(stepId)) return;
           addDetail(
             stepId,
             String(
@@ -934,7 +980,6 @@
             ),
             payload
           );
-          seenStepIds.add(stepId);
         });
         return details;
       },
@@ -975,8 +1020,7 @@
       },
       isUnifiedEngineActive() {
         // SearchForm and public API must always use the same PHP orchestrator.
-        // The legacy local JS pipeline remains in the file only as dormant
-        // compatibility code; runtime flags/URL parameters cannot select it.
+        // Runtime flags/URL parameters cannot select a local JS search engine.
         return true;
       },
       hasExplicitDefaultTranslationSources() {
@@ -998,7 +1042,7 @@
         );
         const merged = this.normalizeTranslationSourcesList(["pubmed", ...normalizedSources]);
         // Global elicit gate: backend exposes runtimeConfig.elicitGated=true when
-        // the caller is not unlocked via QPM_ELICIT_UNLOCK. Strip 'elicit' from the
+        // the caller is not unlocked via MUGIN_ELICIT_UNLOCK. Strip 'elicit' from the
         // list of query-available sources; the UI still renders it via
         // lockedTranslationSourceKeys so users can see and unlock it.
         if (runtimeConfig.elicitGated === true) {
@@ -1270,8 +1314,91 @@
         const semanticClause = this.buildSemanticPmidClause();
         return baseQuery || semanticClause;
       },
+      unifiedSearchFreetextQuery() {
+        return this.getUnifiedSearchFreetextQuery();
+      },
+      sessionFreetextInputKey() {
+        return this.getSessionFreetextInputKey();
+      },
       displaySearchString() {
         return String(this.finalValidatedQuery || this.getSearchString || "").trim();
+      },
+      displayedSourceSearchStrings() {
+        const sources = this.buildUnifiedSearchSources();
+        const sourceSet = new Set(sources);
+        const items = [];
+        const partValue = (key, generated) => {
+          if (Object.prototype.hasOwnProperty.call(this.draftSourceQueries || {}, key)) {
+            return String(this.draftSourceQueries[key] ?? "");
+          }
+          return String(generated || "");
+        };
+        const pushSource = (key, labelKey) => {
+          if (!sourceSet.has(key)) return;
+          const sourceLabel = this.getString(labelKey);
+          const limitsPart = (limitKey) => ({
+            key: limitKey,
+            labelKey: "searchStringPubmedLimits",
+            value: "",
+            readOnly: true,
+            infoKey: "searchStringSourceLimitsHint",
+            infoSourceLabel: sourceLabel,
+            limitGroups: this.getSourceLimitGroupsForDisplay(key),
+          });
+          if (key === "pubmed") {
+            const topicValue = partValue("pubmedTopics", this.getGeneratedPubmedTopicQuery());
+            const limitValue = this.getGeneratedPubmedLimitQuery();
+            const combined = this.combineResolvedPubmedDisplay(topicValue, limitValue);
+            items.push({
+              key,
+              labelKey,
+              value: combined,
+              parts: [
+                {
+                  key: "pubmedTopics",
+                  labelKey: "searchStringPubmedTopics",
+                  value: topicValue,
+                },
+                limitsPart("pubmedLimits"),
+              ],
+            });
+            return;
+          }
+          const generated = this.getGeneratedSemanticSourceQuery(key);
+          const draft = this.draftSourceQueries?.[key];
+          const topicValue = draft !== undefined && draft !== null ? String(draft) : generated;
+          items.push({
+            key,
+            labelKey,
+            value: topicValue,
+            linkFilters: this.getSourceSearchLinkFilters(key),
+            parts: [
+              {
+                key,
+                labelKey: "searchStringPubmedTopics",
+                value: topicValue,
+              },
+              limitsPart(`${key}Limits`),
+            ],
+          });
+        };
+        pushSource("pubmed", "searchStringSourcePubmed");
+        pushSource("semanticScholar", "searchStringSourceSemanticScholar");
+        pushSource("openAlex", "searchStringSourceOpenAlex");
+        pushSource("elicit", "searchStringSourceElicit");
+        return items;
+      },
+      pendingSourceSearchStringDisplay() {
+        const pending = this.sourceSearchStringPending && typeof this.sourceSearchStringPending === "object"
+          ? this.sourceSearchStringPending
+          : {};
+        const visible = {};
+        Object.keys(pending).forEach((key) => {
+          if (pending[key] === true && !this.isSourceQueryDirty(key)) {
+            visible[key] = true;
+          }
+        });
+        return visible;
       },
       getPageSize() {
         return this.pageSize;
@@ -1329,6 +1456,18 @@
           this.applyConfiguredTranslationSources(true);
         }
       },
+      sessionFreetextInputKey(newValue) {
+        if (!this.isUrlParsed) return;
+        const next = String(newValue || "").trim();
+        const bound = String(this.queryOverrideFreetextKey || "").trim();
+        const cachedInput = String(this.sessionFreetextQueries?.input || "").trim();
+        const freetextChangedFromBound = Boolean(bound) && next !== bound;
+        const freetextChangedFromCache = Boolean(cachedInput) && next !== cachedInput;
+        if (!freetextChangedFromBound && !freetextChangedFromCache) return;
+        const hadOverrides = Object.keys(this.getQueryOverridesForSearch()).length > 0;
+        this.resetQueryOverrideState();
+        if (hadOverrides) this.setUrl();
+      },
       topicCatalog: {
         deep: true,
         handler() {
@@ -1361,7 +1500,7 @@
       }
       if (this._semanticSourceRateLimitListener) {
         window.removeEventListener(
-          "qpm:semantic-source-rate-limit-update",
+          "mugin:semantic-source-rate-limit-update",
           this._semanticSourceRateLimitListener
         );
       }
@@ -1401,7 +1540,7 @@
           this.setSourceRateLimitInfo(sourceKey, event?.detail?.rateLimit);
         };
         window.addEventListener(
-          "qpm:semantic-source-rate-limit-update",
+          "mugin:semantic-source-rate-limit-update",
           this._semanticSourceRateLimitListener
         );
       }
@@ -1439,7 +1578,7 @@
           this._elicitUnlockChangedListener
         );
       }
-      if (this.hasTopics) {
+      if (this.hasTopics || this.hasExecutableQueryOverrides()) {
         if (this.shouldAutoSearchOnMount()) {
           await this.search();
         } else {
@@ -1458,7 +1597,7 @@
         this.updatePlaceholders();
 
         // Silent focus on the first input — only for the first SearchForm instance on the page
-        const allWrappers = document.querySelectorAll(".qpm-searchform, .searchform");
+        const allWrappers = document.querySelectorAll(".mugin-searchform, .searchform");
         const isFirstInstance =
           allWrappers.length === 0 ||
           allWrappers[0] === this.$el ||
@@ -1475,6 +1614,7 @@
       this.$nextTick(() => {
         this.initializeFocusVisible();
       });
+      this.allowSharedUrlWrite = true;
     },
     created() {
       // If hideTopics comes as string, convert it to array
@@ -1536,8 +1676,6 @@
        * pre-filled form before triggering a potentially costly search.
        */
       shouldAutoSearchOnMount() {
-        if (!this.hasTopics) return false;
-        if (!this.searchWithAI) return false;
         if (this.shouldBlockAutoSearchFromUrlTranslationSources()) return false;
         const selected = Array.isArray(this.selectedTranslationSources)
           ? this.selectedTranslationSources
@@ -1545,7 +1683,13 @@
         const onlyPubmed =
           selected.length === 1 &&
           String(selected[0] || "").trim() === "pubmed";
-        return onlyPubmed;
+        if (!onlyPubmed) return false;
+        if (this.hasExecutableQueryOverrides()) return true;
+        return this.hasTopics && this.searchWithAI;
+      },
+      hasExecutableQueryOverrides() {
+        const overrides = this.getQueryOverridesForSearch();
+        return Object.keys(overrides).some((key) => String(overrides[key] || "").trim() !== "");
       },
       getTranslationSourceOrder(sourceKey) {
         const order = {
@@ -1887,7 +2031,7 @@
           );
         return hasSemanticScholarTag ? '("__qpm_semantic_scholar_no_match__"[ti])' : "";
       },
-      buildPubMedBaseQuery() {
+      buildPubMedQueryParts() {
         const hasLogicalOperators = (searchStrings) =>
           ["AND", "OR", "NOT"].some((op) => searchStrings.includes(op));
         const shouldExcludeFromBaseQuery = (item) =>
@@ -1969,7 +2113,28 @@
             })
             .join(connector);
         };
-        const substrings = [];
+        const topicSubstrings = [];
+        const limitSubstrings = [];
+        const pushLimitGroup = (dropdownItems) => {
+          const nonSemanticItems = (Array.isArray(dropdownItems) ? dropdownItems : []).filter(
+            (item) => !shouldExcludeFromBaseQuery(item)
+          );
+          if (nonSemanticItems.length === 0) return;
+          const hasOperators = nonSemanticItems.some(
+            (item) =>
+              item.searchStrings &&
+              item.scope &&
+              resolvePubMedSearchValues(item)[0] &&
+              hasLogicalOperators(resolvePubMedSearchValues(item)[0])
+          );
+          let substring = "";
+          if (hasOperators || nonSemanticItems.length > 1) substring += "(";
+          substring += buildSubstring(nonSemanticItems, " OR ", false);
+          if (hasOperators || nonSemanticItems.length > 1) substring += ")";
+          if (substring && substring !== "()") {
+            limitSubstrings.push(substring);
+          }
+        };
 
         this.topics.forEach((subjectGroup, index) => {
           if (!Array.isArray(subjectGroup)) return;
@@ -2002,57 +2167,33 @@
           }
 
           if (substring !== "()" && substring !== " AND ()" && substring !== " AND ") {
-            substrings.push(substring);
+            topicSubstrings.push(substring);
           }
         });
 
         if (this.advanced) {
-          this.limitDropdowns.forEach((dropdownItems) => {
-            const nonSemanticItems = dropdownItems.filter((item) => !shouldExcludeFromBaseQuery(item));
-            if (nonSemanticItems.length === 0) return;
-
-            const hasOperators = nonSemanticItems.some(
-              (item) =>
-                item.searchStrings &&
-                item.scope &&
-                resolvePubMedSearchValues(item)[0] &&
-                hasLogicalOperators(resolvePubMedSearchValues(item)[0])
-            );
-
-            let substring = " AND ";
-            if (hasOperators || nonSemanticItems.length > 1) substring += "(";
-            substring += buildSubstring(nonSemanticItems, " OR ", false);
-            if (hasOperators || nonSemanticItems.length > 1) substring += ")";
-
-            if (substring !== " AND ()" && substring !== " AND ") {
-              substrings.push(substring);
-            }
-          });
+          this.limitDropdowns.forEach((dropdownItems) => pushLimitGroup(dropdownItems));
         } else {
-          Object.keys(this.limitData).forEach((key) => {
-            const filterGroup = this.limitData[key];
-            const nonSemanticItems = filterGroup.filter((item) => !shouldExcludeFromBaseQuery(item));
-            if (nonSemanticItems.length === 0) return;
-            const hasOperators = nonSemanticItems.some(
-              (item) =>
-                item.searchStrings &&
-                item.scope &&
-                resolvePubMedSearchValues(item)[0] &&
-                hasLogicalOperators(resolvePubMedSearchValues(item)[0])
-            );
-
-            let substring = " AND ";
-            if (hasOperators || nonSemanticItems.length > 1) substring += "(";
-            substring += buildSubstring(nonSemanticItems, " OR ", false);
-            if (hasOperators || nonSemanticItems.length > 1) substring += ")";
-
-            if (substring !== " AND ()" && substring !== " AND ") {
-              substrings.push(substring);
-            }
-          });
+          Object.keys(this.limitData).forEach((key) => pushLimitGroup(this.limitData[key]));
         }
 
-        return substrings.join("").replace(/^\s*AND\s+/, "").trim();
+        return {
+          topics: topicSubstrings.join("").replace(/^\s*AND\s+/, "").trim(),
+          limits: limitSubstrings.join(" AND ").trim(),
+        };
+      },
+      buildPubMedBaseQuery() {
+        const parts = this.buildPubMedQueryParts();
+        return this.combineResolvedPubmedDisplay(parts.topics, parts.limits);
+      },
+      getGeneratedPubmedTopicQuery() {
+        if (Object.prototype.hasOwnProperty.call(this.lastSyncedSourceQueries || {}, "pubmedTopics")) {
+          return String(this.lastSyncedSourceQueries.pubmedTopics || "").trim();
+        }
+        return this.buildPubMedQueryParts().topics;
+      },
+      getGeneratedPubmedLimitQuery() {
+        return this.buildPubMedQueryParts().limits;
       },
       hasSelectedPredefinedTopicForPubMedSource() {
         return (Array.isArray(this.topics) ? this.topics : []).some((group) =>
@@ -2088,37 +2229,6 @@
           searchWithAI: this.searchWithAI === true,
           pubmedSourceQuery: String(pubmedSourceQuery || "").trim(),
         });
-      },
-      buildSearchPaginationSignature() {
-        const pubmedSourceQuery = this.getGlobalSemanticPubMedSourceQuery();
-        return JSON.stringify({
-          query: decodeURIComponent(this.getSearchString || "").trim(),
-          sources: this.sortTranslationSourcesList(this.selectedTranslationSources),
-          pubmedSourceQuery,
-          hardFilterQuery: this.getSemanticHardFilterValidationQuery(),
-          sortMethod: this.sort?.method || "",
-          rerankProfile: this.resolvedSelectedRerankProfileId || "",
-          sourceSignature: this.getGlobalSemanticSearchSourceSignature(pubmedSourceQuery),
-          searchGeneration: this.searchGeneration,
-          hasDeferredSemanticTags: this.hasDeferredSemanticTags(),
-        });
-      },
-      recordSearchPaginationSignature() {
-        this.searchPaginationSignature = this.buildSearchPaginationSignature();
-      },
-      canUseSearchMoreFastPath() {
-        if (!this.searchPaginationSignature || this.hasDeferredSemanticTags()) {
-          return false;
-        }
-        if (this.searchPaginationSignature !== this.buildSearchPaginationSignature()) {
-          return false;
-        }
-        return (
-          !!this.globalSemanticSearchState ||
-          (Array.isArray(this.matchedRerankedResultRefs) &&
-            this.matchedRerankedResultRefs.length > 0) ||
-          (Array.isArray(this.matchedRerankedPmids) && this.matchedRerankedPmids.length > 0)
-        );
       },
       buildGlobalSemanticSearchState(inputText, resolvedState) {
         return {
@@ -2422,8 +2532,8 @@
       },
       getSemanticLoadingProcessStepOrder() {
         return [
+          "cache",
           "semanticIntent",
-          "semanticQuery",
           "searchString",
           "mesh",
           "semanticScholar",
@@ -2457,6 +2567,7 @@
         // Fold retired micro-steps into their parent step ids (parity with API).
         const foldedStepIds = {
           prepare: this.getSearchBasisProcessStepId(),
+          semanticQuery: "semanticIntent",
           optimize: "mesh",
           finalizeCollect: "rerank",
           finalizeValidateDoiSource: "finalizeValidateDoiFetch",
@@ -2476,47 +2587,42 @@
             translationKey: "",
           };
         }
-        if (
-          !this.shouldShowPubMedRelatedSemanticProcessSteps() &&
-          ["searchString", "mesh", "finalizeValidatePmid"].includes(foldedStepId)
-        ) {
-          return {
-            stepId: "",
-            translationKey: "",
-          };
-        }
-        if (
-          (foldedStepId === "semanticIntent" || foldedStepId === "semanticQuery") &&
-          !this.shouldShowSemanticQueryProcessStep()
-        ) {
-          return {
-            stepId: "",
-            translationKey: "",
-          };
-        }
         return {
           stepId: foldedStepId,
           translationKey: normalizedTranslationKey,
         };
       },
+      getSemanticIntentProgressMessageKey() {
+        return Array.isArray(this.selectedTranslationSources) &&
+          this.selectedTranslationSources.length <= 1
+          ? "semanticSearchProgressSemanticIntentSingle"
+          : "semanticSearchProgressSemanticIntent";
+      },
+      getSemanticRerankProgressMessageKey() {
+        return Array.isArray(this.selectedTranslationSources) &&
+          this.selectedTranslationSources.length <= 1
+          ? "semanticSearchProgressRerankSingle"
+          : "semanticSearchProgressRerank";
+      },
       getSemanticLoadingProcessDefaultTranslationKey(stepId) {
         const keyMap = {
+          cache: "semanticSearchProgressCacheHit",
           searchString: "semanticSearchProgressSearchString",
           mesh: "semanticSearchProgressMesh",
-          semanticIntent: "semanticSearchProgressSemanticIntent",
-          semanticQuery: "semanticSearchProgressSemanticQuery",
+          semanticIntent: this.getSemanticIntentProgressMessageKey(),
+          semanticQuery: this.getSemanticIntentProgressMessageKey(),
           pubmed: "semanticSearchProgressPubMedBestMatch",
           semanticScholar: "semanticSearchProgressSemanticScholar",
           openAlex: "semanticSearchProgressOpenAlex",
           elicit: "semanticSearchProgressElicit",
-          rerank: "semanticSearchProgressRerank",
+          rerank: this.getSemanticRerankProgressMessageKey(),
           finalizeValidatePmid: "semanticSearchProgressFinalizeValidatePmid",
           finalizeValidateDoiFetch: "semanticSearchProgressFinalizeValidateDoiFetch",
           finalizeHydrate: "semanticSearchProgressFinalizeHydrate",
           finalizeSort: "semanticSearchProgressFinalizeSort",
           finalRerank: "semanticSearchProgressFinalRerank",
         };
-        return keyMap[String(stepId || "").trim()] || "semanticSearchProgressFinalizeHydrate";
+        return keyMap[String(stepId || "").trim()] || "";
       },
       getSemanticLoadingProcessStepId(stepKey = "") {
         const keyMap = {
@@ -2524,7 +2630,7 @@
           translatingStepMesh: "mesh",
           translatingStepOptimize: "mesh",
           translatingStepSemanticIntent: "semanticIntent",
-          translatingStepSemanticQuery: "semanticQuery",
+          translatingStepSemanticQuery: "semanticIntent",
           translatingStepPubMedBestMatch: "pubmed",
           translatingStepSemanticScholar: "semanticScholar",
           translatingStepOpenAlex: "openAlex",
@@ -2535,12 +2641,43 @@
       },
       getPlannedSemanticLoadingProcessStepIds() {
         const stepIds = [];
-        if (this.shouldShowSemanticQueryProcessStep()) {
-          stepIds.push("semanticIntent", "semanticQuery");
+        const sources = this.buildUnifiedSearchSources();
+        const overrides = this.getQueryOverridesForSearch();
+        const cached = this.getCachedFreetextQueriesForSearch() || {};
+        const skipLlm =
+          sources.length > 0 &&
+          sources.every(
+            (source) =>
+              String(overrides[source] || "").trim() !== "" ||
+              String(cached[source] || "").trim() !== ""
+          );
+        const hasFreetext = String(this.getUnifiedSearchFreetextQuery() || "").trim() !== "";
+        const hasCatalogTopics = this.buildUnifiedSelectedTopicGroups()
+          .flat()
+          .some(
+            (entry) => entry && entry.custom !== true && String(entry.id || "").trim() !== ""
+          );
+        const aiOn = this.searchWithAI === true;
+        const hasPubmedOverride = String(overrides.pubmed || "").trim() !== "";
+
+        // Known prepare work only. Mesh is decided after searchString.
+        if (
+          !skipLlm &&
+          aiOn &&
+          (hasFreetext || (hasCatalogTopics && this.hasSelectedSemanticSources()))
+        ) {
+          stepIds.push("semanticIntent");
         }
-        if (this.shouldShowPubMedRelatedSemanticProcessSteps()) {
-          stepIds.push("searchString", "mesh");
+        if (
+          !skipLlm &&
+          aiOn &&
+          hasFreetext &&
+          !hasPubmedOverride &&
+          this.shouldShowPubMedRelatedSemanticProcessSteps()
+        ) {
+          stepIds.push("searchString");
         }
+
         if (this.searchWithSemanticScholar) stepIds.push("semanticScholar");
         if (this.searchWithOpenAlex) stepIds.push("openAlex");
         if (this.searchWithElicit) stepIds.push("elicit");
@@ -2548,42 +2685,19 @@
           stepIds.push("pubmed");
         }
 
-        const hasSemanticSources = this.hasSelectedSemanticSources();
-        if (hasSemanticSources) {
+        // Hybrid match/display follow-ups. PMID/DOI validation and the LLM
+        // final rerank wait until earlier steps have produced candidates.
+        if (this.hasSelectedSemanticSources()) {
           stepIds.push("rerank");
+          if (this.sort?.method === "date_desc" || this.sort?.method === "date_asc") {
+            stepIds.push("finalizeSort");
+          }
         }
-
-        if (hasSemanticSources && this.shouldShowPubMedRelatedSemanticProcessSteps()) {
-          stepIds.push("finalizeValidatePmid");
-        }
-
-        const hasPostValidationRules = this.getAllSelectedSearchItems().some((item) => {
-          const rules = this.getItemSemanticPostValidationRules(item);
-          return Array.isArray(rules) && rules.length > 0;
-        });
-        const hasPublicationDateFilters = this.getSemanticPublicationDateYears().length > 0;
-        if (hasSemanticSources || hasPostValidationRules || hasPublicationDateFilters) {
-          stepIds.push("finalizeValidateDoiFetch");
-        }
-
         stepIds.push("finalizeHydrate");
-
-        if (this.sort?.method === "date_desc" || this.sort?.method === "date_asc") {
-          stepIds.push("finalizeSort");
-        }
-
-        if (hasSemanticSources) {
-          stepIds.push("finalRerank");
-        }
         return stepIds;
       },
       shouldShowSemanticQueryProcessStep() {
-        // Unified engine emits semanticIntent + semanticQuery (incl. PubMed-only),
-        // so those progress steps must stay visible when AI translation is on.
-        return (
-          this.searchWithAI === true &&
-          (this.hasSelectedSemanticSources() || this.isUnifiedEngineActive)
-        );
+        return this.searchWithAI === true && this.hasSelectedSemanticSources();
       },
       buildSemanticSourceResponseSummary(sourceResult = null) {
         if (!sourceResult || typeof sourceResult !== "object") return null;
@@ -2622,51 +2736,18 @@
       },
       buildInitialSemanticLoadingProcessSteps() {
         const stepIds = this.getPlannedSemanticLoadingProcessStepIds();
-        const now = this.getProcessTimingNow();
-        return stepIds.map((stepId, index) => ({
+        return stepIds.map((stepId) => ({
           id: stepId,
           label: this.getSemanticLoadingProcessStepLabel(stepId),
-          status: index === 0 ? "current" : "pending",
-          ...(index === 0 ? { startedAtMs: now, endedAtMs: 0, elapsedMs: 0 } : {}),
+          status: "pending",
         }));
-      },
-      getSelectedSemanticProcessSourceNames() {
-        const names = [];
-        if (this.searchWithSemanticScholar) names.push("Semantic Scholar");
-        if (this.searchWithOpenAlex) names.push("OpenAlex");
-        if (this.searchWithElicit) names.push("Elicit");
-        return names;
-      },
-      formatSemanticProcessSourceNames(names = []) {
-        const sourceNames = Array.isArray(names) ? names.filter(Boolean) : [];
-        if (sourceNames.length === 0) {
-          return this.language === "dk" ? "de valgte databaser" : "the selected sources";
-        }
-        if (sourceNames.length === 1) return sourceNames[0];
-        const conjunction = this.language === "dk" ? " og " : " and ";
-        if (sourceNames.length === 2) return sourceNames.join(conjunction);
-        return `${sourceNames.slice(0, -1).join(", ")}${conjunction}${
-          sourceNames[sourceNames.length - 1]
-        }`;
-      },
-      getSemanticQueryProcessLabel() {
-        const sourceText = this.formatSemanticProcessSourceNames(
-          this.getSelectedSemanticProcessSourceNames()
-        );
-        if (this.language === "dk") {
-          return `Tilpasser søgningen til ${sourceText}.`;
-        }
-        return `Adapting the search for ${sourceText}.`;
       },
       getSemanticLoadingProcessStepLabel(stepId, translationKey = "") {
         const normalizedStepId = String(stepId || "").trim();
-        if (normalizedStepId === "semanticQuery") {
-          return this.getSemanticQueryProcessLabel();
-        }
         const labelKey =
           String(translationKey || "").trim() ||
           this.getSemanticLoadingProcessDefaultTranslationKey(normalizedStepId);
-        return this.getString(labelKey);
+        return labelKey ? this.getString(labelKey) : "";
       },
       isSemanticLoadingTerminalStatus(status) {
         return [
@@ -2684,7 +2765,6 @@
         if (this.isConcurrentSemanticLoadingStep(normalized)) return true;
         return [
           "semanticIntent",
-          "semanticQuery",
           "searchString",
           "mesh",
           "rerank",
@@ -2726,13 +2806,35 @@
             step.status === "current" || this.isSemanticLoadingTerminalStatus(step.status)
           );
         });
-        if (hasLaterProgress || target.status === "current") {
-          // Prefer explicit completed only once a later stage has started, so the
-          // active step keeps its live timing until work actually moves on.
-          if (hasLaterProgress) {
-            this.setSemanticLoadingProcessStepStatus(normalized, "completed");
-          }
+        // Prepare-lane details (esp. mesh) must complete even when the start
+        // event was skipped/out-of-order: detail arrival is itself terminal.
+        const isPrepareStep = this.isPreparePhaseSemanticLoadingStep(normalized);
+        if (!(hasLaterProgress || target.status === "current" || isPrepareStep)) {
+          return;
         }
+        // Out-of-order mesh completion after source prefetch often arrives while
+        // the step is still pending — start timing if needed, then complete.
+        if (
+          !Number.isFinite(Number(target.startedAtMs)) ||
+          Number(target.startedAtMs) <= 0
+        ) {
+          this.startProcessStepTiming(target);
+        }
+        this.setSemanticLoadingProcessStepStatus(normalized, "completed");
+      },
+      // Close prepare steps that already have details once later progress has
+      // moved on. Do not invent mesh/searchString rows.
+      reconcilePreparePhaseProcessStepsAfterLaterProgress() {
+        if (!this.isUnifiedEngineActive || !this.searchLoading) return;
+        const steps = Array.isArray(this.loadingProcessSteps) ? this.loadingProcessSteps : [];
+        if (steps.length === 0) return;
+        ["semanticIntent", "searchString", "mesh"].forEach((stepId) => {
+          const step = steps.find((entry) => entry?.id === stepId);
+          if (!step || this.isSemanticLoadingTerminalStatus(step.status)) return;
+          if (this.processStepHasDetailPayload(stepId)) {
+            this.maybeCompleteProcessStepAfterDetail(stepId);
+          }
+        });
       },
       getSemanticProcessSeverityRank(status) {
         const rankMap = {
@@ -2976,6 +3078,7 @@
         this.compactLoadingHideResults = false;
         this.semanticDoiValidationActive = false;
         this.resetLoadingProcessPlaceholders();
+        this.sourceSearchStringPending = {};
       },
       setSearchProcessStepDetail(stepId = "", payload = null, label = "") {
         const normalizedStepId = String(stepId || "").trim();
@@ -2990,6 +3093,20 @@
             ...(this.searchProcessStepDetailLabels || {}),
             [normalizedStepId]: normalizedLabel,
           };
+        }
+        if (normalizedStepId === "searchString" && payload.translationFallback === true) {
+          this.recordDegradedSearchStatus({
+            source: "pubmed",
+            status: "warning",
+            messageKey: "pubmedTranslationFallbackWarning",
+          });
+        }
+        if (normalizedStepId === "searchString" && payload.rawFreetextSanitized === true) {
+          this.recordDegradedSearchStatus({
+            source: "pubmed",
+            status: "warning",
+            messageKey: "pubmedRawFreetextSanitizedWarning",
+          });
         }
       },
       mergeSearchProcessStepDetail(stepId = "", payload = null) {
@@ -3061,13 +3178,13 @@
           translatingStepSearchString: "semanticSearchProgressSearchString",
           translatingStepMesh: "semanticSearchProgressMesh",
           translatingStepOptimize: "semanticSearchProgressMesh",
-          translatingStepSemanticIntent: "semanticSearchProgressSemanticIntent",
-          translatingStepSemanticQuery: "semanticSearchProgressSemanticQuery",
+          translatingStepSemanticIntent: this.getSemanticIntentProgressMessageKey(),
+          translatingStepSemanticQuery: this.getSemanticIntentProgressMessageKey(),
           translatingStepPubMedBestMatch: "semanticSearchProgressPubMedBestMatch",
           translatingStepSemanticScholar: "semanticSearchProgressSemanticScholar",
           translatingStepOpenAlex: "semanticSearchProgressOpenAlex",
           translatingStepElicit: "semanticSearchProgressElicit",
-          translatingStepRerank: "semanticSearchProgressRerank",
+          translatingStepRerank: this.getSemanticRerankProgressMessageKey(),
         };
         return keyMap[String(stepKey || "").trim()] || "semanticSearchProgressPreparing";
       },
@@ -3080,7 +3197,7 @@
         // The PubMed query/MeSH preparation steps run in their own lane that now
         // overlaps the concurrent source fetches, so they must not be completed or
         // reset as a side effect of a source step activating.
-        return ["semanticIntent", "semanticQuery", "searchString", "mesh"].includes(
+        return ["semanticIntent", "searchString", "mesh"].includes(
           String(stepId || "").trim()
         );
       },
@@ -3198,6 +3315,10 @@
           this.clearSearchLoadingStatus();
           return;
         }
+        if (!String(stepKey || "").trim()) {
+          this.ensureSemanticLoadingProcessSteps();
+          return;
+        }
         const stepId = this.getSemanticLoadingProcessStepId(stepKey);
         const translationKey = this.getSemanticSearchLoadingTranslationKey(stepKey);
         if (this.isConcurrentSemanticLoadingStep(stepId)) {
@@ -3304,114 +3425,6 @@
           item.semanticScholarError = "";
           item.includeTranslatedTextInQuery = includePubmedBaseQuery;
           item.isPendingSemanticSearch = mode === "semantic";
-        });
-      },
-      async prepareSemanticSearchStateBeforeSearch() {
-        const dropdowns = this.getSemanticDropdownWrappers();
-        if (!this.hasSelectedSemanticSources()) {
-          await this.ensurePubMedFreeTextQueriesBeforeSearch(dropdowns);
-          this.clearGlobalSemanticSearchState();
-          return;
-        }
-        if (dropdowns.length === 0) {
-          this.clearGlobalSemanticSearchState();
-          return;
-        }
-        const shouldUseGlobalSemanticFlow =
-          this.searchWithAI === true && this.getGlobalSemanticIntentInput() !== "";
-        this.isPreparingSemanticTagRefresh = true;
-        try {
-          if (shouldUseGlobalSemanticFlow) {
-            this.markPendingSemanticTagsResolvedByGlobalState();
-          } else {
-            await Promise.all(
-              dropdowns.map((dropdown) => dropdown.preparePendingSemanticTags())
-            );
-            await this.ensurePubMedFreeTextQueriesBeforeSearch(dropdowns);
-          }
-        } finally {
-          this.isPreparingSemanticTagRefresh = false;
-        }
-        if (this.hasDeferredSemanticTags()) {
-          this.clearGlobalSemanticSearchState();
-          this.semanticMetadataByDoiCache = null;
-          return;
-        }
-        const intentInput = this.getGlobalSemanticIntentInput();
-        if (!intentInput) {
-          this.clearGlobalSemanticSearchState();
-          this.semanticMetadataByDoiCache = null;
-          return;
-        }
-        const pubmedSourceQuery = this.getGlobalSemanticPubMedSourceQuery();
-        const semanticSourceSignature = this.getGlobalSemanticSearchSourceSignature(pubmedSourceQuery);
-        if (
-          this.globalSemanticSearchState &&
-          this.globalSemanticSearchInput === intentInput &&
-          this.globalSemanticSearchSourceSignature === semanticSourceSignature
-        ) {
-          console.info("[SemanticIntentFlow] Reusing global semantic state from dropdown selections.", {
-            input: intentInput,
-            sourceSignature: semanticSourceSignature,
-          });
-          this.semanticMetadataByDoiCache = null;
-          return;
-        }
-        const semanticRunner = dropdowns[0];
-        if (
-          semanticRunner &&
-          typeof semanticRunner.buildResolvedSemanticTagState === "function"
-        ) {
-          const resolvedState = await semanticRunner.buildResolvedSemanticTagState(
-            intentInput,
-            null,
-            {
-              allowPubmedQueryGeneration: true,
-              preferGeneratedPubmedQuery: true,
-              pubmedSourceQuery,
-              onIntentReady: (earlyIntent) => {
-                this.earlyIntentPreview = earlyIntent || null;
-              },
-            }
-          );
-          this.globalSemanticSearchInput = intentInput;
-          this.globalSemanticSearchState = this.buildGlobalSemanticSearchState(
-            intentInput,
-            resolvedState
-          );
-          this.globalSemanticSearchSourceSignature = this.getGlobalSemanticSearchSourceSignature(
-            this.getGlobalSemanticPubMedSourceQuery()
-          );
-          this.importPubMedSummaryRecordsToCache(resolvedState);
-          console.info("[SemanticIntentFlow] Built global semantic state from dropdown selections.", {
-            input: intentInput,
-            sourceSignature: this.globalSemanticSearchSourceSignature,
-          });
-        } else {
-          this.clearGlobalSemanticSearchState();
-        }
-        this.semanticMetadataByDoiCache = null;
-      },
-      importPubMedSummaryRecordsToCache(resolvedState = null) {
-        const sourceResults = Array.isArray(resolvedState?.semanticSourceResults)
-          ? resolvedState.semanticSourceResults
-          : [];
-        if (sourceResults.length === 0) return;
-        if (!this.pubMedSummaryCache || typeof this.pubMedSummaryCache !== "object") {
-          this.pubMedSummaryCache = {};
-        }
-        sourceResults.forEach((sourceResult) => {
-          if (String(sourceResult?.source || "").trim() !== "pubmed") return;
-          const summaryByPmid =
-            sourceResult?.summaryByPmid && typeof sourceResult.summaryByPmid === "object"
-              ? sourceResult.summaryByPmid
-              : {};
-          Object.entries(summaryByPmid).forEach(([pmid, summaryRecord]) => {
-            const normalizedPmid = String(pmid || "").trim();
-            if (!/^[0-9]+$/.test(normalizedPmid)) return;
-            if (!summaryRecord || typeof summaryRecord !== "object") return;
-            this.pubMedSummaryCache[normalizedPmid] = mapPubMedSummaryToResultDto(summaryRecord);
-          });
         });
       },
       toggleTranslationSourcesPanel() {
@@ -3745,8 +3758,8 @@
         // Find the mounted search form element (prefer current instance root)
         let appElement =
           this.$el?.parentElement ||
-          document.getElementById("qpm-searchform") ||
-          document.querySelector('[id^="qpm-searchform-"]') ||
+          document.getElementById("mugin-searchform") ||
+          document.querySelector('[id^="mugin-searchform-"]') ||
           document.getElementById("searchform");
 
         if (!appElement) {
@@ -3758,25 +3771,25 @@
           return;
         }
 
-        // Add qpm_vapp class to match CSS selectors
-        appElement.classList.add("qpm_vapp");
+        // Add mugin_vapp class to match CSS selectors
+        appElement.classList.add("mugin_vapp");
 
         // Start in mouse mode - only show focus outlines when user uses keyboard
-        appElement.classList.add("qpm_mouse-mode");
-        appElement.classList.remove("qpm_keyboard-mode");
+        appElement.classList.add("mugin_mouse-mode");
+        appElement.classList.remove("mugin_keyboard-mode");
 
         // Switch only on keyboard navigation keys
         const handleKeyDown = (event) => {
           if (["Tab", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) {
-            appElement.classList.add("qpm_keyboard-mode");
-            appElement.classList.remove("qpm_mouse-mode");
+            appElement.classList.add("mugin_keyboard-mode");
+            appElement.classList.remove("mugin_mouse-mode");
           }
         };
 
         // Switch to mouse mode on click interactions
         const handleMouseDown = () => {
-          appElement.classList.add("qpm_mouse-mode");
-          appElement.classList.remove("qpm_keyboard-mode");
+          appElement.classList.add("mugin_mouse-mode");
+          appElement.classList.remove("mugin_keyboard-mode");
         };
 
         // Add event listeners
@@ -4532,7 +4545,7 @@
       /**
        * Parses the current URL's query parameters and updates the component's state accordingly.
        * Handles domain, topics, limits, advanced mode, sorting, collapsed state, page size,
-       * preselected PMIDs, and scroll position. URL `domain=` wins over data-domain.
+       * preselected articles, and scroll position. URL `domain=` wins over data-domain.
        */
       async parseUrl() {
         // Initialize topics
@@ -4544,6 +4557,13 @@
 
         // Parse the current URL (search + hash query fallback for CMS embeds)
         const urlParams = getSearchFlowDebugUrlParams();
+        if (this.isUrlTargetedComponent(urlParams)) {
+          claimSharedSearchFormUrl(this.componentNo);
+        } else {
+          this.topics = [[]];
+          this.applyStoredOrDefaultRerankProfileSelection(false);
+          return;
+        }
 
         // domain= must apply before topic/limit resolution (URL wins over data-domain).
         const domainBefore = String(this.currentDomain || "");
@@ -4576,6 +4596,8 @@
         // `databases`, so we need a first pass to apply those mode flags before
         // processing topics/limits in the second pass.
         const modePassKeys = new Set(["ai", "translationsources", "databases", "semanticsources"]);
+        let selectedTokens = [];
+        let pmidTokens = [];
 
         const processParameter = (key, value, values) => {
           const normalizedKey = key.replace(/^amp;/i, "");
@@ -4620,7 +4642,7 @@
               this.pageSize = parseInt(value, 10);
               break;
 
-            case "qpmdebug": {
+            case "mugindebug": {
               const debugEnabled = normalizeSearchFlowDebugValue(value);
               this.searchFlowDebugEnabledFromUrl = debugEnabled;
               this.searchFlowDebugEnabled = this.debugSearchFlow === true || debugEnabled;
@@ -4641,8 +4663,12 @@
               this.updateRerankProfileSelection(value, false);
               break;
 
+            case "selected":
+              selectedTokens = values;
+              break;
+
             case "pmid":
-              this.preselectedPmidai = values;
+              pmidTokens = values;
               break;
 
             case "openlimits": {
@@ -4667,6 +4693,29 @@
               this.processFilterDropdownUrl(values);
               break;
 
+            case "component":
+              // Instance targeting is resolved before this pass.
+              break;
+
+            case "apibase":
+            case "apikey":
+            case "elicitkey":
+            case "nocache":
+            case "q":
+            case "query":
+            case "lang":
+            case "stream":
+              // Page-level or API-only keys; not SearchForm filter groups.
+              break;
+
+            case "qpubmed":
+            case "qsemanticscholar":
+            case "qopenalex":
+            case "qelicit":
+              // Applied after both passes from the raw URLSearchParams value
+              // so commas inside executable queries are not list-split.
+              break;
+
             default:
               this.processFilter(normalizedKey, values);
               break;
@@ -4688,6 +4737,10 @@
           processParameter(key, value, this.splitUrlListValue(value));
         });
 
+        this.preselectedPmidai = normalizeSelectedIdentifierList(
+          selectedTokens.length > 0 ? selectedTokens : pmidTokens
+        );
+
         // Flat limit= populates limitDropdowns; in simple mode sync into limitData
         // so checkboxes and PubMed base-query see the same selections.
         if (!this.advanced && this.limitDropdowns.some((group) => Array.isArray(group) && group.length > 0)) {
@@ -4706,6 +4759,7 @@
         if (!this.rerankProfileFromUrl) {
           this.applyStoredOrDefaultRerankProfileSelection(false);
         }
+        this.applyQueryOverridesFromUrlParams(urlParams);
       },
       /**
        * Splits URL list values on ',' and legacy ';;', without breaking {{…}} tokens.
@@ -4768,6 +4822,17 @@
         const scope = scopeIds[scopePart] || scopeIds.s || "normal";
         const textMode = modePart === "raw" || modePart === "pubmed" ? modePart : "";
         return { scope, textMode };
+      },
+      isUrlTargetedComponent(urlParams = getSearchFlowDebugUrlParams()) {
+        return isUrlTargetedSearchFormComponent(
+          this.componentNo,
+          urlParams,
+          readMountedSearchFormComponentNumbers()
+        );
+      },
+      readUrlFlag(name) {
+        const raw = getUrlParamCaseInsensitive(getSearchFlowDebugUrlParams(), name);
+        return ["1", "true", "yes", "on"].includes(String(raw).trim().toLowerCase());
       },
       getHashUrlParams() {
         const hash = window.location.hash || "";
@@ -5264,6 +5329,12 @@
         }
       },
       setUrl() {
+        if (this.allowSharedUrlWrite) {
+          claimSharedSearchFormUrl(this.componentNo);
+        }
+        if (!isSharedSearchFormUrlOwner(this.componentNo)) {
+          return;
+        }
         if (history.replaceState) {
           let urlLink = this.getUrl();
           this.stateHistory.push(this.oldState);
@@ -5274,7 +5345,7 @@
       /**
        * Constructs the full URL based on the current application state.
        * Includes parameters for topics, limits, advanced mode, sorting,
-       * collapsed state, page size, preselected PMIDs, and scroll position.
+       * collapsed state, page size, preselected articles, and scroll position.
        *
        * @returns {string} The constructed URL reflecting the current state.
        */
@@ -5289,7 +5360,15 @@
         const debugParamStr = this.searchFlowDebugEnabledFromUrl ? buildSearchFlowDebugQueryParam(true) : "";
         const activeDomain = String(this.currentDomain || "").trim().toLowerCase();
         const domainStr = activeDomain ? `domain=${encodeURIComponent(activeDomain)}` : "";
-        const initialParams = [domainStr, apiBaseStr, debugParamStr].filter(Boolean).join("&");
+        const componentValue = getComponentUrlParamValue(
+          this.componentNo,
+          currentParams,
+          readMountedSearchFormComponentNumbers()
+        );
+        const componentStr = componentValue ? `component=${encodeURIComponent(componentValue)}` : "";
+        const initialParams = [domainStr, apiBaseStr, debugParamStr, componentStr]
+          .filter(Boolean)
+          .join("&");
         const translationSourcesParam = this.getTranslationSourcesUrlParamValue();
         const translationSourcesStr =
           translationSourcesParam !== null ? `&databases=${translationSourcesParam}` : "";
@@ -5297,6 +5376,12 @@
         const rerankProfileStr = rerankProfileParam
           ? `&${RERANK_PROFILE_URL_PARAM}=${encodeURIComponent(rerankProfileParam)}`
           : "";
+        const selectedTokens = normalizeSelectedIdentifierList(this.preselectedPmidai);
+        const selectedStr =
+          selectedTokens.length > 0
+            ? `&selected=${selectedTokens.map((token) => encodeURIComponent(token)).join(",")}`
+            : "";
+        const queryOverrideStr = this.constructQueryOverrideQuery();
 
         // If there are no topics selected, return the base URL without parameters
 
@@ -5305,7 +5390,9 @@
           !this.openLimitsFromUrl &&
           !this.openLimits &&
           !translationSourcesStr &&
-          !rerankProfileStr
+          !rerankProfileStr &&
+          !selectedStr &&
+          !queryOverrideStr
         ) {
           return initialParams ? `${baseUrl}?${initialParams}` : baseUrl;
         }
@@ -5318,7 +5405,6 @@
         const sorter = `&sort=${encodeURIComponent(this.sort.method)}`;
         const collapsedStr = `&collapsed=${this.isCollapsed}`;
         const pageSizeStr = `&pagesize=${this.pageSize}`;
-        const pmidStr = `&pmid=${(this.preselectedPmidai ?? []).join(",")}`;
         const scrolltoStr = this.scrollToID
           ? `&scrollto=${encodeURIComponent(this.scrollToID)}`
           : "";
@@ -5333,7 +5419,7 @@
         // Assemble the full URL with all query parameters
         const urlLink = `${baseUrl}?${initialParams}${
           initialParams ? "&" : ""
-        }${topicsStr}${limitsStr}${translationSourcesStr}${rerankProfileStr}${advancedStr}${aiStr}${pmidStr}${sorter}${collapsedStr}${pageSizeStr}${scrolltoStr}${openLimitsStr}${hideLimitsStr}${checkLimitsStr}${orderLimitsStr}`;
+        }${topicsStr}${limitsStr}${queryOverrideStr}${translationSourcesStr}${rerankProfileStr}${advancedStr}${aiStr}${selectedStr}${sorter}${collapsedStr}${pageSizeStr}${scrolltoStr}${openLimitsStr}${hideLimitsStr}${checkLimitsStr}${orderLimitsStr}`;
 
         return urlLink.replace("?&", "?").replace(/&&+/g, "&");
       },
@@ -5906,6 +5992,7 @@
         this.semanticMetadataByDoiCache = null;
         this.searchresult = undefined;
         this.finalValidatedQuery = "";
+        this.resetQueryOverrideState();
         this.count = 0;
         this.page = 0;
         this.showFilter = false;
@@ -5972,6 +6059,8 @@
         this.semanticMetadataByDoiCache = null;
         this.searchresult = undefined;
         this.finalValidatedQuery = "";
+        // Keep translated freetext + edited search strings for this session.
+        // They are cleared on reset (clear()) or when the freetext itself changes.
         this.count = 0;
         this.page = 0;
         return true;
@@ -6334,15 +6423,22 @@
         );
         const topN = Number(rawConfig.topN);
         const maxOutputTokens = Number(rawConfig.maxOutputTokens);
-        const reasoningEffort = String(rawConfig.reasoningEffort || "")
+        const taskRerank =
+          runtimeConfig?.openAiTaskModels?.finalRerank &&
+          typeof runtimeConfig.openAiTaskModels.finalRerank === "object"
+            ? runtimeConfig.openAiTaskModels.finalRerank
+            : {};
+        const reasoningEffort = String(
+          rawConfig.reasoningEffort || taskRerank.reasoningEffort || ""
+        )
           .trim()
           .toLowerCase();
         return {
           enabled,
-          model: String(rawConfig.model || DEFAULT_SEMANTIC_LLM_RERANK_CONFIG.model).trim(),
+          model: String(rawConfig.model || taskRerank.model || "").trim(),
           reasoningEffort: SEMANTIC_LLM_RERANK_ALLOWED_EFFORTS.includes(reasoningEffort)
             ? reasoningEffort
-            : DEFAULT_SEMANTIC_LLM_RERANK_CONFIG.reasoningEffort,
+            : "none",
           topN:
             Number.isFinite(topN) && topN > 1
               ? Math.min(25, Math.floor(topN))
@@ -6494,41 +6590,6 @@
         }
         return signals;
       },
-      async prefetchSemanticLlmRerankAbstractMap(resultRefs) {
-        // Best-effort prefetch of the top-N PubMed abstracts the LLM final rerank will
-        // need, so the efetch can overlap page hydration instead of being an extra
-        // sequential round-trip afterwards. Only runs when the cheap rerank gates (which
-        // do not require the hydrated page) are satisfied; otherwise returns null so the
-        // rerank keeps its on-demand fetch behavior.
-        const config = this.getSemanticLlmRerankConfig();
-        if (
-          this.page !== 0 ||
-          !this.hasSelectedSemanticSources() ||
-          this.sort?.method === "date_desc" ||
-          this.sort?.method === "date_asc" ||
-          config.enabled !== true
-        ) {
-          return null;
-        }
-        const refs = Array.isArray(resultRefs) ? resultRefs : [];
-        if (this.shouldUseSemanticDateOrdering(refs)) {
-          return null;
-        }
-        const topNPmids = refs
-          .filter((entry) => entry?.type === "pmid")
-          .slice(0, config.topN)
-          .map((entry) => String(entry?.pmid || "").trim())
-          .filter((pmid) => /^[0-9]+$/.test(pmid));
-        if (topNPmids.length === 0) {
-          return null;
-        }
-        try {
-          return await this.fetchSemanticLlmPubMedAbstractMap(topNPmids);
-        } catch (_err) {
-          // Prefetch is optional; the rerank will fetch on demand if this fails.
-          return null;
-        }
-      },
       async maybeApplySemanticLlmFinalRerank(data, prefetchedAbstractMap = null) {
         const safeData = Array.isArray(data) ? data : [];
         if (!this.shouldUseSemanticLlmFinalRerank(safeData)) {
@@ -6594,6 +6655,11 @@
             ).trim();
             if (venue && !qualitySignals.venue) qualitySignals.venue = venue;
 
+            const entryTopics = Array.isArray(entry?.topics)
+              ? entry.topics
+              : (Array.isArray(entry?.value?.topics) ? entry.value.topics : []);
+            const topics = buildLlmTopicsPayload(entryTopics, LLM_TOPIC_CAP);
+
             requestCandidates.push({
               // Use a short positional id for the model round-trip. Small models
               // (e.g. gpt-5.4-nano) often drop the "pmid:"/"doi:" prefix or mangle
@@ -6607,6 +6673,7 @@
               source: String(entry?.originSource || entry?.source || "").trim(),
               sourceLabel: String(entry?.fulljournalname || entry?.source || "").trim(),
               ...qualitySignals,
+              ...(topics.length > 0 ? { topics } : {}),
               entry,
             });
           });
@@ -6718,14 +6785,6 @@
         if (!Array.isArray(entry?.articleids)) return "";
         const doiItem = entry.articleids.find((item) => item?.idtype === "doi");
         return normalizeDoiValue(doiItem?.value || "");
-      },
-      reconcileCountForMissingHydrations(resultRefs, data) {
-        const requested = Array.isArray(resultRefs) ? resultRefs.length : 0;
-        const hydrated = Array.isArray(data) ? data.length : 0;
-        if (requested <= 0 || hydrated >= requested) return;
-        const missing = requested - hydrated;
-        const previousCount = Number(this.count) || 0;
-        this.count = Math.max(hydrated, previousCount - missing);
       },
       logHybridRenderSummary(label, resultRefs, data) {
         if (!this.isSearchFlowDebugEnabled) return;
@@ -7164,11 +7223,6 @@
         });
         return candidates;
       },
-      getOrderedRerankedPmids() {
-        return this.getOrderedRerankedCandidates()
-          .map((candidate) => candidate.pmid)
-          .filter((pmid) => /^[0-9]+$/.test(pmid));
-      },
       getOpenAlexWorkCacheKey(candidate) {
         const normalizedDoi = normalizeDoiValue(candidate?.doi || "");
         const openAlexId = String(candidate?.openAlexId || "").trim();
@@ -7423,6 +7477,7 @@
             candidateSignal: candidate?.semanticCandidate || null,
           };
           mapped = this.applyPreferredDisplayMetadataToHydratedRecord(mapped, normalizedDoi);
+          mapped.topics = appendCandidateTopicSignals(mapped.topics, candidate);
         }
 
         return mapped;
@@ -7474,6 +7529,7 @@
             fallbackRecord?.pubTypeClassification || safePubMedRecord?.pubTypeClassification || null,
           publisher: String(fallbackRecord?.publisher || safePubMedRecord?.publisher || "").trim(),
           language: String(fallbackRecord?.language || safePubMedRecord?.language || "").trim(),
+          topics: mergeResultTopicEntries(fallbackRecord?.topics, safePubMedRecord?.topics),
         };
       },
       async fetchOpenAlexWorksByCandidates(candidates, nlm, options = {}) {
@@ -7590,20 +7646,32 @@
               );
               const works = Array.isArray(response?.data?.works) ? response.data.works : [];
               const worksByDoi = new Map(
-                works
-                  .map((entry) => {
-                    const normalizedEntryDoi = normalizeDoiValue(entry?.doi || entry?.work?.doi || "");
-                    return normalizedEntryDoi
-                      ? [normalizedEntryDoi.toLowerCase(), entry]
-                      : null;
-                  })
-                  .filter(Boolean)
+                works.flatMap((entry) => {
+                  const unwrapped = unwrapOpenAlexWorkLookupEntry(entry);
+                  if (!unwrapped?.work) return [];
+                  const keys = new Set();
+                  [
+                    unwrapped.doi,
+                    unwrapped.work?.doi,
+                    unwrapped.work?.ids?.doi,
+                  ].forEach((value) => {
+                    const normalizedEntryDoi = normalizeDoiValue(value);
+                    if (normalizedEntryDoi) {
+                      keys.add(normalizedEntryDoi.toLowerCase());
+                    }
+                  });
+                  return [...keys].map((key) => [key, unwrapped]);
+                })
               );
               const mappedByDoi = new Map();
               const pmidsToHydrate = [];
 
               for (const entry of chunk) {
-                const workEntry = worksByDoi.get(entry.normalizedDoi.toLowerCase());
+                const workEntry =
+                  worksByDoi.get(entry.normalizedDoi.toLowerCase()) ||
+                  (chunk.length === 1 && worksByDoi.size === 1
+                    ? worksByDoi.values().next().value
+                    : null);
                 const sampleCandidate = safeCandidates[entry.indices[0]];
                 if (!workEntry?.work) {
                   continue;
@@ -7724,10 +7792,11 @@
               const worksByOpenAlexId = new Map(
                 works
                   .map((entry) => {
-                    const entryOpenAlexId = String(entry?.openAlexId || entry?.work?.id || "")
+                    const unwrapped = unwrapOpenAlexWorkLookupEntry(entry);
+                    const entryOpenAlexId = String(unwrapped?.openAlexId || unwrapped?.work?.id || "")
                       .replace(/^https?:\/\/openalex\.org\//i, "")
                       .trim();
-                    return entryOpenAlexId ? [entryOpenAlexId, entry] : null;
+                    return unwrapped && entryOpenAlexId ? [entryOpenAlexId, unwrapped] : null;
                   })
                   .filter(Boolean)
               );
@@ -7909,7 +7978,8 @@
             { headers: { "Content-Type": "application/json" } }
           )
           .then(async (response) => {
-            const work = response?.data?.work;
+            const unwrapped = unwrapOpenAlexWorkLookupEntry(response?.data);
+            const work = unwrapped?.work;
             let mapped = work
               ? mapOpenAlexWorkToResultDto(work, {
                   doi: normalizedDoi,
@@ -7992,48 +8062,8 @@
         this.openAlexSourcePromiseCache[normalizedSourceId] = requestPromise;
         return requestPromise;
       },
-      async buildHybridOrderedResultRefs(hardFilterQuery, nlm, orderedCandidates) {
-        const orderedPmids = orderedCandidates
-          .map((candidate) => String(candidate?.pmid || "").trim())
-          .filter((value) => /^[0-9]+$/.test(value));
-        const verifiedPubMedPmids = orderedCandidates
-          .filter((candidate) => String(candidate?.source || "").trim() === "pubmed")
-          .map((candidate) => String(candidate?.pmid || "").trim())
-          .filter((value) => /^[0-9]+$/.test(value));
-        const orderedSearch =
-          orderedPmids.length > 0
-            ? await this.resolveOrderedSearchPmids(hardFilterQuery, nlm, orderedPmids, {
-                verifiedPmids: verifiedPubMedPmids,
-              })
-            : { count: 0, orderedIds: [] };
-        const trustedPmids = hardFilterQuery ? orderedSearch.orderedIds : [];
-        // Two-tier validation: synchronously validate only the top
-        // SEMANTIC_VALIDATION_BLOCKING_LIMIT non-trusted candidates so the first page
-        // renders fast, then validate the rest in the background (see below). The
-        // candidate list is already relevance-ordered, so the blocking tier covers the
-        // most relevant results; deferred keepers are appended once the background ends.
-        const { allowedKeys: blockingAllowedKeys, deferredCount } =
-          await this.buildAllowedSemanticRefKeys(orderedCandidates, nlm, {
-            trustedPmids,
-            maxOpenAlexValidations: SEMANTIC_VALIDATION_BLOCKING_LIMIT,
-          });
-        const blockingResult = this.buildSemanticResultRefsFromAllowedKeys(
-          orderedCandidates,
-          blockingAllowedKeys,
-          orderedSearch
-        );
-        // Do NOT start the background validation here: it would flood the (single
-        // worker, in local dev) backend while the first page is still hydrating and
-        // starve the PubMed/abstract requests. Stash the parameters and let the caller
-        // start it after the first page has rendered (see flushPendingSemanticBackgroundValidation).
-        this.semanticBackgroundValidationPromise = null;
-        this.pendingSemanticBackgroundValidation =
-          deferredCount > 0 ? { orderedCandidates, trustedPmids, orderedSearch } : null;
-        return blockingResult;
-      },
-      // Starts any background validation that buildHybridOrderedResultRefs deferred.
-      // Called after the first page renders (and defensively before deep pagination /
-      // local re-sort) so the background work never competes with first-page hydration.
+      // Starts any deferred background semantic validation, if pending.
+      // Called defensively before local re-sort so background work can finish first.
       flushPendingSemanticBackgroundValidation() {
         const pending = this.pendingSemanticBackgroundValidation;
         if (!pending) return;
@@ -8194,152 +8224,6 @@
           term: String(term || "").trim(),
         };
       },
-      normalizePubMedPmidList(pmids = []) {
-        return Array.from(
-          new Set(
-            (Array.isArray(pmids) ? pmids : [])
-              .map((pmid) => String(pmid || "").trim())
-              .filter((pmid) => /^[0-9]+$/.test(pmid))
-          )
-        );
-      },
-      async resolveOrderedSearchPmids(hardFilterQuery, nlm, orderedPmids, options = {}) {
-        const normalizedOrderedPmids = this.normalizePubMedPmidList(orderedPmids);
-        const pmidClause =
-          normalizedOrderedPmids.length > 0 ? `(${normalizedOrderedPmids.join(" ")})` : "";
-        const validationQuery = hardFilterQuery
-          ? pmidClause
-            ? `${pmidClause} AND (${hardFilterQuery})`
-            : hardFilterQuery
-          : pmidClause;
-        if (!validationQuery) {
-          return {
-            count: 0,
-            orderedIds: [],
-          };
-        }
-        this.finalValidatedQuery = validationQuery;
-        const verifiedPmidSet = new Set(this.normalizePubMedPmidList(options?.verifiedPmids));
-        const canSkipPubMedValidation =
-          !hardFilterQuery &&
-          normalizedOrderedPmids.length > 0 &&
-          normalizedOrderedPmids.every((pmid) => verifiedPmidSet.has(pmid));
-        if (canSkipPubMedValidation) {
-          this.setSearchProcessStepDetail("finalizeValidatePmid", {
-            role: "pubmedPmidValidation",
-            skipped: true,
-            orderedPmidCount: normalizedOrderedPmids.length,
-            validationMode: "trusted-pubmed-source-without-hard-filter",
-            hardFilterQuery,
-          });
-          return {
-            count: normalizedOrderedPmids.length,
-            orderedIds: normalizedOrderedPmids,
-          };
-        }
-        if (this.shouldShowPubMedRelatedSemanticProcessSteps()) {
-          this.activateSemanticLoadingProcessStep(
-            "pubmed",
-            "semanticSearchProgressPubMedBestMatch"
-          );
-        }
-        this.startAnimatedLoadingStatus(
-          "finalizeValidatePmid",
-          "semanticSearchProgressFinalizeValidatePmid"
-        );
-        console.info("[SearchFlow] PMID validation query sent to NLM:", validationQuery);
-        this.logSearchFlowDebugInfo("PMID validation query", {
-          validationQuery,
-          orderedPmidCount: normalizedOrderedPmids.length,
-          hardFilterQuery,
-        });
-        const pubmedRequest = this.buildPubMedSearchRequest({
-          retmax: normalizedOrderedPmids.length,
-          retstart: 0,
-          sort: this.sort.method,
-          term: validationQuery,
-        });
-        const esearchParams = new URLSearchParams(pubmedRequest);
-        this.setSearchProcessStepDetail("finalizeValidatePmid", {
-          role: "pubmedPmidValidation",
-          request: { ...pubmedRequest },
-          orderedPmidCount: normalizedOrderedPmids.length,
-          hardFilterQuery,
-          validationMode: hardFilterQuery
-            ? "hard-filter-and-candidate-whitelist"
-            : "candidate-whitelist-only",
-        });
-        const esearchResponse = await axios.post(
-          this.getBackendApiUrl("NlmSearch.php"),
-          esearchParams.toString(),
-          { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
-        );
-        const matchedIds = Array.isArray(esearchResponse?.data?.esearchresult?.idlist)
-          ? esearchResponse.data.esearchresult.idlist.filter(Boolean)
-          : [];
-        const matchedSet = new Set(matchedIds);
-        const orderedMatchedIds = normalizedOrderedPmids.filter((pmid) => matchedSet.has(pmid));
-        const remainingMatchedIds = matchedIds.filter((pmid) => !orderedMatchedIds.includes(pmid));
-        this.mergeSearchProcessStepDetail("finalizeValidatePmid", {
-          matchedByPubMedCount: matchedIds.length,
-          orderedMatchedCount: orderedMatchedIds.length,
-          unmatchedCandidateCount: Math.max(
-            0,
-            normalizedOrderedPmids.length - orderedMatchedIds.length
-          ),
-        });
-
-        console.info("[SearchFlow] Reranked PMID ordering applied.", {
-          rerankedCandidateCount: normalizedOrderedPmids.length,
-          matchedByPubMedCount: matchedIds.length,
-          orderedMatchedCount: orderedMatchedIds.length,
-          unmatchedCandidateCount: normalizedOrderedPmids.length - orderedMatchedIds.length,
-          validationMode: hardFilterQuery ? "hard-filter-only" : "candidate-whitelist-only",
-          topOrderedPmids: orderedMatchedIds.slice(0, 10),
-        });
-        try {
-          const inputCount = normalizedOrderedPmids.length;
-          const droppedCount = Math.max(0, inputCount - orderedMatchedIds.length);
-          const dropRatio = inputCount > 0 ? droppedCount / inputCount : 0;
-          const thresholds = getTelemetryThresholds();
-          const highDropThreshold =
-            typeof thresholds.highFilterDropThreshold === "number"
-              ? thresholds.highFilterDropThreshold
-              : 0.5;
-          logTelemetryEvent("filter_drop_ratio", {
-            queryHash: anonymizeText(hardFilterQuery || "").hash,
-            inputCount,
-            keptCount: orderedMatchedIds.length,
-            droppedCount,
-            dropRatio: Number(dropRatio.toFixed(4)),
-            hasHardFilter: Boolean(hardFilterQuery),
-            validationMode: hardFilterQuery ? "hard-filter-only" : "candidate-whitelist-only",
-            highDropFlag: dropRatio > highDropThreshold,
-          });
-        } catch (_err) {
-          /* telemetry is best-effort */
-        }
-        normalizedOrderedPmids
-          .filter((pmid) => !matchedSet.has(pmid))
-          .forEach((pmid) => {
-            this.recordSearchFlowDebugLedgerStage({ pmid }, "rejectedByPubMedHardFilter", {
-              source: "pubmed",
-              reason: hardFilterQuery
-                ? "pubmed-hard-filter-no-match"
-                : "candidate-whitelist-no-match",
-              detail: {
-                validationQuery,
-              },
-            });
-          });
-
-        return {
-          count:
-            Number.parseInt(esearchResponse?.data?.esearchresult?.count, 10) ||
-            orderedMatchedIds.length,
-          orderedIds: [...orderedMatchedIds, ...remainingMatchedIds],
-        };
-      },
       async fetchSummaryRecordsByIds(ids, nlm) {
         void nlm;
         const requestedIds = (Array.isArray(ids) ? ids : [])
@@ -8387,13 +8271,6 @@
           resultRefs.length > 0 &&
           (this.sort?.method === "date_desc" || this.sort?.method === "date_asc")
         );
-      },
-      getSemanticRefsForHydration(resultRefs, startIndex = 0, endIndex = undefined) {
-        const safeRefs = Array.isArray(resultRefs) ? resultRefs : [];
-        if (this.shouldUseSemanticDateOrdering(safeRefs)) {
-          return safeRefs;
-        }
-        return safeRefs.slice(startIndex, endIndex);
       },
       parseSemanticSortDateValue(value) {
         const normalizedValue = String(value || "").trim();
@@ -8545,7 +8422,7 @@
       // ---------------------------------------------------------------
       // Shared search engine: search()/searchMore() call
       // backend/api/UnifiedSearch.php, which uses the same
-      // qpmPublicSearchRunSearch() orchestrator as public /v1/search.
+      // muginPublicSearchRunSearch() orchestrator as public /v1/search.
       // The local JS pipeline below is retained only as dormant compatibility
       // code and is not selectable at runtime.
       // ---------------------------------------------------------------
@@ -8569,18 +8446,23 @@
        * `#s:pubmed` clauses must not become query.text (AI would rewrite them).
        */
       getUnifiedSearchFreetextQuery() {
+        return this.collectCustomFreetextInputs({ includeTranslated: false }).join(" ").trim();
+      },
+      getSessionFreetextInputKey() {
+        return this.collectCustomFreetextInputs({ includeTranslated: true }).join(" ").trim();
+      },
+      collectCustomFreetextInputs({ includeTranslated = false } = {}) {
         const texts = [];
         (Array.isArray(this.topics) ? this.topics : []).forEach((group) => {
           if (!Array.isArray(group)) return;
           group.forEach((item) => {
             if (item?.isCustom !== true) return;
-            // Already-translated URL tags (…1}}) are sent as structured clauses.
-            if (item.isTranslated === true) return;
+            if (includeTranslated !== true && item.isTranslated === true) return;
             const text = String(item?.preTranslation || item?.name || "").trim();
             if (text) texts.push(text);
           });
         });
-        return texts.join(" ").trim();
+        return texts;
       },
       buildUnifiedSelectedTopicGroups() {
         return (Array.isArray(this.topics) ? this.topics : [])
@@ -8644,7 +8526,599 @@
           })
           .filter((group) => group.length > 0);
       },
-      buildUnifiedSearchRequestPayload(pageNumber) {
+      resetQueryOverrideState() {
+        this.draftSourceQueries = {};
+        this.lastSyncedSourceQueries = {};
+        this.committedQueryOverrides = {};
+        this.queryOverrideFreetextKey = "";
+        this.pendingQueryOverrideSnapshot = null;
+        this.sessionFreetextQueries = null;
+        this.sourceSearchStringPending = {};
+      },
+      getQueryOverrideSourceKeys() {
+        return ["pubmed", "semanticScholar", "openAlex", "elicit"];
+      },
+      getQueryOverrideUrlParamMap() {
+        return {
+          pubmed: "qpubmed",
+          semanticScholar: "qsemanticscholar",
+          openAlex: "qopenalex",
+          elicit: "qelicit",
+        };
+      },
+      bindQueryOverrideFreetextKey() {
+        this.queryOverrideFreetextKey = String(this.sessionFreetextInputKey || "").trim();
+      },
+      constructQueryOverrideQuery() {
+        try {
+          const overrides = this.getQueryOverridesForSearch();
+          const paramMap = this.getQueryOverrideUrlParamMap();
+          const parts = [];
+          this.getQueryOverrideSourceKeys().forEach((sourceKey) => {
+            const value = String(overrides?.[sourceKey] || "").trim();
+            if (!value) return;
+            const param = paramMap[sourceKey];
+            if (!param) return;
+            parts.push(`${param}=${encodeURIComponent(value)}`);
+          });
+          return parts.length > 0 ? `&${parts.join("&")}` : "";
+        } catch (_error) {
+          return "";
+        }
+      },
+      applyQueryOverridesFromUrlParams(urlParams) {
+        const paramToSource = {
+          qpubmed: "pubmed",
+          qsemanticscholar: "semanticScholar",
+          qopenalex: "openAlex",
+          qelicit: "elicit",
+        };
+        const overrides = {};
+        const maxLength = this.getQueryOverrideMaxLength();
+        if (urlParams && typeof urlParams.forEach === "function") {
+          urlParams.forEach((value, key) => {
+            const keyLower = String(key || "")
+              .replace(/^amp;/i, "")
+              .toLowerCase();
+            const sourceKey = paramToSource[keyLower];
+            if (!sourceKey) return;
+            const trimmed = String(value ?? "").trim();
+            if (!trimmed || trimmed.length > maxLength) return;
+            overrides[sourceKey] = trimmed;
+          });
+        }
+        this.seedCommittedQueryOverridesFromUrl(overrides);
+      },
+      seedCommittedQueryOverridesFromUrl(overrides) {
+        const seeded = {};
+        this.getQueryOverrideSourceKeys().forEach((key) => {
+          const value = String(overrides?.[key] || "").trim();
+          if (!value || value.length > this.getQueryOverrideMaxLength()) return;
+          seeded[key] = value;
+        });
+        this.committedQueryOverrides = seeded;
+        if (Object.keys(seeded).length === 0) {
+          return;
+        }
+        const nextDrafts = { ...this.draftSourceQueries };
+        const nextSynced = { ...this.lastSyncedSourceQueries };
+        Object.entries(seeded).forEach(([key, value]) => {
+          nextDrafts[key] = value;
+          nextSynced[key] = value;
+          if (key === "pubmed") {
+            nextDrafts.pubmedTopics = value;
+            nextSynced.pubmedTopics = value;
+          }
+        });
+        this.draftSourceQueries = nextDrafts;
+        this.lastSyncedSourceQueries = nextSynced;
+        this.bindQueryOverrideFreetextKey();
+      },
+      getQueryOverrideMaxLength() {
+        return 20000;
+      },
+      combineResolvedPubmedDisplay(pubmedQuery, hardFilterQuery) {
+        const pubmed = String(pubmedQuery || "").trim();
+        const filter = String(hardFilterQuery || "").trim();
+        if (!pubmed) return filter;
+        if (!filter) return pubmed;
+        if (pubmed === filter) return pubmed;
+        if (pubmed.includes(filter)) return pubmed;
+        return `(${pubmed}) AND (${filter})`;
+      },
+      markSourceSearchStringPending(sourceKey, isPending) {
+        const key = String(sourceKey || "").trim();
+        if (!key) return;
+        this.sourceSearchStringPending = {
+          ...this.sourceSearchStringPending,
+          [key]: isPending === true,
+        };
+      },
+      seedPendingSourceSearchStringDisplays(placeholderText) {
+        const text = String(placeholderText || "").trim();
+        const sources = this.buildUnifiedSearchSources();
+        const snapshot =
+          this.pendingQueryOverrideSnapshot && typeof this.pendingQueryOverrideSnapshot === "object"
+            ? this.pendingQueryOverrideSnapshot
+            : {};
+        const nextDrafts = { ...this.draftSourceQueries };
+        const nextSynced = { ...this.lastSyncedSourceQueries };
+        const pending = {};
+        sources.forEach((key) => {
+          const override = String(snapshot[key] || "").trim();
+          if (override || this.isSourceQueryDirty(key)) {
+            pending[key] = false;
+            return;
+          }
+          pending[key] = true;
+          if (!text) return;
+          if (key === "pubmed") {
+            nextDrafts.pubmedTopics = text;
+            nextSynced.pubmedTopics = text;
+            nextDrafts.pubmed = this.combineResolvedPubmedDisplay(
+              text,
+              this.getGeneratedPubmedLimitQuery()
+            );
+            nextSynced.pubmed = nextDrafts.pubmed;
+            return;
+          }
+          nextDrafts[key] = text;
+          nextSynced[key] = text;
+        });
+        this.draftSourceQueries = nextDrafts;
+        this.lastSyncedSourceQueries = nextSynced;
+        this.sourceSearchStringPending = pending;
+      },
+      applyResolvedQueriesToSearchStringDisplay(resolvedQueries) {
+        if (!resolvedQueries || typeof resolvedQueries !== "object") return;
+        const pubmedQuery = String(resolvedQueries.pubmedQuery || "").trim();
+        const hardFilterQuery = String(resolvedQueries.hardFilterQuery || "").trim();
+        const combined = this.combineResolvedPubmedDisplay(pubmedQuery, hardFilterQuery);
+        if (combined || pubmedQuery || hardFilterQuery) {
+          this.finalValidatedQuery = combined;
+          this.draftSourceQueries = {
+            ...this.draftSourceQueries,
+            pubmed: combined,
+            pubmedTopics: pubmedQuery,
+            pubmedLimits: hardFilterQuery,
+          };
+          this.lastSyncedSourceQueries = {
+            ...this.lastSyncedSourceQueries,
+            pubmed: combined,
+            pubmedTopics: pubmedQuery,
+            pubmedLimits: hardFilterQuery,
+          };
+          this.markSourceSearchStringPending("pubmed", false);
+        }
+        const plan =
+          resolvedQueries.sourceQueryPlan && typeof resolvedQueries.sourceQueryPlan === "object"
+            ? resolvedQueries.sourceQueryPlan
+            : null;
+        if (!plan) return;
+        this.globalSemanticSearchState = {
+          ...(this.globalSemanticSearchState && typeof this.globalSemanticSearchState === "object"
+            ? this.globalSemanticSearchState
+            : {}),
+          semanticSourceQueryPlan: plan,
+        };
+        const nextDrafts = { ...this.draftSourceQueries };
+        const nextSynced = { ...this.lastSyncedSourceQueries };
+        let draftsChanged = false;
+        ["semanticScholar", "openAlex", "elicit"].forEach((key) => {
+          const query = String(plan?.[key]?.query || "").trim();
+          if (!query) return;
+          nextDrafts[key] = query;
+          nextSynced[key] = query;
+          draftsChanged = true;
+          this.markSourceSearchStringPending(key, false);
+        });
+        if (draftsChanged) {
+          this.draftSourceQueries = nextDrafts;
+          this.lastSyncedSourceQueries = nextSynced;
+        }
+      },
+      getSourceSearchLinkFilters(sourceKey) {
+        const planRoot =
+          (this.globalSemanticSearchState?.semanticSourceQueryPlan &&
+          typeof this.globalSemanticSearchState.semanticSourceQueryPlan === "object"
+            ? this.globalSemanticSearchState.semanticSourceQueryPlan
+            : null) ||
+          (this.earlyIntentPreview?.semanticSourceQueryPlan &&
+          typeof this.earlyIntentPreview.semanticSourceQueryPlan === "object"
+            ? this.earlyIntentPreview.semanticSourceQueryPlan
+            : null) ||
+          {};
+        const planFilters =
+          planRoot?.[sourceKey]?.filters && typeof planRoot[sourceKey].filters === "object"
+            ? planRoot[sourceKey].filters
+            : {};
+        const contextFilters =
+          this.semanticWordedIntentContext?.sourceFilters?.[sourceKey] &&
+          typeof this.semanticWordedIntentContext.sourceFilters[sourceKey] === "object"
+            ? this.semanticWordedIntentContext.sourceFilters[sourceKey]
+            : {};
+        const year =
+          String(
+            planFilters.year ||
+              planFilters.publicationYear ||
+              contextFilters.year ||
+              contextFilters.publicationYear ||
+              ""
+          ).trim() ||
+          buildOpenAlexPublicationYearFilter(
+            this.semanticWordedIntentContext?.hardFilters?.publicationDateYears
+          ) ||
+          "";
+        return {
+          ...contextFilters,
+          ...planFilters,
+          year,
+          publicationYear: String(
+            planFilters.publicationYear || contextFilters.publicationYear || year
+          ).trim(),
+        };
+      },
+      getGeneratedSemanticSourceQuery(sourceKey) {
+        const details = Array.isArray(this.unifiedProcessSourceQueryDetails)
+          ? this.unifiedProcessSourceQueryDetails
+          : [];
+        const fromDetails = details.find(
+          (entry) => String(entry?.source || "").trim() === sourceKey
+        );
+        const detailQuery = String(fromDetails?.query || "").trim();
+        if (detailQuery) return detailQuery;
+        const plan =
+          this.globalSemanticSearchState?.semanticSourceQueryPlan &&
+          typeof this.globalSemanticSearchState.semanticSourceQueryPlan === "object"
+            ? this.globalSemanticSearchState.semanticSourceQueryPlan
+            : {};
+        return String(plan?.[sourceKey]?.query || "").trim();
+      },
+      getGeneratedSourceQuery(sourceKey) {
+        if (sourceKey === "pubmed") return this.displaySearchString;
+        if (sourceKey === "pubmedTopics") return this.getGeneratedPubmedTopicQuery();
+        if (sourceKey === "pubmedLimits") return this.getGeneratedPubmedLimitQuery();
+        return this.getGeneratedSemanticSourceQuery(sourceKey);
+      },
+      getDisplayLimitGroups() {
+        const withoutDatabaseItems = (group) =>
+          (Array.isArray(group) ? group : []).filter((item) => !this.isDatabaseLimitItem(item));
+        const safeDropdowns = Array.isArray(this.searchDisplayLimitDropdowns)
+          ? this.searchDisplayLimitDropdowns
+          : [];
+        const dropdownGroups = safeDropdowns
+          .map(withoutDatabaseItems)
+          .filter((group) => group.length > 0);
+        const simpleGroups = Object.values(this.limitData || {})
+          .map(withoutDatabaseItems)
+          .filter((items) => items.length > 0);
+        if (this.advanced) {
+          return dropdownGroups.length > 0 ? dropdownGroups : simpleGroups;
+        }
+        return [...simpleGroups, ...dropdownGroups];
+      },
+      hasMeaningfulSourceFilterValues(filters) {
+        if (!filters || typeof filters !== "object") return false;
+        return Object.values(filters).some((value) => {
+          if (Array.isArray(value)) return value.length > 0;
+          if (typeof value === "boolean") return true;
+          if (typeof value === "number") return Number.isFinite(value);
+          return String(value || "").trim() !== "";
+        });
+      },
+      limitAppliesToSemanticSource(item, sourceKey) {
+        const sourceFilters = item?.semanticConfig?.sourceFilters?.[sourceKey];
+        if (this.hasMeaningfulSourceFilterValues(sourceFilters)) return true;
+        const years = item?.semanticConfig?.hardFilters?.publicationDateYears;
+        return Array.isArray(years) && years.length > 0;
+      },
+      formatSourceFilterActualValue(filters) {
+        if (!this.hasMeaningfulSourceFilterValues(filters)) return "";
+        const parts = [];
+        const pushList = (value) => {
+          if (Array.isArray(value) && value.length > 0) {
+            parts.push(value.map((item) => String(item || "").trim()).filter(Boolean).join(", "));
+          }
+        };
+        if (filters.year) parts.push(String(filters.year).trim());
+        if (filters.publicationYear) parts.push(String(filters.publicationYear).trim());
+        if (filters.publicationDateOrYear) parts.push(String(filters.publicationDateOrYear).trim());
+        pushList(filters.publicationTypes);
+        pushList(filters.workType);
+        pushList(filters.workTypes);
+        pushList(filters.typeTags);
+        pushList(filters.language);
+        pushList(filters.sourceType);
+        pushList(filters.includeKeywords);
+        pushList(filters.excludeKeywords);
+        const minYear = filters.minYear;
+        const maxYear = filters.maxYear;
+        if (minYear || maxYear) {
+          parts.push(
+            [minYear, maxYear]
+              .filter((value) => value !== null && value !== undefined && value !== "")
+              .join("-")
+          );
+        }
+        if (filters.isOa === true || filters.is_oa === true) parts.push("is_oa");
+        if (filters.hasPdf === true) parts.push("hasPdf");
+        if (filters.pubmedOnly === true) parts.push("pubmedOnly");
+        if (filters.retracted) parts.push(String(filters.retracted).trim());
+        if (Number.isInteger(filters.maxQuartile)) parts.push(`Q${filters.maxQuartile}`);
+        return parts.filter(Boolean).join(", ");
+      },
+      formatHardFilterFallbackValue(item) {
+        const hard = item?.semanticConfig?.hardFilters;
+        if (!hard || typeof hard !== "object") return "";
+        const parts = [];
+        const pushList = (value) => {
+          (Array.isArray(value) ? value : []).forEach((entry) => {
+            const text = String(entry || "").trim();
+            if (text) parts.push(text);
+          });
+        };
+        pushList(hard.sourceFormat);
+        pushList(hard.publicationType);
+        pushList(hard.studyDesign);
+        pushList(hard.ageGroup);
+        pushList(hard.language);
+        pushList(hard.filterProfile);
+        pushList(hard.publicationDateYears);
+        return [...new Set(parts)].join(", ");
+      },
+      getSourceLimitActualValue(item, sourceKey) {
+        if (sourceKey === "pubmed") {
+          const scope = String(item?.scope || "normal").trim() || "normal";
+          const pubmedGeneratedQuery = String(item?.pubmedGeneratedQuery || "").trim();
+          if (item?.includeTranslatedTextInQuery === true && pubmedGeneratedQuery) {
+            return pubmedGeneratedQuery;
+          }
+          const scoped = Array.isArray(item?.searchStrings?.[scope])
+            ? item.searchStrings[scope]
+            : [];
+          const searchString = scoped
+            .map((value) => String(value || "").trim())
+            .filter(Boolean)
+            .join(" OR ");
+          if (searchString) return searchString;
+          return this.formatHardFilterFallbackValue(item);
+        }
+        const formatted = this.formatSourceFilterActualValue(
+          item?.semanticConfig?.sourceFilters?.[sourceKey]
+        );
+        if (formatted) return formatted;
+        return (
+          buildOpenAlexPublicationYearFilter(
+            item?.semanticConfig?.hardFilters?.publicationDateYears
+          ) || this.formatHardFilterFallbackValue(item)
+        );
+      },
+      getSourceLimitGroupsForDisplay(sourceKey) {
+        const groups = this.getDisplayLimitGroups();
+        const filtered =
+          sourceKey === "pubmed"
+            ? groups
+            : groups
+                .map((group) =>
+                  (Array.isArray(group) ? group : []).filter((item) =>
+                    this.limitAppliesToSemanticSource(item, sourceKey)
+                  )
+                )
+                .filter((group) => group.length > 0);
+        const seenIds = new Set();
+        return filtered
+          .map((group) =>
+            (Array.isArray(group) ? group : []).filter((item) => {
+              const id = String(item?.id || item?.name || "").trim().toLowerCase();
+              if (!id || seenIds.has(id)) return false;
+              seenIds.add(id);
+              return true;
+            })
+          )
+          .filter((group) => group.length > 0)
+          .map((group) =>
+            group.map((item) => ({
+              ...item,
+              actualLimitValue: this.getSourceLimitActualValue(item, sourceKey),
+            }))
+          );
+      },
+      isSourceQueryDirty(sourceKey) {
+        if (sourceKey === "pubmed") {
+          return this.isSourceQueryPartDirty("pubmedTopics") || this.isSourceQueryPartDirty("pubmed");
+        }
+        return this.isSourceQueryPartDirty(sourceKey);
+      },
+      getPubmedOverrideDraftValue() {
+        if (Object.prototype.hasOwnProperty.call(this.draftSourceQueries || {}, "pubmedTopics")) {
+          return String(this.draftSourceQueries.pubmedTopics || "").trim();
+        }
+        return String(this.draftSourceQueries?.pubmed || "").trim();
+      },
+      isSourceQueryPartDirty(sourceKey) {
+        if (!Object.prototype.hasOwnProperty.call(this.draftSourceQueries || {}, sourceKey)) {
+          return false;
+        }
+        const draft = String(this.draftSourceQueries[sourceKey] || "").trim();
+        const synced = Object.prototype.hasOwnProperty.call(this.lastSyncedSourceQueries || {}, sourceKey)
+          ? String(this.lastSyncedSourceQueries[sourceKey] || "").trim()
+          : this.getGeneratedSourceQuery(sourceKey);
+        return draft !== synced;
+      },
+      filterQueryOverridesToCurrentSources(overrides) {
+        const sourceSet = new Set(this.buildUnifiedSearchSources());
+        const maxLength = this.getQueryOverrideMaxLength();
+        const filtered = {};
+        this.getQueryOverrideSourceKeys().forEach((key) => {
+          if (!sourceSet.has(key)) return;
+          const value = String(overrides?.[key] || "").trim();
+          if (!value || value.length > maxLength) return;
+          filtered[key] = value;
+        });
+        return filtered;
+      },
+      getCommittedQueryOverridesForCurrentSources() {
+        return this.filterQueryOverridesToCurrentSources(this.committedQueryOverrides || {});
+      },
+      getDirtyQueryOverrides() {
+        const sourceSet = new Set(this.buildUnifiedSearchSources());
+        const maxLength = this.getQueryOverrideMaxLength();
+        const overrides = {};
+        this.getQueryOverrideSourceKeys().forEach((key) => {
+          if (!sourceSet.has(key) || !this.isSourceQueryDirty(key)) return;
+          const value = key === "pubmed"
+            ? this.getPubmedOverrideDraftValue()
+            : String(this.draftSourceQueries?.[key] || "").trim();
+          if (!value || value.length > maxLength) return;
+          overrides[key] = value;
+        });
+        return overrides;
+      },
+      getQueryOverridesForSearch() {
+        const committed = this.getCommittedQueryOverridesForCurrentSources();
+        const sourceSet = new Set(this.buildUnifiedSearchSources());
+        const merged = { ...committed };
+        this.getQueryOverrideSourceKeys().forEach((key) => {
+          if (!sourceSet.has(key) || !this.isSourceQueryDirty(key)) return;
+          const value = key === "pubmed"
+            ? this.getPubmedOverrideDraftValue()
+            : String(this.draftSourceQueries?.[key] || "").trim();
+          if (!value) {
+            delete merged[key];
+            return;
+          }
+          if (value.length > this.getQueryOverrideMaxLength()) return;
+          merged[key] = value;
+        });
+        return merged;
+      },
+      getCachedFreetextQueriesForSearch() {
+        const cached =
+          this.sessionFreetextQueries && typeof this.sessionFreetextQueries === "object"
+            ? this.sessionFreetextQueries
+            : null;
+        const input = String(cached?.input || "").trim();
+        const current = String(this.getUnifiedSearchFreetextQuery() || "").trim();
+        if (!cached || !input || input !== current) return null;
+        const overrides = this.getQueryOverridesForSearch();
+        const maxLength = this.getQueryOverrideMaxLength();
+        const payload = { input };
+        ["pubmed", "semanticScholar", "openAlex", "elicit"].forEach((key) => {
+          if (overrides[key]) return;
+          const value = String(cached[key] || "").trim();
+          if (!value || value.length > maxLength) return;
+          payload[key] = value;
+        });
+        const semanticSeed = ["semanticScholar", "openAlex", "elicit"]
+          .map((key) => String(payload[key] || "").trim())
+          .find(Boolean);
+        if (semanticSeed) {
+          this.buildUnifiedSearchSources().forEach((key) => {
+            if (key === "pubmed" || payload[key] || overrides[key]) return;
+            if (!["semanticScholar", "openAlex", "elicit"].includes(key)) return;
+            payload[key] = semanticSeed;
+          });
+        }
+        return Object.keys(payload).length > 1 ? payload : null;
+      },
+      captureSessionFreetextQueries(resolvedQueries, freetextQuery) {
+        const input = String(freetextQuery || "").trim();
+        if (!input) return;
+        const resolved =
+          resolvedQueries && typeof resolvedQueries === "object" ? resolvedQueries : {};
+        const plan =
+          resolved.sourceQueryPlan && typeof resolved.sourceQueryPlan === "object"
+            ? resolved.sourceQueryPlan
+            : {};
+        const prev =
+          this.sessionFreetextQueries && typeof this.sessionFreetextQueries === "object"
+            ? this.sessionFreetextQueries
+            : {};
+        const pubmed = String(resolved.freetextPubMedQuery || "").trim();
+        const next = { input };
+        const pubmedValue = pubmed || String(prev.pubmed || "").trim();
+        if (pubmedValue) next.pubmed = pubmedValue;
+        ["semanticScholar", "openAlex", "elicit"].forEach((key) => {
+          const fromPlan = String(plan?.[key]?.query || "").trim();
+          const fromPrev = String(prev[key] || "").trim();
+          const fromSynced = String(this.lastSyncedSourceQueries?.[key] || "").trim();
+          const fromDraft = String(this.draftSourceQueries?.[key] || "").trim();
+          const value =
+            fromPlan ||
+            fromPrev ||
+            (fromSynced && fromSynced !== input ? fromSynced : "") ||
+            (fromDraft && fromDraft !== input ? fromDraft : "");
+          if (value) next[key] = value;
+        });
+        const semanticSeed = ["semanticScholar", "openAlex", "elicit"]
+          .map((key) => String(next[key] || "").trim())
+          .find(Boolean);
+        if (semanticSeed) {
+          this.buildUnifiedSearchSources().forEach((key) => {
+            if (!["semanticScholar", "openAlex", "elicit"].includes(key)) return;
+            if (!next[key]) next[key] = semanticSeed;
+          });
+        }
+        if (!next.pubmed && !next.semanticScholar && !next.openAlex && !next.elicit) return;
+        this.sessionFreetextQueries = next;
+      },
+      flushSourceSearchStringDraftsFromDom() {
+        const worded = this.$refs.wordedSearchString;
+        if (worded && typeof worded.flushSourceQueryEdits === "function") {
+          worded.flushSourceQueryEdits();
+        }
+      },
+      onSourceSearchQueryUpdate({ key, value } = {}) {
+        const sourceKey = String(key || "").trim();
+        if (
+          !this.getQueryOverrideSourceKeys().includes(sourceKey) &&
+          sourceKey !== "pubmedTopics"
+        ) {
+          return;
+        }
+        const nextDrafts = {
+          ...this.draftSourceQueries,
+          [sourceKey]: String(value ?? ""),
+        };
+        if (sourceKey === "pubmedTopics") {
+          const topic = String(
+            nextDrafts.pubmedTopics ?? this.getGeneratedPubmedTopicQuery() ?? ""
+          ).trim();
+          nextDrafts.pubmed = this.combineResolvedPubmedDisplay(
+            topic,
+            this.getGeneratedPubmedLimitQuery()
+          );
+        }
+        this.draftSourceQueries = nextDrafts;
+      },
+      onSourceSearchQueryEditFinished() {
+        this.setUrl();
+      },
+      syncQueryOverrideDraftsAfterSearch() {
+        const snapshot =
+          this.pendingQueryOverrideSnapshot && typeof this.pendingQueryOverrideSnapshot === "object"
+            ? this.pendingQueryOverrideSnapshot
+            : {};
+        const nextDrafts = { ...this.draftSourceQueries };
+        const nextSynced = { ...this.lastSyncedSourceQueries };
+        this.getQueryOverrideSourceKeys().forEach((key) => {
+          const wasSent = Object.prototype.hasOwnProperty.call(snapshot, key);
+          if (wasSent) {
+            const used = String(snapshot[key] || nextDrafts[key] || this.getGeneratedSourceQuery(key) || "");
+            nextDrafts[key] = used;
+            nextSynced[key] = used;
+            return;
+          }
+          if (this.isSourceQueryDirty(key)) return;
+          const generated = this.getGeneratedSourceQuery(key);
+          if (!generated) return;
+          nextDrafts[key] = generated;
+          nextSynced[key] = generated;
+        });
+        this.draftSourceQueries = nextDrafts;
+        this.lastSyncedSourceQueries = nextSynced;
+      },
+      buildUnifiedSearchRequestPayload(pageNumber, queryOverridesMode = "auto") {
         // Catalog topics/limits are sent as structured ids; only custom fretext
         // goes in query.text so PubMed can use topics.json searchStrings directly.
         const freetextQuery = this.getUnifiedSearchFreetextQuery();
@@ -8678,7 +9152,15 @@
             ? hardFiltersSource.postValidationRuleIds
             : [];
         const wordedIntent = String(this.searchIntent || "").trim();
-        return {
+        let queryOverrides = {};
+        if (queryOverridesMode === "committed") {
+          queryOverrides = this.getCommittedQueryOverridesForCurrentSources();
+        } else if (queryOverridesMode && typeof queryOverridesMode === "object") {
+          queryOverrides = this.filterQueryOverridesToCurrentSources(queryOverridesMode);
+        } else {
+          queryOverrides = this.getQueryOverridesForSearch();
+        }
+        const payload = {
           apiVersion: "1",
           query: {
             text: freetextQuery,
@@ -8703,11 +9185,7 @@
             includeProcessDetails: true,
             // Mirror public-api ?nocache=1 so SearchForm URL parity can force a
             // fresh search-response + LLM final-rerank pass.
-            noCache: ["1", "true", "yes", "on"].includes(
-              String(this.getHashUrlParams().get("nocache") || "")
-                .trim()
-                .toLowerCase()
-            ),
+            noCache: this.isUrlTargetedComponent() && this.readUrlFlag("nocache"),
           },
           hardFilters: {
             filterProfiles: Array.isArray(hardFiltersSource.filterProfiles)
@@ -8761,9 +9239,31 @@
             ruleIds: ruleIds.map((id) => String(id || "").trim()).filter(Boolean),
           },
         };
+        if (queryOverrides && Object.keys(queryOverrides).length > 0) {
+          payload.queryOverrides = queryOverrides;
+        }
+        const cachedFreetextQueries = this.getCachedFreetextQueriesForSearch();
+        if (cachedFreetextQueries) {
+          payload.cachedFreetextQueries = cachedFreetextQueries;
+        }
+        const standardStringPayload = {
+          add: this.standardStringAdd === true,
+        };
+        const standardStringText = String(this.standardString || "").trim();
+        if (standardStringText) {
+          standardStringPayload.text = standardStringText;
+        }
+        const standardStringScope = String(this.standardStringScope || "normal")
+          .trim()
+          .toLowerCase();
+        if (["narrow", "normal", "broad"].includes(standardStringScope)) {
+          standardStringPayload.scope = standardStringScope;
+        }
+        payload.standardString = standardStringPayload;
+        return payload;
       },
       async callUnifiedSearchEndpoint(payload) {
-        const url = this.appSettings.openAi.baseUrl + "/api/UnifiedSearch.php";
+        const url = this.getBackendApiUrl("UnifiedSearch.php");
         const response = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -8784,7 +9284,7 @@
         return data && typeof data === "object" ? data : {};
       },
       // Parses one SSE "event:"/"data:" block (already split on the blank-line
-      // event separator) as emitted by qpmPublicSearchEmitSseEvent() in
+      // event separator) as emitted by muginPublicSearchEmitSseEvent() in
       // public-search-lib.php. data: lines are rejoined with newlines before
       // JSON-parsing, since the backend pretty-prints (multi-line) payloads.
       parseUnifiedSearchSseEventBlock(rawBlock) {
@@ -8819,7 +9319,7 @@
       // only switches to SSE after successfully parsing the request) and for
       // browsers without stream support.
       async callUnifiedSearchEndpointStreaming(payload, onProgressStage) {
-        const url = this.appSettings.openAi.baseUrl + "/api/UnifiedSearch.php";
+        const url = this.getBackendApiUrl("UnifiedSearch.php");
         const streamingPayload = {
           ...payload,
           responseOptions: { ...(payload.responseOptions || {}), stream: true },
@@ -8908,17 +9408,51 @@
         let activeSourceStepId = "";
         return (stage, context = {}) => {
           if (isCancelled()) return;
+          if (context?.resolvedQueries && typeof context.resolvedQueries === "object") {
+            this.applyResolvedQueriesToSearchStringDisplay(context.resolvedQueries);
+            this.captureSessionFreetextQueries(
+              context.resolvedQueries,
+              this.getUnifiedSearchFreetextQuery()
+            );
+          }
+          if (stage === "resolvedQueries") {
+            return;
+          }
           if (context?.processStepDetail && typeof context.processStepDetail === "object") {
             const adapted = adaptUnifiedProcessDetails({
               version: "1",
               sourceQueryDetails: [],
               processStepDetails: [context.processStepDetail],
             });
-            adapted.processStepDetails.forEach((detail) => {
-              if (detail.stepId === "prepare") return;
-              this.setSearchProcessStepDetail(detail.stepId, detail.payload, detail.label);
-              this.maybeCompleteProcessStepAfterDetail(detail.stepId);
-            });
+            const adaptedDetails = adapted.processStepDetails.filter(
+              (detail) => detail.stepId && detail.stepId !== "prepare"
+            );
+            if (adaptedDetails.length > 0) {
+              adaptedDetails.forEach((detail) => {
+                this.setSearchProcessStepDetail(detail.stepId, detail.payload, detail.label);
+                this.maybeCompleteProcessStepAfterDetail(detail.stepId);
+              });
+            } else {
+              // Fallback when adapter rejects an otherwise usable SSE detail
+              // (e.g. unusual nesting): still surface Detaljer for the step.
+              const raw = context.processStepDetail;
+              const stepId = String(raw.stepId || context.stepId || stage || "").trim();
+              const payload =
+                raw.payload && typeof raw.payload === "object"
+                  ? raw.payload
+                  : raw.queries || raw.searchBasis || raw.pubmedQuery
+                    ? raw
+                    : null;
+              if (stepId && stepId !== "prepare" && payload && typeof payload === "object") {
+                const foldedStepId = this.getVisibleSemanticLoadingProcessStep(stepId).stepId || stepId;
+                this.setSearchProcessStepDetail(
+                  foldedStepId,
+                  payload,
+                  this.getSemanticLoadingProcessStepLabel(foldedStepId)
+                );
+                this.maybeCompleteProcessStepAfterDetail(foldedStepId);
+              }
+            }
           }
           if (context?.sourceQueryDetail && typeof context.sourceQueryDetail === "object") {
             const adapted = adaptUnifiedProcessDetails({
@@ -8943,15 +9477,35 @@
           }
           // Supplemental detail events must not reactivate earlier loading
           // steps or alter their timing/order.
-          if (context?.detailOnly === true) return;
+          if (context?.detailOnly === true) {
+            this.reconcilePreparePhaseProcessStepsAfterLaterProgress();
+            return;
+          }
+          const messageKey = String(context?.messageKey || "").trim();
+          if (stage === "cache") {
+            const cacheKey = messageKey || "semanticSearchProgressCacheHit";
+            const now = this.getProcessTimingNow();
+            this.loadingProcessSteps = [
+              {
+                id: "cache",
+                label: this.getSemanticLoadingProcessStepLabel("cache", cacheKey),
+                status: "completed",
+                startedAtMs: now,
+                endedAtMs: now,
+                elapsedMs: 0,
+              },
+            ];
+            this.searchLoadingStatusText = this.getSemanticLoadingProcessStepLabel("cache", cacheKey);
+            return;
+          }
           const isSourceStage = sourceStepIds.includes(stage);
           const explicitStatus = String(context?.status || "").trim();
           const explicitElapsedMs = Number(context?.elapsedMs);
           // Apply terminal status (incl. completed) only after details above.
           if (explicitStatus && this.isSemanticLoadingTerminalStatus(explicitStatus)) {
             if (isSourceStage) {
-              this.activateConcurrentSemanticLoadingStep(stage);
-              this.setSemanticLoadingProcessStepStatus(stage, explicitStatus);
+              this.activateConcurrentSemanticLoadingStep(stage, messageKey);
+              this.setSemanticLoadingProcessStepStatus(stage, explicitStatus, messageKey);
               if (Number.isFinite(explicitElapsedMs) && explicitElapsedMs >= 0) {
                 const step = (this.loadingProcessSteps || []).find(
                   (entry) => String(entry?.id || "") === stage
@@ -8974,10 +9528,27 @@
               if (activeSourceStepId === stage) {
                 activeSourceStepId = "";
               }
+            } else if (this.isPreparePhaseSemanticLoadingStep(stage)) {
+              // Prepare-lane steps (esp. mesh) often complete while source prefetch
+              // has already moved the UI forward. Full activate() is start-oriented
+              // and can leave an out-of-order prepare step stuck on pending.
+              this.ensureSemanticLoadingProcessStepPresence(stage, messageKey);
+              const prepareStep = (this.loadingProcessSteps || []).find(
+                (entry) => String(entry?.id || "") === this.getVisibleSemanticLoadingProcessStep(stage, messageKey).stepId
+              );
+              if (
+                prepareStep &&
+                (!Number.isFinite(Number(prepareStep.startedAtMs)) ||
+                  Number(prepareStep.startedAtMs) <= 0)
+              ) {
+                this.startProcessStepTiming(prepareStep);
+              }
+              this.setSemanticLoadingProcessStepStatus(stage, explicitStatus, messageKey);
             } else {
-              this.activateSemanticLoadingProcessStep(stage);
-              this.setSemanticLoadingProcessStepStatus(stage, explicitStatus);
+              this.activateSemanticLoadingProcessStep(stage, messageKey);
+              this.setSemanticLoadingProcessStepStatus(stage, explicitStatus, messageKey);
             }
+            this.reconcilePreparePhaseProcessStepsAfterLaterProgress();
             return;
           }
           if (activeSourceStepId && (activeSourceStepId !== stage || !isSourceStage)) {
@@ -8991,11 +9562,12 @@
             activeSourceStepId = "";
           }
           if (isSourceStage) {
-            this.activateConcurrentSemanticLoadingStep(stage);
+            this.activateConcurrentSemanticLoadingStep(stage, messageKey);
             activeSourceStepId = stage;
           } else {
-            this.activateSemanticLoadingProcessStep(stage);
+            this.activateSemanticLoadingProcessStep(stage, messageKey);
           }
+          this.reconcilePreparePhaseProcessStepsAfterLaterProgress();
         };
       },
       // Thin adapter over backend processDetails (search-basis is folded into
@@ -9015,16 +9587,25 @@
           semanticScholarQuery: String(resolvedQueries.semanticIntent || "").trim(),
         });
 
+        this.applyResolvedQueriesToSearchStringDisplay(resolvedQueries);
         const adapted = adaptUnifiedProcessDetails(response?.processDetails, {
           frontendOwnedSteps: [],
         });
         this.unifiedProcessSourceQueryDetails = adapted.sourceQueryDetails;
         adapted.processStepDetails.forEach((detail) => {
           this.setSearchProcessStepDetail(detail.stepId, detail.payload, detail.label);
+          this.maybeCompleteProcessStepAfterDetail(detail.stepId);
         });
+        this.reconcilePreparePhaseProcessStepsAfterLaterProgress();
+        this.syncQueryOverrideDraftsAfterSearch();
       },
       async runUnifiedEngineSearch(isCancelled) {
-        const payload = this.buildUnifiedSearchRequestPayload(1);
+        const payload = this.buildUnifiedSearchRequestPayload(
+          1,
+          this.pendingQueryOverrideSnapshot && typeof this.pendingQueryOverrideSnapshot === "object"
+            ? this.pendingQueryOverrideSnapshot
+            : "auto"
+        );
         const freetextQuery = String(payload?.query?.text || "").trim();
         const hasTopics =
           (Array.isArray(payload?.intentContext?.selectedTopicGroups) &&
@@ -9036,15 +9617,21 @@
           selectedTopicIds: payload?.intentContext?.selectedTopicIds || [],
           selectedLimitIds: payload?.intentContext?.selectedLimitIds || [],
         });
-        if (!freetextQuery && !hasTopics) {
+        const hasOverrides = this.hasExecutableQueryOverrides();
+        if (!freetextQuery && !hasTopics && !hasOverrides) {
           console.info("[SearchFlow] Unified engine: query is empty. Search aborted.");
           this.stopSearchProcessTiming();
           this.searchLoading = false;
           return;
         }
         this.reloadScripts();
-        // Placeholder until resolvedQueries.pubmedQuery arrives (catalog searchStrings).
-        this.finalValidatedQuery = freetextQuery || String(this.searchIntent || "").trim();
+        // Placeholder until resolvedQueries arrive. Show the same freetext in
+        // every selected database field, with a spinner like PubMed-only live translation.
+        this.finalValidatedQuery =
+          freetextQuery ||
+          String(this.getQueryOverridesForSearch().pubmed || "").trim() ||
+          String(this.searchIntent || "").trim();
+        this.seedPendingSourceSearchStringDisplays(this.finalValidatedQuery);
         await this.runSearchFlowDebugSection("Unified engine search", async () => {
           const response = await this.callUnifiedSearchEndpointStreaming(
             payload,
@@ -9055,16 +9642,14 @@
           this.searchresult = this.mapUnifiedSearchResponseResults(response.results);
           const resolvedPubmed = String(response?.resolvedQueries?.pubmedQuery || "").trim();
           const resolvedHardFilter = String(response?.resolvedQueries?.hardFilterQuery || "").trim();
-          if (resolvedPubmed && resolvedHardFilter) {
-            this.finalValidatedQuery = `(${resolvedPubmed}) AND (${resolvedHardFilter})`;
-          } else {
-            this.finalValidatedQuery =
-              resolvedPubmed || resolvedHardFilter || this.finalValidatedQuery;
-          }
+          this.finalValidatedQuery =
+            this.combineResolvedPubmedDisplay(resolvedPubmed, resolvedHardFilter) ||
+            this.finalValidatedQuery;
           this.populateUnifiedSearchProcessStepDetails(
             response,
             freetextQuery || resolvedPubmed || String(this.searchIntent || "").trim()
           );
+          this.captureSessionFreetextQueries(response?.resolvedQueries, freetextQuery);
           // Parity with the local pipeline's per-source degraded-status badges
           // (recordDegradedSearchStatus()): the API response's free-text
           // warnings (e.g. one source failing while others still returned
@@ -9084,7 +9669,7 @@
               }));
           }
           // Parity with the local pipeline's "08 Final result composition":
-          // merge in any articles preselected via the widget's own '?pmid=...'
+          // merge in any articles preselected via the widget's own '?selected=...'
           // URL/prop mechanism (searchByIds()). Counts attach to the last real
           // display step (not a separate "ready for display" step).
           const compositionStepId = this.getFinalizeCompositionStepId();
@@ -9106,9 +9691,9 @@
         this.clearSearchLoadingStatus();
         this.$nextTick(() => {
           if (isCancelled()) return;
-          const searchButton = this.$el?.querySelector(".qpm_search");
+          const searchButton = this.$el?.querySelector(".mugin_search");
           if (searchButton) searchButton.focus();
-          const topOfSearch = document.getElementById("qpm_topofsearch");
+          const topOfSearch = document.getElementById("mugin_topofsearch");
           if (topOfSearch) {
             topOfSearch.scrollIntoView({ block: "start", behavior: "smooth" });
           }
@@ -9129,7 +9714,8 @@
         // re-hydrate results already shown.
         const fetchCount = Math.max(1, targetResultLength - haveCount);
         const payload = this.buildUnifiedSearchRequestPayload(
-          Math.floor(haveCount / Math.max(1, this.pageSize)) + 1
+          Math.floor(haveCount / Math.max(1, this.pageSize)) + 1,
+          "committed"
         );
         payload.page = {
           number: Math.max(1, Number(payload?.page?.number) || 1),
@@ -9146,7 +9732,7 @@
         const uniqueNewResults = newResults.filter((item) => item?.uid && !existingUids.has(item.uid));
         this.searchresult = [...(Array.isArray(this.searchresult) ? this.searchresult : []), ...uniqueNewResults];
         // Parity with the local pipeline's searchMore(), which re-checks
-        // preselected '?pmid=...' articles on every page too (mergeUniqueEntries
+        // preselected '?selected=...' articles on every page too (mergeUniqueEntries
         // is a no-op once they're already present from page 1).
         const preSelectedEntries = await this.searchPreselectedPmidai();
         if (isCancelled()) return;
@@ -9171,9 +9757,7 @@
         }
       },
       /**
-       * Initiates a PubMed search using NCBI's Entrez API.
-       * Performs an esearch followed by an esummary to retrieve search results.
-       * Updates component state with the results and handles UI updates.
+       * Initiates a search via the shared PHP unified orchestrator.
        */
       async search() {
         this.searchLoading = true;
@@ -9195,7 +9779,8 @@
         // overwriting the reset state.
         const mySearchGeneration = this.searchGeneration;
         const isCancelled = () => this.searchGeneration !== mySearchGeneration;
-        const { nlm } = this.appSettings;
+        this.flushSourceSearchStringDraftsFromDom();
+        this.pendingQueryOverrideSnapshot = this.getQueryOverridesForSearch();
         if (this.isSearchFlowDebugEnabled) {
           console.group("[SearchFlow] search()");
         }
@@ -9204,279 +9789,17 @@
         try {
           await this.ensureRuntimeConfigLoadedBeforeSearch();
           if (isCancelled()) return;
-          if (this.isUnifiedEngineActive) {
-            await this.runUnifiedEngineSearch(isCancelled);
-            return;
-          }
-          await this.runSearchFlowDebugSection("01 Prepare", async () => {
-            await this.prepareSemanticSearchStateBeforeSearch();
-            this.recordSearchPaginationSignature();
-          });
-          const query = decodeURIComponent(this.getSearchString).trim();
-          console.info("[SearchFlow] Raw query from getSearchString:", query);
-          this.logSearchFlowDebugInfo("Raw query from getSearchString", { query });
-
-          if (!query || query === "()") {
-            console.info("[SearchFlow] Query is empty. Search aborted.");
-            this.stopSearchProcessTiming();
-            this.searchLoading = false;
-            return;
-          }
-
-          this.reloadScripts();
-          // No additional validation flow on search button click.
-          // Validation is performed when free-text queries are generated.
-          const finalQuery = query;
-          this.finalValidatedQuery = finalQuery;
-          console.info("[SearchFlow] Final query (no extra flow on search):", finalQuery);
-          let hardFilterQuery = "";
-          let rerankedPmids = [];
-          let orderedCandidates = [];
-          let idList = [];
-          let resultRefs = [];
-          await this.runSearchFlowDebugSection("06 Filter and validation", async () => {
-            if (this.hasSelectedSemanticSources()) {
-              this.setSemanticFinalizeLoadingStatus("collect");
-            }
-            hardFilterQuery = this.getSemanticHardFilterValidationQuery();
-            rerankedPmids = this.getOrderedRerankedPmids();
-            console.info("[SearchFlow] Hard-filter validation query:", hardFilterQuery || "(none)");
-
-            orderedCandidates = this.getOrderedRerankedCandidates();
-            if (orderedCandidates.length > 0) {
-              this.setSemanticFinalizeLoadingStatus("collect");
-              const hybridOrdering = await this.buildHybridOrderedResultRefs(
-                hardFilterQuery,
-                nlm,
-                orderedCandidates
-              );
-              this.matchedRerankedPmids = hybridOrdering.pmids;
-              this.matchedRerankedResultRefs = hybridOrdering.refs;
-              this.count = hybridOrdering.count;
-              resultRefs = this.getSemanticRefsForHydration(
-                hybridOrdering.refs,
-                this.page * this.pageSize,
-                this.page * this.pageSize + this.pageSize
-              );
-              console.info("[SearchFlow] Display mode: hybrid reranked semantic order.", {
-                page: this.page,
-                pageSize: this.pageSize,
-                sort: this.sort.method,
-                visibleRefs: this.shouldUseSemanticDateOrdering(hybridOrdering.refs)
-                  ? []
-                  : resultRefs.map((entry) => entry.key),
-                semanticDateOrdering: this.shouldUseSemanticDateOrdering(hybridOrdering.refs),
-              });
-            } else if (rerankedPmids.length > 0) {
-              this.matchedRerankedResultRefs = [];
-              this.setSemanticFinalizeLoadingStatus("collect");
-              const orderedSearch = await this.resolveOrderedSearchPmids(
-                hardFilterQuery,
-                nlm,
-                rerankedPmids
-              );
-              this.matchedRerankedPmids = orderedSearch.orderedIds;
-              this.count = orderedSearch.orderedIds.length;
-              idList = orderedSearch.orderedIds.slice(
-                this.page * this.pageSize,
-                this.page * this.pageSize + this.pageSize
-              );
-              console.info("[SearchFlow] Display mode: custom reranked PMID order.", {
-                page: this.page,
-                pageSize: this.pageSize,
-                visiblePmids: idList,
-              });
-            } else {
-              this.matchedRerankedResultRefs = [];
-              this.matchedRerankedPmids = [];
-              // ESearch request to get list of IDs (credentials handled by PHP proxy)
-              const pubmedRequest = this.buildPubMedSearchRequest({
-                retmax: this.pageSize,
-                retstart: this.page * this.pageSize,
-                sort: this.sort.method,
-                term: finalQuery,
-              });
-              const esearchParams = new URLSearchParams(pubmedRequest);
-              this.searchProcessPubMedRequest = { ...pubmedRequest };
-              console.info("[SearchFlow] ESearch term sent to NLM:", finalQuery);
-
-              const esearchResponse = await axios.post(
-                this.getBackendApiUrl("NlmSearch.php"),
-                esearchParams.toString(),
-                { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
-              );
-
-              idList = esearchResponse.data.esearchresult.idlist.filter(Boolean);
-              this.count = parseInt(esearchResponse.data.esearchresult.count, 10);
-              try {
-                const thresholds = getTelemetryThresholds();
-                const overHitThreshold = thresholds.overHitThreshold;
-                const esearchCount = Number.isFinite(this.count) ? this.count : 0;
-                const isZero = esearchCount === 0;
-                const isOverHit = overHitThreshold > 0 && esearchCount > overHitThreshold;
-                if (isZero || isOverHit) {
-                  logTelemetryEvent("source_hit_count", {
-                    source: "pubmed",
-                    queryHash: anonymizeText(finalQuery).hash,
-                    count: esearchCount,
-                    isZero,
-                    isOverHit,
-                    finalQueryLength: String(finalQuery || "").length,
-                    hasHardFilter: Boolean(hardFilterQuery),
-                  });
-                }
-              } catch (_err) {
-                /* telemetry is best-effort */
-              }
-              console.info("[SearchFlow] Display mode: PubMed API sort order.", {
-                sort: this.sort.method,
-                page: this.page,
-                pageSize: this.pageSize,
-                visiblePmids: idList,
-              });
-            }
-          });
-
+          // Engine selection is fixed to the shared PHP orchestrator
+          // (see isUnifiedEngineActive); there is no local JS fallback path.
+          await this.runUnifiedEngineSearch(isCancelled);
           if (isCancelled()) return;
-          if (idList.length === 0 && resultRefs.length === 0) {
-            if (rerankedPmids.length === 0 || orderedCandidates.length > 0) {
-              this.count = 0;
+          if (!this.searchError) {
+            this.committedQueryOverrides = { ...(this.pendingQueryOverrideSnapshot || {}) };
+            this.bindQueryOverrideFreetextKey();
+            if (Object.keys(this.committedQueryOverrides).length > 0) {
+              this.setUrl();
             }
-            this.searchresult = [];
-            this.logSearchFlowDebugFinalSummary({
-              query: finalQuery,
-              resultRefs: [],
-              orderedCandidates,
-              data: [],
-            });
-            this.searchLoading = false;
-            this.clearSearchLoadingStatus();
-            return;
           }
-
-          let data = [];
-          let llmRerankAbstractMap = null;
-          await this.runSearchFlowDebugSection("07 Hydration", async () => {
-            if (resultRefs.length > 0) {
-              if (this.shouldUseSemanticDateOrdering(resultRefs)) {
-                const sortedData = await this.getSemanticSortedHydratedResults(resultRefs, nlm);
-                this.count = sortedData.length;
-                data = sortedData.slice(
-                  this.page * this.pageSize,
-                  this.page * this.pageSize + this.pageSize
-                );
-              } else {
-                const pmidRefs = resultRefs.filter((entry) => entry.type === "pmid");
-                const doiRefs = resultRefs.filter(
-                  (entry) => entry.type === "doi" || entry.type === "openalex"
-                );
-                this.setSemanticFinalizeLoadingStatus("hydrate", {
-                  hasPmids: pmidRefs.length > 0,
-                  hasDois: doiRefs.length > 0,
-                });
-                // Overlap the LLM rerank's abstract efetch with page hydration so the
-                // always-on rerank does not add a sequential round-trip on page 0.
-                const [pmidData, doiData, prefetchedAbstracts] = await Promise.all([
-                  this.fetchSummaryRecordsByIds(
-                    pmidRefs.map((entry) => entry.pmid),
-                    nlm
-                  ),
-                  this.fetchOpenAlexWorksByCandidates(doiRefs, nlm),
-                  this.prefetchSemanticLlmRerankAbstractMap(resultRefs),
-                ]);
-                llmRerankAbstractMap = prefetchedAbstracts;
-                const pmidMap = new Map(pmidData.map((entry) => [String(entry.uid), entry]));
-                const doiMap = new Map();
-                doiRefs.forEach((entry, index) => {
-                  const mapped =
-                    doiData[index] || this.buildSemanticScholarFallbackRecordByRef(entry);
-                  if (mapped) {
-                    doiMap.set(entry.key, mapped);
-                  }
-                });
-                data = resultRefs
-                  .map((entry) =>
-                    entry.type === "pmid" ? pmidMap.get(String(entry.pmid)) : doiMap.get(entry.key)
-                  )
-                  .filter(Boolean);
-                this.reconcileCountForMissingHydrations(resultRefs, data);
-              }
-            } else {
-              this.setSemanticFinalizeLoadingStatus("hydrate", {
-                hasPmids: idList.length > 0,
-                hasDois: false,
-              });
-              this.setSearchProcessStepDetail("finalizeHydrate", {
-                role: "pubmedSummaryHydration",
-                requestedCount: idList.length,
-                pmidCount: idList.length,
-                externalReferenceCount: 0,
-                pubMedSummaryRequest: {
-                  role: "pubmedSummaryHydration",
-                  endpoint: "NlmSummary.php",
-                  db: "pubmed",
-                  idCount: idList.length,
-                  ids: idList.slice(0, 25),
-                  truncated: idList.length > 25,
-                },
-              });
-              data = await this.fetchSummaryRecordsByIds(idList, nlm);
-            }
-            data = await this.maybeApplySemanticLlmFinalRerank(data, llmRerankAbstractMap);
-          });
-          if (isCancelled()) return;
-          await this.runSearchFlowDebugSection("08 Final result composition", async () => {
-            if (isCancelled()) return;
-            const compositionStepId = this.getFinalizeCompositionStepId();
-            this.searchresult = data;
-            this.mergeSearchProcessStepDetail(compositionStepId, {
-              renderedCount: Array.isArray(data) ? data.length : 0,
-              totalCount: this.count,
-              page: this.page,
-              pageSize: this.pageSize,
-            });
-            if (resultRefs.length > 0 && !this.shouldUseSemanticDateOrdering(resultRefs)) {
-              this.logHybridRenderSummary("Hybrid page hydration summary.", resultRefs, data);
-            }
-            const preSelectedEntries = await this.searchPreselectedPmidai();
-            this.mergeSearchProcessStepDetail(compositionStepId, {
-              preselectedCount: Array.isArray(preSelectedEntries) ? preSelectedEntries.length : 0,
-              selectedCount: Array.isArray(this.selectedEntries) ? this.selectedEntries.length : 0,
-            });
-            if (preSelectedEntries && preSelectedEntries.length > 0) {
-              const uniquePreselected = this.mergeUniqueEntries(preSelectedEntries);
-              this.searchresult = [...this.searchresult, ...uniquePreselected];
-            }
-            this.setSemanticLoadingProcessStepStatus(compositionStepId, "completed");
-            this.logSearchFlowDebugFinalSummary({
-              query: finalQuery,
-              resultRefs,
-              orderedCandidates,
-              data: this.searchresult,
-            });
-          });
-          if (isCancelled()) return;
-          this.stopSearchProcessTiming();
-          this.searchLoading = false;
-          this.clearSearchLoadingStatus();
-          // First page is rendered — now it is safe to validate the deferred candidates
-          // in the background without competing with first-page hydration.
-          this.flushPendingSemanticBackgroundValidation();
-
-          // Update UI and focus
-          this.$nextTick(() => {
-            if (isCancelled()) return;
-            const searchButton = this.$el?.querySelector(".qpm_search");
-            if (searchButton) searchButton.focus();
-
-            const topOfSearch = document.getElementById("qpm_topofsearch");
-            if (topOfSearch) {
-              topOfSearch.scrollIntoView({
-                block: "start",
-                behavior: "smooth",
-              });
-            }
-          });
         } catch (error) {
           if (isCancelled()) return;
           this.showSearchError(error);
@@ -9487,6 +9810,7 @@
           this.searchLoading = false;
           this.clearSearchLoadingStatus();
         } finally {
+          this.pendingQueryOverrideSnapshot = null;
           this.finishSearchFlowDebugRun(this.searchError ? "error" : "completed", {
             resultCount: Array.isArray(this.searchresult) ? this.searchresult.length : 0,
             totalCount: Number(this.count || 0),
@@ -9497,16 +9821,7 @@
         }
       },
       /**
-       * Fetches additional PubMed search results based on the current search query and pagination.
-       * Utilizes NCBI's Entrez API to perform an ESearch followed by an ESummary to retrieve
-       * detailed information for each PubMed ID. Updates the component's state with the new results
-       * and handles UI updates accordingly without altering the current scroll position.
-       *
-       * @async
-       * @function searchMore
-       * @returns {Promise<void>} A promise that resolves when the additional search results are fetched and processed.
-       *
-       * @throws Will throw an error if the API requests fail.
+       * Fetches additional search results via the shared PHP unified orchestrator.
        */
       async searchMore() {
         // Calculate the target number of results based on the next page
@@ -9527,7 +9842,6 @@
         } else {
           this.searchError = null;
         }
-        const { nlm } = this.appSettings;
         if (this.isSearchFlowDebugEnabled) {
           console.group("[SearchFlow] searchMore()");
         }
@@ -9535,283 +9849,11 @@
 
         try {
           await this.ensureRuntimeConfigLoadedBeforeSearch();
-          if (this.isUnifiedEngineActive) {
-            const mySearchMoreGeneration = this.searchGeneration;
-            const isCancelledForUnifiedMore = () => this.searchGeneration !== mySearchMoreGeneration;
-            await this.runUnifiedEngineSearchMore(isCancelledForUnifiedMore);
-            return;
-          }
-          const canUsePaginationFastPath = this.canUseSearchMoreFastPath();
-          if (canUsePaginationFastPath) {
-            this.logSearchFlowDebugInfo("Skipping semantic preparation for unchanged pagination state.");
-          } else {
-            await this.runSearchFlowDebugSection("01 Prepare", async () => {
-              await this.prepareSemanticSearchStateBeforeSearch();
-              this.recordSearchPaginationSignature();
-            });
-          }
-          // Decode and trim the search query string
-          const query = decodeURIComponent(this.getSearchString).trim();
-          console.info("[SearchFlow] Raw query from getSearchString:", query);
-          this.logSearchFlowDebugInfo("Raw query from getSearchString", { query });
-
-          // Validate the query string
-          if (!query || query === "()") {
-            console.info("[SearchFlow] Query is empty. Pagination aborted.");
-            if (!this.compactLoadingUi) {
-              this.stopSearchProcessTiming();
-              this.searchLoading = false;
-            }
-            return;
-          }
-
-          // Reload necessary scripts to ensure a clean environment
-          this.reloadScripts();
-          const validatedQuery = this.finalValidatedQuery || query;
-          console.info(
-            "[SearchFlow] Reusing final validated query (no revalidation in searchMore):",
-            validatedQuery
-          );
-
-          let hardFilterQuery = "";
-          let rerankedPmids = [];
-          let orderedCandidates = [];
-          let idList = [];
-          let resultRefs = [];
-          await this.runSearchFlowDebugSection("06 Filter and validation", async () => {
-            if (this.hasSelectedSemanticSources()) {
-              this.setSemanticFinalizeLoadingStatus("collect");
-            }
-            hardFilterQuery = this.getSemanticHardFilterValidationQuery();
-            rerankedPmids =
-              Array.isArray(this.matchedRerankedPmids) && this.matchedRerankedPmids.length > 0
-                ? this.matchedRerankedPmids
-                : this.getOrderedRerankedPmids();
-            orderedCandidates = this.getOrderedRerankedCandidates();
-            if (orderedCandidates.length > 0) {
-              if (
-                !Array.isArray(this.matchedRerankedResultRefs) ||
-                this.matchedRerankedResultRefs.length === 0
-              ) {
-                this.setSemanticFinalizeLoadingStatus("collect");
-                const hybridOrdering = await this.buildHybridOrderedResultRefs(
-                  hardFilterQuery,
-                  nlm,
-                  orderedCandidates
-                );
-                this.matchedRerankedPmids = hybridOrdering.pmids;
-                this.matchedRerankedResultRefs = hybridOrdering.refs;
-                this.count = hybridOrdering.count;
-              }
-              // Deeper pages may reference candidates that the blocking validation tier
-              // deferred, so make sure the background validation has been started and
-              // finished (replacing the refs with the complete validated set) before
-              // slicing the next page.
-              this.flushPendingSemanticBackgroundValidation();
-              if (this.semanticBackgroundValidationPromise) {
-                await this.semanticBackgroundValidationPromise;
-              }
-              const currentLength = Array.isArray(this.searchresult) ? this.searchresult.length : 0;
-              resultRefs = this.getSemanticRefsForHydration(
-                this.matchedRerankedResultRefs,
-                currentLength,
-                targetResultLength
-              );
-              console.info("[SearchFlow] Display mode: hybrid reranked semantic order (pagination).", {
-                page: this.page,
-                pageSize: this.pageSize,
-                sort: this.sort.method,
-                appendedRefs: this.shouldUseSemanticDateOrdering(this.matchedRerankedResultRefs)
-                  ? []
-                  : resultRefs.map((entry) => entry.key),
-                semanticDateOrdering: this.shouldUseSemanticDateOrdering(this.matchedRerankedResultRefs),
-              });
-            } else if (rerankedPmids.length > 0) {
-              this.matchedRerankedResultRefs = [];
-              if (this.matchedRerankedPmids.length === 0) {
-                this.setSemanticFinalizeLoadingStatus("collect");
-                const orderedSearch = await this.resolveOrderedSearchPmids(
-                  hardFilterQuery,
-                  nlm,
-                  rerankedPmids
-                );
-                this.matchedRerankedPmids = orderedSearch.orderedIds;
-                this.count = orderedSearch.orderedIds.length;
-              }
-              idList = this.matchedRerankedPmids.slice(this.searchresult.length || 0, targetResultLength);
-              console.info("[SearchFlow] Display mode: custom reranked PMID order (pagination).", {
-                page: this.page,
-                pageSize: this.pageSize,
-                appendedPmids: idList,
-              });
-            } else {
-              this.matchedRerankedResultRefs = [];
-              // Prepare parameters for the ESearch API request (credentials handled by PHP proxy)
-              const pubmedRequest = this.buildPubMedSearchRequest({
-                retmax: Math.min(this.pageSize, targetResultLength - (this.searchresult.length || 0)),
-                retstart: Math.max(this.searchresult.length || 0, this.page * this.pageSize),
-                sort: this.sort.method,
-                term: validatedQuery,
-              });
-              const esearchParams = new URLSearchParams(pubmedRequest);
-              this.searchProcessPubMedRequest = { ...pubmedRequest };
-              console.info("[SearchFlow] ESearch term sent to NLM:", validatedQuery);
-
-              // Perform the ESearch API request to retrieve PubMed IDs
-              const esearchResponse = await axios.post(
-                this.getBackendApiUrl("NlmSearch.php"),
-                esearchParams.toString(),
-                { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
-              );
-
-              // Extract and filter the list of PubMed IDs
-              idList = esearchResponse.data.esearchresult.idlist.filter(
-                (id) => id && id.trim() !== ""
-              );
-              this.count = parseInt(esearchResponse.data.esearchresult.count, 10);
-              console.info("[SearchFlow] Display mode: PubMed API sort order (pagination).", {
-                sort: this.sort.method,
-                page: this.page,
-                pageSize: this.pageSize,
-                appendedPmids: idList,
-              });
-            }
-          });
-
-          // If no IDs are returned, update the state and exit
-          if (idList.length === 0 && resultRefs.length === 0) {
-            if (rerankedPmids.length === 0 || orderedCandidates.length > 0) {
-              this.count = 0;
-              this.searchresult = [];
-            }
-            this.logSearchFlowDebugFinalSummary({
-              query: validatedQuery,
-              resultRefs: [],
-              orderedCandidates,
-              data: Array.isArray(this.searchresult) ? this.searchresult : [],
-            });
-            if (!this.compactLoadingUi) {
-              this.stopSearchProcessTiming();
-              this.searchLoading = false;
-              this.clearSearchLoadingStatus();
-            }
-            return;
-          }
-
-          let data = [];
-          await this.runSearchFlowDebugSection("07 Hydration", async () => {
-            if (resultRefs.length > 0) {
-              if (this.shouldUseSemanticDateOrdering(resultRefs)) {
-                const sortedData = await this.getSemanticSortedHydratedResults(resultRefs, nlm);
-                const currentLength = Math.min(this.page * this.pageSize, sortedData.length);
-                this.count = sortedData.length;
-                data = sortedData.slice(currentLength, targetResultLength);
-              } else {
-                const pmidRefs = resultRefs.filter((entry) => entry.type === "pmid");
-                const doiRefs = resultRefs.filter(
-                  (entry) => entry.type === "doi" || entry.type === "openalex"
-                );
-                this.setSemanticFinalizeLoadingStatus("hydrate", {
-                  hasPmids: pmidRefs.length > 0,
-                  hasDois: doiRefs.length > 0,
-                });
-                const [pmidData, doiData] = await Promise.all([
-                  this.fetchSummaryRecordsByIds(
-                    pmidRefs.map((entry) => entry.pmid),
-                    nlm
-                  ),
-                  this.fetchOpenAlexWorksByCandidates(doiRefs, nlm),
-                ]);
-                const pmidMap = new Map(pmidData.map((entry) => [String(entry.uid), entry]));
-                const doiMap = new Map();
-                doiRefs.forEach((entry, index) => {
-                  const mapped =
-                    doiData[index] || this.buildSemanticScholarFallbackRecordByRef(entry);
-                  if (mapped) {
-                    doiMap.set(entry.key, mapped);
-                  }
-                });
-                data = resultRefs
-                  .map((entry) =>
-                    entry.type === "pmid" ? pmidMap.get(String(entry.pmid)) : doiMap.get(entry.key)
-                  )
-                  .filter(Boolean);
-                this.reconcileCountForMissingHydrations(resultRefs, data);
-              }
-            } else {
-              this.setSemanticFinalizeLoadingStatus("hydrate", {
-                hasPmids: idList.length > 0,
-                hasDois: false,
-              });
-              this.setSearchProcessStepDetail("finalizeHydrate", {
-                role: "pubmedSummaryHydration",
-                requestedCount: idList.length,
-                pmidCount: idList.length,
-                externalReferenceCount: 0,
-                pubMedSummaryRequest: {
-                  role: "pubmedSummaryHydration",
-                  endpoint: "NlmSummary.php",
-                  db: "pubmed",
-                  idCount: idList.length,
-                  ids: idList.slice(0, 25),
-                  truncated: idList.length > 25,
-                },
-              });
-              data = await this.fetchSummaryRecordsByIds(idList, nlm);
-            }
-            data = await this.maybeApplySemanticLlmFinalRerank(data);
-          });
-
-          await this.runSearchFlowDebugSection("08 Final result composition", async () => {
-            // Merge unique entries to prevent duplicates
-            if (resultRefs.length > 0 && !this.shouldUseSemanticDateOrdering(resultRefs)) {
-              this.logHybridRenderSummary("Hybrid pagination hydration summary.", resultRefs, data);
-            }
-            const compositionStepId = this.getFinalizeCompositionStepId();
-            const uniqueData = this.mergeUniqueEntries(data);
-            this.searchresult = [...this.searchresult, ...uniqueData];
-            this.mergeSearchProcessStepDetail(compositionStepId, {
-              renderedCount: Array.isArray(this.searchresult) ? this.searchresult.length : 0,
-              addedCount: uniqueData.length,
-              totalCount: this.count,
-              page: this.page,
-              pageSize: this.pageSize,
-            });
-
-            const preSelectedEntries = await this.searchPreselectedPmidai();
-            this.mergeSearchProcessStepDetail(compositionStepId, {
-              preselectedCount: Array.isArray(preSelectedEntries) ? preSelectedEntries.length : 0,
-              selectedCount: Array.isArray(this.selectedEntries) ? this.selectedEntries.length : 0,
-            });
-            if (preSelectedEntries && preSelectedEntries.length > 0) {
-              const uniquePreselected = this.mergeUniqueEntries(preSelectedEntries);
-              this.searchresult = [...this.searchresult, ...uniquePreselected];
-            }
-            this.setSemanticLoadingProcessStepStatus(compositionStepId, "completed");
-            this.logSearchFlowDebugFinalSummary({
-              query: validatedQuery,
-              resultRefs,
-              orderedCandidates,
-              data: this.searchresult,
-            });
-          });
-
-          // Reset the loading state
-          if (!this.compactLoadingUi) {
-            this.stopSearchProcessTiming();
-            this.searchLoading = false;
-            this.clearSearchLoadingStatus();
-          }
-
-          // Find the first result entry from the new data and focus on it
-          const currentResultEntries = this.$refs?.searchResultList?.$refs?.resultEntries || [];
-
-          const resultEntryIndexToFocus = targetResultLength - this.pageSize;
-
-          const firstNewResultEntry = currentResultEntries[resultEntryIndexToFocus];
-          firstNewResultEntry?.$el?.focus();
-
-          // Note: Removed scrolling and focus updates to maintain current scroll position
+          const mySearchMoreGeneration = this.searchGeneration;
+          const isCancelledForUnifiedMore = () => this.searchGeneration !== mySearchMoreGeneration;
+          // Engine selection is fixed to the shared PHP orchestrator
+          // (see isUnifiedEngineActive); there is no local JS fallback path.
+          await this.runUnifiedEngineSearchMore(isCancelledForUnifiedMore);
         } catch (error) {
           // Handle and log any errors that occur during the API requests
           console.error(error);
@@ -9835,36 +9877,109 @@
         }
       },
       /**
-       * Searches for articles by their PubMed IDs (PMIDs).
+       * Loads preselected articles by PMID and/or DOI.
        *
        * @async
-       * @function
-       * @param {string[]} ids - An array of PubMed IDs to search for.
-       * @returns {Promise<Object[]>} A promise that resolves to an array of article data objects.
+       * @param {string[]} ids - Typed tokens (`pmid:…`, `doi:…`) or bare PMIDs.
+       * @returns {Promise<Object[]>}
        */
       async searchByIds(ids) {
-        ids = ids.filter((id) => id && id.trim() !== "");
-        if (ids.length === 0) {
+        const parsed = [];
+        const seen = new Set();
+        (Array.isArray(ids) ? ids : []).forEach((id) => {
+          const entry = parseSelectedIdentifierToken(id);
+          if (!entry) return;
+          const key = `${entry.type}:${entry.type === "doi" ? entry.value.toLowerCase() : entry.value}`;
+          if (seen.has(key)) return;
+          seen.add(key);
+          parsed.push(entry);
+        });
+        if (parsed.length === 0) {
           return [];
         }
-        const nlm = this.appSettings.nlm;
-        // Credentials handled by PHP proxy
-        const baseUrl = `${this.getBackendApiUrl("NlmSummary.php")}?db=pubmed&retmode=json&id=`;
 
-        const resp = await axios.get(baseUrl + ids.join(","));
-        //Create list of returned data
-        const data = [];
-        const obj = resp.data.result;
-        if (!obj) {
-          throw Error("Search failed", resp);
+        const nlm = this.appSettings.nlm;
+        const pmids = parsed.filter((entry) => entry.type === "pmid").map((entry) => entry.value);
+        const dois = parsed.filter((entry) => entry.type === "doi").map((entry) => entry.value);
+        const [pmidResults, openAlexResults] = await Promise.all([
+          pmids.length > 0 ? this.fetchSummaryRecordsByIds(pmids, nlm) : Promise.resolve([]),
+          dois.length > 0
+            ? this.fetchOpenAlexWorksByCandidates(
+                dois.map((doi) => ({ doi })),
+                nlm
+              )
+            : Promise.resolve([]),
+        ]);
+        const doiResults = Array.isArray(openAlexResults) ? [...openAlexResults] : [];
+        const missingDoiIndexes = dois
+          .map((doi, index) => (doiResults[index] ? -1 : index))
+          .filter((index) => index >= 0);
+        if (missingDoiIndexes.length > 0) {
+          const fallbackResults = await this.fetchPubMedRecordsByDois(
+            missingDoiIndexes.map((index) => dois[index]),
+            nlm
+          );
+          missingDoiIndexes.forEach((doiIndex, fallbackIndex) => {
+            if (fallbackResults[fallbackIndex]) {
+              doiResults[doiIndex] = fallbackResults[fallbackIndex];
+            }
+          });
         }
-        for (let i = 0; i < obj.uids.length; i++) {
-          data.push(mapPubMedSummaryToResultDto(obj[obj.uids[i]]));
-        }
-        return data;
+
+        const pmidMap = new Map(
+          pmidResults.map((result) => [String(result?.uid || result?.pmid || "").trim(), result])
+        );
+        const doiMap = new Map();
+        dois.forEach((doi, index) => {
+          const mapped = doiResults[index];
+          if (mapped) {
+            doiMap.set(doi.toLowerCase(), mapped);
+          }
+        });
+
+        return parsed
+          .map((entry) =>
+            entry.type === "pmid"
+              ? pmidMap.get(entry.value)
+              : doiMap.get(entry.value.toLowerCase())
+          )
+          .filter(Boolean);
+      },
+      async fetchPubMedRecordsByDois(dois, nlm) {
+        const requested = (Array.isArray(dois) ? dois : []).map((doi) => normalizeDoiValue(doi));
+        const results = new Array(requested.length).fill(null);
+        await Promise.all(
+          requested.map(async (doi, index) => {
+            if (!isPlausibleDoiValue(doi)) return;
+            try {
+              const response = await axios.post(
+                this.getBackendApiUrl("NlmSearch.php"),
+                new URLSearchParams(
+                  this.buildPubMedSearchRequest({
+                    term: `"${doi.replace(/"/g, "")}"[doi]`,
+                    retmax: 1,
+                    retstart: 0,
+                  })
+                )
+              );
+              const pmid = String(response?.data?.esearchresult?.idlist?.[0] || "").trim();
+              if (!/^[0-9]+$/.test(pmid)) return;
+              const [record] = await this.fetchSummaryRecordsByIds([pmid], nlm);
+              if (record) {
+                results[index] = record;
+              }
+            } catch (error) {
+              console.warn("[Selected] PubMed DOI fallback failed.", {
+                doi,
+                error: String(error?.message || error),
+              });
+            }
+          })
+        );
+        return results;
       },
       /**
-       * Searches for preselected articles using PMIDs with AI assistance.
+       * Searches for preselected articles from the `selected` (or legacy `pmid`) URL parameter.
        *
        * @function
        */
@@ -10090,7 +10205,9 @@
         return choice.tooltip_simple[this.language];
       },
       async updatePreselectedPmidai(newValue) {
-        this.preselectedPmidai = (newValue ?? []).map((entry) => entry.uid);
+        this.preselectedPmidai = normalizeSelectedIdentifierList(
+          (newValue ?? []).map((entry) => formatSelectedIdentifierFromResult(entry))
+        );
 
         this.setUrl();
       },

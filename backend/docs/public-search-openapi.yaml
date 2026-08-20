@@ -1,12 +1,13 @@
 openapi: 3.1.0
 info:
-  title: NemPubMed Public Search API
+  title: Mugin Scholar Public Search API
   version: "1.0.0"
   description: |
-    Host-uafhængig versioneret søge-API for NemPubMed.
+    Host-uafhængig versioneret søge-API for Mugin Scholar.
     POST /v1/search er den officielle kontrakt (JSON eller form-urlencoded).
     GET /v1/search accepterer samme flade SearchForm-parametre i query-string
-    (UI-only params ignoreres; gentagne limit=/topic= bevares).
+    (UI-only params ignoreres; gentagne limit=/topic= bevares;
+    qpubmed/qsemanticscholar/qopenalex/qelicit vinder over fritekst).
 
     OpenAI Custom GPT Actions:
     1) Actions → Create new action → import this OpenAPI file (or paste).
@@ -26,8 +27,9 @@ paths:
       summary: URL-baseret søgning (SearchForm query-string)
       description: |
         Accepterer samme flade parametre som SearchForm / form-urlencoded POST
-        (`topic`, gentagne `limit=`, `databases`, `ai`, `focus`, `pmid`, …).
-        UI-only parametre (`advanced`, `collapsed`, `scrollto`, …) ignoreres.
+        (`topic`, gentagne `limit=`, `databases`, `ai`, `focus`, `selected`, `pmid`,
+        `qpubmed` / `qsemanticscholar` / `qopenalex` / `qelicit`, …).
+        UI-only parametre (`advanced`, `collapsed`, `scrollto`, `component`, …) ignoreres.
         Query-string `apikey` (canonical lowercase; casing ignored) er kun tilgængelig når deploymenten tillader det.
         Ved lange payloads foretrækkes form-urlencoded POST.
       security:
@@ -47,6 +49,34 @@ paths:
           schema:
             type: string
           description: "Custom {{tekst}}#s:raw / {{pubmed}}#s:pubmed og/eller katalog-topic-id’er (gentag topic=). Legacy {{tekst0}}#s / {{tekst1}}#s accepteres."
+        - in: query
+          name: qpubmed
+          required: false
+          schema:
+            type: string
+            maxLength: 20000
+          description: "Eksekverbar PubMed emne/fritekst-streng. Vinder over q/topic for pubmed. En ikke-tom q* for en valgt kilde er nok uden q/topic. limit=/hardFilterQuery AND’es stadig. Ingen komma-split."
+        - in: query
+          name: qsemanticscholar
+          required: false
+          schema:
+            type: string
+            maxLength: 20000
+          description: "Eksekverbar Semantic Scholar-søgestreng. Vinder over q/topic for semanticScholar."
+        - in: query
+          name: qopenalex
+          required: false
+          schema:
+            type: string
+            maxLength: 20000
+          description: "Eksekverbar OpenAlex-søgestreng. Vinder over q/topic for openAlex."
+        - in: query
+          name: qelicit
+          required: false
+          schema:
+            type: string
+            maxLength: 20000
+          description: "Eksekverbar Elicit-søgestreng. Vinder over q/topic for elicit."
         - in: query
           name: sources
           required: false
@@ -112,11 +142,19 @@ paths:
             type: boolean
           description: Alias for translation (SearchForm-navnet)
         - in: query
+          name: selected
+          required: false
+          schema:
+            type: string
+          description: >-
+            Kommaseparerede artikel-id’er til preselectedResults.
+            Format: pmid:12345678,doi:10.1234/abc. Rene PMID-tal accepteres.
+        - in: query
           name: pmid
           required: false
           schema:
             type: string
-          description: Kommaseparerede PMID’er til preselectedResults
+          description: Legacy alias for selected (rene PMID’er eller doi:…-tokens)
         - in: query
           name: apikey
           required: false
@@ -203,16 +241,33 @@ paths:
             schema:
               type: object
               additionalProperties: true
-              required: [q]
               properties:
                 q:
                   type: string
-                  description: "Søgetekst (alias query; topic={{tekst}}#s:raw accepteres også)"
+                  description: >-
+                    Søgetekst (alias query; topic={{tekst}}#s:raw accepteres også).
+                    Valgfri når katalog-topic-id’er eller custom topic= er sat.
                 query:
                   type: string
                 topic:
                   type: string
                   description: "Custom {{tekst}}#s:raw / {{pubmed}}#s:pubmed eller katalog-topic-id’er (komma). Legacy {{tekst0}}#s / {{tekst1}}#s accepteres."
+                qpubmed:
+                  type: string
+                  maxLength: 20000
+                  description: "Eksekverbar PubMed emne/fritekst-streng. Vinder over q/topic for pubmed. En ikke-tom q* for en valgt kilde er nok uden q/topic. limit=/hardFilterQuery AND’es stadig. Ingen komma-split."
+                qsemanticscholar:
+                  type: string
+                  maxLength: 20000
+                  description: "Eksekverbar Semantic Scholar-søgestreng. Vinder over q/topic for semanticScholar."
+                qopenalex:
+                  type: string
+                  maxLength: 20000
+                  description: "Eksekverbar OpenAlex-søgestreng. Vinder over q/topic for openAlex."
+                qelicit:
+                  type: string
+                  maxLength: 20000
+                  description: "Eksekverbar Elicit-søgestreng. Vinder over q/topic for elicit."
                 databases:
                   type: string
                   description: Kommaseparerede kilder (alias sources)
@@ -398,9 +453,11 @@ components:
       type: string
       description: >-
         Rerank-profil-id. Tom streng betyder "ingen profil-override" (standard-vaegte).
-        Ukendt vaerdi normaliseres til tom streng. Anvender kun kilde-vaegte, pmid-bonus
-        og overlap-bonus samt en LLM-prompt-instruktion - ikke fuld paritet med
-        webappens kvalitetssignal-lag.
+        Ukendt vaerdi normaliseres til tom streng. Med
+        MUGIN_UNIFIED_SEARCH_ENGINE_ENABLED=true anvender PHP-orkestratoren de
+        fulde hybrid-profiler (kilde-vaegte, pmid-/overlap-bonus, pubType-tier,
+        recency, citation impact, kliniske bonusser, data-quality m.m.).
+        Naar flaget er false, begrænses focus til den ældre RRF-only-sti.
       enum:
         - ""
         - balanced
@@ -413,18 +470,19 @@ components:
       type: object
       additionalProperties: false
       required:
-        - apiVersion
-        - query
         - sources
       properties:
         apiVersion:
           type: string
           const: "1"
+          description: Valgfri; default "1" hvis udeladt.
         query:
           type: object
           additionalProperties: false
-          required:
-            - text
+          description: >-
+            Valgfri når intentContext/topic-katalog leverer emner.
+            query.text er påkrævet kun hvis der hverken er katalog-topic-id’er
+            eller custom topic-tekst.
           properties:
             text:
               type: string
@@ -552,10 +610,84 @@ components:
                 type: string
         preselectedPmids:
           type: array
-          description: PMID’er der hydreres til preselectedResults (påvirker ikke search-query/total).
+          description: Legacy PMID-liste. Foretræk `selected`. Hydreres til preselectedResults (påvirker ikke search-query/total).
           items:
             type: string
           maxItems: 50
+        selected:
+          type: array
+          description: >-
+            Markerede artikler som typed tokens (`pmid:12345678`, `doi:10.1234/abc`)
+            eller rene PMID-tal. Hydreres til preselectedResults (påvirker ikke search-query/total).
+          items:
+            type: string
+          maxItems: 50
+        queryOverrides:
+          type: object
+          additionalProperties: false
+          description: >-
+            Valgfrie eksekverbare queries der erstatter de genererede strenge
+            efter resolve og før kilde-fetch. Tomme værdier ignoreres.
+            Feltet skal udelades helt når der ikke er overrides (ikke send {}).
+            JSON POST bruger dette objekt. GET/form-urlencoded bruger qpubmed,
+            qsemanticscholar, qopenalex og qelicit. Overrides vinder over fritekst.
+          properties:
+            pubmed:
+              type: string
+              maxLength: 20000
+              description: PubMed emne/fritekst-streng. hardFilterQuery/limit= AND’es stadig.
+            semanticScholar:
+              type: string
+              maxLength: 20000
+            openAlex:
+              type: string
+              maxLength: 20000
+            elicit:
+              type: string
+              maxLength: 20000
+        cachedFreetextQueries:
+          type: object
+          additionalProperties: false
+          description: >-
+            Valgfri genbrug af en tidligere fritekst-oversættelse i samme session.
+            `input` skal matche query.text. pubmed er kun fritekst-clausen
+            (emner/afgrænsninger AND’es stadig). Udelad feltet når der ikke er cache.
+            Gælder kun JSON POST — ikke GET/flat-params.
+          properties:
+            input:
+              type: string
+              maxLength: 20000
+            pubmed:
+              type: string
+              maxLength: 20000
+            semanticScholar:
+              type: string
+              maxLength: 20000
+            openAlex:
+              type: string
+              maxLength: 20000
+            elicit:
+              type: string
+              maxLength: 20000
+        standardString:
+          type: object
+          additionalProperties: false
+          description: >-
+            Styrer om domænets standardString (eller en override) AND’es på
+            fritekst. add:false forhindrer AND på fritekst. Katalog-emner
+            bruger stadig combineWithStandardString. Udelad feltet for hidtidig
+            adfærd. Gælder kun JSON POST.
+          properties:
+            add:
+              type: boolean
+            text:
+              type: string
+              maxLength: 20000
+              description: Valgfri override. Tom værdi bruger domænets standardString.
+            scope:
+              type: string
+              enum: [narrow, normal, broad]
+              description: Hvilken variant der AND’es på fritekst. Default normal.
         hardFilters:
           type: object
           additionalProperties: false
@@ -702,6 +834,11 @@ components:
               type: string
             matchesWebOrdering:
               type: boolean
+              description: >-
+                Spejler MUGIN_PUBLIC_API.matchesWebOrderingByDefault.
+                Web og public API deler allerede samme orkestrator
+                (UnifiedSearch / muginPublicSearchRunSearch); feltet er et
+                konfigurationssignal, ikke en runtime-måling.
         resolvedQueries:
           type: object
           additionalProperties: true
@@ -740,7 +877,7 @@ components:
             $ref: '#/components/schemas/SearchResult'
         preselectedResults:
           type: array
-          description: Artikler hydreret fra request preselectedPmids/pmid (pin/markering; uden for ranking-total).
+          description: Artikler hydreret fra request selected/preselectedPmids/pmid (pin/markering; uden for ranking-total).
           items:
             type: object
             additionalProperties: true
@@ -818,7 +955,14 @@ components:
                 type: string
               source:
                 type: string
-                enum: [mesh, openAlex]
+                enum:
+                  - mesh
+                  - pubmedKeyword
+                  - openAlex
+                  - openAlexTopic
+                  - openAlexSubfield
+                  - openAlexKeyword
+                  - semanticScholar
         # Indhold
         abstract:
           type: string
@@ -866,6 +1010,49 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Source'
+        openAlexId:
+          type: string
+          description: Short or full OpenAlex work id when known (additive; may be empty).
+        ranking:
+          type: object
+          nullable: true
+          additionalProperties: false
+          description: >
+            Optional additive rerank diagnostics from the unified/legacy candidate merge.
+            Present only when score data exists. Reflects quality/RRF scores before any
+            LLM finalRerank permutation of page order.
+          properties:
+            combinedScore:
+              type: number
+            bestRank:
+              type: integer
+            sourceCount:
+              type: integer
+            scoreTieBreaker:
+              type: number
+              nullable: true
+            scoreBreakdown:
+              type: object
+              additionalProperties: true
+            sourceBreakdown:
+              type: array
+              items:
+                type: object
+                additionalProperties: false
+                properties:
+                  source:
+                    type: string
+                  rank:
+                    type: integer
+                  score:
+                    type: number
+                    nullable: true
+                  weight:
+                    type: number
+                    nullable: true
+                  weightedRrf:
+                    type: number
+                    nullable: true
     RateLimit:
       type: object
       additionalProperties: false

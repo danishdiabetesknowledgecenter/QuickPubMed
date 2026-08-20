@@ -943,6 +943,11 @@
                             ]
                         },
                         "sourceFilters": {
+                            "semanticScholar": {
+                                "publicationTypes": [
+                                    "ClinicalTrial"
+                                ]
+                            },
                             "elicit": {
                                 "typeTags": [
                                     "RCT"
@@ -2892,6 +2897,9 @@
                     },
                     "semanticConfig": {
                         "sourceFilters": {
+                            "openAlex": {
+                                "isOa": true
+                            },
                             "elicit": {
                                 "hasPdf": true
                             }

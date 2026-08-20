@@ -11,11 +11,11 @@ if (!file_exists($configPath)) {
 require_once $configPath;
 require_once __DIR__ . '/NlmApiHelpers.php';
 
-qpmApplyNlmCorsHeaders('GET, POST, OPTIONS', 'application/json');
+muginApplyNlmCorsHeaders('GET, POST, OPTIONS', 'application/json');
 @ini_set('max_execution_time', '60');
 @set_time_limit(60);
 
-function qpmIsLocalOpenAlexSourceLookupRequest(): bool
+function muginIsLocalOpenAlexSourceLookupRequest(): bool
 {
     $requestHost = strtolower((string)($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
     return $requestHost !== '' && (
@@ -24,9 +24,9 @@ function qpmIsLocalOpenAlexSourceLookupRequest(): bool
     );
 }
 
-function qpmOpenAlexSourceLocalDevProxyRequest(string $sourceId, string $apiKey = '', string $mailto = ''): array
+function muginOpenAlexSourceLocalDevProxyRequest(string $sourceId, string $apiKey = '', string $mailto = ''): array
 {
-    if (!qpmIsLocalOpenAlexSourceLookupRequest()) {
+    if (!muginIsLocalOpenAlexSourceLookupRequest()) {
         return [
             'ok' => false,
             'status' => 0,
@@ -48,10 +48,10 @@ function qpmOpenAlexSourceLocalDevProxyRequest(string $sourceId, string $apiKey 
     $errors = [];
     foreach ($hosts as $host) {
         $url = 'http://' . $host . ':5173/openalex-api/sources/' . rawurlencode($sourceId) . $queryString;
-        $result = qpmHttpRequest($url, [
+        $result = muginHttpRequest($url, [
             'method' => 'GET',
             'timeout' => 30,
-            'user_agent' => 'QuickPubMed/1.0',
+            'user_agent' => 'MuginScholar/1.0',
             'headers' => ['Accept: application/json'],
         ]);
         if ($result['ok'] && (int)$result['status'] >= 200 && (int)$result['status'] < 300) {
@@ -94,8 +94,8 @@ if ($sourceId === '') {
     exit;
 }
 
-$openAlexApiKey = qpmGetOpenAlexApiKey($domain);
-$openAlexEmail = qpmGetOpenAlexEmail($domain);
+$openAlexApiKey = muginGetOpenAlexApiKey($domain);
+$openAlexEmail = muginGetOpenAlexEmail($domain);
 $requestUrl = 'https://api.openalex.org/sources/' . rawurlencode($sourceId);
 if ($openAlexApiKey !== '' || $openAlexEmail !== '') {
     $requestParams = [];
@@ -108,13 +108,13 @@ if ($openAlexApiKey !== '' || $openAlexEmail !== '') {
     $requestUrl .= '?' . http_build_query($requestParams);
 }
 
-qpmThrottleNlmRequests(5);
-$result = qpmOpenAlexSourceLocalDevProxyRequest($sourceId, $openAlexApiKey, $openAlexEmail);
+muginThrottleRequestRate('openalex', 5);
+$result = muginOpenAlexSourceLocalDevProxyRequest($sourceId, $openAlexApiKey, $openAlexEmail);
 if (!$result['ok']) {
-    $result = qpmHttpRequest($requestUrl, [
+    $result = muginHttpRequest($requestUrl, [
         'method' => 'GET',
         'timeout' => 30,
-        'user_agent' => 'QuickPubMed/1.0',
+        'user_agent' => 'MuginScholar/1.0',
         'headers' => ['Accept: application/json'],
     ]);
 }

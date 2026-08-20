@@ -10,57 +10,18 @@ if (!file_exists($configPath)) {
 }
 require_once $configPath;
 require_once __DIR__ . '/NlmApiHelpers.php';
+require_once dirname(__DIR__) . '/app/local-dev-proxy.php';
 
-qpmApplyNlmCorsHeaders('GET, POST, OPTIONS', 'application/json');
+muginApplyNlmCorsHeaders('GET, POST, OPTIONS', 'application/json');
 
-function qpmIsLocalNlmRequest(): bool
+function muginNlmLocalDevProxyRequest(string $body, int $timeout = 30): array
 {
-    $requestHost = strtolower((string)($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
-    return $requestHost !== '' && (
-        strpos($requestHost, 'localhost') !== false ||
-        strpos($requestHost, '127.0.0.1') !== false
-    );
-}
-
-function qpmNlmLocalDevProxyRequest(string $body, int $timeout = 30): array
-{
-    $hosts = ['localhost', '127.0.0.1'];
-    if (!qpmIsLocalNlmRequest()) {
-        return [
-            'ok' => false,
-            'status' => 0,
-            'body' => '',
-            'error' => 'local dev proxy fallback disabled for non-local host',
-        ];
-    }
-
-    $errors = [];
-    foreach ($hosts as $host) {
-        $url = 'http://' . $host . ':5173/nlm-api/entrez/eutils/esearch.fcgi';
-        $result = qpmHttpRequest($url, [
-            'method' => 'POST',
-            'timeout' => $timeout,
-            'user_agent' => 'QuickPubMed/1.0',
-            'headers' => ['Content-Type' => 'application/x-www-form-urlencoded'],
-            'body' => $body,
-        ]);
-        if ($result['ok'] && (int)$result['status'] >= 200 && (int)$result['status'] < 300) {
-            return [
-                'ok' => true,
-                'status' => (int)$result['status'],
-                'body' => (string)$result['body'],
-                'error' => '',
-            ];
-        }
-        $errors[] = $host . ': ' . ($result['error'] !== '' ? $result['error'] : ('HTTP ' . (string)$result['status']));
-    }
-
-    return [
-        'ok' => false,
-        'status' => 0,
-        'body' => '',
-        'error' => implode(' | ', $errors),
-    ];
+    return muginLocalDevProxyRequest('nlm-api/entrez/eutils/esearch.fcgi', [
+        'method' => 'POST',
+        'timeout' => $timeout,
+        'headers' => ['Content-Type' => 'application/x-www-form-urlencoded'],
+        'body' => $body,
+    ]);
 }
 
 // Build NLM API URL with server-side credentials
@@ -74,32 +35,32 @@ if (empty($params)) {
 if (empty($params)) {
     $params = $_GET;
 }
-$domain = qpmResolveDomain();
-$nlmApiKey = qpmGetNlmApiKey($domain);
+$domain = muginResolveDomain();
+$nlmApiKey = muginGetNlmApiKey($domain);
 if ($nlmApiKey !== '') {
     $params['api_key'] = $nlmApiKey;
 } else {
     unset($params['api_key']);
 }
-$params['email'] = qpmGetNlmEmail($domain);
-$params['tool'] = 'QuickPubMed';
+$params['email'] = muginGetNlmEmail($domain);
+$params['tool'] = 'MuginScholar';
 $params['db'] = $params['db'] ?? 'pubmed';
 $params['retmode'] = $params['retmode'] ?? 'json';
-$nlmBaseUrl = qpmGetNlmBaseUrl($domain);
+$nlmBaseUrl = muginGetNlmBaseUrl($domain);
 
 $url = $nlmBaseUrl . '/esearch.fcgi';
 
 // Make request to NLM (use POST to avoid long URL issues)
-qpmThrottleNlmRequests(10);
+muginThrottleNlmRequests(10);
 $requestBody = http_build_query($params);
 $requestHeaders = ['Content-Type' => 'application/x-www-form-urlencoded'];
 
-$result = qpmNlmLocalDevProxyRequest($requestBody, 30);
+$result = muginNlmLocalDevProxyRequest($requestBody, 30);
 if (!$result['ok']) {
-    $result = qpmHttpRequest($url, [
+    $result = muginHttpRequest($url, [
         'method' => 'POST',
         'timeout' => 30,
-        'user_agent' => 'QuickPubMed/1.0',
+        'user_agent' => 'MuginScholar/1.0',
         'headers' => $requestHeaders,
         'body' => $requestBody,
     ]);

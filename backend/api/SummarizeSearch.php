@@ -24,16 +24,16 @@ if (!file_exists($configPath)) {
 require_once $configPath;
 require_once __DIR__ . '/NlmApiHelpers.php';
 
-// Verify that constants are defined
-if (!defined('OPENAI_API_KEY') || empty(OPENAI_API_KEY)) {
+// Verify that the active LLM provider is configured (OpenAI or Requesty).
+if (!muginIsLlmConfigured()) {
     http_response_code(500);
     header('Content-Type: application/json');
-    echo json_encode(['error' => 'OPENAI_API_KEY is not configured']);
+    echo json_encode(['error' => 'LLM provider is not configured']);
     exit;
 }
 
-qpmApplyNlmCorsHeaders('POST, OPTIONS');
-qpmEnforceFirstPartyIpRateLimit('openaiProxy');
+muginApplyNlmCorsHeaders('POST, OPTIONS');
+muginEnforceFirstPartyIpRateLimit('openaiProxy');
 
 // Kun POST tilladt
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -78,32 +78,23 @@ if (isset($prompt['messages']) && is_array($prompt['messages'])) {
     $messages[] = ['role' => 'user', 'content' => $promptText];
 }
 
-// Byg OpenAI request - using Responses API for gpt-5.5
-// See: https://platform.openai.com/docs/api-reference/responses/create
+// Byg OpenAI/Requesty Responses request.
+// Optional knobs: backend/docs/external-apis/requesty-openapi.json (ResponsesRequest).
 $openaiRequest = [
-    'model' => qpmResolveAllowedOpenAiModel($prompt['model'] ?? null, 'gpt-5.5'),
+    'model' => muginResolveAllowedOpenAiModel($prompt['model'] ?? null, ''),
     'input' => $messages,  // Responses API uses 'input' instead of 'messages'
-    'stream' => true
+    'stream' => true,
+    'reasoning' => [
+        'effort' => muginClampOpenAiReasoningEffort($prompt['reasoning']['effort'] ?? null, 'none'),
+    ],
+    'text' => [
+        'verbosity' => isset($prompt['text']['verbosity'])
+            ? $prompt['text']['verbosity']
+            : 'medium',
+    ],
 ];
-
-// gpt-5.5 reasoning parameter
-$openaiRequest['reasoning'] = [
-    'effort' => qpmClampOpenAiReasoningEffort($prompt['reasoning']['effort'] ?? null, 'none'),
-];
-
-// gpt-5.5 text/verbosity parameter
-if (isset($prompt['text']['verbosity'])) {
-    $openaiRequest['text'] = ['verbosity' => $prompt['text']['verbosity']];
-} else {
-    $openaiRequest['text'] = ['verbosity' => 'medium']; // Default
-}
-
-// max_output_tokens for gpt-5.5
-if (isset($prompt['max_output_tokens']) && $prompt['max_output_tokens'] !== null) {
-    $openaiRequest['max_output_tokens'] = qpmClampOpenAiMaxOutputTokens($prompt['max_output_tokens']);
-} elseif (isset($prompt['max_tokens']) && $prompt['max_tokens'] !== null) {
-    $openaiRequest['max_output_tokens'] = qpmClampOpenAiMaxOutputTokens($prompt['max_tokens']);
-}
+$openaiRequest = muginEnrichResponsesRequestFromPrompt($openaiRequest, is_array($prompt) ? $prompt : []);
+$openaiRequest = muginNormalizeLlmRequestPayload($openaiRequest);
 
 // Debug mode - return full prompt without calling OpenAI
 if ($debug) {
@@ -112,6 +103,8 @@ if ($debug) {
         'debug' => true,
         'full_prompt_text' => $promptText,
         'openai_request' => $openaiRequest,
+        'llm_provider' => muginGetLlmProvider(),
+        'llm_api_url' => muginGetOpenAIApiUrl(muginResolveDomain()),
     ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
     exit;
 }
@@ -134,10 +127,9 @@ if (function_exists('apache_setenv')) {
 }
 set_time_limit(0);
 
-$domain = qpmResolveDomain();
-$openAiApiKey = qpmGetOpenAIApiKey($domain);
-$openAiOrgId = qpmGetOpenAIOrgId($domain);
-$openAiApiUrl = qpmGetOpenAIApiUrl($domain);
+$domain = muginResolveDomain();
+$openAiApiUrl = muginGetOpenAIApiUrl($domain);
+$headers = muginBuildLlmHttpHeaders($domain);
 $isLocalRequest = static function(): bool {
     $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
     return $host !== '' && (
@@ -148,22 +140,12 @@ $isLocalRequest = static function(): bool {
     );
 };
 
-// HTTP headers for OpenAI API
-$headers = [
-    'Content-Type: application/json',
-    'Authorization: Bearer ' . $openAiApiKey
-];
-
-if ($openAiOrgId) {
-    $headers[] = 'OpenAI-Organization: ' . $openAiOrgId;
-}
-
 $sseBuffer = '';
 $hasStreamedText = false;
-$streamCompleteMarker = '[[QPM_STREAM_COMPLETE]]';
-$streamHeartbeatMarker = '[[QPM_STREAM_HEARTBEAT]]';
-$GLOBALS['qpmSummaryLastDataTime'] = time();
-$GLOBALS['qpmSummaryHeartbeatInterval'] = 10;
+$streamCompleteMarker = '[[MUGIN_STREAM_COMPLETE]]';
+$streamHeartbeatMarker = '[[MUGIN_STREAM_HEARTBEAT]]';
+$GLOBALS['muginSummaryLastDataTime'] = time();
+$GLOBALS['muginSummaryHeartbeatInterval'] = 10;
 
 /**
  * @param array<string,mixed> $responsePayload
@@ -199,6 +181,15 @@ $extractResponseText = static function(array $responsePayload): string {
     return trim(implode("\n", $parts));
 };
 
+$emitStreamText = static function(string $content) use (&$hasStreamedText): void {
+    if ($content === '') {
+        return;
+    }
+    $hasStreamedText = true;
+    $GLOBALS['muginSummaryLastDataTime'] = time();
+    muginEchoLlmStreamText($content);
+};
+
 $respondOpenAiError = static function(string $message, int $status = 502, array $details = []): void {
     http_response_code($status);
     header('Content-Type: application/json; charset=utf-8');
@@ -206,7 +197,13 @@ $respondOpenAiError = static function(string $message, int $status = 502, array 
     exit;
 };
 
-$processSseLine = function($line) use (&$hasStreamedText, $extractResponseText) {
+// Keep the connection open while Requesty streams reasoning-only events.
+// No surrounding newlines — they would split visible text after marker strip.
+echo $streamHeartbeatMarker;
+@ob_flush();
+@flush();
+
+$processSseLine = function($line) use (&$hasStreamedText, $extractResponseText, $emitStreamText) {
     $line = trim((string) $line);
     if ($line === '' || strpos($line, 'data: ') !== 0) {
         return;
@@ -225,11 +222,7 @@ $processSseLine = function($line) use (&$hasStreamedText, $extractResponseText) 
     if (isset($parsed['type']) && $parsed['type'] === 'response.output_text.delta') {
         $content = $parsed['delta'] ?? '';
         if (is_string($content) && $content !== '') {
-            $GLOBALS['qpmSummaryLastDataTime'] = time();
-            $hasStreamedText = true;
-            echo $content;
-            @ob_flush();
-            @flush();
+            $emitStreamText($content);
         }
         return;
     }
@@ -237,11 +230,30 @@ $processSseLine = function($line) use (&$hasStreamedText, $extractResponseText) 
     if (isset($parsed['choices'][0]['delta']['content'])) {
         $content = $parsed['choices'][0]['delta']['content'];
         if (is_string($content) && $content !== '') {
-            $GLOBALS['qpmSummaryLastDataTime'] = time();
-            $hasStreamedText = true;
-            echo $content;
-            @ob_flush();
-            @flush();
+            $emitStreamText($content);
+        }
+        return;
+    }
+
+    // Fallback: final Responses events may carry full output without prior deltas
+    // (or after reasoning-only chunks). Prefer nested response payload.
+    $eventType = strtolower(trim((string) ($parsed['type'] ?? '')));
+    if (in_array($eventType, ['response.completed', 'response.incomplete'], true)) {
+        $responseObj = isset($parsed['response']) && is_array($parsed['response'])
+            ? $parsed['response']
+            : $parsed;
+        if (!$hasStreamedText) {
+            $content = $extractResponseText($responseObj);
+            if ($content !== '') {
+                $emitStreamText($content);
+            }
+        }
+        if (
+            !$hasStreamedText
+            && $eventType === 'response.incomplete'
+        ) {
+            $reason = trim((string) ($responseObj['incomplete_details']['reason'] ?? 'incomplete'));
+            $GLOBALS['muginSummaryIncompleteReason'] = $reason !== '' ? $reason : 'incomplete';
         }
         return;
     }
@@ -249,11 +261,7 @@ $processSseLine = function($line) use (&$hasStreamedText, $extractResponseText) 
     if (!$hasStreamedText) {
         $content = $extractResponseText($parsed);
         if ($content !== '') {
-            $GLOBALS['qpmSummaryLastDataTime'] = time();
-            $hasStreamedText = true;
-            echo $content;
-            @ob_flush();
-            @flush();
+            $emitStreamText($content);
         }
     }
 };
@@ -262,7 +270,7 @@ if (!function_exists('curl_init')) {
     $fallbackRequest = $openaiRequest;
     $fallbackRequest['stream'] = false;
 
-    $fallbackResponse = qpmHttpRequest($openAiApiUrl, [
+    $fallbackResponse = muginHttpRequest($openAiApiUrl, [
         'method' => 'POST',
         'headers' => $headers,
         'body' => json_encode($fallbackRequest),
@@ -309,7 +317,8 @@ $curlOptions = [
     CURLOPT_HTTPHEADER => $headers,
     CURLOPT_RETURNTRANSFER => false,
     CURLOPT_WRITEFUNCTION => function($ch, $data) use (&$sseBuffer, $processSseLine) {
-        $GLOBALS['qpmSummaryLastDataTime'] = time();
+        // Do not refresh lastDataTime here: Requesty/Kimi may stream reasoning for
+        // a long time with no visible output_text; heartbeats must still fire.
         $sseBuffer .= $data;
         $lines = preg_split("/\r\n|\n|\r/", $sseBuffer);
         if ($lines === false) {
@@ -330,13 +339,13 @@ $curlOptions = [
     },
     CURLOPT_NOPROGRESS => false,
     CURLOPT_PROGRESSFUNCTION => function($ch, $downloadTotal, $downloadNow, $uploadTotal, $uploadNow) use ($streamHeartbeatMarker) {
-        $timeSinceLastData = time() - (int) ($GLOBALS['qpmSummaryLastDataTime'] ?? time());
-        $heartbeatInterval = (int) ($GLOBALS['qpmSummaryHeartbeatInterval'] ?? 10);
+        $timeSinceLastData = time() - (int) ($GLOBALS['muginSummaryLastDataTime'] ?? time());
+        $heartbeatInterval = (int) ($GLOBALS['muginSummaryHeartbeatInterval'] ?? 10);
         if ($timeSinceLastData >= $heartbeatInterval) {
-            echo "\n" . $streamHeartbeatMarker . "\n";
+            echo $streamHeartbeatMarker;
             @ob_flush();
             @flush();
-            $GLOBALS['qpmSummaryLastDataTime'] = time();
+            $GLOBALS['muginSummaryLastDataTime'] = time();
         }
         return 0;
     },
@@ -390,9 +399,16 @@ if ($curlStatus > 0 && ($curlStatus < 200 || $curlStatus >= 300) && !$hasStreame
 
 if (!$hasStreamedText) {
     curl_close($ch);
-    $respondOpenAiError('OpenAI response did not contain text output', 502, [
-        'status' => $curlStatus,
-    ]);
+    $incompleteReason = trim((string) ($GLOBALS['muginSummaryIncompleteReason'] ?? ''));
+    $respondOpenAiError(
+        $incompleteReason !== ''
+            ? 'OpenAI response incomplete before text output (' . $incompleteReason . ')'
+            : 'OpenAI response did not contain text output',
+        502,
+        [
+            'status' => $curlStatus,
+        ]
+    );
 }
 
 echo "\n" . $streamCompleteMarker;

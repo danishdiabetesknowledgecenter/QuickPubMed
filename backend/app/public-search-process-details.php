@@ -11,15 +11,14 @@
  * Collection is request-local and performs no network calls or scoring.
  */
 
-if (!function_exists('qpmPublicSearchProcessDetailStepIds')) {
+if (!function_exists('muginPublicSearchProcessDetailStepIds')) {
     /**
      * @return array<int,string>
      */
-    function qpmPublicSearchProcessDetailStepIds(): array
+    function muginPublicSearchProcessDetailStepIds(): array
     {
         return [
             'semanticIntent',
-            'semanticQuery',
             'searchString',
             'mesh',
             'semanticScholar',
@@ -36,21 +35,21 @@ if (!function_exists('qpmPublicSearchProcessDetailStepIds')) {
     }
 }
 
-if (!function_exists('qpmPublicSearchProcessDetailSourceIds')) {
+if (!function_exists('muginPublicSearchProcessDetailSourceIds')) {
     /**
      * @return array<int,string>
      */
-    function qpmPublicSearchProcessDetailSourceIds(): array
+    function muginPublicSearchProcessDetailSourceIds(): array
     {
         return ['pubmed', 'semanticScholar', 'openAlex', 'elicit'];
     }
 }
 
-if (!function_exists('qpmPublicSearchProcessDetailStatuses')) {
+if (!function_exists('muginPublicSearchProcessDetailStatuses')) {
     /**
      * @return array<int,string>
      */
-    function qpmPublicSearchProcessDetailStatuses(): array
+    function muginPublicSearchProcessDetailStatuses(): array
     {
         return [
             'pending',
@@ -65,14 +64,14 @@ if (!function_exists('qpmPublicSearchProcessDetailStatuses')) {
     }
 }
 
-if (!function_exists('qpmPublicSearchProcessDetailsCreate')) {
+if (!function_exists('muginPublicSearchProcessDetailsCreate')) {
     /**
      * Internal maps guarantee one canonical payload per step and merge
      * duplicate source/query entries without making the renderer dedupe them.
      *
      * @return array<string,mixed>
      */
-    function qpmPublicSearchProcessDetailsCreate(): array
+    function muginPublicSearchProcessDetailsCreate(): array
     {
         return [
             'version' => '1',
@@ -82,7 +81,7 @@ if (!function_exists('qpmPublicSearchProcessDetailsCreate')) {
     }
 }
 
-if (!function_exists('qpmPublicSearchProcessDetailsSanitize')) {
+if (!function_exists('muginPublicSearchProcessDetailsSanitize')) {
     /**
      * Defense-in-depth redaction. Callers should still build allow-listed
      * request summaries rather than passing raw headers or upstream bodies.
@@ -90,7 +89,7 @@ if (!function_exists('qpmPublicSearchProcessDetailsSanitize')) {
      * @param mixed $value
      * @return mixed
      */
-    function qpmPublicSearchProcessDetailsSanitize($value, int $depth = 0)
+    function muginPublicSearchProcessDetailsSanitize($value, int $depth = 0)
     {
         if ($depth > 12) {
             return '[truncated-depth]';
@@ -122,53 +121,73 @@ if (!function_exists('qpmPublicSearchProcessDetailsSanitize')) {
                 $output[$key] = '[redacted]';
                 continue;
             }
-            $output[$key] = qpmPublicSearchProcessDetailsSanitize($entry, $depth + 1);
+            $output[$key] = muginPublicSearchProcessDetailsSanitize($entry, $depth + 1);
         }
         return $output;
     }
 }
 
-if (!function_exists('qpmPublicSearchProcessDetailsSetStep')) {
+if (!function_exists('muginPublicSearchProcessDetailsFoldStepId')) {
+    /**
+     * Retired micro-steps fold into a parent step id (SearchForm/API parity).
+     */
+    function muginPublicSearchProcessDetailsFoldStepId(string $stepId): string
+    {
+        $folded = [
+            'semanticQuery' => 'semanticIntent',
+            'prepare' => 'semanticIntent',
+            'optimize' => 'mesh',
+            'finalizeCollect' => 'rerank',
+            'finalizeValidateDoiSource' => 'finalizeValidateDoiFetch',
+            'finalizeValidateDoiRules' => 'finalizeValidateDoiFetch',
+        ];
+        $normalized = trim($stepId);
+        return $folded[$normalized] ?? $normalized;
+    }
+}
+
+if (!function_exists('muginPublicSearchProcessDetailsSetStep')) {
     /**
      * @param array<string,mixed> $collector
      * @param array<string,mixed> $payload
      */
-    function qpmPublicSearchProcessDetailsSetStep(
+    function muginPublicSearchProcessDetailsSetStep(
         array &$collector,
         string $stepId,
         array $payload,
         string $context = ''
     ): void {
-        $stepId = trim($stepId);
-        if (!in_array($stepId, qpmPublicSearchProcessDetailStepIds(), true)) {
+        $stepId = muginPublicSearchProcessDetailsFoldStepId($stepId);
+        if (!in_array($stepId, muginPublicSearchProcessDetailStepIds(), true)) {
             return;
         }
         $collector['_steps'][$stepId] = [
             'stepId' => $stepId,
-            'payload' => qpmPublicSearchProcessDetailsSanitize($payload),
+            'payload' => muginPublicSearchProcessDetailsSanitize($payload),
             'context' => trim($context),
         ];
     }
 }
 
-if (!function_exists('qpmPublicSearchProcessDetailsMergeStep')) {
+if (!function_exists('muginPublicSearchProcessDetailsMergeStep')) {
     /**
      * Top-level merge matches SearchForm.mergeSearchProcessStepDetail().
      *
      * @param array<string,mixed> $collector
      * @param array<string,mixed> $payload
      */
-    function qpmPublicSearchProcessDetailsMergeStep(
+    function muginPublicSearchProcessDetailsMergeStep(
         array &$collector,
         string $stepId,
         array $payload,
         string $context = ''
     ): void {
+        $stepId = muginPublicSearchProcessDetailsFoldStepId($stepId);
         $current = isset($collector['_steps'][$stepId]['payload'])
             && is_array($collector['_steps'][$stepId]['payload'])
             ? $collector['_steps'][$stepId]['payload']
             : [];
-        qpmPublicSearchProcessDetailsSetStep(
+        muginPublicSearchProcessDetailsSetStep(
             $collector,
             $stepId,
             array_merge($current, $payload),
@@ -177,16 +196,16 @@ if (!function_exists('qpmPublicSearchProcessDetailsMergeStep')) {
     }
 }
 
-if (!function_exists('qpmPublicSearchProcessDetailsSetSource')) {
+if (!function_exists('muginPublicSearchProcessDetailsSetSource')) {
     /**
      * @param array<string,mixed> $collector
      * @param array<string,mixed> $detail
      */
-    function qpmPublicSearchProcessDetailsSetSource(array &$collector, array $detail): void
+    function muginPublicSearchProcessDetailsSetSource(array &$collector, array $detail): void
     {
         $source = trim((string) ($detail['source'] ?? ''));
         $query = trim((string) ($detail['query'] ?? ($detail['request']['query'] ?? '')));
-        if (!in_array($source, qpmPublicSearchProcessDetailSourceIds(), true) || $query === '') {
+        if (!in_array($source, muginPublicSearchProcessDetailSourceIds(), true) || $query === '') {
             return;
         }
 
@@ -218,19 +237,19 @@ if (!function_exists('qpmPublicSearchProcessDetailsSetSource')) {
         if (array_key_exists('context', $detail)) {
             $next['context'] = trim((string) $detail['context']);
         }
-        $collector['_sources'][$key] = qpmPublicSearchProcessDetailsSanitize($next);
+        $collector['_sources'][$key] = muginPublicSearchProcessDetailsSanitize($next);
     }
 }
 
-if (!function_exists('qpmPublicSearchProcessDetailsExport')) {
+if (!function_exists('muginPublicSearchProcessDetailsExport')) {
     /**
      * @param array<string,mixed> $collector
      * @return array{version:string,sourceQueryDetails:array<int,array<string,mixed>>,processStepDetails:array<int,array<string,mixed>>}
      */
-    function qpmPublicSearchProcessDetailsExport(array $collector): array
+    function muginPublicSearchProcessDetailsExport(array $collector): array
     {
         $orderedSteps = [];
-        foreach (qpmPublicSearchProcessDetailStepIds() as $stepId) {
+        foreach (muginPublicSearchProcessDetailStepIds() as $stepId) {
             if (isset($collector['_steps'][$stepId]) && is_array($collector['_steps'][$stepId])) {
                 $orderedSteps[] = $collector['_steps'][$stepId];
             }
@@ -247,28 +266,28 @@ if (!function_exists('qpmPublicSearchProcessDetailsExport')) {
     }
 }
 
-if (!function_exists('qpmPublicSearchProcessDetailsWantsCollection')) {
+if (!function_exists('muginPublicSearchProcessDetailsWantsCollection')) {
     /**
      * @param array<string,mixed> $request
      */
-    function qpmPublicSearchProcessDetailsWantsCollection(array $request): bool
+    function muginPublicSearchProcessDetailsWantsCollection(array $request): bool
     {
         return ($request['responseOptions']['includeProcessDetails'] ?? false) === true;
     }
 }
 
-if (!function_exists('qpmPublicSearchProcessDetailsEnsureCollector')) {
+if (!function_exists('muginPublicSearchProcessDetailsEnsureCollector')) {
     /**
      * @param array<string,mixed> $request
      * @return array<string,mixed>|null
      */
-    function qpmPublicSearchProcessDetailsEnsureCollector(array &$request): ?array
+    function muginPublicSearchProcessDetailsEnsureCollector(array &$request): ?array
     {
-        if (!qpmPublicSearchProcessDetailsWantsCollection($request)) {
+        if (!muginPublicSearchProcessDetailsWantsCollection($request)) {
             return null;
         }
         if (!isset($request['_processDetails']) || !is_array($request['_processDetails'])) {
-            $request['_processDetails'] = qpmPublicSearchProcessDetailsCreate();
+            $request['_processDetails'] = muginPublicSearchProcessDetailsCreate();
         }
         // Collection needs resolvedQueries/diagnostics internals without forcing
         // the public output contract to require three interdependent client flags.
@@ -278,7 +297,7 @@ if (!function_exists('qpmPublicSearchProcessDetailsEnsureCollector')) {
     }
 }
 
-if (!function_exists('qpmPublicSearchProcessDetailsCountCandidateIdentityBuckets')) {
+if (!function_exists('muginPublicSearchProcessDetailsCountCandidateIdentityBuckets')) {
     /**
      * Overlapping identity counts: a candidate with both PMID and DOI increments
      * both buckets (legacy SearchForm semantics).
@@ -286,7 +305,7 @@ if (!function_exists('qpmPublicSearchProcessDetailsCountCandidateIdentityBuckets
      * @param array<int,array<string,mixed>> $candidates
      * @return array{candidateCount:int,pmidCandidateCount:int,doiCandidateCount:int,openAlexCandidateCount:int}
      */
-    function qpmPublicSearchProcessDetailsCountCandidateIdentityBuckets(array $candidates): array
+    function muginPublicSearchProcessDetailsCountCandidateIdentityBuckets(array $candidates): array
     {
         $pmidCount = 0;
         $doiCount = 0;
@@ -299,9 +318,9 @@ if (!function_exists('qpmPublicSearchProcessDetailsCountCandidateIdentityBuckets
             $total++;
             $pmid = '';
             $doi = '';
-            if (function_exists('qpmPublicSearchNormalizePmid')) {
-                $pmid = qpmPublicSearchNormalizePmid($candidate['pmid'] ?? '');
-                $doi = qpmPublicSearchNormalizeDoi($candidate['doi'] ?? '');
+            if (function_exists('muginPublicSearchNormalizePmid')) {
+                $pmid = muginPublicSearchNormalizePmid($candidate['pmid'] ?? '');
+                $doi = muginPublicSearchNormalizeDoi($candidate['doi'] ?? '');
             } else {
                 $pmid = trim((string) ($candidate['pmid'] ?? ''));
                 $doi = trim((string) ($candidate['doi'] ?? ''));
@@ -326,7 +345,7 @@ if (!function_exists('qpmPublicSearchProcessDetailsCountCandidateIdentityBuckets
     }
 }
 
-if (!function_exists('qpmPublicSearchProcessDetailsBuildSafeSourceDetail')) {
+if (!function_exists('muginPublicSearchProcessDetailsBuildSafeSourceDetail')) {
     /**
      * @param string $source
      * @param string $query
@@ -336,7 +355,7 @@ if (!function_exists('qpmPublicSearchProcessDetailsBuildSafeSourceDetail')) {
      * @param string $context
      * @return array<string,mixed>
      */
-    function qpmPublicSearchProcessDetailsBuildSafeSourceDetail(
+    function muginPublicSearchProcessDetailsBuildSafeSourceDetail(
         string $source,
         string $query,
         array $requestSummary,
@@ -390,11 +409,11 @@ if (!function_exists('qpmPublicSearchProcessDetailsBuildSafeSourceDetail')) {
     }
 }
 
-if (!function_exists('qpmPublicSearchProcessDetailsResolveSourceTerminalStatus')) {
+if (!function_exists('muginPublicSearchProcessDetailsResolveSourceTerminalStatus')) {
     /**
      * @param array<string,mixed> $sourceResult
      */
-    function qpmPublicSearchProcessDetailsResolveSourceTerminalStatus(array $sourceResult): string
+    function muginPublicSearchProcessDetailsResolveSourceTerminalStatus(array $sourceResult): string
     {
         $error = trim((string) ($sourceResult['error'] ?? ''));
         $warning = trim((string) ($sourceResult['warning'] ?? ''));
@@ -430,12 +449,12 @@ if (!function_exists('qpmPublicSearchProcessDetailsResolveSourceTerminalStatus')
     }
 }
 
-if (!function_exists('qpmPublicSearchProcessDetailsTruncateIds')) {
+if (!function_exists('muginPublicSearchProcessDetailsTruncateIds')) {
     /**
      * @param array<int,string> $ids
      * @return array{ids:array<int,string>,truncated:bool,count:int}
      */
-    function qpmPublicSearchProcessDetailsTruncateIds(array $ids, int $limit = 10): array
+    function muginPublicSearchProcessDetailsTruncateIds(array $ids, int $limit = 10): array
     {
         $normalized = array_values(array_filter(array_map(static function ($id) {
             return trim((string) $id);
@@ -449,7 +468,7 @@ if (!function_exists('qpmPublicSearchProcessDetailsTruncateIds')) {
     }
 }
 
-if (!function_exists('qpmPublicSearchProcessDetailsEmitStep')) {
+if (!function_exists('muginPublicSearchProcessDetailsEmitStep')) {
     /**
      * Streams one already-sanitized, bounded step payload as soon as it is
      * available.
@@ -462,13 +481,13 @@ if (!function_exists('qpmPublicSearchProcessDetailsEmitStep')) {
      *
      * @param array<string,mixed>|null $collector
      */
-    function qpmPublicSearchProcessDetailsEmitStep(
+    function muginPublicSearchProcessDetailsEmitStep(
         ?array $collector,
         string $stepId,
         ?callable $progressCallback,
         bool $markCompleted = false
     ): void {
-        $stepId = trim($stepId);
+        $stepId = muginPublicSearchProcessDetailsFoldStepId($stepId);
         if (
             $collector === null
             || $progressCallback === null
@@ -486,11 +505,11 @@ if (!function_exists('qpmPublicSearchProcessDetailsEmitStep')) {
         } else {
             $context['detailOnly'] = true;
         }
-        qpmPublicSearchEmitProgress($progressCallback, $stepId, '', $context);
+        muginPublicSearchEmitProgress($progressCallback, $stepId, '', $context);
     }
 }
 
-if (!function_exists('qpmPublicSearchProcessDetailsEmitCompletedPayload')) {
+if (!function_exists('muginPublicSearchProcessDetailsEmitCompletedPayload')) {
     /**
      * Emits a completed step directly when its real work boundary occurs before
      * the main collector is available to that helper. The collector can store
@@ -498,22 +517,22 @@ if (!function_exists('qpmPublicSearchProcessDetailsEmitCompletedPayload')) {
      *
      * @param array<string,mixed> $payload
      */
-    function qpmPublicSearchProcessDetailsEmitCompletedPayload(
+    function muginPublicSearchProcessDetailsEmitCompletedPayload(
         string $stepId,
         array $payload,
         ?callable $progressCallback,
         string $context = ''
     ): void {
-        $stepId = trim($stepId);
+        $stepId = muginPublicSearchProcessDetailsFoldStepId($stepId);
         if ($stepId === '' || $progressCallback === null) {
             return;
         }
-        $detail = qpmPublicSearchProcessDetailsSanitize([
+        $detail = muginPublicSearchProcessDetailsSanitize([
             'stepId' => $stepId,
             'payload' => $payload,
             'context' => $context,
         ]);
-        qpmPublicSearchEmitProgress($progressCallback, $stepId, '', [
+        muginPublicSearchEmitProgress($progressCallback, $stepId, '', [
             'stepId' => $stepId,
             'status' => 'completed',
             'processStepDetail' => $detail,
@@ -521,9 +540,9 @@ if (!function_exists('qpmPublicSearchProcessDetailsEmitCompletedPayload')) {
     }
 }
 
-if (!function_exists('qpmPublicSearchProcessDetailsRecordSourceCompletion')) {
+if (!function_exists('muginPublicSearchProcessDetailsRecordSourceCompletion')) {
     /**
-     * Records a finished source fetch (qpmPublicSearchFetch*SourceResult()
+     * Records a finished source fetch (muginPublicSearchFetch*SourceResult()
      * call) into the process-details collector (when active) and re-emits a
      * progress event for the same step carrying the terminal status/timing -
      * a superset of the "starting" progress event callers already emit
@@ -536,11 +555,11 @@ if (!function_exists('qpmPublicSearchProcessDetailsRecordSourceCompletion')) {
      * @param array<string,mixed> $sourceResult
      * @param float $startedAt microtime(true) captured before the fetch call
      * @param callable|null $progressCallback
-     * @param array<string,mixed> $progressContext Same context passed to the "starting" qpmPublicSearchEmitProgress() call for this step.
+     * @param array<string,mixed> $progressContext Same context passed to the "starting" muginPublicSearchEmitProgress() call for this step.
      * @param array<string,mixed> $requestSummary Allow-listed request parameters
      * @param array<string,mixed> $requestMeta
      */
-    function qpmPublicSearchProcessDetailsRecordSourceCompletion(
+    function muginPublicSearchProcessDetailsRecordSourceCompletion(
         ?array &$collector,
         string $source,
         string $query,
@@ -553,9 +572,9 @@ if (!function_exists('qpmPublicSearchProcessDetailsRecordSourceCompletion')) {
         string $detailContext = ''
     ): void {
         $elapsedMs = (int) round((microtime(true) - $startedAt) * 1000);
-        $status = qpmPublicSearchProcessDetailsResolveSourceTerminalStatus($sourceResult);
-        $detail = qpmPublicSearchProcessDetailsSanitize(
-            qpmPublicSearchProcessDetailsBuildSafeSourceDetail(
+        $status = muginPublicSearchProcessDetailsResolveSourceTerminalStatus($sourceResult);
+        $detail = muginPublicSearchProcessDetailsSanitize(
+            muginPublicSearchProcessDetailsBuildSafeSourceDetail(
                 $source,
                 $query,
                 array_merge(['query' => $query], $requestSummary),
@@ -565,11 +584,11 @@ if (!function_exists('qpmPublicSearchProcessDetailsRecordSourceCompletion')) {
             )
         );
         if ($collector !== null) {
-            qpmPublicSearchProcessDetailsSetSource($collector, $detail);
+            muginPublicSearchProcessDetailsSetSource($collector, $detail);
             $progressContext['sourceQueryDetail'] = $detail;
         }
         $progressContext['status'] = $status;
         $progressContext['elapsedMs'] = $elapsedMs;
-        qpmPublicSearchEmitProgress($progressCallback, $source, '', $progressContext);
+        muginPublicSearchEmitProgress($progressCallback, $source, '', $progressContext);
     }
 }

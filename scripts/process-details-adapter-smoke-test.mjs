@@ -62,6 +62,28 @@ assert(render?.payload?.renderedCount === 25, "Folded finalizeRender payload is 
 const collect = adapted.processStepDetails.find((entry) => entry.stepId === "rerank");
 assert(collect?.payload?.candidateCount === 40, "Folded finalizeCollect payload lands on rerank");
 
+const foldedQuery = adaptUnifiedProcessDetails({
+  version: "1",
+  sourceQueryDetails: [],
+  processStepDetails: [
+    {
+      stepId: "semanticIntent",
+      payload: { coreQuery: "diabetes", detectedConcepts: ["diabetes"] },
+      context: "",
+    },
+    {
+      stepId: "semanticQuery",
+      payload: { sourceQueries: { pubmed: "diabetes[tiab]" }, adaptations: { pubmed: "tiab" } },
+      context: "",
+    },
+  ],
+});
+assert(foldedQuery.processStepDetails.length === 1, "semanticQuery folds into semanticIntent instead of adding a sibling");
+const foldedIntent = foldedQuery.processStepDetails[0];
+assert(foldedIntent?.stepId === "semanticIntent", "Folded step id is semanticIntent");
+assert(foldedIntent?.payload?.coreQuery === "diabetes", "Intent fields survive semanticQuery fold");
+assert(foldedIntent?.payload?.sourceQueries?.pubmed === "diabetes[tiab]", "Adaptation payload merges onto semanticIntent");
+
 const labeled = adaptUnifiedProcessDetails({
   version: "1",
   sourceQueryDetails: [],

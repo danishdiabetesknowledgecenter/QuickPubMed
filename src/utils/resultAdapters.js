@@ -9,6 +9,95 @@ export function normalizeDoiValue(value) {
     .trim();
 }
 
+export function normalizeOpenAlexIdValue(value) {
+  const match = normalizeStringValue(value).match(/W\d+/i);
+  return match ? match[0].toUpperCase() : "";
+}
+
+export function normalizePmidValue(value) {
+  const raw = normalizeStringValue(value);
+  if (/^[0-9]+$/.test(raw)) {
+    return raw;
+  }
+  const match = raw.match(/pubmed\.ncbi\.nlm\.nih\.gov\/(\d+)/i);
+  return match ? match[1] : "";
+}
+
+export function isPlausibleDoiValue(value) {
+  const doi = normalizeDoiValue(value);
+  return /^10\.\d{4,9}\/\S+$/.test(doi);
+}
+
+export function parseSelectedIdentifierToken(value) {
+  if (value && typeof value === "object") {
+    const type = normalizeStringValue(value.type).toLowerCase();
+    const raw = normalizeStringValue(value.value);
+    if (type === "pmid") {
+      const pmid = normalizePmidValue(raw);
+      return pmid ? { type: "pmid", value: pmid } : null;
+    }
+    if (type === "doi") {
+      const doi = normalizeDoiValue(raw);
+      return isPlausibleDoiValue(doi) ? { type: "doi", value: doi } : null;
+    }
+    return null;
+  }
+
+  const raw = normalizeStringValue(value);
+  if (!raw) return null;
+  const pmidPrefixed = raw.match(/^pmid:\s*(.+)$/i);
+  if (pmidPrefixed) {
+    const pmid = normalizePmidValue(pmidPrefixed[1]);
+    return pmid ? { type: "pmid", value: pmid } : null;
+  }
+  const doiPrefixed = raw.match(/^doi:\s*(.+)$/i);
+  if (doiPrefixed) {
+    const doi = normalizeDoiValue(doiPrefixed[1]);
+    return isPlausibleDoiValue(doi) ? { type: "doi", value: doi } : null;
+  }
+  const pmid = normalizePmidValue(raw);
+  if (pmid) return { type: "pmid", value: pmid };
+  const doi = normalizeDoiValue(raw);
+  return isPlausibleDoiValue(doi) ? { type: "doi", value: doi } : null;
+}
+
+export function formatSelectedIdentifierToken(type, value) {
+  if (type === "pmid" && value) return `pmid:${value}`;
+  if (type === "doi" && value) return `doi:${value}`;
+  return "";
+}
+
+export function formatSelectedIdentifierFromResult(entry) {
+  const pmid = normalizePmidValue(entry?.pmid || "");
+  if (pmid) {
+    return formatSelectedIdentifierToken("pmid", pmid);
+  }
+  const uid = normalizeStringValue(entry?.uid || entry?.id || "");
+  if (/^[0-9]+$/.test(uid)) {
+    return formatSelectedIdentifierToken("pmid", uid);
+  }
+  const doi = normalizeDoiValue(entry?.doi || uid);
+  if (isPlausibleDoiValue(doi)) {
+    return formatSelectedIdentifierToken("doi", doi);
+  }
+  return "";
+}
+
+export function normalizeSelectedIdentifierList(values) {
+  const output = [];
+  const seen = new Set();
+  (Array.isArray(values) ? values : []).forEach((value) => {
+    const parsed = parseSelectedIdentifierToken(value);
+    if (!parsed) return;
+    const token = formatSelectedIdentifierToken(parsed.type, parsed.value);
+    const key = `${parsed.type}:${parsed.type === "doi" ? parsed.value.toLowerCase() : parsed.value}`;
+    if (!token || seen.has(key)) return;
+    seen.add(key);
+    output.push(token);
+  });
+  return output;
+}
+
 function buildPubMedArticleIds(pmid, doi, openAlexId = "") {
   const articleids = [];
   if (pmid) {
@@ -64,9 +153,7 @@ function formatOpenAlexAuthorName(rawAuthorName, displayName) {
 function extractOpenAlexAuthors(work) {
   const authorships = Array.isArray(work?.authorships) ? work.authorships : [];
   return authorships
-    .map((entry) =>
-      formatOpenAlexAuthorName(entry?.raw_author_name, entry?.author?.display_name)
-    )
+    .map((entry) => formatOpenAlexAuthorName(entry?.raw_author_name, entry?.author?.display_name))
     .filter(Boolean)
     .map((name) => ({ name }));
 }
@@ -85,7 +172,10 @@ function reconstructOpenAlexAbstract(invertedIndex) {
   }
   if (positions.length === 0) return "";
   positions.sort((a, b) => a[0] - b[0]);
-  return positions.map((entry) => entry[1]).join(" ").trim();
+  return positions
+    .map((entry) => entry[1])
+    .join(" ")
+    .trim();
 }
 
 function formatOpenAlexPublicationDate(work) {
@@ -154,10 +244,17 @@ export function mapUnifiedApiResultToResultDto(apiResult) {
   const safeResult = apiResult && typeof apiResult === "object" ? apiResult : {};
   const pmid = normalizeStringValue(safeResult.pmid).replace(/[^\d]/g, "");
   const doi = normalizeDoiValue(safeResult.doi);
-  const isPubMedNative = safeResult.trustedPmid === true || (safeResult.type === "pmid" && pmid !== "");
-  const uid = pmid && isPubMedNative ? pmid : doi ? `doi:${doi.toLowerCase()}` : normalizeStringValue(safeResult.resultKey) || pmid || "";
+  const isPubMedNative =
+    safeResult.trustedPmid === true || (safeResult.type === "pmid" && pmid !== "");
+  const uid =
+    pmid && isPubMedNative
+      ? pmid
+      : doi
+      ? `doi:${doi.toLowerCase()}`
+      : normalizeStringValue(safeResult.resultKey) || pmid || "";
 
-  const journal = safeResult.journal && typeof safeResult.journal === "object" ? safeResult.journal : {};
+  const journal =
+    safeResult.journal && typeof safeResult.journal === "object" ? safeResult.journal : {};
   const source = normalizeStringValue(safeResult.sourceLabel || journal.name || "");
   const fulljournalname = normalizeStringValue(journal.name || source);
   const pubDate = normalizeStringValue(safeResult.publicationDate || safeResult.year || "");
@@ -168,26 +265,39 @@ export function mapUnifiedApiResultToResultDto(apiResult) {
   const hasAbstract = safeResult.hasAbstract === true || abstract !== "";
   const authors = Array.isArray(safeResult.authors)
     ? safeResult.authors
-        .map((author) => normalizeStringValue(author?.name))
+        .map((author) => {
+          if (!author || typeof author !== "object") return null;
+          const name = normalizeStringValue(author.name);
+          const familyName = normalizeStringValue(author.familyName);
+          if (!name && !familyName) return null;
+          return {
+            name: name || familyName,
+            familyName,
+            givenName: normalizeStringValue(author.givenName),
+            initials: normalizeStringValue(author.initials),
+          };
+        })
         .filter(Boolean)
-        .map((name) => ({ name }))
     : [];
 
   return {
     id: uid,
     uid,
     pmid: pmid || null,
+    pmcId: normalizeStringValue(safeResult.pmcId || ""),
     doi,
     title: normalizeStringValue(safeResult.title || ""),
     authors,
     source,
     fulljournalname,
     publicationDate: normalizeStringValue(safeResult.publicationDate || ""),
+    year: normalizeStringValue(safeResult.year || ""),
     pubDate,
     pubdate: pubDate,
     volume: normalizeStringValue(journal.volume || ""),
     issue: normalizeStringValue(journal.issue || ""),
     pages: normalizeStringValue(journal.pages || ""),
+    issn: normalizeStringValue(journal.issn || ""),
     abstract,
     hasAbstract,
     pubType: publicationTypes[0] || "",
@@ -209,10 +319,152 @@ export function mapUnifiedApiResultToResultDto(apiResult) {
     // Additive passthrough of unified-engine-only signals not produced by the
     // legacy local mappers above. Harmless if unused by current UI components.
     citationCount: Number.isFinite(safeResult.citationCount) ? safeResult.citationCount : null,
+    citationCountSource: normalizeStringValue(safeResult.citationCountSource || ""),
     isOpenAccess: typeof safeResult.isOpenAccess === "boolean" ? safeResult.isOpenAccess : null,
     openAccessUrl: normalizeStringValue(safeResult.openAccessUrl || ""),
     isRetracted: typeof safeResult.isRetracted === "boolean" ? safeResult.isRetracted : null,
     aiSummary: normalizeStringValue(safeResult.aiSummary || ""),
+    abstractSource: normalizeStringValue(safeResult.abstractSource || ""),
+    mergedSources: Array.isArray(safeResult.mergedSources)
+      ? safeResult.mergedSources.map((value) => normalizeStringValue(value)).filter(Boolean)
+      : [],
+    ranking:
+      safeResult.ranking && typeof safeResult.ranking === "object" ? safeResult.ranking : null,
+    topics: Array.isArray(safeResult.topics)
+      ? safeResult.topics
+          .filter((entry) => entry && typeof entry === "object")
+          .map((entry) => ({
+            label: normalizeStringValue(entry.label || ""),
+            source: normalizeStringValue(entry.source || ""),
+          }))
+          .filter((entry) => entry.label && entry.source !== "openAlexConcept")
+      : [],
+    rank: Number.isFinite(safeResult.rank) ? safeResult.rank : null,
+    resultKey: normalizeStringValue(safeResult.resultKey || ""),
+    openAlexId: normalizeStringValue(safeResult.openAlexId || ""),
+    trustedPmid: safeResult.trustedPmid === true,
+  };
+}
+
+function namedOpenAlexDisplayName(entry) {
+  if (typeof entry === "string" || typeof entry === "number") {
+    return normalizeStringValue(entry);
+  }
+  if (entry && typeof entry === "object") {
+    return normalizeStringValue(entry.display_name || entry.name || entry.keyword || "");
+  }
+  return "";
+}
+
+function appendUniqueResultTopic(topics, label, source) {
+  const normalizedLabel = namedOpenAlexDisplayName(label);
+  const normalizedSource = normalizeStringValue(source);
+  if (!normalizedLabel || !normalizedSource || normalizedSource === "openAlexConcept") {
+    return;
+  }
+  const exists = topics.some(
+    (entry) =>
+      entry.source === normalizedSource &&
+      entry.label.toLowerCase() === normalizedLabel.toLowerCase()
+  );
+  if (!exists) {
+    topics.push({ label: normalizedLabel, source: normalizedSource });
+  }
+}
+
+export function mergeResultTopicEntries(...lists) {
+  const topics = [];
+  for (const list of lists) {
+    if (!Array.isArray(list)) continue;
+    for (const entry of list) {
+      if (!entry || typeof entry !== "object") continue;
+      appendUniqueResultTopic(topics, entry.label, entry.source);
+    }
+  }
+  return topics;
+}
+
+export function extractOpenAlexWorkTopics(work) {
+  const safeWork = work && typeof work === "object" ? work : {};
+  const topics = [];
+  const primary = namedOpenAlexDisplayName(safeWork.primary_topic);
+  if (primary) {
+    appendUniqueResultTopic(topics, primary, "openAlex");
+  }
+  const topicEntries = Array.isArray(safeWork.topics) ? safeWork.topics : [];
+  const topicNames = new Set(primary ? [primary.toLowerCase()] : []);
+  for (const entry of topicEntries) {
+    const label = namedOpenAlexDisplayName(entry);
+    if (!label || topicNames.has(label.toLowerCase())) continue;
+    topicNames.add(label.toLowerCase());
+    appendUniqueResultTopic(topics, label, "openAlexTopic");
+  }
+  const keywords = Array.isArray(safeWork.keywords) ? safeWork.keywords : [];
+  for (const entry of keywords) {
+    appendUniqueResultTopic(topics, namedOpenAlexDisplayName(entry), "openAlexKeyword");
+  }
+  const consider = [
+    ...(safeWork.primary_topic && typeof safeWork.primary_topic === "object"
+      ? [safeWork.primary_topic]
+      : []),
+    ...topicEntries.filter((entry) => entry && typeof entry === "object"),
+  ];
+  const subfieldSeen = new Set();
+  for (const entry of consider) {
+    const subfield = namedOpenAlexDisplayName(entry?.subfield);
+    const key = subfield.toLowerCase();
+    if (!subfield || topicNames.has(key) || subfieldSeen.has(key)) continue;
+    subfieldSeen.add(key);
+    appendUniqueResultTopic(topics, subfield, "openAlexSubfield");
+  }
+  return topics;
+}
+
+export function appendCandidateTopicSignals(topics, candidate) {
+  const list = mergeResultTopicEntries(topics);
+  const metadata =
+    candidate?.metadata && typeof candidate.metadata === "object" ? candidate.metadata : {};
+  const primary = normalizeStringValue(metadata.primaryTopicDisplayName || "");
+  if (primary) {
+    appendUniqueResultTopic(list, primary, "openAlex");
+  }
+  const extraTopics = Array.isArray(metadata.openAlexTopics) ? metadata.openAlexTopics : [];
+  for (const label of extraTopics) {
+    if (
+      primary &&
+      String(label || "")
+        .trim()
+        .toLowerCase() === primary.toLowerCase()
+    )
+      continue;
+    appendUniqueResultTopic(list, label, "openAlexTopic");
+  }
+  const keywords = Array.isArray(metadata.openAlexKeywords) ? metadata.openAlexKeywords : [];
+  for (const label of keywords) {
+    appendUniqueResultTopic(list, label, "openAlexKeyword");
+  }
+  const subfields = Array.isArray(metadata.openAlexSubfields) ? metadata.openAlexSubfields : [];
+  for (const label of subfields) {
+    appendUniqueResultTopic(list, label, "openAlexSubfield");
+  }
+  const s2Fields = Array.isArray(metadata.s2FieldsOfStudy) ? metadata.s2FieldsOfStudy : [];
+  for (const label of s2Fields) {
+    appendUniqueResultTopic(list, label, "semanticScholar");
+  }
+  return list;
+}
+
+export function unwrapOpenAlexWorkLookupEntry(entry) {
+  if (!entry || typeof entry !== "object") return null;
+  const nestedWork = entry.work && typeof entry.work === "object" ? entry.work : null;
+  const rawWork =
+    !nestedWork && (entry.id || entry.doi || entry.display_name) ? entry : null;
+  const work = nestedWork || rawWork;
+  if (!work) return null;
+  return {
+    doi: normalizeDoiValue(entry.doi || work.doi || work.ids?.doi || ""),
+    openAlexId: entry.openAlexId || work.id,
+    work,
   };
 }
 
@@ -225,13 +477,12 @@ export function mapOpenAlexWorkToResultDto(
     safeWork?.primary_location?.source && typeof safeWork.primary_location.source === "object"
       ? safeWork.primary_location.source
       : {};
-  const normalizedDoi = normalizeDoiValue(
-    safeWork?.doi || safeWork?.ids?.doi || doi
+  const normalizedDoi = normalizeDoiValue(safeWork?.doi || safeWork?.ids?.doi || doi);
+  const pmid = normalizeStringValue(safeWork?.pmid || safeWork?.ids?.pmid || "").replace(
+    /[^\d]/g,
+    ""
   );
-  const pmid = normalizeStringValue(
-    safeWork?.pmid || safeWork?.ids?.pmid || ""
-  ).replace(/[^\d]/g, "");
-  const resolvedOpenAlexId = normalizeStringValue(safeWork?.id || openAlexId);
+  const resolvedOpenAlexId = normalizeOpenAlexIdValue(safeWork?.id || openAlexId);
   const fallbackId = resolvedOpenAlexId || normalizedDoi;
   const uid = normalizedDoi ? `doi:${normalizedDoi.toLowerCase()}` : `oa:${fallbackId}`;
   const sourceDisplayName = normalizeStringValue(sourceObject?.display_name || "");
@@ -247,8 +498,7 @@ export function mapOpenAlexWorkToResultDto(
   const pubDate = formatOpenAlexPublicationDate(safeWork);
   const firstPage = normalizeStringValue(safeWork?.biblio?.first_page || "");
   const lastPage = normalizeStringValue(safeWork?.biblio?.last_page || "");
-  const pages =
-    firstPage && lastPage ? `${firstPage}-${lastPage}` : firstPage || lastPage || "";
+  const pages = firstPage && lastPage ? `${firstPage}-${lastPage}` : firstPage || lastPage || "";
   const language = normalizeStringValue(safeWork?.language || "");
   const workType = normalizeStringValue(safeWork?.type || safeWork?.type_crossref || "");
   const normalizedClassification =
@@ -266,6 +516,7 @@ export function mapOpenAlexWorkToResultDto(
     id: uid,
     uid,
     pmid: pmid || null,
+    pmcId: normalizeStringValue(safeWork?.ids?.pmcid || ""),
     doi: normalizedDoi,
     title: normalizeStringValue(safeWork?.display_name || safeWork?.title || ""),
     authors: extractOpenAlexAuthors(safeWork),
@@ -277,6 +528,9 @@ export function mapOpenAlexWorkToResultDto(
     volume: normalizeStringValue(safeWork?.biblio?.volume || ""),
     issue: normalizeStringValue(safeWork?.biblio?.issue || ""),
     pages,
+    issn: normalizeStringValue(
+      sourceObject?.issn_l || (Array.isArray(sourceObject?.issn) ? sourceObject.issn[0] : "")
+    ),
     abstract,
     hasAbstract: abstract !== "",
     pubType: workType,
@@ -292,6 +546,7 @@ export function mapOpenAlexWorkToResultDto(
     isPubMedNative: false,
     canOpenInPubMed: pmid !== "",
     canFetchPubMedAbstract: false,
+    topics: extractOpenAlexWorkTopics(safeWork),
     mergedDoiMetadata: {
       primarySource: "openAlex",
       primaryBibliography: {

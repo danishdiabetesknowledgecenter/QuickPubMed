@@ -78,19 +78,19 @@ $rejectCandidateRetracted = [
 ];
 
 assertTrue(
-    qpmSemanticQualityCandidateMatchesPostValidation($acceptCandidate, $ruleState)['matches'] === true,
+    muginSemanticQualityCandidateMatchesPostValidation($acceptCandidate, $ruleState)['matches'] === true,
     'Real rule accepts a genuine systematic review title'
 );
 assertTrue(
-    qpmSemanticQualityCandidateMatchesPostValidation($rejectCandidateProtocol, $ruleState)['matches'] === false,
+    muginSemanticQualityCandidateMatchesPostValidation($rejectCandidateProtocol, $ruleState)['matches'] === false,
     'Real rule rejects a systematic review PROTOCOL (excludeAnyTextSignals: protocol)'
 );
 assertTrue(
-    qpmSemanticQualityCandidateMatchesPostValidation($rejectCandidateUnrelated, $ruleState)['matches'] === false,
+    muginSemanticQualityCandidateMatchesPostValidation($rejectCandidateUnrelated, $ruleState)['matches'] === false,
     'Real rule rejects an unrelated RCT title (no requireAnyTextSignals match)'
 );
 assertTrue(
-    qpmSemanticQualityCandidateMatchesPostValidation($rejectCandidateRetracted, $ruleState)['matches'] === false,
+    muginSemanticQualityCandidateMatchesPostValidation($rejectCandidateRetracted, $ruleState)['matches'] === false,
     'Real rule rejects a RETRACTED systematic review (excludeAnyTextSignals: retracted)'
 );
 

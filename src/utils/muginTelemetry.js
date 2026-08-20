@@ -1,7 +1,7 @@
 /**
  * QPM Telemetry
  *
- * Fire-and-forget observability module for QuickPubMed's LLM-backed search flow.
+ * Fire-and-forget observability module for Mugin Scholar's LLM-backed search flow.
  *
  * Design goals:
  *   - NEVER block the search flow. All public functions return synchronously and
@@ -12,7 +12,7 @@
  *     fallback on tab unload.
  *
  * Events are buffered and flushed as a batch to backend/api/TelemetryLog.php,
- * which writes to data/runtime/qpm-telemetry-YYYY-MM-DD.jsonl with file locking.
+ * which writes to data/runtime/mugin-telemetry-YYYY-MM-DD.jsonl with file locking.
  *
  * Styrkelser (from plan review):
  *   1. promptVersion auto-attached to every event
@@ -249,7 +249,7 @@ export function getOrCreateSessionHash() {
     const s = initState();
     if (s.sessionHash) return s.sessionHash;
     if (typeof sessionStorage !== "undefined") {
-      const existing = sessionStorage.getItem("qpm_telemetry_session");
+      const existing = sessionStorage.getItem("mugin_telemetry_session");
       if (existing) {
         s.sessionHash = existing;
         return existing;
@@ -265,7 +265,7 @@ export function getOrCreateSessionHash() {
     s.sessionHash = hash;
     if (typeof sessionStorage !== "undefined") {
       try {
-        sessionStorage.setItem("qpm_telemetry_session", hash);
+        sessionStorage.setItem("mugin_telemetry_session", hash);
       } catch (_) {
         // Storage might be disabled (e.g. Safari private mode); proceed without persistence.
       }
@@ -381,7 +381,7 @@ function buildBatchBody(events, droppedCount) {
   return JSON.stringify({
     events,
     droppedCount: droppedCount || 0,
-    client: "qpm-web",
+    client: "mugin-web",
   });
 }
 

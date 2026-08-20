@@ -11,11 +11,11 @@ if (!file_exists($configPath)) {
 require_once $configPath;
 require_once __DIR__ . '/NlmApiHelpers.php';
 
-qpmApplyNlmCorsHeaders('GET, POST, OPTIONS', 'application/json');
+muginApplyNlmCorsHeaders('GET, POST, OPTIONS', 'application/json');
 @ini_set('max_execution_time', '180');
 @set_time_limit(180);
 
-function qpmGetSemanticScholarApiKey(): string
+function muginGetSemanticScholarApiKey(): string
 {
     $envKey = getenv('SEMANTIC_SCHOLAR_API_KEY');
     $configuredKey = is_string($envKey) && trim($envKey) !== ''
@@ -33,7 +33,7 @@ function qpmGetSemanticScholarApiKey(): string
     return $configuredKey;
 }
 
-function qpmIsLocalSemanticScholarRequest(): bool
+function muginIsLocalSemanticScholarRequest(): bool
 {
     $requestHost = strtolower((string)($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
     return $requestHost !== '' && (
@@ -49,7 +49,7 @@ function qpmIsLocalSemanticScholarRequest(): bool
  * @param int $limit
  * @return array{ok: bool, status: int, body: string, error: string, response_headers: array<int,string>}
  */
-function qpmSemanticScholarLocalDevProxyRequest(
+function muginSemanticScholarLocalDevProxyRequest(
     string $query,
     int $limit,
     int $offset = 0,
@@ -59,7 +59,7 @@ function qpmSemanticScholarLocalDevProxyRequest(
 ): array
 {
     $hosts = ['localhost', '127.0.0.1'];
-    $isLocalRequest = qpmIsLocalSemanticScholarRequest();
+    $isLocalRequest = muginIsLocalSemanticScholarRequest();
     $lastStatus = 0;
     $lastResponseHeaders = [];
     if (!$isLocalRequest) {
@@ -72,7 +72,7 @@ function qpmSemanticScholarLocalDevProxyRequest(
         ];
     }
 
-    $queryString = qpmBuildSemanticScholarSearchQueryString(
+    $queryString = muginBuildSemanticScholarSearchQueryString(
         $query,
         $limit,
         $offset,
@@ -84,7 +84,7 @@ function qpmSemanticScholarLocalDevProxyRequest(
     $headerCandidates = [
         ['Accept: application/json'],
     ];
-    $semanticScholarApiKey = qpmGetSemanticScholarApiKey();
+    $semanticScholarApiKey = muginGetSemanticScholarApiKey();
     if ($semanticScholarApiKey !== '') {
         array_unshift($headerCandidates, [
             'Accept: application/json',
@@ -96,10 +96,10 @@ function qpmSemanticScholarLocalDevProxyRequest(
     foreach ($hosts as $host) {
         $url = 'http://' . $host . ':5173/semantic-scholar-api/graph/v1/paper/search?' . $queryString;
         foreach ($headerCandidates as $headers) {
-            $result = qpmHttpRequest($url, [
+            $result = muginHttpRequest($url, [
                 'method' => 'GET',
                 'timeout' => 30,
-                'user_agent' => 'QuickPubMed/1.0',
+                'user_agent' => 'MuginScholar/1.0',
                 'headers' => $headers,
             ]);
             $lastStatus = (int) ($result['status'] ?? 0);
@@ -137,24 +137,24 @@ function qpmSemanticScholarLocalDevProxyRequest(
  * @param int $status
  * @return array<string,mixed>
  */
-function qpmBuildSemanticScholarRateLimitInfo(array $headers, int $status): array
+function muginBuildSemanticScholarRateLimitInfo(array $headers, int $status): array
 {
-    $headerMap = qpmBuildResponseHeaderMap($headers);
-    $limit = qpmParseIntegerHeaderValue(
+    $headerMap = muginBuildResponseHeaderMap($headers);
+    $limit = muginParseIntegerHeaderValue(
         $headerMap['x-ratelimit-limit'] ?? ($headerMap['ratelimit-limit'] ?? '')
     );
     if ($limit !== null && $limit <= 0) {
         $limit = null;
     }
 
-    $remaining = qpmParseIntegerHeaderValue(
+    $remaining = muginParseIntegerHeaderValue(
         $headerMap['x-ratelimit-remaining'] ?? ($headerMap['ratelimit-remaining'] ?? '')
     );
     if ($remaining !== null) {
         $remaining = max(0, $remaining);
     }
 
-    $resetWindow = qpmParseRateLimitResetWindow(
+    $resetWindow = muginParseRateLimitResetWindow(
         $headerMap['x-ratelimit-reset'] ?? ($headerMap['ratelimit-reset'] ?? ''),
         $headerMap['retry-after'] ?? ''
     );
@@ -179,8 +179,8 @@ function qpmBuildSemanticScholarRateLimitInfo(array $headers, int $status): arra
         'status' => $status,
         'isLimited' => $isLimited,
     ];
-    if (function_exists('qpmStoreSourceRateLimitSnapshot')) {
-        qpmStoreSourceRateLimitSnapshot('semanticScholar', $rateLimit);
+    if (function_exists('muginStoreSourceRateLimitSnapshot')) {
+        muginStoreSourceRateLimitSnapshot('semanticScholar', $rateLimit);
     }
     return $rateLimit;
 }
@@ -191,7 +191,7 @@ function qpmBuildSemanticScholarRateLimitInfo(array $headers, int $status): arra
  * @param mixed $value
  * @return string
  */
-function qpmNormalizeSemanticScholarYearFilter($value): string
+function muginNormalizeSemanticScholarYearFilter($value): string
 {
     $normalized = trim((string)$value);
     return preg_match('/^\d{4}(?:-\d{4})?$/', $normalized) ? $normalized : '';
@@ -203,7 +203,7 @@ function qpmNormalizeSemanticScholarYearFilter($value): string
  * @param mixed $value
  * @return string
  */
-function qpmNormalizeSemanticScholarPublicationDateOrYearFilter($value): string
+function muginNormalizeSemanticScholarPublicationDateOrYearFilter($value): string
 {
     $normalized = trim((string)$value);
     if ($normalized === '') {
@@ -220,7 +220,7 @@ function qpmNormalizeSemanticScholarPublicationDateOrYearFilter($value): string
  * @param mixed $value
  * @return array<int,string>
  */
-function qpmNormalizeSemanticScholarPublicationTypes($value): array
+function muginNormalizeSemanticScholarPublicationTypes($value): array
 {
     $rawValues = [];
     if (is_array($value)) {
@@ -254,7 +254,7 @@ function qpmNormalizeSemanticScholarPublicationTypes($value): array
  * @param string $publicationDateOrYear
  * @return string
  */
-function qpmBuildSemanticScholarSearchQueryString(
+function muginBuildSemanticScholarSearchQueryString(
     string $query,
     int $limit,
     int $offset,
@@ -289,7 +289,7 @@ function qpmBuildSemanticScholarSearchQueryString(
  * @param mixed $value
  * @return string
  */
-function qpmNormalizeSemanticScholarDoi($value): string
+function muginNormalizeSemanticScholarDoi($value): string
 {
     $doi = trim((string) $value);
     if ($doi === '') {
@@ -307,7 +307,7 @@ function qpmNormalizeSemanticScholarDoi($value): string
  * @param int $rankOffset
  * @return array<int,array{source:string,rank:int,pmid:string,doi:string,title:string,abstract:string,score:null}>
  */
-function qpmExtractSemanticScholarCandidates(array $decoded, int $rankOffset = 0): array
+function muginExtractSemanticScholarCandidates(array $decoded, int $rankOffset = 0): array
 {
     $candidates = [];
     $data = $decoded['data'] ?? [];
@@ -328,7 +328,7 @@ function qpmExtractSemanticScholarCandidates(array $decoded, int $rankOffset = 0
         if ($pmid !== '' && !preg_match('/^[0-9]+$/', $pmid)) {
             $pmid = '';
         }
-        $doi = qpmNormalizeSemanticScholarDoi($externalIds['DOI'] ?? '');
+        $doi = muginNormalizeSemanticScholarDoi($externalIds['DOI'] ?? '');
         // Non-DOI/non-PMID S2 records are intentionally dropped: cross-source
         // id-matching (e.g. mapping S2 paperId to OpenAlex works) is out of
         // scope for this milestone. S2 contributes only as PMID/DOI-keyed
@@ -397,7 +397,7 @@ function qpmExtractSemanticScholarCandidates(array $decoded, int $rankOffset = 0
  * @param int $rankOffset
  * @return array{records: array<int,array<string,mixed>>, reasons: array<string,int>}
  */
-function qpmCollectSemanticScholarDroppedRecords(array $decoded, int $rankOffset = 0): array
+function muginCollectSemanticScholarDroppedRecords(array $decoded, int $rankOffset = 0): array
 {
     $records = [];
     $reasons = [];
@@ -421,7 +421,7 @@ function qpmCollectSemanticScholarDroppedRecords(array $decoded, int $rankOffset
         if ($pmid !== '' && !preg_match('/^[0-9]+$/', $pmid)) {
             $pmid = '';
         }
-        $doi = qpmNormalizeSemanticScholarDoi($externalIds['DOI'] ?? '');
+        $doi = muginNormalizeSemanticScholarDoi($externalIds['DOI'] ?? '');
         if ($pmid !== '' || $doi !== '') {
             continue;
         }
@@ -452,7 +452,7 @@ function qpmCollectSemanticScholarDroppedRecords(array $decoded, int $rankOffset
  * @param array<int,array<int,string>> $headerCandidates
  * @return array{ok: bool, status: int, body: string, error: string, response_headers: array<int,string>}
  */
-function qpmSemanticScholarFetchBatch(
+function muginSemanticScholarFetchBatch(
     string $query,
     int $limit,
     int $offset,
@@ -462,10 +462,10 @@ function qpmSemanticScholarFetchBatch(
     string $publicationDateOrYear = ''
 ): array
 {
-    qpmThrottleRequestRate('semantic_scholar', 3);
+    muginThrottleRequestRate('semantic_scholar', 3);
 
     $url = 'https://api.semanticscholar.org/graph/v1/paper/search?' .
-        qpmBuildSemanticScholarSearchQueryString(
+        muginBuildSemanticScholarSearchQueryString(
             $query,
             $limit,
             $offset,
@@ -478,8 +478,8 @@ function qpmSemanticScholarFetchBatch(
     $lastStatus = 0;
     $lastResponseHeaders = [];
 
-    if (qpmIsLocalSemanticScholarRequest()) {
-        $localDevProxyResult = qpmSemanticScholarLocalDevProxyRequest(
+    if (muginIsLocalSemanticScholarRequest()) {
+        $localDevProxyResult = muginSemanticScholarLocalDevProxyRequest(
             $query,
             $limit,
             $offset,
@@ -506,10 +506,10 @@ function qpmSemanticScholarFetchBatch(
     }
 
     foreach ($headerCandidates as $headers) {
-        $attemptResult = qpmHttpRequest($url, [
+        $attemptResult = muginHttpRequest($url, [
             'method' => 'GET',
             'timeout' => 12,
-            'user_agent' => 'QuickPubMed/1.0',
+            'user_agent' => 'MuginScholar/1.0',
             'headers' => $headers,
         ]);
 
@@ -549,7 +549,7 @@ function qpmSemanticScholarFetchBatch(
  * @param string $error
  * @return bool
  */
-function qpmIsRecoverableSemanticScholarError(string $error): bool
+function muginIsRecoverableSemanticScholarError(string $error): bool
 {
     $normalized = strtolower(trim($error));
     if ($normalized === '') {
@@ -577,15 +577,15 @@ if (empty($params)) {
 }
 
 $query = trim((string)($params['query'] ?? ''));
-$debugSearchFlow = qpmIsSearchFlowDebugRequest($params);
-$year = qpmNormalizeSemanticScholarYearFilter($params['year'] ?? '');
-$publicationTypes = qpmNormalizeSemanticScholarPublicationTypes(
+$debugSearchFlow = muginIsSearchFlowDebugRequest($params);
+$year = muginNormalizeSemanticScholarYearFilter($params['year'] ?? '');
+$publicationTypes = muginNormalizeSemanticScholarPublicationTypes(
     $params['publicationTypes'] ?? ($params['publication_types'] ?? [])
 );
-$publicationDateOrYear = qpmNormalizeSemanticScholarPublicationDateOrYearFilter(
+$publicationDateOrYear = muginNormalizeSemanticScholarPublicationDateOrYearFilter(
     $params['publicationDateOrYear'] ?? ($params['publication_date_or_year'] ?? '')
 );
-$configuredLimit = qpmGetSemanticSourceLimit('semanticScholar', 400);
+$configuredLimit = muginGetSemanticSourceLimit('semanticScholar', 400);
 $limit = (int)($params['limit'] ?? $configuredLimit);
 if ($limit <= 0) {
     $limit = $configuredLimit;
@@ -605,7 +605,7 @@ if ($query === '') {
 $headerCandidates = [
     ['Accept: application/json'],
 ];
-$semanticScholarApiKey = qpmGetSemanticScholarApiKey();
+$semanticScholarApiKey = muginGetSemanticScholarApiKey();
 if ($semanticScholarApiKey !== '') {
     array_unshift($headerCandidates, [
         'Accept: application/json',
@@ -627,7 +627,7 @@ $rateLimit = [];
 
 while ($offset < $limit) {
     $currentLimit = min($batchSize, $limit - $offset);
-    $result = qpmSemanticScholarFetchBatch(
+    $result = muginSemanticScholarFetchBatch(
         $query,
         $currentLimit,
         $offset,
@@ -636,7 +636,7 @@ while ($offset < $limit) {
         $publicationTypes,
         $publicationDateOrYear
     );
-    $batchRateLimit = qpmBuildSemanticScholarRateLimitInfo(
+    $batchRateLimit = muginBuildSemanticScholarRateLimitInfo(
         is_array($result['response_headers'] ?? null) ? $result['response_headers'] : [],
         (int) ($result['status'] ?? 0)
     );
@@ -646,7 +646,7 @@ while ($offset < $limit) {
     if (!$result['ok']) {
         $requestErrors[] = (string) $result['error'];
         $hasPartialData = !empty($candidates) || !empty($pmids) || !empty($dois);
-        if ($hasPartialData || qpmIsRecoverableSemanticScholarError((string) $result['error'])) {
+        if ($hasPartialData || muginIsRecoverableSemanticScholarError((string) $result['error'])) {
             $warning = implode(' | ', array_filter($requestErrors));
             break;
         }
@@ -663,7 +663,7 @@ while ($offset < $limit) {
         exit;
     }
 
-    foreach (qpmExtractSemanticScholarCandidates($decoded, $offset) as $candidate) {
+    foreach (muginExtractSemanticScholarCandidates($decoded, $offset) as $candidate) {
         $candidates[] = $candidate;
         if ($candidate['pmid'] !== '') {
             $pmids[$candidate['pmid']] = true;
@@ -673,7 +673,7 @@ while ($offset < $limit) {
         }
     }
     if ($debugSearchFlow) {
-        $debugBatch = qpmCollectSemanticScholarDroppedRecords($decoded, $offset);
+        $debugBatch = muginCollectSemanticScholarDroppedRecords($decoded, $offset);
         $debugDroppedRecords = array_merge($debugDroppedRecords, $debugBatch['records']);
         foreach ($debugBatch['reasons'] as $reason => $count) {
             $debugDroppedReasons[$reason] = (int) ($debugDroppedReasons[$reason] ?? 0) + (int) $count;

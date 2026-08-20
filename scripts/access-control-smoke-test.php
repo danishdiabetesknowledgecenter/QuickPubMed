@@ -26,7 +26,7 @@ function assertTrue(bool $condition, string $message): void
 // Case 1: partial allow -> proceeds with permitted subset + warning.
 $request = ['sources' => ['pubmed', 'elicit']];
 $client = ['client_id' => 'partial-client', 'allowed_sources' => ['pubmed']];
-$result = qpmPublicSearchEnforceClientSourceAccess($request, $client);
+$result = muginPublicSearchEnforceClientSourceAccess($request, $client);
 assertTrue($result['sources'] === ['pubmed'], 'Partial allow: sources filtered down to permitted subset');
 assertTrue(
     isset($result['_sourceAccessWarnings'][0]) && strpos($result['_sourceAccessWarnings'][0], 'elicit') !== false,
@@ -38,7 +38,7 @@ $request2 = ['sources' => ['pubmed']];
 $client2 = ['client_id' => 'no-config-client'];
 $threw403 = false;
 try {
-    qpmPublicSearchEnforceClientSourceAccess($request2, $client2);
+    muginPublicSearchEnforceClientSourceAccess($request2, $client2);
 } catch (RuntimeException $exception) {
     $threw403 = $exception->getCode() === 403;
 }
@@ -49,7 +49,7 @@ $request3 = ['sources' => ['openAlex']];
 $client3 = ['client_id' => 'empty-list-client', 'allowed_sources' => []];
 $threw403Empty = false;
 try {
-    qpmPublicSearchEnforceClientSourceAccess($request3, $client3);
+    muginPublicSearchEnforceClientSourceAccess($request3, $client3);
 } catch (RuntimeException $exception) {
     $threw403Empty = $exception->getCode() === 403;
 }
@@ -58,22 +58,22 @@ assertTrue($threw403Empty, 'Explicit empty allowed_sources -> throws 403');
 // Case 4: full access client (all 4 sources) -> passes through unchanged, no warning.
 $request4 = ['sources' => ['pubmed', 'openAlex']];
 $client4 = ['client_id' => 'full-client', 'allowed_sources' => ['pubmed', 'semanticScholar', 'openAlex', 'elicit']];
-$result4 = qpmPublicSearchEnforceClientSourceAccess($request4, $client4);
+$result4 = muginPublicSearchEnforceClientSourceAccess($request4, $client4);
 assertTrue($result4['sources'] === ['pubmed', 'openAlex'], 'Full access client: all requested sources pass through');
 assertTrue(!isset($result4['_sourceAccessWarnings']), 'Full access client: no access warning attached');
 
 // Case 5: per-client source API key override resolution.
 $clientWithKeys = ['source_api_keys' => ['openAlex' => 'client-own-openalex-key', 'elicit' => '']];
 assertTrue(
-    qpmPublicSearchClientSourceApiKey($clientWithKeys, 'openAlex') === 'client-own-openalex-key',
+    muginPublicSearchClientSourceApiKey($clientWithKeys, 'openAlex') === 'client-own-openalex-key',
     'Per-client source API key override resolves when set'
 );
 assertTrue(
-    qpmPublicSearchClientSourceApiKey($clientWithKeys, 'elicit') === '',
+    muginPublicSearchClientSourceApiKey($clientWithKeys, 'elicit') === '',
     'Per-client source API key override falls back to empty (global default) when blank'
 );
 assertTrue(
-    qpmPublicSearchClientSourceApiKey($clientWithKeys, 'semanticScholar') === '',
+    muginPublicSearchClientSourceApiKey($clientWithKeys, 'semanticScholar') === '',
     'Per-client source API key override falls back to empty (global default) when source key absent entirely'
 );
 

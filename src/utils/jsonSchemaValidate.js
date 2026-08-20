@@ -1,5 +1,5 @@
 /**
- * Minimal JSON Schema validator for QuickPubMed observability.
+ * Minimal JSON Schema validator for Mugin Scholar observability.
  *
  * Not a full JSON Schema implementation. Supports a deliberate subset:
  *   - "type": "object" | "string" | "number" | "boolean" | "array" | ["string","null"] | "null"

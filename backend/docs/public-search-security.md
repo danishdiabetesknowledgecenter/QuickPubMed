@@ -21,12 +21,12 @@ Til eksterne integrationer:
 
 ### B) First-party widget API (`backend/api`)
 
-Til NemPubMed/VCD-widgetten (fx `UnifiedSearch.php`, Summarize*, TranslateTitle, SemanticFinalRerank, NLM/OpenAlex-proxies):
+Til Mugin Scholar/VCD-widgetten (fx `UnifiedSearch.php`, Summarize*, TranslateTitle, SemanticFinalRerank, NLM/OpenAlex-proxies):
 
 - CORS allowlist via `ALLOWED_DOMAINS` (+ hardcodede first-party hosts)
 - **Tom Origin er tilladt** (same-origin GET, lokal Vite-proxy, curl/smoke). Kun *ikke-tom* disallowed Origin afvises med 403.
-- Referer-fallback bruges hvor `qpmApplyNlmCorsHeaders` anvendes.
-- IP-baseret rate limit på dyre routes (`unifiedSearch`, `openaiProxy`) via `QPM_FIRST_PARTY_IP_RATE_LIMITS`
+- Referer-fallback bruges hvor `muginApplyNlmCorsHeaders` anvendes.
+- IP-baseret rate limit på dyre routes (`unifiedSearch`, `openaiProxy`) via `MUGIN_FIRST_PARTY_IP_RATE_LIMITS`
 - OpenAI-modeller på first-party proxies allowlistes; ukendte modeller mappes til en sikker default
 - Ingen per-bruger API-nøgle (samme trust-model som før unified engine)
 

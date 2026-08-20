@@ -1,8 +1,8 @@
 <template>
   <div>
-    <ul class="qpm_resetList">
-      <li v-for="(item, n) in limitDropdowns" :key="`limit-${n}`" class="qpm_topics">
-        <div class="qpm_flex">
+    <ul class="mugin_resetList">
+      <li v-for="(item, n) in limitDropdowns" :key="`limit-${n}`" class="mugin_topics">
+        <div class="mugin_flex">
           <dropdown-wrapper
             ref="limitDropdown"
             :is-multiple="true"
@@ -36,7 +36,7 @@
           <button
             v-if="shouldReserveRemoveLimitButton(item)"
             type="button"
-            class="qpm_iconButton qpm_removeSubject bx bx-x"
+            class="mugin_iconButton mugin_removeSubject bx bx-x"
             :aria-label="
               canRemoveLimitDropdown(item) ? getRemoveLimitDropdownAriaLabel(item, n) : ''
             "
@@ -49,14 +49,14 @@
         </div>
         <p
           v-if="n >= 0 && hasLimitSelections"
-          class="qpm_subjectOperator"
-          :class="{ 'qpm_subjectOperator--trailing': !isOperatorActiveAfterLimitDropdown(item, n) }"
+          class="mugin_subjectOperator"
+          :class="{ 'mugin_subjectOperator--trailing': !isOperatorActiveAfterLimitDropdown(item, n) }"
         >
           {{ getString("andOperator") }}
         </p>
       </li>
-      <li v-if="hasRerankProfiles" class="qpm_topics">
-        <div class="qpm_flex">
+      <li v-if="hasRerankProfiles" class="mugin_topics">
+        <div class="mugin_flex">
           <dropdown-wrapper
             ref="rerankProfileDropdown"
             :is-multiple="true"
@@ -88,19 +88,19 @@
           <button
             v-if="hasRemovableLimitDropdowns"
             type="button"
-            class="qpm_iconButton qpm_removeSubject bx bx-x"
+            class="mugin_iconButton mugin_removeSubject bx bx-x"
             aria-hidden="true"
             tabindex="-1"
             disabled
             style="visibility: hidden"
           />
         </div>
-        <p v-if="hasLimitSelections" class="qpm_subjectOperator qpm_subjectOperator--trailing">
+        <p v-if="hasLimitSelections" class="mugin_subjectOperator mugin_subjectOperator--trailing">
           {{ getString("andOperator") }}
         </p>
       </li>
     </ul>
-    <div v-if="hasLimitSelections" class="qpm_filterSelectionActions">
+    <div v-if="hasLimitSelections" class="mugin_filterSelectionActions">
       <button
         type="button"
         v-tooltip="{
@@ -108,7 +108,7 @@
           distance: 5,
           delay: $helpTextDelay,
         }"
-        class="qpm_slim qpm_button"
+        class="mugin_slim mugin_button"
         @click="addLimitDropdown"
       >
         {{ getString("addtopiclimit") }} {{ getString("addlimit") }}
@@ -215,11 +215,11 @@
               dk:
                 this.language === "dk"
                   ? this.getString("hoverRerankProfileHeader")
-                  : "Vælg hvordan QuickPubMed skal prioritere den semantisk/merge-rerankede resultatliste. Filtre, databaser, kvalitetsvalidering og ren PubMed-sortering ændres ikke.",
+                  : "Vælg hvordan Mugin Scholar skal prioritere den semantisk/merge-rerankede resultatliste. Filtre, databaser, kvalitetsvalidering og ren PubMed-sortering ændres ikke.",
               en:
                 this.language === "en"
                   ? this.getString("hoverRerankProfileHeader")
-                  : "Choose how QuickPubMed should prioritize the semantically/merge-reranked result list. Filters, databases, quality validation, and pure PubMed sorting are not changed.",
+                  : "Choose how Mugin Scholar should prioritize the semantically/merge-reranked result list. Filters, databases, quality validation, and pure PubMed sorting are not changed.",
             },
             groups: this.rerankProfileDropdownOptions,
           },

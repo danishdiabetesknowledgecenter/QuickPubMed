@@ -10,8 +10,9 @@ if (!file_exists($configPath)) {
 }
 require_once $configPath;
 require_once __DIR__ . '/NlmApiHelpers.php';
+require_once dirname(__DIR__) . '/app/source-clients/openalex-helpers.php';
 
-qpmApplyNlmCorsHeaders('GET, POST, OPTIONS', 'application/json');
+muginApplyNlmCorsHeaders('GET, POST, OPTIONS', 'application/json');
 @ini_set('max_execution_time', '60');
 @set_time_limit(60);
 
@@ -20,7 +21,7 @@ qpmApplyNlmCorsHeaders('GET, POST, OPTIONS', 'application/json');
  *
  * @return bool
  */
-function qpmIsLocalOpenAlexRequest(): bool
+function muginIsLocalOpenAlexRequest(): bool
 {
     $requestHost = strtolower((string)($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
     return $requestHost !== '' && (
@@ -35,7 +36,7 @@ function qpmIsLocalOpenAlexRequest(): bool
  * @param mixed $value
  * @return string
  */
-function qpmNormalizeOpenAlexPmid($value): string
+function muginNormalizeOpenAlexPmid($value): string
 {
     $raw = trim((string) $value);
     if ($raw === '') {
@@ -53,7 +54,7 @@ function qpmNormalizeOpenAlexPmid($value): string
  * @param mixed $value
  * @return string
  */
-function qpmNormalizeOpenAlexDoi($value): string
+function muginNormalizeOpenAlexDoi($value): string
 {
     $doi = trim((string) $value);
     if ($doi === '') {
@@ -70,28 +71,9 @@ function qpmNormalizeOpenAlexDoi($value): string
  * @param mixed $invertedIndex
  * @return string
  */
-function qpmReconstructOpenAlexAbstract($invertedIndex): string
+function muginReconstructOpenAlexAbstract($invertedIndex): string
 {
-    if (!is_array($invertedIndex) || empty($invertedIndex)) {
-        return '';
-    }
-    $positions = [];
-    foreach ($invertedIndex as $word => $indexes) {
-        if (!is_string($word) || !is_array($indexes)) {
-            continue;
-        }
-        foreach ($indexes as $index) {
-            if (!is_numeric($index)) {
-                continue;
-            }
-            $positions[(int) $index] = $word;
-        }
-    }
-    if (empty($positions)) {
-        return '';
-    }
-    ksort($positions);
-    return trim(implode(' ', $positions));
+    return muginOpenAlexReconstructAbstract($invertedIndex);
 }
 
 /**
@@ -100,7 +82,7 @@ function qpmReconstructOpenAlexAbstract($invertedIndex): string
  * @param mixed $value
  * @return string
  */
-function qpmNormalizeOpenAlexLanguageCode($value): string
+function muginNormalizeOpenAlexLanguageCode($value): string
 {
     $normalized = strtolower(trim((string) $value));
     if ($normalized === '') {
@@ -136,13 +118,13 @@ function qpmNormalizeOpenAlexLanguageCode($value): string
  * @param mixed $value
  * @return array<int,string>
  */
-function qpmNormalizeOpenAlexLanguageFilters($value): array
+function muginNormalizeOpenAlexLanguageFilters($value): array
 {
     $values = is_array($value) ? $value : [$value];
     $seen = [];
     $output = [];
     foreach ($values as $entry) {
-        $normalized = qpmNormalizeOpenAlexLanguageCode($entry);
+        $normalized = muginNormalizeOpenAlexLanguageCode($entry);
         if ($normalized === '' || isset($seen[$normalized])) {
             continue;
         }
@@ -159,7 +141,7 @@ function qpmNormalizeOpenAlexLanguageFilters($value): array
  * @param array<string,string> $allowedValues
  * @return array<int,string>
  */
-function qpmNormalizeOpenAlexEnumFilters($value, array $allowedValues): array
+function muginNormalizeOpenAlexEnumFilters($value, array $allowedValues): array
 {
     $values = is_array($value) ? $value : [$value];
     $seen = [];
@@ -188,7 +170,7 @@ function qpmNormalizeOpenAlexEnumFilters($value, array $allowedValues): array
  * @param mixed $value
  * @return string
  */
-function qpmNormalizeOpenAlexPublicationYearFilter($value): string
+function muginNormalizeOpenAlexPublicationYearFilter($value): string
 {
     $normalized = trim((string) $value);
     return preg_match('/^\d{4}(?:-\d{4})?$/', $normalized) ? $normalized : '';
@@ -200,7 +182,7 @@ function qpmNormalizeOpenAlexPublicationYearFilter($value): string
  * @param array<string,mixed> $decoded
  * @return string
  */
-function qpmExtractOpenAlexErrorMessage(array $decoded): string
+function muginExtractOpenAlexErrorMessage(array $decoded): string
 {
     $candidates = [
         $decoded['error'] ?? '',
@@ -230,7 +212,7 @@ function qpmExtractOpenAlexErrorMessage(array $decoded): string
  * @param array<string,mixed> $requestState
  * @return array<string,mixed>
  */
-function qpmBuildOpenAlexRetryHints(string $message, array $requestState): array
+function muginBuildOpenAlexRetryHints(string $message, array $requestState): array
 {
     $normalized = strtolower(trim($message));
     if ($normalized === '') {
@@ -296,7 +278,7 @@ function qpmBuildOpenAlexRetryHints(string $message, array $requestState): array
  * @param array<string,mixed> $rateLimit
  * @return void
  */
-function qpmRespondWithOpenAlexWarning(
+function muginRespondWithOpenAlexWarning(
     string $query,
     string $warning,
     array $retryHints = [],
@@ -324,22 +306,22 @@ function qpmRespondWithOpenAlexWarning(
  * @param int $status
  * @return array<string,mixed>
  */
-function qpmBuildOpenAlexRateLimitInfo(array $headers, int $status): array
+function muginBuildOpenAlexRateLimitInfo(array $headers, int $status): array
 {
-    $headerMap = qpmBuildResponseHeaderMap($headers);
-    $limit = qpmParseIntegerHeaderValue($headerMap['x-ratelimit-limit'] ?? '');
+    $headerMap = muginBuildResponseHeaderMap($headers);
+    $limit = muginParseIntegerHeaderValue($headerMap['x-ratelimit-limit'] ?? '');
     if ($limit !== null && $limit <= 0) {
         $limit = null;
     }
 
-    $remaining = qpmParseIntegerHeaderValue($headerMap['x-ratelimit-remaining'] ?? '');
+    $remaining = muginParseIntegerHeaderValue($headerMap['x-ratelimit-remaining'] ?? '');
     if ($remaining !== null) {
         $remaining = max(0, $remaining);
     } elseif ($status === 429) {
         $remaining = 0;
     }
 
-    $resetWindow = qpmParseRateLimitResetWindow(
+    $resetWindow = muginParseRateLimitResetWindow(
         $headerMap['x-ratelimit-reset'] ?? '',
         $headerMap['retry-after'] ?? ''
     );
@@ -364,8 +346,8 @@ function qpmBuildOpenAlexRateLimitInfo(array $headers, int $status): array
         'status' => $status,
         'isLimited' => $isLimited,
     ];
-    if (function_exists('qpmStoreSourceRateLimitSnapshot')) {
-        qpmStoreSourceRateLimitSnapshot('openAlex', $rateLimit);
+    if (function_exists('muginStoreSourceRateLimitSnapshot')) {
+        muginStoreSourceRateLimitSnapshot('openAlex', $rateLimit);
     }
     return $rateLimit;
 }
@@ -385,14 +367,14 @@ if (empty($params)) {
 
 $query = trim((string) ($params['query'] ?? ''));
 $domain = trim((string) ($params['domain'] ?? ''));
-$debugSearchFlow = qpmIsSearchFlowDebugRequest($params);
+$debugSearchFlow = muginIsSearchFlowDebugRequest($params);
 $searchMode = strtolower(trim((string) ($params['searchMode'] ?? ($params['search_mode'] ?? 'semantic'))));
 $searchMode = $searchMode === 'keyword' ? 'keyword' : 'semantic';
-$configuredLimit = qpmGetSemanticSourceLimit('openAlex', 50);
+$configuredLimit = muginGetSemanticSourceLimit('openAlex', 50);
 $limit = (int) ($params['limit'] ?? $configuredLimit);
 $apiLimitCap = $searchMode === 'keyword' ? 100 : 50;
-$languageFilters = qpmNormalizeOpenAlexLanguageFilters($params['languages'] ?? ($params['language'] ?? []));
-$sourceTypes = qpmNormalizeOpenAlexEnumFilters(
+$languageFilters = muginNormalizeOpenAlexLanguageFilters($params['languages'] ?? ($params['language'] ?? []));
+$sourceTypes = muginNormalizeOpenAlexEnumFilters(
     $params['sourceTypes'] ?? ($params['sourceType'] ?? []),
     [
         'bookseries' => 'book series',
@@ -403,7 +385,7 @@ $sourceTypes = qpmNormalizeOpenAlexEnumFilters(
         'repository' => 'repository',
     ]
 );
-$workTypes = qpmNormalizeOpenAlexEnumFilters(
+$workTypes = muginNormalizeOpenAlexEnumFilters(
     $params['workTypes'] ?? ($params['workType'] ?? []),
     [
         'article' => 'article',
@@ -427,9 +409,23 @@ $workTypes = qpmNormalizeOpenAlexEnumFilters(
         'supplementarymaterials' => 'supplementary-materials',
     ]
 );
-$publicationYearFilter = qpmNormalizeOpenAlexPublicationYearFilter(
+$publicationYearFilter = muginNormalizeOpenAlexPublicationYearFilter(
     $params['publicationYear'] ?? ($params['publication_year'] ?? '')
 );
+$rawIsOa = $params['isOa'] ?? ($params['is_oa'] ?? null);
+$isOaFilter = null;
+if ($rawIsOa !== null && $rawIsOa !== '') {
+    if (is_bool($rawIsOa)) {
+        $isOaFilter = $rawIsOa;
+    } else {
+        $normalizedIsOa = strtolower(trim((string) $rawIsOa));
+        if (in_array($normalizedIsOa, ['true', 'yes', '1', 'on'], true)) {
+            $isOaFilter = true;
+        } elseif (in_array($normalizedIsOa, ['false', 'no', '0', 'off'], true)) {
+            $isOaFilter = false;
+        }
+    }
+}
 if ($limit <= 0) {
     $limit = $configuredLimit;
 }
@@ -454,9 +450,9 @@ if ($query === '') {
 $requestParams = [
     $searchMode === 'keyword' ? 'search' : 'search.semantic' => $query,
     'per_page' => $limit,
-    'select' => 'id,display_name,doi,ids,publication_year,publication_date,biblio,relevance_score,type,type_crossref,primary_location,fwci,cited_by_count,counts_by_year,is_retracted,open_access,primary_topic,authorships,abstract_inverted_index,language',
+    'select' => 'id,display_name,doi,ids,publication_year,publication_date,biblio,relevance_score,type,type_crossref,primary_location,fwci,cited_by_count,counts_by_year,is_retracted,open_access,primary_topic,topics,keywords,authorships,abstract_inverted_index,language',
 ];
-if (!empty($languageFilters) || !empty($sourceTypes) || !empty($workTypes) || $publicationYearFilter !== '') {
+if (!empty($languageFilters) || !empty($sourceTypes) || !empty($workTypes) || $publicationYearFilter !== '' || $isOaFilter === true) {
     $filterParts = [];
     if (!empty($languageFilters)) {
         $filterParts[] = 'language:' . implode('|', $languageFilters);
@@ -470,13 +466,16 @@ if (!empty($languageFilters) || !empty($sourceTypes) || !empty($workTypes) || $p
     if ($publicationYearFilter !== '') {
         $filterParts[] = 'publication_year:' . $publicationYearFilter;
     }
+    if ($isOaFilter === true) {
+        $filterParts[] = 'open_access.is_oa:true';
+    }
     $requestParams['filter'] = implode(',', $filterParts);
 }
-$openAlexApiKey = qpmGetOpenAlexApiKey($domain);
+$openAlexApiKey = muginGetOpenAlexApiKey($domain);
 if ($openAlexApiKey !== '') {
     $requestParams['api_key'] = $openAlexApiKey;
 }
-$openAlexEmail = qpmGetOpenAlexEmail($domain);
+$openAlexEmail = muginGetOpenAlexEmail($domain);
 if ($openAlexEmail !== '') {
     $requestParams['mailto'] = $openAlexEmail;
 }
@@ -487,24 +486,24 @@ if ($openAlexEmail !== '') {
 // startes parallelt med det semantiske kald (deferred filtre), paces keyword-mode
 // let i sit eget namespace, så samtidige requests ikke giver bursts mod OpenAlex.
 if ($searchMode === 'semantic') {
-    qpmThrottleRequestRate('openalex_semantic', 1);
+    muginThrottleRequestRate('openalex_semantic', 1);
 } else {
-    qpmThrottleRequestRate('openalex_keyword', 2);
+    muginThrottleRequestRate('openalex_keyword', 2);
 }
 $url = 'https://api.openalex.org/works?' . http_build_query($requestParams);
 $openAlexTimeout = $searchMode === 'semantic' ? 12 : 20;
-$result = qpmHttpRequest($url, [
+$result = muginHttpRequest($url, [
     'method' => 'GET',
     'timeout' => $openAlexTimeout,
-    'user_agent' => 'QuickPubMed/1.0',
+    'user_agent' => 'MuginScholar/1.0',
     'headers' => ['Accept: application/json'],
 ]);
 if (!$result['ok'] && (int) ($result['status'] ?? 0) === 429) {
-    qpmRespondWithOpenAlexWarning(
+    muginRespondWithOpenAlexWarning(
         $query,
         'OpenAlex request was rate limited',
         [],
-        qpmBuildOpenAlexRateLimitInfo(
+        muginBuildOpenAlexRateLimitInfo(
             is_array($result['response_headers'] ?? null) ? $result['response_headers'] : [],
             (int) ($result['status'] ?? 0)
         )
@@ -512,16 +511,16 @@ if (!$result['ok'] && (int) ($result['status'] ?? 0) === 429) {
 }
 
 if (!$result['ok']) {
-    qpmRespondWithOpenAlexWarning(
+    muginRespondWithOpenAlexWarning(
         $query,
         (string) $result['error'],
-        qpmBuildOpenAlexRetryHints((string) $result['error'], [
+        muginBuildOpenAlexRetryHints((string) $result['error'], [
             'languages' => $languageFilters,
             'sourceTypes' => $sourceTypes,
             'workTypes' => $workTypes,
             'publicationYear' => $publicationYearFilter,
         ]),
-        qpmBuildOpenAlexRateLimitInfo(
+        muginBuildOpenAlexRateLimitInfo(
             is_array($result['response_headers'] ?? null) ? $result['response_headers'] : [],
             (int) ($result['status'] ?? 0)
         )
@@ -534,16 +533,16 @@ if (!is_array($decoded)) {
     $warning = $status >= 400
         ? ('OpenAlex returned HTTP ' . (string) $status)
         : 'Invalid OpenAlex response';
-    qpmRespondWithOpenAlexWarning(
+    muginRespondWithOpenAlexWarning(
         $query,
         $warning,
-        qpmBuildOpenAlexRetryHints($warning, [
+        muginBuildOpenAlexRetryHints($warning, [
             'languages' => $languageFilters,
             'sourceTypes' => $sourceTypes,
             'workTypes' => $workTypes,
             'publicationYear' => $publicationYearFilter,
         ]),
-        qpmBuildOpenAlexRateLimitInfo(
+        muginBuildOpenAlexRateLimitInfo(
             is_array($result['response_headers'] ?? null) ? $result['response_headers'] : [],
             $status
         )
@@ -551,17 +550,17 @@ if (!is_array($decoded)) {
 }
 
 $status = (int) ($result['status'] ?? 0);
-$rateLimit = qpmBuildOpenAlexRateLimitInfo(
+$rateLimit = muginBuildOpenAlexRateLimitInfo(
     is_array($result['response_headers'] ?? null) ? $result['response_headers'] : [],
     $status
 );
 if ($status < 200 || $status >= 300) {
-    $upstreamError = qpmExtractOpenAlexErrorMessage($decoded);
+    $upstreamError = muginExtractOpenAlexErrorMessage($decoded);
     $warning = $upstreamError !== '' ? $upstreamError : ('OpenAlex returned HTTP ' . (string) $status);
-    qpmRespondWithOpenAlexWarning(
+    muginRespondWithOpenAlexWarning(
         $query,
         $warning,
-        qpmBuildOpenAlexRetryHints($warning, [
+        muginBuildOpenAlexRetryHints($warning, [
             'languages' => $languageFilters,
             'sourceTypes' => $sourceTypes,
             'workTypes' => $workTypes,
@@ -587,8 +586,8 @@ foreach ($results as $index => $work) {
         continue;
     }
     $ids = isset($work['ids']) && is_array($work['ids']) ? $work['ids'] : [];
-    $pmid = qpmNormalizeOpenAlexPmid($work['pmid'] ?? ($ids['pmid'] ?? ''));
-    $doi = qpmNormalizeOpenAlexDoi($work['doi'] ?? ($ids['doi'] ?? ''));
+    $pmid = muginNormalizeOpenAlexPmid($work['pmid'] ?? ($ids['pmid'] ?? ''));
+    $doi = muginNormalizeOpenAlexDoi($work['doi'] ?? ($ids['doi'] ?? ''));
     $openAlexId = trim((string) ($work['id'] ?? ''));
     $title = trim((string) ($work['display_name'] ?? $work['title'] ?? ''));
 
@@ -653,6 +652,9 @@ foreach ($results as $index => $work) {
         : [];
     $primaryTopicId = trim((string) ($primaryTopic['id'] ?? ''));
     $primaryTopicDisplayName = trim((string) ($primaryTopic['display_name'] ?? ''));
+    $openAlexTopics = muginExtractOpenAlexTopicDisplayNames($work['topics'] ?? [], 3);
+    $openAlexKeywords = muginExtractOpenAlexKeywordDisplayNames($work['keywords'] ?? [], 5);
+    $openAlexSubfields = muginExtractOpenAlexSubfieldDisplayNames($primaryTopic, $work['topics'] ?? []);
 
     $pubTypesSet = [];
     $workType = trim((string) ($work['type'] ?? ''));
@@ -710,7 +712,7 @@ foreach ($results as $index => $work) {
         ?? ($primaryLocation['source']['host_organization_name'] ?? '')
     ));
     $languageCode = trim((string) ($work['language'] ?? ''));
-    $abstractText = qpmReconstructOpenAlexAbstract($work['abstract_inverted_index'] ?? null);
+    $abstractText = muginReconstructOpenAlexAbstract($work['abstract_inverted_index'] ?? null);
     $abstractLength = $abstractText !== ''
         ? (function_exists('mb_strlen') ? mb_strlen($abstractText) : strlen($abstractText))
         : 0;
@@ -751,6 +753,9 @@ foreach ($results as $index => $work) {
             'isOpenAccess' => $isOpenAccess,
             'primaryTopicId' => $primaryTopicId,
             'primaryTopicDisplayName' => $primaryTopicDisplayName,
+            'openAlexTopics' => $openAlexTopics,
+            'openAlexKeywords' => $openAlexKeywords,
+            'openAlexSubfields' => $openAlexSubfields,
             'authorIds' => array_values(array_keys($authorIds)),
             'authorNames' => $authorNames,
             'institutionIds' => array_values(array_keys($institutionIds)),

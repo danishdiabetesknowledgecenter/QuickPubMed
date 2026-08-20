@@ -97,12 +97,15 @@ function normalizeOpenAlexSourceFilterConfig(input) {
       : []
   );
 
-  return {
+  const output = {
     language: dedupeStrings(Array.isArray(safeInput.language) ? safeInput.language : []),
     sourceType: dedupeStrings(Array.isArray(safeInput.sourceType) ? safeInput.sourceType : []),
     workType: dedupeStrings(Array.isArray(safeInput.workType) ? safeInput.workType : []),
     publicationYear: publicationYears.length === 1 ? publicationYears[0] : "",
   };
+  const isOa = coerceBoolean(safeInput.isOa ?? safeInput.is_oa);
+  if (isOa !== null) output.isOa = isOa;
+  return output;
 }
 
 function coerceFiniteInteger(value) {
@@ -194,6 +197,7 @@ function collectSourceFilters(items) {
   const openAlexSourceType = [];
   const openAlexWorkType = [];
   const openAlexPublicationYears = [];
+  const openAlexIsOaValues = [];
   const elicitTypeTags = [];
   const elicitIncludeKeywords = [];
   const elicitExcludeKeywords = [];
@@ -225,6 +229,9 @@ function collectSourceFilters(items) {
     openAlexWorkType.push(...openAlexFilters.workType);
     if (openAlexFilters.publicationYear) {
       openAlexPublicationYears.push(openAlexFilters.publicationYear);
+    }
+    if (typeof openAlexFilters.isOa === "boolean") {
+      openAlexIsOaValues.push(openAlexFilters.isOa);
     }
     elicitTypeTags.push(...elicitFilters.typeTags);
     elicitIncludeKeywords.push(...elicitFilters.includeKeywords);
@@ -259,6 +266,9 @@ function collectSourceFilters(items) {
     publicationYear:
       dedupedOpenAlexPublicationYears.length === 1 ? dedupedOpenAlexPublicationYears[0] : "",
   };
+  if (openAlexIsOaValues.length > 0) {
+    openAlex.isOa = openAlexIsOaValues.every(Boolean);
+  }
   const elicit = {
     typeTags: dedupeStrings(elicitTypeTags),
     includeKeywords: dedupeStrings(elicitIncludeKeywords),
@@ -304,7 +314,8 @@ function collectSourceFilters(items) {
     openAlex.language.length > 0 ||
     openAlex.sourceType.length > 0 ||
     openAlex.workType.length > 0 ||
-    openAlex.publicationYear
+    openAlex.publicationYear ||
+    typeof openAlex.isOa === "boolean"
   ) {
     sourceFilters.openAlex = openAlex;
   }

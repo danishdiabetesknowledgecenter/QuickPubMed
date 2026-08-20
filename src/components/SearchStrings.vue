@@ -1,65 +1,65 @@
 <template>
-  <div class="qpm_searchStringCollection">
-    <p class="qpm_advancedSearch qpm_showHideAll qpm_showHideAllRow">
+  <div class="mugin_searchStringCollection">
+    <p class="mugin_advancedSearch mugin_showHideAll mugin_showHideAllRow">
       <button
         type="button"
-        class="qpm_linkButton qpm_linkButtonAsAnchor"
+        class="mugin_linkButton mugin_linkButtonAsAnchor"
         :aria-expanded="!isAllToggled"
         @click="toggleAll()"
       >{{
         isAllToggled ? getString("showAllSearchstrings") : getString("hideAllSearchstrings")
       }}</button>
     </p>
-    <div v-show="!initialCollapsePending" class="qpm_searchStringStringsContainer rich-text">
-      <div class="qpm_searchStringsTopPadding">
+    <div v-show="!initialCollapsePending" class="mugin_searchStringStringsContainer rich-text">
+      <div class="mugin_searchStringsTopPadding">
         <div
-          class="qpm_headingContainerFocus_h2 qpm_gallery_toggle"
+          class="mugin_headingContainerFocus_h2 mugin_gallery_toggle"
           role="button"
           tabindex="0"
-          :aria-expanded="isTargetExpanded('qpm_subjectSearchStrings')"
-          data-target="qpm_subjectSearchStrings"
-          @click="hideOrCollapse('qpm_subjectSearchStrings')"
-          @keydown.enter.prevent="hideOrCollapse('qpm_subjectSearchStrings')"
-          @keydown.space.prevent="hideOrCollapse('qpm_subjectSearchStrings')"
+          :aria-expanded="isTargetExpanded('mugin_subjectSearchStrings')"
+          data-target="mugin_subjectSearchStrings"
+          @click="hideOrCollapse('mugin_subjectSearchStrings')"
+          @keydown.enter.prevent="hideOrCollapse('mugin_subjectSearchStrings')"
+          @keydown.space.prevent="hideOrCollapse('mugin_subjectSearchStrings')"
         >
-          <span :class="['qpm_toggle_icon', { qpm_toggle_expanded: isTargetExpanded('qpm_subjectSearchStrings') }]">
-            <span class="qpm_toggle_plus">+</span>
-            <span class="qpm_toggle_minus">&minus;</span>
+          <span :class="['mugin_toggle_icon', { mugin_toggle_expanded: isTargetExpanded('mugin_subjectSearchStrings') }]">
+            <span class="mugin_toggle_plus">+</span>
+            <span class="mugin_toggle_minus">&minus;</span>
           </span>
-          <h2 class="qpm_heading">
+          <h2 class="mugin_heading">
             {{ getString("topics") }}
           </h2>
         </div>
       </div>
-      <div v-if="hasStandardSearchStrings" class="qpm_subjectSearchStrings">
+      <div v-if="hasStandardSearchStrings" class="mugin_subjectSearchStrings">
         <div
-          class="qpm_headingContainerFocus_h3 qpm_gallery_toggle"
+          class="mugin_headingContainerFocus_h3 mugin_gallery_toggle"
           role="button"
           tabindex="0"
-          :aria-expanded="isTargetExpanded('qpm_standardSearchStrings')"
-          data-target="qpm_standardSearchStrings"
-          @click="hideOrCollapse('qpm_standardSearchStrings')"
-          @keydown.enter.prevent="hideOrCollapse('qpm_standardSearchStrings')"
-          @keydown.space.prevent="hideOrCollapse('qpm_standardSearchStrings')"
+          :aria-expanded="isTargetExpanded('mugin_standardSearchStrings')"
+          data-target="mugin_standardSearchStrings"
+          @click="hideOrCollapse('mugin_standardSearchStrings')"
+          @keydown.enter.prevent="hideOrCollapse('mugin_standardSearchStrings')"
+          @keydown.space.prevent="hideOrCollapse('mugin_standardSearchStrings')"
         >
           <span
             :class="[
-              'qpm_toggle_icon',
-              'qpm_toggle_placeholder',
-              { qpm_toggle_expanded: isTargetExpanded('qpm_standardSearchStrings') },
+              'mugin_toggle_icon',
+              'mugin_toggle_placeholder',
+              { mugin_toggle_expanded: isTargetExpanded('mugin_standardSearchStrings') },
             ]"
           >
-            <span class="qpm_toggle_plus">+</span>
-            <span class="qpm_toggle_minus">&minus;</span>
+            <span class="mugin_toggle_plus">+</span>
+            <span class="mugin_toggle_minus">&minus;</span>
           </span>
-          <div class="qpm_headingWithId">
-            <h3 class="qpm_heading">
+          <div class="mugin_headingWithId">
+            <h3 class="mugin_heading">
               {{ getString("standardSearchStrings") }}
             </h3>
           </div>
         </div>
-        <div class="qpm_standardSearchStrings qpm_searchGroup qpm_searchSubject">
-          <table class="qpm_table">
+        <div class="mugin_standardSearchStrings mugin_searchGroup mugin_searchSubject">
+          <table class="mugin_table">
             <tr>
               <th>{{ getString("scope") }}</th>
               <th>{{ getString("searchString") }}</th>
@@ -72,13 +72,13 @@
                     distance: 5,
                     delay: $helpTextDelay,
                   }"
-                  class="qpm_button qpm_buttonColor1"
+                  class="mugin_button mugin_buttonColor1"
                 >
                   {{ getString("narrow") }}
                 </span>
               </td>
               <td lang="en">
-                <p class="qpm_table_p">
+                <p class="mugin_table_p">
                   <a
                     v-tooltip="{
                       content: getString('showPubMedLink'),
@@ -102,13 +102,13 @@
                     distance: 5,
                     delay: $helpTextDelay,
                   }"
-                  class="qpm_button qpm_buttonColor2"
+                  class="mugin_button mugin_buttonColor2"
                 >
                   {{ getString("normal") }}
                 </span>
               </td>
               <td lang="en">
-                <p class="qpm_table_p">
+                <p class="mugin_table_p">
                   <a
                     v-tooltip="{
                       content: getString('showPubMedLink'),
@@ -132,13 +132,13 @@
                     distance: 5,
                     delay: $helpTextDelay,
                   }"
-                  class="qpm_button qpm_buttonColor3"
+                  class="mugin_button mugin_buttonColor3"
                 >
                   {{ getString("broad") }}
                 </span>
               </td>
               <td lang="en">
-                <p class="qpm_table_p">
+                <p class="mugin_table_p">
                   <a
                     v-tooltip="{
                       content: getString('showPubMedLink'),
@@ -169,10 +169,10 @@
       <div
         v-for="subject in getSortedTopics"
         :key="`subject-${subject.id}`"
-        class="qpm_subjectSearchStrings"
+        class="mugin_subjectSearchStrings"
       >
         <div
-          class="qpm_headingContainerFocus_h3 qpm_gallery_toggle"
+          class="mugin_headingContainerFocus_h3 mugin_gallery_toggle"
           role="button"
           tabindex="0"
           :aria-expanded="isTargetExpanded(toClassName(subject.id))"
@@ -181,34 +181,34 @@
           @keydown.enter.prevent="hideOrCollapse(toClassName(subject.id))"
           @keydown.space.prevent="hideOrCollapse(toClassName(subject.id))"
         >
-          <span :class="['qpm_toggle_icon', { qpm_toggle_expanded: isTargetExpanded(toClassName(subject.id)) }]">
-            <span class="qpm_toggle_plus">+</span>
-            <span class="qpm_toggle_minus">&minus;</span>
+          <span :class="['mugin_toggle_icon', { mugin_toggle_expanded: isTargetExpanded(toClassName(subject.id)) }]">
+            <span class="mugin_toggle_plus">+</span>
+            <span class="mugin_toggle_minus">&minus;</span>
           </span>
-          <div class="qpm_headingWithId">
-            <h3 class="qpm_heading">
+          <div class="mugin_headingWithId">
+            <h3 class="mugin_heading">
               {{ customNameLabel(subject) }}
             </h3>
-            <span class="qpm_groupid">(ID: {{ subject.id }})</span>
+            <span class="mugin_groupid">(ID: {{ subject.id }})</span>
           </div>
         </div>
         <div
           v-for="(group, index) in subject.groups"
           :key="`group-${group.id}-${index}`"
-          :class="['qpm_searchGroup', toClassName(subject.id), ...getAncestorClasses(group)]"
+          :class="['mugin_searchGroup', toClassName(subject.id), ...getAncestorClasses(group)]"
           :data-level="getItemLevel(group)"
           :data-has-children="hasChildren(group) ? '1' : '0'"
           :style="
             group.subtopiclevel
               ? {
-                  '--qpm-group-indent': group.subtopiclevel * 34 + 'px',
+                  '--mugin-group-indent': group.subtopiclevel * 34 + 'px',
                   paddingLeft: group.subtopiclevel * 34 + 'px',
                 }
               : {}
           "
         >
           <div
-            :class="['qpm_headingContainerFocus', isClickable(group) ? 'qpm_gallery_toggle' : '']"
+            :class="['mugin_headingContainerFocus', isClickable(group) ? 'mugin_gallery_toggle' : '']"
             :role="isClickable(group) ? 'button' : undefined"
             :tabindex="isClickable(group) ? 0 : -1"
             :aria-expanded="isClickable(group) ? isTargetExpanded(getToggleTarget(group)) : undefined"
@@ -219,29 +219,29 @@
           >
             <span
               :class="[
-                'qpm_toggle_icon',
+                'mugin_toggle_icon',
                 {
-                  qpm_toggle_expanded: isTargetExpanded(getToggleTarget(group)),
-                  qpm_toggle_placeholder: !hasChildren(group),
+                  mugin_toggle_expanded: isTargetExpanded(getToggleTarget(group)),
+                  mugin_toggle_placeholder: !hasChildren(group),
                 },
               ]"
             >
-              <span class="qpm_toggle_plus">+</span>
-              <span class="qpm_toggle_minus">&minus;</span>
+              <span class="mugin_toggle_plus">+</span>
+              <span class="mugin_toggle_minus">&minus;</span>
             </span>
-            <div class="qpm_headingWithId">
-              <component :is="getHeadingTag(group)" class="qpm_heading">
+            <div class="mugin_headingWithId">
+              <component :is="getHeadingTag(group)" class="mugin_heading">
                 {{ customNameLabel(group) }}
               </component>
-              <span class="qpm_groupid">(ID: {{ group.id }})</span>
+              <span class="mugin_groupid">(ID: {{ group.id }})</span>
             </div>
           </div>
           <div
             v-if="!group.maintopic"
-            class="qpm_searchGroup qpm_collapsedSection qpm_searchSubject"
+            class="mugin_searchGroup mugin_collapsedSection mugin_searchSubject"
             :class="toClassName(group.id)"
           >
-            <table class="qpm_table">
+            <table class="mugin_table">
               <tr>
                 <th>{{ getString("scope") }}</th>
                 <th>{{ getString("searchString") }}</th>
@@ -254,13 +254,13 @@
                       distance: 5,
                       delay: $helpTextDelay,
                     }"
-                    class="qpm_button qpm_buttonColor1"
+                    class="mugin_button mugin_buttonColor1"
                   >
                     {{ getString("narrow") }}
                   </span>
                 </td>
                 <td lang="en">
-                  <p class="qpm_table_p">
+                  <p class="mugin_table_p">
                     <a
                       v-tooltip="{
                         content: getString('showPubMedLink'),
@@ -273,7 +273,7 @@
                     >
                       {{ trimSearchString(group.searchStrings.narrow) }}
                     </a>
-                    <span v-if="hasStandardSuffix(group, 'narrow')" class="qpm_standardSuffix">
+                    <span v-if="hasStandardSuffix(group, 'narrow')" class="mugin_standardSuffix">
                       AND
                       {{ getString("standardSearchStringLabel") }} ({{
                         getStandardScopeLabelLowercase(group, "narrow")
@@ -285,7 +285,7 @@
                           distance: 5,
                           delay: $helpTextDelay,
                         }"
-                        class="qpm_linkButton qpm_standardSuffixLink"
+                        class="mugin_linkButton mugin_standardSuffixLink"
                         :aria-expanded="isStandardExpanded(group, 'narrow')"
                         @click="toggleStandardExpanded(group, 'narrow')"
                       >
@@ -296,7 +296,7 @@
                       v-if="
                         hasStandardSuffix(group, 'narrow') && isStandardExpanded(group, 'narrow')
                       "
-                      class="qpm_standardSuffixValue"
+                      class="mugin_standardSuffixValue"
                     >
                       <a
                         v-tooltip="{
@@ -322,13 +322,13 @@
                       distance: 5,
                       delay: $helpTextDelay,
                     }"
-                    class="qpm_button qpm_buttonColor2"
+                    class="mugin_button mugin_buttonColor2"
                   >
                     {{ getString("normal") }}
                   </span>
                 </td>
                 <td lang="en">
-                  <p class="qpm_table_p">
+                  <p class="mugin_table_p">
                     <a
                       v-tooltip="{
                         content: getString('showPubMedLink'),
@@ -341,7 +341,7 @@
                     >
                       {{ trimSearchString(group.searchStrings.normal) }}
                     </a>
-                    <span v-if="hasStandardSuffix(group, 'normal')" class="qpm_standardSuffix">
+                    <span v-if="hasStandardSuffix(group, 'normal')" class="mugin_standardSuffix">
                       AND
                       {{ getString("standardSearchStringLabel") }} ({{
                         getStandardScopeLabelLowercase(group, "normal")
@@ -353,7 +353,7 @@
                           distance: 5,
                           delay: $helpTextDelay,
                         }"
-                        class="qpm_linkButton qpm_standardSuffixLink"
+                        class="mugin_linkButton mugin_standardSuffixLink"
                         :aria-expanded="isStandardExpanded(group, 'normal')"
                         @click="toggleStandardExpanded(group, 'normal')"
                       >
@@ -364,7 +364,7 @@
                       v-if="
                         hasStandardSuffix(group, 'normal') && isStandardExpanded(group, 'normal')
                       "
-                      class="qpm_standardSuffixValue"
+                      class="mugin_standardSuffixValue"
                     >
                       <a
                         v-tooltip="{
@@ -390,13 +390,13 @@
                       distance: 5,
                       delay: $helpTextDelay,
                     }"
-                    class="qpm_button qpm_buttonColor3"
+                    class="mugin_button mugin_buttonColor3"
                   >
                     {{ getString("broad") }}
                   </span>
                 </td>
                 <td lang="en">
-                  <p class="qpm_table_p">
+                  <p class="mugin_table_p">
                     <a
                       v-tooltip="{
                         content: getString('showPubMedLink'),
@@ -409,7 +409,7 @@
                     >
                       {{ trimSearchString(group.searchStrings.broad) }}
                     </a>
-                    <span v-if="hasStandardSuffix(group, 'broad')" class="qpm_standardSuffix">
+                    <span v-if="hasStandardSuffix(group, 'broad')" class="mugin_standardSuffix">
                       AND
                       {{ getString("standardSearchStringLabel") }} ({{
                         getStandardScopeLabelLowercase(group, "broad")
@@ -421,7 +421,7 @@
                           distance: 5,
                           delay: $helpTextDelay,
                         }"
-                        class="qpm_linkButton qpm_standardSuffixLink"
+                        class="mugin_linkButton mugin_standardSuffixLink"
                         :aria-expanded="isStandardExpanded(group, 'broad')"
                         @click="toggleStandardExpanded(group, 'broad')"
                       >
@@ -430,7 +430,7 @@
                     </span>
                     <span
                       v-if="hasStandardSuffix(group, 'broad') && isStandardExpanded(group, 'broad')"
-                      class="qpm_standardSuffixValue"
+                      class="mugin_standardSuffixValue"
                     >
                       <a
                         v-tooltip="{
@@ -461,29 +461,29 @@
           </div>
         </div>
       </div>
-      <div class="qpm_heading_limits">
+      <div class="mugin_heading_limits">
         <div
-          class="qpm_headingContainerFocus_h2 qpm_gallery_toggle"
+          class="mugin_headingContainerFocus_h2 mugin_gallery_toggle"
           role="button"
           tabindex="0"
-          :aria-expanded="isTargetExpanded('qpm_filterSearchStrings')"
-          data-target="qpm_filterSearchStrings"
-          @click="hideOrCollapse('qpm_filterSearchStrings')"
-          @keydown.enter.prevent="hideOrCollapse('qpm_filterSearchStrings')"
-          @keydown.space.prevent="hideOrCollapse('qpm_filterSearchStrings')"
+          :aria-expanded="isTargetExpanded('mugin_filterSearchStrings')"
+          data-target="mugin_filterSearchStrings"
+          @click="hideOrCollapse('mugin_filterSearchStrings')"
+          @keydown.enter.prevent="hideOrCollapse('mugin_filterSearchStrings')"
+          @keydown.space.prevent="hideOrCollapse('mugin_filterSearchStrings')"
         >
-          <span :class="['qpm_toggle_icon', { qpm_toggle_expanded: isTargetExpanded('qpm_filterSearchStrings') }]">
-            <span class="qpm_toggle_plus">+</span>
-            <span class="qpm_toggle_minus">&minus;</span>
+          <span :class="['mugin_toggle_icon', { mugin_toggle_expanded: isTargetExpanded('mugin_filterSearchStrings') }]">
+            <span class="mugin_toggle_plus">+</span>
+            <span class="mugin_toggle_minus">&minus;</span>
           </span>
-          <h2 class="qpm_heading">
+          <h2 class="mugin_heading">
             {{ getString("limits") }}
           </h2>
         </div>
       </div>
-      <div v-for="filter in getSortedLimits" :key="filter.id" class="qpm_filterSearchStrings">
+      <div v-for="filter in getSortedLimits" :key="filter.id" class="mugin_filterSearchStrings">
         <div
-          class="qpm_headingContainerFocus_h3 qpm_gallery_toggle"
+          class="mugin_headingContainerFocus_h3 mugin_gallery_toggle"
           role="button"
           tabindex="0"
           :aria-expanded="isTargetExpanded(toClassName(filter.id))"
@@ -492,34 +492,34 @@
           @keydown.enter.prevent="hideOrCollapse(toClassName(filter.id))"
           @keydown.space.prevent="hideOrCollapse(toClassName(filter.id))"
         >
-          <span :class="['qpm_toggle_icon', { qpm_toggle_expanded: isTargetExpanded(toClassName(filter.id)) }]">
-            <span class="qpm_toggle_plus">+</span>
-            <span class="qpm_toggle_minus">&minus;</span>
+          <span :class="['mugin_toggle_icon', { mugin_toggle_expanded: isTargetExpanded(toClassName(filter.id)) }]">
+            <span class="mugin_toggle_plus">+</span>
+            <span class="mugin_toggle_minus">&minus;</span>
           </span>
-          <div class="qpm_headingWithId">
-            <h3 class="qpm_heading">
+          <div class="mugin_headingWithId">
+            <h3 class="mugin_heading">
               {{ customNameLabel(filter) }}
             </h3>
-            <span class="qpm_groupid">(ID: {{ filter.id }})</span>
+            <span class="mugin_groupid">(ID: {{ filter.id }})</span>
           </div>
         </div>
         <div
           v-for="choice in filter.choices"
           :key="choice.id"
-          :class="['qpm_filterGroup', toClassName(filter.id), ...getAncestorClasses(choice)]"
+          :class="['mugin_filterGroup', toClassName(filter.id), ...getAncestorClasses(choice)]"
           :data-level="getItemLevel(choice)"
           :data-has-children="hasChildren(choice) ? '1' : '0'"
           :style="
             choice.subtopiclevel
               ? {
-                  '--qpm-group-indent': choice.subtopiclevel * 34 + 'px',
+                  '--mugin-group-indent': choice.subtopiclevel * 34 + 'px',
                   paddingLeft: choice.subtopiclevel * 34 + 'px',
                 }
               : {}
           "
         >
           <div
-            :class="['qpm_headingContainerFocus', isClickable(choice) ? 'qpm_gallery_toggle' : '']"
+            :class="['mugin_headingContainerFocus', isClickable(choice) ? 'mugin_gallery_toggle' : '']"
             :role="isClickable(choice) ? 'button' : undefined"
             :tabindex="isClickable(choice) ? 0 : -1"
             :aria-expanded="isClickable(choice) ? isTargetExpanded(getToggleTarget(choice)) : undefined"
@@ -530,29 +530,29 @@
           >
             <span
               :class="[
-                'qpm_toggle_icon',
+                'mugin_toggle_icon',
                 {
-                  qpm_toggle_expanded: isTargetExpanded(getToggleTarget(choice)),
-                  qpm_toggle_placeholder: !hasChildren(choice),
+                  mugin_toggle_expanded: isTargetExpanded(getToggleTarget(choice)),
+                  mugin_toggle_placeholder: !hasChildren(choice),
                 },
               ]"
             >
-              <span class="qpm_toggle_plus">+</span>
-              <span class="qpm_toggle_minus">&minus;</span>
+              <span class="mugin_toggle_plus">+</span>
+              <span class="mugin_toggle_minus">&minus;</span>
             </span>
-            <div class="qpm_headingWithId">
-              <component :is="getHeadingTag(choice)" class="qpm_heading">
+            <div class="mugin_headingWithId">
+              <component :is="getHeadingTag(choice)" class="mugin_heading">
                 {{ customNameLabel(choice) }}
               </component>
-              <span class="qpm_groupid">(ID: {{ choice.id }})</span>
+              <span class="mugin_groupid">(ID: {{ choice.id }})</span>
             </div>
           </div>
           <div
             v-if="!choice.maintopic"
-            class="qpm_filterGroup qpm_collapsedSection qpm_searchFilter"
+            class="mugin_filterGroup mugin_collapsedSection mugin_searchFilter"
             :class="toClassName(choice.id)"
           >
-            <table class="qpm_table">
+            <table class="mugin_table">
               <tr>
                 <th>{{ getString("scope") }}</th>
                 <th>{{ getString("searchString") }}</th>
@@ -565,13 +565,13 @@
                       distance: 5,
                       delay: $helpTextDelay,
                     }"
-                    class="qpm_button qpm_buttonColor1"
+                    class="mugin_button mugin_buttonColor1"
                   >
                     {{ getString("narrow") }}
                   </span>
                 </td>
                 <td lang="en">
-                  <p class="qpm_table_p">
+                  <p class="mugin_table_p">
                     <a
                       v-tooltip="{
                         content: getString('showPubMedLink'),
@@ -584,7 +584,7 @@
                     >
                       {{ trimSearchString(choice.searchStrings.narrow) }}
                     </a>
-                    <span v-if="hasStandardSuffix(choice, 'narrow')" class="qpm_standardSuffix">
+                    <span v-if="hasStandardSuffix(choice, 'narrow')" class="mugin_standardSuffix">
                       AND
                       {{ getString("standardSearchStringLabel") }} ({{
                         getStandardScopeLabelLowercase(choice, "narrow")
@@ -596,7 +596,7 @@
                           distance: 5,
                           delay: $helpTextDelay,
                         }"
-                        class="qpm_linkButton qpm_standardSuffixLink"
+                        class="mugin_linkButton mugin_standardSuffixLink"
                         :aria-expanded="isStandardExpanded(choice, 'narrow')"
                         @click="toggleStandardExpanded(choice, 'narrow')"
                       >
@@ -607,7 +607,7 @@
                       v-if="
                         hasStandardSuffix(choice, 'narrow') && isStandardExpanded(choice, 'narrow')
                       "
-                      class="qpm_standardSuffixValue"
+                      class="mugin_standardSuffixValue"
                     >
                       <a
                         v-tooltip="{
@@ -633,13 +633,13 @@
                       distance: 5,
                       delay: $helpTextDelay,
                     }"
-                    class="qpm_button qpm_buttonColor2"
+                    class="mugin_button mugin_buttonColor2"
                   >
                     {{ getString("normal") }}
                   </span>
                 </td>
                 <td lang="en">
-                  <p class="qpm_table_p">
+                  <p class="mugin_table_p">
                     <a
                       v-tooltip="{
                         content: getString('showPubMedLink'),
@@ -652,7 +652,7 @@
                     >
                       {{ trimSearchString(choice.searchStrings.normal) }}
                     </a>
-                    <span v-if="hasStandardSuffix(choice, 'normal')" class="qpm_standardSuffix">
+                    <span v-if="hasStandardSuffix(choice, 'normal')" class="mugin_standardSuffix">
                       AND
                       {{ getString("standardSearchStringLabel") }} ({{
                         getStandardScopeLabelLowercase(choice, "normal")
@@ -664,7 +664,7 @@
                           distance: 5,
                           delay: $helpTextDelay,
                         }"
-                        class="qpm_linkButton qpm_standardSuffixLink"
+                        class="mugin_linkButton mugin_standardSuffixLink"
                         :aria-expanded="isStandardExpanded(choice, 'normal')"
                         @click="toggleStandardExpanded(choice, 'normal')"
                       >
@@ -675,7 +675,7 @@
                       v-if="
                         hasStandardSuffix(choice, 'normal') && isStandardExpanded(choice, 'normal')
                       "
-                      class="qpm_standardSuffixValue"
+                      class="mugin_standardSuffixValue"
                     >
                       <a
                         v-tooltip="{
@@ -701,13 +701,13 @@
                       distance: 5,
                       delay: $helpTextDelay,
                     }"
-                    class="qpm_button qpm_buttonColor3"
+                    class="mugin_button mugin_buttonColor3"
                   >
                     {{ getString("broad") }}
                   </span>
                 </td>
                 <td lang="en">
-                  <p class="qpm_table_p">
+                  <p class="mugin_table_p">
                     <a
                       v-tooltip="{
                         content: getString('showPubMedLink'),
@@ -720,7 +720,7 @@
                     >
                       {{ trimSearchString(choice.searchStrings.broad) }}
                     </a>
-                    <span v-if="hasStandardSuffix(choice, 'broad')" class="qpm_standardSuffix">
+                    <span v-if="hasStandardSuffix(choice, 'broad')" class="mugin_standardSuffix">
                       AND
                       {{ getString("standardSearchStringLabel") }} ({{
                         getStandardScopeLabelLowercase(choice, "broad")
@@ -732,7 +732,7 @@
                           distance: 5,
                           delay: $helpTextDelay,
                         }"
-                        class="qpm_linkButton qpm_standardSuffixLink"
+                        class="mugin_linkButton mugin_standardSuffixLink"
                         :aria-expanded="isStandardExpanded(choice, 'broad')"
                         @click="toggleStandardExpanded(choice, 'broad')"
                       >
@@ -743,7 +743,7 @@
                       v-if="
                         hasStandardSuffix(choice, 'broad') && isStandardExpanded(choice, 'broad')
                       "
-                      class="qpm_standardSuffixValue"
+                      class="mugin_standardSuffixValue"
                     >
                       <a
                         v-tooltip="{
@@ -869,7 +869,7 @@
         this.resolvedCollapsedLevels = normalized;
       } else {
         const root =
-          document.getElementById("qpm-searchstrings") || document.getElementById("searchstrings");
+          document.getElementById("mugin-searchstrings") || document.getElementById("searchstrings");
         this.resolvedCollapsedLevels = this.normalizeCollapsedLevels(
           root?.dataset?.collapsedLevels || []
         );
@@ -1082,12 +1082,12 @@
         const classes = [];
         if (item.parentChain && item.parentChain.length > 0) {
           item.parentChain.forEach((ancestorId) => {
-            classes.push("qpm_child_of_" + this.toClassName(ancestorId));
+            classes.push("mugin_child_of_" + this.toClassName(ancestorId));
           });
         } else if (item.maintopicIdLevel1) {
-          classes.push("qpm_child_of_" + this.toClassName(item.maintopicIdLevel1));
+          classes.push("mugin_child_of_" + this.toClassName(item.maintopicIdLevel1));
           if (item.maintopicIdLevel2) {
-            classes.push("qpm_child_of_" + this.toClassName(item.maintopicIdLevel2));
+            classes.push("mugin_child_of_" + this.toClassName(item.maintopicIdLevel2));
           }
         }
         return classes;
@@ -1095,7 +1095,7 @@
       getToggleTarget(item) {
         // Maintopic items toggle their descendants; leaf items toggle their own content
         if (item.maintopic) {
-          return "qpm_child_of_" + this.toClassName(item.id);
+          return "mugin_child_of_" + this.toClassName(item.id);
         }
         return this.toClassName(item.id);
       },
@@ -1144,23 +1144,23 @@
 
         // Level 1: sections
         [
-          ...document.getElementsByClassName("qpm_standardSearchStrings"),
-          ...document.getElementsByClassName("qpm_subjectSearchStrings"),
-          ...document.getElementsByClassName("qpm_filterSearchStrings"),
+          ...document.getElementsByClassName("mugin_standardSearchStrings"),
+          ...document.getElementsByClassName("mugin_subjectSearchStrings"),
+          ...document.getElementsByClassName("mugin_filterSearchStrings"),
         ].forEach((el) => {
-          el.classList.toggle("qpm_collapsedSection", levels.includes(1));
+          el.classList.toggle("mugin_collapsedSection", levels.includes(1));
         });
 
         // All items: start collapsed
         const allGroups = [
-          ...document.getElementsByClassName("qpm_searchGroup"),
-          ...document.getElementsByClassName("qpm_filterGroup"),
+          ...document.getElementsByClassName("mugin_searchGroup"),
+          ...document.getElementsByClassName("mugin_filterGroup"),
         ];
-        allGroups.forEach((el) => el.classList.add("qpm_collapsedSection"));
+        allGroups.forEach((el) => el.classList.add("mugin_collapsedSection"));
 
         // If level 2 NOT in list: open all items, then enforce collapsed parents
         if (!levels.includes(2)) {
-          allGroups.forEach((el) => el.classList.remove("qpm_collapsedSection"));
+          allGroups.forEach((el) => el.classList.remove("mugin_collapsedSection"));
         }
 
         // Enforce collapsed parents at ALL levels (3, 4, 5, ...)
@@ -1170,9 +1170,9 @@
 
         // Search string tables always start collapsed
         [
-          ...document.getElementsByClassName("qpm_searchSubject"),
-          ...document.getElementsByClassName("qpm_searchFilter"),
-        ].forEach((el) => el.classList.add("qpm_collapsedSection"));
+          ...document.getElementsByClassName("mugin_searchSubject"),
+          ...document.getElementsByClassName("mugin_searchFilter"),
+        ].forEach((el) => el.classList.add("mugin_collapsedSection"));
 
         this.syncToggleIconsFromDom();
       },
@@ -1186,8 +1186,8 @@
         const toCheck = elements
           ? Array.from(elements)
           : [
-              ...document.getElementsByClassName("qpm_searchGroup"),
-              ...document.getElementsByClassName("qpm_filterGroup"),
+              ...document.getElementsByClassName("mugin_searchGroup"),
+              ...document.getElementsByClassName("mugin_filterGroup"),
             ];
 
         for (const el of toCheck) {
@@ -1205,7 +1205,7 @@
 
           const children = Array.from(document.getElementsByClassName(targetClass));
           for (const child of children) {
-            child.classList.add("qpm_collapsedSection");
+            child.classList.add("mugin_collapsedSection");
           }
         }
       },
@@ -1218,10 +1218,10 @@
           const targets = document.getElementsByClassName(targetClass);
           if (targets.length === 0) return;
           const isExpanded = Array.from(targets).some(
-            (el) => !el.classList.contains("qpm_collapsedSection")
+            (el) => !el.classList.contains("mugin_collapsedSection")
           );
-          const icon = toggle.querySelector(".qpm_toggle_icon");
-          if (icon) icon.classList.toggle("qpm_toggle_expanded", isExpanded);
+          const icon = toggle.querySelector(".mugin_toggle_icon");
+          if (icon) icon.classList.toggle("mugin_toggle_expanded", isExpanded);
         });
       },
       hideOrCollapse(className) {
@@ -1230,16 +1230,16 @@
         if (elements.length === 0) return;
 
         // Determine action from first element: if collapsed → open all, else → close all
-        const opening = elements[0].classList.contains("qpm_collapsedSection");
+        const opening = elements[0].classList.contains("mugin_collapsedSection");
 
         // Snapshot the elements (live HTMLCollection changes during enforcement)
         const snapshot = Array.from(elements);
 
         for (const item of snapshot) {
           if (opening) {
-            item.classList.remove("qpm_collapsedSection");
+            item.classList.remove("mugin_collapsedSection");
           } else {
-            item.classList.add("qpm_collapsedSection");
+            item.classList.add("mugin_collapsedSection");
           }
         }
 
@@ -1256,14 +1256,14 @@
         if (!Array.isArray(elements)) return;
         elements.forEach((el) => {
           if (!el || !el.classList) return;
-          el.classList.toggle("qpm_collapsedSection", collapsed);
+          el.classList.toggle("mugin_collapsedSection", collapsed);
         });
       },
       isTargetExpanded(className) {
         void this.toggleStateVersion;
         if (!className || typeof document === "undefined") return false;
         return Array.from(document.getElementsByClassName(className)).some(
-          (el) => !el.classList.contains("qpm_collapsedSection")
+          (el) => !el.classList.contains("mugin_collapsedSection")
         );
       },
       touchToggleState() {
@@ -1271,17 +1271,17 @@
       },
       toggleAll() {
         const allSections = [
-          ...document.getElementsByClassName("qpm_standardSearchStrings"),
-          ...document.getElementsByClassName("qpm_subjectSearchStrings"),
-          ...document.getElementsByClassName("qpm_filterSearchStrings"),
+          ...document.getElementsByClassName("mugin_standardSearchStrings"),
+          ...document.getElementsByClassName("mugin_subjectSearchStrings"),
+          ...document.getElementsByClassName("mugin_filterSearchStrings"),
         ];
         const allGroups = [
-          ...document.getElementsByClassName("qpm_searchGroup"),
-          ...document.getElementsByClassName("qpm_filterGroup"),
+          ...document.getElementsByClassName("mugin_searchGroup"),
+          ...document.getElementsByClassName("mugin_filterGroup"),
         ];
         const allTables = [
-          ...document.getElementsByClassName("qpm_searchSubject"),
-          ...document.getElementsByClassName("qpm_searchFilter"),
+          ...document.getElementsByClassName("mugin_searchSubject"),
+          ...document.getElementsByClassName("mugin_searchFilter"),
         ];
 
         if (this.isAllToggled) {
@@ -1337,7 +1337,7 @@
           return string;
         }
         const constant = messages[string][lg];
-        return constant !== undefined ? constant : messages[string]["en"];
+        return constant !== undefined ? constant : messages[string]["dk"];
       },
       customNameLabel(option) {
         if (!option?.translations && !option?.name && !option?.id) return;

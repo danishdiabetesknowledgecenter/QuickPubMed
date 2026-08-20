@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://quickpubmed.example/schemas/public-search-process-details.schema.json",
-  "title": "QuickPubMed process details",
+  "title": "Mugin Scholar process details",
   "type": "object",
   "additionalProperties": false,
   "required": [

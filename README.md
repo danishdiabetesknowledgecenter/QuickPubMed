@@ -1,6 +1,6 @@
-# QuickPubMed Web application
+# Mugin Scholar Web application
 
-This project contains the source code for the product QuickPubMed hosted on
+This project contains the source code for the product Mugin Scholar hosted on
 [videncenterfordiabetes.dk](https://videncenterfordiabetes.dk/)
 
 ![Latest deployment status](https://github.com/danishdiabetesknowledgecenter/QuickPubMed/actions/workflows/main.yml/badge.svg)
@@ -63,23 +63,33 @@ Public build assets for widgets are emitted in lowercase and should be reference
 - `assets/references.js`
 - `assets/editor.js`
 
-CMS mount containers should use `qpm-` prefixed selectors to avoid collisions:
-- SearchForm: `class="qpm-searchform"` + `id="qpm-searchform-<n>"`
-- SearchStrings: `id="qpm-searchstrings"` + `class="qpm-searchstrings"`
-- References: `class="qpm-references"` + `id="qpm-references-<n>"`
-- Editor: `id="qpm-editor"` + `class="qpm-editor"`
+CMS mount containers should use `mugin-` prefixed selectors to avoid collisions:
+- SearchForm: `class="mugin-searchform"` + `id="mugin-searchform-<n>"`
+- SearchStrings: `id="mugin-searchstrings"` + `class="mugin-searchstrings"`
+- References: `class="mugin-references"` + `id="mugin-references-<n>"`
+- Editor: `id="mugin-editor"` + `class="mugin-editor"`
 
 #### Local dev API modes (backend)
 
 For local frontend development, you can use one of these API modes:
 
 - **Recommended (local backend via Vite proxy)**  
-  Run `start-qpm.bat` or start PHP manually as shown below, then set `VITE_API_PROXY_URL="/backend"` in `.env`.  
+  Start the local PHP server as shown below, then set `VITE_API_PROXY_URL="/backend"` in `.env`.  
   Vite proxies `/backend/*` to `VITE_BACKEND_PROXY_TARGET` (default `http://127.0.0.1:8080`). The Vite proxy is for local development only and is not a production security control.
 
 - **Local PHP backend**  
   Set `VITE_API_PROXY_URL="http://127.0.0.1:8080/backend"` in `.env` if the browser should call PHP directly instead of through Vite.  
   This requires a local PHP runtime with `openssl` and `curl` enabled.
+
+#### Public Search API (brief)
+
+Partner/integration search lives under `public-api/` (not `backend/api`):
+
+- `POST|GET /v1/search` — same orchestrator as the web widget (`muginPublicSearchRunSearch`)
+- `GET /v1/health`
+- `GET /v1/openapi.yaml`
+
+Auth is `X-API-Key` (or Bearer). Docs: `backend/docs/public-search-api.md`. The first-party widget uses `backend/api/UnifiedSearch.php` instead (CORS allowlist, no partner API key).
 
 #### Runtime content and domain-specific rules
 
@@ -110,7 +120,7 @@ Example:
 
 ```html
 <div
-  class="qpm-searchform"
+  class="mugin-searchform"
   data-domain=""
   data-standard-string-add="true"
   data-standard-string="diabet*[tiab]"
@@ -131,8 +141,8 @@ Use one convention per file type and keep it consistent:
 
 Additional rules:
 
-- Do **not** use `qpm-` prefix for new frontend content/prompt/helper files.
-- Runtime topics/standardString are loaded from backend runtime content only; no local `qpm-content-topics-*` fallback is used.
+- Do **not** use `mugin-` prefix for new frontend content/prompt/helper files.
+- Runtime topics/standardString are loaded from backend runtime content only; no local `mugin-content-topics-*` fallback is used.
 
 ### Backend project
 
@@ -272,7 +282,7 @@ Maintaining consistent code quality and style is essential for collaborative dev
 
 Should there be any issues running commands for npm or php, make sure the terminal is started with sufficient rights, and that you've restarted the system after installing required packages.
 
-If a wrong version of something is installed this might cause issues. You can check the version of node or dotnet by appending " --version" to the name of the tool.
+If a wrong version of something is installed this might cause issues. You can check the version of Node or PHP by appending ` --version` to the tool name (e.g. `node --version`, `php --version`).
 
 #### Tools Used
 

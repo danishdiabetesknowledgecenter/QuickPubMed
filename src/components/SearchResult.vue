@@ -1,19 +1,19 @@
 <!-- eslint-disable vue/no-v-html -->
 <template>
-  <div ref="searchResult" class="qpm_SearchResult">
+  <div ref="searchResult" class="mugin_SearchResult">
     <!-- Screen-reader only live region. Announces loading status text
          (e.g. "Søger i PubMed…") so assistive tech users hear progress
          updates without needing to move focus. Visually hidden. -->
-    <div class="qpm_srOnly" aria-live="polite" aria-atomic="true">{{ loading ? loadingStatusText : "" }}</div>
-    <div class="qpm_srOnly" aria-live="polite" aria-atomic="true">
+    <div class="mugin_srOnly" aria-live="polite" aria-atomic="true">{{ loading ? loadingStatusText : "" }}</div>
+    <div class="mugin_srOnly" aria-live="polite" aria-atomic="true">
       {{ degradedSearchSummaryAnnouncement }}
     </div>
-    <div v-if="showLoadingProcessList" class="qpm_searchProcessWrapper">
-      <p class="qpm_advancedSearch qpm_searchProcessToggleLink">
+    <div v-if="showLoadingProcessList" class="mugin_searchProcessWrapper">
+      <p class="mugin_advancedSearch mugin_searchProcessToggleLink">
         <button
           ref="processBoxToggleButton"
           type="button"
-          class="qpm_linkButton qpm_linkButtonAsAnchor"
+          class="mugin_linkButton mugin_linkButtonAsAnchor"
           :aria-expanded="isProcessBoxExpanded"
           :aria-controls="`${srLabelUid}-process`"
           @click="toggleProcessBox"
@@ -33,33 +33,33 @@
           v-show="isProcessBoxExpanded"
           :id="`${srLabelUid}-process`"
           ref="processBoxBody"
-          class="qpm_searchProcessBox qpm_searchProcessCollapseBody qpm_box"
+          class="mugin_searchProcessBox mugin_searchProcessCollapseBody mugin_box"
           :aria-hidden="!isProcessBoxExpanded ? 'true' : null"
           :inert="!isProcessBoxExpanded ? '' : null"
         >
-          <div class="qpm_searchProcessContent">
-            <ul v-if="groupedProcessSteps.length > 0" class="qpm_searchProcessList">
+          <div class="mugin_searchProcessContent">
+            <ul v-if="groupedProcessSteps.length > 0" class="mugin_searchProcessList">
               <li
                 v-for="group in groupedProcessSteps"
                 :key="group.id"
-                :class="['qpm_searchProcessGroup', `is-${group.status || 'pending'}`]"
+                :class="['mugin_searchProcessGroup', `is-${group.status || 'pending'}`]"
               >
-                <div class="qpm_searchProcessGroupLabel">
+                <div class="mugin_searchProcessGroupLabel">
                   {{ group.label }}
-                  <span v-if="getProcessStatusText(group.status)" class="qpm_srOnly">
+                  <span v-if="getProcessStatusText(group.status)" class="mugin_srOnly">
                     {{ getProcessStatusText(group.status) }}
                   </span>
                 </div>
-                <ul v-if="group.showChildren" class="qpm_searchProcessSubList">
+                <ul v-if="group.showChildren" class="mugin_searchProcessSubList">
                   <li
                     v-for="step in group.children"
                     :key="step.id"
-                    :class="['qpm_searchProcessItem', `is-${step.status || 'pending'}`]"
+                    :class="['mugin_searchProcessItem', `is-${step.status || 'pending'}`]"
                   >
-                    <div class="qpm_searchProcessRow">
+                    <div class="mugin_searchProcessRow">
                       <span
                         :class="[
-                          'qpm_searchProcessDuration',
+                          'mugin_searchProcessDuration',
                           { 'is-placeholder': !shouldShowProcessStepDuration(step) },
                         ]"
                         :aria-hidden="!shouldShowProcessStepDuration(step) ? 'true' : null"
@@ -67,12 +67,12 @@
                       >
                         {{ shouldShowProcessStepDuration(step) ? formatProcessStepDuration(step) : "" }}
                       </span>
-                      <div class="qpm_searchProcessBody">
-                        <span class="qpm_searchProcessLabel"
-                          >{{ getProcessStepLabel(step) }}<span class="qpm_searchProcessDots" aria-hidden="true">{{
+                      <div class="mugin_searchProcessBody">
+                        <span class="mugin_searchProcessLabel"
+                          >{{ getProcessStepLabel(step) }}<span class="mugin_searchProcessDots" aria-hidden="true">{{
                             getProcessStepDots(step)
                           }}</span>
-                          <span v-if="getProcessStatusText(step.status)" class="qpm_srOnly">
+                          <span v-if="getProcessStatusText(step.status)" class="mugin_srOnly">
                             {{ getProcessStatusText(step.status) }}
                           </span></span
                         >
@@ -84,7 +84,7 @@
                             hasProcessStepExpandableContent(step)
                           "
                           type="button"
-                          class="qpm_linkButton qpm_linkButtonAsAnchor qpm_searchProcessSourceToggle"
+                          class="mugin_linkButton mugin_linkButtonAsAnchor mugin_searchProcessSourceToggle"
                           :aria-expanded="isSourceQueryExpanded(step.id)"
                           :aria-controls="getProcessDetailPanelId(step.id)"
                           :aria-label="getProcessToggleAriaLabel(step)"
@@ -108,100 +108,100 @@
                       "
                       v-show="isSourceQueryExpanded(step.id)"
                       :id="getProcessDetailPanelId(step.id)"
-                      class="qpm_searchProcessQuery"
+                      class="mugin_searchProcessQuery"
                       :aria-hidden="!isSourceQueryExpanded(step.id) ? 'true' : null"
                       :inert="!isSourceQueryExpanded(step.id) ? '' : null"
                     >
-                      <div class="qpm_searchProcessQueryPanel">
+                      <div class="mugin_searchProcessQueryPanel">
                         <p
                           v-if="getProcessStepExplanation(step)"
-                          class="qpm_searchProcessStepExplanation"
+                          class="mugin_searchProcessStepExplanation"
                         >
                           {{ getProcessStepExplanation(step) }}
                         </p>
                         <div
                           v-if="getProcessStepMetrics(step).length > 0"
-                          class="qpm_searchProcessStepMetrics"
+                          class="mugin_searchProcessStepMetrics"
                         >
-                          <div class="qpm_searchProcessQueryLabel">
+                          <div class="mugin_searchProcessQueryLabel">
                             {{ getString("semanticSearchProcessMetricsTitle") }}
                           </div>
-                          <ul class="qpm_searchProcessMetricsList">
+                          <ul class="mugin_searchProcessMetricsList">
                             <li
                               v-for="metric in getProcessStepMetrics(step)"
                               :key="`${step.id}-metric-${metric.labelKey}`"
-                              class="qpm_searchProcessMetricsItem"
+                              class="mugin_searchProcessMetricsItem"
                             >
-                              <span class="qpm_searchProcessMetricLabel">{{ getString(metric.labelKey) }}</span>
-                              <span class="qpm_searchProcessMetricValue">{{ metric.value }}</span>
+                              <span class="mugin_searchProcessMetricLabel">{{ getString(metric.labelKey) }}</span>
+                              <span class="mugin_searchProcessMetricValue">{{ metric.value }}</span>
                             </li>
                           </ul>
                         </div>
                         <div
                           v-if="getProcessStepDetailExplanation(step)"
-                          class="qpm_searchProcessStepDetailExplanation"
+                          class="mugin_searchProcessStepDetailExplanation"
                         >
-                          <div class="qpm_searchProcessQueryLabel">
+                          <div class="mugin_searchProcessQueryLabel">
                             {{ getString("semanticSearchProcessDetailExplanationTitle") }}
                           </div>
-                          <p class="qpm_searchProcessStepExplanation">
+                          <p class="mugin_searchProcessStepExplanation">
                             {{ getProcessStepDetailExplanation(step) }}
                           </p>
                         </div>
                         <div
                           v-if="getProcessStatusText(step.status)"
-                          class="qpm_searchProcessQueryEntry"
+                          class="mugin_searchProcessQueryEntry"
                         >
-                          <div class="qpm_searchProcessQueryLabel">
+                          <div class="mugin_searchProcessQueryLabel">
                             {{ getString("degradedSearchSummaryTitle") }}
                           </div>
-                          <p class="qpm_searchProcessStatusNote">
+                          <p class="mugin_searchProcessStatusNote">
                             {{ getProcessStepStatusNote(step) }}
                           </p>
                         </div>
                         <div
                           v-for="(detail, queryIndex) in getSourceQueryDetailsForStep(step)"
                           :key="`${step.id}-${queryIndex}-${detail.query}`"
-                          class="qpm_searchProcessQueryEntry"
+                          class="mugin_searchProcessQueryEntry"
                         >
                           <div
                             v-if="detail.context"
-                            class="qpm_searchProcessQueryContext"
+                            class="mugin_searchProcessQueryContext"
                           >
                             {{ detail.context }}
                           </div>
-                          <div class="qpm_searchProcessQueryLabel">
+                          <div class="mugin_searchProcessQueryLabel">
                             {{ getString("searchProcessSourceQueryLabel") }}
                           </div>
-                          <pre class="qpm_searchProcessQueryText">{{ detail.query }}</pre>
+                          <pre class="mugin_searchProcessQueryText">{{ detail.query }}</pre>
                           <template v-if="getFormattedSourceRequest(detail)">
-                            <div class="qpm_searchProcessQueryLabel">
+                            <div class="mugin_searchProcessQueryLabel">
                               {{ getString("searchProcessSourceRequestLabel") }}
                             </div>
-                            <pre class="qpm_searchProcessQueryText">{{ getFormattedSourceRequest(detail) }}</pre>
+                            <pre class="mugin_searchProcessQueryText">{{ getFormattedSourceRequest(detail) }}</pre>
                           </template>
                           <template v-if="getFormattedSourceResponse(detail)">
-                            <div class="qpm_searchProcessQueryLabel">
+                            <div class="mugin_searchProcessQueryLabel">
                               {{ getString("searchProcessSourceResponseLabel") }}
                             </div>
-                            <pre class="qpm_searchProcessQueryText">{{ getFormattedSourceResponse(detail) }}</pre>
+                            <pre class="mugin_searchProcessQueryText">{{ getFormattedSourceResponse(detail) }}</pre>
                           </template>
                         </div>
                         <div
                           v-for="(detail, detailIndex) in getProcessStepDetailsForStep(step)"
                           :key="`${step.id}-detail-${detailIndex}`"
-                          class="qpm_searchProcessQueryEntry"
+                          class="mugin_searchProcessQueryEntry"
                         >
                           <div
                             v-if="detail.context"
-                            class="qpm_searchProcessQueryContext"
+                            class="mugin_searchProcessQueryContext"
                           >
                             {{ detail.context }}
                           </div>
-                          <div class="qpm_searchProcessQueryLabel">
+                          <div class="mugin_searchProcessQueryLabel">
                             {{ detail.label || getString("showDetails") }}
                           </div>
-                          <pre class="qpm_searchProcessQueryText">{{ getFormattedProcessStepDetail(detail) }}</pre>
+                          <pre class="mugin_searchProcessQueryText">{{ getFormattedProcessStepDetail(detail) }}</pre>
                         </div>
                       </div>
                     </div>
@@ -209,36 +209,36 @@
                 </ul>
               </li>
             </ul>
-            <div v-if="shouldShowProcessTotalTime" class="qpm_searchProcessTotalTime">
+            <div v-if="shouldShowProcessTotalTime" class="mugin_searchProcessTotalTime">
               {{ formatProcessTotalTime }}
             </div>
           </div>
         </div>
       </transition>
     </div>
-    <div v-if="results && results.length > 0" class="qpm_accordions">
+    <div v-if="results && results.length > 0" class="mugin_accordions">
       <!-- Accordion menu for using the AI summaries of abstracts from marked result entries -->
       <accordion-menu
         v-if="config.useAI"
-        class="qpm_ai_hide"
+        class="mugin_ai_hide"
         @expanded-changed="onAiSummariesAccordionStateChange"
       >
         <template #header="accordionProps">
-          <div class="qpm_aiAccordionHeader">
-            <div class="qpm_aiHeaderRow">
-              <div class="qpm_aiHeaderLeft">
+          <div class="mugin_aiAccordionHeader">
+            <div class="mugin_aiHeaderRow">
+              <div class="mugin_aiHeaderLeft">
                 <div>
                   <i
                   class="ri-sparkling-fill"
                   aria-hidden="true"
                   />
                 </div>
-                <div class="qpm_aiHeaderTitleWrap">
+                <div class="mugin_aiHeaderTitleWrap">
                   <strong>
                     <template v-if="getSelectedResultsAccordionHeaderParts().prefix">
                       {{ getSelectedResultsAccordionHeaderParts().prefix }}
                     </template>
-                    <span class="qpm_keepWithIcon">
+                    <span class="mugin_keepWithIcon">
                       {{ getSelectedResultsAccordionHeaderParts().last }}
                       <button
                         type="button"
@@ -248,7 +248,7 @@
                           delay: $helpTextDelay,
                           theme: 'infoTooltip',
                         }"
-                        class="bx bx-info-circle qpm_infoIcon"
+                        class="bx bx-info-circle mugin_infoIcon"
                         :aria-label="getString('infoAiSummariesLabel')"
                       />
                     </span>
@@ -258,12 +258,12 @@
               <div>
                 <i
                   v-if="accordionProps.expanded"
-                  class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
+                  class="bx bx-chevron-up mugin_aiAccordionHeaderArrows"
                   aria-hidden="true"
                 />
                 <i 
                   v-else 
-                  class="bx bx-chevron-down qpm_aiAccordionHeaderArrows" 
+                  class="bx bx-chevron-down mugin_aiAccordionHeaderArrows" 
                   aria-hidden="true"
                 />
               </div>
@@ -274,14 +274,14 @@
           <div>
               <div
                 v-if="!hasAcceptedAi"
-                class="qpm_searchSummaryText qpm_searchSummaryTextBackground"
+                class="mugin_searchSummaryText mugin_searchSummaryTextBackground"
               >
                 <p>{{ getString("aiSearchSummaryConsentHeader") }}</p>
                 <p v-if="hasNoSelectedArticles">
                   <span v-html="sanitizeHtml(getString('aiSearchSummaryConsentHeaderTextBefore'))"></span>
                   <select
                     v-model="defaultSummaryCount"
-                    class="qpm_summaryCountSelect"
+                    class="mugin_summaryCountSelect"
                     @change="hasManualSummaryCountSelection = true"
                   >
                     <option v-for="n in Math.min(maxSummaryArticles, 25)" :key="n" :value="n">
@@ -312,7 +312,7 @@
                     distance: 5,
                     delay: $helpTextDelay,
                   }"
-                  class="qpm_button qpm_summaryButton"
+                  class="mugin_button mugin_summaryButton"
                   @click="clickAcceptAi(prompt)"
                 >
                   <i
@@ -321,7 +321,7 @@
                   />
                   {{ getTranslation(prompt) }}
                 </button>
-                <p class="qpm_summaryDisclaimer" v-html="sanitizeHtml(getString('aiSummaryConsentText'))" />
+                <p class="mugin_summaryDisclaimer" v-html="sanitizeHtml(getString('aiSummaryConsentText'))" />
               </div>
 
               <!-- AI summaries of abstracts from inside multiple search results (summarize-article hidden with flag show-summarize-article=false)-->
@@ -360,12 +360,12 @@
         @after-open="handleArticlesAccordionAfterOpen"
       >
         <template #header="accordionProps">
-          <div class="qpm_aiAccordionHeader">
-            <div class="qpm_selectedHeaderOuter">
+          <div class="mugin_aiAccordionHeader">
+            <div class="mugin_selectedHeaderOuter">
               <div
-                class="qpm_selectedHeaderInner"
+                class="mugin_selectedHeaderInner"
               >
-                <div class="qpm_infoInline">
+                <div class="mugin_infoInline">
                   <i
                     class="bx bx-check-square"
                     aria-hidden="true"
@@ -374,7 +374,7 @@
                     <template v-if="getSelectedResultTitleParts().prefix">
                       {{ getSelectedResultTitleParts().prefix }}
                     </template>
-                    <span class="qpm_keepWithIcon">
+                    <span class="mugin_keepWithIcon">
                       {{ getSelectedResultTitleParts().last }}
                       <button
                         v-if="!config.useAI"
@@ -385,7 +385,7 @@
                           delay: $helpTextDelay,
                           theme: 'infoTooltip',
                         }"
-                        class="bx bx-info-circle qpm_infoIcon"
+                        class="bx bx-info-circle mugin_infoIcon"
                         :aria-label="getString('infoSelectedResultsLabel')"
                       />
                       <button
@@ -397,7 +397,7 @@
                           delay: $helpTextDelay,
                           theme: 'infoTooltip',
                         }"
-                        class="bx bx-info-circle qpm_infoIcon"
+                        class="bx bx-info-circle mugin_infoIcon"
                         :aria-label="getString('infoSelectedResultsAiLabel')"
                       />
                     </span>
@@ -410,17 +410,17 @@
                       distance: 5,
                       delay: $helpTextDelay,
                     }"
-                    class="qpm_markedArticleCounter"
+                    class="mugin_markedArticleCounter"
                     :aria-label="getString('hovermarkedArticleCounter')"
                   >
                     <span>{{ selectedEntriesCount }}&nbsp;</span>
                     <span 
                       v-if="selectedEntriesCount === 1"
-                      class="qpm_markedArticleCounterText qpm_hideonmobile"
+                      class="mugin_markedArticleCounterText mugin_hideonmobile"
                     >{{ getString("aiSearchSummarySelectedArticlesAfterSingular") }}</span>
                     <span 
                       v-if="selectedEntriesCount > 1 || selectedEntriesCount === 0"
-                      class="qpm_markedArticleCounterText qpm_hideonmobile"
+                      class="mugin_markedArticleCounterText mugin_hideonmobile"
                     >{{ getString("aiSearchSummarySelectedArticlesAfterPlural") }}</span>
                   </div>
                 </div>
@@ -428,12 +428,12 @@
               <div>
                 <i
                   v-if="accordionProps.expanded"
-                  class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
+                  class="bx bx-chevron-up mugin_aiAccordionHeaderArrows"
                     aria-hidden="true"
                 />
                 <i 
                   v-else 
-                  class="bx bx-chevron-down qpm_aiAccordionHeaderArrows" 
+                  class="bx bx-chevron-down mugin_aiAccordionHeaderArrows" 
                     aria-hidden="true"
                 />
               </div>  
@@ -442,7 +442,7 @@
         </template>
         <template #default>
           <div 
-            class="list-fade-item qpm_selectedResultDeselectAllWrapper"
+            class="list-fade-item mugin_selectedResultDeselectAllWrapper"
             name="transition-item-0"
           >
             <div>
@@ -451,9 +451,9 @@
                   aria-hidden="true"
               />
               <button
-                id="qpm_selectedResultDeselectAll"
+                id="mugin_selectedResultDeselectAll"
                 type="button"
-                class="qpm_button qpm_selectArticleCheckbox"
+                class="mugin_button mugin_selectArticleCheckbox"
                 :disabled="hasNoSelectedArticles"
                 v-tooltip="getHasSelectedArticles ? {
                   content: getString('hoverselectedResultDeselectAllText'),
@@ -464,9 +464,23 @@
               >
                 {{ getString("selectedResultDeselectAllText") }}
               </button>
+              <button
+                id="mugin_selectedResultDownloadRis"
+                type="button"
+                class="mugin_button mugin_selectArticleCheckbox"
+                :disabled="hasNoSelectedArticles"
+                v-tooltip="getHasSelectedArticles ? {
+                  content: getString('hoverselectedResultDownloadRisText'),
+                  distance: 5,
+                  delay: $helpTextDelay,
+                } : null"
+                @click="onDownloadSelectedRis"
+              >
+                {{ getString("selectedResultDownloadRisText") }}
+              </button>
             </div>
             <div
-              class="qpm_searchSummaryText qpm_searchSummaryTextBackground"
+              class="mugin_searchSummaryText mugin_searchSummaryTextBackground"
               v-if="hasNoSelectedArticles"
               v-html="sanitizeHtml(getString('selectedResultEmptyText'))"
             />
@@ -513,24 +527,24 @@
 
     <h2
       v-if="results && results.length > 0 && total > 0"
-      class="h3 qpm_searchResultHeading"
+      class="h3 mugin_searchResultHeading"
     >
       {{ getString("searchresult") }}
     </h2>
     <div
       v-if="results && results.length > 0 && total > 0"
-      class="qpm_searchHeader qpm_spaceEvenly"
+      class="mugin_searchHeader mugin_spaceEvenly"
     >
-      <p class="qpm_nomargin qpm_searchResultCount" aria-live="polite" aria-atomic="true">
+      <p class="mugin_nomargin mugin_searchResultCount" aria-live="polite" aria-atomic="true">
         {{ getString("showing") }} {{ 1 }}-{{ results.length }}
         {{ getString("of") }}
         <span
           ><strong>{{ getPrettyTotal }}</strong> {{ getString("searchMatches") }}</span
         >
       </p>
-      <div v-if="results && results.length !== 0" class="qpm_searchHeaderSort qpm_spaceEvenly">
-        <div class="qpm_sortSelect qpm_sortSelectSpacing">
-          <span :id="`${srLabelUid}-sort`" class="qpm_srOnly">{{ getString('sortBy') }}</span>
+      <div v-if="results && results.length !== 0" class="mugin_searchHeaderSort mugin_spaceEvenly">
+        <div class="mugin_sortSelect mugin_sortSelectSpacing">
+          <span :id="`${srLabelUid}-sort`" class="mugin_srOnly">{{ getString('sortBy') }}</span>
           <select :value="currentSortMethod" :aria-labelledby="`${srLabelUid}-sort`" @change="handleSortMethodChange">
             <option v-for="sorter in getOrderMethods" :key="sorter.id" :value="sorter.method">
               {{ getTranslation(sorter) }}
@@ -538,8 +552,8 @@
           </select>
         </div>
 
-        <div class="qpm_sortSelect qpm_spaceEvenly">
-          <span :id="`${srLabelUid}-pagesize`" class="qpm_srOnly">{{ getString('pagesizePerPage') }}</span>
+        <div class="mugin_sortSelect mugin_spaceEvenly">
+          <span :id="`${srLabelUid}-pagesize`" class="mugin_srOnly">{{ getString('pagesizePerPage') }}</span>
           <select :aria-labelledby="`${srLabelUid}-pagesize`" @change="changePageNumber($event)">
             <option
               v-for="size in getPageSizeProps"
@@ -555,35 +569,35 @@
     </div>
     <div v-if="results && results.length === 0">
       <h3 class="h3"><br />{{ getString("noResult") }}</h3>
-      <p>{{ getString("noResultTip") }}</p>
+      <p>{{ getString(emptyResultTipKey) }}</p>
     </div>
     <div
-      class="qpm_compactLoadingRegion"
+      class="mugin_compactLoadingRegion"
     >
       <div
         v-if="results && results.length > 0 && shouldShowCompactLoadingOverlay"
-        class="qpm_compactLoadingOverlay"
+        class="mugin_compactLoadingOverlay"
       >
         <loading-spinner
           :loading="true"
           :wait-text="compactOverlayLoadingText"
-          class="qpm_compactLoadingSpinner"
+          class="mugin_compactLoadingSpinner"
           :size="32"
         />
       </div>
       <div
         ref="resultsBodyWrapper"
-        :class="{ 'qpm_compactLoadingHidden': shouldHideResultsDuringCompactLoading }"
+        :class="{ 'mugin_compactLoadingHidden': shouldHideResultsDuringCompactLoading }"
       >
-        <div class="qpm_resultEntriesLayer">
-          <span id="qpm_selectArticleCheckboxDescription" class="qpm_srOnly">
+        <div class="mugin_resultEntriesLayer">
+          <span id="mugin_selectArticleCheckboxDescription" class="mugin_srOnly">
             {{ getString("selectArticleCheckboxDescription") }}
           </span>
-          <ul class="qpm_resetList qpm_resultEntriesList">
+          <ul class="mugin_resetList mugin_resultEntriesList">
             <li
               v-for="(value, index) in getShownSearchResults"
               :key="getResultId(value) || `result-${index}`"
-              class="qpm_ResultEntryWrapper"
+              class="mugin_ResultEntryWrapper"
             >
               <result-entry
                 :id="getResultId(value)"
@@ -624,25 +638,25 @@
             v-if="!compactLoadingUi"
             :loading="loading"
             :wait-text="showLoadingProcessList ? '' : loadingStatusText"
-            class="qpm_searchMore"
+            class="mugin_searchMore"
             :size="44"
           />
-          <div v-if="error !== null && error !== undefined" class="qpm_flex">
-            <div class="qpm_errorBox" role="alert" aria-live="assertive">
+          <div v-if="error !== null && error !== undefined" class="mugin_flex">
+            <div class="mugin_errorBox" role="alert" aria-live="assertive">
               {{ error.message ?? error.toString() }}
             </div>
           </div>
         </div>
         <div
           v-if="total > 0"
-          class="qpm_flex qpm_paginationContainer"
+          class="mugin_flex mugin_paginationContainer"
         >
           <button
             v-if="results && results.length < total"
             type="button"
             :disabled="highDisabled"
-            :class="{ qpm_disabled: highDisabled }"
-            class="qpm_button qpm_dark"
+            :class="{ mugin_disabled: highDisabled }"
+            class="mugin_button mugin_dark"
             @click="next"
           >
             <span>{{ getString("next") }}</span>
@@ -650,18 +664,18 @@
           </button>
           <div
             v-if="compactLoadingUi && !hideResultsDuringCompactLoading && loading"
-            class="qpm_paginationInlineSpinner"
+            class="mugin_paginationInlineSpinner"
           >
             <loading-spinner
               :loading="loading"
               :wait-text="loadingStatusText"
-              class="qpm_searchMore"
+              class="mugin_searchMore"
               :size="32"
             />
           </div>
           <p
             v-if="Array.isArray(results) && (!loading || (high && total))"
-            class="qpm_nomargin qpm_shownumber"
+            class="mugin_nomargin mugin_shownumber"
           >
             {{ getString("showing") }} 1-{{ results.length }} {{ getString("of") }}
             <span
@@ -683,6 +697,7 @@
   import SummarizeAbstract from "@/components/SummarizeAbstract.vue";
   import { order } from "@/assets/content/order.js";
   import { summarizeMultipleAbstractPrompt } from "@/assets/prompts/abstract";
+  import { applyOpenAiTaskSettingsToList } from "@/utils/openAiTaskSettings.js";
   import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
   import { appSettingsMixin, eventBus } from "@/mixins/appSettings";
   import { utilitiesMixin } from "@/mixins/utilities";
@@ -701,6 +716,7 @@
     hasAbstractAttribute,
     parsePubMedXml,
   } from "@/utils/componentHelpers";
+  import { buildRisFile, downloadRisFile } from "@/utils/risExport.js";
 
   export default {
     name: "SearchResult",
@@ -762,6 +778,10 @@
         type: String,
         default: "",
       },
+      searchWithAI: {
+        type: Boolean,
+        default: true,
+      },
       loadingStatusText: {
         type: String,
         default: "",
@@ -769,6 +789,10 @@
       loadingProcessSteps: {
         type: Array,
         default: () => [],
+      },
+      selectedSourceCount: {
+        type: Number,
+        default: 0,
       },
       searchProcessElapsedMs: {
         type: Number,
@@ -797,7 +821,7 @@
     },
     data() {
       return {
-        srLabelUid: `qpm-sr-${Math.random().toString(36).slice(2, 10)}`,
+        srLabelUid: `mugin-sr-${Math.random().toString(36).slice(2, 10)}`,
         hasAcceptedAi: false,
         initialAiTab: null,
         defaultSummaryCount: 0,
@@ -857,6 +881,9 @@
             messageKey: String(entry.messageKey || "").trim(),
             message: String(entry.message || "").trim(),
           }));
+      },
+      emptyResultTipKey() {
+        return this.searchWithAI === false ? "noResultTipAiOff" : "noResultTip";
       },
       degradedSearchSummaryAnnouncement() {
         if (this.visibleDegradedSearchSummary.length === 0) {
@@ -935,36 +962,75 @@
         return this.visibleLoadingProcessSteps.some((step) => String(step?.status || "").trim() === "current");
       },
       groupedProcessSteps() {
-        const groupDefinitions = [
-          {
-            id: "prepare",
-            label: this.getString("semanticSearchProcessGroupPrepare"),
-            childIds: ["semanticIntent", "semanticQuery", "searchString", "mesh"],
-          },
-          {
-            id: "sources",
-            label: this.getString("semanticSearchProcessGroupSources"),
-            childIds: ["pubmed", "semanticScholar", "openAlex", "elicit"],
-          },
-          {
-            id: "match",
-            label: this.getString("semanticSearchProcessGroupMatch"),
-            childIds: [
-              "rerank",
-              "finalizeValidatePmid",
-              "finalizeValidateDoiFetch",
-            ],
-          },
-          {
-            id: "finalizeHydrate",
-            label: this.getString("semanticSearchProcessGroupDisplay"),
-            childIds: [
-              "finalizeHydrate",
-              "finalizeSort",
-              "finalRerank",
-            ],
-          },
-        ];
+        const sourceChildIds = ["pubmed", "semanticScholar", "openAlex", "elicit"];
+        const prepareChildIds = ["semanticIntent", "searchString", "mesh"];
+        const sourceStepCount = (Array.isArray(this.loadingProcessSteps)
+          ? this.loadingProcessSteps
+          : []
+        ).filter((step) => sourceChildIds.includes(String(step?.id || "").trim())).length;
+        const selectedSourceCount =
+          Number(this.selectedSourceCount) > 0
+            ? Number(this.selectedSourceCount)
+            : sourceStepCount;
+        const mergePrepareAndSources = selectedSourceCount <= 1;
+        const groupDefinitions = mergePrepareAndSources
+          ? [
+              {
+                id: "prepareAndSources",
+                label: this.getString("semanticSearchProcessGroupPrepareAndSearchSingle"),
+                childIds: [...prepareChildIds, ...sourceChildIds],
+              },
+              {
+                id: "match",
+                label: this.getString("semanticSearchProcessGroupMatch"),
+                childIds: [
+                  "rerank",
+                  "finalizeValidatePmid",
+                  "finalizeValidateDoiFetch",
+                ],
+              },
+              {
+                id: "finalizeHydrate",
+                label: this.getString("semanticSearchProcessGroupDisplay"),
+                childIds: [
+                  "finalizeHydrate",
+                  "finalizeSort",
+                  "finalRerank",
+                  "cache",
+                ],
+              },
+            ]
+          : [
+              {
+                id: "prepare",
+                label: this.getString("semanticSearchProcessGroupPrepare"),
+                childIds: prepareChildIds,
+              },
+              {
+                id: "sources",
+                label: this.getString("semanticSearchProcessGroupSources"),
+                childIds: sourceChildIds,
+              },
+              {
+                id: "match",
+                label: this.getString("semanticSearchProcessGroupMatch"),
+                childIds: [
+                  "rerank",
+                  "finalizeValidatePmid",
+                  "finalizeValidateDoiFetch",
+                ],
+              },
+              {
+                id: "finalizeHydrate",
+                label: this.getString("semanticSearchProcessGroupDisplay"),
+                childIds: [
+                  "finalizeHydrate",
+                  "finalizeSort",
+                  "finalRerank",
+                  "cache",
+                ],
+              },
+            ];
         return groupDefinitions
           .map((group) => {
             const children = this.visibleLoadingProcessSteps.filter((step) =>
@@ -974,6 +1040,24 @@
               return null;
             }
             const visibleChildren = this.getVisibleProcessGroupChildren(children);
+            const activeStatuses = [
+              "current",
+              "completed",
+              "warning",
+              "partial",
+              "failed",
+              "rateLimited",
+              "recovered",
+            ];
+            const hasActiveChild = visibleChildren.some((child) =>
+              activeStatuses.includes(String(child?.status || "").trim())
+            );
+            if (this.loading && !hasActiveChild) {
+              return null;
+            }
+            if (!this.loading && visibleChildren.length === 0) {
+              return null;
+            }
             return {
               id: group.id,
               label: group.label,
@@ -1158,10 +1242,24 @@
         }
       },
       preselectedEntries(newVal) {
-        if (this.safeSelectedEntries.length > 0) {
+        const incoming = Array.isArray(newVal) ? [...newVal] : [];
+        if (this.safeSelectedEntries.length === 0) {
+          this.selectedEntries = incoming;
           return;
         }
-        this.selectedEntries = Array.isArray(newVal) ? [...newVal] : [];
+        if (incoming.length <= this.safeSelectedEntries.length) {
+          return;
+        }
+        const incomingIds = new Set(
+          incoming.map((entry) => String(entry?.uid || entry?.id || ""))
+        );
+        const currentIsSubset = this.safeSelectedEntries.every((entry) => {
+          const id = String(entry?.uid || entry?.id || "");
+          return !id || incomingIds.has(id);
+        });
+        if (currentIsSubset) {
+          this.selectedEntries = incoming;
+        }
       },
       /**
        * When user increases the summary count, load abstracts for any
@@ -1612,7 +1710,6 @@
           semanticIntent: "semanticSearchProcessExplanationSemanticIntent",
           searchString: "semanticSearchProcessExplanationSearchString",
           mesh: "semanticSearchProcessExplanationMesh",
-          semanticQuery: "semanticSearchProcessExplanationSemanticQuery",
           pubmed: "semanticSearchProcessExplanationPubmed",
           semanticScholar: "semanticSearchProcessExplanationSemanticScholar",
           openAlex: "semanticSearchProcessExplanationOpenAlex",
@@ -1632,7 +1729,6 @@
           semanticIntent: "semanticSearchProcessDetailExplanationSemanticIntent",
           searchString: "semanticSearchProcessDetailExplanationSearchString",
           mesh: "semanticSearchProcessDetailExplanationMesh",
-          semanticQuery: "semanticSearchProcessDetailExplanationSemanticQuery",
           pubmed: "semanticSearchProcessDetailExplanationPubmed",
           semanticScholar: "semanticSearchProcessDetailExplanationSemanticScholar",
           openAlex: "semanticSearchProcessDetailExplanationOpenAlex",
@@ -1715,6 +1811,7 @@
               num(searchBasis?.pageSize ?? payload.pageSize)
             );
             add("semanticSearchProcessMetricDetectedConcepts", arrLen(payload.detectedConcepts));
+            add("semanticSearchProcessMetricAdaptedSources", arrLen(payload.sourceQueries));
             break;
           case "mesh":
             add(
@@ -1730,9 +1827,6 @@
             add("semanticSearchProcessMetricMeshInvalid", sumQueries("invalidCount"));
             add("semanticSearchProcessMetricAddedMeshTerms", sumQueries("addedMeshTerms", true));
             add("semanticSearchProcessMetricRemovedMeshTerms", sumQueries("removedMeshTerms", true));
-            break;
-          case "semanticQuery":
-            add("semanticSearchProcessMetricAdaptedSources", arrLen(payload.sourceQueries));
             break;
           case "pubmed":
           case "semanticScholar":
@@ -2049,7 +2143,10 @@
         return this.getArticleDtos;
       },
       getSummarizeMultipleAbstractsPrompt() {
-        return summarizeMultipleAbstractPrompt;
+        return applyOpenAiTaskSettingsToList(
+          summarizeMultipleAbstractPrompt,
+          "summarizeAbstract"
+        );
       },
       getSummarySuccessHeader() {
         return (selected, isMarkedArticlesSearch) => {
@@ -2115,7 +2212,7 @@
       },
       onAiSummariesClickRetry() {
         const container = this.$el?.parentElement;
-        const target = container?.querySelector("#qpm_topofsearchbar");
+        const target = container?.querySelector("#mugin_topofsearchbar");
         if (target) {
           target.scrollIntoView({ behavior: "smooth" });
         }
@@ -2160,6 +2257,49 @@
       onDeselectAllArticles() {
         this.selectedEntries = [];
         this.$emit("change:selectedEntries", this.selectedEntries);
+      },
+      getSelectedArticlesForRis() {
+        return this.safeSelectedEntries
+          .map((selected) => {
+            const selectedId = this.getSelectionEntryId(selected);
+            const fromCache =
+              selectedId && this.articles[selectedId] ? this.articles[selectedId] : null;
+            const fromResults = Array.isArray(this.results)
+              ? this.results.find((result) =>
+                  areComparableIdsEqual(this.getResultId(result), this.getResultId(selected))
+                )
+              : null;
+            const base = {
+              ...(fromResults && typeof fromResults === "object" ? fromResults : {}),
+              ...(fromCache && typeof fromCache === "object" ? fromCache : {}),
+              ...(selected && typeof selected === "object" ? selected : {}),
+            };
+            const resultId = this.getResultId(base) || selectedId;
+            const loadedAbstract = this.getAbstract(resultId);
+            const sectionedAbstract = this.getText(resultId);
+            const abstract =
+              this.getResultInlineAbstract(base) ||
+              loadedAbstract ||
+              (sectionedAbstract && Object.keys(sectionedAbstract).length > 0
+                ? sectionedAbstract
+                : "") ||
+              base.abstract ||
+              "";
+            return {
+              ...base,
+              id: resultId,
+              pmid: this.getResultPmid(base) || this.getResultPmid(selected),
+              doi: this.getResultDoi(base) || this.getResultDoi(selected),
+              abstract,
+            };
+          })
+          .filter((article) => article && (article.title || article.pmid || article.doi));
+      },
+      onDownloadSelectedRis() {
+        if (this.hasNoSelectedArticles) return;
+        const articles = this.getSelectedArticlesForRis();
+        if (articles.length === 0) return;
+        downloadRisFile(buildRisFile(articles));
       },
       loadSelectedArticleBadges(article) {
         const articleBody = article ?? this.$refs?.articlesAccordion?.$refs?.body;
@@ -2345,11 +2485,11 @@
 </script>
 
 <style scoped>
-.qpm_compactLoadingRegion {
+.mugin_compactLoadingRegion {
   position: relative;
 }
 
-.qpm_compactLoadingOverlay {
+.mugin_compactLoadingOverlay {
   position: absolute;
   inset: 0;
   display: flex;
@@ -2359,18 +2499,18 @@
   z-index: 2;
 }
 
-.qpm_compactLoadingHidden {
+.mugin_compactLoadingHidden {
   opacity: 0;
   pointer-events: none;
 }
 
-.qpm_paginationInlineSpinner {
+.mugin_paginationInlineSpinner {
   display: flex;
   align-items: center;
   min-height: 44px;
 }
 
-.qpm_paginationInlineSpinner :deep(.qpm_searchMore.qpm_loading) {
+.mugin_paginationInlineSpinner :deep(.mugin_searchMore.mugin_loading) {
   position: static;
   top: auto;
   left: auto;

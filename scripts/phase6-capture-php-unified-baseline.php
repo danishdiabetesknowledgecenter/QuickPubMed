@@ -11,8 +11,8 @@
 require_once __DIR__ . '/../backend/config/config.php';
 require_once __DIR__ . '/../backend/app/public-search-lib.php';
 
-if (!qpmPublicSearchIsUnifiedSearchEngineEnabled()) {
-    fwrite(STDERR, "QPM_UNIFIED_SEARCH_ENGINE_ENABLED must be true to capture this baseline.\n");
+if (!muginPublicSearchIsUnifiedSearchEngineEnabled()) {
+    fwrite(STDERR, "MUGIN_UNIFIED_SEARCH_ENGINE_ENABLED must be true to capture this baseline.\n");
     exit(1);
 }
 
@@ -27,11 +27,11 @@ $queries = [
 
 $results = [];
 foreach ($queries as $queryText) {
-    $request = qpmPublicSearchBuildDefaultRequest();
+    $request = muginPublicSearchBuildDefaultRequest();
     $request['query']['text'] = $queryText;
     $request['query']['language'] = 'da';
     // Matches sourcesUsed in real-query-baseline-legacy-js.json: the local
-    // dev browser session had Elicit locked (QPM_ELICIT_UNLOCK), so the JS
+    // dev browser session had Elicit locked (MUGIN_ELICIT_UNLOCK), so the JS
     // baseline only used these 3 sources. Match exactly for a fair diff.
     $request['sources'] = ['pubmed', 'semanticScholar', 'openAlex'];
     $request['sort']['method'] = 'relevance';
@@ -41,7 +41,7 @@ foreach ($queries as $queryText) {
     $startedAt = microtime(true);
     echo "Running: \"$queryText\" ...\n";
     try {
-        $response = qpmPublicSearchRunSearch($request, null);
+        $response = muginPublicSearchRunSearch($request, null);
         $elapsed = round(microtime(true) - $startedAt, 2);
         $order = [];
         foreach ((array) ($response['results'] ?? []) as $result) {

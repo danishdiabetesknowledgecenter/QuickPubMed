@@ -15,15 +15,15 @@ if (!file_exists($configPath)) {
 require_once $configPath;
 require_once __DIR__ . '/NlmApiHelpers.php';
 
-qpmApplyNlmCorsHeaders('GET, POST, OPTIONS', 'application/json');
+muginApplyNlmCorsHeaders('GET, POST, OPTIONS', 'application/json');
 @ini_set('max_execution_time', '60');
 @set_time_limit(60);
 
 // OpenAlex filter clauses become increasingly fragile above ~50 ids in a single
 // request, so we cap batches at 50.
-const QPM_OPENALEX_AUTHORITY_BATCH_LIMIT = 50;
+const MUGIN_OPENALEX_AUTHORITY_BATCH_LIMIT = 50;
 
-function qpmIsLocalOpenAlexAuthorityRequest(): bool
+function muginIsLocalOpenAlexAuthorityRequest(): bool
 {
     $requestHost = strtolower((string)($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
     return $requestHost !== '' && (
@@ -37,9 +37,9 @@ function qpmIsLocalOpenAlexAuthorityRequest(): bool
  * @param array<string,mixed> $requestParams
  * @return array{ok: bool, status: int, body: string, error: string}
  */
-function qpmOpenAlexAuthorityLocalDevProxyRequest(string $path, array $requestParams): array
+function muginOpenAlexAuthorityLocalDevProxyRequest(string $path, array $requestParams): array
 {
-    if (!qpmIsLocalOpenAlexAuthorityRequest()) {
+    if (!muginIsLocalOpenAlexAuthorityRequest()) {
         return [
             'ok' => false,
             'status' => 0,
@@ -53,10 +53,10 @@ function qpmOpenAlexAuthorityLocalDevProxyRequest(string $path, array $requestPa
     $errors = [];
     foreach ($hosts as $host) {
         $url = 'http://' . $host . ':5173/openalex-api/' . $path . '?' . $queryString;
-        $result = qpmHttpRequest($url, [
+        $result = muginHttpRequest($url, [
             'method' => 'GET',
             'timeout' => 30,
-            'user_agent' => 'QuickPubMed/1.0',
+            'user_agent' => 'MuginScholar/1.0',
             'headers' => ['Accept: application/json'],
         ]);
         if ($result['ok'] && (int)$result['status'] >= 200 && (int)$result['status'] < 300) {
@@ -79,7 +79,7 @@ function qpmOpenAlexAuthorityLocalDevProxyRequest(string $path, array $requestPa
  * @param mixed $value
  * @return string
  */
-function qpmNormalizeOpenAlexShortId($value): string
+function muginNormalizeOpenAlexShortId($value): string
 {
     $raw = trim((string) $value);
     if ($raw === '') {
@@ -98,17 +98,17 @@ function qpmNormalizeOpenAlexShortId($value): string
  * @param string $domain
  * @return array<string,array<string,mixed>>
  */
-function qpmOpenAlexAuthorityBatchFetch(array $ids, string $entityPath, string $select, string $domain): array
+function muginOpenAlexAuthorityBatchFetch(array $ids, string $entityPath, string $select, string $domain): array
 {
     $results = [];
     if (empty($ids)) {
         return $results;
     }
 
-    $openAlexApiKey = qpmGetOpenAlexApiKey($domain);
-    $openAlexEmail = qpmGetOpenAlexEmail($domain);
+    $openAlexApiKey = muginGetOpenAlexApiKey($domain);
+    $openAlexEmail = muginGetOpenAlexEmail($domain);
 
-    foreach (array_chunk($ids, QPM_OPENALEX_AUTHORITY_BATCH_LIMIT) as $chunk) {
+    foreach (array_chunk($ids, MUGIN_OPENALEX_AUTHORITY_BATCH_LIMIT) as $chunk) {
         $filter = 'openalex:' . implode('|', $chunk);
         $requestParams = [
             'filter' => $filter,
@@ -123,14 +123,14 @@ function qpmOpenAlexAuthorityBatchFetch(array $ids, string $entityPath, string $
         }
 
         $requestUrl = 'https://api.openalex.org/' . $entityPath . '?' . http_build_query($requestParams);
-        qpmThrottleRequestRate('openalex', 10);
+        muginThrottleRequestRate('openalex', 10);
 
-        $result = qpmOpenAlexAuthorityLocalDevProxyRequest($entityPath, $requestParams);
+        $result = muginOpenAlexAuthorityLocalDevProxyRequest($entityPath, $requestParams);
         if (!$result['ok']) {
-            $result = qpmHttpRequest($requestUrl, [
+            $result = muginHttpRequest($requestUrl, [
                 'method' => 'GET',
                 'timeout' => 30,
-                'user_agent' => 'QuickPubMed/1.0',
+                'user_agent' => 'MuginScholar/1.0',
                 'headers' => ['Accept: application/json'],
             ]);
         }
@@ -149,7 +149,7 @@ function qpmOpenAlexAuthorityBatchFetch(array $ids, string $entityPath, string $
             if (!is_array($row)) {
                 continue;
             }
-            $shortId = qpmNormalizeOpenAlexShortId($row['id'] ?? '');
+            $shortId = muginNormalizeOpenAlexShortId($row['id'] ?? '');
             if ($shortId === '') {
                 continue;
             }
@@ -186,7 +186,7 @@ if (is_string($sourceIdsInput)) {
 
 $authorIds = [];
 foreach ((is_array($authorIdsInput) ? $authorIdsInput : []) as $raw) {
-    $normalized = qpmNormalizeOpenAlexShortId($raw);
+    $normalized = muginNormalizeOpenAlexShortId($raw);
     if ($normalized !== '') {
         $authorIds[$normalized] = true;
     }
@@ -195,7 +195,7 @@ $authorIds = array_keys($authorIds);
 
 $sourceIds = [];
 foreach ((is_array($sourceIdsInput) ? $sourceIdsInput : []) as $raw) {
-    $normalized = qpmNormalizeOpenAlexShortId($raw);
+    $normalized = muginNormalizeOpenAlexShortId($raw);
     if ($normalized !== '') {
         $sourceIds[$normalized] = true;
     }
@@ -206,7 +206,7 @@ $authorRecords = [];
 $sourceRecords = [];
 
 if (!empty($authorIds)) {
-    $authorRaw = qpmOpenAlexAuthorityBatchFetch(
+    $authorRaw = muginOpenAlexAuthorityBatchFetch(
         $authorIds,
         'authors',
         'id,display_name,summary_stats,works_count',
@@ -227,7 +227,7 @@ if (!empty($authorIds)) {
 }
 
 if (!empty($sourceIds)) {
-    $sourceRaw = qpmOpenAlexAuthorityBatchFetch(
+    $sourceRaw = muginOpenAlexAuthorityBatchFetch(
         $sourceIds,
         'sources',
         'id,display_name,summary_stats,is_in_doaj,works_count',

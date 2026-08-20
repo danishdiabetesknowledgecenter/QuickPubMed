@@ -2,59 +2,59 @@
 <template>
   <div
     ref="result"
-    class="qpm_ResultEntry"
+    class="mugin_ResultEntry"
     :name="id"
     :data-reference-anchor="referenceAnchorId"
     :data-reference-pmid="hasValidPmid ? normalizedPmid : null"
     :data-reference-doi="normalizedDoi || null"
   >
     <loading-spinner :loading="loading" />
-    <div v-if="getComponentWidth && (showDate || canShowSelectionCheckbox)" class="qpm_resultTopMeta">
+    <div v-if="getComponentWidth && (showDate || canShowSelectionCheckbox)" class="mugin_resultTopMeta">
       <input
         v-if="canShowSelectionCheckbox"
-        :id="'qpm_selectArticleCheckbox_' + id"
+        :id="'mugin_selectArticleCheckbox_' + id"
         type="checkbox"
-        class="qpm_selectArticleCheckbox"
-        :name="'qpm_selectArticleCheckbox_' + id"
+        class="mugin_selectArticleCheckbox"
+        :name="'mugin_selectArticleCheckbox_' + id"
         :checked="isChecked"
         :value="value"
         :aria-label="selectArticleCheckboxAriaLabel"
-        aria-describedby="qpm_selectArticleCheckboxDescription"
+        aria-describedby="mugin_selectArticleCheckboxDescription"
         @change="updateInput"
         @keyup.enter="changeOnEnter"
       />
-      <p v-if="showDate" class="qpm_resultentryDate qpm_resultentryDateMobile">
+      <p v-if="showDate" class="mugin_resultentryDate mugin_resultentryDateMobile">
         {{ date }}
       </p>
     </div>
-    <p v-else-if="showDate" class="qpm_resultentryDate">
+    <p v-else-if="showDate" class="mugin_resultentryDate">
       {{ date }}
     </p>
     <div lang="en">
-      <div class="qpm_resultChangeOrder">
+      <div class="mugin_resultChangeOrder">
         <div class="d-flex">
           <input
             v-if="canShowSelectionCheckbox && !getComponentWidth"
-            :id="'qpm_selectArticleCheckbox_' + id"
+            :id="'mugin_selectArticleCheckbox_' + id"
             type="checkbox"
-            class="qpm_selectArticleCheckbox"
+            class="mugin_selectArticleCheckbox"
             style="margin-left: -40px"
-            :name="'qpm_selectArticleCheckbox_' + id"
+            :name="'mugin_selectArticleCheckbox_' + id"
             :checked="isChecked"
             :value="value"
             :aria-label="selectArticleCheckboxAriaLabel"
-            aria-describedby="qpm_selectArticleCheckboxDescription"
+            aria-describedby="mugin_selectArticleCheckboxDescription"
             @change="updateInput"
             @keyup.enter="changeOnEnter"
           />
-          <div class="qpm_resultTitleWrap">
+          <div class="mugin_resultTitleWrap">
             <h3
-              class="qpm_resultTitle qpm_inlineDisplay"
-              :class="{ qpm_resultTitleHover: !showArticleButtons && hasValidAbstract }"
+              class="mugin_resultTitle mugin_inlineDisplay"
+              :class="{ mugin_resultTitleHover: !showArticleButtons && hasValidAbstract }"
               @click="handleResultTitleClick"
             >
               <template v-if="canShowSelectionCheckbox">
-                <label :for="'qpm_selectArticleCheckbox_' + id" class="qpm_resultTitleLabel">
+                <label :for="'mugin_selectArticleCheckbox_' + id" class="mugin_resultTitleLabel">
                   <template v-if="!showArticleButtons && hasValidAbstract">
                     <span v-if="getVernacularTitle && getVernacularTitle !== getTitle">
                       {{ getVernacularTitle }}<br />
@@ -80,12 +80,12 @@
             </h3>
             <p
               v-if="config.useAI && useTranslateTitle"
-              class="qpm_translateTitleLink qpm_ai_hide qpm_inlineDisplay"
+              class="mugin_translateTitleLink mugin_ai_hide mugin_inlineDisplay"
             >
               <button
                 v-if="language !== 'en'"
                 type="button"
-                class="qpm_linkButton qpm_linkButtonAsAnchor"
+                class="mugin_linkButton mugin_linkButtonAsAnchor"
                 :aria-label="translateTitleToggleAriaLabel"
                 @click="toggleTranslation"
               >
@@ -98,8 +98,8 @@
             </p>
             <span
               v-if="showTypeBadge && typeBadgeLabel"
-              class="qpm_pubTypeBadge"
-              :class="`qpm_pubTypeBadge_${normalizedPubTypeTier}`"
+              class="mugin_pubTypeBadge"
+              :class="`mugin_pubTypeBadge_${normalizedPubTypeTier}`"
             >
               {{ typeBadgeLabel }}
             </span>
@@ -110,8 +110,8 @@
           :title="computedTitle"
           :language="language"
         />
-        <div class="qpm_resultTextLineHeight">
-          <p class="qpm_resultAuthors">
+        <div class="mugin_resultTextLineHeight">
+          <p class="mugin_resultAuthors">
             <span v-if="calculateAuthors">{{ calculateAuthors }}.</span>
             <span v-if="!calculateAuthors"
               ><i>{{ getString("noAuthorsListed") }}</i></span
@@ -120,8 +120,8 @@
           </p>
         </div>
       </div>
-      <div class="qpm_resultTextLineHeight">
-        <p class="qpm_resultSource">
+      <div class="mugin_resultTextLineHeight">
+        <p class="mugin_resultSource">
           <span v-if="source">{{ source }}</span>
           <span v-if="source && pubDate">. </span>
           <span v-if="pubDate">{{ pubDate }}</span>
@@ -132,8 +132,8 @@
       </div>
     </div>
     <!-- Case for small screen sizes -->
-    <div v-if="getComponentWidth" class="qpm_mobileResultLayout">
-      <div v-if="showArticleButtons" class="qpm_resultButtons_mobile" :style="mobileResult">
+    <div v-if="getComponentWidth" class="mugin_mobileResultLayout">
+      <div v-if="showArticleButtons" class="mugin_resultButtons_mobile" :style="mobileResult">
         <button
           v-if="hasSectionedAbstract || hasValidAbstract || pmid || doi"
           type="button"
@@ -144,11 +144,11 @@
           }"
           :aria-expanded="String(showingAbstract)"
           :aria-controls="getAbstractId"
-          class="qpm_button qpm_slim"
+          class="mugin_button mugin_slim"
           :class="[
-            !isAbstractLoaded ? 'qpm_abstract' : '',
-            showingAbstract ? 'qpm_active' : '',
-            hasValidAbstract ? 'qpm_abstract' : 'qpm_noAbstract',
+            !isAbstractLoaded ? 'mugin_abstract' : '',
+            showingAbstract ? 'mugin_active' : '',
+            hasValidAbstract ? 'mugin_abstract' : 'mugin_noAbstract',
           ]"
           @click="showAbstract"
         >
@@ -162,7 +162,7 @@
             distance: 5,
             delay: $helpTextDelay,
           }"
-          class="qpm_button qpm_slim"
+          class="mugin_button mugin_slim"
           @click="gotosite(getPubMedLink)"
         >
           {{ getString("openInPubMed") }}
@@ -175,17 +175,17 @@
             distance: 5,
             delay: $helpTextDelay,
           }"
-          class="qpm_button qpm_slim"
+          class="mugin_button mugin_slim"
           @click="gotosite(getDoiLink)"
         >
           {{ getString("openDoi") }}
         </button>
       </div>
-      <div v-if="id !== ''" class="qpm_badges_mobile rs_skip">
-        <div v-if="usePubMed" class="qpm_badges_mobile_grid">
+      <div v-if="id !== ''" class="mugin_badges_mobile rs_skip">
+        <div v-if="usePubMed" class="mugin_badges_mobile_grid">
           <span
             v-if="showAltmetricBadge"
-            class="altmetric-embed qpm_altmetrics"
+            class="altmetric-embed mugin_altmetrics"
             data-badge-type="1"
             data-hide-no-mentions="true"
             data-link-target="_blank"
@@ -194,7 +194,7 @@
           />
           <span
             v-if="canShowDimensionsBadge"
-            class="__dimensions_badge_embed__ qpm_dimensions"
+            class="__dimensions_badge_embed__ mugin_dimensions"
             data-style="large_rectangle"
             data-hide-zero-citations="true"
             data-legend="never"
@@ -205,7 +205,7 @@
         <div v-else>
           <span
             v-if="showAltmetricBadge"
-            class="altmetric-embed qpm_altmetrics"
+            class="altmetric-embed mugin_altmetrics"
             data-badge-type="1"
             data-hide-no-mentions="true"
             data-link-target="_blank"
@@ -213,7 +213,7 @@
           />
           <span
             v-if="canShowDimensionsBadge"
-            class="__dimensions_badge_embed__ qpm_dimensions"
+            class="__dimensions_badge_embed__ mugin_dimensions"
             data-style="large_rectangle"
             data-hide-zero-citations="true"
             data-legend="never"
@@ -225,7 +225,7 @@
     </div>
     <!-- Default case for normal screen sizes -->
     <div v-else>
-      <div v-if="showArticleButtons" class="qpm_resultButtons">
+      <div v-if="showArticleButtons" class="mugin_resultButtons">
         <button
           v-if="hasSectionedAbstract || hasValidAbstract || pmid || doi"
           type="button"
@@ -236,11 +236,11 @@
           }"
           :aria-expanded="String(showingAbstract)"
           :aria-controls="getAbstractId"
-          class="qpm_button qpm_slim"
+          class="mugin_button mugin_slim"
           :class="[
-            !isAbstractLoaded ? 'qpm_abstract' : '',
-            showingAbstract ? 'qpm_active' : '',
-            hasValidAbstract ? 'qpm_abstract' : 'qpm_noAbstract',
+            !isAbstractLoaded ? 'mugin_abstract' : '',
+            showingAbstract ? 'mugin_active' : '',
+            hasValidAbstract ? 'mugin_abstract' : 'mugin_noAbstract',
           ]"
           @click="showAbstract"
         >
@@ -254,7 +254,7 @@
             distance: 5,
             delay: $helpTextDelay,
           }"
-          class="qpm_button qpm_slim"
+          class="mugin_button mugin_slim"
           @click="gotosite(getPubMedLink)"
         >
           {{ getString("openInPubMed") }}
@@ -267,17 +267,17 @@
             distance: 5,
             delay: $helpTextDelay,
           }"
-          class="qpm_button qpm_slim"
+          class="mugin_button mugin_slim"
           @click="gotosite(getDoiLink)"
         >
           {{ getString("openDoi") }}
         </button>
       </div>
-      <div v-if="id !== null" class="qpm_badges rs_skip">
+      <div v-if="id !== null" class="mugin_badges rs_skip">
         <div v-if="usePubMed">
           <span
             v-if="showAltmetricBadge"
-            class="altmetric-embed qpm_altmetrics"
+            class="altmetric-embed mugin_altmetrics"
             data-badge-type="donut"
             data-badge-popover="left"
             data-hide-no-mentions="true"
@@ -287,7 +287,7 @@
           />
           <span
             v-if="canShowDimensionsBadge"
-            class="__dimensions_badge_embed__ qpm_dimensions"
+            class="__dimensions_badge_embed__ mugin_dimensions"
             data-style="small_circle"
             data-hide-zero-citations="true"
             data-legend="hover-top"
@@ -298,7 +298,7 @@
         <div v-else>
           <span
             v-if="showAltmetricBadge"
-            class="altmetric-embed qpm_altmetrics"
+            class="altmetric-embed mugin_altmetrics"
             data-badge-type="donut"
             data-badge-popover="left"
             data-hide-no-mentions="true"
@@ -307,7 +307,7 @@
           />
           <span
             v-if="canShowDimensionsBadge"
-            class="__dimensions_badge_embed__ qpm_dimensions"
+            class="__dimensions_badge_embed__ mugin_dimensions"
             data-style="small_circle"
             data-hide-zero-citations="true"
             data-legend="hover-top"
@@ -317,38 +317,38 @@
         </div>
       </div>
     </div>
-    <p v-if="getHyperLink" class="qpm_pubmedLink qpm_pubmedLinkArrow">
+    <p v-if="getHyperLink" class="mugin_pubmedLink mugin_pubmedLinkArrow">
       <a target="_blank" rel="noopener noreferrer" :href="getHyperLink">
         {{ hyperLinkText !== undefined ? hyperLinkText : hyperLink }}
       </a>
     </p>
     <div
       :id="getAbstractId"
-      class="qpm_abstract qpm_abstractContainer"
+      class="mugin_abstract mugin_abstractContainer"
       :name="getAbstractDivName"
-      :class="{ qpm_toggleAbstract: showingAbstract }"
+      :class="{ mugin_toggleAbstract: showingAbstract }"
     >
       <div>
-        <div v-show="showingAbstract" lang="en" class="qpm_abstractShownContainer">
+        <div v-show="showingAbstract" lang="en" class="mugin_abstractShownContainer">
           <accordion-menu
             v-if="config.useAI && hasValidAbstract"
-            class="qpm_ai_hide qpm_accordions"
+            class="mugin_ai_hide mugin_accordions"
           >
             <template #header="accordionProps">
-              <div class="qpm_aiAccordionHeader qpm_resultAiHeader">
-                <div class="qpm_resultAiHeaderLeft">
+              <div class="mugin_aiAccordionHeader mugin_resultAiHeader">
+                <div class="mugin_resultAiHeaderLeft">
                   <div>
                     <i
                       class="ri-sparkling-fill"
                       aria-hidden="true"
                     />
                   </div>
-                  <div class="qpm_resultAiHeaderTitleWrap">
+                  <div class="mugin_resultAiHeaderTitleWrap">
                     <strong>
                       <template v-if="getSelectedResultAccordionHeaderParts().prefix">
                         {{ getSelectedResultAccordionHeaderParts().prefix }}
                       </template>
-                      <span class="qpm_keepWithIcon">
+                      <span class="mugin_keepWithIcon">
                         {{ getSelectedResultAccordionHeaderParts().last }}
                         <button
                           type="button"
@@ -358,7 +358,7 @@
                             delay: $helpTextDelay,
                             theme: 'infoTooltip',
                           }"
-                          class="bx bx-info-circle qpm_infoIcon"
+                          class="bx bx-info-circle mugin_infoIcon"
                           :aria-label="getString('infoResultAccordionLabel')"
                         />
                       </span>
@@ -368,22 +368,22 @@
                 <div>
                   <i
                     v-if="accordionProps.expanded"
-                    class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
+                    class="bx bx-chevron-up mugin_aiAccordionHeaderArrows"
                     aria-hidden="true"
                   />
                   <i 
                     v-else 
-                    class="bx bx-chevron-down qpm_aiAccordionHeaderArrows" 
+                    class="bx bx-chevron-down mugin_aiAccordionHeaderArrows" 
                     aria-hidden="true"
                   />
                 </div>
               </div>
             </template>
 
-            <div class="qpm_ai_hide">
+            <div class="mugin_ai_hide">
                 <div
                   v-if="!hasAcceptedAi && hasValidAbstract"
-                  class="qpm_searchSummaryText qpm_searchSummaryTextBackground"
+                  class="mugin_searchSummaryText mugin_searchSummaryTextBackground"
                 >
                   <p>{{ getString("aiSummarizeAbstractButton") }}</p>
                   <p>
@@ -398,7 +398,7 @@
                       distance: 5,
                       delay: $helpTextDelay,
                     }"
-                    class="qpm_button qpm_summaryButton"
+                    class="mugin_button mugin_summaryButton"
                     @click="clickAcceptAi(prompt)"
                   >
                     <i
@@ -407,7 +407,7 @@
                     />
                     {{ getTranslation(prompt) }}
                   </button>
-                  <p class="qpm_summaryDisclaimer" v-html="sanitizeHtml(getString('aiSummaryConsentText'))" />
+                  <p class="mugin_summaryDisclaimer" v-html="sanitizeHtml(getString('aiSummaryConsentText'))" />
                 </div>
                 <summarize-abstract
                   v-else-if="hasAcceptedAi"
@@ -444,7 +444,7 @@
                 isPubTypeAllowed === undefined ||
                 isLicenseAllowed === undefined)
             "
-            class="qpm_resultLoadingText"
+            class="mugin_resultLoadingText"
           >
             {{ getString("loadingText") }}
           </p>
@@ -457,26 +457,26 @@
               isLicenseAllowed &&
               isResourceAllowed
             "
-            class="qpm_ai_hide qpm_accordions"
+            class="mugin_ai_hide mugin_accordions"
           >
             <template #header="accordionProps">
-              <div class="qpm_aiAccordionHeader qpm_resultAiNoAbstractHeader">
+              <div class="mugin_aiAccordionHeader mugin_resultAiNoAbstractHeader">
                 <i
                   v-if="accordionProps.expanded"
-                  class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
+                  class="bx bx-chevron-down mugin_aiAccordionHeaderArrows"
                   aria-hidden="true"
                 />
-                <i v-else class="bx bx-chevron-right qpm_aiAccordionHeaderArrows" aria-hidden="true" />
+                <i v-else class="bx bx-chevron-right mugin_aiAccordionHeaderArrows" aria-hidden="true" />
                 <i
                   class="ri-sparkling-fill"
                   aria-hidden="true"
                 />
-                <div class="qpm_infoInline">
+                <div class="mugin_infoInline">
                   <strong>
                     <template v-if="getSelectedResultNoAbstractHeaderParts().prefix">
                       {{ getSelectedResultNoAbstractHeaderParts().prefix }}
                     </template>
-                    <span class="qpm_keepWithIcon">
+                    <span class="mugin_keepWithIcon">
                       {{ getSelectedResultNoAbstractHeaderParts().last }}
                       <button
                         type="button"
@@ -486,7 +486,7 @@
                           delay: $helpTextDelay,
                           theme: 'infoTooltip',
                         }"
-                        class="bx bx-info-circle qpm_infoIcon"
+                        class="bx bx-info-circle mugin_infoIcon"
                         :aria-label="getString('infoResultAccordionNoAbstractLabel')"
                       />
                     </span>
@@ -495,10 +495,10 @@
               </div>
             </template>
             <div>
-              <div class="qpm_ai_hide">
+              <div class="mugin_ai_hide">
                   <div
                     v-if="!hasAcceptedAi && !hasValidAbstract"
-                    class="qpm_searchSummaryText qpm_searchSummaryTextBackground"
+                    class="mugin_searchSummaryText mugin_searchSummaryTextBackground"
                   >
                     <p>{{ getString("aiSummarizeArticleButton") }}</p>
                     <p>
@@ -513,7 +513,7 @@
                         distance: 5,
                         delay: $helpTextDelay,
                       }"
-                      class="qpm_button qpm_summaryButton"
+                      class="mugin_button mugin_summaryButton"
                       @click="clickAcceptAi(prompt)"
                     >
                       <i
@@ -522,7 +522,7 @@
                       />
                       {{ getTranslation(prompt) }}
                     </button>
-                    <p class="qpm_summaryDisclaimer" v-html="sanitizeHtml(getString('aiSummaryConsentText'))" />
+                    <p class="mugin_summaryDisclaimer" v-html="sanitizeHtml(getString('aiSummaryConsentText'))" />
                   </div>
                   <summarize-no-abstract
                     v-else-if="hasAcceptedAi"
@@ -543,19 +543,19 @@
                     :has-accepted-ai="hasAcceptedAi"
                     :initial-tab-prompt="initialAiTab"
                   />
-                  <p class="qpm_summaryDisclaimer" v-html="sanitizeHtml(getString('aiSummaryConsentText'))" />
+                  <p class="mugin_summaryDisclaimer" v-html="sanitizeHtml(getString('aiSummaryConsentText'))" />
               </div>
             </div>
           </accordion-menu>
 
-          <div class="qpm_unpaywall">
+          <div class="mugin_unpaywall">
             <template v-if="doi">
-              <p class="qpm_pubmedLink">
+              <p class="mugin_pubmedLink">
                 <template v-if="!unpaywallResponseLoaded">
                   <loading-spinner
                     :loading="true"
                     :size="15"
-                    class="qpm_unpaywallLoadingSpinner"
+                    class="mugin_unpaywallLoadingSpinner"
                   />
                   <a
                     v-tooltip="{
@@ -571,7 +571,7 @@
                 </template>
 
                 <template v-else-if="getHasOaPdf">
-                  <i class="bx bxs-file-pdf qpm_pdf-icon qpm_pdfIconRed" aria-hidden="true" />
+                  <i class="bx bxs-file-pdf mugin_pdf-icon mugin_pdfIconRed" aria-hidden="true" />
                   <a
                     v-tooltip="{
                       content: getString('hoverUnpaywall_pdf'),
@@ -587,7 +587,7 @@
                 </template>
 
                 <template v-else-if="getHasOaHtml">
-                  <i class="bx bxs-file-html qpm_pdf-icon qpm_pdfIconMuted" aria-hidden="true" />
+                  <i class="bx bxs-file-html mugin_pdf-icon mugin_pdfIconMuted" aria-hidden="true" />
                   <a
                     v-tooltip="{
                       content: getString('hoverUnpaywall_html'),
@@ -603,7 +603,7 @@
                 </template>
 
                 <template v-else>
-                  <i class="bx bxs-file-pdf qpm_pdf-icon qpm_pdfIconMuted" aria-hidden="true" />
+                  <i class="bx bxs-file-pdf mugin_pdf-icon mugin_pdfIconMuted" aria-hidden="true" />
                   <a
                     v-tooltip="{
                       content: getString('hoverUnpaywall_noPdf'),
@@ -619,12 +619,12 @@
               </p>
             </template>
             <template v-if="!doi">
-              <p class="qpm_noPubmedLink">{{ getString("NoUnpaywall") }}</p>
+              <p class="mugin_noPubmedLink">{{ getString("NoUnpaywall") }}</p>
             </template>
           </div>
 
           <!-- abstract is in text prop -->
-          <div v-if="abstract === ''" class="qpm_abstractWrapper">
+          <div v-if="abstract === ''" class="mugin_abstractWrapper">
             <template v-if="hasSectionedAbstract">
               <div v-html="sanitizeHtml(getSectionAbstract)"></div>
             </template>
@@ -646,28 +646,29 @@
 
             <!-- there is no abstract-->
             <template v-if="!hasValidAbstract || (!isDocTypeAllowed && !hasSectionedAbstract)">
-              <p class="qpm_noAbstractPadding">
+              <p class="mugin_noAbstractPadding">
                 {{ getString("noAbstract") }}
               </p>
             </template>
           </div>
 
           <!-- abstract is in abstract prop -->
-          <div v-else class="qpm_abstractWrapper">
+          <div v-else class="mugin_abstractWrapper">
             <div>
               <p><strong>Abstract</strong></p>
             </div>
             <p>{{ abstract }}</p>
           </div>
+
         </div>
 
         <!-- links for related content below abstract -->
         <div
           v-if="(hasValidPmid || doi || hasValidOpenAlexId) && showingAbstract"
-          class="qpm_relatedLinks"
+          class="mugin_relatedLinks"
         >
           <!-- Find related articles -->
-          <p v-if="hasValidPmid" class="qpm_pubmedLink qpm_pubmedLinkArrow">
+          <p v-if="hasValidPmid" class="mugin_pubmedLink mugin_pubmedLinkArrow">
             <a
               v-if="hasValidPmid"
               v-tooltip="{
@@ -684,7 +685,7 @@
           </p>
 
           <!-- Find related systematic reviews -->
-          <p v-if="hasValidPmid" class="qpm_pubmedLink qpm_pubmedLinkArrow">
+          <p v-if="hasValidPmid" class="mugin_pubmedLink mugin_pubmedLinkArrow">
             <a
               v-if="hasValidPmid"
               v-tooltip="{
@@ -702,7 +703,7 @@
 
           <!-- Other people also viewed -->
           <p
-            class="qpm_pubmedLink qpm_pubmedLinkArrow"
+            class="mugin_pubmedLink mugin_pubmedLinkArrow"
             v-if="hasValidPmid"
           >
             <a
@@ -720,7 +721,7 @@
           </p>
 
           <!-- Search on Google Scholar -->
-          <p v-if="(pmid || doi) !== undefined" class="qpm_pubmedLink qpm_pubmedLinkArrow">
+          <p v-if="(pmid || doi) !== undefined" class="mugin_pubmedLink mugin_pubmedLinkArrow">
             <a
               v-if="(pmid || doi) !== undefined"
               v-tooltip="{
@@ -739,7 +740,7 @@
           <!-- Open the OpenAlex work page (for openAlexId-only records) -->
           <p
             v-if="hasValidOpenAlexId && !hasValidPmid && !doi"
-            class="qpm_pubmedLink qpm_pubmedLinkArrow"
+            class="mugin_pubmedLink mugin_pubmedLinkArrow"
           >
             <a
               v-tooltip="{
@@ -755,6 +756,631 @@
             </a>
           </p>
         </div>
+
+          <accordion-menu
+            v-if="showResultDetailsAccordion && showingAbstract"
+            class="mugin_accordions mugin_resultDetailsAccordion"
+          >
+            <template #header="accordionProps">
+              <div class="mugin_aiAccordionHeader mugin_resultAiHeader">
+                <div class="mugin_resultAiHeaderLeft">
+                  <div>
+                    <i class="bx bx-list-ul" aria-hidden="true" />
+                  </div>
+                  <div class="mugin_resultAiHeaderTitleWrap">
+                    <strong>
+                      <span class="mugin_keepWithIcon">
+                        {{ getString("resultDetailsAccordionHeader") }}
+                        <button
+                          type="button"
+                          v-tooltip="{
+                            content: getString('hoverResultDetailsAccordionHeader'),
+                            distance: 5,
+                            delay: $helpTextDelay,
+                            theme: 'infoTooltip',
+                          }"
+                          class="bx bx-info-circle mugin_infoIcon"
+                          :aria-label="getString('infoResultDetailsAccordionLabel')"
+                        />
+                      </span>
+                    </strong>
+                  </div>
+                </div>
+                <div>
+                  <i
+                    v-if="accordionProps.expanded"
+                    class="bx bx-chevron-up mugin_aiAccordionHeaderArrows"
+                    aria-hidden="true"
+                  />
+                  <i
+                    v-else
+                    class="bx bx-chevron-down mugin_aiAccordionHeaderArrows"
+                    aria-hidden="true"
+                  />
+                </div>
+              </div>
+            </template>
+
+            <div class="mugin_resultDetailsShell">
+            <div class="mugin_resultDetailsPanel">
+              <section
+                v-if="resultDetailsMergedSources.length > 0 || resultDetailsOriginSource"
+                class="mugin_resultDetailsSection"
+              >
+                <div class="mugin_resultDetailsTopicGroup">
+                  <h4>
+                    <span>{{ getString("resultDetailsSourcesHeading") }}</span>
+                    <span class="mugin_resultDetailsIcon">
+                    <button
+                      type="button"
+                      v-tooltip="resultDetailsInfoTooltip(getString('resultDetailsHelpSourcesHeading'))"
+                      class="bx bx-info-circle mugin_infoIcon"
+                      :aria-label="getString('infoResultDetailsFieldLabel')"
+                    />
+                  </span>
+                  </h4>
+                  <ul
+                    v-if="resultDetailsMergedSources.length > 0"
+                    class="mugin_resultDetailsSourceList mugin_resetList"
+                  >
+                    <li
+                      v-for="sourceKey in resultDetailsMergedSources"
+                      :key="sourceKey"
+                      class="mugin_resultDetailsSourceChip"
+                      :class="{
+                        mugin_resultDetailsSourceChipOrigin:
+                          resultDetailsMergedSources.length > 1 &&
+                          sourceKey === resultDetailsOriginSource,
+                      }"
+                    >
+                      {{ formatResultDetailsSourceLabel(sourceKey) }}
+                      <span
+                        v-if="
+                          resultDetailsMergedSources.length > 1 &&
+                          sourceKey === resultDetailsOriginSource
+                        "
+                        class="mugin_resultDetailsOriginMark"
+                      >
+                        ({{ getString("resultDetailsOriginLabel") }})
+                      </span>
+                    </li>
+                  </ul>
+                  <p
+                    v-else-if="resultDetailsOriginSource"
+                    class="mugin_resultDetailsRow"
+                  >
+                    <span>{{ getString("resultDetailsOriginLabel") }}</span>
+                    <strong>{{
+                      formatResultDetailsSourceLabel(resultDetailsOriginSource)
+                    }}</strong>
+                  </p>
+                </div>
+              </section>
+
+              <section class="mugin_resultDetailsSection">
+                <h4>
+                  <span>{{ getString("resultDetailsIdentityHeading") }}</span>
+                  <span class="mugin_resultDetailsIcon">
+                    <button
+                      type="button"
+                      v-tooltip="resultDetailsInfoTooltip(getString('resultDetailsHelpIdentityHeading'))"
+                      class="bx bx-info-circle mugin_infoIcon"
+                      :aria-label="getString('infoResultDetailsFieldLabel')"
+                    />
+                  </span>
+                </h4>
+                <dl class="mugin_resultDetailsDl">
+                  <template v-if="resultDetailsPageRank != null">
+                    <dt>
+                      <span>{{ getString("resultDetailsPageRank") }}</span>
+                      <span class="mugin_resultDetailsIcon">
+                      <button
+                        type="button"
+                        v-tooltip="resultDetailsInfoTooltip(getString('resultDetailsHelpPageRank'))"
+                        class="bx bx-info-circle mugin_infoIcon"
+                        :aria-label="getString('infoResultDetailsFieldLabel')"
+                      />
+                    </span>
+                    </dt>
+                    <dd>{{ resultDetailsPageRank }}</dd>
+                  </template>
+                  <template v-if="hasValidPmid">
+                    <dt>
+                      <span>PMID</span>
+                      <span class="mugin_resultDetailsIcon">
+                      <button
+                        type="button"
+                        v-tooltip="resultDetailsInfoTooltip(getString('resultDetailsHelpPmid'))"
+                        class="bx bx-info-circle mugin_infoIcon"
+                        :aria-label="getString('infoResultDetailsFieldLabel')"
+                      />
+                    </span>
+                    </dt>
+                    <dd>
+                      <span class="mugin_advancedSearch mugin_noFloat">
+                        <a
+                          class="mugin_linkButton mugin_linkButtonAsAnchor"
+                          :href="getPubMedLink"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          v-tooltip="{
+                            content: getString('resultDetailsHoverOpenPubmed'),
+                            distance: 5,
+                            delay: $helpTextDelay,
+                          }"
+                          @click.stop
+                        >{{ normalizedPmid }}</a>
+                      </span>
+                    </dd>
+                  </template>
+                  <template v-if="normalizedDoi">
+                    <dt>
+                      <span>DOI</span>
+                      <span class="mugin_resultDetailsIcon">
+                      <button
+                        type="button"
+                        v-tooltip="resultDetailsInfoTooltip(getString('resultDetailsHelpDoi'))"
+                        class="bx bx-info-circle mugin_infoIcon"
+                        :aria-label="getString('infoResultDetailsFieldLabel')"
+                      />
+                    </span>
+                    </dt>
+                    <dd>
+                      <span class="mugin_advancedSearch mugin_noFloat">
+                        <a
+                          class="mugin_linkButton mugin_linkButtonAsAnchor"
+                          :href="getDoiLink"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          v-tooltip="{
+                            content: getString('resultDetailsHoverOpenDoi'),
+                            distance: 5,
+                            delay: $helpTextDelay,
+                          }"
+                          @click.stop
+                        >{{ normalizedDoi }}</a>
+                      </span>
+                    </dd>
+                  </template>
+                  <template v-if="resultDetailsResultKey">
+                    <dt>
+                      <span>{{ getString("resultDetailsResultKey") }}</span>
+                      <span class="mugin_resultDetailsIcon">
+                      <button
+                        type="button"
+                        v-tooltip="resultDetailsInfoTooltip(getString('resultDetailsHelpResultKey'))"
+                        class="bx bx-info-circle mugin_infoIcon"
+                        :aria-label="getString('infoResultDetailsFieldLabel')"
+                      />
+                    </span>
+                    </dt>
+                    <dd>{{ resultDetailsResultKey }}</dd>
+                  </template>
+                  <template v-if="resultDetailsOpenAlexId">
+                    <dt>
+                      <span>OpenAlex</span>
+                      <span class="mugin_resultDetailsIcon">
+                      <button
+                        type="button"
+                        v-tooltip="resultDetailsInfoTooltip(getString('resultDetailsHelpOpenAlex'))"
+                        class="bx bx-info-circle mugin_infoIcon"
+                        :aria-label="getString('infoResultDetailsFieldLabel')"
+                      />
+                    </span>
+                    </dt>
+                    <dd>
+                      <span class="mugin_advancedSearch mugin_noFloat">
+                        <a
+                          class="mugin_linkButton mugin_linkButtonAsAnchor"
+                          :href="getOpenAlexLink"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          v-tooltip="{
+                            content: getString('resultDetailsHoverOpenOpenAlex'),
+                            distance: 5,
+                            delay: $helpTextDelay,
+                          }"
+                          @click.stop
+                        >{{ resultDetailsOpenAlexId }}</a>
+                      </span>
+                    </dd>
+                  </template>
+                  <template v-if="resultDetailsTrustedPmid != null">
+                    <dt>
+                      <span>{{ getString("resultDetailsTrustedPmid") }}</span>
+                      <span class="mugin_resultDetailsIcon">
+                      <button
+                        type="button"
+                        v-tooltip="resultDetailsInfoTooltip(getString('resultDetailsHelpTrustedPmid'))"
+                        class="bx bx-info-circle mugin_infoIcon"
+                        :aria-label="getString('infoResultDetailsFieldLabel')"
+                      />
+                    </span>
+                    </dt>
+                    <dd>
+                      {{
+                        resultDetailsTrustedPmid
+                          ? getString("resultDetailsYes")
+                          : getString("resultDetailsNo")
+                      }}
+                    </dd>
+                  </template>
+                  <template v-if="resultDetailsCanOpenInPubMed != null">
+                    <dt>
+                      <span>{{ getString("resultDetailsCanOpenInPubMed") }}</span>
+                      <span class="mugin_resultDetailsIcon">
+                      <button
+                        type="button"
+                        v-tooltip="resultDetailsInfoTooltip(getString('resultDetailsHelpCanOpenInPubMed'))"
+                        class="bx bx-info-circle mugin_infoIcon"
+                        :aria-label="getString('infoResultDetailsFieldLabel')"
+                      />
+                    </span>
+                    </dt>
+                    <dd>
+                      {{
+                        resultDetailsCanOpenInPubMed
+                          ? getString("resultDetailsYes")
+                          : getString("resultDetailsNo")
+                      }}
+                    </dd>
+                  </template>
+                </dl>
+              </section>
+
+              <section class="mugin_resultDetailsSection">
+                <h4>
+                  <span>{{ getString("resultDetailsBiblioHeading") }}</span>
+                  <span class="mugin_resultDetailsIcon">
+                    <button
+                      type="button"
+                      v-tooltip="resultDetailsInfoTooltip(getString('resultDetailsHelpBiblioHeading'))"
+                      class="bx bx-info-circle mugin_infoIcon"
+                      :aria-label="getString('infoResultDetailsFieldLabel')"
+                    />
+                  </span>
+                </h4>
+                <dl class="mugin_resultDetailsDl">
+                  <template v-if="source || fulljournalnameFromValue">
+                    <dt>
+                      <span>{{ getString("resultDetailsJournal") }}</span>
+                      <span class="mugin_resultDetailsIcon">
+                      <button
+                        type="button"
+                        v-tooltip="resultDetailsInfoTooltip(getString('resultDetailsHelpJournal'))"
+                        class="bx bx-info-circle mugin_infoIcon"
+                        :aria-label="getString('infoResultDetailsFieldLabel')"
+                      />
+                    </span>
+                    </dt>
+                    <dd>{{ fulljournalnameFromValue || source }}</dd>
+                  </template>
+                  <template v-if="pubDate || date">
+                    <dt>
+                      <span>{{ getString("resultDetailsDate") }}</span>
+                      <span class="mugin_resultDetailsIcon">
+                      <button
+                        type="button"
+                        v-tooltip="resultDetailsInfoTooltip(getString('resultDetailsHelpDate'))"
+                        class="bx bx-info-circle mugin_infoIcon"
+                        :aria-label="getString('infoResultDetailsFieldLabel')"
+                      />
+                    </span>
+                    </dt>
+                    <dd>{{ pubDate || date }}</dd>
+                  </template>
+                  <template v-if="resultDetailsPublicationTypes.length > 0">
+                    <dt>
+                      <span>{{ getString("resultDetailsPubTypes") }}</span>
+                      <span class="mugin_resultDetailsIcon">
+                      <button
+                        type="button"
+                        v-tooltip="resultDetailsInfoTooltip(getString('resultDetailsHelpPubTypes'))"
+                        class="bx bx-info-circle mugin_infoIcon"
+                        :aria-label="getString('infoResultDetailsFieldLabel')"
+                      />
+                    </span>
+                    </dt>
+                    <dd>{{ resultDetailsPublicationTypes.join(", ") }}</dd>
+                  </template>
+                  <template v-if="resultDetailsLanguage">
+                    <dt>
+                      <span>{{ getString("resultDetailsLanguage") }}</span>
+                      <span class="mugin_resultDetailsIcon">
+                      <button
+                        type="button"
+                        v-tooltip="resultDetailsInfoTooltip(getString('resultDetailsHelpLanguage'))"
+                        class="bx bx-info-circle mugin_infoIcon"
+                        :aria-label="getString('infoResultDetailsFieldLabel')"
+                      />
+                    </span>
+                    </dt>
+                    <dd>{{ resultDetailsLanguage }}</dd>
+                  </template>
+                </dl>
+              </section>
+
+              <section
+                v-if="resultDetailsTopicGroups.length > 0"
+                class="mugin_resultDetailsSection"
+              >
+                <h4>
+                  <span>{{ getString("resultDetailsTopicsHeading") }}</span>
+                  <span class="mugin_resultDetailsIcon">
+                    <button
+                      type="button"
+                      v-tooltip="resultDetailsInfoTooltip(getString('resultDetailsHelpTopicsHeading'))"
+                      class="bx bx-info-circle mugin_infoIcon"
+                      :aria-label="getString('infoResultDetailsFieldLabel')"
+                    />
+                  </span>
+                </h4>
+                <div
+                  v-for="group in resultDetailsTopicGroups"
+                  :key="group.source"
+                  class="mugin_resultDetailsTopicGroup"
+                >
+                  <h5>
+                    <span>{{ group.label }}</span>
+                    <span class="mugin_resultDetailsIcon">
+                    <button
+                      v-if="formatResultDetailsTopicSourceHelp(group.source)"
+                      type="button"
+                      v-tooltip="resultDetailsInfoTooltip(formatResultDetailsTopicSourceHelp(group.source))"
+                      class="bx bx-info-circle mugin_infoIcon"
+                      :aria-label="getString('infoResultDetailsFieldLabel')"
+                    />
+                  </span>
+                  </h5>
+                  <ul class="mugin_resultDetailsSourceList mugin_resetList">
+                    <li
+                      v-for="topic in group.topics"
+                      :key="`${group.source}:${topic}`"
+                      class="mugin_resultDetailsSourceChip"
+                    >
+                      {{ topic }}
+                    </li>
+                  </ul>
+                </div>
+              </section>
+
+              <section class="mugin_resultDetailsSection">
+                <h4>
+                  <span>{{ getString("resultDetailsSignalsHeading") }}</span>
+                  <span class="mugin_resultDetailsIcon">
+                    <button
+                      type="button"
+                      v-tooltip="resultDetailsInfoTooltip(getString('resultDetailsHelpSignalsHeading'))"
+                      class="bx bx-info-circle mugin_infoIcon"
+                      :aria-label="getString('infoResultDetailsFieldLabel')"
+                    />
+                  </span>
+                </h4>
+                <dl class="mugin_resultDetailsDl">
+                  <dt>
+                      <span>{{ getString("resultDetailsHasAbstract") }}</span>
+                      <span class="mugin_resultDetailsIcon">
+                    <button
+                      type="button"
+                      v-tooltip="resultDetailsInfoTooltip(getString('resultDetailsHelpHasAbstract'))"
+                      class="bx bx-info-circle mugin_infoIcon"
+                      :aria-label="getString('infoResultDetailsFieldLabel')"
+                    />
+                  </span>
+                    </dt>
+                  <dd>
+                    {{
+                      hasValidAbstract
+                        ? getString("resultDetailsYes")
+                        : getString("resultDetailsNo")
+                    }}
+                  </dd>
+                  <template v-if="resultDetailsAbstractSource">
+                    <dt>
+                      <span>{{ getString("resultDetailsAbstractSource") }}</span>
+                      <span class="mugin_resultDetailsIcon">
+                      <button
+                        type="button"
+                        v-tooltip="resultDetailsInfoTooltip(getString('resultDetailsHelpAbstractSource'))"
+                        class="bx bx-info-circle mugin_infoIcon"
+                        :aria-label="getString('infoResultDetailsFieldLabel')"
+                      />
+                    </span>
+                    </dt>
+                    <dd>
+                      {{
+                        formatResultDetailsSourceLabel(resultDetailsAbstractSource)
+                      }}
+                    </dd>
+                  </template>
+                  <template v-if="resultDetailsCitationCount != null">
+                    <dt>
+                      <span>{{ getString("resultDetailsCitationCount") }}</span>
+                      <span class="mugin_resultDetailsIcon">
+                      <button
+                        type="button"
+                        v-tooltip="resultDetailsInfoTooltip(getString('resultDetailsHelpCitationCount'))"
+                        class="bx bx-info-circle mugin_infoIcon"
+                        :aria-label="getString('infoResultDetailsFieldLabel')"
+                      />
+                    </span>
+                    </dt>
+                    <dd>
+                      {{ resultDetailsCitationCount
+                      }}<template v-if="resultDetailsCitationCountSource">
+                        ({{
+                          formatResultDetailsSourceLabel(
+                            resultDetailsCitationCountSource
+                          )
+                        }})</template
+                      >
+                    </dd>
+                  </template>
+                  <template v-if="resultDetailsIsOpenAccess != null">
+                    <dt>
+                      <span>{{ getString("resultDetailsOpenAccess") }}</span>
+                      <span class="mugin_resultDetailsIcon">
+                      <button
+                        type="button"
+                        v-tooltip="resultDetailsInfoTooltip(getString('resultDetailsHelpOpenAccess'))"
+                        class="bx bx-info-circle mugin_infoIcon"
+                        :aria-label="getString('infoResultDetailsFieldLabel')"
+                      />
+                    </span>
+                    </dt>
+                    <dd>
+                      {{
+                        resultDetailsIsOpenAccess
+                          ? getString("resultDetailsYes")
+                          : getString("resultDetailsNo")
+                      }}
+                    </dd>
+                  </template>
+                  <template v-if="resultDetailsIsRetracted != null">
+                    <dt>
+                      <span>{{ getString("resultDetailsRetracted") }}</span>
+                      <span class="mugin_resultDetailsIcon">
+                      <button
+                        type="button"
+                        v-tooltip="resultDetailsInfoTooltip(getString('resultDetailsHelpRetracted'))"
+                        class="bx bx-info-circle mugin_infoIcon"
+                        :aria-label="getString('infoResultDetailsFieldLabel')"
+                      />
+                    </span>
+                    </dt>
+                    <dd>
+                      {{
+                        resultDetailsIsRetracted
+                          ? getString("resultDetailsYes")
+                          : getString("resultDetailsNo")
+                      }}
+                    </dd>
+                  </template>
+                </dl>
+              </section>
+
+              <section
+                v-if="resultDetailsRanking"
+                class="mugin_resultDetailsSection"
+              >
+                <h4>
+                  <span>{{ getString("resultDetailsRankingHeading") }}</span>
+                  <span class="mugin_resultDetailsIcon">
+                    <button
+                      type="button"
+                      v-tooltip="resultDetailsInfoTooltip(getString('resultDetailsHelpRankingHeading'))"
+                      class="bx bx-info-circle mugin_infoIcon"
+                      :aria-label="getString('infoResultDetailsFieldLabel')"
+                    />
+                  </span>
+                </h4>
+                <dl class="mugin_resultDetailsDl">
+                  <template v-if="resultDetailsRanking.combinedScore != null">
+                    <dt>
+                      <span>{{ getString("resultDetailsCombinedScore") }}</span>
+                      <span class="mugin_resultDetailsIcon">
+                      <button
+                        type="button"
+                        v-tooltip="resultDetailsInfoTooltip(getString('resultDetailsHelpCombinedScore'))"
+                        class="bx bx-info-circle mugin_infoIcon"
+                        :aria-label="getString('infoResultDetailsFieldLabel')"
+                      />
+                    </span>
+                    </dt>
+                    <dd>{{ formatResultDetailsNumber(resultDetailsRanking.combinedScore) }}</dd>
+                  </template>
+                  <template v-if="resultDetailsRanking.bestRank">
+                    <dt>
+                      <span>{{ getString("resultDetailsBestRank") }}</span>
+                      <span class="mugin_resultDetailsIcon">
+                      <button
+                        type="button"
+                        v-tooltip="resultDetailsInfoTooltip(getString('resultDetailsHelpBestRank'))"
+                        class="bx bx-info-circle mugin_infoIcon"
+                        :aria-label="getString('infoResultDetailsFieldLabel')"
+                      />
+                    </span>
+                    </dt>
+                    <dd>{{ resultDetailsRanking.bestRank }}</dd>
+                  </template>
+                  <template v-if="resultDetailsRanking.sourceCount">
+                    <dt>
+                      <span>{{ getString("resultDetailsSourceCount") }}</span>
+                      <span class="mugin_resultDetailsIcon">
+                      <button
+                        type="button"
+                        v-tooltip="resultDetailsInfoTooltip(getString('resultDetailsHelpSourceCount'))"
+                        class="bx bx-info-circle mugin_infoIcon"
+                        :aria-label="getString('infoResultDetailsFieldLabel')"
+                      />
+                    </span>
+                    </dt>
+                    <dd>{{ resultDetailsRanking.sourceCount }}</dd>
+                  </template>
+                  <template
+                    v-for="row in resultDetailsScoreBreakdownRows"
+                    :key="row.key"
+                  >
+                    <dt>
+                      <span>{{ row.label }}</span>
+                      <span class="mugin_resultDetailsIcon">
+                      <button
+                        v-if="row.help"
+                        type="button"
+                        v-tooltip="resultDetailsInfoTooltip(row.help)"
+                        class="bx bx-info-circle mugin_infoIcon"
+                        :aria-label="getString('infoResultDetailsFieldLabel')"
+                      />
+                    </span>
+                    </dt>
+                    <dd>{{ row.value }}</dd>
+                  </template>
+                  <template
+                    v-for="row in resultDetailsSourceBreakdown"
+                    :key="row.source"
+                  >
+                    <dt>
+                      <span>{{ formatResultDetailsSourceLabel(row.source) }}</span>
+                      <span class="mugin_resultDetailsIcon">
+                      <button
+                        type="button"
+                        v-tooltip="resultDetailsInfoTooltip(getString('resultDetailsHelpSourceContribution'))"
+                        class="bx bx-info-circle mugin_infoIcon"
+                        :aria-label="getString('infoResultDetailsFieldLabel')"
+                      />
+                    </span>
+                    </dt>
+                    <dd>
+                      <template v-if="row.rank">rank {{ row.rank }}</template>
+                      <template v-if="row.weight != null">
+                        <template v-if="row.rank"> · </template>w
+                        {{ formatResultDetailsNumber(row.weight) }}
+                      </template>
+                      <template v-if="row.weightedRrf != null">
+                        <template v-if="row.rank || row.weight != null">
+                          ·
+                        </template>
+                        RRF {{ formatResultDetailsNumber(row.weightedRrf) }}
+                      </template>
+                      <template v-if="row.score != null">
+                        <template
+                          v-if="
+                            row.rank ||
+                            row.weight != null ||
+                            row.weightedRrf != null
+                          "
+                        >
+                          ·
+                        </template>
+                        {{ formatResultDetailsNumber(row.score) }}
+                      </template>
+                    </dd>
+                  </template>
+                </dl>
+              </section>
+            </div>
+            </div>
+          </accordion-menu>
       </div>
     </div>
   </div>
@@ -774,6 +1400,7 @@
   import { utilitiesMixin } from "@/mixins/utilities";
   import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
   import { summarizeSingleAbstractPrompt } from "@/assets/prompts/abstract";
+  import { applyOpenAiTaskSettingsToList } from "@/utils/openAiTaskSettings.js";
   import {
     areComparableIdsEqual,
     formatPublicationInfo,
@@ -781,7 +1408,8 @@
     hasDefinedValue,
     isMobileViewport,
   } from "@/utils/componentHelpers";
-  import { normalizeDoiValue } from "@/utils/resultAdapters";
+  import { normalizeDoiValue, normalizeOpenAlexIdValue, normalizePmidValue } from "@/utils/resultAdapters";
+  import { languageFormat } from "@/utils/contentHelpers";
 
   let _resultEntryUid = 0;
 
@@ -946,7 +1574,7 @@
       },
     },
     data() {
-      const startElement = document.getElementById("qpm_start");
+      const startElement = document.getElementById("mugin_start");
       if (startElement !== null) {
         startElement.scrollIntoView({ behavior: "smooth" });
       }
@@ -1025,8 +1653,10 @@
         return this.appSettings?.nlm?.myncbishare || "";
       },
       normalizedPmid() {
-        const pmid = String(this.pmid || "").trim();
-        return /^[0-9]+$/.test(pmid) ? pmid : "";
+        return (
+          normalizePmidValue(this.pmid) ||
+          normalizePmidValue(this.resultDetailsValue?.pmid)
+        );
       },
       normalizedDoi() {
         return normalizeDoiValue(this.doi || "");
@@ -1044,18 +1674,230 @@
         return this.hasValidPmid ? this.normalizedPmid : null;
       },
       normalizedOpenAlexId() {
-        const raw = String(this.openAlexId || "").trim();
-        if (!raw) return "";
-        const match = raw.match(/W\d+/i);
-        return match ? match[0].toUpperCase() : "";
+        return normalizeOpenAlexIdValue(this.openAlexId);
       },
       hasValidOpenAlexId() {
         return this.normalizedOpenAlexId !== "";
       },
+      resultDetailsValue() {
+        return this.value && typeof this.value === "object" ? this.value : null;
+      },
+      resultDetailsMergedSources() {
+        const sources = this.resultDetailsValue?.mergedSources;
+        return Array.isArray(sources)
+          ? sources.map((value) => String(value || "").trim()).filter(Boolean)
+          : [];
+      },
+      resultDetailsOriginSource() {
+        return String(this.resultDetailsValue?.originSource || "").trim();
+      },
+      resultDetailsRanking() {
+        const ranking = this.resultDetailsValue?.ranking;
+        return ranking && typeof ranking === "object" ? ranking : null;
+      },
+      resultDetailsAbstractSource() {
+        return String(this.resultDetailsValue?.abstractSource || "").trim();
+      },
+      resultDetailsCitationCount() {
+        const count = this.resultDetailsValue?.citationCount;
+        return Number.isFinite(count) ? count : null;
+      },
+      resultDetailsCitationCountSource() {
+        return String(this.resultDetailsValue?.citationCountSource || "").trim();
+      },
+      resultDetailsIsOpenAccess() {
+        const value = this.resultDetailsValue?.isOpenAccess;
+        return typeof value === "boolean" ? value : null;
+      },
+      resultDetailsIsRetracted() {
+        const value = this.resultDetailsValue?.isRetracted;
+        return typeof value === "boolean" ? value : null;
+      },
+      resultDetailsPageRank() {
+        const rank = this.resultDetailsValue?.rank;
+        return Number.isFinite(rank) ? rank : null;
+      },
+      resultDetailsResultKey() {
+        return String(this.resultDetailsValue?.resultKey || "").trim();
+      },
+      resultDetailsOpenAlexId() {
+        return (
+          normalizeOpenAlexIdValue(this.resultDetailsValue?.openAlexId) ||
+          this.normalizedOpenAlexId
+        );
+      },
+      resultDetailsTrustedPmid() {
+        if (typeof this.resultDetailsValue?.trustedPmid === "boolean") {
+          return this.resultDetailsValue.trustedPmid;
+        }
+        return null;
+      },
+      resultDetailsCanOpenInPubMed() {
+        if (typeof this.resultDetailsValue?.canOpenInPubMed === "boolean") {
+          return this.resultDetailsValue.canOpenInPubMed;
+        }
+        return this.hasValidPmid ? true : null;
+      },
+      fulljournalnameFromValue() {
+        return String(this.resultDetailsValue?.fulljournalname || "").trim();
+      },
+      resultDetailsPublicationTypes() {
+        const fromValue = this.resultDetailsValue?.pubtype || this.resultDetailsValue?.publicationTypes;
+        if (Array.isArray(fromValue)) {
+          return fromValue.map((value) => String(value || "").trim()).filter(Boolean);
+        }
+        if (Array.isArray(this.pubType)) {
+          return this.pubType.map((value) => String(value || "").trim()).filter(Boolean);
+        }
+        const single = String(this.pubType || this.docType || "").trim();
+        return single ? [single] : [];
+      },
+      resultDetailsLanguage() {
+        return String(
+          this.resultDetailsValue?.language || this.language || ""
+        ).trim();
+      },
+      resultDetailsSourceBreakdown() {
+        const rows = this.resultDetailsRanking?.sourceBreakdown;
+        return Array.isArray(rows) ? rows.filter((row) => row && row.source) : [];
+      },
+      resultDetailsTopics() {
+        const topics = this.resultDetailsValue?.topics;
+        if (!Array.isArray(topics)) {
+          return [];
+        }
+        return topics
+          .filter((entry) => entry && typeof entry === "object")
+          .map((entry) => ({
+            label: String(entry.label || "").trim(),
+            source: String(entry.source || "").trim(),
+          }))
+          .filter((entry) => entry.label && entry.source !== "openAlexConcept");
+      },
+      resultDetailsTopicGroups() {
+        const order = [
+          "mesh",
+          "pubmedKeyword",
+          "openAlex",
+          "openAlexTopic",
+          "openAlexSubfield",
+          "openAlexKeyword",
+          "semanticScholar",
+        ];
+        const openAlexSources = new Set([
+          "openAlex",
+          "openAlexTopic",
+          "openAlexSubfield",
+          "openAlexKeyword",
+        ]);
+        const groups = new Map();
+        for (const topic of this.resultDetailsTopics) {
+          const source = topic.source || "other";
+          if (!groups.has(source)) {
+            groups.set(source, []);
+          }
+          const labels = groups.get(source);
+          if (!labels.includes(topic.label)) {
+            labels.push(topic.label);
+          }
+        }
+        const seenOpenAlex = new Set();
+        const toGroup = (source, topics) => {
+          let filtered = topics;
+          if (openAlexSources.has(source)) {
+            filtered = topics.filter((label) => {
+              const key = String(label || "").trim().toLowerCase();
+              if (!key || seenOpenAlex.has(key)) {
+                return false;
+              }
+              seenOpenAlex.add(key);
+              return true;
+            });
+            if (filtered.length === 0) {
+              return null;
+            }
+          }
+          return {
+            source,
+            label: this.formatResultDetailsTopicSourceLabel(source),
+            topics: filtered,
+          };
+        };
+        const known = order
+          .filter((source) => groups.has(source))
+          .map((source) => toGroup(source, groups.get(source)))
+          .filter(Boolean);
+        const extras = [...groups.keys()]
+          .filter((source) => !order.includes(source))
+          .map((source) => toGroup(source, groups.get(source)))
+          .filter(Boolean);
+        return [...known, ...extras];
+      },
+      resultDetailsScoreBreakdownRows() {
+        const breakdown = this.resultDetailsRanking?.scoreBreakdown;
+        if (!breakdown || typeof breakdown !== "object") {
+          return [];
+        }
+        const labelKeys = {
+          rrfScore: "resultDetailsScoreRrf",
+          overlapBonus: "resultDetailsScoreOverlap",
+          pmidBonus: "resultDetailsScorePmidBonus",
+          scoreTieBreaker: "resultDetailsScoreTieBreaker",
+          baseScore: "resultDetailsScoreBase",
+          additiveQualityBonus: "resultDetailsScoreQualityBonus",
+          recencyBonus: "resultDetailsScoreRecencyBonus",
+          pubTypeBonus: "resultDetailsScorePubTypeBonus",
+          pubTypeTierBonus: "resultDetailsScorePubTypeTierBonus",
+          pubTypeTier: "resultDetailsScorePubTypeTier",
+          pubTypeConfidence: "resultDetailsScorePubTypeConfidence",
+          oaBonus: "resultDetailsScoreOaBonus",
+          clinicalBonus: "resultDetailsScoreClinicalBonus",
+          translationPotentialBonus: "resultDetailsScoreTranslationBonus",
+          topicOverlapBonus: "resultDetailsScoreTopicOverlapBonus",
+          citationImpactMultiplier: "resultDetailsScoreCitationImpactMultiplier",
+          authorityMultiplier: "resultDetailsScoreAuthorityMultiplier",
+          recencyMultiplier: "resultDetailsScoreRecencyMultiplier",
+          retractionMultiplier: "resultDetailsScoreRetractionMultiplier",
+          dataQualityMultiplier: "resultDetailsScoreDataQualityMultiplier",
+          qualityMultiplier: "resultDetailsScoreQualityMultiplier",
+        };
+        return Object.keys(breakdown)
+          .filter((key) => breakdown[key] != null && breakdown[key] !== "")
+          .map((key) => {
+            const raw = breakdown[key];
+            const labelKey = labelKeys[key];
+            const helpKey = labelKey
+              ? labelKey.replace(/^resultDetails/, "resultDetailsHelp")
+              : "";
+            return {
+              key,
+              label: labelKey
+                ? this.getString(labelKey)
+                : this.formatResultDetailsCamelLabel(key),
+              value:
+                typeof raw === "number"
+                  ? this.formatResultDetailsNumber(raw)
+                  : String(raw),
+              help: helpKey ? this.getString(helpKey) : "",
+            };
+          });
+      },
+      showResultDetailsAccordion() {
+        if (!this.resultDetailsValue) {
+          return false;
+        }
+        return (
+          this.resultDetailsMergedSources.length > 0 ||
+          this.resultDetailsRanking != null ||
+          this.resultDetailsTopics.length > 0 ||
+          !!this.resultDetailsOriginSource ||
+          !!this.resultDetailsAbstractSource ||
+          this.resultDetailsCitationCount != null
+        );
+      },
       getOpenAlexLink() {
-        return this.hasValidOpenAlexId
-          ? `https://openalex.org/${this.normalizedOpenAlexId}`
-          : "";
+        const id = this.resultDetailsOpenAlexId || this.normalizedOpenAlexId;
+        return id ? `https://openalex.org/${id}` : "";
       },
       normalizedPubTypeTier() {
         const tier = this.pubTypeClassification && this.pubTypeClassification.tier;
@@ -1104,7 +1946,7 @@
         );
       },
       getDoiLink() {
-        return this.doi ? "https://doi.org/" + this.doi : "";
+        return this.normalizedDoi ? "https://doi.org/" + this.normalizedDoi : "";
       },
       getPubmedRelated() {
         if (!this.hasValidPmid) return "";
@@ -1347,7 +2189,13 @@
         this.abstractId = "custom";
       }
       this.checkPreload();
-      this.$emit("loadAbstract", this.id);
+      // Skip NlmFetch when unified search already provided a plain-text abstract
+      // for DOI-only rows. Keep fetch for valid PMIDs (structured sections/MeSH).
+      const hasInlineAbstract =
+        typeof this.abstract === "string" && this.abstract.trim() !== "";
+      if (!(hasInlineAbstract && !this.hasValidPmid)) {
+        this.$emit("loadAbstract", this.id);
+      }
 
       eventBus.on("result-entry-show-abstract", this.onEventBusShowAbstractEvent);
       this.syncAltmetricBadgeAccessibility();
@@ -1372,6 +2220,14 @@
         return {
           prefix: normalized.slice(0, lastSpace) + " ",
           last: normalized.slice(lastSpace + 1),
+        };
+      },
+      resultDetailsInfoTooltip(content) {
+        return {
+          content: String(content || "").trim(),
+          distance: 5,
+          delay: this.$helpTextDelay,
+          theme: "infoTooltip",
         };
       },
       getSelectedResultAccordionHeaderParts() {
@@ -1411,6 +2267,65 @@
       getFormattedPublication() {
         return formatPublicationInfo(this);
       },
+      formatResultDetailsSourceLabel(source) {
+        const key = String(source || "").trim().toLowerCase();
+        const labels = {
+          pubmed: "PubMed",
+          openalex: "OpenAlex",
+          semanticscholar: "Semantic Scholar",
+          elicit: "Elicit",
+        };
+        return labels[key] || String(source || "").trim();
+      },
+      formatResultDetailsTopicSourceLabel(source) {
+        const key = String(source || "").trim();
+        const labelKeys = {
+          mesh: "resultDetailsTopicSourceMesh",
+          pubmedKeyword: "resultDetailsTopicSourcePubmedKeyword",
+          openAlex: "resultDetailsTopicSourceOpenAlex",
+          openAlexTopic: "resultDetailsTopicSourceOpenAlexTopic",
+          openAlexSubfield: "resultDetailsTopicSourceOpenAlexSubfield",
+          openAlexKeyword: "resultDetailsTopicSourceOpenAlexKeyword",
+          semanticScholar: "resultDetailsTopicSourceSemanticScholar",
+        };
+        const labelKey = labelKeys[key];
+        return labelKey ? this.getString(labelKey) : this.formatResultDetailsCamelLabel(key);
+      },
+      formatResultDetailsTopicSourceHelp(source) {
+        const key = String(source || "").trim();
+        const helpKeys = {
+          mesh: "resultDetailsHelpTopicSourceMesh",
+          pubmedKeyword: "resultDetailsHelpTopicSourcePubmedKeyword",
+          openAlex: "resultDetailsHelpTopicSourceOpenAlex",
+          openAlexTopic: "resultDetailsHelpTopicSourceOpenAlexTopic",
+          openAlexSubfield: "resultDetailsHelpTopicSourceOpenAlexSubfield",
+          openAlexKeyword: "resultDetailsHelpTopicSourceOpenAlexKeyword",
+          semanticScholar: "resultDetailsHelpTopicSourceSemanticScholar",
+        };
+        const helpKey = helpKeys[key];
+        return helpKey ? this.getString(helpKey) : "";
+      },
+      formatResultDetailsNumber(value) {
+        if (!Number.isFinite(value)) {
+          return String(value ?? "");
+        }
+        if (Number.isInteger(value)) {
+          return String(value);
+        }
+        const locale = languageFormat[this.language] || languageFormat.dk;
+        return Number(value).toLocaleString(locale, {
+          useGrouping: false,
+          maximumFractionDigits: 4,
+          minimumFractionDigits: 0,
+        });
+      },
+      formatResultDetailsCamelLabel(key) {
+        const text = String(key || "").trim();
+        if (!text) return "";
+        return text
+          .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+          .replace(/^./, (char) => char.toUpperCase());
+      },
       getAltmetricBadgeAccessibleLabel() {
         const base =
           this.getString("altmetricBadgeLinkLabel") || "View Altmetric attention for this record";
@@ -1420,7 +2335,7 @@
       applyAltmetricBadgeAccessibility() {
         if (!this.showAltmetricBadge || !this.$el) return;
         const ariaLabel = this.getAltmetricBadgeAccessibleLabel();
-        this.$el.querySelectorAll(".qpm_altmetrics a").forEach((link) => {
+        this.$el.querySelectorAll(".mugin_altmetrics a").forEach((link) => {
           link.setAttribute("aria-label", ariaLabel);
           if (!link.getAttribute("title")) {
             link.setAttribute("title", ariaLabel);
@@ -1440,7 +2355,7 @@
           return;
         }
 
-        const badgeNodes = this.$el.querySelectorAll(".qpm_altmetrics");
+        const badgeNodes = this.$el.querySelectorAll(".mugin_altmetrics");
         if (badgeNodes.length === 0) return;
 
         this.altmetricBadgeObserver = new MutationObserver(() => {
@@ -1730,7 +2645,7 @@
         element.setAttribute("data-collapsed", "false");
       },
       handleClickEvent() {
-        const eventClass = this.abstractLoaded ? "qpm_shadow" : "qpm_abstractContainer";
+        const eventClass = this.abstractLoaded ? "mugin_shadow" : "mugin_abstractContainer";
         const section = document.querySelector(eventClass);
         if (!section) return;
         const isCollapsed = section.getAttribute("data-collapsed") === "true";
@@ -1784,7 +2699,10 @@
           });
       },
       getsummarizeSingleAbstractPrompt() {
-        return summarizeSingleAbstractPrompt;
+        return applyOpenAiTaskSettingsToList(
+          summarizeSingleAbstractPrompt,
+          "summarizeAbstract"
+        );
       },
       updateInput(event) {
         const isChecked = event.target.checked;

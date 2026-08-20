@@ -2,6 +2,10 @@
 /**
  * TranslateTitle API Proxy med Streaming Support
  * Erstatter Azure Function: /api/TranslateTitle
+ *
+ * Streaming/prompt-proxy for the widget. Non-streaming semantic/PubMed translation
+ * without a full search is also available via SemanticTagTranslate.php, which wraps
+ * muginPublicSearchTranslateSemanticQuery / muginPublicSearchTranslatePubMedQuery.
  */
 
 $configPath = dirname(__DIR__) . '/config/config.php';
@@ -11,8 +15,8 @@ if (!file_exists($configPath)) {
 require_once $configPath;
 require_once __DIR__ . '/NlmApiHelpers.php';
 
-qpmApplyNlmCorsHeaders('POST, OPTIONS');
-qpmEnforceFirstPartyIpRateLimit('openaiProxy');
+muginApplyNlmCorsHeaders('POST, OPTIONS');
+muginEnforceFirstPartyIpRateLimit('openaiProxy');
 
 // Kun POST tilladt
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -53,48 +57,29 @@ if (isset($prompt['messages']) && is_array($prompt['messages'])) {
     $messages[] = ['role' => 'user', 'content' => $promptText];
 }
 
-// Byg OpenAI request - using Responses API for gpt-5.5
-// See: https://platform.openai.com/docs/api-reference/responses/create
+// Byg OpenAI/Requesty Responses request.
+// Optional knobs: backend/docs/external-apis/requesty-openapi.json (ResponsesRequest).
 $openaiRequest = [
-    'model' => qpmResolveAllowedOpenAiModel($prompt['model'] ?? null, 'gpt-5.5'),
+    'model' => muginResolveAllowedOpenAiModel($prompt['model'] ?? null, ''),
     'input' => $messages,  // Responses API uses 'input' instead of 'messages'
-    'stream' => isset($prompt['stream']) ? (bool)$prompt['stream'] : true
+    'stream' => isset($prompt['stream']) ? (bool)$prompt['stream'] : true,
+    'reasoning' => [
+        'effort' => muginClampOpenAiReasoningEffort($prompt['reasoning']['effort'] ?? null, 'low'),
+    ],
+    'text' => [
+        'verbosity' => 'medium',
+    ],
 ];
-
-// gpt-5.5 reasoning parameter
-$openaiRequest['reasoning'] = [
-    'effort' => qpmClampOpenAiReasoningEffort($prompt['reasoning']['effort'] ?? null, 'low'),
-];
-
-// gpt-5.5 text configuration (verbosity + optional structured output format)
-$textConfig = [];
-if (isset($prompt['text']) && is_array($prompt['text'])) {
-    if (isset($prompt['text']['verbosity'])) {
-        $textConfig['verbosity'] = $prompt['text']['verbosity'];
-    }
-    if (isset($prompt['text']['format']) && is_array($prompt['text']['format'])) {
-        $textConfig['format'] = $prompt['text']['format'];
-    }
+if (isset($prompt['response_format']) && is_array($prompt['response_format']) && !isset($prompt['text']['format'])) {
+    $prompt['text'] = isset($prompt['text']) && is_array($prompt['text']) ? $prompt['text'] : [];
+    $prompt['text']['format'] = $prompt['response_format'];
 }
-if (!isset($textConfig['format']) && isset($prompt['response_format']) && is_array($prompt['response_format'])) {
-    $textConfig['format'] = $prompt['response_format'];
-}
-if (!isset($textConfig['verbosity'])) {
-    $textConfig['verbosity'] = 'medium'; // Default
-}
-$openaiRequest['text'] = $textConfig;
+$openaiRequest = muginEnrichResponsesRequestFromPrompt($openaiRequest, is_array($prompt) ? $prompt : []);
 
-// max_output_tokens for gpt-5.5
-if (isset($prompt['max_output_tokens']) && $prompt['max_output_tokens'] !== null) {
-    $openaiRequest['max_output_tokens'] = qpmClampOpenAiMaxOutputTokens($prompt['max_output_tokens']);
-} elseif (isset($prompt['max_tokens']) && $prompt['max_tokens'] !== null) {
-    $openaiRequest['max_output_tokens'] = qpmClampOpenAiMaxOutputTokens($prompt['max_tokens']);
-}
-
-$domain = qpmResolveDomain();
-$openAiApiKey = qpmGetOpenAIApiKey($domain);
-$openAiOrgId = qpmGetOpenAIOrgId($domain);
-$openAiApiUrl = qpmGetOpenAIApiUrl($domain);
+$domain = muginResolveDomain();
+$openAiApiUrl = muginGetOpenAIApiUrl($domain);
+$openaiRequest = muginNormalizeLlmRequestPayload($openaiRequest);
+$headers = muginBuildLlmHttpHeaders($domain);
 $isLocalRequest = static function(): bool {
     $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
     return $host !== '' && (
@@ -104,15 +89,6 @@ $isLocalRequest = static function(): bool {
         $host === '::1'
     );
 };
-
-$headers = [
-    'Content-Type: application/json',
-    'Authorization: Bearer ' . $openAiApiKey
-];
-
-if ($openAiOrgId) {
-    $headers[] = 'OpenAI-Organization: ' . $openAiOrgId;
-}
 
 // Streaming response
 header('Content-Type: text/event-stream');
@@ -205,7 +181,7 @@ if (!function_exists('curl_init')) {
     $fallbackRequest = $openaiRequest;
     $fallbackRequest['stream'] = false;
 
-    $fallbackResponse = qpmHttpRequest($openAiApiUrl, [
+    $fallbackResponse = muginHttpRequest($openAiApiUrl, [
         'method' => 'POST',
         'headers' => $headers,
         'body' => json_encode($fallbackRequest),

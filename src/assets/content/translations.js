@@ -60,8 +60,8 @@ export const messages = {
     en: "Information about selected article without abstract",
   },
   searchStringTextareaLabel: {
-    dk: "Søgestreng (skrivebeskyttet) — klik eller tryk Enter for at kopiere",
-    en: "Search string (read-only) — click or press Enter to copy",
+    dk: "Søgestreng — redigér og klik Søg for at køre søgningen med denne streng",
+    en: "Search string — edit and click Search to run the search with this string",
   },
   removeTagLabel: {
     dk: "Fjern",
@@ -224,16 +224,16 @@ export const messages = {
     en: "Databases",
   },
   hoverSemanticSearchSectionHeader: {
-    dk: "Vælg hvilke databaser der skal bruges til din søgning. PubMed bruger den almindelige QuickPubMed-søgning med dine valgte emner og afgrænsninger, mens de øvrige databaser kan bruges som ekstra kilder til fritekstinput.",
-    en: "Choose which databases to use for your search. PubMed uses the regular QuickPubMed search with your selected topics and filters, while the other databases can be used as additional sources for free-text input.",
+    dk: "Vælg hvilke databaser der skal bruges til din søgning. PubMed bruger den almindelige Mugin Scholar-søgning med dine valgte emner og afgrænsninger, mens de øvrige databaser kan bruges som ekstra kilder til fritekstinput.",
+    en: "Choose which databases to use for your search. PubMed uses the regular Mugin Scholar search with your selected topics and filters, while the other databases can be used as additional sources for free-text input.",
   },
   rerankProfileHeader: {
     dk: "Resultatfokus",
     en: "Result focus",
   },
   hoverRerankProfileHeader: {
-    dk: "Vælg hvordan QuickPubMed skal prioritere den semantisk/merge-rerankede resultatliste. Filtre, databaser, kvalitetsvalidering og ren PubMed-sortering ændres ikke.",
-    en: "Choose how QuickPubMed should prioritize the semantically/merge-reranked result list. Filters, databases, quality validation, and pure PubMed sorting are not changed.",
+    dk: "Vælg hvordan Mugin Scholar skal prioritere den semantisk/merge-rerankede resultatliste. Filtre, databaser, kvalitetsvalidering og ren PubMed-sortering ændres ikke.",
+    en: "Choose how Mugin Scholar should prioritize the semantically/merge-reranked result list. Filters, databases, quality validation, and pure PubMed sorting are not changed.",
   },
   infoRerankProfileLabel: {
     dk: "Information om resultatfokus",
@@ -316,16 +316,16 @@ export const messages = {
     en: "PubMed query with AI",
   },
   hoversearchToggleWithPubMedQuery: {
-    dk: "Hvis du selv indtaster søgeord, bruges kunstig intelligens (AI) til at oversætte teksten til en PubMed-søgestreng, som indgår direkte i QuickPubMed-søgningen.<br><br><strong>Du har slået denne funktion til</strong>.",
-    en: "If you enter search terms manually, artificial intelligence (AI) is used to translate the text into a PubMed query, which is used directly in the QuickPubMed search.<br><br><strong>You have enabled this feature</strong>.",
+    dk: "Hvis du selv indtaster søgeord, bruges kunstig intelligens (AI) til at oversætte teksten til en PubMed-søgestreng, som indgår direkte i Mugin Scholar-søgningen.<br><br><strong>Du har slået denne funktion til</strong>.",
+    en: "If you enter search terms manually, artificial intelligence (AI) is used to translate the text into a PubMed query, which is used directly in the Mugin Scholar search.<br><br><strong>You have enabled this feature</strong>.",
   },
   searchToggleWithoutPubMedQuery: {
     dk: "PubMed-søgestreng med AI (slået fra)",
     en: "PubMed query with AI (disabled)",
   },
   hoversearchToggleWithoutPubMedQuery: {
-    dk: "Når denne funktion er slået fra, bruges denne AI-genererede PubMed-søgestreng ikke som direkte søgestreng i QuickPubMed.",
-    en: "When this feature is disabled, this AI-generated PubMed query is not used directly as the search string in QuickPubMed.",
+    dk: "Når denne funktion er slået fra, bruges denne AI-genererede PubMed-søgestreng ikke som direkte søgestreng i Mugin Scholar.",
+    en: "When this feature is disabled, this AI-generated PubMed query is not used directly as the search string in Mugin Scholar.",
   },
   searchToggleWithPubMedBestMatch: {
     dk: "PubMed",
@@ -505,39 +505,43 @@ export const messages = {
   },
   semanticSearchProgressPreparing: {
     dk: "Forbereder søgningen ud fra dine valgte søgeord, afgrænsninger og databaser.",
-    en: "Preparing the semantic search from your selected terms and filters.",
+    en: "Preparing the search based on your query, filters, and selected sources.",
   },
   semanticSearchProgressSearchString: {
     dk: "Laver en PubMed-søgestreng ud fra din fritekst.",
-    en: "Translating your free text into a PubMed search string.",
+    en: "Building a PubMed search string from your free text.",
   },
   semanticSearchProgressMesh: {
     dk: "Tjekker og forfiner PubMed-søgestrengen med MeSH.",
     en: "Checking and refining the PubMed search string with MeSH.",
   },
   semanticSearchProgressSemanticIntent: {
-    dk: "Fortolker søgeintentionen.",
-    en: "Interpreting the search intent.",
+    dk: "Fortolker og tilpasser søgningen til de valgte databaser.",
+    en: "Interpreting and adapting the search for the selected databases.",
+  },
+  semanticSearchProgressSemanticIntentSingle: {
+    dk: "Fortolker og tilpasser søgningen til den valgte database.",
+    en: "Interpreting and adapting the search for the selected database.",
   },
   semanticSearchProgressSemanticQuery: {
-    dk: "Tilpasser søgningen til de valgte databaser.",
-    en: "Adapting the search for the selected databases.",
+    dk: "Fortolker og tilpasser søgningen til de valgte databaser.",
+    en: "Interpreting and adapting the search for the selected databases.",
   },
   semanticSearchProgressPubMedBestMatch: {
     dk: "Søger i PubMed.",
-    en: "Using PubMed relevance search to find the most relevant articles.",
+    en: "Searching PubMed.",
   },
   semanticSearchProgressSemanticScholar: {
     dk: "Søger i Semantic Scholar.",
-    en: "Searching for related articles in Semantic Scholar.",
+    en: "Searching Semantic Scholar.",
   },
   semanticSearchProgressOpenAlex: {
     dk: "Søger i OpenAlex.",
-    en: "Searching for related articles in OpenAlex.",
+    en: "Searching OpenAlex.",
   },
   semanticSearchProgressElicit: {
     dk: "Søger i Elicit.",
-    en: "Searching for related articles in Elicit.",
+    en: "Searching Elicit.",
   },
   semanticSearchProgressFinalize: {
     dk: "Henter detaljer og færdiggør rækkefølgen.",
@@ -553,7 +557,7 @@ export const messages = {
   },
   semanticSearchProgressFinalizeValidatePmid: {
     dk: "Kontrollerer PMID-resultater mod PubMed-søgningen.",
-    en: "Validating PMID results against PubMed.",
+    en: "Validating PMID results against the PubMed search.",
   },
   semanticSearchProgressFinalizeValidateDoiFetch: {
     dk: "Henter metadata for DOI-resultater og tjekker filtrene.",
@@ -577,11 +581,11 @@ export const messages = {
   },
   semanticSearchProgressFinalizeHydrateOpenAlex: {
     dk: "Henter artikeloplysninger fra OpenAlex.",
-    en: "Fetching DOI details from OpenAlex.",
+    en: "Fetching article details from OpenAlex.",
   },
   semanticSearchProgressFinalizeHydrateMixed: {
     dk: "Henter artikeloplysninger fra PubMed og OpenAlex.",
-    en: "Fetching article details from PubMed and DOI details from OpenAlex.",
+    en: "Fetching article details from PubMed and OpenAlex.",
   },
   semanticSearchProgressFinalizeSort: {
     dk: "Sorterer resultaterne efter dato.",
@@ -600,9 +604,17 @@ export const messages = {
     dk: "Reranker kandidaterne på tværs af databaserne.",
     en: "Reranking candidates across databases.",
   },
+  semanticSearchProgressRerankSingle: {
+    dk: "Rangerer kandidaterne.",
+    en: "Ranking the candidates.",
+  },
   semanticSearchProgressFinalRerank: {
     dk: "Kontrollerer den endelige rangering.",
     en: "Checking the final ranking.",
+  },
+  semanticSearchProgressCacheHit: {
+    dk: "Bruger et gemt resultat fra en tidligere søgning.",
+    en: "Using a cached result from an earlier search.",
   },
   degradedSearchSummaryTitle: {
     dk: "Bemærk om søgeprocessen",
@@ -621,12 +633,12 @@ export const messages = {
     en: "Key concepts are checked and refined against PubMed's official subject headings (MeSH) so the search is more precise.",
   },
   semanticSearchProcessExplanationSemanticIntent: {
-    dk: "Din fritekst fortolkes til en engelsk søgeintention (kernebegreber og coreQuery), som de efterfølgende trin bruger.",
-    en: "Your free text is interpreted into an English search intent (core concepts and coreQuery) used by the following steps.",
+    dk: "Din fritekst fortolkes til en engelsk søgeintention, og søgningen tilpasses til de valgte databaser.",
+    en: "Your free text is interpreted into an English search intent, and the search is adapted for the selected databases.",
   },
   semanticSearchProcessExplanationSemanticQuery: {
-    dk: "Søgningen tilpasses, så den passer til hver enkelt valgt database.",
-    en: "The search is adapted so it fits each selected database.",
+    dk: "Din fritekst fortolkes til en engelsk søgeintention, og søgningen tilpasses til de valgte databaser.",
+    en: "Your free text is interpreted into an English search intent, and the search is adapted for the selected databases.",
   },
   semanticSearchProcessExplanationPubmed: {
     dk: "Der søges i PubMed for at finde de artikler, der bedst matcher dit spørgsmål.",
@@ -645,8 +657,8 @@ export const messages = {
     en: "Elicit is searched to find related articles.",
   },
   semanticSearchProcessExplanationRerank: {
-    dk: "Resultaterne fra de forskellige databaser samles og sorteres efter, hvor godt de passer til dit spørgsmål.",
-    en: "The results from the different databases are combined and ordered by how well they match your question.",
+    dk: "Resultaterne samles og sorteres efter, hvor godt de passer til dit spørgsmål. I detaljerne vises rerankMode (single når én kilde rangeres, ellers på tværs af databaserne).",
+    en: "The results are combined and ordered by how well they match your question. The details show rerankMode (single when one source is ranked, otherwise across databases).",
   },
   semanticSearchProcessExplanationFinalizeCollect: {
     dk: "De fundne artikler samles, og dubletter fjernes, så de er klar til at blive tjekket mod dine afgrænsninger.",
@@ -705,12 +717,12 @@ export const messages = {
     en: "Key concepts are looked up and refined via NLM's MeSH registry. In the details you see e.g. 'meshSearchQuery', 'validCount'/'invalidCount', 'beforeOptimization'/'afterOptimization', 'addedMeshTerms'/'removedMeshTerms' and 'finalMeshTermCount'.",
   },
   semanticSearchProcessDetailExplanationSemanticIntent: {
-    dk: "Her fortolkes din fritekst til en engelsk søgeintention. I detaljerne ser du bl.a. 'semanticIntent'/'coreQuery', 'detectedConcepts', 'confidenceScore', 'conceptCoverage', 'coverageCheck', 'potentialIssues' og 'refinementSuggestions'. 'parseAttempts'/'fallbackUsed' viser, om AI-kaldet lykkedes.",
-    en: "Your free text is interpreted into an English search intent. In the details you see e.g. 'semanticIntent'/'coreQuery', 'detectedConcepts', 'confidenceScore', 'conceptCoverage', 'coverageCheck', 'potentialIssues' and 'refinementSuggestions'. 'parseAttempts'/'fallbackUsed' show whether the AI call succeeded.",
+    dk: "Her fortolkes din fritekst til en engelsk søgeintention, og søgningen tilpasses til de valgte databaser. I detaljerne ser du bl.a. 'semanticIntent'/'coreQuery', 'detectedConcepts', 'confidenceScore', 'conceptCoverage', 'coverageCheck', 'potentialIssues', 'refinementSuggestions', 'sourceQueries' (query pr. database) og 'adaptations'. 'parseAttempts'/'fallbackUsed' viser, om AI-kaldet lykkedes. 'semanticTranslationSkipped' er true, når tilpasningen genbrugte intent uden et ekstra AI-kald.",
+    en: "Your free text is interpreted into an English search intent, and the search is adapted for the selected databases. In the details you see e.g. 'semanticIntent'/'coreQuery', 'detectedConcepts', 'confidenceScore', 'conceptCoverage', 'coverageCheck', 'potentialIssues', 'refinementSuggestions', 'sourceQueries' (query per database) and 'adaptations'. 'parseAttempts'/'fallbackUsed' show whether the AI call succeeded. 'semanticTranslationSkipped' is true when adaptation reused the intent without an extra AI call.",
   },
   semanticSearchProcessDetailExplanationSemanticQuery: {
-    dk: "Den fælles søgning tilpasses til hver enkelt valgt database. I detaljerne ser du bl.a. 'coreQuery' (den fælles engelske kerne), 'hardFilters' (dine bindende filtre), 'sourceQueries' (den konkrete query pr. database) og 'adaptations' (database-specifikke tilpasninger). 'semanticTranslationSkipped' er true, når tilpasningen genbrugte intent uden et ekstra AI-kald.",
-    en: "The shared search is adapted for each selected database. In the details you see e.g. 'coreQuery' (the shared English core), 'hardFilters' (your binding filters), 'sourceQueries' (the actual query per database) and 'adaptations' (database-specific adjustments). 'semanticTranslationSkipped' is true when adaptation reused the intent without an extra AI call.",
+    dk: "Her fortolkes din fritekst til en engelsk søgeintention, og søgningen tilpasses til de valgte databaser. I detaljerne ser du bl.a. 'semanticIntent'/'coreQuery', 'detectedConcepts', 'confidenceScore', 'conceptCoverage', 'coverageCheck', 'potentialIssues', 'refinementSuggestions', 'sourceQueries' (query pr. database) og 'adaptations'. 'parseAttempts'/'fallbackUsed' viser, om AI-kaldet lykkedes. 'semanticTranslationSkipped' er true, når tilpasningen genbrugte intent uden et ekstra AI-kald.",
+    en: "Your free text is interpreted into an English search intent, and the search is adapted for the selected databases. In the details you see e.g. 'semanticIntent'/'coreQuery', 'detectedConcepts', 'confidenceScore', 'conceptCoverage', 'coverageCheck', 'potentialIssues', 'refinementSuggestions', 'sourceQueries' (query per database) and 'adaptations'. 'parseAttempts'/'fallbackUsed' show whether the AI call succeeded. 'semanticTranslationSkipped' is true when adaptation reused the intent without an extra AI call.",
   },
   semanticSearchProcessDetailExplanationPubmed: {
     dk: "Der køres en relevans-søgning i PubMed. I detaljerne ser du 'Søgetekst' (den faktiske søgestreng) og 'Request-parametre' (de parametre der sendes til PubMed, fx 'term', 'sort' og hvor mange resultater der hentes). PubMed bruges også som et sikkert fundament, hvis de øvrige kilder svigter.",
@@ -1024,6 +1036,10 @@ export const messages = {
     dk: "Søger i databaser",
     en: "Searching sources",
   },
+  semanticSearchProcessGroupPrepareAndSearchSingle: {
+    dk: "Tilpasser søgningen og søger i databasen",
+    en: "Adapting the search and searching the database",
+  },
   semanticSearchProcessGroupMatch: {
     dk: "Reranker, matcher og filtrerer resultaterne",
     en: "Reranking, matching and filtering the results",
@@ -1059,6 +1075,10 @@ export const messages = {
   noResultTip: {
     dk: "Prøv eventuelt at fjerne nogle afgrænsninger, eller kontrollér for stavefejl, hvis du har indtastet søgeord.",
     en: "Try removing some limits, or check for spelling mistakes if you entered search terms.",
+  },
+  noResultTipAiOff: {
+    dk: "Søgningen blev sendt uden AI-oversættelse. Slå «Indtast med AI-oversættelse» til, hvis friteksten er på dansk eller formuleret som et spørgsmål.",
+    en: "The search was sent without AI translation. Turn on “Enter with AI translation” if the free text is not English or is phrased as a question.",
   },
   noDropdownContent: {
     dk: "Ingen matchende valgmuligheder i listen.",
@@ -1156,6 +1176,74 @@ export const messages = {
     dk: "Skjul søgestreng",
     en: "Hide search string",
   },
+  showSearchStrings: {
+    dk: "Vis søgestrenge",
+    en: "Show search strings",
+  },
+  hideSearchStrings: {
+    dk: "Skjul søgestrenge",
+    en: "Hide search strings",
+  },
+  searchStringSourcePubmed: {
+    dk: "PubMed",
+    en: "PubMed",
+  },
+  searchStringPubmedTopics: {
+    dk: "Emner",
+    en: "Topics",
+  },
+  searchStringPubmedLimits: {
+    dk: "Afgrænsninger",
+    en: "Limits",
+  },
+  searchStringPubmedLimitsHint: {
+    dk: "Afgrænsninger kan ikke redigeres her. Ændr dem via valgmulighederne i søgeformularen.",
+    en: "Limits cannot be edited here. Change them via the options in the search form.",
+  },
+  searchStringSourceLimitsHint: {
+    dk: "Her vises de afgrænsninger, som er mulige at bruge i {source}.",
+    en: "These are the limits that can be used in {source}.",
+  },
+  infoSearchStringLimitsLabel: {
+    dk: "Information om afgrænsninger",
+    en: "Information about limits",
+  },
+  editSearchString: {
+    dk: "Redigér søgestreng",
+    en: "Edit search string",
+  },
+  doneEditingSearchString: {
+    dk: "Afslut redigering",
+    en: "Done editing",
+  },
+  searchStringSourceSemanticScholar: {
+    dk: "Semantic Scholar",
+    en: "Semantic Scholar",
+  },
+  searchStringSourceOpenAlex: {
+    dk: "OpenAlex",
+    en: "OpenAlex",
+  },
+  searchStringSourceElicit: {
+    dk: "Elicit",
+    en: "Elicit",
+  },
+  copySearchString: {
+    dk: "Kopiér",
+    en: "Copy",
+  },
+  searchStringCopied: {
+    dk: "Kopieret",
+    en: "Copied",
+  },
+  searchStringFilterHintPrefix: {
+    dk: "Filtre:",
+    en: "Filters:",
+  },
+  searchStringEditAndSearchHint: {
+    dk: "Klik på blyanten for at redigere en streng, og klik Søg for at køre en ny søgning med de redigerede søgestrenge.",
+    en: "Click the pencil to edit a string, then click Search to run a new search with the edited search strings.",
+  },
   showFilterCategory: {
     dk: "Vis valgmuligheder",
     en: "Show options",
@@ -1227,6 +1315,18 @@ export const messages = {
   showPubMedLink: {
     dk: "Åbn søgning i PubMed",
     en: "Run search in PubMed",
+  },
+  showSourceSearchLink: {
+    dk: "Åbn søgning i {source}",
+    en: "Run search in {source}",
+  },
+  sourceSearchLinkLimitsHint: {
+    dk: "Ikke alle afgrænsninger kan sendes med i {source}. Linket åbner søgningen med de filtre, som hjemmesiden for {source} understøtter.",
+    en: "Not all limits can be sent along to {source}. The link opens the search with the filters that the {source} website supports.",
+  },
+  infoSourceSearchLinkLimitsLabel: {
+    dk: "Information om afgrænsninger i eksternt link",
+    en: "Information about limits in the external link",
   },
   createPubMedAlert: {
     dk: "Opret overvågning i PubMed",
@@ -1416,6 +1516,10 @@ export const messages = {
     dk: "Gennemfør søgningen i PubMed (åbner i nyt vindue)",
     en: "Run search in PubMed (open in a new tab)",
   },
+  hoverShowSourceSearchLinkText: {
+    dk: "Gennemfør søgningen i {source} (åbner i nyt vindue)",
+    en: "Run search in {source} (opens in a new tab)",
+  },
   hoverShowPubMedLinkCreateAlertText: {
     dk: "Få tilsendt en e-mail, når der kommer nye resultater via denne søgning &ndash; fungerer kun, hvis du er logget ind på en PubMed-konto (åbner i nyt vindue)",
     en: "Receive an e-mail when this search returns new results &ndash; only works if you are logged in to a PubMed account (opens in new tab)",
@@ -1433,8 +1537,8 @@ export const messages = {
     en: "Get access to the article on the journal website &ndash; access charges may apply (opens in a new tab)",
   },
   hoverSearchString: {
-    dk: "Klik på feltet for at kopiere søgestrengen",
-    en: "Click on the input box to copy the search string",
+    dk: "Redigér søgestrengen. Klik Søg for at køre søgningen med den redigerede streng.",
+    en: "Edit the search string. Click Search to run the search with the edited string.",
   },
   hoverAddTopic: {
     dk: "Klik for at tilføje emne",
@@ -1718,6 +1822,14 @@ export const messages = {
     dk: "Fejl: Søgeresultater kunne ikke hentes",
     en: "Error: Couldn't retrieve search results",
   },
+  pubmedTranslationFallbackWarning: {
+    dk: "Friteksten kunne ikke oversættes til en fuld PubMed-søgestreng. Vi søger på en forenklet streng i stedet.",
+    en: "The free text could not be translated into a full PubMed search string. A simplified string is used instead.",
+  },
+  pubmedRawFreetextSanitizedWarning: {
+    dk: "Tegn som ? og & blev fjernet, fordi de er PubMed-syntaks.",
+    en: "Characters such as ? and & were removed because they are PubMed syntax.",
+  },
   selectedResultTitle: {
     dk: "Markerede artikler",
     en: "Selected records",
@@ -1754,6 +1866,462 @@ export const messages = {
     dk: "Få opsummeret denne artikel på dansk ved hjælp af kunstig intelligens (AI).",
     en: "Summarise this article using artificial intelligence (AI).",
   },
+  resultDetailsAccordionHeader: {
+    dk: "Artikeldetaljer og ranking",
+    en: "Article details and ranking",
+  },
+  hoverResultDetailsAccordionHeader: {
+    dk: "Vis allerede hentede oplysninger om datakilder, identifikatorer og rerank-scores for denne artikel. Åbning henter ikke nye data.",
+    en: "Show already loaded information about data sources, identifiers and rerank scores for this article. Opening does not fetch new data.",
+  },
+  infoResultDetailsAccordionLabel: {
+    dk: "Information om artikeldetaljer",
+    en: "Information about article details",
+  },
+  infoResultDetailsFieldLabel: {
+    dk: "Forklaring af feltet",
+    en: "Explanation of this field",
+  },
+  resultDetailsSourcesHeading: {
+    dk: "Datakilder",
+    en: "Data sources",
+  },
+  resultDetailsOriginLabel: {
+    dk: "primær",
+    en: "primary",
+  },
+  resultDetailsIdentityHeading: {
+    dk: "Identifikation",
+    en: "Identification",
+  },
+  resultDetailsPageRank: {
+    dk: "Placering på siden",
+    en: "Page rank",
+  },
+  resultDetailsResultKey: {
+    dk: "Result key",
+    en: "Result key",
+  },
+  resultDetailsTrustedPmid: {
+    dk: "Pålidelig PMID",
+    en: "Trusted PMID",
+  },
+  resultDetailsCanOpenInPubMed: {
+    dk: "Kan åbnes i PubMed",
+    en: "Can open in PubMed",
+  },
+  resultDetailsBiblioHeading: {
+    dk: "Bibliografi",
+    en: "Bibliography",
+  },
+  resultDetailsTopicsHeading: {
+    dk: "Emneord og emner",
+    en: "Keywords and topics",
+  },
+  resultDetailsTopicSourceMesh: {
+    dk: "MeSH",
+    en: "MeSH",
+  },
+  resultDetailsTopicSourcePubmedKeyword: {
+    dk: "PubMed-emneord",
+    en: "PubMed keywords",
+  },
+  resultDetailsTopicSourceOpenAlex: {
+    dk: "OpenAlex (primært emne)",
+    en: "OpenAlex (primary topic)",
+  },
+  resultDetailsTopicSourceOpenAlexTopic: {
+    dk: "OpenAlex-emner",
+    en: "OpenAlex topics",
+  },
+  resultDetailsTopicSourceOpenAlexSubfield: {
+    dk: "OpenAlex-delfelt",
+    en: "OpenAlex subfield",
+  },
+  resultDetailsTopicSourceOpenAlexKeyword: {
+    dk: "OpenAlex-emneord",
+    en: "OpenAlex keywords",
+  },
+  resultDetailsTopicSourceSemanticScholar: {
+    dk: "Semantic Scholar-fagområder",
+    en: "Semantic Scholar fields of study",
+  },
+  resultDetailsJournal: {
+    dk: "Tidsskrift",
+    en: "Journal",
+  },
+  resultDetailsDate: {
+    dk: "Dato",
+    en: "Date",
+  },
+  resultDetailsPubTypes: {
+    dk: "Publikationstyper",
+    en: "Publication types",
+  },
+  resultDetailsLanguage: {
+    dk: "Sprog",
+    en: "Language",
+  },
+  resultDetailsSignalsHeading: {
+    dk: "Signaler",
+    en: "Signals",
+  },
+  resultDetailsHasAbstract: {
+    dk: "Abstract",
+    en: "Abstract",
+  },
+  resultDetailsAbstractSource: {
+    dk: "Abstract-kilde",
+    en: "Abstract source",
+  },
+  resultDetailsCitationCount: {
+    dk: "Citationer",
+    en: "Citations",
+  },
+  resultDetailsOpenAccess: {
+    dk: "Open access",
+    en: "Open access",
+  },
+  resultDetailsRetracted: {
+    dk: "Tilbagetrukket",
+    en: "Retracted",
+  },
+  resultDetailsRankingHeading: {
+    dk: "Rerank-score (kvalitet/RRF)",
+    en: "Rerank score (quality/RRF)",
+  },
+  resultDetailsCombinedScore: {
+    dk: "Samlet score",
+    en: "Combined score",
+  },
+  resultDetailsBestRank: {
+    dk: "Bedste kilderang",
+    en: "Best source rank",
+  },
+  resultDetailsSourceCount: {
+    dk: "Antal kilder",
+    en: "Source count",
+  },
+  resultDetailsScoreRrf: {
+    dk: "RRF-score",
+    en: "RRF score",
+  },
+  resultDetailsScoreOverlap: {
+    dk: "Overlap-bonus",
+    en: "Overlap bonus",
+  },
+  resultDetailsScorePmidBonus: {
+    dk: "PMID-bonus",
+    en: "PMID bonus",
+  },
+  resultDetailsScoreTieBreaker: {
+    dk: "Tie-breaker",
+    en: "Tie-breaker",
+  },
+  resultDetailsScoreBase: {
+    dk: "Basescore",
+    en: "Base score",
+  },
+  resultDetailsScoreQualityBonus: {
+    dk: "Kvalitetsbonus",
+    en: "Quality bonus",
+  },
+  resultDetailsScoreRecencyBonus: {
+    dk: "Aktualitetsbonus",
+    en: "Recency bonus",
+  },
+  resultDetailsScorePubTypeBonus: {
+    dk: "Publikationstype-bonus",
+    en: "Publication type bonus",
+  },
+  resultDetailsScorePubTypeTierBonus: {
+    dk: "Publikationstype-niveau-bonus",
+    en: "Publication type tier bonus",
+  },
+  resultDetailsScorePubTypeTier: {
+    dk: "Publikationstype-niveau",
+    en: "Publication type tier",
+  },
+  resultDetailsScorePubTypeConfidence: {
+    dk: "Publikationstype-sikkerhed",
+    en: "Publication type confidence",
+  },
+  resultDetailsScoreOaBonus: {
+    dk: "Open access-bonus",
+    en: "Open access bonus",
+  },
+  resultDetailsScoreClinicalBonus: {
+    dk: "Klinisk bonus",
+    en: "Clinical bonus",
+  },
+  resultDetailsScoreTranslationBonus: {
+    dk: "Translationspotentiale-bonus",
+    en: "Translation potential bonus",
+  },
+  resultDetailsScoreTopicOverlapBonus: {
+    dk: "Emneoverlap-bonus",
+    en: "Topic overlap bonus",
+  },
+  resultDetailsScoreCitationImpactMultiplier: {
+    dk: "Citationspåvirkning",
+    en: "Citation impact multiplier",
+  },
+  resultDetailsScoreAuthorityMultiplier: {
+    dk: "Autoritet",
+    en: "Authority multiplier",
+  },
+  resultDetailsScoreRecencyMultiplier: {
+    dk: "Aktualitetsmultiplikator",
+    en: "Recency multiplier",
+  },
+  resultDetailsScoreRetractionMultiplier: {
+    dk: "Tilbagetrækningsmultiplikator",
+    en: "Retraction multiplier",
+  },
+  resultDetailsScoreDataQualityMultiplier: {
+    dk: "Datakvalitetsmultiplikator",
+    en: "Data quality multiplier",
+  },
+  resultDetailsScoreQualityMultiplier: {
+    dk: "Kvalitetsmultiplikator",
+    en: "Quality multiplier",
+  },
+  resultDetailsHelpPageRank: {
+    dk: "Placering i den viste resultatliste på denne side. 1 er øverst.",
+    en: "Position in the displayed result list on this page. 1 is at the top.",
+  },
+  resultDetailsHelpPmid: {
+    dk: "PubMed-identifikator. Bruges til at åbne artiklen i PubMed og til at flette poster fra flere kilder.",
+    en: "PubMed identifier. Used to open the article in PubMed and to merge records from several sources.",
+  },
+  resultDetailsHoverOpenPubmed: {
+    dk: "Vis i PubMed (åbner i ny fane)",
+    en: "View in PubMed (opens in a new tab)",
+  },
+  resultDetailsHoverOpenOpenAlex: {
+    dk: "Vis i OpenAlex (åbner i ny fane)",
+    en: "View in OpenAlex (opens in a new tab)",
+  },
+  resultDetailsHoverOpenDoi: {
+    dk: "Gå til artikel hos tidsskriftet (åbner i ny fane)",
+    en: "Go to the article at the journal (opens in a new tab)",
+  },
+  resultDetailsHelpDoi: {
+    dk: "Permanent digital identifikator. Bruges til at slå artiklen op og til at flette poster, der ikke har PMID.",
+    en: "Permanent digital identifier. Used to look up the article and to merge records that do not have a PMID.",
+  },
+  resultDetailsHelpResultKey: {
+    dk: "Intern nøgle (typisk pmid:… eller doi:…), som søgemotoren bruger til at genkende samme artikel på tværs af kilder.",
+    en: "Internal key (typically pmid:… or doi:…) used by the search engine to recognise the same article across sources.",
+  },
+  resultDetailsHelpOpenAlex: {
+    dk: "OpenAlex-identifikator for artiklen. Bruges når posten kommer fra eller er beriget via OpenAlex.",
+    en: "OpenAlex identifier for the article. Used when the record comes from or is enriched via OpenAlex.",
+  },
+  resultDetailsHelpTrustedPmid: {
+    dk: "Om PMID er vurderet pålidelig nok til PubMed-links og validering. Nej betyder, at nummeret ikke bruges som sikkert PubMed-match.",
+    en: "Whether the PMID is considered reliable enough for PubMed links and validation. No means the number is not used as a trusted PubMed match.",
+  },
+  resultDetailsHelpCanOpenInPubMed: {
+    dk: "Om artiklen kan åbnes direkte i PubMed ud fra det tilgængelige PMID.",
+    en: "Whether the article can be opened directly in PubMed from the available PMID.",
+  },
+  resultDetailsHelpJournal: {
+    dk: "Tidsskriftet artiklen er publiceret i, som det er angivet af kilden.",
+    en: "The journal the article was published in, as reported by the source.",
+  },
+  resultDetailsHelpDate: {
+    dk: "Publiceringsdato. Kan være præcis dag eller kun år, afhængigt af kilden.",
+    en: "Publication date. May be an exact day or only a year, depending on the source.",
+  },
+  resultDetailsHelpPubTypes: {
+    dk: "Publikationstyper fra kilden (fx Journal Article eller Systematic Review). Bruges blandt andet i evidens-rerank.",
+    en: "Publication types from the source (for example Journal Article or Systematic Review). Also used in evidence reranking.",
+  },
+  resultDetailsHelpLanguage: {
+    dk: "Artiklens sprogkode, typisk fra PubMed (fx eng eller dan).",
+    en: "Language code of the article, typically from PubMed (for example eng or dan).",
+  },
+  resultDetailsHelpHasAbstract: {
+    dk: "Om der er et abstract tilgængeligt i denne visning.",
+    en: "Whether an abstract is available in this view.",
+  },
+  resultDetailsHelpAbstractSource: {
+    dk: "Hvilken database abstractet er hentet fra.",
+    en: "Which database the abstract was retrieved from.",
+  },
+  resultDetailsHelpCitationCount: {
+    dk: "Antal gange artiklen er citeret, og hvilken database tallet kommer fra. Forskellige kilder kan tælle lidt forskelligt.",
+    en: "Number of times the article has been cited, and which database the count comes from. Different sources may count slightly differently.",
+  },
+  resultDetailsHelpOpenAccess: {
+    dk: "Om artiklen er markeret som frit tilgængelig (open access) i kildedataene.",
+    en: "Whether the article is marked as freely available (open access) in the source data.",
+  },
+  resultDetailsHelpRetracted: {
+    dk: "Om artiklen er markeret som tilbagetrukket. Tilbagetrukne poster kan filtreres fra eller nedprioriteres i rerank.",
+    en: "Whether the article is marked as retracted. Retracted records may be filtered out or downranked.",
+  },
+  resultDetailsHelpCombinedScore: {
+    dk: "Endelig ranking-score efter RRF og kvalitetsjusteringer. Højere tal betyder højere placering.",
+    en: "Final ranking score after RRF and quality adjustments. A higher number means a higher position.",
+  },
+  resultDetailsHelpBestRank: {
+    dk: "Den bedste (laveste) placering artiklen havde i én af de databaser, der fandt den. 1 er toppen af den pågældende kildes liste.",
+    en: "The best (lowest) rank the article had in one of the databases that found it. 1 is the top of that source’s list.",
+  },
+  resultDetailsHelpSourceCount: {
+    dk: "Hvor mange af de valgte databaser der fandt artiklen. Flere kilder giver overlap-bonus.",
+    en: "How many of the selected databases found the article. More sources give an overlap bonus.",
+  },
+  resultDetailsHelpScoreRrf: {
+    dk: "Hovedscoren fra Reciprocal Rank Fusion: kildernes placeringer smeltes sammen. Bedre rang i en kilde giver højere bidrag.",
+    en: "The main Reciprocal Rank Fusion score: source ranks are merged. A better rank in a source contributes more.",
+  },
+  resultDetailsHelpScoreOverlap: {
+    dk: "Bonus fordi flere kilder fandt samme artikel. Gælder kun når mere end én database er i spil.",
+    en: "Bonus because several sources found the same article. Applies only when more than one database is used.",
+  },
+  resultDetailsHelpScorePmidBonus: {
+    dk: "Bonus for at artiklen har en PMID. Mangler PMID, gives der ingen bonus — det er ikke en straf.",
+    en: "Bonus for the article having a PMID. Missing PMID gives no bonus — it is not a penalty.",
+  },
+  resultDetailsHelpScoreTieBreaker: {
+    dk: "Bruges kun til at skille næsten ens scorer ad, typisk ud fra kildens egen relevansscore.",
+    en: "Used only to separate nearly identical scores, typically from the source’s own relevance score.",
+  },
+  resultDetailsHelpScoreBase: {
+    dk: "Score før kvalitetsbonusser og multiplikatorer: RRF plus overlap- og PMID-bonus.",
+    en: "Score before quality bonuses and multipliers: RRF plus overlap and PMID bonuses.",
+  },
+  resultDetailsHelpScoreQualityBonus: {
+    dk: "Samlet tillæg fra kvalitetsfaktorer som publikationstype, aktualitet, open access og emneoverlap.",
+    en: "Combined add-on from quality factors such as publication type, recency, open access and topic overlap.",
+  },
+  resultDetailsHelpScoreRecencyBonus: {
+    dk: "Bonus for nyere publikationer. Hvor stærkt den tæller, afhænger af det valgte resultatfokus.",
+    en: "Bonus for more recent publications. How strongly it counts depends on the selected result focus.",
+  },
+  resultDetailsHelpScorePubTypeBonus: {
+    dk: "Bonus ud fra publikationstype, fx systematic review eller RCT.",
+    en: "Bonus based on publication type, for example systematic review or RCT.",
+  },
+  resultDetailsHelpScorePubTypeTierBonus: {
+    dk: "Bonus ud fra det klassificerede evidensniveau for publikationstypen.",
+    en: "Bonus based on the classified evidence tier of the publication type.",
+  },
+  resultDetailsHelpScorePubTypeTier: {
+    dk: "Klassificeret evidensniveau for publikationstypen, fx systematic_review_or_meta eller research_article.",
+    en: "Classified evidence tier for the publication type, for example systematic_review_or_meta or research_article.",
+  },
+  resultDetailsHelpScorePubTypeConfidence: {
+    dk: "Hvor sikker klassifikationen af publikationstypen er (high, medium eller low). Lavere sikkerhed dæmper type-bonusen.",
+    en: "How confident the publication-type classification is (high, medium or low). Lower confidence reduces the type bonus.",
+  },
+  resultDetailsHelpScoreOaBonus: {
+    dk: "Bonus hvis artiklen er markeret som open access.",
+    en: "Bonus if the article is marked as open access.",
+  },
+  resultDetailsHelpScoreClinicalBonus: {
+    dk: "Bonus for klinisk relevans, fx kliniske citationer eller klinisk flag i kildedataene.",
+    en: "Bonus for clinical relevance, for example clinical citations or a clinical flag in the source data.",
+  },
+  resultDetailsHelpScoreTranslationBonus: {
+    dk: "Bonus for potentiale til praktisk anvendelse (translation potential) i kildedataene.",
+    en: "Bonus for potential practical application (translation potential) in the source data.",
+  },
+  resultDetailsHelpScoreTopicOverlapBonus: {
+    dk: "Additiv bonus når artiklens emner matcher søgeintentionen. Manglende MeSH eller emner giver 0, aldrig minus.",
+    en: "Additive bonus when the article’s topics match the search intent. Missing MeSH or topics give 0, never a penalty.",
+  },
+  resultDetailsHelpScoreCitationImpactMultiplier: {
+    dk: "Justering af scoren ud fra citationspåvirkning (fx RCR eller FWCI). 1.0 er neutralt.",
+    en: "Score adjustment based on citation impact (for example RCR or FWCI). 1.0 is neutral.",
+  },
+  resultDetailsHelpScoreAuthorityMultiplier: {
+    dk: "Justering ud fra forfatter- eller tidsskriftsautoritet. 1.0 er neutralt.",
+    en: "Adjustment based on author or journal authority. 1.0 is neutral.",
+  },
+  resultDetailsHelpScoreRecencyMultiplier: {
+    dk: "Justering ud fra hvor ny artiklen er, når aktualitet indgår som multiplikator. 1.0 er neutralt.",
+    en: "Adjustment based on how recent the article is when recency is applied as a multiplier. 1.0 is neutral.",
+  },
+  resultDetailsHelpScoreRetractionMultiplier: {
+    dk: "Nedsættelse hvis artiklen er trukket tilbage. 1.0 betyder ingen effekt.",
+    en: "Reduction if the article has been retracted. 1.0 means no effect.",
+  },
+  resultDetailsHelpScoreDataQualityMultiplier: {
+    dk: "Justering ud fra datakvalitet, fx manglende abstract, forfatter eller årstal. 1.0 er neutralt.",
+    en: "Adjustment based on data quality, for example a missing abstract, author or year. 1.0 is neutral.",
+  },
+  resultDetailsHelpScoreQualityMultiplier: {
+    dk: "Samlet kvalitetsjustering, som den øvrige score ganges med (citationer, autoritet, retraction og datakvalitet).",
+    en: "Overall quality adjustment that the rest of the score is multiplied by (citations, authority, retraction and data quality).",
+  },
+  resultDetailsHelpSourceContribution: {
+    dk: "Denne databases bidrag: rang i kildens resultat, kildevægt (w) og RRF-bidrag til den samlede score.",
+    en: "This database’s contribution: rank in the source result, source weight (w) and RRF contribution to the combined score.",
+  },
+  resultDetailsHelpSourcesHeading: {
+    dk: "Databaser der fandt artiklen. Mærket primær er den kilde, visningen tager udgangspunkt i.",
+    en: "Databases that found the article. The primary mark is the source the display is based on.",
+  },
+  resultDetailsHelpIdentityHeading: {
+    dk: "Identifikatorer for artiklen, fx PMID, DOI, OpenAlex-id og intern result key.",
+    en: "Identifiers for the article, such as PMID, DOI, OpenAlex id and the internal result key.",
+  },
+  resultDetailsHelpBiblioHeading: {
+    dk: "Bibliografiske oplysninger: tidsskrift, dato, publikationstyper og sprog.",
+    en: "Bibliographic details: journal, date, publication types and language.",
+  },
+  resultDetailsHelpTopicsHeading: {
+    dk: "Emneord og emner fra PubMed, OpenAlex og Semantic Scholar. Hver gruppe har sin egen forklaring.",
+    en: "Keywords and topics from PubMed, OpenAlex and Semantic Scholar. Each group has its own explanation.",
+  },
+  resultDetailsHelpSignalsHeading: {
+    dk: "Artikelsignaler som abstract, citationer, open access og tilbagetrækning.",
+    en: "Article signals such as abstract, citations, open access and retraction.",
+  },
+  resultDetailsHelpRankingHeading: {
+    dk: "Sådan er artiklen scoret i rerank: RRF, kvalitetsbonusser og kildernes bidrag.",
+    en: "How the article was scored in rerank: RRF, quality bonuses and each source’s contribution.",
+  },
+  resultDetailsHelpTopicSourceMesh: {
+    dk: "Medical Subject Headings fra PubMed. Kontrollerede emneord. Indgår i den endelige LLM-rerank. Indgår ikke i den automatiske emnebonus.",
+    en: "Medical Subject Headings from PubMed. Controlled topic terms. Used in the final LLM rerank. Not used in the automatic topic bonus.",
+  },
+  resultDetailsHelpTopicSourcePubmedKeyword: {
+    dk: "Forfatter- eller tidsskriftsemneord fra PubMeds KeywordList. Ikke det samme som MeSH. Indgår i den endelige LLM-rerank. Indgår ikke i den automatiske emnebonus.",
+    en: "Author or journal keywords from PubMed’s KeywordList. Not the same as MeSH. Used in the final LLM rerank. Not used in the automatic topic bonus.",
+  },
+  resultDetailsHelpTopicSourceOpenAlex: {
+    dk: "OpenAlex’ primære emne for artiklen. Indgår i både den automatiske emnebonus og den endelige LLM-rerank.",
+    en: "OpenAlex’s primary topic for the article. Used in both the automatic topic bonus and the final LLM rerank.",
+  },
+  resultDetailsHelpTopicSourceOpenAlexTopic: {
+    dk: "OpenAlex-emner knyttet til artiklen. Gyldigt emnesignal også når artiklen ikke har PMID eller MeSH. Indgår i både den automatiske emnebonus og den endelige LLM-rerank.",
+    en: "OpenAlex topics linked to the article. A valid topic signal even when the article has no PMID or MeSH. Used in both the automatic topic bonus and the final LLM rerank.",
+  },
+  resultDetailsHelpTopicSourceOpenAlexSubfield: {
+    dk: "Delfeltet for artiklens OpenAlex-emner. Mere specifikt end fagområde, men bredere end det enkelte emne. Indgår i den endelige LLM-rerank. Indgår ikke i den automatiske emnebonus.",
+    en: "The subfield of the article’s OpenAlex topics. More specific than field, broader than the individual topic. Used in the final LLM rerank. Not used in the automatic topic bonus.",
+  },
+  resultDetailsHelpTopicSourceOpenAlexKeyword: {
+    dk: "Emneord fra OpenAlex. Supplerer emner. Indgår i den endelige LLM-rerank. Indgår ikke i den automatiske emnebonus.",
+    en: "Keywords from OpenAlex. Complements topics. Used in the final LLM rerank. Not used in the automatic topic bonus.",
+  },
+  resultDetailsHelpTopicSourceSemanticScholar: {
+    dk: "Semantic Scholar fields of study. Gyldigt emnesignal for DOI-only poster uden MeSH. Indgår i både den automatiske emnebonus og den endelige LLM-rerank.",
+    en: "Semantic Scholar fields of study. A valid topic signal for DOI-only records without MeSH. Used in both the automatic topic bonus and the final LLM rerank.",
+  },
+  resultDetailsYes: {
+    dk: "Ja",
+    en: "Yes",
+  },
+  resultDetailsNo: {
+    dk: "Nej",
+    en: "No",
+  },
   hovermarkedArticleCounter: {
     dk: "Antal artikler du har markeret.",
     en: "Number of selected records.",
@@ -1765,6 +2333,14 @@ export const messages = {
   hoverselectedResultDeselectAllText: {
     dk: "Klik for at fravælge alle markerede artikler.",
     en: "Click to deselect all checked records.",
+  },
+  selectedResultDownloadRisText: {
+    dk: "Download RIS",
+    en: "Download RIS",
+  },
+  hoverselectedResultDownloadRisText: {
+    dk: "Klik for at downloade de markerede artikler som en .ris-fil.",
+    en: "Click to download the selected records as a .ris file.",
   },
   selectedResultEmptyText: {
     dk: "<p>Du har ikke markeret nogen artikler.</p>",

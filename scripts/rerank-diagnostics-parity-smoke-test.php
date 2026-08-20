@@ -53,7 +53,7 @@ $sourceResults = [
     ],
 ];
 
-$result = qpmSemanticQualityRerankCandidates($sourceResults);
+$result = muginSemanticQualityRerankCandidates($sourceResults);
 $diagnostics = $result['diagnostics'];
 
 assertTrue(

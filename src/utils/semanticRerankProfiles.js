@@ -1,4 +1,4 @@
-export const RERANK_PROFILE_STORAGE_KEY = "qpmResultFocusProfile";
+export const RERANK_PROFILE_STORAGE_KEY = "muginResultFocusProfile";
 export const RERANK_PROFILE_URL_PARAM = "focus";
 
 const ALLOWED_RERANK_OVERRIDE_KEYS = new Set([

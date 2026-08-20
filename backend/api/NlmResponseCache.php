@@ -5,11 +5,13 @@
  * Keeps cache local to server-side proxy calls and never changes response shape.
  */
 
-function qpmGetNlmResponseCacheTtl(string $endpoint): int
+require_once dirname(__DIR__) . '/app/file-cache.php';
+
+function muginGetNlmResponseCacheTtl(string $endpoint): int
 {
     $fallback = 900;
-    if (defined('QPM_NLM_RESPONSE_CACHE_TTL_SECONDS')) {
-        $configured = QPM_NLM_RESPONSE_CACHE_TTL_SECONDS;
+    if (defined('MUGIN_NLM_RESPONSE_CACHE_TTL_SECONDS')) {
+        $configured = MUGIN_NLM_RESPONSE_CACHE_TTL_SECONDS;
         if (is_array($configured)) {
             $value = $configured[$endpoint] ?? $configured['default'] ?? $fallback;
             return max(0, (int) $value);
@@ -19,16 +21,12 @@ function qpmGetNlmResponseCacheTtl(string $endpoint): int
     return $fallback;
 }
 
-function qpmGetNlmResponseCacheDir(): string
+function muginGetNlmResponseCacheDir(): string
 {
-    $cacheDir = dirname(__DIR__, 2) . '/data/cache/nlm-response';
-    if (!is_dir($cacheDir)) {
-        @mkdir($cacheDir, 0750, true);
-    }
-    return $cacheDir;
+    return muginEnsureDataSubdir('cache', 'nlm-response');
 }
 
-function qpmNormalizeNlmResponseCacheParams(array $params): array
+function muginNormalizeNlmResponseCacheParams(array $params): array
 {
     $normalized = [];
     foreach ($params as $key => $value) {
@@ -45,9 +43,9 @@ function qpmNormalizeNlmResponseCacheParams(array $params): array
     return $normalized;
 }
 
-function qpmIsNlmResponseCacheable(string $endpoint, array $params): bool
+function muginIsNlmResponseCacheable(string $endpoint, array $params): bool
 {
-    if (qpmGetNlmResponseCacheTtl($endpoint) <= 0) {
+    if (muginGetNlmResponseCacheTtl($endpoint) <= 0) {
         return false;
     }
     $db = strtolower(trim((string) ($params['db'] ?? 'pubmed')));
@@ -61,40 +59,44 @@ function qpmIsNlmResponseCacheable(string $endpoint, array $params): bool
     return in_array($endpoint, ['esummary', 'efetch'], true);
 }
 
-function qpmGetNlmResponseCachePath(string $endpoint, string $domain, array $params): string
+function muginGetNlmResponseCachePath(string $endpoint, string $domain, array $params): string
 {
     $payload = [
         'endpoint' => $endpoint,
         'domain' => strtolower(trim($domain)),
-        'params' => qpmNormalizeNlmResponseCacheParams($params),
+        'params' => muginNormalizeNlmResponseCacheParams($params),
     ];
     $cacheKey = hash('sha256', json_encode($payload, JSON_UNESCAPED_SLASHES));
-    return qpmGetNlmResponseCacheDir() . '/' . $cacheKey . '.json';
+    return muginGetNlmResponseCacheDir() . '/' . $cacheKey . '.json';
 }
 
-function qpmReadNlmResponseCache(string $endpoint, string $domain, array $params): ?array
+function muginReadNlmResponseCache(string $endpoint, string $domain, array $params): ?array
 {
-    if (!qpmIsNlmResponseCacheable($endpoint, $params)) {
+    if (!muginIsNlmResponseCacheable($endpoint, $params)) {
         return null;
     }
-    $cachePath = qpmGetNlmResponseCachePath($endpoint, $domain, $params);
+    $cachePath = muginGetNlmResponseCachePath($endpoint, $domain, $params);
     if (!is_file($cachePath)) {
         return null;
     }
     $raw = @file_get_contents($cachePath);
     if (!is_string($raw) || $raw === '') {
+        @unlink($cachePath);
         return null;
     }
     $payload = json_decode($raw, true);
     if (!is_array($payload)) {
+        @unlink($cachePath);
         return null;
     }
     $storedAt = (int) ($payload['storedAt'] ?? 0);
-    if ($storedAt <= 0 || time() - $storedAt > qpmGetNlmResponseCacheTtl($endpoint)) {
+    if ($storedAt <= 0 || time() - $storedAt > muginGetNlmResponseCacheTtl($endpoint)) {
+        @unlink($cachePath);
         return null;
     }
     $body = $payload['body'] ?? null;
     if (!is_string($body) || $body === '') {
+        @unlink($cachePath);
         return null;
     }
     return [
@@ -106,9 +108,9 @@ function qpmReadNlmResponseCache(string $endpoint, string $domain, array $params
     ];
 }
 
-function qpmWriteNlmResponseCache(string $endpoint, string $domain, array $params, array $result): void
+function muginWriteNlmResponseCache(string $endpoint, string $domain, array $params, array $result): void
 {
-    if (!qpmIsNlmResponseCacheable($endpoint, $params)) {
+    if (!muginIsNlmResponseCacheable($endpoint, $params)) {
         return;
     }
     $status = (int) ($result['status'] ?? 0);
@@ -125,5 +127,6 @@ function qpmWriteNlmResponseCache(string $endpoint, string $domain, array $param
     if ($payload === false) {
         return;
     }
-    @file_put_contents(qpmGetNlmResponseCachePath($endpoint, $domain, $params), $payload, LOCK_EX);
+    @file_put_contents(muginGetNlmResponseCachePath($endpoint, $domain, $params), $payload, LOCK_EX);
+    muginFileCacheMaybeSweepDirectory(muginGetNlmResponseCacheDir());
 }

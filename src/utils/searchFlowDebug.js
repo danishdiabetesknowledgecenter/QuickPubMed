@@ -1,4 +1,4 @@
-export const SEARCH_FLOW_DEBUG_QUERY_PARAM = "qpmDebug";
+export const SEARCH_FLOW_DEBUG_QUERY_PARAM = "muginDebug";
 export const SEARCH_FLOW_DEBUG_QUERY_VALUE = "searchflow";
 
 export function normalizeSearchFlowDebugValue(value) {

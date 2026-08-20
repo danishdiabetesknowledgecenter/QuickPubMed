@@ -1,6 +1,6 @@
 # Semantiske post-valideringsregler
 
-Denne note beskriver, hvordan den semantiske post-validering er bygget op i QuickPubMed, og hvordan nye regler vedligeholdes.
+Denne note beskriver, hvordan den semantiske post-validering er bygget op i Mugin Scholar, og hvordan nye regler vedligeholdes.
 
 > **Navngivning (M2):** Historisk hed dette lag "DOI-only-regler", fordi de kun var nødvendige for kandidater uden PMID. Fra M2 dækker reglerne også kandidater, der kun har et `openAlexId` — dvs. records hentet fra OpenAlex, som hverken har PMID eller DOI (typisk kliniske retningslinjer fra WHO/NICE/CDC/Sundhedsstyrelsen, bogkapitler, dissertationer og andre rapporter). Regelmotor, regel-format og evaluering er uændrede; det er kun *hvilke* kandidater, der løber gennem laget, som er udvidet.
 
@@ -17,40 +17,26 @@ Reglerne er bevidst:
 
 ## Hvor vedligeholdes hvad
 
-- `src/utils/semanticRuleSchema.js`
-  - Kanonisk schema/kontrakt for post-valideringsregler
-  - Defaults
-  - Understøttede felter og operatorer
-  - Normalisering af regeldata
-  - Opbygning af aktiv rule-state
+### Live path (PHP-orkestrator)
 
-- `src/utils/semanticRuleEngine.js`
-  - Evaluering af regler mod konkrete ikke-PMID-kandidater
-  - Tekstsignaler
-  - Kilde-signaler
-  - Metadata snapshot
-  - `metadataFieldConditions`
+- `backend/app/public-search-lib.php` — `muginPublicSearchRunSearch()` orkestrerer retrieval, hybrid validering og hydration (kaldes fra `UnifiedSearch.php` og public `/v1/search`).
+- `backend/app/semantic-quality-lib.php` — PHP-port af klassifikation og post-validering (aktiv når `MUGIN_UNIFIED_SEARCH_ENGINE_ENABLED=true`).
+- `data/content/shared/limits.json` — konkrete regler under `semanticConfig.postValidation.rules` (legacy-fallback fra `semanticConfig.doiOnlyRules`).
+- `backend/api/PublicContent.php` — merger `semanticConfig` fra fælles limits og domæneoverrides.
 
-- `src/components/SearchForm.vue`
-  - Samler valgte emner/afgrænsninger
-  - Bygger og cacher DOI-metadata
-  - Kalder schema + motor
-  - Orkestrerer hybridflowet
+### Schema-/reference (JS; dormant runtime for SearchForm)
 
-- `data/content/shared/limits.json`
-  - Her ligger de konkrete regler under `semanticConfig.postValidation.rules`
-  - Der er fortsat legacy-fallback fra `semanticConfig.doiOnlyRules`
-
-- `backend/api/PublicContent.php`
-  - Sørger for, at `semanticConfig` kan merges fra fælles limits og domæneoverrides
+- `src/utils/semanticRuleSchema.js` — schema/kontrakt, defaults, normalisering.
+- `src/utils/semanticRuleEngine.js` — JS-evaluering (bevaret som reference/parity; live SearchForm kalder ikke denne sti).
+- `src/components/SearchForm.vue` — samler valg i UI og sender dem til UnifiedSearch; lokal hybrid-orkestrering er dormant.
 
 ## Overordnet flow
 
-1. Brugeren vælger emner og afgrænsninger.
-2. `SearchForm.vue` samler de valgte items.
-3. `buildActiveSemanticDoiOnlyRuleState()` laver et aktivt regelsæt ud fra `semanticConfig.postValidation.rules`.
+1. Brugeren vælger emner og afgrænsninger i SearchForm.
+2. `SearchForm.vue` sender valgene til `UnifiedSearch.php` → `muginPublicSearchRunSearch()`.
+3. Serveren henter aktive regler fra `limits.json` (`semanticConfig.postValidation.rules`).
 4. Semantiske kilder returnerer kandidater med PMID, DOI og/eller `openAlexId`.
-5. Ikke-PMID-kandidater (både DOI-only og `openAlexId`-only) vurderes af `semanticRuleEngine.js`.
+5. Ikke-PMID-kandidater (DOI-only og `openAlexId`-only) vurderes i PHP-orkestratoren (unified engine), når `MUGIN_UNIFIED_SEARCH_ENGINE_ENABLED=true`.
 6. Kun kandidater, der matcher de aktive regler, går videre til hybridlisten.
 7. OpenAlex kan stadig bruges som metadataresolver for ikke-PMID-records, selv når `searchWithOpenAlex = false`. Hydration sker via `OpenAlexWorkLookup.php` batch-parameteren `dois[]` eller — for records uden DOI — `openAlexIds[]`.
 

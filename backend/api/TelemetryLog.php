@@ -2,15 +2,15 @@
 /**
  * TelemetryLog.php
  *
- * Append-only JSONL logging endpoint for QuickPubMed's observability flow.
- * Receives anonymized events from src/utils/qpmTelemetry.js and appends one JSON
- * line per event to data/runtime/qpm-telemetry-YYYY-MM-DD.jsonl.
+ * Append-only JSONL logging endpoint for Mugin Scholar's observability flow.
+ * Receives anonymized events from src/utils/muginTelemetry.js and appends one JSON
+ * line per event to data/runtime/mugin-telemetry-YYYY-MM-DD.jsonl.
  *
  * Properties:
- *   - POST only, CORS-guarded by qpmApplyNlmCorsHeaders.
+ *   - POST only, CORS-guarded by muginApplyNlmCorsHeaders.
  *   - No IP, no User-Agent, no Referer is logged.
  *   - Uses flock(LOCK_EX) to avoid interleaved writes from concurrent users.
- *   - Silently drops events whose serialized size exceeds QPM_TELEMETRY_CONFIG.maxPayloadBytes.
+ *   - Silently drops events whose serialized size exceeds MUGIN_TELEMETRY_CONFIG.maxPayloadBytes.
  *   - Retention enforcement: a lightweight probabilistic sweep (~1 % of requests)
  *     removes files older than retentionDays so no cron is required.
  *   - Returns {ok: true, written: N} on success. The client never relies on this
@@ -23,10 +23,11 @@ if (!file_exists($configPath)) {
 }
 require_once $configPath;
 require_once __DIR__ . '/NlmApiHelpers.php';
+require_once dirname(__DIR__) . '/app/file-cache.php';
 
-qpmApplyNlmCorsHeaders('POST, OPTIONS', 'application/json');
+muginApplyNlmCorsHeaders('POST, OPTIONS', 'application/json');
 
-$config = defined('QPM_TELEMETRY_CONFIG') ? QPM_TELEMETRY_CONFIG : [];
+$config = defined('MUGIN_TELEMETRY_CONFIG') ? MUGIN_TELEMETRY_CONFIG : [];
 $enabled = isset($config['enabled']) ? (bool) $config['enabled'] : false;
 $maxPayloadBytes = isset($config['maxPayloadBytes']) && is_numeric($config['maxPayloadBytes'])
     ? (int) $config['maxPayloadBytes']
@@ -89,10 +90,7 @@ if (count($events) === 0) {
     exit;
 }
 
-$runtimeDir = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'runtime';
-if (!is_dir($runtimeDir)) {
-    @mkdir($runtimeDir, 0750, true);
-}
+$runtimeDir = muginEnsureDataSubdir('runtime');
 if (!is_dir($runtimeDir)) {
     // Directory genuinely missing — bail out.
     http_response_code(500);
@@ -105,7 +103,7 @@ if (!is_dir($runtimeDir)) {
 // surface any real write problem.
 
 $day = gmdate('Y-m-d');
-$logPath = $runtimeDir . DIRECTORY_SEPARATOR . 'qpm-telemetry-' . $day . '.jsonl';
+$logPath = $runtimeDir . DIRECTORY_SEPARATOR . 'mugin-telemetry-' . $day . '.jsonl';
 
 $lines = [];
 $accepted = 0;
@@ -182,7 +180,7 @@ if ($accepted > 0) {
 
 // Probabilistic retention sweep: ~1 % of requests attempt to prune old files.
 if ($retentionDays > 0 && mt_rand(1, 100) === 1) {
-    qpmTelemetrySweepOldLogs($runtimeDir, $retentionDays);
+    muginTelemetrySweepOldLogs($runtimeDir, $retentionDays);
 }
 
 echo json_encode([
@@ -193,12 +191,12 @@ echo json_encode([
 
 /**
  * Remove telemetry JSONL files older than $retentionDays.
- * Only touches files matching qpm-telemetry-*.jsonl.
+ * Only touches files matching mugin-telemetry-*.jsonl.
  */
-function qpmTelemetrySweepOldLogs(string $runtimeDir, int $retentionDays): void
+function muginTelemetrySweepOldLogs(string $runtimeDir, int $retentionDays): void
 {
     $cutoff = time() - $retentionDays * 86400;
-    $pattern = $runtimeDir . DIRECTORY_SEPARATOR . 'qpm-telemetry-*.jsonl';
+    $pattern = $runtimeDir . DIRECTORY_SEPARATOR . 'mugin-telemetry-*.jsonl';
     $files = @glob($pattern);
     if (!is_array($files)) return;
     foreach ($files as $file) {

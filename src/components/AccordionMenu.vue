@@ -1,11 +1,11 @@
 <template>
   <div class="column is-half">
     <div
-      class="qpm_accordion"
-      :class="{ 'not-expanded': !getIsExpanded, 'qpm_accordion-open': getIsExpanded }"
+      class="mugin_accordion"
+      :class="{ 'not-expanded': !getIsExpanded, 'mugin_accordion-open': getIsExpanded }"
     >
       <div
-        class="qpm_accordion-toggle"
+        class="mugin_accordion-toggle"
         role="button"
         tabindex="0"
         :aria-expanded="getIsExpanded"
@@ -20,11 +20,11 @@
           :toggle-accordion-state="toggleAccordionState"
           :close="close"
         >
-          <header class="qpm_accordion-header">
-            <p class="qpm_accordion-header-title">
+          <header class="mugin_accordion-header">
+            <p class="mugin_accordion-header-title">
               {{ getTitle }}
             </p>
-            <span class="qpm_accordion-header-icon">
+            <span class="mugin_accordion-header-icon">
               <span class="icon">
                 <i class="fa fa-angle-up" aria-hidden="true" />
               </span>
@@ -40,7 +40,7 @@
         @after-enter="afterEnterContent"
         @leave="leaveContent"
       >
-        <div v-show="getIsExpanded" :id="accordionBodyId" ref="body" class="qpm_accordion-content">
+        <div v-show="getIsExpanded" :id="accordionBodyId" ref="body" class="mugin_accordion-content">
           <div class="content">
             <slot />
             <transition-group
@@ -48,7 +48,7 @@
               appear
               name="list-fade"
               tag="ul"
-              class="qpm_box qpm_resetList"
+              class="mugin_box mugin_resetList"
               :css="true"
               @before-leave="beforeLeaveListItem"
               @leave="leaveListItem"
@@ -111,7 +111,7 @@
         shownModels: [],
         modelsChangesPending: [],
         onScrollThrottled: null,
-        accordionBodyId: `qpm-accordion-body-${Math.random().toString(36).slice(2, 10)}`,
+        accordionBodyId: `mugin-accordion-body-${Math.random().toString(36).slice(2, 10)}`,
       };
     },
     computed: {

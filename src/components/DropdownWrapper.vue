@@ -1,8 +1,8 @@
 <template>
   <div
     ref="selectWrapper"
-    class="qpm_dropdown"
-    :class="{ 'qpm_hide-tags-wrap': hideTagsWrap, qpm_mobileUiDropdown: (isMobileUi || isTouchDevice) }"
+    class="mugin_dropdown"
+    :class="{ 'mugin_hide-tags-wrap': hideTagsWrap, mugin_mobileUiDropdown: (isMobileUi || isTouchDevice) }"
     @keydown.up.capture.prevent.stop="navUp"
     @keydown.down.capture.prevent.stop="navDown"
     @keydown.left.stop="navLeft"
@@ -17,7 +17,7 @@
     <!-- Mobile tap interceptor: prevents multiselect from opening, shows action sheet instead -->
     <div
       v-if="isMobileUi && !shouldHideDropdownArrow && !mobileOverlayHidden && getStateCopy.length === 0"
-      class="qpm_mobileTapOverlay"
+      class="mugin_mobileTapOverlay"
       @touchstart.stop="onOverlayTouchStart"
       @touchmove.passive="onOverlayTouchMove"
       @touchend.stop="onOverlayTouchEnd"
@@ -27,8 +27,8 @@
     <multiselect
       ref="multiselect"
       v-model="getStateCopy"
-      class="qpm_dropDownMenu"
-      :class="{ 'qpm_hideDropdownArrow': shouldHideDropdownArrow }"
+      class="mugin_dropDownMenu"
+      :class="{ 'mugin_hideDropdownArrow': shouldHideDropdownArrow }"
       :aria-expanded="isDropdownOpen"
       :aria-label="placeholder"
       open-direction="bottom"
@@ -71,9 +71,9 @@
             }
           "
           :operator="operator"
-          :qpm-button-color-1="qpmButtonColor1"
-          :qpm-button-color-2="qpmButtonColor2"
-          :qpm-button-color-3="qpmButtonColor3"
+          :mugin-button-color-1="muginButtonColor1"
+          :mugin-button-color-2="muginButtonColor2"
+          :mugin-button-color-3="muginButtonColor3"
           :language="language"
           @edit="handleEditTag"
           @tag-click="handleTagClick"
@@ -95,7 +95,7 @@
 
         <span
           v-if="props.option.maintopic"
-          class="qpm_maintopicDropdown"
+          class="mugin_maintopicDropdown"
           :style="{ marginLeft: ((props.option.subtopiclevel || 0) * 25) + 'px' }"
         >
           <i v-if="maintopicToggledMap[props.option.id]" class="bx bx-chevron-down" aria-hidden="true" />
@@ -105,9 +105,9 @@
         <span
           v-if="!props.option.maintopic"
           :class="{
-            qpm_hidden: !isContainedInList(props),
-            qpm_shown: props.option.$groupLabel,
-            qpm_lockedDbOptionCheck: props.option.locked,
+            mugin_hidden: !isContainedInList(props),
+            mugin_shown: props.option.$groupLabel,
+            mugin_lockedDbOptionCheck: props.option.locked,
             [props.option.class]: props.option.class !== undefined,
           }"
           :style="{ marginLeft: ((props.option.subtopiclevel || 0) * 25) + 'px' }"
@@ -117,7 +117,7 @@
 
         <span
           v-if="props.option.$groupLabel"
-          class="qpm_groupLabel"
+          class="mugin_groupLabel"
           :group-name="customGroupLabelById(props.option.$groupLabel)"
           >{{ customGroupLabelById(props.option.$groupLabel) }}</span
         >
@@ -129,7 +129,7 @@
             customGroupTooltipById(props.option.$groupLabel).content.trim() !== ''
           "
           v-tooltip.right="{ ...customGroupTooltipById(props.option.$groupLabel), theme: 'infoTooltip', triggers: ['hover', 'focus'], hideTriggers: ['hover', 'focus'] }"
-          class="bx bx-info-circle qpm_infoIcon qpm_groupInfoIcon"
+          class="bx bx-info-circle mugin_infoIcon mugin_groupInfoIcon"
           :aria-label="getString('infoGroupLabel')"
           @mousedown.stop
           @click.stop.prevent="forwardGroupHeaderClick($event)"
@@ -138,14 +138,14 @@
 
         <span
           v-if="props.option.$groupLabel && showScopeLabel"
-          class="qpm_scopeLabel qpm_forceRight"
-          :class="{ qpm_shown: showScope(props.option.$groupLabel) }"
+          class="mugin_scopeLabel mugin_forceRight"
+          :class="{ mugin_shown: showScope(props.option.$groupLabel) }"
           >{{ getString("scope") }}</span
         >
 
         <span
-          class="qpm_entryName"
-          :class="{ qpm_lockedDbOptionLabel: props.option.locked }"
+          class="mugin_entryName"
+          :class="{ mugin_lockedDbOptionLabel: props.option.locked }"
           v-tooltip.right="getLockedDbOptionTooltipBinding(props.option)"
           >{{ customNameLabel(props.option) }} </span
         >
@@ -161,8 +161,8 @@
             triggers: ['hover', 'focus'],
             hideTriggers: ['hover', 'focus'],
           }"
-          class="bx bx-info-circle qpm_infoIcon qpm_entryInfoIcon"
-          :class="{ qpm_lockedDbOptionLabel: props.option.locked }"
+          class="bx bx-info-circle mugin_infoIcon mugin_entryInfoIcon"
+          :class="{ mugin_lockedDbOptionLabel: props.option.locked }"
           :aria-label="getString('infoOptionLabel')"
           @mousedown.stop
           @click.stop.prevent="forwardOptionRowClick($event)"
@@ -173,14 +173,14 @@
           v-if="props.option.locked"
           type="button"
           v-tooltip.right="elicitUnlockTooltipBinding"
-          class="bx bx-lock-alt qpm_infoIcon qpm_entryInfoIcon qpm_lockedDbOptionIcon"
+          class="bx bx-lock-alt mugin_infoIcon mugin_entryInfoIcon mugin_lockedDbOptionIcon"
           :aria-label="getString('elicitUnlockButtonLabel') || 'Lås op'"
           @mousedown.stop
           @click.stop.prevent="onLockedDatabaseClick"
           @touchstart.stop
         />
 
-        <span v-if="props.option.isTag" class="qpm_entryManual"
+        <span v-if="props.option.isTag" class="mugin_entryManual"
           >{{ getString("manualadd") }}: {{ props.option.label }}
         </span>
 
@@ -192,7 +192,7 @@
             !props.option.maintopic &&
             shouldShowScopeButtons(props.option)
           "
-          class="qpm_dropdownButtons qpm_forceRight"
+          class="mugin_dropdownButtons mugin_forceRight"
         >
           <button
             v-if="hasScopeContent(props.option, 'narrow')"
@@ -202,7 +202,7 @@
               distance: 5,
               delay: $helpTextDelay,
             }"
-            class="qpm_button qpm_scopeButton"
+            class="mugin_button mugin_scopeButton"
             :class="getButtonColor(props, 'narrow', 0)"
             @click="handleScopeButtonClick(props.option, 'narrow', $event)"
           >
@@ -217,7 +217,7 @@
               distance: 5,
               delay: $helpTextDelay,
             }"
-            class="qpm_button qpm_scopeButton"
+            class="mugin_button mugin_scopeButton"
             :class="getButtonColor(props, 'normal', 1)"
             @click="handleScopeButtonClick(props.option, 'normal', $event)"
           >
@@ -232,7 +232,7 @@
               distance: 5,
               delay: $helpTextDelay,
             }"
-            class="qpm_button qpm_scopeButton"
+            class="mugin_button mugin_scopeButton"
             :class="getButtonColor(props, 'broad', 2)"
             @click="handleScopeButtonClick(props.option, 'broad', $event)"
           >
@@ -250,30 +250,30 @@
     <loading-spinner 
       v-if="isLoading" 
       :loading="isLoading" 
-      class="qpm_multiselect_custom_spinner qpm_inlineBlock"
+      class="mugin_multiselect_custom_spinner mugin_inlineBlock"
       :size="30"
     />
 
     <!-- Mobile action sheet overlay -->
     <teleport to="body">
-      <transition name="qpm_actionSheet">
+      <transition name="mugin_actionSheet">
         <div
           v-if="showMobileActionSheet"
-          class="qpm_actionSheetBackdrop"
+          class="mugin_actionSheetBackdrop"
           @click.self="closeMobileActionSheet"
           @touchmove="handleActionSheetTouchMove"
         >
-          <div class="qpm_actionSheetPanel">
-            <div class="qpm_actionSheetPrimaryGroup">
-              <div class="qpm_actionSheetStepHeader">
+          <div class="mugin_actionSheetPanel">
+            <div class="mugin_actionSheetPrimaryGroup">
+              <div class="mugin_actionSheetStepHeader">
                 <button
                   v-if="mobileListStep === 'children'"
                   type="button"
-                  class="qpm_actionSheetBack"
+                  class="mugin_actionSheetBack"
                   :aria-label="getString('mobileActionBack')"
                   @click="backToMobileRoot"
-                ><i class="bx bx-chevron-left qpm_actionSheetBackIcon" aria-hidden="true" /></button>
-                <div class="qpm_actionSheetStepTitle">
+                ><i class="bx bx-chevron-left mugin_actionSheetBackIcon" aria-hidden="true" /></button>
+                <div class="mugin_actionSheetStepTitle">
                   {{
                     mobileListStep === "root"
                       ? getMobileRootTitle()
@@ -282,25 +282,25 @@
                 </div>
                 <div
                   v-if="mobileListStep === 'children' && getMobileBreadcrumb()"
-                  class="qpm_actionSheetBreadcrumb"
+                  class="mugin_actionSheetBreadcrumb"
                 >{{ getMobileBreadcrumb() }}</div>
               </div>
               <div
                 v-if="mobileListStep === 'root'"
                 ref="mobileActionSheetList"
-                class="qpm_actionSheetList qpm_actionSheetList--scrollable"
+                class="mugin_actionSheetList mugin_actionSheetList--scrollable"
                 @scroll.passive="handleMobileListScroll"
               >
                 <button
                   v-for="group in getMobileRootGroups()"
                   :key="group.id"
                   type="button"
-                  class="qpm_actionSheetBtn qpm_actionSheetListItem"
+                  class="mugin_actionSheetBtn mugin_actionSheetListItem"
                   @click="openMobileChildren(group.id)"
                 >
                   <span>{{ group.label }}</span>
                   <i
-                    class="bx bx-chevron-right qpm_actionSheetListChevron"
+                    class="bx bx-chevron-right mugin_actionSheetListChevron"
                     aria-hidden="true"
                   />
                 </button>
@@ -308,49 +308,49 @@
               <div
                 v-else
                 ref="mobileActionSheetList"
-                class="qpm_actionSheetList qpm_actionSheetList--scrollable"
+                class="mugin_actionSheetList mugin_actionSheetList--scrollable"
                 @scroll.passive="handleMobileListScroll"
               >
                 <button
                   v-for="item in getMobileChildrenForGroup(mobileActiveGroupId)"
                   :key="item.id"
                   type="button"
-                  class="qpm_actionSheetBtn qpm_actionSheetListItem"
+                  class="mugin_actionSheetBtn mugin_actionSheetListItem"
                   @click="handleMobileListItemClick(item)"
                 >
                   <span>{{ item.displayLabel }}</span>
                   <i
                     v-if="item.isBranch"
-                    class="bx bx-chevron-right qpm_actionSheetListChevron"
+                    class="bx bx-chevron-right mugin_actionSheetListChevron"
                     aria-hidden="true"
                   />
                 </button>
               </div>
               <div
-                class="qpm_actionSheetScrollHint"
-                :class="{ 'qpm_actionSheetScrollHint--hidden': !showMobileScrollHint }"
+                class="mugin_actionSheetScrollHint"
+                :class="{ 'mugin_actionSheetScrollHint--hidden': !showMobileScrollHint }"
               >{{ getString("mobileActionScrollHint") }}</div>
             </div>
             <div
               v-if="taggable"
-              class="qpm_actionSheetSecondaryGroup"
-              :class="{ 'qpm_actionSheetSecondaryGroup--split': mobileEditableCustomTag }"
+              class="mugin_actionSheetSecondaryGroup"
+              :class="{ 'mugin_actionSheetSecondaryGroup--split': mobileEditableCustomTag }"
             >
               <button
                 type="button"
-                class="qpm_actionSheetBtn qpm_actionSheetSecondaryBtn"
+                class="mugin_actionSheetBtn mugin_actionSheetSecondaryBtn"
                 @click="handleActionFreeText"
               >{{ getString("mobileActionFreeText") }}</button>
               <button
                 v-if="mobileEditableCustomTag"
                 type="button"
-                class="qpm_actionSheetBtn qpm_actionSheetSecondaryBtn"
+                class="mugin_actionSheetBtn mugin_actionSheetSecondaryBtn"
                 @click="handleActionEditCustomTag"
               >{{ getString("mobileActionEdit") }}</button>
             </div>
             <button
               type="button"
-              class="qpm_actionSheetBtn qpm_actionSheetCancel"
+              class="mugin_actionSheetBtn mugin_actionSheetCancel"
               @click="closeMobileActionSheet"
             >{{ getString("mobileActionCancel") }}</button>
           </div>
@@ -379,7 +379,7 @@
     anonymizeText,
     getPromptVersion,
     getTelemetryThresholds,
-  } from "@/utils/qpmTelemetry.js";
+  } from "@/utils/muginTelemetry.js";
   import { getPromptForLocale } from "@/utils/promptsHelpers.js";
   import { customInputTagTooltip } from "@/utils/contentHelpers.js";
   import {
@@ -438,7 +438,7 @@
     mixins: [appSettingsMixin, topicLoaderMixin, utilitiesMixin],
     inject: {
       instanceUseMeshValidation: { default: false },
-      qpmSearchFlowDebugApi: { default: null },
+      muginSearchFlowDebugApi: { default: null },
     },
     emits: ["input", "updateScope", "mounted", "translating", "searchchange"],
     props: {
@@ -511,17 +511,17 @@
         type: String,
         default: "dk",
       },
-      qpmButtonColor1: {
+      muginButtonColor1: {
         type: String,
-        default: "qpm_buttonColor1",
+        default: "mugin_buttonColor1",
       },
-      qpmButtonColor2: {
+      muginButtonColor2: {
         type: String,
-        default: "qpm_buttonColor2",
+        default: "mugin_buttonColor2",
       },
-      qpmButtonColor3: {
+      muginButtonColor3: {
         type: String,
-        default: "qpm_buttonColor3",
+        default: "mugin_buttonColor3",
       },
     },
     data: function () {
@@ -614,7 +614,7 @@
           !!event &&
           !!event.target &&
           typeof event.target.closest === "function" &&
-          !!event.target.closest(".qpm_tag-freetext");
+          !!event.target.closest(".mugin_tag-freetext");
 
         if (isArrowClick) {
           if (this.isMobileInputMode()) {
@@ -1122,7 +1122,7 @@
       const element = this.$refs.selectWrapper;
       if (element) {
         element.removeEventListener("keydown", this.handleStopEnterOnGroups, true);
-        const dropdown = element.getElementsByClassName("qpm_dropDownMenu")[0];
+        const dropdown = element.getElementsByClassName("mugin_dropDownMenu")[0];
         if (dropdown) {
           dropdown.removeEventListener("mousedown", this.handleOpenMenuOnClick);
         }
@@ -1398,7 +1398,7 @@
         const isInsideScrollableList =
           !!target &&
           typeof target.closest === "function" &&
-          !!target.closest(".qpm_actionSheetList");
+          !!target.closest(".mugin_actionSheetList");
         if (!isInsideScrollableList) {
           event.preventDefault();
         }
@@ -1695,7 +1695,7 @@
         const clickedDropdownOption =
           targetIsElement &&
           !!target.closest(
-            ".multiselect__content-wrapper, .multiselect__option, .multiselect__element, .qpm_actionSheetPanel"
+            ".multiselect__content-wrapper, .multiselect__option, .multiselect__element, .mugin_actionSheetPanel"
           );
 
         if (isCurrentInputFocused && !clickedInsideInput && !clickedDropdownOption) {
@@ -1712,13 +1712,13 @@
       addKeyboardFocus() {
         const input = this.$el.querySelector('.multiselect__input');
         if (input && !this.isMouseUsed) {
-          input.classList.add('qpm_keyboard-focus');
+          input.classList.add('mugin_keyboard-focus');
         }
       },
       removeKeyboardFocus() {
         const input = this.$el.querySelector('.multiselect__input');
         if (input) {
-          input.classList.remove('qpm_keyboard-focus');
+          input.classList.remove('mugin_keyboard-focus');
           // When input loses focus, set width back to placeholder width if there is no text
           if (!input.value || input.value.length === 0) {
             this.setWidthToPlaceholderWidth(input);
@@ -1738,7 +1738,7 @@
         document.addEventListener("keydown", this.resetMouseUsed);
 
         // Click on anywhere on dropdown opens (fix for IE)
-        const dropdown = element.getElementsByClassName("qpm_dropDownMenu")[0];
+        const dropdown = element.getElementsByClassName("mugin_dropDownMenu")[0];
         dropdown.removeEventListener("mousedown", this.handleOpenMenuOnClick);
         dropdown.addEventListener("mousedown", this.handleOpenMenuOnClick);
 
@@ -1770,7 +1770,7 @@
         }
 
         // Hide last operator
-        const operators = element.getElementsByClassName("qpm_operator");
+        const operators = element.getElementsByClassName("mugin_operator");
         Array.from(operators).forEach((operator, index) => {
           if (index === operators.length - 1) {
             operator.style.display = shouldHideTrailingDatabaseControls ? "none" : "inline-block";
@@ -1951,16 +1951,16 @@
         return "";
       },
       /**
-       * Added for sanity, since we hide elements by adding qpm_shown
+       * Added for sanity, since we hide elements by adding mugin_shown
        */
       hideElement(element) {
-        element.classList.add("qpm_shown");
+        element.classList.add("mugin_shown");
       },
       /**
-       * Added for sanity, since we show elements by removing qpm_shown
+       * Added for sanity, since we show elements by removing mugin_shown
        */
       showElement(element) {
-        element.classList.remove("qpm_shown");
+        element.classList.remove("mugin_shown");
       },
       /**
        * Resets the maintopicToggledMap.
@@ -2012,7 +2012,7 @@
         const listItems = element.querySelectorAll("li.multiselect__element");
         const visible = [];
         for (let i = 0; i < listItems.length; i++) {
-          if (!listItems[i].classList.contains("qpm_shown")) {
+          if (!listItems[i].classList.contains("mugin_shown")) {
             visible.push(i);
           }
         }
@@ -2037,7 +2037,7 @@
         const hasMeaningfulSearch = String(searchValue || "").trim().length > 0;
 
         if (hasMeaningfulSearch) {
-          const entries = element.querySelectorAll(".multiselect__element.qpm_shown");
+          const entries = element.querySelectorAll(".multiselect__element.mugin_shown");
           entries.forEach((entry) => {
             this.showElement(entry);
           });
@@ -2061,7 +2061,7 @@
                 null;
               if (!parent || !parent.classList) return;
               const shouldShow = this.areAllAncestorsExpanded(entry);
-              parent.classList.toggle("qpm_shown", !shouldShow);
+              parent.classList.toggle("mugin_shown", !shouldShow);
             });
           };
           if (entries.length > 50) {
@@ -2090,7 +2090,7 @@
               this.expandedOptionGroupName !== groupName ||
               !this.areAllAncestorsExpanded(entry);
 
-            parent.classList.toggle("qpm_shown", shouldShow);
+            parent.classList.toggle("mugin_shown", shouldShow);
           });
           if (autoExpandedSingleGroupLabel) {
             this.updateExpandedGroupHighlighting();
@@ -2394,7 +2394,7 @@
           return;
         }
 
-        const groupLabelElement = target.getElementsByClassName("qpm_groupLabel")[0];
+        const groupLabelElement = target.getElementsByClassName("mugin_groupLabel")[0];
         if (!groupLabelElement) {
           return;
         }
@@ -2476,7 +2476,7 @@
        */
       handleTagClick(event) {
         const target = event.target;
-        if (target && typeof target.closest === "function" && target.closest(".qpm_tag-freetext")) {
+        if (target && typeof target.closest === "function" && target.closest(".mugin_tag-freetext")) {
           return;
         }
         const targetLabel = target.textContent.trim();
@@ -2729,7 +2729,7 @@
             const target = element.getElementsByClassName("multiselect__option--highlight")[0] || null;
 
             // Check if highlighted element is a main topic and toggle open/close with Enter
-            if (target && target.querySelector('.qpm_maintopicDropdown')) {
+            if (target && target.querySelector('.mugin_maintopicDropdown')) {
               event.stopImmediatePropagation();
               event.stopPropagation();
               event.preventDefault();
@@ -2753,7 +2753,7 @@
               event.preventDefault();
               if (target === null) return;
 
-              const focusedGroup = target.querySelector(".qpm_groupLabel").textContent;
+              const focusedGroup = target.querySelector(".mugin_groupLabel").textContent;
 
               if (focusedGroup === this.expandedOptionGroupName) {
                 this.hideItems(this.expandedOptionGroupName);
@@ -2789,7 +2789,7 @@
               const target = dropdownRef.$refs.list.getElementsByClassName(
                 "multiselect__option--highlight"
               )[0];
-              const button = target.getElementsByClassName("qpm_ButtonColumnFocused")[0];
+              const button = target.getElementsByClassName("mugin_ButtonColumnFocused")[0];
 
               // If no scope buttons exists or none are currently in focus
               // then let the default handeling occur via the input method.
@@ -2831,7 +2831,7 @@
           event.stopPropagation();
           return;
         }
-        if (target && typeof target.closest === "function" && target.closest(".qpm_tag-freetext")) {
+        if (target && typeof target.closest === "function" && target.closest(".mugin_tag-freetext")) {
           event.stopPropagation();
           return;
         }
@@ -3410,7 +3410,7 @@
                       if (Array.isArray(fallbackResult?.candidates) && fallbackResult.candidates.length > 0) {
                         fallbackResult.fallbackUsed = true;
                       } else {
-                        this.qpmSearchFlowDebugApi?.recordSourceStatus?.({
+                        this.muginSearchFlowDebugApi?.recordSourceStatus?.({
                           source: "pubmed",
                           status: "failed",
                           messageKey: "semanticSearchProgressNoSafeFallback",
@@ -3438,7 +3438,7 @@
                       );
                     }
                   } else {
-                    this.qpmSearchFlowDebugApi?.recordSourceStatus?.({
+                    this.muginSearchFlowDebugApi?.recordSourceStatus?.({
                       source: "pubmed",
                       status: "failed",
                       messageKey: "semanticSearchProgressNoSafeFallback",
@@ -3697,15 +3697,15 @@
       async handleAddTag(newTag, options = {}) {
         this.pendingTagInputValue = "";
         const input = this.$refs.multiselect?.$refs.search || this.$el?.querySelector(".multiselect__input");
-        const appRoot = this.$el?.closest(".qpm_vapp");
+        const appRoot = this.$el?.closest(".mugin_vapp");
         const hadVisibleKeyboardFocus =
           !!input &&
           !this.isMouseUsed &&
           document.activeElement === input &&
           !!appRoot &&
-          appRoot.classList.contains("qpm_keyboard-mode") &&
+          appRoot.classList.contains("mugin_keyboard-mode") &&
           !this.isSilentFocus &&
-          !input.classList.contains("qpm_silent-focus");
+          !input.classList.contains("mugin_silent-focus");
         let tag;
         const useAiTranslationOptions = this.searchWithAI;
         const usePubmedQuerySource = this.searchWithPubMedQuery;
@@ -3857,13 +3857,13 @@
         if (!(input instanceof HTMLElement) || typeof input.focus !== "function") {
           return false;
         }
-        const appRoot = this.$el?.closest(".qpm_vapp");
+        const appRoot = this.$el?.closest(".mugin_vapp");
         if (appRoot instanceof HTMLElement) {
-          appRoot.classList.add("qpm_keyboard-mode");
-          appRoot.classList.remove("qpm_mouse-mode");
+          appRoot.classList.add("mugin_keyboard-mode");
+          appRoot.classList.remove("mugin_mouse-mode");
         }
 
-        if (this.isSilentFocus || input.classList.contains("qpm_silent-focus")) {
+        if (this.isSilentFocus || input.classList.contains("mugin_silent-focus")) {
           this.removeSilentFocus(input);
         }
 
@@ -3929,7 +3929,7 @@
        */
       focusElementAfter(anchorElement) {
         if (!(anchorElement instanceof HTMLElement)) return false;
-        const root = this.$el?.closest(".qpm_vapp") || document.body;
+        const root = this.$el?.closest(".mugin_vapp") || document.body;
         const focusableSelector = [
           'a[href]',
           'button:not([disabled])',
@@ -3946,10 +3946,10 @@
         const currentIndex = focusables.indexOf(anchorElement);
         const next = currentIndex >= 0 ? focusables[currentIndex + 1] : null;
         if (!(next instanceof HTMLElement)) return false;
-        const appRoot = this.$el?.closest(".qpm_vapp");
+        const appRoot = this.$el?.closest(".mugin_vapp");
         if (appRoot instanceof HTMLElement) {
-          appRoot.classList.add("qpm_keyboard-mode");
-          appRoot.classList.remove("qpm_mouse-mode");
+          appRoot.classList.add("mugin_keyboard-mode");
+          appRoot.classList.remove("mugin_mouse-mode");
         }
         next.focus({ preventScroll: true });
         this.addKeyboardFocus();
@@ -3970,7 +3970,7 @@
       focusNextFocusableElement(currentElement) {
         if (!currentElement || this.isMouseUsed) return;
 
-        const root = this.$el?.closest(".qpm_vapp") || document.body;
+        const root = this.$el?.closest(".mugin_vapp") || document.body;
         const focusableSelector = [
           'a[href]',
           'button:not([disabled])',
@@ -4053,7 +4053,7 @@
        *
        * The function checks if the event target has specific CSS classes and performs actions accordingly:
        * 1. If the target has the class "multiselect__option--group", it stops the event's propagation and prevents its default action.
-       * 2. If the target has either the class "qpm_groupLabel" or "qpm_scopeLabel", it stops the event's propagation, prevents its default action, and triggers a click event on the target's parent node.
+       * 2. If the target has either the class "mugin_groupLabel" or "mugin_scopeLabel", it stops the event's propagation, prevents its default action, and triggers a click event on the target's parent node.
        *
        * @param {Event} event - The event object to be stopped.
        * @returns {boolean} Always returns false to indicate the event has been handled.
@@ -4066,13 +4066,13 @@
           return false;
         }
         // Click event was on the category name (left aligned)
-        if (event.target.classList.contains("qpm_groupLabel")) {
+        if (event.target.classList.contains("mugin_groupLabel")) {
           event.stopPropagation();
           event.preventDefault();
           return false;
         }
         // click event was on either of the scope labels (right aligned in advanced search)
-        if (event.target.classList.contains("qpm_scopeLabel")) {
+        if (event.target.classList.contains("mugin_scopeLabel")) {
           event.stopPropagation();
           event.preventDefault();
           const parent = event.target.parentNode;
@@ -4605,11 +4605,11 @@
         const listItems = this.$refs.multiselect.$refs.list;
 
         // Remove highlighting due to group being open from all groups
-        let itemsToUnHighlight = listItems.querySelectorAll(".qpm_groupExpanded");
+        let itemsToUnHighlight = listItems.querySelectorAll(".mugin_groupExpanded");
 
         // Use forEach for better performance than for loop
         itemsToUnHighlight.forEach(item => {
-          item.classList.remove("qpm_groupExpanded");
+          item.classList.remove("mugin_groupExpanded");
         });
 
         if (this.expandedOptionGroupName === "") return;
@@ -4623,7 +4623,7 @@
         
         // Safety check before accessing parentElement
         if (expandedElement && expandedElement.parentElement && expandedElement.parentElement.parentElement) {
-          expandedElement.parentElement.parentElement.classList.add("qpm_groupExpanded");
+          expandedElement.parentElement.parentElement.classList.add("mugin_groupExpanded");
         }
       },
       updateSortedSubjectOptions() {
@@ -4754,7 +4754,6 @@
           selectedLimits: Array.isArray(semanticIntentPayload.selectedLimits)
             ? semanticIntentPayload.selectedLimits
             : [],
-          potentialIssues: Array.isArray(meta.potentialIssues) ? meta.potentialIssues : [],
         };
         const hasStructuredContext = Object.values(structuredAiIntent).some((value) => {
           if (Array.isArray(value)) return value.length > 0;
@@ -5125,6 +5124,7 @@
         }
         if (sourceKey === "openAlex") {
           const rawFilters = entry.filters && typeof entry.filters === "object" ? entry.filters : {};
+          const openAlexIsOa = this.normalizeElicitBooleanValue(rawFilters.isOa ?? rawFilters.is_oa);
           return {
             query: this.normalizeSemanticQueryText(entry.query || entry.searchQuery || ""),
             hints,
@@ -5147,6 +5147,7 @@
                 ),
                 (value) => value
               ),
+              ...(openAlexIsOa !== null ? { isOa: openAlexIsOa } : {}),
             },
           };
         }
@@ -5619,6 +5620,12 @@
             output.push("Review");
           } else if (normalized === "meta-analysis") {
             output.push("Meta-Analysis");
+          } else if (
+            normalized === "randomized controlled trial" ||
+            normalized === "randomised controlled trial" ||
+            normalized === "rct"
+          ) {
+            output.push("ClinicalTrial");
           }
         });
         return this.dedupeNormalizedValues(
@@ -5837,6 +5844,9 @@
         const openAlexPublicationYear =
           this.normalizeOpenAlexPublicationYearFilterValue(payloadOpenAlexFilters.publicationYear) ||
           buildOpenAlexPublicationYearFilter(hardFilters.publicationDateYears);
+        const openAlexIsOa = this.normalizeElicitBooleanValue(
+          payloadOpenAlexFilters.isOa ?? payloadOpenAlexFilters.is_oa
+        );
         const semanticScholarContextQuery = this.normalizeSemanticQueryText(
           (Array.isArray(sourceSpecificContext.semanticScholar)
             ? sourceSpecificContext.semanticScholar
@@ -5855,7 +5865,10 @@
           commonQuery ||
           semanticScholarContextQuery;
         const fallbackSemanticScholarPublicationTypes =
-          this.mapHardFiltersToSemanticScholarPublicationTypes(hardFilters.publicationTypes);
+          this.mapHardFiltersToSemanticScholarPublicationTypes([
+            ...(Array.isArray(hardFilters.publicationTypes) ? hardFilters.publicationTypes : []),
+            ...(Array.isArray(hardFilters.studyDesigns) ? hardFilters.studyDesigns : []),
+          ]);
         const fallbackSemanticScholarFormatProxyPublicationTypes =
           this.mapSourceFormatsToSemanticScholarPublicationTypes(hardFilters.sourceFormats);
         const configuredSemanticScholarPublicationTypes = this.dedupeNormalizedValues(
@@ -5935,6 +5948,7 @@
               sourceType: openAlexSourceTypes,
               workType: openAlexWorkTypes,
               publicationYear: openAlexPublicationYear,
+              ...(openAlexIsOa !== null ? { isOa: openAlexIsOa } : {}),
             },
           },
           elicit: {
@@ -5983,7 +5997,7 @@
         // Register the live prompt text with the telemetry module so every
         // event emitted during this flow carries an accurate promptVersion hash.
         try {
-          const localizedPrompt = getPromptForLocale(semanticIntentPrompt, "dk");
+          const localizedPrompt = getPromptForLocale(semanticIntentPrompt, "dk", "semanticIntent");
           if (localizedPrompt && localizedPrompt.prompt) {
             getPromptVersion(localizedPrompt.prompt);
           }
@@ -6258,12 +6272,41 @@
         }
       },
       async translateByPrompt(wordsToTranslate, promptConfig) {
+        const isJsonSchema = promptConfig?.text?.format?.type === "json_schema";
+        const taskKey = isJsonSchema ? "semanticIntent" : "translate";
+        const localePrompt = getPromptForLocale(promptConfig, "dk", taskKey);
+        // Simple tag translation uses shared PHP translators (same as UnifiedSearch).
+        // Structured semantic-intent JSON still goes through TranslateTitle.php.
+        if (!isJsonSchema) {
+          const translateUrl =
+            (typeof this.getBackendEndpointUrls === "function"
+              ? this.getBackendEndpointUrls("SemanticTagTranslate.php")?.[0]
+              : null) ||
+            `${this.appSettings?.nlm?.proxyUrl || this.appSettings?.openAi?.baseUrl || ""}/api/SemanticTagTranslate.php`;
+          const mode =
+            String(promptConfig?.id || promptConfig?.name || "").toLowerCase().includes("semantic")
+              ? "semantic"
+              : "pubmed";
+          const response = await fetch(translateUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              text: wordsToTranslate,
+              mode,
+              language: this.language === "en" ? "en" : "da",
+              domain: this.appSettings.client,
+            }),
+          });
+          if (!response.ok) {
+            throw Error(`SemanticTagTranslate failed (${response.status})`);
+          }
+          const data = await response.json();
+          const translated = String(data?.translated || data?.text || "").trim();
+          return translated || this.getTranslationFallbackText(wordsToTranslate);
+        }
+
         const openAiServiceUrl = this.appSettings.openAi.baseUrl + "/api/TranslateTitle.php";
-        const localePrompt = getPromptForLocale(promptConfig, "dk");
-        const logLabel =
-          promptConfig?.text?.format?.type === "json_schema"
-            ? "SemanticIntent Request"
-            : "TranslateSearch Request";
+        const logLabel = "SemanticIntent Request";
 
         const requestBody = {
           prompt: localePrompt,
@@ -6471,11 +6514,11 @@
       getSourceRateLimitStorageKey(sourceKey) {
         switch (String(sourceKey || "").trim()) {
           case "elicit":
-            return "qpmElicitRateLimitInfo";
+            return "muginElicitRateLimitInfo";
           case "openAlex":
-            return "qpmOpenAlexRateLimitInfo";
+            return "muginOpenAlexRateLimitInfo";
           case "semanticScholar":
-            return "qpmSemanticScholarRateLimitInfo";
+            return "muginSemanticScholarRateLimitInfo";
           default:
             return "";
         }
@@ -6533,13 +6576,13 @@
         }
         if (String(sourceKey || "").trim() === "elicit") {
           window.dispatchEvent(
-            new CustomEvent("qpm:elicit-rate-limit-update", {
+            new CustomEvent("mugin:elicit-rate-limit-update", {
               detail: normalized,
             })
           );
         }
         window.dispatchEvent(
-          new CustomEvent("qpm:semantic-source-rate-limit-update", {
+          new CustomEvent("mugin:semantic-source-rate-limit-update", {
             detail: {
               sourceKey: String(sourceKey || "").trim(),
               rateLimit: normalized,
@@ -6710,7 +6753,7 @@
       recordSemanticSourceOutcome(source, sourceResult = null, error = "") {
         const status = this.resolveSemanticSourceOutcomeStatus(sourceResult, error);
         if (!status) return;
-        this.qpmSearchFlowDebugApi?.recordSourceStatus?.({
+        this.muginSearchFlowDebugApi?.recordSourceStatus?.({
           source: String(source || "").trim(),
           status,
           messageKey: this.getSemanticSourceOutcomeMessageKey(source, sourceResult, status),
@@ -6742,22 +6785,22 @@
         return endpointUrls;
       },
       isSearchFlowDebugEnabled() {
-        return this.qpmSearchFlowDebugApi?.isEnabled?.() === true;
+        return this.muginSearchFlowDebugApi?.isEnabled?.() === true;
       },
       isSearchFlowDebugRunActive() {
-        return this.qpmSearchFlowDebugApi?.isRunActive?.() === true;
+        return this.muginSearchFlowDebugApi?.isRunActive?.() === true;
       },
       getSearchFlowDebugConsolePrefix() {
-        return this.qpmSearchFlowDebugApi?.getConsolePrefix?.() || "[SearchFlowDebug][DropdownWrapper]";
+        return this.muginSearchFlowDebugApi?.getConsolePrefix?.() || "[SearchFlowDebug][DropdownWrapper]";
       },
       beginSearchFlowDebugStep(title) {
-        return this.qpmSearchFlowDebugApi?.beginStep?.(title) || null;
+        return this.muginSearchFlowDebugApi?.beginStep?.(title) || null;
       },
       endSearchFlowDebugStep(step, status = "ok", meta = {}) {
-        this.qpmSearchFlowDebugApi?.endStep?.(step, status, meta);
+        this.muginSearchFlowDebugApi?.endStep?.(step, status, meta);
       },
       recordSearchFlowDebugEntry(level = "info", label, payload = undefined) {
-        this.qpmSearchFlowDebugApi?.logEntry?.(level, label, payload);
+        this.muginSearchFlowDebugApi?.logEntry?.(level, label, payload);
       },
       async runSearchFlowDebugSection(title, task, collapsed = true) {
         void collapsed;
@@ -7942,6 +7985,7 @@
         const sourceTypes = Array.isArray(options?.sourceTypes) ? options.sourceTypes : [];
         const workTypes = Array.isArray(options?.workTypes) ? options.workTypes : [];
         const publicationYearFilter = String(options?.publicationYearFilter || "").trim();
+        const isOaFilter = options?.isOa === true;
         if (languageFilters.length) {
           filterParts.push(`language:${languageFilters.join("|")}`);
         }
@@ -7953,6 +7997,9 @@
         }
         if (publicationYearFilter) {
           filterParts.push(`publication_year:${publicationYearFilter}`);
+        }
+        if (isOaFilter) {
+          filterParts.push("open_access.is_oa:true");
         }
         if (filterParts.length) {
           params.set("filter", filterParts.join(","));
@@ -7976,6 +8023,7 @@
           sourceTypes: Array.isArray(context?.sourceTypes) ? [...context.sourceTypes] : [],
           workTypes: Array.isArray(context?.workTypes) ? [...context.workTypes] : [],
           publicationYearFilter: String(context?.publicationYearFilter || "").trim(),
+          isOa: context?.isOa === true,
         };
         if (normalizedField === "languages") {
           nextPayload.languages = [];
@@ -8210,6 +8258,7 @@
         const sourceTypes = Array.isArray(context?.sourceTypes) ? context.sourceTypes : [];
         const workTypes = Array.isArray(context?.workTypes) ? context.workTypes : [];
         const publicationYearFilter = String(context?.publicationYearFilter || "").trim();
+        const isOa = context?.isOa === true || requestPayload?.isOa === true;
         const timingLabel =
           searchMode === "keyword" ? "OpenAlex keyword supplement request" : "OpenAlex request";
         const timingMeta = {
@@ -8219,6 +8268,7 @@
           sourceTypes,
           workTypes,
           publicationYearFilter,
+          isOa,
         };
         let browserFallbackTried = false;
         let browserFallbackSucceeded = false;
@@ -8231,6 +8281,7 @@
           sourceTypes: [...sourceTypes],
           workTypes: [...workTypes],
           publicationYearFilter,
+          isOa,
         };
         if (searchMode === "semantic") {
           await throttleOpenAlexSemanticCall();
@@ -8317,6 +8368,7 @@
               sourceTypes: activeContext.sourceTypes,
               workTypes: activeContext.workTypes,
               publicationYearFilter: activeContext.publicationYearFilter,
+              isOa: activeContext.isOa === true,
               searchMode,
             });
             const browserProxyRequest = Object.fromEntries(browserProxyParams.entries());
@@ -8340,6 +8392,7 @@
                   sourceTypes: activeContext.sourceTypes,
                   workTypes: activeContext.workTypes,
                   publicationYearFilter: activeContext.publicationYearFilter,
+                  isOa: activeContext.isOa === true,
                   searchMode,
                 }),
               {
@@ -8382,6 +8435,7 @@
         sourceTypes = [],
         workTypes = [],
         publicationYearFilter = "",
+        isOa = false,
         payload = null,
         browserFallbackTried = false,
         browserFallbackSucceeded = false,
@@ -8402,6 +8456,7 @@
           sourceTypes,
           workTypes,
           publicationYearFilter,
+          isOa,
           browserFallbackTried,
           browserFallbackSucceeded,
           browserFallbackError: browserFallbackError ? String(browserFallbackError) : "",
@@ -8445,6 +8500,7 @@
         const publicationYearFilter = String(
           sourceQueryPlan?.openAlex?.filters?.publicationYear || ""
         ).trim();
+        const isOa = this.normalizeElicitBooleanValue(sourceQueryPlan?.openAlex?.filters?.isOa) === true;
         const semanticDeferredRequestFields = [];
         if (languageFilters.length > 0) {
           semanticDeferredRequestFields.push("languages");
@@ -8473,6 +8529,7 @@
           sourceTypes,
           workTypes,
           publicationYearFilter,
+          isOa,
         });
         const cached = this.getCachedSemanticSourceResponse(cacheKey);
         const requestPayload = {
@@ -8483,6 +8540,7 @@
           sourceTypes: semanticSourceTypes,
           workTypes: semanticWorkTypes,
           publicationYear: publicationYearFilter,
+          isOa,
           searchMode: primarySearchMode,
         };
         const keywordFilteredRequestPayload = {
@@ -8493,6 +8551,7 @@
           sourceTypes,
           workTypes,
           publicationYear: publicationYearFilter,
+          isOa,
           searchMode: "keyword",
         };
         this.logSemanticSourceRequest("openAlex", {
@@ -8501,7 +8560,7 @@
           request: requestPayload,
           searchMode: primarySearchMode,
           deferredFilters: this.buildOpenAlexDeferredRetryFilters(
-            { languageFilters, sourceTypes, workTypes, publicationYearFilter },
+            { languageFilters, sourceTypes, workTypes, publicationYearFilter, isOa },
             semanticDeferredRequestFields
           ),
         });
@@ -8531,6 +8590,7 @@
                 sourceTypes,
                 workTypes,
                 publicationYearFilter,
+                isOa,
               }
             )
           : null;
@@ -8540,6 +8600,7 @@
           sourceTypes: semanticSourceTypes,
           workTypes: semanticWorkTypes,
           publicationYearFilter,
+          isOa,
         });
         let payload = semanticResult.payload;
         const semanticCandidateCount = Array.isArray(payload?.candidates) ? payload.candidates.length : 0;
@@ -8606,6 +8667,7 @@
                   sourceTypes,
                   workTypes,
                   publicationYearFilter,
+                  isOa,
                 }
               );
           keywordSupplementRequest =
@@ -8661,6 +8723,7 @@
           sourceTypes,
           workTypes,
           publicationYearFilter,
+          isOa,
           payload,
           browserFallbackTried: semanticResult.browserFallbackTried,
           browserFallbackSucceeded: semanticResult.browserFallbackSucceeded,
@@ -9020,7 +9083,7 @@
       },
       /**
        * Gets the ID of an option group by its option group name.
-       * (OptionGroups are the topics from qpm-content-diabetes.js)
+       * (OptionGroups are the topics from mugin-content-diabetes.js)
        * @param {string} groupname - The name of the group.
        * @returns {string|null} The ID of the group if found, otherwise null.
        */
@@ -9092,7 +9155,7 @@
       },
       getOptionClassName(option) {
         // Return the 'cssClass' if it exists, otherwise return an empty string
-        return option.cssClass ? `qpm_${option.cssClass}` : "";
+        return option.cssClass ? `mugin_${option.cssClass}` : "";
       },
       getShouldPreventLeftRightDefault() {
         const dropdownRef = this.$refs.multiselect;
@@ -9107,20 +9170,20 @@
       getButtonColor(props, scope, index) {
         let classes = [];
         if (scope === "narrow") {
-          classes.push(this.qpmButtonColor1);
+          classes.push(this.muginButtonColor1);
         }
         if (!scope || scope === "normal") {
-          classes.push(this.qpmButtonColor2);
+          classes.push(this.muginButtonColor2);
         }
         if (scope === "broad") {
-          classes.push(this.qpmButtonColor3);
+          classes.push(this.muginButtonColor3);
         }
 
         // Set class to distinguish the column currently in 'focus' for
         // selection via keyboard. This class together with the
         // multiselect__option--highlight class defines the highlighted button.
         if (!this.focusByHover && index === this.focusedButtonIndex) {
-          classes.push("qpm_ButtonColumnFocused");
+          classes.push("mugin_ButtonColumnFocused");
         }
 
         if (props.option && this.selected) {
@@ -9284,7 +9347,7 @@
         this.isSilentFocus = true;
         
         // Apply silent styling before focusing to prevent flash
-        input.classList.add('qpm_silent-focus');
+        input.classList.add('mugin_silent-focus');
         input.style.outline = 'none !important';
         input.style.border = '1px solid lightgrey !important';
         input.style.boxShadow = 'none !important';
@@ -9322,7 +9385,7 @@
         if (!input) return;
         
         this.isSilentFocus = false;
-        input.classList.remove('qpm_silent-focus');
+        input.classList.remove('mugin_silent-focus');
         
         // Remove inline styles to allow normal CSS to take over
         input.style.removeProperty('outline');

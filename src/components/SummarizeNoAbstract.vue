@@ -1,8 +1,8 @@
 <!-- eslint-disable vue/no-v-html -->
 <template>
-  <div class="qpm_searchSummaryBox">
+  <div class="mugin_searchSummaryBox">
     <div class="d-flex space-between">
-      <div class="qpm_tabs">
+      <div class="mugin_tabs">
         <button
           v-for="prompt in prompts"
           :id="prompt.name"
@@ -12,22 +12,22 @@
             content: getTabTooltipContent(prompt),
             delay: $helpTextDelay,
           }"
-          class="qpm_tab"
-          :class="{ qpm_tab_active: prompt.name === currentSummary }"
+          class="mugin_tab"
+          :class="{ mugin_tab_active: prompt.name === currentSummary }"
           @click="clickSummaryTab(prompt)"
         >
           {{ getTranslation(prompt) }}
         </button>
       </div>
     </div>
-    <div class="qpm_searchSummaryTextBackground">
+    <div class="mugin_searchSummaryTextBackground">
       <template v-if="hasAcceptedAi">
-        <div class="qpm_summary_icon_row"></div>
+        <div class="mugin_summary_icon_row"></div>
 
-        <div class="qpm_searchSummaryResponseBox">
-          <div class="qpm_searchSummaryText">
+        <div class="mugin_searchSummaryResponseBox">
+          <div class="mugin_searchSummaryText">
             <div>
-              <div class="qpm_noAbstractContentSpacing">
+              <div class="mugin_noAbstractContentSpacing">
                 <div
                   v-if="
                     showSummarizeArticle &&
@@ -89,14 +89,14 @@
                           distance: 5,
                           delay: $helpTextDelay,
                         }"
-                        class="qpm_button qpm_retryButtonSpacing"
+                        class="mugin_button mugin_retryButtonSpacing"
                         :disabled="
                           loadingArticleSummaries[prompt.name] || prompt.name.length === 0
                         "
                         @keydown.enter="handleRetryArticleSummary"
                         @click="handleRetryArticleSummary"
                       >
-                        <i class="bx bx-refresh qpm_iconBaselineSize" aria-hidden="true"></i>
+                        <i class="bx bx-refresh mugin_iconBaselineSize" aria-hidden="true"></i>
                         {{ getString("retryText") }}
                       </button>
                       <button
@@ -110,21 +110,21 @@
                           distance: 5,
                           delay: $helpTextDelay,
                         }"
-                        class="qpm_button"
+                        class="mugin_button"
                         :disabled="
                           loadingArticleSummaries[prompt.name] || prompt.name.length === 0
                         "
                         @keydown.enter="clickCopyArticleSummary"
                         @click="clickCopyArticleSummary"
                       >
-                        <i class="bx bx-copy qpm_iconBaseline" aria-hidden="true" />
+                        <i class="bx bx-copy mugin_iconBaseline" aria-hidden="true" />
                         {{ getString("copyText") }}
                       </button>
                     </div>
                   </template>
                 </div>
               </div>
-              <p class="qpm_summaryDisclaimer" v-html="sanitizeHtml(getString('aiSummaryDisclaimer'))" />
+              <p class="mugin_summaryDisclaimer" v-html="sanitizeHtml(getString('aiSummaryDisclaimer'))" />
             </div>
           </div>
         </div>

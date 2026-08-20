@@ -11,8 +11,8 @@ if (!file_exists($configPath)) {
 require_once $configPath;
 require_once __DIR__ . '/NlmApiHelpers.php';
 
-qpmApplyNlmCorsHeaders('POST, OPTIONS', 'application/json');
-qpmEnforceFirstPartyIpRateLimit('openaiProxy');
+muginApplyNlmCorsHeaders('POST, OPTIONS', 'application/json');
+muginEnforceFirstPartyIpRateLimit('openaiProxy');
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
     http_response_code(405);
@@ -25,7 +25,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
  * @param array<string,mixed> $payload
  * @return never
  */
-function qpmSemanticRerankRespond(int $status, array $payload): void
+function muginSemanticRerankRespond(int $status, array $payload): void
 {
     http_response_code($status);
     echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -36,7 +36,7 @@ function qpmSemanticRerankRespond(int $status, array $payload): void
  * @param mixed $value
  * @return string
  */
-function qpmSemanticRerankNormalizeString($value): string
+function muginSemanticRerankNormalizeString($value): string
 {
     return trim((string) $value);
 }
@@ -45,7 +45,7 @@ function qpmSemanticRerankNormalizeString($value): string
  * @param array<string,mixed> $responsePayload
  * @return string
  */
-function qpmSemanticRerankExtractText(array $responsePayload): string
+function muginSemanticRerankExtractText(array $responsePayload): string
 {
     if (isset($responsePayload['output_text']) && is_string($responsePayload['output_text'])) {
         return trim($responsePayload['output_text']);
@@ -76,26 +76,31 @@ function qpmSemanticRerankExtractText(array $responsePayload): string
 
 $input = json_decode(file_get_contents('php://input'), true);
 if (!is_array($input)) {
-    qpmSemanticRerankRespond(400, ['error' => 'Invalid JSON input']);
+    muginSemanticRerankRespond(400, ['error' => 'Invalid JSON input']);
 }
 
-$query = qpmSemanticRerankNormalizeString($input['query'] ?? '');
-$hardFilterQuery = qpmSemanticRerankNormalizeString($input['hardFilterQuery'] ?? '');
+$query = muginSemanticRerankNormalizeString($input['query'] ?? '');
+$hardFilterQuery = muginSemanticRerankNormalizeString($input['hardFilterQuery'] ?? '');
 $rawResultFocus = isset($input['resultFocus']) && is_array($input['resultFocus']) ? $input['resultFocus'] : [];
 $resultFocus = [
-    'id' => qpmSemanticRerankNormalizeString($rawResultFocus['id'] ?? ''),
-    'label' => qpmSemanticRerankNormalizeString($rawResultFocus['label'] ?? ''),
-    'description' => qpmSemanticRerankNormalizeString($rawResultFocus['description'] ?? ''),
+    'id' => muginSemanticRerankNormalizeString($rawResultFocus['id'] ?? ''),
+    'label' => muginSemanticRerankNormalizeString($rawResultFocus['label'] ?? ''),
+    'description' => muginSemanticRerankNormalizeString($rawResultFocus['description'] ?? ''),
 ];
-$model = qpmResolveAllowedOpenAiModel(
-    qpmSemanticRerankNormalizeString($input['model'] ?? 'gpt-5.4-nano'),
-    'gpt-5.4-nano'
+$finalRerankTask = function_exists('muginGetOpenAiTaskSettings')
+    ? muginGetOpenAiTaskSettings('finalRerank')
+    : ['model' => '', 'reasoningEffort' => 'none'];
+$model = muginResolveAllowedOpenAiModel(
+    muginSemanticRerankNormalizeString($input['model'] ?? ''),
+    (string) ($finalRerankTask['model'] ?? '')
 );
-// reasoning.effort must match the model family (the API rejects mismatches), so it
-// is configurable via QPM_SEMANTIC_LLM_RERANK_CONFIG and passed through from the
-// widget. Fall back to 'none' (valid for the default gpt-5.4 family) when unset.
-$reasoningEffort = qpmClampOpenAiReasoningEffort($input['reasoningEffort'] ?? null, 'none');
-$maxOutputTokens = qpmClampOpenAiMaxOutputTokens($input['maxOutputTokens'] ?? 400, 400, 2048);
+// reasoning.effort must match the model family (the API rejects mismatches).
+// Source of truth: MUGIN_LLM_TASK_MODELS[provider]['finalRerank'], passed through from the widget.
+$reasoningEffort = muginClampOpenAiReasoningEffort(
+    $input['reasoningEffort'] ?? ($finalRerankTask['reasoningEffort'] ?? null),
+    (string) ($finalRerankTask['reasoningEffort'] ?? 'none')
+);
+$maxOutputTokens = muginClampOpenAiMaxOutputTokens($input['maxOutputTokens'] ?? 400, 400, 2048);
 $rawCandidates = isset($input['candidates']) && is_array($input['candidates']) ? $input['candidates'] : [];
 
 $candidates = [];
@@ -104,8 +109,8 @@ foreach ($rawCandidates as $rawCandidate) {
     if (!is_array($rawCandidate)) {
         continue;
     }
-    $id = qpmSemanticRerankNormalizeString($rawCandidate['id'] ?? '');
-    $title = qpmSemanticRerankNormalizeString($rawCandidate['title'] ?? '');
+    $id = muginSemanticRerankNormalizeString($rawCandidate['id'] ?? '');
+    $title = muginSemanticRerankNormalizeString($rawCandidate['title'] ?? '');
     if ($id === '' || $title === '' || isset($seenIds[$id])) {
         continue;
     }
@@ -114,10 +119,10 @@ foreach ($rawCandidates as $rawCandidate) {
     $candidate = [
         'id' => $id,
         'title' => $title,
-        'abstract' => qpmSemanticRerankNormalizeString($rawCandidate['abstract'] ?? ''),
-        'publicationDate' => qpmSemanticRerankNormalizeString($rawCandidate['publicationDate'] ?? ''),
-        'source' => qpmSemanticRerankNormalizeString($rawCandidate['source'] ?? ''),
-        'sourceLabel' => qpmSemanticRerankNormalizeString($rawCandidate['sourceLabel'] ?? ''),
+        'abstract' => muginSemanticRerankNormalizeString($rawCandidate['abstract'] ?? ''),
+        'publicationDate' => muginSemanticRerankNormalizeString($rawCandidate['publicationDate'] ?? ''),
+        'source' => muginSemanticRerankNormalizeString($rawCandidate['source'] ?? ''),
+        'sourceLabel' => muginSemanticRerankNormalizeString($rawCandidate['sourceLabel'] ?? ''),
     ];
 
     // Optional quality signals — passed through when available so the LLM can use
@@ -156,7 +161,7 @@ foreach ($rawCandidates as $rawCandidate) {
                 if (is_bool($value)) $qualitySignals[$field] = $value;
                 break;
             case 'string':
-                $normalized = qpmSemanticRerankNormalizeString($value);
+                $normalized = muginSemanticRerankNormalizeString($value);
                 if ($normalized !== '') $qualitySignals[$field] = $normalized;
                 break;
         }
@@ -164,7 +169,7 @@ foreach ($rawCandidates as $rawCandidate) {
     if (isset($rawCandidate['pubTypes']) && is_array($rawCandidate['pubTypes'])) {
         $pubTypes = [];
         foreach ($rawCandidate['pubTypes'] as $pubType) {
-            $normalized = qpmSemanticRerankNormalizeString($pubType);
+            $normalized = muginSemanticRerankNormalizeString($pubType);
             if ($normalized !== '') $pubTypes[$normalized] = true;
         }
         if (!empty($pubTypes)) {
@@ -176,11 +181,36 @@ foreach ($rawCandidates as $rawCandidate) {
         $candidate['qualitySignals'] = $qualitySignals;
     }
 
+    // Optional capped topics — additive topical evidence; missing topics is fine.
+    if (isset($rawCandidate['topics']) && is_array($rawCandidate['topics'])) {
+        $topics = [];
+        $seenTopics = [];
+        foreach ($rawCandidate['topics'] as $topicEntry) {
+            if (!is_array($topicEntry) || count($topics) >= 16) {
+                continue;
+            }
+            $label = muginSemanticRerankNormalizeString($topicEntry['label'] ?? '');
+            $source = muginSemanticRerankNormalizeString($topicEntry['source'] ?? '');
+            if ($label === '' || $source === '' || strcasecmp($source, 'openAlexConcept') === 0) {
+                continue;
+            }
+            $key = strtolower($source) . "\0" . strtolower($label);
+            if (isset($seenTopics[$key])) {
+                continue;
+            }
+            $seenTopics[$key] = true;
+            $topics[] = ['label' => $label, 'source' => $source];
+        }
+        if (!empty($topics)) {
+            $candidate['topics'] = $topics;
+        }
+    }
+
     $candidates[] = $candidate;
 }
 
 if ($query === '' || count($candidates) < 2) {
-    qpmSemanticRerankRespond(200, [
+    muginSemanticRerankRespond(200, [
         'orderedIds' => array_values(array_map(
             static function (array $candidate): string {
                 return $candidate['id'];
@@ -209,7 +239,10 @@ $schema = [
 $systemPrompt = implode("\n", [
     'You rerank already validated scholarly search candidates.',
     'Never exclude, add, or invent items. Return a permutation of the provided candidate ids only.',
-    'Prefer candidates that best match the query intent using title and abstract together.',
+    'Prefer candidates that best match the query intent using title, abstract, and provided topics together.',
+    'When candidate topics are provided, use them as additive topical evidence together with title and abstract.',
+    'Missing topics must not lower a candidate. Do not prefer a candidate merely because it has MeSH or a PMID.',
+    'OpenAlex and Semantic Scholar topics are valid substitutes when MeSH is absent.',
     'Treat missing abstracts conservatively.',
     'Do not try to override publication-type, date, or other hard filters because they have already been applied.',
     'When signals such as FWCI, RCR, citation counts, retraction status, publication type or recency are provided on a candidate, you may use them to inform relevance, but never to override prior hard filters and never to exclude or add candidates. Prefer non-retracted records over retracted ones when all other evidence is comparable.',
@@ -230,15 +263,18 @@ $userPayload = [
     'candidates' => $candidates,
 ];
 
-$openAiApiKey = qpmGetOpenAIApiKey(qpmResolveDomain());
-$openAiApiUrl = qpmGetOpenAIApiUrl(qpmResolveDomain());
-$openAiOrgId = function_exists('qpmGetOpenAIOrgId') ? qpmGetOpenAIOrgId(qpmResolveDomain()) : '';
-if ($openAiApiKey === '' || $openAiApiUrl === '') {
-    qpmSemanticRerankRespond(500, ['error' => 'OpenAI configuration is missing']);
+$domain = muginResolveDomain();
+if (!muginIsLlmConfigured($domain)) {
+    muginSemanticRerankRespond(500, ['error' => 'LLM provider is not configured']);
+}
+$openAiApiUrl = muginGetOpenAIApiUrl($domain);
+
+if ($model === '') {
+    muginSemanticRerankRespond(500, ['error' => 'OpenAI model is not configured for finalRerank']);
 }
 
-$openAiRequest = [
-    'model' => $model !== '' ? $model : 'gpt-5.4-nano',
+$openAiRequest = muginNormalizeLlmRequestPayload([
+    'model' => $model,
     'input' => [
         ['role' => 'system', 'content' => $systemPrompt],
         [
@@ -257,15 +293,9 @@ $openAiRequest = [
         ],
     ],
     'max_output_tokens' => $maxOutputTokens > 0 ? $maxOutputTokens : 400,
-];
+]);
 
-$headers = [
-    'Content-Type: application/json',
-    'Authorization: Bearer ' . $openAiApiKey,
-];
-if ($openAiOrgId !== '') {
-    $headers[] = 'OpenAI-Organization: ' . $openAiOrgId;
-}
+$headers = muginBuildLlmHttpHeaders($domain);
 
 $ch = curl_init($openAiApiUrl);
 curl_setopt_array($ch, [
@@ -281,12 +311,12 @@ $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
 if ($rawResponse === false || $curlError !== '') {
-    qpmSemanticRerankRespond(502, ['error' => $curlError !== '' ? $curlError : 'OpenAI request failed']);
+    muginSemanticRerankRespond(502, ['error' => $curlError !== '' ? $curlError : 'OpenAI request failed']);
 }
 
 $decodedResponse = json_decode($rawResponse, true);
 if (!is_array($decodedResponse)) {
-    qpmSemanticRerankRespond(502, [
+    muginSemanticRerankRespond(502, [
         'error' => 'Invalid OpenAI response',
         'status' => $status,
         'raw' => substr((string) $rawResponse, 0, 500),
@@ -294,24 +324,24 @@ if (!is_array($decodedResponse)) {
 }
 
 if ($status < 200 || $status >= 300) {
-    qpmSemanticRerankRespond(502, [
+    muginSemanticRerankRespond(502, [
         'error' => 'OpenAI request failed',
         'status' => $status,
         'details' => $decodedResponse,
     ]);
 }
 
-$responseText = qpmSemanticRerankExtractText($decodedResponse);
+$responseText = muginSemanticRerankExtractText($decodedResponse);
 $parsedOutput = json_decode($responseText, true);
 if (!is_array($parsedOutput)) {
-    qpmSemanticRerankRespond(502, [
+    muginSemanticRerankRespond(502, [
         'error' => 'OpenAI did not return valid JSON output',
         'raw' => $responseText,
     ]);
 }
 
 $orderedIds = isset($parsedOutput['orderedIds']) && is_array($parsedOutput['orderedIds'])
-    ? array_values(array_map('qpmSemanticRerankNormalizeString', $parsedOutput['orderedIds']))
+    ? array_values(array_map('muginSemanticRerankNormalizeString', $parsedOutput['orderedIds']))
     : [];
 $expectedIds = array_values(array_map(
     static function (array $candidate): string {
@@ -322,7 +352,7 @@ $expectedIds = array_values(array_map(
 $expectedLookup = array_fill_keys($expectedIds, true);
 
 if (count($orderedIds) !== count($expectedIds)) {
-    qpmSemanticRerankRespond(422, [
+    muginSemanticRerankRespond(422, [
         'error' => 'OpenAI returned the wrong number of ids',
         'orderedIds' => $orderedIds,
         'expectedIds' => $expectedIds,
@@ -332,7 +362,7 @@ if (count($orderedIds) !== count($expectedIds)) {
 $seenOrdered = [];
 foreach ($orderedIds as $orderedId) {
     if ($orderedId === '' || !isset($expectedLookup[$orderedId]) || isset($seenOrdered[$orderedId])) {
-        qpmSemanticRerankRespond(422, [
+        muginSemanticRerankRespond(422, [
             'error' => 'OpenAI returned an invalid permutation',
             'orderedIds' => $orderedIds,
             'expectedIds' => $expectedIds,
@@ -341,7 +371,7 @@ foreach ($orderedIds as $orderedId) {
     $seenOrdered[$orderedId] = true;
 }
 
-qpmSemanticRerankRespond(200, [
+muginSemanticRerankRespond(200, [
     'orderedIds' => $orderedIds,
     'model' => $openAiRequest['model'],
 ]);

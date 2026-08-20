@@ -3,7 +3,7 @@
  * Deterministic full-pool DOI rule/hydration diagnostics parity test.
  */
 
-function qpmPublicSearchFetchOpenAlexWorksByCandidatesParallel(array $entries, string $domain = ''): array
+function muginPublicSearchFetchOpenAlexWorksByCandidatesParallel(array $entries, string $domain = ''): array
 {
     $works = [];
     foreach ($entries as $entry) {
@@ -39,7 +39,7 @@ function assertTrue(bool $condition, string $message): void
     }
 }
 
-$request = qpmPublicSearchNormalizePostRequest([
+$request = muginPublicSearchNormalizePostRequest([
     'query' => ['text' => 'test', 'language' => 'en'],
     'sources' => ['openAlex'],
     'hardFilters' => [
@@ -52,7 +52,7 @@ $request = qpmPublicSearchNormalizePostRequest([
         'ruleIds' => ['source-format-journal'],
     ],
 ]);
-$ruleState = qpmPublicSearchBuildPostValidationRuleState($request);
+$ruleState = muginPublicSearchBuildPostValidationRuleState($request);
 $candidates = [
     [
         'source' => 'openAlex',
@@ -74,7 +74,7 @@ $candidates = [
     ],
 ];
 
-$result = qpmPublicSearchBuildAllowedCandidateKeys(
+$result = muginPublicSearchBuildAllowedCandidateKeys(
     $candidates,
     [],
     $request['hardFilters'],

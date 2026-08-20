@@ -10,26 +10,26 @@ ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 
 require_once __DIR__ . '/SummarizeArticleHelpers.php';
-qpmLoadApiConfigOrFail();
+muginLoadApiConfigOrFail();
 require_once __DIR__ . '/NlmApiHelpers.php';
 require_once __DIR__ . '/TextFetchCache.php';
 
 // Azure Function URL for fetching PDF text only
 define('AZURE_FETCH_PDF_URL', 'https://qpm-openai-service.azurewebsites.net/api/FetchPDFText');
 
-qpmApplyStrictCorsPostJson();
-qpmEnforceFirstPartyIpRateLimit('openaiProxy');
-qpmRequirePostMethod();
-$input = qpmReadJsonInputOrFail();
+muginApplyStrictCorsPostJson();
+muginEnforceFirstPartyIpRateLimit('openaiProxy');
+muginRequirePostMethod();
+$input = muginReadJsonInputOrFail();
 
-$pdfUrl = qpmRequirePublicHttpsUrl(qpmRequireInputField($input, 'pdfurl'), 'pdfurl');
-$prompt = qpmRequireInputField($input, 'prompt');
+$pdfUrl = muginRequirePublicHttpsUrl(muginRequireInputField($input, 'pdfurl'), 'pdfurl');
+$prompt = muginRequireInputField($input, 'prompt');
 
 // ============================================================
 // Step 1: Fetch PDF text from Azure Function
 // ============================================================
 $cacheHit = false;
-$extractedText = qpmFetchExtractedTextFromAzure(
+$extractedText = muginFetchExtractedTextFromAzure(
     'pdf',
     $pdfUrl,
     AZURE_FETCH_PDF_URL,
@@ -48,8 +48,8 @@ if (empty($extractedText)) {
 // ============================================================
 // Step 2: Call OpenAI API with streaming
 // ============================================================
-$openaiRequest = qpmBuildStreamingOpenAiRequest($prompt, $extractedText);
-qpmStartPlainStreamingResponse();
+$openaiRequest = muginBuildStreamingOpenAiRequest($prompt, $extractedText);
+muginStartPlainStreamingResponse();
 
 // Check if JSON mode is enabled
 $jsonModeEnabled = isset($openaiRequest['text']['format']['type']) && $openaiRequest['text']['format']['type'] === 'json_object';
@@ -62,5 +62,5 @@ $metadata = [
     'jsonModeEnabled' => $jsonModeEnabled,
     'cacheHit' => $cacheHit
 ];
-qpmEmitStreamMetadata($metadata);
-qpmStreamOpenAiPlainText($openaiRequest);
+muginEmitStreamMetadata($metadata);
+muginStreamOpenAiPlainText($openaiRequest);

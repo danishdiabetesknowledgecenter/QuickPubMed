@@ -169,13 +169,15 @@ Det er en hurtig smoke-test af den særskilte visningspolitik:
 
 ## Reranking signals
 
-Dette afsnit dækker det hybride rerank-lag (RRF + kvalitetssignaler) og enrichment-sektionen `04b`. Brug som smoke-test efter ændringer i:
+Dette afsnit dækker det hybride rerank-lag (RRF + kvalitetssignaler) og enrichment. Brug som smoke-test efter ændringer i:
 
-- `src/utils/semanticReranking.js`
+- `backend/app/semantic-quality-lib.php` (live hybrid motor)
+- `backend/app/public-search-lib.php` / `backend/api/UnifiedSearch.php`
 - `backend/api/ICiteLookup.php`
 - `backend/api/OpenAlexAuthorityLookup.php`
 - `backend/api/SemanticFinalRerank.php`
-- `backend/config/config.example.php` og `backend/config/config.php` under `QPM_RERANK_CONFIG`
+- `backend/config/config.example.php` og `backend/config/config.php` under `MUGIN_RERANK_CONFIG` / `MUGIN_UNIFIED_SEARCH_ENGINE_ENABLED`
+- `src/utils/semanticReranking.js` (dormant JS-reference)
 
 ### Baseline-parity (default config)
 
@@ -226,7 +228,7 @@ Bestået når:
 
 ### LLM-rerank beriget kontekst
 
-Med `QPM_SEMANTIC_LLM_RERANK_CONFIG.enabled=true` og en semantisk case:
+Med `MUGIN_SEMANTIC_LLM_RERANK_CONFIG.enabled=true` og en semantisk case:
 
 1. Åbn netværksfanen og find POST-requesten til `SemanticFinalRerank.php`.
 2. Inspicer request body.
@@ -283,12 +285,16 @@ Bestået når:
 
 ### Konfigurations-mismatch mellem web og public API
 
-Kør `php scripts/qpm-public-diff.php --topic='dementia care guideline'` (eller tilsvarende stand-alone-script).
+Web og public API deler allerede samme orkestrator (`UnifiedSearch.php` / `/v1/search` → `muginPublicSearchRunSearch()`). Sammenlign derfor samme query via widget og `POST /v1/search`, og tjek at `results[*].resultKey` matcher i rækkefølge.
 
-Bestået når `matchesWebOrdering=true`, og når både web og public API har læst samme `guidelinePublisherAllowList` fra `limits.json`. Hvis `matchesWebOrdering=false`:
+Nyttige scripts: `scripts/unified-engine-smoke-test.php`, `scripts/rerank-parity-harness.php`, `scripts/compare-rerank-parity.js`.
 
-- Kontroller at `limits.json` er deployet til både frontend og public backend.
-- Kontroller at `ThemeConfig.php` eksponerer samme `pubTypeTiers` og `guidelinePublisherAllowList` til begge.
+Bemærk: `order.matchesWebOrdering` spejler kun `MUGIN_PUBLIC_API['matchesWebOrderingByDefault']` — det er **ikke** et runtime-bevis for paritet. Hybrid ranking kræver desuden `MUGIN_UNIFIED_SEARCH_ENGINE_ENABLED=true`.
+
+Hvis rækkefølgen afviger:
+
+- Kontroller at `limits.json` (inkl. `guidelinePublisherAllowList`) er den samme for begge.
+- Kontroller at `MUGIN_RERANK_CONFIG` / `pubTypeTiers` og `MUGIN_UNIFIED_SEARCH_ENGINE_ENABLED` er ens i miljøet.
 
 ## Hvis en case fejler
 

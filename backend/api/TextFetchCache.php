@@ -5,20 +5,20 @@
  * The cache is keyed by source type (pdf/html) + URL and stored as JSON files.
  */
 
-define('QPM_TEXT_FETCH_CACHE_TTL_SECONDS', 900); // 15 minutes
+require_once dirname(__DIR__) . '/app/file-cache.php';
+
+if (!defined('MUGIN_TEXT_FETCH_CACHE_TTL_SECONDS')) {
+    define('MUGIN_TEXT_FETCH_CACHE_TTL_SECONDS', 900); // 15 minutes
+}
 
 /**
  * Returns the absolute cache directory path and creates it if needed.
  *
  * @return string
  */
-function qpmGetTextFetchCacheDir()
+function muginGetTextFetchCacheDir()
 {
-    $cacheDir = dirname(__DIR__, 2) . '/data/cache/text-fetch';
-    if (!is_dir($cacheDir)) {
-        @mkdir($cacheDir, 0750, true);
-    }
-    return $cacheDir;
+    return muginEnsureDataSubdir('cache', 'text-fetch');
 }
 
 /**
@@ -28,10 +28,10 @@ function qpmGetTextFetchCacheDir()
  * @param string $sourceUrl
  * @return string
  */
-function qpmGetTextFetchCachePath($sourceType, $sourceUrl)
+function muginGetTextFetchCachePath($sourceType, $sourceUrl)
 {
     $cacheKey = hash('sha256', $sourceType . '|' . $sourceUrl);
-    return qpmGetTextFetchCacheDir() . '/' . $cacheKey . '.json';
+    return muginGetTextFetchCacheDir() . '/' . $cacheKey . '.json';
 }
 
 /**
@@ -42,30 +42,34 @@ function qpmGetTextFetchCachePath($sourceType, $sourceUrl)
  * @param int $ttlSeconds
  * @return string|null
  */
-function qpmReadTextFetchCache($sourceType, $sourceUrl, $ttlSeconds = QPM_TEXT_FETCH_CACHE_TTL_SECONDS)
+function muginReadTextFetchCache($sourceType, $sourceUrl, $ttlSeconds = MUGIN_TEXT_FETCH_CACHE_TTL_SECONDS)
 {
-    $cachePath = qpmGetTextFetchCachePath($sourceType, $sourceUrl);
+    $cachePath = muginGetTextFetchCachePath($sourceType, $sourceUrl);
     if (!is_file($cachePath)) {
         return null;
     }
 
     $raw = @file_get_contents($cachePath);
     if ($raw === false || $raw === '') {
+        @unlink($cachePath);
         return null;
     }
 
     $payload = json_decode($raw, true);
     if (!is_array($payload)) {
+        @unlink($cachePath);
         return null;
     }
 
-    $storedAt = isset($payload['storedAt']) ? (int)$payload['storedAt'] : 0;
-    $text = isset($payload['text']) ? (string)$payload['text'] : '';
+    $storedAt = isset($payload['storedAt']) ? (int) $payload['storedAt'] : 0;
+    $text = isset($payload['text']) ? (string) $payload['text'] : '';
     if ($storedAt <= 0 || $text === '') {
+        @unlink($cachePath);
         return null;
     }
 
     if ((time() - $storedAt) > $ttlSeconds) {
+        @unlink($cachePath);
         return null;
     }
 
@@ -80,13 +84,13 @@ function qpmReadTextFetchCache($sourceType, $sourceUrl, $ttlSeconds = QPM_TEXT_F
  * @param string $text
  * @return void
  */
-function qpmWriteTextFetchCache($sourceType, $sourceUrl, $text)
+function muginWriteTextFetchCache($sourceType, $sourceUrl, $text)
 {
     if (!is_string($text) || $text === '') {
         return;
     }
 
-    $cachePath = qpmGetTextFetchCachePath($sourceType, $sourceUrl);
+    $cachePath = muginGetTextFetchCachePath($sourceType, $sourceUrl);
     $payload = json_encode([
         'storedAt' => time(),
         'text' => $text,
@@ -97,4 +101,5 @@ function qpmWriteTextFetchCache($sourceType, $sourceUrl, $text)
     }
 
     @file_put_contents($cachePath, $payload, LOCK_EX);
+    muginFileCacheMaybeSweepDirectory(muginGetTextFetchCacheDir());
 }

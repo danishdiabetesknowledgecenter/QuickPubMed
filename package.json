@@ -1,5 +1,5 @@
 {
-  "name": "quick-pub-med",
+  "name": "mugin-scholar",
   "type": "module",
   "version": "1.0.0",
   "scripts": {
@@ -26,9 +26,9 @@
     "vue-eslint-parser": "^9.4.3"
   },
   "dependencies": {
-    "axios": "^1.16.0",
+    "axios": "^1.19.0",
     "floating-vue": "^5.2.2",
-    "markdown-it": "^14.1.1",
+    "markdown-it": "^14.3.0",
     "markdown-it-task-lists": "^2.1.1",
     "mitt": "^3.0.1",
     "vue-multiselect": "^3.5.0"

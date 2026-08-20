@@ -22,12 +22,12 @@ function parseJSON(value) {
   }
 }
 
-// Select all elements with the 'qpm-references' class (fallback to legacy class)
-const referencesDivs = document.querySelectorAll(".qpm-references, .references");
+// Select all elements with the 'mugin-references' class (fallback to legacy class)
+const referencesDivs = document.querySelectorAll(".mugin-references, .references");
 
 referencesDivs.forEach((referencesDiv, index) => {
   if (!referencesDiv.id) {
-    referencesDiv.id = `qpm-references-${index + 1}`;
+    referencesDiv.id = `mugin-references-${index + 1}`;
   }
 
   // Manually assign each prop with appropriate type conversions

@@ -4,28 +4,28 @@
  * (application/x-www-form-urlencoded POST and GET query strings).
  */
 
-if (!function_exists('qpmPublicSearchFlatParamsMaxLimitTokens')) {
-    function qpmPublicSearchFlatParamsMaxLimitTokens(): int
+if (!function_exists('muginPublicSearchFlatParamsMaxLimitTokens')) {
+    function muginPublicSearchFlatParamsMaxLimitTokens(): int
     {
         return 200;
     }
 }
 
-if (!function_exists('qpmPublicSearchFlatParamsMaxPmidTokens')) {
-    function qpmPublicSearchFlatParamsMaxPmidTokens(): int
+if (!function_exists('muginPublicSearchFlatParamsMaxPmidTokens')) {
+    function muginPublicSearchFlatParamsMaxPmidTokens(): int
     {
         return 50;
     }
 }
 
-if (!function_exists('qpmPublicSearchFlatParamsMaxTopicTokens')) {
-    function qpmPublicSearchFlatParamsMaxTopicTokens(): int
+if (!function_exists('muginPublicSearchFlatParamsMaxTopicTokens')) {
+    function muginPublicSearchFlatParamsMaxTopicTokens(): int
     {
         return 200;
     }
 }
 
-if (!function_exists('qpmPublicSearchNormalizeFlatParamKeys')) {
+if (!function_exists('muginPublicSearchNormalizeFlatParamKeys')) {
     /**
      * Lowercases form parameter keys. On collision the first value wins,
      * except `limit` where all values are collected as an AND-group list.
@@ -33,7 +33,7 @@ if (!function_exists('qpmPublicSearchNormalizeFlatParamKeys')) {
      * @param array<string,mixed> $params
      * @return array<string,mixed>
      */
-    function qpmPublicSearchNormalizeFlatParamKeys(array $params): array
+    function muginPublicSearchNormalizeFlatParamKeys(array $params): array
     {
         $normalized = [];
         $limitGroups = [];
@@ -78,7 +78,7 @@ if (!function_exists('qpmPublicSearchNormalizeFlatParamKeys')) {
     }
 }
 
-if (!function_exists('qpmPublicSearchParseRawUrlEncodedPreservingLimitGroups')) {
+if (!function_exists('muginPublicSearchParseRawUrlEncodedPreservingLimitGroups')) {
     /**
      * Parses application/x-www-form-urlencoded bodies/query strings while keeping
      * every repeated `limit=` / `topic=` value (PHP's $_GET/$_POST/parse_str
@@ -86,7 +86,7 @@ if (!function_exists('qpmPublicSearchParseRawUrlEncodedPreservingLimitGroups')) 
      *
      * @return array<string,mixed>
      */
-    function qpmPublicSearchParseRawUrlEncodedPreservingLimitGroups(string $raw): array
+    function muginPublicSearchParseRawUrlEncodedPreservingLimitGroups(string $raw): array
     {
         $params = [];
         $limitGroups = [];
@@ -127,13 +127,13 @@ if (!function_exists('qpmPublicSearchParseRawUrlEncodedPreservingLimitGroups')) 
     }
 }
 
-if (!function_exists('qpmPublicSearchParseLimitTokenToSelection')) {
+if (!function_exists('muginPublicSearchParseLimitTokenToSelection')) {
     /**
      * @return array{id:string,scope:string}|null
      */
-    function qpmPublicSearchParseLimitTokenToSelection(string $token): ?array
+    function muginPublicSearchParseLimitTokenToSelection(string $token): ?array
     {
-        $parsed = qpmPublicSearchParseScopedIdToken($token);
+        $parsed = muginPublicSearchParseScopedIdToken($token);
         if (!$parsed['isCustom'] && $parsed['id'] !== '') {
             return ['id' => $parsed['id'], 'scope' => $parsed['scope']];
         }
@@ -145,19 +145,19 @@ if (!function_exists('qpmPublicSearchParseLimitTokenToSelection')) {
     }
 }
 
-if (!function_exists('qpmPublicSearchSplitFlatListValue')) {
+if (!function_exists('muginPublicSearchSplitFlatListValue')) {
     /**
      * Splits on ',' and legacy ';;' without breaking {{…}} tokens.
      *
      * @param mixed $value
      * @return array<int,string>
      */
-    function qpmPublicSearchSplitFlatListValue($value): array
+    function muginPublicSearchSplitFlatListValue($value): array
     {
         if (is_array($value)) {
             $parts = [];
             foreach ($value as $entry) {
-                foreach (qpmPublicSearchSplitFlatListValue($entry) as $token) {
+                foreach (muginPublicSearchSplitFlatListValue($entry) as $token) {
                     $parts[] = $token;
                 }
             }
@@ -211,7 +211,7 @@ if (!function_exists('qpmPublicSearchSplitFlatListValue')) {
     }
 }
 
-if (!function_exists('qpmPublicSearchParseScopedIdToken')) {
+if (!function_exists('muginPublicSearchParseScopedIdToken')) {
     /**
      * Parses `id#scope` / `{{text}}#scope[:mode]` tokens.
      *
@@ -222,7 +222,7 @@ if (!function_exists('qpmPublicSearchParseScopedIdToken')) {
      *
      * @return array{id:string,scope:string,rawText:string,isCustom:bool,isTranslated:bool}
      */
-    function qpmPublicSearchParseScopedIdToken(string $token): array
+    function muginPublicSearchParseScopedIdToken(string $token): array
     {
         $raw = trim($token);
         $hashPos = strrpos($raw, '#');
@@ -274,11 +274,11 @@ if (!function_exists('qpmPublicSearchParseScopedIdToken')) {
     }
 }
 
-if (!function_exists('qpmPublicSearchFlatParamUiIgnoreKeys')) {
+if (!function_exists('muginPublicSearchFlatParamUiIgnoreKeys')) {
     /**
      * @return array<int,string>
      */
-    function qpmPublicSearchFlatParamUiIgnoreKeys(): array
+    function muginPublicSearchFlatParamUiIgnoreKeys(): array
     {
         return [
             'advanced',
@@ -287,51 +287,53 @@ if (!function_exists('qpmPublicSearchFlatParamUiIgnoreKeys')) {
             'openlimits',
             'hidelimits',
             'orderlimits',
-            'qpmdebug',
+            'mugindebug',
             'apibase',
+            'component', // SearchForm instance target; not part of search request body
             'apikey', // auth is read separately; not part of search request body
         ];
     }
 }
 
-if (!function_exists('qpmPublicSearchIsFlatLimitCategoryKey')) {
+if (!function_exists('muginPublicSearchIsFlatLimitCategoryKey')) {
     /**
      * Legacy simple-mode category keys like L025 / L030 / LXXX.
      * Must not match the parameter name "limit".
      */
-    function qpmPublicSearchIsFlatLimitCategoryKey(string $key): bool
+    function muginPublicSearchIsFlatLimitCategoryKey(string $key): bool
     {
         return (bool) preg_match('/^l(\d{2,}|xxx)[0-9a-z]*$/i', $key);
     }
 }
 
-if (!function_exists('qpmPublicSearchBuildRequestFromFlatParams')) {
+if (!function_exists('muginPublicSearchBuildRequestFromFlatParams')) {
     /**
      * Builds a normalized public-search request from SearchForm-style flat params.
      *
      * @param array<string,mixed> $params
      * @return array<string,mixed>
      */
-    function qpmPublicSearchBuildRequestFromFlatParams(array $params): array
+    function muginPublicSearchBuildRequestFromFlatParams(array $params): array
     {
-        $params = qpmPublicSearchNormalizeFlatParamKeys($params);
-        $ignore = array_fill_keys(qpmPublicSearchFlatParamUiIgnoreKeys(), true);
+        $params = muginPublicSearchNormalizeFlatParamKeys($params);
+        $ignore = array_fill_keys(muginPublicSearchFlatParamUiIgnoreKeys(), true);
         $known = array_fill_keys([
             'q', 'query', 'topic', 'databases', 'sources', 'translationsources', 'semanticsources',
             'ai', 'translation', 'focus', 'sort', 'page', 'pagesize', 'pageSize',
-            'limit', 'checklimits', 'pmid', 'domain', 'lang', 'stream',
+            'limit', 'checklimits', 'pmid', 'selected', 'domain', 'lang', 'stream',
             'includeabstracts', 'includeprocessdetails', 'nocache',
+            'qpubmed', 'qsemanticscholar', 'qopenalex', 'qelicit',
         ], true);
 
         foreach (array_keys($params) as $key) {
-            if (isset($ignore[$key]) || isset($known[$key]) || qpmPublicSearchIsFlatLimitCategoryKey($key)) {
+            if (isset($ignore[$key]) || isset($known[$key]) || muginPublicSearchIsFlatLimitCategoryKey($key)) {
                 continue;
             }
             throw new InvalidArgumentException('Unsupported parameter(s): ' . $key);
         }
 
-        $request = qpmPublicSearchBuildDefaultRequest();
-        $config = qpmPublicSearchGetConfig();
+        $request = muginPublicSearchBuildDefaultRequest();
+        $config = muginPublicSearchGetConfig();
 
         $queryText = trim((string) ($params['q'] ?? ''));
         if ($queryText === '') {
@@ -358,14 +360,14 @@ if (!function_exists('qpmPublicSearchBuildRequestFromFlatParams')) {
         $topicTokenCount = 0;
         foreach ($topicGroupRawValues as $groupRaw) {
             $groupSelections = [];
-            foreach (qpmPublicSearchSplitFlatListValue($groupRaw) as $token) {
+            foreach (muginPublicSearchSplitFlatListValue($groupRaw) as $token) {
                 $topicTokenCount++;
-                if ($topicTokenCount > qpmPublicSearchFlatParamsMaxTopicTokens()) {
+                if ($topicTokenCount > muginPublicSearchFlatParamsMaxTopicTokens()) {
                     throw new InvalidArgumentException(
-                        'Too many topic tokens (max ' . qpmPublicSearchFlatParamsMaxTopicTokens() . ')'
+                        'Too many topic tokens (max ' . muginPublicSearchFlatParamsMaxTopicTokens() . ')'
                     );
                 }
-                $parsed = qpmPublicSearchParseScopedIdToken((string) $token);
+                $parsed = muginPublicSearchParseScopedIdToken((string) $token);
                 if ($parsed['isCustom']) {
                     $rawText = trim((string) ($parsed['rawText'] ?? ''));
                     if ($rawText === '') {
@@ -426,7 +428,7 @@ if (!function_exists('qpmPublicSearchBuildRequestFromFlatParams')) {
                 $selectedTopicGroups[] = $groupSelections;
             }
         }
-        $selectedTopicIds = qpmPublicSearchDedupeStrings($selectedTopicIds);
+        $selectedTopicIds = muginPublicSearchDedupeStrings($selectedTopicIds);
         if ($queryText === '' && !empty($customTextsForAi)) {
             $queryText = trim(implode(' ', $customTextsForAi));
         }
@@ -439,43 +441,43 @@ if (!function_exists('qpmPublicSearchBuildRequestFromFlatParams')) {
             $sourcesRaw = (string) $params[$sourceKey];
             break;
         }
-        $request['sources'] = qpmPublicSearchNormalizeSources(
+        $request['sources'] = muginPublicSearchNormalizeSources(
             str_replace(';;', ',', $sourcesRaw)
         );
 
-        $request['sort']['method'] = qpmPublicSearchNormalizeSortMethod($params['sort'] ?? 'relevance');
-        $request['focus'] = qpmPublicSearchNormalizeFocusProfileId($params['focus'] ?? '');
+        $request['sort']['method'] = muginPublicSearchNormalizeSortMethod($params['sort'] ?? 'relevance');
+        $request['focus'] = muginPublicSearchNormalizeFocusProfileId($params['focus'] ?? '');
         $request['page']['number'] = max(1, (int) ($params['page'] ?? 1));
         $pageSize = (int) ($params['pagesize'] ?? ($params['pageSize'] ?? $request['page']['size']));
         $request['page']['size'] = max(1, min($config['maxPageSize'], $pageSize > 0 ? $pageSize : $config['defaultPageSize']));
 
         if (array_key_exists('translation', $params)) {
-            $request['translation']['mode'] = qpmPublicSearchNormalizeTranslationMode($params['translation']);
+            $request['translation']['mode'] = muginPublicSearchNormalizeTranslationMode($params['translation']);
         } elseif (array_key_exists('ai', $params)) {
-            $request['translation']['mode'] = qpmPublicSearchBoolValue($params['ai'], true) ? 'auto' : 'none';
+            $request['translation']['mode'] = muginPublicSearchBoolValue($params['ai'], true) ? 'auto' : 'none';
         } else {
             $request['translation']['mode'] = 'auto';
         }
 
-        $request['domain'] = function_exists('qpmNormalizeDomainKey')
-            ? qpmNormalizeDomainKey((string) ($params['domain'] ?? ''))
+        $request['domain'] = function_exists('muginNormalizeDomainKey')
+            ? muginNormalizeDomainKey((string) ($params['domain'] ?? ''))
             : trim((string) ($params['domain'] ?? ''));
 
-        $request['responseOptions']['stream'] = qpmPublicSearchBoolValue(
+        $request['responseOptions']['stream'] = muginPublicSearchBoolValue(
             $params['stream'] ?? $request['responseOptions']['stream'],
             (bool) $request['responseOptions']['stream']
         );
-        $request['responseOptions']['language'] = qpmPublicSearchNormalizeResponseLanguage(
+        $request['responseOptions']['language'] = muginPublicSearchNormalizeResponseLanguage(
             $params['lang'] ?? $request['responseOptions']['language']
         );
         if (array_key_exists('includeabstracts', $params)) {
-            $request['responseOptions']['includeAbstracts'] = qpmPublicSearchBoolValue(
+            $request['responseOptions']['includeAbstracts'] = muginPublicSearchBoolValue(
                 $params['includeabstracts'],
                 true
             );
         }
         if (array_key_exists('includeprocessdetails', $params)) {
-            $request['responseOptions']['includeProcessDetails'] = qpmPublicSearchBoolValue(
+            $request['responseOptions']['includeProcessDetails'] = muginPublicSearchBoolValue(
                 $params['includeprocessdetails'],
                 false
             );
@@ -483,7 +485,7 @@ if (!function_exists('qpmPublicSearchBuildRequestFromFlatParams')) {
         if (array_key_exists('nocache', $params)) {
             // Request-scoped bypass of search-response + LLM final-rerank caches.
             // Does not delete runtime cache files; still writes fresh results back.
-            $request['responseOptions']['noCache'] = qpmPublicSearchBoolValue($params['nocache'], false);
+            $request['responseOptions']['noCache'] = muginPublicSearchBoolValue($params['nocache'], false);
         }
 
         // Each limit= value is one AND-group; comma-separated ids inside a group are OR'ed.
@@ -500,13 +502,13 @@ if (!function_exists('qpmPublicSearchBuildRequestFromFlatParams')) {
         }
         // Legacy simple-mode category keys (L025=…) each become their own AND-group.
         foreach ($params as $key => $value) {
-            if (!qpmPublicSearchIsFlatLimitCategoryKey((string) $key)) {
+            if (!muginPublicSearchIsFlatLimitCategoryKey((string) $key)) {
                 continue;
             }
             $limitGroupRawValues[] = $value;
         }
         if (array_key_exists('checklimits', $params)) {
-            foreach (qpmPublicSearchSplitFlatListValue($params['checklimits']) as $token) {
+            foreach (muginPublicSearchSplitFlatListValue($params['checklimits']) as $token) {
                 $limitGroupRawValues[] = strtoupper(trim(preg_replace('/#.*$/', '', $token) ?? $token));
             }
         }
@@ -517,14 +519,14 @@ if (!function_exists('qpmPublicSearchBuildRequestFromFlatParams')) {
         $tokenCount = 0;
         foreach ($limitGroupRawValues as $groupRaw) {
             $groupSelections = [];
-            foreach (qpmPublicSearchSplitFlatListValue($groupRaw) as $token) {
+            foreach (muginPublicSearchSplitFlatListValue($groupRaw) as $token) {
                 $tokenCount++;
-                if ($tokenCount > qpmPublicSearchFlatParamsMaxLimitTokens()) {
+                if ($tokenCount > muginPublicSearchFlatParamsMaxLimitTokens()) {
                     throw new InvalidArgumentException(
-                        'Too many limit tokens (max ' . qpmPublicSearchFlatParamsMaxLimitTokens() . ')'
+                        'Too many limit tokens (max ' . muginPublicSearchFlatParamsMaxLimitTokens() . ')'
                     );
                 }
-                $selection = qpmPublicSearchParseLimitTokenToSelection((string) $token);
+                $selection = muginPublicSearchParseLimitTokenToSelection((string) $token);
                 if ($selection === null) {
                     continue;
                 }
@@ -536,7 +538,7 @@ if (!function_exists('qpmPublicSearchBuildRequestFromFlatParams')) {
                 $selectedLimitGroups[] = $groupSelections;
             }
         }
-        $selectedLimitIds = qpmPublicSearchDedupeStrings($selectedLimitIds);
+        $selectedLimitIds = muginPublicSearchDedupeStrings($selectedLimitIds);
         $dedupedSelections = [];
         $seenSelection = [];
         foreach ($selectedLimitSelections as $selection) {
@@ -552,26 +554,24 @@ if (!function_exists('qpmPublicSearchBuildRequestFromFlatParams')) {
         }
         $selectedLimitSelections = $dedupedSelections;
 
-        $pmidTokens = array_key_exists('pmid', $params)
-            ? qpmPublicSearchSplitFlatListValue($params['pmid'])
+        $selectedRaw = array_key_exists('selected', $params)
+            ? $params['selected']
+            : ($params['pmid'] ?? null);
+        $selectedTokens = $selectedRaw !== null
+            ? muginPublicSearchSplitFlatListValue($selectedRaw)
             : [];
-        if (count($pmidTokens) > qpmPublicSearchFlatParamsMaxPmidTokens()) {
+        if (count($selectedTokens) > muginPublicSearchFlatParamsMaxPmidTokens()) {
             throw new InvalidArgumentException(
-                'Too many pmid tokens (max ' . qpmPublicSearchFlatParamsMaxPmidTokens() . ')'
+                'Too many selected tokens (max ' . muginPublicSearchFlatParamsMaxPmidTokens() . ')'
             );
         }
-        $preselectedPmids = [];
-        foreach ($pmidTokens as $pmidToken) {
-            $pmid = qpmPublicSearchNormalizePmid($pmidToken);
-            if ($pmid !== '') {
-                $preselectedPmids[] = $pmid;
-            }
-        }
-        $preselectedPmids = qpmPublicSearchDedupeStrings($preselectedPmids);
+        $selectedSplit = muginSplitSelectedIdentifiers($selectedTokens);
 
         $request['query']['text'] = $queryText;
         $request['query']['language'] = 'auto';
-        $request['preselectedPmids'] = $preselectedPmids;
+        $request['preselectedIdentifiers'] = $selectedSplit['identifiers'];
+        $request['preselectedPmids'] = $selectedSplit['pmids'];
+        $request['preselectedDois'] = $selectedSplit['dois'];
         $request['intentContext']['rawUserInput'] = $queryText;
         $request['intentContext']['contextualSearchInput'] = $queryText;
         $request['intentContext']['selectedTopicIds'] = $selectedTopicIds;
@@ -585,29 +585,57 @@ if (!function_exists('qpmPublicSearchBuildRequestFromFlatParams')) {
         $request['intentContext']['semanticBlocks'] = [];
         $request['intentContext']['ruleIds'] = [];
 
-        $request = qpmPublicSearchHydrateRequestFromSelectedLimits($request, true);
-        $request = qpmPublicSearchHydrateRequestFromSelectedTopics($request);
+        $request = muginPublicSearchHydrateRequestFromSelectedLimits($request, true);
+        $request = muginPublicSearchHydrateRequestFromSelectedTopics($request);
 
         $authorizationContext = $request['intentContext'];
-        $authorizationContext['ruleIds'] = qpmPublicSearchDedupeStrings(array_merge(
+        $authorizationContext['ruleIds'] = muginPublicSearchDedupeStrings(array_merge(
             (array) ($authorizationContext['ruleIds'] ?? []),
             (array) ($request['hardFilters']['doiOnlyRuleIds'] ?? []),
             (array) ($request['hardFilters']['postValidationRuleIds'] ?? [])
         ));
-        qpmPublicSearchAssertIntentContextIdsAreAuthorized($authorizationContext);
+        muginPublicSearchAssertIntentContextIdsAreAuthorized($authorizationContext);
 
-        if ($request['query']['text'] === '' && !$hasCustomOrCatalogTopics) {
+        $queryOverrideRaw = [];
+        $flatOverrideMap = [
+            'qpubmed' => 'pubmed',
+            'qsemanticscholar' => 'semanticScholar',
+            'qopenalex' => 'openAlex',
+            'qelicit' => 'elicit',
+        ];
+        foreach ($flatOverrideMap as $paramKey => $sourceKey) {
+            if (!array_key_exists($paramKey, $params)) {
+                continue;
+            }
+            $value = $params[$paramKey];
+            if (is_array($value)) {
+                $value = (string) ($value[0] ?? '');
+            }
+            $queryOverrideRaw[$sourceKey] = (string) $value;
+        }
+        if ($queryOverrideRaw !== []) {
+            $normalizedOverrides = muginPublicSearchNormalizeQueryOverrides($queryOverrideRaw);
+            if ($normalizedOverrides !== []) {
+                $request['queryOverrides'] = $normalizedOverrides;
+            }
+        }
+
+        if (
+            $request['query']['text'] === ''
+            && !$hasCustomOrCatalogTopics
+            && !muginPublicSearchRequestHasExecutableQueryOverrides($request)
+        ) {
             throw new InvalidArgumentException('q is required');
         }
         if (empty($request['sources'])) {
             throw new InvalidArgumentException('sources/databases must contain at least one supported source');
         }
 
-        return qpmPublicSearchApplyQueryResponseOptionOverrides($request);
+        return muginPublicSearchApplyQueryResponseOptionOverrides($request);
     }
 }
 
-if (!function_exists('qpmPublicSearchHydrateRequestFromSelectedLimits')) {
+if (!function_exists('muginPublicSearchHydrateRequestFromSelectedLimits')) {
     /**
      * Fills hardFilters/sourceFilters/ruleIds/labels from limits.json for selected limit ids.
      * When $forceFill is true (form path), always merge from catalog.
@@ -616,15 +644,15 @@ if (!function_exists('qpmPublicSearchHydrateRequestFromSelectedLimits')) {
      * @param array<string,mixed> $request
      * @return array<string,mixed>
      */
-    function qpmPublicSearchHydrateRequestFromSelectedLimits(array $request, bool $forceFill = false): array
+    function muginPublicSearchHydrateRequestFromSelectedLimits(array $request, bool $forceFill = false): array
     {
-        $selectedIds = qpmPublicSearchDedupeStrings(
+        $selectedIds = muginPublicSearchDedupeStrings(
             (array) ($request['intentContext']['selectedLimitIds'] ?? [])
         );
         if (empty($selectedIds)) {
             return $request;
         }
-        $catalog = qpmPublicSearchLoadLimitNodeCatalog();
+        $catalog = muginPublicSearchLoadLimitNodeCatalog();
         if (empty($catalog)) {
             return $request;
         }
@@ -646,6 +674,7 @@ if (!function_exists('qpmPublicSearchHydrateRequestFromSelectedLimits')) {
         $oaSourceType = [];
         $oaWorkType = [];
         $oaPublicationYears = [];
+        $oaIsOaValues = [];
         $elicitTypeTags = [];
         $elicitIncludeKeywords = [];
         $elicitExcludeKeywords = [];
@@ -673,10 +702,10 @@ if (!function_exists('qpmPublicSearchHydrateRequestFromSelectedLimits')) {
                 $filterProfiles[] = strtolower(trim((string) $value));
             }
             foreach ((array) ($nodeHard['language'] ?? []) as $value) {
-                $languages[] = qpmPublicSearchNormalizeLanguageCode($value);
+                $languages[] = muginPublicSearchNormalizeLanguageCode($value);
             }
             foreach ((array) ($nodeHard['publicationType'] ?? []) as $value) {
-                $publicationTypes[] = qpmPublicSearchNormalizeHardPublicationType($value);
+                $publicationTypes[] = muginPublicSearchNormalizeHardPublicationType($value);
             }
             foreach ((array) ($nodeHard['studyDesign'] ?? []) as $value) {
                 $studyDesigns[] = strtolower(trim((string) $value));
@@ -685,7 +714,7 @@ if (!function_exists('qpmPublicSearchHydrateRequestFromSelectedLimits')) {
                 $ageGroups[] = strtolower(trim((string) $value));
             }
             foreach ((array) ($nodeHard['sourceFormat'] ?? []) as $value) {
-                $sourceFormats[] = qpmPublicSearchNormalizeSourceFormat($value);
+                $sourceFormats[] = muginPublicSearchNormalizeSourceFormat($value);
             }
             foreach ((array) ($nodeHard['publicationDateYears'] ?? []) as $year) {
                 $yearInt = (int) $year;
@@ -743,7 +772,7 @@ if (!function_exists('qpmPublicSearchHydrateRequestFromSelectedLimits')) {
                 ? $nodeSourceFilters['openAlex']
                 : [];
             foreach ((array) ($oa['language'] ?? []) as $value) {
-                $oaLanguage[] = qpmPublicSearchNormalizeLanguageCode($value);
+                $oaLanguage[] = muginPublicSearchNormalizeLanguageCode($value);
             }
             foreach ((array) ($oa['sourceType'] ?? []) as $value) {
                 $oaSourceType[] = trim((string) $value);
@@ -753,6 +782,9 @@ if (!function_exists('qpmPublicSearchHydrateRequestFromSelectedLimits')) {
             }
             if (trim((string) ($oa['publicationYear'] ?? '')) !== '') {
                 $oaPublicationYears[] = trim((string) $oa['publicationYear']);
+            }
+            if (array_key_exists('isOa', $oa) || array_key_exists('is_oa', $oa)) {
+                $oaIsOaValues[] = muginPublicSearchBoolValue($oa['isOa'] ?? ($oa['is_oa'] ?? null), false);
             }
             $elicit = isset($nodeSourceFilters['elicit']) && is_array($nodeSourceFilters['elicit'])
                 ? $nodeSourceFilters['elicit']
@@ -782,10 +814,10 @@ if (!function_exists('qpmPublicSearchHydrateRequestFromSelectedLimits')) {
                 $elicitMaxQuartiles[] = (int) $elicit['maxQuartile'];
             }
             if (array_key_exists('hasPdf', $elicit)) {
-                $elicitHasPdfValues[] = qpmPublicSearchBoolValue($elicit['hasPdf'], false);
+                $elicitHasPdfValues[] = muginPublicSearchBoolValue($elicit['hasPdf'], false);
             }
             if (array_key_exists('pubmedOnly', $elicit)) {
-                $elicitPubmedOnlyValues[] = qpmPublicSearchBoolValue($elicit['pubmedOnly'], false);
+                $elicitPubmedOnlyValues[] = muginPublicSearchBoolValue($elicit['pubmedOnly'], false);
             }
             if (trim((string) ($elicit['retracted'] ?? '')) !== '') {
                 $elicitRetractedValues[] = trim((string) $elicit['retracted']);
@@ -796,9 +828,9 @@ if (!function_exists('qpmPublicSearchHydrateRequestFromSelectedLimits')) {
             $existing = array_values(array_filter(array_map('strval', $existing), static fn($v) => trim($v) !== ''));
             $incoming = array_values(array_filter(array_map('strval', $incoming), static fn($v) => trim($v) !== ''));
             if ($force || empty($existing)) {
-                return qpmPublicSearchDedupeStrings(array_merge($existing, $incoming));
+                return muginPublicSearchDedupeStrings(array_merge($existing, $incoming));
             }
-            return qpmPublicSearchDedupeStrings($existing);
+            return muginPublicSearchDedupeStrings($existing);
         };
 
         $hard = isset($request['hardFilters']) && is_array($request['hardFilters'])
@@ -851,6 +883,9 @@ if (!function_exists('qpmPublicSearchHydrateRequestFromSelectedLimits')) {
             && count(array_unique($oaPublicationYears)) === 1
         ) {
             $sourceFilters['openAlex']['publicationYear'] = $oaPublicationYears[0];
+        }
+        if (($forceFill || !array_key_exists('isOa', $sourceFilters['openAlex'] ?? [])) && !empty($oaIsOaValues)) {
+            $sourceFilters['openAlex']['isOa'] = !in_array(false, $oaIsOaValues, true);
         }
         $sourceFilters['elicit']['typeTags'] = $mergeList(
             (array) ($sourceFilters['elicit']['typeTags'] ?? []),
@@ -921,40 +956,122 @@ if (!function_exists('qpmPublicSearchHydrateRequestFromSelectedLimits')) {
     }
 }
 
-if (!function_exists('qpmPublicSearchFetchPreselectedResults')) {
+if (!function_exists('muginPublicSearchFetchPreselectedResults')) {
     /**
-     * @param array<int,string> $pmids
+     * @param array<int,array{type?:string,value?:string}|string> $identifiers
      * @return array<int,array<string,mixed>>
      */
-    function qpmPublicSearchFetchPreselectedResults(array $pmids, string $domain = ''): array
+    function muginPublicSearchFetchPreselectedResults(array $identifiers, string $domain = ''): array
     {
-        $normalized = [];
-        foreach ($pmids as $pmid) {
-            $value = qpmPublicSearchNormalizePmid($pmid);
-            if ($value !== '') {
-                $normalized[] = $value;
-            }
-        }
-        $normalized = qpmPublicSearchDedupeStrings($normalized);
+        $normalized = muginCollectSelectedIdentifiers($identifiers);
         if (empty($normalized)) {
             return [];
         }
-        $summaryRecords = qpmPublicSearchFetchPubMedSummaryRecords($normalized, $domain);
+
+        $pmids = [];
+        $doiEntries = [];
+        foreach ($normalized as $entry) {
+            if ($entry['type'] === 'pmid') {
+                $pmids[] = $entry['value'];
+            } elseif ($entry['type'] === 'doi') {
+                $doi = $entry['value'];
+                $doiEntries[] = [
+                    'key' => 'doi:' . strtolower($doi),
+                    'candidate' => ['doi' => $doi],
+                    'doi' => $doi,
+                ];
+            }
+        }
+
+        $summaryRecords = !empty($pmids)
+            ? muginPublicSearchFetchPubMedSummaryRecords($pmids, $domain)
+            : [];
+        $doiWorks = [];
+        if (!empty($doiEntries) && function_exists('muginPublicSearchFetchOpenAlexWorksByCandidatesParallel')) {
+            foreach (muginPublicSearchFetchOpenAlexWorksByCandidatesParallel($doiEntries, $domain) as $key => $work) {
+                if (is_array($work)) {
+                    $doiWorks[$key] = $work;
+                }
+            }
+        }
+        $missingDois = [];
+        foreach ($doiEntries as $doiEntry) {
+            if (!isset($doiWorks[$doiEntry['key']]) || !is_array($doiWorks[$doiEntry['key']])) {
+                $missingDois[] = $doiEntry['doi'];
+            }
+        }
+        $pubmedByDoi = $missingDois !== [] && function_exists('muginPublicSearchFetchPubMedRecordsByDois')
+            ? muginPublicSearchFetchPubMedRecordsByDois($missingDois, $domain)
+            : [];
+
         $results = [];
-        foreach ($normalized as $index => $pmid) {
-            $record = isset($summaryRecords[$pmid]) && is_array($summaryRecords[$pmid])
-                ? $summaryRecords[$pmid]
+        foreach ($normalized as $index => $entry) {
+            if ($entry['type'] === 'pmid') {
+                $pmid = $entry['value'];
+                $record = isset($summaryRecords[$pmid]) && is_array($summaryRecords[$pmid])
+                    ? $summaryRecords[$pmid]
+                    : [];
+                $results[] = [
+                    'type' => 'pmid',
+                    'resultKey' => 'pmid:' . $pmid,
+                    'pmid' => $pmid,
+                    'uid' => $pmid,
+                    'doi' => '',
+                    'title' => trim((string) ($record['title'] ?? '')),
+                    'source' => 'pubmed',
+                    'preselected' => true,
+                    'rank' => $index + 1,
+                    'publicationYear' => muginPublicSearchExtractPubMedSummaryPublicationYear($record),
+                    'venue' => trim((string) ($record['fulljournalname'] ?? ($record['source'] ?? ''))),
+                    'publicationTypes' => muginPublicSearchNormalizeSimpleList($record['pubtype'] ?? []),
+                ];
+                continue;
+            }
+
+            $doi = $entry['value'];
+            $key = 'doi:' . strtolower($doi);
+            $work = $doiWorks[$key] ?? null;
+            if (!is_array($work)) {
+                $fallback = $pubmedByDoi[strtolower($doi)] ?? null;
+                $record = is_array($fallback['record'] ?? null) ? $fallback['record'] : [];
+                $pmid = trim((string) ($fallback['pmid'] ?? ''));
+                if ($record === [] || $pmid === '') {
+                    continue;
+                }
+                $results[] = [
+                    'type' => 'doi',
+                    'resultKey' => $key,
+                    'pmid' => $pmid,
+                    'uid' => $pmid,
+                    'doi' => $doi,
+                    'title' => trim((string) ($record['title'] ?? '')),
+                    'source' => 'pubmed',
+                    'preselected' => true,
+                    'rank' => $index + 1,
+                    'publicationYear' => muginPublicSearchExtractPubMedSummaryPublicationYear($record),
+                    'venue' => trim((string) ($record['fulljournalname'] ?? ($record['source'] ?? ''))),
+                    'publicationTypes' => muginPublicSearchNormalizeSimpleList($record['pubtype'] ?? []),
+                ];
+                continue;
+            }
+            $source = isset($work['primary_location']['source']) && is_array($work['primary_location']['source'])
+                ? $work['primary_location']['source']
                 : [];
+            $workType = trim((string) ($work['type'] ?? ''));
+            $publicationTypes = $workType !== '' ? [$workType] : [];
             $results[] = [
-                'pmid' => $pmid,
-                'uid' => $pmid,
-                'title' => trim((string) ($record['title'] ?? '')),
-                'source' => 'pubmed',
+                'type' => 'doi',
+                'resultKey' => $key,
+                'pmid' => muginPublicSearchNormalizePmid($work['ids']['pmid'] ?? ''),
+                'uid' => $key,
+                'doi' => muginPublicSearchNormalizeDoi($work['doi'] ?? $doi),
+                'title' => trim((string) ($work['display_name'] ?? ($work['title'] ?? ''))),
+                'source' => 'openAlex',
                 'preselected' => true,
                 'rank' => $index + 1,
-                'publicationYear' => qpmPublicSearchExtractPubMedSummaryPublicationYear($record),
-                'venue' => trim((string) ($record['fulljournalname'] ?? ($record['source'] ?? ''))),
-                'publicationTypes' => qpmPublicSearchNormalizeSimpleList($record['pubtype'] ?? []),
+                'publicationYear' => trim((string) ($work['publication_year'] ?? '')),
+                'venue' => trim((string) ($source['display_name'] ?? '')),
+                'publicationTypes' => $publicationTypes,
             ];
         }
         return $results;

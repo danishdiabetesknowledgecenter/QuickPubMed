@@ -1,6 +1,6 @@
 <?php
 /**
- * Configuration file for QuickPubMed backend
+ * Configuration file for Mugin Scholar backend
  *
  * INSTRUCTIONS:
  * 1. Copy this file and rename to 'config.php'
@@ -18,6 +18,17 @@ define('OPENAI_API_KEY', 'sk-INSERT-YOUR-API-KEY-HERE');
 define('OPENAI_ORG_ID', '');
 // Use Responses API for gpt-5.5 and newer models with JSON mode support
 define('OPENAI_API_URL', 'https://api.openai.com/v1/responses');
+
+// ============ LLM Provider Switch (OpenAI ↔ Requesty) ============
+// Hard exclusive switch for all Responses LLM calls. No silent fallback:
+// when 'requesty', OPENAI_* / domain OpenAI credentials are never used.
+// Note: openai-responses/* models still run inference on OpenAI upstream;
+// EU router only keeps Requesty's own processing in the EU.
+define('MUGIN_LLM_PROVIDER', 'openai'); // openai | requesty
+define('REQUESTY_API_KEY', 'REPLACE_ME');
+define('REQUESTY_API_URL', 'https://router.eu.requesty.ai/v1/responses');
+define('REQUESTY_HTTP_REFERER', 'https://mugin.dk'); // optional analytics
+define('REQUESTY_APP_TITLE', 'Mugin Scholar');       // optional -> X-Title
 
 // ============ NLM/PubMed Configuration ============
 // Optional domain override file:
@@ -57,7 +68,7 @@ define('ELICIT_API_KEY', '');
 //   - A small "Unlock" button in the search UI that prompts for the code
 // Set 'trust_forwarded_for' => true only when running behind a trusted proxy
 // that correctly sets the X-Forwarded-For header.
-define('QPM_ELICIT_UNLOCK', [
+define('MUGIN_ELICIT_UNLOCK', [
     'ips' => [
         // '192.168.1.0/24',
         // '127.0.0.1',
@@ -72,7 +83,7 @@ define('QPM_ELICIT_UNLOCK', [
 ]);
 // Keep diagnostics disabled in production. When true,
 // ThemeConfig.php?elicitDiag=1 exposes IP/debug metadata for local troubleshooting.
-define('QPM_ENABLE_ELICIT_DIAGNOSTICS', false);
+define('MUGIN_ENABLE_ELICIT_DIAGNOSTICS', false);
 
 // ============ Unpaywall Configuration ============
 // Optional domain override file:
@@ -84,22 +95,31 @@ define('UNPAYWALL_EMAIL', 'your-unpaywall-email@example.com');
 // ============ NLM Proxy Response Cache ============
 // Short-lived cache for stable PubMed summary/fetch proxy responses.
 // Set to 0 to disable, or use ['default' => 900, 'esummary' => 900, 'efetch' => 900].
-define('QPM_NLM_RESPONSE_CACHE_TTL_SECONDS', [
+define('MUGIN_NLM_RESPONSE_CACHE_TTL_SECONDS', [
     'esummary' => 900,
     'efetch' => 900,
 ]);
 
 // ============ OpenAlex Work Lookup Cache ============
 // Short-lived cache for DOI/OpenAlex ID metadata lookups.
-define('QPM_OPENALEX_WORK_CACHE_TTL_SECONDS', [
+// Shared by OpenAlexWorkLookup.php and the unified public-search hydration path
+// under data/cache/openalex-work (no separate runtime openalex-work cache).
+define('MUGIN_OPENALEX_WORK_CACHE_TTL_SECONDS', [
     'positive' => 3600,
     'negative' => 600,
 ]);
-define('QPM_OPENALEX_BATCH_LOOKUP_CONCURRENCY', 2);
+define('MUGIN_OPENALEX_BATCH_LOOKUP_CONCURRENCY', 2);
+
+// ============ Filesystem cache housekeeping (no cron) ============
+// Probabilistic sweeps (~1/200 writes) under data/cache and stale IP rate-limit
+// files under data/runtime. Lazy-delete also removes expired entries on read.
+define('MUGIN_FILE_CACHE_MAX_FILES', 2000);
+define('MUGIN_FILE_CACHE_MAX_AGE_SECONDS', 172800); // 2 days
+define('MUGIN_IP_RATE_LIMIT_FILE_MAX_AGE_SECONDS', 604800); // 7 days
 
 // ============ Semantic Source Limits ============
 // Frontend-safe values exposed to the widget via ThemeConfig.php
-define('QPM_SEMANTIC_SOURCE_LIMITS', [
+define('MUGIN_SEMANTIC_SOURCE_LIMITS', [
     'semanticScholar' => 400,
     'openAlex' => 50,
     // Elicit's per-request result cap depends on plan: Pro = 300, Scale = 500,
@@ -116,28 +136,25 @@ define('QPM_SEMANTIC_SOURCE_LIMITS', [
 // When true, the public API (public-api/v1/search.php) uses the full PHP port
 // of the website widget's hybrid quality-signal rerank engine (backend/app/
 // semantic-quality-lib.php: publication-type classification, iCite + OpenAlex
-// Authority enrichment, the full QPM_RERANK_CONFIG hybrid formula, and
+// Authority enrichment, the full MUGIN_RERANK_CONFIG hybrid formula, and
 // DOI-only post-validation) instead of the legacy RRF-only engine. This makes
 // the public API's ranking match the website widget's ranking, including all
-// QPM_RERANK_CONFIG / QPM_RERANK_PROFILE_CONFIG tuning below.
+// MUGIN_RERANK_CONFIG / MUGIN_RERANK_PROFILE_CONFIG tuning below.
 //
-// Keep false until you have run the parity checklist:
+// Default true (Fase 3). Flip back to false anytime; no data migration.
+// Recommended parity checklist before production rollout:
 //   node scripts/capture-js-baseline.js
 //   php scripts/rerank-parity-harness.php
 //   node scripts/compare-rerank-parity.js
 //   php scripts/rule-engine-smoke-test.php
-// All must pass before enabling in production. Safe to flip back to false at
-// any time; no data migration is involved (this only changes candidate
-// ordering computed per-request, from data already coming back from PubMed/
-// OpenAlex/Semantic Scholar/Elicit).
-define('QPM_UNIFIED_SEARCH_ENGINE_ENABLED', false);
+define('MUGIN_UNIFIED_SEARCH_ENGINE_ENABLED', true);
 
 // Optional DOI-only post-validation rules (Phase 4), only applied when the
 // unified engine above is enabled, and only to candidates without a PMID
 // (PMID-backed candidates already went through PubMed's own MeSH-based hard
 // filters). Same rule shape as src/utils/semanticRuleEngine.js. Empty by
 // default (no-op).
-define('QPM_SEMANTIC_POST_VALIDATION_RULES', [
+define('MUGIN_SEMANTIC_POST_VALIDATION_RULES', [
     // 'activeRules' => [
     //     [
     //         'id' => 'guideline',
@@ -164,7 +181,7 @@ define('QPM_SEMANTIC_POST_VALIDATION_RULES', [
 // - rrfK can be tuned, but should usually be changed with care
 // - rankScale and scoreScale are more technical calibration values and should usually be left alone
 // - fallbackSourceWeight is mostly a safety fallback and should rarely need changing
-define('QPM_RERANK_CONFIG', [
+define('MUGIN_RERANK_CONFIG', [
     'sourceWeights' => [
         // Per-source weight applied to the RRF contribution, and also to the score tie-breaker.
         // This is a normal place to tune source preferences.
@@ -289,7 +306,7 @@ define('QPM_RERANK_CONFIG', [
     //   'none'    no effect (default; NOT recommended for clinical tools)
     //   'penalty' multiplies combinedScore by retractionPenalty; paper still visible
     //   'filter'  drops retracted candidates before sorting; never shown to users
-    //             (recommended for clinician-facing apps like QuickPubMed)
+    //             (recommended for clinician-facing apps like Mugin Scholar)
     'retractionAction' => 'none',
     // Multiplier applied when retractionAction='penalty'. Only used in 'penalty' mode.
     //   1.0  neutral (default)
@@ -388,7 +405,7 @@ define('QPM_RERANK_CONFIG', [
 // Optional frontend-selectable rerank profiles.
 // These profiles change only the deterministic rerank weights. They do not change
 // retrieval sources, hard filters, post-validation, fallback policy, or LLM final rerank.
-define('QPM_RERANK_PROFILE_CONFIG', [
+define('MUGIN_RERANK_PROFILE_CONFIG', [
     'enabled' => true,
     'defaultProfileId' => 'balanced',
     'profiles' => [
@@ -674,7 +691,7 @@ define('QPM_RERANK_PROFILE_CONFIG', [
 
 // ============ PubMed Lexical Rescue Configuration ============
 // Frontend-safe values exposed to the widget via ThemeConfig.php
-define('QPM_SEMANTIC_RESCUE_CONFIG', [
+define('MUGIN_SEMANTIC_RESCUE_CONFIG', [
     'mode' => 'configurable_default_sparse',
     'minMergedCandidates' => 25,
     'minSourceCandidates' => 12,
@@ -684,16 +701,11 @@ define('QPM_SEMANTIC_RESCUE_CONFIG', [
 ]);
 
 // ============ Semantic LLM Final Rerank Configuration ============
-// Frontend-safe values exposed to the widget via ThemeConfig.php
-// Default ON: the LLM final rerank is always applied on the first results page
-// for semantic searches. Set 'enabled' => false to disable it explicitly.
-// 'reasoningEffort' must match the model family (the API rejects mismatches):
-//   gpt-5.x   (e.g. gpt-5-mini):   'minimal' | 'low' | 'medium' | 'high'
-//   gpt-5.4.x (e.g. gpt-5.4-nano): 'none' | 'low' | 'medium' | 'high' | 'xhigh'
-define('QPM_SEMANTIC_LLM_RERANK_CONFIG', [
+// Operational knobs only. Model + reasoningEffort live in MUGIN_LLM_TASK_MODELS
+// under the 'finalRerank' task key. Default ON for the first results page of
+// semantic searches; set 'enabled' => false to disable explicitly.
+define('MUGIN_SEMANTIC_LLM_RERANK_CONFIG', [
     'enabled' => true,
-    'model' => 'gpt-5.4-nano',
-    'reasoningEffort' => 'none',
     'topN' => 25,
     'maxOutputTokens' => 400,
     // Cache LLM permutations by request payload so UnifiedSearch and the public
@@ -703,7 +715,7 @@ define('QPM_SEMANTIC_LLM_RERANK_CONFIG', [
 
 // ============ Telemetry Configuration ============
 // Additive observability for LLM-backed query translation.
-// Writes anonymized JSON Lines to data/runtime/qpm-telemetry-YYYY-MM-DD.jsonl
+// Writes anonymized JSON Lines to data/runtime/mugin-telemetry-YYYY-MM-DD.jsonl
 // via backend/api/TelemetryLog.php. No IP, no User-Agent, no raw free text.
 // Toggle `enabled` to false to disable all telemetry (console + backend).
 //
@@ -714,7 +726,7 @@ define('QPM_SEMANTIC_LLM_RERANK_CONFIG', [
 //  - logLowOverlapThreshold: overlap_summary is flagged when overlapRatio < this.
 //  - logLowConfidenceThreshold: semantic_intent_parsed is flagged below this.
 //  - sourceProbeRanges: per-source sanity ranges used by source_probe_counts.
-define('QPM_TELEMETRY_CONFIG', [
+define('MUGIN_TELEMETRY_CONFIG', [
     'enabled' => false,
     'retentionDays' => 30,
     'maxPayloadBytes' => 4096,
@@ -732,7 +744,7 @@ define('QPM_TELEMETRY_CONFIG', [
 // Opt-in UI chip displayed above search results that mirrors the LLM's
 // understanding of the user's query ("Vi har forstået din søgning som:"),
 // with a "Rediger" button. Leave disabled by default; flip to true to enable.
-define('QPM_PARAPHRASE_CHIP_CONFIG', [
+define('MUGIN_PARAPHRASE_CHIP_CONFIG', [
     'enabled' => false,
     // showSuggestions: when true, the chip displays the LLM's
     // meta.refinementSuggestions list below the low-confidence warning. Only
@@ -760,11 +772,11 @@ define('QPM_PARAPHRASE_CHIP_CONFIG', [
 // When true, validateAndEnhanceMeshTerms performs all its NLM/AI calls but
 // returns the ORIGINAL query unchanged. Safety brake for the existing active
 // MeSH flow. Keep false unless telemetry reports show degradation.
-define('QPM_MESH_VALIDATION_OBSERVE_ONLY', false);
+define('MUGIN_MESH_VALIDATION_OBSERVE_ONLY', false);
 
 // ============ Public Search API Configuration ============
 // External API clients. Keep real keys only in config.php, never in git.
-define('NEMPUBMED_API_CLIENTS', [
+define('MUGIN_API_CLIENTS', [
     'example-client' => [
         'api_key' => 'replace-with-production-api-key',
         'url_api_key' => 'replace-with-separate-low-privilege-test-key',
@@ -782,7 +794,7 @@ define('NEMPUBMED_API_CLIENTS', [
         // it to []) allows ZERO sources — every client must explicitly opt in.
         // This is deliberate: it closes a gap where any API client with a
         // valid key could request Elicit even though Elicit access on the
-        // website is gated behind QPM_ELICIT_UNLOCK. A client without an
+        // website is gated behind MUGIN_ELICIT_UNLOCK. A client without an
         // Elicit license should simply omit 'elicit' from this list so those
         // requests are rejected (403) instead of silently billing your plan.
         'allowed_sources' => ['pubmed', 'semanticScholar', 'openAlex', 'elicit'],
@@ -792,7 +804,7 @@ define('NEMPUBMED_API_CLIENTS', [
         // this file). Useful when a client brings their own Elicit/OpenAlex/S2
         // subscription instead of consuming your shared quota. PubMed (NLM)
         // intentionally has no per-client override here since E-utilities keys
-        // are configured per-domain (see qpmGetNlmApiKey), not per-API-client.
+        // are configured per-domain (see muginGetNlmApiKey), not per-API-client.
         // 'source_api_keys' => [
         //     'openAlex' => '',
         //     'semanticScholar' => '',
@@ -801,7 +813,7 @@ define('NEMPUBMED_API_CLIENTS', [
     ],
 ]);
 
-define('NEMPUBMED_PUBLIC_API', [
+define('MUGIN_PUBLIC_API', [
     'basePath' => '/v1',
     'docroot' => 'public-api',
     'defaultPageSize' => 25,
@@ -826,32 +838,193 @@ define('NEMPUBMED_PUBLIC_API', [
     'matchesWebOrderingByDefault' => false,
 ]);
 
-define('NEMPUBMED_PUBLIC_API_BASE_PATH', '/v1');
-define('NEMPUBMED_PUBLIC_API_DOCROOT', 'public-api');
-define('NEMPUBMED_PUBLIC_API_GET_SEARCH_ENABLED', true);
-define('NEMPUBMED_PUBLIC_API_URL_API_KEY_ENABLED', false);
-define('NEMPUBMED_PUBLIC_API_URL_API_KEY_MODE', 'configurable');
-define('NEMPUBMED_PUBLIC_API_URL_API_KEY_DEFAULT_DISABLED', true);
-define('NEMPUBMED_PUBLIC_API_RESPONSE_CACHE_POLICY', 'no-store');
-define('NEMPUBMED_PUBLIC_API_GET_RATE_LIMIT', 15);
+define('MUGIN_PUBLIC_API_BASE_PATH', '/v1');
+define('MUGIN_PUBLIC_API_DOCROOT', 'public-api');
+define('MUGIN_PUBLIC_API_GET_SEARCH_ENABLED', true);
+define('MUGIN_PUBLIC_API_URL_API_KEY_ENABLED', false);
+define('MUGIN_PUBLIC_API_URL_API_KEY_MODE', 'configurable');
+define('MUGIN_PUBLIC_API_URL_API_KEY_DEFAULT_DISABLED', true);
+define('MUGIN_PUBLIC_API_RESPONSE_CACHE_POLICY', 'no-store');
+define('MUGIN_PUBLIC_API_GET_RATE_LIMIT', 15);
 
 // First-party backend/api IP rate limits (per client IP per minute).
 // Generous defaults for office NAT; set a class to 0 to disable.
-define('QPM_FIRST_PARTY_IP_RATE_LIMITS', [
+define('MUGIN_FIRST_PARTY_IP_RATE_LIMITS', [
     'unifiedSearch' => 30,
     'openaiProxy' => 60,
 ]);
 
-// Allowlisted OpenAI model names for first-party Summarize/Translate/Rerank proxies.
+// Allowlisted model ids for first-party Summarize/Translate/Rerank proxies.
 // Unknown client-supplied models are mapped to a safe default (not rejected).
-define('QPM_OPENAI_ALLOWED_MODELS', [
-    'gpt-5.5',
-    'gpt-5.4-nano',
-    'gpt-5.5-chat-latest',
-    'gpt-4o',
+// Use exact provider ids under each section (Requesty includes openai-responses/ and @region).
+define('MUGIN_LLM_ALLOWED_MODELS', [
+    'openai' => [
+        'gpt-5.6',
+        'gpt-5.5',
+        'gpt-5.4-nano',
+        'gpt-5.5-chat-latest',
+        'gpt-4o',
+    ],
+    'requesty' => [
+        // Azure regional Responses models use azure/…@region (see Requesty model library).
+        'azure/openai-responses/gpt-5.6@swedencentral',
+        'azure/openai-responses/gpt-5.5@swedencentral',
+        'azure/openai-responses/gpt-5.4-nano@swedencentral',
+    ],
 ]);
 
-define('NEMPUBMED_AUDIT', [
+// Per-task model + reasoning + text.verbosity (Responses API), per LLM provider.
+// Active section follows MUGIN_LLM_PROVIDER. Exposed via ThemeConfig as openAiTaskModels.
+// text.verbosity values: 'low' | 'medium' | 'high' (nested under text).
+// Omit 'verbosity' for a task to keep prompt-file defaults (e.g. searchflow check vs align).
+// 'reasoningEffort' must match the model family (the API rejects mismatches).
+define('MUGIN_LLM_TASK_MODELS', [
+    'openai' => [
+        // Full-text article summarization (PDF/HTML).
+        'summarizeArticle' => [
+            'model' => 'gpt-5.6',
+            'reasoningEffort' => 'none',
+            'verbosity' => 'medium',
+        ],
+        // Summarize one or more abstracts in search results.
+        'summarizeAbstract' => [
+            'model' => 'gpt-5.6',
+            'reasoningEffort' => 'none',
+            'verbosity' => 'medium',
+        ],
+        // Translate titles and PubMed/semantic search strings.
+        'translate' => [
+            'model' => 'gpt-5.5',
+            'reasoningEffort' => 'none',
+            'verbosity' => 'medium',
+        ],
+        // Structured semantic intent (JSON) before multi-source search.
+        'semanticIntent' => [
+            'model' => 'gpt-5.5',
+            'reasoningEffort' => 'none',
+            'verbosity' => 'low',
+        ],
+        // MeSH optimization and repair of PubMed search strings (prompt/JS path).
+        'mesh' => [
+            'model' => 'gpt-5.5',
+            'reasoningEffort' => 'none',
+            'verbosity' => 'medium',
+        ],
+        // Intent check/align: does the search string match the user's intent?
+        'searchflow' => [
+            'model' => 'gpt-5.5',
+            'reasoningEffort' => 'none',
+        ],
+        // LLM final rerank of semantic search results (first page).
+        'finalRerank' => [
+            'model' => 'gpt-5.4-nano',
+            'reasoningEffort' => 'none',
+        ],
+    ],
+    // ResponsesRequest knobs from backend/docs/external-apis/requesty-openapi.json
+    // (ResponsesRequest + ResponsesReasoning + ResponsesText). null = omit from request.
+    // Runtime-only (not configured here): input, stream, tools, tool_choice, include, metadata, user, text.format.
+    'requesty' => [
+        // Full-text article summarization (PDF/HTML).
+        'summarizeArticle' => [
+            'model' => 'azure/openai-responses/gpt-5.6@swedencentral',
+            'reasoningEffort' => 'none', // reasoning.effort (OpenAPI: low|medium|high; none/minimal also accepted)
+            'reasoningSummary' => 'auto', // reasoning.summary: auto|concise|detailed
+            'verbosity' => 'medium', // text.verbosity (OpenAI extension; Requesty text schema only lists format)
+            'maxOutputTokens' => 4000, // max_output_tokens
+            'temperature' => null, // 0..2
+            'topP' => null, // 0..1
+            'parallelToolCalls' => null, // bool
+            'store' => null, // bool
+            'truncation' => null, // string
+            'instructions' => null, // string
+        ],
+        // Summarize one or more abstracts in search results.
+        'summarizeAbstract' => [
+            'model' => 'azure/openai-responses/gpt-5.6@swedencentral',
+            'reasoningEffort' => 'none',
+            'reasoningSummary' => 'auto',
+            'verbosity' => 'medium',
+            'maxOutputTokens' => 4000,
+            'temperature' => null,
+            'topP' => null,
+            'parallelToolCalls' => null,
+            'store' => null,
+            'truncation' => null,
+            'instructions' => null,
+        ],
+        // Translate titles and PubMed/semantic search strings.
+        'translate' => [
+            'model' => 'azure/openai-responses/gpt-5.5@swedencentral',
+            'reasoningEffort' => 'none',
+            'reasoningSummary' => 'auto',
+            'verbosity' => 'medium',
+            'maxOutputTokens' => 2048,
+            'temperature' => null,
+            'topP' => null,
+            'parallelToolCalls' => null,
+            'store' => null,
+            'truncation' => null,
+            'instructions' => null,
+        ],
+        // Structured semantic intent (JSON) before multi-source search.
+        'semanticIntent' => [
+            'model' => 'azure/openai-responses/gpt-5.5@swedencentral',
+            'reasoningEffort' => 'none',
+            'reasoningSummary' => 'auto',
+            'verbosity' => 'low',
+            'maxOutputTokens' => 2048,
+            'temperature' => null,
+            'topP' => null,
+            'parallelToolCalls' => null,
+            'store' => null,
+            'truncation' => null,
+            'instructions' => null,
+        ],
+        // MeSH optimization and repair of PubMed search strings (prompt/JS path).
+        'mesh' => [
+            'model' => 'azure/openai-responses/gpt-5.5@swedencentral',
+            'reasoningEffort' => 'none',
+            'reasoningSummary' => 'auto',
+            'verbosity' => 'medium',
+            'maxOutputTokens' => 2048,
+            'temperature' => null,
+            'topP' => null,
+            'parallelToolCalls' => null,
+            'store' => null,
+            'truncation' => null,
+            'instructions' => null,
+        ],
+        // Intent check/align: does the search string match the user's intent?
+        'searchflow' => [
+            'model' => 'azure/openai-responses/gpt-5.5@swedencentral',
+            'reasoningEffort' => 'none',
+            'reasoningSummary' => 'auto',
+            'maxOutputTokens' => 2048,
+            'temperature' => null,
+            'topP' => null,
+            'parallelToolCalls' => null,
+            'store' => null,
+            'truncation' => null,
+            'instructions' => null,
+        ],
+        // LLM final rerank of semantic search results (first page).
+        'finalRerank' => [
+            'model' => 'azure/openai-responses/gpt-5.4-nano@swedencentral',
+            'reasoningEffort' => 'none',
+            'reasoningSummary' => 'auto',
+            'maxOutputTokens' => 400,
+            'temperature' => null,
+            'topP' => null,
+            'parallelToolCalls' => null,
+            'store' => null,
+            'truncation' => null,
+            'instructions' => null,
+        ],
+    ],
+]);
+
+define('MUGIN_AUDIT', [
     'enabled' => true,
     'retentionDays' => 30,
 ]);
@@ -862,12 +1035,12 @@ define('NEMPUBMED_AUDIT', [
 // - mode "replace": remove base class and add these
 // Domain-specific overrides can be set in:
 // data/content/<domain>/domain-config.json -> class_overrides
-define('QPM_CLASS_OVERRIDES_GLOBAL', [
-    // 'qpm_pubmedLink' => [
+define('MUGIN_CLASS_OVERRIDES_GLOBAL', [
+    // 'mugin_pubmedLink' => [
     //     'mode' => 'append',
     //     'classes' => 'onHoverJS',
     // ],
-    // 'qpm_pubmedLinkArrow' => [
+    // 'mugin_pubmedLinkArrow' => [
     //     'mode' => 'append',
     //     'classes' => 'intext-arrow-link',
     // ],
@@ -878,7 +1051,7 @@ define('QPM_CLASS_OVERRIDES_GLOBAL', [
 // data/content/<domain>/domain-config.json -> theme_overrides
 // Missing values automatically fall back to this backend config.
 // Global overrides applied to all domains
-define('QPM_THEME_GLOBAL_OVERRIDES', [
+define('MUGIN_THEME_GLOBAL_OVERRIDES', [
     // '--color-link' => '#004fa4',
 ]);
 
@@ -890,8 +1063,12 @@ define('QPM_THEME_GLOBAL_OVERRIDES', [
 define('ALLOWED_DOMAINS', [
     '*.videncenterfordiabetes.dk',
     'videncenterfordiabetes.dk',
+    '*.danishdiabetesknowledgecenter.dk',
+    'danishdiabetesknowledgecenter.dk',
     '*.nempubmed.dk',
     'nempubmed.dk',
+    '*.quickpubmed.dk',
+    'quickpubmed.dk',
     '*.example.com',
     'example.com',
     'localhost',

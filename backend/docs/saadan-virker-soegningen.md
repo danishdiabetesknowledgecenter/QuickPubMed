@@ -1,6 +1,6 @@
 # Sådan virker søgningen — forklaret for en 12-årig
 
-Det her dokument forklarer i helt almindeligt sprog, hvad QuickPubMed gør, når nogen skriver noget ind og trykker på "Søg". Det er tænkt som en introduktion, man kan læse højt.
+Det her dokument forklarer i helt almindeligt sprog, hvad Mugin Scholar gør, når nogen skriver noget ind og trykker på "Søg". Det er tænkt som en introduktion, man kan læse højt.
 
 Hvis du bagefter vil dykke ned i detaljerne, findes der tekniske dokumenter:
 
@@ -14,15 +14,19 @@ Forestil dig, at du skal finde de 20 bedste videnskabelige artikler om "sukkersy
 
 En almindelig søgemaskine er som at søge på Google: den finder alt, der nævner ordene. Men det er ikke altid de bedste artikler, der kommer øverst.
 
-QuickPubMed er som en dygtig bibliotekar, der gør tre ting:
+Mugin Scholar er som en dygtig bibliotekar, der gør tre ting:
 
 1. **Finder** en masse mulige artikler fra forskellige steder
 2. **Undersøger** hvor gode de er
 3. **Sorterer** dem, så de bedste kommer øverst
 
+## Hvordan søgningen starter (teknisk i ét åndedrag)
+
+Når du trykker på "Søg" i webappen, samler formularen dine valg og sender dem til serveren (`UnifiedSearch.php`). Serveren kører den samme søgemotor (`muginPublicSearchRunSearch`) som det offentlige API. Den gamle "gør det hele i browseren"-pipeline bruges ikke længere. Med `MUGIN_UNIFIED_SEARCH_ENGINE_ENABLED=true` kører også de smarte kvalitetsdommere (talentshowet nedenfor) i PHP.
+
 ## Del 1: Vi sender spejdere ud
 
-Når du trykker på "Søg", sender QuickPubMed **flere spejdere** ud samtidig. Hver spejder leder i sin egen "bibliotek":
+Når du trykker på "Søg", sender Mugin Scholar **flere spejdere** ud samtidig. Hver spejder leder i sin egen "bibliotek":
 
 - **PubMed** — det store medicinske bibliotek, som National Library of Medicine i USA passer på
 - **Semantic Scholar** — et bibliotek drevet af en AI-organisation der forstår betydning af tekst
@@ -126,7 +130,7 @@ Det her er de smarte dommere vi har tilføjet:
   - Slet fjerne den (`filter`)
   - Straffe den hårdt, så den lander nederst (`penalty`)
   - Ignorere problemet (`none`)
-- I en klinisk app som QuickPubMed bruger vi typisk `filter`, så læger ikke ser tilbagetrukne artikler
+- I en klinisk app som Mugin Scholar bruger vi typisk `filter`, så læger ikke ser tilbagetrukne artikler
 
 **Open Access-dommeren** (oaBonus)
 - Lille bonus til artikler der er gratis tilgængelige at læse
@@ -184,7 +188,7 @@ En sammenlignelig editorial uden mange citationer ville måske få 85 point. Der
 
 ## Del 5b: Retningslinjer uden PMID eller DOI
 
-Før i tiden viste QuickPubMed kun artikler, der havde et PMID eller et DOI. Det betød, at kliniske retningslinjer fra WHO, NICE, CDC og Sundhedsstyrelsen — som ofte udgives som rapporter på deres egne hjemmesider uden at få et DOI — ikke dukkede op.
+Før i tiden viste Mugin Scholar kun artikler, der havde et PMID eller et DOI. Det betød, at kliniske retningslinjer fra WHO, NICE, CDC og Sundhedsstyrelsen — som ofte udgives som rapporter på deres egne hjemmesider uden at få et DOI — ikke dukkede op.
 
 Det er nu ændret. OpenAlex indekserer mange af de her retningslinjer og giver dem et unikt OpenAlex-id (fx `W2088009199`). Når vores klassifikator genkender, at en sådan record er fra et allow-list-forlag (som WHO eller NICE), mærker den den som `guideline_verified`. Så kommer den med i resultatlisten, får et tydeligt **Retningslinje-badge** i UI'et, og linker til OpenAlex i stedet for PubMed.
 
@@ -235,7 +239,7 @@ En almindelig søgning bruger **kun én spejder** og **ingen kvalitetsvurdering*
 - Trukne tilbage-artikler kan føre læger på afveje
 - Man kan overse at noget er et systematisk review (som er bedre evidens end et enkelt studie)
 
-QuickPubMed løser det ved at kombinere **flere kilder**, **kvalitetssignaler** og **kliniske filtre**. Det betyder at brugeren — ofte en travl kliniker — kan stole på at de øverste resultater faktisk er de bedste at læse først.
+Mugin Scholar løser det ved at kombinere **flere kilder**, **kvalitetssignaler** og **kliniske filtre**. Det betyder at brugeren — ofte en travl kliniker — kan stole på at de øverste resultater faktisk er de bedste at læse først.
 
 ## Ordliste
 

@@ -1,5 +1,5 @@
 <template>
-  <div v-if="!isLoadingCurrent" class="qpm_questionContainer">
+  <div v-if="!isLoadingCurrent" class="mugin_questionContainer">
     <p>
       <strong>{{ getString("userQuestionsHeader") }}</strong>
     </p>
@@ -11,42 +11,42 @@
       :open-by-default="true"
     >
       <template #header="accordionProps">
-        <div ref="headerText" class="qpm_aiAccordionHeader qpm_headerRow">
-          <div class="qpm_headerRowStart">
-            <span class="qpm_headerIconSlot">
+        <div ref="headerText" class="mugin_aiAccordionHeader mugin_headerRow">
+          <div class="mugin_headerRowStart">
+            <span class="mugin_headerIconSlot">
               <loading-spinner
                 v-if="streamingIndex === idx && isLoadingResponse"
                 :loading="true"
                 :size="16"
-                class="qpm_streaming-icon qpm_headerLoadingSpinner"
+                class="mugin_streaming-icon mugin_headerLoadingSpinner"
               />
               <i
                 v-else
-                class="bx bx-help-circle qpm_questionIcon"
+                class="bx bx-help-circle mugin_questionIcon"
                 aria-hidden="true"
               ></i>
             </span>
-            <span class="qpm_headerTitleText">{{ qa.question }}</span>
+            <span class="mugin_headerTitleText">{{ qa.question }}</span>
           </div>
-          <div class="qpm_headerRowEnd">
+          <div class="mugin_headerRowEnd">
             <i
               v-if="accordionProps.expanded"
-              class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
+              class="bx bx-chevron-up mugin_aiAccordionHeaderArrows"
                 aria-hidden="true"
             ></i>
             <i
               v-else
-              class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
+              class="bx bx-chevron-down mugin_aiAccordionHeaderArrows"
                 aria-hidden="true"
             ></i>
           </div>
         </div>
       </template>
       <template #default>
-        <div class="qpm_answer-text">
+        <div class="mugin_answer-text">
           <!-- Show streaming answer if this is the currently streaming question -->
           <template v-if="streamingIndex === idx && streamingAnswer">
-            <qpm-markdown
+            <mugin-markdown
               v-if="useMarkdown && canRenderMarkdown"
               :markdown="streamingAnswer"
               smooth-live-preview
@@ -56,7 +56,7 @@
             </template>
           </template>
           <template v-else>
-            <qpm-markdown
+            <mugin-markdown
               v-if="useMarkdown && canRenderMarkdown"
               :markdown="qa.answer || ''"
               smooth-live-preview
@@ -71,14 +71,14 @@
 
     <loading-spinner
       v-if="isLoadingCurrent"
-      class="qpm_searchMore"
+      class="mugin_searchMore"
       :loading="isLoadingCurrent"
       :wait-text="getString('aiSummaryWaitText')"
       :wait-duration-disclaimer="getString('aiShortWaitTimeDisclaimer')"
       :size="35"
     />
 
-    <div class="qpm_questionInputRow">
+    <div class="mugin_questionInputRow">
       <input
         v-model="userQuestionInput"
         v-tooltip="{
@@ -86,7 +86,7 @@
           distance: 5,
           delay: $helpTextDelay,
         }"
-        class="qpm_question-input"
+        class="mugin_question-input"
         :disabled="isLoadingResponse || isLoadingCurrent"
         :aria-label="getString('userQuestionInputHoverText')"
         :placeholder="getString('userQuestionInputPlaceholder')"
@@ -95,7 +95,7 @@
       />
       <button
         type="button"
-        class="qpm_button qpm_questionSubmitSpacing"
+        class="mugin_button mugin_questionSubmitSpacing"
         :disabled="isLoadingResponse || isLoadingCurrent"
         @click="handleQuestionForArticle"
       >
@@ -103,7 +103,7 @@
       </button>
     </div>
 
-    <p v-if="errorMessage" class="qpm_error-message">
+    <p v-if="errorMessage" class="mugin_error-message">
       {{ errorMessage }}
     </p>
   </div>
@@ -112,12 +112,13 @@
 <script>
   import AccordionMenu from "@/components/AccordionMenu.vue";
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
-  import QpmMarkdown from "@/components/QpmMarkdown.vue";
+  import MuginMarkdown from "@/components/MuginMarkdown.vue";
   import {
     summarizeArticlePrompt,
     promptText,
   } from "@/assets/prompts/article.js";
   import { sanitizePrompt } from "@/utils/promptsHelpers.js";
+  import { applyOpenAiTaskSettings } from "@/utils/openAiTaskSettings.js";
 
   import { utilitiesMixin } from "@/mixins/utilities";
   import { appSettingsMixin } from "@/mixins/appSettings";
@@ -128,7 +129,7 @@
     components: {
       AccordionMenu,
       LoadingSpinner,
-      QpmMarkdown,
+      MuginMarkdown,
     },
     mixins: [
       utilitiesMixin,
@@ -387,10 +388,14 @@
         // Get the basic prompt for the given language type
         // The promptLanguageType comes in as the Danish name (e.g., "Hverdagssprog" or "Fagsprog")
         // We need to find the matching entry in summarizeArticlePrompt
-        let languageSpecificPrompt = summarizeArticlePrompt.find((p) => {
+        const basePrompt = summarizeArticlePrompt.find((p) => {
           // Compare directly with promptLanguageType since both use Danish names
           return p.name === promptLanguageType;
         });
+        let languageSpecificPrompt = applyOpenAiTaskSettings(
+          { ...basePrompt },
+          "summarizeArticle"
+        );
 
         // Set the prompt field to the sanitized composed prompt text for the given language
         languageSpecificPrompt.prompt = sanitizedComposedPromptText[language];

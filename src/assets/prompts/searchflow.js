@@ -13,7 +13,7 @@ export const executionIntentCheckPrompt = {
     en: "English",
   },
   model_token_limit: 128000,
-  model: "gpt-5.5",
+  // model from MUGIN_LLM_TASK_MODELS.searchflow
   reasoning: { effort: "none" },
   text: { verbosity: "low" },
   max_output_tokens: 20,
@@ -47,7 +47,7 @@ export const executionIntentAlignPrompt = {
     en: "English",
   },
   model_token_limit: 128000,
-  model: "gpt-5.5",
+  // model from MUGIN_LLM_TASK_MODELS.searchflow
   reasoning: { effort: "none" },
   text: { verbosity: "medium" },
   max_output_tokens: 500,

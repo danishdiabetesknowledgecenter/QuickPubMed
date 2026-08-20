@@ -2,7 +2,7 @@
 <html lang="da" style="background: white">
   <head>
     <meta charset="utf-8" />
-    <title>NemPubMed</title>
+    <title>Mugin Scholar</title>
     <meta name="viewport" content="initial-scale=1.0, maximum-scale=5.0, minimum-scale=1.0, width=device-width" />
     <link rel="stylesheet" media="all" href="https://videncenterfordiabetes.dk/css/bundle.css" />
 
@@ -43,7 +43,7 @@
           If omitted, only `pubmed` is selected by default.
           Example: "['pubmed','openAlex']"
         - data-show-elicit-unlock-button: Show a lock icon on the Elicit option when the Elicit
-          source is gated by the backend (QPM_ELICIT_UNLOCK configured on the server). In simple
+          source is gated by the backend (MUGIN_ELICIT_UNLOCK configured on the server). In simple
           mode the Elicit checkbox appears greyed out with a lock icon next to it; in advanced
           mode the Elicit entry is added to the database dropdown list (greyed out with a lock
           icon) even though it cannot be selected. Clicking the locked entry or the icon opens
@@ -81,19 +81,39 @@
 
         URL parameters (case-insensitive keys, IDs are matched case-insensitively)
         ------------------------------------------------------------------------
+        Search values apply only to the targeted instance(s) (`component=1` or
+        `component=1,2`; lowest data-component-no when `component` is omitted).
+        Page-level exceptions: apiBase (API host for all instances) and elicitKey.
         Standard app parameters:
-        - domain: Content domain key (e.g. template, diabetes). Wins over data-domain.
+        - component: Which SearchForm instance(s) on the page should consume the
+          URL values. Matches data-component-no. Comma-separated list is allowed
+          (`component=1,2`). If omitted, the instance with the lowest number is
+          targeted. Written back into the URL when the target is not only the
+          lowest number.
+        - domain: Content domain key (e.g. template, diabetes). Wins over data-domain
+          only on the targeted instance(s) (`component=1,2`, or the lowest number).
+          Other instances keep their own data-domain (empty = no topic catalog).
           Written into the composed SearchForm URL whenever a domain is active.
         - topic: Selected topics. Use "ID#scope" and separate multiple with "," (or legacy ";;").
           Example: topic=T012345#s,T012346#n
           scope: n = narrow, s = standard, b = broad
+          Custom freetext: topic={{text}}#s:raw (LLM may translate) or topic={{pubmed}}#s:pubmed
+        - qpubmed, qsemanticscholar, qopenalex, qelicit:
+          Executable per-source search strings (no comma-split). Written when the user
+          edits a string under "Vis søgestrenge". When present they win over topic=/q=
+          freetext for that source (LLM translation is skipped for covered sources).
+          PubMed value is the topic/freetext clause only; form limits are still AND'ed.
+          Empty values are omitted. Max 20000 chars.
         - advanced: true|false (advanced search mode)
         - sort: sort method key
         - collapsed: true|false (collapse the search form)
         - pagesize: number of results per page
-        - pmid: preselected PMID-AI ids, separated by ";;"
+        - pmid: preselected article ids (`pmid:…` and/or `doi:…`). Legacy; use `selected`.
+        - selected: preselected article ids, separated by "," (legacy ";;" also accepted).
+          Example: selected=pmid:12345678,doi:10.38079/igusabder.1540428
+          Bare numeric PMIDs are still accepted. Legacy `pmid=` is read as a fallback.
         - scrollto: anchor id to scroll to (without #)
-        - qpmDebug=searchflow: turns on the hierarchical search-flow debug mode in the browser console.
+        - muginDebug=searchflow: turns on the hierarchical search-flow debug mode in the browser console.
           Can be combined with normal search parameters and also works through hash-based embeds.
 
         Simple mode extras:
@@ -117,10 +137,16 @@
           ?openlimits=true&checklimits=L010010&hidelimits=L010030&orderlimits=L010020;;L010010
         - Full search with topics and a limit group:
           ?topic=L10010#s;;L20020#n&advanced=false&L010=L010010#s;;L010030#s&sort=relevance&pagesize=25
+        - Shared URL with an edited PubMed string (wins over topic= freetext for PubMed):
+          ?topic={{online vs fysisk}}#s:raw&qpubmed=diabetes%20education&databases=pubmed
+        - Target a specific instance when several SearchForms share the page:
+          ?component=2&qpubmed=ibuprofen[tiab]&databases=pubmed
+        - Target several instances with the same URL values:
+          ?component=1,2&qpubmed=ibuprofen[tiab]&databases=pubmed
       -->
       <div
-        id="qpm-searchform-1"
-        class="qpm-searchform"
+        id="mugin-searchform-1"
+        class="mugin-searchform"
         data-domain="template"
         data-ai-url="/om-nempubmed"
         data-use-a-i="true"
@@ -136,15 +162,15 @@
         data-hide-limits="" 
         data-check-limits=""
         data-order-limits=""
-        data-standard-string-add="true"
+        data-standard-string-add="false"
         data-standard-string=""
         data-standard-string-scope="normal"
         data-language="dk"
         data-component-no="1"
       ></div>
       <div
-        id="qpm-searchform-2"
-        class="qpm-searchform"
+        id="mugin-searchform-2"
+        class="mugin-searchform"
         data-domain=""
         data-use-a-i="true"
         data-use-a-i-summarizer="true"

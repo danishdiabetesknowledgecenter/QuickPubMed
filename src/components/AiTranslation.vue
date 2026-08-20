@@ -1,16 +1,16 @@
 <template>
   <div
     v-if="showingTranslation"
-    class="qpm_searchSummaryText qpm_searchSummaryTextBackground qpm_searchTranslatedTitle"
+    class="mugin_searchSummaryText mugin_searchSummaryTextBackground mugin_searchTranslatedTitle"
   >
-    <qpm-markdown v-if="useMarkdown && canRenderMarkdown" lang="da" :markdown="text" smooth-live-preview />
+    <mugin-markdown v-if="useMarkdown && canRenderMarkdown" lang="da" :markdown="text" smooth-live-preview />
     <div v-else lang="da">
       <p>{{ text }}</p>
     </div>
-    <div v-if="loading" class="qpm_translationLoadingSpacer">
+    <div v-if="loading" class="mugin_translationLoadingSpacer">
       <loading-spinner :loading="loading" />
     </div>
-    <div class="qpm_translationActions">
+    <div class="mugin_translationActions">
       <button
         v-if="writing"
         type="button"
@@ -19,7 +19,7 @@
           distance: 5,
           delay: $helpTextDelay,
         }"
-        class="qpm_button"
+        class="mugin_button"
         @click="clickStop"
       >
         <i class="bx bx-stop-circle" aria-hidden="true" /> {{ getString("stopText") }}
@@ -32,10 +32,10 @@
           distance: 5,
           delay: $helpTextDelay,
         }"
-        class="qpm_button"
+        class="mugin_button"
         @click="clickRetry"
       >
-        <i class="bx bx-refresh qpm_iconBaselineSize" aria-hidden="true" />
+        <i class="bx bx-refresh mugin_iconBaselineSize" aria-hidden="true" />
         {{ getString("retryText") }}
       </button>
       <button
@@ -46,16 +46,16 @@
           distance: 5,
           delay: $helpTextDelay,
         }"
-        class="qpm_button"
+        class="mugin_button"
         @click="clickCopy"
       >
-        <i class="bx bx-copy qpm_iconBaseline" aria-hidden="true" />
+        <i class="bx bx-copy mugin_iconBaseline" aria-hidden="true" />
         {{ getString("copyText") }}
       </button>
     </div>
     <p
       v-if="!loading"
-      class="qpm_translationDisclaimer"
+      class="mugin_translationDisclaimer"
       v-html="sanitizeHtml(getString('translationDisclaimer'))"
     />
   </div>
@@ -63,7 +63,7 @@
 
 <script>
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
-  import QpmMarkdown from "@/components/QpmMarkdown.vue";
+  import MuginMarkdown from "@/components/MuginMarkdown.vue";
   import { appSettingsMixin } from "@/mixins/appSettings.js";
   import { utilitiesMixin } from "@/mixins/utilities";
   import { getPromptForLocale } from "@/utils/promptsHelpers.js";
@@ -73,7 +73,7 @@
     name: "AiTranslation",
     components: {
       LoadingSpinner,
-      QpmMarkdown,
+      MuginMarkdown,
     },
     mixins: [appSettingsMixin, utilitiesMixin],
     props: {
@@ -132,7 +132,7 @@
         this.loading = showSpinner;
         this.stopGeneration = false;
         const openAiServiceUrl = `${this.appSettings.openAi.baseUrl}/api/TranslateTitle.php`;
-        const localePrompt = getPromptForLocale(titleTranslationPrompt, "dk");
+        const localePrompt = getPromptForLocale(titleTranslationPrompt, "dk", "translate");
 
         const readData = async (url, body) => {
           let answer = "";

@@ -10,26 +10,26 @@ ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 
 require_once __DIR__ . '/SummarizeArticleHelpers.php';
-qpmLoadApiConfigOrFail();
+muginLoadApiConfigOrFail();
 require_once __DIR__ . '/NlmApiHelpers.php';
 require_once __DIR__ . '/TextFetchCache.php';
 
 // Azure Function URL for fetching HTML text only
 define('AZURE_FETCH_HTML_URL', 'https://qpm-openai-service.azurewebsites.net/api/FetchHTMLText');
 
-qpmApplyStrictCorsPostJson();
-qpmEnforceFirstPartyIpRateLimit('openaiProxy');
-qpmRequirePostMethod();
-$input = qpmReadJsonInputOrFail();
+muginApplyStrictCorsPostJson();
+muginEnforceFirstPartyIpRateLimit('openaiProxy');
+muginRequirePostMethod();
+$input = muginReadJsonInputOrFail();
 
-$htmlUrl = qpmRequirePublicHttpsUrl(qpmRequireInputField($input, 'htmlurl'), 'htmlurl');
-$prompt = qpmRequireInputField($input, 'prompt');
+$htmlUrl = muginRequirePublicHttpsUrl(muginRequireInputField($input, 'htmlurl'), 'htmlurl');
+$prompt = muginRequireInputField($input, 'prompt');
 
 // ============================================================
 // Step 1: Fetch HTML text from Azure Function
 // ============================================================
 $cacheHit = false;
-$extractedText = qpmFetchExtractedTextFromAzure(
+$extractedText = muginFetchExtractedTextFromAzure(
     'html',
     $htmlUrl,
     AZURE_FETCH_HTML_URL,
@@ -48,8 +48,8 @@ if (empty($extractedText)) {
 // ============================================================
 // Step 2: Call OpenAI API with streaming
 // ============================================================
-$openaiRequest = qpmBuildStreamingOpenAiRequest($prompt, $extractedText);
-qpmStartPlainStreamingResponse();
+$openaiRequest = muginBuildStreamingOpenAiRequest($prompt, $extractedText);
+muginStartPlainStreamingResponse();
 
 // Send metadata only; full extracted article text must not be echoed back.
 $metadata = [
@@ -58,5 +58,5 @@ $metadata = [
     'htmlUrl' => $htmlUrl,
     'cacheHit' => $cacheHit
 ];
-qpmEmitStreamMetadata($metadata);
-qpmStreamOpenAiPlainText($openaiRequest);
+muginEmitStreamMetadata($metadata);
+muginStreamOpenAiPlainText($openaiRequest);

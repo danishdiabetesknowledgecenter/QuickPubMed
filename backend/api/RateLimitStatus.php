@@ -14,11 +14,11 @@ if (!file_exists($configPath)) {
 require_once $configPath;
 require_once __DIR__ . '/NlmApiHelpers.php';
 
-qpmApplyNlmCorsHeaders('GET, OPTIONS', 'application/json');
+muginApplyNlmCorsHeaders('GET, OPTIONS', 'application/json');
 
 $sources = [];
-if (function_exists('qpmReadAllSourceRateLimitSnapshots')) {
-    foreach (qpmReadAllSourceRateLimitSnapshots() as $sourceKey => $snapshot) {
+if (function_exists('muginReadAllSourceRateLimitSnapshots')) {
+    foreach (muginReadAllSourceRateLimitSnapshots() as $sourceKey => $snapshot) {
         $sources[$sourceKey] = $snapshot ?? null;
     }
 }

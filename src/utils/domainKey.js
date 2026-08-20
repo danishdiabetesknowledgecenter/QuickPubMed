@@ -8,7 +8,7 @@ import { getSearchFlowDebugUrlParams } from "@/utils/searchFlowDebug.js";
 export const urlDomainOverride = ref(null);
 
 /**
- * Normalize a content domain key (same rules as backend qpmNormalizeDomainKey).
+ * Normalize a content domain key (same rules as backend muginNormalizeDomainKey).
  * @param {unknown} value
  * @returns {string}
  */

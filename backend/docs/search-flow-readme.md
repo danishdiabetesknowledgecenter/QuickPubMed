@@ -1,22 +1,33 @@
-# Søgeflow i QuickPubMed
+# Søgeflow i Mugin Scholar
 
-Denne README beskriver det faktiske søgeflow i QuickPubMed, fra brugeren vælger AI-oversættelse til eller fra, vælger emner og afgrænsninger, indtaster fri tekst og kombinerer PubMed med en eller flere semantiske kilder.
+Denne README beskriver søgeflowet i Mugin Scholar, fra brugeren vælger AI-oversættelse til eller fra, vælger emner og afgrænsninger, indtaster fri tekst og kombinerer PubMed med en eller flere semantiske kilder.
 
-Dokumentet er skrevet ud fra den nuværende implementering i:
+## Kanonisk live path
 
-- `src/components/SearchForm.vue`
-- `src/components/DropdownWrapper.vue`
-- `src/components/SearchResult.vue`
-- `backend/api/OpenAlexSearch.php`
-- `backend/api/SemanticScholarSearch.php`
-- `backend/api/ElicitSearch.php`
-- `backend/api/TranslateTitle.php`
-- `backend/api/SemanticFinalRerank.php`
+Den aktive runtime-sti er:
+
+1. `SearchForm.vue` bygger et kanonisk request-payload (sources, topic/limit-valg, focus, sort, …).
+2. `search()` / `searchMore()` kalder `backend/api/UnifiedSearch.php`.
+3. `UnifiedSearch.php` kalder `muginPublicSearchRunSearch()` i `backend/app/public-search-lib.php` — samme orkestrator som public API (`public-api/v1/search.php`).
+4. Hybrid ranking (fulde kvalitetssignaler + `focus`-profiler) aktiveres når `MUGIN_UNIFIED_SEARCH_ENGINE_ENABLED=true` via `backend/app/semantic-quality-lib.php`.
+
+Redigerede søgestrenge fra «Vis søgestrenge» sendes som `queryOverrides` (JSON) eller URL-parametrene `qpubmed` / `qsemanticscholar` / `qopenalex` / `qelicit`. Når de er sat, vinder de over fritekst for de pågældende kilder, og LLM-oversættelse springes over for dem. En ikke-tom `q*` for en valgt kilde er nok til at starte søgningen uden `q`/`topic`. Øvrige valgte kilder oversættes stadig fra fritekst. `qpubmed` er kun emne/fritekst-delen; PubMed-afgrænsninger AND’es stadig fra formularens `limit=`. Uden `q*` er fritekst+LLM uændret.
+
+Den ældre browser-side JS-pipeline i `SearchForm.vue` / `DropdownWrapper.vue` (lokal retrieval, merge, rerank, validering) er **dormant**: den er bevaret som kompatibilitets-/referencekode og vælges ikke ved runtime. Afsnittene nedenfor beskriver stadig den logiske model (emner, filtre, retrieval-trin), men den udførte orkestrering sker i PHP.
+
+Primære filer for live path:
+
+- `src/components/SearchForm.vue` (UI + UnifiedSearch-klient)
+- `backend/api/UnifiedSearch.php`
+- `backend/app/public-search-lib.php`
+- `backend/app/semantic-quality-lib.php`
+- `backend/api/OpenAlexSearch.php`, `SemanticScholarSearch.php`, `ElicitSearch.php`, `NlmSearch.php`, `NlmSummary.php`
+- `backend/api/TranslateTitle.php`, `SemanticFinalRerank.php`
 - `backend/app/helpers.php`
 
 ## Formål
 
-QuickPubMed har reelt to søgelag, som kan køre hver for sig eller sammen:
+Mugin Scholar har reelt to søgelag, som kan køre hver for sig eller sammen:
 
 1. Et klassisk PubMed-lag, hvor emner, afgrænsninger og fri tekst bliver til en PubMed-søgestreng.
 2. Et semantisk lag, hvor Semantic Scholar, OpenAlex og Elicit bruges til at hente kandidater, som senere valideres, flettes og vises sammen med PubMed-resultaterne.
@@ -29,7 +40,7 @@ Der findes nu en eksplicit debug-mode til fejlfinding af hele søgeflowet.
 
 Den kan aktiveres på to måder:
 
-- URL: `?qpmDebug=searchflow`
+- URL: `?muginDebug=searchflow`
 - Widget-attribut: `data-debug-search-flow="true"`
 
 Når debug er slået til, vises en hierarkisk log i browserkonsollen med `console.groupCollapsed` for hele flowet og de vigtigste undertrin:
@@ -72,7 +83,7 @@ Et element kan derfor både være et almindeligt PubMed-element, et brugerdefine
 
 ### Kildevalg
 
-QuickPubMed arbejder med disse kilde-nøgler:
+Mugin Scholar arbejder med disse kilde-nøgler:
 
 - `pubmed`
 - `semanticScholar`
@@ -252,7 +263,7 @@ Frontend har stadig en robust fallback: hvis semantic intent-responsen ikke kan 
 
 ## Lokal backend HTTP-håndtering
 
-`qpmHttpRequest()` i `backend/app/helpers.php` er fælles HTTP-lag for eksterne API-kald fra backend.
+`muginHttpRequest()` i `backend/app/helpers.php` er fælles HTTP-lag for eksterne API-kald fra backend.
 
 I lokal udvikling håndteres HTTP lidt anderledes end i produktion:
 
@@ -305,11 +316,11 @@ Det er derfor især DOI-only og andre ikke-trusted kandidater, der stadig kan bl
 
 ## Retrieval og genrangering i detaljer
 
-Denne sektion beskriver ikke bare, at der "hentes kandidater", men hvordan retrieval og genrangering faktisk er bygget op i den nuværende implementering.
+Denne sektion beskriver den logiske model for retrieval og genrangering. I live path udføres trinene i `muginPublicSearchRunSearch()` (PHP). Funktionsnavne fra `DropdownWrapper` / `semanticReranking.js` nedenfor er dormant JS-reference, medmindre andet er angivet.
 
 ### Overordnet retrieval-model
 
-QuickPubMed bruger en flertrinsmodel:
+Mugin Scholar bruger en flertrinsmodel:
 
 1. Formularen danner en klassisk PubMed-basequery og eventuelt en semantisk intention.
 2. Eksterne semantiske kilder henter kandidater ud fra fri query og kilde-specifikke filtre.
@@ -418,7 +429,7 @@ Elicit bruges som en semantisk retrieval-kilde med naturligt sprog, via Elicits 
 - der kan sendes `typeTags`, `includeKeywords`, `excludeKeywords`, `minYear`, `maxYear`, `minEpochS`, `maxEpochS`, `maxQuartile`, `hasPdf`, `pubmedOnly` og `retracted`
 - `retracted` defaultes internt til `exclude_retracted`
 - `corpus` sendes explicit som `"elicit"` (Elicits fulde paper-indeks, ikke kun PubMed) og `searchMode` explicit som `"semantic"`
-- `maxResults` er konfigureret til 300 pr. kald (`QPM_SEMANTIC_SOURCE_LIMITS['elicit']`), inden for Pro-planens grænse på 300 resultater pr. request
+- `maxResults` er konfigureret til 300 pr. kald (`MUGIN_SEMANTIC_SOURCE_LIMITS['elicit']`), inden for Pro-planens grænse på 300 resultater pr. request
 
 Elicit følger nu samme princip som OpenAlex ved retry:
 
@@ -502,7 +513,7 @@ Kandidater, der mangler titel, hard-droppes. Kandidater med tier `excluded` (fx 
 
 ### Deterministisk genrangering
 
-Den primære genrangering ligger i `src/utils/semanticReranking.js` og bruger en hybrid formel:
+Den primære live genrangering ligger i `backend/app/semantic-quality-lib.php` (kaldes fra `muginPublicSearchRunSearch` når `MUGIN_UNIFIED_SEARCH_ENGINE_ENABLED=true`). `src/utils/semanticReranking.js` er dormant JS-reference. Hybrid-formlen er:
 
 - `baseScore = sum(weightedRrf_sources) + pmidBonus + overlapBonus`  *(uændret RRF-kerne)*
 - `additiveQualityBonus = pubTypeTierBonus + recencyBonus + oaBonus + clinicalBonus + topicOverlapBonus`
@@ -510,6 +521,8 @@ Den primære genrangering ligger i `src/utils/semanticReranking.js` og bruger en
 - `combinedScore = (baseScore + additiveQualityBonus) * qualityMultiplier`
 
 `pubTypeTierBonus = pubTypeTiers[tier] * confidenceCoefficient(confidence)` hvor `confidenceCoefficient(high)=1.0`, `(medium)=0.7`, `(low)=0.4`. Hvis `pubTypeTiers` ikke er sat, er bonusen 0 for alle tiers og M2-adfærden er bagudkompatibel.
+
+`topicOverlapBonus` er en **fair, additiv** emnebonus: den bruger capped `enriched.topicLabels` (max 8) fra OpenAlex `primaryTopicDisplayName` + `topics[]` display names + Semantic Scholar `s2FieldsOfStudy`. Match mod query-intent (tokens + frase-hit) giver kun bonus; manglende MeSH/PMID/emner giver **0**, aldrig minus. DOI-only med OpenAlex/S2-emner er førsteklasses. LLM finalRerank får capped `topics` (max 16: MeSH, OpenAlex-emner/delfelt/emneord, PubMed-keywords, S2) som additivt evidens — manglende topics eller MeSH må ikke sænke en kandidat.
 
 Alle nye signaler defaulter til neutrale værdier så en uopdateret installation har 1:1 samme adfærd som før.
 
@@ -543,7 +556,7 @@ Retraction-flag styres via `retractionAction` i config, tri-state:
 
 ### Standardkonfiguration for genrangering
 
-Genrangeringskonfigurationen ligger i `QPM_RERANK_CONFIG`.
+Genrangeringskonfigurationen ligger i `MUGIN_RERANK_CONFIG`.
 
 De vigtigste parametre er:
 
@@ -602,7 +615,7 @@ LLM-genrangeringen må ikke opfinde eller fjerne kandidater. Den må kun omroker
 
 ### Hvor retrieval slutter, og validering begynder
 
-I QuickPubMed er retrieval og validering bevidst adskilt.
+I Mugin Scholar er retrieval og validering bevidst adskilt.
 
 Retrieval handler om at hente gode kandidater tidligt, gerne lidt bredt og med kilde-specifikke queries og filtre.
 
@@ -610,16 +623,16 @@ Validering handler om at sikre, at de endelige records stadig passer til brugere
 
 ## Hvad der sker, når brugeren klikker på søg
 
-Det overordnede flow i `SearchForm.search()` er:
+Det overordnede **live** flow i `SearchForm.search()` er:
 
 1. Formularen nulstiller loading state.
-2. Hvis semantiske kilder er valgt, forberedes semantisk state før søgning.
-3. Ved AI + globalt intent-input bygges ét globalt semantic state; ellers forberedes ventende semantiske tags på tag-niveau.
-4. `getSearchString()` beregner den query, som PubMed-laget skal bruge.
-5. Hvis der findes genrangerede semantiske kandidater, bygges et hybridt resultatsæt.
-6. PMIDs valideres mod PubMed og matchende PMIDs markeres som trusted.
-7. DOI-only-kandidater og andre ikke-trusted refs hydreres via OpenAlex, hvis det er nødvendigt.
-8. Resultater hentes og vises i den relevante orden.
+2. `buildUnifiedSearchRequestPayload()` samler sources, query/topics/limits, focus, sort og responseOptions.
+3. `callUnifiedSearchEndpointStreaming()` (eller ikke-streaming-varianten) POST'er til `UnifiedSearch.php`.
+4. Serveren kører `muginPublicSearchRunSearch()` (retrieval, enrichment, hybrid rerank når unified engine er enabled, validering, hydration, evt. LLM-slutrerank).
+5. Responsens `results` mappes til UI via `mapUnifiedSearchResponseResults()`.
+6. Progress-events (SSE) spejles i process-detaljer, når streaming er aktiv.
+
+*(Den gamle lokale JS-sekvens med `prepareSemanticSearchStateBeforeSearch()` → lokal merge/rerank er dormant og køres ikke.)*
 
 ## Konkret eksempel: fra brugerens valg til den endelige resultatliste
 
@@ -685,65 +698,53 @@ Det vil sige, at PubMed godt kan indgå som teknisk validerings- og visningslag,
 
 ## Ansvar fordelt på kode
 
-### `SearchForm.vue`
+### `SearchForm.vue` (live)
 
 Ansvar:
 
-- holder den samlede formularstate
-- holder valgte kilder
-- bygger `getSearchString()`
-- starter søgeflowet
-- bygger globalt semantisk state
-- styrer hybridt resultatflow og hård filtervalidering
+- holder den samlede formularstate og valgte kilder
+- bygger UnifiedSearch-payload
+- kalder `UnifiedSearch.php` og mapper responsen til UI
+- viser progress/process-detaljer fra SSE
 
 ### `DropdownWrapper.vue`
 
-Ansvar:
+Ansvar (live): opretter/opdaterer tags og fri tekst i UI.
 
-- opretter og opdaterer tags
-- håndterer fri tekst
-- kører AI-oversættelse
-- kører semantiske kildeopslag
-- bygger kildeplaner
-- fletter og genrangerer semantiske kandidater
+*(Dormant: lokal AI-oversættelse, kildeopslag, merge/rerank — erstattet af PHP-orkestratoren.)*
 
 ### `SearchResult.vue`
 
 Ansvar:
 
 - viser resultater
-- står for hydrering af abstracts
-- håndterer efterhentning af metadata i resultatlisten
+- håndterer efterhentning/visning af abstracts i resultatlisten
 
-### Backend-endpoints
+### Backend (live)
 
 Ansvar:
 
+- `UnifiedSearch.php`: first-party indgang → `muginPublicSearchRunSearch()`
+- `public-search-lib.php` / `semantic-quality-lib.php`: orkestrering, hybrid rerank, validering
 - `NlmSearch.php`, `NlmSummary.php`, `NlmFetch.php`: PubMed- og NLM-proxy
 - `TranslateTitle.php`: AI-proxy til PubMed-translation, semantic intent, structured output og MeSH-optimering
-- `SemanticScholarSearch.php`: Semantic Scholar-proxy
-- `OpenAlexSearch.php`: OpenAlex-proxy
-- `ElicitSearch.php`: Elicit-proxy
-- `OpenAlexWorkLookup.php`: hydrering af DOI-only-OpenAlex-records
+- `SemanticScholarSearch.php`, `OpenAlexSearch.php`, `ElicitSearch.php`: kilde-proxies
+- `OpenAlexWorkLookup.php`: hydrering af DOI-/OpenAlex-records
 - `SemanticFinalRerank.php`: valgfri LLM-baseret slutgenrangering
-- `backend/app/helpers.php`: fælles backend helpers, herunder `qpmHttpRequest()` som HTTP-lag for eksterne API-kald
+- `helpers.php`: fælles HTTP-lag (`muginHttpRequest()`)
 
 ## Kort opsummering
 
-QuickPubMed er ikke kun en simpel generator af PubMed-strenge.
+Mugin Scholar er et hybridt søgesystem, hvor web og public API deler én PHP-orkestrator:
 
-Det er et hybridt søgesystem, hvor:
+- formularen samler valg og kalder `UnifiedSearch.php`
+- AI kan oversætte fri tekst til PubMed og/eller semantiske intentioner (server-side)
+- semantiske kilder henter kandidater parallelt
+- PubMed bruges både som retrieval-kilde og som validerings-/metadata-lag
+- med `MUGIN_UNIFIED_SEARCH_ENGINE_ENABLED=true` kører fulde hybrid-profiler i PHP
 
-- formularen bygger klassiske booleske PubMed-strenge
-- AI kan oversætte fri tekst til PubMed og/eller semantiske intentioner
-- semantiske kilder kan hente kandidater parallelt
-- PubMed både kan bruges som tidlig retrieval-kilde og som senere validerings- og metadata-lag
-- resultatlisten derfor kan bestå af både klassiske PubMed-hits og semantisk hentede, senere validerede records
+Vigtigste live entry points:
 
-Hvis man vil forstå det operative søgeflow i koden, er de vigtigste entry points:
-
-- `SearchForm.getSearchString()`
-- `SearchForm.prepareSemanticSearchStateBeforeSearch()`
-- `SearchForm.search()`
-- `DropdownWrapper.handleAddTag()`
-- `DropdownWrapper.buildResolvedSemanticTagState()`
+- `SearchForm.search()` / `buildUnifiedSearchRequestPayload()`
+- `backend/api/UnifiedSearch.php`
+- `muginPublicSearchRunSearch()`

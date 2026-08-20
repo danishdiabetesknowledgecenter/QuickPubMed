@@ -47,8 +47,8 @@ foreach ($found as $entry) {
         'sourceFilters' => $entry['sourceFilters'],
     ];
     try {
-        $normalized = qpmPublicSearchNormalizePostRequest($payload);
-        $plan = qpmPublicSearchBuildSourceQueryPlan($normalized, 'test semantic query');
+        $normalized = muginPublicSearchNormalizePostRequest($payload);
+        $plan = muginPublicSearchBuildSourceQueryPlan($normalized, 'test semantic query');
         echo "OK: {$entry['id']}\n";
     } catch (Throwable $exception) {
         echo "FAIL: {$entry['id']} -> " . get_class($exception) . ': ' . $exception->getMessage() . "\n";

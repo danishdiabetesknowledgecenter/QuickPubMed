@@ -27,7 +27,7 @@
     },
     {
       "name": "Sessions",
-      "description": "Long-running research sessions. Reports and systematic reviews are kinds of sessions; list and resume them uniformly here, or use the typed subsections to create them and fetch results."
+      "description": "Long-running research sessions. Reports, systematic reviews, and Research Agent sessions are kinds of sessions; list and resume them uniformly here, or use the typed subsections to create them and fetch results."
     },
     {
       "name": "Reports",
@@ -36,6 +36,14 @@
     {
       "name": "Systematic Reviews",
       "description": "Create systematic reviews and fetch their status and results."
+    },
+    {
+      "name": "Usage",
+      "description": "Report plan usage and extra usage — the account-settings usage meter, over the API."
+    },
+    {
+      "name": "Research Agent",
+      "description": "Early-access, stateful research sessions with incremental activity, follow-up messages, file uploads, and downloadable artifacts."
     }
   ],
   "paths": {
@@ -66,7 +74,7 @@
                     "query": "GLP-1 receptor agonists for weight loss",
                     "filters": {
                       "minEpochS": 1672531200,
-                      "maxEpochS": 1784148262,
+                      "maxEpochS": 1786843945,
                       "includeKeywords": [
                         "semaglutide",
                         "liraglutide"
@@ -444,7 +452,7 @@
           "Reports"
         ],
         "summary": "Create a new report",
-        "description": "Start an asynchronous report generation job. Elicit will search for relevant papers, screen them for relevance, extract structured data, and produce a full research report.\n\nReports are long-running operations (typically 5–15 minutes). The response includes a `sessionId` and a `links.self` URL that you poll for status.\n\nThe report is also visible at the `url` returned in the response, where you can watch it progress in real time.\n\n### Workflow\n\n1. **POST /api/v2/sessions/reports** — submit your research question (returns immediately with `sessionId`)\n2. **GET `links.self`** (`/api/v2/sessions/reports/:sessionId`) — poll until `status` is `completed` or `failed`\n3. Use the `pdfUrl` and `docxUrl` fields on the completed response to download the report\n\n### Example\n\n```bash\n# 1. Create the report\ncurl -X POST https://elicit.com/api/v2/sessions/reports \\\n  -H \"Authorization: Bearer elk_live_your_key_here\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"researchQuestion\": \"What are the effects of GLP-1 receptor agonists on cardiovascular outcomes?\"}'\n\n# 2. Poll for completion (repeat until status is \"completed\" or \"failed\")\ncurl https://elicit.com/api/v2/sessions/reports/{sessionId} \\\n  -H \"Authorization: Bearer elk_live_your_key_here\"\n```",
+        "description": "Start an asynchronous report generation job. Elicit will search for relevant papers, screen them for relevance, extract structured data, and produce a full research report.\n\nReports are long-running operations (typically 5–15 minutes). The response includes a `sessionId` and a `links.self` URL that you poll for status.\n\nThe report is also visible at the `url` returned in the response, where you can watch it progress in real time.\n\n### Workflow\n\n1. **POST /api/v2/sessions/reports** — submit your research question (returns immediately with `sessionId`)\n2. **GET `links.self`** (`/api/v2/sessions/reports/:sessionId`) — poll until `status` is `completed` or `failed`\n3. Use the `pdfUrl` and `docxUrl` fields on the completed response to download the report, and `txtUrl`, `bibUrl`, and `risUrl` to download its reference list (APA text, BibTeX, and RIS)\n\n### Example\n\n```bash\n# 1. Create the report\ncurl -X POST https://elicit.com/api/v2/sessions/reports \\\n  -H \"Authorization: Bearer elk_live_your_key_here\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"researchQuestion\": \"What are the effects of GLP-1 receptor agonists on cardiovascular outcomes?\"}'\n\n# 2. Poll for completion (repeat until status is \"completed\" or \"failed\")\ncurl https://elicit.com/api/v2/sessions/reports/{sessionId} \\\n  -H \"Authorization: Bearer elk_live_your_key_here\"\n```",
         "security": [
           {
             "BearerAuth": []
@@ -710,6 +718,9 @@
                       },
                       "pdfUrl": "https://s3.amazonaws.com/...",
                       "docxUrl": "https://s3.amazonaws.com/...",
+                      "txtUrl": "https://s3.amazonaws.com/...",
+                      "bibUrl": "https://s3.amazonaws.com/...",
+                      "risUrl": "https://s3.amazonaws.com/...",
                       "links": {
                         "self": "https://elicit.com/api/v2/sessions/reports/5ad08bfb-cbe0-4911-a8c3-309760d33029"
                       }
@@ -793,7 +804,7 @@
           "Systematic Reviews"
         ],
         "summary": "Create a new systematic review",
-        "description": "Start a systematic review. Elicit runs the stages you configure — searches, abstract screening, fulltext screening, extraction, and a report. Each stage runs only when you include it; omit a stage to skip it. The default example below runs a complete review end-to-end.\n\nSystematic reviews are long-running operations. The response includes a `sessionId` and a `links.self` URL (`/api/v2/sessions/systematic-reviews/:sessionId`) that you poll for status. You can also watch progress live at the `url` in the response.\n\n### Plan limits\n\n| Plan | Max columns | Max results per query | Max total results | Figure extraction |\n|------|-------------|----------------------|-------------------|-------------------|\n| Pro | 20 | 1,000 | 5,000 | No |\n| Scale | 30 | 5,000 | 20,000 | Yes |\n| Enterprise | 40 | 10,000 | 40,000 | Yes |\n\n### Example\n\n```bash\ncurl -X POST https://elicit.com/api/v2/sessions/systematic-reviews \\\n-H \"Authorization: Bearer elk_live_your_key_here\" \\\n-H \"Content-Type: application/json\" \\\n-d '{\n  \"researchQuestion\": \"Do GLP-1 receptor agonists reduce MACE in T2D patients?\",\n  \"searches\": [{ \"query\": \"GLP-1 cardiovascular outcomes\", \"maxResults\": 200 }],\n  \"abstractScreening\": { \"generate\": true },\n  \"fulltextScreening\": { \"reuseAbstractCriteria\": true },\n  \"extraction\": { \"generate\": true, \"useFigures\": false },\n  \"generateReport\": true\n}'\n```",
+        "description": "Start a systematic review. Elicit runs the stages you configure — searches, abstract screening, fulltext screening, extraction, and a report. Each stage runs only when you include it; omit a stage to skip it. The default example below runs a complete review end-to-end.\n\nSystematic reviews are long-running operations. The response includes a `sessionId` and a `links.self` URL (`/api/v2/sessions/systematic-reviews/:sessionId`) that you poll for status. You can also watch progress live at the `url` in the response.\n\n### Cost preflight (`dryRun`)\n\nSet `dryRun: true` to preview the Elicit Credit cost **before** launching. With the same configuration body, the endpoint returns `200` with an estimated credit total, a per-component breakdown, and a spend `outcome` (`proceed` / `warn` / `blocked`) — it launches nothing and charges nothing. The estimate is median-anchored and intended as a launch estimate, not a quote: broad searches can cost more than shown, and API-launched reviews always screen in strict mode. `outcome` is always `proceed` for non-credits accounts; use `GET /api/v2/usage` for exact remaining budget. Omit `dryRun` (or set it to `false`) to create the review.\n\n### Plan limits\n\n| Plan | Max columns | Max results per query | Max total results | Figure extraction |\n|------|-------------|----------------------|-------------------|-------------------|\n| Pro | 20 | 1,000 | 5,000 | No |\n| Scale | 30 | 5,000 | 20,000 | Yes |\n| Enterprise | 40 | 10,000 | 40,000 | Yes |\n\n### Example\n\n```bash\ncurl -X POST https://elicit.com/api/v2/sessions/systematic-reviews \\\n-H \"Authorization: Bearer elk_live_your_key_here\" \\\n-H \"Content-Type: application/json\" \\\n-d '{\n  \"researchQuestion\": \"Do GLP-1 receptor agonists reduce MACE in T2D patients?\",\n  \"searches\": [{ \"query\": \"GLP-1 cardiovascular outcomes\", \"maxResults\": 200 }],\n  \"abstractScreening\": { \"generate\": true },\n  \"fulltextScreening\": { \"reuseAbstractCriteria\": true },\n  \"extraction\": { \"generate\": true, \"useFigures\": false },\n  \"generateReport\": true\n}'\n```",
         "security": [
           {
             "BearerAuth": []
@@ -1023,6 +1034,12 @@
                     "default": false,
                     "description": "Whether the review should be publicly accessible via its URL without authentication. Defaults to false.",
                     "example": false
+                  },
+                  "dryRun": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "When true, this is a read-only preflight: the same configuration is priced and the cost estimate is returned without launching a review or charging anything. When false (default), the review is created as normal.",
+                    "example": false
                   }
                 },
                 "required": [
@@ -1139,12 +1156,43 @@
                   "value": {
                     "researchQuestion": "Do GLP-1 receptor agonists reduce MACE in T2D patients?"
                   }
+                },
+                "dryRun": {
+                  "summary": "Preflight — estimate the cost, launch nothing",
+                  "description": "`dryRun: true` prices the same configuration and returns a `200` cost estimate without creating a review or charging credits.",
+                  "value": {
+                    "researchQuestion": "Do GLP-1 receptor agonists reduce MACE in T2D patients?",
+                    "searches": [
+                      {
+                        "query": "GLP-1 cardiovascular outcomes",
+                        "maxResults": 200
+                      }
+                    ],
+                    "abstractScreening": {
+                      "generate": true
+                    },
+                    "extraction": {
+                      "generate": true
+                    },
+                    "generateReport": true,
+                    "dryRun": true
+                  }
                 }
               }
             }
           }
         },
         "responses": {
+          "200": {
+            "description": "Cost estimate for the configuration (returned only when `dryRun: true`). Nothing was created or charged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EstimateSystematicReviewResponse"
+                }
+              }
+            }
+          },
           "202": {
             "description": "Systematic review creation accepted. The review is now running asynchronously. Poll `links.self` for status.",
             "content": {
@@ -1482,7 +1530,7 @@
           "Sessions"
         ],
         "summary": "List sessions",
-        "description": "List all sessions — reports and systematic reviews — for the authenticated user in a single feed, ordered by creation date (newest first).\n\nEach item carries its `sessionId`, a `type` field (`report` or `systematicReview`), and a `links` object with the URLs for the item's follow-up requests: `links.self` is the typed get endpoint for its full status and results, and `links.resume` appears only while the session is paused for insufficient quota.\n\nResults are paginated using cursor-based pagination. Use the `nextCursor` value from the response to fetch the next page. Filters apply to both session types; pass `type` to list a single kind.\n\n### Example\n\n```bash\n# First page\ncurl https://elicit.com/api/v2/sessions?limit=10 \\\n  -H \"Authorization: Bearer elk_live_your_key_here\"\n\n# Next page\ncurl \"https://elicit.com/api/v2/sessions?limit=10&cursor=2025-06-15T14:30:00.000Z_5ad08bfb-cbe0-4911-a8c3-309760d33029\" \\\n  -H \"Authorization: Bearer elk_live_your_key_here\"\n\n# Only reports created via the API\ncurl \"https://elicit.com/api/v2/sessions?type=report&source=api\" \\\n  -H \"Authorization: Bearer elk_live_your_key_here\"\n```",
+        "description": "List all sessions — reports, systematic reviews, and research-agent sessions — for the authenticated user in a single feed, ordered by creation date (newest first).\n\nEach item carries its `sessionId`, a `type` field (`report`, `systematicReview`, or `agent`), and a `links` object with the URLs for the item's follow-up requests: `links.self` is the typed get endpoint for its full status and results, and `links.resume` appears only while the session is paused for insufficient quota. Agent items omit `executionStage` (agent sessions have no pipeline stages); for them `status: \"completed\"` means idle and awaiting input rather than terminally finished.\n\nResults are paginated using cursor-based pagination. Use the `nextCursor` value from the response to fetch the next page. Filters apply to all session types; pass `type` to list a single kind.\n\n### Example\n\n```bash\n# First page\ncurl https://elicit.com/api/v2/sessions?limit=10 \\\n  -H \"Authorization: Bearer elk_live_your_key_here\"\n\n# Next page\ncurl \"https://elicit.com/api/v2/sessions?limit=10&cursor=2025-06-15T14:30:00.000Z_5ad08bfb-cbe0-4911-a8c3-309760d33029\" \\\n  -H \"Authorization: Bearer elk_live_your_key_here\"\n\n# Only reports created via the API\ncurl \"https://elicit.com/api/v2/sessions?type=report&source=api\" \\\n  -H \"Authorization: Bearer elk_live_your_key_here\"\n```",
         "security": [
           {
             "BearerAuth": []
@@ -1518,8 +1566,10 @@
             "schema": {
               "type": "string",
               "enum": [
+                "user",
                 "api",
-                "user"
+                "mcp",
+                "agent_session"
               ],
               "description": "Filter by how the session was created",
               "example": "api"
@@ -1533,7 +1583,8 @@
               "type": "string",
               "enum": [
                 "report",
-                "systematicReview"
+                "systematicReview",
+                "agent"
               ],
               "description": "Filter to a single session type",
               "example": "report"
@@ -1595,6 +1646,19 @@
                         "self": "https://elicit.com/api/v2/sessions/systematic-reviews/e3d0f5c4-88f6-4c3f-b6a3-0b57a2f1d3aa",
                         "resume": "https://elicit.com/api/v2/sessions/e3d0f5c4-88f6-4c3f-b6a3-0b57a2f1d3aa/resume"
                       }
+                    },
+                    {
+                      "type": "agent",
+                      "sessionId": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+                      "status": "processing",
+                      "title": "Compare biologics for moderate-to-severe plaque psoriasis",
+                      "url": "https://elicit.com/agent/a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+                      "source": "api",
+                      "createdAt": "2025-06-13T18:45:00.000Z",
+                      "isPublic": false,
+                      "links": {
+                        "self": "https://elicit.com/api/v2/sessions/agents/a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+                      }
                     }
                   ],
                   "nextCursor": null
@@ -1643,7 +1707,7 @@
           "Sessions"
         ],
         "summary": "Resume a paused session",
-        "description": "Resume a report or systematic review that was automatically paused because your account was over its usage limit (`status: \"pausedForInsufficientQuota\"` from the get endpoints).\n\nPass the `sessionId` from the create response or `GET /api/v2/sessions` — the session type is resolved automatically. Paused sessions also carry a ready-made `links.resume` URL for this endpoint.\n\nA paused session stays paused until it is explicitly resumed. Once the usage limit is resolved (for example after upgrading or when a new billing period starts), call this endpoint — or use the resume banner in the Elicit web interface — to continue the run.\n\n### Example\n\n```bash\ncurl -X POST https://elicit.com/api/v2/sessions/{sessionId}/resume \\\n  -H \"Authorization: Bearer elk_live_your_key_here\"\n```",
+        "description": "Resume a report, systematic review, or research-agent session that was automatically paused because your account was over its usage limit (`status: \"pausedForInsufficientQuota\"` from the get endpoints).\n\nPass the `sessionId` from the create response or `GET /api/v2/sessions` — the session type is resolved automatically. Paused sessions also carry a ready-made `links.resume` URL for this endpoint.\n\nA paused session stays paused until it is explicitly resumed. Once the usage limit is resolved (for example after upgrading or when a new billing period starts), call this endpoint — or use the resume banner in the Elicit web interface — to continue the run.\n\n### Example\n\n```bash\ncurl -X POST https://elicit.com/api/v2/sessions/{sessionId}/resume \\\n  -H \"Authorization: Bearer elk_live_your_key_here\"\n```",
         "security": [
           {
             "BearerAuth": []
@@ -1767,6 +1831,2318 @@
           }
         }
       }
+    },
+    "/sessions/{sessionId}/shares": {
+      "post": {
+        "tags": [
+          "Sessions"
+        ],
+        "summary": "Share a session",
+        "description": "Share a session read-only with another person by email. Works for every session type — reports, systematic reviews, and Research Agent sessions. Sessions are shared read-only: the recipient can view the session but cannot modify, resume, stop, or re-share it (agent sessions are read-only by design; report and systematic-review shares are read-only through the API).\n\nIf the email belongs to an existing Elicit account the share takes effect immediately (`status: \"registered\"`). Otherwise a pending invitation is created and an email is sent (`status: \"invited\"`); the share activates when they create an account.\n\nOnly the session owner can manage shares. A recipient of a shared **agent** session sees it in `GET /api/v2/sessions` with `role: \"shared\"`; a recipient of a shared **report** or **systematic review** opens it via the returned web-app `url` — it will **not** appear in their `GET /api/v2/sessions` list, which stays owner-only for review sessions.\n\n### Example\n\n```bash\ncurl -X POST https://elicit.com/api/v2/sessions/{sessionId}/shares \\\n  -H \"Authorization: Bearer elk_live_your_key_here\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"email\":\"colleague@example.com\"}'\n```",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sessionId",
+            "description": "The session ID (UUID) returned by the create endpoints and `GET /sessions`",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The session ID (UUID) returned by the create endpoints and `GET /sessions`",
+              "example": "5ad08bfb-cbe0-4911-a8c3-309760d33029"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Recipient email",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "description": "Email address to share the session with, as a read-only recipient.",
+                    "example": "colleague@example.com"
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The session was shared with the recipient.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateSessionShareResponse"
+                },
+                "examples": {
+                  "registered": {
+                    "summary": "Recipient has an Elicit account",
+                    "value": {
+                      "sessionId": "5ad08bfb-cbe0-4911-a8c3-309760d33029",
+                      "share": {
+                        "email": "colleague@example.com",
+                        "status": "registered",
+                        "role": "reader"
+                      },
+                      "url": "https://elicit.com/review/5ad08bfb-cbe0-4911-a8c3-309760d33029"
+                    }
+                  },
+                  "invited": {
+                    "summary": "Pending invitation for an email without an account",
+                    "value": {
+                      "sessionId": "5ad08bfb-cbe0-4911-a8c3-309760d33029",
+                      "share": {
+                        "email": "colleague@example.com",
+                        "status": "invited",
+                        "role": "reader"
+                      },
+                      "url": "https://elicit.com/review/5ad08bfb-cbe0-4911-a8c3-309760d33029"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request. The email is missing/malformed, or it is the caller's own address (you cannot share a session with yourself).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "invalid": {
+                    "summary": "Malformed email",
+                    "value": {
+                      "error": {
+                        "code": "invalid_request",
+                        "message": "Invalid request"
+                      }
+                    }
+                  },
+                  "selfShare": {
+                    "summary": "Sharing with yourself",
+                    "value": {
+                      "error": {
+                        "code": "self_share",
+                        "message": "Cannot share a resource with yourself"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed. The API key is missing, invalid, revoked, or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "invalid_api_key",
+                    "message": "Invalid API key"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The share could not be created: the session's recipient cap was reached, or inviting people without an Elicit account is not available on this account.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "capExceeded": {
+                    "summary": "Recipient cap reached",
+                    "value": {
+                      "error": {
+                        "code": "cap_exceeded",
+                        "message": "This session has reached its sharing limit"
+                      }
+                    }
+                  },
+                  "gateDenied": {
+                    "summary": "Inviting non-account emails not available",
+                    "value": {
+                      "error": {
+                        "code": "gate_denied",
+                        "message": "Inviting people without an account is not available"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session not found. The session ID is invalid or belongs to a different user (or, for an agent session, the Research Agent API is not enabled for this account).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sessionNotFound": {
+                    "summary": "Session not found",
+                    "value": {
+                      "error": {
+                        "code": "session_not_found",
+                        "message": "Session not found"
+                      }
+                    }
+                  },
+                  "earlyAccessNotEnabled": {
+                    "summary": "Research Agent API early access is not enabled",
+                    "value": {
+                      "error": {
+                        "code": "not_found",
+                        "message": "Not found"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. More than 100 requests per minute were received from your IP address; further requests are blocked for 5 minutes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudflareRateLimitError"
+                },
+                "example": {
+                  "error": "Rate limit exceeded",
+                  "message": "Too many requests. Please try again later."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected error occurred. Retry after a short delay.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "internal_error",
+                    "message": "Internal server error"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Sessions"
+        ],
+        "summary": "List a session's shares",
+        "description": "List everyone a session is shared with **read-only** — both registered recipients and pending email invitations. Reports and systematic reviews can also have editors or reviewers added in the Elicit web app; those higher-permission collaborators are managed there and are not returned here. Only the session owner can list shares.\n\n### Example\n\n```bash\ncurl https://elicit.com/api/v2/sessions/{sessionId}/shares \\\n  -H \"Authorization: Bearer elk_live_your_key_here\"\n```",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sessionId",
+            "description": "The session ID (UUID) returned by the create endpoints and `GET /sessions`",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The session ID (UUID) returned by the create endpoints and `GET /sessions`",
+              "example": "5ad08bfb-cbe0-4911-a8c3-309760d33029"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The session's current read-only shares.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListSessionSharesResponse"
+                },
+                "example": {
+                  "sessionId": "5ad08bfb-cbe0-4911-a8c3-309760d33029",
+                  "shares": [
+                    {
+                      "email": "colleague@example.com",
+                      "status": "registered",
+                      "role": "reader"
+                    },
+                    {
+                      "email": "invitee@example.com",
+                      "status": "invited",
+                      "role": "reader"
+                    }
+                  ],
+                  "url": "https://elicit.com/review/5ad08bfb-cbe0-4911-a8c3-309760d33029"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed. The API key is missing, invalid, revoked, or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "invalid_api_key",
+                    "message": "Invalid API key"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "API access is not available on your current plan. Upgrade to Pro or above to use the API.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "api_access_denied",
+                    "message": "API access is not available on your current plan. Please upgrade to Pro or above."
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session not found. The session ID is invalid or belongs to a different user (or, for an agent session, the Research Agent API is not enabled for this account).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sessionNotFound": {
+                    "summary": "Session not found",
+                    "value": {
+                      "error": {
+                        "code": "session_not_found",
+                        "message": "Session not found"
+                      }
+                    }
+                  },
+                  "earlyAccessNotEnabled": {
+                    "summary": "Research Agent API early access is not enabled",
+                    "value": {
+                      "error": {
+                        "code": "not_found",
+                        "message": "Not found"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. More than 100 requests per minute were received from your IP address; further requests are blocked for 5 minutes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudflareRateLimitError"
+                },
+                "example": {
+                  "error": "Rate limit exceeded",
+                  "message": "Too many requests. Please try again later."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected error occurred. Retry after a short delay.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "internal_error",
+                    "message": "Internal server error"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Sessions"
+        ],
+        "summary": "Revoke a session share",
+        "description": "Revoke a read-only share by email. Removes either an active share (for a registered recipient) or a pending invitation. Only the session owner can revoke shares.\n\nThe operation is idempotent: revoking an email that isn't currently shared returns `revoked: false` with `200 OK`.\n\n### Example\n\n```bash\ncurl -X DELETE https://elicit.com/api/v2/sessions/{sessionId}/shares \\\n  -H \"Authorization: Bearer elk_live_your_key_here\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"email\":\"colleague@example.com\"}'\n```",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sessionId",
+            "description": "The session ID (UUID) returned by the create endpoints and `GET /sessions`",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The session ID (UUID) returned by the create endpoints and `GET /sessions`",
+              "example": "5ad08bfb-cbe0-4911-a8c3-309760d33029"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Email whose share to revoke",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "description": "Email address whose share (or pending invite) should be revoked.",
+                    "example": "colleague@example.com"
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The share was revoked, or there was nothing to revoke (idempotent).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteSessionShareResponse"
+                },
+                "example": {
+                  "sessionId": "5ad08bfb-cbe0-4911-a8c3-309760d33029",
+                  "email": "colleague@example.com",
+                  "revoked": true
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed. The API key is missing, invalid, revoked, or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "invalid_api_key",
+                    "message": "Invalid API key"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "API access is not available on your current plan. Upgrade to Pro or above to use the API.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "api_access_denied",
+                    "message": "API access is not available on your current plan. Please upgrade to Pro or above."
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session not found. The session ID is invalid or belongs to a different user (or, for an agent session, the Research Agent API is not enabled for this account).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sessionNotFound": {
+                    "summary": "Session not found",
+                    "value": {
+                      "error": {
+                        "code": "session_not_found",
+                        "message": "Session not found"
+                      }
+                    }
+                  },
+                  "earlyAccessNotEnabled": {
+                    "summary": "Research Agent API early access is not enabled",
+                    "value": {
+                      "error": {
+                        "code": "not_found",
+                        "message": "Not found"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. More than 100 requests per minute were received from your IP address; further requests are blocked for 5 minutes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudflareRateLimitError"
+                },
+                "example": {
+                  "error": "Rate limit exceeded",
+                  "message": "Too many requests. Please try again later."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected error occurred. Retry after a short delay.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "internal_error",
+                    "message": "Internal server error"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/usage": {
+      "get": {
+        "tags": [
+          "Usage"
+        ],
+        "summary": "Get usage status",
+        "description": "Report the authenticated account's current usage against its plan.\n\nReturns whether the account still has usage available (`hasUsageRemaining`), the percentage of plan usage consumed this billing period, the billing-period bounds, and — only when extra usage is enabled — the extra-usage spend and limit in USD cents.\n\n### Example\n\n```bash\ncurl https://elicit.com/api/v2/usage \\\n  -H \"Authorization: Bearer elk_live_your_key_here\"\n```",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current usage status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetUsageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed. The API key is missing, invalid, revoked, or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "invalid_api_key",
+                    "message": "Invalid API key"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "API access is not available on your current plan. Upgrade to Pro or above to use the API.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "api_access_denied",
+                    "message": "API access is not available on your current plan. Please upgrade to Pro or above."
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Usage reporting is not available for this account, or usage data is not ready yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "notAvailable": {
+                    "summary": "Usage reporting not available for this account",
+                    "value": {
+                      "error": {
+                        "code": "not_credits_pricing",
+                        "message": "Usage reporting is not available for this account."
+                      }
+                    }
+                  },
+                  "notReady": {
+                    "summary": "Usage data not provisioned yet — retry shortly",
+                    "value": {
+                      "error": {
+                        "code": "usage_unavailable",
+                        "message": "Usage data is not ready yet; retry shortly."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/agents": {
+      "post": {
+        "tags": [
+          "Research Agent"
+        ],
+        "summary": "Create a Research Agent session",
+        "description": "Start a stateful Research Agent session. Elicit investigates the query asynchronously, reports its activity as structured events, and may produce downloadable artifacts.\n\nThe response returns immediately with a `sessionId`. Use the events endpoint to follow the research, then send messages to refine or continue it. The session is also available at the returned `url`.\n\nThis endpoint is in early access. It returns `404 not_found` unless the Research Agent API has been enabled for the authenticated account or organization.\n\n### End-to-end workflow\n\nA full research task may involve several requests against a single session. To drive it end to end:\n\n1. **(Optional) Upload files.** POST /api/v2/files, PUT the bytes to the presigned URL, and keep each `file_id` (see the Upload endpoint).\n2. **Create the session.** POST /api/v2/sessions/agents with your `query` and any `attachments`. The response is immediate with `status: \"processing\"` and a `sessionId`.\n3. **Poll for activity.** GET /api/v2/sessions/agents/:sessionId/events. Pass the returned `cursor` unchanged on each subsequent poll to receive immutable event occurrences not observed at that checkpoint. Append them in response order and deduplicate retries by `eventId`. Poll every 3–10 seconds while the top-level `status` is `processing`.\n4. **Detect idle.** The agent is ready for another request when a `session_idle` event appears and the top-level `status` returns to `completed`. For a Research Agent session, `completed` means **idle and awaiting input** — not that the session is permanently closed. Watch for these events along the way:\n   - `question` — the agent needs input; answer it with a follow-up message.\n   - `error` — the agent encountered an error; `retryable` indicates whether resending is worthwhile.\n   - `session_paused` — the account hit its usage limit; the status becomes `pausedForInsufficientQuota`. Resolve the limit, then resume the session via POST /api/v2/sessions/:sessionId/resume (or the Elicit web interface) before continuing.\n5. **Send a follow-up.** POST /api/v2/sessions/agents/:sessionId/messages with your message (and any `attachments`). Correlate the returned `messageId` with the matching `user_message` event, then return to step 3.\n6. **Retrieve artifacts.** GET /api/v2/sessions/agents/:sessionId/artifacts to list what the agent produced: files appear under `artifacts` (GET .../artifacts/:artifactId/download for a short-lived presigned download URL — treat it as a credential), and interactive outputs (tables, prose, presentations, figures) appear under `deliveredOutputs` (GET .../artifacts/:artifactId/content for their contents).\n7. **(Optional) Stop early.** POST /api/v2/sessions/agents/:sessionId/stop to interrupt a running turn, then poll the events endpoint for the `session_stopped` event.\n\n### Session status\n\nThe list, detail, and events endpoints all report the same top-level `status`:\n\n- `processing` — the agent is working (or the session has not started yet).\n- `completed` — idle and awaiting input; the latest work finished successfully.\n- `failed` — the latest work ended with an error.\n- `pausedForInsufficientQuota` — paused at the account usage limit; resume once the limit clears.\n- `unknown` — status could not be determined (legacy sessions only).\n\nAll errors return the standard `{ \"error\": { \"code\", \"message\" } }` envelope.\n\n### Example\n\n```bash\n# Minimal\ncurl -X POST https://elicit.com/api/v2/sessions/agents \\\n  -H \"Authorization: Bearer elk_live_your_key_here\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"query\":\"What are the effects of GLP-1 receptor agonists on cardiovascular outcomes?\"}'\n\n# With an uploaded file attached to the initial turn\ncurl -X POST https://elicit.com/api/v2/sessions/agents \\\n  -H \"Authorization: Bearer elk_live_your_key_here\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"query\":\"Summarize the attached trial and compare it to the current literature.\",\"attachments\":[{\"file_id\":\"a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d\"}]}'\n```",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Initial Research Agent query",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "The initial query for the research agent. Elicit creates a stateful research session that investigates the query. The session is continuable in the Elicit web interface.",
+                    "example": "What are the effects of GLP-1 receptor agonists on cardiovascular outcomes?"
+                  },
+                  "attachments": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "file_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "description": "The file_id returned by POST /api/v2/files for a previously uploaded file.",
+                          "example": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+                        }
+                      },
+                      "required": [
+                        "file_id"
+                      ]
+                    },
+                    "maxItems": 20,
+                    "description": "Files to attach to this turn, each referencing a file_id from POST /api/v2/files. Attached files are made available to the research agent exactly as uploads made in the web interface are."
+                  }
+                },
+                "required": [
+                  "query"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Session creation accepted. The Research Agent is processing the initial query asynchronously.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateAgentSessionResponse"
+                },
+                "example": {
+                  "sessionId": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+                  "status": "processing",
+                  "url": "https://elicit.com/agent/a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request. `query` must contain 1–2,000 characters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "invalid_request",
+                    "message": "Invalid request"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed. The API key is missing, invalid, revoked, or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "invalid_api_key",
+                    "message": "Invalid API key"
+                  }
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Insufficient quota.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "insufficient_quota",
+                    "message": "Insufficient quota."
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "API access is not available on your current plan. Upgrade to Pro or above to use the API.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "api_access_denied",
+                    "message": "API access is not available on your current plan. Please upgrade to Pro or above."
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Research Agent API early access is not enabled for this account.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "not_found",
+                    "message": "Not found"
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. More than 100 requests per minute were received from your IP address; further requests are blocked for 5 minutes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudflareRateLimitError"
+                },
+                "example": {
+                  "error": "Rate limit exceeded",
+                  "message": "Too many requests. Please try again later."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected error occurred. Retry after a short delay.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "internal_error",
+                    "message": "Internal server error"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/agents/{sessionId}": {
+      "get": {
+        "tags": [
+          "Research Agent"
+        ],
+        "summary": "Get Research Agent session status",
+        "description": "Fetch the status and basic metadata of a research-agent session — the typed detail endpoint that an agent item's `links.self` in `GET /api/v2/sessions` points to.\n\n### Status values\n\n- **processing** — The agent is working, or the session is queued and hasn't started.\n- **completed** — The agent is idle and awaiting input. This is *not* a terminal state: the session can be continued (agent sessions have no terminal \"finished\" state).\n- **failed** — The last turn ended with an error.\n- **pausedForInsufficientQuota** — The account exceeded its usage limit. The session stays paused until resumed via the `links.resume` URL (or the Elicit web interface).\n\nNo event payload is returned here; use the session's events endpoint for the reduced activity stream.\n\n### Example\n\n```bash\ncurl https://elicit.com/api/v2/sessions/agents/{sessionId} \\\n  -H \"Authorization: Bearer elk_live_your_key_here\"\n```",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sessionId",
+            "description": "The session ID (UUID) returned by the create endpoints and `GET /sessions`",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The session ID (UUID) returned by the create endpoints and `GET /sessions`",
+              "example": "5ad08bfb-cbe0-4911-a8c3-309760d33029"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Research-agent session status and metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSessionDetail"
+                },
+                "examples": {
+                  "processing": {
+                    "summary": "Agent is working",
+                    "value": {
+                      "type": "agent",
+                      "sessionId": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+                      "status": "processing",
+                      "title": "Compare biologics for moderate-to-severe plaque psoriasis",
+                      "url": "https://elicit.com/agent/a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+                      "source": "api",
+                      "createdAt": "2026-07-23T14:30:00.000Z",
+                      "isPublic": false,
+                      "links": {
+                        "self": "https://elicit.com/api/v2/sessions/agents/a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+                      }
+                    }
+                  },
+                  "completed": {
+                    "summary": "Agent is idle, awaiting input (not terminally finished)",
+                    "value": {
+                      "type": "agent",
+                      "sessionId": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+                      "status": "completed",
+                      "title": "Compare biologics for moderate-to-severe plaque psoriasis",
+                      "url": "https://elicit.com/agent/a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+                      "source": "api",
+                      "createdAt": "2026-07-23T14:30:00.000Z",
+                      "isPublic": false,
+                      "links": {
+                        "self": "https://elicit.com/api/v2/sessions/agents/a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+                      }
+                    }
+                  },
+                  "failed": {
+                    "summary": "The last turn ended with an error",
+                    "value": {
+                      "type": "agent",
+                      "sessionId": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+                      "status": "failed",
+                      "title": "Compare biologics for moderate-to-severe plaque psoriasis",
+                      "url": "https://elicit.com/agent/a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+                      "source": "api",
+                      "createdAt": "2026-07-23T14:30:00.000Z",
+                      "isPublic": false,
+                      "links": {
+                        "self": "https://elicit.com/api/v2/sessions/agents/a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+                      }
+                    }
+                  },
+                  "paused": {
+                    "summary": "Paused for insufficient quota — resume available",
+                    "value": {
+                      "type": "agent",
+                      "sessionId": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+                      "status": "pausedForInsufficientQuota",
+                      "title": "Compare biologics for moderate-to-severe plaque psoriasis",
+                      "url": "https://elicit.com/agent/a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+                      "source": "api",
+                      "createdAt": "2026-07-23T14:30:00.000Z",
+                      "isPublic": false,
+                      "links": {
+                        "self": "https://elicit.com/api/v2/sessions/agents/a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+                        "resume": "https://elicit.com/api/v2/sessions/a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d/resume"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed. The API key is missing, invalid, revoked, or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "invalid_api_key",
+                    "message": "Invalid API key"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "API access is not available on your current plan. Upgrade to Pro or above to use the API.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "api_access_denied",
+                    "message": "API access is not available on your current plan. Please upgrade to Pro or above."
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The Research Agent API is not enabled for this account, or the session does not exist or belongs to another user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "earlyAccessNotEnabled": {
+                    "summary": "Research Agent API early access is not enabled",
+                    "value": {
+                      "error": {
+                        "code": "not_found",
+                        "message": "Not found"
+                      }
+                    }
+                  },
+                  "sessionNotFound": {
+                    "summary": "Session not found",
+                    "value": {
+                      "error": {
+                        "code": "session_not_found",
+                        "message": "Session not found"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. More than 100 requests per minute were received from your IP address; further requests are blocked for 5 minutes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudflareRateLimitError"
+                },
+                "example": {
+                  "error": "Rate limit exceeded",
+                  "message": "Too many requests. Please try again later."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected error occurred. Retry after a short delay.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "internal_error",
+                    "message": "Internal server error"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/agents/{sessionId}/events": {
+      "get": {
+        "tags": [
+          "Research Agent"
+        ],
+        "summary": "Get Research Agent session events",
+        "description": "Get a reduced view of a Research Agent session's activity.\n\nStreaming text, thinking, and tool-input deltas are collapsed into complete typed entries. With no `cursor`, the response contains the full reduced history. Pass the returned cursor unchanged on the next poll to receive immutable event occurrences not observed at that checkpoint.\n\nThe public event kinds are `user_message`, `agent_message`, `question`, `activity`, `artifacts_delivered`, `delivered_outputs`, `error`, `session_idle`, `session_paused`, `session_resumed`, `stop_requested`, and `session_stopped`. Internal tool names, sandbox paths, raw tool results, and candidate counters are never returned.\n\nEvery event includes a stable `eventId` and an ISO 8601 `createdAt` timestamp when available. Events are immutable and append-only. A resource can have several snapshots: for example, an `activity` may first be `started` and later `completed`. Those occurrences share an `activityId` but have distinct `eventId` values. Append incremental responses in response order and deduplicate retries by `eventId`.\n\nThe top-level `status` has exactly the same meaning and value as the list and detail endpoints. Lifecycle facts that are not part of the shared session status vocabulary are represented by explicit events: the agent becomes ready for more input with `session_idle`, a stop completes with `session_stopped`, and pause/resume use `session_paused`/`session_resumed`.\n\n### Polling example\n\n```bash\n# Full history\ncurl https://elicit.com/api/v2/sessions/agents/{sessionId}/events \\\n  -H \"Authorization: Bearer elk_live_your_key_here\"\n\n# Only event occurrences not observed at the cursor checkpoint\ncurl \"https://elicit.com/api/v2/sessions/agents/{sessionId}/events?cursor={cursor}\" \\\n  -H \"Authorization: Bearer elk_live_your_key_here\"\n```\n\nPoll every 3–10 seconds while `status` is `processing`. The agent is ready for another request when a `session_idle` event appears and the status returns to `completed` (idle, awaiting input). A `question` event indicates that the agent needs input. A `session_stopped` event confirms that a stop request was processed. If a cursor is rejected, refetch once without a cursor and rebuild local event state.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sessionId",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "description": "Opaque cursor from a previous response. When provided, only immutable event occurrences after that checkpoint are returned. Omit it to receive the full history.",
+            "schema": {
+              "type": "string",
+              "description": "Opaque cursor from a previous response. When provided, only immutable event occurrences after that checkpoint are returned. Omit it to receive the full history."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Full or incremental reduced session activity.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAgentSessionEventsResponse"
+                },
+                "example": {
+                  "sessionId": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+                  "status": "processing",
+                  "events": [
+                    {
+                      "eventId": "evt_a834376a97b8a7d8259b5c42",
+                      "kind": "user_message",
+                      "createdAt": "2026-07-23T14:30:00.000Z",
+                      "messageId": "msg_a834376a97b8a7d8259b5c42",
+                      "text": "What are the effects of GLP-1 receptor agonists on cardiovascular outcomes?",
+                      "isInitial": true
+                    },
+                    {
+                      "eventId": "evt_7f19a13d5ce4e961866933fa",
+                      "kind": "activity",
+                      "createdAt": "2026-07-23T14:30:03.000Z",
+                      "activityId": "activity_e66e32cf495d58e6553b736f",
+                      "status": "started",
+                      "title": "Searching for controlled studies",
+                      "summary": null
+                    }
+                  ],
+                  "cursor": "eyJ2IjoxLCJzaWQiOiJhMWIyYzNkNCIsInUiOjIsInciOjEwfQ",
+                  "url": "https://elicit.com/agent/a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The cursor is malformed, belongs to another session, or is ahead of the session's current position. Retry without a cursor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "invalid": {
+                    "summary": "Malformed cursor",
+                    "value": {
+                      "error": {
+                        "code": "invalid_cursor",
+                        "message": "Malformed cursor."
+                      }
+                    }
+                  },
+                  "wrongSession": {
+                    "summary": "Cursor belongs to another session",
+                    "value": {
+                      "error": {
+                        "code": "cursor_session_mismatch",
+                        "message": "Cursor does not belong to this session."
+                      }
+                    }
+                  },
+                  "ahead": {
+                    "summary": "Cursor is ahead of the current stream",
+                    "value": {
+                      "error": {
+                        "code": "cursor_out_of_range",
+                        "message": "Cursor is ahead of the session's current position; refetch without a cursor."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed. The API key is missing, invalid, revoked, or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "invalid_api_key",
+                    "message": "Invalid API key"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "API access is not available on your current plan. Upgrade to Pro or above to use the API.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "api_access_denied",
+                    "message": "API access is not available on your current plan. Please upgrade to Pro or above."
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The Research Agent API is not enabled for this account, or the session does not exist or belongs to another user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "earlyAccessNotEnabled": {
+                    "summary": "Research Agent API early access is not enabled",
+                    "value": {
+                      "error": {
+                        "code": "not_found",
+                        "message": "Not found"
+                      }
+                    }
+                  },
+                  "sessionNotFound": {
+                    "summary": "Session not found",
+                    "value": {
+                      "error": {
+                        "code": "session_not_found",
+                        "message": "Session not found"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. More than 100 requests per minute were received from your IP address; further requests are blocked for 5 minutes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudflareRateLimitError"
+                },
+                "example": {
+                  "error": "Rate limit exceeded",
+                  "message": "Too many requests. Please try again later."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected error occurred. Retry after a short delay.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "internal_error",
+                    "message": "Internal server error"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/agents/{sessionId}/messages": {
+      "post": {
+        "tags": [
+          "Research Agent"
+        ],
+        "summary": "Send a message to a Research Agent session",
+        "description": "Insert a follow-up message and start another asynchronous turn. Use messages to refine a result, answer the agent, redirect the research, or request another artifact.\n\nThe response includes a `messageId`. The corresponding `user_message` event carries the same value, allowing the client to confirm delivery.\n\nAttach previously uploaded files by including their `file_id`s in the `attachments` array (see the Upload endpoint).\n\nIf the session is paused for insufficient quota, resolve the usage limit and resume it via `POST /api/v2/sessions/:sessionId/resume` (or the Elicit web interface) before sending another message.\n\n### Example\n\n```bash\ncurl -X POST https://elicit.com/api/v2/sessions/agents/{sessionId}/messages \\\n  -H \"Authorization: Bearer elk_live_your_key_here\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"message\":\"Focus on randomized controlled trials only.\"}'\n```",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sessionId",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Follow-up message",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "The message to insert into the running research agent session.",
+                    "example": "Focus on randomized controlled trials only."
+                  },
+                  "attachments": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "file_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "description": "The file_id returned by POST /api/v2/files for a previously uploaded file.",
+                          "example": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+                        }
+                      },
+                      "required": [
+                        "file_id"
+                      ]
+                    },
+                    "maxItems": 20,
+                    "description": "Files to attach to this turn, each referencing a file_id from POST /api/v2/files. Attached files are made available to the research agent exactly as uploads made in the web interface are."
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Message accepted. The session is processing another turn.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostAgentSessionMessageResponse"
+                },
+                "example": {
+                  "sessionId": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+                  "status": "processing",
+                  "messageId": "msg_8d9a5f42e7c64ba18bddca21",
+                  "url": "https://elicit.com/agent/a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request. `message` must contain 1–2,000 characters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed. The API key is missing, invalid, revoked, or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "invalid_api_key",
+                    "message": "Invalid API key"
+                  }
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Insufficient quota.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "insufficient_quota",
+                    "message": "Insufficient quota."
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "API access is not available on your current plan. Upgrade to Pro or above to use the API.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "api_access_denied",
+                    "message": "API access is not available on your current plan. Please upgrade to Pro or above."
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The Research Agent API is not enabled for this account, or the session does not exist or belongs to another user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "earlyAccessNotEnabled": {
+                    "summary": "Research Agent API early access is not enabled",
+                    "value": {
+                      "error": {
+                        "code": "not_found",
+                        "message": "Not found"
+                      }
+                    }
+                  },
+                  "sessionNotFound": {
+                    "summary": "Session not found",
+                    "value": {
+                      "error": {
+                        "code": "session_not_found",
+                        "message": "Session not found"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The session failed or is paused for insufficient quota and cannot accept a message.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "failed": {
+                    "summary": "Session failed",
+                    "value": {
+                      "error": {
+                        "code": "session_failed",
+                        "message": "Session has failed and cannot accept new messages."
+                      }
+                    }
+                  },
+                  "paused": {
+                    "summary": "Session paused",
+                    "value": {
+                      "error": {
+                        "code": "session_paused",
+                        "message": "Session is paused for insufficient quota. Resume it before inserting messages."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. More than 100 requests per minute were received from your IP address; further requests are blocked for 5 minutes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudflareRateLimitError"
+                },
+                "example": {
+                  "error": "Rate limit exceeded",
+                  "message": "Too many requests. Please try again later."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected error occurred. Retry after a short delay.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "internal_error",
+                    "message": "Internal server error"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/files": {
+      "post": {
+        "tags": [
+          "Research Agent"
+        ],
+        "summary": "Upload a file for a Research Agent session",
+        "description": "Stage a file so it can be attached to a Research Agent turn. This is a two-step, presigned upload:\n\n1. **POST /api/v2/files** with the filename, MIME type, and exact byte size. The response returns a `file_id` and a short-lived presigned `upload_url`.\n2. **PUT** the raw file bytes to `upload_url` with the same `Content-Type` and a `Content-Length` matching `size_bytes`. Do not send an `Authorization` header on the PUT — the URL is already signed.\n\nThen pass `{ \"file_id\": \"...\" }` in the `attachments` array of a create-session or send-message request. Attached files are made available to the agent exactly as uploads made in the web interface are.\n\nThe request/response fields for this endpoint are deliberately `snake_case` (`content_type`, `size_bytes`, `file_id`, `upload_url`, `expires_at`), unlike the camelCase used elsewhere in the v2 surface. Files are capped at 30 MB, and a session accepts a bounded number of attachments; the `upload_url` and `file_id` expire at `expires_at`.\n\nThis endpoint is in early access. It returns `404 not_found` unless the Research Agent API has been enabled for the authenticated account or organization.\n\n### Example\n\n```bash\n# 1. Register the upload\ncurl -X POST https://elicit.com/api/v2/files \\\n  -H \"Authorization: Bearer elk_live_your_key_here\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"filename\":\"trial-results.pdf\",\"content_type\":\"application/pdf\",\"size_bytes\":245678}'\n\n# 2. Upload the bytes to the returned upload_url\ncurl -X PUT \"{upload_url}\" \\\n  -H \"Content-Type: application/pdf\" \\\n  --data-binary @trial-results.pdf\n\n# 3. Attach {\"file_id\": \"...\"} to a create-session or /messages request\n```",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "File metadata for the presigned upload",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "filename": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512,
+                    "description": "Original filename of the upload. Used as the display name in the session.",
+                    "example": "trial-results.pdf"
+                  },
+                  "content_type": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "description": "MIME type of the file.",
+                    "example": "application/pdf"
+                  },
+                  "size_bytes": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 31457280,
+                    "description": "Exact size of the file in bytes. Must match the uploaded object exactly. Maximum 31457280 bytes (30 MB).",
+                    "example": 245678
+                  }
+                },
+                "required": [
+                  "filename",
+                  "content_type",
+                  "size_bytes"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Upload registered. PUT the file bytes to `upload_url` before it expires.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateFileResponse"
+                },
+                "example": {
+                  "file_id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+                  "upload_url": "https://s3.amazonaws.com/...",
+                  "expires_at": "2026-07-23T15:00:00.000Z"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request. The filename, content type, or size is missing or invalid, or the size exceeds the 30 MB limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "invalid_request",
+                    "message": "Invalid request"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed. The API key is missing, invalid, revoked, or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "invalid_api_key",
+                    "message": "Invalid API key"
+                  }
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Insufficient quota.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "insufficient_quota",
+                    "message": "Insufficient quota."
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "API access is not available on your current plan. Upgrade to Pro or above to use the API.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "api_access_denied",
+                    "message": "API access is not available on your current plan. Please upgrade to Pro or above."
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Research Agent API early access is not enabled for this account.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "not_found",
+                    "message": "Not found"
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. More than 100 requests per minute were received from your IP address; further requests are blocked for 5 minutes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudflareRateLimitError"
+                },
+                "example": {
+                  "error": "Rate limit exceeded",
+                  "message": "Too many requests. Please try again later."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected error occurred. Retry after a short delay.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "internal_error",
+                    "message": "Internal server error"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/agents/{sessionId}/artifacts": {
+      "get": {
+        "tags": [
+          "Research Agent"
+        ],
+        "summary": "List Research Agent session artifacts",
+        "description": "List files and interactive outputs produced in a Research Agent session.\n\nFile-backed artifacts are listed under `artifacts`. Only the latest version of each is listed. A delivered file appears once as `agent-delivered-file`; `agent-saved-file` denotes a workspace file that the agent saved but did not deliver.\n\nInteractive outputs delivered as session outputs (tables, prose, presentations, figures) are listed under `deliveredOutputs`; retrieve their contents from the artifact content endpoint.\n\nUse the opaque, session-scoped `artifactId` with the download endpoint (for `artifacts`) or the content endpoint (for `deliveredOutputs`). Do not construct or decode artifact IDs.\n\n### Example\n\n```bash\ncurl https://elicit.com/api/v2/sessions/agents/{sessionId}/artifacts \\\n  -H \"Authorization: Bearer elk_live_your_key_here\"\n```",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sessionId",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Latest artifacts produced in the session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAgentSessionArtifactsResponse"
+                },
+                "example": {
+                  "sessionId": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+                  "artifacts": [
+                    {
+                      "artifactId": "YWdlbnQtZGVsaXZlcmVkLWZpbGU6...",
+                      "kind": "agent-delivered-file",
+                      "format": "docx",
+                      "filename": "cardiovascular_outcomes.docx",
+                      "contentType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                      "sizeBytes": 48231,
+                      "createdAt": "2026-07-23T14:42:10.000Z"
+                    }
+                  ],
+                  "deliveredOutputs": [
+                    {
+                      "artifactId": "aW50ZXJhY3RpdmUtdGFibGU6...",
+                      "kind": "table",
+                      "title": "Biologics for plaque psoriasis",
+                      "caption": "Comparison of efficacy outcomes across included trials",
+                      "rowCount": 12,
+                      "downloadFormats": [
+                        "csv",
+                        "xlsx"
+                      ],
+                      "createdAt": "2026-07-23T14:41:05.000Z"
+                    }
+                  ],
+                  "url": "https://elicit.com/agent/a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed. The API key is missing, invalid, revoked, or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "invalid_api_key",
+                    "message": "Invalid API key"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "API access is not available on your current plan. Upgrade to Pro or above to use the API.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "api_access_denied",
+                    "message": "API access is not available on your current plan. Please upgrade to Pro or above."
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The Research Agent API is not enabled for this account, or the session does not exist or belongs to another user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "earlyAccessNotEnabled": {
+                    "summary": "Research Agent API early access is not enabled",
+                    "value": {
+                      "error": {
+                        "code": "not_found",
+                        "message": "Not found"
+                      }
+                    }
+                  },
+                  "sessionNotFound": {
+                    "summary": "Session not found",
+                    "value": {
+                      "error": {
+                        "code": "session_not_found",
+                        "message": "Session not found"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. More than 100 requests per minute were received from your IP address; further requests are blocked for 5 minutes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudflareRateLimitError"
+                },
+                "example": {
+                  "error": "Rate limit exceeded",
+                  "message": "Too many requests. Please try again later."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected error occurred. Retry after a short delay.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "internal_error",
+                    "message": "Internal server error"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/agents/{sessionId}/artifacts/{artifactId}/content": {
+      "get": {
+        "tags": [
+          "Research Agent"
+        ],
+        "summary": "Get interactive artifact contents",
+        "description": "Materialize the contents of an interactive artifact listed under `deliveredOutputs` on the list-artifacts endpoint.\n\nThe response is structured JSON discriminated on `kind`: tables carry `columns` and `rows`; prose and figures carry supported content (cleaned text, the original markdown, and resolved citations); presentations carry slides. The default `format` is `json` (omitting the parameter is equivalent to `?format=json`). Tables can also be downloaded with `?format=csv` or `?format=xlsx`, and prose with `?format=md`. File responses are served with `Content-Disposition: attachment`, not as JSON. Unsupported kind/format combinations return `400 download_not_available`.\n\n### Example\n\n```bash\n# Structured JSON\ncurl https://elicit.com/api/v2/sessions/agents/{sessionId}/artifacts/{artifactId}/content \\\n  -H \"Authorization: Bearer elk_live_your_key_here\"\n\n# Table as CSV\ncurl \"https://elicit.com/api/v2/sessions/agents/{sessionId}/artifacts/{artifactId}/content?format=csv\" \\\n  -H \"Authorization: Bearer elk_live_your_key_here\" \\\n  -O -J\n\n# Prose as portable Markdown\ncurl \"https://elicit.com/api/v2/sessions/agents/{sessionId}/artifacts/{artifactId}/content?format=md\" \\\n  -H \"Authorization: Bearer elk_live_your_key_here\" \\\n  -O -J\n```",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sessionId",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "artifactId",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "description": "Response format: omit or \"json\" for the JSON body; \"csv\"/\"xlsx\" to download a table as a file, or \"md\" to download prose as Markdown.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "json",
+                "csv",
+                "xlsx",
+                "md"
+              ],
+              "description": "Response format: omit or \"json\" for the JSON body; \"csv\"/\"xlsx\" to download a table as a file, or \"md\" to download prose as Markdown."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Contents of the interactive artifact: structured JSON, a CSV/XLSX file for a table, or a Markdown file for prose.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAgentSessionArtifactContentResponse"
+                },
+                "example": {
+                  "artifactId": "aW50ZXJhY3RpdmUtdGFibGU6...",
+                  "kind": "table",
+                  "title": "Biologics for plaque psoriasis",
+                  "caption": "Comparison of efficacy outcomes across included trials",
+                  "columns": [
+                    "Study",
+                    "Intervention",
+                    "PASI 90 at week 16"
+                  ],
+                  "rows": [
+                    {
+                      "Study": {
+                        "text": "UNCOVER-3",
+                        "citations": [],
+                        "source": null
+                      },
+                      "Intervention": {
+                        "text": "Ixekizumab 80 mg Q2W",
+                        "citations": [],
+                        "source": null
+                      },
+                      "PASI 90 at week 16": {
+                        "text": "68%",
+                        "citations": [],
+                        "source": null
+                      }
+                    }
+                  ],
+                  "url": "https://elicit.com/agent/a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "text/markdown": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The requested file format is not available for this artifact kind. Tables support CSV/XLSX and prose supports Markdown.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "download_not_available",
+                    "message": "The requested download format is not available for this artifact."
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed. The API key is missing, invalid, revoked, or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "invalid_api_key",
+                    "message": "Invalid API key"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "API access is not available on your current plan. Upgrade to Pro or above to use the API.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "api_access_denied",
+                    "message": "API access is not available on your current plan. Please upgrade to Pro or above."
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Research Agent API early access is not enabled, the session was not found, or the artifact is not in the session's current deliveredOutputs list.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "earlyAccessNotEnabled": {
+                    "summary": "Research Agent API early access is not enabled",
+                    "value": {
+                      "error": {
+                        "code": "not_found",
+                        "message": "Not found"
+                      }
+                    }
+                  },
+                  "sessionNotFound": {
+                    "summary": "Session not found",
+                    "value": {
+                      "error": {
+                        "code": "session_not_found",
+                        "message": "Session not found"
+                      }
+                    }
+                  },
+                  "artifactNotFound": {
+                    "summary": "Artifact not found",
+                    "value": {
+                      "error": {
+                        "code": "artifact_not_found",
+                        "message": "Artifact not found"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. More than 100 requests per minute were received from your IP address; further requests are blocked for 5 minutes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudflareRateLimitError"
+                },
+                "example": {
+                  "error": "Rate limit exceeded",
+                  "message": "Too many requests. Please try again later."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected error occurred. Retry after a short delay.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "internal_error",
+                    "message": "Internal server error"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/agents/{sessionId}/artifacts/{artifactId}/download": {
+      "get": {
+        "tags": [
+          "Research Agent"
+        ],
+        "summary": "Create an artifact download URL",
+        "description": "Create a short-lived presigned URL for an artifact returned by the list-artifacts endpoint.\n\nThe URL expires after 30 minutes. Call this endpoint again to issue a fresh URL. Treat the URL as a credential while it is valid: do not log it or store it as a permanent share link.\n\n### Example\n\n```bash\ncurl https://elicit.com/api/v2/sessions/agents/{sessionId}/artifacts/{artifactId}/download \\\n  -H \"Authorization: Bearer elk_live_your_key_here\"\n```",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sessionId",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "artifactId",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Short-lived artifact download URL.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DownloadAgentSessionArtifactResponse"
+                },
+                "example": {
+                  "downloadUrl": "https://s3.amazonaws.com/...",
+                  "expiresAt": "2026-07-23T15:12:10.000Z",
+                  "filename": "cardiovascular_outcomes.docx",
+                  "contentType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed. The API key is missing, invalid, revoked, or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "invalid_api_key",
+                    "message": "Invalid API key"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "API access is not available on your current plan. Upgrade to Pro or above to use the API.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "api_access_denied",
+                    "message": "API access is not available on your current plan. Please upgrade to Pro or above."
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Research Agent API early access is not enabled, the session was not found, or the artifact is not in the session's current artifact list.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "earlyAccessNotEnabled": {
+                    "summary": "Research Agent API early access is not enabled",
+                    "value": {
+                      "error": {
+                        "code": "not_found",
+                        "message": "Not found"
+                      }
+                    }
+                  },
+                  "sessionNotFound": {
+                    "summary": "Session not found",
+                    "value": {
+                      "error": {
+                        "code": "session_not_found",
+                        "message": "Session not found"
+                      }
+                    }
+                  },
+                  "artifactNotFound": {
+                    "summary": "Artifact not found",
+                    "value": {
+                      "error": {
+                        "code": "artifact_not_found",
+                        "message": "Artifact not found"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. More than 100 requests per minute were received from your IP address; further requests are blocked for 5 minutes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudflareRateLimitError"
+                },
+                "example": {
+                  "error": "Rate limit exceeded",
+                  "message": "Too many requests. Please try again later."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected error occurred. Retry after a short delay.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "internal_error",
+                    "message": "Internal server error"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/agents/{sessionId}/stop": {
+      "post": {
+        "tags": [
+          "Research Agent"
+        ],
+        "summary": "Stop a Research Agent session",
+        "description": "Request an asynchronous interrupt using the same stop action as the Elicit web interface.\n\nStopping does not delete or permanently close the session. The session remains visible and may be continued later. When the response status is `stopping`, poll the events endpoint until a `session_stopped` event appears.\n\nThe operation is idempotent. If the session is already stopped or failed, it returns the existing state with `200 OK`.\n\n### Example\n\n```bash\ncurl -X POST https://elicit.com/api/v2/sessions/agents/{sessionId}/stop \\\n  -H \"Authorization: Bearer elk_live_your_key_here\"\n```",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sessionId",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The session had already stopped or failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StopAgentSessionResponse"
+                },
+                "examples": {
+                  "stopped": {
+                    "summary": "Already stopped",
+                    "value": {
+                      "sessionId": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+                      "status": "stopped",
+                      "url": "https://elicit.com/agent/a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+                    }
+                  },
+                  "failed": {
+                    "summary": "Already failed",
+                    "value": {
+                      "sessionId": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+                      "status": "failed",
+                      "url": "https://elicit.com/agent/a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "The stop request was queued. Poll the events endpoint until the session is stopped.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StopAgentSessionResponse"
+                },
+                "example": {
+                  "sessionId": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+                  "status": "stopping",
+                  "url": "https://elicit.com/agent/a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed. The API key is missing, invalid, revoked, or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "invalid_api_key",
+                    "message": "Invalid API key"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "API access is not available on your current plan. Upgrade to Pro or above to use the API.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "api_access_denied",
+                    "message": "API access is not available on your current plan. Please upgrade to Pro or above."
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The Research Agent API is not enabled for this account, or the session does not exist or belongs to another user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "earlyAccessNotEnabled": {
+                    "summary": "Research Agent API early access is not enabled",
+                    "value": {
+                      "error": {
+                        "code": "not_found",
+                        "message": "Not found"
+                      }
+                    }
+                  },
+                  "sessionNotFound": {
+                    "summary": "Session not found",
+                    "value": {
+                      "error": {
+                        "code": "session_not_found",
+                        "message": "Session not found"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. More than 100 requests per minute were received from your IP address; further requests are blocked for 5 minutes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudflareRateLimitError"
+                },
+                "example": {
+                  "error": "Rate limit exceeded",
+                  "message": "Too many requests. Please try again later."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected error occurred. Retry after a short delay.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "internal_error",
+                    "message": "Internal server error"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1845,7 +4221,7 @@
           "maxEpochS": {
             "type": "integer",
             "description": "Maximum publication date as Unix epoch seconds",
-            "example": 1784148261
+            "example": 1786843944
           },
           "maxQuartile": {
             "type": "integer",
@@ -2507,6 +4883,30 @@
             "description": "Pre-signed URL to download the report as DOCX. Only present when status is completed and assets have been generated. Expires after 7 days — re-fetch the report for a fresh URL.",
             "example": "https://s3.amazonaws.com/..."
           },
+          "txtUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pre-signed URL to download the report's reference list as a plain-text (APA) file. Only present when status is completed and the report has a non-empty bibliography. Expires after 7 days — re-fetch the report for a fresh URL.",
+            "example": "https://s3.amazonaws.com/..."
+          },
+          "bibUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pre-signed URL to download the report's references as a BibTeX (.bib) file. Only present when status is completed and the report has a non-empty bibliography. Expires after 7 days — re-fetch the report for a fresh URL.",
+            "example": "https://s3.amazonaws.com/..."
+          },
+          "risUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pre-signed URL to download the report's references as an RIS (.ris) file. Only present when status is completed and the report has a non-empty bibliography. Expires after 7 days — re-fetch the report for a fresh URL.",
+            "example": "https://s3.amazonaws.com/..."
+          },
           "links": {
             "$ref": "#/components/schemas/SessionLinks"
           }
@@ -2554,6 +4954,80 @@
         "required": [
           "title",
           "summary"
+        ]
+      },
+      "EstimateSystematicReviewResponse": {
+        "type": "object",
+        "properties": {
+          "estimatedCredits": {
+            "type": "number",
+            "description": "Estimated Elicit Credits this configuration will consume at launch. A median-anchored launch estimate, not a quote — actual usage can be higher, especially for broad searches or non-strict screening.",
+            "example": 456
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "proceed",
+              "warn",
+              "blocked"
+            ],
+            "description": "`proceed` — comfortably within budget. `warn` — the run would consume a large share of, or exceed, the remaining budget. `blocked` — the account is already over its usage limit. Always `proceed` for non-credits accounts. Use `get_usage` for exact remaining budget."
+          },
+          "breakdown": {
+            "$ref": "#/components/schemas/SystematicReviewCostBreakdown"
+          }
+        },
+        "required": [
+          "estimatedCredits",
+          "outcome",
+          "breakdown"
+        ]
+      },
+      "SystematicReviewCostBreakdown": {
+        "type": "object",
+        "properties": {
+          "setupOverheadCredits": {
+            "type": "number",
+            "description": "Flat per-launch setup jobs."
+          },
+          "abstractScreeningCredits": {
+            "type": "number",
+            "description": "Abstract screening (0 if off)."
+          },
+          "fulltextScreeningCredits": {
+            "type": "number",
+            "description": "Fulltext screening (0 if off)."
+          },
+          "extractionCredits": {
+            "type": "number",
+            "description": "Data extraction (0 if off)."
+          },
+          "figuresCredits": {
+            "type": "number",
+            "description": "Figure consultation (0 otherwise)."
+          },
+          "reportCredits": {
+            "type": "number",
+            "description": "Report generation (0 if no report)."
+          },
+          "resolvedPaperCount": {
+            "type": "number",
+            "description": "Candidate corpus size used."
+          },
+          "total": {
+            "type": "number",
+            "description": "Sum of the per-component credits above."
+          }
+        },
+        "required": [
+          "setupOverheadCredits",
+          "abstractScreeningCredits",
+          "fulltextScreeningCredits",
+          "extractionCredits",
+          "figuresCredits",
+          "reportCredits",
+          "resolvedPaperCount",
+          "total"
         ]
       },
       "SystematicReviewSessionCreated": {
@@ -2807,7 +5281,7 @@
             "items": {
               "$ref": "#/components/schemas/SessionListItem"
             },
-            "description": "Reports and systematic reviews interleaved, ordered by creation date (newest first)"
+            "description": "Reports, systematic reviews, and research-agent sessions interleaved, ordered by creation date (newest first)"
           },
           "nextCursor": {
             "type": [
@@ -2830,7 +5304,8 @@
             "type": "string",
             "enum": [
               "report",
-              "systematicReview"
+              "systematicReview",
+              "agent"
             ],
             "description": "Which kind of session this is; use it to pick the matching typed get endpoint"
           },
@@ -2865,7 +5340,7 @@
               "done",
               null
             ],
-            "description": "Current pipeline stage, or null when not yet known. See the get endpoint for the value vocabulary."
+            "description": "Current pipeline stage, or null when not yet known. Omitted entirely for agent sessions, which have no pipeline stages."
           },
           "title": {
             "type": "string",
@@ -2880,8 +5355,10 @@
           "source": {
             "type": "string",
             "enum": [
+              "user",
               "api",
-              "user"
+              "mcp",
+              "agent_session"
             ],
             "description": "How the report was created",
             "example": "api"
@@ -2896,6 +5373,14 @@
             "description": "Whether the report is publicly accessible via its URL without authentication",
             "example": false
           },
+          "role": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "shared"
+            ],
+            "description": "The caller's relationship to this session: \"owner\" for a session the caller created, or \"shared\" for an agent session another user shared with them read-only. Reports and systematic reviews are always \"owner\"."
+          },
           "links": {
             "$ref": "#/components/schemas/SessionLinks"
           }
@@ -2904,7 +5389,6 @@
           "type",
           "sessionId",
           "status",
-          "executionStage",
           "title",
           "url",
           "source",
@@ -2920,9 +5404,10 @@
             "type": "string",
             "enum": [
               "report",
-              "systematicReview"
+              "systematicReview",
+              "agent"
             ],
-            "description": "Which kind of session this is; use it to pick the matching typed get endpoint"
+            "description": "Which kind of session was resumed"
           },
           "sessionId": {
             "type": "string",
@@ -2978,6 +5463,1777 @@
           "isPublic",
           "links"
         ]
+      },
+      "CreateSessionShareResponse": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "description": "Unique identifier for the session."
+          },
+          "share": {
+            "$ref": "#/components/schemas/SessionShare"
+          },
+          "url": {
+            "type": "string",
+            "description": "URL to view and continue the session in the Elicit web interface."
+          }
+        },
+        "required": [
+          "sessionId",
+          "share",
+          "url"
+        ]
+      },
+      "SessionShare": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "Email address the session is shared with.",
+            "example": "colleague@example.com"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "registered",
+              "invited"
+            ],
+            "description": "\"registered\" when the recipient already has an Elicit account and can read the session now; \"invited\" when a pending invitation was created for an email without an account."
+          },
+          "role": {
+            "type": "string",
+            "const": "reader",
+            "description": "Access level of the share. Sessions are always shared read-only."
+          }
+        },
+        "required": [
+          "email",
+          "status",
+          "role"
+        ]
+      },
+      "ListSessionSharesResponse": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "description": "Unique identifier for the session."
+          },
+          "shares": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SessionShare"
+            },
+            "description": "Everyone the session is currently shared with — both registered recipients and pending email invitations."
+          },
+          "url": {
+            "type": "string",
+            "description": "URL to view and continue the session in the Elicit web interface."
+          }
+        },
+        "required": [
+          "sessionId",
+          "shares",
+          "url"
+        ]
+      },
+      "DeleteSessionShareResponse": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "description": "Unique identifier for the session."
+          },
+          "email": {
+            "type": "string",
+            "description": "Email address whose share was revoked."
+          },
+          "revoked": {
+            "type": "boolean",
+            "description": "Whether an existing share or pending invite was removed. False when there was nothing to revoke (the call is idempotent either way)."
+          }
+        },
+        "required": [
+          "sessionId",
+          "email",
+          "revoked"
+        ]
+      },
+      "GetUsageResponse": {
+        "type": "object",
+        "properties": {
+          "hasUsageRemaining": {
+            "type": "boolean",
+            "description": "Whether the account still has usage available this billing period. False once both the plan limit and (if enabled) the extra-usage limit are exhausted."
+          },
+          "percentUsed": {
+            "type": "number",
+            "description": "Percentage of plan usage consumed this billing period."
+          },
+          "periodStart": {
+            "type": "string",
+            "description": "ISO 8601 start of the current billing period."
+          },
+          "periodEnd": {
+            "type": "string",
+            "description": "ISO 8601 end of the current billing period. Monthly usage limits reset at this time."
+          },
+          "extraUsage": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ExtraUsage"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Extra-usage amount and limit in USD cents. Null when extra usage is not enabled."
+          }
+        },
+        "required": [
+          "hasUsageRemaining",
+          "percentUsed",
+          "periodStart",
+          "periodEnd",
+          "extraUsage"
+        ]
+      },
+      "ExtraUsage": {
+        "type": "object",
+        "properties": {
+          "limitUsdCents": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "The extra-usage spending limit in USD cents, or null when extra usage is uncapped."
+          },
+          "spentUsdCents": {
+            "type": "integer",
+            "description": "Extra-usage spend so far this billing period, in USD cents."
+          }
+        },
+        "required": [
+          "limitUsdCents",
+          "spentUsdCents"
+        ]
+      },
+      "CreateAgentSessionResponse": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "description": "Unique identifier for the research agent session.",
+            "example": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+          },
+          "status": {
+            "type": "string",
+            "const": "processing",
+            "description": "Initial status is always processing."
+          },
+          "url": {
+            "type": "string",
+            "description": "URL to view and continue the session in the Elicit web interface.",
+            "example": "https://elicit.com/agent/a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+          }
+        },
+        "required": [
+          "sessionId",
+          "status",
+          "url"
+        ]
+      },
+      "AgentSessionDetail": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "agent",
+            "description": "Discriminator identifying this as a research-agent session."
+          },
+          "sessionId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The session ID (UUID) returned by the create endpoints and `GET /sessions`",
+            "example": "5ad08bfb-cbe0-4911-a8c3-309760d33029"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "processing",
+              "pausedForInsufficientQuota",
+              "completed",
+              "failed",
+              "unknown"
+            ],
+            "description": "Current status of the session: \"processing\" (running, or not yet started), \"completed\" (idle and awaiting input — not terminally finished), \"failed\" (the last turn ended with an error), or \"pausedForInsufficientQuota\" (paused at the account usage limit; resume once the limit clears)."
+          },
+          "title": {
+            "type": "string",
+            "description": "Human-readable title of the session."
+          },
+          "url": {
+            "type": "string",
+            "description": "URL to view and continue the session in the Elicit web interface."
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "user",
+              "api",
+              "mcp",
+              "agent_session"
+            ],
+            "description": "How the session was created.",
+            "example": "api"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "ISO 8601 timestamp of when the session was created.",
+            "example": "2025-06-15T14:30:00.000Z"
+          },
+          "isPublic": {
+            "type": "boolean",
+            "description": "Whether the session is publicly accessible via its URL without authentication."
+          },
+          "links": {
+            "$ref": "#/components/schemas/SessionLinks"
+          }
+        },
+        "required": [
+          "type",
+          "sessionId",
+          "status",
+          "title",
+          "url",
+          "source",
+          "createdAt",
+          "isPublic",
+          "links"
+        ]
+      },
+      "GetAgentSessionEventsResponse": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "description": "Unique identifier for the research agent session."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "processing",
+              "pausedForInsufficientQuota",
+              "completed",
+              "failed",
+              "unknown"
+            ],
+            "description": "Current status of the session. Uses exactly the same value and semantics as the list and detail endpoints."
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReducedAgentEvent"
+            },
+            "description": "Append-only view of the session's activity. Streaming deltas are collapsed into immutable resource snapshots; raw stream events are never returned. Later snapshots retain the same resource ID and receive a new eventId. With no cursor this is the full history; with a cursor it contains only later occurrences."
+          },
+          "cursor": {
+            "type": "string",
+            "description": "Opaque session-bound checkpoint. Always present. Pass it unchanged as the `cursor` query param on the next poll to receive later event occurrences."
+          },
+          "url": {
+            "type": "string",
+            "description": "URL to view and continue the session in the Elicit web interface."
+          }
+        },
+        "required": [
+          "sessionId",
+          "status",
+          "events",
+          "cursor",
+          "url"
+        ]
+      },
+      "ReducedAgentEvent": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "eventId": {
+                "type": "string",
+                "description": "Stable opaque identifier for this immutable public event occurrence."
+              },
+              "createdAt": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "ISO 8601 timestamp for the event. Null for historical events without one."
+              },
+              "kind": {
+                "type": "string",
+                "const": "user_message"
+              },
+              "messageId": {
+                "type": "string"
+              },
+              "text": {
+                "type": "string"
+              },
+              "isInitial": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "eventId",
+              "createdAt",
+              "kind",
+              "messageId",
+              "text",
+              "isInitial"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "eventId": {
+                "type": "string",
+                "description": "Stable opaque identifier for this immutable public event occurrence."
+              },
+              "createdAt": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "ISO 8601 timestamp for the event. Null for historical events without one."
+              },
+              "kind": {
+                "type": "string",
+                "const": "agent_message"
+              },
+              "messageId": {
+                "type": "string"
+              },
+              "text": {
+                "type": "string"
+              },
+              "citations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "citationId": {
+                      "type": "string",
+                      "description": "Identifier for this citation within the agent message."
+                    },
+                    "quote": {
+                      "type": "string",
+                      "description": "The passage from the source that supports the message."
+                    },
+                    "source": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "Title of the cited work."
+                        },
+                        "authors": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "Authors of the cited work, in display order."
+                        },
+                        "year": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "description": "Publication year."
+                        },
+                        "doi": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "Digital Object Identifier (DOI), when available."
+                        },
+                        "url": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "Best available URL for the cited work."
+                        },
+                        "venue": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "Journal, conference, repository, or other publication venue."
+                        }
+                      },
+                      "required": [
+                        "title",
+                        "authors",
+                        "year",
+                        "doi",
+                        "url",
+                        "venue"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "citationId",
+                    "quote",
+                    "source"
+                  ]
+                }
+              },
+              "suggestedFollowUps": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "eventId",
+              "createdAt",
+              "kind",
+              "messageId",
+              "text",
+              "citations",
+              "suggestedFollowUps"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "eventId": {
+                "type": "string",
+                "description": "Stable opaque identifier for this immutable public event occurrence."
+              },
+              "createdAt": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "ISO 8601 timestamp for the event. Null for historical events without one."
+              },
+              "kind": {
+                "type": "string",
+                "const": "question"
+              },
+              "questionId": {
+                "type": "string"
+              },
+              "text": {
+                "type": "string"
+              },
+              "responseFormat": {
+                "type": "string",
+                "enum": [
+                  "text",
+                  "single_select",
+                  "multi_select"
+                ]
+              },
+              "options": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "optionId": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "optionId",
+                    "label"
+                  ]
+                }
+              },
+              "prefilledText": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "eventId",
+              "createdAt",
+              "kind",
+              "questionId",
+              "text",
+              "responseFormat",
+              "options",
+              "prefilledText"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "eventId": {
+                "type": "string",
+                "description": "Stable opaque identifier for this immutable public event occurrence."
+              },
+              "createdAt": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "ISO 8601 timestamp for the event. Null for historical events without one."
+              },
+              "kind": {
+                "type": "string",
+                "const": "activity"
+              },
+              "activityId": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "started",
+                  "completed",
+                  "failed"
+                ]
+              },
+              "title": {
+                "type": "string"
+              },
+              "summary": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "eventId",
+              "createdAt",
+              "kind",
+              "activityId",
+              "status",
+              "title",
+              "summary"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "eventId": {
+                "type": "string",
+                "description": "Stable opaque identifier for this immutable public event occurrence."
+              },
+              "createdAt": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "ISO 8601 timestamp for the event. Null for historical events without one."
+              },
+              "kind": {
+                "type": "string",
+                "const": "artifacts_delivered"
+              },
+              "artifacts": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PublicAgentArtifact"
+                },
+                "minItems": 1
+              }
+            },
+            "required": [
+              "eventId",
+              "createdAt",
+              "kind",
+              "artifacts"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "eventId": {
+                "type": "string",
+                "description": "Stable opaque identifier for this immutable public event occurrence."
+              },
+              "createdAt": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "ISO 8601 timestamp for the event. Null for historical events without one."
+              },
+              "kind": {
+                "type": "string",
+                "const": "delivered_outputs"
+              },
+              "deliveredOutputs": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/DeliveredOutputEventSnapshot"
+                },
+                "minItems": 1,
+                "description": "Artifacts delivered by this source-history occurrence. This is an immutable metadata snapshot; query the artifacts resource for currently supported download formats."
+              }
+            },
+            "required": [
+              "eventId",
+              "createdAt",
+              "kind",
+              "deliveredOutputs"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "eventId": {
+                "type": "string",
+                "description": "Stable opaque identifier for this immutable public event occurrence."
+              },
+              "createdAt": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "ISO 8601 timestamp for the event. Null for historical events without one."
+              },
+              "kind": {
+                "type": "string",
+                "const": "error"
+              },
+              "code": {
+                "type": "string",
+                "enum": [
+                  "agent_timed_out",
+                  "agent_api_error",
+                  "agent_failed"
+                ]
+              },
+              "message": {
+                "type": "string"
+              },
+              "retryable": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "eventId",
+              "createdAt",
+              "kind",
+              "code",
+              "message",
+              "retryable"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "eventId": {
+                "type": "string",
+                "description": "Stable opaque identifier for this immutable public event occurrence."
+              },
+              "createdAt": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "ISO 8601 timestamp for the event. Null for historical events without one."
+              },
+              "kind": {
+                "type": "string",
+                "const": "session_idle"
+              }
+            },
+            "required": [
+              "eventId",
+              "createdAt",
+              "kind"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "eventId": {
+                "type": "string",
+                "description": "Stable opaque identifier for this immutable public event occurrence."
+              },
+              "createdAt": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "ISO 8601 timestamp for the event. Null for historical events without one."
+              },
+              "kind": {
+                "type": "string",
+                "const": "session_paused"
+              }
+            },
+            "required": [
+              "eventId",
+              "createdAt",
+              "kind"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "eventId": {
+                "type": "string",
+                "description": "Stable opaque identifier for this immutable public event occurrence."
+              },
+              "createdAt": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "ISO 8601 timestamp for the event. Null for historical events without one."
+              },
+              "kind": {
+                "type": "string",
+                "const": "session_resumed"
+              }
+            },
+            "required": [
+              "eventId",
+              "createdAt",
+              "kind"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "eventId": {
+                "type": "string",
+                "description": "Stable opaque identifier for this immutable public event occurrence."
+              },
+              "createdAt": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "ISO 8601 timestamp for the event. Null for historical events without one."
+              },
+              "kind": {
+                "type": "string",
+                "const": "stop_requested"
+              }
+            },
+            "required": [
+              "eventId",
+              "createdAt",
+              "kind"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "eventId": {
+                "type": "string",
+                "description": "Stable opaque identifier for this immutable public event occurrence."
+              },
+              "createdAt": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "ISO 8601 timestamp for the event. Null for historical events without one."
+              },
+              "kind": {
+                "type": "string",
+                "const": "session_stopped"
+              }
+            },
+            "required": [
+              "eventId",
+              "createdAt",
+              "kind"
+            ]
+          }
+        ]
+      },
+      "PublicAgentArtifact": {
+        "type": "object",
+        "properties": {
+          "artifactId": {
+            "type": "string",
+            "description": "Opaque identifier for the artifact, stable within a session. Pass it to the download endpoint to retrieve the file. Never a raw storage key."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "agent-saved-file",
+              "agent-delivered-file",
+              "prose-export",
+              "presentation-export",
+              "figure-export",
+              "report-asset",
+              "report-citation"
+            ],
+            "description": "The kind of artifact produced in the session. A delivered file lists once as \"agent-delivered-file\"; \"agent-saved-file\" denotes a file the agent saved to its workspace but did not deliver."
+          },
+          "format": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Subtype within the artifact (e.g. \"pdf\", \"docx\", \"pptx\"). For agent files it is the filename extension; null only when the filename has no extension."
+          },
+          "filename": {
+            "type": "string",
+            "description": "Suggested filename for the downloaded artifact."
+          },
+          "contentType": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "MIME type of the artifact, when known."
+          },
+          "sizeBytes": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Size of the artifact in bytes, when known."
+          },
+          "createdAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "ISO 8601 timestamp of when the artifact was produced, when known.",
+            "example": "2025-06-15T14:30:00.000Z"
+          }
+        },
+        "required": [
+          "artifactId",
+          "kind",
+          "format",
+          "filename",
+          "contentType",
+          "sizeBytes",
+          "createdAt"
+        ]
+      },
+      "DeliveredOutputEventSnapshot": {
+        "type": "object",
+        "properties": {
+          "artifactId": {
+            "type": "string",
+            "description": "Opaque identifier for the interactive artifact, stable within a session. Pass it to the artifact content endpoint to retrieve its contents. Never a raw storage key or entity hash."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "table",
+              "prose",
+              "presentation",
+              "figure"
+            ],
+            "description": "The kind of interactive artifact: table, prose, presentation, or figure."
+          },
+          "title": {
+            "type": "string",
+            "description": "Human-readable title of the artifact."
+          },
+          "caption": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional caption describing the artifact."
+          },
+          "rowCount": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Number of rows for a table artifact; null for non-table kinds."
+          },
+          "createdAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "ISO 8601 timestamp of when the artifact was delivered, when known.",
+            "example": "2025-06-15T14:30:00.000Z"
+          }
+        },
+        "required": [
+          "artifactId",
+          "kind",
+          "title",
+          "caption",
+          "rowCount",
+          "createdAt"
+        ]
+      },
+      "PostAgentSessionMessageResponse": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "description": "Unique identifier for the research agent session."
+          },
+          "status": {
+            "type": "string",
+            "const": "processing",
+            "description": "The session is processing the inserted message."
+          },
+          "messageId": {
+            "type": "string",
+            "description": "Identifier of the inserted message. Correlate it with the messageId on the matching user_message event."
+          },
+          "url": {
+            "type": "string",
+            "description": "URL to view and continue the session in the Elicit web interface."
+          }
+        },
+        "required": [
+          "sessionId",
+          "status",
+          "messageId",
+          "url"
+        ]
+      },
+      "CreateFileResponse": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "description": "Opaque identifier for the staged upload. Pass it in the `attachments` array of a create-session or send-message request to attach the file to that turn.",
+            "example": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+          },
+          "upload_url": {
+            "type": "string",
+            "description": "Short-lived presigned S3 PUT URL. Upload the file bytes directly to it with the same Content-Type and Content-Length declared here."
+          },
+          "expires_at": {
+            "type": "string",
+            "description": "ISO 8601 timestamp after which the upload URL and the staged file_id are no longer valid.",
+            "example": "2026-07-23T15:00:00.000Z"
+          }
+        },
+        "required": [
+          "file_id",
+          "upload_url",
+          "expires_at"
+        ]
+      },
+      "GetAgentSessionArtifactsResponse": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "description": "Unique identifier for the research agent session."
+          },
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicAgentArtifact"
+            },
+            "description": "File-backed artifacts produced in the session. Only the latest version of each artifact is listed. Retrieve contents via the download endpoint."
+          },
+          "deliveredOutputs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicDeliveredOutput"
+            },
+            "description": "Interactive outputs (tables, prose, presentations, figures) delivered as session outputs. Only the latest delivery of each is listed. Retrieve contents via the artifact content endpoint."
+          },
+          "url": {
+            "type": "string",
+            "description": "URL to view and continue the session in the Elicit web interface."
+          }
+        },
+        "required": [
+          "sessionId",
+          "artifacts",
+          "deliveredOutputs",
+          "url"
+        ]
+      },
+      "PublicDeliveredOutput": {
+        "type": "object",
+        "properties": {
+          "artifactId": {
+            "type": "string",
+            "description": "Opaque identifier for the interactive artifact, stable within a session. Pass it to the artifact content endpoint to retrieve its contents. Never a raw storage key or entity hash."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "table",
+              "prose",
+              "presentation",
+              "figure"
+            ],
+            "description": "The kind of interactive artifact: table, prose, presentation, or figure."
+          },
+          "title": {
+            "type": "string",
+            "description": "Human-readable title of the artifact."
+          },
+          "caption": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional caption describing the artifact."
+          },
+          "rowCount": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Number of rows for a table artifact; null for non-table kinds."
+          },
+          "createdAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "ISO 8601 timestamp of when the artifact was delivered, when known.",
+            "example": "2025-06-15T14:30:00.000Z"
+          },
+          "downloadFormats": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "csv",
+                "xlsx",
+                "md"
+              ]
+            },
+            "description": "File formats this artifact can be downloaded as from the content endpoint via ?format=<fmt> (tables: csv/xlsx; prose: md; empty for other kinds). The JSON body is returned when no format is given."
+          }
+        },
+        "required": [
+          "artifactId",
+          "kind",
+          "title",
+          "caption",
+          "rowCount",
+          "createdAt",
+          "downloadFormats"
+        ]
+      },
+      "GetAgentSessionArtifactContentResponse": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "artifactId": {
+                "type": "string",
+                "description": "Opaque identifier for the interactive artifact, echoing the request. Can also be re-requested with ?format=<fmt> to download as a file (tables: csv/xlsx, prose: md)."
+              },
+              "title": {
+                "type": "string",
+                "description": "Human-readable title of the artifact."
+              },
+              "caption": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Optional caption describing the artifact."
+              },
+              "url": {
+                "type": "string",
+                "description": "URL to view and continue the session in the Elicit web interface."
+              },
+              "kind": {
+                "type": "string",
+                "const": "table"
+              },
+              "columns": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Ordered column keys for the table, in first-seen order across the rows."
+              },
+              "rows": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                      "text": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "description": "Human-readable cell text with inline citation markup removed. Null when the cell has no text value."
+                      },
+                      "citations": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "citationId": {
+                              "type": "string",
+                              "description": "Identifier for this citation within the agent message."
+                            },
+                            "quote": {
+                              "type": "string",
+                              "description": "The passage from the source that supports the message."
+                            },
+                            "source": {
+                              "type": "object",
+                              "properties": {
+                                "title": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "description": "Title of the cited work."
+                                },
+                                "authors": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  },
+                                  "description": "Authors of the cited work, in display order."
+                                },
+                                "year": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ],
+                                  "description": "Publication year."
+                                },
+                                "doi": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "description": "Digital Object Identifier (DOI), when available."
+                                },
+                                "url": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "description": "Best available URL for the cited work."
+                                },
+                                "venue": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "description": "Journal, conference, repository, or other publication venue."
+                                }
+                              },
+                              "required": [
+                                "title",
+                                "authors",
+                                "year",
+                                "doi",
+                                "url",
+                                "venue"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "citationId",
+                            "quote",
+                            "source"
+                          ]
+                        },
+                        "description": "Citations backing this cell, resolved to the same shape as message citations."
+                      },
+                      "source": {
+                        "type": [
+                          "object",
+                          "null"
+                        ],
+                        "properties": {
+                          "title": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "Title of the cited work."
+                          },
+                          "authors": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "Authors of the cited work, in display order."
+                          },
+                          "year": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ],
+                            "description": "Publication year."
+                          },
+                          "doi": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "Digital Object Identifier (DOI), when available."
+                          },
+                          "url": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "Best available URL for the cited work."
+                          },
+                          "venue": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "Journal, conference, repository, or other publication venue."
+                          }
+                        },
+                        "required": [
+                          "title",
+                          "authors",
+                          "year",
+                          "doi",
+                          "url",
+                          "venue"
+                        ],
+                        "description": "The cited source when this cell is a resolved source reference; otherwise null."
+                      }
+                    },
+                    "required": [
+                      "text",
+                      "citations",
+                      "source"
+                    ]
+                  }
+                },
+                "description": "Table rows, each a mapping from column key to cell."
+              }
+            },
+            "required": [
+              "artifactId",
+              "title",
+              "caption",
+              "url",
+              "kind",
+              "columns",
+              "rows"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "artifactId": {
+                "type": "string",
+                "description": "Opaque identifier for the interactive artifact, echoing the request. Can also be re-requested with ?format=<fmt> to download as a file (tables: csv/xlsx, prose: md)."
+              },
+              "title": {
+                "type": "string",
+                "description": "Human-readable title of the artifact."
+              },
+              "caption": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Optional caption describing the artifact."
+              },
+              "url": {
+                "type": "string",
+                "description": "URL to view and continue the session in the Elicit web interface."
+              },
+              "kind": {
+                "type": "string",
+                "const": "prose"
+              },
+              "content": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "description": "Human-readable content with inline citation markup removed."
+                  },
+                  "markdown": {
+                    "type": "string",
+                    "description": "The original markdown content, including inline citation markup."
+                  },
+                  "citations": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "citationId": {
+                          "type": "string",
+                          "description": "Identifier for this citation within the agent message."
+                        },
+                        "quote": {
+                          "type": "string",
+                          "description": "The passage from the source that supports the message."
+                        },
+                        "source": {
+                          "type": "object",
+                          "properties": {
+                            "title": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "description": "Title of the cited work."
+                            },
+                            "authors": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              },
+                              "description": "Authors of the cited work, in display order."
+                            },
+                            "year": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ],
+                              "description": "Publication year."
+                            },
+                            "doi": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "description": "Digital Object Identifier (DOI), when available."
+                            },
+                            "url": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "description": "Best available URL for the cited work."
+                            },
+                            "venue": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "description": "Journal, conference, repository, or other publication venue."
+                            }
+                          },
+                          "required": [
+                            "title",
+                            "authors",
+                            "year",
+                            "doi",
+                            "url",
+                            "venue"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "citationId",
+                        "quote",
+                        "source"
+                      ]
+                    },
+                    "description": "Citations backing this content, resolved to the same shape as message citations."
+                  }
+                },
+                "required": [
+                  "text",
+                  "markdown",
+                  "citations"
+                ]
+              }
+            },
+            "required": [
+              "artifactId",
+              "title",
+              "caption",
+              "url",
+              "kind",
+              "content"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "artifactId": {
+                "type": "string",
+                "description": "Opaque identifier for the interactive artifact, echoing the request. Can also be re-requested with ?format=<fmt> to download as a file (tables: csv/xlsx, prose: md)."
+              },
+              "title": {
+                "type": "string",
+                "description": "Human-readable title of the artifact."
+              },
+              "caption": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Optional caption describing the artifact."
+              },
+              "url": {
+                "type": "string",
+                "description": "URL to view and continue the session in the Elicit web interface."
+              },
+              "kind": {
+                "type": "string",
+                "const": "presentation"
+              },
+              "slides": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "title": {
+                      "type": "string",
+                      "description": "Slide title."
+                    },
+                    "content": {
+                      "type": "object",
+                      "properties": {
+                        "text": {
+                          "type": "string",
+                          "description": "Human-readable content with inline citation markup removed."
+                        },
+                        "markdown": {
+                          "type": "string",
+                          "description": "The original markdown content, including inline citation markup."
+                        },
+                        "citations": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "citationId": {
+                                "type": "string",
+                                "description": "Identifier for this citation within the agent message."
+                              },
+                              "quote": {
+                                "type": "string",
+                                "description": "The passage from the source that supports the message."
+                              },
+                              "source": {
+                                "type": "object",
+                                "properties": {
+                                  "title": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "description": "Title of the cited work."
+                                  },
+                                  "authors": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "description": "Authors of the cited work, in display order."
+                                  },
+                                  "year": {
+                                    "type": [
+                                      "integer",
+                                      "null"
+                                    ],
+                                    "description": "Publication year."
+                                  },
+                                  "doi": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "description": "Digital Object Identifier (DOI), when available."
+                                  },
+                                  "url": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "description": "Best available URL for the cited work."
+                                  },
+                                  "venue": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "description": "Journal, conference, repository, or other publication venue."
+                                  }
+                                },
+                                "required": [
+                                  "title",
+                                  "authors",
+                                  "year",
+                                  "doi",
+                                  "url",
+                                  "venue"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "citationId",
+                              "quote",
+                              "source"
+                            ]
+                          },
+                          "description": "Citations backing this content, resolved to the same shape as message citations."
+                        }
+                      },
+                      "required": [
+                        "text",
+                        "markdown",
+                        "citations"
+                      ]
+                    },
+                    "speakerNotes": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "Speaker notes, when present."
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "content",
+                    "speakerNotes"
+                  ]
+                },
+                "description": "Ordered slides, each with a title and supported content."
+              }
+            },
+            "required": [
+              "artifactId",
+              "title",
+              "caption",
+              "url",
+              "kind",
+              "slides"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "artifactId": {
+                "type": "string",
+                "description": "Opaque identifier for the interactive artifact, echoing the request. Can also be re-requested with ?format=<fmt> to download as a file (tables: csv/xlsx, prose: md)."
+              },
+              "title": {
+                "type": "string",
+                "description": "Human-readable title of the artifact."
+              },
+              "caption": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Optional caption describing the artifact."
+              },
+              "url": {
+                "type": "string",
+                "description": "URL to view and continue the session in the Elicit web interface."
+              },
+              "kind": {
+                "type": "string",
+                "const": "figure"
+              },
+              "description": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "description": "Human-readable content with inline citation markup removed."
+                  },
+                  "markdown": {
+                    "type": "string",
+                    "description": "The original markdown content, including inline citation markup."
+                  },
+                  "citations": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "citationId": {
+                          "type": "string",
+                          "description": "Identifier for this citation within the agent message."
+                        },
+                        "quote": {
+                          "type": "string",
+                          "description": "The passage from the source that supports the message."
+                        },
+                        "source": {
+                          "type": "object",
+                          "properties": {
+                            "title": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "description": "Title of the cited work."
+                            },
+                            "authors": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              },
+                              "description": "Authors of the cited work, in display order."
+                            },
+                            "year": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ],
+                              "description": "Publication year."
+                            },
+                            "doi": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "description": "Digital Object Identifier (DOI), when available."
+                            },
+                            "url": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "description": "Best available URL for the cited work."
+                            },
+                            "venue": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "description": "Journal, conference, repository, or other publication venue."
+                            }
+                          },
+                          "required": [
+                            "title",
+                            "authors",
+                            "year",
+                            "doi",
+                            "url",
+                            "venue"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "citationId",
+                        "quote",
+                        "source"
+                      ]
+                    },
+                    "description": "Citations backing this content, resolved to the same shape as message citations."
+                  }
+                },
+                "required": [
+                  "text",
+                  "markdown",
+                  "citations"
+                ]
+              },
+              "renderer": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Figure renderer, when known."
+              },
+              "spec": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Figure spec, when known."
+              }
+            },
+            "required": [
+              "artifactId",
+              "title",
+              "caption",
+              "url",
+              "kind",
+              "description",
+              "renderer",
+              "spec"
+            ]
+          }
+        ]
+      },
+      "DownloadAgentSessionArtifactResponse": {
+        "type": "object",
+        "properties": {
+          "downloadUrl": {
+            "type": "string",
+            "description": "Short-lived presigned URL to download the artifact contents."
+          },
+          "expiresAt": {
+            "type": "string",
+            "description": "ISO 8601 timestamp after which the download URL is no longer valid.",
+            "example": "2025-06-15T15:00:00.000Z"
+          },
+          "filename": {
+            "type": "string",
+            "description": "Suggested filename for the downloaded artifact."
+          },
+          "contentType": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "MIME type of the artifact, when known."
+          }
+        },
+        "required": [
+          "downloadUrl",
+          "expiresAt",
+          "filename",
+          "contentType"
+        ]
+      },
+      "StopAgentSessionResponse": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "description": "Unique identifier for the research agent session."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "stopping",
+              "stopped",
+              "failed"
+            ],
+            "description": "\"stopping\" when a stop was queued (the session halts asynchronously; poll the events endpoint for the session_stopped event). \"stopped\" or \"failed\" when the session had already ended and no stop was needed."
+          },
+          "url": {
+            "type": "string",
+            "description": "URL to view and continue the session in the Elicit web interface."
+          }
+        },
+        "required": [
+          "sessionId",
+          "status",
+          "url"
+        ]
       }
     }
   },
@@ -2993,7 +7249,14 @@
       "tags": [
         "Sessions",
         "Reports",
-        "Systematic Reviews"
+        "Systematic Reviews",
+        "Research Agent"
+      ]
+    },
+    {
+      "name": "Usage",
+      "tags": [
+        "Usage"
       ]
     }
   ]

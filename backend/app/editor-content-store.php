@@ -147,7 +147,7 @@ function editorListContentDomains(): array
  */
 function editorGetDomainDisplayLabels(array $domains): array
 {
-    if (!function_exists('qpmGetDomainRuntimeConfig')) {
+    if (!function_exists('muginGetDomainRuntimeConfig')) {
         return [];
     }
 
@@ -157,7 +157,7 @@ function editorGetDomainDisplayLabels(array $domains): array
             continue;
         }
 
-        $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
+        $runtimeConfig = muginGetDomainRuntimeConfig($domain);
         if (!is_array($runtimeConfig)) {
             continue;
         }

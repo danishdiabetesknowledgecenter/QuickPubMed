@@ -1,0 +1,329 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Altmetric Badges and Details Page API",
+    "version": "v1",
+    "description": "Altmetric udgiver ikke en officiel OpenAPI-fil. Denne spec er rekonstrueret fra [docs.altmetric.com/badges](https://docs.altmetric.com/badges/getting-started/) og [Details Page API](https://docs.altmetric.com/details-page-api/getting-started/) (v1), så Mugin Scholar har en versioneret, søgbar kopi af den kontrakt badges implementerer imod.\n\n## Hvordan Mugin Scholar bruger Altmetric\n\nVi kalder **ikke** Details Page API fra PHP. Browseren indlejrer Altmetric-donuts via embed-scriptet og HTML-placeholders i `src/components/ResultEntry.vue` (`class=\"altmetric-embed\"`). Scriptet hentes som `https://d1bxh8uas1mnw7.cloudfront.net/assets/embed.js` (officielt alias: `https://embed.altmetric.com/assets/embed.js`). Efter AJAX-rendering kaldes `window._altmetric_embed_init(container)` fra `SearchResult.vue` og `References.vue`.\n\nEmbed-scriptet slår op i Details Page API med JSONP (`callback=`) på `GET /v1/doi/{doi}` og `GET /v1/pmid/{pmid}` (`https://api.altmetric.com`). De URL'er rydder `SearchForm.vue` op efter, når søgningen nulstilles.\n\nFra 10. november 2025 kræver direkte kald til Details Page API en `key`. Badge-embed'et har sin egen licensmodel; kommerciel brug uden aftale er ikke tilladt ifølge Altmetrics badge-docs.\n\n## Badge-embed (HTML, ikke HTTP-path)\n\nElement: `class=\"altmetric-embed\"` plus mindst ét identifier-attribut.\n\nAttributter Mugin sætter:\n\n- `data-doi` / `data-pmid` — DOI og PMID (PMID kun når rækken er PubMed-baseret).\n- `data-badge-type` — `donut` (desktop) eller `1` (mobil).\n- `data-badge-popover` — `left` (kun desktop).\n- `data-hide-no-mentions` — `true`.\n- `data-link-target` — `_blank`.\n\nØvrige officielle attributter (ikke brugt her): `data-arxiv-id`, `data-handle`, `data-isbn`, `data-uri`, `data-urn`, `data-nct-id`, `data-id`, `data-badge-details`, `data-no-score`, `data-hide-less-than`, `data-condensed`, `data-template`.\n\n`data-badge-type`-værdier: `donut`, `medium-donut`, `large-donut`, `1`, `4`, `bar`, `medium-bar`, `large-bar`.\n`data-badge-popover`-værdier: `left`, `right`, `top`, `bottom`.\n\nJS-events på `.altmetric-embed`: `altmetric:show`, `altmetric:hide`.",
+    "contact": {
+      "name": "Altmetric",
+      "url": "https://www.altmetric.com"
+    },
+    "externalDocs": {
+      "description": "Altmetric badge documentation",
+      "url": "https://docs.altmetric.com/badges/getting-started/"
+    }
+  },
+  "externalDocs": {
+    "description": "Details Page API",
+    "url": "https://docs.altmetric.com/details-page-api/getting-started/"
+  },
+  "servers": [
+    {
+      "url": "https://api.altmetric.com",
+      "description": "Details Page API (badge-scriptet kalder denne; Mugin kalder den ikke fra PHP)"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Counts",
+      "description": "Opslag af én publikation via persistent identifier. Det er det endpoint badge-scriptet bruger."
+    }
+  ],
+  "paths": {
+    "/v1/doi/{doi}": {
+      "get": {
+        "tags": ["Counts"],
+        "operationId": "getAltmetricByDoi",
+        "summary": "Fetch Altmetric counts by DOI",
+        "description": "Bruges af embed-scriptet når `data-doi` er sat. Direkte kald kræver `key` (fra 2025-11-10). Badge JSONP bruger `callback`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/doi"
+          },
+          {
+            "$ref": "#/components/parameters/key"
+          },
+          {
+            "$ref": "#/components/parameters/callback"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Counts"
+          },
+          "400": {
+            "$ref": "#/components/responses/TextError"
+          },
+          "403": {
+            "$ref": "#/components/responses/TextError"
+          },
+          "404": {
+            "$ref": "#/components/responses/TextError"
+          },
+          "429": {
+            "$ref": "#/components/responses/TextError"
+          },
+          "502": {
+            "$ref": "#/components/responses/TextError"
+          }
+        }
+      }
+    },
+    "/v1/pmid/{pmid}": {
+      "get": {
+        "tags": ["Counts"],
+        "operationId": "getAltmetricByPmid",
+        "summary": "Fetch Altmetric counts by PubMed ID",
+        "description": "Bruges af embed-scriptet når `data-pmid` er sat (Mugin sætter det på PubMed-rækker).",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/pmid"
+          },
+          {
+            "$ref": "#/components/parameters/key"
+          },
+          {
+            "$ref": "#/components/parameters/callback"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Counts"
+          },
+          "400": {
+            "$ref": "#/components/responses/TextError"
+          },
+          "403": {
+            "$ref": "#/components/responses/TextError"
+          },
+          "404": {
+            "$ref": "#/components/responses/TextError"
+          },
+          "429": {
+            "$ref": "#/components/responses/TextError"
+          },
+          "502": {
+            "$ref": "#/components/responses/TextError"
+          }
+        }
+      }
+    },
+    "/v1/id/{altmetricId}": {
+      "get": {
+        "tags": ["Counts"],
+        "operationId": "getAltmetricById",
+        "summary": "Fetch Altmetric counts by Altmetric ID",
+        "description": "Ikke brugt af Mugin. Altmetric IDs er ustabile; brug DOI/PMID. Mergede records kan returnere `merged_into`.",
+        "parameters": [
+          {
+            "name": "altmetricId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/key"
+          },
+          {
+            "$ref": "#/components/parameters/callback"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Counts"
+          },
+          "404": {
+            "$ref": "#/components/responses/TextError"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "doi": {
+        "name": "doi",
+        "in": "path",
+        "required": true,
+        "description": "DOI. Path-segmentet URL-encodes; query-identifikatorer i Altmetrics docs skal ifølge dem ikke URL-encodes.",
+        "schema": {
+          "type": "string",
+          "example": "10.1038/nature.2012.9872"
+        }
+      },
+      "pmid": {
+        "name": "pmid",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "21148220"
+        }
+      },
+      "key": {
+        "name": "key",
+        "in": "query",
+        "required": false,
+        "description": "Påkrævet for direkte Details Page API-kald fra 10. november 2025. Badge-embed bruger JSONP uden Mugin-side API-nøgle.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "callback": {
+        "name": "callback",
+        "in": "query",
+        "required": false,
+        "description": "JSONP-funktionsnavn. Kun bogstaver, cifre og underscore.",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "responses": {
+      "Counts": {
+        "description": "JSON-objekt. Nøgler udelades når der ikke er data; klienter må ikke antage at alle felter er til stede.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/AltmetricCounts"
+            }
+          }
+        }
+      },
+      "TextError": {
+        "description": "Fejltekst (ikke JSON).",
+        "content": {
+          "text/plain": {
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "AltmetricCounts": {
+        "type": "object",
+        "additionalProperties": true,
+        "description": "Counts-only response. Felter fra https://docs.altmetric.com/details-page-api/endpoints/counts/",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "altmetric_id": {
+            "type": "number",
+            "description": "Intern ID. Ustabil over tid; brug DOI/PMID til persistens."
+          },
+          "doi": {
+            "type": "string"
+          },
+          "pmid": {
+            "type": "string"
+          },
+          "pmc": {
+            "type": "string"
+          },
+          "uri": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "journal": {
+            "type": "string"
+          },
+          "dimensions_publication_id": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number",
+            "description": "Aktuel Altmetric Attention Score. Det donut-badget visualiserer."
+          },
+          "cited_by_posts_count": {
+            "type": "number"
+          },
+          "cited_by_accounts_count": {
+            "type": "number"
+          },
+          "cited_by_tweeters_count": {
+            "type": "number"
+          },
+          "cited_by_bluesky_count": {
+            "type": "number"
+          },
+          "cited_by_fbwalls_count": {
+            "type": "number"
+          },
+          "cited_by_feeds_count": {
+            "type": "number"
+          },
+          "cited_by_msm_count": {
+            "type": "number"
+          },
+          "cited_by_rdts_count": {
+            "type": "number"
+          },
+          "cited_by_qna_count": {
+            "type": "number"
+          },
+          "cited_by_wikipedia_count": {
+            "type": "number"
+          },
+          "cited_by_policies_count": {
+            "type": "number"
+          },
+          "cited_by_guidelines_count": {
+            "type": "number"
+          },
+          "cited_by_patents_count": {
+            "type": "number"
+          },
+          "cited_by_videos_count": {
+            "type": "number"
+          },
+          "cited_by_podcasts_count": {
+            "type": "number"
+          },
+          "readers_count": {
+            "type": "number"
+          },
+          "details_url": {
+            "type": "string",
+            "description": "Linket badge-klik fører til."
+          },
+          "images": {
+            "type": "object",
+            "properties": {
+              "small": {
+                "type": "string"
+              },
+              "medium": {
+                "type": "string"
+              },
+              "large": {
+                "type": "string"
+              }
+            }
+          },
+          "history": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "merged_into": {
+            "type": "object",
+            "description": "Kun ved opslag på et merget Altmetric ID.",
+            "properties": {
+              "altmetric_id": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

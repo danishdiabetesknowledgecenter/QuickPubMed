@@ -1,6 +1,6 @@
 <?php
 /**
- * Quick smoke test for qpmSemanticQualityCandidateMatchesPostValidation(),
+ * Quick smoke test for muginSemanticQualityCandidateMatchesPostValidation(),
  * mirroring the "guideline" rule example from backend/docs/afgraensninger-oversigt.md
  * (L040/postValidation). Not a full parity harness (the rule engine has no
  * JS-side fixture set of its own yet), but exercises every branch type:
@@ -38,13 +38,13 @@ $guidelineRuleState = [
         'requireAnyTextSignals' => ['guideline', 'consensus statement', 'recommendation'],
     ]],
 ];
-$result = qpmSemanticQualityCandidateMatchesPostValidation($guidelineCandidate, $guidelineRuleState);
+$result = muginSemanticQualityCandidateMatchesPostValidation($guidelineCandidate, $guidelineRuleState);
 assertTrue($result['matches'] === true, 'Guideline candidate matches requireAnyTextSignals rule');
 
 // Candidate that should NOT match (no guideline-like text).
 $nonGuidelineCandidate = $guidelineCandidate;
 $nonGuidelineCandidate['title'] = 'A randomized trial of drug X in adults';
-$result2 = qpmSemanticQualityCandidateMatchesPostValidation($nonGuidelineCandidate, $guidelineRuleState);
+$result2 = muginSemanticQualityCandidateMatchesPostValidation($nonGuidelineCandidate, $guidelineRuleState);
 assertTrue($result2['matches'] === false, 'Non-guideline candidate fails requireAnyTextSignals rule');
 
 // excludeAnyTextSignals: candidate matches base signal but is excluded by an erratum marker.
@@ -58,7 +58,7 @@ $excludeRuleState = [
         'excludeAnyTextSignals' => ['erratum'],
     ]],
 ];
-$result3 = qpmSemanticQualityCandidateMatchesPostValidation($excludedCandidate, $excludeRuleState);
+$result3 = muginSemanticQualityCandidateMatchesPostValidation($excludedCandidate, $excludeRuleState);
 assertTrue($result3['matches'] === false, 'excludeAnyTextSignals correctly vetoes an otherwise-matching candidate');
 
 // allowSourceProviders: candidate's merged 'sources' list includes 'openAlex'.
@@ -68,7 +68,7 @@ $providerRuleState = [
         'allowSourceProviders' => ['openalex'],
     ]],
 ];
-$result4 = qpmSemanticQualityCandidateMatchesPostValidation($guidelineCandidate, $providerRuleState);
+$result4 = muginSemanticQualityCandidateMatchesPostValidation($guidelineCandidate, $providerRuleState);
 assertTrue($result4['matches'] === true, 'allowSourceProviders matches via merged sources list');
 
 // metadataFieldConditions: candidatePubTypeTier equalsAny check.
@@ -80,7 +80,7 @@ $metadataRuleState = [
         ],
     ]],
 ];
-$result5 = qpmSemanticQualityCandidateMatchesPostValidation($guidelineCandidate, $metadataRuleState);
+$result5 = muginSemanticQualityCandidateMatchesPostValidation($guidelineCandidate, $metadataRuleState);
 assertTrue($result5['matches'] === true, 'metadataFieldConditions equalsany matches pubTypeTier snapshot');
 
 // ruleGroups: OR-within-group, AND-across-groups.
@@ -101,11 +101,11 @@ $groupRuleState = [
         ],
     ],
 ];
-$result6 = qpmSemanticQualityCandidateMatchesPostValidation($guidelineCandidate, $groupRuleState);
+$result6 = muginSemanticQualityCandidateMatchesPostValidation($guidelineCandidate, $groupRuleState);
 assertTrue($result6['matches'] === true, 'ruleGroups: group-a passes via b1-analog, group-b passes via b2 (OR within group, AND across groups)');
 
 // Empty rule state means "no restriction" -> always matches.
-$emptyResult = qpmSemanticQualityCandidateMatchesPostValidation($guidelineCandidate, []);
+$emptyResult = muginSemanticQualityCandidateMatchesPostValidation($guidelineCandidate, []);
 assertTrue($emptyResult['matches'] === true, 'Empty rule state means unrestricted match');
 
 echo "\nAll rule-engine smoke tests passed.\n";

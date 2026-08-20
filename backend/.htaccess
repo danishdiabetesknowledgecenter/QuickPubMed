@@ -21,10 +21,12 @@ RewriteEngine On
 RewriteRule ^config/ - [F,L]
 RewriteRule ^app/ - [F,L]
 RewriteRule ^storage/ - [F,L]
+RewriteRule ^data/ - [F,L]
 
 # Route API requests (clean URLs)
 RewriteRule ^api/SummarizeSearch/?$ api/SummarizeSearch.php [L,QSA]
 RewriteRule ^api/TranslateTitle/?$ api/TranslateTitle.php [L,QSA]
+RewriteRule ^api/SemanticTagTranslate/?$ api/SemanticTagTranslate.php [L,QSA]
 RewriteRule ^api/SummarizeHTMLArticle/?$ api/SummarizeHTMLArticle.php [L,QSA]
 RewriteRule ^api/SummarizePDFArticle/?$ api/SummarizePDFArticle.php [L,QSA]
 RewriteRule ^api/CheckIfResourceIsForbidden/?$ api/CheckIfResourceIsForbidden.php [L,QSA]

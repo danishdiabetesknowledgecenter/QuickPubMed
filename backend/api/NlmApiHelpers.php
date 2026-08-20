@@ -1,6 +1,6 @@
 <?php
 
-function qpmResolveOriginWithRefererFallback() {
+function muginResolveOriginWithRefererFallback() {
     $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
     if ($origin !== '') {
         return $origin;
@@ -18,8 +18,8 @@ function qpmResolveOriginWithRefererFallback() {
     return $scheme . '://' . $host;
 }
 
-function qpmApplyNlmCorsHeaders($allowedMethods, $contentType = null) {
-    $origin = qpmResolveOriginWithRefererFallback();
+function muginApplyNlmCorsHeaders($allowedMethods, $contentType = null) {
+    $origin = muginResolveOriginWithRefererFallback();
     $allowedOrigin = getAllowedOrigin($origin);
 
     if ($allowedOrigin) {
@@ -45,7 +45,7 @@ function qpmApplyNlmCorsHeaders($allowedMethods, $contentType = null) {
     }
 }
 
-function qpmNormalizeSearchFlowDebugFlag($value): bool {
+function muginNormalizeSearchFlowDebugFlag($value): bool {
     if ($value === true || $value === 1) {
         return true;
     }
@@ -53,15 +53,15 @@ function qpmNormalizeSearchFlowDebugFlag($value): bool {
     return in_array($normalized, ['1', 'true', 'yes', 'on', 'searchflow', 'all'], true);
 }
 
-function qpmIsSearchFlowDebugRequest(array $params): bool {
+function muginIsSearchFlowDebugRequest(array $params): bool {
     if (array_key_exists('debugSearchFlow', $params)) {
-        return qpmNormalizeSearchFlowDebugFlag($params['debugSearchFlow']);
+        return muginNormalizeSearchFlowDebugFlag($params['debugSearchFlow']);
     }
     if (array_key_exists('debug_search_flow', $params)) {
-        return qpmNormalizeSearchFlowDebugFlag($params['debug_search_flow']);
+        return muginNormalizeSearchFlowDebugFlag($params['debug_search_flow']);
     }
     if (isset($params['debug']) && is_array($params['debug']) && array_key_exists('searchFlow', $params['debug'])) {
-        return qpmNormalizeSearchFlowDebugFlag($params['debug']['searchFlow']);
+        return muginNormalizeSearchFlowDebugFlag($params['debug']['searchFlow']);
     }
     return false;
 }

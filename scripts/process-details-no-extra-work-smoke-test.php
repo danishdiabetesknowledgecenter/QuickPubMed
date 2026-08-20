@@ -1,7 +1,7 @@
 <?php
 /**
  * Verifies that enabling includeProcessDetails does not change the public
- * result/order contract of qpmPublicSearchBuildFinalResponse(), and that the
+ * result/order contract of muginPublicSearchBuildFinalResponse(), and that the
  * collector helpers themselves perform no network I/O.
  */
 
@@ -19,7 +19,7 @@ function assertTrue(bool $condition, string $message): void
     echo "PASS: $message\n";
 }
 
-$baseRequest = qpmPublicSearchNormalizePostRequest([
+$baseRequest = muginPublicSearchNormalizePostRequest([
     'query' => ['text' => 'diabetes', 'language' => 'auto'],
     'sources' => ['pubmed'],
     'responseOptions' => [
@@ -39,7 +39,7 @@ $results = [
     ['type' => 'pmid', 'pmid' => '2', 'title' => 'B', 'rank' => 2],
 ];
 
-$without = qpmPublicSearchBuildFinalResponse(
+$without = muginPublicSearchBuildFinalResponse(
     $baseRequest,
     $resolved,
     $results,
@@ -52,15 +52,15 @@ $without = qpmPublicSearchBuildFinalResponse(
     null
 );
 
-$collector = qpmPublicSearchProcessDetailsCreate();
-qpmPublicSearchProcessDetailsSetStep($collector, 'rerank', [
+$collector = muginPublicSearchProcessDetailsCreate();
+muginPublicSearchProcessDetailsSetStep($collector, 'rerank', [
     'candidateCount' => 2,
     'pmidCandidateCount' => 2,
     'doiCandidateCount' => 0,
 ]);
 $withFlagRequest = $baseRequest;
 $withFlagRequest['responseOptions']['includeProcessDetails'] = true;
-$with = qpmPublicSearchBuildFinalResponse(
+$with = muginPublicSearchBuildFinalResponse(
     $withFlagRequest,
     $resolved,
     $results,
@@ -79,7 +79,7 @@ assertTrue(($without['order'] ?? null) === ($with['order'] ?? null), 'Order meta
 assertTrue(!array_key_exists('processDetails', $without), 'Flag off omits processDetails');
 assertTrue(isset($with['processDetails']['processStepDetails']), 'Flag on attaches processDetails');
 
-$counts = qpmPublicSearchProcessDetailsCountCandidateIdentityBuckets([
+$counts = muginPublicSearchProcessDetailsCountCandidateIdentityBuckets([
     ['pmid' => '1', 'doi' => '10.1/x'],
     ['pmid' => '', 'doi' => '10.1/y'],
     ['pmid' => '2', 'doi' => ''],

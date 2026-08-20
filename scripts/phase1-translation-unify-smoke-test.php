@@ -23,7 +23,7 @@ function assertTrue(bool $condition, string $message): void
 
 // 1. Prompt text sanity checks (spot-check distinctive phrases only present
 // in the richer frontend prompt, absent from the old shortened PHP version).
-$pubmedPromptDa = qpmPublicSearchGetPubMedPromptText('da');
+$pubmedPromptDa = muginPublicSearchGetPubMedPromptText('da');
 assertTrue(
     strpos($pubmedPromptDa, 'MeSH-validering (ufravigelig)') !== false,
     'PubMed prompt (da) now includes the MeSH-validation rule from translation.js'
@@ -36,11 +36,45 @@ assertTrue(
     strpos($pubmedPromptDa, 'originalQuery') !== false && strpos($pubmedPromptDa, 'structuredAiIntent') !== false,
     'PubMed prompt (da) now includes JSON originalQuery/structuredAiIntent handling'
 );
+assertTrue(
+    strpos($pubmedPromptDa, 'Du skal altid returnere en PubMed-søgestreng') !== false,
+    'PubMed prompt (da) requires always returning a search string'
+);
+assertTrue(
+    strpos($pubmedPromptDa, 'Det indtastede kan ikke oversættes til en søgning') === false,
+    'PubMed prompt (da) no longer includes the translation-failure sentinel'
+);
 
-$semanticPromptDa = qpmPublicSearchGetSemanticPromptText('da');
+$pubmedPromptEn = muginPublicSearchGetPubMedPromptText('en');
+assertTrue(
+    strpos($pubmedPromptEn, 'never an error message or apology') !== false,
+    'PubMed prompt (en) forbids error-message replies'
+);
+assertTrue(
+    strpos($pubmedPromptEn, 'The input cannot be translated into a search') === false,
+    'PubMed prompt (en) no longer includes the translation-failure sentinel'
+);
+
+$semanticPromptDa = muginPublicSearchGetSemanticPromptText('da');
 assertTrue(
     strpos($semanticPromptDa, 'Semantic Scholar') !== false,
     'Semantic fallback prompt (da) now matches translation.js semanticScholarSearchPrompt wording'
+);
+
+$semanticIntentPromptDa = muginPublicSearchGetSemanticIntentPromptText('da');
+assertTrue(
+    strpos($semanticIntentPromptDa, 'Skriv aldrig status-, afvisnings- eller meta-sætninger som query') !== false,
+    'Semantic intent prompt (da) forbids status/rejection sentences as queries'
+);
+assertTrue(
+    strpos($semanticIntentPromptDa, 'brug tomme felter frem for gæt') === false,
+    'Semantic intent prompt (da) no longer tells the model to leave query fields empty'
+);
+
+$semanticIntentPromptEn = muginPublicSearchGetSemanticIntentPromptText('en');
+assertTrue(
+    strpos($semanticIntentPromptEn, 'Never write status, rejection, or meta-commentary sentences as a query') !== false,
+    'Semantic intent prompt (en) forbids status/rejection sentences as queries'
 );
 
 // 2. queryIntent mapping (pure function, no network).
@@ -71,7 +105,7 @@ $mockSemanticIntentResponse = [
     ],
 ];
 
-$queryIntent = qpmPublicSearchBuildQueryIntentFromSemanticIntent($mockSemanticIntentResponse);
+$queryIntent = muginPublicSearchBuildQueryIntentFromSemanticIntent($mockSemanticIntentResponse);
 assertTrue(
     in_array('diabetes', $queryIntent['topicsEnglish'] ?? [], true),
     'queryIntent.topicsEnglish is populated from meta.detectedConcepts'
@@ -82,13 +116,13 @@ assertTrue(
 );
 
 // Null input (extraction failed) must degrade gracefully to an empty, safe queryIntent.
-$emptyIntent = qpmPublicSearchBuildQueryIntentFromSemanticIntent(null);
+$emptyIntent = muginPublicSearchBuildQueryIntentFromSemanticIntent(null);
 assertTrue($emptyIntent === [], 'Null semantic-intent result degrades to empty queryIntent, not an error');
 
 // 3. End-to-end: with queryIntent wired in, topicOverlapBonus in the rerank
 // engine must actually fire for a candidate whose topic overlaps with the
 // detected concepts (this is the concrete regression test for the bug fix).
-$rerankConfig = qpmSemanticQualityResolveRerankConfig(['topicOverlapBonus' => 35]);
+$rerankConfig = muginSemanticQualityResolveRerankConfig(['topicOverlapBonus' => 35]);
 $sourceResults = [
     [
         'source' => 'openAlex',
@@ -103,8 +137,8 @@ $sourceResults = [
         ],
     ],
 ];
-$resultWithoutIntent = qpmSemanticQualityRerankCandidates($sourceResults, $rerankConfig, []);
-$resultWithIntent = qpmSemanticQualityRerankCandidates($sourceResults, $rerankConfig, ['queryIntent' => $queryIntent]);
+$resultWithoutIntent = muginSemanticQualityRerankCandidates($sourceResults, $rerankConfig, []);
+$resultWithIntent = muginSemanticQualityRerankCandidates($sourceResults, $rerankConfig, ['queryIntent' => $queryIntent]);
 
 $scoreWithoutIntent = $resultWithoutIntent['candidates'][0]['scoreBreakdown']['topicOverlapBonus'] ?? null;
 $scoreWithIntent = $resultWithIntent['candidates'][0]['scoreBreakdown']['topicOverlapBonus'] ?? null;
@@ -129,12 +163,12 @@ $structuredSourceIntent = [
         'adaptations' => [],
     ],
 ];
-$planBeforeTranslation = qpmPublicSearchBuildSourceQueryPlan(
+$planBeforeTranslation = muginPublicSearchBuildSourceQueryPlan(
     $sourcePlanRequest,
     'raw fallback',
     $structuredSourceIntent
 );
-$planAfterTranslation = qpmPublicSearchBuildSourceQueryPlan(
+$planAfterTranslation = muginPublicSearchBuildSourceQueryPlan(
     $sourcePlanRequest,
     'translated fallback',
     $structuredSourceIntent

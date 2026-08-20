@@ -1,6 +1,6 @@
 <template>
-  <div class="qpm_simpleFiltersRoot">
-    <div class="qpm_limitsHeaderContainer">
+  <div class="mugin_simpleFiltersRoot">
+    <div class="mugin_limitsHeaderContainer">
       <h3 class="h4">
         {{ getString("SimpleLimitsHeader") }}
       </h3>
@@ -12,23 +12,23 @@
           delay: helpTextDelay,
           theme: 'infoTooltip',
         }"
-        class="bx bx-info-circle qpm_cursorHelp qpm_infoIcon"
+        class="bx bx-info-circle mugin_cursorHelp mugin_infoIcon"
         :aria-label="getString('infoSimpleLimitsLabel')"
       />
     </div>
-    <div id="qpm_topofsearchbar" class="qpm_simpleFiltersContainer">
+    <div id="mugin_topofsearchbar" class="mugin_simpleFiltersContainer">
       <!-- Spacer between main header and first filter group -->
-      <div class="qpm_simpleFiltersSpacer" />
+      <div class="mugin_simpleFiltersSpacer" />
       <template v-for="option in filteredChoices">
         <template v-if="hasVisibleSimpleFilterOption(option.choices)">
-          <b :key="`label-${option.id}`" class="qpm_simpleFiltersHeader">
+          <b :key="`label-${option.id}`" class="mugin_simpleFiltersHeader">
             {{ getCustomNameLabel(option) }}:
           </b>
           <div
             v-for="(choice, index) in option.choices"
-            :id="'qpm_topic_' + (choice.id || choice.name)"
+            :id="'mugin_topic_' + (choice.id || choice.name)"
             :key="`choice-${choice.id}-${index}`"
-            class="qpm_simpleFilters"
+            class="mugin_simpleFilters"
           >
             <input
               :id="choice.id || choice.name"
@@ -36,16 +36,16 @@
               :title="getString('checkboxTitle')"
               :value="choice.id || choice.name"
               :checked="isFilterUsed(limitData[option.id], choice)"
-              class="qpm_cursorPointer"
+              class="mugin_cursorPointer"
               @change="onFilterChange(option.id, choice, $event)"
               @keyup.enter="onFilterEnter(choice)"
             />
-            <div class="qpm_infoInline">
+            <div class="mugin_infoInline">
               <label :for="choice.id || choice.name">
                 <template v-if="getChoiceLabelParts(choice).prefix">
                   {{ getChoiceLabelParts(choice).prefix }}
                 </template>
-                <span class="qpm_keepWithIcon">
+                <span class="mugin_keepWithIcon">
                   {{ getChoiceLabelParts(choice).last }}
                   <button
                     v-if="getSimpleTooltip(choice)"
@@ -56,7 +56,7 @@
                       delay: helpTextDelay,
                       theme: 'infoTooltip',
                     }"
-                    class="bx bx-info-circle qpm_cursorHelp qpm_infoIcon"
+                    class="bx bx-info-circle mugin_cursorHelp mugin_infoIcon"
                     :aria-label="getString('infoSimpleChoiceLabel')"
                     @click.stop
                   />
@@ -64,7 +64,7 @@
               </label>
             </div>
           </div>
-          <div :key="`spacer-${option.id}`" class="qpm_simpleFiltersSpacer" />
+          <div :key="`spacer-${option.id}`" class="mugin_simpleFiltersSpacer" />
         </template>
       </template>
       <semantic-search-filters
@@ -83,8 +83,8 @@
         @update-semantic-source="updateSemanticSource"
       />
       <template v-if="hasRerankProfiles">
-        <div class="qpm_simpleFiltersHeader">
-          <span class="qpm_keepWithIcon">
+        <div class="mugin_simpleFiltersHeader">
+          <span class="mugin_keepWithIcon">
             {{ getString("rerankProfileHeader") }}:
             <button
               v-if="getString('hoverRerankProfileHeader')"
@@ -95,7 +95,7 @@
                 theme: 'infoTooltip',
               }"
               type="button"
-              class="bx bx-info-circle qpm_cursorHelp qpm_infoIcon"
+              class="bx bx-info-circle mugin_cursorHelp mugin_infoIcon"
               :aria-label="getString('infoRerankProfileLabel')"
               @click.stop
             />
@@ -103,24 +103,24 @@
         </div>
         <div
           v-for="profile in rerankProfiles"
-          :id="'qpm_rerank_profile_' + profile.id"
+          :id="'mugin_rerank_profile_' + profile.id"
           :key="`rerank-profile-${profile.id}`"
-          class="qpm_simpleFilters"
+          class="mugin_simpleFilters"
         >
           <input
-            :id="'qpm_rerank_profile_input_' + profile.id"
+            :id="'mugin_rerank_profile_input_' + profile.id"
             type="checkbox"
             :name="rerankProfileInputName"
             :title="getString('rerankProfileRadioTitle')"
             :value="profile.id"
             :checked="profile.id === selectedRerankProfileId"
-            class="qpm_cursorPointer"
+            class="mugin_cursorPointer"
             @change="updateRerankProfile(profile.id, $event)"
             @keyup.enter="updateRerankProfile(profile.id)"
           />
-          <div class="qpm_infoInline">
-            <label :for="'qpm_rerank_profile_input_' + profile.id">
-              <span class="qpm_keepWithIcon">
+          <div class="mugin_infoInline">
+            <label :for="'mugin_rerank_profile_input_' + profile.id">
+              <span class="mugin_keepWithIcon">
                 {{ getProfileLabel(profile) }}
                 <button
                   v-if="getProfileDescription(profile)"
@@ -131,7 +131,7 @@
                     theme: 'infoTooltip',
                   }"
                   type="button"
-                  class="bx bx-info-circle qpm_cursorHelp qpm_infoIcon"
+                  class="bx bx-info-circle mugin_cursorHelp mugin_infoIcon"
                   :aria-label="getString('infoRerankProfileChoiceLabel')"
                   @click.stop
                 />
@@ -139,7 +139,7 @@
             </label>
           </div>
         </div>
-        <div class="qpm_simpleFiltersSpacer" />
+        <div class="mugin_simpleFiltersSpacer" />
       </template>
     </div>
   </div>
@@ -232,7 +232,7 @@
       },
       rerankProfileInputName: {
         type: String,
-        default: "qpm_rerank_profile",
+        default: "mugin_rerank_profile",
       },
     },
     emits: [

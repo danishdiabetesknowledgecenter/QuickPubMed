@@ -14,7 +14,7 @@ import { createConfiguredApp } from "./createConfiguredApp";
  */
 
 const searchStringsDiv =
-  document.getElementById("qpm-searchstrings") || document.getElementById("searchstrings");
+  document.getElementById("mugin-searchstrings") || document.getElementById("searchstrings");
 
 const domain = searchStringsDiv.dataset.domain || undefined;
 

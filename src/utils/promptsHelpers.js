@@ -1,3 +1,5 @@
+import { applyOpenAiTaskSettings } from "@/utils/openAiTaskSettings.js";
+
 /**
  * @typedef {Object} QuestionItem
  * @property {string} question - The question text.
@@ -21,7 +23,7 @@
  *
  * @type {Object.<string, ShortTitleMap>}
  */
-export function getPromptForLocale(prompt, locale) {
+export function getPromptForLocale(prompt, locale, taskKey = null) {
   var localePrompt = {
     ...prompt,
     translations: null,
@@ -32,6 +34,10 @@ export function getPromptForLocale(prompt, locale) {
   Object.keys(localePrompt).forEach(function (key) {
     if (localePrompt[key] == null) delete localePrompt[key];
   });
+
+  if (taskKey) {
+    return applyOpenAiTaskSettings(localePrompt, taskKey);
+  }
 
   return localePrompt;
 }

@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="!isCollapsed"
-    class="qpm_tabs"
+    class="mugin_tabs"
     role="tablist"
     :aria-label="getString('searchModeTablistLabel')"
   >
@@ -22,12 +22,12 @@
             }
           : null
       "
-      :class="['qpm_tab', { qpm_tab_active: advanced }]"
+      :class="['mugin_tab', { mugin_tab_active: advanced }]"
       @click="activateAdvanced"
       @keydown="onAdvancedTabKeydown"
     >
       {{ getString("advancedSearch") }}
-      <span class="qpm_hideonmobile">
+      <span class="mugin_hideonmobile">
         {{ getString("searchMode") }}
       </span>
     </button>
@@ -49,12 +49,12 @@
             }
           : null
       "
-      :class="['qpm_tab', { qpm_tab_active: !advanced }]"
+      :class="['mugin_tab', { mugin_tab_active: !advanced }]"
       @click="activateSimple"
       @keydown="onSimpleTabKeydown"
     >
       {{ getString("simpleSearch") }}
-      <span class="qpm_hideonmobile">
+      <span class="mugin_hideonmobile">
         {{ getString("searchMode") }}
       </span>
     </button>

@@ -1,7 +1,7 @@
 <template>
   <!-- The dropdown(s) for selecting limits to be included in the advanced search -->
-  <div class="qpm_advancedFiltersRoot">
-    <div class="qpm_limitsHeaderContainer">
+  <div class="mugin_advancedFiltersRoot">
+    <div class="mugin_limitsHeaderContainer">
       <h3 class="h4">
         {{ getString("AdvancedLimitsHeader") }}
       </h3>
@@ -13,7 +13,7 @@
           delay: helpTextDelay,
           theme: 'infoTooltip',
         }"
-        class="bx bx-info-circle qpm_cursorHelp qpm_infoIcon"
+        class="bx bx-info-circle mugin_cursorHelp mugin_infoIcon"
         :aria-label="getString('infoAdvancedLimitsLabel')"
       />
     </div>

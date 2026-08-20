@@ -2,7 +2,7 @@
 /**
  * Phase 3 parity harness: runs every fixture scenario in
  * scripts/fixtures/rerank-parity-fixtures.json through the PHP port
- * (qpmSemanticQualityRerankCandidates) and prints JSON to stdout in the same
+ * (muginSemanticQualityRerankCandidates) and prints JSON to stdout in the same
  * shape as scripts/capture-js-baseline.js, so scripts/compare-rerank-parity.js
  * can diff them directly.
  *
@@ -72,7 +72,7 @@ if (!is_array($fixtures) || !isset($fixtures['scenarios'])) {
 $results = [];
 foreach ($fixtures['scenarios'] as $scenario) {
     $sourceResults = (array) ($scenario['sourceResults'] ?? []);
-    $rerankResult = qpmSemanticQualityRerankCandidates($sourceResults, $testRerankConfig, []);
+    $rerankResult = muginSemanticQualityRerankCandidates($sourceResults, $testRerankConfig, []);
 
     $order = [];
     foreach ($rerankResult['candidates'] as $candidate) {

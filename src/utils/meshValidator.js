@@ -20,6 +20,7 @@ import {
   executionIntentCheckPrompt,
 } from "@/assets/prompts/searchflow.js";
 import { getPromptForLocale } from "@/utils/promptsHelpers.js";
+import { applyOpenAiTaskSettings } from "@/utils/openAiTaskSettings.js";
 
 function envNumber(name, fallback) {
   const raw = import.meta.env?.[name];
@@ -779,16 +780,23 @@ async function buildMeshContext(searchString, userInput, proxyUrl) {
 /**
  * Helper: calls the AI streaming endpoint and returns the full response text.
  */
-async function callAiStreaming(prompt, title, openAiServiceUrl, client) {
+async function callAiStreaming(promptOrText, title, openAiServiceUrl, client, taskKey = "mesh") {
+  const basePrompt =
+    typeof promptOrText === "string"
+      ? {
+          max_output_tokens: 500,
+          stream: true,
+          reasoning: { effort: "none" },
+          text: { verbosity: "medium" },
+          prompt: promptOrText,
+        }
+      : {
+          stream: true,
+          ...promptOrText,
+        };
+  const taskPrompt = applyOpenAiTaskSettings(basePrompt, taskKey);
   const requestBody = {
-    prompt: {
-      model: "gpt-5.5",
-      max_output_tokens: 500,
-      stream: true,
-      reasoning: { effort: "none" },
-      text: { verbosity: "medium" },
-      prompt: prompt,
-    },
+    prompt: taskPrompt,
     title: title,
     client: client,
   };
@@ -875,7 +883,7 @@ async function aiOptimizeWithMeshContext(searchString, userInput, meshContext, o
   }
 
   // Get locale-specific prompt template and replace variables
-  const localePrompt = getPromptForLocale(meshOptimizationPrompt, language);
+  const localePrompt = getPromptForLocale(meshOptimizationPrompt, language, "mesh");
   const prompt = localePrompt.prompt
     .replace(/\{searchString\}/g, searchString)
     .replace(/\{userInput\}/g, userInput)
@@ -883,7 +891,13 @@ async function aiOptimizeWithMeshContext(searchString, userInput, meshContext, o
 
   try {
     console.info("AI optimization prompt:\n", prompt);
-    return await callAiStreaming(prompt, "", openAiServiceUrl, client);
+    return await callAiStreaming(
+      { ...localePrompt, prompt },
+      "",
+      openAiServiceUrl,
+      client,
+      "mesh"
+    );
   } catch (error) {
     console.warn("|MeSH Validation| AI optimization failed:", error.message);
     return searchString;
@@ -1273,35 +1287,53 @@ async function runPubmedValidation(searchString, proxyUrl) {
 
 async function aiFixSearchString(searchString, issues, openAiServiceUrl, client, language = "dk") {
   if (!openAiServiceUrl) return searchString;
-  const localePrompt = getPromptForLocale(meshFixPrompt, language);
+  const localePrompt = getPromptForLocale(meshFixPrompt, language, "mesh");
   const issuesText = issues.length > 0 ? issues.join("\n- ") : "Ukendte fejl";
   const prompt = localePrompt.prompt
     .replace(/\{searchString\}/g, searchString)
     .replace(/\{issues\}/g, `- ${issuesText}`);
-  return callAiStreaming(prompt, "", openAiServiceUrl, client);
+  return callAiStreaming(
+    { ...localePrompt, prompt },
+    "",
+    openAiServiceUrl,
+    client,
+    "mesh"
+  );
 }
 
 async function aiCheckIntentCoverage(intentText, searchString, openAiServiceUrl, client, language = "dk") {
   if (!intentText || !openAiServiceUrl) return true;
 
-  const localePrompt = getPromptForLocale(executionIntentCheckPrompt, language);
+  const localePrompt = getPromptForLocale(executionIntentCheckPrompt, language, "searchflow");
   const prompt = localePrompt.prompt
     .replace(/\{intentText\}/g, intentText)
     .replace(/\{searchString\}/g, searchString);
 
-  const answer = await callAiStreaming(prompt, "", openAiServiceUrl, client);
+  const answer = await callAiStreaming(
+    { ...localePrompt, prompt },
+    "",
+    openAiServiceUrl,
+    client,
+    "searchflow"
+  );
   return /^yes\b/i.test((answer || "").trim());
 }
 
 async function aiAlignToIntent(intentText, searchString, openAiServiceUrl, client, language = "dk") {
   if (!intentText || !openAiServiceUrl) return searchString;
 
-  const localePrompt = getPromptForLocale(executionIntentAlignPrompt, language);
+  const localePrompt = getPromptForLocale(executionIntentAlignPrompt, language, "searchflow");
   const prompt = localePrompt.prompt
     .replace(/\{intentText\}/g, intentText)
     .replace(/\{searchString\}/g, searchString);
 
-  return callAiStreaming(prompt, "", openAiServiceUrl, client);
+  return callAiStreaming(
+    { ...localePrompt, prompt },
+    "",
+    openAiServiceUrl,
+    client,
+    "searchflow"
+  );
 }
 
 /**

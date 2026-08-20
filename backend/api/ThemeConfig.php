@@ -37,27 +37,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-$domain = qpmNormalizeDomainKey((string) ($_GET['domain'] ?? ''));
-$globalTheme = defined('QPM_THEME_GLOBAL_OVERRIDES') && is_array(QPM_THEME_GLOBAL_OVERRIDES)
-    ? QPM_THEME_GLOBAL_OVERRIDES
+$domain = muginNormalizeDomainKey((string) ($_GET['domain'] ?? ''));
+$globalTheme = defined('MUGIN_THEME_GLOBAL_OVERRIDES') && is_array(MUGIN_THEME_GLOBAL_OVERRIDES)
+    ? MUGIN_THEME_GLOBAL_OVERRIDES
     : [];
-$themeByDomain = defined('QPM_THEME_DOMAIN_OVERRIDES') && is_array(QPM_THEME_DOMAIN_OVERRIDES)
-    ? QPM_THEME_DOMAIN_OVERRIDES
+$themeByDomain = defined('MUGIN_THEME_DOMAIN_OVERRIDES') && is_array(MUGIN_THEME_DOMAIN_OVERRIDES)
+    ? MUGIN_THEME_DOMAIN_OVERRIDES
     : [];
-$globalClassOverrides = defined('QPM_CLASS_OVERRIDES_GLOBAL') && is_array(QPM_CLASS_OVERRIDES_GLOBAL)
-    ? qpmNormalizeClassOverridesMap(QPM_CLASS_OVERRIDES_GLOBAL)
+$globalClassOverrides = defined('MUGIN_CLASS_OVERRIDES_GLOBAL') && is_array(MUGIN_CLASS_OVERRIDES_GLOBAL)
+    ? muginNormalizeClassOverridesMap(MUGIN_CLASS_OVERRIDES_GLOBAL)
     : [];
 $unpaywall = [
     'baseUrl' => defined('UNPAYWALL_BASE_URL') ? (string) UNPAYWALL_BASE_URL : '',
-    'email' => qpmGetUnpaywallEmail($domain),
+    'email' => muginGetUnpaywallEmail($domain),
 ];
-$translationSources = qpmGetDomainTranslationSources($domain);
-$translationSourcesConfigured = qpmHasDomainTranslationSourcesConfig($domain);
+$translationSources = muginGetDomainTranslationSources($domain);
+$translationSourcesConfigured = muginHasDomainTranslationSourcesConfig($domain);
 
 $elicitKeyRaw = $_GET['elicitKey'] ?? null;
 $elicitKey = is_string($elicitKeyRaw) ? trim($elicitKeyRaw) : '';
-$elicitUnlocked = qpmIsElicitUnlocked($elicitKey !== '' ? $elicitKey : null);
-if (qpmIsElicitUnlockConfigured()) {
+$elicitUnlocked = muginIsElicitUnlocked($elicitKey !== '' ? $elicitKey : null);
+if (muginIsElicitUnlockConfigured()) {
     // When gating is configured, Elicit availability is controlled entirely by
     // the unlock check: add it when unlocked, remove it otherwise. This ignores
     // the domain's translation_sources for the 'elicit' entry only.
@@ -73,39 +73,45 @@ if (qpmIsElicitUnlockConfigured()) {
     }
 }
 $semanticSourceLimits = [
-    'semanticScholar' => qpmGetSemanticSourceLimit('semanticScholar', 400),
-    'openAlex' => qpmGetSemanticSourceLimit('openAlex', 100),
-    'elicit' => qpmGetSemanticSourceLimit('elicit', 100),
-    'pubmedBestMatch' => qpmGetSemanticSourceLimit('pubmedBestMatch', 200),
-    'pubmedBestMatchPubmedOnly' => qpmGetSemanticSourceLimit(
+    'semanticScholar' => muginGetSemanticSourceLimit('semanticScholar', 400),
+    'openAlex' => muginGetSemanticSourceLimit('openAlex', 100),
+    'elicit' => muginGetSemanticSourceLimit('elicit', 100),
+    'pubmedBestMatch' => muginGetSemanticSourceLimit('pubmedBestMatch', 200),
+    'pubmedBestMatchPubmedOnly' => muginGetSemanticSourceLimit(
         'pubmedBestMatchPubmedOnly',
-        qpmGetSemanticSourceLimit('pubmedBestMatch', 200)
+        muginGetSemanticSourceLimit('pubmedBestMatch', 200)
     ),
-    'pubmedBestMatchMultiSource' => qpmGetSemanticSourceLimit(
+    'pubmedBestMatchMultiSource' => muginGetSemanticSourceLimit(
         'pubmedBestMatchMultiSource',
-        qpmGetSemanticSourceLimit('pubmedBestMatch', 200)
+        muginGetSemanticSourceLimit('pubmedBestMatch', 200)
     ),
 ];
-$semanticRescueConfig = defined('QPM_SEMANTIC_RESCUE_CONFIG') && is_array(QPM_SEMANTIC_RESCUE_CONFIG)
-    ? QPM_SEMANTIC_RESCUE_CONFIG
+$semanticRescueConfig = defined('MUGIN_SEMANTIC_RESCUE_CONFIG') && is_array(MUGIN_SEMANTIC_RESCUE_CONFIG)
+    ? MUGIN_SEMANTIC_RESCUE_CONFIG
     : [];
-$semanticLlmRerankConfig = defined('QPM_SEMANTIC_LLM_RERANK_CONFIG') && is_array(QPM_SEMANTIC_LLM_RERANK_CONFIG)
-    ? QPM_SEMANTIC_LLM_RERANK_CONFIG
+$semanticLlmRerankConfig = defined('MUGIN_SEMANTIC_LLM_RERANK_CONFIG') && is_array(MUGIN_SEMANTIC_LLM_RERANK_CONFIG)
+    ? MUGIN_SEMANTIC_LLM_RERANK_CONFIG
     : [];
-$openAlexBatchLookupConcurrency = defined('QPM_OPENALEX_BATCH_LOOKUP_CONCURRENCY')
-    ? max(1, min(5, (int) QPM_OPENALEX_BATCH_LOOKUP_CONCURRENCY))
+// Model + reasoningEffort come from MUGIN_LLM_TASK_MODELS[provider]['finalRerank'] only.
+if (function_exists('muginGetOpenAiTaskSettings')) {
+    $finalRerankTask = muginGetOpenAiTaskSettings('finalRerank');
+    $semanticLlmRerankConfig['model'] = (string) ($finalRerankTask['model'] ?? '');
+    $semanticLlmRerankConfig['reasoningEffort'] = (string) ($finalRerankTask['reasoningEffort'] ?? 'none');
+}
+$openAlexBatchLookupConcurrency = defined('MUGIN_OPENALEX_BATCH_LOOKUP_CONCURRENCY')
+    ? max(1, min(5, (int) MUGIN_OPENALEX_BATCH_LOOKUP_CONCURRENCY))
     : 2;
-$rerankConfig = defined('QPM_RERANK_CONFIG') && is_array(QPM_RERANK_CONFIG)
-    ? QPM_RERANK_CONFIG
+$rerankConfig = defined('MUGIN_RERANK_CONFIG') && is_array(MUGIN_RERANK_CONFIG)
+    ? MUGIN_RERANK_CONFIG
     : [];
-$rerankProfileConfig = defined('QPM_RERANK_PROFILE_CONFIG') && is_array(QPM_RERANK_PROFILE_CONFIG)
-    ? QPM_RERANK_PROFILE_CONFIG
+$rerankProfileConfig = defined('MUGIN_RERANK_PROFILE_CONFIG') && is_array(MUGIN_RERANK_PROFILE_CONFIG)
+    ? MUGIN_RERANK_PROFILE_CONFIG
     : [];
 
 // Telemetry configuration (frontend-safe subset).
 // retentionDays is intentionally excluded — it's a server-side concern only.
-$telemetryConfigRaw = defined('QPM_TELEMETRY_CONFIG') && is_array(QPM_TELEMETRY_CONFIG)
-    ? QPM_TELEMETRY_CONFIG
+$telemetryConfigRaw = defined('MUGIN_TELEMETRY_CONFIG') && is_array(MUGIN_TELEMETRY_CONFIG)
+    ? MUGIN_TELEMETRY_CONFIG
     : [];
 $telemetryConfig = [
     'enabled' => !empty($telemetryConfigRaw['enabled']),
@@ -123,8 +129,8 @@ $telemetryConfig = [
         : [],
 ];
 
-$paraphraseChipConfigRaw = defined('QPM_PARAPHRASE_CHIP_CONFIG') && is_array(QPM_PARAPHRASE_CHIP_CONFIG)
-    ? QPM_PARAPHRASE_CHIP_CONFIG
+$paraphraseChipConfigRaw = defined('MUGIN_PARAPHRASE_CHIP_CONFIG') && is_array(MUGIN_PARAPHRASE_CHIP_CONFIG)
+    ? MUGIN_PARAPHRASE_CHIP_CONFIG
     : [];
 $paraphraseChipConfig = [
     'enabled' => !empty($paraphraseChipConfigRaw['enabled']),
@@ -146,25 +152,29 @@ $paraphraseChipConfig = [
         : 12,
 ];
 
-$meshObserveOnly = defined('QPM_MESH_VALIDATION_OBSERVE_ONLY')
-    ? (bool) QPM_MESH_VALIDATION_OBSERVE_ONLY
+$meshObserveOnly = defined('MUGIN_MESH_VALIDATION_OBSERVE_ONLY')
+    ? (bool) MUGIN_MESH_VALIDATION_OBSERVE_ONLY
     : false;
+
+$openAiTaskModels = function_exists('muginGetOpenAiTaskModelsForFrontend')
+    ? muginGetOpenAiTaskModelsForFrontend()
+    : [];
 
 $domainTheme = [];
 if ($domain !== '' && isset($themeByDomain[$domain]) && is_array($themeByDomain[$domain])) {
     $domainTheme = $themeByDomain[$domain];
 }
-$domainTheme = array_merge($domainTheme, qpmGetDomainThemeOverrides($domain));
-$domainClassOverrides = qpmGetDomainClassOverrides($domain);
+$domainTheme = array_merge($domainTheme, muginGetDomainThemeOverrides($domain));
+$domainClassOverrides = muginGetDomainClassOverrides($domain);
 if (!empty($globalClassOverrides)) {
     $domainClassOverrides = array_merge($globalClassOverrides, $domainClassOverrides);
 }
 
-// Global gate flag: true when QPM_ELICIT_UNLOCK is configured and the
+// Global gate flag: true when MUGIN_ELICIT_UNLOCK is configured and the
 // current caller is not unlocked. Used by the frontend to strip 'elicit'
 // from availableTranslationSourceKeys regardless of domain config or the
 // ?databases URL fallback list (legacy aliases: ?semanticsources / ?translationsources).
-$elicitGated = qpmIsElicitUnlockConfigured() && !$elicitUnlocked;
+$elicitGated = muginIsElicitUnlockConfigured() && !$elicitUnlocked;
 
 $response = [
     'globalTheme' => $globalTheme,
@@ -187,24 +197,25 @@ $response = [
     'telemetryConfig' => $telemetryConfig,
     'paraphraseChipConfig' => $paraphraseChipConfig,
     'meshValidationObserveOnly' => $meshObserveOnly,
+    'openAiTaskModels' => $openAiTaskModels,
 ];
 
 // Opt-in diagnostic for the Elicit unlock feature. Visit:
 //   <api>/ThemeConfig.php?domain=<domain>&elicitDiag=1
 // to see which client IP and configured IPs the backend sees. This never
 // exposes the configured unlock code, only IP/patterns + an elicitUnlocked flag.
-if (!empty($_GET['elicitDiag']) && defined('QPM_ENABLE_ELICIT_DIAGNOSTICS') && QPM_ENABLE_ELICIT_DIAGNOSTICS === true) {
+if (!empty($_GET['elicitDiag']) && defined('MUGIN_ENABLE_ELICIT_DIAGNOSTICS') && MUGIN_ENABLE_ELICIT_DIAGNOSTICS === true) {
     $configuredIps = [];
     $hasCode = false;
     $trustForwardedFor = false;
-    if (defined('QPM_ELICIT_UNLOCK') && is_array(QPM_ELICIT_UNLOCK)) {
-        $cfg = QPM_ELICIT_UNLOCK;
+    if (defined('MUGIN_ELICIT_UNLOCK') && is_array(MUGIN_ELICIT_UNLOCK)) {
+        $cfg = MUGIN_ELICIT_UNLOCK;
         $configuredIps = isset($cfg['ips']) && is_array($cfg['ips']) ? array_values($cfg['ips']) : [];
-        $hasCode = !empty(qpmGetElicitUnlockCodes());
+        $hasCode = !empty(muginGetElicitUnlockCodes());
         $trustForwardedFor = !empty($cfg['trust_forwarded_for']);
     }
     $response['elicitDiag'] = [
-        'clientIp' => qpmGetClientIp(),
+        'clientIp' => muginGetClientIp(),
         'remoteAddr' => $_SERVER['REMOTE_ADDR'] ?? '',
         'xForwardedFor' => $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '',
         'trustForwardedFor' => $trustForwardedFor,

@@ -3,7 +3,7 @@
  * Deterministic OpenAlex semantic-primary + keyword-supplement parity test.
  */
 
-function qpmPublicSearchFetchOpenAlexSourceResultSingle(
+function muginPublicSearchFetchOpenAlexSourceResultSingle(
     string $query,
     array $filters,
     string $domain = '',
@@ -96,7 +96,7 @@ function assertTrue(bool $condition, string $message): void
 }
 
 $GLOBALS['__qpm_openalex_semantic_mode'] = 'filter';
-$result = qpmPublicSearchFetchOpenAlexSourceResult('santa claus', [
+$result = muginPublicSearchFetchOpenAlexSourceResult('santa claus', [
     'language' => ['en', 'da'],
     'sourceType' => [],
     'workType' => ['article'],
@@ -116,19 +116,19 @@ assertTrue(
 );
 
 $GLOBALS['__qpm_openalex_semantic_mode'] = 'cap';
-$capResult = qpmPublicSearchFetchOpenAlexSourceResult('santa claus', [], 'template');
+$capResult = muginPublicSearchFetchOpenAlexSourceResult('santa claus', [], 'template');
 assertTrue(count($capResult['candidates']) >= 50, 'Semantic-cap triggers keyword merge');
 assertTrue(($capResult['requestMeta']['keywordSupplementAttempted'] ?? false) === true, 'Cap path attempts keyword');
 assertTrue(($capResult['fallbackReason'] ?? '') === '', 'Cap-only path keeps empty fallbackReason like legacy');
 
 $GLOBALS['__qpm_openalex_semantic_mode'] = 'fail';
-$failResult = qpmPublicSearchFetchOpenAlexSourceResult('santa claus', [], 'template');
+$failResult = muginPublicSearchFetchOpenAlexSourceResult('santa claus', [], 'template');
 assertTrue(count($failResult['candidates']) === 2, 'Semantic-fail replaces with keyword candidates');
 assertTrue(($failResult['fallbackUsed'] ?? false) === true, 'Semantic-fail records fallback usage');
 assertTrue(($failResult['fallbackReason'] ?? '') === 'keyword', 'Semantic-fail reason is keyword');
 
 $GLOBALS['__qpm_openalex_semantic_mode'] = 'filter';
-$clean = qpmPublicSearchFetchOpenAlexSourceResult('santa claus', [], 'template');
+$clean = muginPublicSearchFetchOpenAlexSourceResult('santa claus', [], 'template');
 assertTrue(($clean['requestMeta']['fallbackUsed'] ?? false) === false, 'Unfiltered below-cap semantic skips keyword');
 assertTrue(count($clean['candidates']) === 2, 'Unfiltered semantic returns primary candidates only');
 

@@ -2,7 +2,7 @@
 //
 // Purpose: verify that enabling the Phase 1+ hybrid quality signals under neutral
 // defaults produces exactly the same ordering and combinedScore as the pre-Phase 1
-// implementation. Neutral defaults are the ones defined in QPM_RERANK_CONFIG when
+// implementation. Neutral defaults are the ones defined in MUGIN_RERANK_CONFIG when
 // no explicit tuning has taken place.
 //
 // Run: node scripts/verify-rerank-parity.js
@@ -833,6 +833,197 @@ if (cgmOrder[0] !== "2300001") {
   );
 }
 
+// --- Topic-signal fairness (additive only; DOI-first-class; phrase + cap). ---
+const fairnessQueryIntent = {
+  topicsEnglish: ["heart failure"],
+  topicIntents: [],
+  softHints: [],
+  rawPhrases: ["heart failure"],
+};
+
+const doiOnlyTopicResult = rerankSemanticCandidates(
+  [
+    {
+      source: "openAlex",
+      candidates: [
+        {
+          source: "openAlex",
+          rank: 1,
+          pmid: "",
+          doi: "10.1/doi-topic-match",
+          openAlexId: "W_DOI_TOPIC",
+          title: "DOI-only with OpenAlex topic",
+          metadata: {
+            openAlexTopics: ["Heart Failure"],
+            primaryTopicDisplayName: "Cardiology",
+          },
+        },
+      ],
+    },
+  ],
+  { topicOverlapBonus: 50 },
+  { queryIntent: fairnessQueryIntent }
+);
+const doiOnlyBonus = doiOnlyTopicResult.candidates[0]?.scoreBreakdown?.topicOverlapBonus ?? 0;
+if (!(doiOnlyBonus > 0)) {
+  throw new Error(`fairness DOI-only+OA topic: expected topicOverlapBonus > 0, got ${doiOnlyBonus}`);
+}
+
+const pmidNoTopicsResult = rerankSemanticCandidates(
+  [
+    {
+      source: "pubmed",
+      candidates: [
+        {
+          source: "pubmed",
+          rank: 1,
+          pmid: "5100001",
+          title: "PMID without topic labels",
+          metadata: {},
+        },
+      ],
+    },
+  ],
+  { topicOverlapBonus: 50 },
+  { queryIntent: fairnessQueryIntent }
+);
+const pmidNoTopicsBonus = pmidNoTopicsResult.candidates[0]?.scoreBreakdown?.topicOverlapBonus ?? null;
+if (pmidNoTopicsBonus !== 0) {
+  throw new Error(`fairness PMID without topics: expected topicOverlapBonus === 0, got ${pmidNoTopicsBonus}`);
+}
+
+const meshLikeResult = rerankSemanticCandidates(
+  [
+    {
+      source: "openAlex",
+      candidates: [
+        {
+          source: "openAlex",
+          rank: 1,
+          pmid: "5100002",
+          title: "MeSH-like primary topic",
+          metadata: { primaryTopicDisplayName: "Heart Failure" },
+        },
+      ],
+    },
+  ],
+  { topicOverlapBonus: 50 },
+  { queryIntent: fairnessQueryIntent }
+);
+const meshLikeBonus = meshLikeResult.candidates[0]?.scoreBreakdown?.topicOverlapBonus ?? 0;
+if (!(meshLikeBonus > 0) || !(doiOnlyBonus > 0)) {
+  throw new Error("fairness: both MeSH-like label and OA topic must be able to earn bonus (no PMID gate)");
+}
+
+// Same multi-token intent: single-token label vs phrase-bearing label (ratio stays < 1).
+const phraseCompareIntent = {
+  topicsEnglish: ["heart failure", "cardiovascular disease", "outcomes research"],
+  topicIntents: [],
+  softHints: [],
+  rawPhrases: ["heart failure"],
+};
+const tokenOnlyLabelBonus =
+  rerankSemanticCandidates(
+    [
+      {
+        source: "openAlex",
+        candidates: [
+          {
+            source: "openAlex",
+            rank: 1,
+            doi: "10.1/token-only-label",
+            openAlexId: "W_TOKEN_ONLY",
+            title: "Token-only topic paper",
+            metadata: { openAlexTopics: ["Heart"] },
+          },
+        ],
+      },
+    ],
+    { topicOverlapBonus: 50 },
+    { queryIntent: phraseCompareIntent }
+  ).candidates[0]?.scoreBreakdown?.topicOverlapBonus ?? 0;
+const phraseHitBonus =
+  rerankSemanticCandidates(
+    [
+      {
+        source: "openAlex",
+        candidates: [
+          {
+            source: "openAlex",
+            rank: 1,
+            doi: "10.1/phrase-hit",
+            openAlexId: "W_PHRASE",
+            title: "Phrase topic paper",
+            metadata: { openAlexTopics: ["Heart Failure Outcomes"] },
+          },
+        ],
+      },
+    ],
+    { topicOverlapBonus: 50 },
+    { queryIntent: phraseCompareIntent }
+  ).candidates[0]?.scoreBreakdown?.topicOverlapBonus ?? 0;
+if (!(phraseHitBonus > tokenOnlyLabelBonus)) {
+  throw new Error(
+    `fairness phrase-hit: expected phrase bonus > token-only label bonus, got phrase=${phraseHitBonus}, token=${tokenOnlyLabelBonus}`
+  );
+}
+
+const truncateNoise = ["Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Eta"];
+const truncatedMissResult = rerankSemanticCandidates(
+  [
+    {
+      source: "openAlex",
+      candidates: [
+        {
+          source: "openAlex",
+          rank: 1,
+          doi: "10.1/truncate-miss",
+          openAlexId: "W_TRUNC_MISS",
+          title: "Ninth label truncated",
+          metadata: {
+            primaryTopicDisplayName: "Primary Noise",
+            openAlexTopics: [...truncateNoise, "Heart Failure"],
+          },
+        },
+      ],
+    },
+  ],
+  { topicOverlapBonus: 50 },
+  { queryIntent: fairnessQueryIntent }
+);
+const truncatedMissBonus = truncatedMissResult.candidates[0]?.scoreBreakdown?.topicOverlapBonus ?? null;
+if (truncatedMissBonus !== 0) {
+  throw new Error(
+    `fairness label-cap: 9th matching label must be truncated (bonus===0), got ${truncatedMissBonus}`
+  );
+}
+const truncatedHitResult = rerankSemanticCandidates(
+  [
+    {
+      source: "openAlex",
+      candidates: [
+        {
+          source: "openAlex",
+          rank: 1,
+          doi: "10.1/truncate-hit",
+          openAlexId: "W_TRUNC_HIT",
+          title: "Matching label within cap",
+          metadata: {
+            primaryTopicDisplayName: "Heart Failure",
+            openAlexTopics: truncateNoise,
+          },
+        },
+      ],
+    },
+  ],
+  { topicOverlapBonus: 50 },
+  { queryIntent: fairnessQueryIntent }
+);
+const truncatedHitBonus = truncatedHitResult.candidates[0]?.scoreBreakdown?.topicOverlapBonus ?? 0;
+if (!(truncatedHitBonus > 0)) {
+  throw new Error(`fairness label-cap: in-cap match must earn bonus > 0, got ${truncatedHitBonus}`);
+}
+
 console.log("Rerank parity check passed.");
 console.log(JSON.stringify({
   neutralBaselineSingle,
@@ -850,5 +1041,14 @@ console.log(JSON.stringify({
     baselineTop,
     tunedTop,
     enrichmentSummary: tunedMulti.enrichmentSummary,
+  },
+  topicSignalFairness: {
+    doiOnlyBonus,
+    pmidNoTopicsBonus,
+    meshLikeBonus,
+    phraseHitBonus,
+    tokenOnlyLabelBonus,
+    truncatedMissBonus,
+    truncatedHitBonus,
   },
 }, null, 2));

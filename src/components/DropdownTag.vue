@@ -6,7 +6,7 @@
     <span
       v-tooltip="{ content: getTooltip, distance: 5, delay: helpTextDelay }"
       class="multiselect__tag"
-      :class="[getTagColor(triple.option.scope), { 'qpm_tag-freetext': triple.option.isCustom }]"
+      :class="[getTagColor(triple.option.scope), { 'mugin_tag-freetext': triple.option.isCustom }]"
       :style="isEditMode ? (isMultiLine ? 'width: 100%; display: flex; flex-direction: column;' : 'width: 100%;') : ''"
       role="button"
       tabindex="0"
@@ -17,7 +17,7 @@
     >
       <span v-if="triple.option.isCustom" :style="isEditMode ? 'width: 100%;' : ''">
         <p v-if="!isEditMode">
-          <span class="qpm_prestring">{{ triple.option.preString }}</span>
+          <span class="mugin_prestring">{{ triple.option.preString }}</span>
           {{ getCustomNameLabel }}
         </p>
         <div v-if="isEditMode" :style="getEditContainerStyle" @click.stop @mousedown.stop>
@@ -47,7 +47,7 @@
       </span>
       <span v-else> {{ triple.option.preString }}{{ getCustomNameLabel }} </span>
       <span
-        class="multiselect__tag-icon qpm_iconButton"
+        class="multiselect__tag-icon mugin_iconButton"
         role="button"
         tabindex="0"
         :aria-label="removeTagAriaLabel"
@@ -56,10 +56,10 @@
         @keydown.enter.prevent.stop="removeTag"
         @keydown.space.prevent.stop="removeTag"
       >
-        <span aria-hidden="true" class="qpm_dropdownTagIconGlyph">&times;</span>
+        <span aria-hidden="true" class="mugin_dropdownTagIconGlyph">&times;</span>
       </span>
     </span>
-    <span class="qpm_operator">{{ displayOperator }}</span>
+    <span class="mugin_operator">{{ displayOperator }}</span>
   </div>
 </template>
 
@@ -74,7 +74,7 @@
     formatSourceRateLimitTooltipSuffix,
   } from "@/utils/sourceRateLimit";
 
-  const SEMANTIC_SOURCE_RATE_LIMIT_EVENT = "qpm:semantic-source-rate-limit-update";
+  const SEMANTIC_SOURCE_RATE_LIMIT_EVENT = "mugin:semantic-source-rate-limit-update";
 
   export default {
     name: "DropdownTag",
@@ -108,17 +108,17 @@
         type: String,
         required: true,
       },
-      qpmButtonColor1: {
+      muginButtonColor1: {
         type: String,
-        default: "qpm_buttonColor1",
+        default: "mugin_buttonColor1",
       },
-      qpmButtonColor2: {
+      muginButtonColor2: {
         type: String,
-        default: "qpm_buttonColor2",
+        default: "mugin_buttonColor2",
       },
-      qpmButtonColor3: {
+      muginButtonColor3: {
         type: String,
-        default: "qpm_buttonColor3",
+        default: "mugin_buttonColor3",
       },
       language: {
         type: String,
@@ -336,13 +336,13 @@
       },
       getTagColor(scope) {
         if (scope === "narrow") {
-          return this.qpmButtonColor1;
+          return this.muginButtonColor1;
         }
         if (!scope || scope === "normal") {
-          return this.qpmButtonColor2;
+          return this.muginButtonColor2;
         }
         if (scope === "broad") {
-          return this.qpmButtonColor3;
+          return this.muginButtonColor3;
         }
         return "";
       },

@@ -75,7 +75,7 @@ async function fetchCanary(query) {
   if (MAILTO) params.set("mailto", MAILTO);
   const url = `https://api.openalex.org/works?${params.toString()}`;
   const response = await fetch(url, {
-    headers: { Accept: "application/json", "User-Agent": "QuickPubMed-CanaryExplorer/1.0" },
+    headers: { Accept: "application/json", "User-Agent": "Mugin Scholar-CanaryExplorer/1.0" },
   });
   if (!response.ok) {
     throw new Error(`OpenAlex HTTP ${response.status} for query "${query}"`);

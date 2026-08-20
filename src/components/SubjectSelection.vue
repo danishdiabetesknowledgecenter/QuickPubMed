@@ -1,8 +1,8 @@
 <template>
   <div>
-    <ul class="qpm_resetList">
-      <li v-for="(item, n) in topics" :key="`item-${item.id}-${n}`" class="qpm_topics">
-        <div class="qpm_flex">
+    <ul class="mugin_resetList">
+      <li v-for="(item, n) in topics" :key="`item-${item.id}-${n}`" class="mugin_topics">
+        <div class="mugin_flex">
           <dropdown-wrapper
             ref="topicDropdown"
             :is-multiple="true"
@@ -35,15 +35,15 @@
           <button
             v-if="topics.length > 1"
             type="button"
-            class="qpm_iconButton qpm_removeSubject bx bx-x"
+            class="mugin_iconButton mugin_removeSubject bx bx-x"
             :aria-label="getRemoveSubjectAriaLabel(item, n)"
             @click="removeSubject(n)"
           />
         </div>
         <p
           v-if="n >= 0 && hasTopics"
-          class="qpm_subjectOperator"
-          :class="{ 'qpm_subjectOperator--trailing': n >= topics.length - 1 }"
+          class="mugin_subjectOperator"
+          :class="{ 'mugin_subjectOperator--trailing': n >= topics.length - 1 }"
         >
           {{ getString("andOperator") }}
         </p>
@@ -51,7 +51,7 @@
     </ul>
     <div
       v-if="hasTopics"
-      class="qpm_subjectSelectionActions"
+      class="mugin_subjectSelectionActions"
       @keydown.enter.capture.passive="focusNextDropdownOnMount = true"
     >
       <button
@@ -61,7 +61,7 @@
           distance: 5,
           delay: $helpTextDelay,
         }"
-        class="qpm_slim qpm_button"
+        class="mugin_slim mugin_button"
         @click="addSubject"
       >
         {{ getString("addsubjectlimit") }} {{ getString("addsubject") }}

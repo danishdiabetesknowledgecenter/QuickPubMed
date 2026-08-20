@@ -26,12 +26,12 @@
 // Section 1: Publication-type classifier (ported from pubTypeClassifier.js)
 // =====================================================================
 
-if (!function_exists('qpmSemanticQualityToFiniteInt')) {
+if (!function_exists('muginSemanticQualityToFiniteInt')) {
     /**
      * @param mixed $value
      * @return ?int
      */
-    function qpmSemanticQualityToFiniteInt($value): ?int
+    function muginSemanticQualityToFiniteInt($value): ?int
     {
         if ($value === null || $value === '' || !is_numeric($value)) {
             return null;
@@ -40,12 +40,12 @@ if (!function_exists('qpmSemanticQualityToFiniteInt')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityToFiniteNumber')) {
+if (!function_exists('muginSemanticQualityToFiniteNumber')) {
     /**
      * @param mixed $value
      * @return ?float
      */
-    function qpmSemanticQualityToFiniteNumber($value): ?float
+    function muginSemanticQualityToFiniteNumber($value): ?float
     {
         if ($value === null || $value === '' || !is_numeric($value)) {
             return null;
@@ -54,39 +54,39 @@ if (!function_exists('qpmSemanticQualityToFiniteNumber')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityNormalizeString')) {
+if (!function_exists('muginSemanticQualityNormalizeString')) {
     /**
      * @param mixed $value
      * @return string
      */
-    function qpmSemanticQualityNormalizeString($value): string
+    function muginSemanticQualityNormalizeString($value): string
     {
         return trim((string) ($value ?? ''));
     }
 }
 
-if (!function_exists('qpmSemanticQualityNormalizeLower')) {
+if (!function_exists('muginSemanticQualityNormalizeLower')) {
     /**
      * @param mixed $value
      * @return string
      */
-    function qpmSemanticQualityNormalizeLower($value): string
+    function muginSemanticQualityNormalizeLower($value): string
     {
-        return strtolower(qpmSemanticQualityNormalizeString($value));
+        return strtolower(muginSemanticQualityNormalizeString($value));
     }
 }
 
-if (!function_exists('qpmSemanticQualityToPubTypeList')) {
+if (!function_exists('muginSemanticQualityToPubTypeList')) {
     /**
      * @param array<string,mixed> $enriched
      * @return array<int,string>
      */
-    function qpmSemanticQualityToPubTypeList(array $enriched): array
+    function muginSemanticQualityToPubTypeList(array $enriched): array
     {
         $list = isset($enriched['pubTypes']) && is_array($enriched['pubTypes']) ? $enriched['pubTypes'] : [];
         $normalized = [];
         foreach ($list as $value) {
-            $lower = qpmSemanticQualityNormalizeLower($value);
+            $lower = muginSemanticQualityNormalizeLower($value);
             if ($lower !== '') {
                 $normalized[] = $lower;
             }
@@ -95,13 +95,13 @@ if (!function_exists('qpmSemanticQualityToPubTypeList')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityAnyMatches')) {
+if (!function_exists('muginSemanticQualityAnyMatches')) {
     /**
      * @param array<int,string> $patterns PCRE patterns (PHP delimiter-wrapped)
      * @param string $text
      * @return bool
      */
-    function qpmSemanticQualityAnyMatches(array $patterns, string $text): bool
+    function muginSemanticQualityAnyMatches(array $patterns, string $text): bool
     {
         if ($text === '') {
             return false;
@@ -116,8 +116,8 @@ if (!function_exists('qpmSemanticQualityAnyMatches')) {
 }
 
 // Pattern groups, ported 1:1 from pubTypeClassifier.js (case-insensitive PCRE).
-if (!defined('QPM_SEMANTIC_QUALITY_EXCLUDED_SUBTYPES')) {
-    define('QPM_SEMANTIC_QUALITY_EXCLUDED_SUBTYPES', [
+if (!defined('MUGIN_SEMANTIC_QUALITY_EXCLUDED_SUBTYPES')) {
+    define('MUGIN_SEMANTIC_QUALITY_EXCLUDED_SUBTYPES', [
         'erratum' => ['/^erratum$/i', '/^correction$/i', '/^retraction notice/i', '/correction to/i'],
         'paratext' => ['/^paratext$/i', '/^table of contents$/i', '/^front matter$/i', '/^back matter$/i'],
         'peerReview' => ['/^peer-?review$/i'],
@@ -125,8 +125,8 @@ if (!defined('QPM_SEMANTIC_QUALITY_EXCLUDED_SUBTYPES')) {
         'dataset' => ['/^dataset$/i', '/^data paper$/i', '/^data-set$/i', '/^data set$/i'],
     ]);
 }
-if (!defined('QPM_SEMANTIC_QUALITY_GUIDELINE_TITLE_PATTERNS')) {
-    define('QPM_SEMANTIC_QUALITY_GUIDELINE_TITLE_PATTERNS', [
+if (!defined('MUGIN_SEMANTIC_QUALITY_GUIDELINE_TITLE_PATTERNS')) {
+    define('MUGIN_SEMANTIC_QUALITY_GUIDELINE_TITLE_PATTERNS', [
         '/\bguideline(s)?\b/i',
         '/\bclinical practice\b/i',
         '/\brecommendation(s)?\b/i',
@@ -135,49 +135,49 @@ if (!defined('QPM_SEMANTIC_QUALITY_GUIDELINE_TITLE_PATTERNS')) {
         '/\bstandards of care\b/i',
     ]);
 }
-if (!defined('QPM_SEMANTIC_QUALITY_SYSTEMATIC_REVIEW_TITLE_PATTERNS')) {
-    define('QPM_SEMANTIC_QUALITY_SYSTEMATIC_REVIEW_TITLE_PATTERNS', [
+if (!defined('MUGIN_SEMANTIC_QUALITY_SYSTEMATIC_REVIEW_TITLE_PATTERNS')) {
+    define('MUGIN_SEMANTIC_QUALITY_SYSTEMATIC_REVIEW_TITLE_PATTERNS', [
         '/\bsystematic review\b/i',
         '/\bmeta[-\s]?analysis\b/i',
         '/\bnetwork meta[-\s]?analysis\b/i',
         '/\bumbrella review\b/i',
     ]);
 }
-if (!defined('QPM_SEMANTIC_QUALITY_RCT_TITLE_PATTERNS')) {
-    define('QPM_SEMANTIC_QUALITY_RCT_TITLE_PATTERNS', [
+if (!defined('MUGIN_SEMANTIC_QUALITY_RCT_TITLE_PATTERNS')) {
+    define('MUGIN_SEMANTIC_QUALITY_RCT_TITLE_PATTERNS', [
         '/\brandomi[sz]ed\b/i',
         '/\brandomi[sz]ed controlled trial\b/i',
         '/\brct\b/i',
     ]);
 }
-if (!defined('QPM_SEMANTIC_QUALITY_CLINICAL_TRIAL_TITLE_PATTERNS')) {
-    define('QPM_SEMANTIC_QUALITY_CLINICAL_TRIAL_TITLE_PATTERNS', [
+if (!defined('MUGIN_SEMANTIC_QUALITY_CLINICAL_TRIAL_TITLE_PATTERNS')) {
+    define('MUGIN_SEMANTIC_QUALITY_CLINICAL_TRIAL_TITLE_PATTERNS', [
         '/\bclinical trial\b/i',
         '/\bphase\s*(i|ii|iii|iv|1|2|3|4)\b/i',
         '/\btrial protocol\b/i',
     ]);
 }
-if (!defined('QPM_SEMANTIC_QUALITY_REVIEW_TITLE_PATTERNS')) {
-    define('QPM_SEMANTIC_QUALITY_REVIEW_TITLE_PATTERNS', [
+if (!defined('MUGIN_SEMANTIC_QUALITY_REVIEW_TITLE_PATTERNS')) {
+    define('MUGIN_SEMANTIC_QUALITY_REVIEW_TITLE_PATTERNS', [
         '/\bnarrative review\b/i',
         '/\bscoping review\b/i',
         '/\breview article\b/i',
     ]);
 }
 
-if (!function_exists('qpmSemanticQualityNormalizeAliasList')) {
+if (!function_exists('muginSemanticQualityNormalizeAliasList')) {
     /**
      * @param mixed $value
      * @return array<int,string>
      */
-    function qpmSemanticQualityNormalizeAliasList($value): array
+    function muginSemanticQualityNormalizeAliasList($value): array
     {
         if (!is_array($value)) {
             return [];
         }
         $out = [];
         foreach ($value as $alias) {
-            $lower = qpmSemanticQualityNormalizeLower($alias);
+            $lower = muginSemanticQualityNormalizeLower($alias);
             if ($lower !== '') {
                 $out[] = $lower;
             }
@@ -186,12 +186,12 @@ if (!function_exists('qpmSemanticQualityNormalizeAliasList')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityBuildAllowListLookup')) {
+if (!function_exists('muginSemanticQualityBuildAllowListLookup')) {
     /**
      * @param array<int,array<string,mixed>> $allowList
      * @return array{byAlias: array<string,string>, byInstitution: array<string,string>}
      */
-    function qpmSemanticQualityBuildAllowListLookup($allowList): array
+    function muginSemanticQualityBuildAllowListLookup($allowList): array
     {
         $byAlias = [];
         $byInstitution = [];
@@ -202,9 +202,9 @@ if (!function_exists('qpmSemanticQualityBuildAllowListLookup')) {
             if (!is_array($entry)) {
                 continue;
             }
-            $canonical = qpmSemanticQualityNormalizeString($entry['name'] ?? '');
-            $aliasList = qpmSemanticQualityNormalizeAliasList($entry['aliases'] ?? []);
-            $canonicalLower = qpmSemanticQualityNormalizeLower($canonical);
+            $canonical = muginSemanticQualityNormalizeString($entry['name'] ?? '');
+            $aliasList = muginSemanticQualityNormalizeAliasList($entry['aliases'] ?? []);
+            $canonicalLower = muginSemanticQualityNormalizeLower($canonical);
             if ($canonicalLower !== '') {
                 $aliasList[] = $canonicalLower;
             }
@@ -213,7 +213,7 @@ if (!function_exists('qpmSemanticQualityBuildAllowListLookup')) {
                     $byAlias[$alias] = $canonical !== '' ? $canonical : $alias;
                 }
             }
-            $institutionId = qpmSemanticQualityNormalizeString($entry['openAlexInstitutionId'] ?? '');
+            $institutionId = muginSemanticQualityNormalizeString($entry['openAlexInstitutionId'] ?? '');
             if ($institutionId !== '') {
                 $byInstitution[$institutionId] = $canonical !== '' ? $canonical : $institutionId;
             }
@@ -222,18 +222,18 @@ if (!function_exists('qpmSemanticQualityBuildAllowListLookup')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityMatchAllowList')) {
+if (!function_exists('muginSemanticQualityMatchAllowList')) {
     /**
      * @param string $text
      * @param array<string,string> $byAlias
      * @return string
      */
-    function qpmSemanticQualityMatchAllowList(string $text, array $byAlias): string
+    function muginSemanticQualityMatchAllowList(string $text, array $byAlias): string
     {
         if ($text === '' || empty($byAlias)) {
             return '';
         }
-        $lower = qpmSemanticQualityNormalizeLower($text);
+        $lower = muginSemanticQualityNormalizeLower($text);
         if ($lower === '') {
             return '';
         }
@@ -252,19 +252,19 @@ if (!function_exists('qpmSemanticQualityMatchAllowList')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityDetectExcludedSubtype')) {
+if (!function_exists('muginSemanticQualityDetectExcludedSubtype')) {
     /**
      * @param array<int,string> $pubTypesLower
      * @param string $titleLower
      * @param string $workTypeLower
      * @return string
      */
-    function qpmSemanticQualityDetectExcludedSubtype(array $pubTypesLower, string $titleLower, string $workTypeLower): string
+    function muginSemanticQualityDetectExcludedSubtype(array $pubTypesLower, string $titleLower, string $workTypeLower): string
     {
         $haystack = array_filter(array_merge([$workTypeLower], $pubTypesLower, [$titleLower]));
-        foreach (QPM_SEMANTIC_QUALITY_EXCLUDED_SUBTYPES as $subtype => $patterns) {
+        foreach (MUGIN_SEMANTIC_QUALITY_EXCLUDED_SUBTYPES as $subtype => $patterns) {
             foreach ($haystack as $text) {
-                if (qpmSemanticQualityAnyMatches($patterns, (string) $text)) {
+                if (muginSemanticQualityAnyMatches($patterns, (string) $text)) {
                     return (string) $subtype;
                 }
             }
@@ -273,15 +273,15 @@ if (!function_exists('qpmSemanticQualityDetectExcludedSubtype')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityDeriveWorkType')) {
+if (!function_exists('muginSemanticQualityDeriveWorkType')) {
     /**
      * @param array<string,mixed> $enriched
      * @return string
      */
-    function qpmSemanticQualityDeriveWorkType(array $enriched): string
+    function muginSemanticQualityDeriveWorkType(array $enriched): string
     {
-        $types = qpmSemanticQualityToPubTypeList($enriched);
-        $workType = qpmSemanticQualityNormalizeLower($enriched['workType'] ?? ($enriched['openAlexWorkType'] ?? ''));
+        $types = muginSemanticQualityToPubTypeList($enriched);
+        $workType = muginSemanticQualityNormalizeLower($enriched['workType'] ?? ($enriched['openAlexWorkType'] ?? ''));
         if ($workType !== '') {
             return $workType;
         }
@@ -289,7 +289,7 @@ if (!function_exists('qpmSemanticQualityDeriveWorkType')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityClassifyPublicationType')) {
+if (!function_exists('muginSemanticQualityClassifyPublicationType')) {
     /**
      * Ported 1:1 from classifyPublicationType() in src/utils/pubTypeClassifier.js.
      *
@@ -297,25 +297,25 @@ if (!function_exists('qpmSemanticQualityClassifyPublicationType')) {
      * @param array<string,mixed> $options guidelinePublisherAllowList, __allowListCache
      * @return array{tier:string,confidence:string,signals:array<int,string>,subtype?:string}
      */
-    function qpmSemanticQualityClassifyPublicationType(array $entry, array $options = []): array
+    function muginSemanticQualityClassifyPublicationType(array $entry, array $options = []): array
     {
         $enriched = isset($entry['enriched']) && is_array($entry['enriched']) ? $entry['enriched'] : [];
-        $title = qpmSemanticQualityNormalizeString($entry['title'] ?? ($enriched['title'] ?? ''));
+        $title = muginSemanticQualityNormalizeString($entry['title'] ?? ($enriched['title'] ?? ''));
         $titleLower = strtolower($title);
-        $pubTypesLower = qpmSemanticQualityToPubTypeList($enriched);
-        $workTypeLower = qpmSemanticQualityDeriveWorkType($enriched);
-        $publisher = qpmSemanticQualityNormalizeString($enriched['publisher'] ?? '');
-        $venue = qpmSemanticQualityNormalizeString($enriched['venue'] ?? '');
-        $hasDoi = qpmSemanticQualityNormalizeString($entry['doi'] ?? '') !== '';
-        $hasOpenAlexId = qpmSemanticQualityNormalizeString($entry['openAlexId'] ?? '') !== '';
-        $hasPmid = qpmSemanticQualityNormalizeString($entry['pmid'] ?? '') !== '';
+        $pubTypesLower = muginSemanticQualityToPubTypeList($enriched);
+        $workTypeLower = muginSemanticQualityDeriveWorkType($enriched);
+        $publisher = muginSemanticQualityNormalizeString($enriched['publisher'] ?? '');
+        $venue = muginSemanticQualityNormalizeString($enriched['venue'] ?? '');
+        $hasDoi = muginSemanticQualityNormalizeString($entry['doi'] ?? '') !== '';
+        $hasOpenAlexId = muginSemanticQualityNormalizeString($entry['openAlexId'] ?? '') !== '';
+        $hasPmid = muginSemanticQualityNormalizeString($entry['pmid'] ?? '') !== '';
         $institutionIds = isset($enriched['institutionIds']) && is_array($enriched['institutionIds']) ? $enriched['institutionIds'] : [];
 
-        $allowListLookup = $options['__allowListCache'] ?? qpmSemanticQualityBuildAllowListLookup($options['guidelinePublisherAllowList'] ?? []);
+        $allowListLookup = $options['__allowListCache'] ?? muginSemanticQualityBuildAllowListLookup($options['guidelinePublisherAllowList'] ?? []);
 
         $signals = [];
 
-        $excludedSubtype = qpmSemanticQualityDetectExcludedSubtype($pubTypesLower, $titleLower, $workTypeLower);
+        $excludedSubtype = muginSemanticQualityDetectExcludedSubtype($pubTypesLower, $titleLower, $workTypeLower);
         if ($excludedSubtype !== '') {
             $signals[] = 'excluded:' . $excludedSubtype;
             return ['tier' => 'excluded', 'subtype' => $excludedSubtype, 'confidence' => 'high', 'signals' => $signals];
@@ -332,15 +332,15 @@ if (!function_exists('qpmSemanticQualityClassifyPublicationType')) {
             $signals[] = 'pubmedPubTypeGuideline';
         }
 
-        $publisherMatch = qpmSemanticQualityMatchAllowList($publisher, $allowListLookup['byAlias'])
-            ?: qpmSemanticQualityMatchAllowList($venue, $allowListLookup['byAlias']);
+        $publisherMatch = muginSemanticQualityMatchAllowList($publisher, $allowListLookup['byAlias'])
+            ?: muginSemanticQualityMatchAllowList($venue, $allowListLookup['byAlias']);
         if ($publisherMatch !== '') {
             $signals[] = 'allowListPublisher:' . $publisherMatch;
         }
 
         $institutionMatch = '';
         foreach ($institutionIds as $id) {
-            $normalizedId = qpmSemanticQualityNormalizeString($id);
+            $normalizedId = muginSemanticQualityNormalizeString($id);
             if (isset($allowListLookup['byInstitution'][$normalizedId])) {
                 $institutionMatch = $allowListLookup['byInstitution'][$normalizedId];
                 break;
@@ -350,7 +350,7 @@ if (!function_exists('qpmSemanticQualityClassifyPublicationType')) {
             $signals[] = 'allowListInstitution:' . $institutionMatch;
         }
 
-        $titleLooksLikeGuideline = qpmSemanticQualityAnyMatches(QPM_SEMANTIC_QUALITY_GUIDELINE_TITLE_PATTERNS, $titleLower);
+        $titleLooksLikeGuideline = muginSemanticQualityAnyMatches(MUGIN_SEMANTIC_QUALITY_GUIDELINE_TITLE_PATTERNS, $titleLower);
         if ($titleLooksLikeGuideline) {
             $signals[] = 'guidelineTitlePattern';
         }
@@ -379,7 +379,7 @@ if (!function_exists('qpmSemanticQualityClassifyPublicationType')) {
             $signals[] = 'pubTypeSystematicReview';
             return ['tier' => 'systematic_review_or_meta', 'confidence' => 'high', 'signals' => $signals];
         }
-        if (qpmSemanticQualityAnyMatches(QPM_SEMANTIC_QUALITY_SYSTEMATIC_REVIEW_TITLE_PATTERNS, $titleLower)) {
+        if (muginSemanticQualityAnyMatches(MUGIN_SEMANTIC_QUALITY_SYSTEMATIC_REVIEW_TITLE_PATTERNS, $titleLower)) {
             $signals[] = 'titlePatternSystematicReview';
             return ['tier' => 'systematic_review_or_meta', 'confidence' => 'medium', 'signals' => $signals];
         }
@@ -395,7 +395,7 @@ if (!function_exists('qpmSemanticQualityClassifyPublicationType')) {
             $signals[] = 'pubTypeRCT';
             return ['tier' => 'randomized_controlled_trial', 'confidence' => 'high', 'signals' => $signals];
         }
-        if (qpmSemanticQualityAnyMatches(QPM_SEMANTIC_QUALITY_RCT_TITLE_PATTERNS, $titleLower)) {
+        if (muginSemanticQualityAnyMatches(MUGIN_SEMANTIC_QUALITY_RCT_TITLE_PATTERNS, $titleLower)) {
             $signals[] = 'titlePatternRCT';
             return ['tier' => 'randomized_controlled_trial', 'confidence' => 'medium', 'signals' => $signals];
         }
@@ -411,7 +411,7 @@ if (!function_exists('qpmSemanticQualityClassifyPublicationType')) {
             $signals[] = 'pubTypeClinicalTrial';
             return ['tier' => 'clinical_trial', 'confidence' => 'high', 'signals' => $signals];
         }
-        if (qpmSemanticQualityAnyMatches(QPM_SEMANTIC_QUALITY_CLINICAL_TRIAL_TITLE_PATTERNS, $titleLower)) {
+        if (muginSemanticQualityAnyMatches(MUGIN_SEMANTIC_QUALITY_CLINICAL_TRIAL_TITLE_PATTERNS, $titleLower)) {
             $signals[] = 'titlePatternClinicalTrial';
             return ['tier' => 'clinical_trial', 'confidence' => 'medium', 'signals' => $signals];
         }
@@ -420,7 +420,7 @@ if (!function_exists('qpmSemanticQualityClassifyPublicationType')) {
             $signals[] = 'pubTypeReview';
             return ['tier' => 'review', 'confidence' => 'high', 'signals' => $signals];
         }
-        if (qpmSemanticQualityAnyMatches(QPM_SEMANTIC_QUALITY_REVIEW_TITLE_PATTERNS, $titleLower)) {
+        if (muginSemanticQualityAnyMatches(MUGIN_SEMANTIC_QUALITY_REVIEW_TITLE_PATTERNS, $titleLower)) {
             $signals[] = 'titlePatternReview';
             return ['tier' => 'review', 'confidence' => 'medium', 'signals' => $signals];
         }
@@ -470,38 +470,38 @@ if (!function_exists('qpmSemanticQualityClassifyPublicationType')) {
     }
 }
 
-if (!defined('QPM_SEMANTIC_QUALITY_CONFIDENCE_COEFFICIENTS')) {
-    define('QPM_SEMANTIC_QUALITY_CONFIDENCE_COEFFICIENTS', ['high' => 1.0, 'medium' => 0.7, 'low' => 0.4]);
+if (!defined('MUGIN_SEMANTIC_QUALITY_CONFIDENCE_COEFFICIENTS')) {
+    define('MUGIN_SEMANTIC_QUALITY_CONFIDENCE_COEFFICIENTS', ['high' => 1.0, 'medium' => 0.7, 'low' => 0.4]);
 }
 
-if (!function_exists('qpmSemanticQualityResolveConfidenceCoefficient')) {
+if (!function_exists('muginSemanticQualityResolveConfidenceCoefficient')) {
     /**
      * @param mixed $confidence
      * @return float
      */
-    function qpmSemanticQualityResolveConfidenceCoefficient($confidence): float
+    function muginSemanticQualityResolveConfidenceCoefficient($confidence): float
     {
-        $normalized = qpmSemanticQualityNormalizeLower($confidence);
-        return QPM_SEMANTIC_QUALITY_CONFIDENCE_COEFFICIENTS[$normalized] ?? 0.0;
+        $normalized = muginSemanticQualityNormalizeLower($confidence);
+        return MUGIN_SEMANTIC_QUALITY_CONFIDENCE_COEFFICIENTS[$normalized] ?? 0.0;
     }
 }
 
-if (!function_exists('qpmSemanticQualityComputePubTypeTierBonus')) {
+if (!function_exists('muginSemanticQualityComputePubTypeTierBonus')) {
     /**
      * @param array<string,mixed> $classification
      * @param array<string,mixed> $rerankConfig
      * @return array{value:float,tier:string,confidence:string,adjustedBonus:float,baseBonus?:float}
      */
-    function qpmSemanticQualityComputePubTypeTierBonus(array $classification, array $rerankConfig): array
+    function muginSemanticQualityComputePubTypeTierBonus(array $classification, array $rerankConfig): array
     {
-        $tier = qpmSemanticQualityNormalizeString($classification['tier'] ?? '');
+        $tier = muginSemanticQualityNormalizeString($classification['tier'] ?? '');
         if ($tier === '') {
             return ['value' => 0.0, 'tier' => '', 'confidence' => '', 'adjustedBonus' => 0.0];
         }
         $tiersConfig = isset($rerankConfig['pubTypeTiers']) && is_array($rerankConfig['pubTypeTiers']) ? $rerankConfig['pubTypeTiers'] : [];
         $tierEntry = $tiersConfig[$tier] ?? null;
         $baseBonusRaw = is_array($tierEntry) ? ($tierEntry['bonus'] ?? null) : $tierEntry;
-        $baseBonus = qpmSemanticQualityToFiniteNumber($baseBonusRaw);
+        $baseBonus = muginSemanticQualityToFiniteNumber($baseBonusRaw);
         if ($baseBonus === null || $baseBonus === 0.0) {
             return [
                 'value' => 0.0,
@@ -510,7 +510,7 @@ if (!function_exists('qpmSemanticQualityComputePubTypeTierBonus')) {
                 'adjustedBonus' => 0.0,
             ];
         }
-        $coefficient = qpmSemanticQualityResolveConfidenceCoefficient($classification['confidence'] ?? '');
+        $coefficient = muginSemanticQualityResolveConfidenceCoefficient($classification['confidence'] ?? '');
         $adjustedBonus = $baseBonus * $coefficient;
         return [
             'value' => $adjustedBonus,
@@ -522,14 +522,14 @@ if (!function_exists('qpmSemanticQualityComputePubTypeTierBonus')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityIsExcludedClassification')) {
+if (!function_exists('muginSemanticQualityIsExcludedClassification')) {
     /**
      * @param array<string,mixed> $classification
      * @return bool
      */
-    function qpmSemanticQualityIsExcludedClassification(array $classification): bool
+    function muginSemanticQualityIsExcludedClassification(array $classification): bool
     {
-        return qpmSemanticQualityNormalizeString($classification['tier'] ?? '') === 'excluded';
+        return muginSemanticQualityNormalizeString($classification['tier'] ?? '') === 'excluded';
     }
 }
 
@@ -547,17 +547,17 @@ if (!function_exists('qpmSemanticQualityIsExcludedClassification')) {
 // provide. metadataFieldConditions therefore read from the same metadata
 // snapshot the reranker built for the candidate.
 
-if (!function_exists('qpmSemanticQualityDedupeNormalizedValues')) {
+if (!function_exists('muginSemanticQualityDedupeNormalizedValues')) {
     /**
      * @param array<int,mixed> $values
      * @return array<int,string>
      */
-    function qpmSemanticQualityDedupeNormalizedValues(array $values): array
+    function muginSemanticQualityDedupeNormalizedValues(array $values): array
     {
         $seen = [];
         $out = [];
         foreach ($values as $value) {
-            $normalized = qpmSemanticQualityNormalizeLower($value);
+            $normalized = muginSemanticQualityNormalizeLower($value);
             if ($normalized === '' || isset($seen[$normalized])) {
                 continue;
             }
@@ -568,13 +568,13 @@ if (!function_exists('qpmSemanticQualityDedupeNormalizedValues')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityAppendMetadataSignalTexts')) {
+if (!function_exists('muginSemanticQualityAppendMetadataSignalTexts')) {
     /**
      * @param array<int,string> $texts (by reference)
      * @param array<string,mixed> $metadata
      * @return void
      */
-    function qpmSemanticQualityAppendMetadataSignalTexts(array &$texts, array $metadata): void
+    function muginSemanticQualityAppendMetadataSignalTexts(array &$texts, array $metadata): void
     {
         $values = [
             $metadata['venue'] ?? null,
@@ -599,18 +599,18 @@ if (!function_exists('qpmSemanticQualityAppendMetadataSignalTexts')) {
             is_array($metadata['pubTypes'] ?? null) ? $metadata['pubTypes'] : []
         );
         foreach ($values as $value) {
-            $normalized = qpmSemanticQualityNormalizeString($value);
+            $normalized = muginSemanticQualityNormalizeString($value);
             if ($normalized !== '') {
                 $texts[] = $normalized;
             }
         }
 
         $bibliographicParts = array_filter([
-            qpmSemanticQualityNormalizeString($metadata['venue'] ?? ($metadata['sourceDisplayName'] ?? ($metadata['sourceAbbreviatedTitle'] ?? ($metadata['source'] ?? '')))),
-            qpmSemanticQualityNormalizeString($metadata['publicationDate'] ?? ($metadata['pubDate'] ?? ($metadata['pubdate'] ?? ($metadata['publicationYear'] ?? ($metadata['year'] ?? ''))))),
-            qpmSemanticQualityNormalizeString($metadata['volume'] ?? ''),
+            muginSemanticQualityNormalizeString($metadata['venue'] ?? ($metadata['sourceDisplayName'] ?? ($metadata['sourceAbbreviatedTitle'] ?? ($metadata['source'] ?? '')))),
+            muginSemanticQualityNormalizeString($metadata['publicationDate'] ?? ($metadata['pubDate'] ?? ($metadata['pubdate'] ?? ($metadata['publicationYear'] ?? ($metadata['year'] ?? ''))))),
+            muginSemanticQualityNormalizeString($metadata['volume'] ?? ''),
             isset($metadata['issue']) && $metadata['issue'] !== '' ? '(' . $metadata['issue'] . ')' : '',
-            qpmSemanticQualityNormalizeString($metadata['pages'] ?? ''),
+            muginSemanticQualityNormalizeString($metadata['pages'] ?? ''),
         ]);
         if (!empty($bibliographicParts)) {
             $texts[] = trim(implode(' ', $bibliographicParts));
@@ -618,27 +618,27 @@ if (!function_exists('qpmSemanticQualityAppendMetadataSignalTexts')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityGetCandidateSignalTexts')) {
+if (!function_exists('muginSemanticQualityGetCandidateSignalTexts')) {
     /**
      * @param array<string,mixed> $candidate
      * @param array<int,string> $scopes
      * @return array<int,string>
      */
-    function qpmSemanticQualityGetCandidateSignalTexts(array $candidate, array $scopes = []): array
+    function muginSemanticQualityGetCandidateSignalTexts(array $candidate, array $scopes = []): array
     {
         $normalizedScopes = !empty($scopes) ? $scopes : ['candidatetitle', 'sourcecandidatetitles'];
-        $scopeSet = array_flip(array_map('qpmSemanticQualityNormalizeLower', $normalizedScopes));
+        $scopeSet = array_flip(array_map('muginSemanticQualityNormalizeLower', $normalizedScopes));
         $useCandidateTitle = isset($scopeSet['candidatetitle']) || isset($scopeSet['alltext']);
         $useSourceMetadataTexts = isset($scopeSet['sourcemetadatexts']) || isset($scopeSet['alltext']);
         $texts = [];
 
         if ($useCandidateTitle) {
-            $texts[] = qpmSemanticQualityNormalizeString($candidate['title'] ?? '');
+            $texts[] = muginSemanticQualityNormalizeString($candidate['title'] ?? '');
         }
 
         if ($useSourceMetadataTexts) {
             $metadata = isset($candidate['metadata']) && is_array($candidate['metadata']) ? $candidate['metadata'] : [];
-            qpmSemanticQualityAppendMetadataSignalTexts($texts, array_merge($metadata, [
+            muginSemanticQualityAppendMetadataSignalTexts($texts, array_merge($metadata, [
                 'source' => $candidate['source'] ?? '',
             ]));
         }
@@ -651,89 +651,89 @@ if (!function_exists('qpmSemanticQualityGetCandidateSignalTexts')) {
         // scope is meant to widen the search over, so no separate branch is
         // needed here.
 
-        return qpmSemanticQualityDedupeNormalizedValues($texts);
+        return muginSemanticQualityDedupeNormalizedValues($texts);
     }
 }
 
-if (!function_exists('qpmSemanticQualityGetCandidateSourceProviders')) {
+if (!function_exists('muginSemanticQualityGetCandidateSourceProviders')) {
     /**
      * @param array<string,mixed> $candidate
      * @return array<int,string>
      */
-    function qpmSemanticQualityGetCandidateSourceProviders(array $candidate): array
+    function muginSemanticQualityGetCandidateSourceProviders(array $candidate): array
     {
-        $providers = [qpmSemanticQualityNormalizeLower($candidate['source'] ?? '')];
+        $providers = [muginSemanticQualityNormalizeLower($candidate['source'] ?? '')];
         // The merged candidate carries every contributing source under 'sources'
         // (see Section 3's mergeSourceCandidates equivalent), which is the exact
         // cross-source provider list the JS version derives from its DOI/OpenAlexId
         // hydration cache.
         if (isset($candidate['sources']) && is_array($candidate['sources'])) {
             foreach ($candidate['sources'] as $sourceKey) {
-                $providers[] = qpmSemanticQualityNormalizeLower($sourceKey);
+                $providers[] = muginSemanticQualityNormalizeLower($sourceKey);
             }
         }
-        return qpmSemanticQualityDedupeNormalizedValues($providers);
+        return muginSemanticQualityDedupeNormalizedValues($providers);
     }
 }
 
-if (!function_exists('qpmSemanticQualityBuildMetadataSnapshot')) {
+if (!function_exists('muginSemanticQualityBuildMetadataSnapshot')) {
     /**
      * @param array<string,mixed> $candidate Merged candidate (has 'enriched', 'pubTypeClassification', 'sources')
      * @return array<string,mixed>
      */
-    function qpmSemanticQualityBuildMetadataSnapshot(array $candidate): array
+    function muginSemanticQualityBuildMetadataSnapshot(array $candidate): array
     {
         $enriched = isset($candidate['enriched']) && is_array($candidate['enriched']) ? $candidate['enriched'] : [];
         $classification = isset($candidate['pubTypeClassification']) && is_array($candidate['pubTypeClassification']) ? $candidate['pubTypeClassification'] : [];
-        $sourceProviders = qpmSemanticQualityGetCandidateSourceProviders($candidate);
-        $pubTypeTier = qpmSemanticQualityNormalizeLower($classification['tier'] ?? '');
-        $pubTypeConfidence = qpmSemanticQualityNormalizeLower($classification['confidence'] ?? '');
+        $sourceProviders = muginSemanticQualityGetCandidateSourceProviders($candidate);
+        $pubTypeTier = muginSemanticQualityNormalizeLower($classification['tier'] ?? '');
+        $pubTypeConfidence = muginSemanticQualityNormalizeLower($classification['confidence'] ?? '');
 
         $publicationTypes = [];
         foreach (($enriched['pubTypes'] ?? []) as $type) {
-            $publicationTypes[] = qpmSemanticQualityNormalizeLower($type);
+            $publicationTypes[] = muginSemanticQualityNormalizeLower($type);
         }
-        $sourceType = qpmSemanticQualityNormalizeLower($enriched['sourceType'] ?? '');
-        $venue = qpmSemanticQualityNormalizeLower($enriched['venue'] ?? '');
+        $sourceType = muginSemanticQualityNormalizeLower($enriched['sourceType'] ?? '');
+        $venue = muginSemanticQualityNormalizeLower($enriched['venue'] ?? '');
 
         return [
-            'candidateSource' => qpmSemanticQualityNormalizeLower($candidate['source'] ?? ''),
+            'candidateSource' => muginSemanticQualityNormalizeLower($candidate['source'] ?? ''),
             'sourceProviders' => $sourceProviders,
-            'hasOpenAlexId' => qpmSemanticQualityNormalizeString($candidate['openAlexId'] ?? '') !== '',
-            'hasDoi' => qpmSemanticQualityNormalizeString($candidate['doi'] ?? '') !== '',
-            'openAlexId' => qpmSemanticQualityNormalizeString($candidate['openAlexId'] ?? ''),
-            'candidatePublicationYear' => qpmSemanticQualityNormalizeLower($enriched['publicationYear'] ?? ''),
+            'hasOpenAlexId' => muginSemanticQualityNormalizeString($candidate['openAlexId'] ?? '') !== '',
+            'hasDoi' => muginSemanticQualityNormalizeString($candidate['doi'] ?? '') !== '',
+            'openAlexId' => muginSemanticQualityNormalizeString($candidate['openAlexId'] ?? ''),
+            'candidatePublicationYear' => muginSemanticQualityNormalizeLower($enriched['publicationYear'] ?? ''),
             'candidateVenue' => $venue,
             'candidateSourceType' => $sourceType,
             'candidatePublicationTypes' => $publicationTypes,
             'candidatePubTypeTier' => $pubTypeTier,
             'candidatePubTypeConfidence' => $pubTypeConfidence,
-            'candidateVolume' => qpmSemanticQualityNormalizeLower($enriched['volume'] ?? ($candidate['volume'] ?? '')),
-            'candidateIssue' => qpmSemanticQualityNormalizeLower($enriched['issue'] ?? ($candidate['issue'] ?? '')),
+            'candidateVolume' => muginSemanticQualityNormalizeLower($enriched['volume'] ?? ($candidate['volume'] ?? '')),
+            'candidateIssue' => muginSemanticQualityNormalizeLower($enriched['issue'] ?? ($candidate['issue'] ?? '')),
             'semanticSourcePublicationTypes' => $publicationTypes,
             'semanticSourceVenues' => $venue !== '' ? [$venue] : [],
             'semanticSourceTypes' => $sourceType !== '' ? [$sourceType] : [],
             'openAlexSourceType' => $sourceType,
             'openAlexSourceDisplayName' => $venue,
-            'openAlexSourceAbbreviatedTitle' => qpmSemanticQualityNormalizeLower(
+            'openAlexSourceAbbreviatedTitle' => muginSemanticQualityNormalizeLower(
                 $enriched['sourceAbbreviatedTitle'] ?? ''
             ),
-            'openAlexPrimarySource' => qpmSemanticQualityNormalizeLower(
+            'openAlexPrimarySource' => muginSemanticQualityNormalizeLower(
                 $enriched['journalSourceId'] ?? ''
             ),
-            'openAlexPubDate' => qpmSemanticQualityNormalizeLower(
+            'openAlexPubDate' => muginSemanticQualityNormalizeLower(
                 $enriched['publicationDate'] ?? ''
             ),
         ];
     }
 }
 
-if (!function_exists('qpmSemanticQualitySnapshotValueExists')) {
+if (!function_exists('muginSemanticQualitySnapshotValueExists')) {
     /**
      * @param mixed $value
      * @return bool
      */
-    function qpmSemanticQualitySnapshotValueExists($value): bool
+    function muginSemanticQualitySnapshotValueExists($value): bool
     {
         if (is_array($value)) {
             return count($value) > 0;
@@ -741,48 +741,48 @@ if (!function_exists('qpmSemanticQualitySnapshotValueExists')) {
         if (is_bool($value)) {
             return $value;
         }
-        return qpmSemanticQualityNormalizeString($value) !== '';
+        return muginSemanticQualityNormalizeString($value) !== '';
     }
 }
 
-if (!function_exists('qpmSemanticQualitySnapshotValueEqualsAny')) {
+if (!function_exists('muginSemanticQualitySnapshotValueEqualsAny')) {
     /**
      * @param mixed $value
      * @param array<int,mixed> $expectedValues
      * @return bool
      */
-    function qpmSemanticQualitySnapshotValueEqualsAny($value, array $expectedValues): bool
+    function muginSemanticQualitySnapshotValueEqualsAny($value, array $expectedValues): bool
     {
-        $normalizedExpected = array_map('qpmSemanticQualityNormalizeLower', $expectedValues);
+        $normalizedExpected = array_map('muginSemanticQualityNormalizeLower', $expectedValues);
         if (empty($normalizedExpected)) {
             return true;
         }
         if (is_array($value)) {
-            $normalizedValues = array_map('qpmSemanticQualityNormalizeLower', $value);
+            $normalizedValues = array_map('muginSemanticQualityNormalizeLower', $value);
             return count(array_intersect($normalizedValues, $normalizedExpected)) > 0;
         }
         if (is_bool($value)) {
             return in_array(strtolower($value ? 'true' : 'false'), $normalizedExpected, true);
         }
-        return in_array(qpmSemanticQualityNormalizeLower($value), $normalizedExpected, true);
+        return in_array(muginSemanticQualityNormalizeLower($value), $normalizedExpected, true);
     }
 }
 
-if (!function_exists('qpmSemanticQualitySnapshotValueIncludesAny')) {
+if (!function_exists('muginSemanticQualitySnapshotValueIncludesAny')) {
     /**
      * @param mixed $value
      * @param array<int,mixed> $expectedValues
      * @return bool
      */
-    function qpmSemanticQualitySnapshotValueIncludesAny($value, array $expectedValues): bool
+    function muginSemanticQualitySnapshotValueIncludesAny($value, array $expectedValues): bool
     {
-        $normalizedExpected = array_map('qpmSemanticQualityNormalizeLower', $expectedValues);
+        $normalizedExpected = array_map('muginSemanticQualityNormalizeLower', $expectedValues);
         if (empty($normalizedExpected)) {
             return true;
         }
         if (is_array($value)) {
             foreach ($value as $entry) {
-                $normalizedEntry = qpmSemanticQualityNormalizeLower($entry);
+                $normalizedEntry = muginSemanticQualityNormalizeLower($entry);
                 foreach ($normalizedExpected as $expected) {
                     if (strpos($normalizedEntry, $expected) !== false) {
                         return true;
@@ -791,7 +791,7 @@ if (!function_exists('qpmSemanticQualitySnapshotValueIncludesAny')) {
             }
             return false;
         }
-        $normalizedValue = qpmSemanticQualityNormalizeLower($value);
+        $normalizedValue = muginSemanticQualityNormalizeLower($value);
         foreach ($normalizedExpected as $expected) {
             if (strpos($normalizedValue, $expected) !== false) {
                 return true;
@@ -801,35 +801,35 @@ if (!function_exists('qpmSemanticQualitySnapshotValueIncludesAny')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityEvaluateMetadataFieldCondition')) {
+if (!function_exists('muginSemanticQualityEvaluateMetadataFieldCondition')) {
     /**
      * @param array<string,mixed> $snapshot
      * @param array<string,mixed> $condition
      * @return bool
      */
-    function qpmSemanticQualityEvaluateMetadataFieldCondition(array $snapshot, array $condition): bool
+    function muginSemanticQualityEvaluateMetadataFieldCondition(array $snapshot, array $condition): bool
     {
         $field = (string) ($condition['field'] ?? '');
         $value = $snapshot[$field] ?? null;
-        $operator = qpmSemanticQualityNormalizeLower($condition['operator'] ?? '');
+        $operator = muginSemanticQualityNormalizeLower($condition['operator'] ?? '');
         switch ($operator) {
             case 'exists':
                 $expectExists = array_key_exists('expectExists', $condition) ? (bool) $condition['expectExists'] : true;
-                $passed = qpmSemanticQualitySnapshotValueExists($value) === $expectExists;
+                $passed = muginSemanticQualitySnapshotValueExists($value) === $expectExists;
                 break;
             case 'includesany':
-                $passed = qpmSemanticQualitySnapshotValueIncludesAny($value, (array) ($condition['values'] ?? []));
+                $passed = muginSemanticQualitySnapshotValueIncludesAny($value, (array) ($condition['values'] ?? []));
                 break;
             case 'equalsany':
             default:
-                $passed = qpmSemanticQualitySnapshotValueEqualsAny($value, (array) ($condition['values'] ?? []));
+                $passed = muginSemanticQualitySnapshotValueEqualsAny($value, (array) ($condition['values'] ?? []));
                 break;
         }
         return !empty($condition['negate']) ? !$passed : $passed;
     }
 }
 
-if (!function_exists('qpmSemanticQualityEvaluateRule')) {
+if (!function_exists('muginSemanticQualityEvaluateRule')) {
     /**
      * Ported from evaluateCandidateSemanticRule() in semanticRuleEngine.js.
      *
@@ -839,9 +839,9 @@ if (!function_exists('qpmSemanticQualityEvaluateRule')) {
      * @param array<string,mixed> $metadataSnapshot
      * @return array{passed:bool,ruleId:string,ruleLabel:string,failures:array<int,string>}
      */
-    function qpmSemanticQualityEvaluateRule(array $candidate, array $rule, array $sourceProviders, array $metadataSnapshot): array
+    function muginSemanticQualityEvaluateRule(array $candidate, array $rule, array $sourceProviders, array $metadataSnapshot): array
     {
-        $signalTexts = qpmSemanticQualityGetCandidateSignalTexts($candidate, (array) ($rule['textScopes'] ?? []));
+        $signalTexts = muginSemanticQualityGetCandidateSignalTexts($candidate, (array) ($rule['textScopes'] ?? []));
 
         $requireAny = (array) ($rule['requireAnyTextSignals'] ?? []);
         $hasRequiredAnySignal = empty($requireAny) || array_reduce($requireAny, function ($carry, $signal) use ($signalTexts) {
@@ -849,7 +849,7 @@ if (!function_exists('qpmSemanticQualityEvaluateRule')) {
                 return true;
             }
             foreach ($signalTexts as $text) {
-                if (strpos($text, qpmSemanticQualityNormalizeLower($signal)) !== false) {
+                if (strpos($text, muginSemanticQualityNormalizeLower($signal)) !== false) {
                     return true;
                 }
             }
@@ -861,7 +861,7 @@ if (!function_exists('qpmSemanticQualityEvaluateRule')) {
         foreach ($requireAll as $signal) {
             $found = false;
             foreach ($signalTexts as $text) {
-                if (strpos($text, qpmSemanticQualityNormalizeLower($signal)) !== false) {
+                if (strpos($text, muginSemanticQualityNormalizeLower($signal)) !== false) {
                     $found = true;
                     break;
                 }
@@ -876,7 +876,7 @@ if (!function_exists('qpmSemanticQualityEvaluateRule')) {
         $hasExcludedSignal = false;
         foreach ($excludeAny as $signal) {
             foreach ($signalTexts as $text) {
-                if (strpos($text, qpmSemanticQualityNormalizeLower($signal)) !== false) {
+                if (strpos($text, muginSemanticQualityNormalizeLower($signal)) !== false) {
                     $hasExcludedSignal = true;
                     break 2;
                 }
@@ -885,24 +885,24 @@ if (!function_exists('qpmSemanticQualityEvaluateRule')) {
 
         $allowProviders = (array) ($rule['allowSourceProviders'] ?? []);
         $hasAllowedProvider = empty($allowProviders) || count(array_intersect(
-            array_map('qpmSemanticQualityNormalizeLower', $allowProviders),
+            array_map('muginSemanticQualityNormalizeLower', $allowProviders),
             $sourceProviders
         )) > 0;
 
         $excludeProviders = (array) ($rule['excludeSourceProviders'] ?? []);
         $hasExcludedProvider = !empty($excludeProviders) && count(array_intersect(
-            array_map('qpmSemanticQualityNormalizeLower', $excludeProviders),
+            array_map('muginSemanticQualityNormalizeLower', $excludeProviders),
             $sourceProviders
         )) > 0;
 
         $metadataConditions = (array) ($rule['metadataFieldConditions'] ?? []);
         $metadataResults = [];
         foreach ($metadataConditions as $condition) {
-            $metadataResults[] = qpmSemanticQualityEvaluateMetadataFieldCondition($metadataSnapshot, (array) $condition);
+            $metadataResults[] = muginSemanticQualityEvaluateMetadataFieldCondition($metadataSnapshot, (array) $condition);
         }
         if (empty($metadataResults)) {
             $matchesMetadataConditions = true;
-        } elseif (qpmSemanticQualityNormalizeLower($rule['metadataFieldConditionMode'] ?? '') === 'any') {
+        } elseif (muginSemanticQualityNormalizeLower($rule['metadataFieldConditionMode'] ?? '') === 'any') {
             $matchesMetadataConditions = in_array(true, $metadataResults, true);
         } else {
             $matchesMetadataConditions = !in_array(false, $metadataResults, true);
@@ -932,7 +932,7 @@ if (!function_exists('qpmSemanticQualityEvaluateRule')) {
 
         if (empty($positiveChecks)) {
             $positivePassed = true;
-        } elseif (qpmSemanticQualityNormalizeLower($rule['matchStrategy'] ?? '') === 'any') {
+        } elseif (muginSemanticQualityNormalizeLower($rule['matchStrategy'] ?? '') === 'any') {
             $positivePassed = in_array(true, $positiveChecks, true);
         } else {
             $positivePassed = !in_array(false, $positiveChecks, true);
@@ -962,14 +962,14 @@ if (!function_exists('qpmSemanticQualityEvaluateRule')) {
 
         return [
             'passed' => $passed,
-            'ruleId' => qpmSemanticQualityNormalizeString($rule['id'] ?? ($rule['key'] ?? ($rule['label'] ?? ''))),
-            'ruleLabel' => qpmSemanticQualityNormalizeString($rule['label'] ?? ($rule['id'] ?? '')),
+            'ruleId' => muginSemanticQualityNormalizeString($rule['id'] ?? ($rule['key'] ?? ($rule['label'] ?? ''))),
+            'ruleLabel' => muginSemanticQualityNormalizeString($rule['label'] ?? ($rule['id'] ?? '')),
             'failures' => $failures,
         ];
     }
 }
 
-if (!function_exists('qpmSemanticQualityCandidateMatchesPostValidation')) {
+if (!function_exists('muginSemanticQualityCandidateMatchesPostValidation')) {
     /**
      * Ported from explainCandidateActiveSemanticDoiOnlyRules() / candidateMatchesActiveSemanticDoiOnlyRules()
      * in semanticRuleEngine.js.
@@ -978,7 +978,7 @@ if (!function_exists('qpmSemanticQualityCandidateMatchesPostValidation')) {
      * @param array<string,mixed> $ruleState { activeRules: [...] } or { ruleGroups: [{ id, rules: [...] }, ...] }
      * @return array{matches:bool,ruleResults:array<int,array<string,mixed>>}
      */
-    function qpmSemanticQualityCandidateMatchesPostValidation(array $candidate, array $ruleState): array
+    function muginSemanticQualityCandidateMatchesPostValidation(array $candidate, array $ruleState): array
     {
         $activeRules = (array) ($ruleState['activeRules'] ?? []);
         $ruleGroups = (array) ($ruleState['ruleGroups'] ?? []);
@@ -986,8 +986,8 @@ if (!function_exists('qpmSemanticQualityCandidateMatchesPostValidation')) {
             return ['matches' => true, 'ruleResults' => []];
         }
 
-        $sourceProviders = qpmSemanticQualityGetCandidateSourceProviders($candidate);
-        $metadataSnapshot = qpmSemanticQualityBuildMetadataSnapshot($candidate);
+        $sourceProviders = muginSemanticQualityGetCandidateSourceProviders($candidate);
+        $metadataSnapshot = muginSemanticQualityBuildMetadataSnapshot($candidate);
 
         if (!empty($ruleGroups)) {
             $groupResults = [];
@@ -996,7 +996,7 @@ if (!function_exists('qpmSemanticQualityCandidateMatchesPostValidation')) {
                 $rules = (array) ($group['rules'] ?? []);
                 $ruleResults = [];
                 foreach ($rules as $rule) {
-                    $ruleResults[] = qpmSemanticQualityEvaluateRule($candidate, (array) $rule, $sourceProviders, $metadataSnapshot);
+                    $ruleResults[] = muginSemanticQualityEvaluateRule($candidate, (array) $rule, $sourceProviders, $metadataSnapshot);
                 }
                 $groupPassed = false;
                 foreach ($ruleResults as $result) {
@@ -1020,7 +1020,7 @@ if (!function_exists('qpmSemanticQualityCandidateMatchesPostValidation')) {
 
         $ruleResults = [];
         foreach ($activeRules as $rule) {
-            $ruleResults[] = qpmSemanticQualityEvaluateRule($candidate, (array) $rule, $sourceProviders, $metadataSnapshot);
+            $ruleResults[] = muginSemanticQualityEvaluateRule($candidate, (array) $rule, $sourceProviders, $metadataSnapshot);
         }
         $allPassed = true;
         foreach ($ruleResults as $result) {
@@ -1048,20 +1048,20 @@ if (!function_exists('qpmSemanticQualityCandidateMatchesPostValidation')) {
 // round-trips) and the rich scope-note/related-term context building used to
 // brief that AI step. That loop is the least deterministic, highest-risk part
 // of the pipeline. What IS ported here (this section) plus
-// qpmPublicSearchCanonicalizeAllMeshTermsWithNlm() in public-search-lib.php
+// muginPublicSearchCanonicalizeAllMeshTermsWithNlm() in public-search-lib.php
 // (Step 2b: rewrite valid [mh] terms to their canonical NLM descriptor name,
 // downgrade invalid ones to [tiab]) covers the majority of MeSH-validation's
 // effect on final query correctness. This is a documented, deliberate scope
 // reduction - see the unified-search-engine-full-parity plan, Phase 3.
 
-if (!function_exists('qpmSemanticQualityExtractMeshTerms')) {
+if (!function_exists('muginSemanticQualityExtractMeshTerms')) {
     /**
      * Ported from extractMeshTerms() in src/utils/meshValidator.js.
      *
      * @param string $searchString
      * @return array<int,array{term:string,fullMatch:string}>
      */
-    function qpmSemanticQualityExtractMeshTerms(string $searchString): array
+    function muginSemanticQualityExtractMeshTerms(string $searchString): array
     {
         if ($searchString === '') {
             return [];
@@ -1081,14 +1081,14 @@ if (!function_exists('qpmSemanticQualityExtractMeshTerms')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityQuoteMeshTerms')) {
+if (!function_exists('muginSemanticQualityQuoteMeshTerms')) {
     /**
      * Ported from quoteMeshTerms() in meshValidator.js.
      *
      * @param string $searchString
      * @return string
      */
-    function qpmSemanticQualityQuoteMeshTerms(string $searchString): string
+    function muginSemanticQualityQuoteMeshTerms(string $searchString): string
     {
         if ($searchString === '') {
             return $searchString;
@@ -1101,14 +1101,14 @@ if (!function_exists('qpmSemanticQualityQuoteMeshTerms')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityNormalizeFieldTags')) {
+if (!function_exists('muginSemanticQualityNormalizeFieldTags')) {
     /**
      * Ported from normalizeFieldTags() in meshValidator.js.
      *
      * @param string $searchString
      * @return string
      */
-    function qpmSemanticQualityNormalizeFieldTags(string $searchString): string
+    function muginSemanticQualityNormalizeFieldTags(string $searchString): string
     {
         if ($searchString === '') {
             return $searchString;
@@ -1137,14 +1137,14 @@ if (!function_exists('qpmSemanticQualityNormalizeFieldTags')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityNormalizeUnsupportedFieldTags')) {
+if (!function_exists('muginSemanticQualityNormalizeUnsupportedFieldTags')) {
     /**
      * Ported from normalizeUnsupportedFieldTags() in meshValidator.js: [ab] -> [tiab].
      *
      * @param string $searchString
      * @return string
      */
-    function qpmSemanticQualityNormalizeUnsupportedFieldTags(string $searchString): string
+    function muginSemanticQualityNormalizeUnsupportedFieldTags(string $searchString): string
     {
         if ($searchString === '') {
             return $searchString;
@@ -1153,14 +1153,14 @@ if (!function_exists('qpmSemanticQualityNormalizeUnsupportedFieldTags')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityFixWildcardsInQuotedTerms')) {
+if (!function_exists('muginSemanticQualityFixWildcardsInQuotedTerms')) {
     /**
      * Ported from fixWildcardsInQuotedTerms() in meshValidator.js.
      *
      * @param string $searchString
      * @return string
      */
-    function qpmSemanticQualityFixWildcardsInQuotedTerms(string $searchString): string
+    function muginSemanticQualityFixWildcardsInQuotedTerms(string $searchString): string
     {
         if ($searchString === '') {
             return $searchString;
@@ -1173,14 +1173,14 @@ if (!function_exists('qpmSemanticQualityFixWildcardsInQuotedTerms')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityRemoveDuplicateTerms')) {
+if (!function_exists('muginSemanticQualityRemoveDuplicateTerms')) {
     /**
      * Ported from removeDuplicateTerms() in meshValidator.js.
      *
      * @param string $searchString
      * @return string
      */
-    function qpmSemanticQualityRemoveDuplicateTerms(string $searchString): string
+    function muginSemanticQualityRemoveDuplicateTerms(string $searchString): string
     {
         if ($searchString === '') {
             return $searchString;
@@ -1199,14 +1199,14 @@ if (!function_exists('qpmSemanticQualityRemoveDuplicateTerms')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityNormalizeBooleanOperatorsOutsideQuotes')) {
+if (!function_exists('muginSemanticQualityNormalizeBooleanOperatorsOutsideQuotes')) {
     /**
      * Ported from normalizeBooleanOperatorsOutsideQuotes() in meshValidator.js.
      *
      * @param string $searchString
      * @return string
      */
-    function qpmSemanticQualityNormalizeBooleanOperatorsOutsideQuotes(string $searchString): string
+    function muginSemanticQualityNormalizeBooleanOperatorsOutsideQuotes(string $searchString): string
     {
         if ($searchString === '') {
             return $searchString;
@@ -1244,14 +1244,14 @@ if (!function_exists('qpmSemanticQualityNormalizeBooleanOperatorsOutsideQuotes')
     }
 }
 
-if (!function_exists('qpmSemanticQualityAssertBalancedSyntax')) {
+if (!function_exists('muginSemanticQualityAssertBalancedSyntax')) {
     /**
      * Ported from assertBalancedSyntax() in meshValidator.js.
      *
      * @param string $searchString
      * @return bool True if balanced, false otherwise (JS throws; PHP callers check the return value instead).
      */
-    function qpmSemanticQualityAssertBalancedSyntax(string $searchString): bool
+    function muginSemanticQualityAssertBalancedSyntax(string $searchString): bool
     {
         if ($searchString === '') {
             return true;
@@ -1281,8 +1281,8 @@ if (!function_exists('qpmSemanticQualityAssertBalancedSyntax')) {
     }
 }
 
-if (!defined('QPM_SEMANTIC_QUALITY_ALLOWED_PUBMED_FIELD_TAGS')) {
-    define('QPM_SEMANTIC_QUALITY_ALLOWED_PUBMED_FIELD_TAGS', [
+if (!defined('MUGIN_SEMANTIC_QUALITY_ALLOWED_PUBMED_FIELD_TAGS')) {
+    define('MUGIN_SEMANTIC_QUALITY_ALLOWED_PUBMED_FIELD_TAGS', [
         'ad', 'all', 'aid', 'au', 'auid', 'book', 'dcom', 'cois', 'cn', 'crdt',
         'rn', 'ed', 'edat', 'filter', 'sb', '1au', 'fau', 'fir', 'gr', 'ir',
         'isbn', 'ip', 'ta', 'la', 'lastau', 'lid', 'mhda', 'majr', 'sh', 'mh',
@@ -1291,14 +1291,14 @@ if (!defined('QPM_SEMANTIC_QUALITY_ALLOWED_PUBMED_FIELD_TAGS')) {
     ]);
 }
 
-if (!function_exists('qpmSemanticQualityAssertAllowedFieldTags')) {
+if (!function_exists('muginSemanticQualityAssertAllowedFieldTags')) {
     /**
      * Ported from assertAllowedFieldTags() in meshValidator.js.
      *
      * @param string $searchString
      * @return array<int,string> List of invalid tags found (empty = all valid).
      */
-    function qpmSemanticQualityAssertAllowedFieldTags(string $searchString): array
+    function muginSemanticQualityAssertAllowedFieldTags(string $searchString): array
     {
         if ($searchString === '') {
             return [];
@@ -1312,7 +1312,7 @@ if (!function_exists('qpmSemanticQualityAssertAllowedFieldTags')) {
             if ($tag === '') {
                 continue;
             }
-            if (!in_array($tag, QPM_SEMANTIC_QUALITY_ALLOWED_PUBMED_FIELD_TAGS, true)) {
+            if (!in_array($tag, MUGIN_SEMANTIC_QUALITY_ALLOWED_PUBMED_FIELD_TAGS, true)) {
                 $invalidTags[$tag] = true;
             }
         }
@@ -1320,7 +1320,7 @@ if (!function_exists('qpmSemanticQualityAssertAllowedFieldTags')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualitySanitizeSearchStringDeterministic')) {
+if (!function_exists('muginSemanticQualitySanitizeSearchStringDeterministic')) {
     /**
      * Ported from sanitizeSearchStringDeterministic() in meshValidator.js.
      * Unlike the JS version (which throws on invalid syntax/tags), this
@@ -1331,21 +1331,21 @@ if (!function_exists('qpmSemanticQualitySanitizeSearchStringDeterministic')) {
      * @param string $searchString
      * @return array{value:string,valid:bool,errors:array<int,string>}
      */
-    function qpmSemanticQualitySanitizeSearchStringDeterministic(string $searchString): array
+    function muginSemanticQualitySanitizeSearchStringDeterministic(string $searchString): array
     {
         $result = $searchString;
-        $result = qpmSemanticQualityNormalizeFieldTags($result);
-        $result = qpmSemanticQualityNormalizeUnsupportedFieldTags($result);
-        $result = qpmSemanticQualityFixWildcardsInQuotedTerms($result);
-        $result = qpmSemanticQualityQuoteMeshTerms($result);
-        $result = qpmSemanticQualityRemoveDuplicateTerms($result);
-        $result = qpmSemanticQualityNormalizeBooleanOperatorsOutsideQuotes($result);
+        $result = muginSemanticQualityNormalizeFieldTags($result);
+        $result = muginSemanticQualityNormalizeUnsupportedFieldTags($result);
+        $result = muginSemanticQualityFixWildcardsInQuotedTerms($result);
+        $result = muginSemanticQualityQuoteMeshTerms($result);
+        $result = muginSemanticQualityRemoveDuplicateTerms($result);
+        $result = muginSemanticQualityNormalizeBooleanOperatorsOutsideQuotes($result);
 
         $errors = [];
-        if (!qpmSemanticQualityAssertBalancedSyntax($result)) {
+        if (!muginSemanticQualityAssertBalancedSyntax($result)) {
             $errors[] = 'Unbalanced parentheses or quotation marks in search string.';
         }
-        $invalidTags = qpmSemanticQualityAssertAllowedFieldTags($result);
+        $invalidTags = muginSemanticQualityAssertAllowedFieldTags($result);
         if (!empty($invalidTags)) {
             $errors[] = 'Invalid field tag(s): ' . implode(', ', $invalidTags);
         }
@@ -1354,7 +1354,7 @@ if (!function_exists('qpmSemanticQualitySanitizeSearchStringDeterministic')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityLowercaseNonMeshTerms')) {
+if (!function_exists('muginSemanticQualityLowercaseNonMeshTerms')) {
     /**
      * Ported from lowercaseNonMeshTerms() in meshValidator.js. Lowercases all
      * quoted/unquoted terms not tagged [mh] or [au] (purely cosmetic, PubMed
@@ -1363,7 +1363,7 @@ if (!function_exists('qpmSemanticQualityLowercaseNonMeshTerms')) {
      * @param string $searchString
      * @return string
      */
-    function qpmSemanticQualityLowercaseNonMeshTerms(string $searchString): string
+    function muginSemanticQualityLowercaseNonMeshTerms(string $searchString): string
     {
         if ($searchString === '') {
             return $searchString;
@@ -1400,18 +1400,18 @@ if (!function_exists('qpmSemanticQualityLowercaseNonMeshTerms')) {
 // Pure-function port of normalizeLexicalSearchText()/tokenizeLexicalSearchText()/
 // scoreLexicalTextWithQuery() in src/components/DropdownWrapper.vue (~7301-7359).
 // The I/O side (fetching extra PubMed candidates, deciding whether to trigger)
-// lives in public-search-lib.php as qpmPublicSearchShouldRunPubMedLexicalRescue()
-// / qpmPublicSearchFetchPubMedLexicalRescueResult(), matching the split already
+// lives in public-search-lib.php as muginPublicSearchShouldRunPubMedLexicalRescue()
+// / muginPublicSearchFetchPubMedLexicalRescueResult(), matching the split already
 // used throughout this file (pure logic here, HTTP-calling logic there).
 
-if (!function_exists('qpmSemanticQualityNormalizeLexicalSearchText')) {
+if (!function_exists('muginSemanticQualityNormalizeLexicalSearchText')) {
     /**
      * Ported from normalizeLexicalSearchText() in DropdownWrapper.vue.
      *
      * @param string $value
      * @return string
      */
-    function qpmSemanticQualityNormalizeLexicalSearchText(string $value): string
+    function muginSemanticQualityNormalizeLexicalSearchText(string $value): string
     {
         // mbstring may not be present on every install; strtolower() is an
         // acceptable ASCII-only fallback here since this text feeds a purely
@@ -1423,23 +1423,23 @@ if (!function_exists('qpmSemanticQualityNormalizeLexicalSearchText')) {
     }
 }
 
-if (!defined('QPM_SEMANTIC_QUALITY_LEXICAL_STOPWORDS')) {
-    define('QPM_SEMANTIC_QUALITY_LEXICAL_STOPWORDS', [
+if (!defined('MUGIN_SEMANTIC_QUALITY_LEXICAL_STOPWORDS')) {
+    define('MUGIN_SEMANTIC_QUALITY_LEXICAL_STOPWORDS', [
         'a', 'an', 'and', 'as', 'at', 'by', 'for', 'from', 'in', 'into',
         'is', 'of', 'on', 'or', 'the', 'to', 'with',
     ]);
 }
 
-if (!function_exists('qpmSemanticQualityTokenizeLexicalSearchText')) {
+if (!function_exists('muginSemanticQualityTokenizeLexicalSearchText')) {
     /**
      * Ported from tokenizeLexicalSearchText() in DropdownWrapper.vue.
      *
      * @param string $value
      * @return array<int,string>
      */
-    function qpmSemanticQualityTokenizeLexicalSearchText(string $value): array
+    function muginSemanticQualityTokenizeLexicalSearchText(string $value): array
     {
-        $normalized = qpmSemanticQualityNormalizeLexicalSearchText($value);
+        $normalized = muginSemanticQualityNormalizeLexicalSearchText($value);
         if ($normalized === '') {
             return [];
         }
@@ -1448,7 +1448,7 @@ if (!function_exists('qpmSemanticQualityTokenizeLexicalSearchText')) {
         $tokens = [];
         foreach ($parts as $token) {
             $tokenLength = function_exists('mb_strlen') ? mb_strlen($token, 'UTF-8') : strlen($token);
-            if ($tokenLength < 2 || in_array($token, QPM_SEMANTIC_QUALITY_LEXICAL_STOPWORDS, true)) {
+            if ($tokenLength < 2 || in_array($token, MUGIN_SEMANTIC_QUALITY_LEXICAL_STOPWORDS, true)) {
                 continue;
             }
             if (!isset($seen[$token])) {
@@ -1460,7 +1460,7 @@ if (!function_exists('qpmSemanticQualityTokenizeLexicalSearchText')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityScoreLexicalTextWithQuery')) {
+if (!function_exists('muginSemanticQualityScoreLexicalTextWithQuery')) {
     /**
      * Ported from scoreLexicalTextWithQuery() in DropdownWrapper.vue.
      *
@@ -1470,13 +1470,13 @@ if (!function_exists('qpmSemanticQualityScoreLexicalTextWithQuery')) {
      * @param string $abstractText
      * @return int
      */
-    function qpmSemanticQualityScoreLexicalTextWithQuery(array $queryTokens, string $queryText, string $title, string $abstractText): int
+    function muginSemanticQualityScoreLexicalTextWithQuery(array $queryTokens, string $queryText, string $title, string $abstractText): int
     {
         if (empty($queryTokens)) {
             return 0;
         }
-        $normalizedTitle = qpmSemanticQualityNormalizeLexicalSearchText($title);
-        $normalizedAbstract = qpmSemanticQualityNormalizeLexicalSearchText($abstractText);
+        $normalizedTitle = muginSemanticQualityNormalizeLexicalSearchText($title);
+        $normalizedAbstract = muginSemanticQualityNormalizeLexicalSearchText($abstractText);
         $titleTokens = $normalizedTitle !== '' ? array_flip(preg_split('/\s+/', $normalizedTitle) ?: []) : [];
         $abstractTokens = $normalizedAbstract !== '' ? array_flip(preg_split('/\s+/', $normalizedAbstract) ?: []) : [];
 
@@ -1503,7 +1503,7 @@ if (!function_exists('qpmSemanticQualityScoreLexicalTextWithQuery')) {
 // Section 3: Hybrid quality-signal rerank formula (ported from semanticReranking.js)
 // =====================================================================
 
-if (!function_exists('qpmSemanticQualityLog1p')) {
+if (!function_exists('muginSemanticQualityLog1p')) {
     /**
      * PHP has no native log1p(); this is numerically adequate for the value
      * ranges used here (citation counts, RCR, percentiles), none of which are
@@ -1512,18 +1512,18 @@ if (!function_exists('qpmSemanticQualityLog1p')) {
      * @param float $value
      * @return float
      */
-    function qpmSemanticQualityLog1p(float $value): float
+    function muginSemanticQualityLog1p(float $value): float
     {
         return log(1 + $value);
     }
 }
 
-if (!function_exists('qpmSemanticQualityToBooleanOrNull')) {
+if (!function_exists('muginSemanticQualityToBooleanOrNull')) {
     /**
      * @param mixed $value
      * @return ?bool
      */
-    function qpmSemanticQualityToBooleanOrNull($value): ?bool
+    function muginSemanticQualityToBooleanOrNull($value): ?bool
     {
         if ($value === true || $value === false) {
             return $value;
@@ -1544,19 +1544,19 @@ if (!function_exists('qpmSemanticQualityToBooleanOrNull')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityNormalizeClamp')) {
+if (!function_exists('muginSemanticQualityNormalizeClamp')) {
     /**
      * @param mixed $value
      * @param array{0:float,1:float} $fallback
      * @return array{0:float,1:float}
      */
-    function qpmSemanticQualityNormalizeClamp($value, array $fallback = [1.0, 1.0]): array
+    function muginSemanticQualityNormalizeClamp($value, array $fallback = [1.0, 1.0]): array
     {
         if (!is_array($value) || count($value) !== 2) {
             return $fallback;
         }
-        $min = qpmSemanticQualityToFiniteNumber($value[0] ?? null);
-        $max = qpmSemanticQualityToFiniteNumber($value[1] ?? null);
+        $min = muginSemanticQualityToFiniteNumber($value[0] ?? null);
+        $max = muginSemanticQualityToFiniteNumber($value[1] ?? null);
         if ($min === null || $max === null) {
             return $fallback;
         }
@@ -1564,13 +1564,13 @@ if (!function_exists('qpmSemanticQualityNormalizeClamp')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityClampTo')) {
+if (!function_exists('muginSemanticQualityClampTo')) {
     /**
      * @param float $value
      * @param array{0:float,1:float} $clamp
      * @return float
      */
-    function qpmSemanticQualityClampTo(float $value, array $clamp): float
+    function muginSemanticQualityClampTo(float $value, array $clamp): float
     {
         if (count($clamp) !== 2) {
             return $value;
@@ -1579,30 +1579,30 @@ if (!function_exists('qpmSemanticQualityClampTo')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityNormalizePmidValue')) {
+if (!function_exists('muginSemanticQualityNormalizePmidValue')) {
     /**
      * @param mixed $value
      * @return string
      */
-    function qpmSemanticQualityNormalizePmidValue($value): string
+    function muginSemanticQualityNormalizePmidValue($value): string
     {
-        if (function_exists('qpmPublicSearchNormalizePmid')) {
-            return qpmPublicSearchNormalizePmid($value);
+        if (function_exists('muginPublicSearchNormalizePmid')) {
+            return muginPublicSearchNormalizePmid($value);
         }
         $pmid = trim((string) ($value ?? ''));
         return preg_match('/^[0-9]+$/', $pmid) === 1 ? $pmid : '';
     }
 }
 
-if (!function_exists('qpmSemanticQualityNormalizeDoiValue')) {
+if (!function_exists('muginSemanticQualityNormalizeDoiValue')) {
     /**
      * @param mixed $value
      * @return string
      */
-    function qpmSemanticQualityNormalizeDoiValue($value): string
+    function muginSemanticQualityNormalizeDoiValue($value): string
     {
-        if (function_exists('qpmPublicSearchNormalizeDoi')) {
-            return qpmPublicSearchNormalizeDoi($value);
+        if (function_exists('muginPublicSearchNormalizeDoi')) {
+            return muginPublicSearchNormalizeDoi($value);
         }
         $doi = trim((string) ($value ?? ''));
         $doi = (string) preg_replace('~^https?://(dx\.)?doi\.org/~i', '', $doi);
@@ -1611,7 +1611,7 @@ if (!function_exists('qpmSemanticQualityNormalizeDoiValue')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityDefaultRerankConfig')) {
+if (!function_exists('muginSemanticQualityDefaultRerankConfig')) {
     /**
      * Mirrors DEFAULT_SEMANTIC_RERANK_CONFIG in semanticReranking.js. All hybrid
      * quality-signal defaults are NEUTRAL, so an unconfigured install keeps the
@@ -1619,7 +1619,7 @@ if (!function_exists('qpmSemanticQualityDefaultRerankConfig')) {
      *
      * @return array<string,mixed>
      */
-    function qpmSemanticQualityDefaultRerankConfig(): array
+    function muginSemanticQualityDefaultRerankConfig(): array
     {
         return [
             'sourceWeights' => ['pubmed' => 1.0, 'semanticScholar' => 0.92, 'openAlex' => 0.88, 'elicit' => 0.9],
@@ -1667,23 +1667,23 @@ if (!function_exists('qpmSemanticQualityDefaultRerankConfig')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityResolveRerankConfig')) {
+if (!function_exists('muginSemanticQualityResolveRerankConfig')) {
     /**
      * Mirrors resolveSemanticRerankConfig() in semanticReranking.js.
      *
      * @param array<string,mixed> $runtimeRerankConfig
      * @return array<string,mixed>
      */
-    function qpmSemanticQualityResolveRerankConfig(array $runtimeRerankConfig = []): array
+    function muginSemanticQualityResolveRerankConfig(array $runtimeRerankConfig = []): array
     {
-        $default = qpmSemanticQualityDefaultRerankConfig();
+        $default = muginSemanticQualityDefaultRerankConfig();
         $merged = array_merge($default, $runtimeRerankConfig);
 
         $merged['sourceWeights'] = array_merge($default['sourceWeights'], is_array($runtimeRerankConfig['sourceWeights'] ?? null) ? $runtimeRerankConfig['sourceWeights'] : []);
         $merged['pubTypeWeights'] = array_merge($default['pubTypeWeights'], is_array($runtimeRerankConfig['pubTypeWeights'] ?? null) ? $runtimeRerankConfig['pubTypeWeights'] : []);
         $merged['citationImpactSignalWeights'] = array_merge($default['citationImpactSignalWeights'], is_array($runtimeRerankConfig['citationImpactSignalWeights'] ?? null) ? $runtimeRerankConfig['citationImpactSignalWeights'] : []);
-        $merged['citationImpactClamp'] = qpmSemanticQualityNormalizeClamp($runtimeRerankConfig['citationImpactClamp'] ?? null, $default['citationImpactClamp']);
-        $merged['authorityClamp'] = qpmSemanticQualityNormalizeClamp($runtimeRerankConfig['authorityClamp'] ?? null, $default['authorityClamp']);
+        $merged['citationImpactClamp'] = muginSemanticQualityNormalizeClamp($runtimeRerankConfig['citationImpactClamp'] ?? null, $default['citationImpactClamp']);
+        $merged['authorityClamp'] = muginSemanticQualityNormalizeClamp($runtimeRerankConfig['authorityClamp'] ?? null, $default['authorityClamp']);
         $merged['dataQualityPenalties'] = array_merge($default['dataQualityPenalties'], is_array($runtimeRerankConfig['dataQualityPenalties'] ?? null) ? $runtimeRerankConfig['dataQualityPenalties'] : []);
         $merged['abstractMinLength'] = array_merge($default['abstractMinLength'], is_array($runtimeRerankConfig['abstractMinLength'] ?? null) ? $runtimeRerankConfig['abstractMinLength'] : []);
         $merged['pubTypeTiers'] = array_merge($default['pubTypeTiers'], is_array($runtimeRerankConfig['pubTypeTiers'] ?? null) ? $runtimeRerankConfig['pubTypeTiers'] : []);
@@ -1696,11 +1696,11 @@ if (!function_exists('qpmSemanticQualityResolveRerankConfig')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityCreateEnrichedRecord')) {
+if (!function_exists('muginSemanticQualityCreateEnrichedRecord')) {
     /**
      * @return array<string,mixed>
      */
-    function qpmSemanticQualityCreateEnrichedRecord(): array
+    function muginSemanticQualityCreateEnrichedRecord(): array
     {
         return [
             'publicationYear' => null,
@@ -1716,6 +1716,10 @@ if (!function_exists('qpmSemanticQualityCreateEnrichedRecord')) {
             'isOpenAccess' => null,
             'primaryTopicId' => '',
             'primaryTopicDisplayName' => '',
+            'openAlexTopics' => [],
+            'openAlexKeywords' => [],
+            'openAlexSubfields' => [],
+            'topicLabels' => [],
             's2FieldsOfStudy' => [],
             'journalSourceId' => '',
             'authorIds' => [],
@@ -1738,11 +1742,11 @@ if (!function_exists('qpmSemanticQualityCreateEnrichedRecord')) {
     }
 }
 
-if (!defined('QPM_SEMANTIC_QUALITY_ENRICHED_SOURCE_PRIORITY')) {
-    define('QPM_SEMANTIC_QUALITY_ENRICHED_SOURCE_PRIORITY', ['openAlex', 'semanticScholar', 'pubmed', 'elicit']);
+if (!defined('MUGIN_SEMANTIC_QUALITY_ENRICHED_SOURCE_PRIORITY')) {
+    define('MUGIN_SEMANTIC_QUALITY_ENRICHED_SOURCE_PRIORITY', ['openAlex', 'semanticScholar', 'pubmed', 'elicit']);
 }
 
-if (!function_exists('qpmSemanticQualityPreferByPriority')) {
+if (!function_exists('muginSemanticQualityPreferByPriority')) {
     /**
      * @param mixed $currentValue
      * @param string $currentSource
@@ -1750,7 +1754,7 @@ if (!function_exists('qpmSemanticQualityPreferByPriority')) {
      * @param string $incomingSource
      * @return array{value: mixed, source: string}
      */
-    function qpmSemanticQualityPreferByPriority($currentValue, string $currentSource, $incomingValue, string $incomingSource): array
+    function muginSemanticQualityPreferByPriority($currentValue, string $currentSource, $incomingValue, string $incomingSource): array
     {
         if ($incomingValue === null || $incomingValue === '') {
             return ['value' => $currentValue, 'source' => $currentSource];
@@ -1758,7 +1762,7 @@ if (!function_exists('qpmSemanticQualityPreferByPriority')) {
         if ($currentValue === null || $currentValue === '') {
             return ['value' => $incomingValue, 'source' => $incomingSource];
         }
-        $priority = QPM_SEMANTIC_QUALITY_ENRICHED_SOURCE_PRIORITY;
+        $priority = MUGIN_SEMANTIC_QUALITY_ENRICHED_SOURCE_PRIORITY;
         $currentIndex = array_search($currentSource, $priority, true);
         $incomingIndex = array_search($incomingSource, $priority, true);
         $currentRank = $currentIndex === false ? count($priority) : $currentIndex;
@@ -1770,7 +1774,7 @@ if (!function_exists('qpmSemanticQualityPreferByPriority')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityMergeEnrichedFromCandidate')) {
+if (!function_exists('muginSemanticQualityMergeEnrichedFromCandidate')) {
     /**
      * Ported from mergeEnrichedFromCandidate() in semanticReranking.js.
      *
@@ -1778,25 +1782,25 @@ if (!function_exists('qpmSemanticQualityMergeEnrichedFromCandidate')) {
      * @param array<string,mixed> $candidate
      * @return void
      */
-    function qpmSemanticQualityMergeEnrichedFromCandidate(array &$enriched, array $candidate): void
+    function muginSemanticQualityMergeEnrichedFromCandidate(array &$enriched, array $candidate): void
     {
-        $sourceKey = qpmSemanticQualityNormalizeString($candidate['source'] ?? '');
+        $sourceKey = muginSemanticQualityNormalizeString($candidate['source'] ?? '');
         $metadata = isset($candidate['metadata']) && is_array($candidate['metadata']) ? $candidate['metadata'] : [];
 
         $yearRaw = $metadata['publicationYear'] ?? ($metadata['year'] ?? null);
-        $yearFromMetadata = qpmSemanticQualityToFiniteInt($yearRaw);
+        $yearFromMetadata = muginSemanticQualityToFiniteInt($yearRaw);
         if ($yearFromMetadata !== null && $yearFromMetadata <= 1000) {
             $yearFromMetadata = null;
         }
         if ($yearFromMetadata !== null) {
-            $result = qpmSemanticQualityPreferByPriority($enriched['publicationYear'], $enriched['publicationYearSource'], $yearFromMetadata, $sourceKey);
+            $result = muginSemanticQualityPreferByPriority($enriched['publicationYear'], $enriched['publicationYearSource'], $yearFromMetadata, $sourceKey);
             $enriched['publicationYear'] = $result['value'];
             $enriched['publicationYearSource'] = $result['source'];
         }
 
-        $dateFromMetadata = qpmSemanticQualityNormalizeString($metadata['publicationDate'] ?? '');
+        $dateFromMetadata = muginSemanticQualityNormalizeString($metadata['publicationDate'] ?? '');
         if ($dateFromMetadata !== '') {
-            $result = qpmSemanticQualityPreferByPriority($enriched['publicationDate'], $enriched['publicationDateSource'], $dateFromMetadata, $sourceKey);
+            $result = muginSemanticQualityPreferByPriority($enriched['publicationDate'], $enriched['publicationDateSource'], $dateFromMetadata, $sourceKey);
             $enriched['publicationDate'] = $result['value'];
             $enriched['publicationDateSource'] = $result['source'];
         }
@@ -1805,20 +1809,20 @@ if (!function_exists('qpmSemanticQualityMergeEnrichedFromCandidate')) {
         if (!empty($metadataPubTypes)) {
             $existing = array_flip($enriched['pubTypes']);
             foreach ($metadataPubTypes as $rawType) {
-                $normalized = qpmSemanticQualityNormalizeString($rawType);
+                $normalized = muginSemanticQualityNormalizeString($rawType);
                 if ($normalized !== '') {
                     $existing[$normalized] = true;
                 }
             }
             if (!empty($metadata['workType'])) {
-                $normalizedWorkType = qpmSemanticQualityNormalizeString($metadata['workType']);
+                $normalizedWorkType = muginSemanticQualityNormalizeString($metadata['workType']);
                 if ($normalizedWorkType !== '') {
                     $existing[$normalizedWorkType] = true;
                 }
             }
             $enriched['pubTypes'] = array_keys($existing);
         } elseif (!empty($metadata['workType'])) {
-            $normalizedWorkType = qpmSemanticQualityNormalizeString($metadata['workType']);
+            $normalizedWorkType = muginSemanticQualityNormalizeString($metadata['workType']);
             if ($normalizedWorkType !== '') {
                 $existing = array_flip($enriched['pubTypes']);
                 $existing[$normalizedWorkType] = true;
@@ -1826,12 +1830,12 @@ if (!function_exists('qpmSemanticQualityMergeEnrichedFromCandidate')) {
             }
         }
 
-        $fwciValue = qpmSemanticQualityToFiniteNumber($metadata['fwci'] ?? null);
+        $fwciValue = muginSemanticQualityToFiniteNumber($metadata['fwci'] ?? null);
         if ($fwciValue !== null && $enriched['fwci'] === null) {
             $enriched['fwci'] = $fwciValue;
         }
 
-        $citedByCountValue = qpmSemanticQualityToFiniteInt($metadata['citedByCount'] ?? ($metadata['citationCount'] ?? null));
+        $citedByCountValue = muginSemanticQualityToFiniteInt($metadata['citedByCount'] ?? ($metadata['citationCount'] ?? null));
         if ($citedByCountValue !== null) {
             if ($sourceKey !== '') {
                 $enriched['citedByCountBySource'][$sourceKey] = $citedByCountValue;
@@ -1841,39 +1845,99 @@ if (!function_exists('qpmSemanticQualityMergeEnrichedFromCandidate')) {
             }
         }
 
-        $influentialValue = qpmSemanticQualityToFiniteInt($metadata['influentialCitationCount'] ?? null);
+        $influentialValue = muginSemanticQualityToFiniteInt($metadata['influentialCitationCount'] ?? null);
         if ($influentialValue !== null && $enriched['influentialCitationCount'] === null) {
             $enriched['influentialCitationCount'] = $influentialValue;
         }
 
-        $retractedValue = qpmSemanticQualityToBooleanOrNull($metadata['isRetracted'] ?? null);
+        $retractedValue = muginSemanticQualityToBooleanOrNull($metadata['isRetracted'] ?? null);
         if ($retractedValue === true) {
             $enriched['isRetracted'] = true;
         } elseif ($retractedValue === false && $enriched['isRetracted'] !== true) {
             $enriched['isRetracted'] = false;
         }
 
-        $oaValue = qpmSemanticQualityToBooleanOrNull($metadata['isOpenAccess'] ?? null);
+        $oaValue = muginSemanticQualityToBooleanOrNull($metadata['isOpenAccess'] ?? null);
         if ($oaValue === true) {
             $enriched['isOpenAccess'] = true;
         } elseif ($oaValue === false && $enriched['isOpenAccess'] !== true) {
             $enriched['isOpenAccess'] = false;
         }
 
-        $topicId = qpmSemanticQualityNormalizeString($metadata['primaryTopicId'] ?? '');
+        $topicId = muginSemanticQualityNormalizeString($metadata['primaryTopicId'] ?? '');
         if ($topicId !== '' && $enriched['primaryTopicId'] === '') {
             $enriched['primaryTopicId'] = $topicId;
         }
-        $topicName = qpmSemanticQualityNormalizeString($metadata['primaryTopicDisplayName'] ?? '');
+        $topicName = muginSemanticQualityNormalizeString($metadata['primaryTopicDisplayName'] ?? '');
         if ($topicName !== '' && $enriched['primaryTopicDisplayName'] === '') {
             $enriched['primaryTopicDisplayName'] = $topicName;
+        }
+
+        $openAlexTopics = is_array($metadata['openAlexTopics'] ?? null) ? $metadata['openAlexTopics'] : [];
+        if (!empty($openAlexTopics)) {
+            $existing = [];
+            foreach ($enriched['openAlexTopics'] as $existingTopic) {
+                $existing[strtolower(muginSemanticQualityNormalizeString($existingTopic))] = true;
+            }
+            foreach ($openAlexTopics as $topic) {
+                $normalized = muginSemanticQualityNormalizeString($topic);
+                if ($normalized === '') {
+                    continue;
+                }
+                $key = strtolower($normalized);
+                if (isset($existing[$key])) {
+                    continue;
+                }
+                $existing[$key] = true;
+                $enriched['openAlexTopics'][] = $normalized;
+            }
+        }
+
+        $openAlexKeywords = is_array($metadata['openAlexKeywords'] ?? null) ? $metadata['openAlexKeywords'] : [];
+        if (!empty($openAlexKeywords)) {
+            $existing = [];
+            foreach ($enriched['openAlexKeywords'] as $existingKeyword) {
+                $existing[strtolower(muginSemanticQualityNormalizeString($existingKeyword))] = true;
+            }
+            foreach ($openAlexKeywords as $keyword) {
+                $normalized = muginSemanticQualityNormalizeString($keyword);
+                if ($normalized === '') {
+                    continue;
+                }
+                $key = strtolower($normalized);
+                if (isset($existing[$key])) {
+                    continue;
+                }
+                $existing[$key] = true;
+                $enriched['openAlexKeywords'][] = $normalized;
+            }
+        }
+
+        $openAlexSubfields = is_array($metadata['openAlexSubfields'] ?? null) ? $metadata['openAlexSubfields'] : [];
+        if (!empty($openAlexSubfields)) {
+            $existing = [];
+            foreach ($enriched['openAlexSubfields'] as $existingSubfield) {
+                $existing[strtolower(muginSemanticQualityNormalizeString($existingSubfield))] = true;
+            }
+            foreach ($openAlexSubfields as $subfield) {
+                $normalized = muginSemanticQualityNormalizeString($subfield);
+                if ($normalized === '') {
+                    continue;
+                }
+                $key = strtolower($normalized);
+                if (isset($existing[$key])) {
+                    continue;
+                }
+                $existing[$key] = true;
+                $enriched['openAlexSubfields'][] = $normalized;
+            }
         }
 
         $s2Fields = is_array($metadata['s2FieldsOfStudy'] ?? null) ? $metadata['s2FieldsOfStudy'] : [];
         if (!empty($s2Fields)) {
             $existing = array_flip($enriched['s2FieldsOfStudy']);
             foreach ($s2Fields as $field) {
-                $normalized = qpmSemanticQualityNormalizeString($field);
+                $normalized = muginSemanticQualityNormalizeString($field);
                 if ($normalized !== '') {
                     $existing[$normalized] = true;
                 }
@@ -1881,7 +1945,9 @@ if (!function_exists('qpmSemanticQualityMergeEnrichedFromCandidate')) {
             $enriched['s2FieldsOfStudy'] = array_keys($existing);
         }
 
-        $journalId = qpmSemanticQualityNormalizeString($metadata['journalSourceId'] ?? '');
+        $enriched['topicLabels'] = muginSemanticQualityRebuildTopicLabels($enriched);
+
+        $journalId = muginSemanticQualityNormalizeString($metadata['journalSourceId'] ?? '');
         if ($journalId !== '' && $enriched['journalSourceId'] === '') {
             $enriched['journalSourceId'] = $journalId;
         }
@@ -1890,7 +1956,7 @@ if (!function_exists('qpmSemanticQualityMergeEnrichedFromCandidate')) {
         if (!empty($authorIds)) {
             $existing = array_flip($enriched['authorIds']);
             foreach ($authorIds as $authorId) {
-                $normalized = qpmSemanticQualityNormalizeString($authorId);
+                $normalized = muginSemanticQualityNormalizeString($authorId);
                 if ($normalized !== '') {
                     $existing[$normalized] = true;
                 }
@@ -1900,29 +1966,29 @@ if (!function_exists('qpmSemanticQualityMergeEnrichedFromCandidate')) {
 
         $icite = isset($metadata['icite']) && is_array($metadata['icite']) ? $metadata['icite'] : null;
         if ($icite !== null) {
-            $rcrValue = qpmSemanticQualityToFiniteNumber($icite['relativeCitationRatio'] ?? ($icite['rcr'] ?? null));
+            $rcrValue = muginSemanticQualityToFiniteNumber($icite['relativeCitationRatio'] ?? ($icite['rcr'] ?? null));
             if ($rcrValue !== null) {
                 $enriched['rcr'] = $rcrValue;
             }
-            $nihPercentileValue = qpmSemanticQualityToFiniteNumber($icite['nihPercentile'] ?? null);
+            $nihPercentileValue = muginSemanticQualityToFiniteNumber($icite['nihPercentile'] ?? null);
             if ($nihPercentileValue !== null) {
                 $enriched['nihPercentile'] = $nihPercentileValue;
             }
-            $isClinicalValue = qpmSemanticQualityToBooleanOrNull($icite['isClinical'] ?? null);
+            $isClinicalValue = muginSemanticQualityToBooleanOrNull($icite['isClinical'] ?? null);
             if ($isClinicalValue === true) {
                 $enriched['isClinical'] = true;
             } elseif ($isClinicalValue === false && $enriched['isClinical'] !== true) {
                 $enriched['isClinical'] = false;
             }
-            $citedByClinValue = qpmSemanticQualityToFiniteInt($icite['citedByClin'] ?? null);
+            $citedByClinValue = muginSemanticQualityToFiniteInt($icite['citedByClin'] ?? null);
             if ($citedByClinValue !== null) {
                 $enriched['citedByClin'] = $citedByClinValue;
             }
-            $aptValue = qpmSemanticQualityToFiniteNumber($icite['apt'] ?? null);
+            $aptValue = muginSemanticQualityToFiniteNumber($icite['apt'] ?? null);
             if ($aptValue !== null) {
                 $enriched['apt'] = $aptValue;
             }
-            $fieldRateValue = qpmSemanticQualityToFiniteNumber($icite['fieldCitationRate'] ?? null);
+            $fieldRateValue = muginSemanticQualityToFiniteNumber($icite['fieldCitationRate'] ?? null);
             if ($fieldRateValue !== null) {
                 $enriched['fieldCitationRate'] = $fieldRateValue;
             }
@@ -1930,7 +1996,7 @@ if (!function_exists('qpmSemanticQualityMergeEnrichedFromCandidate')) {
 
         $authorityAuthorsIncoming = isset($metadata['authorityAuthors']) && is_array($metadata['authorityAuthors']) ? $metadata['authorityAuthors'] : null;
         if ($authorityAuthorsIncoming !== null) {
-            $maxHIndex = qpmSemanticQualityToFiniteInt($authorityAuthorsIncoming['maxHIndex'] ?? null);
+            $maxHIndex = muginSemanticQualityToFiniteInt($authorityAuthorsIncoming['maxHIndex'] ?? null);
             if ($maxHIndex !== null) {
                 if (!is_array($enriched['authorityAuthors'])) {
                     $enriched['authorityAuthors'] = ['maxHIndex' => $maxHIndex];
@@ -1946,7 +2012,7 @@ if (!function_exists('qpmSemanticQualityMergeEnrichedFromCandidate')) {
             isset($metadata['tldr']) && is_array($metadata['tldr']) ? ($metadata['tldr']['text'] ?? null) : null,
         ];
         foreach ($abstractCandidates as $raw) {
-            $text = qpmSemanticQualityNormalizeString($raw);
+            $text = muginSemanticQualityNormalizeString($raw);
             if ($text === '') {
                 continue;
             }
@@ -1974,7 +2040,7 @@ if (!function_exists('qpmSemanticQualityMergeEnrichedFromCandidate')) {
                     break;
                 }
                 if (is_array($author)) {
-                    $name = qpmSemanticQualityNormalizeString(
+                    $name = muginSemanticQualityNormalizeString(
                         $author['name'] ?? ($author['displayName'] ?? ($author['display_name'] ?? ($author['author']['display_name'] ?? '')))
                     );
                     if ($name !== '') {
@@ -1991,23 +2057,23 @@ if (!function_exists('qpmSemanticQualityMergeEnrichedFromCandidate')) {
             $enriched['hasAuthor'] = true;
         }
 
-        $languageValue = qpmSemanticQualityNormalizeString($metadata['language'] ?? '');
+        $languageValue = muginSemanticQualityNormalizeString($metadata['language'] ?? '');
         if ($languageValue !== '' && $enriched['language'] === '') {
             $enriched['language'] = $languageValue;
         }
-        $publisherValue = qpmSemanticQualityNormalizeString($metadata['publisher'] ?? ($metadata['hostPublisher'] ?? ''));
+        $publisherValue = muginSemanticQualityNormalizeString($metadata['publisher'] ?? ($metadata['hostPublisher'] ?? ''));
         if ($publisherValue !== '' && $enriched['publisher'] === '') {
             $enriched['publisher'] = $publisherValue;
         }
-        $venueValue = qpmSemanticQualityNormalizeString($metadata['venue'] ?? ($metadata['fulljournalname'] ?? ($metadata['sourceDisplayName'] ?? '')));
+        $venueValue = muginSemanticQualityNormalizeString($metadata['venue'] ?? ($metadata['fulljournalname'] ?? ($metadata['sourceDisplayName'] ?? '')));
         if ($venueValue !== '' && $enriched['venue'] === '') {
             $enriched['venue'] = $venueValue;
         }
-        $sourceTypeValue = qpmSemanticQualityNormalizeString($metadata['sourceType'] ?? '');
+        $sourceTypeValue = muginSemanticQualityNormalizeString($metadata['sourceType'] ?? '');
         if ($sourceTypeValue !== '' && $enriched['sourceType'] === '') {
             $enriched['sourceType'] = $sourceTypeValue;
         }
-        $workTypeValue = qpmSemanticQualityNormalizeString($metadata['workType'] ?? '');
+        $workTypeValue = muginSemanticQualityNormalizeString($metadata['workType'] ?? '');
         if ($workTypeValue !== '' && $enriched['workType'] === '') {
             $enriched['workType'] = $workTypeValue;
         }
@@ -2017,15 +2083,15 @@ if (!function_exists('qpmSemanticQualityMergeEnrichedFromCandidate')) {
             if (!is_array($enriched['authorityJournal'])) {
                 $enriched['authorityJournal'] = ['meanCitedness' => null, 'hIndex' => null, 'isInDoaj' => null];
             }
-            $meanCitedness = qpmSemanticQualityToFiniteNumber($authorityJournalIncoming['meanCitedness'] ?? null);
+            $meanCitedness = muginSemanticQualityToFiniteNumber($authorityJournalIncoming['meanCitedness'] ?? null);
             if ($meanCitedness !== null && $enriched['authorityJournal']['meanCitedness'] === null) {
                 $enriched['authorityJournal']['meanCitedness'] = $meanCitedness;
             }
-            $journalHIndex = qpmSemanticQualityToFiniteInt($authorityJournalIncoming['hIndex'] ?? null);
+            $journalHIndex = muginSemanticQualityToFiniteInt($authorityJournalIncoming['hIndex'] ?? null);
             if ($journalHIndex !== null && $enriched['authorityJournal']['hIndex'] === null) {
                 $enriched['authorityJournal']['hIndex'] = $journalHIndex;
             }
-            $doajValue = qpmSemanticQualityToBooleanOrNull($authorityJournalIncoming['isInDoaj'] ?? null);
+            $doajValue = muginSemanticQualityToBooleanOrNull($authorityJournalIncoming['isInDoaj'] ?? null);
             if ($doajValue !== null && $enriched['authorityJournal']['isInDoaj'] === null) {
                 $enriched['authorityJournal']['isInDoaj'] = $doajValue;
             }
@@ -2033,14 +2099,14 @@ if (!function_exists('qpmSemanticQualityMergeEnrichedFromCandidate')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityCanonicalSourceOrder')) {
+if (!function_exists('muginSemanticQualityCanonicalSourceOrder')) {
     /**
      * Fixed source processing order so merge/first-wins metadata is deterministic
      * across API vs SearchForm calls (independent of fetch completion order).
      *
      * @return array<string,int>
      */
-    function qpmSemanticQualityCanonicalSourceOrder(): array
+    function muginSemanticQualityCanonicalSourceOrder(): array
     {
         return [
             'pubmed' => 0,
@@ -2051,17 +2117,17 @@ if (!function_exists('qpmSemanticQualityCanonicalSourceOrder')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualitySortSourceResultsDeterministically')) {
+if (!function_exists('muginSemanticQualitySortSourceResultsDeterministically')) {
     /**
      * @param array<int,array<string,mixed>> $sourceResults
      * @return array<int,array<string,mixed>>
      */
-    function qpmSemanticQualitySortSourceResultsDeterministically(array $sourceResults): array
+    function muginSemanticQualitySortSourceResultsDeterministically(array $sourceResults): array
     {
-        $order = qpmSemanticQualityCanonicalSourceOrder();
+        $order = muginSemanticQualityCanonicalSourceOrder();
         usort($sourceResults, static function ($left, $right) use ($order): int {
-            $leftKey = qpmSemanticQualityNormalizeString($left['source'] ?? '');
-            $rightKey = qpmSemanticQualityNormalizeString($right['source'] ?? '');
+            $leftKey = muginSemanticQualityNormalizeString($left['source'] ?? '');
+            $rightKey = muginSemanticQualityNormalizeString($right['source'] ?? '');
             $leftRank = $order[$leftKey] ?? 100;
             $rightRank = $order[$rightKey] ?? 100;
             if ($leftRank !== $rightRank) {
@@ -2073,17 +2139,17 @@ if (!function_exists('qpmSemanticQualitySortSourceResultsDeterministically')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityCompareCandidateIdentity')) {
+if (!function_exists('muginSemanticQualityCompareCandidateIdentity')) {
     /**
      * Final stable tie-break for equal scores: PMID, then DOI, then openAlexId/key.
      *
      * @param array<string,mixed> $left
      * @param array<string,mixed> $right
      */
-    function qpmSemanticQualityCompareCandidateIdentity(array $left, array $right): int
+    function muginSemanticQualityCompareCandidateIdentity(array $left, array $right): int
     {
-        $leftPmid = qpmSemanticQualityNormalizePmidValue($left['pmid'] ?? '');
-        $rightPmid = qpmSemanticQualityNormalizePmidValue($right['pmid'] ?? '');
+        $leftPmid = muginSemanticQualityNormalizePmidValue($left['pmid'] ?? '');
+        $rightPmid = muginSemanticQualityNormalizePmidValue($right['pmid'] ?? '');
         if ($leftPmid !== '' || $rightPmid !== '') {
             if ($leftPmid === '') {
                 return 1;
@@ -2095,8 +2161,8 @@ if (!function_exists('qpmSemanticQualityCompareCandidateIdentity')) {
                 return $leftPmid <=> $rightPmid;
             }
         }
-        $leftDoi = strtolower(qpmSemanticQualityNormalizeDoiValue($left['doi'] ?? ''));
-        $rightDoi = strtolower(qpmSemanticQualityNormalizeDoiValue($right['doi'] ?? ''));
+        $leftDoi = strtolower(muginSemanticQualityNormalizeDoiValue($left['doi'] ?? ''));
+        $rightDoi = strtolower(muginSemanticQualityNormalizeDoiValue($right['doi'] ?? ''));
         if ($leftDoi !== '' || $rightDoi !== '') {
             if ($leftDoi === '') {
                 return 1;
@@ -2114,7 +2180,7 @@ if (!function_exists('qpmSemanticQualityCompareCandidateIdentity')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityMergeSourceCandidates')) {
+if (!function_exists('muginSemanticQualityMergeSourceCandidates')) {
     /**
      * Ported from mergeSourceCandidates() in semanticReranking.js.
      *
@@ -2122,12 +2188,12 @@ if (!function_exists('qpmSemanticQualityMergeSourceCandidates')) {
      * @param array<string,mixed> $options guidelinePublisherAllowList
      * @return array{mergedCandidates: array<string,array<string,mixed>>, mergeEventCount: int, rawCandidateCount: int}
      */
-    function qpmSemanticQualityMergeSourceCandidates(array $sourceResults, array $options = []): array
+    function muginSemanticQualityMergeSourceCandidates(array $sourceResults, array $options = []): array
     {
         $merged = [];
         $mergeEventCount = 0;
         $rawCandidateCount = 0;
-        $sourceResults = qpmSemanticQualitySortSourceResultsDeterministically($sourceResults);
+        $sourceResults = muginSemanticQualitySortSourceResultsDeterministically($sourceResults);
 
         foreach ($sourceResults as $sourceResult) {
             $candidates = isset($sourceResult['candidates']) && is_array($sourceResult['candidates']) ? $sourceResult['candidates'] : [];
@@ -2136,9 +2202,9 @@ if (!function_exists('qpmSemanticQualityMergeSourceCandidates')) {
                     continue;
                 }
                 $rawCandidateCount++;
-                $pmid = qpmSemanticQualityNormalizePmidValue($candidate['pmid'] ?? '');
-                $doi = qpmSemanticQualityNormalizeDoiValue($candidate['doi'] ?? '');
-                $openAlexIdRaw = qpmSemanticQualityNormalizeString($candidate['openAlexId'] ?? ($candidate['metadata']['workId'] ?? ''));
+                $pmid = muginSemanticQualityNormalizePmidValue($candidate['pmid'] ?? '');
+                $doi = muginSemanticQualityNormalizeDoiValue($candidate['doi'] ?? '');
+                $openAlexIdRaw = muginSemanticQualityNormalizeString($candidate['openAlexId'] ?? ($candidate['metadata']['workId'] ?? ''));
                 $openAlexIdNormalized = strtolower($openAlexIdRaw);
                 $key = $pmid !== '' ? ('pmid:' . $pmid) : ($doi !== '' ? ('doi:' . strtolower($doi)) : ($openAlexIdNormalized !== '' ? ('oa:' . $openAlexIdNormalized) : ''));
                 if ($key === '') {
@@ -2149,18 +2215,18 @@ if (!function_exists('qpmSemanticQualityMergeSourceCandidates')) {
                     $merged[$key] = [
                         'pmid' => $pmid,
                         'doi' => $doi,
-                        'title' => qpmSemanticQualityNormalizeString($candidate['title'] ?? ''),
+                        'title' => muginSemanticQualityNormalizeString($candidate['title'] ?? ''),
                         'openAlexId' => $openAlexIdRaw,
                         'sources' => [],
-                        'enriched' => qpmSemanticQualityCreateEnrichedRecord(),
+                        'enriched' => muginSemanticQualityCreateEnrichedRecord(),
                     ];
                 } else {
                     $mergeEventCount++;
                 }
 
-                $sourceKey = qpmSemanticQualityNormalizeString($candidate['source'] ?? '');
-                $candidateRank = qpmSemanticQualityToFiniteNumber($candidate['rank'] ?? null);
-                $candidateScore = qpmSemanticQualityToFiniteNumber($candidate['score'] ?? null);
+                $sourceKey = muginSemanticQualityNormalizeString($candidate['source'] ?? '');
+                $candidateRank = muginSemanticQualityToFiniteNumber($candidate['rank'] ?? null);
+                $candidateScore = muginSemanticQualityToFiniteNumber($candidate['score'] ?? null);
                 $previous = $merged[$key]['sources'][$sourceKey] ?? null;
 
                 if ($sourceKey !== '' && (
@@ -2180,20 +2246,20 @@ if (!function_exists('qpmSemanticQualityMergeSourceCandidates')) {
                     $merged[$key]['doi'] = $doi;
                 }
                 if ($merged[$key]['title'] === '' && !empty($candidate['title'])) {
-                    $merged[$key]['title'] = qpmSemanticQualityNormalizeString($candidate['title']);
+                    $merged[$key]['title'] = muginSemanticQualityNormalizeString($candidate['title']);
                 }
                 if ($merged[$key]['openAlexId'] === '' && $openAlexIdRaw !== '') {
                     $merged[$key]['openAlexId'] = $openAlexIdRaw;
                 }
 
-                qpmSemanticQualityMergeEnrichedFromCandidate($merged[$key]['enriched'], $candidate);
+                muginSemanticQualityMergeEnrichedFromCandidate($merged[$key]['enriched'], $candidate);
             }
         }
 
         $guidelinePublisherAllowList = is_array($options['guidelinePublisherAllowList'] ?? null) ? $options['guidelinePublisherAllowList'] : [];
-        $allowListCache = qpmSemanticQualityBuildAllowListLookup($guidelinePublisherAllowList);
+        $allowListCache = muginSemanticQualityBuildAllowListLookup($guidelinePublisherAllowList);
         foreach ($merged as $key => $entry) {
-            $merged[$key]['pubTypeClassification'] = qpmSemanticQualityClassifyPublicationType($entry, [
+            $merged[$key]['pubTypeClassification'] = muginSemanticQualityClassifyPublicationType($entry, [
                 'guidelinePublisherAllowList' => $guidelinePublisherAllowList,
                 '__allowListCache' => $allowListCache,
             ]);
@@ -2206,12 +2272,12 @@ if (!function_exists('qpmSemanticQualityMergeSourceCandidates')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityGetBestRank')) {
+if (!function_exists('muginSemanticQualityGetBestRank')) {
     /**
      * @param array<string,mixed> $entry
      * @return float
      */
-    function qpmSemanticQualityGetBestRank(array $entry): float
+    function muginSemanticQualityGetBestRank(array $entry): float
     {
         $best = INF;
         foreach (($entry['sources'] ?? []) as $sourceData) {
@@ -2224,23 +2290,23 @@ if (!function_exists('qpmSemanticQualityGetBestRank')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityGetSourceStats')) {
+if (!function_exists('muginSemanticQualityGetSourceStats')) {
     /**
      * @param array<int,array<string,mixed>> $sourceResults
      * @return array<string,array{candidateCount:int,minScore:?float,maxScore:?float}>
      */
-    function qpmSemanticQualityGetSourceStats(array $sourceResults): array
+    function muginSemanticQualityGetSourceStats(array $sourceResults): array
     {
         $stats = [];
         foreach ($sourceResults as $sourceResult) {
-            $sourceKey = qpmSemanticQualityNormalizeString($sourceResult['source'] ?? '');
+            $sourceKey = muginSemanticQualityNormalizeString($sourceResult['source'] ?? '');
             if ($sourceKey === '') {
                 continue;
             }
             $candidates = isset($sourceResult['candidates']) && is_array($sourceResult['candidates']) ? $sourceResult['candidates'] : [];
             $scores = [];
             foreach ($candidates as $candidate) {
-                $score = qpmSemanticQualityToFiniteNumber($candidate['score'] ?? null);
+                $score = muginSemanticQualityToFiniteNumber($candidate['score'] ?? null);
                 if ($score !== null) {
                     $scores[] = $score;
                 }
@@ -2255,14 +2321,14 @@ if (!function_exists('qpmSemanticQualityGetSourceStats')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityBuildRankContribution')) {
+if (!function_exists('muginSemanticQualityBuildRankContribution')) {
     /**
      * @param array<string,mixed> $sourceData
      * @param string $sourceKey
      * @param array<string,mixed> $rerankConfig
      * @return array{rank:float,sourceWeight:float,weightedRrf:float}
      */
-    function qpmSemanticQualityBuildRankContribution(array $sourceData, string $sourceKey, array $rerankConfig): array
+    function muginSemanticQualityBuildRankContribution(array $sourceData, string $sourceKey, array $rerankConfig): array
     {
         $sourceWeight = $rerankConfig['sourceWeights'][$sourceKey] ?? $rerankConfig['fallbackSourceWeight'];
         $rankRaw = $sourceData['rank'] ?? null;
@@ -2274,7 +2340,7 @@ if (!function_exists('qpmSemanticQualityBuildRankContribution')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityBuildScoreTieBreaker')) {
+if (!function_exists('muginSemanticQualityBuildScoreTieBreaker')) {
     /**
      * @param array<string,mixed> $sourceData
      * @param string $sourceKey
@@ -2282,9 +2348,9 @@ if (!function_exists('qpmSemanticQualityBuildScoreTieBreaker')) {
      * @param array<string,mixed> $rerankConfig
      * @return ?array{rawScore:float,normalizedScore:float,value:float}
      */
-    function qpmSemanticQualityBuildScoreTieBreaker(array $sourceData, string $sourceKey, array $sourceStats, array $rerankConfig): ?array
+    function muginSemanticQualityBuildScoreTieBreaker(array $sourceData, string $sourceKey, array $sourceStats, array $rerankConfig): ?array
     {
-        $rawScore = qpmSemanticQualityToFiniteNumber($sourceData['score'] ?? null);
+        $rawScore = muginSemanticQualityToFiniteNumber($sourceData['score'] ?? null);
         if ($rawScore === null) {
             return null;
         }
@@ -2304,12 +2370,12 @@ if (!function_exists('qpmSemanticQualityBuildScoreTieBreaker')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityNormalizeRecencyCurve')) {
+if (!function_exists('muginSemanticQualityNormalizeRecencyCurve')) {
     /**
      * @param mixed $curve
      * @return ?array<int,array{0:float,1:float}>
      */
-    function qpmSemanticQualityNormalizeRecencyCurve($curve): ?array
+    function muginSemanticQualityNormalizeRecencyCurve($curve): ?array
     {
         if (!is_array($curve) || empty($curve)) {
             return null;
@@ -2319,8 +2385,8 @@ if (!function_exists('qpmSemanticQualityNormalizeRecencyCurve')) {
             if (!is_array($entry) || count($entry) < 2) {
                 continue;
             }
-            $age = qpmSemanticQualityToFiniteNumber($entry[0] ?? null);
-            $multiplier = qpmSemanticQualityToFiniteNumber($entry[1] ?? null);
+            $age = muginSemanticQualityToFiniteNumber($entry[0] ?? null);
+            $multiplier = muginSemanticQualityToFiniteNumber($entry[1] ?? null);
             if ($age === null || $multiplier === null || $age < 0 || $multiplier < 0) {
                 continue;
             }
@@ -2334,13 +2400,13 @@ if (!function_exists('qpmSemanticQualityNormalizeRecencyCurve')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityComputeRecencyCurveMultiplier')) {
+if (!function_exists('muginSemanticQualityComputeRecencyCurveMultiplier')) {
     /**
      * @param float $age
      * @param array<int,array{0:float,1:float}> $normalizedCurve
      * @return float
      */
-    function qpmSemanticQualityComputeRecencyCurveMultiplier(float $age, array $normalizedCurve): float
+    function muginSemanticQualityComputeRecencyCurveMultiplier(float $age, array $normalizedCurve): float
     {
         if (empty($normalizedCurve)) {
             return 1.0;
@@ -2368,37 +2434,37 @@ if (!function_exists('qpmSemanticQualityComputeRecencyCurveMultiplier')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityComputeRecencyBonus')) {
+if (!function_exists('muginSemanticQualityComputeRecencyBonus')) {
     /**
      * @param array<string,mixed> $enriched
      * @param array<string,mixed> $rerankConfig
      * @param int $currentYear
      * @return array{value:float,age:?float,halfLife:?float,curveMultiplier?:?float}
      */
-    function qpmSemanticQualityComputeRecencyBonus(array $enriched, array $rerankConfig, int $currentYear): array
+    function muginSemanticQualityComputeRecencyBonus(array $enriched, array $rerankConfig, int $currentYear): array
     {
-        $maxBonus = qpmSemanticQualityToFiniteNumber($rerankConfig['recencyBonusMax'] ?? null);
+        $maxBonus = muginSemanticQualityToFiniteNumber($rerankConfig['recencyBonusMax'] ?? null);
         $curveEnabled = ($rerankConfig['recencyCurveEnabled'] ?? false) === true;
-        $normalizedCurve = $curveEnabled ? qpmSemanticQualityNormalizeRecencyCurve($rerankConfig['recencyCurve'] ?? null) : null;
+        $normalizedCurve = $curveEnabled ? muginSemanticQualityNormalizeRecencyCurve($rerankConfig['recencyCurve'] ?? null) : null;
 
         if ($curveEnabled && $normalizedCurve !== null) {
             if (!$maxBonus || $maxBonus <= 0) {
                 return ['value' => 0.0, 'age' => null, 'halfLife' => null, 'curveMultiplier' => null];
             }
-            $year = qpmSemanticQualityToFiniteInt($enriched['publicationYear'] ?? null);
+            $year = muginSemanticQualityToFiniteInt($enriched['publicationYear'] ?? null);
             if ($year === null) {
                 return ['value' => 0.0, 'age' => null, 'halfLife' => null, 'curveMultiplier' => null];
             }
             $age = max(0, $currentYear - $year);
-            $multiplier = qpmSemanticQualityComputeRecencyCurveMultiplier((float) $age, $normalizedCurve);
+            $multiplier = muginSemanticQualityComputeRecencyCurveMultiplier((float) $age, $normalizedCurve);
             return ['value' => $maxBonus * $multiplier, 'age' => $age, 'halfLife' => null, 'curveMultiplier' => $multiplier];
         }
 
-        $halfLife = qpmSemanticQualityToFiniteNumber($rerankConfig['recencyHalfLifeYears'] ?? null);
+        $halfLife = muginSemanticQualityToFiniteNumber($rerankConfig['recencyHalfLifeYears'] ?? null);
         if (!$halfLife || $halfLife <= 0 || !$maxBonus || $maxBonus <= 0) {
             return ['value' => 0.0, 'age' => null, 'halfLife' => $halfLife ?? 0.0];
         }
-        $year = qpmSemanticQualityToFiniteInt($enriched['publicationYear'] ?? null);
+        $year = muginSemanticQualityToFiniteInt($enriched['publicationYear'] ?? null);
         if ($year === null) {
             return ['value' => 0.0, 'age' => null, 'halfLife' => $halfLife];
         }
@@ -2407,36 +2473,36 @@ if (!function_exists('qpmSemanticQualityComputeRecencyBonus')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityComputeRecencyMultiplier')) {
+if (!function_exists('muginSemanticQualityComputeRecencyMultiplier')) {
     /**
      * @param array<string,mixed> $enriched
      * @param array<string,mixed> $rerankConfig
      * @param int $currentYear
      * @return array{multiplier:float,age:?float,curveMultiplier:?float}
      */
-    function qpmSemanticQualityComputeRecencyMultiplier(array $enriched, array $rerankConfig, int $currentYear): array
+    function muginSemanticQualityComputeRecencyMultiplier(array $enriched, array $rerankConfig, int $currentYear): array
     {
-        $normalizedCurve = qpmSemanticQualityNormalizeRecencyCurve($rerankConfig['recencyMultiplierCurve'] ?? null);
+        $normalizedCurve = muginSemanticQualityNormalizeRecencyCurve($rerankConfig['recencyMultiplierCurve'] ?? null);
         if ($normalizedCurve === null) {
             return ['multiplier' => 1.0, 'age' => null, 'curveMultiplier' => null];
         }
-        $year = qpmSemanticQualityToFiniteInt($enriched['publicationYear'] ?? null);
+        $year = muginSemanticQualityToFiniteInt($enriched['publicationYear'] ?? null);
         if ($year === null) {
             return ['multiplier' => 1.0, 'age' => null, 'curveMultiplier' => null];
         }
         $age = max(0, $currentYear - $year);
-        $multiplier = qpmSemanticQualityComputeRecencyCurveMultiplier((float) $age, $normalizedCurve);
+        $multiplier = muginSemanticQualityComputeRecencyCurveMultiplier((float) $age, $normalizedCurve);
         return ['multiplier' => $multiplier, 'age' => $age, 'curveMultiplier' => $multiplier];
     }
 }
 
-if (!function_exists('qpmSemanticQualityComputePubTypeBonus')) {
+if (!function_exists('muginSemanticQualityComputePubTypeBonus')) {
     /**
      * @param array<string,mixed> $enriched
      * @param array<string,mixed> $rerankConfig
      * @return array{value:float,matchedType:string}
      */
-    function qpmSemanticQualityComputePubTypeBonus(array $enriched, array $rerankConfig): array
+    function muginSemanticQualityComputePubTypeBonus(array $enriched, array $rerankConfig): array
     {
         $weights = is_array($rerankConfig['pubTypeWeights'] ?? null) ? $rerankConfig['pubTypeWeights'] : [];
         $pubTypes = is_array($enriched['pubTypes'] ?? null) ? $enriched['pubTypes'] : [];
@@ -2445,16 +2511,16 @@ if (!function_exists('qpmSemanticQualityComputePubTypeBonus')) {
         }
         $normalizedWeightMap = [];
         foreach ($weights as $key => $weight) {
-            $numericWeight = qpmSemanticQualityToFiniteNumber($weight);
+            $numericWeight = muginSemanticQualityToFiniteNumber($weight);
             if ($numericWeight === null) {
                 continue;
             }
-            $normalizedWeightMap[qpmSemanticQualityNormalizeLower($key)] = $numericWeight;
+            $normalizedWeightMap[muginSemanticQualityNormalizeLower($key)] = $numericWeight;
         }
         $best = null;
         $matchedType = '';
         foreach ($pubTypes as $type) {
-            $normalized = qpmSemanticQualityNormalizeLower($type);
+            $normalized = muginSemanticQualityNormalizeLower($type);
             if ($normalized === '' || !array_key_exists($normalized, $normalizedWeightMap)) {
                 continue;
             }
@@ -2468,15 +2534,15 @@ if (!function_exists('qpmSemanticQualityComputePubTypeBonus')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityComputeOpenAccessBonus')) {
+if (!function_exists('muginSemanticQualityComputeOpenAccessBonus')) {
     /**
      * @param array<string,mixed> $enriched
      * @param array<string,mixed> $rerankConfig
      * @return float
      */
-    function qpmSemanticQualityComputeOpenAccessBonus(array $enriched, array $rerankConfig): float
+    function muginSemanticQualityComputeOpenAccessBonus(array $enriched, array $rerankConfig): float
     {
-        $bonus = qpmSemanticQualityToFiniteNumber($rerankConfig['oaBonus'] ?? null);
+        $bonus = muginSemanticQualityToFiniteNumber($rerankConfig['oaBonus'] ?? null);
         if (!$bonus) {
             return 0.0;
         }
@@ -2484,39 +2550,39 @@ if (!function_exists('qpmSemanticQualityComputeOpenAccessBonus')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityGetCitationImpactWeight')) {
+if (!function_exists('muginSemanticQualityGetCitationImpactWeight')) {
     /**
      * @param array<string,mixed> $rerankConfig
      * @param string $signal
      * @return float
      */
-    function qpmSemanticQualityGetCitationImpactWeight(array $rerankConfig, string $signal): float
+    function muginSemanticQualityGetCitationImpactWeight(array $rerankConfig, string $signal): float
     {
         $weights = is_array($rerankConfig['citationImpactSignalWeights'] ?? null)
             ? $rerankConfig['citationImpactSignalWeights']
-            : qpmSemanticQualityDefaultRerankConfig()['citationImpactSignalWeights'];
-        $weight = qpmSemanticQualityToFiniteNumber($weights[$signal] ?? null);
+            : muginSemanticQualityDefaultRerankConfig()['citationImpactSignalWeights'];
+        $weight = muginSemanticQualityToFiniteNumber($weights[$signal] ?? null);
         return $weight !== null && $weight > 0 ? $weight : 0.0;
     }
 }
 
-if (!function_exists('qpmSemanticQualityComputeClinicalBonus')) {
+if (!function_exists('muginSemanticQualityComputeClinicalBonus')) {
     /**
      * @param array<string,mixed> $enriched
      * @param array<string,mixed> $rerankConfig
      * @return array{value:float,reason:string}
      */
-    function qpmSemanticQualityComputeClinicalBonus(array $enriched, array $rerankConfig): array
+    function muginSemanticQualityComputeClinicalBonus(array $enriched, array $rerankConfig): array
     {
-        $bonus = qpmSemanticQualityToFiniteNumber($rerankConfig['clinicalBonus'] ?? null);
+        $bonus = muginSemanticQualityToFiniteNumber($rerankConfig['clinicalBonus'] ?? null);
         if (!$bonus) {
             return ['value' => 0.0, 'reason' => ''];
         }
         if (($enriched['isClinical'] ?? null) === true) {
             return ['value' => $bonus, 'reason' => 'isClinical'];
         }
-        $threshold = qpmSemanticQualityToFiniteNumber($rerankConfig['clinicalCitedByThreshold'] ?? null);
-        $citedByClin = qpmSemanticQualityToFiniteInt($enriched['citedByClin'] ?? null);
+        $threshold = muginSemanticQualityToFiniteNumber($rerankConfig['clinicalCitedByThreshold'] ?? null);
+        $citedByClin = muginSemanticQualityToFiniteInt($enriched['citedByClin'] ?? null);
         if ($threshold !== null && $citedByClin !== null && $citedByClin >= $threshold) {
             return ['value' => $bonus, 'reason' => 'citedByClinThreshold'];
         }
@@ -2524,7 +2590,7 @@ if (!function_exists('qpmSemanticQualityComputeClinicalBonus')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityComputeCitationImpactMultiplier')) {
+if (!function_exists('muginSemanticQualityComputeCitationImpactMultiplier')) {
     /**
      * Ported from computeCitationImpactMultiplier() in semanticReranking.js. The
      * fallback cascade order (rcr -> nihPercentile -> fwci -> fieldNormalizedCitationRatio
@@ -2534,92 +2600,92 @@ if (!function_exists('qpmSemanticQualityComputeCitationImpactMultiplier')) {
      * @param array<string,mixed> $rerankConfig
      * @return array{multiplier:float,signal:string,rawValue:mixed}
      */
-    function qpmSemanticQualityComputeCitationImpactMultiplier(array $enriched, array $rerankConfig): array
+    function muginSemanticQualityComputeCitationImpactMultiplier(array $enriched, array $rerankConfig): array
     {
-        $clamp = qpmSemanticQualityNormalizeClamp($rerankConfig['citationImpactClamp'] ?? null, [1.0, 1.0]);
+        $clamp = muginSemanticQualityNormalizeClamp($rerankConfig['citationImpactClamp'] ?? null, [1.0, 1.0]);
         if ($clamp[0] === 1.0 && $clamp[1] === 1.0) {
             return ['multiplier' => 1.0, 'signal' => 'disabled', 'rawValue' => null];
         }
 
-        $rcr = qpmSemanticQualityToFiniteNumber($enriched['rcr'] ?? null);
-        $rcrWeight = qpmSemanticQualityGetCitationImpactWeight($rerankConfig, 'rcr');
+        $rcr = muginSemanticQualityToFiniteNumber($enriched['rcr'] ?? null);
+        $rcrWeight = muginSemanticQualityGetCitationImpactWeight($rerankConfig, 'rcr');
         if ($rcr !== null && $rcrWeight > 0) {
-            $factor = qpmSemanticQualityLog1p(max(0, $rcr));
-            return ['multiplier' => qpmSemanticQualityClampTo(1.0 + $factor * $rcrWeight, $clamp), 'signal' => 'rcr', 'rawValue' => $rcr];
+            $factor = muginSemanticQualityLog1p(max(0, $rcr));
+            return ['multiplier' => muginSemanticQualityClampTo(1.0 + $factor * $rcrWeight, $clamp), 'signal' => 'rcr', 'rawValue' => $rcr];
         }
 
-        $nihPercentile = qpmSemanticQualityToFiniteNumber($enriched['nihPercentile'] ?? null);
-        $nihWeight = qpmSemanticQualityGetCitationImpactWeight($rerankConfig, 'nihPercentile');
+        $nihPercentile = muginSemanticQualityToFiniteNumber($enriched['nihPercentile'] ?? null);
+        $nihWeight = muginSemanticQualityGetCitationImpactWeight($rerankConfig, 'nihPercentile');
         if ($nihPercentile !== null && $nihWeight > 0) {
-            $percentileFactor = qpmSemanticQualityClampTo($nihPercentile / 100, [0.0, 1.0]);
-            return ['multiplier' => qpmSemanticQualityClampTo(1.0 + $percentileFactor * $nihWeight, $clamp), 'signal' => 'nihPercentile', 'rawValue' => $nihPercentile];
+            $percentileFactor = muginSemanticQualityClampTo($nihPercentile / 100, [0.0, 1.0]);
+            return ['multiplier' => muginSemanticQualityClampTo(1.0 + $percentileFactor * $nihWeight, $clamp), 'signal' => 'nihPercentile', 'rawValue' => $nihPercentile];
         }
 
-        $fwci = qpmSemanticQualityToFiniteNumber($enriched['fwci'] ?? null);
-        $fwciWeight = qpmSemanticQualityGetCitationImpactWeight($rerankConfig, 'fwci');
+        $fwci = muginSemanticQualityToFiniteNumber($enriched['fwci'] ?? null);
+        $fwciWeight = muginSemanticQualityGetCitationImpactWeight($rerankConfig, 'fwci');
         if ($fwci !== null && $fwciWeight > 0) {
-            $factor = qpmSemanticQualityLog1p(max(0, $fwci));
-            return ['multiplier' => qpmSemanticQualityClampTo(1.0 + $factor * $fwciWeight, $clamp), 'signal' => 'fwci', 'rawValue' => $fwci];
+            $factor = muginSemanticQualityLog1p(max(0, $fwci));
+            return ['multiplier' => muginSemanticQualityClampTo(1.0 + $factor * $fwciWeight, $clamp), 'signal' => 'fwci', 'rawValue' => $fwci];
         }
 
-        $citedByCount = qpmSemanticQualityToFiniteInt($enriched['citedByCount'] ?? null);
-        $fieldCitationRate = qpmSemanticQualityToFiniteNumber($enriched['fieldCitationRate'] ?? null);
-        $fieldNormalizedWeight = qpmSemanticQualityGetCitationImpactWeight($rerankConfig, 'fieldNormalizedCitationRatio');
+        $citedByCount = muginSemanticQualityToFiniteInt($enriched['citedByCount'] ?? null);
+        $fieldCitationRate = muginSemanticQualityToFiniteNumber($enriched['fieldCitationRate'] ?? null);
+        $fieldNormalizedWeight = muginSemanticQualityGetCitationImpactWeight($rerankConfig, 'fieldNormalizedCitationRatio');
         if ($citedByCount !== null && $fieldCitationRate !== null && $fieldCitationRate > 0 && $fieldNormalizedWeight > 0) {
             $ratio = $citedByCount / $fieldCitationRate;
-            $factor = qpmSemanticQualityLog1p(max(0, $ratio));
-            return ['multiplier' => qpmSemanticQualityClampTo(1.0 + $factor * $fieldNormalizedWeight, $clamp), 'signal' => 'fieldNormalizedCitationRatio', 'rawValue' => round($ratio, 4)];
+            $factor = muginSemanticQualityLog1p(max(0, $ratio));
+            return ['multiplier' => muginSemanticQualityClampTo(1.0 + $factor * $fieldNormalizedWeight, $clamp), 'signal' => 'fieldNormalizedCitationRatio', 'rawValue' => round($ratio, 4)];
         }
 
-        $influential = qpmSemanticQualityToFiniteInt($enriched['influentialCitationCount'] ?? null);
-        $influentialWeight = qpmSemanticQualityGetCitationImpactWeight($rerankConfig, 'influentialCitationCount');
+        $influential = muginSemanticQualityToFiniteInt($enriched['influentialCitationCount'] ?? null);
+        $influentialWeight = muginSemanticQualityGetCitationImpactWeight($rerankConfig, 'influentialCitationCount');
         if ($influential !== null && $influentialWeight > 0) {
-            $factor = qpmSemanticQualityLog1p(max(0, $influential)) / log(10);
-            return ['multiplier' => qpmSemanticQualityClampTo(1.0 + $factor * $influentialWeight, $clamp), 'signal' => 'influentialCitationCount', 'rawValue' => $influential];
+            $factor = muginSemanticQualityLog1p(max(0, $influential)) / log(10);
+            return ['multiplier' => muginSemanticQualityClampTo(1.0 + $factor * $influentialWeight, $clamp), 'signal' => 'influentialCitationCount', 'rawValue' => $influential];
         }
 
-        $citedByWeight = qpmSemanticQualityGetCitationImpactWeight($rerankConfig, 'citedByCount');
+        $citedByWeight = muginSemanticQualityGetCitationImpactWeight($rerankConfig, 'citedByCount');
         if ($citedByCount !== null && $citedByWeight > 0) {
-            $factor = qpmSemanticQualityLog1p(max(0, $citedByCount)) / log(10);
-            return ['multiplier' => qpmSemanticQualityClampTo(1.0 + $factor * $citedByWeight, $clamp), 'signal' => 'citedByCount', 'rawValue' => $citedByCount];
+            $factor = muginSemanticQualityLog1p(max(0, $citedByCount)) / log(10);
+            return ['multiplier' => muginSemanticQualityClampTo(1.0 + $factor * $citedByWeight, $clamp), 'signal' => 'citedByCount', 'rawValue' => $citedByCount];
         }
 
         return ['multiplier' => 1.0, 'signal' => 'none', 'rawValue' => null];
     }
 }
 
-if (!function_exists('qpmSemanticQualityComputeAuthorityMultiplier')) {
+if (!function_exists('muginSemanticQualityComputeAuthorityMultiplier')) {
     /**
      * @param array<string,mixed> $enriched
      * @param array<string,mixed> $rerankConfig
      * @return array{multiplier:float,components:array<string,mixed>}
      */
-    function qpmSemanticQualityComputeAuthorityMultiplier(array $enriched, array $rerankConfig): array
+    function muginSemanticQualityComputeAuthorityMultiplier(array $enriched, array $rerankConfig): array
     {
-        $clamp = qpmSemanticQualityNormalizeClamp($rerankConfig['authorityClamp'] ?? null, [1.0, 1.0]);
+        $clamp = muginSemanticQualityNormalizeClamp($rerankConfig['authorityClamp'] ?? null, [1.0, 1.0]);
         if ($clamp[0] === 1.0 && $clamp[1] === 1.0) {
             return ['multiplier' => 1.0, 'components' => []];
         }
-        $authorHIndex = qpmSemanticQualityToFiniteInt($enriched['authorityAuthors']['maxHIndex'] ?? null);
-        $journalMean = qpmSemanticQualityToFiniteNumber($enriched['authorityJournal']['meanCitedness'] ?? null);
+        $authorHIndex = muginSemanticQualityToFiniteInt($enriched['authorityAuthors']['maxHIndex'] ?? null);
+        $journalMean = muginSemanticQualityToFiniteNumber($enriched['authorityJournal']['meanCitedness'] ?? null);
         if ($authorHIndex === null && $journalMean === null) {
             return ['multiplier' => 1.0, 'components' => []];
         }
-        $authorFactor = $authorHIndex !== null ? (qpmSemanticQualityLog1p(max(0, $authorHIndex)) / log(10)) * 0.04 : 0.0;
-        $journalFactor = $journalMean !== null ? qpmSemanticQualityLog1p(max(0, $journalMean)) * 0.04 : 0.0;
+        $authorFactor = $authorHIndex !== null ? (muginSemanticQualityLog1p(max(0, $authorHIndex)) / log(10)) * 0.04 : 0.0;
+        $journalFactor = $journalMean !== null ? muginSemanticQualityLog1p(max(0, $journalMean)) * 0.04 : 0.0;
         return [
-            'multiplier' => qpmSemanticQualityClampTo(1.0 + $authorFactor + $journalFactor, $clamp),
+            'multiplier' => muginSemanticQualityClampTo(1.0 + $authorFactor + $journalFactor, $clamp),
             'components' => ['authorHIndex' => $authorHIndex, 'journalMean' => $journalMean],
         ];
     }
 }
 
-if (!function_exists('qpmSemanticQualityTokenizeIntentPhrase')) {
+if (!function_exists('muginSemanticQualityTokenizeIntentPhrase')) {
     /**
      * @param mixed $text
      * @return array<int,string>
      */
-    function qpmSemanticQualityTokenizeIntentPhrase($text): array
+    function muginSemanticQualityTokenizeIntentPhrase($text): array
     {
         $normalized = strtolower((string) ($text ?? ''));
         $normalized = (string) preg_replace('/[^a-z0-9\s-]/', ' ', $normalized);
@@ -2635,12 +2701,57 @@ if (!function_exists('qpmSemanticQualityTokenizeIntentPhrase')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityBuildIntentTokenSet')) {
+if (!function_exists('muginSemanticQualityNormalizeIntentPhrase')) {
+    /**
+     * @param mixed $text
+     */
+    function muginSemanticQualityNormalizeIntentPhrase($text): string
+    {
+        $normalized = strtolower((string) ($text ?? ''));
+        $normalized = (string) preg_replace('/[^a-z0-9\s-]/', ' ', $normalized);
+        $normalized = (string) preg_replace('/\s+/', ' ', $normalized);
+        return trim($normalized);
+    }
+}
+
+if (!function_exists('muginSemanticQualityRebuildTopicLabels')) {
+    /**
+     * @param array<string,mixed> $enriched
+     * @return array<int,string>
+     */
+    function muginSemanticQualityRebuildTopicLabels(array $enriched): array
+    {
+        $labels = [];
+        $seen = [];
+        $push = static function ($raw) use (&$labels, &$seen): void {
+            $label = muginSemanticQualityNormalizeString($raw);
+            if ($label === '') {
+                return;
+            }
+            $key = strtolower($label);
+            if (isset($seen[$key])) {
+                return;
+            }
+            $seen[$key] = true;
+            $labels[] = $label;
+        };
+        $push($enriched['primaryTopicDisplayName'] ?? '');
+        foreach ((array) ($enriched['openAlexTopics'] ?? []) as $topic) {
+            $push($topic);
+        }
+        foreach ((array) ($enriched['s2FieldsOfStudy'] ?? []) as $field) {
+            $push($field);
+        }
+        return array_slice($labels, 0, 8);
+    }
+}
+
+if (!function_exists('muginSemanticQualityBuildIntentTokenSet')) {
     /**
      * @param mixed $queryIntent
      * @return array<string,bool> Set emulation (keys are tokens)
      */
-    function qpmSemanticQualityBuildIntentTokenSet($queryIntent): array
+    function muginSemanticQualityBuildIntentTokenSet($queryIntent): array
     {
         $tokenSet = [];
         if (!is_array($queryIntent)) {
@@ -2657,7 +2768,7 @@ if (!function_exists('qpmSemanticQualityBuildIntentTokenSet')) {
                 continue;
             }
             foreach ($source as $phrase) {
-                foreach (qpmSemanticQualityTokenizeIntentPhrase($phrase) as $token) {
+                foreach (muginSemanticQualityTokenizeIntentPhrase($phrase) as $token) {
                     $tokenSet[$token] = true;
                 }
             }
@@ -2666,34 +2777,77 @@ if (!function_exists('qpmSemanticQualityBuildIntentTokenSet')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityComputeTopicOverlapBonus')) {
+if (!function_exists('muginSemanticQualityBuildIntentPhraseList')) {
+    /**
+     * @param mixed $queryIntent
+     * @return array<int,string>
+     */
+    function muginSemanticQualityBuildIntentPhraseList($queryIntent): array
+    {
+        $phrases = [];
+        $seen = [];
+        if (!is_array($queryIntent)) {
+            return $phrases;
+        }
+        $sources = [
+            $queryIntent['topicsEnglish'] ?? null,
+            $queryIntent['topicIntents'] ?? null,
+            $queryIntent['softHints'] ?? null,
+            $queryIntent['rawPhrases'] ?? null,
+        ];
+        foreach ($sources as $source) {
+            if (!is_array($source)) {
+                continue;
+            }
+            foreach ($source as $phrase) {
+                $normalized = muginSemanticQualityNormalizeIntentPhrase($phrase);
+                $tokens = muginSemanticQualityTokenizeIntentPhrase($normalized);
+                if (count($tokens) < 2 || strlen($normalized) < 8) {
+                    continue;
+                }
+                if (isset($seen[$normalized])) {
+                    continue;
+                }
+                $seen[$normalized] = true;
+                $phrases[] = $normalized;
+            }
+        }
+        return $phrases;
+    }
+}
+
+if (!function_exists('muginSemanticQualityComputeTopicOverlapBonus')) {
     /**
      * @param array<string,mixed> $enriched
      * @param array<string,mixed> $rerankConfig
      * @param array<string,bool> $intentTokens
+     * @param array<int,string> $intentPhrases
      * @return array{value:float,matchRatio:float,matches:array<int,string>}
      */
-    function qpmSemanticQualityComputeTopicOverlapBonus(array $enriched, array $rerankConfig, array $intentTokens): array
-    {
-        $bonus = qpmSemanticQualityToFiniteNumber($rerankConfig['topicOverlapBonus'] ?? null);
+    function muginSemanticQualityComputeTopicOverlapBonus(
+        array $enriched,
+        array $rerankConfig,
+        array $intentTokens,
+        array $intentPhrases = []
+    ): array {
+        $bonus = muginSemanticQualityToFiniteNumber($rerankConfig['topicOverlapBonus'] ?? null);
         if (!$bonus || empty($intentTokens)) {
             return ['value' => 0.0, 'matchRatio' => 0.0, 'matches' => []];
         }
 
-        $candidateTokens = [];
-        $topicLabel = qpmSemanticQualityNormalizeString($enriched['primaryTopicDisplayName'] ?? '');
-        if ($topicLabel !== '') {
-            foreach (qpmSemanticQualityTokenizeIntentPhrase($topicLabel) as $token) {
-                $candidateTokens[$token] = true;
-            }
-        }
-        $s2Fields = is_array($enriched['s2FieldsOfStudy'] ?? null) ? $enriched['s2FieldsOfStudy'] : [];
-        foreach ($s2Fields as $field) {
-            foreach (qpmSemanticQualityTokenizeIntentPhrase($field) as $token) {
-                $candidateTokens[$token] = true;
-            }
+        $topicLabels = is_array($enriched['topicLabels'] ?? null) && $enriched['topicLabels'] !== []
+            ? $enriched['topicLabels']
+            : muginSemanticQualityRebuildTopicLabels($enriched);
+        if ($topicLabels === []) {
+            return ['value' => 0.0, 'matchRatio' => 0.0, 'matches' => []];
         }
 
+        $candidateTokens = [];
+        foreach ($topicLabels as $label) {
+            foreach (muginSemanticQualityTokenizeIntentPhrase($label) as $token) {
+                $candidateTokens[$token] = true;
+            }
+        }
         if (empty($candidateTokens)) {
             return ['value' => 0.0, 'matchRatio' => 0.0, 'matches' => []];
         }
@@ -2704,22 +2858,43 @@ if (!function_exists('qpmSemanticQualityComputeTopicOverlapBonus')) {
                 $matches[] = $token;
             }
         }
+        $candidateTextParts = [];
+        foreach ($topicLabels as $label) {
+            $candidateTextParts[] = muginSemanticQualityNormalizeIntentPhrase($label);
+        }
+        $candidateText = implode(' ', $candidateTextParts);
+        $phraseMatchCount = 0;
+        foreach ($intentPhrases as $phrase) {
+            $normalizedPhrase = muginSemanticQualityNormalizeIntentPhrase($phrase);
+            if ($normalizedPhrase !== '' && strpos($candidateText, $normalizedPhrase) !== false) {
+                $phraseMatchCount += 1;
+                $matches[] = 'phrase:' . $normalizedPhrase;
+            }
+        }
+
         if (empty($matches)) {
             return ['value' => 0.0, 'matchRatio' => 0.0, 'matches' => []];
         }
 
-        $matchRatio = min(1.0, count($matches) / count($intentTokens));
+        $tokenMatchCount = 0;
+        foreach ($matches as $match) {
+            if (strpos((string) $match, 'phrase:') !== 0) {
+                $tokenMatchCount += 1;
+            }
+        }
+        $weighted = $tokenMatchCount + 1.5 * $phraseMatchCount;
+        $matchRatio = min(1.0, $weighted / max(1, count($intentTokens)));
         return ['value' => $bonus * $matchRatio, 'matchRatio' => $matchRatio, 'matches' => $matches];
     }
 }
 
-if (!function_exists('qpmSemanticQualityComputeRetractionImpact')) {
+if (!function_exists('muginSemanticQualityComputeRetractionImpact')) {
     /**
      * @param array<string,mixed> $enriched
      * @param array<string,mixed> $rerankConfig
      * @return array{action:string,multiplier:float,retracted:bool}
      */
-    function qpmSemanticQualityComputeRetractionImpact(array $enriched, array $rerankConfig): array
+    function muginSemanticQualityComputeRetractionImpact(array $enriched, array $rerankConfig): array
     {
         $action = strtolower((string) ($rerankConfig['retractionAction'] ?? 'none'));
         $isRetracted = ($enriched['isRetracted'] ?? null) === true;
@@ -2730,7 +2905,7 @@ if (!function_exists('qpmSemanticQualityComputeRetractionImpact')) {
             return ['action' => 'filter', 'multiplier' => 1.0, 'retracted' => true];
         }
         if ($action === 'penalty') {
-            $penalty = qpmSemanticQualityToFiniteNumber($rerankConfig['retractionPenalty'] ?? null);
+            $penalty = muginSemanticQualityToFiniteNumber($rerankConfig['retractionPenalty'] ?? null);
             $multiplier = ($penalty !== null && $penalty >= 0) ? $penalty : 1.0;
             return ['action' => 'penalty', 'multiplier' => $multiplier, 'retracted' => true];
         }
@@ -2738,30 +2913,30 @@ if (!function_exists('qpmSemanticQualityComputeRetractionImpact')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityComputeDataQualityMultiplier')) {
+if (!function_exists('muginSemanticQualityComputeDataQualityMultiplier')) {
     /**
      * @param array<string,mixed> $entry
      * @param array<string,mixed> $rerankConfig
      * @return array{multiplier:float,applied:array<string,float>,abstractLength:?int}
      */
-    function qpmSemanticQualityComputeDataQualityMultiplier(array $entry, array $rerankConfig): array
+    function muginSemanticQualityComputeDataQualityMultiplier(array $entry, array $rerankConfig): array
     {
         $penalties = is_array($rerankConfig['dataQualityPenalties'] ?? null) ? $rerankConfig['dataQualityPenalties'] : [];
         $thresholds = is_array($rerankConfig['abstractMinLength'] ?? null) ? $rerankConfig['abstractMinLength'] : ['short' => 100, 'veryShort' => 250];
 
-        $missingAbstractPenalty = qpmSemanticQualityToFiniteNumber($penalties['missingAbstract'] ?? null);
-        $shortAbstractPenalty = qpmSemanticQualityToFiniteNumber($penalties['shortAbstract'] ?? null);
-        $veryShortAbstractPenalty = qpmSemanticQualityToFiniteNumber($penalties['veryShortAbstract'] ?? null);
-        $missingAuthorPenalty = qpmSemanticQualityToFiniteNumber($penalties['missingAuthor'] ?? null);
-        $missingYearPenalty = qpmSemanticQualityToFiniteNumber($penalties['missingYear'] ?? null);
+        $missingAbstractPenalty = muginSemanticQualityToFiniteNumber($penalties['missingAbstract'] ?? null);
+        $shortAbstractPenalty = muginSemanticQualityToFiniteNumber($penalties['shortAbstract'] ?? null);
+        $veryShortAbstractPenalty = muginSemanticQualityToFiniteNumber($penalties['veryShortAbstract'] ?? null);
+        $missingAuthorPenalty = muginSemanticQualityToFiniteNumber($penalties['missingAuthor'] ?? null);
+        $missingYearPenalty = muginSemanticQualityToFiniteNumber($penalties['missingYear'] ?? null);
 
         $applied = [];
         $multiplier = 1.0;
 
         $enriched = is_array($entry['enriched'] ?? null) ? $entry['enriched'] : [];
-        $abstractLength = qpmSemanticQualityToFiniteInt($enriched['abstractLength'] ?? null);
-        $shortThreshold = qpmSemanticQualityToFiniteInt($thresholds['short'] ?? null) ?? 100;
-        $veryShortThreshold = qpmSemanticQualityToFiniteInt($thresholds['veryShort'] ?? null) ?? 250;
+        $abstractLength = muginSemanticQualityToFiniteInt($enriched['abstractLength'] ?? null);
+        $shortThreshold = muginSemanticQualityToFiniteInt($thresholds['short'] ?? null) ?? 100;
+        $veryShortThreshold = muginSemanticQualityToFiniteInt($thresholds['veryShort'] ?? null) ?? 250;
 
         if ($abstractLength === null || $abstractLength === 0) {
             if ($missingAbstractPenalty !== null && $missingAbstractPenalty !== 1.0) {
@@ -2798,7 +2973,7 @@ if (!function_exists('qpmSemanticQualityComputeDataQualityMultiplier')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityBuildScoredEntry')) {
+if (!function_exists('muginSemanticQualityBuildScoredEntry')) {
     /**
      * Ported from buildDebugEntry() in semanticReranking.js (name kept close to
      * source for cross-reference, though this port is used in production, not
@@ -2812,7 +2987,15 @@ if (!function_exists('qpmSemanticQualityBuildScoredEntry')) {
      * @param array<string,bool> $intentTokens
      * @return array<string,mixed>
      */
-    function qpmSemanticQualityBuildScoredEntry(array $entry, array $rerankConfig, array $sourceStats, string $mode, int $currentYear, array $intentTokens): array
+    function muginSemanticQualityBuildScoredEntry(
+        array $entry,
+        array $rerankConfig,
+        array $sourceStats,
+        string $mode,
+        int $currentYear,
+        array $intentTokens,
+        array $intentPhrases = []
+    ): array
     {
         $baseScore = 0.0;
         $scoreTieBreaker = 0.0;
@@ -2827,7 +3010,7 @@ if (!function_exists('qpmSemanticQualityBuildScoredEntry')) {
         }
 
         foreach (($entry['sources'] ?? []) as $sourceKey => $sourceData) {
-            $rankInfo = qpmSemanticQualityBuildRankContribution($sourceData, (string) $sourceKey, $rerankConfig);
+            $rankInfo = muginSemanticQualityBuildRankContribution($sourceData, (string) $sourceKey, $rerankConfig);
             $rrfScore += $rankInfo['weightedRrf'];
             $baseScore += $rankInfo['weightedRrf'];
 
@@ -2841,7 +3024,7 @@ if (!function_exists('qpmSemanticQualityBuildScoredEntry')) {
                 'scoreTieBreakerValue' => 0.0,
             ];
 
-            $scoreInfo = qpmSemanticQualityBuildScoreTieBreaker($sourceData, (string) $sourceKey, $sourceStats, $rerankConfig);
+            $scoreInfo = muginSemanticQualityBuildScoreTieBreaker($sourceData, (string) $sourceKey, $sourceStats, $rerankConfig);
             if ($scoreInfo !== null) {
                 $scoreTieBreaker += $scoreInfo['value'];
                 $sourceEntry['rawScore'] = $scoreInfo['rawScore'];
@@ -2857,29 +3040,34 @@ if (!function_exists('qpmSemanticQualityBuildScoredEntry')) {
             $baseScore += $overlapBonus;
         }
 
-        $enriched = is_array($entry['enriched'] ?? null) ? $entry['enriched'] : qpmSemanticQualityCreateEnrichedRecord();
+        $enriched = is_array($entry['enriched'] ?? null) ? $entry['enriched'] : muginSemanticQualityCreateEnrichedRecord();
 
-        $recencyInfo = qpmSemanticQualityComputeRecencyBonus($enriched, $rerankConfig, $currentYear);
-        $pubTypeInfo = qpmSemanticQualityComputePubTypeBonus($enriched, $rerankConfig);
-        $tierBonusInfo = qpmSemanticQualityComputePubTypeTierBonus(is_array($entry['pubTypeClassification'] ?? null) ? $entry['pubTypeClassification'] : [], $rerankConfig);
-        $oaBonus = qpmSemanticQualityComputeOpenAccessBonus($enriched, $rerankConfig);
-        $clinicalInfo = qpmSemanticQualityComputeClinicalBonus($enriched, $rerankConfig);
-        $topicOverlapInfo = qpmSemanticQualityComputeTopicOverlapBonus($enriched, $rerankConfig, $intentTokens);
+        $recencyInfo = muginSemanticQualityComputeRecencyBonus($enriched, $rerankConfig, $currentYear);
+        $pubTypeInfo = muginSemanticQualityComputePubTypeBonus($enriched, $rerankConfig);
+        $tierBonusInfo = muginSemanticQualityComputePubTypeTierBonus(is_array($entry['pubTypeClassification'] ?? null) ? $entry['pubTypeClassification'] : [], $rerankConfig);
+        $oaBonus = muginSemanticQualityComputeOpenAccessBonus($enriched, $rerankConfig);
+        $clinicalInfo = muginSemanticQualityComputeClinicalBonus($enriched, $rerankConfig);
+        $topicOverlapInfo = muginSemanticQualityComputeTopicOverlapBonus(
+            $enriched,
+            $rerankConfig,
+            $intentTokens,
+            $intentPhrases
+        );
         $topicOverlapBonusValue = $topicOverlapInfo['value'];
 
         // translationPotentialBonus intentionally omitted: it is not consumed by
         // any currently-configured rerank profile (translationPotentialBonusMax
         // defaults to 0 everywhere), so its absence does not change output for
-        // any real configuration. If it is ever activated in QPM_RERANK_CONFIG,
+        // any real configuration. If it is ever activated in MUGIN_RERANK_CONFIG,
         // this port must be extended to match before parity can be re-certified.
         $additiveQualityBonus = $recencyInfo['value'] + $pubTypeInfo['value'] + $tierBonusInfo['value']
             + $oaBonus + $clinicalInfo['value'] + $topicOverlapBonusValue;
 
-        $citationImpactInfo = qpmSemanticQualityComputeCitationImpactMultiplier($enriched, $rerankConfig);
-        $authorityInfo = qpmSemanticQualityComputeAuthorityMultiplier($enriched, $rerankConfig);
-        $recencyMultiplierInfo = qpmSemanticQualityComputeRecencyMultiplier($enriched, $rerankConfig, $currentYear);
-        $retractionInfo = qpmSemanticQualityComputeRetractionImpact($enriched, $rerankConfig);
-        $dataQualityInfo = qpmSemanticQualityComputeDataQualityMultiplier($entry, $rerankConfig);
+        $citationImpactInfo = muginSemanticQualityComputeCitationImpactMultiplier($enriched, $rerankConfig);
+        $authorityInfo = muginSemanticQualityComputeAuthorityMultiplier($enriched, $rerankConfig);
+        $recencyMultiplierInfo = muginSemanticQualityComputeRecencyMultiplier($enriched, $rerankConfig, $currentYear);
+        $retractionInfo = muginSemanticQualityComputeRetractionImpact($enriched, $rerankConfig);
+        $dataQualityInfo = muginSemanticQualityComputeDataQualityMultiplier($entry, $rerankConfig);
 
         $qualityMultiplier = $citationImpactInfo['multiplier'] * $authorityInfo['multiplier']
             * $recencyMultiplierInfo['multiplier'] * $retractionInfo['multiplier'] * $dataQualityInfo['multiplier'];
@@ -2889,7 +3077,7 @@ if (!function_exists('qpmSemanticQualityBuildScoredEntry')) {
         $result['sources'] = array_keys($entry['sources'] ?? []);
         $result['combinedScore'] = round($combinedScore, 4);
         $result['scoreTieBreaker'] = round($scoreTieBreaker, 4);
-        $result['bestRank'] = is_finite(qpmSemanticQualityGetBestRank($entry)) ? qpmSemanticQualityGetBestRank($entry) : 0;
+        $result['bestRank'] = is_finite(muginSemanticQualityGetBestRank($entry)) ? muginSemanticQualityGetBestRank($entry) : 0;
         $result['sourceCount'] = count($entry['sources'] ?? []);
         $result['filtered'] = $retractionInfo['action'] === 'filter';
         $result['filteredReason'] = $retractionInfo['action'] === 'filter' ? 'retraction' : '';
@@ -2921,13 +3109,13 @@ if (!function_exists('qpmSemanticQualityBuildScoredEntry')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityDedupeStringValues')) {
+if (!function_exists('muginSemanticQualityDedupeStringValues')) {
     /**
      * @param array<int,string> $values
      * @param callable $normalizer
      * @return array<int,string>
      */
-    function qpmSemanticQualityDedupeStringValues(array $values, callable $normalizer): array
+    function muginSemanticQualityDedupeStringValues(array $values, callable $normalizer): array
     {
         $seen = [];
         $out = [];
@@ -2943,28 +3131,28 @@ if (!function_exists('qpmSemanticQualityDedupeStringValues')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityBuildSourceSummary')) {
+if (!function_exists('muginSemanticQualityBuildSourceSummary')) {
     /**
      * Process-details/diagnostics summary of every attempted source (unlike
-     * qpmSemanticQualityGetSourceStats(), this is not restricted to sources
+     * muginSemanticQualityGetSourceStats(), this is not restricted to sources
      * that returned candidates - a 0-candidate source is a diagnostically
      * interesting fact on its own).
      *
      * @param array<int,array<string,mixed>> $sourceResults
      * @return array<int,array<string,mixed>>
      */
-    function qpmSemanticQualityBuildSourceSummary(array $sourceResults): array
+    function muginSemanticQualityBuildSourceSummary(array $sourceResults): array
     {
         $summary = [];
         foreach ($sourceResults as $sourceResult) {
-            $source = qpmSemanticQualityNormalizeString($sourceResult['source'] ?? '');
+            $source = muginSemanticQualityNormalizeString($sourceResult['source'] ?? '');
             if ($source === '') {
                 continue;
             }
             $candidates = isset($sourceResult['candidates']) && is_array($sourceResult['candidates']) ? $sourceResult['candidates'] : [];
             $summary[] = [
                 'source' => $source,
-                'query' => qpmSemanticQualityNormalizeString($sourceResult['query'] ?? ''),
+                'query' => muginSemanticQualityNormalizeString($sourceResult['query'] ?? ''),
                 'total' => (int) ($sourceResult['total'] ?? 0),
                 'candidateCount' => count($candidates),
                 'pmidCount' => count((array) ($sourceResult['pmids'] ?? [])),
@@ -2977,12 +3165,12 @@ if (!function_exists('qpmSemanticQualityBuildSourceSummary')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityBuildOverlapSummary')) {
+if (!function_exists('muginSemanticQualityBuildOverlapSummary')) {
     /**
      * @param array<int,array<string,mixed>> $candidates
      * @return array<string,mixed>
      */
-    function qpmSemanticQualityBuildOverlapSummary(array $candidates): array
+    function muginSemanticQualityBuildOverlapSummary(array $candidates): array
     {
         $multiSource = 0;
         $singleSource = 0;
@@ -2991,7 +3179,7 @@ if (!function_exists('qpmSemanticQualityBuildOverlapSummary')) {
         $perSourceCount = [];
         foreach ($candidates as $candidate) {
             $sources = array_values(array_filter(array_map(
-                'qpmSemanticQualityNormalizeString',
+                'muginSemanticQualityNormalizeString',
                 (array) ($candidate['sources'] ?? [])
             )));
             $sourceCount = isset($candidate['sourceCount']) && is_numeric($candidate['sourceCount'])
@@ -3002,7 +3190,7 @@ if (!function_exists('qpmSemanticQualityBuildOverlapSummary')) {
             } else {
                 $singleSource++;
             }
-            if (qpmSemanticQualityNormalizePmidValue($candidate['pmid'] ?? '') !== '') {
+            if (muginSemanticQualityNormalizePmidValue($candidate['pmid'] ?? '') !== '') {
                 $withPmid++;
             } else {
                 $doiOnly++;
@@ -3051,7 +3239,7 @@ if (!function_exists('qpmSemanticQualityBuildOverlapSummary')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityBuildEnrichmentSummary')) {
+if (!function_exists('muginSemanticQualityBuildEnrichmentSummary')) {
     /**
      * How many merged candidates carry each notable enrichment signal - a
      * quick diagnostic for "did enrichment actually run/help" without
@@ -3062,7 +3250,7 @@ if (!function_exists('qpmSemanticQualityBuildEnrichmentSummary')) {
      * @param array<string,mixed> $extraCounters
      * @return array<string,mixed>
      */
-    function qpmSemanticQualityBuildEnrichmentSummary(
+    function muginSemanticQualityBuildEnrichmentSummary(
         array $candidates,
         array $rerankConfig,
         int $filteredCount,
@@ -3098,10 +3286,10 @@ if (!function_exists('qpmSemanticQualityBuildEnrichmentSummary')) {
             'byPubTypeTier' => [],
         ];
         $pubTypeKeys = array_fill_keys(array_map(
-            'qpmSemanticQualityNormalizeLower',
+            'muginSemanticQualityNormalizeLower',
             array_keys((array) ($rerankConfig['pubTypeWeights'] ?? []))
         ), true);
-        $shortThreshold = qpmSemanticQualityToFiniteInt($rerankConfig['abstractMinLength']['short'] ?? null) ?? 100;
+        $shortThreshold = muginSemanticQualityToFiniteInt($rerankConfig['abstractMinLength']['short'] ?? null) ?? 100;
         foreach ($candidates as $candidate) {
             $enriched = is_array($candidate['enriched'] ?? null) ? $candidate['enriched'] : [];
             foreach ([
@@ -3140,7 +3328,7 @@ if (!function_exists('qpmSemanticQualityBuildEnrichmentSummary')) {
                 $summary['withAuthorityData']++;
             }
             foreach ((array) ($enriched['pubTypes'] ?? []) as $pubType) {
-                if (isset($pubTypeKeys[qpmSemanticQualityNormalizeLower($pubType)])) {
+                if (isset($pubTypeKeys[muginSemanticQualityNormalizeLower($pubType)])) {
                     $summary['withPubTypeMatch']++;
                     break;
                 }
@@ -3148,7 +3336,7 @@ if (!function_exists('qpmSemanticQualityBuildEnrichmentSummary')) {
             if ((float) ($candidate['scoreBreakdown']['topicOverlapBonus'] ?? 0) > 0) {
                 $summary['withTopicOverlap']++;
             }
-            $abstractLength = qpmSemanticQualityToFiniteInt($enriched['abstractLength'] ?? null);
+            $abstractLength = muginSemanticQualityToFiniteInt($enriched['abstractLength'] ?? null);
             if ($abstractLength === null || $abstractLength === 0) {
                 $summary['withoutAbstract']++;
             } elseif ($abstractLength < $shortThreshold) {
@@ -3160,13 +3348,13 @@ if (!function_exists('qpmSemanticQualityBuildEnrichmentSummary')) {
             if (empty($enriched['publicationYear'])) {
                 $summary['withoutYear']++;
             }
-            $qualityMultiplier = qpmSemanticQualityToFiniteNumber(
+            $qualityMultiplier = muginSemanticQualityToFiniteNumber(
                 $candidate['scoreBreakdown']['dataQualityMultiplier'] ?? null
             );
             if ($qualityMultiplier !== null && $qualityMultiplier < 1.0) {
                 $summary['totalDowngradedByQuality']++;
             }
-            $tier = qpmSemanticQualityNormalizeString($candidate['pubTypeClassification']['tier'] ?? '');
+            $tier = muginSemanticQualityNormalizeString($candidate['pubTypeClassification']['tier'] ?? '');
             if ($tier !== '') {
                 $summary['byPubTypeTier'][$tier] = ($summary['byPubTypeTier'][$tier] ?? 0) + 1;
             }
@@ -3175,12 +3363,12 @@ if (!function_exists('qpmSemanticQualityBuildEnrichmentSummary')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityBuildTopCandidatesSummary')) {
+if (!function_exists('muginSemanticQualityBuildTopCandidatesSummary')) {
     /**
      * @param array<int,array<string,mixed>> $rankedCandidates
      * @return array<int,array<string,mixed>>
      */
-    function qpmSemanticQualityBuildTopCandidatesSummary(array $rankedCandidates, int $limit = 10): array
+    function muginSemanticQualityBuildTopCandidatesSummary(array $rankedCandidates, int $limit = 10): array
     {
         $top = [];
         foreach (array_slice($rankedCandidates, 0, max(0, $limit)) as $candidate) {
@@ -3213,7 +3401,7 @@ if (!function_exists('qpmSemanticQualityBuildTopCandidatesSummary')) {
     }
 }
 
-if (!function_exists('qpmSemanticQualityRerankCandidates')) {
+if (!function_exists('muginSemanticQualityRerankCandidates')) {
     /**
      * Ported from rerankSemanticCandidates() in semanticReranking.js. This is the
      * main entry point: merges candidates from all sources, classifies, scores
@@ -3225,18 +3413,19 @@ if (!function_exists('qpmSemanticQualityRerankCandidates')) {
      * @param array<string,mixed> $options ['queryIntent' => ...]
      * @return array{candidates: array<int,array<string,mixed>>, filteredCandidates: array<int,array<string,mixed>>, pmids: array<int,string>, dois: array<int,string>, rerankMode: string, diagnostics: array<string,mixed>}
      */
-    function qpmSemanticQualityRerankCandidates(array $sourceResults, array $runtimeRerankConfig = [], array $options = []): array
+    function muginSemanticQualityRerankCandidates(array $sourceResults, array $runtimeRerankConfig = [], array $options = []): array
     {
         $activeSourceResults = array_values(array_filter($sourceResults, static function ($sourceResult) {
             return isset($sourceResult['candidates']) && is_array($sourceResult['candidates']) && count($sourceResult['candidates']) > 0;
         }));
-        $rerankConfig = qpmSemanticQualityResolveRerankConfig($runtimeRerankConfig);
-        $sourceStats = qpmSemanticQualityGetSourceStats($activeSourceResults);
+        $rerankConfig = muginSemanticQualityResolveRerankConfig($runtimeRerankConfig);
+        $sourceStats = muginSemanticQualityGetSourceStats($activeSourceResults);
         $rerankMode = count($activeSourceResults) <= 1 ? 'single' : 'multi';
         $currentYear = (int) date('Y');
-        $intentTokens = qpmSemanticQualityBuildIntentTokenSet($options['queryIntent'] ?? null);
+        $intentTokens = muginSemanticQualityBuildIntentTokenSet($options['queryIntent'] ?? null);
+        $intentPhrases = muginSemanticQualityBuildIntentPhraseList($options['queryIntent'] ?? null);
 
-        $mergeResult = qpmSemanticQualityMergeSourceCandidates($activeSourceResults, [
+        $mergeResult = muginSemanticQualityMergeSourceCandidates($activeSourceResults, [
             'guidelinePublisherAllowList' => $rerankConfig['guidelinePublisherAllowList'],
         ]);
 
@@ -3244,7 +3433,7 @@ if (!function_exists('qpmSemanticQualityRerankCandidates')) {
         $titlelessCount = 0;
         $entriesWithTitle = [];
         foreach ($entries as $entry) {
-            if (qpmSemanticQualityNormalizeString($entry['title'] ?? '') === '') {
+            if (muginSemanticQualityNormalizeString($entry['title'] ?? '') === '') {
                 $titlelessCount++;
             } else {
                 $entriesWithTitle[] = $entry;
@@ -3257,7 +3446,7 @@ if (!function_exists('qpmSemanticQualityRerankCandidates')) {
         $excludedCount = 0;
         $retainedEntries = [];
         foreach ($entriesWithTitle as $entry) {
-            if ($pubTypeTiersActive && qpmSemanticQualityIsExcludedClassification($entry['pubTypeClassification'] ?? [])) {
+            if ($pubTypeTiersActive && muginSemanticQualityIsExcludedClassification($entry['pubTypeClassification'] ?? [])) {
                 $subtype = (string) ($entry['pubTypeClassification']['subtype'] ?? 'unknown');
                 $excludedByTier[$subtype] = ($excludedByTier[$subtype] ?? 0) + 1;
                 $excludedCount++;
@@ -3268,7 +3457,15 @@ if (!function_exists('qpmSemanticQualityRerankCandidates')) {
 
         $builtCandidates = [];
         foreach ($retainedEntries as $entry) {
-            $builtCandidates[] = qpmSemanticQualityBuildScoredEntry($entry, $rerankConfig, $sourceStats, $rerankMode, $currentYear, $intentTokens);
+            $builtCandidates[] = muginSemanticQualityBuildScoredEntry(
+                $entry,
+                $rerankConfig,
+                $sourceStats,
+                $rerankMode,
+                $currentYear,
+                $intentTokens,
+                $intentPhrases
+            );
         }
 
         $filteredCandidates = array_values(array_filter($builtCandidates, static fn($c) => $c['filtered'] === true));
@@ -3282,7 +3479,7 @@ if (!function_exists('qpmSemanticQualityRerankCandidates')) {
                 if ($b['scoreTieBreaker'] !== $a['scoreTieBreaker']) {
                     return $b['scoreTieBreaker'] <=> $a['scoreTieBreaker'];
                 }
-                return qpmSemanticQualityCompareCandidateIdentity($a, $b);
+                return muginSemanticQualityCompareCandidateIdentity($a, $b);
             });
         } else {
             usort($rankedCandidates, static function ($a, $b) {
@@ -3295,15 +3492,15 @@ if (!function_exists('qpmSemanticQualityRerankCandidates')) {
                 if ($a['bestRank'] !== $b['bestRank']) {
                     return $a['bestRank'] <=> $b['bestRank'];
                 }
-                return qpmSemanticQualityCompareCandidateIdentity($a, $b);
+                return muginSemanticQualityCompareCandidateIdentity($a, $b);
             });
         }
 
         return [
             'candidates' => $rankedCandidates,
             'filteredCandidates' => $filteredCandidates,
-            'pmids' => qpmSemanticQualityDedupeStringValues(array_column($rankedCandidates, 'pmid'), 'qpmSemanticQualityNormalizePmidValue'),
-            'dois' => qpmSemanticQualityDedupeStringValues(array_column($rankedCandidates, 'doi'), 'qpmSemanticQualityNormalizeDoiValue'),
+            'pmids' => muginSemanticQualityDedupeStringValues(array_column($rankedCandidates, 'pmid'), 'muginSemanticQualityNormalizePmidValue'),
+            'dois' => muginSemanticQualityDedupeStringValues(array_column($rankedCandidates, 'doi'), 'muginSemanticQualityNormalizeDoiValue'),
             'rerankMode' => $rerankMode,
             'diagnostics' => [
                 'rerankMode' => $rerankMode,
@@ -3317,11 +3514,11 @@ if (!function_exists('qpmSemanticQualityRerankCandidates')) {
                     'excludedByTierCount' => $excludedCount,
                     'titlelessDroppedCount' => $titlelessCount,
                 ],
-                'sourceSummary' => qpmSemanticQualityBuildSourceSummary($sourceResults),
-                'sourceStats' => qpmSemanticQualityGetSourceStats($sourceResults),
+                'sourceSummary' => muginSemanticQualityBuildSourceSummary($sourceResults),
+                'sourceStats' => muginSemanticQualityGetSourceStats($sourceResults),
                 'activeSourceStats' => $sourceStats,
-                'overlapSummary' => qpmSemanticQualityBuildOverlapSummary($rankedCandidates),
-                'enrichmentSummary' => qpmSemanticQualityBuildEnrichmentSummary(
+                'overlapSummary' => muginSemanticQualityBuildOverlapSummary($rankedCandidates),
+                'enrichmentSummary' => muginSemanticQualityBuildEnrichmentSummary(
                     $rankedCandidates,
                     $rerankConfig,
                     count($filteredCandidates),
@@ -3330,7 +3527,7 @@ if (!function_exists('qpmSemanticQualityRerankCandidates')) {
                         'excludedByTier' => $excludedByTier,
                     ]
                 ),
-                'topCandidates' => qpmSemanticQualityBuildTopCandidatesSummary($rankedCandidates, 10),
+                'topCandidates' => muginSemanticQualityBuildTopCandidatesSummary($rankedCandidates, 10),
             ],
         ];
     }

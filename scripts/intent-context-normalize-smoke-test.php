@@ -1,7 +1,7 @@
 <?php
 /**
  * Smoke test for intentContext request normalization/authorization
- * (qpmPublicSearchNormalizePostRequest() / qpmPublicSearchAssertIntentContextIdsAreAuthorized()).
+ * (muginPublicSearchNormalizePostRequest() / muginPublicSearchAssertIntentContextIdsAreAuthorized()).
  *
  * Run: php scripts/intent-context-normalize-smoke-test.php
  */
@@ -33,7 +33,7 @@ function assertThrows(callable $fn, string $message): void
 }
 
 // 1. Well-formed intentContext normalizes: trims whitespace, dedupes lists.
-$request1 = qpmPublicSearchNormalizePostRequest([
+$request1 = muginPublicSearchNormalizePostRequest([
     'query' => ['text' => 'diabetes', 'language' => 'auto'],
     'sources' => ['pubmed'],
     'domain' => 'template',
@@ -62,7 +62,7 @@ assertTrue(
 );
 
 // 2. Omitted intentContext defaults to the empty-but-well-formed shape.
-$request2 = qpmPublicSearchNormalizePostRequest([
+$request2 = muginPublicSearchNormalizePostRequest([
     'query' => ['text' => 'diabetes', 'language' => 'auto'],
     'sources' => ['pubmed'],
 ]);
@@ -86,7 +86,7 @@ assertTrue(
 
 // 3. Unsupported intentContext field is rejected (no arbitrary payload passthrough).
 assertThrows(static function (): void {
-    qpmPublicSearchNormalizePostRequest([
+    muginPublicSearchNormalizePostRequest([
         'query' => ['text' => 'diabetes', 'language' => 'auto'],
         'sources' => ['pubmed'],
         'intentContext' => ['unexpectedField' => 'x'],
@@ -95,10 +95,10 @@ assertThrows(static function (): void {
 
 // 4. Unknown selectedLimitIds are rejected against the limits.json catalog
 // (when the catalog is non-empty). Topic ids are authorized against domain topics.json.
-$catalog = qpmPublicSearchCollectKnownLimitAndTopicIds();
+$catalog = muginPublicSearchCollectKnownLimitAndTopicIds();
 if (!empty($catalog)) {
     assertThrows(static function (): void {
-        qpmPublicSearchNormalizePostRequest([
+        muginPublicSearchNormalizePostRequest([
             'query' => ['text' => 'diabetes', 'language' => 'auto'],
             'sources' => ['pubmed'],
             'intentContext' => ['selectedLimitIds' => ['definitely-not-a-real-id']],
@@ -108,21 +108,21 @@ if (!empty($catalog)) {
     echo "SKIP: limits.json catalog is empty in this environment; authorization check is a no-op by design\n";
 }
 assertThrows(static function (): void {
-    qpmPublicSearchNormalizePostRequest([
+    muginPublicSearchNormalizePostRequest([
         'query' => ['text' => 'diabetes', 'language' => 'auto'],
         'sources' => ['pubmed'],
         'intentContext' => ['selectedTopicIds' => ['S010030']],
     ]);
 }, 'Catalog topic ids without domain are rejected');
 assertThrows(static function (): void {
-    qpmPublicSearchNormalizePostRequest([
+    muginPublicSearchNormalizePostRequest([
         'query' => ['text' => 'diabetes', 'language' => 'auto'],
         'sources' => ['pubmed'],
         'domain' => 'template',
         'intentContext' => ['selectedTopicIds' => ['SNOTEXIST999']],
     ]);
 }, 'Unknown selectedTopicIds are rejected against domain topics.json');
-$topicOk = qpmPublicSearchNormalizePostRequest([
+$topicOk = muginPublicSearchNormalizePostRequest([
     'query' => ['text' => 'diabetes', 'language' => 'auto'],
     'sources' => ['pubmed'],
     'domain' => 'template',
@@ -137,7 +137,7 @@ assertTrue(
 // 5. Arbitrary rule ids are rejected; executable rule definitions must resolve
 // from the trusted runtime catalog.
 assertThrows(static function (): void {
-    qpmPublicSearchNormalizePostRequest([
+    muginPublicSearchNormalizePostRequest([
         'query' => ['text' => 'diabetes', 'language' => 'auto'],
         'sources' => ['pubmed'],
         'intentContext' => ['ruleIds' => ['some-free-form-rule-id']],
@@ -146,7 +146,7 @@ assertThrows(static function (): void {
 
 // 6. Full SearchForm hard-filter context survives normalization and executable
 // clauses/rules are resolved from trusted limits.json ids.
-$request6 = qpmPublicSearchNormalizePostRequest([
+$request6 = muginPublicSearchNormalizePostRequest([
     'query' => ['text' => 'santa claus', 'language' => 'da'],
     'sources' => ['pubmed', 'openAlex'],
     'hardFilters' => [
@@ -174,7 +174,7 @@ assertTrue(
     $request6['hardFilters']['postValidationRuleIds'] === ['source-format-journal'],
     'Post-validation rule ids survive normalization'
 );
-$selectedLimitQuery = qpmPublicSearchBuildSelectedLimitPubMedQuery(
+$selectedLimitQuery = muginPublicSearchBuildSelectedLimitPubMedQuery(
     $request6['intentContext']['selectedLimitIds']
 );
 assertTrue(
@@ -183,12 +183,76 @@ assertTrue(
         && strpos($selectedLimitQuery, '"Animals"[mh] NOT "Humans"[mh]') !== false,
     'Trusted selected limits reproduce language, geography and animal PubMed clauses'
 );
-$ruleState = qpmPublicSearchBuildPostValidationRuleState($request6);
+$ruleState = muginPublicSearchBuildPostValidationRuleState($request6);
 assertTrue(
     count($ruleState['activeRules']) === 1
         && ($ruleState['activeRules'][0]['id'] ?? '') === 'source-format-journal'
         && count($ruleState['ruleGroups']) === 1,
     'Trusted limits resolve the selected post-validation rule and exclusive group'
 );
+
+// 7. SearchForm #s:pubmed: empty query.text + custom translated topic groups.
+$request7 = muginPublicSearchNormalizePostRequest([
+    'query' => ['text' => '', 'language' => 'auto'],
+    'translation' => ['mode' => 'auto'],
+    'domain' => 'template',
+    'sources' => ['pubmed'],
+    'standardString' => ['add' => false, 'scope' => 'normal'],
+    'intentContext' => [
+        'rawUserInput' => 'insulin[tiab]',
+        'contextualSearchInput' => 'insulin[tiab]',
+        'selectedTopicIds' => [],
+        'selectedTopicGroups' => [[
+            [
+                'custom' => true,
+                'rawText' => 'insulin[tiab]',
+                'text' => 'insulin[tiab]',
+                'scope' => 'normal',
+                'label' => 'insulin[tiab]',
+                'translated' => true,
+            ],
+        ]],
+        'selectedLimitIds' => [],
+        'selectedLimitGroups' => [],
+        'selectedTopics' => [],
+        'selectedLimits' => [],
+        'semanticBlocks' => ['insulin[tiab]'],
+        'ruleIds' => [],
+    ],
+]);
+assertTrue($request7['query']['text'] === '', '#s:pubmed keeps query.text empty');
+assertTrue(
+    ($request7['intentContext']['selectedTopicSelections'][0]['translated'] ?? false) === true
+        && ($request7['intentContext']['selectedTopicSelections'][0]['rawText'] ?? '') === 'insulin[tiab]',
+    '#s:pubmed custom topic hydrates into selectedTopicSelections'
+);
+$resolved7 = muginPublicSearchBuildResolvedQueries($request7);
+assertTrue(
+    ($resolved7['pubmedQuery'] ?? '') === 'insulin[tiab]',
+    '#s:pubmed groups become pubmedQuery without filling query.text'
+);
+assertThrows(static function (): void {
+    muginPublicSearchNormalizePostRequest([
+        'query' => ['text' => '', 'language' => 'auto'],
+        'sources' => ['pubmed'],
+    ]);
+}, 'Empty query.text without topics is still rejected');
+$overrideOnly = muginPublicSearchNormalizePostRequest([
+    'query' => ['text' => '', 'language' => 'auto'],
+    'sources' => ['pubmed'],
+    'queryOverrides' => ['pubmed' => 'ibuprofen[tiab]'],
+]);
+assertTrue(
+    ($overrideOnly['query']['text'] ?? null) === ''
+        && ($overrideOnly['queryOverrides']['pubmed'] ?? '') === 'ibuprofen[tiab]',
+    'Empty query.text is accepted when a selected-source queryOverride is set'
+);
+assertThrows(static function (): void {
+    muginPublicSearchNormalizePostRequest([
+        'query' => ['text' => '', 'language' => 'auto'],
+        'sources' => ['pubmed'],
+        'queryOverrides' => ['openAlex' => 'only other source'],
+    ]);
+}, 'Override for a non-selected source does not satisfy query.text');
 
 echo "\nAll intent-context normalization smoke tests passed.\n";

@@ -1,8 +1,8 @@
 <!-- eslint-disable vue/no-v-html -->
 <template>
-  <div class="qpm_searchSummaryBox">
+  <div class="mugin_searchSummaryBox">
     <div class="d-flex space-between">
-      <div class="qpm_tabs">
+      <div class="mugin_tabs">
         <button
           v-for="prompt in prompts"
           :id="prompt.name"
@@ -12,17 +12,17 @@
             content: getTabTooltipContent(prompt),
             delay: $helpTextDelay,
           }"
-          class="qpm_tab"
-          :class="{ qpm_tab_active: prompt.name === currentSummary }"
+          class="mugin_tab"
+          :class="{ mugin_tab_active: prompt.name === currentSummary }"
           @click="clickSummaryTab(prompt)"
         >
           {{ getTranslation(prompt) }}
         </button>
       </div>
     </div>
-    <div class="qpm_searchSummaryTextBackground">
+    <div class="mugin_searchSummaryTextBackground">
       <template v-if="hasAcceptedAi">
-        <div class="qpm_summary_icon_row">
+        <div class="mugin_summary_icon_row">
           <template
             v-if="
               getCurrentSummary !== null &&
@@ -32,15 +32,15 @@
           >
             <button
               type="button"
-              class="qpm_summary_icon bx bx-chevron-left qpm_historyNavLeft"
+              class="mugin_summary_icon bx bx-chevron-left mugin_historyNavLeft"
               :disabled="getCurrentIndex + 1 >= getCurrentSummaryHistory.length"
               @click="clickHistoryItem(getCurrentIndex + 1)"
             />
             {{ getCurrentSummaryHistory.length - getCurrentIndex
-            }}<span class="qpm_historyNavDivider">/</span>{{ getCurrentSummaryHistory.length }}
+            }}<span class="mugin_historyNavDivider">/</span>{{ getCurrentSummaryHistory.length }}
             <button
               type="button"
-              class="qpm_summary_icon bx bx-chevron-right qpm_historyNavRight"
+              class="mugin_summary_icon bx bx-chevron-right mugin_historyNavRight"
               :disabled="getCurrentIndex <= 0"
               @click="clickHistoryItem(getCurrentIndex - 1)"
             />
@@ -48,12 +48,12 @@
 
           <button
             type="button"
-            class="qpm_summary_icon bx bx-x qpm_summaryCloseButton"
+            class="mugin_summary_icon bx bx-x mugin_summaryCloseButton"
             :aria-label="getString('closeSummaryButtonLabel') || 'Close'"
             @click="clickCloseSummary"
           />
         </div>
-        <div v-if="!getCurrentSummary" class="qpm_searchSummaryText">
+        <div v-if="!getCurrentSummary" class="mugin_searchSummaryText">
           <p>
             <strong>{{ summaryConsentHeader }}</strong>
           </p>
@@ -67,14 +67,14 @@
           <p v-html="sanitizeHtml(getString('aiSummaryConsentText'))" />
           <p v-html="sanitizeHtml(getString('readAboutAiSummaryText'))" />
         </div>
-        <div v-else class="qpm_searchSummaryResponseBox">
+        <div v-else class="mugin_searchSummaryResponseBox">
           <div
             v-if="getDidCurrentSummaryError"
-            class="qpm_searchSummaryText qpm_searchSummaryErrorText"
+            class="mugin_searchSummaryText mugin_searchSummaryErrorText"
           >
             <div>
-              <p class="qpm_summaryErrorText">
-                <i class="bx bx-error qpm_summaryErrorIcon" aria-hidden="true" />
+              <p class="mugin_summaryErrorText">
+                <i class="bx bx-error mugin_summaryErrorIcon" aria-hidden="true" />
                 <strong>{{ errorHeader }}</strong>
               </p>
               <p>{{ getCurrentSummary?.body }}</p>
@@ -82,10 +82,10 @@
               <template v-if="getCurrentSummary?.error">
                 <p>{{ getCurrentSummary?.error?.Message }}</p>
               </template>
-              <div class="qpm_summaryRetryGroupError">
+              <div class="mugin_summaryRetryGroupError">
                 <button
                   type="button"
-                  class="qpm_button"
+                  class="mugin_button"
                   @keydown.enter="clickRetry($event, true)"
                   @click="clickRetry($event, true)"
                 >
@@ -95,17 +95,17 @@
             </div>
           </div>
           <template v-else>
-            <div class="qpm_searchSummaryText" v-show="!isCurrentSummaryWaitingForResponse">
+            <div class="mugin_searchSummaryText" v-show="!isCurrentSummaryWaitingForResponse">
               <div>
                 <p>
                   <strong>{{ getSuccessHeader }}</strong>
                 </p>
                 <div
-                  class="qpm_summaryWarningBox"
+                  class="mugin_summaryWarningBox"
                 >
                   <p v-html="sanitizeHtml(getString('aiSummarizeFirstFewSearchResultHeaderAfterCountWarning'))" />
                 </div>
-                <qpm-markdown
+                <mugin-markdown
                   v-if="useMarkdown && canRenderMarkdown"
                   ref="summary"
                   :markdown="getCurrentSummary.body"
@@ -115,7 +115,7 @@
                 <p v-else ref="summary">
                   {{ getCurrentSummary?.body }}
                 </p>
-                <div class="qpm_summaryActionsGroup">
+                <div class="mugin_summaryActionsGroup">
                   <button
                     v-if="getIsAbstractSummaryLoading"
                     type="button"
@@ -124,7 +124,7 @@
                       distance: 5,
                       delay: $helpTextDelay,
                     }"
-                    class="qpm_button"
+                    class="mugin_button"
                     @keydown.enter="clickStop($event)"
                     @click="clickStop"
                   >
@@ -140,12 +140,12 @@
                       distance: 5,
                       delay: $helpTextDelay,
                     }"
-                    class="qpm_button"
+                    class="mugin_button"
                     @keydown.enter="clickRetry($event, true)"
                     :disabled="getAreSummariesLoading"
                     @click="clickRetry($event, true)"
                   >
-                    <i class="bx bx-refresh qpm_iconBaselineSize" aria-hidden="true" />
+                    <i class="bx bx-refresh mugin_iconBaselineSize" aria-hidden="true" />
                     {{ getString("retryText") }}
                   </button>
 
@@ -156,11 +156,11 @@
                       distance: 5,
                       delay: $helpTextDelay,
                     }"
-                    class="qpm_button"
+                    class="mugin_button"
                     :disabled="getIsAbstractSummaryLoading"
                     @click="clickCopy"
                   >
-                    <i class="bx bx-copy qpm_iconBaseline" aria-hidden="true" />
+                    <i class="bx bx-copy mugin_iconBaseline" aria-hidden="true" />
                     {{ getString("copyText") }}
                   </button>
                   <div
@@ -228,7 +228,7 @@
                             distance: 5,
                             delay: $helpTextDelay,
                           }"
-                          class="qpm_button qpm_articleRetryButtonSpacing"
+                          class="mugin_button mugin_articleRetryButtonSpacing"
                           :disabled="
                             loadingArticleSummaries[prompt.name] ||
                             prompt.name.length === 0 ||
@@ -237,7 +237,7 @@
                           @keydown.enter="handleRetryArticleSummary"
                           @click="handleRetryArticleSummary"
                         >
-                          <i class="bx bx-refresh qpm_iconBaselineSize" aria-hidden="true"></i>
+                          <i class="bx bx-refresh mugin_iconBaselineSize" aria-hidden="true"></i>
                           {{ getString("retryText") }}
                         </button>
                         <button
@@ -252,7 +252,7 @@
                             distance: 5,
                             delay: $helpTextDelay,
                           }"
-                          class="qpm_button"
+                          class="mugin_button"
                           :disabled="
                             loadingArticleSummaries[prompt.name] ||
                             prompt.name.length === 0 ||
@@ -261,14 +261,14 @@
                           @keydown.enter="clickCopyArticleSummary"
                           @click="clickCopyArticleSummary"
                         >
-                          <i class="bx bx-copy qpm_iconBaseline" aria-hidden="true" />
+                          <i class="bx bx-copy mugin_iconBaseline" aria-hidden="true" />
                           {{ getString("copyText") }}
                         </button>
                       </div>
                     </template>
                   </div>
                 </div>
-                <p class="qpm_summaryDisclaimer" v-html="sanitizeHtml(getString('aiSummaryDisclaimer'))" />
+                <p class="mugin_summaryDisclaimer" v-html="sanitizeHtml(getString('aiSummaryDisclaimer'))" />
               </div>
             </div>
           </template>
@@ -276,7 +276,7 @@
             :wait-text="getString('aiSummaryWaitText')"
             :wait-duration-disclaimer="getWaitTimeString"
             :loading="isCurrentSummaryWaitingForResponse"
-            class="qpm_searchSummaryText qpm_summaryLoadingSpinner"
+            class="mugin_searchSummaryText mugin_summaryLoadingSpinner"
           />
         </div>
       </template>
@@ -287,7 +287,7 @@
 <script>
   import { nextTick } from "vue";
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
-  import QpmMarkdown from "@/components/QpmMarkdown.vue";
+  import MuginMarkdown from "@/components/MuginMarkdown.vue";
   import SummarizeArticle from "@/components/SummarizeArticle.vue";
   import QuestionForArticle from "@/components/QuestionForArticle.vue";
   import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
@@ -309,12 +309,13 @@
     promptTextSingleAbstract,
   } from "@/assets/prompts/abstract";
   import { sanitizePrompt } from "@/utils/promptsHelpers.js";
+  import { applyOpenAiTaskSettings } from "@/utils/openAiTaskSettings.js";
 
   export default {
     name: "SummarizeAbstract",
     components: {
       LoadingSpinner,
-      QpmMarkdown,
+      MuginMarkdown,
       SummarizeArticle,
       QuestionForArticle,
     },
@@ -751,24 +752,45 @@
         this.loadingAbstractSummaries.push(prompt.name);
 
         // Get the prompt text for the current language which includes the domain specific rules
-        const localePrompt = this.getComposableAbstractPrompt(
-          { ...prompt },
-          this.language,
-          prompt.name
+        const localePrompt = applyOpenAiTaskSettings(
+          this.getComposableAbstractPrompt(
+            { ...prompt },
+            this.language,
+            prompt.name
+          ),
+          "summarizeAbstract"
         );
 
         const endpoint = "/api/SummarizeSearch.php";
         const openAiServiceUrl = `${this.appSettings.openAi.baseUrl}${endpoint}`;
 
         const readData = async (url, body) => {
-          const streamCompleteMarker = "[[QPM_STREAM_COMPLETE]]";
-          const streamHeartbeatMarker = "[[QPM_STREAM_HEARTBEAT]]";
+          const streamCompleteMarker = "[[MUGIN_STREAM_COMPLETE]]";
+          const streamHeartbeatMarker = "[[MUGIN_STREAM_HEARTBEAT]]";
+          // Strip markers and any newlines the backend used to wrap them, so
+          // heartbeats cannot split words ("Alle s" + HB + "tudierne").
           const cleanStreamText = (value = "") =>
             String(value || "")
-              .replaceAll(streamCompleteMarker, "")
-              .replaceAll(streamHeartbeatMarker, "")
+              .replace(
+                new RegExp(
+                  `\\r?\\n?${streamCompleteMarker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\r?\\n?`,
+                  "g"
+                ),
+                ""
+              )
+              .replace(
+                new RegExp(
+                  `\\r?\\n?${streamHeartbeatMarker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\r?\\n?`,
+                  "g"
+                ),
+                ""
+              )
               .trimEnd();
           let answer = "";
+          // Keep body empty (spinner visible) until we have a usable chunk.
+          // Requesty/Kimi often sends a few prefix chars, then a long pause.
+          const streamRevealMinChars = 180;
+          let streamRevealStarted = false;
           const response = await fetch(url, {
             method: "POST",
             body: JSON.stringify(body),
@@ -799,7 +821,18 @@
             if (!done && !this.stopGeneration) {
               answer += value;
               const visibleAnswer = cleanStreamText(answer);
-              this.updateAiSearchSummariesEntry(prompt.name, { body: visibleAnswer });
+              if (
+                !streamRevealStarted &&
+                (visibleAnswer.length >= streamRevealMinChars ||
+                  answer.includes(streamCompleteMarker))
+              ) {
+                streamRevealStarted = true;
+              }
+              if (streamRevealStarted) {
+                this.updateAiSearchSummariesEntry(prompt.name, {
+                  body: visibleAnswer,
+                });
+              }
             }
           }
 
@@ -820,6 +853,16 @@
               responseTime: new Date(),
               status: "success",
             });
+          } else {
+            // Stopped during buffer/stream: reveal whatever we have so far.
+            const visibleAnswer = cleanStreamText(answer);
+            if (visibleAnswer.trim() !== "") {
+              this.updateAiSearchSummariesEntry(prompt.name, {
+                body: visibleAnswer,
+                responseTime: new Date(),
+                status: "success",
+              });
+            }
           }
         };
 
@@ -1093,7 +1136,7 @@
 
         const normalizedReferenceTarget = referenceTarget.toLowerCase();
         const candidateEntries = Array.from(
-          document.querySelectorAll(".qpm_accordion .qpm_ResultEntry, .qpm_SearchResult .qpm_ResultEntry")
+          document.querySelectorAll(".mugin_accordion .mugin_ResultEntry, .mugin_SearchResult .mugin_ResultEntry")
         );
         const resultEntry = candidateEntries.find((entry) => {
           const anchorValues = [

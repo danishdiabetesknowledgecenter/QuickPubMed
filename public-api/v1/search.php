@@ -7,23 +7,23 @@ require_once $configPath;
 require_once dirname(__DIR__, 2) . '/backend/app/public-search-lib.php';
 
 $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
-$origin = qpmPublicSearchResolveOrigin();
-qpmPublicSearchApplyCorsHeaders(qpmPublicSearchResolveAllowedOriginForAnyClient($origin));
-qpmPublicSearchApplyNoStoreHeaders();
+$origin = muginPublicSearchResolveOrigin();
+muginPublicSearchApplyCorsHeaders(muginPublicSearchResolveAllowedOriginForAnyClient($origin));
+muginPublicSearchApplyNoStoreHeaders();
 
 if ($method === 'OPTIONS') {
     http_response_code(200);
     exit;
 }
 
-$config = qpmPublicSearchGetConfig();
+$config = muginPublicSearchGetConfig();
 if ($method === 'GET' && $config['getSearchEnabled'] !== true) {
-    qpmPublicSearchRespondJson(405, [
+    muginPublicSearchRespondJson(405, [
         'error' => 'GET /v1/search is disabled',
     ]);
 }
 if (!in_array($method, ['GET', 'POST'], true)) {
-    qpmPublicSearchRespondJson(405, [
+    muginPublicSearchRespondJson(405, [
         'error' => 'Method not allowed',
     ]);
 }
@@ -47,20 +47,20 @@ $rateLimit = [
     'isLimited' => false,
 ];
 register_shutdown_function(static function () use (&$executionSlot): void {
-    qpmPublicSearchReleaseExecutionSlot($executionSlot);
+    muginPublicSearchReleaseExecutionSlot($executionSlot);
 });
 
 try {
-    $client = qpmPublicSearchResolveAuthenticatedClient();
+    $client = muginPublicSearchResolveAuthenticatedClient();
     $clientForAudit = $client;
     if (($client['resolved_origin'] ?? '') !== '') {
-        qpmPublicSearchApplyCorsHeaders((string) $client['resolved_origin']);
+        muginPublicSearchApplyCorsHeaders((string) $client['resolved_origin']);
     }
 
-    $rateLimit = qpmPublicSearchConsumeRateLimit($client, $method);
+    $rateLimit = muginPublicSearchConsumeRateLimit($client, $method);
     if (($rateLimit['isLimited'] ?? false) === true) {
-        qpmPublicSearchApplyRetryAfterHeader((int) ($rateLimit['resetInSeconds'] ?? 60));
-        qpmPublicSearchAudit([
+        muginPublicSearchApplyRetryAfterHeader((int) ($rateLimit['resetInSeconds'] ?? 60));
+        muginPublicSearchAudit([
             'clientId' => $client['client_id'] ?? '',
             'method' => $method,
             'route' => '/v1/search',
@@ -71,38 +71,38 @@ try {
             'latencyMs' => (int) round((microtime(true) - $startedAt) * 1000),
             'warnings' => ['Rate limit exceeded'],
         ]);
-        qpmPublicSearchRespondJson(429, [
+        muginPublicSearchRespondJson(429, [
             'error' => 'Rate limit exceeded',
             'rateLimit' => $rateLimit,
         ]);
     }
 
-    $request = qpmPublicSearchParseRequest();
-    $request = qpmPublicSearchEnforceClientSourceAccess($request, $client);
+    $request = muginPublicSearchParseRequest();
+    $request = muginPublicSearchEnforceClientSourceAccess($request, $client);
     $request['_clientSourceApiKeys'] = [
-        'openAlex' => qpmPublicSearchClientSourceApiKey($client, 'openAlex'),
-        'semanticScholar' => qpmPublicSearchClientSourceApiKey($client, 'semanticScholar'),
-        'elicit' => qpmPublicSearchClientSourceApiKey($client, 'elicit'),
+        'openAlex' => muginPublicSearchClientSourceApiKey($client, 'openAlex'),
+        'semanticScholar' => muginPublicSearchClientSourceApiKey($client, 'semanticScholar'),
+        'elicit' => muginPublicSearchClientSourceApiKey($client, 'elicit'),
     ];
     // Keep a live reference so partial processDetails collected inside
-    // qpmPublicSearchRunSearch() remain available on error/SSE failure paths.
+    // muginPublicSearchRunSearch() remain available on error/SSE failure paths.
     $requestForAudit = &$request;
     $streamEnabled = (($request['responseOptions']['stream'] ?? false) === true);
-    $executionSlot = qpmPublicSearchAcquireExecutionSlot((int) ($config['concurrentSearchLimit'] ?? 10));
+    $executionSlot = muginPublicSearchAcquireExecutionSlot((int) ($config['concurrentSearchLimit'] ?? 10));
 
     $progressCallback = null;
     if ($streamEnabled) {
-        qpmPublicSearchStartEventStream();
+        muginPublicSearchStartEventStream();
         $streamStarted = true;
-        qpmPublicSearchEmitSseEvent('connected', [
+        muginPublicSearchEmitSseEvent('connected', [
             'stage' => 'connected',
-            'language' => qpmPublicSearchResolveProgressLanguage($request),
+            'language' => muginPublicSearchResolveProgressLanguage($request),
             'timestamp' => gmdate('c'),
         ]);
         $progressCallback = static function (string $stage, string $message, array $context = []) use (&$executionSlot, $request): void {
-            qpmPublicSearchRefreshExecutionSlot($executionSlot);
-            qpmPublicSearchEmitSseEvent('progress', array_merge(
-                qpmPublicSearchBuildStreamProgressPayload($request, $stage, $message, $context),
+            muginPublicSearchRefreshExecutionSlot($executionSlot);
+            muginPublicSearchEmitSseEvent('progress', array_merge(
+                muginPublicSearchBuildStreamProgressPayload($request, $stage, $message, $context),
                 [
                 'timestamp' => gmdate('c'),
                 ]
@@ -110,8 +110,8 @@ try {
         };
     }
 
-    qpmPublicSearchRefreshExecutionSlot($executionSlot);
-    $response = qpmPublicSearchRunSearch($request, $progressCallback);
+    muginPublicSearchRefreshExecutionSlot($executionSlot);
+    $response = muginPublicSearchRunSearch($request, $progressCallback);
     $response['rateLimit'] = $rateLimit;
     $completedAt = microtime(true);
     $durationSeconds = (int) floor($completedAt - $startedAt);
@@ -127,7 +127,7 @@ try {
         ),
     ];
 
-    qpmPublicSearchAudit([
+    muginPublicSearchAudit([
         'clientId' => $client['client_id'] ?? '',
         'method' => $method,
         'route' => '/v1/search',
@@ -145,18 +145,18 @@ try {
     ]);
 
     if ($streamStarted) {
-        qpmPublicSearchEmitSseEvent('result', $response);
-        qpmPublicSearchReleaseExecutionSlot($executionSlot);
+        muginPublicSearchEmitSseEvent('result', $response);
+        muginPublicSearchReleaseExecutionSlot($executionSlot);
         $executionSlot = null;
         exit;
     }
 
-    qpmPublicSearchReleaseExecutionSlot($executionSlot);
+    muginPublicSearchReleaseExecutionSlot($executionSlot);
     $executionSlot = null;
-    qpmPublicSearchRespondJson(200, $response);
+    muginPublicSearchRespondJson(200, $response);
 } catch (InvalidArgumentException $exception) {
     $status = stripos($exception->getMessage(), 'Method not allowed') !== false ? 405 : 422;
-    qpmPublicSearchAudit([
+    muginPublicSearchAudit([
         'clientId' => $clientForAudit['client_id'] ?? '',
         'method' => $method,
         'route' => '/v1/search',
@@ -180,20 +180,20 @@ try {
         && isset($requestForAudit['_processDetails'])
         && is_array($requestForAudit['_processDetails'])
     ) {
-        $validationErrorPayload['processDetails'] = qpmPublicSearchProcessDetailsExport($requestForAudit['_processDetails']);
+        $validationErrorPayload['processDetails'] = muginPublicSearchProcessDetailsExport($requestForAudit['_processDetails']);
     }
     if ($streamStarted) {
-        qpmPublicSearchEmitSseEvent('error', array_merge($validationErrorPayload, [
+        muginPublicSearchEmitSseEvent('error', array_merge($validationErrorPayload, [
             'status' => $status,
             'timestamp' => gmdate('c'),
         ]));
-        qpmPublicSearchReleaseExecutionSlot($executionSlot);
+        muginPublicSearchReleaseExecutionSlot($executionSlot);
         $executionSlot = null;
         exit;
     }
-    qpmPublicSearchReleaseExecutionSlot($executionSlot);
+    muginPublicSearchReleaseExecutionSlot($executionSlot);
     $executionSlot = null;
-    qpmPublicSearchRespondJson($status, $validationErrorPayload);
+    muginPublicSearchRespondJson($status, $validationErrorPayload);
 } catch (RuntimeException $exception) {
     $status = $exception->getCode();
     if (!in_array($status, [401, 403, 429, 502, 503], true)) {
@@ -203,15 +203,15 @@ try {
         'error' => $exception->getMessage(),
     ];
     if ($status === 429) {
-        qpmPublicSearchApplyRetryAfterHeader((int) ($rateLimit['resetInSeconds'] ?? 60));
+        muginPublicSearchApplyRetryAfterHeader((int) ($rateLimit['resetInSeconds'] ?? 60));
         $errorPayload['rateLimit'] = $rateLimit;
     } elseif ($status === 503) {
         $retryAfterSeconds = (int) ($config['busyRetryAfterSeconds'] ?? 120);
-        qpmPublicSearchApplyRetryAfterHeader($retryAfterSeconds);
+        muginPublicSearchApplyRetryAfterHeader($retryAfterSeconds);
         $errorPayload['retryAfterSeconds'] = $retryAfterSeconds;
         $errorPayload['concurrentSearchLimit'] = (int) ($config['concurrentSearchLimit'] ?? 10);
     }
-    qpmPublicSearchAudit([
+    muginPublicSearchAudit([
         'clientId' => $clientForAudit['client_id'] ?? '',
         'method' => $method,
         'route' => '/v1/search',
@@ -234,22 +234,22 @@ try {
         && isset($requestForAudit['_processDetails'])
         && is_array($requestForAudit['_processDetails'])
     ) {
-        $errorPayload['processDetails'] = qpmPublicSearchProcessDetailsExport($requestForAudit['_processDetails']);
+        $errorPayload['processDetails'] = muginPublicSearchProcessDetailsExport($requestForAudit['_processDetails']);
     }
     if ($streamStarted) {
-        qpmPublicSearchEmitSseEvent('error', array_merge($errorPayload, [
+        muginPublicSearchEmitSseEvent('error', array_merge($errorPayload, [
             'status' => $status,
             'timestamp' => gmdate('c'),
         ]));
-        qpmPublicSearchReleaseExecutionSlot($executionSlot);
+        muginPublicSearchReleaseExecutionSlot($executionSlot);
         $executionSlot = null;
         exit;
     }
-    qpmPublicSearchReleaseExecutionSlot($executionSlot);
+    muginPublicSearchReleaseExecutionSlot($executionSlot);
     $executionSlot = null;
-    qpmPublicSearchRespondJson($status, $errorPayload);
+    muginPublicSearchRespondJson($status, $errorPayload);
 } catch (Throwable $throwable) {
-    qpmPublicSearchAudit([
+    muginPublicSearchAudit([
         'clientId' => $clientForAudit['client_id'] ?? '',
         'method' => $method,
         'route' => '/v1/search',
@@ -267,18 +267,18 @@ try {
         'error' => $throwable->getMessage(),
     ]);
     if ($streamStarted) {
-        qpmPublicSearchEmitSseEvent('error', [
+        muginPublicSearchEmitSseEvent('error', [
             'status' => 500,
             'error' => 'Internal server error',
             'timestamp' => gmdate('c'),
         ]);
-        qpmPublicSearchReleaseExecutionSlot($executionSlot);
+        muginPublicSearchReleaseExecutionSlot($executionSlot);
         $executionSlot = null;
         exit;
     }
-    qpmPublicSearchReleaseExecutionSlot($executionSlot);
+    muginPublicSearchReleaseExecutionSlot($executionSlot);
     $executionSlot = null;
-    qpmPublicSearchRespondJson(500, [
+    muginPublicSearchRespondJson(500, [
         'error' => 'Internal server error',
     ]);
 }

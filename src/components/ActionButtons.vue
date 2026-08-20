@@ -1,6 +1,6 @@
 <template>
-  <div class="qpm_flex qpm_bottom qpm_actionButtonsRow">
-    <div class="qpm_actionButtonsGroup">
+  <div class="mugin_flex mugin_bottom mugin_actionButtonsRow">
+    <div class="mugin_actionButtonsGroup">
       <!-- The reset button -->
       <button
         type="button"
@@ -9,10 +9,10 @@
           distance: 5,
           delay: $helpTextDelay,
         }"
-        class="qpm_button"
+        class="mugin_button"
         @click="clear"
       >
-        <i class="bx bx-reset qpm_iconBaseline" aria-hidden="true" />
+        <i class="bx bx-reset mugin_iconBaseline" aria-hidden="true" />
         {{ getString("reset") }}
       </button>
 
@@ -20,10 +20,10 @@
       <button
         type="button"
         v-tooltip="copyUrlTooltipBinding"
-        class="qpm_button"
+        class="mugin_button"
         @click="copyUrl"
       >
-        <i class="bx bx-link qpm_iconBaseline" aria-hidden="true" />
+        <i class="bx bx-link mugin_iconBaseline" aria-hidden="true" />
         {{ getString("getUrl") }}
       </button>
     </div>
@@ -38,11 +38,11 @@
       }"
       :disabled="searchLoading"
       :aria-busy="searchLoading"
-      :class="{ qpm_disabled: searchLoading }"
-      class="qpm_button qpm_search"
+      :class="{ mugin_disabled: searchLoading }"
+      class="mugin_button mugin_search"
       @click="searchsetLowStart"
     >
-      <i class="bx bx-search bx-flip-horizontal qpm_searchIcon" aria-hidden="true" />
+      <i class="bx bx-search bx-flip-horizontal mugin_searchIcon" aria-hidden="true" />
       {{ getString("search") }}
     </button>
   </div>

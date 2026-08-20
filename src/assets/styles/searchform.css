@@ -1,54 +1,54 @@
 /* Search form domain styles */
-.qpm_top {
+.mugin_top {
   background-color: var(--color-grey-light) !important;
   padding: 15px 15px 0 15px;
 }
 
-.qpm_toggleDetails {
+.mugin_toggleDetails {
   background-color: var(--color-grey-light);
   padding: 10px 20px 15px 0;
   display: flex;
   justify-content: flex-end;
 }
 
-.qpm_middle {
+.mugin_middle {
   border: solid var(--color-grey);
   border-width: 0 1px 1px;
   padding: 15px;
 }
 
-.qpm_searchformoptions {
+.mugin_searchformoptions {
   margin-top: 13px;
   clear: both;
 }
 
-.qpm_limitsHeaderContainer {
+.mugin_limitsHeaderContainer {
   display: inline-flex;
   align-items: flex-start;  
   gap: 5px;
 }
 
-.qpm_limitsHeaderContainer .qpm_infoIcon {
+.mugin_limitsHeaderContainer .mugin_infoIcon {
   transform: translateY(2px);
 }
 
-.qpm_wordedStringOperator {
+.mugin_wordedStringOperator {
   text-transform: lowercase;
   font-size: 0.9em;
 }
 
-.qpm_searchStringOperator {
+.mugin_searchStringOperator {
   padding-left: 1px;
   padding-right: 5px;
 }
 
-.qpm_searchform {
+.mugin_searchform {
   margin-bottom: 20px;
   display: flex;
   flex-direction: column;
 }
 
-.qpm_limits {
+.mugin_limits {
   margin-top: -5px;
   background-color: var(--color-grey);
   -webkit-box-shadow: inset 0 0 4px 0 var(--color-shadow-soft);
@@ -61,21 +61,21 @@
   flex-direction: column;
 }
 
-.qpm_filterEntry {
+.mugin_filterEntry {
   margin-bottom: 10px;
 }
 
-.qpm_filterEntry p {
+.mugin_filterEntry p {
   margin-bottom: 4px;
 }
 
-.qpm_subjectOperator {
+.mugin_subjectOperator {
   margin: 3px 0 4px 12px !important;
   font-size: 0.8em;
   font-weight: 700;
 }
 
-.qpm_filterOperator {
+.mugin_filterOperator {
   font-size: 0.8em;
   font-weight: 700;
 }
@@ -84,13 +84,13 @@
    Color #555 is the lightest grey that still meets AAA 7:1 contrast
    on both white and grey-light backgrounds. Font-weight is reduced
    from 700 (bold) to 400 (normal) to visually signal a pending slot. */
-.qpm_subjectOperator--trailing {
+.mugin_subjectOperator--trailing {
   color: #555555;
   font-weight: 400;
 }
 
-.qpm_search,
-.qpm_search:hover {
+.mugin_search,
+.mugin_search:hover {
   background-color: var(--color-primary-button) !important;
   color: var(--color-white) !important;
   padding-left: 15px !important;
@@ -100,25 +100,25 @@
   min-width: 100px !important;
 }
 
-.qpm_search:disabled,
-.qpm_search:disabled:hover,
-.qpm_search.qpm_disabled,
-.qpm_search.qpm_disabled:hover {
+.mugin_search:disabled,
+.mugin_search:disabled:hover,
+.mugin_search.mugin_disabled,
+.mugin_search.mugin_disabled:hover {
   background-color: var(--color-button-disabled) !important;
   color: var(--color-white) !important;
   border-color: var(--color-border-light) !important;
   cursor: not-allowed !important;
 }
 
-.qpm_subjectEntry {
+.mugin_subjectEntry {
   flex: 1;
 }
 
 /* Icon-only button reset. Neutralizes native <button> styling so a
-   <button class="qpm_iconButton bx bx-..."> renders visually identical
+   <button class="mugin_iconButton bx bx-..."> renders visually identical
    to the previous <i class="bx bx-..."> while keeping semantic button
    role (Enter/Space activation, correct focus behavior). */
-.qpm_iconButton {
+.mugin_iconButton {
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
@@ -134,7 +134,7 @@
   display: inline-block;
 }
 
-.qpm_iconButton::-moz-focus-inner {
+.mugin_iconButton::-moz-focus-inner {
   border: 0;
   padding: 0;
 }
@@ -142,8 +142,8 @@
 /* Text link-style button reset. Makes a native <button> look like the
    surrounding text / link, inheriting color/font/alignment from its
    parent. Padding and margin are intentionally NOT reset so that
-   outer classes (e.g. .qpm_advancedSearch) can control layout. */
-.qpm_linkButton {
+   outer classes (e.g. .mugin_advancedSearch) can control layout. */
+.mugin_linkButton {
   -webkit-appearance: none;
   appearance: none;
   background: transparent;
@@ -159,11 +159,11 @@
 }
 
 /* Used on a <button> that visually replaces a bare <a> inside a
-   .qpm_advancedSearch / .qpm_translateTitleLink wrapper. The actual
+   .mugin_advancedSearch / .mugin_translateTitleLink wrapper. The actual
    hover/focus behavior is defined alongside the existing <a> rules in
    styles.css so the button variant follows the same CMS cascade. */
-.qpm_advancedSearch .qpm_linkButtonAsAnchor,
-.qpm_translateTitleLink .qpm_linkButtonAsAnchor {
+.mugin_advancedSearch .mugin_linkButtonAsAnchor,
+.mugin_translateTitleLink .mugin_linkButtonAsAnchor {
   display: inline-block;
   color: var(--color-link);
   text-decoration: none;
@@ -175,25 +175,25 @@
   transition: all .2s ease-in-out;
 }
 
-.qpm_vapp .qpm_linkButton:focus-visible,
-.qpm_vapp .qpm_linkButtonAsAnchor:focus-visible {
+.mugin_vapp .mugin_linkButton:focus-visible,
+.mugin_vapp .mugin_linkButtonAsAnchor:focus-visible {
   outline: 2px solid var(--color-black);
   outline-offset: 2px;
   border-radius: 2px;
 }
 
-.qpm_vapp .qpm_removeSubject,
-.qpm_vapp .qpm_removeFilter {
+.mugin_vapp .mugin_removeSubject,
+.mugin_vapp .mugin_removeFilter {
   font-size: 25px;
   cursor: pointer;
   position: relative;
 }
 
-.qpm_vapp .qpm_removeSubject {
+.mugin_vapp .mugin_removeSubject {
   margin-left: 7px;
 }
 
-.qpm_vapp .qpm_removeFilter {
+.mugin_vapp .mugin_removeFilter {
   padding-left: 0;
   margin-left: 5px;
 }
@@ -203,9 +203,9 @@
    clickable area to meet AAA for stand-alone icon buttons. The
    pseudo-element inherits pointer events from its parent <button>,
    so a click anywhere in the 44x44 box activates the button. */
-.qpm_vapp .qpm_removeSubject::after,
-.qpm_vapp .qpm_removeFilter::after,
-.qpm_vapp .qpm_scopeButton::after {
+.mugin_vapp .mugin_removeSubject::after,
+.mugin_vapp .mugin_removeFilter::after,
+.mugin_vapp .mugin_scopeButton::after {
   content: "";
   position: absolute;
   top: 50%;
@@ -215,22 +215,22 @@
   height: 44px;
 }
 
-.qpm_searchStringFilterGroup,
-.qpm_searchStringSubjectGroup {
+.mugin_searchStringFilterGroup,
+.mugin_searchStringSubjectGroup {
   display: inline;
   position: relative;
 }
 
-.qpm_searchStringGroupWhere {
+.mugin_searchStringGroupWhere {
   text-transform: lowercase;
 }
 
-.qpm_searchStringWord {
+.mugin_searchStringWord {
   margin-left: 10px;
   margin-right: 10px;
 }
 
-.qpm_halfBorder {
+.mugin_halfBorder {
   position: absolute;
   width: 100%;
   height: 100%;
@@ -240,14 +240,14 @@
   border: 1px solid var(--color-grey);
 }
 
-.qpm_wordedSearchString {
+.mugin_wordedSearchString {
   margin-bottom: 0;
   width: 100%;
   padding-bottom: 15px;
   line-height: 1.7;
 }
 
-.qpm_searchStringWordGroup {
+.mugin_searchStringWordGroup {
   display: inline-block;
   position: relative;
   padding-left: 9px;
@@ -255,47 +255,47 @@
   margin: 4px 2px 4px 0;
 }
 
-.qpm_searchStringPreText,
-.qpm_searchStringGroupWhere,
-.qpm_searchStringGroupOperator_NotApplied {
+.mugin_searchStringPreText,
+.mugin_searchStringGroupWhere,
+.mugin_searchStringGroupOperator_NotApplied {
   margin-right: 2px;
 }
 
-.qpm_searchStringGroupOperator_NotApplied {
+.mugin_searchStringGroupOperator_NotApplied {
   margin-bottom: 0;
 }
 
-.qpm_searchStringWordGroupWrapper {
+.mugin_searchStringWordGroupWrapper {
   padding-bottom: 7px;
   position: relative;
   display: inline-block;
 }
 
-.qpm_searchStringGroupOperator {
+.mugin_searchStringGroupOperator {
   padding-left: 5px;
   padding-right: 1px;
 }
 
-.qpm_searchStringGroupOperatorAnd {
+.mugin_searchStringGroupOperatorAnd {
   padding-left: 3px;
   padding-right: 8px;
 }
 
-.qpm_wordedStringSubject {
+.mugin_wordedStringSubject {
   font-weight: 600;
 }
 
-.qpm_filterCategoryPrefix {
+.mugin_filterCategoryPrefix {
   font-weight: normal;
   font-size: 0.9em;
 }
 
-.qpm_prestring {
+.mugin_prestring {
   font-weight: 600;
   display: contents !important;
 }
 
-.qpm_toggleSearchForm {
+.mugin_toggleSearchForm {
   display: flex;
   justify-items: center;
   margin: 4px 0 0 20px;
@@ -303,7 +303,7 @@
   cursor: pointer;
 }
 
-.qpm_toggleSearchFormBtn {
+.mugin_toggleSearchFormBtn {
   margin-right: -10px;
   min-height: 24px;
   min-width: 24px;
@@ -312,46 +312,46 @@
   margin-top: 9px;
 }
 
-.qpm_aiToggle {
+.mugin_aiToggle {
   display: flex;
   width: -webkit-fill-available;
   align-items: flex-start;
   margin-top: -1px;
 }
 
-.qpm_aiToggle div:last-of-type {
+.mugin_aiToggle div:last-of-type {
   margin-top: 0;
 }
 
-.qpm_aiToggle .qpm_infoInline {
+.mugin_aiToggle .mugin_infoInline {
   display: inline;
   white-space: normal;
 }
 
-.qpm_aiToggle:not(i) {
+.mugin_aiToggle:not(i) {
   font-weight: 600;
 }
 
-.qpm_aiToggle i {
+.mugin_aiToggle i {
   font-weight: normal;
 }
 
-.qpm_aiToggle button {
+.mugin_aiToggle button {
   margin-bottom: 1px;
 }
 
-.qpm_aiToggle .bx-sparkles-alt {
+.mugin_aiToggle .bx-sparkles-alt {
   margin-right: 6px;
 }
 
-.qpm_simpleFiltersContainer {
+.mugin_simpleFiltersContainer {
   display: grid;
   grid-template-columns: minmax(auto, auto) auto auto;
   column-gap: 30px;
   width: 100%;
 }
 
-.qpm_simpleFiltersHeader {
+.mugin_simpleFiltersHeader {
   font-weight: 600;
   grid-column: 1;
   grid-row: auto / span 4;
@@ -359,7 +359,7 @@
   margin-bottom: 10px;
 }
 
-.qpm_simpleFiltersSpacer {
+.mugin_simpleFiltersSpacer {
   grid-column: 1 / -1;
   margin-top: 5px;
   margin-right: -5px;
@@ -368,53 +368,53 @@
   border-top: 1px solid var(--color-grey);
 }
 
-.qpm_simpleFiltersSpacer:last-of-type {
+.mugin_simpleFiltersSpacer:last-of-type {
   margin-bottom: 0;
 }
 
-.qpm_simpleFilters {
+.mugin_simpleFilters {
   display: flex;
   align-items: flex-start;
   white-space: normal;
   margin-bottom: 10px;
 }
 
-.qpm_simpleFilters div {
+.mugin_simpleFilters div {
   padding: 0 5px 0 10px;
 }
 
-.qpm_simpleFilters .qpm_infoInline {
+.mugin_simpleFilters .mugin_infoInline {
   display: inline;
   white-space: normal;
 }
 
-.qpm_simpleFilters label {
+.mugin_simpleFilters label {
   padding-right: 2px;
 }
 
-.qpm_simpleFilters label,
-.qpm_simpleFilters button {
+.mugin_simpleFilters label,
+.mugin_simpleFilters button {
   vertical-align: top;
 }
 
-.qpm_simpleFilters button {
+.mugin_simpleFilters button {
   padding-bottom: 1px;
 }
 
 /* Locked semantic search option (e.g. Elicit when backend-gated):
    checkbox + label are greyed out, the lock icon stays fully visible, and
    the whole row is clickable to open the unlock prompt. */
-.qpm_semanticFilterLocked {
+.mugin_semanticFilterLocked {
   cursor: pointer;
 }
 
-.qpm_semanticFilterLocked .qpm_semanticFilterCheckbox,
-.qpm_semanticFilterLocked .qpm_semanticFilterLabel {
+.mugin_semanticFilterLocked .mugin_semanticFilterCheckbox,
+.mugin_semanticFilterLocked .mugin_semanticFilterLabel {
   opacity: 0.5;
   cursor: pointer;
 }
 
-.qpm_semanticFilterLocked .qpm_semanticFilterLockIcon {
+.mugin_semanticFilterLocked .mugin_semanticFilterLockIcon {
   opacity: 1;
   font-size: 1.3em;
 }
@@ -422,29 +422,29 @@
 /* Locked database option in the advanced-mode DropdownWrapper list: mirrors
    the simple-mode treatment — checkmark slot and label are greyed out while
    the lock icon stays fully visible. */
-.qpm_lockedDbOptionCheck,
-.qpm_lockedDbOptionLabel {
+.mugin_lockedDbOptionCheck,
+.mugin_lockedDbOptionLabel {
   opacity: 0.5;
 }
 
-.qpm_lockedDbOptionIcon {
+.mugin_lockedDbOptionIcon {
   opacity: 1;
   font-size: 1.3em;
 }
 
-.qpm_simpleFiltersHeader .bx-sparkles-alt {
+.mugin_simpleFiltersHeader .bx-sparkles-alt {
   font-size: 1.3em !important;
   font-weight: normal;
   vertical-align: middle;
   margin-right: 4px;
 }
 
-.qpm_switch_wrap {
+.mugin_switch_wrap {
   display: flex;
   margin-left: 5px;
 }
 
-.qpm_aiModeRadios {
+.mugin_aiModeRadios {
   display: flex;
   flex-wrap: wrap;
   gap: 18px;
@@ -452,18 +452,18 @@
   padding-top: 4px;
 }
 
-.qpm_aiModeRadioLabel {
+.mugin_aiModeRadioLabel {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   cursor: pointer;
 }
 
-.qpm_aiModeRadioInput {
+.mugin_aiModeRadioInput {
   margin: 0;
 }
 
-.qpm_translationSourcesPanel {
+.mugin_translationSourcesPanel {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -473,19 +473,19 @@
   padding-top: 6px;
 }
 
-.qpm_translationSourcesToggleWrap {
+.mugin_translationSourcesToggleWrap {
   display: flex;
   justify-content: flex-start;
 }
 
-.qpm_translationSourcesToggleWrap .qpm_advancedSearch {
+.mugin_translationSourcesToggleWrap .mugin_advancedSearch {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   float: none;
 }
 
-.qpm_translationSourcesCount {
+.mugin_translationSourcesCount {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -498,26 +498,26 @@
   white-space: nowrap;
 }
 
-.qpm_translationSourcesContent {
+.mugin_translationSourcesContent {
   display: flex;
   flex-direction: column;
   gap: 0;
   padding: 6px 0 0;
 }
 
-.qpm_translationSourcesPrimary {
+.mugin_translationSourcesPrimary {
   width: 100%;
 }
 
-.qpm_translationSourcesSpacer {
+.mugin_translationSourcesSpacer {
   margin-bottom: 10px;
 }
 
-.qpm_translationSourcesSecondary {
+.mugin_translationSourcesSecondary {
   width: 100%;
 }
 
-.qpm_translationSourcesGrid {
+.mugin_translationSourcesGrid {
   display: grid;
   grid-template-columns: repeat(2, max-content);
   column-gap: 30px;
@@ -525,14 +525,14 @@
   width: 100%;
 }
 
-.qpm_sourceCheckboxWrap {
+.mugin_sourceCheckboxWrap {
   display: flex;
   align-items: flex-start;
   min-width: 0;
   width: 100%;
 }
 
-.qpm_sourceCheckboxLabel {
+.mugin_sourceCheckboxLabel {
   display: inline-flex;
   align-items: flex-start;
   gap: 8px;
@@ -540,19 +540,19 @@
   width: 100%;
 }
 
-.qpm_sourceCheckboxInput {
+.mugin_sourceCheckboxInput {
   margin: 4px 0 0;
   flex: 0 0 auto;
 }
 
-.qpm_sourceCheckboxText {
+.mugin_sourceCheckboxText {
   display: inline-flex;
   align-items: flex-start;
   gap: 6px;
   width: 100%;
 }
 
-.qpm_sourceCheckboxIcon {
+.mugin_sourceCheckboxIcon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -560,13 +560,13 @@
   margin-top: 1px;
 }
 
-.qpm_switch_wrap .qpm_simpleFiltersHeader {
+.mugin_switch_wrap .mugin_simpleFiltersHeader {
   display: flex;
   gap: 5px;
   align-items: center;
 }
 
-.qpm_switch {
+.mugin_switch {
   position: relative;
   display: inline-block;
   width: 46px;
@@ -574,18 +574,18 @@
   margin-right: 15px;
 }
 
-.qpm_switch input {
+.mugin_switch input {
   opacity: 0;
   width: 0;
   height: 0;
 }
 
-.qpm_switch input:focus-visible + .qpm_slider {
+.mugin_switch input:focus-visible + .mugin_slider {
   outline: 2px solid var(--color-black);
   outline-offset: 0;
 }
 
-.qpm_slider {
+.mugin_slider {
   position: absolute;
   cursor: pointer;
   top: 0;
@@ -598,7 +598,7 @@
   width: inherit;
 }
 
-.qpm_slider:before {
+.mugin_slider:before {
   position: absolute;
   content: "";
   height: 20px;
@@ -611,184 +611,340 @@
   border-radius: 50%;
 }
 
-input:checked + .qpm_slider {
+input:checked + .mugin_slider {
   background-color: var(--color-blue-dark);
 }
 
-input:focus:checked + .qpm_slider {
+input:focus:checked + .mugin_slider {
   box-shadow: 0 0 1px var(--color-blue-dark);
 }
 
-input:checked + .qpm_slider:before {
+input:checked + .mugin_slider:before {
   -webkit-transform: translateX(20px);
   -ms-transform: translateX(20px);
   transform: translateX(20px);
 }
 
 /* Rounded sliders */
-.qpm_slider.qpm_round {
+.mugin_slider.mugin_round {
   border-radius: 34px;
 }
 
-.qpm_slider.qpm_round:before {
+.mugin_slider.mugin_round:before {
   border-radius: 50%;
 }
 
 @media only screen and (max-width: 750px) {
-  .qpm_simpleFiltersContainer {
+  .mugin_simpleFiltersContainer {
     grid-template-columns: minmax(auto, 125px) auto;
   }
 
-  .qpm_translationSourcesGrid {
+  .mugin_translationSourcesGrid {
     grid-template-columns: 1fr;
   }
 
-  .qpm_semanticSearchFiltersGrid {
+  .mugin_semanticSearchFiltersGrid {
     grid-template-columns: 1fr;
   }
 }
 
 @media only screen and (max-width: 600px) {
-  .qpm_simpleFilters {
+  .mugin_simpleFilters {
     white-space: normal;
   }
 
-  .qpm_simpleFiltersContainer {
+  .mugin_simpleFiltersContainer {
     grid-template-columns: 1fr;
   }
 
-  .qpm_simpleFiltersHeader {
+  .mugin_simpleFiltersHeader {
     grid-row: auto;
     white-space: normal;
   }
 
-  .qpm_searchStringWordGroup {
+  .mugin_searchStringWordGroup {
     display: inline-block;
     padding-bottom: 6px;
   }
 
-  .qpm_searchStringWordGroupWrapper {
+  .mugin_searchStringWordGroupWrapper {
     display: inline;
     padding-bottom: 4px;
   }
 
-  .qpm_searchStringGroupOperator_NotApplied {
+  .mugin_searchStringGroupOperator_NotApplied {
     display: block;
     margin-bottom: 8px;
   }
 
-  .qpm_aiModeRadios {
+  .mugin_aiModeRadios {
     margin-left: 0;
   }
 
-  .qpm_searchStringPreTextLimits {
+  .mugin_searchStringPreTextLimits {
     display: block;
     margin-top: 10px;
   }
 }
 
 @media only screen and (max-width: 300px) {
-  .qpm_wordedSearchString .h3 {
+  .mugin_wordedSearchString .h3 {
     clear: both;
   }
 }
 
 /* Search form component-level utility classes */
-.qpm_actionButtonsRow {
+.mugin_actionButtonsRow {
   justify-content: space-between;
 }
 
-.qpm_actionButtonsGroup {
+.mugin_actionButtonsGroup {
   position: relative;
 }
 
-.qpm_searchIcon {
+.mugin_searchIcon {
   position: relative;
   margin-right: 5px;
 }
 
-.qpm_simpleFiltersRoot {
+.mugin_simpleFiltersRoot {
   margin: 30px 5px 0;
 }
 
-.qpm_semanticSearchFiltersRoot {
+.mugin_semanticSearchFiltersRoot {
   margin-top: 0;
 }
 
-.qpm_semanticSearchFiltersContainer {
+.mugin_semanticSearchFiltersContainer {
   align-items: start;
 }
 
 
-.qpm_filterEntryFullWidth {
+.mugin_filterEntryFullWidth {
   width: 100%;
 }
 
-.qpm_filterEntryLabel {
+.mugin_filterEntryLabel {
   font-size: 0.9em;
 }
 
-.qpm_collapsedSpacerPadding {
+.mugin_collapsedSpacerPadding {
   padding-bottom: 10px;
 }
 
-.qpm_searchFormToggleHeading {
+.mugin_searchFormToggleHeading {
   margin-top: 5px;
 }
 
-.qpm_noFloat {
+.mugin_noFloat {
   float: none;
 }
 
-.qpm_toggleAdvancedSpacing {
+.mugin_toggleAdvancedSpacing {
   margin: -5px 0 5px 30px;
 }
 
-.qpm_inlineHeading {
+.mugin_inlineHeading {
   display: inline-block;
 }
 
-.qpm_limitsTopPadding {
+.mugin_limitsTopPadding {
   padding-top: 10px;
 }
 
-.qpm_searchStringTextarea {
+.mugin_searchStringTextarea {
   width: 100%;
-  resize: vertical;
+  resize: none;
+  overflow: hidden;
   line-height: 1.6em;
   border: solid 1px var(--color-grey);
   padding: 10px;
   margin-bottom: 4px;
+  min-height: calc(1.6em + 20px);
+  box-sizing: border-box;
 }
 
-.qpm_searchStringDivider {
+.mugin_searchStringTextarea.is-translating {
+  padding-right: 14rem;
+}
+
+.mugin_sourceSearchStringInputWrap {
+  position: relative;
+}
+
+.mugin_searchStringTranslatingOverlay {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100% - 16px);
+  background: var(--color-white);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.mugin_searchStringTranslatingLabel {
+  font-size: 0.9em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.mugin_searchStringTextareaSpinner {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  background: var(--color-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mugin_searchStringTextareaSpinner .mugin_loading {
+  position: relative;
+  top: unset;
+  left: unset;
+  transform: unset;
+}
+
+.mugin_sourceSearchStringList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.mugin_sourceSearchStringBlock {
+  display: flex;
+  flex-direction: column;
+}
+
+.mugin_sourceSearchStringHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.mugin_sourceSearchStringHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.mugin_sourceSearchStringField {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+}
+
+.mugin_sourceSearchStringFieldHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.mugin_sourceSearchStringFieldHeader .mugin_keepWithIcon {
+  align-items: center;
+}
+
+.mugin_sourceSearchStringList .mugin_pubmedLink .mugin_keepWithIcon {
+  align-items: baseline;
+}
+
+.mugin_sourceSearchStringPartLabel {
+  font-weight: 600;
+  font-size: 0.95em;
+}
+
+.mugin_sourceSearchStringLimits {
+  line-height: 1.7;
+}
+
+.mugin_sourceSearchStringLimits .mugin_sourceLimitPillHasTooltip {
+  cursor: help;
+}
+
+.mugin_sourceSearchStringLimits .mugin_halfBorder {
+  pointer-events: none;
+}
+
+.mugin_editSearchStringButton {
+  color: var(--color-link, #005ea2);
+  font-size: 1.15em;
+  line-height: 1;
+  padding: 2px;
+}
+
+.mugin_editSearchStringButton:focus-visible {
+  outline: 2px solid var(--color-link, #005ea2);
+  outline-offset: 2px;
+}
+
+.mugin_searchStringText {
+  width: 100%;
+  margin: 0 0 4px;
+  padding: 0;
+  border: 0;
+  line-height: 1.6em;
+  box-sizing: border-box;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: transparent;
+}
+
+.mugin_searchStringText.is-translating {
+  padding-right: 14rem;
+}
+
+.mugin_sourceSearchStringLabel {
+  font-weight: 600;
+}
+
+.mugin_copySearchStringButton {
+  flex-shrink: 0;
+}
+
+.mugin_sourceSearchStringFilterHint,
+.mugin_searchStringEditHint {
+  margin: 4px 0 0;
+  font-size: 0.9em;
+  color: var(--color-unpaywall-muted, #666);
+}
+
+.mugin_searchStringDivider {
   border-top: solid 1px var(--color-grey);
   margin: 15px 0;
 }
 
-.qpm_aiIconMuted {
+.mugin_aiIconMuted {
   color: var(--color-unpaywall-muted);
 }
 
-.qpm_advancedFiltersRoot {
+.mugin_advancedFiltersRoot {
   margin: 30px 5px 10px;
 }
 
 @media only screen and (max-width: 800px) {
-  .qpm_advancedFiltersRoot {
+  .mugin_advancedFiltersRoot {
     margin: 28px 0px 10px;
   }
 }
 
-.qpm_subjectSelectionActions,
-.qpm_filterSelectionActions {
+.mugin_subjectSelectionActions,
+.mugin_filterSelectionActions {
   margin: 5px 0 20px 0;
 }
 
-.qpm_cursorHelp {
+.mugin_cursorHelp {
   cursor: help;
 }
 
-.qpm_cursorPointer {
+.mugin_cursorPointer {
   cursor: pointer;
 }

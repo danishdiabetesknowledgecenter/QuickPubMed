@@ -1,20 +1,37 @@
 # Search Flow Diagram
 
-Dette dokument beskriver det nuvaerende search flow i `QuickPubMed` ud fra den aktuelle kode i:
+Dette dokument beskriver search flow i Mugin Scholar.
 
-- `src/components/SearchForm.vue`
-- `src/components/DropdownWrapper.vue`
-- `src/utils/semanticReranking.js`
-- `backend/api/ICiteLookup.php` (NIH iCite enrichment)
-- `backend/api/OpenAlexAuthorityLookup.php` (forfatter/journal enrichment)
-
-Maalet er at vise alle de vigtigste grene i det nuvaerende flow: klassisk PubMed-soegning, hybridsoegning, semantiske kilder, PubMed som tidlig kilde, PubMed lexical rescue, enrichment af kandidater, hybrid rerank, hard-filtervalidering, DOI-only-regler og pagination.
-
-## 1. Overblik Over Hovedflowet
+## Kanonisk live path
 
 ```mermaid
 flowchart TD
-  A["Bruger klikker Soeg<br/>search()"] --> B["01 Prepare<br/>prepareSemanticSearchStateBeforeSearch()"]
+  A["Bruger klikker Soeg<br/>SearchForm.search()"] --> B["Byg payload<br/>buildUnifiedSearchRequestPayload()"]
+  B --> C["POST UnifiedSearch.php"]
+  C --> D["muginPublicSearchRunSearch()<br/>public-search-lib.php"]
+  D --> E{"MUGIN_UNIFIED_SEARCH_ENGINE_ENABLED?"}
+  E -- "true" --> F["Fuld hybrid motor<br/>semantic-quality-lib.php"]
+  E -- "false" --> G["Legacy RRF-only sti"]
+  F --> H["results + order + timing"]
+  G --> H
+  H --> I["mapUnifiedSearchResponseResults()<br/>vis i UI"]
+```
+
+Live filer:
+
+- `src/components/SearchForm.vue`
+- `backend/api/UnifiedSearch.php`
+- `backend/app/public-search-lib.php`
+- `backend/app/semantic-quality-lib.php` (når unified engine er enabled)
+- `backend/api/ICiteLookup.php`, `OpenAlexAuthorityLookup.php`
+
+Den gamle browser-side JS-pipeline (`prepareSemanticSearchStateBeforeSearch`, lokal `rerankSemanticCandidates`, osv.) er **dormant** og vælges ikke ved runtime. Afsnittene nedenfor dokumenterer stadig den logiske model / historiske JS-reference for retrieval-, enrichment- og valideringsgrenene — den udførte orkestrering sker i PHP.
+
+## 1. Overblik Over Hovedflowet (dormant JS-reference)
+
+```mermaid
+flowchart TD
+  A["Bruger klikker Soeg<br/>search() — DORMANT lokal sti"] --> B["01 Prepare<br/>prepareSemanticSearchStateBeforeSearch()"]
   B --> C{"Semantiske kilder valgt?"}
 
   C -- "Nej" --> D["Byg klassisk query<br/>getSearchString()"]
@@ -199,11 +216,13 @@ flowchart TD
 
 ## 7. Kort Opsummering
 
-Det nuvaerende flow er et hybridt search flow med fem centrale principper:
+Det live flow er et hybridt search flow med disse centrale principper:
 
-1. Klassiske PubMed-soegestrenge er stadig det kanoniske query-lag.
-2. Semantiske kilder kan udvide kandidatfeltet, beriges og derefter flettes i en samlet reranking.
-3. Enrichment (`04b`) tilfoejer field-normaliserede citation- og klinikere-relevante signaler uden at aendre retrieval-resultatet.
-4. Classification (`04c`) assigner tier + confidence pr. record og nedgraderer records med mangelfulde data via `dataQualityMultiplier`.
-5. PubMed bruges som valideringslag for PMID-baserede candidates.
-6. DOI-only og OpenAlex-only records (fx guidelines fra WHO/NICE/CDC) kan stadig komme med, hvis de overlever de metadataregler, der er defineret for det aktive filterset.
+1. Kanonisk runtime: `SearchForm` → `UnifiedSearch.php` → `muginPublicSearchRunSearch()` (samme som public API).
+2. Fulde hybrid-profiler kræver `MUGIN_UNIFIED_SEARCH_ENGINE_ENABLED=true`.
+3. Klassiske PubMed-soegestrenge er stadig det kanoniske query-lag.
+4. Semantiske kilder kan udvide kandidatfeltet, beriges og derefter flettes i en samlet reranking.
+5. Enrichment og classification kører i PHP (`semantic-quality-lib.php`) når unified engine er enabled.
+6. PubMed bruges som valideringslag for PMID-baserede candidates.
+7. DOI-only og OpenAlex-only records (fx guidelines fra WHO/NICE/CDC) kan stadig komme med, hvis de overlever metadatareglerne.
+8. Den gamle JS-pipeline er dormant reference — ikke runtime.

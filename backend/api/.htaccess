@@ -3,18 +3,18 @@
 <IfModule mod_setenvif.c>
     # Apache-level fallback for production hosts where Origin may not reach PHP reliably.
     # Keep this as an explicit first-party allowlist; do not reflect arbitrary origins.
-    SetEnvIfNoCase Origin "^https://([a-z0-9-]+\.)?(videncenterfordiabetes\.dk|danishdiabetesknowledgecenter\.dk|nempubmed\.dk|quickpubmed\.dk)$" QPM_CORS_ORIGIN=$0
-    SetEnvIfNoCase Origin "^http://(localhost|127\.0\.0\.1)(:[0-9]+)?$" QPM_CORS_ORIGIN=$0
+    SetEnvIfNoCase Origin "^https://([a-z0-9-]+\.)?(videncenterfordiabetes\.dk|danishdiabetesknowledgecenter\.dk|nempubmed\.dk|quickpubmed\.dk)$" MUGIN_CORS_ORIGIN=$0
+    SetEnvIfNoCase Origin "^http://(localhost|127\.0\.0\.1)(:[0-9]+)?$" MUGIN_CORS_ORIGIN=$0
 </IfModule>
 
 <IfModule mod_headers.c>
     Header always unset Access-Control-Allow-Origin
     Header always unset Access-Control-Allow-Credentials
-    Header always set Access-Control-Allow-Origin "%{QPM_CORS_ORIGIN}e" env=QPM_CORS_ORIGIN
-    Header always set Access-Control-Allow-Credentials "true" env=QPM_CORS_ORIGIN
-    Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS" env=QPM_CORS_ORIGIN
-    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With" env=QPM_CORS_ORIGIN
-    Header always set Access-Control-Max-Age "600" env=QPM_CORS_ORIGIN
+    Header always set Access-Control-Allow-Origin "%{MUGIN_CORS_ORIGIN}e" env=MUGIN_CORS_ORIGIN
+    Header always set Access-Control-Allow-Credentials "true" env=MUGIN_CORS_ORIGIN
+    Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS" env=MUGIN_CORS_ORIGIN
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With" env=MUGIN_CORS_ORIGIN
+    Header always set Access-Control-Max-Age "600" env=MUGIN_CORS_ORIGIN
     Header always merge Vary "Origin"
 
     # PHP keeps enforcing the CORS allowlist and request validation.

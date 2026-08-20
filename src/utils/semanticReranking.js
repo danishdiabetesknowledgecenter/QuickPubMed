@@ -201,6 +201,10 @@ function createEnrichedRecord() {
     isOpenAccess: null,
     primaryTopicId: "",
     primaryTopicDisplayName: "",
+    openAlexTopics: [],
+    openAlexKeywords: [],
+    openAlexSubfields: [],
+    topicLabels: [],
     s2FieldsOfStudy: [],
     journalSourceId: "",
     authorIds: [],
@@ -335,6 +339,41 @@ function mergeEnrichedFromCandidate(enriched, candidate) {
     enriched.primaryTopicDisplayName = topicName;
   }
 
+  const openAlexTopics = Array.isArray(metadata.openAlexTopics) ? metadata.openAlexTopics : [];
+  if (openAlexTopics.length > 0) {
+    const existing = new Set(enriched.openAlexTopics.map((value) => String(value || "").trim().toLowerCase()));
+    for (const topic of openAlexTopics) {
+      const normalized = String(topic || "").trim();
+      if (!normalized) continue;
+      const key = normalized.toLowerCase();
+      if (existing.has(key)) continue;
+      existing.add(key);
+      enriched.openAlexTopics.push(normalized);
+    }
+  }
+
+  const openAlexKeywords = Array.isArray(metadata.openAlexKeywords) ? metadata.openAlexKeywords : [];
+  if (openAlexKeywords.length > 0) {
+    const existing = new Set(enriched.openAlexKeywords.map((value) => String(value || "").trim().toLowerCase()));
+    for (const keyword of openAlexKeywords) {
+      const normalized = String(keyword || "").trim();
+      if (!normalized || existing.has(normalized.toLowerCase())) continue;
+      existing.add(normalized.toLowerCase());
+      enriched.openAlexKeywords.push(normalized);
+    }
+  }
+
+  const openAlexSubfields = Array.isArray(metadata.openAlexSubfields) ? metadata.openAlexSubfields : [];
+  if (openAlexSubfields.length > 0) {
+    const existing = new Set(enriched.openAlexSubfields.map((value) => String(value || "").trim().toLowerCase()));
+    for (const subfield of openAlexSubfields) {
+      const normalized = String(subfield || "").trim();
+      if (!normalized || existing.has(normalized.toLowerCase())) continue;
+      existing.add(normalized.toLowerCase());
+      enriched.openAlexSubfields.push(normalized);
+    }
+  }
+
   const s2Fields = Array.isArray(metadata.s2FieldsOfStudy) ? metadata.s2FieldsOfStudy : [];
   if (s2Fields.length > 0) {
     const existing = new Set(enriched.s2FieldsOfStudy);
@@ -344,6 +383,8 @@ function mergeEnrichedFromCandidate(enriched, candidate) {
     }
     enriched.s2FieldsOfStudy = Array.from(existing);
   }
+
+  enriched.topicLabels = rebuildTopicLabels(enriched);
 
   const journalId = String(metadata.journalSourceId || "").trim();
   if (journalId && !enriched.journalSourceId) {
@@ -940,6 +981,33 @@ function tokenizeIntentPhrase(text) {
     .filter((token) => token.length >= 3);
 }
 
+function normalizeIntentPhrase(text) {
+  return String(text || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function rebuildTopicLabels(enriched) {
+  const labels = [];
+  const seen = new Set();
+  const push = (raw) => {
+    const label = String(raw || "").trim();
+    if (!label) return;
+    const key = label.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    labels.push(label);
+  };
+  push(enriched?.primaryTopicDisplayName);
+  const openAlexTopics = Array.isArray(enriched?.openAlexTopics) ? enriched.openAlexTopics : [];
+  for (const topic of openAlexTopics) push(topic);
+  const s2Fields = Array.isArray(enriched?.s2FieldsOfStudy) ? enriched.s2FieldsOfStudy : [];
+  for (const field of s2Fields) push(field);
+  return labels.slice(0, 8);
+}
+
 function buildIntentTokenSet(queryIntent) {
   const tokenSet = new Set();
   if (!queryIntent || typeof queryIntent !== "object") return tokenSet;
@@ -961,26 +1029,49 @@ function buildIntentTokenSet(queryIntent) {
   return tokenSet;
 }
 
-function computeTopicOverlapBonus(enriched, rerankConfig, intentTokens) {
+function buildIntentPhraseList(queryIntent) {
+  const phrases = [];
+  const seen = new Set();
+  if (!queryIntent || typeof queryIntent !== "object") return phrases;
+  const sources = [
+    queryIntent.topicsEnglish,
+    queryIntent.topicIntents,
+    queryIntent.softHints,
+    queryIntent.rawPhrases,
+  ];
+  for (const source of sources) {
+    if (!Array.isArray(source)) continue;
+    for (const phrase of source) {
+      const normalized = normalizeIntentPhrase(phrase);
+      const tokens = tokenizeIntentPhrase(normalized);
+      if (tokens.length < 2 || normalized.length < 8) continue;
+      if (seen.has(normalized)) continue;
+      seen.add(normalized);
+      phrases.push(normalized);
+    }
+  }
+  return phrases;
+}
+
+function computeTopicOverlapBonus(enriched, rerankConfig, intentTokens, intentPhrases = []) {
   const bonus = toFiniteNumber(rerankConfig?.topicOverlapBonus);
   if (!bonus || !intentTokens || intentTokens.size === 0) {
     return { value: 0, matchRatio: 0, matches: [] };
   }
 
-  const candidateTokens = new Set();
-  const topicLabel = String(enriched?.primaryTopicDisplayName || "").trim();
-  if (topicLabel) {
-    for (const token of tokenizeIntentPhrase(topicLabel)) {
-      candidateTokens.add(token);
-    }
-  }
-  const s2Fields = Array.isArray(enriched?.s2FieldsOfStudy) ? enriched.s2FieldsOfStudy : [];
-  for (const field of s2Fields) {
-    for (const token of tokenizeIntentPhrase(field)) {
-      candidateTokens.add(token);
-    }
+  const topicLabels = Array.isArray(enriched?.topicLabels) && enriched.topicLabels.length > 0
+    ? enriched.topicLabels
+    : rebuildTopicLabels(enriched);
+  if (topicLabels.length === 0) {
+    return { value: 0, matchRatio: 0, matches: [] };
   }
 
+  const candidateTokens = new Set();
+  for (const label of topicLabels) {
+    for (const token of tokenizeIntentPhrase(label)) {
+      candidateTokens.add(token);
+    }
+  }
   if (candidateTokens.size === 0) {
     return { value: 0, matchRatio: 0, matches: [] };
   }
@@ -991,11 +1082,23 @@ function computeTopicOverlapBonus(enriched, rerankConfig, intentTokens) {
       matches.push(token);
     }
   }
+  const candidateText = topicLabels.map((label) => normalizeIntentPhrase(label)).join(" ");
+  const phraseList = Array.isArray(intentPhrases) ? intentPhrases : [];
+  let phraseMatchCount = 0;
+  for (const phrase of phraseList) {
+    if (phrase && candidateText.includes(phrase)) {
+      phraseMatchCount += 1;
+      matches.push(`phrase:${phrase}`);
+    }
+  }
+
   if (matches.length === 0) {
     return { value: 0, matchRatio: 0, matches: [] };
   }
 
-  const matchRatio = Math.min(1, matches.length / intentTokens.size);
+  const tokenMatchCount = matches.filter((entry) => !String(entry).startsWith("phrase:")).length;
+  const weighted = tokenMatchCount + 1.5 * phraseMatchCount;
+  const matchRatio = Math.min(1, weighted / Math.max(1, intentTokens.size));
   return {
     value: bonus * matchRatio,
     matchRatio,
@@ -1082,7 +1185,15 @@ function computeDataQualityMultiplier(entry, rerankConfig) {
   };
 }
 
-function buildDebugEntry(entry, rerankConfig, sourceStats, mode = "multi", currentYear, intentTokens) {
+function buildDebugEntry(
+  entry,
+  rerankConfig,
+  sourceStats,
+  mode = "multi",
+  currentYear,
+  intentTokens,
+  intentPhrases = []
+) {
   const contributions = [];
   let baseScore = 0;
   let scoreTieBreaker = 0;
@@ -1219,7 +1330,12 @@ function buildDebugEntry(entry, rerankConfig, sourceStats, mode = "multi", curre
     });
   }
 
-  const topicOverlapInfo = computeTopicOverlapBonus(enriched, rerankConfig, intentTokens);
+  const topicOverlapInfo = computeTopicOverlapBonus(
+    enriched,
+    rerankConfig,
+    intentTokens,
+    intentPhrases
+  );
   const topicOverlapBonus = topicOverlapInfo.value;
   if (topicOverlapBonus !== 0) {
     contributions.push({
@@ -1578,6 +1694,7 @@ export function rerankSemanticCandidates(sourceResults, runtimeRerankConfig = {}
   const rerankMode = activeSourceResults.length <= 1 ? "single" : "multi";
   const currentYear = new Date().getFullYear();
   const intentTokens = buildIntentTokenSet(options?.queryIntent);
+  const intentPhrases = buildIntentPhraseList(options?.queryIntent);
 
   const mergeResult = mergeSourceCandidates(activeSourceResults, {
     guidelinePublisherAllowList: rerankConfig.guidelinePublisherAllowList,
@@ -1606,7 +1723,15 @@ export function rerankSemanticCandidates(sourceResults, runtimeRerankConfig = {}
   }
 
   const builtCandidates = retainedEntries.map((entry) =>
-    buildDebugEntry(entry, rerankConfig, sourceStats, rerankMode, currentYear, intentTokens)
+    buildDebugEntry(
+      entry,
+      rerankConfig,
+      sourceStats,
+      rerankMode,
+      currentYear,
+      intentTokens,
+      intentPhrases
+    )
   );
 
   const filteredCandidates = builtCandidates.filter((candidate) => candidate.filtered === true);

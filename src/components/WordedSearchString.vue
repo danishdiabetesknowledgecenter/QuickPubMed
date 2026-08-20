@@ -1,10 +1,10 @@
 <template>
-  <div class="qpm_wordedSearchString">
-    <div v-if="!isCollapsed" class="qpm_toggleDetails">
+  <div class="mugin_wordedSearchString">
+    <div v-if="!isCollapsed" class="mugin_toggleDetails">
       <p
         v-if="hasValidTopics"
         data-html="true"
-        class="qpm_advancedSearch qpm_noFloat"
+        class="mugin_advancedSearch mugin_noFloat"
       >
         <button
           type="button"
@@ -15,15 +15,15 @@
           }"
           :aria-expanded="String(!details)"
           :aria-controls="detailsPanelId"
-          class="qpm_linkButton qpm_linkButtonAsAnchor"
+          class="mugin_linkButton mugin_linkButtonAsAnchor"
           @click="toggleDetails"
         >{{ details ? getString("showDetails") : getString("hideDetails") }}</button>
       </p>
     </div>
-    <div v-if="hasValidTopics" v-show="!details || isCollapsed" :id="detailsPanelId" class="qpm_middle">
+    <div v-if="hasValidTopics" v-show="!details || isCollapsed" :id="detailsPanelId" class="mugin_middle">
       <p
         v-if="!advancedString"
-        class="qpm_advancedSearch qpm_toggleAdvancedSpacing"
+        class="mugin_advancedSearch mugin_toggleAdvancedSpacing"
       >
         <button
           type="button"
@@ -34,13 +34,15 @@
           }"
           :aria-expanded="String(advancedString)"
           :aria-controls="searchStringPanelId"
-          class="qpm_linkButton qpm_linkButtonAsAnchor"
+          class="mugin_linkButton mugin_linkButtonAsAnchor"
           @click="toggleAdvanced"
-        >{{ getString("showSearchString") }}</button>
+        >{{
+          displayedSourceQueries.length > 1 ? getString("showSearchStrings") : getString("showSearchString")
+        }}</button>
       </p>
       <p
         v-else
-        class="qpm_advancedSearch qpm_toggleAdvancedSpacing"
+        class="mugin_advancedSearch mugin_toggleAdvancedSpacing"
       >
         <button
           type="button"
@@ -51,98 +53,328 @@
           }"
           :aria-expanded="String(advancedString)"
           :aria-controls="searchStringPanelId"
-          class="qpm_linkButton qpm_linkButtonAsAnchor"
+          class="mugin_linkButton mugin_linkButtonAsAnchor"
           @click="toggleAdvanced"
-        >{{ getString("hideSearchString") }}</button>
+        >{{
+          displayedSourceQueries.length > 1 ? getString("hideSearchStrings") : getString("hideSearchString")
+        }}</button>
       </p>
-      <h2 v-if="showHeader" class="h3 qpm_inlineHeading">
+      <h2 v-if="showHeader" class="h3 mugin_inlineHeading">
         {{ getString("youAreSearchingFor") }}
       </h2>
       <div :id="searchStringPanelId">
           <div v-if="!advancedString">
-            <span class="qpm_searchStringPreText">{{ getSearchPreString }} {{ " " }}</span>
-            <div v-for="(group, idx) in topics" :key="idx" class="qpm_searchStringSubjectGroup">
+            <span class="mugin_searchStringPreText">{{ getSearchPreString }} {{ " " }}</span>
+            <div v-for="(group, idx) in topics" :key="idx" class="mugin_searchStringSubjectGroup">
               <span
                 v-if="idx > 0 && group.length !== 0 && idx !== checkFirstSubjectRender"
-                class="qpm_searchStringGroupOperator_NotApplied"
+                class="mugin_searchStringGroupOperator_NotApplied"
                 >{{ " " }} {{ getString("youAreSearchingForAnd") }} {{ " " }}</span
               >
-              <div v-if="Object.keys(group).length !== 0" class="qpm_searchStringWordGroup">
+              <div v-if="Object.keys(group).length !== 0" class="mugin_searchStringWordGroup">
                 <div
                   v-for="(subjectObj, idx2) in group"
                   :key="idx2"
-                  class="qpm_searchStringWordGroupWrapper"
+                  class="mugin_searchStringWordGroupWrapper"
                 >
-                  <span class="qpm_wordedStringSubject">{{ getWordedTopicString(subjectObj) }}</span>
-                  <span v-if="!subjectObj.preString" class="qpm_wordedStringOperator">{{
+                  <span class="mugin_wordedStringSubject">{{ getWordedTopicString(subjectObj) }}</span>
+                  <span v-if="!subjectObj.preString" class="mugin_wordedStringOperator">{{
                     getScope(subjectObj)
                   }}</span>
                   {{ " "
-                  }}<span v-if="idx2 < group.length - 1" class="qpm_searchStringOperator"
+                  }}<span v-if="idx2 < group.length - 1" class="mugin_searchStringOperator"
                     >{{ getString("orOperator").toLowerCase() }}
                   </span>
                 </div>
-                <div v-if="group.length > 0" class="qpm_halfBorder" />
+                <div v-if="group.length > 0" class="mugin_halfBorder" />
               </div>
             </div>
             <br />
-            <span v-if="!limitsIsEmpty" class="qpm_searchStringPreText qpm_searchStringPreTextLimits">
-              <div class="qpm_hideonmobile qpm_limitsTopPadding" />
+            <span v-if="!limitsIsEmpty" class="mugin_searchStringPreText mugin_searchStringPreTextLimits">
+              <div class="mugin_hideonmobile mugin_limitsTopPadding" />
               {{ getString("limitsPreString") }} {{ " " }}
             </span>
             <div
               v-for="(group, idx) in activeLimitDropdowns"
               :key="`filter-${idx}`"
-              class="qpm_searchStringFilterGroup"
+              class="mugin_searchStringFilterGroup"
             >
               <span
                 v-if="idx > 0 && group.length !== 0"
-                class="qpm_searchStringGroupOperator_NotApplied"
+                class="mugin_searchStringGroupOperator_NotApplied"
                 >{{ " " }} {{ getString("youAreSearchingForAnd") }} {{ " " }}</span
               >
-              <div v-if="group.length !== 0" class="qpm_searchStringWordGroup">
+              <div v-if="group.length !== 0" class="mugin_searchStringWordGroup">
                 <div
                   v-for="(filterItem, idx2) in group"
                   :key="idx2"
-                  class="qpm_searchStringWordGroupWrapper"
+                  class="mugin_searchStringWordGroupWrapper"
                 >
-                  <span class="qpm_wordedStringSubject"
-                    ><span v-if="showLimitCategory(group, idx2)" class="qpm_filterCategoryPrefix"
+                  <span class="mugin_wordedStringSubject"
+                    ><span v-if="showLimitCategory(group, idx2)" class="mugin_filterCategoryPrefix"
                       >{{ getLimitCategoryName(filterItem) }} = </span
                     >{{ getWordedLimitString(filterItem) }}</span
                   >
-                  <span class="qpm_wordedStringOperator">{{ getScope(filterItem) }}</span>
+                  <span class="mugin_wordedStringOperator">{{ getScope(filterItem) }}</span>
                   {{ " "
-                  }}<span v-if="idx2 < group.length - 1" class="qpm_searchStringOperator"
+                  }}<span v-if="idx2 < group.length - 1" class="mugin_searchStringOperator"
                     >{{ getLimitItemsOperator(group) }}
                   </span>
                 </div>
-                <div v-if="group.length > 0" class="qpm_halfBorder" />
+                <div v-if="group.length > 0" class="mugin_halfBorder" />
               </div>
             </div>
           </div>
-          <div v-else>
-            <textarea
-              ref="searchStringTextarea"
-              v-tooltip.bottom="{
-                content: getString('hoverSearchString'),
-                distance: 5,
-                delay: $helpTextDelay,
-              }"
-              :value="searchstring"
-              :aria-label="getString('searchStringTextareaLabel')"
-              class="qpm_searchStringTextarea"
-              readonly
-              name="searchstring"
-              rows="6"
-              @keyup.enter="copyTextfieldFunction()"
-              @click="selectAndCopy"
-            />
+          <div v-else class="mugin_sourceSearchStringList">
+            <p class="mugin_searchStringEditHint">{{ getString("searchStringEditAndSearchHint") }}</p>
+            <div
+              v-for="(item, index) in displayedSourceQueries"
+              :key="item.key"
+              class="mugin_sourceSearchStringBlock"
+            >
+              <div v-if="index > 0" class="mugin_searchStringDivider" />
+              <div class="mugin_sourceSearchStringHeader">
+                <span class="mugin_sourceSearchStringLabel">{{
+                  sourceQueryLabel(item)
+                }}</span>
+                <div class="mugin_sourceSearchStringHeaderActions">
+                  <button
+                    v-if="!sourceQueryFields(item).length"
+                    type="button"
+                    class="mugin_iconButton mugin_editSearchStringButton"
+                    :class="isSourceQueryEditing(item.key) ? 'bx bx-check' : 'bx bx-pencil'"
+                    :aria-label="isSourceQueryEditing(item.key) ? getString('doneEditingSearchString') : getString('editSearchString')"
+                    :aria-pressed="String(isSourceQueryEditing(item.key))"
+                    v-tooltip="{
+                      content: isSourceQueryEditing(item.key) ? getString('doneEditingSearchString') : getString('editSearchString'),
+                      distance: 5,
+                      delay: $helpTextDelay,
+                    }"
+                    @click="toggleSourceQueryEditing(item.key)"
+                  />
+                  <button
+                    v-if="hasSourceQueryValue(item)"
+                    type="button"
+                    class="mugin_linkButton mugin_linkButtonAsAnchor mugin_copySearchStringButton"
+                    @click="copySourceQuery(item)"
+                  >
+                    {{ getString("copySearchString") }}
+                  </button>
+                </div>
+              </div>
+              <div
+                v-for="field in sourceQueryFields(item)"
+                :key="field.key"
+                class="mugin_sourceSearchStringField"
+              >
+                <div class="mugin_sourceSearchStringFieldHeader">
+                  <span class="mugin_keepWithIcon">
+                    <span class="mugin_sourceSearchStringPartLabel">{{ sourceQueryLabel(field) }}</span>
+                    <button
+                      v-if="sourceQueryFieldInfo(field)"
+                      type="button"
+                      v-tooltip="{
+                        content: sourceQueryFieldInfo(field),
+                        distance: 5,
+                        delay: $helpTextDelay,
+                        theme: 'infoTooltip',
+                      }"
+                      class="bx bx-info-circle mugin_cursorHelp mugin_infoIcon"
+                      :aria-label="getString('infoSearchStringLimitsLabel')"
+                    />
+                  </span>
+                  <button
+                    v-if="isSourceQueryFieldEditable(field)"
+                    type="button"
+                    class="mugin_iconButton mugin_editSearchStringButton"
+                    :class="isSourceQueryEditing(field.key) ? 'bx bx-check' : 'bx bx-pencil'"
+                    :aria-label="isSourceQueryEditing(field.key) ? getString('doneEditingSearchString') : getString('editSearchString')"
+                    :aria-pressed="String(isSourceQueryEditing(field.key))"
+                    v-tooltip="{
+                      content: isSourceQueryEditing(field.key) ? getString('doneEditingSearchString') : getString('editSearchString'),
+                      distance: 5,
+                      delay: $helpTextDelay,
+                    }"
+                    @click="toggleSourceQueryEditing(field.key)"
+                  />
+                </div>
+                <div
+                  v-if="isSourceQueryLimitsField(field)"
+                  class="mugin_sourceSearchStringLimits"
+                >
+                  <div
+                    v-for="(group, idx) in sourceQueryLimitGroups(field)"
+                    :key="`source-limit-${field.key}-${idx}`"
+                    class="mugin_searchStringFilterGroup"
+                  >
+                    <span
+                      v-if="idx > 0 && group.length !== 0"
+                      class="mugin_searchStringGroupOperator_NotApplied"
+                      >{{ " " }} {{ getString("youAreSearchingForAnd") }} {{ " " }}</span
+                    >
+                    <div
+                      v-if="group.length !== 0"
+                      class="mugin_searchStringWordGroup"
+                      :class="{ 'mugin_sourceLimitPillHasTooltip': sourceLimitGroupActualValue(group) }"
+                      v-tooltip="sourceLimitGroupTooltip(group)"
+                    >
+                      <div
+                        v-for="(filterItem, idx2) in group"
+                        :key="idx2"
+                        class="mugin_searchStringWordGroupWrapper"
+                      >
+                        <span class="mugin_wordedStringSubject"
+                          ><span
+                            v-if="showLimitCategory(group, idx2)"
+                            class="mugin_filterCategoryPrefix"
+                            >{{ getLimitCategoryName(filterItem) }} = </span
+                          >{{ getWordedLimitString(filterItem) }}</span
+                        >
+                        <span class="mugin_wordedStringOperator">{{
+                          getSourceLimitScope(item, filterItem)
+                        }}</span>
+                        {{ " "
+                        }}<span
+                          v-if="idx2 < group.length - 1"
+                          class="mugin_searchStringOperator"
+                          >{{ getLimitItemsOperator(group) }}
+                        </span>
+                      </div>
+                      <div v-if="group.length > 0" class="mugin_halfBorder" />
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="mugin_sourceSearchStringInputWrap">
+                  <textarea
+                    v-if="isSourceQueryFieldEditable(field) && isSourceQueryEditing(field.key)"
+                    :id="sourceQueryInputId(field.key)"
+                    :ref="(el) => setSourceQueryTextareaRef(field.key, el)"
+                    v-tooltip.bottom="{
+                      content: getString('hoverSearchString'),
+                      distance: 5,
+                      delay: $helpTextDelay,
+                    }"
+                    :value="field.value"
+                    :aria-label="sourceQueryLabel(field)"
+                    :aria-busy="isSourceQueryPending(item, field) ? 'true' : null"
+                    :class="['mugin_searchStringTextarea', { 'is-translating': isSourceQueryPending(item, field) }]"
+                    :name="'searchstring-' + field.key"
+                    rows="1"
+                    @input="onSourceQueryInput(field.key, $event)"
+                  />
+                  <p
+                    v-else
+                    class="mugin_searchStringText"
+                    :class="{ 'is-translating': isSourceQueryPending(item, field) }"
+                  >{{ field.value }}</p>
+                  <div
+                    v-if="isSourceQueryPending(item, field)"
+                    class="mugin_searchStringTranslatingOverlay"
+                  >
+                    <span class="mugin_searchStringTranslatingLabel">{{ sourceQueryTranslatingText }}</span>
+                    <loading-spinner
+                      :loading="true"
+                      class="mugin_searchStringTextareaSpinner mugin_inlineBlock"
+                      :size="30"
+                    />
+                  </div>
+                </div>
+                <p v-if="sourceQueryFieldHint(field)" class="mugin_sourceSearchStringFilterHint">
+                  {{ sourceQueryFieldHint(field) }}
+                </p>
+              </div>
+              <div
+                v-if="!sourceQueryFields(item).length"
+                class="mugin_sourceSearchStringInputWrap"
+              >
+                <textarea
+                  v-if="isSourceQueryEditing(item.key)"
+                  :id="sourceQueryInputId(item.key)"
+                  :ref="(el) => setSourceQueryTextareaRef(item.key, el)"
+                  v-tooltip.bottom="{
+                    content: getString('hoverSearchString'),
+                    distance: 5,
+                    delay: $helpTextDelay,
+                  }"
+                  :value="item.value"
+                  :aria-label="sourceQueryLabel(item)"
+                  :aria-busy="isSourceQueryPending(item) ? 'true' : null"
+                  :class="['mugin_searchStringTextarea', { 'is-translating': isSourceQueryPending(item) }]"
+                  :name="'searchstring-' + item.key"
+                  rows="1"
+                  @input="onSourceQueryInput(item.key, $event)"
+                />
+                <p
+                  v-else
+                  class="mugin_searchStringText"
+                  :class="{ 'is-translating': isSourceQueryPending(item) }"
+                >{{ item.value }}</p>
+                <div
+                  v-if="isSourceQueryPending(item)"
+                  class="mugin_searchStringTranslatingOverlay"
+                >
+                  <span class="mugin_searchStringTranslatingLabel">{{ sourceQueryTranslatingText }}</span>
+                  <loading-spinner
+                    :loading="true"
+                    class="mugin_searchStringTextareaSpinner mugin_inlineBlock"
+                    :size="30"
+                  />
+                </div>
+              </div>
+              <p v-if="item.filterHint" class="mugin_sourceSearchStringFilterHint">
+                {{ getString("searchStringFilterHintPrefix") }} {{ item.filterHint }}
+              </p>
+              <p v-if="hasSourceQueryValue(item)" class="mugin_pubmedLink mugin_pubmedLinkArrow">
+                <span class="mugin_keepWithIcon">
+                  <a
+                    v-tooltip="{
+                      content: getSourceSearchLinkHover(item),
+                      distance: 5,
+                      delay: $helpTextDelay,
+                    }"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    :href="getSourceSearchLink(item)"
+                  >
+                    {{ getSourceSearchLinkLabel(item) }}
+                  </a>
+                  <button
+                    v-if="sourceSearchLinkInfo(item)"
+                    type="button"
+                    v-tooltip="{
+                      content: sourceSearchLinkInfo(item),
+                      distance: 5,
+                      delay: $helpTextDelay,
+                      theme: 'infoTooltip',
+                    }"
+                    class="bx bx-info-circle mugin_cursorHelp mugin_infoIcon"
+                    :aria-label="getString('infoSourceSearchLinkLimitsLabel')"
+                  />
+                </span>
+              </p>
+              <p
+                v-if="item.key === 'pubmed' && hasSourceQueryValue(item)"
+                class="mugin_pubmedLink mugin_pubmedLinkArrow"
+              >
+                <a
+                  v-tooltip="{
+                    content: getString('hoverShowPubMedLinkCreateAlertText'),
+                    distance: 5,
+                    delay: $helpTextDelay,
+                  }"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  :href="getPubMedLinkCreateAlert"
+                >
+                  {{ getString("createPubMedAlert") }}
+                </a>
+              </p>
+            </div>
           </div>
         </div>
-      <div v-if="!isCollapsed || (isCollapsed && advancedString)">
-        <div v-if="!advancedString" class="qpm_searchStringDivider" />
-        <p class="qpm_pubmedLink qpm_pubmedLinkArrow">
+      <div v-if="!advancedString && !isCollapsed">
+        <div v-if="!advancedString" class="mugin_searchStringDivider" />
+        <p class="mugin_pubmedLink mugin_pubmedLinkArrow">
           <a
             v-tooltip="{
               content: getString('hoverShowPubMedLinkText'),
@@ -156,7 +388,7 @@
             {{ getString("showPubMedLink") }}
           </a>
         </p>
-        <p class="qpm_pubmedLink qpm_pubmedLinkArrow">
+        <p class="mugin_pubmedLink mugin_pubmedLinkArrow">
           <a
             v-tooltip="{
               content: getString('hoverShowPubMedLinkCreateAlertText'),
@@ -180,11 +412,15 @@
   import { utilitiesMixin } from "@/mixins/utilities";
   import { order } from "@/assets/content/order.js";
   import { getLocalizedTranslation } from "@/utils/componentHelpers";
+  import LoadingSpinner from "@/components/LoadingSpinner.vue";
 
   let wordedSearchStringUid = 0;
 
   export default {
     name: "WordedSearchString",
+    components: {
+      LoadingSpinner,
+    },
     mixins: [appSettingsMixin, utilitiesMixin],
     props: {
       topics: {
@@ -206,6 +442,18 @@
       searchstring: {
         type: String,
         required: true,
+      },
+      sourceQueries: {
+        type: Array,
+        default: () => [],
+      },
+      pendingSourceKeys: {
+        type: Object,
+        default: () => ({}),
+      },
+      translatingLabel: {
+        type: String,
+        default: "",
       },
       isCollapsed: {
         type: Boolean,
@@ -232,18 +480,42 @@
         default: "dk",
       },
     },
-    emits: ["toggleAdvancedString", "toggleDetailsBox"],
+    emits: ["toggleAdvancedString", "toggleDetailsBox", "update:query", "query-edit-finished"],
     data() {
       return {
         componentUid: ++wordedSearchStringUid,
+        translatingDotCount: 0,
+        translatingDotIntervalId: null,
+        editingSourceQueryKeys: {},
       };
+    },
+    created() {
+      this.sourceQueryTextareaRefs = {};
     },
     computed: {
       detailsPanelId() {
-        return `qpm_wordedSearchDetails_${this.componentUid}`;
+        return `mugin_wordedSearchDetails_${this.componentUid}`;
       },
       searchStringPanelId() {
-        return `qpm_wordedSearchString_${this.componentUid}`;
+        return `mugin_wordedSearchString_${this.componentUid}`;
+      },
+      displayedSourceQueries() {
+        return Array.isArray(this.sourceQueries) ? this.sourceQueries : [];
+      },
+      hasPendingSourceQuery() {
+        return Object.values(this.pendingSourceKeys || {}).some((value) => value === true);
+      },
+      sourceQueryTranslatingText() {
+        const fromParent = String(this.translatingLabel || "").trim();
+        if (fromParent) return fromParent;
+        const base = this.getString("translatingStepSearchString");
+        if (!this.hasPendingSourceQuery) return base;
+        const dots = ".".repeat(Math.max(1, this.translatingDotCount));
+        return `${base}${dots}`;
+      },
+      pubmedSearchString() {
+        const pubmed = this.displayedSourceQueries.find((item) => item?.key === "pubmed");
+        return String(pubmed?.value || this.searchstring || "");
       },
       /**
        * Determines if the topics prop contains at least one non-empty entry.
@@ -291,13 +563,13 @@
       getPubMedLink() {
         const myncbiShare = this.appSettings?.nlm?.myncbishare || "";
         return `https://pubmed.ncbi.nlm.nih.gov/?myncbishare=${myncbiShare}&term=${encodeURIComponent(
-          this.searchstring
+          this.pubmedSearchString
         )}`;
       },
       getPubMedLinkCreateAlert() {
         return `https://account.ncbi.nlm.nih.gov/?back_url=${encodeURIComponent(
           "https://pubmed.ncbi.nlm.nih.gov/?&term="
-        )}${encodeURIComponent(this.searchstring)}${encodeURIComponent(
+        )}${encodeURIComponent(this.pubmedSearchString)}${encodeURIComponent(
           "#open-saved-search-panel"
         )}`;
       },
@@ -336,12 +608,317 @@
         return -1;
       },
     },
+    watch: {
+      advancedString(isAdvanced) {
+        if (isAdvanced) this.autosizeAllSourceQueryTextareas();
+        else this.editingSourceQueryKeys = {};
+      },
+      displayedSourceQueries: {
+        deep: true,
+        handler() {
+          this.autosizeAllSourceQueryTextareas();
+        },
+      },
+      hasPendingSourceQuery: {
+        immediate: true,
+        handler(isPending) {
+          this.syncTranslatingDotInterval(isPending);
+        },
+      },
+      translatingLabel() {
+        this.syncTranslatingDotInterval(this.hasPendingSourceQuery);
+      },
+    },
+    beforeUnmount() {
+      this.clearTranslatingDotInterval();
+    },
     methods: {
       toggleAdvanced() {
         this.$emit("toggleAdvancedString");
       },
       toggleDetails() {
         this.$emit("toggleDetailsBox");
+      },
+      sourceQueryInputId(sourceKey) {
+        return `${this.searchStringPanelId}_${String(sourceKey || "pubmed")}`;
+      },
+      sourceQueryLabel(item) {
+        if (item?.label) return item.label;
+        if (item?.labelKey) return this.getString(item.labelKey);
+        return this.getString("searchString");
+      },
+      sourceQueryFields(item) {
+        return Array.isArray(item?.parts) ? item.parts : [];
+      },
+      isSourceQueryFieldEditable(field) {
+        if (field?.readOnly === true) return false;
+        const key = String(field?.key || "");
+        return key !== "pubmedLimits" && !key.endsWith("Limits");
+      },
+      sourceQueryFieldHint(field) {
+        const hintKey = String(field?.hintKey || "").trim();
+        return hintKey ? this.getString(hintKey) : "";
+      },
+      sourceQueryFieldInfo(field) {
+        const infoKey = String(field?.infoKey || "").trim();
+        if (!infoKey) return "";
+        const text = this.getString(infoKey);
+        const source = String(field?.infoSourceLabel || "").trim();
+        return source ? this.replaceSourcePlaceholder(text, source) : text;
+      },
+      isSourceQueryLimitsField(field) {
+        return field?.readOnly === true || String(field?.key || "").endsWith("Limits");
+      },
+      sourceQueryLimitGroups(field) {
+        return Array.isArray(field?.limitGroups) ? field.limitGroups : [];
+      },
+      isPubmedLimitActualValue(value) {
+        return /\[[a-z0-9]+\]/i.test(value) || /\b(?:OR|AND|NOT)\b/.test(value);
+      },
+      splitActualLimitValue(value) {
+        const text = String(value || "").trim();
+        if (!text) return [];
+        if (this.isPubmedLimitActualValue(text)) return [text];
+        return text
+          .split(",")
+          .map((part) => part.trim())
+          .filter(Boolean);
+      },
+      sourceLimitGroupActualValue(group) {
+        const items = Array.isArray(group) ? group : [];
+        const rawValues = items
+          .map((item) => String(item?.actualLimitValue || "").trim())
+          .filter(Boolean);
+        const tokens = [];
+        const seen = new Set();
+        rawValues.forEach((value) => {
+          this.splitActualLimitValue(value).forEach((part) => {
+            const key = part.toLowerCase();
+            if (seen.has(key)) return;
+            seen.add(key);
+            tokens.push(part);
+          });
+        });
+        if (tokens.length === 0) return "";
+        const separator = rawValues.some((value) => this.isPubmedLimitActualValue(value))
+          ? " OR "
+          : ", ";
+        return tokens.join(separator);
+      },
+      sourceLimitGroupTooltip(group) {
+        const content = this.sourceLimitGroupActualValue(group);
+        if (!content) return null;
+        return {
+          content,
+          distance: 5,
+          delay: this.$helpTextDelay,
+        };
+      },
+      getSourceLimitScope(sourceItem, filterItem) {
+        if (String(sourceItem?.key || "") !== "pubmed") return "";
+        return this.getScope(filterItem);
+      },
+      isSourceQueryEditing(sourceKey) {
+        return this.editingSourceQueryKeys?.[sourceKey] === true;
+      },
+      toggleSourceQueryEditing(sourceKey) {
+        const key = String(sourceKey || "").trim();
+        if (!key) return;
+        const next = { ...(this.editingSourceQueryKeys || {}) };
+        const entering = next[key] !== true;
+        next[key] = entering;
+        this.editingSourceQueryKeys = next;
+        if (entering) {
+          this.$nextTick(() => {
+            const el = this.sourceQueryTextareaRefs?.[key];
+            this.autosizeSourceQueryTextarea(el);
+            if (el && typeof el.focus === "function") el.focus();
+          });
+          return;
+        }
+        this.$emit("query-edit-finished", { key });
+      },
+      hasSourceQueryValue(item) {
+        return String(item?.value || "").trim() !== "";
+      },
+      isSourceQueryPending(item, field = null) {
+        const fieldKey = String(field?.key || "").trim();
+        if (field?.readOnly === true || fieldKey.endsWith("Limits")) {
+          return false;
+        }
+        if (fieldKey === "pubmedTopics") {
+          return this.pendingSourceKeys?.pubmed === true;
+        }
+        return this.pendingSourceKeys?.[item?.key] === true;
+      },
+      clearTranslatingDotInterval() {
+        if (this.translatingDotIntervalId !== null && this.translatingDotIntervalId !== undefined) {
+          clearInterval(this.translatingDotIntervalId);
+          this.translatingDotIntervalId = null;
+        }
+        this.translatingDotCount = 0;
+      },
+      syncTranslatingDotInterval(isPending) {
+        const useLocalLabel = isPending === true && !String(this.translatingLabel || "").trim();
+        if (!useLocalLabel) {
+          this.clearTranslatingDotInterval();
+          return;
+        }
+        if (this.translatingDotIntervalId !== null && this.translatingDotIntervalId !== undefined) {
+          return;
+        }
+        this.translatingDotCount = 1;
+        this.translatingDotIntervalId = setInterval(() => {
+          this.translatingDotCount = (this.translatingDotCount % 5) + 1;
+        }, 400);
+      },
+      setSourceQueryTextareaRef(sourceKey, el) {
+        if (!this.sourceQueryTextareaRefs || typeof this.sourceQueryTextareaRefs !== "object") {
+          this.sourceQueryTextareaRefs = {};
+        }
+        if (el) {
+          this.sourceQueryTextareaRefs[sourceKey] = el;
+          this.$nextTick(() => this.autosizeSourceQueryTextarea(el));
+        } else {
+          delete this.sourceQueryTextareaRefs[sourceKey];
+        }
+      },
+      autosizeSourceQueryTextarea(el) {
+        if (!el || el.nodeType !== 1) return;
+        el.style.height = "auto";
+        el.style.height = `${el.scrollHeight}px`;
+      },
+      autosizeAllSourceQueryTextareas() {
+        this.$nextTick(() => {
+          const refs = this.sourceQueryTextareaRefs;
+          if (!refs || typeof refs !== "object") return;
+          Object.values(refs).forEach((el) => this.autosizeSourceQueryTextarea(el));
+        });
+      },
+      flushSourceQueryEdits() {
+        const refs = this.sourceQueryTextareaRefs || {};
+        Object.keys(refs).forEach((key) => {
+          const el = refs[key];
+          if (!el || el.nodeType !== 1) return;
+          this.$emit("update:query", {
+            key,
+            value: el.value ?? "",
+          });
+        });
+      },
+      onSourceQueryInput(sourceKey, event) {
+        this.autosizeSourceQueryTextarea(event?.target);
+        this.$emit("update:query", {
+          key: sourceKey,
+          value: event?.target?.value ?? "",
+        });
+      },
+      getSourceSearchLinkFilters(item) {
+        return item?.linkFilters && typeof item.linkFilters === "object" ? item.linkFilters : {};
+      },
+      sourceSearchLinkFilterList(value) {
+        return (Array.isArray(value) ? value : [])
+          .map((entry) => String(entry || "").trim())
+          .filter(Boolean);
+      },
+      parseSourceSearchLinkYearRange(value) {
+        const text = String(value || "").trim();
+        const match = text.match(/^(\d{4})(?:-(\d{4}))?$/);
+        if (!match) return null;
+        return { from: match[1], to: match[2] || match[1] };
+      },
+      getSourceSearchLink(item) {
+        const key = String(item?.key || "");
+        const query = String(item?.value || "").trim();
+        const filters = this.getSourceSearchLinkFilters(item);
+        if (key === "pubmed") {
+          const myncbiShare = this.appSettings?.nlm?.myncbishare || "";
+          return `https://pubmed.ncbi.nlm.nih.gov/?myncbishare=${myncbiShare}&term=${encodeURIComponent(
+            query || this.pubmedSearchString
+          )}`;
+        }
+        if (key === "semanticScholar") {
+          const params = new URLSearchParams();
+          params.set("q", query);
+          params.set("sort", "relevance");
+          const yearRange = this.parseSourceSearchLinkYearRange(filters.year || filters.publicationYear);
+          if (yearRange) {
+            params.append("year[0]", yearRange.from);
+            params.append("year[1]", yearRange.to);
+          }
+          return `https://www.semanticscholar.org/search?${params.toString()}`;
+        }
+        if (key === "openAlex") {
+          const filterParts = [];
+          if (query) filterParts.push(`default.search:${query}`);
+          const languages = this.sourceSearchLinkFilterList(filters.language);
+          if (languages.length) filterParts.push(`language:${languages.join("|")}`);
+          const sourceTypes = this.sourceSearchLinkFilterList(filters.sourceType);
+          if (sourceTypes.length) {
+            filterParts.push(`primary_location.source.type:${sourceTypes.join("|")}`);
+          }
+          const workTypes = this.sourceSearchLinkFilterList(filters.workType);
+          if (workTypes.length) filterParts.push(`type:${workTypes.join("|")}`);
+          const publicationYear = String(filters.publicationYear || filters.year || "").trim();
+          if (publicationYear) filterParts.push(`publication_year:${publicationYear}`);
+          if (filters.isOa === true || filters.is_oa === true) {
+            filterParts.push("open_access.is_oa:true");
+          }
+          return `https://openalex.org/works?filter=${encodeURIComponent(filterParts.join(","))}`;
+        }
+        if (key === "elicit") {
+          return `https://elicit.com/find-papers?query=${encodeURIComponent(query)}`;
+        }
+        return "#";
+      },
+      replaceSourcePlaceholder(text, source) {
+        return String(text || "").split("{source}").join(source);
+      },
+      getSourceSearchLinkLabel(item) {
+        return this.replaceSourcePlaceholder(
+          this.getString("showSourceSearchLink"),
+          this.sourceQueryLabel(item)
+        );
+      },
+      getSourceSearchLinkHover(item) {
+        return this.replaceSourcePlaceholder(
+          this.getString("hoverShowSourceSearchLinkText"),
+          this.sourceQueryLabel(item)
+        );
+      },
+      sourceSearchLinkInfo(item) {
+        const key = String(item?.key || "");
+        if (key === "pubmed" || !this.hasSourceQueryValue(item)) return "";
+        return this.replaceSourcePlaceholder(
+          this.getString("sourceSearchLinkLimitsHint"),
+          this.sourceQueryLabel(item)
+        );
+      },
+      copySourceQuery(item) {
+        const text = String(item?.value || "").trim();
+        if (!text) return;
+        const clipboard = typeof navigator !== "undefined" ? navigator.clipboard : null;
+        if (clipboard && typeof clipboard.writeText === "function") {
+          clipboard.writeText(text);
+          return;
+        }
+        const textarea = this.sourceQueryTextareaRefs?.[item?.key];
+        if (textarea) {
+          textarea.focus();
+          textarea.select();
+          textarea.setSelectionRange(0, 99999);
+          document.execCommand("copy");
+          return;
+        }
+        const helper = document.createElement("textarea");
+        helper.value = text;
+        helper.setAttribute("readonly", "readonly");
+        helper.style.position = "absolute";
+        helper.style.left = "-9999px";
+        document.body.appendChild(helper);
+        helper.select();
+        document.execCommand("copy");
+        document.body.removeChild(helper);
       },
       getScope(obj) {
         if (!this.advancedSearch || this.isSingleScoped(obj)) {

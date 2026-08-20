@@ -6,13 +6,13 @@ if (!file_exists($configPath)) {
 require_once $configPath;
 require_once dirname(__DIR__, 2) . '/backend/app/public-search-lib.php';
 
-qpmPublicSearchApplyNoStoreHeaders();
+muginPublicSearchApplyNoStoreHeaders();
 header('Content-Type: application/json; charset=utf-8');
 
-$config = qpmPublicSearchGetConfig();
-$clients = qpmPublicSearchGetClients();
+$config = muginPublicSearchGetConfig();
+$clients = muginPublicSearchGetClients();
 
-echo qpmPublicSearchSafeJsonEncode([
+echo muginPublicSearchSafeJsonEncode([
     'status' => 'ok',
     'service' => 'nempubmed-public-search-api',
     'version' => '1',

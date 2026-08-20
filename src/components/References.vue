@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div :id="getComponentId" ref="singleComponent" class="qpm_References">
+    <div :id="getComponentId" ref="singleComponent" class="mugin_References">
       <loading-spinner :loading-component="loadingComponent" />
 
       <!-- Custom Case: Single Article or Custom Data -->
@@ -288,7 +288,7 @@
         return this.ids || null;
       },
       getComponentId() {
-        return `qpm_References_${this.componentId}`;
+        return `mugin_References_${this.componentId}`;
       },
     },
     created() {

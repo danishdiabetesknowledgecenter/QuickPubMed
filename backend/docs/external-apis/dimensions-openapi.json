@@ -1,0 +1,198 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Dimensions Badges and Metrics API",
+    "version": "1.0.0",
+    "description": "Digital Science / Dimensions udgiver ikke en officiel OpenAPI-fil for badges eller Metrics API. Denne spec er rekonstrueret fra [badge.dimensions.ai](https://badge.dimensions.ai/) og den offentlige Metrics API (`https://metrics-api.dimensions.ai`), så Mugin Scholar har en versioneret, søgbar kopi af den kontrakt badges implementerer imod.\n\nDette er **ikke** Dimensions Analytics/DSL-API'et (`docs.dimensions.ai/dsl`), som kræver abonnement og ikke bruges her.\n\n## Hvordan Mugin Scholar bruger Dimensions\n\nVi kalder **ikke** Metrics API fra PHP. Browseren indlejrer citation-badges via `https://badge.dimensions.ai/static/ai/badge.js` og HTML-placeholders i `src/components/ResultEntry.vue` (`class=\"__dimensions_badge_embed__\"`). Efter AJAX-rendering kaldes `window.__dimensions_embed.addBadges()` fra `SearchResult.vue` og `References.vue`.\n\nBadge-scriptet henter metrics fra Metrics API med DOI og/eller PMID. Mugin viser kun badget når der er en normaliseret DOI eller et gyldigt PMID (`canShowDimensionsBadge`).\n\nAttributter Mugin sætter:\n\n- `data-doi` / `data-pmid` — DOI og PMID (tom/null hvis identifieren mangler).\n- `data-style` — `small_circle` (desktop) eller `large_rectangle` (mobil).\n- `data-hide-zero-citations` — `true`.\n- `data-legend` — `hover-top` (desktop) eller `never` (mobil).\n\nGratis brug er begrænset til ikke-kommercielle formål ifølge [Dimensions Badges and Metrics API Terms](https://www.dimensions.ai/policies-terms-metrics/). Metrics API: maks. 1 request/sekund ved direkte kald.\n\n## Badge-embed (HTML, ikke HTTP-path)\n\nElement: `class=\"__dimensions_badge_embed__\"` plus `data-doi`, `data-pmid` eller `data-id`.\n\n`data-style`: `medium_circle` (default), `small_circle`, `large_circle`, `small_rectangle`, `large_rectangle`.\n`data-legend`: default hover auto-retning; `hover-top`, `hover-right`, `hover-bottom`, `hover-left`, `always`, `never`.\n\nJS: `window.__dimensions_embed.addBadges()`. Events på containeren: `dimensions_embed:show`, `dimensions_embed:hide`.",
+    "contact": {
+      "name": "Dimensions",
+      "url": "https://www.dimensions.ai",
+      "email": "support@dimensions.ai"
+    },
+    "externalDocs": {
+      "description": "Dimensions Badges",
+      "url": "https://badge.dimensions.ai/"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://metrics-api.dimensions.ai",
+      "description": "Dimensions Metrics API (badge-scriptet kalder denne; Mugin kalder den ikke fra PHP)"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Metrics",
+      "description": "Artikel-niveau citationsindikatorer for én publikation."
+    }
+  ],
+  "paths": {
+    "/doi/{doi}": {
+      "get": {
+        "tags": ["Metrics"],
+        "operationId": "getDimensionsMetricsByDoi",
+        "summary": "Fetch Dimensions metrics by DOI",
+        "description": "Det lookup badge-scriptet bruger når `data-doi` er sat.",
+        "parameters": [
+          {
+            "name": "doi",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "10.1001/jama.2016.9797"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Metrics"
+          },
+          "404": {
+            "description": "Ingen Dimensions-record for identifieren."
+          }
+        }
+      }
+    },
+    "/pmid/{pmid}": {
+      "get": {
+        "tags": ["Metrics"],
+        "operationId": "getDimensionsMetricsByPmid",
+        "summary": "Fetch Dimensions metrics by PubMed ID",
+        "description": "Det lookup badge-scriptet bruger når `data-pmid` er sat.",
+        "parameters": [
+          {
+            "name": "pmid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "27400401"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Metrics"
+          },
+          "404": {
+            "description": "Ingen Dimensions-record for identifieren."
+          }
+        }
+      }
+    },
+    "/id/{dimensionsId}": {
+      "get": {
+        "tags": ["Metrics"],
+        "operationId": "getDimensionsMetricsById",
+        "summary": "Fetch Dimensions metrics by Dimensions publication ID",
+        "description": "Ikke brugt af Mugin. HTML-ækvivalent er `data-id` (fx `pub.1026722513`).",
+        "parameters": [
+          {
+            "name": "dimensionsId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "pub.1026722513"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Metrics"
+          },
+          "404": {
+            "description": "Ingen Dimensions-record for identifieren."
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "responses": {
+      "Metrics": {
+        "description": "JSON med artikel-niveau indikatorer. `times_cited` er det tal badget viser. RCR/FCR kan være null for nye eller ikke-PubMed-artikler.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/DimensionsMetrics"
+            },
+            "example": {
+              "doi": "10.1001/jama.2016.9797",
+              "times_cited": 618,
+              "recent_citations": 42,
+              "relative_citation_ratio": 17.63,
+              "field_citation_ratio": 116.54,
+              "license": "This data has been sourced via the Dimensions Metrics API, use of which is subject to the terms at https://dimensions.ai/policies/terms/metrics/."
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "DimensionsMetrics": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "doi": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pmid": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Dimensions publication ID når opslaget gik via `/id/{id}`."
+          },
+          "times_cited": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Antal citeringer i Dimensions. Det tal Dimensions-badget viser."
+          },
+          "recent_citations": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Citeringer i den seneste periode (typisk ~2 år)."
+          },
+          "relative_citation_ratio": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "RCR. >1 er over gennemsnit i forskningsområdet. Beregnes for PubMed-artikler der er mindst 2 år gamle."
+          },
+          "field_citation_ratio": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "FCR. >1 er over gennemsnit for jævnaldrende artikler i samme FoR-område."
+          },
+          "highly_cited_1": {
+            "type": "boolean"
+          },
+          "highly_cited_5": {
+            "type": "boolean"
+          },
+          "highly_cited_10": {
+            "type": "boolean"
+          },
+          "license": {
+            "type": "string",
+            "description": "Terms-of-use-tekst der følger med hvert svar."
+          }
+        }
+      }
+    }
+  }
+}

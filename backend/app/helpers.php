@@ -27,12 +27,16 @@ function getAllowedOrigin($origin) {
     }
 
     // First-party deployment hosts. Keep this narrow: these are the known
-    // VCD/NemPubMed frontend/backend domains that legitimately call each other.
+    // VCD/Mugin Scholar frontend/backend domains that legitimately call each other.
     $allowedPatterns = array_merge($allowedPatterns, [
         'videncenterfordiabetes.dk',
         '*.videncenterfordiabetes.dk',
+        'danishdiabetesknowledgecenter.dk',
+        '*.danishdiabetesknowledgecenter.dk',
         'nempubmed.dk',
         '*.nempubmed.dk',
+        'quickpubmed.dk',
+        '*.quickpubmed.dk',
         'localhost',
         '127.0.0.1',
     ]);
@@ -65,7 +69,7 @@ function getAllowedOrigin($origin) {
  *
  * @return string|null
  */
-function qpmResolveDomain(): ?string
+function muginResolveDomain(): ?string
 {
     $candidates = [
         $_GET['domain'] ?? null,
@@ -91,7 +95,7 @@ function qpmResolveDomain(): ?string
  * @param string|null $domain
  * @return string
  */
-function qpmNormalizeDomainKey(?string $domain): string
+function muginNormalizeDomainKey(?string $domain): string
 {
     if (!is_string($domain)) {
         return '';
@@ -110,11 +114,11 @@ function qpmNormalizeDomainKey(?string $domain): string
  * @param string|null $domain
  * @return array<string, mixed>
  */
-function qpmGetDomainRuntimeConfig(?string $domain = null): array
+function muginGetDomainRuntimeConfig(?string $domain = null): array
 {
     static $cache = [];
 
-    $normalized = qpmNormalizeDomainKey($domain);
+    $normalized = muginNormalizeDomainKey($domain);
     if ($normalized === '') {
         return [];
     }
@@ -145,14 +149,48 @@ function qpmGetDomainRuntimeConfig(?string $domain = null): array
 }
 
 /**
- * Resolve OpenAI API key for domain with default fallback.
+ * Active LLM provider for Responses calls: openai | requesty.
+ * Hard exclusive switch — never a failover chain.
+ * Optional $GLOBALS['__muginLlmProviderOverride'] is for offline smoke tests only.
+ */
+function muginGetLlmProvider(): string
+{
+    if (isset($GLOBALS['__muginLlmProviderOverride']) && is_string($GLOBALS['__muginLlmProviderOverride'])) {
+        $override = strtolower(trim($GLOBALS['__muginLlmProviderOverride']));
+        if ($override === 'requesty' || $override === 'openai') {
+            return $override;
+        }
+    }
+    $provider = defined('MUGIN_LLM_PROVIDER')
+        ? strtolower(trim((string) MUGIN_LLM_PROVIDER))
+        : 'openai';
+    return $provider === 'requesty' ? 'requesty' : 'openai';
+}
+
+/**
+ * True when the active LLM provider has both API key and URL configured.
+ *
+ * @param string|null $domain
+ */
+function muginIsLlmConfigured(?string $domain = null): bool
+{
+    return muginGetOpenAIApiKey($domain) !== '' && muginGetOpenAIApiUrl($domain) !== '';
+}
+
+/**
+ * Resolve Responses API key for the active provider.
+ * Requesty: REQUESTY_API_KEY only (domain OpenAI overrides ignored).
  *
  * @param string|null $domain
  * @return string
  */
-function qpmGetOpenAIApiKey(?string $domain = null): string
+function muginGetOpenAIApiKey(?string $domain = null): string
 {
-    $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
+    if (muginGetLlmProvider() === 'requesty') {
+        return defined('REQUESTY_API_KEY') ? trim((string) REQUESTY_API_KEY) : '';
+    }
+
+    $runtimeConfig = muginGetDomainRuntimeConfig($domain);
     if (isset($runtimeConfig['openai']) && is_array($runtimeConfig['openai'])) {
         $apiKey = $runtimeConfig['openai']['api_key'] ?? '';
         if (is_string($apiKey) && $apiKey !== '') {
@@ -170,18 +208,23 @@ function qpmGetOpenAIApiKey(?string $domain = null): string
         }
     }
 
-    return OPENAI_API_KEY;
+    return defined('OPENAI_API_KEY') ? (string) OPENAI_API_KEY : '';
 }
 
 /**
  * Resolve OpenAI organization id for domain with default fallback.
+ * Always empty for Requesty (org header must not be sent).
  *
  * @param string|null $domain
  * @return string
  */
-function qpmGetOpenAIOrgId(?string $domain = null): string
+function muginGetOpenAIOrgId(?string $domain = null): string
 {
-    $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
+    if (muginGetLlmProvider() === 'requesty') {
+        return '';
+    }
+
+    $runtimeConfig = muginGetDomainRuntimeConfig($domain);
     if (isset($runtimeConfig['openai']) && is_array($runtimeConfig['openai'])) {
         $orgId = $runtimeConfig['openai']['org_id'] ?? '';
         if (is_string($orgId) && $orgId !== '') {
@@ -203,14 +246,20 @@ function qpmGetOpenAIOrgId(?string $domain = null): string
 }
 
 /**
- * Resolve OpenAI API URL for domain with default fallback.
+ * Resolve Responses API URL for the active provider.
+ * Requesty: REQUESTY_API_URL only (domain OpenAI overrides ignored).
  *
  * @param string|null $domain
  * @return string
  */
-function qpmGetOpenAIApiUrl(?string $domain = null): string
+function muginGetOpenAIApiUrl(?string $domain = null): string
 {
-    $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
+    if (muginGetLlmProvider() === 'requesty') {
+        $url = defined('REQUESTY_API_URL') ? trim((string) REQUESTY_API_URL) : '';
+        return $url !== '' ? $url : 'https://router.eu.requesty.ai/v1/responses';
+    }
+
+    $runtimeConfig = muginGetDomainRuntimeConfig($domain);
     if (isset($runtimeConfig['openai']) && is_array($runtimeConfig['openai'])) {
         $apiUrl = $runtimeConfig['openai']['api_url'] ?? '';
         if (is_string($apiUrl) && $apiUrl !== '') {
@@ -218,7 +267,174 @@ function qpmGetOpenAIApiUrl(?string $domain = null): string
         }
     }
 
-    return OPENAI_API_URL;
+    return defined('OPENAI_API_URL') ? (string) OPENAI_API_URL : 'https://api.openai.com/v1/responses';
+}
+
+/**
+ * HTTP headers for the active LLM Responses provider.
+ *
+ * @param string|null $domain
+ * @return list<string>
+ */
+function muginBuildLlmHttpHeaders(?string $domain = null): array
+{
+    $headers = [
+        'Content-Type: application/json',
+        'Authorization: Bearer ' . muginGetOpenAIApiKey($domain),
+    ];
+
+    if (muginGetLlmProvider() === 'requesty') {
+        $referer = defined('REQUESTY_HTTP_REFERER') ? trim((string) REQUESTY_HTTP_REFERER) : '';
+        if ($referer !== '') {
+            $headers[] = 'HTTP-Referer: ' . $referer;
+        }
+        $title = defined('REQUESTY_APP_TITLE') ? trim((string) REQUESTY_APP_TITLE) : '';
+        if ($title !== '') {
+            $headers[] = 'X-Title: ' . $title;
+        }
+        return $headers;
+    }
+
+    $orgId = muginGetOpenAIOrgId($domain);
+    if ($orgId !== '') {
+        $headers[] = 'OpenAI-Organization: ' . $orgId;
+    }
+    return $headers;
+}
+
+/**
+ * Strip Requesty/OpenRouter-style provider prefixes for loose allowlist matching.
+ */
+function muginStripLlmModelProviderPrefix(string $model): string
+{
+    $model = trim($model);
+    if ($model === '') {
+        return '';
+    }
+    if (preg_match('#^(openai-responses|openai|anthropic|google|amazon-bedrock|vertex)/(.+)$#i', $model, $m)) {
+        return trim((string) $m[2]);
+    }
+    return $model;
+}
+
+/**
+ * Strip Azure/Requesty regional suffix (@swedencentral, @eu-central-1, …).
+ */
+function muginStripLlmModelRegionSuffix(string $model): string
+{
+    $model = trim($model);
+    if ($model === '') {
+        return '';
+    }
+    if (preg_match('/^([^@]+)@[\w.-]+$/', $model, $m)) {
+        return trim((string) $m[1]);
+    }
+    return $model;
+}
+
+/**
+ * Loose model identity for allowlist matching across short vs Requesty ids.
+ * azure/openai-responses/gpt-5.6-terra@swedencentral → gpt-5.6-terra
+ */
+function muginNormalizeLlmModelIdentity(string $model): string
+{
+    $model = trim($model);
+    if ($model === '') {
+        return '';
+    }
+    if (strpos($model, '/') !== false) {
+        $model = substr($model, strrpos($model, '/') + 1);
+    }
+    return muginStripLlmModelRegionSuffix($model);
+}
+
+/**
+ * Provider section from MUGIN_LLM_* maps: ['openai'=>..., 'requesty'=>...].
+ * Flat legacy maps (no openai/requesty keys) are returned as-is.
+ *
+ * @param array<string,mixed> $config
+ * @return array<string,mixed>
+ */
+function muginGetLlmProviderConfigSection(array $config): array
+{
+    $provider = muginGetLlmProvider();
+    if (isset($config[$provider]) && is_array($config[$provider])) {
+        return $config[$provider];
+    }
+    if (isset($config['openai']) || isset($config['requesty'])) {
+        $fallback = $config['openai'] ?? null;
+        return is_array($fallback) ? $fallback : [];
+    }
+    return $config;
+}
+
+/**
+ * Exact allowlisted model ids for the active LLM provider.
+ *
+ * @return list<string>
+ */
+function muginGetLlmAllowedModels(): array
+{
+    $raw = null;
+    if (defined('MUGIN_LLM_ALLOWED_MODELS') && is_array(MUGIN_LLM_ALLOWED_MODELS)) {
+        $raw = MUGIN_LLM_ALLOWED_MODELS;
+    } elseif (defined('MUGIN_OPENAI_ALLOWED_MODELS') && is_array(MUGIN_OPENAI_ALLOWED_MODELS)) {
+        $raw = MUGIN_OPENAI_ALLOWED_MODELS;
+    }
+    if (!is_array($raw)) {
+        return [];
+    }
+    $section = muginGetLlmProviderConfigSection($raw);
+    // Provider section for allowlists is a list of strings (not task=>settings).
+    if ($section !== [] && array_keys($section) !== range(0, count($section) - 1)) {
+        // Associative leftover (e.g. wrong shape) — only keep string values.
+        $section = array_values(array_filter($section, static function ($value): bool {
+            return is_string($value) || is_numeric($value);
+        }));
+    }
+    return array_values(array_filter(array_map(
+        static function ($value): string {
+            return trim((string) $value);
+        },
+        $section
+    ), static function (string $value): bool {
+        return $value !== '';
+    }));
+}
+
+/**
+ * Format model id for the active provider's HTTP boundary.
+ * Config should already contain the exact provider model id (esp. Requesty).
+ * OpenAI mode strips accidental vendor/region wrappers back to a short id.
+ */
+function muginFormatLlmModelForProvider(string $model): string
+{
+    $model = trim($model);
+    if ($model === '') {
+        return '';
+    }
+    if (muginGetLlmProvider() !== 'requesty') {
+        return muginNormalizeLlmModelIdentity($model);
+    }
+    return $model;
+}
+
+/**
+ * Normalize a Responses payload for the active provider (model id formatting).
+ * Keep reasoning.effort as configured — Requesty accepts none (verified for
+ * Azure GPT and Kimi). Dropping none made reasoning models default to medium
+ * and burn max_output_tokens before any output_text (empty summarize streams).
+ *
+ * @param array<string,mixed> $payload
+ * @return array<string,mixed>
+ */
+function muginNormalizeLlmRequestPayload(array $payload): array
+{
+    if (isset($payload['model']) && is_string($payload['model'])) {
+        $payload['model'] = muginFormatLlmModelForProvider($payload['model']);
+    }
+
+    return $payload;
 }
 
 /**
@@ -227,9 +443,9 @@ function qpmGetOpenAIApiUrl(?string $domain = null): string
  * @param string|null $domain
  * @return string
  */
-function qpmGetOpenAlexApiKey(?string $domain = null): string
+function muginGetOpenAlexApiKey(?string $domain = null): string
 {
-    $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
+    $runtimeConfig = muginGetDomainRuntimeConfig($domain);
     if (isset($runtimeConfig['openalex']) && is_array($runtimeConfig['openalex'])) {
         $apiKey = $runtimeConfig['openalex']['api_key'] ?? '';
         if (is_string($apiKey) && $apiKey !== '') {
@@ -246,9 +462,9 @@ function qpmGetOpenAlexApiKey(?string $domain = null): string
  * @param string|null $domain
  * @return string
  */
-function qpmGetOpenAlexEmail(?string $domain = null): string
+function muginGetOpenAlexEmail(?string $domain = null): string
 {
-    $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
+    $runtimeConfig = muginGetDomainRuntimeConfig($domain);
     if (isset($runtimeConfig['openalex']) && is_array($runtimeConfig['openalex'])) {
         $email = $runtimeConfig['openalex']['email'] ?? '';
         if (is_string($email) && $email !== '') {
@@ -265,9 +481,9 @@ function qpmGetOpenAlexEmail(?string $domain = null): string
  * @param string|null $domain
  * @return string
  */
-function qpmGetNlmApiKey(?string $domain = null): string
+function muginGetNlmApiKey(?string $domain = null): string
 {
-    $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
+    $runtimeConfig = muginGetDomainRuntimeConfig($domain);
     if (isset($runtimeConfig['nlm']) && is_array($runtimeConfig['nlm'])) {
         $apiKey = $runtimeConfig['nlm']['api_key'] ?? '';
         if (is_string($apiKey) && $apiKey !== '') {
@@ -298,9 +514,9 @@ function qpmGetNlmApiKey(?string $domain = null): string
  * @param string|null $domain
  * @return string
  */
-function qpmGetNlmEmail(?string $domain = null): string
+function muginGetNlmEmail(?string $domain = null): string
 {
-    $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
+    $runtimeConfig = muginGetDomainRuntimeConfig($domain);
     if (isset($runtimeConfig['nlm']) && is_array($runtimeConfig['nlm'])) {
         $email = $runtimeConfig['nlm']['email'] ?? '';
         if (is_string($email) && $email !== '') {
@@ -327,7 +543,7 @@ function qpmGetNlmEmail(?string $domain = null): string
  * @param string|null $domain
  * @return string
  */
-function qpmGetNlmBaseUrl(?string $domain = null): string
+function muginGetNlmBaseUrl(?string $domain = null): string
 {
     return NLM_BASE_URL;
 }
@@ -338,9 +554,9 @@ function qpmGetNlmBaseUrl(?string $domain = null): string
  * @param string|null $domain
  * @return string
  */
-function qpmGetUnpaywallEmail(?string $domain = null): string
+function muginGetUnpaywallEmail(?string $domain = null): string
 {
-    $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
+    $runtimeConfig = muginGetDomainRuntimeConfig($domain);
     if (isset($runtimeConfig['unpaywall']) && is_array($runtimeConfig['unpaywall'])) {
         $email = $runtimeConfig['unpaywall']['email'] ?? '';
         if (is_string($email) && $email !== '') {
@@ -367,7 +583,7 @@ function qpmGetUnpaywallEmail(?string $domain = null): string
  * @param mixed $value
  * @return string|null
  */
-function qpmNormalizeTranslationSourceKey($value): ?string
+function muginNormalizeTranslationSourceKey($value): ?string
 {
     if (!is_string($value)) {
         return null;
@@ -394,7 +610,7 @@ function qpmNormalizeTranslationSourceKey($value): ?string
     return $aliasMap[$normalized] ?? null;
 }
 
-function qpmNormalizeSemanticSourceLimitKey($value): ?string
+function muginNormalizeSemanticSourceLimitKey($value): ?string
 {
     $normalized = strtolower(trim((string) $value));
     if ($normalized === '') {
@@ -431,19 +647,19 @@ function qpmNormalizeSemanticSourceLimitKey($value): ?string
  * @param int $default
  * @return int
  */
-function qpmGetSemanticSourceLimit($sourceKey, int $default): int
+function muginGetSemanticSourceLimit($sourceKey, int $default): int
 {
-    $normalizedSourceKey = qpmNormalizeSemanticSourceLimitKey($sourceKey);
+    $normalizedSourceKey = muginNormalizeSemanticSourceLimitKey($sourceKey);
     $fallback = $default > 0 ? $default : 1;
     if (
         $normalizedSourceKey === null ||
-        !defined('QPM_SEMANTIC_SOURCE_LIMITS') ||
-        !is_array(QPM_SEMANTIC_SOURCE_LIMITS)
+        !defined('MUGIN_SEMANTIC_SOURCE_LIMITS') ||
+        !is_array(MUGIN_SEMANTIC_SOURCE_LIMITS)
     ) {
         return $fallback;
     }
 
-    $configured = QPM_SEMANTIC_SOURCE_LIMITS[$normalizedSourceKey] ?? null;
+    $configured = MUGIN_SEMANTIC_SOURCE_LIMITS[$normalizedSourceKey] ?? null;
     $resolved = is_numeric($configured) ? (int) $configured : $fallback;
     return $resolved > 0 ? $resolved : $fallback;
 }
@@ -458,9 +674,9 @@ function qpmGetSemanticSourceLimit($sourceKey, int $default): int
  * @param string|null $domain
  * @return array<int, string>
  */
-function qpmGetDomainTranslationSources(?string $domain = null): array
+function muginGetDomainTranslationSources(?string $domain = null): array
 {
-    $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
+    $runtimeConfig = muginGetDomainRuntimeConfig($domain);
     $candidates = [];
 
     if (isset($runtimeConfig['search']) && is_array($runtimeConfig['search'])) {
@@ -476,7 +692,7 @@ function qpmGetDomainTranslationSources(?string $domain = null): array
         }
         $normalized = [];
         foreach ($candidate as $entry) {
-            $sourceKey = qpmNormalizeTranslationSourceKey($entry);
+            $sourceKey = muginNormalizeTranslationSourceKey($entry);
             if ($sourceKey !== null) {
                 $normalized[$sourceKey] = true;
             }
@@ -493,9 +709,9 @@ function qpmGetDomainTranslationSources(?string $domain = null): array
  * @param string|null $domain
  * @return bool
  */
-function qpmHasDomainTranslationSourcesConfig(?string $domain = null): bool
+function muginHasDomainTranslationSourcesConfig(?string $domain = null): bool
 {
-    $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
+    $runtimeConfig = muginGetDomainRuntimeConfig($domain);
     if (isset($runtimeConfig['search']) && is_array($runtimeConfig['search'])) {
         if (array_key_exists('translation_sources', $runtimeConfig['search'])) {
             return is_array($runtimeConfig['search']['translation_sources']);
@@ -513,16 +729,16 @@ function qpmHasDomainTranslationSourcesConfig(?string $domain = null): bool
 /**
  * Resolve the best-effort client IP for the current request.
  *
- * Uses REMOTE_ADDR by default. If QPM_ELICIT_UNLOCK['trust_forwarded_for'] is true
+ * Uses REMOTE_ADDR by default. If MUGIN_ELICIT_UNLOCK['trust_forwarded_for'] is true
  * the first entry from X-Forwarded-For is honored (only enable behind a trusted proxy).
  *
  * @return string
  */
-function qpmGetClientIp(): string
+function muginGetClientIp(): string
 {
     $trustForwarded = false;
-    if (defined('QPM_ELICIT_UNLOCK') && is_array(QPM_ELICIT_UNLOCK)) {
-        $trustForwarded = !empty(QPM_ELICIT_UNLOCK['trust_forwarded_for']);
+    if (defined('MUGIN_ELICIT_UNLOCK') && is_array(MUGIN_ELICIT_UNLOCK)) {
+        $trustForwarded = !empty(MUGIN_ELICIT_UNLOCK['trust_forwarded_for']);
     }
     if ($trustForwarded && !empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
         $parts = explode(',', (string) $_SERVER['HTTP_X_FORWARDED_FOR']);
@@ -539,7 +755,7 @@ function qpmGetClientIp(): string
  * Check whether an IP matches a pattern. Pattern may be a plain IP or a CIDR
  * range (IPv4 or IPv6).
  */
-function qpmIpMatchesPattern(string $ip, string $pattern): bool
+function muginIpMatchesPattern(string $ip, string $pattern): bool
 {
     $pattern = trim($pattern);
     if ($pattern === '' || $ip === '') {
@@ -575,36 +791,36 @@ function qpmIpMatchesPattern(string $ip, string $pattern): bool
 }
 
 /**
- * Returns true when QPM_ELICIT_UNLOCK contains at least one IP pattern or a
+ * Returns true when MUGIN_ELICIT_UNLOCK contains at least one IP pattern or a
  * non-empty code. When this is true, Elicit is considered "gated": it is only
  * offered to clients whose IP or code matches the config. When it is false
  * (no gating configured), Elicit is offered based on the regular domain
  * translation_sources only.
  */
-function qpmIsElicitUnlockConfigured(): bool
+function muginIsElicitUnlockConfigured(): bool
 {
-    if (!defined('QPM_ELICIT_UNLOCK') || !is_array(QPM_ELICIT_UNLOCK)) {
+    if (!defined('MUGIN_ELICIT_UNLOCK') || !is_array(MUGIN_ELICIT_UNLOCK)) {
         return false;
     }
-    $cfg = QPM_ELICIT_UNLOCK;
+    $cfg = MUGIN_ELICIT_UNLOCK;
     $hasIps = !empty($cfg['ips']) && is_array($cfg['ips']);
-    $hasCode = !empty(qpmGetElicitUnlockCodes());
+    $hasCode = !empty(muginGetElicitUnlockCodes());
     return $hasIps || $hasCode;
 }
 
 /**
- * Normalises the QPM_ELICIT_UNLOCK 'code' entry into a list of non-empty
+ * Normalises the MUGIN_ELICIT_UNLOCK 'code' entry into a list of non-empty
  * codes. The config value may be a single string (legacy single-code form) or
  * an array of strings (multiple codes, any of which unlock Elicit).
  *
  * @return array<int, string>
  */
-function qpmGetElicitUnlockCodes(): array
+function muginGetElicitUnlockCodes(): array
 {
-    if (!defined('QPM_ELICIT_UNLOCK') || !is_array(QPM_ELICIT_UNLOCK)) {
+    if (!defined('MUGIN_ELICIT_UNLOCK') || !is_array(MUGIN_ELICIT_UNLOCK)) {
         return [];
     }
-    $raw = QPM_ELICIT_UNLOCK['code'] ?? null;
+    $raw = MUGIN_ELICIT_UNLOCK['code'] ?? null;
     if ($raw === null) {
         return [];
     }
@@ -625,21 +841,21 @@ function qpmGetElicitUnlockCodes(): array
 /**
  * Decide whether Elicit should be force-unlocked for the current request.
  *
- * Returns true when QPM_ELICIT_UNLOCK is configured and either:
+ * Returns true when MUGIN_ELICIT_UNLOCK is configured and either:
  *   - the client IP matches an entry in 'ips' (plain IPs or CIDR ranges), or
  *   - the provided code matches any entry in 'code' (constant-time compare).
  *     'code' may be a single string or an array of strings.
  */
-function qpmIsElicitUnlocked(?string $providedCode = null): bool
+function muginIsElicitUnlocked(?string $providedCode = null): bool
 {
-    if (!defined('QPM_ELICIT_UNLOCK') || !is_array(QPM_ELICIT_UNLOCK)) {
+    if (!defined('MUGIN_ELICIT_UNLOCK') || !is_array(MUGIN_ELICIT_UNLOCK)) {
         return false;
     }
-    $config = QPM_ELICIT_UNLOCK;
+    $config = MUGIN_ELICIT_UNLOCK;
 
     $code = is_string($providedCode) ? trim($providedCode) : '';
     if ($code !== '') {
-        foreach (qpmGetElicitUnlockCodes() as $expectedCode) {
+        foreach (muginGetElicitUnlockCodes() as $expectedCode) {
             if (hash_equals($expectedCode, $code)) {
                 return true;
             }
@@ -648,10 +864,10 @@ function qpmIsElicitUnlocked(?string $providedCode = null): bool
 
     $ips = isset($config['ips']) && is_array($config['ips']) ? $config['ips'] : [];
     if (!empty($ips)) {
-        $clientIp = qpmGetClientIp();
+        $clientIp = muginGetClientIp();
         if ($clientIp !== '') {
             foreach ($ips as $pattern) {
-                if (is_string($pattern) && qpmIpMatchesPattern($clientIp, $pattern)) {
+                if (is_string($pattern) && muginIpMatchesPattern($clientIp, $pattern)) {
                     return true;
                 }
             }
@@ -667,9 +883,9 @@ function qpmIsElicitUnlocked(?string $providedCode = null): bool
  * @param string|null $domain
  * @return array<string, string>
  */
-function qpmGetDomainThemeOverrides(?string $domain = null): array
+function muginGetDomainThemeOverrides(?string $domain = null): array
 {
-    $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
+    $runtimeConfig = muginGetDomainRuntimeConfig($domain);
     $overrides = $runtimeConfig['theme_overrides'] ?? null;
     if (!is_array($overrides)) {
         return [];
@@ -697,7 +913,7 @@ function qpmGetDomainThemeOverrides(?string $domain = null): array
  * @param mixed $value
  * @return array<int, string>
  */
-function qpmNormalizeClassTokenList($value): array
+function muginNormalizeClassTokenList($value): array
 {
     $tokens = [];
     if (is_string($value)) {
@@ -739,13 +955,13 @@ function qpmNormalizeClassTokenList($value): array
  *
  * Shape:
  * {
- *   "qpm_pubmedLink": { "mode": "append|replace", "classes": "class-a class-b" }
+ *   "mugin_pubmedLink": { "mode": "append|replace", "classes": "class-a class-b" }
  * }
  *
  * @param mixed $overrides
  * @return array<string, array{mode: string, classes: array<int, string>}>
  */
-function qpmNormalizeClassOverridesMap($overrides): array
+function muginNormalizeClassOverridesMap($overrides): array
 {
     if (!is_array($overrides)) {
         return [];
@@ -764,19 +980,19 @@ function qpmNormalizeClassOverridesMap($overrides): array
         $mode = 'append';
         $classes = [];
         if (is_string($rawRule)) {
-            $classes = qpmNormalizeClassTokenList($rawRule);
+            $classes = muginNormalizeClassTokenList($rawRule);
         } elseif (is_array($rawRule)) {
             $isList = function_exists('array_is_list')
                 ? array_is_list($rawRule)
                 : ($rawRule === [] || array_keys($rawRule) === range(0, count($rawRule) - 1));
             if ($isList) {
-                $classes = qpmNormalizeClassTokenList($rawRule);
+                $classes = muginNormalizeClassTokenList($rawRule);
             } else {
                 $rawMode = strtolower(trim((string) ($rawRule['mode'] ?? 'append')));
                 if ($rawMode === 'replace') {
                     $mode = 'replace';
                 }
-                $classes = qpmNormalizeClassTokenList(
+                $classes = muginNormalizeClassTokenList(
                     $rawRule['classes'] ?? ($rawRule['class_list'] ?? ($rawRule['class'] ?? ''))
                 );
             }
@@ -803,10 +1019,10 @@ function qpmNormalizeClassOverridesMap($overrides): array
  * @param string|null $domain
  * @return array<string, array{mode: string, classes: array<int, string>}>
  */
-function qpmGetDomainClassOverrides(?string $domain = null): array
+function muginGetDomainClassOverrides(?string $domain = null): array
 {
-    $runtimeConfig = qpmGetDomainRuntimeConfig($domain);
-    return qpmNormalizeClassOverridesMap($runtimeConfig['class_overrides'] ?? null);
+    $runtimeConfig = muginGetDomainRuntimeConfig($domain);
+    return muginNormalizeClassOverridesMap($runtimeConfig['class_overrides'] ?? null);
 }
 
 /**
@@ -817,7 +1033,7 @@ function qpmGetDomainClassOverrides(?string $domain = null): array
  * @param int $maxPerSecond
  * @return void
  */
-function qpmThrottleRequestRate(string $namespace, int $maxPerSecond = 10): void
+function muginThrottleRequestRate(string $namespace, int $maxPerSecond = 10): void
 {
     if ($maxPerSecond < 1) {
         $maxPerSecond = 1;
@@ -827,7 +1043,7 @@ function qpmThrottleRequestRate(string $namespace, int $maxPerSecond = 10): void
     if ($normalizedNamespace === '' || $normalizedNamespace === null) {
         $normalizedNamespace = 'default';
     }
-    $lockPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'qpm_' . $normalizedNamespace . '_rate_limit.lock';
+    $lockPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'mugin_' . $normalizedNamespace . '_rate_limit.lock';
     $intervalUs = (int) floor(1000000 / $maxPerSecond);
 
     $fp = @fopen($lockPath, 'c+');
@@ -870,9 +1086,9 @@ function qpmThrottleRequestRate(string $namespace, int $maxPerSecond = 10): void
  * @param int $maxPerSecond
  * @return void
  */
-function qpmThrottleNlmRequests(int $maxPerSecond = 10): void
+function muginThrottleNlmRequests(int $maxPerSecond = 10): void
 {
-    qpmThrottleRequestRate('nlm', $maxPerSecond);
+    muginThrottleRequestRate('nlm', $maxPerSecond);
 }
 
 /**
@@ -880,7 +1096,7 @@ function qpmThrottleNlmRequests(int $maxPerSecond = 10): void
  *
  * @return bool
  */
-function qpmIsLocalBackendRequest(): bool
+function muginIsLocalBackendRequest(): bool
 {
     $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
     return $host !== '' && (
@@ -893,22 +1109,25 @@ function qpmIsLocalBackendRequest(): bool
 
 /**
  * Single-use, in-memory (request-lifetime only) cache used to let a
- * qpmHttpRequestMulti() prefetch of one or more sources' *first* HTTP call
+ * muginHttpRequestMulti() prefetch of one or more sources' *first* HTTP call
  * transparently satisfy that same call when the normal sequential
  * source-fetch function later makes it, without restructuring that
- * function's control flow at all. See qpmPublicSearchPrefetchInitialSourceRequests()
+ * function's control flow at all. See muginPublicSearchPrefetchInitialSourceRequests()
  * in public-search-lib.php for the caller. Falls through to a real request
  * (unchanged behavior) whenever nothing was prefetched for a given
  * method+url+body combination, so this is purely additive/opt-in.
  *
  * @param 'get'|'set' $action
  */
-function qpmHttpRequestPrefetchStore(string $action, string $key, ?array $result = null): ?array
+function muginHttpRequestPrefetchStore(string $action, string $key, ?array $result = null): ?array
 {
     static $store = [];
     if ($action === 'set') {
         $store[$key] = $result;
         return null;
+    }
+    if ($action === 'peek') {
+        return array_key_exists($key, $store) ? $store[$key] : null;
     }
     if (!array_key_exists($key, $store)) {
         return null;
@@ -919,9 +1138,37 @@ function qpmHttpRequestPrefetchStore(string $action, string $key, ?array $result
 }
 
 /**
+ * True when the next muginHttpRequest() for this URL/options would hit the
+ * single-use prefetch store (so callers can skip outbound rate throttling).
+ *
  * @param array<string,mixed> $options
  */
-function qpmHttpRequestCacheKey(string $url, array $options): string
+function muginHttpRequestHasPrefetch(string $url, array $options = []): bool
+{
+    return muginHttpRequestPrefetchStore('peek', muginHttpRequestCacheKey($url, $options)) !== null;
+}
+
+/**
+ * Throttle only when the request will actually leave the process (prefetch miss).
+ *
+ * @param array<string,mixed> $options
+ */
+function muginThrottleRequestRateUnlessPrefetched(
+    string $namespace,
+    int $maxPerSecond,
+    string $url,
+    array $options = []
+): void {
+    if (muginHttpRequestHasPrefetch($url, $options)) {
+        return;
+    }
+    muginThrottleRequestRate($namespace, $maxPerSecond);
+}
+
+/**
+ * @param array<string,mixed> $options
+ */
+function muginHttpRequestCacheKey(string $url, array $options): string
 {
     $method = strtoupper((string) ($options['method'] ?? 'GET'));
     $body = (string) ($options['body'] ?? '');
@@ -929,16 +1176,16 @@ function qpmHttpRequestCacheKey(string $url, array $options): string
 }
 
 /**
- * Registers a pre-fetched response (already executed via qpmHttpRequestMulti())
- * so the next qpmHttpRequest() call for the exact same method+url+body returns
+ * Registers a pre-fetched response (already executed via muginHttpRequestMulti())
+ * so the next muginHttpRequest() call for the exact same method+url+body returns
  * it instantly instead of making a real network call.
  *
- * @param array<string,mixed> $options Same $options that will be passed to qpmHttpRequest() for this URL.
+ * @param array<string,mixed> $options Same $options that will be passed to muginHttpRequest() for this URL.
  * @param array{ok:bool,status:int,body:string,content_type:string,error:string,response_headers:array<int,string>} $result
  */
-function qpmHttpRequestPrefetch(string $url, array $options, array $result): void
+function muginHttpRequestPrefetch(string $url, array $options, array $result): void
 {
-    qpmHttpRequestPrefetchStore('set', qpmHttpRequestCacheKey($url, $options), $result);
+    muginHttpRequestPrefetchStore('set', muginHttpRequestCacheKey($url, $options), $result);
 }
 
 /**
@@ -948,16 +1195,16 @@ function qpmHttpRequestPrefetch(string $url, array $options, array $result): voi
  * @param array $options
  * @return array{ok: bool, status: int, body: string, content_type: string, error: string, response_headers: array<int,string>}
  */
-function qpmHttpRequest(string $url, array $options = []): array
+function muginHttpRequest(string $url, array $options = []): array
 {
-    $prefetched = qpmHttpRequestPrefetchStore('get', qpmHttpRequestCacheKey($url, $options));
+    $prefetched = muginHttpRequestPrefetchStore('get', muginHttpRequestCacheKey($url, $options));
     if ($prefetched !== null) {
         return $prefetched;
     }
     $method = strtoupper((string) ($options['method'] ?? 'GET'));
     $headers = $options['headers'] ?? [];
     $timeout = (int) ($options['timeout'] ?? 30);
-    $userAgent = (string) ($options['user_agent'] ?? 'QuickPubMed/1.0');
+    $userAgent = (string) ($options['user_agent'] ?? 'MuginScholar/1.0');
     $body = (string) ($options['body'] ?? '');
 
     if (function_exists('curl_init')) {
@@ -995,7 +1242,7 @@ function qpmHttpRequest(string $url, array $options = []): array
             $curlOptions[CURLOPT_SSL_OPTIONS] = CURLSSLOPT_NATIVE_CA;
         }
 
-        if (qpmIsLocalBackendRequest()) {
+        if (muginIsLocalBackendRequest()) {
             $curlOptions[CURLOPT_PROXY] = '';
         }
 
@@ -1078,13 +1325,13 @@ function qpmHttpRequest(string $url, array $options = []): array
 
 /**
  * Fire off several independent HTTP requests concurrently with curl_multi,
- * instead of the sequential qpmHttpRequest() calls the rest of the codebase
+ * instead of the sequential muginHttpRequest() calls the rest of the codebase
  * uses. Intended for cases with 2+ requests that do not depend on each
  * other's results (e.g. iCite + OpenAlex Authority enrichment lookups),
  * where sequential fetching would add pure, avoidable request-latency to the
  * critical path.
  *
- * Falls back to sequential qpmHttpRequest() calls (same as before this
+ * Falls back to sequential muginHttpRequest() calls (same as before this
  * function existed) when the cURL extension is unavailable, so behavior on
  * installs without cURL is unaffected.
  *
@@ -1093,7 +1340,7 @@ function qpmHttpRequest(string $url, array $options = []): array
  *        as soon as each individual request completes.
  * @return array<string,array{ok:bool,status:int,body:string,content_type:string,error:string,response_headers:array<int,string>,elapsed_ms:int}> Same keys as $namedRequests.
  */
-function qpmHttpRequestMulti(array $namedRequests, ?callable $onRequestComplete = null): array
+function muginHttpRequestMulti(array $namedRequests, ?callable $onRequestComplete = null): array
 {
     if (empty($namedRequests)) {
         return [];
@@ -1103,7 +1350,7 @@ function qpmHttpRequestMulti(array $namedRequests, ?callable $onRequestComplete 
         $results = [];
         foreach ($namedRequests as $name => $spec) {
             $requestStartedAt = microtime(true);
-            $results[$name] = qpmHttpRequest((string) ($spec['url'] ?? ''), (array) ($spec['options'] ?? []));
+            $results[$name] = muginHttpRequest((string) ($spec['url'] ?? ''), (array) ($spec['options'] ?? []));
             $results[$name]['elapsed_ms'] = max(
                 0,
                 (int) round((microtime(true) - $requestStartedAt) * 1000)
@@ -1125,7 +1372,7 @@ function qpmHttpRequestMulti(array $namedRequests, ?callable $onRequestComplete 
         $method = strtoupper((string) ($options['method'] ?? 'GET'));
         $headers = $options['headers'] ?? [];
         $timeout = (int) ($options['timeout'] ?? 30);
-        $userAgent = (string) ($options['user_agent'] ?? 'QuickPubMed/1.0');
+        $userAgent = (string) ($options['user_agent'] ?? 'MuginScholar/1.0');
         $body = (string) ($options['body'] ?? '');
 
         $curlHeaders = [];
@@ -1156,7 +1403,7 @@ function qpmHttpRequestMulti(array $namedRequests, ?callable $onRequestComplete 
         if (defined('CURLSSLOPT_NATIVE_CA')) {
             $curlOptions[CURLOPT_SSL_OPTIONS] = CURLSSLOPT_NATIVE_CA;
         }
-        if (function_exists('qpmIsLocalBackendRequest') && qpmIsLocalBackendRequest()) {
+        if (function_exists('muginIsLocalBackendRequest') && muginIsLocalBackendRequest()) {
             $curlOptions[CURLOPT_PROXY] = '';
         }
         curl_setopt_array($ch, $curlOptions);
@@ -1229,7 +1476,7 @@ function qpmHttpRequestMulti(array $namedRequests, ?callable $onRequestComplete 
  * @param array<int,string> $headers
  * @return array<string,string>
  */
-function qpmBuildResponseHeaderMap(array $headers): array
+function muginBuildResponseHeaderMap(array $headers): array
 {
     $headerMap = [];
     foreach ($headers as $line) {
@@ -1256,7 +1503,7 @@ function qpmBuildResponseHeaderMap(array $headers): array
  * @param mixed $value
  * @return ?int
  */
-function qpmParseIntegerHeaderValue($value): ?int
+function muginParseIntegerHeaderValue($value): ?int
 {
     $normalizedValue = trim((string) $value);
     if ($normalizedValue === '') {
@@ -1277,7 +1524,7 @@ function qpmParseIntegerHeaderValue($value): ?int
  * @param mixed $retryAfterValue
  * @return array{resetAt: string, resetInSeconds: ?int}
  */
-function qpmParseRateLimitResetWindow($resetValue, $retryAfterValue = ''): array
+function muginParseRateLimitResetWindow($resetValue, $retryAfterValue = ''): array
 {
     $nowTs = time();
     $targetTs = 0;
@@ -1285,7 +1532,7 @@ function qpmParseRateLimitResetWindow($resetValue, $retryAfterValue = ''): array
     $normalizedRetryAfterValue = trim((string) $retryAfterValue);
 
     if ($normalizedResetValue !== '') {
-        $numericReset = qpmParseIntegerHeaderValue($normalizedResetValue);
+        $numericReset = muginParseIntegerHeaderValue($normalizedResetValue);
         if ($numericReset !== null) {
             if ($numericReset > 1000000000000) {
                 $targetTs = (int) floor($numericReset / 1000);
@@ -1331,7 +1578,7 @@ function qpmParseRateLimitResetWindow($resetValue, $retryAfterValue = ''): array
  *
  * @return array<int,string>
  */
-function qpmGetSourceRateLimitCacheKeys(): array
+function muginGetSourceRateLimitCacheKeys(): array
 {
     return ['openAlex', 'semanticScholar', 'elicit'];
 }
@@ -1342,16 +1589,14 @@ function qpmGetSourceRateLimitCacheKeys(): array
  * @param string $sourceKey
  * @return string
  */
-function qpmGetSourceRateLimitCachePath(string $sourceKey): string
+function muginGetSourceRateLimitCachePath(string $sourceKey): string
 {
     $normalized = preg_replace('/[^A-Za-z0-9_-]/', '', trim($sourceKey));
     if (!is_string($normalized) || $normalized === '') {
         $normalized = 'default';
     }
-    $runtimeDir = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'runtime';
-    if (!is_dir($runtimeDir)) {
-        @mkdir($runtimeDir, 0750, true);
-    }
+    require_once __DIR__ . '/file-cache.php';
+    $runtimeDir = muginEnsureDataSubdir('runtime');
     return $runtimeDir . DIRECTORY_SEPARATOR . 'source-rate-limit-' . $normalized . '.json';
 }
 
@@ -1363,9 +1608,9 @@ function qpmGetSourceRateLimitCachePath(string $sourceKey): string
  * @param array<string,mixed> $rateLimit
  * @return void
  */
-function qpmStoreSourceRateLimitSnapshot(string $sourceKey, array $rateLimit): void
+function muginStoreSourceRateLimitSnapshot(string $sourceKey, array $rateLimit): void
 {
-    if (empty($rateLimit) || !in_array($sourceKey, qpmGetSourceRateLimitCacheKeys(), true)) {
+    if (empty($rateLimit) || !in_array($sourceKey, muginGetSourceRateLimitCacheKeys(), true)) {
         return;
     }
     $limitVal = $rateLimit['limit'] ?? null;
@@ -1397,7 +1642,7 @@ function qpmStoreSourceRateLimitSnapshot(string $sourceKey, array $rateLimit): v
     if (!is_string($encoded)) {
         return;
     }
-    $path = qpmGetSourceRateLimitCachePath($sourceKey);
+    $path = muginGetSourceRateLimitCachePath($sourceKey);
     $tmpPath = $path . '.tmp';
     if (@file_put_contents($tmpPath, $encoded, LOCK_EX) === false) {
         return;
@@ -1414,12 +1659,12 @@ function qpmStoreSourceRateLimitSnapshot(string $sourceKey, array $rateLimit): v
  * @param string $sourceKey
  * @return array<string,mixed>|null
  */
-function qpmReadSourceRateLimitSnapshot(string $sourceKey): ?array
+function muginReadSourceRateLimitSnapshot(string $sourceKey): ?array
 {
-    if (!in_array($sourceKey, qpmGetSourceRateLimitCacheKeys(), true)) {
+    if (!in_array($sourceKey, muginGetSourceRateLimitCacheKeys(), true)) {
         return null;
     }
-    $path = qpmGetSourceRateLimitCachePath($sourceKey);
+    $path = muginGetSourceRateLimitCachePath($sourceKey);
     if (!is_file($path)) {
         return null;
     }
@@ -1460,11 +1705,11 @@ function qpmReadSourceRateLimitSnapshot(string $sourceKey): ?array
  *
  * @return array<string,array<string,mixed>|null>
  */
-function qpmReadAllSourceRateLimitSnapshots(): array
+function muginReadAllSourceRateLimitSnapshots(): array
 {
     $snapshots = [];
-    foreach (qpmGetSourceRateLimitCacheKeys() as $sourceKey) {
-        $snapshots[$sourceKey] = qpmReadSourceRateLimitSnapshot($sourceKey);
+    foreach (muginGetSourceRateLimitCacheKeys() as $sourceKey) {
+        $snapshots[$sourceKey] = muginReadSourceRateLimitSnapshot($sourceKey);
     }
     return $snapshots;
 }
@@ -1473,7 +1718,7 @@ function qpmReadAllSourceRateLimitSnapshots(): array
  * Client IP for first-party rate limiting. Uses REMOTE_ADDR only (no
  * X-Forwarded-For trust) so spoofed headers cannot bypass limits.
  */
-function qpmClientIpAddress(): string
+function muginClientIpAddress(): string
 {
     $ip = trim((string) ($_SERVER['REMOTE_ADDR'] ?? ''));
     return $ip !== '' ? $ip : 'unknown';
@@ -1482,22 +1727,20 @@ function qpmClientIpAddress(): string
 /**
  * @return array{limit: int, remaining: int|null, resetAt: string, resetInSeconds: int|null, status: int, isLimited: bool}
  */
-function qpmConsumeIpRateLimit(string $routeClass, int $limitPerMinute): array
+function muginConsumeIpRateLimit(string $routeClass, int $limitPerMinute): array
 {
+    require_once __DIR__ . '/file-cache.php';
     $limit = max(1, $limitPerMinute);
-    $runtimeDir = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'runtime';
-    if (!is_dir($runtimeDir)) {
-        @mkdir($runtimeDir, 0750, true);
-    }
+    $runtimeDir = muginEnsureDataSubdir('runtime');
     $safeClass = preg_replace('/[^a-z0-9_-]+/i', '_', trim($routeClass));
     if (!is_string($safeClass) || $safeClass === '') {
         $safeClass = 'default';
     }
-    $safeIp = preg_replace('/[^a-z0-9\.:_-]+/i', '_', qpmClientIpAddress());
+    $safeIp = preg_replace('/[^a-z0-9\.:_-]+/i', '_', muginClientIpAddress());
     if (!is_string($safeIp) || $safeIp === '') {
         $safeIp = 'unknown';
     }
-    $path = $runtimeDir . DIRECTORY_SEPARATOR . 'qpm-ip-rate-limit-' . $safeClass . '-' . $safeIp . '.json';
+    $path = $runtimeDir . DIRECTORY_SEPARATOR . 'mugin-ip-rate-limit-' . $safeClass . '-' . $safeIp . '.json';
     $fp = @fopen($path, 'c+');
     if ($fp === false) {
         throw new RuntimeException('Rate limit store unavailable. Please try again shortly.', 503);
@@ -1542,6 +1785,8 @@ function qpmConsumeIpRateLimit(string $routeClass, int $limitPerMinute): array
         }
     }
 
+    muginMaybeSweepIpRateLimitFiles($runtimeDir);
+
     $resetAt = $windowStart + 60;
     return [
         'limit' => $limit,
@@ -1557,15 +1802,15 @@ function qpmConsumeIpRateLimit(string $routeClass, int $limitPerMinute): array
  * Enforce configured first-party IP rate limit for a route class.
  * Exits with 429/503 JSON on limit or store failure.
  */
-function qpmEnforceFirstPartyIpRateLimit(string $routeClass): void
+function muginEnforceFirstPartyIpRateLimit(string $routeClass): void
 {
     $defaults = [
         'unifiedSearch' => 30,
         'openaiProxy' => 60,
     ];
     $limits = $defaults;
-    if (defined('QPM_FIRST_PARTY_IP_RATE_LIMITS') && is_array(QPM_FIRST_PARTY_IP_RATE_LIMITS)) {
-        foreach (QPM_FIRST_PARTY_IP_RATE_LIMITS as $key => $value) {
+    if (defined('MUGIN_FIRST_PARTY_IP_RATE_LIMITS') && is_array(MUGIN_FIRST_PARTY_IP_RATE_LIMITS)) {
+        foreach (MUGIN_FIRST_PARTY_IP_RATE_LIMITS as $key => $value) {
             $limits[(string) $key] = (int) $value;
         }
     }
@@ -1574,7 +1819,7 @@ function qpmEnforceFirstPartyIpRateLimit(string $routeClass): void
         return;
     }
     try {
-        $result = qpmConsumeIpRateLimit($routeClass, $limit);
+        $result = muginConsumeIpRateLimit($routeClass, $limit);
     } catch (RuntimeException $exception) {
         $status = $exception->getCode() === 503 ? 503 : 500;
         http_response_code($status);
@@ -1599,41 +1844,49 @@ function qpmEnforceFirstPartyIpRateLimit(string $routeClass): void
 }
 
 /**
- * Allowlisted OpenAI models for first-party proxies. Unknown models map to default.
+ * Allowlisted models for the active LLM provider. Unknown models map to default.
+ * Returns the exact allowlisted id (Requesty may be openai-responses/…@region).
+ * Loose matching accepts short ids vs prefixed/regional variants.
  */
-function qpmResolveAllowedOpenAiModel($requestedModel, string $defaultModel = 'gpt-5.5'): string
+function muginResolveAllowedOpenAiModel($requestedModel, string $defaultModel = ''): string
 {
-    $allowed = [
-        'gpt-5.5',
-        'gpt-5.4-nano',
-        'gpt-5.5-chat-latest',
-        'gpt-4o',
-    ];
-    if (defined('QPM_OPENAI_ALLOWED_MODELS') && is_array(QPM_OPENAI_ALLOWED_MODELS)) {
-        $fromConfig = array_values(array_filter(array_map(
-            static function ($value): string {
-                return trim((string) $value);
-            },
-            QPM_OPENAI_ALLOWED_MODELS
-        ), static function (string $value): bool {
-            return $value !== '';
-        }));
-        if ($fromConfig !== []) {
-            $allowed = $fromConfig;
+    $allowed = muginGetLlmAllowedModels();
+    if ($allowed === []) {
+        return '';
+    }
+
+    $pick = static function (string $candidate) use ($allowed): string {
+        $candidate = trim($candidate);
+        if ($candidate === '') {
+            return '';
         }
+        if (in_array($candidate, $allowed, true)) {
+            return $candidate;
+        }
+        $identity = muginNormalizeLlmModelIdentity($candidate);
+        if ($identity === '') {
+            return '';
+        }
+        foreach ($allowed as $entry) {
+            if (muginNormalizeLlmModelIdentity($entry) === $identity) {
+                return $entry;
+            }
+        }
+        return '';
+    };
+
+    $resolved = $pick((string) $requestedModel);
+    if ($resolved !== '') {
+        return $resolved;
     }
-    $requested = trim((string) $requestedModel);
-    if ($requested !== '' && in_array($requested, $allowed, true)) {
-        return $requested;
+    $resolved = $pick($defaultModel);
+    if ($resolved !== '') {
+        return $resolved;
     }
-    $default = trim($defaultModel);
-    if ($default !== '' && in_array($default, $allowed, true)) {
-        return $default;
-    }
-    return $allowed[0] ?? 'gpt-5.5';
+    return $allowed[0];
 }
 
-function qpmClampOpenAiMaxOutputTokens($value, int $default = 2048, int $max = 4096): int
+function muginClampOpenAiMaxOutputTokens($value, int $default = 2048, int $max = 4096): int
 {
     $tokens = (int) $value;
     if ($tokens <= 0) {
@@ -1642,11 +1895,310 @@ function qpmClampOpenAiMaxOutputTokens($value, int $default = 2048, int $max = 4
     return min(max(1, $tokens), max(1, $max));
 }
 
-function qpmClampOpenAiReasoningEffort($value, string $default = 'none'): string
+function muginClampOpenAiReasoningEffort($value, string $default = 'none'): string
 {
     $effort = strtolower(trim((string) $value));
     if (in_array($effort, ['minimal', 'none', 'low', 'medium', 'high', 'xhigh'], true)) {
         return $effort;
     }
     return $default;
+}
+
+/**
+ * Clamp ResponsesReasoning.summary (Requesty OpenAPI: auto|concise|detailed).
+ */
+function muginClampOpenAiReasoningSummary($value, ?string $default = null): ?string
+{
+    $summary = strtolower(trim((string) $value));
+    if (in_array($summary, ['auto', 'concise', 'detailed'], true)) {
+        return $summary;
+    }
+    if ($default === null) {
+        return null;
+    }
+    $fallback = strtolower(trim($default));
+    return in_array($fallback, ['auto', 'concise', 'detailed'], true) ? $fallback : null;
+}
+
+/**
+ * Echo LLM stream text to the client, splitting upstream batches so the UI can
+ * paint more smoothly (Claude/Requesty often deliver medium/large deltas).
+ */
+function muginEchoLlmStreamText(string $content, int $chunkBytes = 24): void
+{
+    if ($content === '') {
+        return;
+    }
+    $len = strlen($content);
+    $chunkBytes = max(8, $chunkBytes);
+    if ($len <= $chunkBytes) {
+        echo $content;
+        @ob_flush();
+        @flush();
+        return;
+    }
+    for ($offset = 0; $offset < $len; ) {
+        $size = min($chunkBytes, $len - $offset);
+        // Avoid splitting UTF-8 multibyte sequences.
+        while (
+            $size > 0
+            && $offset + $size < $len
+            && (ord($content[$offset + $size]) & 0xC0) === 0x80
+        ) {
+            $size--;
+        }
+        if ($size <= 0) {
+            $size = min($chunkBytes, $len - $offset);
+        }
+        echo substr($content, $offset, $size);
+        @ob_flush();
+        @flush();
+        $offset += $size;
+        // Pace batched upstream chunks so the browser can paint between flushes.
+        if ($offset < $len) {
+            usleep(16000);
+        }
+    }
+}
+
+/**
+ * Merge optional ResponsesRequest fields from a prompt onto an API payload.
+ * Field names follow backend/docs/external-apis/requesty-openapi.json.
+ *
+ * @param array<string,mixed> $request
+ * @param array<string,mixed> $prompt
+ * @return array<string,mixed>
+ */
+function muginEnrichResponsesRequestFromPrompt(array $request, array $prompt): array
+{
+    if (isset($prompt['reasoning']) && is_array($prompt['reasoning'])) {
+        $reasoning = isset($request['reasoning']) && is_array($request['reasoning'])
+            ? $request['reasoning']
+            : [];
+        if (array_key_exists('effort', $prompt['reasoning'])) {
+            $reasoning['effort'] = muginClampOpenAiReasoningEffort(
+                $prompt['reasoning']['effort'] ?? null,
+                (string) ($reasoning['effort'] ?? 'none')
+            );
+        }
+        $summary = muginClampOpenAiReasoningSummary($prompt['reasoning']['summary'] ?? null);
+        if ($summary !== null) {
+            $reasoning['summary'] = $summary;
+        }
+        if ($reasoning !== []) {
+            $request['reasoning'] = $reasoning;
+        }
+    }
+
+    if (isset($prompt['text']) && is_array($prompt['text'])) {
+        $text = isset($request['text']) && is_array($request['text']) ? $request['text'] : [];
+        if (isset($prompt['text']['verbosity'])) {
+            $verbosity = strtolower(trim((string) $prompt['text']['verbosity']));
+            if (in_array($verbosity, ['low', 'medium', 'high'], true)) {
+                $text['verbosity'] = $verbosity;
+            }
+        }
+        if (isset($prompt['text']['format']) && is_array($prompt['text']['format'])) {
+            $text['format'] = $prompt['text']['format'];
+        }
+        if ($text !== []) {
+            $request['text'] = $text;
+        }
+    }
+
+    if (isset($prompt['max_output_tokens']) && $prompt['max_output_tokens'] !== null && $prompt['max_output_tokens'] !== '') {
+        $request['max_output_tokens'] = muginClampOpenAiMaxOutputTokens($prompt['max_output_tokens']);
+    } elseif (isset($prompt['max_tokens']) && $prompt['max_tokens'] !== null && $prompt['max_tokens'] !== '') {
+        $request['max_output_tokens'] = muginClampOpenAiMaxOutputTokens($prompt['max_tokens']);
+    }
+
+    if (isset($prompt['temperature']) && $prompt['temperature'] !== null && $prompt['temperature'] !== '') {
+        $temperature = (float) $prompt['temperature'];
+        if ($temperature >= 0.0 && $temperature <= 2.0) {
+            $request['temperature'] = $temperature;
+        }
+    }
+    if (isset($prompt['top_p']) && $prompt['top_p'] !== null && $prompt['top_p'] !== '') {
+        $topP = (float) $prompt['top_p'];
+        if ($topP >= 0.0 && $topP <= 1.0) {
+            $request['top_p'] = $topP;
+        }
+    }
+    if (array_key_exists('parallel_tool_calls', $prompt) && $prompt['parallel_tool_calls'] !== null) {
+        $request['parallel_tool_calls'] = (bool) $prompt['parallel_tool_calls'];
+    }
+    if (array_key_exists('store', $prompt) && $prompt['store'] !== null) {
+        $request['store'] = (bool) $prompt['store'];
+    }
+    if (isset($prompt['truncation']) && is_string($prompt['truncation']) && trim($prompt['truncation']) !== '') {
+        $request['truncation'] = trim($prompt['truncation']);
+    }
+    if (isset($prompt['instructions']) && is_string($prompt['instructions']) && trim($prompt['instructions']) !== '') {
+        $request['instructions'] = trim($prompt['instructions']);
+    }
+
+    return $request;
+}
+
+/**
+ * Per-task model/reasoning/verbosity for the active LLM provider
+ * (MUGIN_LLM_TASK_MODELS[openai|requesty]).
+ * Model names come only from config — code defaults never set a product model id.
+ * Verbosity is Responses API text.verbosity: low|medium|high.
+ *
+ * @return array<string,mixed>
+ */
+function muginGetOpenAiTaskSettings(string $taskKey): array
+{
+    // Structural defaults only (no model names). Models must be in config.
+    $defaults = [
+        'summarizeArticle' => [
+            'reasoningEffort' => 'none',
+            'verbosity' => 'medium',
+        ],
+        'summarizeAbstract' => [
+            'reasoningEffort' => 'none',
+            'verbosity' => 'medium',
+        ],
+        'translate' => [
+            'reasoningEffort' => 'none',
+            'verbosity' => 'medium',
+        ],
+        'semanticIntent' => [
+            'reasoningEffort' => 'none',
+            'verbosity' => 'low',
+        ],
+        'mesh' => [
+            'reasoningEffort' => 'none',
+            'verbosity' => 'medium',
+        ],
+        // Verbosity intentionally omitted: check=low / align=medium in prompt files.
+        'searchflow' => [
+            'reasoningEffort' => 'none',
+        ],
+        'finalRerank' => [
+            'reasoningEffort' => 'none',
+        ],
+    ];
+
+    $key = trim($taskKey);
+    $base = $defaults[$key] ?? [
+        'reasoningEffort' => 'none',
+        'verbosity' => 'medium',
+    ];
+    $raw = [];
+    $taskMap = null;
+    if (defined('MUGIN_LLM_TASK_MODELS') && is_array(MUGIN_LLM_TASK_MODELS)) {
+        $taskMap = MUGIN_LLM_TASK_MODELS;
+    } elseif (defined('MUGIN_OPENAI_TASK_MODELS') && is_array(MUGIN_OPENAI_TASK_MODELS)) {
+        $taskMap = MUGIN_OPENAI_TASK_MODELS;
+    }
+    if (is_array($taskMap)) {
+        $section = muginGetLlmProviderConfigSection($taskMap);
+        $entry = $section[$key] ?? null;
+        if (is_array($entry)) {
+            $raw = $entry;
+        }
+    }
+
+    $model = trim((string) ($raw['model'] ?? ''));
+    $effortDefault = (string) ($base['reasoningEffort'] ?? 'none');
+    $effort = muginClampOpenAiReasoningEffort(
+        $raw['reasoningEffort'] ?? $effortDefault,
+        $effortDefault
+    );
+
+    $out = [
+        'model' => muginResolveAllowedOpenAiModel($model, ''),
+        'reasoningEffort' => $effort,
+    ];
+
+    $hasVerbosity = array_key_exists('verbosity', $raw)
+        || array_key_exists('verbosity', $base);
+    if ($hasVerbosity) {
+        $verbosity = strtolower(trim((string) ($raw['verbosity'] ?? $base['verbosity'] ?? 'medium')));
+        if (!in_array($verbosity, ['low', 'medium', 'high'], true)) {
+            $verbosity = 'medium';
+        }
+        $out['verbosity'] = $verbosity;
+    }
+
+    if (array_key_exists('reasoningSummary', $raw) && $raw['reasoningSummary'] !== null && $raw['reasoningSummary'] !== '') {
+        $summary = muginClampOpenAiReasoningSummary($raw['reasoningSummary']);
+        if ($summary !== null) {
+            $out['reasoningSummary'] = $summary;
+        }
+    }
+    if (array_key_exists('maxOutputTokens', $raw) && $raw['maxOutputTokens'] !== null && $raw['maxOutputTokens'] !== '') {
+        $out['maxOutputTokens'] = muginClampOpenAiMaxOutputTokens($raw['maxOutputTokens']);
+    }
+    if (array_key_exists('temperature', $raw) && $raw['temperature'] !== null && $raw['temperature'] !== '') {
+        $temperature = (float) $raw['temperature'];
+        if ($temperature >= 0.0 && $temperature <= 2.0) {
+            $out['temperature'] = $temperature;
+        }
+    }
+    if (array_key_exists('topP', $raw) && $raw['topP'] !== null && $raw['topP'] !== '') {
+        $topP = (float) $raw['topP'];
+        if ($topP >= 0.0 && $topP <= 1.0) {
+            $out['topP'] = $topP;
+        }
+    }
+    if (array_key_exists('parallelToolCalls', $raw) && $raw['parallelToolCalls'] !== null) {
+        $out['parallelToolCalls'] = (bool) $raw['parallelToolCalls'];
+    }
+    if (array_key_exists('store', $raw) && $raw['store'] !== null) {
+        $out['store'] = (bool) $raw['store'];
+    }
+    if (array_key_exists('truncation', $raw) && is_string($raw['truncation']) && trim($raw['truncation']) !== '') {
+        $out['truncation'] = trim($raw['truncation']);
+    }
+    if (array_key_exists('instructions', $raw) && is_string($raw['instructions']) && trim($raw['instructions']) !== '') {
+        $out['instructions'] = trim($raw['instructions']);
+    }
+
+    return $out;
+}
+
+/**
+ * Frontend-safe subset of active-provider MUGIN_LLM_TASK_MODELS (no secrets).
+ *
+ * @return array<string,array<string,mixed>>
+ */
+function muginGetOpenAiTaskModelsForFrontend(): array
+{
+    $keys = [
+        'summarizeArticle',
+        'summarizeAbstract',
+        'translate',
+        'semanticIntent',
+        'mesh',
+        'searchflow',
+        'finalRerank',
+    ];
+    $out = [];
+    foreach ($keys as $key) {
+        $settings = muginGetOpenAiTaskSettings($key);
+        $entry = [
+            'model' => (string) ($settings['model'] ?? ''),
+            'reasoningEffort' => (string) ($settings['reasoningEffort'] ?? 'none'),
+        ];
+        foreach ([
+            'verbosity',
+            'reasoningSummary',
+            'maxOutputTokens',
+            'temperature',
+            'topP',
+            'parallelToolCalls',
+            'store',
+            'truncation',
+            'instructions',
+        ] as $optionalKey) {
+            if (array_key_exists($optionalKey, $settings)) {
+                $entry[$optionalKey] = $settings[$optionalKey];
+            }
+        }
+        $out[$key] = $entry;
+    }
+    return $out;
 }

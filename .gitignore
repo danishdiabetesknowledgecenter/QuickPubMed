@@ -16,8 +16,8 @@ backend/config/config.php
 
 # Runtime state
 php-proxy/storage/runtime/
-data/runtime/
-data/cache/
+**/data/runtime/
+**/data/cache/
 
 # Domain-specific runtime secrets/config
 data/content/*/domain-config.json

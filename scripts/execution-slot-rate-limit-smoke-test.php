@@ -25,30 +25,30 @@ function assertTrue(bool $condition, string $message): void
 // --- Cache overwrite (Windows rename path) ---
 $namespace = 'audit-smoke';
 $cacheKey = 'audit-smoke-key-' . uniqid('', true);
-qpmPublicSearchWriteCacheValue($namespace, $cacheKey, ['v' => 1], 120);
-$first = qpmPublicSearchReadCacheValue($namespace, $cacheKey);
+muginPublicSearchWriteCacheValue($namespace, $cacheKey, ['v' => 1], 120);
+$first = muginPublicSearchReadCacheValue($namespace, $cacheKey);
 assertTrue(($first['hit'] ?? false) === true && (($first['value']['v'] ?? null) === 1), 'Cache write/read hit for first value');
-qpmPublicSearchWriteCacheValue($namespace, $cacheKey, ['v' => 2], 120);
-$second = qpmPublicSearchReadCacheValue($namespace, $cacheKey);
+muginPublicSearchWriteCacheValue($namespace, $cacheKey, ['v' => 2], 120);
+$second = muginPublicSearchReadCacheValue($namespace, $cacheKey);
 assertTrue(($second['hit'] ?? false) === true && (($second['value']['v'] ?? null) === 2), 'Cache overwrite replaces existing file (Windows-safe rename)');
 
 // --- Execution slot happy path ---
-$slot = qpmPublicSearchAcquireExecutionSlot(10);
+$slot = muginPublicSearchAcquireExecutionSlot(10);
 assertTrue(is_string($slot['token'] ?? null) && $slot['token'] !== '', 'AcquireExecutionSlot returns non-empty token');
 assertTrue(is_string($slot['path'] ?? null) && is_file((string) $slot['path']), 'AcquireExecutionSlot creates lock file');
-qpmPublicSearchReleaseExecutionSlot($slot);
+muginPublicSearchReleaseExecutionSlot($slot);
 assertTrue(!is_file((string) $slot['path']), 'ReleaseExecutionSlot removes lock file');
 
 // --- Capacity full ---
 $held = [];
 try {
     for ($i = 0; $i < 2; $i++) {
-        $held[] = qpmPublicSearchAcquireExecutionSlot(2);
+        $held[] = muginPublicSearchAcquireExecutionSlot(2);
     }
     $threwCapacity = false;
     $capacityMessage = '';
     try {
-        qpmPublicSearchAcquireExecutionSlot(2);
+        muginPublicSearchAcquireExecutionSlot(2);
     } catch (RuntimeException $exception) {
         $threwCapacity = $exception->getCode() === 503;
         $capacityMessage = $exception->getMessage();
@@ -57,7 +57,7 @@ try {
     assertTrue(strpos($capacityMessage, 'temporarily full') !== false, 'Capacity full uses capacity message (not unavailable)');
 } finally {
     foreach ($held as $heldSlot) {
-        qpmPublicSearchReleaseExecutionSlot($heldSlot);
+        muginPublicSearchReleaseExecutionSlot($heldSlot);
     }
 }
 
@@ -67,13 +67,13 @@ $client = [
     'rate_limit_per_minute' => 2,
     'get_rate_limit_per_minute' => 2,
 ];
-$firstLimit = qpmPublicSearchConsumeRateLimit($client, 'POST');
+$firstLimit = muginPublicSearchConsumeRateLimit($client, 'POST');
 assertTrue(($firstLimit['isLimited'] ?? true) === false, 'First rate-limit consume is not limited');
 assertTrue((int) ($firstLimit['remaining'] ?? -1) === 1, 'First rate-limit consume leaves remaining=1');
-$secondLimit = qpmPublicSearchConsumeRateLimit($client, 'POST');
+$secondLimit = muginPublicSearchConsumeRateLimit($client, 'POST');
 assertTrue(($secondLimit['isLimited'] ?? true) === false, 'Second rate-limit consume is not limited');
 assertTrue((int) ($secondLimit['remaining'] ?? -1) === 0, 'Second rate-limit consume leaves remaining=0');
-$thirdLimit = qpmPublicSearchConsumeRateLimit($client, 'POST');
+$thirdLimit = muginPublicSearchConsumeRateLimit($client, 'POST');
 assertTrue(($thirdLimit['isLimited'] ?? false) === true, 'Third rate-limit consume is limited');
 assertTrue((int) ($thirdLimit['status'] ?? 0) === 429, 'Third rate-limit consume returns status 429');
 

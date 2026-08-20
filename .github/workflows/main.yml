@@ -32,10 +32,8 @@ jobs:
           node-version: '23'
           cache: 'npm'
 
-      - name: 🧹 Clean npm Cache and Reinstall Dependencies
-        run: |
-          rm -rf node_modules package-lock.json
-          npm install
+      - name: 📦 Install locked dependencies
+        run: npm ci
 
       - name: 🏗️ Build Project
         env:
@@ -81,6 +79,8 @@ jobs:
              config.php
              config/config.php
              runtime/**
+             data/cache/**
+             data/runtime/**
              *.lock
 
       - name: 📂 Deploy public API to FTP Server

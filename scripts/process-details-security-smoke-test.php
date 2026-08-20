@@ -23,24 +23,29 @@ function assertTrue(bool $condition, string $message): void
 }
 
 assertTrue(
-    (qpmPublicSearchGetPublicProgressMessageCopy('semanticSearchProgressSemanticIntent')['dk'] ?? '')
-        === 'Fortolker søgeintentionen.',
-    'Backend SSE uses the intent progress text'
+    (muginPublicSearchGetPublicProgressMessageCopy('semanticSearchProgressSemanticIntent')['dk'] ?? '')
+        === 'Fortolker og tilpasser søgningen til de valgte databaser.',
+    'Backend SSE uses the combined intent+adaptation progress text'
 );
 assertTrue(
-    (qpmPublicSearchGetPublicProgressMessageCopy('semanticSearchProgressSemanticQuery')['dk'] ?? '')
-        === 'Tilpasser søgningen til de valgte databaser.',
-    'Backend SSE uses the source-adaptation progress text'
+    (muginPublicSearchGetPublicProgressMessageCopy('semanticSearchProgressSemanticQuery')['dk'] ?? '')
+        === 'Fortolker og tilpasser søgningen til de valgte databaser.',
+    'Legacy semanticQuery key aliases the combined intent progress text'
+);
+assertTrue(
+    (muginPublicSearchGetPublicProgressMessageCopy('semanticSearchProgressRerankSingle')['dk'] ?? '')
+        === 'Rangerer kandidaterne.',
+    'Backend SSE has a single-source rerank progress text'
 );
 
 // 1. Collection is opt-in: no includeProcessDetails flag -> no collector, no
 // forced side effects on unrelated responseOptions.
 $request1 = ['responseOptions' => []];
 assertTrue(
-    qpmPublicSearchProcessDetailsWantsCollection($request1) === false,
+    muginPublicSearchProcessDetailsWantsCollection($request1) === false,
     'WantsCollection is false when includeProcessDetails is unset'
 );
-$collector1 = qpmPublicSearchProcessDetailsEnsureCollector($request1);
+$collector1 = muginPublicSearchProcessDetailsEnsureCollector($request1);
 assertTrue($collector1 === null, 'EnsureCollector returns null when includeProcessDetails is unset');
 assertTrue(!isset($request1['_processDetails']), 'EnsureCollector does not create a collector when opted out');
 assertTrue(
@@ -52,14 +57,14 @@ assertTrue(
 // flags the export path needs, without leaking them as a public promise
 // beyond this request-local array.
 $request2 = ['responseOptions' => ['includeProcessDetails' => true]];
-$collector2 = qpmPublicSearchProcessDetailsEnsureCollector($request2);
+$collector2 = muginPublicSearchProcessDetailsEnsureCollector($request2);
 assertTrue(is_array($collector2), 'EnsureCollector returns a collector when includeProcessDetails is true');
 assertTrue(
     $request2['responseOptions']['includeResolvedQueries'] === true
         && $request2['responseOptions']['includeDiagnostics'] === true,
     'EnsureCollector forces includeResolvedQueries/includeDiagnostics on when collecting'
 );
-$collectorAgain = qpmPublicSearchProcessDetailsEnsureCollector($request2);
+$collectorAgain = muginPublicSearchProcessDetailsEnsureCollector($request2);
 assertTrue(
     $request2['_processDetails'] === $collectorAgain,
     'EnsureCollector reuses the same collector on repeated calls (no duplicate collectors)'
@@ -80,7 +85,7 @@ $dirty = [
     'headers' => ['X-Api-Key' => 'must-not-leak'],
     'safeTopLevel' => 'keep-me',
 ];
-$clean = qpmPublicSearchProcessDetailsSanitize($dirty);
+$clean = muginPublicSearchProcessDetailsSanitize($dirty);
 assertTrue($clean['apiKey'] === '[redacted]', 'Top-level apiKey is redacted');
 assertTrue($clean['nested']['Authorization'] === '[redacted]', 'Nested Authorization is redacted regardless of case');
 assertTrue($clean['nested']['deeper']['access_token'] === '[redacted]', 'Deeply nested access_token is redacted');
@@ -91,19 +96,19 @@ assertTrue($clean['safeTopLevel'] === 'keep-me', 'Non-sensitive top-level fields
 
 // 4. SetStep/SetSource route every payload through the same sanitizer, so a
 // caller can never bypass redaction by writing directly into the collector.
-$collector3 = qpmPublicSearchProcessDetailsCreate();
-qpmPublicSearchProcessDetailsSetStep($collector3, 'semanticIntent', ['apiKey' => 'must-not-leak', 'ok' => true]);
-$exported3 = qpmPublicSearchProcessDetailsExport($collector3);
+$collector3 = muginPublicSearchProcessDetailsCreate();
+muginPublicSearchProcessDetailsSetStep($collector3, 'semanticIntent', ['apiKey' => 'must-not-leak', 'ok' => true]);
+$exported3 = muginPublicSearchProcessDetailsExport($collector3);
 assertTrue(
     ($exported3['processStepDetails'][0]['payload']['apiKey'] ?? null) === '[redacted]',
     'SetStep sanitizes payloads before storing them'
 );
-qpmPublicSearchProcessDetailsSetSource($collector3, [
+muginPublicSearchProcessDetailsSetSource($collector3, [
     'source' => 'pubmed',
     'query' => 'diabetes',
     'request' => ['authorization' => 'must-not-leak', 'query' => 'diabetes'],
 ]);
-$exported3b = qpmPublicSearchProcessDetailsExport($collector3);
+$exported3b = muginPublicSearchProcessDetailsExport($collector3);
 assertTrue(
     ($exported3b['sourceQueryDetails'][0]['request']['authorization'] ?? null) === '[redacted]',
     'SetSource sanitizes request payloads before storing them'
@@ -122,7 +127,7 @@ $rawSourceResult = [
     'rawUpstreamBody' => 'must-not-leak',
     'debugTrace' => ['must-not-leak'],
 ];
-$safeDetail = qpmPublicSearchProcessDetailsBuildSafeSourceDetail(
+$safeDetail = muginPublicSearchProcessDetailsBuildSafeSourceDetail(
     'pubmed',
     'diabetes',
     ['query' => 'diabetes'],
@@ -149,7 +154,7 @@ assertTrue(
 // 6. TruncateIds caps disclosed ids to the given limit and reports the true
 // count/truncation flag rather than silently hiding how much was cut.
 $manyIds = array_map(static fn($i) => "id-$i", range(1, 25));
-$truncated = qpmPublicSearchProcessDetailsTruncateIds($manyIds, 10);
+$truncated = muginPublicSearchProcessDetailsTruncateIds($manyIds, 10);
 assertTrue(count($truncated['ids']) === 10, 'TruncateIds caps the exposed id list to the limit');
 assertTrue($truncated['truncated'] === true, 'TruncateIds flags truncation when the input exceeds the limit');
 assertTrue($truncated['count'] === 25, 'TruncateIds reports the true total count even when truncated');
@@ -158,7 +163,7 @@ assertTrue($truncated['count'] === 25, 'TruncateIds reports the true total count
 // active, but still safely computes elapsed time / status (used unconditionally by callers).
 $nullCollector = null;
 $progressCalls = [];
-qpmPublicSearchProcessDetailsRecordSourceCompletion(
+muginPublicSearchProcessDetailsRecordSourceCompletion(
     $nullCollector,
     'pubmed',
     'diabetes',
@@ -178,22 +183,22 @@ assertTrue(
 
 // 8. Active collectors stream bounded, sanitized source and step payloads as
 // soon as they are recorded, without waiting for the final response.
-$streamCollector = qpmPublicSearchProcessDetailsCreate();
+$streamCollector = muginPublicSearchProcessDetailsCreate();
 $streamCalls = [];
 $streamCallback = static function ($stepId, $message, $context) use (&$streamCalls): void {
     $streamCalls[] = [$stepId, $context];
 };
-qpmPublicSearchProcessDetailsSetStep($streamCollector, 'rerank', [
+muginPublicSearchProcessDetailsSetStep($streamCollector, 'rerank', [
     'candidateCount' => 418,
     'apiKey' => 'must-not-leak',
 ]);
-qpmPublicSearchProcessDetailsEmitStep($streamCollector, 'rerank', $streamCallback);
+muginPublicSearchProcessDetailsEmitStep($streamCollector, 'rerank', $streamCallback);
 assertTrue(
     ($streamCalls[0][1]['detailOnly'] ?? false) === true,
     'Step detail event is marked detailOnly so timing/order is not changed'
 );
 $streamCalls = [];
-qpmPublicSearchProcessDetailsEmitStep($streamCollector, 'rerank', $streamCallback, true);
+muginPublicSearchProcessDetailsEmitStep($streamCollector, 'rerank', $streamCallback, true);
 assertTrue(
     ($streamCalls[0][1]['status'] ?? '') === 'completed'
         && ($streamCalls[0][1]['detailOnly'] ?? false) !== true
@@ -209,7 +214,7 @@ assertTrue(
     'Streamed step detail remains redacted'
 );
 $streamCalls = [];
-qpmPublicSearchProcessDetailsEmitCompletedPayload(
+muginPublicSearchProcessDetailsEmitCompletedPayload(
     'mesh',
     ['queries' => [['input' => 'diabetes']], 'authorization' => 'must-not-leak'],
     $streamCallback
@@ -225,7 +230,7 @@ assertTrue(
 );
 
 $streamCalls = [];
-qpmPublicSearchProcessDetailsRecordSourceCompletion(
+muginPublicSearchProcessDetailsRecordSourceCompletion(
     $streamCollector,
     'openAlex',
     'diabetes',
@@ -248,7 +253,7 @@ assertTrue(
     ($streamCalls[0][1]['sourceQueryDetail']['request']['apiKey'] ?? null) === '[redacted]',
     'Streamed source request parameters remain redacted'
 );
-$ssePayload = qpmPublicSearchBuildStreamProgressPayload(
+$ssePayload = muginPublicSearchBuildStreamProgressPayload(
     ['responseOptions' => ['language' => 'da']],
     (string) $streamCalls[0][0],
     '',

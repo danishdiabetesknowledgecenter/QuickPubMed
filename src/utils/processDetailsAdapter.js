@@ -15,6 +15,7 @@ const SOURCE_STEP_IDS = new Set(["pubmed", "semanticScholar", "openAlex", "elici
 const FOLDED_STEP_IDS = {
   // Empty prepare folds into intent; payload is nested as searchBasis by backend.
   prepare: "semanticIntent",
+  semanticQuery: "semanticIntent",
   optimize: "mesh",
   finalizeCollect: "rerank",
   finalizeValidateDoiSource: "finalizeValidateDoiFetch",

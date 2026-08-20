@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Summarize QuickPubMed telemetry JSONL logs.
+ * Summarize Mugin Scholar telemetry JSONL logs.
  *
- * Reads all qpm-telemetry-YYYY-MM-DD.jsonl files from the runtime log directory
+ * Reads all mugin-telemetry-YYYY-MM-DD.jsonl files from the runtime log directory
  * (default: data/runtime) and prints aggregate statistics across event types.
  *
  * Usage:
@@ -11,7 +11,7 @@
  *   node scripts/summarize-telemetry.js --json > summary.json
  *
  * Flags:
- *   --dir <path>    Directory containing qpm-telemetry-*.jsonl files (default: data/runtime)
+ *   --dir <path>    Directory containing mugin-telemetry-*.jsonl files (default: data/runtime)
  *   --days <n>      Only include files from the last N days (default: 30)
  *   --json          Emit a JSON report instead of the human-readable text summary
  *   --event <name>  Only include a single event type
@@ -59,7 +59,7 @@ function listTelemetryFiles(dir, days) {
   const cutoffMs = Date.now() - days * 24 * 60 * 60 * 1000;
   const files = [];
   for (const name of entries) {
-    if (!/^qpm-telemetry-\d{4}-\d{2}-\d{2}\.jsonl$/.test(name)) continue;
+    if (!/^mugin-telemetry-\d{4}-\d{2}-\d{2}\.jsonl$/.test(name)) continue;
     const full = path.join(dir, name);
     let stat;
     try {
@@ -279,7 +279,7 @@ async function readFile(file, eventFilter, acc) {
 
 function formatText(summary, files) {
   const lines = [];
-  lines.push(`QuickPubMed telemetry summary`);
+  lines.push(`Mugin Scholar telemetry summary`);
   lines.push(`Files scanned: ${files.length}`);
   lines.push(`Total events: ${summary.totalEvents}`);
   lines.push("");

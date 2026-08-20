@@ -13,11 +13,11 @@ export const SOURCE_RATE_LIMIT_KEYS = ["elicit", "openAlex", "semanticScholar"];
 export function getSourceRateLimitStorageKey(sourceKey) {
   switch (String(sourceKey || "").trim()) {
     case "elicit":
-      return "qpmElicitRateLimitInfo";
+      return "muginElicitRateLimitInfo";
     case "openAlex":
-      return "qpmOpenAlexRateLimitInfo";
+      return "muginOpenAlexRateLimitInfo";
     case "semanticScholar":
-      return "qpmSemanticScholarRateLimitInfo";
+      return "muginSemanticScholarRateLimitInfo";
     default:
       return "";
   }

@@ -11,7 +11,7 @@ if (!file_exists($configPath)) {
 require_once $configPath;
 require_once __DIR__ . '/NlmApiHelpers.php';
 
-qpmApplyNlmCorsHeaders('GET, POST, OPTIONS', 'application/json');
+muginApplyNlmCorsHeaders('GET, POST, OPTIONS', 'application/json');
 @ini_set('max_execution_time', '60');
 @set_time_limit(60);
 
@@ -20,7 +20,7 @@ qpmApplyNlmCorsHeaders('GET, POST, OPTIONS', 'application/json');
  *
  * @return bool
  */
-function qpmIsLocalElicitRequest(): bool
+function muginIsLocalElicitRequest(): bool
 {
     $requestHost = strtolower((string)($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
     return $requestHost !== '' && (
@@ -36,12 +36,12 @@ function qpmIsLocalElicitRequest(): bool
  * @param array<string,mixed> $options
  * @return array{ok: bool, status: int, body: string, content_type: string, error: string, response_headers: array<int,string>}
  */
-function qpmElicitHttpRequest(string $url, array $options = []): array
+function muginElicitHttpRequest(string $url, array $options = []): array
 {
     $method = strtoupper((string)($options['method'] ?? 'GET'));
     $headers = $options['headers'] ?? [];
     $timeout = (int)($options['timeout'] ?? 30);
-    $userAgent = (string)($options['user_agent'] ?? 'QuickPubMed/1.0');
+    $userAgent = (string)($options['user_agent'] ?? 'MuginScholar/1.0');
     $body = (string)($options['body'] ?? '');
 
     if (function_exists('curl_init')) {
@@ -158,10 +158,10 @@ function qpmElicitHttpRequest(string $url, array $options = []): array
  * @param array<int,string> $headers
  * @return array{ok: bool, status: int, body: string, error: string, response_headers: array<int,string>}
  */
-function qpmElicitLocalDevProxyRequest(string $body, array $headers): array
+function muginElicitLocalDevProxyRequest(string $body, array $headers): array
 {
     $hosts = ['localhost', '127.0.0.1'];
-    if (!qpmIsLocalElicitRequest()) {
+    if (!muginIsLocalElicitRequest()) {
         return [
             'ok' => false,
             'status' => 0,
@@ -174,10 +174,10 @@ function qpmElicitLocalDevProxyRequest(string $body, array $headers): array
     $errors = [];
     foreach ($hosts as $host) {
         $url = 'http://' . $host . ':5173/elicit-api/api/v2/search/papers';
-        $result = qpmElicitHttpRequest($url, [
+        $result = muginElicitHttpRequest($url, [
             'method' => 'POST',
             'timeout' => 45,
-            'user_agent' => 'QuickPubMed/1.0',
+            'user_agent' => 'MuginScholar/1.0',
             'headers' => $headers,
             'body' => $body,
         ]);
@@ -210,7 +210,7 @@ function qpmElicitLocalDevProxyRequest(string $body, array $headers): array
  * @param array<int,string> $headers
  * @return array<string,string>
  */
-function qpmElicitBuildHeaderMap(array $headers): array
+function muginElicitBuildHeaderMap(array $headers): array
 {
     $headerMap = [];
     foreach ($headers as $line) {
@@ -237,7 +237,7 @@ function qpmElicitBuildHeaderMap(array $headers): array
  * @param string $value
  * @return ?int
  */
-function qpmElicitParseIntegerHeaderValue(string $value): ?int
+function muginElicitParseIntegerHeaderValue(string $value): ?int
 {
     $normalizedValue = trim($value);
     if ($normalizedValue === '') {
@@ -258,7 +258,7 @@ function qpmElicitParseIntegerHeaderValue(string $value): ?int
  * @param string $retryAfterValue
  * @return array{resetAt: string, resetInSeconds: ?int}
  */
-function qpmElicitParseResetWindow(string $resetValue, string $retryAfterValue): array
+function muginElicitParseResetWindow(string $resetValue, string $retryAfterValue): array
 {
     $nowTs = time();
     $targetTs = 0;
@@ -266,7 +266,7 @@ function qpmElicitParseResetWindow(string $resetValue, string $retryAfterValue):
     $normalizedRetryAfterValue = trim($retryAfterValue);
 
     if ($normalizedResetValue !== '') {
-        $numericReset = qpmElicitParseIntegerHeaderValue($normalizedResetValue);
+        $numericReset = muginElicitParseIntegerHeaderValue($normalizedResetValue);
         if ($numericReset !== null) {
             if ($numericReset > 1000000000000) {
                 $targetTs = (int)floor($numericReset / 1000);
@@ -314,22 +314,22 @@ function qpmElicitParseResetWindow(string $resetValue, string $retryAfterValue):
  * @param int $status
  * @return array<string,mixed>
  */
-function qpmElicitBuildRateLimitInfo(array $headers, int $status): array
+function muginElicitBuildRateLimitInfo(array $headers, int $status): array
 {
-    $headerMap = qpmElicitBuildHeaderMap($headers);
-    $limit = qpmElicitParseIntegerHeaderValue((string)($headerMap['x-ratelimit-limit'] ?? ''));
+    $headerMap = muginElicitBuildHeaderMap($headers);
+    $limit = muginElicitParseIntegerHeaderValue((string)($headerMap['x-ratelimit-limit'] ?? ''));
     if ($limit !== null && $limit <= 0) {
         $limit = null;
     }
     $remaining = null;
-    $remainingValue = qpmElicitParseIntegerHeaderValue((string)($headerMap['x-ratelimit-remaining'] ?? ''));
+    $remainingValue = muginElicitParseIntegerHeaderValue((string)($headerMap['x-ratelimit-remaining'] ?? ''));
     if ($remainingValue !== null) {
         $remaining = max(0, $remainingValue);
     } elseif ($status === 429) {
         $remaining = 0;
     }
 
-    $resetWindow = qpmElicitParseResetWindow(
+    $resetWindow = muginElicitParseResetWindow(
         (string)($headerMap['x-ratelimit-reset'] ?? ''),
         (string)($headerMap['retry-after'] ?? '')
     );
@@ -342,8 +342,8 @@ function qpmElicitBuildRateLimitInfo(array $headers, int $status): array
         'status' => $status,
         'isLimited' => $status === 429 || ($remaining !== null && $remaining <= 0),
     ];
-    if (function_exists('qpmStoreSourceRateLimitSnapshot')) {
-        qpmStoreSourceRateLimitSnapshot('elicit', $rateLimit);
+    if (function_exists('muginStoreSourceRateLimitSnapshot')) {
+        muginStoreSourceRateLimitSnapshot('elicit', $rateLimit);
     }
     return $rateLimit;
 }
@@ -354,7 +354,7 @@ function qpmElicitBuildRateLimitInfo(array $headers, int $status): array
  * @param mixed $value
  * @return string
  */
-function qpmNormalizeElicitPmid($value): string
+function muginNormalizeElicitPmid($value): string
 {
     $pmid = trim((string) $value);
     return preg_match('/^[0-9]+$/', $pmid) ? $pmid : '';
@@ -366,7 +366,7 @@ function qpmNormalizeElicitPmid($value): string
  * @param mixed $value
  * @return string
  */
-function qpmNormalizeElicitDoi($value): string
+function muginNormalizeElicitDoi($value): string
 {
     $doi = trim((string) $value);
     if ($doi === '') {
@@ -383,7 +383,7 @@ function qpmNormalizeElicitDoi($value): string
  * @param mixed $value
  * @return array<int,string>
  */
-function qpmNormalizeElicitTypeTags($value): array
+function muginNormalizeElicitTypeTags($value): array
 {
     $values = is_array($value) ? $value : [$value];
     $seen = [];
@@ -419,7 +419,7 @@ function qpmNormalizeElicitTypeTags($value): array
  * @param mixed $value
  * @return array<int,string>
  */
-function qpmNormalizeElicitKeywords($value): array
+function muginNormalizeElicitKeywords($value): array
 {
     $values = is_array($value) ? $value : [$value];
     $seen = [];
@@ -446,7 +446,7 @@ function qpmNormalizeElicitKeywords($value): array
  * @param mixed $value
  * @return ?int
  */
-function qpmNormalizeElicitYear($value): ?int
+function muginNormalizeElicitYear($value): ?int
 {
     if ($value === null || $value === '') {
         return null;
@@ -474,7 +474,7 @@ function qpmNormalizeElicitYear($value): ?int
  * @param mixed $value
  * @return ?int
  */
-function qpmNormalizeElicitEpoch($value): ?int
+function muginNormalizeElicitEpoch($value): ?int
 {
     if ($value === null || $value === '' || !is_numeric($value)) {
         return null;
@@ -492,7 +492,7 @@ function qpmNormalizeElicitEpoch($value): ?int
  * @param mixed $value
  * @return ?int
  */
-function qpmNormalizeElicitQuartile($value): ?int
+function muginNormalizeElicitQuartile($value): ?int
 {
     if ($value === null || $value === '' || !is_numeric($value)) {
         return null;
@@ -510,7 +510,7 @@ function qpmNormalizeElicitQuartile($value): ?int
  * @param mixed $value
  * @return ?bool
  */
-function qpmNormalizeElicitBoolean($value): ?bool
+function muginNormalizeElicitBoolean($value): ?bool
 {
     if ($value === null || $value === '') {
         return null;
@@ -537,7 +537,7 @@ function qpmNormalizeElicitBoolean($value): ?bool
  * @param mixed $value
  * @return string
  */
-function qpmNormalizeElicitRetracted($value): string
+function muginNormalizeElicitRetracted($value): string
 {
     $normalized = strtolower(trim((string) $value));
     if ($normalized === '') {
@@ -564,7 +564,7 @@ function qpmNormalizeElicitRetracted($value): string
  * @param array<string,mixed> $decoded
  * @return string
  */
-function qpmExtractElicitErrorMessage(array $decoded): string
+function muginExtractElicitErrorMessage(array $decoded): string
 {
     $error = $decoded['error'] ?? '';
     if (is_string($error) && trim($error) !== '') {
@@ -592,7 +592,7 @@ function qpmExtractElicitErrorMessage(array $decoded): string
  * @param array<string,mixed> $result
  * @return ?array<string,mixed>
  */
-function qpmDecodeElicitResponseBody(array $result): ?array
+function muginDecodeElicitResponseBody(array $result): ?array
 {
     $decoded = json_decode((string)($result['body'] ?? ''), true);
     return is_array($decoded) ? $decoded : null;
@@ -605,7 +605,7 @@ function qpmDecodeElicitResponseBody(array $result): ?array
  * @param array<string,mixed> $filters
  * @return array<string,mixed>
  */
-function qpmBuildElicitRetryHints(string $message, array $filters): array
+function muginBuildElicitRetryHints(string $message, array $filters): array
 {
     $normalized = strtolower(trim($message));
     if ($normalized === '') {
@@ -685,10 +685,10 @@ if (empty($params)) {
 }
 
 $query = trim((string) ($params['query'] ?? ''));
-$configuredLimit = qpmGetSemanticSourceLimit('elicit', 100);
+$configuredLimit = muginGetSemanticSourceLimit('elicit', 100);
 $limit = (int) ($params['limit'] ?? $configuredLimit);
 $rawFilters = isset($params['filters']) && is_array($params['filters']) ? $params['filters'] : [];
-$debugSearchFlow = qpmIsSearchFlowDebugRequest($params);
+$debugSearchFlow = muginIsSearchFlowDebugRequest($params);
 if ($limit <= 0) {
     $limit = $configuredLimit;
 }
@@ -720,23 +720,23 @@ $requestHeaders = [
     'Authorization: Bearer ' . $apiKey,
 ];
 $filters = [];
-$typeTags = qpmNormalizeElicitTypeTags($rawFilters['typeTags'] ?? []);
+$typeTags = muginNormalizeElicitTypeTags($rawFilters['typeTags'] ?? []);
 if (!empty($typeTags)) {
     $filters['typeTags'] = $typeTags;
 }
-$includeKeywords = qpmNormalizeElicitKeywords($rawFilters['includeKeywords'] ?? []);
+$includeKeywords = muginNormalizeElicitKeywords($rawFilters['includeKeywords'] ?? []);
 if (!empty($includeKeywords)) {
     $filters['includeKeywords'] = $includeKeywords;
 }
-$excludeKeywords = qpmNormalizeElicitKeywords($rawFilters['excludeKeywords'] ?? []);
+$excludeKeywords = muginNormalizeElicitKeywords($rawFilters['excludeKeywords'] ?? []);
 if (!empty($excludeKeywords)) {
     $filters['excludeKeywords'] = $excludeKeywords;
 }
-$minYear = qpmNormalizeElicitYear($rawFilters['minYear'] ?? null);
+$minYear = muginNormalizeElicitYear($rawFilters['minYear'] ?? null);
 if ($minYear !== null) {
     $filters['minYear'] = $minYear;
 }
-$maxYear = qpmNormalizeElicitYear($rawFilters['maxYear'] ?? null);
+$maxYear = muginNormalizeElicitYear($rawFilters['maxYear'] ?? null);
 if ($maxYear !== null) {
     $filters['maxYear'] = $maxYear;
 }
@@ -745,27 +745,27 @@ if (isset($filters['minYear'], $filters['maxYear']) && $filters['minYear'] > $fi
     $filters['minYear'] = $filters['maxYear'];
     $filters['maxYear'] = $swap;
 }
-$minEpochS = qpmNormalizeElicitEpoch($rawFilters['minEpochS'] ?? null);
+$minEpochS = muginNormalizeElicitEpoch($rawFilters['minEpochS'] ?? null);
 if ($minEpochS !== null) {
     $filters['minEpochS'] = $minEpochS;
 }
-$maxEpochS = qpmNormalizeElicitEpoch($rawFilters['maxEpochS'] ?? null);
+$maxEpochS = muginNormalizeElicitEpoch($rawFilters['maxEpochS'] ?? null);
 if ($maxEpochS !== null) {
     $filters['maxEpochS'] = $maxEpochS;
 }
-$maxQuartile = qpmNormalizeElicitQuartile($rawFilters['maxQuartile'] ?? null);
+$maxQuartile = muginNormalizeElicitQuartile($rawFilters['maxQuartile'] ?? null);
 if ($maxQuartile !== null) {
     $filters['maxQuartile'] = $maxQuartile;
 }
-$hasPdf = qpmNormalizeElicitBoolean($rawFilters['hasPdf'] ?? null);
+$hasPdf = muginNormalizeElicitBoolean($rawFilters['hasPdf'] ?? null);
 if ($hasPdf !== null) {
     $filters['hasPdf'] = $hasPdf;
 }
-$pubmedOnly = qpmNormalizeElicitBoolean($rawFilters['pubmedOnly'] ?? null);
+$pubmedOnly = muginNormalizeElicitBoolean($rawFilters['pubmedOnly'] ?? null);
 if ($pubmedOnly !== null) {
     $filters['pubmedOnly'] = $pubmedOnly;
 }
-$retracted = qpmNormalizeElicitRetracted($rawFilters['retracted'] ?? '');
+$retracted = muginNormalizeElicitRetracted($rawFilters['retracted'] ?? '');
 if ($retracted !== '') {
     $filters['retracted'] = $retracted;
 }
@@ -782,12 +782,12 @@ $requestBody = json_encode($requestPayload);
 
 $elicitUrl = 'https://elicit.com/api/v2/search/papers';
 
-$result = qpmElicitLocalDevProxyRequest($requestBody, $requestHeaders);
+$result = muginElicitLocalDevProxyRequest($requestBody, $requestHeaders);
 if (!$result['ok']) {
-    $result = qpmElicitHttpRequest($elicitUrl, [
+    $result = muginElicitHttpRequest($elicitUrl, [
         'method' => 'POST',
         'timeout' => 45,
-        'user_agent' => 'QuickPubMed/1.0',
+        'user_agent' => 'MuginScholar/1.0',
         'headers' => $requestHeaders,
         'body' => $requestBody,
     ]);
@@ -799,19 +799,19 @@ if (!$result['ok']) {
     exit;
 }
 
-$decoded = qpmDecodeElicitResponseBody($result);
+$decoded = muginDecodeElicitResponseBody($result);
 if (!is_array($decoded)) {
     http_response_code(502);
     echo json_encode(['error' => 'Invalid response from Elicit']);
     exit;
 }
 
-$rateLimit = qpmElicitBuildRateLimitInfo(
+$rateLimit = muginElicitBuildRateLimitInfo(
     is_array($result['response_headers'] ?? null) ? $result['response_headers'] : [],
     (int)($result['status'] ?? 0)
 );
-$upstreamError = qpmExtractElicitErrorMessage($decoded);
-$retryHints = qpmBuildElicitRetryHints($upstreamError, $filters);
+$upstreamError = muginExtractElicitErrorMessage($decoded);
+$retryHints = muginBuildElicitRetryHints($upstreamError, $filters);
 
 $papers = $decoded['papers'] ?? [];
 if (!is_array($papers)) {
@@ -828,8 +828,8 @@ foreach ($papers as $index => $paper) {
     if (!is_array($paper)) {
         continue;
     }
-    $pmid = qpmNormalizeElicitPmid($paper['pmid'] ?? '');
-    $doi = qpmNormalizeElicitDoi($paper['doi'] ?? '');
+    $pmid = muginNormalizeElicitPmid($paper['pmid'] ?? '');
+    $doi = muginNormalizeElicitDoi($paper['doi'] ?? '');
     if ($pmid === '' && $doi === '') {
         if ($debugSearchFlow) {
             $debugDroppedReasons['missing_pmid_and_doi'] = (int) ($debugDroppedReasons['missing_pmid_and_doi'] ?? 0) + 1;

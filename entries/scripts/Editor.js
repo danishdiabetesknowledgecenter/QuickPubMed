@@ -6,96 +6,96 @@ import { sanitizeHtml } from "@/utils/htmlSanitizer.js";
 
 applyThemeFromConfig();
 
-const root = document.getElementById("qpm-editor");
+const root = document.getElementById("mugin-editor");
 if (!root) {
-  throw new Error("Missing #qpm-editor root");
+  throw new Error("Missing #mugin-editor root");
 }
 
 function ensureEditorMarkup() {
-  root.classList.add("qpm-editor");
-  if (document.getElementById("qpm-editor-login")) return;
+  root.classList.add("mugin-editor");
+  if (document.getElementById("mugin-editor-login")) return;
 
   root.innerHTML = `
-    <section id="qpm-editor-login">
-      <div class="qpm-editor-row">
-        <input id="qpm-editor-user" class="qpm-editor-input" type="text" placeholder="Brugernavn" />
-        <input id="qpm-editor-password" class="qpm-editor-input" type="password" placeholder="Password" />
+    <section id="mugin-editor-login">
+      <div class="mugin-editor-row">
+        <input id="mugin-editor-user" class="mugin-editor-input" type="text" placeholder="Brugernavn" />
+        <input id="mugin-editor-password" class="mugin-editor-input" type="password" placeholder="Password" />
       </div>
-      <div class="qpm-editor-row">
-        <button id="qpm-editor-login-btn" class="qpm-editor-btn" type="button">Log ind</button>
+      <div class="mugin-editor-row">
+        <button id="mugin-editor-login-btn" class="mugin-editor-btn" type="button">Log ind</button>
       </div>
     </section>
 
-    <section id="qpm-editor-app" class="qpm-editor-hidden">
-      <div class="qpm-editor-row">
-        <select id="qpm-editor-type" class="qpm-editor-select">
+    <section id="mugin-editor-app" class="mugin-editor-hidden">
+      <div class="mugin-editor-row">
+        <select id="mugin-editor-type" class="mugin-editor-select">
           <option value="topics">Topics</option>
           <option value="limits">Limits</option>
           <option value="limits-settings">Limits settings</option>
           <option value="prompt-rules">Prompt rules</option>
         </select>
-        <select id="qpm-editor-domain" class="qpm-editor-select"></select>
+        <select id="mugin-editor-domain" class="mugin-editor-select"></select>
       </div>
 
-      <div id="qpm-editor-topic-tools" class="qpm-editor-row">
-        <div class="qpm-editor-search-wrap">
-          <input id="qpm-editor-tree-search" class="qpm-editor-input qpm-editor-search-input" type="text" placeholder="Søg i emner (id eller navn)" />
-          <button id="qpm-editor-tree-search-clear" class="qpm-editor-search-clear qpm-editor-hidden" type="button" aria-label="Nulstil søgning">×</button>
+      <div id="mugin-editor-topic-tools" class="mugin-editor-row">
+        <div class="mugin-editor-search-wrap">
+          <input id="mugin-editor-tree-search" class="mugin-editor-input mugin-editor-search-input" type="text" placeholder="Søg i emner (id eller navn)" />
+          <button id="mugin-editor-tree-search-clear" class="mugin-editor-search-clear mugin-editor-hidden" type="button" aria-label="Nulstil søgning">×</button>
         </div>
-        <button id="qpm-editor-collapse-all-btn" class="qpm-editor-btn qpm-editor-btn-secondary" type="button">Fold ud / Fold sammen</button>
-        <label class="qpm-editor-sort-mode-label">
-          <input id="qpm-editor-sort-mode" class="qpm-editor-sort-mode-checkbox" type="checkbox" />
-          <span id="qpm-editor-sort-mode-text">Sorteringstilstand</span>
+        <button id="mugin-editor-collapse-all-btn" class="mugin-editor-btn mugin-editor-btn-secondary" type="button">Fold ud / Fold sammen</button>
+        <label class="mugin-editor-sort-mode-label">
+          <input id="mugin-editor-sort-mode" class="mugin-editor-sort-mode-checkbox" type="checkbox" />
+          <span id="mugin-editor-sort-mode-text">Sorteringstilstand</span>
         </label>
-        <div id="qpm-editor-topic-tree" class="qpm-editor-tree"></div>
+        <div id="mugin-editor-topic-tree" class="mugin-editor-tree"></div>
       </div>
-      <div id="qpm-editor-prompt-rules-tools" class="qpm-editor-row qpm-editor-hidden">
-        <label class="qpm-editor-prompt-rules-field">
-          <span id="qpm-editor-prompt-rules-dk-label" class="qpm-editor-field-label">Promptregler (dansk)</span>
-          <textarea id="qpm-editor-prompt-rules-dk" class="qpm-editor-textarea qpm-editor-textarea-prompt-rules" spellcheck="false"></textarea>
+      <div id="mugin-editor-prompt-rules-tools" class="mugin-editor-row mugin-editor-hidden">
+        <label class="mugin-editor-prompt-rules-field">
+          <span id="mugin-editor-prompt-rules-dk-label" class="mugin-editor-field-label">Promptregler (dansk)</span>
+          <textarea id="mugin-editor-prompt-rules-dk" class="mugin-editor-textarea mugin-editor-textarea-prompt-rules" spellcheck="false"></textarea>
         </label>
-        <label class="qpm-editor-prompt-rules-field">
-          <span id="qpm-editor-prompt-rules-en-label" class="qpm-editor-field-label">Prompt rules (English)</span>
-          <textarea id="qpm-editor-prompt-rules-en" class="qpm-editor-textarea qpm-editor-textarea-prompt-rules" spellcheck="false"></textarea>
+        <label class="mugin-editor-prompt-rules-field">
+          <span id="mugin-editor-prompt-rules-en-label" class="mugin-editor-field-label">Prompt rules (English)</span>
+          <textarea id="mugin-editor-prompt-rules-en" class="mugin-editor-textarea mugin-editor-textarea-prompt-rules" spellcheck="false"></textarea>
         </label>
       </div>
 
-      <details id="qpm-editor-extra-tools" class="qpm-editor-accordion">
-        <summary id="qpm-editor-extra-tools-summary" class="qpm-editor-accordion-summary">Andre funktioner</summary>
-        <div class="qpm-editor-row">
-          <button id="qpm-editor-toggle-json-btn" class="qpm-editor-btn qpm-editor-btn-secondary qpm-editor-json-toggle-btn" type="button">Rediger i JSON</button>
-          <button id="qpm-editor-download-backup-btn" class="qpm-editor-btn qpm-editor-btn-secondary" type="button">Download backup</button>
+      <details id="mugin-editor-extra-tools" class="mugin-editor-accordion">
+        <summary id="mugin-editor-extra-tools-summary" class="mugin-editor-accordion-summary">Andre funktioner</summary>
+        <div class="mugin-editor-row">
+          <button id="mugin-editor-toggle-json-btn" class="mugin-editor-btn mugin-editor-btn-secondary mugin-editor-json-toggle-btn" type="button">Rediger i JSON</button>
+          <button id="mugin-editor-download-backup-btn" class="mugin-editor-btn mugin-editor-btn-secondary" type="button">Download backup</button>
         </div>
-        <textarea id="qpm-editor-json" class="qpm-editor-textarea qpm-editor-textarea-json qpm-editor-hidden" spellcheck="false"></textarea>
-        <div id="qpm-editor-json-actions" class="qpm-editor-row qpm-editor-hidden">
-          <button id="qpm-editor-save-json-btn" class="qpm-editor-btn" type="button">Gem</button>
+        <textarea id="mugin-editor-json" class="mugin-editor-textarea mugin-editor-textarea-json mugin-editor-hidden" spellcheck="false"></textarea>
+        <div id="mugin-editor-json-actions" class="mugin-editor-row mugin-editor-hidden">
+          <button id="mugin-editor-save-json-btn" class="mugin-editor-btn" type="button">Gem</button>
         </div>
-        <div id="qpm-editor-revisions" class="qpm-editor-row qpm-editor-hidden">
-          <p id="qpm-editor-current-version-note" class="qpm-editor-note qpm-editor-revision-note-line"></p>
-          <select id="qpm-editor-revision-list" class="qpm-editor-select"></select>
-          <button id="qpm-editor-revision-refresh-btn" class="qpm-editor-btn qpm-editor-btn-secondary" type="button">Opdater historik</button>
-          <button id="qpm-editor-revision-preview-btn" class="qpm-editor-btn qpm-editor-btn-secondary" type="button">Vis version</button>
-          <button id="qpm-editor-revert-btn" class="qpm-editor-btn qpm-editor-btn-secondary" type="button">Gendan valgt version</button>
-          <label class="qpm-editor-sort-mode-label qpm-editor-revision-only-diff-label qpm-editor-hidden">
-            <input id="qpm-editor-revision-only-diff" class="qpm-editor-sort-mode-checkbox" type="checkbox" />
-            <span id="qpm-editor-revision-only-diff-text">Vis kun forskelle</span>
+        <div id="mugin-editor-revisions" class="mugin-editor-row mugin-editor-hidden">
+          <p id="mugin-editor-current-version-note" class="mugin-editor-note mugin-editor-revision-note-line"></p>
+          <select id="mugin-editor-revision-list" class="mugin-editor-select"></select>
+          <button id="mugin-editor-revision-refresh-btn" class="mugin-editor-btn mugin-editor-btn-secondary" type="button">Opdater historik</button>
+          <button id="mugin-editor-revision-preview-btn" class="mugin-editor-btn mugin-editor-btn-secondary" type="button">Vis version</button>
+          <button id="mugin-editor-revert-btn" class="mugin-editor-btn mugin-editor-btn-secondary" type="button">Gendan valgt version</button>
+          <label class="mugin-editor-sort-mode-label mugin-editor-revision-only-diff-label mugin-editor-hidden">
+            <input id="mugin-editor-revision-only-diff" class="mugin-editor-sort-mode-checkbox" type="checkbox" />
+            <span id="mugin-editor-revision-only-diff-text">Vis kun forskelle</span>
           </label>
         </div>
-        <p id="qpm-editor-revision-status" class="qpm-editor-note qpm-editor-hidden"></p>
-        <textarea id="qpm-editor-revision-preview-json" class="qpm-editor-textarea qpm-editor-textarea-json qpm-editor-hidden" spellcheck="false" readonly></textarea>
-        <div id="qpm-editor-revision-diff" class="qpm-editor-revision-diff qpm-editor-hidden"></div>
-        <p class="qpm-editor-note qpm-editor-api-note"><span id="qpm-editor-api-base-label">Aktiv API</span>: <span id="qpm-editor-api-base"></span></p>
+        <p id="mugin-editor-revision-status" class="mugin-editor-note mugin-editor-hidden"></p>
+        <textarea id="mugin-editor-revision-preview-json" class="mugin-editor-textarea mugin-editor-textarea-json mugin-editor-hidden" spellcheck="false" readonly></textarea>
+        <div id="mugin-editor-revision-diff" class="mugin-editor-revision-diff mugin-editor-hidden"></div>
+        <p class="mugin-editor-note mugin-editor-api-note"><span id="mugin-editor-api-base-label">Aktiv API</span>: <span id="mugin-editor-api-base"></span></p>
       </details>
-      <div class="qpm-editor-row">
-        <button id="qpm-editor-load-btn" class="qpm-editor-btn qpm-editor-btn-secondary qpm-editor-hidden" type="button">Hent</button>
-        <button id="qpm-editor-save-btn" class="qpm-editor-btn" type="button">Gem alle ændringer</button>
-        <button id="qpm-editor-logout-btn" class="qpm-editor-btn qpm-editor-btn-secondary" type="button">Log ud</button>
+      <div class="mugin-editor-row">
+        <button id="mugin-editor-load-btn" class="mugin-editor-btn mugin-editor-btn-secondary mugin-editor-hidden" type="button">Hent</button>
+        <button id="mugin-editor-save-btn" class="mugin-editor-btn" type="button">Gem alle ændringer</button>
+        <button id="mugin-editor-logout-btn" class="mugin-editor-btn mugin-editor-btn-secondary" type="button">Log ud</button>
       </div>
-      <p id="qpm-editor-save-hint" class="qpm-editor-note">Ingen ændringer gennemføres, før du klikker "Gem alle ændringer".</p>
-      <p id="qpm-editor-save-status" class="qpm-editor-save-status"></p>
+      <p id="mugin-editor-save-hint" class="mugin-editor-note">Ingen ændringer gennemføres, før du klikker "Gem alle ændringer".</p>
+      <p id="mugin-editor-save-status" class="mugin-editor-save-status"></p>
     </section>
 
-    <div id="qpm-editor-status" class="qpm-editor-status"></div>
+    <div id="mugin-editor-status" class="mugin-editor-status"></div>
   `;
 }
 
@@ -132,56 +132,56 @@ let configuredTopicDomains = [...baseConfiguredTopicDomains];
 let domainLabelsByDomain = {};
 const limitsEnabled = root.dataset.limitsEnabled !== "false";
 
-const loginSection = document.getElementById("qpm-editor-login");
-const appSection = document.getElementById("qpm-editor-app");
-const statusEl = document.getElementById("qpm-editor-status");
-const apiBaseEl = document.getElementById("qpm-editor-api-base");
-const apiBaseLabelEl = document.getElementById("qpm-editor-api-base-label");
+const loginSection = document.getElementById("mugin-editor-login");
+const appSection = document.getElementById("mugin-editor-app");
+const statusEl = document.getElementById("mugin-editor-status");
+const apiBaseEl = document.getElementById("mugin-editor-api-base");
+const apiBaseLabelEl = document.getElementById("mugin-editor-api-base-label");
 
-const userInput = document.getElementById("qpm-editor-user");
-const passwordInput = document.getElementById("qpm-editor-password");
-const typeInput = document.getElementById("qpm-editor-type");
-const domainInput = document.getElementById("qpm-editor-domain");
-const jsonInput = document.getElementById("qpm-editor-json");
-const sortModeTextEl = document.getElementById("qpm-editor-sort-mode-text");
-const extraToolsSummaryEl = document.getElementById("qpm-editor-extra-tools-summary");
-const topicTools = document.getElementById("qpm-editor-topic-tools");
-const promptRulesTools = document.getElementById("qpm-editor-prompt-rules-tools");
-const promptRulesDkLabelEl = document.getElementById("qpm-editor-prompt-rules-dk-label");
-const promptRulesEnLabelEl = document.getElementById("qpm-editor-prompt-rules-en-label");
-const promptRulesDkInput = document.getElementById("qpm-editor-prompt-rules-dk");
-const promptRulesEnInput = document.getElementById("qpm-editor-prompt-rules-en");
-const topicTreeInput = document.getElementById("qpm-editor-topic-tree");
-const treeSearchInput = document.getElementById("qpm-editor-tree-search");
-const treeSearchClearBtn = document.getElementById("qpm-editor-tree-search-clear");
-const sortModeInput = document.getElementById("qpm-editor-sort-mode");
-const collapseAllBtn = document.getElementById("qpm-editor-collapse-all-btn");
+const userInput = document.getElementById("mugin-editor-user");
+const passwordInput = document.getElementById("mugin-editor-password");
+const typeInput = document.getElementById("mugin-editor-type");
+const domainInput = document.getElementById("mugin-editor-domain");
+const jsonInput = document.getElementById("mugin-editor-json");
+const sortModeTextEl = document.getElementById("mugin-editor-sort-mode-text");
+const extraToolsSummaryEl = document.getElementById("mugin-editor-extra-tools-summary");
+const topicTools = document.getElementById("mugin-editor-topic-tools");
+const promptRulesTools = document.getElementById("mugin-editor-prompt-rules-tools");
+const promptRulesDkLabelEl = document.getElementById("mugin-editor-prompt-rules-dk-label");
+const promptRulesEnLabelEl = document.getElementById("mugin-editor-prompt-rules-en-label");
+const promptRulesDkInput = document.getElementById("mugin-editor-prompt-rules-dk");
+const promptRulesEnInput = document.getElementById("mugin-editor-prompt-rules-en");
+const topicTreeInput = document.getElementById("mugin-editor-topic-tree");
+const treeSearchInput = document.getElementById("mugin-editor-tree-search");
+const treeSearchClearBtn = document.getElementById("mugin-editor-tree-search-clear");
+const sortModeInput = document.getElementById("mugin-editor-sort-mode");
+const collapseAllBtn = document.getElementById("mugin-editor-collapse-all-btn");
 
-const loginBtn = document.getElementById("qpm-editor-login-btn");
-const loadBtn = document.getElementById("qpm-editor-load-btn");
-const saveBtn = document.getElementById("qpm-editor-save-btn");
-const revisionsWrap = document.getElementById("qpm-editor-revisions");
-const revisionCurrentNoteEl = document.getElementById("qpm-editor-current-version-note");
-const revisionListInput = document.getElementById("qpm-editor-revision-list");
-const revisionRefreshBtn = document.getElementById("qpm-editor-revision-refresh-btn");
-const revisionPreviewBtn = document.getElementById("qpm-editor-revision-preview-btn");
-const revertBtn = document.getElementById("qpm-editor-revert-btn");
-const revisionOnlyDiffInput = document.getElementById("qpm-editor-revision-only-diff");
-const revisionOnlyDiffTextEl = document.getElementById("qpm-editor-revision-only-diff-text");
+const loginBtn = document.getElementById("mugin-editor-login-btn");
+const loadBtn = document.getElementById("mugin-editor-load-btn");
+const saveBtn = document.getElementById("mugin-editor-save-btn");
+const revisionsWrap = document.getElementById("mugin-editor-revisions");
+const revisionCurrentNoteEl = document.getElementById("mugin-editor-current-version-note");
+const revisionListInput = document.getElementById("mugin-editor-revision-list");
+const revisionRefreshBtn = document.getElementById("mugin-editor-revision-refresh-btn");
+const revisionPreviewBtn = document.getElementById("mugin-editor-revision-preview-btn");
+const revertBtn = document.getElementById("mugin-editor-revert-btn");
+const revisionOnlyDiffInput = document.getElementById("mugin-editor-revision-only-diff");
+const revisionOnlyDiffTextEl = document.getElementById("mugin-editor-revision-only-diff-text");
 const revisionOnlyDiffLabel = revisionOnlyDiffInput?.closest("label") || null;
-const revisionStatusEl = document.getElementById("qpm-editor-revision-status");
-const revisionPreviewJson = document.getElementById("qpm-editor-revision-preview-json");
-const revisionDiffEl = document.getElementById("qpm-editor-revision-diff");
-const toggleJsonBtn = document.getElementById("qpm-editor-toggle-json-btn");
-const downloadBackupBtn = document.getElementById("qpm-editor-download-backup-btn");
-const jsonActionsWrap = document.getElementById("qpm-editor-json-actions");
-const saveJsonBtn = document.getElementById("qpm-editor-save-json-btn");
-const logoutBtn = document.getElementById("qpm-editor-logout-btn");
+const revisionStatusEl = document.getElementById("mugin-editor-revision-status");
+const revisionPreviewJson = document.getElementById("mugin-editor-revision-preview-json");
+const revisionDiffEl = document.getElementById("mugin-editor-revision-diff");
+const toggleJsonBtn = document.getElementById("mugin-editor-toggle-json-btn");
+const downloadBackupBtn = document.getElementById("mugin-editor-download-backup-btn");
+const jsonActionsWrap = document.getElementById("mugin-editor-json-actions");
+const saveJsonBtn = document.getElementById("mugin-editor-save-json-btn");
+const logoutBtn = document.getElementById("mugin-editor-logout-btn");
 
 let csrfToken = "";
 let selectedTopicItemId = "";
 let selectedTopicCategoryId = "";
-const STANDARD_STRINGS_CATEGORY_ID = "__QPM_STANDARD_STRINGS__";
+const STANDARD_STRINGS_CATEGORY_ID = "__MUGIN_STANDARD_STRINGS__";
 let treeSearchText = "";
 let sortModeEnabled = false;
 let draggedTopicItemId = "";
@@ -394,7 +394,7 @@ const editorHelpTextKeyMap = {
 
 function updateJsonToggleButtonLabel() {
   if (!(toggleJsonBtn instanceof HTMLElement) || !(jsonInput instanceof HTMLElement)) return;
-  toggleJsonBtn.textContent = jsonInput.classList.contains("qpm-editor-hidden")
+  toggleJsonBtn.textContent = jsonInput.classList.contains("mugin-editor-hidden")
     ? t("editJson")
     : t("hideJson");
 }
@@ -433,7 +433,7 @@ function applyEditorLanguageTexts() {
   if (revertBtn instanceof HTMLElement) revertBtn.textContent = t("revertVersion");
   if (revisionOnlyDiffTextEl instanceof HTMLElement)
     revisionOnlyDiffTextEl.textContent = t("onlyDiff");
-  const saveHintEl = document.getElementById("qpm-editor-save-hint");
+  const saveHintEl = document.getElementById("mugin-editor-save-hint");
   if (saveHintEl instanceof HTMLElement) saveHintEl.textContent = t("saveHint");
   if (typeInput instanceof HTMLSelectElement) {
     const topicsOption = typeInput.querySelector('option[value="topics"]');
@@ -446,7 +446,7 @@ function applyEditorLanguageTexts() {
     if (limitsSettingsOption) limitsSettingsOption.textContent = getTypeLabel("limits-settings");
   }
   setRevisionPreviewButtonLabel(
-    Boolean(revisionPreviewJson && !revisionPreviewJson.classList.contains("qpm-editor-hidden"))
+    Boolean(revisionPreviewJson && !revisionPreviewJson.classList.contains("mugin-editor-hidden"))
   );
   updateJsonToggleButtonLabel();
   updateCollapseToggleButtonLabel();
@@ -455,40 +455,40 @@ function applyEditorLanguageTexts() {
 function updateTreeSearchClearButtonVisibility() {
   if (!(treeSearchClearBtn instanceof HTMLButtonElement)) return;
   const hasValue = Boolean((treeSearchInput?.value || "").trim());
-  treeSearchClearBtn.classList.toggle("qpm-editor-hidden", !hasValue);
+  treeSearchClearBtn.classList.toggle("mugin-editor-hidden", !hasValue);
 }
 
 function ensureBoxiconsStylesheet() {
-  if (document.querySelector('link[data-qpm-boxicons="1"]')) return;
+  if (document.querySelector('link[data-mugin-boxicons="1"]')) return;
   const existing = document.querySelector('link[href*="boxicons.min.css"]');
   if (existing) return;
   const link = document.createElement("link");
   link.rel = "stylesheet";
   link.href = "https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css";
-  link.dataset.qpmBoxicons = "1";
+  link.dataset.muginBoxicons = "1";
   document.head.appendChild(link);
 }
 
 if (apiBaseEl) {
   apiBaseEl.textContent = apiBase;
 }
-if (appSection && !document.getElementById("qpm-editor-save-hint")) {
+if (appSection && !document.getElementById("mugin-editor-save-hint")) {
   const hint = document.createElement("p");
-  hint.id = "qpm-editor-save-hint";
-  hint.className = "qpm-editor-note";
+  hint.id = "mugin-editor-save-hint";
+  hint.className = "mugin-editor-note";
   hint.textContent = t("saveHint");
-  const saveRow = saveBtn?.closest(".qpm-editor-row");
+  const saveRow = saveBtn?.closest(".mugin-editor-row");
   if (saveRow?.parentElement) {
     saveRow.parentElement.insertBefore(hint, saveRow.nextSibling);
   } else {
     appSection.prepend(hint);
   }
 }
-if (appSection && !document.getElementById("qpm-editor-save-status")) {
+if (appSection && !document.getElementById("mugin-editor-save-status")) {
   const saveStatus = document.createElement("p");
-  saveStatus.id = "qpm-editor-save-status";
-  saveStatus.className = "qpm-editor-save-status";
-  const saveHint = document.getElementById("qpm-editor-save-hint");
+  saveStatus.id = "mugin-editor-save-status";
+  saveStatus.className = "mugin-editor-save-status";
+  const saveHint = document.getElementById("mugin-editor-save-hint");
   if (saveHint?.parentElement) {
     saveHint.parentElement.insertBefore(saveStatus, saveHint.nextSibling);
   } else {
@@ -606,13 +606,13 @@ function syncDomainOptions() {
     domainInput.appendChild(opt);
     domainInput.value = "";
     domainInput.disabled = true;
-    domainInput.classList.remove("qpm-editor-hidden");
+    domainInput.classList.remove("mugin-editor-hidden");
     return;
   }
   if (configuredTopicDomains.length <= 1) {
-    domainInput.classList.add("qpm-editor-hidden");
+    domainInput.classList.add("mugin-editor-hidden");
   } else {
-    domainInput.classList.remove("qpm-editor-hidden");
+    domainInput.classList.remove("mugin-editor-hidden");
   }
   domainInput.disabled = !isDomainScopedType(getSelectedType());
 }
@@ -636,7 +636,7 @@ function syncTypeOptionsVisibility() {
     const option = typeInput.querySelector(`option[value="${value}"]`);
     if (option) typeInput.appendChild(option);
   });
-  typeInput.classList.toggle("qpm-editor-hidden", typeInput.options.length <= 1);
+  typeInput.classList.toggle("mugin-editor-hidden", typeInput.options.length <= 1);
 }
 
 function setActiveTopicLabel(topicValue) {
@@ -745,20 +745,20 @@ function syncFormByType() {
   const domainScoped = isDomainScopedType(type);
   domainInput.disabled = !domainScoped;
   if (!domainScoped) {
-    domainInput.classList.add("qpm-editor-hidden");
+    domainInput.classList.add("mugin-editor-hidden");
   } else if (configuredTopicDomains.length > 1) {
-    domainInput.classList.remove("qpm-editor-hidden");
+    domainInput.classList.remove("mugin-editor-hidden");
   } else {
-    domainInput.classList.add("qpm-editor-hidden");
+    domainInput.classList.add("mugin-editor-hidden");
   }
-  topicTools?.classList.toggle("qpm-editor-hidden", type === "prompt-rules");
-  promptRulesTools?.classList.toggle("qpm-editor-hidden", type !== "prompt-rules");
+  topicTools?.classList.toggle("mugin-editor-hidden", type === "prompt-rules");
+  promptRulesTools?.classList.toggle("mugin-editor-hidden", type !== "prompt-rules");
 }
 
 function setStatus(message, isError = false) {
   setInsertedText(statusEl, message);
-  statusEl.classList.remove("qpm-editor-status-ok", "qpm-editor-status-error");
-  statusEl.classList.add(isError ? "qpm-editor-status-error" : "qpm-editor-status-ok");
+  statusEl.classList.remove("mugin-editor-status-ok", "mugin-editor-status-error");
+  statusEl.classList.add(isError ? "mugin-editor-status-error" : "mugin-editor-status-ok");
 }
 
 function setInsertedText(el, message) {
@@ -777,13 +777,13 @@ function setInsertedText(el, message) {
 
 function normalizeSortModeLayout() {
   if (!(sortModeInput instanceof HTMLInputElement)) return;
-  sortModeInput.classList.add("qpm-editor-sort-mode-checkbox");
+  sortModeInput.classList.add("mugin-editor-sort-mode-checkbox");
 
   const sortLabel = sortModeInput.closest("label");
   if (!(sortLabel instanceof HTMLLabelElement)) return;
-  sortLabel.classList.add("qpm-editor-sort-mode-label");
+  sortLabel.classList.add("mugin-editor-sort-mode-label");
 
-  const collapseBtn = document.getElementById("qpm-editor-collapse-all-btn");
+  const collapseBtn = document.getElementById("mugin-editor-collapse-all-btn");
   if (collapseBtn?.parentElement === sortLabel.parentElement) {
     collapseBtn.insertAdjacentElement("afterend", sortLabel);
   }
@@ -949,23 +949,23 @@ function renderRevisionDiffRows(rows) {
   const noVisibleRowsLabel = t("allDifferencesHiddenByFilter");
 
   let html = `
-    <div class="qpm-editor-revision-diff-head">
-      <div class="qpm-editor-revision-diff-col-head">${escapeHtml(currentLabel)}</div>
-      <div class="qpm-editor-revision-diff-col-head">${escapeHtml(selectedLabel)}</div>
+    <div class="mugin-editor-revision-diff-head">
+      <div class="mugin-editor-revision-diff-col-head">${escapeHtml(currentLabel)}</div>
+      <div class="mugin-editor-revision-diff-col-head">${escapeHtml(selectedLabel)}</div>
     </div>
-    <div class="qpm-editor-revision-diff-body">
+    <div class="mugin-editor-revision-diff-body">
   `;
 
   visibleRows.forEach((row) => {
     html += `
-      <div class="qpm-editor-revision-diff-row is-${row.type}">
-        <div class="qpm-editor-revision-diff-cell">
-          <span class="qpm-editor-revision-diff-ln">${row.leftLineNo}</span>
-          <pre class="qpm-editor-revision-diff-text">${escapeHtml(row.leftText)}</pre>
+      <div class="mugin-editor-revision-diff-row is-${row.type}">
+        <div class="mugin-editor-revision-diff-cell">
+          <span class="mugin-editor-revision-diff-ln">${row.leftLineNo}</span>
+          <pre class="mugin-editor-revision-diff-text">${escapeHtml(row.leftText)}</pre>
         </div>
-        <div class="qpm-editor-revision-diff-cell">
-          <span class="qpm-editor-revision-diff-ln">${row.rightLineNo}</span>
-          <pre class="qpm-editor-revision-diff-text">${escapeHtml(row.rightText)}</pre>
+        <div class="mugin-editor-revision-diff-cell">
+          <span class="mugin-editor-revision-diff-ln">${row.rightLineNo}</span>
+          <pre class="mugin-editor-revision-diff-text">${escapeHtml(row.rightText)}</pre>
         </div>
       </div>
     `;
@@ -973,12 +973,12 @@ function renderRevisionDiffRows(rows) {
 
   html += `</div>`;
   if (!hasChanges) {
-    html += `<p class="qpm-editor-note">${escapeHtml(noDiffLabel)}</p>`;
+    html += `<p class="mugin-editor-note">${escapeHtml(noDiffLabel)}</p>`;
   } else if (visibleRows.length === 0) {
-    html += `<p class="qpm-editor-note">${escapeHtml(noVisibleRowsLabel)}</p>`;
+    html += `<p class="mugin-editor-note">${escapeHtml(noVisibleRowsLabel)}</p>`;
   }
   revisionDiffEl.innerHTML = html;
-  revisionDiffEl.classList.remove("qpm-editor-hidden");
+  revisionDiffEl.classList.remove("mugin-editor-hidden");
 }
 
 function renderRevisionDiff(currentJsonText, selectedJsonText) {
@@ -1000,7 +1000,7 @@ function createInfoIcon(helpText) {
 function ensureEditorTooltipEl() {
   if (editorTooltipEl) return editorTooltipEl;
   const tooltip = document.createElement("div");
-  tooltip.className = "v-popper--theme-tooltip qpm-editor-v-tooltip";
+  tooltip.className = "v-popper--theme-tooltip mugin-editor-v-tooltip";
   tooltip.setAttribute("role", "tooltip");
   tooltip.style.position = "fixed";
   tooltip.style.zIndex = "9999";
@@ -1136,12 +1136,12 @@ window.addEventListener(
 );
 
 function setSaveStatus(message, isError = false) {
-  const el = document.getElementById("qpm-editor-save-status");
+  const el = document.getElementById("mugin-editor-save-status");
   if (!(el instanceof HTMLElement)) return;
   setInsertedText(el, message);
-  el.classList.remove("qpm-editor-save-status-ok", "qpm-editor-save-status-error");
+  el.classList.remove("mugin-editor-save-status-ok", "mugin-editor-save-status-error");
   if (!message) return;
-  el.classList.add(isError ? "qpm-editor-save-status-error" : "qpm-editor-save-status-ok");
+  el.classList.add(isError ? "mugin-editor-save-status-error" : "mugin-editor-save-status-ok");
 }
 
 function updateSaveButtonsState() {
@@ -1162,15 +1162,15 @@ function setRevisionStatus(message, isError = false) {
   if (!(revisionStatusEl instanceof HTMLElement)) return;
   setInsertedText(revisionStatusEl, message);
   revisionStatusEl.classList.remove(
-    "qpm-editor-status-ok",
-    "qpm-editor-status-error",
-    "qpm-editor-hidden"
+    "mugin-editor-status-ok",
+    "mugin-editor-status-error",
+    "mugin-editor-hidden"
   );
   if (!message) {
-    revisionStatusEl.classList.add("qpm-editor-hidden");
+    revisionStatusEl.classList.add("mugin-editor-hidden");
     return;
   }
-  revisionStatusEl.classList.add(isError ? "qpm-editor-status-error" : "qpm-editor-status-ok");
+  revisionStatusEl.classList.add(isError ? "mugin-editor-status-error" : "mugin-editor-status-ok");
 }
 
 function applyCapabilities(capabilities) {
@@ -1262,10 +1262,10 @@ function syncRevisionActionButtonsVisibility() {
     revisionListInput instanceof HTMLSelectElement &&
     String(revisionListInput.value || "").trim() !== "";
   if (revisionPreviewBtn instanceof HTMLElement) {
-    revisionPreviewBtn.classList.toggle("qpm-editor-hidden", !hasHistoricalSelection);
+    revisionPreviewBtn.classList.toggle("mugin-editor-hidden", !hasHistoricalSelection);
   }
   if (revertBtn instanceof HTMLElement) {
-    revertBtn.classList.toggle("qpm-editor-hidden", !hasHistoricalSelection);
+    revertBtn.classList.toggle("mugin-editor-hidden", !hasHistoricalSelection);
   }
 }
 
@@ -1276,7 +1276,7 @@ function setRevisionPreviewButtonLabel(isOpen) {
 
 function setRevisionControlsVisible(visible) {
   if (revisionsWrap instanceof HTMLElement) {
-    revisionsWrap.classList.toggle("qpm-editor-hidden", !visible);
+    revisionsWrap.classList.toggle("mugin-editor-hidden", !visible);
   }
   if (!visible && revisionListInput instanceof HTMLSelectElement) {
     revisionListInput.value = "";
@@ -1288,11 +1288,11 @@ function setRevisionControlsVisible(visible) {
   if (!visible) {
     setRevisionStatus("");
     if (revisionPreviewJson instanceof HTMLTextAreaElement) {
-      revisionPreviewJson.classList.add("qpm-editor-hidden");
+      revisionPreviewJson.classList.add("mugin-editor-hidden");
       revisionPreviewJson.value = "";
     }
     if (revisionDiffEl instanceof HTMLElement) {
-      revisionDiffEl.classList.add("qpm-editor-hidden");
+      revisionDiffEl.classList.add("mugin-editor-hidden");
       revisionDiffEl.innerHTML = "";
     }
     revisionSelectedPreviewDate = "";
@@ -1302,7 +1302,7 @@ function setRevisionControlsVisible(visible) {
       revisionOnlyDiffInput.checked = false;
     }
     if (revisionOnlyDiffLabel instanceof HTMLElement) {
-      revisionOnlyDiffLabel.classList.add("qpm-editor-hidden");
+      revisionOnlyDiffLabel.classList.add("mugin-editor-hidden");
     }
     revisionDiffRowsCache = [];
   }
@@ -1312,11 +1312,11 @@ async function refreshRevisionList() {
   if (!(revisionListInput instanceof HTMLSelectElement)) return;
   setRevisionPreviewButtonLabel(false);
   if (revisionPreviewJson instanceof HTMLTextAreaElement) {
-    revisionPreviewJson.classList.add("qpm-editor-hidden");
+    revisionPreviewJson.classList.add("mugin-editor-hidden");
     revisionPreviewJson.value = "";
   }
   if (revisionDiffEl instanceof HTMLElement) {
-    revisionDiffEl.classList.add("qpm-editor-hidden");
+    revisionDiffEl.classList.add("mugin-editor-hidden");
     revisionDiffEl.innerHTML = "";
   }
   revisionSelectedPreviewDate = "";
@@ -1324,7 +1324,7 @@ async function refreshRevisionList() {
     revisionOnlyDiffInput.checked = false;
   }
   if (revisionOnlyDiffLabel instanceof HTMLElement) {
-    revisionOnlyDiffLabel.classList.add("qpm-editor-hidden");
+    revisionOnlyDiffLabel.classList.add("mugin-editor-hidden");
   }
   revisionDiffRowsCache = [];
   syncRevisionActionButtonsVisibility();
@@ -1424,15 +1424,15 @@ async function revertSelectedRevision() {
 async function previewSelectedRevision() {
   if (!(revisionListInput instanceof HTMLSelectElement)) return;
   if (!(revisionDiffEl instanceof HTMLElement)) return;
-  if (!revisionDiffEl.classList.contains("qpm-editor-hidden")) {
-    revisionDiffEl.classList.add("qpm-editor-hidden");
+  if (!revisionDiffEl.classList.contains("mugin-editor-hidden")) {
+    revisionDiffEl.classList.add("mugin-editor-hidden");
     revisionDiffEl.innerHTML = "";
     revisionSelectedPreviewDate = "";
     if (revisionOnlyDiffInput instanceof HTMLInputElement) {
       revisionOnlyDiffInput.checked = false;
     }
     if (revisionOnlyDiffLabel instanceof HTMLElement) {
-      revisionOnlyDiffLabel.classList.add("qpm-editor-hidden");
+      revisionOnlyDiffLabel.classList.add("mugin-editor-hidden");
     }
     setRevisionPreviewButtonLabel(false);
     setRevisionStatus("");
@@ -1456,7 +1456,7 @@ async function previewSelectedRevision() {
     const currentText = formatJsonForDiff(jsonInput?.value || "");
     renderRevisionDiff(currentText, selectedText);
     if (revisionOnlyDiffLabel instanceof HTMLElement) {
-      revisionOnlyDiffLabel.classList.remove("qpm-editor-hidden");
+      revisionOnlyDiffLabel.classList.remove("mugin-editor-hidden");
     }
     setRevisionPreviewButtonLabel(true);
     setRevisionStatus(t("diffPreviewLoaded"));
@@ -1470,22 +1470,22 @@ function setInlineEditorStatus(container, statusKey, message, isError = false) {
   const el = container.querySelector(`[data-inline-status="${statusKey}"]`);
   if (!(el instanceof HTMLElement)) return;
   setInsertedText(el, message);
-  el.classList.remove("qpm-editor-inline-status-ok", "qpm-editor-inline-status-error");
-  el.classList.add(isError ? "qpm-editor-inline-status-error" : "qpm-editor-inline-status-ok");
+  el.classList.remove("mugin-editor-inline-status-ok", "mugin-editor-inline-status-error");
+  el.classList.add(isError ? "mugin-editor-inline-status-error" : "mugin-editor-inline-status-ok");
 }
 
 function createInlineActions(deleteBtn, statusKey) {
   const actionsRow = document.createElement("div");
-  actionsRow.className = "qpm-editor-inline-actions";
+  actionsRow.className = "mugin-editor-inline-actions";
   const undoBtn = document.createElement("button");
   undoBtn.type = "button";
   undoBtn.className =
-    "qpm-editor-btn qpm-editor-btn-secondary qpm-editor-tree-undo-inline qpm-editor-hidden";
+    "mugin-editor-btn mugin-editor-btn-secondary mugin-editor-tree-undo-inline mugin-editor-hidden";
   undoBtn.textContent = t("undo");
   const cancelBtn = document.createElement("button");
   cancelBtn.type = "button";
   cancelBtn.className =
-    "qpm-editor-btn qpm-editor-btn-secondary qpm-editor-tree-cancel-inline qpm-editor-hidden";
+    "mugin-editor-btn mugin-editor-btn-secondary mugin-editor-tree-cancel-inline mugin-editor-hidden";
   cancelBtn.textContent = t("cancel");
   actionsRow.append(undoBtn, cancelBtn);
   if (deleteBtn) {
@@ -1493,7 +1493,7 @@ function createInlineActions(deleteBtn, statusKey) {
   }
 
   const inlineStatus = document.createElement("p");
-  inlineStatus.className = "qpm-editor-inline-status";
+  inlineStatus.className = "mugin-editor-inline-status";
   inlineStatus.dataset.inlineStatus = statusKey;
   inlineStatus.textContent = "";
 
@@ -1602,15 +1602,15 @@ function getOrCreateInlineHistoryState(historyKey, baselineSnapshot, currentSnap
 
 function updateInlineActionButtons(container, state) {
   if (!(container instanceof HTMLElement) || !state) return;
-  const undoBtn = container.querySelector(".qpm-editor-tree-undo-inline");
-  const cancelBtn = container.querySelector(".qpm-editor-tree-cancel-inline");
+  const undoBtn = container.querySelector(".mugin-editor-tree-undo-inline");
+  const cancelBtn = container.querySelector(".mugin-editor-tree-cancel-inline");
   const canUndo = state.index > 0;
   const isDirty = !snapshotsEqual(state.history[state.index], state.baseline);
   if (undoBtn instanceof HTMLElement) {
-    undoBtn.classList.toggle("qpm-editor-hidden", !canUndo);
+    undoBtn.classList.toggle("mugin-editor-hidden", !canUndo);
   }
   if (cancelBtn instanceof HTMLElement) {
-    cancelBtn.classList.toggle("qpm-editor-hidden", !isDirty);
+    cancelBtn.classList.toggle("mugin-editor-hidden", !isDirty);
   }
 }
 
@@ -1641,7 +1641,7 @@ function setupInlineHistoryTracking(container, historyKey, baselineSnapshot) {
   };
   container.addEventListener("input", onFieldInput);
   container.addEventListener("change", onFieldChange);
-  const undoBtn = container.querySelector(".qpm-editor-tree-undo-inline");
+  const undoBtn = container.querySelector(".mugin-editor-tree-undo-inline");
   if (undoBtn instanceof HTMLButtonElement) {
     undoBtn.addEventListener("click", () => {
       const state = inlineHistoryStateByKey.get(historyKey);
@@ -1654,7 +1654,7 @@ function setupInlineHistoryTracking(container, historyKey, baselineSnapshot) {
       updateSaveButtonsState();
     });
   }
-  const cancelBtn = container.querySelector(".qpm-editor-tree-cancel-inline");
+  const cancelBtn = container.querySelector(".mugin-editor-tree-cancel-inline");
   if (cancelBtn instanceof HTMLButtonElement) {
     cancelBtn.addEventListener("click", () => {
       const state = inlineHistoryStateByKey.get(historyKey);
@@ -1689,12 +1689,12 @@ function hasOpenInlineDirtyState() {
 
 function createStandardStringsInlineEditor(standardString, standardStringComment = {}) {
   const wrapper = document.createElement("div");
-  wrapper.className = "qpm-editor-inline-editor";
+  wrapper.className = "mugin-editor-inline-editor";
   wrapper.dataset.categoryId = STANDARD_STRINGS_CATEGORY_ID;
 
   const mkLabel = (text, helpKey = "") => {
     const p = document.createElement("p");
-    p.className = "qpm-editor-field-label";
+    p.className = "mugin-editor-field-label";
     p.textContent = text;
     const infoIcon = createInfoIcon(getEditorHelpText(helpKey));
     if (infoIcon) p.append(" ", infoIcon);
@@ -1702,7 +1702,7 @@ function createStandardStringsInlineEditor(standardString, standardStringComment
   };
   const mkTextarea = (value = "") => {
     const ta = document.createElement("textarea");
-    ta.className = "qpm-editor-textarea";
+    ta.className = "mugin-editor-textarea";
     ta.value = String(value || "");
     return ta;
   };
@@ -1765,8 +1765,8 @@ function createStandardStringsInlineEditor(standardString, standardStringComment
 }
 
 function setAuthenticated(authenticated) {
-  loginSection.classList.toggle("qpm-editor-hidden", authenticated);
-  appSection.classList.toggle("qpm-editor-hidden", !authenticated);
+  loginSection.classList.toggle("mugin-editor-hidden", authenticated);
+  appSection.classList.toggle("mugin-editor-hidden", !authenticated);
   isEditorAuthenticated = Boolean(authenticated);
   if (!isEditorAuthenticated) {
     hiddenSinceTs = null;
@@ -2335,7 +2335,7 @@ function downloadCurrentJsonBackup() {
   const selectedDomain = (domainInput instanceof HTMLSelectElement ? domainInput.value : "").trim();
   const domainSegment = isDomainScopedType(type) && selectedDomain ? `-${selectedDomain}` : "";
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const filename = `qpm-${type}${domainSegment}-backup-${timestamp}.json`;
+  const filename = `mugin-${type}${domainSegment}-backup-${timestamp}.json`;
 
   const blob = new Blob([content], { type: "application/json;charset=utf-8" });
   const objectUrl = URL.createObjectURL(blob);
@@ -2436,12 +2436,12 @@ function remapCollapsedTopicIdsByPrefix(oldPrefix, newPrefix) {
 
 function createCategoryInlineEditor(topic) {
   const wrapper = document.createElement("div");
-  wrapper.className = "qpm-editor-inline-editor";
+  wrapper.className = "mugin-editor-inline-editor";
   wrapper.dataset.categoryId = topic?.id || "";
 
   const mkLabel = (text, helpKey = "") => {
     const p = document.createElement("p");
-    p.className = "qpm-editor-field-label";
+    p.className = "mugin-editor-field-label";
     p.textContent = text;
     const infoIcon = createInfoIcon(getEditorHelpText(helpKey));
     if (infoIcon) p.append(" ", infoIcon);
@@ -2449,14 +2449,14 @@ function createCategoryInlineEditor(topic) {
   };
   const mkInput = (value = "") => {
     const input = document.createElement("input");
-    input.className = "qpm-editor-input";
+    input.className = "mugin-editor-input";
     input.type = "text";
     input.value = value;
     return input;
   };
   const mkTextarea = (value = "") => {
     const ta = document.createElement("textarea");
-    ta.className = "qpm-editor-textarea";
+    ta.className = "mugin-editor-textarea";
     ta.value = value;
     return ta;
   };
@@ -2466,7 +2466,7 @@ function createCategoryInlineEditor(topic) {
   const mkRestoreActionButton = (targetInput, fallbackValue) => {
     const button = document.createElement("button");
     button.type = "button";
-    button.className = "qpm-editor-btn qpm-editor-btn-secondary";
+    button.className = "mugin-editor-btn mugin-editor-btn-secondary";
     button.style.padding = "4px 8px";
     button.style.fontSize = "12px";
     button.textContent = "Gendan original";
@@ -2480,9 +2480,9 @@ function createCategoryInlineEditor(topic) {
   const mkLabelWithRestore = (text, helpKey, targetInput, fallbackValue) => {
     if (!isRestrictedLimitsSettings) return mkLabel(text, helpKey);
     const row = document.createElement("div");
-    row.className = "qpm-editor-scope-header-row";
+    row.className = "mugin-editor-scope-header-row";
     const label = mkLabel(text, helpKey);
-    label.classList.add("qpm-editor-scope-header-label");
+    label.classList.add("mugin-editor-scope-header-label");
     row.append(label, mkRestoreActionButton(targetInput, fallbackValue));
     return row;
   };
@@ -2503,7 +2503,7 @@ function createCategoryInlineEditor(topic) {
   hiddenInput.dataset.inlineField = "category.hiddenByDefault";
   hiddenInput.checked = topic?.hiddenByDefault === true;
   const hiddenLabel = document.createElement("label");
-  hiddenLabel.className = "qpm-editor-checkbox-label";
+  hiddenLabel.className = "mugin-editor-checkbox-label";
   hiddenLabel.style.width = "100%";
   hiddenLabel.append(hiddenInput, document.createTextNode(t("hideInFormByDefault")));
   const hiddenInfoIcon = createInfoIcon(getEditorHelpText("category.hiddenByDefault"));
@@ -2512,7 +2512,7 @@ function createCategoryInlineEditor(topic) {
   const deleteBtn = document.createElement("button");
   deleteBtn.type = "button";
   deleteBtn.className =
-    "qpm-editor-btn qpm-editor-btn-danger qpm-editor-tree-delete-category-inline";
+    "mugin-editor-btn mugin-editor-btn-danger mugin-editor-tree-delete-category-inline";
   deleteBtn.dataset.categoryId = topic?.id || "";
   deleteBtn.textContent = t("deleteMainCategory");
   const { actionsRow, inlineStatus } = createInlineActions(
@@ -2602,13 +2602,13 @@ function createCategoryInlineEditor(topic) {
 
 function createInlineEditor(item, categoryId, currentPosition = null, maxPosition = null) {
   const wrapper = document.createElement("div");
-  wrapper.className = "qpm-editor-inline-editor";
+  wrapper.className = "mugin-editor-inline-editor";
   wrapper.dataset.id = item?.id || "";
   wrapper.dataset.categoryId = categoryId;
 
   const mkLabel = (text, helpKey = "") => {
     const p = document.createElement("p");
-    p.className = "qpm-editor-field-label";
+    p.className = "mugin-editor-field-label";
     p.textContent = text;
     const infoIcon = createInfoIcon(getEditorHelpText(helpKey));
     if (infoIcon) p.append(" ", infoIcon);
@@ -2616,20 +2616,20 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   };
   const mkInput = (value = "") => {
     const input = document.createElement("input");
-    input.className = "qpm-editor-input";
+    input.className = "mugin-editor-input";
     input.type = "text";
     input.value = value;
     return input;
   };
   const mkTextarea = (value = "") => {
     const ta = document.createElement("textarea");
-    ta.className = "qpm-editor-textarea";
+    ta.className = "mugin-editor-textarea";
     ta.value = value;
     return ta;
   };
   const mkReadonlySearchStringText = (value = "") => {
     const block = document.createElement("div");
-    block.className = "qpm-editor-readonly-text";
+    block.className = "mugin-editor-readonly-text";
     block.style.whiteSpace = "pre-wrap";
     block.style.overflowWrap = "anywhere";
     block.textContent = String(value || "").trim() || "—";
@@ -2641,7 +2641,7 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   const mkRestoreActionButton = (targetInput, fallbackValue) => {
     const button = document.createElement("button");
     button.type = "button";
-    button.className = "qpm-editor-btn qpm-editor-btn-secondary";
+    button.className = "mugin-editor-btn mugin-editor-btn-secondary";
     button.style.padding = "4px 8px";
     button.style.fontSize = "12px";
     button.textContent = "Gendan original";
@@ -2655,9 +2655,9 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   const mkLabelWithRestore = (text, helpKey, targetInput, fallbackValue) => {
     if (!isRestrictedLimitsSettings) return mkLabel(text, helpKey);
     const row = document.createElement("div");
-    row.className = "qpm-editor-scope-header-row";
+    row.className = "mugin-editor-scope-header-row";
     const label = mkLabel(text, helpKey);
-    label.classList.add("qpm-editor-scope-header-label");
+    label.classList.add("mugin-editor-scope-header-label");
     row.append(label, mkRestoreActionButton(targetInput, fallbackValue));
     return row;
   };
@@ -2671,7 +2671,7 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   lockIdInput.dataset.inlineField = "lockIdOnSort";
   lockIdInput.checked = item?.lockIdOnSort !== false;
   const lockIdLabel = document.createElement("label");
-  lockIdLabel.className = "qpm-editor-checkbox-label";
+  lockIdLabel.className = "mugin-editor-checkbox-label";
   lockIdLabel.style.width = "100%";
   lockIdLabel.append(lockIdInput, document.createTextNode(t("lockIdOnSortLabel")));
   const lockIdInfoIcon = createInfoIcon(getEditorHelpText("item.lockIdOnSort"));
@@ -2681,7 +2681,7 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   hiddenInput.dataset.inlineField = "hiddenByDefault";
   hiddenInput.checked = item?.hiddenByDefault === true;
   const hiddenLabel = document.createElement("label");
-  hiddenLabel.className = "qpm-editor-checkbox-label";
+  hiddenLabel.className = "mugin-editor-checkbox-label";
   hiddenLabel.style.width = "100%";
   hiddenLabel.append(hiddenInput, document.createTextNode(t("hideInFormByDefault")));
   const hiddenInfoIcon = createInfoIcon(getEditorHelpText("item.hiddenByDefault"));
@@ -2691,7 +2691,7 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   simpleSearchInput.dataset.inlineField = "simpleSearch";
   simpleSearchInput.checked = item?.simpleSearch === true;
   const simpleSearchLabel = document.createElement("label");
-  simpleSearchLabel.className = "qpm-editor-checkbox-label";
+  simpleSearchLabel.className = "mugin-editor-checkbox-label";
   simpleSearchLabel.style.width = "100%";
   simpleSearchLabel.append(simpleSearchInput, document.createTextNode(t("showInSimpleModeLabel")));
   const simpleSearchInfoIcon = createInfoIcon(getEditorHelpText("item.simpleSearch"));
@@ -2701,7 +2701,7 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   standardSimpleInput.dataset.inlineField = "standardSimple";
   standardSimpleInput.checked = item?.standardSimple === true;
   const standardSimpleLabel = document.createElement("label");
-  standardSimpleLabel.className = "qpm-editor-checkbox-label";
+  standardSimpleLabel.className = "mugin-editor-checkbox-label";
   standardSimpleLabel.style.width = "100%";
   standardSimpleLabel.append(
     standardSimpleInput,
@@ -2712,7 +2712,7 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   const standardSimpleRow = document.createElement("div");
   standardSimpleRow.append(standardSimpleLabel);
   const simpleOrderingInput = document.createElement("select");
-  simpleOrderingInput.className = "qpm-editor-input";
+  simpleOrderingInput.className = "mugin-editor-input";
   simpleOrderingInput.dataset.inlineField = "simpleOrdering.fixed";
   const maxSimpleSelectable =
     Number.isInteger(Number(maxPosition)) && Number(maxPosition) > 0 ? Number(maxPosition) : 1;
@@ -2745,7 +2745,7 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   simpleOrderingRow.append(simpleOrderingLabel, simpleOrderingInput);
   const updateSimpleModeDependentRows = () => {
     const showSimpleModeDependent = Boolean(simpleSearchInput.checked);
-    simpleOrderingRow.classList.toggle("qpm-editor-hidden", !showSimpleModeDependent);
+    simpleOrderingRow.classList.toggle("mugin-editor-hidden", !showSimpleModeDependent);
   };
   simpleSearchInput.addEventListener("change", updateSimpleModeDependentRows);
   updateSimpleModeDependentRows();
@@ -2754,7 +2754,7 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   buttonsInput.dataset.inlineField = "buttons";
   buttonsInput.checked = item?.buttons !== false;
   const buttonsLabel = document.createElement("label");
-  buttonsLabel.className = "qpm-editor-checkbox-label";
+  buttonsLabel.className = "mugin-editor-checkbox-label";
   buttonsLabel.style.width = "100%";
   buttonsLabel.append(buttonsInput, document.createTextNode(t("showScopeButtonsLabel")));
   const buttonsInfoIcon = createInfoIcon(getEditorHelpText("item.buttons"));
@@ -2764,7 +2764,7 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   alphabeticalInput.dataset.inlineField = "ordering.alphabetical";
   alphabeticalInput.checked = item?.ordering?.dk === null || item?.ordering?.en === null;
   const alphabeticalLabel = document.createElement("label");
-  alphabeticalLabel.className = "qpm-editor-checkbox-label";
+  alphabeticalLabel.className = "mugin-editor-checkbox-label";
   alphabeticalLabel.style.width = "100%";
   alphabeticalLabel.append(
     alphabeticalInput,
@@ -2773,7 +2773,7 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   const alphabeticalInfoIcon = createInfoIcon(getEditorHelpText("item.ordering.alphabetical"));
   if (alphabeticalInfoIcon) alphabeticalLabel.append(" ", alphabeticalInfoIcon);
   const orderingInput = document.createElement("select");
-  orderingInput.className = "qpm-editor-input";
+  orderingInput.className = "mugin-editor-input";
   orderingInput.dataset.inlineField = "ordering.fixed";
   const maxSelectable =
     Number.isInteger(Number(maxPosition)) && Number(maxPosition) > 0 ? Number(maxPosition) : 1;
@@ -2802,7 +2802,7 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
     orderingInput.disabled = alphabeticalInput.checked;
   });
   const positionHint = document.createElement("p");
-  positionHint.className = "qpm-editor-field-label";
+  positionHint.className = "mugin-editor-field-label";
   positionHint.textContent = `${t("currentListPositionLabel")}: ${currentPosition || "-"}`;
   dkInput.dataset.inlineField = "translations.dk";
   const enInput = mkInput(item?.translations?.en || "");
@@ -2820,9 +2820,9 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   normal.readOnly = stringsReadOnly;
   broad.readOnly = stringsReadOnly;
   if (!showSearchStringEditors) {
-    narrow.classList.add("qpm-editor-hidden");
-    normal.classList.add("qpm-editor-hidden");
-    broad.classList.add("qpm-editor-hidden");
+    narrow.classList.add("mugin-editor-hidden");
+    normal.classList.add("mugin-editor-hidden");
+    broad.classList.add("mugin-editor-hidden");
   }
   const narrowReadonly = mkReadonlySearchStringText(normalizeToLines(item?.searchStrings?.narrow));
   const normalReadonly = mkReadonlySearchStringText(normalizeToLines(item?.searchStrings?.normal));
@@ -2835,7 +2835,7 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
     scopeCheckbox.checked = resolveCombineWithStandardScopeValue(item, scope);
 
     const scopeLabel = document.createElement("label");
-    scopeLabel.className = "qpm-editor-checkbox-label";
+    scopeLabel.className = "mugin-editor-checkbox-label";
     scopeLabel.append(
       scopeCheckbox,
       document.createTextNode(t("itemCombineWithStandardStringLabel"))
@@ -2862,11 +2862,11 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   };
   const createScopeHeaderRow = (labelText, labelHelpKey, scopeLabel = null) => {
     const row = document.createElement("div");
-    row.className = "qpm-editor-scope-header-row";
+    row.className = "mugin-editor-scope-header-row";
     const label = mkLabel(labelText, labelHelpKey);
-    label.classList.add("qpm-editor-scope-header-label");
+    label.classList.add("mugin-editor-scope-header-label");
     if (scopeLabel) {
-      scopeLabel.classList.add("qpm-editor-scope-header-toggle");
+      scopeLabel.classList.add("mugin-editor-scope-header-toggle");
       row.append(label, scopeLabel);
     } else {
       row.append(label);
@@ -2914,7 +2914,7 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
 
   const deleteBtn = document.createElement("button");
   deleteBtn.type = "button";
-  deleteBtn.className = "qpm-editor-btn qpm-editor-btn-danger qpm-editor-tree-delete-inline";
+  deleteBtn.className = "mugin-editor-btn mugin-editor-btn-danger mugin-editor-tree-delete-inline";
   deleteBtn.dataset.id = item?.id || "";
   deleteBtn.dataset.categoryId = categoryId;
   deleteBtn.textContent = t("deleteSubtopic");
@@ -3133,13 +3133,13 @@ function renderTreeItems(items, categoryId, container, searchText, parentItemId 
 
     const li = document.createElement("li");
     const row = document.createElement("div");
-    row.className = "qpm-editor-tree-item-row";
+    row.className = "mugin-editor-tree-item-row";
 
     const hasChildren = Array.isArray(item?.children) && item.children.length > 0;
     const isCollapsed = !searchText && collapsedTopicIds.has(item?.id);
     const toggle = document.createElement("button");
     toggle.type = "button";
-    toggle.className = "qpm-editor-tree-toggle";
+    toggle.className = "mugin-editor-tree-toggle";
     toggle.dataset.id = item?.id || "";
     toggle.dataset.action = "toggle";
     toggle.textContent = hasChildren ? (isCollapsed ? "+" : "-") : "•";
@@ -3147,7 +3147,7 @@ function renderTreeItems(items, categoryId, container, searchText, parentItemId 
 
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "qpm-editor-tree-item";
+    btn.className = "mugin-editor-tree-item";
     btn.dataset.id = item?.id || "";
     btn.dataset.categoryId = categoryId;
     btn.draggable = sortModeEnabled;
@@ -3155,7 +3155,7 @@ function renderTreeItems(items, categoryId, container, searchText, parentItemId 
       btn.classList.add("is-selected");
     }
     if (searchText && isDirectMatch) {
-      btn.classList.add("qpm-editor-search-hit");
+      btn.classList.add("mugin-editor-search-hit");
     }
     const label = getLocalizedText(item?.translations, item?.id || t("unknownItemLabel"));
     btn.textContent = `${item?.id || ""} - ${label}`;
@@ -3165,14 +3165,14 @@ function renderTreeItems(items, categoryId, container, searchText, parentItemId 
 
     if (sortModeEnabled) {
       const dropzones = document.createElement("div");
-      dropzones.className = "qpm-editor-dropzones";
+      dropzones.className = "mugin-editor-dropzones";
       [
         ["before", t("dropBefore")],
         ["inside", t("dropAsSubtopic")],
         ["after", t("dropAfter")],
       ].forEach(([position, labelText]) => {
         const z = document.createElement("div");
-        z.className = "qpm-editor-dropzone";
+        z.className = "mugin-editor-dropzone";
         z.dataset.position = position;
         z.dataset.targetId = item?.id || "";
         z.dataset.categoryId = categoryId;
@@ -3214,10 +3214,10 @@ function renderTreeItems(items, categoryId, container, searchText, parentItemId 
 
   if (canDeleteLimitsInCurrentType()) {
     const addLi = document.createElement("li");
-    addLi.className = "qpm-editor-tree-add-row";
+    addLi.className = "mugin-editor-tree-add-row";
     const addBtn = document.createElement("button");
     addBtn.type = "button";
-    addBtn.className = "qpm-editor-tree-add-end-btn";
+    addBtn.className = "mugin-editor-tree-add-end-btn";
     addBtn.dataset.categoryId = categoryId;
     addBtn.dataset.parentItemId = parentItemId;
     addBtn.textContent = `+ ${t("addSubtopic")}`;
@@ -3240,15 +3240,15 @@ function refreshTopicTree() {
 
   if (getSelectedType() === "topics" && !searchText) {
     const standardStringsRow = document.createElement("div");
-    standardStringsRow.className = "qpm-editor-tree-item-row";
+    standardStringsRow.className = "mugin-editor-tree-item-row";
     const standardStringsToggle = document.createElement("button");
     standardStringsToggle.type = "button";
-    standardStringsToggle.className = "qpm-editor-tree-toggle";
+    standardStringsToggle.className = "mugin-editor-tree-toggle";
     standardStringsToggle.textContent = "•";
     standardStringsToggle.disabled = true;
     const standardStringsBtn = document.createElement("button");
     standardStringsBtn.type = "button";
-    standardStringsBtn.className = "qpm-editor-tree-category-btn";
+    standardStringsBtn.className = "mugin-editor-tree-category-btn";
     standardStringsBtn.dataset.categoryId = STANDARD_STRINGS_CATEGORY_ID;
     if (selectedTopicCategoryId === STANDARD_STRINGS_CATEGORY_ID && !selectedTopicItemId) {
       standardStringsBtn.classList.add("is-selected");
@@ -3256,7 +3256,7 @@ function refreshTopicTree() {
     standardStringsBtn.textContent = t("standardStringsCategoryLabel");
     standardStringsRow.append(standardStringsToggle, standardStringsBtn);
     const standardStringsDiv = document.createElement("div");
-    standardStringsDiv.className = "qpm-editor-tree-category";
+    standardStringsDiv.className = "mugin-editor-tree-category";
     standardStringsDiv.appendChild(standardStringsRow);
     topicTreeInput.appendChild(standardStringsDiv);
     if (selectedTopicCategoryId === STANDARD_STRINGS_CATEGORY_ID && !selectedTopicItemId) {
@@ -3277,12 +3277,12 @@ function refreshTopicTree() {
     if (!hasMatch) return;
 
     const categoryRow = document.createElement("div");
-    categoryRow.className = "qpm-editor-tree-item-row";
+    categoryRow.className = "mugin-editor-tree-item-row";
     const hasChildren = categoryGroups.length > 0;
     const isCollapsed = !searchText && collapsedCategoryIds.has(categoryId);
     const categoryToggle = document.createElement("button");
     categoryToggle.type = "button";
-    categoryToggle.className = "qpm-editor-tree-toggle";
+    categoryToggle.className = "mugin-editor-tree-toggle";
     categoryToggle.dataset.categoryId = categoryId;
     categoryToggle.dataset.action = "toggle-category";
     categoryToggle.textContent = hasChildren ? (isCollapsed ? "+" : "-") : "•";
@@ -3294,7 +3294,7 @@ function refreshTopicTree() {
     );
     const categoryBtn = document.createElement("button");
     categoryBtn.type = "button";
-    categoryBtn.className = "qpm-editor-tree-category-btn";
+    categoryBtn.className = "mugin-editor-tree-category-btn";
     categoryBtn.dataset.categoryId = categoryId;
     categoryBtn.draggable = sortModeEnabled;
     if (selectedTopicCategoryId === categoryId) {
@@ -3304,18 +3304,18 @@ function refreshTopicTree() {
     categoryRow.append(categoryToggle, categoryBtn);
 
     const categoryDiv = document.createElement("div");
-    categoryDiv.className = "qpm-editor-tree-category";
+    categoryDiv.className = "mugin-editor-tree-category";
     categoryDiv.appendChild(categoryRow);
     topicTreeInput.appendChild(categoryDiv);
     if (sortModeEnabled) {
       const categoryDropzones = document.createElement("div");
-      categoryDropzones.className = "qpm-editor-dropzones";
+      categoryDropzones.className = "mugin-editor-dropzones";
       [
         ["before", t("dropCategoryBefore")],
         ["after", t("dropCategoryAfter")],
       ].forEach(([position, labelText]) => {
         const z = document.createElement("div");
-        z.className = "qpm-editor-dropzone";
+        z.className = "mugin-editor-dropzone";
         z.dataset.scope = "category";
         z.dataset.position = position;
         z.dataset.targetCategoryId = topic?.id || "";
@@ -3356,7 +3356,7 @@ function refreshTopicTree() {
   // skipped it (e.g., collapsed branch or filtered structure edge-cases).
   if (selectedTopicCategoryId && selectedTopicItemId) {
     const hasRenderedSelectedItemEditor = Array.from(
-      topicTreeInput.querySelectorAll(".qpm-editor-inline-editor")
+      topicTreeInput.querySelectorAll(".mugin-editor-inline-editor")
     ).some(
       (el) =>
         (el?.dataset?.categoryId || "") === selectedTopicCategoryId &&
@@ -3388,10 +3388,10 @@ function refreshTopicTree() {
 
   if (canDeleteLimitsInCurrentType()) {
     const addCategoryWrap = document.createElement("div");
-    addCategoryWrap.className = "qpm-editor-tree-add-row";
+    addCategoryWrap.className = "mugin-editor-tree-add-row";
     const addCategoryBtn = document.createElement("button");
     addCategoryBtn.type = "button";
-    addCategoryBtn.className = "qpm-editor-tree-add-end-btn qpm-editor-tree-add-root-category-btn";
+    addCategoryBtn.className = "mugin-editor-tree-add-end-btn mugin-editor-tree-add-root-category-btn";
     addCategoryBtn.textContent = `+ ${t("addMainCategory")}`;
     addCategoryWrap.appendChild(addCategoryBtn);
     topicTreeInput.appendChild(addCategoryWrap);
@@ -3491,7 +3491,7 @@ function deselectTopicItem() {
 
 function getOpenInlineEditorContainer() {
   if (!(topicTreeInput instanceof HTMLElement)) return null;
-  return topicTreeInput.querySelector(".qpm-editor-inline-editor");
+  return topicTreeInput.querySelector(".mugin-editor-inline-editor");
 }
 
 function commitOpenInlineEditorDraft(options = {}) {
@@ -4570,15 +4570,15 @@ revisionPreviewBtn?.addEventListener("click", previewSelectedRevision);
 revertBtn?.addEventListener("click", revertSelectedRevision);
 revisionOnlyDiffInput?.addEventListener("change", () => {
   if (!(revisionDiffEl instanceof HTMLElement)) return;
-  if (revisionDiffEl.classList.contains("qpm-editor-hidden")) return;
+  if (revisionDiffEl.classList.contains("mugin-editor-hidden")) return;
   if (!Array.isArray(revisionDiffRowsCache) || revisionDiffRowsCache.length === 0) return;
   renderRevisionDiffRows(revisionDiffRowsCache);
 });
 toggleJsonBtn?.addEventListener("click", () => {
   if (!jsonInput) return;
-  const isHidden = jsonInput.classList.toggle("qpm-editor-hidden");
+  const isHidden = jsonInput.classList.toggle("mugin-editor-hidden");
   if (jsonActionsWrap instanceof HTMLElement) {
-    jsonActionsWrap.classList.toggle("qpm-editor-hidden", isHidden);
+    jsonActionsWrap.classList.toggle("mugin-editor-hidden", isHidden);
   }
   updateJsonToggleButtonLabel();
 });
@@ -4632,7 +4632,7 @@ collapseAllBtn?.addEventListener("click", () => {
 topicTreeInput?.addEventListener("click", (event) => {
   const target = event.target;
   if (!(target instanceof HTMLElement)) return;
-  const addRootCategoryBtn = target.closest(".qpm-editor-tree-add-root-category-btn");
+  const addRootCategoryBtn = target.closest(".mugin-editor-tree-add-root-category-btn");
   if (addRootCategoryBtn instanceof HTMLElement) {
     if (!canDeleteLimitsInCurrentType()) return;
     if (!commitOpenInlineEditorDraft({ silent: false, refreshTree: false })) return;
@@ -4649,7 +4649,7 @@ topicTreeInput?.addEventListener("click", (event) => {
     refreshTopicTree();
     return;
   }
-  const addEndBtn = target.closest(".qpm-editor-tree-add-end-btn");
+  const addEndBtn = target.closest(".mugin-editor-tree-add-end-btn");
   if (addEndBtn instanceof HTMLElement) {
     if (!canDeleteLimitsInCurrentType()) return;
     if (!commitOpenInlineEditorDraft({ silent: false, refreshTree: false })) return;
@@ -4670,7 +4670,7 @@ topicTreeInput?.addEventListener("click", (event) => {
     refreshTopicTree();
     return;
   }
-  const itemBtn = target.closest(".qpm-editor-tree-item");
+  const itemBtn = target.closest(".mugin-editor-tree-item");
   if (itemBtn instanceof HTMLElement) {
     if (!commitOpenInlineEditorDraft({ silent: false, refreshTree: false })) return;
     const itemId = (itemBtn.dataset.id || "").trim();
@@ -4683,7 +4683,7 @@ topicTreeInput?.addEventListener("click", (event) => {
     selectTopicItem(categoryId, itemId);
     return;
   }
-  const categoryBtn = target.closest(".qpm-editor-tree-category-btn");
+  const categoryBtn = target.closest(".mugin-editor-tree-category-btn");
   if (categoryBtn instanceof HTMLElement) {
     if (!commitOpenInlineEditorDraft({ silent: false, refreshTree: false })) return;
     const categoryId = (categoryBtn.dataset.categoryId || "").trim();
@@ -4695,7 +4695,7 @@ topicTreeInput?.addEventListener("click", (event) => {
     selectCategory(categoryId);
     return;
   }
-  const toggleBtn = target.closest(".qpm-editor-tree-toggle");
+  const toggleBtn = target.closest(".mugin-editor-tree-toggle");
   if (toggleBtn instanceof HTMLElement) {
     if (!commitOpenInlineEditorDraft({ silent: false, refreshTree: false })) return;
     const categoryToggleId = (toggleBtn.dataset.categoryId || "").trim();
@@ -4712,7 +4712,7 @@ topicTreeInput?.addEventListener("click", (event) => {
     refreshTopicTree();
     return;
   }
-  if (target.classList.contains("qpm-editor-tree-delete-inline")) {
+  if (target.classList.contains("mugin-editor-tree-delete-inline")) {
     if (!canDeleteLimitsInCurrentType()) return;
     if (!commitOpenInlineEditorDraft({ silent: false, refreshTree: false })) return;
     const itemId = (target.dataset.id || "").trim();
@@ -4729,7 +4729,7 @@ topicTreeInput?.addEventListener("click", (event) => {
     refreshTopicTree();
     return;
   }
-  if (target.classList.contains("qpm-editor-tree-delete-category-inline")) {
+  if (target.classList.contains("mugin-editor-tree-delete-category-inline")) {
     if (!canDeleteLimitsInCurrentType()) return;
     if (!commitOpenInlineEditorDraft({ silent: false, refreshTree: false })) return;
     const categoryId = (target.dataset.categoryId || "").trim();
@@ -4748,12 +4748,12 @@ topicTreeInput?.addEventListener("click", (event) => {
 topicTreeInput?.addEventListener("dragstart", (event) => {
   const target = event.target;
   if (!(target instanceof HTMLElement)) return;
-  if (target.classList.contains("qpm-editor-tree-item")) {
+  if (target.classList.contains("mugin-editor-tree-item")) {
     draggedTopicItemId = (target.dataset.id || "").trim();
     draggedCategoryId = "";
     if (!draggedTopicItemId) return;
     event.dataTransfer?.setData("text/plain", draggedTopicItemId);
-  } else if (target.classList.contains("qpm-editor-tree-category-btn")) {
+  } else if (target.classList.contains("mugin-editor-tree-category-btn")) {
     draggedCategoryId = (target.dataset.categoryId || "").trim();
     draggedTopicItemId = "";
     if (!draggedCategoryId) return;
@@ -4766,7 +4766,7 @@ topicTreeInput?.addEventListener("dragstart", (event) => {
 topicTreeInput?.addEventListener("dragover", (event) => {
   const target = event.target;
   if (!(target instanceof HTMLElement)) return;
-  if (!target.classList.contains("qpm-editor-dropzone")) return;
+  if (!target.classList.contains("mugin-editor-dropzone")) return;
   event.preventDefault();
   target.classList.add("is-over");
   event.dataTransfer.dropEffect = "move";
@@ -4774,13 +4774,13 @@ topicTreeInput?.addEventListener("dragover", (event) => {
 topicTreeInput?.addEventListener("dragleave", (event) => {
   const target = event.target;
   if (!(target instanceof HTMLElement)) return;
-  if (!target.classList.contains("qpm-editor-dropzone")) return;
+  if (!target.classList.contains("mugin-editor-dropzone")) return;
   target.classList.remove("is-over");
 });
 topicTreeInput?.addEventListener("drop", (event) => {
   const target = event.target;
   if (!(target instanceof HTMLElement)) return;
-  if (!target.classList.contains("qpm-editor-dropzone")) return;
+  if (!target.classList.contains("mugin-editor-dropzone")) return;
   event.preventDefault();
   target.classList.remove("is-over");
   if (!commitOpenInlineEditorDraft({ silent: false, refreshTree: false })) return;
@@ -4824,7 +4824,7 @@ topicTreeInput?.addEventListener("drop", (event) => {
 topicTreeInput?.addEventListener("dragend", () => {
   draggedTopicItemId = "";
   draggedCategoryId = "";
-  topicTreeInput.querySelectorAll(".qpm-editor-dropzone.is-over").forEach((el) => {
+  topicTreeInput.querySelectorAll(".mugin-editor-dropzone.is-over").forEach((el) => {
     el.classList.remove("is-over");
   });
 });

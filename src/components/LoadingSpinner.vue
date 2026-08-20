@@ -1,14 +1,14 @@
 <template>
   <div
     v-if="loading || condition"
-    class="qpm_loading d-flex flex-column align-items-center justify-items-center"
+    class="mugin_loading d-flex flex-column align-items-center justify-items-center"
   >
-    <p v-if="waitText" class="qpm_waitText">
+    <p v-if="waitText" class="mugin_waitText">
       {{ waitText }}
     </p>
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      class="qpm_gear"
+      class="mugin_gear"
       :width="size"
       :height="size"
       viewBox="0 0 126 126"

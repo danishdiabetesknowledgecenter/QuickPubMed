@@ -12,7 +12,7 @@ function assertTrue(bool $condition, string $message): void
     }
 }
 
-$meshQuery = qpmPublicSearchBuildMeshSearchQuery(
+$meshQuery = muginPublicSearchBuildMeshSearchQuery(
     '("Diabetes Mellitus, Type 2"[mh] OR type 2 diabetes[tiab]) AND english[la]',
     'findes julemanden?'
 );
@@ -21,7 +21,7 @@ assertTrue(
     'meshSearchQuery uses mh/tiab concepts, not hard-filter clauses'
 );
 
-$counts = qpmPublicSearchProcessDetailsCountCandidateIdentityBuckets([
+$counts = muginPublicSearchProcessDetailsCountCandidateIdentityBuckets([
     ['pmid' => '1', 'doi' => '10.1/a', 'openAlexId' => ''],
     ['pmid' => '', 'doi' => '10.1/b', 'openAlexId' => 'W123'],
     ['pmid' => '', 'doi' => '10.1/c', 'id' => 'W999', 'source' => 'openAlex'],
@@ -31,7 +31,7 @@ assertTrue(
     'openAlexCandidateCount counts truthy openAlexId only'
 );
 
-$languagePass = qpmPublicSearchCandidateMatchesHydratedFilters(
+$languagePass = muginPublicSearchCandidateMatchesHydratedFilters(
     ['doi' => '10.1/x'],
     [
         'language' => 'fr',

@@ -1,6 +1,6 @@
 # Semantiske source-filters
 
-Denne note beskriver, hvordan `semanticConfig.sourceFilters` bruges i QuickPubMed, og hvornår feltet bør vedligeholdes.
+Denne note beskriver, hvordan `semanticConfig.sourceFilters` bruges i Mugin Scholar, og hvornår feltet bør vedligeholdes.
 
 ## Formål
 
@@ -16,7 +16,7 @@ Det betyder:
 - `softHints` bruges kun til retrieval og som input til topic-overlap-signalet i den hybride rerank
 - `postValidation.rules` bruges bagefter til metadata-baseret håndhævelse på ikke-PMID-records
 
-Den hybride rerank kan ydermere paavirke slutrangeringen via kvalitetssignaler (pubtype, recency, citationsimpact, retraction, klinisk relevans). Se `backend/docs/search-flow-readme.md` og `QPM_RERANK_CONFIG` i `backend/config/config.example.php`.
+Den hybride rerank kan ydermere paavirke slutrangeringen via kvalitetssignaler (pubtype, recency, citationsimpact, retraction, klinisk relevans). Se `backend/docs/search-flow-readme.md` og `MUGIN_RERANK_CONFIG` i `backend/config/config.example.php`.
 
 ## Hvor vedligeholdes hvad
 

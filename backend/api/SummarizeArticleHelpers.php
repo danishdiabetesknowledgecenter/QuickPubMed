@@ -1,6 +1,6 @@
 <?php
 
-function qpmLoadApiConfigOrFail() {
+function muginLoadApiConfigOrFail() {
     $configPath = dirname(__DIR__) . '/config/config.php';
     if (!file_exists($configPath)) {
         $configPath = dirname(__DIR__) . '/config.php';
@@ -14,9 +14,9 @@ function qpmLoadApiConfigOrFail() {
     require_once $configPath;
 }
 
-function qpmApplyStrictCorsPostJson() {
-    if (function_exists('qpmApplyNlmCorsHeaders')) {
-        qpmApplyNlmCorsHeaders('POST, OPTIONS');
+function muginApplyStrictCorsPostJson() {
+    if (function_exists('muginApplyNlmCorsHeaders')) {
+        muginApplyNlmCorsHeaders('POST, OPTIONS');
         return;
     }
     $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
@@ -47,7 +47,7 @@ function qpmApplyStrictCorsPostJson() {
     }
 }
 
-function qpmRequirePostMethod() {
+function muginRequirePostMethod() {
     if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
         http_response_code(405);
         header('Content-Type: application/json');
@@ -56,7 +56,7 @@ function qpmRequirePostMethod() {
     }
 }
 
-function qpmReadJsonInputOrFail() {
+function muginReadJsonInputOrFail() {
     $input = json_decode(file_get_contents('php://input'), true);
     if (!$input) {
         http_response_code(400);
@@ -67,7 +67,7 @@ function qpmReadJsonInputOrFail() {
     return $input;
 }
 
-function qpmRequireInputField($input, $fieldName) {
+function muginRequireInputField($input, $fieldName) {
     $value = $input[$fieldName] ?? null;
     if (!$value) {
         http_response_code(400);
@@ -78,7 +78,7 @@ function qpmRequireInputField($input, $fieldName) {
     return $value;
 }
 
-function qpmRequirePublicHttpsUrl($url, $fieldName) {
+function muginRequirePublicHttpsUrl($url, $fieldName) {
     $value = trim((string) $url);
     $parts = parse_url($value);
     $scheme = strtolower((string) ($parts['scheme'] ?? ''));
@@ -114,9 +114,9 @@ function qpmRequirePublicHttpsUrl($url, $fieldName) {
     return $value;
 }
 
-function qpmFetchExtractedTextFromAzure($cacheType, $sourceUrl, $azureUrl, $sourceFieldName, $fetchLabel, &$cacheHit) {
+function muginFetchExtractedTextFromAzure($cacheType, $sourceUrl, $azureUrl, $sourceFieldName, $fetchLabel, &$cacheHit) {
     $cacheHit = false;
-    $extractedText = qpmReadTextFetchCache($cacheType, $sourceUrl);
+    $extractedText = muginReadTextFetchCache($cacheType, $sourceUrl);
     if (is_string($extractedText) && $extractedText !== '') {
         $cacheHit = true;
         return $extractedText;
@@ -183,12 +183,12 @@ function qpmFetchExtractedTextFromAzure($cacheType, $sourceUrl, $azureUrl, $sour
     $azureData = json_decode($azureResponse, true);
     $extractedText = $azureData['text'] ?? '';
     if (is_string($extractedText) && $extractedText !== '') {
-        qpmWriteTextFetchCache($cacheType, $sourceUrl, $extractedText);
+        muginWriteTextFetchCache($cacheType, $sourceUrl, $extractedText);
     }
     return $extractedText;
 }
 
-function qpmBuildStreamingOpenAiRequest($prompt, $extractedText) {
+function muginBuildStreamingOpenAiRequest($prompt, $extractedText) {
     $promptText = ($prompt['prompt'] ?? '') . $extractedText;
 
     $messages = [];
@@ -204,36 +204,45 @@ function qpmBuildStreamingOpenAiRequest($prompt, $extractedText) {
         $messages[] = ['role' => 'user', 'content' => $promptText];
     }
 
-    $defaultModel = function_exists('qpmResolveAllowedOpenAiModel')
-        ? qpmResolveAllowedOpenAiModel($prompt['model'] ?? null, 'gpt-5.5')
-        : (string) ($prompt['model'] ?? 'gpt-5.5');
+    $defaultModel = function_exists('muginResolveAllowedOpenAiModel')
+        ? muginResolveAllowedOpenAiModel($prompt['model'] ?? null, '')
+        : (string) ($prompt['model'] ?? '');
     $openaiRequest = [
         'model' => $defaultModel,
         'input' => $messages,
         'stream' => true
     ];
 
-    $effort = function_exists('qpmClampOpenAiReasoningEffort')
-        ? qpmClampOpenAiReasoningEffort($prompt['reasoning']['effort'] ?? null, 'none')
+    $effort = function_exists('muginClampOpenAiReasoningEffort')
+        ? muginClampOpenAiReasoningEffort($prompt['reasoning']['effort'] ?? null, 'none')
         : (string) ($prompt['reasoning']['effort'] ?? 'none');
     $openaiRequest['reasoning'] = ['effort' => $effort];
 
-    $openaiRequest['text'] = ['format' => ['type' => 'json_object']];
-
-    if (isset($prompt['max_output_tokens']) && $prompt['max_output_tokens'] !== null) {
-        $openaiRequest['max_output_tokens'] = function_exists('qpmClampOpenAiMaxOutputTokens')
-            ? qpmClampOpenAiMaxOutputTokens($prompt['max_output_tokens'])
-            : (int) $prompt['max_output_tokens'];
-    } elseif (isset($prompt['max_tokens']) && $prompt['max_tokens'] !== null) {
-        $openaiRequest['max_output_tokens'] = function_exists('qpmClampOpenAiMaxOutputTokens')
-            ? qpmClampOpenAiMaxOutputTokens($prompt['max_tokens'])
-            : (int) $prompt['max_tokens'];
+    // Article summaries require JSON; keep format while allowing other ResponsesRequest knobs.
+    $promptForEnrich = is_array($prompt) ? $prompt : [];
+    $promptForEnrich['text'] = isset($promptForEnrich['text']) && is_array($promptForEnrich['text'])
+        ? $promptForEnrich['text']
+        : [];
+    $promptForEnrich['text']['format'] = ['type' => 'json_object'];
+    if (function_exists('muginEnrichResponsesRequestFromPrompt')) {
+        $openaiRequest = muginEnrichResponsesRequestFromPrompt($openaiRequest, $promptForEnrich);
+    } else {
+        $openaiRequest['text'] = ['format' => ['type' => 'json_object']];
+        if (isset($prompt['max_output_tokens']) && $prompt['max_output_tokens'] !== null) {
+            $openaiRequest['max_output_tokens'] = function_exists('muginClampOpenAiMaxOutputTokens')
+                ? muginClampOpenAiMaxOutputTokens($prompt['max_output_tokens'])
+                : (int) $prompt['max_output_tokens'];
+        } elseif (isset($prompt['max_tokens']) && $prompt['max_tokens'] !== null) {
+            $openaiRequest['max_output_tokens'] = function_exists('muginClampOpenAiMaxOutputTokens')
+                ? muginClampOpenAiMaxOutputTokens($prompt['max_tokens'])
+                : (int) $prompt['max_tokens'];
+        }
     }
 
     return $openaiRequest;
 }
 
-function qpmStartPlainStreamingResponse() {
+function muginStartPlainStreamingResponse() {
     header('Content-Type: text/plain; charset=utf-8');
     header('Cache-Control: no-cache, no-store, must-revalidate');
     header('Pragma: no-cache');
@@ -253,25 +262,25 @@ function qpmStartPlainStreamingResponse() {
     set_time_limit(0);
 }
 
-function qpmEmitStreamMetadata($metadata) {
+function muginEmitStreamMetadata($metadata) {
     echo json_encode($metadata) . "\n---STREAM_START---\n";
     @ob_flush();
     @flush();
 }
 
-function qpmArticleStreamCompleteMarker() {
-    return '[[QPM_ARTICLE_STREAM_COMPLETE]]';
+function muginArticleStreamCompleteMarker() {
+    return '[[MUGIN_ARTICLE_STREAM_COMPLETE]]';
 }
 
-function qpmArticleStreamHeartbeatMarker() {
-    return '[[QPM_ARTICLE_STREAM_HEARTBEAT]]';
+function muginArticleStreamHeartbeatMarker() {
+    return '[[MUGIN_ARTICLE_STREAM_HEARTBEAT]]';
 }
 
-function qpmStreamOpenAiPlainText($openaiRequest) {
-    $domain = qpmResolveDomain();
-    $openAiApiKey = qpmGetOpenAIApiKey($domain);
-    $openAiOrgId = qpmGetOpenAIOrgId($domain);
-    $openAiApiUrl = qpmGetOpenAIApiUrl($domain);
+function muginStreamOpenAiPlainText($openaiRequest) {
+    $domain = muginResolveDomain();
+    $openAiApiUrl = muginGetOpenAIApiUrl($domain);
+    $openaiRequest = muginNormalizeLlmRequestPayload(is_array($openaiRequest) ? $openaiRequest : []);
+    $headers = muginBuildLlmHttpHeaders($domain);
     $isLocalRequest = static function(): bool {
         $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
         return $host !== '' && (
@@ -282,24 +291,15 @@ function qpmStreamOpenAiPlainText($openaiRequest) {
         );
     };
 
-    $headers = [
-        'Content-Type: application/json',
-        'Authorization: Bearer ' . $openAiApiKey
-    ];
-
-    if ($openAiOrgId) {
-        $headers[] = 'OpenAI-Organization: ' . $openAiOrgId;
-    }
-
     $sseBuffer = '';
     $hasStreamedText = false;
     $streamFinishedCleanly = false;
     $streamHadTerminalError = false;
-    $completeMarker = qpmArticleStreamCompleteMarker();
-    $heartbeatMarker = qpmArticleStreamHeartbeatMarker();
+    $completeMarker = muginArticleStreamCompleteMarker();
+    $heartbeatMarker = muginArticleStreamHeartbeatMarker();
 
-    $GLOBALS['qpmArticleLastDataTime'] = time();
-    $GLOBALS['qpmArticleHeartbeatInterval'] = 10;
+    $GLOBALS['muginArticleLastDataTime'] = time();
+    $GLOBALS['muginArticleHeartbeatInterval'] = 10;
 
     $processSseLine = static function ($line) use (&$hasStreamedText, &$streamFinishedCleanly, &$streamHadTerminalError): void {
         $line = trim((string) $line);
@@ -341,11 +341,15 @@ function qpmStreamOpenAiPlainText($openaiRequest) {
         }
 
         if (is_string($content) && $content !== '') {
-            $GLOBALS['qpmArticleLastDataTime'] = time();
+            $GLOBALS['muginArticleLastDataTime'] = time();
             $hasStreamedText = true;
-            echo $content;
-            @ob_flush();
-            @flush();
+            if (function_exists('muginEchoLlmStreamText')) {
+                muginEchoLlmStreamText($content);
+            } else {
+                echo $content;
+                @ob_flush();
+                @flush();
+            }
         }
     };
 
@@ -356,13 +360,17 @@ function qpmStreamOpenAiPlainText($openaiRequest) {
         return;
     }
 
+    echo $heartbeatMarker;
+    @ob_flush();
+    @flush();
+
     $curlOptions = [
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => json_encode($openaiRequest),
         CURLOPT_HTTPHEADER => $headers,
         CURLOPT_RETURNTRANSFER => false,
         CURLOPT_WRITEFUNCTION => function($ch, $data) use (&$sseBuffer, $processSseLine) {
-            $GLOBALS['qpmArticleLastDataTime'] = time();
+            // Keep heartbeats alive during long reasoning-only SSE phases.
             $sseBuffer .= $data;
             $lines = preg_split("/\r\n|\n|\r/", $sseBuffer);
             if ($lines === false) {
@@ -383,13 +391,14 @@ function qpmStreamOpenAiPlainText($openaiRequest) {
         },
         CURLOPT_NOPROGRESS => false,
         CURLOPT_PROGRESSFUNCTION => function($ch, $downloadTotal, $downloadNow, $uploadTotal, $uploadNow) use ($heartbeatMarker) {
-            $timeSinceLastData = time() - (int) ($GLOBALS['qpmArticleLastDataTime'] ?? time());
-            $heartbeatInterval = (int) ($GLOBALS['qpmArticleHeartbeatInterval'] ?? 10);
+            $timeSinceLastData = time() - (int) ($GLOBALS['muginArticleLastDataTime'] ?? time());
+            $heartbeatInterval = (int) ($GLOBALS['muginArticleHeartbeatInterval'] ?? 10);
             if ($timeSinceLastData >= $heartbeatInterval) {
-                echo "\n" . $heartbeatMarker . "\n";
+                // No surrounding newlines — they would split visible text after marker strip.
+                echo $heartbeatMarker;
                 @ob_flush();
                 @flush();
-                $GLOBALS['qpmArticleLastDataTime'] = time();
+                $GLOBALS['muginArticleLastDataTime'] = time();
             }
             return 0;
         },

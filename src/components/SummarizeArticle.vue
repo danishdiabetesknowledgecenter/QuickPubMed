@@ -1,17 +1,17 @@
 <template>
-  <div v-if="!isError" ref="container" class="qpm_summaryArticleContainer">
+  <div v-if="!isError" ref="container" class="mugin_summaryArticleContainer">
     <!-- Heading telling that summarize entire article is being checked - shown while waiting for response -->
-    <p v-if="loading && !isError && streamingItems.length === 0" class="qpm_summarySectionTopPadding">
+    <p v-if="loading && !isError && streamingItems.length === 0" class="mugin_summarySectionTopPadding">
       <strong>{{ getString("summarizeArticleAvailable") }}</strong>
-      <span class="qpm_inlineSpinnerWrap">
-        <loading-spinner :loading="true" :size="16" class="qpm_inlineBlock" />
+      <span class="mugin_inlineSpinnerWrap">
+        <loading-spinner :loading="true" :size="16" class="mugin_inlineBlock" />
       </span>
     </p>
     
     <!-- Show streaming items progressively while loading -->
     <div v-if="loading && validStreamingItems.length > 0">
       <!-- Full-article summary (first 7 items) -->
-      <p class="qpm_summarySectionTopPadding">
+      <p class="mugin_summarySectionTopPadding">
         <strong>{{ getString("summarizeArticleHeader") }}</strong>
       </p>
       <div v-for="(qa, index) in validStreamingItems.slice(0, 7)" :key="'streaming-' + index">
@@ -23,42 +23,42 @@
           @close="setAccordionExpanded(getAccordionStateId('summary', index, qa.shortTitle), false)"
         >
           <template #header="accordionProps">
-            <div class="qpm_aiAccordionHeader qpm_headerRow">
-              <div class="qpm_headerRowStart">
+            <div class="mugin_aiAccordionHeader mugin_headerRow">
+              <div class="mugin_headerRowStart">
                 <!-- Show spinner instead of icon while streaming -->
-                <span class="qpm_headerIconSlot">
+                <span class="mugin_headerIconSlot">
                   <loading-spinner
                     v-if="qa.isStreaming"
                     :loading="true"
                     :size="22"
-                    class="qpm_streaming-icon qpm_headerLoadingSpinner"
+                    class="mugin_streaming-icon mugin_headerLoadingSpinner"
                   />
-                  <i v-else class="bx bx-detail qpm_summaryIcon" aria-hidden="true"></i>
+                  <i v-else class="bx bx-detail mugin_summaryIcon" aria-hidden="true"></i>
                 </span>
-                <span class="qpm_headerTitleText">{{ qa.shortTitle || '...' }}</span>
+                <span class="mugin_headerTitleText">{{ qa.shortTitle || '...' }}</span>
               </div>
-              <div class="qpm_headerRowEnd">
+              <div class="mugin_headerRowEnd">
                 <i
                   v-if="accordionProps.expanded"
-                  class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
+                  class="bx bx-chevron-up mugin_aiAccordionHeaderArrows"
                   aria-hidden="true"
                 ></i>
                 <i 
                   v-else 
-                  class="bx bx-chevron-down qpm_aiAccordionHeaderArrows" 
+                  class="bx bx-chevron-down mugin_aiAccordionHeaderArrows" 
                   aria-hidden="true"
                 ></i>
               </div>
             </div>
           </template>
           <template #default>
-            <qpm-markdown
+            <mugin-markdown
               v-if="useMarkdown && canRenderMarkdown"
-              class="qpm_answer-text"
+              class="mugin_answer-text"
               :markdown="qa.answer || ''"
               smooth-live-preview
             />
-            <div v-else class="qpm_answer-text">
+            <div v-else class="mugin_answer-text">
               {{ qa.answer || '' }}
             </div>
           </template>
@@ -67,7 +67,7 @@
       
       <!-- Questions for this article (items from index 7+) - only show when question is fully parsed to avoid flicker -->
       <template v-if="validQuestionItems.length > 0">
-        <p class="qpm_summarySectionTopPadding">
+        <p class="mugin_summarySectionTopPadding">
           <strong>{{ getString("generateQuestionsHeader") }}</strong>
         </p>
         <div v-for="(qa, index) in validQuestionItems" :key="'streaming-extra-' + index">
@@ -85,46 +85,46 @@
             "
           >
             <template #header="accordionProps">
-              <div class="qpm_aiAccordionHeader qpm_headerRow">
-                <div class="qpm_headerRowStart">
+              <div class="mugin_aiAccordionHeader mugin_headerRow">
+                <div class="mugin_headerRowStart">
                   <!-- Show spinner instead of icon while streaming -->
-                  <span class="qpm_headerIconSlot">
+                  <span class="mugin_headerIconSlot">
                     <loading-spinner
                       v-if="qa.isStreaming"
                       :loading="true"
                       :size="22"
-                      class="qpm_streaming-icon qpm_headerLoadingSpinner"
+                      class="mugin_streaming-icon mugin_headerLoadingSpinner"
                     />
                     <i
                       v-else
-                      class="bx bx-help-circle qpm_helpCircleIcon"
+                      class="bx bx-help-circle mugin_helpCircleIcon"
                     aria-hidden="true"
                     ></i>
                   </span>
-                  <span class="qpm_headerTitleText">{{ qa.question || qa.shortTitle || '...' }}</span>
+                  <span class="mugin_headerTitleText">{{ qa.question || qa.shortTitle || '...' }}</span>
                 </div>
-                <div class="qpm_headerRowEnd">
+                <div class="mugin_headerRowEnd">
                   <i
                     v-if="accordionProps.expanded"
-                    class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
+                    class="bx bx-chevron-up mugin_aiAccordionHeaderArrows"
                   aria-hidden="true"
                   ></i>
                   <i 
                     v-else 
-                    class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
+                    class="bx bx-chevron-down mugin_aiAccordionHeaderArrows"
                   aria-hidden="true"
                   ></i>
                 </div>
               </div>
             </template>
             <template #default>
-              <qpm-markdown
+              <mugin-markdown
                 v-if="useMarkdown && canRenderMarkdown"
-                class="qpm_answer-text"
+                class="mugin_answer-text"
                 :markdown="qa.answer || ''"
                 smooth-live-preview
               />
-              <div v-else class="qpm_answer-text">
+              <div v-else class="mugin_answer-text">
                 {{ qa.answer || '' }}
               </div>
             </template>
@@ -133,15 +133,15 @@
       </template>
       
       <!-- Show waiting indicator at the bottom while streaming (not on last item) -->
-      <div v-if="showWaitingIndicator" class="qpm_streaming-loading">
-        <span>{{ getString("aiGeneratingText") }}<span class="qpm_animated-dots"></span></span>
+      <div v-if="showWaitingIndicator" class="mugin_streaming-loading">
+        <span>{{ getString("aiGeneratingText") }}<span class="mugin_animated-dots"></span></span>
       </div>
     </div>
     
     <!-- TITLE summarize entire article -->
     <p
       v-if="!loading && currentSummary.length > 0 && !isError"
-      class="qpm_summarySectionTopPadding"
+      class="mugin_summarySectionTopPadding"
     >
       <strong>{{ getString("summarizeArticleHeader") }}</strong>
     </p>
@@ -149,17 +149,17 @@
     <div v-if="!loading && currentSummary.length > 0 && !isError && getTotalSummaries() > 1">
       <button
         type="button"
-        class="qpm_summary_icon bx bx-chevron-left qpm_summaryNavButton"
+        class="mugin_summary_icon bx bx-chevron-left mugin_summaryNavButton"
         :disabled="currentSummaryIndex[promptLanguageType] === 0"
         @click="navigateHistory('previous')"
       />
-      <span class="qpm_summaryNavCounter">
+      <span class="mugin_summaryNavCounter">
         {{ currentSummaryIndex[promptLanguageType] + 1 }} /
         {{ getTotalSummaries() }}
       </span>
       <button
         type="button"
-        class="qpm_summary_icon bx bx-chevron-right qpm_summaryNavButton"
+        class="mugin_summary_icon bx bx-chevron-right mugin_summaryNavButton"
         :disabled="currentSummaryIndex[promptLanguageType] === getTotalSummaries() - 1"
         @click="navigateHistory('next')"
       />
@@ -177,25 +177,25 @@
           @close="setAccordionExpanded(getAccordionStateId('summary', index, qa.shortTitle), false)"
         >
           <template #header="accordionProps">
-            <div class="qpm_aiAccordionHeader qpm_headerRow">
-              <div class="qpm_headerRowStart">
-                <span class="qpm_headerIconSlot">
+            <div class="mugin_aiAccordionHeader mugin_headerRow">
+              <div class="mugin_headerRowStart">
+                <span class="mugin_headerIconSlot">
                   <i
-                    class="bx bx-detail qpm_summaryIcon"
+                    class="bx bx-detail mugin_summaryIcon"
                     aria-hidden="true"
                   ></i>
                 </span>
-                <span class="qpm_headerTitleText">{{ qa.shortTitle }}</span>
+                <span class="mugin_headerTitleText">{{ qa.shortTitle }}</span>
               </div>
-              <div class="qpm_headerRowEnd">
+              <div class="mugin_headerRowEnd">
                 <i
                   v-if="accordionProps.expanded"
-                  class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
+                  class="bx bx-chevron-up mugin_aiAccordionHeaderArrows"
                   aria-hidden="true"
                 ></i>
                 <i
                   v-else
-                  class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
+                  class="bx bx-chevron-down mugin_aiAccordionHeaderArrows"
                   aria-hidden="true"
                 ></i>
               </div>
@@ -203,13 +203,13 @@
           </template>
 
           <template #default>
-            <qpm-markdown
+            <mugin-markdown
               v-if="useMarkdown && canRenderMarkdown"
-              class="qpm_answer-text"
+              class="mugin_answer-text"
               :markdown="qa.answer || ''"
               smooth-live-preview
             />
-            <div v-else class="qpm_answer-text">
+            <div v-else class="mugin_answer-text">
               {{ qa.answer }}
             </div>
           </template>
@@ -219,7 +219,7 @@
       <!-- TITLE additional questions for the article -->
       <p
         v-if="!loading && currentSummary.length > 0 && !isError"
-        class="qpm_summarySectionTopPadding"
+        class="mugin_summarySectionTopPadding"
       >
         <strong>{{ getString("generateQuestionsHeader") }}</strong>
       </p>
@@ -239,25 +239,25 @@
           "
         >
           <template #header="accordionProps">
-            <div ref="headerText" class="qpm_aiAccordionHeader qpm_headerRow">
-              <div class="qpm_headerRowStart">
-                <span class="qpm_headerIconSlot">
+            <div ref="headerText" class="mugin_aiAccordionHeader mugin_headerRow">
+              <div class="mugin_headerRowStart">
+                <span class="mugin_headerIconSlot">
                   <i
-                  class="bx bx-help-circle qpm_helpCircleIcon"
+                  class="bx bx-help-circle mugin_helpCircleIcon"
                   aria-hidden="true"
                   ></i>
                 </span>
-                <span class="qpm_headerTitleText">{{ qa.question }}</span>
+                <span class="mugin_headerTitleText">{{ qa.question }}</span>
               </div>
-              <div class="qpm_headerRowEnd">
+              <div class="mugin_headerRowEnd">
                 <i
                   v-if="accordionProps.expanded"
-                  class="bx bx-chevron-up qpm_aiAccordionHeaderArrows"
+                  class="bx bx-chevron-up mugin_aiAccordionHeaderArrows"
                   aria-hidden="true"
                 ></i>
                 <i 
                   v-else 
-                  class="bx bx-chevron-down qpm_aiAccordionHeaderArrows"
+                  class="bx bx-chevron-down mugin_aiAccordionHeaderArrows"
                   aria-hidden="true"
                 ></i>
               </div>
@@ -265,14 +265,14 @@
           </template>
 
           <template #default>
-<!--        <div :style="getAnswerStyle(index)" class="qpm_answer-text"> -->
-            <qpm-markdown
+<!--        <div :style="getAnswerStyle(index)" class="mugin_answer-text"> -->
+            <mugin-markdown
               v-if="useMarkdown && canRenderMarkdown"
-              class="qpm_answer-text"
+              class="mugin_answer-text"
               :markdown="qa.answer || ''"
               smooth-live-preview
             />
-            <div v-else class="qpm_answer-text">
+            <div v-else class="mugin_answer-text">
               {{ qa.answer }}
             </div>
           </template>
@@ -285,13 +285,14 @@
 <script>
   import AccordionMenu from "@/components/AccordionMenu.vue";
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
-  import QpmMarkdown from "@/components/QpmMarkdown.vue";
+  import MuginMarkdown from "@/components/MuginMarkdown.vue";
 
   import { utilitiesMixin } from "@/mixins/utilities.js";
   import { appSettingsMixin } from "@/mixins/appSettings.js";
   import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
   import { questionHeaderHeightWatcherMixin } from "@/mixins/questionHeaderHeightWatcher.js";
   import { sanitizePrompt } from "@/utils/promptsHelpers.js";
+  import { applyOpenAiTaskSettings } from "@/utils/openAiTaskSettings.js";
   import {
     summarizeArticlePrompt,
     promptText,
@@ -302,7 +303,7 @@
     components: {
       AccordionMenu,
       LoadingSpinner,
-      QpmMarkdown,
+      MuginMarkdown,
     },
     mixins: [
       utilitiesMixin,
@@ -699,10 +700,14 @@
         // Get the basic prompt for the given language type
         // The promptLanguageType comes in as the Danish name (e.g., "Hverdagssprog" or "Fagsprog")
         // We need to find the matching entry in summarizeArticlePrompt
-        let languageSpecificPrompt = summarizeArticlePrompt.find((p) => {
+        const basePrompt = summarizeArticlePrompt.find((p) => {
           // Compare directly with promptLanguageType since both use Danish names
           return p.name === promptLanguageType;
         });
+        let languageSpecificPrompt = applyOpenAiTaskSettings(
+          { ...basePrompt },
+          "summarizeArticle"
+        );
 
         // Set the prompt field to the sanitized composed prompt text for the given language
         languageSpecificPrompt.prompt = sanitizedComposedPromptText[language];
@@ -941,12 +946,21 @@
         let isFirstChunk = true;
         let metadataLogged = false;
         const STREAM_SEPARATOR = "---STREAM_START---";
-        const STREAM_COMPLETE_MARKER = "[[QPM_ARTICLE_STREAM_COMPLETE]]";
-        const STREAM_HEARTBEAT_MARKER = "[[QPM_ARTICLE_STREAM_HEARTBEAT]]";
+        const STREAM_COMPLETE_MARKER = "[[MUGIN_ARTICLE_STREAM_COMPLETE]]";
+        const STREAM_HEARTBEAT_MARKER = "[[MUGIN_ARTICLE_STREAM_HEARTBEAT]]";
+        const escapeRegExp = (value) =>
+          String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        // Strip markers and any newlines used to wrap them (must not split words).
         const stripStreamMarkers = (value = "") =>
           String(value || "")
-            .replaceAll(STREAM_COMPLETE_MARKER, "")
-            .replaceAll(STREAM_HEARTBEAT_MARKER, "")
+            .replace(
+              new RegExp(`\\r?\\n?${escapeRegExp(STREAM_COMPLETE_MARKER)}\\r?\\n?`, "g"),
+              ""
+            )
+            .replace(
+              new RegExp(`\\r?\\n?${escapeRegExp(STREAM_HEARTBEAT_MARKER)}\\r?\\n?`, "g"),
+              ""
+            )
             .trim();
         let didComplete = false;
         

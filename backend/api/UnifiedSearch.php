@@ -3,7 +3,7 @@
  * First-party unified search endpoint for the website widget (SearchForm.vue).
  *
  * Unified-search-engine-full-parity plan, Phase 7: lets the widget call the
- * exact same orchestrator (qpmPublicSearchRunSearch()) that backs the public
+ * exact same orchestrator (muginPublicSearchRunSearch()) that backs the public
  * /v1/search API, so the website and external API consumers get identical
  * results from a single engine.
  *
@@ -17,7 +17,7 @@
  * access to all sources, matching what the widget's own local JS pipeline
  * can already do today.
  *
- * The global qpmPublicSearchAcquireExecutionSlot() concurrency guard is still
+ * The global muginPublicSearchAcquireExecutionSlot() concurrency guard is still
  * applied, since it protects shared server/upstream-API capacity regardless
  * of caller.
  */
@@ -30,8 +30,8 @@ require_once $configPath;
 require_once __DIR__ . '/NlmApiHelpers.php';
 require_once dirname(__DIR__) . '/app/public-search-lib.php';
 
-qpmApplyNlmCorsHeaders('POST, OPTIONS', 'application/json');
-qpmEnforceFirstPartyIpRateLimit('unifiedSearch');
+muginApplyNlmCorsHeaders('POST, OPTIONS', 'application/json');
+muginEnforceFirstPartyIpRateLimit('unifiedSearch');
 // A full unified-engine run (LLM translation + MeSH validation + multi-source
 // retrieval + rerank) can legitimately take longer than PHP's default 30s,
 // same reasoning as the other backend/api/*.php scripts' time limit bumps
@@ -41,7 +41,7 @@ qpmEnforceFirstPartyIpRateLimit('unifiedSearch');
 
 $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 if ($method !== 'POST') {
-    qpmPublicSearchRespondJson(405, ['error' => 'Method not allowed']);
+    muginPublicSearchRespondJson(405, ['error' => 'Method not allowed']);
 }
 
 $startedAt = microtime(true);
@@ -50,14 +50,14 @@ $streamStarted = false;
 $streamEnabled = false;
 $executionSlot = null;
 register_shutdown_function(static function () use (&$executionSlot): void {
-    qpmPublicSearchReleaseExecutionSlot($executionSlot);
+    muginPublicSearchReleaseExecutionSlot($executionSlot);
 });
 
 try {
-    $config = qpmPublicSearchGetConfig();
-    $request = qpmPublicSearchParseRequest();
+    $config = muginPublicSearchGetConfig();
+    $request = muginPublicSearchParseRequest();
     // First-party widget: full source access, site default API keys (no
-    // per-client override), matching qpmPublicSearchParseRequest()'s own
+    // per-client override), matching muginPublicSearchParseRequest()'s own
     // request['sources'] as-is (the widget's UI already governs which
     // sources a given visitor/domain may toggle on, e.g. the Elicit gate).
     $request['_clientSourceApiKeys'] = [
@@ -66,31 +66,31 @@ try {
         'elicit' => '',
     ];
     // Keep a live reference so partial processDetails collected inside
-    // qpmPublicSearchRunSearch() remain available on error/SSE failure paths.
+    // muginPublicSearchRunSearch() remain available on error/SSE failure paths.
     $requestForAudit = &$request;
     $streamEnabled = (($request['responseOptions']['stream'] ?? false) === true);
-    $executionSlot = qpmPublicSearchAcquireExecutionSlot((int) ($config['concurrentSearchLimit'] ?? 10));
+    $executionSlot = muginPublicSearchAcquireExecutionSlot((int) ($config['concurrentSearchLimit'] ?? 10));
 
     $progressCallback = null;
     if ($streamEnabled) {
-        qpmPublicSearchStartEventStream();
+        muginPublicSearchStartEventStream();
         $streamStarted = true;
-        qpmPublicSearchEmitSseEvent('connected', [
+        muginPublicSearchEmitSseEvent('connected', [
             'stage' => 'connected',
-            'language' => qpmPublicSearchResolveProgressLanguage($request),
+            'language' => muginPublicSearchResolveProgressLanguage($request),
             'timestamp' => gmdate('c'),
         ]);
         $progressCallback = static function (string $stage, string $message, array $context = []) use (&$executionSlot, $request): void {
-            qpmPublicSearchRefreshExecutionSlot($executionSlot);
-            qpmPublicSearchEmitSseEvent('progress', array_merge(
-                qpmPublicSearchBuildStreamProgressPayload($request, $stage, $message, $context),
+            muginPublicSearchRefreshExecutionSlot($executionSlot);
+            muginPublicSearchEmitSseEvent('progress', array_merge(
+                muginPublicSearchBuildStreamProgressPayload($request, $stage, $message, $context),
                 ['timestamp' => gmdate('c')]
             ));
         };
     }
 
-    qpmPublicSearchRefreshExecutionSlot($executionSlot);
-    $response = qpmPublicSearchRunSearch($request, $progressCallback);
+    muginPublicSearchRefreshExecutionSlot($executionSlot);
+    $response = muginPublicSearchRunSearch($request, $progressCallback);
     $completedAt = microtime(true);
     $durationSeconds = (int) floor($completedAt - $startedAt);
     $response['timing'] = [
@@ -105,12 +105,12 @@ try {
         ),
     ];
 
-    qpmPublicSearchAudit([
+    muginPublicSearchAudit([
         'clientId' => 'website-widget',
         'method' => $method,
         'route' => '/backend/api/UnifiedSearch.php',
         'status' => 200,
-        'origin' => qpmPublicSearchResolveOrigin(),
+        'origin' => muginPublicSearchResolveOrigin(),
         'query' => (string) ($request['query']['text'] ?? ''),
         'sources' => (array) ($request['sources'] ?? []),
         'page' => (int) ($request['page']['number'] ?? 1),
@@ -123,23 +123,23 @@ try {
     ]);
 
     if ($streamStarted) {
-        qpmPublicSearchEmitSseEvent('result', $response);
-        qpmPublicSearchReleaseExecutionSlot($executionSlot);
+        muginPublicSearchEmitSseEvent('result', $response);
+        muginPublicSearchReleaseExecutionSlot($executionSlot);
         $executionSlot = null;
         exit;
     }
 
-    qpmPublicSearchReleaseExecutionSlot($executionSlot);
+    muginPublicSearchReleaseExecutionSlot($executionSlot);
     $executionSlot = null;
-    qpmPublicSearchRespondJson(200, $response);
+    muginPublicSearchRespondJson(200, $response);
 } catch (InvalidArgumentException $exception) {
     $status = stripos($exception->getMessage(), 'Method not allowed') !== false ? 405 : 422;
-    qpmPublicSearchAudit([
+    muginPublicSearchAudit([
         'clientId' => 'website-widget',
         'method' => $method,
         'route' => '/backend/api/UnifiedSearch.php',
         'status' => $status,
-        'origin' => qpmPublicSearchResolveOrigin(),
+        'origin' => muginPublicSearchResolveOrigin(),
         'query' => (string) (($requestForAudit['query']['text'] ?? '')),
         'sources' => (array) (($requestForAudit['sources'] ?? [])),
         'page' => (int) (($requestForAudit['page']['number'] ?? 0)),
@@ -158,20 +158,20 @@ try {
         && isset($requestForAudit['_processDetails'])
         && is_array($requestForAudit['_processDetails'])
     ) {
-        $validationErrorPayload['processDetails'] = qpmPublicSearchProcessDetailsExport($requestForAudit['_processDetails']);
+        $validationErrorPayload['processDetails'] = muginPublicSearchProcessDetailsExport($requestForAudit['_processDetails']);
     }
     if ($streamStarted) {
-        qpmPublicSearchEmitSseEvent('error', array_merge($validationErrorPayload, [
+        muginPublicSearchEmitSseEvent('error', array_merge($validationErrorPayload, [
             'status' => $status,
             'timestamp' => gmdate('c'),
         ]));
-        qpmPublicSearchReleaseExecutionSlot($executionSlot);
+        muginPublicSearchReleaseExecutionSlot($executionSlot);
         $executionSlot = null;
         exit;
     }
-    qpmPublicSearchReleaseExecutionSlot($executionSlot);
+    muginPublicSearchReleaseExecutionSlot($executionSlot);
     $executionSlot = null;
-    qpmPublicSearchRespondJson($status, $validationErrorPayload);
+    muginPublicSearchRespondJson($status, $validationErrorPayload);
 } catch (RuntimeException $exception) {
     $status = $exception->getCode();
     if (!in_array($status, [502, 503], true)) {
@@ -180,16 +180,16 @@ try {
     $errorPayload = ['error' => $exception->getMessage()];
     if ($status === 503) {
         $retryAfterSeconds = (int) ($config['busyRetryAfterSeconds'] ?? 120);
-        qpmPublicSearchApplyRetryAfterHeader($retryAfterSeconds);
+        muginPublicSearchApplyRetryAfterHeader($retryAfterSeconds);
         $errorPayload['retryAfterSeconds'] = $retryAfterSeconds;
         $errorPayload['concurrentSearchLimit'] = (int) ($config['concurrentSearchLimit'] ?? 10);
     }
-    qpmPublicSearchAudit([
+    muginPublicSearchAudit([
         'clientId' => 'website-widget',
         'method' => $method,
         'route' => '/backend/api/UnifiedSearch.php',
         'status' => $status,
-        'origin' => qpmPublicSearchResolveOrigin(),
+        'origin' => muginPublicSearchResolveOrigin(),
         'query' => (string) (($requestForAudit['query']['text'] ?? '')),
         'sources' => (array) (($requestForAudit['sources'] ?? [])),
         'page' => (int) (($requestForAudit['page']['number'] ?? 0)),
@@ -207,27 +207,27 @@ try {
         && isset($requestForAudit['_processDetails'])
         && is_array($requestForAudit['_processDetails'])
     ) {
-        $errorPayload['processDetails'] = qpmPublicSearchProcessDetailsExport($requestForAudit['_processDetails']);
+        $errorPayload['processDetails'] = muginPublicSearchProcessDetailsExport($requestForAudit['_processDetails']);
     }
     if ($streamStarted) {
-        qpmPublicSearchEmitSseEvent('error', array_merge($errorPayload, [
+        muginPublicSearchEmitSseEvent('error', array_merge($errorPayload, [
             'status' => $status,
             'timestamp' => gmdate('c'),
         ]));
-        qpmPublicSearchReleaseExecutionSlot($executionSlot);
+        muginPublicSearchReleaseExecutionSlot($executionSlot);
         $executionSlot = null;
         exit;
     }
-    qpmPublicSearchReleaseExecutionSlot($executionSlot);
+    muginPublicSearchReleaseExecutionSlot($executionSlot);
     $executionSlot = null;
-    qpmPublicSearchRespondJson($status, $errorPayload);
+    muginPublicSearchRespondJson($status, $errorPayload);
 } catch (Throwable $throwable) {
-    qpmPublicSearchAudit([
+    muginPublicSearchAudit([
         'clientId' => 'website-widget',
         'method' => $method,
         'route' => '/backend/api/UnifiedSearch.php',
         'status' => 500,
-        'origin' => qpmPublicSearchResolveOrigin(),
+        'origin' => muginPublicSearchResolveOrigin(),
         'query' => (string) (($requestForAudit['query']['text'] ?? '')),
         'sources' => (array) (($requestForAudit['sources'] ?? [])),
         'page' => (int) (($requestForAudit['page']['number'] ?? 0)),
@@ -240,16 +240,16 @@ try {
         'error' => $throwable->getMessage(),
     ]);
     if ($streamStarted) {
-        qpmPublicSearchEmitSseEvent('error', [
+        muginPublicSearchEmitSseEvent('error', [
             'status' => 500,
             'error' => 'Internal server error',
             'timestamp' => gmdate('c'),
         ]);
-        qpmPublicSearchReleaseExecutionSlot($executionSlot);
+        muginPublicSearchReleaseExecutionSlot($executionSlot);
         $executionSlot = null;
         exit;
     }
-    qpmPublicSearchReleaseExecutionSlot($executionSlot);
+    muginPublicSearchReleaseExecutionSlot($executionSlot);
     $executionSlot = null;
-    qpmPublicSearchRespondJson(500, ['error' => 'Internal server error']);
+    muginPublicSearchRespondJson(500, ['error' => 'Internal server error']);
 }

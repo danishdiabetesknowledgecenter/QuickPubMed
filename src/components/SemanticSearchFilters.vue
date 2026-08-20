@@ -1,6 +1,6 @@
 <template>
-  <div class="qpm_simpleFiltersHeader">
-    <span class="qpm_keepWithIcon">
+  <div class="mugin_simpleFiltersHeader">
+    <span class="mugin_keepWithIcon">
       {{ getString("semanticSearchSectionHeader") }}:
       <button
         v-if="getString('hoverSemanticSearchSectionHeader')"
@@ -11,7 +11,7 @@
           delay: helpTextDelay,
           theme: 'infoTooltip',
         }"
-        class="bx bx-info-circle qpm_cursorHelp qpm_infoIcon"
+        class="bx bx-info-circle mugin_cursorHelp mugin_infoIcon"
         :aria-label="getString('infoSemanticSectionLabel')"
         @click.stop
       />
@@ -19,10 +19,10 @@
   </div>
   <div
     v-for="option in semanticOptions"
-    :id="'qpm_topic_' + option.id"
+    :id="'mugin_topic_' + option.id"
     :key="`semantic-${option.id}`"
-    class="qpm_simpleFilters"
-    :class="{ qpm_semanticFilterLocked: option.locked }"
+    class="mugin_simpleFilters"
+    :class="{ mugin_semanticFilterLocked: option.locked }"
     @click="onSemanticOptionRowClick(option, $event)"
   >
     <input
@@ -33,23 +33,23 @@
       :title="option.locked ? null : getString('checkboxTitle')"
       :value="option.id"
       :checked="!option.locked && isSemanticOptionChecked(option)"
-      class="qpm_cursorPointer qpm_semanticFilterCheckbox"
+      class="mugin_cursorPointer mugin_semanticFilterCheckbox"
       v-tooltip="getLockTooltipBinding(option)"
       @click="onSemanticOptionInputClick(option, $event)"
       @change="onSemanticOptionChange(option, $event)"
       @keyup.enter="onSemanticOptionEnter(option)"
     />
-    <div class="qpm_infoInline">
+    <div class="mugin_infoInline">
       <label
         :for="option.id"
-        class="qpm_semanticFilterLabel"
+        class="mugin_semanticFilterLabel"
         v-tooltip="getLockTooltipBinding(option)"
         @click="onSemanticOptionLabelClick(option, $event)"
       >
         <template v-if="getSemanticOptionLabelParts(option).prefix">
           {{ getSemanticOptionLabelParts(option).prefix }}
         </template>
-        <span class="qpm_keepWithIcon">
+        <span class="mugin_keepWithIcon">
           {{ getSemanticOptionLabelParts(option).last }}
           <button
             v-if="getSemanticOptionTooltip(option)"
@@ -60,7 +60,7 @@
               delay: helpTextDelay,
               theme: 'infoTooltip',
             }"
-            class="bx bx-info-circle qpm_cursorHelp qpm_infoIcon"
+            class="bx bx-info-circle mugin_cursorHelp mugin_infoIcon"
             :aria-label="getString('infoSemanticOptionLabel')"
             @click.stop
           />
@@ -70,13 +70,13 @@
         v-if="option.locked"
         type="button"
         v-tooltip="elicitUnlockTooltipBinding"
-        class="bx bx-lock-alt qpm_cursorPointer qpm_infoIcon qpm_semanticFilterLockIcon"
+        class="bx bx-lock-alt mugin_cursorPointer mugin_infoIcon mugin_semanticFilterLockIcon"
         :aria-label="getString('elicitUnlockButtonLabel') || 'Lås op'"
         @click.stop="onElicitUnlockClick"
       />
     </div>
   </div>
-  <div class="qpm_simpleFiltersSpacer" />
+  <div class="mugin_simpleFiltersSpacer" />
 </template>
 
 <script>

@@ -10,125 +10,13 @@ if (!file_exists($configPath)) {
 }
 require_once $configPath;
 require_once __DIR__ . '/NlmApiHelpers.php';
+require_once dirname(__DIR__) . '/app/source-clients/openalex-helpers.php';
 
-qpmApplyNlmCorsHeaders('GET, POST, OPTIONS', 'application/json');
+muginApplyNlmCorsHeaders('GET, POST, OPTIONS', 'application/json');
 @ini_set('max_execution_time', '60');
 @set_time_limit(60);
 
-function qpmNormalizeOpenAlexLookupDoi($value): string
-{
-    $doi = trim((string) $value);
-    if ($doi === '') {
-        return '';
-    }
-    $doi = preg_replace('~^https?://(dx\.)?doi\.org/~i', '', $doi);
-    $doi = preg_replace('~^doi:\s*~i', '', (string) $doi);
-    return trim((string) $doi);
-}
-
-/**
- * Normalize an OpenAlex work ID to the short form (e.g. W2088009199).
- *
- * @param mixed $value
- * @return string
- */
-function qpmNormalizeOpenAlexLookupId($value): string
-{
-    $id = trim((string) $value);
-    if ($id === '') {
-        return '';
-    }
-    $id = preg_replace('~^https?://openalex\.org/~i', '', $id);
-    $id = trim((string) $id);
-    if (preg_match('/^W[0-9]+$/i', $id)) {
-        return strtoupper($id);
-    }
-    return '';
-}
-
-function qpmGetOpenAlexWorkCacheTtl(bool $isNegative = false): int
-{
-    $fallback = $isNegative ? 600 : 3600;
-    if (defined('QPM_OPENALEX_WORK_CACHE_TTL_SECONDS')) {
-        $configured = QPM_OPENALEX_WORK_CACHE_TTL_SECONDS;
-        if (is_array($configured)) {
-            $key = $isNegative ? 'negative' : 'positive';
-            return max(0, (int) ($configured[$key] ?? $configured['default'] ?? $fallback));
-        }
-        return max(0, (int) $configured);
-    }
-    return $fallback;
-}
-
-function qpmGetOpenAlexWorkCacheDir(): string
-{
-    $cacheDir = dirname(__DIR__, 2) . '/data/cache/openalex-work';
-    if (!is_dir($cacheDir)) {
-        @mkdir($cacheDir, 0750, true);
-    }
-    return $cacheDir;
-}
-
-function qpmGetOpenAlexWorkCachePath(string $type, string $value, string $domain, string $selectVariant = 'full'): string
-{
-    $payload = [
-        'type' => strtolower(trim($type)),
-        'value' => strtolower(trim($value)),
-        'domain' => strtolower(trim($domain)),
-        'selectVersion' => '2026-04-28',
-    ];
-    // The lightweight validation select omits heavy fields (abstract, authorships),
-    // so it must use a separate cache namespace. Full lookups keep the original key
-    // unchanged so existing cache files stay valid.
-    if ($selectVariant !== 'full') {
-        $payload['selectVariant'] = strtolower(trim($selectVariant));
-    }
-    $cacheKey = hash('sha256', json_encode($payload, JSON_UNESCAPED_SLASHES));
-    return qpmGetOpenAlexWorkCacheDir() . '/' . $cacheKey . '.json';
-}
-
-function qpmReadOpenAlexWorkCache(string $type, string $value, string $domain, string $selectVariant = 'full'): array
-{
-    if ($value === '') {
-        return ['hit' => false, 'value' => null];
-    }
-    $path = qpmGetOpenAlexWorkCachePath($type, $value, $domain, $selectVariant);
-    if (!is_file($path)) {
-        return ['hit' => false, 'value' => null];
-    }
-    $raw = @file_get_contents($path);
-    if (!is_string($raw) || $raw === '') {
-        return ['hit' => false, 'value' => null];
-    }
-    $payload = json_decode($raw, true);
-    if (!is_array($payload)) {
-        return ['hit' => false, 'value' => null];
-    }
-    $isNegative = !empty($payload['negative']);
-    $storedAt = (int) ($payload['storedAt'] ?? 0);
-    if ($storedAt <= 0 || time() - $storedAt > qpmGetOpenAlexWorkCacheTtl($isNegative)) {
-        return ['hit' => false, 'value' => null];
-    }
-    return ['hit' => true, 'value' => $payload['value'] ?? null];
-}
-
-function qpmWriteOpenAlexWorkCache(string $type, string $value, string $domain, $cacheValue, bool $isNegative = false, string $selectVariant = 'full'): void
-{
-    if ($value === '' || qpmGetOpenAlexWorkCacheTtl($isNegative) <= 0) {
-        return;
-    }
-    $payload = json_encode([
-        'storedAt' => time(),
-        'negative' => $isNegative,
-        'value' => $cacheValue,
-    ], JSON_UNESCAPED_SLASHES);
-    if ($payload === false) {
-        return;
-    }
-    @file_put_contents(qpmGetOpenAlexWorkCachePath($type, $value, $domain, $selectVariant), $payload, LOCK_EX);
-}
-
-function qpmIsLocalOpenAlexLookupRequest(): bool
+function muginIsLocalOpenAlexLookupRequest(): bool
 {
     $requestHost = strtolower((string)($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
     return $requestHost !== '' && (
@@ -137,9 +25,9 @@ function qpmIsLocalOpenAlexLookupRequest(): bool
     );
 }
 
-function qpmOpenAlexWorkLocalDevProxyRequest(string $lookupValue, string $apiKey = '', string $mailto = ''): array
+function muginOpenAlexWorkLocalDevProxyRequest(string $lookupValue, string $apiKey = '', string $mailto = ''): array
 {
-    if (!qpmIsLocalOpenAlexLookupRequest()) {
+    if (!muginIsLocalOpenAlexLookupRequest()) {
         return [
             'ok' => false,
             'status' => 0,
@@ -161,10 +49,10 @@ function qpmOpenAlexWorkLocalDevProxyRequest(string $lookupValue, string $apiKey
     $errors = [];
     foreach ($hosts as $host) {
         $url = 'http://' . $host . ':5173/openalex-api/works/' . rawurlencode($lookupValue) . $queryString;
-        $result = qpmHttpRequest($url, [
+        $result = muginHttpRequest($url, [
             'method' => 'GET',
             'timeout' => 30,
-            'user_agent' => 'QuickPubMed/1.0',
+            'user_agent' => 'MuginScholar/1.0',
             'headers' => ['Accept: application/json'],
         ]);
         if ($result['ok'] && (int)$result['status'] >= 200 && (int)$result['status'] < 300) {
@@ -186,9 +74,9 @@ function qpmOpenAlexWorkLocalDevProxyRequest(string $lookupValue, string $apiKey
     ];
 }
 
-function qpmOpenAlexWorkListLocalDevProxyRequest(array $requestParams): array
+function muginOpenAlexWorkListLocalDevProxyRequest(array $requestParams): array
 {
-    if (!qpmIsLocalOpenAlexLookupRequest()) {
+    if (!muginIsLocalOpenAlexLookupRequest()) {
         return [
             'ok' => false,
             'status' => 0,
@@ -202,10 +90,10 @@ function qpmOpenAlexWorkListLocalDevProxyRequest(array $requestParams): array
     $errors = [];
     foreach ($hosts as $host) {
         $url = 'http://' . $host . ':5173/openalex-api/works?' . $queryString;
-        $result = qpmHttpRequest($url, [
+        $result = muginHttpRequest($url, [
             'method' => 'GET',
             'timeout' => 30,
-            'user_agent' => 'QuickPubMed/1.0',
+            'user_agent' => 'MuginScholar/1.0',
             'headers' => ['Accept: application/json'],
         ]);
         if ($result['ok'] && (int)$result['status'] >= 200 && (int)$result['status'] < 300) {
@@ -240,14 +128,14 @@ if (empty($params)) {
     }
 }
 
-$doi = qpmNormalizeOpenAlexLookupDoi($params['doi'] ?? '');
+$doi = muginNormalizeOpenAlexLookupDoi($params['doi'] ?? '');
 $doisInput = $params['dois'] ?? [];
 $dois = is_array($doisInput) ? $doisInput : ($doisInput !== '' ? [$doisInput] : []);
-$normalizedDois = array_values(array_unique(array_filter(array_map('qpmNormalizeOpenAlexLookupDoi', $dois))));
+$normalizedDois = array_values(array_unique(array_filter(array_map('muginNormalizeOpenAlexLookupDoi', $dois))));
 $openAlexId = trim((string) ($params['openAlexId'] ?? ''));
 $openAlexIdsInput = $params['openAlexIds'] ?? [];
 $openAlexIds = is_array($openAlexIdsInput) ? $openAlexIdsInput : ($openAlexIdsInput !== '' ? [$openAlexIdsInput] : []);
-$normalizedOpenAlexIds = array_values(array_unique(array_filter(array_map('qpmNormalizeOpenAlexLookupId', $openAlexIds))));
+$normalizedOpenAlexIds = array_values(array_unique(array_filter(array_map('muginNormalizeOpenAlexLookupId', $openAlexIds))));
 $domain = trim((string) ($params['domain'] ?? ''));
 $lookupValue = $openAlexId !== '' ? $openAlexId : ($doi !== '' ? ('https://doi.org/' . $doi) : '');
 $isBatchLookup = count($normalizedDois) > 0 || count($normalizedOpenAlexIds) > 0;
@@ -264,27 +152,29 @@ if (!$isBatchLookup && $lookupValue === '') {
     exit;
 }
 
-$openAlexApiKey = qpmGetOpenAlexApiKey($domain);
-$openAlexEmail = qpmGetOpenAlexEmail($domain);
+$openAlexApiKey = muginGetOpenAlexApiKey($domain);
+$openAlexEmail = muginGetOpenAlexEmail($domain);
 if ($isBatchLookup) {
     $cachedWorks = [];
     $missingDois = [];
     $missingOpenAlexIds = [];
     foreach ($normalizedDois as $normalizedDoi) {
-        $cached = qpmReadOpenAlexWorkCache('doi', $normalizedDoi, $domain, $selectVariant);
+        $cached = muginReadOpenAlexWorkCache('doi', $normalizedDoi, $domain, $selectVariant);
         if ($cached['hit']) {
-            if (is_array($cached['value'])) {
-                $cachedWorks[] = $cached['value'];
+            $normalized = muginNormalizeOpenAlexWorkLookupEntry($cached['value']);
+            if ($normalized !== null) {
+                $cachedWorks[] = $normalized;
             }
             continue;
         }
         $missingDois[] = $normalizedDoi;
     }
     foreach ($normalizedOpenAlexIds as $normalizedId) {
-        $cached = qpmReadOpenAlexWorkCache('openalex', $normalizedId, $domain, $selectVariant);
+        $cached = muginReadOpenAlexWorkCache('openalex', $normalizedId, $domain, $selectVariant);
         if ($cached['hit']) {
-            if (is_array($cached['value'])) {
-                $cachedWorks[] = $cached['value'];
+            $normalized = muginNormalizeOpenAlexWorkLookupEntry($cached['value']);
+            if ($normalized !== null) {
+                $cachedWorks[] = $normalized;
             }
             continue;
         }
@@ -304,7 +194,7 @@ if ($isBatchLookup) {
             'per_page' => $filterChunk['count'],
             'select' => $lightSelect
                 ? 'id,doi,ids,display_name,title,publication_date,publication_year,biblio,primary_location,language,type,type_crossref'
-                : 'id,doi,ids,display_name,title,publication_date,publication_year,biblio,abstract_inverted_index,authorships,primary_location,language,type,type_crossref',
+                : 'id,doi,ids,display_name,title,publication_date,publication_year,biblio,abstract_inverted_index,authorships,primary_location,language,type,type_crossref,primary_topic,topics,keywords,open_access,is_retracted,cited_by_count',
         ];
         if ($openAlexApiKey !== '') {
             $requestParams['api_key'] = $openAlexApiKey;
@@ -314,13 +204,13 @@ if ($isBatchLookup) {
         }
         $requestUrl = 'https://api.openalex.org/works?' . http_build_query($requestParams);
 
-        qpmThrottleNlmRequests(5);
-        $result = qpmOpenAlexWorkListLocalDevProxyRequest($requestParams);
+        muginThrottleRequestRate('openalex', 5);
+        $result = muginOpenAlexWorkListLocalDevProxyRequest($requestParams);
         if (!$result['ok']) {
-            $result = qpmHttpRequest($requestUrl, [
+            $result = muginHttpRequest($requestUrl, [
                 'method' => 'GET',
                 'timeout' => 30,
-                'user_agent' => 'QuickPubMed/1.0',
+                'user_agent' => 'MuginScholar/1.0',
                 'headers' => ['Accept: application/json'],
             ]);
         }
@@ -349,7 +239,7 @@ if ($isBatchLookup) {
         if (!is_array($work)) {
             continue;
         }
-        $workDoi = qpmNormalizeOpenAlexLookupDoi($work['doi'] ?? ($work['ids']['doi'] ?? ''));
+        $workDoi = muginNormalizeOpenAlexLookupDoi($work['doi'] ?? ($work['ids']['doi'] ?? ''));
         $workOpenAlexId = trim((string) ($work['id'] ?? ''));
         if ($workDoi === '' && $workOpenAlexId === '') {
             continue;
@@ -362,22 +252,22 @@ if ($isBatchLookup) {
         $workEntry = $works[count($works) - 1];
         if ($workDoi !== '') {
             $resolvedDoiKeys[strtolower($workDoi)] = true;
-            qpmWriteOpenAlexWorkCache('doi', $workDoi, $domain, $workEntry, false, $selectVariant);
+            muginWriteOpenAlexWorkCache('doi', $workDoi, $domain, $workEntry, false, $selectVariant);
         }
-        $shortOpenAlexId = qpmNormalizeOpenAlexLookupId($workOpenAlexId);
+        $shortOpenAlexId = muginNormalizeOpenAlexLookupId($workOpenAlexId);
         if ($shortOpenAlexId !== '') {
             $resolvedOpenAlexKeys[$shortOpenAlexId] = true;
-            qpmWriteOpenAlexWorkCache('openalex', $shortOpenAlexId, $domain, $workEntry, false, $selectVariant);
+            muginWriteOpenAlexWorkCache('openalex', $shortOpenAlexId, $domain, $workEntry, false, $selectVariant);
         }
     }
     foreach ($missingDois as $missingDoi) {
         if (empty($resolvedDoiKeys[strtolower($missingDoi)])) {
-            qpmWriteOpenAlexWorkCache('doi', $missingDoi, $domain, null, true, $selectVariant);
+            muginWriteOpenAlexWorkCache('doi', $missingDoi, $domain, null, true, $selectVariant);
         }
     }
     foreach ($missingOpenAlexIds as $missingId) {
         if (empty($resolvedOpenAlexKeys[$missingId])) {
-            qpmWriteOpenAlexWorkCache('openalex', $missingId, $domain, null, true, $selectVariant);
+            muginWriteOpenAlexWorkCache('openalex', $missingId, $domain, null, true, $selectVariant);
         }
     }
 
@@ -390,11 +280,12 @@ if ($isBatchLookup) {
 }
 
 $singleCacheType = $openAlexId !== '' ? 'openalex' : 'doi';
-$singleCacheValue = $openAlexId !== '' ? qpmNormalizeOpenAlexLookupId($openAlexId) : $doi;
-$singleCached = qpmReadOpenAlexWorkCache($singleCacheType, $singleCacheValue, $domain);
+$singleCacheValue = $openAlexId !== '' ? muginNormalizeOpenAlexLookupId($openAlexId) : $doi;
+$singleCached = muginReadOpenAlexWorkCache($singleCacheType, $singleCacheValue, $domain);
 if ($singleCached['hit']) {
-    if (is_array($singleCached['value'])) {
-        echo json_encode($singleCached['value']);
+    $normalized = muginNormalizeOpenAlexWorkLookupEntry($singleCached['value']);
+    if ($normalized !== null) {
+        echo json_encode($normalized);
         exit;
     }
 }
@@ -411,13 +302,13 @@ if ($openAlexApiKey !== '' || $openAlexEmail !== '') {
     $requestUrl .= '?' . http_build_query($requestParams);
 }
 
-qpmThrottleNlmRequests(5);
-$result = qpmOpenAlexWorkLocalDevProxyRequest($lookupValue, $openAlexApiKey, $openAlexEmail);
+muginThrottleRequestRate('openalex', 5);
+$result = muginOpenAlexWorkLocalDevProxyRequest($lookupValue, $openAlexApiKey, $openAlexEmail);
 if (!$result['ok']) {
-    $result = qpmHttpRequest($requestUrl, [
+    $result = muginHttpRequest($requestUrl, [
         'method' => 'GET',
         'timeout' => 30,
-        'user_agent' => 'QuickPubMed/1.0',
+        'user_agent' => 'MuginScholar/1.0',
         'headers' => ['Accept: application/json'],
     ]);
 }
@@ -440,5 +331,5 @@ $singleResponse = [
     'openAlexId' => trim((string) ($decoded['id'] ?? $openAlexId)),
     'work' => $decoded,
 ];
-qpmWriteOpenAlexWorkCache($singleCacheType, $singleCacheValue, $domain, $singleResponse);
+muginWriteOpenAlexWorkCache($singleCacheType, $singleCacheValue, $domain, $singleResponse);
 echo json_encode($singleResponse);

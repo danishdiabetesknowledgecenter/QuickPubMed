@@ -34,7 +34,7 @@ function getContentApiBaseUrl() {
 
   const datasetApiBase = document
     .querySelector(
-      ".qpm-searchform[data-content-api-base-url], .searchform[data-content-api-base-url], #qpm-searchstrings[data-content-api-base-url], #searchstrings[data-content-api-base-url]"
+      ".mugin-searchform[data-content-api-base-url], .searchform[data-content-api-base-url], #mugin-searchstrings[data-content-api-base-url], #searchstrings[data-content-api-base-url]"
     )
     ?.getAttribute("data-content-api-base-url");
   const normalizedDatasetApiBase = normalizeExplicitApiBase(datasetApiBase);
@@ -46,8 +46,14 @@ function getContentApiBaseUrl() {
   if (envApiBase) {
     return envApiBase;
   }
+  // Match settings.js getProxyUrl(): Vite serves modules from /src/... while
+  // production builds put them under /assets/....
   const scriptUrl = import.meta.url;
-  const baseUrl = scriptUrl.replace(/\/assets\/.*$/, "");
+  const baseUrl = scriptUrl
+    .replace(/\/assets\/.*$/, "")
+    .replace(/\/src\/.*$/, "")
+    .replace(/\/entries\/.*$/, "")
+    .replace(/\/+$/, "");
   return `${baseUrl}/backend/api`;
 }
 

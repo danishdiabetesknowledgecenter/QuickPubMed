@@ -1,16 +1,16 @@
 <template>
-  <div class="qpm_spaceEvenly qpm_headerText">
-    <h2 v-show="!isCollapsed" class="h3 qpm_searchFormToggleHeading">
+  <div class="mugin_spaceEvenly mugin_headerText">
+    <h2 v-show="!isCollapsed" class="h3 mugin_searchFormToggleHeading">
       {{ getString("searchHeaderShown") }}
     </h2>
-    <h2 v-show="isCollapsed" class="h3 qpm_searchFormToggleHeading">
+    <h2 v-show="isCollapsed" class="h3 mugin_searchFormToggleHeading">
       {{ getString("searchHeaderHidden") }}
     </h2>
 
     <button
       v-if="showToggleIcon && topics !== false"
       type="button"
-      class="qpm_toggleSearchForm qpm_iconButton"
+      class="mugin_toggleSearchForm mugin_iconButton"
       :aria-label="isCollapsed ? getString('showForm') : getString('hideForm')"
       :aria-expanded="!isCollapsed"
       :aria-controls="panelId || null"
@@ -23,7 +23,7 @@
           distance: 5,
           delay: $helpTextDelay,
         }"
-        class="qpm_toggleSearchFormBtn bx bx-hide"
+        class="mugin_toggleSearchFormBtn bx bx-hide"
       />
       <span
         v-show="isCollapsed"
@@ -32,7 +32,7 @@
           distance: 5,
           delay: $helpTextDelay,
         }"
-        class="qpm_toggleSearchFormBtn bx bx-show"
+        class="mugin_toggleSearchFormBtn bx bx-show"
       />
     </button>
   </div>
