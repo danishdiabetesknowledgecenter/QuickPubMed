@@ -146,7 +146,6 @@
         <span
           class="mugin_entryName"
           :class="{ mugin_lockedDbOptionLabel: props.option.locked }"
-          v-tooltip.right="getLockedDbOptionTooltipBinding(props.option)"
           >{{ customNameLabel(props.option) }} </span
         >
 
@@ -1140,15 +1139,6 @@
       },
       isDatabaseOption(option) {
         return String(option?.translationSourceKey || "").trim() !== "";
-      },
-      getLockedDbOptionTooltipBinding(option) {
-        // Keep a stable object shape for v-tooltip so floating-vue always
-        // attaches hover listeners; flip `disabled` for non-locked options
-        // instead of toggling between object and null (see SemanticSearchFilters).
-        return {
-          ...this.elicitUnlockTooltipBinding,
-          disabled: !option?.locked,
-        };
       },
       onLockedDatabaseClick() {
         promptForElicitUnlockKey(this.getString);

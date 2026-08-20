@@ -34,7 +34,6 @@
       :value="option.id"
       :checked="!option.locked && isSemanticOptionChecked(option)"
       class="mugin_cursorPointer mugin_semanticFilterCheckbox"
-      v-tooltip="getLockTooltipBinding(option)"
       @click="onSemanticOptionInputClick(option, $event)"
       @change="onSemanticOptionChange(option, $event)"
       @keyup.enter="onSemanticOptionEnter(option)"
@@ -43,7 +42,6 @@
       <label
         :for="option.id"
         class="mugin_semanticFilterLabel"
-        v-tooltip="getLockTooltipBinding(option)"
         @click="onSemanticOptionLabelClick(option, $event)"
       >
         <template v-if="getSemanticOptionLabelParts(option).prefix">
@@ -193,16 +191,6 @@
       },
     },
     methods: {
-      getLockTooltipBinding(option) {
-        // Always return an object (with a `disabled` flag) instead of toggling
-        // between `null` and an object. floating-vue's v-tooltip doesn't always
-        // attach hover listeners when the initial value is falsy, so keeping a
-        // stable object shape ensures the tooltip shows reliably on re-renders.
-        return {
-          ...this.elicitUnlockTooltipBinding,
-          disabled: !option?.locked,
-        };
-      },
       onElicitUnlockClick() {
         promptForElicitUnlockKey(this.getString);
       },
@@ -268,7 +256,7 @@
       onSemanticOptionInputClick(option, event) {
         // Locked checkboxes must not toggle; they open the unlock prompt instead.
         // The checkbox is intentionally not `disabled` (disabled inputs swallow
-        // all mouse events including hover, which would break the tooltip).
+        // click events that the row uses to open the unlock prompt).
         if (option?.locked) {
           event.preventDefault();
           event.stopPropagation();
