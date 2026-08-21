@@ -187,6 +187,10 @@ export const messages = {
     dk: "Vælg database",
     en: "Select database",
   },
+  chooseResultFocus: {
+    dk: "Vælg resultatfokus",
+    en: "Select result focus",
+  },
   choselimits_mobile: {
     dk: "Vælg afgrænsning/søgeord",
     en: "Select limit/search term",
@@ -396,16 +400,16 @@ export const messages = {
     en: "Unlock",
   },
   elicitUnlockTooltip: {
-    dk: "Lås op for ekstra AI-kilde (kræver kode eller godkendt IP).",
-    en: "Unlock extra AI source (requires a code or an approved IP).",
+    dk: "Lås op for ekstra database (kræver kode eller godkendt IP).",
+    en: "Unlock extra database (requires a code or an approved IP).",
   },
   elicitUnlockPromptMessage: {
-    dk: "Indtast kode for at låse op for ekstra AI-kilde (Elicit).",
-    en: "Enter code to unlock the extra AI source (Elicit).",
+    dk: "Indtast kode for at låse op for Elicit.",
+    en: "Enter code to unlock Elicit.",
   },
   elicitUnlockInvalidCodeMessage: {
-    dk: "Forkert kode – ekstra AI-kilde (Elicit) er fortsat låst.",
-    en: "Incorrect code – the extra AI source (Elicit) is still locked.",
+    dk: "Forkert kode – Elicit er fortsat låst.",
+    en: "Incorrect code – Elicit is still locked.",
   },
   advancedSearch: {
     dk: "Avanceret",
@@ -2649,6 +2653,14 @@ export const messages = {
     dk: "Navn (en)",
     en: "Name (en)",
   },
+  editor_itemSourceContextEnLabel: {
+    dk: "Forklaring til AI (en)",
+    en: "AI explanation (en)",
+  },
+  editor_itemSourceContextEnPlaceholder: {
+    dk: "Tomt felt: titlen bruges",
+    en: "Empty field: the title is used",
+  },
   editor_itemNarrowLabel: {
     dk: "Narrow (en linje pr. søgestreng)",
     en: "Narrow (one line per search string)",
@@ -2800,6 +2812,10 @@ export const messages = {
   editor_standardStringsOptionalHint: {
     dk: "Valgfrit: Hvis felterne er tomme, tilføjes ingen standardsøgestreng.",
     en: "Optional: If fields are empty, no standard search string is added.",
+  },
+  editor_standardStringAddToFreetextLabel: {
+    dk: "Kobl automatisk på fritekst",
+    en: "Automatically add to freetext",
   },
   editor_usernamePlaceholder: {
     dk: "Brugernavn",
@@ -3233,6 +3249,10 @@ export const messages = {
     dk: "Navn på engelsk.",
     en: "Name in English.",
   },
+  editor_helpItemSourceContextEn: {
+    dk: "Kort engelsk forklaring af valgmulighedens søgeintention til AI. Udfyld kun, når titlen er tvetydig (forkortelser, sammensatte filtre eller jargon). Optimal længde: én sætning på ca. 8–12 engelske ord. Tomt felt betyder, at titlen bruges. Undgå PubMed-tags, AND/OR og at gentage titlen ordret.",
+    en: "Short English explanation of this option's search intent for the AI. Fill in only when the title is ambiguous (abbreviations, composite filters, or jargon). Optimal length: one sentence of about 8–12 English words. An empty field means the title is used. Avoid PubMed tags, AND/OR, and repeating the title verbatim.",
+  },
   editor_helpItemSearchStringsNarrow: {
     dk: "Søgestrenge for narrow-scope (én pr. linje).",
     en: "Search strings for narrow scope (one per line).",
@@ -3316,6 +3336,10 @@ export const messages = {
   editor_helpStandardStringHint: {
     dk: "Valgfrit: Tomme felter betyder, at der ikke tilføjes standardsøgestreng for det scope.",
     en: "Optional: Empty fields mean no standard search string is added for that scope.",
+  },
+  editor_helpStandardStringAddToFreetext: {
+    dk: "Når til, kobles standardsøgestrengen automatisk på fritekst i både SearchForm og API som (fritekst) AND (standardsøgestreng). Når fra, sker det ikke.",
+    en: "When on, the standard search string is automatically appended to freetext in both SearchForm and the API as (freetext) AND (standard string). When off, it is not.",
   },
   editor_helpPromptRulesDk: {
     dk: "Ret domænets danske prompt-regler. Teksten bruges af AI-funktioner for dansk output.",

@@ -248,7 +248,7 @@ assert(
 );
 assert(
   searchForm.includes("payload.standardString = standardStringPayload"),
-  "SearchForm sends data-standard-string-add to the unified engine"
+  "SearchForm sends standardString options to the unified engine"
 );
 assert(
   searchForm.includes("captureSessionFreetextQueries("),

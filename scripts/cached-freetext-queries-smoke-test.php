@@ -189,26 +189,64 @@ $freetextStandardPayload = [
 ];
 $addFalse = $freetextStandardPayload;
 $addFalse['standardString'] = ['add' => false];
-$fromPostAddFalse = muginPublicSearchNormalizePostRequest($addFalse);
+$fromPostAddIgnored = muginPublicSearchNormalizePostRequest($addFalse);
 assertTrue(
-    ($fromPostAddFalse['_applyStandardStringToFreetext'] ?? true) === false,
-    'standardString.add false is stored on the request'
+    ($fromPostAddIgnored['_applyStandardStringToFreetext'] ?? false) === true,
+    'standardString.add is ignored; catalog standardStringAddToFreetext is used'
 );
-$resolvedAddFalse = muginPublicSearchBuildResolvedQueries($fromPostAddFalse);
+$resolvedAddIgnored = muginPublicSearchBuildResolvedQueries($fromPostAddIgnored);
 assertTrue(
-    strpos((string) ($resolvedAddFalse['pubmedQuery'] ?? ''), 'Diabetes Mellitus') === false,
-    'data-standard-string-add=false does not AND the domain standardString onto freetext'
+    strpos((string) ($resolvedAddIgnored['pubmedQuery'] ?? ''), 'Diabetes Mellitus') !== false,
+    'Catalog add-to-freetext still ANDs the domain standardString when add is sent'
 );
 assertTrue(
-    strpos((string) ($resolvedAddFalse['pubmedQuery'] ?? ''), 'santa claus') !== false,
-    'Freetext translation is still present when standardString.add is false'
+    strpos((string) ($resolvedAddIgnored['pubmedQuery'] ?? ''), 'santa claus') !== false,
+    'Freetext translation is still present when catalog add-to-freetext is on'
 );
 
 $fromPostAddDefault = muginPublicSearchNormalizePostRequest($freetextStandardPayload);
 $resolvedAddDefault = muginPublicSearchBuildResolvedQueries($fromPostAddDefault);
 assertTrue(
     strpos((string) ($resolvedAddDefault['pubmedQuery'] ?? ''), 'Diabetes Mellitus') !== false,
-    'Omitting standardString still ANDs the domain standardString onto freetext'
+    'Omitting standardString.add follows catalog standardStringAddToFreetext (template: true)'
+);
+
+$jsonLangDefault = muginPublicSearchNormalizePostRequest([
+    'query' => ['text' => 'test'],
+    'sources' => ['pubmed'],
+    'domain' => 'template',
+]);
+assertTrue(
+    ($jsonLangDefault['query']['language'] ?? '') === 'da',
+    'JSON without query.language uses response language (da)'
+);
+$jsonLangEn = muginPublicSearchNormalizePostRequest([
+    'query' => ['text' => 'test'],
+    'sources' => ['pubmed'],
+    'domain' => 'template',
+    'responseOptions' => ['language' => 'en'],
+]);
+assertTrue(
+    ($jsonLangEn['query']['language'] ?? '') === 'en',
+    'JSON without query.language follows responseOptions.language'
+);
+
+$serverCacheRequest = muginPublicSearchNormalizePostRequest([
+    'query' => ['text' => 'server-cache-julemanden', 'language' => 'da'],
+    'translation' => ['mode' => 'auto'],
+    'domain' => 'template',
+    'sources' => ['pubmed'],
+    'responseOptions' => ['noCache' => false],
+]);
+muginPublicSearchWriteCachedFreetextQueriesToStore($serverCacheRequest, [
+    'input' => 'server-cache-julemanden',
+    'pubmed' => '"santa claus from server cache"[tiab]',
+]);
+$fromServerCache = muginPublicSearchBuildResolvedQueries($serverCacheRequest);
+assertTrue(
+    ($fromServerCache['cachedFreetextQueriesUsed'] ?? false) === true
+        && strpos((string) ($fromServerCache['pubmedQuery'] ?? ''), 'santa claus from server cache') !== false,
+    'GET/JSON without client cachedFreetextQueries reuse the server freetext cache'
 );
 
 echo "OK: cached-freetext-queries smoke test passed\n";

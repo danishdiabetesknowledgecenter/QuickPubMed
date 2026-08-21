@@ -110,7 +110,7 @@ Frontend reads this via `backend/api/PublicContent.php`:
 
 `SearchForm` supports an optional HTML attribute `data-standard-string` for free-text searches.
 
-- If `data-standard-string-add="true"` and `data-standard-string` is set, this value is used as the standard string.
+- The editor setting `standardStringAddToFreetext` in `topics.json` controls whether the standard string is AND'ed onto freetext in both SearchForm and the API.
 - `data-standard-string` overrides domain `standardString` from runtime topics.
 - It also works when `data-domain=""` (empty domain).
 - Domain topics payload can also include `standardStringComment` for DK/EN comment text shown in SearchStrings:
@@ -122,7 +122,6 @@ Example:
 <div
   class="mugin-searchform"
   data-domain=""
-  data-standard-string-add="true"
   data-standard-string="diabet*[tiab]"
   data-standard-string-scope="normal"
 ></div>

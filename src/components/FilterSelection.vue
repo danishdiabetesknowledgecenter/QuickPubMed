@@ -55,7 +55,7 @@
           {{ getString("andOperator") }}
         </p>
       </li>
-      <li v-if="hasRerankProfiles" class="mugin_topics">
+      <li v-if="hasRerankProfiles" class="mugin_topics mugin_rerankProfileDropdown">
         <div class="mugin_flex">
           <dropdown-wrapper
             ref="rerankProfileDropdown"
@@ -63,12 +63,10 @@
             :data="rerankProfileDropdownGroups"
             :hide-topics="[]"
             :is-group="true"
-            :placeholder="
-              selectedRerankProfileOption.length > 0 ? '' : getString('rerankProfileHeader')
-            "
+            :placeholder="getString('chooseResultFocus')"
             :operator="''"
             :taggable="false"
-            :searchable="false"
+            :searchable="true"
             :selected="selectedRerankProfileOption"
             :close-on-input="true"
             :language="language"
@@ -82,6 +80,7 @@
             :semantic-worded-intent-context="semanticWordedIntentContext"
             :no-result-string="getString('noRerankProfileOptions')"
             :auto-expand-single-group="true"
+            :is-filter-dropdown="true"
             :index="'rerankProfile'"
             @input="handleUpdateRerankProfile"
           />

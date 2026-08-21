@@ -373,6 +373,7 @@ const editorHelpTextKeyMap = {
   "item.ordering.fixed": "helpItemOrderingFixed",
   "item.translations.dk": "helpItemTranslationsDk",
   "item.translations.en": "helpItemTranslationsEn",
+  "item.semanticConfig.sourceContext.en": "helpItemSourceContextEn",
   "item.searchStrings.narrow": "helpItemSearchStringsNarrow",
   "item.searchStrings.normal": "helpItemSearchStringsNormal",
   "item.searchStrings.broad": "helpItemSearchStringsBroad",
@@ -389,6 +390,7 @@ const editorHelpTextKeyMap = {
   "standardString.broad": "helpStandardStringBroad",
   "standardString.comment.dk": "helpStandardStringCommentDk",
   "standardString.comment.en": "helpStandardStringCommentEn",
+  "standardString.addToFreetext": "helpStandardStringAddToFreetext",
   "standardString.hint": "helpStandardStringHint",
 };
 
@@ -1687,7 +1689,11 @@ function hasOpenInlineDirtyState() {
   return !snapshotsEqual(historySnapshot, state.baseline);
 }
 
-function createStandardStringsInlineEditor(standardString, standardStringComment = {}) {
+function createStandardStringsInlineEditor(
+  standardString,
+  standardStringComment = {},
+  addToFreetext = true
+) {
   const wrapper = document.createElement("div");
   wrapper.className = "mugin-editor-inline-editor";
   wrapper.dataset.categoryId = STANDARD_STRINGS_CATEGORY_ID;
@@ -1706,6 +1712,20 @@ function createStandardStringsInlineEditor(standardString, standardStringComment
     ta.value = String(value || "");
     return ta;
   };
+
+  const addToFreetextInput = document.createElement("input");
+  addToFreetextInput.type = "checkbox";
+  addToFreetextInput.dataset.inlineField = "standardString.addToFreetext";
+  addToFreetextInput.checked = addToFreetext !== false;
+  const addToFreetextLabel = document.createElement("label");
+  addToFreetextLabel.className = "mugin-editor-checkbox-label";
+  addToFreetextLabel.style.width = "100%";
+  addToFreetextLabel.append(
+    addToFreetextInput,
+    document.createTextNode(t("standardStringAddToFreetextLabel"))
+  );
+  const addToFreetextInfo = createInfoIcon(getEditorHelpText("standardString.addToFreetext"));
+  if (addToFreetextInfo) addToFreetextLabel.append(" ", addToFreetextInfo);
 
   const narrow = mkTextarea(standardString?.narrow || "");
   narrow.dataset.inlineField = "standardString.narrow";
@@ -1735,6 +1755,7 @@ function createStandardStringsInlineEditor(standardString, standardStringComment
   const { actionsRow, inlineStatus } = createInlineActions(null, "standardString");
 
   wrapper.append(
+    addToFreetextLabel,
     mkLabel(t("itemNarrowLabel"), "standardString.narrow"),
     narrow,
     mkLabel(t("itemNormalLabel"), "standardString.normal"),
@@ -1753,6 +1774,7 @@ function createStandardStringsInlineEditor(standardString, standardStringComment
   const historyKey = buildInlineEditorHistoryKey("standard", STANDARD_STRINGS_CATEGORY_ID, "");
   const baselineData = getBaselineDataForType(getCurrentEditorType());
   const baselineSnapshot = {
+    "standardString.addToFreetext": baselineData?.standardStringAddToFreetext !== false,
     "standardString.narrow": String(baselineData?.standardString?.narrow || ""),
     "standardString.normal": String(baselineData?.standardString?.normal || ""),
     "standardString.broad": String(baselineData?.standardString?.broad || ""),
@@ -2807,6 +2829,9 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
   dkInput.dataset.inlineField = "translations.dk";
   const enInput = mkInput(item?.translations?.en || "");
   enInput.dataset.inlineField = "translations.en";
+  const sourceContextEnInput = mkInput(getItemSourceContextEn(item));
+  sourceContextEnInput.dataset.inlineField = "semanticConfig.sourceContext.en";
+  sourceContextEnInput.placeholder = t("itemSourceContextEnPlaceholder");
   const narrow = mkTextarea(normalizeToLines(item?.searchStrings?.narrow));
   narrow.dataset.inlineField = "searchStrings.narrow";
   const normal = mkTextarea(normalizeToLines(item?.searchStrings?.normal));
@@ -2998,6 +3023,13 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
       fallbackItem?.translations?.[itemSecondaryLang] || ""
     ),
     itemNameSecondaryInput,
+    mkLabelWithRestore(
+      t("itemSourceContextEnLabel"),
+      "item.semanticConfig.sourceContext.en",
+      sourceContextEnInput,
+      getItemSourceContextEn(fallbackItem)
+    ),
+    sourceContextEnInput,
     narrowHeaderRow,
     ...(showSearchStringEditors ? [narrow] : [narrowReadonly]),
     ...(!showSearchStringEditors ? [narrow] : []),
@@ -3093,6 +3125,7 @@ function createInlineEditor(item, categoryId, currentPosition = null, maxPositio
     "ordering.fixed": String(baselineOrderingFixed),
     "translations.dk": baselineItem?.translations?.dk || "",
     "translations.en": baselineItem?.translations?.en || "",
+    "semanticConfig.sourceContext.en": getItemSourceContextEn(baselineItem),
     "searchStrings.narrow": normalizeToLines(baselineItem?.searchStrings?.narrow),
     "searchStrings.normal": normalizeToLines(baselineItem?.searchStrings?.normal),
     "searchStrings.broad": normalizeToLines(baselineItem?.searchStrings?.broad),
@@ -3262,7 +3295,8 @@ function refreshTopicTree() {
     if (selectedTopicCategoryId === STANDARD_STRINGS_CATEGORY_ID && !selectedTopicItemId) {
       const standardStringsEditor = createStandardStringsInlineEditor(
         data.standardString || {},
-        data.standardStringComment || {}
+        data.standardStringComment || {},
+        data.standardStringAddToFreetext !== false
       );
       topicTreeInput.appendChild(standardStringsEditor);
     }
@@ -3616,6 +3650,20 @@ function humanizeChangePath(path) {
         parts.push(t("itemNameDkLabel"));
       }
       i += langKey ? 1 : 0;
+      continue;
+    }
+    if (token.value === "semanticConfig") {
+      const nestedKey = tokens[i + 1]?.type === "key" ? tokens[i + 1].value : "";
+      if (nestedKey === "sourceContext") {
+        parts.push(t("itemSourceContextEnLabel"));
+        i += 1;
+        if (tokens[i + 1]?.type === "key") {
+          i += 1;
+        }
+        continue;
+      }
+      parts.push(nestedKey ? `semanticConfig.${nestedKey}` : "semanticConfig");
+      i += nestedKey ? 1 : 0;
       continue;
     }
     if (token.value === "searchStringComment") {
@@ -4065,6 +4113,45 @@ function deleteCategory(categoryId) {
   return { ok: true };
 }
 
+function getItemSourceContextEn(item) {
+  const raw = item?.semanticConfig?.sourceContext;
+  if (typeof raw === "string") return raw.trim();
+  if (raw && typeof raw === "object") {
+    return String(raw.en || raw.default || "").trim();
+  }
+  return "";
+}
+
+function applyItemSourceContextEn(item, sourceContextEn) {
+  const existingConfig =
+    item?.semanticConfig && typeof item.semanticConfig === "object" && !Array.isArray(item.semanticConfig)
+      ? { ...item.semanticConfig }
+      : {};
+  const existingContext = existingConfig.sourceContext;
+  let nextContext =
+    existingContext && typeof existingContext === "object" && !Array.isArray(existingContext)
+      ? { ...existingContext }
+      : {};
+  const normalized = String(sourceContextEn || "").trim();
+  if (normalized) {
+    nextContext.en = normalized;
+  } else {
+    delete nextContext.en;
+    delete nextContext.default;
+  }
+  const hasContextKeys = Object.keys(nextContext).some((key) => String(nextContext[key] || "").trim());
+  if (hasContextKeys) {
+    existingConfig.sourceContext = nextContext;
+  } else {
+    delete existingConfig.sourceContext;
+  }
+  if (Object.keys(existingConfig).length > 0) {
+    item.semanticConfig = existingConfig;
+  } else {
+    delete item.semanticConfig;
+  }
+}
+
 function createNewTopicItem(newId, orderingValue) {
   return {
     id: newId,
@@ -4324,6 +4411,10 @@ function applyInlineEditorEdits(categoryId, itemId, container, options = {}) {
     dk: (get("searchStringComment.dk")?.value || "").trim(),
     en: (get("searchStringComment.en")?.value || "").trim(),
   };
+  const sourceContextField = get("semanticConfig.sourceContext.en");
+  if (sourceContextField) {
+    applyItemSourceContextEn(item, sourceContextField.value || "");
+  }
   item.tooltip = {
     ...(item.tooltip || {}),
     dk: (get("tooltip.dk")?.value || "").trim(),
@@ -4369,6 +4460,7 @@ function applyStandardStringsInlineEdits(container, options = {}) {
   const get = (field) => container.querySelector(`[data-inline-field="${field}"]`);
   const read = (field) => String(get(field)?.value || "").trim();
 
+  data.standardStringAddToFreetext = get("standardString.addToFreetext")?.checked === true;
   data.standardString = {
     narrow: read("standardString.narrow"),
     normal: read("standardString.normal"),

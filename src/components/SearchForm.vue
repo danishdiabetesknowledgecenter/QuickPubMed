@@ -242,7 +242,7 @@
     loadThemeOverridesFromBackend,
   } from "@/config/config.js";
   import { scopeIds, customInputTagTooltip } from "@/utils/contentHelpers.js";
-  import { loadLimitsFromRuntime, loadStandardString } from "@/utils/contentLoader";
+  import { loadLimitsFromRuntime, loadStandardString, loadStandardStringAddToFreetext } from "@/utils/contentLoader";
   import { syncUrlDomainOverrideFromLocation } from "@/utils/domainKey.js";
   import {
     cloneDeep,
@@ -389,10 +389,6 @@
         default: () => [],
       },
       openLimits: {
-        type: Boolean,
-        default: false,
-      },
-      standardStringAdd: {
         type: Boolean,
         default: false,
       },
@@ -1150,6 +1146,9 @@
         if (!domain || !hasLoadedTopics) return null;
         const std = loadStandardString(domain);
         return std && typeof std === "object" && Object.keys(std).length > 0 ? std : null;
+      },
+      effectiveStandardStringAdd() {
+        return loadStandardStringAddToFreetext(this.currentDomain) === true;
       },
       showSimpleFilters() {
         return this.hasTopics || this.openLimitsFromUrl || this.openLimits;
@@ -2089,7 +2088,7 @@
               const shouldCombineWithStandard =
                 allowStandardString &&
                 (item.isCustom
-                  ? this.standardStringAdd
+                  ? this.effectiveStandardStringAdd
                   : typeof scopeCombineValue === "boolean"
                   ? scopeCombineValue
                   : item.combineWithStandardString !== false);
@@ -9164,7 +9163,7 @@
           apiVersion: "1",
           query: {
             text: freetextQuery,
-            language: languageCode === "da" || languageCode === "en" ? languageCode : "auto",
+            language: languageCode === "en" ? "en" : "da",
           },
           translation: {
             mode: this.searchWithAI === true ? "auto" : "none",
@@ -9215,7 +9214,9 @@
           },
           sourceFilters: sourceFiltersSource,
           intentContext: {
-            rawUserInput: wordedIntent || freetextQuery,
+            // Same as GET/API: only untranslated freetext. Catalog labels stay
+            // in semanticBlocks / selectedTopicIds so LLM input matches public search.
+            rawUserInput: freetextQuery,
             contextualSearchInput: String(
               intentContextSource.semanticCoreText ||
                 intentContextSource.semanticWordedIntent ||
@@ -9246,9 +9247,7 @@
         if (cachedFreetextQueries) {
           payload.cachedFreetextQueries = cachedFreetextQueries;
         }
-        const standardStringPayload = {
-          add: this.standardStringAdd === true,
-        };
+        const standardStringPayload = {};
         const standardStringText = String(this.standardString || "").trim();
         if (standardStringText) {
           standardStringPayload.text = standardStringText;
@@ -9256,10 +9255,12 @@
         const standardStringScope = String(this.standardStringScope || "normal")
           .trim()
           .toLowerCase();
-        if (["narrow", "normal", "broad"].includes(standardStringScope)) {
+        if (standardStringScope !== "normal" && ["narrow", "broad"].includes(standardStringScope)) {
           standardStringPayload.scope = standardStringScope;
         }
-        payload.standardString = standardStringPayload;
+        if (Object.keys(standardStringPayload).length > 0) {
+          payload.standardString = standardStringPayload;
+        }
         return payload;
       },
       async callUnifiedSearchEndpoint(payload) {

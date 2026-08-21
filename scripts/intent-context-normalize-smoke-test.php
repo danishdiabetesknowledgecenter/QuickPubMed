@@ -48,8 +48,15 @@ assertTrue(
     $request1['intentContext']['rawUserInput'] === 'diabetes treatment',
     'rawUserInput is trimmed'
 );
+$trimContextOnly = muginPublicSearchNormalizePostRequest([
+    'query' => ['text' => 'diabetes', 'language' => 'auto'],
+    'sources' => ['pubmed'],
+    'intentContext' => [
+        'contextualSearchInput' => ' type 2 diabetes ',
+    ],
+]);
 assertTrue(
-    $request1['intentContext']['contextualSearchInput'] === 'type 2 diabetes',
+    $trimContextOnly['intentContext']['contextualSearchInput'] === 'type 2 diabetes',
     'contextualSearchInput is trimmed'
 );
 assertTrue(
@@ -228,7 +235,8 @@ assertTrue(
 );
 $resolved7 = muginPublicSearchBuildResolvedQueries($request7);
 assertTrue(
-    ($resolved7['pubmedQuery'] ?? '') === 'insulin[tiab]',
+    strpos((string) ($resolved7['pubmedQuery'] ?? ''), 'insulin[tiab]') !== false
+        && ($request7['query']['text'] ?? null) === '',
     '#s:pubmed groups become pubmedQuery without filling query.text'
 );
 assertThrows(static function (): void {

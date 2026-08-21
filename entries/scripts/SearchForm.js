@@ -266,7 +266,6 @@ searchFormDivs.forEach((searchFormDiv, index) => {
     : false;
   const debugSearchFlow = datasetDebugSearchFlow || urlDebugSearchFlow;
   const instanceAiURL = getAiURL(searchFormDiv.dataset.aiUrl || "");
-  const standardStringAdd = searchFormDiv.dataset.standardStringAdd === "true";
   const standardStringScopeRaw = searchFormDiv.dataset.standardStringScope;
   const standardStringScope =
     standardStringScopeRaw && ["narrow", "normal", "broad"].includes(standardStringScopeRaw)
@@ -300,26 +299,27 @@ searchFormDivs.forEach((searchFormDiv, index) => {
     window.matchMedia("(pointer: coarse)").matches;
   const isTouchLike = hasNoHover || hasCoarsePointer || hasTouchPoints;
 
+  const searchFormProps = {
+    hideTopics: parsedHideTopics,
+    hideLimits: parsedHideLimits,
+    checkLimits: parsedCheckLimits,
+    orderLimits: parsedOrderLimits,
+    openLimits: openLimits,
+    language: language,
+    componentNo: componentNo,
+    domain: domain,
+    translationSources: parsedTranslationSources,
+    defaultTranslationSources: parsedDefaultTranslationSources,
+    showElicitUnlockButton: showElicitUnlockButton,
+    showProcessDetailsToggles: showProcessDetailsToggles,
+    debugSearchFlow: debugSearchFlow,
+    standardStringScope: standardStringScope,
+    standardString: standardString,
+  };
+
   createConfiguredAppWithOptions(
     SearchForm,
-    {
-      hideTopics: parsedHideTopics,
-      hideLimits: parsedHideLimits,
-      checkLimits: parsedCheckLimits,
-      orderLimits: parsedOrderLimits,
-      openLimits: openLimits,
-      language: language,
-      componentNo: componentNo,
-      domain: domain,
-      translationSources: parsedTranslationSources,
-      defaultTranslationSources: parsedDefaultTranslationSources,
-      showElicitUnlockButton: showElicitUnlockButton,
-      showProcessDetailsToggles: showProcessDetailsToggles,
-      debugSearchFlow: debugSearchFlow,
-      standardStringAdd: standardStringAdd,
-      standardStringScope: standardStringScope,
-      standardString: standardString,
-    },
+    searchFormProps,
     {
       provide: {
         instanceDomain: domain,

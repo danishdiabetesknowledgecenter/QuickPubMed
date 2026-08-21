@@ -201,6 +201,26 @@ export function loadStandardString(domain) {
 }
 
 /**
+ * Whether freetext should AND the domain standardString. Matches API catalog
+ * default: missing key is true.
+ *
+ * @param {string} domain
+ * @returns {boolean}
+ */
+export function loadStandardStringAddToFreetext(domain) {
+  if (domain && runtimeTopicPayloadCache.has(domain)) {
+    const runtimePayload = runtimeTopicPayloadCache.get(domain)?.data;
+    if (runtimePayload && typeof runtimePayload === "object") {
+      if (!Object.prototype.hasOwnProperty.call(runtimePayload, "standardStringAddToFreetext")) {
+        return true;
+      }
+      return runtimePayload.standardStringAddToFreetext === true;
+    }
+  }
+  return true;
+}
+
+/**
  * Loads standard search string comment for the specified domain from runtime payload cache only.
  *
  * @param {string} domain - The domain name (e.g., 'diabetes', 'dementia').

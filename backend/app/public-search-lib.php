@@ -1308,7 +1308,13 @@ if (!function_exists('muginPublicSearchNormalizeQueryLanguage')) {
     function muginPublicSearchNormalizeQueryLanguage($value): string
     {
         $normalized = strtolower(trim((string) $value));
-        return in_array($normalized, ['da', 'en', 'auto'], true) ? $normalized : 'auto';
+        if (in_array($normalized, ['en', 'english'], true)) {
+            return 'en';
+        }
+        if (in_array($normalized, ['da', 'dk', 'danish', 'dansk'], true)) {
+            return 'da';
+        }
+        return 'auto';
     }
 }
 
@@ -1737,7 +1743,9 @@ if (!function_exists('muginPublicSearchNormalizePostRequest')) {
             throw new InvalidArgumentException('Unsupported query field(s): ' . implode(', ', $queryUnexpected));
         }
         $request['query']['text'] = trim((string) ($query['text'] ?? ''));
-        $request['query']['language'] = muginPublicSearchNormalizeQueryLanguage($query['language'] ?? 'auto');
+        if (array_key_exists('language', $query)) {
+            $request['query']['language'] = muginPublicSearchNormalizeQueryLanguage($query['language']);
+        }
         $request['domain'] = function_exists('muginNormalizeDomainKey')
             ? muginNormalizeDomainKey((string) ($payload['domain'] ?? ''))
             : trim((string) ($payload['domain'] ?? ''));
@@ -1817,6 +1825,9 @@ if (!function_exists('muginPublicSearchNormalizePostRequest')) {
         $request['responseOptions']['language'] = muginPublicSearchNormalizeResponseLanguage(
             $responseOptions['language'] ?? $request['responseOptions']['language']
         );
+        if (!array_key_exists('language', $query)) {
+            $request['query']['language'] = $request['responseOptions']['language'] === 'en' ? 'en' : 'da';
+        }
         $request['responseOptions']['noCache'] = muginPublicSearchBoolValue(
             $responseOptions['noCache'] ?? $request['responseOptions']['noCache'],
             (bool) ($request['responseOptions']['noCache'] ?? false)
@@ -2200,6 +2211,7 @@ if (!function_exists('muginPublicSearchNormalizePostRequest')) {
         // Fill empty hardFilters/sourceFilters/labels from selected limit ids (JSON path).
         $request = muginPublicSearchHydrateRequestFromSelectedLimits($request, false);
         $request = muginPublicSearchHydrateRequestFromSelectedTopics($request);
+        $request = muginPublicSearchFinalizeCatalogSemanticIntentContext($request);
 
         $authorizationContext = $request['intentContext'];
         $authorizationContext['ruleIds'] = muginPublicSearchDedupeStrings(array_merge(
@@ -2787,16 +2799,27 @@ if (!function_exists('muginPublicSearchLoadTopicNodeCatalog')) {
     /**
      * Loads and indexes domain topics.json nodes by id.
      *
-     * @return array{nodes: array<string,array<string,mixed>>, standardString: array<string,string>, loaded: bool}
+     * @return array{
+     *     nodes: array<string,array<string,mixed>>,
+     *     standardString: array<string,string>,
+     *     standardStringAddToFreetext: bool,
+     *     loaded: bool
+     * }
      */
     function muginPublicSearchLoadTopicNodeCatalog(string $domain): array
     {
         static $cache = [];
+        $emptyCatalog = [
+            'nodes' => [],
+            'standardString' => [],
+            'standardStringAddToFreetext' => true,
+            'loaded' => false,
+        ];
         $normalizedDomain = function_exists('muginNormalizeDomainKey')
             ? muginNormalizeDomainKey($domain)
             : strtolower(trim($domain));
         if ($normalizedDomain === '') {
-            return ['nodes' => [], 'standardString' => [], 'loaded' => false];
+            return $emptyCatalog;
         }
         if (isset($cache[$normalizedDomain])) {
             return $cache[$normalizedDomain];
@@ -2820,12 +2843,12 @@ if (!function_exists('muginPublicSearchLoadTopicNodeCatalog')) {
             }
         }
         if ($path === '' || !is_file($path)) {
-            $cache[$normalizedDomain] = ['nodes' => [], 'standardString' => [], 'loaded' => false];
+            $cache[$normalizedDomain] = $emptyCatalog;
             return $cache[$normalizedDomain];
         }
         $decoded = json_decode((string) file_get_contents($path), true);
         if (!is_array($decoded)) {
-            $cache[$normalizedDomain] = ['nodes' => [], 'standardString' => [], 'loaded' => false];
+            $cache[$normalizedDomain] = $emptyCatalog;
             return $cache[$normalizedDomain];
         }
         $nodes = [];
@@ -2860,9 +2883,17 @@ if (!function_exists('muginPublicSearchLoadTopicNodeCatalog')) {
                 }
             }
         }
+        $standardStringAddToFreetext = true;
+        if (array_key_exists('standardStringAddToFreetext', $decoded)) {
+            $standardStringAddToFreetext = muginPublicSearchBoolValue(
+                $decoded['standardStringAddToFreetext'],
+                true
+            );
+        }
         $cache[$normalizedDomain] = [
             'nodes' => $nodes,
             'standardString' => $standardString,
+            'standardStringAddToFreetext' => $standardStringAddToFreetext,
             'loaded' => true,
         ];
         return $cache[$normalizedDomain];
@@ -2875,18 +2906,101 @@ if (!function_exists('muginPublicSearchTopicNodeLabel')) {
      */
     function muginPublicSearchTopicNodeLabel(array $node, string $fallbackId = ''): string
     {
-        $translations = isset($node['translations']) && is_array($node['translations'])
-            ? $node['translations']
-            : [];
-        $en = trim((string) ($translations['en'] ?? ''));
+        $en = muginPublicSearchCatalogNodeEnglishLabel($node);
         if ($en !== '') {
             return $en;
         }
+        $translations = isset($node['translations']) && is_array($node['translations'])
+            ? $node['translations']
+            : [];
         $dk = trim((string) ($translations['dk'] ?? ''));
         if ($dk !== '') {
             return $dk;
         }
         return $fallbackId;
+    }
+}
+
+if (!function_exists('muginPublicSearchCatalogNodeEnglishLabel')) {
+    /**
+     * Matches SearchForm getEnglishItemLabel(): semanticScholarQuery, else translations.en.
+     *
+     * @param array<string,mixed> $node
+     */
+    function muginPublicSearchCatalogNodeEnglishLabel(array $node): string
+    {
+        $semanticQuery = trim((string) ($node['semanticScholarQuery'] ?? ''));
+        if ($semanticQuery !== '') {
+            return $semanticQuery;
+        }
+        $translations = isset($node['translations']) && is_array($node['translations'])
+            ? $node['translations']
+            : [];
+        return trim((string) ($translations['en'] ?? ''));
+    }
+}
+
+if (!function_exists('muginPublicSearchCatalogNodeHasHardSemanticHandling')) {
+    /**
+     * Matches SearchForm hasHardSemanticHandling(): hard filters stay out of semanticBlocks.
+     *
+     * @param array<string,mixed> $node
+     */
+    function muginPublicSearchCatalogNodeHasHardSemanticHandling(array $node): bool
+    {
+        $semanticConfig = isset($node['semanticConfig']) && is_array($node['semanticConfig'])
+            ? $node['semanticConfig']
+            : [];
+        $hardFilters = isset($semanticConfig['hardFilters']) && is_array($semanticConfig['hardFilters'])
+            ? $semanticConfig['hardFilters']
+            : [];
+        foreach ((array) ($hardFilters['publicationDateYears'] ?? []) as $year) {
+            if ((int) $year > 0) {
+                return true;
+            }
+        }
+        $postValidation = isset($semanticConfig['postValidation']) && is_array($semanticConfig['postValidation'])
+            ? $semanticConfig['postValidation']
+            : [];
+        $rawRules = !empty($postValidation['rules'])
+            ? (array) $postValidation['rules']
+            : (array) ($semanticConfig['doiOnlyRules'] ?? []);
+        if ($rawRules !== []) {
+            return true;
+        }
+        foreach (['filterProfile', 'publicationType', 'studyDesign', 'ageGroup', 'language', 'sourceFormat'] as $key) {
+            if (isset($hardFilters[$key]) && is_array($hardFilters[$key])) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
+if (!function_exists('muginPublicSearchTopicNodeSemanticIntentText')) {
+    /**
+     * English seed text for a catalog topic: sourceContext.en, else the title.
+     *
+     * @param array<string,mixed> $node
+     */
+    function muginPublicSearchTopicNodeSemanticIntentText(array $node, string $fallbackLabel = ''): string
+    {
+        $semanticConfig = isset($node['semanticConfig']) && is_array($node['semanticConfig'])
+            ? $node['semanticConfig']
+            : [];
+        $raw = $semanticConfig['sourceContext'] ?? null;
+        if (is_string($raw)) {
+            $en = trim($raw);
+            if ($en !== '') {
+                return $en;
+            }
+        } elseif (is_array($raw)) {
+            $en = trim((string) ($raw['en'] ?? ($raw['default'] ?? '')));
+            if ($en !== '') {
+                return $en;
+            }
+        }
+        return trim($fallbackLabel);
     }
 }
 
@@ -2956,6 +3070,7 @@ if (!function_exists('muginPublicSearchHydrateRequestFromSelectedTopics')) {
             }
             $standardString = (array) ($catalog['standardString'] ?? []);
             $labels = [];
+            $semanticBlocks = [];
             $hydratedGroups = [];
             foreach ($groups as $group) {
                 if (!is_array($group)) {
@@ -2985,8 +3100,15 @@ if (!function_exists('muginPublicSearchHydrateRequestFromSelectedTopics')) {
                             . ' has no searchStrings for scope ' . $scope;
                     }
                     $hydratedGroup[] = $normalized;
-                    if ($normalized['label'] !== '') {
-                        $labels[] = $normalized['label'];
+                    $enLabel = muginPublicSearchCatalogNodeEnglishLabel($node);
+                    if ($enLabel !== '') {
+                        $labels[] = $enLabel;
+                    }
+                    if (!muginPublicSearchCatalogNodeHasHardSemanticHandling($node)) {
+                        $intentText = muginPublicSearchTopicNodeSemanticIntentText($node, $enLabel);
+                        if ($intentText !== '') {
+                            $semanticBlocks[] = $intentText;
+                        }
                     }
                 }
                 if (!empty($hydratedGroup)) {
@@ -3002,6 +3124,10 @@ if (!function_exists('muginPublicSearchHydrateRequestFromSelectedTopics')) {
             }
             $intent['selectedTopicSelections'] = $flatSelections;
             $intent['selectedTopics'] = muginPublicSearchDedupeStrings($labels);
+            $intent['semanticBlocks'] = muginPublicSearchDedupeStrings(array_merge(
+                $semanticBlocks,
+                muginPublicSearchNormalizeSimpleList($intent['semanticBlocks'] ?? [])
+            ));
         } elseif (!empty($groups)) {
             // Custom-only groups: normalize labels.
             $hydratedGroups = [];
@@ -3038,13 +3164,18 @@ if (!function_exists('muginPublicSearchHydrateRequestFromSelectedTopics')) {
             }
         }
 
+        $catalogAddToFreetext = true;
+        if ($domain !== '') {
+            $catalogForStandard = muginPublicSearchLoadTopicNodeCatalog($domain);
+            if (($catalogForStandard['loaded'] ?? false) === true) {
+                $catalogAddToFreetext = ($catalogForStandard['standardStringAddToFreetext'] ?? true) === true;
+            }
+        }
+
         $options = isset($request['standardString']) && is_array($request['standardString'])
             ? $request['standardString']
             : [];
-        $applyToFreetext = true;
-        if (array_key_exists('add', $options)) {
-            $applyToFreetext = $options['add'] === true;
-        }
+        $applyToFreetext = $catalogAddToFreetext;
         $overrideText = trim((string) ($options['text'] ?? ''));
         if ($applyToFreetext && $overrideText !== '') {
             $standardString = [
@@ -3063,6 +3194,42 @@ if (!function_exists('muginPublicSearchHydrateRequestFromSelectedTopics')) {
         $request['_applyStandardStringToFreetext'] = $applyToFreetext;
         $request['_standardStringScope'] = $scope;
         $request['_topicHydrationWarnings'] = muginPublicSearchDedupeStrings($warnings);
+        return $request;
+    }
+}
+
+if (!function_exists('muginPublicSearchFinalizeCatalogSemanticIntentContext')) {
+    /**
+     * Align catalog intent fields with SearchForm: semanticBlocks are the
+     * English explanations, and contextualSearchInput prefers those over freetext.
+     *
+     * @param array<string,mixed> $request
+     * @return array<string,mixed>
+     */
+    function muginPublicSearchFinalizeCatalogSemanticIntentContext(array $request): array
+    {
+        $intent = isset($request['intentContext']) && is_array($request['intentContext'])
+            ? $request['intentContext']
+            : [];
+        $blocks = muginPublicSearchDedupeStrings(
+            muginPublicSearchNormalizeSimpleList($intent['semanticBlocks'] ?? [])
+        );
+        $intent['semanticBlocks'] = $blocks;
+        $queryText = trim((string) ($request['query']['text'] ?? ''));
+        $contextual = trim((string) ($intent['contextualSearchInput'] ?? ''));
+        $canReplaceContextual = $contextual === ''
+            || $contextual === $queryText
+            || muginPublicSearchIsFilterOutsideSemanticSeed($contextual);
+        if ($blocks !== []) {
+            $intent['contextualSearchInput'] = implode('. ', $blocks);
+        } elseif ($canReplaceContextual) {
+            $limitLabels = muginPublicSearchNormalizeSimpleList($intent['selectedLimits'] ?? []);
+            if ($limitLabels !== []) {
+                $intent['contextualSearchInput'] =
+                    'Filters handled outside semantic text: ' . implode('; ', $limitLabels) . '.';
+            }
+        }
+        $request['intentContext'] = $intent;
         return $request;
     }
 }
@@ -5255,6 +5422,95 @@ if (!function_exists('muginPublicSearchResolveSemanticQueryFromIntent')) {
     }
 }
 
+if (!function_exists('muginPublicSearchIntentContextHasDropdownSelections')) {
+    /**
+     * True when the request carries catalog dropdown selections (topics and/or limits).
+     *
+     * @param array<string,mixed> $intentContext
+     */
+    function muginPublicSearchIntentContextHasDropdownSelections(array $intentContext): bool
+    {
+        foreach ([
+            'selectedTopicIds',
+            'selectedTopics',
+            'selectedTopicSelections',
+            'selectedLimitIds',
+            'selectedLimits',
+            'selectedLimitSelections',
+        ] as $key) {
+            if (!empty($intentContext[$key])) {
+                return true;
+            }
+        }
+        foreach (['selectedTopicGroups', 'selectedLimitGroups'] as $key) {
+            foreach ((array) ($intentContext[$key] ?? []) as $group) {
+                if (!is_array($group)) {
+                    continue;
+                }
+                foreach ($group as $entry) {
+                    if (is_array($entry)) {
+                        $id = trim((string) ($entry['id'] ?? ''));
+                        $label = trim((string) ($entry['label'] ?? ($entry['rawText'] ?? '')));
+                        if ($id !== '' || $label !== '' || !empty($entry['custom'])) {
+                            return true;
+                        }
+                        continue;
+                    }
+                    if (trim((string) $entry) !== '') {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+}
+
+if (!function_exists('muginPublicSearchIsFilterOutsideSemanticSeed')) {
+    /**
+     * True when the text is UI boilerplate about hard filters, not a search query.
+     */
+    function muginPublicSearchIsFilterOutsideSemanticSeed(string $text): bool
+    {
+        $normalized = strtolower(trim($text));
+        if ($normalized === '') {
+            return true;
+        }
+        return strpos($normalized, 'filters handled outside semantic text:') === 0;
+    }
+}
+
+if (!function_exists('muginPublicSearchResolveCatalogSemanticSeedText')) {
+    /**
+     * Preferred English seed for catalog-only semantic intent: explanations first,
+     * then English labels. Empty means there is nothing for the intent LLM to read.
+     *
+     * @param array<string,mixed> $intentContext
+     */
+    function muginPublicSearchResolveCatalogSemanticSeedText(array $intentContext): string
+    {
+        $blocks = muginPublicSearchNormalizeSimpleList($intentContext['semanticBlocks'] ?? []);
+        if ($blocks !== []) {
+            return implode('. ', $blocks);
+        }
+        $contextual = trim((string) ($intentContext['contextualSearchInput'] ?? ''));
+        if ($contextual !== '' && !muginPublicSearchIsFilterOutsideSemanticSeed($contextual)) {
+            return $contextual;
+        }
+        $topics = muginPublicSearchNormalizeSimpleList($intentContext['selectedTopics'] ?? []);
+        $limits = muginPublicSearchNormalizeSimpleList($intentContext['selectedLimits'] ?? []);
+        $joined = trim(implode(' ', array_merge($topics, $limits)));
+        if ($joined !== '') {
+            return $joined;
+        }
+        $rawUserInput = trim((string) ($intentContext['rawUserInput'] ?? ''));
+        if ($rawUserInput !== '' && !muginPublicSearchIsFilterOutsideSemanticSeed($rawUserInput)) {
+            return $rawUserInput;
+        }
+        return '';
+    }
+}
+
 if (!function_exists('muginPublicSearchPrefetchParallelTranslationRequests')) {
     /**
      * Starts the semantic-source and PubMed translation requests together once
@@ -6279,8 +6535,9 @@ if (!function_exists('muginPublicSearchNormalizeCachedFreetextQueries')) {
 
 if (!function_exists('muginPublicSearchNormalizeStandardStringOptions')) {
     /**
-     * Widget `data-standard-string-add` / `data-standard-string` for freetext.
-     * Catalog topics still use their own combineWithStandardString flags.
+     * Catalog `standardStringAddToFreetext` controls AND on freetext.
+     * `add` is accepted for older clients but ignored. Catalog topics still
+     * use their own combineWithStandardString flags.
      *
      * @param mixed $raw
      * @return array<string,mixed>
@@ -6339,6 +6596,94 @@ if (!function_exists('muginPublicSearchGetRequestCachedFreetextQueries')) {
         return isset($request['cachedFreetextQueries']) && is_array($request['cachedFreetextQueries'])
             ? $request['cachedFreetextQueries']
             : [];
+    }
+}
+
+if (!function_exists('muginPublicSearchFreetextQueriesCacheTtlSeconds')) {
+    function muginPublicSearchFreetextQueriesCacheTtlSeconds(): int
+    {
+        $config = muginPublicSearchGetConfig();
+        $searchTtl = (int) ($config['searchResultCacheTtlSeconds'] ?? 60);
+        return max(1800, $searchTtl);
+    }
+}
+
+if (!function_exists('muginPublicSearchBuildFreetextQueriesCacheKey')) {
+    /**
+     * @param array<string,mixed> $request
+     */
+    function muginPublicSearchBuildFreetextQueriesCacheKey(array $request): string
+    {
+        $input = trim((string) ($request['query']['text'] ?? ''));
+        return 'freetext-queries:' . sha1(muginPublicSearchSafeJsonEncode([
+            'input' => $input,
+            'language' => (string) ($request['query']['language'] ?? 'auto'),
+            'domain' => (string) ($request['domain'] ?? ''),
+            'mode' => (string) ($request['translation']['mode'] ?? 'auto'),
+            'provider' => function_exists('muginGetLlmProvider') ? muginGetLlmProvider() : 'openai',
+        ]));
+    }
+}
+
+if (!function_exists('muginPublicSearchReadCachedFreetextQueriesFromStore')) {
+    /**
+     * @param array<string,mixed> $request
+     * @return array<string,string>
+     */
+    function muginPublicSearchReadCachedFreetextQueriesFromStore(array $request): array
+    {
+        $input = trim((string) ($request['query']['text'] ?? ''));
+        if ($input === '') {
+            return [];
+        }
+        $entry = muginPublicSearchReadCacheValue(
+            'freetext-queries',
+            muginPublicSearchBuildFreetextQueriesCacheKey($request)
+        );
+        $value = (($entry['hit'] ?? false) === true && is_array($entry['value'] ?? null))
+            ? $entry['value']
+            : [];
+        if ($value === []) {
+            return [];
+        }
+        try {
+            $normalized = muginPublicSearchNormalizeCachedFreetextQueries($value);
+        } catch (InvalidArgumentException $exception) {
+            return [];
+        }
+        if (!muginPublicSearchCachedFreetextQueriesMatchInput($normalized, $input)) {
+            return [];
+        }
+        return $normalized;
+    }
+}
+
+if (!function_exists('muginPublicSearchWriteCachedFreetextQueriesToStore')) {
+    /**
+     * @param array<string,mixed> $request
+     * @param array<string,string> $payload
+     */
+    function muginPublicSearchWriteCachedFreetextQueriesToStore(array $request, array $payload): void
+    {
+        $input = trim((string) ($request['query']['text'] ?? ''));
+        if ($input === '' || $payload === []) {
+            return;
+        }
+        $payload['input'] = $input;
+        try {
+            $normalized = muginPublicSearchNormalizeCachedFreetextQueries($payload);
+        } catch (InvalidArgumentException $exception) {
+            return;
+        }
+        if ($normalized === []) {
+            return;
+        }
+        muginPublicSearchWriteCacheValue(
+            'freetext-queries',
+            muginPublicSearchBuildFreetextQueriesCacheKey($request),
+            $normalized,
+            muginPublicSearchFreetextQueriesCacheTtlSeconds()
+        );
     }
 }
 
@@ -6693,12 +7038,14 @@ if (!function_exists('muginPublicSearchBuildResolvedQueries')) {
             ));
         }
 
-        // Catalog-only searches still need a semantic seed from hydrated labels.
-        if ($rawText === '' && !empty($intentContext['selectedTopics'])) {
-            $rawText = trim(implode(' ', muginPublicSearchNormalizeSimpleList($intentContext['selectedTopics'])));
+        // Catalog-only searches still need a semantic seed. Prefer explanations
+        // (semanticBlocks, then contextualSearchInput) over English dropdown titles.
+        $hasFreetextInput = trim((string) ($request['query']['text'] ?? '')) !== '';
+        if ($rawText === '') {
+            $rawText = muginPublicSearchResolveCatalogSemanticSeedText($intentContext);
         }
 
-        $pubmedQuery = $rawText;
+        $pubmedQuery = $hasFreetextInput ? trim((string) ($request['query']['text'] ?? '')) : '';
         $semanticQuery = $rawText;
         $queryIntent = [];
         $semanticIntentResult = null;
@@ -6717,20 +7064,44 @@ if (!function_exists('muginPublicSearchBuildResolvedQueries')) {
             $request,
             muginPublicSearchGetRequestCachedFreetextQueries($request)
         );
-        $cachedFreetextHit = muginPublicSearchCachedFreetextQueriesMatchInput($cachedFreetextQueries, $rawText);
-        $skipLlmForCachedFreetext = muginPublicSearchCachedFreetextQueriesCoverSelectedSources(
-            $request,
-            $cachedFreetextQueries
-        );
-        $hasFreetextInput = trim((string) ($request['query']['text'] ?? '')) !== '';
+        $noCache = ($request['responseOptions']['noCache'] ?? false) === true;
         if (
-            $translationMode === 'auto'
+            $cachedFreetextQueries === []
             && $hasFreetextInput
+            && $translationMode === 'auto'
+            && !$noCache
+        ) {
+            $cachedFreetextQueries = muginPublicSearchExpandCachedFreetextQueriesForSelectedSources(
+                $request,
+                muginPublicSearchReadCachedFreetextQueriesFromStore($request)
+            );
+        }
+        $cachedFreetextHit = muginPublicSearchCachedFreetextQueriesMatchInput(
+            $cachedFreetextQueries,
+            trim((string) ($request['query']['text'] ?? ''))
+        );
+        $skipLlmForCachedFreetext = $hasFreetextInput
+            && muginPublicSearchCachedFreetextQueriesCoverSelectedSources(
+                $request,
+                $cachedFreetextQueries
+            );
+        $runStructuredSemanticIntent =
+            $translationMode === 'auto'
             && !$skipLlmForCompleteOverrides
             && !$skipLlmForCachedFreetext
-        ) {
+            && (
+                $hasFreetextInput
+                || (
+                    muginPublicSearchIntentContextHasDropdownSelections($intentContext)
+                    && muginPublicSearchRequestHasSemanticSources($request)
+                    && $rawText !== ''
+                )
+            );
+        if ($runStructuredSemanticIntent) {
             // Intent first (prerequisite for PubMed aiCoreQuery). After that,
             // source-query adaptation and PubMed translation run together.
+            // Catalog-only + semantic sources: ExtractSemanticIntent so dropdown
+            // explanations inform the query. PubMed-only catalog searches skip this LLM call.
             // When intent already has coreQuery / per-source queries, skip the
             // extra TranslateSemanticQuery LLM call.
             if (muginPublicSearchIsUnifiedSearchEngineEnabled()) {
@@ -6740,7 +7111,17 @@ if (!function_exists('muginPublicSearchBuildResolvedQueries')) {
                     'groupKey' => muginPublicSearchPrepareProgressGroupKey($request),
                     'messageKey' => muginPublicSearchSemanticIntentProgressMessageKey($request),
                 ]);
-                $extraction = muginPublicSearchExtractSemanticIntent($rawText, $language, $domain, $intentContext);
+                $intentForExtract = $intentContext;
+                if (!$hasFreetextInput) {
+                    // Coverage must score English explanations, not Danish UI operators.
+                    $intentForExtract['rawUserInput'] = $rawText;
+                }
+                $extraction = muginPublicSearchExtractSemanticIntent(
+                    $rawText,
+                    $language,
+                    $domain,
+                    $intentForExtract
+                );
                 $semanticIntentResult = $extraction['intent'];
                 $semanticIntentMeta = $extraction['meta'];
                 $queryIntent = muginPublicSearchBuildQueryIntentFromSemanticIntent($semanticIntentResult);
@@ -6812,7 +7193,8 @@ if (!function_exists('muginPublicSearchBuildResolvedQueries')) {
                         ]);
                     }
                 };
-                $includePubMedTranslation = in_array('pubmed', (array) $request['sources'], true)
+                $includePubMedTranslation = $hasFreetextInput
+                    && in_array('pubmed', (array) $request['sources'], true)
                     && empty($queryOverrides['pubmed'])
                     && empty($cachedFreetextQueries['pubmed']);
                 if ($includePubMedTranslation) {
@@ -6871,7 +7253,8 @@ if (!function_exists('muginPublicSearchBuildResolvedQueries')) {
             }
 
             if (
-                in_array('pubmed', (array) $request['sources'], true)
+                $hasFreetextInput
+                && in_array('pubmed', (array) $request['sources'], true)
                 && empty($cachedFreetextQueries['pubmed'])
                 && empty($queryOverrides['pubmed'])
             ) {
@@ -6899,40 +7282,6 @@ if (!function_exists('muginPublicSearchBuildResolvedQueries')) {
                     $semanticQuery = trim($translatedSemantic);
                 }
             }
-        } elseif (
-            !$skipLlmForCompleteOverrides
-            && $translationMode === 'auto'
-            && !$hasFreetextInput
-            && $rawText !== ''
-            && muginPublicSearchRequestHasSemanticSources($request)
-        ) {
-            // Catalog-only + semantic sources: translate labels into an English
-            // core query. PubMed-only catalog searches skip this LLM call.
-            muginPublicSearchEmitProgress($progressCallback, 'semanticIntent', '', [
-                'stepId' => 'semanticIntent',
-                'groupId' => muginPublicSearchPrepareProgressGroupId($request),
-                'groupKey' => muginPublicSearchPrepareProgressGroupKey($request),
-                'messageKey' => muginPublicSearchSemanticIntentProgressMessageKey($request),
-            ]);
-            $translatedSemantic = muginPublicSearchTranslateSemanticQuery($rawText, $language, $domain);
-            if (trim($translatedSemantic) !== '') {
-                $semanticQuery = trim($translatedSemantic);
-            }
-            $sourceQueryPlan = muginPublicSearchBuildSourceQueryPlan($request, $semanticQuery, $semanticIntentResult);
-            $intentProcessReport = muginPublicSearchBuildCombinedSemanticIntentProcessReport(
-                $request,
-                $semanticIntentResult,
-                $semanticIntentMeta,
-                $semanticQuery,
-                $sourceQueryPlan,
-                false
-            );
-            $semanticProcessReport = $intentProcessReport;
-            muginPublicSearchProcessDetailsEmitCompletedPayload(
-                'semanticIntent',
-                $intentProcessReport,
-                $progressCallback
-            );
         }
 
         $cachedFreetextApplied = false;
@@ -7148,6 +7497,31 @@ if (!function_exists('muginPublicSearchBuildResolvedQueries')) {
             $searchStringPayload['finalValidatedQuery'] = $pubmedQuery;
             $searchStringPayload['rawFreetextSanitized'] = true;
             $processReports['searchString'] = $searchStringPayload;
+        }
+
+        if (
+            $hasFreetextInput
+            && $translationMode === 'auto'
+            && !$cachedFreetextApplied
+            && !$noCache
+            && $translatedFreetextPubMedQuery !== ''
+            && !muginPublicSearchPubmedQueryContainsTranslationFailureText($translatedFreetextPubMedQuery)
+            && empty($queryOverrides['pubmed'])
+        ) {
+            $freetextCachePayload = [
+                'input' => trim((string) ($request['query']['text'] ?? '')),
+                'pubmed' => $translatedFreetextPubMedQuery,
+            ];
+            foreach (['semanticScholar', 'openAlex', 'elicit'] as $sourceKey) {
+                if (!empty($queryOverrides[$sourceKey])) {
+                    continue;
+                }
+                $cachedSourceQuery = trim((string) ($sourceQueryPlan[$sourceKey]['query'] ?? ''));
+                if ($cachedSourceQuery !== '') {
+                    $freetextCachePayload[$sourceKey] = $cachedSourceQuery;
+                }
+            }
+            muginPublicSearchWriteCachedFreetextQueriesToStore($request, $freetextCachePayload);
         }
 
         return [

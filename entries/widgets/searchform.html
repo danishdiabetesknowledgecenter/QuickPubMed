@@ -67,13 +67,12 @@
         - data-hide-topics: Array of topic IDs to hide in topic dropdowns.
 
         Standard string for free-text search:
-        - data-standard-string-add: When "true", the domain's standardString (from topics runtime content)
-          is appended to all free-text (manual) search terms as: (user free text) AND (standardString).
-          If the domain has no standardString (missing or empty in the topic file), nothing is added.
+        - Whether the domain standardString is AND'ed onto freetext is set in the
+          editor (topics.json `standardStringAddToFreetext`). SearchForm and the API follow that.
         - data-standard-string: Optional custom standardString text.
           If set, it is used as standardString (overrides domain standardString) and also works when data-domain is empty.
         - data-standard-string-scope: Which standardString variant to use: "narrow", "normal", or "broad".
-          Only relevant when data-standard-string-add="true". Default is "normal" if omitted.
+          Default is "normal" if omitted.
 
         Format for list attributes:
         - Must be a JSON-like array string using single quotes, e.g. "['L010010','L010020']".
@@ -162,7 +161,6 @@
         data-hide-limits="" 
         data-check-limits=""
         data-order-limits=""
-        data-standard-string-add="false"
         data-standard-string=""
         data-standard-string-scope="normal"
         data-language="dk"
@@ -182,7 +180,6 @@
         data-hide-limits="['L010030']" 
         data-check-limits="['L010020','L010030']"
         data-order-limits="['L010030','L010020','L010010']"
-        data-standard-string-add="true"
         data-standard-string="diabet*[tiab]"
         data-standard-string-scope="normal"
         data-language="dk"

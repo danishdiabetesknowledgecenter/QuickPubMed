@@ -17,8 +17,11 @@
           <i :class="localSearchWithAI ? iconClass : `${iconClass} mugin_aiIconMuted`" aria-hidden="true" />
         </div>
         <div class="mugin_infoInline">
+          <template v-if="activeLabelParts.prefix">
+            {{ activeLabelParts.prefix }}
+          </template>
           <span class="mugin_keepWithIcon">
-            {{ activeLabel }}
+            {{ activeLabelParts.last }}
             <button
               type="button"
               v-tooltip="{
@@ -50,8 +53,11 @@
             <i :class="localSearchWithAI ? iconClass : `${iconClass} mugin_aiIconMuted`" aria-hidden="true" />
           </span>
           <span class="mugin_infoInline">
+            <template v-if="activeLabelParts.prefix">
+              {{ activeLabelParts.prefix }}
+            </template>
             <span class="mugin_keepWithIcon">
-              {{ activeLabel }}
+              {{ activeLabelParts.last }}
               <button
                 type="button"
                 v-tooltip="{
@@ -137,6 +143,9 @@
           this.localSearchWithAI || !this.showOffStateLabel ? this.labelWithKey : this.labelWithoutKey
         );
       },
+      activeLabelParts() {
+        return this.splitLastWord(this.activeLabel);
+      },
       activeTooltipContent() {
         return `${this.getString(this.hoverWithKey)}${this.tooltipSuffix || ""}`;
       },
@@ -156,6 +165,17 @@
       },
     },
     methods: {
+      splitLastWord(text) {
+        const normalized = String(text || "").trim();
+        const lastSpace = normalized.lastIndexOf(" ");
+        if (lastSpace < 0) {
+          return { prefix: "", last: normalized };
+        }
+        return {
+          prefix: normalized.slice(0, lastSpace) + " ",
+          last: normalized.slice(lastSpace + 1),
+        };
+      },
       toggleAiSearch() {
         this.localSearchWithAI = !this.localSearchWithAI;
       },

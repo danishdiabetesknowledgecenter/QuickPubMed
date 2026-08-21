@@ -108,8 +108,10 @@ assertTrue(
 );
 assertTrue(
     strpos($lib, 'Catalog-only + semantic sources') !== false
-        && strpos($lib, 'PubMed-only catalog searches skip this LLM call') !== false,
-    'Catalog PubMed-only skips TranslateSemanticQuery'
+        && strpos($lib, 'PubMed-only catalog searches skip this LLM call') !== false
+        && strpos($lib, 'muginPublicSearchExtractSemanticIntent') !== false
+        && strpos($lib, '$runStructuredSemanticIntent') !== false,
+    'Catalog + semantic sources use ExtractSemanticIntent; PubMed-only catalog skips that LLM call'
 );
 assertTrue(
     strpos($lib, 'muginPublicSearchShouldApplySemanticLlmFinalRerank($request, $results)') !== false,

@@ -559,6 +559,11 @@
                         "dk": "",
                         "en": ""
                     },
+                    "semanticConfig": {
+                        "sourceContext": {
+                            "en": "diabetes of any type, including prediabetes"
+                        }
+                    },
                     "tooltip": {
                         "dk": "",
                         "en": ""
@@ -721,6 +726,11 @@
                         "dk": "",
                         "en": ""
                     },
+                    "semanticConfig": {
+                        "sourceContext": {
+                            "en": "latent autoimmune diabetes in adults (LADA)"
+                        }
+                    },
                     "tooltip": {
                         "dk": "",
                         "en": ""
@@ -752,6 +762,11 @@
                     "searchStringComment": {
                         "dk": "",
                         "en": ""
+                    },
+                    "semanticConfig": {
+                        "sourceContext": {
+                            "en": "maturity-onset diabetes of the young (MODY)"
+                        }
                     },
                     "tooltip": {
                         "dk": "",
@@ -1082,6 +1097,11 @@
                         "dk": "Flere hudproblemer vil blive tilføjet.",
                         "en": ""
                     },
+                    "semanticConfig": {
+                        "sourceContext": {
+                            "en": "diabetes-related skin disease, not foot ulcers or device rashes"
+                        }
+                    },
                     "tooltip": {
                         "dk": "Hudforandringer som følge af diabetes",
                         "en": ""
@@ -1113,6 +1133,11 @@
                     "searchStringComment": {
                         "dk": "",
                         "en": ""
+                    },
+                    "semanticConfig": {
+                        "sourceContext": {
+                            "en": "skin reactions to insulin pumps or glucose sensors"
+                        }
                     },
                     "tooltip": {
                         "dk": "Hudproblemer, der kan opstå som følge af diabetesteknologi såsom sensorer og pumper.",
@@ -3029,6 +3054,11 @@
                         "dk": "",
                         "en": ""
                     },
+                    "semanticConfig": {
+                        "sourceContext": {
+                            "en": "glucose sensors and blood glucose self-monitoring"
+                        }
+                    },
                     "tooltip": {
                         "dk": "",
                         "en": ""
@@ -3302,6 +3332,11 @@
                         "dk": "",
                         "en": ""
                     },
+                    "semanticConfig": {
+                        "sourceContext": {
+                            "en": "estimated glomerular filtration rate (eGFR)"
+                        }
+                    },
                     "tooltip": {
                         "dk": "",
                         "en": ""
@@ -3511,6 +3546,11 @@
                         "dk": "",
                         "en": ""
                     },
+                    "semanticConfig": {
+                        "sourceContext": {
+                            "en": "bulimia and insulin restriction for weight loss (diabulimia)"
+                        }
+                    },
                     "tooltip": {
                         "dk": "",
                         "en": ""
@@ -3574,6 +3614,11 @@
                     "searchStringComment": {
                         "dk": "",
                         "en": ""
+                    },
+                    "semanticConfig": {
+                        "sourceContext": {
+                            "en": "emotional distress from living with diabetes"
+                        }
                     },
                     "tooltip": {
                         "dk": "",
@@ -3929,6 +3974,11 @@
                         "dk": "",
                         "en": ""
                     },
+                    "semanticConfig": {
+                        "sourceContext": {
+                            "en": "menopause, andropause, and the climacteric"
+                        }
+                    },
                     "tooltip": {
                         "dk": "",
                         "en": ""
@@ -4201,6 +4251,11 @@
                     "searchStringComment": {
                         "dk": "\"Caregivers\"[mh] er kun medtaget i den brede søgning, da denne også inkluderer hospitalspersonale.",
                         "en": ""
+                    },
+                    "semanticConfig": {
+                        "sourceContext": {
+                            "en": "family members of people with diabetes"
+                        }
                     },
                     "tooltip": {
                         "dk": "",
@@ -4579,6 +4634,11 @@
                         "dk": "",
                         "en": ""
                     },
+                    "semanticConfig": {
+                        "sourceContext": {
+                            "en": "per- and polyfluoroalkyl substances (PFAS)"
+                        }
+                    },
                     "tooltip": {
                         "dk": "",
                         "en": ""
@@ -4658,6 +4718,11 @@
                     "searchStringComment": {
                         "dk": "",
                         "en": ""
+                    },
+                    "semanticConfig": {
+                        "sourceContext": {
+                            "en": "remission of diabetes"
+                        }
                     },
                     "tooltip": {
                         "dk": "",
@@ -4843,6 +4908,7 @@
         "normal": "\"Diabetes Mellitus\"[mh] OR diabet*[ti]",
         "broad": "\"Diabetes Mellitus\"[mh] OR diabet*[tiab]"
     },
+    "standardStringAddToFreetext": true,
     "standardStringComment": {
         "dk": "Dette er kommentar til standardsøgestrengene.",
         "en": ""

@@ -28,7 +28,10 @@
       ref="multiselect"
       v-model="getStateCopy"
       class="mugin_dropDownMenu"
-      :class="{ 'mugin_hideDropdownArrow': shouldHideDropdownArrow }"
+      :class="{
+        'mugin_hideDropdownArrow': shouldHideDropdownArrow,
+        'mugin_hideDropdownChevron': shouldHideDropdownChevron,
+      }"
       :aria-expanded="isDropdownOpen"
       :aria-label="placeholder"
       open-direction="bottom"
@@ -264,9 +267,12 @@
         >
           <div class="mugin_actionSheetPanel">
             <div class="mugin_actionSheetPrimaryGroup">
-              <div class="mugin_actionSheetStepHeader">
+              <div
+                class="mugin_actionSheetStepHeader"
+                :class="{ 'mugin_actionSheetStepHeader--root': !showMobileActionSheetNavigation }"
+              >
                 <button
-                  v-if="mobileListStep === 'children'"
+                  v-if="showMobileActionSheetNavigation"
                   type="button"
                   class="mugin_actionSheetBack"
                   :aria-label="getString('mobileActionBack')"
@@ -280,50 +286,60 @@
                   }}
                 </div>
                 <div
-                  v-if="mobileListStep === 'children' && getMobileBreadcrumb()"
+                  v-if="showMobileActionSheetNavigation && getMobileBreadcrumb()"
                   class="mugin_actionSheetBreadcrumb"
                 >{{ getMobileBreadcrumb() }}</div>
               </div>
               <div
-                v-if="mobileListStep === 'root'"
-                ref="mobileActionSheetList"
-                class="mugin_actionSheetList mugin_actionSheetList--scrollable"
-                @scroll.passive="handleMobileListScroll"
+                class="mugin_actionSheetListWrap"
+                :class="{
+                  'mugin_actionSheetListWrap--fade': showMobileScrollHint,
+                  'mugin_actionSheetListWrap--clipped': mobileActionSheetHasMoreThanFiveItems,
+                }"
               >
-                <button
-                  v-for="group in getMobileRootGroups()"
-                  :key="group.id"
-                  type="button"
-                  class="mugin_actionSheetBtn mugin_actionSheetListItem"
-                  @click="openMobileChildren(group.id)"
+                <div
+                  v-if="mobileListStep === 'root'"
+                  ref="mobileActionSheetList"
+                  class="mugin_actionSheetList"
+                  :class="{ 'mugin_actionSheetList--scrollable': mobileActionSheetHasMoreThanFiveItems }"
+                  @scroll.passive="handleMobileListScroll"
                 >
-                  <span>{{ group.label }}</span>
-                  <i
-                    class="bx bx-chevron-right mugin_actionSheetListChevron"
-                    aria-hidden="true"
-                  />
-                </button>
-              </div>
-              <div
-                v-else
-                ref="mobileActionSheetList"
-                class="mugin_actionSheetList mugin_actionSheetList--scrollable"
-                @scroll.passive="handleMobileListScroll"
-              >
-                <button
-                  v-for="item in getMobileChildrenForGroup(mobileActiveGroupId)"
-                  :key="item.id"
-                  type="button"
-                  class="mugin_actionSheetBtn mugin_actionSheetListItem"
-                  @click="handleMobileListItemClick(item)"
+                  <button
+                    v-for="group in getMobileRootGroups()"
+                    :key="group.id"
+                    type="button"
+                    class="mugin_actionSheetBtn mugin_actionSheetListItem"
+                    @click="openMobileChildren(group.id)"
+                  >
+                    <span>{{ group.label }}</span>
+                    <i
+                      class="bx bx-chevron-right mugin_actionSheetListChevron"
+                      aria-hidden="true"
+                    />
+                  </button>
+                </div>
+                <div
+                  v-else
+                  ref="mobileActionSheetList"
+                  class="mugin_actionSheetList"
+                  :class="{ 'mugin_actionSheetList--scrollable': mobileActionSheetHasMoreThanFiveItems }"
+                  @scroll.passive="handleMobileListScroll"
                 >
-                  <span>{{ item.displayLabel }}</span>
-                  <i
-                    v-if="item.isBranch"
-                    class="bx bx-chevron-right mugin_actionSheetListChevron"
-                    aria-hidden="true"
-                  />
-                </button>
+                  <button
+                    v-for="item in getMobileChildrenForGroup(mobileActiveGroupId)"
+                    :key="item.id"
+                    type="button"
+                    class="mugin_actionSheetBtn mugin_actionSheetListItem"
+                    @click="handleMobileListItemClick(item)"
+                  >
+                    <span>{{ item.displayLabel }}</span>
+                    <i
+                      v-if="item.isBranch"
+                      class="bx bx-chevron-right mugin_actionSheetListChevron"
+                      aria-hidden="true"
+                    />
+                  </button>
+                </div>
               </div>
               <div
                 class="mugin_actionSheetScrollHint"
@@ -858,8 +874,35 @@
         
         return result;
       },
+      shouldHideDropdownChevron: function () {
+        // Non-searchable single-select dropdowns (result focus) should show the
+        // selected value as a tag, without the empty-field chevron behind it.
+        if (this.searchable) return false;
+        return Array.isArray(this.getStateCopy) && this.getStateCopy.length > 0;
+      },
       showMobileScrollHint() {
-        return this.showMobileActionSheet && this.mobileCanScroll && !this.mobileAtBottom;
+        return (
+          this.showMobileActionSheet &&
+          this.mobileActionSheetHasMoreThanFiveItems &&
+          this.mobileCanScroll &&
+          !this.mobileAtBottom
+        );
+      },
+      mobileActionSheetItems() {
+        if (this.mobileListStep === "root") {
+          return this.getMobileRootGroups();
+        }
+        return this.getMobileChildrenForGroup(this.mobileActiveGroupId);
+      },
+      mobileActionSheetHasMoreThanFiveItems() {
+        return (this.mobileActionSheetItems || []).length > 5;
+      },
+      showMobileActionSheetNavigation() {
+        if (this.mobileListStep !== "children") return false;
+        if (Array.isArray(this.mobileParentStack) && this.mobileParentStack.length > 0) {
+          return true;
+        }
+        return !this.getSingleMobileRootGroupWithChildren();
       },
       shouldUseMobileActionSheetForCustomTags() {
         return this.isMobileInputMode() && !this.mobileOverlayHidden;
@@ -1309,6 +1352,25 @@
           label: this.customGroupLabelById(group.id),
         }));
       },
+      getSingleMobileRootGroupWithChildren() {
+        const groups = this.getMobileRootGroups();
+        if (!Array.isArray(groups) || groups.length !== 1) return null;
+        const group = groups[0];
+        if (!group?.id) return null;
+        if (this.getMobileGroupItems(group.id).length === 0) return null;
+        return group;
+      },
+      prepareMobileActionSheetStart() {
+        this.mobileParentStack = [];
+        const singleGroup = this.getSingleMobileRootGroupWithChildren();
+        if (singleGroup) {
+          this.mobileActiveGroupId = singleGroup.id;
+          this.mobileListStep = "children";
+          return;
+        }
+        this.mobileActiveGroupId = "";
+        this.mobileListStep = "root";
+      },
       openMobileChildren(groupId) {
         if (!groupId) return;
         this.mobileActiveGroupId = groupId;
@@ -1324,6 +1386,10 @@
         }
         if (this.mobileParentStack.length > 0) {
           this.mobileParentStack = this.mobileParentStack.slice(0, -1);
+          return;
+        }
+        if (this.getSingleMobileRootGroupWithChildren()) {
+          this.closeMobileActionSheet();
           return;
         }
         this.mobileListStep = "root";
@@ -1471,9 +1537,7 @@
         const canFreeText = this.taggable;
         this.mobileActionCustomTagId = "";
         if (hasOptions) {
-          this.mobileListStep = "root";
-          this.mobileActiveGroupId = "";
-          this.mobileParentStack = [];
+          this.prepareMobileActionSheetStart();
           this.showMobileActionSheet = true;
         } else if (canFreeText) {
           this.mobileOverlayHidden = true;
@@ -1486,9 +1550,7 @@
       openMobileCustomTagActions(tag) {
         if (!tag?.isCustom || !this.shouldUseMobileActionSheetForCustomTags) return;
         this.mobileActionCustomTagId = tag.id;
-        this.mobileListStep = "root";
-        this.mobileActiveGroupId = "";
-        this.mobileParentStack = [];
+        this.prepareMobileActionSheetStart();
         this.showMobileActionSheet = true;
       },
       closeMobileActionSheet() {

@@ -40,6 +40,7 @@ $request = muginPublicSearchBuildRequestFromFlatParams([
     ],
 ]);
 assertTrue($request['query']['text'] === 'Findes julemanden?', 'q/Q maps to query.text');
+assertTrue($request['query']['language'] === 'da', 'GET query.language follows default response language');
 assertTrue(
     $request['sources'] === ['pubmed', 'semanticScholar', 'openAlex'],
     'databases normalizes sources'
@@ -332,6 +333,7 @@ assertTrue($mixedCaseGet['query']['text'] === 'hello', 'mixed-case Q= maps to qu
 assertTrue($mixedCaseGet['page']['size'] === 12, 'mixed-case PageSize maps');
 assertTrue($mixedCaseGet['responseOptions']['stream'] === true, 'mixed-case STREAM maps');
 assertTrue($mixedCaseGet['responseOptions']['language'] === 'en', 'mixed-case LANG maps');
+assertTrue($mixedCaseGet['query']['language'] === 'en', 'LANG also sets query.language');
 if ($prevQuery === null) {
     unset($_SERVER['QUERY_STRING']);
 } else {

@@ -673,13 +673,14 @@ components:
           type: object
           additionalProperties: false
           description: >-
-            Styrer om domænets standardString (eller en override) AND’es på
-            fritekst. add:false forhindrer AND på fritekst. Katalog-emner
-            bruger stadig combineWithStandardString. Udelad feltet for hidtidig
-            adfærd. Gælder kun JSON POST.
+            Valgfri JSON-only override af selve strengen (`text`) og `scope`.
+            Om standardsøgestrengen AND’es på fritekst styres i editoren
+            (`standardStringAddToFreetext`) og gælder SearchForm og API.
+            `add` accepteres fra ældre klienter, men ignoreres.
           properties:
             add:
               type: boolean
+              description: Ignoreres. Brug editor-indstillingen standardStringAddToFreetext.
             text:
               type: string
               maxLength: 20000

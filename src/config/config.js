@@ -258,10 +258,10 @@ export function setStoredElicitUnlockKey(value) {
   safeSetLocalStorage(ELICIT_UNLOCK_STORAGE_KEY, normalized || null);
 }
 
-function getElicitUnlockPromptText(getString, key, fallback) {
-  if (typeof getString !== "function") return fallback;
+function getElicitUnlockPromptText(getString, key) {
+  if (typeof getString !== "function") return "";
   const value = getString(key);
-  return typeof value === "string" && value.trim() !== "" ? value : fallback;
+  return typeof value === "string" ? value : "";
 }
 
 async function submitElicitUnlockKey(trimmed) {
@@ -360,8 +360,7 @@ function openElicitUnlockKeyPrompt(getString, defaultValue) {
       if (trimmed && config.elicitGated === true) {
         errorEl.textContent = getElicitUnlockPromptText(
           getString,
-          "elicitUnlockInvalidCodeMessage",
-          "Forkert kode – ekstra AI-kilde (Elicit) er fortsat låst."
+          "elicitUnlockInvalidCodeMessage"
         );
         errorEl.hidden = false;
         submitBtn.disabled = false;
@@ -376,15 +375,11 @@ function openElicitUnlockKeyPrompt(getString, defaultValue) {
     const title = document.createElement("p");
     title.id = "mugin-elicit-unlock-title";
     title.className = "mugin_elicitUnlockTitle";
-    title.textContent = getElicitUnlockPromptText(
-      getString,
-      "elicitUnlockPromptMessage",
-      "Indtast kode for at låse op for ekstra AI-kilde (Elicit)."
-    );
+    title.textContent = getElicitUnlockPromptText(getString, "elicitUnlockPromptMessage");
 
     const input = document.createElement("input");
     input.className = "mugin_elicitUnlockInput";
-    input.type = "text";
+    input.type = "password";
     input.name = "muginElicitUnlockCode";
     input.value = defaultValue || "";
     input.setAttribute("aria-labelledby", "mugin-elicit-unlock-title");
@@ -409,13 +404,13 @@ function openElicitUnlockKeyPrompt(getString, defaultValue) {
     const cancelBtn = document.createElement("button");
     cancelBtn.type = "button";
     cancelBtn.className = "mugin_elicitUnlockCancel";
-    cancelBtn.textContent = getElicitUnlockPromptText(getString, "mobileActionCancel", "Annuller");
+    cancelBtn.textContent = getElicitUnlockPromptText(getString, "mobileActionCancel");
     cancelBtn.addEventListener("click", () => finish(null));
 
     const submitBtn = document.createElement("button");
     submitBtn.type = "submit";
     submitBtn.className = "mugin_elicitUnlockSubmit";
-    submitBtn.textContent = getElicitUnlockPromptText(getString, "elicitUnlockButtonLabel", "Lås op");
+    submitBtn.textContent = getElicitUnlockPromptText(getString, "elicitUnlockButtonLabel");
 
     const onDocumentKeyDown = (event) => {
       if (event.key === "Escape") {

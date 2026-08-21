@@ -470,6 +470,9 @@ if (!function_exists('muginPublicSearchBuildRequestFromFlatParams')) {
         $request['responseOptions']['language'] = muginPublicSearchNormalizeResponseLanguage(
             $params['lang'] ?? $request['responseOptions']['language']
         );
+        $request['query']['language'] = muginPublicSearchNormalizeQueryLanguage(
+            $params['lang'] ?? $request['responseOptions']['language']
+        );
         if (array_key_exists('includeabstracts', $params)) {
             $request['responseOptions']['includeAbstracts'] = muginPublicSearchBoolValue(
                 $params['includeabstracts'],
@@ -568,7 +571,6 @@ if (!function_exists('muginPublicSearchBuildRequestFromFlatParams')) {
         $selectedSplit = muginSplitSelectedIdentifiers($selectedTokens);
 
         $request['query']['text'] = $queryText;
-        $request['query']['language'] = 'auto';
         $request['preselectedIdentifiers'] = $selectedSplit['identifiers'];
         $request['preselectedPmids'] = $selectedSplit['pmids'];
         $request['preselectedDois'] = $selectedSplit['dois'];
@@ -587,6 +589,7 @@ if (!function_exists('muginPublicSearchBuildRequestFromFlatParams')) {
 
         $request = muginPublicSearchHydrateRequestFromSelectedLimits($request, true);
         $request = muginPublicSearchHydrateRequestFromSelectedTopics($request);
+        $request = muginPublicSearchFinalizeCatalogSemanticIntentContext($request);
 
         $authorizationContext = $request['intentContext'];
         $authorizationContext['ruleIds'] = muginPublicSearchDedupeStrings(array_merge(
@@ -739,18 +742,15 @@ if (!function_exists('muginPublicSearchHydrateRequestFromSelectedLimits')) {
                 }
             }
 
-            $enLabel = trim((string) (($node['translations']['en'] ?? '') ?: ($node['translations']['dk'] ?? '')));
+            $enLabel = muginPublicSearchCatalogNodeEnglishLabel($node);
             if ($enLabel !== '') {
                 $labels[] = $enLabel;
             }
-            $sourceContext = isset($semanticConfig['sourceContext']) && is_array($semanticConfig['sourceContext'])
-                ? $semanticConfig['sourceContext']
-                : [];
-            $contextEn = trim((string) ($sourceContext['en'] ?? ''));
-            if ($contextEn !== '') {
-                $semanticBlocks[] = $contextEn;
-            } elseif ($enLabel !== '') {
-                $semanticBlocks[] = $enLabel;
+            if (!muginPublicSearchCatalogNodeHasHardSemanticHandling($node)) {
+                $intentText = muginPublicSearchTopicNodeSemanticIntentText($node, $enLabel);
+                if ($intentText !== '') {
+                    $semanticBlocks[] = $intentText;
+                }
             }
 
             $nodeSourceFilters = isset($semanticConfig['sourceFilters']) && is_array($semanticConfig['sourceFilters'])

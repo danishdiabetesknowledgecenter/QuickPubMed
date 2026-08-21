@@ -957,11 +957,12 @@ button.mugin_slim.multiselect__input:focus-visible {
   -webkit-tap-highlight-color: transparent;
 }
 
-.mugin_dropdown.mugin_mobileUiDropdown .multiselect.mugin_hideDropdownArrow .multiselect__select {
+.mugin_dropdown.mugin_mobileUiDropdown .multiselect.mugin_hideDropdownArrow .multiselect__select,
+.mugin_dropdown.mugin_mobileUiDropdown .multiselect.mugin_hideDropdownChevron .multiselect__select {
   display: none !important;
 }
 
-.mugin_dropdown.mugin_mobileUiDropdown .multiselect:not(.mugin_hideDropdownArrow) .multiselect__select {
+.mugin_dropdown.mugin_mobileUiDropdown .multiselect:not(.mugin_hideDropdownArrow):not(.mugin_hideDropdownChevron) .multiselect__select {
   display: block !important;
   top: auto !important;
   bottom: 10px !important;
@@ -970,15 +971,15 @@ button.mugin_slim.multiselect__input:focus-visible {
   min-width: 44px;
 }
 
-.mugin_dropdown.mugin_mobileUiDropdown .multiselect:not(.mugin_hideDropdownArrow) .multiselect__select:before {
+.mugin_dropdown.mugin_mobileUiDropdown .multiselect:not(.mugin_hideDropdownArrow):not(.mugin_hideDropdownChevron) .multiselect__select:before {
   margin-left: -8px;
 }
 
-.mugin_dropdown.mugin_mobileUiDropdown .multiselect.multiselect--active:not(.mugin_hideDropdownArrow) .multiselect__select {
+.mugin_dropdown.mugin_mobileUiDropdown .multiselect.multiselect--active:not(.mugin_hideDropdownArrow):not(.mugin_hideDropdownChevron) .multiselect__select {
   transform: none !important;
 }
 
-.mugin_dropdown.mugin_mobileUiDropdown .multiselect.multiselect--active:not(.mugin_hideDropdownArrow) .multiselect__select:before {
+.mugin_dropdown.mugin_mobileUiDropdown .multiselect.multiselect--active:not(.mugin_hideDropdownArrow):not(.mugin_hideDropdownChevron) .multiselect__select:before {
   transform: rotate(-45deg);
 }
 
@@ -1032,7 +1033,7 @@ button.mugin_slim.multiselect__input:focus-visible {
   padding: 0 10px 0 10px !important;
 }
 
-.mugin_dropdown.mugin_mobileUiDropdown .multiselect:not(.mugin_hideDropdownArrow) .multiselect__input {
+.mugin_dropdown.mugin_mobileUiDropdown .multiselect:not(.mugin_hideDropdownArrow):not(.mugin_hideDropdownChevron) .multiselect__input {
   width: calc(100% - 44px) !important;
   max-width: calc(100% - 44px) !important;
 }
@@ -1150,10 +1151,11 @@ button.mugin_slim.multiselect__input:focus-visible {
   .mugin_dropdown .multiselect__content-wrapper {
     display: none !important;
   }
-  .mugin_dropdown .multiselect.mugin_hideDropdownArrow .multiselect__select {
+  .mugin_dropdown .multiselect.mugin_hideDropdownArrow .multiselect__select,
+  .mugin_dropdown .multiselect.mugin_hideDropdownChevron .multiselect__select {
     display: none !important;
   }
-  .mugin_dropdown .multiselect:not(.mugin_hideDropdownArrow) .multiselect__select {
+  .mugin_dropdown .multiselect:not(.mugin_hideDropdownArrow):not(.mugin_hideDropdownChevron) .multiselect__select {
     display: block !important;
     top: auto !important;
     bottom: 10px !important;
@@ -1161,13 +1163,13 @@ button.mugin_slim.multiselect__input:focus-visible {
     width: 44px;
     min-width: 44px;
   }
-  .mugin_dropdown .multiselect:not(.mugin_hideDropdownArrow) .multiselect__select:before {
+  .mugin_dropdown .multiselect:not(.mugin_hideDropdownArrow):not(.mugin_hideDropdownChevron) .multiselect__select:before {
     margin-left: -8px;
   }
-  .mugin_dropdown .multiselect.multiselect--active:not(.mugin_hideDropdownArrow) .multiselect__select {
+  .mugin_dropdown .multiselect.multiselect--active:not(.mugin_hideDropdownArrow):not(.mugin_hideDropdownChevron) .multiselect__select {
     transform: none !important;
   }
-  .mugin_dropdown .multiselect.multiselect--active:not(.mugin_hideDropdownArrow) .multiselect__select:before {
+  .mugin_dropdown .multiselect.multiselect--active:not(.mugin_hideDropdownArrow):not(.mugin_hideDropdownChevron) .multiselect__select:before {
     transform: rotate(-45deg);
   }
   .mugin_dropdown .multiselect__tags {
@@ -1181,7 +1183,7 @@ button.mugin_slim.multiselect__input:focus-visible {
     box-sizing: border-box !important;
     padding: 0 10px 0 10px !important;
   }
-  .mugin_dropdown .multiselect:not(.mugin_hideDropdownArrow) .multiselect__input {
+  .mugin_dropdown .multiselect:not(.mugin_hideDropdownArrow):not(.mugin_hideDropdownChevron) .multiselect__input {
     width: calc(100% - 44px) !important;
     max-width: calc(100% - 44px) !important;
   }
@@ -1239,6 +1241,15 @@ button.mugin_slim.multiselect__input:focus-visible {
   white-space: nowrap;
 }
 
+.mugin_actionSheetStepHeader--root {
+  grid-template-columns: 1fr;
+}
+
+.mugin_actionSheetStepHeader--root .mugin_actionSheetStepTitle {
+  grid-column: 1;
+  text-align: center;
+}
+
 .mugin_actionSheetBreadcrumb {
   grid-column: 1 / 4;
   text-align: center;
@@ -1270,12 +1281,37 @@ button.mugin_slim.multiselect__input:focus-visible {
   vertical-align: -4px;
 }
 
+.mugin_actionSheetListWrap {
+  position: relative;
+  overflow: hidden;
+}
+
+.mugin_actionSheetListWrap--fade::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 28px;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0) 0%,
+    var(--color-white, #fff) 90%
+  );
+  z-index: 1;
+}
+
 .mugin_actionSheetList {
-  max-height: 45vh;
+  max-height: calc(5 * 56px);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   position: relative;
+}
+
+.mugin_actionSheetListWrap--clipped .mugin_actionSheetList {
+  max-height: calc(4 * 56px + 44px);
 }
 
 .mugin_actionSheetList--scrollable {
@@ -1311,12 +1347,11 @@ button.mugin_slim.multiselect__input:focus-visible {
   background: var(--color-white, #fff);
   min-height: 32px;
   box-sizing: border-box;
-  border-top: 1px solid transparent;
+  border-top: 1px solid var(--color-border-subtle, #d1d1d6);
 }
 
 .mugin_actionSheetScrollHint--hidden {
   color: transparent;
-  border-top-color: var(--color-border-subtle, #d1d1d6);
 }
 
 .mugin_actionSheetSecondaryGroup {
@@ -2390,7 +2425,8 @@ h3.mugin_resultTitle {
   top: 25%;
 }
 
-.mugin_hideDropdownArrow .multiselect__select {
+.mugin_hideDropdownArrow .multiselect__select,
+.mugin_hideDropdownChevron .multiselect__select {
   display: none !important;
 }
 
@@ -2398,8 +2434,19 @@ h3.mugin_resultTitle {
   display: none !important;
 }
 
-.mugin_hideDropdownArrow .multiselect__tags {
+.mugin_hideDropdownArrow .multiselect__tags,
+.mugin_hideDropdownChevron .multiselect__tags {
   padding-right: 8px;
+}
+
+.mugin_hideDropdownChevron .multiselect__tags {
+  min-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.mugin_hideDropdownChevron .multiselect__tag {
+  margin-bottom: 0;
 }
 
 .mugin_hideDropdownArrow .multiselect__input {
@@ -2563,9 +2610,8 @@ h3.mugin_resultTitle {
 .mugin_keepWithIcon {
   display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
-  white-space: normal;
-  row-gap: 2px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 
 .mugin_keepWithIcon .mugin_infoIcon {
