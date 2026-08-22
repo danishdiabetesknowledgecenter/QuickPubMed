@@ -52,6 +52,11 @@ export default defineConfig(({ command, mode }) => {
           secure: true,
           // Forward Origin/Referer so local PHP CORS matches production browser behaviour.
         },
+        "/public-api": {
+          target: backendProxyTarget,
+          changeOrigin: true,
+          secure: true,
+        },
         "/semantic-scholar-api": {
           target: "https://api.semanticscholar.org",
           changeOrigin: true,

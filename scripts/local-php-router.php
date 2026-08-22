@@ -35,6 +35,17 @@ if (!$isAllowed) {
     return true;
 }
 
+// Same clean public-api routes as public-api/.htaccess (php -S ignores htaccess).
+$publicApiRewrites = [
+    '/public-api/v1/openapi.yaml' => '/public-api/v1/openapi.php',
+    '/public-api/v1/search' => '/public-api/v1/search.php',
+    '/public-api/v1/health' => '/public-api/v1/health.php',
+];
+$rewriteKey = rtrim($requestPath, '/');
+if (isset($publicApiRewrites[$rewriteKey])) {
+    $requestPath = $publicApiRewrites[$rewriteKey];
+}
+
 $fullPath = realpath(dirname(__DIR__) . $requestPath);
 $repoRoot = realpath(dirname(__DIR__));
 

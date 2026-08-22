@@ -10,7 +10,7 @@
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      height: 100vh;
+      min-height: 100vh;
       margin: 0;
       background-color: #f0f2f5;
       font-family: Arial, sans-serif;
@@ -24,7 +24,9 @@
       padding: 0;
       margin: 20px 0;
       display: flex;
-      gap: 20px; /* Adds horizontal spacing between items */
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
     }
     li {
       /* Remove vertical margins if any */
@@ -58,10 +60,14 @@
     <li><a id="references-local-api-link" data-widget-path="/entries/widgets/references.html" data-local-api-port="5173" href="/entries/widgets/references.html">References (local API)</a></li>
     <li><a id="editor-local-api-link" data-widget-path="/entries/widgets/editor.html" data-local-api-port="5173" href="/entries/widgets/editor.html">Editor (local API)</a></li>
   </ul>
+  <ul>
+    <li><a id="public-api-search-link" data-public-api-path="/public-api/v1/search.php" href="/public-api/v1/search.php">Search API</a></li>
+    <li><a id="public-api-health-link" data-public-api-path="/public-api/v1/health.php" href="/public-api/v1/health.php">API health</a></li>
+    <li><a id="public-api-openapi-link" data-public-api-path="/public-api/v1/openapi.yaml" href="/public-api/v1/openapi.yaml">API OpenAPI</a></li>
+  </ul>
   <script>
     (function () {
       const links = document.querySelectorAll("a[data-widget-path][data-local-api-port]");
-      if (!links.length) return;
       links.forEach((link) => {
         const configuredPort = String(link.dataset.localApiPort || "").trim();
         const port = configuredPort || "5173";
@@ -72,6 +78,12 @@
           ? `${window.location.origin}/backend/api`
           : `${window.location.protocol}//${window.location.hostname}:${port}/backend/api`;
         link.href = `${widgetPath}?apiBase=${encodeURIComponent(localApiBase)}`;
+      });
+      const publicApiOrigin = window.location.origin;
+      document.querySelectorAll("a[data-public-api-path]").forEach((link) => {
+        const apiPath = String(link.dataset.publicApiPath || "").trim();
+        if (!apiPath) return;
+        link.href = `${publicApiOrigin}${apiPath}`;
       });
     })();
   </script>
