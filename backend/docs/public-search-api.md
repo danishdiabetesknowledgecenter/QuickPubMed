@@ -14,6 +14,8 @@ Det offentlige search API eksponeres via en dedikeret public docroot, så de off
 
 `GET /v1/search` accepterer **samme flade SearchForm-parametre** som form-urlencoded POST (se [GET request](#get-request)).
 
+På API-hosten (`api.example.dk`) er `/v1/search` den officielle sti. `/` og øvrige stier (undtagen `/v1/health` og `/v1/openapi.yaml`) er search-alias, så en SearchForm-URL virker ved kun at sætte `api.` ind som subdomæne. Auth er uændret.
+
 Samme `v1/search` endpoint kan nu ogsaa returnere progress-events som `text/event-stream`, naar streaming er slaaet til.
 
 ## Feature flag: `MUGIN_UNIFIED_SEARCH_ENGINE_ENABLED`
@@ -188,21 +190,23 @@ Lange payloads: brug form-POST (body). Rene GET-URL’er er begrænset af webser
 }
 ```
 
-## SearchForm-URL → API (domain-swap)
+## SearchForm-URL → API (host-swap)
 
 SearchForm og API deler samme flade query-/form-parametre. Typisk workflow:
 
 1. Lav valgene i SearchForm (inkl. advanced mode).
-2. Kopiér query-stringen fra URL’en (`domain=…&topic=…&limit=…&databases=…&ai=…&focus=…` og evt. `qpubmed` / `qsemanticscholar` / `qopenalex` / `qelicit`).
+2. Tag den fulde SearchForm-URL (`domain=…&topic=…&limit=…&databases=…&ai=…&focus=…` og evt. `qpubmed` / `qsemanticscholar` / `qopenalex` / `qelicit`).
    `domain=` i SearchForm-URL’en vinder over widgettets `data-domain` på den/de ramte instanser (`component=1,2` / laveste nummer) og bør følge med til API’en.
    Redigerede søgestrenge i URL’en (`q*`) vinder over fritekst for de pågældende kilder.
-3. Kald API-endpointet med **samme query-string**, men API-host og API-sti:
-   - UI: `https://muginscholar.dk/…/searchform.html?<query>`
-   - API: `https://api.muginscholar.dk/v1/search.php?<query>`
-4. Tilføj auth: `X-API-Key` / Bearer, eller (kun GET, hvis deployment tillader det) `apikey=` i query.
+3. Sæt `api.` ind som subdomæne. Sti og query-string er uændret:
+   - UI: `https://mugin.dk?domain=template&limit=…&databases=pubmed,…`
+   - API: `https://api.mugin.dk?domain=template&limit=…&databases=pubmed,…`
+   - Samme regel gælder for andre stier, fx `/soeg` eller `/entries/widgets/searchform.html`.
+   - `/v1/search` virker stadig som officiel integrationssti.
+4. Tilføj auth: `X-API-Key` / Bearer, eller (kun GET, hvis deployment tillader det) `apikey=` i query. En ren host-swap uden nøgle giver 401.
 5. UI-only parametre (`advanced`, `collapsed`, `scrollto`, `openlimits`, `hidelimits`, `orderlimits`, `mugindebug`, `apibase`, `component`) må gerne følge med — API’en ignorerer dem.
 
-Bemærk: det er **query-stringen** der genbruges. Stien skal pege på `/v1/search` (eller `/v1/search.php`), ikke SearchForm-HTML-stien. Ved lange query-strings (mange `limit=`/`topic=`) foretræk form-urlencoded `POST` med samme parametre i body — webservere begrænser typisk GET request-line til ~8–16 KB.
+Ved lange query-strings (mange `limit=`/`topic=`) foretræk form-urlencoded `POST` med samme parametre i body — webservere begrænser typisk GET request-line til ~8–16 KB.
 
 ## GET request
 

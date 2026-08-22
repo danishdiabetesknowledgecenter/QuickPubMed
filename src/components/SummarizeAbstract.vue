@@ -95,7 +95,12 @@
             </div>
           </div>
           <template v-else>
-            <div class="mugin_searchSummaryText" v-show="!isCurrentSummaryWaitingForResponse">
+            <div
+              class="mugin_searchSummaryText"
+              v-show="!isCurrentSummaryWaitingForResponse"
+              @pointerdown.capture="onMarkdownClick"
+              @click.capture="onMarkdownClick"
+            >
               <div>
                 <p>
                   <strong>{{ getSuccessHeader }}</strong>
@@ -109,8 +114,9 @@
                   v-if="useMarkdown && canRenderMarkdown"
                   ref="summary"
                   :markdown="getCurrentSummary.body"
+                  :citation-map="getCurrentCitationMap"
+                  :citation-title="getString('scrollToReferencedArticle')"
                   smooth-live-preview
-                  @click.capture="onMarkdownClick"
                 />
                 <p v-else ref="summary">
                   {{ getCurrentSummary?.body }}
@@ -310,6 +316,7 @@
   } from "@/assets/prompts/abstract";
   import { sanitizePrompt } from "@/utils/promptsHelpers.js";
   import { applyOpenAiTaskSettings } from "@/utils/openAiTaskSettings.js";
+  import { buildCitationMap, formatArticlesPromptBlock } from "@/utils/summaryCitations.js";
 
   export default {
     name: "SummarizeAbstract",
@@ -519,6 +526,20 @@
         let index = this.getCurrentIndex;
 
         return summaries[index];
+      },
+      getCurrentCitationMap() {
+        const summary = this.getCurrentSummary;
+        if (Array.isArray(summary?.citationMap) && summary.citationMap.length > 0) {
+          return summary.citationMap;
+        }
+        if (
+          this.articlesReferences.length > 0 &&
+          Array.isArray(summary?.articles) &&
+          summary.articles.length > 0
+        ) {
+          return buildCitationMap(summary.articles);
+        }
+        return [];
       },
       getDidCurrentSummaryError() {
         const summary = this.getCurrentSummary;
@@ -878,10 +899,14 @@
           return;
         }
 
+        const citationMap =
+          this.articlesReferences.length > 0 ? buildCitationMap(articles) : [];
+
         this.pushToAiSearchSummaries(prompt.name, {
           requestTime: new Date(),
           status: "loading",
           articles: articles,
+          citationMap,
           body: "",
           isMarkedArticlesSearch: this.isMarkedArticles,
         });
@@ -894,75 +919,10 @@
 
         this.articleCount = articles.length;
 
-        // Build complete prompt text with articles
-        let articleText = `\n\n## ARTICLES TO SUMMARIZE (${articles.length}) ##\n`;
-        articles.forEach((article, i) => {
-          const num = i + 1;
-          const abstract = article.Abstract || article.abstract || '';
-          const title = article.Title || article.title || '';
-          const pmid = article.PMID || article.pmid || article.uid || '';
-          const doi = article.DOI || article.doi || '';
-          const referenceId = article.ReferenceId || article.referenceId || article.id || pmid || doi || '';
-          const source = article.Source || article.source || article.fulljournalname || '';
-          const authorList = article.AuthorList || article.authorList || article.Authors || article.authors || [];
-          const pubDate = article.PubDate || article.pubDate || article.pubdate || article.PublicationDate || article.publicationDate || '';
-          
-          // Get authors - can be string "Li W, Huang E, Gao S" or array [{name: "Li W"}]
-          const authorsRaw = article.authors || article.Authors || authorList || '';
-          
-          // Format authors as string and parse for reference
-          let authorsStr = '';
-          let authorParts = [];
-          
-          if (Array.isArray(authorsRaw) && authorsRaw.length > 0) {
-            // Array format: [{name: "Li W"}, ...]
-            authorParts = authorsRaw.map(a => a.name || a);
-            authorsStr = authorParts.join(', ');
-          } else if (typeof authorsRaw === 'string' && authorsRaw) {
-            // String format: "Li W, Huang E, Gao S"
-            authorsStr = authorsRaw;
-            authorParts = authorsRaw.split(',').map(a => a.trim()).filter(a => a);
-          }
-          
-          // Build APA-style reference (LastName, Year) or (LastName et al., Year)
-          let reference = '';
-          
-          // Get year from pubdate (NLM format: "2020 Mar 12" - year is first)
-          let year = '';
-          const rawPubDate = article.pubdate || article.PubDate || pubDate || '';
-          
-          if (rawPubDate) {
-            const pubDateYearMatch = rawPubDate.match(/^\d{4}/);
-            year = pubDateYearMatch ? pubDateYearMatch[0] : '';
-          }
-          
-          // Get first author's last name
-          let lastName = '';
-          const authorCount = authorParts.length;
-          
-          if (authorCount > 0) {
-            // NLM format: "Efternavn Initialer" - e.g. "de Visser H", "Li W", "van der Berg JK"
-            // Remove initials at the end (1-3 uppercase letters, possibly with periods)
-            lastName = authorParts[0].trim().replace(/\s+[A-Z]{1,3}\.?$/, '').trim();
-          }
-          
-          // Build reference
-          if (lastName && year) {
-            reference = authorCount > 1 
-              ? `${lastName} et al., ${year}` 
-              : `${lastName}, ${year}`;
-          }
-          
-          articleText += `\n--- Article ${num} ---\n`;
-          articleText += `Title: ${title}\n`;
-          articleText += `Authors: ${authorsStr}\n`;
-          articleText += `Source: ${source}\n`;
-          articleText += `Reference: ${reference}\n`;
-          articleText += `Reference ID: ${referenceId}\n`;
-          articleText += `PMID: ${pmid}\n`;
-          articleText += `DOI: ${doi}\n`;
-          articleText += `Abstract:\n${abstract}\n`;
-        });
+        const articleText =
+          citationMap.length > 0
+            ? formatArticlesPromptBlock(articles, citationMap)
+            : formatArticlesPromptBlock(articles);
 
         // Create complete prompt with articles
         const completePromptText = localePrompt.prompt + articleText;
@@ -1078,7 +1038,8 @@
       },
       clickCopy() {
         const summary = this.$refs.summary;
-        if (!summary || typeof summary.innerText !== "string") return;
+        const summaryEl = summary?.$el ?? summary;
+        if (!summaryEl || typeof summaryEl.innerText !== "string") return;
         let textToCopy = "";
         if (this.articlesReferences.length > 0) {
           const articlesReferencesString = this.articlesReferences
@@ -1086,11 +1047,11 @@
               return `${article.authors}. ${article.title} ${article.publicationInfo}.\n\n`;
             })
             .join("");
-          textToCopy = `${articlesReferencesString}${summary.innerText}\n`;
+          textToCopy = `${articlesReferencesString}${summaryEl.innerText}\n`;
         } else {
           textToCopy = `${this.authorsList}. ${this.searchResultTitle} ${
             this.publicationInfo
-          }.\n\n${summary.innerText.trim()}`;
+          }.\n\n${summaryEl.innerText.trim()}`;
         }
         if (navigator?.clipboard?.writeText) {
           navigator.clipboard.writeText(textToCopy);
@@ -1119,13 +1080,29 @@
         const formattedDate = date.toLocaleDateString(languageFormat[this.language], dateOptions);
         return formattedDate;
       },
+      entryMatchesReference(entry, normalizedReferenceTarget) {
+        const anchorValues = [
+          entry.getAttribute("data-reference-anchor"),
+          entry.getAttribute("data-reference-pmid"),
+          entry.getAttribute("data-reference-doi"),
+          entry.getAttribute("name"),
+        ]
+          .map((value) => String(value || "").trim().toLowerCase())
+          .filter(Boolean);
+        return anchorValues.includes(normalizedReferenceTarget);
+      },
       onMarkdownClick(event) {
-        const target = event.target;
+        if (typeof event?.button === "number" && event.button !== 0) return;
 
-        if (target.tagName !== "A") return;
+        const target = event.target?.closest?.("a");
+        if (!target) return;
 
         const hrefValue = target.getAttribute("href");
         if (typeof hrefValue !== "string" || !hrefValue.startsWith("#")) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
         let referenceTarget = hrefValue.slice(1).trim();
         if (!referenceTarget) return;
         try {
@@ -1135,29 +1112,24 @@
         }
 
         const normalizedReferenceTarget = referenceTarget.toLowerCase();
-        const candidateEntries = Array.from(
-          document.querySelectorAll(".mugin_accordion .mugin_ResultEntry, .mugin_SearchResult .mugin_ResultEntry")
-        );
-        const resultEntry = candidateEntries.find((entry) => {
-          const anchorValues = [
-            entry.getAttribute("data-reference-anchor"),
-            entry.getAttribute("data-reference-pmid"),
-            entry.getAttribute("data-reference-doi"),
-            entry.getAttribute("name"),
-          ]
-            .map((value) => String(value || "").trim().toLowerCase())
-            .filter(Boolean);
-          return anchorValues.includes(normalizedReferenceTarget);
-        });
+        const root =
+          this.$el?.closest?.(".mugin_SearchResult") ||
+          this.$el?.closest?.(".mugin_vapp") ||
+          document;
+        const findMatch = (selector) =>
+          Array.from(root.querySelectorAll(selector)).find((entry) =>
+            this.entryMatchesReference(entry, normalizedReferenceTarget)
+          );
+        const resultEntry =
+          findMatch(".mugin_resultEntriesList .mugin_ResultEntry") ||
+          findMatch(".mugin_accordion .mugin_ResultEntry") ||
+          findMatch(".mugin_ResultEntry");
         if (resultEntry === null || resultEntry === undefined) {
           console.debug(
             `onMarkdownClick: no article with the reference id '${referenceTarget}' could be found. ref: '${hrefValue}'.`
           );
           return;
         }
-
-        event.preventDefault();
-        event.stopPropagation();
 
         eventBus.emit("result-entry-show-abstract", { $el: resultEntry });
       },

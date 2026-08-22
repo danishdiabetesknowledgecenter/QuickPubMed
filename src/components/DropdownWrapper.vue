@@ -9379,7 +9379,12 @@
         if (option.translations) {
           return getLocalizedTranslation(option, this.language);
         }
-        return option.name || option.id;
+        const name = typeof option.name === "string" ? option.name : "";
+        if (name) return name;
+        if (typeof option.id === "string" && option.id.startsWith("__custom__")) {
+          return "";
+        }
+        return option.id;
       },
       customGroupLabel(option) {
         return getLocalizedTranslation(option, this.language);

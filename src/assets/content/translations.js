@@ -1814,6 +1814,10 @@ export const messages = {
     dk: "Kopiér den opsummerede tekst",
     en: "Copy the summarised text",
   },
+  scrollToReferencedArticle: {
+    dk: "Scroll ned til denne artikel",
+    en: "Scroll down to this article",
+  },
   copyUrlSuccess: {
     dk: "Link til søgningen er kopieret",
     en: "Link to the search has been copied",

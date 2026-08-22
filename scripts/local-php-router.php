@@ -4,6 +4,9 @@
  *
  * It keeps the existing /backend/api/* and /public-api/* URL contract while
  * preventing the dev server from serving arbitrary files from the repo root.
+ *
+ * public-api host-swap (same reserved list as public-api/.htaccess):
+ * /v1/health and /v1/openapi.yaml stay; every other public-api path is search.
  */
 
 $requestPath = parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
@@ -16,20 +19,11 @@ if (strpos($requestPath, "\0") !== false || strpos($requestPath, '..') !== false
     return true;
 }
 
-$allowedPrefixes = [
-    '/backend/api/',
-    '/public-api/',
-];
+$isPublicApiRoot = ($requestPath === '/public-api');
+$isPublicApiPath = $isPublicApiRoot || strpos($requestPath, '/public-api/') === 0;
+$isBackendApiPath = strpos($requestPath, '/backend/api/') === 0;
 
-$isAllowed = false;
-foreach ($allowedPrefixes as $prefix) {
-    if (strpos($requestPath, $prefix) === 0) {
-        $isAllowed = true;
-        break;
-    }
-}
-
-if (!$isAllowed) {
+if (!$isPublicApiPath && !$isBackendApiPath) {
     http_response_code(404);
     echo 'Not found';
     return true;
@@ -44,6 +38,15 @@ $publicApiRewrites = [
 $rewriteKey = rtrim($requestPath, '/');
 if (isset($publicApiRewrites[$rewriteKey])) {
     $requestPath = $publicApiRewrites[$rewriteKey];
+} elseif ($isPublicApiPath) {
+    $reservedPublicApiFiles = [
+        '/public-api/v1/search.php' => true,
+        '/public-api/v1/health.php' => true,
+        '/public-api/v1/openapi.php' => true,
+    ];
+    if (!isset($reservedPublicApiFiles[$rewriteKey])) {
+        $requestPath = '/public-api/v1/search.php';
+    }
 }
 
 $fullPath = realpath(dirname(__DIR__) . $requestPath);

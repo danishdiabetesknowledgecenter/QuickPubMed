@@ -17,16 +17,15 @@ export const promptTextMultipleAbstracts = [
       - Skriv dernæst selve opsummeringen af studierne - gerne ved brug af korrekt punktopstilling. Anvend kun et niveau i punktopstillinger. 
       VIGTIGE instrukser: 
       - Det er vigtigt, at hver gang du omtaler et studie, skal du inkludere en reference til det pågældende studie direkte i teksten. 
-      - Brug reglerne fra in-text APA citation style med Markdown-format, når du indsætter referencer, dvs. de skal indsættes i parenteser på denne form: ([Reference](#REFERENCE_ID \"Scroll ned til denne artikel\")), hvor Reference fremgår ved hver artikel og består af efternavn på førsteforfatteren efterfulgt af 'et al.', hvis der er flere forfattere, og et årstal. REFERENCE_ID skal være lig værdien i feltet "Reference ID" for det pågældende studie. Hvis studiet har en PMID, vil "Reference ID" være PMID-nummeret. Hvis studiet ikke har en PMID, vil "Reference ID" være DOI'en. Indsæt IKKE et mellemrum mellem citationstegnet og parentesen. Hvis der er flere referencer placeret udmiddelbart efter hinanden, skal du bruge denne form: ([Reference](#REFERENCE_ID \"Scroll ned til denne artikel\"); [Reference](#REFERENCE_ID \"Scroll ned til denne artikel\")). Efter skrivning skal du validere, om alle referencer er formatteret korrekt. Hvis der er fejl, så omskriv, indtil de er korrekte.
+      - Indsæt referencen som tokenet ([[R1]]), hvor R1 er værdien i feltet "Cite key" for studiet. Ved flere studier samlet: ([[R1]]; [[R3]]).
+      - Skriv ALDRIG Markdown-links, hovertekst, PMID, DOI eller forfatter-årstal i eller ved siden af tokenet. FORKERT: "(Liu et al., 2022)" eller "([Liu et al., 2022](#12345678))". KORREKT: "([[R1]])".
       - Sørg for, at der altid er præcist ét mellemrum før referencens startparentes.
-      - Skriv ALDRIG en reference i plain text efterfulgt af den samme reference som Markdown-link. Hver reference skal KUN forekomme én gang, og det skal ALTID være som Markdown-link. FORKERT: "...svær hypoglykæmi (Zimmermann et al., 2025)([Zimmermann et al., 2025](#12345678 \\"Scroll ned til denne artikel\\"))". KORREKT: "...svær hypoglykæmi ([Zimmermann et al., 2025](#12345678 \\"Scroll ned til denne artikel\\"))".
       - Indsæt IKKE en referenceliste til sidst. 
       - Ved punktopstillinger, så brug Markdown language. Du må aldrig lave en nummereret liste med kun et punkt. 
       - Indled ALDRIG opsummeringen med en overskrift, en titel eller en linje, der kun består af fed tekst. FORKERT: "**Bulimi og diabulimi ved diabetes**" som første linje, efterfulgt af brødtekst. KORREKT: start direkte med brødtekst, f.eks. "Samlet set viser studierne, at ...". Brug gerne overskrifter senere i teksten. Overskrifter må udelukkende markeres med **asterisks**, så de tolkes som fed tekst i HTML-format, dvs. #, ##, ###, osv. ikke må bruges til overskrifter.
       - Brug udelukkende lige anførselstegn, dvs. ", og brug aldrig krøllede anførselstegn, dvs. “ og ”.
       Her er et eksempel (afgrænset af triple backticks) på, hvordan du altid skal indsætte henvisninger til de enkelte studier i selve teksten, hver gang du omtaler noget, som stammer fra et eller flere bestemte af studierne på listen: 
-      ´´´En systematisk gennemgang og meta-analyse viser, at forekomsten af fødselsdepression er høj, især i udviklingslande. Der er identificeret seks risikofaktorer for fødselsdepression, herunder gestationel diabetes, depression under graviditet og tidligere historie med depression [(Liu et al., 2022)](#12345678 \"Scroll ned til denne artikel\"). En systematisk gennemgang af epidemiologiske studier viser, at der er en høj forekomst af depression hos personer med diabetes. Kvinder med diabetes har en højere forekomst af depression end mænd 
-      ([Roy & Lloyd, 2012](#87654321 \"Scroll ned til denne artikel\"); [Samuelsen, 2018](#12873465 \"Scroll ned til denne artikel\")).´´´ \
+      ´´´En systematisk gennemgang og meta-analyse viser, at forekomsten af fødselsdepression er høj, især i udviklingslande. Der er identificeret seks risikofaktorer for fødselsdepression, herunder gestationel diabetes, depression under graviditet og tidligere historie med depression ([[R1]]). En systematisk gennemgang af epidemiologiske studier viser, at der er en høj forekomst af depression hos personer med diabetes. Kvinder med diabetes har en højere forekomst af depression end mænd ([[R2]]; [[R3]]).´´´ \
       Inden du returnerer resultatet, så gennemgå hele outputtet ekstremt grundigt for at finde eventuelle stave- eller formateringsfejl og rette dem, før du returnerer resultatet. Gennemgå hele outputtet 10 gange for sproglig korrekthed, før du returnerer resultatet.
       `,
       en: `You are a health science professional who writes in English in an easy-to-understand language and always inserts references to individual studies in the text 
@@ -41,15 +40,15 @@ export const promptTextMultipleAbstracts = [
       - Start directly by describing what all the studies show overall, as ordinary body text and not as a heading. If there are significant differences between the studies, describe these differences.
       - Next, write the actual summary of the studies - preferably using correct bullet points. Use only one level in bullet lists. 
       IMPORTANT instructions:
-      - When you mention a study, ALWAYS insert a reference to the individual study inside the text itself as a clickable link in Markdown format in this form:
-      [(Last name of the first author + et al., if there are several authors + , year)](#REFERENCE_ID \"Scroll down to this article\") where REFERENCE_ID is equal to the value of "Reference ID" for the study in question. If a PMID exists, "Reference ID" is the PMID. If no PMID exists, "Reference ID" is the DOI. Do NOT include a space between the citation mark and the parentheses.
-      - NEVER write a reference in plain text followed by the same reference as a Markdown link. Each reference must appear ONLY once, and it must ALWAYS be as a Markdown link. WRONG: "...severe hypoglycemia (Zimmermann et al., 2025)([Zimmermann et al., 2025](#12345678 \\"Scroll down to this article\\"))". CORRECT: "...severe hypoglycemia ([Zimmermann et al., 2025](#12345678 \\"Scroll down to this article\\"))".
+      - When you mention a study, ALWAYS insert a reference to the individual study inside the text itself as the token ([[R1]]), where R1 is the value of the "Cite key" field for that study. For several studies together: ([[R1]]; [[R3]]).
+      - NEVER write Markdown links, hover text, PMIDs, DOIs, or author-year text in or next to the token. WRONG: "(Liu et al., 2022)" or "([Liu et al., 2022](#12345678))". CORRECT: "([[R1]])".
+      - Always put exactly one space before the opening parenthesis of the reference.
       DO NOT include a reference list at the end.
       - For bullet points, use Markdown language. You may never make a numbered list with only one point.
       - NEVER begin the summary with a heading, a title, or a line that consists only of bold text. WRONG: "**Bulimia and diabulimia in diabetes**" as the first line, followed by body text. CORRECT: start directly with body text, e.g. "Overall, the studies show that ...". You may use headings later in the text. Use sentence case, never title case, in headings and subheadings. In sentence case only the first word is capitalized. Headings and subheadings must be marked with **asterisks**, so they are interpreted as bold text in HTML format, i.e. #, ##, ###, etc. must not be used for headings.
       Here is an example (delimited by triple backticks) of how you should always insert references to the individual studies in the text itself, every time you mention something that originates from one or more specific studies in the list:
       ´´´A systematic review and meta-analysis shows that the incidence of postpartum depression is high, especially in developing countries.
-      Six risk factors for postpartum depression have been identified, including gestational diabetes, depression during pregnancy, and previous history of depression [(Liu et al., 2022)](#12345678 \"Scroll down to this article\"). A systematic review of epidemiological studies shows that there is a high incidence of depression in people with diabetes. Women with diabetes have a higher incidence of depression than men ([Roy & Lloyd, 2012](#87654321 \"Scroll down to this article\"); [Samuelsen, 2018](#12873465 \"Scroll down to this article \")).´´´
+      Six risk factors for postpartum depression have been identified, including gestational diabetes, depression during pregnancy, and previous history of depression ([[R1]]). A systematic review of epidemiological studies shows that there is a high incidence of depression in people with diabetes. Women with diabetes have a higher incidence of depression than men ([[R2]]; [[R3]]).´´´
       `,
     },
     endText: {
@@ -72,35 +71,31 @@ export const promptTextMultipleAbstracts = [
       1) Brug gerne korrekt punktopstilling. Anvend kun et niveau i punktopstillinger. Ved punktopstillinger, så brug Markdown language. Du må aldrig lave en nummereret liste med kun et punkt. Indled ALDRIG opsummeringen med en overskrift, en titel eller en linje, der kun består af fed tekst. FORKERT: "**Bulimi og diabulimi ved diabetes**" som første linje, efterfulgt af brødtekst. KORREKT: start direkte med brødtekst, f.eks. "Samlet set viser studierne, at ...". Brug gerne overskrifter senere i teksten. Overskrifter må udelukkende markeres med **asterisks**, så de tolkes som fed tekst i HTML-format, dvs. #, ##, ###, osv. ikke må bruges til overskrifter. Skriv altid type 1-diabetes og type 2-diabetes med bindestreng, og skriv aldrig sukkersyge. 
       Brug altid dansk tusindtalsseparator, dvs. f.eks. '1.234', ikke '1,234'.
       2) Det er vigtigt, at hver gang du omtaler et studie, skal du inkludere en reference til det pågældende studie direkte i teksten. 
-      Brug reglerne fra in-text APA citation style med Markdown-format, når du indsætter referencer på, 
-      dvs. de skal indsættes på denne form **[(Efternavn på førsteforfatteren et al., årstal)](#REFERENCE_ID \"Scroll ned til denne artikel\")**, 
-      hvor REFERENCE_ID er lig værdien i feltet "Reference ID" for studiet. Hvis der findes en PMID, er det PMID'en. Hvis der ikke findes en PMID, er det DOI'en. Indsæt IKKE en referenceliste til sidst. 
-      Skriv ALDRIG en reference i plain text efterfulgt af den samme reference som Markdown-link. Hver reference skal KUN forekomme én gang som Markdown-link.
+      Indsæt referencen som tokenet ([[R1]]), hvor R1 er værdien i feltet "Cite key" for studiet. Ved flere studier samlet: ([[R1]]; [[R3]]).
+      Skriv ALDRIG Markdown-links, hovertekst, PMID, DOI eller forfatter-årstal i eller ved siden af tokenet. FORKERT: "(Liu et al., 2022)" eller "([Liu et al., 2022](#12345678))". KORREKT: "([[R1]])".
+      Indsæt IKKE en referenceliste til sidst.
       Her er et eksempel (afgrænset af triple backticks) på, hvordan du altid skal indsætte henvisninger til de enkelte studier i selve teksten, 
       hver gang du omtaler noget, som stammer fra et eller flere bestemte af studierne på listen: 
       ´´´En systematisk gennemgang og meta-analyse viser, at forekomsten af fødselsdepression er høj, især i udviklingslande. 
       Der er identificeret seks risikofaktorer for fødselsdepression, herunder gestationel diabetes, depression under graviditet 
-      og tidligere historie med depression **[(Liu et al., 2022)](#12345678 \"Scroll ned til denne artikel\")**. 
+      og tidligere historie med depression ([[R1]]). 
       En systematisk gennemgang af epidemiologiske studier viser, at der er en høj forekomst af depression hos personer med diabetes. 
-      Kvinder med diabetes har en højere forekomst af depression end mænd **([Roy & Lloyd, 2012](#87654321 \"Scroll ned til denne artikel\"); 
-      [Samuelsen, 2018](#12873465 \"Scroll ned til denne artikel\"))**.´´´ 
+      Kvinder med diabetes har en højere forekomst af depression end mænd ([[R2]]; [[R3]]).´´´ 
       3) Start direkte med at beskrive, hvad alle studierne samlet set viser, som almindelig brødtekst og ikke som en overskrift. Hvis der er markante forskelle mellem studierne, så beskriv disse forskelle.\n 
       4) Skriv til dernæst selve opsummeringen af studierne - gerne ved brug af korrekt punktopstilling.\n
       5) Gennemgå hele outputtet for formatteringsfejl og ret eventuelle fejl, før du returnerer resultatet.`,
       en: `Make a summary in English of no more than 300 words of this text (given in the numbered list below and delimited by three backticks), which consists of abstracts of scientific studies. Write the text in professional language that can be easily understood by a healthcare audience or people with a solid background in the subject. Do not include the number of words or the length of the text in the text itself.
       Make the text as simple and clear as possible. The summary must be structured as follows:
       1) Preferably use correct bullet points. Use only one level in bullet lists. For bullet points, use Markdown language. You may never make a numbered list with only one point. NEVER begin the summary with a heading, a title, or a line that consists only of bold text. WRONG: "**Bulimia and diabulimia in diabetes**" as the first line, followed by body text. CORRECT: start directly with body text, e.g. "Overall, the studies show that ...". You may use headings later in the text. Use sentence case, never title case, in headings and subheadings. In sentence case only the first word is capitalized. Headings and subheadings must be marked with **asterisks**, so they are interpreted as bold text in HTML format, i.e. #, ##, ###, etc. must not be used for headings.
-      2) IMPORTANT: When mentioning a study, ALWAYS insert a reference to the individual study within the text itself as a clickable link in Markdown format in this form:
-      **[(Last name of the first author + et al., if there are more authors + , year)](#REFERENCE_ID \"Scroll down to this article\")** where REFERENCE_ID is equal to the value of "Reference ID" for the study in question. If a PMID exists, use the PMID. Otherwise use the DOI.
+      2) IMPORTANT: When mentioning a study, ALWAYS insert a reference to the individual study inside the text itself as the token ([[R1]]), where R1 is the value of the "Cite key" field for that study. For several studies together: ([[R1]]; [[R3]]).
+      NEVER write Markdown links, hover text, PMIDs, DOIs, or author-year text in or next to the token. WRONG: "(Liu et al., 2022)" or "([Liu et al., 2022](#12345678))". CORRECT: "([[R1]])".
       DO NOT include a reference list at the end.
-      NEVER write a reference in plain text followed by the same reference as a Markdown link. Each reference must appear ONLY once as a Markdown link.
       Here is an example (delimited by triple backticks) of how you should always insert references to the individual studies in the text itself, every time you mention something that originates from one or more specific studies in the list:
       ´´´A systematic review and meta-analysis shows that the incidence of postpartum depression is high, especially in developing countries.
       Six risk factors for postpartum depression have been identified, including gestational diabetes, depression during pregnancy, and previous history of depression
-      **[(Liu et al., 2022)](#12345678 \"Scroll down to this article\")**.
+      ([[R1]]).
       A systematic review of epidemiological studies shows that there is a high incidence of depression in people with diabetes.
-      Women with diabetes have a higher incidence of depression compared to men **([Roy & Lloyd, 2012](#87654321 \"Scroll down to this article\");
-      [Samuelsen, 2018](#12873465 \"Scroll down to this article\"))**.´´´
+      Women with diabetes have a higher incidence of depression compared to men ([[R2]]; [[R3]]).´´´
       3) Start directly by describing what all the studies show collectively, as ordinary body text and not as a heading, and if there are significant differences between the studies, describe these differences.
       4) Write the actual summary of the studies - preferably using correct bullet points.
       5) Review the entire output for formatting errors and correct any errors before returning the result.`,

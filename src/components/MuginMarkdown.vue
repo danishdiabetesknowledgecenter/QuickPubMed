@@ -7,6 +7,7 @@
   import MarkdownIt from "markdown-it";
   import taskLists from "markdown-it-task-lists";
   import { sanitizeHtml } from "@/utils/htmlSanitizer.js";
+  import { rewriteRenderedSummaryHtml } from "@/utils/summaryCitations.js";
 
   const markdownRenderer = new MarkdownIt({
     html: false,
@@ -39,6 +40,14 @@
         type: Boolean,
         default: false,
       },
+      citationMap: {
+        type: Array,
+        default: () => [],
+      },
+      citationTitle: {
+        type: String,
+        default: "",
+      },
     },
     data() {
       return {
@@ -55,7 +64,12 @@
       },
       renderedHtml() {
         const rendered = markdownRenderer.render(this.sourceMarkdown || "");
-        return sanitizeHtml(rendered);
+        const withCitations = rewriteRenderedSummaryHtml(
+          rendered,
+          this.citationMap,
+          this.citationTitle
+        );
+        return sanitizeHtml(withCitations);
       },
     },
     watch: {

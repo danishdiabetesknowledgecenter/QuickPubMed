@@ -129,6 +129,7 @@
        return {
          isEditMode: false,
          tag: cloneDeep(this.triple.option),
+         editSnapshot: null,
          helpTextDelay: 300,
          isMultiLine: false,
          sourceRateLimitInfo: {
@@ -192,6 +193,9 @@
             return typeof this.tag.name === "string" ? this.tag.name : "";
           }
           const label = this.customNameLabel(this.tag);
+          if (typeof label === "string" && label.startsWith("__custom__")) {
+            return " ";
+          }
           return label ? label : " ";
         },
         set(newName) {
@@ -264,14 +268,14 @@
     },
     watch: {
       triple(newTriple, oldTriple) {
-        // Only reset edit mode if it's actually a new tag (not just an update of the same tag)
+        if (this.isEditMode) {
+          return;
+        }
+        this.tag = cloneDeep(newTriple.option);
         if (!oldTriple || newTriple.option.id !== oldTriple.option.id) {
-          this.tag = newTriple.option;
           this.isEditMode = false;
           this.isMultiLine = false;
-        } else {
-          // Same tag, only update tag data without resetting edit mode
-          this.tag = newTriple.option;
+          this.editSnapshot = null;
         }
       },
       requestedEditTagId(newId) {
@@ -289,6 +293,8 @@
     methods: {
       startEdit() {
         if (!this.triple.option.isCustom || this.isEditMode) return;
+        this.editSnapshot = cloneDeep(this.triple.option);
+        this.tag = cloneDeep(this.triple.option);
         this.isEditMode = true;
         this.tag.preString = this.getString("manualInputTerm") + ":\u00A0 ";
         this.tag.isTranslated = false;
@@ -329,9 +335,11 @@
 
         const tagName = typeof this.tag.name === "string" ? this.tag.name : "";
         if (!tagName.trim()) {
-          this.tag = cloneDeep(this.triple.option);
+          this.tag = cloneDeep(this.editSnapshot || this.triple.option);
+          this.editSnapshot = null;
           return;
         }
+        this.editSnapshot = null;
         this.updateTag(this.tag);
       },
       getTagColor(scope) {

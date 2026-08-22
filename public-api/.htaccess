@@ -1,6 +1,12 @@
 Options -Indexes
+DirectoryIndex index.php
 RewriteEngine On
 
 RewriteRule ^v1/search/?$ v1/search.php [L,QSA]
 RewriteRule ^v1/health/?$ v1/health.php [L,QSA]
 RewriteRule ^v1/openapi\.yaml/?$ v1/openapi.php [L,QSA]
+
+# Host-swap alias: any other path on the API docroot is search
+# (https://mugin.dk/soeg?... -> https://api.mugin.dk/soeg?...).
+RewriteCond %{REQUEST_URI} !^/v1/(search|health|openapi\.yaml)(/|\.php)?$
+RewriteRule ^ v1/search.php [L,QSA]

@@ -140,7 +140,8 @@ Model B bør stadig bruges med omtanke:
 Anbefalet deployment:
 
 - webserver peger partner-API-subdomæne/path på `public-api`
-- `public-api` indeholder kun ruterne `v1/search`, `v1/health` og `v1/openapi.yaml`
+- `public-api` eksponerer `v1/search`, `v1/health` og `v1/openapi.yaml`; alle øvrige stier (inkl. `/`) er search-alias til host-swap (`mugin.dk/…` → `api.mugin.dk/…`)
+- Auth og source-ACL er de samme på alias-stier som på `/v1/search`
 - widget-host eksponerer `backend/api` til allowlistede CMS-origins (first-party)
 - `backend/app` og `backend/config` forbliver uden for public docroot
 
