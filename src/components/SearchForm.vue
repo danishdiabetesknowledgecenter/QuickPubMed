@@ -3538,7 +3538,11 @@
             (item) => String(item?.translationSourceKey || "").trim() === "elicit"
           )
         ) {
-          return filtered;
+          return filtered.map((item) =>
+            String(item?.translationSourceKey || "").trim() === "elicit"
+              ? { ...item, locked: true }
+              : item
+          );
         }
         const databaseGroup = (Array.isArray(this.limitsContent) ? this.limitsContent : []).find(
           (group) => this.isDatabaseLimitGroup(group)

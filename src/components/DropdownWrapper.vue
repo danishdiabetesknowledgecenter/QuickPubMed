@@ -1183,6 +1183,15 @@
       isDatabaseOption(option) {
         return String(option?.translationSourceKey || "").trim() !== "";
       },
+      isGatedElicitOption(option) {
+        return (
+          String(option?.translationSourceKey || "").trim() === "elicit" &&
+          runtimeConfig.elicitGated === true
+        );
+      },
+      shouldOpenElicitUnlockPrompt(option) {
+        return Boolean(option?.locked) || this.isGatedElicitOption(option);
+      },
       onLockedDatabaseClick() {
         promptForElicitUnlockKey(this.getString);
       },
@@ -1608,6 +1617,15 @@
         let newSelected;
         if (alreadyIndex >= 0) {
           newSelected = this.selected.filter((_, i) => i !== alreadyIndex);
+        } else if (this.shouldOpenElicitUnlockPrompt(optionObj)) {
+          this.onLockedDatabaseClick();
+          this.showMobileActionSheet = false;
+          this.mobileListStep = "root";
+          this.mobileActiveGroupId = "";
+          this.mobileParentStack = [];
+          this.mobileOverlayHidden = false;
+          this.mobileActionCustomTagId = "";
+          return;
         } else {
           newSelected = [...this.selected, optionObj];
         }
@@ -1882,12 +1900,11 @@
         if (!Array.isArray(value)) {
           value = value ? [value] : [];
         }
-        // Clicks on a locked option (e.g. the gated Elicit database in advanced
-        // mode) should open the unlock prompt instead of selecting the option.
-        // Strip locked items before they're emitted as real selections.
-        const lockedInValue = value.some((item) => item?.locked === true);
+        // Clicks on a locked/gated option (e.g. Elicit before unlock) should
+        // open the login prompt instead of selecting the option.
+        const lockedInValue = value.some((item) => this.shouldOpenElicitUnlockPrompt(item));
         if (lockedInValue) {
-          const filtered = value.filter((item) => item?.locked !== true);
+          const filtered = value.filter((item) => !this.shouldOpenElicitUnlockPrompt(item));
           this.onLockedDatabaseClick();
           this.$emit("input", filtered, this.index);
           return;
