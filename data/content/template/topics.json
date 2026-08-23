@@ -4908,7 +4908,7 @@
         "normal": "\"Diabetes Mellitus\"[mh] OR diabet*[ti]",
         "broad": "\"Diabetes Mellitus\"[mh] OR diabet*[tiab]"
     },
-    "standardStringAddToFreetext": true,
+    "standardStringAddToFreetext": false,
     "standardStringComment": {
         "dk": "Dette er kommentar til standardsøgestrengene.",
         "en": ""
