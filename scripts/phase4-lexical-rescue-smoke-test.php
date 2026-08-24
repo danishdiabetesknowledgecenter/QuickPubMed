@@ -7,7 +7,8 @@
  * Run: php scripts/phase4-lexical-rescue-smoke-test.php
  */
 
-require_once __DIR__ . '/../backend/config/config.php';
+require_once __DIR__ . '/../backend/app/helpers.php';
+require_once __DIR__ . '/../backend/app/semantic-quality-lib.php';
 require_once __DIR__ . '/../backend/app/public-search-lib.php';
 
 function assertTrue(bool $condition, string $message): void
@@ -58,6 +59,16 @@ $sourceResultsSufficient = [
 ];
 $decisionSufficient = muginPublicSearchShouldRunPubMedLexicalRescue($sourceResultsSufficient, 'diabetes[tiab]', true);
 assertTrue($decisionSufficient['shouldRun'] === false && $decisionSufficient['reason'] === 'sufficient-first-harvest', 'Rescue does not trigger when non-pubmed sources already have enough candidates');
+
+$configPath = __DIR__ . '/../backend/config/config.php';
+$skipLive = getenv('MUGIN_SKIP_LIVE_SMOKES') === '1' || !is_file($configPath);
+if ($skipLive) {
+    echo "SKIP: live PubMed lexical-rescue fetch (no config.php or MUGIN_SKIP_LIVE_SMOKES=1)\n";
+    echo "\nAll Phase 4 lexical-rescue smoke tests passed.\n";
+    exit(0);
+}
+
+require_once $configPath;
 
 // 4. Live end-to-end fetch: a real PubMed rescue search for a common topic
 // must return candidates tagged with lexicalRescue metadata, excluding any

@@ -63,4 +63,11 @@ if (
     return true;
 }
 
-return false;
+// php -S serves the original REQUEST_URI when the router returns false, so
+// rewritten routes like /public-api/v1/health would 404 even though the
+// target .php file exists. Include the resolved file instead.
+$_SERVER['SCRIPT_FILENAME'] = $fullPath;
+$scriptName = str_replace('\\', '/', substr($fullPath, strlen($repoRoot)));
+$_SERVER['SCRIPT_NAME'] = str_starts_with($scriptName, '/') ? $scriptName : '/' . $scriptName;
+require $fullPath;
+return true;

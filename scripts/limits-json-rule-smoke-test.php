@@ -94,4 +94,65 @@ assertTrue(
     'Real rule rejects a RETRACTED systematic review (excludeAnyTextSignals: retracted)'
 );
 
+// Real rule: L010020 "cochrane-review" — DOI-only candidates must have a PMID.
+// Journal membership ("Cochrane Database Syst Rev"[ta]) is enforced on the
+// PubMed hard-filter path for those PMIDs, not in this metadata rule.
+$cochraneRule = findFirstPostValidationRule($limits, 'cochrane-review');
+assertTrue($cochraneRule !== null, 'Found the real "cochrane-review" rule in limits.json');
+assertTrue(
+    in_array('systematic review', (array) ($cochraneRule['requireAnyTextSignals'] ?? []), true) === false,
+    'Cochrane-only rule does not treat "systematic review" as a sufficient text signal'
+);
+
+$cochraneRuleState = ['activeRules' => [$cochraneRule]];
+$acceptCochranePmid = [
+    'title' => 'Interventions for smoking cessation in pregnancy',
+    'source' => 'openAlex',
+    'sources' => ['openAlex'],
+    'pmid' => '32068997',
+    'doi' => '10.1/cochrane-pmid-accept',
+];
+$rejectOverviewOfCochrane = [
+    'title' => 'An overview of Cochrane systematic reviews of alternative medicine',
+    'source' => 'openAlex',
+    'sources' => ['openAlex'],
+    'doi' => '10.20518/tjph.1196149',
+    'enriched' => [
+        'venue' => 'Turkish Journal of Public Health',
+    ],
+];
+$rejectCdsrVenueWithoutPmid = [
+    'title' => 'Interventions for smoking cessation in pregnancy',
+    'source' => 'openAlex',
+    'sources' => ['openAlex'],
+    'doi' => '10.1/cochrane-reject-no-pmid',
+    'enriched' => [
+        'venue' => 'Cochrane Database of Systematic Reviews',
+    ],
+];
+$rejectCochraneProtocol = [
+    'title' => 'Cochrane review protocol for evaluating statin therapy',
+    'source' => 'openAlex',
+    'sources' => ['openAlex'],
+    'pmid' => '32068998',
+    'doi' => '10.1/cochrane-reject-protocol',
+];
+
+assertTrue(
+    muginSemanticQualityCandidateMatchesPostValidation($acceptCochranePmid, $cochraneRuleState)['matches'] === true,
+    'Cochrane-only rule accepts a candidate with a PMID'
+);
+assertTrue(
+    muginSemanticQualityCandidateMatchesPostValidation($rejectOverviewOfCochrane, $cochraneRuleState)['matches'] === false,
+    'Cochrane-only rule rejects an overview of Cochrane reviews without a PMID'
+);
+assertTrue(
+    muginSemanticQualityCandidateMatchesPostValidation($rejectCdsrVenueWithoutPmid, $cochraneRuleState)['matches'] === false,
+    'Cochrane-only rule rejects a CDSR-like venue when the candidate has no PMID'
+);
+assertTrue(
+    muginSemanticQualityCandidateMatchesPostValidation($rejectCochraneProtocol, $cochraneRuleState)['matches'] === false,
+    'Cochrane-only rule rejects a Cochrane protocol even when a PMID is present'
+);
+
 echo "\nAll real limits.json rule smoke tests passed.\n";

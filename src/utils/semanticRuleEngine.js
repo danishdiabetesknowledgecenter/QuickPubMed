@@ -1,4 +1,4 @@
-import { normalizeDoiValue } from "@/utils/resultAdapters";
+import { normalizeDoiValue, normalizePmidValue } from "@/utils/resultAdapters";
 
 function normalizeLowerString(value) {
   return String(value || "").trim().toLowerCase();
@@ -185,6 +185,7 @@ export function buildCandidateSemanticMetadataSnapshot(
     sourceProviders,
     hasOpenAlexId: String(candidate?.openAlexId || "").trim() !== "",
     hasDoi: normalizeDoiValue(candidate?.doi || "") !== "",
+    hasPmid: normalizePmidValue(candidate?.pmid || "") !== "",
     openAlexId: String(candidate?.openAlexId || "").trim(),
     candidatePublicationYear: normalizeLowerString(
       candidateMetadata.publicationYear || candidateMetadata.year || ""

@@ -7,7 +7,16 @@
     "lint": "eslint --ext .js,.vue src/",
     "lint:fix": "eslint --ext .js,.vue src/ --fix",
     "build": "vite build",
-    "serve": "vite preview"
+    "serve": "vite preview",
+    "test": "npm run test:offline",
+    "test:offline": "node scripts/run-offline-smokes.mjs",
+    "test:canary": "php scripts/searchform-api-stress-100.php",
+    "test:live": "php scripts/production-live-gates.php",
+    "test:security": "php scripts/production-live-gates.php security",
+    "test:quality": "php scripts/production-live-gates.php quality",
+    "test:stability": "php scripts/production-live-gates.php stability",
+    "test:deploy-smoke": "php scripts/production-live-gates.php deploy",
+    "test:e2e": "playwright test"
   },
   "keywords": [],
   "author": "",
@@ -15,6 +24,7 @@
   "description": "",
   "devDependencies": {
     "@babel/eslint-parser": "^7.25.9",
+    "@playwright/test": "^1.55.0",
     "@vitejs/plugin-vue": "^5.2.4",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^9.1.0",

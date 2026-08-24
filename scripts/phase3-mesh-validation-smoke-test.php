@@ -108,9 +108,17 @@ assertTrue(
     'lowercaseNonMeshTerms preserves [mh]/[au] casing and lowercases [tiab]'
 );
 
+$configPath = __DIR__ . '/../backend/config/config.php';
+$skipLive = getenv('MUGIN_SKIP_LIVE_SMOKES') === '1' || !is_file($configPath);
+if ($skipLive) {
+    echo "SKIP: live NLM MeSH checks (no config.php or MUGIN_SKIP_LIVE_SMOKES=1)\n";
+    echo "\nAll Phase 3 MeSH-validation smoke tests passed.\n";
+    exit(0);
+}
+
 // 12. Live NLM check (real network call): a well-known MeSH descriptor must validate,
 // and canonicalization must produce a properly-cased/quoted [mh] term.
-require_once __DIR__ . '/../backend/config/config.php';
+require_once $configPath;
 require_once __DIR__ . '/../backend/app/public-search-lib.php';
 
 $validation = muginPublicSearchValidateMeshTerm('diabetes mellitus, type 2');

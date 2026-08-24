@@ -4,8 +4,8 @@
  */
 
 $configPath = dirname(__DIR__) . '/backend/config/config.php';
-if (!file_exists($configPath)) {
-    $configPath = dirname(__DIR__) . '/backend/config.php';
+if (!is_file($configPath)) {
+    $configPath = dirname(__DIR__) . '/backend/config/config.example.php';
 }
 require_once $configPath;
 require_once dirname(__DIR__) . '/backend/app/public-search-lib.php';
@@ -736,6 +736,105 @@ assertTrue(
     strpos((string) ($resolvedPubmedClause['pubmedQuery'] ?? ''), 'insulin[tiab]?') !== false
         && empty($resolvedPubmedClause['processReports']['searchString']['rawFreetextSanitized']),
     '#s:pubmed clause is not sanitized'
+);
+
+$dateLookback = muginPublicSearchBuildRequestFromFlatParams([
+    'domain' => 'template',
+    'topic' => 'S010030#s',
+    'databases' => 'pubmed',
+    'limit' => 'L070010#s',
+]);
+$dateLookbackQuery = muginPublicSearchBuildHardFilterQuery(
+    (array) ($dateLookback['hardFilters'] ?? []),
+    (array) ($dateLookback['intentContext']['selectedLimitGroups'] ?? [])
+);
+assertTrue(
+    strpos((string) ($dateLookbackQuery['query'] ?? ''), 'y_1[Filter]') !== false
+        && strpos((string) ($dateLookbackQuery['query'] ?? ''), '1:1[dp]') === false,
+    'Last-1-year limit uses y_1[Filter] and does not add 1:1[dp]'
+);
+
+$dateFive = muginPublicSearchBuildRequestFromFlatParams([
+    'domain' => 'template',
+    'topic' => 'S010030#s',
+    'databases' => 'pubmed',
+    'limit' => 'L070020#s',
+]);
+$dateFiveQuery = muginPublicSearchBuildHardFilterQuery(
+    (array) ($dateFive['hardFilters'] ?? []),
+    (array) ($dateFive['intentContext']['selectedLimitGroups'] ?? [])
+);
+assertTrue(
+    strpos((string) ($dateFiveQuery['query'] ?? ''), 'y_5[Filter]') !== false
+        && strpos((string) ($dateFiveQuery['query'] ?? ''), '5:5[dp]') === false,
+    'Last-5-years limit uses y_5[Filter] and does not add 5:5[dp]'
+);
+
+$healthEvidence = muginPublicSearchBuildRequestFromFlatParams([
+    'domain' => 'template',
+    'topic' => 'S010030#s',
+    'databases' => 'pubmed',
+    'limit' => 'L010030#s',
+]);
+$healthEvidenceQuery = muginPublicSearchBuildHardFilterQuery(
+    (array) ($healthEvidence['hardFilters'] ?? []),
+    (array) ($healthEvidence['intentContext']['selectedLimitGroups'] ?? [])
+);
+assertTrue(
+    strpos((string) ($healthEvidenceQuery['query'] ?? ''), 'y_10[Filter]') !== false
+        && strpos((string) ($healthEvidenceQuery['query'] ?? ''), '10:10[dp]') === false,
+    'Health Evidence keeps y_10[Filter] and does not add 10:10[dp]'
+);
+
+$widgetDateJson = muginPublicSearchBuildHardFilterQuery(
+    [
+        'publicationDateYears' => [1],
+        'publicationYear' => '2026-2026',
+    ],
+    [[['id' => 'L070010', 'scope' => 'normal']]]
+);
+assertTrue(
+    strpos((string) ($widgetDateJson['query'] ?? ''), 'y_1[Filter]') !== false
+        && strpos((string) ($widgetDateJson['query'] ?? ''), '[dp]') === false,
+    'Widget JSON lookback does not AND an extra calendar [dp] on top of y_1[Filter]'
+);
+
+$sexAnd = muginPublicSearchBuildSelectedLimitPubMedQuery([
+    [['id' => 'L050010', 'scope' => 'normal']],
+    [['id' => 'L050020', 'scope' => 'normal']],
+]);
+assertTrue(
+    strpos($sexAnd, '("Female"[mh] OR "Women"[mh]) AND ("Male"[mh] OR "Men"[mh])') !== false,
+    'AND between sex limits parenthesizes each OR-clause'
+);
+
+$placeholderQuery = muginPublicSearchBuildSelectedLimitPubMedQuery([
+    [['id' => 'L000010', 'scope' => 'normal']],
+]);
+assertTrue(
+    $placeholderQuery === '' || stripos($placeholderQuery, 'xxx') === false,
+    'Template limit L000010 does not emit placeholder xxx into PubMed'
+);
+
+$aiOffSemantic = muginPublicSearchBuildRequestFromFlatParams([
+    'q' => 'diabetes motion',
+    'databases' => 'pubmed,semanticscholar,openalex',
+    'ai' => 'false',
+]);
+$aiOffWarnings = muginPublicSearchCollectUntranslatedSemanticSourceWarnings($aiOffSemantic);
+assertTrue(
+    $aiOffWarnings !== [] && strpos($aiOffWarnings[0], 'semantic sources') !== false,
+    'AI-off plus semantic sources without overrides emits a warning'
+);
+$aiOffCovered = muginPublicSearchBuildRequestFromFlatParams([
+    'q' => 'diabetes motion',
+    'databases' => 'pubmed,semanticscholar',
+    'ai' => 'false',
+    'qsemanticscholar' => 'type 2 diabetes exercise',
+]);
+assertTrue(
+    muginPublicSearchCollectUntranslatedSemanticSourceWarnings($aiOffCovered) === [],
+    'AI-off plus semantic sources with overrides does not warn'
 );
 
 if ($failures > 0) {

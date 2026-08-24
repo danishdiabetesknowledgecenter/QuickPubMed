@@ -17,7 +17,6 @@
  *    guaranteed to compute the same cache key for the same logical request.
  */
 
-require_once __DIR__ . '/../backend/config/config.php';
 require_once __DIR__ . '/../backend/app/helpers.php';
 require_once __DIR__ . '/../backend/app/public-search-lib.php';
 

@@ -54,6 +54,7 @@ export const SEMANTIC_DOI_ONLY_RULE_METADATA_FIELDS = Object.freeze([
   "sourceProviders",
   "hasOpenAlexId",
   "hasDoi",
+  "hasPmid",
   "openAlexId",
   "candidatePublicationYear",
   "candidateVenue",

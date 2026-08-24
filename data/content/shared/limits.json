@@ -578,43 +578,17 @@
                                 {
                                     "id": "cochrane-review",
                                     "exclusiveGroup": "publication-profile",
-                                    "matchStrategy": "any",
-                                    "metadataFieldConditionMode": "any",
+                                    "matchStrategy": "all",
                                     "textScopes": [
                                         "candidateTitle",
                                         "sourceCandidateTitles"
                                     ],
-                                    "requireAnyTextSignals": [
-                                        "cochrane",
-                                        "systematic review"
-                                    ],
                                     "metadataFieldConditions": [
                                         {
-                                            "field": "candidateVenue",
-                                            "operator": "includesAny",
+                                            "field": "hasPmid",
+                                            "operator": "equalsAny",
                                             "values": [
-                                                "cochrane"
-                                            ]
-                                        },
-                                        {
-                                            "field": "semanticSourceVenues",
-                                            "operator": "includesAny",
-                                            "values": [
-                                                "cochrane"
-                                            ]
-                                        },
-                                        {
-                                            "field": "openAlexSourceDisplayName",
-                                            "operator": "includesAny",
-                                            "values": [
-                                                "cochrane"
-                                            ]
-                                        },
-                                        {
-                                            "field": "openAlexSourceAbbreviatedTitle",
-                                            "operator": "includesAny",
-                                            "values": [
-                                                "cochrane"
+                                                "true"
                                             ]
                                         }
                                     ],
@@ -628,12 +602,8 @@
                             ]
                         },
                         "hardFilters": {
-                            "filterProfile": [
-                                "systematic-review-only"
-                            ],
                             "publicationType": [
-                                "cochrane review",
-                                "systematic review"
+                                "cochrane review"
                             ]
                         },
                         "sourceFilters": {

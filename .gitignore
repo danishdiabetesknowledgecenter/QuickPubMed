@@ -18,6 +18,9 @@ backend/config/config.php
 php-proxy/storage/runtime/
 **/data/runtime/
 **/data/cache/
+test-results/
+playwright-report/
+playwright/.cache/
 
 # Domain-specific runtime secrets/config
 data/content/*/domain-config.json

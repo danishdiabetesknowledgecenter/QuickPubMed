@@ -2334,6 +2334,115 @@ if (!function_exists('muginPublicSearchCollectKnownLimitAndTopicIds')) {
     }
 }
 
+if (!function_exists('muginPublicSearchIsPlaceholderPubmedSearchString')) {
+    function muginPublicSearchIsPlaceholderPubmedSearchString(string $value): bool
+    {
+        $normalized = strtolower(trim($value));
+        return $normalized === '' || $normalized === 'xxx';
+    }
+}
+
+if (!function_exists('muginPublicSearchUsablePubmedSearchStringValues')) {
+    /**
+     * @param mixed $raw
+     * @return array<int,string>
+     */
+    function muginPublicSearchUsablePubmedSearchStringValues($raw): array
+    {
+        $out = [];
+        foreach (muginPublicSearchNormalizeSimpleList($raw) as $value) {
+            $text = trim((string) $value);
+            if (muginPublicSearchIsPlaceholderPubmedSearchString($text)) {
+                continue;
+            }
+            $out[] = $text;
+        }
+        return $out;
+    }
+}
+
+if (!function_exists('muginPublicSearchPubmedClauseHasBareBooleanOperator')) {
+    function muginPublicSearchPubmedClauseHasBareBooleanOperator(string $clause): bool
+    {
+        $withoutQuotes = preg_replace('/"[^"]*"/', ' ', $clause);
+        return preg_match('/\b(?:AND|OR|NOT)\b/i', (string) $withoutQuotes) === 1;
+    }
+}
+
+if (!function_exists('muginPublicSearchIsWrappedInOuterParens')) {
+    function muginPublicSearchIsWrappedInOuterParens(string $clause): bool
+    {
+        $trimmed = trim($clause);
+        $length = strlen($trimmed);
+        if ($length < 2 || $trimmed[0] !== '(' || $trimmed[$length - 1] !== ')') {
+            return false;
+        }
+        $depth = 0;
+        $inQuote = false;
+        for ($i = 0; $i < $length; $i++) {
+            $ch = $trimmed[$i];
+            if ($ch === '"') {
+                $inQuote = !$inQuote;
+                continue;
+            }
+            if ($inQuote) {
+                continue;
+            }
+            if ($ch === '(') {
+                $depth++;
+            } elseif ($ch === ')') {
+                $depth--;
+                if ($depth === 0 && $i !== $length - 1) {
+                    return false;
+                }
+                if ($depth < 0) {
+                    return false;
+                }
+            }
+        }
+        return $depth === 0;
+    }
+}
+
+if (!function_exists('muginPublicSearchWrapPubmedBooleanClause')) {
+    /**
+     * Ensures a clause that contains AND/OR/NOT is parenthesized so AND between
+     * limit-groups cannot be rewritten by PubMed left-to-right precedence.
+     */
+    function muginPublicSearchWrapPubmedBooleanClause(string $clause): string
+    {
+        $trimmed = trim($clause);
+        if ($trimmed === '' || muginPublicSearchIsWrappedInOuterParens($trimmed)) {
+            return $trimmed;
+        }
+        if (muginPublicSearchPubmedClauseHasBareBooleanOperator($trimmed)) {
+            return '(' . $trimmed . ')';
+        }
+        return $trimmed;
+    }
+}
+
+if (!function_exists('muginPublicSearchBuildPubmedClauseFromSearchStrings')) {
+    /**
+     * @param mixed $searchStrings
+     */
+    function muginPublicSearchBuildPubmedClauseFromSearchStrings($searchStrings, string $mode): string
+    {
+        if (!is_array($searchStrings)) {
+            return '';
+        }
+        $values = muginPublicSearchUsablePubmedSearchStringValues(
+            $searchStrings[$mode] ?? ($searchStrings['normal'] ?? [])
+        );
+        if ($values === []) {
+            return '';
+        }
+        return muginPublicSearchWrapPubmedBooleanClause(
+            count($values) === 1 ? $values[0] : '(' . implode(' OR ', $values) . ')'
+        );
+    }
+}
+
 if (!function_exists('muginPublicSearchBuildSelectedLimitPubMedQuery')) {
     /**
      * Builds PubMed hard-filter clauses from selected limits.
@@ -2383,17 +2492,14 @@ if (!function_exists('muginPublicSearchBuildSelectedLimitPubMedQuery')) {
                     if ($id === '' || !isset($catalog[$id]) || !is_array($catalog[$id])) {
                         continue;
                     }
-                    $node = $catalog[$id];
-                    $searchStrings = isset($node['searchStrings']) && is_array($node['searchStrings'])
-                        ? $node['searchStrings']
-                        : [];
-                    $values = muginPublicSearchNormalizeSimpleList(
-                        $searchStrings[$mode] ?? ($searchStrings['normal'] ?? [])
+                    $clause = muginPublicSearchBuildPubmedClauseFromSearchStrings(
+                        $catalog[$id]['searchStrings'] ?? [],
+                        $mode
                     );
-                    if (empty($values)) {
+                    if ($clause === '') {
                         continue;
                     }
-                    $orClauses[] = count($values) === 1 ? $values[0] : '(' . implode(' OR ', $values) . ')';
+                    $orClauses[] = $clause;
                 }
                 $orClauses = muginPublicSearchDedupeStrings($orClauses);
                 if (empty($orClauses)) {
@@ -2425,20 +2531,17 @@ if (!function_exists('muginPublicSearchBuildSelectedLimitPubMedQuery')) {
             if ($node === null) {
                 continue;
             }
-            $searchStrings = isset($node['searchStrings']) && is_array($node['searchStrings'])
-                ? $node['searchStrings']
-                : [];
-            $values = muginPublicSearchNormalizeSimpleList(
-                $searchStrings[$mode] ?? ($searchStrings['normal'] ?? [])
+            $clause = muginPublicSearchBuildPubmedClauseFromSearchStrings(
+                $node['searchStrings'] ?? [],
+                $mode
             );
-            if (empty($values)) {
+            if ($clause === '') {
                 continue;
             }
             $categoryId = trim((string) ($node['_categoryId'] ?? ''));
             if ($categoryId === '') {
                 $categoryId = 'ungrouped:' . $id;
             }
-            $clause = count($values) === 1 ? $values[0] : '(' . implode(' OR ', $values) . ')';
             $groups[$categoryId][] = $clause;
         }
 
@@ -5836,11 +5939,9 @@ if (!function_exists('muginPublicSearchBuildHardFilterQuery')) {
             : muginPublicSearchBuildCanonicalHardFilterPubMedQuery($hardFilters);
         if ($catalogQuery !== '') {
             $parts[] = $catalogQuery;
-            $years = array_values(array_filter(array_map('intval', (array) ($hardFilters['publicationDateYears'] ?? []))));
-            if (!empty($years)) {
-                sort($years);
-                $parts[] = min($years) . ':' . max($years) . '[dp]';
-            } else {
+            // publicationDateYears is a lookback (1/5/10), already encoded as y_N[Filter].
+            $catalogHasLookbackFilter = preg_match('/y_\d+\[Filter\]/i', $catalogQuery) === 1;
+            if (!$catalogHasLookbackFilter) {
                 $publicationYear = muginPublicSearchNormalizePublicationYearRange($hardFilters['publicationYear'] ?? '');
                 if ($publicationYear !== '') {
                     $parts[] = strpos($publicationYear, '-') !== false
@@ -6249,6 +6350,48 @@ if (!function_exists('muginPublicSearchRequestHasSemanticSources')) {
             (array) ($request['sources'] ?? []),
             ['semanticScholar', 'openAlex', 'elicit']
         )) > 0;
+    }
+}
+
+if (!function_exists('muginPublicSearchCollectUntranslatedSemanticSourceWarnings')) {
+    /**
+     * SearchForm skips auto-search when AI is off and semantic sources are
+     * selected. The API still runs, but warns when those sources have no
+     * per-source query override and will therefore receive raw untranslated text.
+     *
+     * @param array<string,mixed> $request
+     * @return array<int,string>
+     */
+    function muginPublicSearchCollectUntranslatedSemanticSourceWarnings(array $request): array
+    {
+        $mode = (string) ($request['translation']['mode'] ?? 'auto');
+        if ($mode !== 'none') {
+            return [];
+        }
+        $semanticSources = array_values(array_intersect(
+            (array) ($request['sources'] ?? []),
+            ['semanticScholar', 'openAlex', 'elicit']
+        ));
+        if ($semanticSources === []) {
+            return [];
+        }
+        $overrides = function_exists('muginPublicSearchGetRequestQueryOverrides')
+            ? muginPublicSearchGetRequestQueryOverrides($request)
+            : [];
+        $uncovered = [];
+        foreach ($semanticSources as $source) {
+            if (trim((string) ($overrides[$source] ?? '')) === '') {
+                $uncovered[] = $source;
+            }
+        }
+        if ($uncovered === []) {
+            return [];
+        }
+        return [
+            'AI translation is disabled while semantic sources ('
+            . implode(', ', $uncovered)
+            . ') are selected without per-source query overrides. Those sources will be queried with the raw untranslated text.',
+        ];
     }
 }
 
@@ -7532,7 +7675,8 @@ if (!function_exists('muginPublicSearchBuildResolvedQueries')) {
             'queryIntent' => $queryIntent,
             'warnings' => muginPublicSearchDedupeStrings(array_merge(
                 (array) ($hardFilterQuery['warnings'] ?? []),
-                $topicQueryWarnings
+                $topicQueryWarnings,
+                muginPublicSearchCollectUntranslatedSemanticSourceWarnings($request)
             )),
             // Process-details/diagnostics-only fields (not part of the public
             // resolvedQueries response contract - see

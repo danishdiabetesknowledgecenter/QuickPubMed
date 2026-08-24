@@ -701,6 +701,7 @@ if (!function_exists('muginSemanticQualityBuildMetadataSnapshot')) {
             'sourceProviders' => $sourceProviders,
             'hasOpenAlexId' => muginSemanticQualityNormalizeString($candidate['openAlexId'] ?? '') !== '',
             'hasDoi' => muginSemanticQualityNormalizeString($candidate['doi'] ?? '') !== '',
+            'hasPmid' => muginSemanticQualityNormalizePmidValue($candidate['pmid'] ?? '') !== '',
             'openAlexId' => muginSemanticQualityNormalizeString($candidate['openAlexId'] ?? ''),
             'candidatePublicationYear' => muginSemanticQualityNormalizeLower($enriched['publicationYear'] ?? ''),
             'candidateVenue' => $venue,

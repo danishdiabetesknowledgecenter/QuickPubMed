@@ -205,7 +205,7 @@ assertTrue(
 );
 
 // 5. Untranslated freetext + catalog, AI off: PubMed ANDs both.
-// Public GET follows topics.json standardStringAddToFreetext (template: true).
+// Public GET follows topics.json standardStringAddToFreetext (template: false).
 $freetextPayload = searchFlowSearchFormLikePayload([
     'query' => ['text' => 'julemanden?', 'language' => 'da'],
     'intentContext' => [
@@ -224,12 +224,12 @@ $getFreetext = muginPublicSearchBuildRequestFromFlatParams([
 $formFreetextSnap = searchFlowSnapshot(muginPublicSearchBuildResolvedQueries($searchFormFreetext));
 $getFreetextSnap = searchFlowSnapshot(muginPublicSearchBuildResolvedQueries($getFreetext));
 assertTrue(
-    (muginPublicSearchLoadTopicNodeCatalog('template')['standardStringAddToFreetext'] ?? null) === true,
-    'template catalog enables standardStringAddToFreetext'
+    (muginPublicSearchLoadTopicNodeCatalog('template')['standardStringAddToFreetext'] ?? null) === false,
+    'template catalog disables standardStringAddToFreetext'
 );
 assertTrue(
-    ($searchFormFreetext['_applyStandardStringToFreetext'] ?? null) === true
-        && ($getFreetext['_applyStandardStringToFreetext'] ?? null) === true,
+    ($searchFormFreetext['_applyStandardStringToFreetext'] ?? null) === false
+        && ($getFreetext['_applyStandardStringToFreetext'] ?? null) === false,
     'SearchForm JSON without add and GET both follow catalog standardStringAddToFreetext'
 );
 assertTrue(
@@ -256,9 +256,9 @@ assertTrue(
 
 $standardClause = '"Diabetes Mellitus"[mh] OR diabet*[ti]';
 assertTrue(
-    substr_count((string) ($formFreetextSnap['pubmedQuery'] ?? ''), $standardClause) >= 2
-        && substr_count((string) ($getFreetextSnap['pubmedQuery'] ?? ''), $standardClause) >= 2,
-    'SearchForm JSON and GET both AND catalog standardString onto freetext'
+    substr_count((string) ($formFreetextSnap['pubmedQuery'] ?? ''), $standardClause)
+        === substr_count((string) ($getFreetextSnap['pubmedQuery'] ?? ''), $standardClause),
+    'SearchForm JSON and GET apply catalog standardString identically when add-to-freetext is off'
 );
 
 // 6. Already-translated custom #s:pubmed must not go through AI as query.text.

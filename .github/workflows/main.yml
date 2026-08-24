@@ -6,10 +6,55 @@ on:
       - dev
     tags:
       - 'v*.*.*'
-      
+  pull_request:
+    branches:
+      - dev
+      - main
+
 jobs:
+  test:
+    name: 🧪 Offline gates
+    runs-on: ubuntu-latest
+    env:
+      MUGIN_SKIP_LIVE_SMOKES: '1'
+    steps:
+      - name: 🚚 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '23'
+          cache: 'npm'
+
+      - name: 🐘 Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: curl, mbstring, json
+          coverage: none
+
+      - name: 📦 Install locked dependencies
+        run: npm ci
+
+      - name: ✅ Offline smokes
+        run: npm run test:offline
+
+      - name: 🏗️ Build Project
+        env:
+          VITE_ABOUT_AI_URL: ${{ secrets.VITE_ABOUT_AI_URL }}
+          VITE_CLIENT_NAME: ${{ secrets.VITE_CLIENT_NAME }}
+          VITE_MY_NCBI_SHARE: ${{ secrets.VITE_MY_NCBI_SHARE }}
+          VITE_LONG_ABSTRACT_LENGTH_LIMIT: ${{ secrets.VITE_LONG_ABSTRACT_LENGTH_LIMIT }}
+          VITE_WAIT_TIME_DISCLAIMER_DELAY: ${{ secrets.VITE_WAIT_TIME_DISCLAIMER_DELAY }}
+          VITE_UNPAYWALL_URL: ${{ secrets.VITE_UNPAYWALL_URL }}
+          VITE_UNPAYWALL_EMAIL: ${{ secrets.VITE_UNPAYWALL_EMAIL }}
+        run: npm run build
+
   build-and-deploy:
     name: 🛠️ Build and Deploy
+    needs: test
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     env:
       DEPLOY_ROOT: ${{ github.ref == 'refs/heads/dev' && './dev/latest' || './current' }}

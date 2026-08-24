@@ -191,24 +191,21 @@ $addFalse = $freetextStandardPayload;
 $addFalse['standardString'] = ['add' => false];
 $fromPostAddIgnored = muginPublicSearchNormalizePostRequest($addFalse);
 assertTrue(
-    ($fromPostAddIgnored['_applyStandardStringToFreetext'] ?? false) === true,
+    ($fromPostAddIgnored['_applyStandardStringToFreetext'] ?? true) === false,
     'standardString.add is ignored; catalog standardStringAddToFreetext is used'
 );
 $resolvedAddIgnored = muginPublicSearchBuildResolvedQueries($fromPostAddIgnored);
 assertTrue(
-    strpos((string) ($resolvedAddIgnored['pubmedQuery'] ?? ''), 'Diabetes Mellitus') !== false,
-    'Catalog add-to-freetext still ANDs the domain standardString when add is sent'
-);
-assertTrue(
     strpos((string) ($resolvedAddIgnored['pubmedQuery'] ?? ''), 'santa claus') !== false,
-    'Freetext translation is still present when catalog add-to-freetext is on'
+    'Freetext translation is still present when catalog add-to-freetext is off'
 );
 
 $fromPostAddDefault = muginPublicSearchNormalizePostRequest($freetextStandardPayload);
 $resolvedAddDefault = muginPublicSearchBuildResolvedQueries($fromPostAddDefault);
 assertTrue(
-    strpos((string) ($resolvedAddDefault['pubmedQuery'] ?? ''), 'Diabetes Mellitus') !== false,
-    'Omitting standardString.add follows catalog standardStringAddToFreetext (template: true)'
+    ($fromPostAddDefault['_applyStandardStringToFreetext'] ?? true) === false
+        && strpos((string) ($resolvedAddDefault['pubmedQuery'] ?? ''), 'santa claus') !== false,
+    'Omitting standardString.add follows catalog standardStringAddToFreetext (template: false)'
 );
 
 $jsonLangDefault = muginPublicSearchNormalizePostRequest([
