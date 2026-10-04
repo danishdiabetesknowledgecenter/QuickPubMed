@@ -24,34 +24,34 @@ define('REQUESTY_APP_TITLE', 'Mugin Scholar');
 define('MUGIN_LLM_PROVIDER', 'openai');
 define('MUGIN_LLM_ALLOWED_MODELS', [
     'openai' => [
-        'gpt-5.6-sol',
-        'gpt-5.5',
+        'model-a',
+        'model-b',
     ],
     'requesty' => [
-        'azure/openai-responses/gpt-5.6-sol@swedencentral',
-        'azure/openai-responses/gpt-5.5@swedencentral',
+        'azure/openai-responses/model-a@region',
+        'azure/openai-responses/model-b@region',
     ],
 ]);
 define('MUGIN_LLM_TASK_MODELS', [
     'openai' => [
         'translate' => [
-            'model' => 'gpt-5.6-sol',
+            'model' => 'model-a',
             'reasoningEffort' => 'none',
             'verbosity' => 'medium',
         ],
         'finalRerank' => [
-            'model' => 'gpt-5.5',
+            'model' => 'model-b',
             'reasoningEffort' => 'none',
         ],
     ],
     'requesty' => [
         'translate' => [
-            'model' => 'azure/openai-responses/gpt-5.6-sol@swedencentral',
+            'model' => 'azure/openai-responses/model-a@region',
             'reasoningEffort' => 'none',
             'verbosity' => 'medium',
         ],
         'finalRerank' => [
-            'model' => 'azure/openai-responses/gpt-5.5@swedencentral',
+            'model' => 'azure/openai-responses/model-b@region',
             'reasoningEffort' => 'minimal',
         ],
     ],
@@ -96,19 +96,19 @@ assertNotContains('HTTP-Referer:', $openaiHeadersJoined, 'No Requesty Referer in
 assertNotContains('X-Title:', $openaiHeadersJoined, 'No Requesty X-Title in openai mode');
 
 assertTrue(
-    muginResolveAllowedOpenAiModel('gpt-5.6-sol', '') === 'gpt-5.6-sol',
+    muginResolveAllowedOpenAiModel('model-a', '') === 'model-a',
     'OpenAI allowlist returns short id'
 );
 assertTrue(
-    muginGetOpenAiTaskSettings('translate')['model'] === 'gpt-5.6-sol',
+    muginGetOpenAiTaskSettings('translate')['model'] === 'model-a',
     'OpenAI task model from openai section'
 );
 assertTrue(
-    muginFormatLlmModelForProvider('gpt-5.6-sol') === 'gpt-5.6-sol',
+    muginFormatLlmModelForProvider('model-a') === 'model-a',
     'OpenAI keeps short model id'
 );
 $openaiNormalized = muginNormalizeLlmRequestPayload([
-    'model' => 'gpt-5.6-sol',
+    'model' => 'model-a',
     'reasoning' => ['effort' => 'none'],
 ]);
 assertTrue(
@@ -117,7 +117,7 @@ assertTrue(
 );
 
 $openaiSpec = muginPublicSearchBuildOpenAiRequestSpec([
-    'model' => 'gpt-5.6-sol',
+    'model' => 'model-a',
     'input' => [['role' => 'user', 'content' => 'hi']],
     'reasoning' => ['effort' => 'none'],
 ]);
@@ -127,7 +127,7 @@ assertNotContains('requesty.ai', (string) $openaiSpec['url'], 'OpenAI spec URL i
 $pipelineKeyOpenAi = muginPublicSearchBuildPipelineCacheKey(['q' => 'diabetes', 'page' => 1]);
 $requestForCacheOpenAi = ['_llmProvider' => 'openai', 'q' => 'diabetes'];
 $searchKeyOpenAi = 'request:' . muginPublicSearchSafeJsonEncode($requestForCacheOpenAi);
-$rerankKeyOpenAi = 'payload:' . sha1('openai|' . muginPublicSearchSafeJsonEncode(['model' => 'gpt-5.6-sol']));
+$rerankKeyOpenAi = 'payload:' . sha1('openai|' . muginPublicSearchSafeJsonEncode(['model' => 'model-a']));
 
 // --- requesty mode ---
 $GLOBALS['__muginLlmProviderOverride'] = 'requesty';
@@ -149,34 +149,34 @@ assertContains('X-Title: Mugin Scholar', $requestyHeadersJoined, 'Requesty X-Tit
 assertNotContains('OpenAI-Organization', $requestyHeadersJoined, 'No OpenAI-Organization for requesty');
 
 assertTrue(
-    muginResolveAllowedOpenAiModel('gpt-5.6-sol', '') === 'azure/openai-responses/gpt-5.6-sol@swedencentral',
+    muginResolveAllowedOpenAiModel('model-a', '') === 'azure/openai-responses/model-a@region',
     'Requesty allowlist maps short id to exact Azure Requesty model'
 );
 assertTrue(
-    muginGetOpenAiTaskSettings('translate')['model'] === 'azure/openai-responses/gpt-5.6-sol@swedencentral',
+    muginGetOpenAiTaskSettings('translate')['model'] === 'azure/openai-responses/model-a@region',
     'Requesty task model from requesty section'
 );
 assertTrue(
-    muginFormatLlmModelForProvider('azure/openai-responses/gpt-5.6-sol@swedencentral')
-        === 'azure/openai-responses/gpt-5.6-sol@swedencentral',
+    muginFormatLlmModelForProvider('azure/openai-responses/model-a@region')
+        === 'azure/openai-responses/model-a@region',
     'Requesty keeps exact configured model id'
 );
 
 $normalizedNone = muginNormalizeLlmRequestPayload([
-    'model' => 'azure/openai-responses/gpt-5.6-sol@swedencentral',
+    'model' => 'azure/openai-responses/model-a@region',
     'reasoning' => ['effort' => 'none'],
 ]);
 assertTrue(
-    ($normalizedNone['model'] ?? '') === 'azure/openai-responses/gpt-5.6-sol@swedencentral',
+    ($normalizedNone['model'] ?? '') === 'azure/openai-responses/model-a@region',
     'Normalize keeps exact Requesty model'
 );
 assertTrue(
     ($normalizedNone['reasoning']['effort'] ?? '') === 'none',
-    'Requesty keeps reasoning.effort=none (needed for Kimi/Azure GPT)'
+    'Requesty keeps reasoning.effort=none'
 );
 
 $normalizedMinimal = muginNormalizeLlmRequestPayload([
-    'model' => 'azure/openai-responses/gpt-5.5@swedencentral',
+    'model' => 'azure/openai-responses/model-b@region',
     'reasoning' => ['effort' => 'minimal'],
 ]);
 assertTrue(
@@ -185,13 +185,13 @@ assertTrue(
 );
 
 $kept = muginNormalizeLlmRequestPayload([
-    'model' => 'azure/openai-responses/gpt-5.5@swedencentral',
+    'model' => 'azure/openai-responses/model-b@region',
     'reasoning' => ['effort' => 'low'],
 ]);
 assertTrue(($kept['reasoning']['effort'] ?? '') === 'low', 'Requesty keeps reasoning.effort=low');
 
 $requestySpec = muginPublicSearchBuildOpenAiRequestSpec([
-    'model' => 'azure/openai-responses/gpt-5.6-sol@swedencentral',
+    'model' => 'azure/openai-responses/model-a@region',
     'input' => [['role' => 'user', 'content' => 'hi']],
     'reasoning' => ['effort' => 'none'],
 ]);
@@ -199,7 +199,7 @@ assertContains('router.eu.requesty.ai', (string) $requestySpec['url'], 'Requesty
 assertNotContains('api.openai.com', (string) $requestySpec['url'], 'Requesty spec never targets api.openai.com');
 $body = (string) ($requestySpec['options']['body'] ?? '');
 assertContains(
-    'azure/openai-responses/gpt-5.6-sol@swedencentral',
+    'azure/openai-responses/model-a@region',
     $body,
     'Requesty body uses exact configured Azure model'
 );
@@ -223,7 +223,7 @@ $requestForCacheRequesty = ['_llmProvider' => 'requesty', 'q' => 'diabetes'];
 $searchKeyRequesty = 'request:' . muginPublicSearchSafeJsonEncode($requestForCacheRequesty);
 assertTrue($searchKeyOpenAi !== $searchKeyRequesty, 'Search-response cache key material differs by provider');
 
-$rerankKeyRequesty = 'payload:' . sha1('requesty|' . muginPublicSearchSafeJsonEncode(['model' => 'gpt-5.6-sol']));
+$rerankKeyRequesty = 'payload:' . sha1('requesty|' . muginPublicSearchSafeJsonEncode(['model' => 'model-a']));
 assertTrue($rerankKeyOpenAi !== $rerankKeyRequesty, 'Final-rerank cache key differs by provider');
 
 assertTrue(

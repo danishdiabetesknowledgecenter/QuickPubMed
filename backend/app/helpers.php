@@ -334,7 +334,7 @@ function muginStripLlmModelRegionSuffix(string $model): string
 
 /**
  * Loose model identity for allowlist matching across short vs Requesty ids.
- * azure/openai-responses/gpt-5.6-terra@swedencentral → gpt-5.6-terra
+ * provider/prefix/model@region → model
  */
 function muginNormalizeLlmModelIdentity(string $model): string
 {
@@ -1848,6 +1848,28 @@ function muginEnforceFirstPartyIpRateLimit(string $routeClass): void
  * Returns the exact allowlisted id (Requesty may be openai-responses/…@region).
  * Loose matching accepts short ids vs prefixed/regional variants.
  */
+function muginMatchAllowedLlmModel(string $candidate): string
+{
+    $allowed = muginGetLlmAllowedModels();
+    $candidate = trim($candidate);
+    if ($candidate === '' || $allowed === []) {
+        return '';
+    }
+    if (in_array($candidate, $allowed, true)) {
+        return $candidate;
+    }
+    $identity = muginNormalizeLlmModelIdentity($candidate);
+    if ($identity === '') {
+        return '';
+    }
+    foreach ($allowed as $entry) {
+        if (muginNormalizeLlmModelIdentity($entry) === $identity) {
+            return $entry;
+        }
+    }
+    return '';
+}
+
 function muginResolveAllowedOpenAiModel($requestedModel, string $defaultModel = ''): string
 {
     $allowed = muginGetLlmAllowedModels();
@@ -1855,31 +1877,11 @@ function muginResolveAllowedOpenAiModel($requestedModel, string $defaultModel = 
         return '';
     }
 
-    $pick = static function (string $candidate) use ($allowed): string {
-        $candidate = trim($candidate);
-        if ($candidate === '') {
-            return '';
-        }
-        if (in_array($candidate, $allowed, true)) {
-            return $candidate;
-        }
-        $identity = muginNormalizeLlmModelIdentity($candidate);
-        if ($identity === '') {
-            return '';
-        }
-        foreach ($allowed as $entry) {
-            if (muginNormalizeLlmModelIdentity($entry) === $identity) {
-                return $entry;
-            }
-        }
-        return '';
-    };
-
-    $resolved = $pick((string) $requestedModel);
+    $resolved = muginMatchAllowedLlmModel((string) $requestedModel);
     if ($resolved !== '') {
         return $resolved;
     }
-    $resolved = $pick($defaultModel);
+    $resolved = muginMatchAllowedLlmModel($defaultModel);
     if ($resolved !== '') {
         return $resolved;
     }
@@ -1905,8 +1907,22 @@ function muginClampOpenAiReasoningEffort($value, string $default = 'none'): stri
 }
 
 /**
- * Clamp ResponsesReasoning.summary (Requesty OpenAPI: auto|concise|detailed).
+ * Responses reasoning object. summary is what Requesty stores on the
+ * type=reasoning output item (auto|concise|detailed). Effort alone does not.
+ *
+ * @param mixed $summary
+ * @return array{effort:string,summary?:string}
  */
+function muginResponsesReasoningFromSettings(string $effort, $summary = null): array
+{
+    $reasoning = ['effort' => $effort];
+    $clamped = muginClampOpenAiReasoningSummary($summary);
+    if ($clamped !== null) {
+        $reasoning['summary'] = $clamped;
+    }
+    return $reasoning;
+}
+
 function muginClampOpenAiReasoningSummary($value, ?string $default = null): ?string
 {
     $summary = strtolower(trim((string) $value));
@@ -2112,6 +2128,13 @@ function muginGetOpenAiTaskSettings(string $taskKey): array
         'model' => muginResolveAllowedOpenAiModel($model, ''),
         'reasoningEffort' => $effort,
     ];
+    $fallbackRaw = trim((string) ($raw['fallbackModel'] ?? ''));
+    if ($fallbackRaw !== '') {
+        $fallbackModel = muginMatchAllowedLlmModel($fallbackRaw);
+        if ($fallbackModel !== '' && $fallbackModel !== $out['model']) {
+            $out['fallbackModel'] = $fallbackModel;
+        }
+    }
 
     $hasVerbosity = array_key_exists('verbosity', $raw)
         || array_key_exists('verbosity', $base);
@@ -2183,6 +2206,9 @@ function muginGetOpenAiTaskModelsForFrontend(): array
             'model' => (string) ($settings['model'] ?? ''),
             'reasoningEffort' => (string) ($settings['reasoningEffort'] ?? 'none'),
         ];
+        if (trim((string) ($settings['fallbackModel'] ?? '')) !== '') {
+            $entry['fallbackModel'] = (string) $settings['fallbackModel'];
+        }
         foreach ([
             'verbosity',
             'reasoningSummary',

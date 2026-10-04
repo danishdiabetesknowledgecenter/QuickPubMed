@@ -289,6 +289,13 @@
   margin-bottom: 8px;
 }
 
+.mugin_searchProcessToggleTime {
+  color: var(--color-black);
+  font-weight: normal;
+  font-style: normal;
+  text-decoration: none;
+}
+
 .mugin_searchProcessContent {
   width: 100%;
   margin-top: 0;

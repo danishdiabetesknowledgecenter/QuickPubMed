@@ -79,7 +79,18 @@ if (!is_array($input)) {
     muginSemanticRerankRespond(400, ['error' => 'Invalid JSON input']);
 }
 
-$query = muginSemanticRerankNormalizeString($input['query'] ?? '');
+$legacyQuery = muginSemanticRerankNormalizeString($input['query'] ?? '');
+$userQuestion = muginSemanticRerankNormalizeString($input['userQuestion'] ?? '');
+$retrievalQuery = muginSemanticRerankNormalizeString($input['retrievalQuery'] ?? '');
+if ($retrievalQuery === '') {
+    $retrievalQuery = $legacyQuery;
+}
+if ($userQuestion === '') {
+    $userQuestion = $retrievalQuery;
+}
+if ($retrievalQuery === '') {
+    $retrievalQuery = $userQuestion;
+}
 $hardFilterQuery = muginSemanticRerankNormalizeString($input['hardFilterQuery'] ?? '');
 $rawResultFocus = isset($input['resultFocus']) && is_array($input['resultFocus']) ? $input['resultFocus'] : [];
 $resultFocus = [
@@ -100,7 +111,10 @@ $reasoningEffort = muginClampOpenAiReasoningEffort(
     $input['reasoningEffort'] ?? ($finalRerankTask['reasoningEffort'] ?? null),
     (string) ($finalRerankTask['reasoningEffort'] ?? 'none')
 );
-$maxOutputTokens = muginClampOpenAiMaxOutputTokens($input['maxOutputTokens'] ?? 400, 400, 2048);
+$configuredMax = (int) ($finalRerankTask['maxOutputTokens'] ?? 0);
+$maxOutputTokens = $configuredMax > 0
+    ? $configuredMax
+    : (is_numeric($input['maxOutputTokens'] ?? null) ? (int) $input['maxOutputTokens'] : 0);
 $rawCandidates = isset($input['candidates']) && is_array($input['candidates']) ? $input['candidates'] : [];
 
 $candidates = [];
@@ -209,7 +223,7 @@ foreach ($rawCandidates as $rawCandidate) {
     $candidates[] = $candidate;
 }
 
-if ($query === '' || count($candidates) < 2) {
+if (($userQuestion === '' && $retrievalQuery === '') || count($candidates) < 2) {
     muginSemanticRerankRespond(200, [
         'orderedIds' => array_values(array_map(
             static function (array $candidate): string {
@@ -239,7 +253,9 @@ $schema = [
 $systemPrompt = implode("\n", [
     'You rerank already validated scholarly search candidates.',
     'Never exclude, add, or invent items. Return a permutation of the provided candidate ids only.',
-    'Prefer candidates that best match the query intent using title, abstract, and provided topics together.',
+    'Rank by userQuestion: how well each candidate answers what the user asked, using title, abstract, and provided topics together.',
+    'retrievalQuery is only the string the databases were searched with. Use it to understand why a candidate was retrieved. Do not treat its keywords as extra topics the user asked for.',
+    'When userQuestion is empty, rank by retrievalQuery.',
     'When candidate topics are provided, use them as additive topical evidence together with title and abstract.',
     'Missing topics must not lower a candidate. Do not prefer a candidate merely because it has MeSH or a PMID.',
     'OpenAlex and Semantic Scholar topics are valid substitutes when MeSH is absent.',
@@ -256,7 +272,8 @@ if ($resultFocus['id'] !== '') {
 }
 
 $userPayload = [
-    'query' => $query,
+    'userQuestion' => $userQuestion,
+    'retrievalQuery' => $retrievalQuery,
     'hardFilterQuery' => $hardFilterQuery,
     'resultFocus' => $resultFocus,
     'task' => 'Return the candidate ids ordered from most to least relevant.',
@@ -282,7 +299,9 @@ $openAiRequest = muginNormalizeLlmRequestPayload([
             'content' => json_encode($userPayload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
         ],
     ],
-    'reasoning' => ['effort' => $reasoningEffort],
+    'reasoning' => function_exists('muginResponsesReasoningFromSettings')
+        ? muginResponsesReasoningFromSettings($reasoningEffort, $finalRerankTask['reasoningSummary'] ?? null)
+        : ['effort' => $reasoningEffort],
     'text' => [
         'verbosity' => 'low',
         'format' => [
@@ -297,38 +316,50 @@ $openAiRequest = muginNormalizeLlmRequestPayload([
 
 $headers = muginBuildLlmHttpHeaders($domain);
 
-$ch = curl_init($openAiApiUrl);
-curl_setopt_array($ch, [
-    CURLOPT_POST => true,
-    CURLOPT_POSTFIELDS => json_encode($openAiRequest),
-    CURLOPT_HTTPHEADER => $headers,
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_TIMEOUT => 60,
-]);
-$rawResponse = curl_exec($ch);
-$curlError = curl_errno($ch) ? curl_error($ch) : '';
-$status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-curl_close($ch);
-
-if ($rawResponse === false || $curlError !== '') {
-    muginSemanticRerankRespond(502, ['error' => $curlError !== '' ? $curlError : 'OpenAI request failed']);
+$modelsToTry = [$model];
+$fallbackModel = trim((string) ($finalRerankTask['fallbackModel'] ?? ''));
+if ($fallbackModel !== '' && $fallbackModel !== $model) {
+    $modelsToTry[] = $fallbackModel;
 }
+$decodedResponse = null;
+$usedModel = $model;
+$lastFailure = ['error' => 'OpenAI request failed'];
+foreach ($modelsToTry as $attemptModel) {
+    $openAiRequest['model'] = function_exists('muginFormatLlmModelForProvider')
+        ? muginFormatLlmModelForProvider($attemptModel)
+        : $attemptModel;
+    $ch = curl_init($openAiApiUrl);
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => json_encode($openAiRequest),
+        CURLOPT_HTTPHEADER => $headers,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 60,
+    ]);
+    $rawResponse = curl_exec($ch);
+    $curlError = curl_errno($ch) ? curl_error($ch) : '';
+    $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
 
-$decodedResponse = json_decode($rawResponse, true);
+    if ($rawResponse === false || $curlError !== '') {
+        $lastFailure = ['error' => $curlError !== '' ? $curlError : 'OpenAI request failed'];
+        continue;
+    }
+    $decodedAttempt = json_decode($rawResponse, true);
+    if (!is_array($decodedAttempt) || $status < 200 || $status >= 300) {
+        $lastFailure = [
+            'error' => 'OpenAI request failed',
+            'status' => $status,
+            'details' => is_array($decodedAttempt) ? $decodedAttempt : substr((string) $rawResponse, 0, 500),
+        ];
+        continue;
+    }
+    $decodedResponse = $decodedAttempt;
+    $usedModel = $attemptModel;
+    break;
+}
 if (!is_array($decodedResponse)) {
-    muginSemanticRerankRespond(502, [
-        'error' => 'Invalid OpenAI response',
-        'status' => $status,
-        'raw' => substr((string) $rawResponse, 0, 500),
-    ]);
-}
-
-if ($status < 200 || $status >= 300) {
-    muginSemanticRerankRespond(502, [
-        'error' => 'OpenAI request failed',
-        'status' => $status,
-        'details' => $decodedResponse,
-    ]);
+    muginSemanticRerankRespond(502, $lastFailure);
 }
 
 $responseText = muginSemanticRerankExtractText($decodedResponse);
@@ -373,5 +404,6 @@ foreach ($orderedIds as $orderedId) {
 
 muginSemanticRerankRespond(200, [
     'orderedIds' => $orderedIds,
+    'model' => $usedModel,
     'model' => $openAiRequest['model'],
 ]);

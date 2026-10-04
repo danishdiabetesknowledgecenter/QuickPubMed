@@ -21,6 +21,9 @@ if (!function_exists('muginPublicSearchProcessDetailStepIds')) {
             'semanticIntent',
             'searchString',
             'mesh',
+            'pubmedQueryReview1',
+            'pubmedQueryReview2',
+            'pubmedQueryReview3',
             'semanticScholar',
             'openAlex',
             'elicit',
@@ -569,9 +572,12 @@ if (!function_exists('muginPublicSearchProcessDetailsRecordSourceCompletion')) {
         array $progressContext,
         array $requestSummary = [],
         array $requestMeta = [],
-        string $detailContext = ''
+        string $detailContext = '',
+        ?int $elapsedMsOverride = null
     ): void {
-        $elapsedMs = (int) round((microtime(true) - $startedAt) * 1000);
+        $elapsedMs = $elapsedMsOverride !== null && $elapsedMsOverride >= 0
+            ? $elapsedMsOverride
+            : (int) round((microtime(true) - $startedAt) * 1000);
         $status = muginPublicSearchProcessDetailsResolveSourceTerminalStatus($sourceResult);
         $detail = muginPublicSearchProcessDetailsSanitize(
             muginPublicSearchProcessDetailsBuildSafeSourceDetail(
@@ -589,6 +595,10 @@ if (!function_exists('muginPublicSearchProcessDetailsRecordSourceCompletion')) {
         }
         $progressContext['status'] = $status;
         $progressContext['elapsedMs'] = $elapsedMs;
+        if ($elapsedMsOverride !== null && $elapsedMsOverride >= 0) {
+            // This is the source's own request time, not the wait for siblings.
+            $progressContext['elapsedAuthoritative'] = true;
+        }
         muginPublicSearchEmitProgress($progressCallback, $source, '', $progressContext);
     }
 }

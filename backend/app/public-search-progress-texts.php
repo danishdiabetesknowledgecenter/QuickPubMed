@@ -47,6 +47,18 @@ if (!defined('MUGIN_PUBLIC_SEARCH_PROGRESS_TEXTS')) {
             'dk' => 'Laver en PubMed-søgestreng ud fra din fritekst.',
             'en' => 'Building a PubMed search string from your free text.',
         ],
+        'semanticSearchProgressPubmedQueryReview' => [
+            'dk' => 'Tjekker den første PubMed-søgestreng mod de første resultater.',
+            'en' => 'Checking the first PubMed search string against the first results.',
+        ],
+        'semanticSearchProgressPubmedQueryReviewRevised' => [
+            'dk' => 'Tjekker den rettede PubMed-søgestreng mod de første resultater.',
+            'en' => 'Checking the revised PubMed search string against the first results.',
+        ],
+        'semanticSearchProgressPubmedQueryReviewAgain' => [
+            'dk' => 'Tjekker den næste rettelse af PubMed-søgestrengen mod de første resultater.',
+            'en' => 'Checking the next revision of the PubMed search string against the first results.',
+        ],
         'semanticSearchProgressMesh' => [
             'dk' => 'Tjekker og forfiner PubMed-søgestrengen med MeSH.',
             'en' => 'Checking and refining the PubMed search string with MeSH.',

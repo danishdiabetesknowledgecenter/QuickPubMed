@@ -10,12 +10,12 @@
 // Allowlist must come from config-shaped constants (no hardcoded product models in helpers).
 define('MUGIN_LLM_ALLOWED_MODELS', [
     'openai' => [
-        'gpt-5.5',
-        'gpt-5.4-nano',
+        'model-a',
+        'model-b',
     ],
     'requesty' => [
-        'azure/openai-responses/gpt-5.5@swedencentral',
-        'azure/openai-responses/gpt-5.4-nano@swedencentral',
+        'azure/openai-responses/model-a@region',
+        'azure/openai-responses/model-b@region',
     ],
 ]);
 
@@ -31,15 +31,15 @@ function assertTrue(bool $condition, string $message): void
 }
 
 assertTrue(
-    muginResolveAllowedOpenAiModel('gpt-5.5', 'gpt-5.5') === 'gpt-5.5',
-    'Allowlisted gpt-5.5 passes through'
+    muginResolveAllowedOpenAiModel('model-a', 'model-a') === 'model-a',
+    'Allowlisted model-a passes through'
 );
 assertTrue(
-    muginResolveAllowedOpenAiModel('gpt-5.4-nano', 'gpt-5.5') === 'gpt-5.4-nano',
-    'Allowlisted gpt-5.4-nano passes through'
+    muginResolveAllowedOpenAiModel('model-b', 'model-a') === 'model-b',
+    'Allowlisted model-b passes through'
 );
 assertTrue(
-    muginResolveAllowedOpenAiModel('gpt-4', 'gpt-5.5') === 'gpt-5.5',
+    muginResolveAllowedOpenAiModel('unknown-model', 'model-a') === 'model-a',
     'Unknown model maps to default (not rejected)'
 );
 assertTrue(

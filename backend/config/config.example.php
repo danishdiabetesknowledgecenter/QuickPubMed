@@ -16,7 +16,7 @@
 // Missing values automatically fall back to this backend config.
 define('OPENAI_API_KEY', 'sk-INSERT-YOUR-API-KEY-HERE');
 define('OPENAI_ORG_ID', '');
-// Use Responses API for gpt-5.5 and newer models with JSON mode support
+// Responses API. Model ids are set in MUGIN_LLM_TASK_MODELS below.
 define('OPENAI_API_URL', 'https://api.openai.com/v1/responses');
 
 // ============ LLM Provider Switch (OpenAI ↔ Requesty) ============
@@ -774,6 +774,14 @@ define('MUGIN_PARAPHRASE_CHIP_CONFIG', [
 // MeSH flow. Keep false unless telemetry reports show degradation.
 define('MUGIN_MESH_VALIDATION_OBSERVE_ONLY', false);
 
+// PubMed free-text clause check against the first results.
+// maxIterations 0 turns the check off and keeps the current string flow.
+// Each iteration fetches sampleSize PubMed hits and may revise the clause once.
+define('MUGIN_PUBMED_QUERY_REFINEMENT', [
+    'maxIterations' => 3,
+    'sampleSize' => 10,
+]);
+
 // ============ Public Search API Configuration ============
 // External API clients. Keep real keys only in config.php, never in git.
 define('MUGIN_API_CLIENTS', [
@@ -856,20 +864,13 @@ define('MUGIN_FIRST_PARTY_IP_RATE_LIMITS', [
 
 // Allowlisted model ids for first-party Summarize/Translate/Rerank proxies.
 // Unknown client-supplied models are mapped to a safe default (not rejected).
-// Use exact provider ids under each section (Requesty includes openai-responses/ and @region).
+// Placeholders only. Set the real ids in config.php (Requesty ids may include a prefix and @region).
 define('MUGIN_LLM_ALLOWED_MODELS', [
     'openai' => [
-        'gpt-5.6',
-        'gpt-5.5',
-        'gpt-5.4-nano',
-        'gpt-5.5-chat-latest',
-        'gpt-4o',
+        'your-openai-model',
     ],
     'requesty' => [
-        // Azure regional Responses models use azure/…@region (see Requesty model library).
-        'azure/openai-responses/gpt-5.6@swedencentral',
-        'azure/openai-responses/gpt-5.5@swedencentral',
-        'azure/openai-responses/gpt-5.4-nano@swedencentral',
+        'your-requesty-model',
     ],
 ]);
 
@@ -882,42 +883,42 @@ define('MUGIN_LLM_TASK_MODELS', [
     'openai' => [
         // Full-text article summarization (PDF/HTML).
         'summarizeArticle' => [
-            'model' => 'gpt-5.6',
+            'model' => 'your-openai-model',
             'reasoningEffort' => 'none',
             'verbosity' => 'medium',
         ],
         // Summarize one or more abstracts in search results.
         'summarizeAbstract' => [
-            'model' => 'gpt-5.6',
+            'model' => 'your-openai-model',
             'reasoningEffort' => 'none',
             'verbosity' => 'medium',
         ],
         // Translate titles and PubMed/semantic search strings.
         'translate' => [
-            'model' => 'gpt-5.5',
+            'model' => 'your-openai-model',
             'reasoningEffort' => 'none',
             'verbosity' => 'medium',
         ],
         // Structured semantic intent (JSON) before multi-source search.
         'semanticIntent' => [
-            'model' => 'gpt-5.5',
+            'model' => 'your-openai-model',
             'reasoningEffort' => 'none',
             'verbosity' => 'low',
         ],
         // MeSH optimization and repair of PubMed search strings (prompt/JS path).
         'mesh' => [
-            'model' => 'gpt-5.5',
+            'model' => 'your-openai-model',
             'reasoningEffort' => 'none',
             'verbosity' => 'medium',
         ],
         // Intent check/align: does the search string match the user's intent?
         'searchflow' => [
-            'model' => 'gpt-5.5',
+            'model' => 'your-openai-model',
             'reasoningEffort' => 'none',
         ],
         // LLM final rerank of semantic search results (first page).
         'finalRerank' => [
-            'model' => 'gpt-5.4-nano',
+            'model' => 'your-openai-model',
             'reasoningEffort' => 'none',
         ],
     ],
@@ -927,7 +928,7 @@ define('MUGIN_LLM_TASK_MODELS', [
     'requesty' => [
         // Full-text article summarization (PDF/HTML).
         'summarizeArticle' => [
-            'model' => 'azure/openai-responses/gpt-5.6@swedencentral',
+            'model' => 'your-requesty-model',
             'reasoningEffort' => 'none', // reasoning.effort (OpenAPI: low|medium|high; none/minimal also accepted)
             'reasoningSummary' => 'auto', // reasoning.summary: auto|concise|detailed
             'verbosity' => 'medium', // text.verbosity (OpenAI extension; Requesty text schema only lists format)
@@ -941,7 +942,7 @@ define('MUGIN_LLM_TASK_MODELS', [
         ],
         // Summarize one or more abstracts in search results.
         'summarizeAbstract' => [
-            'model' => 'azure/openai-responses/gpt-5.6@swedencentral',
+            'model' => 'your-requesty-model',
             'reasoningEffort' => 'none',
             'reasoningSummary' => 'auto',
             'verbosity' => 'medium',
@@ -955,7 +956,7 @@ define('MUGIN_LLM_TASK_MODELS', [
         ],
         // Translate titles and PubMed/semantic search strings.
         'translate' => [
-            'model' => 'azure/openai-responses/gpt-5.5@swedencentral',
+            'model' => 'your-requesty-model',
             'reasoningEffort' => 'none',
             'reasoningSummary' => 'auto',
             'verbosity' => 'medium',
@@ -969,7 +970,7 @@ define('MUGIN_LLM_TASK_MODELS', [
         ],
         // Structured semantic intent (JSON) before multi-source search.
         'semanticIntent' => [
-            'model' => 'azure/openai-responses/gpt-5.5@swedencentral',
+            'model' => 'your-requesty-model',
             'reasoningEffort' => 'none',
             'reasoningSummary' => 'auto',
             'verbosity' => 'low',
@@ -983,7 +984,7 @@ define('MUGIN_LLM_TASK_MODELS', [
         ],
         // MeSH optimization and repair of PubMed search strings (prompt/JS path).
         'mesh' => [
-            'model' => 'azure/openai-responses/gpt-5.5@swedencentral',
+            'model' => 'your-requesty-model',
             'reasoningEffort' => 'none',
             'reasoningSummary' => 'auto',
             'verbosity' => 'medium',
@@ -997,7 +998,7 @@ define('MUGIN_LLM_TASK_MODELS', [
         ],
         // Intent check/align: does the search string match the user's intent?
         'searchflow' => [
-            'model' => 'azure/openai-responses/gpt-5.5@swedencentral',
+            'model' => 'your-requesty-model',
             'reasoningEffort' => 'none',
             'reasoningSummary' => 'auto',
             'maxOutputTokens' => 2048,
@@ -1010,7 +1011,9 @@ define('MUGIN_LLM_TASK_MODELS', [
         ],
         // LLM final rerank of semantic search results (first page).
         'finalRerank' => [
-            'model' => 'azure/openai-responses/gpt-5.4-nano@swedencentral',
+            'model' => 'your-requesty-model',
+            // Optional. Tried once when the model request fails. Empty disables fallback.
+            'fallbackModel' => '',
             'reasoningEffort' => 'none',
             'reasoningSummary' => 'auto',
             'maxOutputTokens' => 400,

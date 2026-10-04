@@ -448,6 +448,7 @@ if (!function_exists('muginPublicSearchStripResolvedQueriesForPipelineCache')) {
         unset(
             $resolvedQueries['_earlyPrefetchedSources'],
             $resolvedQueries['_earlySourceStartedAt'],
+            $resolvedQueries['_earlySourceHttpElapsedMs'],
             $resolvedQueries['processReports']
         );
         return $resolvedQueries;
@@ -820,6 +821,12 @@ if (!function_exists('muginPublicSearchBuildStreamProgressPayload')) {
         }
         if (isset($context['elapsedMs']) && is_numeric($context['elapsedMs'])) {
             $payload['elapsedMs'] = max(0, (int) $context['elapsedMs']);
+        }
+        if (($context['elapsedFrozen'] ?? false) === true) {
+            $payload['elapsedFrozen'] = true;
+        }
+        if (($context['elapsedAuthoritative'] ?? false) === true) {
+            $payload['elapsedAuthoritative'] = true;
         }
         if (($context['detailOnly'] ?? false) === true) {
             $payload['detailOnly'] = true;
@@ -4487,7 +4494,12 @@ if (!function_exists('muginPublicSearchExtractSemanticIntent')) {
                             . muginPublicSearchSafeJsonEncode($payload),
                     ],
                 ],
-                'reasoning' => ['effort' => (string) ($taskSettings['reasoningEffort'] ?? 'none')],
+                'reasoning' => function_exists('muginResponsesReasoningFromSettings')
+                    ? muginResponsesReasoningFromSettings(
+                        (string) ($taskSettings['reasoningEffort'] ?? 'none'),
+                        $taskSettings['reasoningSummary'] ?? null
+                    )
+                    : ['effort' => (string) ($taskSettings['reasoningEffort'] ?? 'none')],
                 'text' => [
                     'verbosity' => (string) ($taskSettings['verbosity'] ?? 'low'),
                     'format' => [
@@ -4497,9 +4509,8 @@ if (!function_exists('muginPublicSearchExtractSemanticIntent')) {
                         'schema' => muginPublicSearchGetSemanticIntentResponseSchema(),
                     ],
                 ],
-                // Requesty/Azure gpt-5.6 often hits max_output_tokens at 1024 for
-                // strict JSON schema intents; incomplete JSON then nulls the intent.
-                'max_output_tokens' => 2048,
+                // From MUGIN_LLM_TASK_MODELS.semanticIntent.maxOutputTokens.
+                'max_output_tokens' => (int) ($taskSettings['maxOutputTokens'] ?? 0),
             ];
             try {
                 $response = muginPublicSearchOpenAiRequest($requestPayload, $domain);
@@ -4960,11 +4971,15 @@ if (!function_exists('muginPublicSearchBuildPubMedTranslationOpenAiRequest')) {
                     'content' => muginPublicSearchGetPubMedPromptText($language) . $promptInput,
                 ],
             ],
-            'reasoning' => ['effort' => (string) ($taskSettings['reasoningEffort'] ?? 'none')],
+            'reasoning' => function_exists('muginResponsesReasoningFromSettings')
+                ? muginResponsesReasoningFromSettings(
+                    (string) ($taskSettings['reasoningEffort'] ?? 'none'),
+                    $taskSettings['reasoningSummary'] ?? null
+                )
+                : ['effort' => (string) ($taskSettings['reasoningEffort'] ?? 'none')],
             'text' => ['verbosity' => (string) ($taskSettings['verbosity'] ?? 'medium')],
-            // 500 consistently returned status=incomplete (max_output_tokens) on
-            // Requesty Azure gpt-5.6-terra, truncating or emptying PubMed queries.
-            'max_output_tokens' => 2048,
+            // From MUGIN_LLM_TASK_MODELS.translate.maxOutputTokens.
+            'max_output_tokens' => (int) ($taskSettings['maxOutputTokens'] ?? 0),
         ];
     }
 }
@@ -5086,6 +5101,356 @@ if (!function_exists('muginPublicSearchIsUsableGeneratedQueryText')) {
     function muginPublicSearchIsUsableGeneratedQueryText(string $text): bool
     {
         return trim($text) !== '' && !muginPublicSearchIsUnusableGeneratedQueryText($text);
+    }
+}
+
+if (!function_exists('muginPublicSearchGetPubmedQueryRefinementConfig')) {
+    /**
+     * @return array{maxIterations:int,sampleSize:int}
+     */
+    function muginPublicSearchGetPubmedQueryRefinementConfig(): array
+    {
+        $raw = defined('MUGIN_PUBMED_QUERY_REFINEMENT') && is_array(MUGIN_PUBMED_QUERY_REFINEMENT)
+            ? MUGIN_PUBMED_QUERY_REFINEMENT
+            : [];
+        return [
+            'maxIterations' => max(0, (int) ($raw['maxIterations'] ?? 0)),
+            'sampleSize' => max(1, (int) ($raw['sampleSize'] ?? 10)),
+        ];
+    }
+}
+
+if (!function_exists('muginPublicSearchNormalizePubmedClauseForComparison')) {
+    function muginPublicSearchNormalizePubmedClauseForComparison(string $query): string
+    {
+        $collapsed = preg_replace('/\s+/u', ' ', trim($query));
+        return strtolower(is_string($collapsed) ? $collapsed : trim($query));
+    }
+}
+
+if (!function_exists('muginPublicSearchPrepareRevisedPubmedClause')) {
+    /**
+     * Runs a model-revised free-text clause through the same checks as the
+     * original translation: failure text, deterministic cleanup, and MeSH
+     * canonicalization when [mh] terms are present.
+     */
+    function muginPublicSearchPrepareRevisedPubmedClause(string $revised, string $domain = ''): string
+    {
+        $revised = trim($revised);
+        if (
+            $revised === ''
+            || muginPublicSearchIsPubMedTranslationFailureText($revised)
+            || muginPublicSearchPubmedQueryContainsTranslationFailureText($revised)
+        ) {
+            return '';
+        }
+        if (function_exists('muginSemanticQualitySanitizeSearchStringDeterministic')) {
+            $sanitized = muginSemanticQualitySanitizeSearchStringDeterministic($revised);
+            if (($sanitized['valid'] ?? false) !== true) {
+                return '';
+            }
+            $revised = trim((string) ($sanitized['value'] ?? ''));
+        }
+        if ($revised === '') {
+            return '';
+        }
+        $meshTerms = function_exists('muginSemanticQualityExtractMeshTerms')
+            ? muginSemanticQualityExtractMeshTerms($revised)
+            : [];
+        if (!empty($meshTerms)) {
+            try {
+                $meshResult = muginPublicSearchCanonicalizeAllMeshTermsWithNlmDetailed($revised, $domain);
+                $revised = trim((string) ($meshResult['value'] ?? $revised));
+            } catch (Throwable $exception) {
+                return '';
+            }
+            if (function_exists('muginSemanticQualitySanitizeSearchStringDeterministic')) {
+                $sanitized = muginSemanticQualitySanitizeSearchStringDeterministic($revised);
+                if (($sanitized['valid'] ?? false) !== true) {
+                    return '';
+                }
+                $revised = trim((string) ($sanitized['value'] ?? ''));
+            }
+            if ($revised !== '' && function_exists('muginSemanticQualityLowercaseNonMeshTerms')) {
+                $revised = muginSemanticQualityLowercaseNonMeshTerms($revised);
+            }
+            if ($revised !== '' && function_exists('muginSemanticQualityNormalizeBooleanOperatorsOutsideQuotes')) {
+                $revised = muginSemanticQualityNormalizeBooleanOperatorsOutsideQuotes($revised);
+            }
+        }
+        if (
+            $revised === ''
+            || muginPublicSearchIsPubMedTranslationFailureText($revised)
+            || muginPublicSearchPubmedQueryContainsTranslationFailureText($revised)
+        ) {
+            return '';
+        }
+        return trim($revised);
+    }
+}
+
+if (!function_exists('muginPublicSearchFetchPubmedClauseSample')) {
+    /**
+     * @return array{hitCount:int,articles:array<int,array<string,mixed>>,titles:array<int,string>}
+     */
+    function muginPublicSearchFetchPubmedClauseSample(string $clause, int $sampleSize, string $domain = ''): array
+    {
+        $search = muginPublicSearchFetchPubMedSearchIds($clause, $sampleSize, 'relevance', $domain);
+        $pmids = array_slice((array) ($search['pmids'] ?? []), 0, max(1, $sampleSize));
+        $summaries = muginPublicSearchFetchPubMedSummaryRecords($pmids, $domain);
+        $abstracts = muginPublicSearchFetchPubMedAbstractMap($pmids, $domain);
+        $articles = [];
+        $titles = [];
+        foreach ($pmids as $pmid) {
+            $summary = is_array($summaries[$pmid] ?? null) ? $summaries[$pmid] : [];
+            $detail = is_array($abstracts[$pmid] ?? null) ? $abstracts[$pmid] : [];
+            $title = trim((string) ($summary['title'] ?? ''));
+            $abstract = trim((string) ($detail['abstract'] ?? ''));
+            if (strlen($abstract) > 700) {
+                $abstract = rtrim(substr($abstract, 0, 700)) . '…';
+            }
+            $mesh = array_slice(muginPublicSearchNormalizeSimpleList($detail['mesh'] ?? []), 0, 12);
+            $keywords = array_slice(muginPublicSearchNormalizeSimpleList($detail['keywords'] ?? []), 0, 12);
+            if ($title !== '') {
+                $titles[] = $title;
+            }
+            $articles[] = [
+                'pmid' => $pmid,
+                'title' => $title,
+                'abstract' => $abstract,
+                'mesh' => $mesh,
+                'keywords' => $keywords,
+            ];
+        }
+        return [
+            'hitCount' => (int) ($search['searchCount'] ?? 0),
+            'articles' => $articles,
+            'titles' => $titles,
+        ];
+    }
+}
+
+if (!function_exists('muginPublicSearchJudgePubmedClauseSample')) {
+    /**
+     * @param array{hitCount:int,articles:array<int,array<string,mixed>>,titles:array<int,string>} $sample
+     * @return array{fits:bool,revisedQuery:string}|null
+     */
+    function muginPublicSearchJudgePubmedClauseSample(
+        string $userText,
+        string $baselineQuery,
+        string $probedQuery,
+        array $sample,
+        string $language,
+        string $domain = ''
+    ): ?array {
+        $taskSettings = function_exists('muginGetOpenAiTaskSettings')
+            ? muginGetOpenAiTaskSettings('translate')
+            : ['model' => '', 'reasoningEffort' => 'none', 'verbosity' => 'low'];
+        $danish = in_array(strtolower(trim($language)), ['da', 'dk'], true);
+        $instruction = $danish
+            ? 'Du vurderer, om en PubMed-søgestreng finder artikler, der besvarer brugerens fritekst. Du får JSON med userText, baselineQuery, probedQuery, hitCount og articles (title, abstract, mesh, keywords). Returnér KUN JSON med felterne fits (boolean) og revisedQuery (string). fits er true kun når hitCount og de viste artikler viser, at probedQuery besvarer userText: ikke tom, ikke overvældende bred, og artiklerne handler om spørgsmålet. Når fits er true, skal revisedQuery være en tom streng. Når fits er false, er revisedQuery én PubMed-søgestreng, der tager udgangspunkt i baselineQuery. Den må ændre [ti], [tiab] og MeSH, men må ikke tilføje emner, som userText ikke understøtter. Hvis probedQuery er forskellig fra baselineQuery, er probedQuery en forkastet rettelse, og den nye streng skal ikke bygge videre på den. Returnér ingen forklaring.'
+            : 'You judge whether a PubMed search string finds articles that answer the user\'s free text. You receive JSON with userText, baselineQuery, probedQuery, hitCount and articles (title, abstract, mesh, keywords). Return ONLY JSON with fits (boolean) and revisedQuery (string). fits is true only when hitCount and the shown articles show that probedQuery answers userText: not empty, not overwhelmingly broad, and the articles are about the question. When fits is true, revisedQuery must be an empty string. When fits is false, revisedQuery is one PubMed search string based on baselineQuery. It may change [ti], [tiab] and MeSH, and must not add topics that userText does not support. If probedQuery differs from baselineQuery, probedQuery was a rejected revision and the new string must not build on it. Do not return an explanation.';
+        $requestPayload = [
+            'model' => (string) ($taskSettings['model'] ?? ''),
+            'input' => [
+                [
+                    'role' => 'user',
+                    'content' => $instruction . "\n" . muginPublicSearchSafeJsonEncode([
+                        'userText' => $userText,
+                        'baselineQuery' => $baselineQuery,
+                        'probedQuery' => $probedQuery,
+                        'hitCount' => (int) ($sample['hitCount'] ?? 0),
+                        'articles' => array_values((array) ($sample['articles'] ?? [])),
+                    ]),
+                ],
+            ],
+            'reasoning' => function_exists('muginResponsesReasoningFromSettings')
+                ? muginResponsesReasoningFromSettings(
+                    (string) ($taskSettings['reasoningEffort'] ?? 'none'),
+                    $taskSettings['reasoningSummary'] ?? null
+                )
+                : ['effort' => (string) ($taskSettings['reasoningEffort'] ?? 'none')],
+            'text' => [
+                'verbosity' => (string) ($taskSettings['verbosity'] ?? 'low'),
+                'format' => [
+                    'type' => 'json_schema',
+                    'name' => 'pubmed_query_refinement',
+                    'strict' => true,
+                    'schema' => [
+                        'type' => 'object',
+                        'additionalProperties' => false,
+                        'required' => ['fits', 'revisedQuery'],
+                        'properties' => [
+                            'fits' => ['type' => 'boolean'],
+                            'revisedQuery' => ['type' => 'string'],
+                        ],
+                    ],
+                ],
+            ],
+            'max_output_tokens' => (int) ($taskSettings['maxOutputTokens'] ?? 0),
+        ];
+        try {
+            $response = muginPublicSearchOpenAiRequest($requestPayload, $domain);
+            $text = muginPublicSearchExtractOpenAiText($response);
+            $parsed = json_decode($text, true);
+            if (!is_array($parsed) || !array_key_exists('fits', $parsed)) {
+                return null;
+            }
+            return [
+                'fits' => $parsed['fits'] === true,
+                'revisedQuery' => trim((string) ($parsed['revisedQuery'] ?? '')),
+            ];
+        } catch (Throwable $exception) {
+            return null;
+        }
+    }
+}
+
+if (!function_exists('muginPublicSearchRefinePubmedFreetextClause')) {
+    /**
+     * Probes the free-text PubMed clause against the first results and keeps a
+     * revision only when a later probe says it fits. maxIterations 0 returns
+     * the clause unchanged.
+     *
+     * @param array<string,mixed> $request
+     * @param array<string,array<string,mixed>>|null $reviewSteps Out-parameter for the API processDetails export.
+     */
+    function muginPublicSearchRefinePubmedFreetextClause(
+        string $clause,
+        string $userText,
+        string $language,
+        string $domain,
+        array $request,
+        ?callable $progressCallback = null,
+        ?array &$reviewSteps = null
+    ): string {
+        $reviewSteps = [];
+        $config = muginPublicSearchGetPubmedQueryRefinementConfig();
+        $maxIterations = $config['maxIterations'];
+        if ($maxIterations === 0) {
+            return $clause;
+        }
+        $accepted = trim($clause);
+        if ($accepted === '') {
+            return $clause;
+        }
+        $sampleSize = $config['sampleSize'];
+        $probeTarget = $accepted;
+        $recordReviewStep = static function (string $stepId, array $payload) use (
+            $progressCallback,
+            &$reviewSteps
+        ): void {
+            $reviewSteps[$stepId] = $payload;
+            muginPublicSearchProcessDetailsEmitCompletedPayload($stepId, $payload, $progressCallback);
+        };
+        for ($iteration = 1; $iteration <= $maxIterations; $iteration++) {
+            $stepId = 'pubmedQueryReview' . $iteration;
+            $reviewMessageKeys = [
+                1 => 'semanticSearchProgressPubmedQueryReview',
+                2 => 'semanticSearchProgressPubmedQueryReviewRevised',
+                3 => 'semanticSearchProgressPubmedQueryReviewAgain',
+            ];
+            muginPublicSearchEmitProgress($progressCallback, $stepId, '', [
+                'stepId' => $stepId,
+                'groupId' => muginPublicSearchPrepareProgressGroupId($request),
+                'groupKey' => muginPublicSearchPrepareProgressGroupKey($request),
+                'messageKey' => $reviewMessageKeys[$iteration] ?? 'semanticSearchProgressPubmedQueryReview',
+            ]);
+            $probedQuery = $probeTarget;
+            try {
+                $sample = muginPublicSearchFetchPubmedClauseSample($probedQuery, $sampleSize, $domain);
+            } catch (Throwable $exception) {
+                $recordReviewStep($stepId, [
+                    'iteration' => $iteration,
+                    'maxIterations' => $maxIterations,
+                    'kept' => true,
+                    'queryBefore' => $probedQuery,
+                    'queryAfter' => $accepted,
+                    'hitCount' => 0,
+                    'titles' => [],
+                    'stoppedReason' => 'sample_failed',
+                ]);
+                break;
+            }
+            $verdict = muginPublicSearchJudgePubmedClauseSample(
+                $userText,
+                $accepted,
+                $probedQuery,
+                $sample,
+                $language,
+                $domain
+            );
+            if ($verdict === null) {
+                $recordReviewStep($stepId, [
+                    'iteration' => $iteration,
+                    'maxIterations' => $maxIterations,
+                    'kept' => muginPublicSearchNormalizePubmedClauseForComparison($probedQuery)
+                        === muginPublicSearchNormalizePubmedClauseForComparison($accepted),
+                    'queryBefore' => $probedQuery,
+                    'queryAfter' => $accepted,
+                    'hitCount' => (int) ($sample['hitCount'] ?? 0),
+                    'titles' => array_values((array) ($sample['titles'] ?? [])),
+                    'stoppedReason' => 'judge_failed',
+                ]);
+                break;
+            }
+            if ($verdict['fits'] === true) {
+                $accepted = $probedQuery;
+                $recordReviewStep($stepId, [
+                    'iteration' => $iteration,
+                    'maxIterations' => $maxIterations,
+                    'kept' => true,
+                    'queryBefore' => $probedQuery,
+                    'queryAfter' => $accepted,
+                    'hitCount' => (int) ($sample['hitCount'] ?? 0),
+                    'titles' => array_values((array) ($sample['titles'] ?? [])),
+                ]);
+                break;
+            }
+            if ($iteration === $maxIterations) {
+                $recordReviewStep($stepId, [
+                    'iteration' => $iteration,
+                    'maxIterations' => $maxIterations,
+                    'kept' => false,
+                    'queryBefore' => $probedQuery,
+                    'queryAfter' => $accepted,
+                    'hitCount' => (int) ($sample['hitCount'] ?? 0),
+                    'titles' => array_values((array) ($sample['titles'] ?? [])),
+                ]);
+                break;
+            }
+            $revised = muginPublicSearchPrepareRevisedPubmedClause($verdict['revisedQuery'], $domain);
+            $sameAsAccepted = $revised !== ''
+                && muginPublicSearchNormalizePubmedClauseForComparison($revised)
+                    === muginPublicSearchNormalizePubmedClauseForComparison($accepted);
+            $sameAsProbed = $revised !== ''
+                && muginPublicSearchNormalizePubmedClauseForComparison($revised)
+                    === muginPublicSearchNormalizePubmedClauseForComparison($probedQuery);
+            if ($revised === '' || $sameAsAccepted || $sameAsProbed) {
+                $recordReviewStep($stepId, [
+                    'iteration' => $iteration,
+                    'maxIterations' => $maxIterations,
+                    'kept' => false,
+                    'queryBefore' => $probedQuery,
+                    'queryAfter' => $accepted,
+                    'hitCount' => (int) ($sample['hitCount'] ?? 0),
+                    'titles' => array_values((array) ($sample['titles'] ?? [])),
+                    'stoppedReason' => $revised === '' ? 'revision_rejected' : 'revision_unchanged',
+                ]);
+                break;
+            }
+            $recordReviewStep($stepId, [
+                'iteration' => $iteration,
+                'maxIterations' => $maxIterations,
+                'kept' => false,
+                'queryBefore' => $probedQuery,
+                'queryAfter' => $revised,
+                'hitCount' => (int) ($sample['hitCount'] ?? 0),
+                'titles' => array_values((array) ($sample['titles'] ?? [])),
+            ]);
+            $probeTarget = $revised;
+        }
+        return $accepted;
     }
 }
 
@@ -5271,11 +5636,6 @@ if (!function_exists('muginPublicSearchTranslatePubMedQuery')) {
                         [],
                         []
                     );
-                } elseif ($wasIncomplete) {
-                    $request['max_output_tokens'] = max(
-                        (int) ($request['max_output_tokens'] ?? 2048),
-                        3072
-                    );
                 }
             }
             $translationResponse = muginPublicSearchOpenAiRequest($request, $domain);
@@ -5438,9 +5798,14 @@ if (!function_exists('muginPublicSearchBuildSemanticTranslationOpenAiRequest')) 
                     'content' => muginPublicSearchGetSemanticPromptText($language) . trim($text),
                 ],
             ],
-            'reasoning' => ['effort' => (string) ($taskSettings['reasoningEffort'] ?? 'none')],
+            'reasoning' => function_exists('muginResponsesReasoningFromSettings')
+                ? muginResponsesReasoningFromSettings(
+                    (string) ($taskSettings['reasoningEffort'] ?? 'none'),
+                    $taskSettings['reasoningSummary'] ?? null
+                )
+                : ['effort' => (string) ($taskSettings['reasoningEffort'] ?? 'none')],
             'text' => ['verbosity' => (string) ($taskSettings['verbosity'] ?? 'medium')],
-            'max_output_tokens' => 120,
+            'max_output_tokens' => (int) ($taskSettings['maxOutputTokens'] ?? 0),
         ];
     }
 }
@@ -5627,6 +5992,10 @@ if (!function_exists('muginPublicSearchPrefetchParallelTranslationRequests')) {
      * @param array<string,mixed> $sourceQueryPlan
      * @param array<string,mixed> $request
      * @param callable|null $sourceStartCallback
+     * @param callable|null $translationCompleteCallback Called as (string $requestName, int $elapsedMs)
+     *        when a prefetched translation request finishes, while sibling requests may still be running.
+     * @param callable|null $sourceTimingCallback Called as (string $source, int $elapsedMs)
+     *        when that source's own prefetched requests have finished, while siblings may still be running.
      * @return array<int,string> Sources whose initial request was prefetched.
      */
     function muginPublicSearchPrefetchParallelTranslationRequests(
@@ -5641,7 +6010,9 @@ if (!function_exists('muginPublicSearchPrefetchParallelTranslationRequests')) {
         array $request = [],
         ?callable $sourceStartCallback = null,
         bool $includeSemanticTranslation = true,
-        bool $includePubMedTranslation = true
+        bool $includePubMedTranslation = true,
+        ?callable $translationCompleteCallback = null,
+        ?callable $sourceTimingCallback = null
     ): array {
         $normalizedText = trim($text);
         if ($normalizedText === '') {
@@ -5675,7 +6046,24 @@ if (!function_exists('muginPublicSearchPrefetchParallelTranslationRequests')) {
             ['sourceQueryPlan' => $sourceQueryPlan],
             $request,
             $domain,
-            null,
+            static function (string $sourceKey, int $elapsedMs) use (
+                $translationCompleteCallback,
+                $sourceTimingCallback
+            ): void {
+                if (
+                    $translationCompleteCallback !== null
+                    && ($sourceKey === 'translation_searchString' || $sourceKey === 'translation_semanticQuery')
+                ) {
+                    $translationCompleteCallback($sourceKey, $elapsedMs);
+                    return;
+                }
+                if (
+                    $sourceTimingCallback !== null
+                    && in_array($sourceKey, ['pubmed', 'semanticScholar', 'openAlex', 'elicit'], true)
+                ) {
+                    $sourceTimingCallback($sourceKey, $elapsedMs);
+                }
+            },
             $translationRequests,
             $sourceStartCallback
         );
@@ -7194,12 +7582,14 @@ if (!function_exists('muginPublicSearchBuildResolvedQueries')) {
         $semanticIntentResult = null;
         $semanticIntentMeta = [];
         $translationProcessReport = null;
+        $pubmedQueryReviewSteps = [];
         $semanticProcessReport = [];
         $intentProcessReport = [];
         $sourceQueryPlan = [];
         $pubmedTranslationPrefetched = false;
         $earlyPrefetchedSources = [];
         $earlySourceStartedAt = [];
+        $earlySourceHttpElapsedMs = [];
         $queryOverrides = muginPublicSearchGetRequestQueryOverrides($request);
         $hasQueryOverrides = $queryOverrides !== [];
         $skipLlmForCompleteOverrides = muginPublicSearchQueryOverridesCoverAllSelectedSources($request);
@@ -7290,22 +7680,25 @@ if (!function_exists('muginPublicSearchBuildResolvedQueries')) {
                 $semanticIntentCompletedEarly = false;
                 if ($skipSemanticTranslation) {
                     $sourceQueryPlan = $provisionalSourceQueryPlan;
-                    $intentProcessReport = muginPublicSearchBuildCombinedSemanticIntentProcessReport(
-                        $request,
-                        $semanticIntentResult,
-                        $semanticIntentMeta,
-                        $semanticQuery,
-                        $sourceQueryPlan,
-                        true
-                    );
-                    $semanticProcessReport = $intentProcessReport;
-                    muginPublicSearchProcessDetailsEmitCompletedPayload(
-                        'semanticIntent',
-                        $intentProcessReport,
-                        $progressCallback
-                    );
-                    $semanticIntentCompletedEarly = true;
                 }
+                // Close interpretation before the PubMed-string request starts,
+                // so each point times its own call. The string is a separate
+                // request in the parallel wave below.
+                $intentProcessReport = muginPublicSearchBuildCombinedSemanticIntentProcessReport(
+                    $request,
+                    $semanticIntentResult,
+                    $semanticIntentMeta,
+                    $semanticQuery,
+                    $provisionalSourceQueryPlan,
+                    $skipSemanticTranslation
+                );
+                $semanticProcessReport = $intentProcessReport;
+                muginPublicSearchProcessDetailsEmitCompletedPayload(
+                    'semanticIntent',
+                    $intentProcessReport,
+                    $progressCallback
+                );
+                $semanticIntentCompletedEarly = true;
                 $canStartSemanticSourcesEarly =
                     !$hasQueryOverrides
                     && !$cachedFreetextHit
@@ -7340,15 +7733,62 @@ if (!function_exists('muginPublicSearchBuildResolvedQueries')) {
                     && in_array('pubmed', (array) $request['sources'], true)
                     && empty($queryOverrides['pubmed'])
                     && empty($cachedFreetextQueries['pubmed']);
-                if ($includePubMedTranslation) {
-                    muginPublicSearchEmitProgress($progressCallback, 'searchString', '', [
-                        'stepId' => 'searchString',
-                        'groupId' => muginPublicSearchPrepareProgressGroupId($request),
-                        'groupKey' => muginPublicSearchPrepareProgressGroupKey($request),
-                        'messageKey' => 'semanticSearchProgressSearchString',
-                    ]);
-                }
                 if ($includePubMedTranslation || ($canStartSemanticSourcesEarly && !empty($semanticSources))) {
+                    if ($includePubMedTranslation) {
+                        muginPublicSearchEmitProgress($progressCallback, 'searchString', '', [
+                            'stepId' => 'searchString',
+                            'groupId' => muginPublicSearchPrepareProgressGroupId($request),
+                            'groupKey' => muginPublicSearchPrepareProgressGroupKey($request),
+                            'messageKey' => 'semanticSearchProgressSearchString',
+                        ]);
+                    }
+                    $onSourceHttpComplete = static function (string $sourceKey, int $elapsedMs) use (
+                        &$earlySourceHttpElapsedMs,
+                        $progressCallback,
+                        $request
+                    ): void {
+                        $messageKeys = [
+                            'pubmed' => 'semanticSearchProgressPubMedBestMatch',
+                            'semanticScholar' => 'semanticSearchProgressSemanticScholar',
+                            'openAlex' => 'semanticSearchProgressOpenAlex',
+                            'elicit' => 'semanticSearchProgressElicit',
+                        ];
+                        if (!isset($messageKeys[$sourceKey])) {
+                            return;
+                        }
+                        $measuredMs = max(0, $elapsedMs);
+                        $earlySourceHttpElapsedMs[$sourceKey] = max(
+                            (int) ($earlySourceHttpElapsedMs[$sourceKey] ?? 0),
+                            $measuredMs
+                        );
+                        // Stop this database's clock when its own request finishes.
+                        // Sibling requests in the same wave must not keep it running.
+                        muginPublicSearchEmitProgress($progressCallback, $sourceKey, '', [
+                            'stepId' => $sourceKey,
+                            'groupId' => muginPublicSearchSourcesProgressGroupId($request),
+                            'groupKey' => muginPublicSearchSourcesProgressGroupKey($request),
+                            'messageKey' => $messageKeys[$sourceKey],
+                            'source' => $sourceKey,
+                            'elapsedMs' => $earlySourceHttpElapsedMs[$sourceKey],
+                            'elapsedFrozen' => true,
+                        ]);
+                    };
+                    $onTranslationComplete = static function (string $sourceKey, int $elapsedMs) use (
+                        $progressCallback,
+                        $request
+                    ): void {
+                        if ($sourceKey !== 'translation_searchString') {
+                            return;
+                        }
+                        muginPublicSearchEmitProgress($progressCallback, 'searchString', '', [
+                            'stepId' => 'searchString',
+                            'status' => 'completed',
+                            'elapsedMs' => max(0, $elapsedMs),
+                            'groupId' => muginPublicSearchPrepareProgressGroupId($request),
+                            'groupKey' => muginPublicSearchPrepareProgressGroupKey($request),
+                            'messageKey' => 'semanticSearchProgressSearchString',
+                        ]);
+                    };
                     $earlyPrefetchedSources = muginPublicSearchPrefetchParallelTranslationRequests(
                         $rawText,
                         $language,
@@ -7361,7 +7801,9 @@ if (!function_exists('muginPublicSearchBuildResolvedQueries')) {
                         $request,
                         $onEarlySourceStart,
                         !$skipSemanticTranslation,
-                        $includePubMedTranslation
+                        $includePubMedTranslation,
+                        $onTranslationComplete,
+                        $onSourceHttpComplete
                     );
                     $pubmedTranslationPrefetched = $includePubMedTranslation;
                 }
@@ -7392,6 +7834,16 @@ if (!function_exists('muginPublicSearchBuildResolvedQueries')) {
                         $intentProcessReport,
                         $progressCallback
                     );
+                } elseif ($progressCallback !== null) {
+                    $intentDetail = muginPublicSearchProcessDetailsSanitize([
+                        'stepId' => 'semanticIntent',
+                        'payload' => $intentProcessReport,
+                    ]);
+                    muginPublicSearchEmitProgress($progressCallback, 'semanticIntent', '', [
+                        'stepId' => 'semanticIntent',
+                        'detailOnly' => true,
+                        'processStepDetail' => $intentDetail,
+                    ]);
                 }
             }
 
@@ -7502,6 +7954,36 @@ if (!function_exists('muginPublicSearchBuildResolvedQueries')) {
                 $pubmedQuery = $freetextPubMedQuery;
             }
             if (
+                $translationMode === 'auto'
+                && $freetextPubMedQuery !== ''
+                && !$cachedFreetextApplied
+                && empty($queryOverrides['pubmed'])
+                && in_array('pubmed', (array) ($request['sources'] ?? []), true)
+                && !muginPublicSearchPubmedQueryContainsTranslationFailureText($freetextPubMedQuery)
+            ) {
+                $refinedFreetext = muginPublicSearchRefinePubmedFreetextClause(
+                    $freetextPubMedQuery,
+                    $rawText,
+                    $language,
+                    $domain,
+                    $request,
+                    $progressCallback,
+                    $pubmedQueryReviewSteps
+                );
+                if (trim($refinedFreetext) !== '') {
+                    $freetextPubMedQuery = trim($refinedFreetext);
+                    $pubmedQuery = $freetextPubMedQuery;
+                    $translatedFreetextPubMedQuery = $freetextPubMedQuery;
+                    if (
+                        is_array($translationProcessReport)
+                        && is_array($translationProcessReport['searchString'] ?? null)
+                    ) {
+                        $translationProcessReport['searchString']['pubmedQuery'] = $freetextPubMedQuery;
+                        $translationProcessReport['searchString']['finalValidatedQuery'] = $freetextPubMedQuery;
+                    }
+                }
+            }
+            if (
                 $freetextPubMedQuery !== ''
                 && !empty($standardString)
                 && ($request['_applyStandardStringToFreetext'] ?? true) === true
@@ -7596,6 +8078,13 @@ if (!function_exists('muginPublicSearchBuildResolvedQueries')) {
         }
         $postValidationRuleState = muginPublicSearchBuildPostValidationRuleState($request);
         $processReports = $translationProcessReport ?? [];
+        if (!empty($pubmedQueryReviewSteps) && is_array($pubmedQueryReviewSteps)) {
+            foreach ($pubmedQueryReviewSteps as $reviewStepId => $reviewPayload) {
+                if (is_string($reviewStepId) && is_array($reviewPayload)) {
+                    $processReports[$reviewStepId] = $reviewPayload;
+                }
+            }
+        }
         if (!empty($intentProcessReport)) {
             $processReports['semanticIntent'] = $intentProcessReport;
         }
@@ -7690,6 +8179,7 @@ if (!function_exists('muginPublicSearchBuildResolvedQueries')) {
             'cachedFreetextQueriesUsed' => $cachedFreetextApplied,
             '_earlyPrefetchedSources' => $earlyPrefetchedSources,
             '_earlySourceStartedAt' => $earlySourceStartedAt,
+            '_earlySourceHttpElapsedMs' => $earlySourceHttpElapsedMs,
         ];
     }
 }
@@ -11412,10 +11902,13 @@ if (!function_exists('muginPublicSearchGetSemanticLlmConfig')) {
             : [];
         $enabled = muginPublicSearchBoolValue($raw['enabled'] ?? true, true);
         $topN = is_numeric($raw['topN'] ?? null) ? (int) $raw['topN'] : 25;
-        $maxOutputTokens = is_numeric($raw['maxOutputTokens'] ?? null) ? (int) $raw['maxOutputTokens'] : 400;
         $taskSettings = function_exists('muginGetOpenAiTaskSettings')
             ? muginGetOpenAiTaskSettings('finalRerank')
             : ['model' => '', 'reasoningEffort' => 'none'];
+        $taskMax = isset($taskSettings['maxOutputTokens']) ? (int) $taskSettings['maxOutputTokens'] : 0;
+        $maxOutputTokens = $taskMax > 0
+            ? $taskMax
+            : (is_numeric($raw['maxOutputTokens'] ?? null) ? (int) $raw['maxOutputTokens'] : 0);
         // reasoning.effort must match the model family (the API rejects mismatches).
         $reasoningEffort = strtolower(trim((string) ($taskSettings['reasoningEffort'] ?? 'none')));
         if (!in_array($reasoningEffort, ['minimal', 'none', 'low', 'medium', 'high', 'xhigh'], true)) {
@@ -11427,7 +11920,9 @@ if (!function_exists('muginPublicSearchGetSemanticLlmConfig')) {
         return [
             'enabled' => $enabled,
             'model' => trim((string) ($taskSettings['model'] ?? '')),
+            'fallbackModel' => trim((string) ($taskSettings['fallbackModel'] ?? '')),
             'reasoningEffort' => $reasoningEffort,
+            'reasoningSummary' => $taskSettings['reasoningSummary'] ?? null,
             'topN' => max(2, min(50, $topN)),
             'maxOutputTokens' => max(64, $maxOutputTokens),
             // Shared across UnifiedSearch + public API so identical candidate
@@ -11797,7 +12292,9 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
         $systemPromptLines = [
             'You rerank already validated scholarly search candidates.',
             'Never exclude, add, or invent items. Return a permutation of the provided candidate ids only.',
-            'Prefer candidates that best match the query intent using title, abstract, and provided topics together.',
+            'Rank by userQuestion: how well each candidate answers what the user asked, using title, abstract, and provided topics together.',
+            'retrievalQuery is only the string the databases were searched with. Use it to understand why a candidate was retrieved. Do not treat its keywords as extra topics the user asked for.',
+            'When userQuestion is empty, rank by retrievalQuery.',
             'When candidate topics are provided, use them as additive topical evidence together with title and abstract.',
             'Missing topics must not lower a candidate. Do not prefer a candidate merely because it has MeSH or a PMID.',
             'OpenAlex and Semantic Scholar topics are valid substitutes when MeSH is absent.',
@@ -11814,6 +12311,18 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
             }
         }
 
+        $userQuestion = trim((string) ($request['intentContext']['rawUserInput'] ?? ''));
+        if ($userQuestion === '') {
+            $userQuestion = trim((string) ($request['query']['text'] ?? ''));
+        }
+        $retrievalQuery = trim((string) ($resolvedQueries['semanticIntent'] ?? ($resolvedQueries['pubmedQuery'] ?? ($request['query']['text'] ?? ''))));
+        if ($userQuestion === '') {
+            $userQuestion = $retrievalQuery;
+        }
+        if ($retrievalQuery === '') {
+            $retrievalQuery = $userQuestion;
+        }
+
         $requestPayload = [
             'model' => $config['model'],
             'input' => [
@@ -11824,7 +12333,8 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
                 [
                     'role' => 'user',
                     'content' => muginPublicSearchSafeJsonEncode([
-                        'query' => trim((string) ($resolvedQueries['semanticIntent'] ?? ($resolvedQueries['pubmedQuery'] ?? ($request['query']['text'] ?? '')))),
+                        'userQuestion' => $userQuestion,
+                        'retrievalQuery' => $retrievalQuery,
                         'hardFilterQuery' => trim((string) ($resolvedQueries['hardFilterQuery'] ?? '')),
                         'resultFocus' => $focusCopy,
                         'task' => 'Return the candidate ids ordered from most to least relevant.',
@@ -11848,7 +12358,12 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
                     ]),
                 ],
             ],
-            'reasoning' => ['effort' => $config['reasoningEffort']],
+            'reasoning' => function_exists('muginResponsesReasoningFromSettings')
+                ? muginResponsesReasoningFromSettings(
+                    (string) $config['reasoningEffort'],
+                    $config['reasoningSummary'] ?? null
+                )
+                : ['effort' => $config['reasoningEffort']],
             'text' => [
                 'verbosity' => 'low',
                 'format' => [
@@ -11861,14 +12376,14 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
             'max_output_tokens' => $config['maxOutputTokens'],
         ];
 
-        $queryText = trim((string) ($resolvedQueries['semanticIntent'] ?? ($resolvedQueries['pubmedQuery'] ?? ($request['query']['text'] ?? ''))));
         $hardFilterQuery = trim((string) ($resolvedQueries['hardFilterQuery'] ?? ''));
         $detail = [
             'endpoint' => 'unified-final-rerank',
             'enabled' => true,
             'applied' => false,
             'request' => [
-                'query' => $queryText,
+                'userQuestion' => $userQuestion,
+                'retrievalQuery' => $retrievalQuery,
                 'hardFilterQuery' => $hardFilterQuery,
                 'resultFocus' => $focusDetail,
                 'model' => $config['model'],
@@ -11946,8 +12461,34 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
             }
         }
 
+        $attemptModels = [$config['model']];
+        $fallbackModel = trim((string) ($config['fallbackModel'] ?? ''));
+        if ($fallbackModel !== '' && $fallbackModel !== $config['model']) {
+            $attemptModels[] = $fallbackModel;
+        }
+        $response = null;
+        $usedFallback = false;
+        foreach ($attemptModels as $attemptIndex => $attemptModel) {
+            $requestPayload['model'] = $attemptModel;
+            try {
+                $response = muginPublicSearchOpenAiRequest($requestPayload, $domain);
+                $detail['request']['model'] = $attemptModel;
+                if ($attemptIndex > 0) {
+                    $detail['request']['fallbackFrom'] = $config['model'];
+                    $usedFallback = true;
+                }
+                break;
+            } catch (Throwable $throwable) {
+                $response = null;
+                if ($attemptIndex === count($attemptModels) - 1) {
+                    return ['results' => $results, 'detail' => array_merge($detail, ['skippedReason' => 'llm_error'])];
+                }
+            }
+        }
+        if (!is_array($response)) {
+            return ['results' => $results, 'detail' => array_merge($detail, ['skippedReason' => 'llm_error'])];
+        }
         try {
-            $response = muginPublicSearchOpenAiRequest($requestPayload, $domain);
             $responseText = muginPublicSearchExtractOpenAiText($response);
             $parsed = json_decode($responseText, true);
             if (!is_array($parsed) || !isset($parsed['orderedIds']) || !is_array($parsed['orderedIds'])) {
@@ -11962,7 +12503,7 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
                     ]),
                 ];
             }
-            if ($cacheTtl > 0) {
+            if ($cacheTtl > 0 && !$usedFallback) {
                 muginPublicSearchWriteCacheValue(
                     'final-rerank',
                     $cacheKey,
@@ -12987,6 +13528,15 @@ if (!function_exists('muginPublicSearchRunSearch')) {
                 muginPublicSearchProcessDetailsSetStep($collector, 'mesh', (array) $processReports['mesh']);
                 muginPublicSearchProcessDetailsEmitStep($collector, 'mesh', $progressCallback, true);
             }
+            foreach (['pubmedQueryReview1', 'pubmedQueryReview2', 'pubmedQueryReview3'] as $reviewStepId) {
+                if (!empty($processReports[$reviewStepId]) && is_array($processReports[$reviewStepId])) {
+                    muginPublicSearchProcessDetailsSetStep(
+                        $collector,
+                        $reviewStepId,
+                        (array) $processReports[$reviewStepId]
+                    );
+                }
+            }
             $searchBasisTarget = null;
             if (!empty($processReports['semanticIntent']) || !empty($processReports['semanticQuery'])) {
                 $searchBasisTarget = 'semanticIntent';
@@ -13203,6 +13753,12 @@ if (!function_exists('muginPublicSearchRunSearch')) {
         ];
         $earlyPrefetchedSources = array_values((array) ($resolvedQueries['_earlyPrefetchedSources'] ?? []));
         $earlySourceStartedAt = (array) ($resolvedQueries['_earlySourceStartedAt'] ?? []);
+        $sourceHttpElapsedMs = [];
+        foreach ((array) ($resolvedQueries['_earlySourceHttpElapsedMs'] ?? []) as $sourceKey => $elapsedMs) {
+            if (is_string($sourceKey) && is_numeric($elapsedMs)) {
+                $sourceHttpElapsedMs[$sourceKey] = max(0, (int) $elapsedMs);
+            }
+        }
         $sourceFetchStartedAt = [];
         foreach ($selectedSources as $sourceKey) {
             if (
@@ -13225,15 +13781,47 @@ if (!function_exists('muginPublicSearchRunSearch')) {
             array_values(array_diff($selectedSources, $earlyPrefetchedSources)),
             $resolvedQueries,
             $request,
-            $domain
+            $domain,
+            static function (string $sourceKey, int $elapsedMs) use (
+                &$sourceHttpElapsedMs,
+                $progressCallback,
+                $sourceProgressContexts
+            ): void {
+                if (!isset($sourceProgressContexts[$sourceKey])) {
+                    return;
+                }
+                $measuredMs = max(0, $elapsedMs);
+                $sourceHttpElapsedMs[$sourceKey] = max(
+                    (int) ($sourceHttpElapsedMs[$sourceKey] ?? 0),
+                    $measuredMs
+                );
+                muginPublicSearchEmitProgress(
+                    $progressCallback,
+                    $sourceKey,
+                    '',
+                    array_merge($sourceProgressContexts[$sourceKey], [
+                        'elapsedMs' => $sourceHttpElapsedMs[$sourceKey],
+                        'elapsedFrozen' => true,
+                    ])
+                );
+            }
         );
+        $sourceElapsedAfterHttp = static function (string $sourceKey, float $fetchStartedAt) use (&$sourceHttpElapsedMs): ?int {
+            if (!array_key_exists($sourceKey, $sourceHttpElapsedMs)) {
+                return null;
+            }
+            $fetchMs = (int) round((microtime(true) - $fetchStartedAt) * 1000);
+            return (int) $sourceHttpElapsedMs[$sourceKey] + max(0, $fetchMs);
+        };
         $sourceResults = [];
         if (in_array('pubmed', $selectedSources, true)) {
             $pubmedQueryText = muginPublicSearchCombinePubMedQuery(
                 (string) ($resolvedQueries['pubmedQuery'] ?? ''),
                 (string) ($resolvedQueries['hardFilterQuery'] ?? '')
             );
+            $pubmedFetchStartedAt = microtime(true);
             $pubmedSourceResult = muginPublicSearchFetchPubMedBestMatchSourceResult($pubmedQueryText, $domain);
+            $pubmedElapsedOverride = $sourceElapsedAfterHttp('pubmed', $pubmedFetchStartedAt);
             $sourceResults[] = $pubmedSourceResult;
             muginPublicSearchProcessDetailsRecordSourceCompletion(
                 $collector,
@@ -13256,15 +13844,21 @@ if (!function_exists('muginPublicSearchRunSearch')) {
                     'pubmed',
                     ['role' => 'pubmedBestMatchSource', 'limitStrategy' => 'multi-source']
                 ),
-                $sourceDetailContext
+                $sourceDetailContext,
+                $pubmedElapsedOverride
             );
         }
         if (in_array('semanticScholar', $selectedSources, true)) {
             $semanticScholarQueryText = (string) ($resolvedQueries['sourceQueryPlan']['semanticScholar']['query'] ?? '');
+            $semanticScholarFetchStartedAt = microtime(true);
             $semanticScholarSourceResult = muginPublicSearchFetchSemanticScholarSourceResult(
                 $semanticScholarQueryText,
                 (array) ($resolvedQueries['sourceQueryPlan']['semanticScholar']['filters'] ?? []),
                 (string) ($request['_clientSourceApiKeys']['semanticScholar'] ?? '')
+            );
+            $semanticScholarElapsedOverride = $sourceElapsedAfterHttp(
+                'semanticScholar',
+                $semanticScholarFetchStartedAt
             );
             $sourceResults[] = $semanticScholarSourceResult;
             muginPublicSearchProcessDetailsRecordSourceCompletion(
@@ -13288,17 +13882,20 @@ if (!function_exists('muginPublicSearchRunSearch')) {
                     'semanticScholar',
                     ['searchMode' => 'semantic']
                 ),
-                $sourceDetailContext
+                $sourceDetailContext,
+                $semanticScholarElapsedOverride
             );
         }
         if (in_array('openAlex', $selectedSources, true)) {
             $openAlexQueryText = (string) ($resolvedQueries['sourceQueryPlan']['openAlex']['query'] ?? '');
+            $openAlexFetchStartedAt = microtime(true);
             $openAlexSourceResult = muginPublicSearchFetchOpenAlexSourceResult(
                 $openAlexQueryText,
                 (array) ($resolvedQueries['sourceQueryPlan']['openAlex']['filters'] ?? []),
                 $domain,
                 (string) ($request['_clientSourceApiKeys']['openAlex'] ?? '')
             );
+            $openAlexElapsedOverride = $sourceElapsedAfterHttp('openAlex', $openAlexFetchStartedAt);
             $sourceResults[] = $openAlexSourceResult;
             muginPublicSearchProcessDetailsRecordSourceCompletion(
                 $collector,
@@ -13325,16 +13922,19 @@ if (!function_exists('muginPublicSearchRunSearch')) {
                         ? $openAlexSourceResult['requestMeta']
                         : ['searchMode' => 'semantic']
                 ),
-                $sourceDetailContext
+                $sourceDetailContext,
+                $openAlexElapsedOverride
             );
         }
         if (in_array('elicit', $selectedSources, true)) {
             $elicitQueryText = (string) ($resolvedQueries['sourceQueryPlan']['elicit']['query'] ?? '');
+            $elicitFetchStartedAt = microtime(true);
             $elicitSourceResult = muginPublicSearchFetchElicitSourceResult(
                 $elicitQueryText,
                 (array) ($resolvedQueries['sourceQueryPlan']['elicit']['filters'] ?? []),
                 (string) ($request['_clientSourceApiKeys']['elicit'] ?? '')
             );
+            $elicitElapsedOverride = $sourceElapsedAfterHttp('elicit', $elicitFetchStartedAt);
             $sourceResults[] = $elicitSourceResult;
             muginPublicSearchProcessDetailsRecordSourceCompletion(
                 $collector,
@@ -13356,7 +13956,8 @@ if (!function_exists('muginPublicSearchRunSearch')) {
                     'elicit',
                     ['searchMode' => 'semantic']
                 ),
-                $sourceDetailContext
+                $sourceDetailContext,
+                $elicitElapsedOverride
             );
         }
 

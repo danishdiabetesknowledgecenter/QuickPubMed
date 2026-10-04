@@ -2535,6 +2535,9 @@
           "semanticIntent",
           "searchString",
           "mesh",
+          "pubmedQueryReview1",
+          "pubmedQueryReview2",
+          "pubmedQueryReview3",
           "semanticScholar",
           "openAlex",
           "elicit",
@@ -2608,6 +2611,9 @@
           cache: "semanticSearchProgressCacheHit",
           searchString: "semanticSearchProgressSearchString",
           mesh: "semanticSearchProgressMesh",
+          pubmedQueryReview1: "semanticSearchProgressPubmedQueryReview",
+          pubmedQueryReview2: "semanticSearchProgressPubmedQueryReviewRevised",
+          pubmedQueryReview3: "semanticSearchProgressPubmedQueryReviewAgain",
           semanticIntent: this.getSemanticIntentProgressMessageKey(),
           semanticQuery: this.getSemanticIntentProgressMessageKey(),
           pubmed: "semanticSearchProgressPubMedBestMatch",
@@ -2667,12 +2673,14 @@
         ) {
           stepIds.push("semanticIntent");
         }
+        const pubmedAlreadyResolved =
+          hasPubmedOverride || String(cached.pubmed || "").trim() !== "";
         if (
           !skipLlm &&
           aiOn &&
           hasFreetext &&
-          !hasPubmedOverride &&
-          this.shouldShowPubMedRelatedSemanticProcessSteps()
+          this.shouldShowPubMedRelatedSemanticProcessSteps() &&
+          !pubmedAlreadyResolved
         ) {
           stepIds.push("searchString");
         }
@@ -2766,6 +2774,9 @@
           "semanticIntent",
           "searchString",
           "mesh",
+          "pubmedQueryReview1",
+          "pubmedQueryReview2",
+          "pubmedQueryReview3",
           "rerank",
           "finalizeValidatePmid",
           "finalizeValidateDoiFetch",
@@ -2827,7 +2838,7 @@
         if (!this.isUnifiedEngineActive || !this.searchLoading) return;
         const steps = Array.isArray(this.loadingProcessSteps) ? this.loadingProcessSteps : [];
         if (steps.length === 0) return;
-        ["semanticIntent", "searchString", "mesh"].forEach((stepId) => {
+        ["semanticIntent", "searchString", "mesh", "pubmedQueryReview1", "pubmedQueryReview2", "pubmedQueryReview3"].forEach((stepId) => {
           const step = steps.find((entry) => entry?.id === stepId);
           if (!step || this.isSemanticLoadingTerminalStatus(step.status)) return;
           if (this.processStepHasDetailPayload(stepId)) {
@@ -3196,7 +3207,14 @@
         // The PubMed query/MeSH preparation steps run in their own lane that now
         // overlaps the concurrent source fetches, so they must not be completed or
         // reset as a side effect of a source step activating.
-        return ["semanticIntent", "searchString", "mesh"].includes(
+        return [
+          "semanticIntent",
+          "searchString",
+          "mesh",
+          "pubmedQueryReview1",
+          "pubmedQueryReview2",
+          "pubmedQueryReview3",
+        ].includes(
           String(stepId || "").trim()
         );
       },
@@ -6474,6 +6492,11 @@
           .filter(Boolean);
         return tagQueries.join(" | ") || String(this.finalValidatedQuery || "").trim();
       },
+      getSemanticLlmRerankUserQuestion() {
+        const freeText = String(this.globalSemanticSearchInput || "").trim();
+        if (freeText) return freeText;
+        return String(this.searchIntent || "").trim();
+      },
       getSemanticLlmRerankProfileContext() {
         const profileId = this.resolvedSelectedRerankProfileId;
         if (!profileId) return null;
@@ -6665,7 +6688,7 @@
 
             requestCandidates.push({
               // Use a short positional id for the model round-trip. Small models
-              // (e.g. gpt-5.4-nano) often drop the "pmid:"/"doi:" prefix or mangle
+              // often drop the "pmid:"/"doi:" prefix or mangle
               // long DOI ids, which breaks the strict permutation contract and
               // triggers a 422. candidateMap below maps this short id back to the
               // real entry, and candidateId is still used to gate usable entries.
@@ -6686,8 +6709,11 @@
           }
 
           this.activateSemanticLoadingProcessStep("finalRerank", "semanticSearchProgressFinalRerank");
+          const retrievalQuery = this.getSemanticLlmRerankQueryText();
+          const userQuestion = this.getSemanticLlmRerankUserQuestion();
           const rerankRequest = {
-            query: this.getSemanticLlmRerankQueryText(),
+            userQuestion: userQuestion || retrievalQuery,
+            retrievalQuery: retrievalQuery || userQuestion,
             hardFilterQuery: this.getSemanticHardFilterValidationQuery(),
             resultFocus: this.getSemanticLlmRerankProfileContext(),
             model: config.model,
@@ -6698,7 +6724,8 @@
           this.setSearchProcessStepDetail("finalRerank", {
             endpoint: "SemanticFinalRerank.php",
             request: {
-              query: rerankRequest.query,
+              userQuestion: rerankRequest.userQuestion,
+              retrievalQuery: rerankRequest.retrievalQuery,
               hardFilterQuery: rerankRequest.hardFilterQuery,
               resultFocus: rerankRequest.resultFocus,
               model: rerankRequest.model,
@@ -9506,6 +9533,32 @@
           const isSourceStage = sourceStepIds.includes(stage);
           const explicitStatus = String(context?.status || "").trim();
           const explicitElapsedMs = Number(context?.elapsedMs);
+          // A database request in the shared wave has finished. Stop its clock
+          // at that request's own duration while the other databases continue.
+          if (
+            context?.elapsedFrozen === true &&
+            isSourceStage &&
+            Number.isFinite(explicitElapsedMs) &&
+            explicitElapsedMs >= 0
+          ) {
+            this.activateConcurrentSemanticLoadingStep(stage, messageKey);
+            const frozenStep = (this.loadingProcessSteps || []).find(
+              (entry) => String(entry?.id || "") === stage
+            );
+            if (frozenStep && !this.isSemanticLoadingTerminalStatus(frozenStep.status)) {
+              const frozenElapsedMs = Math.max(0, explicitElapsedMs);
+              if (
+                !Number.isFinite(Number(frozenStep.startedAtMs)) ||
+                Number(frozenStep.startedAtMs) <= 0
+              ) {
+                frozenStep.startedAtMs = this.getProcessTimingNow() - frozenElapsedMs;
+              }
+              frozenStep.elapsedMs = frozenElapsedMs;
+              frozenStep.endedAtMs = Number(frozenStep.startedAtMs) + frozenElapsedMs;
+            }
+            this.reconcilePreparePhaseProcessStepsAfterLaterProgress();
+            return;
+          }
           // Apply terminal status (incl. completed) only after details above.
           if (explicitStatus && this.isSemanticLoadingTerminalStatus(explicitStatus)) {
             if (isSourceStage) {
@@ -9516,10 +9569,10 @@
                   (entry) => String(entry?.id || "") === stage
                 );
                 if (step) {
-                  const monotonicElapsedMs = Math.max(
-                    Number(step.elapsedMs) || 0,
-                    explicitElapsedMs
-                  );
+                  const monotonicElapsedMs =
+                    context?.elapsedAuthoritative === true
+                      ? explicitElapsedMs
+                      : Math.max(Number(step.elapsedMs) || 0, explicitElapsedMs);
                   step.elapsedMs = monotonicElapsedMs;
                   if (!Number.isFinite(Number(step.startedAtMs)) || Number(step.startedAtMs) <= 0) {
                     step.startedAtMs = this.getProcessTimingNow() - monotonicElapsedMs;
@@ -9534,6 +9587,25 @@
                 activeSourceStepId = "";
               }
             } else if (this.isPreparePhaseSemanticLoadingStep(stage)) {
+              // A PubMed-string completion with no measured duration is the
+              // in-memory read after the translation already ran. Skip that
+              // near-zero row. A completion that was started, or that carries
+              // the real request duration, stays visible.
+              if (stage === "searchString") {
+                const searchStringStep = (this.loadingProcessSteps || []).find(
+                  (entry) => String(entry?.id || "") === "searchString"
+                );
+                const searchStringWasRunning =
+                  searchStringStep &&
+                  String(searchStringStep.status || "") === "current" &&
+                  Number(searchStringStep.startedAtMs) > 0;
+                const hasMeasuredDuration =
+                  Number.isFinite(explicitElapsedMs) && explicitElapsedMs >= 500;
+                if (!searchStringWasRunning && !hasMeasuredDuration) {
+                  this.reconcilePreparePhaseProcessStepsAfterLaterProgress();
+                  return;
+                }
+              }
               // Prepare-lane steps (esp. mesh) often complete while source prefetch
               // has already moved the UI forward. Full activate() is start-oriented
               // and can leave an out-of-order prepare step stuck on pending.
@@ -9549,6 +9621,31 @@
                 this.startProcessStepTiming(prepareStep);
               }
               this.setSemanticLoadingProcessStepStatus(stage, explicitStatus, messageKey);
+              if (
+                stage === "searchString" &&
+                Number.isFinite(explicitElapsedMs) &&
+                explicitElapsedMs > 0
+              ) {
+                const searchStringStep = (this.loadingProcessSteps || []).find(
+                  (entry) => String(entry?.id || "") === "searchString"
+                );
+                if (searchStringStep) {
+                  const monotonicElapsedMs = Math.max(
+                    Number(searchStringStep.elapsedMs) || 0,
+                    explicitElapsedMs
+                  );
+                  searchStringStep.elapsedMs = monotonicElapsedMs;
+                  if (
+                    !Number.isFinite(Number(searchStringStep.startedAtMs)) ||
+                    Number(searchStringStep.startedAtMs) <= 0
+                  ) {
+                    searchStringStep.startedAtMs =
+                      this.getProcessTimingNow() - monotonicElapsedMs;
+                  }
+                  searchStringStep.endedAtMs =
+                    Number(searchStringStep.startedAtMs) + monotonicElapsedMs;
+                }
+              }
             } else {
               this.activateSemanticLoadingProcessStep(stage, messageKey);
               this.setSemanticLoadingProcessStepStatus(stage, explicitStatus, messageKey);

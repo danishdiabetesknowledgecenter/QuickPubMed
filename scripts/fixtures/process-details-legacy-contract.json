@@ -305,7 +305,7 @@
                     "resultFocus": {
                         "id": "balanced"
                     },
-                    "model": "gpt-5-mini",
+                    "model": "configured-model",
                     "candidateCount": 25
                 },
                 "response": {

@@ -519,6 +519,18 @@ export const messages = {
     dk: "Tjekker og forfiner PubMed-søgestrengen med MeSH.",
     en: "Checking and refining the PubMed search string with MeSH.",
   },
+  semanticSearchProgressPubmedQueryReview: {
+    dk: "Tjekker den første PubMed-søgestreng mod de første resultater.",
+    en: "Checking the first PubMed search string against the first results.",
+  },
+  semanticSearchProgressPubmedQueryReviewRevised: {
+    dk: "Tjekker den rettede PubMed-søgestreng mod de første resultater.",
+    en: "Checking the revised PubMed search string against the first results.",
+  },
+  semanticSearchProgressPubmedQueryReviewAgain: {
+    dk: "Tjekker den næste rettelse af PubMed-søgestrengen mod de første resultater.",
+    en: "Checking the next revision of the PubMed search string against the first results.",
+  },
   semanticSearchProgressSemanticIntent: {
     dk: "Fortolker og tilpasser søgningen til de valgte databaser.",
     en: "Interpreting and adapting the search for the selected databases.",
@@ -636,6 +648,14 @@ export const messages = {
     dk: "De vigtigste begreber tjekkes og forfines mod PubMeds officielle emneord (MeSH), så søgningen rammer mere præcist.",
     en: "Key concepts are checked and refined against PubMed's official subject headings (MeSH) so the search is more precise.",
   },
+  semanticSearchProcessExplanationPubmedQueryReview: {
+    dk: "De første PubMed-resultater bruges til at se, om søgestrengen finder artikler, der svarer på din fritekst. Passer de ikke, rettes strengen og prøves igen.",
+    en: "The first PubMed results are used to see whether the search string finds articles that answer your free text. If they do not, the string is revised and tried again.",
+  },
+  semanticSearchProcessExplanationAdaptSearch: {
+    dk: "Søgestrengene til de valgte databaser bliver skrevet, så hver database kan søges med den rigtige formulering.",
+    en: "Search strings for the selected databases are written so each database can be searched with the right wording.",
+  },
   semanticSearchProcessExplanationSemanticIntent: {
     dk: "Din fritekst fortolkes til en engelsk søgeintention, og søgningen tilpasses til de valgte databaser.",
     en: "Your free text is interpreted into an English search intent, and the search is adapted for the selected databases.",
@@ -720,6 +740,14 @@ export const messages = {
     dk: "De centrale begreber slås op og forfines via NLM's MeSH-register. I detaljerne ser du bl.a. 'meshSearchQuery', 'validCount'/'invalidCount', 'beforeOptimization'/'afterOptimization', 'addedMeshTerms'/'removedMeshTerms' og 'finalMeshTermCount'.",
     en: "Key concepts are looked up and refined via NLM's MeSH registry. In the details you see e.g. 'meshSearchQuery', 'validCount'/'invalidCount', 'beforeOptimization'/'afterOptimization', 'addedMeshTerms'/'removedMeshTerms' and 'finalMeshTermCount'.",
   },
+  semanticSearchProcessDetailExplanationPubmedQueryReview: {
+    dk: "De første PubMed-resultater sammenlignes med din fritekst. I detaljerne ser du 'iteration', 'hitCount', 'kept' (om strengen blev beholdt), 'queryBefore'/'queryAfter' og 'titles'.",
+    en: "The first PubMed results are compared with your free text. In the details you see 'iteration', 'hitCount', 'kept' (whether the string was kept), 'queryBefore'/'queryAfter' and 'titles'.",
+  },
+  semanticSearchProcessDetailExplanationAdaptSearch: {
+    dk: "Her skrives søgningerne, som databaserne faktisk får. Semantic Scholar, OpenAlex og Elicit kan gå i gang samtidig, fordi de bruger den færdige fortolkning. PubMed-søgestrengen laves i samme omgang. I detaljerne ser du 'semanticQuery' (den fælles søgning), 'semanticTranslationSkipped' (om et ekstra AI-kald blev sprunget over) og 'pubmedTranslationIncluded' (om PubMed-strengen blev lavet her).",
+    en: "This is where the searches the databases actually receive are written. Semantic Scholar, OpenAlex and Elicit can start at the same time, because they use the finished interpretation. The PubMed search string is built in the same pass. In the details you see 'semanticQuery' (the shared search), 'semanticTranslationSkipped' (whether an extra AI call was skipped) and 'pubmedTranslationIncluded' (whether the PubMed string was built here).",
+  },
   semanticSearchProcessDetailExplanationSemanticIntent: {
     dk: "Her fortolkes din fritekst til en engelsk søgeintention, og søgningen tilpasses til de valgte databaser. I detaljerne ser du bl.a. 'semanticIntent'/'coreQuery', 'detectedConcepts', 'confidenceScore', 'conceptCoverage', 'coverageCheck', 'potentialIssues', 'refinementSuggestions', 'sourceQueries' (query pr. database) og 'adaptations'. 'parseAttempts'/'fallbackUsed' viser, om AI-kaldet lykkedes. 'semanticTranslationSkipped' er true, når tilpasningen genbrugte intent uden et ekstra AI-kald.",
     en: "Your free text is interpreted into an English search intent, and the search is adapted for the selected databases. In the details you see e.g. 'semanticIntent'/'coreQuery', 'detectedConcepts', 'confidenceScore', 'conceptCoverage', 'coverageCheck', 'potentialIssues', 'refinementSuggestions', 'sourceQueries' (query per database) and 'adaptations'. 'parseAttempts'/'fallbackUsed' show whether the AI call succeeded. 'semanticTranslationSkipped' is true when adaptation reused the intent without an extra AI call.",
@@ -777,8 +805,8 @@ export const messages = {
     en: "The results are sorted by date if you chose date sorting. In the details you see 'sortMethod' (the sort method), 'inputCount' (count before sorting) and 'outputCount' (count after).",
   },
   semanticSearchProcessDetailExplanationFinalRerank: {
-    dk: "Den endelige rækkefølge tjekkes en sidste gang med en AI-rerank, før resultaterne vises. I detaljerne ser du 'request' med bl.a. 'query', 'hardFilterQuery', 'model' og 'candidateCount' (hvor mange kandidater der blev sendt til rerank).",
-    en: "The final ordering is checked one last time with an AI rerank before the results are shown. In the details you see 'request' with e.g. 'query', 'hardFilterQuery', 'model' and 'candidateCount' (how many candidates were sent to the rerank).",
+    dk: "Den endelige rækkefølge tjekkes en sidste gang med en AI-rerank, før resultaterne vises. I detaljerne ser du 'request' med bl.a. 'userQuestion', 'retrievalQuery', 'hardFilterQuery', 'model' og 'candidateCount' (hvor mange kandidater der blev sendt til rerank).",
+    en: "The final ordering is checked one last time with an AI rerank before the results are shown. In the details you see 'request' with e.g. 'userQuestion', 'retrievalQuery', 'hardFilterQuery', 'model' and 'candidateCount' (how many candidates were sent to the rerank).",
   },
   semanticSearchProcessDetailExplanationFinalizeSelected: {
     dk: "Det sikres, at artikler du allerede havde markeret, bevares i resultatlisten. I detaljerne ser du 'preselectedCount' (antal forhåndsmarkerede) og 'selectedCount' (antal markerede i alt).",

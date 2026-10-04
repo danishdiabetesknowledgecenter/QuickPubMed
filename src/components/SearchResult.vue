@@ -18,8 +18,16 @@
           :aria-controls="`${srLabelUid}-process`"
           @click="toggleProcessBox"
         >
-          {{ getString(isProcessBoxExpanded ? "semanticSearchProcessHide" : "semanticSearchProcessShow") }}
+          {{
+            getString(isProcessBoxExpanded ? "semanticSearchProcessHide" : "semanticSearchProcessShow")
+          }}
         </button>
+        <span
+          v-if="!loading && shouldShowProcessTotalTime"
+          class="mugin_searchProcessToggleTime"
+        >
+          ({{ formatProcessDurationAsWords(visibleSearchProcessElapsedMs) }})
+        </span>
       </p>
       <transition
         name="collapse"
@@ -209,7 +217,7 @@
                 </ul>
               </li>
             </ul>
-            <div v-if="shouldShowProcessTotalTime" class="mugin_searchProcessTotalTime">
+            <div v-if="shouldShowProcessTotalTime && loading" class="mugin_searchProcessTotalTime">
               {{ formatProcessTotalTime }}
             </div>
           </div>
@@ -963,7 +971,14 @@
       },
       groupedProcessSteps() {
         const sourceChildIds = ["pubmed", "semanticScholar", "openAlex", "elicit"];
-        const prepareChildIds = ["semanticIntent", "searchString", "mesh"];
+        const prepareChildIds = [
+          "semanticIntent",
+          "searchString",
+          "mesh",
+          "pubmedQueryReview1",
+          "pubmedQueryReview2",
+          "pubmedQueryReview3",
+        ];
         const sourceStepCount = (Array.isArray(this.loadingProcessSteps)
           ? this.loadingProcessSteps
           : []
@@ -1678,6 +1693,9 @@
         }
         const minuteKey =
           minutes === 1 ? "searchProcessMinuteSingular" : "searchProcessMinutePlural";
+        if (seconds === 0) {
+          return `${minutes} ${this.getString(minuteKey)}`;
+        }
         const secondKey =
           seconds === 1
             ? "searchProcessSecondSingular"
@@ -1710,6 +1728,9 @@
           semanticIntent: "semanticSearchProcessExplanationSemanticIntent",
           searchString: "semanticSearchProcessExplanationSearchString",
           mesh: "semanticSearchProcessExplanationMesh",
+          pubmedQueryReview1: "semanticSearchProcessExplanationPubmedQueryReview",
+          pubmedQueryReview2: "semanticSearchProcessExplanationPubmedQueryReview",
+          pubmedQueryReview3: "semanticSearchProcessExplanationPubmedQueryReview",
           pubmed: "semanticSearchProcessExplanationPubmed",
           semanticScholar: "semanticSearchProcessExplanationSemanticScholar",
           openAlex: "semanticSearchProcessExplanationOpenAlex",
@@ -1729,6 +1750,9 @@
           semanticIntent: "semanticSearchProcessDetailExplanationSemanticIntent",
           searchString: "semanticSearchProcessDetailExplanationSearchString",
           mesh: "semanticSearchProcessDetailExplanationMesh",
+          pubmedQueryReview1: "semanticSearchProcessDetailExplanationPubmedQueryReview",
+          pubmedQueryReview2: "semanticSearchProcessDetailExplanationPubmedQueryReview",
+          pubmedQueryReview3: "semanticSearchProcessDetailExplanationPubmedQueryReview",
           pubmed: "semanticSearchProcessDetailExplanationPubmed",
           semanticScholar: "semanticSearchProcessDetailExplanationSemanticScholar",
           openAlex: "semanticSearchProcessDetailExplanationOpenAlex",
