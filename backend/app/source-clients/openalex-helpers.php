@@ -294,7 +294,11 @@ if (!function_exists('muginWriteOpenAlexWorkCache')) {
             $payload,
             LOCK_EX
         );
-        muginFileCacheMaybeSweepDirectory(muginGetOpenAlexWorkCacheDir());
+        muginFileCacheMaybeSweepDirectory(
+            muginGetOpenAlexWorkCacheDir(),
+            null,
+            max(60, muginGetOpenAlexWorkCacheTtl(false)) + 120
+        );
     }
 }
 

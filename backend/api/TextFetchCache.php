@@ -101,5 +101,9 @@ function muginWriteTextFetchCache($sourceType, $sourceUrl, $text)
     }
 
     @file_put_contents($cachePath, $payload, LOCK_EX);
-    muginFileCacheMaybeSweepDirectory(muginGetTextFetchCacheDir());
+    muginFileCacheMaybeSweepDirectory(
+        muginGetTextFetchCacheDir(),
+        null,
+        max(60, (int) MUGIN_TEXT_FETCH_CACHE_TTL_SECONDS) + 120
+    );
 }

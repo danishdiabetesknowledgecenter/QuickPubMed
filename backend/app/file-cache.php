@@ -2,7 +2,7 @@
 /**
  * Shared filesystem cache housekeeping (no cron).
  * - Callers should unlink expired entries on read (lazy-delete).
- * - data/cache writes may trigger a probabilistic directory sweep.
+ * - data/cache writes schedule a bounded sweep (TTL, file cap, optional byte cap).
  * - data/runtime is swept in bounded passes on search and rate-limit traffic.
  */
 
@@ -69,54 +69,235 @@ if (!function_exists('muginIpRateLimitFileMaxAgeSeconds')) {
     }
 }
 
+if (!function_exists('muginFileCacheNameMatches')) {
+    function muginFileCacheNameMatches(string $name, string $pattern): bool
+    {
+        if ($name === '' || $name === 'cache-sweep-state.json') {
+            return false;
+        }
+        if ($pattern === '*.json') {
+            return strlen($name) > 5 && substr($name, -5) === '.json';
+        }
+        $flags = defined('FNM_CASEFOLD') ? FNM_CASEFOLD : 0;
+        return fnmatch($pattern, $name, $flags);
+    }
+}
+
+if (!function_exists('muginSweepDataCacheDirectory')) {
+    /**
+     * Delete expired cache files, then trim the newest survivors to the file
+     * and byte caps. A cursor continues a large directory on the next call.
+     *
+     * @param int|null $maxBytes Null skips the byte cap.
+     */
+    function muginSweepDataCacheDirectory(
+        string $dir,
+        int $maxFiles,
+        int $maxAgeSeconds,
+        string $globPattern = '*.json',
+        ?int $maxBytes = null,
+        float $maxSeconds = 1.5
+    ): void {
+        if ($dir === '' || !is_dir($dir)) {
+            return;
+        }
+        $maxFiles = max(1, $maxFiles);
+        $maxAgeSeconds = max(1, $maxAgeSeconds);
+        if ($maxBytes !== null) {
+            $maxBytes = max(1, $maxBytes);
+        }
+        $statePath = $dir . DIRECTORY_SEPARATOR . 'cache-sweep-state.json';
+        $fp = @fopen($statePath, 'c+');
+        if ($fp === false) {
+            return;
+        }
+        try {
+            if (!flock($fp, LOCK_EX | LOCK_NB)) {
+                return;
+            }
+            $raw = stream_get_contents($fp);
+            $state = is_string($raw) && trim($raw) !== '' ? json_decode($raw, true) : [];
+            if (!is_array($state)) {
+                $state = [];
+            }
+            $cursor = (string) ($state['cursor'] ?? '');
+            $startedAtBeginning = ($cursor === '');
+            $now = time();
+            $deadline = microtime(true) + max(0.05, $maxSeconds);
+            clearstatcache();
+            $dh = @opendir($dir);
+            if ($dh === false) {
+                return;
+            }
+
+            $armed = $startedAtBeginning;
+            $paused = false;
+            $survivors = [];
+            while (($name = readdir($dh)) !== false) {
+                if ($name === '.' || $name === '..') {
+                    continue;
+                }
+                if (!$armed) {
+                    if ($name === $cursor) {
+                        $armed = true;
+                    } elseif (microtime(true) >= $deadline) {
+                        $paused = true;
+                        break;
+                    }
+                    continue;
+                }
+                if (!muginFileCacheNameMatches($name, $globPattern)) {
+                    continue;
+                }
+                $path = $dir . DIRECTORY_SEPARATOR . $name;
+                $mtime = @filemtime($path);
+                if ($mtime === false || !is_file($path)) {
+                    continue;
+                }
+                $mtime = (int) $mtime;
+                if ($mtime > 0 && ($now - $mtime) > $maxAgeSeconds) {
+                    @unlink($path);
+                    continue;
+                }
+                if ($startedAtBeginning) {
+                    $size = @filesize($path);
+                    $survivors[] = [
+                        'path' => $path,
+                        'mtime' => $mtime,
+                        'size' => $size === false ? 0 : (int) $size,
+                    ];
+                }
+                if (microtime(true) >= $deadline) {
+                    $state['cursor'] = $name;
+                    $paused = true;
+                    break;
+                }
+            }
+            closedir($dh);
+
+            if (!$paused && !$armed && $cursor !== '') {
+                $state['cursor'] = '';
+            } elseif (!$paused && $armed) {
+                if ($startedAtBeginning) {
+                    usort($survivors, static function (array $a, array $b): int {
+                        return $a['mtime'] <=> $b['mtime'];
+                    });
+                    $totalBytes = 0;
+                    foreach ($survivors as $entry) {
+                        $totalBytes += (int) $entry['size'];
+                    }
+                    $remaining = count($survivors);
+                    $index = 0;
+                    while ($index < $remaining) {
+                        $overFiles = ($remaining - $index) > $maxFiles;
+                        $overBytes = $maxBytes !== null && $totalBytes > $maxBytes;
+                        if (!$overFiles && !$overBytes) {
+                            break;
+                        }
+                        $entry = $survivors[$index];
+                        clearstatcache(true, (string) $entry['path']);
+                        if (@unlink((string) $entry['path'])) {
+                            $totalBytes -= (int) $entry['size'];
+                            if ($totalBytes < 0) {
+                                $totalBytes = 0;
+                            }
+                        }
+                        $index++;
+                    }
+                }
+                $state['cursor'] = '';
+            }
+
+            $encoded = json_encode($state);
+            if (is_string($encoded)) {
+                ftruncate($fp, 0);
+                rewind($fp);
+                fwrite($fp, $encoded);
+                fflush($fp);
+            }
+        } finally {
+            if (is_resource($fp)) {
+                @flock($fp, LOCK_UN);
+                @fclose($fp);
+            }
+        }
+    }
+}
+
+if (!function_exists('muginDataCacheSweepPending')) {
+    /**
+     * @return array<string,array<string,mixed>>
+     */
+    function &muginDataCacheSweepPending(): array
+    {
+        static $pending = [];
+        return $pending;
+    }
+}
+
+if (!function_exists('muginScheduleDataCacheSweep')) {
+    function muginScheduleDataCacheSweep(
+        string $dir,
+        int $maxFiles,
+        int $maxAgeSeconds,
+        string $globPattern,
+        ?int $maxBytes
+    ): void {
+        $pending = &muginDataCacheSweepPending();
+        $pending[$dir] = [
+            'maxFiles' => $maxFiles,
+            'maxAgeSeconds' => $maxAgeSeconds,
+            'pattern' => $globPattern,
+            'maxBytes' => $maxBytes,
+        ];
+        static $scheduled = false;
+        if ($scheduled) {
+            return;
+        }
+        $scheduled = true;
+        register_shutdown_function(static function (): void {
+            @ignore_user_abort(true);
+            if (function_exists('fastcgi_finish_request')) {
+                @fastcgi_finish_request();
+            }
+            $queue = &muginDataCacheSweepPending();
+            foreach ($queue as $pendingDir => $options) {
+                muginSweepDataCacheDirectory(
+                    (string) $pendingDir,
+                    (int) $options['maxFiles'],
+                    (int) $options['maxAgeSeconds'],
+                    (string) $options['pattern'],
+                    isset($options['maxBytes']) && $options['maxBytes'] !== null ? (int) $options['maxBytes'] : null
+                );
+            }
+            $queue = [];
+        });
+    }
+}
+
 if (!function_exists('muginFileCacheMaybeSweepDirectory')) {
     /**
-     * Probabilistic cleanup (~1/200): drop files older than maxAge, then trim to maxFiles.
+     * Schedule a bounded sweep: drop files older than maxAge, then trim to maxFiles
+     * and, when set, maxBytes. Runs once per request after the response is sent.
+     *
+     * @param int|null $maxBytes Null skips the byte cap.
      */
     function muginFileCacheMaybeSweepDirectory(
         string $dir,
         ?int $maxFiles = null,
         ?int $maxAgeSeconds = null,
-        string $globPattern = '*.json'
+        string $globPattern = '*.json',
+        ?int $maxBytes = null
     ): void {
         if ($dir === '' || !is_dir($dir)) {
             return;
         }
-        if (mt_rand(1, 200) !== 1) {
-            return;
-        }
         $maxFiles = $maxFiles !== null ? max(50, $maxFiles) : muginFileCacheMaxFiles();
         $maxAgeSeconds = $maxAgeSeconds !== null ? max(60, $maxAgeSeconds) : muginFileCacheMaxAgeSeconds();
-        $pattern = rtrim($dir, "\\/") . DIRECTORY_SEPARATOR . $globPattern;
-        $now = time();
-        $survivors = [];
-        foreach (glob($pattern) ?: [] as $path) {
-            if (!is_file($path)) {
-                continue;
-            }
-            $mtime = @filemtime($path);
-            $mtime = $mtime === false ? 0 : (int) $mtime;
-            if ($mtime > 0 && ($now - $mtime) > $maxAgeSeconds) {
-                @unlink($path);
-                continue;
-            }
-            $survivors[] = ['path' => $path, 'mtime' => $mtime];
+        if ($maxBytes !== null) {
+            $maxBytes = max(1048576, $maxBytes);
         }
-        $survivorCount = count($survivors);
-        if ($survivorCount <= $maxFiles) {
-            return;
-        }
-        usort($survivors, static function (array $a, array $b): int {
-            return $a['mtime'] <=> $b['mtime'];
-        });
-        $toRemove = $survivorCount - $maxFiles;
-        foreach ($survivors as $entry) {
-            if ($toRemove <= 0) {
-                break;
-            }
-            @unlink((string) $entry['path']);
-            $toRemove--;
-        }
+        muginScheduleDataCacheSweep($dir, $maxFiles, $maxAgeSeconds, $globPattern, $maxBytes);
     }
 }
 

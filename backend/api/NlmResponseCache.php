@@ -128,5 +128,13 @@ function muginWriteNlmResponseCache(string $endpoint, string $domain, array $par
         return;
     }
     @file_put_contents(muginGetNlmResponseCachePath($endpoint, $domain, $params), $payload, LOCK_EX);
-    muginFileCacheMaybeSweepDirectory(muginGetNlmResponseCacheDir());
+    $maxAge = max(
+        muginGetNlmResponseCacheTtl('esummary'),
+        muginGetNlmResponseCacheTtl('efetch'),
+        60
+    ) + 120;
+    $maxBytes = defined('MUGIN_NLM_RESPONSE_CACHE_MAX_BYTES')
+        ? max(1048576, (int) MUGIN_NLM_RESPONSE_CACHE_MAX_BYTES)
+        : 33554432;
+    muginFileCacheMaybeSweepDirectory(muginGetNlmResponseCacheDir(), null, $maxAge, '*.json', $maxBytes);
 }

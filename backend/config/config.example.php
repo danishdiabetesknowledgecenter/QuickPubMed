@@ -99,6 +99,9 @@ define('MUGIN_NLM_RESPONSE_CACHE_TTL_SECONDS', [
     'esummary' => 900,
     'efetch' => 900,
 ]);
+// Disk cap for data/cache/nlm-response. Entries older than the TTL are removed
+// on write; this limits how much fresh PubMed XML can accumulate.
+define('MUGIN_NLM_RESPONSE_CACHE_MAX_BYTES', 33554432); // 32 MiB
 
 // ============ OpenAlex Work Lookup Cache ============
 // Short-lived cache for DOI/OpenAlex ID metadata lookups.
@@ -111,8 +114,11 @@ define('MUGIN_OPENALEX_WORK_CACHE_TTL_SECONDS', [
 define('MUGIN_OPENALEX_BATCH_LOOKUP_CONCURRENCY', 2);
 
 // ============ Filesystem cache housekeeping (no cron) ============
-// data/cache uses probabilistic sweeps (~1/200 writes). Lazy-delete also removes
-// expired entries on read.
+// data/cache is swept in bounded passes on cache writes. Files older than that
+// cache's TTL are removed. nlm-response is also capped by
+// MUGIN_NLM_RESPONSE_CACHE_MAX_BYTES. Lazy-delete still removes expired entries
+// on read. MUGIN_FILE_CACHE_MAX_AGE_SECONDS is only the fallback when a caller
+// does not pass a TTL.
 // data/runtime is swept in bounded passes on search and rate-limit traffic:
 // expired cache files, orphan temp files, stale locks, old rate-limit files,
 // and logs past retention. Live cache files are also trimmed to
