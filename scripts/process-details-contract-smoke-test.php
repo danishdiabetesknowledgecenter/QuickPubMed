@@ -24,7 +24,7 @@ muginProcessDetailsAssert(($fixture['version'] ?? '') === '1', 'Fixture uses con
 
 $expectedSteps = muginPublicSearchProcessDetailStepIds();
 $schemaSteps = (array) ($schema['$defs']['stepId']['enum'] ?? []);
-muginProcessDetailsAssert(count($expectedSteps) === 13, 'All 13 known process step ids are registered');
+muginProcessDetailsAssert(count($expectedSteps) === 16, 'All 16 known process step ids are registered');
 muginProcessDetailsAssert(
     !in_array('semanticQuery', $expectedSteps, true),
     'Canonical PHP step ids fold semanticQuery into semanticIntent'

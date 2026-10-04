@@ -216,6 +216,49 @@
             "context": ""
         },
         {
+            "stepId": "pubmedQueryReview1",
+            "payload": {
+                "iteration": 1,
+                "maxIterations": 3,
+                "kept": false,
+                "queryBefore": "type 2 diabetes[tiab]",
+                "queryAfter": "type 2 diabetes[tiab]",
+                "hitCount": 4,
+                "titles": [
+                    "Type 2 diabetes treatment"
+                ]
+            },
+            "context": ""
+        },
+        {
+            "stepId": "pubmedQueryReview2",
+            "payload": {
+                "iteration": 2,
+                "maxIterations": 3,
+                "kept": false,
+                "queryBefore": "\"Diabetes Mellitus, Type 2\"[mh]",
+                "queryAfter": "type 2 diabetes[tiab]",
+                "hitCount": 2,
+                "titles": []
+            },
+            "context": ""
+        },
+        {
+            "stepId": "pubmedQueryReview3",
+            "payload": {
+                "iteration": 3,
+                "maxIterations": 3,
+                "kept": true,
+                "queryBefore": "type 2 diabetes treatment[tiab]",
+                "queryAfter": "type 2 diabetes treatment[tiab]",
+                "hitCount": 6,
+                "titles": [
+                    "Treatment of type 2 diabetes"
+                ]
+            },
+            "context": ""
+        },
+        {
             "stepId": "rerank",
             "payload": {
                 "rerankProfile": {
