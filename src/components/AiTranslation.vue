@@ -3,9 +3,18 @@
     v-if="showingTranslation"
     class="mugin_searchSummaryText mugin_searchSummaryTextBackground mugin_searchTranslatedTitle"
   >
-    <mugin-markdown v-if="useMarkdown && canRenderMarkdown" lang="da" :markdown="text" smooth-live-preview />
-    <div v-else lang="da">
-      <p>{{ text }}</p>
+    <div lang="da">
+      <p v-if="errorText" class="mugin_translatedTitleError">{{ errorText }}</p>
+      <p v-else-if="!longStarted">{{ getString("aiTranslationWaitText") }}</p>
+      <template v-else>
+        <p class="mugin_translatedTitleLong">{{ longTitle }}</p>
+        <p v-if="showShortTitle" class="mugin_translatedTitleShort">
+          <span class="mugin_translatedTitleShortLabel">{{
+            getString("translatedTitleShortLabel")
+          }}</span>
+          {{ shortTitle }}
+        </p>
+      </template>
     </div>
     <div v-if="loading" class="mugin_translationLoadingSpacer">
       <loading-spinner :loading="loading" />
@@ -63,17 +72,16 @@
 
 <script>
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
-  import MuginMarkdown from "@/components/MuginMarkdown.vue";
   import { appSettingsMixin } from "@/mixins/appSettings.js";
   import { utilitiesMixin } from "@/mixins/utilities";
   import { getPromptForLocale } from "@/utils/promptsHelpers.js";
   import { titleTranslationPrompt } from "@/assets/prompts/translation.js";
+  import { extractTitleTranslationFields } from "@/utils/titleTranslationStream.js";
 
   export default {
     name: "AiTranslation",
     components: {
       LoadingSpinner,
-      MuginMarkdown,
     },
     mixins: [appSettingsMixin, utilitiesMixin],
     props: {
@@ -84,10 +92,6 @@
       title: {
         type: String,
         required: true,
-      },
-      useMarkdown: {
-        type: Boolean,
-        default: true,
       },
       language: {
         type: String,
@@ -100,8 +104,18 @@
         loading: false,
         writing: false,
         stopGeneration: false,
-        text: this.getString("aiTranslationWaitText"),
+        rawTranslation: "",
+        longTitle: "",
+        shortTitle: "",
+        longStarted: false,
+        longComplete: false,
+        errorText: "",
       };
+    },
+    computed: {
+      showShortTitle() {
+        return this.longComplete && this.shortTitle !== "";
+      },
     },
     watch: {
       showingTranslation: {
@@ -128,9 +142,28 @@
           }
         }
       },
+      applyTranslationBuffer(buffer) {
+        const fields = extractTitleTranslationFields(buffer);
+        this.longStarted = fields.long.started && fields.long.value !== "";
+        this.longComplete = fields.long.complete;
+        if (fields.long.started) {
+          this.longTitle = fields.long.value;
+        }
+        if (fields.long.complete && fields.short.started) {
+          this.shortTitle = fields.short.value;
+        } else if (!fields.long.complete) {
+          this.shortTitle = "";
+        }
+      },
       async translateTitle(showSpinner = true) {
         this.loading = showSpinner;
         this.stopGeneration = false;
+        this.rawTranslation = "";
+        this.longTitle = "";
+        this.shortTitle = "";
+        this.longStarted = false;
+        this.longComplete = false;
+        this.errorText = "";
         const openAiServiceUrl = `${this.appSettings.openAi.baseUrl}/api/TranslateTitle.php`;
         const localePrompt = getPromptForLocale(titleTranslationPrompt, "dk", "translate");
 
@@ -153,7 +186,8 @@
             const responseBody = response.body;
             if (!responseBody || typeof responseBody.pipeThrough !== "function") {
               answer = await response.text();
-              this.text = answer;
+              this.rawTranslation = answer;
+              this.applyTranslationBuffer(answer);
               this.writing = false;
               return;
             }
@@ -167,13 +201,24 @@
               done = readerDone;
               if (value) {
                 answer += value;
-                this.text = answer;
+                this.rawTranslation = answer;
+                this.applyTranslationBuffer(answer);
               }
             }
             this.writing = false;
           } catch (error) {
-            this.text = `An unknown error occurred: \n${error.toString()}`;
+            this.errorText = `An unknown error occurred: \n${error.toString()}`;
           } finally {
+            if (
+              !this.errorText &&
+              !this.longStarted &&
+              this.rawTranslation.trim() &&
+              !this.rawTranslation.includes("{")
+            ) {
+              this.longTitle = this.rawTranslation.trim();
+              this.longStarted = true;
+              this.longComplete = true;
+            }
             this.loading = false;
             this.writing = false;
             this.translationLoaded = true;
@@ -193,9 +238,15 @@
         await readData(openAiServiceUrl, requestBody);
       },
       clickCopy() {
-        if (!this.text) return;
+        const parts = [];
+        if (this.longTitle) parts.push(this.longTitle);
+        if (this.showShortTitle) {
+          parts.push(`${this.getString("translatedTitleShortLabel")} ${this.shortTitle}`);
+        }
+        const text = parts.join("\n");
+        if (!text) return;
         if (navigator?.clipboard?.writeText) {
-          navigator.clipboard.writeText(this.text);
+          navigator.clipboard.writeText(text);
         }
       },
       clickStop() {
@@ -208,9 +259,6 @@
         }
         this.translationLoaded = false;
         this.showTranslation();
-      },
-      canRenderMarkdown() {
-        return true;
       },
     },
   };

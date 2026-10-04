@@ -192,6 +192,16 @@ export const semanticIntentResponseSchema = {
   },
 };
 
+export const titleTranslationResponseSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["long", "short"],
+  properties: {
+    long: { type: "string" },
+    short: { type: "string" },
+  },
+};
+
 export const titleTranslationPrompt = {
   name: "translate",
   translations: {
@@ -200,19 +210,31 @@ export const titleTranslationPrompt = {
   model_token_limit: 128000,
   // model from MUGIN_LLM_TASK_MODELS.translate
   reasoning: { effort: "none" },
-  text: { verbosity: "medium" },
+  text: {
+    verbosity: "medium",
+    format: {
+      type: "json_schema",
+      name: "title_translation",
+      strict: true,
+      schema: titleTranslationResponseSchema,
+    },
+  },
   max_output_tokens: 500,
   stream: true,
   prompt: sanitizePrompt({
-    dk: "Oversæt denne titel til dansk, hvor du bruger ord, som er nemme at forstå for en person uden kendskab til emnet. Angiv den oversatte titel med fed ved brug af Markdown (dvs. **Oversat titel**). \
-		På en ny linje skal du skrive en meget kort og nøgtern version af titlen på denne form ved brug af Markdown: *Kort version: [Den korte version.]* \
-		Start den korte version med stort begyndelsesbogstav. \
+    dk: 'Oversæt denne titel til dansk, hvor du bruger ord, som er nemme at forstå for en person uden kendskab til emnet. \
+		Returnér kun JSON med felterne "long" og "short" i den rækkefølge. \
+		"long" er den fulde oversatte titel. \
+		"short" er en meget kort og nøgtern version af samme titel, uden indledning og uden etiketten "Kort version". \
+		Skriv "long" helt færdig, før du begynder på "short". \
+		Start begge versioner med stort begyndelsesbogstav. \
 		Skriv aldrig betydningsfulde ord med stort begyndelsesbogstav som på engelsk. Dvs. du må ikke bruge title case. \
 		Skriv altid type 1-diabetes og type 2-diabetes med bindestreng. \
-		Skriv aldrig 'sukkersyge', men kun 'diabetes'. \
-		'Systematic review' skal altid oversættes til 'systematisk review'. \
-    Du vil blive straffet meget hårdt, hvis du ikke følger alle de instruktioner, som du har fået. \
-		Her er titlen: ",
+		Skriv aldrig "sukkersyge", men kun "diabetes". \
+		"Systematic review" skal altid oversættes til "systematisk review". \
+		Brug ikke markdown, fed skrift eller kursiv. \
+		Du vil blive straffet meget hårdt, hvis du ikke følger alle de instruktioner, som du har fået. \
+		Her er titlen: ',
   }),
 };
 

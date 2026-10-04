@@ -1818,6 +1818,10 @@ export const messages = {
     dk: "Skjul oversat titel",
     en: "Hide translated title",
   },
+  translatedTitleShortLabel: {
+    dk: "Kort version:",
+    en: "Short version:",
+  },
   retryText: {
     dk: "Prøv igen",
     en: "Retry",

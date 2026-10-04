@@ -2787,6 +2787,23 @@ h3.mugin_resultTitle {
   margin: 0 0 15px !important;
 }
 
+.mugin_searchSummaryText p.mugin_translatedTitleLong {
+  font-weight: 600;
+}
+
+.mugin_searchSummaryText p.mugin_translatedTitleShort {
+  font-style: italic;
+  margin-top: 4px;
+}
+
+.mugin_translatedTitleShortLabel {
+  margin-right: 0.35em;
+}
+
+.mugin_translatedTitleError {
+  white-space: pre-line;
+}
+
 .mugin_accordion .mugin_searchTranslatedTitle,
 .mugin_References .mugin_searchTranslatedTitle {
   background-color: var(--color-white);
