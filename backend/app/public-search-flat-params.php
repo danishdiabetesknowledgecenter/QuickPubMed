@@ -211,6 +211,36 @@ if (!function_exists('muginPublicSearchSplitFlatListValue')) {
     }
 }
 
+if (!function_exists('muginPublicSearchSplitLegacyTranslationFlag')) {
+    /**
+     * Legacy {{text0}} / {{text1}}. A trailing 0/1 is kept when it is a
+     * natural ending (GLP-1, "type 1", a lone digit). Otherwise it is the flag.
+     *
+     * @return array{rawText:string,isTranslated:bool}
+     */
+    function muginPublicSearchSplitLegacyTranslationFlag(string $inner): array
+    {
+        $flag = substr($inner, -1);
+        $before = strlen($inner) >= 2 ? substr($inner, -2, 1) : '';
+        // Keep natural endings such as GLP-1 and "type 1". A trailing 0/1 after
+        // a letter or punctuation is the legacy {{text0}} / {{text1}} flag.
+        $keepsDigit = $before === ''
+            || $before === '-'
+            || ctype_digit($before)
+            || preg_match('/\s/u', $before) === 1;
+        if (($flag === '0' || $flag === '1') && !$keepsDigit) {
+            return [
+                'rawText' => substr($inner, 0, -1),
+                'isTranslated' => $flag === '1',
+            ];
+        }
+        return [
+            'rawText' => $inner,
+            'isTranslated' => false,
+        ];
+    }
+}
+
 if (!function_exists('muginPublicSearchParseScopedIdToken')) {
     /**
      * Parses `id#scope` / `{{text}}#scope[:mode]` tokens.
@@ -252,14 +282,12 @@ if (!function_exists('muginPublicSearchParseScopedIdToken')) {
                 $rawText = $inner;
                 $isTranslated = false;
             } else {
-                // Legacy: trailing 0/1 inside {{…}} marked translation state.
-                $flag = substr($inner, -1);
-                if ($flag === '0' || $flag === '1') {
-                    $rawText = substr($inner, 0, -1);
-                    $isTranslated = $flag === '1';
-                } else {
-                    $rawText = $inner;
-                }
+                $legacy = muginPublicSearchSplitLegacyTranslationFlag($inner);
+                $rawText = $legacy['rawText'];
+                $isTranslated = $legacy['isTranslated'];
+            }
+            if ($rawText !== '') {
+                $rawText = muginPublicSearchStripNullAndEnforceMaxLength($rawText, 'rawText');
             }
         } else {
             $id = strtoupper(trim($idPart));
@@ -570,7 +598,8 @@ if (!function_exists('muginPublicSearchBuildRequestFromFlatParams')) {
         }
         $selectedSplit = muginSplitSelectedIdentifiers($selectedTokens);
 
-        $request['query']['text'] = $queryText;
+        $request['query']['text'] = muginPublicSearchStripNullAndEnforceMaxLength($queryText, 'query.text');
+        $queryText = $request['query']['text'];
         $request['preselectedIdentifiers'] = $selectedSplit['identifiers'];
         $request['preselectedPmids'] = $selectedSplit['pmids'];
         $request['preselectedDois'] = $selectedSplit['dois'];

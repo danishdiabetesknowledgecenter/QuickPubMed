@@ -18,11 +18,29 @@ if ($method === 'OPTIONS') {
 
 $config = muginPublicSearchGetConfig();
 if ($method === 'GET' && $config['getSearchEnabled'] !== true) {
+    muginPublicSearchLogDisplayedSearchError([
+        'channel' => 'eksternt-api',
+        'method' => $method,
+        'route' => '/v1/search',
+        'status' => 405,
+        'origin' => $origin,
+        'error' => 'GET /v1/search is disabled',
+        'clientMessage' => 'GET /v1/search is disabled',
+    ]);
     muginPublicSearchRespondJson(405, [
         'error' => 'GET /v1/search is disabled',
     ]);
 }
 if (!in_array($method, ['GET', 'POST'], true)) {
+    muginPublicSearchLogDisplayedSearchError([
+        'channel' => 'eksternt-api',
+        'method' => $method,
+        'route' => '/v1/search',
+        'status' => 405,
+        'origin' => $origin,
+        'error' => 'Method not allowed',
+        'clientMessage' => 'Method not allowed',
+    ]);
     muginPublicSearchRespondJson(405, [
         'error' => 'Method not allowed',
     ]);
@@ -46,7 +64,34 @@ $rateLimit = [
     'status' => 0,
     'isLimited' => false,
 ];
-register_shutdown_function(static function () use (&$executionSlot): void {
+register_shutdown_function(static function () use (&$executionSlot, &$requestForAudit, &$clientForAudit, &$startedAt, &$streamStarted, $method, $origin): void {
+    $lastError = error_get_last();
+    $fatalTypes = [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR];
+    if (is_array($lastError) && in_array((int) ($lastError['type'] ?? 0), $fatalTypes, true)) {
+        muginPublicSearchLogDisplayedSearchError([
+            'channel' => 'eksternt-api',
+            'clientId' => $clientForAudit['client_id'] ?? '',
+            'method' => $method,
+            'route' => '/v1/search',
+            'status' => 500,
+            'origin' => $origin,
+            'query' => is_array($requestForAudit) ? (string) ($requestForAudit['query']['text'] ?? '') : '',
+            'sources' => is_array($requestForAudit) ? (array) ($requestForAudit['sources'] ?? []) : [],
+            'page' => is_array($requestForAudit) ? (int) ($requestForAudit['page']['number'] ?? 0) : 0,
+            'pageSize' => is_array($requestForAudit) ? (int) ($requestForAudit['page']['size'] ?? 0) : 0,
+            'authSource' => $clientForAudit['auth_source'] ?? '',
+            'apiKey' => $clientForAudit['masked_api_key'] ?? '',
+            'latencyMs' => (int) round((microtime(true) - $startedAt) * 1000),
+            'error' => (string) ($lastError['message'] ?? 'Fatal error'),
+            'clientMessage' => 'Internal server error',
+            'exceptionClass' => 'PHP Fatal',
+            'exceptionFile' => (string) ($lastError['file'] ?? ''),
+            'exceptionLine' => (int) ($lastError['line'] ?? 0),
+            'phpErrorType' => (int) ($lastError['type'] ?? 0),
+            'requestContext' => is_array($requestForAudit) ? $requestForAudit : null,
+            'streamStarted' => $streamStarted === true,
+        ]);
+    }
     muginPublicSearchReleaseExecutionSlot($executionSlot);
 });
 
@@ -70,6 +115,9 @@ try {
             'apiKey' => $client['masked_api_key'] ?? '',
             'latencyMs' => (int) round((microtime(true) - $startedAt) * 1000),
             'warnings' => ['Rate limit exceeded'],
+            'error' => 'Rate limit exceeded',
+            'clientMessage' => 'Rate limit exceeded',
+            'channel' => 'eksternt-api',
         ]);
         muginPublicSearchRespondJson(429, [
             'error' => 'Rate limit exceeded',
@@ -172,6 +220,11 @@ try {
         'apiKey' => $clientForAudit['masked_api_key'] ?? '',
         'latencyMs' => (int) round((microtime(true) - $startedAt) * 1000),
         'error' => $exception->getMessage(),
+        'clientMessage' => $exception->getMessage(),
+        'exception' => $exception,
+        'channel' => 'eksternt-api',
+        'requestContext' => is_array($requestForAudit) ? $requestForAudit : null,
+        'streamStarted' => $streamStarted === true,
     ]);
     $validationErrorPayload = ['error' => $exception->getMessage()];
     if (
@@ -227,6 +280,11 @@ try {
         'apiKey' => $clientForAudit['masked_api_key'] ?? '',
         'latencyMs' => (int) round((microtime(true) - $startedAt) * 1000),
         'error' => $exception->getMessage(),
+        'clientMessage' => $exception->getMessage(),
+        'exception' => $exception,
+        'channel' => 'eksternt-api',
+        'requestContext' => is_array($requestForAudit) ? $requestForAudit : null,
+        'streamStarted' => $streamStarted === true,
     ]);
     if (
         is_array($requestForAudit)
@@ -265,6 +323,11 @@ try {
         'apiKey' => $clientForAudit['masked_api_key'] ?? '',
         'latencyMs' => (int) round((microtime(true) - $startedAt) * 1000),
         'error' => $throwable->getMessage(),
+        'clientMessage' => 'Internal server error',
+        'exception' => $throwable,
+        'channel' => 'eksternt-api',
+        'requestContext' => is_array($requestForAudit) ? $requestForAudit : null,
+        'streamStarted' => $streamStarted === true,
     ]);
     if ($streamStarted) {
         muginPublicSearchEmitSseEvent('error', [

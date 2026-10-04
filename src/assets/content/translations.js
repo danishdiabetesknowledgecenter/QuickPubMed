@@ -1858,6 +1858,10 @@ export const messages = {
     dk: "Fejl: Søgeresultater kunne ikke hentes",
     en: "Error: Couldn't retrieve search results",
   },
+  resultSetExpired: {
+    dk: "Flere resultater fra denne søgning er ikke længere tilgængelige. Søg igen for at hente en ny liste.",
+    en: "More results from this search are no longer available. Search again to get a new list.",
+  },
   pubmedTranslationFallbackWarning: {
     dk: "Friteksten kunne ikke oversættes til en fuld PubMed-søgestreng. Vi søger på en forenklet streng i stedet.",
     en: "The free text could not be translated into a full PubMed search string. A simplified string is used instead.",

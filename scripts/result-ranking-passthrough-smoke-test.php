@@ -141,13 +141,71 @@ $pubmedWithoutScores = muginPublicSearchBuildApiResultFromPubMed(
 );
 assertTrue(!array_key_exists('ranking', $pubmedWithoutScores), 'BuildApiResult omits ranking key without scores');
 
+$citationDated = muginPublicSearchBuildApiResultFromPubMed(
+    [
+        'uid' => '22778566',
+        'title' => 'Incidence of nutritional support complications',
+        'fulljournalname' => 'Colombia medica (Cali, Colombia)',
+        'source' => 'Colomb Med (Cali)',
+        'pubdate' => '2012 Jun 30',
+        'sortpubdate' => '2012/06/30 00:00',
+        'authors' => [],
+        'lang' => ['eng'],
+        'pubtype' => ['Journal Article'],
+    ],
+    '',
+    3,
+    ['sources' => ['pubmed'], 'source' => 'pubmed'],
+    true
+);
+assertTrue(
+    ($citationDated['publicationDate'] ?? '') === '2012 Jun 30',
+    'PubMed citation date uses pubdate, not sortpubdate'
+);
+assertTrue(
+    ($citationDated['sourceLabel'] ?? '') === 'Colomb Med (Cali)',
+    'PubMed citation uses the abbreviated journal title'
+);
+assertTrue(
+    ($citationDated['journal']['name'] ?? '') === 'Colombia medica (Cali, Colombia)',
+    'PubMed journal name keeps the full title'
+);
+
+$sortOnly = muginPublicSearchBuildApiResultFromPubMed(
+    [
+        'uid' => '22778567',
+        'title' => 'Sort date only',
+        'fulljournalname' => 'Example Journal',
+        'sortpubdate' => '2012/06/30 00:00',
+        'authors' => [],
+        'lang' => ['eng'],
+        'pubtype' => ['Journal Article'],
+    ],
+    '',
+    4,
+    ['sources' => ['pubmed'], 'source' => 'pubmed'],
+    true
+);
+assertTrue(
+    ($sortOnly['publicationDate'] ?? '') === '2012 Jun 30',
+    'Machine sortpubdate is formatted as a citation date'
+);
+
+$nlmTimestamp = muginPublicSearchParseSortDateValue('2012 Jun 30');
+$machineTimestamp = muginPublicSearchParseSortDateValue('2012/06/30 00:00');
+assertTrue($nlmTimestamp !== null && $machineTimestamp !== null, 'Citation and machine dates both sort');
+assertTrue(
+    date('Y-m-d', $nlmTimestamp) === '2012-06-30' && date('Y-m-d', $machineTimestamp) === '2012-06-30',
+    'Citation date sorts on the same calendar day as sortpubdate'
+);
+
 $openAlexResult = muginPublicSearchBuildApiResultFromOpenAlex(
     [
         'id' => 'https://openalex.org/W123',
         'doi' => 'https://doi.org/10.1000/example',
         'title' => 'OpenAlex example',
         'authorships' => [],
-        'primary_location' => ['source' => ['display_name' => 'OA Journal']],
+        'primary_location' => ['source' => ['display_name' => 'OA Journal', 'abbreviated_title' => 'OA J']],
         'publication_year' => 2024,
         'abstract_inverted_index' => null,
         'primary_topic' => [
@@ -170,6 +228,8 @@ $openAlexResult = muginPublicSearchBuildApiResultFromOpenAlex(
         ],
     ]
 );
+assertTrue(($openAlexResult['sourceLabel'] ?? '') === 'OA J', 'OpenAlex citation uses the abbreviated journal title');
+assertTrue(($openAlexResult['journal']['name'] ?? '') === 'OA Journal', 'OpenAlex journal name keeps the full title');
 assertTrue(isset($openAlexResult['ranking']), 'BuildApiResultFromOpenAlex includes ranking when scores exist');
 assertTrue(($openAlexResult['openAlexId'] ?? '') !== '', 'openAlexId exposed additively');
 $openAlexTopicSources = array_values(array_unique(array_map(

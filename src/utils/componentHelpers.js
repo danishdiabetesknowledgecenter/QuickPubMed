@@ -66,6 +66,71 @@ export function hasAbstractAttribute(attributes) {
   );
 }
 
+const CITATION_MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+/**
+ * PubMeds reference bruger "2012 Jun 30", ikke sorteringsformen "2012/06/30 00:00".
+ * Strenge der allerede er citationsdatoer, sendes uændret videre.
+ */
+export function formatCitationPublicationDate(value) {
+  const text = String(value ?? "").trim();
+  if (!text) return "";
+  const machine = text.match(
+    /^(\d{4})[/-](\d{2})(?:[/-](\d{2}))?(?:[T\s]\d{2}:\d{2}(?::\d{2})?(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?)?$/
+  );
+  if (!machine) return text;
+  const year = machine[1];
+  const monthNumber = Number(machine[2]);
+  const dayNumber = machine[3] === undefined ? 0 : Number(machine[3]);
+  if (!Number.isInteger(monthNumber) || monthNumber < 1 || monthNumber > 12) {
+    return year;
+  }
+  const month = CITATION_MONTHS[monthNumber - 1];
+  if (!Number.isInteger(dayNumber) || dayNumber < 1 || dayNumber > 31) {
+    return `${year} ${month}`;
+  }
+  return `${year} ${month} ${dayNumber}`;
+}
+
+/** Enkelt kalenderdag til den lokaliserede dato over titlen. Intervaller returnerer null. */
+export function parseSinglePublicationDate(value) {
+  const text = String(value ?? "").trim();
+  if (!text) return null;
+  const machine = text.match(/^(\d{4})[/-](\d{2})[/-](\d{2})(?:\b|[T\s])/);
+  if (machine) {
+    const year = Number(machine[1]);
+    const month = Number(machine[2]);
+    const day = Number(machine[3]);
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+      return new Date(year, month - 1, day);
+    }
+    return null;
+  }
+  const nlm = text.match(
+    /^(\d{4})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2})\b(.*)$/i
+  );
+  if (!nlm || /^\s*[-–—/]/.test(nlm[4] || "")) return null;
+  const month = CITATION_MONTHS.findIndex(
+    (name) => name.toLowerCase() === nlm[2].slice(0, 3).toLowerCase()
+  );
+  const day = Number(nlm[3]);
+  if (month < 0 || day < 1 || day > 31) return null;
+  return new Date(Number(nlm[1]), month, day);
+}
+
 export function getFormattedEntrezDate(history, language) {
   if (!Array.isArray(history)) return "";
   const match = history.find((item) => item?.pubstatus === "entrez");
@@ -87,7 +152,7 @@ export function getArticleSource(value = {}) {
 
 export function formatPublicationInfo(value = {}) {
   const source = value?.source || "";
-  const pubDate = value?.pubDate || value?.pubdate || "";
+  const pubDate = formatCitationPublicationDate(value?.pubDate || value?.pubdate || "");
   const volume = value?.volume || "";
   const issue = value?.issue || "";
   const pages = value?.pages || "";
@@ -108,7 +173,13 @@ export function formatPublicationInfo(value = {}) {
   if (pages) {
     formatted += `:${pages}`;
   }
-  return formatted;
+  return withTerminalPeriod(formatted);
+}
+
+function withTerminalPeriod(value) {
+  const text = String(value ?? "").trimEnd();
+  if (!text || text.endsWith(".")) return text;
+  return `${text}.`;
 }
 
 export function parsePubMedXml(data) {

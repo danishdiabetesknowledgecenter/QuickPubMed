@@ -448,6 +448,7 @@
         advanced: false,
         advancedString: false,
         count: 0,
+        resultSetId: "",
         details: true,
         limitData: {},
         limitDropdowns: [[]],
@@ -1648,7 +1649,7 @@
         const normalizedSources = Array.from(
           new Set(
             value
-              .map((entry) => aliasMap[String(entry || "").trim()] || null)
+              .map((entry) => aliasMap[String(entry || "").trim().toLowerCase()] || null)
               .filter(Boolean)
           )
         );
@@ -4844,6 +4845,16 @@
         const textMode = modePart === "raw" || modePart === "pubmed" ? modePart : "";
         return { scope, textMode };
       },
+      applyLegacyTranslationFlag(name) {
+        const text = String(name || "");
+        const flag = text.slice(-1);
+        const before = text.length >= 2 ? text.slice(-2, -1) : "";
+        const keepsDigit = before === "" || before === "-" || /\d/.test(before) || /\s/u.test(before);
+        if ((flag === "0" || flag === "1") && !keepsDigit) {
+          return { rawText: text.slice(0, -1), isTranslated: flag === "1" };
+        }
+        return { rawText: text, isTranslated: false };
+      },
       isUrlTargetedComponent(urlParams = getSearchFlowDebugUrlParams()) {
         return isUrlTargetedSearchFormComponent(
           this.componentNo,
@@ -4948,13 +4959,11 @@
           if (isCustomInput) {
             let name = id.slice(2, -2);
             let isTranslated = textMode === "pubmed";
-            // Legacy: {{text0}} / {{text1}} when mode is absent from #scope.
+            // Legacy: {{text0}} / {{text1}} when mode is absent and 0/1 is glued to a letter.
             if (!textMode) {
-              const translationFlag = name.slice(-1);
-              if (translationFlag === "0" || translationFlag === "1") {
-                isTranslated = translationFlag === "1";
-                name = name.slice(0, -1);
-              }
+              const legacy = this.applyLegacyTranslationFlag(name);
+              name = legacy.rawText;
+              isTranslated = legacy.isTranslated;
             }
 
             selected.push(this.buildUrlCustomFreeTextTag(name, scope || "normal", { isTranslated }));
@@ -5003,16 +5012,19 @@
           const hashIndex = val.lastIndexOf("#");
           const id = hashIndex >= 0 ? val.slice(0, hashIndex) : val;
           const scopeKey = hashIndex >= 0 ? val.slice(hashIndex + 1) : "s";
-          const scope = this.resolveUrlScope(scopeKey);
+          const { scope, textMode } = this.parseUrlScopeToken(scopeKey);
 
           const isCustomInput = id.startsWith("{{") && id.endsWith("}}");
           const groupId = filterGroup.id;
 
           if (isCustomInput) {
-            const rawName = id.slice(2, -2);
-            const translationFlag = rawName.slice(-1);
-            const isTranslated = translationFlag === "1";
-            const name = isTranslated || translationFlag === "0" ? rawName.slice(0, -1) : rawName;
+            let name = id.slice(2, -2);
+            let isTranslated = textMode === "pubmed";
+            if (!textMode) {
+              const legacy = this.applyLegacyTranslationFlag(name);
+              name = legacy.rawText;
+              isTranslated = legacy.isTranslated;
+            }
 
             if (!this.limitData[groupId]) this.limitData[groupId] = [];
             this.limitData[groupId].push(
@@ -6015,6 +6027,7 @@
         this.finalValidatedQuery = "";
         this.resetQueryOverrideState();
         this.count = 0;
+        this.resultSetId = "";
         this.page = 0;
         this.showFilter = false;
         this.details = true;
@@ -6083,6 +6096,7 @@
         // Keep translated freetext + edited search strings for this session.
         // They are cleared on reset (clear()) or when the freetext itself changes.
         this.count = 0;
+        this.resultSetId = "";
         this.page = 0;
         return true;
       },
@@ -8652,9 +8666,17 @@
         const filter = String(hardFilterQuery || "").trim();
         if (!pubmed) return filter;
         if (!filter) return pubmed;
-        if (pubmed === filter) return pubmed;
-        if (pubmed.includes(filter)) return pubmed;
+        if (this.pubmedClauseAlreadyContained(pubmed, filter)) return pubmed;
         return `(${pubmed}) AND (${filter})`;
+      },
+      pubmedClauseAlreadyContained(haystack, needle) {
+        const normalize = (value) => String(value || "").trim().replace(/\s+/g, " ").toLowerCase();
+        const haystackNorm = normalize(haystack);
+        const needleNorm = normalize(needle);
+        if (!haystackNorm || !needleNorm) return false;
+        if (haystackNorm === needleNorm) return true;
+        const escaped = needleNorm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        return new RegExp(`(?<![\\p{L}\\p{N}*])${escaped}(?![\\p{L}\\p{N}*])`, "u").test(haystackNorm);
       },
       markSourceSearchStringPending(sourceKey, isPending) {
         const key = String(sourceKey || "").trim();
@@ -9533,8 +9555,10 @@
           const isSourceStage = sourceStepIds.includes(stage);
           const explicitStatus = String(context?.status || "").trim();
           const explicitElapsedMs = Number(context?.elapsedMs);
-          // A database request in the shared wave has finished. Stop its clock
-          // at that request's own duration while the other databases continue.
+          // The shared request wave can finish before this source's query,
+          // request and response are ready. Keep the row active until that
+          // payload arrives, so the counter stops in the same update as
+          // Detaljer. Each source does this on its own event.
           if (
             context?.elapsedFrozen === true &&
             isSourceStage &&
@@ -9542,20 +9566,6 @@
             explicitElapsedMs >= 0
           ) {
             this.activateConcurrentSemanticLoadingStep(stage, messageKey);
-            const frozenStep = (this.loadingProcessSteps || []).find(
-              (entry) => String(entry?.id || "") === stage
-            );
-            if (frozenStep && !this.isSemanticLoadingTerminalStatus(frozenStep.status)) {
-              const frozenElapsedMs = Math.max(0, explicitElapsedMs);
-              if (
-                !Number.isFinite(Number(frozenStep.startedAtMs)) ||
-                Number(frozenStep.startedAtMs) <= 0
-              ) {
-                frozenStep.startedAtMs = this.getProcessTimingNow() - frozenElapsedMs;
-              }
-              frozenStep.elapsedMs = frozenElapsedMs;
-              frozenStep.endedAtMs = Number(frozenStep.startedAtMs) + frozenElapsedMs;
-            }
             this.reconcilePreparePhaseProcessStepsAfterLaterProgress();
             return;
           }
@@ -9569,10 +9579,13 @@
                   (entry) => String(entry?.id || "") === stage
                 );
                 if (step) {
-                  const monotonicElapsedMs =
-                    context?.elapsedAuthoritative === true
-                      ? explicitElapsedMs
-                      : Math.max(Number(step.elapsedMs) || 0, explicitElapsedMs);
+                  // Never move a counter the user already watched backwards.
+                  // The reported duration can be a little shorter than the
+                  // live clock when the row has been active the whole time.
+                  const monotonicElapsedMs = Math.max(
+                    Number(step.elapsedMs) || 0,
+                    explicitElapsedMs
+                  );
                   step.elapsedMs = monotonicElapsedMs;
                   if (!Number.isFinite(Number(step.startedAtMs)) || Number(step.startedAtMs) <= 0) {
                     step.startedAtMs = this.getProcessTimingNow() - monotonicElapsedMs;
@@ -9722,6 +9735,7 @@
         const hasOverrides = this.hasExecutableQueryOverrides();
         if (!freetextQuery && !hasTopics && !hasOverrides) {
           console.info("[SearchFlow] Unified engine: query is empty. Search aborted.");
+          this.searchError = Error(this.getString("fillEmptyDropdownFirstAlert"));
           this.stopSearchProcessTiming();
           this.searchLoading = false;
           return;
@@ -9741,6 +9755,7 @@
           );
           if (isCancelled()) return;
           this.count = Number(response.total || 0);
+          this.resultSetId = String(response.resultSetId || "").trim();
           this.searchresult = this.mapUnifiedSearchResponseResults(response.results);
           const resolvedPubmed = String(response?.resolvedQueries?.pubmedQuery || "").trim();
           const resolvedHardFilter = String(response?.resolvedQueries?.hardFilterQuery || "").trim();
@@ -9808,7 +9823,14 @@
           (this.page + 1) * this.pageSize,
           Number.isFinite(totalCount) && totalCount > 0 ? totalCount : (this.page + 1) * this.pageSize
         );
-        if (haveCount >= targetResultLength) {
+        if (haveCount >= targetResultLength || haveCount <= 0) {
+          return;
+        }
+        // Continue the stored candidate list. Never start a new search from here:
+        // a new run can return a different total and a different order.
+        const resultSetId = String(this.resultSetId || "").trim();
+        if (!resultSetId) {
+          this.searchError = Error(this.getString("resultSetExpired"));
           return;
         }
         // Only fetch/hydrate the missing slice (e.g. 10→50 fetches offset 10,
@@ -9824,8 +9846,21 @@
           size: fetchCount,
           offset: haveCount,
         };
+        payload.resultSetId = resultSetId;
+        payload.responseOptions = {
+          ...(payload.responseOptions || {}),
+          noCache: false,
+        };
         const response = await this.callUnifiedSearchEndpoint(payload);
         if (isCancelled()) return;
+        if (response?.resultSetExpired === true) {
+          this.searchError = Error(this.getString("resultSetExpired"));
+          return;
+        }
+        const echoedResultSetId = String(response?.resultSetId || "").trim();
+        if (echoedResultSetId) {
+          this.resultSetId = echoedResultSetId;
+        }
         this.count = Number(response.total || this.count || 0);
         const newResults = this.mapUnifiedSearchResponseResults(response.results);
         const existingUids = new Set(
@@ -10100,7 +10135,8 @@
        * @param {Error} err - The error object representing the cause of the search failure.
        */
       showSearchError(err) {
-        const message = this.getString("searchErrorGeneric");
+        const fromError = String(err?.message || "").trim();
+        const message = fromError || this.getString("searchErrorGeneric");
         const option = { cause: err };
         this.searchError = Error(message, option);
       },

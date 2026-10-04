@@ -683,8 +683,8 @@ assertTrue(
 );
 $onlyMarks = muginPublicSearchNormalizeRawFreetextForPubMed('???');
 assertTrue(
-    ($onlyMarks['value'] ?? '') === '???' && ($onlyMarks['changed'] ?? true) === false,
-    'All-punctuation input is left unchanged rather than emptied'
+    ($onlyMarks['value'] ?? 'x') === '' && ($onlyMarks['changed'] ?? false) === true,
+    'All-punctuation input is emptied rather than sent to PubMed'
 );
 $unpaired = muginPublicSearchNormalizeRawFreetextForPubMed('insulin "metformin');
 assertTrue(
@@ -836,6 +836,81 @@ assertTrue(
     muginPublicSearchCollectUntranslatedSemanticSourceWarnings($aiOffCovered) === [],
     'AI-off plus semantic sources with overrides does not warn'
 );
+
+$humansCombined = muginPublicSearchCombinePubMedQuery('nonhumans[mh]', 'humans[mh]');
+assertTrue(
+    strpos($humansCombined, 'nonhumans[mh]') !== false && strpos($humansCombined, 'AND') !== false && strpos($humansCombined, 'humans[mh]') !== false,
+    'humans filter is not swallowed by nonhumans'
+);
+$antiCombined = muginPublicSearchCombinePubMedQuery('antidiabet*[tiab]', 'diabet*[tiab]');
+assertTrue(
+    strpos($antiCombined, 'antidiabet*[tiab]') !== false && strpos($antiCombined, 'diabet*[tiab]') !== false && strpos($antiCombined, 'AND') !== false,
+    'standard string is AND-ed onto antidiabet*'
+);
+$alreadyClause = muginPublicSearchCombinePubMedQuery('diabetes mellitus[tiab] OR diabetes[tiab]', 'diabetes[tiab]');
+assertTrue(
+    $alreadyClause === 'diabetes mellitus[tiab] OR diabetes[tiab]',
+    'existing whole clause is not AND-ed again'
+);
+assertTrue(muginPublicSearchPubmedQueryIsExecutable('(diabetes') === false, 'unbalanced parenthesis is not executable');
+assertTrue(muginPublicSearchPubmedQueryIsExecutable('AND OR NOT') === false, 'operator-only clause is not executable');
+assertTrue(
+    muginPublicSearchPubmedQueryIsExecutable('"type 2" AND (metformin OR insulin)') === true,
+    'balanced quoted boolean clause stays executable'
+);
+assertTrue(muginPublicSearchPubmedQueryIsExecutable('a OR b') === true, 'simple OR clause stays executable');
+
+$questionOnlyRejected = false;
+try {
+    $questionOnly = muginPublicSearchBuildRequestFromFlatParams([
+        'q' => '?',
+        'databases' => 'pubmed',
+        'ai' => 'false',
+    ]);
+    muginPublicSearchBuildResolvedQueries($questionOnly);
+} catch (InvalidArgumentException $exception) {
+    $questionOnlyRejected = $exception->getMessage() === 'query.text is required';
+}
+assertTrue($questionOnlyRejected, 'question-mark-only freetext is rejected before PubMed');
+
+$glp = muginPublicSearchParseScopedIdToken('{{GLP-1}}#s');
+assertTrue(
+    ($glp['rawText'] ?? '') === 'GLP-1' && ($glp['isTranslated'] ?? true) === false,
+    'GLP-1 without mode keeps the digit and is not a PubMed clause'
+);
+$legacyFlag = muginPublicSearchParseScopedIdToken('{{insulin therapy1}}#s');
+assertTrue(
+    ($legacyFlag['rawText'] ?? '') === 'insulin therapy' && ($legacyFlag['isTranslated'] ?? false) === true,
+    'legacy trailing 1 glued to a letter still marks a translated clause'
+);
+assertTrue(
+    muginPublicSearchNormalizeSources('PubMed,OpenAlex,SemanticScholar') === ['pubmed', 'openAlex', 'semanticScholar'],
+    'source names fold case and hyphen-free aliases'
+);
+assertTrue(
+    muginPublicSearchNormalizeSources('semantic-scholar,open-alex') === ['semanticScholar', 'openAlex'],
+    'hyphenated source aliases match the form'
+);
+
+$nullByteRequest = muginPublicSearchNormalizePostRequest([
+    'apiVersion' => '1',
+    'query' => ['text' => "dia\0betes"],
+    'sources' => ['pubmed'],
+    'translation' => ['mode' => 'none'],
+]);
+assertTrue(($nullByteRequest['query']['text'] ?? '') === 'diabetes', 'null byte is stripped from query.text');
+$tooLongRejected = false;
+try {
+    muginPublicSearchNormalizePostRequest([
+        'apiVersion' => '1',
+        'query' => ['text' => str_repeat('a', 20001)],
+        'sources' => ['pubmed'],
+        'translation' => ['mode' => 'none'],
+    ]);
+} catch (InvalidArgumentException $exception) {
+    $tooLongRejected = strpos($exception->getMessage(), 'exceeds maximum length of 20000') !== false;
+}
+assertTrue($tooLongRejected, 'query.text over 20000 characters is rejected');
 
 if ($failures > 0) {
     fwrite(STDERR, "\n{$failures} smoke assertion(s) failed.\n");

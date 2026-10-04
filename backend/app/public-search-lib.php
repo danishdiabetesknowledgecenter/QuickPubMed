@@ -377,7 +377,7 @@ if (!function_exists('muginPublicSearchBuildPipelineCacheKey')) {
     function muginPublicSearchBuildPipelineCacheKey(array $request): string
     {
         $forKey = $request;
-        unset($forKey['_processDetails'], $forKey['page']);
+        unset($forKey['_processDetails'], $forKey['page'], $forKey['resultSetId']);
         if (isset($forKey['responseOptions']) && is_array($forKey['responseOptions'])) {
             unset(
                 $forKey['responseOptions']['noCache'],
@@ -391,6 +391,72 @@ if (!function_exists('muginPublicSearchBuildPipelineCacheKey')) {
         $forKey['_pubmedTranslationGuard'] = 1;
         $forKey['_semanticQueryGuard'] = 1;
         return 'pipeline:' . sha1(muginPublicSearchSafeJsonEncode($forKey));
+    }
+}
+
+if (!function_exists('muginPublicSearchIsValidResultSetId')) {
+    /**
+     * Opaque id of a stored candidate list. Only the pipeline-cache key format
+     * is accepted, so a client cannot choose an arbitrary cache path.
+     */
+    function muginPublicSearchIsValidResultSetId(string $resultSetId): bool
+    {
+        return preg_match('/^pipeline:[0-9a-f]{40}$/', $resultSetId) === 1;
+    }
+}
+
+if (!function_exists('muginPublicSearchReadStoredPipeline')) {
+    /**
+     * @return array<string,mixed>|null
+     */
+    function muginPublicSearchReadStoredPipeline(string $resultSetId): ?array
+    {
+        if (!muginPublicSearchIsValidResultSetId($resultSetId)) {
+            return null;
+        }
+        $entry = muginPublicSearchReadCacheValue('search-pipeline', $resultSetId);
+        $value = (($entry['hit'] ?? false) === true && is_array($entry['value'] ?? null))
+            ? $entry['value']
+            : null;
+        if (
+            !is_array($value)
+            || !isset($value['resultRefs'], $value['resolvedQueries'])
+            || !is_array($value['resultRefs'])
+            || !is_array($value['resolvedQueries'])
+        ) {
+            return null;
+        }
+        return $value;
+    }
+}
+
+if (!function_exists('muginPublicSearchBuildExpiredResultSetResponse')) {
+    /**
+     * Continuation of a stored result list that is no longer on disk.
+     * This must not fall through into a new search.
+     *
+     * @param array<string,mixed> $request
+     * @return array<string,mixed>
+     */
+    function muginPublicSearchBuildExpiredResultSetResponse(array $request): array
+    {
+        return [
+            'apiVersion' => '1',
+            'resultSetExpired' => true,
+            'query' => [
+                'text' => (string) ($request['query']['text'] ?? ''),
+                'language' => (string) ($request['query']['language'] ?? 'auto'),
+            ],
+            'sources' => array_values(array_map('strval', (array) ($request['sources'] ?? []))),
+            'page' => [
+                'number' => (int) ($request['page']['number'] ?? 1),
+                'size' => (int) ($request['page']['size'] ?? 25),
+            ],
+            'total' => 0,
+            'partial' => false,
+            'warnings' => [],
+            'results' => [],
+        ];
     }
 }
 
@@ -810,6 +876,433 @@ if (!function_exists('muginPublicSearchBuildStreamProgressPayload')) {
     }
 }
 
+if (!function_exists('muginPublicSearchErrorLogOneLine')) {
+    function muginPublicSearchErrorLogOneLine(string $value, int $maxLength): string
+    {
+        $value = muginPublicSearchErrorLogRedact($value);
+        $value = str_replace(["\r\n", "\r", "\n", "\t"], ' ', $value);
+        $flattened = preg_replace('/\s+/', ' ', $value);
+        $value = trim(is_string($flattened) ? $flattened : $value);
+        $value = str_replace('"', "'", $value);
+        $maxLength = max(8, $maxLength);
+        $tooLong = function_exists('mb_strlen')
+            ? mb_strlen($value, 'UTF-8') > $maxLength
+            : strlen($value) > $maxLength;
+        if ($tooLong) {
+            $cut = function_exists('mb_substr')
+                ? mb_substr($value, 0, $maxLength - 3, 'UTF-8')
+                : substr($value, 0, $maxLength - 3);
+            $value = rtrim(is_string($cut) ? $cut : '') . '...';
+        }
+        return $value;
+    }
+}
+
+if (!function_exists('muginPublicSearchErrorLogRedact')) {
+    function muginPublicSearchErrorLogRedact(string $value): string
+    {
+        $patterns = [
+            '/Bearer\s+[A-Za-z0-9._+\/=-]{6,}/i' => 'Bearer [redacted]',
+            '/sk-[A-Za-z0-9_-]{8,}/' => 'sk-[redacted]',
+            '/((?:api[_-]?key|authorization|token|secret|password)["\']?\s*[:=]\s*["\']?)[^"\'\s,&]{4,}/i' => '$1[redacted]',
+        ];
+        foreach ($patterns as $pattern => $replacement) {
+            $redacted = preg_replace($pattern, $replacement, $value);
+            if (is_string($redacted)) {
+                $value = $redacted;
+            }
+        }
+        return $value;
+    }
+}
+
+if (!function_exists('muginPublicSearchErrorLogChannel')) {
+    /**
+     * web-interface = the site search form. external-api = /v1/search.
+     *
+     * @param array<string,mixed> $entry
+     */
+    function muginPublicSearchErrorLogChannel(array $entry): string
+    {
+        $explicit = strtolower(trim((string) ($entry['channel'] ?? '')));
+        if (in_array($explicit, ['web-interface', 'webinterface', 'web', 'widget'], true)) {
+            return 'web-interface';
+        }
+        if (in_array($explicit, ['external-api', 'eksternt-api', 'api'], true)) {
+            return 'external-api';
+        }
+        $route = (string) ($entry['route'] ?? '');
+        if (stripos($route, 'UnifiedSearch.php') !== false) {
+            return 'web-interface';
+        }
+        if (stripos($route, '/v1/search') !== false) {
+            return 'external-api';
+        }
+        $clientId = trim((string) ($entry['clientId'] ?? ''));
+        $authSource = trim((string) ($entry['authSource'] ?? ''));
+        if ($clientId === 'website-widget' || $authSource === 'first-party-widget') {
+            return 'web-interface';
+        }
+        return 'unknown';
+    }
+}
+
+if (!function_exists('muginPublicSearchErrorLogList')) {
+    /**
+     * @param mixed $value
+     */
+    function muginPublicSearchErrorLogList($value, int $maxItems = 40, int $maxLength = 2000): string
+    {
+        if (!is_array($value)) {
+            return muginPublicSearchErrorLogOneLine(trim((string) $value), $maxLength);
+        }
+        $items = [];
+        foreach ($value as $item) {
+            $text = '';
+            if (is_scalar($item)) {
+                $text = trim((string) $item);
+            } elseif (is_array($item)) {
+                $text = trim((string) ($item['id'] ?? $item['label'] ?? $item['value'] ?? ''));
+                if ($text === '') {
+                    $text = muginPublicSearchSafeJsonEncode($item);
+                }
+            }
+            if ($text === '') {
+                continue;
+            }
+            $items[] = $text;
+            if (count($items) >= $maxItems) {
+                break;
+            }
+        }
+        $suffix = count($value) > count($items) ? ' (+' . (count($value) - count($items)) . ')' : '';
+        return muginPublicSearchErrorLogOneLine(implode(', ', $items) . $suffix, $maxLength);
+    }
+}
+
+if (!function_exists('muginPublicSearchErrorLogJson')) {
+    /**
+     * @param mixed $value
+     */
+    function muginPublicSearchErrorLogJson($value, int $maxLength = 2500): string
+    {
+        if (!is_array($value) || $value === []) {
+            return '';
+        }
+        return muginPublicSearchErrorLogOneLine(muginPublicSearchSafeJsonEncode($value), $maxLength);
+    }
+}
+
+if (!function_exists('muginPublicSearchErrorLogThrowableText')) {
+    function muginPublicSearchErrorLogThrowableText(Throwable $exception, int $depth = 0): string
+    {
+        $file = trim($exception->getFile());
+        $line = (int) $exception->getLine();
+        $text = $exception::class
+            . ($file !== '' ? ' ' . basename($file) : '')
+            . ($line > 0 ? ':' . $line : '')
+            . ' code=' . (int) $exception->getCode()
+            . ' error="' . muginPublicSearchErrorLogOneLine($exception->getMessage(), 2000) . '"';
+        $frames = ['  #0 ' . ($file !== '' ? basename($file) : '?') . ($line > 0 ? ':' . $line : '') . ' throw'];
+        $index = 1;
+        foreach ($exception->getTrace() as $frame) {
+            if ($index > 25) {
+                $frames[] = '  #...';
+                break;
+            }
+            if (!is_array($frame)) {
+                continue;
+            }
+            $frameFile = isset($frame['file']) ? basename((string) $frame['file']) : '';
+            $frameLine = (int) ($frame['line'] ?? 0);
+            $call = trim((string) ($frame['class'] ?? '') . (string) ($frame['type'] ?? '') . (string) ($frame['function'] ?? ''));
+            $frames[] = '  #' . $index . ' ' . ($frameFile !== '' ? $frameFile : '?')
+                . ($frameLine > 0 ? ':' . $frameLine : '')
+                . ($call !== '' ? ' ' . $call : '');
+            $index++;
+        }
+        $blocks = [$text, 'stack:', implode("\n", $frames)];
+        $previous = $exception->getPrevious();
+        if ($previous instanceof Throwable && $depth < 5) {
+            $blocks[] = 'previous:';
+            $nested = muginPublicSearchErrorLogThrowableText($previous, $depth + 1);
+            $blocks[] = '  ' . str_replace("\n", "\n  ", $nested);
+        }
+        return implode("\n", $blocks);
+    }
+}
+
+if (!function_exists('muginPublicSearchErrorLogProcessText')) {
+    /**
+     * @param array<string,mixed>|null $request
+     */
+    function muginPublicSearchErrorLogProcessText(?array $request): string
+    {
+        if (!is_array($request) || !isset($request['_processDetails']) || !is_array($request['_processDetails'])) {
+            return '';
+        }
+        $collector = $request['_processDetails'];
+        $lines = [];
+        $steps = isset($collector['_steps']) && is_array($collector['_steps']) ? $collector['_steps'] : [];
+        foreach ($steps as $stepId => $step) {
+            if (!is_array($step)) {
+                continue;
+            }
+            $payload = isset($step['payload']) && is_array($step['payload']) ? $step['payload'] : [];
+            $bits = [trim((string) ($payload['stepId'] ?? $stepId))];
+            foreach (['status', 'error', 'warning', 'message', 'messageKey', 'durationMs', 'fallbackReason'] as $key) {
+                if (!array_key_exists($key, $payload) || $payload[$key] === '' || $payload[$key] === []) {
+                    continue;
+                }
+                $raw = is_scalar($payload[$key])
+                    ? (string) $payload[$key]
+                    : muginPublicSearchSafeJsonEncode($payload[$key]);
+                $bits[] = $key . '=' . muginPublicSearchErrorLogOneLine($raw, 400);
+            }
+            $context = trim((string) ($step['context'] ?? ''));
+            if ($context !== '') {
+                $bits[] = 'context=' . muginPublicSearchErrorLogOneLine($context, 240);
+            }
+            $lines[] = '  step ' . implode(' | ', $bits);
+        }
+        $sources = isset($collector['_sources']) && is_array($collector['_sources']) ? $collector['_sources'] : [];
+        foreach ($sources as $source) {
+            if (!is_array($source)) {
+                continue;
+            }
+            $response = isset($source['response']) && is_array($source['response']) ? $source['response'] : [];
+            $error = trim((string) ($response['error'] ?? ''));
+            $warning = trim((string) ($response['warning'] ?? ''));
+            $fallback = trim((string) ($response['fallbackReason'] ?? ''));
+            if ($error === '' && $warning === '' && $fallback === '') {
+                continue;
+            }
+            $lines[] = '  source ' . muginPublicSearchErrorLogOneLine((string) ($source['source'] ?? ''), 40)
+                . ' query="' . muginPublicSearchErrorLogOneLine((string) ($source['query'] ?? ''), 300) . '"'
+                . ' candidates=' . (int) ($response['candidateCount'] ?? 0)
+                . ($error !== '' ? ' error="' . muginPublicSearchErrorLogOneLine($error, 800) . '"' : '')
+                . ($warning !== '' ? ' warning="' . muginPublicSearchErrorLogOneLine($warning, 400) . '"' : '')
+                . ($fallback !== '' ? ' fallback="' . muginPublicSearchErrorLogOneLine($fallback, 300) . '"' : '');
+        }
+        return implode("\n", $lines);
+    }
+}
+
+if (!function_exists('muginPublicSearchLogDisplayedSearchError')) {
+    /**
+     * Append one detailed block to data/errorlog when a search fails.
+     * channel=web-interface is the site search form. channel=external-api is /v1/search.
+     * Secrets in messages are redacted. Stack frames omit function arguments.
+     *
+     * @param array<string,mixed> $entry
+     * @return void
+     */
+    function muginPublicSearchLogDisplayedSearchError(array $entry): void
+    {
+        $status = (int) ($entry['status'] ?? 0);
+        $message = trim((string) ($entry['error'] ?? ''));
+        if ($status < 400 && $message === '') {
+            return;
+        }
+        if ($message === '' && isset($entry['warnings']) && is_array($entry['warnings'])) {
+            $message = trim((string) ($entry['warnings'][0] ?? ''));
+        }
+        if ($message === '') {
+            return;
+        }
+
+        try {
+            $dir = muginEnsureDataSubdir('errorlog');
+            if (!is_dir($dir)) {
+                return;
+            }
+            $request = isset($entry['requestContext']) && is_array($entry['requestContext'])
+                ? $entry['requestContext']
+                : null;
+            $exception = $entry['exception'] ?? null;
+            $sources = $entry['sources'] ?? null;
+            if (!is_array($sources) && is_array($request)) {
+                $sources = $request['sources'] ?? [];
+            }
+            $query = trim((string) ($entry['query'] ?? ''));
+            if ($query === '' && is_array($request)) {
+                $query = trim((string) ($request['query']['text'] ?? ''));
+            }
+            $page = (int) ($entry['page'] ?? 0);
+            if ($page === 0 && is_array($request)) {
+                $page = (int) ($request['page']['number'] ?? 0);
+            }
+            $pageSize = (int) ($entry['pageSize'] ?? 0);
+            if ($pageSize === 0 && is_array($request)) {
+                $pageSize = (int) ($request['page']['size'] ?? 0);
+            }
+            $lines = [
+                '----- ' . gmdate('c') . ' -----',
+                'channel: ' . muginPublicSearchErrorLogChannel($entry),
+                'status: ' . $status,
+                'method: ' . muginPublicSearchErrorLogOneLine((string) ($entry['method'] ?? ''), 16),
+                'route: ' . muginPublicSearchErrorLogOneLine((string) ($entry['route'] ?? ''), 160),
+            ];
+            $host = trim((string) ($_SERVER['HTTP_HOST'] ?? ''));
+            if ($host !== '') {
+                $lines[] = 'host: ' . muginPublicSearchErrorLogOneLine($host, 200);
+            }
+            $origin = trim((string) ($entry['origin'] ?? ''));
+            if ($origin !== '') {
+                $lines[] = 'origin: ' . muginPublicSearchErrorLogOneLine($origin, 300);
+            }
+            $clientId = trim((string) ($entry['clientId'] ?? ''));
+            if ($clientId !== '') {
+                $lines[] = 'client: ' . muginPublicSearchErrorLogOneLine($clientId, 120);
+            }
+            $authSource = trim((string) ($entry['authSource'] ?? ''));
+            if ($authSource !== '') {
+                $lines[] = 'auth: ' . muginPublicSearchErrorLogOneLine($authSource, 80);
+            }
+            $maskedKey = trim((string) ($entry['apiKey'] ?? ''));
+            if ($maskedKey !== '') {
+                $lines[] = 'apiKey: ' . muginPublicSearchErrorLogOneLine(muginPublicSearchMaskApiKey($maskedKey), 80);
+            }
+            if (isset($entry['latencyMs'])) {
+                $lines[] = 'latencyMs: ' . (int) $entry['latencyMs'];
+            }
+            if (array_key_exists('streamStarted', $entry)) {
+                $lines[] = 'stream: ' . (($entry['streamStarted'] ?? false) === true ? 'yes' : 'no');
+            }
+            $phpErrorType = (int) ($entry['phpErrorType'] ?? 0);
+            if ($phpErrorType !== 0) {
+                $phpNames = [
+                    E_ERROR => 'E_ERROR',
+                    E_PARSE => 'E_PARSE',
+                    E_CORE_ERROR => 'E_CORE_ERROR',
+                    E_COMPILE_ERROR => 'E_COMPILE_ERROR',
+                    E_USER_ERROR => 'E_USER_ERROR',
+                ];
+                $lines[] = 'phpFatal: ' . ($phpNames[$phpErrorType] ?? (string) $phpErrorType);
+            }
+            if (is_array($request)) {
+                $domain = trim((string) ($request['domain'] ?? ''));
+                if ($domain !== '') {
+                    $lines[] = 'domain: ' . muginPublicSearchErrorLogOneLine($domain, 200);
+                }
+                $language = trim((string) ($request['query']['language'] ?? ''));
+                if ($language !== '') {
+                    $lines[] = 'language: ' . muginPublicSearchErrorLogOneLine($language, 40);
+                }
+                $translation = trim((string) ($request['translation']['mode'] ?? ''));
+                if ($translation !== '') {
+                    $lines[] = 'translation: ' . muginPublicSearchErrorLogOneLine($translation, 40);
+                }
+                $sort = trim((string) ($request['sort']['method'] ?? ''));
+                if ($sort !== '') {
+                    $lines[] = 'sort: ' . muginPublicSearchErrorLogOneLine($sort, 40);
+                }
+                $focus = trim((string) ($request['focus'] ?? ''));
+                if ($focus !== '') {
+                    $lines[] = 'focus: ' . muginPublicSearchErrorLogOneLine($focus, 80);
+                }
+                $responseLanguage = trim((string) ($request['responseOptions']['language'] ?? ''));
+                if ($responseLanguage !== '') {
+                    $lines[] = 'responseLanguage: ' . muginPublicSearchErrorLogOneLine($responseLanguage, 16);
+                }
+                if (isset($request['responseOptions']) && is_array($request['responseOptions'])) {
+                    $lines[] = 'noCache: ' . (($request['responseOptions']['noCache'] ?? false) === true ? 'yes' : 'no');
+                }
+            }
+            $lines[] = 'query: "' . muginPublicSearchErrorLogOneLine($query, 2000) . '"';
+            $lines[] = 'sources: ' . muginPublicSearchErrorLogList($sources, 12, 300);
+            $lines[] = 'page: ' . $page;
+            if ($pageSize > 0) {
+                $lines[] = 'pageSize: ' . $pageSize;
+            }
+            if (is_array($request)) {
+                $hardFilters = muginPublicSearchErrorLogJson($request['hardFilters'] ?? null);
+                if ($hardFilters !== '' && $hardFilters !== '{}' && $hardFilters !== '[]') {
+                    $lines[] = 'hardFilters: ' . $hardFilters;
+                }
+                $sourceFilters = muginPublicSearchErrorLogJson($request['sourceFilters'] ?? null);
+                if ($sourceFilters !== '' && $sourceFilters !== '{}' && $sourceFilters !== '[]') {
+                    $lines[] = 'sourceFilters: ' . $sourceFilters;
+                }
+                $intent = isset($request['intentContext']) && is_array($request['intentContext'])
+                    ? $request['intentContext']
+                    : [];
+                $topics = muginPublicSearchErrorLogList($intent['selectedTopicIds'] ?? [], 40, 1500);
+                if ($topics !== '') {
+                    $lines[] = 'topics: ' . $topics;
+                }
+                $limits = muginPublicSearchErrorLogList($intent['selectedLimitIds'] ?? [], 40, 1500);
+                if ($limits !== '') {
+                    $lines[] = 'limits: ' . $limits;
+                }
+                $rawInput = trim((string) ($intent['rawUserInput'] ?? ''));
+                if ($rawInput !== '' && $rawInput !== $query) {
+                    $lines[] = 'rawInput: "' . muginPublicSearchErrorLogOneLine($rawInput, 2000) . '"';
+                }
+                $selected = muginPublicSearchErrorLogList($request['preselectedIdentifiers'] ?? [], 30, 1500);
+                if ($selected !== '') {
+                    $lines[] = 'selected: ' . $selected;
+                }
+                if (isset($request['queryOverrides']) && is_array($request['queryOverrides'])) {
+                    $overrides = muginPublicSearchErrorLogJson($request['queryOverrides'], 2000);
+                    if ($overrides !== '' && $overrides !== '{}' && $overrides !== '[]') {
+                        $lines[] = 'queryOverrides: ' . $overrides;
+                    }
+                }
+            }
+            $lines[] = 'error: "' . muginPublicSearchErrorLogOneLine($message, 4000) . '"';
+            $clientMessage = trim((string) ($entry['clientMessage'] ?? ''));
+            if ($clientMessage !== '' && $clientMessage !== $message) {
+                $lines[] = 'response: "' . muginPublicSearchErrorLogOneLine($clientMessage, 500) . '"';
+            }
+            $warnings = isset($entry['warnings']) && is_array($entry['warnings']) ? $entry['warnings'] : [];
+            $warningText = muginPublicSearchErrorLogList($warnings, 12, 2000);
+            if ($warningText !== '' && $warningText !== muginPublicSearchErrorLogOneLine($message, 2000)) {
+                $lines[] = 'warnings: ' . $warningText;
+            }
+            if ($exception instanceof Throwable) {
+                $lines[] = 'exception: ' . muginPublicSearchErrorLogThrowableText($exception);
+            } else {
+                $exceptionClass = trim((string) ($entry['exceptionClass'] ?? ''));
+                $exceptionFile = trim((string) ($entry['exceptionFile'] ?? ''));
+                $exceptionLine = (int) ($entry['exceptionLine'] ?? 0);
+                if ($exceptionClass !== '' || $exceptionFile !== '') {
+                    $lines[] = 'exception: ' . muginPublicSearchErrorLogOneLine(
+                        trim($exceptionClass . ' ' . ($exceptionFile !== '' ? basename($exceptionFile) : '') . ($exceptionLine > 0 ? ':' . $exceptionLine : '')),
+                        300
+                    );
+                }
+            }
+            $processText = muginPublicSearchErrorLogProcessText($request);
+            if ($processText !== '') {
+                $lines[] = 'process:';
+                $lines[] = $processText;
+            }
+            $block = implode("\n", $lines) . "\n\n";
+            if (strlen($block) > 24000) {
+                $block = substr($block, 0, 23990) . "\n...[truncated]\n\n";
+            }
+            $path = $dir . DIRECTORY_SEPARATOR . 'search-error-' . gmdate('Y-m-d') . '.log';
+            @file_put_contents($path, $block, FILE_APPEND | LOCK_EX);
+
+            $config = muginPublicSearchGetConfig();
+            $retentionDays = max(1, (int) ($config['auditRetentionDays'] ?? 30));
+            $cutoff = time() - ($retentionDays * 86400);
+            foreach (glob($dir . DIRECTORY_SEPARATOR . 'search-error-*.log') ?: [] as $candidate) {
+                if (!is_file($candidate)) {
+                    continue;
+                }
+                $mtime = @filemtime($candidate);
+                if ($mtime !== false && (int) $mtime < $cutoff) {
+                    @unlink($candidate);
+                }
+            }
+        } catch (Throwable $ignored) {
+            return;
+        }
+    }
+}
+
 if (!function_exists('muginPublicSearchAudit')) {
     /**
      * @param array<string,mixed> $entry
@@ -817,6 +1310,8 @@ if (!function_exists('muginPublicSearchAudit')) {
      */
     function muginPublicSearchAudit(array $entry): void
     {
+        muginPublicSearchLogDisplayedSearchError($entry);
+
         $config = muginPublicSearchGetConfig();
         if ($config['auditEnabled'] !== true) {
             return;
@@ -1185,16 +1680,19 @@ if (!function_exists('muginPublicSearchNormalizeSources')) {
      */
     function muginPublicSearchNormalizeSources($value): array
     {
-        $allowed = ['pubmed', 'semanticScholar', 'openAlex', 'elicit'];
+        $canonicalByCompact = [
+            'pubmed' => 'pubmed',
+            'pubmedbestmatch' => 'pubmed',
+            'semanticscholar' => 'semanticScholar',
+            'openalex' => 'openAlex',
+            'elicit' => 'elicit',
+        ];
         $output = [];
         foreach (muginPublicSearchNormalizeSimpleList($value) as $entry) {
-            $normalized = trim($entry);
-            if ($normalized === 'semanticscholar') {
-                $normalized = 'semanticScholar';
-            } elseif ($normalized === 'openalex') {
-                $normalized = 'openAlex';
-            }
-            if (in_array($normalized, $allowed, true) && !in_array($normalized, $output, true)) {
+            $compact = strtolower(trim($entry));
+            $compact = preg_replace('/[\s_-]+/', '', $compact) ?? '';
+            $normalized = $canonicalByCompact[$compact] ?? '';
+            if ($normalized !== '' && !in_array($normalized, $output, true)) {
                 $output[] = $normalized;
             }
         }
@@ -1691,6 +2189,7 @@ if (!function_exists('muginPublicSearchNormalizePostRequest')) {
             'queryOverrides',
             'cachedFreetextQueries',
             'standardString',
+            'resultSetId',
         ];
         $unexpected = array_diff(array_keys($payload), $allowedTopLevel);
         if (!empty($unexpected)) {
@@ -1705,7 +2204,10 @@ if (!function_exists('muginPublicSearchNormalizePostRequest')) {
         if (!empty($queryUnexpected)) {
             throw new InvalidArgumentException('Unsupported query field(s): ' . implode(', ', $queryUnexpected));
         }
-        $request['query']['text'] = trim((string) ($query['text'] ?? ''));
+        $request['query']['text'] = muginPublicSearchStripNullAndEnforceMaxLength(
+            (string) ($query['text'] ?? ''),
+            'query.text'
+        );
         if (array_key_exists('language', $query)) {
             $request['query']['language'] = muginPublicSearchNormalizeQueryLanguage($query['language']);
         }
@@ -2213,6 +2715,15 @@ if (!function_exists('muginPublicSearchNormalizePostRequest')) {
             $normalizedCached = muginPublicSearchNormalizeCachedFreetextQueries($payload['cachedFreetextQueries']);
             if ($normalizedCached !== []) {
                 $request['cachedFreetextQueries'] = $normalizedCached;
+            }
+        }
+        if (array_key_exists('resultSetId', $payload)) {
+            $resultSetId = trim((string) $payload['resultSetId']);
+            if ($resultSetId !== '') {
+                if (!muginPublicSearchIsValidResultSetId($resultSetId)) {
+                    throw new InvalidArgumentException('resultSetId is invalid');
+                }
+                $request['resultSetId'] = $resultSetId;
             }
         }
 
@@ -2826,7 +3337,10 @@ if (!function_exists('muginPublicSearchNormalizeTopicSelectionEntry')) {
     function muginPublicSearchNormalizeTopicSelectionEntry(array $selection): ?array
     {
         $custom = !empty($selection['custom']);
-        $rawText = trim((string) ($selection['rawText'] ?? ($selection['text'] ?? '')));
+        $rawText = muginPublicSearchStripNullAndEnforceMaxLength(
+            (string) ($selection['rawText'] ?? ($selection['text'] ?? '')),
+            'rawText'
+        );
         $id = strtoupper(trim((string) ($selection['id'] ?? '')));
         $scope = strtolower(trim((string) ($selection['scope'] ?? 'normal')));
         if (!in_array($scope, ['narrow', 'normal', 'broad'], true)) {
@@ -3351,9 +3865,7 @@ if (!function_exists('muginPublicSearchBuildSelectedTopicPubMedQuery')) {
             if ($standardValue === '') {
                 return $combined;
             }
-            $combinedNorm = strtolower(preg_replace('/\s+/', ' ', $combined) ?? $combined);
-            $standardNorm = strtolower(preg_replace('/\s+/', ' ', $standardValue) ?? $standardValue);
-            if ($standardNorm !== '' && strpos($combinedNorm, $standardNorm) === false) {
+            if (!muginPublicSearchClauseAlreadyContained($combined, $standardValue)) {
                 return '(' . $combined . ') AND (' . $standardValue . ')';
             }
             return $combined;
@@ -5434,12 +5946,82 @@ if (!function_exists('muginPublicSearchNormalizeRawFreetextForPubMed')) {
         }
         $result = trim((string) preg_replace('/\s+/u', ' ', $result));
         if ($result === '') {
-            return ['value' => $original, 'changed' => false];
+            return ['value' => '', 'changed' => $original !== ''];
         }
         return [
             'value' => $result,
             'changed' => $result !== $original,
         ];
+    }
+}
+
+if (!function_exists('muginPublicSearchPubmedQueryIsExecutable')) {
+    /**
+     * Rejects an empty clause, unbalanced () or ", and a clause that is only
+     * boolean operators. Parentheses inside quotes are ignored. Does not
+     * rewrite the string.
+     */
+    function muginPublicSearchPubmedQueryIsExecutable(string $query): bool
+    {
+        $trimmed = trim($query);
+        if ($trimmed === '') {
+            return false;
+        }
+        $depth = 0;
+        $inQuote = false;
+        $length = strlen($trimmed);
+        for ($i = 0; $i < $length; $i++) {
+            $ch = $trimmed[$i];
+            if ($ch === '"') {
+                $inQuote = !$inQuote;
+                continue;
+            }
+            if ($inQuote) {
+                continue;
+            }
+            if ($ch === '(') {
+                $depth++;
+            } elseif ($ch === ')') {
+                $depth--;
+                if ($depth < 0) {
+                    return false;
+                }
+            }
+        }
+        if ($inQuote || $depth !== 0) {
+            return false;
+        }
+        $withoutQuotes = preg_replace('/"[^"]*"/', ' ', $trimmed);
+        $remainder = preg_replace('/\b(?:AND|OR|NOT)\b/i', ' ', (string) $withoutQuotes);
+        $remainder = trim((string) preg_replace('/[()\s]+/u', ' ', (string) $remainder));
+        return $remainder !== '';
+    }
+}
+
+if (!function_exists('muginPublicSearchCollectNlmEsearchOutputMessages')) {
+    /**
+     * NCBI syntax notes. "No items found." is an empty result, not a warning.
+     *
+     * @param array<string,mixed> $esearch
+     * @return array<int,string>
+     */
+    function muginPublicSearchCollectNlmEsearchOutputMessages(array $esearch): array
+    {
+        $warningList = isset($esearch['warninglist']) && is_array($esearch['warninglist'])
+            ? $esearch['warninglist']
+            : [];
+        $messages = isset($warningList['outputmessages']) && is_array($warningList['outputmessages'])
+            ? $warningList['outputmessages']
+            : [];
+        $output = [];
+        foreach ($messages as $message) {
+            $text = trim((string) $message);
+            if ($text === '' || strcasecmp($text, 'No items found.') === 0) {
+                continue;
+            }
+            $output[] = $text;
+        }
+        return $output;
     }
 }
 
@@ -5968,7 +6550,8 @@ if (!function_exists('muginPublicSearchPrefetchParallelTranslationRequests')) {
         bool $includeSemanticTranslation = true,
         bool $includePubMedTranslation = true,
         ?callable $translationCompleteCallback = null,
-        ?callable $sourceTimingCallback = null
+        ?callable $sourceTimingCallback = null,
+        ?callable $progressCallback = null
     ): array {
         $normalizedText = trim($text);
         if ($normalizedText === '') {
@@ -6021,7 +6604,8 @@ if (!function_exists('muginPublicSearchPrefetchParallelTranslationRequests')) {
                 }
             },
             $translationRequests,
-            $sourceStartCallback
+            $sourceStartCallback,
+            $progressCallback
         );
         return array_values(array_filter(
             $semanticSources,
@@ -6865,6 +7449,18 @@ if (!function_exists('muginPublicSearchQueryOverrideMaxLength')) {
     function muginPublicSearchQueryOverrideMaxLength(): int
     {
         return 20000;
+    }
+}
+
+if (!function_exists('muginPublicSearchStripNullAndEnforceMaxLength')) {
+    function muginPublicSearchStripNullAndEnforceMaxLength(string $text, string $fieldName): string
+    {
+        $trimmed = trim(str_replace("\0", '', $text));
+        $maxLength = muginPublicSearchQueryOverrideMaxLength();
+        if (strlen($trimmed) > $maxLength) {
+            throw new InvalidArgumentException($fieldName . ' exceeds maximum length of ' . $maxLength);
+        }
+        return $trimmed;
     }
 }
 
@@ -7759,7 +8355,8 @@ if (!function_exists('muginPublicSearchBuildResolvedQueries')) {
                         !$skipSemanticTranslation,
                         $includePubMedTranslation,
                         $onTranslationComplete,
-                        $onSourceHttpComplete
+                        $onSourceHttpComplete,
+                        $progressCallback
                     );
                     $pubmedTranslationPrefetched = $includePubMedTranslation;
                 }
@@ -7901,6 +8498,9 @@ if (!function_exists('muginPublicSearchBuildResolvedQueries')) {
                     $translatedFreetextPubMedQuery = $freetextPubMedQuery;
                     $rawFreetextSanitized = true;
                 }
+                if ($freetextPubMedQuery === '' && $topicCatalogQuery === '') {
+                    throw new InvalidArgumentException('query.text is required');
+                }
             }
             if (muginPublicSearchPubmedQueryContainsTranslationFailureText($freetextPubMedQuery)) {
                 $freetextPubMedQuery = muginPublicSearchBuildUntranslatedPubmedFallbackQuery(
@@ -7946,12 +8546,8 @@ if (!function_exists('muginPublicSearchBuildResolvedQueries')) {
             ) {
                 $scope = (string) ($request['_standardStringScope'] ?? 'normal');
                 $standardValue = trim((string) ($standardString[$scope] ?? ($standardString['normal'] ?? '')));
-                if ($standardValue !== '') {
-                    $combinedNorm = strtolower(preg_replace('/\s+/', ' ', $freetextPubMedQuery) ?? $freetextPubMedQuery);
-                    $standardNorm = strtolower(preg_replace('/\s+/', ' ', $standardValue) ?? $standardValue);
-                    if ($standardNorm !== '' && strpos($combinedNorm, $standardNorm) === false) {
-                        $freetextPubMedQuery = '(' . $freetextPubMedQuery . ') AND (' . $standardValue . ')';
-                    }
+                if ($standardValue !== '' && !muginPublicSearchClauseAlreadyContained($freetextPubMedQuery, $standardValue)) {
+                    $freetextPubMedQuery = '(' . $freetextPubMedQuery . ') AND (' . $standardValue . ')';
                 }
             }
         }
@@ -8294,7 +8890,7 @@ if (!function_exists('muginPublicSearchNormalizeSourceResult')) {
             'muginPublicSearchNormalizeDoi'
         );
 
-        return [
+        $normalized = [
             'source' => $source,
             'query' => $query,
             'total' => is_numeric($payload['total'] ?? null) ? (int) $payload['total'] : count($candidates),
@@ -8314,6 +8910,10 @@ if (!function_exists('muginPublicSearchNormalizeSourceResult')) {
                 : [],
             'debug' => isset($payload['debug']) && is_array($payload['debug']) ? $payload['debug'] : null,
         ];
+        if (isset($payload['requestCount']) && is_numeric($payload['requestCount'])) {
+            $normalized['requestCount'] = max(0, (int) $payload['requestCount']);
+        }
+        return $normalized;
     }
 }
 
@@ -8591,6 +9191,7 @@ if (!function_exists('muginPublicSearchFetchPubMedSearchIds')) {
             'query' => $normalizedQuery,
             'searchCount' => (int) ($esearch['count'] ?? 0),
             'pmids' => muginPublicSearchDedupeStrings((array) ($esearch['idlist'] ?? []), 'muginPublicSearchNormalizePmid'),
+            'nlmWarnings' => muginPublicSearchCollectNlmEsearchOutputMessages($esearch),
         ];
     }
 }
@@ -8835,8 +9436,10 @@ if (!function_exists('muginPublicSearchFetchPubMedBestMatchSourceResult')) {
         }
         $searchLimit = muginPublicSearchGetSemanticSourceLimit('pubmedBestMatch', 200);
         $search = muginPublicSearchFetchPubMedSearchIds($normalizedQuery, $searchLimit, 'relevance', $domain);
+        $nlmWarning = implode('; ', (array) ($search['nlmWarnings'] ?? []));
         if (empty($search['pmids'])) {
             $empty['total'] = $search['searchCount'];
+            $empty['warning'] = $nlmWarning;
             return $empty;
         }
         $summaryRecords = muginPublicSearchFetchPubMedSummaryRecords($search['pmids'], $domain);
@@ -8859,6 +9462,7 @@ if (!function_exists('muginPublicSearchFetchPubMedBestMatchSourceResult')) {
             'total' => $search['searchCount'],
             'pmids' => $search['pmids'],
             'candidates' => $candidates,
+            'warning' => $nlmWarning,
         ]);
     }
 }
@@ -8984,8 +9588,10 @@ if (!function_exists('muginPublicSearchFetchSemanticScholarSourceResult')) {
         $rawResultCount = 0;
         $rank = 0;
         $offset = 0;
+        $requestCount = 0;
         $failure = '';
         while ($offset < $configuredLimit) {
+            $requestCount++;
             $currentLimit = min($batchSize, $configuredLimit - $offset);
             $requestSpec = muginPublicSearchBuildSemanticScholarBatchRequestSpec(
                 $normalizedQuery,
@@ -9077,15 +9683,25 @@ if (!function_exists('muginPublicSearchFetchSemanticScholarSourceResult')) {
                     $payload['dois'][] = $doi;
                 }
             }
-            if (count($batchData) < $currentLimit) {
+            $received = count($batchData);
+            if ($received < $currentLimit) {
                 // Upstream har ikke flere resultater at hente.
                 break;
             }
-            $offset += $currentLimit;
+            $nextOffset = $offset + $currentLimit;
+            // total is known from the first page. A full page of exactly 100
+            // must not start another call when nothing remains.
+            if ($payload['total'] > 0 && $nextOffset >= $payload['total']) {
+                break;
+            }
+            $offset = $nextOffset;
         }
+        $payload['requestCount'] = $requestCount;
 
         if ($failure !== '' && empty($payload['candidates'])) {
-            return muginPublicSearchCreateEmptySourceResult('semanticScholar', $normalizedQuery, $failure);
+            $empty = muginPublicSearchCreateEmptySourceResult('semanticScholar', $normalizedQuery, $failure);
+            $empty['requestCount'] = $requestCount;
+            return $empty;
         }
         if (empty($payload['candidates'])) {
             $payload['warning'] = $rawResultCount > 0
@@ -11234,6 +11850,7 @@ if (!function_exists('muginPublicSearchBuildAllowedCandidateKeys')) {
                                 'source' => [
                                     'type' => $enriched['sourceType'] ?? ($candidateMetadata['sourceType'] ?? ''),
                                     'display_name' => $enriched['venue'] ?? ($candidateMetadata['venue'] ?? ''),
+                                    'abbreviated_title' => $enriched['sourceAbbreviatedTitle'] ?? ($candidateMetadata['sourceAbbreviatedTitle'] ?? ''),
                                 ],
                             ],
                             '_semanticScholarFallback' => true,
@@ -11557,6 +12174,75 @@ if (!function_exists('muginPublicSearchShouldUseSemanticDateOrdering')) {
     }
 }
 
+if (!function_exists('muginPublicSearchFormatMachinePublicationDate')) {
+    /**
+     * Sorteringsdatoer som "2012/06/30 00:00" og ISO-datoer bliver til
+     * PubMeds citationsform "2012 Jun 30". Ukendte strenge returneres tomme.
+     *
+     * @param string $value
+     * @return string
+     */
+    function muginPublicSearchFormatMachinePublicationDate(string $value): string
+    {
+        $normalized = trim($value);
+        if (preg_match('/^(\d{4})[\/-](\d{2})(?:[\/-](\d{2}))?(?:[T\s]\d{2}:\d{2}(?::\d{2})?)?/', $normalized, $matches) !== 1) {
+            return '';
+        }
+        $year = $matches[1];
+        $month = (int) $matches[2];
+        $day = isset($matches[3]) ? (int) $matches[3] : 0;
+        $months = [
+            1 => 'Jan',
+            2 => 'Feb',
+            3 => 'Mar',
+            4 => 'Apr',
+            5 => 'May',
+            6 => 'Jun',
+            7 => 'Jul',
+            8 => 'Aug',
+            9 => 'Sep',
+            10 => 'Oct',
+            11 => 'Nov',
+            12 => 'Dec',
+        ];
+        if ($month < 1 || $month > 12) {
+            return $year;
+        }
+        if ($day < 1 || $day > 31) {
+            return $year . ' ' . $months[$month];
+        }
+        return $year . ' ' . $months[$month] . ' ' . $day;
+    }
+}
+
+if (!function_exists('muginPublicSearchCitationDateFromPubMedSummary')) {
+    /**
+     * Citationsdatoen er esummary-feltet pubdate ("2012 Jun 30"), ikke
+     * sortpubdate ("2012/06/30 00:00").
+     *
+     * @param array<string,mixed> $summary
+     * @return string
+     */
+    function muginPublicSearchCitationDateFromPubMedSummary(array $summary): string
+    {
+        $pubDate = trim((string) ($summary['pubdate'] ?? ''));
+        if ($pubDate !== '' && muginPublicSearchFormatMachinePublicationDate($pubDate) === '') {
+            return $pubDate;
+        }
+        $machineDate = $pubDate !== '' ? $pubDate : trim((string) ($summary['sortpubdate'] ?? ''));
+        $formatted = muginPublicSearchFormatMachinePublicationDate($machineDate);
+        if ($formatted !== '') {
+            return $formatted;
+        }
+        if ($pubDate !== '') {
+            return $pubDate;
+        }
+        $epubDate = trim((string) ($summary['epubdate'] ?? ''));
+        $formattedEpub = muginPublicSearchFormatMachinePublicationDate($epubDate);
+        return $formattedEpub !== '' ? $formattedEpub : $epubDate;
+    }
+}
+
 if (!function_exists('muginPublicSearchParseSortDateValue')) {
     /**
      * @param string $value
@@ -11568,12 +12254,63 @@ if (!function_exists('muginPublicSearchParseSortDateValue')) {
         if ($normalized === '') {
             return null;
         }
+        if (preg_match('/^(\d{4})[\/-](\d{2})(?:[\/-](\d{2}))?/', $normalized, $matches) === 1) {
+            $timestamp = strtotime($normalized);
+            if ($timestamp !== false) {
+                return $timestamp;
+            }
+            $year = (int) $matches[1];
+            $month = (int) $matches[2];
+            $day = isset($matches[3]) ? (int) $matches[3] : 1;
+            if ($month < 1 || $month > 12) {
+                $month = 1;
+            }
+            if ($day < 1 || $day > 31) {
+                $day = 1;
+            }
+            return mktime(0, 0, 0, $month, $day, $year);
+        }
+
+        $months = [
+            'jan' => 1,
+            'feb' => 2,
+            'mar' => 3,
+            'apr' => 4,
+            'may' => 5,
+            'jun' => 6,
+            'jul' => 7,
+            'aug' => 8,
+            'sep' => 9,
+            'oct' => 10,
+            'nov' => 11,
+            'dec' => 12,
+        ];
+        if (preg_match('/^(\d{4})(?:\s+([A-Za-z]{3,9}))?(?:\s+(\d{1,2}))?\b/', $normalized, $matches) === 1) {
+            $year = (int) $matches[1];
+            if ($year >= 1000 && $year <= 9999) {
+                $month = 1;
+                $day = 1;
+                $monthToken = strtolower((string) ($matches[2] ?? ''));
+                if ($monthToken !== '') {
+                    $monthNumber = $months[substr($monthToken, 0, 3)] ?? 0;
+                    if ($monthNumber > 0) {
+                        $month = $monthNumber;
+                        $dayNumber = (int) ($matches[3] ?? 0);
+                        if ($dayNumber >= 1 && $dayNumber <= 31) {
+                            $day = $dayNumber;
+                        }
+                    }
+                }
+                return mktime(0, 0, 0, $month, $day, $year);
+            }
+        }
+
         $timestamp = strtotime($normalized);
         if ($timestamp !== false) {
             return $timestamp;
         }
         if (preg_match('/^(\d{4})$/', $normalized, $matches) === 1) {
-            return gmmktime(0, 0, 0, 1, 1, (int) $matches[1]);
+            return mktime(0, 0, 0, 1, 1, (int) $matches[1]);
         }
         return null;
     }
@@ -12170,7 +12907,7 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
             if (is_bool($entry['isOpenAccess'] ?? null)) {
                 $qualitySignals['isOpenAccess'] = $entry['isOpenAccess'];
             }
-            $venue = trim((string) ($entry['sourceLabel'] ?? ($entry['journal']['name'] ?? '')));
+            $venue = trim((string) ($entry['journal']['name'] ?? ($entry['sourceLabel'] ?? '')));
             if ($venue !== '') {
                 $qualitySignals['venue'] = $venue;
             }
@@ -12479,6 +13216,34 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
     }
 }
 
+if (!function_exists('muginPublicSearchNormalizeClauseForContainment')) {
+    function muginPublicSearchNormalizeClauseForContainment(string $clause): string
+    {
+        $collapsed = preg_replace('/\s+/u', ' ', trim($clause));
+        return strtolower(is_string($collapsed) ? $collapsed : trim($clause));
+    }
+}
+
+if (!function_exists('muginPublicSearchClauseAlreadyContained')) {
+    /**
+     * True when $needle is the whole haystack or a complete clause inside it.
+     * A match must not start or end in the middle of a token (letter, digit, or *).
+     */
+    function muginPublicSearchClauseAlreadyContained(string $haystack, string $needle): bool
+    {
+        $haystackNorm = muginPublicSearchNormalizeClauseForContainment($haystack);
+        $needleNorm = muginPublicSearchNormalizeClauseForContainment($needle);
+        if ($needleNorm === '' || $haystackNorm === '') {
+            return false;
+        }
+        if ($haystackNorm === $needleNorm) {
+            return true;
+        }
+        $pattern = '/(?<![\p{L}\p{N}*])' . preg_quote($needleNorm, '/') . '(?![\p{L}\p{N}*])/u';
+        return preg_match($pattern, $haystackNorm) === 1;
+    }
+}
+
 if (!function_exists('muginPublicSearchCombinePubMedQuery')) {
     /**
      * @param string $baseQuery
@@ -12495,7 +13260,7 @@ if (!function_exists('muginPublicSearchCombinePubMedQuery')) {
         if ($normalizedFilter === '') {
             return $normalizedBase;
         }
-        if ($normalizedBase === $normalizedFilter || strpos($normalizedBase, $normalizedFilter) !== false) {
+        if (muginPublicSearchClauseAlreadyContained($normalizedBase, $normalizedFilter)) {
             return $normalizedBase;
         }
         return '(' . $normalizedBase . ') AND (' . $normalizedFilter . ')';
@@ -12747,7 +13512,7 @@ if (!function_exists('muginPublicSearchBuildApiResultFromPubMed')) {
             ? array_values(array_map('strval', $candidateInfo['sources']))
             : ['pubmed'];
         $originSource = trim((string) ($candidateInfo['source'] ?? ($mergedSources[0] ?? 'pubmed')));
-        $publicationDate = trim((string) ($summary['sortpubdate'] ?? ($summary['pubdate'] ?? '')));
+        $publicationDate = muginPublicSearchCitationDateFromPubMedSummary($summary);
         $year = muginPublicSearchExtractPubMedSummaryPublicationYear($summary);
 
         // Foretraekker strukturerede forfatternavne fra efetch-XML'en (LastName/
@@ -12796,6 +13561,16 @@ if (!function_exists('muginPublicSearchBuildApiResultFromPubMed')) {
         $openAlexId = trim((string) ($candidateInfo['openAlexId'] ?? ''));
         $ranking = muginPublicSearchExtractResultRanking($candidateInfo);
 
+        $fullJournalName = trim((string) ($summary['fulljournalname'] ?? ''));
+        $abbreviatedJournalName = trim((string) ($summary['source'] ?? ''));
+        if ($abbreviatedJournalName === '' && is_array($ssMetadata)) {
+            $abbreviatedJournalName = trim((string) ($ssMetadata['sourceAbbreviatedTitle'] ?? ''));
+        }
+        if ($fullJournalName === '') {
+            $fullJournalName = $abbreviatedJournalName;
+        }
+        $citationJournalName = $abbreviatedJournalName !== '' ? $abbreviatedJournalName : $fullJournalName;
+
         $result = [
             // Identifikation
             'rank' => $rank,
@@ -12809,13 +13584,13 @@ if (!function_exists('muginPublicSearchBuildApiResultFromPubMed')) {
             'title' => trim((string) ($summary['title'] ?? '')),
             'authors' => $authors,
             'journal' => [
-                'name' => trim((string) ($summary['fulljournalname'] ?? ($summary['source'] ?? ''))),
+                'name' => $fullJournalName,
                 'issn' => trim((string) ($summary['issn'] ?? '')),
                 'volume' => trim((string) ($summary['volume'] ?? '')),
                 'issue' => trim((string) ($summary['issue'] ?? '')),
                 'pages' => trim((string) ($summary['pages'] ?? '')),
             ],
-            'sourceLabel' => trim((string) ($summary['fulljournalname'] ?? ($summary['source'] ?? ''))),
+            'sourceLabel' => $citationJournalName,
             'publicationDate' => $publicationDate,
             'year' => $year,
             'language' => muginPublicSearchNormalizeSimpleList($summary['lang'] ?? [])[0] ?? '',
@@ -12961,6 +13736,16 @@ if (!function_exists('muginPublicSearchBuildApiResultFromOpenAlex')) {
         }
         $ranking = muginPublicSearchExtractResultRanking($candidateInfo);
 
+        $fullJournalName = trim((string) ($source['display_name'] ?? ''));
+        $abbreviatedJournalName = trim((string) ($source['abbreviated_title'] ?? ''));
+        if ($abbreviatedJournalName === '' && is_array($ssMetadata)) {
+            $abbreviatedJournalName = trim((string) ($ssMetadata['sourceAbbreviatedTitle'] ?? ''));
+        }
+        if ($fullJournalName === '') {
+            $fullJournalName = $abbreviatedJournalName;
+        }
+        $citationJournalName = $abbreviatedJournalName !== '' ? $abbreviatedJournalName : $fullJournalName;
+
         $result = [
             // Identifikation
             'rank' => $rank,
@@ -12974,13 +13759,13 @@ if (!function_exists('muginPublicSearchBuildApiResultFromOpenAlex')) {
             'title' => trim((string) ($work['display_name'] ?? ($work['title'] ?? ''))),
             'authors' => $authors,
             'journal' => [
-                'name' => trim((string) ($source['display_name'] ?? '')),
+                'name' => $fullJournalName,
                 'issn' => trim((string) ($source['issn_l'] ?? '')),
                 'volume' => trim((string) ($biblio['volume'] ?? '')),
                 'issue' => trim((string) ($biblio['issue'] ?? '')),
                 'pages' => $pages,
             ],
-            'sourceLabel' => trim((string) ($source['display_name'] ?? '')),
+            'sourceLabel' => $citationJournalName,
             'publicationDate' => trim((string) ($work['publication_date'] ?? '')),
             'year' => trim((string) ($work['publication_year'] ?? '')),
             'language' => trim((string) ($work['language'] ?? '')),
@@ -13099,6 +13884,208 @@ if (!function_exists('muginPublicSearchBuildFinalResponse')) {
     }
 }
 
+if (!function_exists('muginPublicSearchTryClosePrefetchedSource')) {
+    /**
+     * Closes one source as soon as its own prefetched response is the full
+     * result. Sources that still need another request stay open, so they do
+     * not finish in the same later pass as their siblings.
+     *
+     * @param array<string,array{url:string,options:array<string,mixed>}> $sourceSpecs
+     * @param array<string,array<string,mixed>> $sourceResults
+     * @param array<string,mixed> $resolvedQueries
+     * @param array<string,mixed> $request
+     */
+    function muginPublicSearchTryClosePrefetchedSource(
+        string $sourceKey,
+        int $elapsedMs,
+        array $sourceSpecs,
+        array $sourceResults,
+        array $resolvedQueries,
+        array $request,
+        string $domain,
+        ?callable $progressCallback
+    ): bool {
+        if ($progressCallback === null || !isset($sourceResults[$sourceKey])) {
+            return false;
+        }
+        $plan = isset($resolvedQueries['sourceQueryPlan'][$sourceKey]) && is_array($resolvedQueries['sourceQueryPlan'][$sourceKey])
+            ? $resolvedQueries['sourceQueryPlan'][$sourceKey]
+            : [];
+        $query = trim((string) ($plan['query'] ?? ''));
+        $filters = isset($plan['filters']) && is_array($plan['filters']) ? $plan['filters'] : [];
+        $httpResult = $sourceResults[$sourceKey];
+        $httpOk = function_exists('muginPublicSearchIsHttpResultOk')
+            && muginPublicSearchIsHttpResultOk($httpResult);
+        $decoded = $httpOk ? json_decode((string) ($httpResult['body'] ?? ''), true) : null;
+        $decoded = is_array($decoded) ? $decoded : null;
+
+        if ($sourceKey === 'semanticScholar') {
+            if ($query === '') {
+                return false;
+            }
+            if ($httpOk && $decoded !== null) {
+                $configuredLimit = max(1, muginPublicSearchGetSemanticSourceLimit('semanticScholar', 400));
+                $requested = min(100, $configuredLimit);
+                $received = count((array) ($decoded['data'] ?? []));
+                if ($received >= $requested && $requested < $configuredLimit) {
+                    return false;
+                }
+            }
+        } elseif ($sourceKey === 'openAlex') {
+            if ($query === '') {
+                return false;
+            }
+            if ($httpOk && $decoded !== null) {
+                $count = count((array) ($decoded['results'] ?? []));
+                $cap = max(1, muginPublicSearchGetSemanticSourceLimit('openAlex', 50));
+                $deferred = false;
+                foreach (['language', 'sourceType', 'workType', 'publicationYear'] as $filterField) {
+                    $value = $filters[$filterField] ?? null;
+                    if ((is_array($value) && !empty($value)) || (!is_array($value) && trim((string) $value) !== '')) {
+                        $deferred = true;
+                        break;
+                    }
+                }
+                $needsKeyword = $deferred || $count === 0 || $count >= $cap;
+                if ($needsKeyword && !isset($sourceResults['openAlex_keyword'])) {
+                    return false;
+                }
+            }
+        } elseif ($sourceKey === 'elicit') {
+            if ($query === '') {
+                return false;
+            }
+        } else {
+            return false;
+        }
+
+        foreach ($sourceSpecs as $name => $spec) {
+            if (!isset($sourceResults[$name]) || !is_array($spec)) {
+                continue;
+            }
+            muginHttpRequestPrefetch(
+                (string) ($spec['url'] ?? ''),
+                (array) ($spec['options'] ?? []),
+                $sourceResults[$name]
+            );
+        }
+
+        $apiKeys = isset($request['_clientSourceApiKeys']) && is_array($request['_clientSourceApiKeys'])
+            ? $request['_clientSourceApiKeys']
+            : [];
+        $restorePrefetch = static function () use ($sourceSpecs, $sourceResults): void {
+            foreach ($sourceSpecs as $name => $spec) {
+                if (!isset($sourceResults[$name]) || !is_array($spec)) {
+                    continue;
+                }
+                muginHttpRequestPrefetch(
+                    (string) ($spec['url'] ?? ''),
+                    (array) ($spec['options'] ?? []),
+                    $sourceResults[$name]
+                );
+            }
+        };
+        try {
+            if ($sourceKey === 'semanticScholar') {
+                $sourceResult = muginPublicSearchFetchSemanticScholarSourceResult(
+                    $query,
+                    $filters,
+                    (string) ($apiKeys['semanticScholar'] ?? '')
+                );
+                $requestSummary = array_merge(
+                    [
+                        'limit' => muginPublicSearchGetSemanticSourceLimit('semanticScholar', 400),
+                        'domain' => $domain,
+                        'searchMode' => 'semantic',
+                    ],
+                    $filters
+                );
+                $requestMeta = muginPublicSearchMergeQueryOverrideRequestMeta(
+                    $resolvedQueries,
+                    'semanticScholar',
+                    ['searchMode' => 'semantic']
+                );
+                $messageKey = 'semanticSearchProgressSemanticScholar';
+            } elseif ($sourceKey === 'openAlex') {
+                $sourceResult = muginPublicSearchFetchOpenAlexSourceResult(
+                    $query,
+                    $filters,
+                    $domain,
+                    (string) ($apiKeys['openAlex'] ?? '')
+                );
+                $requestSummary = [
+                    'limit' => muginPublicSearchGetSemanticSourceLimit('openAlex', 50),
+                    'domain' => $domain,
+                    'languages' => (array) ($filters['language'] ?? []),
+                    'sourceTypes' => (array) ($filters['sourceType'] ?? []),
+                    'workTypes' => (array) ($filters['workType'] ?? []),
+                    'publicationYear' => (string) ($filters['publicationYear'] ?? ''),
+                    'isOa' => !empty($filters['isOa']),
+                    'searchMode' => 'semantic',
+                ];
+                $requestMeta = muginPublicSearchMergeQueryOverrideRequestMeta(
+                    $resolvedQueries,
+                    'openAlex',
+                    isset($sourceResult['requestMeta']) && is_array($sourceResult['requestMeta'])
+                        ? $sourceResult['requestMeta']
+                        : ['searchMode' => 'semantic']
+                );
+                $messageKey = 'semanticSearchProgressOpenAlex';
+            } else {
+                $sourceResult = muginPublicSearchFetchElicitSourceResult(
+                    $query,
+                    $filters,
+                    (string) ($apiKeys['elicit'] ?? '')
+                );
+                $requestSummary = [
+                    'limit' => muginPublicSearchGetSemanticSourceLimit('elicit', 100),
+                    'domain' => $domain,
+                    'filters' => $filters,
+                    'corpus' => 'elicit',
+                    'searchMode' => 'semantic',
+                ];
+                $requestMeta = muginPublicSearchMergeQueryOverrideRequestMeta(
+                    $resolvedQueries,
+                    'elicit',
+                    ['searchMode' => 'semantic']
+                );
+                $messageKey = 'semanticSearchProgressElicit';
+            }
+        } finally {
+            $restorePrefetch();
+        }
+
+        $collector = isset($request['_processDetails']) && is_array($request['_processDetails'])
+            ? $request['_processDetails']
+            : null;
+        $detailContext = trim((string) (
+            $request['intentContext']['rawUserInput']
+            ?? $request['query']['text']
+            ?? ''
+        ));
+        muginPublicSearchProcessDetailsRecordSourceCompletion(
+            $collector,
+            $sourceKey,
+            $query,
+            is_array($sourceResult) ? $sourceResult : [],
+            microtime(true) - (max(0, $elapsedMs) / 1000),
+            $progressCallback,
+            [
+                'stepId' => $sourceKey,
+                'groupId' => muginPublicSearchSourcesProgressGroupId($request),
+                'groupKey' => muginPublicSearchSourcesProgressGroupKey($request),
+                'messageKey' => $messageKey,
+                'source' => $sourceKey,
+            ],
+            $requestSummary,
+            $requestMeta,
+            $detailContext,
+            max(0, $elapsedMs)
+        );
+        return true;
+    }
+}
+
 if (!function_exists('muginPublicSearchPrefetchInitialSourceRequests')) {
     /**
      * Fires the *first* HTTP request for each requested source
@@ -13131,6 +14118,8 @@ if (!function_exists('muginPublicSearchPrefetchInitialSourceRequests')) {
      * @param array<string,array{url:string,options:array<string,mixed>}> $additionalNamedRequests
      * @param callable|null $sourceStartCallback Called with requested source keys
      *        immediately before the concurrent wave starts.
+     * @param callable|null $progressCallback When set, a source whose prefetched
+     *        response is already its full result is closed as that response arrives.
      * @return array<string,int> Per-source first-wave HTTP duration in milliseconds.
      */
     function muginPublicSearchPrefetchInitialSourceRequests(
@@ -13140,7 +14129,8 @@ if (!function_exists('muginPublicSearchPrefetchInitialSourceRequests')) {
         string $domain,
         ?callable $sourceTimingCallback = null,
         array $additionalNamedRequests = [],
-        ?callable $sourceStartCallback = null
+        ?callable $sourceStartCallback = null,
+        ?callable $progressCallback = null
     ): array {
         $namedRequests = $additionalNamedRequests;
         $sourceQueryPlan = isset($resolvedQueries['sourceQueryPlan']) && is_array($resolvedQueries['sourceQueryPlan'])
@@ -13287,25 +14277,63 @@ if (!function_exists('muginPublicSearchPrefetchInitialSourceRequests')) {
             $expectedRequestsBySource[$sourceKey] = (int) ($expectedRequestsBySource[$sourceKey] ?? 0) + 1;
         }
         $completedRequestsBySource = [];
+        $completedHttpResults = [];
         $liveSourceElapsedMs = [];
         $responses = muginHttpRequestMulti(
             $namedRequests,
-            static function (string $name, int $elapsedMs) use (
+            static function (string $name, int $elapsedMs, array $result = []) use (
                 &$completedRequestsBySource,
+                &$completedHttpResults,
                 &$liveSourceElapsedMs,
                 $expectedRequestsBySource,
-                $sourceTimingCallback
+                $sourceTimingCallback,
+                $namedRequests,
+                $resolvedQueries,
+                $request,
+                $domain,
+                $progressCallback
             ): void {
                 $sourceKey = $name === 'openAlex_keyword' ? 'openAlex' : $name;
                 $completedRequestsBySource[$sourceKey] = (int) ($completedRequestsBySource[$sourceKey] ?? 0) + 1;
+                $completedHttpResults[$name] = $result;
                 $liveSourceElapsedMs[$sourceKey] = max(
                     (int) ($liveSourceElapsedMs[$sourceKey] ?? 0),
                     max(0, $elapsedMs)
                 );
                 if (
-                    $sourceTimingCallback !== null
-                    && $completedRequestsBySource[$sourceKey] >= (int) ($expectedRequestsBySource[$sourceKey] ?? 1)
+                    $sourceTimingCallback === null
+                    && $progressCallback === null
                 ) {
+                    return;
+                }
+                if ($completedRequestsBySource[$sourceKey] < (int) ($expectedRequestsBySource[$sourceKey] ?? 1)) {
+                    return;
+                }
+                $sourceSpecs = [];
+                $sourceResults = [];
+                foreach ($namedRequests as $requestName => $spec) {
+                    $requestSource = $requestName === 'openAlex_keyword' ? 'openAlex' : $requestName;
+                    if ($requestSource !== $sourceKey) {
+                        continue;
+                    }
+                    $sourceSpecs[$requestName] = $spec;
+                    if (isset($completedHttpResults[$requestName]) && is_array($completedHttpResults[$requestName])) {
+                        $sourceResults[$requestName] = $completedHttpResults[$requestName];
+                    }
+                }
+                if (muginPublicSearchTryClosePrefetchedSource(
+                    $sourceKey,
+                    (int) $liveSourceElapsedMs[$sourceKey],
+                    $sourceSpecs,
+                    $sourceResults,
+                    $resolvedQueries,
+                    $request,
+                    $domain,
+                    $progressCallback
+                )) {
+                    return;
+                }
+                if ($sourceTimingCallback !== null) {
                     $sourceTimingCallback($sourceKey, (int) $liveSourceElapsedMs[$sourceKey]);
                 }
             }
@@ -13335,6 +14363,7 @@ if (!function_exists('muginPublicSearchRunSearch')) {
     {
         $config = muginPublicSearchGetConfig();
         muginPublicSearchProcessDetailsEnsureCollector($request);
+        muginPublicSearchResetSourceProgressClosed();
         $collector = isset($request['_processDetails']) && is_array($request['_processDetails'])
             ? $request['_processDetails']
             : null;
@@ -13387,6 +14416,41 @@ if (!function_exists('muginPublicSearchRunSearch')) {
         // Keep pipeline entries longer than short search-response TTL so users can
         // read page 1 and still hit the fast path for "Indlæs de næste".
         $pipelineCacheTtl = $searchCacheTtl > 0 ? max($searchCacheTtl, 1800) : 0;
+        // Stored candidate lists stay available for an explicit resultSetId even
+        // when the short search-response cache is disabled. The hash lookup
+        // below still requires $pipelineCacheTtl, so that disablement does not
+        // change pagination for callers that do not send resultSetId.
+        $resultSetStoreTtl = max($pipelineCacheTtl, 1800);
+        $responseResultSetId = $pipelineCacheKey;
+        $requestedResultSetId = trim((string) ($request['resultSetId'] ?? ''));
+        // An explicit stored-list id is only a continuation. Page 1 with no
+        // offset still runs the full search, even if a stale id is present.
+        if ($requestedResultSetId !== '' && ($pageNumber > 1 || $pageOffset > 0)) {
+            $storedPipeline = muginPublicSearchReadStoredPipeline($requestedResultSetId);
+            if ($storedPipeline === null) {
+                return muginPublicSearchBuildExpiredResultSetResponse($request);
+            }
+            $resolvedQueries = (array) $storedPipeline['resolvedQueries'];
+            $resultRefs = array_values((array) $storedPipeline['resultRefs']);
+            $orderedCandidates = array_values((array) ($storedPipeline['orderedCandidates'] ?? []));
+            $hybridOrdering = isset($storedPipeline['hybridOrdering']) && is_array($storedPipeline['hybridOrdering'])
+                ? $storedPipeline['hybridOrdering']
+                : ['refs' => $resultRefs, 'pmids' => []];
+            $warnings = muginPublicSearchDedupeStrings(array_merge(
+                array_map('strval', (array) ($storedPipeline['warnings'] ?? [])),
+                array_map('strval', (array) ($request['_sourceAccessWarnings'] ?? []))
+            ));
+            $diagnostics = isset($storedPipeline['diagnostics']) && is_array($storedPipeline['diagnostics'])
+                ? $storedPipeline['diagnostics']
+                : [];
+            if ($includeDiagnostics) {
+                $diagnostics['cache'] = ['hit' => false];
+                $diagnostics['pipelineCache'] = ['hit' => true];
+            }
+            $totalCount = (int) ($storedPipeline['totalCount'] ?? count($resultRefs));
+            $responseResultSetId = $requestedResultSetId;
+            goto mugin_public_search_hydrate_page;
+        }
         // Continuation requests (page 2+ or explicit offset>0 for page-size changes)
         // must not re-run intent/sources/rerank — only hydrate the missing slice.
         if (($pageNumber > 1 || $pageOffset > 0) && $pipelineCacheTtl > 0 && !$noCache) {
@@ -13450,6 +14514,15 @@ if (!function_exists('muginPublicSearchRunSearch')) {
             (array) ($resolvedQueries['warnings'] ?? []),
             (array) ($request['_sourceAccessWarnings'] ?? [])
         ));
+        if (in_array('pubmed', (array) ($request['sources'] ?? []), true)) {
+            $pubmedTermToExecute = muginPublicSearchCombinePubMedQuery(
+                (string) ($resolvedQueries['pubmedQuery'] ?? ''),
+                (string) ($resolvedQueries['hardFilterQuery'] ?? '')
+            );
+            if (!muginPublicSearchPubmedQueryIsExecutable($pubmedTermToExecute)) {
+                throw new InvalidArgumentException('PubMed search string is not executable');
+            }
+        }
         $diagnostics = [];
         if ($includeDiagnostics) {
             $diagnostics['cache'] = ['hit' => false];
@@ -13540,6 +14613,10 @@ if (!function_exists('muginPublicSearchRunSearch')) {
             $esearch = isset($searchPayload['esearchresult']) && is_array($searchPayload['esearchresult'])
                 ? $searchPayload['esearchresult']
                 : [];
+            $warnings = muginPublicSearchDedupeStrings(array_merge(
+                $warnings,
+                muginPublicSearchCollectNlmEsearchOutputMessages($esearch)
+            ));
             $pmids = muginPublicSearchDedupeStrings((array) ($esearch['idlist'] ?? []), 'muginPublicSearchNormalizePmid');
             muginPublicSearchProcessDetailsRecordSourceCompletion(
                 $collector,
@@ -13649,12 +14726,9 @@ if (!function_exists('muginPublicSearchRunSearch')) {
                 }
                 unset($result);
             }
-            $responseResolvedQueries = !empty($resolvedQueries['queryOverrideApplied']['pubmed'])
-                ? $resolvedQueries
-                : array_merge($resolvedQueries, ['hardFilterQuery' => $finalPubMedQuery]);
             $response = muginPublicSearchBuildFinalResponse(
                 $request,
-                $responseResolvedQueries,
+                $resolvedQueries,
                 $results,
                 $pubmedTotalCount,
                 false,
@@ -13760,7 +14834,10 @@ if (!function_exists('muginPublicSearchRunSearch')) {
                         'elapsedFrozen' => true,
                     ])
                 );
-            }
+            },
+            [],
+            null,
+            $progressCallback
         );
         $sourceElapsedAfterHttp = static function (string $sourceKey, float $fetchStartedAt) use (&$sourceHttpElapsedMs): ?int {
             if (!array_key_exists($sourceKey, $sourceHttpElapsedMs)) {
@@ -14110,7 +15187,7 @@ if (!function_exists('muginPublicSearchRunSearch')) {
             }
         }
 
-        if ($pipelineCacheTtl > 0) {
+        if ($resultSetStoreTtl > 0) {
             muginPublicSearchWriteCacheValue(
                 'search-pipeline',
                 $pipelineCacheKey,
@@ -14126,7 +15203,7 @@ if (!function_exists('muginPublicSearchRunSearch')) {
                     'diagnostics' => $diagnostics,
                     'totalCount' => $totalCount,
                 ],
-                $pipelineCacheTtl
+                $resultSetStoreTtl
             );
         }
 
@@ -14330,6 +15407,9 @@ if (!function_exists('muginPublicSearchRunSearch')) {
             $diagnostics,
             $collector
         );
+        if ($responseResultSetId !== '') {
+            $response['resultSetId'] = $responseResultSetId;
+        }
         if ($searchCacheTtl > 0) {
             muginPublicSearchWriteCacheValue('search-response', $searchCacheKey, $response, $searchCacheTtl);
         }

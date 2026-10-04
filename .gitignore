@@ -18,6 +18,7 @@ backend/config/config.php
 php-proxy/storage/runtime/
 **/data/runtime/
 **/data/cache/
+**/data/errorlog/
 test-results/
 playwright-report/
 playwright/.cache/

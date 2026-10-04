@@ -23,11 +23,11 @@
         @change="updateInput"
         @keyup.enter="changeOnEnter"
       />
-      <p v-if="showDate" class="mugin_resultentryDate mugin_resultentryDateMobile">
+      <p v-if="showDate && date" class="mugin_resultentryDate mugin_resultentryDateMobile">
         {{ date }}
       </p>
     </div>
-    <p v-else-if="showDate" class="mugin_resultentryDate">
+    <p v-else-if="showDate && date" class="mugin_resultentryDate">
       {{ date }}
     </p>
     <div lang="en">
@@ -123,11 +123,12 @@
       <div class="mugin_resultTextLineHeight">
         <p class="mugin_resultSource">
           <span v-if="source">{{ source }}</span>
-          <span v-if="source && pubDate">. </span>
-          <span v-if="pubDate">{{ pubDate }}</span>
+          <span v-if="source && citationPubDate">. </span>
+          <span v-if="citationPubDate">{{ citationPubDate }}</span>
           <span v-if="volume">;{{ volume }}</span>
           <span v-if="issue">({{ issue }})</span>
           <span v-if="pages">:{{ pages }}</span>
+          <span v-if="showCitationPeriod">.</span>
         </p>
       </div>
     </div>
@@ -1055,7 +1056,7 @@
                     </dt>
                     <dd>{{ fulljournalnameFromValue || source }}</dd>
                   </template>
-                  <template v-if="pubDate || date">
+                  <template v-if="citationPubDate || date">
                     <dt>
                       <span>{{ getString("resultDetailsDate") }}</span>
                       <span class="mugin_resultDetailsIcon">
@@ -1067,7 +1068,7 @@
                       />
                     </span>
                     </dt>
-                    <dd>{{ pubDate || date }}</dd>
+                    <dd>{{ citationPubDate || date }}</dd>
                   </template>
                   <template v-if="resultDetailsPublicationTypes.length > 0">
                     <dt>
@@ -1403,6 +1404,7 @@
   import { applyOpenAiTaskSettingsToList } from "@/utils/openAiTaskSettings.js";
   import {
     areComparableIdsEqual,
+    formatCitationPublicationDate,
     formatPublicationInfo,
     getLocalizedTranslation,
     hasDefinedValue,
@@ -2080,14 +2082,26 @@
       getAbstractDivName() {
         return hasDefinedValue(this.id) ? `abstract_${this.id}` : "custom";
       },
+      citationPubDate() {
+        return formatCitationPublicationDate(this.pubDate);
+      },
+      showCitationPeriod() {
+        const lastPart = [this.pages, this.issue, this.volume, this.citationPubDate, this.source]
+          .map((part) => String(part || "").trim())
+          .find(Boolean);
+        return Boolean(lastPart) && !lastPart.endsWith(".");
+      },
       getSource() {
         const source = this.source || "";
-        const pubDate = this.pubDate || "";
+        const pubDate = this.citationPubDate || "";
         const sourceDateSeperator = source && pubDate ? ". " : "";
         const volume = ";" + this.volume || "";
         const issue = "(" + this.issue + ")" || "";
         const pages = ":" + this.pages || "";
-        return source + sourceDateSeperator + pubDate + volume + issue + pages;
+        const citation = source + sourceDateSeperator + pubDate + volume + issue + pages;
+        const text = String(citation).trimEnd();
+        if (!text || text.endsWith(".")) return text;
+        return `${text}.`;
       },
       getSectionAbstract() {
         if (!this.sectionedAbstract) return "";
@@ -2125,7 +2139,7 @@
           source: this.getSource,
           pmid: this.pmid,
           doi: this.doi,
-          pubdate: this.pubDate,
+          pubdate: this.citationPubDate,
           abstract: this.getAbstract,
         };
       },

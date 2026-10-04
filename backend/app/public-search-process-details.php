@@ -401,10 +401,18 @@ if (!function_exists('muginPublicSearchProcessDetailsBuildSafeSourceDetail')) {
             }
         }
 
+        $request = $requestSummary;
+        $requestCount = isset($sourceResult['requestCount']) && is_numeric($sourceResult['requestCount'])
+            ? (int) $sourceResult['requestCount']
+            : 0;
+        if ($requestCount > 0) {
+            $request['requestCount'] = $requestCount;
+        }
+
         return [
             'source' => $source,
             'query' => $query,
-            'request' => $requestSummary,
+            'request' => $request,
             'requestMeta' => $requestMeta,
             'response' => $response,
             'context' => $context,
@@ -543,6 +551,41 @@ if (!function_exists('muginPublicSearchProcessDetailsEmitCompletedPayload')) {
     }
 }
 
+if (!function_exists('muginPublicSearchResetSourceProgressClosed')) {
+    function muginPublicSearchResetSourceProgressClosed(): void
+    {
+        $closed = &muginPublicSearchSourceProgressClosedStore();
+        $closed = [];
+    }
+}
+
+if (!function_exists('muginPublicSearchMarkSourceProgressClosed')) {
+    function muginPublicSearchMarkSourceProgressClosed(string $source): void
+    {
+        $closed = &muginPublicSearchSourceProgressClosedStore();
+        $closed[$source] = true;
+    }
+}
+
+if (!function_exists('muginPublicSearchSourceProgressWasClosed')) {
+    function muginPublicSearchSourceProgressWasClosed(string $source): bool
+    {
+        $closed = &muginPublicSearchSourceProgressClosedStore();
+        return ($closed[$source] ?? false) === true;
+    }
+}
+
+if (!function_exists('muginPublicSearchSourceProgressClosedStore')) {
+    /**
+     * @return array<string,bool>
+     */
+    function &muginPublicSearchSourceProgressClosedStore(): array
+    {
+        static $closed = [];
+        return $closed;
+    }
+}
+
 if (!function_exists('muginPublicSearchProcessDetailsRecordSourceCompletion')) {
     /**
      * Records a finished source fetch (muginPublicSearchFetch*SourceResult()
@@ -591,8 +634,18 @@ if (!function_exists('muginPublicSearchProcessDetailsRecordSourceCompletion')) {
         );
         if ($collector !== null) {
             muginPublicSearchProcessDetailsSetSource($collector, $detail);
-            $progressContext['sourceQueryDetail'] = $detail;
         }
+        $progressContext['sourceQueryDetail'] = $detail;
+        if (muginPublicSearchSourceProgressWasClosed($source)) {
+            // This source already finished when its own response was ready.
+            // A later pass may refresh the stored detail, but must not move
+            // the clock or make sibling sources look finished together.
+            $progressContext['detailOnly'] = true;
+            unset($progressContext['status'], $progressContext['elapsedMs'], $progressContext['elapsedAuthoritative'], $progressContext['elapsedFrozen']);
+            muginPublicSearchEmitProgress($progressCallback, $source, '', $progressContext);
+            return;
+        }
+        muginPublicSearchMarkSourceProgressClosed($source);
         $progressContext['status'] = $status;
         $progressContext['elapsedMs'] = $elapsedMs;
         if ($elapsedMsOverride !== null && $elapsedMsOverride >= 0) {

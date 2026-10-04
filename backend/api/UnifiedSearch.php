@@ -41,6 +41,17 @@ muginEnforceFirstPartyIpRateLimit('unifiedSearch');
 
 $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 if ($method !== 'POST') {
+    muginPublicSearchLogDisplayedSearchError([
+        'channel' => 'webinterface',
+        'clientId' => 'website-widget',
+        'method' => $method,
+        'route' => '/backend/api/UnifiedSearch.php',
+        'status' => 405,
+        'origin' => muginPublicSearchResolveOrigin(),
+        'authSource' => 'first-party-widget',
+        'error' => 'Method not allowed',
+        'clientMessage' => 'Method not allowed',
+    ]);
     muginPublicSearchRespondJson(405, ['error' => 'Method not allowed']);
 }
 
@@ -49,7 +60,33 @@ $requestForAudit = null;
 $streamStarted = false;
 $streamEnabled = false;
 $executionSlot = null;
-register_shutdown_function(static function () use (&$executionSlot): void {
+register_shutdown_function(static function () use (&$executionSlot, &$requestForAudit, &$startedAt, &$streamStarted, $method): void {
+    $lastError = error_get_last();
+    $fatalTypes = [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR];
+    if (is_array($lastError) && in_array((int) ($lastError['type'] ?? 0), $fatalTypes, true)) {
+        muginPublicSearchLogDisplayedSearchError([
+            'channel' => 'webinterface',
+            'clientId' => 'website-widget',
+            'method' => $method,
+            'route' => '/backend/api/UnifiedSearch.php',
+            'status' => 500,
+            'origin' => muginPublicSearchResolveOrigin(),
+            'query' => is_array($requestForAudit) ? (string) ($requestForAudit['query']['text'] ?? '') : '',
+            'sources' => is_array($requestForAudit) ? (array) ($requestForAudit['sources'] ?? []) : [],
+            'page' => is_array($requestForAudit) ? (int) ($requestForAudit['page']['number'] ?? 0) : 0,
+            'pageSize' => is_array($requestForAudit) ? (int) ($requestForAudit['page']['size'] ?? 0) : 0,
+            'authSource' => 'first-party-widget',
+            'latencyMs' => (int) round((microtime(true) - $startedAt) * 1000),
+            'error' => (string) ($lastError['message'] ?? 'Fatal error'),
+            'clientMessage' => 'Internal server error',
+            'exceptionClass' => 'PHP Fatal',
+            'exceptionFile' => (string) ($lastError['file'] ?? ''),
+            'exceptionLine' => (int) ($lastError['line'] ?? 0),
+            'phpErrorType' => (int) ($lastError['type'] ?? 0),
+            'requestContext' => is_array($requestForAudit) ? $requestForAudit : null,
+            'streamStarted' => $streamStarted === true,
+        ]);
+    }
     muginPublicSearchReleaseExecutionSlot($executionSlot);
 });
 
@@ -150,6 +187,11 @@ try {
         'apiKey' => '',
         'latencyMs' => (int) round((microtime(true) - $startedAt) * 1000),
         'error' => $exception->getMessage(),
+        'clientMessage' => $exception->getMessage(),
+        'exception' => $exception,
+        'channel' => 'webinterface',
+        'requestContext' => is_array($requestForAudit) ? $requestForAudit : null,
+        'streamStarted' => $streamStarted === true,
     ]);
     $validationErrorPayload = ['error' => $exception->getMessage()];
     if (
@@ -200,6 +242,11 @@ try {
         'apiKey' => '',
         'latencyMs' => (int) round((microtime(true) - $startedAt) * 1000),
         'error' => $exception->getMessage(),
+        'clientMessage' => $exception->getMessage(),
+        'exception' => $exception,
+        'channel' => 'webinterface',
+        'requestContext' => is_array($requestForAudit) ? $requestForAudit : null,
+        'streamStarted' => $streamStarted === true,
     ]);
     if (
         is_array($requestForAudit)
@@ -238,6 +285,11 @@ try {
         'apiKey' => '',
         'latencyMs' => (int) round((microtime(true) - $startedAt) * 1000),
         'error' => $throwable->getMessage(),
+        'clientMessage' => 'Internal server error',
+        'exception' => $throwable,
+        'channel' => 'webinterface',
+        'requestContext' => is_array($requestForAudit) ? $requestForAudit : null,
+        'streamStarted' => $streamStarted === true,
     ]);
     if ($streamStarted) {
         muginPublicSearchEmitSseEvent('error', [

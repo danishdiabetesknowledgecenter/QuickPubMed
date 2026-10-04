@@ -718,6 +718,7 @@
     getArticleSource,
     getAuthorNames,
     getFormattedEntrezDate,
+    parseSinglePublicationDate,
     hasDefinedValue,
     hasXmlParserError,
     getLocalizedTranslation,
@@ -1768,6 +1769,14 @@
         return key ? this.getString(key) : "";
       },
       hasProcessStepExpandableContent(step = {}) {
+        // Detaljer for a source step needs that source's own query, request
+        // and response. The static explanation is not enough.
+        if (this.getSourceKeyForProcessStep(step)) {
+          return (
+            this.getSourceQueryDetailsForStep(step).length > 0 ||
+            Boolean(this.getProcessStatusText(step?.status))
+          );
+        }
         return (
           this.getSourceQueryDetailsForStep(step).length > 0 ||
           this.getProcessStepDetailsForStep(step).length > 0 ||
@@ -2024,9 +2033,16 @@
         }
         const publicationDate = String(value?.publicationDate || "").trim();
         if (publicationDate) {
-          const parsedDate = new Date(publicationDate);
-          if (!Number.isNaN(parsedDate.getTime())) {
+          const parsedDate = parseSinglePublicationDate(publicationDate);
+          if (parsedDate && !Number.isNaN(parsedDate.getTime())) {
             return parsedDate.toLocaleDateString(languageFormat[this.language], dateOptions);
+          }
+          if (/[A-Za-z]/.test(publicationDate) || /^\d{4}$/.test(publicationDate)) {
+            return "";
+          }
+          const fallbackDate = new Date(publicationDate);
+          if (!Number.isNaN(fallbackDate.getTime())) {
+            return fallbackDate.toLocaleDateString(languageFormat[this.language], dateOptions);
           }
         }
         return "";

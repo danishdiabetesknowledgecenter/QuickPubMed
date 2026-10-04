@@ -1356,7 +1356,7 @@ function muginHttpRequestMulti(array $namedRequests, ?callable $onRequestComplet
                 (int) round((microtime(true) - $requestStartedAt) * 1000)
             );
             if ($onRequestComplete !== null) {
-                $onRequestComplete((string) $name, (int) $results[$name]['elapsed_ms']);
+                $onRequestComplete((string) $name, (int) $results[$name]['elapsed_ms'], $results[$name]);
             }
         }
         return $results;
@@ -1423,13 +1423,21 @@ function muginHttpRequestMulti(array $namedRequests, ?callable $onRequestComplet
                 }
                 $completionNotified[$name] = true;
                 if ($onRequestComplete !== null) {
-                    $onRequestComplete(
-                        (string) $name,
-                        max(
-                            0,
-                            (int) round(((float) curl_getinfo($ch, CURLINFO_TOTAL_TIME)) * 1000)
-                        )
+                    $elapsedMs = max(
+                        0,
+                        (int) round(((float) curl_getinfo($ch, CURLINFO_TOTAL_TIME)) * 1000)
                     );
+                    $httpStatus = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                    $error = curl_error($ch);
+                    $onRequestComplete((string) $name, $elapsedMs, [
+                        'ok' => $error === '' && $httpStatus > 0,
+                        'status' => $httpStatus,
+                        'body' => (string) (curl_multi_getcontent($ch) ?? ''),
+                        'content_type' => (string) (curl_getinfo($ch, CURLINFO_CONTENT_TYPE) ?? ''),
+                        'error' => $error,
+                        'response_headers' => $responseHeadersByName[$name] ?? [],
+                        'elapsed_ms' => $elapsedMs,
+                    ]);
                 }
                 break;
             }
@@ -1449,7 +1457,16 @@ function muginHttpRequestMulti(array $namedRequests, ?callable $onRequestComplet
             (int) round(((float) curl_getinfo($ch, CURLINFO_TOTAL_TIME)) * 1000)
         );
         if (!isset($completionNotified[$name]) && $onRequestComplete !== null) {
-            $onRequestComplete((string) $name, $elapsedMs);
+            $error = curl_error($ch);
+            $onRequestComplete((string) $name, $elapsedMs, [
+                'ok' => $error === '' && $httpStatus > 0,
+                'status' => $httpStatus,
+                'body' => (string) ($responseBody ?? ''),
+                'content_type' => $contentType,
+                'error' => $error,
+                'response_headers' => $responseHeadersByName[$name] ?? [],
+                'elapsed_ms' => $elapsedMs,
+            ]);
         }
         $error = curl_error($ch);
         curl_multi_remove_handle($multiHandle, $ch);
