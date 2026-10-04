@@ -318,63 +318,18 @@ if (!function_exists('muginPublicSearchBuildCacheFilePath')) {
 
 if (!function_exists('muginPublicSearchMaybeCleanupCacheNamespace')) {
     /**
+     * Schedules a bounded sweep of data/runtime. The namespace argument is kept
+     * for existing callers; one sweep covers every cache namespace plus stale
+     * locks, temp files, rate-limit files, and logs past retention.
+     *
      * @param string $namespace
      * @return void
      */
     function muginPublicSearchMaybeCleanupCacheNamespace(string $namespace): void
     {
-        if (mt_rand(1, 200) !== 1) {
-            return;
-        }
-        $normalizedNamespace = preg_replace('/[^a-z0-9_-]+/i', '-', trim($namespace));
-        $normalizedNamespace = is_string($normalizedNamespace) && $normalizedNamespace !== ''
-            ? $normalizedNamespace
-            : 'default';
-        $pattern = muginPublicSearchEnsureRuntimeDir()
-            . DIRECTORY_SEPARATOR
-            . 'public-search-cache-'
-            . $normalizedNamespace
-            . '-*.bin';
-        $now = time();
-        $config = muginPublicSearchGetConfig();
-        $maxFiles = max(50, (int) ($config['searchCacheMaxFilesPerNamespace'] ?? 500));
-        $minAgeSeconds = max(10, (int) ($config['searchCacheMinAgeSecondsBeforeEvict'] ?? 60));
-        $survivors = [];
-        foreach (glob($pattern) ?: [] as $path) {
-            if (!is_file($path)) {
-                continue;
-            }
-            $raw = @file_get_contents($path);
-            $payload = is_string($raw) && $raw !== ''
-                ? @unserialize($raw, ['allowed_classes' => [stdClass::class]])
-                : false;
-            if (!is_array($payload) || (int) ($payload['expiresAt'] ?? 0) < $now) {
-                @unlink($path);
-                continue;
-            }
-            $mtime = @filemtime($path);
-            $survivors[] = [
-                'path' => $path,
-                'mtime' => $mtime === false ? 0 : (int) $mtime,
-            ];
-        }
-        $survivorCount = count($survivors);
-        if ($survivorCount <= $maxFiles) {
-            return;
-        }
-        usort($survivors, static function (array $a, array $b): int {
-            return $a['mtime'] <=> $b['mtime'];
-        });
-        $toRemove = $survivorCount - $maxFiles;
-        foreach ($survivors as $entry) {
-            if ($toRemove <= 0) {
-                break;
-            }
-            if (($now - (int) $entry['mtime']) < $minAgeSeconds) {
-                continue;
-            }
-            @unlink((string) $entry['path']);
-            $toRemove--;
+        unset($namespace);
+        if (function_exists('muginScheduleRuntimeSweep')) {
+            muginScheduleRuntimeSweep();
         }
     }
 }
@@ -387,6 +342,7 @@ if (!function_exists('muginPublicSearchReadCacheValue')) {
      */
     function muginPublicSearchReadCacheValue(string $namespace, string $cacheKey): array
     {
+        muginPublicSearchMaybeCleanupCacheNamespace($namespace);
         $path = muginPublicSearchBuildCacheFilePath($namespace, $cacheKey);
         if (!is_file($path)) {
             return ['hit' => false, 'value' => null];
@@ -9825,8 +9781,8 @@ if (!function_exists('muginPublicSearchStoreOpenAlexWorkCache')) {
         if ($openAlexId !== '') {
             muginWriteOpenAlexWorkCache('openalex', $openAlexId, $domain, $work, false, 'full');
         }
-        // Legacy runtime namespace is no longer written; opportunistically prune leftovers.
-        if (function_exists('muginPublicSearchMaybeCleanupCacheNamespace') && mt_rand(1, 50) === 1) {
+        // Legacy runtime namespace is no longer written; the runtime sweep removes leftovers.
+        if (function_exists('muginPublicSearchMaybeCleanupCacheNamespace')) {
             muginPublicSearchMaybeCleanupCacheNamespace('openalex-work');
         }
     }

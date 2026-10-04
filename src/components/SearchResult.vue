@@ -217,7 +217,7 @@
                 </ul>
               </li>
             </ul>
-            <div v-if="shouldShowProcessTotalTime && loading" class="mugin_searchProcessTotalTime">
+            <div v-if="shouldShowProcessTotalTime" class="mugin_searchProcessTotalTime">
               {{ formatProcessTotalTime }}
             </div>
           </div>

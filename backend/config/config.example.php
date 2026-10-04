@@ -111,8 +111,12 @@ define('MUGIN_OPENALEX_WORK_CACHE_TTL_SECONDS', [
 define('MUGIN_OPENALEX_BATCH_LOOKUP_CONCURRENCY', 2);
 
 // ============ Filesystem cache housekeeping (no cron) ============
-// Probabilistic sweeps (~1/200 writes) under data/cache and stale IP rate-limit
-// files under data/runtime. Lazy-delete also removes expired entries on read.
+// data/cache uses probabilistic sweeps (~1/200 writes). Lazy-delete also removes
+// expired entries on read.
+// data/runtime is swept in bounded passes on search and rate-limit traffic:
+// expired cache files, orphan temp files, stale locks, old rate-limit files,
+// and logs past retention. Live cache files are also trimmed to
+// searchCacheMaxFilesPerNamespace.
 define('MUGIN_FILE_CACHE_MAX_FILES', 2000);
 define('MUGIN_FILE_CACHE_MAX_AGE_SECONDS', 172800); // 2 days
 define('MUGIN_IP_RATE_LIMIT_FILE_MAX_AGE_SECONDS', 604800); // 7 days
