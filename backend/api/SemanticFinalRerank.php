@@ -85,19 +85,6 @@ $retrievalQuery = muginSemanticRerankNormalizeString($input['retrievalQuery'] ??
 if ($retrievalQuery === '') {
     $retrievalQuery = $legacyQuery;
 }
-if ($userQuestion === '') {
-    $userQuestion = $retrievalQuery;
-}
-if ($retrievalQuery === '') {
-    $retrievalQuery = $userQuestion;
-}
-$hardFilterQuery = muginSemanticRerankNormalizeString($input['hardFilterQuery'] ?? '');
-$rawResultFocus = isset($input['resultFocus']) && is_array($input['resultFocus']) ? $input['resultFocus'] : [];
-$resultFocus = [
-    'id' => muginSemanticRerankNormalizeString($rawResultFocus['id'] ?? ''),
-    'label' => muginSemanticRerankNormalizeString($rawResultFocus['label'] ?? ''),
-    'description' => muginSemanticRerankNormalizeString($rawResultFocus['description'] ?? ''),
-];
 $finalRerankTask = function_exists('muginGetOpenAiTaskSettings')
     ? muginGetOpenAiTaskSettings('finalRerank')
     : ['model' => '', 'reasoningEffort' => 'none'];
@@ -134,66 +121,13 @@ foreach ($rawCandidates as $rawCandidate) {
         'id' => $id,
         'title' => $title,
         'abstract' => muginSemanticRerankNormalizeString($rawCandidate['abstract'] ?? ''),
-        'publicationDate' => muginSemanticRerankNormalizeString($rawCandidate['publicationDate'] ?? ''),
-        'source' => muginSemanticRerankNormalizeString($rawCandidate['source'] ?? ''),
-        'sourceLabel' => muginSemanticRerankNormalizeString($rawCandidate['sourceLabel'] ?? ''),
+        'retracted' => ($rawCandidate['isRetracted'] ?? null) === true
+            || (
+                isset($rawCandidate['qualitySignals'])
+                && is_array($rawCandidate['qualitySignals'])
+                && ($rawCandidate['qualitySignals']['isRetracted'] ?? null) === true
+            ),
     ];
-
-    // Optional quality signals — passed through when available so the LLM can use
-    // them as additional context. The strict permutation contract still applies:
-    // the LLM cannot exclude or add records.
-    $qualitySignals = [];
-    $signalFields = [
-        'fwci' => 'float',
-        'rcr' => 'float',
-        'nihPercentile' => 'float',
-        'citationCount' => 'int',
-        'influentialCitationCount' => 'int',
-        'citedByClin' => 'int',
-        'year' => 'int',
-        'isRetracted' => 'bool',
-        'isClinical' => 'bool',
-        'isOpenAccess' => 'bool',
-        'venue' => 'string',
-    ];
-    foreach ($signalFields as $field => $type) {
-        if (!array_key_exists($field, $rawCandidate)) {
-            continue;
-        }
-        $value = $rawCandidate[$field];
-        if ($value === null || $value === '') {
-            continue;
-        }
-        switch ($type) {
-            case 'float':
-                if (is_numeric($value)) $qualitySignals[$field] = (float) $value;
-                break;
-            case 'int':
-                if (is_numeric($value)) $qualitySignals[$field] = (int) $value;
-                break;
-            case 'bool':
-                if (is_bool($value)) $qualitySignals[$field] = $value;
-                break;
-            case 'string':
-                $normalized = muginSemanticRerankNormalizeString($value);
-                if ($normalized !== '') $qualitySignals[$field] = $normalized;
-                break;
-        }
-    }
-    if (isset($rawCandidate['pubTypes']) && is_array($rawCandidate['pubTypes'])) {
-        $pubTypes = [];
-        foreach ($rawCandidate['pubTypes'] as $pubType) {
-            $normalized = muginSemanticRerankNormalizeString($pubType);
-            if ($normalized !== '') $pubTypes[$normalized] = true;
-        }
-        if (!empty($pubTypes)) {
-            $qualitySignals['pubTypes'] = array_values(array_keys($pubTypes));
-        }
-    }
-
-    if (!empty($qualitySignals)) {
-        $candidate['qualitySignals'] = $qualitySignals;
-    }
 
     // Optional capped topics — additive topical evidence; missing topics is fine.
     if (isset($rawCandidate['topics']) && is_array($rawCandidate['topics'])) {
@@ -223,7 +157,7 @@ foreach ($rawCandidates as $rawCandidate) {
     $candidates[] = $candidate;
 }
 
-if (($userQuestion === '' && $retrievalQuery === '') || count($candidates) < 2) {
+if ($userQuestion === '' || count($candidates) < 2) {
     muginSemanticRerankRespond(200, [
         'orderedIds' => array_values(array_map(
             static function (array $candidate): string {
@@ -236,48 +170,27 @@ if (($userQuestion === '' && $retrievalQuery === '') || count($candidates) < 2) 
 }
 
 $candidateCount = count($candidates);
-$schema = [
-    'type' => 'object',
-    'additionalProperties' => false,
-    'required' => ['orderedIds'],
-    'properties' => [
-        'orderedIds' => [
-            'type' => 'array',
-            'items' => ['type' => 'string'],
-            'minItems' => $candidateCount,
-            'maxItems' => $candidateCount,
-        ],
-    ],
-];
-
-$systemPrompt = implode("\n", [
-    'You rerank already validated scholarly search candidates.',
-    'Never exclude, add, or invent items. Return a permutation of the provided candidate ids only.',
-    'Rank by userQuestion: how well each candidate answers what the user asked, using title, abstract, and provided topics together.',
-    'retrievalQuery is only the string the databases were searched with. Use it to understand why a candidate was retrieved. Do not treat its keywords as extra topics the user asked for.',
-    'When userQuestion is empty, rank by retrievalQuery.',
-    'When candidate topics are provided, use them as additive topical evidence together with title and abstract.',
-    'Missing topics must not lower a candidate. Do not prefer a candidate merely because it has MeSH or a PMID.',
-    'OpenAlex and Semantic Scholar topics are valid substitutes when MeSH is absent.',
-    'Treat missing abstracts conservatively.',
-    'Do not try to override publication-type, date, or other hard filters because they have already been applied.',
-    'When signals such as FWCI, RCR, citation counts, retraction status, publication type or recency are provided on a candidate, you may use them to inform relevance, but never to override prior hard filters and never to exclude or add candidates. Prefer non-retracted records over retracted ones when all other evidence is comparable.',
-]);
-if ($resultFocus['id'] !== '') {
-    $systemPrompt .= "\n" . 'Respect the selected result focus when ordering otherwise comparable candidates: '
-        . $resultFocus['label'] . '. ' . $resultFocus['description'];
-    if ($resultFocus['id'] === 'newest-research') {
-        $systemPrompt .= ' For this focus, prefer more recent studies when relevance is comparable, and avoid promoting old studies solely because they have accumulated citations.';
+$schema = muginFinalRerankScoreSchema($candidateCount);
+$modelCandidates = [];
+foreach ($candidates as $candidate) {
+    $modelCandidate = [
+        'id' => $candidate['id'],
+        'title' => $candidate['title'],
+        'abstract' => $candidate['abstract'],
+    ];
+    if (!empty($candidate['topics'])) {
+        $modelCandidate['topics'] = $candidate['topics'];
     }
+    $modelCandidates[] = $modelCandidate;
 }
+
+$systemPrompt = implode("\n", muginFinalRerankSystemPromptLines());
 
 $userPayload = [
     'userQuestion' => $userQuestion,
     'retrievalQuery' => $retrievalQuery,
-    'hardFilterQuery' => $hardFilterQuery,
-    'resultFocus' => $resultFocus,
-    'task' => 'Return the candidate ids ordered from most to least relevant.',
-    'candidates' => $candidates,
+    'task' => muginFinalRerankTaskLine(),
+    'candidates' => $modelCandidates,
 ];
 
 $domain = muginResolveDomain();
@@ -322,7 +235,6 @@ if ($fallbackModel !== '' && $fallbackModel !== $model) {
     $modelsToTry[] = $fallbackModel;
 }
 $decodedResponse = null;
-$usedModel = $model;
 $lastFailure = ['error' => 'OpenAI request failed'];
 foreach ($modelsToTry as $attemptModel) {
     $openAiRequest['model'] = function_exists('muginFormatLlmModelForProvider')
@@ -355,7 +267,6 @@ foreach ($modelsToTry as $attemptModel) {
         continue;
     }
     $decodedResponse = $decodedAttempt;
-    $usedModel = $attemptModel;
     break;
 }
 if (!is_array($decodedResponse)) {
@@ -371,39 +282,50 @@ if (!is_array($parsedOutput)) {
     ]);
 }
 
-$orderedIds = isset($parsedOutput['orderedIds']) && is_array($parsedOutput['orderedIds'])
-    ? array_values(array_map('muginSemanticRerankNormalizeString', $parsedOutput['orderedIds']))
-    : [];
 $expectedIds = array_values(array_map(
     static function (array $candidate): string {
         return $candidate['id'];
     },
     $candidates
 ));
-$expectedLookup = array_fill_keys($expectedIds, true);
-
-if (count($orderedIds) !== count($expectedIds)) {
+$validated = muginFinalRerankValidateRawScores($parsedOutput['scores'] ?? null, $expectedIds);
+if (($validated['ok'] ?? false) !== true) {
     muginSemanticRerankRespond(422, [
-        'error' => 'OpenAI returned the wrong number of ids',
-        'orderedIds' => $orderedIds,
+        'error' => 'OpenAI returned invalid relevance scores',
+        'reason' => (string) ($validated['reason'] ?? 'scores_invalid'),
+        'scores' => $parsedOutput['scores'] ?? null,
         'expectedIds' => $expectedIds,
     ]);
 }
 
-$seenOrdered = [];
-foreach ($orderedIds as $orderedId) {
-    if ($orderedId === '' || !isset($expectedLookup[$orderedId]) || isset($seenOrdered[$orderedId])) {
-        muginSemanticRerankRespond(422, [
-            'error' => 'OpenAI returned an invalid permutation',
-            'orderedIds' => $orderedIds,
-            'expectedIds' => $expectedIds,
-        ]);
+$cappedById = [];
+$retractedById = [];
+foreach ($candidates as $candidate) {
+    $capped = muginFinalRerankCapRelevance(
+        (int) $validated['rawById'][$candidate['id']],
+        trim((string) $candidate['abstract']) !== ''
+    );
+    $cappedById[$candidate['id']] = $capped['relevance'];
+    if (($candidate['retracted'] ?? false) === true) {
+        $retractedById[$candidate['id']] = true;
     }
-    $seenOrdered[$orderedId] = true;
+}
+$orderedIds = muginFinalRerankOrderByRelevanceMargin(
+    $expectedIds,
+    $cappedById,
+    $retractedById,
+    muginFinalRerankMinScoreGap()
+);
+$scores = [];
+foreach ($orderedIds as $orderedId) {
+    $scores[] = [
+        'id' => $orderedId,
+        'relevance' => $cappedById[$orderedId],
+    ];
 }
 
 muginSemanticRerankRespond(200, [
     'orderedIds' => $orderedIds,
-    'model' => $usedModel,
+    'scores' => $scores,
     'model' => $openAiRequest['model'],
 ]);

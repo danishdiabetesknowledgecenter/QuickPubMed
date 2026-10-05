@@ -12818,6 +12818,36 @@ if (!function_exists('muginPublicSearchShouldApplySemanticLlmFinalRerank')) {
     }
 }
 
+if (!function_exists('muginPublicSearchResolveFinalRerankUserQuestion')) {
+    /**
+     * The question the final rerank scores against. Free text first, then the
+     * catalog explanation and topic labels. Limits and the boolean retrieval
+     * string are not a question.
+     *
+     * @param array<string,mixed> $request
+     */
+    function muginPublicSearchResolveFinalRerankUserQuestion(array $request): string
+    {
+        $intentContext = isset($request['intentContext']) && is_array($request['intentContext'])
+            ? $request['intentContext']
+            : [];
+        $raw = trim((string) ($intentContext['rawUserInput'] ?? ''));
+        if ($raw !== '' && !muginPublicSearchIsFilterOutsideSemanticSeed($raw)) {
+            return $raw;
+        }
+        $blocks = muginPublicSearchNormalizeSimpleList($intentContext['semanticBlocks'] ?? []);
+        if ($blocks !== []) {
+            return implode('. ', $blocks);
+        }
+        $contextual = trim((string) ($intentContext['contextualSearchInput'] ?? ''));
+        if ($contextual !== '' && !muginPublicSearchIsFilterOutsideSemanticSeed($contextual)) {
+            return $contextual;
+        }
+        $topics = muginPublicSearchNormalizeSimpleList($intentContext['selectedTopics'] ?? []);
+        return trim(implode(' ', $topics));
+    }
+}
+
 if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
     /**
      * @param array<int,array<string,mixed>> $results
@@ -12860,6 +12890,11 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
         if (count($results) < 2) {
             return ['results' => $results, 'detail' => array_merge($baseDetail, ['skippedReason' => 'too_few_results'])];
         }
+        $userQuestion = muginPublicSearchResolveFinalRerankUserQuestion($request);
+        if ($userQuestion === '') {
+            return ['results' => $results, 'detail' => array_merge($baseDetail, ['skippedReason' => 'no_user_question'])];
+        }
+        $retrievalQuery = trim((string) ($resolvedQueries['semanticIntent'] ?? ($resolvedQueries['pubmedQuery'] ?? ($request['query']['text'] ?? ''))));
 
         $topN = min($config['topN'], count($results));
         $topResults = array_slice($results, 0, $topN);
@@ -12876,45 +12911,19 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
 
         $requestCandidates = [];
         $deferredEntries = [];
-        foreach ($topResults as $entry) {
+        $unscored = [];
+        foreach ($topResults as $topOffset => $entry) {
             $candidateId = muginPublicSearchGetSemanticLlmCandidateId($entry);
             $title = trim((string) ($entry['title'] ?? ''));
             if ($candidateId === '' || $title === '') {
                 $deferredEntries[] = $entry;
+                $unscored[] = [
+                    'topIndex' => $topOffset + 1,
+                    'reason' => $title === '' ? 'missing_title' : 'missing_id',
+                ];
                 continue;
             }
             $pmid = muginPublicSearchNormalizePmid($entry['pmid'] ?? '');
-
-            // Best-effort quality signals from whatever the current result-building
-            // path already resolved (see muginPublicSearchBuildApiResultFromPubMed/
-            // ...FromOpenAlex). Mirrors the optional 'qualitySignals' object
-            // backend/api/SemanticFinalRerank.php accepts from the widget, so the
-            // LLM gets the same class of context in both flows. Fields the current
-            // path does not populate (fwci, rcr, nihPercentile, citedByClin,
-            // isClinical) are simply omitted, exactly like the widget does when a
-            // candidate lacks that signal.
-            $qualitySignals = [];
-            if (is_numeric($entry['citationCount'] ?? null)) {
-                $qualitySignals['citationCount'] = (int) $entry['citationCount'];
-            }
-            $entryYear = muginSemanticQualityToFiniteInt($entry['year'] ?? null);
-            if ($entryYear !== null) {
-                $qualitySignals['year'] = $entryYear;
-            }
-            if (is_bool($entry['isRetracted'] ?? null)) {
-                $qualitySignals['isRetracted'] = $entry['isRetracted'];
-            }
-            if (is_bool($entry['isOpenAccess'] ?? null)) {
-                $qualitySignals['isOpenAccess'] = $entry['isOpenAccess'];
-            }
-            $venue = trim((string) ($entry['journal']['name'] ?? ($entry['sourceLabel'] ?? '')));
-            if ($venue !== '') {
-                $qualitySignals['venue'] = $venue;
-            }
-            $pubTypes = is_array($entry['publicationTypes'] ?? null) ? array_values(array_filter(array_map('trim', $entry['publicationTypes']))) : [];
-            if (!empty($pubTypes)) {
-                $qualitySignals['pubTypes'] = $pubTypes;
-            }
 
             $topicsForLlm = muginPublicSearchBuildLlmTopicsPayload(
                 $entry['topics'] ?? [],
@@ -12922,6 +12931,10 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
                 is_array($abstractMap[$pmid]['keywords'] ?? null) ? $abstractMap[$pmid]['keywords'] : [],
                 defined('MUGIN_LLM_TOPIC_CAP') ? MUGIN_LLM_TOPIC_CAP : 16
             );
+            $combinedScore = null;
+            if (isset($entry['ranking']) && is_array($entry['ranking']) && is_numeric($entry['ranking']['combinedScore'] ?? null)) {
+                $combinedScore = (float) $entry['ranking']['combinedScore'];
+            }
 
             $requestCandidates[] = [
                 // Short, deterministic ordinal ids match SemanticFinalRerank.php
@@ -12930,11 +12943,9 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
                 'candidateId' => $candidateId,
                 'title' => $title,
                 'abstract' => trim((string) ($entry['abstract'] ?? ($abstractMap[$pmid]['abstract'] ?? ''))),
-                'publicationDate' => trim((string) ($entry['publicationDate'] ?? '')),
-                'source' => trim((string) ($entry['originSource'] ?? '')),
-                'sourceLabel' => trim((string) ($entry['sourceLabel'] ?? '')),
-                'qualitySignals' => $qualitySignals,
                 'topics' => $topicsForLlm,
+                'retracted' => ($entry['isRetracted'] ?? null) === true,
+                'combinedScore' => $combinedScore,
                 'entry' => $entry,
             ];
         }
@@ -12942,19 +12953,7 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
             return ['results' => $results, 'detail' => array_merge($baseDetail, ['skippedReason' => 'too_few_eligible_candidates', 'topN' => $topN])];
         }
 
-        $schema = [
-            'type' => 'object',
-            'additionalProperties' => false,
-            'required' => ['orderedIds'],
-            'properties' => [
-                'orderedIds' => [
-                    'type' => 'array',
-                    'items' => ['type' => 'string'],
-                    'minItems' => count($requestCandidates),
-                    'maxItems' => count($requestCandidates),
-                ],
-            ],
-        ];
+        $schema = muginFinalRerankScoreSchema(count($requestCandidates));
         $focusProfileId = (string) ($request['focus'] ?? '');
         $focusCopy = muginPublicSearchGetFocusProfileLlmCopy($focusProfileId);
         $focusDetail = $focusCopy;
@@ -12978,42 +12977,19 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
                 );
             }
         }
-        // Kept in sync 1:1 with the system prompt lines in backend/api/SemanticFinalRerank.php
-        // (the widget's own final-rerank endpoint), so the public API and the
-        // website give the LLM the same reasoning instructions. If you edit one,
-        // edit both.
-        $systemPromptLines = [
-            'You rerank already validated scholarly search candidates.',
-            'Never exclude, add, or invent items. Return a permutation of the provided candidate ids only.',
-            'Rank by userQuestion: how well each candidate answers what the user asked, using title, abstract, and provided topics together.',
-            'retrievalQuery is only the string the databases were searched with. Use it to understand why a candidate was retrieved. Do not treat its keywords as extra topics the user asked for.',
-            'When userQuestion is empty, rank by retrievalQuery.',
-            'When candidate topics are provided, use them as additive topical evidence together with title and abstract.',
-            'Missing topics must not lower a candidate. Do not prefer a candidate merely because it has MeSH or a PMID.',
-            'OpenAlex and Semantic Scholar topics are valid substitutes when MeSH is absent.',
-            'Treat missing abstracts conservatively.',
-            'Do not try to override publication-type, date, or other hard filters because they have already been applied.',
-            'When signals such as FWCI, RCR, citation counts, retraction status, publication type or recency are provided on a candidate, you may use them to inform relevance, but never to override prior hard filters and never to exclude or add candidates. Prefer non-retracted records over retracted ones when all other evidence is comparable.',
-        ];
-        if ($focusCopy['id'] !== '') {
-            $systemPromptLines[] = 'Respect the selected result focus when ordering otherwise comparable candidates: '
-                . $focusCopy['label'] . '. ' . $focusCopy['description'];
-            if ($focusCopy['id'] === 'newest-research') {
-                $systemPromptLines[] = 'For this focus, prefer more recent studies when relevance is comparable, '
-                    . 'and avoid promoting old studies solely because they have accumulated citations.';
+        // Prompt and schema live in helpers.php and are shared with SemanticFinalRerank.php.
+        $systemPromptLines = muginFinalRerankSystemPromptLines();
+        $llmCandidates = [];
+        foreach ($requestCandidates as $candidate) {
+            $llmCandidate = [
+                'id' => $candidate['id'],
+                'title' => $candidate['title'],
+                'abstract' => $candidate['abstract'],
+            ];
+            if (!empty($candidate['topics'])) {
+                $llmCandidate['topics'] = $candidate['topics'];
             }
-        }
-
-        $userQuestion = trim((string) ($request['intentContext']['rawUserInput'] ?? ''));
-        if ($userQuestion === '') {
-            $userQuestion = trim((string) ($request['query']['text'] ?? ''));
-        }
-        $retrievalQuery = trim((string) ($resolvedQueries['semanticIntent'] ?? ($resolvedQueries['pubmedQuery'] ?? ($request['query']['text'] ?? ''))));
-        if ($userQuestion === '') {
-            $userQuestion = $retrievalQuery;
-        }
-        if ($retrievalQuery === '') {
-            $retrievalQuery = $userQuestion;
+            $llmCandidates[] = $llmCandidate;
         }
 
         $requestPayload = [
@@ -13028,26 +13004,8 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
                     'content' => muginPublicSearchSafeJsonEncode([
                         'userQuestion' => $userQuestion,
                         'retrievalQuery' => $retrievalQuery,
-                        'hardFilterQuery' => trim((string) ($resolvedQueries['hardFilterQuery'] ?? '')),
-                        'resultFocus' => $focusCopy,
-                        'task' => 'Return the candidate ids ordered from most to least relevant.',
-                        'candidates' => array_map(static function ($candidate) {
-                            $payload = [
-                                'id' => $candidate['id'],
-                                'title' => $candidate['title'],
-                                'abstract' => $candidate['abstract'],
-                                'publicationDate' => $candidate['publicationDate'],
-                                'source' => $candidate['source'],
-                                'sourceLabel' => $candidate['sourceLabel'],
-                            ];
-                            if (!empty($candidate['qualitySignals'])) {
-                                $payload['qualitySignals'] = $candidate['qualitySignals'];
-                            }
-                            if (!empty($candidate['topics'])) {
-                                $payload['topics'] = $candidate['topics'];
-                            }
-                            return $payload;
-                        }, $requestCandidates),
+                        'task' => muginFinalRerankTaskLine(),
+                        'candidates' => $llmCandidates,
                     ]),
                 ],
             ],
@@ -13084,11 +13042,16 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
                 'maxOutputTokens' => $config['maxOutputTokens'],
                 'candidateCount' => count($requestCandidates),
             ],
+            'ranking' => [
+                'minScoreGap' => muginFinalRerankMinScoreGap(),
+                'tieBreak' => 'priorRank',
+                'unscored' => $unscored,
+            ],
         ];
         $expectedIds = array_map(static function ($candidate) {
             return $candidate['id'];
         }, $requestCandidates);
-        $applyOrderedIds = static function (array $orderedIds) use (
+        $applyRawScores = static function (array $rawById) use (
             $requestCandidates,
             $deferredEntries,
             $results,
@@ -13096,38 +13059,77 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
             $detail,
             $expectedIds
         ): array {
-            $orderedIds = muginPublicSearchDedupeStrings($orderedIds);
-            if (count($orderedIds) !== count($expectedIds)) {
-                return ['ok' => false, 'reason' => 'orderedIds_count_mismatch'];
-            }
-            $expectedLookup = array_fill_keys($expectedIds, true);
-            foreach ($orderedIds as $orderedId) {
-                if (!isset($expectedLookup[$orderedId])) {
-                    return ['ok' => false, 'reason' => 'orderedIds_unknown_id'];
+            $cappedById = [];
+            $relevanceRawById = [];
+            $retractedById = [];
+            foreach ($requestCandidates as $candidate) {
+                $capped = muginFinalRerankCapRelevance(
+                    (int) $rawById[$candidate['id']],
+                    trim((string) $candidate['abstract']) !== ''
+                );
+                $cappedById[$candidate['id']] = $capped['relevance'];
+                if ($capped['relevanceRaw'] !== null) {
+                    $relevanceRawById[$candidate['id']] = $capped['relevanceRaw'];
+                }
+                if (($candidate['retracted'] ?? false) === true) {
+                    $retractedById[$candidate['id']] = true;
                 }
             }
+            $orderedIds = muginFinalRerankOrderByRelevanceMargin(
+                $expectedIds,
+                $cappedById,
+                $retractedById,
+                muginFinalRerankMinScoreGap()
+            );
             $candidateMap = [];
-            foreach ($requestCandidates as $candidate) {
-                $candidateMap[$candidate['id']] = $candidate['entry'];
+            $priorRankById = [];
+            foreach ($requestCandidates as $index => $candidate) {
+                $candidateMap[$candidate['id']] = $candidate;
+                $priorRankById[$candidate['id']] = $index + 1;
             }
             $reorderedTop = [];
-            foreach ($orderedIds as $orderedId) {
-                if (isset($candidateMap[$orderedId])) {
-                    $reorderedTop[] = $candidateMap[$orderedId];
+            $rankingCandidates = [];
+            foreach ($orderedIds as $index => $orderedId) {
+                if (!isset($candidateMap[$orderedId])) {
+                    continue;
                 }
+                $candidate = $candidateMap[$orderedId];
+                $entry = $candidate['entry'];
+                $ranking = isset($entry['ranking']) && is_array($entry['ranking']) ? $entry['ranking'] : [];
+                $ranking['llmScore'] = $cappedById[$orderedId];
+                if (array_key_exists($orderedId, $relevanceRawById)) {
+                    $ranking['llmScoreRaw'] = $relevanceRawById[$orderedId];
+                }
+                $entry['ranking'] = $ranking;
+                $reorderedTop[] = $entry;
+                $priorRank = $priorRankById[$orderedId];
+                $rank = $index + 1;
+                $row = [
+                    'id' => $orderedId,
+                    'title' => $candidate['title'],
+                    'llmScore' => $cappedById[$orderedId],
+                ];
+                if (array_key_exists($orderedId, $relevanceRawById)) {
+                    $row['llmScoreRaw'] = $relevanceRawById[$orderedId];
+                }
+                $row['priorRank'] = $priorRank;
+                $row['rank'] = $rank;
+                $row['moved'] = $rank !== $priorRank;
+                $row['combinedScore'] = $candidate['combinedScore'];
+                $row['retracted'] = ($candidate['retracted'] ?? false) === true;
+                $rankingCandidates[] = $row;
             }
+            $appliedDetail = $detail;
+            $appliedDetail['applied'] = true;
+            $appliedDetail['ranking']['candidates'] = $rankingCandidates;
+            $appliedDetail['response'] = [
+                'cached' => false,
+            ];
             return [
                 'ok' => true,
                 'results' => array_values(array_merge($reorderedTop, $deferredEntries, array_slice($results, $topN))),
-                'orderedIds' => array_values($orderedIds),
-                'detail' => array_merge($detail, [
-                    'applied' => true,
-                    'response' => [
-                        'orderedIdCount' => count($orderedIds),
-                        'orderedIds' => array_slice(array_values($orderedIds), 0, 25),
-                        'truncated' => count($orderedIds) > 25,
-                    ],
-                ]),
+                'rawById' => $rawById,
+                'detail' => $appliedDetail,
             ];
         };
 
@@ -13140,9 +13142,14 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
         );
         if ($cacheTtl > 0 && !$noCache) {
             $cacheEntry = muginPublicSearchReadCacheValue('final-rerank', $cacheKey);
-            $cachedOrderedIds = (array) ($cacheEntry['value']['orderedIds'] ?? []);
-            if (($cacheEntry['hit'] ?? false) === true && !empty($cachedOrderedIds)) {
-                $applied = $applyOrderedIds($cachedOrderedIds);
+            $cachedRawScores = isset($cacheEntry['value']['rawScores']) && is_array($cacheEntry['value']['rawScores'])
+                ? $cacheEntry['value']['rawScores']
+                : null;
+            $normalizedCachedScores = $cachedRawScores !== null
+                ? muginFinalRerankNormalizeRawScoreMap($cachedRawScores, $expectedIds)
+                : null;
+            if (($cacheEntry['hit'] ?? false) === true && $normalizedCachedScores !== null) {
+                $applied = $applyRawScores($normalizedCachedScores);
                 if (($applied['ok'] ?? false) === true) {
                     $appliedDetail = (array) $applied['detail'];
                     $appliedDetail['response']['cached'] = true;
@@ -13184,15 +13191,25 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
         try {
             $responseText = muginPublicSearchExtractOpenAiText($response);
             $parsed = json_decode($responseText, true);
-            if (!is_array($parsed) || !isset($parsed['orderedIds']) || !is_array($parsed['orderedIds'])) {
+            if (!is_array($parsed) || !isset($parsed['scores']) || !is_array($parsed['scores'])) {
                 return ['results' => $results, 'detail' => array_merge($detail, ['skippedReason' => 'invalid_llm_response'])];
             }
-            $applied = $applyOrderedIds((array) $parsed['orderedIds']);
+            $validated = muginFinalRerankValidateRawScores($parsed['scores'], $expectedIds);
+            if (($validated['ok'] ?? false) !== true) {
+                return [
+                    'results' => $results,
+                    'detail' => array_merge($detail, [
+                        'skippedReason' => (string) ($validated['reason'] ?? 'scores_invalid'),
+                        'rejectedScores' => $parsed['scores'],
+                    ]),
+                ];
+            }
+            $applied = $applyRawScores($validated['rawById']);
             if (($applied['ok'] ?? false) !== true) {
                 return [
                     'results' => $results,
                     'detail' => array_merge($detail, [
-                        'skippedReason' => (string) ($applied['reason'] ?? 'orderedIds_invalid'),
+                        'skippedReason' => (string) ($applied['reason'] ?? 'scores_invalid'),
                     ]),
                 ];
             }
@@ -13200,11 +13217,12 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
                 muginPublicSearchWriteCacheValue(
                     'final-rerank',
                     $cacheKey,
-                    ['orderedIds' => array_values((array) $applied['orderedIds'])],
+                    ['rawScores' => $validated['rawById']],
                     $cacheTtl
                 );
             }
             $appliedDetail = (array) $applied['detail'];
+            $appliedDetail['request'] = $detail['request'];
             $appliedDetail['response']['cached'] = false;
             return [
                 'results' => $applied['results'],

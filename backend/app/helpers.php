@@ -2245,3 +2245,244 @@ function muginGetOpenAiTaskModelsForFrontend(): array
     }
     return $out;
 }
+
+/**
+ * English system prompt for the final-rerank relevance score.
+ * One text for the public API and the widget endpoint.
+ *
+ * @return array<int,string>
+ */
+function muginFinalRerankSystemPromptLines(): array
+{
+    return [
+        'You score already validated scholarly search candidates.',
+        'Score each candidate on its own. Return a relevance integer from 0 to 10 for every provided id.',
+        'The id and the position in the list are labels, not a relevance ranking.',
+        'Score only how directly the candidate answers userQuestion, using title, abstract, and topics together.',
+        'retrievalQuery is only the string the databases were searched with. Use it to see why a candidate was retrieved. Do not treat its keywords as extra topics the user asked for.',
+        'Do not score journal prestige, citation counts, publication type, or recency. Publication type and study design matter only when they change whether the paper answers userQuestion.',
+        'When topics are provided, use them as additive topical evidence together with title and abstract.',
+        'Missing topics must not lower a candidate. Do not prefer a candidate merely because it has MeSH or a PMID.',
+        'OpenAlex and Semantic Scholar topics are valid substitutes when MeSH is absent.',
+        'A missing abstract cannot score above 6.',
+        'Use these anchors: 0 = different topic. 2 = shares a word with the question but answers something else. 4 = same condition, but a different population or intervention. 6 = same question, answered only indirectly. 8 = answers the question, with the right population and intervention. 10 = directly answers the question on population, intervention, and outcome.',
+    ];
+}
+
+function muginFinalRerankTaskLine(): string
+{
+    return 'Score how directly each candidate answers userQuestion. Return every id once with an integer relevance from 0 to 10.';
+}
+
+function muginFinalRerankMinScoreGap(): int
+{
+    return 2;
+}
+
+function muginFinalRerankMissingAbstractCap(): int
+{
+    return 6;
+}
+
+/**
+ * Strict score schema. minimum/maximum are omitted so a provider that rejects
+ * those keywords still accepts the call. PHP enforces 0-10.
+ *
+ * @return array<string,mixed>
+ */
+function muginFinalRerankScoreSchema(int $candidateCount): array
+{
+    $candidateCount = max(0, $candidateCount);
+    return [
+        'type' => 'object',
+        'additionalProperties' => false,
+        'required' => ['scores'],
+        'properties' => [
+            'scores' => [
+                'type' => 'array',
+                'minItems' => $candidateCount,
+                'maxItems' => $candidateCount,
+                'items' => [
+                    'type' => 'object',
+                    'additionalProperties' => false,
+                    'required' => ['id', 'relevance'],
+                    'properties' => [
+                        'id' => ['type' => 'string'],
+                        'relevance' => ['type' => 'integer'],
+                    ],
+                ],
+            ],
+        ],
+    ];
+}
+
+/**
+ * Model ids are strings. A JSON integer id is normalized to that string.
+ */
+function muginFinalRerankNormalizeScoreId($value): string
+{
+    if (is_int($value)) {
+        return (string) $value;
+    }
+    if (is_float($value) && is_finite($value) && floor($value) === $value) {
+        return (string) (int) $value;
+    }
+    if (is_string($value)) {
+        return trim($value);
+    }
+    return '';
+}
+
+/**
+ * Whole numbers 0-10. 0 is a valid score. null means reject the whole set.
+ */
+function muginFinalRerankParseRelevance($value): ?int
+{
+    if (is_bool($value) || $value === null) {
+        return null;
+    }
+    if (is_int($value)) {
+        return ($value >= 0 && $value <= 10) ? $value : null;
+    }
+    if (is_float($value)) {
+        if (!is_finite($value) || floor($value) !== $value) {
+            return null;
+        }
+        $asInt = (int) $value;
+        return ($asInt >= 0 && $asInt <= 10) ? $asInt : null;
+    }
+    if (!is_string($value)) {
+        return null;
+    }
+    $trimmed = trim($value);
+    if ($trimmed === '') {
+        return null;
+    }
+    if (preg_match('/^[+-]?\d+$/', $trimmed) === 1) {
+        $asInt = (int) $trimmed;
+        return ($asInt >= 0 && $asInt <= 10) ? $asInt : null;
+    }
+    if (preg_match('/^[+-]?\d+\.0+$/', $trimmed) === 1) {
+        $asInt = (int) $trimmed;
+        return ($asInt >= 0 && $asInt <= 10) ? $asInt : null;
+    }
+    return null;
+}
+
+/**
+ * @return array{relevance:int,relevanceRaw:?int}
+ */
+function muginFinalRerankCapRelevance(int $relevance, bool $hasAbstract): array
+{
+    $cap = muginFinalRerankMissingAbstractCap();
+    if (!$hasAbstract && $relevance > $cap) {
+        return ['relevance' => $cap, 'relevanceRaw' => $relevance];
+    }
+    return ['relevance' => $relevance, 'relevanceRaw' => null];
+}
+
+/**
+ * Lookup is by id. The order of the scores array is ignored.
+ * A failure rejects the whole set; rawById is empty.
+ *
+ * @param mixed $scores
+ * @param array<int,string> $expectedIds
+ * @return array{ok:bool,reason:string,rawById:array<string,int>}
+ */
+function muginFinalRerankValidateRawScores($scores, array $expectedIds): array
+{
+    $fail = static function (string $reason): array {
+        return ['ok' => false, 'reason' => $reason, 'rawById' => []];
+    };
+    if (!is_array($scores)) {
+        return $fail('scores_invalid');
+    }
+    $expectedLookup = array_fill_keys($expectedIds, true);
+    $rawById = [];
+    foreach ($scores as $entry) {
+        if (!is_array($entry) || !array_key_exists('relevance', $entry)) {
+            return $fail('scores_invalid');
+        }
+        $id = muginFinalRerankNormalizeScoreId($entry['id'] ?? null);
+        if ($id === '' || !isset($expectedLookup[$id])) {
+            return $fail('scores_unknown_id');
+        }
+        if (array_key_exists($id, $rawById)) {
+            return $fail('scores_duplicate_id');
+        }
+        $relevance = muginFinalRerankParseRelevance($entry['relevance']);
+        if ($relevance === null) {
+            return $fail('scores_relevance_out_of_range');
+        }
+        $rawById[$id] = $relevance;
+    }
+    if (count($rawById) !== count($expectedIds)) {
+        return $fail('scores_count_mismatch');
+    }
+    return ['ok' => true, 'reason' => '', 'rawById' => $rawById];
+}
+
+/**
+ * Cached raw scores are a map of id => relevance. null means the cache entry
+ * does not match the current ids and the model must be called.
+ *
+ * @param array<mixed,mixed> $rawById
+ * @param array<int,string> $expectedIds
+ * @return array<string,int>|null
+ */
+function muginFinalRerankNormalizeRawScoreMap(array $rawById, array $expectedIds): ?array
+{
+    $normalized = [];
+    foreach ($rawById as $id => $relevance) {
+        $normalizedId = muginFinalRerankNormalizeScoreId($id);
+        $parsed = muginFinalRerankParseRelevance($relevance);
+        if ($normalizedId === '' || $parsed === null || array_key_exists($normalizedId, $normalized)) {
+            return null;
+        }
+        $normalized[$normalizedId] = $parsed;
+    }
+    if (count($normalized) !== count($expectedIds)) {
+        return null;
+    }
+    foreach ($expectedIds as $expectedId) {
+        if (!array_key_exists($expectedId, $normalized)) {
+            return null;
+        }
+    }
+    return $normalized;
+}
+
+/**
+ * Bubble an id upward only while its capped score leads the neighbor by at
+ * least $minGap and the moving id is not retracted. A gap of 0 or 1 stays put.
+ *
+ * @param array<int,string> $idsInOrder
+ * @param array<string,int> $cappedById
+ * @param array<string,bool> $retractedById
+ * @return array<int,string>
+ */
+function muginFinalRerankOrderByRelevanceMargin(
+    array $idsInOrder,
+    array $cappedById,
+    array $retractedById,
+    int $minGap = 2
+): array {
+    $ordered = array_values($idsInOrder);
+    $count = count($ordered);
+    for ($i = 1; $i < $count; $i++) {
+        $j = $i;
+        while (
+            $j > 0
+            && empty($retractedById[$ordered[$j]])
+            && array_key_exists($ordered[$j], $cappedById)
+            && array_key_exists($ordered[$j - 1], $cappedById)
+            && $cappedById[$ordered[$j]] >= $cappedById[$ordered[$j - 1]] + $minGap
+        ) {
+            $swap = $ordered[$j - 1];
+            $ordered[$j - 1] = $ordered[$j];
+            $ordered[$j] = $swap;
+            $j--;
+        }
+    }
+    return $ordered;
+}

@@ -1019,12 +1019,21 @@ components:
           nullable: true
           additionalProperties: false
           description: >
-            Optional additive rerank diagnostics from the unified/legacy candidate merge.
-            Present only when score data exists. Reflects quality/RRF scores before any
-            LLM finalRerank permutation of page order.
+            Optional rerank diagnostics. combinedScore and the breakdown are the
+            hybrid score from before the LLM final rerank. llmScore is the 0-10
+            score from that final rerank when it ran. llmScoreRaw is present only
+            when an empty abstract lowered the model score.
           properties:
             combinedScore:
               type: number
+            llmScore:
+              type: integer
+              nullable: true
+              description: LLM relevance score from 0 to 10 after the empty-abstract cap.
+            llmScoreRaw:
+              type: integer
+              nullable: true
+              description: Model score before the empty-abstract cap.
             bestRank:
               type: integer
             sourceCount:
