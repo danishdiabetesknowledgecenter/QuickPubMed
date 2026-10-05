@@ -60,6 +60,28 @@ assertSameIds(
     '8, 7 stays in place'
 );
 assertSameIds(
+    muginFinalRerankOrderByRelevanceMargin(
+        ['a', 'b', 'c'],
+        ['a' => 2, 'c' => 10],
+        [],
+        2,
+        ['b' => true]
+    ),
+    ['a', 'b', 'c'],
+    'a missing score stays in place and cannot be passed'
+);
+assertSameIds(
+    muginFinalRerankOrderByRelevanceMargin(
+        ['a', 'c', 'b'],
+        ['a' => 2, 'c' => 10],
+        [],
+        2,
+        ['b' => true]
+    ),
+    ['c', 'a', 'b'],
+    'scored articles still reorder inside a gap before a pinned article'
+);
+assertSameIds(
     orderScores(['a', 'b'], ['a' => 0, 'b' => 10], ['a' => true, 'b' => true], ['b']),
     ['a', 'b'],
     'a retracted candidate does not bubble up'
@@ -117,5 +139,91 @@ assertTrue(
     muginFinalRerankTaskLine() === 'Score how directly each candidate answers userQuestion. Return every id once with an integer relevance from 0 to 10.',
     'the task line is the English score instruction'
 );
+assertTrue(muginFinalRerankModelUsesDecisions('policy/mugin-gpt-decisions-latency') === true, 'a decisions model id selects the decisions payload');
+assertTrue(muginFinalRerankModelUsesDecisions('policy/mugin-gpt-small-latency') === false, 'a chat model id keeps the chat payload');
+assertTrue(count(muginFinalRerankDecisionCriteria()) === 10, 'the decision scale has ten English steps');
+assertTrue(
+    muginFinalRerankParseDecisionScoreText('{"relevance":{"score":6.94}}') === 7,
+    'a decimal decision score rounds to the nearest step'
+);
+$decisionAnswer = muginFinalRerankParseDecisionAnswer('{"relevance":{"score":3.08,"confidence":0.1}}');
+assertTrue(
+    $decisionAnswer === ['score' => 3, 'confidence' => 0.1],
+    'a decision answer keeps the rounded score and the confidence'
+);
+assertSameIds(
+    muginFinalRerankOrderByRelevanceMargin(
+        ['a', 'b', 'c'],
+        ['a' => 8, 'b' => 8, 'c' => 9],
+        [],
+        2,
+        [],
+        muginFinalRerankPromotedIdMap(
+            ['a' => 8, 'b' => 8, 'c' => 9],
+            ['c' => 0.9],
+            0.75,
+            8
+        )
+    ),
+    ['c', 'a', 'b'],
+    'a high-confidence score at the cutoff moves ahead of the earlier articles'
+);
+assertSameIds(
+    muginFinalRerankOrderByRelevanceMargin(
+        ['a', 'b', 'c'],
+        ['a' => 8, 'b' => 8, 'c' => 9],
+        [],
+        2,
+        [],
+        muginFinalRerankPromotedIdMap(
+            ['a' => 8, 'b' => 8, 'c' => 9],
+            ['c' => 0.1],
+            0.75,
+            8
+        )
+    ),
+    ['a', 'b', 'c'],
+    'a low-confidence high score stays where the margin rule leaves it'
+);
+assertSameIds(
+    muginFinalRerankOrderByRelevanceMargin(
+        ['a', 'c', 'b'],
+        ['a' => 8, 'c' => 9, 'b' => 4],
+        [],
+        2,
+        [],
+        ['a' => true, 'c' => true]
+    ),
+    ['c', 'a', 'b'],
+    'promoted articles sort by score'
+);
+assertSameIds(
+    muginFinalRerankOrderByRelevanceMargin(
+        ['a', 'c', 'b'],
+        ['a' => 8, 'c' => 8, 'b' => 4],
+        [],
+        2,
+        [],
+        ['a' => true, 'c' => true]
+    ),
+    ['a', 'c', 'b'],
+    'promoted articles with the same score keep their previous order'
+);
+assertSameIds(
+    muginFinalRerankOrderByRelevanceMargin(
+        ['a', 'b', 'c'],
+        ['b' => 4, 'c' => 9],
+        [],
+        2,
+        ['a' => true],
+        ['c' => true]
+    ),
+    ['a', 'c', 'b'],
+    'a promoted article does not pass a pinned article'
+);
+$decisionInstructions = muginFinalRerankDecisionInstructions('hvad virker mod svær astma', 'severe asthma');
+assertTrue(strpos($decisionInstructions, 'How directly does this article answer the user question?') === 0, 'decision instructions start in English');
+assertTrue(strpos($decisionInstructions, 'hvad virker mod svær astma') !== false, 'the user question is inserted without translation');
+assertTrue(strpos(muginFinalRerankArticleInputText('A title', '', []), 'hvad virker') === false, 'the article text does not contain the user question');
 
 echo "All final-rerank margin checks passed\n";

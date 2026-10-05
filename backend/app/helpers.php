@@ -2455,19 +2455,87 @@ function muginFinalRerankNormalizeRawScoreMap(array $rawById, array $expectedIds
 /**
  * Bubble an id upward only while its capped score leads the neighbor by at
  * least $minGap and the moving id is not retracted. A gap of 0 or 1 stays put.
+ * Pinned ids stay where they are and cannot be passed. Scored ids reorder
+ * only inside the gaps between pinned ids. Promoted ids move to the front of
+ * their gap, highest score first, with the previous order breaking ties.
  *
  * @param array<int,string> $idsInOrder
  * @param array<string,int> $cappedById
  * @param array<string,bool> $retractedById
+ * @param array<string,bool> $pinnedById
+ * @param array<string,bool> $promotedById
  * @return array<int,string>
  */
 function muginFinalRerankOrderByRelevanceMargin(
     array $idsInOrder,
     array $cappedById,
     array $retractedById,
-    int $minGap = 2
+    int $minGap = 2,
+    array $pinnedById = [],
+    array $promotedById = []
 ): array {
-    $ordered = array_values($idsInOrder);
+    $ordered = [];
+    $segment = [];
+    $flush = static function () use (&$segment, &$ordered, $cappedById, $retractedById, $minGap, $promotedById): void {
+        if ($segment === []) {
+            return;
+        }
+        $ordered = array_merge(
+            $ordered,
+            muginFinalRerankOrderScoreSegment($segment, $cappedById, $retractedById, $minGap, $promotedById)
+        );
+        $segment = [];
+    };
+    foreach (array_values($idsInOrder) as $id) {
+        if (!empty($pinnedById[$id])) {
+            $flush();
+            $ordered[] = $id;
+            continue;
+        }
+        $segment[] = $id;
+    }
+    $flush();
+    return $ordered;
+}
+
+/**
+ * @param array<int,string> $idsInOrder
+ * @param array<string,int> $cappedById
+ * @param array<string,bool> $retractedById
+ * @param array<string,bool> $promotedById
+ * @return array<int,string>
+ */
+function muginFinalRerankOrderScoreSegment(
+    array $idsInOrder,
+    array $cappedById,
+    array $retractedById,
+    int $minGap,
+    array $promotedById = []
+): array {
+    $promoted = [];
+    $rest = [];
+    foreach (array_values($idsInOrder) as $id) {
+        if (!empty($promotedById[$id]) && empty($retractedById[$id]) && array_key_exists($id, $cappedById)) {
+            $promoted[] = $id;
+            continue;
+        }
+        $rest[] = $id;
+    }
+    $promotedRows = [];
+    foreach ($promoted as $index => $id) {
+        $promotedRows[] = ['id' => $id, 'index' => $index, 'score' => $cappedById[$id]];
+    }
+    usort($promotedRows, static function (array $left, array $right): int {
+        if ($left['score'] !== $right['score']) {
+            return $right['score'] <=> $left['score'];
+        }
+        return $left['index'] <=> $right['index'];
+    });
+    $promotedIds = [];
+    foreach ($promotedRows as $row) {
+        $promotedIds[] = $row['id'];
+    }
+    $ordered = array_values($rest);
     $count = count($ordered);
     for ($i = 1; $i < $count; $i++) {
         $j = $i;
@@ -2484,5 +2552,225 @@ function muginFinalRerankOrderByRelevanceMargin(
             $j--;
         }
     }
-    return $ordered;
+    return array_merge($promotedIds, $ordered);
+}
+
+/**
+ * A decisions article is promoted when both the capped score and the model
+ * confidence clear the configured bars. Chat scores have no confidence.
+ *
+ * @param array<string,int> $cappedById
+ * @param array<string,mixed> $confidenceById
+ * @param array<string,bool> $retractedById
+ * @return array<string,bool>
+ */
+function muginFinalRerankPromotedIdMap(
+    array $cappedById,
+    array $confidenceById,
+    float $minConfidence,
+    int $cutoffScore,
+    array $retractedById = []
+): array {
+    $promoted = [];
+    foreach ($cappedById as $id => $score) {
+        if (!empty($retractedById[$id]) || !array_key_exists($id, $confidenceById)) {
+            continue;
+        }
+        $confidence = $confidenceById[$id];
+        if (is_bool($confidence) || !is_numeric($confidence)) {
+            continue;
+        }
+        if ((float) $confidence >= $minConfidence && (int) $score >= $cutoffScore) {
+            $promoted[(string) $id] = true;
+        }
+    }
+    return $promoted;
+}
+
+function muginFinalRerankModelUsesDecisions(string $model): bool
+{
+    return strpos(strtolower(trim($model)), 'decisions') !== false;
+}
+
+/**
+ * Ten English labels, lowest first. The answer index is the 0-9 score.
+ * Decision models reject more than 10 levels.
+ *
+ * @return array<int,string>
+ */
+function muginFinalRerankDecisionCriteria(): array
+{
+    return [
+        'different topic',
+        'shares a word with the question but answers something else',
+        'between a shared word and the same condition with a different population or intervention',
+        'same condition, but a different population or intervention',
+        'between a different population or intervention and an indirect answer',
+        'same question, answered only indirectly',
+        'between an indirect answer and an answer with the right population and intervention',
+        'answers the question, with the right population and intervention',
+        'between the right population and intervention and a direct answer',
+        'directly answers the question on population, intervention, and outcome',
+    ];
+}
+
+function muginFinalRerankDecisionInstructions(string $userQuestion, string $retrievalQuery): string
+{
+    $lines = [
+        'How directly does this article answer the user question?',
+        'User question: ' . $userQuestion,
+    ];
+    $retrievalQuery = trim($retrievalQuery);
+    if ($retrievalQuery !== '') {
+        $lines[] = 'The databases were searched with this retrieval query. Use it only to see why the article was retrieved. Do not treat its keywords as extra topics the user asked for: ' . $retrievalQuery;
+    }
+    $lines[] = 'Score this article alone. Do not score journal prestige, citation counts, publication type, or recency. Publication type and study design matter only when they change whether the article answers the user question.';
+    $lines[] = 'Missing topics must not lower the article.';
+    return implode("\n", $lines);
+}
+
+/**
+ * @param array<int,array<string,mixed>> $topics
+ */
+function muginFinalRerankArticleInputText(string $title, string $abstract, array $topics = []): string
+{
+    $lines = ['Title: ' . trim($title)];
+    $abstract = trim($abstract);
+    if ($abstract !== '') {
+        $lines[] = 'Abstract: ' . $abstract;
+    }
+    $topicLabels = [];
+    foreach ($topics as $topic) {
+        if (!is_array($topic)) {
+            continue;
+        }
+        $label = trim((string) ($topic['label'] ?? ''));
+        if ($label === '') {
+            continue;
+        }
+        $source = trim((string) ($topic['source'] ?? ''));
+        $topicLabels[] = $source !== '' ? $label . ' (' . $source . ')' : $label;
+    }
+    if ($topicLabels !== []) {
+        $lines[] = 'Topics: ' . implode('; ', $topicLabels);
+    }
+    return implode("\n", $lines);
+}
+
+/**
+ * @return array<string,mixed>
+ */
+function muginFinalRerankBuildDecisionRequest(
+    string $model,
+    string $articleText,
+    string $userQuestion,
+    string $retrievalQuery,
+    int $maxOutputTokens
+): array {
+    return [
+        'model' => $model,
+        'input' => $articleText,
+        'text' => [
+            'format' => [
+                'type' => 'questions',
+                'questions' => [
+                    'relevance' => [
+                        'type' => 'score',
+                        'instructions' => muginFinalRerankDecisionInstructions($userQuestion, $retrievalQuery),
+                        'criteria' => muginFinalRerankDecisionCriteria(),
+                    ],
+                ],
+            ],
+        ],
+        'max_output_tokens' => max(64, $maxOutputTokens),
+    ];
+}
+
+/**
+ * @return array{score:int,confidence:?float}|null
+ */
+function muginFinalRerankParseDecisionAnswer(string $text): ?array
+{
+    $parsed = json_decode($text, true);
+    if (!is_array($parsed) || !isset($parsed['relevance']) || !is_array($parsed['relevance'])) {
+        return null;
+    }
+    $value = $parsed['relevance']['score'] ?? null;
+    if (is_bool($value) || $value === null || $value === '' || !is_numeric($value)) {
+        return null;
+    }
+    $number = (float) $value;
+    if (!is_finite($number)) {
+        return null;
+    }
+    $max = count(muginFinalRerankDecisionCriteria()) - 1;
+    if ($number < -0.5 || $number > ($max + 0.5)) {
+        return null;
+    }
+    $confidence = null;
+    $rawConfidence = $parsed['relevance']['confidence'] ?? null;
+    if (!is_bool($rawConfidence) && is_numeric($rawConfidence)) {
+        $confidenceNumber = (float) $rawConfidence;
+        if (is_finite($confidenceNumber) && $confidenceNumber >= 0.0 && $confidenceNumber <= 1.0) {
+            $confidence = $confidenceNumber;
+        }
+    }
+    return [
+        'score' => max(0, min($max, (int) round($number))),
+        'confidence' => $confidence,
+    ];
+}
+
+function muginFinalRerankParseDecisionScoreText(string $text): ?int
+{
+    $answer = muginFinalRerankParseDecisionAnswer($text);
+    return $answer === null ? null : $answer['score'];
+}
+
+/**
+ * @param array<string,mixed> $responsePayload
+ */
+function muginFinalRerankExtractResponseText(array $responsePayload): string
+{
+    if (isset($responsePayload['output_text']) && is_string($responsePayload['output_text'])) {
+        $direct = trim($responsePayload['output_text']);
+        if ($direct !== '') {
+            return $direct;
+        }
+    }
+    $parts = [];
+    $outputs = isset($responsePayload['output']) && is_array($responsePayload['output'])
+        ? $responsePayload['output']
+        : [];
+    foreach ($outputs as $output) {
+        if (!is_array($output)) {
+            continue;
+        }
+        $outputType = strtolower(trim((string) ($output['type'] ?? '')));
+        if (in_array($outputType, ['reasoning', 'summary'], true)) {
+            continue;
+        }
+        $contentItems = isset($output['content']) && is_array($output['content']) ? $output['content'] : [];
+        foreach ($contentItems as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $itemType = strtolower(trim((string) ($item['type'] ?? '')));
+            if (in_array($itemType, ['reasoning', 'summary_text'], true)) {
+                continue;
+            }
+            $text = $item['text'] ?? ($item['content'] ?? '');
+            if (is_array($text)) {
+                $text = $text['value'] ?? ($text['text'] ?? '');
+            }
+            if (is_string($text) && trim($text) !== '') {
+                $parts[] = trim($text);
+            }
+        }
+    }
+    if ($parts !== []) {
+        return trim(implode("\n", $parts));
+    }
+    $choice = $responsePayload['choices'][0]['message']['content'] ?? null;
+    return is_string($choice) ? trim($choice) : '';
 }

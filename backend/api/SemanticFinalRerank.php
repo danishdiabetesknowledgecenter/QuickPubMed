@@ -10,6 +10,7 @@ if (!file_exists($configPath)) {
 }
 require_once $configPath;
 require_once __DIR__ . '/NlmApiHelpers.php';
+require_once dirname(__DIR__) . '/app/public-search-lib.php';
 
 muginApplyNlmCorsHeaders('POST, OPTIONS', 'application/json');
 muginEnforceFirstPartyIpRateLimit('openaiProxy');
@@ -170,7 +171,6 @@ if ($userQuestion === '' || count($candidates) < 2) {
 }
 
 $candidateCount = count($candidates);
-$schema = muginFinalRerankScoreSchema($candidateCount);
 $modelCandidates = [];
 foreach ($candidates as $candidate) {
     $modelCandidate = [
@@ -183,126 +183,71 @@ foreach ($candidates as $candidate) {
     }
     $modelCandidates[] = $modelCandidate;
 }
-
-$systemPrompt = implode("\n", muginFinalRerankSystemPromptLines());
-
-$userPayload = [
-    'userQuestion' => $userQuestion,
-    'retrievalQuery' => $retrievalQuery,
-    'task' => muginFinalRerankTaskLine(),
-    'candidates' => $modelCandidates,
-];
-
 $domain = muginResolveDomain();
 if (!muginIsLlmConfigured($domain)) {
     muginSemanticRerankRespond(500, ['error' => 'LLM provider is not configured']);
 }
-$openAiApiUrl = muginGetOpenAIApiUrl($domain);
-
 if ($model === '') {
     muginSemanticRerankRespond(500, ['error' => 'OpenAI model is not configured for finalRerank']);
 }
-
-$openAiRequest = muginNormalizeLlmRequestPayload([
-    'model' => $model,
-    'input' => [
-        ['role' => 'system', 'content' => $systemPrompt],
-        [
-            'role' => 'user',
-            'content' => json_encode($userPayload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-        ],
-    ],
-    'reasoning' => function_exists('muginResponsesReasoningFromSettings')
-        ? muginResponsesReasoningFromSettings($reasoningEffort, $finalRerankTask['reasoningSummary'] ?? null)
-        : ['effort' => $reasoningEffort],
-    'text' => [
-        'verbosity' => 'low',
-        'format' => [
-            'type' => 'json_schema',
-            'name' => 'semantic_final_rerank',
-            'strict' => true,
-            'schema' => $schema,
-        ],
-    ],
-    'max_output_tokens' => $maxOutputTokens > 0 ? $maxOutputTokens : 400,
-]);
-
-$headers = muginBuildLlmHttpHeaders($domain);
-
-$modelsToTry = [$model];
-$fallbackModel = trim((string) ($finalRerankTask['fallbackModel'] ?? ''));
-if ($fallbackModel !== '' && $fallbackModel !== $model) {
-    $modelsToTry[] = $fallbackModel;
+$candidatesById = [];
+foreach ($modelCandidates as $modelCandidate) {
+    $candidatesById[(string) $modelCandidate['id']] = $modelCandidate;
 }
-$decodedResponse = null;
-$lastFailure = ['error' => 'OpenAI request failed'];
-foreach ($modelsToTry as $attemptModel) {
-    $openAiRequest['model'] = function_exists('muginFormatLlmModelForProvider')
-        ? muginFormatLlmModelForProvider($attemptModel)
-        : $attemptModel;
-    $ch = curl_init($openAiApiUrl);
-    curl_setopt_array($ch, [
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => json_encode($openAiRequest),
-        CURLOPT_HTTPHEADER => $headers,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 60,
-    ]);
-    $rawResponse = curl_exec($ch);
-    $curlError = curl_errno($ch) ? curl_error($ch) : '';
-    $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    if ($rawResponse === false || $curlError !== '') {
-        $lastFailure = ['error' => $curlError !== '' ? $curlError : 'OpenAI request failed'];
-        continue;
-    }
-    $decodedAttempt = json_decode($rawResponse, true);
-    if (!is_array($decodedAttempt) || $status < 200 || $status >= 300) {
-        $lastFailure = [
-            'error' => 'OpenAI request failed',
-            'status' => $status,
-            'details' => is_array($decodedAttempt) ? $decodedAttempt : substr((string) $rawResponse, 0, 500),
-        ];
-        continue;
-    }
-    $decodedResponse = $decodedAttempt;
-    break;
-}
-if (!is_array($decodedResponse)) {
-    muginSemanticRerankRespond(502, $lastFailure);
-}
-
-$responseText = muginSemanticRerankExtractText($decodedResponse);
-$parsedOutput = json_decode($responseText, true);
-if (!is_array($parsedOutput)) {
-    muginSemanticRerankRespond(502, [
-        'error' => 'OpenAI did not return valid JSON output',
-        'raw' => $responseText,
-    ]);
-}
-
 $expectedIds = array_values(array_map(
     static function (array $candidate): string {
         return $candidate['id'];
     },
     $candidates
 ));
-$validated = muginFinalRerankValidateRawScores($parsedOutput['scores'] ?? null, $expectedIds);
-if (($validated['ok'] ?? false) !== true) {
-    muginSemanticRerankRespond(422, [
-        'error' => 'OpenAI returned invalid relevance scores',
-        'reason' => (string) ($validated['reason'] ?? 'scores_invalid'),
-        'scores' => $parsedOutput['scores'] ?? null,
-        'expectedIds' => $expectedIds,
-    ]);
+
+$attemptModels = [$model];
+$fallbackModel = trim((string) ($finalRerankTask['fallbackModel'] ?? ''));
+if ($fallbackModel !== '' && $fallbackModel !== $model) {
+    $attemptModels[] = $fallbackModel;
+}
+$rawById = [];
+$confidenceById = [];
+$pendingIds = $expectedIds;
+foreach ($attemptModels as $attemptModel) {
+    if ($pendingIds === []) {
+        break;
+    }
+    $scored = muginPublicSearchScoreFinalRerankWithModel(
+        $candidatesById,
+        $pendingIds,
+        $attemptModel,
+        $userQuestion,
+        $retrievalQuery,
+        $maxOutputTokens > 0 ? $maxOutputTokens : 400,
+        $domain,
+        $reasoningEffort,
+        $finalRerankTask['reasoningSummary'] ?? null
+    );
+    foreach ($scored['rawById'] as $scoredId => $scoredValue) {
+        $rawById[(string) $scoredId] = (int) $scoredValue;
+    }
+    foreach ((array) ($scored['confidenceById'] ?? []) as $scoredId => $confidenceValue) {
+        if (is_numeric($confidenceValue) && !is_bool($confidenceValue)) {
+            $confidenceById[(string) $scoredId] = (float) $confidenceValue;
+        }
+    }
+    $pendingIds = array_values($scored['failedIds']);
+}
+if ($rawById === []) {
+    muginSemanticRerankRespond(502, ['error' => 'OpenAI request failed']);
 }
 
 $cappedById = [];
 $retractedById = [];
+$pinnedById = [];
 foreach ($candidates as $candidate) {
+    if (!array_key_exists($candidate['id'], $rawById)) {
+        $pinnedById[$candidate['id']] = true;
+        continue;
+    }
     $capped = muginFinalRerankCapRelevance(
-        (int) $validated['rawById'][$candidate['id']],
+        (int) $rawById[$candidate['id']],
         trim((string) $candidate['abstract']) !== ''
     );
     $cappedById[$candidate['id']] = $capped['relevance'];
@@ -310,14 +255,27 @@ foreach ($candidates as $candidate) {
         $retractedById[$candidate['id']] = true;
     }
 }
+$llmConfig = muginPublicSearchGetSemanticLlmConfig();
+$promotedById = muginFinalRerankPromotedIdMap(
+    $cappedById,
+    $confidenceById,
+    (float) ($llmConfig['promoteMinConfidence'] ?? 0.75),
+    (int) ($llmConfig['promoteCutoffScore'] ?? 7),
+    $retractedById
+);
 $orderedIds = muginFinalRerankOrderByRelevanceMargin(
     $expectedIds,
     $cappedById,
     $retractedById,
-    muginFinalRerankMinScoreGap()
+    muginFinalRerankMinScoreGap(),
+    $pinnedById,
+    $promotedById
 );
 $scores = [];
 foreach ($orderedIds as $orderedId) {
+    if (!array_key_exists($orderedId, $cappedById)) {
+        continue;
+    }
     $scores[] = [
         'id' => $orderedId,
         'relevance' => $cappedById[$orderedId],
@@ -327,5 +285,7 @@ foreach ($orderedIds as $orderedId) {
 muginSemanticRerankRespond(200, [
     'orderedIds' => $orderedIds,
     'scores' => $scores,
-    'model' => $openAiRequest['model'],
+    'model' => function_exists('muginFormatLlmModelForProvider')
+        ? muginFormatLlmModelForProvider((string) ($attemptModels[0] ?? $model))
+        : $model,
 ]);

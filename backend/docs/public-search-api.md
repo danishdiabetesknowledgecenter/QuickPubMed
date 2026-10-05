@@ -438,7 +438,7 @@ API'et returnerer den endelige ordnede liste i `results`.
 }
 ```
 
-`ranking` er additivt og udelades, hvis kandidaten ikke har score-data. `combinedScore` er hybrid-scoren fra før LLM-slutrerank. `llmScore` er modellens score fra 0 til 10, når slutrerankingen har kørt. `llmScoreRaw` findes kun, når et tomt abstract har sænket den score. Resultatlisten er allerede i den rækkefølge, slutrerankingen lagde.
+`ranking` er additivt og udelades, hvis kandidaten ikke har score-data. `combinedScore` er hybrid-scoren fra før LLM-slutrerank. `llmScore` er modellens score fra 0 til 10, når slutrerankingen har kørt. `llmScoreRaw` findes kun, når et tomt abstract har sænket den score. `llmConfidence` er decisions-modellens sikkerhed fra 0 til 1, når den model har scoret artiklen. Resultatlisten er allerede i den rækkefølge, slutrerankingen lagde.
 
 ## Streaming
 

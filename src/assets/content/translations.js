@@ -805,8 +805,8 @@ export const messages = {
     en: "The results are sorted by date if you chose date sorting. In the details you see 'sortMethod' (the sort method), 'inputCount' (count before sorting) and 'outputCount' (count after).",
   },
   semanticSearchProcessDetailExplanationFinalRerank: {
-    dk: "Den endelige rækkefølge scores mod dit spørgsmål. I 'ranking' er 'llmScore' den score, modellen gav fra 0 til 10. 'combinedScore' er den tidligere hybrid-score. 'priorRank' er den gamle plads, og 'moved' siger, om rækken flyttede sig. 'llmScoreRaw' vises kun, når et tomt abstract har sænket scoren.",
-    en: "The final order is scored against your question. In 'ranking', 'llmScore' is the score the model gave from 0 to 10. 'combinedScore' is the earlier hybrid score. 'priorRank' is the previous place, and 'moved' says whether the row moved. 'llmScoreRaw' appears only when an empty abstract lowered the score.",
+    dk: "Artiklerne står i samme rækkefølge som resultatlisten. 'rank' er pladsen der. 'llmScore' er modellens score, og 'confidence' er dens sikkerhed. 'priorRank' er den gamle plads, og 'moved' siger, om den flyttede sig. 'llmScoreRaw' vises kun, når et tomt abstract har sænket scoren. 'promoted' betyder, at både confidence og score lå over grænserne i config.",
+    en: "The articles are in the same order as the result list. 'rank' is the place there. 'llmScore' is the model's score, and 'confidence' is its certainty. 'priorRank' is the previous place, and 'moved' says whether it moved. 'llmScoreRaw' appears only when an empty abstract lowered the score. 'promoted' means both confidence and score cleared the config bars.",
   },
   semanticSearchProcessDetailExplanationFinalizeSelected: {
     dk: "Det sikres, at artikler du allerede havde markeret, bevares i resultatlisten. I detaljerne ser du 'preselectedCount' (antal forhåndsmarkerede) og 'selectedCount' (antal markerede i alt).",

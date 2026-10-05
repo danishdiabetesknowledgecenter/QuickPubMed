@@ -717,6 +717,12 @@ define('MUGIN_SEMANTIC_RESCUE_CONFIG', [
 define('MUGIN_SEMANTIC_LLM_RERANK_CONFIG', [
     'enabled' => true,
     'topN' => 25,
+    'chatTopN' => 25,
+    'decisionsTopN' => 25,
+    // Decisions only. An article at or above both values moves ahead of articles
+    // that miss either bar. Prior rank breaks ties inside that group.
+    'promoteMinConfidence' => 0.75,
+    'promoteCutoffScore' => 7,
     'maxOutputTokens' => 400,
     // Cache LLM permutations by request payload so UnifiedSearch and the public
     // API reuse the same order for identical candidate sets (0 disables cache).
@@ -1020,6 +1026,10 @@ define('MUGIN_LLM_TASK_MODELS', [
             'instructions' => null,
         ],
         // LLM final rerank of semantic search results (first page).
+        // Switch by replacing model and fallbackModel. Leave the other pair in this comment.
+        // Chat:      policy/mugin-gpt-small-latency / policy/mugin-gpt-small-fallback
+        // Decisions: policy/mugin-gpt-decisions-latency / policy/mugin-gpt-decisions-fallback
+        // Article counts live in MUGIN_SEMANTIC_LLM_RERANK_CONFIG as chatTopN and decisionsTopN.
         'finalRerank' => [
             'model' => 'your-requesty-model',
             // Optional. Tried once when the model request fails. Empty disables fallback.

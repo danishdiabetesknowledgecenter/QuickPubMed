@@ -2497,31 +2497,49 @@ if (!function_exists('muginSemanticQualityComputeRecencyMultiplier')) {
     }
 }
 
+if (!function_exists('muginSemanticQualityNormalizePubTypeKey')) {
+    function muginSemanticQualityNormalizePubTypeKey($value): string
+    {
+        $lower = str_replace(['_', '-'], ' ', muginSemanticQualityNormalizeLower($value));
+        $collapsed = preg_replace('/\s+/', ' ', $lower);
+        return trim(is_string($collapsed) ? $collapsed : $lower);
+    }
+}
+
 if (!function_exists('muginSemanticQualityComputePubTypeBonus')) {
     /**
+     * Metadata types and the title/type classifier share one bonus. A title
+     * recognized as a systematic review still scores, scaled by how sure the
+     * classifier is. The higher of the two matches is kept.
+     *
      * @param array<string,mixed> $enriched
      * @param array<string,mixed> $rerankConfig
+     * @param array<string,mixed> $classification
      * @return array{value:float,matchedType:string}
      */
-    function muginSemanticQualityComputePubTypeBonus(array $enriched, array $rerankConfig): array
+    function muginSemanticQualityComputePubTypeBonus(array $enriched, array $rerankConfig, array $classification = []): array
     {
         $weights = is_array($rerankConfig['pubTypeWeights'] ?? null) ? $rerankConfig['pubTypeWeights'] : [];
-        $pubTypes = is_array($enriched['pubTypes'] ?? null) ? $enriched['pubTypes'] : [];
-        if (empty($pubTypes) || empty($weights)) {
-            return ['value' => 0.0, 'matchedType' => ''];
-        }
         $normalizedWeightMap = [];
         foreach ($weights as $key => $weight) {
             $numericWeight = muginSemanticQualityToFiniteNumber($weight);
             if ($numericWeight === null) {
                 continue;
             }
-            $normalizedWeightMap[muginSemanticQualityNormalizeLower($key)] = $numericWeight;
+            $normalizedKey = muginSemanticQualityNormalizePubTypeKey($key);
+            if ($normalizedKey === '') {
+                continue;
+            }
+            $current = $normalizedWeightMap[$normalizedKey] ?? null;
+            if ($current === null || $numericWeight > $current) {
+                $normalizedWeightMap[$normalizedKey] = $numericWeight;
+            }
         }
         $best = null;
         $matchedType = '';
+        $pubTypes = is_array($enriched['pubTypes'] ?? null) ? $enriched['pubTypes'] : [];
         foreach ($pubTypes as $type) {
-            $normalized = muginSemanticQualityNormalizeLower($type);
+            $normalized = muginSemanticQualityNormalizePubTypeKey($type);
             if ($normalized === '' || !array_key_exists($normalized, $normalizedWeightMap)) {
                 continue;
             }
@@ -2529,6 +2547,25 @@ if (!function_exists('muginSemanticQualityComputePubTypeBonus')) {
             if ($best === null || $weight > $best) {
                 $best = $weight;
                 $matchedType = $normalized;
+            }
+        }
+        $tier = muginSemanticQualityNormalizeString($classification['tier'] ?? '');
+        if ($tier === 'systematic_review_or_meta') {
+            $reviewWeight = $normalizedWeightMap['systematic review'] ?? null;
+            $metaWeight = $normalizedWeightMap['meta analysis'] ?? null;
+            $recognizedWeight = null;
+            if ($reviewWeight !== null) {
+                $recognizedWeight = $reviewWeight;
+            }
+            if ($metaWeight !== null && ($recognizedWeight === null || $metaWeight > $recognizedWeight)) {
+                $recognizedWeight = $metaWeight;
+            }
+            if ($recognizedWeight !== null) {
+                $scaled = $recognizedWeight * muginSemanticQualityResolveConfidenceCoefficient($classification['confidence'] ?? '');
+                if ($best === null || $scaled > $best) {
+                    $best = $scaled;
+                    $matchedType = 'systematic review';
+                }
             }
         }
         return ['value' => $best ?? 0.0, 'matchedType' => $matchedType];
@@ -3044,7 +3081,11 @@ if (!function_exists('muginSemanticQualityBuildScoredEntry')) {
         $enriched = is_array($entry['enriched'] ?? null) ? $entry['enriched'] : muginSemanticQualityCreateEnrichedRecord();
 
         $recencyInfo = muginSemanticQualityComputeRecencyBonus($enriched, $rerankConfig, $currentYear);
-        $pubTypeInfo = muginSemanticQualityComputePubTypeBonus($enriched, $rerankConfig);
+        $pubTypeInfo = muginSemanticQualityComputePubTypeBonus(
+            $enriched,
+            $rerankConfig,
+            is_array($entry['pubTypeClassification'] ?? null) ? $entry['pubTypeClassification'] : []
+        );
         $tierBonusInfo = muginSemanticQualityComputePubTypeTierBonus(is_array($entry['pubTypeClassification'] ?? null) ? $entry['pubTypeClassification'] : [], $rerankConfig);
         $oaBonus = muginSemanticQualityComputeOpenAccessBonus($enriched, $rerankConfig);
         $clinicalInfo = muginSemanticQualityComputeClinicalBonus($enriched, $rerankConfig);
