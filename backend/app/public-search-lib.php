@@ -12254,7 +12254,10 @@ if (!function_exists('muginPublicSearchEntrezDateFromPubMedSummary')) {
     {
         $history = $summary['history'] ?? null;
         if (is_array($history)) {
-            if (array_is_list($history)) {
+            $historyIsList = function_exists('array_is_list')
+                ? array_is_list($history)
+                : ($history === [] || array_keys($history) === range(0, count($history) - 1));
+            if ($historyIsList) {
                 foreach ($history as $item) {
                     if (!is_array($item)) {
                         continue;
