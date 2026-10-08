@@ -1039,11 +1039,10 @@ components:
             when an empty abstract lowered the model score. llmConfidence is the
             decisions-model confidence from 0 to 1 when that model scored the article.
             matchPercent is 0 to 100 from the same boosted score that orders the list.
-            It is saturated as 100 * score / (score + pivot). The pivot is one
-            third of a strong realistic article: rank 1 in the strongest selected
-            source, the single strongest quality bonus, and a decisions score of
-            7.5 at full confidence. That article is 75 percent. A higher score
-            approaches 100.
+            It is saturated as 100 * score / (score + pivot). The pivot is chosen
+            so a strong realistic article is 90 percent: rank 1 in the strongest
+            selected source, the single strongest quality bonus, and a decisions
+            score of 7.5 at full confidence. A higher score approaches 100.
           properties:
             combinedScore:
               type: number
@@ -1066,7 +1065,7 @@ components:
               description: >
                 Saturated share of the sort score. Rank 1 in the strongest selected
                 source, with the strongest single quality bonus and a decisions
-                score of 7.5 at full confidence, is 75. Higher scores approach 100.
+                score of 7.5 at full confidence, is 90. Higher scores approach 100.
             bestRank:
               type: integer
             sourceCount:

@@ -2238,19 +2238,12 @@ ul.mugin_resetList > li {
   display: flex;
   align-items: center;
   column-gap: 10px;
+  width: 100%;
 }
 
-.mugin_resultSelectColumn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex: 0 0 40px;
-  width: 40px;
-  margin-left: -40px;
-}
-
-.mugin_resultSelectColumn input.mugin_selectArticleCheckbox[type="checkbox"] {
-  margin: 2px 0 0 0 !important;
+.mugin_resultTopMeta .mugin_resultentryDate {
+  margin: 0;
+  flex: 1 1 auto;
 }
 
 .mugin_ResultEntry .mugin_resultMatchPercent {
@@ -2259,11 +2252,13 @@ ul.mugin_resetList > li {
   line-height: 1.1;
   color: var(--color-text-secondary);
   text-align: center;
+  cursor: help;
 }
 
-.mugin_resultMatchPercentMobile {
+.mugin_ResultEntry .mugin_resultMatchPercentMobile {
   margin-left: auto;
   text-align: right;
+  flex: 0 0 auto;
 }
 
 .mugin_resultentryDateMobile {

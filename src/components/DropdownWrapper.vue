@@ -396,6 +396,7 @@
     getTelemetryThresholds,
   } from "@/utils/muginTelemetry.js";
   import { getPromptForLocale } from "@/utils/promptsHelpers.js";
+  import { postJsonWithModelFallback } from "@/utils/openAiTaskSettings.js";
   import { customInputTagTooltip } from "@/utils/contentHelpers.js";
   import {
     areComparableIdsEqual,
@@ -6397,12 +6398,10 @@
               () => translationController.abort(),
               TRANSLATION_REQUEST_TIMEOUT_MS
             );
-            response = await fetch(openAiServiceUrl, {
-              method: "POST",
+            response = await postJsonWithModelFallback(openAiServiceUrl, requestBody, {
               headers: {
                 "Content-Type": "application/json",
               },
-              body: JSON.stringify(requestBody),
               signal: translationController.signal,
             });
           } finally {

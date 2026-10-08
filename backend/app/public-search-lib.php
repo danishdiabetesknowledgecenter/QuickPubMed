@@ -4460,6 +4460,30 @@ if (!function_exists('muginPublicSearchOpenAiRequest')) {
     }
 }
 
+if (!function_exists('muginPublicSearchOpenAiRequestWithModelFallback')) {
+    /**
+     * Tries the request model, then the task fallback from config when that call fails.
+     *
+     * @param array<string,mixed> $request
+     */
+    function muginPublicSearchOpenAiRequestWithModelFallback(array $request, string $domain, string $fallbackModel): array
+    {
+        try {
+            return muginPublicSearchOpenAiRequest($request, $domain);
+        } catch (Throwable $exception) {
+            $fallbackModel = trim($fallbackModel);
+            $primary = trim((string) ($request['model'] ?? ''));
+            // No fallback model is not itself a fatal error. The original
+            // failure is returned to the caller, which keeps a non-model reserve.
+            if ($fallbackModel === '' || strcasecmp($fallbackModel, $primary) === 0) {
+                throw $exception;
+            }
+            $request['model'] = $fallbackModel;
+            return muginPublicSearchOpenAiRequest($request, $domain);
+        }
+    }
+}
+
 if (!function_exists('muginPublicSearchExtractOpenAiText')) {
     /**
      * @param array<string,mixed> $responsePayload
@@ -4981,7 +5005,11 @@ if (!function_exists('muginPublicSearchExtractSemanticIntent')) {
                 'max_output_tokens' => (int) ($taskSettings['maxOutputTokens'] ?? 0),
             ];
             try {
-                $response = muginPublicSearchOpenAiRequest($requestPayload, $domain);
+                $response = muginPublicSearchOpenAiRequestWithModelFallback(
+                    $requestPayload,
+                    $domain,
+                    (string) ($taskSettings['fallbackModel'] ?? '')
+                );
                 $text = muginPublicSearchExtractOpenAiText($response);
                 if (
                     $text === ''
@@ -5007,6 +5035,7 @@ if (!function_exists('muginPublicSearchExtractSemanticIntent')) {
                 $parsedIntent = muginPublicSearchLowerSemanticIntentConfidenceForCoverage($parsed, $coverageCheck);
             } catch (Throwable $exception) {
                 $parsedIntent = null;
+                break;
             }
         }
 
@@ -5758,7 +5787,11 @@ if (!function_exists('muginPublicSearchJudgePubmedClauseSample')) {
             'max_output_tokens' => (int) ($taskSettings['maxOutputTokens'] ?? 0),
         ];
         try {
-            $response = muginPublicSearchOpenAiRequest($requestPayload, $domain);
+            $response = muginPublicSearchOpenAiRequestWithModelFallback(
+                $requestPayload,
+                $domain,
+                (string) ($taskSettings['fallbackModel'] ?? '')
+            );
             $text = muginPublicSearchExtractOpenAiText($response);
             $parsed = json_decode($text, true);
             if (!is_array($parsed) || !array_key_exists('fits', $parsed)) {
@@ -6176,7 +6209,16 @@ if (!function_exists('muginPublicSearchTranslatePubMedQuery')) {
                     );
                 }
             }
-            $translationResponse = muginPublicSearchOpenAiRequest($request, $domain);
+            try {
+                $translationResponse = muginPublicSearchOpenAiRequestWithModelFallback(
+                    $request,
+                    $domain,
+                    (string) (muginGetOpenAiTaskSettings('translate')['fallbackModel'] ?? '')
+                );
+            } catch (Throwable $exception) {
+                $translated = '';
+                break;
+            }
             $translated = trim(muginPublicSearchExtractOpenAiText($translationResponse));
             $wasIncomplete = false;
             $retryPlainQuery = false;
@@ -6365,7 +6407,15 @@ if (!function_exists('muginPublicSearchTranslateSemanticQuery')) {
             $normalizedText,
             $language
         );
-        return muginPublicSearchExtractOpenAiText(muginPublicSearchOpenAiRequest($request, $domain));
+        try {
+            return muginPublicSearchExtractOpenAiText(muginPublicSearchOpenAiRequestWithModelFallback(
+                $request,
+                $domain,
+                (string) (muginGetOpenAiTaskSettings('translate')['fallbackModel'] ?? '')
+            ));
+        } catch (Throwable $exception) {
+            return '';
+        }
     }
 }
 
@@ -9227,11 +9277,15 @@ if (!function_exists('muginPublicSearchFetchPubMedSummaryRecords')) {
         $chunkSize = 200;
         for ($index = 0; $index < count($missingPmids); $index += $chunkSize) {
             $chunk = array_slice($missingPmids, $index, $chunkSize);
-            $payload = muginPublicSearchNlmGetJson('esummary.fcgi', [
-                'db' => 'pubmed',
-                'retmode' => 'json',
-                'id' => implode(',', $chunk),
-            ], $domain);
+            try {
+                $payload = muginPublicSearchNlmGetJson('esummary.fcgi', [
+                    'db' => 'pubmed',
+                    'retmode' => 'json',
+                    'id' => implode(',', $chunk),
+                ], $domain);
+            } catch (Throwable $exception) {
+                break;
+            }
             $summaryResult = isset($payload['result']) && is_array($payload['result']) ? $payload['result'] : [];
             foreach ($chunk as $pmid) {
                 if (isset($summaryResult[$pmid]) && is_array($summaryResult[$pmid])) {
@@ -9311,12 +9365,16 @@ if (!function_exists('muginPublicSearchFetchPubMedAbstractMap')) {
         $chunkSize = 100;
         for ($index = 0; $index < count($missingPmids); $index += $chunkSize) {
             $chunk = array_slice($missingPmids, $index, $chunkSize);
-            $xmlPayload = muginPublicSearchNlmGetXml('efetch.fcgi', [
+            try {
+                $xmlPayload = muginPublicSearchNlmGetXml('efetch.fcgi', [
                 'db' => 'pubmed',
                 'id' => implode(',', $chunk),
                 'retmode' => 'xml',
                 'rettype' => 'abstract',
             ], $domain);
+            } catch (Throwable $exception) {
+                break;
+            }
             if (trim($xmlPayload) === '') {
                 continue;
             }
@@ -9435,7 +9493,11 @@ if (!function_exists('muginPublicSearchFetchPubMedBestMatchSourceResult')) {
             return $empty;
         }
         $searchLimit = muginPublicSearchGetSemanticSourceLimit('pubmedBestMatch', 200);
-        $search = muginPublicSearchFetchPubMedSearchIds($normalizedQuery, $searchLimit, 'relevance', $domain);
+        try {
+            $search = muginPublicSearchFetchPubMedSearchIds($normalizedQuery, $searchLimit, 'relevance', $domain);
+        } catch (Throwable $exception) {
+            return muginPublicSearchCreateEmptySourceResult('pubmed', $normalizedQuery, $exception->getMessage());
+        }
         $nlmWarning = implode('; ', (array) ($search['nlmWarnings'] ?? []));
         if (empty($search['pmids'])) {
             $empty['total'] = $search['searchCount'];
@@ -11656,14 +11718,29 @@ if (!function_exists('muginPublicSearchResolveOrderedSearchPmids')) {
                 ],
             ];
         }
-        $search = muginPublicSearchNlmGetJson('esearch.fcgi', [
-            'db' => 'pubmed',
-            'retmode' => 'json',
-            'retmax' => count($orderedPmids),
-            'retstart' => 0,
-            'sort' => $sortMethod,
-            'term' => $validationQuery,
-        ], $domain);
+        try {
+            $search = muginPublicSearchNlmGetJson('esearch.fcgi', [
+                'db' => 'pubmed',
+                'retmode' => 'json',
+                'retmax' => count($orderedPmids),
+                'retstart' => 0,
+                'sort' => $sortMethod,
+                'term' => $validationQuery,
+            ], $domain);
+        } catch (Throwable $exception) {
+            return [
+                'count' => count($orderedPmids),
+                'orderedIds' => $orderedPmids,
+                'validationQuery' => $validationQuery,
+                'diagnostics' => [
+                    'requestedCount' => $requestedCount,
+                    'matchedCount' => count($orderedPmids),
+                    'unmatchedCount' => 0,
+                    'sortMethod' => $sortMethod,
+                    'warning' => $exception->getMessage(),
+                ],
+            ];
+        }
         $matchedIds = muginPublicSearchDedupeStrings(
             (array) ($search['esearchresult']['idlist'] ?? []),
             'muginPublicSearchNormalizePmid'
@@ -13384,9 +13461,9 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
             $pivotScore = (float) ($rankOne['weightedRrf'] ?? 0);
         }
         // Score 7.5 is the middle of a strong answer. That article is shown as
-        // 75%: score / (score + score/3) = 0.75. Higher scores approach 100.
+        // 90%: score / (score + score * 0.10/0.90) = 0.90. Higher scores approach 100.
         $referenceScore = $pivotScore * muginFinalRerankDecisionBoostFactor(7.5, 1.0, $decisionWeight);
-        $matchPivot = $referenceScore / 3.0;
+        $matchPivot = $referenceScore * 0.10 / 0.90;
         $applyRawScores = static function (array $rawById, array $confidenceById = [], array $scoreExactById = []) use (
             $requestCandidates,
             $deferredEntries,

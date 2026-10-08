@@ -20,7 +20,7 @@ import {
   executionIntentCheckPrompt,
 } from "@/assets/prompts/searchflow.js";
 import { getPromptForLocale } from "@/utils/promptsHelpers.js";
-import { applyOpenAiTaskSettings } from "@/utils/openAiTaskSettings.js";
+import { applyOpenAiTaskSettings, postJsonWithModelFallback } from "@/utils/openAiTaskSettings.js";
 
 function envNumber(name, fallback) {
   const raw = import.meta.env?.[name];
@@ -801,10 +801,10 @@ async function callAiStreaming(promptOrText, title, openAiServiceUrl, client, ta
     client: client,
   };
 
-  const response = await fetch(openAiServiceUrl + "/api/TranslateTitle.php", {
-    method: "POST",
-    body: JSON.stringify(requestBody),
-  });
+  const response = await postJsonWithModelFallback(
+    openAiServiceUrl + "/api/TranslateTitle.php",
+    requestBody
+  );
 
   if (!response.ok) {
     let errorBody;
@@ -1211,15 +1211,15 @@ async function validateSearchString(
         continue;
       }
 
-      // No new candidate can be produced -> stop retrying.
-      break;
+      // No new candidate can be produced. Keep the current string so a failed
+      // model, with or without a fallback model, does not abort the search.
+      return candidate;
     }
 
-    // Hard fail: never return an unvalidated final query to the form.
-    throw new Error("Could not produce a PubMed-valid query without errors/warnings.");
+    return candidate;
   } catch (error) {
-    console.error("Final search string validation failed hard:", error.message);
-    throw error;
+    console.error("Final search string validation failed:", error.message);
+    return searchString;
   }
 }
 
@@ -1292,13 +1292,19 @@ async function aiFixSearchString(searchString, issues, openAiServiceUrl, client,
   const prompt = localePrompt.prompt
     .replace(/\{searchString\}/g, searchString)
     .replace(/\{issues\}/g, `- ${issuesText}`);
-  return callAiStreaming(
-    { ...localePrompt, prompt },
-    "",
-    openAiServiceUrl,
-    client,
-    "mesh"
-  );
+  try {
+    const fixed = await callAiStreaming(
+      { ...localePrompt, prompt },
+      "",
+      openAiServiceUrl,
+      client,
+      "mesh"
+    );
+    return String(fixed || "").trim() || searchString;
+  } catch (error) {
+    console.warn("|MeSH Validation| AI fix failed:", error?.message || error);
+    return searchString;
+  }
 }
 
 async function aiCheckIntentCoverage(intentText, searchString, openAiServiceUrl, client, language = "dk") {
@@ -1309,14 +1315,20 @@ async function aiCheckIntentCoverage(intentText, searchString, openAiServiceUrl,
     .replace(/\{intentText\}/g, intentText)
     .replace(/\{searchString\}/g, searchString);
 
-  const answer = await callAiStreaming(
-    { ...localePrompt, prompt },
-    "",
-    openAiServiceUrl,
-    client,
-    "searchflow"
-  );
-  return /^yes\b/i.test((answer || "").trim());
+  try {
+    const answer = await callAiStreaming(
+      { ...localePrompt, prompt },
+      "",
+      openAiServiceUrl,
+      client,
+      "searchflow"
+    );
+    if (!String(answer || "").trim()) return true;
+    return /^yes\b/i.test(String(answer).trim());
+  } catch (error) {
+    console.warn("|Search flow| Intent check failed:", error?.message || error);
+    return true;
+  }
 }
 
 async function aiAlignToIntent(intentText, searchString, openAiServiceUrl, client, language = "dk") {
@@ -1327,13 +1339,19 @@ async function aiAlignToIntent(intentText, searchString, openAiServiceUrl, clien
     .replace(/\{intentText\}/g, intentText)
     .replace(/\{searchString\}/g, searchString);
 
-  return callAiStreaming(
-    { ...localePrompt, prompt },
-    "",
-    openAiServiceUrl,
-    client,
-    "searchflow"
-  );
+  try {
+    const aligned = await callAiStreaming(
+      { ...localePrompt, prompt },
+      "",
+      openAiServiceUrl,
+      client,
+      "searchflow"
+    );
+    return String(aligned || "").trim() || searchString;
+  } catch (error) {
+    console.warn("|Search flow| Intent alignment failed:", error?.message || error);
+    return searchString;
+  }
 }
 
 /**

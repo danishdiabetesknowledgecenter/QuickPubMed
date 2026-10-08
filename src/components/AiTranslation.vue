@@ -75,6 +75,7 @@
   import { appSettingsMixin } from "@/mixins/appSettings.js";
   import { utilitiesMixin } from "@/mixins/utilities";
   import { getPromptForLocale } from "@/utils/promptsHelpers.js";
+  import { postJsonWithModelFallback } from "@/utils/openAiTaskSettings.js";
   import { titleTranslationPrompt } from "@/assets/prompts/translation.js";
   import { extractTitleTranslationFields } from "@/utils/titleTranslationStream.js";
 
@@ -170,10 +171,7 @@
         const readData = async (url, body) => {
           let answer = "";
           try {
-            const response = await fetch(url, {
-              method: "POST",
-              body: JSON.stringify(body),
-            });
+            const response = await postJsonWithModelFallback(url, body);
             if (!response.ok) {
               let errorBody;
               try {

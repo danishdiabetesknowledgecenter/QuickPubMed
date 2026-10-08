@@ -83,12 +83,12 @@ export const utilitiesMixin = {
      * @throws {Error} - Throws an error if the fetch request fails.
      */
     async handleFetch(url, body, method = "POST") {
-      const response = await fetch(url, {
+      const { postJsonWithModelFallback } = await import("@/utils/openAiTaskSettings.js");
+      const response = await postJsonWithModelFallback(url, body, {
         method: method,
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(body),
       });
       if (!response.ok) {
         const responseBody = await response.text();

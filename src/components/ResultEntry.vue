@@ -28,37 +28,54 @@
       </p>
       <p
         v-if="canShowSelectionCheckbox && matchPercentLabel"
+        v-tooltip="{
+          content: getString('matchPercentTooltip'),
+          distance: 5,
+          delay: $helpTextDelay,
+        }"
         class="mugin_resultMatchPercent mugin_resultMatchPercentMobile"
+        tabindex="0"
       >
         {{ matchPercentLabel }}
       </p>
     </div>
-    <p v-else-if="showDate && date" class="mugin_resultentryDate">
-      {{ date }}
-    </p>
+    <div
+      v-else-if="(showDate && date) || (canShowSelectionCheckbox && matchPercentLabel)"
+      class="mugin_resultTopMeta"
+    >
+      <p v-if="showDate && date" class="mugin_resultentryDate">
+        {{ date }}
+      </p>
+      <p
+        v-if="canShowSelectionCheckbox && matchPercentLabel"
+        v-tooltip="{
+          content: getString('matchPercentTooltip'),
+          distance: 5,
+          delay: $helpTextDelay,
+        }"
+        class="mugin_resultMatchPercent mugin_resultMatchPercentMobile"
+        tabindex="0"
+      >
+        {{ matchPercentLabel }}
+      </p>
+    </div>
     <div lang="en">
       <div class="mugin_resultChangeOrder">
         <div class="d-flex">
-          <div
+          <input
             v-if="canShowSelectionCheckbox && !getComponentWidth"
-            class="mugin_resultSelectColumn"
-          >
-            <input
-              :id="'mugin_selectArticleCheckbox_' + id"
-              type="checkbox"
-              class="mugin_selectArticleCheckbox"
-              :name="'mugin_selectArticleCheckbox_' + id"
-              :checked="isChecked"
-              :value="value"
-              :aria-label="selectArticleCheckboxAriaLabel"
-              aria-describedby="mugin_selectArticleCheckboxDescription"
-              @change="updateInput"
-              @keyup.enter="changeOnEnter"
-            />
-            <p v-if="matchPercentLabel" class="mugin_resultMatchPercent">
-              {{ matchPercentLabel }}
-            </p>
-          </div>
+            :id="'mugin_selectArticleCheckbox_' + id"
+            type="checkbox"
+            class="mugin_selectArticleCheckbox"
+            style="margin-left: -40px"
+            :name="'mugin_selectArticleCheckbox_' + id"
+            :checked="isChecked"
+            :value="value"
+            :aria-label="selectArticleCheckboxAriaLabel"
+            aria-describedby="mugin_selectArticleCheckboxDescription"
+            @change="updateInput"
+            @keyup.enter="changeOnEnter"
+          />
           <div class="mugin_resultTitleWrap">
             <h3
               class="mugin_resultTitle mugin_inlineDisplay"

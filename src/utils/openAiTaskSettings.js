@@ -199,3 +199,51 @@ export function applyOpenAiTaskSettingsToList(prompts, taskKey) {
   if (!Array.isArray(prompts)) return prompts;
   return prompts.map((prompt) => applyOpenAiTaskSettings({ ...prompt }, taskKey));
 }
+
+function fallbackModelForPrompt(prompt) {
+  const current = String(prompt?.model || "").trim().toLowerCase();
+  if (!current || !config.openAiTaskModels) return "";
+  const tasks = Object.values(config.openAiTaskModels);
+  for (const settings of tasks) {
+    if (!settings || typeof settings !== "object") continue;
+    if (String(settings.model || "").trim().toLowerCase() !== current) continue;
+    const fallback = String(settings.fallbackModel || "").trim();
+    if (fallback && fallback.toLowerCase() !== current) return fallback;
+  }
+  return "";
+}
+
+/**
+ * POST JSON, then retry once with the Requesty fallback model from config
+ * when the default model call fails.
+ */
+export async function postJsonWithModelFallback(url, body, init = {}) {
+  const send = (payload) =>
+    fetch(url, {
+      method: "POST",
+      ...init,
+      body: JSON.stringify(payload),
+    });
+  const fallbackBody = () => {
+    const fallback = fallbackModelForPrompt(body?.prompt);
+    if (!fallback || !body?.prompt || typeof body.prompt !== "object") return null;
+    return { ...body, prompt: { ...body.prompt, model: fallback } };
+  };
+  let response;
+  try {
+    response = await send(body);
+  } catch (error) {
+    const retryBody = fallbackBody();
+    if (!retryBody) throw error;
+    return send(retryBody);
+  }
+  if (response.ok) return response;
+  const retryBody = fallbackBody();
+  if (!retryBody) return response;
+  try {
+    await response.body?.cancel?.();
+  } catch (_error) {
+    /* The failed response is discarded before the fallback call. */
+  }
+  return send(retryBody);
+}

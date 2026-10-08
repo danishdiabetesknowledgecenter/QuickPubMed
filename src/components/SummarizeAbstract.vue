@@ -315,7 +315,7 @@
     promptTextSingleAbstract,
   } from "@/assets/prompts/abstract";
   import { sanitizePrompt } from "@/utils/promptsHelpers.js";
-  import { applyOpenAiTaskSettings } from "@/utils/openAiTaskSettings.js";
+  import { applyOpenAiTaskSettings, postJsonWithModelFallback } from "@/utils/openAiTaskSettings.js";
   import { buildCitationMap, formatArticlesPromptBlock } from "@/utils/summaryCitations.js";
 
   export default {
@@ -812,10 +812,7 @@
           // Requesty/Kimi often sends a few prefix chars, then a long pause.
           const streamRevealMinChars = 180;
           let streamRevealStarted = false;
-          const response = await fetch(url, {
-            method: "POST",
-            body: JSON.stringify(body),
-          });
+          const response = await postJsonWithModelFallback(url, body);
 
           if (!response.ok) {
             const errorText = await response.text();

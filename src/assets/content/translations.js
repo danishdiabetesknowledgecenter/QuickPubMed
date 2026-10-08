@@ -805,8 +805,8 @@ export const messages = {
     en: "The results are sorted by date if you chose date sorting. In the details you see 'sortMethod' (the sort method), 'inputCount' (count before sorting) and 'outputCount' (count after).",
   },
   semanticSearchProcessDetailExplanationFinalRerank: {
-    dk: "Artiklerne står i samme rækkefølge som resultatlisten. 'rank' er pladsen der. 'matchPercent' er en mættet procent af den score, listen sorteres på. En artikel på plads 1 i den stærkeste kilde, med den stærkeste enkeltbonus og en decisions-score på 7,5, får 75. Højere scorer nærmer sig 100. 'llmScore' er modellens afrundede score, og 'confidence' er dens sikkerhed. 'priorRank' er den gamle plads, og 'moved' siger, om den flyttede sig. 'llmScoreRaw' vises kun, når et tomt abstract har sænket scoren.",
-    en: "The articles are in the same order as the result list. 'rank' is the place there. 'matchPercent' is a saturated percent of the score the list is sorted by. An article at rank 1 in the strongest source, with the strongest single bonus and a decisions score of 7.5, is 75. Higher scores approach 100. 'llmScore' is the model's rounded score, and 'confidence' is its certainty. 'priorRank' is the previous place, and 'moved' says whether it moved. 'llmScoreRaw' appears only when an empty abstract lowered the score.",
+    dk: "Artiklerne står i samme rækkefølge som resultatlisten. 'rank' er pladsen der. 'matchPercent' er en mættet procent af den score, listen sorteres på. En artikel på plads 1 i den stærkeste kilde, med den stærkeste enkeltbonus og en decisions-score på 7,5, får 90. Højere scorer nærmer sig 100. 'llmScore' er modellens afrundede score, og 'confidence' er dens sikkerhed. 'priorRank' er den gamle plads, og 'moved' siger, om den flyttede sig. 'llmScoreRaw' vises kun, når et tomt abstract har sænket scoren.",
+    en: "The articles are in the same order as the result list. 'rank' is the place there. 'matchPercent' is a saturated percent of the score the list is sorted by. An article at rank 1 in the strongest source, with the strongest single bonus and a decisions score of 7.5, is 90. Higher scores approach 100. 'llmScore' is the model's rounded score, and 'confidence' is its certainty. 'priorRank' is the previous place, and 'moved' says whether it moved. 'llmScoreRaw' appears only when an empty abstract lowered the score.",
   },
   semanticSearchProcessDetailExplanationFinalizeSelected: {
     dk: "Det sikres, at artikler du allerede havde markeret, bevares i resultatlisten. I detaljerne ser du 'preselectedCount' (antal forhåndsmarkerede) og 'selectedCount' (antal markerede i alt).",
@@ -1567,6 +1567,10 @@ export const messages = {
   hoverOpenDOIButton: {
     dk: "Få adgang til artiklen på tidsskriftets hjemmeside &ndash; muligvis mod betaling (åbner i nyt vindue)",
     en: "Get access to the article on the journal website &ndash; access charges may apply (opens in a new tab)",
+  },
+  matchPercentTooltip: {
+    dk: "Artiklens samlede relevans. 90 % er en stærk træffer: plads 1 i den stærkeste database, den stærkeste enkeltbonus og en modelsikkerhed svarende til scoren 7,5. Højere tal nærmer sig 100.",
+    en: "The article's overall relevance. 90% is a strong match: rank 1 in the strongest database, the strongest single bonus, and a model score of 7.5 with full confidence. Higher numbers approach 100.",
   },
   hoverSearchString: {
     dk: "Redigér søgestrengen. Klik Søg for at køre søgningen med den redigerede streng.",
